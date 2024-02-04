@@ -364,6 +364,8 @@ class MessagesManager final : public Actor {
 
   void delete_dialog_messages_by_sender(DialogId dialog_id, DialogId sender_dialog_id, Promise<Unit> &&promise);
 
+  static Status fix_delete_message_min_max_dates(int32 &min_date, int32 &max_date);
+
   void delete_dialog_messages_by_date(DialogId dialog_id, int32 min_date, int32 max_date, bool revoke,
                                       Promise<Unit> &&promise);
 
@@ -531,33 +533,6 @@ class MessagesManager final : public Actor {
                              Promise<td_api::object_ptr<td_api::chats>> &&promise);
 
   void read_all_dialogs_from_list(DialogListId dialog_list_id, Promise<Unit> &&promise, bool is_recursive = false);
-
-  void get_pinned_saved_messages_topics(Promise<td_api::object_ptr<td_api::foundSavedMessagesTopics>> &&promise);
-
-  void get_saved_messages_topics(const string &offset, int32 limit,
-                                 Promise<td_api::object_ptr<td_api::foundSavedMessagesTopics>> &&promise);
-
-  void on_get_saved_messages_topics(telegram_api::object_ptr<telegram_api::messages_SavedDialogs> &&saved_dialogs_ptr,
-                                    Promise<td_api::object_ptr<td_api::foundSavedMessagesTopics>> &&promise);
-
-  void get_saved_messages_topic_history(SavedMessagesTopicId saved_messages_topic_id, MessageId from_message_id,
-                                        int32 offset, int32 limit,
-                                        Promise<td_api::object_ptr<td_api::messages>> &&promise);
-
-  void delete_saved_messages_topic_history(SavedMessagesTopicId saved_messages_topic_id, Promise<Unit> &&promise);
-
-  void get_saved_messages_topic_message_by_date(SavedMessagesTopicId saved_messages_topic_id, int32 date,
-                                                Promise<td_api::object_ptr<td_api::message>> &&promise);
-
-  void delete_saved_messages_topic_messages_by_date(SavedMessagesTopicId saved_messages_topic_id, int32 min_date,
-                                                    int32 max_date, Promise<Unit> &&promise);
-
-  void toggle_saved_messages_topic_is_pinned(SavedMessagesTopicId saved_messages_topic_id, bool is_pinned,
-                                             Promise<Unit> &&promise);
-
-  void set_pinned_saved_messages_topics(vector<SavedMessagesTopicId> saved_messages_topic_ids, Promise<Unit> &&promise);
-
-  void on_update_pinned_saved_messages_topics();
 
   vector<DialogId> search_public_dialogs(const string &query, Promise<Unit> &&promise);
 
@@ -787,6 +762,11 @@ class MessagesManager final : public Actor {
 
   vector<MessageId> get_dialog_scheduled_messages(DialogId dialog_id, bool force, bool ignore_result,
                                                   Promise<Unit> &&promise);
+
+  using AffectedHistoryQuery = std::function<void(DialogId, Promise<AffectedHistory>)>;
+
+  void run_affected_history_query_until_complete(DialogId dialog_id, AffectedHistoryQuery query,
+                                                 bool get_affected_messages, Promise<Unit> &&promise);
 
   Result<td_api::object_ptr<td_api::availableReactions>> get_message_available_reactions(MessageFullId message_full_id,
                                                                                          int32 row_size);
@@ -1959,11 +1939,6 @@ class MessagesManager final : public Actor {
 
   void unpin_all_dialog_messages_on_server(DialogId dialog_id, uint64 log_event_id, Promise<Unit> &&promise);
 
-  using AffectedHistoryQuery = std::function<void(DialogId, Promise<AffectedHistory>)>;
-
-  void run_affected_history_query_until_complete(DialogId dialog_id, AffectedHistoryQuery query,
-                                                 bool get_affected_messages, Promise<Unit> &&promise);
-
   void on_get_affected_history(DialogId dialog_id, AffectedHistoryQuery query, bool get_affected_messages,
                                AffectedHistory affected_history, Promise<Unit> &&promise);
 
@@ -2690,8 +2665,6 @@ class MessagesManager final : public Actor {
 
   void on_get_dialog_message_by_date_from_database(DialogId dialog_id, int32 date, int64 random_id,
                                                    Result<MessageDbDialogMessage> result, Promise<Unit> promise);
-
-  static Status fix_delete_message_min_max_dates(int32 &min_date, int32 &max_date);
 
   std::pair<bool, int32> get_dialog_mute_until(DialogId dialog_id, const Dialog *d) const;
 

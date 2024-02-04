@@ -55,6 +55,7 @@
 #include "td/telegram/ReactionListType.h"
 #include "td/telegram/ReactionManager.h"
 #include "td/telegram/ReactionType.h"
+#include "td/telegram/SavedMessagesManager.h"
 #include "td/telegram/ScheduledServerMessageId.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/SecretChatsManager.h"
@@ -4047,12 +4048,12 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedDialogs> 
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateSavedDialogPinned> update, Promise<Unit> &&promise) {
-  td_->messages_manager_->on_update_pinned_saved_messages_topics();
+  td_->saved_messages_manager_->on_update_pinned_saved_messages_topics();
   promise.set_value(Unit());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedSavedDialogs> update, Promise<Unit> &&promise) {
-  td_->messages_manager_->on_update_pinned_saved_messages_topics();
+  td_->saved_messages_manager_->on_update_pinned_saved_messages_topics();
   promise.set_value(Unit());
 }
 

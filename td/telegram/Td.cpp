@@ -5058,42 +5058,42 @@ void Td::on_request(uint64 id, const td_api::getChats &request) {
 void Td::on_request(uint64 id, const td_api::getPinnedSavedMessagesTopics &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  messages_manager_->get_pinned_saved_messages_topics(std::move(promise));
+  saved_messages_manager_->get_pinned_saved_messages_topics(std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getSavedMessagesTopics &request) {
   CHECK_IS_USER();
   // don't need to check offset UTF-8 correctness
   CREATE_REQUEST_PROMISE();
-  messages_manager_->get_saved_messages_topics(request.offset_, request.limit_, std::move(promise));
+  saved_messages_manager_->get_saved_messages_topics(request.offset_, request.limit_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getSavedMessagesTopicHistory &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  messages_manager_->get_saved_messages_topic_history(SavedMessagesTopicId(this, request.saved_messages_topic_),
-                                                      MessageId(request.from_message_id_), request.offset_,
-                                                      request.limit_, std::move(promise));
+  saved_messages_manager_->get_saved_messages_topic_history(SavedMessagesTopicId(this, request.saved_messages_topic_),
+                                                            MessageId(request.from_message_id_), request.offset_,
+                                                            request.limit_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getSavedMessagesTopicMessageByDate &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  messages_manager_->get_saved_messages_topic_message_by_date(SavedMessagesTopicId(this, request.saved_messages_topic_),
-                                                              request.date_, std::move(promise));
+  saved_messages_manager_->get_saved_messages_topic_message_by_date(
+      SavedMessagesTopicId(this, request.saved_messages_topic_), request.date_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::deleteSavedMessagesTopicHistory &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->delete_saved_messages_topic_history(SavedMessagesTopicId(this, request.saved_messages_topic_),
-                                                         std::move(promise));
+  saved_messages_manager_->delete_saved_messages_topic_history(
+      SavedMessagesTopicId(this, request.saved_messages_topic_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::deleteSavedMessagesTopicMessagesByDate &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->delete_saved_messages_topic_messages_by_date(
+  saved_messages_manager_->delete_saved_messages_topic_messages_by_date(
       SavedMessagesTopicId(this, request.saved_messages_topic_), request.min_date_, request.max_date_,
       std::move(promise));
 }
@@ -5101,8 +5101,8 @@ void Td::on_request(uint64 id, const td_api::deleteSavedMessagesTopicMessagesByD
 void Td::on_request(uint64 id, const td_api::toggleSavedMessagesTopicIsPinned &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->toggle_saved_messages_topic_is_pinned(SavedMessagesTopicId(this, request.saved_messages_topic_),
-                                                           request.is_pinned_, std::move(promise));
+  saved_messages_manager_->toggle_saved_messages_topic_is_pinned(
+      SavedMessagesTopicId(this, request.saved_messages_topic_), request.is_pinned_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::setPinnedSavedMessagesTopics &request) {
@@ -5110,7 +5110,7 @@ void Td::on_request(uint64 id, const td_api::setPinnedSavedMessagesTopics &reque
   CREATE_OK_REQUEST_PROMISE();
   auto saved_messages_topic_ids = transform(request.saved_messages_topics_,
                                             [this](const auto &topic) { return SavedMessagesTopicId(this, topic); });
-  messages_manager_->set_pinned_saved_messages_topics(std::move(saved_messages_topic_ids), std::move(promise));
+  saved_messages_manager_->set_pinned_saved_messages_topics(std::move(saved_messages_topic_ids), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::searchPublicChat &request) {
