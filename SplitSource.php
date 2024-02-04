@@ -376,6 +376,7 @@ function split_file($file, $chunks, $undo) {
                 'reaction_manager[_(-](?![.]get[(][)])|ReactionManager' => 'ReactionManager',
                 'ReactionType|[a-z_]*_reaction_type' => 'ReactionType',
                 'RequestActor|RequestOnceActor' => 'RequestActor',
+                'saved_messages_manager[_(-](?![.]get[(][)])|SavedMessagesManager' => 'SavedMessagesManager',
                 'ScopeNotificationSettings|[a-z_]*_scope_notification_settings' => 'ScopeNotificationSettings',
                 'SecretChatActor' => 'SecretChatActor',
                 'secret_chats_manager[_(-]|SecretChatsManager' => 'SecretChatsManager',

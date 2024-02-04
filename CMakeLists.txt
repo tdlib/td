@@ -470,6 +470,7 @@ set(TDLIB_SOURCE
   td/telegram/ReportReason.cpp
   td/telegram/RequestedDialogType.cpp
   td/telegram/RestrictionReason.cpp
+  td/telegram/SavedMessagesManager.cpp
   td/telegram/SavedMessagesTopicId.cpp
   td/telegram/ScopeNotificationSettings.cpp
   td/telegram/SecretChatActor.cpp
@@ -796,6 +797,7 @@ set(TDLIB_SOURCE
   td/telegram/RequestActor.h
   td/telegram/RequestedDialogType.h
   td/telegram/RestrictionReason.h
+  td/telegram/SavedMessagesManager.h
   td/telegram/SavedMessagesTopicId.h
   td/telegram/ScheduledServerMessageId.h
   td/telegram/ScopeNotificationSettings.h
