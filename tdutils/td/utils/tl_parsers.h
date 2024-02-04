@@ -9,12 +9,10 @@
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/format.h"
-#include "td/utils/logging.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 #include "td/utils/UInt.h"
-#include "td/utils/utf8.h"
 
 #include <array>
 #include <cstring>
@@ -207,19 +205,11 @@ class TlBufferParser : public TlParser {
         c = ' ';
       }
     }
-    if (check_utf8(result)) {
+    if (is_valid_utf8(result)) {
       return result;
     }
-    CHECK(!result.empty());
-    LOG(WARNING) << "Wrong UTF-8 string [[" << result << "]] in " << format::as_hex_dump<4>(parent_->as_slice());
-
-    // trying to remove last character
-    size_t new_size = result.size() - 1;
-    while (new_size != 0 && !is_utf8_character_first_code_unit(static_cast<unsigned char>(result[new_size]))) {
-      new_size--;
-    }
-    result.resize(new_size);
-    if (check_utf8(result)) {
+    result.resize(last_utf8_character_position(result));
+    if (is_valid_utf8(result)) {
       return result;
     }
 
@@ -235,6 +225,10 @@ class TlBufferParser : public TlParser {
   const BufferSlice *parent_;
 
   BufferSlice as_buffer_slice(Slice slice);
+
+  bool is_valid_utf8(CSlice str) const;
+
+  static size_t last_utf8_character_position(Slice str);
 };
 
 template <>

@@ -6,7 +6,9 @@
 //
 #include "td/utils/tl_parsers.h"
 
+#include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/utf8.h"
 
 namespace td {
 
@@ -53,6 +55,23 @@ BufferSlice TlBufferParser::as_buffer_slice(Slice slice) {
     return parent_->from_slice(slice);
   }
   return BufferSlice(slice);
+}
+
+bool TlBufferParser::is_valid_utf8(CSlice str) const {
+  if (check_utf8(str)) {
+    return true;
+  }
+  LOG(WARNING) << "Wrong UTF-8 string [[" << str << "]] in " << format::as_hex_dump<4>(parent_->as_slice());
+  return false;
+}
+
+size_t TlBufferParser::last_utf8_character_position(Slice str) {
+  CHECK(!str.empty());
+  size_t position = str.size() - 1;
+  while (position != 0 && !is_utf8_character_first_code_unit(static_cast<unsigned char>(str[position]))) {
+    position--;
+  }
+  return position;
 }
 
 }  // namespace td
