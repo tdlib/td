@@ -13,6 +13,7 @@
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/OptionManager.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
@@ -748,11 +749,23 @@ void SavedMessagesManager::delete_saved_messages_topic_messages_by_date(SavedMes
                                                                     std::move(promise));
 }
 
+int32 SavedMessagesManager::get_pinned_saved_messages_topic_limit() const {
+  return clamp(narrow_cast<int32>(td_->option_manager_->get_option_integer("pinned_saved_messages_topic_count_max")), 0,
+               1000);
+}
+
 void SavedMessagesManager::toggle_saved_messages_topic_is_pinned(SavedMessagesTopicId saved_messages_topic_id,
                                                                  bool is_pinned, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_status(td_));
   if (!are_pinned_saved_messages_topics_inited_) {
     return promise.set_error(Status::Error(400, "Pinned Saved Messages topics must be loaded first"));
+  }
+  if (get_topic(saved_messages_topic_id) == nullptr) {
+    return promise.set_error(Status::Error(400, "Can't find Saved Messages topic"));
+  }
+  if (is_pinned && !td::contains(pinned_saved_messages_topic_ids_, saved_messages_topic_id) &&
+      static_cast<size_t>(get_pinned_saved_messages_topic_limit()) <= pinned_saved_messages_topic_ids_.size()) {
+    return promise.set_error(Status::Error(400, "The maximum number of pinned chats exceeded"));
   }
   if (!set_saved_messages_topic_is_pinned(saved_messages_topic_id, is_pinned)) {
     return promise.set_value(Unit());
@@ -764,9 +777,15 @@ void SavedMessagesManager::set_pinned_saved_messages_topics(vector<SavedMessages
                                                             Promise<Unit> &&promise) {
   for (const auto &saved_messages_topic_id : saved_messages_topic_ids) {
     TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_status(td_));
+    if (get_topic(saved_messages_topic_id) == nullptr) {
+      return promise.set_error(Status::Error(400, "Can't find Saved Messages topic"));
+    }
   }
   if (!are_pinned_saved_messages_topics_inited_) {
     return promise.set_error(Status::Error(400, "Pinned Saved Messages topics must be loaded first"));
+  }
+  if (static_cast<size_t>(get_pinned_saved_messages_topic_limit()) < saved_messages_topic_ids.size()) {
+    return promise.set_error(Status::Error(400, "The maximum number of pinned chats exceeded"));
   }
   if (!set_pinned_saved_messages_topics(saved_messages_topic_ids)) {
     return promise.set_value(Unit());

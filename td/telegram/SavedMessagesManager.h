@@ -86,6 +86,8 @@ class SavedMessagesManager final : public Actor {
 
   bool set_saved_messages_topic_is_pinned(SavedMessagesTopic *topic, bool is_pinned);
 
+  int32 get_pinned_saved_messages_topic_limit() const;
+
   void on_topic_changed(SavedMessagesTopicId saved_messages_topic_id, SavedMessagesTopic *topic);
 
   Td *td_;
