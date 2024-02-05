@@ -332,13 +332,14 @@ SavedMessagesManager::SavedMessagesTopic *SavedMessagesManager::add_topic(
 }
 
 void SavedMessagesManager::set_topic_last_message_id(SavedMessagesTopicId saved_messages_topic_id,
-                                                     MessageId last_message_id) {
+                                                     MessageId last_message_id, int32 last_message_date) {
   auto *topic = add_topic(saved_messages_topic_id);
-  do_set_topic_last_message_id(topic, last_message_id);
+  do_set_topic_last_message_id(topic, last_message_id, last_message_date);
   on_topic_changed(saved_messages_topic_id, topic);
 }
 
-void SavedMessagesManager::do_set_topic_last_message_id(SavedMessagesTopic *topic, MessageId last_message_id) {
+void SavedMessagesManager::do_set_topic_last_message_id(SavedMessagesTopic *topic, MessageId last_message_id,
+                                                        int32 last_message_date) {
   if (topic->last_message_id_ == last_message_id) {
     return;
   }
@@ -346,6 +347,7 @@ void SavedMessagesManager::do_set_topic_last_message_id(SavedMessagesTopic *topi
   CHECK(last_message_id == MessageId() || last_message_id.is_valid());
   LOG(INFO) << "Set last message in topic " << topic->saved_messages_topic_id_ << " to " << last_message_id;
   topic->last_message_id_ = last_message_id;
+  topic->last_message_date_ = last_message_date;
   topic->is_changed_ = true;
 }
 
@@ -356,7 +358,7 @@ void SavedMessagesManager::on_topic_message_deleted(SavedMessagesTopicId saved_m
     return;
   }
 
-  do_set_topic_last_message_id(topic, MessageId());
+  do_set_topic_last_message_id(topic, MessageId(), 0);
 
   on_topic_changed(saved_messages_topic_id, topic);
 
@@ -516,18 +518,18 @@ void SavedMessagesManager::on_get_saved_messages_topics(
                                                                   "on_get_saved_messages_topics");
     message_id_to_message.erase(it);
 
-    if (full_message_id.get_dialog_id() != DialogId() &&
-        full_message_id.get_dialog_id() != td_->dialog_manager_->get_my_dialog_id()) {
-      LOG(ERROR) << "Can't add last " << last_message_id << " to " << saved_messages_topic_id;
+    if (full_message_id.get_dialog_id() != td_->dialog_manager_->get_my_dialog_id()) {
+      if (full_message_id.get_dialog_id() != DialogId()) {
+        LOG(ERROR) << "Can't add last " << last_message_id << " to " << saved_messages_topic_id;
+      }
       total_count--;
       continue;
-    } else {
-      CHECK(full_message_id.get_message_id() == last_topic_message_id);
     }
+    CHECK(full_message_id.get_message_id() == last_topic_message_id);
 
     auto *topic = add_topic(saved_messages_topic_id);
-    if (last_topic_message_id.is_valid() && topic->last_message_id_ == MessageId()) {
-      do_set_topic_last_message_id(topic, last_topic_message_id);
+    if (topic->last_message_id_ == MessageId()) {
+      do_set_topic_last_message_id(topic, last_topic_message_id, message_date);
     }
     on_topic_changed(saved_messages_topic_id, topic);
 
@@ -674,7 +676,9 @@ void SavedMessagesManager::on_get_saved_messages_topic_history(
   auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
   vector<td_api::object_ptr<td_api::message>> messages;
   MessageId last_message_id;
+  int32 last_message_date = 0;
   for (auto &message : info.messages) {
+    auto message_date = MessagesManager::get_message_date(message);
     auto full_message_id = td_->messages_manager_->on_get_message(std::move(message), false, false, false,
                                                                   "on_get_saved_messages_topic_history");
     auto dialog_id = full_message_id.get_dialog_id();
@@ -687,6 +691,7 @@ void SavedMessagesManager::on_get_saved_messages_topic_history(
     }
     if (!last_message_id.is_valid()) {
       last_message_id = full_message_id.get_message_id();
+      last_message_date = message_date;
     }
     messages.push_back(
         td_->messages_manager_->get_message_object(full_message_id, "on_get_saved_messages_topic_history"));
@@ -694,10 +699,10 @@ void SavedMessagesManager::on_get_saved_messages_topic_history(
   if (from_message_id == MessageId::max()) {
     auto *topic = add_topic(saved_messages_topic_id);
     if (info.messages.empty()) {
-      do_set_topic_last_message_id(topic, MessageId());
+      do_set_topic_last_message_id(topic, MessageId(), 0);
     } else {
       if (last_message_id.is_valid() && topic->last_message_id_ == MessageId()) {
-        do_set_topic_last_message_id(topic, last_message_id);
+        do_set_topic_last_message_id(topic, last_message_id, last_message_date);
       }
     }
     on_topic_changed(saved_messages_topic_id, topic);

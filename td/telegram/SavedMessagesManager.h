@@ -24,7 +24,8 @@ class SavedMessagesManager final : public Actor {
  public:
   SavedMessagesManager(Td *td, ActorShared<> parent);
 
-  void set_topic_last_message_id(SavedMessagesTopicId saved_messages_topic_id, MessageId last_message_id);
+  void set_topic_last_message_id(SavedMessagesTopicId saved_messages_topic_id, MessageId last_message_id,
+                                 int32 last_message_date);
 
   void on_topic_message_deleted(SavedMessagesTopicId saved_messages_topic_id, MessageId message_id);
 
@@ -62,6 +63,7 @@ class SavedMessagesManager final : public Actor {
   struct SavedMessagesTopic {
     SavedMessagesTopicId saved_messages_topic_id_;
     MessageId last_message_id_;
+    int32 last_message_date_ = 0;
     int64 pinned_order_ = 0;
     bool is_changed_ = true;
   };
@@ -76,7 +78,7 @@ class SavedMessagesManager final : public Actor {
                                            Result<MessagesInfo> &&r_info,
                                            Promise<td_api::object_ptr<td_api::messages>> &&promise);
 
-  void do_set_topic_last_message_id(SavedMessagesTopic *topic, MessageId last_message_id);
+  void do_set_topic_last_message_id(SavedMessagesTopic *topic, MessageId last_message_id, int32 last_message_date);
 
   int64 get_next_pinned_saved_messages_topic_order();
 

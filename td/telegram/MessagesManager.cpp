@@ -32730,7 +32730,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   if (!td_->auth_manager_->is_bot() && from_update && m->saved_messages_topic_id.is_valid()) {
     CHECK(dialog_id == td_->dialog_manager_->get_my_dialog_id());
-    td_->saved_messages_manager_->set_topic_last_message_id(m->saved_messages_topic_id, m->message_id);
+    td_->saved_messages_manager_->set_topic_last_message_id(m->saved_messages_topic_id, m->message_id, m->date);
   }
 
   result_message->debug_source = source;
