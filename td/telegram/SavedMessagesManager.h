@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/MessageId.h"
+#include "td/telegram/MessagesInfo.h"
 #include "td/telegram/SavedMessagesTopicId.h"
 #include "td/telegram/td_api.h"
 
@@ -67,6 +68,10 @@ class SavedMessagesManager final : public Actor {
   SavedMessagesTopic *get_topic(SavedMessagesTopicId saved_messages_topic_id);
 
   SavedMessagesTopic *add_topic(SavedMessagesTopicId saved_messages_topic_id);
+
+  void on_get_saved_messages_topic_history(SavedMessagesTopicId saved_messages_topic_id, MessageId from_message_id,
+                                           Result<MessagesInfo> &&r_info,
+                                           Promise<td_api::object_ptr<td_api::messages>> &&promise);
 
   void do_set_topic_last_message_id(SavedMessagesTopic *topic, MessageId last_message_id);
 
