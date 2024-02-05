@@ -33,7 +33,8 @@ class SavedMessagesManager final : public Actor {
   void get_saved_messages_topics(const string &offset, int32 limit,
                                  Promise<td_api::object_ptr<td_api::foundSavedMessagesTopics>> &&promise);
 
-  void on_get_saved_messages_topics(telegram_api::object_ptr<telegram_api::messages_SavedDialogs> &&saved_dialogs_ptr,
+  void on_get_saved_messages_topics(bool is_pinned,
+                                    telegram_api::object_ptr<telegram_api::messages_SavedDialogs> &&saved_dialogs_ptr,
                                     Promise<td_api::object_ptr<td_api::foundSavedMessagesTopics>> &&promise);
 
   void get_saved_messages_topic_history(SavedMessagesTopicId saved_messages_topic_id, MessageId from_message_id,
@@ -61,6 +62,7 @@ class SavedMessagesManager final : public Actor {
   struct SavedMessagesTopic {
     SavedMessagesTopicId saved_messages_topic_id_;
     MessageId last_message_id_;
+    int64 pinned_order_ = 0;
     bool is_changed_ = true;
   };
 
@@ -76,12 +78,25 @@ class SavedMessagesManager final : public Actor {
 
   void do_set_topic_last_message_id(SavedMessagesTopic *topic, MessageId last_message_id);
 
+  int64 get_next_pinned_saved_messages_topic_order();
+
+  bool set_pinned_saved_messages_topics(vector<SavedMessagesTopicId> added_saved_messages_topic_ids);
+
+  bool set_saved_messages_topic_is_pinned(SavedMessagesTopicId saved_messages_topic_id, bool is_pinned);
+
+  bool set_saved_messages_topic_is_pinned(SavedMessagesTopic *topic, bool is_pinned);
+
   void on_topic_changed(SavedMessagesTopicId saved_messages_topic_id, SavedMessagesTopic *topic);
 
   Td *td_;
   ActorShared<> parent_;
 
   FlatHashMap<SavedMessagesTopicId, unique_ptr<SavedMessagesTopic>, SavedMessagesTopicIdHash> saved_messages_topics_;
+
+  vector<SavedMessagesTopicId> pinned_saved_messages_topic_ids_;
+  bool are_pinned_saved_messages_topics_inited_ = false;
+
+  int64 current_pinned_saved_messages_topic_order_ = static_cast<int64>(2147000000) << 32;
 };
 
 }  // namespace td

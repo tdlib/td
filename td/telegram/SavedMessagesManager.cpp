@@ -20,6 +20,7 @@
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/format.h"
 #include "td/utils/logging.h"
 
 namespace td {
@@ -44,7 +45,7 @@ class GetPinnedSavedDialogsQuery final : public Td::ResultHandler {
 
     auto result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetPinnedSavedDialogsQuery: " << to_string(result);
-    td_->saved_messages_manager_->on_get_saved_messages_topics(std::move(result), std::move(promise_));
+    td_->saved_messages_manager_->on_get_saved_messages_topics(true, std::move(result), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -78,7 +79,7 @@ class GetSavedDialogsQuery final : public Td::ResultHandler {
 
     auto result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetSavedDialogsQuery: " << to_string(result);
-    td_->saved_messages_manager_->on_get_saved_messages_topics(std::move(result), std::move(promise_));
+    td_->saved_messages_manager_->on_get_saved_messages_topics(false, std::move(result), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -417,7 +418,7 @@ void SavedMessagesManager::get_saved_messages_topics(
 }
 
 void SavedMessagesManager::on_get_saved_messages_topics(
-    telegram_api::object_ptr<telegram_api::messages_SavedDialogs> &&saved_dialogs_ptr,
+    bool is_pinned, telegram_api::object_ptr<telegram_api::messages_SavedDialogs> &&saved_dialogs_ptr,
     Promise<td_api::object_ptr<td_api::foundSavedMessagesTopics>> &&promise) {
   CHECK(saved_dialogs_ptr != nullptr);
   int32 total_count = -1;
@@ -533,6 +534,12 @@ void SavedMessagesManager::on_get_saved_messages_topics(
         saved_messages_topic_id.get_saved_messages_topic_object(td_),
         td_->messages_manager_->get_message_object(full_message_id, "on_get_saved_messages_topics")));
   }
+
+  if (is_pinned) {
+    are_pinned_saved_messages_topics_inited_ = true;
+    set_pinned_saved_messages_topics(std::move(added_saved_messages_topic_ids));
+  }
+
   string next_offset;
   if (last_message_date > 0 && !is_last) {
     next_offset = PSTRING() << last_message_date << ',' << last_dialog_id.get() << ','
@@ -540,6 +547,79 @@ void SavedMessagesManager::on_get_saved_messages_topics(
   }
   promise.set_value(td_api::make_object<td_api::foundSavedMessagesTopics>(
       total_count, std::move(found_saved_messages_topics), next_offset));
+}
+
+int64 SavedMessagesManager::get_next_pinned_saved_messages_topic_order() {
+  current_pinned_saved_messages_topic_order_++;
+  LOG(INFO) << "Assign pinned_order = " << current_pinned_saved_messages_topic_order_;
+  return current_pinned_saved_messages_topic_order_;
+}
+
+bool SavedMessagesManager::set_pinned_saved_messages_topics(vector<SavedMessagesTopicId> saved_messages_topic_ids) {
+  if (pinned_saved_messages_topic_ids_ == saved_messages_topic_ids) {
+    return false;
+  }
+  LOG(INFO) << "Update pinned Saved Messages topics from " << pinned_saved_messages_topic_ids_ << " to "
+            << saved_messages_topic_ids;
+  FlatHashSet<SavedMessagesTopicId, SavedMessagesTopicIdHash> old_pinned_saved_messages_topic_ids;
+  for (auto pinned_saved_messages_topic_id : pinned_saved_messages_topic_ids_) {
+    old_pinned_saved_messages_topic_ids.insert(pinned_saved_messages_topic_id);
+  }
+
+  auto pinned_saved_messages_topic_ids = pinned_saved_messages_topic_ids_;
+  std::reverse(pinned_saved_messages_topic_ids.begin(), pinned_saved_messages_topic_ids.end());
+  std::reverse(saved_messages_topic_ids.begin(), saved_messages_topic_ids.end());
+  auto old_it = pinned_saved_messages_topic_ids.begin();
+  for (auto saved_messages_topic_id : saved_messages_topic_ids) {
+    old_pinned_saved_messages_topic_ids.erase(saved_messages_topic_id);
+    while (old_it < pinned_saved_messages_topic_ids.end()) {
+      if (*old_it == saved_messages_topic_id) {
+        break;
+      }
+      ++old_it;
+    }
+    if (old_it < pinned_saved_messages_topic_ids.end()) {
+      // leave saved_messages_topic where it is
+      ++old_it;
+      continue;
+    }
+    set_saved_messages_topic_is_pinned(saved_messages_topic_id, true);
+  }
+  for (auto saved_messages_topic_id : old_pinned_saved_messages_topic_ids) {
+    set_saved_messages_topic_is_pinned(saved_messages_topic_id, false);
+  }
+  return true;
+}
+
+bool SavedMessagesManager::set_saved_messages_topic_is_pinned(SavedMessagesTopicId saved_messages_topic_id,
+                                                              bool is_pinned) {
+  return set_saved_messages_topic_is_pinned(get_topic(saved_messages_topic_id), is_pinned);
+}
+
+bool SavedMessagesManager::set_saved_messages_topic_is_pinned(SavedMessagesTopic *topic, bool is_pinned) {
+  CHECK(!td_->auth_manager_->is_bot());
+  CHECK(topic != nullptr);
+  if (!are_pinned_saved_messages_topics_inited_) {
+    return false;
+  }
+  auto saved_messages_topic_id = topic->saved_messages_topic_id_;
+  if (is_pinned) {
+    if (!pinned_saved_messages_topic_ids_.empty() && pinned_saved_messages_topic_ids_[0] == saved_messages_topic_id) {
+      return false;
+    }
+    topic->pinned_order_ = get_next_pinned_saved_messages_topic_order();
+    add_to_top(pinned_saved_messages_topic_ids_, pinned_saved_messages_topic_ids_.size() + 1, saved_messages_topic_id);
+  } else {
+    if (topic->pinned_order_ == 0 || !td::remove(pinned_saved_messages_topic_ids_, saved_messages_topic_id)) {
+      return false;
+    }
+    topic->pinned_order_ = 0;
+  }
+
+  LOG(INFO) << "Set " << saved_messages_topic_id << " pinned order to " << topic->pinned_order_;
+  topic->is_changed_ = true;
+  on_topic_changed(saved_messages_topic_id, topic);
+  return true;
 }
 
 void SavedMessagesManager::get_saved_messages_topic_history(SavedMessagesTopicId saved_messages_topic_id,
@@ -671,6 +751,12 @@ void SavedMessagesManager::delete_saved_messages_topic_messages_by_date(SavedMes
 void SavedMessagesManager::toggle_saved_messages_topic_is_pinned(SavedMessagesTopicId saved_messages_topic_id,
                                                                  bool is_pinned, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_status(td_));
+  if (!are_pinned_saved_messages_topics_inited_) {
+    return promise.set_error(Status::Error(400, "Pinned Saved Messages topics must be loaded first"));
+  }
+  if (!set_saved_messages_topic_is_pinned(saved_messages_topic_id, is_pinned)) {
+    return promise.set_value(Unit());
+  }
   td_->create_handler<ToggleSavedDialogPinQuery>(std::move(promise))->send(saved_messages_topic_id, is_pinned);
 }
 
@@ -678,6 +764,12 @@ void SavedMessagesManager::set_pinned_saved_messages_topics(vector<SavedMessages
                                                             Promise<Unit> &&promise) {
   for (const auto &saved_messages_topic_id : saved_messages_topic_ids) {
     TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_status(td_));
+  }
+  if (!are_pinned_saved_messages_topics_inited_) {
+    return promise.set_error(Status::Error(400, "Pinned Saved Messages topics must be loaded first"));
+  }
+  if (!set_pinned_saved_messages_topics(saved_messages_topic_ids)) {
+    return promise.set_value(Unit());
   }
   td_->create_handler<ReorderPinnedSavedDialogsQuery>(std::move(promise))->send(std::move(saved_messages_topic_ids));
 }
