@@ -16,6 +16,8 @@
 #include "td/utils/common.h"
 #include "td/utils/Promise.h"
 
+#include <set>
+
 namespace td {
 
 class Td;
@@ -57,6 +59,8 @@ class SavedMessagesManager final : public Actor {
 
   void on_update_pinned_saved_messages_topics();
 
+  void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
+
  private:
   static constexpr int32 MAX_GET_HISTORY = 100;  // server side limit
 
@@ -65,7 +69,36 @@ class SavedMessagesManager final : public Actor {
     MessageId last_message_id_;
     int32 last_message_date_ = 0;
     int64 pinned_order_ = 0;
+    int64 private_order_ = 0;
     bool is_changed_ = true;
+  };
+
+  class TopicDate {
+    int64 order_;
+    SavedMessagesTopicId topic_id_;
+
+   public:
+    TopicDate(int64 order, SavedMessagesTopicId topic_id) : order_(order), topic_id_(topic_id) {
+    }
+
+    bool operator<(const TopicDate &other) const {
+      return order_ > other.order_ ||
+             (order_ == other.order_ && topic_id_.get_unique_id() > other.topic_id_.get_unique_id());
+    }
+
+    bool operator<=(const TopicDate &other) const {
+      return order_ > other.order_ ||
+             (order_ == other.order_ && topic_id_.get_unique_id() >= other.topic_id_.get_unique_id());
+    }
+  };
+
+  static const TopicDate MIN_TOPIC_DATE;
+  static const TopicDate MAX_TOPIC_DATE;
+
+  struct TopicList {
+    std::set<TopicDate> ordered_topics_;
+
+    TopicDate last_topic_date_ = MIN_TOPIC_DATE;  // in memory
   };
 
   void tear_down() final;
@@ -104,6 +137,8 @@ class SavedMessagesManager final : public Actor {
   bool are_pinned_saved_messages_topics_inited_ = false;
 
   int64 current_pinned_saved_messages_topic_order_ = static_cast<int64>(2147000000) << 32;
+
+  TopicList topic_list_;
 };
 
 }  // namespace td

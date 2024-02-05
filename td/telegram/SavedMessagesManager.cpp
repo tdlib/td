@@ -24,6 +24,8 @@
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 
+#include <limits>
+
 namespace td {
 
 class GetPinnedSavedDialogsQuery final : public Td::ResultHandler {
@@ -366,11 +368,29 @@ void SavedMessagesManager::on_topic_message_deleted(SavedMessagesTopicId saved_m
 }
 
 void SavedMessagesManager::on_topic_changed(SavedMessagesTopicId saved_messages_topic_id, SavedMessagesTopic *topic) {
+  CHECK(topic != nullptr);
   if (!topic->is_changed_) {
     return;
   }
 
-  // TODO send updateSavedMessagesTopic
+  if (topic->private_order_ != 0) {
+    bool is_deleted = topic_list_.ordered_topics_.erase({topic->private_order_, saved_messages_topic_id}) > 0;
+    CHECK(is_deleted);
+  }
+  if (topic->pinned_order_ != 0) {
+    topic->private_order_ = topic->pinned_order_;
+  } else if (topic->last_message_id_ != MessageId()) {
+    topic->private_order_ = (static_cast<int64>(topic->last_message_date_) << 31) +
+                            topic->last_message_id_.get_prev_server_message_id().get_server_message_id().get();
+  }
+  if (topic->private_order_ != 0) {
+    bool is_inserted = topic_list_.ordered_topics_.insert({topic->private_order_, saved_messages_topic_id}).second;
+    CHECK(is_inserted);
+  }
+
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateSavedMessagesTopic>(
+                   get_found_saved_messages_topic_object(saved_messages_topic_id, topic)));
 }
 
 void SavedMessagesManager::get_pinned_saved_messages_topics(
@@ -552,13 +572,18 @@ void SavedMessagesManager::on_get_saved_messages_topics(
 
 td_api::object_ptr<td_api::foundSavedMessagesTopic> SavedMessagesManager::get_found_saved_messages_topic_object(
     SavedMessagesTopicId saved_messages_topic_id, const SavedMessagesTopic *topic) const {
+  CHECK(topic != nullptr);
   td_api::object_ptr<td_api::message> last_message_object;
   if (topic->last_message_id_ != MessageId()) {
     last_message_object = td_->messages_manager_->get_message_object(
         {td_->dialog_manager_->get_my_dialog_id(), topic->last_message_id_}, "get_found_saved_messages_topic_object");
   }
+  auto public_order = TopicDate(topic->private_order_, saved_messages_topic_id) <= topic_list_.last_topic_date_
+                          ? topic->private_order_
+                          : static_cast<int64>(0);
   return td_api::make_object<td_api::foundSavedMessagesTopic>(
-      saved_messages_topic_id.get_saved_messages_topic_object(td_), std::move(last_message_object));
+      saved_messages_topic_id.get_saved_messages_topic_object(td_), topic->pinned_order_ != 0, public_order,
+      std::move(last_message_object));
 }
 
 int64 SavedMessagesManager::get_next_pinned_saved_messages_topic_order() {
@@ -815,5 +840,21 @@ void SavedMessagesManager::on_update_pinned_saved_messages_topics() {
 
   send_closure(G()->td(), &Td::send_update, td_api::make_object<td_api::updatePinnedSavedMessagesTopics>());
 }
+
+void SavedMessagesManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  for (const auto &it : saved_messages_topics_) {
+    const auto *topic = it.second.get();
+    updates.push_back(td_api::make_object<td_api::updateSavedMessagesTopic>(
+        get_found_saved_messages_topic_object(topic->saved_messages_topic_id_, topic)));
+  }
+}
+
+const SavedMessagesManager::TopicDate SavedMessagesManager::MIN_TOPIC_DATE{std::numeric_limits<int64>::max(),
+                                                                           SavedMessagesTopicId()};
+const SavedMessagesManager::TopicDate SavedMessagesManager::MAX_TOPIC_DATE{0, SavedMessagesTopicId()};
 
 }  // namespace td

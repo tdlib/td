@@ -1902,8 +1902,12 @@ savedMessagesTopicAuthorHidden = SavedMessagesTopic;
 savedMessagesTopicSavedFromChat chat_id:int53 = SavedMessagesTopic;
 
 
-//@description Contains information about a found Saved Messages topic @topic The topic @last_message Last message in the topic; may be null if none or unknown
-foundSavedMessagesTopic topic:SavedMessagesTopic last_message:message = FoundSavedMessagesTopic;
+//@description Contains information about a found Saved Messages topic
+//@topic The topic
+//@is_pinned True, if the topic is pinned
+//@order A parameter used to determine order of the topic in the topic list. Topics must be sorted by the order in descending order
+//@last_message Last message in the topic; may be null if none or unknown
+foundSavedMessagesTopic topic:SavedMessagesTopic is_pinned:Bool order:int64 last_message:message = FoundSavedMessagesTopic;
 
 //@description Contains a list of Saved Messages topics
 //@total_count Total number of Saved Messages topics found
@@ -6505,6 +6509,9 @@ updateChatFolders chat_folders:vector<chatFolderInfo> main_chat_list_position:in
 //@chat_id Identifier of the chat
 //@online_member_count New number of online members in the chat, or 0 if unknown
 updateChatOnlineMemberCount chat_id:int53 online_member_count:int32 = Update;
+
+//@description Basic information about a Saved Messages topic has changed @topic New information about the topic
+updateSavedMessagesTopic topic:foundSavedMessagesTopic = Update;
 
 //@description The list of pinned Saved Messages topics has changed. The app can call getPinnedSavedMessagesTopics to get the new list
 updatePinnedSavedMessagesTopics = Update;
