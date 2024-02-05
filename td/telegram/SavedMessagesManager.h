@@ -123,10 +123,10 @@ class SavedMessagesManager final : public Actor {
 
   int32 get_pinned_saved_messages_topic_limit() const;
 
-  void on_topic_changed(SavedMessagesTopicId saved_messages_topic_id, SavedMessagesTopic *topic);
+  void on_topic_changed(SavedMessagesTopic *topic);
 
   td_api::object_ptr<td_api::foundSavedMessagesTopic> get_found_saved_messages_topic_object(
-      SavedMessagesTopicId saved_messages_topic_id, const SavedMessagesTopic *topic) const;
+      const SavedMessagesTopic *topic) const;
 
   Td *td_;
   ActorShared<> parent_;
