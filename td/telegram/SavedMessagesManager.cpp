@@ -324,6 +324,7 @@ SavedMessagesManager::SavedMessagesTopic *SavedMessagesManager::add_topic(
   auto &result = saved_messages_topics_[saved_messages_topic_id];
   if (result == nullptr) {
     result = make_unique<SavedMessagesTopic>();
+    result->saved_messages_topic_id_ = saved_messages_topic_id;
   }
   return result.get();
 }
@@ -341,6 +342,7 @@ void SavedMessagesManager::do_set_topic_last_message_id(SavedMessagesTopic *topi
   }
 
   CHECK(last_message_id == MessageId() || last_message_id.is_valid());
+  LOG(INFO) << "Set last message in topic " << topic->saved_messages_topic_id_ << " to " << last_message_id;
   topic->last_message_id_ = last_message_id;
   topic->is_changed_ = true;
 }

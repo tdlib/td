@@ -59,6 +59,7 @@ class SavedMessagesManager final : public Actor {
   static constexpr int32 MAX_GET_HISTORY = 100;  // server side limit
 
   struct SavedMessagesTopic {
+    SavedMessagesTopicId saved_messages_topic_id_;
     MessageId last_message_id_;
     bool is_changed_ = true;
   };
