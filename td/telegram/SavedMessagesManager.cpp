@@ -533,9 +533,7 @@ void SavedMessagesManager::on_get_saved_messages_topics(
     }
     on_topic_changed(saved_messages_topic_id, topic);
 
-    found_saved_messages_topics.push_back(td_api::make_object<td_api::foundSavedMessagesTopic>(
-        saved_messages_topic_id.get_saved_messages_topic_object(td_),
-        td_->messages_manager_->get_message_object(full_message_id, "on_get_saved_messages_topics")));
+    found_saved_messages_topics.push_back(get_found_saved_messages_topic_object(saved_messages_topic_id, topic));
   }
 
   if (is_pinned) {
@@ -550,6 +548,17 @@ void SavedMessagesManager::on_get_saved_messages_topics(
   }
   promise.set_value(td_api::make_object<td_api::foundSavedMessagesTopics>(
       total_count, std::move(found_saved_messages_topics), next_offset));
+}
+
+td_api::object_ptr<td_api::foundSavedMessagesTopic> SavedMessagesManager::get_found_saved_messages_topic_object(
+    SavedMessagesTopicId saved_messages_topic_id, const SavedMessagesTopic *topic) const {
+  td_api::object_ptr<td_api::message> last_message_object;
+  if (topic->last_message_id_ != MessageId()) {
+    last_message_object = td_->messages_manager_->get_message_object(
+        {td_->dialog_manager_->get_my_dialog_id(), topic->last_message_id_}, "get_found_saved_messages_topic_object");
+  }
+  return td_api::make_object<td_api::foundSavedMessagesTopic>(
+      saved_messages_topic_id.get_saved_messages_topic_object(td_), std::move(last_message_object));
 }
 
 int64 SavedMessagesManager::get_next_pinned_saved_messages_topic_order() {

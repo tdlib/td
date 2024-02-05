@@ -92,6 +92,9 @@ class SavedMessagesManager final : public Actor {
 
   void on_topic_changed(SavedMessagesTopicId saved_messages_topic_id, SavedMessagesTopic *topic);
 
+  td_api::object_ptr<td_api::foundSavedMessagesTopic> get_found_saved_messages_topic_object(
+      SavedMessagesTopicId saved_messages_topic_id, const SavedMessagesTopic *topic) const;
+
   Td *td_;
   ActorShared<> parent_;
 
