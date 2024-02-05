@@ -230,14 +230,25 @@ std::string TD_TL_writer_cpp::gen_field_fetch(int field_num, const tl::arg &a, s
   }
 
   assert(!(a.flags & tl::FLAG_EXCL));
-
   assert(!(a.flags & tl::FLAG_OPT_VAR));
 
-  std::string res = "  ";
   if (a.exist_var_num != -1) {
     assert(0 <= a.exist_var_num && a.exist_var_num < static_cast<int>(vars.size()));
     assert(vars[a.exist_var_num].is_stored);
 
+    if (a.var_num == -1 && parser_type != 0) {
+      assert(a.type->get_type() == tl::NODE_TYPE_TYPE);
+      const tl::tl_tree_type *tree_type = static_cast<tl::tl_tree_type *>(a.type);
+      if (tree_type->flags & tl::FLAG_BARE && tree_type->type->name == "True") {
+        assert(is_type_bare(tree_type->type));
+        return "  " + field_name + " = (" + gen_var_name(vars[a.exist_var_num]) + " & " +
+               int_to_string(1 << a.exist_var_bit) + ") != 0;\n";
+      }
+    }
+  }
+
+  std::string res = "  ";
+  if (a.exist_var_num != -1) {
     res += "if (" + gen_var_name(vars[a.exist_var_num]) + " & " + int_to_string(1 << a.exist_var_bit) + ") { ";
   }
 

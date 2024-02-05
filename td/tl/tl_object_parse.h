@@ -32,14 +32,6 @@ class TlFetchBoxed {
   }
 };
 
-class TlFetchTrue {
- public:
-  template <class ParserT>
-  static bool parse(ParserT &parser) {
-    return true;
-  }
-};
-
 class TlFetchBool {
  public:
   template <class ParserT>
