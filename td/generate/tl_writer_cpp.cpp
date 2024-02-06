@@ -460,17 +460,24 @@ std::string TD_TL_writer_cpp::gen_field_store(const tl::arg &a, std::vector<tl::
     return "";
   }
 
-  if (a.exist_var_num >= 0 && a.var_num < 0 && a.type->get_type() == tl::NODE_TYPE_TYPE) {
-    const tl::tl_tree_type *tree_type = static_cast<tl::tl_tree_type *>(a.type);
-    if (tree_type->type->name == "True") {
-      return "";
-    }
-  }
-
   if (a.exist_var_num >= 0) {
     assert(a.exist_var_num < static_cast<int>(vars.size()));
     assert(vars[a.exist_var_num].is_stored);
 
+    if (a.var_num == -1 && a.type->get_type() == tl::NODE_TYPE_TYPE) {
+      const tl::tl_tree_type *tree_type = static_cast<tl::tl_tree_type *>(a.type);
+      if (tree_type->type->name == "True") {
+        if (storer_type == 1) {
+          return "    if (" + gen_var_name(vars[a.exist_var_num]) + " & " + int_to_string(1 << a.exist_var_bit) +
+                 ") { s.store_field(\"" + get_pretty_field_name(field_name) + "\", true); }\n";
+        } else {
+          return "";
+        }
+      }
+    }
+  }
+
+  if (a.exist_var_num >= 0) {
     res += "if (" + gen_var_name(vars[a.exist_var_num]) + " & " + int_to_string(1 << a.exist_var_bit) + ") { ";
   }
 
