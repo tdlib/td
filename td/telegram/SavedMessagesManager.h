@@ -64,6 +64,8 @@ class SavedMessagesManager final : public Actor {
  private:
   static constexpr int32 MAX_GET_HISTORY = 100;  // server side limit
 
+  static constexpr int64 MIN_PINNED_TOPIC_ORDER = static_cast<int64>(2147000000) << 32;
+
   struct SavedMessagesTopic {
     SavedMessagesTopicId saved_messages_topic_id_;
     MessageId last_message_id_;
@@ -89,6 +91,10 @@ class SavedMessagesManager final : public Actor {
     bool operator<=(const TopicDate &other) const {
       return order_ > other.order_ ||
              (order_ == other.order_ && topic_id_.get_unique_id() >= other.topic_id_.get_unique_id());
+    }
+
+    SavedMessagesTopicId get_topic_id() const {
+      return topic_id_;
     }
   };
 
@@ -123,10 +129,19 @@ class SavedMessagesManager final : public Actor {
 
   int32 get_pinned_saved_messages_topic_limit() const;
 
+  int64 get_topic_order(int32 message_date, MessageId message_id);
+
+  void set_last_topic_date(TopicDate topic_date);
+
   void on_topic_changed(SavedMessagesTopic *topic);
 
   td_api::object_ptr<td_api::foundSavedMessagesTopic> get_found_saved_messages_topic_object(
       const SavedMessagesTopic *topic) const;
+
+  td_api::object_ptr<td_api::updateSavedMessagesTopic> get_update_saved_messages_topic_object(
+      const SavedMessagesTopic *topic) const;
+
+  void send_update_saved_messages_topic(const SavedMessagesTopic *topic) const;
 
   Td *td_;
   ActorShared<> parent_;
@@ -136,7 +151,7 @@ class SavedMessagesManager final : public Actor {
   vector<SavedMessagesTopicId> pinned_saved_messages_topic_ids_;
   bool are_pinned_saved_messages_topics_inited_ = false;
 
-  int64 current_pinned_saved_messages_topic_order_ = static_cast<int64>(2147000000) << 32;
+  int64 current_pinned_saved_messages_topic_order_ = MIN_PINNED_TOPIC_ORDER;
 
   TopicList topic_list_;
 };
