@@ -6508,9 +6508,7 @@ void MessagesManager::on_external_update_message_content(MessageFullId message_f
   CHECK(m != nullptr);
   send_update_message_content(d, m, true, "on_external_update_message_content");
   // must not call on_message_changed, because the message itself wasn't changed
-  if (m->message_id == d->last_message_id) {
-    send_update_chat_last_message_impl(d, "on_external_update_message_content");
-  }
+  send_update_last_message_if_needed(d, m, "on_external_update_message_content");
   on_message_notification_changed(d, m, "on_external_update_message_content");
 }
 
@@ -28487,6 +28485,12 @@ void MessagesManager::send_update_chat_draft_message(const Dialog *d) {
   }
 }
 
+void MessagesManager::send_update_last_message_if_needed(const Dialog *d, const Message *m, const char *source) const {
+  if (m->message_id == d->last_message_id) {
+    send_update_chat_last_message_impl(d, source);
+  }
+}
+
 void MessagesManager::send_update_chat_last_message(Dialog *d, const char *source) {
   update_dialog_pos(d, source, false);
   send_update_chat_last_message_impl(d, source);
@@ -30815,10 +30819,9 @@ void MessagesManager::on_dialog_linked_channel_updated(DialogId dialog_id, Chann
   });
   LOG(INFO) << "Found discussion messages " << message_ids;
   for (auto message_id : message_ids) {
-    send_update_message_interaction_info(dialog_id, get_message(d, message_id));
-    if (message_id == d->last_message_id) {
-      send_update_chat_last_message_impl(d, "on_dialog_linked_channel_updated");
-    }
+    const Message *m = get_message(d, message_id);
+    send_update_message_interaction_info(dialog_id, m);
+    send_update_last_message_if_needed(d, m, "on_dialog_linked_channel_updated");
   }
 }
 
@@ -32905,8 +32908,8 @@ void MessagesManager::register_new_local_message_id(Dialog *d, const Message *m)
 void MessagesManager::on_message_changed(const Dialog *d, const Message *m, bool need_send_update, const char *source) {
   CHECK(d != nullptr);
   CHECK(m != nullptr);
-  if (need_send_update && m->message_id == d->last_message_id) {
-    send_update_chat_last_message_impl(d, source);
+  if (need_send_update) {
+    send_update_last_message_if_needed(d, m, source);
   }
 
   if (m->message_id == d->last_database_message_id) {

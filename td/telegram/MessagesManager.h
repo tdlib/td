@@ -2300,6 +2300,8 @@ class MessagesManager final : public Actor {
 
   void send_update_chat_draft_message(const Dialog *d);
 
+  void send_update_last_message_if_needed(const Dialog *d, const Message *m, const char *source) const;
+
   void send_update_chat_last_message(Dialog *d, const char *source);
 
   void send_update_chat_last_message_impl(const Dialog *d, const char *source) const;
