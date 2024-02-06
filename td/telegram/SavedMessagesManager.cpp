@@ -386,12 +386,15 @@ void SavedMessagesManager::on_topic_changed(SavedMessagesTopic *topic) {
     topic->private_order_ = topic->pinned_order_;
   } else if (topic->last_message_id_ != MessageId()) {
     topic->private_order_ = get_topic_order(topic->last_message_date_, topic->last_message_id_);
+  } else {
+    topic->private_order_ = 0;
   }
   if (topic->private_order_ != 0) {
     bool is_inserted =
         topic_list_.ordered_topics_.insert({topic->private_order_, topic->saved_messages_topic_id_}).second;
     CHECK(is_inserted);
   }
+  LOG(INFO) << "Update order of " << topic->saved_messages_topic_id_ << " to " << topic->private_order_;
 
   send_update_saved_messages_topic(topic);
 }
