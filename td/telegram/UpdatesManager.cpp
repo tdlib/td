@@ -4048,12 +4048,12 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedDialogs> 
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateSavedDialogPinned> update, Promise<Unit> &&promise) {
-  td_->saved_messages_manager_->on_update_pinned_saved_messages_topics();
+  td_->saved_messages_manager_->reload_pinned_saved_messages_topics();
   promise.set_value(Unit());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedSavedDialogs> update, Promise<Unit> &&promise) {
-  td_->saved_messages_manager_->on_update_pinned_saved_messages_topics();
+  td_->saved_messages_manager_->reload_pinned_saved_messages_topics();
   promise.set_value(Unit());
 }
 

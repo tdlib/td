@@ -259,11 +259,11 @@ class ToggleSavedDialogPinQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->saved_messages_manager_->on_update_pinned_saved_messages_topics();
     promise_.set_value(Unit());
   }
 
   void on_error(Status status) final {
+    td_->saved_messages_manager_->reload_pinned_saved_messages_topics();
     promise_.set_error(std::move(status));
   }
 };
@@ -296,11 +296,11 @@ class ReorderPinnedSavedDialogsQuery final : public Td::ResultHandler {
     if (!result) {
       return on_error(Status::Error(400, "Result is false"));
     }
-    td_->saved_messages_manager_->on_update_pinned_saved_messages_topics();
     promise_.set_value(Unit());
   }
 
   void on_error(Status status) final {
+    td_->saved_messages_manager_->reload_pinned_saved_messages_topics();
     promise_.set_error(std::move(status));
   }
 };
@@ -872,13 +872,13 @@ void SavedMessagesManager::set_pinned_saved_messages_topics(vector<SavedMessages
   td_->create_handler<ReorderPinnedSavedDialogsQuery>(std::move(promise))->send(std::move(saved_messages_topic_ids));
 }
 
-void SavedMessagesManager::on_update_pinned_saved_messages_topics() {
+void SavedMessagesManager::reload_pinned_saved_messages_topics() {
   if (td_->auth_manager_->is_bot()) {
     // just in case
     return;
   }
 
-  send_closure(G()->td(), &Td::send_update, td_api::make_object<td_api::updatePinnedSavedMessagesTopics>());
+  td_->create_handler<GetPinnedSavedDialogsQuery>(Auto())->send();
 }
 
 void SavedMessagesManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {

@@ -57,7 +57,7 @@ class SavedMessagesManager final : public Actor {
 
   void set_pinned_saved_messages_topics(vector<SavedMessagesTopicId> saved_messages_topic_ids, Promise<Unit> &&promise);
 
-  void on_update_pinned_saved_messages_topics();
+  void reload_pinned_saved_messages_topics();
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 

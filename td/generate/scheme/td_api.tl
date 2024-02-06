@@ -6513,9 +6513,6 @@ updateChatOnlineMemberCount chat_id:int53 online_member_count:int32 = Update;
 //@description Basic information about a Saved Messages topic has changed @topic New information about the topic
 updateSavedMessagesTopic topic:foundSavedMessagesTopic = Update;
 
-//@description The list of pinned Saved Messages topics has changed. The app can call getPinnedSavedMessagesTopics to get the new list
-updatePinnedSavedMessagesTopics = Update;
-
 //@description Basic information about a topic in a forum chat was changed @chat_id Chat identifier @info New information about the topic
 updateForumTopicInfo chat_id:int53 info:forumTopicInfo = Update;
 
