@@ -1162,16 +1162,12 @@ void AuthManager::destroy_auth_keys() {
     return;
   }
   update_state(State::DestroyingKeys);
-  auto promise = PromiseCreator::lambda([](Result<Unit> result) {
-    if (result.is_ok()) {
-      G()->net_query_dispatcher().destroy_auth_keys(PromiseCreator::lambda([](Result<Unit> result) {
-        if (result.is_ok()) {
-          send_closure_later(G()->td(), &Td::destroy);
-        }
-      }));
-    }
-  });
   G()->td_db()->get_binlog_pmc()->set("auth", "destroy");
+  G()->net_query_dispatcher().destroy_auth_keys(PromiseCreator::lambda([](Result<Unit> result) {
+    if (result.is_ok()) {
+      send_closure_later(G()->td(), &Td::destroy);
+    }
+  }));
 }
 
 void AuthManager::on_delete_account_result(NetQueryPtr &&net_query) {
