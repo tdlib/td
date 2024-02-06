@@ -319,6 +319,8 @@ void AuthManager::start_up() {
     G()->net_query_dispatcher().destroy_auth_keys(PromiseCreator::lambda([](Result<Unit> result) {
       if (result.is_ok()) {
         send_closure_later(G()->td(), &Td::destroy);
+      } else {
+        LOG(INFO) << "Failed to destroy auth keys";
       }
     }));
   }
@@ -1159,6 +1161,7 @@ void AuthManager::on_authorization_lost(string source) {
 
 void AuthManager::destroy_auth_keys() {
   if (state_ == State::Closing || state_ == State::DestroyingKeys) {
+    LOG(INFO) << "Already destroying auth keys";
     return;
   }
   update_state(State::DestroyingKeys);
@@ -1166,6 +1169,8 @@ void AuthManager::destroy_auth_keys() {
   G()->net_query_dispatcher().destroy_auth_keys(PromiseCreator::lambda([](Result<Unit> result) {
     if (result.is_ok()) {
       send_closure_later(G()->td(), &Td::destroy);
+    } else {
+      LOG(INFO) << "Failed to destroy auth keys";
     }
   }));
 }
