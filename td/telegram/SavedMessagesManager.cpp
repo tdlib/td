@@ -353,6 +353,16 @@ void SavedMessagesManager::do_set_topic_last_message_id(SavedMessagesTopic *topi
   topic->is_changed_ = true;
 }
 
+void SavedMessagesManager::on_topic_message_updated(SavedMessagesTopicId saved_messages_topic_id,
+                                                    MessageId message_id) {
+  auto *topic = get_topic(saved_messages_topic_id);
+  if (topic == nullptr || topic->last_message_id_ != message_id) {
+    return;
+  }
+
+  send_update_saved_messages_topic(topic);
+}
+
 void SavedMessagesManager::on_topic_message_deleted(SavedMessagesTopicId saved_messages_topic_id,
                                                     MessageId message_id) {
   auto *topic = get_topic(saved_messages_topic_id);

@@ -28489,6 +28489,9 @@ void MessagesManager::send_update_last_message_if_needed(const Dialog *d, const 
   if (m->message_id == d->last_message_id) {
     send_update_chat_last_message_impl(d, source);
   }
+  if (d->dialog_id == td_->dialog_manager_->get_my_dialog_id() && m->saved_messages_topic_id.is_valid()) {
+    td_->saved_messages_manager_->on_topic_message_updated(m->saved_messages_topic_id, m->message_id);
+  }
 }
 
 void MessagesManager::send_update_chat_last_message(Dialog *d, const char *source) {

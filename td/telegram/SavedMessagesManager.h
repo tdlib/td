@@ -29,6 +29,8 @@ class SavedMessagesManager final : public Actor {
   void set_topic_last_message_id(SavedMessagesTopicId saved_messages_topic_id, MessageId last_message_id,
                                  int32 last_message_date);
 
+  void on_topic_message_updated(SavedMessagesTopicId saved_messages_topic_id, MessageId message_id);
+
   void on_topic_message_deleted(SavedMessagesTopicId saved_messages_topic_id, MessageId message_id);
 
   void get_pinned_saved_messages_topics(Promise<td_api::object_ptr<td_api::foundSavedMessagesTopics>> &&promise);
