@@ -5103,9 +5103,8 @@ void Td::on_request(uint64 id, const td_api::toggleSavedMessagesTopicIsPinned &r
 void Td::on_request(uint64 id, const td_api::setPinnedSavedMessagesTopics &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  auto saved_messages_topic_ids = transform(
-      request.saved_messages_topic_ids_, [this](int64 topic) { return saved_messages_manager_->get_topic_id(topic); });
-  saved_messages_manager_->set_pinned_saved_messages_topics(std::move(saved_messages_topic_ids), std::move(promise));
+  saved_messages_manager_->set_pinned_saved_messages_topics(
+      saved_messages_manager_->get_topic_ids(request.saved_messages_topic_ids_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::searchPublicChat &request) {

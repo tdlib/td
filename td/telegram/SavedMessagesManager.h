@@ -28,6 +28,8 @@ class SavedMessagesManager final : public Actor {
 
   SavedMessagesTopicId get_topic_id(int64 topic_id) const;
 
+  vector<SavedMessagesTopicId> get_topic_ids(const vector<int64> &topic_ids) const;
+
   int64 get_saved_messages_topic_id_object(SavedMessagesTopicId saved_messages_topic_id);
 
   void set_topic_last_message_id(SavedMessagesTopicId saved_messages_topic_id, MessageId last_message_id,
