@@ -7,7 +7,6 @@
 #include "td/telegram/StoryViewer.h"
 
 #include "td/telegram/BlockListId.h"
-#include "td/telegram/DialogManager.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/StoryManager.h"

@@ -58,7 +58,7 @@ Result<MessageSelfDestructType> MessageSelfDestructType::get_message_self_destru
   }
 }
 
-td_api::object_ptr<td_api::MessageSelfDestructType> MessageSelfDestructType::get_message_self_desctruct_type_object()
+td_api::object_ptr<td_api::MessageSelfDestructType> MessageSelfDestructType::get_message_self_destruct_type_object()
     const {
   if (is_immediate()) {
     return td_api::make_object<td_api::messageSelfDestructTypeImmediately>();

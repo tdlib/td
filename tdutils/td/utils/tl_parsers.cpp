@@ -6,6 +6,7 @@
 //
 #include "td/utils/tl_parsers.h"
 
+#include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/utf8.h"

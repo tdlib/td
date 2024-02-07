@@ -41,7 +41,7 @@ void DraftMessage::store(StorerT &storer) const {
 template <class ParserT>
 void DraftMessage::parse(ParserT &parser) {
   bool has_legacy_reply_to_message_id;
-  bool has_input_message_text = true;
+  bool has_input_message_text;
   bool has_message_input_reply_to = false;
   bool has_local_content = false;
   if (parser.version() >= static_cast<int32>(Version::SupportRepliesInOtherChats)) {
@@ -53,6 +53,7 @@ void DraftMessage::parse(ParserT &parser) {
     END_PARSE_FLAGS();
   } else {
     has_legacy_reply_to_message_id = true;
+    has_input_message_text = true;
   }
   td::parse(date_, parser);
   if (has_legacy_reply_to_message_id) {

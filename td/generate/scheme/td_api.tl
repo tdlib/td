@@ -6973,7 +6973,7 @@ requestQrCodeAuthentication other_user_ids:vector<int53> = Ok;
 //@description Finishes user registration. Works only when the current authorization state is authorizationStateWaitRegistration
 //@first_name The first name of the user; 1-64 characters
 //@last_name The last name of the user; 0-64 characters
-//@disable_notification Pass true to disable notification about the current user joining Telegram for other users that added them to contacts list
+//@disable_notification Pass true to disable notification about the current user joining Telegram for other users that added them to contact list
 registerUser first_name:string last_name:string disable_notification:Bool = Ok;
 
 //@description Resets the login email address. May return an error with a message "TASK_ALREADY_EXISTS" if reset is still pending.

@@ -20,6 +20,7 @@
 
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
+#include "td/utils/tl_helpers.h"
 
 namespace td {
 
@@ -171,10 +172,10 @@ class DraftMessageContentVideoNote final : public DraftMessageContent {
     return DraftMessageContentType::VideoNote;
   }
 
-  td_api::object_ptr<td_api::InputMessageContent> get_input_message_content_object() const final {
+  td_api::object_ptr<td_api::InputMessageContent> get_draft_input_message_content_object() const final {
     return td_api::make_object<td_api::inputMessageVideoNote>(td_api::make_object<td_api::inputFileLocal>(path_),
                                                               nullptr, duration_, length_,
-                                                              ttl_.get_message_self_desctruct_type_object());
+                                                              ttl_.get_message_self_destruct_type_object());
   }
 
   template <class StorerT>
@@ -247,10 +248,10 @@ class DraftMessageContentVoiceNote final : public DraftMessageContent {
     return DraftMessageContentType::VoiceNote;
   }
 
-  td_api::object_ptr<td_api::InputMessageContent> get_input_message_content_object() const final {
+  td_api::object_ptr<td_api::InputMessageContent> get_draft_input_message_content_object() const final {
     return td_api::make_object<td_api::inputMessageVoiceNote>(td_api::make_object<td_api::inputFileLocal>(path_),
                                                               duration_, waveform_, nullptr,
-                                                              ttl_.get_message_self_desctruct_type_object());
+                                                              ttl_.get_message_self_destruct_type_object());
   }
 
   template <class StorerT>
@@ -396,7 +397,7 @@ void DraftMessage::add_dependencies(Dependencies &dependencies) const {
 td_api::object_ptr<td_api::draftMessage> DraftMessage::get_draft_message_object(Td *td) const {
   td_api::object_ptr<td_api::InputMessageContent> input_message_content;
   if (local_content_ != nullptr) {
-    input_message_content = local_content_->get_input_message_content_object();
+    input_message_content = local_content_->get_draft_input_message_content_object();
   } else {
     input_message_content = input_message_text_.get_input_message_text_object();
   }

@@ -36,7 +36,7 @@ class DraftMessageContent {
 
   virtual DraftMessageContentType get_type() const = 0;
 
-  virtual td_api::object_ptr<td_api::InputMessageContent> get_input_message_content_object() const = 0;
+  virtual td_api::object_ptr<td_api::InputMessageContent> get_draft_input_message_content_object() const = 0;
 
   virtual ~DraftMessageContent() = default;
 };

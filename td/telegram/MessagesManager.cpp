@@ -22672,7 +22672,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto has_timestamped_media = reply_to == nullptr || m->max_own_media_timestamp >= 0;
   auto reply_markup = get_reply_markup_object(td_->contacts_manager_.get(), m->reply_markup);
   auto content = get_message_message_content_object(dialog_id, m);
-  auto self_destruct_type = m->ttl.get_message_self_desctruct_type_object();
+  auto self_destruct_type = m->ttl.get_message_self_destruct_type_object();
 
   return td_api::make_object<td_api::message>(
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_message_object"),

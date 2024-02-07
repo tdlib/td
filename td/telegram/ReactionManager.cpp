@@ -23,6 +23,7 @@
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 
+#include "td/db/SqliteKeyValue.h"
 #include "td/db/SqliteKeyValueAsync.h"
 
 #include "td/utils/algorithm.h"
@@ -30,7 +31,9 @@
 #include "td/utils/FlatHashSet.h"
 #include "td/utils/logging.h"
 #include "td/utils/ScopeGuard.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
+#include "td/utils/tl_helpers.h"
 
 #include <algorithm>
 #include <type_traits>

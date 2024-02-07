@@ -10,6 +10,7 @@
 #include "td/telegram/td_api.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
 
@@ -47,7 +48,7 @@ class MessageSelfDestructType {
   static Result<MessageSelfDestructType> get_message_self_destruct_type(
       td_api::object_ptr<td_api::MessageSelfDestructType> &&self_destruct_type);
 
-  td_api::object_ptr<td_api::MessageSelfDestructType> get_message_self_desctruct_type_object() const;
+  td_api::object_ptr<td_api::MessageSelfDestructType> get_message_self_destruct_type_object() const;
 
   int32 get_input_ttl() const;
 
