@@ -105,6 +105,9 @@ class SavedMessagesManager final : public Actor {
   static const TopicDate MAX_TOPIC_DATE;
 
   struct TopicList {
+    vector<SavedMessagesTopicId> pinned_saved_messages_topic_ids_;
+    bool are_pinned_saved_messages_topics_inited_ = false;
+
     std::set<TopicDate> ordered_topics_;
 
     TopicDate last_topic_date_ = MIN_TOPIC_DATE;  // in memory
@@ -165,9 +168,6 @@ class SavedMessagesManager final : public Actor {
   ActorShared<> parent_;
 
   FlatHashMap<SavedMessagesTopicId, unique_ptr<SavedMessagesTopic>, SavedMessagesTopicIdHash> saved_messages_topics_;
-
-  vector<SavedMessagesTopicId> pinned_saved_messages_topic_ids_;
-  bool are_pinned_saved_messages_topics_inited_ = false;
 
   int64 current_pinned_saved_messages_topic_order_ = MIN_PINNED_TOPIC_ORDER;
 
