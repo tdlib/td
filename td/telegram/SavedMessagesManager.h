@@ -39,6 +39,8 @@ class SavedMessagesManager final : public Actor {
 
   void on_topic_message_deleted(SavedMessagesTopicId saved_messages_topic_id, MessageId message_id);
 
+  void on_topic_draft_message_updated(SavedMessagesTopicId saved_messages_topic_id, int32 draft_message_date);
+
   void load_saved_messages_topics(int32 limit, Promise<Unit> &&promsie);
 
   void on_get_saved_messages_topics(bool is_pinned, int32 limit,
@@ -75,6 +77,7 @@ class SavedMessagesManager final : public Actor {
     SavedMessagesTopicId saved_messages_topic_id_;
     MessageId last_message_id_;
     int32 last_message_date_ = 0;
+    int32 draft_message_date_ = 0;
     int64 pinned_order_ = 0;
     int64 private_order_ = 0;
     bool is_changed_ = false;

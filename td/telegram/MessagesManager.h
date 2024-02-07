@@ -678,6 +678,8 @@ class MessagesManager final : public Actor {
 
   td_api::object_ptr<td_api::chat> get_chat_object(DialogId dialog_id);
 
+  td_api::object_ptr<td_api::draftMessage> get_my_dialog_draft_message_object() const;
+
   tl_object_ptr<td_api::messages> get_dialog_history(DialogId dialog_id, MessageId from_message_id, int32 offset,
                                                      int32 limit, int left_tries, bool only_local,
                                                      Promise<Unit> &&promise);

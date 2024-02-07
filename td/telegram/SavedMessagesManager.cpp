@@ -356,6 +356,12 @@ SavedMessagesManager::SavedMessagesTopic *SavedMessagesManager::add_topic(
   if (result == nullptr) {
     result = make_unique<SavedMessagesTopic>();
     result->saved_messages_topic_id_ = saved_messages_topic_id;
+    if (saved_messages_topic_id == SavedMessagesTopicId(td_->dialog_manager_->get_my_dialog_id())) {
+      auto draft_message_object = td_->messages_manager_->get_my_dialog_draft_message_object();
+      if (draft_message_object != nullptr) {
+        result->draft_message_date_ = draft_message_object->date_;
+      }
+    }
     send_update_saved_messages_topic(result.get());
   }
   return result.get();
@@ -405,6 +411,19 @@ void SavedMessagesManager::on_topic_message_deleted(SavedMessagesTopicId saved_m
   get_saved_messages_topic_history(saved_messages_topic_id, MessageId(), 0, 1, Auto());
 }
 
+void SavedMessagesManager::on_topic_draft_message_updated(SavedMessagesTopicId saved_messages_topic_id,
+                                                          int32 draft_message_date) {
+  auto *topic = get_topic(saved_messages_topic_id);
+  if (topic == nullptr) {
+    return;
+  }
+
+  topic->draft_message_date_ = draft_message_date;
+  topic->is_changed_ = true;
+
+  on_topic_changed(topic);
+}
+
 int64 SavedMessagesManager::get_topic_order(int32 message_date, MessageId message_id) {
   return (static_cast<int64>(message_date) << 31) +
          message_id.get_prev_server_message_id().get_server_message_id().get();
@@ -433,6 +452,12 @@ void SavedMessagesManager::on_topic_changed(SavedMessagesTopic *topic) {
     topic->private_order_ = get_topic_order(topic->last_message_date_, topic->last_message_id_);
   } else {
     topic->private_order_ = 0;
+  }
+  if (topic->draft_message_date_ != 0) {
+    int64 draft_order = get_topic_order(topic->draft_message_date_, MessageId());
+    if (topic->private_order_ < draft_order) {
+      topic->private_order_ = draft_order;
+    }
   }
   if (topic->private_order_ != 0) {
     bool is_inserted =
@@ -655,10 +680,14 @@ td_api::object_ptr<td_api::savedMessagesTopic> SavedMessagesManager::get_saved_m
     last_message_object = td_->messages_manager_->get_message_object(
         {td_->dialog_manager_->get_my_dialog_id(), topic->last_message_id_}, "get_saved_messages_topic_object");
   }
+  td_api::object_ptr<td_api::draftMessage> draft_message_object;
+  if (topic->draft_message_date_ != 0) {
+    draft_message_object = td_->messages_manager_->get_my_dialog_draft_message_object();
+  }
   return td_api::make_object<td_api::savedMessagesTopic>(
       topic->saved_messages_topic_id_.get_unique_id(),
       topic->saved_messages_topic_id_.get_saved_messages_topic_type_object(td_), topic->pinned_order_ != 0,
-      get_topic_public_order(topic), std::move(last_message_object));
+      get_topic_public_order(topic), std::move(last_message_object), std::move(draft_message_object));
 }
 
 td_api::object_ptr<td_api::updateSavedMessagesTopic> SavedMessagesManager::get_update_saved_messages_topic_object(
@@ -670,7 +699,7 @@ void SavedMessagesManager::send_update_saved_messages_topic(const SavedMessagesT
   CHECK(topic != nullptr);
   LOG(INFO) << "Send update about " << topic->saved_messages_topic_id_ << " with order "
             << get_topic_public_order(topic) << " and last " << topic->last_message_id_ << " sent at "
-            << topic->last_message_date_;
+            << topic->last_message_date_ << " with draft at " << topic->draft_message_date_;
   send_closure(G()->td(), &Td::send_update, get_update_saved_messages_topic_object(topic));
 }
 

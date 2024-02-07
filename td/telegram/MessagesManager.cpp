@@ -19217,6 +19217,14 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(DialogId dialo
   return get_chat_object(d);
 }
 
+td_api::object_ptr<td_api::draftMessage> MessagesManager::get_my_dialog_draft_message_object() const {
+  const Dialog *d = get_dialog(td_->dialog_manager_->get_my_dialog_id());
+  if (d == nullptr) {
+    return nullptr;
+  }
+  return get_draft_message_object(td_, d->draft_message);
+}
+
 std::pair<bool, int32> MessagesManager::get_dialog_mute_until(DialogId dialog_id, const Dialog *d) const {
   CHECK(!td_->auth_manager_->is_bot());
   if (d == nullptr || !d->notification_settings.is_synchronized) {
@@ -28492,6 +28500,11 @@ void MessagesManager::send_update_chat_draft_message(const Dialog *d) {
                  td_api::make_object<td_api::updateChatDraftMessage>(
                      get_chat_id_object(d->dialog_id, "updateChatDraftMessage"),
                      get_draft_message_object(td_, d->draft_message), get_chat_positions_object(d)));
+
+    if (d->dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
+      td_->saved_messages_manager_->on_topic_draft_message_updated(
+          SavedMessagesTopicId(d->dialog_id), d->draft_message == nullptr ? 0 : d->draft_message->get_date());
+    }
   }
 }
 

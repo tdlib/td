@@ -1908,7 +1908,8 @@ savedMessagesTopicTypeSavedFromChat chat_id:int53 = SavedMessagesTopicType;
 //@is_pinned True, if the topic is pinned
 //@order A parameter used to determine order of the topic in the topic list. Topics must be sorted by the order in descending order
 //@last_message Last message in the topic; may be null if none or unknown
-savedMessagesTopic id:int53 type:SavedMessagesTopicType is_pinned:Bool order:int64 last_message:message = SavedMessagesTopic;
+//@draft_message A draft of a message in the topic; may be null if none
+savedMessagesTopic id:int53 type:SavedMessagesTopicType is_pinned:Bool order:int64 last_message:message draft_message:draftMessage = SavedMessagesTopic;
 
 
 //@description Describes a forum topic icon @color Color of the topic icon in RGB format @custom_emoji_id Unique identifier of the custom emoji shown on the topic icon; 0 if none
@@ -6434,7 +6435,7 @@ updateChatAvailableReactions chat_id:int53 available_reactions:ChatAvailableReac
 
 //@description A chat draft has changed. Be aware that the update may come in the currently opened chat but with old content of the draft. If the user has changed the content of the draft, this update mustn't be applied
 //@chat_id Chat identifier
-//@draft_message The new draft message; may be null
+//@draft_message The new draft message; may be null if none
 //@positions The new chat positions in the chat lists
 updateChatDraftMessage chat_id:int53 draft_message:draftMessage positions:vector<chatPosition> = Update;
 
