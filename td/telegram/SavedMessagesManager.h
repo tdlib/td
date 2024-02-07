@@ -165,14 +165,14 @@ class SavedMessagesManager final : public Actor {
 
   void set_last_topic_date(TopicDate topic_date);
 
-  void on_topic_changed(SavedMessagesTopic *topic);
+  void on_topic_changed(SavedMessagesTopic *topic, const char *source);
 
   td_api::object_ptr<td_api::savedMessagesTopic> get_saved_messages_topic_object(const SavedMessagesTopic *topic) const;
 
   td_api::object_ptr<td_api::updateSavedMessagesTopic> get_update_saved_messages_topic_object(
       const SavedMessagesTopic *topic) const;
 
-  void send_update_saved_messages_topic(const SavedMessagesTopic *topic) const;
+  void send_update_saved_messages_topic(const SavedMessagesTopic *topic, const char *source) const;
 
   Td *td_;
   ActorShared<> parent_;

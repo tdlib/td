@@ -362,7 +362,7 @@ SavedMessagesManager::SavedMessagesTopic *SavedMessagesManager::add_topic(
         result->draft_message_date_ = draft_message_object->date_;
       }
     }
-    send_update_saved_messages_topic(result.get());
+    send_update_saved_messages_topic(result.get(), "add_topic");
   }
   return result.get();
 }
@@ -371,7 +371,7 @@ void SavedMessagesManager::set_topic_last_message_id(SavedMessagesTopicId saved_
                                                      MessageId last_message_id, int32 last_message_date) {
   auto *topic = add_topic(saved_messages_topic_id);
   do_set_topic_last_message_id(topic, last_message_id, last_message_date);
-  on_topic_changed(topic);
+  on_topic_changed(topic, "set_topic_last_message_id");
 }
 
 void SavedMessagesManager::do_set_topic_last_message_id(SavedMessagesTopic *topic, MessageId last_message_id,
@@ -394,7 +394,7 @@ void SavedMessagesManager::on_topic_message_updated(SavedMessagesTopicId saved_m
     return;
   }
 
-  send_update_saved_messages_topic(topic);
+  send_update_saved_messages_topic(topic, "on_topic_message_updated");
 }
 
 void SavedMessagesManager::on_topic_message_deleted(SavedMessagesTopicId saved_messages_topic_id,
@@ -406,7 +406,7 @@ void SavedMessagesManager::on_topic_message_deleted(SavedMessagesTopicId saved_m
 
   do_set_topic_last_message_id(topic, MessageId(), 0);
 
-  on_topic_changed(topic);
+  on_topic_changed(topic, "on_topic_message_deleted");
 
   get_saved_messages_topic_history(saved_messages_topic_id, MessageId(), 0, 1, Auto());
 }
@@ -418,10 +418,11 @@ void SavedMessagesManager::on_topic_draft_message_updated(SavedMessagesTopicId s
     return;
   }
 
+  LOG(INFO) << "Set draft message date in topic " << topic->saved_messages_topic_id_ << " to " << draft_message_date;
   topic->draft_message_date_ = draft_message_date;
   topic->is_changed_ = true;
 
-  on_topic_changed(topic);
+  on_topic_changed(topic, "on_topic_draft_message_updated");
 }
 
 int64 SavedMessagesManager::get_topic_order(int32 message_date, MessageId message_id) {
@@ -436,7 +437,7 @@ int64 SavedMessagesManager::get_topic_public_order(const SavedMessagesTopic *top
   return 0;
 }
 
-void SavedMessagesManager::on_topic_changed(SavedMessagesTopic *topic) {
+void SavedMessagesManager::on_topic_changed(SavedMessagesTopic *topic, const char *source) {
   CHECK(topic != nullptr);
   if (!topic->is_changed_) {
     return;
@@ -464,9 +465,10 @@ void SavedMessagesManager::on_topic_changed(SavedMessagesTopic *topic) {
         topic_list_.ordered_topics_.insert({topic->private_order_, topic->saved_messages_topic_id_}).second;
     CHECK(is_inserted);
   }
-  LOG(INFO) << "Update order of " << topic->saved_messages_topic_id_ << " to " << topic->private_order_;
+  LOG(INFO) << "Update order of " << topic->saved_messages_topic_id_ << " to " << topic->private_order_ << " from "
+            << source;
 
-  send_update_saved_messages_topic(topic);
+  send_update_saved_messages_topic(topic, source);
 }
 
 void SavedMessagesManager::load_saved_messages_topics(int32 limit, Promise<Unit> &&promise) {
@@ -640,7 +642,7 @@ void SavedMessagesManager::on_get_saved_messages_topics(
     if (topic->last_message_id_ == MessageId()) {
       do_set_topic_last_message_id(topic, last_topic_message_id, message_date);
     }
-    on_topic_changed(topic);
+    on_topic_changed(topic, "on_get_saved_messages_topics");
   }
 
   if (is_pinned) {
@@ -695,11 +697,11 @@ td_api::object_ptr<td_api::updateSavedMessagesTopic> SavedMessagesManager::get_u
   return td_api::make_object<td_api::updateSavedMessagesTopic>(get_saved_messages_topic_object(topic));
 }
 
-void SavedMessagesManager::send_update_saved_messages_topic(const SavedMessagesTopic *topic) const {
+void SavedMessagesManager::send_update_saved_messages_topic(const SavedMessagesTopic *topic, const char *source) const {
   CHECK(topic != nullptr);
   LOG(INFO) << "Send update about " << topic->saved_messages_topic_id_ << " with order "
             << get_topic_public_order(topic) << " and last " << topic->last_message_id_ << " sent at "
-            << topic->last_message_date_ << " with draft at " << topic->draft_message_date_;
+            << topic->last_message_date_ << " with draft at " << topic->draft_message_date_ << " from " << source;
   send_closure(G()->td(), &Td::send_update, get_update_saved_messages_topic_object(topic));
 }
 
@@ -775,7 +777,7 @@ bool SavedMessagesManager::set_saved_messages_topic_is_pinned(SavedMessagesTopic
 
   LOG(INFO) << "Set " << saved_messages_topic_id << " pinned order to " << topic->pinned_order_;
   topic->is_changed_ = true;
-  on_topic_changed(topic);
+  on_topic_changed(topic, "set_saved_messages_topic_is_pinned");
   return true;
 }
 
@@ -789,7 +791,7 @@ void SavedMessagesManager::set_last_topic_date(TopicDate topic_date) {
        it != topic_list_.ordered_topics_.end() && *it <= topic_date; ++it) {
     auto topic = get_topic(it->get_topic_id());
     CHECK(topic != nullptr);
-    send_update_saved_messages_topic(topic);
+    send_update_saved_messages_topic(topic, "set_last_topic_date");
   }
 }
 
@@ -873,7 +875,7 @@ void SavedMessagesManager::on_get_saved_messages_topic_history(
         do_set_topic_last_message_id(topic, last_message_id, last_message_date);
       }
     }
-    on_topic_changed(topic);
+    on_topic_changed(topic, "on_get_saved_messages_topic_history");
   }
   promise.set_value(td_api::make_object<td_api::messages>(info.total_count, std::move(messages)));
 }
