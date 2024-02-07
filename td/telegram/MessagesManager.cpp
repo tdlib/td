@@ -13328,8 +13328,8 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     }
   } else {
     if (message->saved_messages_topic_id.is_valid()) {
-      LOG(ERROR) << "Receive Saved Messages topic " << message_info.saved_messages_topic_id << " for " << message_id
-                 << " in " << dialog_id;
+      LOG(ERROR) << "Receive Saved Messages " << message_info.saved_messages_topic_id << " for " << message_id << " in "
+                 << dialog_id;
       message->saved_messages_topic_id = SavedMessagesTopicId();
     }
   }

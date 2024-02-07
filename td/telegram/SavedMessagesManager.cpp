@@ -381,7 +381,7 @@ void SavedMessagesManager::do_set_topic_last_message_id(SavedMessagesTopic *topi
   }
 
   CHECK(last_message_id == MessageId() || last_message_id.is_valid());
-  LOG(INFO) << "Set last message in topic " << topic->saved_messages_topic_id_ << " to " << last_message_id;
+  LOG(INFO) << "Set last message in " << topic->saved_messages_topic_id_ << " to " << last_message_id;
   topic->last_message_id_ = last_message_id;
   topic->last_message_date_ = last_message_date;
   topic->is_changed_ = true;
@@ -415,10 +415,11 @@ void SavedMessagesManager::on_topic_draft_message_updated(SavedMessagesTopicId s
                                                           int32 draft_message_date) {
   auto *topic = get_topic(saved_messages_topic_id);
   if (topic == nullptr) {
+    LOG(INFO) << "Updated draft in unknown " << saved_messages_topic_id;
     return;
   }
 
-  LOG(INFO) << "Set draft message date in topic " << topic->saved_messages_topic_id_ << " to " << draft_message_date;
+  LOG(INFO) << "Set draft message date in " << topic->saved_messages_topic_id_ << " to " << draft_message_date;
   topic->draft_message_date_ = draft_message_date;
   topic->is_changed_ = true;
 
@@ -442,6 +443,7 @@ void SavedMessagesManager::on_topic_changed(SavedMessagesTopic *topic, const cha
   if (!topic->is_changed_) {
     return;
   }
+  topic->is_changed_ = false;
 
   if (topic->private_order_ != 0) {
     bool is_deleted = topic_list_.ordered_topics_.erase({topic->private_order_, topic->saved_messages_topic_id_}) > 0;
