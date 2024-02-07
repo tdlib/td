@@ -498,7 +498,7 @@ class MessageChatSetTtl final : public MessageContent {
 
 class MessageUnsupported final : public MessageContent {
  public:
-  static constexpr int32 CURRENT_VERSION = 28;
+  static constexpr int32 CURRENT_VERSION = 29;
   int32 version = CURRENT_VERSION;
 
   MessageUnsupported() = default;
@@ -1088,6 +1088,19 @@ class MessageExpiredVoiceNote final : public MessageContent {
   }
 };
 
+class MessageBoostApply final : public MessageContent {
+ public:
+  int32 boost_count = 0;
+
+  MessageBoostApply() = default;
+  explicit MessageBoostApply(int32 boost_count) : boost_count(boost_count) {
+  }
+
+  MessageContentType get_type() const final {
+    return MessageContentType::BoostApply;
+  }
+};
+
 template <class StorerT>
 static void store(const MessageContent *content, StorerT &storer) {
   CHECK(content != nullptr);
@@ -1637,6 +1650,13 @@ static void store(const MessageContent *content, StorerT &storer) {
       break;
     case MessageContentType::ExpiredVoiceNote:
       break;
+    case MessageContentType::BoostApply: {
+      const auto *m = static_cast<const MessageBoostApply *>(content);
+      BEGIN_STORE_FLAGS();
+      END_STORE_FLAGS();
+      store(m->boost_count, storer);
+      break;
+    }
     default:
       UNREACHABLE();
   }
@@ -2362,6 +2382,17 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     case MessageContentType::ExpiredVoiceNote:
       content = make_unique<MessageExpiredVoiceNote>();
       break;
+    case MessageContentType::BoostApply: {
+      auto m = make_unique<MessageBoostApply>();
+      BEGIN_PARSE_FLAGS();
+      END_PARSE_FLAGS();
+      parse(m->boost_count, parser);
+      if (m->boost_count < 0) {
+        is_bad = true;
+      }
+      content = std::move(m);
+      break;
+    }
 
     default:
       is_bad = true;
@@ -3007,6 +3038,7 @@ bool can_have_input_media(const Td *td, const MessageContent *content, bool is_s
     case MessageContentType::GiveawayResults:
     case MessageContentType::ExpiredVideoNote:
     case MessageContentType::ExpiredVoiceNote:
+    case MessageContentType::BoostApply:
       return false;
     case MessageContentType::Animation:
     case MessageContentType::Audio:
@@ -3147,6 +3179,7 @@ SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
     case MessageContentType::GiveawayWinners:
     case MessageContentType::ExpiredVideoNote:
     case MessageContentType::ExpiredVoiceNote:
+    case MessageContentType::BoostApply:
       break;
     default:
       UNREACHABLE();
@@ -3289,6 +3322,7 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
     case MessageContentType::GiveawayWinners:
     case MessageContentType::ExpiredVideoNote:
     case MessageContentType::ExpiredVoiceNote:
+    case MessageContentType::BoostApply:
       break;
     default:
       UNREACHABLE();
@@ -3493,6 +3527,7 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td) {
     case MessageContentType::GiveawayWinners:
     case MessageContentType::ExpiredVideoNote:
     case MessageContentType::ExpiredVoiceNote:
+    case MessageContentType::BoostApply:
       break;
     default:
       UNREACHABLE();
@@ -3717,6 +3752,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
     case MessageContentType::GiveawayResults:
     case MessageContentType::ExpiredVideoNote:
     case MessageContentType::ExpiredVoiceNote:
+    case MessageContentType::BoostApply:
       UNREACHABLE();
   }
   return Status::OK();
@@ -3863,6 +3899,7 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
     case MessageContentType::GiveawayWinners:
     case MessageContentType::ExpiredVideoNote:
     case MessageContentType::ExpiredVoiceNote:
+    case MessageContentType::BoostApply:
       return 0;
     default:
       UNREACHABLE();
@@ -4143,6 +4180,8 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
     case MessageContentType::ExpiredVideoNote:
       break;
     case MessageContentType::ExpiredVoiceNote:
+      break;
+    case MessageContentType::BoostApply:
       break;
     default:
       UNREACHABLE();
@@ -4548,6 +4587,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::GiveawayWinners:
     case MessageContentType::ExpiredVideoNote:
     case MessageContentType::ExpiredVoiceNote:
+    case MessageContentType::BoostApply:
       break;
     default:
       UNREACHABLE();
@@ -4697,6 +4737,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::GiveawayWinners:
     case MessageContentType::ExpiredVideoNote:
     case MessageContentType::ExpiredVoiceNote:
+    case MessageContentType::BoostApply:
       LOG(ERROR) << "Receive new file " << new_file_id << " in a sent message of the type " << content_type;
       break;
     default:
@@ -5223,6 +5264,14 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       break;
     case MessageContentType::ExpiredVoiceNote:
       break;
+    case MessageContentType::BoostApply: {
+      const auto *lhs = static_cast<const MessageBoostApply *>(old_content);
+      const auto *rhs = static_cast<const MessageBoostApply *>(new_content);
+      if (lhs->boost_count != rhs->boost_count) {
+        need_update = true;
+      }
+      break;
+    }
     default:
       UNREACHABLE();
       break;
@@ -6384,6 +6433,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::GiveawayResults:
     case MessageContentType::ExpiredVideoNote:
     case MessageContentType::ExpiredVoiceNote:
+    case MessageContentType::BoostApply:
       return nullptr;
     default:
       UNREACHABLE();
@@ -7193,6 +7243,10 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       return make_tl_object<td_api::messageExpiredVideoNote>();
     case MessageContentType::ExpiredVoiceNote:
       return make_tl_object<td_api::messageExpiredVoiceNote>();
+    case MessageContentType::BoostApply: {
+      const auto *m = static_cast<const MessageBoostApply *>(content);
+      return td_api::make_object<td_api::messageChatBoost>(m->boost_count);
+    }
     default:
       UNREACHABLE();
       return nullptr;
@@ -7627,6 +7681,7 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::GiveawayWinners:
     case MessageContentType::ExpiredVideoNote:
     case MessageContentType::ExpiredVoiceNote:
+    case MessageContentType::BoostApply:
       return string();
     default:
       UNREACHABLE();
@@ -7968,6 +8023,8 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
     case MessageContentType::ExpiredVideoNote:
       break;
     case MessageContentType::ExpiredVoiceNote:
+      break;
+    case MessageContentType::BoostApply:
       break;
     default:
       UNREACHABLE();

@@ -142,6 +142,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, MessageContentType cont
       return string_builder << "ExpiredVideoNote";
     case MessageContentType::ExpiredVoiceNote:
       return string_builder << "ExpiredVoiceNote";
+    case MessageContentType::BoostApply:
+      return string_builder << "BoostApply";
     default:
       return string_builder << "Invalid type " << static_cast<int32>(content_type);
   }
@@ -215,6 +217,7 @@ bool is_allowed_media_group_content(MessageContentType content_type) {
     case MessageContentType::GiveawayWinners:
     case MessageContentType::ExpiredVideoNote:
     case MessageContentType::ExpiredVoiceNote:
+    case MessageContentType::BoostApply:
       return false;
     default:
       UNREACHABLE();
@@ -294,6 +297,7 @@ bool can_be_secret_message_content(MessageContentType content_type) {
     case MessageContentType::GiveawayWinners:
     case MessageContentType::ExpiredVideoNote:
     case MessageContentType::ExpiredVoiceNote:
+    case MessageContentType::BoostApply:
       return false;
     default:
       UNREACHABLE();
@@ -369,6 +373,7 @@ bool is_service_message_content(MessageContentType content_type) {
     case MessageContentType::GiftCode:
     case MessageContentType::GiveawayLaunch:
     case MessageContentType::GiveawayResults:
+    case MessageContentType::BoostApply:
       return true;
     default:
       UNREACHABLE();
@@ -492,6 +497,7 @@ bool can_have_message_content_caption(MessageContentType content_type) {
     case MessageContentType::GiveawayWinners:
     case MessageContentType::ExpiredVideoNote:
     case MessageContentType::ExpiredVoiceNote:
+    case MessageContentType::BoostApply:
       return false;
     default:
       UNREACHABLE();

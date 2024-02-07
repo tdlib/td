@@ -24884,6 +24884,7 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
     case MessageContentType::GiveawayResults:
     case MessageContentType::ExpiredVideoNote:
     case MessageContentType::ExpiredVoiceNote:
+    case MessageContentType::BoostApply:
       return false;
     default:
       UNREACHABLE();

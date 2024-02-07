@@ -2906,6 +2906,9 @@ messageChatSetTheme theme_name:string = MessageContent;
 //@description The auto-delete or self-destruct timer for messages in the chat has been changed @message_auto_delete_time New value auto-delete or self-destruct time, in seconds; 0 if disabled @from_user_id If not 0, a user identifier, which default setting was automatically applied
 messageChatSetMessageAutoDeleteTime message_auto_delete_time:int32 from_user_id:int53 = MessageContent;
 
+//@description The chat was boosted by the sender of the message @boost_count Number of times the chat was boosted
+messageChatBoost boost_count:int32 = MessageContent;
+
 //@description A forum topic has been created @name Name of the topic @icon Icon of the topic
 messageForumTopicCreated name:string icon:forumTopicIcon = MessageContent;
 
