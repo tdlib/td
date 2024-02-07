@@ -156,6 +156,8 @@ class SavedMessagesManager final : public Actor {
 
   int64 get_topic_order(int32 message_date, MessageId message_id);
 
+  int64 get_topic_public_order(const SavedMessagesTopic *topic) const;
+
   void set_last_topic_date(TopicDate topic_date);
 
   void on_topic_changed(SavedMessagesTopic *topic);

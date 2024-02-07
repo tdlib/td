@@ -407,6 +407,13 @@ int64 SavedMessagesManager::get_topic_order(int32 message_date, MessageId messag
          message_id.get_prev_server_message_id().get_server_message_id().get();
 }
 
+int64 SavedMessagesManager::get_topic_public_order(const SavedMessagesTopic *topic) const {
+  if (TopicDate(topic->private_order_, topic->saved_messages_topic_id_) <= topic_list_.last_topic_date_) {
+    return topic->private_order_;
+  }
+  return 0;
+}
+
 void SavedMessagesManager::on_topic_changed(SavedMessagesTopic *topic) {
   CHECK(topic != nullptr);
   if (!topic->is_changed_) {
@@ -645,13 +652,10 @@ td_api::object_ptr<td_api::savedMessagesTopic> SavedMessagesManager::get_saved_m
     last_message_object = td_->messages_manager_->get_message_object(
         {td_->dialog_manager_->get_my_dialog_id(), topic->last_message_id_}, "get_saved_messages_topic_object");
   }
-  auto public_order = TopicDate(topic->private_order_, topic->saved_messages_topic_id_) <= topic_list_.last_topic_date_
-                          ? topic->private_order_
-                          : static_cast<int64>(0);
   return td_api::make_object<td_api::savedMessagesTopic>(
       topic->saved_messages_topic_id_.get_unique_id(),
       topic->saved_messages_topic_id_.get_saved_messages_topic_type_object(td_), topic->pinned_order_ != 0,
-      public_order, std::move(last_message_object));
+      get_topic_public_order(topic), std::move(last_message_object));
 }
 
 td_api::object_ptr<td_api::updateSavedMessagesTopic> SavedMessagesManager::get_update_saved_messages_topic_object(
@@ -660,6 +664,10 @@ td_api::object_ptr<td_api::updateSavedMessagesTopic> SavedMessagesManager::get_u
 }
 
 void SavedMessagesManager::send_update_saved_messages_topic(const SavedMessagesTopic *topic) const {
+  CHECK(topic != nullptr);
+  LOG(INFO) << "Send update about " << topic->saved_messages_topic_id_ << " with order "
+            << get_topic_public_order(topic) << " and last " << topic->last_message_id_ << " sent at "
+            << topic->last_message_date_;
   send_closure(G()->td(), &Td::send_update, get_update_saved_messages_topic_object(topic));
 }
 
