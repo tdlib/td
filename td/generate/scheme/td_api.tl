@@ -6510,6 +6510,9 @@ updateChatOnlineMemberCount chat_id:int53 online_member_count:int32 = Update;
 //@topic New data about the topic
 updateSavedMessagesTopic topic:savedMessagesTopic = Update;
 
+//@description Number of Saved Messages topics has changed @topic_count Approximate total number of Saved Messages topics
+updateSavedMessagesTopicCount topic_count:int32 = Update;
+
 //@description Basic information about a topic in a forum chat was changed @chat_id Chat identifier @info New information about the topic
 updateForumTopicInfo chat_id:int53 info:forumTopicInfo = Update;
 

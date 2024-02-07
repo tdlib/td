@@ -473,6 +473,8 @@ void SavedMessagesManager::on_topic_changed(SavedMessagesTopic *topic, const cha
             << source;
 
   send_update_saved_messages_topic(topic, source);
+
+  update_saved_messages_topic_sent_total_count(source);
 }
 
 void SavedMessagesManager::load_saved_messages_topics(int32 limit, Promise<Unit> &&promise) {
@@ -648,6 +650,17 @@ void SavedMessagesManager::on_get_saved_messages_topics(
     on_topic_changed(topic, "on_get_saved_messages_topics");
   }
 
+  if (!is_pinned) {
+    topic_list_.server_total_count_ = total_count;
+
+    topic_list_.offset_date_ = last_message_date;
+    topic_list_.offset_dialog_id_ = last_dialog_id;
+    topic_list_.offset_message_id_ = last_message_id;
+  } else if (topic_list_.server_total_count_ <= total_count) {
+    topic_list_.server_total_count_ = total_count + 1;
+  }
+  update_saved_messages_topic_sent_total_count("on_get_saved_messages_topics");
+
   if (is_pinned) {
     if (!topic_list_.are_pinned_saved_messages_topics_inited_ && total_count < limit) {
       get_saved_dialogs(limit - total_count, std::move(promise));
@@ -658,22 +671,18 @@ void SavedMessagesManager::on_get_saved_messages_topics(
     set_last_topic_date({MIN_PINNED_TOPIC_ORDER - 1, SavedMessagesTopicId()});
   } else if (is_last) {
     set_last_topic_date(MAX_TOPIC_DATE);
+
+    if (dialogs.empty()) {
+      return promise.set_error(Status::Error(404, "Not Found"));
+    }
   } else if (last_message_date > 0) {
     set_last_topic_date({get_topic_order(last_message_date, last_message_id), SavedMessagesTopicId(last_dialog_id)});
   } else {
     LOG(ERROR) << "Receive no suitable topics";
     set_last_topic_date(MAX_TOPIC_DATE);
+    return promise.set_error(Status::Error(404, "Not Found"));
   }
 
-  if (!is_pinned) {
-    topic_list_.offset_date_ = last_message_date;
-    topic_list_.offset_dialog_id_ = last_dialog_id;
-    topic_list_.offset_message_id_ = last_message_id;
-
-    if (is_last && dialogs.empty()) {
-      return promise.set_error(Status::Error(404, "Not Found"));
-    }
-  }
   promise.set_value(Unit());
 }
 
@@ -712,6 +721,32 @@ int64 SavedMessagesManager::get_next_pinned_saved_messages_topic_order() {
   current_pinned_saved_messages_topic_order_++;
   LOG(INFO) << "Assign pinned_order = " << current_pinned_saved_messages_topic_order_;
   return current_pinned_saved_messages_topic_order_;
+}
+
+td_api::object_ptr<td_api::updateSavedMessagesTopicCount>
+SavedMessagesManager::get_update_saved_messages_topic_count_object() const {
+  CHECK(topic_list_.sent_total_count_ != -1);
+  return td_api::make_object<td_api::updateSavedMessagesTopicCount>(topic_list_.sent_total_count_);
+}
+
+void SavedMessagesManager::update_saved_messages_topic_sent_total_count(const char *source) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  if (topic_list_.server_total_count_ == -1) {
+    return;
+  }
+  LOG(INFO) << "Update Saved Messages topic sent total count from " << source;
+  auto new_total_count = static_cast<int32>(topic_list_.ordered_topics_.size());
+  if (topic_list_.last_topic_date_ != MAX_TOPIC_DATE) {
+    new_total_count = max(new_total_count, topic_list_.server_total_count_);
+  } else if (topic_list_.server_total_count_ != new_total_count) {
+    topic_list_.server_total_count_ = new_total_count;
+  }
+  if (topic_list_.sent_total_count_ != new_total_count) {
+    topic_list_.sent_total_count_ = new_total_count;
+    send_closure(G()->td(), &Td::send_update, get_update_saved_messages_topic_count_object());
+  }
 }
 
 bool SavedMessagesManager::set_pinned_saved_messages_topics(vector<SavedMessagesTopicId> saved_messages_topic_ids) {
@@ -987,6 +1022,10 @@ void SavedMessagesManager::reload_pinned_saved_messages_topics() {
 void SavedMessagesManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
   if (td_->auth_manager_->is_bot()) {
     return;
+  }
+
+  if (topic_list_.sent_total_count_ != -1) {
+    updates.push_back(get_update_saved_messages_topic_count_object());
   }
 
   for (const auto &it : saved_messages_topics_) {

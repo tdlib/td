@@ -110,6 +110,10 @@ class SavedMessagesManager final : public Actor {
       return order_ == other.order_ && topic_id_ == other.topic_id_;
     }
 
+    bool operator!=(const TopicDate &other) const {
+      return !(*this == other);
+    }
+
     SavedMessagesTopicId get_topic_id() const {
       return topic_id_;
     }
@@ -119,6 +123,9 @@ class SavedMessagesManager final : public Actor {
   static const TopicDate MAX_TOPIC_DATE;
 
   struct TopicList {
+    int32 server_total_count_ = -1;
+    int32 sent_total_count_ = -1;
+
     vector<SavedMessagesTopicId> pinned_saved_messages_topic_ids_;
     bool are_pinned_saved_messages_topics_inited_ = false;
 
@@ -178,6 +185,10 @@ class SavedMessagesManager final : public Actor {
       const SavedMessagesTopic *topic) const;
 
   void send_update_saved_messages_topic(const SavedMessagesTopic *topic, const char *source) const;
+
+  td_api::object_ptr<td_api::updateSavedMessagesTopicCount> get_update_saved_messages_topic_count_object() const;
+
+  void update_saved_messages_topic_sent_total_count(const char *source);
 
   Td *td_;
   ActorShared<> parent_;
