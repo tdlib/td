@@ -447,27 +447,37 @@ void SavedMessagesManager::on_topic_changed(SavedMessagesTopic *topic, const cha
   }
   topic->is_changed_ = false;
 
-  if (topic->private_order_ != 0) {
-    bool is_deleted = topic_list_.ordered_topics_.erase({topic->private_order_, topic->saved_messages_topic_id_}) > 0;
-    CHECK(is_deleted);
-  }
+  int64 new_private_order;
   if (topic->pinned_order_ != 0) {
-    topic->private_order_ = topic->pinned_order_;
+    new_private_order = topic->pinned_order_;
   } else if (topic->last_message_id_ != MessageId()) {
-    topic->private_order_ = get_topic_order(topic->last_message_date_, topic->last_message_id_);
+    new_private_order = get_topic_order(topic->last_message_date_, topic->last_message_id_);
   } else {
-    topic->private_order_ = 0;
+    new_private_order = 0;
   }
   if (topic->draft_message_date_ != 0) {
     int64 draft_order = get_topic_order(topic->draft_message_date_, MessageId());
-    if (topic->private_order_ < draft_order) {
-      topic->private_order_ = draft_order;
+    if (new_private_order < draft_order) {
+      new_private_order = draft_order;
     }
   }
-  if (topic->private_order_ != 0) {
-    bool is_inserted =
-        topic_list_.ordered_topics_.insert({topic->private_order_, topic->saved_messages_topic_id_}).second;
-    CHECK(is_inserted);
+  if (topic->private_order_ != new_private_order) {
+    if (topic->private_order_ != 0) {
+      bool is_deleted = topic_list_.ordered_topics_.erase({topic->private_order_, topic->saved_messages_topic_id_}) > 0;
+      CHECK(is_deleted);
+      if (topic_list_.server_total_count_ > 0) {
+        topic_list_.server_total_count_--;
+      }
+    }
+    topic->private_order_ = new_private_order;
+    if (topic->private_order_ != 0) {
+      bool is_inserted =
+          topic_list_.ordered_topics_.insert({topic->private_order_, topic->saved_messages_topic_id_}).second;
+      CHECK(is_inserted);
+      if (topic_list_.server_total_count_ >= 0) {
+        topic_list_.server_total_count_++;
+      }
+    }
   }
   LOG(INFO) << "Update order of " << topic->saved_messages_topic_id_ << " to " << topic->private_order_ << " from "
             << source;
