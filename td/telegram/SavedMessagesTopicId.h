@@ -41,8 +41,6 @@ class SavedMessagesTopicId {
   SavedMessagesTopicId(DialogId my_dialog_id, const MessageForwardInfo *message_forward_info,
                        DialogId real_forward_from_dialog_id);
 
-  SavedMessagesTopicId(const Td *td, const td_api::object_ptr<td_api::SavedMessagesTopic> &saved_messages_topic);
-
   bool is_valid() const {
     return dialog_id_.is_valid();
   }
@@ -57,7 +55,7 @@ class SavedMessagesTopicId {
     return dialog_id_.get();
   }
 
-  td_api::object_ptr<td_api::SavedMessagesTopic> get_saved_messages_topic_object(const Td *td) const;
+  td_api::object_ptr<td_api::SavedMessagesTopicType> get_saved_messages_topic_type_object(const Td *td) const;
 
   telegram_api::object_ptr<telegram_api::InputPeer> get_input_peer(const Td *td) const;
 

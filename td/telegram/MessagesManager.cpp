@@ -22556,9 +22556,9 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_dialog_event_log_message_object"),
       nullptr, nullptr, m->is_outgoing, m->is_pinned, false, false, false, can_be_saved, false, false, false, false,
       false, false, false, false, false, true, m->is_channel_post, m->is_topic_message, false, m->date, edit_date,
-      std::move(forward_info), std::move(import_info), std::move(interaction_info), Auto(), nullptr, 0, nullptr,
-      nullptr, 0.0, 0.0, via_bot_user_id, m->author_signature, 0,
-      get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
+      std::move(forward_info), std::move(import_info), std::move(interaction_info), Auto(), nullptr, 0, 0, nullptr, 0.0,
+      0.0, via_bot_user_id, m->author_signature, 0, get_restriction_reason_description(m->restriction_reasons),
+      std::move(content), std::move(reply_markup));
 }
 
 tl_object_ptr<td_api::message> MessagesManager::get_message_object(MessageFullId message_full_id, const char *source) {
@@ -22668,9 +22668,10 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
       can_get_media_timestamp_links, can_report_reactions, has_timestamped_media, m->is_channel_post,
       m->is_topic_message, m->contains_unread_mention, date, edit_date, std::move(forward_info), std::move(import_info),
       std::move(interaction_info), std::move(unread_reactions), std::move(reply_to), top_thread_message_id,
-      m->saved_messages_topic_id.get_saved_messages_topic_object(td_), std::move(self_destruct_type), ttl_expires_in,
-      auto_delete_in, via_bot_user_id, m->author_signature, m->media_album_id,
-      get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
+      td_->saved_messages_manager_->get_saved_messages_topic_id_object(m->saved_messages_topic_id),
+      std::move(self_destruct_type), ttl_expires_in, auto_delete_in, via_bot_user_id, m->author_signature,
+      m->media_album_id, get_restriction_reason_description(m->restriction_reasons), std::move(content),
+      std::move(reply_markup));
 }
 
 tl_object_ptr<td_api::messages> MessagesManager::get_messages_object(int32 total_count, DialogId dialog_id,

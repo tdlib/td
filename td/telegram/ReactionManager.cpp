@@ -16,6 +16,7 @@
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/ReactionManager.hpp"
 #include "td/telegram/ReactionType.hpp"
+#include "td/telegram/SavedMessagesManager.h"
 #include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
@@ -1102,7 +1103,8 @@ td_api::object_ptr<td_api::updateSavedMessagesTags> ReactionManager::get_update_
     SavedMessagesTopicId saved_messages_topic_id, const SavedReactionTags *tags) const {
   CHECK(tags != nullptr);
   return td_api::make_object<td_api::updateSavedMessagesTags>(
-      saved_messages_topic_id.get_saved_messages_topic_object(td_), tags->get_saved_messages_tags_object());
+      td_->saved_messages_manager_->get_saved_messages_topic_id_object(saved_messages_topic_id),
+      tags->get_saved_messages_tags_object());
 }
 
 void ReactionManager::send_update_saved_messages_tags(SavedMessagesTopicId saved_messages_topic_id,

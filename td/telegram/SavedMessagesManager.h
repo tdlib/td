@@ -26,6 +26,10 @@ class SavedMessagesManager final : public Actor {
  public:
   SavedMessagesManager(Td *td, ActorShared<> parent);
 
+  SavedMessagesTopicId get_topic_id(int64 topic_id) const;
+
+  int64 get_saved_messages_topic_id_object(SavedMessagesTopicId saved_messages_topic_id);
+
   void set_topic_last_message_id(SavedMessagesTopicId saved_messages_topic_id, MessageId last_message_id,
                                  int32 last_message_date);
 
@@ -71,7 +75,7 @@ class SavedMessagesManager final : public Actor {
     int32 last_message_date_ = 0;
     int64 pinned_order_ = 0;
     int64 private_order_ = 0;
-    bool is_changed_ = true;
+    bool is_changed_ = false;
   };
 
   class TopicDate {
@@ -156,8 +160,7 @@ class SavedMessagesManager final : public Actor {
 
   void on_topic_changed(SavedMessagesTopic *topic);
 
-  td_api::object_ptr<td_api::foundSavedMessagesTopic> get_found_saved_messages_topic_object(
-      const SavedMessagesTopic *topic) const;
+  td_api::object_ptr<td_api::savedMessagesTopic> get_saved_messages_topic_object(const SavedMessagesTopic *topic) const;
 
   td_api::object_ptr<td_api::updateSavedMessagesTopic> get_update_saved_messages_topic_object(
       const SavedMessagesTopic *topic) const;

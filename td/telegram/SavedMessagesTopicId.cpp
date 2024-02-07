@@ -47,41 +47,19 @@ SavedMessagesTopicId::SavedMessagesTopicId(DialogId my_dialog_id, const MessageF
   dialog_id_ = my_dialog_id;
 }
 
-SavedMessagesTopicId::SavedMessagesTopicId(const Td *td,
-                                           const td_api::object_ptr<td_api::SavedMessagesTopic> &saved_messages_topic) {
-  if (saved_messages_topic == nullptr) {
-    return;
-  }
-  switch (saved_messages_topic->get_id()) {
-    case td_api::savedMessagesTopicMyNotes::ID:
-      dialog_id_ = td->dialog_manager_->get_my_dialog_id();
-      break;
-    case td_api::savedMessagesTopicAuthorHidden::ID:
-      dialog_id_ = HIDDEN_AUTHOR_DIALOG_ID;
-      break;
-    case td_api::savedMessagesTopicSavedFromChat::ID:
-      dialog_id_ =
-          DialogId(static_cast<const td_api::savedMessagesTopicSavedFromChat *>(saved_messages_topic.get())->chat_id_);
-      break;
-    default:
-      UNREACHABLE();
-      break;
-  }
-}
-
-td_api::object_ptr<td_api::SavedMessagesTopic> SavedMessagesTopicId::get_saved_messages_topic_object(
+td_api::object_ptr<td_api::SavedMessagesTopicType> SavedMessagesTopicId::get_saved_messages_topic_type_object(
     const Td *td) const {
   if (dialog_id_ == DialogId()) {
     return nullptr;
   }
   if (dialog_id_ == td->dialog_manager_->get_my_dialog_id()) {
-    return td_api::make_object<td_api::savedMessagesTopicMyNotes>();
+    return td_api::make_object<td_api::savedMessagesTopicTypeMyNotes>();
   }
   if (is_author_hidden()) {
-    return td_api::make_object<td_api::savedMessagesTopicAuthorHidden>();
+    return td_api::make_object<td_api::savedMessagesTopicTypeAuthorHidden>();
   }
-  return td_api::make_object<td_api::savedMessagesTopicSavedFromChat>(
-      td->messages_manager_->get_chat_id_object(dialog_id_, "savedMessagesTopicSavedFromChat"));
+  return td_api::make_object<td_api::savedMessagesTopicTypeSavedFromChat>(
+      td->messages_manager_->get_chat_id_object(dialog_id_, "savedMessagesTopicTypeSavedFromChat"));
 }
 
 bool SavedMessagesTopicId::have_input_peer(Td *td) const {

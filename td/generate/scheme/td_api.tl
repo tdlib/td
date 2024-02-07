@@ -1355,7 +1355,7 @@ inputMessageReplyToStory story_sender_chat_id:int53 story_id:int32 = InputMessag
 //@unread_reactions Information about unread reactions added to the message
 //@reply_to Information about the message or the story this message is replying to; may be null if none
 //@message_thread_id If non-zero, the identifier of the message thread the message belongs to; unique within the chat to which the message belongs
-//@saved_messages_topic Information about topic of the message in the Saved Messages chat; may be null for messages not from Saved Messages
+//@saved_messages_topic_id Identifier of the Saved Messages topic for the message; 0 for messages not from Saved Messages
 //@self_destruct_type The message's self-destruct type; may be null if none
 //@self_destruct_in Time left before the message self-destruct timer expires, in seconds; 0 if self-destruction isn't scheduled yet
 //@auto_delete_in Time left before the message will be automatically deleted by message_auto_delete_time setting of the chat, in seconds; 0 if never
@@ -1365,7 +1365,7 @@ inputMessageReplyToStory story_sender_chat_id:int53 story_id:int32 = InputMessag
 //@restriction_reason If non-empty, contains a human-readable description of the reason why access to this message must be restricted
 //@content Content of the message
 //@reply_markup Reply markup for the message; may be null if none
-message id:int53 sender_id:MessageSender chat_id:int53 sending_state:MessageSendingState scheduling_state:MessageSchedulingState is_outgoing:Bool is_pinned:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_replied_in_another_chat:Bool can_be_saved:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_get_added_reactions:Bool can_get_statistics:Bool can_get_message_thread:Bool can_get_read_date:Bool can_get_viewers:Bool can_get_media_timestamp_links:Bool can_report_reactions:Bool has_timestamped_media:Bool is_channel_post:Bool is_topic_message:Bool contains_unread_mention:Bool date:int32 edit_date:int32 forward_info:messageForwardInfo import_info:messageImportInfo interaction_info:messageInteractionInfo unread_reactions:vector<unreadReaction> reply_to:MessageReplyTo message_thread_id:int53 saved_messages_topic:SavedMessagesTopic self_destruct_type:MessageSelfDestructType self_destruct_in:double auto_delete_in:double via_bot_user_id:int53 author_signature:string media_album_id:int64 restriction_reason:string content:MessageContent reply_markup:ReplyMarkup = Message;
+message id:int53 sender_id:MessageSender chat_id:int53 sending_state:MessageSendingState scheduling_state:MessageSchedulingState is_outgoing:Bool is_pinned:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_replied_in_another_chat:Bool can_be_saved:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_get_added_reactions:Bool can_get_statistics:Bool can_get_message_thread:Bool can_get_read_date:Bool can_get_viewers:Bool can_get_media_timestamp_links:Bool can_report_reactions:Bool has_timestamped_media:Bool is_channel_post:Bool is_topic_message:Bool contains_unread_mention:Bool date:int32 edit_date:int32 forward_info:messageForwardInfo import_info:messageImportInfo interaction_info:messageInteractionInfo unread_reactions:vector<unreadReaction> reply_to:MessageReplyTo message_thread_id:int53 saved_messages_topic_id:int53 self_destruct_type:MessageSelfDestructType self_destruct_in:double auto_delete_in:double via_bot_user_id:int53 author_signature:string media_album_id:int64 restriction_reason:string content:MessageContent reply_markup:ReplyMarkup = Message;
 
 //@description Contains a list of messages @total_count Approximate total number of messages found @messages List of messages; messages may be null
 messages total_count:int32 messages:vector<message> = Messages;
@@ -1890,24 +1890,25 @@ webAppInfo launch_id:int64 url:string = WebAppInfo;
 messageThreadInfo chat_id:int53 message_thread_id:int53 reply_info:messageReplyInfo unread_message_count:int32 messages:vector<message> draft_message:draftMessage = MessageThreadInfo;
 
 
-//@class SavedMessagesTopic @description Contains information about a Saved Messages topic
+//@class SavedMessagesTopicType @description Describes type of a Saved Messages topic
 
 //@description Topic containing messages sent by the current user of forwarded from an unknown chat
-savedMessagesTopicMyNotes = SavedMessagesTopic;
+savedMessagesTopicTypeMyNotes = SavedMessagesTopicType;
 
 //@description Topic containing messages forwarded from a user with hidden privacy
-savedMessagesTopicAuthorHidden = SavedMessagesTopic;
+savedMessagesTopicTypeAuthorHidden = SavedMessagesTopicType;
 
 //@description Topic containing messages forwarded from a specific chat @chat_id Identifier of the chat
-savedMessagesTopicSavedFromChat chat_id:int53 = SavedMessagesTopic;
+savedMessagesTopicTypeSavedFromChat chat_id:int53 = SavedMessagesTopicType;
 
 
-//@description Contains information about a found Saved Messages topic
-//@topic The topic
+//@description Contains information about a Saved Messages topic
+//@id Unique topic identifier
+//@type Type of the topic
 //@is_pinned True, if the topic is pinned
 //@order A parameter used to determine order of the topic in the topic list. Topics must be sorted by the order in descending order
 //@last_message Last message in the topic; may be null if none or unknown
-foundSavedMessagesTopic topic:SavedMessagesTopic is_pinned:Bool order:int64 last_message:message = FoundSavedMessagesTopic;
+savedMessagesTopic id:int53 type:SavedMessagesTopicType is_pinned:Bool order:int64 last_message:message = SavedMessagesTopic;
 
 
 //@description Describes a forum topic icon @color Color of the topic icon in RGB format @custom_emoji_id Unique identifier of the custom emoji shown on the topic icon; 0 if none
@@ -6504,8 +6505,9 @@ updateChatFolders chat_folders:vector<chatFolderInfo> main_chat_list_position:in
 //@online_member_count New number of online members in the chat, or 0 if unknown
 updateChatOnlineMemberCount chat_id:int53 online_member_count:int32 = Update;
 
-//@description Basic information about a Saved Messages topic has changed @topic New information about the topic
-updateSavedMessagesTopic topic:foundSavedMessagesTopic = Update;
+//@description Basic information about a Saved Messages topic has changed. This update is guaranteed to come before the topic identifier is returned to the application
+//@topic New data about the topic
+updateSavedMessagesTopic topic:savedMessagesTopic = Update;
 
 //@description Basic information about a topic in a forum chat was changed @chat_id Chat identifier @info New information about the topic
 updateForumTopicInfo chat_id:int53 info:forumTopicInfo = Update;
@@ -6738,9 +6740,9 @@ updateActiveEmojiReactions emojis:vector<string> = Update;
 updateDefaultReactionType reaction_type:ReactionType = Update;
 
 //@description Tags used in Saved Messages or a Saved Messages topic have changed
-//@saved_messages_topic Saved Messages topic which tags were changed; may be null if tags for the whole chat has changed
+//@saved_messages_topic_id Identifier of Saved Messages topic which tags were changed; 0 if tags for the whole chat has changed
 //@tags The new tags
-updateSavedMessagesTags saved_messages_topic:SavedMessagesTopic tags:savedMessagesTags = Update;
+updateSavedMessagesTags saved_messages_topic_id:int53 tags:savedMessagesTags = Update;
 
 //@description The parameters of speech recognition without Telegram Premium subscription has changed
 //@max_media_duration The maximum allowed duration of media for speech recognition without Telegram Premium subscription
@@ -7247,34 +7249,34 @@ getInactiveSupergroupChats = Chats;
 loadSavedMessagesTopics limit:int32 = Ok;
 
 //@description Returns messages in a Saved Messages topic. The messages are returned in a reverse chronological order (i.e., in order of decreasing message_id)
-//@saved_messages_topic Saved Messages topic which messages will be fetched
+//@saved_messages_topic_id Identifier of Saved Messages topic which messages will be fetched
 //@from_message_id Identifier of the message starting from which messages must be fetched; use 0 to get results from the last message
 //@offset Specify 0 to get results from exactly the message from_message_id or a negative offset up to 99 to get additionally some newer messages
 //@limit The maximum number of messages to be returned; must be positive and can't be greater than 100. If the offset is negative, the limit must be greater than or equal to -offset.
 //-For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
-getSavedMessagesTopicHistory saved_messages_topic:SavedMessagesTopic from_message_id:int53 offset:int32 limit:int32 = Messages;
+getSavedMessagesTopicHistory saved_messages_topic_id:int53 from_message_id:int53 offset:int32 limit:int32 = Messages;
 
 //@description Returns the last message sent in a Saved Messages topic no later than the specified date
-//@saved_messages_topic Saved Messages topic which message will be returned
+//@saved_messages_topic_id Identifier of Saved Messages topic which message will be returned
 //@date Point in time (Unix timestamp) relative to which to search for messages
-getSavedMessagesTopicMessageByDate saved_messages_topic:SavedMessagesTopic date:int32 = Message;
+getSavedMessagesTopicMessageByDate saved_messages_topic_id:int53 date:int32 = Message;
 
-//@description Deletes all messages in a Saved Messages topic @saved_messages_topic Saved Messages topic which messages will be deleted
-deleteSavedMessagesTopicHistory saved_messages_topic:SavedMessagesTopic = Ok;
+//@description Deletes all messages in a Saved Messages topic @saved_messages_topic_id Identifier of Saved Messages topic which messages will be deleted
+deleteSavedMessagesTopicHistory saved_messages_topic_id:int53 = Ok;
 
 //@description Deletes all messages between the specified dates in a Saved Messages topic. Messages sent in the last 30 seconds will not be deleted
-//@saved_messages_topic Saved Messages topic which messages will be deleted
+//@saved_messages_topic_id Identifier of Saved Messages topic which messages will be deleted
 //@min_date The minimum date of the messages to delete
 //@max_date The maximum date of the messages to delete
-deleteSavedMessagesTopicMessagesByDate saved_messages_topic:SavedMessagesTopic min_date:int32 max_date:int32 = Ok;
+deleteSavedMessagesTopicMessagesByDate saved_messages_topic_id:int53 min_date:int32 max_date:int32 = Ok;
 
 //@description Changes the pinned state of a Saved Messages topic. There can be up to getOption("pinned_saved_messages_topic_count_max") pinned topics. The limit can be increased with Telegram Premium
-//@saved_messages_topic Saved Messages topic to pin or unpin
+//@saved_messages_topic_id Identifier of Saved Messages topic to pin or unpin
 //@is_pinned Pass true to pin the topic; pass false to unpin it
-toggleSavedMessagesTopicIsPinned saved_messages_topic:SavedMessagesTopic is_pinned:Bool = Ok;
+toggleSavedMessagesTopicIsPinned saved_messages_topic_id:int53 is_pinned:Bool = Ok;
 
-//@description Changes the order of pinned Saved Messages topics @saved_messages_topics The new list of pinned Saved Messages topics
-setPinnedSavedMessagesTopics saved_messages_topics:vector<SavedMessagesTopic> = Ok;
+//@description Changes the order of pinned Saved Messages topics @saved_messages_topic_ids Identifiers of the new pinned Saved Messages topics
+setPinnedSavedMessagesTopics saved_messages_topic_ids:vector<int53> = Ok;
 
 
 //@description Returns a list of common group chats with a given user. Chats are sorted by their type and creation date
@@ -7327,8 +7329,8 @@ deleteChat chat_id:int53 = Ok;
 //-For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 //@filter Additional filter for messages to search; pass null to search for all messages
 //@message_thread_id If not 0, only messages in the specified thread will be returned; supergroups only
-//@saved_messages_topic If not null, only messages in the specified Saved Messages topic will be returned; pass null to return all messages, or for chats other than Saved Messages
-searchChatMessages chat_id:int53 query:string sender_id:MessageSender from_message_id:int53 offset:int32 limit:int32 filter:SearchMessagesFilter message_thread_id:int53 saved_messages_topic:SavedMessagesTopic = FoundChatMessages;
+//@saved_messages_topic_id If not 0, only messages in the specified Saved Messages topic will be returned; pass 0 to return all messages, or for chats other than Saved Messages
+searchChatMessages chat_id:int53 query:string sender_id:MessageSender from_message_id:int53 offset:int32 limit:int32 filter:SearchMessagesFilter message_thread_id:int53 saved_messages_topic_id:int53 = FoundChatMessages;
 
 //@description Searches for messages in all chats except secret chats. Returns the results in reverse chronological order (i.e., in order of decreasing (date, chat_id, message_id)).
 //-For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
@@ -7352,14 +7354,14 @@ searchSecretMessages chat_id:int53 query:string offset:string limit:int32 filter
 //@description Searches for messages tagged by the given reaction and with the given words in the Saved Messages chat; for Telegram Premium users only.
 //-Returns the results in reverse chronological order, i.e. in order of decreasing message_id
 //-For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
-//@saved_messages_topic If not null, only messages in the specified Saved Messages topic will be considered; pass null to consider all messages
+//@saved_messages_topic_id If not 0, only messages in the specified Saved Messages topic will be considered; pass 0 to consider all messages
 //@tag Tag to search for; pass null to return all suitable messages
 //@query Query to search for
 //@from_message_id Identifier of the message starting from which messages must be fetched; use 0 to get results from the last message
 //@offset Specify 0 to get results from exactly the message from_message_id or a negative offset to get the specified message and some newer messages
 //@limit The maximum number of messages to be returned; must be positive and can't be greater than 100. If the offset is negative, the limit must be greater than -offset.
 //-For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
-searchSavedMessages saved_messages_topic:SavedMessagesTopic tag:ReactionType query:string from_message_id:int53 offset:int32 limit:int32 = FoundChatMessages;
+searchSavedMessages saved_messages_topic_id:int53 tag:ReactionType query:string from_message_id:int53 offset:int32 limit:int32 = FoundChatMessages;
 
 //@description Searches for call messages. Returns the results in reverse chronological order (i.e., in order of decreasing message_id). For optimal performance, the number of returned messages is chosen by TDLib
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
@@ -7390,30 +7392,30 @@ getChatMessageByDate chat_id:int53 date:int32 = Message;
 //@filter Filter for message content. Filters searchMessagesFilterEmpty, searchMessagesFilterMention, searchMessagesFilterUnreadMention, and searchMessagesFilterUnreadReaction are unsupported in this function
 //@from_message_id The message identifier from which to return information about message positions
 //@limit The expected number of message positions to be returned; 50-2000. A smaller number of positions can be returned, if there are not enough appropriate messages
-//@saved_messages_topic If not null, only messages in the specified Saved Messages topic will be considered; pass null to consider all messages, or for chats other than Saved Messages
-getChatSparseMessagePositions chat_id:int53 filter:SearchMessagesFilter from_message_id:int53 limit:int32 saved_messages_topic:SavedMessagesTopic = MessagePositions;
+//@saved_messages_topic_id If not 0, only messages in the specified Saved Messages topic will be considered; pass 0 to consider all messages, or for chats other than Saved Messages
+getChatSparseMessagePositions chat_id:int53 filter:SearchMessagesFilter from_message_id:int53 limit:int32 saved_messages_topic_id:int53 = MessagePositions;
 
 //@description Returns information about the next messages of the specified type in the chat split by days. Returns the results in reverse chronological order. Can return partial result for the last returned day. Behavior of this method depends on the value of the option "utc_time_offset"
 //@chat_id Identifier of the chat in which to return information about messages
 //@filter Filter for message content. Filters searchMessagesFilterEmpty, searchMessagesFilterMention, searchMessagesFilterUnreadMention, and searchMessagesFilterUnreadReaction are unsupported in this function
 //@from_message_id The message identifier from which to return information about messages; use 0 to get results from the last message
-//@saved_messages_topic If not null, only messages in the specified Saved Messages topic will be considered; pass null to consider all messages, or for chats other than Saved Messages
-getChatMessageCalendar chat_id:int53 filter:SearchMessagesFilter from_message_id:int53 saved_messages_topic:SavedMessagesTopic = MessageCalendar;
+//@saved_messages_topic_id If not0, only messages in the specified Saved Messages topic will be considered; pass 0 to consider all messages, or for chats other than Saved Messages
+getChatMessageCalendar chat_id:int53 filter:SearchMessagesFilter from_message_id:int53 saved_messages_topic_id:int53 = MessageCalendar;
 
 //@description Returns approximate number of messages of the specified type in the chat
 //@chat_id Identifier of the chat in which to count messages
 //@filter Filter for message content; searchMessagesFilterEmpty is unsupported in this function
-//@saved_messages_topic If not null, only messages in the specified Saved Messages topic will be counted; pass null to count all messages, or for chats other than Saved Messages
+//@saved_messages_topic_id If not 0, only messages in the specified Saved Messages topic will be counted; pass 0 to count all messages, or for chats other than Saved Messages
 //@return_local Pass true to get the number of messages without sending network requests, or -1 if the number of messages is unknown locally
-getChatMessageCount chat_id:int53 filter:SearchMessagesFilter saved_messages_topic:SavedMessagesTopic return_local:Bool = Count;
+getChatMessageCount chat_id:int53 filter:SearchMessagesFilter saved_messages_topic_id:int53 return_local:Bool = Count;
 
 //@description Returns approximate 1-based position of a message among messages, which can be found by the specified filter in the chat. Cannot be used in secret chats
 //@chat_id Identifier of the chat in which to find message position
 //@message_id Message identifier
 //@filter Filter for message content; searchMessagesFilterEmpty, searchMessagesFilterUnreadMention, searchMessagesFilterUnreadReaction, and searchMessagesFilterFailedToSend are unsupported in this function
 //@message_thread_id If not 0, only messages in the specified thread will be considered; supergroups only
-//@saved_messages_topic If not null, only messages in the specified Saved Messages topic will be considered; pass null to consider all relevant messages, or for chats other than Saved Messages
-getChatMessagePosition chat_id:int53 message_id:int53 filter:SearchMessagesFilter message_thread_id:int53 saved_messages_topic:SavedMessagesTopic = Count;
+//@saved_messages_topic_id If not 0, only messages in the specified Saved Messages topic will be considered; pass 0 to consider all relevant messages, or for chats other than Saved Messages
+getChatMessagePosition chat_id:int53 message_id:int53 filter:SearchMessagesFilter message_thread_id:int53 saved_messages_topic_id:int53 = Count;
 
 //@description Returns all scheduled messages in a chat. The messages are returned in a reverse chronological order (i.e., in order of decreasing message_id) @chat_id Chat identifier
 getChatScheduledMessages chat_id:int53 = Messages;
@@ -7745,8 +7747,8 @@ getMessageAddedReactions chat_id:int53 message_id:int53 reaction_type:ReactionTy
 setDefaultReactionType reaction_type:ReactionType = Ok;
 
 //@description Returns tags used in Saved Messages or a Saved Messages topic
-//@saved_messages_topic Saved Messages topic which tags will be returned; pass null to get all Saved Messages tags
-getSavedMessagesTags saved_messages_topic:SavedMessagesTopic = SavedMessagesTags;
+//@saved_messages_topic_id Identifier of Saved Messages topic which tags will be returned; pass 0 to get all Saved Messages tags
+getSavedMessagesTags saved_messages_topic_id:int53 = SavedMessagesTags;
 
 //@description Changes label of a Saved Messages tag; for Telegram Premium users only @tag The tag which label will be changed @label New label for the tag; 0-12 characters
 setSavedMessagesTagLabel tag:ReactionType label:string = Ok;

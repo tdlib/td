@@ -314,6 +314,28 @@ void SavedMessagesManager::tear_down() {
   parent_.reset();
 }
 
+SavedMessagesTopicId SavedMessagesManager::get_topic_id(int64 topic_id) const {
+  if (topic_id == 0) {
+    return SavedMessagesTopicId();
+  }
+  auto saved_messages_topic_id = SavedMessagesTopicId(DialogId(topic_id));
+  if (saved_messages_topics_.count(saved_messages_topic_id) == 0) {
+    // an invalid topic identifier
+    return SavedMessagesTopicId(DialogId(std::numeric_limits<int64>::max()));
+  }
+  return saved_messages_topic_id;
+}
+
+int64 SavedMessagesManager::get_saved_messages_topic_id_object(SavedMessagesTopicId saved_messages_topic_id) {
+  if (saved_messages_topic_id == SavedMessagesTopicId()) {
+    return 0;
+  }
+
+  add_topic(saved_messages_topic_id);
+
+  return saved_messages_topic_id.get_unique_id();
+}
+
 SavedMessagesManager::SavedMessagesTopic *SavedMessagesManager::get_topic(
     SavedMessagesTopicId saved_messages_topic_id) {
   CHECK(saved_messages_topic_id.is_valid());
@@ -331,6 +353,7 @@ SavedMessagesManager::SavedMessagesTopic *SavedMessagesManager::add_topic(
   if (result == nullptr) {
     result = make_unique<SavedMessagesTopic>();
     result->saved_messages_topic_id_ = saved_messages_topic_id;
+    send_update_saved_messages_topic(result.get());
   }
   return result.get();
 }
@@ -614,25 +637,26 @@ void SavedMessagesManager::on_get_saved_messages_topics(
   promise.set_value(Unit());
 }
 
-td_api::object_ptr<td_api::foundSavedMessagesTopic> SavedMessagesManager::get_found_saved_messages_topic_object(
+td_api::object_ptr<td_api::savedMessagesTopic> SavedMessagesManager::get_saved_messages_topic_object(
     const SavedMessagesTopic *topic) const {
   CHECK(topic != nullptr);
   td_api::object_ptr<td_api::message> last_message_object;
   if (topic->last_message_id_ != MessageId()) {
     last_message_object = td_->messages_manager_->get_message_object(
-        {td_->dialog_manager_->get_my_dialog_id(), topic->last_message_id_}, "get_found_saved_messages_topic_object");
+        {td_->dialog_manager_->get_my_dialog_id(), topic->last_message_id_}, "get_saved_messages_topic_object");
   }
   auto public_order = TopicDate(topic->private_order_, topic->saved_messages_topic_id_) <= topic_list_.last_topic_date_
                           ? topic->private_order_
                           : static_cast<int64>(0);
-  return td_api::make_object<td_api::foundSavedMessagesTopic>(
-      topic->saved_messages_topic_id_.get_saved_messages_topic_object(td_), topic->pinned_order_ != 0, public_order,
-      std::move(last_message_object));
+  return td_api::make_object<td_api::savedMessagesTopic>(
+      topic->saved_messages_topic_id_.get_unique_id(),
+      topic->saved_messages_topic_id_.get_saved_messages_topic_type_object(td_), topic->pinned_order_ != 0,
+      public_order, std::move(last_message_object));
 }
 
 td_api::object_ptr<td_api::updateSavedMessagesTopic> SavedMessagesManager::get_update_saved_messages_topic_object(
     const SavedMessagesTopic *topic) const {
-  return td_api::make_object<td_api::updateSavedMessagesTopic>(get_found_saved_messages_topic_object(topic));
+  return td_api::make_object<td_api::updateSavedMessagesTopic>(get_saved_messages_topic_object(topic));
 }
 
 void SavedMessagesManager::send_update_saved_messages_topic(const SavedMessagesTopic *topic) const {
