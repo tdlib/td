@@ -584,7 +584,6 @@ void SavedMessagesManager::on_get_saved_messages_topics(
     message_id_to_message[message_id] = std::move(message);
   }
 
-  TopicDate max_topic_date = MIN_TOPIC_DATE;
   int32 last_message_date = 0;
   MessageId last_message_id;
   DialogId last_dialog_id;
