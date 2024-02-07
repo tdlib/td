@@ -14321,7 +14321,9 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     auto positions = get_dialog_positions(d);
 
     set_dialog_folder_id(d, FolderId(dialog->folder_id_));
-    set_dialog_view_as_messages(d, dialog->view_forum_as_messages_);
+    if (dialog_id.get_type() == DialogType::Channel) {
+      set_dialog_view_as_messages(d, dialog->view_forum_as_messages_, "on_get_dialogs");
+    }
 
     on_update_dialog_notify_settings(dialog_id, std::move(dialog->notify_settings_), source);
     if (!d->notification_settings.is_synchronized && !td_->auth_manager_->is_bot()) {
@@ -17896,7 +17898,7 @@ Status MessagesManager::toggle_dialog_view_as_messages(DialogId dialog_id, bool 
     return Status::OK();
   }
 
-  set_dialog_view_as_messages(d, view_as_messages);
+  set_dialog_view_as_messages(d, view_as_messages, "toggle_dialog_view_as_messages");
 
   if (!is_saved_messages) {
     toggle_dialog_view_as_messages_on_server(dialog_id, view_as_messages, 0);
@@ -29811,10 +29813,10 @@ void MessagesManager::on_update_dialog_view_as_messages(DialogId dialog_id, bool
     // nothing to do
     return;
   }
-  set_dialog_view_as_messages(d, view_as_messages);
+  set_dialog_view_as_messages(d, view_as_messages, "on_update_dialog_view_as_messages");
 }
 
-void MessagesManager::set_dialog_view_as_messages(Dialog *d, bool view_as_messages) {
+void MessagesManager::set_dialog_view_as_messages(Dialog *d, bool view_as_messages, const char *source) {
   if (td_->auth_manager_->is_bot()) {
     // just in case
     return;
@@ -29824,16 +29826,16 @@ void MessagesManager::set_dialog_view_as_messages(Dialog *d, bool view_as_messag
   if (d->view_as_messages == view_as_messages) {
     if (!d->is_view_as_messages_inited) {
       d->is_view_as_messages_inited = true;
-      on_dialog_updated(d->dialog_id, "set_dialog_view_as_messages");
+      on_dialog_updated(d->dialog_id, source);
     }
     return;
   }
   auto old_view_as_topics = get_dialog_view_as_topics(d);
   d->view_as_messages = view_as_messages;
   d->is_view_as_messages_inited = true;
-  on_dialog_updated(d->dialog_id, "set_dialog_view_as_messages");
+  on_dialog_updated(d->dialog_id, source);
 
-  LOG(INFO) << "Set " << d->dialog_id << " view_as_messages to " << view_as_messages;
+  LOG(INFO) << "Set " << d->dialog_id << " view_as_messages to " << view_as_messages << " from " << source;
   on_update_dialog_view_as_topics(d, old_view_as_topics);
 }
 
@@ -36417,7 +36419,7 @@ void MessagesManager::on_get_channel_difference(DialogId dialog_id, int32 reques
       }
 
       set_dialog_folder_id(d, FolderId(dialog->folder_id_));
-      set_dialog_view_as_messages(d, dialog->view_forum_as_messages_);
+      set_dialog_view_as_messages(d, dialog->view_forum_as_messages_, "updates.channelDifferenceTooLong");
 
       on_update_dialog_notify_settings(dialog_id, std::move(dialog->notify_settings_),
                                        "updates.channelDifferenceTooLong");

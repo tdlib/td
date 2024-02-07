@@ -2431,7 +2431,7 @@ class MessagesManager final : public Actor {
 
   void set_dialog_is_forum(Dialog *d, bool is_forum);
 
-  void set_dialog_view_as_messages(Dialog *d, bool view_as_messages);
+  void set_dialog_view_as_messages(Dialog *d, bool view_as_messages, const char *source);
 
   void set_dialog_is_marked_as_unread(Dialog *d, bool is_marked_as_unread);
 
