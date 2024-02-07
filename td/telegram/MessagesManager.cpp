@@ -4693,6 +4693,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(view_as_messages);
     STORE_FLAG(is_view_as_messages_inited);
     STORE_FLAG(is_forum);
+    STORE_FLAG(is_saved_messages_view_as_messages_inited);
     END_STORE_FLAGS();
   }
 
@@ -4969,6 +4970,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(view_as_messages);
     PARSE_FLAG(is_view_as_messages_inited);
     PARSE_FLAG(is_forum);
+    PARSE_FLAG(is_saved_messages_view_as_messages_inited);
     END_PARSE_FLAGS();
   } else {
     need_repair_action_bar = false;
@@ -4979,6 +4981,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     view_as_messages = false;
     is_view_as_messages_inited = false;
     is_forum = false;
+    is_saved_messages_view_as_messages_inited = false;
   }
 
   parse(last_new_message_id, parser);
@@ -17884,7 +17887,8 @@ Status MessagesManager::toggle_dialog_view_as_messages(DialogId dialog_id, bool 
   if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
     return Status::Error(400, "Can't access the chat");
   }
-  if (!td_->dialog_manager_->is_forum_channel(dialog_id)) {
+  bool is_saved_messages = dialog_id == td_->dialog_manager_->get_my_dialog_id();
+  if (!is_saved_messages && !td_->dialog_manager_->is_forum_channel(dialog_id)) {
     return Status::Error(400, "The method is available only in forum channels");
   }
 
@@ -17894,7 +17898,9 @@ Status MessagesManager::toggle_dialog_view_as_messages(DialogId dialog_id, bool 
 
   set_dialog_view_as_messages(d, view_as_messages);
 
-  toggle_dialog_view_as_messages_on_server(dialog_id, view_as_messages, 0);
+  if (!is_saved_messages) {
+    toggle_dialog_view_as_messages_on_server(dialog_id, view_as_messages, 0);
+  }
   return Status::OK();
 }
 
@@ -28467,6 +28473,9 @@ void MessagesManager::send_update_new_chat(Dialog *d) {
 }
 
 bool MessagesManager::need_hide_dialog_draft_message(const Dialog *d) const {
+  if (d->dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
+    return false;
+  }
   return get_dialog_view_as_topics(d) || can_send_message(d->dialog_id).is_error();
 }
 
@@ -29737,7 +29746,8 @@ void MessagesManager::on_update_dialog_view_as_topics(const Dialog *d, bool old_
                td_api::make_object<td_api::updateChatViewAsTopics>(
                    get_chat_id_object(d->dialog_id, "updateChatViewAsTopics"), new_view_as_topics));
 
-  if (d->draft_message != nullptr && can_send_message(d->dialog_id).is_ok()) {
+  if (d->dialog_id != td_->dialog_manager_->get_my_dialog_id() && d->draft_message != nullptr &&
+      can_send_message(d->dialog_id).is_ok()) {
     // need_hide_dialog_draft_message has changed and there is draft message
     send_update_chat_draft_message(d);
   }
@@ -30938,7 +30948,7 @@ void MessagesManager::on_dialog_usernames_updated(DialogId dialog_id, const User
 }
 
 bool MessagesManager::get_dialog_view_as_topics(const Dialog *d) const {
-  return !d->view_as_messages && d->is_forum;
+  return !d->view_as_messages && (d->is_forum || d->dialog_id == td_->dialog_manager_->get_my_dialog_id());
 }
 
 bool MessagesManager::get_dialog_has_scheduled_messages(const Dialog *d) const {
@@ -34115,6 +34125,10 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
       d->is_has_bots_inited = true;
       d->is_available_reactions_inited = true;
       d->is_view_as_messages_inited = true;
+      if (!d->is_saved_messages_view_as_messages_inited && dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
+        d->is_saved_messages_view_as_messages_inited = true;
+        d->view_as_messages = true;
+      }
       break;
     case DialogType::Chat:
       d->is_is_blocked_inited = true;

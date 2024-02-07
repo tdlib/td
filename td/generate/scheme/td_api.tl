@@ -1678,7 +1678,7 @@ videoChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@has_protected_content True, if chat content can't be saved locally, forwarded, or copied
 //@is_translatable True, if translation of all messages in the chat must be suggested to the user
 //@is_marked_as_unread True, if the chat is marked as unread
-//@view_as_topics True, if the chat is a forum supergroup that must be shown in the "View as topics" mode
+//@view_as_topics True, if the chat is a forum supergroup that must be shown in the "View as topics" mode, or Saved Messages chat that must be shown in the "View as chats"
 //@has_scheduled_messages True, if the chat has scheduled messages
 //@can_be_deleted_only_for_self True, if the chat messages can be deleted only for the current user while other users will continue to see the messages
 //@can_be_deleted_for_all_users True, if the chat messages can be deleted for all users
@@ -8219,7 +8219,7 @@ setChatNotificationSettings chat_id:int53 notification_settings:chatNotification
 //@has_protected_content New value of has_protected_content
 toggleChatHasProtectedContent chat_id:int53 has_protected_content:Bool = Ok;
 
-//@description Changes the view_as_topics setting of a forum chat @chat_id Chat identifier @view_as_topics New value of view_as_topics
+//@description Changes the view_as_topics setting of a forum chat or Saved Messages @chat_id Chat identifier @view_as_topics New value of view_as_topics
 toggleChatViewAsTopics chat_id:int53 view_as_topics:Bool = Ok;
 
 //@description Changes the translatable state of a chat @chat_id Chat identifier @is_translatable New value of is_translatable

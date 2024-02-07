@@ -1271,6 +1271,7 @@ class MessagesManager final : public Actor {
     bool has_expected_active_group_call_id = false;
     bool has_bots = false;
     bool is_view_as_messages_inited = false;
+    bool is_saved_messages_view_as_messages_inited = false;
     bool is_has_bots_inited = false;
     bool is_background_inited = false;
     bool is_theme_name_inited = false;
