@@ -33,14 +33,11 @@ class SavedMessagesManager final : public Actor {
 
   void on_topic_message_deleted(SavedMessagesTopicId saved_messages_topic_id, MessageId message_id);
 
-  void get_pinned_saved_messages_topics(Promise<td_api::object_ptr<td_api::foundSavedMessagesTopics>> &&promise);
+  void load_saved_messages_topics(int32 limit, Promise<Unit> &&promsie);
 
-  void get_saved_messages_topics(const string &offset, int32 limit,
-                                 Promise<td_api::object_ptr<td_api::foundSavedMessagesTopics>> &&promise);
-
-  void on_get_saved_messages_topics(bool is_pinned,
+  void on_get_saved_messages_topics(bool is_pinned, int32 limit,
                                     telegram_api::object_ptr<telegram_api::messages_SavedDialogs> &&saved_dialogs_ptr,
-                                    Promise<td_api::object_ptr<td_api::foundSavedMessagesTopics>> &&promise);
+                                    Promise<Unit> &&promise);
 
   void get_saved_messages_topic_history(SavedMessagesTopicId saved_messages_topic_id, MessageId from_message_id,
                                         int32 offset, int32 limit,
@@ -95,6 +92,10 @@ class SavedMessagesManager final : public Actor {
              (order_ == other.order_ && topic_id_.get_unique_id() >= other.topic_id_.get_unique_id());
     }
 
+    bool operator==(const TopicDate &other) const {
+      return order_ == other.order_ && topic_id_ == other.topic_id_;
+    }
+
     SavedMessagesTopicId get_topic_id() const {
       return topic_id_;
     }
@@ -107,6 +108,10 @@ class SavedMessagesManager final : public Actor {
     std::set<TopicDate> ordered_topics_;
 
     TopicDate last_topic_date_ = MIN_TOPIC_DATE;  // in memory
+
+    int32 offset_date_ = std::numeric_limits<int32>::max();
+    DialogId offset_dialog_id_;
+    MessageId offset_message_id_;
   };
 
   void tear_down() final;
@@ -114,6 +119,10 @@ class SavedMessagesManager final : public Actor {
   SavedMessagesTopic *get_topic(SavedMessagesTopicId saved_messages_topic_id);
 
   SavedMessagesTopic *add_topic(SavedMessagesTopicId saved_messages_topic_id);
+
+  void get_pinned_saved_dialogs(int32 limit, Promise<Unit> &&promise);
+
+  void get_saved_dialogs(int32 limit, Promise<Unit> &&promise);
 
   void on_get_saved_messages_topic_history(SavedMessagesTopicId saved_messages_topic_id, MessageId from_message_id,
                                            Result<MessagesInfo> &&r_info,

@@ -5057,17 +5057,10 @@ void Td::on_request(uint64 id, const td_api::getChats &request) {
   messages_manager_->get_dialogs_from_list(DialogListId(request.chat_list_), request.limit_, std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::getPinnedSavedMessagesTopics &request) {
+void Td::on_request(uint64 id, const td_api::loadSavedMessagesTopics &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
-  saved_messages_manager_->get_pinned_saved_messages_topics(std::move(promise));
-}
-
-void Td::on_request(uint64 id, const td_api::getSavedMessagesTopics &request) {
-  CHECK_IS_USER();
-  // don't need to check offset UTF-8 correctness
-  CREATE_REQUEST_PROMISE();
-  saved_messages_manager_->get_saved_messages_topics(request.offset_, request.limit_, std::move(promise));
+  CREATE_OK_REQUEST_PROMISE();
+  saved_messages_manager_->load_saved_messages_topics(request.limit_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getSavedMessagesTopicHistory &request) {

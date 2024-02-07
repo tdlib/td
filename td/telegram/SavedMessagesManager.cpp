@@ -29,14 +29,15 @@
 namespace td {
 
 class GetPinnedSavedDialogsQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::foundSavedMessagesTopics>> promise_;
+  Promise<Unit> promise_;
+  int32 limit_;
 
  public:
-  explicit GetPinnedSavedDialogsQuery(Promise<td_api::object_ptr<td_api::foundSavedMessagesTopics>> &&promise)
-      : promise_(std::move(promise)) {
+  explicit GetPinnedSavedDialogsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send() {
+  void send(int32 limit) {
+    limit_ = limit;
     send_query(G()->net_query_creator().create(telegram_api::messages_getPinnedSavedDialogs()));
   }
 
@@ -48,7 +49,7 @@ class GetPinnedSavedDialogsQuery final : public Td::ResultHandler {
 
     auto result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetPinnedSavedDialogsQuery: " << to_string(result);
-    td_->saved_messages_manager_->on_get_saved_messages_topics(true, std::move(result), std::move(promise_));
+    td_->saved_messages_manager_->on_get_saved_messages_topics(true, limit_, std::move(result), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -57,14 +58,15 @@ class GetPinnedSavedDialogsQuery final : public Td::ResultHandler {
 };
 
 class GetSavedDialogsQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::foundSavedMessagesTopics>> promise_;
+  Promise<Unit> promise_;
+  int32 limit_;
 
  public:
-  explicit GetSavedDialogsQuery(Promise<td_api::object_ptr<td_api::foundSavedMessagesTopics>> &&promise)
-      : promise_(std::move(promise)) {
+  explicit GetSavedDialogsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(int32 offset_date, MessageId offset_message_id, DialogId offset_dialog_id, int32 limit) {
+    limit_ = limit;
     auto input_peer = DialogManager::get_input_peer_force(offset_dialog_id);
     CHECK(input_peer != nullptr);
 
@@ -82,7 +84,7 @@ class GetSavedDialogsQuery final : public Td::ResultHandler {
 
     auto result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetSavedDialogsQuery: " << to_string(result);
-    td_->saved_messages_manager_->on_get_saved_messages_topics(false, std::move(result), std::move(promise_));
+    td_->saved_messages_manager_->on_get_saved_messages_topics(false, limit_, std::move(result), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -409,56 +411,34 @@ void SavedMessagesManager::on_topic_changed(SavedMessagesTopic *topic) {
   send_update_saved_messages_topic(topic);
 }
 
-void SavedMessagesManager::get_pinned_saved_messages_topics(
-    Promise<td_api::object_ptr<td_api::foundSavedMessagesTopics>> &&promise) {
-  td_->create_handler<GetPinnedSavedDialogsQuery>(std::move(promise))->send();
-}
-
-void SavedMessagesManager::get_saved_messages_topics(
-    const string &offset, int32 limit, Promise<td_api::object_ptr<td_api::foundSavedMessagesTopics>> &&promise) {
-  int32 offset_date = std::numeric_limits<int32>::max();
-  DialogId offset_dialog_id;
-  MessageId offset_message_id;
-  bool is_offset_valid = [&] {
-    if (offset.empty()) {
-      return true;
-    }
-
-    auto parts = full_split(offset, ',');
-    if (parts.size() != 3) {
-      return false;
-    }
-    auto r_offset_date = to_integer_safe<int32>(parts[0]);
-    auto r_offset_dialog_id = to_integer_safe<int64>(parts[1]);
-    auto r_offset_message_id = to_integer_safe<int32>(parts[2]);
-    if (r_offset_date.is_error() || r_offset_date.ok() <= 0 || r_offset_message_id.is_error() ||
-        r_offset_dialog_id.is_error()) {
-      return false;
-    }
-    offset_date = r_offset_date.ok();
-    offset_message_id = MessageId(ServerMessageId(r_offset_message_id.ok()));
-    offset_dialog_id = DialogId(r_offset_dialog_id.ok());
-    if (!offset_message_id.is_valid() || !offset_dialog_id.is_valid() ||
-        DialogManager::get_input_peer_force(offset_dialog_id)->get_id() == telegram_api::inputPeerEmpty::ID) {
-      return false;
-    }
-    return true;
-  }();
-  if (!is_offset_valid) {
-    return promise.set_error(Status::Error(400, "Invalid offset specified"));
-  }
-
+void SavedMessagesManager::load_saved_messages_topics(int32 limit, Promise<Unit> &&promise) {
   if (limit < 0) {
     return promise.set_error(Status::Error(400, "Limit must be non-negative"));
   }
+  if (limit == 0) {
+    return promise.set_value(Unit());
+  }
+  if (topic_list_.last_topic_date_ == MAX_TOPIC_DATE) {
+    return promise.set_error(Status::Error(404, "Not Found"));
+  }
+  if (!are_pinned_saved_messages_topics_inited_) {
+    return get_pinned_saved_dialogs(limit, std::move(promise));
+  }
+  get_saved_dialogs(limit, std::move(promise));
+}
 
+void SavedMessagesManager::get_pinned_saved_dialogs(int32 limit, Promise<Unit> &&promise) {
+  td_->create_handler<GetPinnedSavedDialogsQuery>(std::move(promise))->send(limit);
+}
+
+void SavedMessagesManager::get_saved_dialogs(int32 limit, Promise<Unit> &&promise) {
   td_->create_handler<GetSavedDialogsQuery>(std::move(promise))
-      ->send(offset_date, offset_message_id, offset_dialog_id, limit);
+      ->send(topic_list_.offset_date_, topic_list_.offset_message_id_, topic_list_.offset_dialog_id_, limit);
 }
 
 void SavedMessagesManager::on_get_saved_messages_topics(
-    bool is_pinned, telegram_api::object_ptr<telegram_api::messages_SavedDialogs> &&saved_dialogs_ptr,
-    Promise<td_api::object_ptr<td_api::foundSavedMessagesTopics>> &&promise) {
+    bool is_pinned, int32 limit, telegram_api::object_ptr<telegram_api::messages_SavedDialogs> &&saved_dialogs_ptr,
+    Promise<Unit> &&promise) {
   CHECK(saved_dialogs_ptr != nullptr);
   int32 total_count = -1;
   vector<telegram_api::object_ptr<telegram_api::savedDialog>> dialogs;
@@ -492,6 +472,7 @@ void SavedMessagesManager::on_get_saved_messages_topics(
       messages = std::move(saved_dialogs->messages_);
       chats = std::move(saved_dialogs->chats_);
       users = std::move(saved_dialogs->users_);
+      is_last = dialogs.empty();
       break;
     }
     default:
@@ -514,7 +495,6 @@ void SavedMessagesManager::on_get_saved_messages_topics(
   MessageId last_message_id;
   DialogId last_dialog_id;
   vector<SavedMessagesTopicId> added_saved_messages_topic_ids;
-  vector<td_api::object_ptr<td_api::foundSavedMessagesTopic>> found_saved_messages_topics;
   for (auto &dialog : dialogs) {
     auto peer_dialog_id = DialogId(dialog->peer_);
     if (!peer_dialog_id.is_valid()) {
@@ -546,9 +526,8 @@ void SavedMessagesManager::on_get_saved_messages_topics(
       continue;
     }
     auto message_date = MessagesManager::get_message_date(it->second);
-    if (message_date > 0) {
-      if (!is_pinned && last_message_date != 0 &&
-          (last_message_date < message_date || last_message_id < last_topic_message_id)) {
+    if (!is_pinned && message_date > 0) {
+      if (last_message_date != 0 && (last_message_date < message_date || last_message_id < last_topic_message_id)) {
         LOG(ERROR) << "Receive " << last_topic_message_id << " at " << message_date << " after " << last_message_id
                    << " at " << last_message_date;
       }
@@ -562,7 +541,7 @@ void SavedMessagesManager::on_get_saved_messages_topics(
 
     if (full_message_id.get_dialog_id() != td_->dialog_manager_->get_my_dialog_id()) {
       if (full_message_id.get_dialog_id() != DialogId()) {
-        LOG(ERROR) << "Can't add last " << last_message_id << " to " << saved_messages_topic_id;
+        LOG(ERROR) << "Can't add last " << last_topic_message_id << " to " << saved_messages_topic_id;
       }
       total_count--;
       continue;
@@ -574,11 +553,13 @@ void SavedMessagesManager::on_get_saved_messages_topics(
       do_set_topic_last_message_id(topic, last_topic_message_id, message_date);
     }
     on_topic_changed(topic);
-
-    found_saved_messages_topics.push_back(get_found_saved_messages_topic_object(topic));
   }
 
   if (is_pinned) {
+    if (!are_pinned_saved_messages_topics_inited_ && total_count < limit) {
+      get_saved_dialogs(limit - total_count, std::move(promise));
+      promise = Promise<Unit>();
+    }
     are_pinned_saved_messages_topics_inited_ = true;
     set_pinned_saved_messages_topics(std::move(added_saved_messages_topic_ids));
     set_last_topic_date({MIN_PINNED_TOPIC_ORDER - 1, SavedMessagesTopicId()});
@@ -586,15 +567,21 @@ void SavedMessagesManager::on_get_saved_messages_topics(
     set_last_topic_date(MAX_TOPIC_DATE);
   } else if (last_message_date > 0) {
     set_last_topic_date({get_topic_order(last_message_date, last_message_id), SavedMessagesTopicId(last_dialog_id)});
+  } else {
+    LOG(ERROR) << "Receive no suitable topics";
+    set_last_topic_date(MAX_TOPIC_DATE);
   }
 
-  string next_offset;
-  if (last_message_date > 0 && !is_last) {
-    next_offset = PSTRING() << last_message_date << ',' << last_dialog_id.get() << ','
-                            << last_message_id.get_server_message_id().get();
+  if (!is_pinned) {
+    topic_list_.offset_date_ = last_message_date;
+    topic_list_.offset_dialog_id_ = last_dialog_id;
+    topic_list_.offset_message_id_ = last_message_id;
+
+    if (is_last && dialogs.empty()) {
+      return promise.set_error(Status::Error(404, "Not Found"));
+    }
   }
-  promise.set_value(td_api::make_object<td_api::foundSavedMessagesTopics>(
-      total_count, std::move(found_saved_messages_topics), next_offset));
+  promise.set_value(Unit());
 }
 
 td_api::object_ptr<td_api::foundSavedMessagesTopic> SavedMessagesManager::get_found_saved_messages_topic_object(
@@ -888,7 +875,7 @@ void SavedMessagesManager::reload_pinned_saved_messages_topics() {
     return;
   }
 
-  td_->create_handler<GetPinnedSavedDialogsQuery>(Auto())->send();
+  get_pinned_saved_dialogs(0, Auto());
 }
 
 void SavedMessagesManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {

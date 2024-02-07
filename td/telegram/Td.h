@@ -676,9 +676,7 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::getChats &request);
 
-  void on_request(uint64 id, const td_api::getPinnedSavedMessagesTopics &request);
-
-  void on_request(uint64 id, const td_api::getSavedMessagesTopics &request);
+  void on_request(uint64 id, const td_api::loadSavedMessagesTopics &request);
 
   void on_request(uint64 id, const td_api::getSavedMessagesTopicHistory &request);
 

@@ -1909,12 +1909,6 @@ savedMessagesTopicSavedFromChat chat_id:int53 = SavedMessagesTopic;
 //@last_message Last message in the topic; may be null if none or unknown
 foundSavedMessagesTopic topic:SavedMessagesTopic is_pinned:Bool order:int64 last_message:message = FoundSavedMessagesTopic;
 
-//@description Contains a list of Saved Messages topics
-//@total_count Total number of Saved Messages topics found
-//@topics List of Saved Messages topics
-//@next_offset The offset for the next request. If empty, then there are no more results
-foundSavedMessagesTopics total_count:int32 topics:vector<foundSavedMessagesTopic> next_offset:string = FoundSavedMessagesTopics;
-
 
 //@description Describes a forum topic icon @color Color of the topic icon in RGB format @custom_emoji_id Unique identifier of the custom emoji shown on the topic icon; 0 if none
 forumTopicIcon color:int32 custom_emoji_id:int64 = ForumTopicIcon;
@@ -7248,13 +7242,9 @@ getSuitableDiscussionChats = Chats;
 getInactiveSupergroupChats = Chats;
 
 
-//@description Returns list of all pinned Saved Messages topics
-getPinnedSavedMessagesTopics = FoundSavedMessagesTopics;
-
-//@description Returns list of non-pinned Saved Messages topics from the specified offset
-//@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
-//@limit The maximum number of Saved Messages topics to be returned; up to 100
-getSavedMessagesTopics offset:string limit:int32 = FoundSavedMessagesTopics;
+//@description Loads more Saved Messages topics. The loaded topics will be sent through updateSavedMessagesTopic. Topics are sorted by their topic.order in descending order. Returns a 404 error if all topics have been loaded
+//@limit The maximum number of topics to be loaded. For optimal performance, the number of loaded topics is chosen by TDLib and can be smaller than the specified limit, even if the end of the list is not reached
+loadSavedMessagesTopics limit:int32 = Ok;
 
 //@description Returns messages in a Saved Messages topic. The messages are returned in a reverse chronological order (i.e., in order of decreasing message_id)
 //@saved_messages_topic Saved Messages topic which messages will be fetched

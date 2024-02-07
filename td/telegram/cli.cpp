@@ -2754,13 +2754,10 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getChats>(nullptr, 1));
       send_request(td_api::make_object<td_api::getChats>(nullptr, 10));
       send_request(td_api::make_object<td_api::getChats>(nullptr, 5));
-    } else if (op == "gpsmt") {
-      send_request(td_api::make_object<td_api::getPinnedSavedMessagesTopics>());
-    } else if (op == "gsmt") {
+    } else if (op == "lsmt") {
       string limit;
-      string offset;
-      get_args(args, limit, offset);
-      send_request(td_api::make_object<td_api::getSavedMessagesTopics>(offset, as_limit(limit)));
+      get_args(args, limit);
+      send_request(td_api::make_object<td_api::loadSavedMessagesTopics>(as_limit(limit)));
     } else if (op == "gsmth") {
       MessageId from_message_id;
       int32 offset;
