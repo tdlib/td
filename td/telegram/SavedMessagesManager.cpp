@@ -940,6 +940,9 @@ void SavedMessagesManager::reload_pinned_saved_messages_topics() {
     // just in case
     return;
   }
+  if (!topic_list_.are_pinned_saved_messages_topics_inited_) {
+    return;
+  }
 
   get_pinned_saved_dialogs(0, Auto());
 }
