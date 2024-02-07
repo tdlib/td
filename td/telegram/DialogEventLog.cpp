@@ -226,6 +226,9 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
       return td_api::make_object<td_api::chatEventStickerSetChanged>(old_sticker_set_id.get(),
                                                                      new_sticker_set_id.get());
     }
+    case telegram_api::channelAdminLogEventActionChangeEmojiStickerSet::ID: {
+      return nullptr;
+    }
     case telegram_api::channelAdminLogEventActionTogglePreHistoryHidden::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionTogglePreHistoryHidden>(action_ptr);
       return td_api::make_object<td_api::chatEventIsAllHistoryAvailableToggled>(!action->new_value_);

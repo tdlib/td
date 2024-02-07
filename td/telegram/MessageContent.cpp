@@ -6782,6 +6782,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return td::make_unique<MessageGiveawayResults>(reply_to_message_id, action->winners_count_,
                                                      action->unclaimed_count_);
     }
+    case telegram_api::messageActionBoostApply::ID:
+      return make_unique<MessageUnsupported>();
     default:
       UNREACHABLE();
   }

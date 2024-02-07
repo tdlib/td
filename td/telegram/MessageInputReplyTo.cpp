@@ -33,13 +33,9 @@ MessageInputReplyTo::MessageInputReplyTo(Td *td,
   switch (input_reply_to->get_id()) {
     case telegram_api::inputReplyToStory::ID: {
       auto reply_to = telegram_api::move_object_as<telegram_api::inputReplyToStory>(input_reply_to);
-      if (reply_to->user_id_->get_id() != telegram_api::inputUser::ID) {
-        return;
-      }
-      auto user_id = UserId(static_cast<telegram_api::inputUser *>(reply_to->user_id_.get())->user_id_);
+      auto dialog_id = InputDialogId(reply_to->peer_).get_dialog_id();
       auto story_id = StoryId(reply_to->story_id_);
-      if (user_id.is_valid() && story_id.is_valid()) {
-        DialogId dialog_id(user_id);
+      if (dialog_id.is_valid() && story_id.is_valid()) {
         td->dialog_manager_->force_create_dialog(dialog_id, "MessageInputReplyTo", true);
         story_full_id_ = {dialog_id, story_id};
       }
@@ -93,13 +89,12 @@ telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_in
     Td *td, MessageId top_thread_message_id) const {
   if (story_full_id_.is_valid()) {
     auto dialog_id = story_full_id_.get_dialog_id();
-    CHECK(dialog_id.get_type() == DialogType::User);
-    auto r_input_user = td->contacts_manager_->get_input_user(dialog_id.get_user_id());
-    if (r_input_user.is_error()) {
-      LOG(ERROR) << "Failed to get input user for " << story_full_id_;
+    auto input_peer = td->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    if (input_peer == nullptr) {
+      LOG(INFO) << "Failed to get input peer for " << story_full_id_;
       return nullptr;
     }
-    return telegram_api::make_object<telegram_api::inputReplyToStory>(r_input_user.move_as_ok(),
+    return telegram_api::make_object<telegram_api::inputReplyToStory>(std::move(input_peer),
                                                                       story_full_id_.get_story_id().get());
   }
   auto reply_to_message_id = message_id_;

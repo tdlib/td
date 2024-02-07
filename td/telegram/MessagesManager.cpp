@@ -29604,7 +29604,7 @@ void MessagesManager::on_update_dialog_draft_message(DialogId dialog_id, Message
       switch (input_reply_to->get_id()) {
         case telegram_api::inputReplyToStory::ID: {
           auto reply_to = static_cast<const telegram_api::inputReplyToStory *>(input_reply_to);
-          input_dialog_id = InputDialogId(reply_to->user_id_);
+          input_dialog_id = InputDialogId(reply_to->peer_);
           break;
         }
         case telegram_api::inputReplyToMessage::ID: {

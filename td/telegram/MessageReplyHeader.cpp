@@ -21,12 +21,12 @@ MessageReplyHeader::MessageReplyHeader(Td *td, tl_object_ptr<telegram_api::Messa
   }
   if (reply_header_ptr->get_id() == telegram_api::messageReplyStoryHeader::ID) {
     auto reply_header = telegram_api::move_object_as<telegram_api::messageReplyStoryHeader>(reply_header_ptr);
-    UserId user_id(reply_header->user_id_);
+    DialogId story_dialog_id(reply_header->peer_);
     StoryId story_id(reply_header->story_id_);
-    if (!user_id.is_valid() || !story_id.is_server()) {
+    if (!story_dialog_id.is_valid() || !story_id.is_server()) {
       LOG(ERROR) << "Receive " << to_string(reply_header);
     } else {
-      story_full_id_ = {DialogId(user_id), story_id};
+      story_full_id_ = {story_dialog_id, story_id};
     }
     return;
   }

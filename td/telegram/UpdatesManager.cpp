@@ -785,7 +785,7 @@ bool UpdatesManager::is_acceptable_message_reply_header(
     }
     case telegram_api::messageReplyStoryHeader::ID: {
       auto reply_header = static_cast<const telegram_api::messageReplyStoryHeader *>(header.get());
-      return is_acceptable_user(UserId(reply_header->user_id_));
+      return is_acceptable_peer(reply_header->peer_);
     }
     default:
       UNREACHABLE();
@@ -981,6 +981,7 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         case telegram_api::messageActionSetChatWallPaper::ID:
         case telegram_api::messageActionGiveawayLaunch::ID:
         case telegram_api::messageActionGiveawayResults::ID:
+        case telegram_api::messageActionBoostApply::ID:
           break;
         case telegram_api::messageActionChatCreate::ID: {
           auto chat_create = static_cast<const telegram_api::messageActionChatCreate *>(action);
@@ -1181,7 +1182,7 @@ void UpdatesManager::on_get_updates_impl(tl_object_ptr<telegram_api::Updates> up
       auto message = make_tl_object<telegram_api::message>(
           fix_short_message_flags(update->flags_), update->out_, update->mentioned_, update->media_unread_,
           update->silent_, false, false, false, false, false, false, false, update->id_,
-          make_tl_object<telegram_api::peerUser>(from_id), make_tl_object<telegram_api::peerUser>(update->user_id_),
+          make_tl_object<telegram_api::peerUser>(from_id), 0, make_tl_object<telegram_api::peerUser>(update->user_id_),
           nullptr, std::move(update->fwd_from_), update->via_bot_id_, std::move(update->reply_to_), update->date_,
           update->message_, nullptr, nullptr, std::move(update->entities_), 0, 0, nullptr, 0, string(), 0, nullptr,
           Auto(), update->ttl_period_);
@@ -1195,7 +1196,7 @@ void UpdatesManager::on_get_updates_impl(tl_object_ptr<telegram_api::Updates> up
       auto message = make_tl_object<telegram_api::message>(
           fix_short_message_flags(update->flags_), update->out_, update->mentioned_, update->media_unread_,
           update->silent_, false, false, false, false, false, false, false, update->id_,
-          make_tl_object<telegram_api::peerUser>(update->from_id_),
+          make_tl_object<telegram_api::peerUser>(update->from_id_), 0,
           make_tl_object<telegram_api::peerChat>(update->chat_id_), nullptr, std::move(update->fwd_from_),
           update->via_bot_id_, std::move(update->reply_to_), update->date_, update->message_, nullptr, nullptr,
           std::move(update->entities_), 0, 0, nullptr, 0, string(), 0, nullptr, Auto(), update->ttl_period_);
