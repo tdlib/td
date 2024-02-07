@@ -428,7 +428,22 @@ void SavedMessagesManager::load_saved_messages_topics(int32 limit, Promise<Unit>
 }
 
 void SavedMessagesManager::get_pinned_saved_dialogs(int32 limit, Promise<Unit> &&promise) {
-  td_->create_handler<GetPinnedSavedDialogsQuery>(std::move(promise))->send(limit);
+  topic_list_.load_pinned_queries_.push_back(std::move(promise));
+  if (topic_list_.load_pinned_queries_.size() == 1) {
+    auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this)](Result<Unit> &&result) {
+      send_closure(actor_id, &SavedMessagesManager::on_get_pinned_saved_dialogs, std::move(result));
+    });
+    td_->create_handler<GetPinnedSavedDialogsQuery>(std::move(query_promise))->send(limit);
+  }
+}
+
+void SavedMessagesManager::on_get_pinned_saved_dialogs(Result<Unit> &&result) {
+  G()->ignore_result_if_closing(result);
+  if (result.is_error()) {
+    fail_promises(topic_list_.load_pinned_queries_, result.move_as_error());
+  } else {
+    set_promises(topic_list_.load_pinned_queries_);
+  }
 }
 
 void SavedMessagesManager::get_saved_dialogs(int32 limit, Promise<Unit> &&promise) {

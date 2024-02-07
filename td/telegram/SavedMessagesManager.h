@@ -109,6 +109,8 @@ class SavedMessagesManager final : public Actor {
 
     TopicDate last_topic_date_ = MIN_TOPIC_DATE;  // in memory
 
+    vector<Promise<Unit>> load_pinned_queries_;
+
     int32 offset_date_ = std::numeric_limits<int32>::max();
     DialogId offset_dialog_id_;
     MessageId offset_message_id_;
@@ -121,6 +123,8 @@ class SavedMessagesManager final : public Actor {
   SavedMessagesTopic *add_topic(SavedMessagesTopicId saved_messages_topic_id);
 
   void get_pinned_saved_dialogs(int32 limit, Promise<Unit> &&promise);
+
+  void on_get_pinned_saved_dialogs(Result<Unit> &&result);
 
   void get_saved_dialogs(int32 limit, Promise<Unit> &&promise);
 
