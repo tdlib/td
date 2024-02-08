@@ -1038,6 +1038,7 @@ class ContactsManager final : public Actor {
     int32 administrator_count = 0;
     int32 restricted_count = 0;
     int32 banned_count = 0;
+    int32 boost_count = 0;
 
     DialogInviteLink invite_link;
 

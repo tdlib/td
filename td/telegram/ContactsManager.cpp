@@ -4321,6 +4321,7 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   bool has_bot_commands = !bot_commands.empty();
   bool has_flags2 = true;
   bool has_emoji_sticker_set = emoji_sticker_set_id.is_valid();
+  bool has_boost_count = boost_count != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_description);
   STORE_FLAG(has_administrator_count);
@@ -4357,6 +4358,7 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_pinned_stories);
     STORE_FLAG(has_emoji_sticker_set);
+    STORE_FLAG(has_boost_count);
     END_STORE_FLAGS();
   }
   if (has_description) {
@@ -4412,6 +4414,9 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   if (has_emoji_sticker_set) {
     store(emoji_sticker_set_id, storer);
   }
+  if (has_boost_count) {
+    store(boost_count, storer);
+  }
 }
 
 template <class ParserT>
@@ -4438,6 +4443,7 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   bool has_bot_commands;
   bool has_flags2;
   bool has_emoji_sticker_set = false;
+  bool has_boost_count = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_description);
   PARSE_FLAG(has_administrator_count);
@@ -4474,6 +4480,7 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_pinned_stories);
     PARSE_FLAG(has_emoji_sticker_set);
+    PARSE_FLAG(has_boost_count);
     END_PARSE_FLAGS();
   }
   if (has_description) {
@@ -4536,6 +4543,9 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   }
   if (has_emoji_sticker_set) {
     parse(emoji_sticker_set_id, parser);
+  }
+  if (has_boost_count) {
+    parse(boost_count, parser);
   }
 
   if (legacy_can_view_statistics) {
@@ -12209,6 +12219,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     auto has_aggressive_anti_spam_enabled = channel->antispam_;
     auto can_view_statistics = channel->can_view_stats_;
     bool has_pinned_stories = channel->stories_pinned_available_;
+    auto boost_count = channel->boost_count_;
     StickerSetId sticker_set_id;
     if (channel->stickerset_ != nullptr) {
       sticker_set_id =
@@ -12241,7 +12252,8 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
         channel_full->is_all_history_available != is_all_history_available ||
         channel_full->has_aggressive_anti_spam_enabled != has_aggressive_anti_spam_enabled ||
         channel_full->has_hidden_participants != has_hidden_participants ||
-        channel_full->has_pinned_stories != has_pinned_stories) {
+        channel_full->has_pinned_stories != has_pinned_stories ||
+        channel_full->boost_count != boost_count) {
       channel_full->participant_count = participant_count;
       channel_full->administrator_count = administrator_count;
       channel_full->restricted_count = restricted_count;
@@ -12257,6 +12269,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       channel_full->is_all_history_available = is_all_history_available;
       channel_full->has_aggressive_anti_spam_enabled = has_aggressive_anti_spam_enabled;
       channel_full->has_pinned_stories = has_pinned_stories;
+      channel_full->boost_count = boost_count;
 
       channel_full->is_changed = true;
     }
@@ -18169,7 +18182,7 @@ tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_i
       can_hide_channel_participants(channel_id, channel_full).is_ok(), channel_full->can_set_sticker_set,
       channel_full->can_set_location, channel_full->can_view_statistics,
       can_toggle_channel_aggressive_anti_spam(channel_id, channel_full).is_ok(), channel_full->is_all_history_available,
-      channel_full->has_aggressive_anti_spam_enabled, channel_full->has_pinned_stories,
+      channel_full->has_aggressive_anti_spam_enabled, channel_full->has_pinned_stories, channel_full->boost_count,
       channel_full->sticker_set_id.get(), channel_full->emoji_sticker_set_id.get(),
       channel_full->location.get_chat_location_object(), channel_full->invite_link.get_chat_invite_link_object(this),
       std::move(bot_commands),
