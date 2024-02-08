@@ -7321,7 +7321,7 @@ void ContactsManager::set_channel_sticker_set(ChannelId channel_id, StickerSetId
   if (!c->is_megagroup) {
     return promise.set_error(Status::Error(400, "Chat sticker set can be set only for supergroups"));
   }
-  if (!get_channel_permissions(c).can_change_info_and_settings()) {
+  if (!get_channel_permissions(channel_id, c).can_change_info_and_settings()) {
     return promise.set_error(Status::Error(400, "Not enough rights to change supergroup sticker set"));
   }
 
@@ -7353,7 +7353,7 @@ void ContactsManager::set_channel_emoji_sticker_set(ChannelId channel_id, Sticke
   if (!c->is_megagroup) {
     return promise.set_error(Status::Error(400, "Cuctom emoji sticker set can be set only for supergroups"));
   }
-  if (!get_channel_permissions(c).can_change_info_and_settings()) {
+  if (!get_channel_permissions(channel_id, c).can_change_info_and_settings()) {
     return promise.set_error(
         Status::Error(400, "Not enough rights to change custom emoji sticker set in the supergroup"));
   }
@@ -7380,7 +7380,7 @@ void ContactsManager::toggle_channel_sign_messages(ChannelId channel_id, bool si
   if (get_channel_type(c) == ChannelType::Megagroup) {
     return promise.set_error(Status::Error(400, "Message signatures can't be toggled in supergroups"));
   }
-  if (!get_channel_permissions(c).can_change_info_and_settings()) {
+  if (!get_channel_permissions(channel_id, c).can_change_info_and_settings()) {
     return promise.set_error(Status::Error(400, "Not enough rights to toggle channel sign messages"));
   }
 
@@ -7395,7 +7395,7 @@ void ContactsManager::toggle_channel_join_to_send(ChannelId channel_id, bool joi
   if (get_channel_type(c) == ChannelType::Broadcast || c->is_gigagroup) {
     return promise.set_error(Status::Error(400, "The method can be called only for ordinary supergroups"));
   }
-  if (!get_channel_permissions(c).can_restrict_members()) {
+  if (!get_channel_status(c).can_restrict_members()) {
     return promise.set_error(Status::Error(400, "Not enough rights"));
   }
 
@@ -7410,7 +7410,7 @@ void ContactsManager::toggle_channel_join_request(ChannelId channel_id, bool joi
   if (get_channel_type(c) == ChannelType::Broadcast || c->is_gigagroup) {
     return promise.set_error(Status::Error(400, "The method can be called only for ordinary supergroups"));
   }
-  if (!get_channel_permissions(c).can_restrict_members()) {
+  if (!get_channel_status(c).can_restrict_members()) {
     return promise.set_error(Status::Error(400, "Not enough rights"));
   }
 
@@ -7423,7 +7423,7 @@ void ContactsManager::toggle_channel_is_all_history_available(ChannelId channel_
   if (c == nullptr) {
     return promise.set_error(Status::Error(400, "Supergroup not found"));
   }
-  if (!get_channel_permissions(c).can_change_info_and_settings()) {
+  if (!get_channel_permissions(channel_id, c).can_change_info_and_settings()) {
     return promise.set_error(Status::Error(400, "Not enough rights to toggle all supergroup history availability"));
   }
   if (get_channel_type(c) != ChannelType::Megagroup) {
@@ -7459,7 +7459,7 @@ Status ContactsManager::can_hide_channel_participants(ChannelId channel_id, cons
   if (c == nullptr) {
     return Status::Error(400, "Supergroup not found");
   }
-  if (!get_channel_permissions(c).can_restrict_members()) {
+  if (!get_channel_status(c).can_restrict_members()) {
     return Status::Error(400, "Not enough rights to hide group members");
   }
   if (get_channel_type(c) != ChannelType::Megagroup) {
@@ -7504,7 +7504,7 @@ Status ContactsManager::can_toggle_channel_aggressive_anti_spam(ChannelId channe
   if (c == nullptr) {
     return Status::Error(400, "Supergroup not found");
   }
-  if (!get_channel_permissions(c).can_delete_messages()) {
+  if (!get_channel_status(c).can_delete_messages()) {
     return Status::Error(400, "Not enough rights to enable aggressive anti-spam checks");
   }
   if (get_channel_type(c) != ChannelType::Megagroup) {
@@ -7543,7 +7543,7 @@ void ContactsManager::toggle_channel_is_forum(ChannelId channel_id, bool is_foru
   if (c->is_forum == is_forum) {
     return promise.set_value(Unit());
   }
-  if (!get_channel_permissions(c).is_creator()) {
+  if (!get_channel_status(c).is_creator()) {
     return promise.set_error(Status::Error(400, "Not enough rights to convert the group to a forum"));
   }
   if (get_channel_type(c) != ChannelType::Megagroup) {
@@ -7558,7 +7558,7 @@ void ContactsManager::convert_channel_to_gigagroup(ChannelId channel_id, Promise
   if (c == nullptr) {
     return promise.set_error(Status::Error(400, "Supergroup not found"));
   }
-  if (!get_channel_permissions(c).is_creator()) {
+  if (!get_channel_status(c).is_creator()) {
     return promise.set_error(Status::Error(400, "Not enough rights to convert group to broadcast group"));
   }
   if (get_channel_type(c) != ChannelType::Megagroup) {
@@ -7577,7 +7577,7 @@ void ContactsManager::set_channel_description(ChannelId channel_id, const string
   if (c == nullptr) {
     return promise.set_error(Status::Error(400, "Chat info not found"));
   }
-  if (!get_channel_permissions(c).can_change_info_and_settings()) {
+  if (!get_channel_permissions(channel_id, c).can_change_info_and_settings()) {
     return promise.set_error(Status::Error(400, "Not enough rights to set chat description"));
   }
 
@@ -7711,7 +7711,7 @@ void ContactsManager::set_channel_slow_mode_delay(DialogId dialog_id, int32 slow
   if (!c->is_megagroup) {
     return promise.set_error(Status::Error(400, "Chat is not a supergroup"));
   }
-  if (!get_channel_permissions(c).can_restrict_members()) {
+  if (!get_channel_status(c).can_restrict_members()) {
     return promise.set_error(Status::Error(400, "Not enough rights in the supergroup"));
   }
 
@@ -16511,7 +16511,7 @@ DialogParticipantStatus ContactsManager::get_chat_permissions(const Chat *c) con
   if (!c->is_active) {
     return DialogParticipantStatus::Banned(0);
   }
-  return c->status.apply_restrictions(c->default_permissions, td_->auth_manager_->is_bot());
+  return c->status.apply_restrictions(c->default_permissions, false, td_->auth_manager_->is_bot());
 }
 
 bool ContactsManager::is_appointed_chat_administrator(ChatId chat_id) const {
@@ -16591,12 +16591,20 @@ DialogParticipantStatus ContactsManager::get_channel_permissions(ChannelId chann
   if (c == nullptr) {
     return DialogParticipantStatus::Banned(0);
   }
-  return get_channel_permissions(c);
+  return get_channel_permissions(channel_id, c);
 }
 
-DialogParticipantStatus ContactsManager::get_channel_permissions(const Channel *c) const {
+DialogParticipantStatus ContactsManager::get_channel_permissions(ChannelId channel_id, const Channel *c) const {
   c->status.update_restrictions();
-  return c->status.apply_restrictions(c->default_permissions, td_->auth_manager_->is_bot());
+  bool is_booster = false;
+  if (!td_->auth_manager_->is_bot() && c->is_megagroup) {
+    auto channel_full = get_channel_full_const(channel_id);
+    if (channel_full == nullptr || (channel_full->unrestrict_boost_count > 0 &&
+                                    channel_full->boost_count >= channel_full->unrestrict_boost_count)) {
+      is_booster = true;
+    }
+  }
+  return c->status.apply_restrictions(c->default_permissions, is_booster, td_->auth_manager_->is_bot());
 }
 
 int32 ContactsManager::get_channel_participant_count(ChannelId channel_id) const {

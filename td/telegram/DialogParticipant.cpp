@@ -553,7 +553,7 @@ tl_object_ptr<telegram_api::chatBannedRights> DialogParticipantStatus::get_chat_
 }
 
 DialogParticipantStatus DialogParticipantStatus::apply_restrictions(RestrictedRights default_restrictions,
-                                                                    bool is_bot) const {
+                                                                    bool is_booster, bool is_bot) const {
   auto flags = flags_;
   switch (type_) {
     case Type::Creator:
@@ -569,9 +569,12 @@ DialogParticipantStatus DialogParticipantStatus::apply_restrictions(RestrictedRi
     case Type::Member:
     case Type::Restricted:
     case Type::Left:
-      // members and restricted are affected by default restrictions
-      flags &= (~RestrictedRights::ALL_RESTRICTED_RIGHTS) | default_restrictions.flags_;
+      if (!is_booster) {
+        // members and restricted are affected by default restrictions unless they are supergroup boosters
+        flags &= (~RestrictedRights::ALL_RESTRICTED_RIGHTS) | default_restrictions.flags_;
+      }
       if (is_bot) {
+        // bots must be explicitly granted administrator rights to use them
         flags &= ~RestrictedRights::ALL_ADMIN_PERMISSION_RIGHTS;
       }
       break;

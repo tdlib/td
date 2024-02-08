@@ -374,7 +374,7 @@ class DialogParticipantStatus {
 
   RestrictedRights get_effective_restricted_rights() const;
 
-  DialogParticipantStatus apply_restrictions(RestrictedRights default_restrictions, bool is_bot) const;
+  DialogParticipantStatus apply_restrictions(RestrictedRights default_restrictions, bool is_booster, bool is_bot) const;
 
   tl_object_ptr<td_api::ChatMemberStatus> get_chat_member_status_object() const;
 
