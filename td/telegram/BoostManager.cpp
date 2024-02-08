@@ -348,7 +348,7 @@ td_api::object_ptr<td_api::chatBoostLevelFeatures> BoostManager::get_chat_boost_
     int32 level) const {
   int32 actual_level =
       clamp(level, 0, static_cast<int32>(td_->option_manager_->get_option_integer("chat_boost_level_max")));
-  auto theme_counts = td_->theme_manager_->get_dialog_boost_available_count(actual_level);
+  auto theme_counts = td_->theme_manager_->get_dialog_boost_available_count(actual_level, false);
   auto can_set_profile_background_custom_emoji =
       actual_level >= td_->option_manager_->get_option_integer("channel_profile_bg_icon_level_min");
   auto can_set_background_custom_emoji =

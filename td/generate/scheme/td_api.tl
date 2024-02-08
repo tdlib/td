@@ -761,8 +761,9 @@ profileAccentColors palette_colors:vector<int32> background_colors:vector<int32>
 //@id Profile accent color identifier
 //@light_theme_colors Accent colors expected to be used in light themes
 //@dark_theme_colors Accent colors expected to be used in dark themes
-//@min_chat_boost_level The minimum chat boost level required to use the color
-profileAccentColor id:int32 light_theme_colors:profileAccentColors dark_theme_colors:profileAccentColors min_chat_boost_level:int32 = ProfileAccentColor;
+//@min_supergroup_chat_boost_level The minimum chat boost level required to use the color in a supergroup chat
+//@min_channel_chat_boost_level The minimum chat boost level required to use the color in a channel chat
+profileAccentColor id:int32 light_theme_colors:profileAccentColors dark_theme_colors:profileAccentColors min_supergroup_chat_boost_level:int32 min_channel_chat_boost_level:int32 = ProfileAccentColor;
 
 //@description Describes a custom emoji to be shown instead of the Telegram Premium badge
 //@custom_emoji_id Identifier of the custom emoji in stickerFormatTgs format
