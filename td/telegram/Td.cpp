@@ -7796,6 +7796,12 @@ void Td::on_request(uint64 id, const td_api::setSupergroupStickerSet &request) {
                                              std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::setSupergroupCustomEmojiStickerSet &request) {
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->set_channel_emoji_sticker_set(ChannelId(request.supergroup_id_),
+                                                   StickerSetId(request.custom_emoji_sticker_set_id_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::toggleSupergroupSignMessages &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

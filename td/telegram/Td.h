@@ -1382,6 +1382,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::setSupergroupStickerSet &request);
 
+  void on_request(uint64 id, const td_api::setSupergroupCustomEmojiStickerSet &request);
+
   void on_request(uint64 id, const td_api::toggleSupergroupSignMessages &request);
 
   void on_request(uint64 id, const td_api::toggleSupergroupJoinToSendMessages &request);

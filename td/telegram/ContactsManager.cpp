@@ -1483,6 +1483,56 @@ class SetChannelStickerSetQuery final : public Td::ResultHandler {
   }
 };
 
+class SetChannelEmojiStickerSetQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  ChannelId channel_id_;
+  StickerSetId sticker_set_id_;
+
+ public:
+  explicit SetChannelEmojiStickerSetQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id, StickerSetId sticker_set_id,
+            telegram_api::object_ptr<telegram_api::InputStickerSet> &&input_sticker_set) {
+    channel_id_ = channel_id;
+    sticker_set_id_ = sticker_set_id;
+    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    CHECK(input_channel != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_setEmojiStickers(std::move(input_channel), std::move(input_sticker_set)),
+        {{channel_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_setEmojiStickers>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.ok();
+    LOG(DEBUG) << "Receive result for SetChannelEmojiStickerSetQuery: " << result;
+    if (!result) {
+      return on_error(Status::Error(500, "Supergroup custom emoji sticker set not updated"));
+    }
+
+    td_->contacts_manager_->on_update_channel_emoji_sticker_set(channel_id_, sticker_set_id_);
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "CHAT_NOT_MODIFIED") {
+      td_->contacts_manager_->on_update_channel_emoji_sticker_set(channel_id_, sticker_set_id_);
+      if (!td_->auth_manager_->is_bot()) {
+        promise_.set_value(Unit());
+        return;
+      }
+    } else {
+      td_->contacts_manager_->on_get_channel_error(channel_id_, status, "SetChannelEmojiStickerSetQuery");
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ToggleChannelSignaturesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
@@ -4270,6 +4320,7 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   bool has_invite_link = invite_link.is_valid();
   bool has_bot_commands = !bot_commands.empty();
   bool has_flags2 = true;
+  bool has_emoji_sticker_set = emoji_sticker_set_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_description);
   STORE_FLAG(has_administrator_count);
@@ -4305,6 +4356,7 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   if (has_flags2) {
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_pinned_stories);
+    STORE_FLAG(has_emoji_sticker_set);
     END_STORE_FLAGS();
   }
   if (has_description) {
@@ -4357,6 +4409,9 @@ void ContactsManager::ChannelFull::store(StorerT &storer) const {
   if (has_bot_commands) {
     store(bot_commands, storer);
   }
+  if (has_emoji_sticker_set) {
+    store(emoji_sticker_set_id, storer);
+  }
 }
 
 template <class ParserT>
@@ -4382,6 +4437,7 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   bool has_invite_link;
   bool has_bot_commands;
   bool has_flags2;
+  bool has_emoji_sticker_set = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_description);
   PARSE_FLAG(has_administrator_count);
@@ -4417,6 +4473,7 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   if (has_flags2) {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_pinned_stories);
+    PARSE_FLAG(has_emoji_sticker_set);
     END_PARSE_FLAGS();
   }
   if (has_description) {
@@ -4476,6 +4533,9 @@ void ContactsManager::ChannelFull::parse(ParserT &parser) {
   }
   if (has_bot_commands) {
     parse(bot_commands, parser);
+  }
+  if (has_emoji_sticker_set) {
+    parse(emoji_sticker_set_id, parser);
   }
 
   if (legacy_can_view_statistics) {
@@ -7258,6 +7318,34 @@ void ContactsManager::set_channel_sticker_set(ChannelId channel_id, StickerSetId
   }
 
   td_->create_handler<SetChannelStickerSetQuery>(std::move(promise))
+      ->send(channel_id, sticker_set_id, std::move(input_sticker_set));
+}
+
+void ContactsManager::set_channel_emoji_sticker_set(ChannelId channel_id, StickerSetId sticker_set_id,
+                                                    Promise<Unit> &&promise) {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return promise.set_error(Status::Error(400, "Supergroup not found"));
+  }
+  if (!c->is_megagroup) {
+    return promise.set_error(Status::Error(400, "Cuctom emoji sticker set can be set only for supergroups"));
+  }
+  if (!get_channel_permissions(c).can_change_info_and_settings()) {
+    return promise.set_error(
+        Status::Error(400, "Not enough rights to change custom emoji sticker set in the supergroup"));
+  }
+
+  telegram_api::object_ptr<telegram_api::InputStickerSet> input_sticker_set;
+  if (!sticker_set_id.is_valid()) {
+    input_sticker_set = telegram_api::make_object<telegram_api::inputStickerSetEmpty>();
+  } else {
+    input_sticker_set = td_->stickers_manager_->get_input_sticker_set(sticker_set_id);
+    if (input_sticker_set == nullptr) {
+      return promise.set_error(Status::Error(400, "Sticker set not found"));
+    }
+  }
+
+  td_->create_handler<SetChannelEmojiStickerSetQuery>(std::move(promise))
       ->send(channel_id, sticker_set_id, std::move(input_sticker_set));
 }
 
@@ -12123,6 +12211,11 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       sticker_set_id =
           td_->stickers_manager_->on_get_sticker_set(std::move(channel->stickerset_), true, "on_get_channel_full");
     }
+    StickerSetId emoji_sticker_set_id;
+    if (channel->emojiset_ != nullptr) {
+      emoji_sticker_set_id =
+          td_->stickers_manager_->on_get_sticker_set(std::move(channel->emojiset_), true, "on_get_channel_full");
+    }
     DcId stats_dc_id;
     if ((channel->flags_ & CHANNEL_FULL_FLAG_HAS_STATISTICS_DC_ID) != 0) {
       stats_dc_id = DcId::create(channel->stats_dc_);
@@ -12141,7 +12234,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
         channel_full->can_set_sticker_set != can_set_sticker_set ||
         channel_full->can_set_location != can_set_location ||
         channel_full->can_view_statistics != can_view_statistics || channel_full->stats_dc_id != stats_dc_id ||
-        channel_full->sticker_set_id != sticker_set_id ||
+        channel_full->sticker_set_id != sticker_set_id || channel_full->emoji_sticker_set_id != emoji_sticker_set_id ||
         channel_full->is_all_history_available != is_all_history_available ||
         channel_full->has_aggressive_anti_spam_enabled != has_aggressive_anti_spam_enabled ||
         channel_full->has_hidden_participants != has_hidden_participants ||
@@ -12157,6 +12250,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       channel_full->can_view_statistics = can_view_statistics;
       channel_full->stats_dc_id = stats_dc_id;
       channel_full->sticker_set_id = sticker_set_id;
+      channel_full->emoji_sticker_set_id = emoji_sticker_set_id;
       channel_full->is_all_history_available = is_all_history_available;
       channel_full->has_aggressive_anti_spam_enabled = has_aggressive_anti_spam_enabled;
       channel_full->has_pinned_stories = has_pinned_stories;
@@ -15461,6 +15555,19 @@ void ContactsManager::on_update_channel_sticker_set(ChannelId channel_id, Sticke
   }
 }
 
+void ContactsManager::on_update_channel_emoji_sticker_set(ChannelId channel_id, StickerSetId sticker_set_id) {
+  CHECK(channel_id.is_valid());
+  auto channel_full = get_channel_full_force(channel_id, true, "on_update_channel_emoji_sticker_set");
+  if (channel_full == nullptr) {
+    return;
+  }
+  if (channel_full->emoji_sticker_set_id != sticker_set_id) {
+    channel_full->emoji_sticker_set_id = sticker_set_id;
+    channel_full->is_changed = true;
+    update_channel_full(channel_full, channel_id, "on_update_channel_emoji_sticker_set");
+  }
+}
+
 void ContactsManager::on_update_channel_linked_channel_id(ChannelId channel_id, ChannelId group_channel_id) {
   if (channel_id.is_valid()) {
     auto channel_full = get_channel_full_force(channel_id, true, "on_update_channel_linked_channel_id 1");
@@ -18060,8 +18167,9 @@ tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_i
       channel_full->can_set_location, channel_full->can_view_statistics,
       can_toggle_channel_aggressive_anti_spam(channel_id, channel_full).is_ok(), channel_full->is_all_history_available,
       channel_full->has_aggressive_anti_spam_enabled, channel_full->has_pinned_stories,
-      channel_full->sticker_set_id.get(), channel_full->location.get_chat_location_object(),
-      channel_full->invite_link.get_chat_invite_link_object(this), std::move(bot_commands),
+      channel_full->sticker_set_id.get(), channel_full->emoji_sticker_set_id.get(),
+      channel_full->location.get_chat_location_object(), channel_full->invite_link.get_chat_invite_link_object(this),
+      std::move(bot_commands),
       get_basic_group_id_object(channel_full->migrated_from_chat_id, "get_supergroup_full_info_object"),
       channel_full->migrated_from_max_message_id.get());
 }

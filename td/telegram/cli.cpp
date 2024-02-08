@@ -5762,6 +5762,12 @@ class CliClient final : public Actor {
       get_args(args, supergroup_id, sticker_set_id);
       send_request(
           td_api::make_object<td_api::setSupergroupStickerSet>(as_supergroup_id(supergroup_id), sticker_set_id));
+    } else if (op == "ssgcess") {
+      string supergroup_id;
+      int64 sticker_set_id;
+      get_args(args, supergroup_id, sticker_set_id);
+      send_request(td_api::make_object<td_api::setSupergroupCustomEmojiStickerSet>(as_supergroup_id(supergroup_id),
+                                                                                   sticker_set_id));
     } else if (op == "tsgp") {
       string supergroup_id;
       bool is_all_history_available;
