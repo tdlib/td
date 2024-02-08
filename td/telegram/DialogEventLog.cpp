@@ -227,7 +227,15 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
                                                                      new_sticker_set_id.get());
     }
     case telegram_api::channelAdminLogEventActionChangeEmojiStickerSet::ID: {
-      return nullptr;
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeEmojiStickerSet>(action_ptr);
+      auto old_sticker_set_id = td->stickers_manager_->add_sticker_set(std::move(action->prev_stickerset_));
+      auto new_sticker_set_id = td->stickers_manager_->add_sticker_set(std::move(action->new_stickerset_));
+      if (!old_sticker_set_id.is_valid() || !new_sticker_set_id.is_valid()) {
+        LOG(ERROR) << "Skip " << to_string(action);
+        return nullptr;
+      }
+      return td_api::make_object<td_api::chatEventCustomEmojiStickerSetChanged>(old_sticker_set_id.get(),
+                                                                                new_sticker_set_id.get());
     }
     case telegram_api::channelAdminLogEventActionTogglePreHistoryHidden::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionTogglePreHistoryHidden>(action_ptr);
