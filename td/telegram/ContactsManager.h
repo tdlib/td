@@ -316,7 +316,7 @@ class ContactsManager final : public Actor {
 
   void unregister_message_channels(MessageFullId message_full_id, vector<ChannelId> channel_ids);
 
-  bool can_use_premium_custom_emoji() const;
+  bool can_use_premium_custom_emoji(DialogId dialog_id) const;
 
   UserId get_my_id() const;
 

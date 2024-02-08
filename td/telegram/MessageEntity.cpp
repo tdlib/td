@@ -4731,7 +4731,8 @@ void remove_unallowed_entities(const Td *td, FormattedText &text, DialogId dialo
       remove_intersecting_entities(text.entities);
     }
   }
-  if (dialog_id != td->dialog_manager_->get_my_dialog_id() && !td->contacts_manager_->can_use_premium_custom_emoji()) {
+  if (dialog_id != td->dialog_manager_->get_my_dialog_id() &&
+      !td->contacts_manager_->can_use_premium_custom_emoji(dialog_id)) {
     remove_premium_custom_emoji_entities(td, text.entities, false);
   }
 }

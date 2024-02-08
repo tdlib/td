@@ -5429,8 +5429,11 @@ FolderId ContactsManager::get_secret_chat_initial_folder_id(SecretChatId secret_
   return c->initial_folder_id;
 }
 
-bool ContactsManager::can_use_premium_custom_emoji() const {
+bool ContactsManager::can_use_premium_custom_emoji(DialogId dialog_id) const {
   if (td_->option_manager_->get_option_boolean("is_premium")) {
+    return true;
+  }
+  if (dialog_id.get_type() == DialogType::Channel && is_megagroup_channel(dialog_id.get_channel_id())) {
     return true;
   }
   if (!td_->auth_manager_->is_bot()) {
