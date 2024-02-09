@@ -14498,7 +14498,11 @@ void ContactsManager::on_update_channel_full_slow_mode_next_send_date(ChannelFul
   if (channel_full->slow_mode_next_send_date != slow_mode_next_send_date) {
     channel_full->slow_mode_next_send_date = slow_mode_next_send_date;
     channel_full->is_slow_mode_next_send_date_changed = true;
-    channel_full->is_changed = true;
+    if (channel_full->unrestrict_boost_count == 0 || channel_full->boost_count < channel_full->unrestrict_boost_count) {
+      channel_full->is_changed = true;
+    } else {
+      channel_full->need_save_to_database = true;
+    }
   }
 }
 
@@ -18187,7 +18191,8 @@ tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_i
     ChannelId channel_id, const ChannelFull *channel_full) const {
   CHECK(channel_full != nullptr);
   double slow_mode_delay_expires_in = 0;
-  if (channel_full->slow_mode_next_send_date != 0) {
+  if (channel_full->slow_mode_next_send_date != 0 &&
+      (channel_full->unrestrict_boost_count == 0 || channel_full->boost_count < channel_full->unrestrict_boost_count)) {
     slow_mode_delay_expires_in = max(channel_full->slow_mode_next_send_date - G()->server_time(), 1e-3);
   }
   auto bot_commands = transform(channel_full->bot_commands, [td = td_](const BotCommands &commands) {
