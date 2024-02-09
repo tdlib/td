@@ -458,7 +458,8 @@ void ThemeManager::tear_down() {
 ThemeManager::DialogBoostAvailableCounts ThemeManager::get_dialog_boost_available_count(int32 level,
                                                                                         bool for_megagroup) {
   DialogBoostAvailableCounts result;
-  if (level >= td_->option_manager_->get_option_integer("channel_wallpaper_level_min")) {
+  if (level >= td_->option_manager_->get_option_integer(for_megagroup ? Slice("group_wallpaper_level_min")
+                                                                      : Slice("channel_wallpaper_level_min"))) {
     result.chat_theme_count_ = static_cast<int32>(chat_themes_.themes.size());
   }
   auto &min_boost_levels =

@@ -132,6 +132,12 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("channel_profile_bg_icon_level_min", is_test_dc ? 1 : 7);
   set_default_integer_option("channel_wallpaper_level_min", is_test_dc ? 3 : 9);
   set_default_integer_option("pm_read_date_expire_period", 604800);
+  set_default_integer_option("group_transcribe_level_min", is_test_dc ? 4 : 6);
+  set_default_integer_option("group_emoji_stickers_level_min", is_test_dc ? 1 : 4);
+  set_default_integer_option("group_profile_bg_icon_level_min", is_test_dc ? 1 : 5);
+  set_default_integer_option("group_emoji_status_level_min", is_test_dc ? 2 : 8);
+  set_default_integer_option("group_wallpaper_level_min", is_test_dc ? 3 : 9);
+  set_default_integer_option("group_custom_wallpaper_level_min", is_test_dc ? 4 : 10);
 
   if (options.isset("my_phone_number") || !options.isset("my_id")) {
     update_premium_options();
@@ -360,6 +366,12 @@ bool OptionManager::is_internal_option(Slice name) {
                                                               "edit_time_limit",
                                                               "emoji_sounds",
                                                               "fragment_prefixes",
+                                                              "group_transcribe_level_min",
+                                                              "group_emoji_stickers_level_min",
+                                                              "group_profile_bg_icon_level_min",
+                                                              "group_emoji_status_level_min",
+                                                              "group_wallpaper_level_min",
+                                                              "group_custom_wallpaper_level_min",
                                                               "hidden_members_group_size_min",
                                                               "ignored_restriction_reasons",
                                                               "language_pack_version",
