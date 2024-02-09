@@ -748,8 +748,8 @@ premiumGiveawayInfoCompleted creation_date:int32 actual_winners_selection_date:i
 //@built_in_accent_color_id Identifier of a built-in color to use in places, where only one color is needed; 0-6
 //@light_theme_colors The list of 1-3 colors in RGB format, describing the accent color, as expected to be shown in light themes
 //@dark_theme_colors The list of 1-3 colors in RGB format, describing the accent color, as expected to be shown in dark themes
-//@min_chat_boost_level The minimum chat boost level required to use the color
-accentColor id:int32 built_in_accent_color_id:int32 light_theme_colors:vector<int32> dark_theme_colors:vector<int32> min_chat_boost_level:int32 = AccentColor;
+//@min_channel_chat_boost_level The minimum chat boost level required to use the color in a channel chat
+accentColor id:int32 built_in_accent_color_id:int32 light_theme_colors:vector<int32> dark_theme_colors:vector<int32> min_channel_chat_boost_level:int32 = AccentColor;
 
 //@description Contains information about supported accent colors for user profile photo background in RGB format
 //@palette_colors The list of 1-2 colors in RGB format, describing the colors, as expected to be shown in the color palette settings
@@ -8175,15 +8175,15 @@ setChatTitle chat_id:int53 title:string = Ok;
 //@photo New chat photo; pass null to delete the chat photo
 setChatPhoto chat_id:int53 photo:InputChatPhoto = Ok;
 
-//@description Changes accent color and background custom emoji of a chat. Requires can_change_info administrator right
+//@description Changes accent color and background custom emoji of a channel chat. Requires can_change_info administrator right
 //@chat_id Chat identifier
-//@accent_color_id Identifier of the accent color to use. The chat must have at least accentColor.min_chat_boost_level boost level to pass the corresponding color
+//@accent_color_id Identifier of the accent color to use. The chat must have at least accentColor.min_channel_chat_boost_level boost level to pass the corresponding color
 //@background_custom_emoji_id Identifier of a custom emoji to be shown on the reply header and link preview background; 0 if none. Use chatBoostLevelFeatures.can_set_background_custom_emoji to check whether a custom emoji can be set
 setChatAccentColor chat_id:int53 accent_color_id:int32 background_custom_emoji_id:int64 = Ok;
 
-//@description Changes accent color and background custom emoji for profile of a chat. Requires can_change_info administrator right
+//@description Changes accent color and background custom emoji for profile of a supergroup or channel chat. Requires can_change_info administrator right
 //@chat_id Chat identifier
-//@profile_accent_color_id Identifier of the accent color to use for profile; pass -1 if none. The chat must have at least profileAccentColor.min_chat_boost_level boost level to pass the corresponding color
+//@profile_accent_color_id Identifier of the accent color to use for profile; pass -1 if none. The chat must have at least profileAccentColor.min_supergroup_chat_boost_level for supergroups or profileAccentColor.min_channel_chat_boost_level for channels boost level to pass the corresponding color
 //@profile_background_custom_emoji_id Identifier of a custom emoji to be shown on the chat's profile photo background; 0 if none. Use chatBoostLevelFeatures.can_set_profile_background_custom_emoji to check whether a custom emoji can be set
 setChatProfileAccentColor chat_id:int53 profile_accent_color_id:int32 profile_background_custom_emoji_id:int64 = Ok;
 

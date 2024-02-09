@@ -7289,9 +7289,6 @@ void ContactsManager::set_channel_profile_accent_color(ChannelId channel_id, Acc
   if (c == nullptr) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
-  if (c->is_megagroup) {
-    return promise.set_error(Status::Error(400, "Accent color can be changed only in channel chats"));
-  }
   if (!get_channel_status(c).can_change_info_and_settings()) {
     return promise.set_error(Status::Error(400, "Not enough rights in the channel"));
   }
