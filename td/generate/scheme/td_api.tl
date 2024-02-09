@@ -3793,7 +3793,10 @@ chatBoostStatus boost_url:string applied_slot_ids:vector<int32> level:int32 gift
 //@expiration_date Point in time (Unix timestamp) when the boost will expire
 chatBoost id:string count:int32 source:ChatBoostSource start_date:int32 expiration_date:int32 = ChatBoost;
 
-//@description Contains a list of boosts applied to a chat @total_count Total number of boosts applied to the chat @boosts List of boosts @next_offset The offset for the next request. If empty, then there are no more results
+//@description Contains a list of boosts applied to a chat
+//@total_count Total number of boosts applied to the chat
+//@boosts List of boosts
+//@next_offset The offset for the next request. If empty, then there are no more results
 foundChatBoosts total_count:int32 boosts:vector<chatBoost> next_offset:string = FoundChatBoosts;
 
 //@description Describes a slot for chat boost

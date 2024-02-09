@@ -414,22 +414,20 @@ Result<std::pair<string, bool>> BoostManager::get_dialog_boost_link(DialogId dia
   if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
     return Status::Error(400, "Can't access the chat");
   }
-  if (dialog_id.get_type() != DialogType::Channel ||
-      !td_->contacts_manager_->is_broadcast_channel(dialog_id.get_channel_id())) {
+  if (dialog_id.get_type() != DialogType::Channel) {
     return Status::Error(400, "Can't boost the chat");
   }
 
   SliceBuilder sb;
-  sb << LinkManager::get_t_me_url();
+  sb << LinkManager::get_t_me_url() << "boost";
 
   auto username = td_->contacts_manager_->get_channel_first_username(dialog_id.get_channel_id());
   bool is_public = !username.empty();
   if (is_public) {
-    sb << username;
+    sb << '/' << username;
   } else {
-    sb << "c/" << dialog_id.get_channel_id().get();
+    sb << "?c=" << dialog_id.get_channel_id().get();
   }
-  sb << "?boost";
 
   return std::make_pair(sb.as_cslice().str(), is_public);
 }
