@@ -112,8 +112,7 @@ Result<telegram_api::object_ptr<telegram_api::InputPeer>> get_boost_input_peer(T
   if (!td->dialog_manager_->have_dialog_force(dialog_id, "get_boost_input_peer")) {
     return Status::Error(400, "Chat to boost not found");
   }
-  if (dialog_id.get_type() != DialogType::Channel ||
-      !td->contacts_manager_->is_broadcast_channel(dialog_id.get_channel_id())) {
+  if (dialog_id.get_type() != DialogType::Channel) {
     return Status::Error(400, "Can't boost the chat");
   }
   if (!td->contacts_manager_->get_channel_status(dialog_id.get_channel_id()).is_administrator()) {

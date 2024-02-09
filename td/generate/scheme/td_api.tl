@@ -2447,7 +2447,8 @@ messageExtendedMediaUnsupported caption:formattedText = MessageExtendedMedia;
 
 
 //@description Describes parameters of a Telegram Premium giveaway
-//@boosted_chat_id Identifier of the supergroup or channel chat, which will be automatically boosted by the winners of the giveaway for duration of the Premium subscription. If the chat is a channel, then requires can_post_messages right in the channel
+//@boosted_chat_id Identifier of the supergroup or channel chat, which will be automatically boosted by the winners of the giveaway for duration of the Premium subscription.
+//-If the chat is a channel, then can_post_messages right is required in the channel, otherwise, the user must be an administrator in the supergroup
 //@additional_chat_ids Identifiers of other supergroup or channel chats that must be subscribed by the users to be eligible for the giveaway. There can be up to getOption("giveaway_additional_chat_count_max") additional chats
 //@winners_selection_date Point in time (Unix timestamp) when the giveaway is expected to be performed; must be 60-getOption("giveaway_duration_max") seconds in the future in scheduled giveaways
 //@only_new_members True, if only new members of the chats will be eligible for the giveaway
@@ -4861,7 +4862,7 @@ storePaymentPurposePremiumSubscription is_restore:Bool is_upgrade:Bool = StorePa
 storePaymentPurposeGiftedPremium user_id:int53 currency:string amount:int53 = StorePaymentPurpose;
 
 //@description The user creating Telegram Premium gift codes for other users
-//@boosted_chat_id Identifier of the channel chat, which will be automatically boosted by the users for duration of the Premium subscription and which is administered by the user; 0 if none
+//@boosted_chat_id Identifier of the supergroup or channel chat, which will be automatically boosted by the users for duration of the Premium subscription and which is administered by the user; 0 if none
 //@currency ISO 4217 currency code of the payment currency
 //@amount Paid amount, in the smallest units of the currency
 //@user_ids Identifiers of the users which can activate the gift codes
@@ -4877,7 +4878,7 @@ storePaymentPurposePremiumGiveaway parameters:premiumGiveawayParameters currency
 //@class TelegramPaymentPurpose @description Describes a purpose of a payment toward Telegram
 
 //@description The user creating Telegram Premium gift codes for other users
-//@boosted_chat_id Identifier of the channel chat, which will be automatically boosted by the users for duration of the Premium subscription and which is administered by the user; 0 if none
+//@boosted_chat_id Identifier of the supergroup or channel chat, which will be automatically boosted by the users for duration of the Premium subscription and which is administered by the user; 0 if none
 //@currency ISO 4217 currency code of the payment currency
 //@amount Paid amount, in the smallest units of the currency
 //@user_ids Identifiers of the users which can activate the gift codes
@@ -9890,7 +9891,7 @@ clickPremiumSubscriptionButton = Ok;
 getPremiumState = PremiumState;
 
 //@description Returns available options for Telegram Premium gift code or giveaway creation
-//@boosted_chat_id Identifier of the channel chat, which will be automatically boosted by receivers of the gift codes and which is administered by the user; 0 if none
+//@boosted_chat_id Identifier of the supergroup or channel chat, which will be automatically boosted by receivers of the gift codes and which is administered by the user; 0 if none
 getPremiumGiftCodePaymentOptions boosted_chat_id:int53 = PremiumGiftCodePaymentOptions;
 
 //@description Return information about a Telegram Premium gift code @code The code to check

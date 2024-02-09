@@ -29,8 +29,9 @@ Result<ChannelId> GiveawayParameters::get_boosted_channel_id(Td *td, DialogId di
     return Status::Error(400, "Can't boost the chat");
   }
   auto channel_id = dialog_id.get_channel_id();
-  if (td->contacts_manager_->is_broadcast_channel(channel_id) &&
-      !td->contacts_manager_->get_channel_status(channel_id).can_post_messages()) {
+  auto status = td->contacts_manager_->get_channel_status(channel_id);
+  if (td->contacts_manager_->is_broadcast_channel(channel_id) ? !status.can_post_messages()
+                                                              : !status.is_administrator()) {
     return Status::Error(400, "Not enough rights in the chat");
   }
   return channel_id;
