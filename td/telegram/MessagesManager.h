@@ -2600,6 +2600,8 @@ class MessagesManager final : public Actor {
 
   vector<DialogId> get_pinned_dialog_ids(DialogListId dialog_list_id) const;
 
+  bool set_folder_pinned_dialogs(FolderId folder_id, vector<DialogId> old_dialog_ids, vector<DialogId> new_dialog_ids);
+
   void reload_pinned_dialogs(DialogListId dialog_list_id, Promise<Unit> &&promise);
 
   void update_dialogs_hints(const Dialog *d);

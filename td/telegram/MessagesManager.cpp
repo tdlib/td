@@ -14578,43 +14578,8 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     bool are_pinned_dialogs_saved = folder_list->are_pinned_dialogs_inited_;
     folder_list->are_pinned_dialogs_inited_ = true;
     if (pinned_dialog_ids != added_dialog_ids) {
-      LOG(INFO) << "Update pinned chats order from " << format::as_array(pinned_dialog_ids) << " to "
-                << format::as_array(added_dialog_ids);
-      FlatHashSet<DialogId, DialogIdHash> old_pinned_dialog_ids;
-      for (auto pinned_dialog_id : pinned_dialog_ids) {
-        old_pinned_dialog_ids.insert(pinned_dialog_id);
-      }
-
-      std::reverse(pinned_dialog_ids.begin(), pinned_dialog_ids.end());
-      std::reverse(added_dialog_ids.begin(), added_dialog_ids.end());
-      auto old_it = pinned_dialog_ids.begin();
-      for (auto dialog_id : added_dialog_ids) {
-        old_pinned_dialog_ids.erase(dialog_id);
-        while (old_it < pinned_dialog_ids.end()) {
-          if (*old_it == dialog_id) {
-            break;
-          }
-          ++old_it;
-        }
-        if (old_it < pinned_dialog_ids.end()) {
-          // leave dialog where it is
-          ++old_it;
-          continue;
-        }
-        if (set_dialog_is_pinned(dialog_id, true)) {
-          are_pinned_dialogs_saved = true;
-        }
-      }
-      for (auto dialog_id : old_pinned_dialog_ids) {
-        Dialog *d = get_dialog_force(dialog_id, "on_get_dialogs pinned");
-        if (d == nullptr) {
-          LOG(ERROR) << "Failed to find " << dialog_id << " to unpin in " << folder_id;
-          force_create_dialog(dialog_id, "from_pinned_dialog_list", true);
-          d = get_dialog_force(dialog_id, "on_get_dialogs pinned 2");
-        }
-        if (d != nullptr && set_dialog_is_pinned(DialogListId(folder_id), d, false)) {
-          are_pinned_dialogs_saved = true;
-        }
+      if (set_folder_pinned_dialogs(folder_id, std::move(pinned_dialog_ids), std::move(added_dialog_ids))) {
+        are_pinned_dialogs_saved = true;
       }
     } else {
       LOG(INFO) << "Pinned chats are not changed";
@@ -17735,6 +17700,51 @@ void MessagesManager::toggle_dialog_is_pinned_on_server(DialogId dialog_id, bool
   td_->create_handler<ToggleDialogPinQuery>(get_erase_log_event_promise(log_event_id))->send(dialog_id, is_pinned);
 }
 
+bool MessagesManager::set_folder_pinned_dialogs(FolderId folder_id, vector<DialogId> old_dialog_ids,
+                                                vector<DialogId> new_dialog_ids) {
+  LOG(INFO) << "Reorder pinned chats in " << folder_id << " from " << old_dialog_ids << " to " << new_dialog_ids;
+
+  std::reverse(old_dialog_ids.begin(), old_dialog_ids.end());
+  std::reverse(new_dialog_ids.begin(), new_dialog_ids.end());
+
+  FlatHashSet<DialogId, DialogIdHash> all_old_pinned_dialog_ids;
+  for (auto dialog_id : old_dialog_ids) {
+    all_old_pinned_dialog_ids.insert(dialog_id);
+  }
+
+  bool are_pinned_dialogs_saved = false;
+  auto old_it = old_dialog_ids.begin();
+  for (auto dialog_id : new_dialog_ids) {
+    all_old_pinned_dialog_ids.erase(dialog_id);
+    while (old_it < old_dialog_ids.end()) {
+      if (*old_it == dialog_id) {
+        break;
+      }
+      ++old_it;
+    }
+    if (old_it < old_dialog_ids.end()) {
+      // leave dialog where it is
+      ++old_it;
+      continue;
+    }
+    if (set_dialog_is_pinned(dialog_id, true)) {
+      are_pinned_dialogs_saved = true;
+    }
+  }
+  for (auto dialog_id : all_old_pinned_dialog_ids) {
+    Dialog *d = get_dialog_force(dialog_id, "set_folder_pinned_dialogs 1");
+    if (d == nullptr) {
+      LOG(ERROR) << "Failed to find " << dialog_id << " to unpin in " << folder_id;
+      force_create_dialog(dialog_id, "set_folder_pinned_dialogs 2", true);
+      d = get_dialog_force(dialog_id, "set_folder_pinned_dialogs 3");
+    }
+    if (d != nullptr && set_dialog_is_pinned(DialogListId(folder_id), d, false)) {
+      are_pinned_dialogs_saved = true;
+    }
+  }
+  return are_pinned_dialogs_saved;
+}
+
 Status MessagesManager::set_pinned_dialogs(DialogListId dialog_list_id, vector<DialogId> dialog_ids) {
   if (td_->auth_manager_->is_bot()) {
     return Status::Error(400, "Bots can't reorder pinned chats");
@@ -17786,7 +17796,6 @@ Status MessagesManager::set_pinned_dialogs(DialogListId dialog_list_id, vector<D
   if (pinned_dialog_ids == dialog_ids) {
     return Status::OK();
   }
-  LOG(INFO) << "Reorder pinned chats in " << dialog_list_id << " from " << pinned_dialog_ids << " to " << dialog_ids;
 
   auto server_old_dialog_ids = DialogId::remove_secret_chat_dialog_ids(pinned_dialog_ids);
   auto server_new_dialog_ids = DialogId::remove_secret_chat_dialog_ids(dialog_ids);
@@ -17799,45 +17808,11 @@ Status MessagesManager::set_pinned_dialogs(DialogListId dialog_list_id, vector<D
         server_old_dialog_ids != server_new_dialog_ids);
   }
 
-  CHECK(dialog_list_id.is_folder());
-
-  std::reverse(pinned_dialog_ids.begin(), pinned_dialog_ids.end());
-  std::reverse(dialog_ids.begin(), dialog_ids.end());
-
-  FlatHashSet<DialogId, DialogIdHash> old_pinned_dialog_ids;
-  for (auto dialog_id : pinned_dialog_ids) {
-    old_pinned_dialog_ids.insert(dialog_id);
-  }
-  auto old_it = pinned_dialog_ids.begin();
-  for (auto dialog_id : dialog_ids) {
-    old_pinned_dialog_ids.erase(dialog_id);
-    while (old_it < pinned_dialog_ids.end()) {
-      if (*old_it == dialog_id) {
-        break;
-      }
-      ++old_it;
-    }
-    if (old_it < pinned_dialog_ids.end()) {
-      // leave dialog where it is
-      ++old_it;
-      continue;
-    }
-    set_dialog_is_pinned(dialog_id, true);
-  }
-  for (auto dialog_id : old_pinned_dialog_ids) {
-    Dialog *d = get_dialog_force(dialog_id, "set_pinned_dialogs 2");
-    if (d == nullptr) {
-      LOG(ERROR) << "Failed to find " << dialog_id << " to unpin in " << dialog_list_id;
-      force_create_dialog(dialog_id, "set_pinned_dialogs", true);
-      d = get_dialog_force(dialog_id, "set_pinned_dialogs 3");
-    }
-    if (d != nullptr) {
-      set_dialog_is_pinned(dialog_list_id, d, false);
-    }
-  }
+  auto folder_id = dialog_list_id.get_folder_id();
+  set_folder_pinned_dialogs(folder_id, std::move(pinned_dialog_ids), std::move(dialog_ids));
 
   if (server_old_dialog_ids != server_new_dialog_ids) {
-    reorder_pinned_dialogs_on_server(dialog_list_id.get_folder_id(), server_new_dialog_ids, 0);
+    reorder_pinned_dialogs_on_server(folder_id, server_new_dialog_ids, 0);
   }
   return Status::OK();
 }
