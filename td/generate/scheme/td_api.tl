@@ -649,7 +649,7 @@ inputChatPhotoSticker sticker:chatPhotoSticker = InputChatPhoto;
 chatPermissions can_send_basic_messages:Bool can_send_audios:Bool can_send_documents:Bool can_send_photos:Bool can_send_videos:Bool can_send_video_notes:Bool can_send_voice_notes:Bool can_send_polls:Bool can_send_other_messages:Bool can_add_web_page_previews:Bool can_change_info:Bool can_invite_users:Bool can_pin_messages:Bool can_create_topics:Bool = ChatPermissions;
 
 //@description Describes rights of the administrator
-//@can_manage_chat True, if the administrator can get chat event log, get chat boosts in channels, get channel members, report supergroup spam messages, see anonymous administrators in supergroups and ignore slow mode. Implied by any other privilege; applicable to supergroups and channels only
+//@can_manage_chat True, if the administrator can get chat event log, get chat boosts, get hidden supergroup members, get channel members, report supergroup spam messages, see anonymous administrators in supergroups and ignore slow mode. Implied by any other privilege; applicable to supergroups and channels only
 //@can_change_info True, if the administrator can change the chat title, photo, and other settings
 //@can_post_messages True, if the administrator can create channel posts or view channel statistics; applicable to channels only
 //@can_edit_messages True, if the administrator can edit messages of other users and pin messages; applicable to channels only
@@ -2447,8 +2447,8 @@ messageExtendedMediaUnsupported caption:formattedText = MessageExtendedMedia;
 
 
 //@description Describes parameters of a Telegram Premium giveaway
-//@boosted_chat_id Identifier of the channel chat, which will be automatically boosted by the winners of the giveaway for duration of the Premium subscription
-//@additional_chat_ids Identifiers of other channel chats that must be subscribed by the users to be eligible for the giveaway. There can be up to getOption("giveaway_additional_chat_count_max") additional chats
+//@boosted_chat_id Identifier of the supergroup or channel chat, which will be automatically boosted by the winners of the giveaway for duration of the Premium subscription. If the chat is a channel, then requires can_post_messages right in the channel
+//@additional_chat_ids Identifiers of other supergroup or channel chats that must be subscribed by the users to be eligible for the giveaway. There can be up to getOption("giveaway_additional_chat_count_max") additional chats
 //@winners_selection_date Point in time (Unix timestamp) when the giveaway is expected to be performed; must be 60-getOption("giveaway_duration_max") seconds in the future in scheduled giveaways
 //@only_new_members True, if only new members of the chats will be eligible for the giveaway
 //@has_public_winners True, if the list of winners of the giveaway will be available to everyone
@@ -9896,7 +9896,7 @@ checkPremiumGiftCode code:string = PremiumGiftCodeInfo;
 //@description Applies a Telegram Premium gift code @code The code to apply
 applyPremiumGiftCode code:string = Ok;
 
-//@description Launches a prepaid Telegram Premium giveaway for subscribers of channel chats; requires can_post_messages rights in the channels
+//@description Launches a prepaid Telegram Premium giveaway for subscribers of channel chats
 //@giveaway_id Unique identifier of the prepaid giveaway
 //@parameters Giveaway parameters
 launchPrepaidPremiumGiveaway giveaway_id:int64 parameters:premiumGiveawayParameters = Ok;
