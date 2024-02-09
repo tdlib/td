@@ -18157,7 +18157,7 @@ int64 ContactsManager::get_supergroup_id_object(ChannelId channel_id, const char
 }
 
 bool ContactsManager::need_poll_channel_active_stories(const Channel *c, ChannelId channel_id) const {
-  return c != nullptr && !c->is_megagroup && !get_channel_status(c).is_member() &&
+  return c != nullptr && !get_channel_status(c).is_member() &&
          have_input_peer_channel(c, channel_id, AccessRights::Read);
 }
 
