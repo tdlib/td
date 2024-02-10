@@ -119,12 +119,12 @@ public final class Client {
      * @return request result.
      * @throws ExecutionException if query execution fails.
      */
+    @SuppressWarnings("unchecked")
     public static <T extends TdApi.Object> T execute(TdApi.Function<T> query) throws ExecutionException {
         TdApi.Object object = nativeClientExecute(query);
         if (object instanceof TdApi.Error) {
             throw new ExecutionException((TdApi.Error) object);
         }
-        //noinspection unchecked
         return (T) object;
     }
 
