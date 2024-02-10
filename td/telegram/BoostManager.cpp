@@ -345,35 +345,42 @@ void BoostManager::tear_down() {
 }
 
 td_api::object_ptr<td_api::chatBoostLevelFeatures> BoostManager::get_chat_boost_level_features_object(
-    int32 level) const {
+    bool for_megagroup, int32 level) const {
   int32 actual_level =
       clamp(level, 0, static_cast<int32>(td_->option_manager_->get_option_integer("chat_boost_level_max")));
-  auto theme_counts = td_->theme_manager_->get_dialog_boost_available_count(actual_level, false);
-  auto can_set_profile_background_custom_emoji =
-      actual_level >= td_->option_manager_->get_option_integer("channel_profile_bg_icon_level_min");
-  auto can_set_background_custom_emoji =
-      actual_level >= td_->option_manager_->get_option_integer("channel_bg_icon_level_min");
-  auto can_set_emoji_status =
-      actual_level >= td_->option_manager_->get_option_integer("channel_emoji_status_level_min");
-  auto can_set_custom_background =
-      actual_level >= td_->option_manager_->get_option_integer("channel_custom_wallpaper_level_min");
+  auto have_enough_boost_level = [&](Slice name) {
+    auto needed_boost_level = narrow_cast<int32>(td_->option_manager_->get_option_integer(
+        PSLICE() << (for_megagroup ? "group" : "channel") << '_' << name << "_level_min"));
+    return needed_boost_level != 0 && actual_level >= needed_boost_level;
+  };
+  auto theme_counts = td_->theme_manager_->get_dialog_boost_available_count(actual_level, for_megagroup);
+  auto can_set_profile_background_custom_emoji = have_enough_boost_level("profile_bg_icon");
+  auto can_set_background_custom_emoji = have_enough_boost_level("bg_icon");
+  auto can_set_emoji_status = have_enough_boost_level("emoji_status");
+  auto can_set_custom_background = have_enough_boost_level("custom_wallpaper");
+  auto can_set_custom_emoji_sticker_set = have_enough_boost_level("emoji_stickers");
+  auto can_recognize_speech = have_enough_boost_level("transcribe");
   return td_api::make_object<td_api::chatBoostLevelFeatures>(
-      level, actual_level, actual_level, theme_counts.title_color_count_, theme_counts.profile_accent_color_count_,
-      can_set_profile_background_custom_emoji, theme_counts.accent_color_count_, can_set_background_custom_emoji,
-      can_set_emoji_status, theme_counts.chat_theme_count_, can_set_custom_background);
+      level, actual_level, for_megagroup ? 0 : actual_level, theme_counts.title_color_count_,
+      theme_counts.profile_accent_color_count_, can_set_profile_background_custom_emoji,
+      theme_counts.accent_color_count_, can_set_background_custom_emoji, can_set_emoji_status,
+      theme_counts.chat_theme_count_, can_set_custom_background, can_set_custom_emoji_sticker_set,
+      can_recognize_speech);
 }
 
-td_api::object_ptr<td_api::chatBoostFeatures> BoostManager::get_chat_boost_features_object() const {
+td_api::object_ptr<td_api::chatBoostFeatures> BoostManager::get_chat_boost_features_object(bool for_megagroup) const {
   vector<td_api::object_ptr<td_api::chatBoostLevelFeatures>> features;
   for (int32 level = 1; level <= 10; level++) {
-    features.push_back(get_chat_boost_level_features_object(level));
+    features.push_back(get_chat_boost_level_features_object(for_megagroup, level));
   }
   auto get_min_boost_level = [&](Slice name) {
-    return narrow_cast<int32>(td_->option_manager_->get_option_integer(PSLICE() << "channel_" << name << "_level_min"));
+    return narrow_cast<int32>(td_->option_manager_->get_option_integer(
+        PSLICE() << (for_megagroup ? "group" : "channel") << '_' << name << "_level_min", 1000000000));
   };
   return td_api::make_object<td_api::chatBoostFeatures>(
-      std::move(features), get_min_boost_level("profile_bg_icon"), get_min_boost_level("profile_bg_icon"),
-      get_min_boost_level("emoji_status"), get_min_boost_level("wallpaper"), get_min_boost_level("custom_wallpaper"));
+      std::move(features), get_min_boost_level("profile_bg_icon"), get_min_boost_level("bg_icon"),
+      get_min_boost_level("emoji_status"), get_min_boost_level("wallpaper"), get_min_boost_level("custom_wallpaper"),
+      get_min_boost_level("emoji_stickers"), get_min_boost_level("transcribe"));
 }
 
 void BoostManager::get_boost_slots(Promise<td_api::object_ptr<td_api::chatBoostSlots>> &&promise) {
@@ -394,7 +401,7 @@ void BoostManager::get_dialog_boost_status(DialogId dialog_id,
 
 void BoostManager::boost_dialog(DialogId dialog_id, vector<int32> slot_ids,
                                 Promise<td_api::object_ptr<td_api::chatBoostSlots>> &&promise) {
-  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "get_dialog_boost_status")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "boost_dialog")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
   if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
@@ -408,7 +415,7 @@ void BoostManager::boost_dialog(DialogId dialog_id, vector<int32> slot_ids,
 }
 
 Result<std::pair<string, bool>> BoostManager::get_dialog_boost_link(DialogId dialog_id) {
-  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "get_dialog_boost_status")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "get_dialog_boost_link")) {
     return Status::Error(400, "Chat not found");
   }
   if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {

@@ -3735,16 +3735,20 @@ publicForwards total_count:int32 forwards:vector<PublicForward> next_offset:stri
 //@can_set_emoji_status True, if emoji status can be set
 //@chat_theme_background_count Number of chat theme backgrounds that can be set as chat background
 //@can_set_custom_background True, if custom background can be set in the chat for all users
-chatBoostLevelFeatures level:int32 story_per_day_count:int32 custom_emoji_reaction_count:int32 title_color_count:int32 profile_accent_color_count:int32 can_set_profile_background_custom_emoji:Bool accent_color_count:int32 can_set_background_custom_emoji:Bool can_set_emoji_status:Bool chat_theme_background_count:int32 can_set_custom_background:Bool = ChatBoostLevelFeatures;
+//@can_set_custom_emoji_sticker_set True, if custom emoji sticker set can be set for the chat
+//@can_recognize_speech True, if speech recognition can be used for video note and voice note messages by all users
+chatBoostLevelFeatures level:int32 story_per_day_count:int32 custom_emoji_reaction_count:int32 title_color_count:int32 profile_accent_color_count:int32 can_set_profile_background_custom_emoji:Bool accent_color_count:int32 can_set_background_custom_emoji:Bool can_set_emoji_status:Bool chat_theme_background_count:int32 can_set_custom_background:Bool can_set_custom_emoji_sticker_set:Bool can_recognize_speech:Bool = ChatBoostLevelFeatures;
 
 //@description Contains a list of features available on the first chat boost levels
 //@features The list of features
 //@min_profile_background_custom_emoji_boost_level The minimum boost level required to set custom emoji for profile background
-//@min_background_custom_emoji_boost_level The minimum boost level required to set custom emoji for reply header and link preview background
+//@min_background_custom_emoji_boost_level The minimum boost level required to set custom emoji for reply header and link preview background; for channel chats only
 //@min_emoji_status_boost_level The minimum boost level required to set emoji status
 //@min_chat_theme_background_boost_level The minimum boost level required to set a chat theme background as chat background
 //@min_custom_background_boost_level The minimum boost level required to set custom chat background
-chatBoostFeatures features:vector<chatBoostLevelFeatures> min_profile_background_custom_emoji_boost_level:int32 min_background_custom_emoji_boost_level:int32 min_emoji_status_boost_level:int32 min_chat_theme_background_boost_level:int32 min_custom_background_boost_level:int32 = ChatBoostFeatures;
+//@min_custom_emoji_sticker_set_boost_level The minimum boost level required to set custom emoji sticker set for the chat; for supergroup chats only
+//@min_speech_recognition_boost_level The minimum boost level allowing to recognize speech in video note and voice note messages for non-Premium chat members; for supergroup chats only
+chatBoostFeatures features:vector<chatBoostLevelFeatures> min_profile_background_custom_emoji_boost_level:int32 min_background_custom_emoji_boost_level:int32 min_emoji_status_boost_level:int32 min_chat_theme_background_boost_level:int32 min_custom_background_boost_level:int32 min_custom_emoji_sticker_set_boost_level:int32 min_speech_recognition_boost_level:int32 = ChatBoostFeatures;
 
 
 //@class ChatBoostSource @description Describes source of a chat boost
@@ -4793,7 +4797,7 @@ premiumFeatureSavedMessagesTags = PremiumFeature;
 
 //@class PremiumStoryFeature @description Describes a story feature available to Premium users
 
-//@description Stories of the current user are displayed before stories of non-premium contacts and channels
+//@description Stories of the current user are displayed before stories of non-Premium contacts and channels
 premiumStoryFeaturePriorityOrder = PremiumStoryFeature;
 
 //@description The ability to hide the fact that the user viewed other's stories
@@ -8528,35 +8532,40 @@ activateStoryStealthMode = Ok;
 getStoryPublicForwards story_sender_chat_id:int53 story_id:int32 offset:string limit:int32 = PublicForwards;
 
 
-//@description Returns list of features available on the specific chat boost level; this is an offline request @level Chat boost level
-getChatBoostLevelFeatures level:int32 = ChatBoostLevelFeatures;
+//@description Returns list of features available on the specific chat boost level; this is an offline request
+//@is_channel Pass true to get the list of features for channels; pass false to get the list of features for supergroups
+//@level Chat boost level
+getChatBoostLevelFeatures is_channel:Bool level:int32 = ChatBoostLevelFeatures;
 
 //@description Returns list of features available on the first 10 chat boost levels; this is an offline request
-getChatBoostFeatures = ChatBoostFeatures;
+//@is_channel Pass true to get the list of features for channels; pass false to get the list of features for supergroups
+getChatBoostFeatures is_channel:Bool = ChatBoostFeatures;
 
 //@description Returns the list of available chat boost slots for the current user
 getAvailableChatBoostSlots = ChatBoostSlots;
 
-//@description Returns the current boost status for a channel chat @chat_id Identifier of the channel chat
+//@description Returns the current boost status for a supergroup or a channel chat @chat_id Identifier of the chat
 getChatBoostStatus chat_id:int53 = ChatBoostStatus;
 
-//@description Boosts a chat and returns the list of available chat boost slots for the current user after the boost @chat_id Identifier of the chat @slot_ids Identifiers of boost slots of the current user from which to apply boosts to the chat
+//@description Boosts a chat and returns the list of available chat boost slots for the current user after the boost
+//@chat_id Identifier of the chat
+//@slot_ids Identifiers of boost slots of the current user from which to apply boosts to the chat
 boostChat chat_id:int53 slot_ids:vector<int32> = ChatBoostSlots;
 
-//@description Returns an HTTPS link to boost the specified channel chat @chat_id Identifier of the chat
+//@description Returns an HTTPS link to boost the specified supergroup or channel chat @chat_id Identifier of the chat
 getChatBoostLink chat_id:int53 = ChatBoostLink;
 
 //@description Returns information about a link to boost a chat. Can be called for any internal link of the type internalLinkTypeChatBoost @url The link to boost a chat
 getChatBoostLinkInfo url:string = ChatBoostLinkInfo;
 
-//@description Returns list of boosts applied to a chat; requires administrator rights in the channel chat
+//@description Returns list of boosts applied to a chat; requires administrator rights in the chat
 //@chat_id Identifier of the chat
 //@only_gift_codes Pass true to receive only boosts received from gift codes and giveaways created by the chat
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of boosts to be returned; up to 100. For optimal performance, the number of returned boosts can be smaller than the specified limit
 getChatBoosts chat_id:int53 only_gift_codes:Bool offset:string limit:int32 = FoundChatBoosts;
 
-//@description Returns list of boosts applied to a chat by a given user; requires administrator rights in the channel chat; for bots only
+//@description Returns list of boosts applied to a chat by a given user; requires administrator rights in the chat; for bots only
 //@chat_id Identifier of the chat
 //@user_id Identifier of the user
 getUserChatBoosts chat_id:int53 user_id:int53 = FoundChatBoosts;
@@ -9370,13 +9379,15 @@ toggleSupergroupUsernameIsActive supergroup_id:int53 username:string is_active:B
 //@description Disables all active non-editable usernames of a supergroup or channel, requires owner privileges in the supergroup or channel @supergroup_id Identifier of the supergroup or channel
 disableAllSupergroupUsernames supergroup_id:int53 = Ok;
 
-//@description Changes order of active usernames of a supergroup or channel, requires owner privileges in the supergroup or channel @supergroup_id Identifier of the supergroup or channel @usernames The new order of active usernames. All currently active usernames must be specified
+//@description Changes order of active usernames of a supergroup or channel, requires owner privileges in the supergroup or channel
+//@supergroup_id Identifier of the supergroup or channel
+//@usernames The new order of active usernames. All currently active usernames must be specified
 reorderSupergroupActiveUsernames supergroup_id:int53 usernames:vector<string> = Ok;
 
 //@description Changes the sticker set of a supergroup; requires can_change_info administrator right @supergroup_id Identifier of the supergroup @sticker_set_id New value of the supergroup sticker set identifier. Use 0 to remove the supergroup sticker set
 setSupergroupStickerSet supergroup_id:int53 sticker_set_id:int64 = Ok;
 
-//@description Changes the sticker set of a supergroup; requires can_change_info administrator right. The chat must have at least chatBoostFeatures.min_custom_emoji_sticker_set_boost_level boost level to pass the corresponding color
+//@description Changes the custom emoji sticker set of a supergroup; requires can_change_info administrator right. The chat must have at least chatBoostFeatures.min_custom_emoji_sticker_set_boost_level boost level to pass the corresponding color
 //@supergroup_id Identifier of the supergroup
 //@custom_emoji_sticker_set_id New value of the custom emoji sticker set identifier for the supergroup. Use 0 to remove the custom emoji sticker set in the supergroup
 setSupergroupCustomEmojiStickerSet supergroup_id:int53 custom_emoji_sticker_set_id:int64 = Ok;

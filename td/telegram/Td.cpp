@@ -6771,13 +6771,13 @@ void Td::on_request(uint64 id, const td_api::activateStoryStealthMode &request) 
 void Td::on_request(uint64 id, const td_api::getChatBoostLevelFeatures &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  promise.set_value(boost_manager_->get_chat_boost_level_features_object(request.level_));
+  promise.set_value(boost_manager_->get_chat_boost_level_features_object(!request.is_channel_, request.level_));
 }
 
 void Td::on_request(uint64 id, const td_api::getChatBoostFeatures &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  promise.set_value(boost_manager_->get_chat_boost_features_object());
+  promise.set_value(boost_manager_->get_chat_boost_features_object(!request.is_channel_));
 }
 
 void Td::on_request(uint64 id, const td_api::getAvailableChatBoostSlots &request) {
@@ -7798,8 +7798,8 @@ void Td::on_request(uint64 id, const td_api::setSupergroupStickerSet &request) {
 
 void Td::on_request(uint64 id, const td_api::setSupergroupCustomEmojiStickerSet &request) {
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->set_channel_emoji_sticker_set(ChannelId(request.supergroup_id_),
-                                                   StickerSetId(request.custom_emoji_sticker_set_id_), std::move(promise));
+  contacts_manager_->set_channel_emoji_sticker_set(
+      ChannelId(request.supergroup_id_), StickerSetId(request.custom_emoji_sticker_set_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::toggleSupergroupSignMessages &request) {

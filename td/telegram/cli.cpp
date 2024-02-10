@@ -4534,11 +4534,14 @@ class CliClient final : public Actor {
     } else if (op == "assm") {
       send_request(td_api::make_object<td_api::activateStoryStealthMode>());
     } else if (op == "gcblf") {
+      bool is_channel;
       int32 level;
-      get_args(args, level);
-      send_request(td_api::make_object<td_api::getChatBoostLevelFeatures>(level));
+      get_args(args, is_channel, level);
+      send_request(td_api::make_object<td_api::getChatBoostLevelFeatures>(is_channel, level));
     } else if (op == "gcbf") {
-      send_request(td_api::make_object<td_api::getChatBoostFeatures>());
+      bool is_channel;
+      get_args(args, is_channel);
+      send_request(td_api::make_object<td_api::getChatBoostFeatures>(is_channel));
     } else if (op == "gacbs") {
       send_request(td_api::make_object<td_api::getAvailableChatBoostSlots>());
     } else if (op == "gcbs") {
