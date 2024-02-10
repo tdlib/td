@@ -933,8 +933,8 @@ class CliClient final : public Actor {
       return td_api::make_object<td_api::inputMessageReplyToMessage>(reply_chat_id_, reply_message_id_,
                                                                      std::move(quote));
     }
-    if (reply_user_id_ != 0 || reply_story_id_ != 0) {
-      return td_api::make_object<td_api::inputMessageReplyToStory>(reply_user_id_, reply_story_id_);
+    if (reply_story_chat_id_ != 0 || reply_story_id_ != 0) {
+      return td_api::make_object<td_api::inputMessageReplyToStory>(reply_story_chat_id_, reply_story_id_);
     }
     return nullptr;
   }
@@ -4673,7 +4673,7 @@ class CliClient final : public Actor {
     } else if (op == "smrqp") {
       reply_quote_position_ = to_integer<int32>(args);
     } else if (op == "smrs") {
-      get_args(args, reply_user_id_, reply_story_id_);
+      get_args(args, reply_story_chat_id_, reply_story_id_);
     } else if (op == "slpo") {
       get_args(args, link_preview_is_disabled_, link_preview_url_, link_preview_force_small_media_,
                link_preview_force_large_media_, link_preview_show_above_text_);
@@ -6541,7 +6541,7 @@ class CliClient final : public Actor {
   MessageId reply_message_id_;
   string reply_quote_;
   int32 reply_quote_position_ = 0;
-  UserId reply_user_id_;
+  ChatId reply_story_chat_id_;
   StoryId reply_story_id_;
   ChatId reposted_story_chat_id_;
   StoryId reposted_story_id_;

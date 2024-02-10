@@ -13141,8 +13141,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   bool is_topic_message = message_info.reply_header.is_topic_message_;
   auto reply_to_story_full_id = message_info.reply_header.story_full_id_;
   if (reply_to_story_full_id != StoryFullId() &&
-      (dialog_type != DialogType::User || (reply_to_story_full_id.get_dialog_id() != my_dialog_id &&
-                                           reply_to_story_full_id.get_dialog_id() != dialog_id))) {
+      (reply_to_story_full_id.get_dialog_id() != my_dialog_id && reply_to_story_full_id.get_dialog_id() != dialog_id)) {
     LOG(ERROR) << "Receive reply to " << reply_to_story_full_id << " in " << dialog_id;
     reply_to_story_full_id = {};
   }
@@ -23003,7 +23002,7 @@ MessageInputReplyTo MessagesManager::get_message_input_reply_to(
       auto reply_to_story = td_api::move_object_as<td_api::inputMessageReplyToStory>(reply_to);
       auto story_id = StoryId(reply_to_story->story_id_);
       auto sender_dialog_id = DialogId(reply_to_story->story_sender_chat_id_);
-      if (d->dialog_id != sender_dialog_id || sender_dialog_id.get_type() != DialogType::User) {
+      if (d->dialog_id != sender_dialog_id || td_->dialog_manager_->is_broadcast_channel(sender_dialog_id)) {
         LOG(INFO) << "Ignore reply to story from " << sender_dialog_id << " in a wrong " << d->dialog_id;
         return {};
       }
