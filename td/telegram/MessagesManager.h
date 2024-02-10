@@ -981,6 +981,7 @@ class MessagesManager final : public Actor {
     int32 forward_count = 0;
     tl_object_ptr<telegram_api::messageReplies> reply_info;
     tl_object_ptr<telegram_api::messageReactions> reactions;
+    int32 sender_boost_count = 0;
     int32 edit_date = 0;
     vector<RestrictionReason> restriction_reasons;
     string author_signature;
@@ -1010,7 +1011,8 @@ class MessagesManager final : public Actor {
     int32 date = 0;
     int32 edit_date = 0;
     int32 send_date = 0;
-    int32 sending_id = 0;
+    int32 sending_id = 0;  // for yet unsent messages
+    int32 sender_boost_count = 0;
 
     int64 random_id = 0;
 

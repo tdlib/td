@@ -4016,6 +4016,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_forward_info = forward_info != nullptr;
   bool has_saved_messages_topic_id = saved_messages_topic_id.is_valid();
   bool has_initial_top_thread_message_id = !message_id.is_any_server() && initial_top_thread_message_id.is_valid();
+  bool has_sender_boost_count = sender_boost_count != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -4099,6 +4100,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_forward_info);
     STORE_FLAG(has_saved_messages_topic_id);
     STORE_FLAG(has_initial_top_thread_message_id);
+    STORE_FLAG(has_sender_boost_count);
     END_STORE_FLAGS();
   }
 
@@ -4219,6 +4221,9 @@ void MessagesManager::Message::store(StorerT &storer) const {
   if (has_initial_top_thread_message_id) {
     store(initial_top_thread_message_id, storer);
   }
+  if (has_sender_boost_count) {
+    store(sender_boost_count, storer);
+  }
 }
 
 // do not forget to resolve message dependencies
@@ -4274,6 +4279,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_forward_info = false;
   bool has_saved_messages_topic_id = false;
   bool has_initial_top_thread_message_id = false;
+  bool has_sender_boost_count = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
   PARSE_FLAG(is_outgoing);
@@ -4357,6 +4363,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(has_forward_info);
     PARSE_FLAG(has_saved_messages_topic_id);
     PARSE_FLAG(has_initial_top_thread_message_id);
+    PARSE_FLAG(has_sender_boost_count);
     END_PARSE_FLAGS();
   }
 
@@ -4540,6 +4547,9 @@ void MessagesManager::Message::parse(ParserT &parser) {
   }
   if (has_initial_top_thread_message_id) {
     parse(initial_top_thread_message_id, parser);
+  }
+  if (has_sender_boost_count) {
+    parse(sender_boost_count, parser);
   }
 
   CHECK(content != nullptr);
@@ -12986,6 +12996,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       message_info.reply_markup = std::move(message->reply_markup_);
       message_info.restriction_reasons = get_restriction_reasons(std::move(message->restriction_reason_));
       message_info.author_signature = std::move(message->post_author_);
+      message_info.sender_boost_count = message->from_boosts_applied_;
       if (message->saved_peer_id_ != nullptr) {
         message_info.saved_messages_topic_id = SavedMessagesTopicId(DialogId(message->saved_peer_id_));
       }
@@ -13271,6 +13282,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->reply_to_story_full_id = reply_to_story_full_id;
   message->restriction_reasons = std::move(message_info.restriction_reasons);
   message->author_signature = std::move(message_info.author_signature);
+  message->sender_boost_count = message_info.sender_boost_count;
   message->saved_messages_topic_id = message_info.saved_messages_topic_id;
   message->is_outgoing = is_outgoing;
   message->is_channel_post = is_channel_post;
@@ -22548,8 +22560,8 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
       nullptr, nullptr, m->is_outgoing, m->is_pinned, false, false, false, can_be_saved, false, false, false, false,
       false, false, false, false, false, true, m->is_channel_post, m->is_topic_message, false, m->date, edit_date,
       std::move(forward_info), std::move(import_info), std::move(interaction_info), Auto(), nullptr, 0, 0, nullptr, 0.0,
-      0.0, via_bot_user_id, m->author_signature, 0, get_restriction_reason_description(m->restriction_reasons),
-      std::move(content), std::move(reply_markup));
+      0.0, via_bot_user_id, m->sender_boost_count, m->author_signature, 0,
+      get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
 }
 
 tl_object_ptr<td_api::message> MessagesManager::get_message_object(MessageFullId message_full_id, const char *source) {
@@ -22660,9 +22672,9 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
       m->is_topic_message, m->contains_unread_mention, date, edit_date, std::move(forward_info), std::move(import_info),
       std::move(interaction_info), std::move(unread_reactions), std::move(reply_to), top_thread_message_id,
       td_->saved_messages_manager_->get_saved_messages_topic_id_object(m->saved_messages_topic_id),
-      std::move(self_destruct_type), ttl_expires_in, auto_delete_in, via_bot_user_id, m->author_signature,
-      m->media_album_id, get_restriction_reason_description(m->restriction_reasons), std::move(content),
-      std::move(reply_markup));
+      std::move(self_destruct_type), ttl_expires_in, auto_delete_in, via_bot_user_id, m->sender_boost_count,
+      m->author_signature, m->media_album_id, get_restriction_reason_description(m->restriction_reasons),
+      std::move(content), std::move(reply_markup));
 }
 
 tl_object_ptr<td_api::messages> MessagesManager::get_messages_object(int32 total_count, DialogId dialog_id,
@@ -22854,6 +22866,9 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
         m->reply_info.channel_id_ = linked_channel_id;
       }
     }
+  }
+  if (m->sender_user_id == my_id && dialog_type == DialogType::Channel) {
+    m->sender_boost_count = td_->contacts_manager_->get_channel_my_boost_count(dialog_id.get_channel_id());
   }
   m->content = std::move(content);
   m->invert_media = invert_media;
@@ -26953,6 +26968,9 @@ Result<MessageId> MessagesManager::add_local_message(
   m->update_stickersets_order = false;
   m->view_count = 0;
   m->forward_count = 0;
+  if (m->sender_user_id == my_id && dialog_type == DialogType::Channel) {
+    m->sender_boost_count = td_->contacts_manager_->get_channel_my_boost_count(dialog_id.get_channel_id());
+  }
   m->content = std::move(message_content.content);
   m->invert_media = message_content.invert_media;
   m->disable_web_page_preview = message_content.disable_web_page_preview;
@@ -33401,6 +33419,11 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
 
     LOG(DEBUG) << "Change message sender";
     old_message->sender_dialog_id = new_message->sender_dialog_id;
+    need_send_update = true;
+  }
+  if (old_message->sender_boost_count != new_message->sender_boost_count) {
+    LOG(DEBUG) << "Change sender boost count";
+    old_message->sender_boost_count = new_message->sender_boost_count;
     need_send_update = true;
   }
   if (old_message->forward_info != new_message->forward_info) {

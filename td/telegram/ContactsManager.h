@@ -653,6 +653,7 @@ class ContactsManager final : public Actor {
   ChannelId get_channel_linked_channel_id(ChannelId channel_id, const char *source);
   int32 get_channel_slow_mode_delay(ChannelId channel_id, const char *source);
   bool get_channel_effective_has_hidden_participants(ChannelId channel_id, const char *source);
+  int32 get_channel_my_boost_count(ChannelId channel_id);
 
   void add_chat_participant(ChatId chat_id, UserId user_id, int32 forward_limit, Promise<Unit> &&promise);
 

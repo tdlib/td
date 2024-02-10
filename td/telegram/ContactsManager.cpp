@@ -16736,6 +16736,17 @@ bool ContactsManager::get_channel_effective_has_hidden_participants(ChannelId ch
   return channel_full->has_hidden_participants || !channel_full->can_get_participants;
 }
 
+int32 ContactsManager::get_channel_my_boost_count(ChannelId channel_id) {
+  auto channel_full = get_channel_full_const(channel_id);
+  if (channel_full == nullptr) {
+    channel_full = get_channel_full_force(channel_id, true, "get_channel_my_boost_count");
+    if (channel_full == nullptr) {
+      return 0;
+    }
+  }
+  return channel_full->boost_count;
+}
+
 bool ContactsManager::have_channel(ChannelId channel_id) const {
   return channels_.count(channel_id) > 0;
 }
