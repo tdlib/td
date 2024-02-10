@@ -64,9 +64,6 @@ AdministratorRights::AdministratorRights(bool is_anonymous, bool can_manage_dial
     case ChannelType::Megagroup:
       can_post_messages = false;
       can_edit_messages = false;
-      can_post_stories = false;
-      can_edit_stories = false;
-      can_delete_stories = false;
       break;
     case ChannelType::Unknown:
       break;
