@@ -742,7 +742,7 @@ void BackgroundManager::delete_background(bool for_dark_theme, Promise<Unit> &&p
 }
 
 Result<DialogId> BackgroundManager::get_background_dialog(DialogId dialog_id) {
-  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "set_dialog_background")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "get_background_dialog")) {
     return Status::Error(400, "Chat not found");
   }
   if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
@@ -754,8 +754,12 @@ Result<DialogId> BackgroundManager::get_background_dialog(DialogId dialog_id) {
       return dialog_id;
     case DialogType::Chat:
       return Status::Error(400, "Can't change background in the chat");
-    case DialogType::Channel:
+    case DialogType::Channel: {
+      if (!td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id()).can_change_info_and_settings()) {
+        return Status::Error(400, "Not enough rights in the chat");
+      }
       return dialog_id;
+    }
     case DialogType::SecretChat: {
       auto user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
       if (!user_id.is_valid()) {
