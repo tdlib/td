@@ -462,29 +462,33 @@ ThemeManager::DialogBoostAvailableCounts ThemeManager::get_dialog_boost_availabl
                                                                       : Slice("channel_wallpaper_level_min"))) {
     result.chat_theme_count_ = static_cast<int32>(chat_themes_.themes.size());
   }
-  auto &min_boost_levels =
-      for_megagroup ? accent_colors_.min_megagroup_boost_levels_ : accent_colors_.min_broadcast_boost_levels_;
-  for (size_t i = 0; i < min_boost_levels.size(); i++) {
-    if (level >= min_boost_levels[i]) {
-      result.accent_color_count_++;
+  {
+    auto &min_boost_levels =
+        for_megagroup ? accent_colors_.min_megagroup_boost_levels_ : accent_colors_.min_broadcast_boost_levels_;
+    for (size_t i = 0; i < min_boost_levels.size(); i++) {
+      if (level >= min_boost_levels[i] && min_boost_levels[i] != 0) {
+        result.accent_color_count_++;
 
-      if (accent_colors_.accent_color_ids_[i].is_built_in()) {
-        result.title_color_count_++;
-        continue;
-      }
+        if (accent_colors_.accent_color_ids_[i].is_built_in()) {
+          result.title_color_count_++;
+          continue;
+        }
 
-      auto it = accent_colors_.light_colors_.find(accent_colors_.accent_color_ids_[i]);
-      CHECK(it != accent_colors_.light_colors_.end());
-      if (it->second.size() == 1) {
-        result.title_color_count_++;
+        auto it = accent_colors_.light_colors_.find(accent_colors_.accent_color_ids_[i]);
+        CHECK(it != accent_colors_.light_colors_.end());
+        if (it->second.size() == 1) {
+          result.title_color_count_++;
+        }
       }
     }
   }
-  auto &min_profile_boost_levels = for_megagroup ? profile_accent_colors_.min_megagroup_boost_levels_
-                                                 : profile_accent_colors_.min_broadcast_boost_levels_;
-  for (size_t i = 0; i < min_profile_boost_levels.size(); i++) {
-    if (level >= min_profile_boost_levels[i]) {
-      result.profile_accent_color_count_++;
+  {
+    auto &min_profile_boost_levels = for_megagroup ? profile_accent_colors_.min_megagroup_boost_levels_
+                                                   : profile_accent_colors_.min_broadcast_boost_levels_;
+    for (size_t i = 0; i < min_profile_boost_levels.size(); i++) {
+      if (level >= min_profile_boost_levels[i] && min_profile_boost_levels[i] != 0) {
+        result.profile_accent_color_count_++;
+      }
     }
   }
   return result;
