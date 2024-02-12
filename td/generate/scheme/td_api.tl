@@ -4874,7 +4874,7 @@ storePaymentPurposeGiftedPremium user_id:int53 currency:string amount:int53 = St
 //@user_ids Identifiers of the users which can activate the gift codes
 storePaymentPurposePremiumGiftCodes boosted_chat_id:int53 currency:string amount:int53 user_ids:vector<int53> = StorePaymentPurpose;
 
-//@description The user creating a Telegram Premium giveaway for subscribers of channel chats; requires can_post_messages rights in the channels
+//@description The user creating a Telegram Premium giveaway for subscribers of channel chats; requires can_post_messages right in the channels
 //@parameters Giveaway parameters
 //@currency ISO 4217 currency code of the payment currency
 //@amount Paid amount, in the smallest units of the currency
@@ -4891,7 +4891,7 @@ storePaymentPurposePremiumGiveaway parameters:premiumGiveawayParameters currency
 //@month_count Number of months the Telegram Premium subscription will be active for the users
 telegramPaymentPurposePremiumGiftCodes boosted_chat_id:int53 currency:string amount:int53 user_ids:vector<int53> month_count:int32 = TelegramPaymentPurpose;
 
-//@description The user creating a Telegram Premium giveaway for subscribers of channel chats; requires can_post_messages rights in the channels
+//@description The user creating a Telegram Premium giveaway for subscribers of channel chats; requires can_post_messages right in the channels
 //@parameters Giveaway parameters
 //@currency ISO 4217 currency code of the payment currency
 //@amount Paid amount, in the smallest units of the currency
@@ -8277,23 +8277,23 @@ setChatDiscussionGroup chat_id:int53 discussion_chat_id:int53 = Ok;
 //@description Changes the location of a chat. Available only for some location-based supergroups, use supergroupFullInfo.can_set_location to check whether the method is allowed to use @chat_id Chat identifier @location New location for the chat; must be valid and not null
 setChatLocation chat_id:int53 location:chatLocation = Ok;
 
-//@description Changes the slow mode delay of a chat. Available only for supergroups; requires can_restrict_members rights @chat_id Chat identifier @slow_mode_delay New slow mode delay for the chat, in seconds; must be one of 0, 10, 30, 60, 300, 900, 3600
+//@description Changes the slow mode delay of a chat. Available only for supergroups; requires can_restrict_members right @chat_id Chat identifier @slow_mode_delay New slow mode delay for the chat, in seconds; must be one of 0, 10, 30, 60, 300, 900, 3600
 setChatSlowModeDelay chat_id:int53 slow_mode_delay:int32 = Ok;
 
-//@description Pins a message in a chat; requires can_pin_messages rights or can_edit_messages rights in the channel
+//@description Pins a message in a chat; requires can_pin_messages member right if the chat is a basic group or supergroup, or can_edit_messages administrator right if the chat is a channel
 //@chat_id Identifier of the chat
 //@message_id Identifier of the new pinned message
 //@disable_notification Pass true to disable notification about the pinned message. Notifications are always disabled in channels and private chats
 //@only_for_self Pass true to pin the message only for self; private chats only
 pinChatMessage chat_id:int53 message_id:int53 disable_notification:Bool only_for_self:Bool = Ok;
 
-//@description Removes a pinned message from a chat; requires can_pin_messages rights in the group or can_edit_messages rights in the channel @chat_id Identifier of the chat @message_id Identifier of the removed pinned message
+//@description Removes a pinned message from a chat; requires can_pin_messages member right if the chat is a basic group or supergroup, or can_edit_messages administrator right if the chat is a channel @chat_id Identifier of the chat @message_id Identifier of the removed pinned message
 unpinChatMessage chat_id:int53 message_id:int53 = Ok;
 
-//@description Removes all pinned messages from a chat; requires can_pin_messages rights in the group or can_edit_messages rights in the channel @chat_id Identifier of the chat
+//@description Removes all pinned messages from a chat; requires can_pin_messages member right if the chat is a basic group or supergroup, or can_edit_messages administrator right if the chat is a channel @chat_id Identifier of the chat
 unpinAllChatMessages chat_id:int53 = Ok;
 
-//@description Removes all pinned messages from a forum topic; requires can_pin_messages rights in the supergroup
+//@description Removes all pinned messages from a forum topic; requires can_pin_messages member right in the supergroup
 //@chat_id Identifier of the chat
 //@message_thread_id Message thread identifier in which messages will be unpinned
 unpinAllMessageThreadMessages chat_id:int53 message_thread_id:int53 = Ok;
@@ -8408,10 +8408,10 @@ getStory story_sender_chat_id:int53 story_id:int32 only_local:Bool = Story;
 //@description Returns supergroup and channel chats in which the current user has the right to post stories. The chats must be rechecked with canSendStory before actually trying to post a story there
 getChatsToSendStories = Chats;
 
-//@description Checks whether the current user can send a story on behalf of a chat; requires can_post_stories rights for supergroup and channel chats @chat_id Chat identifier
+//@description Checks whether the current user can send a story on behalf of a chat; requires can_post_stories right for supergroup and channel chats @chat_id Chat identifier
 canSendStory chat_id:int53 = CanSendStoryResult;
 
-//@description Sends a new story to a chat; requires can_post_stories rights for supergroup and channel chats. Returns a temporary story
+//@description Sends a new story to a chat; requires can_post_stories right for supergroup and channel chats. Returns a temporary story
 //@chat_id Identifier of the chat that will post the story
 //@content Content of the story
 //@areas Clickable rectangle areas to be shown on the story media; pass null if none
@@ -8470,7 +8470,7 @@ getChatActiveStories chat_id:int53 = ChatActiveStories;
 //-For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
 getChatPinnedStories chat_id:int53 from_story_id:int32 limit:int32 = Stories;
 
-//@description Returns the list of all stories posted by the given chat; requires can_edit_stories rights for supergroup and channel chats.
+//@description Returns the list of all stories posted by the given chat; requires can_edit_stories right in the chat.
 //-The stories are returned in a reverse chronological order (i.e., in order of decreasing story_id). For optimal performance, the number of returned stories is chosen by TDLib
 //@chat_id Chat identifier
 //@from_story_id Identifier of the story starting from which stories must be returned; use 0 to get results from the last story
@@ -8829,7 +8829,7 @@ getVideoChatAvailableParticipants chat_id:int53 = MessageSenders;
 //@description Changes default participant identifier, on whose behalf a video chat in the chat will be joined @chat_id Chat identifier @default_participant_id Default group call participant identifier to join the video chats
 setVideoChatDefaultParticipant chat_id:int53 default_participant_id:MessageSender = Ok;
 
-//@description Creates a video chat (a group call bound to a chat). Available only for basic groups, supergroups and channels; requires can_manage_video_chats rights
+//@description Creates a video chat (a group call bound to a chat). Available only for basic groups, supergroups and channels; requires can_manage_video_chats administrator right
 //@chat_id Identifier of a chat in which the video chat will be created
 //@title Group call title; if empty, chat title will be used
 //@start_date Point in time (Unix timestamp) when the group call is supposed to be started by an administrator; 0 to start the video chat immediately. The date must be at least 10 seconds and at most 8 days in the future
