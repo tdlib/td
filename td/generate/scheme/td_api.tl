@@ -8261,7 +8261,7 @@ toggleChatDefaultDisableNotification chat_id:int53 default_disable_notification:
 
 //@description Changes reactions, available in a chat. Available for basic groups, supergroups, and channels. Requires can_change_info member right
 //@chat_id Identifier of the chat
-//@available_reactions Reactions available in the chat. All explicitly specified emoji reactions must be active. Up to the chat's boost level custom emoji reactions can be explicitly specified
+//@available_reactions Reactions available in the chat. All explicitly specified emoji reactions must be active. In channel chats up to the chat's boost level custom emoji reactions can be explicitly specified
 setChatAvailableReactions chat_id:int53 available_reactions:ChatAvailableReactions = Ok;
 
 //@description Changes application-specific data associated with a chat @chat_id Chat identifier @client_data New value of client_data
