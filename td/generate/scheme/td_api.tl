@@ -1078,8 +1078,8 @@ basicGroupFullInfo photo:chatPhoto description:string creator_user_id:int53 memb
 //@restriction_reason If non-empty, contains a human-readable description of the reason why access to this supergroup or channel must be restricted
 //@is_scam True, if many users reported this supergroup or channel as a scam
 //@is_fake True, if many users reported this supergroup or channel as a fake account
-//@has_active_stories True, if the channel has non-expired stories available to the current user
-//@has_unread_active_stories True, if the channel has unread non-expired stories available to the current user
+//@has_active_stories True, if the supergroup or channel has non-expired stories available to the current user
+//@has_unread_active_stories True, if the supergroup or channel has unread non-expired stories available to the current user
 supergroup id:int53 usernames:usernames date:int32 status:ChatMemberStatus member_count:int32 boost_level:int32 has_linked_chat:Bool has_location:Bool sign_messages:Bool join_to_send_messages:Bool join_by_request:Bool is_slow_mode_enabled:Bool is_channel:Bool is_broadcast_group:Bool is_forum:Bool is_verified:Bool restriction_reason:string is_scam:Bool is_fake:Bool has_active_stories:Bool has_unread_active_stories:Bool = Supergroup;
 
 //@description Contains full information about a supergroup or channel
@@ -1102,7 +1102,7 @@ supergroup id:int53 usernames:usernames date:int32 status:ChatMemberStatus membe
 //@is_all_history_available True, if new chat members will have access to old messages. In public, discussion, of forum groups and all channels, old messages are always available,
 //-so this option affects only private non-forum supergroups without a linked chat. The value of this field is only available to chat administrators
 //@has_aggressive_anti_spam_enabled True, if aggressive anti-spam checks are enabled in the supergroup. The value of this field is only available to chat administrators
-//@has_pinned_stories True, if the channel has pinned stories
+//@has_pinned_stories True, if the supergroup or channel has pinned stories
 //@my_boost_count Number of times the current user boosted the supergroup or channel
 //@unrestrict_boost_count Number of times the supergroup must be boosted by a user to ignore slow mode and chat permission restrictions; 0 if unspecified
 //@sticker_set_id Identifier of the supergroup sticker set that must be shown before user sticker sets; 0 if none
@@ -4801,7 +4801,7 @@ premiumFeatureSavedMessagesTags = PremiumFeature;
 
 //@class PremiumStoryFeature @description Describes a story feature available to Premium users
 
-//@description Stories of the current user are displayed before stories of non-Premium contacts and channels
+//@description Stories of the current user are displayed before stories of non-Premium contacts, supergroups, and channels
 premiumStoryFeaturePriorityOrder = PremiumStoryFeature;
 
 //@description The ability to hide the fact that the user viewed other's stories
