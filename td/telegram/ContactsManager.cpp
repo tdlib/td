@@ -7366,7 +7366,7 @@ void ContactsManager::set_channel_sticker_set(ChannelId channel_id, StickerSetId
   if (!c->is_megagroup) {
     return promise.set_error(Status::Error(400, "Chat sticker set can be set only for supergroups"));
   }
-  if (!get_channel_permissions(channel_id, c).can_change_info_and_settings()) {
+  if (!get_channel_status(c).can_change_info_and_settings()) {
     return promise.set_error(Status::Error(400, "Not enough rights to change supergroup sticker set"));
   }
 

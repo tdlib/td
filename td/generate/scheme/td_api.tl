@@ -7662,7 +7662,7 @@ editMessageSchedulingState chat_id:int53 message_id:int53 scheduling_state:Messa
 //@description Returns list of custom emojis, which can be used as forum topic icon by all users
 getForumTopicDefaultIcons = Stickers;
 
-//@description Creates a topic in a forum supergroup chat; requires can_manage_topics or can_create_topics rights in the supergroup
+//@description Creates a topic in a forum supergroup chat; requires can_manage_topics administrator or can_create_topics member right in the supergroup
 //@chat_id Identifier of the chat
 //@name Name of the topic; 1-128 characters
 //@icon Icon of the topic. Icon color must be one of 0x6FB9F0, 0xFFD67E, 0xCB86DB, 0x8EEE98, 0xFF93B2, or 0xFB6F5F. Telegram Premium users can use any custom emoji as topic icon, other users can use only a custom emoji returned by getForumTopicDefaultIcons
@@ -8171,12 +8171,12 @@ getArchiveChatListSettings = ArchiveChatListSettings;
 setArchiveChatListSettings settings:archiveChatListSettings = Ok;
 
 
-//@description Changes the chat title. Supported only for basic groups, supergroups and channels. Requires can_change_info administrator right
+//@description Changes the chat title. Supported only for basic groups, supergroups and channels. Requires can_change_info member right
 //@chat_id Chat identifier
 //@title New title of the chat; 1-128 characters
 setChatTitle chat_id:int53 title:string = Ok;
 
-//@description Changes the photo of a chat. Supported only for basic groups, supergroups and channels. Requires can_change_info administrator right
+//@description Changes the photo of a chat. Supported only for basic groups, supergroups and channels. Requires can_change_info member right
 //@chat_id Chat identifier
 //@photo New chat photo; pass null to delete the chat photo
 setChatPhoto chat_id:int53 photo:InputChatPhoto = Ok;
@@ -8256,7 +8256,7 @@ toggleChatIsMarkedAsUnread chat_id:int53 is_marked_as_unread:Bool = Ok;
 //@description Changes the value of the default disable_notification parameter, used when a message is sent to a chat @chat_id Chat identifier @default_disable_notification New value of default_disable_notification
 toggleChatDefaultDisableNotification chat_id:int53 default_disable_notification:Bool = Ok;
 
-//@description Changes reactions, available in a chat. Available for basic groups, supergroups, and channels. Requires can_change_info administrator right
+//@description Changes reactions, available in a chat. Available for basic groups, supergroups, and channels. Requires can_change_info member right
 //@chat_id Identifier of the chat
 //@available_reactions Reactions available in the chat. All explicitly specified emoji reactions must be active. Up to the chat's boost level custom emoji reactions can be explicitly specified
 setChatAvailableReactions chat_id:int53 available_reactions:ChatAvailableReactions = Ok;
@@ -8264,11 +8264,11 @@ setChatAvailableReactions chat_id:int53 available_reactions:ChatAvailableReactio
 //@description Changes application-specific data associated with a chat @chat_id Chat identifier @client_data New value of client_data
 setChatClientData chat_id:int53 client_data:string = Ok;
 
-//@description Changes information about a chat. Available for basic groups, supergroups, and channels. Requires can_change_info administrator right @chat_id Identifier of the chat @param_description New chat description; 0-255 characters
+//@description Changes information about a chat. Available for basic groups, supergroups, and channels. Requires can_change_info member right @chat_id Identifier of the chat @param_description New chat description; 0-255 characters
 setChatDescription chat_id:int53 description:string = Ok;
 
 //@description Changes the discussion group of a channel chat; requires can_change_info administrator right in the channel if it is specified
-//@chat_id Identifier of the channel chat. Pass 0 to remove a link from the supergroup passed in the second argument to a linked channel chat (requires can_pin_messages rights in the supergroup)
+//@chat_id Identifier of the channel chat. Pass 0 to remove a link from the supergroup passed in the second argument to a linked channel chat (requires can_pin_messages member right in the supergroup)
 //@discussion_chat_id Identifier of a new channel's discussion group. Use 0 to remove the discussion group. Use the method getSuitableDiscussionChats to find all suitable groups.
 //-Basic group chats must be first upgraded to supergroup chats. If new chat members don't have access to old messages in the supergroup, then toggleSupergroupIsAllHistoryAvailable must be used first to change that
 setChatDiscussionGroup chat_id:int53 discussion_chat_id:int53 = Ok;
@@ -8697,11 +8697,11 @@ searchFileDownloads query:string only_active:Bool only_completed:Bool offset:str
 getMessageFileType message_file_head:string = MessageFileType;
 
 //@description Returns a confirmation text to be shown to the user before starting message import
-//@chat_id Identifier of a chat to which the messages will be imported. It must be an identifier of a private chat with a mutual contact or an identifier of a supergroup chat with can_change_info administrator right
+//@chat_id Identifier of a chat to which the messages will be imported. It must be an identifier of a private chat with a mutual contact or an identifier of a supergroup chat with can_change_info member right
 getMessageImportConfirmationText chat_id:int53 = Text;
 
 //@description Imports messages exported from another app
-//@chat_id Identifier of a chat to which the messages will be imported. It must be an identifier of a private chat with a mutual contact or an identifier of a supergroup chat with can_change_info administrator right
+//@chat_id Identifier of a chat to which the messages will be imported. It must be an identifier of a private chat with a mutual contact or an identifier of a supergroup chat with can_change_info member right
 //@message_file File with messages to import. Only inputFileLocal and inputFileGenerated are supported. The file must not be previously uploaded
 //@attached_files Files used in the imported messages. Only inputFileLocal and inputFileGenerated are supported. The files must not be previously uploaded
 importMessages chat_id:int53 message_file:InputFile attached_files:vector<InputFile> = Ok;
@@ -9391,7 +9391,7 @@ setSupergroupStickerSet supergroup_id:int53 sticker_set_id:int64 = Ok;
 
 //@description Changes the custom emoji sticker set of a supergroup; requires can_change_info administrator right. The chat must have at least chatBoostFeatures.min_custom_emoji_sticker_set_boost_level boost level to pass the corresponding color
 //@supergroup_id Identifier of the supergroup
-//@custom_emoji_sticker_set_id New value of the custom emoji sticker set identifier for the supergroup; requires can_change_info administrator right. Use 0 to remove the custom emoji sticker set in the supergroup
+//@custom_emoji_sticker_set_id New value of the custom emoji sticker set identifier for the supergroup. Use 0 to remove the custom emoji sticker set in the supergroup
 setSupergroupCustomEmojiStickerSet supergroup_id:int53 custom_emoji_sticker_set_id:int64 = Ok;
 
 //@description Changes the number of times the supergroup must be boosted by a user to ignore slow mode and chat permission restrictions; requires can_restrict_members administrator right
@@ -9399,7 +9399,7 @@ setSupergroupCustomEmojiStickerSet supergroup_id:int53 custom_emoji_sticker_set_
 //@unrestrict_boost_count New value of the unrestrict_boost_count supergroup setting; 0-8. Use 0 to remove the setting
 setSupergroupUnrestrictBoostCount supergroup_id:int53 unrestrict_boost_count:int32 = Ok;
 
-//@description Toggles whether sender signature is added to sent messages in a channel; requires can_change_info administrator right @supergroup_id Identifier of the channel @sign_messages New value of sign_messages
+//@description Toggles whether sender signature is added to sent messages in a channel; requires can_change_info member right @supergroup_id Identifier of the channel @sign_messages New value of sign_messages
 toggleSupergroupSignMessages supergroup_id:int53 sign_messages:Bool = Ok;
 
 //@description Toggles whether joining is mandatory to send messages to a discussion supergroup; requires can_restrict_members administrator right @supergroup_id Identifier of the supergroup @join_to_send_messages New value of join_to_send_messages
@@ -9408,7 +9408,7 @@ toggleSupergroupJoinToSendMessages supergroup_id:int53 join_to_send_messages:Boo
 //@description Toggles whether all users directly joining the supergroup need to be approved by supergroup administrators; requires can_restrict_members administrator right @supergroup_id Identifier of the channel @join_by_request New value of join_by_request
 toggleSupergroupJoinByRequest supergroup_id:int53 join_by_request:Bool = Ok;
 
-//@description Toggles whether the message history of a supergroup is available to new members; requires can_change_info administrator right @supergroup_id The identifier of the supergroup @is_all_history_available The new value of is_all_history_available
+//@description Toggles whether the message history of a supergroup is available to new members; requires can_change_info member right @supergroup_id The identifier of the supergroup @is_all_history_available The new value of is_all_history_available
 toggleSupergroupIsAllHistoryAvailable supergroup_id:int53 is_all_history_available:Bool = Ok;
 
 //@description Toggles whether non-administrators can receive only administrators and bots using getSupergroupMembers or searchChatMembers. Can be called only if supergroupFullInfo.can_hide_members == true
