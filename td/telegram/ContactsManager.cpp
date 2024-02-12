@@ -1533,6 +1533,51 @@ class SetChannelEmojiStickerSetQuery final : public Td::ResultHandler {
   }
 };
 
+class SetChannelBoostsToUnblockRestrictionsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  ChannelId channel_id_;
+  int32 unrestrict_boost_count_;
+
+ public:
+  explicit SetChannelBoostsToUnblockRestrictionsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id, int32 unrestrict_boost_count) {
+    channel_id_ = channel_id;
+    unrestrict_boost_count_ = unrestrict_boost_count;
+    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    CHECK(input_channel != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_setBoostsToUnblockRestrictions(std::move(input_channel), unrestrict_boost_count),
+        {{channel_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_setBoostsToUnblockRestrictions>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for SetChannelBoostsToUnblockRestrictionsQuery: " << to_string(ptr);
+    td_->contacts_manager_->on_update_channel_unrestrict_boost_count(channel_id_, unrestrict_boost_count_);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "CHAT_NOT_MODIFIED") {
+      td_->contacts_manager_->on_update_channel_unrestrict_boost_count(channel_id_, unrestrict_boost_count_);
+      if (!td_->auth_manager_->is_bot()) {
+        promise_.set_value(Unit());
+        return;
+      }
+    } else {
+      td_->contacts_manager_->on_get_channel_error(channel_id_, status, "SetChannelBoostsToUnblockRestrictionsQuery");
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ToggleChannelSignaturesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
@@ -7353,7 +7398,7 @@ void ContactsManager::set_channel_emoji_sticker_set(ChannelId channel_id, Sticke
   if (!c->is_megagroup) {
     return promise.set_error(Status::Error(400, "Cuctom emoji sticker set can be set only for supergroups"));
   }
-  if (!get_channel_permissions(channel_id, c).can_change_info_and_settings()) {
+  if (!get_channel_status(c).can_change_info_and_settings()) {
     return promise.set_error(
         Status::Error(400, "Not enough rights to change custom emoji sticker set in the supergroup"));
   }
@@ -7370,6 +7415,27 @@ void ContactsManager::set_channel_emoji_sticker_set(ChannelId channel_id, Sticke
 
   td_->create_handler<SetChannelEmojiStickerSetQuery>(std::move(promise))
       ->send(channel_id, sticker_set_id, std::move(input_sticker_set));
+}
+
+void ContactsManager::set_channel_unrestrict_boost_count(ChannelId channel_id, int32 unrestrict_boost_count,
+                                                         Promise<Unit> &&promise) {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return promise.set_error(Status::Error(400, "Supergroup not found"));
+  }
+  if (!c->is_megagroup) {
+    return promise.set_error(Status::Error(400, "Unrestrict boost count can be set only for supergroups"));
+  }
+  if (!get_channel_status(c).can_restrict_members()) {
+    return promise.set_error(
+        Status::Error(400, "Not enough rights to change unrestrict boost count set in the supergroup"));
+  }
+  if (unrestrict_boost_count < 0 || unrestrict_boost_count > 8) {
+    return promise.set_error(Status::Error(400, "Invalid new value for the unrestrict boost count specified"));
+  }
+
+  td_->create_handler<SetChannelBoostsToUnblockRestrictionsQuery>(std::move(promise))
+      ->send(channel_id, unrestrict_boost_count);
 }
 
 void ContactsManager::toggle_channel_sign_messages(ChannelId channel_id, bool sign_messages, Promise<Unit> &&promise) {
@@ -15597,6 +15663,19 @@ void ContactsManager::on_update_channel_emoji_sticker_set(ChannelId channel_id, 
     channel_full->emoji_sticker_set_id = sticker_set_id;
     channel_full->is_changed = true;
     update_channel_full(channel_full, channel_id, "on_update_channel_emoji_sticker_set");
+  }
+}
+
+void ContactsManager::on_update_channel_unrestrict_boost_count(ChannelId channel_id, int32 unrestrict_boost_count) {
+  CHECK(channel_id.is_valid());
+  auto channel_full = get_channel_full_force(channel_id, true, "on_update_channel_unrestrict_boost_count");
+  if (channel_full == nullptr) {
+    return;
+  }
+  if (channel_full->unrestrict_boost_count != unrestrict_boost_count) {
+    channel_full->unrestrict_boost_count = unrestrict_boost_count;
+    channel_full->is_changed = true;
+    update_channel_full(channel_full, channel_id, "on_update_channel_unrestrict_boost_count");
   }
 }
 

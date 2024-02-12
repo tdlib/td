@@ -268,6 +268,7 @@ class ContactsManager final : public Actor {
   void on_update_channel_description(ChannelId channel_id, string &&description);
   void on_update_channel_sticker_set(ChannelId channel_id, StickerSetId sticker_set_id);
   void on_update_channel_emoji_sticker_set(ChannelId channel_id, StickerSetId sticker_set_id);
+  void on_update_channel_unrestrict_boost_count(ChannelId channel_id, int32 unrestrict_boost_count);
   void on_update_channel_linked_channel_id(ChannelId channel_id, ChannelId group_channel_id);
   void on_update_channel_location(ChannelId channel_id, const DialogLocation &location);
   void on_update_channel_slow_mode_delay(ChannelId channel_id, int32 slow_mode_delay, Promise<Unit> &&promise);
@@ -470,6 +471,8 @@ class ContactsManager final : public Actor {
   void set_channel_sticker_set(ChannelId channel_id, StickerSetId sticker_set_id, Promise<Unit> &&promise);
 
   void set_channel_emoji_sticker_set(ChannelId channel_id, StickerSetId sticker_set_id, Promise<Unit> &&promise);
+
+  void set_channel_unrestrict_boost_count(ChannelId channel_id, int32 unrestrict_boost_count, Promise<Unit> &&promise);
 
   void toggle_channel_sign_messages(ChannelId channel_id, bool sign_messages, Promise<Unit> &&promise);
 

@@ -9391,8 +9391,13 @@ setSupergroupStickerSet supergroup_id:int53 sticker_set_id:int64 = Ok;
 
 //@description Changes the custom emoji sticker set of a supergroup; requires can_change_info administrator right. The chat must have at least chatBoostFeatures.min_custom_emoji_sticker_set_boost_level boost level to pass the corresponding color
 //@supergroup_id Identifier of the supergroup
-//@custom_emoji_sticker_set_id New value of the custom emoji sticker set identifier for the supergroup. Use 0 to remove the custom emoji sticker set in the supergroup
+//@custom_emoji_sticker_set_id New value of the custom emoji sticker set identifier for the supergroup; requires can_change_info administrator right. Use 0 to remove the custom emoji sticker set in the supergroup
 setSupergroupCustomEmojiStickerSet supergroup_id:int53 custom_emoji_sticker_set_id:int64 = Ok;
+
+//@description Changes the number of times the supergroup must be boosted by a user to ignore slow mode and chat permission restrictions; requires can_restrict_members administrator right
+//@supergroup_id Identifier of the supergroup
+//@unrestrict_boost_count New value of the unrestrict_boost_count supergroup setting; 0-8. Use 0 to remove the setting
+setSupergroupUnrestrictBoostCount supergroup_id:int53 unrestrict_boost_count:int32 = Ok;
 
 //@description Toggles whether sender signature is added to sent messages in a channel; requires can_change_info administrator right @supergroup_id Identifier of the channel @sign_messages New value of sign_messages
 toggleSupergroupSignMessages supergroup_id:int53 sign_messages:Bool = Ok;
