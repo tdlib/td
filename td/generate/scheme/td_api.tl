@@ -4798,6 +4798,10 @@ premiumFeatureBackgroundForBoth = PremiumFeature;
 //@description The ability to use tags in Saved Messages
 premiumFeatureSavedMessagesTags = PremiumFeature;
 
+//@description The ability to disallow incoming voice and video note messages in private chats using setUserPrivacySettingRules with userPrivacySettingAllowPrivateVoiceAndVideoNoteMessages
+//-and to restrict incoming messages from non-contacts using setNewChatPrivacySettings
+premiumFeatureMessagePrivacy = PremiumFeature;
+
 
 //@class PremiumStoryFeature @description Describes a story feature available to Premium users
 
@@ -5421,7 +5425,7 @@ userPrivacySettingAllowPeerToPeerCalls = UserPrivacySetting;
 //@description A privacy setting for managing whether the user can be found by their phone number. Checked only if the phone number is not known to the other user. Can be set only to "Allow contacts" or "Allow all"
 userPrivacySettingAllowFindingByPhoneNumber = UserPrivacySetting;
 
-//@description A privacy setting for managing whether the user can receive voice and video messages in private chats
+//@description A privacy setting for managing whether the user can receive voice and video messages in private chats; for Telegram Premium users only
 userPrivacySettingAllowPrivateVoiceAndVideoNoteMessages = UserPrivacySetting;
 
 
