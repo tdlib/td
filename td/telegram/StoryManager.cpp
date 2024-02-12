@@ -19,6 +19,7 @@
 #include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MediaArea.hpp"
 #include "td/telegram/MessageEntity.h"
+#include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/NotificationId.h"
 #include "td/telegram/NotificationManager.h"
@@ -1125,6 +1126,7 @@ void StoryManager::Story::store(StorerT &storer) const {
   bool has_areas = !areas_.empty();
   bool has_chosen_reaction_type = !chosen_reaction_type_.is_empty();
   bool has_forward_info = forward_info_ != nullptr;
+  bool has_sender_dialog_id = sender_dialog_id_ != DialogId();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_edited_);
   STORE_FLAG(is_pinned_);
@@ -1142,6 +1144,7 @@ void StoryManager::Story::store(StorerT &storer) const {
   STORE_FLAG(has_chosen_reaction_type);
   STORE_FLAG(is_outgoing_);
   STORE_FLAG(has_forward_info);
+  STORE_FLAG(has_sender_dialog_id);
   END_STORE_FLAGS();
   store(date_, storer);
   store(expire_date_, storer);
@@ -1169,6 +1172,9 @@ void StoryManager::Story::store(StorerT &storer) const {
   if (has_forward_info) {
     store(forward_info_, storer);
   }
+  if (has_sender_dialog_id) {
+    store(sender_dialog_id_, storer);
+  }
 }
 
 template <class ParserT>
@@ -1182,6 +1188,7 @@ void StoryManager::Story::parse(ParserT &parser) {
   bool has_areas;
   bool has_chosen_reaction_type;
   bool has_forward_info;
+  bool has_sender_dialog_id;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_edited_);
   PARSE_FLAG(is_pinned_);
@@ -1199,6 +1206,7 @@ void StoryManager::Story::parse(ParserT &parser) {
   PARSE_FLAG(has_chosen_reaction_type);
   PARSE_FLAG(is_outgoing_);
   PARSE_FLAG(has_forward_info);
+  PARSE_FLAG(has_sender_dialog_id);
   END_PARSE_FLAGS();
   parse(date_, parser);
   parse(expire_date_, parser);
@@ -1225,6 +1233,9 @@ void StoryManager::Story::parse(ParserT &parser) {
   }
   if (has_forward_info) {
     parse(forward_info_, parser);
+  }
+  if (has_sender_dialog_id) {
+    parse(sender_dialog_id_, parser);
   }
 }
 
@@ -1895,6 +1906,7 @@ void StoryManager::add_story_dependencies(Dependencies &dependencies, const Stor
     story->forward_info_->add_dependencies(dependencies);
   }
   story->interaction_info_.add_dependencies(dependencies);
+  dependencies.add_message_sender_dependencies(story->sender_dialog_id_);
   story->privacy_rules_.add_dependencies(dependencies);
   if (story->content_ != nullptr) {
     add_story_content_dependencies(dependencies, story->content_.get());
@@ -3208,10 +3220,13 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
   story->is_update_sent_ = true;
 
   return td_api::make_object<td_api::story>(
-      story_id.get(), td_->dialog_manager_->get_chat_id_object(owner_dialog_id, "get_story_object"), story->date_,
-      is_being_sent, is_being_edited, is_edited, story->is_pinned_, is_visible_only_for_self, can_be_deleted,
-      can_be_edited, can_be_forwarded, can_be_replied, can_toggle_is_pinned, can_get_statistics, can_get_interactions,
-      has_expired_viewers, std::move(repost_info), std::move(interaction_info),
+      story_id.get(), td_->dialog_manager_->get_chat_id_object(owner_dialog_id, "get_story_object"),
+      story->sender_dialog_id_ == DialogId()
+          ? nullptr
+          : get_message_sender_object(td_, story->sender_dialog_id_, "get_story_object 2"),
+      story->date_, is_being_sent, is_being_edited, is_edited, story->is_pinned_, is_visible_only_for_self,
+      can_be_deleted, can_be_edited, can_be_forwarded, can_be_replied, can_toggle_is_pinned, can_get_statistics,
+      can_get_interactions, has_expired_viewers, std::move(repost_info), std::move(interaction_info),
       story->chosen_reaction_type_.get_reaction_type_object(), std::move(privacy_settings),
       get_story_content_object(td_, content), std::move(story_areas),
       get_formatted_text_object(*caption, true, get_story_content_duration(td_, content)));
@@ -3441,6 +3456,11 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
       story_item->fwd_from_ != nullptr ? make_unique<StoryForwardInfo>(td_, std::move(story_item->fwd_from_)) : nullptr;
   if (story->forward_info_ != forward_info) {
     story->forward_info_ = std::move(forward_info);
+    is_changed = true;
+  }
+  auto sender_dialog_id = story_item->from_id_ != nullptr ? DialogId(story_item->from_id_) : DialogId();
+  if (sender_dialog_id != story->sender_dialog_id_) {
+    story->sender_dialog_id_ = sender_dialog_id;
     is_changed = true;
   }
   if (!story_item->min_) {
@@ -4728,6 +4748,10 @@ void StoryManager::send_story(DialogId dialog_id, td_api::object_ptr<td_api::Inp
   td_->dialog_manager_->force_create_dialog(dialog_id, "send_story");
 
   auto story = make_unique<Story>();
+  if (dialog_id.get_type() == DialogType::Channel &&
+      td_->contacts_manager_->is_megagroup_channel(dialog_id.get_channel_id())) {
+    story->sender_dialog_id_ = td_->messages_manager_->get_dialog_default_send_message_as_dialog_id(dialog_id);
+  }
   story->date_ = G()->unix_time();
   story->expire_date_ = story->date_ + active_period;
   story->is_pinned_ = is_pinned;
@@ -4797,6 +4821,7 @@ void StoryManager::do_send_story(unique_ptr<PendingStory> &&pending_story, vecto
   if (bad_parts.empty()) {
     if (!pending_story->story_id_.is_server()) {
       auto story = make_unique<Story>();
+      story->sender_dialog_id_ = pending_story->story_->sender_dialog_id_;
       story->date_ = pending_story->story_->date_;
       story->expire_date_ = pending_story->story_->expire_date_;
       story->is_pinned_ = pending_story->story_->is_pinned_;

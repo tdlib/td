@@ -55,6 +55,7 @@ class Td;
 
 class StoryManager final : public Actor {
   struct Story {
+    DialogId sender_dialog_id_;
     int32 date_ = 0;
     int32 expire_date_ = 0;
     int32 receive_date_ = 0;
