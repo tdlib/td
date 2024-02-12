@@ -7319,7 +7319,7 @@ void ContactsManager::set_channel_accent_color(ChannelId channel_id, AccentColor
   if (c->is_megagroup) {
     return promise.set_error(Status::Error(400, "Accent color can be changed only in channel chats"));
   }
-  if (!get_channel_status(c).can_change_info_and_settings()) {
+  if (!get_channel_permissions(channel_id, c).can_change_info_and_settings_as_administrator()) {
     return promise.set_error(Status::Error(400, "Not enough rights in the channel"));
   }
 
@@ -7334,7 +7334,7 @@ void ContactsManager::set_channel_profile_accent_color(ChannelId channel_id, Acc
   if (c == nullptr) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
-  if (!get_channel_status(c).can_change_info_and_settings()) {
+  if (!get_channel_permissions(channel_id, c).can_change_info_and_settings_as_administrator()) {
     return promise.set_error(Status::Error(400, "Not enough rights in the chat"));
   }
 
@@ -7348,7 +7348,7 @@ void ContactsManager::set_channel_emoji_status(ChannelId channel_id, const Emoji
   if (c == nullptr) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
-  if (!get_channel_status(c).can_change_info_and_settings()) {
+  if (!get_channel_permissions(channel_id, c).can_change_info_and_settings_as_administrator()) {
     return promise.set_error(Status::Error(400, "Not enough rights in the chat"));
   }
 
@@ -7366,7 +7366,7 @@ void ContactsManager::set_channel_sticker_set(ChannelId channel_id, StickerSetId
   if (!c->is_megagroup) {
     return promise.set_error(Status::Error(400, "Chat sticker set can be set only for supergroups"));
   }
-  if (!get_channel_status(c).can_change_info_and_settings()) {
+  if (!get_channel_permissions(channel_id, c).can_change_info_and_settings_as_administrator()) {
     return promise.set_error(Status::Error(400, "Not enough rights to change supergroup sticker set"));
   }
 
@@ -7398,7 +7398,7 @@ void ContactsManager::set_channel_emoji_sticker_set(ChannelId channel_id, Sticke
   if (!c->is_megagroup) {
     return promise.set_error(Status::Error(400, "Cuctom emoji sticker set can be set only for supergroups"));
   }
-  if (!get_channel_status(c).can_change_info_and_settings()) {
+  if (!get_channel_permissions(channel_id, c).can_change_info_and_settings_as_administrator()) {
     return promise.set_error(
         Status::Error(400, "Not enough rights to change custom emoji sticker set in the supergroup"));
   }
@@ -7676,7 +7676,7 @@ void ContactsManager::set_channel_discussion_group(DialogId dialog_id, DialogId 
     if (c->is_megagroup) {
       return promise.set_error(Status::Error(400, "Chat is not a channel"));
     }
-    if (!c->status.is_administrator() || !c->status.can_change_info_and_settings()) {
+    if (!c->status.can_change_info_and_settings_as_administrator()) {
       return promise.set_error(Status::Error(400, "Not enough rights in the channel"));
     }
 

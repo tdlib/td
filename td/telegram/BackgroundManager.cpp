@@ -755,7 +755,9 @@ Result<DialogId> BackgroundManager::get_background_dialog(DialogId dialog_id) {
     case DialogType::Chat:
       return Status::Error(400, "Can't change background in the chat");
     case DialogType::Channel: {
-      if (!td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id()).can_change_info_and_settings()) {
+      auto channel_id = dialog_id.get_channel_id();
+      if (!td_->contacts_manager_->get_channel_permissions(channel_id)
+               .can_change_info_and_settings_as_administrator()) {
         return Status::Error(400, "Not enough rights in the chat");
       }
       return dialog_id;

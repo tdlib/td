@@ -389,6 +389,10 @@ class DialogParticipantStatus {
     return get_administrator_rights().can_manage_dialog();
   }
 
+  bool can_change_info_and_settings_as_administrator() const {
+    return get_administrator_rights().can_change_info_and_settings();
+  }
+
   bool can_change_info_and_settings() const {
     return get_administrator_rights().can_change_info_and_settings() ||
            get_restricted_rights().can_change_info_and_settings();
