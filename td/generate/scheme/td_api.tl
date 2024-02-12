@@ -4802,6 +4802,9 @@ premiumFeatureSavedMessagesTags = PremiumFeature;
 //-and to restrict incoming messages from non-contacts using setNewChatPrivacySettings
 premiumFeatureMessagePrivacy = PremiumFeature;
 
+//@description The ability to view last seen and read times of other users even they can't view last seen or read time for the current user
+premiumFeatureLastSeenTimes = PremiumFeature;
+
 
 //@class PremiumStoryFeature @description Describes a story feature available to Premium users
 

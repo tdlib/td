@@ -104,6 +104,9 @@ static td_api::object_ptr<td_api::PremiumFeature> get_premium_feature_object(Sli
   if (premium_feature == "message_privacy") {
     return td_api::make_object<td_api::premiumFeatureMessagePrivacy>();
   }
+  if (premium_feature == "last_seen") {
+    return td_api::make_object<td_api::premiumFeatureLastSeenTimes>();
+  }
   return nullptr;
 }
 
@@ -756,6 +759,8 @@ static string get_premium_source(const td_api::PremiumFeature *feature) {
       return "saved_tags";
     case td_api::premiumFeatureMessagePrivacy::ID:
       return "message_privacy";
+    case td_api::premiumFeatureLastSeenTimes::ID:
+      return "last_seen";
     default:
       UNREACHABLE();
   }
