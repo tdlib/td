@@ -4768,6 +4768,9 @@ void StoryManager::send_story(DialogId dialog_id, td_api::object_ptr<td_api::Inp
   if (dialog_id.get_type() == DialogType::Channel &&
       td_->contacts_manager_->is_megagroup_channel(dialog_id.get_channel_id())) {
     story->sender_dialog_id_ = td_->messages_manager_->get_dialog_default_send_message_as_dialog_id(dialog_id);
+    if (story->sender_dialog_id_ == DialogId()) {
+      story->sender_dialog_id_ = td_->dialog_manager_->get_my_dialog_id();
+    }
   }
   story->date_ = G()->unix_time();
   story->expire_date_ = story->date_ + active_period;
