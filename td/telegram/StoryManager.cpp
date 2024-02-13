@@ -2765,7 +2765,9 @@ void StoryManager::update_interaction_info() {
     auto story_full_id = it.first;
     auto &story_ids = split_story_ids[story_full_id.get_dialog_id()];
     if (story_ids.size() < 100) {
-      story_ids.push_back(story_full_id.get_story_id());
+      auto story_id = story_full_id.get_story_id();
+      CHECK(story_id.is_server());
+      story_ids.push_back(story_id);
     }
   }
   for (auto &story_ids : split_story_ids) {
@@ -2779,8 +2781,10 @@ void StoryManager::increment_story_views(DialogId owner_dialog_id, PendingStoryV
   const size_t MAX_VIEWED_STORIES = 200;  // server-side limit
   while (!story_views.story_ids_.empty() && viewed_story_ids.size() < MAX_VIEWED_STORIES) {
     auto story_id_it = story_views.story_ids_.begin();
-    viewed_story_ids.push_back(*story_id_it);
+    auto story_id = *story_id_it;
     story_views.story_ids_.erase(story_id_it);
+    CHECK(story_id.is_server());
+    viewed_story_ids.push_back(story_id);
   }
   CHECK(!viewed_story_ids.empty());
   story_views.has_query_ = true;
@@ -2901,6 +2905,9 @@ void StoryManager::get_story_interactions(StoryId story_id, const string &query,
   if (limit <= 0) {
     return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
   }
+  if (!story_id.is_server()) {
+    return promise.set_value(td_api::make_object<td_api::storyInteractions>());
+  }
 
   bool is_full = query.empty() && !only_contacts;
   bool is_first = is_full && offset.empty();
@@ -3001,6 +3008,9 @@ void StoryManager::get_dialog_story_interactions(StoryFullId story_full_id, Reac
   }
   if (limit <= 0) {
     return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+  }
+  if (!story_full_id.get_story_id().is_server()) {
+    return promise.set_value(td_api::make_object<td_api::storyInteractions>());
   }
 
   auto query_promise = PromiseCreator::lambda(
@@ -3587,7 +3597,7 @@ StoryId StoryManager::on_get_story_info(DialogId owner_dialog_id, StoryInfo &&st
     return StoryId();
   }
 
-  td_->dialog_manager_->force_create_dialog(owner_dialog_id, "on_get_skipped_story");
+  td_->dialog_manager_->force_create_dialog(owner_dialog_id, "on_get_story_info");
 
   StoryFullId story_full_id{owner_dialog_id, story_id};
   Story *story = get_story_editable(story_full_id);
@@ -4719,7 +4729,7 @@ void StoryManager::send_story(DialogId dialog_id, td_api::object_ptr<td_api::Inp
     forward_from_story_full_id =
         StoryFullId(DialogId(from_story_full_id->sender_chat_id_), StoryId(from_story_full_id->story_id_));
     const Story *story = get_story(forward_from_story_full_id);
-    if (story == nullptr) {
+    if (story == nullptr || story->content_ == nullptr) {
       return promise.set_error(Status::Error(400, "Story to repost not found"));
     }
     if (story->noforwards_) {
