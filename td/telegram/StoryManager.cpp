@@ -4708,6 +4708,9 @@ void StoryManager::send_story(DialogId dialog_id, td_api::object_ptr<td_api::Inp
   TRY_RESULT_PROMISE(promise, content, get_input_story_content(td_, std::move(input_story_content), dialog_id));
   TRY_RESULT_PROMISE(promise, caption,
                      get_formatted_text(td_, DialogId(), std::move(input_caption), is_bot, true, false, false));
+  if (dialog_id != td_->dialog_manager_->get_my_dialog_id()) {
+    settings = td_api::make_object<td_api::storyPrivacySettingsEveryone>();
+  }
   TRY_RESULT_PROMISE(promise, privacy_rules,
                      UserPrivacySettingRules::get_user_privacy_setting_rules(td_, std::move(settings)));
   unique_ptr<StoryForwardInfo> forward_info;
