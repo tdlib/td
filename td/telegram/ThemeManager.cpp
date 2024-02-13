@@ -1105,7 +1105,7 @@ ThemeManager::ThemeSettings ThemeManager::get_chat_theme_settings(
     result.accent_color = settings->accent_color_;
     bool has_outbox_accent_color = (settings->flags_ & telegram_api::themeSettings::OUTBOX_ACCENT_COLOR_MASK) != 0;
     result.message_accent_color = (has_outbox_accent_color ? settings->outbox_accent_color_ : result.accent_color);
-    result.background_info = BackgroundInfo(td_, std::move(settings->wallpaper_));
+    result.background_info = BackgroundInfo(td_, std::move(settings->wallpaper_), true);
     result.base_theme = get_base_theme(settings->base_theme_);
     result.message_colors = std::move(settings->message_colors_);
     result.animate_message_colors = settings->message_colors_animated_;

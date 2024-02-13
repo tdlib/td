@@ -28,7 +28,7 @@ class BackgroundInfo {
   BackgroundInfo() : background_id_(), background_type_() {
   }
 
-  BackgroundInfo(Td *td, telegram_api::object_ptr<telegram_api::WallPaper> &&wallpaper_ptr);
+  BackgroundInfo(Td *td, telegram_api::object_ptr<telegram_api::WallPaper> &&wallpaper_ptr, bool allow_empty);
 
   td_api::object_ptr<td_api::background> get_background_object(const Td *td) const;
 

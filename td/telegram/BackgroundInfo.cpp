@@ -11,9 +11,10 @@
 
 namespace td {
 
-BackgroundInfo::BackgroundInfo(Td *td, telegram_api::object_ptr<telegram_api::WallPaper> &&wallpaper_ptr) {
-  auto background =
-      td->background_manager_->on_get_background(BackgroundId(), string(), std::move(wallpaper_ptr), false);
+BackgroundInfo::BackgroundInfo(Td *td, telegram_api::object_ptr<telegram_api::WallPaper> &&wallpaper_ptr,
+                               bool allow_empty) {
+  auto background = td->background_manager_->on_get_background(BackgroundId(), string(), std::move(wallpaper_ptr),
+                                                               false, allow_empty);
   background_id_ = background.first;
   background_type_ = std::move(background.second);
 }

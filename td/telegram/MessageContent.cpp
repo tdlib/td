@@ -6793,7 +6793,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     }
     case telegram_api::messageActionSetChatWallPaper::ID: {
       auto action = move_tl_object_as<telegram_api::messageActionSetChatWallPaper>(action_ptr);
-      BackgroundInfo background_info(td, std::move(action->wallpaper_));
+      BackgroundInfo background_info(td, std::move(action->wallpaper_), true);
       if (!background_info.is_valid()) {
         break;
       }

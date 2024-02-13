@@ -64,7 +64,7 @@ class GetBackgroundQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->background_manager_->on_get_background(background_id_, background_name_, result_ptr.move_as_ok(), true);
+    td_->background_manager_->on_get_background(background_id_, background_name_, result_ptr.move_as_ok(), true, false);
 
     promise_.set_value(Unit());
   }
@@ -1057,7 +1057,7 @@ void BackgroundManager::on_uploaded_background_file(FileId file_id, const Backgr
                                                     Promise<td_api::object_ptr<td_api::background>> &&promise) {
   CHECK(wallpaper != nullptr);
 
-  auto added_background = on_get_background(BackgroundId(), string(), std::move(wallpaper), true);
+  auto added_background = on_get_background(BackgroundId(), string(), std::move(wallpaper), true, false);
   auto background_id = added_background.first;
   if (!background_id.is_valid()) {
     td_->file_manager_->cancel_upload(file_id);
@@ -1263,8 +1263,11 @@ string BackgroundManager::get_background_name_database_key(const string &name) {
 
 std::pair<BackgroundId, BackgroundType> BackgroundManager::on_get_background(
     BackgroundId expected_background_id, const string &expected_background_name,
-    telegram_api::object_ptr<telegram_api::WallPaper> wallpaper_ptr, bool replace_type) {
+    telegram_api::object_ptr<telegram_api::WallPaper> wallpaper_ptr, bool replace_type, bool allow_empty) {
   if (wallpaper_ptr == nullptr) {
+    if (!allow_empty) {
+      LOG(ERROR) << "Receive unexpected empty background";
+    }
     return {};
   }
 
@@ -1272,7 +1275,9 @@ std::pair<BackgroundId, BackgroundType> BackgroundManager::on_get_background(
     auto wallpaper = move_tl_object_as<telegram_api::wallPaperNoFile>(wallpaper_ptr);
 
     if (wallpaper->settings_ == nullptr) {
-      LOG(ERROR) << "Receive wallPaperNoFile without settings: " << to_string(wallpaper);
+      if (!allow_empty) {
+        LOG(ERROR) << "Receive wallPaperNoFile without settings: " << to_string(wallpaper);
+      }
       return {};
     }
 
@@ -1310,7 +1315,9 @@ std::pair<BackgroundId, BackgroundType> BackgroundManager::on_get_background(
 
   int32 document_id = wallpaper->document_->get_id();
   if (document_id == telegram_api::documentEmpty::ID) {
-    LOG(ERROR) << "Receive " << to_string(wallpaper);
+    if (!allow_empty) {
+      LOG(ERROR) << "Receive " << to_string(wallpaper);
+    }
     return {};
   }
   CHECK(document_id == telegram_api::document::ID);
@@ -1379,7 +1386,7 @@ void BackgroundManager::on_get_backgrounds(Result<telegram_api::object_ptr<teleg
   installed_backgrounds_.clear();
   auto wallpapers = telegram_api::move_object_as<telegram_api::account_wallPapers>(wallpapers_ptr);
   for (auto &wallpaper : wallpapers->wallpapers_) {
-    auto background = on_get_background(BackgroundId(), string(), std::move(wallpaper), false);
+    auto background = on_get_background(BackgroundId(), string(), std::move(wallpaper), false, false);
     if (background.first.is_valid()) {
       installed_backgrounds_.push_back(std::move(background));
     }
