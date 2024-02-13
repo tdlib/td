@@ -498,7 +498,7 @@ class MessageChatSetTtl final : public MessageContent {
 
 class MessageUnsupported final : public MessageContent {
  public:
-  static constexpr int32 CURRENT_VERSION = 29;
+  static constexpr int32 CURRENT_VERSION = 30;
   int32 version = CURRENT_VERSION;
 
   MessageUnsupported() = default;
@@ -6832,8 +6832,10 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return td::make_unique<MessageGiveawayResults>(reply_to_message_id, action->winners_count_,
                                                      action->unclaimed_count_);
     }
-    case telegram_api::messageActionBoostApply::ID:
-      return make_unique<MessageUnsupported>();
+    case telegram_api::messageActionBoostApply::ID: {
+      auto action = move_tl_object_as<telegram_api::messageActionBoostApply>(action_ptr);
+      return make_unique<MessageBoostApply>(max(action->boosts_, 0));
+    }
     default:
       UNREACHABLE();
   }
