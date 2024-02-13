@@ -4634,6 +4634,7 @@ void StoryManager::finish_get_dialogs_to_send_stories(Result<Unit> &&result) {
 
 void StoryManager::update_dialogs_to_send_stories(ChannelId channel_id, bool can_send_stories) {
   if (channels_to_send_stories_inited_) {
+    CHECK(!td_->auth_manager_->is_bot());
     bool was_changed = false;
     if (!can_send_stories) {
       was_changed = td::remove(channels_to_send_stories_, channel_id);
@@ -4641,6 +4642,9 @@ void StoryManager::update_dialogs_to_send_stories(ChannelId channel_id, bool can
       if (!td::contains(channels_to_send_stories_, channel_id)) {
         channels_to_send_stories_.push_back(channel_id);
         was_changed = true;
+
+        next_reload_channels_to_send_stories_time_ = Time::now();
+        set_timeout_in(1.0);
       }
     }
     if (was_changed) {
