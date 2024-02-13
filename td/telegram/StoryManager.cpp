@@ -5263,9 +5263,10 @@ void StoryManager::delete_pending_story(FileId file_id, unique_ptr<PendingStory>
   }
 }
 
-void StoryManager::set_story_privacy_settings(DialogId owner_dialog_id, StoryId story_id,
+void StoryManager::set_story_privacy_settings(StoryId story_id,
                                               td_api::object_ptr<td_api::StoryPrivacySettings> &&settings,
                                               Promise<Unit> &&promise) {
+  DialogId owner_dialog_id(td_->dialog_manager_->get_my_dialog_id());
   StoryFullId story_full_id{owner_dialog_id, story_id};
   const Story *story = get_story(story_full_id);
   if (story == nullptr || story->content_ == nullptr) {

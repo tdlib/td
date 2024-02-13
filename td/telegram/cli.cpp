@@ -4441,11 +4441,10 @@ class CliClient final : public Actor {
                                                               to_integers<int32>(sticker_file_ids), duration, false),
           areas, as_caption(caption)));
     } else if (op == "ssps") {
-      ChatId story_sender_chat_id;
       StoryId story_id;
       StoryPrivacySettings rules;
-      get_args(args, story_sender_chat_id, story_id, rules);
-      send_request(td_api::make_object<td_api::setStoryPrivacySettings>(story_sender_chat_id, story_id, rules));
+      get_args(args, story_id, rules);
+      send_request(td_api::make_object<td_api::setStoryPrivacySettings>(story_id, rules));
     } else if (op == "tsip") {
       ChatId story_sender_chat_id;
       StoryId story_id;

@@ -5783,8 +5783,8 @@ void Td::on_request(uint64 id, td_api::editStory &request) {
 void Td::on_request(uint64 id, td_api::setStoryPrivacySettings &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  story_manager_->set_story_privacy_settings(DialogId(request.story_sender_chat_id_), StoryId(request.story_id_),
-                                             std::move(request.privacy_settings_), std::move(promise));
+  story_manager_->set_story_privacy_settings(StoryId(request.story_id_), std::move(request.privacy_settings_),
+                                             std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::toggleStoryIsPinned &request) {

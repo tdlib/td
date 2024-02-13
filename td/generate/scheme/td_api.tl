@@ -8440,11 +8440,10 @@ sendStory chat_id:int53 content:InputStoryContent areas:inputStoryAreas caption:
 //@caption New story caption; pass null to keep the current caption
 editStory story_sender_chat_id:int53 story_id:int32 content:InputStoryContent areas:inputStoryAreas caption:formattedText = Ok;
 
-//@description Changes privacy settings of a story. Can be called only if story.can_be_edited == true
-//@story_sender_chat_id Identifier of the chat that posted the story
+//@description Changes privacy settings of a story. The method can be called only for stories posted on behalf of the current user and if story.can_be_edited == true
 //@story_id Identifier of the story
 //@privacy_settings The new privacy settigs for the story
-setStoryPrivacySettings story_sender_chat_id:int53 story_id:int32 privacy_settings:StoryPrivacySettings = Ok;
+setStoryPrivacySettings story_id:int32 privacy_settings:StoryPrivacySettings = Ok;
 
 //@description Toggles whether a story is accessible after expiration. Can be called only if story.can_toggle_is_pinned == true
 //@story_sender_chat_id Identifier of the chat that posted the story
