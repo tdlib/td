@@ -3278,7 +3278,6 @@ void Td::dec_request_actor_refcnt() {
   request_actor_refcnt_--;
   LOG(DEBUG) << "Decrease request actor count to " << request_actor_refcnt_;
   if (request_actor_refcnt_ == 0) {
-    LOG(INFO) << "Have no request actors";
     clear();
     dec_actor_refcnt();  // remove guard
   }

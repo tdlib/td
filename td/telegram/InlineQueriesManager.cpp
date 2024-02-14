@@ -1097,7 +1097,6 @@ uint64 InlineQueriesManager::send_inline_query(UserId bot_user_id, DialogId dial
 }
 
 void InlineQueriesManager::loop() {
-  LOG(INFO) << "Inline query loop";
   if (pending_inline_query_ == nullptr) {
     return;
   }

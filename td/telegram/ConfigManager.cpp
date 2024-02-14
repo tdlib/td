@@ -867,8 +867,6 @@ class ConfigRecoverer final : public Actor {
     if (wakeup_timestamp) {
       VLOG(config_recoverer) << "Wakeup in " << format::as_time(wakeup_timestamp.in());
       set_timeout_at(wakeup_timestamp.at());
-    } else {
-      VLOG(config_recoverer) << "Wakeup never";
     }
   }
 
