@@ -222,9 +222,15 @@ class GetPremiumPromoQuery final : public Td::ResultHandler {
     }
 
     vector<td_api::object_ptr<td_api::premiumFeaturePromotionAnimation>> animations;
+    FlatHashSet<string> video_sections;
     for (size_t i = 0; i < promo->video_sections_.size(); i++) {
       auto feature = get_premium_feature_object(promo->video_sections_[i]);
       if (feature == nullptr) {
+        LOG(INFO) << "Receive unknown Premium feature animation " << promo->video_sections_[i];
+        continue;
+      }
+      if (!video_sections.insert(promo->video_sections_[i]).second) {
+        LOG(ERROR) << "Receive duplicate Premium feature animation " << promo->video_sections_[i];
         continue;
       }
 
