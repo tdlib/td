@@ -21,6 +21,7 @@
 #include "td/utils/emoji.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
+#include "td/utils/Slice.h"
 #include "td/utils/tl_helpers.h"
 
 namespace td {

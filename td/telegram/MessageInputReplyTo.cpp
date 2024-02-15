@@ -7,7 +7,6 @@
 #include "td/telegram/MessageInputReplyTo.h"
 
 #include "td/telegram/AccessRights.h"
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
@@ -17,7 +16,6 @@
 #include "td/telegram/StoryId.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
-#include "td/telegram/UserId.h"
 
 #include "td/utils/logging.h"
 

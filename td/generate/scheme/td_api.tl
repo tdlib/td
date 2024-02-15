@@ -8326,7 +8326,7 @@ addChatMember chat_id:int53 user_id:int53 forward_limit:int32 = Ok;
 addChatMembers chat_id:int53 user_ids:vector<int53> = Ok;
 
 //@description Changes the status of a chat member; requires can_invite_users member right to add a chat member, can_promote_members administrator right to change administrator rights of the member,
-//-and can_restrict_members administrator right to change restirctions of a user. This function is currently not suitable for transferring chat ownership; use transferChatOwnership instead.
+//-and can_restrict_members administrator right to change restrictions of a user. This function is currently not suitable for transferring chat ownership; use transferChatOwnership instead.
 //-Use addChatMember or banChatMember if some additional parameters needs to be passed
 //@chat_id Chat identifier
 //@member_id Member identifier. Chats can be only banned and unbanned in supergroups and channels
