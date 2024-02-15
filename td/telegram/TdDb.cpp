@@ -268,6 +268,7 @@ void TdDb::flush_all() {
   if (story_db_async_) {
     story_db_async_->force_flush();
   }
+  CHECK(binlog_ != nullptr);
   binlog_->force_flush();
 }
 
@@ -604,7 +605,10 @@ void TdDb::open_impl(Parameters parameters, Promise<OpenedDatabase> &&promise) {
 }
 
 TdDb::TdDb() = default;
-TdDb::~TdDb() = default;
+
+TdDb::~TdDb() {
+  LOG_IF(ERROR, binlog_ != nullptr) << "Failed to close the database";
+}
 
 Status TdDb::check_parameters(Parameters &parameters) {
   if (parameters.database_directory_.empty()) {
@@ -668,6 +672,7 @@ Status TdDb::destroy(const Parameters &parameters) {
 
 void TdDb::with_db_path(const std::function<void(CSlice)> &callback) {
   SqliteDb::with_db_path(get_sqlite_path(parameters_), callback);
+  CHECK(binlog_ != nullptr);
   callback(binlog_->get_path());
 }
 
