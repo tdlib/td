@@ -5500,7 +5500,7 @@ bool ContactsManager::can_use_premium_custom_emoji(DialogId dialog_id) const {
   }
   if (dialog_id.get_type() == DialogType::Channel) {
     auto channel_id = dialog_id.get_channel_id();
-    if (is_megagroup_channel(channel_id)) {
+    if (!td_->auth_manager_->is_bot() && is_megagroup_channel(channel_id)) {
       auto channel_full = get_channel_full_const(channel_id);
       if (channel_full == nullptr || channel_full->emoji_sticker_set_id.is_valid()) {
         return true;
