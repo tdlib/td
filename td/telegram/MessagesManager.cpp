@@ -17720,6 +17720,7 @@ bool MessagesManager::set_folder_pinned_dialogs(FolderId folder_id, vector<Dialo
 
   FlatHashSet<DialogId, DialogIdHash> all_old_pinned_dialog_ids;
   for (auto dialog_id : old_dialog_ids) {
+    CHECK(dialog_id.is_valid());
     all_old_pinned_dialog_ids.insert(dialog_id);
   }
 

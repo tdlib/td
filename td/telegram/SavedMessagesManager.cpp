@@ -767,6 +767,7 @@ bool SavedMessagesManager::set_pinned_saved_messages_topics(vector<SavedMessages
             << saved_messages_topic_ids;
   FlatHashSet<SavedMessagesTopicId, SavedMessagesTopicIdHash> old_pinned_saved_messages_topic_ids;
   for (auto pinned_saved_messages_topic_id : topic_list_.pinned_saved_messages_topic_ids_) {
+    CHECK(pinned_saved_messages_topic_id.is_valid());
     old_pinned_saved_messages_topic_ids.insert(pinned_saved_messages_topic_id);
   }
 
