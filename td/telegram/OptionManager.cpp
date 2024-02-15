@@ -781,19 +781,19 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
       if (!is_bot && set_boolean_option("disable_contact_registered_notifications")) {
         return;
       }
-      if (!is_bot && set_boolean_option("disable_sent_scheduled_message_notifications")) {
-        return;
-      }
-      if (!is_bot && set_boolean_option("disable_top_chats")) {
-        return;
-      }
       if (set_boolean_option("disable_network_statistics")) {
         return;
       }
       if (set_boolean_option("disable_persistent_network_statistics")) {
         return;
       }
+      if (!is_bot && set_boolean_option("disable_sent_scheduled_message_notifications")) {
+        return;
+      }
       if (set_boolean_option("disable_time_adjustment_protection")) {
+        return;
+      }
+      if (!is_bot && set_boolean_option("disable_top_chats")) {
         return;
       }
       if (name == "drop_notification_ids") {
@@ -848,10 +848,10 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
       if (!is_bot && set_string_option("language_pack_database_path", [](Slice value) { return true; })) {
         return;
       }
-      if (!is_bot && set_string_option("localization_target", LanguagePackManager::check_language_pack_name)) {
+      if (!is_bot && set_string_option("language_pack_id", LanguagePackManager::check_language_code_name)) {
         return;
       }
-      if (!is_bot && set_string_option("language_pack_id", LanguagePackManager::check_language_code_name)) {
+      if (!is_bot && set_string_option("localization_target", LanguagePackManager::check_language_pack_name)) {
         return;
       }
       break;
