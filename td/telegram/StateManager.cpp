@@ -6,6 +6,8 @@
 //
 #include "td/telegram/StateManager.h"
 
+#include "td/telegram/Global.h"
+
 #include "td/actor/PromiseFuture.h"
 #include "td/actor/SleepActor.h"
 
@@ -129,8 +131,10 @@ void StateManager::on_network_soft() {
 }
 
 void StateManager::start_up() {
-  create_actor<SleepActor>("SleepActor", 1, create_event_promise(self_closure(this, &StateManager::on_network_soft)))
-      .release();
+  if (!G()->get_option_boolean("disable_network_statistics")) {
+    create_actor<SleepActor>("SleepActor", 1, create_event_promise(self_closure(this, &StateManager::on_network_soft)))
+        .release();
+  }
   loop();
 }
 
