@@ -6,6 +6,7 @@
 //
 package org.drinkless.tdlib;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -109,6 +110,27 @@ public final class Client {
      */
     public void send(TdApi.Function query, ResultHandler resultHandler) {
         send(query, resultHandler, null);
+    }
+
+    /**
+     * Sends a request to the TDLib.
+     *
+     * @param query Object representing a query to the TDLib.
+     * @param <T>   Automatically deduced return type of the query.
+     * @return      {@link CompletableFuture} response with result type
+     * If this stage completes exceptionally it throws {@link ExecutionException}
+     */
+    @SuppressWarnings("unchecked")
+    public <T extends TdApi.Object> CompletableFuture<T> send(TdApi.Function<T> query) {
+        CompletableFuture<T> future = new CompletableFuture<>();
+        send(query, object -> {
+            if (object instanceof TdApi.Error) {
+                future.completeExceptionally(new ExecutionException((TdApi.Error) object));
+            } else {
+                future.complete((T) object);
+            }
+        });
+        return future;
     }
 
     /**
