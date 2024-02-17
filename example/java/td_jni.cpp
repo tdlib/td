@@ -84,7 +84,7 @@ static jstring Function_toString(JNIEnv *env, jobject object) {
   return td::jni::to_jstring(env, to_string(td::td_api::Function::fetch(env, object)));
 }
 
-static constexpr jint JAVA_VERSION = JNI_VERSION_1_6;
+static constexpr jint JAVA_VERSION = JNI_VERSION_1_8;
 static JavaVM *java_vm;
 static jobject log_message_handler;
 
