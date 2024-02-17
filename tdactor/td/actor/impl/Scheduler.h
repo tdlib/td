@@ -140,26 +140,6 @@ inline void Scheduler::destroy_actor(ActorInfo *actor_info) {
   CHECK(actor_count_ >= 0);
 }
 
-template <class RunFuncT, class EventFuncT>
-void Scheduler::flush_mailbox(ActorInfo *actor_info, const RunFuncT &run_func, const EventFuncT &event_func) {
-  auto &mailbox = actor_info->mailbox_;
-  size_t mailbox_size = mailbox.size();
-  CHECK(mailbox_size != 0);
-  EventGuard guard(this, actor_info);
-  size_t i = 0;
-  for (; i < mailbox_size && guard.can_run(); i++) {
-    do_event(actor_info, std::move(mailbox[i]));
-  }
-  if (run_func) {
-    if (guard.can_run()) {
-      (*run_func)(actor_info);
-    } else {
-      mailbox.insert(mailbox.begin() + i, (*event_func)());
-    }
-  }
-  mailbox.erase(mailbox.begin(), mailbox.begin() + i);
-}
-
 inline void Scheduler::send_to_scheduler(int32 sched_id, const ActorId<Actor> &actor_id, Event &&event) {
   if (sched_id == sched_id_) {
     ActorInfo *actor_info = actor_id.get_actor_info();
