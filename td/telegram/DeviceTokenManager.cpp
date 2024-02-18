@@ -381,7 +381,7 @@ void DeviceTokenManager::dec_sync_cnt() {
 }
 
 void DeviceTokenManager::loop() {
-  if (sync_cnt_ != 0 || G()->close_flag()) {
+  if (G()->close_flag() || sync_cnt_ != 0) {
     return;
   }
   for (int32 token_type = 1; token_type < TokenType::Size; token_type++) {

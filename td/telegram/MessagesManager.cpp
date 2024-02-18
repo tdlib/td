@@ -23885,7 +23885,7 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
         actor_id(this), &MessagesManager::on_media_message_ready_to_send, dialog_id, message_id,
         PromiseCreator::lambda([this, dialog_id, input_media = std::move(input_media), file_id,
                                 thumbnail_file_id](Result<Message *> result) mutable {
-          if (result.is_error() || G()->close_flag()) {
+          if (G()->close_flag() || result.is_error()) {
             return;
           }
 
@@ -23968,7 +23968,7 @@ void MessagesManager::on_secret_message_media_uploaded(DialogId dialog_id, const
   send_closure_later(actor_id(this), &MessagesManager::on_media_message_ready_to_send, dialog_id, m->message_id,
                      PromiseCreator::lambda([this, dialog_id, secret_input_media = std::move(secret_input_media)](
                                                 Result<Message *> result) mutable {
-                       if (result.is_error() || G()->close_flag()) {
+                       if (G()->close_flag() || result.is_error()) {
                          return;
                        }
 
@@ -24158,7 +24158,7 @@ void MessagesManager::on_upload_message_media_finished(int64 media_album_id, Dia
     for (auto request_message_id : message_ids) {
       LOG(INFO) << "Send on_media_message_ready_to_send for " << request_message_id << " in " << dialog_id;
       auto promise = PromiseCreator::lambda([this, media_album_id](Result<Message *> result) {
-        if (result.is_error() || G()->close_flag()) {
+        if (G()->close_flag() || result.is_error()) {
           return;
         }
 
@@ -27891,7 +27891,7 @@ void MessagesManager::remove_message_notifications_by_message_ids(DialogId dialo
 void MessagesManager::do_remove_message_notification(DialogId dialog_id, bool from_mentions,
                                                      NotificationId notification_id,
                                                      vector<MessageDbDialogMessage> result) {
-  if (result.empty() || G()->close_flag()) {
+  if (G()->close_flag() || result.empty()) {
     return;
   }
   CHECK(result.size() == 1);
