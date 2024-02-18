@@ -353,6 +353,12 @@ class ContactsManager final : public Actor {
 
   static ChannelId get_unsupported_channel_id();
 
+  void update_chat_online_member_count(ChatId chat_id, bool is_from_server);
+
+  void update_channel_online_member_count(ChannelId channel_id, bool is_from_server);
+
+  void drop_cached_channel_participants(ChannelId channel_id);
+
   void on_update_username_is_active(UserId user_id, string &&username, bool is_active, Promise<Unit> &&promise);
 
   void on_update_active_usernames_order(UserId user_id, vector<string> &&usernames, Promise<Unit> &&promise);
@@ -1551,12 +1557,7 @@ class ContactsManager final : public Actor {
 
   void do_invalidate_channel_full(ChannelFull *channel_full, ChannelId channel_id, bool need_drop_slow_mode_delay);
 
-  void update_user_online_member_count(UserId user_id);
-  void update_chat_online_member_count(ChatId chat_id, bool is_from_server);
   void update_chat_online_member_count(const ChatFull *chat_full, ChatId chat_id, bool is_from_server);
-  void update_channel_online_member_count(ChannelId channel_id, bool is_from_server);
-  void update_dialog_online_member_count(const vector<DialogParticipant> &participants, DialogId dialog_id,
-                                         bool is_from_server);
 
   void on_get_chat_empty(telegram_api::chatEmpty &chat, const char *source);
   void on_get_chat(telegram_api::chat &chat, const char *source);
@@ -1979,11 +1980,6 @@ class ContactsManager final : public Actor {
   FlatHashMap<int64, unique_ptr<ImportContactsTask>> import_contact_tasks_;
 
   FlatHashMap<int64, std::pair<vector<UserId>, vector<int32>>> imported_contacts_;
-
-  struct UserOnlineMemberDialogs {
-    FlatHashMap<DialogId, int32, DialogIdHash> online_member_dialogs_;  // dialog_id -> time
-  };
-  FlatHashMap<UserId, unique_ptr<UserOnlineMemberDialogs>, UserIdHash> user_online_member_dialogs_;
 
   FlatHashMap<ChannelId, vector<DialogParticipant>, ChannelIdHash> cached_channel_participants_;
 

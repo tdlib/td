@@ -3183,9 +3183,8 @@ ContactsManager::~ContactsManager() {
   Scheduler::instance()->destroy_on_scheduler(
       G()->get_gc_scheduler_id(), loaded_from_database_users_, unavailable_user_fulls_, loaded_from_database_chats_,
       unavailable_chat_fulls_, loaded_from_database_channels_, unavailable_channel_fulls_,
-      loaded_from_database_secret_chats_, user_online_member_dialogs_, cached_channel_participants_,
-      resolved_phone_numbers_, all_imported_contacts_, linked_channel_ids_, restricted_user_ids_,
-      restricted_channel_ids_);
+      loaded_from_database_secret_chats_, cached_channel_participants_, resolved_phone_numbers_, all_imported_contacts_,
+      linked_channel_ids_, restricted_user_ids_, restricted_channel_ids_);
 }
 
 void ContactsManager::start_up() {
@@ -3246,7 +3245,7 @@ void ContactsManager::on_user_online_timeout(UserId user_id) {
                td_api::make_object<td_api::updateUserStatus>(user_id.get(),
                                                              get_user_status_object(user_id, u, G()->unix_time())));
 
-  update_user_online_member_count(user_id);
+  td_->dialog_participant_manager_->update_user_online_member_count(user_id);
 }
 
 void ContactsManager::on_user_emoji_status_timeout_callback(void *contacts_manager_ptr, int64 user_id_long) {
@@ -11184,7 +11183,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     u->is_status_changed = false;
   }
   if (u->is_online_status_changed) {
-    update_user_online_member_count(user_id);
+    td_->dialog_participant_manager_->update_user_online_member_count(user_id);
     u->is_online_status_changed = false;
   }
 
@@ -13585,52 +13584,6 @@ void ContactsManager::drop_user_full(UserId user_id) {
   td_->group_call_manager_->on_update_dialog_about(DialogId(user_id), user_full->about, true);
 }
 
-void ContactsManager::update_user_online_member_count(UserId user_id) {
-  if (td_->auth_manager_->is_bot()) {
-    return;
-  }
-  auto user_it = user_online_member_dialogs_.find(user_id);
-  if (user_it == user_online_member_dialogs_.end()) {
-    return;
-  }
-  CHECK(user_it->second != nullptr);
-  auto &online_member_dialogs = user_it->second->online_member_dialogs_;
-
-  auto now = G()->unix_time();
-  vector<DialogId> expired_dialog_ids;
-  for (const auto &it : online_member_dialogs) {
-    auto dialog_id = it.first;
-    auto time = it.second;
-    if (time < now - DialogParticipantManager::ONLINE_MEMBER_COUNT_CACHE_EXPIRE_TIME) {
-      expired_dialog_ids.push_back(dialog_id);
-      continue;
-    }
-
-    switch (dialog_id.get_type()) {
-      case DialogType::Chat:
-        update_chat_online_member_count(dialog_id.get_chat_id(), false);
-        break;
-      case DialogType::Channel:
-        update_channel_online_member_count(dialog_id.get_channel_id(), false);
-        break;
-      case DialogType::User:
-      case DialogType::SecretChat:
-      case DialogType::None:
-        UNREACHABLE();
-        break;
-    }
-  }
-  for (auto &dialog_id : expired_dialog_ids) {
-    online_member_dialogs.erase(dialog_id);
-    if (dialog_id.get_type() == DialogType::Channel) {
-      cached_channel_participants_.erase(dialog_id.get_channel_id());
-    }
-  }
-  if (online_member_dialogs.empty()) {
-    user_online_member_dialogs_.erase(user_it);
-  }
-}
-
 void ContactsManager::update_chat_online_member_count(ChatId chat_id, bool is_from_server) {
   auto chat_full = get_chat_full(chat_id);
   if (chat_full != nullptr) {
@@ -13639,7 +13592,8 @@ void ContactsManager::update_chat_online_member_count(ChatId chat_id, bool is_fr
 }
 
 void ContactsManager::update_chat_online_member_count(const ChatFull *chat_full, ChatId chat_id, bool is_from_server) {
-  update_dialog_online_member_count(chat_full->participants, DialogId(chat_id), is_from_server);
+  td_->dialog_participant_manager_->update_dialog_online_member_count(chat_full->participants, DialogId(chat_id),
+                                                                      is_from_server);
 }
 
 void ContactsManager::update_channel_online_member_count(ChannelId channel_id, bool is_from_server) {
@@ -13652,38 +13606,11 @@ void ContactsManager::update_channel_online_member_count(ChannelId channel_id, b
   if (it == cached_channel_participants_.end()) {
     return;
   }
-  update_dialog_online_member_count(it->second, DialogId(channel_id), is_from_server);
+  td_->dialog_participant_manager_->update_dialog_online_member_count(it->second, DialogId(channel_id), is_from_server);
 }
 
-void ContactsManager::update_dialog_online_member_count(const vector<DialogParticipant> &participants,
-                                                        DialogId dialog_id, bool is_from_server) {
-  if (td_->auth_manager_->is_bot()) {
-    return;
-  }
-  CHECK(dialog_id.is_valid());
-
-  int32 online_member_count = 0;
-  int32 unix_time = G()->unix_time();
-  for (const auto &participant : participants) {
-    if (participant.dialog_id_.get_type() != DialogType::User) {
-      continue;
-    }
-    auto user_id = participant.dialog_id_.get_user_id();
-    if (!is_user_deleted(user_id) && !is_user_bot(user_id)) {
-      if (is_user_online(user_id, 0, unix_time)) {
-        online_member_count++;
-      }
-      if (is_from_server) {
-        auto &online_member_dialogs = user_online_member_dialogs_[user_id];
-        if (online_member_dialogs == nullptr) {
-          online_member_dialogs = make_unique<UserOnlineMemberDialogs>();
-        }
-        online_member_dialogs->online_member_dialogs_[dialog_id] = unix_time;
-      }
-    }
-  }
-  td_->dialog_participant_manager_->on_update_dialog_online_member_count(dialog_id, online_member_count,
-                                                                         is_from_server);
+void ContactsManager::drop_cached_channel_participants(ChannelId channel_id) {
+  cached_channel_participants_.erase(channel_id);
 }
 
 void ContactsManager::on_get_chat_participants(tl_object_ptr<telegram_api::ChatParticipants> &&participants_ptr,

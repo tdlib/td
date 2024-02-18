@@ -37,7 +37,10 @@ class DialogParticipantManager final : public Actor {
   DialogParticipantManager &operator=(DialogParticipantManager &&) = delete;
   ~DialogParticipantManager() final;
 
-  static constexpr int32 ONLINE_MEMBER_COUNT_CACHE_EXPIRE_TIME = 30 * 60;
+  void update_user_online_member_count(UserId user_id);
+
+  void update_dialog_online_member_count(const vector<DialogParticipant> &participants, DialogId dialog_id,
+                                         bool is_from_server);
 
   void on_update_dialog_online_member_count(DialogId dialog_id, int32 online_member_count, bool is_from_server);
 
@@ -114,11 +117,13 @@ class DialogParticipantManager final : public Actor {
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
-  void tear_down() final;
+  static constexpr int32 ONLINE_MEMBER_COUNT_CACHE_EXPIRE_TIME = 30 * 60;
 
   static constexpr int32 ONLINE_MEMBER_COUNT_UPDATE_TIME = 5 * 60;
 
   static constexpr int32 CHANNEL_PARTICIPANT_CACHE_TIME = 1800;  // some reasonable limit
+
+  void tear_down() final;
 
   static void on_update_dialog_online_member_count_timeout_callback(void *dialog_participant_manager_ptr,
                                                                     int64 dialog_id_int);
@@ -202,6 +207,11 @@ class DialogParticipantManager final : public Actor {
     bool is_update_sent = false;
   };
   FlatHashMap<DialogId, OnlineMemberCountInfo, DialogIdHash> dialog_online_member_counts_;
+
+  struct UserOnlineMemberDialogs {
+    FlatHashMap<DialogId, int32, DialogIdHash> online_member_dialogs_;  // dialog_id -> time
+  };
+  FlatHashMap<UserId, unique_ptr<UserOnlineMemberDialogs>, UserIdHash> user_online_member_dialogs_;
 
   FlatHashMap<DialogId, vector<DialogAdministrator>, DialogIdHash> dialog_administrators_;
 

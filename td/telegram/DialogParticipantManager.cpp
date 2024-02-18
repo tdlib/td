@@ -591,8 +591,8 @@ DialogParticipantManager::DialogParticipantManager(Td *td, ActorShared<> parent)
 }
 
 DialogParticipantManager::~DialogParticipantManager() {
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), dialog_administrators_,
-                                              channel_participants_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), user_online_member_dialogs_,
+                                              dialog_administrators_, channel_participants_);
 }
 
 void DialogParticipantManager::tear_down() {
@@ -665,7 +665,7 @@ void DialogParticipantManager::on_update_dialog_online_member_count(DialogId dia
   }
 
   set_dialog_online_member_count(dialog_id, online_member_count, is_from_server,
-                                 "on_update_channel_online_member_count");
+                                 "on_update_dialog_online_member_count");
 }
 
 void DialogParticipantManager::on_dialog_opened(DialogId dialog_id) {
@@ -753,15 +753,80 @@ void DialogParticipantManager::send_update_chat_online_member_count(DialogId dia
           td_->dialog_manager_->get_chat_id_object(dialog_id, "updateChatOnlineMemberCount"), online_member_count));
 }
 
-void DialogParticipantManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
-  for (const auto &it : dialog_online_member_counts_) {
+void DialogParticipantManager::update_user_online_member_count(UserId user_id) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  auto user_it = user_online_member_dialogs_.find(user_id);
+  if (user_it == user_online_member_dialogs_.end()) {
+    return;
+  }
+  CHECK(user_it->second != nullptr);
+  auto &online_member_dialogs = user_it->second->online_member_dialogs_;
+
+  auto now = G()->unix_time();
+  vector<DialogId> expired_dialog_ids;
+  for (const auto &it : online_member_dialogs) {
     auto dialog_id = it.first;
-    if (it.second.is_update_sent && td_->messages_manager_->is_dialog_opened(dialog_id)) {
-      updates.push_back(td_api::make_object<td_api::updateChatOnlineMemberCount>(
-          td_->dialog_manager_->get_chat_id_object(dialog_id, "updateChatOnlineMemberCount"),
-          it.second.online_member_count));
+    auto time = it.second;
+    if (time < now - ONLINE_MEMBER_COUNT_CACHE_EXPIRE_TIME) {
+      expired_dialog_ids.push_back(dialog_id);
+      continue;
+    }
+
+    switch (dialog_id.get_type()) {
+      case DialogType::Chat:
+        td_->contacts_manager_->update_chat_online_member_count(dialog_id.get_chat_id(), false);
+        break;
+      case DialogType::Channel:
+        td_->contacts_manager_->update_channel_online_member_count(dialog_id.get_channel_id(), false);
+        break;
+      case DialogType::User:
+      case DialogType::SecretChat:
+      case DialogType::None:
+        UNREACHABLE();
+        break;
     }
   }
+  for (auto &dialog_id : expired_dialog_ids) {
+    online_member_dialogs.erase(dialog_id);
+    if (dialog_id.get_type() == DialogType::Channel) {
+      td_->contacts_manager_->drop_cached_channel_participants(dialog_id.get_channel_id());
+    }
+  }
+  if (online_member_dialogs.empty()) {
+    user_online_member_dialogs_.erase(user_it);
+  }
+}
+
+void DialogParticipantManager::update_dialog_online_member_count(const vector<DialogParticipant> &participants,
+                                                                 DialogId dialog_id, bool is_from_server) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  CHECK(dialog_id.is_valid());
+
+  int32 online_member_count = 0;
+  int32 unix_time = G()->unix_time();
+  for (const auto &participant : participants) {
+    if (participant.dialog_id_.get_type() != DialogType::User) {
+      continue;
+    }
+    auto user_id = participant.dialog_id_.get_user_id();
+    if (!td_->contacts_manager_->is_user_deleted(user_id) && !td_->contacts_manager_->is_user_bot(user_id)) {
+      if (td_->contacts_manager_->is_user_online(user_id, 0, unix_time)) {
+        online_member_count++;
+      }
+      if (is_from_server) {
+        auto &online_member_dialogs = user_online_member_dialogs_[user_id];
+        if (online_member_dialogs == nullptr) {
+          online_member_dialogs = make_unique<UserOnlineMemberDialogs>();
+        }
+        online_member_dialogs->online_member_dialogs_[dialog_id] = unix_time;
+      }
+    }
+  }
+  on_update_dialog_online_member_count(dialog_id, online_member_count, is_from_server);
 }
 
 Status DialogParticipantManager::can_manage_dialog_join_requests(DialogId dialog_id) {
@@ -1992,6 +2057,17 @@ const DialogParticipant *DialogParticipantManager::get_channel_participant_from_
     return &it->second.participant_;
   }
   return nullptr;
+}
+
+void DialogParticipantManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
+  for (const auto &it : dialog_online_member_counts_) {
+    auto dialog_id = it.first;
+    if (it.second.is_update_sent && td_->messages_manager_->is_dialog_opened(dialog_id)) {
+      updates.push_back(td_api::make_object<td_api::updateChatOnlineMemberCount>(
+          td_->dialog_manager_->get_chat_id_object(dialog_id, "updateChatOnlineMemberCount"),
+          it.second.online_member_count));
+    }
+  }
 }
 
 }  // namespace td
