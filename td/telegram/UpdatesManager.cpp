@@ -275,6 +275,10 @@ void UpdatesManager::tear_down() {
 }
 
 void UpdatesManager::start_up() {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   class StateCallback final : public StateManager::Callback {
    public:
     explicit StateCallback(ActorId<UpdatesManager> parent) : parent_(std::move(parent)) {
