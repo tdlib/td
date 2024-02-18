@@ -132,6 +132,8 @@ class DialogManager final : public Actor {
 
   td_api::object_ptr<td_api::emojiStatus> get_dialog_emoji_status_object(DialogId dialog_id) const;
 
+  string get_dialog_about(DialogId dialog_id);
+
   bool get_dialog_has_protected_content(DialogId dialog_id) const;
 
   bool is_dialog_action_unneeded(DialogId dialog_id) const;

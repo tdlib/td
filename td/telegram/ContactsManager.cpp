@@ -5330,41 +5330,36 @@ bool ContactsManager::get_user_read_dates_private(UserId user_id) {
   return false;
 }
 
-string ContactsManager::get_dialog_about(DialogId dialog_id) {
-  switch (dialog_id.get_type()) {
-    case DialogType::User: {
-      auto user_full = get_user_full_force(dialog_id.get_user_id(), "get_dialog_about");
-      if (user_full != nullptr) {
-        return user_full->about;
-      }
-      break;
-    }
-    case DialogType::Chat: {
-      auto chat_full = get_chat_full_force(dialog_id.get_chat_id(), "get_dialog_about");
-      if (chat_full != nullptr) {
-        return chat_full->description;
-      }
-      break;
-    }
-    case DialogType::Channel: {
-      auto channel_full = get_channel_full_force(dialog_id.get_channel_id(), false, "get_dialog_about");
-      if (channel_full != nullptr) {
-        return channel_full->description;
-      }
-      break;
-    }
-    case DialogType::SecretChat: {
-      auto user_full = get_user_full_force(get_secret_chat_user_id(dialog_id.get_secret_chat_id()), "get_dialog_about");
-      if (user_full != nullptr) {
-        return user_full->about;
-      }
-      break;
-    }
-    case DialogType::None:
-    default:
-      UNREACHABLE();
+string ContactsManager::get_user_about(UserId user_id) {
+  auto user_full = get_user_full_force(user_id, "get_user_about");
+  if (user_full != nullptr) {
+    return user_full->about;
   }
   return string();
+}
+
+string ContactsManager::get_chat_about(ChatId chat_id) {
+  auto chat_full = get_chat_full_force(chat_id, "get_chat_about");
+  if (chat_full != nullptr) {
+    return chat_full->description;
+  }
+  return string();
+}
+
+string ContactsManager::get_channel_about(ChannelId channel_id) {
+  auto channel_full = get_channel_full_force(channel_id, false, "get_channel_about");
+  if (channel_full != nullptr) {
+    return channel_full->description;
+  }
+  return string();
+}
+
+string ContactsManager::get_secret_chat_about(SecretChatId secret_chat_id) {
+  auto c = get_secret_chat(secret_chat_id);
+  if (c == nullptr) {
+    return string();
+  }
+  return get_user_about(c->user_id);
 }
 
 string ContactsManager::get_dialog_search_text(DialogId dialog_id) const {

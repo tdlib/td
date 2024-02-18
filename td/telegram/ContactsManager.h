@@ -155,6 +155,11 @@ class ContactsManager final : public Actor {
   td_api::object_ptr<td_api::emojiStatus> get_channel_emoji_status_object(ChannelId channel_id) const;
   td_api::object_ptr<td_api::emojiStatus> get_secret_chat_emoji_status_object(SecretChatId secret_chat_id) const;
 
+  string get_user_about(UserId user_id);
+  string get_chat_about(ChatId chat_id);
+  string get_channel_about(ChannelId channel_id);
+  string get_secret_chat_about(SecretChatId secret_chat_id);
+
   bool get_chat_has_protected_content(ChatId chat_id) const;
   bool get_channel_has_protected_content(ChannelId channel_id) const;
 
@@ -166,8 +171,6 @@ class ContactsManager final : public Actor {
   bool get_user_voice_messages_forbidden(UserId user_id) const;
 
   bool get_user_read_dates_private(UserId user_id);
-
-  string get_dialog_about(DialogId dialog_id);
 
   string get_dialog_search_text(DialogId dialog_id) const;
 

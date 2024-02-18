@@ -2692,7 +2692,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
     GroupCallParticipant participant;
     participant.is_self = true;
     participant.dialog_id = as_dialog_id;
-    participant.about = td_->contacts_manager_->get_dialog_about(participant.dialog_id);
+    participant.about = td_->dialog_manager_->get_dialog_about(participant.dialog_id);
     participant.audio_source = audio_source;
     participant.joined_date = G()->unix_time();
     // if can_self_unmute has never been inited from self-participant,
