@@ -9371,6 +9371,44 @@ void Td::on_request(uint64 id, td_api::testCallVectorStringObject &request) {
                make_tl_object<td_api::testVectorStringObject>(std::move(request.x_)));
 }
 
+void Td::on_request(uint64 id, const td_api::getUserAccessHash &request) {
+  auto user = contacts_manager_->get_input_user(UserId(request.user_id_));
+  td_api::object_ptr<td_api::Object> result(make_tl_object<td_api::accessHashUnresolved>());
+  if (user.is_ok()) {
+    switch (user.ok()->get_id()) {
+      case telegram_api::inputUser::ID:
+        result = std::move(make_tl_object<td_api::accessHashResolved>(static_cast<const telegram_api::inputUser &>(*user.ok()).access_hash_));
+        break;
+    }
+  }
+  send_closure(
+    actor_id(this),
+    &Td::send_result,
+    id,
+    std::move(result)
+  );
+}
+
+void Td::on_request(uint64 id, const td_api::getChannelAccessHash &request) {
+  auto channel = contacts_manager_->get_input_channel(ChannelId(request.channel_id_));
+  td_api::object_ptr<td_api::Object> result(make_tl_object<td_api::accessHashUnresolved>());
+  if (channel) {
+    switch (channel->get_id()) {
+      case telegram_api::inputChannel::ID:
+        result = std::move(make_tl_object<td_api::accessHashResolved>(static_cast<telegram_api::inputChannel &>(*channel).access_hash_));
+        break;
+    }
+  }
+  send_closure(
+    actor_id(this),
+    &Td::send_result,
+    id,
+    std::move(result)
+  );
+}
+
+
+
 #undef CLEAN_INPUT_STRING
 #undef CHECK_IS_BOT
 #undef CHECK_IS_USER

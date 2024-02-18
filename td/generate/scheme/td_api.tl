@@ -6276,6 +6276,16 @@ testVectorString value:vector<string> = TestVectorString;
 //@description A simple object containing a vector of objects that hold a string; for testing only @value Vector of objects
 testVectorStringObject value:vector<testString> = TestVectorStringObject;
 
+//@class AccessHash @description Contains information about access hash or it's absence
+
+//@description Describes an access hash object
+//@access_hash The access hash value
+accessHashResolved access_hash:int64 = AccessHash;
+
+//@description Describes an unresolved access hash object
+accessHashUnresolved = AccessHash;
+
+
 ---functions---
 
 //@description Returns the current authorization state; this is an offline request. For informational purposes only. Use updateAuthorizationState instead to maintain the current authorization state. Can be called before initialization
@@ -9194,3 +9204,11 @@ testUseUpdate = Update;
 
 //@description Returns the specified error and ensures that the Error object is used; for testing only. Can be called synchronously @error The error to be returned
 testReturnError error:error = Error;
+
+//@description Extracts access hash by user id. Can be called synchronously
+//@user_id User we want to get an access hash for
+getUserAccessHash user_id:int53 = AccessHash;
+
+//@description Extracts access hash by channel id. Can be called synchronously
+//@channel_id Chat we want to get an access hash for
+getChannelAccessHash channel_id:int53 = AccessHash;
