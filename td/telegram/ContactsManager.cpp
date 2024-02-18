@@ -13607,18 +13607,12 @@ void ContactsManager::update_user_online_member_count(UserId user_id) {
     }
 
     switch (dialog_id.get_type()) {
-      case DialogType::Chat: {
-        auto chat_id = dialog_id.get_chat_id();
-        auto chat_full = get_chat_full(chat_id);
-        CHECK(chat_full != nullptr);
-        update_chat_online_member_count(chat_full, chat_id, false);
+      case DialogType::Chat:
+        update_chat_online_member_count(dialog_id.get_chat_id(), false);
         break;
-      }
-      case DialogType::Channel: {
-        auto channel_id = dialog_id.get_channel_id();
-        update_channel_online_member_count(channel_id, false);
+      case DialogType::Channel:
+        update_channel_online_member_count(dialog_id.get_channel_id(), false);
         break;
-      }
       case DialogType::User:
       case DialogType::SecretChat:
       case DialogType::None:
@@ -13634,6 +13628,13 @@ void ContactsManager::update_user_online_member_count(UserId user_id) {
   }
   if (online_member_dialogs.empty()) {
     user_online_member_dialogs_.erase(user_it);
+  }
+}
+
+void ContactsManager::update_chat_online_member_count(ChatId chat_id, bool is_from_server) {
+  auto chat_full = get_chat_full(chat_id);
+  if (chat_full != nullptr) {
+    update_chat_online_member_count(chat_full, chat_id, false);
   }
 }
 
