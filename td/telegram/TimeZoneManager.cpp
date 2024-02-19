@@ -7,11 +7,13 @@
 #include "td/telegram/TimeZoneManager.h"
 
 #include "td/telegram/Global.h"
+#include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
+#include "td/utils/tl_helpers.h"
 
 namespace td {
 
@@ -60,9 +62,40 @@ bool operator!=(const TimeZoneManager::TimeZone &lhs, const TimeZoneManager::Tim
   return !(lhs == rhs);
 }
 
+template <class StorerT>
+void TimeZoneManager::TimeZone::store(StorerT &storer) const {
+  BEGIN_STORE_FLAGS();
+  END_STORE_FLAGS();
+  td::store(id_, storer);
+  td::store(name_, storer);
+  td::store(utc_offset_, storer);
+}
+
+template <class ParserT>
+void TimeZoneManager::TimeZone::parse(ParserT &parser) {
+  BEGIN_PARSE_FLAGS();
+  END_PARSE_FLAGS();
+  td::parse(id_, parser);
+  td::parse(name_, parser);
+  td::parse(utc_offset_, parser);
+}
+
 td_api::object_ptr<td_api::timeZones> TimeZoneManager::TimeZoneList::get_time_zones_object() const {
   return td_api::make_object<td_api::timeZones>(
       transform(time_zones_, [](const TimeZone &time_zone) { return time_zone.get_time_zone_object(); }));
+}
+
+template <class StorerT>
+void TimeZoneManager::TimeZoneList::store(StorerT &storer) const {
+  td::store(time_zones_, storer);
+  td::store(hash_, storer);
+}
+
+template <class ParserT>
+void TimeZoneManager::TimeZoneList::parse(ParserT &parser) {
+  td::parse(time_zones_, parser);
+  td::parse(hash_, parser);
+  is_loaded_ = true;
 }
 
 TimeZoneManager::TimeZoneManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
@@ -75,6 +108,7 @@ void TimeZoneManager::tear_down() {
 }
 
 void TimeZoneManager::get_time_zones(Promise<td_api::object_ptr<td_api::timeZones>> &&promise) {
+  load_time_zones();
   if (time_zones_.hash_ != 0) {
     return promise.set_value(time_zones_.get_time_zones_object());
   }
@@ -82,6 +116,7 @@ void TimeZoneManager::get_time_zones(Promise<td_api::object_ptr<td_api::timeZone
 }
 
 void TimeZoneManager::reload_time_zones(Promise<td_api::object_ptr<td_api::timeZones>> &&promise) {
+  load_time_zones();
   get_time_zones_queries_.push_back(std::move(promise));
   if (get_time_zones_queries_.size() == 1) {
     auto query_promise = PromiseCreator::lambda(
@@ -112,12 +147,15 @@ void TimeZoneManager::on_get_time_zones(
       if (time_zones_.time_zones_ != time_zones || time_zones_.hash_ != zone_list->hash_) {
         time_zones_.time_zones_ = std::move(time_zones);
         time_zones_.hash_ = zone_list->hash_;
+        save_time_zones();
       }
       break;
     }
     default:
       UNREACHABLE();
   }
+  time_zones_.is_loaded_ = true;
+
   auto promises = std::move(get_time_zones_queries_);
   reset_to_empty(get_time_zones_queries_);
   for (auto &promise : promises) {
@@ -125,6 +163,31 @@ void TimeZoneManager::on_get_time_zones(
       promise.set_value(time_zones_.get_time_zones_object());
     }
   }
+}
+
+string TimeZoneManager::get_time_zones_database_key() {
+  return "time_zones";
+}
+
+void TimeZoneManager::load_time_zones() {
+  if (time_zones_.is_loaded_) {
+    return;
+  }
+  time_zones_.is_loaded_ = true;
+
+  auto log_event_string = G()->td_db()->get_binlog_pmc()->get(get_time_zones_database_key());
+  if (log_event_string.empty()) {
+    return;
+  }
+  auto status = log_event_parse(time_zones_, log_event_string);
+  if (status.is_error()) {
+    LOG(ERROR) << "Failed to parse time zones from binlog: " << status;
+    time_zones_ = TimeZoneList();
+  }
+}
+
+void TimeZoneManager::save_time_zones() {
+  G()->td_db()->get_binlog_pmc()->set(get_time_zones_database_key(), log_event_store(time_zones_).as_slice().str());
 }
 
 }  // namespace td

@@ -43,13 +43,26 @@ class TimeZoneManager final : public Actor {
     TimeZone(string &&id, string &&name, int32 utc_offset);
 
     td_api::object_ptr<td_api::timeZone> get_time_zone_object() const;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
   struct TimeZoneList {
     vector<TimeZone> time_zones_;
     int32 hash_ = 0;
+    bool is_loaded_ = false;
 
     td_api::object_ptr<td_api::timeZones> get_time_zones_object() const;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
   friend bool operator==(const TimeZone &lhs, const TimeZone &rhs);
@@ -57,6 +70,12 @@ class TimeZoneManager final : public Actor {
   friend bool operator!=(const TimeZone &lhs, const TimeZone &rhs);
 
   void on_get_time_zones(Result<telegram_api::object_ptr<telegram_api::help_TimezonesList>> &&r_time_zones);
+
+  static string get_time_zones_database_key();
+
+  void load_time_zones();
+
+  void save_time_zones();
 
   vector<Promise<td_api::object_ptr<td_api::timeZones>>> get_time_zones_queries_;
 
