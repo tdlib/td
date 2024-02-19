@@ -5676,6 +5676,8 @@ class CliClient final : public Actor {
     } else if (op == "logf") {
       get_log_chat_id_ = as_chat_id(args);
       send_request(td_api::make_object<td_api::getChatEventLog>(get_log_chat_id_, "", 0, 100, nullptr, Auto()));
+    } else if (op == "gtz") {
+      send_request(td_api::make_object<td_api::getTimeZones>());
     } else if (op == "join") {
       ChatId chat_id;
       get_args(args, chat_id);

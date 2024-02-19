@@ -74,6 +74,7 @@
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/telegram_api.hpp"
 #include "td/telegram/ThemeManager.h"
+#include "td/telegram/TimeZoneManager.h"
 #include "td/telegram/TranscriptionManager.h"
 #include "td/telegram/Usernames.h"
 #include "td/telegram/WebPagesManager.h"
@@ -2298,6 +2299,7 @@ void UpdatesManager::try_reload_data() {
   td_->theme_manager_->reload_accent_colors();
   td_->theme_manager_->reload_chat_themes();
   td_->theme_manager_->reload_profile_accent_colors();
+  td_->time_zone_manager_->reload_time_zones(Auto());
 
   schedule_data_reload();
 }

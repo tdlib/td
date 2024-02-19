@@ -5021,6 +5021,16 @@ themeSettings accent_color:int32 background:background outgoing_message_fill:Bac
 chatTheme name:string light_settings:themeSettings dark_settings:themeSettings = ChatTheme;
 
 
+//@description Describes a time zone
+//@id Unique time zone identifier
+//@name Time zone name
+//@utc_time_offset Current UTC time offset for the time zone
+timeZone id:string name:string utc_time_offset:int32 = TimeZone;
+
+//@description Contains a list of time zones @time_zones A list of time zones
+timeZones time_zones:vector<timeZone> = TimeZones;
+
+
 //@description Contains a list of hashtags @hashtags A list of hashtags
 hashtags hashtags:vector<string> = Hashtags;
 
@@ -9466,6 +9476,10 @@ closeSecretChat secret_chat_id:int32 = Ok;
 //@filters The types of events to return; pass null to get chat events of all types
 //@user_ids User identifiers by which to filter events. By default, events relating to all users will be returned
 getChatEventLog chat_id:int53 query:string from_event_id:int64 limit:int32 filters:chatEventLogFilters user_ids:vector<int53> = ChatEvents;
+
+
+//@description Returns the list of supported time zones
+getTimeZones = TimeZones;
 
 
 //@description Returns an invoice payment form. This method must be called when the user presses inline button of the type inlineKeyboardButtonTypeBuy

@@ -7141,6 +7141,11 @@ void Td::on_request(uint64 id, td_api::getChatEventLog &request) {
                        std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getTimeZones &request) {
+  CREATE_REQUEST_PROMISE();
+  time_zone_manager_->get_time_zones(std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::clearAllDraftMessages &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
