@@ -7714,24 +7714,12 @@ void ContactsManager::set_channel_discussion_group(DialogId dialog_id, DialogId 
              std::move(group_input_channel));
 }
 
-void ContactsManager::set_channel_location(DialogId dialog_id, const DialogLocation &location,
+void ContactsManager::set_channel_location(ChannelId channel_id, const DialogLocation &location,
                                            Promise<Unit> &&promise) {
   if (location.empty()) {
     return promise.set_error(Status::Error(400, "Invalid chat location specified"));
   }
 
-  if (!dialog_id.is_valid()) {
-    return promise.set_error(Status::Error(400, "Invalid chat identifier specified"));
-  }
-  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "set_channel_location")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
-
-  if (dialog_id.get_type() != DialogType::Channel) {
-    return promise.set_error(Status::Error(400, "Chat is not a supergroup"));
-  }
-
-  auto channel_id = dialog_id.get_channel_id();
   const Channel *c = get_channel(channel_id);
   if (c == nullptr) {
     return promise.set_error(Status::Error(400, "Chat info not found"));

@@ -6867,8 +6867,8 @@ void Td::on_request(uint64 id, const td_api::setChatDiscussionGroup &request) {
 void Td::on_request(uint64 id, td_api::setChatLocation &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->set_channel_location(DialogId(request.chat_id_), DialogLocation(std::move(request.location_)),
-                                          std::move(promise));
+  dialog_manager_->set_dialog_location(DialogId(request.chat_id_), DialogLocation(std::move(request.location_)),
+                                       std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::setChatSlowModeDelay &request) {

@@ -1607,6 +1607,24 @@ void DialogManager::set_dialog_description(DialogId dialog_id, const string &des
   }
 }
 
+void DialogManager::set_dialog_location(DialogId dialog_id, const DialogLocation &location, Promise<Unit> &&promise) {
+  if (!have_dialog_force(dialog_id, "set_dialog_location")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+    case DialogType::Chat:
+    case DialogType::SecretChat:
+      return promise.set_error(Status::Error(400, "The chat can't have location"));
+    case DialogType::Channel:
+      return td_->contacts_manager_->set_channel_location(dialog_id.get_channel_id(), location, std::move(promise));
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
+}
+
 bool DialogManager::can_report_dialog(DialogId dialog_id) const {
   // doesn't include possibility of report from action bar
   switch (dialog_id.get_type()) {

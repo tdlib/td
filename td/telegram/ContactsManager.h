@@ -506,7 +506,7 @@ class ContactsManager final : public Actor {
 
   void set_channel_discussion_group(DialogId dialog_id, DialogId discussion_dialog_id, Promise<Unit> &&promise);
 
-  void set_channel_location(DialogId dialog_id, const DialogLocation &location, Promise<Unit> &&promise);
+  void set_channel_location(ChannelId dialog_id, const DialogLocation &location, Promise<Unit> &&promise);
 
   void set_channel_slow_mode_delay(DialogId dialog_id, int32 slow_mode_delay, Promise<Unit> &&promise);
 
