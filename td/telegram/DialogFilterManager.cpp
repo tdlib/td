@@ -40,10 +40,10 @@
 namespace td {
 
 class GetDialogFiltersQuery final : public Td::ResultHandler {
-  Promise<vector<tl_object_ptr<telegram_api::DialogFilter>>> promise_;
+  Promise<telegram_api::object_ptr<telegram_api::messages_dialogFilters>> promise_;
 
  public:
-  explicit GetDialogFiltersQuery(Promise<vector<tl_object_ptr<telegram_api::DialogFilter>>> &&promise)
+  explicit GetDialogFiltersQuery(Promise<telegram_api::object_ptr<telegram_api::messages_dialogFilters>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -1134,7 +1134,7 @@ void DialogFilterManager::reload_dialog_filters() {
   are_dialog_filters_being_reloaded_ = true;
   need_dialog_filters_reload_ = false;
   auto promise = PromiseCreator::lambda(
-      [actor_id = actor_id(this)](Result<vector<telegram_api::object_ptr<telegram_api::DialogFilter>>> r_filters) {
+      [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::messages_dialogFilters>> r_filters) {
         send_closure(actor_id, &DialogFilterManager::on_get_dialog_filters, std::move(r_filters), false);
       });
   td_->create_handler<GetDialogFiltersQuery>(std::move(promise))->send();
@@ -1187,7 +1187,7 @@ void DialogFilterManager::on_get_dialog_filter(telegram_api::object_ptr<telegram
 }
 
 void DialogFilterManager::on_get_dialog_filters(
-    Result<vector<telegram_api::object_ptr<telegram_api::DialogFilter>>> r_filters, bool dummy) {
+    Result<telegram_api::object_ptr<telegram_api::messages_dialogFilters>> r_filters, bool dummy) {
   if (G()->close_flag()) {
     return;
   }
@@ -1206,7 +1206,8 @@ void DialogFilterManager::on_get_dialog_filters(
     return;
   }
 
-  auto filters = r_filters.move_as_ok();
+  auto dialog_filters = r_filters.move_as_ok();
+  auto filters = std::move(dialog_filters->filters_);
   vector<unique_ptr<DialogFilter>> new_server_dialog_filters;
   LOG(INFO) << "Receive chat folders from server: " << to_string(filters);
   std::unordered_set<DialogFilterId, DialogFilterIdHash> new_dialog_filter_ids;

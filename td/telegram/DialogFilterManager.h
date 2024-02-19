@@ -152,7 +152,7 @@ class DialogFilterManager final : public Actor {
 
   void reload_dialog_filters();
 
-  void on_get_dialog_filters(Result<vector<telegram_api::object_ptr<telegram_api::DialogFilter>>> r_filters,
+  void on_get_dialog_filters(Result<telegram_api::object_ptr<telegram_api::messages_dialogFilters>> r_filters,
                              bool dummy);
 
   bool need_synchronize_dialog_filters() const;

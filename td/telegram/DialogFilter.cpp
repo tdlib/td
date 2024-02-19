@@ -418,7 +418,7 @@ telegram_api::object_ptr<telegram_api::DialogFilter> DialogFilter::get_input_dia
       flags |= telegram_api::dialogFilterChatlist::HAS_MY_INVITES_MASK;
     }
     return telegram_api::make_object<telegram_api::dialogFilterChatlist>(
-        flags, false /*ignored*/, dialog_filter_id_.get(), title_, emoji_,
+        flags, false /*ignored*/, dialog_filter_id_.get(), title_, emoji_, 0,
         InputDialogId::get_input_peers(pinned_dialog_ids_), InputDialogId::get_input_peers(included_dialog_ids_));
   }
   int32 flags = 0;
@@ -452,7 +452,7 @@ telegram_api::object_ptr<telegram_api::DialogFilter> DialogFilter::get_input_dia
 
   return telegram_api::make_object<telegram_api::dialogFilter>(
       flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-      false /*ignored*/, false /*ignored*/, false /*ignored*/, dialog_filter_id_.get(), title_, emoji_,
+      false /*ignored*/, false /*ignored*/, false /*ignored*/, dialog_filter_id_.get(), title_, emoji_, 0,
       InputDialogId::get_input_peers(pinned_dialog_ids_), InputDialogId::get_input_peers(included_dialog_ids_),
       InputDialogId::get_input_peers(excluded_dialog_ids_));
 }
