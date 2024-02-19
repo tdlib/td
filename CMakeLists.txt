@@ -129,6 +129,11 @@ if (THREADS_HAVE_PTHREAD_ARG)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 endif()
 
+find_package(Atomics REQUIRED)
+if (ATOMICS_LIBRARIES)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ATOMICS_LIBRARIES}")
+endif()
+
 include(TdSetUpCompiler)
 td_set_up_compiler()
 
