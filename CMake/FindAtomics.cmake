@@ -7,8 +7,9 @@
 # riscv64 specific:
 # * https://lists.debian.org/debian-riscv/2022/01/msg00009.html
 #
-# ATOMICS_FOUND        - system has c++ atomics
-# ATOMICS_LIBRARIES    - libraries needed to use c++ atomics
+# ATOMICS_FOUND         - system has c++ atomics
+# ATOMICS_LIBRARIES     - libraries needed to use c++ atomics
+# ATOMICS_LIBRARY_FLAGS - flags required to link with c++ atomics library
 
 include(CheckCXXSourceCompiles)
 
@@ -34,6 +35,7 @@ check_cxx_source_compiles("${atomic_code}" ATOMICS_LOCK_FREE_INSTRUCTIONS)
 if (ATOMICS_LOCK_FREE_INSTRUCTIONS)
   set(ATOMICS_FOUND TRUE)
   set(ATOMICS_LIBRARIES)
+  set(ATOMICS_LIBRARY_FLAGS)
 else()
   set(CMAKE_REQUIRED_LIBRARIES "-latomic")
   check_cxx_source_compiles("${atomic_code}" ATOMICS_IN_LIBRARY)
@@ -43,6 +45,7 @@ else()
     include(FindPackageHandleStandardArgs)
     find_package_handle_standard_args(Atomics DEFAULT_MSG ATOMICS_LIBRARY)
     set(ATOMICS_LIBRARIES ${ATOMICS_LIBRARY})
+    set(ATOMICS_LIBRARY_FLAGS "-latomic")
     unset(ATOMICS_LIBRARY)
   else()
     if (Atomics_FIND_REQUIRED)
