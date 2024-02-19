@@ -396,6 +396,7 @@ function split_file($file, $chunks, $undo) {
                 'td_db[(][)]|TdDb[^A-Za-z]' => 'TdDb',
                 'telegram_api' => 'telegram_api',
                 'theme_manager[_(-](?![.]get[(][)])|ThemeManager' => 'ThemeManager',
+                'time_zone_manager[_(-](?![.]get[(][)])|TimeZoneManager' => 'TimeZoneManager',
                 'TopDialogCategory|get_top_dialog_category' => 'TopDialogCategory',
                 'top_dialog_manager[_(-](?![.]get[(][)])|TopDialogManager' => 'TopDialogManager',
                 'translation_manager[_(-](?![.]get[(][)])|TranslationManager' => 'TranslationManager',

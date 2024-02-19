@@ -90,6 +90,7 @@ class StickersManager;
 class StorageManager;
 class StoryManager;
 class ThemeManager;
+class TimeZoneManager;
 class TopDialogManager;
 class TranscriptionManager;
 class TranslationManager;
@@ -233,6 +234,8 @@ class Td final : public Actor {
   ActorOwn<StoryManager> story_manager_actor_;
   unique_ptr<ThemeManager> theme_manager_;
   ActorOwn<ThemeManager> theme_manager_actor_;
+  unique_ptr<TimeZoneManager> time_zone_manager_;
+  ActorOwn<TimeZoneManager> time_zone_manager_actor_;
   unique_ptr<TopDialogManager> top_dialog_manager_;
   ActorOwn<TopDialogManager> top_dialog_manager_actor_;
   unique_ptr<TranscriptionManager> transcription_manager_;

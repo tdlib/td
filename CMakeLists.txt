@@ -509,6 +509,7 @@ set(TDLIB_SOURCE
   td/telegram/TdDb.cpp
   td/telegram/TermsOfService.cpp
   td/telegram/ThemeManager.cpp
+  td/telegram/TimeZoneManager.cpp
   td/telegram/TopDialogCategory.cpp
   td/telegram/TopDialogManager.cpp
   td/telegram/TranscriptionInfo.cpp
@@ -846,6 +847,7 @@ set(TDLIB_SOURCE
   td/telegram/TdDb.h
   td/telegram/TermsOfService.h
   td/telegram/ThemeManager.h
+  td/telegram/TimeZoneManager.h
   td/telegram/TopDialogCategory.h
   td/telegram/TopDialogManager.h
   td/telegram/TranscriptionInfo.h

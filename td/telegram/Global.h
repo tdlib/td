@@ -73,6 +73,7 @@ class Td;
 class TdDb;
 class TempAuthKeyWatchdog;
 class ThemeManager;
+class TimeZoneManager;
 class TopDialogManager;
 class TranscriptionManager;
 class UpdatesManager;
@@ -437,6 +438,13 @@ class Global final : public ActorContext {
     theme_manager_ = theme_manager;
   }
 
+  ActorId<TimeZoneManager> time_zone_manager() const {
+    return time_zone_manager_;
+  }
+  void set_time_zone_manager(ActorId<TimeZoneManager> time_zone_manager) {
+    time_zone_manager_ = time_zone_manager;
+  }
+
   ActorId<TopDialogManager> top_dialog_manager() const {
     return top_dialog_manager_;
   }
@@ -620,6 +628,7 @@ class Global final : public ActorContext {
   ActorId<StorageManager> storage_manager_;
   ActorId<StoryManager> story_manager_;
   ActorId<ThemeManager> theme_manager_;
+  ActorId<TimeZoneManager> time_zone_manager_;
   ActorId<TopDialogManager> top_dialog_manager_;
   ActorId<TranscriptionManager> transcription_manager_;
   ActorId<UpdatesManager> updates_manager_;

@@ -146,6 +146,7 @@
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/ThemeManager.h"
+#include "td/telegram/TimeZoneManager.h"
 #include "td/telegram/TopDialogCategory.h"
 #include "td/telegram/TopDialogManager.h"
 #include "td/telegram/TranscriptionManager.h"
@@ -3229,6 +3230,7 @@ void Td::dec_actor_refcnt() {
       reset_manager(stickers_manager_, "StickersManager");
       reset_manager(story_manager_, "StoryManager");
       reset_manager(theme_manager_, "ThemeManager");
+      reset_manager(time_zone_manager_, "TimeZoneManager");
       reset_manager(top_dialog_manager_, "TopDialogManager");
       reset_manager(transcription_manager_, "TranscriptionManager");
       reset_manager(translation_manager_, "TranslationManager");
@@ -3398,6 +3400,7 @@ void Td::clear() {
   reset_actor(ActorOwn<Actor>(std::move(stickers_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(story_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(theme_manager_actor_)));
+  reset_actor(ActorOwn<Actor>(std::move(time_zone_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(top_dialog_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(transcription_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(translation_manager_actor_)));
@@ -3933,6 +3936,9 @@ void Td::init_managers() {
   theme_manager_ = make_unique<ThemeManager>(this, create_reference());
   theme_manager_actor_ = register_actor("ThemeManager", theme_manager_.get());
   G()->set_theme_manager(theme_manager_actor_.get());
+  time_zone_manager_ = make_unique<TimeZoneManager>(this, create_reference());
+  time_zone_manager_actor_ = register_actor("TimeZoneManager", time_zone_manager_.get());
+  G()->set_time_zone_manager(time_zone_manager_actor_.get());
   top_dialog_manager_ = make_unique<TopDialogManager>(this, create_reference());
   top_dialog_manager_actor_ = register_actor("TopDialogManager", top_dialog_manager_.get());
   G()->set_top_dialog_manager(top_dialog_manager_actor_.get());
