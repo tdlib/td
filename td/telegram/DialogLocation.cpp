@@ -18,6 +18,13 @@ DialogLocation::DialogLocation(Td *td, telegram_api::object_ptr<telegram_api::Ch
   }
 }
 
+DialogLocation::DialogLocation(Td *td, telegram_api::object_ptr<telegram_api::businessLocation> &&business_location) {
+  if (business_location != nullptr) {
+    location_ = Location(td, business_location->geo_point_);
+    address_ = std::move(business_location->address_);
+  }
+}
+
 DialogLocation::DialogLocation(td_api::object_ptr<td_api::chatLocation> &&chat_location) {
   if (chat_location != nullptr) {
     location_ = Location(chat_location->location_);

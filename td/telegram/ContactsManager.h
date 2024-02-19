@@ -250,6 +250,7 @@ class ContactsManager final : public Actor {
   void on_update_user_is_blocked(UserId user_id, bool is_blocked, bool is_blocked_for_stories);
   void on_update_user_has_pinned_stories(UserId user_id, bool has_pinned_stories);
   void on_update_user_common_chat_count(UserId user_id, int32 common_chat_count);
+  void on_update_user_location(UserId user_id, DialogLocation &&location);
   void on_update_user_need_phone_number_privacy_exception(UserId user_id, bool need_phone_number_privacy_exception);
   void on_update_user_wallpaper_overridden(UserId user_id, bool wallpaper_overridden);
 
@@ -823,6 +824,8 @@ class ContactsManager final : public Actor {
     AdministratorRights broadcast_administrator_rights;
 
     int32 common_chat_count = 0;
+
+    DialogLocation location;
 
     bool is_blocked = false;
     bool is_blocked_for_stories = false;
@@ -1429,6 +1432,7 @@ class ContactsManager final : public Actor {
   static void on_update_user_full_is_blocked(UserFull *user_full, UserId user_id, bool is_blocked,
                                              bool is_blocked_for_stories);
   static void on_update_user_full_common_chat_count(UserFull *user_full, UserId user_id, int32 common_chat_count);
+  static void on_update_user_full_location(UserFull *user_full, UserId user_id, DialogLocation &&location);
   static void on_update_user_full_commands(UserFull *user_full, UserId user_id,
                                            vector<tl_object_ptr<telegram_api::botCommand>> &&bot_commands);
   static void on_update_user_full_menu_button(UserFull *user_full, UserId user_id,

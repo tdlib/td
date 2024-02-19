@@ -3428,6 +3428,7 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   bool has_premium_gift_options = !premium_gift_options.empty();
   bool has_personal_photo = !personal_photo.is_empty();
   bool has_fallback_photo = !fallback_photo.is_empty();
+  bool has_location = !location.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
   STORE_FLAG(is_blocked);
@@ -3454,6 +3455,7 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   STORE_FLAG(wallpaper_overridden);
   STORE_FLAG(read_dates_private);
   STORE_FLAG(contact_require_premium);
+  STORE_FLAG(has_location);
   END_STORE_FLAGS();
   if (has_about) {
     store(about, storer);
@@ -3497,6 +3499,9 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   if (has_fallback_photo) {
     store(fallback_photo, storer);
   }
+  if (has_location) {
+    store(location, storer);
+  }
 }
 
 template <class ParserT>
@@ -3515,6 +3520,7 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   bool has_premium_gift_options;
   bool has_personal_photo;
   bool has_fallback_photo;
+  bool has_location;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_about);
   PARSE_FLAG(is_blocked);
@@ -3541,6 +3547,7 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   PARSE_FLAG(wallpaper_overridden);
   PARSE_FLAG(read_dates_private);
   PARSE_FLAG(contact_require_premium);
+  PARSE_FLAG(has_location);
   END_PARSE_FLAGS();
   if (has_about) {
     parse(about, parser);
@@ -3583,6 +3590,9 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   }
   if (has_fallback_photo) {
     parse(fallback_photo, parser);
+  }
+  if (has_location) {
+    parse(location, parser);
   }
 }
 
@@ -11277,6 +11287,7 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
 
   on_update_user_full_is_blocked(user_full, user_id, user->blocked_, user->blocked_my_stories_from_);
   on_update_user_full_common_chat_count(user_full, user_id, user->common_chats_count_);
+  on_update_user_full_location(user_full, user_id, DialogLocation(td_, std::move(user->business_location_)));
   on_update_user_full_need_phone_number_privacy_exception(user_full, user_id,
                                                           user->settings_->need_contacts_exception_);
   on_update_user_full_wallpaper_overridden(user_full, user_id, user->wallpaper_overridden_);
@@ -12652,6 +12663,29 @@ void ContactsManager::on_update_user_full_common_chat_count(UserFull *user_full,
   }
 }
 
+void ContactsManager::on_update_user_location(UserId user_id, DialogLocation &&location) {
+  LOG(INFO) << "Receive " << location << " for " << user_id;
+  if (!user_id.is_valid()) {
+    LOG(ERROR) << "Receive invalid " << user_id;
+    return;
+  }
+
+  UserFull *user_full = get_user_full_force(user_id, "on_update_user_location");
+  if (user_full == nullptr) {
+    return;
+  }
+  on_update_user_full_location(user_full, user_id, std::move(location));
+  update_user_full(user_full, user_id, "on_update_user_location");
+}
+
+void ContactsManager::on_update_user_full_location(UserFull *user_full, UserId user_id, DialogLocation &&location) {
+  CHECK(user_full != nullptr);
+  if (user_full->location != location) {
+    user_full->location = std::move(location);
+    user_full->is_changed = true;
+  }
+}
+
 void ContactsManager::on_update_user_full_commands(UserFull *user_full, UserId user_id,
                                                    vector<tl_object_ptr<telegram_api::botCommand>> &&bot_commands) {
   CHECK(user_full != nullptr);
@@ -13038,6 +13072,7 @@ void ContactsManager::drop_user_full(UserId user_id) {
   user_full->menu_button = nullptr;
   user_full->commands.clear();
   user_full->common_chat_count = 0;
+  user_full->location = {};
   user_full->private_forward_name.clear();
   user_full->group_administrator_rights = {};
   user_full->broadcast_administrator_rights = {};
@@ -17010,7 +17045,7 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
       !user_full->private_forward_name.empty(), voice_messages_forbidden, user_full->has_pinned_stories,
       user_full->need_phone_number_privacy_exception, user_full->wallpaper_overridden, std::move(bio_object),
       get_premium_payment_options_object(user_full->premium_gift_options), user_full->common_chat_count,
-      std::move(bot_info));
+      user_full->location.get_chat_location_object(), std::move(bot_info));
 }
 
 td_api::object_ptr<td_api::updateBasicGroup> ContactsManager::get_update_basic_group_object(ChatId chat_id,
