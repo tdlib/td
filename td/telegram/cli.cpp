@@ -5901,6 +5901,15 @@ class CliClient final : public Actor {
       string longitude;
       get_args(args, latitude, longitude);
       send_request(td_api::make_object<td_api::setLocation>(as_location(latitude, longitude, string())));
+    } else if (op == "sbl") {
+      string latitude;
+      string longitude;
+      get_args(args, latitude, longitude);
+      if (latitude.empty() || longitude.empty()) {
+        send_request(td_api::make_object<td_api::setBusinessLocation>(nullptr));
+      }
+      send_request(td_api::make_object<td_api::setBusinessLocation>(
+          td_api::make_object<td_api::chatLocation>(as_location(latitude, longitude, string()), "business address")));
     } else if (op == "sco") {
       SearchQuery query;
       get_args(args, query);

@@ -463,6 +463,8 @@ class ContactsManager final : public Actor {
 
   void set_emoji_status(const EmojiStatus &emoji_status, Promise<Unit> &&promise);
 
+  void set_business_location(DialogLocation &&location, Promise<Unit> &&promise);
+
   void set_chat_description(ChatId chat_id, const string &description, Promise<Unit> &&promise);
 
   void set_channel_username(ChannelId channel_id, const string &username, Promise<Unit> &&promise);
