@@ -301,6 +301,7 @@ set(TDLIB_SOURCE
   td/telegram/BotCommandScope.cpp
   td/telegram/BotInfoManager.cpp
   td/telegram/BotMenuButton.cpp
+  td/telegram/BusinessWorkHours.cpp
   td/telegram/CallActor.cpp
   td/telegram/CallbackQueriesManager.cpp
   td/telegram/CallDiscardReason.cpp
@@ -578,6 +579,7 @@ set(TDLIB_SOURCE
   td/telegram/BotCommandScope.h
   td/telegram/BotInfoManager.h
   td/telegram/BotMenuButton.h
+  td/telegram/BusinessWorkHours.h
   td/telegram/CallActor.h
   td/telegram/CallDiscardReason.h
   td/telegram/CallId.h
@@ -874,6 +876,7 @@ set(TDLIB_SOURCE
   td/telegram/AuthManager.hpp
   td/telegram/BackgroundInfo.hpp
   td/telegram/BackgroundType.hpp
+  td/telegram/BusinessWorkHours.hpp
   td/telegram/ChatReactions.hpp
   td/telegram/DialogNotificationSettings.hpp
   td/telegram/DialogFilter.hpp

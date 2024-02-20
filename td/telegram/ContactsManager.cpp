@@ -11,6 +11,7 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/BlockListId.h"
 #include "td/telegram/BotMenuButton.h"
+#include "td/telegram/BusinessWorkHours.hpp"
 #include "td/telegram/CommonDialogManager.h"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/Dependencies.h"
@@ -3464,6 +3465,7 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   bool has_personal_photo = !personal_photo.is_empty();
   bool has_fallback_photo = !fallback_photo.is_empty();
   bool has_location = !location.empty();
+  bool has_work_hours = !work_hours.is_empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
   STORE_FLAG(is_blocked);
@@ -3490,7 +3492,8 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   STORE_FLAG(wallpaper_overridden);
   STORE_FLAG(read_dates_private);
   STORE_FLAG(contact_require_premium);
-  STORE_FLAG(has_location);
+  STORE_FLAG(has_location);  // 25
+  STORE_FLAG(has_work_hours);
   END_STORE_FLAGS();
   if (has_about) {
     store(about, storer);
@@ -3537,6 +3540,9 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   if (has_location) {
     store(location, storer);
   }
+  if (has_work_hours) {
+    store(work_hours, storer);
+  }
 }
 
 template <class ParserT>
@@ -3556,6 +3562,7 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   bool has_personal_photo;
   bool has_fallback_photo;
   bool has_location;
+  bool has_work_hours;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_about);
   PARSE_FLAG(is_blocked);
@@ -3583,6 +3590,7 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   PARSE_FLAG(read_dates_private);
   PARSE_FLAG(contact_require_premium);
   PARSE_FLAG(has_location);
+  PARSE_FLAG(has_work_hours);
   END_PARSE_FLAGS();
   if (has_about) {
     parse(about, parser);
@@ -3628,6 +3636,9 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   }
   if (has_location) {
     parse(location, parser);
+  }
+  if (has_work_hours) {
+    parse(work_hours, parser);
   }
 }
 
@@ -12725,6 +12736,30 @@ void ContactsManager::on_update_user_full_location(UserFull *user_full, UserId u
   }
 }
 
+void ContactsManager::on_update_user_work_hours(UserId user_id, BusinessWorkHours &&work_hours) {
+  LOG(INFO) << "Receive " << work_hours << " for " << user_id;
+  if (!user_id.is_valid()) {
+    LOG(ERROR) << "Receive invalid " << user_id;
+    return;
+  }
+
+  UserFull *user_full = get_user_full_force(user_id, "on_update_user_work_hours");
+  if (user_full == nullptr) {
+    return;
+  }
+  on_update_user_full_work_hours(user_full, user_id, std::move(work_hours));
+  update_user_full(user_full, user_id, "on_update_user_work_hours");
+}
+
+void ContactsManager::on_update_user_full_work_hours(UserFull *user_full, UserId user_id,
+                                                     BusinessWorkHours &&work_hours) {
+  CHECK(user_full != nullptr);
+  if (user_full->work_hours != work_hours) {
+    user_full->work_hours = std::move(work_hours);
+    user_full->is_changed = true;
+  }
+}
+
 void ContactsManager::on_update_user_full_commands(UserFull *user_full, UserId user_id,
                                                    vector<tl_object_ptr<telegram_api::botCommand>> &&bot_commands) {
   CHECK(user_full != nullptr);
@@ -13112,6 +13147,7 @@ void ContactsManager::drop_user_full(UserId user_id) {
   user_full->commands.clear();
   user_full->common_chat_count = 0;
   user_full->location = {};
+  user_full->work_hours = {};
   user_full->private_forward_name.clear();
   user_full->group_administrator_rights = {};
   user_full->broadcast_administrator_rights = {};
@@ -17084,7 +17120,8 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
       !user_full->private_forward_name.empty(), voice_messages_forbidden, user_full->has_pinned_stories,
       user_full->need_phone_number_privacy_exception, user_full->wallpaper_overridden, std::move(bio_object),
       get_premium_payment_options_object(user_full->premium_gift_options), user_full->common_chat_count,
-      user_full->location.get_chat_location_object(), std::move(bot_info));
+      user_full->location.get_chat_location_object(), user_full->work_hours.get_business_work_hours_object(),
+      std::move(bot_info));
 }
 
 td_api::object_ptr<td_api::updateBasicGroup> ContactsManager::get_update_basic_group_object(ChatId chat_id,
