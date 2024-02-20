@@ -16,6 +16,11 @@ BusinessWorkHours::WorkHoursInterval::get_business_work_hours_interval_object() 
   return td_api::make_object<td_api::businessWorkHoursInterval>(start_minute_, end_minute_);
 }
 
+telegram_api::object_ptr<telegram_api::businessWeeklyOpen>
+BusinessWorkHours::WorkHoursInterval::get_input_business_weekly_open() const {
+  return telegram_api::make_object<telegram_api::businessWeeklyOpen>(start_minute_, end_minute_);
+}
+
 BusinessWorkHours::BusinessWorkHours(telegram_api::object_ptr<telegram_api::businessWorkHours> &&work_hours) {
   if (work_hours != nullptr) {
     work_hours_ = transform(work_hours->weekly_open_,
@@ -23,6 +28,16 @@ BusinessWorkHours::BusinessWorkHours(telegram_api::object_ptr<telegram_api::busi
                               return WorkHoursInterval(weekly_open->start_minute_, weekly_open->end_minute_);
                             });
     time_zone_id_ = std::move(work_hours->timezone_id_);
+  }
+}
+
+BusinessWorkHours::BusinessWorkHours(td_api::object_ptr<td_api::businessWorkHours> &&work_hours) {
+  if (work_hours != nullptr) {
+    work_hours_ =
+        transform(work_hours->work_hours_, [](const td_api::object_ptr<td_api::businessWorkHoursInterval> &interval) {
+          return WorkHoursInterval(interval->start_minute_, interval->end_minute_);
+        });
+    time_zone_id_ = std::move(work_hours->time_zone_id_);
   }
 }
 
@@ -38,6 +53,16 @@ td_api::object_ptr<td_api::businessWorkHours> BusinessWorkHours::get_business_wo
                                                         transform(work_hours_, [](const WorkHoursInterval &interval) {
                                                           return interval.get_business_work_hours_interval_object();
                                                         }));
+}
+
+telegram_api::object_ptr<telegram_api::businessWorkHours> BusinessWorkHours::get_input_business_work_hours() const {
+  if (is_empty()) {
+    return nullptr;
+  }
+  return telegram_api::make_object<telegram_api::businessWorkHours>(
+      0, false, time_zone_id_, transform(work_hours_, [](const WorkHoursInterval &interval) {
+        return interval.get_input_business_weekly_open();
+      }));
 }
 
 bool operator==(const BusinessWorkHours::WorkHoursInterval &lhs, const BusinessWorkHours::WorkHoursInterval &rhs) {

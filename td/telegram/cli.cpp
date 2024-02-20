@@ -5907,9 +5907,28 @@ class CliClient final : public Actor {
       get_args(args, latitude, longitude);
       if (latitude.empty() || longitude.empty()) {
         send_request(td_api::make_object<td_api::setBusinessLocation>(nullptr));
+      } else {
+        send_request(td_api::make_object<td_api::setBusinessLocation>(
+            td_api::make_object<td_api::chatLocation>(as_location(latitude, longitude, string()), "business address")));
       }
-      send_request(td_api::make_object<td_api::setBusinessLocation>(
-          td_api::make_object<td_api::chatLocation>(as_location(latitude, longitude, string()), "business address")));
+    } else if (op == "sbwh") {
+      string time_zone_id;
+      string work_hours;
+      get_args(args, time_zone_id, work_hours);
+      if (time_zone_id.empty()) {
+        send_request(td_api::make_object<td_api::setBusinessWorkHours>(nullptr));
+      } else {
+        auto minutes = to_integers<int32>(work_hours);
+        if (minutes.size() % 2 == 1) {
+          minutes.push_back(8 * 24 * 60);
+        }
+        vector<td_api::object_ptr<td_api::businessWorkHoursInterval>> intervals;
+        for (size_t i = 0; i < minutes.size(); i += 2) {
+          intervals.push_back(td_api::make_object<td_api::businessWorkHoursInterval>(minutes[i], minutes[i + 1]));
+        }
+        send_request(td_api::make_object<td_api::setBusinessWorkHours>(
+            td_api::make_object<td_api::businessWorkHours>(time_zone_id, std::move(intervals))));
+      }
     } else if (op == "sco") {
       SearchQuery query;
       get_args(args, query);

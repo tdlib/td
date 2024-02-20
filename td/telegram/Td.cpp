@@ -22,6 +22,7 @@
 #include "td/telegram/BotCommand.h"
 #include "td/telegram/BotInfoManager.h"
 #include "td/telegram/BotMenuButton.h"
+#include "td/telegram/BusinessWorkHours.h"
 #include "td/telegram/CallbackQueriesManager.h"
 #include "td/telegram/CallId.h"
 #include "td/telegram/CallManager.h"
@@ -7742,6 +7743,12 @@ void Td::on_request(uint64 id, td_api::setBusinessLocation &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   contacts_manager_->set_business_location(DialogLocation(std::move(request.location_)), std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::setBusinessWorkHours &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->set_business_work_hours(BusinessWorkHours(std::move(request.work_hours_)), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setProfilePhoto &request) {

@@ -467,6 +467,8 @@ class ContactsManager final : public Actor {
 
   void set_business_location(DialogLocation &&location, Promise<Unit> &&promise);
 
+  void set_business_work_hours(BusinessWorkHours &&work_hours, Promise<Unit> &&promise);
+
   void set_chat_description(ChatId chat_id, const string &description, Promise<Unit> &&promise);
 
   void set_channel_username(ChannelId channel_id, const string &username, Promise<Unit> &&promise);

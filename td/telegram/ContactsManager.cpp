@@ -1126,6 +1126,40 @@ class UpdateBusinessLocationQuery final : public Td::ResultHandler {
   }
 };
 
+class UpdateBusinessWorkHoursQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  BusinessWorkHours work_hours_;
+
+ public:
+  explicit UpdateBusinessWorkHoursQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(BusinessWorkHours &&work_hours) {
+    work_hours_ = std::move(work_hours);
+    int32 flags = 0;
+    if (!work_hours_.is_empty()) {
+      flags |= telegram_api::account_updateBusinessWorkHours::BUSINESS_WORK_HOURS_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::account_updateBusinessWorkHours(flags, work_hours_.get_input_business_work_hours()), {{"me"}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_updateBusinessWorkHours>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    td_->contacts_manager_->on_update_user_work_hours(td_->contacts_manager_->get_my_id(), std::move(work_hours_));
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class CreateChatQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::chat>> promise_;
 
@@ -6992,6 +7026,10 @@ void ContactsManager::on_set_emoji_status(EmojiStatus emoji_status, Promise<Unit
 
 void ContactsManager::set_business_location(DialogLocation &&location, Promise<Unit> &&promise) {
   td_->create_handler<UpdateBusinessLocationQuery>(std::move(promise))->send(std::move(location));
+}
+
+void ContactsManager::set_business_work_hours(BusinessWorkHours &&work_hours, Promise<Unit> &&promise) {
+  td_->create_handler<UpdateBusinessWorkHoursQuery>(std::move(promise))->send(std::move(work_hours));
 }
 
 void ContactsManager::set_chat_description(ChatId chat_id, const string &description, Promise<Unit> &&promise) {

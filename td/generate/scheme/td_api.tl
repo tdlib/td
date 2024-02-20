@@ -9260,6 +9260,9 @@ setLocation location:location = Ok;
 //@description Changes the business location of the current user. Requires Telegram Business subscription @location The new location of the business; pass null to remove the location
 setBusinessLocation location:chatLocation = Ok;
 
+//@description Changes the business work hours of the current user. Requires Telegram Business subscription @work_hours The new work hours of the business; pass null to remove the work hours
+setBusinessWorkHours work_hours:businessWorkHours = Ok;
+
 //@description Changes the phone number of the user and sends an authentication code to the user's new phone number; for official Android and iOS applications only. On success, returns information about the sent code
 //@phone_number The new phone number of the user in international format
 //@settings Settings for the authentication of the user's phone number; pass null to use default settings
