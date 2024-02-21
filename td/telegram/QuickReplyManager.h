@@ -8,9 +8,7 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/MessageId.h"
-#include "td/telegram/MessageInputReplyTo.h"
 #include "td/telegram/MessageSelfDestructType.h"
-#include "td/telegram/RepliedMessageInfo.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/UserId.h"
 
@@ -38,10 +36,9 @@ class QuickReplyManager final : public Actor {
 
     unique_ptr<MessageForwardInfo> forward_info;
 
-    RepliedMessageInfo replied_message_info;
+    MessageId reply_to_message_id;
 
-    MessageInputReplyTo input_reply_to;  // for send_message
-    string send_emoji;                   // for send_message
+    string send_emoji;  // for send_message
 
     UserId via_bot_user_id;
 

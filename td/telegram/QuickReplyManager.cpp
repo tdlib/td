@@ -12,6 +12,7 @@
 #include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageForwardInfo.h"
 #include "td/telegram/MessageReplyHeader.h"
+#include "td/telegram/RepliedMessageInfo.h"
 #include "td/telegram/Td.h"
 
 namespace td {
@@ -82,6 +83,13 @@ unique_ptr<QuickReplyManager::QuickReplyMessage> QuickReplyManager::create_messa
         LOG(ERROR) << "Receive reply to " << reply_header.story_full_id_;
         reply_header.story_full_id_ = {};
       }
+      if (reply_header.replied_message_info_.is_external() ||
+          reply_header.replied_message_info_.get_reply_message_full_id(DialogId(), true).get_dialog_id() !=
+              DialogId()) {
+        LOG(ERROR) << "Receive reply to " << reply_header.replied_message_info_;
+        reply_header.replied_message_info_ = {};
+      }
+      auto reply_to_message_id = reply_header.replied_message_info_.get_same_chat_reply_to_message_id(true);
 
       auto content_type = content->get_type();
       bool is_content_secret =
@@ -105,7 +113,7 @@ unique_ptr<QuickReplyManager::QuickReplyMessage> QuickReplyManager::create_messa
       result->ttl = ttl;
       result->disable_web_page_preview = disable_web_page_preview;
       result->forward_info = MessageForwardInfo::get_message_forward_info(td_, std::move(forward_header));
-      result->replied_message_info = std::move(reply_header.replied_message_info_);
+      result->reply_to_message_id = reply_to_message_id;
       result->via_bot_user_id = via_bot_user_id;
       result->disable_notification = message->silent_;
       result->is_content_secret = is_content_secret;
@@ -143,9 +151,9 @@ unique_ptr<QuickReplyManager::QuickReplyMessage> QuickReplyManager::create_messa
   return nullptr;
 }
 
-void QuickReplyManager::add_quick_reply_message_dependencies(Dependencies &dependencies, const QuickReplyMessage *m) const {
+void QuickReplyManager::add_quick_reply_message_dependencies(Dependencies &dependencies,
+                                                             const QuickReplyMessage *m) const {
   auto is_bot = td_->auth_manager_->is_bot();
-  m->replied_message_info.add_dependencies(dependencies, is_bot);
   dependencies.add_dialog_and_dependencies(m->real_forward_from_dialog_id);
   dependencies.add(m->via_bot_user_id);
   if (m->forward_info != nullptr) {
