@@ -12934,6 +12934,11 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       break;
     case telegram_api::message::ID: {
       auto message = move_tl_object_as<telegram_api::message>(message_ptr);
+      if (message->quick_reply_shortcut_id_ != 0) {
+        LOG(ERROR) << "Receive shortcut " << message->quick_reply_shortcut_id_ << " from " << source;
+        message_info.message_id = MessageId();
+        break;
+      }
 
       message_info.dialog_id = DialogId(message->peer_id_);
       if (message->from_id_ != nullptr) {
