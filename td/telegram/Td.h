@@ -79,6 +79,7 @@ class PasswordManager;
 class PhoneNumberManager;
 class PollManager;
 class PrivacyManager;
+class QuickReplyManager;
 class ReactionManager;
 class SavedMessagesManager;
 class SecureManager;
@@ -220,6 +221,8 @@ class Td final : public Actor {
   ActorOwn<PollManager> poll_manager_actor_;
   unique_ptr<PrivacyManager> privacy_manager_;
   ActorOwn<PrivacyManager> privacy_manager_actor_;
+  unique_ptr<QuickReplyManager> quick_reply_manager_;
+  ActorOwn<QuickReplyManager> quick_reply_manager_actor_;
   unique_ptr<ReactionManager> reaction_manager_;
   ActorOwn<ReactionManager> reaction_manager_actor_;
   unique_ptr<SavedMessagesManager> saved_messages_manager_;
