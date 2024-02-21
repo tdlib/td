@@ -33,6 +33,9 @@ set(ATOMIC_CODE
      }")
 
 set(ATOMICS_LIBS " " "-latomic")
+if (CMAKE_SYSTEM_NAME MATCHES "NetBSD")
+  set(ATOMICS_LIBS "${ATOMICS_LIBS}" /usr/pkg/gcc12/x86_64--netbsd/lib/libatomic.so /usr/pkg/gcc12/i486--netbsdelf/lib/libatomic.so)
+endif()
 
 foreach (ATOMICS_LIBRARY ${ATOMICS_LIBS})
   unset(ATOMICS_FOUND CACHE)
