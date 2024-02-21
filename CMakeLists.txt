@@ -129,13 +129,13 @@ if (THREADS_HAVE_PTHREAD_ARG)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 endif()
 
+include(TdSetUpCompiler)
+td_set_up_compiler()
+
 find_package(Atomics REQUIRED)
 if (ATOMICS_LIBRARY_FLAGS)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ATOMICS_LIBRARY_FLAGS}")
 endif()
-
-include(TdSetUpCompiler)
-td_set_up_compiler()
 
 if (MSVC)
   option(TD_ENABLE_MULTI_PROCESSOR_COMPILATION "Use \"ON\" to enable multi-processor compilation.")
