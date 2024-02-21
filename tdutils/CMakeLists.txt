@@ -403,6 +403,11 @@ if (ANDROID)
   target_link_libraries(tdutils PRIVATE log)
 endif()
 
+find_package(Atomics REQUIRED)
+if (ATOMICS_LIBRARIES)
+  target_link_libraries(tdutils PUBLIC "${ATOMICS_LIBRARIES}")
+endif()
+
 install(TARGETS tdutils EXPORT TdStaticTargets
   LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
   ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
