@@ -13,6 +13,7 @@
 #include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageForwardInfo.h"
 #include "td/telegram/MessageReplyHeader.h"
+#include "td/telegram/MessageSelfDestructType.h"
 #include "td/telegram/RepliedMessageInfo.h"
 #include "td/telegram/Td.h"
 
@@ -49,7 +50,6 @@ unique_ptr<QuickReplyManager::QuickReplyMessage> QuickReplyManager::create_messa
           message->media_unread_ || message->reply_markup_ != nullptr || !message->restriction_reason_.empty() ||
           !message->post_author_.empty() || message->from_boosts_applied_ != 0 || message->saved_peer_id_ != nullptr) {
         LOG(ERROR) << "Receive an invalid quick reply from " << source << ": " << to_string(message);
-        break;
       }
 
       auto message_id = MessageId::get_message_id(message_ptr, false);
@@ -86,32 +86,22 @@ unique_ptr<QuickReplyManager::QuickReplyMessage> QuickReplyManager::create_messa
       }
       auto reply_to_message_id = reply_header.replied_message_info_.get_same_chat_reply_to_message_id(true);
 
-      auto content_type = content->get_type();
-      bool is_content_secret =
-          ttl.is_secret_message_content(content_type);  // must be calculated before TTL is adjusted
       if (!ttl.is_empty()) {
-        if (!ttl.is_valid()) {
-          LOG(ERROR) << "Wrong " << ttl << " received in " << message_id << " from " << source;
-          ttl = {};
-        } else {
-          ttl.ensure_at_least(get_message_content_duration(content.get(), td_) + 1);
-        }
+        LOG(ERROR) << "Wrong " << ttl << " received in " << message_id << " from " << source;
       }
 
+      auto content_type = content->get_type();
       if (is_expired_message_content(content_type)) {
         LOG(ERROR) << "Receive " << content_type << " from " << source;
-        break;
       }
 
       auto result = make_unique<QuickReplyMessage>();
       result->message_id = message_id;
-      result->ttl = ttl;
       result->disable_web_page_preview = disable_web_page_preview;
       result->forward_info = MessageForwardInfo::get_message_forward_info(td_, std::move(forward_header));
       result->reply_to_message_id = reply_to_message_id;
       result->via_bot_user_id = via_bot_user_id;
       result->disable_notification = message->silent_;
-      result->is_content_secret = is_content_secret;
       result->legacy_layer = (message->legacy_ ? MTPROTO_LAYER : 0);
       result->invert_media = message->invert_media_;
       result->content = std::move(content);
@@ -190,8 +180,8 @@ td_api::object_ptr<td_api::MessageSendingState> QuickReplyManager::get_message_s
 
 td_api::object_ptr<td_api::MessageContent> QuickReplyManager::get_quick_reply_message_message_content_object(
     const QuickReplyMessage *m) const {
-  return get_message_content_object(m->content.get(), td_, DialogId(), 0, m->is_content_secret, true, -1,
-                                    m->invert_media, m->disable_web_page_preview);
+  return get_message_content_object(m->content.get(), td_, DialogId(), 0, false, true, -1, m->invert_media,
+                                    m->disable_web_page_preview);
 }
 
 td_api::object_ptr<td_api::quickReplyMessage> QuickReplyManager::get_quick_reply_message_object(
@@ -201,7 +191,6 @@ td_api::object_ptr<td_api::quickReplyMessage> QuickReplyManager::get_quick_reply
       m->forward_info == nullptr ? nullptr : m->forward_info->get_message_forward_info_object(td_, false);
   return td_api::make_object<td_api::quickReplyMessage>(
       m->message_id.get(), get_message_sending_state_object(m), std::move(forward_info), m->reply_to_message_id.get(),
-      m->ttl.get_message_self_destruct_type_object(),
       td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id"), m->media_album_id,
       get_quick_reply_message_message_content_object(m));
 }

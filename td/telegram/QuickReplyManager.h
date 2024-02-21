@@ -8,7 +8,6 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/MessageId.h"
-#include "td/telegram/MessageSelfDestructType.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/UserId.h"
 
@@ -44,7 +43,6 @@ class QuickReplyManager final : public Actor {
 
     bool is_failed_to_send = false;
     bool disable_notification = false;
-    bool is_content_secret = false;  // must be shown only while tapped
     bool noforwards = false;
     bool invert_media = false;
 
@@ -62,8 +60,6 @@ class QuickReplyManager final : public Actor {
     int32 send_error_code = 0;
     string send_error_message;
     double try_resend_at = 0;
-
-    MessageSelfDestructType ttl;
 
     int64 media_album_id = 0;
 
