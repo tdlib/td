@@ -20,7 +20,7 @@ class FolderId {
  public:
   FolderId() = default;
 
-  explicit constexpr FolderId(int32 folder_id) : id(folder_id) {
+  explicit FolderId(int32 folder_id) : id(folder_id) {
     if (id != 1) {
       id = 0;
     }
