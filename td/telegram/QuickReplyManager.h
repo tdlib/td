@@ -81,13 +81,20 @@ class QuickReplyManager final : public Actor {
 
   void tear_down() final;
 
-  td_api::object_ptr<td_api::MessageContent> get_quick_reply_message_message_content_object(
-      const QuickReplyMessage *m) const;
-
   void add_quick_reply_message_dependencies(Dependencies &dependencies, const QuickReplyMessage *m) const;
 
   unique_ptr<QuickReplyMessage> create_message(telegram_api::object_ptr<telegram_api::Message> message_ptr,
                                                const char *source) const;
+
+  bool can_resend_message(const QuickReplyMessage *m) const;
+
+  td_api::object_ptr<td_api::MessageSendingState> get_message_sending_state_object(const QuickReplyMessage *m) const;
+
+  td_api::object_ptr<td_api::MessageContent> get_quick_reply_message_message_content_object(
+      const QuickReplyMessage *m) const;
+
+  td_api::object_ptr<td_api::quickReplyMessage> get_quick_reply_message_object(const QuickReplyMessage *m,
+                                                                               const char *source) const;
 
   Td *td_;
   ActorShared<> parent_;

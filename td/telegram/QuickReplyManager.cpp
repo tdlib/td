@@ -7,6 +7,7 @@
 #include "td/telegram/QuickReplyManager.h"
 
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/MessageContent.h"
@@ -22,12 +23,6 @@ QuickReplyManager::QuickReplyManager(Td *td, ActorShared<> parent) : td_(td), pa
 
 void QuickReplyManager::tear_down() {
   parent_.reset();
-}
-
-td_api::object_ptr<td_api::MessageContent> QuickReplyManager::get_quick_reply_message_message_content_object(
-    const QuickReplyMessage *m) const {
-  return get_message_content_object(m->content.get(), td_, DialogId(), 0, m->is_content_secret, true, -1,
-                                    m->invert_media, m->disable_web_page_preview);
 }
 
 unique_ptr<QuickReplyManager::QuickReplyMessage> QuickReplyManager::create_message(
@@ -160,6 +155,55 @@ void QuickReplyManager::add_quick_reply_message_dependencies(Dependencies &depen
     m->forward_info->add_dependencies(dependencies);
   }
   add_message_content_dependencies(dependencies, m->content.get(), is_bot);
+}
+
+bool QuickReplyManager::can_resend_message(const QuickReplyMessage *m) const {
+  if (m->send_error_code != 429) {
+    return false;
+  }
+  if (m->forward_info != nullptr || m->real_forward_from_dialog_id.is_valid()) {
+    return false;
+  }
+  if (m->via_bot_user_id.is_valid() || m->hide_via_bot) {
+    return false;
+  }
+  return true;
+}
+
+td_api::object_ptr<td_api::MessageSendingState> QuickReplyManager::get_message_sending_state_object(
+    const QuickReplyMessage *m) const {
+  CHECK(m != nullptr);
+  if (m->message_id.is_yet_unsent()) {
+    return td_api::make_object<td_api::messageSendingStatePending>(m->sending_id);
+  }
+  if (m->is_failed_to_send) {
+    auto can_retry = can_resend_message(m);
+    auto error_code = m->send_error_code > 0 ? m->send_error_code : 400;
+    auto need_another_reply_quote =
+        can_retry && error_code == 400 && m->send_error_message == CSlice("QUOTE_TEXT_INVALID");
+    return td_api::make_object<td_api::messageSendingStateFailed>(
+        td_api::make_object<td_api::error>(error_code, m->send_error_message), can_retry, false,
+        need_another_reply_quote, false, max(m->try_resend_at - Time::now(), 0.0));
+  }
+  return nullptr;
+}
+
+td_api::object_ptr<td_api::MessageContent> QuickReplyManager::get_quick_reply_message_message_content_object(
+    const QuickReplyMessage *m) const {
+  return get_message_content_object(m->content.get(), td_, DialogId(), 0, m->is_content_secret, true, -1,
+                                    m->invert_media, m->disable_web_page_preview);
+}
+
+td_api::object_ptr<td_api::quickReplyMessage> QuickReplyManager::get_quick_reply_message_object(
+    const QuickReplyMessage *m, const char *source) const {
+  CHECK(m != nullptr);
+  auto forward_info =
+      m->forward_info == nullptr ? nullptr : m->forward_info->get_message_forward_info_object(td_, false);
+  return td_api::make_object<td_api::quickReplyMessage>(
+      m->message_id.get(), get_message_sending_state_object(m), std::move(forward_info), m->reply_to_message_id.get(),
+      m->ttl.get_message_self_destruct_type_object(),
+      td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id"), m->media_album_id,
+      get_quick_reply_message_message_content_object(m));
 }
 
 }  // namespace td

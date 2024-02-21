@@ -3722,6 +3722,18 @@ storyInteraction actor_id:MessageSender interaction_date:int32 block_list:BlockL
 storyInteractions total_count:int32 total_forward_count:int32 total_reaction_count:int32 interactions:vector<storyInteraction> next_offset:string = StoryInteractions;
 
 
+//@description Describes a message that can be used for quick reply
+//@id Unique message identifier among all quick replies
+//@sending_state The sending state of the message; may be null if the message isn't being sent and didn't fail to be sent
+//@forward_info Information about the initial message sender; may be null if none or unknown
+//@reply_to_message_id Information about the identifier of the quick reply message to which the message replies
+//@self_destruct_type The message's self-destruct type; may be null if none
+//@via_bot_user_id If non-zero, the user identifier of the bot through which this message was sent
+//@media_album_id Unique identifier of an album this message belongs to. Only audios, documents, photos and videos can be grouped together in albums
+//@content Content of the message
+quickReplyMessage id:int53 sending_state:MessageSendingState forward_info:messageForwardInfo reply_to_message_id:int53 self_destruct_type:MessageSelfDestructType via_bot_user_id:int53 media_album_id:int64 content:MessageContent = QuickReplyMessage;
+
+
 //@class PublicForward @description Describes a public forward or repost of a story
 
 //@description Contains a public forward as a message @message Information about the message
