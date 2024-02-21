@@ -133,8 +133,8 @@ include(TdSetUpCompiler)
 td_set_up_compiler()
 
 find_package(Atomics REQUIRED)
-if (ATOMICS_LIBRARY_FLAGS)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ATOMICS_LIBRARY_FLAGS}")
+if (ATOMICS_LIBRARIES)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ATOMICS_LIBRARIES}")
 endif()
 
 if (MSVC)
