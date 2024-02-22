@@ -6583,6 +6583,13 @@ updateSavedMessagesTopic topic:savedMessagesTopic = Update;
 //@description Number of Saved Messages topics has changed @topic_count Approximate total number of Saved Messages topics
 updateSavedMessagesTopicCount topic_count:int32 = Update;
 
+//@description Basic information about a quick reply shortcut has changed. This update is guaranteed to come before the quick shortcut identifier is returned to the application
+//@shortcut New data about the shortcut
+updateQuickReplyShortcut shortcut:quickReplyShortcut = Update;
+
+//@description A quick reply shortcut was deleted @name The name of the deleted shortcut
+updateQuickReplyShortcutDeleted name:string = Update;
+
 //@description Basic information about a topic in a forum chat was changed @chat_id Chat identifier @info New information about the topic
 updateForumTopicInfo chat_id:int53 info:forumTopicInfo = Update;
 
