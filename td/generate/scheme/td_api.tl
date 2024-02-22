@@ -6276,6 +6276,7 @@ testVectorString value:vector<string> = TestVectorString;
 //@description A simple object containing a vector of objects that hold a string; for testing only @value Vector of objects
 testVectorStringObject value:vector<testString> = TestVectorStringObject;
 
+
 //@class AccessHash @description Contains information about access hash or it's absence
 
 //@description Describes an access hash object
@@ -6284,6 +6285,46 @@ accessHashResolved access_hash:int64 = AccessHash;
 
 //@description Describes an unresolved access hash object
 accessHashUnresolved = AccessHash;
+
+
+//@description Describes an entity with access hash
+//@id Entity id
+//@access_hash Access hash, associated with the entity in the context of the current user
+resolvedEntity id:int53 access_hash:int64 = ResolvedEntity;
+
+
+//@description Describes a simplified version of a message - just what comes from getChannelDifference
+//@id Identifier of the message
+//@date Timestamp of the message
+//@message Message content along with markup
+//@views Number of views
+//@forwards Number of forwards
+//@replies Number of replies
+//@edit_date Timestamp of edit
+//@reactions Reactions
+channelMessage id:int64 date:int64 message:formattedText views:int32 forwards:int32 replies:int32 edit_date:int64 reactions:vector<messageReaction> = ChannelMessage;
+
+
+//@class ChannelDifferenceResult @description Contains result of a getChannelDifference call
+
+//@description Describes a successful result of a getChannelDifference call
+//@pts The next Persistent Timestamp
+//@final Non-zero if there are no more updates after this one
+//@new_messages A list of received messages
+//@chats A list of mentioned chats
+//@users A list of mentioned users
+channelDifference pts:int32 final:int32 new_messages:vector<channelMessage> chats:vector<resolvedEntity> users:vector<resolvedEntity> = ChannelDifferenceResult;
+
+//@description Describes a result of a failed call to getChannelDifference: pts + limit < last_pts
+channelDifferenceTooLong = ChannelDifferenceResult;
+
+//@description Describes an empty result of a getChannelDifference call
+channelDifferenceEmpty = ChannelDifferenceResult;
+
+//@description Describes an unsuccessful result of a getChannelDifference call
+//@error Error message
+//@timeout Timeout until the next request or -1
+channelDifferenceError error:string timeout:int32 = ChannelDifferenceResult;
 
 
 ---functions---
@@ -9212,3 +9253,10 @@ getUserAccessHash user_id:int53 = AccessHash;
 //@description Extracts access hash by channel id. Can be called synchronously
 //@channel_id Chat we want to get an access hash for
 getChannelAccessHash channel_id:int53 = AccessHash;
+
+//@description Fetches channel updates in bulk mode
+//@channel The channel to get history for
+//@pts Persistent Time
+//@limit Limit for the Persistent Time
+getChannelDifference channel:resolvedEntity pts:int32 limit:int32 = ChannelDifferenceResult;
+
