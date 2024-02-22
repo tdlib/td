@@ -52,6 +52,7 @@
 #include "td/telegram/PollManager.h"
 #include "td/telegram/PrivacyManager.h"
 #include "td/telegram/PublicDialogType.h"
+#include "td/telegram/QuickReplyManager.h"
 #include "td/telegram/ReactionListType.h"
 #include "td/telegram/ReactionManager.h"
 #include "td/telegram/ReactionType.h"
@@ -2268,6 +2269,7 @@ void UpdatesManager::try_reload_data() {
                                                                                   Auto());
   td_->notification_settings_manager_->send_get_scope_notification_settings_query(NotificationSettingsScope::Channel,
                                                                                   Auto());
+  td_->quick_reply_manager_->reload_quick_reply_shortcuts();
   td_->reaction_manager_->reload_reactions();
 
   for (int32 type = 0; type < MAX_REACTION_LIST_TYPE; type++) {

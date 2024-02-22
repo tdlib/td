@@ -3732,6 +3732,15 @@ storyInteractions total_count:int32 total_forward_count:int32 total_reaction_cou
 //@content Content of the message
 quickReplyMessage id:int53 sending_state:MessageSendingState forward_info:messageForwardInfo reply_to_message_id:int53 via_bot_user_id:int53 media_album_id:int64 content:MessageContent = QuickReplyMessage;
 
+//@description Describes a shortcut that can be used for a quick reply
+//@name The name of the shortcut that can be used to use the shortcut
+//@first_message The first shortcut message
+//@message_count The total number of messages in the shortcut
+quickReplyShortcut name:string first_message:quickReplyMessage message_count:int32 = QuickReplyShortcut;
+
+//@description Represents a list of quick reply shortcuts created by the current user @shortcuts A list of shortcuts
+quickReplyShortcuts shortcuts:vector<quickReplyShortcut> = QuickReplyShortcuts;
+
 
 //@class PublicForward @description Describes a public forward or repost of a story
 
@@ -7699,6 +7708,10 @@ editInlineMessageReplyMarkup inline_message_id:string reply_markup:ReplyMarkup =
 //@message_id Identifier of the message
 //@scheduling_state The new message scheduling state; pass null to send the message immediately
 editMessageSchedulingState chat_id:int53 message_id:int53 scheduling_state:MessageSchedulingState = Ok;
+
+
+//@description Returns shortcuts created by the current user
+getQuickReplyShortcuts = QuickReplyShortcuts;
 
 
 //@description Returns list of custom emojis, which can be used as forum topic icon by all users

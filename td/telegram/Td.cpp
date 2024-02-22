@@ -5757,6 +5757,12 @@ void Td::on_request(uint64 id, td_api::editMessageSchedulingState &request) {
                                                    std::move(request.scheduling_state_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getQuickReplyShortcuts &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  quick_reply_manager_->get_quick_reply_shortcuts(std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getStory &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

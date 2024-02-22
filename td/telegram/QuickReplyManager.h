@@ -26,9 +26,21 @@ class QuickReplyManager final : public Actor {
  public:
   QuickReplyManager(Td *td, ActorShared<> parent);
 
+  void get_quick_reply_shortcuts(Promise<td_api::object_ptr<td_api::quickReplyShortcuts>> &&promise);
+
+  void reload_quick_reply_shortcuts();
+
  private:
   struct QuickReplyMessage {
+    QuickReplyMessage() = default;
+    QuickReplyMessage(const QuickReplyMessage &) = delete;
+    QuickReplyMessage &operator=(const QuickReplyMessage &) = delete;
+    QuickReplyMessage(QuickReplyMessage &&) = delete;
+    QuickReplyMessage &operator=(QuickReplyMessage &&) = delete;
+    ~QuickReplyMessage();
+
     MessageId message_id;
+    int32 shortcut_id = 0;
     int32 sending_id = 0;  // for yet unsent messages
 
     int64 random_id = 0;  // for send_message
@@ -66,13 +78,27 @@ class QuickReplyManager final : public Actor {
     unique_ptr<MessageContent> content;
 
     mutable uint64 send_message_log_event_id = 0;
+  };
 
-    QuickReplyMessage() = default;
-    QuickReplyMessage(const QuickReplyMessage &) = delete;
-    QuickReplyMessage &operator=(const QuickReplyMessage &) = delete;
-    QuickReplyMessage(QuickReplyMessage &&) = delete;
-    QuickReplyMessage &operator=(QuickReplyMessage &&) = delete;
-    ~QuickReplyMessage() = default;
+  struct Shortcut {
+    Shortcut() = default;
+    Shortcut(const Shortcut &) = delete;
+    Shortcut &operator=(const Shortcut &) = delete;
+    Shortcut(Shortcut &&) = delete;
+    Shortcut &operator=(Shortcut &&) = delete;
+    ~Shortcut();
+
+    string name_;
+    int32 shortcut_id_ = 0;
+    int32 total_count_ = 0;
+    vector<unique_ptr<QuickReplyMessage>> messages_;
+  };
+
+  struct Shortcuts {
+    vector<unique_ptr<Shortcut>> shortcuts_;
+    bool are_inited_ = false;
+
+    vector<Promise<td_api::object_ptr<td_api::quickReplyShortcuts>>> load_queries_;
   };
 
   void tear_down() final;
@@ -91,6 +117,22 @@ class QuickReplyManager final : public Actor {
 
   td_api::object_ptr<td_api::quickReplyMessage> get_quick_reply_message_object(const QuickReplyMessage *m,
                                                                                const char *source) const;
+
+  td_api::object_ptr<td_api::quickReplyShortcut> get_quick_reply_shortcut_object(const Shortcut *s,
+                                                                                 const char *source) const;
+
+  td_api::object_ptr<td_api::quickReplyShortcuts> get_quick_reply_shortcuts_object(const char *source) const;
+
+  void load_quick_reply_shortcuts(Promise<td_api::object_ptr<td_api::quickReplyShortcuts>> &&promise);
+
+  void on_reload_quick_reply_shortcuts(
+      Result<telegram_api::object_ptr<telegram_api::messages_QuickReplies>> r_shortcuts);
+
+  void on_load_quick_reply_success();
+
+  void on_load_quick_reply_fail(Status error);
+
+  Shortcuts shortcuts_;
 
   Td *td_;
   ActorShared<> parent_;

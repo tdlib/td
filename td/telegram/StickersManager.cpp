@@ -92,6 +92,9 @@ class GetAllStickersQuery final : public Td::ResultHandler {
     static_assert(std::is_same<telegram_api::messages_getMaskStickers::ReturnType,
                                telegram_api::messages_getAllStickers::ReturnType>::value,
                   "");
+    static_assert(std::is_same<telegram_api::messages_getEmojiStickers::ReturnType,
+                               telegram_api::messages_getAllStickers::ReturnType>::value,
+                  "");
     auto result_ptr = fetch_result<telegram_api::messages_getAllStickers>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());

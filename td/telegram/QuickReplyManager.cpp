@@ -10,6 +10,7 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
+#include "td/telegram/Global.h"
 #include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageForwardInfo.h"
 #include "td/telegram/MessageReplyHeader.h"
@@ -17,7 +18,44 @@
 #include "td/telegram/RepliedMessageInfo.h"
 #include "td/telegram/Td.h"
 
+#include "td/utils/algorithm.h"
+#include "td/utils/buffer.h"
+#include "td/utils/FlatHashSet.h"
+#include "td/utils/logging.h"
+
 namespace td {
+
+class GetQuickRepliesQuery final : public Td::ResultHandler {
+  Promise<telegram_api::object_ptr<telegram_api::messages_QuickReplies>> promise_;
+
+ public:
+  explicit GetQuickRepliesQuery(Promise<telegram_api::object_ptr<telegram_api::messages_QuickReplies>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(int64 hash) {
+    send_query(G()->net_query_creator().create(telegram_api::messages_getQuickReplies(hash)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getQuickReplies>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for GetQuickRepliesQuery: " << to_string(ptr);
+    promise_.set_value(std::move(ptr));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+QuickReplyManager::QuickReplyMessage::~QuickReplyMessage() = default;
+
+QuickReplyManager::Shortcut::~Shortcut() = default;
 
 QuickReplyManager::QuickReplyManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
@@ -35,6 +73,7 @@ unique_ptr<QuickReplyManager::QuickReplyMessage> QuickReplyManager::create_messa
     case telegram_api::messageEmpty::ID:
       break;
     case telegram_api::message::ID: {
+      auto message_id = MessageId::get_message_id(message_ptr, false);
       auto message = move_tl_object_as<telegram_api::message>(message_ptr);
       if (message->quick_reply_shortcut_id_ == 0) {
         LOG(ERROR) << "Receive a quick reply without shortcut from " << source;
@@ -42,17 +81,16 @@ unique_ptr<QuickReplyManager::QuickReplyMessage> QuickReplyManager::create_messa
       }
 
       auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
-      if (DialogId(message->peer_id_) != my_dialog_id || message->from_id_ == nullptr ||
-          DialogId(message->from_id_) != my_dialog_id || message->views_ != 0 || message->forwards_ != 0 ||
+      if (DialogId(message->peer_id_) != my_dialog_id || message->from_id_ != nullptr ||
+          message->saved_peer_id_ != nullptr || message->views_ != 0 || message->forwards_ != 0 ||
           message->replies_ != nullptr || message->reactions_ != nullptr || message->edit_date_ != 0 ||
           message->ttl_period_ != 0 || !message->out_ || message->post_ || message->edit_hide_ ||
           message->from_scheduled_ || message->pinned_ || message->noforwards_ || message->mentioned_ ||
           message->media_unread_ || message->reply_markup_ != nullptr || !message->restriction_reason_.empty() ||
-          !message->post_author_.empty() || message->from_boosts_applied_ != 0 || message->saved_peer_id_ != nullptr) {
+          !message->post_author_.empty() || message->from_boosts_applied_ != 0) {
         LOG(ERROR) << "Receive an invalid quick reply from " << source << ": " << to_string(message);
       }
 
-      auto message_id = MessageId::get_message_id(message_ptr, false);
       auto forward_header = std::move(message->fwd_from_);
       UserId via_bot_user_id;
       if (message->flags_ & telegram_api::message::VIA_BOT_ID_MASK) {
@@ -96,6 +134,7 @@ unique_ptr<QuickReplyManager::QuickReplyMessage> QuickReplyManager::create_messa
       }
 
       auto result = make_unique<QuickReplyMessage>();
+      result->shortcut_id = message->quick_reply_shortcut_id_;
       result->message_id = message_id;
       result->disable_web_page_preview = disable_web_page_preview;
       result->forward_info = MessageForwardInfo::get_message_forward_info(td_, std::move(forward_header));
@@ -193,6 +232,135 @@ td_api::object_ptr<td_api::quickReplyMessage> QuickReplyManager::get_quick_reply
       m->message_id.get(), get_message_sending_state_object(m), std::move(forward_info), m->reply_to_message_id.get(),
       td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id"), m->media_album_id,
       get_quick_reply_message_message_content_object(m));
+}
+
+td_api::object_ptr<td_api::quickReplyShortcut> QuickReplyManager::get_quick_reply_shortcut_object(
+    const Shortcut *s, const char *source) const {
+  CHECK(s != nullptr);
+  CHECK(!s->messages_.empty());
+  return td_api::make_object<td_api::quickReplyShortcut>(
+      s->name_, get_quick_reply_message_object(s->messages_[0].get(), source), s->total_count_);
+}
+
+td_api::object_ptr<td_api::quickReplyShortcuts> QuickReplyManager::get_quick_reply_shortcuts_object(
+    const char *source) const {
+  CHECK(shortcuts_.are_inited_);
+  return td_api::make_object<td_api::quickReplyShortcuts>(
+      transform(shortcuts_.shortcuts_, [this, source](const unique_ptr<Shortcut> &shortcut) {
+        return get_quick_reply_shortcut_object(shortcut.get(), source);
+      }));
+}
+
+void QuickReplyManager::get_quick_reply_shortcuts(Promise<td_api::object_ptr<td_api::quickReplyShortcuts>> &&promise) {
+  if (shortcuts_.are_inited_) {
+    return promise.set_value(get_quick_reply_shortcuts_object("get_quick_reply_shortcuts"));
+  }
+
+  load_quick_reply_shortcuts(std::move(promise));
+}
+
+void QuickReplyManager::load_quick_reply_shortcuts(Promise<td_api::object_ptr<td_api::quickReplyShortcuts>> &&promise) {
+  shortcuts_.load_queries_.push_back(std::move(promise));
+  if (shortcuts_.load_queries_.size() != 1) {
+    return;
+  }
+  reload_quick_reply_shortcuts();
+}
+
+void QuickReplyManager::reload_quick_reply_shortcuts() {
+  auto promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::messages_QuickReplies>> r_shortcuts) {
+        send_closure(actor_id, &QuickReplyManager::on_reload_quick_reply_shortcuts, std::move(r_shortcuts));
+      });
+  td_->create_handler<GetQuickRepliesQuery>(std::move(promise))->send(0);
+}
+
+void QuickReplyManager::on_reload_quick_reply_shortcuts(
+    Result<telegram_api::object_ptr<telegram_api::messages_QuickReplies>> r_shortcuts) {
+  G()->ignore_result_if_closing(r_shortcuts);
+  if (r_shortcuts.is_error()) {
+    return on_load_quick_reply_fail(r_shortcuts.move_as_error());
+  }
+  auto shortcuts_ptr = r_shortcuts.move_as_ok();
+  switch (shortcuts_ptr->get_id()) {
+    case telegram_api::messages_quickRepliesNotModified::ID:
+      if (!shortcuts_.are_inited_) {
+        shortcuts_.are_inited_ = true;
+      }
+      break;
+    case telegram_api::messages_quickReplies::ID: {
+      auto shortcuts = telegram_api::move_object_as<telegram_api::messages_quickReplies>(shortcuts_ptr);
+      td_->contacts_manager_->on_get_users(std::move(shortcuts->users_), "messages.quickReplies");
+      td_->contacts_manager_->on_get_chats(std::move(shortcuts->chats_), "messages.quickReplies");
+
+      FlatHashMap<MessageId, telegram_api::object_ptr<telegram_api::Message>, MessageIdHash> message_id_to_message;
+      for (auto &message : shortcuts->messages_) {
+        auto message_id = MessageId::get_message_id(message, false);
+        if (!message_id.is_valid()) {
+          continue;
+        }
+        message_id_to_message[message_id] = std::move(message);
+      }
+
+      FlatHashSet<int32> added_shortcut_ids;
+      FlatHashSet<string> added_shortcut_names;
+      vector<unique_ptr<Shortcut>> new_shortcuts;
+      for (auto &quick_reply : shortcuts->quick_replies_) {
+        if (quick_reply->shortcut_id_ <= 0 || quick_reply->shortcut_.empty() || quick_reply->count_ <= 0 ||
+            quick_reply->top_message_ <= 0) {
+          LOG(ERROR) << "Receive " << to_string(quick_reply);
+          continue;
+        }
+        if (added_shortcut_ids.count(quick_reply->shortcut_id_) || added_shortcut_names.count(quick_reply->shortcut_)) {
+          LOG(ERROR) << "Receive duplicate " << to_string(quick_reply);
+          continue;
+        }
+        added_shortcut_ids.insert(quick_reply->shortcut_id_);
+        added_shortcut_names.insert(quick_reply->shortcut_);
+
+        MessageId first_message_id(ServerMessageId(quick_reply->top_message_));
+        auto it = message_id_to_message.find(first_message_id);
+        if (it == message_id_to_message.end()) {
+          LOG(ERROR) << "Can't find last " << first_message_id << " in shortcut " << quick_reply->shortcut_;
+          continue;
+        }
+        auto message = create_message(std::move(it->second), "on_reload_quick_reply_shortcuts");
+        message_id_to_message.erase(it);
+        if (message == nullptr) {
+          continue;
+        }
+        if (message->shortcut_id != quick_reply->shortcut_id_) {
+          LOG(ERROR) << "Receive message from shortcut " << message->shortcut_id << " instead of "
+                     << quick_reply->shortcut_id_;
+        }
+
+        auto shortcut = td::make_unique<Shortcut>();
+        shortcut->name_ = std::move(quick_reply->shortcut_);
+        shortcut->shortcut_id_ = quick_reply->shortcut_id_;
+        shortcut->total_count_ = quick_reply->count_;
+        shortcut->messages_.push_back(std::move(message));
+        new_shortcuts.push_back(std::move(shortcut));
+      }
+      shortcuts_.shortcuts_ = std::move(new_shortcuts);
+      shortcuts_.are_inited_ = true;
+      break;
+    }
+  }
+  on_load_quick_reply_success();
+}
+
+void QuickReplyManager::on_load_quick_reply_success() {
+  auto promises = std::move(shortcuts_.load_queries_);
+  reset_to_empty(shortcuts_.load_queries_);
+  for (auto &promise : promises) {
+    if (promise) {
+      promise.set_value(get_quick_reply_shortcuts_object("on_load_quick_reply_success"));
+    }
+  }
+}
+
+void QuickReplyManager::on_load_quick_reply_fail(Status error) {
+  fail_promises(shortcuts_.load_queries_, std::move(error));
 }
 
 }  // namespace td
