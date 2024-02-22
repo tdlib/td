@@ -501,4 +501,14 @@ void QuickReplyManager::send_update_quick_reply_shortcut_deleted(const Shortcut 
   send_closure(G()->td(), &Td::send_update, get_update_quick_reply_shortcut_deleted_object(s));
 }
 
+void QuickReplyManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  for (auto &shortcut : shortcuts_.shortcuts_) {
+    updates.push_back(get_update_quick_reply_shortcut_object(shortcut.get(), "get_current_state"));
+  }
+}
+
 }  // namespace td

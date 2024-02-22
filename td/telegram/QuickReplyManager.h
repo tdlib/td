@@ -30,6 +30,8 @@ class QuickReplyManager final : public Actor {
 
   void reload_quick_reply_shortcuts();
 
+  void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
+
  private:
   struct QuickReplyMessage {
     QuickReplyMessage() = default;
