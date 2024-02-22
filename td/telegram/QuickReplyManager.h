@@ -15,6 +15,8 @@
 
 #include "td/utils/common.h"
 
+#include <utility>
+
 namespace td {
 
 class Dependencies;
@@ -141,10 +143,12 @@ class QuickReplyManager final : public Actor {
 
   static void sort_quick_reply_messages(vector<unique_ptr<QuickReplyMessage>> &messages);
 
-  static vector<std::pair<MessageId, int32>> get_quick_reply_message_ids(
+  using QuickReplyMessageUniqueId = std::pair<MessageId, int32>;
+
+  static vector<QuickReplyMessageUniqueId> get_quick_reply_unique_ids(
       const vector<unique_ptr<QuickReplyMessage>> &messages);
 
-  static vector<std::pair<MessageId, int32>> get_server_quick_reply_message_ids(
+  static vector<QuickReplyMessageUniqueId> get_server_quick_reply_unique_ids(
       const vector<unique_ptr<QuickReplyMessage>> &messages);
 
   static bool update_shortcut_from(Shortcut *new_shortcut, Shortcut *old_shortcut, bool is_partial);

@@ -428,18 +428,17 @@ void QuickReplyManager::sort_quick_reply_messages(vector<unique_ptr<QuickReplyMe
             });
 }
 
-vector<std::pair<MessageId, int32>> QuickReplyManager::get_quick_reply_message_ids(
+vector<QuickReplyManager::QuickReplyMessageUniqueId> QuickReplyManager::get_quick_reply_unique_ids(
     const vector<unique_ptr<QuickReplyMessage>> &messages) {
   return transform(messages, [](const unique_ptr<QuickReplyMessage> &message) {
-    return std::make_pair(message->message_id, message->edit_date);
+    return QuickReplyMessageUniqueId(message->message_id, message->edit_date);
   });
 }
 
-vector<std::pair<MessageId, int32>> QuickReplyManager::get_server_quick_reply_message_ids(
+vector<QuickReplyManager::QuickReplyMessageUniqueId> QuickReplyManager::get_server_quick_reply_unique_ids(
     const vector<unique_ptr<QuickReplyMessage>> &messages) {
-  auto message_ids = get_quick_reply_message_ids(messages);
-  td::remove_if(message_ids,
-                [](const std::pair<MessageId, int32> &message_id) { return !message_id.first.is_server(); });
+  auto message_ids = get_quick_reply_unique_ids(messages);
+  td::remove_if(message_ids, [](const QuickReplyMessageUniqueId &message_id) { return !message_id.first.is_server(); });
   return message_ids;
 }
 
@@ -454,7 +453,7 @@ bool QuickReplyManager::update_shortcut_from(Shortcut *new_shortcut, Shortcut *o
   if (is_partial) {
     // only the first server message is known
     // delete all definitely deleted server messages and insert the new message in the correct place
-    auto old_message_ids = get_quick_reply_message_ids(old_shortcut->messages_);
+    auto old_message_ids = get_quick_reply_unique_ids(old_shortcut->messages_);
     auto new_first_message_id = new_shortcut->messages_[0]->message_id;
     auto it = old_shortcut->messages_.begin();
     while (it != old_shortcut->messages_.end() && (*it)->message_id < new_first_message_id) {
@@ -470,10 +469,10 @@ bool QuickReplyManager::update_shortcut_from(Shortcut *new_shortcut, Shortcut *o
       *it = std::move(new_shortcut->messages_[0]);
     }
     new_shortcut->messages_ = std::move(old_shortcut->messages_);
-    is_changed = (old_message_ids != get_quick_reply_message_ids(new_shortcut->messages_));
+    is_changed = (old_message_ids != get_quick_reply_unique_ids(new_shortcut->messages_));
   } else {
-    auto old_server_message_ids = get_server_quick_reply_message_ids(old_shortcut->messages_);
-    auto new_server_message_ids = get_server_quick_reply_message_ids(new_shortcut->messages_);
+    auto old_server_message_ids = get_server_quick_reply_unique_ids(old_shortcut->messages_);
+    auto new_server_message_ids = get_server_quick_reply_unique_ids(new_shortcut->messages_);
     if (old_server_message_ids == new_server_message_ids) {
       new_shortcut->messages_ = std::move(old_shortcut->messages_);
     } else {
