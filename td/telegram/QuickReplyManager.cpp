@@ -249,24 +249,15 @@ td_api::object_ptr<td_api::quickReplyShortcut> QuickReplyManager::get_quick_repl
       s->name_, get_quick_reply_message_object(s->messages_[0].get(), source), get_shortcut_message_count(s));
 }
 
-td_api::object_ptr<td_api::quickReplyShortcuts> QuickReplyManager::get_quick_reply_shortcuts_object(
-    const char *source) const {
-  CHECK(shortcuts_.are_inited_);
-  return td_api::make_object<td_api::quickReplyShortcuts>(
-      transform(shortcuts_.shortcuts_, [this, source](const unique_ptr<Shortcut> &shortcut) {
-        return get_quick_reply_shortcut_object(shortcut.get(), source);
-      }));
-}
-
-void QuickReplyManager::get_quick_reply_shortcuts(Promise<td_api::object_ptr<td_api::quickReplyShortcuts>> &&promise) {
+void QuickReplyManager::get_quick_reply_shortcuts(Promise<Unit> &&promise) {
   if (shortcuts_.are_inited_) {
-    return promise.set_value(get_quick_reply_shortcuts_object("get_quick_reply_shortcuts"));
+    return promise.set_value(Unit());
   }
 
   load_quick_reply_shortcuts(std::move(promise));
 }
 
-void QuickReplyManager::load_quick_reply_shortcuts(Promise<td_api::object_ptr<td_api::quickReplyShortcuts>> &&promise) {
+void QuickReplyManager::load_quick_reply_shortcuts(Promise<Unit> &&promise) {
   shortcuts_.load_queries_.push_back(std::move(promise));
   if (shortcuts_.load_queries_.size() != 1) {
     return;
@@ -412,13 +403,7 @@ void QuickReplyManager::on_reload_quick_reply_shortcuts(
 }
 
 void QuickReplyManager::on_load_quick_reply_success() {
-  auto promises = std::move(shortcuts_.load_queries_);
-  reset_to_empty(shortcuts_.load_queries_);
-  for (auto &promise : promises) {
-    if (promise) {
-      promise.set_value(get_quick_reply_shortcuts_object("on_load_quick_reply_success"));
-    }
-  }
+  set_promises(shortcuts_.load_queries_);
 }
 
 void QuickReplyManager::on_load_quick_reply_fail(Status error) {

@@ -28,7 +28,7 @@ class QuickReplyManager final : public Actor {
  public:
   QuickReplyManager(Td *td, ActorShared<> parent);
 
-  void get_quick_reply_shortcuts(Promise<td_api::object_ptr<td_api::quickReplyShortcuts>> &&promise);
+  void get_quick_reply_shortcuts(Promise<Unit> &&promise);
 
   void reload_quick_reply_shortcuts();
 
@@ -103,7 +103,7 @@ class QuickReplyManager final : public Actor {
     vector<unique_ptr<Shortcut>> shortcuts_;
     bool are_inited_ = false;
 
-    vector<Promise<td_api::object_ptr<td_api::quickReplyShortcuts>>> load_queries_;
+    vector<Promise<Unit>> load_queries_;
   };
 
   void tear_down() final;
@@ -126,11 +126,9 @@ class QuickReplyManager final : public Actor {
   td_api::object_ptr<td_api::quickReplyShortcut> get_quick_reply_shortcut_object(const Shortcut *s,
                                                                                  const char *source) const;
 
-  td_api::object_ptr<td_api::quickReplyShortcuts> get_quick_reply_shortcuts_object(const char *source) const;
-
   static int32 get_shortcut_message_count(const Shortcut *s);
 
-  void load_quick_reply_shortcuts(Promise<td_api::object_ptr<td_api::quickReplyShortcuts>> &&promise);
+  void load_quick_reply_shortcuts(Promise<Unit> &&promise);
 
   void on_reload_quick_reply_shortcuts(
       Result<telegram_api::object_ptr<telegram_api::messages_QuickReplies>> r_shortcuts);

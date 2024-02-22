@@ -3738,9 +3738,6 @@ quickReplyMessage id:int53 sending_state:MessageSendingState forward_info:messag
 //@message_count The total number of messages in the shortcut
 quickReplyShortcut name:string first_message:quickReplyMessage message_count:int32 = QuickReplyShortcut;
 
-//@description Represents a list of quick reply shortcuts created by the current user @shortcuts A list of shortcuts
-quickReplyShortcuts shortcuts:vector<quickReplyShortcut> = QuickReplyShortcuts;
-
 
 //@class PublicForward @description Describes a public forward or repost of a story
 
@@ -6583,7 +6580,7 @@ updateSavedMessagesTopic topic:savedMessagesTopic = Update;
 //@description Number of Saved Messages topics has changed @topic_count Approximate total number of Saved Messages topics
 updateSavedMessagesTopicCount topic_count:int32 = Update;
 
-//@description Basic information about a quick reply shortcut has changed. This update is guaranteed to come before the quick shortcut identifier is returned to the application
+//@description Basic information about a quick reply shortcut has changed. This update is guaranteed to come before the quick shortcut name is returned to the application
 //@shortcut New data about the shortcut
 updateQuickReplyShortcut shortcut:quickReplyShortcut = Update;
 
@@ -7720,8 +7717,8 @@ editInlineMessageReplyMarkup inline_message_id:string reply_markup:ReplyMarkup =
 editMessageSchedulingState chat_id:int53 message_id:int53 scheduling_state:MessageSchedulingState = Ok;
 
 
-//@description Returns shortcuts created by the current user
-getQuickReplyShortcuts = QuickReplyShortcuts;
+//@description Loads quick reply shortcuts created by the current user. The loaded topics will be sent through updateQuickReplyShortcuts
+loadQuickReplyShortcuts = Ok;
 
 
 //@description Returns list of custom emojis, which can be used as forum topic icon by all users

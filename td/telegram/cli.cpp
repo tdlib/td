@@ -4825,8 +4825,8 @@ class CliClient final : public Actor {
       get_args(args, chat_id, message_id, date);
       send_request(td_api::make_object<td_api::editMessageSchedulingState>(chat_id, message_id,
                                                                            as_message_scheduling_state(date)));
-    } else if (op == "gqrs") {
-      send_request(td_api::make_object<td_api::getQuickReplyShortcuts>());
+    } else if (op == "lqrs") {
+      send_request(td_api::make_object<td_api::loadQuickReplyShortcuts>());
     } else if (op == "gftdi") {
       send_request(td_api::make_object<td_api::getForumTopicDefaultIcons>());
     } else if (op == "cft") {
