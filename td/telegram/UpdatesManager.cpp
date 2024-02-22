@@ -4479,11 +4479,12 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateQuickReplies> u
   promise.set_value(Unit());
 }
 
-// unsupported updates
-
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewQuickReply> update, Promise<Unit> &&promise) {
+  td_->quick_reply_manager_->reload_quick_reply_shortcuts();
   promise.set_value(Unit());
 }
+
+// unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDeleteQuickReply> update, Promise<Unit> &&promise) {
   promise.set_value(Unit());
