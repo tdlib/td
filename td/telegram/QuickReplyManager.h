@@ -44,6 +44,7 @@ class QuickReplyManager final : public Actor {
     MessageId message_id;
     int32 shortcut_id = 0;
     int32 sending_id = 0;  // for yet unsent messages
+    int32 edit_date = 0;
 
     int64 random_id = 0;  // for send_message
 
@@ -140,9 +141,11 @@ class QuickReplyManager final : public Actor {
 
   static void sort_quick_reply_messages(vector<unique_ptr<QuickReplyMessage>> &messages);
 
-  static vector<MessageId> get_quick_reply_message_ids(const vector<unique_ptr<QuickReplyMessage>> &messages);
+  static vector<std::pair<MessageId, int32>> get_quick_reply_message_ids(
+      const vector<unique_ptr<QuickReplyMessage>> &messages);
 
-  static vector<MessageId> get_server_quick_reply_message_ids(const vector<unique_ptr<QuickReplyMessage>> &messages);
+  static vector<std::pair<MessageId, int32>> get_server_quick_reply_message_ids(
+      const vector<unique_ptr<QuickReplyMessage>> &messages);
 
   static bool update_shortcut_from(Shortcut *new_shortcut, Shortcut *old_shortcut, bool is_partial);
 

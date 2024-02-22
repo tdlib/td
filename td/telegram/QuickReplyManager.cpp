@@ -83,11 +83,11 @@ unique_ptr<QuickReplyManager::QuickReplyMessage> QuickReplyManager::create_messa
       auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
       if (DialogId(message->peer_id_) != my_dialog_id || message->from_id_ != nullptr ||
           message->saved_peer_id_ != nullptr || message->views_ != 0 || message->forwards_ != 0 ||
-          message->replies_ != nullptr || message->reactions_ != nullptr || message->edit_date_ != 0 ||
-          message->ttl_period_ != 0 || !message->out_ || message->post_ || message->edit_hide_ ||
-          message->from_scheduled_ || message->pinned_ || message->noforwards_ || message->mentioned_ ||
-          message->media_unread_ || message->reply_markup_ != nullptr || !message->restriction_reason_.empty() ||
-          !message->post_author_.empty() || message->from_boosts_applied_ != 0) {
+          message->replies_ != nullptr || message->reactions_ != nullptr || message->ttl_period_ != 0 ||
+          !message->out_ || message->post_ || message->edit_hide_ || message->from_scheduled_ || message->pinned_ ||
+          message->noforwards_ || message->mentioned_ || message->media_unread_ || message->reply_markup_ != nullptr ||
+          !message->restriction_reason_.empty() || !message->post_author_.empty() ||
+          message->from_boosts_applied_ != 0) {
         LOG(ERROR) << "Receive an invalid quick reply from " << source << ": " << to_string(message);
       }
 
@@ -126,16 +126,19 @@ unique_ptr<QuickReplyManager::QuickReplyMessage> QuickReplyManager::create_messa
 
       if (!ttl.is_empty()) {
         LOG(ERROR) << "Wrong " << ttl << " received in " << message_id << " from " << source;
+        break;
       }
 
       auto content_type = content->get_type();
       if (is_expired_message_content(content_type)) {
         LOG(ERROR) << "Receive " << content_type << " from " << source;
+        break;
       }
 
       auto result = make_unique<QuickReplyMessage>();
       result->shortcut_id = message->quick_reply_shortcut_id_;
       result->message_id = message_id;
+      result->edit_date = max(message->edit_date_, 0);
       result->disable_web_page_preview = disable_web_page_preview;
       result->forward_info = MessageForwardInfo::get_message_forward_info(td_, std::move(forward_header));
       result->reply_to_message_id = reply_to_message_id;
@@ -425,15 +428,18 @@ void QuickReplyManager::sort_quick_reply_messages(vector<unique_ptr<QuickReplyMe
             });
 }
 
-vector<MessageId> QuickReplyManager::get_quick_reply_message_ids(
+vector<std::pair<MessageId, int32>> QuickReplyManager::get_quick_reply_message_ids(
     const vector<unique_ptr<QuickReplyMessage>> &messages) {
-  return transform(messages, [](const unique_ptr<QuickReplyMessage> &message) { return message->message_id; });
+  return transform(messages, [](const unique_ptr<QuickReplyMessage> &message) {
+    return std::make_pair(message->message_id, message->edit_date);
+  });
 }
 
-vector<MessageId> QuickReplyManager::get_server_quick_reply_message_ids(
+vector<std::pair<MessageId, int32>> QuickReplyManager::get_server_quick_reply_message_ids(
     const vector<unique_ptr<QuickReplyMessage>> &messages) {
   auto message_ids = get_quick_reply_message_ids(messages);
-  td::remove_if(message_ids, [](MessageId message_id) { return !message_id.is_server(); });
+  td::remove_if(message_ids,
+                [](const std::pair<MessageId, int32> &message_id) { return !message_id.first.is_server(); });
   return message_ids;
 }
 
@@ -460,6 +466,8 @@ bool QuickReplyManager::update_shortcut_from(Shortcut *new_shortcut, Shortcut *o
     }
     if (it == old_shortcut->messages_.end() || (*it)->message_id != new_first_message_id) {
       old_shortcut->messages_.insert(it, std::move(new_shortcut->messages_[0]));
+    } else {
+      *it = std::move(new_shortcut->messages_[0]);
     }
     new_shortcut->messages_ = std::move(old_shortcut->messages_);
     is_changed = (old_message_ids != get_quick_reply_message_ids(new_shortcut->messages_));
