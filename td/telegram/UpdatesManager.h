@@ -652,9 +652,9 @@ class UpdatesManager final : public Actor {
 
   void on_update(tl_object_ptr<telegram_api::updateSmsJob> update, Promise<Unit> &&promise);
 
-  // unsupported updates
-
   void on_update(tl_object_ptr<telegram_api::updateQuickReplies> update, Promise<Unit> &&promise);
+
+  // unsupported updates
 
   void on_update(tl_object_ptr<telegram_api::updateNewQuickReply> update, Promise<Unit> &&promise);
 
