@@ -238,7 +238,7 @@ td_api::object_ptr<td_api::quickReplyMessage> QuickReplyManager::get_quick_reply
 }
 
 int32 QuickReplyManager::get_shortcut_message_count(const Shortcut *s) {
-  return max(s->total_count_, static_cast<int32>(s->messages_.size()));
+  return max(s->server_total_count_ + s->local_total_count_, static_cast<int32>(s->messages_.size()));
 }
 
 td_api::object_ptr<td_api::quickReplyShortcut> QuickReplyManager::get_quick_reply_shortcut_object(
@@ -342,7 +342,7 @@ void QuickReplyManager::on_reload_quick_reply_shortcuts(
         auto shortcut = td::make_unique<Shortcut>();
         shortcut->name_ = std::move(quick_reply->shortcut_);
         shortcut->shortcut_id_ = quick_reply->shortcut_id_;
-        shortcut->total_count_ = quick_reply->count_;
+        shortcut->server_total_count_ = quick_reply->count_;
         shortcut->messages_.push_back(std::move(message));
 
         auto old_shortcut = get_shortcut(shortcut->shortcut_id_);
@@ -370,7 +370,8 @@ void QuickReplyManager::on_reload_quick_reply_shortcuts(
           auto shortcut = td::make_unique<Shortcut>();
           shortcut->name_ = std::move(old_shortcut->name_);
           shortcut->shortcut_id_ = old_shortcut->shortcut_id_;
-          shortcut->total_count_ = static_cast<int32>(old_shortcut->messages_.size());
+          shortcut->server_total_count_ = 0;
+          shortcut->local_total_count_ = static_cast<int32>(old_shortcut->messages_.size());
           shortcut->messages_ = std::move(old_shortcut->messages_);
           if (is_changed) {
             send_update_quick_reply_shortcut(shortcut.get(), "on_reload_quick_reply_shortcuts 1");
@@ -494,7 +495,7 @@ bool QuickReplyManager::update_shortcut_from(Shortcut *new_shortcut, Shortcut *o
   *is_object_changed = old_unique_id != get_quick_reply_unique_id(new_shortcut->messages_[0].get()) ||
                        new_shortcut->name_ != old_shortcut->name_ ||
                        old_message_count != get_shortcut_message_count(new_shortcut);
-  return *is_object_changed || is_changed || old_shortcut->total_count_ != new_shortcut->total_count_;
+  return *is_object_changed || is_changed || old_shortcut->server_total_count_ != new_shortcut->server_total_count_;
 }
 
 td_api::object_ptr<td_api::updateQuickReplyShortcut> QuickReplyManager::get_update_quick_reply_shortcut_object(

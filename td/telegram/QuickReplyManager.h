@@ -95,7 +95,8 @@ class QuickReplyManager final : public Actor {
 
     string name_;
     int32 shortcut_id_ = 0;
-    int32 total_count_ = 0;
+    int32 server_total_count_ = 0;
+    int32 local_total_count_ = 0;
     vector<unique_ptr<QuickReplyMessage>> messages_;
   };
 
