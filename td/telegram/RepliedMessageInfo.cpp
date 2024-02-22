@@ -160,7 +160,7 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, const MessageInputReplyTo &input_
         truncate_formatted_text(
             quote_, static_cast<size_t>(td->option_manager_->get_option_integer("message_reply_quote_length_max")));
       }
-      *content_text = {};
+      *content_text = FormattedText();
     }
     auto origin_message_full_id = origin_.get_message_full_id();
     if (origin_message_full_id.get_message_id().is_valid()) {
@@ -357,7 +357,8 @@ td_api::object_ptr<td_api::messageReplyToMessage> RepliedMessageInfo::get_messag
 MessageInputReplyTo RepliedMessageInfo::get_input_reply_to() const {
   CHECK(!is_external());
   if (message_id_.is_valid()) {
-    return MessageInputReplyTo{message_id_, dialog_id_, FormattedText{quote_}, quote_position_};
+    FormattedText quote = quote_;
+    return MessageInputReplyTo(message_id_, dialog_id_, std::move(quote), quote_position_);
   }
   return {};
 }
