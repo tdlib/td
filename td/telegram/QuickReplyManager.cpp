@@ -238,8 +238,9 @@ td_api::object_ptr<td_api::quickReplyShortcut> QuickReplyManager::get_quick_repl
     const Shortcut *s, const char *source) const {
   CHECK(s != nullptr);
   CHECK(!s->messages_.empty());
-  return td_api::make_object<td_api::quickReplyShortcut>(
-      s->name_, get_quick_reply_message_object(s->messages_[0].get(), source), s->total_count_);
+  return td_api::make_object<td_api::quickReplyShortcut>(s->name_,
+                                                         get_quick_reply_message_object(s->messages_[0].get(), source),
+                                                         max(s->total_count_, static_cast<int32>(s->messages_.size())));
 }
 
 td_api::object_ptr<td_api::quickReplyShortcuts> QuickReplyManager::get_quick_reply_shortcuts_object(
