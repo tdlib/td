@@ -6590,6 +6590,9 @@ updateQuickReplyShortcut shortcut:quickReplyShortcut = Update;
 //@description A quick reply shortcut was deleted @name The name of the deleted shortcut
 updateQuickReplyShortcutDeleted name:string = Update;
 
+//@description The list of quick reply shortcuts has changed @shortcuts The new list of existing quick reply shortcuts
+updateQuickReplyShortcuts shortcuts:vector<string> = Update;
+
 //@description Basic information about a topic in a forum chat was changed @chat_id Chat identifier @info New information about the topic
 updateForumTopicInfo chat_id:int53 info:forumTopicInfo = Update;
 

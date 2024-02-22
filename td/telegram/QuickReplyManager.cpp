@@ -293,6 +293,7 @@ void QuickReplyManager::on_reload_quick_reply_shortcuts(
     case telegram_api::messages_quickRepliesNotModified::ID:
       if (!shortcuts_.are_inited_) {
         shortcuts_.are_inited_ = true;
+        send_update_quick_reply_shortcuts();
       }
       break;
     case telegram_api::messages_quickReplies::ID: {
@@ -386,11 +387,23 @@ void QuickReplyManager::on_reload_quick_reply_shortcuts(
           new_shortcuts.push_back(std::move(shortcut));
         }
       }
+      bool is_list_changed = !shortcuts_.are_inited_ || shortcuts_.shortcuts_.size() != new_shortcuts.size();
+      if (!is_list_changed) {
+        for (size_t i = 0; i < new_shortcuts.size(); i++) {
+          if (shortcuts_.shortcuts_[i]->name_ != new_shortcuts[i]->name_) {
+            is_list_changed = true;
+            break;
+          }
+        }
+      }
       shortcuts_.shortcuts_ = std::move(new_shortcuts);
       shortcuts_.are_inited_ = true;
 
       for (auto shortcut_id : changed_shortcut_ids) {
         send_update_quick_reply_shortcut(get_shortcut(shortcut_id), "on_reload_quick_reply_shortcuts 2");
+      }
+      if (is_list_changed) {
+        send_update_quick_reply_shortcuts();
       }
       break;
     }
@@ -518,6 +531,17 @@ void QuickReplyManager::send_update_quick_reply_shortcut_deleted(const Shortcut 
   send_closure(G()->td(), &Td::send_update, get_update_quick_reply_shortcut_deleted_object(s));
 }
 
+td_api::object_ptr<td_api::updateQuickReplyShortcuts> QuickReplyManager::get_update_quick_reply_shortcuts_object()
+    const {
+  CHECK(shortcuts_.are_inited_);
+  return td_api::make_object<td_api::updateQuickReplyShortcuts>(
+      transform(shortcuts_.shortcuts_, [](const unique_ptr<Shortcut> &shortcut) { return shortcut->name_; }));
+}
+
+void QuickReplyManager::send_update_quick_reply_shortcuts() {
+  send_closure(G()->td(), &Td::send_update, get_update_quick_reply_shortcuts_object());
+}
+
 void QuickReplyManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
   if (td_->auth_manager_->is_bot()) {
     return;
@@ -525,6 +549,10 @@ void QuickReplyManager::get_current_state(vector<td_api::object_ptr<td_api::Upda
 
   for (auto &shortcut : shortcuts_.shortcuts_) {
     updates.push_back(get_update_quick_reply_shortcut_object(shortcut.get(), "get_current_state"));
+  }
+
+  if (shortcuts_.are_inited_) {
+    updates.push_back(get_update_quick_reply_shortcuts_object());
   }
 }
 

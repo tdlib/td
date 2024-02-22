@@ -166,6 +166,10 @@ class QuickReplyManager final : public Actor {
 
   void send_update_quick_reply_shortcut_deleted(const Shortcut *s);
 
+  td_api::object_ptr<td_api::updateQuickReplyShortcuts> get_update_quick_reply_shortcuts_object() const;
+
+  void send_update_quick_reply_shortcuts();
+
   Shortcuts shortcuts_;
 
   Td *td_;
