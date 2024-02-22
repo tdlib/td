@@ -123,6 +123,8 @@ class QuickReplyManager final : public Actor {
 
   td_api::object_ptr<td_api::quickReplyShortcuts> get_quick_reply_shortcuts_object(const char *source) const;
 
+  static int32 get_shortcut_message_count(const Shortcut *s);
+
   void load_quick_reply_shortcuts(Promise<td_api::object_ptr<td_api::quickReplyShortcuts>> &&promise);
 
   void on_reload_quick_reply_shortcuts(
@@ -131,6 +133,16 @@ class QuickReplyManager final : public Actor {
   void on_load_quick_reply_success();
 
   void on_load_quick_reply_fail(Status error);
+
+  Shortcut *get_shortcut(int32 shortcut_id);
+
+  static void sort_quick_reply_messages(vector<unique_ptr<QuickReplyMessage>> &messages);
+
+  static vector<MessageId> get_quick_reply_message_ids(const vector<unique_ptr<QuickReplyMessage>> &messages);
+
+  static vector<MessageId> get_server_quick_reply_message_ids(const vector<unique_ptr<QuickReplyMessage>> &messages);
+
+  static bool update_shortcut_from(Shortcut *new_shortcut, Shortcut *old_shortcut, bool is_partial);
 
   Shortcuts shortcuts_;
 
