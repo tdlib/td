@@ -428,11 +428,14 @@ void QuickReplyManager::sort_quick_reply_messages(vector<unique_ptr<QuickReplyMe
             });
 }
 
+QuickReplyManager::QuickReplyMessageUniqueId QuickReplyManager::get_quick_reply_unique_id(const QuickReplyMessage *m) {
+  return QuickReplyMessageUniqueId(m->message_id, m->edit_date);
+}
+
 vector<QuickReplyManager::QuickReplyMessageUniqueId> QuickReplyManager::get_quick_reply_unique_ids(
     const vector<unique_ptr<QuickReplyMessage>> &messages) {
-  return transform(messages, [](const unique_ptr<QuickReplyMessage> &message) {
-    return QuickReplyMessageUniqueId(message->message_id, message->edit_date);
-  });
+  return transform(
+      messages, [](const unique_ptr<QuickReplyMessage> &message) { return get_quick_reply_unique_id(message.get()); });
 }
 
 vector<QuickReplyManager::QuickReplyMessageUniqueId> QuickReplyManager::get_server_quick_reply_unique_ids(
