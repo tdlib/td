@@ -6293,6 +6293,26 @@ accessHashUnresolved = AccessHash;
 resolvedEntity id:int53 access_hash:int64 = ResolvedEntity;
 
 
+//@description A basic info about channel
+//@id Identifier
+//@title Title
+//@username Main username
+//@usernames Full list of available usernames
+//@member_count Number of subscribers
+simplifiedChannel id:int64 title:string username:string usernames:vector<string> member_count:int32 = SimplifiedChannel;
+
+//@description A list of simplifiedChannels
+//@channels The list
+simplifiedChannels channels:vector<simplifiedChannel> = SimplifiedChannels;
+
+//@description An extendened info about channel
+//@id Identifier
+//@about Description
+//@member_count Number of subscribers
+//@pts The latest persistent timestamp for the channel
+simplifiedFullChannel id:int64 about:string member_count:int32 pts:int32 = SimplifiedFullChannel;
+
+
 //@description Describes a simplified version of a message - just what comes from getChannelDifference
 //@id Identifier of the message
 //@date Timestamp of the message
@@ -6320,11 +6340,6 @@ channelDifferenceTooLong = ChannelDifferenceResult;
 
 //@description Describes an empty result of a getChannelDifference call
 channelDifferenceEmpty = ChannelDifferenceResult;
-
-//@description Describes an unsuccessful result of a getChannelDifference call
-//@error Error message
-//@timeout Timeout until the next request or -1
-channelDifferenceError error:string timeout:int32 = ChannelDifferenceResult;
 
 
 ---functions---
@@ -9259,4 +9274,12 @@ getChannelAccessHash channel_id:int53 = AccessHash;
 //@pts Persistent Time
 //@limit Limit for the Persistent Time
 getChannelDifference channel:resolvedEntity pts:int32 limit:int32 = ChannelDifferenceResult;
+
+//@description Get basic channel information
+//@entities Target channels
+getSimplifiedChannels entities:vector<resolvedEntity> = SimplifiedChannels;
+
+//@description Get extended information about a channel
+//@entity Target channel
+getSimplifiedFullChannel entity:resolvedEntity = SimplifiedFullChannel;
 

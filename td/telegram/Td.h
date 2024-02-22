@@ -144,7 +144,7 @@ class Td final : public Actor {
 
   bool ignore_background_updates() const;
 
-  void on_channel_difference_result(uint64 id, td_api::object_ptr<td_api::ChannelDifferenceResult> &&result);
+  void on_query_result(uint64 id, td_api::object_ptr<td_api::Object> &&result);
 
   unique_ptr<AudiosManager> audios_manager_;
   unique_ptr<CallbackQueriesManager> callback_queries_manager_;
@@ -1739,6 +1739,8 @@ class Td final : public Actor {
   void on_request(uint64 id, const td_api::getUserAccessHash &request);
   void on_request(uint64 id, const td_api::getChannelAccessHash &request);
   void on_request(uint64 id, const td_api::getChannelDifference &request);
+  void on_request(uint64 id, td_api::getSimplifiedChannels &request);
+  void on_request(uint64 id, td_api::getSimplifiedFullChannel &request);
 
   static DbKey as_db_key(string key);
 
