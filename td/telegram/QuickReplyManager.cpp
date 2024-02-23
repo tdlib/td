@@ -15,6 +15,7 @@
 #include "td/telegram/MessageForwardInfo.h"
 #include "td/telegram/MessageReplyHeader.h"
 #include "td/telegram/MessageSelfDestructType.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/RepliedMessageInfo.h"
 #include "td/telegram/Td.h"
 
@@ -270,7 +271,7 @@ void QuickReplyManager::reload_quick_reply_shortcuts() {
       [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::messages_QuickReplies>> r_shortcuts) {
         send_closure(actor_id, &QuickReplyManager::on_reload_quick_reply_shortcuts, std::move(r_shortcuts));
       });
-  td_->create_handler<GetQuickRepliesQuery>(std::move(promise))->send(0);
+  td_->create_handler<GetQuickRepliesQuery>(std::move(promise))->send(get_shortcuts_hash());
 }
 
 void QuickReplyManager::on_reload_quick_reply_shortcuts(
@@ -409,6 +410,22 @@ void QuickReplyManager::on_load_quick_reply_success() {
 
 void QuickReplyManager::on_load_quick_reply_fail(Status error) {
   fail_promises(shortcuts_.load_queries_, std::move(error));
+}
+
+int64 QuickReplyManager::get_shortcuts_hash() const {
+  vector<uint64> numbers;
+  for (auto &shortcut : shortcuts_.shortcuts_) {
+    for (auto &message : shortcut->messages_) {
+      if (message->message_id.is_server()) {
+        numbers.push_back(shortcut->shortcut_id_);
+        numbers.push_back(get_md5_string_hash(shortcut->name_));
+        numbers.push_back(message->message_id.get_server_message_id().get());
+        numbers.push_back(message->edit_date);
+        break;
+      }
+    }
+  }
+  return get_vector_hash(numbers);
 }
 
 QuickReplyManager::Shortcut *QuickReplyManager::get_shortcut(int32 shortcut_id) {

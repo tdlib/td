@@ -138,6 +138,8 @@ class QuickReplyManager final : public Actor {
 
   void on_load_quick_reply_fail(Status error);
 
+  int64 get_shortcuts_hash() const;
+
   Shortcut *get_shortcut(int32 shortcut_id);
 
   static void sort_quick_reply_messages(vector<unique_ptr<QuickReplyMessage>> &messages);
