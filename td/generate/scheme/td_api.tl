@@ -576,6 +576,10 @@ botMenuButton text:string url:string = BotMenuButton;
 chatLocation location:location address:string = ChatLocation;
 
 
+//@description Represents a location of a business @location The location; may be null if not specified @address Location address; 1-96 characters
+businessLocation location:location address:string = BusinessLocation;
+
+
 //@description Describes an interval of time when the business is open
 //@start_minute The first minute of the interval since start of the week; 0-7*24*60
 //@end_minute The first minute after the end of the interval since start of the week; 1-8*24*60
@@ -859,7 +863,7 @@ botInfo short_description:string description:string photo:photo animation:animat
 //@business_location Location of the business for Telegram Business users; may be null if none
 //@business_work_hours Work hours of the business for Telegram Business users; may be null if none
 //@bot_info For bots, information about the bot; may be null if the user isn't a bot
-userFullInfo personal_photo:chatPhoto photo:chatPhoto public_photo:chatPhoto block_list:BlockList can_be_called:Bool supports_video_calls:Bool has_private_calls:Bool has_private_forwards:Bool has_restricted_voice_and_video_note_messages:Bool has_pinned_stories:Bool need_phone_number_privacy_exception:Bool set_chat_background:Bool bio:formattedText premium_gift_options:vector<premiumPaymentOption> group_in_common_count:int32 business_location:chatLocation business_work_hours:businessWorkHours bot_info:botInfo = UserFullInfo;
+userFullInfo personal_photo:chatPhoto photo:chatPhoto public_photo:chatPhoto block_list:BlockList can_be_called:Bool supports_video_calls:Bool has_private_calls:Bool has_private_forwards:Bool has_restricted_voice_and_video_note_messages:Bool has_pinned_stories:Bool need_phone_number_privacy_exception:Bool set_chat_background:Bool bio:formattedText premium_gift_options:vector<premiumPaymentOption> group_in_common_count:int32 business_location:businessLocation business_work_hours:businessWorkHours bot_info:botInfo = UserFullInfo;
 
 //@description Represents a list of users @total_count Approximate total number of users found @user_ids A list of user identifiers
 users total_count:int32 user_ids:vector<int53> = Users;
@@ -9297,7 +9301,7 @@ setEmojiStatus emoji_status:emojiStatus = Ok;
 setLocation location:location = Ok;
 
 //@description Changes the business location of the current user. Requires Telegram Business subscription @location The new location of the business; pass null to remove the location
-setBusinessLocation location:chatLocation = Ok;
+setBusinessLocation location:businessLocation = Ok;
 
 //@description Changes the business work hours of the current user. Requires Telegram Business subscription @work_hours The new work hours of the business; pass null to remove the work hours
 setBusinessWorkHours work_hours:businessWorkHours = Ok;

@@ -5907,11 +5907,11 @@ class CliClient final : public Actor {
       string latitude;
       string longitude;
       get_args(args, latitude, longitude);
-      if (latitude.empty() || longitude.empty()) {
+      if (latitude.empty()) {
         send_request(td_api::make_object<td_api::setBusinessLocation>(nullptr));
       } else {
-        send_request(td_api::make_object<td_api::setBusinessLocation>(
-            td_api::make_object<td_api::chatLocation>(as_location(latitude, longitude, string()), "business address")));
+        send_request(td_api::make_object<td_api::setBusinessLocation>(td_api::make_object<td_api::businessLocation>(
+            longitude.empty() ? nullptr : as_location(latitude, longitude, string()), "business address")));
       }
     } else if (op == "sbwh") {
       string time_zone_id;

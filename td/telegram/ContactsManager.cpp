@@ -1105,6 +1105,9 @@ class UpdateBusinessLocationQuery final : public Td::ResultHandler {
     if (!location_.empty()) {
       flags |= telegram_api::account_updateBusinessLocation::GEO_POINT_MASK;
     }
+    if (!location_.get_address().empty()) {
+      flags |= telegram_api::account_updateBusinessLocation::ADDRESS_MASK;
+    }
     send_query(G()->net_query_creator().create(
         telegram_api::account_updateBusinessLocation(flags, location_.get_input_geo_point(), location_.get_address()),
         {{"me"}}));
@@ -3498,7 +3501,7 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   bool has_premium_gift_options = !premium_gift_options.empty();
   bool has_personal_photo = !personal_photo.is_empty();
   bool has_fallback_photo = !fallback_photo.is_empty();
-  bool has_location = !location.empty();
+  bool has_location = !location.empty() || !location.get_address().empty();
   bool has_work_hours = !work_hours.is_empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
@@ -17158,7 +17161,7 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
       !user_full->private_forward_name.empty(), voice_messages_forbidden, user_full->has_pinned_stories,
       user_full->need_phone_number_privacy_exception, user_full->wallpaper_overridden, std::move(bio_object),
       get_premium_payment_options_object(user_full->premium_gift_options), user_full->common_chat_count,
-      user_full->location.get_chat_location_object(), user_full->work_hours.get_business_work_hours_object(),
+      user_full->location.get_business_location_object(), user_full->work_hours.get_business_work_hours_object(),
       std::move(bot_info));
 }
 

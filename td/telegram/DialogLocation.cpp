@@ -35,6 +35,16 @@ DialogLocation::DialogLocation(td_api::object_ptr<td_api::chatLocation> &&chat_l
   }
 }
 
+DialogLocation::DialogLocation(td_api::object_ptr<td_api::businessLocation> &&business_location) {
+  if (business_location != nullptr) {
+    location_ = Location(business_location->location_);
+    address_ = std::move(business_location->address_);
+    if (!clean_input_string(address_)) {
+      address_.clear();
+    }
+  }
+}
+
 bool DialogLocation::empty() const {
   return location_.empty();
 }
@@ -44,6 +54,13 @@ td_api::object_ptr<td_api::chatLocation> DialogLocation::get_chat_location_objec
     return nullptr;
   }
   return td_api::make_object<td_api::chatLocation>(location_.get_location_object(), address_);
+}
+
+td_api::object_ptr<td_api::businessLocation> DialogLocation::get_business_location_object() const {
+  if (empty() && address_.empty()) {
+    return nullptr;
+  }
+  return td_api::make_object<td_api::businessLocation>(location_.get_location_object(), address_);
 }
 
 telegram_api::object_ptr<telegram_api::InputGeoPoint> DialogLocation::get_input_geo_point() const {
