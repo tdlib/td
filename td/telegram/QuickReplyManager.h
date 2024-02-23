@@ -63,7 +63,6 @@ class QuickReplyManager final : public Actor {
     bool noforwards = false;
     bool invert_media = false;
 
-    bool has_explicit_sender = false;       // for send_message
     bool is_copy = false;                   // for send_message
     bool from_background = false;           // for send_message
     bool disable_web_page_preview = false;  // for send_message
@@ -83,6 +82,12 @@ class QuickReplyManager final : public Actor {
     unique_ptr<MessageContent> content;
 
     mutable uint64 send_message_log_event_id = 0;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
   struct Shortcut {
@@ -98,6 +103,12 @@ class QuickReplyManager final : public Actor {
     int32 server_total_count_ = 0;
     int32 local_total_count_ = 0;
     vector<unique_ptr<QuickReplyMessage>> messages_;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
   struct Shortcuts {
@@ -105,6 +116,12 @@ class QuickReplyManager final : public Actor {
     bool are_inited_ = false;
 
     vector<Promise<Unit>> load_queries_;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
   void tear_down() final;

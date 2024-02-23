@@ -11,8 +11,11 @@
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/logevent/LogEvent.h"
+#include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageForwardInfo.h"
+#include "td/telegram/MessageForwardInfo.hpp"
 #include "td/telegram/MessageReplyHeader.h"
 #include "td/telegram/MessageSelfDestructType.h"
 #include "td/telegram/misc.h"
@@ -56,7 +59,224 @@ class GetQuickRepliesQuery final : public Td::ResultHandler {
 
 QuickReplyManager::QuickReplyMessage::~QuickReplyMessage() = default;
 
+template <class StorerT>
+void QuickReplyManager::QuickReplyMessage::store(StorerT &storer) const {
+  bool is_server = message_id.is_server();
+  bool has_edit_date = edit_date != 0;
+  bool has_random_id = !is_server && random_id != 0;
+  bool has_forward_info = forward_info != nullptr;
+  bool has_reply_to_message_id = reply_to_message_id != MessageId();
+  bool has_send_emoji = !is_server && !send_emoji.empty();
+  bool has_via_bot_user_id = via_bot_user_id != UserId();
+  bool has_real_forward_from_dialog_id = !is_server && real_forward_from_dialog_id != DialogId();
+  bool has_real_forward_from_message_id = !is_server && real_forward_from_message_id != MessageId();
+  bool has_legacy_layer = legacy_layer != 0;
+  bool has_send_error_code = !is_server && send_error_code != 0;
+  bool has_send_error_message = !is_server && !send_error_message.empty();
+  bool has_try_resend_at = !is_server && try_resend_at != 0;
+  bool has_media_album_id = media_album_id != 0;
+  BEGIN_STORE_FLAGS();
+  STORE_FLAG(has_edit_date);
+  STORE_FLAG(has_random_id);
+  STORE_FLAG(has_forward_info);
+  STORE_FLAG(has_reply_to_message_id);
+  STORE_FLAG(has_send_emoji);
+  STORE_FLAG(has_via_bot_user_id);
+  STORE_FLAG(is_failed_to_send);
+  STORE_FLAG(disable_notification);
+  STORE_FLAG(noforwards);
+  STORE_FLAG(invert_media);
+  STORE_FLAG(is_copy);
+  STORE_FLAG(from_background);
+  STORE_FLAG(disable_web_page_preview);
+  STORE_FLAG(hide_via_bot);
+  STORE_FLAG(has_real_forward_from_dialog_id);
+  STORE_FLAG(has_real_forward_from_message_id);
+  STORE_FLAG(has_legacy_layer);
+  STORE_FLAG(has_send_error_code);
+  STORE_FLAG(has_send_error_message);
+  STORE_FLAG(has_try_resend_at);
+  STORE_FLAG(has_media_album_id);
+  END_STORE_FLAGS();
+  td::store(message_id, storer);
+  td::store(shortcut_id, storer);
+  if (has_edit_date) {
+    td::store(edit_date, storer);
+  }
+  if (has_random_id) {
+    td::store(random_id, storer);
+  }
+  if (has_forward_info) {
+    td::store(forward_info, storer);
+  }
+  if (has_reply_to_message_id) {
+    td::store(reply_to_message_id, storer);
+  }
+  if (has_send_emoji) {
+    td::store(send_emoji, storer);
+  }
+  if (has_via_bot_user_id) {
+    td::store(via_bot_user_id, storer);
+  }
+  if (has_real_forward_from_dialog_id) {
+    td::store(real_forward_from_dialog_id, storer);
+  }
+  if (has_real_forward_from_message_id) {
+    td::store(real_forward_from_message_id, storer);
+  }
+  if (has_legacy_layer) {
+    td::store(legacy_layer, storer);
+  }
+  if (has_send_error_code) {
+    td::store(send_error_code, storer);
+  }
+  if (has_send_error_message) {
+    td::store(send_error_message, storer);
+  }
+  if (has_try_resend_at) {
+    td::store_time(try_resend_at, storer);
+  }
+  if (has_media_album_id) {
+    td::store(media_album_id, storer);
+  }
+  store_message_content(content.get(), storer);
+}
+
+template <class ParserT>
+void QuickReplyManager::QuickReplyMessage::parse(ParserT &parser) {
+  bool has_edit_date;
+  bool has_random_id;
+  bool has_forward_info;
+  bool has_reply_to_message_id;
+  bool has_send_emoji;
+  bool has_via_bot_user_id;
+  bool has_real_forward_from_dialog_id;
+  bool has_real_forward_from_message_id;
+  bool has_legacy_layer;
+  bool has_send_error_code;
+  bool has_send_error_message;
+  bool has_try_resend_at;
+  bool has_media_album_id;
+  BEGIN_PARSE_FLAGS();
+  PARSE_FLAG(has_edit_date);
+  PARSE_FLAG(has_random_id);
+  PARSE_FLAG(has_forward_info);
+  PARSE_FLAG(has_reply_to_message_id);
+  PARSE_FLAG(has_send_emoji);
+  PARSE_FLAG(has_via_bot_user_id);
+  PARSE_FLAG(is_failed_to_send);
+  PARSE_FLAG(disable_notification);
+  PARSE_FLAG(noforwards);
+  PARSE_FLAG(invert_media);
+  PARSE_FLAG(is_copy);
+  PARSE_FLAG(from_background);
+  PARSE_FLAG(disable_web_page_preview);
+  PARSE_FLAG(hide_via_bot);
+  PARSE_FLAG(has_real_forward_from_dialog_id);
+  PARSE_FLAG(has_real_forward_from_message_id);
+  PARSE_FLAG(has_legacy_layer);
+  PARSE_FLAG(has_send_error_code);
+  PARSE_FLAG(has_send_error_message);
+  PARSE_FLAG(has_try_resend_at);
+  PARSE_FLAG(has_media_album_id);
+  END_PARSE_FLAGS();
+  td::parse(message_id, parser);
+  td::parse(shortcut_id, parser);
+  if (has_edit_date) {
+    td::parse(edit_date, parser);
+  }
+  if (has_random_id) {
+    td::parse(random_id, parser);
+  }
+  if (has_forward_info) {
+    td::parse(forward_info, parser);
+  }
+  if (has_reply_to_message_id) {
+    td::parse(reply_to_message_id, parser);
+  }
+  if (has_send_emoji) {
+    td::parse(send_emoji, parser);
+  }
+  if (has_via_bot_user_id) {
+    td::parse(via_bot_user_id, parser);
+  }
+  if (has_real_forward_from_dialog_id) {
+    td::parse(real_forward_from_dialog_id, parser);
+  }
+  if (has_real_forward_from_message_id) {
+    td::parse(real_forward_from_message_id, parser);
+  }
+  if (has_legacy_layer) {
+    td::parse(legacy_layer, parser);
+  }
+  if (has_send_error_code) {
+    td::parse(send_error_code, parser);
+  }
+  if (has_send_error_message) {
+    td::parse(send_error_message, parser);
+  }
+  if (has_try_resend_at) {
+    td::parse_time(try_resend_at, parser);
+  }
+  if (has_media_album_id) {
+    td::parse(media_album_id, parser);
+  }
+  parse_message_content(content, parser);
+}
+
 QuickReplyManager::Shortcut::~Shortcut() = default;
+
+template <class StorerT>
+void QuickReplyManager::Shortcut::store(StorerT &storer) const {
+  bool has_server_total_count = server_total_count_ != 0;
+  bool has_local_total_count = local_total_count_ != 0;
+  BEGIN_STORE_FLAGS();
+  STORE_FLAG(has_server_total_count);
+  STORE_FLAG(has_local_total_count);
+  END_STORE_FLAGS();
+  td::store(name_, storer);
+  td::store(shortcut_id_, storer);
+  if (has_server_total_count) {
+    td::store(server_total_count_, storer);
+  }
+  if (has_local_total_count) {
+    td::store(local_total_count_, storer);
+  }
+  td::store(messages_, storer);
+}
+
+template <class ParserT>
+void QuickReplyManager::Shortcut::parse(ParserT &parser) {
+  bool has_server_total_count;
+  bool has_local_total_count;
+  BEGIN_PARSE_FLAGS();
+  PARSE_FLAG(has_server_total_count);
+  PARSE_FLAG(has_local_total_count);
+  END_PARSE_FLAGS();
+  td::parse(name_, parser);
+  td::parse(shortcut_id_, parser);
+  if (has_server_total_count) {
+    td::parse(server_total_count_, parser);
+  }
+  if (has_local_total_count) {
+    td::parse(local_total_count_, parser);
+  }
+  td::parse(messages_, parser);
+}
+
+template <class StorerT>
+void QuickReplyManager::Shortcuts::store(StorerT &storer) const {
+  BEGIN_STORE_FLAGS();
+  END_STORE_FLAGS();
+  td::store(shortcuts_, storer);
+}
+
+template <class ParserT>
+void QuickReplyManager::Shortcuts::parse(ParserT &parser) {
+  BEGIN_PARSE_FLAGS();
+  END_PARSE_FLAGS();
+  td::parse(shortcuts_, parser);
+}
 
 QuickReplyManager::QuickReplyManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
