@@ -24815,97 +24815,23 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
     }
   }
 
-  switch (content_type) {
-    case MessageContentType::Animation:
-    case MessageContentType::Audio:
-    case MessageContentType::Document:
-    case MessageContentType::Game:
-    case MessageContentType::Photo:
-    case MessageContentType::Text:
-    case MessageContentType::Video:
-    case MessageContentType::VoiceNote:
-      return true;
-    case MessageContentType::LiveLocation: {
-      if (is_bot && only_reply_markup) {
-        // there is no caption to edit, but bot can edit inline reply_markup
-        return true;
-      }
-      return G()->unix_time() - m->date < get_message_content_live_location_period(m->content.get());
-    }
-    case MessageContentType::Poll: {
-      if (is_bot && only_reply_markup) {
-        // there is no caption to edit, but bot can edit inline reply_markup
-        return true;
-      }
-      if (m->message_id.is_scheduled()) {
-        return false;
-      }
-      return !get_message_content_poll_is_closed(td_, m->content.get());
-    }
-    case MessageContentType::Story:
-    case MessageContentType::Contact:
-    case MessageContentType::Dice:
-    case MessageContentType::Giveaway:
-    case MessageContentType::GiveawayWinners:
-    case MessageContentType::Location:
-    case MessageContentType::Sticker:
-    case MessageContentType::Venue:
-    case MessageContentType::VideoNote:
-      // there is no caption to edit, but bot can edit inline reply_markup
-      return is_bot && only_reply_markup;
-    case MessageContentType::Invoice:
-    case MessageContentType::Unsupported:
-    case MessageContentType::ChatCreate:
-    case MessageContentType::ChatChangeTitle:
-    case MessageContentType::ChatChangePhoto:
-    case MessageContentType::ChatDeletePhoto:
-    case MessageContentType::ChatDeleteHistory:
-    case MessageContentType::ChatAddUsers:
-    case MessageContentType::ChatJoinedByLink:
-    case MessageContentType::ChatDeleteUser:
-    case MessageContentType::ChatMigrateTo:
-    case MessageContentType::ChannelCreate:
-    case MessageContentType::ChannelMigrateFrom:
-    case MessageContentType::PinMessage:
-    case MessageContentType::GameScore:
-    case MessageContentType::ScreenshotTaken:
-    case MessageContentType::ChatSetTtl:
-    case MessageContentType::Call:
-    case MessageContentType::PaymentSuccessful:
-    case MessageContentType::ContactRegistered:
-    case MessageContentType::ExpiredPhoto:
-    case MessageContentType::ExpiredVideo:
-    case MessageContentType::CustomServiceAction:
-    case MessageContentType::WebsiteConnected:
-    case MessageContentType::PassportDataSent:
-    case MessageContentType::PassportDataReceived:
-    case MessageContentType::ProximityAlertTriggered:
-    case MessageContentType::GroupCall:
-    case MessageContentType::InviteToGroupCall:
-    case MessageContentType::ChatSetTheme:
-    case MessageContentType::WebViewDataSent:
-    case MessageContentType::WebViewDataReceived:
-    case MessageContentType::GiftPremium:
-    case MessageContentType::TopicCreate:
-    case MessageContentType::TopicEdit:
-    case MessageContentType::SuggestProfilePhoto:
-    case MessageContentType::WriteAccessAllowed:
-    case MessageContentType::RequestedDialog:
-    case MessageContentType::WebViewWriteAccessAllowed:
-    case MessageContentType::SetBackground:
-    case MessageContentType::WriteAccessAllowedByRequest:
-    case MessageContentType::GiftCode:
-    case MessageContentType::GiveawayLaunch:
-    case MessageContentType::GiveawayResults:
-    case MessageContentType::ExpiredVideoNote:
-    case MessageContentType::ExpiredVoiceNote:
-    case MessageContentType::BoostApply:
-      return false;
-    default:
-      UNREACHABLE();
+  if (is_editable_message_content(content_type)) {
+    return true;
   }
-
-  return false;
+  if (is_bot && only_reply_markup && !is_service_message_content(content_type) &&
+      !is_expired_message_content(content_type)) {
+    return true;
+  }
+  switch (content_type) {
+    case MessageContentType::LiveLocation:
+      // live location can be edited only during the period
+      return G()->unix_time() - m->date < get_message_content_live_location_period(m->content.get());
+    case MessageContentType::Poll:
+      // non-closed non-scheduled polls can be closed
+      return !m->message_id.is_scheduled() && !get_message_content_poll_is_closed(td_, m->content.get());
+    default:
+      return false;
+  }
 }
 
 bool MessagesManager::can_resend_message(const Message *m) const {

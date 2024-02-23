@@ -381,6 +381,82 @@ bool is_service_message_content(MessageContentType content_type) {
   }
 }
 
+bool is_editable_message_content(MessageContentType content_type) {
+  switch (content_type) {
+    case MessageContentType::Animation:
+    case MessageContentType::Audio:
+    case MessageContentType::Document:
+    case MessageContentType::Game:
+    case MessageContentType::Photo:
+    case MessageContentType::Text:
+    case MessageContentType::Video:
+    case MessageContentType::VoiceNote:
+      return true;
+    case MessageContentType::LiveLocation:
+    case MessageContentType::Poll:
+    case MessageContentType::Story:
+    case MessageContentType::Contact:
+    case MessageContentType::Dice:
+    case MessageContentType::Giveaway:
+    case MessageContentType::GiveawayWinners:
+    case MessageContentType::Location:
+    case MessageContentType::Sticker:
+    case MessageContentType::Venue:
+    case MessageContentType::VideoNote:
+    case MessageContentType::Invoice:
+    case MessageContentType::Unsupported:
+    case MessageContentType::ChatCreate:
+    case MessageContentType::ChatChangeTitle:
+    case MessageContentType::ChatChangePhoto:
+    case MessageContentType::ChatDeletePhoto:
+    case MessageContentType::ChatDeleteHistory:
+    case MessageContentType::ChatAddUsers:
+    case MessageContentType::ChatJoinedByLink:
+    case MessageContentType::ChatDeleteUser:
+    case MessageContentType::ChatMigrateTo:
+    case MessageContentType::ChannelCreate:
+    case MessageContentType::ChannelMigrateFrom:
+    case MessageContentType::PinMessage:
+    case MessageContentType::GameScore:
+    case MessageContentType::ScreenshotTaken:
+    case MessageContentType::ChatSetTtl:
+    case MessageContentType::Call:
+    case MessageContentType::PaymentSuccessful:
+    case MessageContentType::ContactRegistered:
+    case MessageContentType::ExpiredPhoto:
+    case MessageContentType::ExpiredVideo:
+    case MessageContentType::CustomServiceAction:
+    case MessageContentType::WebsiteConnected:
+    case MessageContentType::PassportDataSent:
+    case MessageContentType::PassportDataReceived:
+    case MessageContentType::ProximityAlertTriggered:
+    case MessageContentType::GroupCall:
+    case MessageContentType::InviteToGroupCall:
+    case MessageContentType::ChatSetTheme:
+    case MessageContentType::WebViewDataSent:
+    case MessageContentType::WebViewDataReceived:
+    case MessageContentType::GiftPremium:
+    case MessageContentType::TopicCreate:
+    case MessageContentType::TopicEdit:
+    case MessageContentType::SuggestProfilePhoto:
+    case MessageContentType::WriteAccessAllowed:
+    case MessageContentType::RequestedDialog:
+    case MessageContentType::WebViewWriteAccessAllowed:
+    case MessageContentType::SetBackground:
+    case MessageContentType::WriteAccessAllowedByRequest:
+    case MessageContentType::GiftCode:
+    case MessageContentType::GiveawayLaunch:
+    case MessageContentType::GiveawayResults:
+    case MessageContentType::ExpiredVideoNote:
+    case MessageContentType::ExpiredVoiceNote:
+    case MessageContentType::BoostApply:
+      return false;
+    default:
+      UNREACHABLE();
+      return false;
+  }
+}
+
 bool is_supported_reply_message_content(MessageContentType content_type) {
   switch (content_type) {
     case MessageContentType::Animation:
