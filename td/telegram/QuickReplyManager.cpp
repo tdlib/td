@@ -14,6 +14,7 @@
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessageContent.h"
+#include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageForwardInfo.h"
 #include "td/telegram/MessageForwardInfo.hpp"
 #include "td/telegram/MessageReplyHeader.h"
@@ -410,7 +411,12 @@ void QuickReplyManager::add_quick_reply_message_dependencies(Dependencies &depen
   add_message_content_dependencies(dependencies, m->content.get(), is_bot);
 }
 
-bool QuickReplyManager::can_resend_message(const QuickReplyMessage *m) const {
+bool QuickReplyManager::can_edit_quick_reply_message(const QuickReplyMessage *m) const {
+  return m->message_id.is_server() && m->forward_info == nullptr && !m->via_bot_user_id.is_valid() &&
+         is_editable_message_content(m->content->get_type());
+}
+
+bool QuickReplyManager::can_resend_quick_reply_message(const QuickReplyMessage *m) const {
   if (m->send_error_code != 429) {
     return false;
   }
@@ -430,7 +436,7 @@ td_api::object_ptr<td_api::MessageSendingState> QuickReplyManager::get_message_s
     return td_api::make_object<td_api::messageSendingStatePending>(m->sending_id);
   }
   if (m->is_failed_to_send) {
-    auto can_retry = can_resend_message(m);
+    auto can_retry = can_resend_quick_reply_message(m);
     auto error_code = m->send_error_code > 0 ? m->send_error_code : 400;
     auto need_another_reply_quote =
         can_retry && error_code == 400 && m->send_error_message == CSlice("QUOTE_TEXT_INVALID");
@@ -450,12 +456,13 @@ td_api::object_ptr<td_api::MessageContent> QuickReplyManager::get_quick_reply_me
 td_api::object_ptr<td_api::quickReplyMessage> QuickReplyManager::get_quick_reply_message_object(
     const QuickReplyMessage *m, const char *source) const {
   CHECK(m != nullptr);
+  auto can_be_edited = can_edit_quick_reply_message(m);
   auto forward_info =
       m->forward_info == nullptr ? nullptr : m->forward_info->get_message_forward_info_object(td_, false);
   return td_api::make_object<td_api::quickReplyMessage>(
-      m->message_id.get(), get_message_sending_state_object(m), std::move(forward_info), m->reply_to_message_id.get(),
-      td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id"), m->media_album_id,
-      get_quick_reply_message_message_content_object(m));
+      m->message_id.get(), get_message_sending_state_object(m), can_be_edited, std::move(forward_info),
+      m->reply_to_message_id.get(), td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id"),
+      m->media_album_id, get_quick_reply_message_message_content_object(m));
 }
 
 int32 QuickReplyManager::get_shortcut_message_count(const Shortcut *s) {

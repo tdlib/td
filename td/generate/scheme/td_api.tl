@@ -3726,12 +3726,13 @@ storyInteractions total_count:int32 total_forward_count:int32 total_reaction_cou
 //@description Describes a message that can be used for quick reply
 //@id Unique message identifier among all quick replies
 //@sending_state The sending state of the message; may be null if the message isn't being sent and didn't fail to be sent
+//@can_be_edited True, if the message can be edited
 //@forward_info Information about the initial message sender; may be null if none or unknown
 //@reply_to_message_id Information about the identifier of the quick reply message to which the message replies
 //@via_bot_user_id If non-zero, the user identifier of the bot through which this message was sent
 //@media_album_id Unique identifier of an album this message belongs to. Only audios, documents, photos and videos can be grouped together in albums
 //@content Content of the message
-quickReplyMessage id:int53 sending_state:MessageSendingState forward_info:messageForwardInfo reply_to_message_id:int53 via_bot_user_id:int53 media_album_id:int64 content:MessageContent = QuickReplyMessage;
+quickReplyMessage id:int53 sending_state:MessageSendingState can_be_edited:Bool forward_info:messageForwardInfo reply_to_message_id:int53 via_bot_user_id:int53 media_album_id:int64 content:MessageContent = QuickReplyMessage;
 
 //@description Describes a shortcut that can be used for a quick reply
 //@name The name of the shortcut that can be used to use the shortcut
