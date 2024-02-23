@@ -2615,9 +2615,9 @@ class MessagesManager final : public Actor {
 
   static bool is_dialog_in_list(const Dialog *d, DialogListId dialog_list_id);
 
-  static void add_dialog_to_list(Dialog *d, DialogListId dialog_list_id);
+  void add_dialog_to_list(Dialog *d, DialogListId dialog_list_id);
 
-  static void remove_dialog_from_list(Dialog *d, DialogListId dialog_list_id);
+  void remove_dialog_from_list(Dialog *d, DialogListId dialog_list_id);
 
   DialogFilterDialogInfo get_dialog_info_for_dialog_filter(const Dialog *d) const;
 

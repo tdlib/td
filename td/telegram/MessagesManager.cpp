@@ -19179,6 +19179,8 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
   auto available_reactions = get_dialog_active_reactions(d).get_chat_available_reactions_object();
   auto is_translatable = d->is_translatable && is_premium;
   auto block_list_id = BlockListId(d->is_blocked, d->is_blocked_for_stories);
+  auto chat_lists = transform(get_dialog_list_ids(d),
+                              [](DialogListId dialog_list_id) { return dialog_list_id.get_chat_list_object(); });
   return make_tl_object<td_api::chat>(
       d->dialog_id.get(), td_->dialog_manager_->get_chat_type_object(d->dialog_id),
       td_->dialog_manager_->get_dialog_title(d->dialog_id),
@@ -19189,10 +19191,10 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       td_->dialog_manager_->get_dialog_profile_background_custom_emoji_id(d->dialog_id).get(),
       td_->dialog_manager_->get_dialog_default_permissions(d->dialog_id).get_chat_permissions_object(),
       get_message_object(d->dialog_id, get_message(d, d->last_message_id), "get_chat_object"),
-      get_chat_positions_object(d), get_default_message_sender_object(d), block_list_id.get_block_list_object(),
-      td_->dialog_manager_->get_dialog_has_protected_content(d->dialog_id), is_translatable, d->is_marked_as_unread,
-      get_dialog_view_as_topics(d), get_dialog_has_scheduled_messages(d), can_delete.for_self_,
-      can_delete.for_all_users_, td_->dialog_manager_->can_report_dialog(d->dialog_id),
+      get_chat_positions_object(d), std::move(chat_lists), get_default_message_sender_object(d),
+      block_list_id.get_block_list_object(), td_->dialog_manager_->get_dialog_has_protected_content(d->dialog_id),
+      is_translatable, d->is_marked_as_unread, get_dialog_view_as_topics(d), get_dialog_has_scheduled_messages(d),
+      can_delete.for_self_, can_delete.for_all_users_, td_->dialog_manager_->can_report_dialog(d->dialog_id),
       d->notification_settings.silent_send_message, d->server_unread_count + d->local_unread_count,
       d->last_read_inbox_message_id.get(), d->last_read_outbox_message_id.get(), d->unread_mention_count,
       d->unread_reaction_count, get_chat_notification_settings_object(&d->notification_settings),
@@ -35432,12 +35434,20 @@ void MessagesManager::add_dialog_to_list(Dialog *d, DialogListId dialog_list_id)
   LOG(INFO) << "Add " << d->dialog_id << " to " << dialog_list_id;
   CHECK(!is_dialog_in_list(d, dialog_list_id));
   d->dialog_list_ids.push_back(dialog_list_id);
+  CHECK(d->is_update_new_chat_sent);
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateChatAddedToList>(
+                   get_chat_id_object(d->dialog_id, "add_dialog_to_list"), dialog_list_id.get_chat_list_object()));
 }
 
 void MessagesManager::remove_dialog_from_list(Dialog *d, DialogListId dialog_list_id) {
   LOG(INFO) << "Remove " << d->dialog_id << " from " << dialog_list_id;
   bool is_removed = td::remove(d->dialog_list_ids, dialog_list_id);
   CHECK(is_removed);
+  CHECK(d->is_update_new_chat_sent);
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateChatRemovedFromList>(
+                   get_chat_id_object(d->dialog_id, "remove_dialog_from_list"), dialog_list_id.get_chat_list_object()));
 }
 
 DialogFilterDialogInfo MessagesManager::get_dialog_info_for_dialog_filter(const Dialog *d) const {
