@@ -556,6 +556,10 @@ class GetSimplifiedChannelDifferenceQuery final : public Td::ResultHandler {
         result->id_ = msg.id_;
         result->date_ = msg.date_;
         result->edit_date_ = msg.edit_date_;
+        result->views_ = msg.views_;
+        result->forwards_ = msg.forwards_;
+        if (msg.replies_)
+            result->replies_ = msg.replies_->replies_;
         auto formattedText = get_message_text(nullptr, msg.message_, std::move(msg.entities_), true, true, msg.date_, false, "SimplifiedGet");
         std::vector<td_api::object_ptr<td_api::textEntity>> entities;
         for (const auto &ent : formattedText.entities)
