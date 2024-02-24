@@ -38,7 +38,7 @@ class GetQuickRepliesQuery final : public Td::ResultHandler {
   }
 
   void send(int64 hash) {
-    send_query(G()->net_query_creator().create(telegram_api::messages_getQuickReplies(hash)));
+    send_query(G()->net_query_creator().create(telegram_api::messages_getQuickReplies(hash), {{"me"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -65,7 +65,8 @@ class DeleteQuickReplyShortcutQuery final : public Td::ResultHandler {
   }
 
   void send(QuickReplyShortcutId shortcut_id) {
-    send_query(G()->net_query_creator().create(telegram_api::messages_deleteQuickReplyShortcut(shortcut_id.get())));
+    send_query(
+        G()->net_query_creator().create(telegram_api::messages_deleteQuickReplyShortcut(shortcut_id.get()), {{"me"}}));
   }
 
   void on_result(BufferSlice packet) final {
