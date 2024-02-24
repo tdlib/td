@@ -573,6 +573,9 @@ void QuickReplyManager::on_reload_quick_reply_shortcuts(
           LOG(ERROR) << "Receive duplicate " << to_string(quick_reply);
           continue;
         }
+        if (deleted_shortcut_ids_.count(quick_reply->shortcut_id_)) {
+          continue;
+        }
         added_shortcut_ids.insert(quick_reply->shortcut_id_);
         added_shortcut_names.insert(quick_reply->shortcut_);
 
@@ -590,6 +593,7 @@ void QuickReplyManager::on_reload_quick_reply_shortcuts(
         if (message->shortcut_id != quick_reply->shortcut_id_) {
           LOG(ERROR) << "Receive message from shortcut " << message->shortcut_id << " instead of "
                      << quick_reply->shortcut_id_;
+          continue;
         }
 
         auto shortcut = td::make_unique<Shortcut>();
@@ -688,6 +692,7 @@ void QuickReplyManager::delete_quick_reply_shortcut(const string &name, Promise<
   auto shortcut_id = s->shortcut_id_;
   td::remove_if(shortcuts_.shortcuts_,
                 [shortcut_id](const unique_ptr<Shortcut> &shortcut) { return shortcut->shortcut_id_ == shortcut_id; });
+  deleted_shortcut_ids_.insert(shortcut_id);
 
   td_->create_handler<DeleteQuickReplyShortcutQuery>(std::move(promise))->send(shortcut_id);
 }

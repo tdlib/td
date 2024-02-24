@@ -14,6 +14,8 @@
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
+#include "td/utils/FlatHashSet.h"
+#include "td/utils/Promise.h"
 
 #include <utility>
 
@@ -195,6 +197,8 @@ class QuickReplyManager final : public Actor {
   void send_update_quick_reply_shortcuts();
 
   Shortcuts shortcuts_;
+
+  FlatHashSet<int32> deleted_shortcut_ids_;
 
   Td *td_;
   ActorShared<> parent_;
