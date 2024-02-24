@@ -564,7 +564,7 @@ void QuickReplyManager::on_reload_quick_reply_shortcuts(
       vector<QuickReplyShortcutId> deleted_shortcut_ids;
       for (auto &quick_reply : shortcuts->quick_replies_) {
         auto shortcut_id = QuickReplyShortcutId(quick_reply->shortcut_id_);
-        if (!shortcut_id.is_valid() || quick_reply->shortcut_.empty() || quick_reply->count_ <= 0 ||
+        if (!shortcut_id.is_server() || quick_reply->shortcut_.empty() || quick_reply->count_ <= 0 ||
             quick_reply->top_message_ <= 0) {
           LOG(ERROR) << "Receive " << to_string(quick_reply);
           continue;
@@ -691,8 +691,19 @@ void QuickReplyManager::delete_quick_reply_shortcut(const string &name, Promise<
   auto shortcut_id = s->shortcut_id_;
   td::remove_if(shortcuts_.shortcuts_,
                 [shortcut_id](const unique_ptr<Shortcut> &shortcut) { return shortcut->shortcut_id_ == shortcut_id; });
-  deleted_shortcut_ids_.insert(shortcut_id);
 
+  if (!shortcut_id.is_server()) {
+    return promise.set_value(Unit());
+  }
+
+  delete_quick_reply_shortcut_from_server(shortcut_id, std::move(promise));
+}
+
+void QuickReplyManager::delete_quick_reply_shortcut_from_server(QuickReplyShortcutId shortcut_id,
+                                                                Promise<Unit> &&promise) {
+  CHECK(shortcut_id.is_server());
+
+  deleted_shortcut_ids_.insert(shortcut_id);
   td_->create_handler<DeleteQuickReplyShortcutQuery>(std::move(promise))->send(shortcut_id);
 }
 

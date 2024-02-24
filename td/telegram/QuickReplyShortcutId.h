@@ -18,6 +18,8 @@ class QuickReplyShortcutId {
   int32 id = 0;
 
  public:
+  static constexpr int32 MAX_SERVER_SHORTCUT_ID = 1999999999;
+
   QuickReplyShortcutId() = default;
 
   explicit constexpr QuickReplyShortcutId(int32 quick_reply_shortcut_id) : id(quick_reply_shortcut_id) {
@@ -39,6 +41,10 @@ class QuickReplyShortcutId {
 
   bool is_valid() const {
     return id > 0;
+  }
+
+  bool is_server() const {
+    return id > 0 && id <= MAX_SERVER_SHORTCUT_ID;
   }
 
   template <class StorerT>

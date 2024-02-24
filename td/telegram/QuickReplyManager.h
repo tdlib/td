@@ -197,6 +197,8 @@ class QuickReplyManager final : public Actor {
 
   void send_update_quick_reply_shortcuts();
 
+  void delete_quick_reply_shortcut_from_server(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise);
+
   Shortcuts shortcuts_;
 
   FlatHashSet<QuickReplyShortcutId, QuickReplyShortcutIdHash> deleted_shortcut_ids_;
