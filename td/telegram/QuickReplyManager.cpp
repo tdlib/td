@@ -25,7 +25,6 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
-#include "td/utils/FlatHashSet.h"
 #include "td/utils/logging.h"
 
 namespace td {
@@ -65,8 +64,8 @@ class DeleteQuickReplyShortcutQuery final : public Td::ResultHandler {
   explicit DeleteQuickReplyShortcutQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(int32 shortcut_id) {
-    send_query(G()->net_query_creator().create(telegram_api::messages_deleteQuickReplyShortcut(shortcut_id)));
+  void send(QuickReplyShortcutId shortcut_id) {
+    send_query(G()->net_query_creator().create(telegram_api::messages_deleteQuickReplyShortcut(shortcut_id.get())));
   }
 
   void on_result(BufferSlice packet) final {
@@ -383,7 +382,7 @@ unique_ptr<QuickReplyManager::QuickReplyMessage> QuickReplyManager::create_messa
       }
 
       auto result = make_unique<QuickReplyMessage>();
-      result->shortcut_id = message->quick_reply_shortcut_id_;
+      result->shortcut_id = QuickReplyShortcutId(message->quick_reply_shortcut_id_);
       result->message_id = message_id;
       result->edit_date = max(message->edit_date_, 0);
       result->disable_web_page_preview = disable_web_page_preview;
@@ -554,35 +553,36 @@ void QuickReplyManager::on_reload_quick_reply_shortcuts(
         message_id_to_message[message_id] = std::move(message);
       }
 
-      FlatHashSet<int32> old_shortcut_ids;
+      FlatHashSet<QuickReplyShortcutId, QuickReplyShortcutIdHash> old_shortcut_ids;
       for (auto &shortcut : shortcuts_.shortcuts_) {
         old_shortcut_ids.insert(shortcut->shortcut_id_);
       }
-      FlatHashSet<int32> added_shortcut_ids;
+      FlatHashSet<QuickReplyShortcutId, QuickReplyShortcutIdHash> added_shortcut_ids;
       FlatHashSet<string> added_shortcut_names;
       vector<unique_ptr<Shortcut>> new_shortcuts;
-      vector<int32> changed_shortcut_ids;
-      vector<int32> deleted_shortcut_ids;
+      vector<QuickReplyShortcutId> changed_shortcut_ids;
+      vector<QuickReplyShortcutId> deleted_shortcut_ids;
       for (auto &quick_reply : shortcuts->quick_replies_) {
-        if (quick_reply->shortcut_id_ <= 0 || quick_reply->shortcut_.empty() || quick_reply->count_ <= 0 ||
+        auto shortcut_id = QuickReplyShortcutId(quick_reply->shortcut_id_);
+        if (!shortcut_id.is_valid() || quick_reply->shortcut_.empty() || quick_reply->count_ <= 0 ||
             quick_reply->top_message_ <= 0) {
           LOG(ERROR) << "Receive " << to_string(quick_reply);
           continue;
         }
-        if (added_shortcut_ids.count(quick_reply->shortcut_id_) || added_shortcut_names.count(quick_reply->shortcut_)) {
+        if (added_shortcut_ids.count(shortcut_id) || added_shortcut_names.count(quick_reply->shortcut_)) {
           LOG(ERROR) << "Receive duplicate " << to_string(quick_reply);
           continue;
         }
-        if (deleted_shortcut_ids_.count(quick_reply->shortcut_id_)) {
+        if (deleted_shortcut_ids_.count(shortcut_id)) {
           continue;
         }
-        added_shortcut_ids.insert(quick_reply->shortcut_id_);
+        added_shortcut_ids.insert(shortcut_id);
         added_shortcut_names.insert(quick_reply->shortcut_);
 
         MessageId first_message_id(ServerMessageId(quick_reply->top_message_));
         auto it = message_id_to_message.find(first_message_id);
         if (it == message_id_to_message.end()) {
-          LOG(ERROR) << "Can't find last " << first_message_id << " in shortcut " << quick_reply->shortcut_;
+          LOG(ERROR) << "Can't find last " << first_message_id << " in " << shortcut_id;
           continue;
         }
         auto message = create_message(std::move(it->second), "on_reload_quick_reply_shortcuts");
@@ -590,26 +590,25 @@ void QuickReplyManager::on_reload_quick_reply_shortcuts(
         if (message == nullptr) {
           continue;
         }
-        if (message->shortcut_id != quick_reply->shortcut_id_) {
-          LOG(ERROR) << "Receive message from shortcut " << message->shortcut_id << " instead of "
-                     << quick_reply->shortcut_id_;
+        if (message->shortcut_id != shortcut_id) {
+          LOG(ERROR) << "Receive message from " << message->shortcut_id << " instead of " << shortcut_id;
           continue;
         }
 
         auto shortcut = td::make_unique<Shortcut>();
         shortcut->name_ = std::move(quick_reply->shortcut_);
-        shortcut->shortcut_id_ = quick_reply->shortcut_id_;
+        shortcut->shortcut_id_ = shortcut_id;
         shortcut->server_total_count_ = quick_reply->count_;
         shortcut->messages_.push_back(std::move(message));
 
-        auto old_shortcut = get_shortcut(shortcut->shortcut_id_);
+        auto old_shortcut = get_shortcut(shortcut_id);
         auto is_object_changed = false;
         if (old_shortcut == nullptr || update_shortcut_from(shortcut.get(), old_shortcut, true, &is_object_changed)) {
           if (old_shortcut == nullptr || is_object_changed) {
-            changed_shortcut_ids.push_back(shortcut->shortcut_id_);
+            changed_shortcut_ids.push_back(shortcut_id);
           }
         }
-        old_shortcut_ids.erase(shortcut->shortcut_id_);
+        old_shortcut_ids.erase(shortcut_id);
 
         new_shortcuts.push_back(std::move(shortcut));
       }
@@ -673,7 +672,7 @@ int64 QuickReplyManager::get_shortcuts_hash() const {
   for (auto &shortcut : shortcuts_.shortcuts_) {
     for (auto &message : shortcut->messages_) {
       if (message->message_id.is_server()) {
-        numbers.push_back(shortcut->shortcut_id_);
+        numbers.push_back(shortcut->shortcut_id_.get());
         numbers.push_back(get_md5_string_hash(shortcut->name_));
         numbers.push_back(message->message_id.get_server_message_id().get());
         numbers.push_back(message->edit_date);
@@ -697,7 +696,7 @@ void QuickReplyManager::delete_quick_reply_shortcut(const string &name, Promise<
   td_->create_handler<DeleteQuickReplyShortcutQuery>(std::move(promise))->send(shortcut_id);
 }
 
-QuickReplyManager::Shortcut *QuickReplyManager::get_shortcut(int32 shortcut_id) {
+QuickReplyManager::Shortcut *QuickReplyManager::get_shortcut(QuickReplyShortcutId shortcut_id) {
   if (!shortcuts_.are_inited_) {
     return nullptr;
   }

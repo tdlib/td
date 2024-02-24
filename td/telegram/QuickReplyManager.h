@@ -8,6 +8,7 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/MessageId.h"
+#include "td/telegram/QuickReplyShortcutId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/UserId.h"
 
@@ -48,7 +49,7 @@ class QuickReplyManager final : public Actor {
     ~QuickReplyMessage();
 
     MessageId message_id;
-    int32 shortcut_id = 0;
+    QuickReplyShortcutId shortcut_id;
     int32 sending_id = 0;  // for yet unsent messages
     int32 edit_date = 0;
 
@@ -103,7 +104,7 @@ class QuickReplyManager final : public Actor {
     ~Shortcut();
 
     string name_;
-    int32 shortcut_id_ = 0;
+    QuickReplyShortcutId shortcut_id_;
     int32 server_total_count_ = 0;
     int32 local_total_count_ = 0;
     vector<unique_ptr<QuickReplyMessage>> messages_;
@@ -163,7 +164,7 @@ class QuickReplyManager final : public Actor {
 
   int64 get_shortcuts_hash() const;
 
-  Shortcut *get_shortcut(int32 shortcut_id);
+  Shortcut *get_shortcut(QuickReplyShortcutId shortcut_id);
 
   Shortcut *get_shortcut(const string &name);
 
@@ -198,7 +199,7 @@ class QuickReplyManager final : public Actor {
 
   Shortcuts shortcuts_;
 
-  FlatHashSet<int32> deleted_shortcut_ids_;
+  FlatHashSet<QuickReplyShortcutId, QuickReplyShortcutIdHash> deleted_shortcut_ids_;
 
   Td *td_;
   ActorShared<> parent_;
