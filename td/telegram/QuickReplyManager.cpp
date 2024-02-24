@@ -58,6 +58,31 @@ class GetQuickRepliesQuery final : public Td::ResultHandler {
   }
 };
 
+class DeleteQuickReplyShortcutQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit DeleteQuickReplyShortcutQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(int32 shortcut_id) {
+    send_query(G()->net_query_creator().create(telegram_api::messages_deleteQuickReplyShortcut(shortcut_id)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_deleteQuickReplyShortcut>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 QuickReplyManager::QuickReplyMessage::~QuickReplyMessage() = default;
 
 template <class StorerT>
@@ -655,12 +680,36 @@ int64 QuickReplyManager::get_shortcuts_hash() const {
   return get_vector_hash(numbers);
 }
 
+void QuickReplyManager::delete_quick_reply_shortcut(const string &name, Promise<Unit> &&promise) {
+  auto s = get_shortcut(name);
+  if (s == nullptr) {
+    return promise.set_error(Status::Error(400, "Shortcut not found"));
+  }
+  auto shortcut_id = s->shortcut_id_;
+  td::remove_if(shortcuts_.shortcuts_,
+                [shortcut_id](const unique_ptr<Shortcut> &shortcut) { return shortcut->shortcut_id_ == shortcut_id; });
+
+  td_->create_handler<DeleteQuickReplyShortcutQuery>(std::move(promise))->send(shortcut_id);
+}
+
 QuickReplyManager::Shortcut *QuickReplyManager::get_shortcut(int32 shortcut_id) {
   if (!shortcuts_.are_inited_) {
     return nullptr;
   }
   for (auto &shortcut : shortcuts_.shortcuts_) {
     if (shortcut->shortcut_id_ == shortcut_id) {
+      return shortcut.get();
+    }
+  }
+  return nullptr;
+}
+
+QuickReplyManager::Shortcut *QuickReplyManager::get_shortcut(const string &name) {
+  if (!shortcuts_.are_inited_) {
+    return nullptr;
+  }
+  for (auto &shortcut : shortcuts_.shortcuts_) {
+    if (shortcut->name_ == name) {
       return shortcut.get();
     }
   }

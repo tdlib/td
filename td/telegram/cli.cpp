@@ -4827,6 +4827,10 @@ class CliClient final : public Actor {
                                                                            as_message_scheduling_state(date)));
     } else if (op == "lqrs") {
       send_request(td_api::make_object<td_api::loadQuickReplyShortcuts>());
+    } else if (op == "dqrs") {
+      string name;
+      get_args(args, name);
+      send_request(td_api::make_object<td_api::deleteQuickReplyShortcut>(name));
     } else if (op == "gftdi") {
       send_request(td_api::make_object<td_api::getForumTopicDefaultIcons>());
     } else if (op == "cft") {

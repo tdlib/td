@@ -7732,6 +7732,9 @@ editMessageSchedulingState chat_id:int53 message_id:int53 scheduling_state:Messa
 //@description Loads quick reply shortcuts created by the current user. The loaded topics will be sent through updateQuickReplyShortcuts
 loadQuickReplyShortcuts = Ok;
 
+//@description Deletes a quick reply shortcut @name The name of the quick reply shortcut
+deleteQuickReplyShortcut name:string = Ok;
+
 
 //@description Returns list of custom emojis, which can be used as forum topic icon by all users
 getForumTopicDefaultIcons = Stickers;

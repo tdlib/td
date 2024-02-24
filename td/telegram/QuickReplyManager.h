@@ -30,6 +30,8 @@ class QuickReplyManager final : public Actor {
 
   void get_quick_reply_shortcuts(Promise<Unit> &&promise);
 
+  void delete_quick_reply_shortcut(const string &name, Promise<Unit> &&promise);
+
   void reload_quick_reply_shortcuts();
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
@@ -160,6 +162,8 @@ class QuickReplyManager final : public Actor {
   int64 get_shortcuts_hash() const;
 
   Shortcut *get_shortcut(int32 shortcut_id);
+
+  Shortcut *get_shortcut(const string &name);
 
   static void sort_quick_reply_messages(vector<unique_ptr<QuickReplyMessage>> &messages);
 
