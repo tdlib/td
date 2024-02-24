@@ -168,6 +168,8 @@ class QuickReplyManager final : public Actor {
 
   Shortcut *get_shortcut(const string &name);
 
+  vector<unique_ptr<Shortcut>>::iterator get_shortcut_it(const string &name);
+
   static void sort_quick_reply_messages(vector<unique_ptr<QuickReplyMessage>> &messages);
 
   using QuickReplyMessageUniqueId = std::pair<MessageId, int32>;

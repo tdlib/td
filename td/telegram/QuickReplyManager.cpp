@@ -684,13 +684,12 @@ int64 QuickReplyManager::get_shortcuts_hash() const {
 }
 
 void QuickReplyManager::delete_quick_reply_shortcut(const string &name, Promise<Unit> &&promise) {
-  auto s = get_shortcut(name);
-  if (s == nullptr) {
+  auto it = get_shortcut_it(name);
+  if (it == shortcuts_.shortcuts_.end()) {
     return promise.set_error(Status::Error(400, "Shortcut not found"));
   }
-  auto shortcut_id = s->shortcut_id_;
-  td::remove_if(shortcuts_.shortcuts_,
-                [shortcut_id](const unique_ptr<Shortcut> &shortcut) { return shortcut->shortcut_id_ == shortcut_id; });
+  auto shortcut_id = (*it)->shortcut_id_;
+  shortcuts_.shortcuts_.erase(it);
 
   if (!shortcut_id.is_server()) {
     return promise.set_value(Unit());
@@ -729,6 +728,15 @@ QuickReplyManager::Shortcut *QuickReplyManager::get_shortcut(const string &name)
     }
   }
   return nullptr;
+}
+
+vector<unique_ptr<QuickReplyManager::Shortcut>>::iterator QuickReplyManager::get_shortcut_it(const string &name) {
+  for (auto it = shortcuts_.shortcuts_.begin(); it != shortcuts_.shortcuts_.end(); ++it) {
+    if ((*it)->name_ == name) {
+      return it;
+    }
+  }
+  return shortcuts_.shortcuts_.end();
 }
 
 void QuickReplyManager::sort_quick_reply_messages(vector<unique_ptr<QuickReplyMessage>> &messages) {
