@@ -368,6 +368,119 @@ class GetChannelParticipantQuery final : public Td::ResultHandler {
   }
 };
 
+class AddChatUserQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  ChatId chat_id_;
+  UserId user_id_;
+
+ public:
+  explicit AddChatUserQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChatId chat_id, UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user, int32 forward_limit) {
+    chat_id_ = chat_id;
+    user_id_ = user_id;
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_addChatUser(chat_id.get(), std::move(input_user), forward_limit)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_addChatUser>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for AddChatUserQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    if (!td_->auth_manager_->is_bot() && status.message() == "USER_PRIVACY_RESTRICTED") {
+      td_->dialog_participant_manager_->send_update_add_chat_members_privacy_forbidden(DialogId(chat_id_), {user_id_},
+                                                                                       "AddChatUserQuery");
+      return promise_.set_error(Status::Error(406, "USER_PRIVACY_RESTRICTED"));
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
+class EditChatAdminQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  ChatId chat_id_;
+  UserId user_id_;
+
+ public:
+  explicit EditChatAdminQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChatId chat_id, UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user,
+            bool is_administrator) {
+    chat_id_ = chat_id;
+    user_id_ = user_id;
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_editChatAdmin(chat_id.get(), std::move(input_user), is_administrator)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_editChatAdmin>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.move_as_ok();
+    if (!result) {
+      LOG(ERROR) << "Receive false as result of messages.editChatAdmin";
+      return on_error(Status::Error(400, "Can't edit chat administrators"));
+    }
+
+    // result will come in the updates
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    if (!td_->auth_manager_->is_bot() && status.message() == "USER_PRIVACY_RESTRICTED") {
+      // impossible now, because the user must be in the chat already
+      td_->dialog_participant_manager_->send_update_add_chat_members_privacy_forbidden(DialogId(chat_id_), {user_id_},
+                                                                                       "EditChatAdminQuery");
+      return promise_.set_error(Status::Error(406, "USER_PRIVACY_RESTRICTED"));
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
+class DeleteChatUserQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit DeleteChatUserQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChatId chat_id, tl_object_ptr<telegram_api::InputUser> &&input_user, bool revoke_messages) {
+    int32 flags = 0;
+    if (revoke_messages) {
+      flags |= telegram_api::messages_deleteChatUser::REVOKE_HISTORY_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_deleteChatUser(flags, false /*ignored*/, chat_id.get(), std::move(input_user))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_deleteChatUser>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for DeleteChatUserQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class JoinChannelQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
@@ -1423,8 +1536,7 @@ void DialogParticipantManager::add_dialog_participant(DialogId dialog_id, UserId
     case DialogType::User:
       return promise.set_error(Status::Error(400, "Can't add members to a private chat"));
     case DialogType::Chat:
-      return td_->contacts_manager_->add_chat_participant(dialog_id.get_chat_id(), user_id, forward_limit,
-                                                          std::move(promise));
+      return add_chat_participant(dialog_id.get_chat_id(), user_id, forward_limit, std::move(promise));
     case DialogType::Channel:
       return add_channel_participant(dialog_id.get_channel_id(), user_id, DialogParticipantStatus::Left(),
                                      std::move(promise));
@@ -1447,8 +1559,7 @@ void DialogParticipantManager::add_dialog_participants(DialogId dialog_id, const
       return promise.set_error(Status::Error(400, "Can't add members to a private chat"));
     case DialogType::Chat:
       if (user_ids.size() == 1) {
-        return td_->contacts_manager_->add_chat_participant(dialog_id.get_chat_id(), user_ids[0], 0,
-                                                            std::move(promise));
+        return add_chat_participant(dialog_id.get_chat_id(), user_ids[0], 0, std::move(promise));
       }
       return promise.set_error(Status::Error(400, "Can't add many members at once to a basic group chat"));
     case DialogType::Channel:
@@ -1480,8 +1591,8 @@ void DialogParticipantManager::set_dialog_participant_status(
           return promise.set_error(Status::Error(400, "Chats can't be members of basic groups"));
         }
       }
-      return td_->contacts_manager_->set_chat_participant_status(
-          dialog_id.get_chat_id(), participant_dialog_id.get_user_id(), status, std::move(promise));
+      return set_chat_participant_status(dialog_id.get_chat_id(), participant_dialog_id.get_user_id(), status, false,
+                                         std::move(promise));
     }
     case DialogType::Channel:
       return set_channel_participant_status(dialog_id.get_channel_id(), participant_dialog_id,
@@ -1508,8 +1619,8 @@ void DialogParticipantManager::ban_dialog_participant(DialogId dialog_id, Dialog
       if (participant_dialog_id.get_type() != DialogType::User) {
         return promise.set_error(Status::Error(400, "Can't ban chats in basic groups"));
       }
-      return td_->contacts_manager_->delete_chat_participant(
-          dialog_id.get_chat_id(), participant_dialog_id.get_user_id(), revoke_messages, std::move(promise));
+      return delete_chat_participant(dialog_id.get_chat_id(), participant_dialog_id.get_user_id(), revoke_messages,
+                                     std::move(promise));
     case DialogType::Channel:
       // must use td_api::chatMemberStatusBanned to properly fix banned_until_date
       return set_channel_participant_status(dialog_id.get_channel_id(), participant_dialog_id,
@@ -1532,8 +1643,8 @@ void DialogParticipantManager::leave_dialog(DialogId dialog_id, Promise<Unit> &&
     case DialogType::User:
       return promise.set_error(Status::Error(400, "Can't leave private chats"));
     case DialogType::Chat:
-      return td_->contacts_manager_->delete_chat_participant(
-          dialog_id.get_chat_id(), td_->contacts_manager_->get_my_id(), false, std::move(promise));
+      return delete_chat_participant(dialog_id.get_chat_id(), td_->contacts_manager_->get_my_id(), false,
+                                     std::move(promise));
     case DialogType::Channel: {
       auto channel_id = dialog_id.get_channel_id();
       auto old_status = td_->contacts_manager_->get_channel_status(channel_id);
@@ -1548,6 +1659,164 @@ void DialogParticipantManager::leave_dialog(DialogId dialog_id, Promise<Unit> &&
     default:
       UNREACHABLE();
   }
+}
+
+void DialogParticipantManager::add_chat_participant(ChatId chat_id, UserId user_id, int32 forward_limit,
+                                                    Promise<Unit> &&promise) {
+  if (!td_->contacts_manager_->get_chat_is_active(chat_id)) {
+    if (!td_->contacts_manager_->have_chat(chat_id)) {
+      return promise.set_error(Status::Error(400, "Chat info not found"));
+    }
+    return promise.set_error(Status::Error(400, "Chat is deactivated"));
+  }
+  if (forward_limit < 0) {
+    return promise.set_error(Status::Error(400, "Can't forward negative number of messages"));
+  }
+  auto permissions = td_->contacts_manager_->get_chat_permissions(chat_id);
+  if (user_id != td_->contacts_manager_->get_my_id()) {
+    if (!permissions.can_invite_users()) {
+      return promise.set_error(Status::Error(400, "Not enough rights to invite members to the group chat"));
+    }
+  } else if (permissions.is_banned()) {
+    return promise.set_error(Status::Error(400, "User was kicked from the chat"));
+  }
+  // TODO upper bound on forward_limit
+
+  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
+
+  // TODO invoke after
+  td_->create_handler<AddChatUserQuery>(std::move(promise))
+      ->send(chat_id, user_id, std::move(input_user), forward_limit);
+}
+
+void DialogParticipantManager::set_chat_participant_status(ChatId chat_id, UserId user_id,
+                                                           DialogParticipantStatus status, bool is_recursive,
+                                                           Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  if (!status.is_member()) {
+    return delete_chat_participant(chat_id, user_id, false, std::move(promise));
+  }
+  if (status.is_creator()) {
+    return promise.set_error(Status::Error(400, "Can't change owner in basic group chats"));
+  }
+  if (status.is_restricted()) {
+    return promise.set_error(Status::Error(400, "Can't restrict users in basic group chats"));
+  }
+
+  if (!td_->contacts_manager_->get_chat_is_active(chat_id)) {
+    if (!td_->contacts_manager_->have_chat(chat_id)) {
+      return promise.set_error(Status::Error(400, "Chat info not found"));
+    }
+    return promise.set_error(Status::Error(400, "Chat is deactivated"));
+  }
+
+  if (!is_recursive) {
+    auto load_chat_full_promise =
+        PromiseCreator::lambda([actor_id = actor_id(this), chat_id, user_id, status = std::move(status),
+                                promise = std::move(promise)](Result<Unit> &&result) mutable {
+          if (result.is_error()) {
+            promise.set_error(result.move_as_error());
+          } else {
+            send_closure(actor_id, &DialogParticipantManager::set_chat_participant_status, chat_id, user_id, status,
+                         true, std::move(promise));
+          }
+        });
+    return td_->contacts_manager_->load_chat_full(chat_id, false, std::move(load_chat_full_promise),
+                                                  "set_chat_participant_status");
+  }
+
+  auto participant = td_->contacts_manager_->get_chat_participant(chat_id, user_id);
+  if (participant == nullptr && !status.is_administrator()) {
+    // the user isn't a member, but needs to be added
+    return add_chat_participant(chat_id, user_id, 0, std::move(promise));
+  }
+
+  auto permissions = td_->contacts_manager_->get_chat_permissions(chat_id);
+  if (!permissions.can_promote_members()) {
+    return promise.set_error(Status::Error(400, "Need owner rights in the group chat"));
+  }
+
+  if (user_id == td_->contacts_manager_->get_my_id()) {
+    return promise.set_error(Status::Error(400, "Can't promote or demote self"));
+  }
+
+  if (participant == nullptr) {
+    // the user must be added first
+    CHECK(status.is_administrator());
+    auto add_chat_participant_promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this), chat_id, user_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
+          if (result.is_error()) {
+            promise.set_error(result.move_as_error());
+          } else {
+            send_closure(actor_id, &DialogParticipantManager::send_edit_chat_admin_query, chat_id, user_id, true,
+                         std::move(promise));
+          }
+        });
+    return add_chat_participant(chat_id, user_id, 0, std::move(add_chat_participant_promise));
+  }
+
+  send_edit_chat_admin_query(chat_id, user_id, status.is_administrator(), std::move(promise));
+}
+
+void DialogParticipantManager::send_edit_chat_admin_query(ChatId chat_id, UserId user_id, bool is_administrator,
+                                                          Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
+
+  td_->create_handler<EditChatAdminQuery>(std::move(promise))
+      ->send(chat_id, user_id, std::move(input_user), is_administrator);
+}
+
+void DialogParticipantManager::delete_chat_participant(ChatId chat_id, UserId user_id, bool revoke_messages,
+                                                       Promise<Unit> &&promise) {
+  if (!td_->contacts_manager_->get_chat_is_active(chat_id)) {
+    if (!td_->contacts_manager_->have_chat(chat_id)) {
+      return promise.set_error(Status::Error(400, "Chat info not found"));
+    }
+    return promise.set_error(Status::Error(400, "Chat is deactivated"));
+  }
+
+  auto my_id = td_->contacts_manager_->get_my_id();
+  auto permissions = td_->contacts_manager_->get_chat_permissions(chat_id);
+  if (permissions.is_left()) {
+    if (user_id == my_id) {
+      if (revoke_messages) {
+        return td_->messages_manager_->delete_dialog_history(DialogId(chat_id), true, false, std::move(promise));
+      }
+      return promise.set_value(Unit());
+    } else {
+      return promise.set_error(Status::Error(400, "Not in the chat"));
+    }
+  }
+  /* TODO
+  if (user_id != my_id) {
+    if (!permissions.is_creator()) {  // creator can delete anyone
+      auto participant = get_chat_participant(chat_id, user_id);
+      if (participant != nullptr) {  // if have no information about participant, just send request to the server
+        if (c->everyone_is_administrator) {
+          // if all are administrators, only invited by me participants can be deleted
+          if (participant->inviter_user_id_ != my_id) {
+            return promise.set_error(Status::Error(400, "Need to be inviter of a user to kick it from a basic group"));
+          }
+        } else {
+          // otherwise, only creator can kick administrators
+          if (participant->status_.is_administrator()) {
+            return promise.set_error(
+                Status::Error(400, "Only the creator of a basic group can kick group administrators"));
+          }
+          // regular users can be kicked by administrators and their inviters
+          if (!permissions.is_administrator() && participant->inviter_user_id_ != my_id) {
+            return promise.set_error(Status::Error(400, "Need to be inviter of a user to kick it from a basic group"));
+          }
+        }
+      }
+    }
+  }
+  */
+  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
+
+  // TODO invoke after
+  td_->create_handler<DeleteChatUserQuery>(std::move(promise))->send(chat_id, std::move(input_user), revoke_messages);
 }
 
 void DialogParticipantManager::add_channel_participant(ChannelId channel_id, UserId user_id,

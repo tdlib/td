@@ -623,6 +623,7 @@ class ContactsManager final : public Actor {
   DialogParticipantStatus get_chat_status(ChatId chat_id) const;
   DialogParticipantStatus get_chat_permissions(ChatId chat_id) const;
   bool is_appointed_chat_administrator(ChatId chat_id) const;
+  const DialogParticipant *get_chat_participant(ChatId chat_id, UserId user_id) const;
 
   void create_new_channel(const string &title, bool is_forum, bool is_megagroup, const string &description,
                           const DialogLocation &location, bool for_import, MessageTtl message_ttl,
@@ -668,13 +669,6 @@ class ContactsManager final : public Actor {
   int32 get_channel_slow_mode_delay(ChannelId channel_id, const char *source);
   bool get_channel_effective_has_hidden_participants(ChannelId channel_id, const char *source);
   int32 get_channel_my_boost_count(ChannelId channel_id);
-
-  void add_chat_participant(ChatId chat_id, UserId user_id, int32 forward_limit, Promise<Unit> &&promise);
-
-  void set_chat_participant_status(ChatId chat_id, UserId user_id, DialogParticipantStatus status,
-                                   Promise<Unit> &&promise);
-
-  void delete_chat_participant(ChatId chat_id, UserId user_id, bool revoke_messages, Promise<Unit> &&promise);
 
   void get_chat_participant(ChatId chat_id, UserId user_id, Promise<DialogParticipant> &&promise);
 
@@ -1733,8 +1727,6 @@ class ContactsManager final : public Actor {
   vector<BotCommands> get_bot_commands(vector<tl_object_ptr<telegram_api::botInfo>> &&bot_infos,
                                        const vector<DialogParticipant> *participants);
 
-  const DialogParticipant *get_chat_participant(ChatId chat_id, UserId user_id) const;
-
   static const DialogParticipant *get_chat_full_participant(const ChatFull *chat_full, DialogId dialog_id);
 
   std::pair<int32, vector<DialogId>> search_among_dialogs(const vector<DialogId> &dialog_ids, const string &query,
@@ -1814,8 +1806,6 @@ class ContactsManager final : public Actor {
   void on_create_inactive_channels(vector<ChannelId> &&channel_ids, Promise<Unit> &&promise);
 
   void update_dialogs_for_discussion(DialogId dialog_id, bool is_suitable);
-
-  void send_edit_chat_admin_query(ChatId chat_id, UserId user_id, bool is_administrator, Promise<Unit> &&promise);
 
   void search_chat_participants(ChatId chat_id, const string &query, int32 limit, DialogParticipantFilter filter,
                                 Promise<DialogParticipants> &&promise);

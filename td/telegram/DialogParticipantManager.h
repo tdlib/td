@@ -166,6 +166,15 @@ class DialogParticipantManager final : public Actor {
   void finish_get_channel_participant(ChannelId channel_id, DialogParticipant &&dialog_participant,
                                       Promise<DialogParticipant> &&promise);
 
+  void set_chat_participant_status(ChatId chat_id, UserId user_id, DialogParticipantStatus status, bool is_recursive,
+                                   Promise<Unit> &&promise);
+
+  void add_chat_participant(ChatId chat_id, UserId user_id, int32 forward_limit, Promise<Unit> &&promise);
+
+  void send_edit_chat_admin_query(ChatId chat_id, UserId user_id, bool is_administrator, Promise<Unit> &&promise);
+
+  void delete_chat_participant(ChatId chat_id, UserId user_id, bool revoke_messages, Promise<Unit> &&promise);
+
   void add_channel_participant(ChannelId channel_id, UserId user_id, const DialogParticipantStatus &old_status,
                                Promise<Unit> &&promise);
 
