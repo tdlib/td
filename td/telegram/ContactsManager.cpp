@@ -5361,23 +5361,6 @@ string ContactsManager::get_secret_chat_about(SecretChatId secret_chat_id) {
   return get_user_about(c->user_id);
 }
 
-string ContactsManager::get_dialog_search_text(DialogId dialog_id) const {
-  switch (dialog_id.get_type()) {
-    case DialogType::User:
-      return get_user_search_text(dialog_id.get_user_id());
-    case DialogType::Chat:
-      return get_chat_title(dialog_id.get_chat_id());
-    case DialogType::Channel:
-      return get_channel_search_text(dialog_id.get_channel_id());
-    case DialogType::SecretChat:
-      return get_user_search_text(get_secret_chat_user_id(dialog_id.get_secret_chat_id()));
-    case DialogType::None:
-    default:
-      UNREACHABLE();
-  }
-  return string();
-}
-
 string ContactsManager::get_user_search_text(UserId user_id) const {
   auto u = get_user(user_id);
   if (u == nullptr) {
@@ -5396,11 +5379,6 @@ string ContactsManager::get_channel_search_text(ChannelId channel_id) const {
   if (c == nullptr) {
     return get_channel_title(channel_id);
   }
-  return get_channel_search_text(c);
-}
-
-string ContactsManager::get_channel_search_text(const Channel *c) {
-  CHECK(c != nullptr);
   return PSTRING() << c->title << ' ' << implode(c->usernames.get_active_usernames());
 }
 
@@ -17063,7 +17041,7 @@ std::pair<int32, vector<DialogId>> ContactsManager::search_among_dialogs(const v
       if (query.empty()) {
         hints.add(dialog_id.get(), Slice(" "));
       } else {
-        hints.add(dialog_id.get(), get_dialog_search_text(dialog_id));
+        hints.add(dialog_id.get(), td_->dialog_manager_->get_dialog_search_text(dialog_id));
       }
     }
     hints.set_rating(dialog_id.get(), rating);

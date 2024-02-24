@@ -15992,7 +15992,7 @@ std::pair<int32, vector<DialogId>> MessagesManager::search_recently_found_dialog
   Hints hints;
   int rating = 1;
   for (auto dialog_id : result.second) {
-    hints.add(dialog_id.get(), td_->contacts_manager_->get_dialog_search_text(dialog_id));
+    hints.add(dialog_id.get(), td_->dialog_manager_->get_dialog_search_text(dialog_id));
     hints.set_rating(dialog_id.get(), ++rating);
   }
 
@@ -34705,7 +34705,7 @@ bool MessagesManager::add_pending_dialog_data(Dialog *d, unique_ptr<Message> &&l
 
 void MessagesManager::update_dialogs_hints(const Dialog *d) {
   if (!td_->auth_manager_->is_bot() && d->order != DEFAULT_ORDER) {
-    dialogs_hints_.add(-d->dialog_id.get(), td_->contacts_manager_->get_dialog_search_text(d->dialog_id));
+    dialogs_hints_.add(-d->dialog_id.get(), td_->dialog_manager_->get_dialog_search_text(d->dialog_id));
   }
 }
 
