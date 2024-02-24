@@ -636,15 +636,7 @@ void QuickReplyManager::on_reload_quick_reply_shortcuts(
           new_shortcuts.push_back(std::move(shortcut));
         }
       }
-      bool is_list_changed = !shortcuts_.are_inited_ || shortcuts_.shortcuts_.size() != new_shortcuts.size();
-      if (!is_list_changed) {
-        for (size_t i = 0; i < new_shortcuts.size(); i++) {
-          if (shortcuts_.shortcuts_[i]->name_ != new_shortcuts[i]->name_) {
-            is_list_changed = true;
-            break;
-          }
-        }
-      }
+      bool is_list_changed = is_shortcut_list_changed(new_shortcuts);
       shortcuts_.shortcuts_ = std::move(new_shortcuts);
       shortcuts_.are_inited_ = true;
 
@@ -658,6 +650,18 @@ void QuickReplyManager::on_reload_quick_reply_shortcuts(
     }
   }
   on_load_quick_reply_success();
+}
+
+bool QuickReplyManager::is_shortcut_list_changed(const vector<unique_ptr<Shortcut>> &new_shortcuts) const {
+  if (!shortcuts_.are_inited_ || shortcuts_.shortcuts_.size() != new_shortcuts.size()) {
+    return true;
+  }
+  for (size_t i = 0; i < new_shortcuts.size(); i++) {
+    if (shortcuts_.shortcuts_[i]->name_ != new_shortcuts[i]->name_) {
+      return true;
+    }
+  }
+  return false;
 }
 
 void QuickReplyManager::on_load_quick_reply_success() {
