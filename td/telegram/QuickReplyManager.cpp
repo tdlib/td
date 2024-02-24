@@ -79,6 +79,36 @@ class DeleteQuickReplyShortcutQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    td_->quick_reply_manager_->reload_quick_reply_shortcuts();
+    promise_.set_error(std::move(status));
+  }
+};
+
+class ReorderQuickRepliesQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit ReorderQuickRepliesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(vector<QuickReplyShortcutId> shortcut_ids) {
+    send_query(
+        G()->net_query_creator().create(telegram_api::messages_reorderQuickReplies(
+                                            QuickReplyShortcutId::get_input_quick_reply_shortcut_ids(shortcut_ids)),
+                                        {{"me"}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_reorderQuickReplies>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    td_->quick_reply_manager_->reload_quick_reply_shortcuts();
     promise_.set_error(std::move(status));
   }
 };
@@ -711,6 +741,53 @@ void QuickReplyManager::delete_quick_reply_shortcut_from_server(QuickReplyShortc
   td_->create_handler<DeleteQuickReplyShortcutQuery>(std::move(promise))->send(shortcut_id);
 }
 
+void QuickReplyManager::reorder_quick_reply_shortcuts(const vector<string> &names, Promise<Unit> &&promise) {
+  FlatHashSet<string> unique_names;
+  for (const auto &name : names) {
+    if (get_shortcut(name) == nullptr) {
+      return promise.set_error(Status::Error(400, "Shortcut not found"));
+    }
+    unique_names.insert(name);
+  }
+  if (unique_names.size() != names.size()) {
+    return promise.set_error(Status::Error(400, "Duplicate shortcut names specified"));
+  }
+  if (!shortcuts_.are_inited_) {
+    return promise.set_value(Unit());
+  }
+  vector<unique_ptr<Shortcut>> shortcuts;
+  for (const auto &name : names) {
+    auto it = get_shortcut_it(name);
+    CHECK(it != shortcuts_.shortcuts_.end() && *it != nullptr);
+    shortcuts.push_back(std::move(*it));
+  }
+  for (auto &shortcut : shortcuts_.shortcuts_) {
+    if (shortcut != nullptr) {
+      CHECK(unique_names.count(shortcut->name_) == 0);
+      shortcuts.push_back(std::move(shortcut));
+    }
+  }
+  auto old_server_shortcut_ids = get_server_shortcut_ids();
+  bool is_list_changed = is_shortcut_list_changed(shortcuts);
+  shortcuts_.shortcuts_ = std::move(shortcuts);
+  if (!is_list_changed) {
+    return promise.set_value(Unit());
+  }
+  send_update_quick_reply_shortcuts();
+
+  auto new_server_shortcut_ids = get_server_shortcut_ids();
+  if (new_server_shortcut_ids == old_server_shortcut_ids || new_server_shortcut_ids.empty()) {
+    return promise.set_value(Unit());
+  }
+
+  reorder_quick_reply_shortcuts_on_server(new_server_shortcut_ids, std::move(promise));
+}
+
+void QuickReplyManager::reorder_quick_reply_shortcuts_on_server(vector<QuickReplyShortcutId> shortcut_ids,
+                                                                Promise<Unit> &&promise) {
+  td_->create_handler<ReorderQuickRepliesQuery>(std::move(promise))->send(std::move(shortcut_ids));
+}
+
 QuickReplyManager::Shortcut *QuickReplyManager::get_shortcut(QuickReplyShortcutId shortcut_id) {
   if (!shortcuts_.are_inited_) {
     return nullptr;
@@ -742,6 +819,16 @@ vector<unique_ptr<QuickReplyManager::Shortcut>>::iterator QuickReplyManager::get
     }
   }
   return shortcuts_.shortcuts_.end();
+}
+
+vector<QuickReplyShortcutId> QuickReplyManager::get_server_shortcut_ids() const {
+  vector<QuickReplyShortcutId> shortcut_ids;
+  for (auto &shortcut : shortcuts_.shortcuts_) {
+    if (shortcut->shortcut_id_.is_server()) {
+      shortcut_ids.push_back(shortcut->shortcut_id_);
+    }
+  }
+  return shortcut_ids;
 }
 
 void QuickReplyManager::sort_quick_reply_messages(vector<unique_ptr<QuickReplyMessage>> &messages) {

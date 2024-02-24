@@ -31,6 +31,16 @@ class QuickReplyShortcutId {
     return id;
   }
 
+  static vector<int32> get_input_quick_reply_shortcut_ids(
+      const vector<QuickReplyShortcutId> &quick_reply_shortcut_ids) {
+    vector<int32> input_quick_reply_shortcut_ids;
+    input_quick_reply_shortcut_ids.reserve(quick_reply_shortcut_ids.size());
+    for (auto &quick_reply_shortcut_id : quick_reply_shortcut_ids) {
+      input_quick_reply_shortcut_ids.emplace_back(quick_reply_shortcut_id.get());
+    }
+    return input_quick_reply_shortcut_ids;
+  }
+
   bool operator==(const QuickReplyShortcutId &other) const {
     return id == other.id;
   }

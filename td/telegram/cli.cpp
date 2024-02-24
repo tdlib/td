@@ -4831,6 +4831,10 @@ class CliClient final : public Actor {
       string name;
       get_args(args, name);
       send_request(td_api::make_object<td_api::deleteQuickReplyShortcut>(name));
+    } else if (op == "rqrs") {
+      string names;
+      get_args(args, names);
+      send_request(td_api::make_object<td_api::reorderQuickReplyShortcuts>(autosplit_str(names)));
     } else if (op == "gftdi") {
       send_request(td_api::make_object<td_api::getForumTopicDefaultIcons>());
     } else if (op == "cft") {

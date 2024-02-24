@@ -35,6 +35,8 @@ class QuickReplyManager final : public Actor {
 
   void delete_quick_reply_shortcut(const string &name, Promise<Unit> &&promise);
 
+  void reorder_quick_reply_shortcuts(const vector<string> &names, Promise<Unit> &&promise);
+
   void reload_quick_reply_shortcuts();
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
@@ -172,6 +174,8 @@ class QuickReplyManager final : public Actor {
 
   bool is_shortcut_list_changed(const vector<unique_ptr<Shortcut>> &new_shortcuts) const;
 
+  vector<QuickReplyShortcutId> get_server_shortcut_ids() const;
+
   static void sort_quick_reply_messages(vector<unique_ptr<QuickReplyMessage>> &messages);
 
   using QuickReplyMessageUniqueId = std::pair<MessageId, int32>;
@@ -202,6 +206,8 @@ class QuickReplyManager final : public Actor {
   void send_update_quick_reply_shortcuts();
 
   void delete_quick_reply_shortcut_from_server(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise);
+
+  void reorder_quick_reply_shortcuts_on_server(vector<QuickReplyShortcutId> shortcut_ids, Promise<Unit> &&promise);
 
   Shortcuts shortcuts_;
 
