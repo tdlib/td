@@ -526,18 +526,6 @@ class ContactsManager final : public Actor {
 
   bool can_get_channel_story_statistics(DialogId dialog_id) const;
 
-  struct CanTransferOwnershipResult {
-    enum class Type : uint8 { Ok, PasswordNeeded, PasswordTooFresh, SessionTooFresh };
-    Type type = Type::Ok;
-    int32 retry_after = 0;
-  };
-  void can_transfer_ownership(Promise<CanTransferOwnershipResult> &&promise);
-
-  static td_api::object_ptr<td_api::CanTransferOwnershipResult> get_can_transfer_ownership_result_object(
-      CanTransferOwnershipResult result);
-
-  void transfer_dialog_ownership(DialogId dialog_id, UserId user_id, const string &password, Promise<Unit> &&promise);
-
   void migrate_dialog_to_megagroup(DialogId dialog_id, Promise<td_api::object_ptr<td_api::chat>> &&promise);
 
   void get_channel_recommendations(DialogId dialog_id, bool return_local,
@@ -1817,10 +1805,6 @@ class ContactsManager final : public Actor {
                                    string additional_query, int32 additional_limit,
                                    tl_object_ptr<telegram_api::channels_channelParticipants> &&channel_participants,
                                    Promise<DialogParticipants> &&promise);
-
-  void transfer_channel_ownership(ChannelId channel_id, UserId user_id,
-                                  tl_object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password,
-                                  Promise<Unit> &&promise);
 
   void get_channel_statistics_dc_id_impl(ChannelId channel_id, bool for_full_statistics, Promise<DcId> &&promise);
 

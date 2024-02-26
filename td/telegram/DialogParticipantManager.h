@@ -114,6 +114,18 @@ class DialogParticipantManager final : public Actor {
 
   void drop_channel_participant_cache(ChannelId channel_id);
 
+  struct CanTransferOwnershipResult {
+    enum class Type : uint8 { Ok, PasswordNeeded, PasswordTooFresh, SessionTooFresh };
+    Type type = Type::Ok;
+    int32 retry_after = 0;
+  };
+  void can_transfer_ownership(Promise<CanTransferOwnershipResult> &&promise);
+
+  static td_api::object_ptr<td_api::CanTransferOwnershipResult> get_can_transfer_ownership_result_object(
+      CanTransferOwnershipResult result);
+
+  void transfer_dialog_ownership(DialogId dialog_id, UserId user_id, const string &password, Promise<Unit> &&promise);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
@@ -209,6 +221,10 @@ class DialogParticipantManager final : public Actor {
                                                             int64 channel_id_long);
 
   void on_channel_participant_cache_timeout(ChannelId channel_id);
+
+  void transfer_channel_ownership(ChannelId channel_id, UserId user_id,
+                                  tl_object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password,
+                                  Promise<Unit> &&promise);
 
   struct OnlineMemberCountInfo {
     int32 online_member_count = 0;

@@ -42,7 +42,6 @@
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/OptionManager.h"
-#include "td/telegram/PasswordManager.h"
 #include "td/telegram/PeerColor.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/Photo.hpp"
@@ -2266,84 +2265,6 @@ class DeleteChannelQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     td_->contacts_manager_->on_get_channel_error(channel_id_, status, "DeleteChannelQuery");
-    promise_.set_error(std::move(status));
-  }
-};
-
-class CanEditChannelCreatorQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-
- public:
-  explicit CanEditChannelCreatorQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send() {
-    auto r_input_user = td_->contacts_manager_->get_input_user(td_->contacts_manager_->get_my_id());
-    CHECK(r_input_user.is_ok());
-    send_query(G()->net_query_creator().create(telegram_api::channels_editCreator(
-        telegram_api::make_object<telegram_api::inputChannelEmpty>(), r_input_user.move_as_ok(),
-        make_tl_object<telegram_api::inputCheckPasswordEmpty>())));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::channels_editCreator>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto ptr = result_ptr.move_as_ok();
-    LOG(ERROR) << "Receive result for CanEditChannelCreatorQuery: " << to_string(ptr);
-    promise_.set_error(Status::Error(500, "Server doesn't returned error"));
-  }
-
-  void on_error(Status status) final {
-    promise_.set_error(std::move(status));
-  }
-};
-
-class EditChannelCreatorQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  ChannelId channel_id_;
-  UserId user_id_;
-
- public:
-  explicit EditChannelCreatorQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(ChannelId channel_id, UserId user_id,
-            tl_object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password) {
-    channel_id_ = channel_id;
-    user_id_ = user_id;
-    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
-    if (input_channel == nullptr) {
-      return promise_.set_error(Status::Error(400, "Have no access to the chat"));
-    }
-    TRY_RESULT_PROMISE(promise_, input_user, td_->contacts_manager_->get_input_user(user_id));
-    send_query(G()->net_query_creator().create(
-        telegram_api::channels_editCreator(std::move(input_channel), std::move(input_user),
-                                           std::move(input_check_password)),
-        {{channel_id}}));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::channels_editCreator>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for EditChannelCreatorQuery: " << to_string(ptr);
-    td_->contacts_manager_->invalidate_channel_full(channel_id_, false, "EditChannelCreatorQuery");
-    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
-  }
-
-  void on_error(Status status) final {
-    if (!td_->auth_manager_->is_bot() && status.message() == "USER_PRIVACY_RESTRICTED") {
-      td_->dialog_participant_manager_->send_update_add_chat_members_privacy_forbidden(
-          DialogId(channel_id_), {user_id_}, "EditChannelCreatorQuery");
-      return promise_.set_error(Status::Error(406, "USER_PRIVACY_RESTRICTED"));
-    }
-    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "EditChannelCreatorQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -7816,109 +7737,6 @@ void ContactsManager::delete_channel(ChannelId channel_id, Promise<Unit> &&promi
   }
 
   td_->create_handler<DeleteChannelQuery>(std::move(promise))->send(channel_id);
-}
-
-void ContactsManager::can_transfer_ownership(Promise<CanTransferOwnershipResult> &&promise) {
-  auto request_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<Unit> r_result) mutable {
-    CHECK(r_result.is_error());
-
-    auto error = r_result.move_as_error();
-    CanTransferOwnershipResult result;
-    if (error.message() == "PASSWORD_HASH_INVALID") {
-      return promise.set_value(std::move(result));
-    }
-    if (error.message() == "PASSWORD_MISSING") {
-      result.type = CanTransferOwnershipResult::Type::PasswordNeeded;
-      return promise.set_value(std::move(result));
-    }
-    if (begins_with(error.message(), "PASSWORD_TOO_FRESH_")) {
-      result.type = CanTransferOwnershipResult::Type::PasswordTooFresh;
-      result.retry_after = to_integer<int32>(error.message().substr(Slice("PASSWORD_TOO_FRESH_").size()));
-      if (result.retry_after < 0) {
-        result.retry_after = 0;
-      }
-      return promise.set_value(std::move(result));
-    }
-    if (begins_with(error.message(), "SESSION_TOO_FRESH_")) {
-      result.type = CanTransferOwnershipResult::Type::SessionTooFresh;
-      result.retry_after = to_integer<int32>(error.message().substr(Slice("SESSION_TOO_FRESH_").size()));
-      if (result.retry_after < 0) {
-        result.retry_after = 0;
-      }
-      return promise.set_value(std::move(result));
-    }
-    promise.set_error(std::move(error));
-  });
-
-  td_->create_handler<CanEditChannelCreatorQuery>(std::move(request_promise))->send();
-}
-
-td_api::object_ptr<td_api::CanTransferOwnershipResult> ContactsManager::get_can_transfer_ownership_result_object(
-    CanTransferOwnershipResult result) {
-  switch (result.type) {
-    case CanTransferOwnershipResult::Type::Ok:
-      return td_api::make_object<td_api::canTransferOwnershipResultOk>();
-    case CanTransferOwnershipResult::Type::PasswordNeeded:
-      return td_api::make_object<td_api::canTransferOwnershipResultPasswordNeeded>();
-    case CanTransferOwnershipResult::Type::PasswordTooFresh:
-      return td_api::make_object<td_api::canTransferOwnershipResultPasswordTooFresh>(result.retry_after);
-    case CanTransferOwnershipResult::Type::SessionTooFresh:
-      return td_api::make_object<td_api::canTransferOwnershipResultSessionTooFresh>(result.retry_after);
-    default:
-      UNREACHABLE();
-      return nullptr;
-  }
-}
-
-void ContactsManager::transfer_dialog_ownership(DialogId dialog_id, UserId user_id, const string &password,
-                                                Promise<Unit> &&promise) {
-  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "transfer_dialog_ownership")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
-  if (!have_user_force(user_id, "transfer_dialog_ownership")) {
-    return promise.set_error(Status::Error(400, "User not found"));
-  }
-  if (is_user_bot(user_id)) {
-    return promise.set_error(Status::Error(400, "User is a bot"));
-  }
-  if (is_user_deleted(user_id)) {
-    return promise.set_error(Status::Error(400, "User is deleted"));
-  }
-  if (password.empty()) {
-    return promise.set_error(Status::Error(400, "PASSWORD_HASH_INVALID"));
-  }
-
-  switch (dialog_id.get_type()) {
-    case DialogType::User:
-    case DialogType::Chat:
-    case DialogType::SecretChat:
-      return promise.set_error(Status::Error(400, "Can't transfer chat ownership"));
-    case DialogType::Channel:
-      send_closure(
-          td_->password_manager_, &PasswordManager::get_input_check_password_srp, password,
-          PromiseCreator::lambda([actor_id = actor_id(this), channel_id = dialog_id.get_channel_id(), user_id,
-                                  promise = std::move(promise)](
-                                     Result<tl_object_ptr<telegram_api::InputCheckPasswordSRP>> result) mutable {
-            if (result.is_error()) {
-              return promise.set_error(result.move_as_error());
-            }
-            send_closure(actor_id, &ContactsManager::transfer_channel_ownership, channel_id, user_id,
-                         result.move_as_ok(), std::move(promise));
-          }));
-      break;
-    case DialogType::None:
-    default:
-      UNREACHABLE();
-  }
-}
-
-void ContactsManager::transfer_channel_ownership(
-    ChannelId channel_id, UserId user_id, tl_object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password,
-    Promise<Unit> &&promise) {
-  TRY_STATUS_PROMISE(promise, G()->close_status());
-
-  td_->create_handler<EditChannelCreatorQuery>(std::move(promise))
-      ->send(channel_id, user_id, std::move(input_check_password));
 }
 
 void ContactsManager::migrate_dialog_to_megagroup(DialogId dialog_id,

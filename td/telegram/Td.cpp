@@ -6966,22 +6966,22 @@ void Td::on_request(uint64 id, const td_api::canTransferOwnership &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   auto query_promise = PromiseCreator::lambda(
-      [promise = std::move(promise)](Result<ContactsManager::CanTransferOwnershipResult> result) mutable {
+      [promise = std::move(promise)](Result<DialogParticipantManager::CanTransferOwnershipResult> result) mutable {
         if (result.is_error()) {
           promise.set_error(result.move_as_error());
         } else {
-          promise.set_value(ContactsManager::get_can_transfer_ownership_result_object(result.ok()));
+          promise.set_value(DialogParticipantManager::get_can_transfer_ownership_result_object(result.ok()));
         }
       });
-  contacts_manager_->can_transfer_ownership(std::move(query_promise));
+  dialog_participant_manager_->can_transfer_ownership(std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, td_api::transferChatOwnership &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.password_);
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->transfer_dialog_ownership(DialogId(request.chat_id_), UserId(request.user_id_), request.password_,
-                                               std::move(promise));
+  dialog_participant_manager_->transfer_dialog_ownership(DialogId(request.chat_id_), UserId(request.user_id_),
+                                                         request.password_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getChatMember &request) {
