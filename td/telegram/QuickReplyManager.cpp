@@ -654,6 +654,23 @@ void QuickReplyManager::on_reload_quick_reply_shortcuts(
           send_update_quick_reply_shortcut_deleted(old_shortcut);
         } else {
           // some local messages has left
+          if (added_shortcut_names.count(old_shortcut->name_)) {
+            // a local shortcut has been created server-side
+            for (auto &shortcut : new_shortcuts) {
+              if (shortcut->name_ == old_shortcut->name_) {
+                CHECK(shortcut->local_total_count_ == 0);
+                shortcut->local_total_count_ = static_cast<int32>(old_shortcut->messages_.size());
+                append(shortcut->messages_, std::move(old_shortcut->messages_));
+                sort_quick_reply_messages(shortcut->messages_);
+                send_update_quick_reply_shortcut_deleted(old_shortcut);
+                if (!td::contains(changed_shortcut_ids, shortcut->shortcut_id_)) {
+                  changed_shortcut_ids.push_back(shortcut->shortcut_id_);
+                }
+              }
+            }
+            continue;
+          }
+
           auto shortcut = td::make_unique<Shortcut>();
           shortcut->name_ = std::move(old_shortcut->name_);
           shortcut->shortcut_id_ = old_shortcut->shortcut_id_;
