@@ -528,8 +528,9 @@ td_api::object_ptr<td_api::quickReplyShortcut> QuickReplyManager::get_quick_repl
     const Shortcut *s, const char *source) const {
   CHECK(s != nullptr);
   CHECK(!s->messages_.empty());
-  return td_api::make_object<td_api::quickReplyShortcut>(
-      s->name_, get_quick_reply_message_object(s->messages_[0].get(), source), get_shortcut_message_count(s));
+  return td_api::make_object<td_api::quickReplyShortcut>(s->shortcut_id_.get(), s->name_,
+                                                         get_quick_reply_message_object(s->messages_[0].get(), source),
+                                                         get_shortcut_message_count(s));
 }
 
 void QuickReplyManager::get_quick_reply_shortcuts(Promise<Unit> &&promise) {

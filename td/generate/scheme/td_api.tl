@@ -3747,10 +3747,11 @@ storyInteractions total_count:int32 total_forward_count:int32 total_reaction_cou
 quickReplyMessage id:int53 sending_state:MessageSendingState can_be_edited:Bool forward_info:messageForwardInfo reply_to_message_id:int53 via_bot_user_id:int53 media_album_id:int64 content:MessageContent = QuickReplyMessage;
 
 //@description Describes a shortcut that can be used for a quick reply
+//@id Unique shortcut identifier
 //@name The name of the shortcut that can be used to use the shortcut
 //@first_message The first shortcut message
 //@message_count The total number of messages in the shortcut
-quickReplyShortcut name:string first_message:quickReplyMessage message_count:int32 = QuickReplyShortcut;
+quickReplyShortcut id:int32 name:string first_message:quickReplyMessage message_count:int32 = QuickReplyShortcut;
 
 
 //@class PublicForward @description Describes a public forward or repost of a story
