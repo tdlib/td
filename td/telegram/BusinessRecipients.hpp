@@ -30,7 +30,7 @@ void BusinessRecipients::store(StorerT &storer) const {
 
 template <class ParserT>
 void BusinessRecipients::parse(ParserT &parser) {
-  bool has_user_ids = !user_ids_.empty();
+  bool has_user_ids;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(existing_chats_);
   PARSE_FLAG(new_chats_);

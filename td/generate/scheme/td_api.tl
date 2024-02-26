@@ -576,6 +576,20 @@ botMenuButton text:string url:string = BotMenuButton;
 chatLocation location:location address:string = ChatLocation;
 
 
+//@class BusinessAwayMessageSchedule @description Describes conditions for sending of away messages by a Telegram Business account
+
+//@description Send away messages if the account was online more than 10 minutes
+businessAwayMessageScheduleOffline = BusinessAwayMessageSchedule;
+
+//@description Send away messages outside of the business work hours
+businessAwayMessageScheduleOutsideOfWorkHours = BusinessAwayMessageSchedule;
+
+//@description Send away messages only in the specified time span
+//@start_date Point in time (Unix timestamp) when the away messages will start to be sent
+//@end_date Point in time (Unix timestamp) when the away messages will stop to be sent
+businessAwayMessageScheduleCustom start_date:int32 end_date:int32 = BusinessAwayMessageSchedule;
+
+
 //@description Represents a location of a business @location The location; may be null if not specified @address Location address; 1-96 characters
 businessLocation location:location address:string = BusinessLocation;
 
