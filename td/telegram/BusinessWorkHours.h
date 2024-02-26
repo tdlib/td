@@ -17,37 +17,6 @@ namespace td {
 class Td;
 
 class BusinessWorkHours {
-  struct WorkHoursInterval {
-    int32 start_minute_ = 0;
-    int32 end_minute_ = 0;
-
-    WorkHoursInterval() = default;
-    WorkHoursInterval(int32 start_minute, int32 end_minute) : start_minute_(start_minute), end_minute_(end_minute) {
-    }
-
-    td_api::object_ptr<td_api::businessWorkHoursInterval> get_business_work_hours_interval_object() const;
-
-    telegram_api::object_ptr<telegram_api::businessWeeklyOpen> get_input_business_weekly_open() const;
-
-    template <class StorerT>
-    void store(StorerT &storer) const;
-
-    template <class ParserT>
-    void parse(ParserT &parser);
-  };
-  vector<WorkHoursInterval> work_hours_;
-  string time_zone_id_;
-
-  friend bool operator==(const WorkHoursInterval &lhs, const WorkHoursInterval &rhs);
-  friend bool operator!=(const WorkHoursInterval &lhs, const WorkHoursInterval &rhs);
-
-  friend bool operator==(const BusinessWorkHours &lhs, const BusinessWorkHours &rhs);
-  friend bool operator!=(const BusinessWorkHours &lhs, const BusinessWorkHours &rhs);
-
-  friend StringBuilder &operator<<(StringBuilder &string_builder, const WorkHoursInterval &interval);
-
-  friend StringBuilder &operator<<(StringBuilder &string_builder, const BusinessWorkHours &work_hours);
-
  public:
   BusinessWorkHours() = default;
 
@@ -66,6 +35,39 @@ class BusinessWorkHours {
 
   template <class ParserT>
   void parse(ParserT &parser);
+
+ private:
+  struct WorkHoursInterval {
+    int32 start_minute_ = 0;
+    int32 end_minute_ = 0;
+
+    WorkHoursInterval() = default;
+    WorkHoursInterval(int32 start_minute, int32 end_minute) : start_minute_(start_minute), end_minute_(end_minute) {
+    }
+
+    td_api::object_ptr<td_api::businessWorkHoursInterval> get_business_work_hours_interval_object() const;
+
+    telegram_api::object_ptr<telegram_api::businessWeeklyOpen> get_input_business_weekly_open() const;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
+  };
+
+  friend bool operator==(const WorkHoursInterval &lhs, const WorkHoursInterval &rhs);
+  friend bool operator!=(const WorkHoursInterval &lhs, const WorkHoursInterval &rhs);
+
+  friend bool operator==(const BusinessWorkHours &lhs, const BusinessWorkHours &rhs);
+  friend bool operator!=(const BusinessWorkHours &lhs, const BusinessWorkHours &rhs);
+
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const WorkHoursInterval &interval);
+
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const BusinessWorkHours &work_hours);
+
+  vector<WorkHoursInterval> work_hours_;
+  string time_zone_id_;
 };
 
 bool operator==(const BusinessWorkHours::WorkHoursInterval &lhs, const BusinessWorkHours::WorkHoursInterval &rhs);
