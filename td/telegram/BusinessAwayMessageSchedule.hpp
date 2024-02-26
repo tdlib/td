@@ -23,10 +23,10 @@ void BusinessAwayMessageSchedule::store(StorerT &storer) const {
   END_STORE_FLAGS();
   td::store(type_, storer);
   if (has_start_date) {
-    td::store(start_date, storer);
+    td::store(start_date_, storer);
   }
   if (has_end_date) {
-    td::store(end_date, storer);
+    td::store(end_date_, storer);
   }
 }
 
@@ -40,10 +40,10 @@ void BusinessAwayMessageSchedule::parse(ParserT &parser) {
   END_PARSE_FLAGS();
   td::parse(type_, parser);
   if (has_start_date) {
-    td::parse(start_date, parser);
+    td::parse(start_date_, parser);
   }
   if (has_end_date) {
-    td::parse(end_date, parser);
+    td::parse(end_date_, parser);
   }
 }
 

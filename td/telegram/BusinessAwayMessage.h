@@ -31,6 +31,10 @@ class BusinessAwayMessage {
 
   telegram_api::object_ptr<telegram_api::inputBusinessAwayMessage> get_input_business_away_message(Td *td) const;
 
+  bool is_empty() const {
+    return !is_valid();
+  }
+
   bool is_valid() const {
     return shortcut_id_.is_server();
   }

@@ -11,6 +11,7 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/BlockListId.h"
 #include "td/telegram/BotMenuButton.h"
+#include "td/telegram/BusinessAwayMessage.h"
 #include "td/telegram/BusinessInfo.h"
 #include "td/telegram/BusinessInfo.hpp"
 #include "td/telegram/BusinessWorkHours.h"
@@ -11372,6 +11373,8 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   on_update_user_full_is_blocked(user_full, user_id, user->blocked_, user->blocked_my_stories_from_);
   on_update_user_full_common_chat_count(user_full, user_id, user->common_chats_count_);
   on_update_user_full_location(user_full, user_id, DialogLocation(td_, std::move(user->business_location_)));
+  on_update_user_full_work_hours(user_full, user_id, BusinessWorkHours(std::move(user->business_work_hours_)));
+  on_update_user_full_away_message(user_full, user_id, BusinessAwayMessage(std::move(user->business_away_message_)));
   on_update_user_full_need_phone_number_privacy_exception(user_full, user_id,
                                                           user->settings_->need_contacts_exception_);
   on_update_user_full_wallpaper_overridden(user_full, user_id, user->wallpaper_overridden_);
@@ -12788,6 +12791,33 @@ void ContactsManager::on_update_user_full_work_hours(UserFull *user_full, UserId
                                                      BusinessWorkHours &&work_hours) {
   CHECK(user_full != nullptr);
   if (BusinessInfo::set_work_hours(user_full->business_info, std::move(work_hours))) {
+    user_full->is_changed = true;
+  }
+}
+
+void ContactsManager::on_update_user_away_message(UserId user_id, BusinessAwayMessage &&away_message) {
+  LOG(INFO) << "Receive " << away_message << " for " << user_id;
+  if (!user_id.is_valid()) {
+    LOG(ERROR) << "Receive invalid " << user_id;
+    return;
+  }
+
+  UserFull *user_full = get_user_full_force(user_id, "on_update_user_away_message");
+  if (user_full == nullptr) {
+    return;
+  }
+  on_update_user_full_away_message(user_full, user_id, std::move(away_message));
+  update_user_full(user_full, user_id, "on_update_user_away_message");
+}
+
+void ContactsManager::on_update_user_full_away_message(UserFull *user_full, UserId user_id,
+                                                       BusinessAwayMessage &&away_message) const {
+  CHECK(user_full != nullptr);
+  if (away_message.is_valid() && user_id != get_my_id()) {
+    LOG(ERROR) << "Receive " << away_message << " for " << user_id;
+    return;
+  }
+  if (BusinessInfo::set_away_message(user_full->business_info, std::move(away_message))) {
     user_full->is_changed = true;
   }
 }
@@ -17144,7 +17174,7 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
   auto voice_messages_forbidden = is_premium ? user_full->voice_messages_forbidden : false;
   auto block_list_id = BlockListId(user_full->is_blocked, user_full->is_blocked_for_stories);
   auto business_info = is_premium && user_full->business_info != nullptr
-                           ? user_full->business_info->get_business_info_object()
+                           ? user_full->business_info->get_business_info_object(td_)
                            : nullptr;
   return td_api::make_object<td_api::userFullInfo>(
       get_chat_photo_object(td_->file_manager_.get(), user_full->personal_photo),

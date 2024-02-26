@@ -625,7 +625,8 @@ businessWorkHours time_zone_id:string work_hours:vector<businessWorkHoursInterva
 //@description Contains information about a Telegram Business account
 //@location Location of the business; may be null if none
 //@work_hours Work hours of the business; may be null if none
-businessInfo location:businessLocation work_hours:businessWorkHours = BusinessInfo;
+//@away_message_settings The away message; may be null if none or the Business account is not of the current user
+businessInfo location:businessLocation work_hours:businessWorkHours away_message_settings:businessAwayMessageSettings = BusinessInfo;
 
 
 //@class ChatPhotoStickerType @description Describes type of a sticker, which was used to create a chat photo

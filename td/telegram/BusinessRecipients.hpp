@@ -22,6 +22,7 @@ void BusinessRecipients::store(StorerT &storer) const {
   STORE_FLAG(contacts_);
   STORE_FLAG(non_contacts_);
   STORE_FLAG(exclude_selected_);
+  STORE_FLAG(has_user_ids);
   END_STORE_FLAGS();
   if (has_user_ids) {
     td::store(user_ids_, storer);
@@ -37,6 +38,7 @@ void BusinessRecipients::parse(ParserT &parser) {
   PARSE_FLAG(contacts_);
   PARSE_FLAG(non_contacts_);
   PARSE_FLAG(exclude_selected_);
+  PARSE_FLAG(has_user_ids);
   END_PARSE_FLAGS();
   if (has_user_ids) {
     td::parse(user_ids_, parser);

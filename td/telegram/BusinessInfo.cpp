@@ -8,9 +8,10 @@
 
 namespace td {
 
-td_api::object_ptr<td_api::businessInfo> BusinessInfo::get_business_info_object() const {
+td_api::object_ptr<td_api::businessInfo> BusinessInfo::get_business_info_object(Td *td) const {
   return td_api::make_object<td_api::businessInfo>(location_.get_business_location_object(),
-                                                   work_hours_.get_business_work_hours_object());
+                                                   work_hours_.get_business_work_hours_object(),
+                                                   away_message_.get_business_away_message_settings_object(td));
 }
 
 bool BusinessInfo::is_empty_location(const DialogLocation &location) {
@@ -18,7 +19,7 @@ bool BusinessInfo::is_empty_location(const DialogLocation &location) {
 }
 
 bool BusinessInfo::is_empty() const {
-  return is_empty_location(location_) && work_hours_.is_empty();
+  return is_empty_location(location_) && work_hours_.is_empty() && away_message_.is_empty();
 }
 
 bool BusinessInfo::set_location(unique_ptr<BusinessInfo> &business_info, DialogLocation &&location) {
@@ -44,6 +45,20 @@ bool BusinessInfo::set_work_hours(unique_ptr<BusinessInfo> &business_info, Busin
   }
   if (business_info->work_hours_ != work_hours) {
     business_info->work_hours_ = std::move(work_hours);
+    return true;
+  }
+  return false;
+}
+
+bool BusinessInfo::set_away_message(unique_ptr<BusinessInfo> &business_info, BusinessAwayMessage &&away_message) {
+  if (business_info == nullptr) {
+    if (away_message.is_empty()) {
+      return false;
+    }
+    business_info = make_unique<BusinessInfo>();
+  }
+  if (business_info->away_message_ != away_message) {
+    business_info->away_message_ = std::move(away_message);
     return true;
   }
   return false;
