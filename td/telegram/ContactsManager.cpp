@@ -10774,6 +10774,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     if (user_full != nullptr) {
       user_full->need_send_update = true;
       update_user_full(user_full, user_id, "update_user is_full_info_changed");
+      reload_user_full(user_id, Promise<Unit>(), "update_user");
     }
   }
 }
