@@ -19,6 +19,8 @@ class Td;
 
 class BusinessRecipients {
  public:
+  BusinessRecipients() = default;
+
   explicit BusinessRecipients(telegram_api::object_ptr<telegram_api::businessRecipients> recipients);
 
   explicit BusinessRecipients(td_api::object_ptr<td_api::businessRecipients> recipients);

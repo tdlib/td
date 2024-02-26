@@ -588,6 +588,12 @@ businessLocation location:location address:string = BusinessLocation;
 //@exclude_selected If true, then all private chats except the selected are chosen. Otherwise, only the selected chats are chosen
 businessRecipients chat_ids:vector<int53> select_existing_chats:Bool select_new_chats:Bool select_contacts:Bool select_non_contacts:Bool exclude_selected:Bool = BusinessRecipients;
 
+//@description Describes settings for greeting messages that are automatically sent by a Telegram Business account as response to incoming messages in an inactive private chat
+//@shortcut_id Unique quick reply shortcut identifier for the greeting messages
+//@recipients Chosen recipients of the greeting messages
+//@inactivity_days The number of days after which a chat will be considered as inactive; currently, must be on of 7, 14, 21, or 28
+businessGreetingMessageSettings shortcut_id:int32 recipients:businessRecipients inactivity_days:int32 = BusinessGreetingMessageSettings;
+
 //@description Describes an interval of time when the business is open
 //@start_minute The first minute of the interval since start of the week; 0-7*24*60
 //@end_minute The first minute after the end of the interval since start of the week; 1-8*24*60
