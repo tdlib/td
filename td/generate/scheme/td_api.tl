@@ -579,6 +579,14 @@ chatLocation location:location address:string = ChatLocation;
 //@description Represents a location of a business @location The location; may be null if not specified @address Location address; 1-96 characters
 businessLocation location:location address:string = BusinessLocation;
 
+//@description Describes private chats chosen for automatic interaction with a business
+//@chat_ids Identifiers of selected private chats
+//@select_existing_chats True, if all existing private chats are selected
+//@select_new_chats True, if all new private chats are selected
+//@select_contacts True, if all private chats with contacts are selected
+//@select_non_contacts True, if all private chats with non-contacts are selected
+//@exclude_selected If true, then all private chats except the selected are chosen. Otherwise, only the selected chats are chosen
+businessRecipients chat_ids:vector<int53> select_existing_chats:Bool select_new_chats:Bool select_contacts:Bool select_non_contacts:Bool exclude_selected:Bool = BusinessRecipients;
 
 //@description Describes an interval of time when the business is open
 //@start_minute The first minute of the interval since start of the week; 0-7*24*60

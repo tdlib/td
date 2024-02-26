@@ -309,6 +309,8 @@ function split_file($file, $chunks, $undo) {
                 'BotMenuButton|[a-z_]*_menu_button' => 'BotMenuButton',
                 'boost_manager[_(-](?![.]get[(][)])|BoostManager' => 'BoostManager',
                 'bot_info_manager[_(-](?![.]get[(][)])|BotInfoManager' => 'BotInfoManager',
+                'BusinessRecipients' => 'BusinessRecipients',
+                'BusinessWorkHours' => 'BusinessWorkHours',
                 'callback_queries_manager[_(-](?![.]get[(][)])|CallbackQueriesManager' => 'CallbackQueriesManager',
                 'CallId' => 'CallId',
                 'call_manager[_(-](?![.]get[(][)])|CallManager' => 'CallManager',
