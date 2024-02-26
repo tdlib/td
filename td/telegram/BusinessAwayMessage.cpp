@@ -16,10 +16,13 @@
 
 namespace td {
 
-BusinessAwayMessage::BusinessAwayMessage(telegram_api::object_ptr<telegram_api::businessAwayMessage> away_message)
-    : shortcut_id_(away_message->shortcut_id_)
-    , recipients_(std::move(away_message->recipients_))
-    , schedule_(std::move(away_message->schedule_)) {
+BusinessAwayMessage::BusinessAwayMessage(telegram_api::object_ptr<telegram_api::businessAwayMessage> away_message) {
+  if (away_message == nullptr) {
+    return;
+  }
+  shortcut_id_ = QuickReplyShortcutId(away_message->shortcut_id_);
+  recipients_ = BusinessRecipients(std::move(away_message->recipients_));
+  schedule_ = BusinessAwayMessageSchedule(std::move(away_message->schedule_));
 }
 
 BusinessAwayMessage::BusinessAwayMessage(td_api::object_ptr<td_api::businessAwayMessageSettings> away_message) {
@@ -33,7 +36,7 @@ BusinessAwayMessage::BusinessAwayMessage(td_api::object_ptr<td_api::businessAway
 
 td_api::object_ptr<td_api::businessAwayMessageSettings> BusinessAwayMessage::get_business_away_message_settings_object(
     Td *td) const {
-  if (!is_valid()) {
+  if (is_empty()) {
     return nullptr;
   }
   return td_api::make_object<td_api::businessAwayMessageSettings>(

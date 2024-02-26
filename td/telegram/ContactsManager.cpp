@@ -12,6 +12,7 @@
 #include "td/telegram/BlockListId.h"
 #include "td/telegram/BotMenuButton.h"
 #include "td/telegram/BusinessAwayMessage.h"
+#include "td/telegram/BusinessGreetingMessage.h"
 #include "td/telegram/BusinessInfo.h"
 #include "td/telegram/BusinessInfo.hpp"
 #include "td/telegram/BusinessWorkHours.h"
@@ -11375,6 +11376,8 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   on_update_user_full_location(user_full, user_id, DialogLocation(td_, std::move(user->business_location_)));
   on_update_user_full_work_hours(user_full, user_id, BusinessWorkHours(std::move(user->business_work_hours_)));
   on_update_user_full_away_message(user_full, user_id, BusinessAwayMessage(std::move(user->business_away_message_)));
+  on_update_user_full_greeting_message(user_full, user_id,
+                                       BusinessGreetingMessage(std::move(user->business_greeting_message_)));
   on_update_user_full_need_phone_number_privacy_exception(user_full, user_id,
                                                           user->settings_->need_contacts_exception_);
   on_update_user_full_wallpaper_overridden(user_full, user_id, user->wallpaper_overridden_);
@@ -12818,6 +12821,33 @@ void ContactsManager::on_update_user_full_away_message(UserFull *user_full, User
     return;
   }
   if (BusinessInfo::set_away_message(user_full->business_info, std::move(away_message))) {
+    user_full->is_changed = true;
+  }
+}
+
+void ContactsManager::on_update_user_greeting_message(UserId user_id, BusinessGreetingMessage &&greeting_message) {
+  LOG(INFO) << "Receive " << greeting_message << " for " << user_id;
+  if (!user_id.is_valid()) {
+    LOG(ERROR) << "Receive invalid " << user_id;
+    return;
+  }
+
+  UserFull *user_full = get_user_full_force(user_id, "on_update_user_greeting_message");
+  if (user_full == nullptr) {
+    return;
+  }
+  on_update_user_full_greeting_message(user_full, user_id, std::move(greeting_message));
+  update_user_full(user_full, user_id, "on_update_user_greeting_message");
+}
+
+void ContactsManager::on_update_user_full_greeting_message(UserFull *user_full, UserId user_id,
+                                                           BusinessGreetingMessage &&greeting_message) const {
+  CHECK(user_full != nullptr);
+  if (greeting_message.is_valid() && user_id != get_my_id()) {
+    LOG(ERROR) << "Receive " << greeting_message << " for " << user_id;
+    return;
+  }
+  if (BusinessInfo::set_greeting_message(user_full->business_info, std::move(greeting_message))) {
     user_full->is_changed = true;
   }
 }

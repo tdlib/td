@@ -32,6 +32,10 @@ class BusinessGreetingMessage {
   telegram_api::object_ptr<telegram_api::inputBusinessGreetingMessage> get_input_business_greeting_message(
       Td *td) const;
 
+  bool is_empty() const {
+    return !is_valid();
+  }
+
   bool is_valid() const {
     return shortcut_id_.is_server();
   }

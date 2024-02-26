@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/BusinessAwayMessage.h"
+#include "td/telegram/BusinessGreetingMessage.h"
 #include "td/telegram/BusinessWorkHours.h"
 #include "td/telegram/DialogLocation.h"
 #include "td/telegram/td_api.h"
@@ -29,6 +30,8 @@ class BusinessInfo {
 
   static bool set_away_message(unique_ptr<BusinessInfo> &business_info, BusinessAwayMessage &&away_message);
 
+  static bool set_greeting_message(unique_ptr<BusinessInfo> &business_info, BusinessGreetingMessage &&greeting_message);
+
   template <class StorerT>
   void store(StorerT &storer) const;
 
@@ -41,6 +44,7 @@ class BusinessInfo {
   DialogLocation location_;
   BusinessWorkHours work_hours_;
   BusinessAwayMessage away_message_;
+  BusinessGreetingMessage greeting_message_;
 };
 
 }  // namespace td

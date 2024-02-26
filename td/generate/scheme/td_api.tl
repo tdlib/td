@@ -626,7 +626,8 @@ businessWorkHours time_zone_id:string work_hours:vector<businessWorkHoursInterva
 //@location Location of the business; may be null if none
 //@work_hours Work hours of the business; may be null if none
 //@away_message_settings The away message; may be null if none or the Business account is not of the current user
-businessInfo location:businessLocation work_hours:businessWorkHours away_message_settings:businessAwayMessageSettings = BusinessInfo;
+//@greeting_message_settings The greeting message; may be null if none or the Business account is not of the current user
+businessInfo location:businessLocation work_hours:businessWorkHours away_message_settings:businessAwayMessageSettings greeting_message_settings:businessGreetingMessageSettings = BusinessInfo;
 
 
 //@class ChatPhotoStickerType @description Describes type of a sticker, which was used to create a chat photo

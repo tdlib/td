@@ -17,10 +17,13 @@
 namespace td {
 
 BusinessGreetingMessage::BusinessGreetingMessage(
-    telegram_api::object_ptr<telegram_api::businessGreetingMessage> greeting_message)
-    : shortcut_id_(greeting_message->shortcut_id_)
-    , recipients_(std::move(greeting_message->recipients_))
-    , inactivity_days_(clamp(greeting_message->no_activity_days_ / 7 * 7, 7, 28)) {
+    telegram_api::object_ptr<telegram_api::businessGreetingMessage> greeting_message) {
+  if (greeting_message == nullptr) {
+    return;
+  }
+  shortcut_id_ = QuickReplyShortcutId(greeting_message->shortcut_id_);
+  recipients_ = BusinessRecipients(std::move(greeting_message->recipients_));
+  inactivity_days_ = clamp(greeting_message->no_activity_days_ / 7 * 7, 7, 28);
 }
 
 BusinessGreetingMessage::BusinessGreetingMessage(
@@ -39,7 +42,7 @@ BusinessGreetingMessage::BusinessGreetingMessage(
 
 td_api::object_ptr<td_api::businessGreetingMessageSettings>
 BusinessGreetingMessage::get_business_greeting_message_settings_object(Td *td) const {
-  if (!is_valid()) {
+  if (is_empty()) {
     return nullptr;
   }
   return td_api::make_object<td_api::businessGreetingMessageSettings>(

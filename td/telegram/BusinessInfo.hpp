@@ -9,6 +9,7 @@
 #include "td/telegram/BusinessInfo.h"
 
 #include "td/telegram/BusinessAwayMessage.hpp"
+#include "td/telegram/BusinessGreetingMessage.hpp"
 #include "td/telegram/BusinessWorkHours.hpp"
 
 #include "td/utils/common.h"
@@ -21,10 +22,12 @@ void BusinessInfo::store(StorerT &storer) const {
   bool has_location = !is_empty_location(location_);
   bool has_work_hours = !work_hours_.is_empty();
   bool has_away_message = away_message_.is_valid();
+  bool has_greeting_message = greeting_message_.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_location);
   STORE_FLAG(has_work_hours);
   STORE_FLAG(has_away_message);
+  STORE_FLAG(has_greeting_message);
   END_STORE_FLAGS();
   if (has_location) {
     td::store(location_, storer);
@@ -35,6 +38,9 @@ void BusinessInfo::store(StorerT &storer) const {
   if (has_away_message) {
     td::store(away_message_, storer);
   }
+  if (has_greeting_message) {
+    td::store(greeting_message_, storer);
+  }
 }
 
 template <class ParserT>
@@ -42,10 +48,12 @@ void BusinessInfo::parse(ParserT &parser) {
   bool has_location;
   bool has_work_hours;
   bool has_away_message;
+  bool has_greeting_message;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_location);
   PARSE_FLAG(has_work_hours);
   PARSE_FLAG(has_away_message);
+  PARSE_FLAG(has_greeting_message);
   END_PARSE_FLAGS();
   if (has_location) {
     td::parse(location_, parser);
@@ -55,6 +63,9 @@ void BusinessInfo::parse(ParserT &parser) {
   }
   if (has_away_message) {
     td::parse(away_message_, parser);
+  }
+  if (has_greeting_message) {
+    td::parse(greeting_message_, parser);
   }
 }
 
