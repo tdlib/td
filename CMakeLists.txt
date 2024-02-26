@@ -301,6 +301,7 @@ set(TDLIB_SOURCE
   td/telegram/BotCommandScope.cpp
   td/telegram/BotInfoManager.cpp
   td/telegram/BotMenuButton.cpp
+  td/telegram/BusinessAwayMessage.cpp
   td/telegram/BusinessAwayMessageSchedule.cpp
   td/telegram/BusinessGreetingMessage.cpp
   td/telegram/BusinessRecipients.cpp
@@ -583,6 +584,7 @@ set(TDLIB_SOURCE
   td/telegram/BotCommandScope.h
   td/telegram/BotInfoManager.h
   td/telegram/BotMenuButton.h
+  td/telegram/BusinessAwayMessage.h
   td/telegram/BusinessAwayMessageSchedule.h
   td/telegram/BusinessGreetingMessage.h
   td/telegram/BusinessRecipients.h
@@ -885,6 +887,7 @@ set(TDLIB_SOURCE
   td/telegram/AuthManager.hpp
   td/telegram/BackgroundInfo.hpp
   td/telegram/BackgroundType.hpp
+  td/telegram/BusinessAwayMessage.hpp
   td/telegram/BusinessAwayMessageSchedule.hpp
   td/telegram/BusinessGreetingMessage.hpp
   td/telegram/BusinessRecipients.hpp

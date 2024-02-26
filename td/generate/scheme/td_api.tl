@@ -602,6 +602,12 @@ businessLocation location:location address:string = BusinessLocation;
 //@exclude_selected If true, then all private chats except the selected are chosen. Otherwise, only the selected chats are chosen
 businessRecipients chat_ids:vector<int53> select_existing_chats:Bool select_new_chats:Bool select_contacts:Bool select_non_contacts:Bool exclude_selected:Bool = BusinessRecipients;
 
+//@description Describes settings for messages that are automatically sent by a Telegram Business account when it is away
+//@shortcut_id Unique quick reply shortcut identifier for the away messages
+//@recipients Chosen recipients of the away messages
+//@schedule Settings used to check whether the current user is away
+businessAwayMessageSettings shortcut_id:int32 recipients:businessRecipients schedule:BusinessAwayMessageSchedule = BusinessAwayMessageSettings;
+
 //@description Describes settings for greeting messages that are automatically sent by a Telegram Business account as response to incoming messages in an inactive private chat
 //@shortcut_id Unique quick reply shortcut identifier for the greeting messages
 //@recipients Chosen recipients of the greeting messages
