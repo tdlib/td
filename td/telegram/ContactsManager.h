@@ -10,7 +10,6 @@
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/BotCommand.h"
 #include "td/telegram/BotMenuButton.h"
-#include "td/telegram/BusinessWorkHours.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChannelType.h"
 #include "td/telegram/ChatId.h"
@@ -67,9 +66,9 @@
 namespace td {
 
 struct BinlogEvent;
-
+class BusinessInfo;
+class BusinessWorkHours;
 struct MinChannel;
-
 class Td;
 
 class ContactsManager final : public Actor {
@@ -831,8 +830,7 @@ class ContactsManager final : public Actor {
 
     int32 common_chat_count = 0;
 
-    DialogLocation location;
-    BusinessWorkHours work_hours;
+    unique_ptr<BusinessInfo> business_info;
 
     bool is_blocked = false;
     bool is_blocked_for_stories = false;

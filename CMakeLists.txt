@@ -304,6 +304,7 @@ set(TDLIB_SOURCE
   td/telegram/BusinessAwayMessage.cpp
   td/telegram/BusinessAwayMessageSchedule.cpp
   td/telegram/BusinessGreetingMessage.cpp
+  td/telegram/BusinessInfo.cpp
   td/telegram/BusinessRecipients.cpp
   td/telegram/BusinessWorkHours.cpp
   td/telegram/CallActor.cpp
@@ -587,6 +588,7 @@ set(TDLIB_SOURCE
   td/telegram/BusinessAwayMessage.h
   td/telegram/BusinessAwayMessageSchedule.h
   td/telegram/BusinessGreetingMessage.h
+  td/telegram/BusinessInfo.h
   td/telegram/BusinessRecipients.h
   td/telegram/BusinessWorkHours.h
   td/telegram/CallActor.h
@@ -890,6 +892,7 @@ set(TDLIB_SOURCE
   td/telegram/BusinessAwayMessage.hpp
   td/telegram/BusinessAwayMessageSchedule.hpp
   td/telegram/BusinessGreetingMessage.hpp
+  td/telegram/BusinessInfo.hpp
   td/telegram/BusinessRecipients.hpp
   td/telegram/BusinessWorkHours.hpp
   td/telegram/ChatReactions.hpp

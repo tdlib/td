@@ -11,7 +11,9 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/BlockListId.h"
 #include "td/telegram/BotMenuButton.h"
-#include "td/telegram/BusinessWorkHours.hpp"
+#include "td/telegram/BusinessInfo.h"
+#include "td/telegram/BusinessInfo.hpp"
+#include "td/telegram/BusinessWorkHours.h"
 #include "td/telegram/CommonDialogManager.h"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/Dependencies.h"
@@ -3501,8 +3503,7 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   bool has_premium_gift_options = !premium_gift_options.empty();
   bool has_personal_photo = !personal_photo.is_empty();
   bool has_fallback_photo = !fallback_photo.is_empty();
-  bool has_location = !location.empty() || !location.get_address().empty();
-  bool has_work_hours = !work_hours.is_empty();
+  bool has_business_info = business_info != nullptr && !business_info->is_empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
   STORE_FLAG(is_blocked);
@@ -3529,8 +3530,7 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   STORE_FLAG(wallpaper_overridden);
   STORE_FLAG(read_dates_private);
   STORE_FLAG(contact_require_premium);
-  STORE_FLAG(has_location);  // 25
-  STORE_FLAG(has_work_hours);
+  STORE_FLAG(has_business_info);  // 25
   END_STORE_FLAGS();
   if (has_about) {
     store(about, storer);
@@ -3574,11 +3574,8 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   if (has_fallback_photo) {
     store(fallback_photo, storer);
   }
-  if (has_location) {
-    store(location, storer);
-  }
-  if (has_work_hours) {
-    store(work_hours, storer);
+  if (has_business_info) {
+    store(business_info, storer);
   }
 }
 
@@ -3598,8 +3595,7 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   bool has_premium_gift_options;
   bool has_personal_photo;
   bool has_fallback_photo;
-  bool has_location;
-  bool has_work_hours;
+  bool has_business_info;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_about);
   PARSE_FLAG(is_blocked);
@@ -3626,8 +3622,7 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   PARSE_FLAG(wallpaper_overridden);
   PARSE_FLAG(read_dates_private);
   PARSE_FLAG(contact_require_premium);
-  PARSE_FLAG(has_location);
-  PARSE_FLAG(has_work_hours);
+  PARSE_FLAG(has_business_info);
   END_PARSE_FLAGS();
   if (has_about) {
     parse(about, parser);
@@ -3671,11 +3666,8 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   if (has_fallback_photo) {
     parse(fallback_photo, parser);
   }
-  if (has_location) {
-    parse(location, parser);
-  }
-  if (has_work_hours) {
-    parse(work_hours, parser);
+  if (has_business_info) {
+    parse(business_info, parser);
   }
 }
 
@@ -12772,8 +12764,7 @@ void ContactsManager::on_update_user_location(UserId user_id, DialogLocation &&l
 
 void ContactsManager::on_update_user_full_location(UserFull *user_full, UserId user_id, DialogLocation &&location) {
   CHECK(user_full != nullptr);
-  if (user_full->location != location) {
-    user_full->location = std::move(location);
+  if (BusinessInfo::set_location(user_full->business_info, std::move(location))) {
     user_full->is_changed = true;
   }
 }
@@ -12796,8 +12787,7 @@ void ContactsManager::on_update_user_work_hours(UserId user_id, BusinessWorkHour
 void ContactsManager::on_update_user_full_work_hours(UserFull *user_full, UserId user_id,
                                                      BusinessWorkHours &&work_hours) {
   CHECK(user_full != nullptr);
-  if (user_full->work_hours != work_hours) {
-    user_full->work_hours = std::move(work_hours);
+  if (BusinessInfo::set_work_hours(user_full->business_info, std::move(work_hours))) {
     user_full->is_changed = true;
   }
 }
@@ -13188,8 +13178,7 @@ void ContactsManager::drop_user_full(UserId user_id) {
   user_full->menu_button = nullptr;
   user_full->commands.clear();
   user_full->common_chat_count = 0;
-  user_full->location = {};
-  user_full->work_hours = {};
+  user_full->business_info = nullptr;
   user_full->private_forward_name.clear();
   user_full->group_administrator_rights = {};
   user_full->broadcast_administrator_rights = {};
@@ -17154,6 +17143,9 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
   }
   auto voice_messages_forbidden = is_premium ? user_full->voice_messages_forbidden : false;
   auto block_list_id = BlockListId(user_full->is_blocked, user_full->is_blocked_for_stories);
+  auto business_info = is_premium && user_full->business_info != nullptr
+                           ? user_full->business_info->get_business_info_object()
+                           : nullptr;
   return td_api::make_object<td_api::userFullInfo>(
       get_chat_photo_object(td_->file_manager_.get(), user_full->personal_photo),
       get_chat_photo_object(td_->file_manager_.get(), user_full->photo),
@@ -17162,8 +17154,7 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
       !user_full->private_forward_name.empty(), voice_messages_forbidden, user_full->has_pinned_stories,
       user_full->need_phone_number_privacy_exception, user_full->wallpaper_overridden, std::move(bio_object),
       get_premium_payment_options_object(user_full->premium_gift_options), user_full->common_chat_count,
-      user_full->location.get_business_location_object(), user_full->work_hours.get_business_work_hours_object(),
-      std::move(bot_info));
+      std::move(business_info), std::move(bot_info));
 }
 
 td_api::object_ptr<td_api::updateBasicGroup> ContactsManager::get_update_basic_group_object(ChatId chat_id,

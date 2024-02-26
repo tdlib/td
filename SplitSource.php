@@ -311,6 +311,7 @@ function split_file($file, $chunks, $undo) {
                 'bot_info_manager[_(-](?![.]get[(][)])|BotInfoManager' => 'BotInfoManager',
                 'BusinessAwayMessage' => 'BusinessAwayMessage',
                 'BusinessGreetingMessage' => 'BusinessGreetingMessage',
+                'BusinessInfo|business_info' => 'BusinessInfo',
                 'BusinessRecipients' => 'BusinessRecipients',
                 'BusinessWorkHours' => 'BusinessWorkHours',
                 'callback_queries_manager[_(-](?![.]get[(][)])|CallbackQueriesManager' => 'CallbackQueriesManager',
