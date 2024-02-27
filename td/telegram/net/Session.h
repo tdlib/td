@@ -171,7 +171,6 @@ class Session final
   unique_ptr<mtproto::RawConnection> cached_connection_;
 
   std::shared_ptr<Callback> callback_;
-  mtproto::AuthData auth_data_;
   bool use_pfs_{false};
   bool need_check_main_key_{false};
   TempAuthKeyWatchdog::RegisteredAuthKey registered_temp_auth_key_;
@@ -197,6 +196,10 @@ class Session final
   std::array<HandshakeInfo, 2> handshake_info_;
 
   double wakeup_at_;
+
+  // mtproto::AuthData should be the last field, because it's size is about 32 KB
+  mtproto::AuthData auth_data_;
+
   void on_handshake_ready(Result<unique_ptr<mtproto::AuthKeyHandshake>> r_handshake);
   void create_gen_auth_key_actor(HandshakeId handshake_id);
   void auth_loop(double now);
