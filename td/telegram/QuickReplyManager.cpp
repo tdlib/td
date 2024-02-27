@@ -705,7 +705,7 @@ bool QuickReplyManager::is_shortcut_list_changed(const vector<unique_ptr<Shortcu
     return true;
   }
   for (size_t i = 0; i < new_shortcuts.size(); i++) {
-    if (shortcuts_.shortcuts_[i]->name_ != new_shortcuts[i]->name_) {
+    if (shortcuts_.shortcuts_[i]->shortcut_id_ != new_shortcuts[i]->shortcut_id_) {
       return true;
     }
   }
@@ -736,12 +736,11 @@ int64 QuickReplyManager::get_shortcuts_hash() const {
   return get_vector_hash(numbers);
 }
 
-void QuickReplyManager::delete_quick_reply_shortcut(const string &name, Promise<Unit> &&promise) {
-  auto it = get_shortcut_it(name);
+void QuickReplyManager::delete_quick_reply_shortcut(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise) {
+  auto it = get_shortcut_it(shortcut_id);
   if (it == shortcuts_.shortcuts_.end()) {
     return promise.set_error(Status::Error(400, "Shortcut not found"));
   }
-  auto shortcut_id = (*it)->shortcut_id_;
   shortcuts_.shortcuts_.erase(it);
 
   if (!shortcut_id.is_server()) {
@@ -759,34 +758,36 @@ void QuickReplyManager::delete_quick_reply_shortcut_from_server(QuickReplyShortc
   td_->create_handler<DeleteQuickReplyShortcutQuery>(std::move(promise))->send(shortcut_id);
 }
 
-void QuickReplyManager::reorder_quick_reply_shortcuts(const vector<string> &names, Promise<Unit> &&promise) {
-  FlatHashSet<string> unique_names;
-  for (const auto &name : names) {
-    if (get_shortcut(name) == nullptr) {
+void QuickReplyManager::reorder_quick_reply_shortcuts(const vector<QuickReplyShortcutId> &shortcut_ids,
+                                                      Promise<Unit> &&promise) {
+  FlatHashSet<QuickReplyShortcutId, QuickReplyShortcutIdHash> unique_shortcut_ids;
+  for (const auto &shortcut_id : shortcut_ids) {
+    if (get_shortcut(shortcut_id) == nullptr) {
       return promise.set_error(Status::Error(400, "Shortcut not found"));
     }
-    unique_names.insert(name);
+    unique_shortcut_ids.insert(shortcut_id);
   }
-  if (unique_names.size() != names.size()) {
-    return promise.set_error(Status::Error(400, "Duplicate shortcut names specified"));
+  if (unique_shortcut_ids.size() != shortcut_ids.size()) {
+    return promise.set_error(Status::Error(400, "Duplicate shortcut identifiers specified"));
   }
   if (!shortcuts_.are_inited_) {
     return promise.set_value(Unit());
   }
+  auto old_shortcut_ids = get_shortcut_ids();
+  auto old_server_shortcut_ids = get_server_shortcut_ids();
   vector<unique_ptr<Shortcut>> shortcuts;
-  for (const auto &name : names) {
-    auto it = get_shortcut_it(name);
+  for (const auto &shortcut_id : shortcut_ids) {
+    auto it = get_shortcut_it(shortcut_id);
     CHECK(it != shortcuts_.shortcuts_.end() && *it != nullptr);
     shortcuts.push_back(std::move(*it));
   }
   for (auto &shortcut : shortcuts_.shortcuts_) {
     if (shortcut != nullptr) {
-      CHECK(unique_names.count(shortcut->name_) == 0);
+      CHECK(unique_shortcut_ids.count(shortcut->shortcut_id_) == 0);
       shortcuts.push_back(std::move(shortcut));
     }
   }
-  auto old_server_shortcut_ids = get_server_shortcut_ids();
-  bool is_list_changed = is_shortcut_list_changed(shortcuts);
+  bool is_list_changed = old_shortcut_ids != get_shortcut_ids();
   shortcuts_.shortcuts_ = std::move(shortcuts);
   if (!is_list_changed) {
     return promise.set_value(Unit());
@@ -794,7 +795,7 @@ void QuickReplyManager::reorder_quick_reply_shortcuts(const vector<string> &name
   send_update_quick_reply_shortcuts();
 
   auto new_server_shortcut_ids = get_server_shortcut_ids();
-  if (new_server_shortcut_ids == old_server_shortcut_ids || new_server_shortcut_ids.empty()) {
+  if (new_server_shortcut_ids == old_server_shortcut_ids) {
     return promise.set_value(Unit());
   }
 
@@ -830,6 +831,16 @@ QuickReplyManager::Shortcut *QuickReplyManager::get_shortcut(const string &name)
   return nullptr;
 }
 
+vector<unique_ptr<QuickReplyManager::Shortcut>>::iterator QuickReplyManager::get_shortcut_it(
+    QuickReplyShortcutId shortcut_id) {
+  for (auto it = shortcuts_.shortcuts_.begin(); it != shortcuts_.shortcuts_.end(); ++it) {
+    if ((*it)->shortcut_id_ == shortcut_id) {
+      return it;
+    }
+  }
+  return shortcuts_.shortcuts_.end();
+}
+
 vector<unique_ptr<QuickReplyManager::Shortcut>>::iterator QuickReplyManager::get_shortcut_it(const string &name) {
   for (auto it = shortcuts_.shortcuts_.begin(); it != shortcuts_.shortcuts_.end(); ++it) {
     if ((*it)->name_ == name) {
@@ -837,6 +848,10 @@ vector<unique_ptr<QuickReplyManager::Shortcut>>::iterator QuickReplyManager::get
     }
   }
   return shortcuts_.shortcuts_.end();
+}
+
+vector<QuickReplyShortcutId> QuickReplyManager::get_shortcut_ids() const {
+  return transform(shortcuts_.shortcuts_, [](const unique_ptr<Shortcut> &shortcut) { return shortcut->shortcut_id_; });
 }
 
 vector<QuickReplyShortcutId> QuickReplyManager::get_server_shortcut_ids() const {
@@ -936,7 +951,7 @@ void QuickReplyManager::send_update_quick_reply_shortcut(const Shortcut *s, cons
 td_api::object_ptr<td_api::updateQuickReplyShortcutDeleted>
 QuickReplyManager::get_update_quick_reply_shortcut_deleted_object(const Shortcut *s) const {
   CHECK(s != nullptr);
-  return td_api::make_object<td_api::updateQuickReplyShortcutDeleted>(s->name_);
+  return td_api::make_object<td_api::updateQuickReplyShortcutDeleted>(s->shortcut_id_.get());
 }
 
 void QuickReplyManager::send_update_quick_reply_shortcut_deleted(const Shortcut *s) {
@@ -946,8 +961,8 @@ void QuickReplyManager::send_update_quick_reply_shortcut_deleted(const Shortcut 
 td_api::object_ptr<td_api::updateQuickReplyShortcuts> QuickReplyManager::get_update_quick_reply_shortcuts_object()
     const {
   CHECK(shortcuts_.are_inited_);
-  return td_api::make_object<td_api::updateQuickReplyShortcuts>(
-      transform(shortcuts_.shortcuts_, [](const unique_ptr<Shortcut> &shortcut) { return shortcut->name_; }));
+  return td_api::make_object<td_api::updateQuickReplyShortcuts>(transform(
+      shortcuts_.shortcuts_, [](const unique_ptr<Shortcut> &shortcut) { return shortcut->shortcut_id_.get(); }));
 }
 
 void QuickReplyManager::send_update_quick_reply_shortcuts() {

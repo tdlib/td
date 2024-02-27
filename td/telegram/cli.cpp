@@ -940,6 +940,10 @@ class CliClient final : public Actor {
     return to_integer<int32>(trim(str));
   }
 
+  vector<int32> as_shortcut_ids(Slice shortcut_ids) const {
+    return transform(autosplit(shortcut_ids), [](Slice str) { return as_shortcut_id(str); });
+  }
+
   td_api::object_ptr<td_api::InputMessageReplyTo> get_input_message_reply_to() const {
     if (reply_message_id_ != 0) {
       td_api::object_ptr<td_api::inputTextQuote> quote;
@@ -4844,13 +4848,13 @@ class CliClient final : public Actor {
     } else if (op == "lqrs") {
       send_request(td_api::make_object<td_api::loadQuickReplyShortcuts>());
     } else if (op == "dqrs") {
-      string name;
-      get_args(args, name);
-      send_request(td_api::make_object<td_api::deleteQuickReplyShortcut>(name));
+      ShortcutId shortcut_id;
+      get_args(args, shortcut_id);
+      send_request(td_api::make_object<td_api::deleteQuickReplyShortcut>(shortcut_id));
     } else if (op == "rqrs") {
-      string names;
-      get_args(args, names);
-      send_request(td_api::make_object<td_api::reorderQuickReplyShortcuts>(autosplit_str(names)));
+      string shortcut_ids;
+      get_args(args, shortcut_ids);
+      send_request(td_api::make_object<td_api::reorderQuickReplyShortcuts>(as_shortcut_ids(shortcut_ids)));
     } else if (op == "gftdi") {
       send_request(td_api::make_object<td_api::getForumTopicDefaultIcons>());
     } else if (op == "cft") {

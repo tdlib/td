@@ -6637,11 +6637,11 @@ updateSavedMessagesTopicCount topic_count:int32 = Update;
 //@shortcut New data about the shortcut
 updateQuickReplyShortcut shortcut:quickReplyShortcut = Update;
 
-//@description A quick reply shortcut was deleted @name The name of the deleted shortcut
-updateQuickReplyShortcutDeleted name:string = Update;
+//@description A quick reply shortcut was deleted @shortcut_id The identifier of the deleted shortcut
+updateQuickReplyShortcutDeleted shortcut_id:int32 = Update;
 
-//@description The list of quick reply shortcuts has changed @shortcut_names The new list of names of quick reply shortcuts
-updateQuickReplyShortcuts shortcut_names:vector<string> = Update;
+//@description The list of quick reply shortcuts has changed @shortcut_ids The new list of identifiers of quick reply shortcuts
+updateQuickReplyShortcuts shortcut_ids:vector<int32> = Update;
 
 //@description Basic information about a topic in a forum chat was changed @chat_id Chat identifier @info New information about the topic
 updateForumTopicInfo chat_id:int53 info:forumTopicInfo = Update;
@@ -7773,11 +7773,11 @@ editMessageSchedulingState chat_id:int53 message_id:int53 scheduling_state:Messa
 //@description Loads quick reply shortcuts created by the current user. The loaded topics will be sent through updateQuickReplyShortcuts
 loadQuickReplyShortcuts = Ok;
 
-//@description Deletes a quick reply shortcut @shortcut_name The name of the quick reply shortcut
-deleteQuickReplyShortcut shortcut_name:string = Ok;
+//@description Deletes a quick reply shortcut @shortcut_id Unique identifier of the quick reply shortcut
+deleteQuickReplyShortcut shortcut_id:int32 = Ok;
 
-//@description Changes the order of quick reply shortcuts @shortcut_names The new order of quick reply shortcuts
-reorderQuickReplyShortcuts shortcut_names:vector<string> = Ok;
+//@description Changes the order of quick reply shortcuts @shortcut_ids The new order of quick reply shortcuts
+reorderQuickReplyShortcuts shortcut_ids:vector<int32> = Ok;
 
 
 //@description Returns list of custom emojis, which can be used as forum topic icon by all users
