@@ -15,8 +15,6 @@
 #include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageContentType.h"
-#include "td/telegram/MessageForwardInfo.h"
-#include "td/telegram/MessageForwardInfo.hpp"
 #include "td/telegram/MessageReplyHeader.h"
 #include "td/telegram/MessageSelfDestructType.h"
 #include "td/telegram/misc.h"
@@ -120,12 +118,9 @@ void QuickReplyManager::QuickReplyMessage::store(StorerT &storer) const {
   bool is_server = message_id.is_server();
   bool has_edit_date = edit_date != 0;
   bool has_random_id = !is_server && random_id != 0;
-  bool has_forward_info = forward_info != nullptr;
   bool has_reply_to_message_id = reply_to_message_id != MessageId();
   bool has_send_emoji = !is_server && !send_emoji.empty();
   bool has_via_bot_user_id = via_bot_user_id != UserId();
-  bool has_real_forward_from_dialog_id = !is_server && real_forward_from_dialog_id != DialogId();
-  bool has_real_forward_from_message_id = !is_server && real_forward_from_message_id != MessageId();
   bool has_legacy_layer = legacy_layer != 0;
   bool has_send_error_code = !is_server && send_error_code != 0;
   bool has_send_error_message = !is_server && !send_error_message.empty();
@@ -134,7 +129,6 @@ void QuickReplyManager::QuickReplyMessage::store(StorerT &storer) const {
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_edit_date);
   STORE_FLAG(has_random_id);
-  STORE_FLAG(has_forward_info);
   STORE_FLAG(has_reply_to_message_id);
   STORE_FLAG(has_send_emoji);
   STORE_FLAG(has_via_bot_user_id);
@@ -146,8 +140,6 @@ void QuickReplyManager::QuickReplyMessage::store(StorerT &storer) const {
   STORE_FLAG(from_background);
   STORE_FLAG(disable_web_page_preview);
   STORE_FLAG(hide_via_bot);
-  STORE_FLAG(has_real_forward_from_dialog_id);
-  STORE_FLAG(has_real_forward_from_message_id);
   STORE_FLAG(has_legacy_layer);
   STORE_FLAG(has_send_error_code);
   STORE_FLAG(has_send_error_message);
@@ -162,9 +154,6 @@ void QuickReplyManager::QuickReplyMessage::store(StorerT &storer) const {
   if (has_random_id) {
     td::store(random_id, storer);
   }
-  if (has_forward_info) {
-    td::store(forward_info, storer);
-  }
   if (has_reply_to_message_id) {
     td::store(reply_to_message_id, storer);
   }
@@ -173,12 +162,6 @@ void QuickReplyManager::QuickReplyMessage::store(StorerT &storer) const {
   }
   if (has_via_bot_user_id) {
     td::store(via_bot_user_id, storer);
-  }
-  if (has_real_forward_from_dialog_id) {
-    td::store(real_forward_from_dialog_id, storer);
-  }
-  if (has_real_forward_from_message_id) {
-    td::store(real_forward_from_message_id, storer);
   }
   if (has_legacy_layer) {
     td::store(legacy_layer, storer);
@@ -202,12 +185,9 @@ template <class ParserT>
 void QuickReplyManager::QuickReplyMessage::parse(ParserT &parser) {
   bool has_edit_date;
   bool has_random_id;
-  bool has_forward_info;
   bool has_reply_to_message_id;
   bool has_send_emoji;
   bool has_via_bot_user_id;
-  bool has_real_forward_from_dialog_id;
-  bool has_real_forward_from_message_id;
   bool has_legacy_layer;
   bool has_send_error_code;
   bool has_send_error_message;
@@ -216,7 +196,6 @@ void QuickReplyManager::QuickReplyMessage::parse(ParserT &parser) {
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_edit_date);
   PARSE_FLAG(has_random_id);
-  PARSE_FLAG(has_forward_info);
   PARSE_FLAG(has_reply_to_message_id);
   PARSE_FLAG(has_send_emoji);
   PARSE_FLAG(has_via_bot_user_id);
@@ -228,8 +207,6 @@ void QuickReplyManager::QuickReplyMessage::parse(ParserT &parser) {
   PARSE_FLAG(from_background);
   PARSE_FLAG(disable_web_page_preview);
   PARSE_FLAG(hide_via_bot);
-  PARSE_FLAG(has_real_forward_from_dialog_id);
-  PARSE_FLAG(has_real_forward_from_message_id);
   PARSE_FLAG(has_legacy_layer);
   PARSE_FLAG(has_send_error_code);
   PARSE_FLAG(has_send_error_message);
@@ -244,9 +221,6 @@ void QuickReplyManager::QuickReplyMessage::parse(ParserT &parser) {
   if (has_random_id) {
     td::parse(random_id, parser);
   }
-  if (has_forward_info) {
-    td::parse(forward_info, parser);
-  }
   if (has_reply_to_message_id) {
     td::parse(reply_to_message_id, parser);
   }
@@ -255,12 +229,6 @@ void QuickReplyManager::QuickReplyMessage::parse(ParserT &parser) {
   }
   if (has_via_bot_user_id) {
     td::parse(via_bot_user_id, parser);
-  }
-  if (has_real_forward_from_dialog_id) {
-    td::parse(real_forward_from_dialog_id, parser);
-  }
-  if (has_real_forward_from_message_id) {
-    td::parse(real_forward_from_message_id, parser);
   }
   if (has_legacy_layer) {
     td::parse(legacy_layer, parser);
@@ -359,16 +327,15 @@ unique_ptr<QuickReplyManager::QuickReplyMessage> QuickReplyManager::create_messa
 
       auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
       if (DialogId(message->peer_id_) != my_dialog_id || message->from_id_ != nullptr ||
-          message->saved_peer_id_ != nullptr || message->views_ != 0 || message->forwards_ != 0 ||
-          message->replies_ != nullptr || message->reactions_ != nullptr || message->ttl_period_ != 0 ||
-          !message->out_ || message->post_ || message->edit_hide_ || message->from_scheduled_ || message->pinned_ ||
-          message->noforwards_ || message->mentioned_ || message->media_unread_ || message->reply_markup_ != nullptr ||
-          !message->restriction_reason_.empty() || !message->post_author_.empty() ||
-          message->from_boosts_applied_ != 0) {
+          message->saved_peer_id_ != nullptr || message->fwd_from_ != nullptr || message->views_ != 0 ||
+          message->forwards_ != 0 || message->replies_ != nullptr || message->reactions_ != nullptr ||
+          message->ttl_period_ != 0 || !message->out_ || message->post_ || message->edit_hide_ ||
+          message->from_scheduled_ || message->pinned_ || message->noforwards_ || message->mentioned_ ||
+          message->media_unread_ || message->reply_markup_ != nullptr || !message->restriction_reason_.empty() ||
+          !message->post_author_.empty() || message->from_boosts_applied_ != 0) {
         LOG(ERROR) << "Receive an invalid quick reply from " << source << ": " << to_string(message);
       }
 
-      auto forward_header = std::move(message->fwd_from_);
       UserId via_bot_user_id;
       if (message->flags_ & telegram_api::message::VIA_BOT_ID_MASK) {
         via_bot_user_id = UserId(message->via_bot_id_);
@@ -417,7 +384,6 @@ unique_ptr<QuickReplyManager::QuickReplyMessage> QuickReplyManager::create_messa
       result->message_id = message_id;
       result->edit_date = max(message->edit_date_, 0);
       result->disable_web_page_preview = disable_web_page_preview;
-      result->forward_info = MessageForwardInfo::get_message_forward_info(td_, std::move(forward_header));
       result->reply_to_message_id = reply_to_message_id;
       result->via_bot_user_id = via_bot_user_id;
       result->disable_notification = message->silent_;
@@ -458,24 +424,17 @@ unique_ptr<QuickReplyManager::QuickReplyMessage> QuickReplyManager::create_messa
 void QuickReplyManager::add_quick_reply_message_dependencies(Dependencies &dependencies,
                                                              const QuickReplyMessage *m) const {
   auto is_bot = td_->auth_manager_->is_bot();
-  dependencies.add_dialog_and_dependencies(m->real_forward_from_dialog_id);
   dependencies.add(m->via_bot_user_id);
-  if (m->forward_info != nullptr) {
-    m->forward_info->add_dependencies(dependencies);
-  }
   add_message_content_dependencies(dependencies, m->content.get(), is_bot);
 }
 
 bool QuickReplyManager::can_edit_quick_reply_message(const QuickReplyMessage *m) const {
-  return m->message_id.is_server() && m->forward_info == nullptr && !m->via_bot_user_id.is_valid() &&
+  return m->message_id.is_server() && !m->via_bot_user_id.is_valid() &&
          is_editable_message_content(m->content->get_type());
 }
 
 bool QuickReplyManager::can_resend_quick_reply_message(const QuickReplyMessage *m) const {
   if (m->send_error_code != 429) {
-    return false;
-  }
-  if (m->forward_info != nullptr || m->real_forward_from_dialog_id.is_valid()) {
     return false;
   }
   if (m->via_bot_user_id.is_valid() || m->hide_via_bot) {
@@ -512,12 +471,10 @@ td_api::object_ptr<td_api::quickReplyMessage> QuickReplyManager::get_quick_reply
     const QuickReplyMessage *m, const char *source) const {
   CHECK(m != nullptr);
   auto can_be_edited = can_edit_quick_reply_message(m);
-  auto forward_info =
-      m->forward_info == nullptr ? nullptr : m->forward_info->get_message_forward_info_object(td_, false);
   return td_api::make_object<td_api::quickReplyMessage>(
-      m->message_id.get(), get_message_sending_state_object(m), can_be_edited, std::move(forward_info),
-      m->reply_to_message_id.get(), td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id"),
-      m->media_album_id, get_quick_reply_message_message_content_object(m));
+      m->message_id.get(), get_message_sending_state_object(m), can_be_edited, m->reply_to_message_id.get(),
+      td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id"), m->media_album_id,
+      get_quick_reply_message_message_content_object(m));
 }
 
 int32 QuickReplyManager::get_shortcut_message_count(const Shortcut *s) {

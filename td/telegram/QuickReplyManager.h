@@ -24,7 +24,6 @@ namespace td {
 
 class Dependencies;
 class MessageContent;
-class MessageForwardInfo;
 class Td;
 
 class QuickReplyManager final : public Actor {
@@ -57,8 +56,6 @@ class QuickReplyManager final : public Actor {
 
     int64 random_id = 0;  // for send_message
 
-    unique_ptr<MessageForwardInfo> forward_info;
-
     MessageId reply_to_message_id;
 
     string send_emoji;  // for send_message
@@ -74,9 +71,6 @@ class QuickReplyManager final : public Actor {
     bool from_background = false;           // for send_message
     bool disable_web_page_preview = false;  // for send_message
     bool hide_via_bot = false;              // for resend_message
-
-    DialogId real_forward_from_dialog_id;    // for resend_message
-    MessageId real_forward_from_message_id;  // for resend_message
 
     int32 legacy_layer = 0;
 
