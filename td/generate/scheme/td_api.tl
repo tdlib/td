@@ -625,9 +625,9 @@ businessWorkHours time_zone_id:string work_hours:vector<businessWorkHoursInterva
 //@description Contains information about a Telegram Business account
 //@location Location of the business; may be null if none
 //@work_hours Work hours of the business; may be null if none
-//@away_message_settings The away message; may be null if none or the Business account is not of the current user
 //@greeting_message_settings The greeting message; may be null if none or the Business account is not of the current user
-businessInfo location:businessLocation work_hours:businessWorkHours away_message_settings:businessAwayMessageSettings greeting_message_settings:businessGreetingMessageSettings = BusinessInfo;
+//@away_message_settings The away message; may be null if none or the Business account is not of the current user
+businessInfo location:businessLocation work_hours:businessWorkHours greeting_message_settings:businessGreetingMessageSettings away_message_settings:businessAwayMessageSettings = BusinessInfo;
 
 
 //@class ChatPhotoStickerType @description Describes type of a sticker, which was used to create a chat photo
@@ -9352,6 +9352,9 @@ setBusinessLocation location:businessLocation = Ok;
 
 //@description Changes the business work hours of the current user. Requires Telegram Business subscription @work_hours The new work hours of the business; pass null to remove the work hours
 setBusinessWorkHours work_hours:businessWorkHours = Ok;
+
+//@description Changes the business greeting message settings of the current user. Requires Telegram Business subscription @greeting_message_settings The new settings for the greeting message of the business; pass null to disable the greeting message
+setBusinessGreetingMessageSettings greeting_message_settings:businessGreetingMessageSettings = Ok;
 
 //@description Changes the business away message settings of the current user. Requires Telegram Business subscription @away_message_settings The new settings for the away message of the business; pass null to disable the away message
 setBusinessAwayMessageSettings away_message_settings:businessAwayMessageSettings = Ok;

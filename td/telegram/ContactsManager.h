@@ -472,6 +472,8 @@ class ContactsManager final : public Actor {
 
   void set_business_work_hours(BusinessWorkHours &&work_hours, Promise<Unit> &&promise);
 
+  void set_business_greeting_message(BusinessGreetingMessage &&greeting_message, Promise<Unit> &&promise);
+
   void set_business_away_message(BusinessAwayMessage &&away_message, Promise<Unit> &&promise);
 
   void set_chat_description(ChatId chat_id, const string &description, Promise<Unit> &&promise);

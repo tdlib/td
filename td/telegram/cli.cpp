@@ -5939,6 +5939,21 @@ class CliClient final : public Actor {
         send_request(td_api::make_object<td_api::setBusinessWorkHours>(
             td_api::make_object<td_api::businessWorkHours>(time_zone_id, std::move(intervals))));
       }
+    } else if (op == "sbgms") {
+      string shortcut_id;
+      string chat_ids;
+      int32 inactivity_days;
+      get_args(args, shortcut_id, chat_ids, inactivity_days);
+      if (shortcut_id.empty()) {
+        send_request(td_api::make_object<td_api::setBusinessGreetingMessageSettings>(nullptr));
+      } else {
+        send_request(td_api::make_object<td_api::setBusinessGreetingMessageSettings>(
+            td_api::make_object<td_api::businessGreetingMessageSettings>(
+                to_integer<int32>(shortcut_id),
+                td_api::make_object<td_api::businessRecipients>(as_chat_ids(chat_ids), rand_bool(), rand_bool(),
+                                                                rand_bool(), rand_bool(), rand_bool()),
+                inactivity_days)));
+      }
     } else if (op == "sbams") {
       string shortcut_id;
       string chat_ids;
