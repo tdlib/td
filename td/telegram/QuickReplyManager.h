@@ -206,6 +206,10 @@ class QuickReplyManager final : public Actor {
 
   void reorder_quick_reply_shortcuts_on_server(vector<QuickReplyShortcutId> shortcut_ids, Promise<Unit> &&promise);
 
+  string get_quick_reply_shortcuts_database_key();
+
+  void save_quick_reply_shortcuts();
+
   Shortcuts shortcuts_;
 
   FlatHashSet<QuickReplyShortcutId, QuickReplyShortcutIdHash> deleted_shortcut_ids_;

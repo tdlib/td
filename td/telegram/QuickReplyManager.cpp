@@ -523,6 +523,7 @@ void QuickReplyManager::on_reload_quick_reply_shortcuts(
     case telegram_api::messages_quickRepliesNotModified::ID:
       if (!shortcuts_.are_inited_) {
         shortcuts_.are_inited_ = true;
+        save_quick_reply_shortcuts();
         send_update_quick_reply_shortcuts();
       }
       break;
@@ -643,6 +644,7 @@ void QuickReplyManager::on_reload_quick_reply_shortcuts(
       shortcuts_.shortcuts_ = std::move(new_shortcuts);
       shortcuts_.are_inited_ = true;
 
+      save_quick_reply_shortcuts();
       for (auto shortcut_id : changed_shortcut_ids) {
         send_update_quick_reply_shortcut(get_shortcut(shortcut_id), "on_reload_quick_reply_shortcuts 2");
       }
@@ -697,6 +699,7 @@ void QuickReplyManager::delete_quick_reply_shortcut(QuickReplyShortcutId shortcu
     return promise.set_error(Status::Error(400, "Shortcut not found"));
   }
   shortcuts_.shortcuts_.erase(it);
+  save_quick_reply_shortcuts();
 
   if (!shortcut_id.is_server()) {
     return promise.set_value(Unit());
@@ -742,11 +745,11 @@ void QuickReplyManager::reorder_quick_reply_shortcuts(const vector<QuickReplySho
       shortcuts.push_back(std::move(shortcut));
     }
   }
-  bool is_list_changed = old_shortcut_ids != get_shortcut_ids();
   shortcuts_.shortcuts_ = std::move(shortcuts);
-  if (!is_list_changed) {
+  if (old_shortcut_ids == get_shortcut_ids()) {
     return promise.set_value(Unit());
   }
+  save_quick_reply_shortcuts();
   send_update_quick_reply_shortcuts();
 
   auto new_server_shortcut_ids = get_server_shortcut_ids();
@@ -892,6 +895,15 @@ bool QuickReplyManager::update_shortcut_from(Shortcut *new_shortcut, Shortcut *o
                        new_shortcut->name_ != old_shortcut->name_ ||
                        old_message_count != get_shortcut_message_count(new_shortcut);
   return *is_object_changed || is_changed || old_shortcut->server_total_count_ != new_shortcut->server_total_count_;
+}
+
+string QuickReplyManager::get_quick_reply_shortcuts_database_key() {
+  return "quick_reply_shortcuts";
+}
+
+void QuickReplyManager::save_quick_reply_shortcuts() {
+  G()->td_db()->get_binlog_pmc()->set(get_quick_reply_shortcuts_database_key(),
+                                      log_event_store(shortcuts_).as_slice().str());
 }
 
 td_api::object_ptr<td_api::updateQuickReplyShortcut> QuickReplyManager::get_update_quick_reply_shortcut_object(
