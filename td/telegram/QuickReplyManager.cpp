@@ -136,7 +136,6 @@ void QuickReplyManager::QuickReplyMessage::store(StorerT &storer) const {
   STORE_FLAG(disable_notification);
   STORE_FLAG(noforwards);
   STORE_FLAG(invert_media);
-  STORE_FLAG(is_copy);
   STORE_FLAG(from_background);
   STORE_FLAG(disable_web_page_preview);
   STORE_FLAG(hide_via_bot);
@@ -203,7 +202,6 @@ void QuickReplyManager::QuickReplyMessage::parse(ParserT &parser) {
   PARSE_FLAG(disable_notification);
   PARSE_FLAG(noforwards);
   PARSE_FLAG(invert_media);
-  PARSE_FLAG(is_copy);
   PARSE_FLAG(from_background);
   PARSE_FLAG(disable_web_page_preview);
   PARSE_FLAG(hide_via_bot);

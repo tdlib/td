@@ -67,7 +67,6 @@ class QuickReplyManager final : public Actor {
     bool noforwards = false;
     bool invert_media = false;
 
-    bool is_copy = false;                   // for send_message
     bool from_background = false;           // for send_message
     bool disable_web_page_preview = false;  // for send_message
     bool hide_via_bot = false;              // for resend_message
