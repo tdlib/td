@@ -1167,6 +1167,41 @@ class UpdateBusinessWorkHoursQuery final : public Td::ResultHandler {
   }
 };
 
+class UpdateBusinessAwayMessageQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  BusinessAwayMessage away_message_;
+
+ public:
+  explicit UpdateBusinessAwayMessageQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(BusinessAwayMessage &&away_message) {
+    away_message_ = std::move(away_message);
+    int32 flags = 0;
+    if (!away_message_.is_empty()) {
+      flags |= telegram_api::account_updateBusinessAwayMessage::MESSAGE_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::account_updateBusinessAwayMessage(flags, away_message_.get_input_business_away_message(td_)),
+        {{"me"}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_updateBusinessAwayMessage>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    td_->contacts_manager_->on_update_user_away_message(td_->contacts_manager_->get_my_id(), std::move(away_message_));
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class CreateChatQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::chat>> promise_;
 
@@ -7027,6 +7062,10 @@ void ContactsManager::set_business_location(DialogLocation &&location, Promise<U
 
 void ContactsManager::set_business_work_hours(BusinessWorkHours &&work_hours, Promise<Unit> &&promise) {
   td_->create_handler<UpdateBusinessWorkHoursQuery>(std::move(promise))->send(std::move(work_hours));
+}
+
+void ContactsManager::set_business_away_message(BusinessAwayMessage &&away_message, Promise<Unit> &&promise) {
+  td_->create_handler<UpdateBusinessAwayMessageQuery>(std::move(promise))->send(std::move(away_message));
 }
 
 void ContactsManager::set_chat_description(ChatId chat_id, const string &description, Promise<Unit> &&promise) {

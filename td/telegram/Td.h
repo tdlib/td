@@ -1380,6 +1380,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::setBusinessWorkHours &request);
 
+  void on_request(uint64 id, td_api::setBusinessAwayMessageSettings &request);
+
   void on_request(uint64 id, td_api::setProfilePhoto &request);
 
   void on_request(uint64 id, const td_api::deleteProfilePhoto &request);

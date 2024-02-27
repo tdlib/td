@@ -5939,6 +5939,31 @@ class CliClient final : public Actor {
         send_request(td_api::make_object<td_api::setBusinessWorkHours>(
             td_api::make_object<td_api::businessWorkHours>(time_zone_id, std::move(intervals))));
       }
+    } else if (op == "sbams") {
+      string shortcut_id;
+      string chat_ids;
+      string schedule;
+      get_args(args, shortcut_id, chat_ids, schedule);
+      if (shortcut_id.empty()) {
+        send_request(td_api::make_object<td_api::setBusinessAwayMessageSettings>(nullptr));
+      } else {
+        td_api::object_ptr<td_api::BusinessAwayMessageSchedule> schedule_object;
+        if (schedule[0] == 'o') {
+          schedule_object = td_api::make_object<td_api::businessAwayMessageScheduleOffline>();
+        } else if (schedule[0] == 'h') {
+          schedule_object = td_api::make_object<td_api::businessAwayMessageScheduleOutsideOfWorkHours>();
+        } else {
+          auto start_date = to_integer<int32>(schedule);
+          schedule_object = td_api::make_object<td_api::businessAwayMessageScheduleCustom>(
+              start_date, start_date + Random::fast(1000, 100000));
+        }
+        send_request(td_api::make_object<td_api::setBusinessAwayMessageSettings>(
+            td_api::make_object<td_api::businessAwayMessageSettings>(
+                to_integer<int32>(shortcut_id),
+                td_api::make_object<td_api::businessRecipients>(as_chat_ids(chat_ids), rand_bool(), rand_bool(),
+                                                                rand_bool(), rand_bool(), rand_bool()),
+                std::move(schedule_object))));
+      }
     } else if (op == "sco") {
       SearchQuery query;
       get_args(args, query);
