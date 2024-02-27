@@ -924,6 +924,22 @@ class CliClient final : public Actor {
     arg.file_id = as_file_id(args);
   }
 
+  struct ShortcutId {
+    int32 shortcut_id = 0;
+
+    operator int32() const {
+      return shortcut_id;
+    }
+  };
+
+  void get_args(string &args, ShortcutId &arg) const {
+    arg.shortcut_id = as_shortcut_id(args);
+  }
+
+  static int32 as_shortcut_id(Slice str) {
+    return to_integer<int32>(trim(str));
+  }
+
   td_api::object_ptr<td_api::InputMessageReplyTo> get_input_message_reply_to() const {
     if (reply_message_id_ != 0) {
       td_api::object_ptr<td_api::inputTextQuote> quote;
@@ -5940,26 +5956,26 @@ class CliClient final : public Actor {
             td_api::make_object<td_api::businessOpeningHours>(time_zone_id, std::move(intervals))));
       }
     } else if (op == "sbgms") {
-      string shortcut_id;
+      ShortcutId shortcut_id;
       string chat_ids;
       int32 inactivity_days;
       get_args(args, shortcut_id, chat_ids, inactivity_days);
-      if (shortcut_id.empty()) {
+      if (shortcut_id == 0) {
         send_request(td_api::make_object<td_api::setBusinessGreetingMessageSettings>(nullptr));
       } else {
         send_request(td_api::make_object<td_api::setBusinessGreetingMessageSettings>(
             td_api::make_object<td_api::businessGreetingMessageSettings>(
-                to_integer<int32>(shortcut_id),
+                shortcut_id,
                 td_api::make_object<td_api::businessRecipients>(as_chat_ids(chat_ids), rand_bool(), rand_bool(),
                                                                 rand_bool(), rand_bool(), rand_bool()),
                 inactivity_days)));
       }
     } else if (op == "sbams") {
-      string shortcut_id;
+      ShortcutId shortcut_id;
       string chat_ids;
       string schedule;
       get_args(args, shortcut_id, chat_ids, schedule);
-      if (shortcut_id.empty()) {
+      if (shortcut_id == 0) {
         send_request(td_api::make_object<td_api::setBusinessAwayMessageSettings>(nullptr));
       } else {
         td_api::object_ptr<td_api::BusinessAwayMessageSchedule> schedule_object;
@@ -5974,7 +5990,7 @@ class CliClient final : public Actor {
         }
         send_request(td_api::make_object<td_api::setBusinessAwayMessageSettings>(
             td_api::make_object<td_api::businessAwayMessageSettings>(
-                to_integer<int32>(shortcut_id),
+                shortcut_id,
                 td_api::make_object<td_api::businessRecipients>(as_chat_ids(chat_ids), rand_bool(), rand_bool(),
                                                                 rand_bool(), rand_bool(), rand_bool()),
                 std::move(schedule_object))));
