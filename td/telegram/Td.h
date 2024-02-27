@@ -1378,7 +1378,7 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::setBusinessLocation &request);
 
-  void on_request(uint64 id, td_api::setBusinessWorkHours &request);
+  void on_request(uint64 id, td_api::setBusinessOpeningHours &request);
 
   void on_request(uint64 id, td_api::setBusinessGreetingMessageSettings &request);
 

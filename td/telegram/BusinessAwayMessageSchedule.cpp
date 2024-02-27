@@ -39,7 +39,7 @@ BusinessAwayMessageSchedule::BusinessAwayMessageSchedule(
     case td_api::businessAwayMessageScheduleOffline::ID:
       type_ = Type::Offline;
       break;
-    case td_api::businessAwayMessageScheduleOutsideOfWorkHours::ID:
+    case td_api::businessAwayMessageScheduleOutsideOfOpeningHours::ID:
       type_ = Type::OutsideOfWorkHours;
       break;
     case td_api::businessAwayMessageScheduleCustom::ID: {
@@ -60,7 +60,7 @@ BusinessAwayMessageSchedule::get_business_away_message_schedule_object() const {
     case Type::Offline:
       return td_api::make_object<td_api::businessAwayMessageScheduleOffline>();
     case Type::OutsideOfWorkHours:
-      return td_api::make_object<td_api::businessAwayMessageScheduleOutsideOfWorkHours>();
+      return td_api::make_object<td_api::businessAwayMessageScheduleOutsideOfOpeningHours>();
     case Type::Custom:
       return td_api::make_object<td_api::businessAwayMessageScheduleCustom>(start_date_, end_date_);
     default:

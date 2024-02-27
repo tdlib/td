@@ -581,8 +581,8 @@ chatLocation location:location address:string = ChatLocation;
 //@description Send away messages if the account was online more than 10 minutes
 businessAwayMessageScheduleOffline = BusinessAwayMessageSchedule;
 
-//@description Send away messages outside of the business work hours
-businessAwayMessageScheduleOutsideOfWorkHours = BusinessAwayMessageSchedule;
+//@description Send away messages outside of the business opening hours
+businessAwayMessageScheduleOutsideOfOpeningHours = BusinessAwayMessageSchedule;
 
 //@description Send away messages only in the specified time span
 //@start_date Point in time (Unix timestamp) when the away messages will start to be sent
@@ -617,17 +617,17 @@ businessGreetingMessageSettings shortcut_id:int32 recipients:businessRecipients 
 //@description Describes an interval of time when the business is open
 //@start_minute The first minute of the interval since start of the week; 0-7*24*60
 //@end_minute The first minute after the end of the interval since start of the week; 1-8*24*60
-businessWorkHoursInterval start_minute:int32 end_minute:int32 = BusinessWorkHoursInterval;
+businessOpeningHoursInterval start_minute:int32 end_minute:int32 = BusinessOpeningHoursInterval;
 
-//@description Describes work hours of a business @time_zone_id Unique time zone identifier @work_hours Intervals of the time when the business is open
-businessWorkHours time_zone_id:string work_hours:vector<businessWorkHoursInterval> = BusinessWorkHours;
+//@description Describes opening hours of a business @time_zone_id Unique time zone identifier @opening_hours Intervals of the time when the business is open
+businessOpeningHours time_zone_id:string opening_hours:vector<businessOpeningHoursInterval> = BusinessOpeningHours;
 
 //@description Contains information about a Telegram Business account
 //@location Location of the business; may be null if none
-//@work_hours Work hours of the business; may be null if none
+//@opening_hours Opening hours of the business; may be null if none
 //@greeting_message_settings The greeting message; may be null if none or the Business account is not of the current user
 //@away_message_settings The away message; may be null if none or the Business account is not of the current user
-businessInfo location:businessLocation work_hours:businessWorkHours greeting_message_settings:businessGreetingMessageSettings away_message_settings:businessAwayMessageSettings = BusinessInfo;
+businessInfo location:businessLocation opening_hours:businessOpeningHours greeting_message_settings:businessGreetingMessageSettings away_message_settings:businessAwayMessageSettings = BusinessInfo;
 
 
 //@class ChatPhotoStickerType @description Describes type of a sticker, which was used to create a chat photo
@@ -9350,8 +9350,8 @@ setLocation location:location = Ok;
 //@description Changes the business location of the current user. Requires Telegram Business subscription @location The new location of the business; pass null to remove the location
 setBusinessLocation location:businessLocation = Ok;
 
-//@description Changes the business work hours of the current user. Requires Telegram Business subscription @work_hours The new work hours of the business; pass null to remove the work hours
-setBusinessWorkHours work_hours:businessWorkHours = Ok;
+//@description Changes the business opening hours of the current user. Requires Telegram Business subscription @opening_hours The new opening hours of the business; pass null to remove the opening hours
+setBusinessOpeningHours opening_hours:businessOpeningHours = Ok;
 
 //@description Changes the business greeting message settings of the current user. Requires Telegram Business subscription @greeting_message_settings The new settings for the greeting message of the business; pass null to disable the greeting message
 setBusinessGreetingMessageSettings greeting_message_settings:businessGreetingMessageSettings = Ok;

@@ -5921,23 +5921,23 @@ class CliClient final : public Actor {
         send_request(td_api::make_object<td_api::setBusinessLocation>(td_api::make_object<td_api::businessLocation>(
             longitude.empty() ? nullptr : as_location(latitude, longitude, string()), "business address")));
       }
-    } else if (op == "sbwh") {
+    } else if (op == "sboh") {
       string time_zone_id;
-      string work_hours;
-      get_args(args, time_zone_id, work_hours);
+      string opening_hours;
+      get_args(args, time_zone_id, opening_hours);
       if (time_zone_id.empty()) {
-        send_request(td_api::make_object<td_api::setBusinessWorkHours>(nullptr));
+        send_request(td_api::make_object<td_api::setBusinessOpeningHours>(nullptr));
       } else {
-        auto minutes = to_integers<int32>(work_hours);
+        auto minutes = to_integers<int32>(opening_hours);
         if (minutes.size() % 2 == 1) {
           minutes.push_back(8 * 24 * 60);
         }
-        vector<td_api::object_ptr<td_api::businessWorkHoursInterval>> intervals;
+        vector<td_api::object_ptr<td_api::businessOpeningHoursInterval>> intervals;
         for (size_t i = 0; i < minutes.size(); i += 2) {
-          intervals.push_back(td_api::make_object<td_api::businessWorkHoursInterval>(minutes[i], minutes[i + 1]));
+          intervals.push_back(td_api::make_object<td_api::businessOpeningHoursInterval>(minutes[i], minutes[i + 1]));
         }
-        send_request(td_api::make_object<td_api::setBusinessWorkHours>(
-            td_api::make_object<td_api::businessWorkHours>(time_zone_id, std::move(intervals))));
+        send_request(td_api::make_object<td_api::setBusinessOpeningHours>(
+            td_api::make_object<td_api::businessOpeningHours>(time_zone_id, std::move(intervals))));
       }
     } else if (op == "sbgms") {
       string shortcut_id;
@@ -5966,7 +5966,7 @@ class CliClient final : public Actor {
         if (schedule[0] == 'o') {
           schedule_object = td_api::make_object<td_api::businessAwayMessageScheduleOffline>();
         } else if (schedule[0] == 'h') {
-          schedule_object = td_api::make_object<td_api::businessAwayMessageScheduleOutsideOfWorkHours>();
+          schedule_object = td_api::make_object<td_api::businessAwayMessageScheduleOutsideOfOpeningHours>();
         } else {
           auto start_date = to_integer<int32>(schedule);
           schedule_object = td_api::make_object<td_api::businessAwayMessageScheduleCustom>(

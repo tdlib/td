@@ -11,9 +11,9 @@
 
 namespace td {
 
-td_api::object_ptr<td_api::businessWorkHoursInterval>
-BusinessWorkHours::WorkHoursInterval::get_business_work_hours_interval_object() const {
-  return td_api::make_object<td_api::businessWorkHoursInterval>(start_minute_, end_minute_);
+td_api::object_ptr<td_api::businessOpeningHoursInterval>
+BusinessWorkHours::WorkHoursInterval::get_business_opening_hours_interval_object() const {
+  return td_api::make_object<td_api::businessOpeningHoursInterval>(start_minute_, end_minute_);
 }
 
 telegram_api::object_ptr<telegram_api::businessWeeklyOpen>
@@ -31,12 +31,12 @@ BusinessWorkHours::BusinessWorkHours(telegram_api::object_ptr<telegram_api::busi
   }
 }
 
-BusinessWorkHours::BusinessWorkHours(td_api::object_ptr<td_api::businessWorkHours> &&work_hours) {
+BusinessWorkHours::BusinessWorkHours(td_api::object_ptr<td_api::businessOpeningHours> &&work_hours) {
   if (work_hours != nullptr) {
-    work_hours_ =
-        transform(work_hours->work_hours_, [](const td_api::object_ptr<td_api::businessWorkHoursInterval> &interval) {
-          return WorkHoursInterval(interval->start_minute_, interval->end_minute_);
-        });
+    work_hours_ = transform(work_hours->opening_hours_,
+                            [](const td_api::object_ptr<td_api::businessOpeningHoursInterval> &interval) {
+                              return WorkHoursInterval(interval->start_minute_, interval->end_minute_);
+                            });
     time_zone_id_ = std::move(work_hours->time_zone_id_);
   }
 }
@@ -45,14 +45,14 @@ bool BusinessWorkHours::is_empty() const {
   return work_hours_.empty();
 }
 
-td_api::object_ptr<td_api::businessWorkHours> BusinessWorkHours::get_business_work_hours_object() const {
+td_api::object_ptr<td_api::businessOpeningHours> BusinessWorkHours::get_business_opening_hours_object() const {
   if (is_empty()) {
     return nullptr;
   }
-  return td_api::make_object<td_api::businessWorkHours>(time_zone_id_,
-                                                        transform(work_hours_, [](const WorkHoursInterval &interval) {
-                                                          return interval.get_business_work_hours_interval_object();
-                                                        }));
+  return td_api::make_object<td_api::businessOpeningHours>(
+      time_zone_id_, transform(work_hours_, [](const WorkHoursInterval &interval) {
+        return interval.get_business_opening_hours_interval_object();
+      }));
 }
 
 telegram_api::object_ptr<telegram_api::businessWorkHours> BusinessWorkHours::get_input_business_work_hours() const {

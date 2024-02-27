@@ -22,11 +22,11 @@ class BusinessWorkHours {
 
   explicit BusinessWorkHours(telegram_api::object_ptr<telegram_api::businessWorkHours> &&work_hours);
 
-  explicit BusinessWorkHours(td_api::object_ptr<td_api::businessWorkHours> &&work_hours);
+  explicit BusinessWorkHours(td_api::object_ptr<td_api::businessOpeningHours> &&work_hours);
 
   bool is_empty() const;
 
-  td_api::object_ptr<td_api::businessWorkHours> get_business_work_hours_object() const;
+  td_api::object_ptr<td_api::businessOpeningHours> get_business_opening_hours_object() const;
 
   telegram_api::object_ptr<telegram_api::businessWorkHours> get_input_business_work_hours() const;
 
@@ -45,7 +45,7 @@ class BusinessWorkHours {
     WorkHoursInterval(int32 start_minute, int32 end_minute) : start_minute_(start_minute), end_minute_(end_minute) {
     }
 
-    td_api::object_ptr<td_api::businessWorkHoursInterval> get_business_work_hours_interval_object() const;
+    td_api::object_ptr<td_api::businessOpeningHoursInterval> get_business_opening_hours_interval_object() const;
 
     telegram_api::object_ptr<telegram_api::businessWeeklyOpen> get_input_business_weekly_open() const;
 
