@@ -169,6 +169,8 @@ class QuickReplyManager final : public Actor {
   void on_reload_quick_reply_messages(QuickReplyShortcutId shortcut_id,
                                       Result<telegram_api::object_ptr<telegram_api::messages_Messages>> r_messages);
 
+  static int64 get_quick_reply_messages_hash(const Shortcut *s);
+
   Shortcut *get_shortcut(QuickReplyShortcutId shortcut_id);
 
   Shortcut *get_shortcut(const string &name);

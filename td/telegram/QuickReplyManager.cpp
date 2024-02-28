@@ -830,7 +830,8 @@ void QuickReplyManager::reload_quick_reply_messages(QuickReplyShortcutId shortcu
                                  Result<telegram_api::object_ptr<telegram_api::messages_Messages>> r_messages) {
         send_closure(actor_id, &QuickReplyManager::on_reload_quick_reply_messages, shortcut_id, std::move(r_messages));
       });
-  td_->create_handler<GetQuickReplyMessagesQuery>(std::move(query_promise))->send(shortcut_id, vector<MessageId>(), 0);
+  td_->create_handler<GetQuickReplyMessagesQuery>(std::move(query_promise))
+      ->send(shortcut_id, vector<MessageId>(), get_quick_reply_messages_hash(get_shortcut(shortcut_id)));
 }
 
 void QuickReplyManager::on_reload_quick_reply_messages(
@@ -907,6 +908,18 @@ void QuickReplyManager::on_reload_quick_reply_messages(
   for (auto &promise : promises) {
     return promise.set_value(get_quick_reply_messages_object(s));
   }
+}
+
+int64 QuickReplyManager::get_quick_reply_messages_hash(const Shortcut *s) {
+  CHECK(s != nullptr);
+  vector<uint64> numbers;
+  for (auto &message : s->messages_) {
+    if (message->message_id.is_server()) {
+      numbers.push_back(message->message_id.get_server_message_id().get());
+      numbers.push_back(message->edit_date);
+    }
+  }
+  return get_vector_hash(numbers);
 }
 
 QuickReplyManager::Shortcut *QuickReplyManager::get_shortcut(QuickReplyShortcutId shortcut_id) {
