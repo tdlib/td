@@ -15,6 +15,7 @@
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/FlatHashSet.h"
 #include "td/utils/Promise.h"
 
@@ -35,6 +36,9 @@ class QuickReplyManager final : public Actor {
   void delete_quick_reply_shortcut(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise);
 
   void reorder_quick_reply_shortcuts(const vector<QuickReplyShortcutId> &shortcut_ids, Promise<Unit> &&promise);
+
+  void get_quick_reply_shortcut_messages(QuickReplyShortcutId shortcut_id,
+                                         Promise<td_api::object_ptr<td_api::quickReplyMessages>> &&promise);
 
   void reload_quick_reply_shortcuts();
 
@@ -159,6 +163,12 @@ class QuickReplyManager final : public Actor {
 
   int64 get_shortcuts_hash() const;
 
+  void reload_quick_reply_messages(QuickReplyShortcutId shortcut_id,
+                                   Promise<td_api::object_ptr<td_api::quickReplyMessages>> &&promise);
+
+  void on_reload_quick_reply_messages(QuickReplyShortcutId shortcut_id,
+                                      Result<telegram_api::object_ptr<telegram_api::messages_Messages>> r_messages);
+
   Shortcut *get_shortcut(QuickReplyShortcutId shortcut_id);
 
   Shortcut *get_shortcut(const string &name);
@@ -202,6 +212,8 @@ class QuickReplyManager final : public Actor {
 
   void send_update_quick_reply_shortcuts();
 
+  td_api::object_ptr<td_api::quickReplyMessages> get_quick_reply_messages_object(const Shortcut *s) const;
+
   void delete_quick_reply_shortcut_from_server(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise);
 
   void reorder_quick_reply_shortcuts_on_server(vector<QuickReplyShortcutId> shortcut_ids, Promise<Unit> &&promise);
@@ -213,6 +225,10 @@ class QuickReplyManager final : public Actor {
   Shortcuts shortcuts_;
 
   FlatHashSet<QuickReplyShortcutId, QuickReplyShortcutIdHash> deleted_shortcut_ids_;
+
+  FlatHashMap<QuickReplyShortcutId, vector<Promise<td_api::object_ptr<td_api::quickReplyMessages>>>,
+              QuickReplyShortcutIdHash>
+      get_shortcut_messages_queries_;
 
   Td *td_;
   ActorShared<> parent_;

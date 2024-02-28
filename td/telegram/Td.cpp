@@ -5780,6 +5780,13 @@ void Td::on_request(uint64 id, const td_api::reorderQuickReplyShortcuts &request
       QuickReplyShortcutId::get_quick_reply_shortcut_ids(request.shortcut_ids_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getQuickReplyShortcutMessages &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  quick_reply_manager_->get_quick_reply_shortcut_messages(QuickReplyShortcutId(request.shortcut_id_),
+                                                          std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getStory &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

@@ -4855,6 +4855,10 @@ class CliClient final : public Actor {
       string shortcut_ids;
       get_args(args, shortcut_ids);
       send_request(td_api::make_object<td_api::reorderQuickReplyShortcuts>(as_shortcut_ids(shortcut_ids)));
+    } else if (op == "gqrsm") {
+      ShortcutId shortcut_id;
+      get_args(args, shortcut_id);
+      send_request(td_api::make_object<td_api::getQuickReplyShortcutMessages>(shortcut_id));
     } else if (op == "gftdi") {
       send_request(td_api::make_object<td_api::getForumTopicDefaultIcons>());
     } else if (op == "cft") {
