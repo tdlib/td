@@ -707,6 +707,9 @@ bool QuickReplyManager::is_shortcut_list_changed(const vector<unique_ptr<Shortcu
 }
 
 void QuickReplyManager::on_load_quick_reply_success() {
+  for (auto &shortcut : shortcuts_.shortcuts_) {
+    reload_quick_reply_messages(shortcut->shortcut_id_, Auto());
+  }
   set_promises(shortcuts_.load_queries_);
 }
 
@@ -906,7 +909,9 @@ void QuickReplyManager::on_reload_quick_reply_messages(
     return fail_promises(promises, Status::Error(400, "Shortcut not found"));
   }
   for (auto &promise : promises) {
-    return promise.set_value(get_quick_reply_messages_object(s));
+    if (promise) {
+      promise.set_value(get_quick_reply_messages_object(s));
+    }
   }
 }
 
