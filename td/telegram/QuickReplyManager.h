@@ -39,8 +39,7 @@ class QuickReplyManager final : public Actor {
 
   void delete_quick_reply_messages(QuickReplyShortcutId shortcut_id, const vector<MessageId> &message_ids);
 
-  void get_quick_reply_shortcut_messages(QuickReplyShortcutId shortcut_id,
-                                         Promise<td_api::object_ptr<td_api::quickReplyMessages>> &&promise);
+  void get_quick_reply_shortcut_messages(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise);
 
   void reload_quick_reply_shortcuts();
 
@@ -167,8 +166,7 @@ class QuickReplyManager final : public Actor {
 
   int64 get_shortcuts_hash() const;
 
-  void reload_quick_reply_messages(QuickReplyShortcutId shortcut_id,
-                                   Promise<td_api::object_ptr<td_api::quickReplyMessages>> &&promise);
+  void reload_quick_reply_messages(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise);
 
   void on_reload_quick_reply_messages(QuickReplyShortcutId shortcut_id,
                                       Result<telegram_api::object_ptr<telegram_api::messages_Messages>> r_messages);
@@ -220,8 +218,6 @@ class QuickReplyManager final : public Actor {
 
   void send_update_quick_reply_shortcuts();
 
-  td_api::object_ptr<td_api::quickReplyMessages> get_quick_reply_messages_object(const Shortcut *s) const;
-
   td_api::object_ptr<td_api::updateQuickReplyShortcutMessages> get_update_quick_reply_shortcut_messages_object(
       const Shortcut *s) const;
 
@@ -239,9 +235,7 @@ class QuickReplyManager final : public Actor {
 
   FlatHashSet<QuickReplyShortcutId, QuickReplyShortcutIdHash> deleted_shortcut_ids_;
 
-  FlatHashMap<QuickReplyShortcutId, vector<Promise<td_api::object_ptr<td_api::quickReplyMessages>>>,
-              QuickReplyShortcutIdHash>
-      get_shortcut_messages_queries_;
+  FlatHashMap<QuickReplyShortcutId, vector<Promise<Unit>>, QuickReplyShortcutIdHash> get_shortcut_messages_queries_;
 
   Td *td_;
   ActorShared<> parent_;

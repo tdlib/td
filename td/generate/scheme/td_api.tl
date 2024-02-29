@@ -3777,9 +3777,6 @@ storyInteractions total_count:int32 total_forward_count:int32 total_reaction_cou
 //@content Content of the message
 quickReplyMessage id:int53 sending_state:MessageSendingState can_be_edited:Bool reply_to_message_id:int53 via_bot_user_id:int53 media_album_id:int64 content:MessageContent = QuickReplyMessage;
 
-//@description Contains a list of quick reply messages @messages List of messages
-quickReplyMessages messages:vector<quickReplyMessage> = QuickReplyMessages;
-
 //@description Describes a shortcut that can be used for a quick reply
 //@id Unique shortcut identifier
 //@name The name of the shortcut that can be used to use the shortcut
@@ -6645,7 +6642,9 @@ updateQuickReplyShortcutDeleted shortcut_id:int32 = Update;
 //@description The list of quick reply shortcuts has changed @shortcut_ids The new list of identifiers of quick reply shortcuts
 updateQuickReplyShortcuts shortcut_ids:vector<int32> = Update;
 
-//@description The list of quick reply shortcut messages has changed @shortcut_id The identifier of the shortcut @messages The new list of quick reply messages for the shortcut
+//@description The list of quick reply shortcut messages has changed
+//@shortcut_id The identifier of the shortcut
+//@messages The new list of quick reply messages for the shortcut in order from the first to the last sent 
 updateQuickReplyShortcutMessages shortcut_id:int32 messages:vector<quickReplyMessage> = Update;
 
 //@description Basic information about a topic in a forum chat was changed @chat_id Chat identifier @info New information about the topic
@@ -7784,8 +7783,9 @@ deleteQuickReplyShortcut shortcut_id:int32 = Ok;
 //@description Changes the order of quick reply shortcuts @shortcut_ids The new order of quick reply shortcuts
 reorderQuickReplyShortcuts shortcut_ids:vector<int32> = Ok;
 
-//@description Returns all messages that can be sent by a quick reply shortcut. The messages are returned in order from the first to the last sent @shortcut_id Unique identifier of the quick reply shortcut
-getQuickReplyShortcutMessages shortcut_id:int32 = QuickReplyMessages;
+//@description Loads quick reply messages that can be sent by a given quick reply shortcut. The loaded messages will be sent through updateQuickReplyShortcutMessages
+//@shortcut_id Unique identifier of the quick reply shortcut
+loadQuickReplyShortcutMessages shortcut_id:int32 = Ok;
 
 
 //@description Returns list of custom emojis, which can be used as forum topic icon by all users

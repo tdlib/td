@@ -850,22 +850,20 @@ void QuickReplyManager::delete_quick_reply_messages(QuickReplyShortcutId shortcu
   }
 }
 
-void QuickReplyManager::get_quick_reply_shortcut_messages(
-    QuickReplyShortcutId shortcut_id, Promise<td_api::object_ptr<td_api::quickReplyMessages>> &&promise) {
+void QuickReplyManager::get_quick_reply_shortcut_messages(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise) {
   auto s = get_shortcut(shortcut_id);
   if (s == nullptr) {
     return promise.set_error(Status::Error(400, "Shortcut not found"));
   }
   if (have_all_shortcut_messages(s)) {
-    return promise.set_value(get_quick_reply_messages_object(s));
+    return promise.set_value(Unit());
   }
 
   CHECK(shortcut_id.is_server());
   reload_quick_reply_messages(shortcut_id, std::move(promise));
 }
 
-void QuickReplyManager::reload_quick_reply_messages(QuickReplyShortcutId shortcut_id,
-                                                    Promise<td_api::object_ptr<td_api::quickReplyMessages>> &&promise) {
+void QuickReplyManager::reload_quick_reply_messages(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise) {
   auto &queries = get_shortcut_messages_queries_[shortcut_id];
   queries.push_back(std::move(promise));
   if (queries.size() != 1) {
@@ -955,9 +953,7 @@ void QuickReplyManager::on_reload_quick_reply_messages(
     return fail_promises(promises, Status::Error(400, "Shortcut not found"));
   }
   for (auto &promise : promises) {
-    if (promise) {
-      promise.set_value(get_quick_reply_messages_object(s));
-    }
+    promise.set_value(Unit());
   }
 }
 
@@ -1153,14 +1149,6 @@ td_api::object_ptr<td_api::updateQuickReplyShortcuts> QuickReplyManager::get_upd
 
 void QuickReplyManager::send_update_quick_reply_shortcuts() {
   send_closure(G()->td(), &Td::send_update, get_update_quick_reply_shortcuts_object());
-}
-
-td_api::object_ptr<td_api::quickReplyMessages> QuickReplyManager::get_quick_reply_messages_object(
-    const Shortcut *s) const {
-  auto messages = transform(s->messages_, [this](const unique_ptr<QuickReplyMessage> &message) {
-    return get_quick_reply_message_object(message.get(), "get_quick_reply_messages_object");
-  });
-  return td_api::make_object<td_api::quickReplyMessages>(std::move(messages));
 }
 
 td_api::object_ptr<td_api::updateQuickReplyShortcutMessages>
