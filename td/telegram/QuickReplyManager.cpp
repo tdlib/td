@@ -10,6 +10,7 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
+#include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/logevent/LogEventHelper.h"
@@ -1288,6 +1289,21 @@ void QuickReplyManager::send_update_quick_reply_shortcut_messages(const Shortcut
   if (have_all_shortcut_messages(s)) {
     send_closure(G()->td(), &Td::send_update, get_update_quick_reply_shortcut_messages_object(s, source));
   }
+}
+
+FileSourceId QuickReplyManager::get_quick_reply_message_file_source_id(QuickReplyMessageFullId message_full_id) {
+  if (td_->auth_manager_->is_bot()) {
+    return FileSourceId();
+  }
+  if (!message_full_id.is_server()) {
+    return FileSourceId();
+  }
+
+  auto &file_source_id = message_full_id_to_file_source_id_[message_full_id];
+  if (!file_source_id.is_valid()) {
+    file_source_id = td_->file_reference_manager_->create_quick_reply_message_file_source(message_full_id);
+  }
+  return file_source_id;
 }
 
 void QuickReplyManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {

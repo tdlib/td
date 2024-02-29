@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/QuickReplyMessageFullId.h"
 #include "td/telegram/QuickReplyShortcutId.h"
@@ -47,6 +48,8 @@ class QuickReplyManager final : public Actor {
   void reload_quick_reply_shortcuts();
 
   void reload_quick_reply_message(QuickReplyShortcutId shortcut_id, MessageId message_id, Promise<Unit> &&promise);
+
+  FileSourceId get_quick_reply_message_file_source_id(QuickReplyMessageFullId message_full_id);
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
@@ -251,6 +254,8 @@ class QuickReplyManager final : public Actor {
   FlatHashMap<QuickReplyShortcutId, vector<Promise<Unit>>, QuickReplyShortcutIdHash> get_shortcut_messages_queries_;
 
   FlatHashSet<QuickReplyMessageFullId, QuickReplyMessageFullIdHash> deleted_message_full_ids_;
+
+  FlatHashMap<QuickReplyMessageFullId, FileSourceId, QuickReplyMessageFullIdHash> message_full_id_to_file_source_id_;
 
   Td *td_;
   ActorShared<> parent_;
