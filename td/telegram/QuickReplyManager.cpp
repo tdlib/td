@@ -856,6 +856,10 @@ void QuickReplyManager::delete_quick_reply_messages(QuickReplyShortcutId shortcu
   if (s == nullptr) {
     return;
   }
+  delete_quick_reply_messages(s, message_ids);
+}
+
+void QuickReplyManager::delete_quick_reply_messages(Shortcut *s, const vector<MessageId> &message_ids) {
   bool is_changed = false;
   bool is_list_changed = false;
   for (auto &message_id : message_ids) {
@@ -870,7 +874,7 @@ void QuickReplyManager::delete_quick_reply_messages(QuickReplyShortcutId shortcu
   }
   if (s->messages_.empty()) {
     send_update_quick_reply_shortcut_deleted(s);
-    shortcuts_.shortcuts_.erase(get_shortcut_it(shortcut_id));
+    shortcuts_.shortcuts_.erase(get_shortcut_it(s->shortcut_id_));
     CHECK(is_list_changed && is_changed);
   } else if (is_changed) {
     send_update_quick_reply_shortcut_messages(s, "delete_quick_reply_messages");
@@ -1060,7 +1064,7 @@ void QuickReplyManager::on_reload_quick_reply_message(
         message = create_message(std::move(messages->messages_[0]), "on_reload_quick_reply_message");
       }
       if (message == nullptr) {
-        delete_quick_reply_messages(shortcut_id, {message_id});
+        delete_quick_reply_messages(s, {message_id});
         return promise.set_error(Status::Error(400, "Message not found"));
       }
       if (message->shortcut_id != shortcut_id) {
