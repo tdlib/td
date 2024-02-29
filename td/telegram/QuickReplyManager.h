@@ -250,6 +250,8 @@ class QuickReplyManager final : public Actor {
 
   FlatHashMap<QuickReplyShortcutId, vector<Promise<Unit>>, QuickReplyShortcutIdHash> get_shortcut_messages_queries_;
 
+  FlatHashSet<QuickReplyMessageFullId, QuickReplyMessageFullIdHash> deleted_message_full_ids_;
+
   Td *td_;
   ActorShared<> parent_;
 };

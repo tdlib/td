@@ -358,6 +358,10 @@ unique_ptr<QuickReplyManager::QuickReplyMessage> QuickReplyManager::create_messa
         LOG(ERROR) << "Receive invalid quick reply " << shortcut_id << " from " << source;
         break;
       }
+      if (deleted_message_full_ids_.count({shortcut_id, message_id})) {
+        // a previously deleted message
+        break;
+      }
 
       auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
       if (DialogId(message->peer_id_) != my_dialog_id || message->from_id_ != nullptr ||
@@ -856,6 +860,12 @@ void QuickReplyManager::delete_quick_reply_messages(QuickReplyShortcutId shortcu
   if (s == nullptr) {
     return;
   }
+  for (auto message_id : message_ids) {
+    if (!message_id.is_server()) {
+      LOG(ERROR) << "Receive delete of " << message_ids;
+      return;
+    }
+  }
   delete_quick_reply_messages(s, message_ids);
 }
 
@@ -864,12 +874,15 @@ void QuickReplyManager::delete_quick_reply_messages(Shortcut *s, const vector<Me
   bool is_list_changed = false;
   for (auto &message_id : message_ids) {
     auto it = get_message_it(s, message_id);
-    if (it == s->messages_.end()) {
+    if (it != s->messages_.end()) {
       if (it == s->messages_.begin()) {
         is_list_changed = true;
       }
       is_changed = true;
       s->messages_.erase(it);
+    }
+    if (message_id.is_server()) {
+      deleted_message_full_ids_.insert({s->shortcut_id_, message_id});
     }
   }
   if (s->messages_.empty()) {
