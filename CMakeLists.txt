@@ -801,6 +801,7 @@ set(TDLIB_SOURCE
   td/telegram/QueryCombiner.h
   td/telegram/QueryMerger.h
   td/telegram/QuickReplyManager.h
+  td/telegram/QuickReplyMessageFullId.h
   td/telegram/QuickReplyShortcutId.h
   td/telegram/ReactionListType.h
   td/telegram/ReactionManager.h
