@@ -353,8 +353,9 @@ unique_ptr<QuickReplyManager::QuickReplyMessage> QuickReplyManager::create_messa
     case telegram_api::message::ID: {
       auto message_id = MessageId::get_message_id(message_ptr, false);
       auto message = move_tl_object_as<telegram_api::message>(message_ptr);
-      if (message->quick_reply_shortcut_id_ == 0) {
-        LOG(ERROR) << "Receive a quick reply without shortcut from " << source;
+      auto shortcut_id = QuickReplyShortcutId(message->quick_reply_shortcut_id_);
+      if (!shortcut_id.is_server()) {
+        LOG(ERROR) << "Receive invalid quick reply " << shortcut_id << " from " << source;
         break;
       }
 
@@ -413,7 +414,7 @@ unique_ptr<QuickReplyManager::QuickReplyMessage> QuickReplyManager::create_messa
       }
 
       auto result = make_unique<QuickReplyMessage>();
-      result->shortcut_id = QuickReplyShortcutId(message->quick_reply_shortcut_id_);
+      result->shortcut_id = shortcut_id;
       result->message_id = message_id;
       result->edit_date = max(message->edit_date_, 0);
       result->disable_web_page_preview = disable_web_page_preview;
@@ -817,6 +818,33 @@ void QuickReplyManager::reorder_quick_reply_shortcuts_on_server(vector<QuickRepl
   td_->create_handler<ReorderQuickRepliesQuery>(std::move(promise))->send(std::move(shortcut_ids));
 }
 
+void QuickReplyManager::update_quick_reply_message(telegram_api::object_ptr<telegram_api::Message> &&message_ptr) {
+  auto message = create_message(std::move(message_ptr), "update_quick_reply_message");
+  if (message == nullptr) {
+    return;
+  }
+  auto shortcut_id = message->shortcut_id;
+  auto *s = get_shortcut(shortcut_id);
+  if (s == nullptr) {
+    return reload_quick_reply_messages(shortcut_id, Promise<Unit>());
+  }
+  auto it = get_message_it(s, message->message_id);
+  if (it == s->messages_.end()) {
+    s->messages_.push_back(std::move(message));
+    sort_quick_reply_messages(s->messages_);
+    send_update_quick_reply_shortcut(s, "update_quick_reply_message 1");
+  } else {
+    if (get_quick_reply_unique_id(it->get()) == get_quick_reply_unique_id(message.get())) {
+      return;
+    }
+    *it = std::move(message);
+    if (it == s->messages_.begin()) {
+      send_update_quick_reply_shortcut(s, "update_quick_reply_message 2");
+    }
+  }
+  send_update_quick_reply_shortcut_messages(s, "update_quick_reply_message 2");
+}
+
 void QuickReplyManager::delete_quick_reply_messages(QuickReplyShortcutId shortcut_id,
                                                     const vector<MessageId> &message_ids) {
   auto s = get_shortcut(shortcut_id);
@@ -926,7 +954,7 @@ void QuickReplyManager::on_reload_quick_reply_messages(
         break;
       }
 
-      auto *old_shortcut = it->get();
+      auto *old_shortcut = it != shortcuts_.shortcuts_.end() ? it->get() : nullptr;
       auto shortcut = td::make_unique<Shortcut>();
       shortcut->name_ = old_shortcut->name_;
       shortcut->shortcut_id_ = shortcut_id;
@@ -934,13 +962,20 @@ void QuickReplyManager::on_reload_quick_reply_messages(
       shortcut->messages_ = std::move(quick_reply_messages);
 
       auto is_object_changed = false;
-      if (update_shortcut_from(shortcut.get(), old_shortcut, false, &is_object_changed)) {
+      if (old_shortcut == nullptr || update_shortcut_from(shortcut.get(), old_shortcut, false, &is_object_changed)) {
         CHECK(have_all_shortcut_messages(shortcut.get()));
+        if (old_shortcut == nullptr) {
+          send_update_quick_reply_shortcut(shortcut.get(), "on_reload_quick_reply_messages 1");
+        }
         send_update_quick_reply_shortcut_messages(shortcut.get(), "on_reload_quick_reply_messages");
       }
-      *it = std::move(shortcut);
+      if (old_shortcut == nullptr) {
+        shortcuts_.shortcuts_.push_back(std::move(shortcut));
+      } else {
+        *it = std::move(shortcut);
+      }
       if (is_object_changed) {
-        send_update_quick_reply_shortcut(it->get(), "on_reload_quick_reply_messages");
+        send_update_quick_reply_shortcut(it->get(), "on_reload_quick_reply_messages 2");
       }
       save_quick_reply_shortcuts();
       break;

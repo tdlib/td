@@ -37,6 +37,8 @@ class QuickReplyManager final : public Actor {
 
   void reorder_quick_reply_shortcuts(const vector<QuickReplyShortcutId> &shortcut_ids, Promise<Unit> &&promise);
 
+  void update_quick_reply_message(telegram_api::object_ptr<telegram_api::Message> &&message_ptr);
+
   void delete_quick_reply_messages(QuickReplyShortcutId shortcut_id, const vector<MessageId> &message_ids);
 
   void get_quick_reply_shortcut_messages(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise);
