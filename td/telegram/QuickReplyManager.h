@@ -154,6 +154,8 @@ class QuickReplyManager final : public Actor {
 
   static int32 get_shortcut_message_count(const Shortcut *s);
 
+  static bool have_all_shortcut_messages(const Shortcut *s);
+
   void load_quick_reply_shortcuts(Promise<Unit> &&promise);
 
   void on_reload_quick_reply_shortcuts(
@@ -219,6 +221,11 @@ class QuickReplyManager final : public Actor {
   void send_update_quick_reply_shortcuts();
 
   td_api::object_ptr<td_api::quickReplyMessages> get_quick_reply_messages_object(const Shortcut *s) const;
+
+  td_api::object_ptr<td_api::updateQuickReplyShortcutMessages> get_update_quick_reply_shortcut_messages_object(
+      const Shortcut *s) const;
+
+  void send_update_quick_reply_shortcut_messages(const Shortcut *s);
 
   void delete_quick_reply_shortcut_from_server(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise);
 

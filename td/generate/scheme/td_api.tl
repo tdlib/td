@@ -6639,11 +6639,14 @@ updateSavedMessagesTopicCount topic_count:int32 = Update;
 //@shortcut New data about the shortcut
 updateQuickReplyShortcut shortcut:quickReplyShortcut = Update;
 
-//@description A quick reply shortcut was deleted @shortcut_id The identifier of the deleted shortcut
+//@description A quick reply shortcut and all its messages were deleted @shortcut_id The identifier of the deleted shortcut
 updateQuickReplyShortcutDeleted shortcut_id:int32 = Update;
 
 //@description The list of quick reply shortcuts has changed @shortcut_ids The new list of identifiers of quick reply shortcuts
 updateQuickReplyShortcuts shortcut_ids:vector<int32> = Update;
+
+//@description The list of quick reply shortcut messages has changed @shortcut_id The identifier of the shortcut @messages The new list of quick reply messages for the shortcut
+updateQuickReplyShortcutMessages shortcut_id:int32 messages:vector<quickReplyMessage> = Update;
 
 //@description Basic information about a topic in a forum chat was changed @chat_id Chat identifier @info New information about the topic
 updateForumTopicInfo chat_id:int53 info:forumTopicInfo = Update;
