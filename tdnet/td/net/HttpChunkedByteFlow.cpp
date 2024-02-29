@@ -51,14 +51,10 @@ bool HttpChunkedByteFlow::loop() {
       return false;
     }
     total_size_ += ready;
-    uncommitted_size_ += ready;
 
     output_.append(input_->cut_head(ready));
     result = true;
     len_ -= ready;
-    if (uncommitted_size_ >= MIN_UPDATE_SIZE) {
-      uncommitted_size_ = 0;
-    }
 
     if (len_ == 0) {
       if (input_->size() < 2) {
@@ -72,7 +68,6 @@ bool HttpChunkedByteFlow::loop() {
         return false;
       }
       state_ = State::ReadChunkLength;
-      len_ = 0;
     }
   } while (false);
   if (!is_input_active_ && !result) {
