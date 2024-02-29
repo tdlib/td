@@ -219,9 +219,9 @@ class QuickReplyManager final : public Actor {
   void send_update_quick_reply_shortcuts();
 
   td_api::object_ptr<td_api::updateQuickReplyShortcutMessages> get_update_quick_reply_shortcut_messages_object(
-      const Shortcut *s) const;
+      const Shortcut *s, const char *source) const;
 
-  void send_update_quick_reply_shortcut_messages(const Shortcut *s);
+  void send_update_quick_reply_shortcut_messages(const Shortcut *s, const char *source);
 
   void delete_quick_reply_shortcut_from_server(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise);
 

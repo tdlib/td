@@ -691,7 +691,7 @@ void QuickReplyManager::on_reload_quick_reply_shortcuts(
       }
       for (auto shortcut_id : changed_message_shortcut_ids) {
         const auto *s = get_shortcut(shortcut_id);
-        send_update_quick_reply_shortcut_messages(s);
+        send_update_quick_reply_shortcut_messages(s, "on_reload_quick_reply_shortcuts");
       }
       if (is_list_changed) {
         send_update_quick_reply_shortcuts();
@@ -840,7 +840,7 @@ void QuickReplyManager::delete_quick_reply_messages(QuickReplyShortcutId shortcu
     shortcuts_.shortcuts_.erase(get_shortcut_it(shortcut_id));
     CHECK(is_list_changed && is_changed);
   } else if (is_changed) {
-    send_update_quick_reply_shortcut_messages(s);
+    send_update_quick_reply_shortcut_messages(s, "delete_quick_reply_messages");
   }
   if (is_list_changed) {
     send_update_quick_reply_shortcuts();
@@ -936,7 +936,7 @@ void QuickReplyManager::on_reload_quick_reply_messages(
       auto is_object_changed = false;
       if (update_shortcut_from(shortcut.get(), old_shortcut, false, &is_object_changed)) {
         CHECK(have_all_shortcut_messages(shortcut.get()));
-        send_update_quick_reply_shortcut_messages(shortcut.get());
+        send_update_quick_reply_shortcut_messages(shortcut.get(), "on_reload_quick_reply_messages");
       }
       *it = std::move(shortcut);
       if (is_object_changed) {
@@ -1152,17 +1152,17 @@ void QuickReplyManager::send_update_quick_reply_shortcuts() {
 }
 
 td_api::object_ptr<td_api::updateQuickReplyShortcutMessages>
-QuickReplyManager::get_update_quick_reply_shortcut_messages_object(const Shortcut *s) const {
+QuickReplyManager::get_update_quick_reply_shortcut_messages_object(const Shortcut *s, const char *source) const {
   CHECK(s != nullptr);
-  auto messages = transform(s->messages_, [this](const unique_ptr<QuickReplyMessage> &message) {
-    return get_quick_reply_message_object(message.get(), "get_update_quick_reply_shortcut_messages_object");
+  auto messages = transform(s->messages_, [this, source](const unique_ptr<QuickReplyMessage> &message) {
+    return get_quick_reply_message_object(message.get(), source);
   });
   return td_api::make_object<td_api::updateQuickReplyShortcutMessages>(s->shortcut_id_.get(), std::move(messages));
 }
 
-void QuickReplyManager::send_update_quick_reply_shortcut_messages(const Shortcut *s) {
+void QuickReplyManager::send_update_quick_reply_shortcut_messages(const Shortcut *s, const char *source) {
   if (have_all_shortcut_messages(s)) {
-    send_closure(G()->td(), &Td::send_update, get_update_quick_reply_shortcut_messages_object(s));
+    send_closure(G()->td(), &Td::send_update, get_update_quick_reply_shortcut_messages_object(s, source));
   }
 }
 
@@ -1181,7 +1181,7 @@ void QuickReplyManager::get_current_state(vector<td_api::object_ptr<td_api::Upda
 
   for (auto &shortcut : shortcuts_.shortcuts_) {
     if (have_all_shortcut_messages(shortcut.get())) {
-      updates.push_back(get_update_quick_reply_shortcut_messages_object(shortcut.get()));
+      updates.push_back(get_update_quick_reply_shortcut_messages_object(shortcut.get(), "get_current_state"));
     }
   }
 }
