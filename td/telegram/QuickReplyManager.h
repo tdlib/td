@@ -45,6 +45,8 @@ class QuickReplyManager final : public Actor {
 
   void reload_quick_reply_shortcuts();
 
+  void reload_quick_reply_message(QuickReplyShortcutId shortcut_id, MessageId message_id, Promise<Unit> &&promise);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
@@ -174,6 +176,12 @@ class QuickReplyManager final : public Actor {
                                       Result<telegram_api::object_ptr<telegram_api::messages_Messages>> r_messages);
 
   static int64 get_quick_reply_messages_hash(const Shortcut *s);
+
+  void on_reload_quick_reply_message(QuickReplyShortcutId shortcut_id, MessageId message_id,
+                                     Result<telegram_api::object_ptr<telegram_api::messages_Messages>> r_messages,
+                                     Promise<Unit> &&promise);
+
+  void on_get_quick_reply_message(Shortcut *s, unique_ptr<QuickReplyMessage> message);
 
   Shortcut *get_shortcut(QuickReplyShortcutId shortcut_id);
 

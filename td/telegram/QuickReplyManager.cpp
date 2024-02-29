@@ -828,6 +828,10 @@ void QuickReplyManager::update_quick_reply_message(telegram_api::object_ptr<tele
   if (s == nullptr) {
     return reload_quick_reply_messages(shortcut_id, Promise<Unit>());
   }
+  on_get_quick_reply_message(s, std::move(message));
+}
+
+void QuickReplyManager::on_get_quick_reply_message(Shortcut *s, unique_ptr<QuickReplyMessage> message) {
   auto it = get_message_it(s, message->message_id);
   if (it == s->messages_.end()) {
     s->messages_.push_back(std::move(message));
@@ -843,6 +847,7 @@ void QuickReplyManager::update_quick_reply_message(telegram_api::object_ptr<tele
     }
   }
   send_update_quick_reply_shortcut_messages(s, "update_quick_reply_message 2");
+  save_quick_reply_shortcuts();
 }
 
 void QuickReplyManager::delete_quick_reply_messages(QuickReplyShortcutId shortcut_id,
@@ -1002,6 +1007,73 @@ int64 QuickReplyManager::get_quick_reply_messages_hash(const Shortcut *s) {
     }
   }
   return get_vector_hash(numbers);
+}
+
+void QuickReplyManager::reload_quick_reply_message(QuickReplyShortcutId shortcut_id, MessageId message_id,
+                                                   Promise<Unit> &&promise) {
+  auto s = get_shortcut(shortcut_id);
+  if (s == nullptr) {
+    return promise.set_error(Status::Error(400, "Shortcut not found"));
+  }
+  if (!message_id.is_server()) {
+    return promise.set_error(Status::Error(400, "Message can't be reloaded"));
+  }
+  auto query_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), shortcut_id, message_id, promise = std::move(promise)](
+                                 Result<telegram_api::object_ptr<telegram_api::messages_Messages>> r_messages) mutable {
+        send_closure(actor_id, &QuickReplyManager::on_reload_quick_reply_message, shortcut_id, message_id,
+                     std::move(r_messages), std::move(promise));
+      });
+  td_->create_handler<GetQuickReplyMessagesQuery>(std::move(query_promise))
+      ->send(shortcut_id, vector<MessageId>{message_id}, 0);
+}
+
+void QuickReplyManager::on_reload_quick_reply_message(
+    QuickReplyShortcutId shortcut_id, MessageId message_id,
+    Result<telegram_api::object_ptr<telegram_api::messages_Messages>> r_messages, Promise<Unit> &&promise) {
+  G()->ignore_result_if_closing(r_messages);
+  if (r_messages.is_error()) {
+    return promise.set_error(r_messages.move_as_error());
+  }
+  auto s = get_shortcut(shortcut_id);
+  if (s == nullptr) {
+    return promise.set_error(Status::Error(400, "Shortcut not found"));
+  }
+  auto messages_ptr = r_messages.move_as_ok();
+  switch (messages_ptr->get_id()) {
+    case telegram_api::messages_messagesSlice::ID:
+    case telegram_api::messages_channelMessages::ID:
+    case telegram_api::messages_messagesNotModified::ID:
+      LOG(ERROR) << "Receive " << to_string(messages_ptr);
+      return promise.set_error(Status::Error(400, "Receive wrong response"));
+    case telegram_api::messages_messages::ID: {
+      auto messages = telegram_api::move_object_as<telegram_api::messages_messages>(messages_ptr);
+      td_->contacts_manager_->on_get_users(std::move(messages->users_), "on_reload_quick_reply_messages");
+      td_->contacts_manager_->on_get_chats(std::move(messages->chats_), "on_reload_quick_reply_messages");
+
+      if (messages->messages_.size() > 1u) {
+        LOG(ERROR) << "Receive " << to_string(messages_ptr);
+        break;
+      }
+      unique_ptr<QuickReplyMessage> message;
+      if (messages->messages_.size() == 1u) {
+        message = create_message(std::move(messages->messages_[0]), "on_reload_quick_reply_message");
+      }
+      if (message == nullptr) {
+        delete_quick_reply_messages(shortcut_id, {message_id});
+        return promise.set_error(Status::Error(400, "Message not found"));
+      }
+      if (message->shortcut_id != shortcut_id) {
+        LOG(ERROR) << "Receive message from " << message->shortcut_id << " instead of " << shortcut_id;
+        return promise.set_error(Status::Error(400, "Message not found"));
+      }
+      on_get_quick_reply_message(s, std::move(message));
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+  promise.set_value(Unit());
 }
 
 QuickReplyManager::Shortcut *QuickReplyManager::get_shortcut(QuickReplyShortcutId shortcut_id) {
