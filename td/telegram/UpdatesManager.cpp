@@ -53,6 +53,7 @@
 #include "td/telegram/PrivacyManager.h"
 #include "td/telegram/PublicDialogType.h"
 #include "td/telegram/QuickReplyManager.h"
+#include "td/telegram/QuickReplyShortcutId.h"
 #include "td/telegram/ReactionListType.h"
 #include "td/telegram/ReactionManager.h"
 #include "td/telegram/ReactionType.h"
@@ -4489,14 +4490,20 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDeleteQuickRepl
   promise.set_value(Unit());
 }
 
-// unsupported updates
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateQuickReplyMessage> update, Promise<Unit> &&promise) {
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDeleteQuickReplyMessages> update,
+                               Promise<Unit> &&promise) {
+  vector<MessageId> message_ids;
+  for (auto message : update->messages_) {
+    message_ids.push_back(MessageId(ServerMessageId(message)));
+  }
+  td_->quick_reply_manager_->delete_quick_reply_messages(QuickReplyShortcutId(update->shortcut_id_),
+                                                         std::move(message_ids));
   promise.set_value(Unit());
 }
 
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDeleteQuickReplyMessages> update,
-                               Promise<Unit> &&promise) {
+// unsupported updates
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateQuickReplyMessage> update, Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 

@@ -37,6 +37,8 @@ class QuickReplyManager final : public Actor {
 
   void reorder_quick_reply_shortcuts(const vector<QuickReplyShortcutId> &shortcut_ids, Promise<Unit> &&promise);
 
+  void delete_quick_reply_messages(QuickReplyShortcutId shortcut_id, const vector<MessageId> &message_ids);
+
   void get_quick_reply_shortcut_messages(QuickReplyShortcutId shortcut_id,
                                          Promise<td_api::object_ptr<td_api::quickReplyMessages>> &&promise);
 
@@ -178,6 +180,8 @@ class QuickReplyManager final : public Actor {
   vector<unique_ptr<Shortcut>>::iterator get_shortcut_it(QuickReplyShortcutId shortcut_id);
 
   vector<unique_ptr<Shortcut>>::iterator get_shortcut_it(const string &name);
+
+  vector<unique_ptr<QuickReplyMessage>>::iterator get_message_it(Shortcut *s, MessageId message_id);
 
   bool is_shortcut_list_changed(const vector<unique_ptr<Shortcut>> &new_shortcuts) const;
 

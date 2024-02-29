@@ -807,6 +807,37 @@ void QuickReplyManager::reorder_quick_reply_shortcuts_on_server(vector<QuickRepl
   td_->create_handler<ReorderQuickRepliesQuery>(std::move(promise))->send(std::move(shortcut_ids));
 }
 
+void QuickReplyManager::delete_quick_reply_messages(QuickReplyShortcutId shortcut_id,
+                                                    const vector<MessageId> &message_ids) {
+  auto s = get_shortcut(shortcut_id);
+  if (s == nullptr) {
+    return;
+  }
+  bool is_changed = false;
+  bool is_list_changed = false;
+  for (auto &message_id : message_ids) {
+    auto it = get_message_it(s, message_id);
+    if (it == s->messages_.end()) {
+      if (it == s->messages_.begin()) {
+        is_list_changed = true;
+      }
+      is_changed = true;
+      s->messages_.erase(it);
+    }
+  }
+  if (s->messages_.empty()) {
+    send_update_quick_reply_shortcut_deleted(s);
+    shortcuts_.shortcuts_.erase(get_shortcut_it(shortcut_id));
+    CHECK(is_list_changed && is_changed);
+  }
+  if (is_list_changed) {
+    send_update_quick_reply_shortcuts();
+  }
+  if (is_changed) {
+    save_quick_reply_shortcuts();
+  }
+}
+
 void QuickReplyManager::get_quick_reply_shortcut_messages(
     QuickReplyShortcutId shortcut_id, Promise<td_api::object_ptr<td_api::quickReplyMessages>> &&promise) {
   auto s = get_shortcut(shortcut_id);
@@ -968,6 +999,17 @@ vector<unique_ptr<QuickReplyManager::Shortcut>>::iterator QuickReplyManager::get
     }
   }
   return shortcuts_.shortcuts_.end();
+}
+
+vector<unique_ptr<QuickReplyManager::QuickReplyMessage>>::iterator QuickReplyManager::get_message_it(
+    Shortcut *s, MessageId message_id) {
+  CHECK(s != nullptr);
+  for (auto it = s->messages_.begin(); it != s->messages_.end(); ++it) {
+    if ((*it)->message_id == message_id) {
+      return it;
+    }
+  }
+  return s->messages_.end();
 }
 
 vector<QuickReplyShortcutId> QuickReplyManager::get_shortcut_ids() const {
