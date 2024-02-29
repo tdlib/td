@@ -25,6 +25,7 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
+#include "td/utils/format.h"
 #include "td/utils/logging.h"
 
 namespace td {
@@ -916,8 +917,8 @@ void QuickReplyManager::update_quick_reply_message(QuickReplyShortcutId shortcut
   change_message_files({shortcut_id, old_message->message_id}, old_message.get(), old_file_ids);
 }
 
-void QuickReplyManager::delete_quick_reply_messages(QuickReplyShortcutId shortcut_id,
-                                                    const vector<MessageId> &message_ids) {
+void QuickReplyManager::delete_quick_reply_messages_from_updates(QuickReplyShortcutId shortcut_id,
+                                                                 const vector<MessageId> &message_ids) {
   auto s = get_shortcut(shortcut_id);
   if (s == nullptr) {
     return;
@@ -928,10 +929,12 @@ void QuickReplyManager::delete_quick_reply_messages(QuickReplyShortcutId shortcu
       return;
     }
   }
-  delete_quick_reply_messages(s, message_ids);
+  delete_quick_reply_messages(s, message_ids, "delete_quick_reply_messages_from_updates");
 }
 
-void QuickReplyManager::delete_quick_reply_messages(Shortcut *s, const vector<MessageId> &message_ids) {
+void QuickReplyManager::delete_quick_reply_messages(Shortcut *s, const vector<MessageId> &message_ids,
+                                                    const char *source) {
+  LOG(INFO) << "Delete " << message_ids << " from " << s->shortcut_id_ << " from " << source;
   bool is_changed = false;
   bool is_list_changed = false;
   for (auto &message_id : message_ids) {
@@ -953,7 +956,7 @@ void QuickReplyManager::delete_quick_reply_messages(Shortcut *s, const vector<Me
     shortcuts_.shortcuts_.erase(get_shortcut_it(s->shortcut_id_));
     CHECK(is_list_changed && is_changed);
   } else if (is_changed) {
-    send_update_quick_reply_shortcut_messages(s, "delete_quick_reply_messages");
+    send_update_quick_reply_shortcut_messages(s, source);
   }
   if (is_list_changed) {
     send_update_quick_reply_shortcuts();
@@ -988,7 +991,7 @@ void QuickReplyManager::delete_quick_reply_shortcut_messages(QuickReplyShortcutI
 
   delete_quick_reply_messages_on_server(shortcut_id, std::move(deleted_server_message_ids), std::move(promise));
 
-  delete_quick_reply_messages(s, message_ids);
+  delete_quick_reply_messages(s, message_ids, "delete_quick_reply_shortcut_messages");
 }
 
 void QuickReplyManager::delete_quick_reply_messages_on_server(QuickReplyShortcutId shortcut_id,
@@ -1166,8 +1169,8 @@ void QuickReplyManager::on_reload_quick_reply_message(
       return promise.set_error(Status::Error(400, "Receive wrong response"));
     case telegram_api::messages_messages::ID: {
       auto messages = telegram_api::move_object_as<telegram_api::messages_messages>(messages_ptr);
-      td_->contacts_manager_->on_get_users(std::move(messages->users_), "on_reload_quick_reply_messages");
-      td_->contacts_manager_->on_get_chats(std::move(messages->chats_), "on_reload_quick_reply_messages");
+      td_->contacts_manager_->on_get_users(std::move(messages->users_), "on_reload_quick_reply_message");
+      td_->contacts_manager_->on_get_chats(std::move(messages->chats_), "on_reload_quick_reply_message");
 
       if (messages->messages_.size() > 1u) {
         LOG(ERROR) << "Receive " << to_string(messages_ptr);
@@ -1178,7 +1181,7 @@ void QuickReplyManager::on_reload_quick_reply_message(
         message = create_message(std::move(messages->messages_[0]), "on_reload_quick_reply_message");
       }
       if (message == nullptr) {
-        delete_quick_reply_messages(s, {message_id});
+        delete_quick_reply_messages(s, {message_id}, "on_reload_quick_reply_message");
         return promise.set_error(Status::Error(400, "Message not found"));
       }
       if (message->shortcut_id != shortcut_id) {

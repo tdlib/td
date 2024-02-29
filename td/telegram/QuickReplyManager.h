@@ -42,7 +42,7 @@ class QuickReplyManager final : public Actor {
 
   void update_quick_reply_message(telegram_api::object_ptr<telegram_api::Message> &&message_ptr);
 
-  void delete_quick_reply_messages(QuickReplyShortcutId shortcut_id, const vector<MessageId> &message_ids);
+  void delete_quick_reply_messages_from_updates(QuickReplyShortcutId shortcut_id, const vector<MessageId> &message_ids);
 
   void get_quick_reply_shortcut_messages(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise);
 
@@ -194,7 +194,7 @@ class QuickReplyManager final : public Actor {
   void update_quick_reply_message(QuickReplyShortcutId shortcut_id, unique_ptr<QuickReplyMessage> &old_message,
                                   unique_ptr<QuickReplyMessage> &&new_message);
 
-  void delete_quick_reply_messages(Shortcut *s, const vector<MessageId> &message_ids);
+  void delete_quick_reply_messages(Shortcut *s, const vector<MessageId> &message_ids, const char *source);
 
   Shortcut *get_shortcut(QuickReplyShortcutId shortcut_id);
 

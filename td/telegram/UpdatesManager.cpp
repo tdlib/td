@@ -4501,8 +4501,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDeleteQuickRepl
   for (auto message : update->messages_) {
     message_ids.push_back(MessageId(ServerMessageId(message)));
   }
-  td_->quick_reply_manager_->delete_quick_reply_messages(QuickReplyShortcutId(update->shortcut_id_),
-                                                         std::move(message_ids));
+  td_->quick_reply_manager_->delete_quick_reply_messages_from_updates(QuickReplyShortcutId(update->shortcut_id_),
+                                                                      std::move(message_ids));
   promise.set_value(Unit());
 }
 
