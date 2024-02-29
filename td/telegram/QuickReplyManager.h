@@ -254,6 +254,9 @@ class QuickReplyManager final : public Actor {
 
   void delete_message_files(QuickReplyShortcutId shortcut_id, const QuickReplyMessage *m) const;
 
+  void change_message_files(QuickReplyMessageFullId message_full_id, const QuickReplyMessage *m,
+                            const vector<FileId> &old_file_ids);
+
   Shortcuts shortcuts_;
 
   FlatHashSet<QuickReplyShortcutId, QuickReplyShortcutIdHash> deleted_shortcut_ids_;
