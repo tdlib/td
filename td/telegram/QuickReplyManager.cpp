@@ -11,6 +11,7 @@
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/FileReferenceManager.h"
+#include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/logevent/LogEventHelper.h"
@@ -650,8 +651,12 @@ void QuickReplyManager::on_reload_quick_reply_shortcuts(
       for (auto shortcut_id : old_shortcut_ids) {
         auto old_shortcut = get_shortcut(shortcut_id);
         CHECK(old_shortcut != nullptr);
-        auto is_changed = td::remove_if(old_shortcut->messages_, [](const unique_ptr<QuickReplyMessage> &message) {
-          return message->message_id.is_server();
+        auto is_changed = td::remove_if(old_shortcut->messages_, [&](const unique_ptr<QuickReplyMessage> &message) {
+          if (message->message_id.is_server()) {
+            delete_message_files(shortcut_id, message.get());
+            return true;
+          }
+          return false;
         });
         if (old_shortcut->messages_.empty()) {
           CHECK(is_changed);
@@ -876,6 +881,7 @@ void QuickReplyManager::delete_quick_reply_messages(Shortcut *s, const vector<Me
   for (auto &message_id : message_ids) {
     auto it = get_message_it(s, message_id);
     if (it != s->messages_.end()) {
+      delete_message_files(s->shortcut_id_, it->get());
       if (it == s->messages_.begin()) {
         is_list_changed = true;
       }
@@ -1204,6 +1210,7 @@ bool QuickReplyManager::update_shortcut_from(Shortcut *new_shortcut, Shortcut *o
     auto it = old_shortcut->messages_.begin();
     while (it != old_shortcut->messages_.end() && (*it)->message_id < new_first_message_id) {
       if ((*it)->message_id.is_server()) {
+        delete_message_files(old_shortcut->shortcut_id_, it->get());
         it = old_shortcut->messages_.erase(it);
       } else {
         ++it;
@@ -1223,9 +1230,19 @@ bool QuickReplyManager::update_shortcut_from(Shortcut *new_shortcut, Shortcut *o
       new_shortcut->messages_ = std::move(old_shortcut->messages_);
     } else {
       is_changed = true;
-      for (auto &message : old_shortcut->messages_) {
-        if (!message->message_id.is_server()) {
-          new_shortcut->messages_.push_back(std::move(message));
+      for (auto &old_message : old_shortcut->messages_) {
+        if (!old_message->message_id.is_server()) {
+          new_shortcut->messages_.push_back(std::move(old_message));
+        } else {
+          bool is_deleted = true;
+          for (auto &new_message : new_shortcut->messages_) {
+            if (new_message->message_id == old_message->message_id) {
+              is_deleted = false;
+            }
+          }
+          if (is_deleted) {
+            delete_message_files(old_shortcut->shortcut_id_, old_message.get());
+          }
         }
       }
       sort_quick_reply_messages(new_shortcut->messages_);
@@ -1288,6 +1305,19 @@ QuickReplyManager::get_update_quick_reply_shortcut_messages_object(const Shortcu
 void QuickReplyManager::send_update_quick_reply_shortcut_messages(const Shortcut *s, const char *source) {
   if (have_all_shortcut_messages(s)) {
     send_closure(G()->td(), &Td::send_update, get_update_quick_reply_shortcut_messages_object(s, source));
+  }
+}
+
+vector<FileId> QuickReplyManager::get_message_file_ids(const QuickReplyMessage *m) const {
+  if (m == nullptr) {
+    return {};
+  }
+  return get_message_content_file_ids(m->content.get(), td_);
+}
+
+void QuickReplyManager::delete_message_files(QuickReplyShortcutId shortcut_id, const QuickReplyMessage *m) const {
+  for (auto file_id : get_message_file_ids(m)) {
+    send_closure(G()->file_manager(), &FileManager::delete_file, file_id, Promise<Unit>(), "delete_message_files");
   }
 }
 

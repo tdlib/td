@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/QuickReplyMessageFullId.h"
@@ -217,8 +218,7 @@ class QuickReplyManager final : public Actor {
   static vector<QuickReplyMessageUniqueId> get_server_quick_reply_unique_ids(
       const vector<unique_ptr<QuickReplyMessage>> &messages);
 
-  static bool update_shortcut_from(Shortcut *new_shortcut, Shortcut *old_shortcut, bool is_partial,
-                                   bool *is_object_changed);
+  bool update_shortcut_from(Shortcut *new_shortcut, Shortcut *old_shortcut, bool is_partial, bool *is_object_changed);
 
   td_api::object_ptr<td_api::updateQuickReplyShortcut> get_update_quick_reply_shortcut_object(const Shortcut *s,
                                                                                               const char *source) const;
@@ -246,6 +246,10 @@ class QuickReplyManager final : public Actor {
   string get_quick_reply_shortcuts_database_key();
 
   void save_quick_reply_shortcuts();
+
+  vector<FileId> get_message_file_ids(const QuickReplyMessage *m) const;
+
+  void delete_message_files(QuickReplyShortcutId shortcut_id, const QuickReplyMessage *m) const;
 
   Shortcuts shortcuts_;
 
