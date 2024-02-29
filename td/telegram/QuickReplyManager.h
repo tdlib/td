@@ -188,6 +188,9 @@ class QuickReplyManager final : public Actor {
 
   void on_get_quick_reply_message(Shortcut *s, unique_ptr<QuickReplyMessage> message);
 
+  void update_quick_reply_message(QuickReplyShortcutId shortcut_id, unique_ptr<QuickReplyMessage> &old_message,
+                                  unique_ptr<QuickReplyMessage> &&new_message);
+
   void delete_quick_reply_messages(Shortcut *s, const vector<MessageId> &message_ids);
 
   Shortcut *get_shortcut(QuickReplyShortcutId shortcut_id);
