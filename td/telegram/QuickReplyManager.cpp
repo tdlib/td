@@ -148,6 +148,36 @@ class GetQuickReplyMessagesQuery final : public Td::ResultHandler {
   }
 };
 
+class DeleteQuickReplyMessagesQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  QuickReplyShortcutId shortcut_id_;
+
+ public:
+  explicit DeleteQuickReplyMessagesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(QuickReplyShortcutId shortcut_id, const vector<MessageId> &message_ids) {
+    shortcut_id_ = shortcut_id;
+    send_query(G()->net_query_creator().create(telegram_api::messages_deleteQuickReplyMessages(
+                                                   shortcut_id.get(), MessageId::get_server_message_ids(message_ids)),
+                                               {{"me"}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_deleteQuickReplyMessages>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    td_->quick_reply_manager_->reload_quick_reply_messages(shortcut_id_, Promise<Unit>());
+    promise_.set_error(std::move(status));
+  }
+};
+
 QuickReplyManager::QuickReplyMessage::~QuickReplyMessage() = default;
 
 template <class StorerT>
@@ -931,6 +961,40 @@ void QuickReplyManager::delete_quick_reply_messages(Shortcut *s, const vector<Me
   if (is_changed) {
     save_quick_reply_shortcuts();
   }
+}
+
+void QuickReplyManager::delete_quick_reply_shortcut_messages(QuickReplyShortcutId shortcut_id,
+                                                             const vector<MessageId> &message_ids,
+                                                             Promise<Unit> &&promise) {
+  auto s = get_shortcut(shortcut_id);
+  if (s == nullptr) {
+    return promise.set_error(Status::Error(400, "Shortcut not found"));
+  }
+  if (message_ids.empty()) {
+    return promise.set_value(Unit());
+  }
+
+  vector<MessageId> deleted_server_message_ids;
+  for (auto &message_id : message_ids) {
+    if (!message_id.is_valid()) {
+      return promise.set_error(Status::Error(400, "Invalid message identifier"));
+    }
+
+    // message_id = get_persistent_message_id(s, message_id);
+    if (message_id.is_server()) {
+      deleted_server_message_ids.push_back(message_id);
+    }
+  }
+
+  delete_quick_reply_messages_on_server(shortcut_id, std::move(deleted_server_message_ids), std::move(promise));
+
+  delete_quick_reply_messages(s, message_ids);
+}
+
+void QuickReplyManager::delete_quick_reply_messages_on_server(QuickReplyShortcutId shortcut_id,
+                                                              const vector<MessageId> &message_ids,
+                                                              Promise<Unit> &&promise) {
+  td_->create_handler<DeleteQuickReplyMessagesQuery>(std::move(promise))->send(shortcut_id, message_ids);
 }
 
 void QuickReplyManager::get_quick_reply_shortcut_messages(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise) {

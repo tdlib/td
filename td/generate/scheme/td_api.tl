@@ -7787,6 +7787,11 @@ reorderQuickReplyShortcuts shortcut_ids:vector<int32> = Ok;
 //@shortcut_id Unique identifier of the quick reply shortcut
 loadQuickReplyShortcutMessages shortcut_id:int32 = Ok;
 
+//@description Deletes specified quick reply messages
+//@shortcut_id Unique identifier of the quick reply shortcut to which the messages belong
+//@message_ids Unique identifiers of the messages
+deleteQuickReplyShortcutMessages shortcut_id:int32 message_ids:vector<int53> = Ok;
+
 
 //@description Returns list of custom emojis, which can be used as forum topic icon by all users
 getForumTopicDefaultIcons = Stickers;

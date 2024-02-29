@@ -46,7 +46,12 @@ class QuickReplyManager final : public Actor {
 
   void get_quick_reply_shortcut_messages(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise);
 
+  void delete_quick_reply_shortcut_messages(QuickReplyShortcutId shortcut_id, const vector<MessageId> &message_ids,
+                                            Promise<Unit> &&promise);
+
   void reload_quick_reply_shortcuts();
+
+  void reload_quick_reply_messages(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise);
 
   void reload_quick_reply_message(QuickReplyShortcutId shortcut_id, MessageId message_id, Promise<Unit> &&promise);
 
@@ -175,8 +180,6 @@ class QuickReplyManager final : public Actor {
 
   int64 get_shortcuts_hash() const;
 
-  void reload_quick_reply_messages(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise);
-
   void on_reload_quick_reply_messages(QuickReplyShortcutId shortcut_id,
                                       Result<telegram_api::object_ptr<telegram_api::messages_Messages>> r_messages);
 
@@ -245,6 +248,9 @@ class QuickReplyManager final : public Actor {
   void delete_quick_reply_shortcut_from_server(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise);
 
   void reorder_quick_reply_shortcuts_on_server(vector<QuickReplyShortcutId> shortcut_ids, Promise<Unit> &&promise);
+
+  void delete_quick_reply_messages_on_server(QuickReplyShortcutId shortcut_id, const vector<MessageId> &message_ids,
+                                             Promise<Unit> &&promise);
 
   string get_quick_reply_shortcuts_database_key();
 
