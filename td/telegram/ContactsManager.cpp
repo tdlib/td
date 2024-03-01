@@ -16600,65 +16600,6 @@ std::pair<int32, vector<DialogId>> ContactsManager::search_among_dialogs(const v
   return {narrow_cast<int32>(result.first), transform(result.second, [](int64 key) { return DialogId(key); })};
 }
 
-DialogParticipants ContactsManager::search_private_chat_participants(UserId my_user_id, UserId peer_user_id,
-                                                                     const string &query, int32 limit,
-                                                                     DialogParticipantFilter filter) const {
-  vector<DialogId> dialog_ids;
-  if (filter.is_dialog_participant_suitable(td_, DialogParticipant::private_member(my_user_id, peer_user_id))) {
-    dialog_ids.push_back(DialogId(my_user_id));
-  }
-  if (peer_user_id.is_valid() && peer_user_id != my_user_id &&
-      filter.is_dialog_participant_suitable(td_, DialogParticipant::private_member(peer_user_id, my_user_id))) {
-    dialog_ids.push_back(DialogId(peer_user_id));
-  }
-
-  auto result = search_among_dialogs(dialog_ids, query, limit);
-  return {result.first, transform(result.second, [&](DialogId dialog_id) {
-            auto user_id = dialog_id.get_user_id();
-            return DialogParticipant::private_member(user_id, user_id == my_user_id ? peer_user_id : my_user_id);
-          })};
-}
-
-void ContactsManager::search_dialog_participants(DialogId dialog_id, const string &query, int32 limit,
-                                                 DialogParticipantFilter filter,
-                                                 Promise<DialogParticipants> &&promise) {
-  LOG(INFO) << "Receive searchChatMembers request to search for \"" << query << "\" in " << dialog_id << " with filter "
-            << filter;
-  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "search_dialog_participants")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
-  if (limit < 0) {
-    return promise.set_error(Status::Error(400, "Parameter limit must be non-negative"));
-  }
-
-  switch (dialog_id.get_type()) {
-    case DialogType::User:
-      promise.set_value(search_private_chat_participants(get_my_id(), dialog_id.get_user_id(), query, limit, filter));
-      return;
-    case DialogType::Chat:
-      return search_chat_participants(dialog_id.get_chat_id(), query, limit, filter, std::move(promise));
-    case DialogType::Channel: {
-      auto channel_id = dialog_id.get_channel_id();
-      if (filter.has_query()) {
-        return get_channel_participants(channel_id, filter.get_supergroup_members_filter_object(query), string(), 0,
-                                        limit, 0, std::move(promise));
-      } else {
-        return get_channel_participants(channel_id, filter.get_supergroup_members_filter_object(string()), query, 0,
-                                        100, limit, std::move(promise));
-      }
-    }
-    case DialogType::SecretChat: {
-      auto peer_user_id = get_secret_chat_user_id(dialog_id.get_secret_chat_id());
-      promise.set_value(search_private_chat_participants(get_my_id(), peer_user_id, query, limit, filter));
-      return;
-    }
-    case DialogType::None:
-    default:
-      UNREACHABLE();
-      promise.set_error(Status::Error(500, "Wrong chat type"));
-  }
-}
-
 void ContactsManager::get_chat_participant(ChatId chat_id, UserId user_id, Promise<DialogParticipant> &&promise) {
   LOG(INFO) << "Trying to get " << user_id << " as member of " << chat_id;
 

@@ -7003,8 +7003,9 @@ void Td::on_request(uint64 id, td_api::searchChatMembers &request) {
           promise.set_value(result.ok().get_chat_members_object(td, "searchChatMembers"));
         }
       });
-  contacts_manager_->search_dialog_participants(DialogId(request.chat_id_), request.query_, request.limit_,
-                                                DialogParticipantFilter(request.filter_), std::move(query_promise));
+  dialog_participant_manager_->search_dialog_participants(DialogId(request.chat_id_), request.query_, request.limit_,
+                                                          DialogParticipantFilter(request.filter_),
+                                                          std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getChatAdministrators &request) {

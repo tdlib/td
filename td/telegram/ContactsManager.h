@@ -663,8 +663,11 @@ class ContactsManager final : public Actor {
   void speculative_add_channel_user(ChannelId channel_id, UserId user_id, const DialogParticipantStatus &new_status,
                                     const DialogParticipantStatus &old_status);
 
-  void search_dialog_participants(DialogId dialog_id, const string &query, int32 limit, DialogParticipantFilter filter,
-                                  Promise<DialogParticipants> &&promise);
+  std::pair<int32, vector<DialogId>> search_among_dialogs(const vector<DialogId> &dialog_ids, const string &query,
+                                                          int32 limit) const;
+
+  void search_chat_participants(ChatId chat_id, const string &query, int32 limit, DialogParticipantFilter filter,
+                                Promise<DialogParticipants> &&promise);
 
   void get_channel_participants(ChannelId channel_id, tl_object_ptr<td_api::SupergroupMembersFilter> &&filter,
                                 string additional_query, int32 offset, int32 limit, int32 additional_limit,
@@ -1717,12 +1720,6 @@ class ContactsManager final : public Actor {
 
   static const DialogParticipant *get_chat_full_participant(const ChatFull *chat_full, DialogId dialog_id);
 
-  std::pair<int32, vector<DialogId>> search_among_dialogs(const vector<DialogId> &dialog_ids, const string &query,
-                                                          int32 limit) const;
-
-  DialogParticipants search_private_chat_participants(UserId my_user_id, UserId peer_user_id, const string &query,
-                                                      int32 limit, DialogParticipantFilter filter) const;
-
   void finish_get_chat_participant(ChatId chat_id, UserId user_id, Promise<DialogParticipant> &&promise);
 
   void remove_dialog_suggested_action(SuggestedAction action);
@@ -1794,9 +1791,6 @@ class ContactsManager final : public Actor {
   void on_create_inactive_channels(vector<ChannelId> &&channel_ids, Promise<Unit> &&promise);
 
   void update_dialogs_for_discussion(DialogId dialog_id, bool is_suitable);
-
-  void search_chat_participants(ChatId chat_id, const string &query, int32 limit, DialogParticipantFilter filter,
-                                Promise<DialogParticipants> &&promise);
 
   void do_search_chat_participants(ChatId chat_id, const string &query, int32 limit, DialogParticipantFilter filter,
                                    Promise<DialogParticipants> &&promise);

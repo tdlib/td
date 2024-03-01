@@ -12,6 +12,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogInviteLink.h"
 #include "td/telegram/DialogParticipant.h"
+#include "td/telegram/DialogParticipantFilter.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
@@ -88,6 +89,9 @@ class DialogParticipantManager final : public Actor {
 
   void get_channel_participant(ChannelId channel_id, DialogId participant_dialog_id,
                                Promise<DialogParticipant> &&promise);
+
+  void search_dialog_participants(DialogId dialog_id, const string &query, int32 limit, DialogParticipantFilter filter,
+                                  Promise<DialogParticipants> &&promise);
 
   void add_dialog_participant(DialogId dialog_id, UserId user_id, int32 forward_limit, Promise<Unit> &&promise);
 
@@ -177,6 +181,9 @@ class DialogParticipantManager final : public Actor {
 
   void finish_get_channel_participant(ChannelId channel_id, DialogParticipant &&dialog_participant,
                                       Promise<DialogParticipant> &&promise);
+
+  DialogParticipants search_private_chat_participants(UserId my_user_id, UserId peer_user_id, const string &query,
+                                                      int32 limit, DialogParticipantFilter filter) const;
 
   void set_chat_participant_status(ChatId chat_id, UserId user_id, DialogParticipantStatus status, bool is_recursive,
                                    Promise<Unit> &&promise);
