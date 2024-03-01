@@ -5984,7 +5984,7 @@ class CliClient final : public Actor {
                                                                 rand_bool(), rand_bool(), rand_bool()),
                 inactivity_days)));
       }
-    } else if (op == "sbams") {
+    } else if (op == "sbams" || op == "sbamso") {
       ShortcutId shortcut_id;
       string chat_ids;
       string schedule;
@@ -5993,9 +5993,9 @@ class CliClient final : public Actor {
         send_request(td_api::make_object<td_api::setBusinessAwayMessageSettings>(nullptr));
       } else {
         td_api::object_ptr<td_api::BusinessAwayMessageSchedule> schedule_object;
-        if (schedule[0] == 'o') {
-          schedule_object = td_api::make_object<td_api::businessAwayMessageScheduleOffline>();
-        } else if (schedule[0] == 'h') {
+        if (schedule[0] == 'a') {
+          schedule_object = td_api::make_object<td_api::businessAwayMessageScheduleAlways>();
+        } else if (schedule[0] == 'o') {
           schedule_object = td_api::make_object<td_api::businessAwayMessageScheduleOutsideOfOpeningHours>();
         } else {
           auto start_date = to_integer<int32>(schedule);
@@ -6007,7 +6007,7 @@ class CliClient final : public Actor {
                 shortcut_id,
                 td_api::make_object<td_api::businessRecipients>(as_chat_ids(chat_ids), rand_bool(), rand_bool(),
                                                                 rand_bool(), rand_bool(), rand_bool()),
-                std::move(schedule_object))));
+                std::move(schedule_object), op == "sbamso")));
       }
     } else if (op == "sco") {
       SearchQuery query;

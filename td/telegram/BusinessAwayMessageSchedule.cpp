@@ -13,7 +13,7 @@ BusinessAwayMessageSchedule::BusinessAwayMessageSchedule(
   CHECK(schedule != nullptr);
   switch (schedule->get_id()) {
     case telegram_api::businessAwayMessageScheduleAlways::ID:
-      type_ = Type::Offline;
+      type_ = Type::Always;
       break;
     case telegram_api::businessAwayMessageScheduleOutsideWorkHours::ID:
       type_ = Type::OutsideOfWorkHours;
@@ -36,8 +36,8 @@ BusinessAwayMessageSchedule::BusinessAwayMessageSchedule(
     return;
   }
   switch (schedule->get_id()) {
-    case td_api::businessAwayMessageScheduleOffline::ID:
-      type_ = Type::Offline;
+    case td_api::businessAwayMessageScheduleAlways::ID:
+      type_ = Type::Always;
       break;
     case td_api::businessAwayMessageScheduleOutsideOfOpeningHours::ID:
       type_ = Type::OutsideOfWorkHours;
@@ -57,8 +57,8 @@ BusinessAwayMessageSchedule::BusinessAwayMessageSchedule(
 td_api::object_ptr<td_api::BusinessAwayMessageSchedule>
 BusinessAwayMessageSchedule::get_business_away_message_schedule_object() const {
   switch (type_) {
-    case Type::Offline:
-      return td_api::make_object<td_api::businessAwayMessageScheduleOffline>();
+    case Type::Always:
+      return td_api::make_object<td_api::businessAwayMessageScheduleAlways>();
     case Type::OutsideOfWorkHours:
       return td_api::make_object<td_api::businessAwayMessageScheduleOutsideOfOpeningHours>();
     case Type::Custom:
@@ -72,7 +72,7 @@ BusinessAwayMessageSchedule::get_business_away_message_schedule_object() const {
 telegram_api::object_ptr<telegram_api::BusinessAwayMessageSchedule>
 BusinessAwayMessageSchedule::get_input_business_away_message_schedule() const {
   switch (type_) {
-    case Type::Offline:
+    case Type::Always:
       return telegram_api::make_object<telegram_api::businessAwayMessageScheduleAlways>();
     case Type::OutsideOfWorkHours:
       return telegram_api::make_object<telegram_api::businessAwayMessageScheduleOutsideWorkHours>();
@@ -90,10 +90,10 @@ bool operator==(const BusinessAwayMessageSchedule &lhs, const BusinessAwayMessag
 
 StringBuilder &operator<<(StringBuilder &string_builder, const BusinessAwayMessageSchedule &schedule) {
   switch (schedule.type_) {
-    case BusinessAwayMessageSchedule::Type::Offline:
-      return string_builder << "sent offline";
+    case BusinessAwayMessageSchedule::Type::Always:
+      return string_builder << "sent always";
     case BusinessAwayMessageSchedule::Type::OutsideOfWorkHours:
-      return string_builder << "sent outside of work hours";
+      return string_builder << "sent outside of opening hours";
     case BusinessAwayMessageSchedule::Type::Custom:
       return string_builder << "sent from " << schedule.start_date_ << " to " << schedule.end_date_;
     default:

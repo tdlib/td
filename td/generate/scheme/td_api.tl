@@ -578,8 +578,8 @@ chatLocation location:location address:string = ChatLocation;
 
 //@class BusinessAwayMessageSchedule @description Describes conditions for sending of away messages by a Telegram Business account
 
-//@description Send away messages if the account was online more than 10 minutes
-businessAwayMessageScheduleOffline = BusinessAwayMessageSchedule;
+//@description Send away messages always
+businessAwayMessageScheduleAlways = BusinessAwayMessageSchedule;
 
 //@description Send away messages outside of the business opening hours
 businessAwayMessageScheduleOutsideOfOpeningHours = BusinessAwayMessageSchedule;
@@ -606,7 +606,8 @@ businessRecipients chat_ids:vector<int53> select_existing_chats:Bool select_new_
 //@shortcut_id Unique quick reply shortcut identifier for the away messages
 //@recipients Chosen recipients of the away messages
 //@schedule Settings used to check whether the current user is away
-businessAwayMessageSettings shortcut_id:int32 recipients:businessRecipients schedule:BusinessAwayMessageSchedule = BusinessAwayMessageSettings;
+//@offline_only True, if the messages must not be sent if the account was online in the last 10 minutes
+businessAwayMessageSettings shortcut_id:int32 recipients:businessRecipients schedule:BusinessAwayMessageSchedule offline_only:Bool = BusinessAwayMessageSettings;
 
 //@description Describes settings for greeting messages that are automatically sent by a Telegram Business account as response to incoming messages in an inactive private chat
 //@shortcut_id Unique quick reply shortcut identifier for the greeting messages

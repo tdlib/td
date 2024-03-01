@@ -33,8 +33,8 @@ class BusinessAwayMessageSchedule {
   void parse(ParserT &parser);
 
  private:
-  enum class Type : int32 { Offline, OutsideOfWorkHours, Custom };
-  Type type_ = Type::Offline;
+  enum class Type : int32 { Always, OutsideOfWorkHours, Custom };
+  Type type_ = Type::Always;
   int32 start_date_ = 0;
   int32 end_date_ = 0;
 

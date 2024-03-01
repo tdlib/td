@@ -49,6 +49,7 @@ class BusinessAwayMessage {
   QuickReplyShortcutId shortcut_id_;
   BusinessRecipients recipients_;
   BusinessAwayMessageSchedule schedule_;
+  bool offline_only_ = false;
 
   friend bool operator==(const BusinessAwayMessage &lhs, const BusinessAwayMessage &rhs);
 

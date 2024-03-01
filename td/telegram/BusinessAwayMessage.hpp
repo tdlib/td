@@ -18,6 +18,7 @@ namespace td {
 template <class StorerT>
 void BusinessAwayMessage::store(StorerT &storer) const {
   BEGIN_STORE_FLAGS();
+  STORE_FLAG(offline_only_);
   END_STORE_FLAGS();
   td::store(shortcut_id_, storer);
   td::store(recipients_, storer);
@@ -27,6 +28,7 @@ void BusinessAwayMessage::store(StorerT &storer) const {
 template <class ParserT>
 void BusinessAwayMessage::parse(ParserT &parser) {
   BEGIN_PARSE_FLAGS();
+  PARSE_FLAG(offline_only_);
   END_PARSE_FLAGS();
   td::parse(shortcut_id_, parser);
   td::parse(recipients_, parser);
