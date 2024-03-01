@@ -127,6 +127,32 @@ class UpdateDialogFiltersOrderQuery final : public Td::ResultHandler {
   }
 };
 
+class ToggleDialogFilterTagsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit ToggleDialogFilterTagsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(bool are_tags_enabled) {
+    send_query(G()->net_query_creator().create(telegram_api::messages_toggleDialogFilterTags(are_tags_enabled)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_toggleDialogFilterTags>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    LOG(INFO) << "Receive result for ToggleDialogFilterTagsQuery: " << result_ptr.ok();
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ExportChatlistInviteQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::chatFolderInviteLink>> promise_;
 
@@ -555,6 +581,8 @@ class DialogFilterManager::DialogFiltersLogEvent {
   const vector<unique_ptr<DialogFilter>> *dialog_filters_in;
   vector<unique_ptr<DialogFilter>> server_dialog_filters_out;
   vector<unique_ptr<DialogFilter>> dialog_filters_out;
+  bool server_are_tags_enabled = false;
+  bool are_tags_enabled = false;
 
   template <class StorerT>
   void store(StorerT &storer) const {
@@ -567,6 +595,8 @@ class DialogFilterManager::DialogFiltersLogEvent {
     STORE_FLAG(has_dialog_filters);
     STORE_FLAG(has_server_main_dialog_list_position);
     STORE_FLAG(has_main_dialog_list_position);
+    STORE_FLAG(server_are_tags_enabled);
+    STORE_FLAG(are_tags_enabled);
     END_STORE_FLAGS();
     td::store(updated_date, storer);
     if (has_server_dialog_filters) {
@@ -595,6 +625,8 @@ class DialogFilterManager::DialogFiltersLogEvent {
       PARSE_FLAG(has_dialog_filters);
       PARSE_FLAG(has_server_main_dialog_list_position);
       PARSE_FLAG(has_main_dialog_list_position);
+      PARSE_FLAG(server_are_tags_enabled);
+      PARSE_FLAG(are_tags_enabled);
       END_PARSE_FLAGS();
     }
     td::parse(updated_date, parser);
@@ -630,14 +662,22 @@ void DialogFilterManager::init() {
     if (!dialog_filters.empty()) {
       DialogFiltersLogEvent log_event;
       if (log_event_parse(log_event, dialog_filters).is_ok()) {
+        server_are_tags_enabled_ = log_event.server_are_tags_enabled;
+        are_tags_enabled_ = log_event.are_tags_enabled;
         server_main_dialog_list_position_ = log_event.server_main_dialog_list_position;
         main_dialog_list_position_ = log_event.main_dialog_list_position;
-        if (!td_->option_manager_->get_option_boolean("is_premium") &&
-            (server_main_dialog_list_position_ != 0 || main_dialog_list_position_ != 0)) {
-          LOG(INFO) << "Ignore main chat list position " << server_main_dialog_list_position_ << '/'
-                    << main_dialog_list_position_;
-          server_main_dialog_list_position_ = 0;
-          main_dialog_list_position_ = 0;
+        if (!td_->option_manager_->get_option_boolean("is_premium")) {
+          if (server_main_dialog_list_position_ != 0 || main_dialog_list_position_ != 0) {
+            LOG(INFO) << "Ignore main chat list position " << server_main_dialog_list_position_ << '/'
+                      << main_dialog_list_position_;
+            server_main_dialog_list_position_ = 0;
+            main_dialog_list_position_ = 0;
+          }
+          if (server_are_tags_enabled_ || are_tags_enabled_) {
+            LOG(INFO) << "Ignore enabled tags " << server_are_tags_enabled_ << '/' << are_tags_enabled_;
+            server_are_tags_enabled_ = 0;
+            are_tags_enabled_ = 0;
+          }
         }
 
         dialog_filters_updated_date_ = td_->ignore_background_updates() ? 0 : log_event.updated_date;
@@ -1211,6 +1251,7 @@ void DialogFilterManager::on_get_dialog_filters(
   vector<unique_ptr<DialogFilter>> new_server_dialog_filters;
   LOG(INFO) << "Receive chat folders from server: " << to_string(filters);
   std::unordered_set<DialogFilterId, DialogFilterIdHash> new_dialog_filter_ids;
+  bool server_are_tags_enabled = dialog_filters->tags_enabled_;
   int32 server_main_dialog_list_position = -1;
   int32 position = 0;
   for (auto &filter : filters) {
@@ -1242,6 +1283,10 @@ void DialogFilterManager::on_get_dialog_filters(
   if (server_main_dialog_list_position != 0 && !td_->option_manager_->get_option_boolean("is_premium")) {
     LOG(INFO) << "Ignore server main chat list position " << server_main_dialog_list_position;
     server_main_dialog_list_position = 0;
+  }
+  if (server_are_tags_enabled && !td_->option_manager_->get_option_boolean("is_premium")) {
+    LOG(INFO) << "Ignore server enabled tags";
+    server_are_tags_enabled = false;
   }
 
   bool is_changed = false;
@@ -1364,6 +1409,15 @@ void DialogFilterManager::on_get_dialog_filters(
       is_changed = true;
     }
   }
+  if (server_are_tags_enabled_ != server_are_tags_enabled) {
+    server_are_tags_enabled_ = server_are_tags_enabled;
+
+    if (server_are_tags_enabled != are_tags_enabled_) {
+      LOG(INFO) << "Change are_tags_enabled_ from " << are_tags_enabled_ << " to " << server_are_tags_enabled;
+      are_tags_enabled_ = server_are_tags_enabled;
+      is_changed = true;
+    }
+  }
   if (is_changed || !is_update_chat_folders_sent_) {
     send_update_chat_folders();
   }
@@ -1403,6 +1457,10 @@ bool DialogFilterManager::need_synchronize_dialog_filters() const {
   }
   if (get_server_main_dialog_list_position() != server_main_dialog_list_position_) {
     // need reorder main chat list on server
+    return true;
+  }
+  if (are_tags_enabled_ != server_are_tags_enabled_) {
+    // need enable/disable tags
     return true;
   }
   return false;
@@ -1453,6 +1511,10 @@ void DialogFilterManager::synchronize_dialog_filters() {
     return reorder_dialog_filters_on_server(std::move(dialog_filter_ids), server_main_dialog_list_position);
   }
 
+  if (are_tags_enabled_ != server_are_tags_enabled_) {
+    return toggle_are_tags_enabled_on_server(are_tags_enabled_);
+  }
+
   UNREACHABLE();
 }
 
@@ -1472,6 +1534,7 @@ td_api::object_ptr<td_api::updateChatFolders> DialogFilterManager::get_update_ch
     update->chat_folders_.push_back(dialog_filter->get_chat_folder_info_object());
   }
   update->main_chat_list_position_ = main_dialog_list_position_;
+  update->are_tags_enabled_ = are_tags_enabled_;
   return update;
 }
 
@@ -1780,6 +1843,31 @@ void DialogFilterManager::on_reorder_dialog_filters(vector<DialogFilterId> dialo
   synchronize_dialog_filters();
 }
 
+void DialogFilterManager::toggle_are_tags_enabled_on_server(bool are_tags_enabled) {
+  CHECK(!td_->auth_manager_->is_bot());
+  are_dialog_filters_being_synchronized_ = true;
+  auto promise = PromiseCreator::lambda([actor_id = actor_id(this), are_tags_enabled](Result<Unit> result) mutable {
+    send_closure(actor_id, &DialogFilterManager::on_toggle_are_tags_enabled, are_tags_enabled,
+                 result.is_error() ? result.move_as_error() : Status::OK());
+  });
+  td_->create_handler<ToggleDialogFilterTagsQuery>(std::move(promise))->send(are_tags_enabled);
+}
+
+void DialogFilterManager::on_toggle_are_tags_enabled(bool are_tags_enabled, Status result) {
+  CHECK(!td_->auth_manager_->is_bot());
+  if (result.is_error()) {
+    are_tags_enabled_ = !are_tags_enabled;
+  } else {
+    if (server_are_tags_enabled_ != are_tags_enabled) {
+      server_are_tags_enabled_ = are_tags_enabled;
+      save_dialog_filters();
+    }
+  }
+
+  are_dialog_filters_being_synchronized_ = false;
+  synchronize_dialog_filters();
+}
+
 void DialogFilterManager::add_dialog_filter(unique_ptr<DialogFilter> dialog_filter, bool at_beginning,
                                             const char *source) {
   if (td_->auth_manager_->is_bot()) {
@@ -1847,6 +1935,8 @@ void DialogFilterManager::save_dialog_filters() {
   }
 
   DialogFiltersLogEvent log_event;
+  log_event.server_are_tags_enabled = server_are_tags_enabled_;
+  log_event.are_tags_enabled = are_tags_enabled_;
   log_event.server_main_dialog_list_position = server_main_dialog_list_position_;
   log_event.main_dialog_list_position = main_dialog_list_position_;
   log_event.updated_date = dialog_filters_updated_date_;

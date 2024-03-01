@@ -186,6 +186,10 @@ class DialogFilterManager final : public Actor {
   void on_reorder_dialog_filters(vector<DialogFilterId> dialog_filter_ids, int32 main_dialog_list_position,
                                  Status result);
 
+  void toggle_are_tags_enabled_on_server(bool are_tags_enabled);
+
+  void on_toggle_are_tags_enabled(bool are_tags_enabled, Status result);
+
   void save_dialog_filters();
 
   void add_dialog_filter(unique_ptr<DialogFilter> dialog_filter, bool at_beginning, const char *source);
@@ -227,6 +231,8 @@ class DialogFilterManager final : public Actor {
   bool need_dialog_filters_reload_ = false;
   bool disable_get_dialog_filter_ = false;
   bool is_update_chat_folders_sent_ = false;
+  bool server_are_tags_enabled_ = false;
+  bool are_tags_enabled_ = false;
   int32 dialog_filters_updated_date_ = 0;
   vector<unique_ptr<DialogFilter>> server_dialog_filters_;
   vector<unique_ptr<DialogFilter>> dialog_filters_;

@@ -6619,8 +6619,11 @@ updateChatBlockList chat_id:int53 block_list:BlockList = Update;
 //@description A chat's has_scheduled_messages field has changed @chat_id Chat identifier @has_scheduled_messages New value of has_scheduled_messages
 updateChatHasScheduledMessages chat_id:int53 has_scheduled_messages:Bool = Update;
 
-//@description The list of chat folders or a chat folder has changed @chat_folders The new list of chat folders @main_chat_list_position Position of the main chat list among chat folders, 0-based
-updateChatFolders chat_folders:vector<chatFolderInfo> main_chat_list_position:int32 = Update;
+//@description The list of chat folders or a chat folder has changed
+//@chat_folders The new list of chat folders
+//@main_chat_list_position Position of the main chat list among chat folders, 0-based
+//@are_tags_enabled True, if folder tags are enabled
+updateChatFolders chat_folders:vector<chatFolderInfo> main_chat_list_position:int32 are_tags_enabled:Bool = Update;
 
 //@description The number of online group members has changed. This update with non-zero number of online group members is sent only for currently opened chats.
 //-There is no guarantee that it is sent just after the number of online users has changed
