@@ -6468,6 +6468,12 @@ void Td::on_request(uint64 id, const td_api::reorderChatFolders &request) {
       request.main_chat_list_position_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::toggleChatFolderTags &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  dialog_filter_manager_->toggle_dialog_filter_tags(request.are_tags_enabled_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getChatsForChatFolderInviteLink &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

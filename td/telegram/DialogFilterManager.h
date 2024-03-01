@@ -81,6 +81,8 @@ class DialogFilterManager final : public Actor {
   void reorder_dialog_filters(vector<DialogFilterId> dialog_filter_ids, int32 main_dialog_list_position,
                               Promise<Unit> &&promise);
 
+  void toggle_dialog_filter_tags(bool are_tags_enabled, Promise<Unit> &&promise);
+
   void get_dialogs_for_dialog_filter_invite_link(DialogFilterId dialog_filter_id,
                                                  Promise<td_api::object_ptr<td_api::chats>> promise);
 

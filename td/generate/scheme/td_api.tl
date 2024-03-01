@@ -8262,6 +8262,9 @@ getChatFolderChatCount folder:chatFolder = Count;
 //@description Changes the order of chat folders @chat_folder_ids Identifiers of chat folders in the new correct order @main_chat_list_position Position of the main chat list among chat folders, 0-based. Can be non-zero only for Premium users
 reorderChatFolders chat_folder_ids:vector<int32> main_chat_list_position:int32 = Ok;
 
+//@description Toggles whether chat folder tags are enabled @are_tags_enabled Pass true to enable folder tags; pass false to disable them
+toggleChatFolderTags are_tags_enabled:Bool = Ok;
+
 //@description Returns recommended chat folders for the current user
 getRecommendedChatFolders = RecommendedChatFolders;
 

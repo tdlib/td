@@ -1046,6 +1046,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::reorderChatFolders &request);
 
+  void on_request(uint64 id, const td_api::toggleChatFolderTags &request);
+
   void on_request(uint64 id, const td_api::getChatsForChatFolderInviteLink &request);
 
   void on_request(uint64 id, td_api::createChatFolderInviteLink &request);

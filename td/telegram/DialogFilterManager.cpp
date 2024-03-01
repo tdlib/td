@@ -1843,6 +1843,25 @@ void DialogFilterManager::on_reorder_dialog_filters(vector<DialogFilterId> dialo
   synchronize_dialog_filters();
 }
 
+void DialogFilterManager::toggle_dialog_filter_tags(bool are_tags_enabled, Promise<Unit> &&promise) {
+  if (!td_->option_manager_->get_option_boolean("is_premium")) {
+    if (!are_tags_enabled) {
+      return promise.set_value(Unit());
+    }
+    return promise.set_error(Status::Error(400, "Method not available"));
+  }
+
+  if (are_tags_enabled_ != are_tags_enabled) {
+    are_tags_enabled = are_tags_enabled;
+
+    save_dialog_filters();
+    send_update_chat_folders();
+
+    synchronize_dialog_filters();
+  }
+  promise.set_value(Unit());
+}
+
 void DialogFilterManager::toggle_are_tags_enabled_on_server(bool are_tags_enabled) {
   CHECK(!td_->auth_manager_->is_bot());
   are_dialog_filters_being_synchronized_ = true;
