@@ -1605,9 +1605,10 @@ void DialogParticipantManager::finish_get_channel_participant(ChannelId channel_
   promise.set_value(std::move(dialog_participant));
 }
 
-DialogParticipants DialogParticipantManager::search_private_chat_participants(UserId my_user_id, UserId peer_user_id,
-                                                                              const string &query, int32 limit,
+DialogParticipants DialogParticipantManager::search_private_chat_participants(UserId peer_user_id, const string &query,
+                                                                              int32 limit,
                                                                               DialogParticipantFilter filter) const {
+  auto my_user_id = td_->contacts_manager_->get_my_id();
   vector<DialogId> dialog_ids;
   if (filter.is_dialog_participant_suitable(td_, DialogParticipant::private_member(my_user_id, peer_user_id))) {
     dialog_ids.push_back(DialogId(my_user_id));
@@ -1638,8 +1639,7 @@ void DialogParticipantManager::search_dialog_participants(DialogId dialog_id, co
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return promise.set_value(search_private_chat_participants(td_->contacts_manager_->get_my_id(),
-                                                                dialog_id.get_user_id(), query, limit, filter));
+      return promise.set_value(search_private_chat_participants(dialog_id.get_user_id(), query, limit, filter));
     case DialogType::Chat:
       return td_->contacts_manager_->search_chat_participants(dialog_id.get_chat_id(), query, limit, filter,
                                                               std::move(promise));
@@ -1656,8 +1656,7 @@ void DialogParticipantManager::search_dialog_participants(DialogId dialog_id, co
     }
     case DialogType::SecretChat: {
       auto peer_user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
-      return promise.set_value(
-          search_private_chat_participants(td_->contacts_manager_->get_my_id(), peer_user_id, query, limit, filter));
+      return promise.set_value(search_private_chat_participants(peer_user_id, query, limit, filter));
     }
     case DialogType::None:
     default:
