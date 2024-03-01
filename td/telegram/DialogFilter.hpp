@@ -19,6 +19,7 @@ void DialogFilter::store(StorerT &storer) const {
   bool has_pinned_dialog_ids = !pinned_dialog_ids_.empty();
   bool has_included_dialog_ids = !included_dialog_ids_.empty();
   bool has_excluded_dialog_ids = !excluded_dialog_ids_.empty();
+  bool has_color_id = color_id_ != -1;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(exclude_muted_);
   STORE_FLAG(exclude_read_);
@@ -33,8 +34,8 @@ void DialogFilter::store(StorerT &storer) const {
   STORE_FLAG(has_excluded_dialog_ids);
   STORE_FLAG(is_shareable_);
   STORE_FLAG(has_my_invites_);
+  STORE_FLAG(has_color_id);
   END_STORE_FLAGS();
-
   store(dialog_filter_id_, storer);
   store(title_, storer);
   store(emoji_, storer);
@@ -47,6 +48,9 @@ void DialogFilter::store(StorerT &storer) const {
   if (has_excluded_dialog_ids) {
     store(excluded_dialog_ids_, storer);
   }
+  if (has_color_id) {
+    store(color_id_, storer);
+  }
 }
 
 template <class ParserT>
@@ -55,6 +59,7 @@ void DialogFilter::parse(ParserT &parser) {
   bool has_pinned_dialog_ids;
   bool has_included_dialog_ids;
   bool has_excluded_dialog_ids;
+  bool has_color_id;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(exclude_muted_);
   PARSE_FLAG(exclude_read_);
@@ -69,8 +74,8 @@ void DialogFilter::parse(ParserT &parser) {
   PARSE_FLAG(has_excluded_dialog_ids);
   PARSE_FLAG(is_shareable_);
   PARSE_FLAG(has_my_invites_);
+  PARSE_FLAG(has_color_id);
   END_PARSE_FLAGS();
-
   parse(dialog_filter_id_, parser);
   parse(title_, parser);
   parse(emoji_, parser);
@@ -82,6 +87,11 @@ void DialogFilter::parse(ParserT &parser) {
   }
   if (has_excluded_dialog_ids) {
     parse(excluded_dialog_ids_, parser);
+  }
+  if (has_color_id) {
+    parse(color_id_, parser);
+  } else {
+    color_id_ = -1;
   }
 }
 

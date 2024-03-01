@@ -1616,6 +1616,7 @@ chatFolderIcon name:string = ChatFolderIcon;
 //@description Represents a folder for user chats
 //@title The title of the folder; 1-12 characters without line feeds
 //@icon The chosen icon for the chat folder; may be null. If null, use getChatFolderDefaultIconName to get default icon name for the folder
+//@color_id The identifier of the chosen color for the chat folder icon; from -1 to 6. If -1, then color is didabled
 //@is_shareable True, if at least one link has been created for the folder
 //@pinned_chat_ids The chat identifiers of pinned chats in the folder. There can be up to getOption("chat_folder_chosen_chat_count_max") pinned and always included non-secret chats and the same number of secret chats, but the limit can be increased with Telegram Premium
 //@included_chat_ids The chat identifiers of always included chats in the folder. There can be up to getOption("chat_folder_chosen_chat_count_max") pinned and always included non-secret chats and the same number of secret chats, but the limit can be increased with Telegram Premium
@@ -1628,15 +1629,16 @@ chatFolderIcon name:string = ChatFolderIcon;
 //@include_bots True, if bots need to be included
 //@include_groups True, if basic groups and supergroups need to be included
 //@include_channels True, if channels need to be included
-chatFolder title:string icon:chatFolderIcon is_shareable:Bool pinned_chat_ids:vector<int53> included_chat_ids:vector<int53> excluded_chat_ids:vector<int53> exclude_muted:Bool exclude_read:Bool exclude_archived:Bool include_contacts:Bool include_non_contacts:Bool include_bots:Bool include_groups:Bool include_channels:Bool = ChatFolder;
+chatFolder title:string icon:chatFolderIcon color_id:int32 is_shareable:Bool pinned_chat_ids:vector<int53> included_chat_ids:vector<int53> excluded_chat_ids:vector<int53> exclude_muted:Bool exclude_read:Bool exclude_archived:Bool include_contacts:Bool include_non_contacts:Bool include_bots:Bool include_groups:Bool include_channels:Bool = ChatFolder;
 
 //@description Contains basic information about a chat folder
 //@id Unique chat folder identifier
 //@title The title of the folder; 1-12 characters without line feeds
 //@icon The chosen or default icon for the chat folder
+//@color_id The identifier of the chosen color for the chat folder icon; from -1 to 6. If -1, then color is didabled
 //@is_shareable True, if at least one link has been created for the folder
 //@has_my_invite_links True, if the chat folder has invite links created by the current user
-chatFolderInfo id:int32 title:string icon:chatFolderIcon is_shareable:Bool has_my_invite_links:Bool = ChatFolderInfo;
+chatFolderInfo id:int32 title:string icon:chatFolderIcon color_id:int32 is_shareable:Bool has_my_invite_links:Bool = ChatFolderInfo;
 
 //@description Contains a chat folder invite link
 //@invite_link The chat folder invite link
