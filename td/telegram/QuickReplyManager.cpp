@@ -1014,6 +1014,10 @@ void QuickReplyManager::get_quick_reply_shortcut_messages(QuickReplyShortcutId s
 }
 
 void QuickReplyManager::reload_quick_reply_messages(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise) {
+  CHECK(shortcut_id.is_valid());
+  if (!shortcut_id.is_server()) {
+    return promise.set_value(Unit());
+  }
   auto &queries = get_shortcut_messages_queries_[shortcut_id];
   queries.push_back(std::move(promise));
   if (queries.size() != 1) {
@@ -1119,7 +1123,9 @@ void QuickReplyManager::on_reload_quick_reply_messages(
 }
 
 int64 QuickReplyManager::get_quick_reply_messages_hash(const Shortcut *s) {
-  CHECK(s != nullptr);
+  if (s == nullptr) {
+    return 0;
+  }
   vector<uint64> numbers;
   for (const auto &message : s->messages_) {
     if (message->message_id.is_server()) {
