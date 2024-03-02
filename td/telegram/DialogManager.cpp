@@ -1926,7 +1926,7 @@ void DialogManager::on_resolved_username(const string &username, Result<DialogId
   resolve_dialog_username_queries_.erase(it);
   if (r_dialog_id.is_error()) {
     auto error_message = r_dialog_id.error().message();
-    if (error_message == Slice("USERNAME_NOT_OCCUPIED")) {
+    if (error_message == Slice("USERNAME_NOT_OCCUPIED") || error_message == Slice("USERNAME_INVALID")) {
       drop_username(username);
     }
     return fail_promises(promises, r_dialog_id.move_as_error());
