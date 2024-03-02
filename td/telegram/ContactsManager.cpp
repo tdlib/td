@@ -15162,6 +15162,13 @@ bool ContactsManager::is_user_online(UserId user_id, int32 tolerance, int32 unix
   return was_online > unix_time - tolerance;
 }
 
+int32 ContactsManager::get_user_was_online(UserId user_id, int32 unix_time) const {
+  if (unix_time <= 0) {
+    unix_time = G()->unix_time();
+  }
+  return get_user_was_online(get_user(user_id), user_id, unix_time);
+}
+
 bool ContactsManager::is_user_status_exact(UserId user_id) const {
   auto u = get_user(user_id);
   return u != nullptr && !u->is_deleted && !u->is_bot && u->was_online > 0;

@@ -572,6 +572,8 @@ class ContactsManager final : public Actor {
 
   bool is_user_online(UserId user_id, int32 tolerance = 0, int32 unix_time = 0) const;
 
+  int32 get_user_was_online(UserId user_id, int32 unix_time = 0) const;
+
   bool is_user_status_exact(UserId user_id) const;
 
   bool can_report_user(UserId user_id) const;
