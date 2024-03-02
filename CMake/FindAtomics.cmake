@@ -18,19 +18,19 @@ include(CheckCXXSourceCompiles)
 
 # RISC-V only has 32-bit and 64-bit atomic instructions. GCC is supposed
 # to convert smaller atomics to those larger ones via masking and
-# shifting like LLVM, but it’s a known bug that it does not. This means
+# shifting like LLVM, but it's a known bug that it does not. This means
 # anything that wants to use atomics on 1-byte or 2-byte types needs
 # to link atomic library, but not 4-byte or 8-byte (though it does no harm).
 set(ATOMIC_CODE
     "
-     #include <atomic>
-     #include <cstdint>
-     std::atomic<std::uint8_t> n8(0); // riscv64
-     std::atomic<std::uint64_t> n64(0); // armel, mipsel, powerpc
-     int main() {
-       ++n8;
-       ++n64;
-     }")
+    #include <atomic>
+    #include <cstdint>
+    std::atomic<std::uint8_t> n8{0}; // riscv64
+    std::atomic<std::uint64_t> n64{0}; // armel, mipsel, powerpc
+    int main() {
+      ++n8;
+      ++n64;
+    }")
 
 set(ATOMICS_LIBS " " "-latomic")
 if (CMAKE_SYSTEM_NAME MATCHES "NetBSD")

@@ -35,12 +35,14 @@
 #include "td/utils/Hints.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 #include "td/utils/Time.h"
 
 #include <algorithm>
 #include <limits>
+#include <tuple>
 
 namespace td {
 
