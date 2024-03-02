@@ -13436,7 +13436,7 @@ void ContactsManager::on_get_channel_participants(
   }
 
   if (participant_count != -1 || administrator_count != -1) {
-    auto channel_full = get_channel_full_force(channel_id, true, "on_get_channel_participants_success");
+    auto channel_full = get_channel_full_force(channel_id, true, "on_get_channel_participants");
     if (channel_full != nullptr) {
       if (administrator_count == -1) {
         administrator_count = channel_full->administrator_count;

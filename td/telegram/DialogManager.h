@@ -204,10 +204,6 @@ class DialogManager final : public Actor {
 
   void reload_voice_chat_on_search(const string &username);
 
-  void on_resolved_username(const string &username, DialogId dialog_id);
-
-  void drop_username(const string &username);
-
  private:
   static constexpr size_t MAX_TITLE_LENGTH = 128;  // server side limit for chat title
 
@@ -224,6 +220,10 @@ class DialogManager final : public Actor {
                                     Promise<Unit> &&promise);
 
   void send_resolve_dialog_username_query(const string &username, Promise<Unit> &&promise);
+
+  void on_resolved_username(const string &username, Result<DialogId> r_dialog_id);
+
+  void drop_username(const string &username);
 
   void on_resolve_dialog(const string &username, ChannelId channel_id, Promise<DialogId> &&promise);
 
@@ -259,6 +259,8 @@ class DialogManager final : public Actor {
   WaitFreeHashMap<string, ResolvedUsername> resolved_usernames_;
   WaitFreeHashMap<string, DialogId> inaccessible_resolved_usernames_;
   FlatHashSet<string> reload_voice_chat_on_search_usernames_;
+
+  FlatHashMap<string, vector<Promise<Unit>>> resolve_dialog_username_queries_;
 
   Td *td_;
   ActorShared<> parent_;

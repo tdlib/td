@@ -103,15 +103,13 @@ class CheckChannelUsernameQuery final : public Td::ResultHandler {
 };
 
 class ResolveUsernameQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  string username_;
+  Promise<DialogId> promise_;
 
  public:
-  explicit ResolveUsernameQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit ResolveUsernameQuery(Promise<DialogId> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(const string &username) {
-    username_ = username;
     send_query(G()->net_query_creator().create(telegram_api::contacts_resolveUsername(username)));
   }
 
@@ -126,15 +124,10 @@ class ResolveUsernameQuery final : public Td::ResultHandler {
     td_->contacts_manager_->on_get_users(std::move(ptr->users_), "ResolveUsernameQuery");
     td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "ResolveUsernameQuery");
 
-    td_->dialog_manager_->on_resolved_username(username_, DialogId(ptr->peer_));
-
-    promise_.set_value(Unit());
+    promise_.set_value(DialogId(ptr->peer_));
   }
 
   void on_error(Status status) final {
-    if (status.message() == Slice("USERNAME_NOT_OCCUPIED")) {
-      td_->dialog_manager_->drop_username(username_);
-    }
     promise_.set_error(std::move(status));
   }
 };
@@ -1912,7 +1905,54 @@ td_api::object_ptr<td_api::CheckChatUsernameResult> DialogManager::get_check_cha
 }
 
 void DialogManager::send_resolve_dialog_username_query(const string &username, Promise<Unit> &&promise) {
-  td_->create_handler<ResolveUsernameQuery>(std::move(promise))->send(username);
+  CHECK(!username.empty());
+  auto &queries = resolve_dialog_username_queries_[username];
+  queries.push_back(std::move(promise));
+  if (queries.size() != 1u) {
+    return;
+  }
+  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), username](Result<DialogId> r_dialog_id) {
+    send_closure(actor_id, &DialogManager::on_resolved_username, username, std::move(r_dialog_id));
+  });
+  td_->create_handler<ResolveUsernameQuery>(std::move(query_promise))->send(username);
+}
+
+void DialogManager::on_resolved_username(const string &username, Result<DialogId> r_dialog_id) {
+  G()->ignore_result_if_closing(r_dialog_id);
+  auto it = resolve_dialog_username_queries_.find(username);
+  CHECK(it != resolve_dialog_username_queries_.end());
+  auto promises = std::move(it->second);
+  CHECK(!promises.empty());
+  resolve_dialog_username_queries_.erase(it);
+  if (r_dialog_id.is_error()) {
+    auto error_message = r_dialog_id.error().message();
+    if (error_message == Slice("USERNAME_NOT_OCCUPIED")) {
+      drop_username(username);
+    }
+    return fail_promises(promises, r_dialog_id.move_as_error());
+  }
+
+  auto dialog_id = r_dialog_id.ok();
+  if (!dialog_id.is_valid()) {
+    LOG(ERROR) << "Resolve username \"" << username << "\" to invalid " << dialog_id;
+    return fail_promises(promises, Status::Error(500, "Chat not found"));
+  }
+
+  auto cleaned_username = clean_username(username);
+  if (cleaned_username.empty()) {
+    return fail_promises(promises, Status::Error(500, "Invalid username"));
+  }
+
+  auto resolved_username = resolved_usernames_.get(cleaned_username);
+  if (resolved_username.dialog_id.is_valid()) {
+    LOG_IF(ERROR, resolved_username.dialog_id != dialog_id)
+        << "Resolve username \"" << username << "\" to " << dialog_id << ", but have it in "
+        << resolved_username.dialog_id;
+    return set_promises(promises);
+  }
+
+  inaccessible_resolved_usernames_[cleaned_username] = dialog_id;
+  set_promises(promises);
 }
 
 void DialogManager::resolve_dialog(const string &username, ChannelId channel_id, Promise<DialogId> promise) {
@@ -2036,28 +2076,6 @@ void DialogManager::reload_voice_chat_on_search(const string &username) {
   if (!cleaned_username.empty()) {
     reload_voice_chat_on_search_usernames_.insert(cleaned_username);
   }
-}
-
-void DialogManager::on_resolved_username(const string &username, DialogId dialog_id) {
-  if (!dialog_id.is_valid()) {
-    LOG(ERROR) << "Resolve username \"" << username << "\" to invalid " << dialog_id;
-    return;
-  }
-
-  auto cleaned_username = clean_username(username);
-  if (cleaned_username.empty()) {
-    return;
-  }
-
-  auto resolved_username = resolved_usernames_.get(cleaned_username);
-  if (resolved_username.dialog_id.is_valid()) {
-    LOG_IF(ERROR, resolved_username.dialog_id != dialog_id)
-        << "Resolve username \"" << username << "\" to " << dialog_id << ", but have it in "
-        << resolved_username.dialog_id;
-    return;
-  }
-
-  inaccessible_resolved_usernames_[cleaned_username] = dialog_id;
 }
 
 void DialogManager::drop_username(const string &username) {
