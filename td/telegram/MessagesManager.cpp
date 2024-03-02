@@ -16790,7 +16790,7 @@ void MessagesManager::on_get_message_viewers(DialogId dialog_id, MessageViewers 
           return td_->contacts_manager_->reload_chat_full(dialog_id.get_chat_id(), std::move(query_promise),
                                                           "on_get_message_viewers");
         case DialogType::Channel:
-          return td_->contacts_manager_->get_channel_participants(
+          return td_->dialog_participant_manager_->get_channel_participants(
               dialog_id.get_channel_id(), td_api::make_object<td_api::supergroupMembersFilterRecent>(), string(), 0,
               200, 200, PromiseCreator::lambda([query_promise = std::move(query_promise)](DialogParticipants) mutable {
                 query_promise.set_value(Unit());
@@ -18940,7 +18940,7 @@ void MessagesManager::open_dialog(Dialog *d) {
         auto has_hidden_participants = td_->contacts_manager_->get_channel_effective_has_hidden_participants(
             dialog_id.get_channel_id(), "open_dialog");
         if (participant_count < 195 && !has_hidden_participants) {  // include unknown participant_count
-          td_->contacts_manager_->get_channel_participants(
+          td_->dialog_participant_manager_->get_channel_participants(
               channel_id, td_api::make_object<td_api::supergroupMembersFilterRecent>(), string(), 0, 200, 200, Auto());
         }
       } else {

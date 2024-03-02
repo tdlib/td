@@ -68,8 +68,6 @@ namespace td {
 
 struct BinlogEvent;
 
-class ChannelParticipantFilter;
-
 struct MinChannel;
 
 class Td;
@@ -358,6 +356,10 @@ class ContactsManager final : public Actor {
   void update_chat_online_member_count(ChatId chat_id, bool is_from_server);
 
   void update_channel_online_member_count(ChannelId channel_id, bool is_from_server);
+
+  void on_update_channel_bot_user_ids(ChannelId channel_id, vector<UserId> &&bot_user_ids);
+
+  void set_cached_channel_participants(ChannelId channel_id, vector<DialogParticipant> participants);
 
   void drop_cached_channel_participants(ChannelId channel_id);
 
@@ -666,10 +668,6 @@ class ContactsManager final : public Actor {
 
   std::pair<int32, vector<DialogId>> search_among_dialogs(const vector<DialogId> &dialog_ids, const string &query,
                                                           int32 limit) const;
-
-  void get_channel_participants(ChannelId channel_id, tl_object_ptr<td_api::SupergroupMembersFilter> &&filter,
-                                string additional_query, int32 offset, int32 limit, int32 additional_limit,
-                                Promise<DialogParticipants> &&promise);
 
   int64 get_user_id_object(UserId user_id, const char *source) const;
 
@@ -1177,11 +1175,10 @@ class ContactsManager final : public Actor {
   class ChannelLogEvent;
   class SecretChatLogEvent;
 
-  static constexpr int32 MAX_GET_PROFILE_PHOTOS = 100;        // server side limit
-  static constexpr size_t MAX_NAME_LENGTH = 64;               // server side limit for first/last name
-  static constexpr size_t MAX_TITLE_LENGTH = 128;             // server side limit for chat title
-  static constexpr size_t MAX_DESCRIPTION_LENGTH = 255;       // server side limit for chat/channel description
-  static constexpr int32 MAX_GET_CHANNEL_PARTICIPANTS = 200;  // server side limit
+  static constexpr int32 MAX_GET_PROFILE_PHOTOS = 100;   // server side limit
+  static constexpr size_t MAX_NAME_LENGTH = 64;          // server side limit for first/last name
+  static constexpr size_t MAX_TITLE_LENGTH = 128;        // server side limit for chat title
+  static constexpr size_t MAX_DESCRIPTION_LENGTH = 255;  // server side limit for chat/channel description
 
   static constexpr int32 MAX_ACTIVE_STORY_ID_RELOAD_TIME = 3600;      // some reasonable limit
   static constexpr int32 CHANNEL_RECOMMENDATIONS_CACHE_TIME = 86400;  // some reasonable limit
@@ -1503,8 +1500,6 @@ class ContactsManager final : public Actor {
                                         StoryId max_read_story_id);
   void on_update_channel_max_read_story_id(Channel *c, ChannelId channel_id, StoryId max_read_story_id);
 
-  void on_update_channel_bot_user_ids(ChannelId channel_id, vector<UserId> &&bot_user_ids);
-
   void on_update_channel_full_photo(ChannelFull *channel_full, ChannelId channel_id, Photo photo);
   void on_update_channel_full_invite_link(ChannelFull *channel_full,
                                           tl_object_ptr<telegram_api::ExportedChatInvite> &&invite_link);
@@ -1789,11 +1784,6 @@ class ContactsManager final : public Actor {
   void on_create_inactive_channels(vector<ChannelId> &&channel_ids, Promise<Unit> &&promise);
 
   void update_dialogs_for_discussion(DialogId dialog_id, bool is_suitable);
-
-  void on_get_channel_participants(ChannelId channel_id, ChannelParticipantFilter &&filter, int32 offset, int32 limit,
-                                   string additional_query, int32 additional_limit,
-                                   tl_object_ptr<telegram_api::channels_channelParticipants> &&channel_participants,
-                                   Promise<DialogParticipants> &&promise);
 
   void get_channel_statistics_dc_id_impl(ChannelId channel_id, bool for_full_statistics, Promise<DcId> &&promise);
 

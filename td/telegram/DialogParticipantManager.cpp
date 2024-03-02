@@ -9,6 +9,7 @@
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ChannelId.h"
+#include "td/telegram/ChannelParticipantFilter.h"
 #include "td/telegram/ChannelType.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogManager.h"
@@ -29,6 +30,7 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -365,6 +367,54 @@ class GetChannelParticipantQuery final : public Td::ResultHandler {
     if (participant_dialog_id_.get_type() != DialogType::Channel) {
       td_->contacts_manager_->on_get_channel_error(channel_id_, status, "GetChannelParticipantQuery");
     }
+    promise_.set_error(std::move(status));
+  }
+};
+
+class GetChannelParticipantsQuery final : public Td::ResultHandler {
+  Promise<telegram_api::object_ptr<telegram_api::channels_channelParticipants>> promise_;
+  ChannelId channel_id_;
+
+ public:
+  explicit GetChannelParticipantsQuery(
+      Promise<telegram_api::object_ptr<telegram_api::channels_channelParticipants>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id, const ChannelParticipantFilter &filter, int32 offset, int32 limit) {
+    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    if (input_channel == nullptr) {
+      return promise_.set_error(Status::Error(400, "Supergroup not found"));
+    }
+
+    channel_id_ = channel_id;
+    send_query(G()->net_query_creator().create(telegram_api::channels_getParticipants(
+        std::move(input_channel), filter.get_input_channel_participants_filter(), offset, limit, 0)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_getParticipants>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto participants_ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetChannelParticipantsQuery: " << to_string(participants_ptr);
+    switch (participants_ptr->get_id()) {
+      case telegram_api::channels_channelParticipants::ID: {
+        promise_.set_value(telegram_api::move_object_as<telegram_api::channels_channelParticipants>(participants_ptr));
+        break;
+      }
+      case telegram_api::channels_channelParticipantsNotModified::ID:
+        LOG(ERROR) << "Receive channelParticipantsNotModified";
+        return on_error(Status::Error(500, "Receive channelParticipantsNotModified"));
+      default:
+        UNREACHABLE();
+    }
+  }
+
+  void on_error(Status status) final {
+    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "GetChannelParticipantsQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -821,9 +871,8 @@ void DialogParticipantManager::on_update_dialog_online_member_count_timeout(Dial
     if (participant_count == 0 || participant_count >= 195 || has_hidden_participants) {
       td_->create_handler<GetOnlinesQuery>()->send(dialog_id);
     } else {
-      td_->contacts_manager_->get_channel_participants(dialog_id.get_channel_id(),
-                                                       td_api::make_object<td_api::supergroupMembersFilterRecent>(),
-                                                       string(), 0, 200, 200, Auto());
+      get_channel_participants(dialog_id.get_channel_id(), td_api::make_object<td_api::supergroupMembersFilterRecent>(),
+                               string(), 0, 200, 200, Auto());
     }
     return;
   }
@@ -1676,6 +1725,194 @@ void DialogParticipantManager::do_search_chat_participants(ChatId chat_id, const
   promise.set_value(DialogParticipants{total_count, std::move(dialog_participants)});
 }
 
+void DialogParticipantManager::get_channel_participants(ChannelId channel_id,
+                                                        td_api::object_ptr<td_api::SupergroupMembersFilter> &&filter,
+                                                        string additional_query, int32 offset, int32 limit,
+                                                        int32 additional_limit, Promise<DialogParticipants> &&promise) {
+  if (limit <= 0) {
+    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+  }
+  if (limit > MAX_GET_CHANNEL_PARTICIPANTS) {
+    limit = MAX_GET_CHANNEL_PARTICIPANTS;
+  }
+
+  if (offset < 0) {
+    return promise.set_error(Status::Error(400, "Parameter offset must be non-negative"));
+  }
+
+  if (td_->contacts_manager_->is_broadcast_channel(channel_id) &&
+      !td_->contacts_manager_->get_channel_status(channel_id).is_administrator()) {
+    return promise.set_error(Status::Error(400, "Member list is inaccessible"));
+  }
+
+  ChannelParticipantFilter participant_filter(filter);
+  auto get_channel_participants_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), channel_id, filter = participant_filter,
+       additional_query = std::move(additional_query), offset, limit, additional_limit, promise = std::move(promise)](
+          Result<telegram_api::object_ptr<telegram_api::channels_channelParticipants>> &&result) mutable {
+        if (result.is_error()) {
+          promise.set_error(result.move_as_error());
+        } else {
+          send_closure(actor_id, &DialogParticipantManager::on_get_channel_participants, channel_id, std::move(filter),
+                       offset, limit, std::move(additional_query), additional_limit, result.move_as_ok(),
+                       std::move(promise));
+        }
+      });
+  td_->create_handler<GetChannelParticipantsQuery>(std::move(get_channel_participants_promise))
+      ->send(channel_id, participant_filter, offset, limit);
+}
+
+void DialogParticipantManager::on_get_channel_participants(
+    ChannelId channel_id, ChannelParticipantFilter &&filter, int32 offset, int32 limit, string additional_query,
+    int32 additional_limit, telegram_api::object_ptr<telegram_api::channels_channelParticipants> &&channel_participants,
+    Promise<DialogParticipants> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  td_->contacts_manager_->on_get_users(std::move(channel_participants->users_), "on_get_channel_participants");
+  td_->contacts_manager_->on_get_chats(std::move(channel_participants->chats_), "on_get_channel_participants");
+  int32 total_count = channel_participants->count_;
+  auto participants = std::move(channel_participants->participants_);
+  LOG(INFO) << "Receive " << participants.size() << " " << filter << " members in " << channel_id;
+
+  bool is_full = offset == 0 && static_cast<int32>(participants.size()) < limit && total_count < limit;
+  bool has_hidden_participants =
+      td_->contacts_manager_->get_channel_effective_has_hidden_participants(channel_id, "on_get_channel_participants");
+  bool is_full_recent = is_full && filter.is_recent() && !has_hidden_participants;
+
+  auto channel_type = td_->contacts_manager_->get_channel_type(channel_id);
+  vector<DialogParticipant> result;
+  for (auto &participant_ptr : participants) {
+    auto debug_participant = to_string(participant_ptr);
+    result.emplace_back(std::move(participant_ptr), channel_type);
+    const auto &participant = result.back();
+    UserId participant_user_id;
+    if (participant.dialog_id_.get_type() == DialogType::User) {
+      participant_user_id = participant.dialog_id_.get_user_id();
+    }
+    if (!participant.is_valid() || (filter.is_bots() && !td_->contacts_manager_->is_user_bot(participant_user_id)) ||
+        (filter.is_administrators() && !participant.status_.is_administrator()) ||
+        ((filter.is_recent() || filter.is_contacts() || filter.is_search()) && !participant.status_.is_member()) ||
+        (filter.is_contacts() && !td_->contacts_manager_->is_user_contact(participant_user_id)) ||
+        (filter.is_restricted() && !participant.status_.is_restricted()) ||
+        (filter.is_banned() && !participant.status_.is_banned())) {
+      bool skip_error = ((filter.is_administrators() || filter.is_bots()) &&
+                         td_->contacts_manager_->is_user_deleted(participant_user_id)) ||
+                        (filter.is_contacts() && participant_user_id == td_->contacts_manager_->get_my_id());
+      if (!skip_error) {
+        LOG(ERROR) << "Receive " << participant << ", while searching for " << filter << " in " << channel_id
+                   << " with offset " << offset << " and limit " << limit << ": " << oneline(debug_participant);
+      }
+      result.pop_back();
+      total_count--;
+    }
+  }
+
+  if (total_count < narrow_cast<int32>(result.size())) {
+    LOG(ERROR) << "Receive total_count = " << total_count << ", but have at least " << result.size() << " " << filter
+               << " members in " << channel_id;
+    total_count = static_cast<int32>(result.size());
+  } else if (is_full && total_count > static_cast<int32>(result.size())) {
+    LOG(ERROR) << "Fix total number of " << filter << " members from " << total_count << " to " << result.size()
+               << " in " << channel_id << " for request with limit " << limit << " and received " << participants.size()
+               << " results";
+    total_count = static_cast<int32>(result.size());
+  }
+
+  auto is_megagroup = td_->contacts_manager_->is_megagroup_channel(channel_id);
+  const auto max_participant_count = is_megagroup ? 975 : 195;
+  auto participant_count =
+      filter.is_recent() && !has_hidden_participants && total_count != 0 && total_count < max_participant_count
+          ? total_count
+          : -1;
+  int32 administrator_count =
+      filter.is_administrators() || (filter.is_recent() && has_hidden_participants) ? total_count : -1;
+  if (is_full && (filter.is_administrators() || filter.is_bots() || filter.is_recent())) {
+    vector<DialogAdministrator> administrators;
+    vector<UserId> bot_user_ids;
+    {
+      if (filter.is_recent()) {
+        for (const auto &participant : result) {
+          if (participant.dialog_id_.get_type() == DialogType::User) {
+            auto participant_user_id = participant.dialog_id_.get_user_id();
+            if (participant.status_.is_administrator()) {
+              administrators.emplace_back(participant_user_id, participant.status_.get_rank(),
+                                          participant.status_.is_creator());
+            }
+            if (is_full_recent && td_->contacts_manager_->is_user_bot(participant_user_id)) {
+              bot_user_ids.push_back(participant_user_id);
+            }
+          }
+        }
+        administrator_count = narrow_cast<int32>(administrators.size());
+
+        if (is_megagroup && !td_->auth_manager_->is_bot() && is_full_recent) {
+          td_->contacts_manager_->set_cached_channel_participants(channel_id, result);
+          td_->contacts_manager_->update_channel_online_member_count(channel_id, true);
+        }
+      } else if (filter.is_administrators()) {
+        for (const auto &participant : result) {
+          if (participant.dialog_id_.get_type() == DialogType::User) {
+            administrators.emplace_back(participant.dialog_id_.get_user_id(), participant.status_.get_rank(),
+                                        participant.status_.is_creator());
+          }
+        }
+      } else if (filter.is_bots()) {
+        bot_user_ids = transform(result, [](const DialogParticipant &participant) {
+          CHECK(participant.dialog_id_.get_type() == DialogType::User);
+          return participant.dialog_id_.get_user_id();
+        });
+      }
+    }
+    if (filter.is_administrators() || filter.is_recent()) {
+      on_update_dialog_administrators(DialogId(channel_id), std::move(administrators), true, false);
+    }
+    if (filter.is_bots() || is_full_recent) {
+      td_->contacts_manager_->on_update_channel_bot_user_ids(channel_id, std::move(bot_user_ids));
+    }
+  }
+  if (have_channel_participant_cache(channel_id)) {
+    for (const auto &participant : result) {
+      add_channel_participant_to_cache(channel_id, participant, false);
+    }
+  }
+
+  if (participant_count != -1) {
+    td_->contacts_manager_->on_update_channel_participant_count(channel_id, participant_count);
+  }
+  if (administrator_count != -1) {
+    td_->contacts_manager_->on_update_channel_administrator_count(channel_id, administrator_count);
+  }
+
+  if (!additional_query.empty()) {
+    auto dialog_ids = transform(result, [](const DialogParticipant &participant) { return participant.dialog_id_; });
+    std::pair<int32, vector<DialogId>> result_dialog_ids =
+        td_->contacts_manager_->search_among_dialogs(dialog_ids, additional_query, additional_limit);
+
+    total_count = result_dialog_ids.first;
+    FlatHashSet<DialogId, DialogIdHash> result_dialog_ids_set;
+    for (auto result_dialog_id : result_dialog_ids.second) {
+      CHECK(result_dialog_id.is_valid());
+      result_dialog_ids_set.insert(result_dialog_id);
+    }
+    auto all_participants = std::move(result);
+    result.clear();
+    for (auto &participant : all_participants) {
+      if (result_dialog_ids_set.count(participant.dialog_id_)) {
+        result_dialog_ids_set.erase(participant.dialog_id_);
+        result.push_back(std::move(participant));
+      }
+    }
+  }
+
+  vector<DialogId> participant_dialog_ids;
+  for (const auto &participant : result) {
+    participant_dialog_ids.push_back(participant.dialog_id_);
+  }
+  td_->contacts_manager_->on_view_dialog_active_stories(std::move(participant_dialog_ids));
+
+  promise.set_value(DialogParticipants{total_count, std::move(result)});
+}
+
 void DialogParticipantManager::search_dialog_participants(DialogId dialog_id, const string &query, int32 limit,
                                                           DialogParticipantFilter filter,
                                                           Promise<DialogParticipants> &&promise) {
@@ -1696,12 +1933,11 @@ void DialogParticipantManager::search_dialog_participants(DialogId dialog_id, co
     case DialogType::Channel: {
       auto channel_id = dialog_id.get_channel_id();
       if (filter.has_query()) {
-        return td_->contacts_manager_->get_channel_participants(
-            channel_id, filter.get_supergroup_members_filter_object(query), string(), 0, limit, 0, std::move(promise));
+        return get_channel_participants(channel_id, filter.get_supergroup_members_filter_object(query), string(), 0,
+                                        limit, 0, std::move(promise));
       } else {
-        return td_->contacts_manager_->get_channel_participants(channel_id,
-                                                                filter.get_supergroup_members_filter_object(string()),
-                                                                query, 0, 100, limit, std::move(promise));
+        return get_channel_participants(channel_id, filter.get_supergroup_members_filter_object(string()), query, 0,
+                                        100, limit, std::move(promise));
       }
     }
     case DialogType::SecretChat: {

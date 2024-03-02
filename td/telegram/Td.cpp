@@ -7887,8 +7887,9 @@ void Td::on_request(uint64 id, td_api::getSupergroupMembers &request) {
           promise.set_value(result.ok().get_chat_members_object(td, "getSupergroupMembers"));
         }
       });
-  contacts_manager_->get_channel_participants(ChannelId(request.supergroup_id_), std::move(request.filter_), string(),
-                                              request.offset_, request.limit_, -1, std::move(query_promise));
+  dialog_participant_manager_->get_channel_participants(ChannelId(request.supergroup_id_), std::move(request.filter_),
+                                                        string(), request.offset_, request.limit_, -1,
+                                                        std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, td_api::closeSecretChat &request) {

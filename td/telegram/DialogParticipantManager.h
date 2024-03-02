@@ -27,6 +27,8 @@
 
 namespace td {
 
+class ChannelParticipantFilter;
+
 class Td;
 
 class DialogParticipantManager final : public Actor {
@@ -90,6 +92,10 @@ class DialogParticipantManager final : public Actor {
   void get_channel_participant(ChannelId channel_id, DialogId participant_dialog_id,
                                Promise<DialogParticipant> &&promise);
 
+  void get_channel_participants(ChannelId channel_id, td_api::object_ptr<td_api::SupergroupMembersFilter> &&filter,
+                                string additional_query, int32 offset, int32 limit, int32 additional_limit,
+                                Promise<DialogParticipants> &&promise);
+
   void search_dialog_participants(DialogId dialog_id, const string &query, int32 limit, DialogParticipantFilter filter,
                                   Promise<DialogParticipants> &&promise);
 
@@ -138,6 +144,8 @@ class DialogParticipantManager final : public Actor {
   static constexpr int32 ONLINE_MEMBER_COUNT_UPDATE_TIME = 5 * 60;
 
   static constexpr int32 CHANNEL_PARTICIPANT_CACHE_TIME = 1800;  // some reasonable limit
+
+  static constexpr int32 MAX_GET_CHANNEL_PARTICIPANTS = 200;  // server side limit
 
   void tear_down() final;
 
@@ -190,6 +198,12 @@ class DialogParticipantManager final : public Actor {
 
   void do_search_chat_participants(ChatId chat_id, const string &query, int32 limit, DialogParticipantFilter filter,
                                    Promise<DialogParticipants> &&promise);
+
+  void on_get_channel_participants(
+      ChannelId channel_id, ChannelParticipantFilter &&filter, int32 offset, int32 limit, string additional_query,
+      int32 additional_limit,
+      telegram_api::object_ptr<telegram_api::channels_channelParticipants> &&channel_participants,
+      Promise<DialogParticipants> &&promise);
 
   void set_chat_participant_status(ChatId chat_id, UserId user_id, DialogParticipantStatus status, bool is_recursive,
                                    Promise<Unit> &&promise);
