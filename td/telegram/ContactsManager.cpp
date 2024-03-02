@@ -13234,6 +13234,14 @@ const DialogParticipant *ContactsManager::get_chat_full_participant(const ChatFu
   return nullptr;
 }
 
+const vector<DialogParticipant> *ContactsManager::get_chat_participants(ChatId chat_id) const {
+  auto chat_full = get_chat_full(chat_id);
+  if (chat_full == nullptr) {
+    return nullptr;
+  }
+  return &chat_full->participants;
+}
+
 tl_object_ptr<td_api::chatMember> ContactsManager::get_chat_member_object(const DialogParticipant &dialog_participant,
                                                                           const char *source) const {
   return td_api::make_object<td_api::chatMember>(
@@ -16636,49 +16644,6 @@ void ContactsManager::finish_get_chat_participant(ChatId chat_id, UserId user_id
   }
 
   promise.set_value(DialogParticipant(*participant));
-}
-
-void ContactsManager::search_chat_participants(ChatId chat_id, const string &query, int32 limit,
-                                               DialogParticipantFilter filter, Promise<DialogParticipants> &&promise) {
-  if (limit < 0) {
-    return promise.set_error(Status::Error(400, "Parameter limit must be non-negative"));
-  }
-
-  auto load_chat_full_promise = PromiseCreator::lambda([actor_id = actor_id(this), chat_id, query, limit, filter,
-                                                        promise = std::move(promise)](Result<Unit> &&result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      send_closure(actor_id, &ContactsManager::do_search_chat_participants, chat_id, query, limit, filter,
-                   std::move(promise));
-    }
-  });
-  load_chat_full(chat_id, false, std::move(load_chat_full_promise), "search_chat_participants");
-}
-
-void ContactsManager::do_search_chat_participants(ChatId chat_id, const string &query, int32 limit,
-                                                  DialogParticipantFilter filter,
-                                                  Promise<DialogParticipants> &&promise) {
-  TRY_STATUS_PROMISE(promise, G()->close_status());
-
-  auto chat_full = get_chat_full(chat_id);
-  if (chat_full == nullptr) {
-    return promise.set_error(Status::Error(500, "Can't find basic group full info"));
-  }
-
-  vector<DialogId> dialog_ids;
-  for (const auto &participant : chat_full->participants) {
-    if (filter.is_dialog_participant_suitable(td_, participant)) {
-      dialog_ids.push_back(participant.dialog_id_);
-    }
-  }
-
-  int32 total_count;
-  std::tie(total_count, dialog_ids) = search_among_dialogs(dialog_ids, query, limit);
-  on_view_dialog_active_stories(dialog_ids);
-  promise.set_value(DialogParticipants{total_count, transform(dialog_ids, [chat_full](DialogId dialog_id) {
-                                         return *ContactsManager::get_chat_full_participant(chat_full, dialog_id);
-                                       })});
 }
 
 void ContactsManager::get_channel_participants(ChannelId channel_id,

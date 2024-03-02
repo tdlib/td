@@ -612,6 +612,7 @@ class ContactsManager final : public Actor {
   DialogParticipantStatus get_chat_permissions(ChatId chat_id) const;
   bool is_appointed_chat_administrator(ChatId chat_id) const;
   const DialogParticipant *get_chat_participant(ChatId chat_id, UserId user_id) const;
+  const vector<DialogParticipant> *get_chat_participants(ChatId chat_id) const;
 
   void create_new_channel(const string &title, bool is_forum, bool is_megagroup, const string &description,
                           const DialogLocation &location, bool for_import, MessageTtl message_ttl,
@@ -665,9 +666,6 @@ class ContactsManager final : public Actor {
 
   std::pair<int32, vector<DialogId>> search_among_dialogs(const vector<DialogId> &dialog_ids, const string &query,
                                                           int32 limit) const;
-
-  void search_chat_participants(ChatId chat_id, const string &query, int32 limit, DialogParticipantFilter filter,
-                                Promise<DialogParticipants> &&promise);
 
   void get_channel_participants(ChannelId channel_id, tl_object_ptr<td_api::SupergroupMembersFilter> &&filter,
                                 string additional_query, int32 offset, int32 limit, int32 additional_limit,
@@ -1791,9 +1789,6 @@ class ContactsManager final : public Actor {
   void on_create_inactive_channels(vector<ChannelId> &&channel_ids, Promise<Unit> &&promise);
 
   void update_dialogs_for_discussion(DialogId dialog_id, bool is_suitable);
-
-  void do_search_chat_participants(ChatId chat_id, const string &query, int32 limit, DialogParticipantFilter filter,
-                                   Promise<DialogParticipants> &&promise);
 
   void on_get_channel_participants(ChannelId channel_id, ChannelParticipantFilter &&filter, int32 offset, int32 limit,
                                    string additional_query, int32 additional_limit,

@@ -1625,6 +1625,57 @@ DialogParticipants DialogParticipantManager::search_private_chat_participants(Us
           })};
 }
 
+void DialogParticipantManager::search_chat_participants(ChatId chat_id, const string &query, int32 limit,
+                                                        DialogParticipantFilter filter,
+                                                        Promise<DialogParticipants> &&promise) {
+  if (limit < 0) {
+    return promise.set_error(Status::Error(400, "Parameter limit must be non-negative"));
+  }
+
+  auto load_chat_full_promise = PromiseCreator::lambda([actor_id = actor_id(this), chat_id, query, limit, filter,
+                                                        promise = std::move(promise)](Result<Unit> &&result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      send_closure(actor_id, &DialogParticipantManager::do_search_chat_participants, chat_id, query, limit, filter,
+                   std::move(promise));
+    }
+  });
+  td_->contacts_manager_->load_chat_full(chat_id, false, std::move(load_chat_full_promise), "search_chat_participants");
+}
+
+void DialogParticipantManager::do_search_chat_participants(ChatId chat_id, const string &query, int32 limit,
+                                                           DialogParticipantFilter filter,
+                                                           Promise<DialogParticipants> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  const auto *participants = td_->contacts_manager_->get_chat_participants(chat_id);
+  if (participants == nullptr) {
+    return promise.set_error(Status::Error(500, "Can't find basic group full info"));
+  }
+
+  vector<DialogId> dialog_ids;
+  for (const auto &participant : *participants) {
+    if (filter.is_dialog_participant_suitable(td_, participant)) {
+      dialog_ids.push_back(participant.dialog_id_);
+    }
+  }
+
+  int32 total_count;
+  std::tie(total_count, dialog_ids) = td_->contacts_manager_->search_among_dialogs(dialog_ids, query, limit);
+  td_->contacts_manager_->on_view_dialog_active_stories(dialog_ids);
+  vector<DialogParticipant> dialog_participants;
+  for (auto dialog_id : dialog_ids) {
+    for (const auto &participant : *participants) {
+      if (participant.dialog_id_ == dialog_id) {
+        dialog_participants.push_back(participant);
+        break;
+      }
+    }
+  }
+  promise.set_value(DialogParticipants{total_count, std::move(dialog_participants)});
+}
+
 void DialogParticipantManager::search_dialog_participants(DialogId dialog_id, const string &query, int32 limit,
                                                           DialogParticipantFilter filter,
                                                           Promise<DialogParticipants> &&promise) {
@@ -1641,8 +1692,7 @@ void DialogParticipantManager::search_dialog_participants(DialogId dialog_id, co
     case DialogType::User:
       return promise.set_value(search_private_chat_participants(dialog_id.get_user_id(), query, limit, filter));
     case DialogType::Chat:
-      return td_->contacts_manager_->search_chat_participants(dialog_id.get_chat_id(), query, limit, filter,
-                                                              std::move(promise));
+      return search_chat_participants(dialog_id.get_chat_id(), query, limit, filter, std::move(promise));
     case DialogType::Channel: {
       auto channel_id = dialog_id.get_channel_id();
       if (filter.has_query()) {

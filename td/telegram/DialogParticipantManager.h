@@ -185,6 +185,12 @@ class DialogParticipantManager final : public Actor {
   DialogParticipants search_private_chat_participants(UserId peer_user_id, const string &query, int32 limit,
                                                       DialogParticipantFilter filter) const;
 
+  void search_chat_participants(ChatId chat_id, const string &query, int32 limit, DialogParticipantFilter filter,
+                                Promise<DialogParticipants> &&promise);
+
+  void do_search_chat_participants(ChatId chat_id, const string &query, int32 limit, DialogParticipantFilter filter,
+                                   Promise<DialogParticipants> &&promise);
+
   void set_chat_participant_status(ChatId chat_id, UserId user_id, DialogParticipantStatus status, bool is_recursive,
                                    Promise<Unit> &&promise);
 
