@@ -570,7 +570,7 @@ class ContactsManager final : public Actor {
   };
   Result<BotData> get_bot_data(UserId user_id) const TD_WARN_UNUSED_RESULT;
 
-  bool is_user_online(UserId user_id, int32 tolerance = 0, int32 unix_time = 07) const;
+  bool is_user_online(UserId user_id, int32 tolerance = 0, int32 unix_time = 0) const;
 
   bool is_user_status_exact(UserId user_id) const;
 
