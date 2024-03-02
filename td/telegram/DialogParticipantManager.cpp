@@ -32,6 +32,7 @@
 #include "td/utils/buffer.h"
 #include "td/utils/FlatHashSet.h"
 #include "td/utils/format.h"
+#include "td/utils/Hints.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/SliceBuilder.h"
@@ -40,7 +41,6 @@
 
 #include <algorithm>
 #include <limits>
-#include <utility>
 
 namespace td {
 
@@ -1654,6 +1654,31 @@ void DialogParticipantManager::finish_get_channel_participant(ChannelId channel_
   promise.set_value(std::move(dialog_participant));
 }
 
+std::pair<int32, vector<DialogId>> DialogParticipantManager::search_among_dialogs(const vector<DialogId> &dialog_ids,
+                                                                                  const string &query,
+                                                                                  int32 limit) const {
+  Hints hints;
+
+  auto unix_time = G()->unix_time();
+  for (auto dialog_id : dialog_ids) {
+    if (!td_->dialog_manager_->have_dialog_info(dialog_id)) {
+      continue;
+    }
+    if (query.empty()) {
+      hints.add(dialog_id.get(), Slice(" "));
+    } else {
+      hints.add(dialog_id.get(), td_->dialog_manager_->get_dialog_search_text(dialog_id));
+    }
+    if (dialog_id.get_type() == DialogType::User) {
+      hints.set_rating(dialog_id.get(),
+                       -td_->contacts_manager_->get_user_was_online(dialog_id.get_user_id(), unix_time));
+    }
+  }
+
+  auto result = hints.search(query, limit, true);
+  return {narrow_cast<int32>(result.first), transform(result.second, [](int64 key) { return DialogId(key); })};
+}
+
 DialogParticipants DialogParticipantManager::search_private_chat_participants(UserId peer_user_id, const string &query,
                                                                               int32 limit,
                                                                               DialogParticipantFilter filter) const {
@@ -1667,7 +1692,7 @@ DialogParticipants DialogParticipantManager::search_private_chat_participants(Us
     dialog_ids.push_back(DialogId(peer_user_id));
   }
 
-  auto result = td_->contacts_manager_->search_among_dialogs(dialog_ids, query, limit);
+  auto result = search_among_dialogs(dialog_ids, query, limit);
   return {result.first, transform(result.second, [&](DialogId dialog_id) {
             auto user_id = dialog_id.get_user_id();
             return DialogParticipant::private_member(user_id, user_id == my_user_id ? peer_user_id : my_user_id);
@@ -1711,7 +1736,7 @@ void DialogParticipantManager::do_search_chat_participants(ChatId chat_id, const
   }
 
   int32 total_count;
-  std::tie(total_count, dialog_ids) = td_->contacts_manager_->search_among_dialogs(dialog_ids, query, limit);
+  std::tie(total_count, dialog_ids) = search_among_dialogs(dialog_ids, query, limit);
   td_->contacts_manager_->on_view_dialog_active_stories(dialog_ids);
   vector<DialogParticipant> dialog_participants;
   for (auto dialog_id : dialog_ids) {
@@ -1886,7 +1911,7 @@ void DialogParticipantManager::on_get_channel_participants(
   if (!additional_query.empty()) {
     auto dialog_ids = transform(result, [](const DialogParticipant &participant) { return participant.dialog_id_; });
     std::pair<int32, vector<DialogId>> result_dialog_ids =
-        td_->contacts_manager_->search_among_dialogs(dialog_ids, additional_query, additional_limit);
+        search_among_dialogs(dialog_ids, additional_query, additional_limit);
 
     total_count = result_dialog_ids.first;
     FlatHashSet<DialogId, DialogIdHash> result_dialog_ids_set;

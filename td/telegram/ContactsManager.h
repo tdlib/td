@@ -668,9 +668,6 @@ class ContactsManager final : public Actor {
   void speculative_add_channel_user(ChannelId channel_id, UserId user_id, const DialogParticipantStatus &new_status,
                                     const DialogParticipantStatus &old_status);
 
-  std::pair<int32, vector<DialogId>> search_among_dialogs(const vector<DialogId> &dialog_ids, const string &query,
-                                                          int32 limit) const;
-
   int64 get_user_id_object(UserId user_id, const char *source) const;
 
   tl_object_ptr<td_api::user> get_user_object(UserId user_id) const;

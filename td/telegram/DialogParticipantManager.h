@@ -25,6 +25,8 @@
 #include "td/utils/Promise.h"
 #include "td/utils/Status.h"
 
+#include <utility>
+
 namespace td {
 
 class ChannelParticipantFilter;
@@ -189,6 +191,9 @@ class DialogParticipantManager final : public Actor {
 
   void finish_get_channel_participant(ChannelId channel_id, DialogParticipant &&dialog_participant,
                                       Promise<DialogParticipant> &&promise);
+
+  std::pair<int32, vector<DialogId>> search_among_dialogs(const vector<DialogId> &dialog_ids, const string &query,
+                                                          int32 limit) const;
 
   DialogParticipants search_private_chat_participants(UserId peer_user_id, const string &query, int32 limit,
                                                       DialogParticipantFilter filter) const;

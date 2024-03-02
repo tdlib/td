@@ -16360,42 +16360,6 @@ void ContactsManager::on_update_secret_chat(SecretChatId secret_chat_id, int64 a
   update_secret_chat(secret_chat, secret_chat_id);
 }
 
-std::pair<int32, vector<DialogId>> ContactsManager::search_among_dialogs(const vector<DialogId> &dialog_ids,
-                                                                         const string &query, int32 limit) const {
-  Hints hints;  // TODO cache Hints
-
-  auto unix_time = G()->unix_time();
-  for (auto dialog_id : dialog_ids) {
-    int64 rating = 0;
-    if (dialog_id.get_type() == DialogType::User) {
-      auto user_id = dialog_id.get_user_id();
-      auto u = get_user(user_id);
-      if (u == nullptr) {
-        continue;
-      }
-      if (query.empty()) {
-        hints.add(dialog_id.get(), Slice(" "));
-      } else {
-        hints.add(dialog_id.get(), get_user_search_text(u));
-      }
-      rating = -get_user_was_online(u, user_id, unix_time);
-    } else {
-      if (!td_->dialog_manager_->have_dialog_info(dialog_id)) {
-        continue;
-      }
-      if (query.empty()) {
-        hints.add(dialog_id.get(), Slice(" "));
-      } else {
-        hints.add(dialog_id.get(), td_->dialog_manager_->get_dialog_search_text(dialog_id));
-      }
-    }
-    hints.set_rating(dialog_id.get(), rating);
-  }
-
-  auto result = hints.search(query, limit, true);
-  return {narrow_cast<int32>(result.first), transform(result.second, [](int64 key) { return DialogId(key); })};
-}
-
 void ContactsManager::get_chat_participant(ChatId chat_id, UserId user_id, Promise<DialogParticipant> &&promise) {
   LOG(INFO) << "Trying to get " << user_id << " as member of " << chat_id;
 
