@@ -24,6 +24,7 @@
 #include "td/telegram/BotMenuButton.h"
 #include "td/telegram/BusinessAwayMessage.h"
 #include "td/telegram/BusinessGreetingMessage.h"
+#include "td/telegram/BusinessManager.h"
 #include "td/telegram/BusinessWorkHours.h"
 #include "td/telegram/CallbackQueriesManager.h"
 #include "td/telegram/CallId.h"
@@ -3205,6 +3206,7 @@ void Td::dec_actor_refcnt() {
       reset_manager(background_manager_, "BackgroundManager");
       reset_manager(boost_manager_, "BoostManager");
       reset_manager(bot_info_manager_, "BotInfoManager");
+      reset_manager(business_manager_, "BusinessManager");
       reset_manager(callback_queries_manager_, "CallbackQueriesManager");
       reset_manager(common_dialog_manager_, "CommonDialogManager");
       reset_manager(contacts_manager_, "ContactsManager");
@@ -3378,6 +3380,7 @@ void Td::clear() {
   reset_actor(ActorOwn<Actor>(std::move(background_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(boost_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(bot_info_manager_actor_)));
+  reset_actor(ActorOwn<Actor>(std::move(business_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(common_dialog_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(contacts_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(country_info_manager_actor_)));
@@ -3868,6 +3871,9 @@ void Td::init_managers() {
   G()->set_boost_manager(boost_manager_actor_.get());
   bot_info_manager_ = make_unique<BotInfoManager>(this, create_reference());
   bot_info_manager_actor_ = register_actor("BotInfoManager", bot_info_manager_.get());
+  business_manager_ = make_unique<BusinessManager>(this, create_reference());
+  business_manager_actor_ = register_actor("BusinessManager", business_manager_.get());
+  G()->set_business_manager(business_manager_actor_.get());
   common_dialog_manager_ = make_unique<CommonDialogManager>(this, create_reference());
   common_dialog_manager_actor_ = register_actor("CommonDialogManager", common_dialog_manager_.get());
   contacts_manager_ = make_unique<ContactsManager>(this, create_reference());

@@ -313,6 +313,7 @@ function split_file($file, $chunks, $undo) {
                 'BusinessConnectedBot' => 'BusinessConnectedBot',
                 'BusinessGreetingMessage' => 'BusinessGreetingMessage',
                 'BusinessInfo|business_info' => 'BusinessInfo',
+                'business_manager[_(-](?![.]get[(][)])|BusinessManager' => 'BusinessManager',
                 'BusinessRecipients' => 'BusinessRecipients',
                 'BusinessWorkHours' => 'BusinessWorkHours',
                 'callback_queries_manager[_(-](?![.]get[(][)])|CallbackQueriesManager' => 'CallbackQueriesManager',

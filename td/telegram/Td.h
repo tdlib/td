@@ -46,6 +46,7 @@ class AutosaveManager;
 class BackgroundManager;
 class BoostManager;
 class BotInfoManager;
+class BusinessManager;
 class CallManager;
 class CallbackQueriesManager;
 class CommonDialogManager;
@@ -177,6 +178,8 @@ class Td final : public Actor {
   ActorOwn<BoostManager> boost_manager_actor_;
   unique_ptr<BotInfoManager> bot_info_manager_;
   ActorOwn<BotInfoManager> bot_info_manager_actor_;
+  unique_ptr<BusinessManager> business_manager_;
+  ActorOwn<BusinessManager> business_manager_actor_;
   unique_ptr<CommonDialogManager> common_dialog_manager_;
   ActorOwn<CommonDialogManager> common_dialog_manager_actor_;
   unique_ptr<ContactsManager> contacts_manager_;
