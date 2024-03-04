@@ -461,13 +461,16 @@ unique_ptr<QuickReplyManager::QuickReplyMessage> QuickReplyManager::create_messa
 
       auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
       if (DialogId(message->peer_id_) != my_dialog_id || message->from_id_ != nullptr ||
-          message->saved_peer_id_ != nullptr || message->fwd_from_ != nullptr || message->views_ != 0 ||
-          message->forwards_ != 0 || message->replies_ != nullptr || message->reactions_ != nullptr ||
-          message->ttl_period_ != 0 || !message->out_ || message->post_ || message->edit_hide_ ||
-          message->from_scheduled_ || message->pinned_ || message->noforwards_ || message->mentioned_ ||
-          message->media_unread_ || message->reply_markup_ != nullptr || !message->restriction_reason_.empty() ||
-          !message->post_author_.empty() || message->from_boosts_applied_ != 0) {
+          message->fwd_from_ != nullptr || message->views_ != 0 || message->forwards_ != 0 ||
+          message->replies_ != nullptr || message->reactions_ != nullptr || message->ttl_period_ != 0 ||
+          !message->out_ || message->post_ || message->edit_hide_ || message->from_scheduled_ || message->pinned_ ||
+          message->noforwards_ || message->mentioned_ || message->media_unread_ || message->reply_markup_ != nullptr ||
+          !message->restriction_reason_.empty() || !message->post_author_.empty() ||
+          message->from_boosts_applied_ != 0) {
         LOG(ERROR) << "Receive an invalid quick reply from " << source << ": " << to_string(message);
+      }
+      if (message->saved_peer_id_ != nullptr) {
+        LOG(DEBUG) << "Receive unneeded Saved Messages topic in quick reply " << message_id << " from " << source;
       }
 
       UserId via_bot_user_id;
