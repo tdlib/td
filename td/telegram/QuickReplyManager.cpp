@@ -1042,13 +1042,13 @@ void QuickReplyManager::delete_quick_reply_messages(Shortcut *s, const vector<Me
                                                     const char *source) {
   LOG(INFO) << "Delete " << message_ids << " from " << s->shortcut_id_ << " from " << source;
   bool is_changed = false;
-  bool is_list_changed = false;
+  bool is_shortcut_object_changed = false;
   for (auto &message_id : message_ids) {
     auto it = get_message_it(s, message_id);
     if (it != s->messages_.end()) {
       delete_message_files(s->shortcut_id_, it->get());
       if (it == s->messages_.begin()) {
-        is_list_changed = true;
+        is_shortcut_object_changed = true;
       }
       is_changed = true;
       s->messages_.erase(it);
@@ -1060,14 +1060,14 @@ void QuickReplyManager::delete_quick_reply_messages(Shortcut *s, const vector<Me
   if (s->messages_.empty()) {
     send_update_quick_reply_shortcut_deleted(s);
     shortcuts_.shortcuts_.erase(get_shortcut_it(s->shortcut_id_));
-    CHECK(is_list_changed && is_changed);
+    CHECK(is_shortcut_object_changed && is_changed);
+    save_quick_reply_shortcuts();
+    send_update_quick_reply_shortcuts();
   } else if (is_changed) {
     send_update_quick_reply_shortcut_messages(s, source);
-  }
-  if (is_list_changed) {
-    send_update_quick_reply_shortcuts();
-  }
-  if (is_changed) {
+    if (is_shortcut_object_changed) {
+      send_update_quick_reply_shortcut(s, source);
+    }
     save_quick_reply_shortcuts();
   }
 }
