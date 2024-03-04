@@ -836,7 +836,8 @@ DialogParticipantManager::DialogParticipantManager(Td *td, ActorShared<> parent)
 
 DialogParticipantManager::~DialogParticipantManager() {
   Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), user_online_member_dialogs_,
-                                              dialog_administrators_, channel_participants_);
+                                              dialog_administrators_, channel_participants_,
+                                              cached_channel_participants_);
 }
 
 void DialogParticipantManager::tear_down() {
@@ -1022,7 +1023,7 @@ void DialogParticipantManager::update_user_online_member_count(UserId user_id) {
         td_->contacts_manager_->update_chat_online_member_count(dialog_id.get_chat_id(), false);
         break;
       case DialogType::Channel:
-        td_->contacts_manager_->update_channel_online_member_count(dialog_id.get_channel_id(), false);
+        update_channel_online_member_count(dialog_id.get_channel_id(), false);
         break;
       case DialogType::User:
       case DialogType::SecretChat:
@@ -1034,12 +1035,26 @@ void DialogParticipantManager::update_user_online_member_count(UserId user_id) {
   for (auto &dialog_id : expired_dialog_ids) {
     online_member_dialogs.erase(dialog_id);
     if (dialog_id.get_type() == DialogType::Channel) {
-      td_->contacts_manager_->drop_cached_channel_participants(dialog_id.get_channel_id());
+      drop_cached_channel_participants(dialog_id.get_channel_id());
     }
   }
   if (online_member_dialogs.empty()) {
     user_online_member_dialogs_.erase(user_it);
   }
+}
+
+void DialogParticipantManager::update_channel_online_member_count(ChannelId channel_id, bool is_from_server) {
+  if (!td_->contacts_manager_->is_megagroup_channel(channel_id) ||
+      td_->contacts_manager_->get_channel_effective_has_hidden_participants(channel_id,
+                                                                            "update_channel_online_member_count")) {
+    return;
+  }
+
+  auto it = cached_channel_participants_.find(channel_id);
+  if (it == cached_channel_participants_.end()) {
+    return;
+  }
+  update_dialog_online_member_count(it->second, DialogId(channel_id), is_from_server);
 }
 
 void DialogParticipantManager::update_dialog_online_member_count(const vector<DialogParticipant> &participants,
@@ -1873,8 +1888,8 @@ void DialogParticipantManager::on_get_channel_participants(
         administrator_count = narrow_cast<int32>(administrators.size());
 
         if (is_megagroup && !td_->auth_manager_->is_bot() && is_full_recent) {
-          td_->contacts_manager_->set_cached_channel_participants(channel_id, result);
-          td_->contacts_manager_->update_channel_online_member_count(channel_id, true);
+          set_cached_channel_participants(channel_id, result);
+          update_channel_online_member_count(channel_id, true);
         }
       } else if (filter.is_administrators()) {
         for (const auto &participant : result) {
@@ -2778,6 +2793,91 @@ const DialogParticipant *DialogParticipantManager::get_channel_participant_from_
     return &it->second.participant_;
   }
   return nullptr;
+}
+
+void DialogParticipantManager::set_cached_channel_participants(ChannelId channel_id,
+                                                               vector<DialogParticipant> participants) {
+  cached_channel_participants_[channel_id] = std::move(participants);
+}
+
+void DialogParticipantManager::drop_cached_channel_participants(ChannelId channel_id) {
+  cached_channel_participants_.erase(channel_id);
+}
+
+void DialogParticipantManager::add_cached_channel_participants(ChannelId channel_id,
+                                                               const vector<UserId> &added_user_ids,
+                                                               UserId inviter_user_id, int32 date) {
+  auto it = cached_channel_participants_.find(channel_id);
+  if (it == cached_channel_participants_.end()) {
+    return;
+  }
+  auto &participants = it->second;
+  bool is_participants_cache_changed = false;
+  for (auto user_id : added_user_ids) {
+    if (!user_id.is_valid()) {
+      continue;
+    }
+
+    bool is_found = false;
+    for (const auto &participant : participants) {
+      if (participant.dialog_id_ == DialogId(user_id)) {
+        is_found = true;
+        break;
+      }
+    }
+    if (!is_found) {
+      is_participants_cache_changed = true;
+      participants.emplace_back(DialogId(user_id), inviter_user_id, date, DialogParticipantStatus::Member());
+    }
+  }
+  if (is_participants_cache_changed) {
+    update_channel_online_member_count(channel_id, false);
+  }
+}
+
+void DialogParticipantManager::delete_cached_channel_participant(ChannelId channel_id, UserId deleted_user_id) {
+  if (!deleted_user_id.is_valid()) {
+    return;
+  }
+
+  auto it = cached_channel_participants_.find(channel_id);
+  if (it == cached_channel_participants_.end()) {
+    return;
+  }
+  auto &participants = it->second;
+  for (size_t i = 0; i < participants.size(); i++) {
+    if (participants[i].dialog_id_ == DialogId(deleted_user_id)) {
+      participants.erase(participants.begin() + i);
+      update_channel_online_member_count(channel_id, false);
+      break;
+    }
+  }
+}
+
+void DialogParticipantManager::update_cached_channel_participant_status(ChannelId channel_id, UserId user_id,
+                                                                        const DialogParticipantStatus &status) {
+  auto it = cached_channel_participants_.find(channel_id);
+  if (it == cached_channel_participants_.end()) {
+    return;
+  }
+  auto &participants = it->second;
+  bool is_found = false;
+  for (size_t i = 0; i < participants.size(); i++) {
+    if (participants[i].dialog_id_ == DialogId(user_id)) {
+      if (!status.is_member()) {
+        participants.erase(participants.begin() + i);
+        update_channel_online_member_count(channel_id, false);
+      } else {
+        participants[i].status_ = status;
+      }
+      is_found = true;
+      break;
+    }
+  }
+  if (!is_found && status.is_member()) {
+    participants.emplace_back(DialogId(user_id), td_->contacts_manager_->get_my_id(), G()->unix_time(), status);
+    update_channel_online_member_count(channel_id, false);
+  }
 }
 
 void DialogParticipantManager::can_transfer_ownership(Promise<CanTransferOwnershipResult> &&promise) {

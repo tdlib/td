@@ -354,13 +354,7 @@ class ContactsManager final : public Actor {
 
   void update_chat_online_member_count(ChatId chat_id, bool is_from_server);
 
-  void update_channel_online_member_count(ChannelId channel_id, bool is_from_server);
-
   void on_update_channel_bot_user_ids(ChannelId channel_id, vector<UserId> &&bot_user_ids);
-
-  void set_cached_channel_participants(ChannelId channel_id, vector<DialogParticipant> participants);
-
-  void drop_cached_channel_participants(ChannelId channel_id);
 
   void on_update_username_is_active(UserId user_id, string &&username, bool is_active, Promise<Unit> &&promise);
 
@@ -1929,8 +1923,6 @@ class ContactsManager final : public Actor {
   FlatHashMap<int64, unique_ptr<ImportContactsTask>> import_contact_tasks_;
 
   FlatHashMap<int64, std::pair<vector<UserId>, vector<int32>>> imported_contacts_;
-
-  FlatHashMap<ChannelId, vector<DialogParticipant>, ChannelIdHash> cached_channel_participants_;
 
   FlatHashMap<string, UserId> resolved_phone_numbers_;
 

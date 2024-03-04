@@ -2942,8 +2942,8 @@ ContactsManager::~ContactsManager() {
   Scheduler::instance()->destroy_on_scheduler(
       G()->get_gc_scheduler_id(), loaded_from_database_users_, unavailable_user_fulls_, loaded_from_database_chats_,
       unavailable_chat_fulls_, loaded_from_database_channels_, unavailable_channel_fulls_,
-      loaded_from_database_secret_chats_, cached_channel_participants_, resolved_phone_numbers_, all_imported_contacts_,
-      linked_channel_ids_, restricted_user_ids_, restricted_channel_ids_);
+      loaded_from_database_secret_chats_, resolved_phone_numbers_, all_imported_contacts_, linked_channel_ids_,
+      restricted_user_ids_, restricted_channel_ids_);
 }
 
 void ContactsManager::start_up() {
@@ -13062,27 +13062,6 @@ void ContactsManager::update_chat_online_member_count(const ChatFull *chat_full,
                                                                       is_from_server);
 }
 
-void ContactsManager::update_channel_online_member_count(ChannelId channel_id, bool is_from_server) {
-  if (!is_megagroup_channel(channel_id) ||
-      get_channel_effective_has_hidden_participants(channel_id, "update_channel_online_member_count")) {
-    return;
-  }
-
-  auto it = cached_channel_participants_.find(channel_id);
-  if (it == cached_channel_participants_.end()) {
-    return;
-  }
-  td_->dialog_participant_manager_->update_dialog_online_member_count(it->second, DialogId(channel_id), is_from_server);
-}
-
-void ContactsManager::set_cached_channel_participants(ChannelId channel_id, vector<DialogParticipant> participants) {
-  cached_channel_participants_[channel_id] = std::move(participants);
-}
-
-void ContactsManager::drop_cached_channel_participants(ChannelId channel_id) {
-  cached_channel_participants_.erase(channel_id);
-}
-
 void ContactsManager::on_get_chat_participants(tl_object_ptr<telegram_api::ChatParticipants> &&participants_ptr,
                                                bool from_update) {
   switch (participants_ptr->get_id()) {
@@ -13292,9 +13271,8 @@ bool ContactsManager::speculative_add_count(int32 &count, int32 delta_count, int
 
 void ContactsManager::speculative_add_channel_participants(ChannelId channel_id, const vector<UserId> &added_user_ids,
                                                            UserId inviter_user_id, int32 date, bool by_me) {
-  auto it = cached_channel_participants_.find(channel_id);
+  td_->dialog_participant_manager_->add_cached_channel_participants(channel_id, added_user_ids, inviter_user_id, date);
   auto channel_full = get_channel_full_force(channel_id, true, "speculative_add_channel_participants");
-  bool is_participants_cache_changed = false;
 
   int32 delta_participant_count = 0;
   for (auto user_id : added_user_ids) {
@@ -13303,22 +13281,6 @@ void ContactsManager::speculative_add_channel_participants(ChannelId channel_id,
     }
 
     delta_participant_count++;
-
-    if (it != cached_channel_participants_.end()) {
-      auto &participants = it->second;
-      bool is_found = false;
-      for (auto &participant : participants) {
-        if (participant.dialog_id_ == DialogId(user_id)) {
-          is_found = true;
-          break;
-        }
-      }
-      if (!is_found) {
-        is_participants_cache_changed = true;
-        participants.emplace_back(DialogId(user_id), inviter_user_id, date, DialogParticipantStatus::Member());
-      }
-    }
-
     if (channel_full != nullptr && is_user_bot(user_id) && !td::contains(channel_full->bot_user_ids, user_id)) {
       channel_full->bot_user_ids.push_back(user_id);
       channel_full->need_save_to_database = true;
@@ -13327,9 +13289,6 @@ void ContactsManager::speculative_add_channel_participants(ChannelId channel_id,
       send_closure_later(G()->messages_manager(), &MessagesManager::on_dialog_bots_updated, DialogId(channel_id),
                          channel_full->bot_user_ids, false);
     }
-  }
-  if (is_participants_cache_changed) {
-    update_channel_online_member_count(channel_id, false);
   }
   if (channel_full != nullptr) {
     if (channel_full->is_changed) {
@@ -13349,17 +13308,7 @@ void ContactsManager::speculative_delete_channel_participant(ChannelId channel_i
     return;
   }
 
-  auto it = cached_channel_participants_.find(channel_id);
-  if (it != cached_channel_participants_.end()) {
-    auto &participants = it->second;
-    for (size_t i = 0; i < participants.size(); i++) {
-      if (participants[i].dialog_id_ == DialogId(deleted_user_id)) {
-        participants.erase(participants.begin() + i);
-        update_channel_online_member_count(channel_id, false);
-        break;
-      }
-    }
-  }
+  td_->dialog_participant_manager_->delete_cached_channel_participant(channel_id, deleted_user_id);
 
   if (is_user_bot(deleted_user_id)) {
     auto channel_full = get_channel_full_force(channel_id, true, "speculative_delete_channel_participant");
@@ -13429,27 +13378,7 @@ void ContactsManager::speculative_add_channel_user(ChannelId channel_id, UserId 
     update_channel(c, channel_id);
   }
 
-  auto it = cached_channel_participants_.find(channel_id);
-  if (it != cached_channel_participants_.end()) {
-    auto &participants = it->second;
-    bool is_found = false;
-    for (size_t i = 0; i < participants.size(); i++) {
-      if (participants[i].dialog_id_ == DialogId(user_id)) {
-        if (!new_status.is_member()) {
-          participants.erase(participants.begin() + i);
-          update_channel_online_member_count(channel_id, false);
-        } else {
-          participants[i].status_ = new_status;
-        }
-        is_found = true;
-        break;
-      }
-    }
-    if (!is_found && new_status.is_member()) {
-      participants.emplace_back(DialogId(user_id), get_my_id(), G()->unix_time(), new_status);
-      update_channel_online_member_count(channel_id, false);
-    }
-  }
+  td_->dialog_participant_manager_->update_cached_channel_participant_status(channel_id, user_id, new_status);
 
   if (channel_full == nullptr) {
     return;

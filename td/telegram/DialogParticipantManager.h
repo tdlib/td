@@ -49,6 +49,14 @@ class DialogParticipantManager final : public Actor {
 
   void on_update_dialog_online_member_count(DialogId dialog_id, int32 online_member_count, bool is_from_server);
 
+  void add_cached_channel_participants(ChannelId channel_id, const vector<UserId> &added_user_ids,
+                                       UserId inviter_user_id, int32 date);
+
+  void delete_cached_channel_participant(ChannelId channel_id, UserId deleted_user_id);
+
+  void update_cached_channel_participant_status(ChannelId channel_id, UserId user_id,
+                                                const DialogParticipantStatus &status);
+
   void on_dialog_opened(DialogId dialog_id);
 
   void on_dialog_closed(DialogId dialog_id);
@@ -254,6 +262,12 @@ class DialogParticipantManager final : public Actor {
 
   void on_channel_participant_cache_timeout(ChannelId channel_id);
 
+  void set_cached_channel_participants(ChannelId channel_id, vector<DialogParticipant> participants);
+
+  void drop_cached_channel_participants(ChannelId channel_id);
+
+  void update_channel_online_member_count(ChannelId channel_id, bool is_from_server);
+
   void transfer_channel_ownership(ChannelId channel_id, UserId user_id,
                                   tl_object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password,
                                   Promise<Unit> &&promise);
@@ -282,6 +296,8 @@ class DialogParticipantManager final : public Actor {
     FlatHashMap<DialogId, ChannelParticipantInfo, DialogIdHash> participants_;
   };
   FlatHashMap<ChannelId, ChannelParticipants, ChannelIdHash> channel_participants_;
+
+  FlatHashMap<ChannelId, vector<DialogParticipant>, ChannelIdHash> cached_channel_participants_;
 
   FlatHashMap<ChannelId, vector<Promise<Unit>>, ChannelIdHash> join_channel_queries_;
 
