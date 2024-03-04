@@ -584,6 +584,11 @@ class CliClient final : public Actor {
     return to_integer<int32>(trim(str));
   }
 
+  td_api::object_ptr<td_api::businessRecipients> as_business_recipients(string chat_ids) const {
+    return td_api::make_object<td_api::businessRecipients>(as_chat_ids(chat_ids), rand_bool(), rand_bool(), rand_bool(),
+                                                           rand_bool(), rand_bool());
+  }
+
   static td_api::object_ptr<td_api::StickerFormat> as_sticker_format(string sticker_format) {
     if (!sticker_format.empty() && sticker_format.back() == 'a') {
       return td_api::make_object<td_api::stickerFormatTgs>();
@@ -5989,11 +5994,8 @@ class CliClient final : public Actor {
         send_request(td_api::make_object<td_api::setBusinessGreetingMessageSettings>(nullptr));
       } else {
         send_request(td_api::make_object<td_api::setBusinessGreetingMessageSettings>(
-            td_api::make_object<td_api::businessGreetingMessageSettings>(
-                shortcut_id,
-                td_api::make_object<td_api::businessRecipients>(as_chat_ids(chat_ids), rand_bool(), rand_bool(),
-                                                                rand_bool(), rand_bool(), rand_bool()),
-                inactivity_days)));
+            td_api::make_object<td_api::businessGreetingMessageSettings>(shortcut_id, as_business_recipients(chat_ids),
+                                                                         inactivity_days)));
       }
     } else if (op == "sbams" || op == "sbamso") {
       ShortcutId shortcut_id;
@@ -6014,11 +6016,8 @@ class CliClient final : public Actor {
               start_date, start_date + Random::fast(1000, 100000));
         }
         send_request(td_api::make_object<td_api::setBusinessAwayMessageSettings>(
-            td_api::make_object<td_api::businessAwayMessageSettings>(
-                shortcut_id,
-                td_api::make_object<td_api::businessRecipients>(as_chat_ids(chat_ids), rand_bool(), rand_bool(),
-                                                                rand_bool(), rand_bool(), rand_bool()),
-                std::move(schedule_object), op == "sbamso")));
+            td_api::make_object<td_api::businessAwayMessageSettings>(shortcut_id, as_business_recipients(chat_ids),
+                                                                     std::move(schedule_object), op == "sbamso")));
       }
     } else if (op == "gbcb") {
       send_request(td_api::make_object<td_api::getBusinessConnectedBot>());
