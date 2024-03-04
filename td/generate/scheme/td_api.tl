@@ -9411,6 +9411,9 @@ getBusinessConnectedBot = BusinessConnectedBot;
 //@description Adds or changes business bot that is connected to the current user account @bot Connection settings for the bot
 setBusinessConnectedBot bot:businessConnectedBot = Ok;
 
+//@description Deletes the business bot that is connected to the current user account @bot_user_id Unique user identifier for the bot
+deleteBusinessConnectedBot bot_user_id:int53 = Ok;
+
 
 //@description Returns an HTTPS link, which can be used to get information about the current user
 getUserLink = UserLink;

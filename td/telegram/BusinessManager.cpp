@@ -80,6 +80,14 @@ class UpdateConnectedBotQuery final : public Td::ResultHandler {
         {{"me"}}));
   }
 
+  void send(telegram_api::object_ptr<telegram_api::InputUser> &&input_user) {
+    int32 flags = telegram_api::account_updateConnectedBot::DELETED_MASK;
+    send_query(G()->net_query_creator().create(
+        telegram_api::account_updateConnectedBot(flags, false /*ignored*/, false /*ignored*/, std::move(input_user),
+                                                 BusinessRecipients().get_input_business_recipients(td_)),
+        {{"me"}}));
+  }
+
   void on_result(BufferSlice packet) final {
     auto result_ptr = fetch_result<telegram_api::account_updateConnectedBot>(packet);
     if (result_ptr.is_error()) {
@@ -258,6 +266,11 @@ void BusinessManager::set_business_connected_bot(td_api::object_ptr<td_api::busi
   BusinessConnectedBot connected_bot(std::move(bot));
   TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(connected_bot.get_user_id()));
   td_->create_handler<UpdateConnectedBotQuery>(std::move(promise))->send(connected_bot, std::move(input_user));
+}
+
+void BusinessManager::delete_business_connected_bot(UserId bot_user_id, Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(bot_user_id));
+  td_->create_handler<UpdateConnectedBotQuery>(std::move(promise))->send(std::move(input_user));
 }
 
 void BusinessManager::set_business_location(DialogLocation &&location, Promise<Unit> &&promise) {

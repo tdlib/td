@@ -6028,6 +6028,10 @@ class CliClient final : public Actor {
       get_args(args, bot_user_id, chat_ids, can_reply);
       send_request(td_api::make_object<td_api::setBusinessConnectedBot>(
           td_api::make_object<td_api::businessConnectedBot>(bot_user_id, as_business_recipients(chat_ids), can_reply)));
+    } else if (op == "dbcb") {
+      UserId bot_user_id;
+      get_args(args, bot_user_id);
+      send_request(td_api::make_object<td_api::deleteBusinessConnectedBot>(bot_user_id));
     } else if (op == "sco") {
       SearchQuery query;
       get_args(args, query);

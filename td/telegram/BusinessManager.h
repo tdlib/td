@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/td_api.h"
+#include "td/telegram/UserId.h"
 
 #include "td/actor/actor.h"
 
@@ -28,6 +29,8 @@ class BusinessManager final : public Actor {
   void get_business_connected_bot(Promise<td_api::object_ptr<td_api::businessConnectedBot>> &&promise);
 
   void set_business_connected_bot(td_api::object_ptr<td_api::businessConnectedBot> &&bot, Promise<Unit> &&promise);
+
+  void delete_business_connected_bot(UserId bot_user_id, Promise<Unit> &&promise);
 
   void set_business_location(DialogLocation &&location, Promise<Unit> &&promise);
 
