@@ -1405,6 +1405,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::setProfileAccentColor &request);
 
+  void on_request(uint64 id, const td_api::getBusinessConnectedBot &request);
+
   void on_request(uint64 id, td_api::setSupergroupUsername &request);
 
   void on_request(uint64 id, td_api::toggleSupergroupUsernameIsActive &request);

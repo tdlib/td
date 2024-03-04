@@ -6020,6 +6020,8 @@ class CliClient final : public Actor {
                                                                 rand_bool(), rand_bool(), rand_bool()),
                 std::move(schedule_object), op == "sbamso")));
       }
+    } else if (op == "gbcb") {
+      send_request(td_api::make_object<td_api::getBusinessConnectedBot>());
     } else if (op == "sco") {
       SearchQuery query;
       get_args(args, query);

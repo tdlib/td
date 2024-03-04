@@ -7862,6 +7862,12 @@ void Td::on_request(uint64 id, const td_api::setProfileAccentColor &request) {
                                               std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getBusinessConnectedBot &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  business_manager_->get_business_connected_bot(std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::setSupergroupUsername &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.username_);

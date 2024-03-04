@@ -7,6 +7,7 @@
 #include "td/telegram/BusinessManager.h"
 
 #include "td/telegram/BusinessAwayMessage.h"
+#include "td/telegram/BusinessConnectedBot.h"
 #include "td/telegram/BusinessGreetingMessage.h"
 #include "td/telegram/BusinessWorkHours.h"
 #include "td/telegram/ContactsManager.h"
@@ -19,6 +20,46 @@
 #include "td/utils/Status.h"
 
 namespace td {
+
+class GetConnectedBotsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::businessConnectedBot>> promise_;
+
+ public:
+  explicit GetConnectedBotsQuery(Promise<td_api::object_ptr<td_api::businessConnectedBot>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::account_getConnectedBots(), {{"me"}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_getConnectedBots>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetConnectedBotsQuery: " << to_string(result);
+
+    td_->contacts_manager_->on_get_users(std::move(result->users_), "GetConnectedBotsQuery");
+    if (result->connected_bots_.size() > 1u) {
+      return on_error(Status::Error(500, "Receive invalid response"));
+    }
+    if (result->connected_bots_.empty()) {
+      return promise_.set_value(nullptr);
+    }
+    auto bot = BusinessConnectedBot(std::move(result->connected_bots_[0]));
+    if (!bot.is_valid()) {
+      return on_error(Status::Error(500, "Receive invalid bot"));
+    }
+    promise_.set_value(bot.get_business_connected_bot_object(td_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
 
 class UpdateBusinessLocationQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
@@ -168,6 +209,10 @@ BusinessManager::BusinessManager(Td *td, ActorShared<> parent) : td_(td), parent
 
 void BusinessManager::tear_down() {
   parent_.reset();
+}
+
+void BusinessManager::get_business_connected_bot(Promise<td_api::object_ptr<td_api::businessConnectedBot>> &&promise) {
+  td_->create_handler<GetConnectedBotsQuery>(std::move(promise))->send();
 }
 
 void BusinessManager::set_business_location(DialogLocation &&location, Promise<Unit> &&promise) {

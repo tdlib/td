@@ -6,6 +6,8 @@
 //
 #pragma once
 
+#include "td/telegram/td_api.h"
+
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
@@ -22,6 +24,8 @@ class Td;
 class BusinessManager final : public Actor {
  public:
   BusinessManager(Td *td, ActorShared<> parent);
+
+  void get_business_connected_bot(Promise<td_api::object_ptr<td_api::businessConnectedBot>> &&promise);
 
   void set_business_location(DialogLocation &&location, Promise<Unit> &&promise);
 
