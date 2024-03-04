@@ -310,6 +310,7 @@ function split_file($file, $chunks, $undo) {
                 'boost_manager[_(-](?![.]get[(][)])|BoostManager' => 'BoostManager',
                 'bot_info_manager[_(-](?![.]get[(][)])|BotInfoManager' => 'BotInfoManager',
                 'BusinessAwayMessage' => 'BusinessAwayMessage',
+                'BusinessConnectedBot' => 'BusinessConnectedBot',
                 'BusinessGreetingMessage' => 'BusinessGreetingMessage',
                 'BusinessInfo|business_info' => 'BusinessInfo',
                 'BusinessRecipients' => 'BusinessRecipients',

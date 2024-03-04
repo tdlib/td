@@ -615,6 +615,12 @@ businessAwayMessageSettings shortcut_id:int32 recipients:businessRecipients sche
 //@inactivity_days The number of days after which a chat will be considered as inactive; currently, must be on of 7, 14, 21, or 28
 businessGreetingMessageSettings shortcut_id:int32 recipients:businessRecipients inactivity_days:int32 = BusinessGreetingMessageSettings;
 
+//@description Describes a bot connected to a business account
+//@bot_user_id User identifier of the bot
+//@recipients Private chats that will be accessible to the bot
+//@can_reply True, if the bot can send messages to the private chats; false otherwise
+businessConnectedBot bot_user_id:int53 recipients:businessRecipients can_reply:Bool = BusinessConnectedBot;
+
 //@description Describes an interval of time when the business is open
 //@start_minute The first minute of the interval since start of the week; 0-7*24*60
 //@end_minute The first minute after the end of the interval since start of the week; 1-8*24*60
