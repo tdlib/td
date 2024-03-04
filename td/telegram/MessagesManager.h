@@ -1053,12 +1053,12 @@ class MessagesManager final : public Actor {
     bool are_media_timestamp_entities_found = false;
     bool noforwards = false;
     bool invert_media = false;
+    bool disable_web_page_preview = false;
 
     bool has_explicit_sender = false;       // for send_message
     bool is_copy = false;                   // for send_message
     bool from_background = false;           // for send_message
     bool update_stickersets_order = false;  // for send_message
-    bool disable_web_page_preview = false;  // for send_message
     bool clear_draft = false;               // for send_message
     bool in_game_share = false;             // for send_message
     bool hide_via_bot = false;              // for resend_message

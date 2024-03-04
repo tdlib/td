@@ -90,10 +90,10 @@ class QuickReplyManager final : public Actor {
     bool is_failed_to_send = false;
     bool disable_notification = false;
     bool invert_media = false;
+    bool disable_web_page_preview = false;
 
-    bool from_background = false;           // for send_message
-    bool disable_web_page_preview = false;  // for send_message
-    bool hide_via_bot = false;              // for resend_message
+    bool from_background = false;  // for send_message
+    bool hide_via_bot = false;     // for resend_message
 
     int32 legacy_layer = 0;
 
