@@ -61,6 +61,17 @@ class QuickReplyManager final : public Actor {
 
   void reload_quick_reply_message(QuickReplyShortcutId shortcut_id, MessageId message_id, Promise<Unit> &&promise);
 
+  struct QuickReplyMessageContent {
+    unique_ptr<MessageContent> content_;
+    MessageId original_message_id_;
+    MessageId original_reply_to_message_id_;
+    int64 media_album_id_;
+    bool invert_media_;
+    bool disable_web_page_preview_;
+  };
+  Result<vector<QuickReplyMessageContent>> get_quick_reply_message_contents(DialogId dialog_id,
+                                                                            QuickReplyShortcutId shortcut_id) const;
+
   FileSourceId get_quick_reply_message_file_source_id(QuickReplyMessageFullId message_full_id);
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
@@ -206,6 +217,8 @@ class QuickReplyManager final : public Actor {
   void delete_quick_reply_messages(Shortcut *s, const vector<MessageId> &message_ids, const char *source);
 
   Shortcut *get_shortcut(QuickReplyShortcutId shortcut_id);
+
+  const Shortcut *get_shortcut(QuickReplyShortcutId shortcut_id) const;
 
   Shortcut *get_shortcut(const string &name);
 

@@ -1307,7 +1307,64 @@ void QuickReplyManager::on_reload_quick_reply_message(
   promise.set_value(Unit());
 }
 
+Result<vector<QuickReplyManager::QuickReplyMessageContent>> QuickReplyManager::get_quick_reply_message_contents(
+    DialogId dialog_id, QuickReplyShortcutId shortcut_id) const {
+  const auto *shortcut = get_shortcut(shortcut_id);
+  if (shortcut == nullptr) {
+    return Status::Error(400, "Shortcut not found");
+  }
+  if (!shortcut_id.is_server()) {
+    return Status::Error(400, "Shortcut isn't created yet");
+  }
+  if (!have_all_shortcut_messages(shortcut)) {
+    return Status::Error(400, "Shortcut messages aren't loaded yet");
+  }
+
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "get_quick_reply_message_contents")) {
+    return Status::Error(400, "Chat not found");
+  }
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
+    return Status::Error(400, "Have no write access to the chat");
+  }
+
+  std::unordered_map<int64, std::pair<int64, int32>, Hash<int64>> new_media_album_ids;
+  vector<QuickReplyMessageContent> result;
+  for (auto &message : shortcut->messages_) {
+    if (!message->message_id.is_server()) {
+      continue;
+    }
+    auto content = dup_message_content(td_, dialog_id, message->content.get(), MessageContentDupType::ServerCopy,
+                                       MessageCopyOptions(true, false));
+
+    auto can_send_status = can_send_message_content(dialog_id, content.get(), false, true, td_);
+    if (can_send_status.is_error()) {
+      LOG(INFO) << "Can't send " << message->message_id << ": " << can_send_status.message();
+      continue;
+    }
+
+    auto disable_web_page_preview = message->disable_web_page_preview &&
+                                    content->get_type() == MessageContentType::Text &&
+                                    !has_message_content_web_page(content.get());
+    result.push_back({std::move(content), message->message_id, message->reply_to_message_id, message->media_album_id,
+                      message->invert_media, disable_web_page_preview});
+  }
+
+  return std::move(result);
+}
+
 QuickReplyManager::Shortcut *QuickReplyManager::get_shortcut(QuickReplyShortcutId shortcut_id) {
+  if (!shortcuts_.are_inited_) {
+    return nullptr;
+  }
+  for (auto &shortcut : shortcuts_.shortcuts_) {
+    if (shortcut->shortcut_id_ == shortcut_id) {
+      return shortcut.get();
+    }
+  }
+  return nullptr;
+}
+
+const QuickReplyManager::Shortcut *QuickReplyManager::get_shortcut(QuickReplyShortcutId shortcut_id) const {
   if (!shortcuts_.are_inited_) {
     return nullptr;
   }
