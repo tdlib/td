@@ -9,14 +9,27 @@
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Promise.h"
 
 namespace td {
 
+class BusinessAwayMessage;
+class BusinessGreetingMessage;
+class BusinessWorkHours;
+class DialogLocation;
 class Td;
 
 class BusinessManager final : public Actor {
  public:
   BusinessManager(Td *td, ActorShared<> parent);
+
+  void set_business_location(DialogLocation &&location, Promise<Unit> &&promise);
+
+  void set_business_work_hours(BusinessWorkHours &&work_hours, Promise<Unit> &&promise);
+
+  void set_business_greeting_message(BusinessGreetingMessage &&greeting_message, Promise<Unit> &&promise);
+
+  void set_business_away_message(BusinessAwayMessage &&away_message, Promise<Unit> &&promise);
 
  private:
   void tear_down() final;

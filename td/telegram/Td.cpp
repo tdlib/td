@@ -7806,26 +7806,26 @@ void Td::on_request(uint64 id, const td_api::setLocation &request) {
 void Td::on_request(uint64 id, td_api::setBusinessLocation &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->set_business_location(DialogLocation(std::move(request.location_)), std::move(promise));
+  business_manager_->set_business_location(DialogLocation(std::move(request.location_)), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setBusinessOpeningHours &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->set_business_work_hours(BusinessWorkHours(std::move(request.opening_hours_)), std::move(promise));
+  business_manager_->set_business_work_hours(BusinessWorkHours(std::move(request.opening_hours_)), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setBusinessGreetingMessageSettings &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->set_business_greeting_message(
+  business_manager_->set_business_greeting_message(
       BusinessGreetingMessage(std::move(request.greeting_message_settings_)), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setBusinessAwayMessageSettings &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->set_business_away_message(BusinessAwayMessage(std::move(request.away_message_settings_)),
+  business_manager_->set_business_away_message(BusinessAwayMessage(std::move(request.away_message_settings_)),
                                                std::move(promise));
 }
 

@@ -468,14 +468,6 @@ class ContactsManager final : public Actor {
 
   void set_emoji_status(const EmojiStatus &emoji_status, Promise<Unit> &&promise);
 
-  void set_business_location(DialogLocation &&location, Promise<Unit> &&promise);
-
-  void set_business_work_hours(BusinessWorkHours &&work_hours, Promise<Unit> &&promise);
-
-  void set_business_greeting_message(BusinessGreetingMessage &&greeting_message, Promise<Unit> &&promise);
-
-  void set_business_away_message(BusinessAwayMessage &&away_message, Promise<Unit> &&promise);
-
   void set_chat_description(ChatId chat_id, const string &description, Promise<Unit> &&promise);
 
   void set_channel_username(ChannelId channel_id, const string &username, Promise<Unit> &&promise);
