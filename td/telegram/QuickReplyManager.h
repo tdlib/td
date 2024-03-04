@@ -21,6 +21,7 @@
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/FlatHashSet.h"
 #include "td/utils/Promise.h"
+#include "td/utils/Status.h"
 
 #include <utility>
 
@@ -33,6 +34,8 @@ class Td;
 class QuickReplyManager final : public Actor {
  public:
   QuickReplyManager(Td *td, ActorShared<> parent);
+
+  static Status check_shortcut_name(CSlice name);
 
   void get_quick_reply_shortcuts(Promise<Unit> &&promise);
 
@@ -144,6 +147,8 @@ class QuickReplyManager final : public Actor {
   };
 
   void tear_down() final;
+
+  static bool is_shortcut_name_letter(uint32 code);
 
   void add_quick_reply_message_dependencies(Dependencies &dependencies, const QuickReplyMessage *m) const;
 

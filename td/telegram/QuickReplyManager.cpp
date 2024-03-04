@@ -27,6 +27,8 @@
 #include "td/utils/buffer.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
+#include "td/utils/unicode.h"
+#include "td/utils/utf8.h"
 
 namespace td {
 
@@ -373,6 +375,43 @@ QuickReplyManager::QuickReplyManager(Td *td, ActorShared<> parent) : td_(td), pa
 
 void QuickReplyManager::tear_down() {
   parent_.reset();
+}
+
+bool QuickReplyManager::is_shortcut_name_letter(uint32 code) {
+  auto category = get_unicode_simple_category(code);
+  if (code == '_' || code == 0x200c || code == 0xb7 || (0xd80 <= code && code <= 0xdff)) {
+    return true;
+  }
+  switch (category) {
+    case UnicodeSimpleCategory::DecimalNumber:
+    case UnicodeSimpleCategory::Letter:
+      return true;
+    default:
+      return false;
+  }
+}
+
+Status QuickReplyManager::check_shortcut_name(CSlice name) {
+  if (!check_utf8(name)) {
+    return Status::Error("Strings must be encoded in UTF-8");
+  }
+  int32 length = 0;
+  auto *ptr = name.ubegin();
+  while (ptr != name.uend()) {
+    uint32 code;
+    ptr = next_utf8_unsafe(ptr, &code);
+    if (!is_shortcut_name_letter(code)) {
+      return Status::Error("A letter is not allowed");
+    }
+    length++;
+  }
+  if (length == 0) {
+    return Status::Error("Name can't be empty");
+  }
+  if (length > 32) {
+    return Status::Error("Name is too long");
+  }
+  return Status::OK();
 }
 
 unique_ptr<QuickReplyManager::QuickReplyMessage> QuickReplyManager::create_message(

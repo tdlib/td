@@ -4845,6 +4845,8 @@ class CliClient final : public Actor {
       get_args(args, chat_id, message_id, date);
       send_request(td_api::make_object<td_api::editMessageSchedulingState>(chat_id, message_id,
                                                                            as_message_scheduling_state(date)));
+    } else if (op == "cqrsn") {
+      execute(td_api::make_object<td_api::checkQuickReplyShortcutName>(args));
     } else if (op == "lqrs") {
       send_request(td_api::make_object<td_api::loadQuickReplyShortcuts>());
     } else if (op == "dqrs") {

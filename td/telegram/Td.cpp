@@ -2780,6 +2780,7 @@ bool Td::is_synchronous_request(const td_api::Function *function) {
     case td_api::parseMarkdown::ID:
     case td_api::getMarkdownText::ID:
     case td_api::searchStringsByPrefix::ID:
+    case td_api::checkQuickReplyShortcutName::ID:
     case td_api::getCountryFlagEmoji::ID:
     case td_api::getFileMimeType::ID:
     case td_api::getFileExtension::ID:
@@ -3022,6 +3023,7 @@ td_api::object_ptr<td_api::Object> Td::static_request(td_api::object_ptr<td_api:
       case td_api::parseMarkdown::ID:
       case td_api::getMarkdownText::ID:
       case td_api::searchStringsByPrefix::ID:
+      case td_api::checkQuickReplyShortcutName::ID:
       case td_api::getCountryFlagEmoji::ID:
       case td_api::getFileMimeType::ID:
       case td_api::getFileExtension::ID:
@@ -9357,6 +9359,10 @@ void Td::on_request(uint64 id, const td_api::searchStringsByPrefix &request) {
   UNREACHABLE();
 }
 
+void Td::on_request(uint64 id, const td_api::checkQuickReplyShortcutName &request) {
+  UNREACHABLE();
+}
+
 void Td::on_request(uint64 id, const td_api::getCountryFlagEmoji &request) {
   UNREACHABLE();
 }
@@ -9563,6 +9569,15 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::searchStringsBy
   auto result = search_strings_by_prefix(std::move(request.strings_), std::move(request.query_), request.limit_,
                                          !request.return_none_for_empty_query_, total_count);
   return td_api::make_object<td_api::foundPositions>(total_count, std::move(result));
+}
+
+td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::checkQuickReplyShortcutName &request) {
+  // don't check name UTF-8 correctness
+  auto status = QuickReplyManager::check_shortcut_name(request.name_);
+  if (status.is_ok()) {
+    return td_api::make_object<td_api::ok>();
+  }
+  return make_error(200, status.error().message());
 }
 
 td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getCountryFlagEmoji &request) {
