@@ -6021,6 +6021,13 @@ class CliClient final : public Actor {
       }
     } else if (op == "gbcb") {
       send_request(td_api::make_object<td_api::getBusinessConnectedBot>());
+    } else if (op == "sbcb") {
+      UserId bot_user_id;
+      string chat_ids;
+      bool can_reply = false;
+      get_args(args, bot_user_id, chat_ids, can_reply);
+      send_request(td_api::make_object<td_api::setBusinessConnectedBot>(
+          td_api::make_object<td_api::businessConnectedBot>(bot_user_id, as_business_recipients(chat_ids), can_reply)));
     } else if (op == "sco") {
       SearchQuery query;
       get_args(args, query);

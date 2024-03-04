@@ -9405,8 +9405,11 @@ resendChangePhoneNumberCode = AuthenticationCodeInfo;
 checkChangePhoneNumberCode code:string = Ok;
 
 
-//@description Returns the business bot connected to the current user account. Returns a 404 error if there is no connected bot
+//@description Returns the business bot that is connected to the current user account. Returns a 404 error if there is no connected bot
 getBusinessConnectedBot = BusinessConnectedBot;
+
+//@description Adds or changes business bot that is connected to the current user account @bot Connection settings for the bot
+setBusinessConnectedBot bot:businessConnectedBot = Ok;
 
 
 //@description Returns an HTTPS link, which can be used to get information about the current user

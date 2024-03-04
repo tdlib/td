@@ -32,6 +32,18 @@ class BusinessConnectedBot {
     return user_id_.is_valid();
   }
 
+  UserId get_user_id() const {
+    return user_id_;
+  }
+
+  const BusinessRecipients &get_recipients() const {
+    return recipients_;
+  }
+
+  bool get_can_reply() const {
+    return can_reply_;
+  }
+
   template <class StorerT>
   void store(StorerT &storer) const;
 
