@@ -1329,6 +1329,9 @@ Result<vector<QuickReplyManager::QuickReplyMessageContent>> QuickReplyManager::g
   if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
     return Status::Error(400, "Have no write access to the chat");
   }
+  if (dialog_id.get_type() != DialogType::User || td_->contacts_manager_->is_user_bot(dialog_id.get_user_id())) {
+    return Status::Error(400, "Can't use quick replies in the chat");
+  }
 
   std::unordered_map<int64, std::pair<int64, int32>, Hash<int64>> new_media_album_ids;
   vector<QuickReplyMessageContent> result;
