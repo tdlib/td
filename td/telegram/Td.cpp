@@ -5769,6 +5769,13 @@ void Td::on_request(uint64 id, const td_api::loadQuickReplyShortcuts &request) {
   quick_reply_manager_->get_quick_reply_shortcuts(std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::setQuickReplyShortcutName &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  quick_reply_manager_->set_quick_reply_shortcut_name(QuickReplyShortcutId(request.shortcut_id_), request.name_,
+                                                      std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::deleteQuickReplyShortcut &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

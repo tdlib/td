@@ -41,7 +41,7 @@ class GetQuickRepliesQuery final : public Td::ResultHandler {
   }
 
   void send(int64 hash) {
-    send_query(G()->net_query_creator().create(telegram_api::messages_getQuickReplies(hash), {{"me"}}));
+    send_query(G()->net_query_creator().create(telegram_api::messages_getQuickReplies(hash), {{"quick_reply"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -60,6 +60,32 @@ class GetQuickRepliesQuery final : public Td::ResultHandler {
   }
 };
 
+class EditQuickReplyShortcutQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit EditQuickReplyShortcutQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(QuickReplyShortcutId shortcut_id, const string &name) {
+    send_query(G()->net_query_creator().create(telegram_api::messages_editQuickReplyShortcut(shortcut_id.get(), name),
+                                               {{"quick_reply"}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_editQuickReplyShortcut>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class DeleteQuickReplyShortcutQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -68,8 +94,8 @@ class DeleteQuickReplyShortcutQuery final : public Td::ResultHandler {
   }
 
   void send(QuickReplyShortcutId shortcut_id) {
-    send_query(
-        G()->net_query_creator().create(telegram_api::messages_deleteQuickReplyShortcut(shortcut_id.get()), {{"me"}}));
+    send_query(G()->net_query_creator().create(telegram_api::messages_deleteQuickReplyShortcut(shortcut_id.get()),
+                                               {{"quick_reply"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -98,7 +124,7 @@ class ReorderQuickRepliesQuery final : public Td::ResultHandler {
     send_query(
         G()->net_query_creator().create(telegram_api::messages_reorderQuickReplies(
                                             QuickReplyShortcutId::get_input_quick_reply_shortcut_ids(shortcut_ids)),
-                                        {{"me"}}));
+                                        {{"quick_reply"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -132,7 +158,7 @@ class GetQuickReplyMessagesQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(
         telegram_api::messages_getQuickReplyMessages(flags, shortcut_id.get(),
                                                      MessageId::get_server_message_ids(message_ids), hash),
-        {{"me"}}));
+        {{"quick_reply"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -163,7 +189,7 @@ class DeleteQuickReplyMessagesQuery final : public Td::ResultHandler {
     shortcut_id_ = shortcut_id;
     send_query(G()->net_query_creator().create(telegram_api::messages_deleteQuickReplyMessages(
                                                    shortcut_id.get(), MessageId::get_server_message_ids(message_ids)),
-                                               {{"me"}}));
+                                               {{"quick_reply"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -831,6 +857,47 @@ int64 QuickReplyManager::get_shortcuts_hash() const {
     }
   }
   return get_vector_hash(numbers);
+}
+
+void QuickReplyManager::set_quick_reply_shortcut_name(QuickReplyShortcutId shortcut_id, const string &name,
+                                                      Promise<Unit> &&promise) {
+  const auto *shortcut = get_shortcut(shortcut_id);
+  if (shortcut == nullptr) {
+    return promise.set_error(Status::Error(400, "Shortcut not found"));
+  }
+  if (check_shortcut_name(name).is_error()) {
+    return promise.set_error(Status::Error(400, "Shortcut name is invalid"));
+  }
+  if (!shortcut_id.is_server()) {
+    return promise.set_error(Status::Error(400, "Shortcut isn't created yet"));
+  }
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), shortcut_id, name, promise = std::move(promise)](Result<Unit> &&result) mutable {
+        if (result.is_ok()) {
+          send_closure(actor_id, &QuickReplyManager::on_set_quick_reply_shortcut_name, shortcut_id, name,
+                       std::move(promise));
+        }
+      });
+  set_quick_reply_shortcut_name_on_server(shortcut_id, name, std::move(query_promise));
+}
+
+void QuickReplyManager::set_quick_reply_shortcut_name_on_server(QuickReplyShortcutId shortcut_id, const string &name,
+                                                                Promise<Unit> &&promise) {
+  CHECK(shortcut_id.is_server());
+
+  td_->create_handler<EditQuickReplyShortcutQuery>(std::move(promise))->send(shortcut_id, name);
+}
+
+void QuickReplyManager::on_set_quick_reply_shortcut_name(QuickReplyShortcutId shortcut_id, const string &name,
+                                                         Promise<Unit> &&promise) {
+  auto *shortcut = get_shortcut(shortcut_id);
+  if (shortcut == nullptr || shortcut->name_ == name) {
+    return promise.set_value(Unit());
+  }
+  shortcut->name_ = name;
+  send_update_quick_reply_shortcut(shortcut, "on_set_quick_reply_shortcut_name");
+  save_quick_reply_shortcuts();
+  promise.set_value(Unit());
 }
 
 void QuickReplyManager::delete_quick_reply_shortcut(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise) {

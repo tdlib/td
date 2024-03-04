@@ -7786,6 +7786,9 @@ checkQuickReplyShortcutName name:string = Ok;
 //@description Loads quick reply shortcuts created by the current user. The loaded topics will be sent through updateQuickReplyShortcuts
 loadQuickReplyShortcuts = Ok;
 
+//@description Changes name of a quick reply shortcut @shortcut_id Unique identifier of the quick reply shortcut @name New name for the shortcut. Use checkQuickReplyShortcutName to check its validness
+setQuickReplyShortcutName shortcut_id:int32 name:string = Ok;
+
 //@description Deletes a quick reply shortcut @shortcut_id Unique identifier of the quick reply shortcut
 deleteQuickReplyShortcut shortcut_id:int32 = Ok;
 

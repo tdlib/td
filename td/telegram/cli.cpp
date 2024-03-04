@@ -4853,6 +4853,11 @@ class CliClient final : public Actor {
       ShortcutId shortcut_id;
       get_args(args, shortcut_id);
       send_request(td_api::make_object<td_api::deleteQuickReplyShortcut>(shortcut_id));
+    } else if (op == "sqrsn") {
+      ShortcutId shortcut_id;
+      string name;
+      get_args(args, shortcut_id, name);
+      send_request(td_api::make_object<td_api::setQuickReplyShortcutName>(shortcut_id, name));
     } else if (op == "rqrs") {
       string shortcut_ids;
       get_args(args, shortcut_ids);

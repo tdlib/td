@@ -866,6 +866,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::loadQuickReplyShortcuts &request);
 
+  void on_request(uint64 id, const td_api::setQuickReplyShortcutName &request);
+
   void on_request(uint64 id, const td_api::deleteQuickReplyShortcut &request);
 
   void on_request(uint64 id, const td_api::reorderQuickReplyShortcuts &request);

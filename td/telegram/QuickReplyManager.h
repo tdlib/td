@@ -21,6 +21,7 @@
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/FlatHashSet.h"
 #include "td/utils/Promise.h"
+#include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
 #include <utility>
@@ -38,6 +39,8 @@ class QuickReplyManager final : public Actor {
   static Status check_shortcut_name(CSlice name);
 
   void get_quick_reply_shortcuts(Promise<Unit> &&promise);
+
+  void set_quick_reply_shortcut_name(QuickReplyShortcutId shortcut_id, const string &name, Promise<Unit> &&promise);
 
   void delete_quick_reply_shortcut(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise);
 
@@ -183,6 +186,8 @@ class QuickReplyManager final : public Actor {
 
   void on_load_quick_reply_fail(Status error);
 
+  void on_set_quick_reply_shortcut_name(QuickReplyShortcutId shortcut_id, const string &name, Promise<Unit> &&promise);
+
   int64 get_shortcuts_hash() const;
 
   void on_reload_quick_reply_messages(QuickReplyShortcutId shortcut_id,
@@ -249,6 +254,9 @@ class QuickReplyManager final : public Actor {
       const Shortcut *s, const char *source) const;
 
   void send_update_quick_reply_shortcut_messages(const Shortcut *s, const char *source);
+
+  void set_quick_reply_shortcut_name_on_server(QuickReplyShortcutId shortcut_id, const string &name,
+                                               Promise<Unit> &&promise);
 
   void delete_quick_reply_shortcut_from_server(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise);
 
