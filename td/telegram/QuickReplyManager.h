@@ -89,7 +89,6 @@ class QuickReplyManager final : public Actor {
 
     bool is_failed_to_send = false;
     bool disable_notification = false;
-    bool noforwards = false;
     bool invert_media = false;
 
     bool from_background = false;           // for send_message
