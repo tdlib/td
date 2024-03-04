@@ -138,6 +138,7 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("group_emoji_status_level_min", is_test_dc ? 2 : 8);
   set_default_integer_option("group_wallpaper_level_min", is_test_dc ? 3 : 9);
   set_default_integer_option("group_custom_wallpaper_level_min", is_test_dc ? 4 : 10);
+  set_default_integer_option("quick_reply_shortcut_count_max", is_test_dc ? 10 : 100);
 
   if (options.isset("my_phone_number") || !options.isset("my_id")) {
     update_premium_options();
