@@ -3861,6 +3861,12 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::forwardMessages>(
           chat_id, message_thread_id_, from_chat_id, as_message_ids(message_ids), default_message_send_options(),
           op[0] == 'c', rand_bool()));
+    } else if (op == "sqrsm") {
+      ChatId chat_id;
+      ShortcutId shortcut_id;
+      get_args(args, chat_id, shortcut_id);
+      send_request(
+          td_api::make_object<td_api::sendQuickReplyShortcutMessages>(chat_id, shortcut_id, Random::fast(-1000, -1)));
     } else if (op == "resend") {
       ChatId chat_id;
       string message_ids;

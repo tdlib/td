@@ -6008,6 +6008,16 @@ void Td::on_request(uint64 id, td_api::forwardMessages &request) {
   }
 }
 
+void Td::on_request(uint64 id, const td_api::sendQuickReplyShortcutMessages &request) {
+  auto r_messages = messages_manager_->send_quick_reply_shortcut_messages(
+      DialogId(request.chat_id_), QuickReplyShortcutId(request.shortcut_id_), request.sending_id_);
+  if (r_messages.is_error()) {
+    send_closure(actor_id(this), &Td::send_error, id, r_messages.move_as_error());
+  } else {
+    send_closure(actor_id(this), &Td::send_result, id, r_messages.move_as_ok());
+  }
+}
+
 void Td::on_request(uint64 id, td_api::resendMessages &request) {
   DialogId dialog_id(request.chat_id_);
   auto r_message_ids = messages_manager_->resend_messages(dialog_id, MessageId::get_message_ids(request.message_ids_),

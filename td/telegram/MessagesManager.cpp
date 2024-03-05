@@ -66,6 +66,7 @@
 #include "td/telegram/Photo.h"
 #include "td/telegram/PollId.h"
 #include "td/telegram/PublicDialogType.h"
+#include "td/telegram/QuickReplyManager.h"
 #include "td/telegram/ReactionManager.h"
 #include "td/telegram/RepliedMessageInfo.hpp"
 #include "td/telegram/ReplyMarkup.h"
@@ -3497,6 +3498,90 @@ class ForwardMessagesQuery final : public Td::ResultHandler {
       td_->messages_manager_->get_message_from_server({from_dialog_id_, message_id_}, Promise<Unit>(),
                                                       "ForwardMessagesQuery");
     }
+    for (auto &random_id : random_ids_) {
+      td_->messages_manager_->on_send_message_fail(random_id, status.clone());
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
+class SendQuickReplyMessagesQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  vector<int64> random_ids_;
+  DialogId dialog_id_;
+
+ public:
+  explicit SendQuickReplyMessagesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, QuickReplyShortcutId shortcut_id, const vector<MessageId> &message_ids,
+            vector<int64> &&random_ids) {
+    random_ids_ = std::move(random_ids);
+    dialog_id_ = dialog_id;
+
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Write);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Have no write access to the chat"));
+    }
+
+    auto query = G()->net_query_creator().create(
+        telegram_api::messages_sendQuickReplyMessages(std::move(input_peer), shortcut_id.get()),
+        {{dialog_id, MessageContentType::Text}, {dialog_id, MessageContentType::Photo}});
+    if (td_->option_manager_->get_option_boolean("use_quick_ack")) {
+      query->quick_ack_promise_ = PromiseCreator::lambda([random_ids = random_ids_](Result<Unit> result) {
+        if (result.is_ok()) {
+          for (auto random_id : random_ids) {
+            send_closure(G()->messages_manager(), &MessagesManager::on_send_message_get_quick_ack, random_id);
+          }
+        }
+      });
+    }
+    send_query(std::move(query));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_sendQuickReplyMessages>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SendQuickReplyMessagesQuery for " << format::as_array(random_ids_) << ": "
+              << to_string(ptr);
+    auto sent_messages = UpdatesManager::get_new_messages(ptr.get());
+    bool is_result_wrong = false;
+    if (random_ids_.size() != sent_messages.size()) {
+      is_result_wrong = true;
+    }
+    for (auto &sent_message : sent_messages) {
+      if (DialogId::get_message_dialog_id(sent_message.first) != dialog_id_) {
+        is_result_wrong = true;
+      }
+    }
+    if (is_result_wrong) {
+      LOG(ERROR) << "Receive wrong result for sending quick reply messages with random_ids "
+                 << format::as_array(random_ids_) << " to " << dialog_id_ << ": " << oneline(to_string(ptr));
+      td_->updates_manager_->schedule_get_difference("Wrong sendQuickReplyMessages result");
+      for (auto &random_id : random_ids_) {
+        td_->messages_manager_->on_send_message_fail(random_id, Status::Error(500, "Receive invalid response"));
+      }
+    } else {
+      // generate fake updates
+      for (size_t i = 0; i < random_ids_.size(); i++) {
+        td_->messages_manager_->on_update_message_id(
+            random_ids_[i], MessageId::get_message_id(sent_messages[i].first, false), "SendQuickReplyMessagesQuery");
+      }
+    }
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    LOG(INFO) << "Receive error for SendQuickReplyMessagesQuery: " << status;
+    if (G()->close_flag() && G()->use_message_database()) {
+      // do not send error, messages will be re-sent after restart
+      return;
+    }
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "SendQuickReplyMessagesQuery");
     for (auto &random_id : random_ids_) {
       td_->messages_manager_->on_send_message_fail(random_id, status.clone());
     }
@@ -26554,6 +26639,106 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
   }
 
   return get_messages_object(-1, std::move(result), false);
+}
+
+Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_quick_reply_shortcut_messages(
+    DialogId dialog_id, QuickReplyShortcutId shortcut_id, int32 sending_id) {
+  TRY_RESULT(message_contents, td_->quick_reply_manager_->get_quick_reply_message_contents(dialog_id, shortcut_id));
+
+  if (message_contents.empty()) {
+    return td_api::object_ptr<td_api::messages>();
+  }
+
+  std::unordered_map<int64, std::pair<int64, int32>, Hash<int64>> new_media_album_ids;
+  for (auto &content : message_contents) {
+    if (content.media_album_id_ == 0) {
+      continue;
+    }
+    auto &new_media_album_id = new_media_album_ids[content.media_album_id_];
+    new_media_album_id.second++;
+    if (new_media_album_id.second == 2) {  // have at least 2 messages in the new album
+      CHECK(new_media_album_id.first == 0);
+      new_media_album_id.first = generate_new_media_album_id();
+    }
+    if (new_media_album_id.second == MAX_GROUPED_MESSAGES + 1) {
+      CHECK(new_media_album_id.first != 0);
+      new_media_album_id.first = 0;  // just in case
+    }
+  }
+  for (auto &content : message_contents) {
+    content.media_album_id_ = new_media_album_ids[content.media_album_id_].first;
+  }
+
+  auto *d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+
+  MessageSendOptions message_send_options(false, false, false, false, false, 0, sending_id);
+  FlatHashMap<MessageId, MessageId, MessageIdHash> original_message_id_to_new_message_id;
+  vector<td_api::object_ptr<td_api::message>> result;
+  vector<Message *> sent_messages;
+  vector<MessageId> sent_message_ids;
+  bool need_update_dialog_pos = false;
+  for (auto &content : message_contents) {
+    MessageInputReplyTo input_reply_to;
+    if (content.original_reply_to_message_id_.is_valid()) {
+      auto it = original_message_id_to_new_message_id.find(content.original_reply_to_message_id_);
+      if (it != original_message_id_to_new_message_id.end()) {
+        input_reply_to = MessageInputReplyTo{it->second, DialogId(), FormattedText(), 0};
+      }
+    }
+
+    Message *m = get_message_to_send(d, MessageId(), std::move(input_reply_to), message_send_options,
+                                     std::move(content.content_), content.invert_media_, &need_update_dialog_pos, false,
+                                     nullptr, DialogId(), true);
+    m->disable_web_page_preview = content.disable_web_page_preview_;
+    m->media_album_id = content.media_album_id_;
+    original_message_id_to_new_message_id.emplace(content.original_message_id_, m->message_id);
+
+    if (!td_->auth_manager_->is_bot()) {
+      send_update_new_message(d, m);
+    }
+    sent_messages.push_back(m);
+    sent_message_ids.push_back(m->message_id);
+
+    result.push_back(get_message_object(dialog_id, m, "send_quick_reply_shortcut_messages"));
+  }
+
+  do_send_quick_reply_shortcut_messages(dialog_id, shortcut_id, sent_messages, sent_message_ids, 0);
+
+  if (need_update_dialog_pos) {
+    send_update_chat_last_message(d, "send_quick_reply_shortcut_messages");
+  }
+
+  return get_messages_object(-1, std::move(result), false);
+}
+
+void MessagesManager::do_send_quick_reply_shortcut_messages(DialogId dialog_id, QuickReplyShortcutId shortcut_id,
+                                                            const vector<Message *> &messages,
+                                                            const vector<MessageId> &message_ids, uint64 log_event_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  CHECK(messages.size() == message_ids.size());
+  if (messages.empty()) {
+    return;
+  }
+
+  if (log_event_id == 0 && G()->use_message_database()) {
+    // log_event_id = save_send_quick_reply_shortcut_messages_log_event(dialog_id, shprtcut_id, messages, message_ids);
+  }
+
+  vector<int64> random_ids =
+      transform(messages, [this, dialog_id](const Message *m) { return begin_send_message(dialog_id, m); });
+  send_closure_later(actor_id(this), &MessagesManager::send_send_quick_reply_messages_query, dialog_id, shortcut_id,
+                     message_ids, std::move(random_ids), get_erase_log_event_promise(log_event_id));
+}
+
+void MessagesManager::send_send_quick_reply_messages_query(DialogId dialog_id, QuickReplyShortcutId shortcut_id,
+                                                           vector<MessageId> message_ids, vector<int64> random_ids,
+                                                           Promise<Unit> promise) {
+  td_->create_handler<SendQuickReplyMessagesQuery>(std::move(promise))
+      ->send(dialog_id, shortcut_id, std::move(message_ids), std::move(random_ids));
 }
 
 Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, vector<MessageId> message_ids,
