@@ -1110,8 +1110,8 @@ void QuickReplyManager::delete_quick_reply_messages(Shortcut *s, const vector<Me
     send_update_quick_reply_shortcuts();
     save_quick_reply_shortcuts();
   } else if (is_changed) {
-    send_update_quick_reply_shortcut_messages(s, source);
     send_update_quick_reply_shortcut(s, source);
+    send_update_quick_reply_shortcut_messages(s, source);
     save_quick_reply_shortcuts();
   }
 }
@@ -1244,7 +1244,6 @@ void QuickReplyManager::on_reload_quick_reply_messages(
       shortcut->server_total_count_ = quick_reply_messages.size();
       shortcut->messages_ = std::move(quick_reply_messages);
 
-      auto is_object_changed = false;
       if (old_shortcut == nullptr) {
         CHECK(have_all_shortcut_messages(shortcut.get()));
         send_update_quick_reply_shortcut(shortcut.get(), "on_reload_quick_reply_messages 1");
@@ -1254,16 +1253,19 @@ void QuickReplyManager::on_reload_quick_reply_messages(
         }
         shortcuts_.shortcuts_.push_back(std::move(shortcut));
       } else {
+        auto is_object_changed = false;
         if (update_shortcut_from(shortcut.get(), old_shortcut, false, &is_object_changed)) {
           CHECK(have_all_shortcut_messages(shortcut.get()));
-          send_update_quick_reply_shortcut_messages(shortcut.get(), "on_reload_quick_reply_messages 3");
+          if (is_object_changed) {
+            send_update_quick_reply_shortcut(shortcut.get(), "on_reload_quick_reply_messages 3");
+          }
+          send_update_quick_reply_shortcut_messages(shortcut.get(), "on_reload_quick_reply_messages 4");
+        } else if (is_object_changed) {
+          send_update_quick_reply_shortcut(shortcut.get(), "on_reload_quick_reply_messages 5");
         }
         *it = std::move(shortcut);
       }
 
-      if (is_object_changed) {
-        send_update_quick_reply_shortcut(it->get(), "on_reload_quick_reply_messages 4");
-      }
       save_quick_reply_shortcuts();
       break;
     }
