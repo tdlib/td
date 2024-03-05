@@ -767,10 +767,10 @@ void QuickReplyManager::on_reload_quick_reply_shortcuts(
           change_message_files({shortcut_id, first_message_id}, shortcut->messages_[0].get(), {});
         } else {
           if (update_shortcut_from(shortcut.get(), old_shortcut, true, &is_object_changed)) {
-            if (is_object_changed) {
-              changed_shortcut_ids.push_back(shortcut_id);
-            }
             changed_message_shortcut_ids.push_back(shortcut_id);
+          }
+          if (is_object_changed) {
+            changed_shortcut_ids.push_back(shortcut_id);
           }
           old_shortcut_ids.erase(shortcut_id);
         }
