@@ -344,8 +344,20 @@ QuickReplyManager::Shortcut::~Shortcut() = default;
 
 template <class StorerT>
 void QuickReplyManager::Shortcut::store(StorerT &storer) const {
-  bool has_server_total_count = server_total_count_ != 0;
-  bool has_local_total_count = local_total_count_ != 0;
+  int32 server_total_count = 0;
+  int32 local_total_count = 0;
+  for (const auto &message : messages_) {
+    if (message->message_id.is_server()) {
+      server_total_count++;
+    } else if (message->message_id.is_local()) {
+      local_total_count++;
+    }
+  }
+  CHECK(server_total_count <= server_total_count_);
+  CHECK(local_total_count <= local_total_count_);
+
+  bool has_server_total_count = server_total_count != 0;
+  bool has_local_total_count = local_total_count != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_server_total_count);
   STORE_FLAG(has_local_total_count);
@@ -353,12 +365,16 @@ void QuickReplyManager::Shortcut::store(StorerT &storer) const {
   td::store(name_, storer);
   td::store(shortcut_id_, storer);
   if (has_server_total_count) {
-    td::store(server_total_count_, storer);
+    td::store(server_total_count, storer);
   }
   if (has_local_total_count) {
-    td::store(local_total_count_, storer);
+    td::store(local_total_count, storer);
   }
-  td::store(messages_, storer);
+  for (const auto &message : messages_) {
+    if (message->message_id.is_server() || message->message_id.is_local()) {
+      td::store(message, storer);
+    }
+  }
 }
 
 template <class ParserT>
@@ -377,7 +393,17 @@ void QuickReplyManager::Shortcut::parse(ParserT &parser) {
   if (has_local_total_count) {
     td::parse(local_total_count_, parser);
   }
-  td::parse(messages_, parser);
+  if (server_total_count_ < 0 || local_total_count_ < 0) {
+    return parser.set_error("Wrong message count");
+  }
+  auto size = static_cast<size_t>(server_total_count_) + static_cast<size_t>(local_total_count_);
+  if (parser.get_left_len() < size) {
+    return parser.set_error("Wrong message count");
+  }
+  messages_ = vector<unique_ptr<QuickReplyMessage>>(size);
+  for (auto &message : messages_) {
+    td::parse(message, parser);
+  }
 }
 
 template <class StorerT>
