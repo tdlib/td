@@ -1438,15 +1438,6 @@ vector<unique_ptr<QuickReplyManager::Shortcut>>::iterator QuickReplyManager::get
   return shortcuts_.shortcuts_.end();
 }
 
-vector<unique_ptr<QuickReplyManager::Shortcut>>::iterator QuickReplyManager::get_shortcut_it(const string &name) {
-  for (auto it = shortcuts_.shortcuts_.begin(); it != shortcuts_.shortcuts_.end(); ++it) {
-    if ((*it)->name_ == name) {
-      return it;
-    }
-  }
-  return shortcuts_.shortcuts_.end();
-}
-
 vector<unique_ptr<QuickReplyManager::QuickReplyMessage>>::iterator QuickReplyManager::get_message_it(
     Shortcut *s, MessageId message_id) {
   CHECK(s != nullptr);
