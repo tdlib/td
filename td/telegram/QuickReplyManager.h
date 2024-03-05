@@ -188,8 +188,6 @@ class QuickReplyManager final : public Actor {
 
   static bool have_all_shortcut_messages(const Shortcut *s);
 
-  void load_quick_reply_shortcuts(Promise<Unit> &&promise);
-
   void on_reload_quick_reply_shortcuts(
       Result<telegram_api::object_ptr<telegram_api::messages_QuickReplies>> r_shortcuts);
 

@@ -663,10 +663,6 @@ void QuickReplyManager::get_quick_reply_shortcuts(Promise<Unit> &&promise) {
     return promise.set_value(Unit());
   }
 
-  load_quick_reply_shortcuts(std::move(promise));
-}
-
-void QuickReplyManager::load_quick_reply_shortcuts(Promise<Unit> &&promise) {
   shortcuts_.load_queries_.push_back(std::move(promise));
   if (shortcuts_.load_queries_.size() != 1) {
     return;
