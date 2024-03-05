@@ -675,8 +675,8 @@ void DialogFilterManager::init() {
           }
           if (server_are_tags_enabled_ || are_tags_enabled_) {
             LOG(INFO) << "Ignore enabled tags " << server_are_tags_enabled_ << '/' << are_tags_enabled_;
-            server_are_tags_enabled_ = 0;
-            are_tags_enabled_ = 0;
+            server_are_tags_enabled_ = false;
+            are_tags_enabled_ = false;
           }
         }
 
@@ -1852,7 +1852,7 @@ void DialogFilterManager::toggle_dialog_filter_tags(bool are_tags_enabled, Promi
   }
 
   if (are_tags_enabled_ != are_tags_enabled) {
-    are_tags_enabled = are_tags_enabled;
+    are_tags_enabled_ = are_tags_enabled;
 
     save_dialog_filters();
     send_update_chat_folders();
