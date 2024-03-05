@@ -22,6 +22,7 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/RepliedMessageInfo.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/Version.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -1604,6 +1605,13 @@ void QuickReplyManager::load_quick_reply_shortcuts() {
   for (const auto &shortcut : shortcuts_.shortcuts_) {
     for (const auto &message : shortcut->messages_) {
       change_message_files({shortcut->shortcut_id_, message->message_id}, message.get(), {});
+
+      if (message->message_id.is_server()) {
+        if (need_reget_message_content(message->content.get()) ||
+            (message->legacy_layer != 0 && message->legacy_layer < MTPROTO_LAYER)) {
+          reload_quick_reply_message(shortcut->shortcut_id_, message->message_id, Promise<Unit>());
+        }
+      }
     }
     send_update_quick_reply_shortcut(shortcut.get(), "load_quick_reply_shortcuts");
     send_update_quick_reply_shortcut_messages(shortcut.get(), "load_quick_reply_shortcuts");
