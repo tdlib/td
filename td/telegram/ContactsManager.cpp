@@ -4751,6 +4751,21 @@ void ContactsManager::apply_pending_user_photo(User *u, UserId user_id) {
   }
 }
 
+bool ContactsManager::is_user_received_from_server(UserId user_id) const {
+  const auto *u = get_user(user_id);
+  return u != nullptr && u->is_received_from_server;
+}
+
+bool ContactsManager::is_chat_received_from_server(ChatId chat_id) const {
+  const auto *c = get_chat(chat_id);
+  return c != nullptr && c->is_received_from_server;
+}
+
+bool ContactsManager::is_channel_received_from_server(ChannelId channel_id) const {
+  const auto *c = get_channel(channel_id);
+  return c != nullptr && c->is_received_from_server;
+}
+
 const DialogPhoto *ContactsManager::get_user_dialog_photo(UserId user_id) {
   auto u = get_user(user_id);
   if (u == nullptr) {
@@ -15113,25 +15128,6 @@ const ContactsManager::User *ContactsManager::get_user(UserId user_id) const {
 
 ContactsManager::User *ContactsManager::get_user(UserId user_id) {
   return users_.get_pointer(user_id);
-}
-
-bool ContactsManager::is_dialog_info_received_from_server(DialogId dialog_id) const {
-  switch (dialog_id.get_type()) {
-    case DialogType::User: {
-      auto u = get_user(dialog_id.get_user_id());
-      return u != nullptr && u->is_received_from_server;
-    }
-    case DialogType::Chat: {
-      auto c = get_chat(dialog_id.get_chat_id());
-      return c != nullptr && c->is_received_from_server;
-    }
-    case DialogType::Channel: {
-      auto c = get_channel(dialog_id.get_channel_id());
-      return c != nullptr && c->is_received_from_server;
-    }
-    default:
-      return false;
-  }
 }
 
 void ContactsManager::send_get_me_query(Td *td, Promise<Unit> &&promise) {

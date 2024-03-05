@@ -110,6 +110,10 @@ class ContactsManager final : public Actor {
                                                                            AccessRights access_rights) const;
   bool have_input_encrypted_peer(SecretChatId secret_chat_id, AccessRights access_rights) const;
 
+  bool is_user_received_from_server(UserId user_id) const;
+  bool is_chat_received_from_server(ChatId chat_id) const;
+  bool is_channel_received_from_server(ChannelId channel_id) const;
+
   const DialogPhoto *get_user_dialog_photo(UserId user_id);
   const DialogPhoto *get_chat_dialog_photo(ChatId chat_id) const;
   const DialogPhoto *get_channel_dialog_photo(ChannelId channel_id) const;
@@ -574,8 +578,6 @@ class ContactsManager final : public Actor {
   bool have_user(UserId user_id) const;
   bool have_min_user(UserId user_id) const;
   bool have_user_force(UserId user_id, const char *source);
-
-  bool is_dialog_info_received_from_server(DialogId dialog_id) const;
 
   static void send_get_me_query(Td *td, Promise<Unit> &&promise);
   UserId get_me(Promise<Unit> &&promise);

@@ -682,6 +682,19 @@ bool DialogManager::have_dialog_info(DialogId dialog_id) const {
   }
 }
 
+bool DialogManager::is_dialog_info_received_from_server(DialogId dialog_id) const {
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return td_->contacts_manager_->is_user_received_from_server(dialog_id.get_user_id());
+    case DialogType::Chat:
+      return td_->contacts_manager_->is_chat_received_from_server(dialog_id.get_chat_id());
+    case DialogType::Channel:
+      return td_->contacts_manager_->is_channel_received_from_server(dialog_id.get_channel_id());
+    default:
+      return false;
+  }
+}
+
 bool DialogManager::have_dialog_info_force(DialogId dialog_id, const char *source) const {
   switch (dialog_id.get_type()) {
     case DialogType::User: {

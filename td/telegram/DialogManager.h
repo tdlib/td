@@ -85,6 +85,8 @@ class DialogManager final : public Actor {
 
   void reload_dialog_info(DialogId dialog_id, Promise<Unit> &&promise);
 
+  bool is_dialog_info_received_from_server(DialogId dialog_id) const;
+
   void get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&promise, const char *source);
 
   void reload_dialog_info_full(DialogId dialog_id, const char *source);
