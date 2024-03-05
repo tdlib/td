@@ -1753,18 +1753,15 @@ void QuickReplyManager::get_current_state(vector<td_api::object_ptr<td_api::Upda
     return;
   }
 
-  for (auto &shortcut : shortcuts_.shortcuts_) {
-    updates.push_back(get_update_quick_reply_shortcut_object(shortcut.get(), "get_current_state"));
-  }
-
   if (shortcuts_.are_inited_) {
-    updates.push_back(get_update_quick_reply_shortcuts_object());
-  }
-
-  for (auto &shortcut : shortcuts_.shortcuts_) {
-    if (have_all_shortcut_messages(shortcut.get())) {
-      updates.push_back(get_update_quick_reply_shortcut_messages_object(shortcut.get(), "get_current_state"));
+    for (auto &shortcut : shortcuts_.shortcuts_) {
+      updates.push_back(get_update_quick_reply_shortcut_object(shortcut.get(), "get_current_state"));
+      if (have_all_shortcut_messages(shortcut.get())) {
+        updates.push_back(get_update_quick_reply_shortcut_messages_object(shortcut.get(), "get_current_state"));
+      }
     }
+
+    updates.push_back(get_update_quick_reply_shortcuts_object());
   }
 }
 
