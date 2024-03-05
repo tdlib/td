@@ -243,7 +243,8 @@ class QuickReplyManager final : public Actor {
   static vector<QuickReplyMessageUniqueId> get_server_quick_reply_unique_ids(
       const vector<unique_ptr<QuickReplyMessage>> &messages);
 
-  bool update_shortcut_from(Shortcut *new_shortcut, Shortcut *old_shortcut, bool is_partial, bool *is_object_changed);
+  void update_shortcut_from(Shortcut *new_shortcut, Shortcut *old_shortcut, bool is_partial, bool *is_shortcut_changed,
+                            bool *are_messages_changed);
 
   td_api::object_ptr<td_api::updateQuickReplyShortcut> get_update_quick_reply_shortcut_object(const Shortcut *s,
                                                                                               const char *source) const;

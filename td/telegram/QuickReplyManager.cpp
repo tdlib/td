@@ -764,16 +764,18 @@ void QuickReplyManager::on_reload_quick_reply_shortcuts(
         shortcut->messages_.push_back(std::move(message));
 
         auto old_shortcut = get_shortcut(shortcut_id);
-        auto is_object_changed = false;
         if (old_shortcut == nullptr) {
           changed_shortcut_ids.push_back(shortcut_id);
           changed_message_shortcut_ids.push_back(shortcut_id);
           change_message_files({shortcut_id, first_message_id}, shortcut->messages_[0].get(), {});
         } else {
-          if (update_shortcut_from(shortcut.get(), old_shortcut, true, &is_object_changed)) {
+          bool is_shortcut_changed = false;
+          bool are_messages_changed = false;
+          update_shortcut_from(shortcut.get(), old_shortcut, true, &is_shortcut_changed, &are_messages_changed);
+          if (are_messages_changed) {
             changed_message_shortcut_ids.push_back(shortcut_id);
           }
-          if (is_object_changed) {
+          if (is_shortcut_changed) {
             changed_shortcut_ids.push_back(shortcut_id);
           }
           old_shortcut_ids.erase(shortcut_id);
@@ -1253,15 +1255,15 @@ void QuickReplyManager::on_reload_quick_reply_messages(
         }
         shortcuts_.shortcuts_.push_back(std::move(shortcut));
       } else {
-        auto is_object_changed = false;
-        if (update_shortcut_from(shortcut.get(), old_shortcut, false, &is_object_changed)) {
-          CHECK(have_all_shortcut_messages(shortcut.get()));
-          if (is_object_changed) {
-            send_update_quick_reply_shortcut(shortcut.get(), "on_reload_quick_reply_messages 3");
-          }
+        bool is_shortcut_changed = false;
+        bool are_messages_changed = false;
+        update_shortcut_from(shortcut.get(), old_shortcut, false, &is_shortcut_changed, &are_messages_changed);
+        CHECK(have_all_shortcut_messages(shortcut.get()));
+        if (is_shortcut_changed) {
+          send_update_quick_reply_shortcut(shortcut.get(), "on_reload_quick_reply_messages 3");
+        }
+        if (are_messages_changed) {
           send_update_quick_reply_shortcut_messages(shortcut.get(), "on_reload_quick_reply_messages 4");
-        } else if (is_object_changed) {
-          send_update_quick_reply_shortcut(shortcut.get(), "on_reload_quick_reply_messages 5");
         }
         *it = std::move(shortcut);
       }
@@ -1510,8 +1512,8 @@ vector<QuickReplyManager::QuickReplyMessageUniqueId> QuickReplyManager::get_serv
   return message_ids;
 }
 
-bool QuickReplyManager::update_shortcut_from(Shortcut *new_shortcut, Shortcut *old_shortcut, bool is_partial,
-                                             bool *is_object_changed) {
+void QuickReplyManager::update_shortcut_from(Shortcut *new_shortcut, Shortcut *old_shortcut, bool is_partial,
+                                             bool *is_shortcut_changed, bool *are_messages_changed) {
   CHECK(old_shortcut != nullptr);
   CHECK(new_shortcut != nullptr);
   CHECK(old_shortcut->shortcut_id_ == new_shortcut->shortcut_id_);
@@ -1519,7 +1521,6 @@ bool QuickReplyManager::update_shortcut_from(Shortcut *new_shortcut, Shortcut *o
   CHECK(!new_shortcut->messages_.empty());
   auto old_unique_id = get_quick_reply_unique_id(old_shortcut->messages_[0].get());
   auto old_message_count = get_shortcut_message_count(old_shortcut);
-  bool is_changed = false;
   if (is_partial) {
     // only the first server message is known
     // delete all definitely deleted server messages and insert the new message in the correct place
@@ -1541,7 +1542,7 @@ bool QuickReplyManager::update_shortcut_from(Shortcut *new_shortcut, Shortcut *o
       update_quick_reply_message(old_shortcut->shortcut_id_, *it, std::move(new_shortcut->messages_[0]));
     }
     new_shortcut->messages_ = std::move(old_shortcut->messages_);
-    is_changed = (old_message_ids != get_quick_reply_unique_ids(new_shortcut->messages_));
+    *are_messages_changed = (old_message_ids != get_quick_reply_unique_ids(new_shortcut->messages_));
 
     int32 server_total_count = 0;
     for (const auto &message : new_shortcut->messages_) {
@@ -1557,9 +1558,10 @@ bool QuickReplyManager::update_shortcut_from(Shortcut *new_shortcut, Shortcut *o
     auto new_server_message_ids = get_server_quick_reply_unique_ids(new_shortcut->messages_);
     CHECK(static_cast<size_t>(new_shortcut->server_total_count_) == new_server_message_ids.size());
     if (old_server_message_ids == new_server_message_ids) {
+      *are_messages_changed = false;
       new_shortcut->messages_ = std::move(old_shortcut->messages_);
     } else {
-      is_changed = true;
+      *are_messages_changed = true;
       for (auto &old_message : old_shortcut->messages_) {
         CHECK(old_message != nullptr);
         if (!old_message->message_id.is_server()) {
@@ -1583,10 +1585,9 @@ bool QuickReplyManager::update_shortcut_from(Shortcut *new_shortcut, Shortcut *o
     }
   }
   new_shortcut->local_total_count_ = old_shortcut->local_total_count_;
-  *is_object_changed = old_unique_id != get_quick_reply_unique_id(new_shortcut->messages_[0].get()) ||
-                       new_shortcut->name_ != old_shortcut->name_ ||
-                       old_message_count != get_shortcut_message_count(new_shortcut);
-  return is_changed;
+  *is_shortcut_changed = old_unique_id != get_quick_reply_unique_id(new_shortcut->messages_[0].get()) ||
+                         new_shortcut->name_ != old_shortcut->name_ ||
+                         old_message_count != get_shortcut_message_count(new_shortcut);
 }
 
 string QuickReplyManager::get_quick_reply_shortcuts_database_key() {
