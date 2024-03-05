@@ -673,6 +673,10 @@ void QuickReplyManager::get_quick_reply_shortcuts(Promise<Unit> &&promise) {
 }
 
 void QuickReplyManager::reload_quick_reply_shortcuts() {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   load_quick_reply_shortcuts();
   auto promise = PromiseCreator::lambda(
       [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::messages_QuickReplies>> r_shortcuts) {
@@ -1005,6 +1009,10 @@ void QuickReplyManager::reorder_quick_reply_shortcuts_on_server(vector<QuickRepl
 }
 
 void QuickReplyManager::update_quick_reply_message(telegram_api::object_ptr<telegram_api::Message> &&message_ptr) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   load_quick_reply_shortcuts();
   auto message = create_message(std::move(message_ptr), "update_quick_reply_message");
   if (message == nullptr) {
@@ -1057,6 +1065,10 @@ void QuickReplyManager::update_quick_reply_message(QuickReplyShortcutId shortcut
 
 void QuickReplyManager::delete_quick_reply_messages_from_updates(QuickReplyShortcutId shortcut_id,
                                                                  const vector<MessageId> &message_ids) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   load_quick_reply_shortcuts();
   auto s = get_shortcut(shortcut_id);
   if (s == nullptr) {
@@ -1154,6 +1166,10 @@ void QuickReplyManager::get_quick_reply_shortcut_messages(QuickReplyShortcutId s
 }
 
 void QuickReplyManager::reload_quick_reply_messages(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise) {
+  if (td_->auth_manager_->is_bot()) {
+    return promise.set_error(Status::Error(400, "Not supported by bots"));
+  }
+
   load_quick_reply_shortcuts();
   CHECK(shortcut_id.is_valid());
   if (!shortcut_id.is_server()) {
@@ -1279,6 +1295,10 @@ int64 QuickReplyManager::get_quick_reply_messages_hash(const Shortcut *s) {
 
 void QuickReplyManager::reload_quick_reply_message(QuickReplyShortcutId shortcut_id, MessageId message_id,
                                                    Promise<Unit> &&promise) {
+  if (td_->auth_manager_->is_bot()) {
+    return promise.set_error(Status::Error(400, "Not supported by bots"));
+  }
+
   load_quick_reply_shortcuts();
   auto s = get_shortcut(shortcut_id);
   if (s == nullptr) {
@@ -1578,6 +1598,7 @@ void QuickReplyManager::save_quick_reply_shortcuts() {
 }
 
 void QuickReplyManager::load_quick_reply_shortcuts() {
+  CHECK(!td_->auth_manager_->is_bot());
   if (shortcuts_.are_loaded_from_database_) {
     return;
   }
