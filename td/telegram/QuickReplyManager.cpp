@@ -538,7 +538,8 @@ unique_ptr<QuickReplyManager::QuickReplyMessage> QuickReplyManager::create_messa
       }
 
       auto content_type = content->get_type();
-      if (is_expired_message_content(content_type)) {
+      if (is_service_message_content(content_type) || content_type == MessageContentType::LiveLocation ||
+          is_expired_message_content(content_type)) {
         LOG(ERROR) << "Receive " << content_type << " from " << source;
         break;
       }
