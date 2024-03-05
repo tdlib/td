@@ -149,6 +149,7 @@ class QuickReplyManager final : public Actor {
   struct Shortcuts {
     vector<unique_ptr<Shortcut>> shortcuts_;
     bool are_inited_ = false;
+    bool are_loaded_from_database_ = false;
 
     vector<Promise<Unit>> load_queries_;
 
@@ -280,6 +281,8 @@ class QuickReplyManager final : public Actor {
   string get_quick_reply_shortcuts_database_key();
 
   void save_quick_reply_shortcuts();
+
+  void load_quick_reply_shortcuts();
 
   vector<FileId> get_message_file_ids(const QuickReplyMessage *m) const;
 

@@ -658,6 +658,7 @@ td_api::object_ptr<td_api::quickReplyShortcut> QuickReplyManager::get_quick_repl
 }
 
 void QuickReplyManager::get_quick_reply_shortcuts(Promise<Unit> &&promise) {
+  load_quick_reply_shortcuts();
   if (shortcuts_.are_inited_) {
     return promise.set_value(Unit());
   }
@@ -1575,6 +1576,46 @@ string QuickReplyManager::get_quick_reply_shortcuts_database_key() {
 void QuickReplyManager::save_quick_reply_shortcuts() {
   G()->td_db()->get_binlog_pmc()->set(get_quick_reply_shortcuts_database_key(),
                                       log_event_store(shortcuts_).as_slice().str());
+}
+
+void QuickReplyManager::load_quick_reply_shortcuts() {
+  if (shortcuts_.are_loaded_from_database_) {
+    return;
+  }
+  shortcuts_.are_loaded_from_database_ = true;
+
+  auto shortcuts_str = G()->td_db()->get_binlog_pmc()->get(get_quick_reply_shortcuts_database_key());
+  auto status = log_event_parse(shortcuts_, shortcuts_str);
+  if (status.is_error()) {
+    LOG(ERROR) << "Can't load quick replies: " << status;
+    G()->td_db()->get_binlog_pmc()->erase(get_quick_reply_shortcuts_database_key());
+    shortcuts_.shortcuts_.clear();
+    return;
+  }
+
+  Dependencies dependencies;
+  for (const auto &shortcut : shortcuts_.shortcuts_) {
+    for (const auto &message : shortcut->messages_) {
+      add_quick_reply_message_dependencies(dependencies, message.get());
+    }
+  }
+  if (!dependencies.resolve_force(td_, "load_quick_reply_shortcuts")) {
+    shortcuts_.shortcuts_.clear();
+    return;
+  }
+
+  shortcuts_.are_inited_ = true;
+  for (const auto &shortcut : shortcuts_.shortcuts_) {
+    for (const auto &message : shortcut->messages_) {
+      change_message_files({shortcut->shortcut_id_, message->message_id}, message.get(), {});
+    }
+    send_update_quick_reply_shortcut(shortcut.get(), "load_quick_reply_shortcuts");
+    send_update_quick_reply_shortcut_messages(shortcut.get(), "load_quick_reply_shortcuts");
+  }
+
+  send_update_quick_reply_shortcuts();
+
+  reload_quick_reply_shortcuts();
 }
 
 td_api::object_ptr<td_api::updateQuickReplyShortcut> QuickReplyManager::get_update_quick_reply_shortcut_object(
