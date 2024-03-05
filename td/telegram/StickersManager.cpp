@@ -8920,7 +8920,7 @@ void StickersManager::add_recent_sticker_impl(bool is_attached, FileId sticker_i
     return promise.set_error(Status::Error(400, "Sticker not found"));
   }
   if (!sticker->set_id_.is_valid() && sticker->format_ != StickerFormat::Webp) {
-    return promise.set_error(Status::Error(400, "Stickers must be from a sticker set"));
+    return promise.set_error(Status::Error(400, "The sticker must be from a sticker set"));
   }
   if (sticker->type_ == StickerType::CustomEmoji) {
     return promise.set_error(Status::Error(400, "Custom emoji stickers can't be added to recent"));
@@ -9300,8 +9300,8 @@ void StickersManager::add_favorite_sticker_impl(FileId sticker_id, bool add_on_s
   if (sticker == nullptr) {
     return promise.set_error(Status::Error(400, "Sticker not found"));
   }
-  if (!sticker->set_id_.is_valid()) {
-    return promise.set_error(Status::Error(400, "Stickers without sticker set can't be added to favorite"));
+  if (!sticker->set_id_.is_valid() && sticker->format_ != StickerFormat::Webp) {
+    return promise.set_error(Status::Error(400, "The sticker must be from a sticker set"));
   }
   if (sticker->type_ == StickerType::CustomEmoji) {
     return promise.set_error(Status::Error(400, "Custom emoji stickers can't be added to favorite"));
