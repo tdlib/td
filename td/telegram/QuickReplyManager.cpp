@@ -672,6 +672,7 @@ void QuickReplyManager::get_quick_reply_shortcuts(Promise<Unit> &&promise) {
 }
 
 void QuickReplyManager::reload_quick_reply_shortcuts() {
+  load_quick_reply_shortcuts();
   auto promise = PromiseCreator::lambda(
       [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::messages_QuickReplies>> r_shortcuts) {
         send_closure(actor_id, &QuickReplyManager::on_reload_quick_reply_shortcuts, std::move(r_shortcuts));
@@ -887,6 +888,7 @@ int64 QuickReplyManager::get_shortcuts_hash() const {
 
 void QuickReplyManager::set_quick_reply_shortcut_name(QuickReplyShortcutId shortcut_id, const string &name,
                                                       Promise<Unit> &&promise) {
+  load_quick_reply_shortcuts();
   const auto *shortcut = get_shortcut(shortcut_id);
   if (shortcut == nullptr) {
     return promise.set_error(Status::Error(400, "Shortcut not found"));
@@ -910,7 +912,6 @@ void QuickReplyManager::set_quick_reply_shortcut_name(QuickReplyShortcutId short
 void QuickReplyManager::set_quick_reply_shortcut_name_on_server(QuickReplyShortcutId shortcut_id, const string &name,
                                                                 Promise<Unit> &&promise) {
   CHECK(shortcut_id.is_server());
-
   td_->create_handler<EditQuickReplyShortcutQuery>(std::move(promise))->send(shortcut_id, name);
 }
 
@@ -927,6 +928,7 @@ void QuickReplyManager::on_set_quick_reply_shortcut_name(QuickReplyShortcutId sh
 }
 
 void QuickReplyManager::delete_quick_reply_shortcut(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise) {
+  load_quick_reply_shortcuts();
   auto it = get_shortcut_it(shortcut_id);
   if (it == shortcuts_.shortcuts_.end()) {
     return promise.set_error(Status::Error(400, "Shortcut not found"));
@@ -953,6 +955,7 @@ void QuickReplyManager::delete_quick_reply_shortcut_from_server(QuickReplyShortc
 
 void QuickReplyManager::reorder_quick_reply_shortcuts(const vector<QuickReplyShortcutId> &shortcut_ids,
                                                       Promise<Unit> &&promise) {
+  load_quick_reply_shortcuts();
   FlatHashSet<QuickReplyShortcutId, QuickReplyShortcutIdHash> unique_shortcut_ids;
   for (const auto &shortcut_id : shortcut_ids) {
     if (get_shortcut(shortcut_id) == nullptr) {
@@ -1001,6 +1004,7 @@ void QuickReplyManager::reorder_quick_reply_shortcuts_on_server(vector<QuickRepl
 }
 
 void QuickReplyManager::update_quick_reply_message(telegram_api::object_ptr<telegram_api::Message> &&message_ptr) {
+  load_quick_reply_shortcuts();
   auto message = create_message(std::move(message_ptr), "update_quick_reply_message");
   if (message == nullptr) {
     return;
@@ -1052,6 +1056,7 @@ void QuickReplyManager::update_quick_reply_message(QuickReplyShortcutId shortcut
 
 void QuickReplyManager::delete_quick_reply_messages_from_updates(QuickReplyShortcutId shortcut_id,
                                                                  const vector<MessageId> &message_ids) {
+  load_quick_reply_shortcuts();
   auto s = get_shortcut(shortcut_id);
   if (s == nullptr) {
     return;
@@ -1101,6 +1106,7 @@ void QuickReplyManager::delete_quick_reply_messages(Shortcut *s, const vector<Me
 void QuickReplyManager::delete_quick_reply_shortcut_messages(QuickReplyShortcutId shortcut_id,
                                                              const vector<MessageId> &message_ids,
                                                              Promise<Unit> &&promise) {
+  load_quick_reply_shortcuts();
   auto s = get_shortcut(shortcut_id);
   if (s == nullptr) {
     return promise.set_error(Status::Error(400, "Shortcut not found"));
@@ -1133,6 +1139,7 @@ void QuickReplyManager::delete_quick_reply_messages_on_server(QuickReplyShortcut
 }
 
 void QuickReplyManager::get_quick_reply_shortcut_messages(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise) {
+  load_quick_reply_shortcuts();
   auto s = get_shortcut(shortcut_id);
   if (s == nullptr) {
     return promise.set_error(Status::Error(400, "Shortcut not found"));
@@ -1146,6 +1153,7 @@ void QuickReplyManager::get_quick_reply_shortcut_messages(QuickReplyShortcutId s
 }
 
 void QuickReplyManager::reload_quick_reply_messages(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise) {
+  load_quick_reply_shortcuts();
   CHECK(shortcut_id.is_valid());
   if (!shortcut_id.is_server()) {
     return promise.set_value(Unit());
@@ -1270,6 +1278,7 @@ int64 QuickReplyManager::get_quick_reply_messages_hash(const Shortcut *s) {
 
 void QuickReplyManager::reload_quick_reply_message(QuickReplyShortcutId shortcut_id, MessageId message_id,
                                                    Promise<Unit> &&promise) {
+  load_quick_reply_shortcuts();
   auto s = get_shortcut(shortcut_id);
   if (s == nullptr) {
     return promise.set_error(Status::Error(400, "Shortcut not found"));
@@ -1571,6 +1580,7 @@ string QuickReplyManager::get_quick_reply_shortcuts_database_key() {
 }
 
 void QuickReplyManager::save_quick_reply_shortcuts() {
+  CHECK(shortcuts_.are_inited_);
   G()->td_db()->get_binlog_pmc()->set(get_quick_reply_shortcuts_database_key(),
                                       log_event_store(shortcuts_).as_slice().str());
 }
@@ -1580,6 +1590,7 @@ void QuickReplyManager::load_quick_reply_shortcuts() {
     return;
   }
   shortcuts_.are_loaded_from_database_ = true;
+  CHECK(shortcuts_.load_queries_.empty());
 
   auto shortcuts_str = G()->td_db()->get_binlog_pmc()->get(get_quick_reply_shortcuts_database_key());
   auto status = log_event_parse(shortcuts_, shortcuts_str);
