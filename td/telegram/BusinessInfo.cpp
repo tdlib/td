@@ -9,6 +9,9 @@
 namespace td {
 
 td_api::object_ptr<td_api::businessInfo> BusinessInfo::get_business_info_object(Td *td) const {
+  if (is_empty()) {
+    return nullptr;
+  }
   return td_api::make_object<td_api::businessInfo>(location_.get_business_location_object(),
                                                    work_hours_.get_business_opening_hours_object(),
                                                    greeting_message_.get_business_greeting_message_settings_object(td),
