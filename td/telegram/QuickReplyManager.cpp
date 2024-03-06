@@ -926,6 +926,8 @@ void QuickReplyManager::set_quick_reply_shortcut_name(QuickReplyShortcutId short
         if (result.is_ok()) {
           send_closure(actor_id, &QuickReplyManager::on_set_quick_reply_shortcut_name, shortcut_id, name,
                        std::move(promise));
+        } else {
+          promise.set_error(result.move_as_error());
         }
       });
   set_quick_reply_shortcut_name_on_server(shortcut_id, name, std::move(query_promise));
