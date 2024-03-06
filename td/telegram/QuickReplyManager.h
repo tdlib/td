@@ -30,6 +30,7 @@ namespace td {
 
 class Dependencies;
 class MessageContent;
+struct ReplyMarkup;
 class Td;
 
 class QuickReplyManager final : public Actor {
@@ -65,6 +66,7 @@ class QuickReplyManager final : public Actor {
     unique_ptr<MessageContent> content_;
     MessageId original_message_id_;
     MessageId original_reply_to_message_id_;
+    unique_ptr<ReplyMarkup> reply_markup_;
     int64 media_album_id_;
     bool invert_media_;
     bool disable_web_page_preview_;
@@ -115,6 +117,7 @@ class QuickReplyManager final : public Actor {
     int64 media_album_id = 0;
 
     unique_ptr<MessageContent> content;
+    unique_ptr<ReplyMarkup> reply_markup;
 
     mutable uint64 send_message_log_event_id = 0;
 

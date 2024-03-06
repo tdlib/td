@@ -21,6 +21,8 @@
 #include "td/telegram/MessageSelfDestructType.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/RepliedMessageInfo.h"
+#include "td/telegram/ReplyMarkup.h"
+#include "td/telegram/ReplyMarkup.hpp"
 #include "td/telegram/Td.h"
 #include "td/telegram/Version.h"
 
@@ -223,6 +225,7 @@ void QuickReplyManager::QuickReplyMessage::store(StorerT &storer) const {
   bool has_send_error_message = !is_server && !send_error_message.empty();
   bool has_try_resend_at = !is_server && try_resend_at != 0;
   bool has_media_album_id = media_album_id != 0;
+  bool has_reply_markup = reply_markup != nullptr;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_edit_date);
   STORE_FLAG(has_random_id);
@@ -240,6 +243,7 @@ void QuickReplyManager::QuickReplyMessage::store(StorerT &storer) const {
   STORE_FLAG(has_send_error_message);
   STORE_FLAG(has_try_resend_at);
   STORE_FLAG(has_media_album_id);
+  STORE_FLAG(has_reply_markup);
   END_STORE_FLAGS();
   td::store(message_id, storer);
   td::store(shortcut_id, storer);
@@ -274,6 +278,9 @@ void QuickReplyManager::QuickReplyMessage::store(StorerT &storer) const {
     td::store(media_album_id, storer);
   }
   store_message_content(content.get(), storer);
+  if (has_reply_markup) {
+    td::store(reply_markup, storer);
+  }
 }
 
 template <class ParserT>
@@ -288,6 +295,7 @@ void QuickReplyManager::QuickReplyMessage::parse(ParserT &parser) {
   bool has_send_error_message;
   bool has_try_resend_at;
   bool has_media_album_id;
+  bool has_reply_markup;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_edit_date);
   PARSE_FLAG(has_random_id);
@@ -305,6 +313,7 @@ void QuickReplyManager::QuickReplyMessage::parse(ParserT &parser) {
   PARSE_FLAG(has_send_error_message);
   PARSE_FLAG(has_try_resend_at);
   PARSE_FLAG(has_media_album_id);
+  PARSE_FLAG(has_reply_markup);
   END_PARSE_FLAGS();
   td::parse(message_id, parser);
   td::parse(shortcut_id, parser);
@@ -339,6 +348,9 @@ void QuickReplyManager::QuickReplyMessage::parse(ParserT &parser) {
     td::parse(media_album_id, parser);
   }
   parse_message_content(content, parser);
+  if (has_reply_markup) {
+    td::parse(reply_markup, parser);
+  }
 }
 
 QuickReplyManager::Shortcut::~Shortcut() = default;
@@ -491,9 +503,8 @@ unique_ptr<QuickReplyManager::QuickReplyMessage> QuickReplyManager::create_messa
           message->fwd_from_ != nullptr || message->views_ != 0 || message->forwards_ != 0 ||
           message->replies_ != nullptr || message->reactions_ != nullptr || message->ttl_period_ != 0 ||
           !message->out_ || message->post_ || message->from_scheduled_ || message->pinned_ || message->noforwards_ ||
-          message->mentioned_ || message->media_unread_ || message->reply_markup_ != nullptr ||
-          !message->restriction_reason_.empty() || !message->post_author_.empty() ||
-          message->from_boosts_applied_ != 0) {
+          message->mentioned_ || message->media_unread_ || !message->restriction_reason_.empty() ||
+          !message->post_author_.empty() || message->from_boosts_applied_ != 0) {
         LOG(ERROR) << "Receive an invalid quick reply from " << source << ": " << to_string(message);
       }
       if (message->saved_peer_id_ != nullptr) {
@@ -555,6 +566,8 @@ unique_ptr<QuickReplyManager::QuickReplyMessage> QuickReplyManager::create_messa
       result->legacy_layer = (message->legacy_ ? MTPROTO_LAYER : 0);
       result->invert_media = message->invert_media_;
       result->content = std::move(content);
+      result->reply_markup =
+          get_reply_markup(std::move(message->reply_markup_), td_->auth_manager_->is_bot(), true, false);
 
       if (media_album_id != 0) {
         if (!is_allowed_media_group_content(content_type)) {
@@ -591,6 +604,7 @@ void QuickReplyManager::add_quick_reply_message_dependencies(Dependencies &depen
   auto is_bot = td_->auth_manager_->is_bot();
   dependencies.add(m->via_bot_user_id);
   add_message_content_dependencies(dependencies, m->content.get(), is_bot);
+  add_reply_markup_dependencies(dependencies, m->reply_markup.get());
 }
 
 bool QuickReplyManager::can_edit_quick_reply_message(const QuickReplyMessage *m) const {
@@ -639,7 +653,8 @@ td_api::object_ptr<td_api::quickReplyMessage> QuickReplyManager::get_quick_reply
   return td_api::make_object<td_api::quickReplyMessage>(
       m->message_id.get(), get_message_sending_state_object(m), can_be_edited, m->reply_to_message_id.get(),
       td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id"), m->media_album_id,
-      get_quick_reply_message_message_content_object(m));
+      get_quick_reply_message_message_content_object(m),
+      get_reply_markup_object(td_->contacts_manager_.get(), m->reply_markup));
 }
 
 int32 QuickReplyManager::get_shortcut_message_count(const Shortcut *s) {
@@ -1410,8 +1425,9 @@ Result<vector<QuickReplyManager::QuickReplyMessageContent>> QuickReplyManager::g
     auto disable_web_page_preview = message->disable_web_page_preview &&
                                     content->get_type() == MessageContentType::Text &&
                                     !has_message_content_web_page(content.get());
-    result.push_back({std::move(content), message->message_id, message->reply_to_message_id, message->media_album_id,
-                      message->invert_media, disable_web_page_preview});
+    result.push_back({std::move(content), message->message_id, message->reply_to_message_id,
+                      dup_reply_markup(message->reply_markup), message->media_album_id, message->invert_media,
+                      disable_web_page_preview});
   }
 
   return std::move(result);

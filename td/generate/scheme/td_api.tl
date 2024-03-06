@@ -3784,7 +3784,8 @@ storyInteractions total_count:int32 total_forward_count:int32 total_reaction_cou
 //@via_bot_user_id If non-zero, the user identifier of the bot through which this message was sent
 //@media_album_id Unique identifier of an album this message belongs to. Only audios, documents, photos and videos can be grouped together in albums
 //@content Content of the message
-quickReplyMessage id:int53 sending_state:MessageSendingState can_be_edited:Bool reply_to_message_id:int53 via_bot_user_id:int53 media_album_id:int64 content:MessageContent = QuickReplyMessage;
+//@reply_markup Inline keyboard reply markup for the message; may be null if none
+quickReplyMessage id:int53 sending_state:MessageSendingState can_be_edited:Bool reply_to_message_id:int53 via_bot_user_id:int53 media_album_id:int64 content:MessageContent reply_markup:ReplyMarkup = QuickReplyMessage;
 
 //@description Describes a shortcut that can be used for a quick reply
 //@id Unique shortcut identifier
