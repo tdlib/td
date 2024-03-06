@@ -167,6 +167,9 @@ class ContactsManager final : public Actor {
   bool get_user_stories_hidden(UserId user_id) const;
   bool get_channel_stories_hidden(ChannelId channel_id) const;
 
+  bool can_poll_user_active_stories(UserId user_id) const;
+  bool can_poll_channel_active_stories(ChannelId channel_id) const;
+
   string get_user_private_forward_name(UserId user_id);
 
   bool get_user_voice_messages_forbidden(UserId user_id) const;
@@ -698,10 +701,6 @@ class ContactsManager final : public Actor {
 
   void get_support_user(Promise<td_api::object_ptr<td_api::user>> &&promise);
 
-  void on_view_dialog_active_stories(vector<DialogId> dialog_ids);
-
-  void on_get_dialog_max_active_story_ids(const vector<DialogId> &dialog_ids, const vector<int32> &max_story_ids);
-
   void repair_chat_participants(ChatId chat_id);
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
@@ -767,8 +766,6 @@ class ContactsManager final : public Actor {
     bool is_photo_inited = false;
 
     bool is_repaired = false;  // whether cached value is rechecked
-
-    bool is_max_active_story_id_being_reloaded = false;
 
     bool is_name_changed = true;
     bool is_username_changed = true;
@@ -980,8 +977,6 @@ class ContactsManager final : public Actor {
     bool is_verified = false;
     bool is_scam = false;
     bool is_fake = false;
-
-    bool is_max_active_story_id_being_reloaded = false;
 
     bool is_title_changed = true;
     bool is_username_changed = true;

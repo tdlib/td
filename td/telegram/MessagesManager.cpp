@@ -18376,7 +18376,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
                                       can_send_message(dialog_id).is_ok();
 
   if (source == MessageSource::DialogList && dialog_type == DialogType::User) {
-    td_->contacts_manager_->on_view_dialog_active_stories({dialog_id});
+    td_->story_manager_->on_view_dialog_active_stories({dialog_id});
   }
 
   // keep only valid message identifiers
@@ -18927,7 +18927,7 @@ void MessagesManager::open_dialog(Dialog *d) {
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      td_->contacts_manager_->on_view_dialog_active_stories({dialog_id});
+      td_->story_manager_->on_view_dialog_active_stories({dialog_id});
       break;
     case DialogType::Chat:
       td_->contacts_manager_->repair_chat_participants(dialog_id.get_chat_id());
@@ -18944,7 +18944,7 @@ void MessagesManager::open_dialog(Dialog *d) {
               channel_id, td_api::make_object<td_api::supergroupMembersFilterRecent>(), string(), 0, 200, 200, Auto());
         }
       } else {
-        td_->contacts_manager_->on_view_dialog_active_stories({dialog_id});
+        td_->story_manager_->on_view_dialog_active_stories({dialog_id});
       }
       get_channel_difference(dialog_id, d->pts, 0, MessageId(), true, "open_dialog");
       reget_dialog_action_bar(dialog_id, "open_dialog", false);

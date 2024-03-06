@@ -18,6 +18,7 @@
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/PasswordManager.h"
+#include "td/telegram/StoryManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
@@ -1754,7 +1755,7 @@ void DialogParticipantManager::do_search_chat_participants(ChatId chat_id, const
 
   int32 total_count;
   std::tie(total_count, dialog_ids) = search_among_dialogs(dialog_ids, query, limit);
-  td_->contacts_manager_->on_view_dialog_active_stories(dialog_ids);
+  td_->story_manager_->on_view_dialog_active_stories(dialog_ids);
   vector<DialogParticipant> dialog_participants;
   for (auto dialog_id : dialog_ids) {
     for (const auto &participant : *participants) {
@@ -1950,7 +1951,7 @@ void DialogParticipantManager::on_get_channel_participants(
   for (const auto &participant : result) {
     participant_dialog_ids.push_back(participant.dialog_id_);
   }
-  td_->contacts_manager_->on_view_dialog_active_stories(std::move(participant_dialog_ids));
+  td_->story_manager_->on_view_dialog_active_stories(std::move(participant_dialog_ids));
 
   promise.set_value(DialogParticipants{total_count, std::move(result)});
 }
