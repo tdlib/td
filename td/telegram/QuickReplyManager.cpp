@@ -1474,7 +1474,7 @@ QuickReplyManager::Shortcut *QuickReplyManager::get_shortcut(const string &name)
 vector<unique_ptr<QuickReplyManager::Shortcut>>::iterator QuickReplyManager::get_shortcut_it(
     QuickReplyShortcutId shortcut_id) {
   for (auto it = shortcuts_.shortcuts_.begin(); it != shortcuts_.shortcuts_.end(); ++it) {
-    if ((*it)->shortcut_id_ == shortcut_id) {
+    if (*it != nullptr && (*it)->shortcut_id_ == shortcut_id) {
       return it;
     }
   }
