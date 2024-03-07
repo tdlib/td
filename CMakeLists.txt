@@ -593,6 +593,7 @@ set(TDLIB_SOURCE
   td/telegram/BusinessAwayMessage.h
   td/telegram/BusinessAwayMessageSchedule.h
   td/telegram/BusinessConnectedBot.h
+  td/telegram/BusinessConnectionId.h
   td/telegram/BusinessConnectionManager.h
   td/telegram/BusinessGreetingMessage.h
   td/telegram/BusinessInfo.h

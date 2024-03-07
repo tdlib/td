@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/BusinessConnectionId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -29,11 +30,11 @@ class BusinessConnectionManager final : public Actor {
   BusinessConnectionManager &operator=(BusinessConnectionManager &&) = delete;
   ~BusinessConnectionManager() final;
 
-  Status check_business_connection_id(const string &connection_id) const;
+  Status check_business_connection_id(const BusinessConnectionId &connection_id) const;
 
   void on_update_bot_business_connect(telegram_api::object_ptr<telegram_api::botBusinessConnection> &&connection);
 
-  void get_business_connection(const string &connection_id,
+  void get_business_connection(const BusinessConnectionId &connection_id,
                                Promise<td_api::object_ptr<td_api::businessConnection>> &&promise);
 
  private:
@@ -41,12 +42,14 @@ class BusinessConnectionManager final : public Actor {
 
   void tear_down() final;
 
-  void on_get_business_connection(const string &connection_id,
+  void on_get_business_connection(const BusinessConnectionId &connection_id,
                                   Result<telegram_api::object_ptr<telegram_api::Updates>> r_updates);
 
-  WaitFreeHashMap<string, unique_ptr<BusinessConnection>> business_connections_;
+  WaitFreeHashMap<BusinessConnectionId, unique_ptr<BusinessConnection>, BusinessConnectionIdHash> business_connections_;
 
-  FlatHashMap<string, vector<Promise<td_api::object_ptr<td_api::businessConnection>>>> get_business_connection_queries_;
+  FlatHashMap<BusinessConnectionId, vector<Promise<td_api::object_ptr<td_api::businessConnection>>>,
+              BusinessConnectionIdHash>
+      get_business_connection_queries_;
 
   Td *td_;
   ActorShared<> parent_;

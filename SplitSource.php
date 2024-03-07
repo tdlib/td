@@ -311,6 +311,7 @@ function split_file($file, $chunks, $undo) {
                 'bot_info_manager[_(-](?![.]get[(][)])|BotInfoManager' => 'BotInfoManager',
                 'BusinessAwayMessage' => 'BusinessAwayMessage',
                 'BusinessConnectedBot' => 'BusinessConnectedBot',
+                'BusinessConnectionId' => 'BusinessConnectionId',
                 'business_connection_manager[_(-](?![.]get[(][)])|BusinessConnectionManager' => 'BusinessConnectionManager',
                 'BusinessGreetingMessage' => 'BusinessGreetingMessage',
                 'BusinessInfo|business_info' => 'BusinessInfo',

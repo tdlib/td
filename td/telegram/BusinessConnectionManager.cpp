@@ -26,8 +26,8 @@ class GetBotBusinessConnectionQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(const string &connection_id) {
-    send_query(G()->net_query_creator().create(telegram_api::account_getBotBusinessConnection(connection_id)));
+  void send(const BusinessConnectionId &connection_id) {
+    send_query(G()->net_query_creator().create(telegram_api::account_getBotBusinessConnection(connection_id.get())));
   }
 
   void on_result(BufferSlice packet) final {
@@ -47,7 +47,7 @@ class GetBotBusinessConnectionQuery final : public Td::ResultHandler {
 };
 
 struct BusinessConnectionManager::BusinessConnection {
-  string connection_id_;
+  BusinessConnectionId connection_id_;
   UserId user_id_;
   DcId dc_id_;
   int32 connection_date_ = 0;
@@ -70,13 +70,13 @@ struct BusinessConnectionManager::BusinessConnection {
   ~BusinessConnection() = default;
 
   bool is_valid() const {
-    return !connection_id_.empty() && user_id_.is_valid() && !dc_id_.is_empty() && connection_date_ > 0;
+    return connection_id_.is_valid() && user_id_.is_valid() && !dc_id_.is_empty() && connection_date_ > 0;
   }
 
   td_api::object_ptr<td_api::businessConnection> get_business_connection_object(Td *td) const {
     return td_api::make_object<td_api::businessConnection>(
-        connection_id_, td->contacts_manager_->get_user_id_object(user_id_, "businessConnection"), connection_date_,
-        can_reply_, is_disabled_);
+        connection_id_.get(), td->contacts_manager_->get_user_id_object(user_id_, "businessConnection"),
+        connection_date_, can_reply_, is_disabled_);
   }
 };
 
@@ -90,8 +90,8 @@ void BusinessConnectionManager::tear_down() {
   parent_.reset();
 }
 
-Status BusinessConnectionManager::check_business_connection_id(const string &connection_id) const {
-  if (connection_id.empty() || business_connections_.count(connection_id) != 0) {
+Status BusinessConnectionManager::check_business_connection_id(const BusinessConnectionId &connection_id) const {
+  if (connection_id.is_empty() || business_connections_.count(connection_id) != 0) {
     return Status::OK();
   }
   return Status::Error(400, "Business connection not found");
@@ -114,13 +114,13 @@ void BusinessConnectionManager::on_update_bot_business_connect(
 }
 
 void BusinessConnectionManager::get_business_connection(
-    const string &connection_id, Promise<td_api::object_ptr<td_api::businessConnection>> &&promise) {
+    const BusinessConnectionId &connection_id, Promise<td_api::object_ptr<td_api::businessConnection>> &&promise) {
   auto connection = business_connections_.get_pointer(connection_id);
   if (connection != nullptr) {
     return promise.set_value(connection->get_business_connection_object(td_));
   }
 
-  if (connection_id.empty()) {
+  if (connection_id.is_empty()) {
     return promise.set_error(Status::Error(400, "Connection iedntifier must be non-empty"));
   }
 
@@ -137,7 +137,7 @@ void BusinessConnectionManager::get_business_connection(
 }
 
 void BusinessConnectionManager::on_get_business_connection(
-    const string &connection_id, Result<telegram_api::object_ptr<telegram_api::Updates>> r_updates) {
+    const BusinessConnectionId &connection_id, Result<telegram_api::object_ptr<telegram_api::Updates>> r_updates) {
   G()->ignore_result_if_closing(r_updates);
   auto queries_it = get_business_connection_queries_.find(connection_id);
   CHECK(queries_it != get_business_connection_queries_.end());

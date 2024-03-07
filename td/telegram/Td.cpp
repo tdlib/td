@@ -23,6 +23,7 @@
 #include "td/telegram/BotInfoManager.h"
 #include "td/telegram/BotMenuButton.h"
 #include "td/telegram/BusinessAwayMessage.h"
+#include "td/telegram/BusinessConnectionId.h"
 #include "td/telegram/BusinessConnectionManager.h"
 #include "td/telegram/BusinessGreetingMessage.h"
 #include "td/telegram/BusinessManager.h"
@@ -8643,7 +8644,8 @@ void Td::on_request(uint64 id, td_api::getBusinessConnection &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.connection_id_);
   CREATE_REQUEST_PROMISE();
-  business_connection_manager_->get_business_connection(request.connection_id_, std::move(promise));
+  business_connection_manager_->get_business_connection(BusinessConnectionId(std::move(request.connection_id_)),
+                                                        std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getLoginUrlInfo &request) {
