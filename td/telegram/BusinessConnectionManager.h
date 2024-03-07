@@ -6,11 +6,14 @@
 //
 #pragma once
 
+#include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Promise.h"
+#include "td/utils/Status.h"
 #include "td/utils/WaitFreeHashMap.h"
 
 namespace td {
@@ -28,12 +31,20 @@ class BusinessConnectionManager final : public Actor {
 
   void on_update_bot_business_connect(telegram_api::object_ptr<telegram_api::botBusinessConnection> &&connection);
 
+  void get_business_connection(const string &connection_id,
+                               Promise<td_api::object_ptr<td_api::businessConnection>> &&promise);
+
  private:
   struct BusinessConnection;
 
+  void tear_down() final;
+
+  void on_get_business_connection(const string &connection_id,
+                                  Result<telegram_api::object_ptr<telegram_api::Updates>> r_updates);
+
   WaitFreeHashMap<string, unique_ptr<BusinessConnection>> business_connections_;
 
-  void tear_down() final;
+  FlatHashMap<string, vector<Promise<td_api::object_ptr<td_api::businessConnection>>>> get_business_connection_queries_;
 
   Td *td_;
   ActorShared<> parent_;

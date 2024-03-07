@@ -8022,6 +8022,10 @@ stopPoll chat_id:int53 message_id:int53 reply_markup:ReplyMarkup = Ok;
 hideSuggestedAction action:SuggestedAction = Ok;
 
 
+//@description Returns information about a business connection by its identifier; for bots only @connection_id Identifier of the business connection to return
+getBusinessConnection connection_id:string = BusinessConnection;
+
+
 //@description Returns information about a button of type inlineKeyboardButtonTypeLoginUrl. The method needs to be called when the user presses the button
 //@chat_id Chat identifier of the message with the button
 //@message_id Message identifier of the message with the button

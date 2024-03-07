@@ -18,6 +18,34 @@
 
 namespace td {
 
+class GetBotBusinessConnectionQuery final : public Td::ResultHandler {
+  Promise<telegram_api::object_ptr<telegram_api::Updates>> promise_;
+
+ public:
+  explicit GetBotBusinessConnectionQuery(Promise<telegram_api::object_ptr<telegram_api::Updates>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &connection_id) {
+    send_query(G()->net_query_creator().create(telegram_api::account_getBotBusinessConnection(connection_id)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_getBotBusinessConnection>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for GetBotBusinessConnectionQuery: " << to_string(ptr);
+    promise_.set_value(std::move(ptr));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 struct BusinessConnectionManager::BusinessConnection {
   string connection_id_;
   UserId user_id_;
@@ -76,6 +104,80 @@ void BusinessConnectionManager::on_update_bot_business_connect(
   send_closure(
       G()->td(), &Td::send_update,
       td_api::make_object<td_api::updateBusinessConnection>(stored_connection->get_business_connection_object(td_)));
+}
+
+void BusinessConnectionManager::get_business_connection(
+    const string &connection_id, Promise<td_api::object_ptr<td_api::businessConnection>> &&promise) {
+  auto connection = business_connections_.get_pointer(connection_id);
+  if (connection != nullptr) {
+    return promise.set_value(connection->get_business_connection_object(td_));
+  }
+
+  if (connection_id.empty()) {
+    return promise.set_error(Status::Error(400, "Connection iedntifier must be non-empty"));
+  }
+
+  auto &queries = get_business_connection_queries_[connection_id];
+  queries.push_back(std::move(promise));
+  if (queries.size() == 1u) {
+    auto query_promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this), connection_id](Result<telegram_api::object_ptr<telegram_api::Updates>> r_updates) {
+          send_closure(actor_id, &BusinessConnectionManager::on_get_business_connection, connection_id,
+                       std::move(r_updates));
+        });
+    td_->create_handler<GetBotBusinessConnectionQuery>(std::move(query_promise))->send(connection_id);
+  }
+}
+
+void BusinessConnectionManager::on_get_business_connection(
+    const string &connection_id, Result<telegram_api::object_ptr<telegram_api::Updates>> r_updates) {
+  G()->ignore_result_if_closing(r_updates);
+  auto queries_it = get_business_connection_queries_.find(connection_id);
+  CHECK(queries_it != get_business_connection_queries_.end());
+  CHECK(!queries_it->second.empty());
+  auto promises = std::move(queries_it->second);
+  get_business_connection_queries_.erase(queries_it);
+  if (r_updates.is_error()) {
+    return fail_promises(promises, r_updates.move_as_error());
+  }
+  auto connection = business_connections_.get_pointer(connection_id);
+  if (connection != nullptr) {
+    for (auto &promise : promises) {
+      promise.set_value(connection->get_business_connection_object(td_));
+    }
+    return;
+  }
+
+  auto updates_ptr = r_updates.move_as_ok();
+  if (updates_ptr->get_id() != telegram_api::updates::ID) {
+    LOG(ERROR) << "Receive " << to_string(updates_ptr);
+    return fail_promises(promises, Status::Error(500, "Receive invalid business connection info"));
+  }
+  auto updates = telegram_api::move_object_as<telegram_api::updates>(updates_ptr);
+  if (updates->updates_.size() != 1 || updates->updates_[0]->get_id() != telegram_api::updateBotBusinessConnect::ID) {
+    if (updates->updates_.empty()) {
+      return fail_promises(promises, Status::Error(400, "Business connnection not found"));
+    }
+    LOG(ERROR) << "Receive " << to_string(updates);
+    return fail_promises(promises, Status::Error(500, "Receive invalid business connection info"));
+  }
+  auto update = telegram_api::move_object_as<telegram_api::updateBotBusinessConnect>(updates->updates_[0]);
+
+  td_->contacts_manager_->on_get_users(std::move(updates->users_), "on_get_business_connection");
+  td_->contacts_manager_->on_get_chats(std::move(updates->chats_), "on_get_business_connection");
+
+  auto business_connection = make_unique<BusinessConnection>(update->connection_);
+  if (!business_connection->is_valid() || connection_id != business_connection->connection_id_) {
+    LOG(ERROR) << "Receive for " << connection_id << ": " << to_string(update->connection_);
+    return fail_promises(promises, Status::Error(500, "Receive invalid business connection info"));
+  }
+
+  auto &stored_connection = business_connections_[connection_id];
+  CHECK(stored_connection == nullptr);
+  stored_connection = std::move(business_connection);
+  for (auto &promise : promises) {
+    promise.set_value(stored_connection->get_business_connection_object(td_));
+  }
 }
 
 }  // namespace td
