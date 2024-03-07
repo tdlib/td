@@ -660,8 +660,6 @@ class UpdatesManager final : public Actor {
 
   void on_update(tl_object_ptr<telegram_api::updateDeleteQuickReplyMessages> update, Promise<Unit> &&promise);
 
-  // unsupported updates
-
   void on_update(tl_object_ptr<telegram_api::updateBotBusinessConnect> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updateBotNewBusinessMessage> update, Promise<Unit> &&promise);
@@ -669,6 +667,8 @@ class UpdatesManager final : public Actor {
   void on_update(tl_object_ptr<telegram_api::updateBotEditBusinessMessage> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updateBotDeleteBusinessMessage> update, Promise<Unit> &&promise);
+
+  // unsupported updates
 };
 
 }  // namespace td

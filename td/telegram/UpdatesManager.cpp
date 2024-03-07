@@ -3087,6 +3087,22 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
                          message_id.get(), date, std::move(message_reactions)));
         break;
       }
+      case telegram_api::updateBotBusinessConnect::ID: {
+        auto update = move_tl_object_as<telegram_api::updateBotBusinessConnect>(update_ptr);
+        break;
+      }
+      case telegram_api::updateBotNewBusinessMessage::ID: {
+        auto update = move_tl_object_as<telegram_api::updateBotNewBusinessMessage>(update_ptr);
+        break;
+      }
+      case telegram_api::updateBotEditBusinessMessage::ID: {
+        auto update = move_tl_object_as<telegram_api::updateBotEditBusinessMessage>(update_ptr);
+        break;
+      }
+      case telegram_api::updateBotDeleteBusinessMessage::ID: {
+        auto update = move_tl_object_as<telegram_api::updateBotDeleteBusinessMessage>(update_ptr);
+        break;
+      }
       default:
         UNREACHABLE();
         break;
@@ -3875,6 +3891,10 @@ bool UpdatesManager::is_qts_update(const telegram_api::Update *update) {
     case telegram_api::updateBotChatBoost::ID:
     case telegram_api::updateBotMessageReaction::ID:
     case telegram_api::updateBotMessageReactions::ID:
+    case telegram_api::updateBotBusinessConnect::ID:
+    case telegram_api::updateBotNewBusinessMessage::ID:
+    case telegram_api::updateBotEditBusinessMessage::ID:
+    case telegram_api::updateBotDeleteBusinessMessage::ID:
       return true;
     default:
       return false;
@@ -3901,6 +3921,14 @@ int32 UpdatesManager::get_update_qts(const telegram_api::Update *update) {
       return static_cast<const telegram_api::updateBotMessageReaction *>(update)->qts_;
     case telegram_api::updateBotMessageReactions::ID:
       return static_cast<const telegram_api::updateBotMessageReactions *>(update)->qts_;
+    case telegram_api::updateBotBusinessConnect::ID:
+      return static_cast<const telegram_api::updateBotBusinessConnect *>(update)->qts_;
+    case telegram_api::updateBotNewBusinessMessage::ID:
+      return static_cast<const telegram_api::updateBotNewBusinessMessage *>(update)->qts_;
+    case telegram_api::updateBotEditBusinessMessage::ID:
+      return static_cast<const telegram_api::updateBotEditBusinessMessage *>(update)->qts_;
+    case telegram_api::updateBotDeleteBusinessMessage::ID:
+      return static_cast<const telegram_api::updateBotDeleteBusinessMessage *>(update)->qts_;
     default:
       return 0;
   }
@@ -4505,25 +4533,29 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDeleteQuickRepl
   promise.set_value(Unit());
 }
 
-// unsupported updates
-
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotBusinessConnect> update, Promise<Unit> &&promise) {
-  promise.set_value(Unit());
+  auto qts = update->qts_;
+  add_pending_qts_update(std::move(update), qts, std::move(promise));
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotNewBusinessMessage> update,
                                Promise<Unit> &&promise) {
-  promise.set_value(Unit());
+  auto qts = update->qts_;
+  add_pending_qts_update(std::move(update), qts, std::move(promise));
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotEditBusinessMessage> update,
                                Promise<Unit> &&promise) {
-  promise.set_value(Unit());
+  auto qts = update->qts_;
+  add_pending_qts_update(std::move(update), qts, std::move(promise));
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotDeleteBusinessMessage> update,
                                Promise<Unit> &&promise) {
-  promise.set_value(Unit());
+  auto qts = update->qts_;
+  add_pending_qts_update(std::move(update), qts, std::move(promise));
 }
+
+// unsupported updates
 
 }  // namespace td
