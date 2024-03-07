@@ -4651,8 +4651,8 @@ class CliClient final : public Actor {
       ChatId chat_id;
       string action;
       get_args(args, chat_id, action);
-      send_request(
-          td_api::make_object<td_api::sendChatAction>(chat_id, message_thread_id_, string(), as_chat_action(action)));
+      send_request(td_api::make_object<td_api::sendChatAction>(chat_id, message_thread_id_, business_connection_id_,
+                                                               as_chat_action(action)));
     } else if (op == "smt" || op == "smtp" || op == "smtf" || op == "smtpf") {
       ChatId chat_id;
       get_args(args, chat_id);
@@ -4684,6 +4684,8 @@ class CliClient final : public Actor {
       only_preview_ = as_bool(args);
     } else if (op == "smti") {
       get_args(args, message_thread_id_);
+    } else if (op == "sbci") {
+      business_connection_id_ = args;
     } else if (op == "shs") {
       has_spoiler_ = as_bool(args);
     } else if (op == "smsdt") {
@@ -6040,7 +6042,7 @@ class CliClient final : public Actor {
       get_args(args, bot_user_id);
       send_request(td_api::make_object<td_api::deleteBusinessConnectedBot>(bot_user_id));
     } else if (op == "gbc") {
-      send_request(td_api::make_object<td_api::getBusinessConnection>(args));
+      send_request(td_api::make_object<td_api::getBusinessConnection>(args.empty() ? business_connection_id_ : args));
     } else if (op == "sco") {
       SearchQuery query;
       get_args(args, query);
@@ -6680,6 +6682,7 @@ class CliClient final : public Actor {
   string schedule_date_;
   bool only_preview_ = false;
   MessageThreadId message_thread_id_;
+  string business_connection_id_;
   bool has_spoiler_ = false;
   int32 message_self_destruct_time_ = 0;
   int64 opened_chat_id_ = 0;
