@@ -9,6 +9,7 @@
 #include "td/telegram/BusinessAwayMessage.h"
 #include "td/telegram/BusinessConnectedBot.h"
 #include "td/telegram/BusinessGreetingMessage.h"
+#include "td/telegram/BusinessRecipients.h"
 #include "td/telegram/BusinessWorkHours.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogLocation.h"
@@ -18,6 +19,7 @@
 #include "td/telegram/UpdatesManager.h"
 
 #include "td/utils/buffer.h"
+#include "td/utils/logging.h"
 #include "td/utils/Status.h"
 
 namespace td {

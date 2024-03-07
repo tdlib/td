@@ -6,14 +6,6 @@
 //
 #include "td/telegram/BusinessAwayMessage.h"
 
-#include "td/telegram/ContactsManager.h"
-#include "td/telegram/DialogId.h"
-#include "td/telegram/DialogManager.h"
-#include "td/telegram/Td.h"
-
-#include "td/utils/algorithm.h"
-#include "td/utils/misc.h"
-
 namespace td {
 
 BusinessAwayMessage::BusinessAwayMessage(telegram_api::object_ptr<telegram_api::businessAwayMessage> away_message) {

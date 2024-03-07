@@ -6,6 +6,7 @@
 //
 #include "td/telegram/QuickReplyManager.h"
 
+#include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
@@ -17,21 +18,30 @@
 #include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageContentType.h"
+#include "td/telegram/MessageCopyOptions.h"
 #include "td/telegram/MessageReplyHeader.h"
 #include "td/telegram/MessageSelfDestructType.h"
 #include "td/telegram/misc.h"
-#include "td/telegram/RepliedMessageInfo.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/ReplyMarkup.hpp"
+#include "td/telegram/ServerMessageId.h"
+#include "td/telegram/StoryFullId.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/TdDb.h"
+#include "td/telegram/telegram_api.h"
 #include "td/telegram/Version.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
+#include "td/utils/Time.h"
+#include "td/utils/tl_helpers.h"
 #include "td/utils/unicode.h"
 #include "td/utils/utf8.h"
+
+#include <algorithm>
 
 namespace td {
 
@@ -1409,7 +1419,6 @@ Result<vector<QuickReplyManager::QuickReplyMessageContent>> QuickReplyManager::g
     return Status::Error(400, "Can't use quick replies in the chat");
   }
 
-  std::unordered_map<int64, std::pair<int64, int32>, Hash<int64>> new_media_album_ids;
   vector<QuickReplyMessageContent> result;
   for (auto &message : shortcut->messages_) {
     if (!message->message_id.is_server()) {

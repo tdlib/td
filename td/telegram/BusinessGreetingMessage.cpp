@@ -6,12 +6,6 @@
 //
 #include "td/telegram/BusinessGreetingMessage.h"
 
-#include "td/telegram/ContactsManager.h"
-#include "td/telegram/DialogId.h"
-#include "td/telegram/DialogManager.h"
-#include "td/telegram/Td.h"
-
-#include "td/utils/algorithm.h"
 #include "td/utils/misc.h"
 
 namespace td {
