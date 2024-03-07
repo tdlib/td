@@ -6,6 +6,7 @@
 //
 #include "td/telegram/BusinessConnectionManager.h"
 
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/net/DcId.h"
@@ -115,6 +116,10 @@ void BusinessConnectionManager::on_update_bot_business_connect(
   auto business_connection = make_unique<BusinessConnection>(connection);
   if (!business_connection->is_valid()) {
     LOG(ERROR) << "Receive invalid " << to_string(connection);
+    return;
+  }
+  if (!td_->auth_manager_->is_bot()) {
+    LOG(ERROR) << "Receive " << to_string(connection);
     return;
   }
 

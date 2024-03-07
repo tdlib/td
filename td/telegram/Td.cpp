@@ -8641,7 +8641,7 @@ void Td::on_request(uint64 id, const td_api::hideSuggestedAction &request) {
 }
 
 void Td::on_request(uint64 id, td_api::getBusinessConnection &request) {
-  CHECK_IS_USER();
+  CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.connection_id_);
   CREATE_REQUEST_PROMISE();
   business_connection_manager_->get_business_connection(BusinessConnectionId(std::move(request.connection_id_)),
