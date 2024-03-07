@@ -4213,6 +4213,15 @@ speechRecognitionResultText text:string = SpeechRecognitionResult;
 speechRecognitionResultError error:error = SpeechRecognitionResult;
 
 
+//@description Describes a connection of the bot with a business account
+//@id Unique identifier of the connection
+//@user_id Identifier of the business user that created the connection
+//@date Point in time (Unix timestamp) when the connection was established
+//@can_reply True, if the bot can send messages to the connected user; false otherwise
+//@is_disabled True, if the connection is disabled; false otherwise
+businessConnection id:string user_id:int53 date:int32 can_reply:Bool is_disabled:Bool = BusinessConnection;
+
+
 //@description Describes a color to highlight a bot added to attachment menu @light_color Color in the RGB24 format for light themes @dark_color Color in the RGB24 format for dark themes
 attachmentMenuBotColor light_color:int32 dark_color:int32 = AttachmentMenuBotColor;
 
@@ -6922,6 +6931,9 @@ updateAddChatMembersPrivacyForbidden chat_id:int53 user_ids:vector<int53> = Upda
 
 //@description Autosave settings for some type of chats were updated @scope Type of chats for which autosave settings were updated @settings The new autosave settings; may be null if the settings are reset to default
 updateAutosaveSettings scope:AutosaveSettingsScope settings:scopeAutosaveSettings = Update;
+
+//@description A business connection has changed; for bots only @connection New data about the connection
+updateBusinessConnection connection:businessConnection = Update;
 
 //@description A new incoming inline query; for bots only
 //@id Unique query identifier

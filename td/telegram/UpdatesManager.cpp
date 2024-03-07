@@ -12,6 +12,7 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/AutosaveManager.h"
 #include "td/telegram/BoostManager.h"
+#include "td/telegram/BusinessConnectionManager.h"
 #include "td/telegram/CallbackQueriesManager.h"
 #include "td/telegram/CallManager.h"
 #include "td/telegram/ChannelId.h"
@@ -3089,6 +3090,7 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
       }
       case telegram_api::updateBotBusinessConnect::ID: {
         auto update = move_tl_object_as<telegram_api::updateBotBusinessConnect>(update_ptr);
+        td_->business_connection_manager_->on_update_bot_business_connect(std::move(update->connection_));
         break;
       }
       case telegram_api::updateBotNewBusinessMessage::ID: {
