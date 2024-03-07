@@ -24,9 +24,10 @@ inputStickerSetThumbLegacy#dbaeae9 stickerset:InputStickerSet volume_id:long loc
 
 ---functions---
 
-test.useError = Error;
 test.useConfigSimple = help.ConfigSimple;
 test.parseInputAppEvent = InputAppEvent;
+
+invokeWithBusinessConnectionPrefix connection_id:string = Error;
 
 ---types---
 

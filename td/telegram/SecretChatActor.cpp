@@ -67,7 +67,7 @@ SecretChatActor::SecretChatActor(int32 id, unique_ptr<Context> context, bool can
 template <class T>
 NetQueryPtr SecretChatActor::create_net_query(QueryType type, const T &function) {
   return context_->net_query_creator().create(UniqueId::next(UniqueId::Type::Default, static_cast<uint8>(type)),
-                                              function, {}, DcId::main(), NetQuery::Type::Common,
+                                              nullptr, function, {}, DcId::main(), NetQuery::Type::Common,
                                               NetQuery::AuthFlag::On);
 }
 

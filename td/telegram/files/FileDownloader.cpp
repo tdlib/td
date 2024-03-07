@@ -253,12 +253,12 @@ Result<std::pair<NetQueryPtr, bool>> FileDownloader::start_part(Part part, int32
     net_query =
         remote_.is_web()
             ? G()->net_query_creator().create(
-                  unique_id,
+                  unique_id, nullptr,
                   telegram_api::upload_getWebFile(remote_.as_input_web_file_location(), narrow_cast<int32>(part.offset),
                                                   narrow_cast<int32>(size)),
                   {}, dc_id, net_query_type, NetQuery::AuthFlag::On)
             : G()->net_query_creator().create(
-                  unique_id,
+                  unique_id, nullptr,
                   telegram_api::upload_getFile(flags, false /*ignored*/, false /*ignored*/,
                                                remote_.as_input_file_location(), part.offset, narrow_cast<int32>(size)),
                   {}, dc_id, net_query_type, NetQuery::AuthFlag::On);
@@ -272,11 +272,11 @@ Result<std::pair<NetQueryPtr, bool>> FileDownloader::start_part(Part part, int32
       cdn_part_file_token_generation_[part.id] = cdn_file_token_generation_;
       net_query =
           G()->net_query_creator().create(UniqueId::next(UniqueId::Type::Default, static_cast<uint8>(QueryType::CDN)),
-                                          query, {}, cdn_dc_id_, net_query_type, NetQuery::AuthFlag::Off);
+                                          nullptr, query, {}, cdn_dc_id_, net_query_type, NetQuery::AuthFlag::Off);
     } else {
       auto query = telegram_api::upload_reuploadCdnFile(BufferSlice(cdn_file_token_), BufferSlice(it->second));
       net_query = G()->net_query_creator().create(
-          UniqueId::next(UniqueId::Type::Default, static_cast<uint8>(QueryType::ReuploadCDN)), query, {},
+          UniqueId::next(UniqueId::Type::Default, static_cast<uint8>(QueryType::ReuploadCDN)), nullptr, query, {},
           remote_.get_dc_id(), net_query_type, NetQuery::AuthFlag::On);
       cdn_part_reupload_token_.erase(it);
     }
