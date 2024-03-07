@@ -14,8 +14,6 @@
 
 namespace td {
 
-class Td;
-
 class BusinessWorkHours {
  public:
   BusinessWorkHours() = default;

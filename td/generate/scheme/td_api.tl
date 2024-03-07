@@ -6657,7 +6657,7 @@ updateQuickReplyShortcuts shortcut_ids:vector<int32> = Update;
 
 //@description The list of quick reply shortcut messages has changed
 //@shortcut_id The identifier of the shortcut
-//@messages The new list of quick reply messages for the shortcut in order from the first to the last sent 
+//@messages The new list of quick reply messages for the shortcut in order from the first to the last sent
 updateQuickReplyShortcutMessages shortcut_id:int32 messages:vector<quickReplyMessage> = Update;
 
 //@description Basic information about a topic in a forum chat was changed @chat_id Chat identifier @info New information about the topic

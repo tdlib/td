@@ -26646,7 +26646,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_quick_reply_s
   TRY_RESULT(message_contents, td_->quick_reply_manager_->get_quick_reply_message_contents(dialog_id, shortcut_id));
 
   if (message_contents.empty()) {
-    return td_api::object_ptr<td_api::messages>();
+    return td_api::make_object<td_api::messages>();
   }
 
   std::unordered_map<int64, std::pair<int64, int32>, Hash<int64>> new_media_album_ids;

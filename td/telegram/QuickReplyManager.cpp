@@ -479,7 +479,7 @@ Status QuickReplyManager::check_shortcut_name(CSlice name) {
     length++;
   }
   if (length == 0) {
-    return Status::Error("Name can't be empty");
+    return Status::Error("Name must be non-empty");
   }
   if (length > 32) {
     return Status::Error("Name is too long");
@@ -1305,9 +1305,7 @@ void QuickReplyManager::on_reload_quick_reply_messages(
   if (s == nullptr) {
     return fail_promises(promises, Status::Error(400, "Shortcut not found"));
   }
-  for (auto &promise : promises) {
-    promise.set_value(Unit());
-  }
+  set_promises(promises);
 }
 
 int64 QuickReplyManager::get_quick_reply_messages_hash(const Shortcut *s) {

@@ -946,7 +946,7 @@ class CliClient final : public Actor {
   }
 
   vector<int32> as_shortcut_ids(Slice shortcut_ids) const {
-    return transform(autosplit(shortcut_ids), [](Slice str) { return as_shortcut_id(str); });
+    return transform(autosplit(shortcut_ids), as_shortcut_id);
   }
 
   td_api::object_ptr<td_api::InputMessageReplyTo> get_input_message_reply_to() const {

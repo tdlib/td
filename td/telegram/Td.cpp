@@ -9618,7 +9618,7 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::checkQuic
   if (status.is_ok()) {
     return td_api::make_object<td_api::ok>();
   }
-  return make_error(200, status.error().message());
+  return make_error(200, status.message());
 }
 
 td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getCountryFlagEmoji &request) {
