@@ -90,6 +90,13 @@ void BusinessConnectionManager::tear_down() {
   parent_.reset();
 }
 
+Status BusinessConnectionManager::check_business_connection_id(const string &connection_id) const {
+  if (connection_id.empty() || business_connections_.count(connection_id) != 0) {
+    return Status::OK();
+  }
+  return Status::Error(400, "Business connection not found");
+}
+
 void BusinessConnectionManager::on_update_bot_business_connect(
     telegram_api::object_ptr<telegram_api::botBusinessConnection> &&connection) {
   CHECK(connection != nullptr);

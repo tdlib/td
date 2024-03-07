@@ -29,6 +29,8 @@ class BusinessConnectionManager final : public Actor {
   BusinessConnectionManager &operator=(BusinessConnectionManager &&) = delete;
   ~BusinessConnectionManager() final;
 
+  Status check_business_connection_id(const string &connection_id) const;
+
   void on_update_bot_business_connect(telegram_api::object_ptr<telegram_api::botBusinessConnection> &&connection);
 
   void get_business_connection(const string &connection_id,
