@@ -1260,7 +1260,7 @@ void QuickReplyManager::on_reload_quick_reply_messages(
       auto shortcut = td::make_unique<Shortcut>();
       shortcut->name_ = old_shortcut->name_;
       shortcut->shortcut_id_ = shortcut_id;
-      shortcut->server_total_count_ = quick_reply_messages.size();
+      shortcut->server_total_count_ = static_cast<int32>(quick_reply_messages.size());
       shortcut->messages_ = std::move(quick_reply_messages);
 
       if (old_shortcut == nullptr) {
