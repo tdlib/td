@@ -9,7 +9,6 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
-#include "td/telegram/net/DcId.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -108,6 +107,15 @@ Status BusinessConnectionManager::check_business_connection(const BusinessConnec
   }
   // no need to check connection->can_reply_ and connection->is_disabled_
   return Status::OK();
+}
+
+DcId BusinessConnectionManager::get_business_connection_dc_id(const BusinessConnectionId &connection_id) const {
+  if (connection_id.is_empty()) {
+    return DcId::main();
+  }
+  auto connection = business_connections_.get_pointer(connection_id);
+  CHECK(connection != nullptr);
+  return connection->dc_id_;
 }
 
 void BusinessConnectionManager::on_update_bot_business_connect(

@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/BusinessConnectionId.h"
 #include "td/telegram/DialogAction.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/MessageContentType.h"
@@ -31,8 +32,8 @@ class DialogActionManager final : public Actor {
                         DialogAction action, int32 date,
                         MessageContentType message_content_type = MessageContentType::None);
 
-  void send_dialog_action(DialogId dialog_id, MessageId top_thread_message_id, DialogAction action,
-                          Promise<Unit> &&promise);
+  void send_dialog_action(DialogId dialog_id, MessageId top_thread_message_id,
+                          BusinessConnectionId business_connection_id, DialogAction action, Promise<Unit> &&promise);
 
   void cancel_send_dialog_action_queries(DialogId dialog_id);
 

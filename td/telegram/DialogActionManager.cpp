@@ -8,6 +8,7 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/BusinessConnectionManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
@@ -34,6 +35,7 @@ namespace td {
 class SetTypingQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
+  BusinessConnectionId business_connection_id_;
   int32 generation_ = 0;
 
  public:
@@ -41,16 +43,22 @@ class SetTypingQuery final : public Td::ResultHandler {
   }
 
   NetQueryRef send(DialogId dialog_id, tl_object_ptr<telegram_api::InputPeer> &&input_peer,
-                   MessageId top_thread_message_id, tl_object_ptr<telegram_api::SendMessageAction> &&action) {
+                   MessageId top_thread_message_id, BusinessConnectionId business_connection_id,
+                   tl_object_ptr<telegram_api::SendMessageAction> &&action) {
     dialog_id_ = dialog_id;
+    business_connection_id_ = business_connection_id;
     CHECK(input_peer != nullptr);
 
     int32 flags = 0;
     if (top_thread_message_id.is_valid()) {
       flags |= telegram_api::messages_setTyping::TOP_MSG_ID_MASK;
     }
-    auto query = G()->net_query_creator().create(telegram_api::messages_setTyping(
-        flags, std::move(input_peer), top_thread_message_id.get_server_message_id().get(), std::move(action)));
+
+    auto query = G()->net_query_creator().create_with_prefix(
+        business_connection_id.get_invoke_prefix(),
+        telegram_api::messages_setTyping(flags, std::move(input_peer),
+                                         top_thread_message_id.get_server_message_id().get(), std::move(action)),
+        td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id));
     query->total_timeout_limit_ = 2;
     auto result = query.get_weak();
     generation_ = result.generation();
@@ -76,7 +84,8 @@ class SetTypingQuery final : public Td::ResultHandler {
       return promise_.set_value(Unit());
     }
 
-    if (!td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "SetTypingQuery")) {
+    if (!business_connection_id_.is_valid() &&
+        !td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "SetTypingQuery")) {
       LOG(INFO) << "Receive error for set typing: " << status;
     }
     promise_.set_error(std::move(status));
@@ -284,9 +293,13 @@ void DialogActionManager::send_update_chat_action(DialogId dialog_id, MessageId 
                    action.get_chat_action_object()));
 }
 
-void DialogActionManager::send_dialog_action(DialogId dialog_id, MessageId top_thread_message_id, DialogAction action,
+void DialogActionManager::send_dialog_action(DialogId dialog_id, MessageId top_thread_message_id,
+                                             BusinessConnectionId business_connection_id, DialogAction action,
                                              Promise<Unit> &&promise) {
-  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "send_dialog_action")) {
+  TRY_STATUS_PROMISE(promise,
+                     td_->business_connection_manager_->check_business_connection(business_connection_id, dialog_id));
+  bool as_business = business_connection_id.is_valid();
+  if (!as_business && !td_->dialog_manager_->have_dialog_force(dialog_id, "send_dialog_action")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
   if (top_thread_message_id != MessageId() &&
@@ -294,16 +307,21 @@ void DialogActionManager::send_dialog_action(DialogId dialog_id, MessageId top_t
     return promise.set_error(Status::Error(400, "Invalid message thread specified"));
   }
 
-  if (td_->dialog_manager_->is_forum_channel(dialog_id) && !top_thread_message_id.is_valid()) {
+  if (!as_business && td_->dialog_manager_->is_forum_channel(dialog_id) && !top_thread_message_id.is_valid()) {
     top_thread_message_id = MessageId(ServerMessageId(1));
   }
 
   tl_object_ptr<telegram_api::InputPeer> input_peer;
   if (action == DialogAction::get_speaking_action()) {
+    if (as_business) {
+      return promise.set_error(Status::Error(400, "Can't use the action"));
+    }
     input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
       return promise.set_error(Status::Error(400, "Have no access to the chat"));
     }
+  } else if (as_business) {
+    input_peer = td_->dialog_manager_->get_input_peer_force(dialog_id);
   } else {
     if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
       if (td_->auth_manager_->is_bot()) {
@@ -321,6 +339,7 @@ void DialogActionManager::send_dialog_action(DialogId dialog_id, MessageId top_t
   }
 
   if (dialog_id.get_type() == DialogType::SecretChat) {
+    CHECK(!as_business);
     send_closure(G()->secret_chats_manager(), &SecretChatsManager::send_message_action, dialog_id.get_secret_chat_id(),
                  action.get_secret_input_send_message_action());
     promise.set_value(Unit());
@@ -329,9 +348,9 @@ void DialogActionManager::send_dialog_action(DialogId dialog_id, MessageId top_t
 
   CHECK(input_peer != nullptr);
 
-  auto new_query_ref =
-      td_->create_handler<SetTypingQuery>(std::move(promise))
-          ->send(dialog_id, std::move(input_peer), top_thread_message_id, action.get_input_send_message_action());
+  auto new_query_ref = td_->create_handler<SetTypingQuery>(std::move(promise))
+                           ->send(dialog_id, std::move(input_peer), top_thread_message_id, business_connection_id,
+                                  action.get_input_send_message_action());
   if (td_->auth_manager_->is_bot()) {
     return;
   }

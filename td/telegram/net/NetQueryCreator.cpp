@@ -32,13 +32,13 @@ NetQueryPtr NetQueryCreator::create(const telegram_api::Function &function, vect
   return create(UniqueId::next(), nullptr, function, std::move(chain_ids), dc_id, type, NetQuery::AuthFlag::On);
 }
 
-NetQueryPtr NetQueryCreator::create_with_prefix(const unique_ptr<telegram_api::Function> &prefix,
+NetQueryPtr NetQueryCreator::create_with_prefix(const telegram_api::object_ptr<telegram_api::Function> &prefix,
                                                 const telegram_api::Function &function, DcId dc_id,
-                                                NetQuery::Type type) {
-  return create(UniqueId::next(), prefix, function, {}, dc_id, type, NetQuery::AuthFlag::On);
+                                                vector<ChainId> chain_ids, NetQuery::Type type) {
+  return create(UniqueId::next(), prefix, function, std::move(chain_ids), dc_id, type, NetQuery::AuthFlag::On);
 }
 
-NetQueryPtr NetQueryCreator::create(uint64 id, const unique_ptr<telegram_api::Function> &prefix,
+NetQueryPtr NetQueryCreator::create(uint64 id, const telegram_api::object_ptr<telegram_api::Function> &prefix,
                                     const telegram_api::Function &function, vector<ChainId> &&chain_ids, DcId dc_id,
                                     NetQuery::Type type, NetQuery::AuthFlag auth_flag) {
   LOG(INFO) << "Create query " << to_string(function);

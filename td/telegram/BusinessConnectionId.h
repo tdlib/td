@@ -6,6 +6,8 @@
 //
 #pragma once
 
+#include "td/telegram/telegram_api.h"
+
 #include "td/utils/common.h"
 #include "td/utils/HashTableUtils.h"
 #include "td/utils/StringBuilder.h"
@@ -18,10 +20,12 @@ class BusinessConnectionId {
  public:
   BusinessConnectionId() = default;
 
-  explicit BusinessConnectionId(string &&business_connection_id) : business_connection_id_(std::move(business_connection_id)) {
+  explicit BusinessConnectionId(string &&business_connection_id)
+      : business_connection_id_(std::move(business_connection_id)) {
   }
 
-  explicit BusinessConnectionId(const string &business_connection_id) : business_connection_id_(business_connection_id) {
+  explicit BusinessConnectionId(const string &business_connection_id)
+      : business_connection_id_(business_connection_id) {
   }
 
   bool is_empty() const {
@@ -42,6 +46,13 @@ class BusinessConnectionId {
 
   bool operator!=(const BusinessConnectionId &other) const {
     return business_connection_id_ != other.business_connection_id_;
+  }
+
+  telegram_api::object_ptr<telegram_api::Function> get_invoke_prefix() const {
+    if (is_empty()) {
+      return nullptr;
+    }
+    return telegram_api::make_object<telegram_api::invokeWithBusinessConnectionPrefix>(business_connection_id_);
   }
 
   template <class StorerT>

@@ -8,6 +8,7 @@
 
 #include "td/telegram/BusinessConnectionId.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/net/DcId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -32,6 +33,8 @@ class BusinessConnectionManager final : public Actor {
   ~BusinessConnectionManager() final;
 
   Status check_business_connection(const BusinessConnectionId &connection_id, DialogId dialog_id) const;
+
+  DcId get_business_connection_dc_id(const BusinessConnectionId &connection_id) const;
 
   void on_update_bot_business_connect(telegram_api::object_ptr<telegram_api::botBusinessConnection> &&connection);
 

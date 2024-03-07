@@ -6008,8 +6008,10 @@ void Td::on_request(uint64 id, const td_api::deleteChatReplyMarkup &request) {
 }
 
 void Td::on_request(uint64 id, td_api::sendChatAction &request) {
+  CLEAN_INPUT_STRING(request.business_connection_id_);
   CREATE_OK_REQUEST_PROMISE();
   dialog_action_manager_->send_dialog_action(DialogId(request.chat_id_), MessageId(request.message_thread_id_),
+                                             BusinessConnectionId(std::move(request.business_connection_id_)),
                                              DialogAction(std::move(request.action_)), std::move(promise));
 }
 

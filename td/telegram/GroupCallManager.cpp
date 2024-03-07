@@ -1101,7 +1101,7 @@ void GroupCallManager::on_send_speaking_action_timeout(GroupCallId group_call_id
 
   pending_send_speaking_action_timeout_.add_timeout_in(group_call_id.get(), 4.0);
 
-  td_->dialog_action_manager_->send_dialog_action(group_call->dialog_id, MessageId(),
+  td_->dialog_action_manager_->send_dialog_action(group_call->dialog_id, MessageId(), {},
                                                   DialogAction::get_speaking_action(), Promise<Unit>());
 }
 
