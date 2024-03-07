@@ -23,11 +23,15 @@ class BusinessRecipients {
 
   explicit BusinessRecipients(telegram_api::object_ptr<telegram_api::businessRecipients> recipients);
 
+  explicit BusinessRecipients(telegram_api::object_ptr<telegram_api::businessBotRecipients> recipients);
+
   explicit BusinessRecipients(td_api::object_ptr<td_api::businessRecipients> recipients);
 
   td_api::object_ptr<td_api::businessRecipients> get_business_recipients_object(Td *td) const;
 
   telegram_api::object_ptr<telegram_api::inputBusinessRecipients> get_input_business_recipients(Td *td) const;
+
+  telegram_api::object_ptr<telegram_api::inputBusinessBotRecipients> get_input_business_bot_recipients(Td *td) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;

@@ -3140,8 +3140,9 @@ class UploadMediaQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Have no write access to the chat"));
     }
 
+    int32 flags = 0;
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_uploadMedia(std::move(input_peer), std::move(input_media))));
+        telegram_api::messages_uploadMedia(flags, string(), std::move(input_peer), std::move(input_media))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3525,7 +3526,7 @@ class SendQuickReplyMessagesQuery final : public Td::ResultHandler {
     }
 
     auto query = G()->net_query_creator().create(
-        telegram_api::messages_sendQuickReplyMessages(std::move(input_peer), shortcut_id.get()),
+        telegram_api::messages_sendQuickReplyMessages(std::move(input_peer), shortcut_id.get(), Auto(), Auto()),
         {{dialog_id, MessageContentType::Text}, {dialog_id, MessageContentType::Photo}});
     if (td_->option_manager_->get_option_boolean("use_quick_ack")) {
       query->quick_ack_promise_ = PromiseCreator::lambda([random_ids = random_ids_](Result<Unit> result) {

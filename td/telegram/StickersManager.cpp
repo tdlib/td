@@ -961,7 +961,7 @@ class UploadStickerFileQuery final : public Td::ResultHandler {
     is_url_ = is_url;
     was_uploaded_ = FileManager::extract_was_uploaded(input_media);
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_uploadMedia(std::move(input_peer), std::move(input_media))));
+        telegram_api::messages_uploadMedia(0, string(), std::move(input_peer), std::move(input_media))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1069,20 +1069,14 @@ class CreateNewStickerSetQuery final : public Td::ResultHandler {
     if (has_text_color) {
       flags |= telegram_api::stickers_createStickerSet::TEXT_COLOR_MASK;
     }
-    if (sticker_format == StickerFormat::Tgs) {
-      flags |= telegram_api::stickers_createStickerSet::ANIMATED_MASK;
-    }
-    if (sticker_format == StickerFormat::Webm) {
-      flags |= telegram_api::stickers_createStickerSet::VIDEOS_MASK;
-    }
     if (!software.empty()) {
       flags |= telegram_api::stickers_createStickerSet::SOFTWARE_MASK;
     }
 
     send_query(G()->net_query_creator().create(
         telegram_api::stickers_createStickerSet(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                                false /*ignored*/, false /*ignored*/, std::move(input_user), title,
-                                                short_name, nullptr, std::move(input_stickers), software),
+                                                std::move(input_user), title, short_name, nullptr,
+                                                std::move(input_stickers), software),
         {{short_name}}));
   }
 
@@ -3599,8 +3593,7 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
   bool is_official = set->official_;
   bool has_text_color = set->emojis_ && set->text_color_;
   bool channel_emoji_status = set->emojis_ && set->channel_emoji_status_;
-  StickerFormat sticker_format =
-      set->videos_ ? StickerFormat::Webm : (set->animated_ ? StickerFormat::Tgs : StickerFormat::Webp);
+  StickerFormat sticker_format = StickerFormat::Webp;
   StickerType sticker_type =
       set->emojis_ ? StickerType::CustomEmoji : (set->masks_ ? StickerType::Mask : StickerType::Regular);
 

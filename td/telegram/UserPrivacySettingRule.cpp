@@ -121,6 +121,9 @@ UserPrivacySettingRule::UserPrivacySettingRule(Td *td,
       set_dialog_ids_from_server(td,
                                  static_cast<const telegram_api::privacyValueDisallowChatParticipants &>(*rule).chats_);
       break;
+    case telegram_api::privacyValueAllowPremium::ID:
+      type_ = Type::AllowContacts;
+      break;
     default:
       UNREACHABLE();
   }

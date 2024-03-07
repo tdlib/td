@@ -6836,6 +6836,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       auto action = move_tl_object_as<telegram_api::messageActionBoostApply>(action_ptr);
       return make_unique<MessageBoostApply>(max(action->boosts_, 0));
     }
+    case telegram_api::messageActionRequestedPeerSentMe::ID:
+      return make_unique<MessageUnsupported>();
     default:
       UNREACHABLE();
   }

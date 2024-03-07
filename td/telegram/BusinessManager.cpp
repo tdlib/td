@@ -78,7 +78,7 @@ class UpdateConnectedBotQuery final : public Td::ResultHandler {
     }
     send_query(G()->net_query_creator().create(
         telegram_api::account_updateConnectedBot(flags, false /*ignored*/, false /*ignored*/, std::move(input_user),
-                                                 bot.get_recipients().get_input_business_recipients(td_)),
+                                                 bot.get_recipients().get_input_business_bot_recipients(td_)),
         {{"me"}}));
   }
 
@@ -86,7 +86,7 @@ class UpdateConnectedBotQuery final : public Td::ResultHandler {
     int32 flags = telegram_api::account_updateConnectedBot::DELETED_MASK;
     send_query(G()->net_query_creator().create(
         telegram_api::account_updateConnectedBot(flags, false /*ignored*/, false /*ignored*/, std::move(input_user),
-                                                 BusinessRecipients().get_input_business_recipients(td_)),
+                                                 BusinessRecipients().get_input_business_bot_recipients(td_)),
         {{"me"}}));
   }
 

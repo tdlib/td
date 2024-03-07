@@ -990,6 +990,7 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         case telegram_api::messageActionGiveawayLaunch::ID:
         case telegram_api::messageActionGiveawayResults::ID:
         case telegram_api::messageActionBoostApply::ID:
+        case telegram_api::messageActionRequestedPeerSentMe::ID:
           break;
         case telegram_api::messageActionChatCreate::ID: {
           auto chat_create = static_cast<const telegram_api::messageActionChatCreate *>(action);
@@ -1189,9 +1190,9 @@ void UpdatesManager::on_get_updates_impl(tl_object_ptr<telegram_api::Updates> up
       auto from_id = update->out_ ? td_->contacts_manager_->get_my_id().get() : update->user_id_;
       auto message = make_tl_object<telegram_api::message>(
           fix_short_message_flags(update->flags_), update->out_, update->mentioned_, update->media_unread_,
-          update->silent_, false, false, false, false, false, false, false, update->id_,
+          update->silent_, false, false, false, false, false, false, false, 0, false, update->id_,
           make_tl_object<telegram_api::peerUser>(from_id), 0, make_tl_object<telegram_api::peerUser>(update->user_id_),
-          nullptr, std::move(update->fwd_from_), update->via_bot_id_, std::move(update->reply_to_), update->date_,
+          nullptr, std::move(update->fwd_from_), update->via_bot_id_, 0, std::move(update->reply_to_), update->date_,
           update->message_, nullptr, nullptr, std::move(update->entities_), 0, 0, nullptr, 0, string(), 0, nullptr,
           Auto(), update->ttl_period_, 0);
       on_pending_update(
@@ -1203,10 +1204,10 @@ void UpdatesManager::on_get_updates_impl(tl_object_ptr<telegram_api::Updates> up
       auto update = move_tl_object_as<telegram_api::updateShortChatMessage>(updates_ptr);
       auto message = make_tl_object<telegram_api::message>(
           fix_short_message_flags(update->flags_), update->out_, update->mentioned_, update->media_unread_,
-          update->silent_, false, false, false, false, false, false, false, update->id_,
+          update->silent_, false, false, false, false, false, false, false, 0, false, update->id_,
           make_tl_object<telegram_api::peerUser>(update->from_id_), 0,
           make_tl_object<telegram_api::peerChat>(update->chat_id_), nullptr, std::move(update->fwd_from_),
-          update->via_bot_id_, std::move(update->reply_to_), update->date_, update->message_, nullptr, nullptr,
+          update->via_bot_id_, 0, std::move(update->reply_to_), update->date_, update->message_, nullptr, nullptr,
           std::move(update->entities_), 0, 0, nullptr, 0, string(), 0, nullptr, Auto(), update->ttl_period_, 0);
       on_pending_update(
           make_tl_object<telegram_api::updateNewMessage>(std::move(message), update->pts_, update->pts_count_), 0,
@@ -1384,6 +1385,8 @@ bool UpdatesManager::are_empty_updates(const telegram_api::Updates *updates_ptr)
 
 vector<UserId> UpdatesManager::extract_group_invite_privacy_forbidden_updates(
     tl_object_ptr<telegram_api::Updates> &updates_ptr) {
+  return {};
+  /*
   auto updates = get_updates(updates_ptr.get());
   if (updates == nullptr) {
     LOG(ERROR) << "Can't find updateGroupInvitePrivacyForbidden updates";
@@ -1407,6 +1410,7 @@ vector<UserId> UpdatesManager::extract_group_invite_privacy_forbidden_updates(
     td::remove_if(*updates, [](auto &update) { return update == nullptr; });
   }
   return user_ids;
+*/
 }
 
 FlatHashSet<int64> UpdatesManager::get_sent_messages_random_ids(const telegram_api::Updates *updates_ptr) {
@@ -4424,12 +4428,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTranscribedAudi
   promise.set_value(Unit());
 }
 
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupInvitePrivacyForbidden> update,
-                               Promise<Unit> &&promise) {
-  LOG(ERROR) << "Receive " << to_string(update);
-  promise.set_value(Unit());
-}
-
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateAutoSaveSettings> update, Promise<Unit> &&promise) {
   td_->autosave_manager_->reload_autosave_settings();
   promise.set_value(Unit());
@@ -4508,5 +4506,24 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDeleteQuickRepl
 }
 
 // unsupported updates
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotBusinessConnect> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotNewBusinessMessage> update,
+                               Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotEditBusinessMessage> update,
+                               Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotDeleteBusinessMessage> update,
+                               Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
 
 }  // namespace td

@@ -25,6 +25,16 @@ BusinessRecipients::BusinessRecipients(telegram_api::object_ptr<telegram_api::bu
   td::remove_if(user_ids_, [](UserId user_id) { return !user_id.is_valid(); });
 }
 
+BusinessRecipients::BusinessRecipients(telegram_api::object_ptr<telegram_api::businessBotRecipients> recipients)
+    : user_ids_(UserId::get_user_ids(recipients->users_))
+    , existing_chats_(recipients->existing_chats_)
+    , new_chats_(recipients->new_chats_)
+    , contacts_(recipients->contacts_)
+    , non_contacts_(recipients->non_contacts_)
+    , exclude_selected_(recipients->exclude_selected_) {
+  td::remove_if(user_ids_, [](UserId user_id) { return !user_id.is_valid(); });
+}
+
 BusinessRecipients::BusinessRecipients(td_api::object_ptr<td_api::businessRecipients> recipients) {
   if (recipients == nullptr) {
     return;
@@ -85,6 +95,39 @@ telegram_api::object_ptr<telegram_api::inputBusinessRecipients> BusinessRecipien
   return telegram_api::make_object<telegram_api::inputBusinessRecipients>(flags, false /*ignored*/, false /*ignored*/,
                                                                           false /*ignored*/, false /*ignored*/,
                                                                           false /*ignored*/, std::move(input_users));
+}
+
+telegram_api::object_ptr<telegram_api::inputBusinessBotRecipients>
+BusinessRecipients::get_input_business_bot_recipients(Td *td) const {
+  int32 flags = 0;
+  if (existing_chats_) {
+    flags |= telegram_api::inputBusinessRecipients::EXISTING_CHATS_MASK;
+  }
+  if (new_chats_) {
+    flags |= telegram_api::inputBusinessRecipients::NEW_CHATS_MASK;
+  }
+  if (contacts_) {
+    flags |= telegram_api::inputBusinessRecipients::CONTACTS_MASK;
+  }
+  if (non_contacts_) {
+    flags |= telegram_api::inputBusinessRecipients::NON_CONTACTS_MASK;
+  }
+  if (exclude_selected_) {
+    flags |= telegram_api::inputBusinessRecipients::EXCLUDE_SELECTED_MASK;
+  }
+  vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
+  for (auto user_id : user_ids_) {
+    auto r_input_user = td->contacts_manager_->get_input_user(user_id);
+    if (r_input_user.is_ok()) {
+      input_users.push_back(r_input_user.move_as_ok());
+    }
+  }
+  if (!input_users.empty()) {
+    flags |= telegram_api::inputBusinessRecipients::USERS_MASK;
+  }
+  return telegram_api::make_object<telegram_api::inputBusinessBotRecipients>(
+      flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+      std::move(input_users), Auto());
 }
 
 bool operator==(const BusinessRecipients &lhs, const BusinessRecipients &rhs) {

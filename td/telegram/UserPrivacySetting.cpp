@@ -48,6 +48,9 @@ UserPrivacySetting::UserPrivacySetting(const telegram_api::PrivacyKey &key) {
     case telegram_api::privacyKeyAbout::ID:
       type_ = Type::UserBio;
       break;
+    case telegram_api::privacyKeyBirthday::ID:
+      type_ = Type::UserBio;
+      break;
     default:
       UNREACHABLE();
       type_ = Type::UserStatus;

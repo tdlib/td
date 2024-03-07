@@ -822,7 +822,7 @@ void QuickReplyManager::on_reload_quick_reply_shortcuts(
           CHECK(is_changed);
           send_update_quick_reply_shortcut_deleted(old_shortcut);
         } else {
-          // some local messages has left
+          // some local messages left
           if (added_shortcut_names.count(old_shortcut->name_)) {
             LOG(INFO) << "Local shortcut " << old_shortcut->name_ << " has been created server-side";
             for (auto &shortcut : new_shortcuts) {

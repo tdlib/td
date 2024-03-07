@@ -1049,7 +1049,9 @@ class CreateChatQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->messages_manager_->on_create_new_dialog(result_ptr.move_as_ok(), DialogType::Chat, std::move(promise_));
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for CreateChatQuery: " << to_string(ptr);
+    td_->messages_manager_->on_create_new_dialog(std::move(ptr->updates_), DialogType::Chat, std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -2224,8 +2226,8 @@ class GetCreatedPublicChannelsQuery final : public Td::ResultHandler {
     if (check_limit) {
       flags |= telegram_api::channels_getAdminedPublicChannels::CHECK_LIMIT_MASK;
     }
-    send_query(G()->net_query_creator().create(
-        telegram_api::channels_getAdminedPublicChannels(flags, false /*ignored*/, false /*ignored*/)));
+    send_query(G()->net_query_creator().create(telegram_api::channels_getAdminedPublicChannels(
+        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -8347,9 +8349,9 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id, const cha
         false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
         false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
         false /*ignored*/, false /*ignored*/, false /*ignored*/, 0, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, false /*ignored*/, false /*ignored*/, user_id.get(), 1, first_name, string(), username,
-        phone_number, std::move(profile_photo), nullptr, bot_info_version, Auto(), string(), string(), nullptr,
-        vector<telegram_api::object_ptr<telegram_api::username>>(), 0, nullptr, nullptr);
+        false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, user_id.get(), 1, first_name,
+        string(), username, phone_number, std::move(profile_photo), nullptr, bot_info_version, Auto(), string(),
+        string(), nullptr, vector<telegram_api::object_ptr<telegram_api::username>>(), 0, nullptr, nullptr);
     on_get_user(std::move(user), "get_user_force");
     u = get_user(user_id);
     CHECK(u != nullptr && u->is_received);
