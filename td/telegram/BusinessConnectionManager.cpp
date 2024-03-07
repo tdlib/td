@@ -90,11 +90,23 @@ void BusinessConnectionManager::tear_down() {
   parent_.reset();
 }
 
-Status BusinessConnectionManager::check_business_connection_id(const BusinessConnectionId &connection_id) const {
-  if (connection_id.is_empty() || business_connections_.count(connection_id) != 0) {
+Status BusinessConnectionManager::check_business_connection(const BusinessConnectionId &connection_id,
+                                                            DialogId dialog_id) const {
+  if (connection_id.is_empty()) {
     return Status::OK();
   }
-  return Status::Error(400, "Business connection not found");
+  auto connection = business_connections_.get_pointer(connection_id);
+  if (connection == nullptr) {
+    return Status::Error(400, "Business connection not found");
+  }
+  if (dialog_id.get_type() != DialogType::User) {
+    return Status::Error(400, "Chat must be a private chat");
+  }
+  if (dialog_id == DialogId(connection->user_id_)) {
+    return Status::Error(400, "Messages must not be sent to self");
+  }
+  // no need to check connection->can_reply_ and connection->is_disabled_
+  return Status::OK();
 }
 
 void BusinessConnectionManager::on_update_bot_business_connect(
