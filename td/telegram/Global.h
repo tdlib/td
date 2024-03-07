@@ -37,6 +37,7 @@ class AuthManager;
 class AutosaveManager;
 class BackgroundManager;
 class BoostManager;
+class BusinessConnectionManager;
 class BusinessManager;
 class CallManager;
 class ConfigManager;
@@ -231,6 +232,13 @@ class Global final : public ActorContext {
   }
   void set_boost_manager(ActorId<BoostManager> boost_manager) {
     boost_manager_ = boost_manager;
+  }
+
+  ActorId<BusinessConnectionManager> business_connection_manager() const {
+    return business_connection_manager_;
+  }
+  void set_business_connection_manager(ActorId<BusinessConnectionManager> business_connection_manager) {
+    business_connection_manager_ = business_connection_manager;
   }
 
   ActorId<BusinessManager> business_manager() const {
@@ -623,6 +631,7 @@ class Global final : public ActorContext {
   ActorId<AutosaveManager> autosave_manager_;
   ActorId<BackgroundManager> background_manager_;
   ActorId<BoostManager> boost_manager_;
+  ActorId<BusinessConnectionManager> business_connection_manager_;
   ActorId<BusinessManager> business_manager_;
   ActorId<CallManager> call_manager_;
   ActorId<ConfigManager> config_manager_;

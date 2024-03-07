@@ -46,6 +46,7 @@ class AutosaveManager;
 class BackgroundManager;
 class BoostManager;
 class BotInfoManager;
+class BusinessConnectionManager;
 class BusinessManager;
 class CallManager;
 class CallbackQueriesManager;
@@ -180,6 +181,8 @@ class Td final : public Actor {
   ActorOwn<BoostManager> boost_manager_actor_;
   unique_ptr<BotInfoManager> bot_info_manager_;
   ActorOwn<BotInfoManager> bot_info_manager_actor_;
+  unique_ptr<BusinessConnectionManager> business_connection_manager_;
+  ActorOwn<BusinessConnectionManager> business_connection_manager_actor_;
   unique_ptr<BusinessManager> business_manager_;
   ActorOwn<BusinessManager> business_manager_actor_;
   unique_ptr<ChannelRecommendationManager> channel_recommendation_manager_;
