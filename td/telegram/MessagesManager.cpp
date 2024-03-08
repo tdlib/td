@@ -13135,10 +13135,8 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
   return message_info;
 }
 
-std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::create_message(Td *td,
-                                                                                          MessageInfo &&message_info,
-                                                                                          bool is_channel_message,
-                                                                                          const char *source) {
+std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::create_message(
+    Td *td, MessageInfo &&message_info, bool is_channel_message, bool is_business_message, const char *source) {
   DialogId dialog_id = message_info.dialog_id;
   MessageId message_id = message_info.message_id;
   if ((!message_id.is_valid() && !message_id.is_valid_scheduled()) || !dialog_id.is_valid()) {
@@ -13204,7 +13202,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
 
   bool is_outgoing = message_info.is_outgoing;
   bool supposed_to_be_outgoing = sender_user_id == my_id && !(dialog_id == my_dialog_id && !message_id.is_scheduled());
-  if (sender_user_id.is_valid() && supposed_to_be_outgoing != is_outgoing) {
+  if (sender_user_id.is_valid() && supposed_to_be_outgoing != is_outgoing && !is_business_message) {
     LOG(ERROR) << "Receive wrong out flag for " << message_id << " in " << dialog_id << ": me is " << my_id
                << ", but message is from " << sender_user_id;
     is_outgoing = supposed_to_be_outgoing;
@@ -13232,10 +13230,13 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   MessageId top_thread_message_id = message_info.reply_header.top_thread_message_id_;
   bool is_topic_message = message_info.reply_header.is_topic_message_;
   auto reply_to_story_full_id = message_info.reply_header.story_full_id_;
-  if (reply_to_story_full_id != StoryFullId() &&
-      (reply_to_story_full_id.get_dialog_id() != my_dialog_id && reply_to_story_full_id.get_dialog_id() != dialog_id)) {
-    LOG(ERROR) << "Receive reply to " << reply_to_story_full_id << " in " << dialog_id;
-    reply_to_story_full_id = {};
+  if (reply_to_story_full_id != StoryFullId()) {
+    auto story_dialog_id = reply_to_story_full_id.get_dialog_id();
+    if (story_dialog_id != my_dialog_id && story_dialog_id != dialog_id &&
+        story_dialog_id != DialogId(sender_user_id)) {
+      LOG(ERROR) << "Receive reply to " << reply_to_story_full_id << " in " << dialog_id;
+      reply_to_story_full_id = {};
+    }
   }
 
   UserId via_bot_user_id = message_info.via_bot_user_id;
@@ -13323,7 +13324,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   if (reactions != nullptr) {
     reactions->sort_reactions(td->messages_manager_->active_reaction_pos_);
     reactions->fix_chosen_reaction();
-    reactions->fix_my_recent_chooser_dialog_id(td->dialog_manager_->get_my_dialog_id());
+    reactions->fix_my_recent_chooser_dialog_id(my_dialog_id);
   }
 
   bool has_forward_info = message_info.forward_header != nullptr;
@@ -13436,7 +13437,9 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   Dependencies dependencies;
   td->messages_manager_->add_message_dependencies(dependencies, message.get());
   for (auto dependent_dialog_id : dependencies.get_dialog_ids()) {
-    td->dialog_manager_->force_create_dialog(dependent_dialog_id, source, true);
+    if (dependent_dialog_id != dialog_id) {
+      td->dialog_manager_->force_create_dialog(dependent_dialog_id, source, true);
+    }
   }
 
   return {dialog_id, std::move(message)};
@@ -13489,7 +13492,7 @@ MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const 
                                               const bool is_channel_message, const char *source) {
   DialogId dialog_id;
   unique_ptr<Message> new_message;
-  std::tie(dialog_id, new_message) = create_message(td_, std::move(message_info), is_channel_message, source);
+  std::tie(dialog_id, new_message) = create_message(td_, std::move(message_info), is_channel_message, false, source);
   if (new_message == nullptr) {
     return MessageFullId();
   }
@@ -22624,7 +22627,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
     DialogId dialog_id, tl_object_ptr<telegram_api::Message> &&message, DialogId &sender_dialog_id) {
   auto dialog_message = create_message(
       td_, parse_telegram_api_message(td_, std::move(message), false, "get_dialog_event_log_message_object"),
-      dialog_id.get_type() == DialogType::Channel, "get_dialog_event_log_message_object");
+      dialog_id.get_type() == DialogType::Channel, false, "get_dialog_event_log_message_object");
   const Message *m = dialog_message.second.get();
   if (m == nullptr || dialog_message.first != dialog_id) {
     LOG(ERROR) << "Failed to create event log message in " << dialog_id;
@@ -22639,7 +22642,8 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
   auto import_info = m->forward_info == nullptr ? nullptr : m->forward_info->get_message_import_info_object();
   auto interaction_info = get_message_interaction_info_object(dialog_id, m);
   auto can_be_saved = can_save_message(dialog_id, m);
-  auto via_bot_user_id = td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id");
+  auto via_bot_user_id = td_->contacts_manager_->get_user_id_object(
+      m->via_bot_user_id, "get_dialog_event_log_message_object via_bot_user_id");
   auto edit_date = m->hide_edit_date ? 0 : m->edit_date;
   auto reply_markup = get_reply_markup_object(td_->contacts_manager_.get(), m->reply_markup);
   auto content =
@@ -22654,12 +22658,61 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
       get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
 }
 
-tl_object_ptr<td_api::message> MessagesManager::get_message_object(MessageFullId message_full_id, const char *source) {
+td_api::object_ptr<td_api::message> MessagesManager::get_business_message_object(
+    telegram_api::object_ptr<telegram_api::Message> &&message) {
+  CHECK(td_->auth_manager_->is_bot());
+  auto dialog_message =
+      create_message(td_, parse_telegram_api_message(td_, std::move(message), false, "get_business_message_object"),
+                     false, true, "get_business_message_object");
+  const Message *m = dialog_message.second.get();
+  if (m == nullptr) {
+    LOG(ERROR) << "Failed to create a business message";
+    return nullptr;
+  }
+
+  auto dialog_id = dialog_message.first;
+  force_create_dialog(dialog_id, "get_business_message_object chat", true);
+
+  auto sender =
+      get_message_sender_object_const(td_, m->sender_user_id, m->sender_dialog_id, "get_business_message_object");
+  auto forward_info =
+      m->forward_info == nullptr ? nullptr : m->forward_info->get_message_forward_info_object(td_, false);
+  auto import_info = m->forward_info == nullptr ? nullptr : m->forward_info->get_message_import_info_object();
+  auto can_be_saved = can_save_message(dialog_id, m);
+  auto via_bot_user_id =
+      td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "get_business_message_object via_bot_user_id");
+  auto reply_to = [&]() -> td_api::object_ptr<td_api::MessageReplyTo> {
+    if (!m->replied_message_info.is_empty()) {
+      return m->replied_message_info.get_message_reply_to_message_object(td_, dialog_id);
+    }
+    if (m->reply_to_story_full_id.is_valid()) {
+      return td_api::make_object<td_api::messageReplyToStory>(
+          get_chat_id_object(m->reply_to_story_full_id.get_dialog_id(),
+                             "get_business_message_object messageReplyToStory"),
+          m->reply_to_story_full_id.get_story_id().get());
+    }
+    return nullptr;
+  }();
+  auto reply_markup = get_reply_markup_object(td_->contacts_manager_.get(), m->reply_markup);
+  auto content = get_message_message_content_object(dialog_id, m);
+  auto self_destruct_type = m->ttl.get_message_self_destruct_type_object();
+
+  return td_api::make_object<td_api::message>(
+      m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_business_message_object"), nullptr,
+      nullptr, m->is_outgoing, false, false, false, false, can_be_saved, false, false, false, false, false, false,
+      false, false, false, false, false, false, false, m->date, m->edit_date, std::move(forward_info),
+      std::move(import_info), nullptr, Auto(), std::move(reply_to), 0, 0, std::move(self_destruct_type), 0.0, 0.0,
+      via_bot_user_id, 0, string(), m->media_album_id, get_restriction_reason_description(m->restriction_reasons),
+      std::move(content), std::move(reply_markup));
+}
+
+td_api::object_ptr<td_api::message> MessagesManager::get_message_object(MessageFullId message_full_id,
+                                                                        const char *source) {
   return get_message_object(message_full_id.get_dialog_id(), get_message_force(message_full_id, source), source);
 }
 
-tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dialog_id, const Message *m,
-                                                                   const char *source) const {
+td_api::object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dialog_id, const Message *m,
+                                                                        const char *source) const {
   if (m == nullptr) {
     return nullptr;
   }
@@ -22729,7 +22782,8 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto can_get_viewers = can_get_message_viewers(dialog_id, m).is_ok();
   auto can_get_media_timestamp_links = can_get_media_timestamp_link(dialog_id, m).is_ok();
   auto can_report_reactions = can_report_message_reactions(dialog_id, m);
-  auto via_bot_user_id = td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id");
+  auto via_bot_user_id =
+      td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "get_message_object via_bot_user_id");
   auto reply_to = [&]() -> td_api::object_ptr<td_api::MessageReplyTo> {
     if (!m->replied_message_info.is_empty()) {
       if (!is_bot && m->is_topic_message &&
@@ -22740,7 +22794,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
     }
     if (m->reply_to_story_full_id.is_valid()) {
       return td_api::make_object<td_api::messageReplyToStory>(
-          get_chat_id_object(m->reply_to_story_full_id.get_dialog_id(), "messageReplyToStory"),
+          get_chat_id_object(m->reply_to_story_full_id.get_dialog_id(), "get_message_object messageReplyToStory"),
           m->reply_to_story_full_id.get_story_id().get());
     }
     return nullptr;
@@ -22767,9 +22821,9 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
       std::move(content), std::move(reply_markup));
 }
 
-tl_object_ptr<td_api::messages> MessagesManager::get_messages_object(int32 total_count, DialogId dialog_id,
-                                                                     const vector<MessageId> &message_ids,
-                                                                     bool skip_not_found, const char *source) {
+td_api::object_ptr<td_api::messages> MessagesManager::get_messages_object(int32 total_count, DialogId dialog_id,
+                                                                          const vector<MessageId> &message_ids,
+                                                                          bool skip_not_found, const char *source) {
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
   auto message_objects = transform(message_ids, [this, dialog_id, d, source](MessageId message_id) {
@@ -22778,18 +22832,17 @@ tl_object_ptr<td_api::messages> MessagesManager::get_messages_object(int32 total
   return get_messages_object(total_count, std::move(message_objects), skip_not_found);
 }
 
-tl_object_ptr<td_api::messages> MessagesManager::get_messages_object(int32 total_count,
-                                                                     const vector<MessageFullId> &message_full_ids,
-                                                                     bool skip_not_found, const char *source) {
+td_api::object_ptr<td_api::messages> MessagesManager::get_messages_object(int32 total_count,
+                                                                          const vector<MessageFullId> &message_full_ids,
+                                                                          bool skip_not_found, const char *source) {
   auto message_objects = transform(message_full_ids, [this, source](MessageFullId message_full_id) {
     return get_message_object(message_full_id, source);
   });
   return get_messages_object(total_count, std::move(message_objects), skip_not_found);
 }
 
-tl_object_ptr<td_api::messages> MessagesManager::get_messages_object(int32 total_count,
-                                                                     vector<tl_object_ptr<td_api::message>> &&messages,
-                                                                     bool skip_not_found) {
+td_api::object_ptr<td_api::messages> MessagesManager::get_messages_object(
+    int32 total_count, vector<tl_object_ptr<td_api::message>> &&messages, bool skip_not_found) {
   auto message_count = narrow_cast<int32>(messages.size());
   if (total_count < message_count) {
     if (total_count != -1) {

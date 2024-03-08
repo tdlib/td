@@ -787,14 +787,18 @@ class MessagesManager final : public Actor {
   td_api::object_ptr<td_api::message> get_dialog_event_log_message_object(
       DialogId dialog_id, tl_object_ptr<telegram_api::Message> &&message, DialogId &sender_dialog_id);
 
-  tl_object_ptr<td_api::message> get_message_object(MessageFullId message_full_id, const char *source);
+  td_api::object_ptr<td_api::message> get_business_message_object(
+      telegram_api::object_ptr<telegram_api::Message> &&message);
 
-  tl_object_ptr<td_api::messages> get_messages_object(int32 total_count, DialogId dialog_id,
-                                                      const vector<MessageId> &message_ids, bool skip_not_found,
-                                                      const char *source);
+  td_api::object_ptr<td_api::message> get_message_object(MessageFullId message_full_id, const char *source);
 
-  tl_object_ptr<td_api::messages> get_messages_object(int32 total_count, const vector<MessageFullId> &message_full_ids,
-                                                      bool skip_not_found, const char *source);
+  td_api::object_ptr<td_api::messages> get_messages_object(int32 total_count, DialogId dialog_id,
+                                                           const vector<MessageId> &message_ids, bool skip_not_found,
+                                                           const char *source);
+
+  td_api::object_ptr<td_api::messages> get_messages_object(int32 total_count,
+                                                           const vector<MessageFullId> &message_full_ids,
+                                                           bool skip_not_found, const char *source);
 
   void process_pts_update(tl_object_ptr<telegram_api::Update> &&update_ptr);
 
@@ -1643,7 +1647,8 @@ class MessagesManager final : public Actor {
                                                 bool is_scheduled, const char *source);
 
   static std::pair<DialogId, unique_ptr<Message>> create_message(Td *td, MessageInfo &&message_info,
-                                                                 bool is_channel_message, const char *source);
+                                                                 bool is_channel_message, bool is_business_message,
+                                                                 const char *source);
 
   MessageId find_old_message_id(DialogId dialog_id, MessageId message_id) const;
 
@@ -2380,11 +2385,12 @@ class MessagesManager final : public Actor {
   td_api::object_ptr<td_api::MessageContent> get_message_message_content_object(DialogId dialog_id,
                                                                                 const Message *m) const;
 
-  tl_object_ptr<td_api::message> get_message_object(DialogId dialog_id, const Message *m, const char *source) const;
+  td_api::object_ptr<td_api::message> get_message_object(DialogId dialog_id, const Message *m,
+                                                         const char *source) const;
 
-  static tl_object_ptr<td_api::messages> get_messages_object(int32 total_count,
-                                                             vector<tl_object_ptr<td_api::message>> &&messages,
-                                                             bool skip_not_found);
+  static td_api::object_ptr<td_api::messages> get_messages_object(int32 total_count,
+                                                                  vector<tl_object_ptr<td_api::message>> &&messages,
+                                                                  bool skip_not_found);
 
   vector<DialogId> sort_dialogs_by_order(const vector<DialogId> &dialog_ids, int32 limit) const;
 

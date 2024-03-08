@@ -6935,6 +6935,9 @@ updateAutosaveSettings scope:AutosaveSettingsScope settings:scopeAutosaveSetting
 //@description A business connection has changed; for bots only @connection New data about the connection
 updateBusinessConnection connection:businessConnection = Update;
 
+//@description A new message was added to a business account; for bots only @connection_id Unique identifier of the connection @message The new message
+updateNewBusinessMessage connection_id:string message:message = Update;
+
 //@description A new incoming inline query; for bots only
 //@id Unique query identifier
 //@sender_user_id Identifier of the user who sent the query

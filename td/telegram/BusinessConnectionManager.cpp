@@ -9,6 +9,7 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -136,6 +137,20 @@ void BusinessConnectionManager::on_update_bot_business_connect(
   send_closure(
       G()->td(), &Td::send_update,
       td_api::make_object<td_api::updateBusinessConnection>(stored_connection->get_business_connection_object(td_)));
+}
+
+void BusinessConnectionManager::on_update_bot_new_business_message(
+    const BusinessConnectionId &connection_id, telegram_api::object_ptr<telegram_api::Message> &&message) {
+  if (!td_->auth_manager_->is_bot() || !connection_id.is_valid()) {
+    LOG(ERROR) << "Receive " << to_string(message);
+    return;
+  }
+  auto message_object = td_->messages_manager_->get_business_message_object(std::move(message));
+  if (message_object == nullptr) {
+    return;
+  }
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateNewBusinessMessage>(connection_id.get(), std::move(message_object)));
 }
 
 void BusinessConnectionManager::get_business_connection(
