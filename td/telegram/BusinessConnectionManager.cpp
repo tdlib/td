@@ -153,6 +153,21 @@ void BusinessConnectionManager::on_update_bot_new_business_message(
                td_api::make_object<td_api::updateNewBusinessMessage>(connection_id.get(), std::move(message_object)));
 }
 
+void BusinessConnectionManager::on_update_bot_edit_business_message(
+    const BusinessConnectionId &connection_id, telegram_api::object_ptr<telegram_api::Message> &&message) {
+  if (!td_->auth_manager_->is_bot() || !connection_id.is_valid()) {
+    LOG(ERROR) << "Receive " << to_string(message);
+    return;
+  }
+  auto message_object = td_->messages_manager_->get_business_message_object(std::move(message));
+  if (message_object == nullptr) {
+    return;
+  }
+  send_closure(
+      G()->td(), &Td::send_update,
+      td_api::make_object<td_api::updateBusinessMessageEdited>(connection_id.get(), std::move(message_object)));
+}
+
 void BusinessConnectionManager::get_business_connection(
     const BusinessConnectionId &connection_id, Promise<td_api::object_ptr<td_api::businessConnection>> &&promise) {
   auto connection = business_connections_.get_pointer(connection_id);
