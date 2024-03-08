@@ -54,10 +54,18 @@ td_api::object_ptr<td_api::businessOpeningHours> BusinessWorkHours::get_business
   if (is_empty()) {
     return nullptr;
   }
-  return td_api::make_object<td_api::businessOpeningHours>(
-      time_zone_id_, transform(work_hours_, [](const WorkHoursInterval &interval) {
-        return interval.get_business_opening_hours_interval_object();
-      }));
+  vector<td_api::object_ptr<td_api::businessOpeningHoursInterval>> intervals;
+  for (const auto &work_hour : work_hours_) {
+    auto interval = work_hour;
+    while (interval.start_minute_ / (24 * 60) + 1 < interval.end_minute_ / (24 * 60)) {
+      auto prefix = interval;
+      prefix.end_minute_ = (interval.start_minute_ / (24 * 60) + 1) * 24 * 60;
+      interval.start_minute_ = prefix.end_minute_;
+      intervals.push_back(prefix.get_business_opening_hours_interval_object());
+    }
+    intervals.push_back(interval.get_business_opening_hours_interval_object());
+  }
+  return td_api::make_object<td_api::businessOpeningHours>(time_zone_id_, std::move(intervals));
 }
 
 telegram_api::object_ptr<telegram_api::businessWorkHours> BusinessWorkHours::get_input_business_work_hours() const {
