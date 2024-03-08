@@ -13135,7 +13135,8 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
   return message_info;
 }
 
-std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::create_message(MessageInfo &&message_info,
+std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::create_message(Td *td,
+                                                                                          MessageInfo &&message_info,
                                                                                           bool is_channel_message,
                                                                                           const char *source) {
   DialogId dialog_id = message_info.dialog_id;
@@ -13161,12 +13162,12 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
       LOG(ERROR) << "Receive invalid " << sender_user_id;
       sender_user_id = UserId();
     }
-    if (!td_->dialog_manager_->is_broadcast_channel(dialog_id) && td_->auth_manager_->is_bot()) {
+    if (!td->dialog_manager_->is_broadcast_channel(dialog_id) && td->auth_manager_->is_bot()) {
       if (dialog_id == sender_dialog_id) {
-        td_->contacts_manager_->add_anonymous_bot_user();
+        td->contacts_manager_->add_anonymous_bot_user();
       } else {
-        td_->contacts_manager_->add_service_notifications_user();
-        td_->contacts_manager_->add_channel_bot_user();
+        td->contacts_manager_->add_service_notifications_user();
+        td->contacts_manager_->add_channel_bot_user();
       }
     }
   }
@@ -13187,12 +13188,12 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
       << "Receive wrong is_channel_message for " << message_id << " in " << dialog_id;
 
   bool is_channel_post = message_info.is_channel_post;
-  if (is_channel_post && !td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
+  if (is_channel_post && !td->dialog_manager_->is_broadcast_channel(dialog_id)) {
     LOG(ERROR) << "Receive is_channel_post for " << message_id << " in " << dialog_id;
     is_channel_post = false;
   }
 
-  UserId my_id = td_->contacts_manager_->get_my_id();
+  UserId my_id = td->contacts_manager_->get_my_id();
   DialogId my_dialog_id = DialogId(my_id);
   if (dialog_id == my_dialog_id && (sender_user_id != my_id || sender_dialog_id.is_valid())) {
     LOG(ERROR) << "Receive " << sender_user_id << "/" << sender_dialog_id << " as a sender of " << message_id
@@ -13250,7 +13251,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
 
   auto content_type = message_info.content->get_type();
   if (content_type == MessageContentType::Sticker &&
-      get_message_content_sticker_type(td_, message_info.content.get()) == StickerType::CustomEmoji) {
+      get_message_content_sticker_type(td, message_info.content.get()) == StickerType::CustomEmoji) {
     LOG(INFO) << "Replace emoji sticker with an empty message";
     message_info.content =
         create_text_message_content("Invalid sticker", {}, WebPageId(), false, false, false, string());
@@ -13259,7 +13260,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   }
 
   bool hide_edit_date = message_info.hide_edit_date;
-  if (hide_edit_date && td_->auth_manager_->is_bot()) {
+  if (hide_edit_date && td->auth_manager_->is_bot()) {
     hide_edit_date = false;
   }
   if (hide_edit_date && content_type == MessageContentType::LiveLocation) {
@@ -13279,7 +13280,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
       LOG(ERROR) << "Wrong " << ttl << " received in " << message_id << " in " << dialog_id;
       ttl = {};
     } else {
-      ttl.ensure_at_least(get_message_content_duration(message_info.content.get(), td_) + 1);
+      ttl.ensure_at_least(get_message_content_duration(message_info.content.get(), td) + 1);
     }
   }
 
@@ -13303,8 +13304,9 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     LOG(ERROR) << "Wrong forward_count = " << forward_count << " received in " << message_id << " in " << dialog_id;
     forward_count = 0;
   }
-  MessageReplyInfo reply_info(td_, std::move(message_info.reply_info), td_->auth_manager_->is_bot());
-  if (!top_thread_message_id.is_valid() && is_thread_message(dialog_id, message_id, reply_info, content_type)) {
+  MessageReplyInfo reply_info(td, std::move(message_info.reply_info), td->auth_manager_->is_bot());
+  if (!top_thread_message_id.is_valid() &&
+      td->messages_manager_->is_thread_message(dialog_id, message_id, reply_info, content_type)) {
     top_thread_message_id = message_id;
     is_topic_message = (content_type == MessageContentType::TopicCreate);
   }
@@ -13317,20 +13319,14 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     is_topic_message = false;
   }
   auto reactions =
-      MessageReactions::get_message_reactions(td_, std::move(message_info.reactions), td_->auth_manager_->is_bot());
+      MessageReactions::get_message_reactions(td, std::move(message_info.reactions), td->auth_manager_->is_bot());
   if (reactions != nullptr) {
-    reactions->sort_reactions(active_reaction_pos_);
+    reactions->sort_reactions(td->messages_manager_->active_reaction_pos_);
     reactions->fix_chosen_reaction();
-    reactions->fix_my_recent_chooser_dialog_id(td_->dialog_manager_->get_my_dialog_id());
+    reactions->fix_my_recent_chooser_dialog_id(td->dialog_manager_->get_my_dialog_id());
   }
 
   bool has_forward_info = message_info.forward_header != nullptr;
-
-  if (sender_dialog_id.is_valid() && sender_dialog_id != dialog_id) {
-    CHECK(sender_dialog_id.get_type() != DialogType::User);
-    force_create_dialog(sender_dialog_id, "create_message", true);
-  }
-
   bool noforwards = message_info.noforwards;
   bool is_expired = is_expired_message_content(content_type);
   if (is_expired) {
@@ -13350,7 +13346,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
 
   bool has_mention =
       message_info.has_mention || (content_type == MessageContentType::PinMessage &&
-                                   td_->option_manager_->get_option_boolean("process_pinned_messages_as_mentions"));
+                                   td->option_manager_->get_option_boolean("process_pinned_messages_as_mentions"));
 
   LOG(INFO) << "Receive " << message_id << " in " << dialog_id << " from " << sender_user_id << "/" << sender_dialog_id;
 
@@ -13364,7 +13360,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->disable_web_page_preview = message_info.disable_web_page_preview;
   message->edit_date = edit_date;
   message->random_id = message_info.random_id;
-  message->forward_info = MessageForwardInfo::get_message_forward_info(td_, std::move(message_info.forward_header));
+  message->forward_info = MessageForwardInfo::get_message_forward_info(td, std::move(message_info.forward_header));
   message->replied_message_info = std::move(message_info.reply_header.replied_message_info_);
   message->top_thread_message_id = top_thread_message_id;
   message->is_topic_message = is_topic_message;
@@ -13377,12 +13373,12 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->is_outgoing = is_outgoing;
   message->is_channel_post = is_channel_post;
   message->contains_mention =
-      !is_outgoing && dialog_type != DialogType::User && !is_expired && has_mention && !td_->auth_manager_->is_bot();
+      !is_outgoing && dialog_type != DialogType::User && !is_expired && has_mention && !td->auth_manager_->is_bot();
   message->contains_unread_mention =
       !message_id.is_scheduled() && message_id.is_server() && message->contains_mention &&
       message_info.has_unread_content &&
       (dialog_type == DialogType::Chat ||
-       (dialog_type == DialogType::Channel && !td_->dialog_manager_->is_broadcast_channel(dialog_id)));
+       (dialog_type == DialogType::Channel && !td->dialog_manager_->is_broadcast_channel(dialog_id)));
   message->disable_notification = message_info.is_silent;
   message->is_content_secret = is_content_secret;
   message->hide_edit_date = hide_edit_date;
@@ -13397,7 +13393,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->legacy_layer = (message_info.is_legacy ? MTPROTO_LAYER : 0);
   message->invert_media = message_info.invert_media;
   message->content = std::move(message_info.content);
-  message->reply_markup = get_reply_markup(std::move(message_info.reply_markup), td_->auth_manager_->is_bot(), false,
+  message->reply_markup = get_reply_markup(std::move(message_info.reply_markup), td->auth_manager_->is_bot(), false,
                                            message->contains_mention || dialog_type == DialogType::User);
   if (message->reply_markup != nullptr && is_expired) {
     // just in case
@@ -13412,7 +13408,8 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
       if (content_type != MessageContentType::Unsupported) {
         LOG(ERROR) << "Receive media group identifier " << message_info.media_album_id << " in " << message_id
                    << " from " << dialog_id << " with content "
-                   << oneline(to_string(get_message_message_content_object(dialog_id, message.get())));
+                   << oneline(to_string(
+                          td->messages_manager_->get_message_message_content_object(dialog_id, message.get())));
       }
     } else {
       message->media_album_id = message_info.media_album_id;
@@ -13437,9 +13434,9 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   }
 
   Dependencies dependencies;
-  add_message_dependencies(dependencies, message.get());
+  td->messages_manager_->add_message_dependencies(dependencies, message.get());
   for (auto dependent_dialog_id : dependencies.get_dialog_ids()) {
-    force_create_dialog(dependent_dialog_id, source, true);
+    td->dialog_manager_->force_create_dialog(dependent_dialog_id, source, true);
   }
 
   return {dialog_id, std::move(message)};
@@ -13492,7 +13489,7 @@ MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const 
                                               const bool is_channel_message, const char *source) {
   DialogId dialog_id;
   unique_ptr<Message> new_message;
-  std::tie(dialog_id, new_message) = create_message(std::move(message_info), is_channel_message, source);
+  std::tie(dialog_id, new_message) = create_message(td_, std::move(message_info), is_channel_message, source);
   if (new_message == nullptr) {
     return MessageFullId();
   }
@@ -22625,9 +22622,9 @@ td_api::object_ptr<td_api::MessageContent> MessagesManager::get_message_message_
 
 td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_message_object(
     DialogId dialog_id, tl_object_ptr<telegram_api::Message> &&message, DialogId &sender_dialog_id) {
-  auto dialog_message =
-      create_message(parse_telegram_api_message(td_, std::move(message), false, "get_dialog_event_log_message_object"),
-                     dialog_id.get_type() == DialogType::Channel, "get_dialog_event_log_message_object");
+  auto dialog_message = create_message(
+      td_, parse_telegram_api_message(td_, std::move(message), false, "get_dialog_event_log_message_object"),
+      dialog_id.get_type() == DialogType::Channel, "get_dialog_event_log_message_object");
   const Message *m = dialog_message.second.get();
   if (m == nullptr || dialog_message.first != dialog_id) {
     LOG(ERROR) << "Failed to create event log message in " << dialog_id;
