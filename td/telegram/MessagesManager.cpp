@@ -13008,7 +13008,7 @@ void MessagesManager::finish_add_secret_message(unique_ptr<PendingSecretMessage>
 }
 
 MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
-    tl_object_ptr<telegram_api::Message> message_ptr, bool is_scheduled, const char *source) const {
+    Td *td, tl_object_ptr<telegram_api::Message> message_ptr, bool is_scheduled, const char *source) {
   LOG(DEBUG) << "Receive from " << source << " " << to_string(message_ptr);
   LOG_CHECK(message_ptr != nullptr) << source;
 
@@ -13035,8 +13035,8 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       message_info.date = message->date_;
       message_info.forward_header = std::move(message->fwd_from_);
       bool can_have_thread = message_info.dialog_id.get_type() == DialogType::Channel &&
-                             !td_->dialog_manager_->is_broadcast_channel(message_info.dialog_id);
-      message_info.reply_header = MessageReplyHeader(td_, std::move(message->reply_to_), message_info.dialog_id,
+                             !td->dialog_manager_->is_broadcast_channel(message_info.dialog_id);
+      message_info.reply_header = MessageReplyHeader(td, std::move(message->reply_to_), message_info.dialog_id,
                                                      message_info.message_id, message_info.date, can_have_thread);
       if (message->flags_ & telegram_api::message::VIA_BOT_ID_MASK) {
         message_info.via_bot_user_id = UserId(message->via_bot_id_);
@@ -13065,10 +13065,10 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       message_info.invert_media = message->invert_media_;
 
       bool is_content_read = true;
-      if (!td_->auth_manager_->is_bot()) {
+      if (!td->auth_manager_->is_bot()) {
         if (is_scheduled) {
           is_content_read = false;
-        } else if (is_message_auto_read(message_info.dialog_id, message_info.is_outgoing)) {
+        } else if (td->messages_manager_->is_message_auto_read(message_info.dialog_id, message_info.is_outgoing)) {
           is_content_read = true;
         } else {
           is_content_read = !message_info.has_unread_content;
@@ -13077,9 +13077,9 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       auto new_source = PSTRING() << MessageFullId(message_info.dialog_id, message_info.message_id) << " sent by "
                                   << message_info.sender_dialog_id << " from " << source;
       message_info.content = get_message_content(
-          td_,
-          get_message_text(td_->contacts_manager_.get(), std::move(message->message_), std::move(message->entities_),
-                           true, td_->auth_manager_->is_bot(),
+          td,
+          get_message_text(td->contacts_manager_.get(), std::move(message->message_), std::move(message->entities_),
+                           true, td->auth_manager_->is_bot(),
                            message_info.forward_header ? message_info.forward_header->date_ : message_info.date,
                            message_info.media_album_id != 0, new_source.c_str()),
           std::move(message->media_), message_info.dialog_id, message_info.date, is_content_read,
@@ -13111,15 +13111,15 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       message_info.has_mention = message->mentioned_;
       message_info.has_unread_content = message->media_unread_;
       bool can_have_thread = message_info.dialog_id.get_type() == DialogType::Channel &&
-                             !td_->dialog_manager_->is_broadcast_channel(message_info.dialog_id);
-      message_info.reply_header = MessageReplyHeader(td_, std::move(message->reply_to_), message_info.dialog_id,
+                             !td->dialog_manager_->is_broadcast_channel(message_info.dialog_id);
+      message_info.reply_header = MessageReplyHeader(td, std::move(message->reply_to_), message_info.dialog_id,
                                                      message_info.message_id, message_info.date, can_have_thread);
       message_info.content =
-          get_action_message_content(td_, std::move(message->action_), message_info.dialog_id, message_info.date,
+          get_action_message_content(td, std::move(message->action_), message_info.dialog_id, message_info.date,
                                      message_info.reply_header.replied_message_info_);
       message_info.reply_header.replied_message_info_ = RepliedMessageInfo();
       message_info.reply_header.story_full_id_ = StoryFullId();
-      if (message_info.dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
+      if (message_info.dialog_id == td->dialog_manager_->get_my_dialog_id()) {
         message_info.saved_messages_topic_id = SavedMessagesTopicId(message_info.dialog_id);
       }
       break;
@@ -13484,7 +13484,7 @@ void MessagesManager::delete_update_message_id(DialogId dialog_id, MessageId mes
 
 MessageFullId MessagesManager::on_get_message(tl_object_ptr<telegram_api::Message> message_ptr, bool from_update,
                                               bool is_channel_message, bool is_scheduled, const char *source) {
-  return on_get_message(parse_telegram_api_message(std::move(message_ptr), is_scheduled, source), from_update,
+  return on_get_message(parse_telegram_api_message(td_, std::move(message_ptr), is_scheduled, source), from_update,
                         is_channel_message, source);
 }
 
@@ -22626,7 +22626,7 @@ td_api::object_ptr<td_api::MessageContent> MessagesManager::get_message_message_
 td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_message_object(
     DialogId dialog_id, tl_object_ptr<telegram_api::Message> &&message, DialogId &sender_dialog_id) {
   auto dialog_message =
-      create_message(parse_telegram_api_message(std::move(message), false, "get_dialog_event_log_message_object"),
+      create_message(parse_telegram_api_message(td_, std::move(message), false, "get_dialog_event_log_message_object"),
                      dialog_id.get_type() == DialogType::Channel, "get_dialog_event_log_message_object");
   const Message *m = dialog_message.second.get();
   if (m == nullptr || dialog_message.first != dialog_id) {

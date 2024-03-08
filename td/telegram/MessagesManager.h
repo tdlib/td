@@ -1639,8 +1639,8 @@ class MessagesManager final : public Actor {
   void finish_delete_secret_chat_history(DialogId dialog_id, bool remove_from_dialog_list, MessageId last_message_id,
                                          Promise<Unit> promise);
 
-  MessageInfo parse_telegram_api_message(tl_object_ptr<telegram_api::Message> message_ptr, bool is_scheduled,
-                                         const char *source) const;
+  static MessageInfo parse_telegram_api_message(Td *td, tl_object_ptr<telegram_api::Message> message_ptr,
+                                                bool is_scheduled, const char *source);
 
   std::pair<DialogId, unique_ptr<Message>> create_message(MessageInfo &&message_info, bool is_channel_message,
                                                           const char *source);
