@@ -54,6 +54,10 @@ class BusinessWorkHours {
     void parse(ParserT &parser);
   };
 
+  void sanitize_work_hours();
+
+  void combine_work_hour_intervals();
+
   friend bool operator==(const WorkHoursInterval &lhs, const WorkHoursInterval &rhs);
   friend bool operator!=(const WorkHoursInterval &lhs, const WorkHoursInterval &rhs);
 

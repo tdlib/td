@@ -8,6 +8,9 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/format.h"
+#include "td/utils/logging.h"
+
+#include <algorithm>
 
 namespace td {
 
@@ -27,6 +30,7 @@ BusinessWorkHours::BusinessWorkHours(telegram_api::object_ptr<telegram_api::busi
                             [](const telegram_api::object_ptr<telegram_api::businessWeeklyOpen> &weekly_open) {
                               return WorkHoursInterval(weekly_open->start_minute_, weekly_open->end_minute_);
                             });
+    sanitize_work_hours();
     time_zone_id_ = std::move(work_hours->timezone_id_);
   }
 }
@@ -37,6 +41,7 @@ BusinessWorkHours::BusinessWorkHours(td_api::object_ptr<td_api::businessOpeningH
                             [](const td_api::object_ptr<td_api::businessOpeningHoursInterval> &interval) {
                               return WorkHoursInterval(interval->start_minute_, interval->end_minute_);
                             });
+    sanitize_work_hours();
     time_zone_id_ = std::move(work_hours->time_zone_id_);
   }
 }
@@ -63,6 +68,80 @@ telegram_api::object_ptr<telegram_api::businessWorkHours> BusinessWorkHours::get
       0, false, time_zone_id_, transform(work_hours_, [](const WorkHoursInterval &interval) {
         return interval.get_input_business_weekly_open();
       }));
+}
+
+void BusinessWorkHours::sanitize_work_hours() {
+  // remove invalid work hour intervals
+  td::remove_if(work_hours_, [](const WorkHoursInterval &interval) {
+    if (interval.start_minute_ >= interval.end_minute_ || interval.start_minute_ < 0 ||
+        interval.end_minute_ > 8 * 24 * 60) {
+      LOG(INFO) << "Ignore interval " << interval;
+      return true;
+    }
+    return false;
+  });
+
+  combine_work_hour_intervals();
+}
+
+void BusinessWorkHours::combine_work_hour_intervals() {
+  if (work_hours_.empty()) {
+    return;
+  }
+
+  // sort intervals
+  std::sort(work_hours_.begin(), work_hours_.end(), [](const WorkHoursInterval &lhs, const WorkHoursInterval &rhs) {
+    return lhs.start_minute_ < rhs.start_minute_;
+  });
+
+  // combine intersecting intervals
+  size_t j = 0;
+  for (size_t i = 1; i < work_hours_.size(); i++) {
+    CHECK(work_hours_[i].start_minute_ >= work_hours_[j].start_minute_);
+    if (work_hours_[i].start_minute_ <= work_hours_[j].end_minute_) {
+      work_hours_[j].end_minute_ = max(work_hours_[j].end_minute_, work_hours_[i].end_minute_);
+    } else {
+      work_hours_[++j] = work_hours_[i];
+    }
+  }
+  work_hours_.resize(j + 1);
+
+  // there must be no intervals longer than 1 week
+  for (auto &interval : work_hours_) {
+    interval.end_minute_ = min(interval.end_minute_, interval.start_minute_ + 7 * 24 * 60);
+  }
+
+  CHECK(!work_hours_.empty());
+
+  // if the last interval can be exactly merged with the first one, merge them
+  if (work_hours_[0].start_minute_ != 0 &&
+      work_hours_[0].start_minute_ + 7 * 24 * 60 == work_hours_.back().end_minute_) {
+    if (work_hours_.back().start_minute_ >= 7 * 24 * 60) {
+      work_hours_[0].start_minute_ = work_hours_.back().start_minute_ - 7 * 24 * 60;
+      work_hours_.pop_back();
+      CHECK(!work_hours_.empty());
+    } else {
+      work_hours_[0].start_minute_ = 0;
+      work_hours_.back().end_minute_ = 7 * 24 * 60;
+    }
+  }
+
+  // if there are intervals that intersect the first interval or start after the end of the week,
+  // then they must be normalized
+  auto max_minute = work_hours_[0].start_minute_ + 7 * 24 * 60;
+  if (work_hours_.back().end_minute_ > max_minute || work_hours_.back().start_minute_ >= 7 * 24 * 60) {
+    auto size = work_hours_.size();
+    for (size_t i = 1; i < size; i++) {
+      if (work_hours_[i].start_minute_ >= 7 * 24 * 60) {
+        work_hours_[i].start_minute_ -= 7 * 24 * 60;
+        work_hours_[i].end_minute_ -= 7 * 24 * 60;
+      } else if (work_hours_[i].end_minute_ > max_minute) {
+        work_hours_.emplace_back(max_minute - 7 * 24 * 60, work_hours_[i].end_minute_ - 7 * 24 * 60);
+        work_hours_[i].end_minute_ = max_minute;
+      }
+    }
+    combine_work_hour_intervals();
+  }
 }
 
 bool operator==(const BusinessWorkHours::WorkHoursInterval &lhs, const BusinessWorkHours::WorkHoursInterval &rhs) {
