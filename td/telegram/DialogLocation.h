@@ -42,7 +42,7 @@ class DialogLocation {
 
   td_api::object_ptr<td_api::chatLocation> get_chat_location_object() const;
 
-  td_api::object_ptr<td_api::businessLocation> DialogLocation::get_business_location_object() const;
+  td_api::object_ptr<td_api::businessLocation> get_business_location_object() const;
 
   telegram_api::object_ptr<telegram_api::InputGeoPoint> get_input_geo_point() const;
 
