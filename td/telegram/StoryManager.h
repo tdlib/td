@@ -315,6 +315,10 @@ class StoryManager final : public Actor {
   void on_get_story_views(DialogId owner_dialog_id, const vector<StoryId> &story_ids,
                           telegram_api::object_ptr<telegram_api::stories_storyViews> &&story_views);
 
+  void on_view_dialog_active_stories(vector<DialogId> dialog_ids);
+
+  void on_get_dialog_max_active_story_ids(const vector<DialogId> &dialog_ids, const vector<int32> &max_story_ids);
+
   bool have_story(StoryFullId story_full_id) const;
 
   bool have_story_force(StoryFullId story_full_id);
@@ -685,6 +689,8 @@ class StoryManager final : public Actor {
   FlatHashMap<int64, vector<Promise<Unit>>> delete_yet_unsent_story_queries_;
 
   FlatHashMap<uint32, unique_ptr<ReadyToSendStory>> ready_to_send_stories_;
+
+  FlatHashSet<DialogId, DialogIdHash> being_reloaded_active_stories_dialog_ids_;
 
   bool channels_to_send_stories_inited_ = false;
   vector<ChannelId> channels_to_send_stories_;

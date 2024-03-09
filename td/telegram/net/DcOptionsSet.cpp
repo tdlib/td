@@ -23,7 +23,7 @@
 namespace td {
 
 void DcOptionsSet::add_dc_options(DcOptions dc_options) {
-  std::vector<DcOptionId> new_ordered_options;
+  vector<DcOptionId> new_ordered_options;
   for (auto &option : dc_options.dc_options) {
     auto *info = register_dc_option(std::move(option));
     new_ordered_options.push_back(DcOptionId{info->pos});
@@ -55,8 +55,8 @@ vector<DcOptionsSet::ConnectionInfo> DcOptionsSet::find_all_connections(DcId dc_
                                                                         bool only_http) {
   LOG(DEBUG) << "Find all " << (allow_media_only ? "media " : "") << "connections in " << dc_id
              << ". use_static = " << use_static << ", prefer_ipv6 = " << prefer_ipv6 << ", only_http = " << only_http;
-  std::vector<ConnectionInfo> options;
-  std::vector<ConnectionInfo> static_options;
+  vector<ConnectionInfo> options;
+  vector<ConnectionInfo> static_options;
 
   if (prefer_ipv6) {
     use_static = false;
@@ -188,15 +188,19 @@ DcOptionsSet::DcOptionInfo *DcOptionsSet::register_dc_option(DcOption &&option) 
 
 void DcOptionsSet::init_option_stat(DcOptionInfo *option_info) {
   const auto &ip_address = option_info->option.get_ip_address();
-  auto it_ok = option_to_stat_id_.emplace(ip_address, 0);
-  if (it_ok.second) {
-    it_ok.first->second = option_stats_.create(make_unique<OptionStat>());
+  for (size_t i = 0; i < option_stats_.size(); i++) {
+    if (option_stats_[i].first == ip_address) {
+      option_info->stat_id = i;
+      return;
+    }
   }
-  option_info->stat_id = it_ok.first->second;
+  option_stats_.emplace_back(ip_address, make_unique<OptionStat>());
+  option_info->stat_id = option_stats_.size() - 1;
 }
 
 DcOptionsSet::OptionStat *DcOptionsSet::get_option_stat(const DcOptionInfo *option_info) {
-  return option_stats_.get(option_info->stat_id)->get();
+  CHECK(option_info->stat_id < option_stats_.size());
+  return option_stats_[option_info->stat_id].second.get();
 }
 
 }  // namespace td

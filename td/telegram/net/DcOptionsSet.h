@@ -10,12 +10,11 @@
 #include "td/telegram/net/DcOptions.h"
 
 #include "td/utils/common.h"
-#include "td/utils/Container.h"
 #include "td/utils/port/IPAddress.h"
 #include "td/utils/Status.h"
 #include "td/utils/Time.h"
 
-#include <map>
+#include <utility>
 
 namespace td {
 
@@ -79,8 +78,8 @@ class DcOptionsSet {
 
   struct DcOptionInfo {
     DcOption option;
-    int64 stat_id = -1;
-    size_t pos;
+    size_t stat_id = static_cast<size_t>(-1);
+    size_t pos = 0;
     size_t order = 0;
 
     DcOptionInfo(DcOption &&option, size_t pos) : option(std::move(option)), pos(pos) {
@@ -88,7 +87,7 @@ class DcOptionsSet {
   };
 
   struct DcOptionId {
-    size_t pos;
+    size_t pos = 0;
     auto as_tie() const {
       return pos;
     }
@@ -100,10 +99,9 @@ class DcOptionsSet {
     }
   };
 
-  std::vector<unique_ptr<DcOptionInfo>> options_;
-  std::vector<DcOptionId> ordered_options_;
-  std::map<IPAddress, int64> option_to_stat_id_;
-  Container<unique_ptr<OptionStat>> option_stats_;
+  vector<unique_ptr<DcOptionInfo>> options_;
+  vector<DcOptionId> ordered_options_;
+  vector<std::pair<IPAddress, unique_ptr<OptionStat>>> option_stats_;
 
   DcOptionInfo *register_dc_option(DcOption &&option);
   void init_option_stat(DcOptionInfo *option_info);

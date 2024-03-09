@@ -6,7 +6,7 @@ if (POLICY CMP0065)
   cmake_policy(SET CMP0065 NEW)
 endif()
 
-project(TDLib VERSION 1.8.25 LANGUAGES CXX C)
+project(TDLib VERSION 1.8.26 LANGUAGES CXX C)
 
 if (NOT DEFINED CMAKE_MODULE_PATH)
   set(CMAKE_MODULE_PATH "")
@@ -301,6 +301,14 @@ set(TDLIB_SOURCE
   td/telegram/BotCommandScope.cpp
   td/telegram/BotInfoManager.cpp
   td/telegram/BotMenuButton.cpp
+  td/telegram/BusinessAwayMessage.cpp
+  td/telegram/BusinessAwayMessageSchedule.cpp
+  td/telegram/BusinessConnectedBot.cpp
+  td/telegram/BusinessGreetingMessage.cpp
+  td/telegram/BusinessInfo.cpp
+  td/telegram/BusinessManager.cpp
+  td/telegram/BusinessRecipients.cpp
+  td/telegram/BusinessWorkHours.cpp
   td/telegram/CallActor.cpp
   td/telegram/CallbackQueriesManager.cpp
   td/telegram/CallDiscardReason.cpp
@@ -461,6 +469,7 @@ set(TDLIB_SOURCE
   td/telegram/PrivacyManager.cpp
   td/telegram/QueryCombiner.cpp
   td/telegram/QueryMerger.cpp
+  td/telegram/QuickReplyManager.cpp
   td/telegram/ReactionListType.cpp
   td/telegram/ReactionManager.cpp
   td/telegram/ReactionType.cpp
@@ -509,6 +518,7 @@ set(TDLIB_SOURCE
   td/telegram/TdDb.cpp
   td/telegram/TermsOfService.cpp
   td/telegram/ThemeManager.cpp
+  td/telegram/TimeZoneManager.cpp
   td/telegram/TopDialogCategory.cpp
   td/telegram/TopDialogManager.cpp
   td/telegram/TranscriptionInfo.cpp
@@ -577,6 +587,14 @@ set(TDLIB_SOURCE
   td/telegram/BotCommandScope.h
   td/telegram/BotInfoManager.h
   td/telegram/BotMenuButton.h
+  td/telegram/BusinessAwayMessage.h
+  td/telegram/BusinessAwayMessageSchedule.h
+  td/telegram/BusinessConnectedBot.h
+  td/telegram/BusinessGreetingMessage.h
+  td/telegram/BusinessInfo.h
+  td/telegram/BusinessManager.h
+  td/telegram/BusinessRecipients.h
+  td/telegram/BusinessWorkHours.h
   td/telegram/CallActor.h
   td/telegram/CallDiscardReason.h
   td/telegram/CallId.h
@@ -786,6 +804,9 @@ set(TDLIB_SOURCE
   td/telegram/PublicDialogType.h
   td/telegram/QueryCombiner.h
   td/telegram/QueryMerger.h
+  td/telegram/QuickReplyManager.h
+  td/telegram/QuickReplyMessageFullId.h
+  td/telegram/QuickReplyShortcutId.h
   td/telegram/ReactionListType.h
   td/telegram/ReactionManager.h
   td/telegram/ReactionType.h
@@ -846,6 +867,7 @@ set(TDLIB_SOURCE
   td/telegram/TdDb.h
   td/telegram/TermsOfService.h
   td/telegram/ThemeManager.h
+  td/telegram/TimeZoneManager.h
   td/telegram/TopDialogCategory.h
   td/telegram/TopDialogManager.h
   td/telegram/TranscriptionInfo.h
@@ -872,6 +894,13 @@ set(TDLIB_SOURCE
   td/telegram/AuthManager.hpp
   td/telegram/BackgroundInfo.hpp
   td/telegram/BackgroundType.hpp
+  td/telegram/BusinessAwayMessage.hpp
+  td/telegram/BusinessAwayMessageSchedule.hpp
+  td/telegram/BusinessConnectedBot.hpp
+  td/telegram/BusinessGreetingMessage.hpp
+  td/telegram/BusinessInfo.hpp
+  td/telegram/BusinessRecipients.hpp
+  td/telegram/BusinessWorkHours.hpp
   td/telegram/ChatReactions.hpp
   td/telegram/DialogNotificationSettings.hpp
   td/telegram/DialogFilter.hpp

@@ -772,6 +772,29 @@ class ReportStoryQuery final : public Td::ResultHandler {
   }
 };
 
+class GetStoriesMaxIdsQuery final : public Td::ResultHandler {
+  vector<DialogId> dialog_ids_;
+
+ public:
+  void send(vector<DialogId> dialog_ids, vector<telegram_api::object_ptr<telegram_api::InputPeer>> &&input_peers) {
+    dialog_ids_ = std::move(dialog_ids);
+    send_query(G()->net_query_creator().create(telegram_api::stories_getPeerMaxIDs(std::move(input_peers))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_getPeerMaxIDs>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    td_->story_manager_->on_get_dialog_max_active_story_ids(dialog_ids_, result_ptr.move_as_ok());
+  }
+
+  void on_error(Status status) final {
+    td_->story_manager_->on_get_dialog_max_active_story_ids(dialog_ids_, Auto());
+  }
+};
+
 class ActivateStealthModeQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -2968,7 +2991,7 @@ void StoryManager::on_get_story_interactions(
     }
   }
 
-  td_->contacts_manager_->on_view_dialog_active_stories(story_viewers.get_actor_dialog_ids());
+  on_view_dialog_active_stories(story_viewers.get_actor_dialog_ids());
   promise.set_value(story_viewers.get_story_interactions_object(td_));
 }
 
@@ -3048,7 +3071,7 @@ void StoryManager::on_get_dialog_story_interactions(
 
   StoryViewers story_viewers(td_, total_count, std::move(reaction_list->reactions_),
                              std::move(reaction_list->next_offset_));
-  td_->contacts_manager_->on_view_dialog_active_stories(story_viewers.get_actor_dialog_ids());
+  on_view_dialog_active_stories(story_viewers.get_actor_dialog_ids());
   promise.set_value(story_viewers.get_story_interactions_object(td_));
 }
 
@@ -4437,6 +4460,84 @@ void StoryManager::on_get_story_views(DialogId owner_dialog_id, const vector<Sto
   }
 }
 
+void StoryManager::on_view_dialog_active_stories(vector<DialogId> dialog_ids) {
+  if (dialog_ids.empty() || td_->auth_manager_->is_bot()) {
+    return;
+  }
+  LOG(DEBUG) << "View active stories of " << dialog_ids;
+
+  const size_t MAX_SLICE_SIZE = 100;  // server side limit
+  vector<DialogId> input_dialog_ids;
+  vector<telegram_api::object_ptr<telegram_api::InputPeer>> input_peers;
+  for (auto &dialog_id : dialog_ids) {
+    if (td::contains(input_dialog_ids, dialog_id)) {
+      continue;
+    }
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    if (input_peer == nullptr) {
+      continue;
+    }
+
+    bool need_poll = [&] {
+      switch (dialog_id.get_type()) {
+        case DialogType::User:
+          return td_->contacts_manager_->can_poll_user_active_stories(dialog_id.get_user_id());
+        case DialogType::Channel:
+          return td_->contacts_manager_->can_poll_channel_active_stories(dialog_id.get_channel_id());
+        case DialogType::Chat:
+        case DialogType::SecretChat:
+        case DialogType::None:
+        default:
+          return false;
+      }
+    }();
+    if (!need_poll) {
+      continue;
+    }
+    if (!being_reloaded_active_stories_dialog_ids_.insert(dialog_id).second) {
+      continue;
+    }
+
+    input_dialog_ids.push_back(dialog_id);
+    input_peers.push_back(std::move(input_peer));
+    if (input_peers.size() == MAX_SLICE_SIZE) {
+      td_->create_handler<GetStoriesMaxIdsQuery>()->send(std::move(input_dialog_ids), std::move(input_peers));
+      input_dialog_ids.clear();
+      input_peers.clear();
+    }
+  }
+  if (!input_peers.empty()) {
+    td_->create_handler<GetStoriesMaxIdsQuery>()->send(std::move(input_dialog_ids), std::move(input_peers));
+  }
+}
+
+void StoryManager::on_get_dialog_max_active_story_ids(const vector<DialogId> &dialog_ids,
+                                                      const vector<int32> &max_story_ids) {
+  for (auto &dialog_id : dialog_ids) {
+    auto is_deleted = being_reloaded_active_stories_dialog_ids_.erase(dialog_id) > 0;
+    CHECK(is_deleted);
+  }
+  if (dialog_ids.size() != max_story_ids.size()) {
+    if (!max_story_ids.empty()) {
+      LOG(ERROR) << "Receive " << max_story_ids.size() << " max active story identifiers for " << dialog_ids;
+    }
+    return;
+  }
+  for (size_t i = 0; i < dialog_ids.size(); i++) {
+    auto max_story_id = StoryId(max_story_ids[i]);
+    auto dialog_id = dialog_ids[i];
+    if (max_story_id == StoryId() || max_story_id.is_server()) {
+      if (dialog_id.get_type() == DialogType::User) {
+        td_->contacts_manager_->on_update_user_story_ids(dialog_id.get_user_id(), max_story_id, StoryId());
+      } else {
+        td_->contacts_manager_->on_update_channel_story_ids(dialog_id.get_channel_id(), max_story_id, StoryId());
+      }
+    } else {
+      LOG(ERROR) << "Receive " << max_story_id << " as maximum active story for " << dialog_id;
+    }
+  }
+}
+
 FileSourceId StoryManager::get_story_file_source_id(StoryFullId story_full_id) {
   if (td_->auth_manager_->is_bot()) {
     return FileSourceId();
@@ -4768,7 +4869,8 @@ void StoryManager::send_story(DialogId dialog_id, td_api::object_ptr<td_api::Inp
   if (dialog_id.get_type() == DialogType::Channel &&
       td_->contacts_manager_->is_megagroup_channel(dialog_id.get_channel_id())) {
     story->sender_dialog_id_ = td_->messages_manager_->get_dialog_default_send_message_as_dialog_id(dialog_id);
-    if (story->sender_dialog_id_ == DialogId() && !td_->dialog_manager_->is_anonymous_administrator(dialog_id, nullptr)) {
+    if (story->sender_dialog_id_ == DialogId() &&
+        !td_->dialog_manager_->is_anonymous_administrator(dialog_id, nullptr)) {
       story->sender_dialog_id_ = td_->dialog_manager_->get_my_dialog_id();
     }
   }

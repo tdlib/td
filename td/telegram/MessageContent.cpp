@@ -5907,7 +5907,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
                                                DialogId owner_dialog_id, int32 message_date, bool is_content_read,
                                                UserId via_bot_user_id, MessageSelfDestructType *ttl,
                                                bool *disable_web_page_preview, const char *source) {
-  if (!td->auth_manager_->was_authorized() && !G()->close_flag() && media_ptr != nullptr &&
+  if (!G()->close_flag() && !td->auth_manager_->was_authorized() && media_ptr != nullptr &&
       media_ptr->get_id() != telegram_api::messageMediaEmpty::ID) {
     LOG(ERROR) << "Receive without authorization from " << source << ": " << to_string(media_ptr);
     media_ptr = nullptr;

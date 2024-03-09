@@ -12,6 +12,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogInviteLink.h"
 #include "td/telegram/DialogParticipant.h"
+#include "td/telegram/DialogParticipantFilter.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
@@ -24,7 +25,11 @@
 #include "td/utils/Promise.h"
 #include "td/utils/Status.h"
 
+#include <utility>
+
 namespace td {
+
+class ChannelParticipantFilter;
 
 class Td;
 
@@ -37,9 +42,20 @@ class DialogParticipantManager final : public Actor {
   DialogParticipantManager &operator=(DialogParticipantManager &&) = delete;
   ~DialogParticipantManager() final;
 
-  static constexpr int32 ONLINE_MEMBER_COUNT_CACHE_EXPIRE_TIME = 30 * 60;
+  void update_user_online_member_count(UserId user_id);
+
+  void update_dialog_online_member_count(const vector<DialogParticipant> &participants, DialogId dialog_id,
+                                         bool is_from_server);
 
   void on_update_dialog_online_member_count(DialogId dialog_id, int32 online_member_count, bool is_from_server);
+
+  void add_cached_channel_participants(ChannelId channel_id, const vector<UserId> &added_user_ids,
+                                       UserId inviter_user_id, int32 date);
+
+  void delete_cached_channel_participant(ChannelId channel_id, UserId deleted_user_id);
+
+  void update_cached_channel_participant_status(ChannelId channel_id, UserId user_id,
+                                                const DialogParticipantStatus &status);
 
   void on_dialog_opened(DialogId dialog_id);
 
@@ -86,6 +102,13 @@ class DialogParticipantManager final : public Actor {
   void get_channel_participant(ChannelId channel_id, DialogId participant_dialog_id,
                                Promise<DialogParticipant> &&promise);
 
+  void get_channel_participants(ChannelId channel_id, td_api::object_ptr<td_api::SupergroupMembersFilter> &&filter,
+                                string additional_query, int32 offset, int32 limit, int32 additional_limit,
+                                Promise<DialogParticipants> &&promise);
+
+  void search_dialog_participants(DialogId dialog_id, const string &query, int32 limit, DialogParticipantFilter filter,
+                                  Promise<DialogParticipants> &&promise);
+
   void add_dialog_participant(DialogId dialog_id, UserId user_id, int32 forward_limit, Promise<Unit> &&promise);
 
   void add_dialog_participants(DialogId dialog_id, const vector<UserId> &user_ids, Promise<Unit> &&promise);
@@ -111,14 +134,30 @@ class DialogParticipantManager final : public Actor {
 
   void drop_channel_participant_cache(ChannelId channel_id);
 
+  struct CanTransferOwnershipResult {
+    enum class Type : uint8 { Ok, PasswordNeeded, PasswordTooFresh, SessionTooFresh };
+    Type type = Type::Ok;
+    int32 retry_after = 0;
+  };
+  void can_transfer_ownership(Promise<CanTransferOwnershipResult> &&promise);
+
+  static td_api::object_ptr<td_api::CanTransferOwnershipResult> get_can_transfer_ownership_result_object(
+      CanTransferOwnershipResult result);
+
+  void transfer_dialog_ownership(DialogId dialog_id, UserId user_id, const string &password, Promise<Unit> &&promise);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
-  void tear_down() final;
+  static constexpr int32 ONLINE_MEMBER_COUNT_CACHE_EXPIRE_TIME = 30 * 60;
 
   static constexpr int32 ONLINE_MEMBER_COUNT_UPDATE_TIME = 5 * 60;
 
   static constexpr int32 CHANNEL_PARTICIPANT_CACHE_TIME = 1800;  // some reasonable limit
+
+  static constexpr int32 MAX_GET_CHANNEL_PARTICIPANTS = 200;  // server side limit
+
+  void tear_down() final;
 
   static void on_update_dialog_online_member_count_timeout_callback(void *dialog_participant_manager_ptr,
                                                                     int64 dialog_id_int);
@@ -161,6 +200,33 @@ class DialogParticipantManager final : public Actor {
   void finish_get_channel_participant(ChannelId channel_id, DialogParticipant &&dialog_participant,
                                       Promise<DialogParticipant> &&promise);
 
+  std::pair<int32, vector<DialogId>> search_among_dialogs(const vector<DialogId> &dialog_ids, const string &query,
+                                                          int32 limit) const;
+
+  DialogParticipants search_private_chat_participants(UserId peer_user_id, const string &query, int32 limit,
+                                                      DialogParticipantFilter filter) const;
+
+  void search_chat_participants(ChatId chat_id, const string &query, int32 limit, DialogParticipantFilter filter,
+                                Promise<DialogParticipants> &&promise);
+
+  void do_search_chat_participants(ChatId chat_id, const string &query, int32 limit, DialogParticipantFilter filter,
+                                   Promise<DialogParticipants> &&promise);
+
+  void on_get_channel_participants(
+      ChannelId channel_id, ChannelParticipantFilter &&filter, int32 offset, int32 limit, string additional_query,
+      int32 additional_limit,
+      telegram_api::object_ptr<telegram_api::channels_channelParticipants> &&channel_participants,
+      Promise<DialogParticipants> &&promise);
+
+  void set_chat_participant_status(ChatId chat_id, UserId user_id, DialogParticipantStatus status, bool is_recursive,
+                                   Promise<Unit> &&promise);
+
+  void add_chat_participant(ChatId chat_id, UserId user_id, int32 forward_limit, Promise<Unit> &&promise);
+
+  void send_edit_chat_admin_query(ChatId chat_id, UserId user_id, bool is_administrator, Promise<Unit> &&promise);
+
+  void delete_chat_participant(ChatId chat_id, UserId user_id, bool revoke_messages, Promise<Unit> &&promise);
+
   void add_channel_participant(ChannelId channel_id, UserId user_id, const DialogParticipantStatus &old_status,
                                Promise<Unit> &&promise);
 
@@ -196,12 +262,27 @@ class DialogParticipantManager final : public Actor {
 
   void on_channel_participant_cache_timeout(ChannelId channel_id);
 
+  void set_cached_channel_participants(ChannelId channel_id, vector<DialogParticipant> participants);
+
+  void drop_cached_channel_participants(ChannelId channel_id);
+
+  void update_channel_online_member_count(ChannelId channel_id, bool is_from_server);
+
+  void transfer_channel_ownership(ChannelId channel_id, UserId user_id,
+                                  tl_object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password,
+                                  Promise<Unit> &&promise);
+
   struct OnlineMemberCountInfo {
     int32 online_member_count = 0;
     double update_time = 0;
     bool is_update_sent = false;
   };
   FlatHashMap<DialogId, OnlineMemberCountInfo, DialogIdHash> dialog_online_member_counts_;
+
+  struct UserOnlineMemberDialogs {
+    FlatHashMap<DialogId, int32, DialogIdHash> online_member_dialogs_;  // dialog_id -> time
+  };
+  FlatHashMap<UserId, unique_ptr<UserOnlineMemberDialogs>, UserIdHash> user_online_member_dialogs_;
 
   FlatHashMap<DialogId, vector<DialogAdministrator>, DialogIdHash> dialog_administrators_;
 
@@ -215,6 +296,8 @@ class DialogParticipantManager final : public Actor {
     FlatHashMap<DialogId, ChannelParticipantInfo, DialogIdHash> participants_;
   };
   FlatHashMap<ChannelId, ChannelParticipants, ChannelIdHash> channel_participants_;
+
+  FlatHashMap<ChannelId, vector<DialogParticipant>, ChannelIdHash> cached_channel_participants_;
 
   FlatHashMap<ChannelId, vector<Promise<Unit>>, ChannelIdHash> join_channel_queries_;
 

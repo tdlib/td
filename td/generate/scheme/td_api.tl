@@ -576,6 +576,67 @@ botMenuButton text:string url:string = BotMenuButton;
 chatLocation location:location address:string = ChatLocation;
 
 
+//@class BusinessAwayMessageSchedule @description Describes conditions for sending of away messages by a Telegram Business account
+
+//@description Send away messages always
+businessAwayMessageScheduleAlways = BusinessAwayMessageSchedule;
+
+//@description Send away messages outside of the business opening hours
+businessAwayMessageScheduleOutsideOfOpeningHours = BusinessAwayMessageSchedule;
+
+//@description Send away messages only in the specified time span
+//@start_date Point in time (Unix timestamp) when the away messages will start to be sent
+//@end_date Point in time (Unix timestamp) when the away messages will stop to be sent
+businessAwayMessageScheduleCustom start_date:int32 end_date:int32 = BusinessAwayMessageSchedule;
+
+
+//@description Represents a location of a business @location The location; may be null if not specified @address Location address; 1-96 characters
+businessLocation location:location address:string = BusinessLocation;
+
+//@description Describes private chats chosen for automatic interaction with a business
+//@chat_ids Identifiers of selected private chats
+//@select_existing_chats True, if all existing private chats are selected
+//@select_new_chats True, if all new private chats are selected
+//@select_contacts True, if all private chats with contacts are selected
+//@select_non_contacts True, if all private chats with non-contacts are selected
+//@exclude_selected If true, then all private chats except the selected are chosen. Otherwise, only the selected chats are chosen
+businessRecipients chat_ids:vector<int53> select_existing_chats:Bool select_new_chats:Bool select_contacts:Bool select_non_contacts:Bool exclude_selected:Bool = BusinessRecipients;
+
+//@description Describes settings for messages that are automatically sent by a Telegram Business account when it is away
+//@shortcut_id Unique quick reply shortcut identifier for the away messages
+//@recipients Chosen recipients of the away messages
+//@schedule Settings used to check whether the current user is away
+//@offline_only True, if the messages must not be sent if the account was online in the last 10 minutes
+businessAwayMessageSettings shortcut_id:int32 recipients:businessRecipients schedule:BusinessAwayMessageSchedule offline_only:Bool = BusinessAwayMessageSettings;
+
+//@description Describes settings for greeting messages that are automatically sent by a Telegram Business account as response to incoming messages in an inactive private chat
+//@shortcut_id Unique quick reply shortcut identifier for the greeting messages
+//@recipients Chosen recipients of the greeting messages
+//@inactivity_days The number of days after which a chat will be considered as inactive; currently, must be on of 7, 14, 21, or 28
+businessGreetingMessageSettings shortcut_id:int32 recipients:businessRecipients inactivity_days:int32 = BusinessGreetingMessageSettings;
+
+//@description Describes a bot connected to a business account
+//@bot_user_id User identifier of the bot
+//@recipients Private chats that will be accessible to the bot
+//@can_reply True, if the bot can send messages to the private chats; false otherwise
+businessConnectedBot bot_user_id:int53 recipients:businessRecipients can_reply:Bool = BusinessConnectedBot;
+
+//@description Describes an interval of time when the business is open
+//@start_minute The first minute of the interval since start of the week; 0-7*24*60
+//@end_minute The first minute after the end of the interval since start of the week; 1-8*24*60
+businessOpeningHoursInterval start_minute:int32 end_minute:int32 = BusinessOpeningHoursInterval;
+
+//@description Describes opening hours of a business @time_zone_id Unique time zone identifier @opening_hours Intervals of the time when the business is open
+businessOpeningHours time_zone_id:string opening_hours:vector<businessOpeningHoursInterval> = BusinessOpeningHours;
+
+//@description Contains information about a Telegram Business account
+//@location Location of the business; may be null if none
+//@opening_hours Opening hours of the business; may be null if none. The hours are guaranteed to be valid and has already been split by week days
+//@greeting_message_settings The greeting message; may be null if none or the Business account is not of the current user
+//@away_message_settings The away message; may be null if none or the Business account is not of the current user
+businessInfo location:businessLocation opening_hours:businessOpeningHours greeting_message_settings:businessGreetingMessageSettings away_message_settings:businessAwayMessageSettings = BusinessInfo;
+
+
 //@class ChatPhotoStickerType @description Describes type of a sticker, which was used to create a chat photo
 
 //@description Information about the sticker, which was used to create the chat photo
@@ -847,8 +908,9 @@ botInfo short_description:string description:string photo:photo animation:animat
 //@bio A short user bio; may be null for bots
 //@premium_gift_options The list of available options for gifting Telegram Premium to the user
 //@group_in_common_count Number of group chats where both the other user and the current user are a member; 0 for the current user
+//@business_info Information about business settings for Telegram Business accounts; may be null if none
 //@bot_info For bots, information about the bot; may be null if the user isn't a bot
-userFullInfo personal_photo:chatPhoto photo:chatPhoto public_photo:chatPhoto block_list:BlockList can_be_called:Bool supports_video_calls:Bool has_private_calls:Bool has_private_forwards:Bool has_restricted_voice_and_video_note_messages:Bool has_pinned_stories:Bool need_phone_number_privacy_exception:Bool set_chat_background:Bool bio:formattedText premium_gift_options:vector<premiumPaymentOption> group_in_common_count:int32 bot_info:botInfo = UserFullInfo;
+userFullInfo personal_photo:chatPhoto photo:chatPhoto public_photo:chatPhoto block_list:BlockList can_be_called:Bool supports_video_calls:Bool has_private_calls:Bool has_private_forwards:Bool has_restricted_voice_and_video_note_messages:Bool has_pinned_stories:Bool need_phone_number_privacy_exception:Bool set_chat_background:Bool bio:formattedText premium_gift_options:vector<premiumPaymentOption> group_in_common_count:int32 business_info:businessInfo bot_info:botInfo = UserFullInfo;
 
 //@description Represents a list of users @total_count Approximate total number of users found @user_ids A list of user identifiers
 users total_count:int32 user_ids:vector<int53> = Users;
@@ -1560,6 +1622,7 @@ chatFolderIcon name:string = ChatFolderIcon;
 //@description Represents a folder for user chats
 //@title The title of the folder; 1-12 characters without line feeds
 //@icon The chosen icon for the chat folder; may be null. If null, use getChatFolderDefaultIconName to get default icon name for the folder
+//@color_id The identifier of the chosen color for the chat folder icon; from -1 to 6. If -1, then color is didabled
 //@is_shareable True, if at least one link has been created for the folder
 //@pinned_chat_ids The chat identifiers of pinned chats in the folder. There can be up to getOption("chat_folder_chosen_chat_count_max") pinned and always included non-secret chats and the same number of secret chats, but the limit can be increased with Telegram Premium
 //@included_chat_ids The chat identifiers of always included chats in the folder. There can be up to getOption("chat_folder_chosen_chat_count_max") pinned and always included non-secret chats and the same number of secret chats, but the limit can be increased with Telegram Premium
@@ -1572,15 +1635,16 @@ chatFolderIcon name:string = ChatFolderIcon;
 //@include_bots True, if bots need to be included
 //@include_groups True, if basic groups and supergroups need to be included
 //@include_channels True, if channels need to be included
-chatFolder title:string icon:chatFolderIcon is_shareable:Bool pinned_chat_ids:vector<int53> included_chat_ids:vector<int53> excluded_chat_ids:vector<int53> exclude_muted:Bool exclude_read:Bool exclude_archived:Bool include_contacts:Bool include_non_contacts:Bool include_bots:Bool include_groups:Bool include_channels:Bool = ChatFolder;
+chatFolder title:string icon:chatFolderIcon color_id:int32 is_shareable:Bool pinned_chat_ids:vector<int53> included_chat_ids:vector<int53> excluded_chat_ids:vector<int53> exclude_muted:Bool exclude_read:Bool exclude_archived:Bool include_contacts:Bool include_non_contacts:Bool include_bots:Bool include_groups:Bool include_channels:Bool = ChatFolder;
 
 //@description Contains basic information about a chat folder
 //@id Unique chat folder identifier
 //@title The title of the folder; 1-12 characters without line feeds
 //@icon The chosen or default icon for the chat folder
+//@color_id The identifier of the chosen color for the chat folder icon; from -1 to 6. If -1, then color is didabled
 //@is_shareable True, if at least one link has been created for the folder
 //@has_my_invite_links True, if the chat folder has invite links created by the current user
-chatFolderInfo id:int32 title:string icon:chatFolderIcon is_shareable:Bool has_my_invite_links:Bool = ChatFolderInfo;
+chatFolderInfo id:int32 title:string icon:chatFolderIcon color_id:int32 is_shareable:Bool has_my_invite_links:Bool = ChatFolderInfo;
 
 //@description Contains a chat folder invite link
 //@invite_link The chat folder invite link
@@ -1680,6 +1744,7 @@ videoChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@permissions Actions that non-administrator chat members are allowed to take in the chat
 //@last_message Last message in the chat; may be null if none or unknown
 //@positions Positions of the chat in chat lists
+//@chat_lists Chat lists to which the chat belongs. A chat can have a non-zero position in a chat list even it doesn't belong to the chat list and have no position in a chat list even it belongs to the chat list
 //@message_sender_id Identifier of a user or chat that is selected to send messages in the chat; may be null if the user can't change message sender
 //@block_list Block list to which the chat is added; may be null if none
 //@has_protected_content True, if chat content can't be saved locally, forwarded, or copied
@@ -1708,7 +1773,7 @@ videoChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat
 //@draft_message A draft of a message in the chat; may be null if none
 //@client_data Application-specific data associated with the chat. (For example, the chat scroll position or local chat notification settings can be stored here.) Persistent if the message database is used
-chat id:int53 type:ChatType title:string photo:chatPhotoInfo accent_color_id:int32 background_custom_emoji_id:int64 profile_accent_color_id:int32 profile_background_custom_emoji_id:int64 permissions:chatPermissions last_message:message positions:vector<chatPosition> message_sender_id:MessageSender block_list:BlockList has_protected_content:Bool is_translatable:Bool is_marked_as_unread:Bool view_as_topics:Bool has_scheduled_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 unread_reaction_count:int32 notification_settings:chatNotificationSettings available_reactions:ChatAvailableReactions message_auto_delete_time:int32 emoji_status:emojiStatus background:chatBackground theme_name:string action_bar:ChatActionBar video_chat:videoChat pending_join_requests:chatJoinRequestsInfo reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
+chat id:int53 type:ChatType title:string photo:chatPhotoInfo accent_color_id:int32 background_custom_emoji_id:int64 profile_accent_color_id:int32 profile_background_custom_emoji_id:int64 permissions:chatPermissions last_message:message positions:vector<chatPosition> chat_lists:vector<ChatList> message_sender_id:MessageSender block_list:BlockList has_protected_content:Bool is_translatable:Bool is_marked_as_unread:Bool view_as_topics:Bool has_scheduled_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 unread_reaction_count:int32 notification_settings:chatNotificationSettings available_reactions:ChatAvailableReactions message_auto_delete_time:int32 emoji_status:emojiStatus background:chatBackground theme_name:string action_bar:ChatActionBar video_chat:videoChat pending_join_requests:chatJoinRequestsInfo reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
 
 //@description Represents a list of chats @total_count Approximate total number of chats found @chat_ids List of chat identifiers
 chats total_count:int32 chat_ids:vector<int53> = Chats;
@@ -3711,6 +3776,25 @@ storyInteraction actor_id:MessageSender interaction_date:int32 block_list:BlockL
 storyInteractions total_count:int32 total_forward_count:int32 total_reaction_count:int32 interactions:vector<storyInteraction> next_offset:string = StoryInteractions;
 
 
+//@description Describes a message that can be used for quick reply
+//@id Unique message identifier among all quick replies
+//@sending_state The sending state of the message; may be null if the message isn't being sent and didn't fail to be sent
+//@can_be_edited True, if the message can be edited
+//@reply_to_message_id Information about the identifier of the quick reply message to which the message replies
+//@via_bot_user_id If non-zero, the user identifier of the bot through which this message was sent
+//@media_album_id Unique identifier of an album this message belongs to. Only audios, documents, photos and videos can be grouped together in albums
+//@content Content of the message
+//@reply_markup Inline keyboard reply markup for the message; may be null if none
+quickReplyMessage id:int53 sending_state:MessageSendingState can_be_edited:Bool reply_to_message_id:int53 via_bot_user_id:int53 media_album_id:int64 content:MessageContent reply_markup:ReplyMarkup = QuickReplyMessage;
+
+//@description Describes a shortcut that can be used for a quick reply
+//@id Unique shortcut identifier
+//@name The name of the shortcut that can be used to use the shortcut
+//@first_message The first shortcut message
+//@message_count The total number of messages in the shortcut
+quickReplyShortcut id:int32 name:string first_message:quickReplyMessage message_count:int32 = QuickReplyShortcut;
+
+
 //@class PublicForward @description Describes a public forward or repost of a story
 
 //@description Contains a public forward as a message @message Information about the message
@@ -5019,6 +5103,16 @@ themeSettings accent_color:int32 background:background outgoing_message_fill:Bac
 //@light_settings Theme settings for a light chat theme
 //@dark_settings Theme settings for a dark chat theme
 chatTheme name:string light_settings:themeSettings dark_settings:themeSettings = ChatTheme;
+
+
+//@description Describes a time zone
+//@id Unique time zone identifier
+//@name Time zone name
+//@utc_time_offset Current UTC time offset for the time zone
+timeZone id:string name:string utc_time_offset:int32 = TimeZone;
+
+//@description Contains a list of time zones @time_zones A list of time zones
+timeZones time_zones:vector<timeZone> = TimeZones;
 
 
 //@description Contains a list of hashtags @hashtags A list of hashtags
@@ -6450,6 +6544,12 @@ updateChatLastMessage chat_id:int53 last_message:message positions:vector<chatPo
 //@position New chat position. If new order is 0, then the chat needs to be removed from the list
 updateChatPosition chat_id:int53 position:chatPosition = Update;
 
+//@description A chat was added to a chat list @chat_id Chat identifier @chat_list The chat list to which the chat was added
+updateChatAddedToList chat_id:int53 chat_list:ChatList = Update;
+
+//@description A chat was removed from a chat list @chat_id Chat identifier @chat_list The chat list from which the chat was removed
+updateChatRemovedFromList chat_id:int53 chat_list:ChatList = Update;
+
 //@description Incoming messages were read or the number of unread messages has been changed @chat_id Chat identifier @last_read_inbox_message_id Identifier of the last read incoming message @unread_count The number of unread messages left in the chat
 updateChatReadInbox chat_id:int53 last_read_inbox_message_id:int53 unread_count:int32 = Update;
 
@@ -6526,8 +6626,11 @@ updateChatBlockList chat_id:int53 block_list:BlockList = Update;
 //@description A chat's has_scheduled_messages field has changed @chat_id Chat identifier @has_scheduled_messages New value of has_scheduled_messages
 updateChatHasScheduledMessages chat_id:int53 has_scheduled_messages:Bool = Update;
 
-//@description The list of chat folders or a chat folder has changed @chat_folders The new list of chat folders @main_chat_list_position Position of the main chat list among chat folders, 0-based
-updateChatFolders chat_folders:vector<chatFolderInfo> main_chat_list_position:int32 = Update;
+//@description The list of chat folders or a chat folder has changed
+//@chat_folders The new list of chat folders
+//@main_chat_list_position Position of the main chat list among chat folders, 0-based
+//@are_tags_enabled True, if folder tags are enabled
+updateChatFolders chat_folders:vector<chatFolderInfo> main_chat_list_position:int32 are_tags_enabled:Bool = Update;
 
 //@description The number of online group members has changed. This update with non-zero number of online group members is sent only for currently opened chats.
 //-There is no guarantee that it is sent just after the number of online users has changed
@@ -6541,6 +6644,21 @@ updateSavedMessagesTopic topic:savedMessagesTopic = Update;
 
 //@description Number of Saved Messages topics has changed @topic_count Approximate total number of Saved Messages topics
 updateSavedMessagesTopicCount topic_count:int32 = Update;
+
+//@description Basic information about a quick reply shortcut has changed. This update is guaranteed to come before the quick shortcut name is returned to the application
+//@shortcut New data about the shortcut
+updateQuickReplyShortcut shortcut:quickReplyShortcut = Update;
+
+//@description A quick reply shortcut and all its messages were deleted @shortcut_id The identifier of the deleted shortcut
+updateQuickReplyShortcutDeleted shortcut_id:int32 = Update;
+
+//@description The list of quick reply shortcuts has changed @shortcut_ids The new list of identifiers of quick reply shortcuts
+updateQuickReplyShortcuts shortcut_ids:vector<int32> = Update;
+
+//@description The list of quick reply shortcut messages has changed
+//@shortcut_id The identifier of the shortcut
+//@messages The new list of quick reply messages for the shortcut in order from the first to the last sent
+updateQuickReplyShortcutMessages shortcut_id:int32 messages:vector<quickReplyMessage> = Update;
 
 //@description Basic information about a topic in a forum chat was changed @chat_id Chat identifier @info New information about the topic
 updateForumTopicInfo chat_id:int53 info:forumTopicInfo = Update;
@@ -7565,6 +7683,12 @@ sendInlineQueryResultMessage chat_id:int53 message_thread_id:int53 reply_to:Inpu
 //@remove_caption Pass true to remove media captions of message copies. Ignored if send_copy is false
 forwardMessages chat_id:int53 message_thread_id:int53 from_chat_id:int53 message_ids:vector<int53> options:messageSendOptions send_copy:Bool remove_caption:Bool = Messages;
 
+//@description Sends messages from a quick reply shortcut. Requires Telegram Business subscription
+//@chat_id Identifier of the chat to which to send messages. The chat must be a private chat with a regular user
+//@shortcut_id Unique identifier of the quick reply shortcut
+//@sending_id Non-persistent identifier, which will be returned back in messageSendingStatePending object and can be used to match sent messages and corresponding updateNewMessage updates
+sendQuickReplyShortcutMessages chat_id:int53 shortcut_id:int32 sending_id:int32 = Messages;
+
 //@description Resends messages which failed to send. Can be called only for messages for which messageSendingStateFailed.can_retry is true and after specified in messageSendingStateFailed.retry_after time passed.
 //-If a message is re-sent, the corresponding failed to send message is deleted. Returns the sent messages in the same order as the message identifiers passed in message_ids. If a message can't be re-sent, null will be returned instead of the message
 //@chat_id Identifier of the chat to send messages
@@ -7667,6 +7791,31 @@ editInlineMessageReplyMarkup inline_message_id:string reply_markup:ReplyMarkup =
 //@message_id Identifier of the message
 //@scheduling_state The new message scheduling state; pass null to send the message immediately
 editMessageSchedulingState chat_id:int53 message_id:int53 scheduling_state:MessageSchedulingState = Ok;
+
+
+//@description Checks validness of a name for a quick reply shortcut. Can be called synchronously @name The name of the shortcut; 1-32 characters
+checkQuickReplyShortcutName name:string = Ok;
+
+//@description Loads quick reply shortcuts created by the current user. The loaded topics will be sent through updateQuickReplyShortcuts
+loadQuickReplyShortcuts = Ok;
+
+//@description Changes name of a quick reply shortcut @shortcut_id Unique identifier of the quick reply shortcut @name New name for the shortcut. Use checkQuickReplyShortcutName to check its validness
+setQuickReplyShortcutName shortcut_id:int32 name:string = Ok;
+
+//@description Deletes a quick reply shortcut @shortcut_id Unique identifier of the quick reply shortcut
+deleteQuickReplyShortcut shortcut_id:int32 = Ok;
+
+//@description Changes the order of quick reply shortcuts @shortcut_ids The new order of quick reply shortcuts
+reorderQuickReplyShortcuts shortcut_ids:vector<int32> = Ok;
+
+//@description Loads quick reply messages that can be sent by a given quick reply shortcut. The loaded messages will be sent through updateQuickReplyShortcutMessages
+//@shortcut_id Unique identifier of the quick reply shortcut
+loadQuickReplyShortcutMessages shortcut_id:int32 = Ok;
+
+//@description Deletes specified quick reply messages
+//@shortcut_id Unique identifier of the quick reply shortcut to which the messages belong
+//@message_ids Unique identifiers of the messages
+deleteQuickReplyShortcutMessages shortcut_id:int32 message_ids:vector<int53> = Ok;
 
 
 //@description Returns list of custom emojis, which can be used as forum topic icon by all users
@@ -8131,6 +8280,9 @@ getChatFolderChatCount folder:chatFolder = Count;
 
 //@description Changes the order of chat folders @chat_folder_ids Identifiers of chat folders in the new correct order @main_chat_list_position Position of the main chat list among chat folders, 0-based. Can be non-zero only for Premium users
 reorderChatFolders chat_folder_ids:vector<int32> main_chat_list_position:int32 = Ok;
+
+//@description Toggles whether chat folder tags are enabled @are_tags_enabled Pass true to enable folder tags; pass false to disable them
+toggleChatFolderTags are_tags_enabled:Bool = Ok;
 
 //@description Returns recommended chat folders for the current user
 getRecommendedChatFolders = RecommendedChatFolders;
@@ -9106,7 +9258,7 @@ reorderInstalledStickerSets sticker_type:StickerType sticker_set_ids:vector<int6
 getRecentStickers is_attached:Bool = Stickers;
 
 //@description Manually adds a new sticker to the list of recently used stickers. The new sticker is added to the top of the list. If the sticker was already in the list, it is removed from the list first.
-//-Only stickers belonging to a sticker set can be added to this list. Emoji stickers can't be added to recent stickers
+//-Only stickers belonging to a sticker set or in WEBP format can be added to this list. Emoji stickers can't be added to recent stickers
 //@is_attached Pass true to add the sticker to the list of stickers recently attached to photo or video files; pass false to add the sticker to the list of recently sent stickers
 //@sticker Sticker file to add
 addRecentSticker is_attached:Bool sticker:InputFile = Stickers;
@@ -9121,7 +9273,7 @@ clearRecentStickers is_attached:Bool = Ok;
 getFavoriteStickers = Stickers;
 
 //@description Adds a new sticker to the list of favorite stickers. The new sticker is added to the top of the list. If the sticker was already in the list, it is removed from the list first.
-//-Only stickers belonging to a sticker set can be added to this list. Emoji stickers can't be added to favorite stickers
+//-Only stickers belonging to a sticker set or in WEBP format can be added to this list. Emoji stickers can't be added to favorite stickers
 //@sticker Sticker file to add
 addFavoriteSticker sticker:InputFile = Ok;
 
@@ -9233,8 +9385,20 @@ reorderActiveUsernames usernames:vector<string> = Ok;
 //@description Changes the emoji status of the current user; for Telegram Premium users only @emoji_status New emoji status; pass null to switch to the default badge
 setEmojiStatus emoji_status:emojiStatus = Ok;
 
-//@description Changes the location of the current user. Needs to be called if getOption("is_location_visible") is true and location changes for more than 1 kilometer @location The new location of the user
+//@description Changes the location of the current user. Needs to be called if getOption("is_location_visible") is true and location changes for more than 1 kilometer. Must not be called if the user has a business location @location The new location of the user
 setLocation location:location = Ok;
+
+//@description Changes the business location of the current user. Requires Telegram Business subscription @location The new location of the business; pass null to remove the location
+setBusinessLocation location:businessLocation = Ok;
+
+//@description Changes the business opening hours of the current user. Requires Telegram Business subscription @opening_hours The new opening hours of the business; pass null to remove the opening hours
+setBusinessOpeningHours opening_hours:businessOpeningHours = Ok;
+
+//@description Changes the business greeting message settings of the current user. Requires Telegram Business subscription @greeting_message_settings The new settings for the greeting message of the business; pass null to disable the greeting message
+setBusinessGreetingMessageSettings greeting_message_settings:businessGreetingMessageSettings = Ok;
+
+//@description Changes the business away message settings of the current user. Requires Telegram Business subscription @away_message_settings The new settings for the away message of the business; pass null to disable the away message
+setBusinessAwayMessageSettings away_message_settings:businessAwayMessageSettings = Ok;
 
 //@description Changes the phone number of the user and sends an authentication code to the user's new phone number; for official Android and iOS applications only. On success, returns information about the sent code
 //@phone_number The new phone number of the user in international format
@@ -9246,6 +9410,16 @@ resendChangePhoneNumberCode = AuthenticationCodeInfo;
 
 //@description Checks the authentication code sent to confirm a new phone number of the user @code Authentication code to check
 checkChangePhoneNumberCode code:string = Ok;
+
+
+//@description Returns the business bot that is connected to the current user account. Returns a 404 error if there is no connected bot
+getBusinessConnectedBot = BusinessConnectedBot;
+
+//@description Adds or changes business bot that is connected to the current user account @bot Connection settings for the bot
+setBusinessConnectedBot bot:businessConnectedBot = Ok;
+
+//@description Deletes the business bot that is connected to the current user account @bot_user_id Unique user identifier for the bot
+deleteBusinessConnectedBot bot_user_id:int53 = Ok;
 
 
 //@description Returns an HTTPS link, which can be used to get information about the current user
@@ -9466,6 +9640,10 @@ closeSecretChat secret_chat_id:int32 = Ok;
 //@filters The types of events to return; pass null to get chat events of all types
 //@user_ids User identifiers by which to filter events. By default, events relating to all users will be returned
 getChatEventLog chat_id:int53 query:string from_event_id:int64 limit:int32 filters:chatEventLogFilters user_ids:vector<int53> = ChatEvents;
+
+
+//@description Returns the list of supported time zones
+getTimeZones = TimeZones;
 
 
 //@description Returns an invoice payment form. This method must be called when the user presses inline button of the type inlineKeyboardButtonTypeBuy

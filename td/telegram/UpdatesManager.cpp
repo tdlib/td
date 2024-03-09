@@ -52,6 +52,8 @@
 #include "td/telegram/PollManager.h"
 #include "td/telegram/PrivacyManager.h"
 #include "td/telegram/PublicDialogType.h"
+#include "td/telegram/QuickReplyManager.h"
+#include "td/telegram/QuickReplyShortcutId.h"
 #include "td/telegram/ReactionListType.h"
 #include "td/telegram/ReactionManager.h"
 #include "td/telegram/ReactionType.h"
@@ -74,6 +76,7 @@
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/telegram_api.hpp"
 #include "td/telegram/ThemeManager.h"
+#include "td/telegram/TimeZoneManager.h"
 #include "td/telegram/TranscriptionManager.h"
 #include "td/telegram/Usernames.h"
 #include "td/telegram/WebPagesManager.h"
@@ -275,6 +278,10 @@ void UpdatesManager::tear_down() {
 }
 
 void UpdatesManager::start_up() {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   class StateCallback final : public StateManager::Callback {
    public:
     explicit StateCallback(ActorId<UpdatesManager> parent) : parent_(std::move(parent)) {
@@ -1185,7 +1192,7 @@ void UpdatesManager::on_get_updates_impl(tl_object_ptr<telegram_api::Updates> up
           make_tl_object<telegram_api::peerUser>(from_id), 0, make_tl_object<telegram_api::peerUser>(update->user_id_),
           nullptr, std::move(update->fwd_from_), update->via_bot_id_, std::move(update->reply_to_), update->date_,
           update->message_, nullptr, nullptr, std::move(update->entities_), 0, 0, nullptr, 0, string(), 0, nullptr,
-          Auto(), update->ttl_period_);
+          Auto(), update->ttl_period_, 0);
       on_pending_update(
           make_tl_object<telegram_api::updateNewMessage>(std::move(message), update->pts_, update->pts_count_), 0,
           std::move(promise), "telegram_api::updateShortMessage");
@@ -1199,7 +1206,7 @@ void UpdatesManager::on_get_updates_impl(tl_object_ptr<telegram_api::Updates> up
           make_tl_object<telegram_api::peerUser>(update->from_id_), 0,
           make_tl_object<telegram_api::peerChat>(update->chat_id_), nullptr, std::move(update->fwd_from_),
           update->via_bot_id_, std::move(update->reply_to_), update->date_, update->message_, nullptr, nullptr,
-          std::move(update->entities_), 0, 0, nullptr, 0, string(), 0, nullptr, Auto(), update->ttl_period_);
+          std::move(update->entities_), 0, 0, nullptr, 0, string(), 0, nullptr, Auto(), update->ttl_period_, 0);
       on_pending_update(
           make_tl_object<telegram_api::updateNewMessage>(std::move(message), update->pts_, update->pts_count_), 0,
           std::move(promise), "telegram_api::updateShortChatMessage");
@@ -2263,6 +2270,7 @@ void UpdatesManager::try_reload_data() {
                                                                                   Auto());
   td_->notification_settings_manager_->send_get_scope_notification_settings_query(NotificationSettingsScope::Channel,
                                                                                   Auto());
+  td_->quick_reply_manager_->reload_quick_reply_shortcuts();
   td_->reaction_manager_->reload_reactions();
 
   for (int32 type = 0; type < MAX_REACTION_LIST_TYPE; type++) {
@@ -2294,6 +2302,7 @@ void UpdatesManager::try_reload_data() {
   td_->theme_manager_->reload_accent_colors();
   td_->theme_manager_->reload_chat_themes();
   td_->theme_manager_->reload_profile_accent_colors();
+  td_->time_zone_manager_->reload_time_zones(Auto());
 
   schedule_data_reload();
 }
@@ -4458,6 +4467,42 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewAuthorizatio
   } else {
     td_->account_manager_->on_confirm_authorization(update->hash_);
   }
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateSmsJob> update, Promise<Unit> &&promise) {
+  LOG(ERROR) << "Receive " << to_string(update);
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateQuickReplies> update, Promise<Unit> &&promise) {
+  td_->quick_reply_manager_->reload_quick_reply_shortcuts();
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewQuickReply> update, Promise<Unit> &&promise) {
+  td_->quick_reply_manager_->reload_quick_reply_shortcuts();
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDeleteQuickReply> update, Promise<Unit> &&promise) {
+  td_->quick_reply_manager_->reload_quick_reply_shortcuts();
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateQuickReplyMessage> update, Promise<Unit> &&promise) {
+  td_->quick_reply_manager_->update_quick_reply_message(std::move(update->message_));
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDeleteQuickReplyMessages> update,
+                               Promise<Unit> &&promise) {
+  vector<MessageId> message_ids;
+  for (auto message : update->messages_) {
+    message_ids.push_back(MessageId(ServerMessageId(message)));
+  }
+  td_->quick_reply_manager_->delete_quick_reply_messages_from_updates(QuickReplyShortcutId(update->shortcut_id_),
+                                                                      std::move(message_ids));
   promise.set_value(Unit());
 }
 

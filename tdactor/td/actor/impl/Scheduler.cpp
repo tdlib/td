@@ -493,6 +493,18 @@ void Scheduler::run_poll(Timestamp timeout) {
 #endif
 }
 
+void Scheduler::flush_mailbox(ActorInfo *actor_info) {
+  auto &mailbox = actor_info->mailbox_;
+  size_t mailbox_size = mailbox.size();
+  CHECK(mailbox_size != 0);
+  EventGuard guard(this, actor_info);
+  size_t i = 0;
+  for (; i < mailbox_size && guard.can_run(); i++) {
+    do_event(actor_info, std::move(mailbox[i]));
+  }
+  mailbox.erase(mailbox.begin(), mailbox.begin() + i);
+}
+
 void Scheduler::run_mailbox() {
   VLOG(actor) << "Run mailbox : begin";
   ListNode actors_list = std::move(ready_actors_list_);
@@ -500,7 +512,7 @@ void Scheduler::run_mailbox() {
     ListNode *node = actors_list.get();
     CHECK(node);
     auto actor_info = ActorInfo::from_list_node(node);
-    flush_mailbox(actor_info, static_cast<void (*)(ActorInfo *)>(nullptr), static_cast<Event (*)()>(nullptr));
+    flush_mailbox(actor_info);
   }
   VLOG(actor) << "Run mailbox : finish " << actor_count_;
 

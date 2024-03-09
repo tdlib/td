@@ -125,6 +125,7 @@ class DialogFilter {
   vector<InputDialogId> pinned_dialog_ids_;
   vector<InputDialogId> included_dialog_ids_;
   vector<InputDialogId> excluded_dialog_ids_;
+  int32 color_id_ = -1;
   bool exclude_muted_ = false;
   bool exclude_read_ = false;
   bool exclude_archived_ = false;
@@ -139,6 +140,8 @@ class DialogFilter {
   static FlatHashMap<string, string> emoji_to_icon_name_;
   static FlatHashMap<string, string> icon_name_to_emoji_;
 
+  static bool is_valid_color_id(int32 color_id);
+
   static bool are_flags_equal(const DialogFilter &lhs, const DialogFilter &rhs);
 
   static void init_icon_names();
@@ -152,9 +155,10 @@ class DialogFilter {
 
 inline bool operator==(const DialogFilter &lhs, const DialogFilter &rhs) {
   return lhs.dialog_filter_id_ == rhs.dialog_filter_id_ && lhs.title_ == rhs.title_ && lhs.emoji_ == rhs.emoji_ &&
-         lhs.is_shareable_ == rhs.is_shareable_ && lhs.has_my_invites_ == rhs.has_my_invites_ &&
-         lhs.pinned_dialog_ids_ == rhs.pinned_dialog_ids_ && lhs.included_dialog_ids_ == rhs.included_dialog_ids_ &&
-         lhs.excluded_dialog_ids_ == rhs.excluded_dialog_ids_ && DialogFilter::are_flags_equal(lhs, rhs);
+         lhs.color_id_ == rhs.color_id_ && lhs.is_shareable_ == rhs.is_shareable_ &&
+         lhs.has_my_invites_ == rhs.has_my_invites_ && lhs.pinned_dialog_ids_ == rhs.pinned_dialog_ids_ &&
+         lhs.included_dialog_ids_ == rhs.included_dialog_ids_ && lhs.excluded_dialog_ids_ == rhs.excluded_dialog_ids_ &&
+         DialogFilter::are_flags_equal(lhs, rhs);
 }
 
 inline bool operator!=(const DialogFilter &lhs, const DialogFilter &rhs) {

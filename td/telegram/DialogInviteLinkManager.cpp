@@ -840,7 +840,7 @@ td_api::object_ptr<td_api::chatInviteLinkInfo> DialogInviteLinkManager::get_chat
       default:
         UNREACHABLE();
     }
-    description = td_->contacts_manager_->get_dialog_about(dialog_id);
+    description = td_->dialog_manager_->get_dialog_about(dialog_id);
   } else {
     is_chat = invite_link_info->is_chat;
     is_megagroup = invite_link_info->is_megagroup;

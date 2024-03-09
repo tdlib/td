@@ -22,6 +22,10 @@
 #include "td/telegram/BotCommand.h"
 #include "td/telegram/BotInfoManager.h"
 #include "td/telegram/BotMenuButton.h"
+#include "td/telegram/BusinessAwayMessage.h"
+#include "td/telegram/BusinessGreetingMessage.h"
+#include "td/telegram/BusinessManager.h"
+#include "td/telegram/BusinessWorkHours.h"
 #include "td/telegram/CallbackQueriesManager.h"
 #include "td/telegram/CallId.h"
 #include "td/telegram/CallManager.h"
@@ -116,6 +120,7 @@
 #include "td/telegram/Premium.h"
 #include "td/telegram/PrivacyManager.h"
 #include "td/telegram/PublicDialogType.h"
+#include "td/telegram/QuickReplyManager.h"
 #include "td/telegram/ReactionManager.h"
 #include "td/telegram/ReactionType.h"
 #include "td/telegram/ReportReason.h"
@@ -146,6 +151,7 @@
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/ThemeManager.h"
+#include "td/telegram/TimeZoneManager.h"
 #include "td/telegram/TopDialogCategory.h"
 #include "td/telegram/TopDialogManager.h"
 #include "td/telegram/TranscriptionManager.h"
@@ -2775,6 +2781,7 @@ bool Td::is_synchronous_request(const td_api::Function *function) {
     case td_api::parseMarkdown::ID:
     case td_api::getMarkdownText::ID:
     case td_api::searchStringsByPrefix::ID:
+    case td_api::checkQuickReplyShortcutName::ID:
     case td_api::getCountryFlagEmoji::ID:
     case td_api::getFileMimeType::ID:
     case td_api::getFileExtension::ID:
@@ -3017,6 +3024,7 @@ td_api::object_ptr<td_api::Object> Td::static_request(td_api::object_ptr<td_api:
       case td_api::parseMarkdown::ID:
       case td_api::getMarkdownText::ID:
       case td_api::searchStringsByPrefix::ID:
+      case td_api::checkQuickReplyShortcutName::ID:
       case td_api::getCountryFlagEmoji::ID:
       case td_api::getFileMimeType::ID:
       case td_api::getFileExtension::ID:
@@ -3198,6 +3206,7 @@ void Td::dec_actor_refcnt() {
       reset_manager(background_manager_, "BackgroundManager");
       reset_manager(boost_manager_, "BoostManager");
       reset_manager(bot_info_manager_, "BotInfoManager");
+      reset_manager(business_manager_, "BusinessManager");
       reset_manager(callback_queries_manager_, "CallbackQueriesManager");
       reset_manager(common_dialog_manager_, "CommonDialogManager");
       reset_manager(contacts_manager_, "ContactsManager");
@@ -3222,6 +3231,7 @@ void Td::dec_actor_refcnt() {
       reset_manager(notification_settings_manager_, "NotificationSettingsManager");
       reset_manager(poll_manager_, "PollManager");
       reset_manager(privacy_manager_, "PrivacyManager");
+      reset_manager(quick_reply_manager_, "QuickReplyManager");
       reset_manager(reaction_manager_, "ReactionManager");
       reset_manager(saved_messages_manager_, "SavedMessagesManager");
       reset_manager(sponsored_message_manager_, "SponsoredMessageManager");
@@ -3229,6 +3239,7 @@ void Td::dec_actor_refcnt() {
       reset_manager(stickers_manager_, "StickersManager");
       reset_manager(story_manager_, "StoryManager");
       reset_manager(theme_manager_, "ThemeManager");
+      reset_manager(time_zone_manager_, "TimeZoneManager");
       reset_manager(top_dialog_manager_, "TopDialogManager");
       reset_manager(transcription_manager_, "TranscriptionManager");
       reset_manager(translation_manager_, "TranslationManager");
@@ -3369,6 +3380,7 @@ void Td::clear() {
   reset_actor(ActorOwn<Actor>(std::move(background_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(boost_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(bot_info_manager_actor_)));
+  reset_actor(ActorOwn<Actor>(std::move(business_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(common_dialog_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(contacts_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(country_info_manager_actor_)));
@@ -3391,6 +3403,7 @@ void Td::clear() {
   reset_actor(ActorOwn<Actor>(std::move(notification_settings_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(poll_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(privacy_manager_actor_)));
+  reset_actor(ActorOwn<Actor>(std::move(quick_reply_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(reaction_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(saved_messages_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(sponsored_message_manager_actor_)));
@@ -3398,6 +3411,7 @@ void Td::clear() {
   reset_actor(ActorOwn<Actor>(std::move(stickers_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(story_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(theme_manager_actor_)));
+  reset_actor(ActorOwn<Actor>(std::move(time_zone_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(top_dialog_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(transcription_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(translation_manager_actor_)));
@@ -3857,6 +3871,9 @@ void Td::init_managers() {
   G()->set_boost_manager(boost_manager_actor_.get());
   bot_info_manager_ = make_unique<BotInfoManager>(this, create_reference());
   bot_info_manager_actor_ = register_actor("BotInfoManager", bot_info_manager_.get());
+  business_manager_ = make_unique<BusinessManager>(this, create_reference());
+  business_manager_actor_ = register_actor("BusinessManager", business_manager_.get());
+  G()->set_business_manager(business_manager_actor_.get());
   common_dialog_manager_ = make_unique<CommonDialogManager>(this, create_reference());
   common_dialog_manager_actor_ = register_actor("CommonDialogManager", common_dialog_manager_.get());
   contacts_manager_ = make_unique<ContactsManager>(this, create_reference());
@@ -3913,6 +3930,9 @@ void Td::init_managers() {
   poll_manager_actor_ = register_actor("PollManager", poll_manager_.get());
   privacy_manager_ = make_unique<PrivacyManager>(this, create_reference());
   privacy_manager_actor_ = register_actor("PrivacyManager", privacy_manager_.get());
+  quick_reply_manager_ = make_unique<QuickReplyManager>(this, create_reference());
+  quick_reply_manager_actor_ = register_actor("QuickReplyManager", quick_reply_manager_.get());
+  G()->set_quick_reply_manager(quick_reply_manager_actor_.get());
   reaction_manager_ = make_unique<ReactionManager>(this, create_reference());
   reaction_manager_actor_ = register_actor("ReactionManager", reaction_manager_.get());
   G()->set_reaction_manager(reaction_manager_actor_.get());
@@ -3933,6 +3953,9 @@ void Td::init_managers() {
   theme_manager_ = make_unique<ThemeManager>(this, create_reference());
   theme_manager_actor_ = register_actor("ThemeManager", theme_manager_.get());
   G()->set_theme_manager(theme_manager_actor_.get());
+  time_zone_manager_ = make_unique<TimeZoneManager>(this, create_reference());
+  time_zone_manager_actor_ = register_actor("TimeZoneManager", time_zone_manager_.get());
+  G()->set_time_zone_manager(time_zone_manager_actor_.get());
   top_dialog_manager_ = make_unique<TopDialogManager>(this, create_reference());
   top_dialog_manager_actor_ = register_actor("TopDialogManager", top_dialog_manager_.get());
   G()->set_top_dialog_manager(top_dialog_manager_actor_.get());
@@ -4304,6 +4327,8 @@ void Td::on_request(uint64 id, const td_api::getCurrentState &request) {
     dialog_participant_manager_->get_current_state(updates);
 
     notification_manager_->get_current_state(updates);
+
+    quick_reply_manager_->get_current_state(updates);
 
     saved_messages_manager_->get_current_state(updates);
 
@@ -5744,6 +5769,46 @@ void Td::on_request(uint64 id, td_api::editMessageSchedulingState &request) {
                                                    std::move(request.scheduling_state_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::loadQuickReplyShortcuts &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  quick_reply_manager_->get_quick_reply_shortcuts(std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::setQuickReplyShortcutName &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  quick_reply_manager_->set_quick_reply_shortcut_name(QuickReplyShortcutId(request.shortcut_id_), request.name_,
+                                                      std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::deleteQuickReplyShortcut &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  quick_reply_manager_->delete_quick_reply_shortcut(QuickReplyShortcutId(request.shortcut_id_), std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::reorderQuickReplyShortcuts &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  quick_reply_manager_->reorder_quick_reply_shortcuts(
+      QuickReplyShortcutId::get_quick_reply_shortcut_ids(request.shortcut_ids_), std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::loadQuickReplyShortcutMessages &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  quick_reply_manager_->get_quick_reply_shortcut_messages(QuickReplyShortcutId(request.shortcut_id_),
+                                                          std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::deleteQuickReplyShortcutMessages &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  quick_reply_manager_->delete_quick_reply_shortcut_messages(
+      QuickReplyShortcutId(request.shortcut_id_), MessageId::get_message_ids(request.message_ids_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getStory &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
@@ -5936,6 +6001,16 @@ void Td::on_request(uint64 id, td_api::forwardMessages &request) {
   auto r_messages = messages_manager_->forward_messages(
       DialogId(request.chat_id_), MessageId(request.message_thread_id_), DialogId(request.from_chat_id_),
       std::move(input_message_ids), std::move(request.options_), false, std::move(message_copy_options));
+  if (r_messages.is_error()) {
+    send_closure(actor_id(this), &Td::send_error, id, r_messages.move_as_error());
+  } else {
+    send_closure(actor_id(this), &Td::send_result, id, r_messages.move_as_ok());
+  }
+}
+
+void Td::on_request(uint64 id, const td_api::sendQuickReplyShortcutMessages &request) {
+  auto r_messages = messages_manager_->send_quick_reply_shortcut_messages(
+      DialogId(request.chat_id_), QuickReplyShortcutId(request.shortcut_id_), request.sending_id_);
   if (r_messages.is_error()) {
     send_closure(actor_id(this), &Td::send_error, id, r_messages.move_as_error());
   } else {
@@ -6418,6 +6493,12 @@ void Td::on_request(uint64 id, const td_api::reorderChatFolders &request) {
       request.main_chat_list_position_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::toggleChatFolderTags &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  dialog_filter_manager_->toggle_dialog_filter_tags(request.are_tags_enabled_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getChatsForChatFolderInviteLink &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
@@ -6867,8 +6948,8 @@ void Td::on_request(uint64 id, const td_api::setChatDiscussionGroup &request) {
 void Td::on_request(uint64 id, td_api::setChatLocation &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->set_channel_location(DialogId(request.chat_id_), DialogLocation(std::move(request.location_)),
-                                          std::move(promise));
+  dialog_manager_->set_dialog_location(DialogId(request.chat_id_), DialogLocation(std::move(request.location_)),
+                                       std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::setChatSlowModeDelay &request) {
@@ -6966,22 +7047,22 @@ void Td::on_request(uint64 id, const td_api::canTransferOwnership &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   auto query_promise = PromiseCreator::lambda(
-      [promise = std::move(promise)](Result<ContactsManager::CanTransferOwnershipResult> result) mutable {
+      [promise = std::move(promise)](Result<DialogParticipantManager::CanTransferOwnershipResult> result) mutable {
         if (result.is_error()) {
           promise.set_error(result.move_as_error());
         } else {
-          promise.set_value(ContactsManager::get_can_transfer_ownership_result_object(result.ok()));
+          promise.set_value(DialogParticipantManager::get_can_transfer_ownership_result_object(result.ok()));
         }
       });
-  contacts_manager_->can_transfer_ownership(std::move(query_promise));
+  dialog_participant_manager_->can_transfer_ownership(std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, td_api::transferChatOwnership &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.password_);
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->transfer_dialog_ownership(DialogId(request.chat_id_), UserId(request.user_id_), request.password_,
-                                               std::move(promise));
+  dialog_participant_manager_->transfer_dialog_ownership(DialogId(request.chat_id_), UserId(request.user_id_),
+                                                         request.password_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getChatMember &request) {
@@ -7003,8 +7084,9 @@ void Td::on_request(uint64 id, td_api::searchChatMembers &request) {
           promise.set_value(result.ok().get_chat_members_object(td, "searchChatMembers"));
         }
       });
-  contacts_manager_->search_dialog_participants(DialogId(request.chat_id_), request.query_, request.limit_,
-                                                DialogParticipantFilter(request.filter_), std::move(query_promise));
+  dialog_participant_manager_->search_dialog_participants(DialogId(request.chat_id_), request.query_, request.limit_,
+                                                          DialogParticipantFilter(request.filter_),
+                                                          std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getChatAdministrators &request) {
@@ -7132,6 +7214,11 @@ void Td::on_request(uint64 id, td_api::getChatEventLog &request) {
   get_dialog_event_log(this, DialogId(request.chat_id_), std::move(request.query_), request.from_event_id_,
                        request.limit_, std::move(request.filters_), UserId::get_user_ids(request.user_ids_),
                        std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::getTimeZones &request) {
+  CREATE_REQUEST_PROMISE();
+  time_zone_manager_->get_time_zones(std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::clearAllDraftMessages &request) {
@@ -7726,6 +7813,32 @@ void Td::on_request(uint64 id, const td_api::setLocation &request) {
   contacts_manager_->set_location(Location(request.location_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::setBusinessLocation &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  business_manager_->set_business_location(DialogLocation(std::move(request.location_)), std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::setBusinessOpeningHours &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  business_manager_->set_business_work_hours(BusinessWorkHours(std::move(request.opening_hours_)), std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::setBusinessGreetingMessageSettings &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  business_manager_->set_business_greeting_message(
+      BusinessGreetingMessage(std::move(request.greeting_message_settings_)), std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::setBusinessAwayMessageSettings &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  business_manager_->set_business_away_message(BusinessAwayMessage(std::move(request.away_message_settings_)),
+                                               std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::setProfilePhoto &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
@@ -7757,6 +7870,24 @@ void Td::on_request(uint64 id, const td_api::setProfileAccentColor &request) {
   contacts_manager_->set_profile_accent_color(AccentColorId(request.profile_accent_color_id_),
                                               CustomEmojiId(request.profile_background_custom_emoji_id_),
                                               std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::getBusinessConnectedBot &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  business_manager_->get_business_connected_bot(std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::setBusinessConnectedBot &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  business_manager_->set_business_connected_bot(std::move(request.bot_), std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::deleteBusinessConnectedBot &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  business_manager_->delete_business_connected_bot(UserId(request.bot_user_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setSupergroupUsername &request) {
@@ -7886,8 +8017,9 @@ void Td::on_request(uint64 id, td_api::getSupergroupMembers &request) {
           promise.set_value(result.ok().get_chat_members_object(td, "getSupergroupMembers"));
         }
       });
-  contacts_manager_->get_channel_participants(ChannelId(request.supergroup_id_), std::move(request.filter_), string(),
-                                              request.offset_, request.limit_, -1, std::move(query_promise));
+  dialog_participant_manager_->get_channel_participants(ChannelId(request.supergroup_id_), std::move(request.filter_),
+                                                        string(), request.offset_, request.limit_, -1,
+                                                        std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, td_api::closeSecretChat &request) {
@@ -9268,6 +9400,10 @@ void Td::on_request(uint64 id, const td_api::searchStringsByPrefix &request) {
   UNREACHABLE();
 }
 
+void Td::on_request(uint64 id, const td_api::checkQuickReplyShortcutName &request) {
+  UNREACHABLE();
+}
+
 void Td::on_request(uint64 id, const td_api::getCountryFlagEmoji &request) {
   UNREACHABLE();
 }
@@ -9474,6 +9610,15 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::searchStringsBy
   auto result = search_strings_by_prefix(std::move(request.strings_), std::move(request.query_), request.limit_,
                                          !request.return_none_for_empty_query_, total_count);
   return td_api::make_object<td_api::foundPositions>(total_count, std::move(result));
+}
+
+td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::checkQuickReplyShortcutName &request) {
+  // don't check name UTF-8 correctness
+  auto status = QuickReplyManager::check_shortcut_name(request.name_);
+  if (status.is_ok()) {
+    return td_api::make_object<td_api::ok>();
+  }
+  return make_error(200, status.message());
 }
 
 td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getCountryFlagEmoji &request) {
