@@ -469,8 +469,8 @@ class JsonObject {
 
   JsonObject(const JsonObject &) = delete;
   JsonObject &operator=(const JsonObject &) = delete;
-  JsonObject(JsonObject &&) noexcept = default;
-  JsonObject &operator=(JsonObject &&) noexcept = default;
+  JsonObject(JsonObject &&) = default;
+  JsonObject &operator=(JsonObject &&) = default;
   ~JsonObject() = default;
 
   size_t field_count() const {

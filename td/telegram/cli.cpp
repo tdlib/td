@@ -584,6 +584,11 @@ class CliClient final : public Actor {
     return to_integer<int32>(trim(str));
   }
 
+  td_api::object_ptr<td_api::businessRecipients> as_business_recipients(string chat_ids) const {
+    return td_api::make_object<td_api::businessRecipients>(as_chat_ids(chat_ids), rand_bool(), rand_bool(), rand_bool(),
+                                                           rand_bool(), rand_bool());
+  }
+
   static td_api::object_ptr<td_api::StickerFormat> as_sticker_format(string sticker_format) {
     if (!sticker_format.empty() && sticker_format.back() == 'a') {
       return td_api::make_object<td_api::stickerFormatTgs>();
@@ -922,6 +927,26 @@ class CliClient final : public Actor {
 
   void get_args(string &args, FileId &arg) const {
     arg.file_id = as_file_id(args);
+  }
+
+  struct ShortcutId {
+    int32 shortcut_id = 0;
+
+    operator int32() const {
+      return shortcut_id;
+    }
+  };
+
+  void get_args(string &args, ShortcutId &arg) const {
+    arg.shortcut_id = as_shortcut_id(args);
+  }
+
+  static int32 as_shortcut_id(Slice str) {
+    return to_integer<int32>(trim(str));
+  }
+
+  vector<int32> as_shortcut_ids(Slice shortcut_ids) const {
+    return transform(autosplit(shortcut_ids), as_shortcut_id);
   }
 
   td_api::object_ptr<td_api::InputMessageReplyTo> get_input_message_reply_to() const {
@@ -1908,7 +1933,7 @@ class CliClient final : public Actor {
     string excluded_chat_ids;
     get_args(filter, title, icon_name, pinned_chat_ids, included_chat_ids, excluded_chat_ids);
     return td_api::make_object<td_api::chatFolder>(
-        title, td_api::make_object<td_api::chatFolderIcon>(icon_name), is_shareable, as_chat_ids(pinned_chat_ids),
+        title, td_api::make_object<td_api::chatFolderIcon>(icon_name), -1, is_shareable, as_chat_ids(pinned_chat_ids),
         as_chat_ids(included_chat_ids), as_chat_ids(excluded_chat_ids), rand_bool(), rand_bool(), rand_bool(),
         rand_bool(), rand_bool(), rand_bool(), rand_bool(), rand_bool());
   }
@@ -3836,6 +3861,12 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::forwardMessages>(
           chat_id, message_thread_id_, from_chat_id, as_message_ids(message_ids), default_message_send_options(),
           op[0] == 'c', rand_bool()));
+    } else if (op == "sqrsm") {
+      ChatId chat_id;
+      ShortcutId shortcut_id;
+      get_args(args, chat_id, shortcut_id);
+      send_request(
+          td_api::make_object<td_api::sendQuickReplyShortcutMessages>(chat_id, shortcut_id, Random::fast(-1000, -1)));
     } else if (op == "resend") {
       ChatId chat_id;
       string message_ids;
@@ -4825,6 +4856,33 @@ class CliClient final : public Actor {
       get_args(args, chat_id, message_id, date);
       send_request(td_api::make_object<td_api::editMessageSchedulingState>(chat_id, message_id,
                                                                            as_message_scheduling_state(date)));
+    } else if (op == "cqrsn") {
+      execute(td_api::make_object<td_api::checkQuickReplyShortcutName>(args));
+    } else if (op == "lqrs") {
+      send_request(td_api::make_object<td_api::loadQuickReplyShortcuts>());
+    } else if (op == "dqrs") {
+      ShortcutId shortcut_id;
+      get_args(args, shortcut_id);
+      send_request(td_api::make_object<td_api::deleteQuickReplyShortcut>(shortcut_id));
+    } else if (op == "sqrsn") {
+      ShortcutId shortcut_id;
+      string name;
+      get_args(args, shortcut_id, name);
+      send_request(td_api::make_object<td_api::setQuickReplyShortcutName>(shortcut_id, name));
+    } else if (op == "rqrs") {
+      string shortcut_ids;
+      get_args(args, shortcut_ids);
+      send_request(td_api::make_object<td_api::reorderQuickReplyShortcuts>(as_shortcut_ids(shortcut_ids)));
+    } else if (op == "lqrsm") {
+      ShortcutId shortcut_id;
+      get_args(args, shortcut_id);
+      send_request(td_api::make_object<td_api::loadQuickReplyShortcutMessages>(shortcut_id));
+    } else if (op == "dqrsm") {
+      ShortcutId shortcut_id;
+      string message_ids;
+      get_args(args, shortcut_id, message_ids);
+      send_request(
+          td_api::make_object<td_api::deleteQuickReplyShortcutMessages>(shortcut_id, as_message_ids(message_ids)));
     } else if (op == "gftdi") {
       send_request(td_api::make_object<td_api::getForumTopicDefaultIcons>());
     } else if (op == "cft") {
@@ -5390,6 +5448,10 @@ class CliClient final : public Actor {
       get_args(args, main_chat_list_position, chat_folder_ids);
       send_request(td_api::make_object<td_api::reorderChatFolders>(as_chat_folder_ids(chat_folder_ids),
                                                                    main_chat_list_position));
+    } else if (op == "tcft") {
+      bool are_tags_enabled;
+      get_args(args, are_tags_enabled);
+      send_request(td_api::make_object<td_api::toggleChatFolderTags>(are_tags_enabled));
     } else if (op == "gcfcfil") {
       ChatFolderId chat_folder_id;
       get_args(args, chat_folder_id);
@@ -5676,6 +5738,8 @@ class CliClient final : public Actor {
     } else if (op == "logf") {
       get_log_chat_id_ = as_chat_id(args);
       send_request(td_api::make_object<td_api::getChatEventLog>(get_log_chat_id_, "", 0, 100, nullptr, Auto()));
+    } else if (op == "gtz") {
+      send_request(td_api::make_object<td_api::getTimeZones>());
     } else if (op == "join") {
       ChatId chat_id;
       get_args(args, chat_id);
@@ -5899,6 +5963,81 @@ class CliClient final : public Actor {
       string longitude;
       get_args(args, latitude, longitude);
       send_request(td_api::make_object<td_api::setLocation>(as_location(latitude, longitude, string())));
+    } else if (op == "sbl") {
+      string latitude;
+      string longitude;
+      get_args(args, latitude, longitude);
+      if (latitude.empty()) {
+        send_request(td_api::make_object<td_api::setBusinessLocation>(nullptr));
+      } else {
+        send_request(td_api::make_object<td_api::setBusinessLocation>(td_api::make_object<td_api::businessLocation>(
+            longitude.empty() ? nullptr : as_location(latitude, longitude, string()), "business address")));
+      }
+    } else if (op == "sboh") {
+      string time_zone_id;
+      string opening_hours;
+      get_args(args, time_zone_id, opening_hours);
+      if (time_zone_id.empty()) {
+        send_request(td_api::make_object<td_api::setBusinessOpeningHours>(nullptr));
+      } else {
+        auto minutes = to_integers<int32>(opening_hours);
+        if (minutes.size() % 2 == 1) {
+          minutes.push_back(8 * 24 * 60);
+        }
+        vector<td_api::object_ptr<td_api::businessOpeningHoursInterval>> intervals;
+        for (size_t i = 0; i < minutes.size(); i += 2) {
+          intervals.push_back(td_api::make_object<td_api::businessOpeningHoursInterval>(minutes[i], minutes[i + 1]));
+        }
+        send_request(td_api::make_object<td_api::setBusinessOpeningHours>(
+            td_api::make_object<td_api::businessOpeningHours>(time_zone_id, std::move(intervals))));
+      }
+    } else if (op == "sbgms") {
+      ShortcutId shortcut_id;
+      string chat_ids;
+      int32 inactivity_days;
+      get_args(args, shortcut_id, chat_ids, inactivity_days);
+      if (shortcut_id == 0) {
+        send_request(td_api::make_object<td_api::setBusinessGreetingMessageSettings>(nullptr));
+      } else {
+        send_request(td_api::make_object<td_api::setBusinessGreetingMessageSettings>(
+            td_api::make_object<td_api::businessGreetingMessageSettings>(shortcut_id, as_business_recipients(chat_ids),
+                                                                         inactivity_days)));
+      }
+    } else if (op == "sbams" || op == "sbamso") {
+      ShortcutId shortcut_id;
+      string chat_ids;
+      string schedule;
+      get_args(args, shortcut_id, chat_ids, schedule);
+      if (shortcut_id == 0) {
+        send_request(td_api::make_object<td_api::setBusinessAwayMessageSettings>(nullptr));
+      } else {
+        td_api::object_ptr<td_api::BusinessAwayMessageSchedule> schedule_object;
+        if (schedule[0] == 'a') {
+          schedule_object = td_api::make_object<td_api::businessAwayMessageScheduleAlways>();
+        } else if (schedule[0] == 'o') {
+          schedule_object = td_api::make_object<td_api::businessAwayMessageScheduleOutsideOfOpeningHours>();
+        } else {
+          auto start_date = to_integer<int32>(schedule);
+          schedule_object = td_api::make_object<td_api::businessAwayMessageScheduleCustom>(
+              start_date, start_date + Random::fast(1000, 100000));
+        }
+        send_request(td_api::make_object<td_api::setBusinessAwayMessageSettings>(
+            td_api::make_object<td_api::businessAwayMessageSettings>(shortcut_id, as_business_recipients(chat_ids),
+                                                                     std::move(schedule_object), op == "sbamso")));
+      }
+    } else if (op == "gbcb") {
+      send_request(td_api::make_object<td_api::getBusinessConnectedBot>());
+    } else if (op == "sbcb") {
+      UserId bot_user_id;
+      string chat_ids;
+      bool can_reply = false;
+      get_args(args, bot_user_id, chat_ids, can_reply);
+      send_request(td_api::make_object<td_api::setBusinessConnectedBot>(
+          td_api::make_object<td_api::businessConnectedBot>(bot_user_id, as_business_recipients(chat_ids), can_reply)));
+    } else if (op == "dbcb") {
+      UserId bot_user_id;
+      get_args(args, bot_user_id);
+      send_request(td_api::make_object<td_api::deleteBusinessConnectedBot>(bot_user_id));
     } else if (op == "sco") {
       SearchQuery query;
       get_args(args, query);

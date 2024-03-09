@@ -138,6 +138,8 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("group_emoji_status_level_min", is_test_dc ? 2 : 8);
   set_default_integer_option("group_wallpaper_level_min", is_test_dc ? 3 : 9);
   set_default_integer_option("group_custom_wallpaper_level_min", is_test_dc ? 4 : 10);
+  set_default_integer_option("quick_reply_shortcut_count_max", is_test_dc ? 10 : 100);
+  set_default_integer_option("quick_reply_shortcut_message_count_max", 20);
 
   if (options.isset("my_phone_number") || !options.isset("my_id")) {
     update_premium_options();
@@ -665,7 +667,7 @@ td_api::object_ptr<td_api::OptionValue> OptionManager::get_option_synchronously(
       break;
     case 'v':
       if (name == "version") {
-        return td_api::make_object<td_api::optionValueString>("1.8.25");
+        return td_api::make_object<td_api::optionValueString>("1.8.26");
       }
       break;
   }

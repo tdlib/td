@@ -19,7 +19,7 @@ bool HttpChunkedByteFlow::loop() {
   do {
     if (state_ == State::ReadChunkLength) {
       bool ok = find_boundary(input_->clone(), "\r\n", len_);
-      if (len_ > 10) {
+      if (len_ > 8) {
         finish(Status::Error(PSLICE() << "Too long length in chunked "
                                       << input_->cut_head(len_).move_as_buffer_slice().as_slice()));
         return false;
@@ -31,17 +31,13 @@ bool HttpChunkedByteFlow::loop() {
       auto s_len = input_->cut_head(len_).move_as_buffer_slice();
       input_->advance(2);
       len_ = hex_to_integer<size_t>(s_len.as_slice());
-      if (len_ > MAX_CHUNK_SIZE) {
-        finish(Status::Error(PSLICE() << "Invalid chunk size " << tag("size", len_)));
-        return false;
-      }
       save_len_ = len_;
       state_ = State::ReadChunkContent;
     }
 
     auto size = input_->size();
     auto ready = min(len_, size);
-    auto need_size = min(MIN_UPDATE_SIZE, len_ + 2);
+    auto need_size = min(MIN_UPDATE_SIZE, len_) + 2;
     if (size < need_size) {
       set_need_size(need_size);
       break;
@@ -51,14 +47,10 @@ bool HttpChunkedByteFlow::loop() {
       return false;
     }
     total_size_ += ready;
-    uncommitted_size_ += ready;
 
     output_.append(input_->cut_head(ready));
     result = true;
     len_ -= ready;
-    if (uncommitted_size_ >= MIN_UPDATE_SIZE) {
-      uncommitted_size_ = 0;
-    }
 
     if (len_ == 0) {
       if (input_->size() < 2) {
@@ -72,7 +64,6 @@ bool HttpChunkedByteFlow::loop() {
         return false;
       }
       state_ = State::ReadChunkLength;
-      len_ = 0;
     }
   } while (false);
   if (!is_input_active_ && !result) {

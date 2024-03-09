@@ -403,9 +403,9 @@ if (ANDROID)
   target_link_libraries(tdutils PRIVATE log)
 endif()
 
-if (CMAKE_SYSTEM_NAME MATCHES "NetBSD")
-  target_link_directories(tdutils PUBLIC /usr/pkg/gcc12/x86_64--netbsd/lib /usr/pkg/gcc12/i486--netbsdelf/lib)
-  target_link_libraries(tdutils PUBLIC atomic)
+find_package(Atomics REQUIRED)
+if (ATOMICS_LIBRARIES)
+  target_link_libraries(tdutils PUBLIC "${ATOMICS_LIBRARIES}")
 endif()
 
 install(TARGETS tdutils EXPORT TdStaticTargets

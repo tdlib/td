@@ -52,6 +52,7 @@
 #include "td/telegram/NotificationId.h"
 #include "td/telegram/NotificationSettingsScope.h"
 #include "td/telegram/OrderedMessage.h"
+#include "td/telegram/QuickReplyShortcutId.h"
 #include "td/telegram/ReactionType.h"
 #include "td/telegram/ReactionUnavailabilityReason.h"
 #include "td/telegram/RecentDialogList.h"
@@ -435,6 +436,9 @@ class MessagesManager final : public Actor {
       DialogId to_dialog_id, MessageId top_thread_message_id, DialogId from_dialog_id, vector<MessageId> message_ids,
       tl_object_ptr<td_api::messageSendOptions> &&options, bool in_game_share,
       vector<MessageCopyOptions> &&copy_options) TD_WARN_UNUSED_RESULT;
+
+  Result<td_api::object_ptr<td_api::messages>> send_quick_reply_shortcut_messages(
+      DialogId dialog_id, QuickReplyShortcutId shortcut_id, int32 sending_id) TD_WARN_UNUSED_RESULT;
 
   Result<vector<MessageId>> resend_messages(DialogId dialog_id, vector<MessageId> message_ids,
                                             td_api::object_ptr<td_api::inputTextQuote> &&quote) TD_WARN_UNUSED_RESULT;
@@ -1053,12 +1057,12 @@ class MessagesManager final : public Actor {
     bool are_media_timestamp_entities_found = false;
     bool noforwards = false;
     bool invert_media = false;
+    bool disable_web_page_preview = false;
 
     bool has_explicit_sender = false;       // for send_message
     bool is_copy = false;                   // for send_message
     bool from_background = false;           // for send_message
     bool update_stickersets_order = false;  // for send_message
-    bool disable_web_page_preview = false;  // for send_message
     bool clear_draft = false;               // for send_message
     bool in_game_share = false;             // for send_message
     bool hide_via_bot = false;              // for resend_message
@@ -1745,6 +1749,14 @@ class MessagesManager final : public Actor {
   void do_forward_messages(DialogId to_dialog_id, DialogId from_dialog_id, const vector<Message *> &messages,
                            const vector<MessageId> &message_ids, bool drop_author, bool drop_media_captions,
                            uint64 log_event_id);
+
+  void do_send_quick_reply_shortcut_messages(DialogId dialog_id, QuickReplyShortcutId shortcut_id,
+                                             const vector<Message *> &messages, const vector<MessageId> &message_ids,
+                                             uint64 log_event_id);
+
+  void send_send_quick_reply_messages_query(DialogId dialog_id, QuickReplyShortcutId shortcut_id,
+                                            vector<MessageId> message_ids, vector<int64> random_ids,
+                                            Promise<Unit> promise);
 
   void send_forward_message_query(int32 flags, DialogId to_dialog_id, const MessageId top_thread_message_id,
                                   DialogId from_dialog_id, tl_object_ptr<telegram_api::InputPeer> as_input_peer,
@@ -2615,9 +2627,9 @@ class MessagesManager final : public Actor {
 
   static bool is_dialog_in_list(const Dialog *d, DialogListId dialog_list_id);
 
-  static void add_dialog_to_list(Dialog *d, DialogListId dialog_list_id);
+  void add_dialog_to_list(Dialog *d, DialogListId dialog_list_id);
 
-  static void remove_dialog_from_list(Dialog *d, DialogListId dialog_list_id);
+  void remove_dialog_from_list(Dialog *d, DialogListId dialog_list_id);
 
   DialogFilterDialogInfo get_dialog_info_for_dialog_filter(const Dialog *d) const;
 

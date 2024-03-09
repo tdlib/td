@@ -210,7 +210,7 @@ class StopPollQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(
         telegram_api::messages_editMessage(flags, false /*ignored*/, false /*ignored*/, std::move(input_peer),
                                            message_id, string(), std::move(input_media), std::move(input_reply_markup),
-                                           vector<tl_object_ptr<telegram_api::MessageEntity>>(), 0),
+                                           vector<tl_object_ptr<telegram_api::MessageEntity>>(), 0, 0),
         {{poll_id}, {dialog_id_}}));
   }
 
@@ -246,6 +246,10 @@ PollManager::PollManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::m
 }
 
 void PollManager::start_up() {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   class StateCallback final : public StateManager::Callback {
    public:
     explicit StateCallback(ActorId<PollManager> parent) : parent_(std::move(parent)) {

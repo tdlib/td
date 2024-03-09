@@ -620,7 +620,7 @@ void TopDialogManager::on_first_sync() {
 }
 
 void TopDialogManager::loop() {
-  if (td_->auth_manager_->is_bot() || G()->close_flag()) {
+  if (G()->close_flag() || td_->auth_manager_->is_bot()) {
     return;
   }
 

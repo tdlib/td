@@ -13,6 +13,7 @@
 #include "td/telegram/DialogActionManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/DialogParticipantFilter.h"
+#include "td/telegram/DialogParticipantManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageSender.h"
@@ -2692,7 +2693,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
     GroupCallParticipant participant;
     participant.is_self = true;
     participant.dialog_id = as_dialog_id;
-    participant.about = td_->contacts_manager_->get_dialog_about(participant.dialog_id);
+    participant.about = td_->dialog_manager_->get_dialog_about(participant.dialog_id);
     participant.audio_source = audio_source;
     participant.joined_date = G()->unix_time();
     // if can_self_unmute has never been inited from self-participant,
@@ -2817,7 +2818,7 @@ void GroupCallManager::try_load_group_call_administrators(InputGroupCallId input
         send_closure(actor_id, &GroupCallManager::finish_load_group_call_administrators, input_group_call_id,
                      std::move(result));
       });
-  td_->contacts_manager_->search_dialog_participants(
+  td_->dialog_participant_manager_->search_dialog_participants(
       dialog_id, string(), 100, DialogParticipantFilter(td_api::make_object<td_api::chatMembersFilterAdministrators>()),
       std::move(promise));
 }

@@ -81,6 +81,8 @@ class DialogFilterManager final : public Actor {
   void reorder_dialog_filters(vector<DialogFilterId> dialog_filter_ids, int32 main_dialog_list_position,
                               Promise<Unit> &&promise);
 
+  void toggle_dialog_filter_tags(bool are_tags_enabled, Promise<Unit> &&promise);
+
   void get_dialogs_for_dialog_filter_invite_link(DialogFilterId dialog_filter_id,
                                                  Promise<td_api::object_ptr<td_api::chats>> promise);
 
@@ -152,7 +154,7 @@ class DialogFilterManager final : public Actor {
 
   void reload_dialog_filters();
 
-  void on_get_dialog_filters(Result<vector<telegram_api::object_ptr<telegram_api::DialogFilter>>> r_filters,
+  void on_get_dialog_filters(Result<telegram_api::object_ptr<telegram_api::messages_dialogFilters>> r_filters,
                              bool dummy);
 
   bool need_synchronize_dialog_filters() const;
@@ -185,6 +187,10 @@ class DialogFilterManager final : public Actor {
 
   void on_reorder_dialog_filters(vector<DialogFilterId> dialog_filter_ids, int32 main_dialog_list_position,
                                  Status result);
+
+  void toggle_are_tags_enabled_on_server(bool are_tags_enabled);
+
+  void on_toggle_are_tags_enabled(bool are_tags_enabled, Status result);
 
   void save_dialog_filters();
 
@@ -227,6 +233,8 @@ class DialogFilterManager final : public Actor {
   bool need_dialog_filters_reload_ = false;
   bool disable_get_dialog_filter_ = false;
   bool is_update_chat_folders_sent_ = false;
+  bool server_are_tags_enabled_ = false;
+  bool are_tags_enabled_ = false;
   int32 dialog_filters_updated_date_ = 0;
   vector<unique_ptr<DialogFilter>> server_dialog_filters_;
   vector<unique_ptr<DialogFilter>> dialog_filters_;

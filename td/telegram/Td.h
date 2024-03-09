@@ -46,6 +46,7 @@ class AutosaveManager;
 class BackgroundManager;
 class BoostManager;
 class BotInfoManager;
+class BusinessManager;
 class CallManager;
 class CallbackQueriesManager;
 class CommonDialogManager;
@@ -79,6 +80,7 @@ class PasswordManager;
 class PhoneNumberManager;
 class PollManager;
 class PrivacyManager;
+class QuickReplyManager;
 class ReactionManager;
 class SavedMessagesManager;
 class SecureManager;
@@ -90,6 +92,7 @@ class StickersManager;
 class StorageManager;
 class StoryManager;
 class ThemeManager;
+class TimeZoneManager;
 class TopDialogManager;
 class TranscriptionManager;
 class TranslationManager;
@@ -175,6 +178,8 @@ class Td final : public Actor {
   ActorOwn<BoostManager> boost_manager_actor_;
   unique_ptr<BotInfoManager> bot_info_manager_;
   ActorOwn<BotInfoManager> bot_info_manager_actor_;
+  unique_ptr<BusinessManager> business_manager_;
+  ActorOwn<BusinessManager> business_manager_actor_;
   unique_ptr<CommonDialogManager> common_dialog_manager_;
   ActorOwn<CommonDialogManager> common_dialog_manager_actor_;
   unique_ptr<ContactsManager> contacts_manager_;
@@ -219,6 +224,8 @@ class Td final : public Actor {
   ActorOwn<PollManager> poll_manager_actor_;
   unique_ptr<PrivacyManager> privacy_manager_;
   ActorOwn<PrivacyManager> privacy_manager_actor_;
+  unique_ptr<QuickReplyManager> quick_reply_manager_;
+  ActorOwn<QuickReplyManager> quick_reply_manager_actor_;
   unique_ptr<ReactionManager> reaction_manager_;
   ActorOwn<ReactionManager> reaction_manager_actor_;
   unique_ptr<SavedMessagesManager> saved_messages_manager_;
@@ -233,6 +240,8 @@ class Td final : public Actor {
   ActorOwn<StoryManager> story_manager_actor_;
   unique_ptr<ThemeManager> theme_manager_;
   ActorOwn<ThemeManager> theme_manager_actor_;
+  unique_ptr<TimeZoneManager> time_zone_manager_;
+  ActorOwn<TimeZoneManager> time_zone_manager_actor_;
   unique_ptr<TopDialogManager> top_dialog_manager_;
   ActorOwn<TopDialogManager> top_dialog_manager_actor_;
   unique_ptr<TranscriptionManager> transcription_manager_;
@@ -858,6 +867,18 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::editMessageSchedulingState &request);
 
+  void on_request(uint64 id, const td_api::loadQuickReplyShortcuts &request);
+
+  void on_request(uint64 id, const td_api::setQuickReplyShortcutName &request);
+
+  void on_request(uint64 id, const td_api::deleteQuickReplyShortcut &request);
+
+  void on_request(uint64 id, const td_api::reorderQuickReplyShortcuts &request);
+
+  void on_request(uint64 id, const td_api::loadQuickReplyShortcutMessages &request);
+
+  void on_request(uint64 id, const td_api::deleteQuickReplyShortcutMessages &request);
+
   void on_request(uint64 id, const td_api::getStory &request);
 
   void on_request(uint64 id, const td_api::getChatsToSendStories &request);
@@ -913,6 +934,8 @@ class Td final : public Actor {
   void on_request(uint64 id, td_api::sendChatAction &request);
 
   void on_request(uint64 id, td_api::forwardMessages &request);
+
+  void on_request(uint64 id, const td_api::sendQuickReplyShortcutMessages &request);
 
   void on_request(uint64 id, td_api::resendMessages &request);
 
@@ -1029,6 +1052,8 @@ class Td final : public Actor {
   void on_request(uint64 id, td_api::getChatFolderChatCount &request);
 
   void on_request(uint64 id, const td_api::reorderChatFolders &request);
+
+  void on_request(uint64 id, const td_api::toggleChatFolderTags &request);
 
   void on_request(uint64 id, const td_api::getChatsForChatFolderInviteLink &request);
 
@@ -1222,6 +1247,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::getChatEventLog &request);
 
+  void on_request(uint64 id, const td_api::getTimeZones &request);
+
   void on_request(uint64 id, const td_api::clearAllDraftMessages &request);
 
   void on_request(uint64 id, const td_api::downloadFile &request);
@@ -1362,6 +1389,14 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::setLocation &request);
 
+  void on_request(uint64 id, td_api::setBusinessLocation &request);
+
+  void on_request(uint64 id, td_api::setBusinessOpeningHours &request);
+
+  void on_request(uint64 id, td_api::setBusinessGreetingMessageSettings &request);
+
+  void on_request(uint64 id, td_api::setBusinessAwayMessageSettings &request);
+
   void on_request(uint64 id, td_api::setProfilePhoto &request);
 
   void on_request(uint64 id, const td_api::deleteProfilePhoto &request);
@@ -1371,6 +1406,12 @@ class Td final : public Actor {
   void on_request(uint64 id, const td_api::setAccentColor &request);
 
   void on_request(uint64 id, const td_api::setProfileAccentColor &request);
+
+  void on_request(uint64 id, const td_api::getBusinessConnectedBot &request);
+
+  void on_request(uint64 id, td_api::setBusinessConnectedBot &request);
+
+  void on_request(uint64 id, const td_api::deleteBusinessConnectedBot &request);
 
   void on_request(uint64 id, td_api::setSupergroupUsername &request);
 
@@ -1774,6 +1815,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::searchStringsByPrefix &request);
 
+  void on_request(uint64 id, const td_api::checkQuickReplyShortcutName &request);
+
   void on_request(uint64 id, const td_api::getCountryFlagEmoji &request);
 
   void on_request(uint64 id, const td_api::getFileMimeType &request);
@@ -1838,6 +1881,7 @@ class Td final : public Actor {
   static td_api::object_ptr<td_api::Object> do_static_request(td_api::parseMarkdown &request);
   static td_api::object_ptr<td_api::Object> do_static_request(td_api::getMarkdownText &request);
   static td_api::object_ptr<td_api::Object> do_static_request(td_api::searchStringsByPrefix &request);
+  static td_api::object_ptr<td_api::Object> do_static_request(const td_api::checkQuickReplyShortcutName &request);
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getCountryFlagEmoji &request);
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getFileMimeType &request);
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getFileExtension &request);
