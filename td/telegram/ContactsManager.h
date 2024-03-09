@@ -258,6 +258,8 @@ class ContactsManager final : public Actor {
   void on_update_user_greeting_message(UserId user_id, BusinessGreetingMessage &&greeting_message);
   void on_update_user_need_phone_number_privacy_exception(UserId user_id, bool need_phone_number_privacy_exception);
   void on_update_user_wallpaper_overridden(UserId user_id, bool wallpaper_overridden);
+  void on_update_user_commands(UserId user_id,
+                               vector<telegram_api::object_ptr<telegram_api::botCommand>> &&bot_commands);
 
   void on_set_profile_photo(UserId user_id, tl_object_ptr<telegram_api::photos_photo> &&photo, bool is_fallback,
                             int64 old_photo_id, Promise<Unit> &&promise);
@@ -273,6 +275,7 @@ class ContactsManager final : public Actor {
   void on_update_chat_delete_user(ChatId chat_id, UserId user_id, int32 version);
   void on_update_chat_default_permissions(ChatId chat_id, RestrictedRights default_permissions, int32 version);
   void on_update_chat_pinned_message(ChatId chat_id, MessageId pinned_message_id, int32 version);
+  void on_update_chat_bot_commands(ChatId chat_id, BotCommands &&bot_commands);
 
   void on_update_channel_participant_count(ChannelId channel_id, int32 participant_count);
   void on_update_channel_editable_username(ChannelId channel_id, string &&username);
@@ -297,11 +300,9 @@ class ContactsManager final : public Actor {
   void on_update_channel_has_pinned_stories(ChannelId channel_id, bool has_pinned_stories);
   void on_update_channel_default_permissions(ChannelId channel_id, RestrictedRights default_permissions);
   void on_update_channel_administrator_count(ChannelId channel_id, int32 administrator_count);
+  void on_update_channel_bot_commands(ChannelId channel_id, BotCommands &&bot_commands);
 
   int32 on_update_peer_located(vector<tl_object_ptr<telegram_api::PeerLocated>> &&peers, bool from_update);
-
-  void on_update_bot_commands(DialogId dialog_id, UserId bot_user_id,
-                              vector<tl_object_ptr<telegram_api::botCommand>> &&bot_commands);
 
   void on_update_bot_menu_button(UserId bot_user_id, tl_object_ptr<telegram_api::BotMenuButton> &&bot_menu_button);
 

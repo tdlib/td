@@ -179,6 +179,9 @@ class DialogManager final : public Actor {
   void upload_dialog_photo(DialogId dialog_id, FileId file_id, bool is_animation, double main_frame_timestamp,
                            bool is_reupload, Promise<Unit> &&promise, vector<int> bad_parts = {});
 
+  void on_update_dialog_bot_commands(DialogId dialog_id, UserId bot_user_id,
+                                     vector<telegram_api::object_ptr<telegram_api::botCommand>> &&bot_commands);
+
   void on_dialog_usernames_updated(DialogId dialog_id, const Usernames &old_usernames, const Usernames &new_usernames);
 
   void on_dialog_usernames_received(DialogId dialog_id, const Usernames &usernames, bool from_database);

@@ -6461,61 +6461,10 @@ void ContactsManager::update_is_location_visible() {
   td_->option_manager_->set_option_boolean("is_location_visible", expire_date != 0);
 }
 
-void ContactsManager::on_update_bot_commands(DialogId dialog_id, UserId bot_user_id,
-                                             vector<tl_object_ptr<telegram_api::botCommand>> &&bot_commands) {
-  if (!bot_user_id.is_valid()) {
-    LOG(ERROR) << "Receive updateBotCOmmands about invalid " << bot_user_id;
-    return;
-  }
-  if (!have_user(bot_user_id) || !is_user_bot(bot_user_id)) {
-    return;
-  }
-  if (td_->auth_manager_->is_bot()) {
-    return;
-  }
-
-  switch (dialog_id.get_type()) {
-    case DialogType::User: {
-      UserId user_id(dialog_id.get_user_id());
-      auto user_full = get_user_full(user_id);
-      if (user_full != nullptr) {
-        on_update_user_full_commands(user_full, user_id, std::move(bot_commands));
-        update_user_full(user_full, user_id, "on_update_bot_commands");
-      }
-      break;
-    }
-    case DialogType::Chat: {
-      ChatId chat_id(dialog_id.get_chat_id());
-      auto chat_full = get_chat_full(chat_id);
-      if (chat_full != nullptr && BotCommands::update_all_bot_commands(
-                                      chat_full->bot_commands, BotCommands(bot_user_id, std::move(bot_commands)))) {
-        chat_full->is_changed = true;
-        update_chat_full(chat_full, chat_id, "on_update_bot_commands");
-      }
-      break;
-    }
-    case DialogType::Channel: {
-      ChannelId channel_id(dialog_id.get_channel_id());
-      auto channel_full = get_channel_full(channel_id, true, "on_update_bot_commands");
-      if (channel_full != nullptr &&
-          BotCommands::update_all_bot_commands(channel_full->bot_commands,
-                                               BotCommands(bot_user_id, std::move(bot_commands)))) {
-        channel_full->is_changed = true;
-        update_channel_full(channel_full, channel_id, "on_update_bot_commands");
-      }
-      break;
-    }
-    case DialogType::SecretChat:
-    default:
-      LOG(ERROR) << "Receive updateBotCommands in " << dialog_id;
-      break;
-  }
-}
-
 void ContactsManager::on_update_bot_menu_button(UserId bot_user_id,
                                                 tl_object_ptr<telegram_api::BotMenuButton> &&bot_menu_button) {
   if (!bot_user_id.is_valid()) {
-    LOG(ERROR) << "Receive updateBotCOmmands about invalid " << bot_user_id;
+    LOG(ERROR) << "Receive updateBotMenuButton about invalid " << bot_user_id;
     return;
   }
   if (!have_user_force(bot_user_id, "on_update_bot_menu_button") || !is_user_bot(bot_user_id)) {
@@ -12772,6 +12721,15 @@ void ContactsManager::on_update_user_full_greeting_message(UserFull *user_full, 
   }
 }
 
+void ContactsManager::on_update_user_commands(
+    UserId user_id, vector<telegram_api::object_ptr<telegram_api::botCommand>> &&bot_commands) {
+  UserFull *user_full = get_user_full_force(user_id, "on_update_user_commands");
+  if (user_full != nullptr) {
+    on_update_user_full_commands(user_full, user_id, std::move(bot_commands));
+    update_user_full(user_full, user_id, "on_update_user_commands");
+  }
+}
+
 void ContactsManager::on_update_user_full_commands(UserFull *user_full, UserId user_id,
                                                    vector<tl_object_ptr<telegram_api::botCommand>> &&bot_commands) {
   CHECK(user_full != nullptr);
@@ -14402,6 +14360,14 @@ void ContactsManager::on_update_channel_photo(Channel *c, ChannelId channel_id,
       c, channel_id,
       get_dialog_photo(td_->file_manager_.get(), DialogId(channel_id), c->access_hash, std::move(chat_photo_ptr)),
       true);
+}
+
+void ContactsManager::on_update_chat_bot_commands(ChatId chat_id, BotCommands &&bot_commands) {
+  auto chat_full = get_chat_full_force(chat_id, "on_update_chat_bot_commands");
+  if (chat_full != nullptr && BotCommands::update_all_bot_commands(chat_full->bot_commands, std::move(bot_commands))) {
+    chat_full->is_changed = true;
+    update_chat_full(chat_full, chat_id, "on_update_chat_bot_commands");
+  }
 }
 
 void ContactsManager::on_update_channel_photo(Channel *c, ChannelId channel_id, DialogPhoto &&photo,
@@ -16340,6 +16306,15 @@ void ContactsManager::on_update_channel_administrator_count(ChannelId channel_id
     }
 
     update_channel_full(channel_full, channel_id, "on_update_channel_administrator_count");
+  }
+}
+
+void ContactsManager::on_update_channel_bot_commands(ChannelId channel_id, BotCommands &&bot_commands) {
+  auto channel_full = get_channel_full_force(channel_id, true, "on_update_channel_bot_commands");
+  if (channel_full != nullptr &&
+      BotCommands::update_all_bot_commands(channel_full->bot_commands, std::move(bot_commands))) {
+    channel_full->is_changed = true;
+    update_channel_full(channel_full, channel_id, "on_update_channel_bot_commands");
   }
 }
 

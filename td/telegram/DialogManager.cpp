@@ -1790,6 +1790,40 @@ bool DialogManager::is_dialog_removed_from_dialog_list(DialogId dialog_id) const
   return false;
 }
 
+void DialogManager::on_update_dialog_bot_commands(
+    DialogId dialog_id, UserId bot_user_id, vector<telegram_api::object_ptr<telegram_api::botCommand>> &&bot_commands) {
+  if (!bot_user_id.is_valid()) {
+    LOG(ERROR) << "Receive updateBotCommands about invalid " << bot_user_id;
+    return;
+  }
+  if (!td_->contacts_manager_->have_user_force(bot_user_id, "on_update_dialog_bot_commands") ||
+      !td_->contacts_manager_->is_user_bot(bot_user_id)) {
+    return;
+  }
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      if (DialogId(bot_user_id) != dialog_id) {
+        LOG(ERROR) << "Receive commands of " << bot_user_id << " in " << dialog_id;
+        return;
+      }
+      return td_->contacts_manager_->on_update_user_commands(bot_user_id, std::move(bot_commands));
+    case DialogType::Chat:
+      return td_->contacts_manager_->on_update_chat_bot_commands(dialog_id.get_chat_id(),
+                                                                 BotCommands(bot_user_id, std::move(bot_commands)));
+    case DialogType::Channel:
+      return td_->contacts_manager_->on_update_channel_bot_commands(dialog_id.get_channel_id(),
+                                                                    BotCommands(bot_user_id, std::move(bot_commands)));
+    case DialogType::SecretChat:
+    default:
+      LOG(ERROR) << "Receive updateBotCommands in " << dialog_id;
+      break;
+  }
+}
+
 void DialogManager::on_dialog_usernames_updated(DialogId dialog_id, const Usernames &old_usernames,
                                                 const Usernames &new_usernames) {
   LOG(INFO) << "Update usernames in " << dialog_id << " from " << old_usernames << " to " << new_usernames;
