@@ -985,6 +985,7 @@ class MessagesManager final : public Actor {
     tl_object_ptr<telegram_api::messageFwdHeader> forward_header;
     MessageReplyHeader reply_header;
     UserId via_bot_user_id;
+    UserId via_business_bot_user_id;
     int32 view_count = 0;
     int32 forward_count = 0;
     tl_object_ptr<telegram_api::messageReplies> reply_info;
@@ -1039,6 +1040,7 @@ class MessagesManager final : public Actor {
     string send_emoji;                        // for send_message
 
     UserId via_bot_user_id;
+    UserId via_business_bot_user_id;
 
     vector<RestrictionReason> restriction_reasons;
 
