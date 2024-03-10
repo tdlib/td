@@ -21,6 +21,7 @@
 #include "td/telegram/net/MtprotoHeader.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/NotificationManager.h"
+#include "td/telegram/PeopleNearbyManager.h"
 #include "td/telegram/ReactionType.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/StickersManager.h"
@@ -636,7 +637,8 @@ void OptionManager::get_option(const string &name, Promise<td_api::object_ptr<td
       }
       if (!is_bot && name == "is_location_visible") {
         if (is_td_inited_) {
-          send_closure_later(td_->contacts_manager_actor_, &ContactsManager::get_is_location_visible, wrap_promise());
+          send_closure_later(td_->people_nearby_manager_actor_, &PeopleNearbyManager::get_is_location_visible,
+                             wrap_promise());
         } else {
           pending_get_options_.emplace_back(name, std::move(promise));
         }
@@ -842,7 +844,7 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
         return;
       }
       if (!is_bot && set_boolean_option("is_location_visible")) {
-        ContactsManager::set_location_visibility(td_);
+        PeopleNearbyManager::set_location_visibility(td_);
         return;
       }
       break;

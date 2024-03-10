@@ -23,7 +23,6 @@
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/FolderId.h"
-#include "td/telegram/Location.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageTtl.h"
@@ -306,8 +305,6 @@ class ContactsManager final : public Actor {
   void on_update_channel_administrator_count(ChannelId channel_id, int32 administrator_count);
   void on_update_channel_bot_commands(ChannelId channel_id, BotCommands &&bot_commands);
 
-  int32 on_update_peer_located(vector<tl_object_ptr<telegram_api::PeerLocated>> &&peers, bool from_update);
-
   void on_update_bot_menu_button(UserId bot_user_id, tl_object_ptr<telegram_api::BotMenuButton> &&bot_menu_button);
 
   void speculative_add_channel_participants(ChannelId channel_id, const vector<UserId> &added_user_ids,
@@ -422,14 +419,6 @@ class ContactsManager final : public Actor {
   void on_resolved_phone_number(const string &phone_number, UserId user_id);
 
   void share_phone_number(UserId user_id, Promise<Unit> &&promise);
-
-  void search_dialogs_nearby(const Location &location, Promise<td_api::object_ptr<td_api::chatsNearby>> &&promise);
-
-  void set_location(const Location &location, Promise<Unit> &&promise);
-
-  static void set_location_visibility(Td *td);
-
-  void get_is_location_visible(Promise<Unit> &&promise);
 
   void register_suggested_profile_photo(const Photo &photo);
 
@@ -1138,26 +1127,6 @@ class ContactsManager final : public Actor {
     vector<PendingGetPhotoRequest> pending_requests;
   };
 
-  struct DialogNearby {
-    DialogId dialog_id;
-    int32 distance;
-
-    DialogNearby(DialogId dialog_id, int32 distance) : dialog_id(dialog_id), distance(distance) {
-    }
-
-    bool operator<(const DialogNearby &other) const {
-      return distance < other.distance || (distance == other.distance && dialog_id.get() < other.dialog_id.get());
-    }
-
-    bool operator==(const DialogNearby &other) const {
-      return distance == other.distance && dialog_id == other.dialog_id;
-    }
-
-    bool operator!=(const DialogNearby &other) const {
-      return !(*this == other);
-    }
-  };
-
   struct RecommendedDialogs {
     int32 total_count_ = 0;
     vector<DialogId> dialog_ids_;
@@ -1654,24 +1623,6 @@ class ContactsManager final : public Actor {
   void on_clear_imported_contacts(vector<Contact> &&contacts, vector<size_t> contacts_unique_id,
                                   std::pair<vector<size_t>, vector<Contact>> &&to_add, Promise<Unit> &&promise);
 
-  vector<td_api::object_ptr<td_api::chatNearby>> get_chats_nearby_object(
-      const vector<DialogNearby> &dialogs_nearby) const;
-
-  void send_update_users_nearby() const;
-
-  void on_get_dialogs_nearby(Result<tl_object_ptr<telegram_api::Updates>> result,
-                             Promise<td_api::object_ptr<td_api::chatsNearby>> &&promise);
-
-  void try_send_set_location_visibility_query();
-
-  void on_set_location_visibility_expire_date(int32 set_expire_date, int32 error_code);
-
-  void set_location_visibility_expire_date(int32 expire_date);
-
-  void on_get_is_location_visible(Result<tl_object_ptr<telegram_api::Updates>> &&result, Promise<Unit> &&promise);
-
-  void update_is_location_visible();
-
   bool is_suitable_recommended_channel(DialogId dialog_id) const;
 
   bool is_suitable_recommended_channel(ChannelId channel_id) const;
@@ -1802,8 +1753,6 @@ class ContactsManager final : public Actor {
 
   static void on_channel_unban_timeout_callback(void *contacts_manager_ptr, int64 channel_id_long);
 
-  static void on_user_nearby_timeout_callback(void *contacts_manager_ptr, int64 user_id_long);
-
   static void on_slow_mode_delay_timeout_callback(void *contacts_manager_ptr, int64 channel_id_long);
 
   void on_user_online_timeout(UserId user_id);
@@ -1814,11 +1763,7 @@ class ContactsManager final : public Actor {
 
   void on_channel_unban_timeout(ChannelId channel_id);
 
-  void on_user_nearby_timeout(UserId user_id);
-
   void on_slow_mode_delay_timeout(ChannelId channel_id);
-
-  void start_up() final;
 
   void tear_down() final;
 
@@ -1959,15 +1904,6 @@ class ContactsManager final : public Actor {
   bool are_imported_contacts_changing_ = false;
   bool need_clear_imported_contacts_ = false;
 
-  vector<DialogNearby> users_nearby_;
-  vector<DialogNearby> channels_nearby_;
-  FlatHashSet<UserId, UserIdHash> all_users_nearby_;
-
-  int32 location_visibility_expire_date_ = 0;
-  int32 pending_location_visibility_expire_date_ = -1;
-  bool is_set_location_visibility_request_sent_ = false;
-  Location last_user_location_;
-
   FlatHashMap<UserId, bool, UserIdHash> user_full_contact_require_premium_;
 
   WaitFreeHashMap<ChannelId, ChannelId, ChannelIdHash> linked_channel_ids_;
@@ -1986,7 +1922,6 @@ class ContactsManager final : public Actor {
   MultiTimeout user_emoji_status_timeout_{"UserEmojiStatusTimeout"};
   MultiTimeout channel_emoji_status_timeout_{"ChannelEmojiStatusTimeout"};
   MultiTimeout channel_unban_timeout_{"ChannelUnbanTimeout"};
-  MultiTimeout user_nearby_timeout_{"UserNearbyTimeout"};
   MultiTimeout slow_mode_delay_timeout_{"SlowModeDelayTimeout"};
 };
 
