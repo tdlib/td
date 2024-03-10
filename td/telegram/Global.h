@@ -62,6 +62,7 @@ class NotificationManager;
 class NotificationSettingsManager;
 class OptionManager;
 class PasswordManager;
+class PeopleNearbyManager;
 class QuickReplyManager;
 class ReactionManager;
 class SavedMessagesManager;
@@ -391,6 +392,13 @@ class Global final : public ActorContext {
     password_manager_ = password_manager;
   }
 
+  ActorId<PeopleNearbyManager> people_nearby_manager() const {
+    return people_nearby_manager_;
+  }
+  void set_people_nearby_manager(ActorId<PeopleNearbyManager> people_nearby_manager) {
+    people_nearby_manager_ = people_nearby_manager;
+  }
+
   ActorId<QuickReplyManager> quick_reply_manager() const {
     return quick_reply_manager_;
   }
@@ -637,6 +645,7 @@ class Global final : public ActorContext {
   ActorId<NotificationManager> notification_manager_;
   ActorId<NotificationSettingsManager> notification_settings_manager_;
   ActorId<PasswordManager> password_manager_;
+  ActorId<PeopleNearbyManager> people_nearby_manager_;
   ActorId<QuickReplyManager> quick_reply_manager_;
   ActorId<ReactionManager> reaction_manager_;
   ActorId<SavedMessagesManager> saved_messages_manager_;

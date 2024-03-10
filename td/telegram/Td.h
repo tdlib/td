@@ -77,6 +77,7 @@ class NotificationManager;
 class NotificationSettingsManager;
 class OptionManager;
 class PasswordManager;
+class PeopleNearbyManager;
 class PhoneNumberManager;
 class PollManager;
 class PrivacyManager;
@@ -224,6 +225,8 @@ class Td final : public Actor {
   ActorOwn<PollManager> poll_manager_actor_;
   unique_ptr<PrivacyManager> privacy_manager_;
   ActorOwn<PrivacyManager> privacy_manager_actor_;
+  unique_ptr<PeopleNearbyManager> people_nearby_manager_;
+  ActorOwn<PeopleNearbyManager> people_nearby_manager_actor_;
   unique_ptr<QuickReplyManager> quick_reply_manager_;
   ActorOwn<QuickReplyManager> quick_reply_manager_actor_;
   unique_ptr<ReactionManager> reaction_manager_;

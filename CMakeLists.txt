@@ -459,6 +459,7 @@ set(TDLIB_SOURCE
   td/telegram/PasswordManager.cpp
   td/telegram/Payments.cpp
   td/telegram/PeerColor.cpp
+  td/telegram/PeopleNearbyManager.cpp
   td/telegram/PhoneNumberManager.cpp
   td/telegram/Photo.cpp
   td/telegram/PhotoSize.cpp
@@ -790,6 +791,7 @@ set(TDLIB_SOURCE
   td/telegram/PasswordManager.h
   td/telegram/Payments.h
   td/telegram/PeerColor.h
+  td/telegram/PeopleNearbyManager.h
   td/telegram/PhoneNumberManager.h
   td/telegram/Photo.h
   td/telegram/PhotoFormat.h
