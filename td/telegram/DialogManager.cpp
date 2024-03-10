@@ -17,6 +17,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/OptionManager.h"
 #include "td/telegram/ReportReason.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/SecretChatsManager.h"
@@ -1770,6 +1771,21 @@ Status DialogManager::can_pin_messages(DialogId dialog_id) const {
   }
 
   return Status::OK();
+}
+
+bool DialogManager::can_use_premium_custom_emoji_in_dialog(DialogId dialog_id) const {
+  if (!td_->auth_manager_->is_bot()) {
+    if (dialog_id == get_my_dialog_id() || td_->option_manager_->get_option_boolean("is_premium")) {
+      return true;
+    }
+    if (dialog_id.get_type() == DialogType::Channel &&
+        td_->contacts_manager_->can_use_premium_custom_emoji_in_channel(dialog_id.get_channel_id())) {
+      return true;
+    }
+    return false;
+  }
+  auto user_id = td_->contacts_manager_->get_my_id();
+  return !td_->contacts_manager_->have_user(user_id) || td_->contacts_manager_->has_user_fragment_username(user_id);
 }
 
 bool DialogManager::is_dialog_removed_from_dialog_list(DialogId dialog_id) const {

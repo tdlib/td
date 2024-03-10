@@ -5078,6 +5078,14 @@ bool ContactsManager::can_poll_channel_active_stories(ChannelId channel_id) cons
   return need_poll_channel_active_stories(c, channel_id) && Time::now() >= c->max_active_story_id_next_reload_time;
 }
 
+bool ContactsManager::can_use_premium_custom_emoji_in_channel(ChannelId channel_id) const {
+  if (!is_megagroup_channel(channel_id)) {
+    return false;
+  }
+  auto channel_full = get_channel_full_const(channel_id);
+  return channel_full == nullptr || channel_full->emoji_sticker_set_id.is_valid();
+}
+
 string ContactsManager::get_user_private_forward_name(UserId user_id) {
   auto user_full = get_user_full_force(user_id, "get_user_private_forward_name");
   if (user_full != nullptr) {
@@ -5202,6 +5210,14 @@ string ContactsManager::get_channel_editable_username(ChannelId channel_id) cons
   return c->usernames.get_editable_username();
 }
 
+bool ContactsManager::has_user_fragment_username(UserId user_id) const {
+  auto u = get_user(user_id);
+  if (u == nullptr) {
+    return false;
+  }
+  return u->usernames.get_active_usernames().size() > (u->usernames.has_editable_username() ? 1u : 0u);
+}
+
 UserId ContactsManager::get_secret_chat_user_id(SecretChatId secret_chat_id) const {
   auto c = get_secret_chat(secret_chat_id);
   if (c == nullptr) {
@@ -5240,26 +5256,6 @@ FolderId ContactsManager::get_secret_chat_initial_folder_id(SecretChatId secret_
     return FolderId::main();
   }
   return c->initial_folder_id;
-}
-
-bool ContactsManager::can_use_premium_custom_emoji(DialogId dialog_id) const {
-  if (td_->option_manager_->get_option_boolean("is_premium")) {
-    return true;
-  }
-  if (dialog_id.get_type() == DialogType::Channel) {
-    auto channel_id = dialog_id.get_channel_id();
-    if (!td_->auth_manager_->is_bot() && is_megagroup_channel(channel_id)) {
-      auto channel_full = get_channel_full_const(channel_id);
-      if (channel_full == nullptr || channel_full->emoji_sticker_set_id.is_valid()) {
-        return true;
-      }
-    }
-  }
-  if (!td_->auth_manager_->is_bot()) {
-    return false;
-  }
-  const User *u = get_user(get_my_id());
-  return u == nullptr || u->usernames.get_active_usernames().size() > (u->usernames.has_editable_username() ? 1u : 0u);
 }
 
 UserId ContactsManager::get_my_id() const {

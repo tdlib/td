@@ -172,6 +172,8 @@ class ContactsManager final : public Actor {
   bool can_poll_user_active_stories(UserId user_id) const;
   bool can_poll_channel_active_stories(ChannelId channel_id) const;
 
+  bool can_use_premium_custom_emoji_in_channel(ChannelId channel_id) const;
+
   string get_user_private_forward_name(UserId user_id);
 
   bool get_user_voice_messages_forbidden(UserId user_id) const;
@@ -187,6 +189,8 @@ class ContactsManager final : public Actor {
   string get_user_first_username(UserId user_id) const;
   string get_channel_first_username(ChannelId channel_id) const;
   string get_channel_editable_username(ChannelId channel_id) const;
+
+  bool has_user_fragment_username(UserId user_id) const;
 
   int32 get_secret_chat_date(SecretChatId secret_chat_id) const;
   int32 get_secret_chat_ttl(SecretChatId secret_chat_id) const;
@@ -332,8 +336,6 @@ class ContactsManager final : public Actor {
   void unregister_message_users(MessageFullId message_full_id, vector<UserId> user_ids);
 
   void unregister_message_channels(MessageFullId message_full_id, vector<ChannelId> channel_ids);
-
-  bool can_use_premium_custom_emoji(DialogId dialog_id) const;
 
   UserId get_my_id() const;
 
