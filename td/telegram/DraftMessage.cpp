@@ -448,7 +448,7 @@ Result<unique_ptr<DraftMessage>> DraftMessage::get_draft_message(
   }
 
   auto result = make_unique<DraftMessage>();
-  result->message_input_reply_to_ = td->messages_manager_->get_message_input_reply_to(
+  result->message_input_reply_to_ = td->messages_manager_->create_message_input_reply_to(
       dialog_id, top_thread_message_id, std::move(draft_message->reply_to_), true);
 
   auto input_message_content = std::move(draft_message->input_message_text_);

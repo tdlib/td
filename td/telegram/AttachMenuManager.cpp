@@ -869,8 +869,8 @@ void AttachMenuManager::request_web_view(DialogId dialog_id, UserId bot_user_id,
       !td_->contacts_manager_->is_megagroup_channel(dialog_id.get_channel_id())) {
     top_thread_message_id = MessageId();
   }
-  auto input_reply_to =
-      td_->messages_manager_->get_message_input_reply_to(dialog_id, top_thread_message_id, std::move(reply_to), false);
+  auto input_reply_to = td_->messages_manager_->create_message_input_reply_to(dialog_id, top_thread_message_id,
+                                                                              std::move(reply_to), false);
 
   bool silent = td_->messages_manager_->get_dialog_silent_send_message(dialog_id);
   DialogId as_dialog_id = td_->messages_manager_->get_dialog_default_send_message_as_dialog_id(dialog_id);

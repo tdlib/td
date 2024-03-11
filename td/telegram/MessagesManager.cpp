@@ -22900,10 +22900,10 @@ DialogId MessagesManager::get_dialog_default_send_message_as_dialog_id(DialogId 
   return d->default_send_message_as_dialog_id;
 }
 
-MessageInputReplyTo MessagesManager::get_message_input_reply_to(
+MessageInputReplyTo MessagesManager::create_message_input_reply_to(
     DialogId dialog_id, MessageId top_thread_message_id, td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
     bool for_draft) {
-  return get_message_input_reply_to(get_dialog(dialog_id), top_thread_message_id, std::move(reply_to), for_draft);
+  return create_message_input_reply_to(get_dialog(dialog_id), top_thread_message_id, std::move(reply_to), for_draft);
 }
 
 int64 MessagesManager::generate_new_random_id(const Dialog *d) {
@@ -22934,7 +22934,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   auto initial_top_thread_message_id = top_thread_message_id;
   auto same_chat_reply_to_message_id = input_reply_to.get_same_chat_reply_to_message_id();
   if (same_chat_reply_to_message_id.is_valid() || same_chat_reply_to_message_id.is_valid_scheduled()) {
-    // the message was forcely preloaded in get_message_input_reply_to
+    // the message was forcely preloaded in create_message_input_reply_to
     // it can be missing, only if it is unknown message from a push notification, or an unknown top thread message
     const Message *reply_m = get_message(d, same_chat_reply_to_message_id);
     if (reply_m != nullptr && !same_chat_reply_to_message_id.is_scheduled()) {
@@ -23151,12 +23151,12 @@ MessageId MessagesManager::get_persistent_message_id(const Dialog *d, MessageId 
   return message_id;
 }
 
-MessageInputReplyTo MessagesManager::get_message_input_reply_to(
+MessageInputReplyTo MessagesManager::create_message_input_reply_to(
     Dialog *d, MessageId top_thread_message_id, td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
     bool for_draft) {
   CHECK(d != nullptr);
   if (top_thread_message_id.is_valid() &&
-      !have_message_force(d, top_thread_message_id, "get_message_input_reply_to 1")) {
+      !have_message_force(d, top_thread_message_id, "create_message_input_reply_to 1")) {
     LOG(INFO) << "Have reply in the thread of unknown " << top_thread_message_id;
   }
   if (reply_to == nullptr) {
@@ -23196,7 +23196,7 @@ MessageInputReplyTo MessagesManager::get_message_input_reply_to(
       auto *reply_d = d;
       auto reply_dialog_id = DialogId(reply_to_message->chat_id_);
       if (reply_dialog_id != DialogId()) {
-        reply_d = get_dialog_force(reply_dialog_id, "get_message_input_reply_to");
+        reply_d = get_dialog_force(reply_dialog_id, "create_message_input_reply_to");
         if (reply_d == nullptr) {
           return {};
         }
@@ -23225,7 +23225,7 @@ MessageInputReplyTo MessagesManager::get_message_input_reply_to(
           }
         }
       }
-      const Message *m = get_message_force(reply_d, message_id, "get_message_input_reply_to 2");
+      const Message *m = get_message_force(reply_d, message_id, "create_message_input_reply_to 2");
       if (m == nullptr || m->message_id.is_yet_unsent() ||
           (m->message_id.is_local() && reply_d->dialog_id.get_type() != DialogType::SecretChat)) {
         if (message_id.is_server() && reply_d->dialog_id.get_type() != DialogType::SecretChat &&
@@ -23598,7 +23598,7 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_message(
     return Status::Error(400, "Chat not found");
   }
 
-  auto input_reply_to = get_message_input_reply_to(d, top_thread_message_id, std::move(reply_to), false);
+  auto input_reply_to = create_message_input_reply_to(d, top_thread_message_id, std::move(reply_to), false);
 
   if (input_message_content->get_id() == td_api::inputMessageForwarded::ID) {
     auto input_message = td_api::move_object_as<td_api::inputMessageForwarded>(input_message_content);
@@ -23877,7 +23877,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_message_group
     }
   }
 
-  auto input_reply_to = get_message_input_reply_to(d, top_thread_message_id, std::move(reply_to), false);
+  auto input_reply_to = create_message_input_reply_to(d, top_thread_message_id, std::move(reply_to), false);
   TRY_STATUS(can_use_top_thread_message_id(d, top_thread_message_id, input_reply_to));
 
   int64 media_album_id = 0;
@@ -24773,7 +24773,7 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_inline_query_r
     return Status::Error(400, "Inline query result not found");
   }
 
-  auto input_reply_to = get_message_input_reply_to(d, top_thread_message_id, std::move(reply_to), false);
+  auto input_reply_to = create_message_input_reply_to(d, top_thread_message_id, std::move(reply_to), false);
   TRY_STATUS(can_use_message_send_options(message_send_options, content->message_content, MessageSelfDestructType()));
   TRY_STATUS(can_send_message_content(dialog_id, content->message_content.get(), false, true, td_));
   TRY_STATUS(can_use_top_thread_message_id(d, top_thread_message_id, input_reply_to));
@@ -27131,7 +27131,7 @@ Result<MessageId> MessagesManager::add_local_message(
     }
   }
 
-  auto input_reply_to = get_message_input_reply_to(d, MessageId(), std::move(reply_to), false);
+  auto input_reply_to = create_message_input_reply_to(d, MessageId(), std::move(reply_to), false);
 
   MessageId message_id = get_next_local_message_id(d);
 
