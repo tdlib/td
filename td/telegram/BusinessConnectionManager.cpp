@@ -171,11 +171,82 @@ class BusinessConnectionManager::SendBusinessMessageQuery final : public Td::Res
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for SendBusinessMessageQuery: " << to_string(ptr);
-    promise_.set_value(nullptr); // TODO
+    promise_.set_value(nullptr);  // TODO
   }
 
   void on_error(Status status) final {
     LOG(INFO) << "Receive error for SendBusinessMessageQuery: " << status;
+    promise_.set_error(std::move(status));
+  }
+};
+
+class BusinessConnectionManager::SendBusinessMediaQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::message>> promise_;
+  unique_ptr<PendingMessage> message_;
+
+ public:
+  explicit SendBusinessMediaQuery(Promise<td_api::object_ptr<td_api::message>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(unique_ptr<PendingMessage> message, telegram_api::object_ptr<telegram_api::InputMedia> &&input_media) {
+    CHECK(input_media != nullptr);
+    message_ = std::move(message);
+
+    int32 flags = 0;
+    if (message_->disable_notification_) {
+      flags |= telegram_api::messages_sendMedia::SILENT_MASK;
+    }
+    if (message_->noforwards_) {
+      flags |= telegram_api::messages_sendMedia::NOFORWARDS_MASK;
+    }
+    if (message_->invert_media_) {
+      flags |= telegram_api::messages_sendMedia::INVERT_MEDIA_MASK;
+    }
+
+    auto input_peer = td_->dialog_manager_->get_input_peer_force(message_->dialog_id_);
+    CHECK(input_peer != nullptr);
+
+    auto reply_to = message_->input_reply_to_.get_input_reply_to(td_, MessageId());
+    if (reply_to != nullptr) {
+      flags |= telegram_api::messages_sendMedia::REPLY_TO_MASK;
+    }
+
+    const FormattedText *message_text = get_message_content_text(message_->content_.get());
+    auto entities = get_input_message_entities(td_->contacts_manager_.get(), message_text, "SendBusinessMediaQuery");
+    if (!entities.empty()) {
+      flags |= telegram_api::messages_sendMedia::ENTITIES_MASK;
+    }
+
+    if (message_->reply_markup_ != nullptr) {
+      flags |= telegram_api::messages_sendMedia::REPLY_MARKUP_MASK;
+    }
+
+    send_query(G()->net_query_creator().create_with_prefix(
+        message_->business_connection_id_.get_invoke_prefix(),
+        telegram_api::messages_sendMedia(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                                         false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer),
+                                         std::move(reply_to), std::move(input_media),
+                                         message_text == nullptr ? string() : message_text->text, message_->random_id_,
+                                         get_input_reply_markup(td_->contacts_manager_.get(), message_->reply_markup_),
+                                         std::move(entities), 0, nullptr, nullptr),
+        td_->business_connection_manager_->get_business_connection_dc_id(message_->business_connection_id_),
+        {{message_->dialog_id_}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_sendMedia>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SendBusinessMediaQuery: " << to_string(ptr);
+    promise_.set_value(nullptr);  // TODO
+  }
+
+  void on_error(Status status) final {
+    LOG(INFO) << "Receive error for SendBusinessMediaQuery: " << status;
     promise_.set_error(std::move(status));
   }
 };
@@ -463,11 +534,16 @@ void BusinessConnectionManager::do_send_message(unique_ptr<PendingMessage> &&mes
     if (input_media == nullptr) {
       td_->create_handler<SendBusinessMessageQuery>(std::move(promise))->send(std::move(message));
     } else {
-      promise.set_error(Status::Error(400, "Unsupported"));
+      td_->create_handler<SendBusinessMediaQuery>(std::move(promise))->send(std::move(message), std::move(input_media));
     }
     return;
   }
 
+  auto input_media = get_input_media(content, td_, message->ttl_, message->send_emoji_, td_->auth_manager_->is_bot());
+  if (input_media != nullptr) {
+    td_->create_handler<SendBusinessMediaQuery>(std::move(promise))->send(std::move(message), std::move(input_media));
+    return;
+  }
   promise.set_error(Status::Error(400, "Unsupported"));
 }
 

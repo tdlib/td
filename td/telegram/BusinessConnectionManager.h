@@ -63,6 +63,7 @@ class BusinessConnectionManager final : public Actor {
   struct BusinessConnection;
   struct PendingMessage;
   class SendBusinessMessageQuery;
+  class SendBusinessMediaQuery;
 
   void tear_down() final;
 
