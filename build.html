@@ -368,10 +368,10 @@ function getSupportedOs(language) {
     case 'C#':
       return ['Windows (through C++/CLI)', 'Universal Windows Platform (through C++/CX)', 'Windows (.NET Core)', 'Linux (.NET Core)', 'macOS (.NET Core)', 'FreeBSD (.NET Core)'];
     case 'Dart':
-      return ['Android', 'iOS', 'Windows', 'Linux', 'macOS', 'tvOS', 'watchOS'];
+      return ['Android', 'iOS', 'Windows', 'Linux', 'macOS', 'tvOS', 'visionOS', 'watchOS'];
     case 'Swift':
     case 'Objective-C':
-      return ['Windows', 'Linux', 'macOS', 'iOS', 'tvOS', 'watchOS'];
+      return ['Windows', 'Linux', 'macOS', 'iOS', 'tvOS', 'visionOS', 'watchOS'];
     default:
       return ['Windows', 'Linux', 'macOS', 'FreeBSD', 'OpenBSD', 'NetBSD'];
   }
@@ -474,7 +474,7 @@ function getTarget(language, os) {
   if (os.includes('Android')) {
     return 'Android';
   }
-  if (os.includes('iOS') || os.includes('tvOS') || os.includes('watchOS')) {
+  if (os.includes('iOS') || os.includes('tvOS') || os.includes('visionOS') || os.includes('watchOS')) {
     return 'iOS';
   }
 
