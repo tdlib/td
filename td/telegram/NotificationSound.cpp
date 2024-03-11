@@ -256,7 +256,7 @@ unique_ptr<NotificationSound> get_notification_sound(telegram_api::peerNotifySet
   telegram_api::NotificationSound *sound =
 #if TD_ANDROID
       for_stories ? settings->stories_android_sound_.get() : settings->android_sound_.get();
-#elif TD_DARWIN_IOS || TD_DARWIN_TV_OS || TD_DARWIN_WATCH_OS
+#elif TD_DARWIN_IOS || TD_DARWIN_TV_OS || TD_DARWIN_VISION_OS || TD_DARWIN_WATCH_OS || TD_DARWIN_UNKNOWN
       for_stories ? settings->stories_ios_sound_.get() : settings->ios_sound_.get();
 #else
       for_stories ? settings->stories_other_sound_.get() : settings->other_sound_.get();

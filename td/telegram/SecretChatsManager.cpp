@@ -168,7 +168,7 @@ void SecretChatsManager::on_update_chat(tl_object_ptr<telegram_api::updateEncryp
   PendingChatUpdate pending_update;
   pending_update.online_process_time_ = Timestamp::now();
   if (update->chat_->get_id() == telegram_api::encryptedChatRequested::ID) {
-#if TD_ANDROID || TD_DARWIN_IOS || TD_DARWIN_WATCH_OS || TD_TIZEN
+#if TD_ANDROID || TD_DARWIN_IOS
     pending_update.offline_process_time_ = Timestamp::in(1.0);
 #else
     pending_update.online_process_time_ = Timestamp::in(2.0);

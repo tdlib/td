@@ -119,7 +119,7 @@ class ConnectionCreator final : public NetQueryCallback {
 
   struct ClientInfo {
     class Backoff {
-#if TD_ANDROID || TD_DARWIN_IOS || TD_DARWIN_WATCH_OS || TD_TIZEN
+#if TD_ANDROID || TD_DARWIN_IOS || TD_DARWIN_VISION_OS || TD_DARWIN_WATCH_OS || TD_TIZEN
       static constexpr int32 MAX_BACKOFF = 300;
 #else
       static constexpr int32 MAX_BACKOFF = 16;
