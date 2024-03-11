@@ -23737,41 +23737,42 @@ Result<MessagesManager::MessageSendOptions> MessagesManager::process_message_sen
     DialogId dialog_id, tl_object_ptr<td_api::messageSendOptions> &&options,
     bool allow_update_stickersets_order) const {
   MessageSendOptions result;
-  if (options != nullptr) {
-    result.disable_notification = options->disable_notification_;
-    result.from_background = options->from_background_;
-    if (allow_update_stickersets_order) {
-      result.update_stickersets_order = options->update_order_of_installed_sticker_sets_;
-    }
-    result.protect_content = options->protect_content_;
-    result.only_preview = options->only_preview_;
-    TRY_RESULT_ASSIGN(result.schedule_date, get_message_schedule_date(std::move(options->scheduling_state_)));
-    result.sending_id = options->sending_id_;
+  if (options == nullptr) {
+    return std::move(result);
   }
 
-  auto dialog_type = dialog_id.get_type();
+  result.disable_notification = options->disable_notification_;
+  result.from_background = options->from_background_;
+  if (allow_update_stickersets_order) {
+    result.update_stickersets_order = options->update_order_of_installed_sticker_sets_;
+  }
+  if (td_->auth_manager_->is_bot()) {
+    result.protect_content = options->protect_content_;
+  }
+  result.only_preview = options->only_preview_;
+  TRY_RESULT_ASSIGN(result.schedule_date, get_message_schedule_date(std::move(options->scheduling_state_)));
+  result.sending_id = options->sending_id_;
+
   if (result.schedule_date != 0) {
+    auto dialog_type = dialog_id.get_type();
     if (dialog_type == DialogType::SecretChat) {
       return Status::Error(400, "Can't schedule messages in secret chats");
     }
     if (td_->auth_manager_->is_bot()) {
       return Status::Error(400, "Bots can't send scheduled messages");
     }
-  }
-  if (result.schedule_date == SCHEDULE_WHEN_ONLINE_DATE) {
-    if (dialog_type != DialogType::User) {
-      return Status::Error(400, "Messages can be scheduled till online only in private chats");
-    }
-    if (dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
-      return Status::Error(400, "Can't scheduled till online messages in chat with self");
+
+    if (result.schedule_date == SCHEDULE_WHEN_ONLINE_DATE) {
+      if (dialog_type != DialogType::User) {
+        return Status::Error(400, "Messages can be scheduled till online only in private chats");
+      }
+      if (dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
+        return Status::Error(400, "Can't scheduled till online messages in chat with self");
+      }
     }
   }
 
-  if (result.protect_content && !td_->auth_manager_->is_bot()) {
-    result.protect_content = false;
-  }
-
-  return result;
+  return std::move(result);
 }
 
 Status MessagesManager::can_use_message_send_options(const MessageSendOptions &options,
