@@ -8,6 +8,7 @@
 
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
@@ -15,6 +16,7 @@
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
 
+#include "td/utils/format.h"
 #include "td/utils/logging.h"
 
 namespace td {
@@ -166,6 +168,24 @@ void BusinessConnectionManager::on_update_bot_edit_business_message(
   send_closure(
       G()->td(), &Td::send_update,
       td_api::make_object<td_api::updateBusinessMessageEdited>(connection_id.get(), std::move(message_object)));
+}
+
+void BusinessConnectionManager::on_update_bot_delete_business_messages(const BusinessConnectionId &connection_id,
+                                                                       DialogId dialog_id, vector<int32> &&messages) {
+  if (!td_->auth_manager_->is_bot() || !connection_id.is_valid() || dialog_id.get_type() != DialogType::User) {
+    LOG(ERROR) << "Receive deletion of messages " << messages << " in " << dialog_id;
+    return;
+  }
+  vector<int64> message_ids;
+  for (auto message : messages) {
+    message_ids.push_back(MessageId(ServerMessageId(message)).get());
+  }
+  td_->dialog_manager_->force_create_dialog(dialog_id, "on_update_bot_delete_business_messages", true);
+  send_closure(
+      G()->td(), &Td::send_update,
+      td_api::make_object<td_api::updateBusinessMessagesDeleted>(
+          connection_id.get(), td_->dialog_manager_->get_chat_id_object(dialog_id, "updateBusinessMessageDeleted"),
+          std::move(message_ids)));
 }
 
 void BusinessConnectionManager::get_business_connection(

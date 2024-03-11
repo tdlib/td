@@ -3107,6 +3107,9 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
       }
       case telegram_api::updateBotDeleteBusinessMessage::ID: {
         auto update = move_tl_object_as<telegram_api::updateBotDeleteBusinessMessage>(update_ptr);
+        td_->business_connection_manager_->on_update_bot_delete_business_messages(
+            BusinessConnectionId(std::move(update->connection_id_)), DialogId(update->peer_),
+            std::move(update->messages_));
         break;
       }
       default:

@@ -44,6 +44,9 @@ class BusinessConnectionManager final : public Actor {
   void on_update_bot_edit_business_message(const BusinessConnectionId &connection_id,
                                            telegram_api::object_ptr<telegram_api::Message> &&message);
 
+  void on_update_bot_delete_business_messages(const BusinessConnectionId &connection_id, DialogId dialog_id,
+                                              vector<int32> &&messages);
+
   void get_business_connection(const BusinessConnectionId &connection_id,
                                Promise<td_api::object_ptr<td_api::businessConnection>> &&promise);
 

@@ -6942,6 +6942,12 @@ updateNewBusinessMessage connection_id:string message:message = Update;
 //@description A message in a business account was edited; for bots only @connection_id Unique identifier of the business connection @message The edited message
 updateBusinessMessageEdited connection_id:string message:message = Update;
 
+//@description Messages in a business account were deleted; for bots only
+//@connection_id Unique identifier of the business connection
+//@chat_id Identifier of a chat in the business account in which messages were deleted
+//@message_ids Unique message identifiers of the deleted messages
+updateBusinessMessagesDeleted connection_id:string chat_id:int53 message_ids:vector<int53> = Update;
+
 //@description A new incoming inline query; for bots only
 //@id Unique query identifier
 //@sender_user_id Identifier of the user who sent the query
