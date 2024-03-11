@@ -95,9 +95,6 @@ void BusinessConnectionManager::tear_down() {
 
 Status BusinessConnectionManager::check_business_connection(const BusinessConnectionId &connection_id,
                                                             DialogId dialog_id) const {
-  if (connection_id.is_empty()) {
-    return Status::OK();
-  }
   auto connection = business_connections_.get_pointer(connection_id);
   if (connection == nullptr) {
     return Status::Error(400, "Business connection not found");

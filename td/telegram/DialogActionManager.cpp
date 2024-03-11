@@ -296,10 +296,11 @@ void DialogActionManager::send_update_chat_action(DialogId dialog_id, MessageId 
 void DialogActionManager::send_dialog_action(DialogId dialog_id, MessageId top_thread_message_id,
                                              BusinessConnectionId business_connection_id, DialogAction action,
                                              Promise<Unit> &&promise) {
-  TRY_STATUS_PROMISE(promise,
-                     td_->business_connection_manager_->check_business_connection(business_connection_id, dialog_id));
   bool as_business = business_connection_id.is_valid();
-  if (!as_business && !td_->dialog_manager_->have_dialog_force(dialog_id, "send_dialog_action")) {
+  if (as_business) {
+    TRY_STATUS_PROMISE(promise,
+                       td_->business_connection_manager_->check_business_connection(business_connection_id, dialog_id));
+  } else if (!td_->dialog_manager_->have_dialog_force(dialog_id, "send_dialog_action")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
   if (top_thread_message_id != MessageId() &&
