@@ -825,8 +825,7 @@ Result<unique_ptr<ReplyMarkup>> get_reply_markup(td_api::object_ptr<td_api::Repl
 }
 
 Result<unique_ptr<ReplyMarkup>> get_reply_markup(td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup_ptr,
-                                                 DialogId dialog_id, bool is_bot, bool is_anonymous) {
-  auto dialog_type = dialog_id.get_type();
+                                                 DialogType dialog_type, bool is_bot, bool is_anonymous) {
   bool only_inline_keyboard = is_anonymous;
   bool request_buttons_allowed = dialog_type == DialogType::User;
   bool switch_inline_buttons_allowed = !is_anonymous;

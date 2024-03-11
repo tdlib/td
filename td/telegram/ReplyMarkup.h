@@ -108,7 +108,7 @@ Result<unique_ptr<ReplyMarkup>> get_reply_markup(td_api::object_ptr<td_api::Repl
                                                  bool switch_inline_buttons_allowed);
 
 Result<unique_ptr<ReplyMarkup>> get_reply_markup(td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup_ptr,
-                                                 DialogId dialog_id, bool is_bot, bool is_anonymous);
+                                                 DialogType dialog_type, bool is_bot, bool is_anonymous);
 
 unique_ptr<ReplyMarkup> dup_reply_markup(const unique_ptr<ReplyMarkup> &reply_markup);
 
