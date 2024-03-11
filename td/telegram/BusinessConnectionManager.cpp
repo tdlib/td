@@ -10,7 +10,14 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/MessageContent.h"
+#include "td/telegram/MessageCopyOptions.h"
+#include "td/telegram/MessageEntity.h"
+#include "td/telegram/MessageId.h"
+#include "td/telegram/MessageSelfDestructType.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/ReplyMarkup.h"
+#include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -18,6 +25,7 @@
 
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
+#include "td/utils/Random.h"
 
 namespace td {
 
@@ -80,6 +88,95 @@ struct BusinessConnectionManager::BusinessConnection {
     return td_api::make_object<td_api::businessConnection>(
         connection_id_.get(), td->contacts_manager_->get_user_id_object(user_id_, "businessConnection"),
         connection_date_, can_reply_, is_disabled_);
+  }
+};
+
+struct BusinessConnectionManager::PendingMessage {
+  BusinessConnectionId business_connection_id_;
+  DialogId dialog_id_;
+  MessageInputReplyTo input_reply_to_;
+  string send_emoji_;
+  MessageSelfDestructType ttl_;
+  unique_ptr<MessageContent> content_;
+  unique_ptr<ReplyMarkup> reply_markup_;
+  int64 media_album_id_ = 0;
+  int64 random_id_ = 0;
+  bool noforwards_ = false;
+  bool disable_notification_ = false;
+  bool invert_media_ = false;
+  bool disable_web_page_preview_ = false;
+};
+
+class BusinessConnectionManager::SendBusinessMessageQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::message>> promise_;
+  unique_ptr<PendingMessage> message_;
+
+ public:
+  explicit SendBusinessMessageQuery(Promise<td_api::object_ptr<td_api::message>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(unique_ptr<PendingMessage> message) {
+    message_ = std::move(message);
+
+    int32 flags = 0;
+    if (message_->disable_web_page_preview_) {
+      flags |= telegram_api::messages_sendMessage::NO_WEBPAGE_MASK;
+    }
+    if (message_->disable_notification_) {
+      flags |= telegram_api::messages_sendMessage::SILENT_MASK;
+    }
+    if (message_->noforwards_) {
+      flags |= telegram_api::messages_sendMessage::NOFORWARDS_MASK;
+    }
+    if (message_->invert_media_) {
+      flags |= telegram_api::messages_sendMessage::INVERT_MEDIA_MASK;
+    }
+
+    auto input_peer = td_->dialog_manager_->get_input_peer_force(message_->dialog_id_);
+    CHECK(input_peer != nullptr);
+
+    auto reply_to = message_->input_reply_to_.get_input_reply_to(td_, MessageId());
+    if (reply_to != nullptr) {
+      flags |= telegram_api::messages_sendMessage::REPLY_TO_MASK;
+    }
+
+    const FormattedText *message_text = get_message_content_text(message_->content_.get());
+    CHECK(message_text != nullptr);
+    auto entities = get_input_message_entities(td_->contacts_manager_.get(), message_text, "SendBusinessMessageQuery");
+    if (!entities.empty()) {
+      flags |= telegram_api::messages_sendMessage::ENTITIES_MASK;
+    }
+
+    if (message_->reply_markup_ != nullptr) {
+      flags |= telegram_api::messages_sendMessage::REPLY_MARKUP_MASK;
+    }
+
+    send_query(G()->net_query_creator().create_with_prefix(
+        message_->business_connection_id_.get_invoke_prefix(),
+        telegram_api::messages_sendMessage(
+            flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+            false /*ignored*/, false /*ignored*/, std::move(input_peer), std::move(reply_to), message_text->text,
+            message_->random_id_, get_input_reply_markup(td_->contacts_manager_.get(), message_->reply_markup_),
+            std::move(entities), 0, nullptr, nullptr),
+        td_->business_connection_manager_->get_business_connection_dc_id(message_->business_connection_id_),
+        {{message_->dialog_id_}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_sendMessage>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SendBusinessMessageQuery: " << to_string(ptr);
+    promise_.set_value(nullptr); // TODO
+  }
+
+  void on_error(Status status) final {
+    LOG(INFO) << "Receive error for SendBusinessMessageQuery: " << status;
+    promise_.set_error(std::move(status));
   }
 };
 
@@ -257,6 +354,121 @@ void BusinessConnectionManager::on_get_business_connection(
   for (auto &promise : promises) {
     promise.set_value(stored_connection->get_business_connection_object(td_));
   }
+}
+
+MessageInputReplyTo BusinessConnectionManager::create_business_message_input_reply_to(
+    td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to) {
+  if (reply_to == nullptr) {
+    return {};
+  }
+  switch (reply_to->get_id()) {
+    case td_api::inputMessageReplyToStory::ID:
+      return {};
+    case td_api::inputMessageReplyToMessage::ID: {
+      auto reply_to_message = td_api::move_object_as<td_api::inputMessageReplyToMessage>(reply_to);
+      auto message_id = MessageId(reply_to_message->message_id_);
+      if (!message_id.is_valid() || !message_id.is_server()) {
+        return {};
+      }
+      if (reply_to_message->chat_id_ != 0) {
+        return {};
+      }
+      FormattedText quote;
+      int32 quote_position = 0;
+      if (reply_to_message->quote_ != nullptr) {
+        int32 ltrim_count = 0;
+        auto r_quote = get_formatted_text(td_, td_->dialog_manager_->get_my_dialog_id(),
+                                          std::move(reply_to_message->quote_->text_), td_->auth_manager_->is_bot(),
+                                          true, true, false, &ltrim_count);
+        if (r_quote.is_ok() && !r_quote.ok().text.empty()) {
+          quote = r_quote.move_as_ok();
+          quote_position = reply_to_message->quote_->position_;
+          if (0 <= quote_position && quote_position <= 1000000) {  // some unreasonably big bound
+            quote_position += ltrim_count;
+          } else {
+            quote_position = 0;
+          }
+        }
+      }
+      return MessageInputReplyTo{message_id, DialogId(), std::move(quote), quote_position};
+    }
+    default:
+      UNREACHABLE();
+      return {};
+  }
+}
+
+Result<InputMessageContent> BusinessConnectionManager::process_input_message_content(
+    DialogId dialog_id, td_api::object_ptr<td_api::InputMessageContent> &&input_message_content) {
+  if (input_message_content == nullptr) {
+    return Status::Error(400, "Can't send message without content");
+  }
+  if (input_message_content->get_id() == td_api::inputMessageForwarded::ID) {
+    return Status::Error(400, "Can't forward messages as business");
+  }
+  return get_input_message_content(dialog_id, std::move(input_message_content), td_, true);
+}
+
+unique_ptr<BusinessConnectionManager::PendingMessage> BusinessConnectionManager::create_business_message_to_send(
+    BusinessConnectionId business_connection_id, DialogId dialog_id, MessageInputReplyTo &&input_reply_to,
+    bool disable_notification, bool protect_content, unique_ptr<ReplyMarkup> &&reply_markup,
+    InputMessageContent &&input_content) const {
+  auto content = dup_message_content(td_, td_->dialog_manager_->get_my_dialog_id(), input_content.content.get(),
+                                     MessageContentDupType::Send, MessageCopyOptions());
+  auto message = make_unique<PendingMessage>();
+  message->business_connection_id_ = business_connection_id;
+  message->dialog_id_ = dialog_id;
+  message->input_reply_to_ = std::move(input_reply_to);
+  message->noforwards_ = protect_content;
+  message->content_ = std::move(content);
+  message->reply_markup_ = std::move(reply_markup);
+  message->disable_notification_ = disable_notification;
+  message->invert_media_ = input_content.invert_media;
+  message->disable_web_page_preview_ = input_content.disable_web_page_preview;
+  message->ttl_ = input_content.ttl;
+  message->send_emoji_ = std::move(input_content.emoji);
+  message->random_id_ = Random::secure_int64();
+  return message;
+}
+
+void BusinessConnectionManager::send_message(BusinessConnectionId business_connection_id, DialogId dialog_id,
+                                             td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
+                                             bool disable_notification, bool protect_content,
+                                             td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
+                                             td_api::object_ptr<td_api::InputMessageContent> &&input_message_content,
+                                             Promise<td_api::object_ptr<td_api::message>> &&promise) {
+  TRY_STATUS_PROMISE(promise, check_business_connection(business_connection_id, dialog_id));
+  TRY_RESULT_PROMISE(promise, input_content,
+                     process_input_message_content(dialog_id, std::move(input_message_content)));
+  auto input_reply_to = create_business_message_input_reply_to(std::move(reply_to));
+  TRY_RESULT_PROMISE(promise, message_reply_markup,
+                     get_reply_markup(std::move(reply_markup), DialogType::User, td_->auth_manager_->is_bot(), false));
+
+  auto message = create_business_message_to_send(std::move(business_connection_id), dialog_id,
+                                                 std::move(input_reply_to), disable_notification, protect_content,
+                                                 std::move(message_reply_markup), std::move(input_content));
+
+  do_send_message(std::move(message), std::move(promise));
+}
+
+void BusinessConnectionManager::do_send_message(unique_ptr<PendingMessage> &&message,
+                                                Promise<td_api::object_ptr<td_api::message>> &&promise) {
+  LOG(INFO) << "Send business message to " << message->dialog_id_;
+
+  auto content = message->content_.get();
+  CHECK(content != nullptr);
+  auto content_type = content->get_type();
+  if (content_type == MessageContentType::Text) {
+    auto input_media = get_message_content_input_media_web_page(td_, content);
+    if (input_media == nullptr) {
+      td_->create_handler<SendBusinessMessageQuery>(std::move(promise))->send(std::move(message));
+    } else {
+      promise.set_error(Status::Error(400, "Unsupported"));
+    }
+    return;
+  }
+
+  promise.set_error(Status::Error(400, "Unsupported"));
 }
 
 }  // namespace td

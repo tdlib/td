@@ -24486,15 +24486,16 @@ void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageI
           get_message_flags(m), dialog_id, get_send_message_as_input_peer(m), *get_message_input_reply_to(m),
           m->initial_top_thread_message_id, get_message_schedule_date(m),
           get_input_reply_markup(td_->contacts_manager_.get(), m->reply_markup),
-          get_input_message_entities(td_->contacts_manager_.get(), message_text, "do_send_message"), message_text->text,
-          m->is_copy, random_id, &m->send_query_ref);
+          get_input_message_entities(td_->contacts_manager_.get(), message_text, "on_text_message_ready_to_send"),
+          message_text->text, m->is_copy, random_id, &m->send_query_ref);
     } else {
       td_->create_handler<SendMediaQuery>()->send(
           FileId(), FileId(), get_message_flags(m), dialog_id, get_send_message_as_input_peer(m),
           *get_message_input_reply_to(m), m->initial_top_thread_message_id, get_message_schedule_date(m),
           get_input_reply_markup(td_->contacts_manager_.get(), m->reply_markup),
-          get_input_message_entities(td_->contacts_manager_.get(), message_text, "do_send_message"), message_text->text,
-          std::move(input_media), MessageContentType::Text, m->is_copy, random_id, &m->send_query_ref);
+          get_input_message_entities(td_->contacts_manager_.get(), message_text, "on_text_message_ready_to_send"),
+          message_text->text, std::move(input_media), MessageContentType::Text, m->is_copy, random_id,
+          &m->send_query_ref);
     }
   }
 }

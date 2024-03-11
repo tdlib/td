@@ -7818,6 +7818,17 @@ editInlineMessageReplyMarkup inline_message_id:string reply_markup:ReplyMarkup =
 editMessageSchedulingState chat_id:int53 message_id:int53 scheduling_state:MessageSchedulingState = Ok;
 
 
+//@description Sends a business message; for bots only. Returns the message after it was sent
+//@business_connection_id Unique identifier of business connection on behalf of which to send the request
+//@chat_id Target chat
+//@reply_to Information about the message; pass null if none
+//@disable_notification Pass true to disable notification for the message
+//@protect_content Pass true if the content of the message must be protected from forwarding and saving; for bots only
+//@reply_markup Markup for replying to the message; pass null if none; for bots only
+//@input_message_content The content of the message to be sent
+sendBusinessMessage business_connection_id:string chat_id:int53 reply_to:InputMessageReplyTo disable_notification:Bool protect_content:Bool reply_markup:ReplyMarkup input_message_content:InputMessageContent = Message;
+
+
 //@description Checks validness of a name for a quick reply shortcut. Can be called synchronously @name The name of the shortcut; 1-32 characters
 checkQuickReplyShortcutName name:string = Ok;
 

@@ -2343,6 +2343,12 @@ class CliClient final : public Actor {
 
   void send_message(int64 chat_id, td_api::object_ptr<td_api::InputMessageContent> &&input_message_content,
                     bool disable_notification = false, bool from_background = false) {
+    if (!business_connection_id_.empty()) {
+      send_request(td_api::make_object<td_api::sendBusinessMessage>(
+          business_connection_id_, chat_id, get_input_message_reply_to(), disable_notification, rand_bool(), nullptr,
+          std::move(input_message_content)));
+      return;
+    }
     auto id = send_request(td_api::make_object<td_api::sendMessage>(
         chat_id, message_thread_id_, get_input_message_reply_to(),
         td_api::make_object<td_api::messageSendOptions>(disable_notification, from_background, true, true,

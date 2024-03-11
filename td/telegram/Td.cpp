@@ -5789,6 +5789,15 @@ void Td::on_request(uint64 id, td_api::editMessageSchedulingState &request) {
                                                    std::move(request.scheduling_state_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::sendBusinessMessage &request) {
+  CHECK_IS_BOT();
+  CREATE_REQUEST_PROMISE();
+  business_connection_manager_->send_message(
+      BusinessConnectionId(std::move(request.business_connection_id_)), DialogId(request.chat_id_),
+      std::move(request.reply_to_), request.disable_notification_, request.protect_content_,
+      std::move(request.reply_markup_), std::move(request.input_message_content_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::loadQuickReplyShortcuts &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
