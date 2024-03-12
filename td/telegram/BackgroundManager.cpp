@@ -243,9 +243,7 @@ class UploadBackgroundQuery final : public Td::ResultHandler {
       // TODO td_->background_manager_->on_upload_background_file_parts_missing(file_id_, std::move(bad_parts));
       // return;
     } else {
-      if (status.code() != 429 && status.code() < 500 && !G()->close_flag()) {
-        td_->file_manager_->delete_partial_remote_location(file_id_);
-      }
+      td_->file_manager_->delete_partial_remote_location_if_needed(file_id_, status);
     }
     td_->file_manager_->cancel_upload(file_id_);
     promise_.set_error(std::move(status));

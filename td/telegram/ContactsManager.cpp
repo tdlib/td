@@ -562,10 +562,10 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    promise_.set_error(std::move(status));
     if (file_id_.is_valid()) {
       td_->file_manager_->delete_partial_remote_location(file_id_);
     }
+    promise_.set_error(std::move(status));
   }
 };
 

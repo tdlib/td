@@ -981,9 +981,7 @@ class UploadStickerFileQuery final : public Td::ResultHandler {
         // TODO td_->stickers_manager_->on_upload_sticker_file_parts_missing(file_id_, std::move(bad_parts));
         // return;
       } else {
-        if (status.code() != 429 && status.code() < 500 && !G()->close_flag()) {
-          td_->file_manager_->delete_partial_remote_location(file_id_);
-        }
+        td_->file_manager_->delete_partial_remote_location_if_needed(file_id_, status);
       }
     } else if (FileReferenceManager::is_file_reference_error(status)) {
       LOG(ERROR) << "Receive file reference error for UploadStickerFileQuery";

@@ -2857,6 +2857,14 @@ bool FileManager::delete_partial_remote_location(FileId file_id) {
   return true;
 }
 
+void FileManager::delete_partial_remote_location_if_needed(FileId file_id, const Status &error) {
+  if (error.code() != 429 && error.code() < 500 && !G()->close_flag()) {
+    delete_partial_remote_location(file_id);
+  } else {
+    cancel_upload(file_id);
+  }
+}
+
 void FileManager::delete_file_reference(FileId file_id, Slice file_reference) {
   VLOG(file_references) << "Delete file reference of file " << file_id << " "
                         << tag("reference_base64", base64_encode(file_reference));

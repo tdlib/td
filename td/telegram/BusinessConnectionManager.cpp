@@ -309,11 +309,7 @@ class BusinessConnectionManager::UploadBusinessMediaQuery final : public Td::Res
     delete_thumbnail();
 
     auto file_id = get_message_file_id(message_);
-    if (status.code() != 429 && status.code() < 500) {
-      td_->file_manager_->delete_partial_remote_location(file_id);
-    } else {
-      send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_id);
-    }
+    td_->file_manager_->delete_partial_remote_location_if_needed(file_id, status);
     promise_.set_error(std::move(status));
   }
 };

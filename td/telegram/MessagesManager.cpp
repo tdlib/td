@@ -3093,9 +3093,7 @@ class SendMediaQuery final : public Td::ResultHandler {
         td_->messages_manager_->on_send_message_file_parts_missing(random_id_, std::move(bad_parts));
         return;
       } else {
-        if (status.code() != 429 && status.code() < 500 && !G()->close_flag()) {
-          td_->file_manager_->delete_partial_remote_location(file_id_);
-        }
+        td_->file_manager_->delete_partial_remote_location_if_needed(file_id_, status);
       }
     } else if (!td_->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
       if (file_id_.is_valid() && !was_uploaded_) {
@@ -3184,9 +3182,7 @@ class UploadMediaQuery final : public Td::ResultHandler {
                                                                            std::move(bad_parts));
         return;
       } else {
-        if (status.code() != 429 && status.code() < 500 && !G()->close_flag()) {
-          td_->file_manager_->delete_partial_remote_location(file_id_);
-        }
+        td_->file_manager_->delete_partial_remote_location_if_needed(file_id_, status);
       }
     } else if (FileReferenceManager::is_file_reference_error(status)) {
       LOG(ERROR) << "Receive file reference error for UploadMediaQuery";
@@ -12569,9 +12565,7 @@ void MessagesManager::on_send_secret_message_error(int64 random_id, Status error
           return;
         }
 
-        if (error.code() != 429 && error.code() < 500 && !G()->close_flag()) {
-          td_->file_manager_->delete_partial_remote_location(file_id);
-        }
+        td_->file_manager_->delete_partial_remote_location_if_needed(file_id, error);
       }
     }
   }
@@ -25287,9 +25281,7 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
         return;
       }
 
-      if (result.error().code() != 429 && result.error().code() < 500 && !G()->close_flag()) {
-        td_->file_manager_->delete_partial_remote_location(file_id);
-      }
+      td_->file_manager_->delete_partial_remote_location_if_needed(file_id, result.error());
     } else if (!td_->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(result.error())) {
       if (file_id.is_valid()) {
         VLOG(file_references) << "Receive " << result.error() << " for " << file_id;
