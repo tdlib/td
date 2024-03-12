@@ -8147,7 +8147,7 @@ void MessagesManager::do_send_media(DialogId dialog_id, Message *m, FileId file_
             << ", have_input_file = " << have_input_file << ", have_input_thumbnail = " << have_input_thumbnail
             << ", self-destruct time = " << m->ttl;
 
-  MessageContent *content = nullptr;
+  const MessageContent *content = nullptr;
   if (m->message_id.is_any_server()) {
     content = m->edited_content.get();
     if (content == nullptr) {

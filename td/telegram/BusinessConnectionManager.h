@@ -8,6 +8,7 @@
 
 #include "td/telegram/BusinessConnectionId.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/files/FileId.h"
 #include "td/telegram/MessageInputReplyTo.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/td_api.h"
@@ -16,9 +17,12 @@
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Status.h"
 #include "td/utils/WaitFreeHashMap.h"
+
+#include <memory>
 
 namespace td {
 
@@ -64,6 +68,20 @@ class BusinessConnectionManager final : public Actor {
   struct PendingMessage;
   class SendBusinessMessageQuery;
   class SendBusinessMediaQuery;
+  class UploadBusinessMediaQuery;
+  class UploadMediaCallback;
+  class UploadThumbnailCallback;
+
+  struct UploadMediaResult {
+    unique_ptr<PendingMessage> message_;
+    telegram_api::object_ptr<telegram_api::InputMedia> input_media_;
+  };
+
+  struct BeingUploadedMedia {
+    unique_ptr<PendingMessage> message_;
+    telegram_api::object_ptr<telegram_api::InputFile> input_file_;
+    Promise<UploadMediaResult> promise_;
+  };
 
   void tear_down() final;
 
@@ -84,11 +102,42 @@ class BusinessConnectionManager final : public Actor {
 
   void do_send_message(unique_ptr<PendingMessage> &&message, Promise<td_api::object_ptr<td_api::message>> &&promise);
 
+  static FileId get_message_file_id(const unique_ptr<PendingMessage> &message);
+
+  FileId get_message_thumbnail_file_id(const unique_ptr<PendingMessage> &message, FileId file_id) const;
+
+  void upload_media(unique_ptr<PendingMessage> &&message, Promise<UploadMediaResult> &&promise,
+                    vector<int> bad_parts = {});
+
+  void complete_send_media(unique_ptr<PendingMessage> &&message,
+                           telegram_api::object_ptr<telegram_api::InputMedia> &&input_media,
+                           Promise<td_api::object_ptr<td_api::message>> &&promise);
+
+  void on_upload_media(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
+
+  void on_upload_media_error(FileId file_id, Status status);
+
+  void on_upload_thumbnail(FileId thumbnail_file_id,
+                           telegram_api::object_ptr<telegram_api::InputFile> thumbnail_input_file);
+
+  void do_upload_media(BeingUploadedMedia &&being_uploaded_media,
+                       telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail);
+
+  void complete_upload_media(unique_ptr<PendingMessage> &&message,
+                             telegram_api::object_ptr<telegram_api::MessageMedia> &&media,
+                             Promise<UploadMediaResult> &&promise);
+
   WaitFreeHashMap<BusinessConnectionId, unique_ptr<BusinessConnection>, BusinessConnectionIdHash> business_connections_;
 
   FlatHashMap<BusinessConnectionId, vector<Promise<td_api::object_ptr<td_api::businessConnection>>>,
               BusinessConnectionIdHash>
       get_business_connection_queries_;
+
+  std::shared_ptr<UploadMediaCallback> upload_media_callback_;
+  std::shared_ptr<UploadThumbnailCallback> upload_thumbnail_callback_;
+
+  FlatHashMap<FileId, BeingUploadedMedia, FileIdHash> being_uploaded_files_;
+  FlatHashMap<FileId, BeingUploadedMedia, FileIdHash> being_uploaded_thumbnails_;
 
   Td *td_;
   ActorShared<> parent_;
