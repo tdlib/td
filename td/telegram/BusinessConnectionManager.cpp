@@ -6,6 +6,7 @@
 //
 #include "td/telegram/BusinessConnectionManager.h"
 
+#include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogManager.h"
@@ -133,7 +134,7 @@ class BusinessConnectionManager::SendBusinessMessageQuery final : public Td::Res
       flags |= telegram_api::messages_sendMessage::INVERT_MEDIA_MASK;
     }
 
-    auto input_peer = td_->dialog_manager_->get_input_peer_force(message_->dialog_id_);
+    auto input_peer = td_->dialog_manager_->get_input_peer(message_->dialog_id_, AccessRights::Know);
     CHECK(input_peer != nullptr);
 
     auto reply_to = message_->input_reply_to_.get_input_reply_to(td_, MessageId());
@@ -204,7 +205,7 @@ class BusinessConnectionManager::SendBusinessMediaQuery final : public Td::Resul
       flags |= telegram_api::messages_sendMedia::INVERT_MEDIA_MASK;
     }
 
-    auto input_peer = td_->dialog_manager_->get_input_peer_force(message_->dialog_id_);
+    auto input_peer = td_->dialog_manager_->get_input_peer(message_->dialog_id_, AccessRights::Know);
     CHECK(input_peer != nullptr);
 
     auto reply_to = message_->input_reply_to_.get_input_reply_to(td_, MessageId());
