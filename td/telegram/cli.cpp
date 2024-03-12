@@ -1505,6 +1505,20 @@ class CliClient final : public Actor {
         }
         break;
       }
+      case td_api::updateNewBusinessMessage::ID: {
+        const auto *update = static_cast<const td_api::updateNewBusinessMessage *>(result.get());
+        const auto *message = update->message_.get();
+        if (!message->is_outgoing_ && use_test_dc_) {
+          auto old_business_connection_id = std::move(business_connection_id_);
+          business_connection_id_ = update->connection_id_;
+          send_message(message->chat_id_,
+                       td_api::make_object<td_api::inputMessageText>(as_formatted_text("Welcome!"),
+                                                                     get_link_preview_options(), true),
+                       false, false);
+          business_connection_id_ = std::move(old_business_connection_id);
+        }
+        break;
+      }
       case td_api::file::ID:
         on_get_file(*static_cast<const td_api::file *>(result.get()));
         break;
