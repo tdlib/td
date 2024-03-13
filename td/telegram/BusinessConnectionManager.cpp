@@ -258,6 +258,7 @@ class BusinessConnectionManager::SendBusinessMediaQuery final : public Td::Resul
 class BusinessConnectionManager::UploadBusinessMediaQuery final : public Td::ResultHandler {
   Promise<UploadMediaResult> promise_;
   unique_ptr<PendingMessage> message_;
+  bool was_uploaded_ = false;
   bool was_thumbnail_uploaded_ = false;
 
   void delete_thumbnail() {
@@ -280,7 +281,7 @@ class BusinessConnectionManager::UploadBusinessMediaQuery final : public Td::Res
   void send(unique_ptr<PendingMessage> message, telegram_api::object_ptr<telegram_api::InputMedia> &&input_media) {
     CHECK(input_media != nullptr);
     message_ = std::move(message);
-    CHECK(FileManager::extract_was_uploaded(input_media));
+    was_uploaded_ = FileManager::extract_was_uploaded(input_media);
     was_thumbnail_uploaded_ = FileManager::extract_was_thumbnail_uploaded(input_media);
 
     int32 flags = telegram_api::messages_uploadMedia::BUSINESS_CONNECTION_ID_MASK;
@@ -306,10 +307,13 @@ class BusinessConnectionManager::UploadBusinessMediaQuery final : public Td::Res
 
   void on_error(Status status) final {
     LOG(INFO) << "Receive error for UploadBusinessMediaQuery: " << status;
-    delete_thumbnail();
 
-    auto file_id = get_message_file_id(message_);
-    td_->file_manager_->delete_partial_remote_location_if_needed(file_id, status);
+    if (was_uploaded_) {
+      delete_thumbnail();
+
+      auto file_id = get_message_file_id(message_);
+      td_->file_manager_->delete_partial_remote_location_if_needed(file_id, status);
+    }
     promise_.set_error(std::move(status));
   }
 };
@@ -771,9 +775,7 @@ void BusinessConnectionManager::do_upload_media(BeingUploadedMedia &&being_uploa
   CHECK(input_media != nullptr);
   auto input_media_id = input_media->get_id();
   if (!have_input_file || input_media_id == telegram_api::inputMediaDocument::ID ||
-      input_media_id == telegram_api::inputMediaPhoto::ID ||
-      input_media_id == telegram_api::inputMediaDocumentExternal::ID ||
-      input_media_id == telegram_api::inputMediaPhotoExternal::ID) {
+      input_media_id == telegram_api::inputMediaPhoto::ID) {
     // can use input media directly
     UploadMediaResult result;
     result.message_ = std::move(being_uploaded_media.message_);
@@ -789,6 +791,8 @@ void BusinessConnectionManager::do_upload_media(BeingUploadedMedia &&being_uploa
       }
     // fallthrough
     case telegram_api::inputMediaUploadedPhoto::ID:
+    case telegram_api::inputMediaDocumentExternal::ID:
+    case telegram_api::inputMediaPhotoExternal::ID:
       td_->create_handler<UploadBusinessMediaQuery>(std::move(being_uploaded_media.promise_))
           ->send(std::move(being_uploaded_media.message_), std::move(input_media));
       break;
