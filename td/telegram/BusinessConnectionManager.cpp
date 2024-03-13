@@ -284,6 +284,10 @@ class BusinessConnectionManager::UploadBusinessMediaQuery final : public Td::Res
     was_uploaded_ = FileManager::extract_was_uploaded(input_media);
     was_thumbnail_uploaded_ = FileManager::extract_was_thumbnail_uploaded(input_media);
 
+    if (was_uploaded_ && false) {
+      return on_error(Status::Error(400, "FILE_PART_1_MISSING"));
+    }
+
     int32 flags = telegram_api::messages_uploadMedia::BUSINESS_CONNECTION_ID_MASK;
     auto input_peer = td_->dialog_manager_->get_input_peer(message_->dialog_id_, AccessRights::Know);
     CHECK(input_peer != nullptr);
@@ -312,7 +316,13 @@ class BusinessConnectionManager::UploadBusinessMediaQuery final : public Td::Res
       delete_thumbnail();
 
       auto file_id = get_message_file_id(message_);
-      td_->file_manager_->delete_partial_remote_location_if_needed(file_id, status);
+      auto bad_parts = FileManager::get_missing_file_parts(status);
+      if (!bad_parts.empty()) {
+        td_->business_connection_manager_->upload_media(std::move(message_), std::move(promise_), std::move(bad_parts));
+        return;
+      } else {
+        td_->file_manager_->delete_partial_remote_location_if_needed(file_id, status);
+      }
     }
     promise_.set_error(std::move(status));
   }
