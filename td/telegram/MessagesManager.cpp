@@ -23889,12 +23889,12 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_message_group
     unique_ptr<Message> message;
     Message *m;
     if (message_send_options.only_preview) {
-      message = create_message_to_send(d, top_thread_message_id, std::move(input_reply_to), message_send_options,
+      message = create_message_to_send(d, top_thread_message_id, input_reply_to.clone(), message_send_options,
                                        std::move(message_content.content), message_content.invert_media, i != 0,
                                        nullptr, DialogId(), false, DialogId());
       m = message.get();
     } else {
-      m = get_message_to_send(d, top_thread_message_id, std::move(input_reply_to), message_send_options,
+      m = get_message_to_send(d, top_thread_message_id, input_reply_to.clone(), message_send_options,
                               dup_message_content(td_, dialog_id, message_content.content.get(),
                                                   MessageContentDupType::Send, MessageCopyOptions()),
                               message_content.invert_media, &need_update_dialog_pos, i != 0);

@@ -79,6 +79,13 @@ class MessageInputReplyTo {
     return story_full_id_;
   }
 
+  MessageInputReplyTo clone() const {
+    if (story_full_id_.is_valid()) {
+      return MessageInputReplyTo(story_full_id_);
+    }
+    return MessageInputReplyTo(message_id_, dialog_id_, FormattedText(quote_), quote_position_);
+  }
+
   void add_dependencies(Dependencies &dependencies) const;
 
   telegram_api::object_ptr<telegram_api::InputReplyTo> get_input_reply_to(Td *td,
