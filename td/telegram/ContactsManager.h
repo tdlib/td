@@ -528,14 +528,8 @@ class ContactsManager final : public Actor {
 
   void migrate_dialog_to_megagroup(DialogId dialog_id, Promise<td_api::object_ptr<td_api::chat>> &&promise);
 
-  void get_channel_recommendations(DialogId dialog_id, bool return_local,
-                                   Promise<td_api::object_ptr<td_api::chats>> &&chats_promise,
-                                   Promise<td_api::object_ptr<td_api::count>> &&count_promise);
-
   void get_created_public_dialogs(PublicDialogType type, Promise<td_api::object_ptr<td_api::chats>> &&promise,
                                   bool from_binlog);
-
-  void open_channel_recommended_channel(DialogId dialog_id, DialogId opened_dialog_id, Promise<Unit> &&promise);
 
   void check_created_public_dialogs_limit(PublicDialogType type, Promise<Unit> &&promise);
 
@@ -1127,18 +1121,6 @@ class ContactsManager final : public Actor {
     vector<PendingGetPhotoRequest> pending_requests;
   };
 
-  struct RecommendedDialogs {
-    int32 total_count_ = 0;
-    vector<DialogId> dialog_ids_;
-    double next_reload_time_ = 0.0;
-
-    template <class StorerT>
-    void store(StorerT &storer) const;
-
-    template <class ParserT>
-    void parse(ParserT &parser);
-  };
-
   class UserLogEvent;
   class ChatLogEvent;
   class ChannelLogEvent;
@@ -1149,8 +1131,7 @@ class ContactsManager final : public Actor {
   static constexpr size_t MAX_TITLE_LENGTH = 128;        // server side limit for chat title
   static constexpr size_t MAX_DESCRIPTION_LENGTH = 255;  // server side limit for chat/channel description
 
-  static constexpr int32 MAX_ACTIVE_STORY_ID_RELOAD_TIME = 3600;      // some reasonable limit
-  static constexpr int32 CHANNEL_RECOMMENDATIONS_CACHE_TIME = 86400;  // some reasonable limit
+  static constexpr int32 MAX_ACTIVE_STORY_ID_RELOAD_TIME = 3600;  // some reasonable limit
 
   // the True fields aren't set for manually created telegram_api::user objects, therefore the flags must be used
   static constexpr int32 USER_FLAG_HAS_ACCESS_HASH = 1 << 0;
@@ -1623,30 +1604,6 @@ class ContactsManager final : public Actor {
   void on_clear_imported_contacts(vector<Contact> &&contacts, vector<size_t> contacts_unique_id,
                                   std::pair<vector<size_t>, vector<Contact>> &&to_add, Promise<Unit> &&promise);
 
-  bool is_suitable_recommended_channel(DialogId dialog_id) const;
-
-  bool is_suitable_recommended_channel(ChannelId channel_id) const;
-
-  bool are_suitable_recommended_dialogs(const RecommendedDialogs &recommended_dialogs) const;
-
-  static string get_channel_recommendations_database_key(ChannelId channel_id);
-
-  void load_channel_recommendations(ChannelId channel_id, bool use_database, bool return_local,
-                                    Promise<td_api::object_ptr<td_api::chats>> &&chats_promise,
-                                    Promise<td_api::object_ptr<td_api::count>> &&count_promise);
-
-  void fail_load_channel_recommendations_queries(ChannelId channel_id, Status &&error);
-
-  void finish_load_channel_recommendations_queries(ChannelId channel_id, int32 total_count,
-                                                   vector<DialogId> dialog_ids);
-
-  void on_load_channel_recommendations_from_database(ChannelId channel_id, string value);
-
-  void reload_channel_recommendations(ChannelId channel_id);
-
-  void on_get_channel_recommendations(ChannelId channel_id,
-                                      Result<std::pair<int32, vector<tl_object_ptr<telegram_api::Chat>>>> &&r_chats);
-
   static bool is_channel_public(const Channel *c);
 
   static bool is_suitable_created_public_channel(PublicDialogType type, const Channel *c);
@@ -1803,12 +1760,6 @@ class ContactsManager final : public Actor {
   mutable FlatHashSet<SecretChatId, SecretChatIdHash> unknown_secret_chats_;
 
   FlatHashMap<UserId, vector<SecretChatId>, UserIdHash> secret_chats_with_user_;
-
-  FlatHashMap<ChannelId, RecommendedDialogs, ChannelIdHash> channel_recommended_dialogs_;
-  FlatHashMap<ChannelId, vector<Promise<td_api::object_ptr<td_api::chats>>>, ChannelIdHash>
-      get_channel_recommendations_queries_;
-  FlatHashMap<ChannelId, vector<Promise<td_api::object_ptr<td_api::count>>>, ChannelIdHash>
-      get_channel_recommendation_count_queries_[2];
 
   bool created_public_channels_inited_[2] = {false, false};
   vector<ChannelId> created_public_channels_[2];

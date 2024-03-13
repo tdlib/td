@@ -5041,21 +5041,22 @@ void Td::on_request(uint64 id, const td_api::clearAutosaveSettingsExceptions &re
 void Td::on_request(uint64 id, const td_api::getChatSimilarChats &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  contacts_manager_->get_channel_recommendations(DialogId(request.chat_id_), false, std::move(promise), Auto());
+  channel_recommendation_manager_->get_channel_recommendations(DialogId(request.chat_id_), false, std::move(promise),
+                                                               Auto());
 }
 
 void Td::on_request(uint64 id, const td_api::getChatSimilarChatCount &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  contacts_manager_->get_channel_recommendations(DialogId(request.chat_id_), request.return_local_, Auto(),
-                                                 std::move(promise));
+  channel_recommendation_manager_->get_channel_recommendations(DialogId(request.chat_id_), request.return_local_,
+                                                               Auto(), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::openChatSimilarChat &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->open_channel_recommended_channel(DialogId(request.chat_id_), DialogId(request.opened_chat_id_),
-                                                      std::move(promise));
+  channel_recommendation_manager_->open_channel_recommended_channel(
+      DialogId(request.chat_id_), DialogId(request.opened_chat_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getTopChats &request) {
