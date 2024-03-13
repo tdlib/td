@@ -4773,9 +4773,15 @@ class CliClient final : public Actor {
             rand_bool() ? get_message_self_destruct_type() : nullptr, has_spoiler_ && rand_bool());
         return content;
       });
-      send_request(td_api::make_object<td_api::sendMessageAlbum>(
-          chat_id, message_thread_id_, get_input_message_reply_to(), default_message_send_options(),
-          std::move(input_message_contents)));
+      if (!business_connection_id_.empty()) {
+        send_request(td_api::make_object<td_api::sendBusinessMessageAlbum>(
+            business_connection_id_, chat_id, get_input_message_reply_to(), rand_bool(), rand_bool(),
+            std::move(input_message_contents)));
+      } else {
+        send_request(td_api::make_object<td_api::sendMessageAlbum>(
+            chat_id, message_thread_id_, get_input_message_reply_to(), default_message_send_options(),
+            std::move(input_message_contents)));
+      }
     } else if (op == "smad") {
       ChatId chat_id;
       get_args(args, chat_id, args);
@@ -4784,8 +4790,15 @@ class CliClient final : public Actor {
             td_api::make_object<td_api::inputMessageDocument>(as_input_file(document), nullptr, true, as_caption(""));
         return content;
       });
-      send_request(td_api::make_object<td_api::sendMessageAlbum>(
-          chat_id, message_thread_id_, nullptr, default_message_send_options(), std::move(input_message_contents)));
+      if (!business_connection_id_.empty()) {
+        send_request(td_api::make_object<td_api::sendBusinessMessageAlbum>(
+            business_connection_id_, chat_id, get_input_message_reply_to(), rand_bool(), rand_bool(),
+            std::move(input_message_contents)));
+      } else {
+        send_request(td_api::make_object<td_api::sendMessageAlbum>(
+            chat_id, message_thread_id_, get_input_message_reply_to(), default_message_send_options(),
+            std::move(input_message_contents)));
+      }
     } else if (op == "gmft") {
       auto r_message_file_head = read_file_str(args, 2 << 10);
       if (r_message_file_head.is_error()) {

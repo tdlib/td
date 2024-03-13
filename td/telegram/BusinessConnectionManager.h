@@ -63,11 +63,20 @@ class BusinessConnectionManager final : public Actor {
                     td_api::object_ptr<td_api::InputMessageContent> &&input_message_content,
                     Promise<td_api::object_ptr<td_api::message>> &&promise);
 
+  void send_message_album(BusinessConnectionId business_connection_id, DialogId dialog_id,
+                          td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to, bool disable_notification,
+                          bool protect_content,
+                          vector<td_api::object_ptr<td_api::InputMessageContent>> &&input_message_contents,
+                          Promise<td_api::object_ptr<td_api::messages>> &&promise);
+
  private:
+  static constexpr size_t MAX_GROUPED_MESSAGES = 10;  // server side limit
+
   struct BusinessConnection;
   struct PendingMessage;
   class SendBusinessMessageQuery;
   class SendBusinessMediaQuery;
+  class SendBusinessMultiMediaQuery;
   class UploadBusinessMediaQuery;
   class UploadMediaCallback;
   class UploadThumbnailCallback;
@@ -81,6 +90,12 @@ class BusinessConnectionManager final : public Actor {
     unique_ptr<PendingMessage> message_;
     telegram_api::object_ptr<telegram_api::InputFile> input_file_;
     Promise<UploadMediaResult> promise_;
+  };
+
+  struct MediaGroupSendRequest {
+    size_t finished_count_ = 0;
+    vector<Result<UploadMediaResult>> upload_results_;
+    Promise<td_api::object_ptr<td_api::messages>> promise_;
   };
 
   void tear_down() final;
@@ -127,11 +142,18 @@ class BusinessConnectionManager final : public Actor {
                              telegram_api::object_ptr<telegram_api::MessageMedia> &&media,
                              Promise<UploadMediaResult> &&promise);
 
+  int64 generate_new_media_album_id();
+
+  void on_upload_message_album_media(int64 request_id, size_t media_pos, Result<UploadMediaResult> &&result);
+
   WaitFreeHashMap<BusinessConnectionId, unique_ptr<BusinessConnection>, BusinessConnectionIdHash> business_connections_;
 
   FlatHashMap<BusinessConnectionId, vector<Promise<td_api::object_ptr<td_api::businessConnection>>>,
               BusinessConnectionIdHash>
       get_business_connection_queries_;
+
+  int64 current_media_group_send_request_id_ = 0;
+  FlatHashMap<int64, MediaGroupSendRequest> media_group_send_requests_;
 
   std::shared_ptr<UploadMediaCallback> upload_media_callback_;
   std::shared_ptr<UploadThumbnailCallback> upload_thumbnail_callback_;

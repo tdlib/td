@@ -15,6 +15,7 @@
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageContent.h"
+#include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageCopyOptions.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"
@@ -103,7 +104,6 @@ struct BusinessConnectionManager::PendingMessage {
   MessageSelfDestructType ttl_;
   unique_ptr<MessageContent> content_;
   unique_ptr<ReplyMarkup> reply_markup_;
-  int64 media_album_id_ = 0;
   int64 random_id_ = 0;
   bool noforwards_ = false;
   bool disable_notification_ = false;
@@ -251,6 +251,66 @@ class BusinessConnectionManager::SendBusinessMediaQuery final : public Td::Resul
 
   void on_error(Status status) final {
     LOG(INFO) << "Receive error for SendBusinessMediaQuery: " << status;
+    promise_.set_error(std::move(status));
+  }
+};
+
+class BusinessConnectionManager::SendBusinessMultiMediaQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::messages>> promise_;
+  vector<unique_ptr<PendingMessage>> messages_;
+
+ public:
+  explicit SendBusinessMultiMediaQuery(Promise<td_api::object_ptr<td_api::messages>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(vector<unique_ptr<PendingMessage>> &&messages,
+            vector<telegram_api::object_ptr<telegram_api::inputSingleMedia>> &&input_single_media) {
+    CHECK(!messages.empty());
+    messages_ = std::move(messages);
+
+    int32 flags = 0;
+    if (messages_[0]->disable_notification_) {
+      flags |= telegram_api::messages_sendMultiMedia::SILENT_MASK;
+    }
+    if (messages_[0]->noforwards_) {
+      flags |= telegram_api::messages_sendMultiMedia::NOFORWARDS_MASK;
+    }
+    if (messages_[0]->invert_media_) {
+      flags |= telegram_api::messages_sendMultiMedia::INVERT_MEDIA_MASK;
+    }
+
+    auto input_peer = td_->dialog_manager_->get_input_peer(messages_[0]->dialog_id_, AccessRights::Know);
+    CHECK(input_peer != nullptr);
+
+    auto reply_to = messages_[0]->input_reply_to_.get_input_reply_to(td_, MessageId());
+    if (reply_to != nullptr) {
+      flags |= telegram_api::messages_sendMultiMedia::REPLY_TO_MASK;
+    }
+
+    send_query(G()->net_query_creator().create_with_prefix(
+        messages_[0]->business_connection_id_.get_invoke_prefix(),
+        telegram_api::messages_sendMultiMedia(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                                              false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                                              std::move(input_peer), std::move(reply_to), std::move(input_single_media),
+                                              0, nullptr, nullptr),
+        td_->business_connection_manager_->get_business_connection_dc_id(messages_[0]->business_connection_id_),
+        {{messages_[0]->dialog_id_}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_sendMultiMedia>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SendBusinessMultiMediaQuery: " << to_string(ptr);
+    promise_.set_value(nullptr);  // TODO
+  }
+
+  void on_error(Status status) final {
+    LOG(INFO) << "Receive error for SendBusinessMultiMediaQuery: " << status;
     promise_.set_error(std::move(status));
   }
 };
@@ -661,6 +721,10 @@ void BusinessConnectionManager::do_send_message(unique_ptr<PendingMessage> &&mes
     td_->create_handler<SendBusinessMediaQuery>(std::move(promise))->send(std::move(message), std::move(input_media));
     return;
   }
+  if (content_type == MessageContentType::Game || content_type == MessageContentType::Poll ||
+      content_type == MessageContentType::Story) {
+    return promise.set_error(Status::Error(400, "Message has no file"));
+  }
   upload_media(std::move(message), PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](
                                                               Result<UploadMediaResult> &&result) mutable {
                  if (result.is_error()) {
@@ -691,17 +755,23 @@ FileId BusinessConnectionManager::get_message_thumbnail_file_id(const unique_ptr
 
 void BusinessConnectionManager::upload_media(unique_ptr<PendingMessage> &&message, Promise<UploadMediaResult> &&promise,
                                              vector<int> bad_parts) {
-  auto content_type = message->content_->get_type();
-  if (content_type == MessageContentType::Game || content_type == MessageContentType::Poll ||
-      content_type == MessageContentType::Story) {
-    return promise.set_error(Status::Error(400, "Message has no file"));
+  auto file_id = get_message_file_id(message);
+  FileView file_view = td_->file_manager_->get_file_view(file_id);
+  if (file_view.is_encrypted()) {
+    return promise.set_error(Status::Error(400, "Can't use encrypted file"));
+  }
+  if (file_view.has_remote_location() && file_view.main_remote_location().is_web()) {
+    return promise.set_error(Status::Error(400, "Can't use a web file"));
   }
 
   BeingUploadedMedia media;
   media.message_ = std::move(message);
   media.promise_ = std::move(promise);
 
-  auto file_id = get_message_file_id(media.message_);
+  if (!file_view.has_remote_location() && file_view.has_url()) {
+    return do_upload_media(std::move(media), nullptr);
+  }
+
   LOG(INFO) << "Ask to upload file " << file_id << " with bad parts " << bad_parts;
   CHECK(file_id.is_valid());
   bool is_inserted = being_uploaded_files_.emplace(file_id, std::move(media)).second;
@@ -784,8 +854,7 @@ void BusinessConnectionManager::do_upload_media(BeingUploadedMedia &&being_uploa
                                      file_id, thumbnail_file_id, message->ttl_, message->send_emoji_, true);
   CHECK(input_media != nullptr);
   auto input_media_id = input_media->get_id();
-  if (!have_input_file || input_media_id == telegram_api::inputMediaDocument::ID ||
-      input_media_id == telegram_api::inputMediaPhoto::ID) {
+  if (input_media_id == telegram_api::inputMediaDocument::ID || input_media_id == telegram_api::inputMediaPhoto::ID) {
     // can use input media directly
     UploadMediaResult result;
     result.message_ = std::move(being_uploaded_media.message_);
@@ -878,6 +947,106 @@ void BusinessConnectionManager::complete_upload_media(unique_ptr<PendingMessage>
   result.message_ = std::move(message);
   result.input_media_ = std::move(input_media);
   promise.set_value(std::move(result));
+}
+
+void BusinessConnectionManager::send_message_album(
+    BusinessConnectionId business_connection_id, DialogId dialog_id,
+    td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to, bool disable_notification, bool protect_content,
+    vector<td_api::object_ptr<td_api::InputMessageContent>> &&input_message_contents,
+    Promise<td_api::object_ptr<td_api::messages>> &&promise) {
+  if (input_message_contents.size() > MAX_GROUPED_MESSAGES) {
+    return promise.set_error(Status::Error(400, "Too many messages to send as an album"));
+  }
+  if (input_message_contents.empty()) {
+    return promise.set_error(Status::Error(400, "There are no messages to send"));
+  }
+
+  TRY_STATUS_PROMISE(promise, check_business_connection(business_connection_id, dialog_id));
+
+  vector<InputMessageContent> message_contents;
+  std::unordered_set<MessageContentType, MessageContentTypeHash> message_content_types;
+  for (auto &input_message_content : input_message_contents) {
+    TRY_RESULT_PROMISE(promise, message_content,
+                       process_input_message_content(dialog_id, std::move(input_message_content)));
+    auto message_content_type = message_content.content->get_type();
+    if (!is_allowed_media_group_content(message_content_type)) {
+      return promise.set_error(Status::Error(400, "Invalid message content type"));
+    }
+    message_content_types.insert(message_content_type);
+
+    message_contents.push_back(std::move(message_content));
+  }
+  if (message_content_types.size() > 1) {
+    for (auto message_content_type : message_content_types) {
+      if (is_homogenous_media_group_content(message_content_type)) {
+        return promise.set_error(
+            Status::Error(400, PSLICE() << message_content_type << " can't be mixed with other media types"));
+      }
+    }
+  }
+  auto input_reply_to = create_business_message_input_reply_to(std::move(reply_to));
+
+  auto request_id = ++current_media_group_send_request_id_;
+  auto &request = media_group_send_requests_[request_id];
+  request.upload_results_.resize(message_contents.size());
+  request.promise_ = std::move(promise);
+
+  for (size_t media_pos = 0; media_pos < message_contents.size(); media_pos++) {
+    auto &message_content = message_contents[media_pos];
+    auto message =
+        create_business_message_to_send(business_connection_id, dialog_id, input_reply_to.clone(), disable_notification,
+                                        protect_content, nullptr, std::move(message_content));
+    upload_media(std::move(message), PromiseCreator::lambda([actor_id = actor_id(this), request_id,
+                                                             media_pos](Result<UploadMediaResult> &&result) mutable {
+                   send_closure(actor_id, &BusinessConnectionManager::on_upload_message_album_media, request_id,
+                                media_pos, std::move(result));
+                 }));
+  }
+}
+
+void BusinessConnectionManager::on_upload_message_album_media(int64 request_id, size_t media_pos,
+                                                              Result<UploadMediaResult> &&result) {
+  auto it = media_group_send_requests_.find(request_id);
+  CHECK(it != media_group_send_requests_.end());
+  auto &request = it->second;
+
+  request.upload_results_[media_pos] = std::move(result);
+  request.finished_count_++;
+
+  LOG(INFO) << "Receive uploaded media " << media_pos << " for request " << request_id;
+  if (request.finished_count_ != request.upload_results_.size()) {
+    return;
+  }
+
+  auto upload_results = std::move(request.upload_results_);
+  auto promise = std::move(request.promise_);
+  media_group_send_requests_.erase(it);
+
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  for (auto &r_upload_result : upload_results) {
+    if (r_upload_result.is_error()) {
+      return promise.set_error(r_upload_result.move_as_error());
+    }
+  }
+  vector<unique_ptr<PendingMessage>> messages;
+  vector<telegram_api::object_ptr<telegram_api::inputSingleMedia>> input_single_media;
+  for (auto &r_upload_result : upload_results) {
+    auto upload_result = r_upload_result.move_as_ok();
+    auto message = std::move(upload_result.message_);
+    int32 flags = 0;
+    const FormattedText *caption = get_message_content_text(message->content_.get());
+    auto entities = get_input_message_entities(td_->contacts_manager_.get(), caption, "on_upload_message_album_media");
+    if (!entities.empty()) {
+      flags |= telegram_api::inputSingleMedia::ENTITIES_MASK;
+    }
+    input_single_media.push_back(telegram_api::make_object<telegram_api::inputSingleMedia>(
+        flags, std::move(upload_result.input_media_), message->random_id_,
+        caption == nullptr ? string() : caption->text, std::move(entities)));
+    messages.push_back(std::move(message));
+  }
+
+  td_->create_handler<SendBusinessMultiMediaQuery>(std::move(promise))
+      ->send(std::move(messages), std::move(input_single_media));
 }
 
 }  // namespace td
