@@ -320,6 +320,7 @@ function split_file($file, $chunks, $undo) {
                 'CallId' => 'CallId',
                 'call_manager[_(-](?![.]get[(][)])|CallManager' => 'CallManager',
                 'ChannelId' => 'ChannelId',
+                'channel_recommendation_manager[_(-](?![.]get[(][)])|ChannelRecommendationManager' => 'ChannelRecommendationManager',
                 'ChatId' => 'ChatId',
                 'common_dialog_manager[_(-](?![.]get[(][)])|CommonDialogManager' => 'CommonDialogManager',
                 'contacts_manager[_(-](?![.]get[(][)])|ContactsManager([^ ;.]| [^*])' => 'ContactsManager',

@@ -314,6 +314,7 @@ set(TDLIB_SOURCE
   td/telegram/CallDiscardReason.cpp
   td/telegram/CallManager.cpp
   td/telegram/ChannelParticipantFilter.cpp
+  td/telegram/ChannelRecommendationManager.cpp
   td/telegram/ChatReactions.cpp
   td/telegram/ClientActor.cpp
   td/telegram/CommonDialogManager.cpp
@@ -604,6 +605,7 @@ set(TDLIB_SOURCE
   td/telegram/ChainId.h
   td/telegram/ChannelId.h
   td/telegram/ChannelParticipantFilter.h
+  td/telegram/ChannelRecommendationManager.h
   td/telegram/ChannelType.h
   td/telegram/ChatId.h
   td/telegram/ChatReactions.h

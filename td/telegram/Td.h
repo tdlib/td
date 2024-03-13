@@ -49,6 +49,7 @@ class BotInfoManager;
 class BusinessManager;
 class CallManager;
 class CallbackQueriesManager;
+class ChannelRecommendationManager;
 class CommonDialogManager;
 class ConfigManager;
 class ContactsManager;
@@ -181,6 +182,8 @@ class Td final : public Actor {
   ActorOwn<BotInfoManager> bot_info_manager_actor_;
   unique_ptr<BusinessManager> business_manager_;
   ActorOwn<BusinessManager> business_manager_actor_;
+  unique_ptr<ChannelRecommendationManager> channel_recommendation_manager_;
+  ActorOwn<ChannelRecommendationManager> channel_recommendation_manager_actor_;
   unique_ptr<CommonDialogManager> common_dialog_manager_;
   ActorOwn<CommonDialogManager> common_dialog_manager_actor_;
   unique_ptr<ContactsManager> contacts_manager_;
