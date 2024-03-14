@@ -65,7 +65,7 @@ class PeopleNearbyManager final : public Actor {
 
   void tear_down() final;
 
-  static void on_user_nearby_timeout_callback(void *contacts_manager_ptr, int64 user_id_long);
+  static void on_user_nearby_timeout_callback(void *people_nearby_manager_ptr, int64 user_id_long);
 
   void on_user_nearby_timeout(UserId user_id);
 
