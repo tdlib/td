@@ -90,9 +90,12 @@ struct BusinessConnectionManager::BusinessConnection {
   }
 
   td_api::object_ptr<td_api::businessConnection> get_business_connection_object(Td *td) const {
+    DialogId user_dialog_id(user_id_);
+    td->dialog_manager_->force_create_dialog(user_dialog_id, "get_business_connection_object");
     return td_api::make_object<td_api::businessConnection>(
         connection_id_.get(), td->contacts_manager_->get_user_id_object(user_id_, "businessConnection"),
-        connection_date_, can_reply_, !is_disabled_);
+        td->dialog_manager_->get_chat_id_object(user_dialog_id, "businessConnection"), connection_date_, can_reply_,
+        !is_disabled_);
   }
 };
 

@@ -4217,10 +4217,11 @@ speechRecognitionResultError error:error = SpeechRecognitionResult;
 //@description Describes a connection of the bot with a business account
 //@id Unique identifier of the connection
 //@user_id Identifier of the business user that created the connection
+//@user_chat_id Chat identifier of the private chat with the user
 //@date Point in time (Unix timestamp) when the connection was established
 //@can_reply True, if the bot can send messages to the connected user; false otherwise
 //@is_enabled True, if the connection is enabled; false otherwise
-businessConnection id:string user_id:int53 date:int32 can_reply:Bool is_enabled:Bool = BusinessConnection;
+businessConnection id:string user_id:int53 user_chat_id:int53 date:int32 can_reply:Bool is_enabled:Bool = BusinessConnection;
 
 
 //@description Describes a color to highlight a bot added to attachment menu @light_color Color in the RGB24 format for light themes @dark_color Color in the RGB24 format for dark themes
