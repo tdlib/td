@@ -259,13 +259,13 @@ thumbnailFormatMpeg4 = ThumbnailFormat;
 //@description The thumbnail is in PNG format. It will be used only for background patterns
 thumbnailFormatPng = ThumbnailFormat;
 
-//@description The thumbnail is in TGS format. It will be used only for TGS sticker sets
+//@description The thumbnail is in TGS format. It will be used only for sticker sets
 thumbnailFormatTgs = ThumbnailFormat;
 
-//@description The thumbnail is in WEBM format. It will be used only for WEBM sticker sets
+//@description The thumbnail is in WEBM format. It will be used only for sticker sets
 thumbnailFormatWebm = ThumbnailFormat;
 
-//@description The thumbnail is in WEBP format. It will be used only for some stickers
+//@description The thumbnail is in WEBP format. It will be used only for some stickers and sticker sets
 thumbnailFormatWebp = ThumbnailFormat;
 
 
@@ -444,7 +444,7 @@ videoNote duration:int32 waveform:bytes length:int32 minithumbnail:minithumbnail
 voiceNote duration:int32 waveform:bytes mime_type:string speech_recognition_result:SpeechRecognitionResult voice:file = VoiceNote;
 
 //@description Describes an animated or custom representation of an emoji
-//@sticker Sticker for the emoji; may be null if yet unknown for a custom emoji. If the sticker is a custom emoji, it can have arbitrary format different from stickerFormatTgs
+//@sticker Sticker for the emoji; may be null if yet unknown for a custom emoji. If the sticker is a custom emoji, then it can have arbitrary format
 //@sticker_width Expected width of the sticker, which can be used if the sticker is null
 //@sticker_height Expected height of the sticker, which can be used if the sticker is null
 //@fitzpatrick_type Emoji modifier fitzpatrick type; 0-6; 0 if none
@@ -10072,7 +10072,7 @@ checkStickerSetName name:string = CheckStickerSetNameResult;
 //@name Sticker set name. Can contain only English letters, digits and underscores. Must end with *"_by_<bot username>"* (*<bot_username>* is case insensitive) for bots; 1-64 characters
 //@sticker_type Type of the stickers in the set
 //@needs_repainting Pass true if stickers in the sticker set must be repainted; for custom emoji sticker sets only
-//@stickers List of stickers to be added to the set; must be non-empty. All stickers must have the same format. For TGS stickers, uploadStickerFile must be used before the sticker is shown
+//@stickers List of stickers to be added to the set; must be non-empty. For TGS stickers, uploadStickerFile must be used before the sticker is shown
 //@source Source of the sticker set; may be empty if unknown
 createNewStickerSet user_id:int53 title:string name:string sticker_type:StickerType needs_repainting:Bool stickers:vector<inputSticker> source:string = StickerSet;
 
