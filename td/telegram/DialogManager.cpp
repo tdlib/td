@@ -7,6 +7,7 @@
 #include "td/telegram/DialogManager.h"
 
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/BotCommand.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChannelType.h"
 #include "td/telegram/ChatId.h"

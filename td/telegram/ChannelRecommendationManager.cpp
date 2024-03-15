@@ -6,6 +6,7 @@
 //
 #include "td/telegram/ChannelRecommendationManager.h"
 
+#include "td/telegram/AccessRights.h"
 #include "td/telegram/Application.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
