@@ -10076,49 +10076,49 @@ checkStickerSetName name:string = CheckStickerSetNameResult;
 //@source Source of the sticker set; may be empty if unknown
 createNewStickerSet user_id:int53 title:string name:string sticker_type:StickerType needs_repainting:Bool stickers:vector<inputSticker> source:string = StickerSet;
 
-//@description Adds a new sticker to a set; for bots only
-//@user_id Sticker set owner
+//@description Adds a new sticker to a set
+//@user_id Sticker set owner; ignored for regular users
 //@name Sticker set name
 //@sticker Sticker to add to the set
 addStickerToSet user_id:int53 name:string sticker:inputSticker = Ok;
 
-//@description Sets a sticker set thumbnail; for bots only
-//@user_id Sticker set owner
+//@description Sets a sticker set thumbnail
+//@user_id Sticker set owner; ignored for regular users
 //@name Sticker set name
 //@thumbnail Thumbnail to set; pass null to remove the sticker set thumbnail
 //@format Format of the thumbnail; pass null if thumbnail is removed
 setStickerSetThumbnail user_id:int53 name:string thumbnail:InputFile format:StickerFormat = Ok;
 
-//@description Sets a custom emoji sticker set thumbnail; for bots only
+//@description Sets a custom emoji sticker set thumbnail
 //@name Sticker set name
 //@custom_emoji_id Identifier of the custom emoji from the sticker set, which will be set as sticker set thumbnail; pass 0 to remove the sticker set thumbnail
 setCustomEmojiStickerSetThumbnail name:string custom_emoji_id:int64 = Ok;
 
-//@description Sets a sticker set title; for bots only @name Sticker set name @title New sticker set title
+//@description Sets a sticker set title @name Sticker set name @title New sticker set title
 setStickerSetTitle name:string title:string = Ok;
 
-//@description Deleted a sticker set; for bots only @name Sticker set name
+//@description Delete a sticker set @name Sticker set name
 deleteStickerSet name:string = Ok;
 
-//@description Changes the position of a sticker in the set to which it belongs; for bots only. The sticker set must have been created by the bot
+//@description Changes the position of a sticker in the set to which it belongs. The sticker set must have been created by the current user
 //@sticker Sticker
 //@position New position of the sticker in the set, 0-based
 setStickerPositionInSet sticker:InputFile position:int32 = Ok;
 
-//@description Removes a sticker from the set to which it belongs; for bots only. The sticker set must have been created by the bot @sticker Sticker
+//@description Removes a sticker from the set to which it belongs. The sticker set must have been created by the current user @sticker Sticker
 removeStickerFromSet sticker:InputFile = Ok;
 
-//@description Changes the list of emoji corresponding to a sticker; for bots only. The sticker must belong to a regular or custom emoji sticker set created by the bot
+//@description Changes the list of emoji corresponding to a sticker. The sticker must belong to a regular or custom emoji sticker set created by the current user
 //@sticker Sticker
 //@emojis New string with 1-20 emoji corresponding to the sticker
 setStickerEmojis sticker:InputFile emojis:string = Ok;
 
-//@description Changes the list of keywords of a sticker; for bots only. The sticker must belong to a regular or custom emoji sticker set created by the bot
+//@description Changes the list of keywords of a sticker. The sticker must belong to a regular or custom emoji sticker set created by the current user
 //@sticker Sticker
 //@keywords List of up to 20 keywords with total length up to 64 characters, which can be used to find the sticker
 setStickerKeywords sticker:InputFile keywords:vector<string> = Ok;
 
-//@description Changes the mask position of a mask sticker; for bots only. The sticker must belong to a mask sticker set created by the bot
+//@description Changes the mask position of a mask sticker. The sticker must belong to a mask sticker set created by the current user
 //@sticker Sticker
 //@mask_position Position where the mask is placed; pass null to remove mask position
 setStickerMaskPosition sticker:InputFile mask_position:maskPosition = Ok;

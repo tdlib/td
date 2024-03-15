@@ -8209,7 +8209,6 @@ void Td::on_request(uint64 id, td_api::createNewStickerSet &request) {
 }
 
 void Td::on_request(uint64 id, td_api::addStickerToSet &request) {
-  CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.name_);
   CREATE_OK_REQUEST_PROMISE();
   stickers_manager_->add_sticker_to_set(UserId(request.user_id_), std::move(request.name_), std::move(request.sticker_),
@@ -8217,7 +8216,6 @@ void Td::on_request(uint64 id, td_api::addStickerToSet &request) {
 }
 
 void Td::on_request(uint64 id, td_api::setStickerSetThumbnail &request) {
-  CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.name_);
   CREATE_OK_REQUEST_PROMISE();
   stickers_manager_->set_sticker_set_thumbnail(UserId(request.user_id_), std::move(request.name_),
@@ -8226,7 +8224,6 @@ void Td::on_request(uint64 id, td_api::setStickerSetThumbnail &request) {
 }
 
 void Td::on_request(uint64 id, td_api::setCustomEmojiStickerSetThumbnail &request) {
-  CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.name_);
   CREATE_OK_REQUEST_PROMISE();
   stickers_manager_->set_custom_emoji_sticker_set_thumbnail(
@@ -8234,7 +8231,6 @@ void Td::on_request(uint64 id, td_api::setCustomEmojiStickerSetThumbnail &reques
 }
 
 void Td::on_request(uint64 id, td_api::setStickerSetTitle &request) {
-  CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.name_);
   CLEAN_INPUT_STRING(request.title_);
   CREATE_OK_REQUEST_PROMISE();
@@ -8242,33 +8238,28 @@ void Td::on_request(uint64 id, td_api::setStickerSetTitle &request) {
 }
 
 void Td::on_request(uint64 id, td_api::deleteStickerSet &request) {
-  CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.name_);
   CREATE_OK_REQUEST_PROMISE();
   stickers_manager_->delete_sticker_set(std::move(request.name_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setStickerPositionInSet &request) {
-  CHECK_IS_BOT();
   CREATE_OK_REQUEST_PROMISE();
   stickers_manager_->set_sticker_position_in_set(request.sticker_, request.position_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::removeStickerFromSet &request) {
-  CHECK_IS_BOT();
   CREATE_OK_REQUEST_PROMISE();
   stickers_manager_->remove_sticker_from_set(request.sticker_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setStickerEmojis &request) {
-  CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.emojis_);
   CREATE_OK_REQUEST_PROMISE();
   stickers_manager_->set_sticker_emojis(request.sticker_, request.emojis_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setStickerKeywords &request) {
-  CHECK_IS_BOT();
   for (auto &keyword : request.keywords_) {
     CLEAN_INPUT_STRING(keyword);
   }
@@ -8277,7 +8268,6 @@ void Td::on_request(uint64 id, td_api::setStickerKeywords &request) {
 }
 
 void Td::on_request(uint64 id, td_api::setStickerMaskPosition &request) {
-  CHECK_IS_BOT();
   CREATE_OK_REQUEST_PROMISE();
   stickers_manager_->set_sticker_mask_position(request.sticker_, std::move(request.mask_position_), std::move(promise));
 }

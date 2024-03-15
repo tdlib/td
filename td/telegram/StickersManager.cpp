@@ -8173,6 +8173,11 @@ StickerFormat StickersManager::guess_sticker_set_format(const StickerSet *sticke
 
 void StickersManager::add_sticker_to_set(UserId user_id, string short_name,
                                          td_api::object_ptr<td_api::inputSticker> &&sticker, Promise<Unit> &&promise) {
+  bool is_bot = td_->auth_manager_->is_bot();
+  if (!is_bot) {
+    user_id = td_->contacts_manager_->get_my_id();
+  }
+
   TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
 
   short_name = clean_username(strip_empty_characters(short_name, MAX_STICKER_SET_SHORT_NAME_LENGTH));
@@ -8272,6 +8277,11 @@ void StickersManager::on_added_sticker_uploaded(int64 random_id, Result<Unit> re
 void StickersManager::set_sticker_set_thumbnail(UserId user_id, string short_name,
                                                 td_api::object_ptr<td_api::InputFile> &&thumbnail, StickerFormat format,
                                                 Promise<Unit> &&promise) {
+  bool is_bot = td_->auth_manager_->is_bot();
+  if (!is_bot) {
+    user_id = td_->contacts_manager_->get_my_id();
+  }
+
   TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
 
   short_name = clean_username(strip_empty_characters(short_name, MAX_STICKER_SET_SHORT_NAME_LENGTH));
