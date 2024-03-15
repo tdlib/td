@@ -335,7 +335,7 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
     if (has_thumbnail_document_id) {
       parse(thumbnail_document_id, parser);
     }
-    if (!is_mixed_format) {
+    if (!is_mixed_format && thumbnail.file_id.is_valid()) {
       if (legacy_is_webm) {
         thumbnail.type = 'v';
       } else if (legacy_is_tgs) {
