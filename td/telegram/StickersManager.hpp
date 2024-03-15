@@ -179,6 +179,7 @@ void StickersManager::store_sticker_set(const StickerSet *sticker_set, bool with
   bool is_masks = sticker_set->sticker_type_ == StickerType::Mask;
   bool is_emojis = sticker_set->sticker_type_ == StickerType::CustomEmoji;
   bool has_thumbnail_document_id = sticker_set->thumbnail_document_id_ != 0;
+  bool is_mixed_format = true;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(sticker_set->is_inited_);
   STORE_FLAG(was_loaded);
@@ -202,6 +203,7 @@ void StickersManager::store_sticker_set(const StickerSet *sticker_set, bool with
   STORE_FLAG(sticker_set->has_text_color_);
   STORE_FLAG(sticker_set->is_sticker_channel_emoji_status_loaded_);
   STORE_FLAG(sticker_set->channel_emoji_status_);
+  STORE_FLAG(is_mixed_format);
   END_STORE_FLAGS();
   store(sticker_set->id_.get(), storer);
   store(sticker_set->access_hash_, storer);
@@ -267,6 +269,7 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
   bool has_thumbnail_document_id;
   bool has_text_color;
   bool channel_emoji_status;
+  bool is_mixed_format;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(sticker_set->is_inited_);
   PARSE_FLAG(sticker_set->was_loaded_);
@@ -290,6 +293,7 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
   PARSE_FLAG(has_text_color);
   PARSE_FLAG(sticker_set->is_sticker_channel_emoji_status_loaded_);
   PARSE_FLAG(channel_emoji_status);
+  PARSE_FLAG(is_mixed_format);
   END_PARSE_FLAGS();
   int64 sticker_set_id;
   int64 access_hash;
@@ -331,7 +335,15 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
     if (has_thumbnail_document_id) {
       parse(thumbnail_document_id, parser);
     }
-
+    if (!is_mixed_format) {
+      if (legacy_is_webm) {
+        thumbnail.type = 'v';
+      } else if (legacy_is_tgs) {
+        thumbnail.type = 'a';
+      } else {
+        thumbnail.type = 's';
+      }
+    }
     if (!was_inited) {
       sticker_set->title_ = std::move(title);
       sticker_set->short_name_ = std::move(short_name);
