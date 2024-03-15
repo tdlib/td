@@ -8158,6 +8158,19 @@ void StickersManager::on_new_stickers_uploaded(int64 random_id, Result<Unit> res
              pending_new_sticker_set->has_text_color_, std::move(input_stickers), pending_new_sticker_set->software_);
 }
 
+StickerFormat StickersManager::guess_sticker_set_format(const StickerSet *sticker_set) const {
+  auto format = StickerFormat::Unknown;
+  for (auto sticker_id : sticker_set->sticker_ids_) {
+    const auto *s = get_sticker(sticker_id);
+    if (format == StickerFormat::Unknown) {
+      format = s->format_;
+    } else if (format != s->format_) {
+      return StickerFormat::Unknown;
+    }
+  }
+  return format;
+}
+
 void StickersManager::add_sticker_to_set(UserId user_id, string short_name,
                                          td_api::object_ptr<td_api::inputSticker> &&sticker, Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
@@ -8194,6 +8207,12 @@ void StickersManager::do_add_sticker_to_set(UserId user_id, string short_name,
   const StickerSet *sticker_set = get_sticker_set(short_name_to_sticker_set_id_.get(short_name));
   if (sticker_set == nullptr || !sticker_set->was_loaded_) {
     return promise.set_error(Status::Error(400, "Sticker set not found"));
+  }
+  if (sticker != nullptr && sticker->format_ == nullptr) {
+    auto format = guess_sticker_set_format(sticker_set);
+    if (format != StickerFormat::Unknown) {
+      sticker->format_ = get_sticker_format_object(format);
+    }
   }
 
   auto r_file_id = prepare_input_sticker(sticker.get(), sticker_set->sticker_type_);
@@ -8291,6 +8310,9 @@ void StickersManager::do_set_sticker_set_thumbnail(UserId user_id, string short_
   if (sticker_set->sticker_type_ == StickerType::CustomEmoji) {
     return promise.set_error(
         Status::Error(400, "The method can't be used to set thumbnail of custom emoji sticker sets"));
+  }
+  if (format == StickerFormat::Unknown) {
+    format = guess_sticker_set_format(sticker_set);
   }
 
   auto r_file_id = prepare_input_file(thumbnail, format, sticker_set->sticker_type_, true);

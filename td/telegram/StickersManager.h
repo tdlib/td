@@ -812,6 +812,8 @@ class StickersManager final : public Actor {
 
   void on_added_sticker_uploaded(int64 random_id, Result<Unit> result);
 
+  StickerFormat guess_sticker_set_format(const StickerSet *sticker_set) const;
+
   void do_add_sticker_to_set(UserId user_id, string short_name, td_api::object_ptr<td_api::inputSticker> &&sticker,
                              Promise<Unit> &&promise);
 
