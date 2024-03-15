@@ -7712,7 +7712,6 @@ void StickersManager::move_sticker_set_to_top_by_custom_emoji_ids(const vector<C
 }
 
 Result<std::tuple<FileId, bool, bool>> StickersManager::prepare_input_sticker(td_api::inputSticker *sticker,
-                                                                              StickerFormat sticker_format,
                                                                               StickerType sticker_type) {
   if (sticker == nullptr) {
     return Status::Error(400, "Input sticker must be non-empty");
@@ -7733,7 +7732,7 @@ Result<std::tuple<FileId, bool, bool>> StickersManager::prepare_input_sticker(td
     }
   }
 
-  return prepare_input_file(sticker->sticker_, sticker_format, sticker_type, false);
+  return prepare_input_file(sticker->sticker_, get_sticker_format(sticker->format_), sticker_type, false);
 }
 
 Result<std::tuple<FileId, bool, bool>> StickersManager::prepare_input_file(
@@ -7898,8 +7897,7 @@ td_api::object_ptr<td_api::CheckStickerSetNameResult> StickersManager::get_check
   }
 }
 
-void StickersManager::create_new_sticker_set(UserId user_id, string title, string short_name,
-                                             StickerFormat sticker_format, StickerType sticker_type,
+void StickersManager::create_new_sticker_set(UserId user_id, string title, string short_name, StickerType sticker_type,
                                              bool has_text_color,
                                              vector<td_api::object_ptr<td_api::inputSticker>> &&stickers,
                                              string software,
@@ -7934,7 +7932,7 @@ void StickersManager::create_new_sticker_set(UserId user_id, string title, strin
   vector<FileId> local_file_ids;
   vector<FileId> url_file_ids;
   for (auto &sticker : stickers) {
-    auto r_file_id = prepare_input_sticker(sticker.get(), sticker_format, sticker_type);
+    auto r_file_id = prepare_input_sticker(sticker.get(), sticker_type);
     if (r_file_id.is_error()) {
       return promise.set_error(r_file_id.move_as_error());
     }
@@ -7954,7 +7952,6 @@ void StickersManager::create_new_sticker_set(UserId user_id, string title, strin
   pending_new_sticker_set->user_id_ = user_id;
   pending_new_sticker_set->title_ = std::move(title);
   pending_new_sticker_set->short_name_ = short_name;
-  pending_new_sticker_set->sticker_format_ = sticker_format;
   pending_new_sticker_set->sticker_type_ = sticker_type;
   pending_new_sticker_set->has_text_color_ = has_text_color;
   pending_new_sticker_set->file_ids_ = std::move(file_ids);
@@ -8199,7 +8196,7 @@ void StickersManager::do_add_sticker_to_set(UserId user_id, string short_name,
     return promise.set_error(Status::Error(400, "Sticker set not found"));
   }
 
-  auto r_file_id = prepare_input_sticker(sticker.get(), StickerFormat::Webp, sticker_set->sticker_type_);
+  auto r_file_id = prepare_input_sticker(sticker.get(), sticker_set->sticker_type_);
   if (r_file_id.is_error()) {
     return promise.set_error(r_file_id.move_as_error());
   }
@@ -8254,7 +8251,8 @@ void StickersManager::on_added_sticker_uploaded(int64 random_id, Result<Unit> re
 }
 
 void StickersManager::set_sticker_set_thumbnail(UserId user_id, string short_name,
-                                                tl_object_ptr<td_api::InputFile> &&thumbnail, Promise<Unit> &&promise) {
+                                                td_api::object_ptr<td_api::InputFile> &&thumbnail, StickerFormat format,
+                                                Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
 
   short_name = clean_username(strip_empty_characters(short_name, MAX_STICKER_SET_SHORT_NAME_LENGTH));
@@ -8264,26 +8262,26 @@ void StickersManager::set_sticker_set_thumbnail(UserId user_id, string short_nam
 
   const StickerSet *sticker_set = get_sticker_set(short_name_to_sticker_set_id_.get(short_name));
   if (sticker_set != nullptr && sticker_set->was_loaded_) {
-    return do_set_sticker_set_thumbnail(user_id, short_name, std::move(thumbnail), std::move(promise));
+    return do_set_sticker_set_thumbnail(user_id, short_name, std::move(thumbnail), format, std::move(promise));
   }
 
   do_reload_sticker_set(
       StickerSetId(), make_tl_object<telegram_api::inputStickerSetShortName>(short_name), 0,
-      PromiseCreator::lambda([actor_id = actor_id(this), user_id, short_name, thumbnail = std::move(thumbnail),
+      PromiseCreator::lambda([actor_id = actor_id(this), user_id, short_name, thumbnail = std::move(thumbnail), format,
                               promise = std::move(promise)](Result<Unit> result) mutable {
         if (result.is_error()) {
           promise.set_error(result.move_as_error());
         } else {
           send_closure(actor_id, &StickersManager::do_set_sticker_set_thumbnail, user_id, std::move(short_name),
-                       std::move(thumbnail), std::move(promise));
+                       std::move(thumbnail), format, std::move(promise));
         }
       }),
       "set_sticker_set_thumbnail");
 }
 
 void StickersManager::do_set_sticker_set_thumbnail(UserId user_id, string short_name,
-                                                   tl_object_ptr<td_api::InputFile> &&thumbnail,
-                                                   Promise<Unit> &&promise) {
+                                                   td_api::object_ptr<td_api::InputFile> &&thumbnail,
+                                                   StickerFormat format, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   const StickerSet *sticker_set = get_sticker_set(short_name_to_sticker_set_id_.get(short_name));
@@ -8295,7 +8293,7 @@ void StickersManager::do_set_sticker_set_thumbnail(UserId user_id, string short_
         Status::Error(400, "The method can't be used to set thumbnail of custom emoji sticker sets"));
   }
 
-  auto r_file_id = prepare_input_file(thumbnail, StickerFormat::Webp, sticker_set->sticker_type_, true);
+  auto r_file_id = prepare_input_file(thumbnail, format, sticker_set->sticker_type_, true);
   if (r_file_id.is_error()) {
     return promise.set_error(r_file_id.move_as_error());
   }
