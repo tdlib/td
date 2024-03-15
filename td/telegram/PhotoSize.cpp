@@ -242,6 +242,16 @@ Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, PhotoSizeSo
       res.type = 0;
     }
   }
+  if (format == PhotoFormat::Tgs) {
+    if (res.type == 's') {
+      format = PhotoFormat::Webp;
+    } else if (res.type == 'v') {
+      format = PhotoFormat::Webm;
+    } else if (res.type != 'a') {
+      LOG(ERROR) << "Receive sticker set thumbnail of type " << res.type;
+      format = PhotoFormat::Webp;
+    }
+  }
   if (source.get_type("get_photo_size") == PhotoSizeSource::Type::Thumbnail) {
     source.thumbnail().thumbnail_type = res.type;
   }

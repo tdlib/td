@@ -482,7 +482,6 @@ class StickersManager final : public Actor {
     int64 access_hash_ = 0;
     string title_;
     string short_name_;
-    StickerFormat sticker_format_ = StickerFormat::Unknown;
     StickerType sticker_type_ = StickerType::Regular;
     int32 sticker_count_ = 0;
     int32 hash_ = 0;
@@ -591,7 +590,9 @@ class StickersManager final : public Actor {
                                                                                         StickerSetId sticker_set_id,
                                                                                         int64 document_id, double zoom);
 
-  static double get_sticker_set_minithumbnail_zoom(const StickerSet *sticker_set);
+  PhotoFormat get_sticker_set_thumbnail_format(const StickerSet *sticker_set) const;
+
+  double get_sticker_set_minithumbnail_zoom(const StickerSet *sticker_set) const;
 
   td_api::object_ptr<td_api::thumbnail> get_sticker_set_thumbnail_object(const StickerSet *sticker_set) const;
 
@@ -650,8 +651,6 @@ class StickersManager final : public Actor {
   const StickerSet *get_sticker_set(StickerSetId sticker_set_id) const;
 
   StickerSet *add_sticker_set(StickerSetId sticker_set_id, int64 access_hash);
-
-  static PhotoFormat get_sticker_set_thumbnail_format(StickerFormat sticker_format);
 
   static tl_object_ptr<telegram_api::InputStickerSet> get_input_sticker_set(const StickerSet *set);
 

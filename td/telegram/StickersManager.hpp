@@ -176,8 +176,6 @@ void StickersManager::store_sticker_set(const StickerSet *sticker_set, bool with
   bool has_expires_at = !sticker_set->is_installed_ && sticker_set->expires_at_ != 0;
   bool has_thumbnail = sticker_set->thumbnail_.file_id.is_valid();
   bool has_minithumbnail = !sticker_set->minithumbnail_.empty();
-  bool is_tgs = sticker_set->sticker_format_ == StickerFormat::Tgs;
-  bool is_webm = sticker_set->sticker_format_ == StickerFormat::Webm;
   bool is_masks = sticker_set->sticker_type_ == StickerType::Mask;
   bool is_emojis = sticker_set->sticker_type_ == StickerType::CustomEmoji;
   bool has_thumbnail_document_id = sticker_set->thumbnail_document_id_ != 0;
@@ -193,10 +191,10 @@ void StickersManager::store_sticker_set(const StickerSet *sticker_set, bool with
   STORE_FLAG(has_expires_at);
   STORE_FLAG(has_thumbnail);
   STORE_FLAG(sticker_set->is_thumbnail_reloaded_);
-  STORE_FLAG(is_tgs);
+  STORE_FLAG(false);
   STORE_FLAG(sticker_set->are_legacy_sticker_thumbnails_reloaded_);
   STORE_FLAG(has_minithumbnail);
-  STORE_FLAG(is_webm);
+  STORE_FLAG(false);
   STORE_FLAG(is_emojis);
   STORE_FLAG(has_thumbnail_document_id);
   STORE_FLAG(sticker_set->are_keywords_loaded_);
@@ -262,9 +260,9 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
   bool is_masks;
   bool has_expires_at;
   bool has_thumbnail;
-  bool is_tgs;
+  bool legacy_is_tgs;
   bool has_minithumbnail;
-  bool is_webm;
+  bool legacy_is_webm;
   bool is_emojis;
   bool has_thumbnail_document_id;
   bool has_text_color;
@@ -281,10 +279,10 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
   PARSE_FLAG(has_expires_at);
   PARSE_FLAG(has_thumbnail);
   PARSE_FLAG(sticker_set->is_thumbnail_reloaded_);
-  PARSE_FLAG(is_tgs);
+  PARSE_FLAG(legacy_is_tgs);
   PARSE_FLAG(sticker_set->are_legacy_sticker_thumbnails_reloaded_);
   PARSE_FLAG(has_minithumbnail);
-  PARSE_FLAG(is_webm);
+  PARSE_FLAG(legacy_is_webm);
   PARSE_FLAG(is_emojis);
   PARSE_FLAG(has_thumbnail_document_id);
   PARSE_FLAG(sticker_set->are_keywords_loaded_);
@@ -302,14 +300,6 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
   }
   (void)access_hash;  // unused, because only known sticker sets with access hash can be loaded from database
 
-  StickerFormat sticker_format = StickerFormat::Unknown;
-  if (is_webm) {
-    sticker_format = StickerFormat::Webm;
-  } else if (is_tgs) {
-    sticker_format = StickerFormat::Tgs;
-  } else {
-    sticker_format = StickerFormat::Webp;
-  }
   auto sticker_type = ::td::get_sticker_type(is_masks, is_emojis);
   if (!is_emojis) {
     sticker_set->is_sticker_has_text_color_loaded_ = true;
@@ -353,7 +343,6 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
       sticker_set->expires_at_ = expires_at;
       sticker_set->is_official_ = is_official;
       sticker_set->sticker_type_ = sticker_type;
-      sticker_set->sticker_format_ = sticker_format;
       sticker_set->has_text_color_ = has_text_color;
       sticker_set->channel_emoji_status_ = channel_emoji_status;
 
@@ -377,10 +366,6 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
       if (sticker_set->is_loaded_ && (sticker_set->sticker_count_ != sticker_count || sticker_set->hash_ != hash)) {
         sticker_set->is_loaded_ = false;
         sticker_set->is_changed_ = true;
-      }
-      if (sticker_set->sticker_format_ != sticker_format) {
-        LOG(ERROR) << "Sticker format of " << sticker_set->id_ << " has changed from \"" << sticker_format << "\" to \""
-                   << sticker_set->sticker_format_ << "\"";
       }
       if (sticker_set->sticker_type_ != sticker_type) {
         LOG(ERROR) << "Type of " << sticker_set->id_ << " has changed from \"" << sticker_type << "\" to \""
