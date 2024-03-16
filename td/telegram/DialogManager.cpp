@@ -134,6 +134,33 @@ class ResolveUsernameQuery final : public Td::ResultHandler {
   }
 };
 
+class MigrateChatQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit MigrateChatQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChatId chat_id) {
+    send_query(G()->net_query_creator().create(telegram_api::messages_migrateChat(chat_id.get()), {{chat_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_migrateChat>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for MigrateChatQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class EditDialogTitleQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -855,6 +882,49 @@ NotificationSettingsScope DialogManager::get_dialog_notification_setting_scope(D
       UNREACHABLE();
       return NotificationSettingsScope::Private;
   }
+}
+
+void DialogManager::migrate_dialog_to_megagroup(DialogId dialog_id,
+                                                Promise<td_api::object_ptr<td_api::chat>> &&promise) {
+  if (!have_dialog_force(dialog_id, "migrate_dialog_to_megagroup")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  if (dialog_id.get_type() != DialogType::Chat) {
+    return promise.set_error(Status::Error(400, "Only basic group chats can be converted to supergroup"));
+  }
+
+  auto chat_id = dialog_id.get_chat_id();
+  if (!td_->contacts_manager_->get_chat_status(chat_id).is_creator()) {
+    return promise.set_error(Status::Error(400, "Need creator rights in the chat"));
+  }
+  if (td_->contacts_manager_->get_chat_migrated_to_channel_id(chat_id).is_valid()) {
+    return on_migrate_chat_to_megagroup(chat_id, std::move(promise));
+  }
+
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), chat_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
+        if (result.is_error()) {
+          return promise.set_error(result.move_as_error());
+        }
+        send_closure(actor_id, &DialogManager::on_migrate_chat_to_megagroup, chat_id, std::move(promise));
+      });
+  td_->create_handler<MigrateChatQuery>(std::move(query_promise))->send(chat_id);
+}
+
+void DialogManager::on_migrate_chat_to_megagroup(ChatId chat_id, Promise<td_api::object_ptr<td_api::chat>> &&promise) {
+  auto channel_id = td_->contacts_manager_->get_chat_migrated_to_channel_id(chat_id);
+  if (!channel_id.is_valid()) {
+    LOG(ERROR) << "Can't find the supergroup to which the basic group has migrated";
+    return promise.set_error(Status::Error(500, "Supergroup not found"));
+  }
+  if (!td_->contacts_manager_->have_channel(channel_id)) {
+    LOG(ERROR) << "Can't find info about the supergroup to which the basic group has migrated";
+    return promise.set_error(Status::Error(500, "Supergroup info is not found"));
+  }
+
+  auto dialog_id = DialogId(channel_id);
+  force_create_dialog(dialog_id, "on_migrate_chat_to_megagroup");
+  promise.set_value(td_->messages_manager_->get_chat_object(dialog_id));
 }
 
 bool DialogManager::is_anonymous_administrator(DialogId dialog_id, string *author_signature) const {

@@ -9,6 +9,7 @@
 #include "td/telegram/AccentColorId.h"
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/ChannelId.h"
+#include "td/telegram/ChatId.h"
 #include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogLocation.h"
@@ -107,6 +108,8 @@ class DialogManager final : public Actor {
   td_api::object_ptr<td_api::ChatType> get_chat_type_object(DialogId dialog_id) const;
 
   NotificationSettingsScope get_dialog_notification_setting_scope(DialogId dialog_id) const;
+
+  void migrate_dialog_to_megagroup(DialogId dialog_id, Promise<td_api::object_ptr<td_api::chat>> &&promise);
 
   bool is_anonymous_administrator(DialogId dialog_id, string *author_signature) const;
 
@@ -218,6 +221,8 @@ class DialogManager final : public Actor {
   static constexpr int32 USERNAME_CACHE_EXPIRE_TIME = 86400;
 
   void tear_down() final;
+
+  void on_migrate_chat_to_megagroup(ChatId chat_id, Promise<td_api::object_ptr<td_api::chat>> &&promise);
 
   void on_upload_dialog_photo(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
 

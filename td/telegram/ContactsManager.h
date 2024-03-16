@@ -526,8 +526,6 @@ class ContactsManager final : public Actor {
 
   bool can_get_channel_story_statistics(DialogId dialog_id) const;
 
-  void migrate_dialog_to_megagroup(DialogId dialog_id, Promise<td_api::object_ptr<td_api::chat>> &&promise);
-
   void get_created_public_dialogs(PublicDialogType type, Promise<td_api::object_ptr<td_api::chats>> &&promise,
                                   bool from_binlog);
 
@@ -1305,8 +1303,6 @@ class ContactsManager final : public Actor {
   ChatFull *add_chat_full(ChatId chat_id);
 
   void send_get_chat_full_query(ChatId chat_id, Promise<Unit> &&promise, const char *source);
-
-  void on_migrate_chat_to_megagroup(ChatId chat_id, Promise<td_api::object_ptr<td_api::chat>> &&promise);
 
   const Channel *get_channel(ChannelId channel_id) const;
   Channel *get_channel(ChannelId channel_id);

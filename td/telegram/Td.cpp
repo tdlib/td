@@ -6428,7 +6428,7 @@ void Td::on_request(uint64 id, td_api::getGroupCallStreamSegment &request) {
 void Td::on_request(uint64 id, const td_api::upgradeBasicGroupChatToSupergroupChat &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  contacts_manager_->migrate_dialog_to_megagroup(DialogId(request.chat_id_), std::move(promise));
+  dialog_manager_->migrate_dialog_to_megagroup(DialogId(request.chat_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getChatListsToAddChat &request) {
