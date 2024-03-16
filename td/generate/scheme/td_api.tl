@@ -10078,26 +10078,26 @@ createNewStickerSet user_id:int53 title:string name:string sticker_type:StickerT
 
 //@description Adds a new sticker to a set
 //@user_id Sticker set owner; ignored for regular users
-//@name Sticker set name
+//@name Sticker set name. The sticker set must have been created by the current user
 //@sticker Sticker to add to the set
 addStickerToSet user_id:int53 name:string sticker:inputSticker = Ok;
 
 //@description Sets a sticker set thumbnail
 //@user_id Sticker set owner; ignored for regular users
-//@name Sticker set name
+//@name Sticker set name. The sticker set must have been created by the current user
 //@thumbnail Thumbnail to set; pass null to remove the sticker set thumbnail
 //@format Format of the thumbnail; pass null if thumbnail is removed
 setStickerSetThumbnail user_id:int53 name:string thumbnail:InputFile format:StickerFormat = Ok;
 
 //@description Sets a custom emoji sticker set thumbnail
-//@name Sticker set name
+//@name Sticker set name. The sticker set must have been created by the current user
 //@custom_emoji_id Identifier of the custom emoji from the sticker set, which will be set as sticker set thumbnail; pass 0 to remove the sticker set thumbnail
 setCustomEmojiStickerSetThumbnail name:string custom_emoji_id:int64 = Ok;
 
-//@description Sets a sticker set title @name Sticker set name @title New sticker set title
+//@description Sets a sticker set title @name Sticker set name. The sticker set must have been created by the current user @title New sticker set title
 setStickerSetTitle name:string title:string = Ok;
 
-//@description Delete a sticker set @name Sticker set name
+//@description Completely deletes a sticker set @name Sticker set name. The sticker set must have been created by the current user
 deleteStickerSet name:string = Ok;
 
 //@description Changes the position of a sticker in the set to which it belongs. The sticker set must have been created by the current user
