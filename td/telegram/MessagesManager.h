@@ -787,8 +787,9 @@ class MessagesManager final : public Actor {
   td_api::object_ptr<td_api::message> get_dialog_event_log_message_object(
       DialogId dialog_id, tl_object_ptr<telegram_api::Message> &&message, DialogId &sender_dialog_id);
 
-  td_api::object_ptr<td_api::message> get_business_message_object(
-      telegram_api::object_ptr<telegram_api::Message> &&message);
+  td_api::object_ptr<td_api::businessMessage> get_business_message_object(
+      telegram_api::object_ptr<telegram_api::Message> &&message,
+      telegram_api::object_ptr<telegram_api::Message> &&reply_to_message);
 
   td_api::object_ptr<td_api::message> get_message_object(MessageFullId message_full_id, const char *source);
 
@@ -2393,6 +2394,9 @@ class MessagesManager final : public Actor {
   static td_api::object_ptr<td_api::messages> get_messages_object(int32 total_count,
                                                                   vector<tl_object_ptr<td_api::message>> &&messages,
                                                                   bool skip_not_found);
+
+  td_api::object_ptr<td_api::message> get_business_message_message_object(
+      telegram_api::object_ptr<telegram_api::Message> &&message);
 
   vector<DialogId> sort_dialogs_by_order(const vector<DialogId> &dialog_ids, int32 limit) const;
 

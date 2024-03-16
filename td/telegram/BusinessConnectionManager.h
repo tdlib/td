@@ -46,10 +46,12 @@ class BusinessConnectionManager final : public Actor {
   void on_update_bot_business_connect(telegram_api::object_ptr<telegram_api::botBusinessConnection> &&connection);
 
   void on_update_bot_new_business_message(const BusinessConnectionId &connection_id,
-                                          telegram_api::object_ptr<telegram_api::Message> &&message);
+                                          telegram_api::object_ptr<telegram_api::Message> &&message,
+                                          telegram_api::object_ptr<telegram_api::Message> &&reply_to_message);
 
   void on_update_bot_edit_business_message(const BusinessConnectionId &connection_id,
-                                           telegram_api::object_ptr<telegram_api::Message> &&message);
+                                           telegram_api::object_ptr<telegram_api::Message> &&message,
+                                           telegram_api::object_ptr<telegram_api::Message> &&reply_to_message);
 
   void on_update_bot_delete_business_messages(const BusinessConnectionId &connection_id, DialogId dialog_id,
                                               vector<int32> &&messages);
@@ -61,13 +63,13 @@ class BusinessConnectionManager final : public Actor {
                     td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to, bool disable_notification,
                     bool protect_content, td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
                     td_api::object_ptr<td_api::InputMessageContent> &&input_message_content,
-                    Promise<td_api::object_ptr<td_api::message>> &&promise);
+                    Promise<td_api::object_ptr<td_api::businessMessage>> &&promise);
 
   void send_message_album(BusinessConnectionId business_connection_id, DialogId dialog_id,
                           td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to, bool disable_notification,
                           bool protect_content,
                           vector<td_api::object_ptr<td_api::InputMessageContent>> &&input_message_contents,
-                          Promise<td_api::object_ptr<td_api::messages>> &&promise);
+                          Promise<td_api::object_ptr<td_api::businessMessages>> &&promise);
 
  private:
   static constexpr size_t MAX_GROUPED_MESSAGES = 10;  // server side limit
@@ -95,7 +97,7 @@ class BusinessConnectionManager final : public Actor {
   struct MediaGroupSendRequest {
     size_t finished_count_ = 0;
     vector<Result<UploadMediaResult>> upload_results_;
-    Promise<td_api::object_ptr<td_api::messages>> promise_;
+    Promise<td_api::object_ptr<td_api::businessMessages>> promise_;
   };
 
   void tear_down() final;
@@ -115,7 +117,8 @@ class BusinessConnectionManager final : public Actor {
                                                              unique_ptr<ReplyMarkup> &&reply_markup,
                                                              InputMessageContent &&input_content) const;
 
-  void do_send_message(unique_ptr<PendingMessage> &&message, Promise<td_api::object_ptr<td_api::message>> &&promise);
+  void do_send_message(unique_ptr<PendingMessage> &&message,
+                       Promise<td_api::object_ptr<td_api::businessMessage>> &&promise);
 
   static FileId get_message_file_id(const unique_ptr<PendingMessage> &message);
 
@@ -126,7 +129,7 @@ class BusinessConnectionManager final : public Actor {
 
   void complete_send_media(unique_ptr<PendingMessage> &&message,
                            telegram_api::object_ptr<telegram_api::InputMedia> &&input_media,
-                           Promise<td_api::object_ptr<td_api::message>> &&promise);
+                           Promise<td_api::object_ptr<td_api::businessMessage>> &&promise);
 
   void on_upload_media(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
 

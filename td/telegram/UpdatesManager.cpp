@@ -3096,13 +3096,15 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
       case telegram_api::updateBotNewBusinessMessage::ID: {
         auto update = move_tl_object_as<telegram_api::updateBotNewBusinessMessage>(update_ptr);
         td_->business_connection_manager_->on_update_bot_new_business_message(
-            BusinessConnectionId(std::move(update->connection_id_)), std::move(update->message_));
+            BusinessConnectionId(std::move(update->connection_id_)), std::move(update->message_),
+            std::move(update->reply_to_message_));
         break;
       }
       case telegram_api::updateBotEditBusinessMessage::ID: {
         auto update = move_tl_object_as<telegram_api::updateBotEditBusinessMessage>(update_ptr);
         td_->business_connection_manager_->on_update_bot_edit_business_message(
-            BusinessConnectionId(std::move(update->connection_id_)), std::move(update->message_));
+            BusinessConnectionId(std::move(update->connection_id_)), std::move(update->message_),
+            std::move(update->reply_to_message_));
         break;
       }
       case telegram_api::updateBotDeleteBusinessMessage::ID: {

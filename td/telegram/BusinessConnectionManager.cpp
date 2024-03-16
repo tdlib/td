@@ -115,11 +115,11 @@ struct BusinessConnectionManager::PendingMessage {
 };
 
 class BusinessConnectionManager::SendBusinessMessageQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::message>> promise_;
+  Promise<td_api::object_ptr<td_api::businessMessage>> promise_;
   unique_ptr<PendingMessage> message_;
 
  public:
-  explicit SendBusinessMessageQuery(Promise<td_api::object_ptr<td_api::message>> &&promise)
+  explicit SendBusinessMessageQuery(Promise<td_api::object_ptr<td_api::businessMessage>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -188,11 +188,11 @@ class BusinessConnectionManager::SendBusinessMessageQuery final : public Td::Res
 };
 
 class BusinessConnectionManager::SendBusinessMediaQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::message>> promise_;
+  Promise<td_api::object_ptr<td_api::businessMessage>> promise_;
   unique_ptr<PendingMessage> message_;
 
  public:
-  explicit SendBusinessMediaQuery(Promise<td_api::object_ptr<td_api::message>> &&promise)
+  explicit SendBusinessMediaQuery(Promise<td_api::object_ptr<td_api::businessMessage>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -259,11 +259,11 @@ class BusinessConnectionManager::SendBusinessMediaQuery final : public Td::Resul
 };
 
 class BusinessConnectionManager::SendBusinessMultiMediaQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::messages>> promise_;
+  Promise<td_api::object_ptr<td_api::businessMessages>> promise_;
   vector<unique_ptr<PendingMessage>> messages_;
 
  public:
-  explicit SendBusinessMultiMediaQuery(Promise<td_api::object_ptr<td_api::messages>> &&promise)
+  explicit SendBusinessMultiMediaQuery(Promise<td_api::object_ptr<td_api::businessMessages>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -487,12 +487,14 @@ void BusinessConnectionManager::on_update_bot_business_connect(
 }
 
 void BusinessConnectionManager::on_update_bot_new_business_message(
-    const BusinessConnectionId &connection_id, telegram_api::object_ptr<telegram_api::Message> &&message) {
+    const BusinessConnectionId &connection_id, telegram_api::object_ptr<telegram_api::Message> &&message,
+    telegram_api::object_ptr<telegram_api::Message> &&reply_to_message) {
   if (!td_->auth_manager_->is_bot() || !connection_id.is_valid()) {
     LOG(ERROR) << "Receive " << to_string(message);
     return;
   }
-  auto message_object = td_->messages_manager_->get_business_message_object(std::move(message));
+  auto message_object =
+      td_->messages_manager_->get_business_message_object(std::move(message), std::move(reply_to_message));
   if (message_object == nullptr) {
     return;
   }
@@ -501,12 +503,14 @@ void BusinessConnectionManager::on_update_bot_new_business_message(
 }
 
 void BusinessConnectionManager::on_update_bot_edit_business_message(
-    const BusinessConnectionId &connection_id, telegram_api::object_ptr<telegram_api::Message> &&message) {
+    const BusinessConnectionId &connection_id, telegram_api::object_ptr<telegram_api::Message> &&message,
+    telegram_api::object_ptr<telegram_api::Message> &&reply_to_message) {
   if (!td_->auth_manager_->is_bot() || !connection_id.is_valid()) {
     LOG(ERROR) << "Receive " << to_string(message);
     return;
   }
-  auto message_object = td_->messages_manager_->get_business_message_object(std::move(message));
+  auto message_object =
+      td_->messages_manager_->get_business_message_object(std::move(message), std::move(reply_to_message));
   if (message_object == nullptr) {
     return;
   }
@@ -687,7 +691,7 @@ void BusinessConnectionManager::send_message(BusinessConnectionId business_conne
                                              bool disable_notification, bool protect_content,
                                              td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                              td_api::object_ptr<td_api::InputMessageContent> &&input_message_content,
-                                             Promise<td_api::object_ptr<td_api::message>> &&promise) {
+                                             Promise<td_api::object_ptr<td_api::businessMessage>> &&promise) {
   TRY_STATUS_PROMISE(promise, check_business_connection(business_connection_id, dialog_id));
   TRY_RESULT_PROMISE(promise, input_content,
                      process_input_message_content(dialog_id, std::move(input_message_content)));
@@ -703,7 +707,7 @@ void BusinessConnectionManager::send_message(BusinessConnectionId business_conne
 }
 
 void BusinessConnectionManager::do_send_message(unique_ptr<PendingMessage> &&message,
-                                                Promise<td_api::object_ptr<td_api::message>> &&promise) {
+                                                Promise<td_api::object_ptr<td_api::businessMessage>> &&promise) {
   LOG(INFO) << "Send business message to " << message->dialog_id_;
 
   const auto *content = message->content_.get();
@@ -786,7 +790,7 @@ void BusinessConnectionManager::upload_media(unique_ptr<PendingMessage> &&messag
 
 void BusinessConnectionManager::complete_send_media(unique_ptr<PendingMessage> &&message,
                                                     telegram_api::object_ptr<telegram_api::InputMedia> &&input_media,
-                                                    Promise<td_api::object_ptr<td_api::message>> &&promise) {
+                                                    Promise<td_api::object_ptr<td_api::businessMessage>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   CHECK(message != nullptr);
   CHECK(input_media != nullptr);
@@ -956,7 +960,7 @@ void BusinessConnectionManager::send_message_album(
     BusinessConnectionId business_connection_id, DialogId dialog_id,
     td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to, bool disable_notification, bool protect_content,
     vector<td_api::object_ptr<td_api::InputMessageContent>> &&input_message_contents,
-    Promise<td_api::object_ptr<td_api::messages>> &&promise) {
+    Promise<td_api::object_ptr<td_api::businessMessages>> &&promise) {
   if (input_message_contents.size() > MAX_GROUPED_MESSAGES) {
     return promise.set_error(Status::Error(400, "Too many messages to send as an album"));
   }

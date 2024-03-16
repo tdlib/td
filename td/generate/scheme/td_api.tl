@@ -1459,6 +1459,13 @@ messageCalendarDay total_count:int32 message:message = MessageCalendarDay;
 messageCalendar total_count:int32 days:vector<messageCalendarDay> = MessageCalendar;
 
 
+//@description Describes a message from a business account as received by a bot @message The message @reply_to_message Message that is replied by the message in the same chat; may be null if none
+businessMessage message:message reply_to_message:message = BusinessMessage;
+
+//@description Contains a list of messages from a business account as received by a bot @messages List of business messages
+businessMessages messages:vector<businessMessage> = BusinessMessages;
+
+
 //@class MessageSource @description Describes source of a message
 
 //@description The message is from a chat history
@@ -6939,10 +6946,10 @@ updateAutosaveSettings scope:AutosaveSettingsScope settings:scopeAutosaveSetting
 updateBusinessConnection connection:businessConnection = Update;
 
 //@description A new message was added to a business account; for bots only @connection_id Unique identifier of the business connection @message The new message
-updateNewBusinessMessage connection_id:string message:message = Update;
+updateNewBusinessMessage connection_id:string message:businessMessage = Update;
 
 //@description A message in a business account was edited; for bots only @connection_id Unique identifier of the business connection @message The edited message
-updateBusinessMessageEdited connection_id:string message:message = Update;
+updateBusinessMessageEdited connection_id:string message:businessMessage = Update;
 
 //@description Messages in a business account were deleted; for bots only
 //@connection_id Unique identifier of the business connection
@@ -7829,7 +7836,7 @@ editMessageSchedulingState chat_id:int53 message_id:int53 scheduling_state:Messa
 //@protect_content Pass true if the content of the message must be protected from forwarding and saving
 //@reply_markup Markup for replying to the message; pass null if none
 //@input_message_content The content of the message to be sent
-sendBusinessMessage business_connection_id:string chat_id:int53 reply_to:InputMessageReplyTo disable_notification:Bool protect_content:Bool reply_markup:ReplyMarkup input_message_content:InputMessageContent = Message;
+sendBusinessMessage business_connection_id:string chat_id:int53 reply_to:InputMessageReplyTo disable_notification:Bool protect_content:Bool reply_markup:ReplyMarkup input_message_content:InputMessageContent = BusinessMessage;
 
 //@description Sends 2-10 messages grouped together into an album on behalf of a business account; for bots only. Currently, only audio, document, photo and video messages can be grouped into an album.
 //-Documents and audio files can be only grouped in an album with messages of the same type. Returns sent messages
@@ -7839,7 +7846,7 @@ sendBusinessMessage business_connection_id:string chat_id:int53 reply_to:InputMe
 //@disable_notification Pass true to disable notification for the message
 //@protect_content Pass true if the content of the message must be protected from forwarding and saving
 //@input_message_contents Contents of messages to be sent. At most 10 messages can be added to an album
-sendBusinessMessageAlbum business_connection_id:string chat_id:int53 reply_to:InputMessageReplyTo disable_notification:Bool protect_content:Bool input_message_contents:vector<InputMessageContent> = Messages;
+sendBusinessMessageAlbum business_connection_id:string chat_id:int53 reply_to:InputMessageReplyTo disable_notification:Bool protect_content:Bool input_message_contents:vector<InputMessageContent> = BusinessMessages;
 
 
 //@description Checks validness of a name for a quick reply shortcut. Can be called synchronously @name The name of the shortcut; 1-32 characters

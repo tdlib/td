@@ -1507,7 +1507,7 @@ class CliClient final : public Actor {
       }
       case td_api::updateNewBusinessMessage::ID: {
         const auto *update = static_cast<const td_api::updateNewBusinessMessage *>(result.get());
-        const auto *message = update->message_.get();
+        const auto *message = update->message_->message_.get();
         if (!message->is_outgoing_ && use_test_dc_) {
           auto old_business_connection_id = std::move(business_connection_id_);
           business_connection_id_ = update->connection_id_;
