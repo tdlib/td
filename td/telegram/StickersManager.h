@@ -476,6 +476,7 @@ class StickersManager final : public Actor {
     bool are_keywords_loaded_ = false;  // stored in telegram_api::messages_stickerSet
     bool is_sticker_has_text_color_loaded_ = false;
     bool is_sticker_channel_emoji_status_loaded_ = false;
+    bool is_created_loaded_ = false;
 
     StickerSetId id_;
     int64 access_hash_ = 0;
@@ -497,6 +498,7 @@ class StickersManager final : public Actor {
     mutable std::map<string, vector<FileId>> keyword_stickers_map_;         // keyword -> stickers
     FlatHashMap<FileId, vector<string>, FileIdHash> sticker_keywords_map_;  // sticker -> keywords
 
+    bool is_created_ = false;
     bool is_installed_ = false;
     bool is_archived_ = false;
     bool is_official_ = false;

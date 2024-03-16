@@ -2516,8 +2516,8 @@ tl_object_ptr<td_api::stickerSet> StickersManager::get_sticker_set_object(Sticke
       get_sticker_set_thumbnail_object(sticker_set),
       get_sticker_minithumbnail(sticker_set->minithumbnail_, sticker_set->id_, -2,
                                 get_sticker_set_minithumbnail_zoom(sticker_set)),
-      sticker_set->is_installed_ && !sticker_set->is_archived_, sticker_set->is_archived_, sticker_set->is_official_,
-      get_sticker_type_object(sticker_set->sticker_type_), sticker_set->has_text_color_,
+      sticker_set->is_created_, sticker_set->is_installed_ && !sticker_set->is_archived_, sticker_set->is_archived_,
+      sticker_set->is_official_, get_sticker_type_object(sticker_set->sticker_type_), sticker_set->has_text_color_,
       sticker_set->channel_emoji_status_, sticker_set->is_viewed_, std::move(stickers), std::move(emojis));
 }
 
@@ -2592,8 +2592,8 @@ tl_object_ptr<td_api::stickerSetInfo> StickersManager::get_sticker_set_info_obje
       get_sticker_set_thumbnail_object(sticker_set),
       get_sticker_minithumbnail(sticker_set->minithumbnail_, sticker_set->id_, -3,
                                 get_sticker_set_minithumbnail_zoom(sticker_set)),
-      sticker_set->is_installed_ && !sticker_set->is_archived_, sticker_set->is_archived_, sticker_set->is_official_,
-      get_sticker_type_object(sticker_set->sticker_type_), sticker_set->has_text_color_,
+      sticker_set->is_created_, sticker_set->is_installed_ && !sticker_set->is_archived_, sticker_set->is_archived_,
+      sticker_set->is_official_, get_sticker_type_object(sticker_set->sticker_type_), sticker_set->has_text_color_,
       sticker_set->channel_emoji_status_, sticker_set->is_viewed_,
       sticker_set->was_loaded_ ? actual_count : max(actual_count, sticker_set->sticker_count_), std::move(stickers));
 }
@@ -3597,6 +3597,7 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
   bool is_installed = (set->flags_ & telegram_api::stickerSet::INSTALLED_DATE_MASK) != 0;
   bool is_archived = set->archived_;
   bool is_official = set->official_;
+  bool is_created = set->creator_;
   bool has_text_color = set->emojis_ && set->text_color_;
   bool channel_emoji_status = set->emojis_ && set->channel_emoji_status_;
   StickerType sticker_type =
@@ -3635,6 +3636,7 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
     s->sticker_type_ = sticker_type;
     s->has_text_color_ = has_text_color;
     s->channel_emoji_status_ = channel_emoji_status;
+    s->is_created_ = is_official;
     s->is_changed_ = true;
   } else {
     CHECK(s->id_ == set_id);
@@ -3703,6 +3705,10 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
     if (s->is_official_ != is_official) {
       LOG(INFO) << "Official flag of " << set_id << " changed to " << is_official;
       s->is_official_ = is_official;
+      s->is_changed_ = true;
+    }
+    if (s->is_created_ != is_created) {
+      s->is_created_ = is_created;
       s->is_changed_ = true;
     }
     if (s->has_text_color_ != has_text_color) {
@@ -3851,6 +3857,7 @@ StickerSetId StickersManager::on_get_messages_sticker_set(StickerSetId sticker_s
   s->are_keywords_loaded_ = true;
   s->is_sticker_has_text_color_loaded_ = true;
   s->is_sticker_channel_emoji_status_loaded_ = true;
+  s->is_created_loaded_ = true;
 
   FlatHashMap<int64, FileId> document_id_to_sticker_id;
 
@@ -5403,9 +5410,9 @@ void StickersManager::on_load_sticker_set_from_database(StickerSetId sticker_set
                  << format::as_hex_dump<4>(Slice(value));
     }
   }
-  if (!sticker_set->is_sticker_channel_emoji_status_loaded_ || !sticker_set->is_sticker_has_text_color_loaded_ ||
-      !sticker_set->are_keywords_loaded_ || !sticker_set->is_thumbnail_reloaded_ ||
-      !sticker_set->are_legacy_sticker_thumbnails_reloaded_) {
+  if (!sticker_set->is_created_loaded_ || !sticker_set->is_sticker_channel_emoji_status_loaded_ ||
+      !sticker_set->is_sticker_has_text_color_loaded_ || !sticker_set->are_keywords_loaded_ ||
+      !sticker_set->is_thumbnail_reloaded_ || !sticker_set->are_legacy_sticker_thumbnails_reloaded_) {
     do_reload_sticker_set(sticker_set_id, get_input_sticker_set(sticker_set), 0, Auto(),
                           "on_load_sticker_set_from_database 2");
   }
