@@ -4123,7 +4123,7 @@ const std::map<string, vector<FileId>> &StickersManager::get_sticker_set_keyword
 }
 
 void StickersManager::find_sticker_set_stickers(const StickerSet *sticker_set, const vector<string> &emojis,
-                                                const string &query, vector<FileId> &result) {
+                                                const string &query, vector<std::pair<bool, FileId>> &result) const {
   CHECK(sticker_set != nullptr);
   FlatHashSet<FileId, FileIdHash> found_sticker_ids;
   for (auto &emoji : emojis) {
@@ -4142,8 +4142,9 @@ void StickersManager::find_sticker_set_stickers(const StickerSet *sticker_set, c
   if (!found_sticker_ids.empty()) {
     for (auto sticker_id : sticker_set->sticker_ids_) {
       if (found_sticker_ids.count(sticker_id) != 0) {
+        const Sticker *s = get_sticker(sticker_id);
         LOG(INFO) << "Add " << sticker_id << " sticker from " << sticker_set->id_;
-        result.push_back(sticker_id);
+        result.emplace_back(is_sticker_format_animated(s->format_), sticker_id);
       }
     }
   }
@@ -4404,18 +4405,20 @@ vector<FileId> StickersManager::get_stickers(StickerType sticker_type, string qu
         examined_sticker_sets.push_back(sticker_set);
       }
     }
-    std::stable_sort(examined_sticker_sets.begin(), examined_sticker_sets.end(),
-                     [](const StickerSet *lhs, const StickerSet *rhs) {
-                       if (lhs->is_installed_ != rhs->is_installed_) {
-                         return lhs->is_installed_;
-                       }
-                       if (lhs->is_archived_ != rhs->is_archived_) {
-                         return lhs->is_archived_;
-                       }
-                       return false;
-                     });
+    vector<std::pair<bool, FileId>> partial_results[2][2];
     for (auto sticker_set : examined_sticker_sets) {
-      find_sticker_set_stickers(sticker_set, emojis, prepared_query, result);
+      find_sticker_set_stickers(sticker_set, emojis, prepared_query,
+                                partial_results[sticker_set->is_installed_][sticker_set->is_archived_]);
+    }
+    for (int is_installed = 1; is_installed >= 0; is_installed--) {
+      for (int is_archived = 1; is_archived >= 0; is_archived--) {
+        auto &partial_result = partial_results[is_installed][is_archived];
+        std::stable_sort(partial_result.begin(), partial_result.end(),
+                         [](const auto &lhs, const auto &rhs) { return lhs.first && !rhs.first; });
+        for (auto &is_animated_sticker_id_pair : partial_result) {
+          result.push_back(is_animated_sticker_id_pair.second);
+        }
+      }
     }
 
     vector<FileId> sorted;
