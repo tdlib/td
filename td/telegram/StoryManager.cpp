@@ -1843,7 +1843,9 @@ bool StoryManager::can_get_story_statistics(StoryFullId story_full_id, const Sto
   if (story == nullptr || !story_full_id.get_story_id().is_server()) {
     return false;
   }
-  return td_->contacts_manager_->can_get_channel_story_statistics(story_full_id.get_dialog_id());
+  auto dialog_id = story_full_id.get_dialog_id();
+  return dialog_id.get_type() == DialogType::Channel &&
+         td_->contacts_manager_->can_get_channel_story_statistics(dialog_id.get_channel_id());
 }
 
 const StoryManager::ActiveStories *StoryManager::get_active_stories(DialogId owner_dialog_id) const {

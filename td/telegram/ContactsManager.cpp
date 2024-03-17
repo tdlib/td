@@ -7004,13 +7004,8 @@ bool ContactsManager::can_get_channel_message_statistics(ChannelId channel_id) c
   return c->status.can_post_messages();
 }
 
-bool ContactsManager::can_get_channel_story_statistics(DialogId dialog_id) const {
+bool ContactsManager::can_get_channel_story_statistics(ChannelId channel_id) const {
   CHECK(!td_->auth_manager_->is_bot());
-  if (dialog_id.get_type() != DialogType::Channel) {
-    return false;
-  }
-
-  auto channel_id = dialog_id.get_channel_id();
   const Channel *c = get_channel(channel_id);
   if (c == nullptr || c->is_megagroup) {
     return false;

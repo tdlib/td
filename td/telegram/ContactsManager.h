@@ -524,7 +524,7 @@ class ContactsManager final : public Actor {
 
   bool can_get_channel_message_statistics(ChannelId channel_id) const;
 
-  bool can_get_channel_story_statistics(DialogId dialog_id) const;
+  bool can_get_channel_story_statistics(ChannelId channel_id) const;
 
   void get_created_public_dialogs(PublicDialogType type, Promise<td_api::object_ptr<td_api::chats>> &&promise,
                                   bool from_binlog);
