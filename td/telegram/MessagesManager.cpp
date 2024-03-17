@@ -9570,14 +9570,14 @@ bool MessagesManager::can_get_message_statistics(MessageFullId message_full_id) 
 }
 
 bool MessagesManager::can_get_message_statistics(DialogId dialog_id, const Message *m) const {
-  if (td_->auth_manager_->is_bot()) {
+  if (td_->auth_manager_->is_bot() || dialog_id.get_type() != DialogType::Channel) {
     return false;
   }
   if (m == nullptr || m->message_id.is_scheduled() || !m->message_id.is_server() || m->view_count == 0 ||
       m->had_forward_info || (m->forward_info != nullptr && m->forward_info->get_origin().is_channel_post())) {
     return false;
   }
-  return td_->contacts_manager_->can_get_channel_message_statistics(dialog_id);
+  return td_->contacts_manager_->can_get_channel_message_statistics(dialog_id.get_channel_id());
 }
 
 bool MessagesManager::can_delete_channel_message(const DialogParticipantStatus &status, const Message *m, bool is_bot) {

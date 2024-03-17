@@ -522,7 +522,7 @@ class ContactsManager final : public Actor {
 
   void get_channel_statistics_dc_id(DialogId dialog_id, bool for_full_statistics, Promise<DcId> &&promise);
 
-  bool can_get_channel_message_statistics(DialogId dialog_id) const;
+  bool can_get_channel_message_statistics(ChannelId channel_id) const;
 
   bool can_get_channel_story_statistics(DialogId dialog_id) const;
 
