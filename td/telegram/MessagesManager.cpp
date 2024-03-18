@@ -26786,6 +26786,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_quick_reply_s
     Message *m = get_message_to_send(d, MessageId(), std::move(input_reply_to), message_send_options,
                                      std::move(content.content_), content.invert_media_, &need_update_dialog_pos, false,
                                      nullptr, DialogId(), true);
+    m->via_bot_user_id = content.via_bot_user_id_;
     m->reply_markup = std::move(content.reply_markup_);
     m->disable_web_page_preview = content.disable_web_page_preview_;
     m->media_album_id = content.media_album_id_;

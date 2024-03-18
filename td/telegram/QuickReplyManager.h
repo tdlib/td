@@ -68,6 +68,7 @@ class QuickReplyManager final : public Actor {
     MessageId original_message_id_;
     MessageId original_reply_to_message_id_;
     unique_ptr<ReplyMarkup> reply_markup_;
+    UserId via_bot_user_id_;
     int64 media_album_id_;
     bool invert_media_;
     bool disable_web_page_preview_;
