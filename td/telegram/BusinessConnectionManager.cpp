@@ -481,9 +481,7 @@ void BusinessConnectionManager::on_update_bot_business_connect(
 
   auto &stored_connection = business_connections_[business_connection->connection_id_];
   stored_connection = std::move(business_connection);
-  send_closure(
-      G()->td(), &Td::send_update,
-      td_api::make_object<td_api::updateBusinessConnection>(stored_connection->get_business_connection_object(td_)));
+  send_closure(G()->td(), &Td::send_update, get_update_business_connection(stored_connection.get()));
 }
 
 void BusinessConnectionManager::on_update_bot_new_business_message(
@@ -1102,6 +1100,18 @@ void BusinessConnectionManager::process_sent_business_message_album(
         std::move(update->message_), std::move(update->reply_to_message_)));
   }
   promise.set_value(std::move(messages));
+}
+
+td_api::object_ptr<td_api::updateBusinessConnection> BusinessConnectionManager::get_update_business_connection(
+    const BusinessConnection *connection) const {
+  return td_api::make_object<td_api::updateBusinessConnection>(connection->get_business_connection_object(td_));
+}
+
+void BusinessConnectionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
+  business_connections_.foreach([&](const BusinessConnectionId &business_connection_id,
+                                    const unique_ptr<BusinessConnection> &business_connection) {
+    updates.push_back(get_update_business_connection(business_connection.get()));
+  });
 }
 
 }  // namespace td

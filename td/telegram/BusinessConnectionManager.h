@@ -71,6 +71,8 @@ class BusinessConnectionManager final : public Actor {
                           vector<td_api::object_ptr<td_api::InputMessageContent>> &&input_message_contents,
                           Promise<td_api::object_ptr<td_api::businessMessages>> &&promise);
 
+  void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
+
  private:
   static constexpr size_t MAX_GROUPED_MESSAGES = 10;  // server side limit
 
@@ -154,6 +156,9 @@ class BusinessConnectionManager final : public Actor {
 
   void process_sent_business_message_album(telegram_api::object_ptr<telegram_api::Updates> &&updates_ptr,
                                            Promise<td_api::object_ptr<td_api::businessMessages>> &&promise);
+
+  td_api::object_ptr<td_api::updateBusinessConnection> get_update_business_connection(
+      const BusinessConnection *connection) const;
 
   WaitFreeHashMap<BusinessConnectionId, unique_ptr<BusinessConnection>, BusinessConnectionIdHash> business_connections_;
 
