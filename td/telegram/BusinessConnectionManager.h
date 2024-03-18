@@ -152,6 +152,9 @@ class BusinessConnectionManager final : public Actor {
 
   void on_upload_message_album_media(int64 request_id, size_t media_pos, Result<UploadMediaResult> &&result);
 
+  void process_sent_business_message_album(telegram_api::object_ptr<telegram_api::Updates> &&updates_ptr,
+                                           Promise<td_api::object_ptr<td_api::businessMessages>> &&promise);
+
   WaitFreeHashMap<BusinessConnectionId, unique_ptr<BusinessConnection>, BusinessConnectionIdHash> business_connections_;
 
   FlatHashMap<BusinessConnectionId, vector<Promise<td_api::object_ptr<td_api::businessConnection>>>,

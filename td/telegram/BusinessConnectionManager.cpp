@@ -309,7 +309,7 @@ class BusinessConnectionManager::SendBusinessMultiMediaQuery final : public Td::
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for SendBusinessMultiMediaQuery: " << to_string(ptr);
-    promise_.set_value(nullptr);  // TODO
+    td_->business_connection_manager_->process_sent_business_message_album(std::move(ptr), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -1076,6 +1076,32 @@ void BusinessConnectionManager::on_upload_message_album_media(int64 request_id, 
 
   td_->create_handler<SendBusinessMultiMediaQuery>(std::move(promise))
       ->send(std::move(messages), std::move(input_single_media));
+}
+
+void BusinessConnectionManager::process_sent_business_message_album(
+    telegram_api::object_ptr<telegram_api::Updates> &&updates_ptr,
+    Promise<td_api::object_ptr<td_api::businessMessages>> &&promise) {
+  if (updates_ptr->get_id() != telegram_api::updates::ID) {
+    LOG(ERROR) << "Receive " << to_string(updates_ptr);
+    return promise.set_error(Status::Error(500, "Receive invalid business connection messages"));
+  }
+  auto updates = telegram_api::move_object_as<telegram_api::updates>(updates_ptr);
+  for (auto &update : updates->updates_) {
+    if (update->get_id() != telegram_api::updateBotNewBusinessMessage::ID) {
+      LOG(ERROR) << "Receive " << to_string(updates);
+      return promise.set_error(Status::Error(500, "Receive invalid business connection messages"));
+    }
+  }
+  td_->contacts_manager_->on_get_users(std::move(updates->users_), "SendBusinessMediaQuery");
+  td_->contacts_manager_->on_get_chats(std::move(updates->chats_), "SendBusinessMediaQuery");
+
+  auto messages = td_api::make_object<td_api::businessMessages>();
+  for (auto &update_ptr : updates->updates_) {
+    auto update = telegram_api::move_object_as<telegram_api::updateBotNewBusinessMessage>(update_ptr);
+    messages->messages_.push_back(td_->messages_manager_->get_business_message_object(
+        std::move(update->message_), std::move(update->reply_to_message_)));
+  }
+  promise.set_value(std::move(messages));
 }
 
 }  // namespace td
