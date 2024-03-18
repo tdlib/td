@@ -3513,7 +3513,7 @@ class SendQuickReplyMessagesQuery final : public Td::ResultHandler {
 
   void send(DialogId dialog_id, QuickReplyShortcutId shortcut_id, const vector<MessageId> &message_ids,
             vector<int64> &&random_ids) {
-    random_ids_ = std::move(random_ids);
+    random_ids_ = random_ids;
     dialog_id_ = dialog_id;
 
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Write);
@@ -3522,7 +3522,9 @@ class SendQuickReplyMessagesQuery final : public Td::ResultHandler {
     }
 
     auto query = G()->net_query_creator().create(
-        telegram_api::messages_sendQuickReplyMessages(std::move(input_peer), shortcut_id.get(), Auto(), Auto()),
+        telegram_api::messages_sendQuickReplyMessages(std::move(input_peer), shortcut_id.get(),
+                                                      MessageId::get_server_message_ids(message_ids),
+                                                      std::move(random_ids)),
         {{dialog_id, MessageContentType::Text}, {dialog_id, MessageContentType::Photo}});
     if (td_->option_manager_->get_option_boolean("use_quick_ack")) {
       query->quick_ack_promise_ = PromiseCreator::lambda([random_ids = random_ids_](Result<Unit> result) {
@@ -3546,9 +3548,16 @@ class SendQuickReplyMessagesQuery final : public Td::ResultHandler {
     LOG(INFO) << "Receive result for SendQuickReplyMessagesQuery for " << format::as_array(random_ids_) << ": "
               << to_string(ptr);
     auto sent_messages = UpdatesManager::get_new_messages(ptr.get());
+    auto sent_random_ids = UpdatesManager::get_sent_messages_random_ids(ptr.get());
     bool is_result_wrong = false;
-    if (random_ids_.size() != sent_messages.size()) {
+    if (random_ids_.size() != sent_messages.size() || random_ids_.size() != sent_random_ids.size()) {
       is_result_wrong = true;
+    }
+    for (auto &random_id : random_ids_) {
+      auto it = sent_random_ids.find(random_id);
+      if (it == sent_random_ids.end()) {
+        is_result_wrong = true;
+      }
     }
     for (auto &sent_message : sent_messages) {
       if (DialogId::get_message_dialog_id(sent_message.first) != dialog_id_) {
@@ -3561,12 +3570,6 @@ class SendQuickReplyMessagesQuery final : public Td::ResultHandler {
       td_->updates_manager_->schedule_get_difference("Wrong sendQuickReplyMessages result");
       for (auto &random_id : random_ids_) {
         td_->messages_manager_->on_send_message_fail(random_id, Status::Error(500, "Receive invalid response"));
-      }
-    } else {
-      // generate fake updates
-      for (size_t i = 0; i < random_ids_.size(); i++) {
-        td_->messages_manager_->on_update_message_id(
-            random_ids_[i], MessageId::get_message_id(sent_messages[i].first, false), "SendQuickReplyMessagesQuery");
       }
     }
     td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
@@ -26792,7 +26795,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_quick_reply_s
       send_update_new_message(d, m);
     }
     sent_messages.push_back(m);
-    sent_message_ids.push_back(m->message_id);
+    sent_message_ids.push_back(content.original_message_id_);
 
     result.push_back(get_message_object(dialog_id, m, "send_quick_reply_shortcut_messages"));
   }
