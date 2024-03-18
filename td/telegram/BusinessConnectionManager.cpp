@@ -178,7 +178,7 @@ class BusinessConnectionManager::SendBusinessMessageQuery final : public Td::Res
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for SendBusinessMessageQuery: " << to_string(ptr);
-    promise_.set_value(nullptr);  // TODO
+    td_->business_connection_manager_->process_sent_business_message(std::move(ptr), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -249,7 +249,7 @@ class BusinessConnectionManager::SendBusinessMediaQuery final : public Td::Resul
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for SendBusinessMediaQuery: " << to_string(ptr);
-    promise_.set_value(nullptr);  // TODO
+    td_->business_connection_manager_->process_sent_business_message(std::move(ptr), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -742,6 +742,28 @@ void BusinessConnectionManager::do_send_message(unique_ptr<PendingMessage> &&mes
                               std::move(message_input_media.message_), std::move(message_input_media.input_media_),
                               std::move(promise));
                }));
+}
+
+void BusinessConnectionManager::process_sent_business_message(
+    telegram_api::object_ptr<telegram_api::Updates> &&updates_ptr,
+    Promise<td_api::object_ptr<td_api::businessMessage>> &&promise) {
+  if (updates_ptr->get_id() != telegram_api::updates::ID) {
+    LOG(ERROR) << "Receive " << to_string(updates_ptr);
+    return promise.set_error(Status::Error(500, "Receive invalid business connection messages"));
+  }
+  auto updates = telegram_api::move_object_as<telegram_api::updates>(updates_ptr);
+  if (updates->updates_.size() != 1 ||
+      updates->updates_[0]->get_id() != telegram_api::updateBotNewBusinessMessage::ID) {
+    LOG(ERROR) << "Receive " << to_string(updates);
+    return promise.set_error(Status::Error(500, "Receive invalid business connection messages"));
+  }
+  auto update = telegram_api::move_object_as<telegram_api::updateBotNewBusinessMessage>(updates->updates_[0]);
+
+  td_->contacts_manager_->on_get_users(std::move(updates->users_), "SendBusinessMediaQuery");
+  td_->contacts_manager_->on_get_chats(std::move(updates->chats_), "SendBusinessMediaQuery");
+
+  promise.set_value(td_->messages_manager_->get_business_message_object(std::move(update->message_),
+                                                                        std::move(update->reply_to_message_)));
 }
 
 FileId BusinessConnectionManager::get_message_file_id(const unique_ptr<PendingMessage> &message) {
