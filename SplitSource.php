@@ -315,6 +315,7 @@ function split_file($file, $chunks, $undo) {
                 'business_connection_manager[_(-](?![.]get[(][)])|BusinessConnectionManager' => 'BusinessConnectionManager',
                 'BusinessGreetingMessage' => 'BusinessGreetingMessage',
                 'BusinessInfo|business_info' => 'BusinessInfo',
+                'BusinessIntro' => 'BusinessIntro',
                 'business_manager[_(-](?![.]get[(][)])|BusinessManager' => 'BusinessManager',
                 'BusinessRecipients' => 'BusinessRecipients',
                 'BusinessWorkHours' => 'BusinessWorkHours',
