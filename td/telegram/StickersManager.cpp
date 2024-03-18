@@ -7925,7 +7925,7 @@ void StickersManager::create_new_sticker_set(UserId user_id, string title, strin
   }
 
   short_name = strip_empty_characters(short_name, MAX_STICKER_SET_SHORT_NAME_LENGTH);
-  if (short_name.empty()) {
+  if (short_name.empty() && is_bot) {
     return promise.set_error(Status::Error(400, "Sticker set name must be non-empty"));
   }
 
