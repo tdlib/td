@@ -22702,6 +22702,10 @@ td_api::object_ptr<td_api::message> MessagesManager::get_business_message_messag
   }
 
   auto dialog_id = dialog_message.first;
+  if (dialog_id.get_type() != DialogType::User) {
+    LOG(ERROR) << "Receive a business message in " << dialog_id;
+    return nullptr;
+  }
   force_create_dialog(dialog_id, "get_business_message_message_object chat", true);
 
   auto sender = get_message_sender_object_const(td_, m->sender_user_id, m->sender_dialog_id,
