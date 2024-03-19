@@ -39,7 +39,8 @@ class BackgroundInfo {
   }
 
   bool operator==(const BackgroundInfo &other) const {
-    return background_id_ == other.background_id_ && background_type_ == other.background_type_;
+    return background_type_ == other.background_type_ &&
+           (background_id_ == other.background_id_ || (background_id_.is_local() && other.background_id_.is_local()));
   }
 
   bool operator!=(const BackgroundInfo &other) const {
