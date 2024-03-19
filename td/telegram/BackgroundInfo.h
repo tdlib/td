@@ -54,7 +54,7 @@ class BackgroundInfo {
 };
 
 inline StringBuilder &operator<<(StringBuilder &string_builder, const BackgroundInfo &background_info) {
-  return string_builder << background_info.background_id_ << " with type " << background_info.background_type_;
+  return string_builder << background_info.background_id_ << " with " << background_info.background_type_;
 }
 
 }  // namespace td
