@@ -628,8 +628,8 @@ businessConnectedBot bot_user_id:int53 recipients:businessRecipients can_reply:B
 businessIntro title:string message:string sticker:sticker = BusinessIntro;
 
 //@description Describes settings for a business account intro to set
-//@title Title text of the intro
-//@message Message text of the intro
+//@title Title text of the intro; 0-getOption("business_intro_title_length_max") characters
+//@message Message text of the intro; 0-getOption("business_intro_message_length_max") characters
 //@sticker Greeting sticker of the intro; pass null if none. The sticker must belong to a sticker set and must not be a custom emoji
 inputBusinessIntro title:string message:string sticker:InputFile = InputBusinessIntro;
 
