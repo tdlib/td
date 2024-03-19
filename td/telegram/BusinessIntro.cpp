@@ -27,7 +27,7 @@ BusinessIntro::BusinessIntro(Td *td, td_api::object_ptr<td_api::inputBusinessInt
     return;
   }
   title_ = std::move(intro->title_);
-  description_ = std::move(intro->description_);
+  description_ = std::move(intro->message_);
   auto r_file_id = td->file_manager_->get_input_file_id(FileType::Sticker, intro->sticker_, DialogId(), true, false);
   auto file_id = r_file_id.is_ok() ? r_file_id.move_as_ok() : FileId();
   if (file_id.is_valid()) {

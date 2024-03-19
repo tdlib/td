@@ -623,15 +623,15 @@ businessConnectedBot bot_user_id:int53 recipients:businessRecipients can_reply:B
 
 //@description Describes settings for a business account intro
 //@title Title text of the intro
-//@param_description Description text of the intro
+//@message Message text of the intro
 //@sticker Greeting sticker of the intro; may be null if none
-businessIntro title:string description:string sticker:sticker = BusinessIntro;
+businessIntro title:string message:string sticker:sticker = BusinessIntro;
 
 //@description Describes settings for a business account intro to set
 //@title Title text of the intro
-//@param_description Description text of the intro
+//@message Message text of the intro
 //@sticker Greeting sticker of the intro; pass null if none. The sticker must belong to a sticker set and must not be a custom emoji
-inputBusinessIntro title:string description:string sticker:InputFile = InputBusinessIntro;
+inputBusinessIntro title:string message:string sticker:InputFile = InputBusinessIntro;
 
 //@description Describes an interval of time when the business is open
 //@start_minute The first minute of the interval since start of the week; 0-7*24*60
