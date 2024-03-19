@@ -7,6 +7,7 @@
 #include "td/telegram/BusinessIntro.h"
 
 #include "td/telegram/files/FileManager.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
 
@@ -15,6 +16,12 @@ namespace td {
 BusinessIntro::BusinessIntro(Td *td, telegram_api::object_ptr<telegram_api::businessIntro> intro) {
   if (intro == nullptr) {
     return;
+  }
+  if (!clean_input_string(intro->title_)) {
+    intro->title_.clear();
+  }
+  if (!clean_input_string(intro->description_)) {
+    intro->description_.clear();
   }
   title_ = std::move(intro->title_);
   description_ = std::move(intro->description_);

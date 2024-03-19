@@ -9477,6 +9477,9 @@ setBusinessGreetingMessageSettings greeting_message_settings:businessGreetingMes
 //@description Changes the business away message settings of the current user. Requires Telegram Business subscription @away_message_settings The new settings for the away message of the business; pass null to disable the away message
 setBusinessAwayMessageSettings away_message_settings:businessAwayMessageSettings = Ok;
 
+//@description Changes the business intro of the current user. Requires Telegram Business subscription @intro The new intro of the business; pass null to remove the intro
+setBusinessIntro intro:inputBusinessIntro = Ok;
+
 //@description Changes the phone number of the user and sends an authentication code to the user's new phone number; for official Android and iOS applications only. On success, returns information about the sent code
 //@phone_number The new phone number of the user in international format
 //@settings Settings for the authentication of the user's phone number; pass null to use default settings

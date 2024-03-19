@@ -6062,6 +6062,17 @@ class CliClient final : public Actor {
             td_api::make_object<td_api::businessAwayMessageSettings>(shortcut_id, as_business_recipients(chat_ids),
                                                                      std::move(schedule_object), op == "sbamso")));
       }
+    } else if (op == "sbi") {
+      string title;
+      string message;
+      string sticker;
+      get_args(args, title, message, sticker);
+      if (title.empty()) {
+        send_request(td_api::make_object<td_api::setBusinessIntro>(nullptr));
+      } else {
+        send_request(td_api::make_object<td_api::setBusinessIntro>(
+            td_api::make_object<td_api::inputBusinessIntro>(title, message, as_input_file(sticker))));
+      }
     } else if (op == "gbcb") {
       send_request(td_api::make_object<td_api::getBusinessConnectedBot>());
     } else if (op == "sbcb") {
@@ -6139,7 +6150,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getBotName>(bot_user_id, language_code));
       send_request(td_api::make_object<td_api::getBotInfoDescription>(bot_user_id, language_code));
       send_request(td_api::make_object<td_api::getBotInfoShortDescription>(bot_user_id, language_code));
-    } else if (op == "sbi") {
+    } else if (op == "sbit") {
       UserId bot_user_id;
       string language_code;
       string name;

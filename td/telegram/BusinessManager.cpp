@@ -9,6 +9,7 @@
 #include "td/telegram/BusinessAwayMessage.h"
 #include "td/telegram/BusinessConnectedBot.h"
 #include "td/telegram/BusinessGreetingMessage.h"
+#include "td/telegram/BusinessIntro.h"
 #include "td/telegram/BusinessRecipients.h"
 #include "td/telegram/BusinessWorkHours.h"
 #include "td/telegram/ContactsManager.h"
@@ -249,6 +250,41 @@ class UpdateBusinessAwayMessageQuery final : public Td::ResultHandler {
   }
 };
 
+class UpdateBusinessIntroQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  BusinessIntro intro_;
+
+ public:
+  explicit UpdateBusinessIntroQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(BusinessIntro &&intro) {
+    intro_ = std::move(intro);
+    int32 flags = 0;
+    if (!intro_.is_empty()) {
+      flags |= telegram_api::account_updateBusinessIntro::INTRO_MASK;
+    }
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::account_updateBusinessIntro(flags, intro_.get_input_business_intro(td_)), {{"me"}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_updateBusinessIntro>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    td_->contacts_manager_->on_update_user_intro(td_->contacts_manager_->get_my_id(), std::move(intro_));
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 BusinessManager::BusinessManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
@@ -290,6 +326,10 @@ void BusinessManager::set_business_greeting_message(BusinessGreetingMessage &&gr
 
 void BusinessManager::set_business_away_message(BusinessAwayMessage &&away_message, Promise<Unit> &&promise) {
   td_->create_handler<UpdateBusinessAwayMessageQuery>(std::move(promise))->send(std::move(away_message));
+}
+
+void BusinessManager::set_business_intro(BusinessIntro &&intro, Promise<Unit> &&promise) {
+  td_->create_handler<UpdateBusinessIntroQuery>(std::move(promise))->send(std::move(intro));
 }
 
 }  // namespace td

@@ -26,6 +26,7 @@
 #include "td/telegram/BusinessConnectionId.h"
 #include "td/telegram/BusinessConnectionManager.h"
 #include "td/telegram/BusinessGreetingMessage.h"
+#include "td/telegram/BusinessIntro.h"
 #include "td/telegram/BusinessManager.h"
 #include "td/telegram/BusinessWorkHours.h"
 #include "td/telegram/CallbackQueriesManager.h"
@@ -7879,6 +7880,12 @@ void Td::on_request(uint64 id, td_api::setBusinessAwayMessageSettings &request) 
   CREATE_OK_REQUEST_PROMISE();
   business_manager_->set_business_away_message(BusinessAwayMessage(std::move(request.away_message_settings_)),
                                                std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::setBusinessIntro &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  business_manager_->set_business_intro(BusinessIntro(this, std::move(request.intro_)), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setProfilePhoto &request) {

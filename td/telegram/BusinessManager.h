@@ -18,6 +18,7 @@ namespace td {
 
 class BusinessAwayMessage;
 class BusinessGreetingMessage;
+class BusinessIntro;
 class BusinessWorkHours;
 class DialogLocation;
 class Td;
@@ -39,6 +40,8 @@ class BusinessManager final : public Actor {
   void set_business_greeting_message(BusinessGreetingMessage &&greeting_message, Promise<Unit> &&promise);
 
   void set_business_away_message(BusinessAwayMessage &&away_message, Promise<Unit> &&promise);
+
+  void set_business_intro(BusinessIntro &&intro, Promise<Unit> &&promise);
 
  private:
   void tear_down() final;
