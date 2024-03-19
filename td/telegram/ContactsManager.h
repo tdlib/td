@@ -67,6 +67,7 @@ struct BinlogEvent;
 class BusinessAwayMessage;
 class BusinessGreetingMessage;
 class BusinessInfo;
+class BusinessIntro;
 class BusinessWorkHours;
 struct MinChannel;
 class Td;
@@ -258,6 +259,7 @@ class ContactsManager final : public Actor {
   void on_update_user_work_hours(UserId user_id, BusinessWorkHours &&work_hours);
   void on_update_user_away_message(UserId user_id, BusinessAwayMessage &&away_message);
   void on_update_user_greeting_message(UserId user_id, BusinessGreetingMessage &&greeting_message);
+  void on_update_user_intro(UserId user_id, BusinessIntro &&intro);
   void on_update_user_need_phone_number_privacy_exception(UserId user_id, bool need_phone_number_privacy_exception);
   void on_update_user_wallpaper_overridden(UserId user_id, bool wallpaper_overridden);
   void on_update_user_commands(UserId user_id,
@@ -1390,6 +1392,7 @@ class ContactsManager final : public Actor {
   void on_update_user_full_away_message(UserFull *user_full, UserId user_id, BusinessAwayMessage &&away_message) const;
   void on_update_user_full_greeting_message(UserFull *user_full, UserId user_id,
                                             BusinessGreetingMessage &&greeting_message) const;
+  static void on_update_user_full_intro(UserFull *user_full, UserId user_id, BusinessIntro &&intro);
   static void on_update_user_full_commands(UserFull *user_full, UserId user_id,
                                            vector<tl_object_ptr<telegram_api::botCommand>> &&bot_commands);
   static void on_update_user_full_menu_button(UserFull *user_full, UserId user_id,

@@ -14,6 +14,7 @@
 #include "td/telegram/BusinessGreetingMessage.h"
 #include "td/telegram/BusinessInfo.h"
 #include "td/telegram/BusinessInfo.hpp"
+#include "td/telegram/BusinessIntro.h"
 #include "td/telegram/BusinessWorkHours.h"
 #include "td/telegram/CommonDialogManager.h"
 #include "td/telegram/ConfigManager.h"
@@ -10302,6 +10303,7 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   on_update_user_full_away_message(user_full, user_id, BusinessAwayMessage(std::move(user->business_away_message_)));
   on_update_user_full_greeting_message(user_full, user_id,
                                        BusinessGreetingMessage(std::move(user->business_greeting_message_)));
+  on_update_user_full_intro(user_full, user_id, BusinessIntro(td_, std::move(user->business_intro_)));
   on_update_user_full_need_phone_number_privacy_exception(user_full, user_id,
                                                           user->settings_->need_contacts_exception_);
   on_update_user_full_wallpaper_overridden(user_full, user_id, user->wallpaper_overridden_);
@@ -11747,6 +11749,28 @@ void ContactsManager::on_update_user_full_greeting_message(UserFull *user_full, 
     return;
   }
   if (BusinessInfo::set_greeting_message(user_full->business_info, std::move(greeting_message))) {
+    user_full->is_changed = true;
+  }
+}
+
+void ContactsManager::on_update_user_intro(UserId user_id, BusinessIntro &&intro) {
+  LOG(INFO) << "Receive " << intro << " for " << user_id;
+  if (!user_id.is_valid()) {
+    LOG(ERROR) << "Receive invalid " << user_id;
+    return;
+  }
+
+  UserFull *user_full = get_user_full_force(user_id, "on_update_user_intro");
+  if (user_full == nullptr) {
+    return;
+  }
+  on_update_user_full_intro(user_full, user_id, std::move(intro));
+  update_user_full(user_full, user_id, "on_update_user_intro");
+}
+
+void ContactsManager::on_update_user_full_intro(UserFull *user_full, UserId user_id, BusinessIntro &&intro) {
+  CHECK(user_full != nullptr);
+  if (BusinessInfo::set_intro(user_full->business_info, std::move(intro))) {
     user_full->is_changed = true;
   }
 }
