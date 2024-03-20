@@ -25,7 +25,7 @@ class BusinessRecipients {
 
   explicit BusinessRecipients(telegram_api::object_ptr<telegram_api::businessBotRecipients> recipients);
 
-  explicit BusinessRecipients(td_api::object_ptr<td_api::businessRecipients> recipients);
+  BusinessRecipients(td_api::object_ptr<td_api::businessRecipients> recipients, bool allow_excluded);
 
   td_api::object_ptr<td_api::businessRecipients> get_business_recipients_object(Td *td) const;
 
@@ -41,6 +41,7 @@ class BusinessRecipients {
 
  private:
   vector<UserId> user_ids_;
+  vector<UserId> excluded_user_ids_;
   bool existing_chats_ = false;
   bool new_chats_ = false;
   bool contacts_ = false;

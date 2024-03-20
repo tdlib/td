@@ -595,12 +595,13 @@ businessLocation location:location address:string = BusinessLocation;
 
 //@description Describes private chats chosen for automatic interaction with a business
 //@chat_ids Identifiers of selected private chats
+//@excluded_chat_ids Identifiers of private chats that are always excluded; for businessConnectedBot only
 //@select_existing_chats True, if all existing private chats are selected
 //@select_new_chats True, if all new private chats are selected
 //@select_contacts True, if all private chats with contacts are selected
 //@select_non_contacts True, if all private chats with non-contacts are selected
 //@exclude_selected If true, then all private chats except the selected are chosen. Otherwise, only the selected chats are chosen
-businessRecipients chat_ids:vector<int53> select_existing_chats:Bool select_new_chats:Bool select_contacts:Bool select_non_contacts:Bool exclude_selected:Bool = BusinessRecipients;
+businessRecipients chat_ids:vector<int53> excluded_chat_ids:vector<int53> select_existing_chats:Bool select_new_chats:Bool select_contacts:Bool select_non_contacts:Bool exclude_selected:Bool = BusinessRecipients;
 
 //@description Describes settings for messages that are automatically sent by a Telegram Business account when it is away
 //@shortcut_id Unique quick reply shortcut identifier for the away messages

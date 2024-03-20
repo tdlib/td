@@ -585,8 +585,8 @@ class CliClient final : public Actor {
   }
 
   td_api::object_ptr<td_api::businessRecipients> as_business_recipients(string chat_ids) const {
-    return td_api::make_object<td_api::businessRecipients>(as_chat_ids(chat_ids), rand_bool(), rand_bool(), rand_bool(),
-                                                           rand_bool(), rand_bool());
+    return td_api::make_object<td_api::businessRecipients>(as_chat_ids(chat_ids), Auto(), rand_bool(), rand_bool(),
+                                                           rand_bool(), rand_bool(), rand_bool());
   }
 
   static td_api::object_ptr<td_api::StickerFormat> as_sticker_format(string sticker_format) {

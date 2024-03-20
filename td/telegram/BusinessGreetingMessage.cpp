@@ -30,7 +30,7 @@ BusinessGreetingMessage::BusinessGreetingMessage(
     return;
   }
   shortcut_id_ = QuickReplyShortcutId(greeting_message->shortcut_id_);
-  recipients_ = BusinessRecipients(std::move(greeting_message->recipients_));
+  recipients_ = BusinessRecipients(std::move(greeting_message->recipients_), false);
   inactivity_days_ = inactivity_days;
 }
 

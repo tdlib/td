@@ -23,7 +23,7 @@ BusinessAwayMessage::BusinessAwayMessage(td_api::object_ptr<td_api::businessAway
     return;
   }
   shortcut_id_ = QuickReplyShortcutId(away_message->shortcut_id_);
-  recipients_ = BusinessRecipients(std::move(away_message->recipients_));
+  recipients_ = BusinessRecipients(std::move(away_message->recipients_), false);
   schedule_ = BusinessAwayMessageSchedule(std::move(away_message->schedule_));
   offline_only_ = away_message->offline_only_;
 }

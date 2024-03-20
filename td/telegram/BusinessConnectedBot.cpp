@@ -23,7 +23,7 @@ BusinessConnectedBot::BusinessConnectedBot(td_api::object_ptr<td_api::businessCo
     return;
   }
   user_id_ = UserId(connected_bot->bot_user_id_);
-  recipients_ = BusinessRecipients(std::move(connected_bot->recipients_));
+  recipients_ = BusinessRecipients(std::move(connected_bot->recipients_), true);
   can_reply_ = connected_bot->can_reply_;
 }
 
