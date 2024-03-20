@@ -1002,6 +1002,7 @@ class MessagesManager final : public Actor {
     bool is_legacy = false;
     bool hide_edit_date = false;
     bool is_from_scheduled = false;
+    bool is_from_offline = false;
     bool is_pinned = false;
     bool noforwards = false;
     bool has_mention = false;
@@ -1060,6 +1061,7 @@ class MessagesManager final : public Actor {
     bool is_content_secret = false;  // must be shown only while tapped
     bool is_mention_notification_disabled = false;
     bool is_from_scheduled = false;
+    bool is_from_offline = false;
     bool is_pinned = false;
     bool are_media_timestamp_entities_found = false;
     bool noforwards = false;

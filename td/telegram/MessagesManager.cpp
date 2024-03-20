@@ -4188,6 +4188,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_initial_top_thread_message_id);
     STORE_FLAG(has_sender_boost_count);
     STORE_FLAG(has_via_business_bot_user_id);
+    STORE_FLAG(is_from_offline);
     END_STORE_FLAGS();
   }
 
@@ -4456,6 +4457,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(has_initial_top_thread_message_id);
     PARSE_FLAG(has_sender_boost_count);
     PARSE_FLAG(has_via_business_bot_user_id);
+    PARSE_FLAG(is_from_offline);
     END_PARSE_FLAGS();
   }
 
@@ -13075,6 +13077,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       message_info.is_legacy = message->legacy_;
       message_info.hide_edit_date = message->edit_hide_;
       message_info.is_from_scheduled = message->from_scheduled_;
+      message_info.is_from_offline = message->offline_;
       message_info.is_pinned = message->pinned_;
       message_info.noforwards = message->noforwards_;
       message_info.has_mention = message->mentioned_;
@@ -13402,6 +13405,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->is_content_secret = is_content_secret;
   message->hide_edit_date = hide_edit_date;
   message->is_from_scheduled = message_info.is_from_scheduled;
+  message->is_from_offline = message_info.is_from_offline;
   message->is_pinned = is_pinned;
   message->noforwards = noforwards;
   message->interaction_info_update_date = G()->unix_time();
@@ -22671,10 +22675,10 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
                                  get_message_own_max_media_timestamp(m), m->invert_media, m->disable_web_page_preview);
   return td_api::make_object<td_api::message>(
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_dialog_event_log_message_object"),
-      nullptr, nullptr, m->is_outgoing, m->is_pinned, false, false, false, can_be_saved, false, false, false, false,
-      false, false, false, false, false, true, m->is_channel_post, m->is_topic_message, false, m->date, edit_date,
-      std::move(forward_info), std::move(import_info), std::move(interaction_info), Auto(), nullptr, 0, 0, nullptr, 0.0,
-      0.0, via_bot_user_id, 0, m->sender_boost_count, m->author_signature, 0,
+      nullptr, nullptr, m->is_outgoing, m->is_pinned, m->is_from_offline, false, false, false, can_be_saved, false,
+      false, false, false, false, false, false, false, false, true, m->is_channel_post, m->is_topic_message, false,
+      m->date, edit_date, std::move(forward_info), std::move(import_info), std::move(interaction_info), Auto(), nullptr,
+      0, 0, nullptr, 0.0, 0.0, via_bot_user_id, 0, m->sender_boost_count, m->author_signature, 0,
       get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
 }
 
@@ -22739,11 +22743,12 @@ td_api::object_ptr<td_api::message> MessagesManager::get_business_message_messag
 
   return td_api::make_object<td_api::message>(
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_business_message_message_object"),
-      nullptr, nullptr, m->is_outgoing, false, false, false, false, can_be_saved, false, false, false, false, false,
-      false, false, false, false, false, false, false, false, m->date, m->edit_date, std::move(forward_info),
-      std::move(import_info), nullptr, Auto(), std::move(reply_to), 0, 0, std::move(self_destruct_type), 0.0, 0.0,
-      via_bot_user_id, via_business_bot_user_id, 0, string(), m->media_album_id,
-      get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
+      nullptr, nullptr, m->is_outgoing, m->is_from_offline, false, false, false, false, can_be_saved, false, false,
+      false, false, false, false, false, false, false, false, false, false, false, m->date, m->edit_date,
+      std::move(forward_info), std::move(import_info), nullptr, Auto(), std::move(reply_to), 0, 0,
+      std::move(self_destruct_type), 0.0, 0.0, via_bot_user_id, via_business_bot_user_id, 0, string(),
+      m->media_album_id, get_restriction_reason_description(m->restriction_reasons), std::move(content),
+      std::move(reply_markup));
 }
 
 td_api::object_ptr<td_api::message> MessagesManager::get_message_object(MessageFullId message_full_id,
@@ -22851,10 +22856,10 @@ td_api::object_ptr<td_api::message> MessagesManager::get_message_object(DialogId
 
   return td_api::make_object<td_api::message>(
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_message_object"),
-      std::move(sending_state), std::move(scheduling_state), is_outgoing, m->is_pinned, can_be_edited, can_be_forwarded,
-      can_be_replied_in_another_chat, can_be_saved, can_delete_for_self, can_delete_for_all_users,
-      can_get_added_reactions, can_get_statistics, can_get_message_thread, can_get_read_date, can_get_viewers,
-      can_get_media_timestamp_links, can_report_reactions, has_timestamped_media, m->is_channel_post,
+      std::move(sending_state), std::move(scheduling_state), is_outgoing, m->is_pinned, m->is_from_offline,
+      can_be_edited, can_be_forwarded, can_be_replied_in_another_chat, can_be_saved, can_delete_for_self,
+      can_delete_for_all_users, can_get_added_reactions, can_get_statistics, can_get_message_thread, can_get_read_date,
+      can_get_viewers, can_get_media_timestamp_links, can_report_reactions, has_timestamped_media, m->is_channel_post,
       m->is_topic_message, m->contains_unread_mention, date, edit_date, std::move(forward_info), std::move(import_info),
       std::move(interaction_info), std::move(unread_reactions), std::move(reply_to), top_thread_message_id,
       td_->saved_messages_manager_->get_saved_messages_topic_id_object(m->saved_messages_topic_id),
@@ -33901,6 +33906,9 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
   if (old_message->is_from_scheduled != new_message->is_from_scheduled) {
     // is_from_scheduled flag shouldn't be changed, because we are unable to show/hide message notification
     // old_message->is_from_scheduled = new_message->is_from_scheduled;
+  }
+  if (old_message->is_from_offline != new_message->is_from_offline) {
+    old_message->is_from_offline = new_message->is_from_offline;
   }
 
   if (old_message->edit_date > 0) {
