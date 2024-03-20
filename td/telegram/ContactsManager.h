@@ -1166,22 +1166,6 @@ class ContactsManager final : public Actor {
   static constexpr int32 USER_FLAG_CAN_BE_EDITED_BOT = 1 << 1;
   static constexpr int32 USER_FLAG_IS_CLOSE_FRIEND = 1 << 2;
 
-  static constexpr int32 USER_FULL_FLAG_IS_BLOCKED = 1 << 0;
-  static constexpr int32 USER_FULL_FLAG_HAS_ABOUT = 1 << 1;
-  static constexpr int32 USER_FULL_FLAG_HAS_PHOTO = 1 << 2;
-  static constexpr int32 USER_FULL_FLAG_HAS_BOT_INFO = 1 << 3;
-  static constexpr int32 USER_FULL_FLAG_HAS_PINNED_MESSAGE = 1 << 6;
-  static constexpr int32 USER_FULL_FLAG_CAN_PIN_MESSAGE = 1 << 7;
-  static constexpr int32 USER_FULL_FLAG_HAS_FOLDER_ID = 1 << 11;
-  static constexpr int32 USER_FULL_FLAG_HAS_SCHEDULED_MESSAGES = 1 << 12;
-  static constexpr int32 USER_FULL_FLAG_HAS_MESSAGE_TTL = 1 << 14;
-  static constexpr int32 USER_FULL_FLAG_HAS_PRIVATE_FORWARD_NAME = 1 << 16;
-  static constexpr int32 USER_FULL_FLAG_HAS_GROUP_ADMINISTRATOR_RIGHTS = 1 << 17;
-  static constexpr int32 USER_FULL_FLAG_HAS_BROADCAST_ADMINISTRATOR_RIGHTS = 1 << 18;
-  static constexpr int32 USER_FULL_FLAG_HAS_VOICE_MESSAGES_FORBIDDEN = 1 << 20;
-  static constexpr int32 USER_FULL_FLAG_HAS_PERSONAL_PHOTO = 1 << 21;
-  static constexpr int32 USER_FULL_FLAG_HAS_FALLBACK_PHOTO = 1 << 22;
-
   static constexpr int32 CHAT_FLAG_USER_IS_CREATOR = 1 << 0;
   static constexpr int32 CHAT_FLAG_USER_HAS_LEFT = 1 << 2;
   // static constexpr int32 CHAT_FLAG_ADMINISTRATORS_ENABLED = 1 << 3;
@@ -1191,14 +1175,6 @@ class ContactsManager final : public Actor {
   static constexpr int32 CHAT_FLAG_HAS_ACTIVE_GROUP_CALL = 1 << 23;
   static constexpr int32 CHAT_FLAG_IS_GROUP_CALL_NON_EMPTY = 1 << 24;
   static constexpr int32 CHAT_FLAG_NOFORWARDS = 1 << 25;
-
-  static constexpr int32 CHAT_FULL_FLAG_HAS_PINNED_MESSAGE = 1 << 6;
-  static constexpr int32 CHAT_FULL_FLAG_HAS_SCHEDULED_MESSAGES = 1 << 8;
-  static constexpr int32 CHAT_FULL_FLAG_HAS_FOLDER_ID = 1 << 11;
-  static constexpr int32 CHAT_FULL_FLAG_HAS_ACTIVE_GROUP_CALL = 1 << 12;
-  static constexpr int32 CHAT_FULL_FLAG_HAS_MESSAGE_TTL = 1 << 14;
-  static constexpr int32 CHAT_FULL_FLAG_HAS_PENDING_REQUEST_COUNT = 1 << 17;
-  static constexpr int32 CHAT_FULL_FLAG_HAS_AVAILABLE_REACTIONS = 1 << 18;
 
   static constexpr int32 CHANNEL_FLAG_USER_IS_CREATOR = 1 << 0;
   static constexpr int32 CHANNEL_FLAG_USER_HAS_LEFT = 1 << 2;
@@ -1228,37 +1204,6 @@ class ContactsManager final : public Actor {
   static constexpr int32 CHANNEL_FLAG_JOIN_REQUEST = 1 << 29;
   static constexpr int32 CHANNEL_FLAG_IS_FORUM = 1 << 30;
   static constexpr int32 CHANNEL_FLAG_HAS_USERNAMES = 1 << 0;
-
-  static constexpr int32 CHANNEL_FULL_FLAG_HAS_PARTICIPANT_COUNT = 1 << 0;
-  static constexpr int32 CHANNEL_FULL_FLAG_HAS_ADMINISTRATOR_COUNT = 1 << 1;
-  static constexpr int32 CHANNEL_FULL_FLAG_HAS_BANNED_COUNT = 1 << 2;
-  static constexpr int32 CHANNEL_FULL_FLAG_CAN_GET_PARTICIPANTS = 1 << 3;
-  static constexpr int32 CHANNEL_FULL_FLAG_MIGRATED_FROM = 1 << 4;
-  static constexpr int32 CHANNEL_FULL_FLAG_HAS_PINNED_MESSAGE = 1 << 5;
-  static constexpr int32 CHANNEL_FULL_FLAG_CAN_SET_USERNAME = 1 << 6;
-  static constexpr int32 CHANNEL_FULL_FLAG_CAN_SET_STICKER_SET = 1 << 7;
-  static constexpr int32 CHANNEL_FULL_FLAG_HAS_STICKER_SET = 1 << 8;
-  static constexpr int32 CHANNEL_FULL_FLAG_HAS_AVAILABLE_MIN_MESSAGE_ID = 1 << 9;
-  static constexpr int32 CHANNEL_FULL_FLAG_IS_ALL_HISTORY_HIDDEN = 1 << 10;
-  static constexpr int32 CHANNEL_FULL_FLAG_HAS_FOLDER_ID = 1 << 11;
-  static constexpr int32 CHANNEL_FULL_FLAG_HAS_STATISTICS_DC_ID = 1 << 12;
-  static constexpr int32 CHANNEL_FULL_FLAG_HAS_ONLINE_MEMBER_COUNT = 1 << 13;
-  static constexpr int32 CHANNEL_FULL_FLAG_HAS_LINKED_CHANNEL_ID = 1 << 14;
-  static constexpr int32 CHANNEL_FULL_FLAG_HAS_LOCATION = 1 << 15;
-  static constexpr int32 CHANNEL_FULL_FLAG_CAN_SET_LOCATION = 1 << 16;
-  static constexpr int32 CHANNEL_FULL_FLAG_HAS_SLOW_MODE_DELAY = 1 << 17;
-  static constexpr int32 CHANNEL_FULL_FLAG_HAS_SLOW_MODE_NEXT_SEND_DATE = 1 << 18;
-  static constexpr int32 CHANNEL_FULL_FLAG_HAS_SCHEDULED_MESSAGES = 1 << 19;
-  static constexpr int32 CHANNEL_FULL_FLAG_CAN_VIEW_STATISTICS = 1 << 20;
-  static constexpr int32 CHANNEL_FULL_FLAG_HAS_ACTIVE_GROUP_CALL = 1 << 21;
-  static constexpr int32 CHANNEL_FULL_FLAG_IS_BLOCKED = 1 << 22;
-  static constexpr int32 CHANNEL_FULL_FLAG_HAS_EXPORTED_INVITE = 1 << 23;
-  static constexpr int32 CHANNEL_FULL_FLAG_HAS_MESSAGE_TTL = 1 << 24;
-  static constexpr int32 CHANNEL_FULL_FLAG_HAS_PENDING_REQUEST_COUNT = 1 << 28;
-  static constexpr int32 CHANNEL_FULL_FLAG_HAS_DEFAULT_SEND_AS = 1 << 29;
-  static constexpr int32 CHANNEL_FULL_FLAG_HAS_AVAILABLE_REACTIONS = 1 << 30;
-  static constexpr int32 CHANNEL_FULL_FLAG2_HAS_ANTISPAM = 1 << 1;
-  static constexpr int32 CHANNEL_FULL_FLAG2_ARE_PARTICIPANTS_HIDDEN = 1 << 2;
 
   static constexpr int32 USER_FULL_EXPIRE_TIME = 60;
   static constexpr int32 CHANNEL_FULL_EXPIRE_TIME = 60;

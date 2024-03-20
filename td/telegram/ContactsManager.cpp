@@ -10768,10 +10768,10 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
 
     ChannelFull *channel_full = add_channel_full(channel_id);
 
-    bool have_participant_count = (channel->flags_ & CHANNEL_FULL_FLAG_HAS_PARTICIPANT_COUNT) != 0;
+    bool have_participant_count = (channel->flags_ & telegram_api::channelFull::PARTICIPANTS_COUNT_MASK) != 0;
     auto participant_count = have_participant_count ? channel->participants_count_ : channel_full->participant_count;
     auto administrator_count = 0;
-    if ((channel->flags_ & CHANNEL_FULL_FLAG_HAS_ADMINISTRATOR_COUNT) != 0) {
+    if ((channel->flags_ & telegram_api::channelFull::ADMINS_COUNT_MASK) != 0) {
       administrator_count = channel->admins_count_;
     } else if (c->is_megagroup || c->status.is_administrator()) {
       // in megagroups and administered channels don't drop known number of administrators
@@ -10804,7 +10804,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
           td_->stickers_manager_->on_get_sticker_set(std::move(channel->emojiset_), true, "on_get_channel_full");
     }
     DcId stats_dc_id;
-    if ((channel->flags_ & CHANNEL_FULL_FLAG_HAS_STATISTICS_DC_ID) != 0) {
+    if ((channel->flags_ & telegram_api::channelFull::STATS_DC_MASK) != 0) {
       stats_dc_id = DcId::create(channel->stats_dc_);
     }
     if (!stats_dc_id.is_exact() && can_view_statistics) {
@@ -10876,7 +10876,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
 
     td_->messages_manager_->on_read_channel_outbox(channel_id,
                                                    MessageId(ServerMessageId(channel->read_outbox_max_id_)));
-    if ((channel->flags_ & CHANNEL_FULL_FLAG_HAS_AVAILABLE_MIN_MESSAGE_ID) != 0) {
+    if ((channel->flags_ & telegram_api::channelFull::AVAILABLE_MIN_ID_MASK) != 0) {
       td_->messages_manager_->on_update_channel_max_unavailable_message_id(
           channel_id, MessageId(ServerMessageId(channel->available_min_id_)), "ChannelFull");
     }
@@ -10944,7 +10944,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     }
 
     ChannelId linked_channel_id;
-    if ((channel->flags_ & CHANNEL_FULL_FLAG_HAS_LINKED_CHANNEL_ID) != 0) {
+    if ((channel->flags_ & telegram_api::channelFull::LINKED_CHAT_ID_MASK) != 0) {
       linked_channel_id = ChannelId(channel->linked_chat_id_);
       auto linked_channel = get_channel_force(linked_channel_id, "ChannelFull");
       if (linked_channel == nullptr || c->is_megagroup == linked_channel->is_megagroup ||
