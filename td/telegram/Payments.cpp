@@ -765,6 +765,44 @@ class GetBankCardInfoQuery final : public Td::ResultHandler {
   }
 };
 
+class GetCollectibleInfoQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::collectibleItemInfo>> promise_;
+
+ public:
+  explicit GetCollectibleInfoQuery(Promise<td_api::object_ptr<td_api::collectibleItemInfo>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::InputCollectible> &&input_collectible) {
+    send_query(
+        G()->net_query_creator().create(telegram_api::fragment_getCollectibleInfo(std::move(input_collectible))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::fragment_getCollectibleInfo>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    if (result->amount_ <= 0 || !check_currency_amount(result->amount_)) {
+      LOG(ERROR) << "Receive invalid collectible item price " << result->amount_;
+      result->amount_ = 0;
+    }
+    if (result->crypto_currency_.empty() || result->crypto_amount_ <= 0) {
+      LOG(ERROR) << "Receive invalid collectible item cryptocurrency price " << result->crypto_amount_;
+      result->crypto_amount_ = 0;
+    }
+    promise_.set_value(td_api::make_object<td_api::collectibleItemInfo>(result->purchase_date_, result->currency_,
+                                                                        result->amount_, result->crypto_currency_,
+                                                                        result->crypto_amount_, result->url_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 void answer_shipping_query(Td *td, int64 shipping_query_id,
                            vector<tl_object_ptr<td_api::shippingOption>> &&shipping_options,
                            const string &error_message, Promise<Unit> &&promise) {
@@ -956,6 +994,35 @@ void export_invoice(Td *td, td_api::object_ptr<td_api::InputMessageContent> &&in
 void get_bank_card_info(Td *td, const string &bank_card_number,
                         Promise<td_api::object_ptr<td_api::bankCardInfo>> &&promise) {
   td->create_handler<GetBankCardInfoQuery>(std::move(promise))->send(bank_card_number);
+}
+
+void get_collectible_info(Td *td, td_api::object_ptr<td_api::CollectibleItemType> type,
+                          Promise<td_api::object_ptr<td_api::collectibleItemInfo>> &&promise) {
+  if (type == nullptr) {
+    return promise.set_error(Status::Error(400, "Item type must be non-empty"));
+  }
+  switch (type->get_id()) {
+    case td_api::collectibleItemTypeUsername::ID: {
+      auto username = td_api::move_object_as<td_api::collectibleItemTypeUsername>(type);
+      if (!clean_input_string(username->username_)) {
+        return promise.set_error(Status::Error(400, "Username must be encoded in UTF-8"));
+      }
+      td->create_handler<GetCollectibleInfoQuery>(std::move(promise))
+          ->send(telegram_api::make_object<telegram_api::inputCollectibleUsername>(username->username_));
+      break;
+    }
+    case td_api::collectibleItemTypePhoneNumber::ID: {
+      auto phone_number = td_api::move_object_as<td_api::collectibleItemTypePhoneNumber>(type);
+      if (!clean_input_string(phone_number->phone_number_)) {
+        return promise.set_error(Status::Error(400, "Phone number must be encoded in UTF-8"));
+      }
+      td->create_handler<GetCollectibleInfoQuery>(std::move(promise))
+          ->send(telegram_api::make_object<telegram_api::inputCollectiblePhone>(phone_number->phone_number_));
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
 }
 
 }  // namespace td

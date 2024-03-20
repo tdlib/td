@@ -9322,6 +9322,11 @@ void Td::on_request(uint64 id, const td_api::getPhoneNumberInfo &request) {
   country_info_manager_->get_phone_number_info(request.phone_number_prefix_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::getCollectibleItemInfo &request) {
+  CREATE_REQUEST_PROMISE();
+  get_collectible_info(this, std::move(request.type_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getApplicationDownloadLink &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

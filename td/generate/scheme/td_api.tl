@@ -851,7 +851,7 @@ emojiStatuses custom_emoji_ids:vector<int64> = EmojiStatuses;
 //@description Describes usernames assigned to a user, a supergroup, or a channel
 //@active_usernames List of active usernames; the first one must be shown as the primary username. The order of active usernames can be changed with reorderActiveUsernames, reorderBotActiveUsernames or reorderSupergroupActiveUsernames
 //@disabled_usernames List of currently disabled usernames; the username can be activated with toggleUsernameIsActive, toggleBotUsernameIsActive, or toggleSupergroupUsernameIsActive
-//@editable_username The active username, which can be changed with setUsername or setSupergroupUsername
+//@editable_username The active username, which can be changed with setUsername or setSupergroupUsername. Information about other usernames can be received using getCollectibleItemInfo
 usernames active_usernames:vector<string> disabled_usernames:vector<string> editable_username:string = Usernames;
 
 
@@ -2356,8 +2356,27 @@ countries countries:vector<countryInfo> = Countries;
 //@country Information about the country to which the phone number belongs; may be null
 //@country_calling_code The part of the phone number denoting country calling code or its part
 //@formatted_phone_number The phone number without country calling code formatted accordingly to local rules. Expected digits are returned as '-', but even more digits might be entered by the user
-//@is_anonymous True, if the phone number was bought on Fragment and isn't tied to a SIM card
+//@is_anonymous True, if the phone number was bought at https://fragment.com and isn't tied to a SIM card. Information about the phone number can be received using getCollectibleItemInfo
 phoneNumberInfo country:countryInfo country_calling_code:string formatted_phone_number:string is_anonymous:Bool = PhoneNumberInfo;
+
+
+//@class CollectibleItemType @description Describes a collectible item that can be purchased at https://fragment.com
+
+//@description A username @username The username
+collectibleItemTypeUsername username:string = CollectibleItemType;
+
+//@description A phone number @phone_number The phone number
+collectibleItemTypePhoneNumber phone_number:string = CollectibleItemType;
+
+
+//@description Contains information about a collectible item and its last purchase
+//@purchase_date Point in time (Unix timestamp) when the item was purchased
+//@currency Currency for the paid amount
+//@amount The paid amount, in the smallest units of the currency
+//@cryptocurrency Cryptocurrency used to pay for the item
+//@cryptocurrency_amount The paid amount, in the smallest units of the cryptocurrency
+//@url Individual URL for the item on https://fragment.com
+collectibleItemInfo purchase_date:int32 currency:string amount:int53 cryptocurrency:string cryptocurrency_amount:int64 url:string = CollectibleItemInfo;
 
 
 //@description Describes an action associated with a bank card number @text Action text @url The URL to be opened
@@ -2543,7 +2562,7 @@ messageExtendedMediaUnsupported caption:formattedText = MessageExtendedMedia;
 //@only_new_members True, if only new members of the chats will be eligible for the giveaway
 //@has_public_winners True, if the list of winners of the giveaway will be available to everyone
 //@country_codes The list of two-letter ISO 3166-1 alpha-2 codes of countries, users from which will be eligible for the giveaway. If empty, then all users can participate in the giveaway.
-//-There can be up to getOption("giveaway_country_count_max") chosen countries. Users with phone number that was bought on Fragment can participate in any giveaway and the country code "FT" must not be specified in the list
+//-There can be up to getOption("giveaway_country_count_max") chosen countries. Users with phone number that was bought at https://fragment.com can participate in any giveaway and the country code "FT" must not be specified in the list
 //@prize_description Additional description of the giveaway prize; 0-128 characters
 premiumGiveawayParameters boosted_chat_id:int53 additional_chat_ids:vector<int53> winners_selection_date:int32 only_new_members:Bool has_public_winners:Bool country_codes:vector<string> prize_description:string = PremiumGiveawayParameters;
 
@@ -5197,7 +5216,7 @@ checkChatUsernameResultUsernameInvalid = CheckChatUsernameResult;
 //@description The username is occupied
 checkChatUsernameResultUsernameOccupied = CheckChatUsernameResult;
 
-//@description The username can be purchased at fragment.com
+//@description The username can be purchased at https://fragment.com. Information about the username can be received using getCollectibleItemInfo
 checkChatUsernameResultUsernamePurchasable = CheckChatUsernameResult;
 
 //@description The user has too many chats with username, one of them must be made private first
@@ -10263,6 +10282,10 @@ getPhoneNumberInfo phone_number_prefix:string = PhoneNumberInfo;
 //@language_code A two-letter ISO 639-1 language code for country information localization
 //@phone_number_prefix The phone number prefix
 getPhoneNumberInfoSync language_code:string phone_number_prefix:string = PhoneNumberInfo;
+
+
+//@description Returns information about a given collectible item that was purchased at https://fragment.com @type Type of the collectible item
+getCollectibleItemInfo type:CollectibleItemType = CollectibleItemInfo;
 
 
 //@description Returns information about a tg:// deep link. Use "tg://need_update_for_some_feature" or "tg:some_unsupported_feature" for testing. Returns a 404 error for unknown links. Can be called before authorization @link The link
