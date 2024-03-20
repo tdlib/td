@@ -576,6 +576,10 @@ botMenuButton text:string url:string = BotMenuButton;
 chatLocation location:location address:string = ChatLocation;
 
 
+//@description Represents a birthdate of a user @day Day of the month; 1-31 @month Month of the year; 1-12 @year Birth year; 0 if unknown
+birthdate day:int32 month:int32 year:int32 = Birthdate;
+
+
 //@class BusinessAwayMessageSchedule @description Describes conditions for sending of away messages by a Telegram Business account
 
 //@description Send away messages always

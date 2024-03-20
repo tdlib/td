@@ -306,6 +306,7 @@ function split_file($file, $chunks, $undo) {
                 'BackgroundId' => 'BackgroundId',
                 'background_manager[_(-](?![.]get[(][)])|BackgroundManager' => 'BackgroundManager',
                 'BackgroundType' => 'BackgroundType',
+                'Birthdate' => 'Birthdate',
                 'BotMenuButton|[a-z_]*_menu_button' => 'BotMenuButton',
                 'boost_manager[_(-](?![.]get[(][)])|BoostManager' => 'BoostManager',
                 'bot_info_manager[_(-](?![.]get[(][)])|BotInfoManager' => 'BotInfoManager',
