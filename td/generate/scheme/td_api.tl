@@ -10108,6 +10108,13 @@ createNewStickerSet user_id:int53 title:string name:string sticker_type:StickerT
 //@sticker Sticker to add to the set
 addStickerToSet user_id:int53 name:string sticker:inputSticker = Ok;
 
+//@description Replaces existing sticker in a set. The function is equivalent to removeStickerFromSet, then addStickerToSet, then setStickerPositionInSet
+//@user_id Sticker set owner; ignored for regular users
+//@name Sticker set name. The sticker set must have been created by the current user
+//@old_sticker Sticker to remove from the set
+//@new_sticker Sticker to add to the set
+replaceStickerInSet user_id:int53 name:string old_sticker:InputFile new_sticker:inputSticker = Ok;
+
 //@description Sets a sticker set thumbnail
 //@user_id Sticker set owner; ignored for regular users
 //@name Sticker set name. The sticker set must have been created by the current user
@@ -10131,7 +10138,7 @@ deleteStickerSet name:string = Ok;
 //@position New position of the sticker in the set, 0-based
 setStickerPositionInSet sticker:InputFile position:int32 = Ok;
 
-//@description Removes a sticker from the set to which it belongs. The sticker set must have been created by the current user @sticker Sticker
+//@description Removes a sticker from the set to which it belongs. The sticker set must have been created by the current user @sticker Sticker to remove from the set
 removeStickerFromSet sticker:InputFile = Ok;
 
 //@description Changes the list of emoji corresponding to a sticker. The sticker must belong to a regular or custom emoji sticker set created by the current user

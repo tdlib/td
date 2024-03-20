@@ -294,7 +294,7 @@ class StickersManager final : public Actor {
                               string software, Promise<td_api::object_ptr<td_api::stickerSet>> &&promise);
 
   void add_sticker_to_set(UserId user_id, string short_name, td_api::object_ptr<td_api::inputSticker> &&sticker,
-                          Promise<Unit> &&promise);
+                          td_api::object_ptr<td_api::InputFile> &&old_sticker, Promise<Unit> &&promise);
 
   void set_sticker_set_thumbnail(UserId user_id, string short_name, td_api::object_ptr<td_api::InputFile> &&thumbnail,
                                  StickerFormat format, Promise<Unit> &&promise);
@@ -531,7 +531,8 @@ class StickersManager final : public Actor {
   struct PendingAddStickerToSet {
     string short_name_;
     FileId file_id_;
-    tl_object_ptr<td_api::inputSticker> sticker_;
+    td_api::object_ptr<td_api::inputSticker> sticker_;
+    telegram_api::object_ptr<telegram_api::inputDocument> input_document_;
     Promise<Unit> promise_;
   };
 
@@ -817,7 +818,7 @@ class StickersManager final : public Actor {
   StickerFormat guess_sticker_set_format(const StickerSet *sticker_set) const;
 
   void do_add_sticker_to_set(UserId user_id, string short_name, td_api::object_ptr<td_api::inputSticker> &&sticker,
-                             Promise<Unit> &&promise);
+                             td_api::object_ptr<td_api::InputFile> &&old_sticker, Promise<Unit> &&promise);
 
   void on_sticker_set_thumbnail_uploaded(int64 random_id, Result<Unit> result);
 

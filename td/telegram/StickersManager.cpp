@@ -1104,14 +1104,23 @@ class AddStickerToSetQuery final : public Td::ResultHandler {
   explicit AddStickerToSetQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(const string &short_name, tl_object_ptr<telegram_api::inputStickerSetItem> &&input_sticker) {
-    send_query(G()->net_query_creator().create(
-        telegram_api::stickers_addStickerToSet(make_tl_object<telegram_api::inputStickerSetShortName>(short_name),
-                                               std::move(input_sticker)),
-        {{short_name}}));
+  void send(const string &short_name, telegram_api::object_ptr<telegram_api::inputStickerSetItem> &&input_sticker,
+            telegram_api::object_ptr<telegram_api::inputDocument> &&input_document) {
+    if (input_document != nullptr) {
+      send_query(G()->net_query_creator().create(
+          telegram_api::stickers_replaceSticker(std::move(input_document), std::move(input_sticker)), {{short_name}}));
+    } else {
+      send_query(G()->net_query_creator().create(
+          telegram_api::stickers_addStickerToSet(make_tl_object<telegram_api::inputStickerSetShortName>(short_name),
+                                                 std::move(input_sticker)),
+          {{short_name}}));
+    }
   }
 
   void on_result(BufferSlice packet) final {
+    static_assert(std::is_same<telegram_api::stickers_addStickerToSet::ReturnType,
+                               telegram_api::stickers_replaceSticker::ReturnType>::value,
+                  "");
     auto result_ptr = fetch_result<telegram_api::stickers_addStickerToSet>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
@@ -8182,7 +8191,8 @@ StickerFormat StickersManager::guess_sticker_set_format(const StickerSet *sticke
 }
 
 void StickersManager::add_sticker_to_set(UserId user_id, string short_name,
-                                         td_api::object_ptr<td_api::inputSticker> &&sticker, Promise<Unit> &&promise) {
+                                         td_api::object_ptr<td_api::inputSticker> &&sticker,
+                                         td_api::object_ptr<td_api::InputFile> &&old_sticker, Promise<Unit> &&promise) {
   bool is_bot = td_->auth_manager_->is_bot();
   if (!is_bot) {
     user_id = td_->contacts_manager_->get_my_id();
@@ -8197,25 +8207,27 @@ void StickersManager::add_sticker_to_set(UserId user_id, string short_name,
 
   const StickerSet *sticker_set = get_sticker_set(short_name_to_sticker_set_id_.get(short_name));
   if (sticker_set != nullptr && sticker_set->was_loaded_) {
-    return do_add_sticker_to_set(user_id, short_name, std::move(sticker), std::move(promise));
+    return do_add_sticker_to_set(user_id, short_name, std::move(sticker), std::move(old_sticker), std::move(promise));
   }
 
-  do_reload_sticker_set(
-      StickerSetId(), make_tl_object<telegram_api::inputStickerSetShortName>(short_name), 0,
-      PromiseCreator::lambda([actor_id = actor_id(this), user_id, short_name, sticker = std::move(sticker),
-                              promise = std::move(promise)](Result<Unit> result) mutable {
-        if (result.is_error()) {
-          promise.set_error(result.move_as_error());
-        } else {
-          send_closure(actor_id, &StickersManager::do_add_sticker_to_set, user_id, std::move(short_name),
-                       std::move(sticker), std::move(promise));
-        }
-      }),
-      "add_sticker_to_set");
+  do_reload_sticker_set(StickerSetId(), make_tl_object<telegram_api::inputStickerSetShortName>(short_name), 0,
+                        PromiseCreator::lambda([actor_id = actor_id(this), user_id, short_name,
+                                                sticker = std::move(sticker), old_sticker = std::move(old_sticker),
+                                                promise = std::move(promise)](Result<Unit> result) mutable {
+                          if (result.is_error()) {
+                            promise.set_error(result.move_as_error());
+                          } else {
+                            send_closure(actor_id, &StickersManager::do_add_sticker_to_set, user_id,
+                                         std::move(short_name), std::move(sticker), std::move(old_sticker),
+                                         std::move(promise));
+                          }
+                        }),
+                        "add_sticker_to_set");
 }
 
 void StickersManager::do_add_sticker_to_set(UserId user_id, string short_name,
                                             td_api::object_ptr<td_api::inputSticker> &&sticker,
+                                            td_api::object_ptr<td_api::InputFile> &&old_sticker,
                                             Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
@@ -8223,13 +8235,21 @@ void StickersManager::do_add_sticker_to_set(UserId user_id, string short_name,
   if (sticker_set == nullptr || !sticker_set->was_loaded_) {
     return promise.set_error(Status::Error(400, "Sticker set not found"));
   }
+  telegram_api::object_ptr<telegram_api::inputDocument> input_document;
+  if (old_sticker != nullptr) {
+    TRY_RESULT_PROMISE(promise, sticker_input_document, get_sticker_input_document(old_sticker));
+    if (sticker_input_document.sticker_set_short_name_ != short_name) {
+      return promise.set_error(Status::Error(400, "The old sticker isn't from the set"));
+    }
+    input_document = std::move(sticker_input_document.input_document_);
+  }
+
   if (sticker != nullptr && sticker->format_ == nullptr) {
     auto format = guess_sticker_set_format(sticker_set);
     if (format != StickerFormat::Unknown) {
       sticker->format_ = get_sticker_format_object(format);
     }
   }
-
   auto r_file_id = prepare_input_sticker(sticker.get(), sticker_set->sticker_type_);
   if (r_file_id.is_error()) {
     return promise.set_error(r_file_id.move_as_error());
@@ -8242,6 +8262,7 @@ void StickersManager::do_add_sticker_to_set(UserId user_id, string short_name,
   pending_add_sticker_to_set->short_name_ = short_name;
   pending_add_sticker_to_set->file_id_ = file_id;
   pending_add_sticker_to_set->sticker_ = std::move(sticker);
+  pending_add_sticker_to_set->input_document_ = std::move(input_document);
   pending_add_sticker_to_set->promise_ = std::move(promise);
 
   int64 random_id;
@@ -8281,7 +8302,8 @@ void StickersManager::on_added_sticker_uploaded(int64 random_id, Result<Unit> re
 
   td_->create_handler<AddStickerToSetQuery>(std::move(pending_add_sticker_to_set->promise_))
       ->send(pending_add_sticker_to_set->short_name_,
-             get_input_sticker(pending_add_sticker_to_set->sticker_.get(), pending_add_sticker_to_set->file_id_));
+             get_input_sticker(pending_add_sticker_to_set->sticker_.get(), pending_add_sticker_to_set->file_id_),
+             std::move(pending_add_sticker_to_set->input_document_));
 }
 
 void StickersManager::set_sticker_set_thumbnail(UserId user_id, string short_name,

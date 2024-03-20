@@ -1506,6 +1506,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::addStickerToSet &request);
 
+  void on_request(uint64 id, td_api::replaceStickerInSet &request);
+
   void on_request(uint64 id, td_api::setStickerSetThumbnail &request);
 
   void on_request(uint64 id, td_api::setCustomEmojiStickerSetThumbnail &request);
