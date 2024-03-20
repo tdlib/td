@@ -8,6 +8,7 @@
 
 #include "td/telegram/AccentColorId.h"
 #include "td/telegram/AccessRights.h"
+#include "td/telegram/Birthdate.h"
 #include "td/telegram/BotCommand.h"
 #include "td/telegram/BotMenuButton.h"
 #include "td/telegram/ChannelId.h"
@@ -814,6 +815,7 @@ class ContactsManager final : public Actor {
     AdministratorRights broadcast_administrator_rights;
 
     int32 common_chat_count = 0;
+    Birthdate birthdate;
 
     unique_ptr<BusinessInfo> business_info;
 

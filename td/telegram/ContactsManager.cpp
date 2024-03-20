@@ -8,6 +8,7 @@
 
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/Birthdate.hpp"
 #include "td/telegram/BlockListId.h"
 #include "td/telegram/BotMenuButton.h"
 #include "td/telegram/BusinessAwayMessage.h"
@@ -3240,6 +3241,7 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   bool has_personal_photo = !personal_photo.is_empty();
   bool has_fallback_photo = !fallback_photo.is_empty();
   bool has_business_info = business_info != nullptr && !business_info->is_empty();
+  bool has_birthdate = !birthdate.is_empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
   STORE_FLAG(is_blocked);
@@ -3267,6 +3269,7 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   STORE_FLAG(read_dates_private);
   STORE_FLAG(contact_require_premium);
   STORE_FLAG(has_business_info);  // 25
+  STORE_FLAG(has_birthdate);
   END_STORE_FLAGS();
   if (has_about) {
     store(about, storer);
@@ -3313,6 +3316,9 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   if (has_business_info) {
     store(business_info, storer);
   }
+  if (has_birthdate) {
+    store(birthdate, storer);
+  }
 }
 
 template <class ParserT>
@@ -3332,6 +3338,7 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   bool has_personal_photo;
   bool has_fallback_photo;
   bool has_business_info;
+  bool has_birthdate;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_about);
   PARSE_FLAG(is_blocked);
@@ -3359,6 +3366,7 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   PARSE_FLAG(read_dates_private);
   PARSE_FLAG(contact_require_premium);
   PARSE_FLAG(has_business_info);
+  PARSE_FLAG(has_birthdate);
   END_PARSE_FLAGS();
   if (has_about) {
     parse(about, parser);
@@ -3404,6 +3412,9 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   }
   if (has_business_info) {
     parse(business_info, parser);
+  }
+  if (has_birthdate) {
+    parse(birthdate, parser);
   }
 }
 
@@ -10324,13 +10335,15 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   AdministratorRights group_administrator_rights(user->bot_group_admin_rights_, ChannelType::Megagroup);
   AdministratorRights broadcast_administrator_rights(user->bot_broadcast_admin_rights_, ChannelType::Broadcast);
   bool has_pinned_stories = user->stories_pinned_available_;
+  auto birthdate = Birthdate(std::move(user->birthday_));
   if (user_full->can_be_called != can_be_called || user_full->supports_video_calls != supports_video_calls ||
       user_full->has_private_calls != has_private_calls ||
       user_full->group_administrator_rights != group_administrator_rights ||
       user_full->broadcast_administrator_rights != broadcast_administrator_rights ||
       user_full->premium_gift_options != premium_gift_options ||
       user_full->voice_messages_forbidden != voice_messages_forbidden ||
-      user_full->can_pin_messages != can_pin_messages || user_full->has_pinned_stories != has_pinned_stories) {
+      user_full->can_pin_messages != can_pin_messages || user_full->has_pinned_stories != has_pinned_stories ||
+      user_full->birthdate != birthdate) {
     user_full->can_be_called = can_be_called;
     user_full->supports_video_calls = supports_video_calls;
     user_full->has_private_calls = has_private_calls;
@@ -10340,6 +10353,7 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
     user_full->voice_messages_forbidden = voice_messages_forbidden;
     user_full->can_pin_messages = can_pin_messages;
     user_full->has_pinned_stories = has_pinned_stories;
+    user_full->birthdate = birthdate;
 
     user_full->is_changed = true;
   }
@@ -12186,6 +12200,7 @@ void ContactsManager::drop_user_full(UserId user_id) {
   user_full->has_pinned_stories = false;
   user_full->read_dates_private = false;
   user_full->contact_require_premium = false;
+  user_full->birthdate = {};
   user_full->is_changed = true;
 
   update_user_full(user_full, user_id, "drop_user_full");
@@ -16161,8 +16176,8 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
       user_full->can_be_called, user_full->supports_video_calls, user_full->has_private_calls,
       !user_full->private_forward_name.empty(), voice_messages_forbidden, user_full->has_pinned_stories,
       user_full->need_phone_number_privacy_exception, user_full->wallpaper_overridden, std::move(bio_object),
-      get_premium_payment_options_object(user_full->premium_gift_options), user_full->common_chat_count,
-      std::move(business_info), std::move(bot_info));
+      user_full->birthdate.get_birthdate_object(), get_premium_payment_options_object(user_full->premium_gift_options),
+      user_full->common_chat_count, std::move(business_info), std::move(bot_info));
 }
 
 td_api::object_ptr<td_api::updateBasicGroup> ContactsManager::get_update_basic_group_object(ChatId chat_id,
