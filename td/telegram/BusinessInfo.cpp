@@ -105,4 +105,8 @@ void BusinessInfo::add_dependencies(Dependencies &dependencies) const {
   greeting_message_.add_dependencies(dependencies);
 }
 
+vector<FileId> BusinessInfo::get_file_ids(const Td *td) const {
+  return intro_.get_file_ids(td);
+}
+
 }  // namespace td

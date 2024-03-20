@@ -6,6 +6,7 @@
 //
 #include "td/telegram/BusinessIntro.h"
 
+#include "td/telegram/Document.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/StickersManager.h"
@@ -67,6 +68,13 @@ telegram_api::object_ptr<telegram_api::inputBusinessIntro> BusinessIntro::get_in
 
   return telegram_api::make_object<telegram_api::inputBusinessIntro>(flags, title_, description_,
                                                                      std::move(input_document));
+}
+
+vector<FileId> BusinessIntro::get_file_ids(const Td *td) const {
+  if (!sticker_file_id_.is_valid()) {
+    return {};
+  }
+  return Document(Document::Type::Sticker, sticker_file_id_).get_file_ids(td);
 }
 
 bool operator==(const BusinessIntro &lhs, const BusinessIntro &rhs) {

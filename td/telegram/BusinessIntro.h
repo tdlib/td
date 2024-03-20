@@ -33,6 +33,8 @@ class BusinessIntro {
     return title_.empty() && description_.empty() && !sticker_file_id_.is_valid();
   }
 
+  vector<FileId> get_file_ids(const Td *td) const;
+
   template <class StorerT>
   void store(StorerT &storer) const;
 

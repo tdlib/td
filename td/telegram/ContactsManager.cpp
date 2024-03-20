@@ -10072,6 +10072,9 @@ void ContactsManager::update_user_full(UserFull *user_full, UserId user_id, cons
     if (user_full->description_animation_file_id.is_valid()) {
       file_ids.push_back(user_full->description_animation_file_id);
     }
+    if (user_full->business_info != nullptr) {
+      append(file_ids, user_full->business_info->get_file_ids(td_));
+    }
     if (user_full->registered_file_ids != file_ids) {
       auto &file_source_id = user_full->file_source_id;
       if (!file_source_id.is_valid()) {
