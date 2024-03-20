@@ -320,6 +320,9 @@ class StickersManager final : public Actor {
   void set_sticker_mask_position(const td_api::object_ptr<td_api::InputFile> &sticker,
                                  td_api::object_ptr<td_api::maskPosition> &&mask_position, Promise<Unit> &&promise);
 
+  void get_created_sticker_sets(StickerSetId offset_sticker_set_id, int32 limit,
+                                Promise<td_api::object_ptr<td_api::stickerSets>> &&promise);
+
   vector<FileId> get_recent_stickers(bool is_attached, Promise<Unit> &&promise);
 
   void on_get_recent_stickers(bool is_repair, bool is_attached,
@@ -834,6 +837,9 @@ class StickersManager final : public Actor {
     telegram_api::object_ptr<telegram_api::inputDocument> input_document_;
   };
   Result<StickerInputDocument> get_sticker_input_document(const tl_object_ptr<td_api::InputFile> &sticker) const;
+
+  void on_get_created_sticker_sets(Result<telegram_api::object_ptr<telegram_api::messages_myStickers>> r_my_stickers,
+                                   Promise<td_api::object_ptr<td_api::stickerSets>> &&promise);
 
   bool update_sticker_set_cache(const StickerSet *sticker_set, Promise<Unit> &promise);
 

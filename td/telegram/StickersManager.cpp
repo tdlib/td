@@ -1386,6 +1386,35 @@ class ChangeStickerQuery final : public Td::ResultHandler {
   }
 };
 
+class GetMyStickersQuery final : public Td::ResultHandler {
+  Promise<telegram_api::object_ptr<telegram_api::messages_myStickers>> promise_;
+
+ public:
+  explicit GetMyStickersQuery(Promise<telegram_api::object_ptr<telegram_api::messages_myStickers>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(StickerSetId offset_sticker_set_id, int32 limit) {
+    send_query(
+        G()->net_query_creator().create(telegram_api::messages_getMyStickers(offset_sticker_set_id.get(), limit)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getMyStickers>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetMyStickersQuery: " << to_string(ptr);
+    promise_.set_value(std::move(ptr));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetCustomEmojiDocumentsQuery final : public Td::ResultHandler {
   Promise<vector<telegram_api::object_ptr<telegram_api::Document>>> promise_;
 
@@ -3645,7 +3674,7 @@ StickerSetId StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::sti
     s->sticker_type_ = sticker_type;
     s->has_text_color_ = has_text_color;
     s->channel_emoji_status_ = channel_emoji_status;
-    s->is_created_ = is_official;
+    s->is_created_ = is_created;
     s->is_changed_ = true;
   } else {
     CHECK(s->id_ == set_id);
@@ -8559,6 +8588,52 @@ void StickersManager::set_sticker_mask_position(const td_api::object_ptr<td_api:
   td_->create_handler<ChangeStickerQuery>(std::move(promise))
       ->send(input_document.sticker_set_short_name_, std::move(input_document.input_document_), false, string(),
              StickerMaskPosition(mask_position), false, string());
+}
+
+void StickersManager::get_created_sticker_sets(StickerSetId offset_sticker_set_id, int32 limit,
+                                               Promise<td_api::object_ptr<td_api::stickerSets>> &&promise) {
+  if (limit <= 0) {
+    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+  }
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), promise = std::move(promise)](
+          Result<telegram_api::object_ptr<telegram_api::messages_myStickers>> r_my_stickers) mutable {
+        send_closure(actor_id, &StickersManager::on_get_created_sticker_sets, std::move(r_my_stickers),
+                     std::move(promise));
+      });
+  td_->create_handler<GetMyStickersQuery>(std::move(query_promise))->send(offset_sticker_set_id, limit);
+}
+
+void StickersManager::on_get_created_sticker_sets(
+    Result<telegram_api::object_ptr<telegram_api::messages_myStickers>> r_my_stickers,
+    Promise<td_api::object_ptr<td_api::stickerSets>> &&promise) {
+  G()->ignore_result_if_closing(r_my_stickers);
+  if (r_my_stickers.is_error()) {
+    return promise.set_error(r_my_stickers.move_as_error());
+  }
+  auto my_stickers = r_my_stickers.move_as_ok();
+  auto total_count = my_stickers->count_;
+  vector<StickerSetId> sticker_set_ids;
+  for (auto &sticker_set_covered : my_stickers->sets_) {
+    auto sticker_set_id =
+        on_get_sticker_set_covered(std::move(sticker_set_covered), false, "on_get_created_sticker_sets");
+    if (sticker_set_id.is_valid()) {
+      auto sticker_set = get_sticker_set(sticker_set_id);
+      CHECK(sticker_set != nullptr);
+      update_sticker_set(sticker_set, "on_get_created_sticker_sets");
+
+      if (!td::contains(sticker_set_ids, sticker_set_id) && sticker_set->is_created_) {
+        sticker_set_ids.push_back(sticker_set_id);
+      }
+    }
+  }
+  if (static_cast<int32>(sticker_set_ids.size()) > total_count) {
+    LOG(ERROR) << "Expected total of " << total_count << " owned sticker sets, but " << sticker_set_ids.size()
+               << " received";
+    total_count = static_cast<int32>(sticker_set_ids.size());
+  }
+  send_update_installed_sticker_sets();
+  promise.set_value(get_sticker_sets_object(total_count, sticker_set_ids, 1));
 }
 
 vector<FileId> StickersManager::get_attached_sticker_file_ids(const vector<int32> &int_file_ids) {

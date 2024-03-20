@@ -3522,6 +3522,11 @@ class CliClient final : public Actor {
           });
       send_request(td_api::make_object<td_api::createNewStickerSet>(my_id_, title, name, as_sticker_type(op), false,
                                                                     std::move(input_stickers), "tg_cli"));
+    } else if (op == "goss") {
+      int64 sticker_set_id;
+      string limit;
+      get_args(args, sticker_set_id, limit);
+      send_request(td_api::make_object<td_api::getOwnedStickerSets>(sticker_set_id, as_limit(limit)));
     } else if (op == "sss") {
       send_request(td_api::make_object<td_api::searchStickerSet>(args));
     } else if (op == "siss") {

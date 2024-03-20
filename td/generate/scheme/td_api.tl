@@ -9296,7 +9296,10 @@ getPremiumStickers limit:int32 = Stickers;
 //@description Returns a list of installed sticker sets @sticker_type Type of the sticker sets to return
 getInstalledStickerSets sticker_type:StickerType = StickerSets;
 
-//@description Returns a list of archived sticker sets @sticker_type Type of the sticker sets to return @offset_sticker_set_id Identifier of the sticker set from which to return the result @limit The maximum number of sticker sets to return; up to 100
+//@description Returns a list of archived sticker sets
+//@sticker_type Type of the sticker sets to return
+//@offset_sticker_set_id Identifier of the sticker set from which to return the result; use 0 to get results from the beginning
+//@limit The maximum number of sticker sets to return; up to 100
 getArchivedStickerSets sticker_type:StickerType offset_sticker_set_id:int64 limit:int32 = StickerSets;
 
 //@description Returns a list of trending sticker sets. For optimal performance, the number of returned sticker sets is chosen by TDLib
@@ -10155,6 +10158,11 @@ setStickerKeywords sticker:InputFile keywords:vector<string> = Ok;
 //@sticker Sticker
 //@mask_position Position where the mask is placed; pass null to remove mask position
 setStickerMaskPosition sticker:InputFile mask_position:maskPosition = Ok;
+
+//@description Returns sticker sets owned by the current user
+//@offset_sticker_set_id Identifier of the sticker set from which to return owned sticker sets; use 0 to get results from the beginning
+//@limit The maximum number of sticker sets to be returned; must be positive and can't be greater than 100. For optimal performance, the number of returned objects is chosen by TDLib and can be smaller than the specified limit
+getOwnedStickerSets offset_sticker_set_id:int64 limit:int32 = StickerSets;
 
 
 //@description Returns information about a file with a map thumbnail in PNG format. Only map thumbnail files with size less than 1MB can be downloaded
