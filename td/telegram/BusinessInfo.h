@@ -17,6 +17,7 @@
 
 namespace td {
 
+class Dependencies;
 class Td;
 
 class BusinessInfo {
@@ -34,6 +35,8 @@ class BusinessInfo {
   static bool set_greeting_message(unique_ptr<BusinessInfo> &business_info, BusinessGreetingMessage &&greeting_message);
 
   static bool set_intro(unique_ptr<BusinessInfo> &business_info, BusinessIntro &&intro);
+
+  void add_dependencies(Dependencies &dependencies) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;

@@ -6,6 +6,8 @@
 //
 #include "td/telegram/BusinessGreetingMessage.h"
 
+#include "td/telegram/Dependencies.h"
+
 #include "td/utils/misc.h"
 
 namespace td {
@@ -47,6 +49,10 @@ telegram_api::object_ptr<telegram_api::inputBusinessGreetingMessage>
 BusinessGreetingMessage::get_input_business_greeting_message(Td *td) const {
   return telegram_api::make_object<telegram_api::inputBusinessGreetingMessage>(
       shortcut_id_.get(), recipients_.get_input_business_recipients(td), inactivity_days_);
+}
+
+void BusinessGreetingMessage::add_dependencies(Dependencies &dependencies) const {
+  recipients_.add_dependencies(dependencies);
 }
 
 bool operator==(const BusinessGreetingMessage &lhs, const BusinessGreetingMessage &rhs) {

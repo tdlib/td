@@ -6,6 +6,8 @@
 //
 #include "td/telegram/BusinessInfo.h"
 
+#include "td/telegram/Dependencies.h"
+
 namespace td {
 
 td_api::object_ptr<td_api::businessInfo> BusinessInfo::get_business_info_object(Td *td) const {
@@ -96,6 +98,11 @@ bool BusinessInfo::set_intro(unique_ptr<BusinessInfo> &business_info, BusinessIn
     return true;
   }
   return false;
+}
+
+void BusinessInfo::add_dependencies(Dependencies &dependencies) const {
+  away_message_.add_dependencies(dependencies);
+  greeting_message_.add_dependencies(dependencies);
 }
 
 }  // namespace td

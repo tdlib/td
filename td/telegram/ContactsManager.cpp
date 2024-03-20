@@ -9184,6 +9184,10 @@ void ContactsManager::on_load_user_full_from_database(UserId user_id, string val
 
   Dependencies dependencies;
   dependencies.add(user_id);
+  if (user_full->business_info != nullptr) {
+    user_full->business_info->add_dependencies(dependencies);
+  }
+  dependencies.add(user_id);
   if (!dependencies.resolve_force(td_, "on_load_user_full_from_database")) {
     users_full_.erase(user_id);
     G()->td_db()->get_sqlite_pmc()->erase(get_user_full_database_key(user_id), Auto());

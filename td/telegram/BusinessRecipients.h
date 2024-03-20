@@ -15,6 +15,7 @@
 
 namespace td {
 
+class Dependencies;
 class Td;
 
 class BusinessRecipients {
@@ -32,6 +33,8 @@ class BusinessRecipients {
   telegram_api::object_ptr<telegram_api::inputBusinessRecipients> get_input_business_recipients(Td *td) const;
 
   telegram_api::object_ptr<telegram_api::inputBusinessBotRecipients> get_input_business_bot_recipients(Td *td) const;
+
+  void add_dependencies(Dependencies &dependencies) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;

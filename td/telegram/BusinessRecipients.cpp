@@ -7,6 +7,7 @@
 #include "td/telegram/BusinessRecipients.h"
 
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Td.h"
@@ -160,6 +161,15 @@ BusinessRecipients::get_input_business_bot_recipients(Td *td) const {
   return telegram_api::make_object<telegram_api::inputBusinessBotRecipients>(
       flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
       std::move(input_users), std::move(excluded_input_users));
+}
+
+void BusinessRecipients::add_dependencies(Dependencies &dependencies) const {
+  for (auto user_id : user_ids_) {
+    dependencies.add(user_id);
+  }
+  for (auto user_id : excluded_user_ids_) {
+    dependencies.add(user_id);
+  }
 }
 
 bool operator==(const BusinessRecipients &lhs, const BusinessRecipients &rhs) {

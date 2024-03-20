@@ -17,6 +17,7 @@
 
 namespace td {
 
+class Dependencies;
 class Td;
 
 class BusinessAwayMessage {
@@ -38,6 +39,8 @@ class BusinessAwayMessage {
   bool is_valid() const {
     return shortcut_id_.is_server();
   }
+
+  void add_dependencies(Dependencies &dependencies) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;
