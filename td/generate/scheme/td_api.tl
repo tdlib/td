@@ -9488,6 +9488,9 @@ toggleUsernameIsActive username:string is_active:Bool = Ok;
 //@description Changes order of active usernames of the current user @usernames The new order of active usernames. All currently active usernames must be specified
 reorderActiveUsernames usernames:vector<string> = Ok;
 
+//@description Changes the birthdate of the current user @birthdate The new value of the current user's birthdate; pass null to remove the birthdate
+setBirthdate birthdate:birthdate = Ok;
+
 //@description Changes the emoji status of the current user; for Telegram Premium users only @emoji_status New emoji status; pass null to switch to the default badge
 setEmojiStatus emoji_status:emojiStatus = Ok;
 

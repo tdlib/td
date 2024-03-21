@@ -460,6 +460,8 @@ class ContactsManager final : public Actor {
 
   void reorder_bot_usernames(UserId bot_user_id, vector<string> &&usernames, Promise<Unit> &&promise);
 
+  void set_birthdate(Birthdate &&birthdate, Promise<Unit> &&promise);
+
   void set_emoji_status(const EmojiStatus &emoji_status, Promise<Unit> &&promise);
 
   void set_chat_description(ChatId chat_id, const string &description, Promise<Unit> &&promise);
@@ -1291,6 +1293,8 @@ class ContactsManager final : public Actor {
   static bool get_channel_join_request(const Channel *c);
 
   void set_my_id(UserId my_id);
+
+  void on_set_birthdate(Birthdate birthdate, Promise<Unit> &&promise);
 
   void on_set_emoji_status(EmojiStatus emoji_status, Promise<Unit> &&promise);
 

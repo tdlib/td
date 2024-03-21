@@ -18,6 +18,7 @@
 #include "td/telegram/BackgroundId.h"
 #include "td/telegram/BackgroundManager.h"
 #include "td/telegram/BackgroundType.h"
+#include "td/telegram/Birthdate.h"
 #include "td/telegram/BoostManager.h"
 #include "td/telegram/BotCommand.h"
 #include "td/telegram/BotInfoManager.h"
@@ -7659,6 +7660,12 @@ void Td::on_request(uint64 id, td_api::reorderActiveUsernames &request) {
   }
   CREATE_OK_REQUEST_PROMISE();
   contacts_manager_->reorder_usernames(std::move(request.usernames_), std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::setBirthdate &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->set_birthdate(Birthdate(std::move(request.birthdate_)), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::setEmojiStatus &request) {

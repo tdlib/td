@@ -5822,6 +5822,17 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::toggleUsernameIsActive>(username, is_active));
     } else if (op == "raun") {
       send_request(td_api::make_object<td_api::reorderActiveUsernames>(autosplit_str(args)));
+    } else if (op == "sbd") {
+      int32 day;
+      int32 month;
+      int32 year;
+      get_args(args, day, month, year);
+      if (day == 0) {
+        send_request(td_api::make_object<td_api::setBirthdate>(nullptr));
+      } else {
+        send_request(
+            td_api::make_object<td_api::setBirthdate>(td_api::make_object<td_api::birthdate>(day, month, year)));
+      }
     } else if (op == "sese") {
       send_request(td_api::make_object<td_api::setEmojiStatus>(nullptr));
     } else if (op == "ses") {
