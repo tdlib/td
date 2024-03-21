@@ -24,6 +24,7 @@
 
 namespace td {
 
+class DialogInviteLink;
 class Td;
 
 class DialogInviteLinkManager final : public Actor {
@@ -46,6 +47,8 @@ class DialogInviteLinkManager final : public Actor {
   void invalidate_invite_link_info(const string &invite_link);
 
   td_api::object_ptr<td_api::chatInviteLinkInfo> get_chat_invite_link_info_object(const string &invite_link);
+
+  void on_get_permanent_dialog_invite_link(DialogId dialog_id, const DialogInviteLink &invite_link);
 
   bool have_dialog_access_by_invite_link(DialogId dialog_id) const;
 

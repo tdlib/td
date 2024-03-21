@@ -279,6 +279,7 @@ class ContactsManager final : public Actor {
   void on_update_chat_default_permissions(ChatId chat_id, RestrictedRights default_permissions, int32 version);
   void on_update_chat_pinned_message(ChatId chat_id, MessageId pinned_message_id, int32 version);
   void on_update_chat_bot_commands(ChatId chat_id, BotCommands &&bot_commands);
+  void on_update_chat_permanent_invite_link(ChatId chat_id, const DialogInviteLink &invite_link);
 
   void on_update_channel_participant_count(ChannelId channel_id, int32 participant_count);
   void on_update_channel_editable_username(ChannelId channel_id, string &&username);
@@ -304,6 +305,7 @@ class ContactsManager final : public Actor {
   void on_update_channel_default_permissions(ChannelId channel_id, RestrictedRights default_permissions);
   void on_update_channel_administrator_count(ChannelId channel_id, int32 administrator_count);
   void on_update_channel_bot_commands(ChannelId channel_id, BotCommands &&bot_commands);
+  void on_update_channel_permanent_invite_link(ChannelId channel_id, const DialogInviteLink &invite_link);
 
   void on_update_bot_menu_button(UserId bot_user_id, tl_object_ptr<telegram_api::BotMenuButton> &&bot_menu_button);
 
@@ -315,8 +317,6 @@ class ContactsManager final : public Actor {
   void invalidate_channel_full(ChannelId channel_id, bool need_drop_slow_mode_delay, const char *source);
 
   bool on_get_channel_error(ChannelId channel_id, const Status &status, const char *source);
-
-  void on_get_permanent_dialog_invite_link(DialogId dialog_id, const DialogInviteLink &invite_link);
 
   void on_get_created_public_channels(PublicDialogType type, vector<tl_object_ptr<telegram_api::Chat>> &&chats);
 

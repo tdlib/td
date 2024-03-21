@@ -12719,34 +12719,6 @@ void ContactsManager::on_update_channel_full_photo(ChannelFull *channel_full, Ch
   channel_full->registered_photo_file_ids = std::move(photo_file_ids);
 }
 
-void ContactsManager::on_get_permanent_dialog_invite_link(DialogId dialog_id, const DialogInviteLink &invite_link) {
-  switch (dialog_id.get_type()) {
-    case DialogType::Chat: {
-      auto chat_id = dialog_id.get_chat_id();
-      auto chat_full = get_chat_full_force(chat_id, "on_get_permanent_dialog_invite_link");
-      if (chat_full != nullptr && update_permanent_invite_link(chat_full->invite_link, invite_link)) {
-        chat_full->is_changed = true;
-        update_chat_full(chat_full, chat_id, "on_get_permanent_dialog_invite_link");
-      }
-      break;
-    }
-    case DialogType::Channel: {
-      auto channel_id = dialog_id.get_channel_id();
-      auto channel_full = get_channel_full_force(channel_id, true, "on_get_permanent_dialog_invite_link");
-      if (channel_full != nullptr && update_permanent_invite_link(channel_full->invite_link, invite_link)) {
-        channel_full->is_changed = true;
-        update_channel_full(channel_full, channel_id, "on_get_permanent_dialog_invite_link");
-      }
-      break;
-    }
-    case DialogType::User:
-    case DialogType::SecretChat:
-    case DialogType::None:
-    default:
-      UNREACHABLE();
-  }
-}
-
 void ContactsManager::on_update_chat_full_invite_link(ChatFull *chat_full,
                                                       tl_object_ptr<telegram_api::ExportedChatInvite> &&invite_link) {
   CHECK(chat_full != nullptr);
@@ -13503,6 +13475,14 @@ void ContactsManager::on_update_chat_bot_commands(ChatId chat_id, BotCommands &&
   if (chat_full != nullptr && BotCommands::update_all_bot_commands(chat_full->bot_commands, std::move(bot_commands))) {
     chat_full->is_changed = true;
     update_chat_full(chat_full, chat_id, "on_update_chat_bot_commands");
+  }
+}
+
+void ContactsManager::on_update_chat_permanent_invite_link(ChatId chat_id, const DialogInviteLink &invite_link) {
+  auto chat_full = get_chat_full_force(chat_id, "on_update_chat_permanent_invite_link");
+  if (chat_full != nullptr && update_permanent_invite_link(chat_full->invite_link, invite_link)) {
+    chat_full->is_changed = true;
+    update_chat_full(chat_full, chat_id, "on_update_chat_permanent_invite_link");
   }
 }
 
@@ -15452,6 +15432,15 @@ void ContactsManager::on_update_channel_bot_commands(ChannelId channel_id, BotCo
       BotCommands::update_all_bot_commands(channel_full->bot_commands, std::move(bot_commands))) {
     channel_full->is_changed = true;
     update_channel_full(channel_full, channel_id, "on_update_channel_bot_commands");
+  }
+}
+
+void ContactsManager::on_update_channel_permanent_invite_link(ChannelId channel_id,
+                                                              const DialogInviteLink &invite_link) {
+  auto channel_full = get_channel_full_force(channel_id, true, "on_update_channel_permanent_invite_link");
+  if (channel_full != nullptr && update_permanent_invite_link(channel_full->invite_link, invite_link)) {
+    channel_full->is_changed = true;
+    update_channel_full(channel_full, channel_id, "on_update_channel_permanent_invite_link");
   }
 }
 

@@ -155,7 +155,7 @@ class ExportChatInviteQuery final : public Td::ResultHandler {
       return on_error(Status::Error(500, "Receive invalid invite link creator"));
     }
     if (invite_link.is_permanent()) {
-      td_->contacts_manager_->on_get_permanent_dialog_invite_link(dialog_id_, invite_link);
+      td_->dialog_invite_link_manager_->on_get_permanent_dialog_invite_link(dialog_id_, invite_link);
     }
     promise_.set_value(invite_link.get_chat_invite_link_object(td_->contacts_manager_.get()));
   }
@@ -511,7 +511,7 @@ class RevokeChatInviteLinkQuery final : public Td::ResultHandler {
         }
         if (new_invite_link.get_creator_user_id() == td_->contacts_manager_->get_my_id() &&
             new_invite_link.is_permanent()) {
-          td_->contacts_manager_->on_get_permanent_dialog_invite_link(dialog_id_, new_invite_link);
+          td_->dialog_invite_link_manager_->on_get_permanent_dialog_invite_link(dialog_id_, new_invite_link);
         }
         links.push_back(invite_link.get_chat_invite_link_object(td_->contacts_manager_.get()));
         links.push_back(new_invite_link.get_chat_invite_link_object(td_->contacts_manager_.get()));
@@ -958,6 +958,21 @@ Status DialogInviteLinkManager::can_manage_dialog_invite_links(DialogId dialog_i
       UNREACHABLE();
   }
   return Status::OK();
+}
+
+void DialogInviteLinkManager::on_get_permanent_dialog_invite_link(DialogId dialog_id,
+                                                                  const DialogInviteLink &invite_link) {
+  switch (dialog_id.get_type()) {
+    case DialogType::Chat:
+      return td_->contacts_manager_->on_update_chat_permanent_invite_link(dialog_id.get_chat_id(), invite_link);
+    case DialogType::Channel:
+      return td_->contacts_manager_->on_update_channel_permanent_invite_link(dialog_id.get_channel_id(), invite_link);
+    case DialogType::User:
+    case DialogType::SecretChat:
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
 }
 
 void DialogInviteLinkManager::export_dialog_invite_link(DialogId dialog_id, string title, int32 expire_date,
