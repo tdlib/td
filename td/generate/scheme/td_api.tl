@@ -9506,7 +9506,8 @@ setLocation location:location = Ok;
 //@description Changes the business location of the current user. Requires Telegram Business subscription @location The new location of the business; pass null to remove the location
 setBusinessLocation location:businessLocation = Ok;
 
-//@description Changes the business opening hours of the current user. Requires Telegram Business subscription @opening_hours The new opening hours of the business; pass null to remove the opening hours
+//@description Changes the business opening hours of the current user. Requires Telegram Business subscription
+//@opening_hours The new opening hours of the business; pass null to remove the opening hours; up to 28 time intervals can be specified
 setBusinessOpeningHours opening_hours:businessOpeningHours = Ok;
 
 //@description Changes the business greeting message settings of the current user. Requires Telegram Business subscription @greeting_message_settings The new settings for the greeting message of the business; pass null to disable the greeting message
