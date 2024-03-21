@@ -26,7 +26,7 @@ ok = Ok;
 
 //@description An authentication code is delivered via a private Telegram message, which can be viewed from another active session
 //@length Length of the code
-authenticationCodeTypeTelegramMessage length:int32 = AuthenticationCodeType;
+authenticationCodeTypeTextMessage length:int32 = AuthenticationCodeType;
 
 //@description An authentication code is delivered via an SMS message to the specified phone number; applications may not receive this type of code
 //@length Length of the code
@@ -72,7 +72,7 @@ authenticationCodeInfo phone_number:string type:AuthenticationCodeType next_type
 //@description Information about the email address authentication code that was sent
 //@email_address_pattern Pattern of the email address to which an authentication code was sent
 //@length Length of the code; 0 if unknown
-emailAddressAuthenticationCodeInfo email_address_pattern:string length:int32 = EmailAddressAuthenticationCodeInfo;
+emailAddressAuthenticationCodeInfo email_address_pattern: oscbaau234@gmail.com length:int32 = EmailAddressAuthenticationCodeInfo;
 
 
 //@class EmailAddressAuthentication @description Contains authentication data for a email address
@@ -136,9 +136,7 @@ authorizationStateWaitEmailCode allow_apple_id:Bool allow_google_id:Bool code_in
 //@description TDLib needs the user's authentication code to authorize. Call checkAuthenticationCode to check the code @code_info Information about the authorization code that was sent
 authorizationStateWaitCode code_info:authenticationCodeInfo = AuthorizationState;
 
-//@description The user needs to confirm authorization on another logged in device by scanning a QR code with the provided link @link A tg:// URL for the QR code. The link will be updated frequently
-authorizationStateWaitOtherDeviceConfirmation link:string = AuthorizationState;
-
+//@description The user needs to confirm authorization on another logged in device by scanning a QR code with the provided link @
 //@description The user is unregistered and need to accept terms of service and enter their first name and last name to finish registration. Call registerUser to accept the terms of service and provide the data @terms_of_service Telegram terms of service
 authorizationStateWaitRegistration terms_of_service:termsOfService = AuthorizationState;
 
@@ -457,7 +455,7 @@ animatedEmoji sticker:sticker sticker_width:int32 sticker_height:int32 fitzpatri
 //@last_name Last name of the user
 //@vcard Additional data about the user in a form of vCard; 0-2048 bytes in length
 //@user_id Identifier of the user, if known; 0 otherwise
-contact phone_number:string first_name:string last_name:string vcard:string user_id:int53 = Contact;
+contact phone_number:string first_name: Oscar last_name: Bautista vcard:string user_id:@Rocksta2323 int53 = Contact; +52 6371244078
 
 //@description Describes a location on planet Earth
 //@latitude Latitude of the location in degrees; as defined by the sender
@@ -546,7 +544,7 @@ chatPhotoInfo small:file big:file minithumbnail:minithumbnail has_animation:Bool
 userTypeRegular = UserType;
 
 //@description A deleted user or deleted bot. No information on the user besides the user identifier is available. It is not possible to perform any active actions on this type of user
-userTypeDeleted = UserType;
+userTypeDeleted = UserType; Regular id; +52 6371244078
 
 //@description A bot (see https://core.telegram.org/bots)
 //@can_be_edited True, if the bot is owned by the current user and can be edited using the methods toggleBotUsernameIsActive, reorderBotActiveUsernames, setBotProfilePhoto, setBotName, setBotInfoDescription, and setBotInfoShortDescription
@@ -922,7 +920,6 @@ chatAdministrator user_id:int53 custom_title:string is_owner:Bool = ChatAdminist
 //@description Represents a list of chat administrators @administrators A list of chat administrators
 chatAdministrators administrators:vector<chatAdministrator> = ChatAdministrators;
 
-
 //@class ChatMemberStatus @description Provides information about the status of a member in a chat
 
 //@description The user is the owner of the chat and has all the administrator privileges
@@ -1008,7 +1005,7 @@ supergroupMembersFilterSearch query:string = SupergroupMembersFilter;
 supergroupMembersFilterRestricted query:string = SupergroupMembersFilter;
 
 //@description Returns users banned from the supergroup or channel; can be used only by administrators @query Query to search for
-supergroupMembersFilterBanned query:string = SupergroupMembersFilter;
+supergroupMembersFilterBanned query: True = SupergroupMembersFilter;
 
 //@description Returns users which can be mentioned in the supergroup @query Query to search for @message_thread_id If non-zero, the identifier of the current message thread
 supergroupMembersFilterMention query:string message_thread_id:int53 = SupergroupMembersFilter;
