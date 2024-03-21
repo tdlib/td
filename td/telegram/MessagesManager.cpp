@@ -3506,6 +3506,7 @@ class SendQuickReplyMessagesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   vector<int64> random_ids_;
   DialogId dialog_id_;
+  QuickReplyShortcutId shortcut_id_;
 
  public:
   explicit SendQuickReplyMessagesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
@@ -3515,6 +3516,7 @@ class SendQuickReplyMessagesQuery final : public Td::ResultHandler {
             vector<int64> &&random_ids) {
     random_ids_ = random_ids;
     dialog_id_ = dialog_id;
+    shortcut_id_ = shortcut_id;
 
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Write);
     if (input_peer == nullptr) {
@@ -3582,6 +3584,9 @@ class SendQuickReplyMessagesQuery final : public Td::ResultHandler {
       return;
     }
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "SendQuickReplyMessagesQuery");
+    if (status.code() == 400 && status.message() == CSlice("MESSAGE_IDS_MISMATCH")) {
+      td_->quick_reply_manager_->reload_quick_reply_messages(shortcut_id_, Auto());
+    }
     for (auto &random_id : random_ids_) {
       td_->messages_manager_->on_send_message_fail(random_id, status.clone());
     }
