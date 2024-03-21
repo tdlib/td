@@ -456,7 +456,7 @@ void BackgroundManager::start_up() {
     }
   }
 
-  // then add selected backgrounds fixing their ID
+  // then add selected backgrounds fixing their identifiers
   for (int i = 0; i < 2; i++) {
     bool for_dark_theme = i != 0;
     if (has_selected_background[i]) {
@@ -465,7 +465,7 @@ void BackgroundManager::start_up() {
       bool need_resave = false;
       if (!background.has_new_local_id && !background.type.has_file()) {
         background.has_new_local_id = true;
-        background.id = get_next_local_background_id();
+        set_local_background_id(background);
         need_resave = true;
       }
 
@@ -669,14 +669,23 @@ BackgroundId BackgroundManager::get_next_local_background_id() {
   return max_local_background_id_;
 }
 
+void BackgroundManager::set_local_background_id(Background &background) {
+  CHECK(!background.name.empty() || background.type != BackgroundType());
+  auto &background_id = local_backgrounds_[background];
+  if (!background_id.is_valid()) {
+    background_id = get_next_local_background_id();
+  }
+  background.id = background_id;
+}
+
 BackgroundId BackgroundManager::add_local_background(const BackgroundType &type) {
   Background background;
-  background.id = get_next_local_background_id();
   background.is_creator = true;
   background.is_default = false;
   background.is_dark = type.is_dark();
   background.type = type;
   background.name = type.get_link();
+  set_local_background_id(background);
   add_background(background, true);
 
   return background.id;
@@ -1286,9 +1295,6 @@ std::pair<BackgroundId, BackgroundType> BackgroundManager::on_get_background(
       LOG(ERROR) << "Receive " << to_string(wallpaper);
       return {};
     }
-    if (!background_id.is_valid()) {
-      background_id = get_next_local_background_id();
-    }
 
     Background background;
     background.id = background_id;
@@ -1297,9 +1303,12 @@ std::pair<BackgroundId, BackgroundType> BackgroundManager::on_get_background(
     background.is_dark = wallpaper->dark_;
     background.type = BackgroundType(true, false, std::move(wallpaper->settings_));
     background.name = background.type.get_link();
+    if (!background.id.is_valid()) {
+      set_local_background_id(background);
+    }
     add_background(background, replace_type);
 
-    return {background_id, background.type};
+    return {background.id, background.type};
   }
 
   auto wallpaper = move_tl_object_as<telegram_api::wallPaper>(wallpaper_ptr);

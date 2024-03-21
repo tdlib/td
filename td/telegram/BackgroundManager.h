@@ -21,6 +21,7 @@
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/FlatHashSet.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Status.h"
 
@@ -97,6 +98,19 @@ class BackgroundManager final : public Actor {
     void parse(ParserT &parser);
   };
 
+  struct LocalBackgroundHash {
+    uint32 operator()(const Background &background) const {
+      return Hash<string>()(background.name);
+    }
+  };
+
+  struct LocalBackgroundEquals {
+    bool operator()(const Background &lhs, const Background &rhs) const {
+      return lhs.name == rhs.name && lhs.type == rhs.type && lhs.is_creator == rhs.is_creator &&
+             lhs.is_default == rhs.is_default && lhs.is_dark == rhs.is_dark;
+    }
+  };
+
   class BackgroundLogEvent;
   class BackgroundsLogEvent;
 
@@ -127,6 +141,8 @@ class BackgroundManager final : public Actor {
   void set_max_local_background_id(BackgroundId background_id);
 
   BackgroundId get_next_local_background_id();
+
+  void set_local_background_id(Background &background);
 
   BackgroundId add_local_background(const BackgroundType &type);
 
@@ -210,6 +226,8 @@ class BackgroundManager final : public Actor {
     }
   };
   FlatHashMap<FileId, UploadedFileInfo, FileIdHash> being_uploaded_files_;
+
+  FlatHashMap<Background, BackgroundId, LocalBackgroundHash, LocalBackgroundEquals> local_backgrounds_;
 
   BackgroundId max_local_background_id_;
   vector<BackgroundId> local_background_ids_[2];
