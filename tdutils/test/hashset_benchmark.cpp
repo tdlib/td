@@ -590,7 +590,7 @@ BENCHMARK_TEMPLATE(BM_mask, td::MaskSse2);
 #endif
 
 template <class KeyT, class ValueT, class HashT = td::Hash<KeyT>, class EqT = std::equal_to<KeyT>>
-using FlatHashMapImpl = td::FlatHashTable<td::MapNode<KeyT, ValueT>, HashT, EqT>;
+using FlatHashMapImpl = td::FlatHashTable<td::MapNode<KeyT, ValueT, EqT>, HashT, EqT>;
 
 #define FOR_EACH_TABLE(F)  \
   F(FlatHashMapImpl)       \

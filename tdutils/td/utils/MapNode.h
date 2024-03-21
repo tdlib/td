@@ -15,7 +15,7 @@
 
 namespace td {
 
-template <class KeyT, class ValueT, class Enable = void>
+template <class KeyT, class ValueT, class EqT, class Enable = void>
 struct MapNode {
   using first_type = KeyT;
   using second_type = ValueT;
@@ -72,7 +72,7 @@ struct MapNode {
   }
 
   bool empty() const {
-    return is_hash_table_key_empty(first);
+    return is_hash_table_key_empty<EqT>(first);
   }
 
   void clear() {
@@ -91,8 +91,8 @@ struct MapNode {
   }
 };
 
-template <class KeyT, class ValueT>
-struct MapNode<KeyT, ValueT, typename std::enable_if_t<(sizeof(KeyT) + sizeof(ValueT) > 28 * sizeof(void *))>> {
+template <class KeyT, class ValueT, class EqT>
+struct MapNode<KeyT, ValueT, EqT, typename std::enable_if_t<(sizeof(KeyT) + sizeof(ValueT) > 28 * sizeof(void *))>> {
   struct Impl {
     using first_type = KeyT;
     using second_type = ValueT;
@@ -105,7 +105,7 @@ struct MapNode<KeyT, ValueT, typename std::enable_if_t<(sizeof(KeyT) + sizeof(Va
     template <class InputKeyT, class... ArgsT>
     Impl(InputKeyT &&key, ArgsT &&...args) : first(std::forward<InputKeyT>(key)) {
       new (&second) ValueT(std::forward<ArgsT>(args)...);
-      DCHECK(!is_hash_table_key_empty(first));
+      DCHECK(!is_hash_table_key_empty<EqT>(first));
     }
     Impl(const Impl &) = delete;
     Impl &operator=(const Impl &) = delete;

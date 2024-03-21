@@ -257,7 +257,7 @@ class FlatHashTableChunks {
   }
 
   Iterator find(const KeyT &key) {
-    if (empty() || is_hash_table_key_empty(key)) {
+    if (empty() || is_hash_table_key_empty<EqT>(key)) {
       return end();
     }
     const auto hash = calc_hash(key);
@@ -326,7 +326,7 @@ class FlatHashTableChunks {
 
   template <class... ArgsT>
   std::pair<Iterator, bool> emplace(KeyT key, ArgsT &&...args) {
-    CHECK(!is_hash_table_key_empty(key));
+    CHECK(!is_hash_table_key_empty<EqT>(key));
     auto it = find(key);
     if (it != end()) {
       return {it, false};
@@ -562,10 +562,10 @@ class FlatHashTableChunks {
 };
 
 template <class KeyT, class ValueT, class HashT = Hash<KeyT>, class EqT = std::equal_to<KeyT>>
-using FlatHashMapChunks = FlatHashTableChunks<MapNode<KeyT, ValueT>, HashT, EqT>;
+using FlatHashMapChunks = FlatHashTableChunks<MapNode<KeyT, ValueT, EqT>, HashT, EqT>;
 
 template <class KeyT, class HashT = Hash<KeyT>, class EqT = std::equal_to<KeyT>>
-using FlatHashSetChunks = FlatHashTableChunks<SetNode<KeyT>, HashT, EqT>;
+using FlatHashSetChunks = FlatHashTableChunks<SetNode<KeyT, EqT>, HashT, EqT>;
 
 template <class NodeT, class HashT, class EqT, class FuncT>
 void table_remove_if(FlatHashTableChunks<NodeT, HashT, EqT> &table, FuncT &&func) {
