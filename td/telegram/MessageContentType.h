@@ -79,7 +79,8 @@ enum class MessageContentType : int32 {
   GiveawayWinners,
   ExpiredVideoNote,
   ExpiredVoiceNote,
-  BoostApply
+  BoostApply,
+  DialogShared
 };
 // increase MessageUnsupported::CURRENT_VERSION each time a new message content type is added
 
