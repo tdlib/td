@@ -2058,6 +2058,22 @@ forumTopics total_count:int32 topics:vector<forumTopic> next_offset_date:int32 n
 linkPreviewOptions is_disabled:Bool url:string force_small_media:Bool force_large_media:Bool show_above_text:Bool = LinkPreviewOptions;
 
 
+//@description Contains information about a user shared with a bot
+//@user_id User identifier
+//@first_name First name of the user; for bots only
+//@last_name Last name of the user; for bots only
+//@username Username of the user; for bots only
+//@photo Profile photo of the user; for bots only; may be null
+sharedUser user_id:int53 first_name:string last_name:string username:string photo:photo = SharedUser;
+
+//@description Contains information about a chat shared with a bot
+//@chat_id Chat identifier
+//@title Title of the chat; for bots only
+//@username Username of the chat; for bots only
+//@photo Photo of the chat; for bots only; may be null
+sharedChat chat_id:int53 title:string username:string photo:photo = SharedChat;
+
+
 //@class RichText @description Describes a text object inside an instant-view web page
 
 //@description A plain text @text Text

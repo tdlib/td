@@ -396,6 +396,7 @@ function split_file($file, $chunks, $undo) {
                 'secret_chats_manager[_(-]|SecretChatsManager' => 'SecretChatsManager',
                 'secure_manager[_(-](?![.]get[(][)])|SecureManager' => 'SecureManager',
                 'SentEmailCode' => 'SentEmailCode',
+                'SharedDialog' => 'SharedDialog',
                 'sponsored_message_manager[_(-](?![.]get[(][)])|SponsoredMessageManager' => 'SponsoredMessageManager',
                 'state_manager[_(-](?![.]get[(][)])|StateManager' => 'StateManager',
                 'statistics_manager[_(-](?![.]get[(][)])|StatisticsManager' => 'StatisticsManager',
