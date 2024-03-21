@@ -5528,6 +5528,9 @@ userPrivacySettingRuleAllowAll = UserPrivacySettingRule;
 //@description A rule to allow all contacts of the user to do something
 userPrivacySettingRuleAllowContacts = UserPrivacySettingRule;
 
+//@description A rule to allow all Premium Users to do something; currently, allowed only for userPrivacySettingAllowChatInvites
+userPrivacySettingRuleAllowPremiumUsers = UserPrivacySettingRule;
+
 //@description A rule to allow certain specified users to do something @user_ids The user identifiers, total number of users in all rules must not exceed 1000
 userPrivacySettingRuleAllowUsers user_ids:vector<int53> = UserPrivacySettingRule;
 
