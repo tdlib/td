@@ -27,6 +27,7 @@ class UserPrivacySetting {
     FindByPhoneNumber,
     VoiceMessages,
     UserBio,
+    UserBirthdate,
     Size
   };
 

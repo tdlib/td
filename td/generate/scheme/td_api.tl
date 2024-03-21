@@ -5570,6 +5570,9 @@ userPrivacySettingShowPhoneNumber = UserPrivacySetting;
 //@description A privacy setting for managing whether the user's bio is visible
 userPrivacySettingShowBio = UserPrivacySetting;
 
+//@description A privacy setting for managing whether the user's birthdate is visible
+userPrivacySettingShowBirthdate = UserPrivacySetting;
+
 //@description A privacy setting for managing whether the user can be invited to chats
 userPrivacySettingAllowChatInvites = UserPrivacySetting;
 
