@@ -22,6 +22,9 @@ class SharedDialog {
  public:
   SharedDialog() = default;
 
+  SharedDialog(DialogId dialog_id) : dialog_id_(dialog_id) {
+  }
+
   SharedDialog(Td *td, telegram_api::object_ptr<telegram_api::RequestedPeer> &&requested_peer_ptr);
 
   bool is_valid() const {

@@ -70,6 +70,7 @@
 #include "td/telegram/SecureValue.h"
 #include "td/telegram/SecureValue.hpp"
 #include "td/telegram/ServerMessageId.h"
+#include "td/telegram/SharedDialog.h"
 #include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StickersManager.hpp"
@@ -7173,25 +7174,15 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       const auto *m = static_cast<const MessageRequestedDialog *>(content);
       CHECK(!m->shared_dialog_ids.empty());
       if (m->shared_dialog_ids[0].get_type() == DialogType::User) {
-        vector<int64> user_ids;
+        vector<td_api::object_ptr<td_api::sharedUser>> users;
         for (auto shared_dialog_id : m->shared_dialog_ids) {
-          if (td->auth_manager_->is_bot()) {
-            user_ids.push_back(shared_dialog_id.get_user_id().get());
-          } else {
-            user_ids.push_back(
-                td->contacts_manager_->get_user_id_object(shared_dialog_id.get_user_id(), "MessageRequestedDialog"));
-          }
+          users.push_back(SharedDialog(shared_dialog_id).get_shared_user_object(td));
         }
-        return make_tl_object<td_api::messageUsersShared>(std::move(user_ids), m->button_id);
+        return make_tl_object<td_api::messageUsersShared>(std::move(users), m->button_id);
       }
       CHECK(m->shared_dialog_ids.size() == 1);
-      int64 chat_id;
-      if (td->auth_manager_->is_bot()) {
-        chat_id = m->shared_dialog_ids[0].get();
-      } else {
-        chat_id = td->dialog_manager_->get_chat_id_object(m->shared_dialog_ids[0], "messageChatShared");
-      }
-      return make_tl_object<td_api::messageChatShared>(chat_id, m->button_id);
+      return make_tl_object<td_api::messageChatShared>(SharedDialog(m->shared_dialog_ids[0]).get_shared_chat_object(td),
+                                                       m->button_id);
     }
     case MessageContentType::WebViewWriteAccessAllowed: {
       const auto *m = static_cast<const MessageWebViewWriteAccessAllowed *>(content);
