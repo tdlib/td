@@ -144,6 +144,8 @@ class BackgroundManager final : public Actor {
 
   void set_local_background_id(Background &background);
 
+  void add_local_background_to_cache(const Background &background);
+
   BackgroundId add_local_background(const BackgroundType &type);
 
   void add_background(const Background &background, bool replace_type);

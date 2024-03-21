@@ -432,6 +432,7 @@ void BackgroundManager::start_up() {
           background.id.get() > max_local_background_id_.get()) {
         set_max_local_background_id(background.id);
       }
+      add_local_background_to_cache(background);
     }
   }
 
@@ -450,6 +451,7 @@ void BackgroundManager::start_up() {
         if (background.id.get() > max_local_background_id_.get()) {
           set_max_local_background_id(background.id);
         }
+        add_local_background_to_cache(background);
         add_background(background, true);
         local_background_ids_[for_dark_theme].push_back(background.id);
       }
@@ -518,6 +520,7 @@ void BackgroundManager::parse_background(BackgroundId &background_id, LogEventPa
     set_max_local_background_id(background.id);
   }
   background_id = background.id;
+  add_local_background_to_cache(background);
   add_background(background, false);
 }
 
@@ -626,6 +629,7 @@ void BackgroundManager::on_load_background_from_database(string name, string val
         LOG(ERROR) << "Expected background " << name << ", but received " << background.name;
         name_to_background_id_.emplace(std::move(name), background.id);
       }
+      add_local_background_to_cache(background);
       add_background(background, false);
     }
   }
@@ -671,11 +675,22 @@ BackgroundId BackgroundManager::get_next_local_background_id() {
 
 void BackgroundManager::set_local_background_id(Background &background) {
   CHECK(!background.name.empty() || background.type != BackgroundType());
+  CHECK(background.has_new_local_id);
   auto &background_id = local_backgrounds_[background];
   if (!background_id.is_valid()) {
     background_id = get_next_local_background_id();
   }
   background.id = background_id;
+}
+
+void BackgroundManager::add_local_background_to_cache(const Background &background) {
+  if (!background.has_new_local_id || !background.id.is_local()) {
+    return;
+  }
+  auto &background_id = local_backgrounds_[background];
+  if (!background_id.is_valid()) {
+    background_id = background.id;
+  }
 }
 
 BackgroundId BackgroundManager::add_local_background(const BackgroundType &type) {
