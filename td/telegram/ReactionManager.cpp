@@ -126,7 +126,7 @@ class ClearRecentReactionsQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->reaction_manager_->reload_reaction_list(ReactionListType::Recent);
+    td_->reaction_manager_->reload_reaction_list(ReactionListType::Recent, "ClearRecentReactionsQuery");
     promise_.set_value(Unit());
   }
 
@@ -134,7 +134,7 @@ class ClearRecentReactionsQuery final : public Td::ResultHandler {
     if (!G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for clear recent reactions: " << status;
     }
-    td_->reaction_manager_->reload_reaction_list(ReactionListType::Recent);
+    td_->reaction_manager_->reload_reaction_list(ReactionListType::Recent, "ClearRecentReactionsQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -670,10 +670,11 @@ void ReactionManager::reload_reactions() {
   td_->create_handler<GetAvailableReactionsQuery>()->send(reactions_.hash_);
 }
 
-void ReactionManager::reload_reaction_list(ReactionListType reaction_list_type) {
+void ReactionManager::reload_reaction_list(ReactionListType reaction_list_type, const char *source) {
   if (G()->close_flag()) {
     return;
   }
+  LOG(INFO) << "Reload " << reaction_list_type << " from " << source;
   auto &reaction_list = get_reaction_list(reaction_list_type);
   if (reaction_list.is_being_reloaded_) {
     return;
@@ -775,14 +776,14 @@ void ReactionManager::load_reaction_list(ReactionListType reaction_list_type) {
   LOG(INFO) << "Loading " << reaction_list_type;
   string reactions_str = G()->td_db()->get_binlog_pmc()->get(get_reaction_list_type_database_key(reaction_list_type));
   if (reactions_str.empty()) {
-    return reload_reaction_list(reaction_list_type);
+    return reload_reaction_list(reaction_list_type, "load_reaction_list 1");
   }
 
   auto status = log_event_parse(reaction_list, reactions_str);
   if (status.is_error()) {
     LOG(ERROR) << "Can't load " << reaction_list_type << ": " << status;
     reaction_list = {};
-    return reload_reaction_list(reaction_list_type);
+    return reload_reaction_list(reaction_list_type, "load_reaction_list 2");
   }
 
   LOG(INFO) << "Successfully loaded " << reaction_list.reaction_types_.size() << ' ' << reaction_list_type;

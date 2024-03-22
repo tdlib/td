@@ -9587,8 +9587,10 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     if (td_->option_manager_->get_option_boolean("is_premium") != u->is_premium) {
       td_->option_manager_->set_option_boolean("is_premium", u->is_premium);
       send_closure(td_->config_manager_, &ConfigManager::request_config, true);
-      td_->reaction_manager_->reload_reaction_list(ReactionListType::Top);
-      td_->messages_manager_->update_is_translatable(u->is_premium);
+      if (!td_->auth_manager_->is_bot()) {
+        td_->reaction_manager_->reload_reaction_list(ReactionListType::Top, "update_user is_premium");
+        td_->messages_manager_->update_is_translatable(u->is_premium);
+      }
     }
   }
   if (u->is_name_changed || u->is_username_changed || u->is_is_contact_changed) {

@@ -2281,7 +2281,7 @@ void UpdatesManager::try_reload_data() {
 
   for (int32 type = 0; type < MAX_REACTION_LIST_TYPE; type++) {
     auto reaction_list_type = static_cast<ReactionListType>(type);
-    td_->reaction_manager_->reload_reaction_list(reaction_list_type);
+    td_->reaction_manager_->reload_reaction_list(reaction_list_type, "try_reload_data");
   }
 
   for (int32 type = 0; type < MAX_STICKER_TYPE; type++) {
@@ -3751,7 +3751,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessageReaction
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateRecentReactions> update, Promise<Unit> &&promise) {
-  td_->reaction_manager_->reload_reaction_list(ReactionListType::Recent);
+  td_->reaction_manager_->reload_reaction_list(ReactionListType::Recent, "updateRecentReactions");
   promise.set_value(Unit());
 }
 

@@ -60,7 +60,7 @@ class ReactionManager final : public Actor {
 
   void reload_reactions();
 
-  void reload_reaction_list(ReactionListType reaction_list_type);
+  void reload_reaction_list(ReactionListType reaction_list_type, const char *source);
 
   void on_get_reaction_list(ReactionListType reaction_list_type,
                             tl_object_ptr<telegram_api::messages_Reactions> &&reactions_ptr);
