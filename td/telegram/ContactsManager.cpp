@@ -5083,6 +5083,7 @@ void ContactsManager::set_my_id(UserId my_id) {
   UserId my_old_id = my_id_;
   if (my_old_id.is_valid() && my_old_id != my_id) {
     LOG(ERROR) << "Already know that me is " << my_old_id << " but received userSelf with " << my_id;
+    return;
   }
   if (!my_id.is_valid()) {
     LOG(ERROR) << "Receive invalid my ID " << my_id;
