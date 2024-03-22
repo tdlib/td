@@ -895,10 +895,7 @@ static tl_object_ptr<telegram_api::KeyboardButton> get_input_keyboard_button(con
       return make_tl_object<telegram_api::keyboardButtonSimpleWebView>(keyboard_button.text, keyboard_button.url);
     case KeyboardButton::Type::RequestDialog:
       CHECK(keyboard_button.requested_dialog_type != nullptr);
-      return make_tl_object<telegram_api::keyboardButtonRequestPeer>(
-          keyboard_button.text, keyboard_button.requested_dialog_type->get_button_id(),
-          keyboard_button.requested_dialog_type->get_input_request_peer_type_object(),
-          keyboard_button.requested_dialog_type->get_max_quantity());
+      return keyboard_button.requested_dialog_type->get_input_keyboard_button_request_peer(keyboard_button.text);
     default:
       UNREACHABLE();
       return nullptr;

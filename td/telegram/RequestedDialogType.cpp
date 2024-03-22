@@ -171,12 +171,14 @@ telegram_api::object_ptr<telegram_api::RequestPeerType> RequestedDialogType::get
   }
 }
 
-int32 RequestedDialogType::get_button_id() const {
-  return button_id_;
+telegram_api::object_ptr<telegram_api::keyboardButtonRequestPeer>
+RequestedDialogType::get_input_keyboard_button_request_peer(const string &text) const {
+  return telegram_api::make_object<telegram_api::keyboardButtonRequestPeer>(
+      text, button_id_, get_input_request_peer_type_object(), max_quantity_);
 }
 
-int32 RequestedDialogType::get_max_quantity() const {
-  return max_quantity_;
+int32 RequestedDialogType::get_button_id() const {
+  return button_id_;
 }
 
 Status RequestedDialogType::check_shared_dialog(Td *td, DialogId dialog_id) const {

@@ -39,6 +39,8 @@ class RequestedDialogType {
   AdministratorRights user_administrator_rights_;    // Group and Channel only
   AdministratorRights bot_administrator_rights_;     // Group and Channel only
 
+  telegram_api::object_ptr<telegram_api::RequestPeerType> get_input_request_peer_type_object() const;
+
  public:
   RequestedDialogType() = default;
 
@@ -51,11 +53,10 @@ class RequestedDialogType {
 
   td_api::object_ptr<td_api::KeyboardButtonType> get_keyboard_button_type_object() const;
 
-  telegram_api::object_ptr<telegram_api::RequestPeerType> get_input_request_peer_type_object() const;
+  telegram_api::object_ptr<telegram_api::keyboardButtonRequestPeer> get_input_keyboard_button_request_peer(
+      const string &text) const;
 
   int32 get_button_id() const;
-
-  int32 get_max_quantity() const;
 
   Status check_shared_dialog(Td *td, DialogId dialog_id) const;
 
