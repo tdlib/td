@@ -1875,7 +1875,10 @@ keyboardButtonTypeRequestPoll force_regular:Bool force_quiz:Bool = KeyboardButto
 //@restrict_user_is_premium True, if the shared users must or must not be Telegram Premium users
 //@user_is_premium True, if the shared users must be Telegram Premium users; otherwise, the shared users must not be Telegram Premium users. Ignored if restrict_user_is_premium is false
 //@max_quantity The maximum number of users to share
-keyboardButtonTypeRequestUsers id:int32 restrict_user_is_bot:Bool user_is_bot:Bool restrict_user_is_premium:Bool user_is_premium:Bool max_quantity:int32 = KeyboardButtonType;
+//@request_name Pass true to request name of the users; bots only
+//@request_username Pass true to request username of the users; bots only
+//@request_photo Pass true to request photo of the users; bots only
+keyboardButtonTypeRequestUsers id:int32 restrict_user_is_bot:Bool user_is_bot:Bool restrict_user_is_premium:Bool user_is_premium:Bool max_quantity:int32 request_name:Bool request_username:Bool request_photo:Bool = KeyboardButtonType;
 
 //@description A button that requests a chat to be shared by the current user; available only in private chats. Use the method shareChatWithBot to complete the request
 //@id Unique button identifier
@@ -1888,7 +1891,10 @@ keyboardButtonTypeRequestUsers id:int32 restrict_user_is_bot:Bool user_is_bot:Bo
 //@user_administrator_rights Expected user administrator rights in the chat; may be null if they aren't restricted
 //@bot_administrator_rights Expected bot administrator rights in the chat; may be null if they aren't restricted
 //@bot_is_member True, if the bot must be a member of the chat; for basic group and supergroup chats only
-keyboardButtonTypeRequestChat id:int32 chat_is_channel:Bool restrict_chat_is_forum:Bool chat_is_forum:Bool restrict_chat_has_username:Bool chat_has_username:Bool chat_is_created:Bool user_administrator_rights:chatAdministratorRights bot_administrator_rights:chatAdministratorRights bot_is_member:Bool = KeyboardButtonType;
+//@request_title Pass true to request title of the chat; bots only
+//@request_username Pass true to request username of the chat; bots only
+//@request_photo Pass true to request photo of the chat; bots only
+keyboardButtonTypeRequestChat id:int32 chat_is_channel:Bool restrict_chat_is_forum:Bool chat_is_forum:Bool restrict_chat_has_username:Bool chat_has_username:Bool chat_is_created:Bool user_administrator_rights:chatAdministratorRights bot_administrator_rights:chatAdministratorRights bot_is_member:Bool request_title:Bool request_username:Bool request_photo:Bool = KeyboardButtonType;
 
 //@description A button that opens a Web App by calling getWebAppUrl @url An HTTP URL to pass to getWebAppUrl
 keyboardButtonTypeWebApp url:string = KeyboardButtonType;

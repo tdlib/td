@@ -28,6 +28,10 @@ class RequestedDialogType {
   bool restrict_is_premium_ = false;  // User only
   bool is_premium_ = false;           // User only
 
+  bool request_name_ = false;
+  bool request_username_ = false;
+  bool request_photo_ = false;
+
   bool restrict_is_forum_ = false;                   // Group only
   bool is_forum_ = false;                            // Group only
   bool bot_is_participant_ = false;                  // Group only
@@ -53,7 +57,7 @@ class RequestedDialogType {
 
   td_api::object_ptr<td_api::KeyboardButtonType> get_keyboard_button_type_object() const;
 
-  telegram_api::object_ptr<telegram_api::keyboardButtonRequestPeer> get_input_keyboard_button_request_peer(
+  telegram_api::object_ptr<telegram_api::inputKeyboardButtonRequestPeer> get_input_keyboard_button_request_peer(
       const string &text) const;
 
   int32 get_button_id() const;
