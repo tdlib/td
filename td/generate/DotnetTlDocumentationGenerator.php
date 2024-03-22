@@ -177,7 +177,7 @@ EOT
     protected function addFieldDocumentation($class_name, $field_name, $type_name, $field_info, $may_be_null)
     {
         $end = ';';
-        if (substr($type_name, 0, strlen($field_name)) === $field_name) {
+        if ($type_name == $field_name.'^' || ($type_name == 'Message^' && $field_name == 'ReplyToMessage')) {
             $type_name = '::Telegram::Td::Api::'.$type_name;
             $end = ' {';
         }

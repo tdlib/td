@@ -244,7 +244,7 @@ class TlWriterDotNet final : public TL_writer {
     if (field_name == class_name) {
       fixed_field_name += "Value";
     }
-    if (type_name.substr(0, field_name.size()) == field_name) {
+    if (type_name == field_name + "^" || (type_name == "Message^" && field_name == "ReplyToMessage")) {
       auto fixed_type_name = "::Telegram::Td::Api::" + type_name;
       std::stringstream ss;
       ss << "private:\n";
