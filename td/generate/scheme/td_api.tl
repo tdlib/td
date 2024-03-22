@@ -856,7 +856,7 @@ emojiStatuses custom_emoji_ids:vector<int64> = EmojiStatuses;
 //@description Describes usernames assigned to a user, a supergroup, or a channel
 //@active_usernames List of active usernames; the first one must be shown as the primary username. The order of active usernames can be changed with reorderActiveUsernames, reorderBotActiveUsernames or reorderSupergroupActiveUsernames
 //@disabled_usernames List of currently disabled usernames; the username can be activated with toggleUsernameIsActive, toggleBotUsernameIsActive, or toggleSupergroupUsernameIsActive
-//@editable_username The active username, which can be changed with setUsername or setSupergroupUsername. Information about other usernames can be received using getCollectibleItemInfo
+//@editable_username The active username, which can be changed with setUsername or setSupergroupUsername. Information about other active usernames can be received using getCollectibleItemInfo
 usernames active_usernames:vector<string> disabled_usernames:vector<string> editable_username:string = Usernames;
 
 
@@ -10317,7 +10317,8 @@ getPhoneNumberInfo phone_number_prefix:string = PhoneNumberInfo;
 getPhoneNumberInfoSync language_code:string phone_number_prefix:string = PhoneNumberInfo;
 
 
-//@description Returns information about a given collectible item that was purchased at https://fragment.com @type Type of the collectible item
+//@description Returns information about a given collectible item that was purchased at https://fragment.com
+//@type Type of the collectible item. The item must be used by a user and must be visible to the current user
 getCollectibleItemInfo type:CollectibleItemType = CollectibleItemInfo;
 
 
