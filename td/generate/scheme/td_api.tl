@@ -6329,6 +6329,9 @@ suggestedActionSubscribeToAnnualPremium = SuggestedAction;
 //@description Suggests the user to gift Telegram Premium to friends for Christmas
 suggestedActionGiftPremiumForChristmas = SuggestedAction;
 
+//@description Suggests the user to set birthdate
+suggestedActionSetBirthdate = SuggestedAction;
+
 
 //@description Contains a counter @count Count
 count count:int32 = Count;
