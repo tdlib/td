@@ -6362,6 +6362,7 @@ void ContactsManager::reorder_bot_usernames(UserId bot_user_id, vector<string> &
 }
 
 void ContactsManager::set_birthdate(Birthdate &&birthdate, Promise<Unit> &&promise) {
+  dismiss_suggested_action(SuggestedAction{SuggestedAction::Type::BirthdaySetup}, Promise<Unit>());
   auto query_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), birthdate, promise = std::move(promise)](Result<Unit> result) mutable {
         if (result.is_ok()) {
@@ -10184,6 +10185,10 @@ void ContactsManager::update_user_full(UserFull *user_full, UserId user_id, cons
                  make_tl_object<td_api::updateUserFullInfo>(get_user_id_object(user_id, "updateUserFullInfo"),
                                                             get_user_full_info_object(user_id, user_full)));
     user_full->need_send_update = false;
+
+    if (user_id == get_my_id() && !user_full->birthdate.is_empty() && !td_->auth_manager_->is_bot()) {
+      dismiss_suggested_action(SuggestedAction{SuggestedAction::Type::BirthdaySetup}, Promise<Unit>());
+    }
   }
   if (user_full->need_save_to_database) {
     if (!from_database) {
