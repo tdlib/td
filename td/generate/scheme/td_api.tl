@@ -1546,11 +1546,12 @@ messageSponsor type:MessageSponsorType photo:chatPhotoInfo info:string = Message
 //@description Describes a sponsored message
 //@message_id Message identifier; unique for the chat to which the sponsored message belongs among both ordinary and sponsored messages
 //@is_recommended True, if the message needs to be labeled as "recommended" instead of "sponsored"
+//@can_be_reported True, if the message can be reported to Telegram moderators through reportChatSponsoredMessage
 //@content Content of the message. Currently, can be only of the type messageText
 //@sponsor Information about the sponsor of the message
 //@button_text If non-empty, text for the message action button
 //@additional_info If non-empty, additional information about the sponsored message to be shown along with the message
-sponsoredMessage message_id:int53 is_recommended:Bool content:MessageContent sponsor:messageSponsor button_text:string additional_info:string = SponsoredMessage;
+sponsoredMessage message_id:int53 is_recommended:Bool can_be_reported:Bool content:MessageContent sponsor:messageSponsor button_text:string additional_info:string = SponsoredMessage;
 
 //@description Contains a list of sponsored messages @messages List of sponsored messages @messages_between The minimum number of messages between shown sponsored messages, or 0 if only one sponsored message must be shown after all ordinary messages
 sponsoredMessages messages:vector<sponsoredMessage> messages_between:int32 = SponsoredMessages;
