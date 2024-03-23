@@ -36,7 +36,6 @@
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/StickerSetId.h"
 #include "td/telegram/StoryId.h"
-#include "td/telegram/SuggestedAction.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
@@ -526,6 +525,8 @@ class ContactsManager final : public Actor {
 
   bool can_get_channel_story_statistics(ChannelId channel_id) const;
 
+  bool can_convert_channel_to_gigagroup(ChannelId channel_id) const;
+
   void get_created_public_dialogs(PublicDialogType type, Promise<td_api::object_ptr<td_api::chats>> &&promise,
                                   bool from_binlog);
 
@@ -536,8 +537,6 @@ class ContactsManager final : public Actor {
   vector<DialogId> get_dialogs_for_discussion(Promise<Unit> &&promise);
 
   vector<DialogId> get_inactive_channels(Promise<Unit> &&promise);
-
-  void dismiss_dialog_suggested_action(SuggestedAction action, Promise<Unit> &&promise);
 
   bool is_user_contact(UserId user_id, bool is_mutual = false) const;
 
@@ -1624,10 +1623,6 @@ class ContactsManager final : public Actor {
 
   void finish_get_chat_participant(ChatId chat_id, UserId user_id, Promise<DialogParticipant> &&promise);
 
-  void remove_dialog_suggested_action(SuggestedAction action);
-
-  void on_dismiss_suggested_action(SuggestedAction action, Result<Unit> &&result);
-
   bool need_poll_user_active_stories(const User *u, UserId user_id) const;
 
   static bool get_user_has_unread_stories(const User *u);
@@ -1790,9 +1785,6 @@ class ContactsManager final : public Actor {
 
   QueryCombiner get_user_full_queries_{"GetUserFullCombiner", 2.0};
   QueryCombiner get_chat_full_queries_{"GetChatFullCombiner", 2.0};
-
-  FlatHashMap<DialogId, vector<SuggestedAction>, DialogIdHash> dialog_suggested_actions_;
-  FlatHashMap<DialogId, vector<Promise<Unit>>, DialogIdHash> dismiss_suggested_action_queries_;
 
   class UploadProfilePhotoCallback;
   std::shared_ptr<UploadProfilePhotoCallback> upload_profile_photo_callback_;

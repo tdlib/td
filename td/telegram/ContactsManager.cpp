@@ -59,6 +59,7 @@
 #include "td/telegram/StickerPhotoSize.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StoryManager.h"
+#include "td/telegram/SuggestedAction.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
@@ -95,38 +96,6 @@
 #include <utility>
 
 namespace td {
-
-class DismissSuggestionQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  DialogId dialog_id_;
-
- public:
-  explicit DismissSuggestionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(SuggestedAction action) {
-    dialog_id_ = action.dialog_id_;
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
-    CHECK(input_peer != nullptr);
-
-    send_query(G()->net_query_creator().create(
-        telegram_api::help_dismissSuggestion(std::move(input_peer), action.get_suggested_action_str())));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::help_dismissSuggestion>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    promise_.set_value(Unit());
-  }
-
-  void on_error(Status status) final {
-    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "DismissSuggestionQuery");
-    promise_.set_error(std::move(status));
-  }
-};
 
 class GetContactsQuery final : public Td::ResultHandler {
  public:
@@ -6787,18 +6756,12 @@ void ContactsManager::toggle_channel_is_forum(ChannelId channel_id, bool is_foru
 }
 
 void ContactsManager::convert_channel_to_gigagroup(ChannelId channel_id, Promise<Unit> &&promise) {
-  auto c = get_channel(channel_id);
-  if (c == nullptr) {
-    return promise.set_error(Status::Error(400, "Supergroup not found"));
-  }
-  if (!get_channel_status(c).is_creator()) {
-    return promise.set_error(Status::Error(400, "Not enough rights to convert group to broadcast group"));
-  }
-  if (get_channel_type(c) != ChannelType::Megagroup) {
-    return promise.set_error(Status::Error(400, "Chat must be a supergroup"));
+  if (!can_convert_channel_to_gigagroup(channel_id)) {
+    return promise.set_error(Status::Error(400, "Can't convert the chat to a broadcast group"));
   }
 
-  remove_dialog_suggested_action(SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, DialogId(channel_id)});
+  td_->dialog_manager_->remove_dialog_suggested_action(
+      SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, DialogId(channel_id)});
 
   td_->create_handler<ConvertToGigagroupQuery>(std::move(promise))->send(channel_id);
 }
@@ -7017,6 +6980,15 @@ bool ContactsManager::can_get_channel_story_statistics(ChannelId channel_id) con
   }
 
   return c->status.can_post_messages();
+}
+
+bool ContactsManager::can_convert_channel_to_gigagroup(ChannelId channel_id) const {
+  const Channel *c = get_channel(channel_id);
+  return c == nullptr || get_channel_type(c) != ChannelType::Megagroup || !get_channel_status(c).is_creator() ||
+         c->is_gigagroup ||
+         c->default_permissions != RestrictedRights(false, false, false, false, false, false, false, false, false,
+                                                    false, false, false, false, false, false, false, false,
+                                                    ChannelType::Unknown);
 }
 
 void ContactsManager::report_channel_spam(ChannelId channel_id, const vector<MessageId> &message_ids,
@@ -7492,62 +7464,6 @@ void ContactsManager::unregister_message_channels(MessageFullId message_full_id,
       }
     }
   }
-}
-
-void ContactsManager::remove_dialog_suggested_action(SuggestedAction action) {
-  auto it = dialog_suggested_actions_.find(action.dialog_id_);
-  if (it == dialog_suggested_actions_.end()) {
-    return;
-  }
-  remove_suggested_action(it->second, action);
-  if (it->second.empty()) {
-    dialog_suggested_actions_.erase(it);
-  }
-}
-
-void ContactsManager::dismiss_dialog_suggested_action(SuggestedAction action, Promise<Unit> &&promise) {
-  auto dialog_id = action.dialog_id_;
-  if (!td_->messages_manager_->have_dialog(dialog_id)) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
-    return promise.set_error(Status::Error(400, "Can't access the chat"));
-  }
-
-  auto it = dialog_suggested_actions_.find(dialog_id);
-  if (it == dialog_suggested_actions_.end() || !td::contains(it->second, action)) {
-    return promise.set_value(Unit());
-  }
-
-  auto action_str = action.get_suggested_action_str();
-  if (action_str.empty()) {
-    return promise.set_value(Unit());
-  }
-
-  auto &queries = dismiss_suggested_action_queries_[dialog_id];
-  queries.push_back(std::move(promise));
-  if (queries.size() == 1) {
-    auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), action](Result<Unit> &&result) {
-      send_closure(actor_id, &ContactsManager::on_dismiss_suggested_action, action, std::move(result));
-    });
-    td_->create_handler<DismissSuggestionQuery>(std::move(query_promise))->send(std::move(action));
-  }
-}
-
-void ContactsManager::on_dismiss_suggested_action(SuggestedAction action, Result<Unit> &&result) {
-  auto it = dismiss_suggested_action_queries_.find(action.dialog_id_);
-  CHECK(it != dismiss_suggested_action_queries_.end());
-  auto promises = std::move(it->second);
-  dismiss_suggested_action_queries_.erase(it);
-
-  if (result.is_error()) {
-    fail_promises(promises, result.move_as_error());
-    return;
-  }
-
-  remove_dialog_suggested_action(action);
-
-  set_promises(promises);
 }
 
 void ContactsManager::on_import_contacts_finished(int64 random_id, vector<UserId> imported_contact_user_ids,
@@ -9967,7 +9883,8 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
     if (c->default_permissions != RestrictedRights(false, false, false, false, false, false, false, false, false, false,
                                                    false, false, false, false, false, false, false,
                                                    ChannelType::Unknown)) {
-      remove_dialog_suggested_action(SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, DialogId(channel_id)});
+      td_->dialog_manager_->remove_dialog_suggested_action(
+          SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, DialogId(channel_id)});
     }
     c->is_default_permissions_changed = false;
   }
@@ -11067,33 +10984,8 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       }
     }
 
-    if (dismiss_suggested_action_queries_.count(DialogId(channel_id)) == 0) {
-      auto it = dialog_suggested_actions_.find(DialogId(channel_id));
-      if (it != dialog_suggested_actions_.end() || !channel->pending_suggestions_.empty()) {
-        vector<SuggestedAction> suggested_actions;
-        for (auto &action_str : channel->pending_suggestions_) {
-          SuggestedAction suggested_action(action_str, DialogId(channel_id));
-          if (!suggested_action.is_empty()) {
-            if (suggested_action == SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, DialogId(channel_id)} &&
-                (c->is_gigagroup ||
-                 c->default_permissions != RestrictedRights(false, false, false, false, false, false, false, false,
-                                                            false, false, false, false, false, false, false, false,
-                                                            false, ChannelType::Unknown))) {
-              LOG(INFO) << "Skip ConvertToGigagroup suggested action";
-            } else {
-              suggested_actions.push_back(suggested_action);
-            }
-          }
-        }
-        if (it == dialog_suggested_actions_.end()) {
-          it = dialog_suggested_actions_.emplace(DialogId(channel_id), vector<SuggestedAction>()).first;
-        }
-        update_suggested_actions(it->second, std::move(suggested_actions));
-        if (it->second.empty()) {
-          dialog_suggested_actions_.erase(it);
-        }
-      }
-    }
+    td_->dialog_manager_->set_dialog_pending_suggestions(DialogId(channel_id),
+                                                         std::move(channel->pending_suggestions_));
   }
   promise.set_value(Unit());
 }
@@ -13619,7 +13511,8 @@ void ContactsManager::on_channel_status_changed(Channel *c, ChannelId channel_id
 
     send_get_channel_full_query(nullptr, channel_id, Auto(), "update channel owner");
     td_->dialog_participant_manager_->reload_dialog_administrators(DialogId(channel_id), {}, Auto());
-    remove_dialog_suggested_action(SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, DialogId(channel_id)});
+    td_->dialog_manager_->remove_dialog_suggested_action(
+        SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, DialogId(channel_id)});
   }
 
   if (old_status.is_member() != new_status.is_member() || new_status.is_banned()) {
@@ -15647,7 +15540,8 @@ void ContactsManager::on_get_channel(telegram_api::channel &channel, const char 
     is_forum = false;
   }
   if (is_gigagroup) {
-    remove_dialog_suggested_action(SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, DialogId(channel_id)});
+    td_->dialog_manager_->remove_dialog_suggested_action(
+        SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, DialogId(channel_id)});
   }
 
   DialogParticipantStatus status = [&] {

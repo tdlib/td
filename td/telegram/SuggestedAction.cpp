@@ -8,7 +8,7 @@
 
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ConfigManager.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/Td.h"
 
@@ -222,7 +222,7 @@ void dismiss_suggested_action(SuggestedAction action, Promise<Unit> &&promise) {
       return send_closure_later(G()->config_manager(), &ConfigManager::dismiss_suggested_action, std::move(action),
                                 std::move(promise));
     case SuggestedAction::Type::ConvertToGigagroup:
-      return send_closure_later(G()->contacts_manager(), &ContactsManager::dismiss_dialog_suggested_action,
+      return send_closure_later(G()->dialog_manager(), &DialogManager::dismiss_dialog_suggested_action,
                                 std::move(action), std::move(promise));
     case SuggestedAction::Type::SetPassword: {
       if (action.otherwise_relogin_days_ < 0) {
