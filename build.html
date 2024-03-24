@@ -728,7 +728,7 @@ function onOptionsChanged() {
     if (os_windows) {
       pre_text.push('Download and install <a href="https://www.oracle.com/technetwork/java/javase/downloads/index.html">JDK</a>.');
     } else if (os_linux && linux_distro === 'Alpine') {
-      pre_text.push('Add community repository for your Alpine version (not edge) in /etc/apk/repositories. For example, you can do it through vim, preliminary installing it via "apk add --update vim".');
+      pre_text.push('Add community repository for your Alpine version (not edge) in /etc/apk/repositories. For example, you can do it through vim, preliminary installing it via "apk add vim".');
     }
   }
   if (os_linux && linux_distro === 'Other') {
@@ -827,7 +827,7 @@ function onOptionsChanged() {
         if (target === 'JNI') {
           packages += ' openjdk8';
         }
-        commands.push(sudo + 'apk add --update ' + packages);
+        commands.push(sudo + 'apk add ' + packages);
         break;
       case 'CentOS 7':
       case 'CentOS 8':
