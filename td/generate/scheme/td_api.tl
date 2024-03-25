@@ -3290,7 +3290,7 @@ inputMessageVideo video:InputFile thumbnail:inputThumbnail added_sticker_file_id
 //@description A video note message
 //@video_note Video note to be sent
 //@thumbnail Video thumbnail; may be null if empty; pass null to skip thumbnail uploading
-//@duration Duration of the video, in seconds
+//@duration Duration of the video, in seconds; 0-60
 //@length Video width and height; must be positive and not greater than 640
 //@self_destruct_type Video note self-destruct type; may be null if none; pass null if none; private chats only
 inputMessageVideoNote video_note:InputFile thumbnail:inputThumbnail duration:int32 length:int32 self_destruct_type:MessageSelfDestructType = InputMessageContent;
