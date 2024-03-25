@@ -55,7 +55,7 @@ class ThemeManager final : public Actor {
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
-  // apeend-only
+  // append-only
   enum class BaseTheme : int32 { Classic, Day, Night, Tinted, Arctic };
 
   struct ThemeSettings {
