@@ -113,7 +113,7 @@ class ConcurrentHashMap {
   }
 
   static std::string get_name() {
-    return "ConcurrrentHashMap";
+    return "ConcurrentHashMap";
   }
 
   static KeyT empty_key() {

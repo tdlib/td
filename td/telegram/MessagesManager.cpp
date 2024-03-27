@@ -33253,8 +33253,8 @@ bool MessagesManager::need_delete_file(MessageFullId message_full_id, FileId fil
   auto message_full_ids = td_->file_reference_manager_->get_some_message_file_sources(main_file_id);
   LOG(INFO) << "Receive " << message_full_ids << " as sources for file " << main_file_id << "/" << file_id << " from "
             << message_full_id;
-  for (const auto &other_full_messsage_id : message_full_ids) {
-    if (other_full_messsage_id != message_full_id) {
+  for (const auto &other_full_message_id : message_full_ids) {
+    if (other_full_message_id != message_full_id) {
       return false;
     }
   }
