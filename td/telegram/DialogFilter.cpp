@@ -533,12 +533,12 @@ unique_ptr<DialogFilter> DialogFilter::merge_dialog_filter_changes(const DialogF
   auto merge_ordered_changes = [dialog_filter_id](auto &new_dialog_ids, auto old_server_dialog_ids,
                                                   auto new_server_dialog_ids) {
     if (old_server_dialog_ids == new_server_dialog_ids) {
-      LOG(INFO) << "Pinned chats was not changed remotely in " << dialog_filter_id << ", keep local changes";
+      LOG(INFO) << "Pinned chats were not changed remotely in " << dialog_filter_id << ", keep local changes";
       return;
     }
 
     if (InputDialogId::are_equivalent(new_dialog_ids, old_server_dialog_ids)) {
-      LOG(INFO) << "Pinned chats was not changed locally in " << dialog_filter_id << ", keep remote changes";
+      LOG(INFO) << "Pinned chats were not changed locally in " << dialog_filter_id << ", keep remote changes";
 
       size_t kept_server_dialogs = 0;
       FlatHashSet<DialogId, DialogIdHash> removed_dialog_ids;

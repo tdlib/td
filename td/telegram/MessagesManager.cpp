@@ -3724,7 +3724,7 @@ class DeleteMessagesQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     if (!G()->is_expected_error(status)) {
-      // MESSAGE_DELETE_FORBIDDEN can be returned in group chats when administrator rights was removed
+      // MESSAGE_DELETE_FORBIDDEN can be returned in group chats when administrator rights were removed
       // MESSAGE_DELETE_FORBIDDEN can be returned in private chats for bots when revoke time limit exceeded
       if (status.message() != "MESSAGE_DELETE_FORBIDDEN" ||
           (dialog_id_.get_type() == DialogType::User && !td_->auth_manager_->is_bot())) {
@@ -8627,7 +8627,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
   }
 
   // be aware that returned messages are guaranteed to be consecutive messages, but if !from_the_end they
-  // may be older (if some messages was deleted) or newer (if some messages were added) than an expected answer
+  // may be older (if some messages were deleted) or newer (if some messages were added) than an expected answer
   // be aware that any subset of the returned messages may be already deleted and returned as MessageEmpty
   bool is_channel_message = dialog_id.get_type() == DialogType::Channel;
   MessageId first_added_message_id;
@@ -15059,7 +15059,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
 
       if (*it != nullptr) {
         if ((*it)->get_message_id() < d->first_database_message_id && d->dialog_id.get_type() == DialogType::Channel) {
-          // possible if messages was deleted from database, but not from memory after updateChannelTooLong
+          // possible if messages were deleted from database, but not from memory after updateChannelTooLong
           set_dialog_last_database_message_id(d, MessageId(), "do_delete_message 1");
         } else {
           set_dialog_last_database_message_id(d, (*it)->get_message_id(), "do_delete_message 2");
@@ -29382,7 +29382,7 @@ void MessagesManager::on_send_media_group_file_reference_error(DialogId dialog_i
   CHECK(dialog_id.get_type() != DialogType::SecretChat);
 
   if (message_ids.empty()) {
-    // all messages was deleted, nothing to do
+    // all messages were deleted, nothing to do
     return;
   }
 

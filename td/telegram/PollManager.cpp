@@ -1012,7 +1012,7 @@ void PollManager::on_set_poll_answer_finished(PollId poll_id, Result<Unit> &&res
   if (!G()->close_flag()) {
     auto poll = get_poll(poll_id);
     if (poll != nullptr && !poll->was_saved_) {
-      // no updates was sent during updates processing, so send them
+      // no updates were sent during updates processing, so send them
       // poll wasn't changed, so there is no reason to actually save it
       if (!(poll->is_closed_ && poll->is_updated_after_close_)) {
         LOG(INFO) << "Schedule updating of " << poll_id << " soon";
