@@ -335,6 +335,7 @@ bool OptionManager::is_internal_option(Slice name) {
                                                               "animation_search_provider",
                                                               "authorization_autoconfirm_period",
                                                               "base_language_pack_version",
+                                                              "business_features",
                                                               "call_receive_timeout_ms",
                                                               "call_ring_timeout_ms",
                                                               "caption_length_limit_default",

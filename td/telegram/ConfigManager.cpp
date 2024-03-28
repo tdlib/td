@@ -1489,6 +1489,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   int32 transcribe_audio_trial_weekly_number = 0;
   int32 transcribe_audio_trial_duration_max = 0;
   int32 transcribe_audio_trial_cooldown_until = 0;
+  vector<string> business_features;
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
@@ -2000,6 +2001,20 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
                                 get_json_value_int(std::move(key_value->value_), key));
         continue;
       }
+      if (key == "business_promo_order") {
+        if (value->get_id() == telegram_api::jsonArray::ID) {
+          auto features = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
+          for (auto &feature : features) {
+            auto business_feature = get_json_value_string(std::move(feature), key);
+            if (!td::contains(business_feature, ',')) {
+              business_features.push_back(std::move(business_feature));
+            }
+          }
+        } else {
+          LOG(ERROR) << "Receive unexpected business_promo_order " << to_string(*value);
+        }
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -2103,11 +2118,13 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     premium_bot_username.clear();  // just in case
     premium_invoice_slug.clear();  // just in case
     premium_features.clear();      // just in case
+    business_features.clear();     // just in case
     options.set_option_empty("is_premium_available");
   } else {
     options.set_option_boolean("is_premium_available", is_premium_available);
   }
   options.set_option_string("premium_features", implode(premium_features, ','));
+  options.set_option_string("business_features", implode(business_features, ','));
   if (premium_bot_username.empty()) {
     options.set_option_empty("premium_bot_username");
   } else {
