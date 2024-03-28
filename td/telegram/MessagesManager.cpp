@@ -23538,7 +23538,7 @@ void MessagesManager::get_dialog_send_message_as_dialog_ids(
                          std::move(promise), true);
     }
   });
-  td_->contacts_manager_->get_created_public_dialogs(PublicDialogType::HasUsername, std::move(new_promise), true);
+  td_->contacts_manager_->get_created_public_dialogs(PublicDialogType::ForPersonalDialog, std::move(new_promise), true);
 }
 
 void MessagesManager::set_dialog_default_send_message_as_dialog_id(DialogId dialog_id,

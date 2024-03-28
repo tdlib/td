@@ -7285,7 +7285,7 @@ void ContactsManager::get_created_public_dialogs(PublicDialogType type,
           }
           created_public_channels_inited_[index] = true;
 
-          if (type == PublicDialogType::HasUsername) {
+          if (type == PublicDialogType::ForPersonalDialog) {
             update_created_public_broadcasts();
           }
 
@@ -7346,7 +7346,7 @@ void ContactsManager::update_created_public_channels(Channel *c, ChannelId chann
       }
     }
     if (was_changed) {
-      if (!c->is_megagroup && type == PublicDialogType::HasUsername) {
+      if (type == PublicDialogType::ForPersonalDialog) {
         update_created_public_broadcasts();
       }
 
@@ -7373,7 +7373,7 @@ void ContactsManager::on_get_created_public_channels(PublicDialogType type,
   }
   created_public_channels_inited_[index] = true;
 
-  if (type == PublicDialogType::HasUsername) {
+  if (type == PublicDialogType::ForPersonalDialog) {
     update_created_public_broadcasts();
   }
 
@@ -7393,16 +7393,8 @@ void ContactsManager::save_created_public_channels(PublicDialogType type) {
 }
 
 void ContactsManager::update_created_public_broadcasts() {
-  CHECK(created_public_channels_inited_[0]);
-  vector<ChannelId> channel_ids;
-  for (auto &channel_id : created_public_channels_[0]) {
-    auto c = get_channel(channel_id);
-    if (!c->is_megagroup) {
-      channel_ids.push_back(channel_id);
-    }
-  }
   send_closure_later(G()->messages_manager(), &MessagesManager::on_update_created_public_broadcasts,
-                     std::move(channel_ids));
+                     created_public_channels_[2]);
 }
 
 void ContactsManager::check_created_public_dialogs_limit(PublicDialogType type, Promise<Unit> &&promise) {
