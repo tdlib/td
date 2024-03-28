@@ -742,6 +742,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::getInactiveSupergroupChats &request);
 
+  void on_request(uint64 id, const td_api::getSuitablePersonalChats &request);
+
   void on_request(uint64 id, const td_api::openChat &request);
 
   void on_request(uint64 id, const td_api::closeChat &request);

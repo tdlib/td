@@ -5234,6 +5234,12 @@ void Td::on_request(uint64 id, const td_api::getInactiveSupergroupChats &request
   CREATE_NO_ARGS_REQUEST(GetInactiveSupergroupChatsRequest);
 }
 
+void Td::on_request(uint64 id, const td_api::getSuitablePersonalChats &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  contacts_manager_->get_created_public_dialogs(PublicDialogType::ForPersonalDialog, std::move(promise), false);
+}
+
 void Td::on_request(uint64 id, td_api::searchRecentlyFoundChats &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);

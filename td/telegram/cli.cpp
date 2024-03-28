@@ -5446,6 +5446,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getSuitableDiscussionChats>());
     } else if (op == "gisc") {
       send_request(td_api::make_object<td_api::getInactiveSupergroupChats>());
+    } else if (op == "gspc") {
+      send_request(td_api::make_object<td_api::getSuitablePersonalChats>());
     } else if (op == "cpc") {
       UserId user_id;
       bool force;
