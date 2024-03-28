@@ -559,6 +559,7 @@ class ContactsManager final : public Actor {
     bool can_join_groups;
     bool can_read_all_group_messages;
     bool is_inline;
+    bool is_business;
     bool need_location;
     bool can_be_added_to_attach_menu;
   };
@@ -745,6 +746,7 @@ class ContactsManager final : public Actor {
     bool can_read_all_group_messages = true;
     bool can_be_edited_bot = false;
     bool is_inline_bot = false;
+    bool is_business_bot = false;
     bool need_location_bot = false;
     bool is_scam = false;
     bool is_fake = false;

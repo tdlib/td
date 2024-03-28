@@ -3021,6 +3021,7 @@ void ContactsManager::User::store(StorerT &storer) const {
     STORE_FLAG(has_profile_accent_color_id);
     STORE_FLAG(has_profile_background_custom_emoji_id);
     STORE_FLAG(contact_require_premium);
+    STORE_FLAG(is_business_bot);
     END_STORE_FLAGS();
   }
   store(first_name, storer);
@@ -3147,6 +3148,7 @@ void ContactsManager::User::parse(ParserT &parser) {
     PARSE_FLAG(has_profile_accent_color_id);
     PARSE_FLAG(has_profile_background_custom_emoji_id);
     PARSE_FLAG(contact_require_premium);
+    PARSE_FLAG(is_business_bot);
     END_PARSE_FLAGS();
   }
   parse(first_name, parser);
@@ -7901,7 +7903,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   if (u == nullptr) {
     if (!is_received) {
       // we must preload received inaccessible users from database in order to not save
-      // the min-user to the database and to not override access_hash and another info
+      // the min-user to the database and to not override access_hash and other data
       u = get_user_force(user_id, "on_get_user 2");
       if (u == nullptr) {
         LOG(INFO) << "Receive inaccessible " << user_id;
@@ -7944,6 +7946,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   bool is_scam = (flags & USER_FLAG_IS_SCAM) != 0;
   bool can_be_edited_bot = (flags2 & USER_FLAG_CAN_BE_EDITED_BOT) != 0;
   bool is_inline_bot = (flags & USER_FLAG_IS_INLINE_BOT) != 0;
+  bool is_business_bot = user->bot_business_;
   string inline_query_placeholder = std::move(user->bot_inline_placeholder_);
   bool need_location_bot = (flags & USER_FLAG_NEED_LOCATION_BOT) != 0;
   bool has_bot_info_version = (flags & USER_FLAG_HAS_BOT_INFO_VERSION) != 0;
@@ -7954,17 +7957,20 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   bool stories_hidden = user->stories_hidden_;
   bool contact_require_premium = user->contact_require_premium_;
 
-  LOG_IF(ERROR, !can_join_groups && !is_bot)
-      << "Receive not bot " << user_id << " which can't join groups from " << source;
-  LOG_IF(ERROR, can_read_all_group_messages && !is_bot)
-      << "Receive not bot " << user_id << " which can read all group messages from " << source;
-  LOG_IF(ERROR, can_be_added_to_attach_menu && !is_bot)
-      << "Receive not bot " << user_id << " which can be added to attachment menu from " << source;
-  LOG_IF(ERROR, can_be_edited_bot && !is_bot)
-      << "Receive not bot " << user_id << " which is inline bot from " << source;
-  LOG_IF(ERROR, is_inline_bot && !is_bot) << "Receive not bot " << user_id << " which is inline bot from " << source;
-  LOG_IF(ERROR, need_location_bot && !is_inline_bot)
-      << "Receive not inline bot " << user_id << " which needs user location from " << source;
+  if (!is_bot && (!can_join_groups || can_read_all_group_messages || can_be_added_to_attach_menu || can_be_edited_bot ||
+                  is_inline_bot || is_business_bot)) {
+    LOG(ERROR) << "Receive not bot " << user_id << " with bot properties from " << source;
+    can_join_groups = true;
+    can_read_all_group_messages = false;
+    can_be_added_to_attach_menu = false;
+    can_be_edited_bot = false;
+    is_inline_bot = false;
+    is_business_bot = false;
+  }
+  if (need_location_bot && !is_inline_bot) {
+    LOG(ERROR) << "Receive not inline bot " << user_id << " which needs user location from " << source;
+    need_location_bot = false;
+  }
 
   if (is_deleted) {
     // just in case
@@ -7977,6 +7983,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     can_be_added_to_attach_menu = false;
     can_be_edited_bot = false;
     is_inline_bot = false;
+    is_business_bot = false;
     inline_query_placeholder = string();
     need_location_bot = false;
     has_bot_info_version = false;
@@ -7990,8 +7997,8 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   if (is_verified != u->is_verified || is_support != u->is_support || is_bot != u->is_bot ||
       can_join_groups != u->can_join_groups || can_read_all_group_messages != u->can_read_all_group_messages ||
       is_scam != u->is_scam || is_fake != u->is_fake || is_inline_bot != u->is_inline_bot ||
-      inline_query_placeholder != u->inline_query_placeholder || need_location_bot != u->need_location_bot ||
-      can_be_added_to_attach_menu != u->can_be_added_to_attach_menu) {
+      is_business_bot != u->is_business_bot || inline_query_placeholder != u->inline_query_placeholder ||
+      need_location_bot != u->need_location_bot || can_be_added_to_attach_menu != u->can_be_added_to_attach_menu) {
     if (is_bot != u->is_bot) {
       LOG_IF(ERROR, !is_deleted && !u->is_deleted && u->is_received)
           << "User.is_bot has changed for " << user_id << "/" << u->usernames << " from " << source << " from "
@@ -8006,6 +8013,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     u->is_scam = is_scam;
     u->is_fake = is_fake;
     u->is_inline_bot = is_inline_bot;
+    u->is_business_bot = is_business_bot;
     u->inline_query_placeholder = std::move(inline_query_placeholder);
     u->need_location_bot = need_location_bot;
     u->can_be_added_to_attach_menu = can_be_added_to_attach_menu;
@@ -14181,6 +14189,7 @@ Result<ContactsManager::BotData> ContactsManager::get_bot_data(UserId user_id) c
   bot_data.can_join_groups = u->can_join_groups;
   bot_data.can_read_all_group_messages = u->can_read_all_group_messages;
   bot_data.is_inline = u->is_inline_bot;
+  bot_data.is_business = u->is_business_bot;
   bot_data.need_location = u->need_location_bot;
   bot_data.can_be_added_to_attach_menu = u->can_be_added_to_attach_menu;
   return bot_data;
@@ -16138,7 +16147,7 @@ tl_object_ptr<td_api::user> ContactsManager::get_user_object(UserId user_id, con
   } else if (u->is_bot) {
     type = make_tl_object<td_api::userTypeBot>(u->can_be_edited_bot, u->can_join_groups, u->can_read_all_group_messages,
                                                u->is_inline_bot, u->inline_query_placeholder, u->need_location_bot,
-                                               u->can_be_added_to_attach_menu);
+                                               u->is_business_bot, u->can_be_added_to_attach_menu);
   } else {
     type = make_tl_object<td_api::userTypeRegular>();
   }
