@@ -2260,6 +2260,10 @@ class GetCreatedPublicChannelsQuery final : public Td::ResultHandler {
     if (type_ == PublicDialogType::IsLocationBased) {
       flags |= telegram_api::channels_getAdminedPublicChannels::BY_LOCATION_MASK;
     }
+    if (type_ == PublicDialogType::ForPersonalDialog) {
+      CHECK(!check_limit);
+      flags |= telegram_api::channels_getAdminedPublicChannels::FOR_PERSONAL_MASK;
+    }
     if (check_limit) {
       flags |= telegram_api::channels_getAdminedPublicChannels::CHECK_LIMIT_MASK;
     }
@@ -7232,6 +7236,8 @@ bool ContactsManager::is_suitable_created_public_channel(PublicDialogType type, 
       return c->usernames.has_editable_username();
     case PublicDialogType::IsLocationBased:
       return c->has_location;
+    case PublicDialogType::ForPersonalDialog:
+      return !c->is_megagroup && c->usernames.has_first_username();
     default:
       UNREACHABLE();
       return false;
@@ -7324,7 +7330,8 @@ void ContactsManager::finish_get_created_public_dialogs(PublicDialogType type, R
 }
 
 void ContactsManager::update_created_public_channels(Channel *c, ChannelId channel_id) {
-  for (auto type : {PublicDialogType::HasUsername, PublicDialogType::IsLocationBased}) {
+  for (auto type :
+       {PublicDialogType::HasUsername, PublicDialogType::IsLocationBased, PublicDialogType::ForPersonalDialog}) {
     auto index = static_cast<int32>(type);
     if (!created_public_channels_inited_[index]) {
       continue;

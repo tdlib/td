@@ -1710,9 +1710,9 @@ class ContactsManager final : public Actor {
 
   FlatHashMap<UserId, vector<SecretChatId>, UserIdHash> secret_chats_with_user_;
 
-  bool created_public_channels_inited_[2] = {false, false};
-  vector<ChannelId> created_public_channels_[2];
-  vector<Promise<td_api::object_ptr<td_api::chats>>> get_created_public_channels_queries_[2];
+  bool created_public_channels_inited_[3] = {false, false, false};
+  vector<ChannelId> created_public_channels_[3];
+  vector<Promise<td_api::object_ptr<td_api::chats>>> get_created_public_channels_queries_[3];
 
   bool dialogs_for_discussion_inited_ = false;
   vector<DialogId> dialogs_for_discussion_;
