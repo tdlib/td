@@ -62,7 +62,7 @@ class BusinessConnectionId {
 
   template <class ParserT>
   void parse(ParserT &parser) {
-    business_connection_id_ = parser.fetch_string<string>();
+    business_connection_id_ = parser.template fetch_string<string>();
   }
 };
 

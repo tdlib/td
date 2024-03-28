@@ -201,7 +201,7 @@ Status SessionConnection::parse_message(TlParser &parser, MsgInfo *info, Slice *
                                   << "] is not divisible by 4");
   }
 
-  *packet = parser.fetch_string_raw<Slice>(bytes);
+  *packet = parser.template fetch_string_raw<Slice>(bytes);
   if (parser.get_error() != nullptr) {
     return Status::Error(PSLICE() << "Failed to parse mtproto_api::message: " << parser.get_error());
   }

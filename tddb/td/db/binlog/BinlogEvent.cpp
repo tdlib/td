@@ -23,7 +23,7 @@ void BinlogEvent::init(string raw_event) {
   flags_ = parser.fetch_int();
   extra_ = static_cast<uint64>(parser.fetch_long());
   CHECK(size_ >= MIN_SIZE);
-  parser.fetch_string_raw<Slice>(size_ - MIN_SIZE);  // skip data
+  parser.template fetch_string_raw<Slice>(size_ - MIN_SIZE);  // skip data
   crc32_ = static_cast<uint32>(parser.fetch_int());
   raw_event_ = std::move(raw_event);
 }
@@ -43,7 +43,7 @@ Status BinlogEvent::validate() const {
     return Status::Error(PSLICE() << "Size of event changed: " << tag("was", size_) << tag("now", size)
                                   << tag("real size", raw_event_.size()));
   }
-  parser.fetch_string_raw<Slice>(size_ - TAIL_SIZE - sizeof(int));  // skip
+  parser.template fetch_string_raw<Slice>(size_ - TAIL_SIZE - sizeof(int));  // skip
   auto stored_crc32 = static_cast<uint32>(parser.fetch_int());
   auto calculated_crc = crc32(Slice(as_slice(raw_event_).data(), size_ - TAIL_SIZE));
   if (calculated_crc != crc32_ || calculated_crc != stored_crc32) {
