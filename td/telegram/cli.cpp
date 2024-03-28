@@ -3728,6 +3728,12 @@ class CliClient final : public Actor {
       MessageId message_id;
       get_args(args, chat_id, message_id);
       send_request(td_api::make_object<td_api::clickChatSponsoredMessage>(chat_id, message_id));
+    } else if (op == "rcspm") {
+      ChatId chat_id;
+      MessageId message_id;
+      string option_id;
+      get_args(args, chat_id, message_id, option_id);
+      send_request(td_api::make_object<td_api::reportChatSponsoredMessage>(chat_id, message_id, option_id));
     } else if (op == "gmlink") {
       ChatId chat_id;
       MessageId message_id;
