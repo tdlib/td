@@ -821,6 +821,8 @@ class ContactsManager final : public Actor {
     int32 common_chat_count = 0;
     Birthdate birthdate;
 
+    ChannelId personal_channel_id;
+
     unique_ptr<BusinessInfo> business_info;
 
     bool is_blocked = false;

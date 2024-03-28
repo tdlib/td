@@ -3279,6 +3279,7 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   bool has_fallback_photo = !fallback_photo.is_empty();
   bool has_business_info = business_info != nullptr && !business_info->is_empty();
   bool has_birthdate = !birthdate.is_empty();
+  bool has_personal_channel_id = personal_channel_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
   STORE_FLAG(is_blocked);
@@ -3307,6 +3308,7 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   STORE_FLAG(contact_require_premium);
   STORE_FLAG(has_business_info);  // 25
   STORE_FLAG(has_birthdate);
+  STORE_FLAG(has_personal_channel_id);
   END_STORE_FLAGS();
   if (has_about) {
     store(about, storer);
@@ -3356,6 +3358,9 @@ void ContactsManager::UserFull::store(StorerT &storer) const {
   if (has_birthdate) {
     store(birthdate, storer);
   }
+  if (has_personal_channel_id) {
+    store(personal_channel_id, storer);
+  }
 }
 
 template <class ParserT>
@@ -3376,6 +3381,7 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   bool has_fallback_photo;
   bool has_business_info;
   bool has_birthdate;
+  bool has_personal_channel_id;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_about);
   PARSE_FLAG(is_blocked);
@@ -3404,6 +3410,7 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   PARSE_FLAG(contact_require_premium);
   PARSE_FLAG(has_business_info);
   PARSE_FLAG(has_birthdate);
+  PARSE_FLAG(has_personal_channel_id);
   END_PARSE_FLAGS();
   if (has_about) {
     parse(about, parser);
@@ -3452,6 +3459,9 @@ void ContactsManager::UserFull::parse(ParserT &parser) {
   }
   if (has_birthdate) {
     parse(birthdate, parser);
+  }
+  if (has_personal_channel_id) {
+    parse(personal_channel_id, parser);
   }
 }
 
@@ -9266,7 +9276,7 @@ void ContactsManager::on_load_user_full_from_database(UserId user_id, string val
   if (user_full->business_info != nullptr) {
     user_full->business_info->add_dependencies(dependencies);
   }
-  dependencies.add(user_id);
+  dependencies.add(user_full->personal_channel_id);
   if (!dependencies.resolve_force(td_, "on_load_user_full_from_database")) {
     users_full_.erase(user_id);
     G()->td_db()->get_sqlite_pmc()->erase(get_user_full_database_key(user_id), Auto());
@@ -10410,6 +10420,7 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   AdministratorRights broadcast_administrator_rights(user->bot_broadcast_admin_rights_, ChannelType::Broadcast);
   bool has_pinned_stories = user->stories_pinned_available_;
   auto birthdate = Birthdate(std::move(user->birthday_));
+  auto personal_channel_id = ChannelId(user->personal_channel_id_);
   if (user_full->can_be_called != can_be_called || user_full->supports_video_calls != supports_video_calls ||
       user_full->has_private_calls != has_private_calls ||
       user_full->group_administrator_rights != group_administrator_rights ||
@@ -10480,6 +10491,14 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
       user_full->description_animation_file_id != description_animation_file_id) {
     user_full->description_photo = std::move(description_photo);
     user_full->description_animation_file_id = description_animation_file_id;
+    user_full->is_changed = true;
+  }
+  if (personal_channel_id != ChannelId() && !personal_channel_id.is_valid()) {
+    LOG(ERROR) << "Receive personal " << personal_channel_id;
+    personal_channel_id = ChannelId();
+  }
+  if (user_full->personal_channel_id != personal_channel_id) {
+    user_full->personal_channel_id = personal_channel_id;
     user_full->is_changed = true;
   }
 
@@ -12265,6 +12284,7 @@ void ContactsManager::drop_user_full(UserId user_id) {
   user_full->menu_button = nullptr;
   user_full->commands.clear();
   user_full->common_chat_count = 0;
+  user_full->personal_channel_id = ChannelId();
   user_full->business_info = nullptr;
   user_full->private_forward_name.clear();
   user_full->group_administrator_rights = {};
@@ -16244,6 +16264,12 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
   auto business_info = is_premium && user_full->business_info != nullptr
                            ? user_full->business_info->get_business_info_object(td_)
                            : nullptr;
+  int64 personal_chat_id = 0;
+  if (user_full->personal_channel_id.is_valid()) {
+    DialogId dialog_id(user_full->personal_channel_id);
+    td_->dialog_manager_->force_create_dialog(dialog_id, "get_user_full_info_object", true);
+    personal_chat_id = td_->dialog_manager_->get_chat_id_object(dialog_id, "get_user_full_info_object");
+  }
   return td_api::make_object<td_api::userFullInfo>(
       get_chat_photo_object(td_->file_manager_.get(), user_full->personal_photo),
       get_chat_photo_object(td_->file_manager_.get(), user_full->photo),
@@ -16251,8 +16277,9 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
       user_full->can_be_called, user_full->supports_video_calls, user_full->has_private_calls,
       !user_full->private_forward_name.empty(), voice_messages_forbidden, user_full->has_pinned_stories,
       user_full->need_phone_number_privacy_exception, user_full->wallpaper_overridden, std::move(bio_object),
-      user_full->birthdate.get_birthdate_object(), get_premium_payment_options_object(user_full->premium_gift_options),
-      user_full->common_chat_count, std::move(business_info), std::move(bot_info));
+      user_full->birthdate.get_birthdate_object(), personal_chat_id,
+      get_premium_payment_options_object(user_full->premium_gift_options), user_full->common_chat_count,
+      std::move(business_info), std::move(bot_info));
 }
 
 td_api::object_ptr<td_api::updateBasicGroup> ContactsManager::get_update_basic_group_object(ChatId chat_id,
