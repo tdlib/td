@@ -2750,7 +2750,7 @@ static Result<InputMessageContent> create_input_message_content(
       self_destruct_type = std::move(input_video_note->self_destruct_type_);
 
       auto length = input_video_note->length_;
-      if (length < 0 || length >= 640) {
+      if (length < 0 || length > 640) {
         return Status::Error(400, "Wrong video note length");
       }
 
