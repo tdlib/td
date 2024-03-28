@@ -147,6 +147,8 @@ class MessagesManager final : public Actor {
 
   void on_get_empty_messages(DialogId dialog_id, const vector<MessageId> &empty_message_ids);
 
+  void get_channel_difference_if_needed(DialogId dialog_id, MessageId message_id, const char *source);
+
   void get_channel_difference_if_needed(DialogId dialog_id, MessagesInfo &&messages_info,
                                         Promise<MessagesInfo> &&promise, const char *source);
 
@@ -2908,6 +2910,8 @@ class MessagesManager final : public Actor {
 
   bool need_channel_difference_to_add_message(DialogId dialog_id,
                                               const tl_object_ptr<telegram_api::Message> &message_ptr);
+
+  bool need_channel_difference_to_add_message(DialogId dialog_id, MessageId message_id);
 
   void run_after_channel_difference(DialogId dialog_id, MessageId expected_max_message_id, Promise<Unit> &&promise,
                                     const char *source);

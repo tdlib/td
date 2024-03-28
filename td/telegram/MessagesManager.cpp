@@ -8462,6 +8462,14 @@ void MessagesManager::on_get_empty_messages(DialogId dialog_id, const vector<Mes
   }
 }
 
+void MessagesManager::get_channel_difference_if_needed(DialogId dialog_id, MessageId message_id, const char *source) {
+  if (!need_channel_difference_to_add_message(dialog_id, message_id)) {
+    return;
+  }
+  const Dialog *d = get_dialog(dialog_id);
+  get_channel_difference(dialog_id, d == nullptr ? load_channel_pts(dialog_id) : d->pts, 0, message_id, true, source);
+}
+
 void MessagesManager::get_channel_difference_if_needed(DialogId dialog_id, MessagesInfo &&messages_info,
                                                        Promise<MessagesInfo> &&promise, const char *source) {
   if (td_->auth_manager_->is_bot()) {
@@ -35947,15 +35955,17 @@ void MessagesManager::set_channel_pts(Dialog *d, int32 new_pts, const char *sour
 
 bool MessagesManager::need_channel_difference_to_add_message(DialogId dialog_id,
                                                              const tl_object_ptr<telegram_api::Message> &message_ptr) {
-  if (dialog_id.get_type() != DialogType::Channel ||
-      !td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read) ||
-      dialog_id == debug_channel_difference_dialog_ || td_->auth_manager_->is_bot()) {
+  if (message_ptr == nullptr || DialogId::get_message_dialog_id(message_ptr) != dialog_id) {
     return false;
   }
-  if (message_ptr == nullptr) {
-    return true;
-  }
-  if (DialogId::get_message_dialog_id(message_ptr) != dialog_id) {
+
+  return need_channel_difference_to_add_message(dialog_id, MessageId::get_message_id(message_ptr, false));
+}
+
+bool MessagesManager::need_channel_difference_to_add_message(DialogId dialog_id, MessageId message_id) {
+  if (td_->auth_manager_->is_bot() || dialog_id.get_type() != DialogType::Channel ||
+      !td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read) ||
+      dialog_id == debug_channel_difference_dialog_) {
     return false;
   }
 
@@ -35969,7 +35979,6 @@ bool MessagesManager::need_channel_difference_to_add_message(DialogId dialog_id,
     return d->pts > 0 && !d->is_channel_difference_finished;
   }
 
-  auto message_id = MessageId::get_message_id(message_ptr, false);
   LOG(DEBUG) << "Check ability to add " << message_id << " to " << dialog_id;
   return message_id > d->last_new_message_id;
 }

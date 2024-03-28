@@ -10501,6 +10501,11 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
     user_full->personal_channel_id = personal_channel_id;
     user_full->is_changed = true;
   }
+  if (user_full->personal_channel_id != ChannelId()) {
+    auto personal_message_id = MessageId(ServerMessageId(user->personal_channel_message_));
+    td_->messages_manager_->get_channel_difference_if_needed(DialogId(user_full->personal_channel_id),
+                                                             personal_message_id, "on_get_user_full personal chat");
+  }
 
   auto photo = get_photo(td_, std::move(user->profile_photo_), DialogId(user_id));
   auto personal_photo = get_photo(td_, std::move(user->personal_photo_), DialogId(user_id));
