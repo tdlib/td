@@ -5841,6 +5841,10 @@ class CliClient final : public Actor {
         send_request(
             td_api::make_object<td_api::setBirthdate>(td_api::make_object<td_api::birthdate>(day, month, year)));
       }
+    } else if (op == "spec") {
+      ChatId chat_id;
+      get_args(args, chat_id);
+      send_request(td_api::make_object<td_api::setPersonalChat>(chat_id));
     } else if (op == "sese") {
       send_request(td_api::make_object<td_api::setEmojiStatus>(nullptr));
     } else if (op == "ses") {

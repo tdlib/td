@@ -1035,6 +1035,44 @@ class UpdateBirthdayQuery final : public Td::ResultHandler {
   }
 };
 
+class UpdatePersonalChannelQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit UpdatePersonalChannelQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id) {
+    telegram_api::object_ptr<telegram_api::InputChannel> input_channel;
+    if (channel_id == ChannelId()) {
+      input_channel = telegram_api::make_object<telegram_api::inputChannelEmpty>();
+    } else {
+      input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+      CHECK(input_channel != nullptr);
+    }
+    send_query(G()->net_query_creator().create(telegram_api::account_updatePersonalChannel(std::move(input_channel)),
+                                               {{"me"}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_updatePersonalChannel>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    LOG(DEBUG) << "Receive result for UpdatePersonalChannelQuery: " << result_ptr.ok();
+    if (result_ptr.ok()) {
+      promise_.set_value(Unit());
+    } else {
+      promise_.set_error(Status::Error(400, "Failed to change personal chat"));
+    }
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class UpdateEmojiStatusQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -6393,10 +6431,46 @@ void ContactsManager::set_birthdate(Birthdate &&birthdate, Promise<Unit> &&promi
 void ContactsManager::on_set_birthdate(Birthdate birthdate, Promise<Unit> &&promise) {
   auto my_user_id = get_my_id();
   UserFull *user_full = get_user_full_force(my_user_id, "on_set_birthdate");
-  if (user_full != nullptr) {
+  if (user_full != nullptr && user_full->birthdate != birthdate) {
     user_full->birthdate = std::move(birthdate);
     user_full->is_changed = true;
     update_user_full(user_full, my_user_id, "on_set_birthdate");
+  }
+  promise.set_value(Unit());
+}
+
+void ContactsManager::set_personal_channel(DialogId dialog_id, Promise<Unit> &&promise) {
+  ChannelId channel_id;
+  if (dialog_id != DialogId() && !td_->dialog_manager_->have_dialog_force(dialog_id, "set_personal_channel")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  if (dialog_id != DialogId()) {
+    if (dialog_id.get_type() != DialogType::Channel) {
+      return promise.set_error(Status::Error(400, "Chat can't be set as a personal chat"));
+    }
+    channel_id = dialog_id.get_channel_id();
+    if (!is_suitable_created_public_channel(PublicDialogType::ForPersonalDialog, get_channel(channel_id))) {
+      return promise.set_error(Status::Error(400, "Chat can't be set as a personal chat"));
+    }
+  }
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), channel_id, promise = std::move(promise)](Result<Unit> result) mutable {
+        if (result.is_ok()) {
+          send_closure(actor_id, &ContactsManager::on_set_personal_channel, channel_id, std::move(promise));
+        } else {
+          promise.set_error(result.move_as_error());
+        }
+      });
+  td_->create_handler<UpdatePersonalChannelQuery>(std::move(query_promise))->send(channel_id);
+}
+
+void ContactsManager::on_set_personal_channel(ChannelId channel_id, Promise<Unit> &&promise) {
+  auto my_user_id = get_my_id();
+  UserFull *user_full = get_user_full_force(my_user_id, "on_set_personal_channel");
+  if (user_full != nullptr && user_full->personal_channel_id != channel_id) {
+    user_full->personal_channel_id = channel_id;
+    user_full->is_changed = true;
+    update_user_full(user_full, my_user_id, "on_set_personal_channel");
   }
   promise.set_value(Unit());
 }
