@@ -2015,6 +2015,11 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         }
         continue;
       }
+      if (key == "new_noncontact_peers_require_premium_without_ownpremium") {
+        G()->set_option_boolean("need_premium_for_new_chat_privacy",
+                                !get_json_value_bool(std::move(key_value->value_), key));
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }

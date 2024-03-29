@@ -183,6 +183,7 @@ void OptionManager::update_premium_options() {
     set_option_integer("story_suggested_reaction_area_count_max",
                        get_option_integer("stories_suggested_reactions_limit_premium", 5));
 
+    set_option_boolean("can_set_new_chat_privacy_settings", true);
     set_option_boolean("can_use_text_entities_in_story_caption", true);
   } else {
     set_option_integer("saved_animations_limit", get_option_integer("saved_gifs_limit_default", 200));
@@ -206,6 +207,7 @@ void OptionManager::update_premium_options() {
     set_option_integer("story_suggested_reaction_area_count_max",
                        get_option_integer("stories_suggested_reactions_limit_default", 1));
 
+    set_option_boolean("can_set_new_chat_privacy_settings", !get_option_boolean("need_premium_for_new_chat_privacy"));
     set_option_boolean("can_use_text_entities_in_story_caption",
                        !get_option_boolean("need_premium_for_story_caption_entities"));
   }
@@ -387,6 +389,7 @@ bool OptionManager::is_internal_option(Slice name) {
                                                               "ignored_restriction_reasons",
                                                               "language_pack_version",
                                                               "my_phone_number",
+                                                              "need_premium_for_new_chat_privacy",
                                                               "need_premium_for_story_caption_entities",
                                                               "need_synchronize_archive_all_stories",
                                                               "notification_cloud_delay_ms",
@@ -550,6 +553,9 @@ void OptionManager::on_option_updated(Slice name) {
       }
       break;
     case 'n':
+      if (name == "need_premium_for_new_chat_privacy") {
+        update_premium_options();
+      }
       if (name == "need_premium_for_story_caption_entities") {
         update_premium_options();
       }

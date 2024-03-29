@@ -8792,7 +8792,7 @@ canSendStory chat_id:int53 = CanSendStoryResult;
 //@chat_id Identifier of the chat that will post the story
 //@content Content of the story
 //@areas Clickable rectangle areas to be shown on the story media; pass null if none
-//@caption Story caption; pass null to use an empty caption; 0-getOption("story_caption_length_max") characters
+//@caption Story caption; pass null to use an empty caption; 0-getOption("story_caption_length_max") characters; can have entities only if getOption("can_use_text_entities_in_story_caption")
 //@privacy_settings The privacy settings for the story; ignored for stories sent to supergroup and channel chats
 //@active_period Period after which the story is moved to archive, in seconds; must be one of 6 * 3600, 12 * 3600, 86400, or 2 * 86400 for Telegram Premium users, and 86400 otherwise
 //@from_story_full_id Full identifier of the original story, which content was used to create the story
@@ -10004,7 +10004,7 @@ setReadDatePrivacySettings settings:readDatePrivacySettings = Ok;
 //@description Returns privacy settings for message read date
 getReadDatePrivacySettings = ReadDatePrivacySettings;
 
-//@description Changes privacy settings for new chat creation; for Telegram Premium users only @settings New settings
+//@description Changes privacy settings for new chat creation; can be used only if getOption("can_set_new_chat_privacy_settings") @settings New settings
 setNewChatPrivacySettings settings:newChatPrivacySettings = Ok;
 
 //@description Returns privacy settings for new chat creation
