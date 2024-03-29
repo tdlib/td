@@ -3197,7 +3197,6 @@ class MessagesManager final : public Actor {
 
   struct PendingCreatedDialog {
     Promise<td_api::object_ptr<td_api::chat>> promise_;
-    vector<UserId> group_invite_privacy_forbidden_user_ids_;
   };
   FlatHashMap<DialogId, PendingCreatedDialog, DialogIdHash> pending_created_dialogs_;
 

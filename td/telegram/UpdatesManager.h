@@ -104,9 +104,6 @@ class UpdatesManager final : public Actor {
 
   static bool are_empty_updates(const telegram_api::Updates *updates_ptr);
 
-  static vector<UserId> extract_group_invite_privacy_forbidden_updates(
-      tl_object_ptr<telegram_api::Updates> &updates_ptr);
-
   static FlatHashSet<int64> get_sent_messages_random_ids(const telegram_api::Updates *updates_ptr);
 
   static const telegram_api::Message *get_message_by_random_id(const telegram_api::Updates *updates_ptr,

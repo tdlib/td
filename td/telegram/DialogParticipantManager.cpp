@@ -596,20 +596,7 @@ class InviteToChannelQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for InviteToChannelQuery: " << to_string(ptr);
     td_->contacts_manager_->invalidate_channel_full(channel_id_, false, "InviteToChannelQuery");
-    auto user_ids = td_->updates_manager_->extract_group_invite_privacy_forbidden_updates(ptr->updates_);
-    auto promise = PromiseCreator::lambda([dialog_id = DialogId(channel_id_), user_ids = std::move(user_ids),
-                                           promise = std::move(promise_)](Result<Unit> &&result) mutable {
-      if (result.is_error()) {
-        return promise.set_error(result.move_as_error());
-      }
-      promise.set_value(Unit());
-      if (!user_ids.empty()) {
-        send_closure(G()->dialog_participant_manager(),
-                     &DialogParticipantManager::send_update_add_chat_members_privacy_forbidden, dialog_id,
-                     std::move(user_ids), "InviteToChannelQuery");
-      }
-    });
-    td_->updates_manager_->on_get_updates(std::move(std::move(ptr->updates_)), std::move(promise));
+    td_->updates_manager_->on_get_updates(std::move(std::move(ptr->updates_)), std::move(promise_));
   }
 
   void on_error(Status status) final {

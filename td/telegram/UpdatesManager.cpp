@@ -1384,36 +1384,6 @@ bool UpdatesManager::are_empty_updates(const telegram_api::Updates *updates_ptr)
   }
 }
 
-vector<UserId> UpdatesManager::extract_group_invite_privacy_forbidden_updates(
-    tl_object_ptr<telegram_api::Updates> &updates_ptr) {
-  return {};
-  /*
-  auto updates = get_updates(updates_ptr.get());
-  if (updates == nullptr) {
-    LOG(ERROR) << "Can't find updateGroupInvitePrivacyForbidden updates";
-    return {};
-  }
-  LOG(INFO) << "Extract updateGroupInvitePrivacyForbidden updates from " << updates->size() << " updates";
-  vector<UserId> user_ids;
-  for (auto &update_ptr : *updates) {
-    if (update_ptr->get_id() != telegram_api::updateGroupInvitePrivacyForbidden::ID) {
-      continue;
-    }
-    auto update = telegram_api::move_object_as<telegram_api::updateGroupInvitePrivacyForbidden>(update_ptr);
-    UserId user_id(update->user_id_);
-    if (!user_id.is_valid()) {
-      LOG(ERROR) << "Receive " << to_string(update);
-      continue;
-    }
-    user_ids.push_back(user_id);
-  }
-  if (!user_ids.empty()) {
-    td::remove_if(*updates, [](auto &update) { return update == nullptr; });
-  }
-  return user_ids;
-*/
-}
-
 FlatHashSet<int64> UpdatesManager::get_sent_messages_random_ids(const telegram_api::Updates *updates_ptr) {
   FlatHashSet<int64> random_ids;
   auto updates = get_updates(updates_ptr);

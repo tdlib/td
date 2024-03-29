@@ -13678,11 +13678,6 @@ MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const 
       pending_created_dialogs_.erase(it);
 
       pending_created_dialog.promise_.set_value(get_chat_object(d, "on_get_message"));
-      if (!pending_created_dialog.group_invite_privacy_forbidden_user_ids_.empty()) {
-        send_closure(G()->dialog_participant_manager(),
-                     &DialogParticipantManager::send_update_add_chat_members_privacy_forbidden, dialog_id,
-                     std::move(pending_created_dialog.group_invite_privacy_forbidden_user_ids_), "on_get_message");
-      }
     }
   }
 
@@ -30860,8 +30855,6 @@ void MessagesManager::on_create_new_dialog(telegram_api::object_ptr<telegram_api
   if (pending_created_dialogs_.count(dialog_id) == 0) {
     PendingCreatedDialog pending_created_dialog;
     pending_created_dialog.promise_ = std::move(promise);
-    pending_created_dialog.group_invite_privacy_forbidden_user_ids_ =
-        td_->updates_manager_->extract_group_invite_privacy_forbidden_updates(updates);
     pending_created_dialogs_.emplace(dialog_id, std::move(pending_created_dialog));
   } else {
     LOG(ERROR) << "Receive twice " << dialog_id << " as result of chat creation";
