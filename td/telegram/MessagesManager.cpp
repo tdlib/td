@@ -13677,7 +13677,7 @@ MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const 
       auto pending_created_dialog = std::move(it->second);
       pending_created_dialogs_.erase(it);
 
-      pending_created_dialog.promise_.set_value(get_chat_object(d));
+      pending_created_dialog.promise_.set_value(get_chat_object(d, "on_get_message"));
       if (!pending_created_dialog.group_invite_privacy_forbidden_user_ids_.empty()) {
         send_closure(G()->dialog_participant_manager(),
                      &DialogParticipantManager::send_update_add_chat_members_privacy_forbidden, dialog_id,
@@ -19289,7 +19289,7 @@ td_api::object_ptr<td_api::MessageSender> MessagesManager::get_default_message_s
              : nullptr;
 }
 
-td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *d) const {
+td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *d, const char *source) const {
   CHECK(d != nullptr);
 
   bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
@@ -19303,7 +19303,7 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
   auto chat_lists = transform(get_dialog_list_ids(d),
                               [](DialogListId dialog_list_id) { return dialog_list_id.get_chat_list_object(); });
   return make_tl_object<td_api::chat>(
-      d->dialog_id.get(), td_->dialog_manager_->get_chat_type_object(d->dialog_id),
+      d->dialog_id.get(), td_->dialog_manager_->get_chat_type_object(d->dialog_id, source),
       td_->dialog_manager_->get_dialog_title(d->dialog_id),
       get_chat_photo_info_object(td_->file_manager_.get(), td_->dialog_manager_->get_dialog_photo(d->dialog_id)),
       td_->dialog_manager_->get_dialog_accent_color_id_object(d->dialog_id),
@@ -19311,11 +19311,11 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       td_->dialog_manager_->get_dialog_profile_accent_color_id_object(d->dialog_id),
       td_->dialog_manager_->get_dialog_profile_background_custom_emoji_id(d->dialog_id).get(),
       td_->dialog_manager_->get_dialog_default_permissions(d->dialog_id).get_chat_permissions_object(),
-      get_message_object(d->dialog_id, get_message(d, d->last_message_id), "get_chat_object"),
-      get_chat_positions_object(d), std::move(chat_lists), get_default_message_sender_object(d),
-      block_list_id.get_block_list_object(), td_->dialog_manager_->get_dialog_has_protected_content(d->dialog_id),
-      is_translatable, d->is_marked_as_unread, get_dialog_view_as_topics(d), get_dialog_has_scheduled_messages(d),
-      can_delete.for_self_, can_delete.for_all_users_, td_->dialog_manager_->can_report_dialog(d->dialog_id),
+      get_message_object(d->dialog_id, get_message(d, d->last_message_id), source), get_chat_positions_object(d),
+      std::move(chat_lists), get_default_message_sender_object(d), block_list_id.get_block_list_object(),
+      td_->dialog_manager_->get_dialog_has_protected_content(d->dialog_id), is_translatable, d->is_marked_as_unread,
+      get_dialog_view_as_topics(d), get_dialog_has_scheduled_messages(d), can_delete.for_self_,
+      can_delete.for_all_users_, td_->dialog_manager_->can_report_dialog(d->dialog_id),
       d->notification_settings.silent_send_message, d->server_unread_count + d->local_unread_count,
       d->last_read_inbox_message_id.get(), d->last_read_outbox_message_id.get(), d->unread_mention_count,
       d->unread_reaction_count, get_chat_notification_settings_object(&d->notification_settings),
@@ -19326,12 +19326,12 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       d->client_data);
 }
 
-td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(DialogId dialog_id) {
+td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(DialogId dialog_id, const char *source) {
   const Dialog *d = get_dialog(dialog_id);
   if (postponed_chat_read_inbox_updates_.erase(dialog_id) > 0) {
-    send_update_chat_read_inbox(d, true, "get_chat_object");
+    send_update_chat_read_inbox(d, true, source);
   }
-  return get_chat_object(d);
+  return get_chat_object(d, source);
 }
 
 td_api::object_ptr<td_api::draftMessage> MessagesManager::get_my_dialog_draft_message_object() const {
@@ -28690,7 +28690,7 @@ void MessagesManager::send_update_new_chat(Dialog *d) {
     (void)td_->dialog_manager_->get_dialog_photo(d->dialog_id);  // to apply pending user photo
   }
   d->is_update_new_chat_being_sent = true;
-  auto chat_object = get_chat_object(d);
+  auto chat_object = get_chat_object(d, "send_update_new_chat");
   bool has_action_bar = chat_object->action_bar_ != nullptr;
   bool has_background = chat_object->background_ != nullptr;
   bool has_theme = !chat_object->theme_name_.empty();
@@ -30854,7 +30854,7 @@ void MessagesManager::on_create_new_dialog(telegram_api::object_ptr<telegram_api
     // dialog have been already created and at least one non-temporary message was added,
     // i.e. we are not interested in the creation of dialog by searchMessages
     // then messages have already been added, so just set promise
-    return promise.set_value(get_chat_object(d));
+    return promise.set_value(get_chat_object(d, "on_create_new_dialog"));
   }
 
   if (pending_created_dialogs_.count(dialog_id) == 0) {
@@ -38412,7 +38412,7 @@ void MessagesManager::get_current_state(vector<td_api::object_ptr<td_api::Update
   vector<td_api::object_ptr<td_api::Update>> last_message_updates;
   dialogs_.foreach([&](const DialogId &dialog_id, const unique_ptr<Dialog> &dialog) {
     const Dialog *d = dialog.get();
-    auto update = td_api::make_object<td_api::updateNewChat>(get_chat_object(d));
+    auto update = td_api::make_object<td_api::updateNewChat>(get_chat_object(d, "get_current_state"));
     if (update->chat_->last_message_ != nullptr) {
       last_message_updates.push_back(td_api::make_object<td_api::updateChatLastMessage>(
           get_chat_id_object(dialog_id, "updateChatLastMessage"), std::move(update->chat_->last_message_),

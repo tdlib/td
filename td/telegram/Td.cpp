@@ -748,7 +748,7 @@ class GetChatRequest final : public RequestActor<> {
     if (!dialog_found_) {
       send_error(Status::Error(400, "Chat is not accessible"));
     } else {
-      send_result(td_->messages_manager_->get_chat_object(dialog_id_));
+      send_result(td_->messages_manager_->get_chat_object(dialog_id_, "GetChatRequest"));
     }
   }
 
@@ -809,7 +809,7 @@ class SearchPublicChatRequest final : public RequestActor<> {
   }
 
   void do_send_result() final {
-    send_result(td_->messages_manager_->get_chat_object(dialog_id_));
+    send_result(td_->messages_manager_->get_chat_object(dialog_id_, "SearchPublicChatRequest"));
   }
 
  public:
@@ -1664,7 +1664,7 @@ class CreateChatRequest final : public RequestActor<> {
   }
 
   void do_send_result() final {
-    send_result(td_->messages_manager_->get_chat_object(dialog_id_));
+    send_result(td_->messages_manager_->get_chat_object(dialog_id_, "CreateChatRequest"));
   }
 
  public:
@@ -1712,7 +1712,7 @@ class JoinChatByInviteLinkRequest final : public RequestActor<DialogId> {
   void do_send_result() final {
     CHECK(dialog_id_.is_valid());
     td_->dialog_manager_->force_create_dialog(dialog_id_, "join chat via an invite link");
-    send_result(td_->messages_manager_->get_chat_object(dialog_id_));
+    send_result(td_->messages_manager_->get_chat_object(dialog_id_, "JoinChatByInviteLinkRequest"));
   }
 
  public:

@@ -872,26 +872,26 @@ td_api::object_ptr<td_api::chats> DialogManager::get_chats_object(const std::pai
   return get_chats_object(dialog_ids.first, dialog_ids.second, source);
 }
 
-td_api::object_ptr<td_api::ChatType> DialogManager::get_chat_type_object(DialogId dialog_id) const {
+td_api::object_ptr<td_api::ChatType> DialogManager::get_chat_type_object(DialogId dialog_id, const char *source) const {
   switch (dialog_id.get_type()) {
     case DialogType::User:
       return td_api::make_object<td_api::chatTypePrivate>(
-          td_->contacts_manager_->get_user_id_object(dialog_id.get_user_id(), "chatTypePrivate"));
+          td_->contacts_manager_->get_user_id_object(dialog_id.get_user_id(), source));
     case DialogType::Chat:
       return td_api::make_object<td_api::chatTypeBasicGroup>(
-          td_->contacts_manager_->get_basic_group_id_object(dialog_id.get_chat_id(), "chatTypeBasicGroup"));
+          td_->contacts_manager_->get_basic_group_id_object(dialog_id.get_chat_id(), source));
     case DialogType::Channel: {
       auto channel_id = dialog_id.get_channel_id();
       return td_api::make_object<td_api::chatTypeSupergroup>(
-          td_->contacts_manager_->get_supergroup_id_object(channel_id, "chatTypeSupergroup"),
+          td_->contacts_manager_->get_supergroup_id_object(channel_id, source),
           !td_->contacts_manager_->is_megagroup_channel(channel_id));
     }
     case DialogType::SecretChat: {
       auto secret_chat_id = dialog_id.get_secret_chat_id();
       auto user_id = td_->contacts_manager_->get_secret_chat_user_id(secret_chat_id);
       return td_api::make_object<td_api::chatTypeSecret>(
-          td_->contacts_manager_->get_secret_chat_id_object(secret_chat_id, "chatTypeSecret"),
-          td_->contacts_manager_->get_user_id_object(user_id, "chatTypeSecret"));
+          td_->contacts_manager_->get_secret_chat_id_object(secret_chat_id, source),
+          td_->contacts_manager_->get_user_id_object(user_id, source));
     }
     case DialogType::None:
     default:
@@ -956,7 +956,7 @@ void DialogManager::on_migrate_chat_to_megagroup(ChatId chat_id, Promise<td_api:
 
   auto dialog_id = DialogId(channel_id);
   force_create_dialog(dialog_id, "on_migrate_chat_to_megagroup");
-  promise.set_value(td_->messages_manager_->get_chat_object(dialog_id));
+  promise.set_value(td_->messages_manager_->get_chat_object(dialog_id, "on_migrate_chat_to_megagroup"));
 }
 
 bool DialogManager::is_anonymous_administrator(DialogId dialog_id, string *author_signature) const {

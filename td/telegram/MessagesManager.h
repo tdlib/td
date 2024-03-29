@@ -682,7 +682,7 @@ class MessagesManager final : public Actor {
 
   int64 get_chat_id_object(DialogId dialog_id, const char *source) const;
 
-  td_api::object_ptr<td_api::chat> get_chat_object(DialogId dialog_id);
+  td_api::object_ptr<td_api::chat> get_chat_object(DialogId dialog_id, const char *source);
 
   td_api::object_ptr<td_api::draftMessage> get_my_dialog_draft_message_object() const;
 
@@ -2612,7 +2612,7 @@ class MessagesManager final : public Actor {
 
   td_api::object_ptr<td_api::MessageSender> get_default_message_sender_object(const Dialog *d) const;
 
-  td_api::object_ptr<td_api::chat> get_chat_object(const Dialog *d) const;
+  td_api::object_ptr<td_api::chat> get_chat_object(const Dialog *d, const char *source) const;
 
   Dialog *get_dialog(DialogId dialog_id);
   const Dialog *get_dialog(DialogId dialog_id) const;

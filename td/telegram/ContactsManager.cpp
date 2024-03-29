@@ -15382,7 +15382,7 @@ void ContactsManager::on_create_new_secret_chat(SecretChatId secret_chat_id,
   CHECK(secret_chat_id.is_valid());
   DialogId dialog_id(secret_chat_id);
   td_->dialog_manager_->force_create_dialog(dialog_id, "on_create_new_secret_chat");
-  promise.set_value(td_->messages_manager_->get_chat_object(dialog_id));
+  promise.set_value(td_->messages_manager_->get_chat_object(dialog_id, "on_create_new_secret_chat"));
 }
 
 bool ContactsManager::have_secret_chat(SecretChatId secret_chat_id) const {

@@ -106,7 +106,7 @@ class DialogManager final : public Actor {
   td_api::object_ptr<td_api::chats> get_chats_object(const std::pair<int32, vector<DialogId>> &dialog_ids,
                                                      const char *source) const;
 
-  td_api::object_ptr<td_api::ChatType> get_chat_type_object(DialogId dialog_id) const;
+  td_api::object_ptr<td_api::ChatType> get_chat_type_object(DialogId dialog_id, const char *source) const;
 
   NotificationSettingsScope get_dialog_notification_setting_scope(DialogId dialog_id) const;
 
