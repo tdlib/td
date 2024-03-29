@@ -652,14 +652,14 @@ MessageInputReplyTo BusinessConnectionManager::create_business_message_input_rep
 }
 
 Result<InputMessageContent> BusinessConnectionManager::process_input_message_content(
-    DialogId dialog_id, td_api::object_ptr<td_api::InputMessageContent> &&input_message_content) {
+    td_api::object_ptr<td_api::InputMessageContent> &&input_message_content) {
   if (input_message_content == nullptr) {
     return Status::Error(400, "Can't send message without content");
   }
   if (input_message_content->get_id() == td_api::inputMessageForwarded::ID) {
     return Status::Error(400, "Can't forward messages as business");
   }
-  return get_input_message_content(dialog_id, std::move(input_message_content), td_, true);
+  return get_input_message_content(DialogId(), std::move(input_message_content), td_, true);
 }
 
 unique_ptr<BusinessConnectionManager::PendingMessage> BusinessConnectionManager::create_business_message_to_send(
@@ -691,8 +691,7 @@ void BusinessConnectionManager::send_message(BusinessConnectionId business_conne
                                              td_api::object_ptr<td_api::InputMessageContent> &&input_message_content,
                                              Promise<td_api::object_ptr<td_api::businessMessage>> &&promise) {
   TRY_STATUS_PROMISE(promise, check_business_connection(business_connection_id, dialog_id));
-  TRY_RESULT_PROMISE(promise, input_content,
-                     process_input_message_content(dialog_id, std::move(input_message_content)));
+  TRY_RESULT_PROMISE(promise, input_content, process_input_message_content(std::move(input_message_content)));
   auto input_reply_to = create_business_message_input_reply_to(std::move(reply_to));
   TRY_RESULT_PROMISE(promise, message_reply_markup,
                      get_reply_markup(std::move(reply_markup), DialogType::User, true, false));
@@ -993,8 +992,7 @@ void BusinessConnectionManager::send_message_album(
   vector<InputMessageContent> message_contents;
   std::unordered_set<MessageContentType, MessageContentTypeHash> message_content_types;
   for (auto &input_message_content : input_message_contents) {
-    TRY_RESULT_PROMISE(promise, message_content,
-                       process_input_message_content(dialog_id, std::move(input_message_content)));
+    TRY_RESULT_PROMISE(promise, message_content, process_input_message_content(std::move(input_message_content)));
     auto message_content_type = message_content.content->get_type();
     if (!is_allowed_media_group_content(message_content_type)) {
       return promise.set_error(Status::Error(400, "Invalid message content type"));

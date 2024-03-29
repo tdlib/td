@@ -2893,7 +2893,7 @@ static Result<InputMessageContent> create_input_message_content(
       if (!story_id.is_server()) {
         return Status::Error(400, "Story can't be forwarded");
       }
-      if (td->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read) == nullptr) {
+      if (td->dialog_manager_->get_input_peer(story_sender_dialog_id, AccessRights::Read) == nullptr) {
         return Status::Error(400, "Can't access the story");
       }
       content = make_unique<MessageStory>(story_full_id, false);

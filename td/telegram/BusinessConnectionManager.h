@@ -111,7 +111,7 @@ class BusinessConnectionManager final : public Actor {
       td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to);
 
   Result<InputMessageContent> process_input_message_content(
-      DialogId dialog_id, td_api::object_ptr<td_api::InputMessageContent> &&input_message_content);
+      td_api::object_ptr<td_api::InputMessageContent> &&input_message_content);
 
   unique_ptr<PendingMessage> create_business_message_to_send(BusinessConnectionId business_connection_id,
                                                              DialogId dialog_id, MessageInputReplyTo &&input_reply_to,
