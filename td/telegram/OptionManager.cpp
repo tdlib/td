@@ -552,6 +552,11 @@ void OptionManager::on_option_updated(Slice name) {
         }
       }
       break;
+    case 'm':
+      if (name == "my_phone_number") {
+        send_closure(G()->config_manager(), &ConfigManager::reget_config, Promise<Unit>());
+      }
+      break;
     case 'n':
       if (name == "need_premium_for_new_chat_privacy") {
         update_premium_options();
