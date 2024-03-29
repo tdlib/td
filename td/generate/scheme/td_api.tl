@@ -4992,6 +4992,9 @@ premiumFeatureMessagePrivacy = PremiumFeature;
 //@description The ability to view last seen and read times of other users even they can't view last seen or read time for the current user
 premiumFeatureLastSeenTimes = PremiumFeature;
 
+//@description The ability to use Business features
+premiumFeatureBusiness = PremiumFeature;
+
 
 //@class BusinessFeature @description Describes a feature available to Business user accounts
 

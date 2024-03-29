@@ -108,6 +108,9 @@ static td_api::object_ptr<td_api::PremiumFeature> get_premium_feature_object(Sli
   if (premium_feature == "last_seen") {
     return td_api::make_object<td_api::premiumFeatureLastSeenTimes>();
   }
+  if (premium_feature == "business") {
+    return td_api::make_object<td_api::premiumFeatureBusiness>();
+  }
   if (G()->is_test_dc()) {
     LOG(ERROR) << "Receive unsupported premium feature " << premium_feature;
   }
@@ -811,6 +814,8 @@ static string get_premium_source(const td_api::PremiumFeature *feature) {
       return "message_privacy";
     case td_api::premiumFeatureLastSeenTimes::ID:
       return "last_seen";
+    case td_api::premiumFeatureBusiness::ID:
+      return "business";
     default:
       UNREACHABLE();
   }
