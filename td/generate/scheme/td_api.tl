@@ -2592,7 +2592,7 @@ inputInvoiceTelegram purpose:TelegramPaymentPurpose = InputInvoice;
 //@description The media is hidden until the invoice is paid
 //@width Media width; 0 if unknown
 //@height Media height; 0 if unknown
-//@duration Media duration; 0 if unknown
+//@duration Media duration, in seconds; 0 if unknown
 //@minithumbnail Media minithumbnail; may be null
 //@caption Media caption
 messageExtendedMediaPreview width:int32 height:int32 duration:int32 minithumbnail:minithumbnail caption:formattedText = MessageExtendedMedia;
@@ -7058,7 +7058,7 @@ updateDefaultReactionType reaction_type:ReactionType = Update;
 updateSavedMessagesTags saved_messages_topic_id:int53 tags:savedMessagesTags = Update;
 
 //@description The parameters of speech recognition without Telegram Premium subscription has changed
-//@max_media_duration The maximum allowed duration of media for speech recognition without Telegram Premium subscription
+//@max_media_duration The maximum allowed duration of media for speech recognition without Telegram Premium subscription, in seconds
 //@weekly_count The total number of allowed speech recognitions per week; 0 if none
 //@left_count Number of left speech recognition attempts this week
 //@next_reset_date Point in time (Unix timestamp) when the weekly number of tries will reset; 0 if unknown
