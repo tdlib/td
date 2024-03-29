@@ -9312,6 +9312,12 @@ void Td::on_request(uint64 id, td_api::assignGooglePlayTransaction &request) {
                                  std::move(request.purpose_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getBusinessFeatures &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  get_business_features(this, request.source_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::acceptTermsOfService &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.terms_of_service_id_);

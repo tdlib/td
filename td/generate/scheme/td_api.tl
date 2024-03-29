@@ -4955,7 +4955,7 @@ premiumFeatureAdvancedChatManagement = PremiumFeature;
 //@description A badge in the user's profile
 premiumFeatureProfileBadge = PremiumFeature;
 
-//@description An emoji status shown along with the user's name
+//@description The ability to show an emoji status along with the user's name
 premiumFeatureEmojiStatus = PremiumFeature;
 
 //@description Profile photo animation on message and chat screens
@@ -4993,6 +4993,42 @@ premiumFeatureMessagePrivacy = PremiumFeature;
 premiumFeatureLastSeenTimes = PremiumFeature;
 
 
+//@class BusinessFeature @description Describes a feature available to Business user accounts
+
+//@description The ability to set location
+businessFeatureLocation = BusinessFeature;
+
+//@description The ability to set opening hours
+businessFeatureOpeningHours = BusinessFeature;
+
+//@description The ability to use quick replies
+businessFeatureQuickReplies = BusinessFeature;
+
+//@description The ability to set up a greeting message
+businessFeatureGreetingMessage = BusinessFeature;
+
+//@description The ability to set up an away message
+businessFeatureAwayMessage = BusinessFeature;
+
+//@description The ability to create links to the business account with predefined message text
+businessFeatureAccountLinks = BusinessFeature;
+
+//@description The ability to customize intro
+businessFeatureIntro = BusinessFeature;
+
+//@description The ability to connect a bot to the account
+businessFeatureBots = BusinessFeature;
+
+//@description The ability to show an emoji status along with the business name
+businessFeatureEmojiStatus = BusinessFeature;
+
+//@description The ability to display folder names for each chat in the chat list
+businessFeatureChatFolderTags = BusinessFeature;
+
+//@description Allowed to use many additional features for stories
+businessFeatureUpgradedStories = BusinessFeature;
+
+
 //@class PremiumStoryFeature @description Describes a story feature available to Premium users
 
 //@description Stories of the current user are displayed before stories of non-Premium contacts, supergroups, and channels
@@ -5025,6 +5061,9 @@ premiumLimit type:PremiumLimitType default_value:int32 premium_value:int32 = Pre
 //@limits The list of limits, increased for Premium users
 //@payment_link An internal link to be opened to pay for Telegram Premium if store payment isn't possible; may be null if direct payment isn't available
 premiumFeatures features:vector<PremiumFeature> limits:vector<premiumLimit> payment_link:InternalLinkType = PremiumFeatures;
+
+//@description Contains information about features, available to Business user accounts @features The list of available business features
+businessFeatures features:vector<BusinessFeature> = BusinessFeatures;
 
 
 //@class PremiumSource @description Describes a source from which the Premium features screen is opened
@@ -10322,6 +10361,10 @@ assignAppStoreTransaction receipt:bytes purpose:StorePaymentPurpose = Ok;
 //@purchase_token Google Play purchase token
 //@purpose Transaction purpose
 assignGooglePlayTransaction package_name:string store_product_id:string purchase_token:string purpose:StorePaymentPurpose = Ok;
+
+
+//@description Returns information about features, available to Business users @source Source of the request; pass null if the method is called from settings or some non-standard source
+getBusinessFeatures source:BusinessFeature = BusinessFeatures;
 
 
 //@description Accepts Telegram terms of services @terms_of_service_id Terms of service identifier

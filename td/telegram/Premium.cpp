@@ -111,6 +111,43 @@ static td_api::object_ptr<td_api::PremiumFeature> get_premium_feature_object(Sli
   return nullptr;
 }
 
+static td_api::object_ptr<td_api::BusinessFeature> get_business_feature_object(Slice business_feature) {
+  if (business_feature == "business_location") {
+    return td_api::make_object<td_api::businessFeatureLocation>();
+  }
+  if (business_feature == "business_hours") {
+    return td_api::make_object<td_api::businessFeatureOpeningHours>();
+  }
+  if (business_feature == "quick_replies") {
+    return td_api::make_object<td_api::businessFeatureQuickReplies>();
+  }
+  if (business_feature == "greeting_message") {
+    return td_api::make_object<td_api::businessFeatureGreetingMessage>();
+  }
+  if (business_feature == "away_message") {
+    return td_api::make_object<td_api::businessFeatureAwayMessage>();
+  }
+  if (business_feature == "business_links") {
+    return td_api::make_object<td_api::businessFeatureAccountLinks>();
+  }
+  if (business_feature == "business_intro") {
+    return td_api::make_object<td_api::businessFeatureIntro>();
+  }
+  if (business_feature == "business_bots") {
+    return td_api::make_object<td_api::businessFeatureBots>();
+  }
+  if (business_feature == "emoji_status") {
+    return td_api::make_object<td_api::businessFeatureEmojiStatus>();
+  }
+  if (business_feature == "folder_tags") {
+    return td_api::make_object<td_api::businessFeatureChatFolderTags>();
+  }
+  if (business_feature == "stories") {
+    return td_api::make_object<td_api::businessFeatureUpgradedStories>();
+  }
+  return nullptr;
+}
+
 Result<telegram_api::object_ptr<telegram_api::InputPeer>> get_boost_input_peer(Td *td, DialogId dialog_id) {
   if (dialog_id == DialogId()) {
     return nullptr;
@@ -774,6 +811,40 @@ static string get_premium_source(const td_api::PremiumFeature *feature) {
   return string();
 }
 
+static string get_premium_source(const td_api::BusinessFeature *feature) {
+  if (feature == nullptr) {
+    return "business";
+  }
+
+  switch (feature->get_id()) {
+    case td_api::businessFeatureLocation::ID:
+      return "business_location";
+    case td_api::businessFeatureOpeningHours::ID:
+      return "business_hours";
+    case td_api::businessFeatureQuickReplies::ID:
+      return "quick_replies";
+    case td_api::businessFeatureGreetingMessage::ID:
+      return "greeting_message";
+    case td_api::businessFeatureAwayMessage::ID:
+      return "away_message";
+    case td_api::businessFeatureAccountLinks::ID:
+      return "business_links";
+    case td_api::businessFeatureIntro::ID:
+      return "business_intro";
+    case td_api::businessFeatureBots::ID:
+      return "business_bots";
+    case td_api::businessFeatureEmojiStatus::ID:
+      return "emoji_status";
+    case td_api::businessFeatureChatFolderTags::ID:
+      return "folder_tags";
+    case td_api::businessFeatureUpgradedStories::ID:
+      return "stories";
+    default:
+      UNREACHABLE();
+  }
+  return string();
+}
+
 static string get_premium_source(const td_api::PremiumStoryFeature *feature) {
   if (feature == nullptr) {
     return string();
@@ -959,6 +1030,39 @@ void get_premium_features(Td *td, const td_api::object_ptr<td_api::PremiumSource
 
   promise.set_value(
       td_api::make_object<td_api::premiumFeatures>(std::move(features), std::move(limits), std::move(payment_link)));
+}
+
+void get_business_features(Td *td, const td_api::object_ptr<td_api::BusinessFeature> &source,
+                           Promise<td_api::object_ptr<td_api::businessFeatures>> &&promise) {
+  auto business_features =
+      full_split(G()->get_option_string("business_features",
+                                        "business_location,business_hours,quick_replies,greeting_message,away_message,"
+                                        "business_links,business_intro,business_bots,emoji_status,folder_tags,stories"),
+                 ',');
+  vector<td_api::object_ptr<td_api::BusinessFeature>> features;
+  for (const auto &business_feature : business_features) {
+    auto feature = get_business_feature_object(business_feature);
+    if (feature != nullptr) {
+      features.push_back(std::move(feature));
+    }
+  }
+
+  auto source_str = get_premium_source(source.get());
+  if (!source_str.empty()) {
+    vector<telegram_api::object_ptr<telegram_api::jsonObjectValue>> data;
+    vector<telegram_api::object_ptr<telegram_api::JSONValue>> promo_order;
+    for (const auto &business_feature : business_features) {
+      promo_order.push_back(telegram_api::make_object<telegram_api::jsonString>(business_feature));
+    }
+    data.push_back(telegram_api::make_object<telegram_api::jsonObjectValue>(
+        "business_promo_order", telegram_api::make_object<telegram_api::jsonArray>(std::move(promo_order))));
+    data.push_back(telegram_api::make_object<telegram_api::jsonObjectValue>(
+        "source", telegram_api::make_object<telegram_api::jsonString>(source_str)));
+    save_app_log(td, "business.promo_screen_show", DialogId(),
+                 telegram_api::make_object<telegram_api::jsonObject>(std::move(data)), Promise<Unit>());
+  }
+
+  promise.set_value(td_api::make_object<td_api::businessFeatures>(std::move(features)));
 }
 
 void view_premium_feature(Td *td, const td_api::object_ptr<td_api::PremiumFeature> &feature, Promise<Unit> &&promise) {

@@ -30,6 +30,9 @@ void get_premium_limit(const td_api::object_ptr<td_api::PremiumLimitType> &limit
 void get_premium_features(Td *td, const td_api::object_ptr<td_api::PremiumSource> &source,
                           Promise<td_api::object_ptr<td_api::premiumFeatures>> &&promise);
 
+void get_business_features(Td *td, const td_api::object_ptr<td_api::BusinessFeature> &source,
+                           Promise<td_api::object_ptr<td_api::businessFeatures>> &&promise);
+
 void view_premium_feature(Td *td, const td_api::object_ptr<td_api::PremiumFeature> &feature, Promise<Unit> &&promise);
 
 void click_premium_subscription_button(Td *td, Promise<Unit> &&promise);
