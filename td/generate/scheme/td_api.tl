@@ -5074,6 +5074,9 @@ premiumSourceLimitExceeded limit_type:PremiumLimitType = PremiumSource;
 //@description A user tried to use a Premium feature @feature The used feature
 premiumSourceFeature feature:PremiumFeature = PremiumSource;
 
+//@description A user tried to use a Business feature @feature The used feature; pass null if none specific feature was used
+premiumSourceBusinessFeature feature:BusinessFeature = PremiumSource;
+
 //@description A user tried to use a Premium story feature @feature The used feature
 premiumSourceStoryFeature feature:PremiumStoryFeature = PremiumSource;
 

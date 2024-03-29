@@ -884,6 +884,10 @@ static string get_premium_source(const td_api::object_ptr<td_api::PremiumSource>
       auto *feature = static_cast<const td_api::premiumSourceFeature *>(source.get())->feature_.get();
       return get_premium_source(feature);
     }
+    case td_api::premiumSourceBusinessFeature::ID: {
+      auto *feature = static_cast<const td_api::premiumSourceBusinessFeature *>(source.get())->feature_.get();
+      return get_premium_source(feature);
+    }
     case td_api::premiumSourceStoryFeature::ID: {
       auto *feature = static_cast<const td_api::premiumSourceStoryFeature *>(source.get())->feature_.get();
       return get_premium_source(feature);
