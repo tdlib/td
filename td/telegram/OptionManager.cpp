@@ -182,6 +182,8 @@ void OptionManager::update_premium_options() {
     set_option_integer("monthly_sent_story_count_max", get_option_integer("stories_sent_monthly_limit_premium", 3000));
     set_option_integer("story_suggested_reaction_area_count_max",
                        get_option_integer("stories_suggested_reactions_limit_premium", 5));
+
+    set_option_boolean("can_use_text_entities_in_story_caption", true);
   } else {
     set_option_integer("saved_animations_limit", get_option_integer("saved_gifs_limit_default", 200));
     set_option_integer("favorite_stickers_limit", get_option_integer("stickers_faved_limit_default", 5));
@@ -203,6 +205,9 @@ void OptionManager::update_premium_options() {
     set_option_integer("monthly_sent_story_count_max", get_option_integer("stories_sent_monthly_limit_default", 30));
     set_option_integer("story_suggested_reaction_area_count_max",
                        get_option_integer("stories_suggested_reactions_limit_default", 1));
+
+    set_option_boolean("can_use_text_entities_in_story_caption",
+                       !get_option_boolean("need_premium_for_story_caption_entities"));
   }
 }
 
@@ -523,9 +528,7 @@ void OptionManager::on_option_updated(Slice name) {
         }
       }
       if (name == "is_premium") {
-        set_option_boolean(
-            "can_use_text_entities_in_story_caption",
-            !get_option_boolean("need_premium_for_story_caption_entities") || get_option_boolean("is_premium"));
+        update_premium_options();
       }
       break;
     case 'l':
@@ -548,9 +551,7 @@ void OptionManager::on_option_updated(Slice name) {
       break;
     case 'n':
       if (name == "need_premium_for_story_caption_entities") {
-        set_option_boolean(
-            "can_use_text_entities_in_story_caption",
-            !get_option_boolean("need_premium_for_story_caption_entities") || get_option_boolean("is_premium"));
+        update_premium_options();
       }
       if (name == "need_synchronize_archive_all_stories") {
         send_closure(td_->story_manager_actor_, &StoryManager::try_synchronize_archive_all_stories);
