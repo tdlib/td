@@ -213,9 +213,13 @@ class ContactsManager final : public Actor {
 
   void on_get_contacts_failed(Status error);
 
+  void on_get_contact_birthdates(telegram_api::object_ptr<telegram_api::contacts_contactBirthdays> &&birthdays);
+
   void on_get_contacts_statuses(vector<tl_object_ptr<telegram_api::contactStatus>> &&statuses);
 
   void reload_contacts(bool force);
+
+  void reload_contact_birthdates(bool force);
 
   void on_get_user(tl_object_ptr<telegram_api::User> &&user, const char *source);
   void on_get_users(vector<tl_object_ptr<telegram_api::User>> &&users, const char *source);
@@ -1589,6 +1593,8 @@ class ContactsManager final : public Actor {
 
   static bool get_user_has_unread_stories(const User *u);
 
+  td_api::object_ptr<td_api::updateContactCloseBirthdays> get_update_contact_close_birthdays() const;
+
   td_api::object_ptr<td_api::updateUser> get_update_user_object(UserId user_id, const User *u) const;
 
   td_api::object_ptr<td_api::updateUser> get_update_unknown_user_object(UserId user_id) const;
@@ -1811,6 +1817,13 @@ class ContactsManager final : public Actor {
 
   WaitFreeHashSet<UserId, UserIdHash> restricted_user_ids_;
   WaitFreeHashSet<ChannelId, ChannelIdHash> restricted_channel_ids_;
+
+  struct ContactBirthdates {
+    vector<std::pair<UserId, Birthdate>> users_;
+    double next_sync_time_ = 0.0;
+    bool is_being_synced_ = false;
+  };
+  ContactBirthdates contact_birthdates_;
 
   vector<Contact> next_all_imported_contacts_;
   vector<size_t> imported_contacts_unique_id_;

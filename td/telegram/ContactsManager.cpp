@@ -121,6 +121,28 @@ class GetContactsQuery final : public Td::ResultHandler {
   }
 };
 
+class GetContactsBirthdaysQuery final : public Td::ResultHandler {
+ public:
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::contacts_getBirthdays()));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::contacts_getBirthdays>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetContactBirthdaysQuery: " << to_string(ptr);
+    td_->contacts_manager_->on_get_contact_birthdates(std::move(ptr));
+  }
+
+  void on_error(Status status) final {
+    td_->contacts_manager_->on_get_contact_birthdates(nullptr);
+  }
+};
+
 class GetContactsStatusesQuery final : public Td::ResultHandler {
  public:
   void send() {
@@ -5892,6 +5914,48 @@ std::pair<int32, vector<UserId>> ContactsManager::search_contacts(const string &
   return {narrow_cast<int32>(result.first), std::move(user_ids)};
 }
 
+void ContactsManager::reload_contact_birthdates(bool force) {
+  if (!G()->close_flag() && !td_->auth_manager_->is_bot() && !contact_birthdates_.is_being_synced_ &&
+      (contact_birthdates_.next_sync_time_ < Time::now() || force)) {
+    contact_birthdates_.is_being_synced_ = true;
+    td_->create_handler<GetContactsBirthdaysQuery>()->send();
+  }
+}
+
+void ContactsManager::on_get_contact_birthdates(
+    telegram_api::object_ptr<telegram_api::contacts_contactBirthdays> &&birthdays) {
+  CHECK(contact_birthdates_.is_being_synced_);
+  contact_birthdates_.is_being_synced_ = false;
+  if (birthdays == nullptr) {
+    contact_birthdates_.next_sync_time_ = Time::now() + Random::fast(120, 180);
+    return;
+  }
+  contact_birthdates_.next_sync_time_ = Time::now() + Random::fast(86400 / 4, 86400 / 3);
+
+  td_->contacts_manager_->on_get_users(std::move(birthdays->users_), "on_get_contact_birthdates");
+  vector<std::pair<UserId, Birthdate>> users;
+  for (auto &contact : birthdays->contacts_) {
+    UserId user_id(contact->contact_id_);
+    if (is_user_contact(user_id)) {
+      Birthdate birthdate(std::move(contact->birthday_));
+      UserFull *user_full = get_user_full_force(user_id, "on_get_contact_birthdates");
+      if (user_full != nullptr && user_full->birthdate != birthdate) {
+        user_full->birthdate = birthdate;
+        user_full->is_changed = true;
+        update_user_full(user_full, user_id, "on_get_contact_birthdates");
+      }
+      if (!birthdate.is_empty()) {
+        users.emplace_back(user_id, birthdate);
+      }
+    }
+  }
+  if (contact_birthdates_.users_ != users) {
+    contact_birthdates_.users_ = std::move(users);
+    send_closure(G()->td(), &Td::send_update, get_update_contact_close_birthdays());
+  }
+  // there is no need to save them between restarts
+}
+
 vector<UserId> ContactsManager::get_close_friends(Promise<Unit> &&promise) {
   if (!are_contacts_loaded_) {
     load_contacts(std::move(promise));
@@ -10500,8 +10564,7 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
       user_full->broadcast_administrator_rights != broadcast_administrator_rights ||
       user_full->premium_gift_options != premium_gift_options ||
       user_full->voice_messages_forbidden != voice_messages_forbidden ||
-      user_full->can_pin_messages != can_pin_messages || user_full->has_pinned_stories != has_pinned_stories ||
-      user_full->birthdate != birthdate) {
+      user_full->can_pin_messages != can_pin_messages || user_full->has_pinned_stories != has_pinned_stories) {
     user_full->can_be_called = can_be_called;
     user_full->supports_video_calls = supports_video_calls;
     user_full->has_private_calls = has_private_calls;
@@ -10511,10 +10574,18 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
     user_full->voice_messages_forbidden = voice_messages_forbidden;
     user_full->can_pin_messages = can_pin_messages;
     user_full->has_pinned_stories = has_pinned_stories;
-    user_full->birthdate = birthdate;
 
     user_full->is_changed = true;
   }
+  if (user_full->birthdate != birthdate) {
+    user_full->birthdate = birthdate;
+    user_full->is_changed = true;
+
+    if (u->is_contact) {
+      reload_contact_birthdates(true);
+    }
+  }
+
   if (user_full->private_forward_name != user->private_forward_name_) {
     if (user_full->private_forward_name.empty() != user->private_forward_name_.empty()) {
       user_full->is_changed = true;
@@ -11624,6 +11695,8 @@ void ContactsManager::on_update_user_is_contact(User *u, UserId user_id, bool is
     if (u->is_contact != is_contact) {
       u->is_contact = is_contact;
       u->is_is_contact_changed = true;
+
+      reload_contact_birthdates(true);
     }
     if (u->is_mutual_contact != is_mutual_contact) {
       u->is_mutual_contact = is_mutual_contact;
@@ -16206,6 +16279,14 @@ bool ContactsManager::get_user_has_unread_stories(const User *u) {
   return u->max_active_story_id.get() > u->max_read_story_id.get();
 }
 
+td_api::object_ptr<td_api::updateContactCloseBirthdays> ContactsManager::get_update_contact_close_birthdays() const {
+  return td_api::make_object<td_api::updateContactCloseBirthdays>(
+      transform(contact_birthdates_.users_, [this](auto &user) {
+        return td_api::make_object<td_api::closeBirthdayUser>(get_user_id_object(user.first, "closeBirthdayUser"),
+                                                              user.second.get_birthdate_object());
+      }));
+}
+
 td_api::object_ptr<td_api::updateUser> ContactsManager::get_update_user_object(UserId user_id, const User *u) const {
   if (u == nullptr) {
     return get_update_unknown_user_object(user_id);
@@ -16653,6 +16734,10 @@ void ContactsManager::get_current_state(vector<td_api::object_ptr<td_api::Update
     updates.push_back(td_api::make_object<td_api::updateBasicGroupFullInfo>(
         chat_id.get(), get_basic_group_full_info_object(chat_id, chat_full.get())));
   });
+
+  if (!contact_birthdates_.users_.empty()) {
+    updates.push_back(get_update_contact_close_birthdays());
+  }
 }
 
 }  // namespace td

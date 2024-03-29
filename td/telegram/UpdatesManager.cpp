@@ -2265,6 +2265,7 @@ void UpdatesManager::try_reload_data() {
   LOG(INFO) << "Reload data";
   td_->animations_manager_->reload_saved_animations(true);
   td_->autosave_manager_->reload_autosave_settings();
+  td_->contacts_manager_->reload_contact_birthdates(false);
   td_->contacts_manager_->reload_created_public_dialogs(PublicDialogType::HasUsername, std::move(promise));
   td_->contacts_manager_->reload_created_public_dialogs(PublicDialogType::IsLocationBased, Auto());
   td_->contacts_manager_->reload_created_public_dialogs(PublicDialogType::ForPersonalDialog, Auto());

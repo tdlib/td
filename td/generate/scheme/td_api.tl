@@ -580,6 +580,9 @@ chatLocation location:location address:string = ChatLocation;
 //@description Represents a birthdate of a user @day Day of the month; 1-31 @month Month of the year; 1-12 @year Birth year; 0 if unknown
 birthdate day:int32 month:int32 year:int32 = Birthdate;
 
+//@description Describes a user that had or will have a birthday soon @user_id User identifier @birthdate Birthdate of the user
+closeBirthdayUser user_id:int53 birthdate:birthdate = CloseBirthdayUser;
+
 
 //@class BusinessAwayMessageSchedule @description Describes conditions for sending of away messages by a Telegram Business account
 
@@ -7078,6 +7081,9 @@ updateAnimationSearchParameters provider:string emojis:vector<string> = Update;
 
 //@description The list of suggested to the user actions has changed @added_actions Added suggested actions @removed_actions Removed suggested actions
 updateSuggestedActions added_actions:vector<SuggestedAction> removed_actions:vector<SuggestedAction> = Update;
+
+//@description The list of contacts that had birthdays recently or will have birthday soon has changed @close_birthday_users List of contact users with close birthday
+updateContactCloseBirthdays close_birthday_users:vector<closeBirthdayUser> = Update;
 
 //@description Adding users to a chat has failed because of their privacy settings. An invite link can be shared with the users if appropriate @chat_id Chat identifier @user_ids Identifiers of users, which weren't added because of their privacy settings
 updateAddChatMembersPrivacyForbidden chat_id:int53 user_ids:vector<int53> = Update;
