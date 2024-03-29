@@ -108,6 +108,9 @@ static td_api::object_ptr<td_api::PremiumFeature> get_premium_feature_object(Sli
   if (premium_feature == "last_seen") {
     return td_api::make_object<td_api::premiumFeatureLastSeenTimes>();
   }
+  if (G()->is_test_dc()) {
+    LOG(ERROR) << "Receive unsupported premium feature " << premium_feature;
+  }
   return nullptr;
 }
 
@@ -144,6 +147,9 @@ static td_api::object_ptr<td_api::BusinessFeature> get_business_feature_object(S
   }
   if (business_feature == "stories") {
     return td_api::make_object<td_api::businessFeatureUpgradedStories>();
+  }
+  if (G()->is_test_dc()) {
+    LOG(ERROR) << "Receive unsupported business feature " << business_feature;
   }
   return nullptr;
 }
