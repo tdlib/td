@@ -269,14 +269,10 @@ class GetPremiumPromoQuery final : public Td::ResultHandler {
     }
 
     vector<td_api::object_ptr<td_api::premiumFeaturePromotionAnimation>> animations;
+    vector<td_api::object_ptr<td_api::businessFeaturePromotionAnimation>> business_animations;
     FlatHashSet<string> video_sections;
     for (size_t i = 0; i < promo->video_sections_.size(); i++) {
-      auto feature = get_premium_feature_object(promo->video_sections_[i]);
-      if (feature == nullptr) {
-        LOG(INFO) << "Receive unknown Premium feature animation " << promo->video_sections_[i];
-        continue;
-      }
-      if (!video_sections.insert(promo->video_sections_[i]).second) {
+      if (promo->video_sections_[i].empty() || !video_sections.insert(promo->video_sections_[i]).second) {
         LOG(ERROR) << "Receive duplicate Premium feature animation " << promo->video_sections_[i];
         continue;
       }
@@ -295,15 +291,27 @@ class GetPremiumPromoQuery final : public Td::ResultHandler {
         continue;
       }
 
-      auto animation_object = td_->animations_manager_->get_animation_object(parsed_document.file_id);
-      animations.push_back(td_api::make_object<td_api::premiumFeaturePromotionAnimation>(std::move(feature),
-                                                                                         std::move(animation_object)));
+      auto feature = get_premium_feature_object(promo->video_sections_[i]);
+      if (feature != nullptr) {
+        auto animation_object = td_->animations_manager_->get_animation_object(parsed_document.file_id);
+        animations.push_back(td_api::make_object<td_api::premiumFeaturePromotionAnimation>(
+            std::move(feature), std::move(animation_object)));
+      } else {
+        auto business_feature = get_business_feature_object(promo->video_sections_[i]);
+        if (business_feature != nullptr) {
+          auto animation_object = td_->animations_manager_->get_animation_object(parsed_document.file_id);
+          business_animations.push_back(td_api::make_object<td_api::businessFeaturePromotionAnimation>(
+              std::move(business_feature), std::move(animation_object)));
+        } else if (G()->is_test_dc()) {
+          LOG(ERROR) << "Receive unsupported feature " << promo->video_sections_[i];
+        }
+      }
     }
 
     auto period_options = get_premium_gift_options(std::move(promo->period_options_));
     promise_.set_value(td_api::make_object<td_api::premiumState>(
         get_formatted_text_object(state, true, 0), get_premium_state_payment_options_object(period_options),
-        std::move(animations)));
+        std::move(animations), std::move(business_animations)));
   }
 
   void on_error(Status status) final {

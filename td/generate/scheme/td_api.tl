@@ -5093,11 +5093,15 @@ premiumSourceSettings = PremiumSource;
 //@description Describes a promotion animation for a Premium feature @feature Premium feature @animation Promotion animation for the feature
 premiumFeaturePromotionAnimation feature:PremiumFeature animation:animation = PremiumFeaturePromotionAnimation;
 
+//@description Describes a promotion animation for a Business feature @feature Business feature @animation Promotion animation for the feature
+businessFeaturePromotionAnimation feature:BusinessFeature animation:animation = BusinessFeaturePromotionAnimation;
+
 //@description Contains state of Telegram Premium subscription and promotion videos for Premium features
 //@state Text description of the state of the current Premium subscription; may be empty if the current user has no Telegram Premium subscription
 //@payment_options The list of available options for buying Telegram Premium
 //@animations The list of available promotion animations for Premium features
-premiumState state:formattedText payment_options:vector<premiumStatePaymentOption> animations:vector<premiumFeaturePromotionAnimation> = PremiumState;
+//@business_animations The list of available promotion animations for Business features
+premiumState state:formattedText payment_options:vector<premiumStatePaymentOption> animations:vector<premiumFeaturePromotionAnimation> business_animations:vector<businessFeaturePromotionAnimation> = PremiumState;
 
 
 //@class StorePaymentPurpose @description Describes a purpose of an in-store payment
