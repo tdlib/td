@@ -55,6 +55,12 @@ struct SuggestedAction {
   string get_suggested_action_str() const;
 
   td_api::object_ptr<td_api::SuggestedAction> get_suggested_action_object() const;
+
+  template <class StorerT>
+  void store(StorerT &storer) const;
+
+  template <class ParserT>
+  void parse(ParserT &parser);
 };
 
 inline bool operator==(const SuggestedAction &lhs, const SuggestedAction &rhs) {

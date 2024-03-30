@@ -971,6 +971,7 @@ set(TDLIB_SOURCE
   td/telegram/StoryForwardInfo.hpp
   td/telegram/StoryInteractionInfo.hpp
   td/telegram/StoryStealthMode.hpp
+  td/telegram/SuggestedAction.hpp
   td/telegram/TranscriptionInfo.hpp
   td/telegram/VideoNotesManager.hpp
   td/telegram/VideosManager.hpp
