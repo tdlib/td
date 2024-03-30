@@ -5977,7 +5977,7 @@ internalLinkTypeMessage url:string = InternalLinkType;
 internalLinkTypeMessageDraft text:formattedText contains_link:Bool = InternalLinkType;
 
 //@description The link contains a request of Telegram passport data. Call getPassportAuthorizationForm with the given parameters to process the link if the link was received from outside of the application; otherwise, ignore it
-//@bot_user_id User identifier of the service's bot
+//@bot_user_id User identifier of the service's bot; the corresponding user may be unknown yet
 //@scope Telegram Passport element types requested by the service
 //@public_key Service's public key
 //@nonce Unique request identifier provided by the service
