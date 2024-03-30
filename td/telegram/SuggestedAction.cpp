@@ -182,11 +182,11 @@ td_api::object_ptr<td_api::updateSuggestedActions> get_update_suggested_actions_
                                                              transform(removed_actions, get_object));
 }
 
-void update_suggested_actions(vector<SuggestedAction> &suggested_actions,
+bool update_suggested_actions(vector<SuggestedAction> &suggested_actions,
                               vector<SuggestedAction> &&new_suggested_actions) {
   td::unique(new_suggested_actions);
   if (new_suggested_actions == suggested_actions) {
-    return;
+    return false;
   }
 
   vector<SuggestedAction> added_actions;
@@ -207,13 +207,16 @@ void update_suggested_actions(vector<SuggestedAction> &suggested_actions,
   suggested_actions = std::move(new_suggested_actions);
   send_closure(G()->td(), &Td::send_update,
                get_update_suggested_actions_object(added_actions, removed_actions, "update_suggested_actions"));
+  return true;
 }
 
-void remove_suggested_action(vector<SuggestedAction> &suggested_actions, SuggestedAction suggested_action) {
+bool remove_suggested_action(vector<SuggestedAction> &suggested_actions, SuggestedAction suggested_action) {
   if (td::remove(suggested_actions, suggested_action)) {
     send_closure(G()->td(), &Td::send_update,
                  get_update_suggested_actions_object({}, {suggested_action}, "remove_suggested_action"));
+    return true;
   }
+  return false;
 }
 
 void dismiss_suggested_action(SuggestedAction action, Promise<Unit> &&promise) {

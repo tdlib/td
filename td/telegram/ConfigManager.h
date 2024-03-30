@@ -103,7 +103,7 @@ class ConfigManager final : public NetQueryCallback {
 
  private:
   struct AppConfig {
-    static constexpr int32 CURRENT_VERSION = 34;
+    static constexpr int32 CURRENT_VERSION = 35;
     int32 version_ = 0;
     int32 hash_ = 0;
     telegram_api::object_ptr<telegram_api::JSONValue> config_;
@@ -158,6 +158,10 @@ class ConfigManager final : public NetQueryCallback {
   void process_app_config(telegram_api::object_ptr<telegram_api::JSONValue> &config);
 
   void do_set_ignore_sensitive_content_restrictions(bool ignore_sensitive_content_restrictions);
+
+  static string get_suggested_actions_database_key();
+
+  void save_suggested_actions();
 
   static Timestamp load_config_expire_time();
   static void save_config_expire(Timestamp timestamp);

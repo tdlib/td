@@ -27,6 +27,7 @@
 #include "td/telegram/Premium.h"
 #include "td/telegram/ReactionType.h"
 #include "td/telegram/StateManager.h"
+#include "td/telegram/SuggestedAction.hpp"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
@@ -950,6 +951,18 @@ void ConfigManager::start_up() {
     expire_time_ = expire_time;
     set_timeout_in(expire_time_.in());
   }
+
+  auto log_event_string = G()->td_db()->get_binlog_pmc()->get(get_suggested_actions_database_key());
+  if (!log_event_string.empty()) {
+    vector<SuggestedAction> suggested_actions;
+    auto status = log_event_parse(suggested_actions, log_event_string);
+    if (status.is_error()) {
+      LOG(ERROR) << "Failed to parse suggested actions from binlog: " << status;
+      save_suggested_actions();
+    } else {
+      update_suggested_actions(suggested_actions_, std::move(suggested_actions));
+    }
+  }
 }
 
 ActorShared<> ConfigManager::create_reference() {
@@ -1115,7 +1128,9 @@ void ConfigManager::do_set_ignore_sensitive_content_restrictions(bool ignore_sen
 }
 
 void ConfigManager::hide_suggested_action(SuggestedAction suggested_action) {
-  remove_suggested_action(suggested_actions_, suggested_action);
+  if (remove_suggested_action(suggested_actions_, suggested_action)) {
+    save_suggested_actions();
+  }
 }
 
 void ConfigManager::dismiss_suggested_action(SuggestedAction suggested_action, Promise<Unit> &&promise) {
@@ -1156,7 +1171,9 @@ void ConfigManager::on_result(NetQueryPtr net_query) {
       fail_promises(promises, result_ptr.move_as_error());
       return;
     }
-    remove_suggested_action(suggested_actions_, suggested_action);
+    if (remove_suggested_action(suggested_actions_, suggested_action)) {
+      save_suggested_actions();
+    }
     reget_app_config(Auto());
 
     set_promises(promises);
@@ -2180,7 +2197,22 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
 
   // do not update suggested actions while changing content settings or dismissing an action
   if (!is_set_content_settings_request_sent_ && dismiss_suggested_action_request_count_ == 0) {
-    update_suggested_actions(suggested_actions_, std::move(suggested_actions));
+    if (update_suggested_actions(suggested_actions_, std::move(suggested_actions))) {
+      save_suggested_actions();
+    }
+  }
+}
+
+string ConfigManager::get_suggested_actions_database_key() {
+  return "suggested_actions";
+}
+
+void ConfigManager::save_suggested_actions() {
+  if (suggested_actions_.empty()) {
+    G()->td_db()->get_binlog_pmc()->erase(get_suggested_actions_database_key());
+  } else {
+    G()->td_db()->get_binlog_pmc()->set(get_suggested_actions_database_key(),
+                                        log_event_store(suggested_actions_).as_slice().str());
   }
 }
 
