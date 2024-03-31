@@ -1093,8 +1093,8 @@ void BusinessConnectionManager::process_sent_business_message_album(
       return promise.set_error(Status::Error(500, "Receive invalid business connection messages"));
     }
   }
-  td_->contacts_manager_->on_get_users(std::move(updates->users_), "SendBusinessMediaQuery");
-  td_->contacts_manager_->on_get_chats(std::move(updates->chats_), "SendBusinessMediaQuery");
+  td_->contacts_manager_->on_get_users(std::move(updates->users_), "process_sent_business_message_album");
+  td_->contacts_manager_->on_get_chats(std::move(updates->chats_), "process_sent_business_message_album");
 
   auto messages = td_api::make_object<td_api::businessMessages>();
   for (auto &update_ptr : updates->updates_) {
