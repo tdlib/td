@@ -7,6 +7,8 @@
 #include "td/telegram/SharedDialog.h"
 
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/ChannelId.h"
+#include "td/telegram/ChatId.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Td.h"
@@ -28,14 +30,14 @@ SharedDialog::SharedDialog(Td *td, telegram_api::object_ptr<telegram_api::Reques
     }
     case telegram_api::requestedPeerChat::ID: {
       auto requested_peer = telegram_api::move_object_as<telegram_api::requestedPeerChat>(requested_peer_ptr);
-      dialog_id_ = DialogId(UserId(requested_peer->chat_id_));
+      dialog_id_ = DialogId(ChatId(requested_peer->chat_id_));
       first_name_ = std::move(requested_peer->title_);
       photo_ = get_photo(td, std::move(requested_peer->photo_), dialog_id_);
       break;
     }
     case telegram_api::requestedPeerChannel::ID: {
       auto requested_peer = telegram_api::move_object_as<telegram_api::requestedPeerChannel>(requested_peer_ptr);
-      dialog_id_ = DialogId(UserId(requested_peer->channel_id_));
+      dialog_id_ = DialogId(ChannelId(requested_peer->channel_id_));
       first_name_ = std::move(requested_peer->title_);
       username_ = std::move(requested_peer->username_);
       photo_ = get_photo(td, std::move(requested_peer->photo_), dialog_id_);
