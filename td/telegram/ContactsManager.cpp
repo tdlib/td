@@ -16281,7 +16281,7 @@ bool ContactsManager::get_user_has_unread_stories(const User *u) {
 
 td_api::object_ptr<td_api::updateContactCloseBirthdays> ContactsManager::get_update_contact_close_birthdays() const {
   return td_api::make_object<td_api::updateContactCloseBirthdays>(
-      transform(contact_birthdates_.users_, [this](auto &user) {
+      transform(contact_birthdates_.users_, [this](const std::pair<UserId, Birthdate> &user) {
         return td_api::make_object<td_api::closeBirthdayUser>(get_user_id_object(user.first, "closeBirthdayUser"),
                                                               user.second.get_birthdate_object());
       }));
