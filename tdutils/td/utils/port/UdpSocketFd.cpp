@@ -789,7 +789,7 @@ const NativeFd &UdpSocketFd::get_native_fd() const {
   return get_poll_info().native_fd();
 }
 
-static Result<uint32> maximize_buffer(const td::NativeFd &fd, int optname, uint32 max_size) {
+static Result<uint32> maximize_buffer(const NativeFd &fd, int optname, uint32 max_size) {
   if (setsockopt(fd.socket(), SOL_SOCKET, optname, reinterpret_cast<const char *>(&max_size), sizeof(max_size)) == 0) {
     // fast path
     return max_size;
