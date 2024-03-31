@@ -6,10 +6,14 @@
 //
 #include "td/telegram/BusinessIntro.h"
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/files/FileManager.h"
+#include "td/telegram/files/FileType.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickersManager.h"
+#include "td/telegram/StickerType.h"
 #include "td/telegram/Td.h"
 
 namespace td {

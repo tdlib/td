@@ -134,7 +134,7 @@ class GetContactsBirthdaysQuery final : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for GetContactBirthdaysQuery: " << to_string(ptr);
+    LOG(INFO) << "Receive result for GetContactsBirthdaysQuery: " << to_string(ptr);
     td_->contacts_manager_->on_get_contact_birthdates(std::move(ptr));
   }
 
@@ -5932,7 +5932,7 @@ void ContactsManager::on_get_contact_birthdates(
   }
   contact_birthdates_.next_sync_time_ = Time::now() + Random::fast(86400 / 4, 86400 / 3);
 
-  td_->contacts_manager_->on_get_users(std::move(birthdays->users_), "on_get_contact_birthdates");
+  on_get_users(std::move(birthdays->users_), "on_get_contact_birthdates");
   vector<std::pair<UserId, Birthdate>> users;
   for (auto &contact : birthdays->contacts_) {
     UserId user_id(contact->contact_id_);

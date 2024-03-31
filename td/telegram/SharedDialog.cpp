@@ -7,15 +7,10 @@
 #include "td/telegram/SharedDialog.h"
 
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/ChannelId.h"
-#include "td/telegram/ChatId.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogManager.h"
-#include "td/telegram/files/FileManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UserId.h"
-
-#include "td/utils/logging.h"
 
 namespace td {
 

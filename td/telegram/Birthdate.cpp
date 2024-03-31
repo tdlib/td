@@ -8,8 +8,6 @@
 
 #include "td/telegram/ConfigManager.h"
 
-#include "td/utils/misc.h"
-
 namespace td {
 
 void Birthdate::init(int32 day, int32 month, int32 year) {
@@ -60,7 +58,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const Birthdate &birthd
   if (birthdate.is_empty()) {
     return string_builder << "unknown birthdate";
   }
-  string_builder << "birtdate " << birthdate.get_day() << '.' << birthdate.get_month();
+  string_builder << "birthdate " << birthdate.get_day() << '.' << birthdate.get_month();
   auto year = birthdate.get_year();
   if (year != 0) {
     string_builder << '.' << year;

@@ -21,9 +21,9 @@ class BusinessIntro {
  public:
   BusinessIntro() = default;
 
-  explicit BusinessIntro(Td *td, telegram_api::object_ptr<telegram_api::businessIntro> intro);
+  BusinessIntro(Td *td, telegram_api::object_ptr<telegram_api::businessIntro> intro);
 
-  explicit BusinessIntro(Td *td, td_api::object_ptr<td_api::inputBusinessIntro> intro);
+  BusinessIntro(Td *td, td_api::object_ptr<td_api::inputBusinessIntro> intro);
 
   td_api::object_ptr<td_api::businessIntro> get_business_intro_object(Td *td) const;
 

@@ -8252,10 +8252,10 @@ void Td::on_request(uint64 id, td_api::addStickerToSet &request) {
 
 void Td::on_request(uint64 id, td_api::replaceStickerInSet &request) {
   CLEAN_INPUT_STRING(request.name_);
-  CREATE_OK_REQUEST_PROMISE();
   if (request.old_sticker_ == nullptr) {
     return send_error_raw(id, 400, "Old sticker must be non-empty");
   }
+  CREATE_OK_REQUEST_PROMISE();
   stickers_manager_->add_sticker_to_set(UserId(request.user_id_), std::move(request.name_),
                                         std::move(request.new_sticker_), std::move(request.old_sticker_),
                                         std::move(promise));

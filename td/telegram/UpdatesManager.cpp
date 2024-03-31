@@ -12,6 +12,7 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/AutosaveManager.h"
 #include "td/telegram/BoostManager.h"
+#include "td/telegram/BusinessConnectionId.h"
 #include "td/telegram/BusinessConnectionManager.h"
 #include "td/telegram/CallbackQueriesManager.h"
 #include "td/telegram/CallManager.h"

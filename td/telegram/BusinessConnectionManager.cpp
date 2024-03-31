@@ -11,6 +11,7 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
@@ -28,9 +29,13 @@
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
 
+#include "td/utils/buffer.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/Random.h"
+#include "td/utils/SliceBuilder.h"
+
+#include <unordered_set>
 
 namespace td {
 
@@ -585,7 +590,7 @@ void BusinessConnectionManager::on_get_business_connection(
   auto updates = telegram_api::move_object_as<telegram_api::updates>(updates_ptr);
   if (updates->updates_.size() != 1 || updates->updates_[0]->get_id() != telegram_api::updateBotBusinessConnect::ID) {
     if (updates->updates_.empty()) {
-      return fail_promises(promises, Status::Error(400, "Business connnection not found"));
+      return fail_promises(promises, Status::Error(400, "Business connection not found"));
     }
     LOG(ERROR) << "Receive " << to_string(updates);
     return fail_promises(promises, Status::Error(500, "Receive invalid business connection info"));
@@ -1031,6 +1036,7 @@ void BusinessConnectionManager::send_message_album(
 
 void BusinessConnectionManager::on_upload_message_album_media(int64 request_id, size_t media_pos,
                                                               Result<UploadMediaResult> &&result) {
+  G()->ignore_result_if_closing(result);
   auto it = media_group_send_requests_.find(request_id);
   CHECK(it != media_group_send_requests_.end());
   auto &request = it->second;
@@ -1047,7 +1053,6 @@ void BusinessConnectionManager::on_upload_message_album_media(int64 request_id, 
   auto promise = std::move(request.promise_);
   media_group_send_requests_.erase(it);
 
-  TRY_STATUS_PROMISE(promise, G()->close_status());
   for (auto &r_upload_result : upload_results) {
     if (r_upload_result.is_error()) {
       return promise.set_error(r_upload_result.move_as_error());

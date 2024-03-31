@@ -7765,7 +7765,7 @@ getChatSponsoredMessages chat_id:int53 = SponsoredMessages;
 //@message_id Identifier of the sponsored message
 clickChatSponsoredMessage chat_id:int53 message_id:int53 = Ok;
 
-//@description Reports a sponsored message to to Telegram moderators
+//@description Reports a sponsored message to Telegram moderators
 //@chat_id Chat identifier of the sponsored message
 //@message_id Identifier of the sponsored message
 //@option_id Option identifier chosen by the user; leave empty for the initial request
