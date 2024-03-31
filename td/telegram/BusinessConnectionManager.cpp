@@ -440,7 +440,9 @@ BusinessConnectionManager::BusinessConnectionManager(Td *td, ActorShared<> paren
   upload_thumbnail_callback_ = std::make_shared<UploadThumbnailCallback>();
 }
 
-BusinessConnectionManager::~BusinessConnectionManager() = default;
+BusinessConnectionManager::~BusinessConnectionManager() {
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), business_connections_);
+}
 
 void BusinessConnectionManager::tear_down() {
   parent_.reset();
