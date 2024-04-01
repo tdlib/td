@@ -100,6 +100,7 @@ class TopDialogManager;
 class TranscriptionManager;
 class TranslationManager;
 class UpdatesManager;
+class UserManager;
 class VideoNotesManager;
 class VideosManager;
 class VoiceNotesManager;
@@ -259,6 +260,8 @@ class Td final : public Actor {
   ActorOwn<TranslationManager> translation_manager_actor_;
   unique_ptr<UpdatesManager> updates_manager_;
   ActorOwn<UpdatesManager> updates_manager_actor_;
+  unique_ptr<UserManager> user_manager_;
+  ActorOwn<UserManager> user_manager_actor_;
   unique_ptr<VideoNotesManager> video_notes_manager_;
   ActorOwn<VideoNotesManager> video_notes_manager_actor_;
   unique_ptr<VoiceNotesManager> voice_notes_manager_;

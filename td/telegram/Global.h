@@ -81,6 +81,7 @@ class TimeZoneManager;
 class TopDialogManager;
 class TranscriptionManager;
 class UpdatesManager;
+class UserManager;
 class WebPagesManager;
 
 class Global final : public ActorContext {
@@ -498,6 +499,13 @@ class Global final : public ActorContext {
     updates_manager_ = updates_manager;
   }
 
+  ActorId<UserManager> user_manager() const {
+    return user_manager_;
+  }
+  void set_user_manager(ActorId<UserManager> user_manager) {
+    user_manager_ = user_manager;
+  }
+
   ActorId<WebPagesManager> web_pages_manager() const {
     return web_pages_manager_;
   }
@@ -668,6 +676,7 @@ class Global final : public ActorContext {
   ActorId<TopDialogManager> top_dialog_manager_;
   ActorId<TranscriptionManager> transcription_manager_;
   ActorId<UpdatesManager> updates_manager_;
+  ActorId<UserManager> user_manager_;
   ActorId<WebPagesManager> web_pages_manager_;
   ActorOwn<ConnectionCreator> connection_creator_;
   ActorOwn<TempAuthKeyWatchdog> temp_auth_key_watchdog_;

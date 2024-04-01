@@ -164,6 +164,7 @@
 #include "td/telegram/TranslationManager.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/UserId.h"
+#include "td/telegram/UserManager.h"
 #include "td/telegram/Version.h"
 #include "td/telegram/VideoNotesManager.h"
 #include "td/telegram/VideosManager.h"
@@ -3253,6 +3254,7 @@ void Td::dec_actor_refcnt() {
       reset_manager(transcription_manager_, "TranscriptionManager");
       reset_manager(translation_manager_, "TranslationManager");
       reset_manager(updates_manager_, "UpdatesManager");
+      reset_manager(user_manager_, "UserManager");
       reset_manager(video_notes_manager_, "VideoNotesManager");
       reset_manager(videos_manager_, "VideosManager");
       reset_manager(voice_notes_manager_, "VoiceNotesManager");
@@ -3428,6 +3430,7 @@ void Td::clear() {
   reset_actor(ActorOwn<Actor>(std::move(transcription_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(translation_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(updates_manager_actor_)));
+  reset_actor(ActorOwn<Actor>(std::move(user_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(video_notes_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(voice_notes_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(web_pages_manager_actor_)));
@@ -3988,6 +3991,9 @@ void Td::init_managers() {
   updates_manager_ = make_unique<UpdatesManager>(this, create_reference());
   updates_manager_actor_ = register_actor("UpdatesManager", updates_manager_.get());
   G()->set_updates_manager(updates_manager_actor_.get());
+  user_manager_ = make_unique<UserManager>(this, create_reference());
+  user_manager_actor_ = register_actor("UserManager", user_manager_.get());
+  G()->set_user_manager(user_manager_actor_.get());
   video_notes_manager_ = make_unique<VideoNotesManager>(this, create_reference());
   video_notes_manager_actor_ = register_actor("VideoNotesManager", video_notes_manager_.get());
   voice_notes_manager_ = make_unique<VoiceNotesManager>(this, create_reference());
