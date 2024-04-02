@@ -728,6 +728,57 @@ class TogglePrehistoryHiddenQuery final : public Td::ResultHandler {
   }
 };
 
+class RestrictSponsoredMessagesQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  ChannelId channel_id_;
+  bool can_have_sponsored_messages_;
+
+ public:
+  explicit RestrictSponsoredMessagesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id, bool can_have_sponsored_messages) {
+    channel_id_ = channel_id;
+    can_have_sponsored_messages_ = can_have_sponsored_messages;
+
+    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
+    CHECK(input_channel != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_restrictSponsoredMessages(std::move(input_channel), !can_have_sponsored_messages),
+        {{channel_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_restrictSponsoredMessages>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for RestrictSponsoredMessagesQuery: " << to_string(ptr);
+
+    td_->updates_manager_->on_get_updates(
+        std::move(ptr),
+        PromiseCreator::lambda([actor_id = G()->chat_manager(), promise = std::move(promise_), channel_id = channel_id_,
+                                can_have_sponsored_messages = can_have_sponsored_messages_](Unit result) mutable {
+          send_closure(actor_id, &ChatManager::on_update_channel_can_have_sponsored_messages, channel_id,
+                       can_have_sponsored_messages, std::move(promise));
+        }));
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "CHAT_NOT_MODIFIED") {
+      if (!td_->auth_manager_->is_bot()) {
+        promise_.set_value(Unit());
+        return;
+      }
+    } else {
+      td_->chat_manager_->on_get_channel_error(channel_id_, status, "RestrictSponsoredMessagesQuery");
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ToggleParticipantsHiddenQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
@@ -3091,6 +3142,23 @@ void ChatManager::toggle_channel_is_all_history_available(ChannelId channel_id, 
   // it can be toggled in public chats, but will not affect them
 
   td_->create_handler<TogglePrehistoryHiddenQuery>(std::move(promise))->send(channel_id, is_all_history_available);
+}
+
+void ChatManager::toggle_channel_can_have_sponsored_messages(ChannelId channel_id, bool can_have_sponsored_messages,
+                                                             Promise<Unit> &&promise) {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return promise.set_error(Status::Error(400, "Supergroup not found"));
+  }
+  if (!get_channel_status(c).is_creator()) {
+    return promise.set_error(Status::Error(400, "Not enough rights to disable sponsored messages"));
+  }
+  if (get_channel_type(c) != ChannelType::Broadcast) {
+    return promise.set_error(Status::Error(400, "Sponsored messages can be disabled only in channels"));
+  }
+
+  td_->create_handler<RestrictSponsoredMessagesQuery>(std::move(promise))
+      ->send(channel_id, can_have_sponsored_messages);
 }
 
 Status ChatManager::can_hide_chat_participants(ChatId chat_id) const {
@@ -7267,6 +7335,19 @@ void ChatManager::on_update_channel_is_all_history_available(ChannelId channel_i
     channel_full->is_all_history_available = is_all_history_available;
     channel_full->is_changed = true;
     update_channel_full(channel_full, channel_id, "on_update_channel_is_all_history_available");
+  }
+  promise.set_value(Unit());
+}
+
+void ChatManager::on_update_channel_can_have_sponsored_messages(ChannelId channel_id, bool can_have_sponsored_messages,
+                                                                Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  CHECK(channel_id.is_valid());
+  auto channel_full = get_channel_full_force(channel_id, true, "on_update_channel_can_have_sponsored_messages");
+  if (channel_full != nullptr && channel_full->can_have_sponsored_messages != can_have_sponsored_messages) {
+    channel_full->can_have_sponsored_messages = can_have_sponsored_messages;
+    channel_full->is_changed = true;
+    update_channel_full(channel_full, channel_id, "on_update_channel_can_have_sponsored_messages");
   }
   promise.set_value(Unit());
 }

@@ -5919,6 +5919,12 @@ class CliClient final : public Actor {
       get_args(args, supergroup_id, is_all_history_available);
       send_request(td_api::make_object<td_api::toggleSupergroupIsAllHistoryAvailable>(as_supergroup_id(supergroup_id),
                                                                                       is_all_history_available));
+    } else if (op == "tsgchsm") {
+      string supergroup_id;
+      bool can_have_sponsored_messages;
+      get_args(args, supergroup_id, can_have_sponsored_messages);
+      send_request(td_api::make_object<td_api::toggleSupergroupCanHaveSponsoredMessages>(
+          as_supergroup_id(supergroup_id), can_have_sponsored_messages));
     } else if (op == "tsghhm") {
       string supergroup_id;
       bool has_hidden_members;
