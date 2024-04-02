@@ -9,7 +9,6 @@
 #include "td/telegram/AttachMenuManager.h"
 #include "td/telegram/AuthManager.hpp"
 #include "td/telegram/ConfigManager.h"
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogFilterManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
@@ -32,6 +31,7 @@
 #include "td/telegram/ThemeManager.h"
 #include "td/telegram/TopDialogManager.h"
 #include "td/telegram/UpdatesManager.h"
+#include "td/telegram/UserManager.h"
 #include "td/telegram/Version.h"
 
 #include "td/utils/base64.h"
@@ -287,7 +287,7 @@ AuthManager::AuthManager(int32 api_id, const string &api_hash, ActorShared<> par
     if (is_bot_str == "true") {
       is_bot_ = true;
     }
-    auto my_id = ContactsManager::load_my_id();
+    auto my_id = UserManager::load_my_id();
     if (my_id.is_valid()) {
       // just in case
       LOG(INFO) << "Logged in as " << my_id;
@@ -295,8 +295,8 @@ AuthManager::AuthManager(int32 api_id, const string &api_hash, ActorShared<> par
       update_state(State::Ok);
     } else {
       LOG(ERROR) << "Restore unknown my_id";
-      ContactsManager::send_get_me_query(
-          td_, PromiseCreator::lambda([this](Result<Unit> result) { update_state(State::Ok); }));
+      UserManager::send_get_me_query(td_,
+                                     PromiseCreator::lambda([this](Result<Unit> result) { update_state(State::Ok); }));
     }
     G()->net_query_dispatcher().check_authorization_is_ok();
   } else if (auth_str == "logout") {
@@ -1233,9 +1233,9 @@ void AuthManager::on_get_authorization(tl_object_ptr<telegram_api::auth_Authoriz
       user->self_ = true;
     }
   }
-  td_->contacts_manager_->on_get_user(std::move(auth->user_), "on_get_authorization");
+  td_->user_manager_->on_get_user(std::move(auth->user_), "on_get_authorization");
   update_state(State::Ok);
-  if (!td_->contacts_manager_->get_my_id().is_valid()) {
+  if (!td_->user_manager_->get_my_id().is_valid()) {
     LOG(ERROR) << "Server didsn't send proper authorization";
     on_current_query_error(Status::Error(500, "Server didn't send proper authorization"));
     log_out(0);

@@ -6,13 +6,13 @@
 //
 #include "td/telegram/MessageForwardInfo.h"
 
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -33,7 +33,7 @@ void LastForwardedMessageInfo::validate() {
 
 void LastForwardedMessageInfo::hide_sender_if_needed(Td *td) {
   if (sender_name_.empty() && sender_dialog_id_.get_type() == DialogType::User) {
-    auto private_forward_name = td->contacts_manager_->get_user_private_forward_name(sender_dialog_id_.get_user_id());
+    auto private_forward_name = td->user_manager_->get_user_private_forward_name(sender_dialog_id_.get_user_id());
     if (!private_forward_name.empty()) {
       dialog_id_ = DialogId();
       message_id_ = MessageId();

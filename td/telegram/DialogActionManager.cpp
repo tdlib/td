@@ -9,7 +9,6 @@
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/BusinessConnectionManager.h"
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageSender.h"
@@ -21,6 +20,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/emoji.h"
@@ -180,7 +180,7 @@ void DialogActionManager::on_dialog_action(DialogId dialog_id, MessageId top_thr
   }
 
   if (typing_dialog_type == DialogType::User) {
-    if (!td_->contacts_manager_->have_min_user(typing_dialog_id.get_user_id())) {
+    if (!td_->user_manager_->have_min_user(typing_dialog_id.get_user_id())) {
       LOG(DEBUG) << "Ignore " << action << " of unknown " << typing_dialog_id.get_user_id();
       return;
     }
@@ -198,13 +198,13 @@ void DialogActionManager::on_dialog_action(DialogId dialog_id, MessageId top_thr
 
   bool is_canceled = action == DialogAction();
   if ((!is_canceled || message_content_type != MessageContentType::None) && typing_dialog_type == DialogType::User) {
-    td_->contacts_manager_->on_update_user_local_was_online(typing_dialog_id.get_user_id(), date);
+    td_->user_manager_->on_update_user_local_was_online(typing_dialog_id.get_user_id(), date);
   }
 
   if (dialog_type == DialogType::User || dialog_type == DialogType::SecretChat) {
     CHECK(typing_dialog_type == DialogType::User);
     auto user_id = typing_dialog_id.get_user_id();
-    if (!td_->contacts_manager_->is_user_bot(user_id) && !td_->contacts_manager_->is_user_status_exact(user_id) &&
+    if (!td_->user_manager_->is_user_bot(user_id) && !td_->user_manager_->is_user_status_exact(user_id) &&
         !td_->messages_manager_->is_dialog_opened(dialog_id) && !is_canceled) {
       return;
     }
@@ -225,8 +225,7 @@ void DialogActionManager::on_dialog_action(DialogId dialog_id, MessageId top_thr
       return;
     }
 
-    if (!(typing_dialog_type == DialogType::User &&
-          td_->contacts_manager_->is_user_bot(typing_dialog_id.get_user_id())) &&
+    if (!(typing_dialog_type == DialogType::User && td_->user_manager_->is_user_bot(typing_dialog_id.get_user_id())) &&
         !it->action.is_canceled_by_message_of_type(message_content_type)) {
       return;
     }

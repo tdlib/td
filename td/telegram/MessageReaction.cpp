@@ -17,6 +17,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/actor/actor.h"
 #include "td/actor/SleepActor.h"
@@ -198,7 +199,7 @@ class GetMessageReactionsListQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetMessageReactionsListQuery: " << to_string(ptr);
 
-    td_->contacts_manager_->on_get_users(std::move(ptr->users_), "GetMessageReactionsListQuery");
+    td_->user_manager_->on_get_users(std::move(ptr->users_), "GetMessageReactionsListQuery");
     td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetMessageReactionsListQuery");
 
     int32 total_count = ptr->count_;
@@ -516,7 +517,7 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
           auto dialog_type = dialog_id.get_type();
           if (dialog_type == DialogType::User) {
             auto user_id = dialog_id.get_user_id();
-            if (!td->contacts_manager_->have_min_user(user_id)) {
+            if (!td->user_manager_->have_min_user(user_id)) {
               LOG(ERROR) << "Receive unknown " << user_id;
               continue;
             }

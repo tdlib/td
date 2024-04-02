@@ -6,7 +6,6 @@
 //
 #include "td/telegram/MessageEntity.h"
 
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/LinkManager.h"
@@ -15,6 +14,7 @@
 #include "td/telegram/SecretChatLayer.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/actor/MultiPromise.h"
 
@@ -162,7 +162,7 @@ tl_object_ptr<td_api::TextEntityType> MessageEntity::get_text_entity_type_object
     case MessageEntity::Type::TextUrl:
       return make_tl_object<td_api::textEntityTypeTextUrl>(argument);
     case MessageEntity::Type::MentionName:
-      // can't use contacts_manager, because can be called from a static request
+      // can't use user_manager, because can be called from a static request
       return make_tl_object<td_api::textEntityTypeMentionName>(user_id.get());
     case MessageEntity::Type::Cashtag:
       return make_tl_object<td_api::textEntityTypeCashtag>();
@@ -3540,7 +3540,7 @@ vector<tl_object_ptr<secret_api::MessageEntity>> get_input_secret_message_entiti
   return result;
 }
 
-Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contacts_manager,
+Result<vector<MessageEntity>> get_message_entities(const UserManager *user_manager,
                                                    vector<tl_object_ptr<td_api::textEntity>> &&input_entities,
                                                    bool allow_all) {
   vector<MessageEntity> entities;
@@ -3613,8 +3613,8 @@ Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contac
         }
         auto user_id = LinkManager::get_link_user_id(entity->url_);
         if (user_id.is_valid()) {
-          if (contacts_manager != nullptr) {
-            TRY_STATUS(contacts_manager->get_input_user(user_id));
+          if (user_manager != nullptr) {
+            TRY_STATUS(user_manager->get_input_user(user_id));
           }
           entities.emplace_back(offset, length, user_id);
           break;
@@ -3629,8 +3629,8 @@ Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contac
       case td_api::textEntityTypeMentionName::ID: {
         auto entity = static_cast<const td_api::textEntityTypeMentionName *>(input_entity->type_.get());
         UserId user_id(entity->user_id_);
-        if (contacts_manager != nullptr) {
-          TRY_STATUS(contacts_manager->get_input_user(user_id));
+        if (user_manager != nullptr) {
+          TRY_STATUS(user_manager->get_input_user(user_id));
         }
         entities.emplace_back(offset, length, user_id);
         break;
@@ -3666,7 +3666,7 @@ Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contac
   return std::move(entities);
 }
 
-vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manager,
+vector<MessageEntity> get_message_entities(const UserManager *user_manager,
                                            vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities,
                                            const char *source) {
   vector<MessageEntity> entities;
@@ -3777,11 +3777,11 @@ vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manag
           LOG(ERROR) << "Receive invalid " << user_id << " in MentionName from " << source;
           continue;
         }
-        if (contacts_manager == nullptr) {
+        if (user_manager == nullptr) {
           LOG(ERROR) << "Receive unknown " << user_id << " in MentionName from " << source;
           continue;
         }
-        auto r_input_user = contacts_manager->get_input_user(user_id);
+        auto r_input_user = user_manager->get_input_user(user_id);
         if (r_input_user.is_error()) {
           LOG(ERROR) << "Receive wrong " << user_id << ": " << r_input_user.error() << " from " << source;
           continue;
@@ -3942,18 +3942,19 @@ vector<MessageEntity> get_message_entities(Td *td, vector<tl_object_ptr<secret_a
   return entities;
 }
 
-telegram_api::object_ptr<telegram_api::textWithEntities> get_input_text_with_entities(
-    const ContactsManager *contacts_manager, const FormattedText &text, const char *source) {
+telegram_api::object_ptr<telegram_api::textWithEntities> get_input_text_with_entities(const UserManager *user_manager,
+                                                                                      const FormattedText &text,
+                                                                                      const char *source) {
   return telegram_api::make_object<telegram_api::textWithEntities>(
-      text.text, get_input_message_entities(contacts_manager, text.entities, source));
+      text.text, get_input_message_entities(user_manager, text.entities, source));
 }
 
-FormattedText get_formatted_text(const ContactsManager *contacts_manager,
+FormattedText get_formatted_text(const UserManager *user_manager,
                                  telegram_api::object_ptr<telegram_api::textWithEntities> text_with_entities,
                                  bool allow_empty, bool skip_new_entities, bool skip_bot_commands,
                                  bool skip_media_timestamps, bool skip_trim, const char *source) {
   CHECK(text_with_entities != nullptr);
-  auto entities = get_message_entities(contacts_manager, std::move(text_with_entities->entities_), source);
+  auto entities = get_message_entities(user_manager, std::move(text_with_entities->entities_), source);
   auto status = fix_formatted_text(text_with_entities->text_, entities, allow_empty, skip_new_entities,
                                    skip_bot_commands, skip_media_timestamps, skip_trim);
   if (status.is_error()) {
@@ -4442,11 +4443,11 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
   return Status::OK();
 }
 
-FormattedText get_message_text(const ContactsManager *contacts_manager, string message_text,
+FormattedText get_message_text(const UserManager *user_manager, string message_text,
                                vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities,
                                bool skip_new_entities, bool skip_media_timestamps, int32 send_date, bool from_album,
                                const char *source) {
-  auto entities = get_message_entities(contacts_manager, std::move(server_entities), source);
+  auto entities = get_message_entities(user_manager, std::move(server_entities), source);
   auto debug_message_text = message_text;
   auto debug_entities = entities;
   auto status = fix_formatted_text(message_text, entities, true, skip_new_entities, true, skip_media_timestamps, false);
@@ -4528,8 +4529,8 @@ Result<FormattedText> get_formatted_text(const Td *td, DialogId dialog_id,
     return Status::Error(400, "Text must be non-empty");
   }
 
-  TRY_RESULT(entities, get_message_entities(td->contacts_manager_.get(), std::move(text->entities_)));
-  auto need_skip_bot_commands = need_always_skip_bot_commands(td->contacts_manager_.get(), dialog_id, is_bot);
+  TRY_RESULT(entities, get_message_entities(td->user_manager_.get(), std::move(text->entities_)));
+  auto need_skip_bot_commands = need_always_skip_bot_commands(td->user_manager_.get(), dialog_id, is_bot);
   bool parse_markdown = td->option_manager_->get_option_boolean("always_parse_markdown");
   bool skip_new_entities = is_bot && td->option_manager_->get_option_integer("session_count") > 1;
   TRY_STATUS(fix_formatted_text(text->text_, entities, allow_empty, skip_new_entities || parse_markdown,
@@ -4581,7 +4582,7 @@ bool has_bot_commands(const FormattedText *text) {
   return false;
 }
 
-bool need_always_skip_bot_commands(const ContactsManager *contacts_manager, DialogId dialog_id, bool is_bot) {
+bool need_always_skip_bot_commands(const UserManager *user_manager, DialogId dialog_id, bool is_bot) {
   if (!dialog_id.is_valid()) {
     return true;
   }
@@ -4592,11 +4593,11 @@ bool need_always_skip_bot_commands(const ContactsManager *contacts_manager, Dial
   switch (dialog_id.get_type()) {
     case DialogType::User: {
       auto user_id = dialog_id.get_user_id();
-      return user_id == ContactsManager::get_replies_bot_user_id() || !contacts_manager->is_user_bot(user_id);
+      return user_id == UserManager::get_replies_bot_user_id() || !user_manager->is_user_bot(user_id);
     }
     case DialogType::SecretChat: {
-      auto user_id = contacts_manager->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
-      return !user_id.is_valid() || !contacts_manager->is_user_bot(user_id);
+      auto user_id = user_manager->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
+      return !user_id.is_valid() || !user_manager->is_user_bot(user_id);
     }
     case DialogType::Chat:
     case DialogType::Channel:
@@ -4608,7 +4609,7 @@ bool need_always_skip_bot_commands(const ContactsManager *contacts_manager, Dial
   }
 }
 
-vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(const ContactsManager *contacts_manager,
+vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(const UserManager *user_manager,
                                                                               const vector<MessageEntity> &entities,
                                                                               const char *source) {
   vector<tl_object_ptr<telegram_api::MessageEntity>> result;
@@ -4650,7 +4651,7 @@ vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(co
             make_tl_object<telegram_api::messageEntityTextUrl>(entity.offset, entity.length, entity.argument));
         break;
       case MessageEntity::Type::MentionName: {
-        auto input_user = contacts_manager->get_input_user_force(entity.user_id);
+        auto input_user = user_manager->get_input_user_force(entity.user_id);
         result.push_back(make_tl_object<telegram_api::inputMessageEntityMentionName>(entity.offset, entity.length,
                                                                                      std::move(input_user)));
         break;
@@ -4690,11 +4691,11 @@ vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(co
   return result;
 }
 
-vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(const ContactsManager *contacts_manager,
+vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(const UserManager *user_manager,
                                                                               const FormattedText *text,
                                                                               const char *source) {
   if (text != nullptr && !text->entities.empty()) {
-    return get_input_message_entities(contacts_manager, text->entities, source);
+    return get_input_message_entities(user_manager, text->entities, source);
   }
   return {};
 }
@@ -4712,7 +4713,7 @@ void remove_unallowed_entities(const Td *td, FormattedText &text, DialogId dialo
   }
 
   if (dialog_id.get_type() == DialogType::SecretChat) {
-    auto layer = td->contacts_manager_->get_secret_chat_layer(dialog_id.get_secret_chat_id());
+    auto layer = td->user_manager_->get_secret_chat_layer(dialog_id.get_secret_chat_id());
     td::remove_if(text.entities, [layer](const MessageEntity &entity) {
       if (layer < static_cast<int32>(SecretChatLayer::NewEntities) &&
           (entity.type == MessageEntity::Type::Underline || entity.type == MessageEntity::Type::Strikethrough ||

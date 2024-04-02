@@ -6,7 +6,6 @@
 //
 #include "td/telegram/SecureManager.h"
 
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileManager.h"
@@ -17,6 +16,7 @@
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -987,8 +987,8 @@ void SecureManager::on_get_passport_authorization_form(
 
   auto authorization_form = r_authorization_form.move_as_ok();
   LOG(INFO) << "Receive " << to_string(authorization_form);
-  G()->td().get_actor_unsafe()->contacts_manager_->on_get_users(std::move(authorization_form->users_),
-                                                                "on_get_passport_authorization_form");
+  G()->td().get_actor_unsafe()->user_manager_->on_get_users(std::move(authorization_form->users_),
+                                                            "on_get_passport_authorization_form");
 
   vector<vector<SuitableSecureValue>> required_types;
   std::map<SecureValueType, SuitableSecureValue> all_types;

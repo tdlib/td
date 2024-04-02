@@ -13,6 +13,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -94,7 +95,7 @@ td_api::object_ptr<td_api::MessageOrigin> MessageOrigin::get_message_origin_obje
         sender_name_.empty() ? author_signature_ : sender_name_);
   }
   return td_api::make_object<td_api::messageOriginUser>(
-      td->contacts_manager_->get_user_id_object(sender_user_id_, "messageOriginUser"));
+      td->user_manager_->get_user_id_object(sender_user_id_, "messageOriginUser"));
 }
 
 bool MessageOrigin::is_sender_hidden() const {
@@ -121,7 +122,7 @@ DialogId MessageOrigin::get_sender() const {
 
 void MessageOrigin::hide_sender_if_needed(Td *td) {
   if (!is_sender_hidden() && !message_id_.is_valid() && !sender_dialog_id_.is_valid()) {
-    auto private_forward_name = td->contacts_manager_->get_user_private_forward_name(sender_user_id_);
+    auto private_forward_name = td->user_manager_->get_user_private_forward_name(sender_user_id_);
     if (!private_forward_name.empty()) {
       sender_user_id_ = UserId();
       sender_name_ = std::move(private_forward_name);

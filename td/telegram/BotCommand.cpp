@@ -7,11 +7,11 @@
 #include "td/telegram/BotCommand.h"
 
 #include "td/telegram/BotCommandScope.h"
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -100,7 +100,7 @@ class GetBotCommandsQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    BotCommands commands(td_->contacts_manager_->get_my_id(), result_ptr.move_as_ok());
+    BotCommands commands(td_->user_manager_->get_my_id(), result_ptr.move_as_ok());
     promise_.set_value(commands.get_bot_commands_object(td_));
   }
 
@@ -137,7 +137,7 @@ BotCommands::BotCommands(UserId bot_user_id, vector<telegram_api::object_ptr<tel
 td_api::object_ptr<td_api::botCommands> BotCommands::get_bot_commands_object(Td *td) const {
   auto commands = transform(commands_, [](const auto &command) { return command.get_bot_command_object(); });
   return td_api::make_object<td_api::botCommands>(
-      td->contacts_manager_->get_user_id_object(bot_user_id_, "get_bot_commands_object"), std::move(commands));
+      td->user_manager_->get_user_id_object(bot_user_id_, "get_bot_commands_object"), std::move(commands));
 }
 
 bool BotCommands::update_all_bot_commands(vector<BotCommands> &all_bot_commands, BotCommands &&bot_commands) {

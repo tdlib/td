@@ -28,6 +28,7 @@
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/format.h"
@@ -98,7 +99,7 @@ struct BusinessConnectionManager::BusinessConnection {
     DialogId user_dialog_id(user_id_);
     td->dialog_manager_->force_create_dialog(user_dialog_id, "get_business_connection_object");
     return td_api::make_object<td_api::businessConnection>(
-        connection_id_.get(), td->contacts_manager_->get_user_id_object(user_id_, "businessConnection"),
+        connection_id_.get(), td->user_manager_->get_user_id_object(user_id_, "businessConnection"),
         td->dialog_manager_->get_chat_id_object(user_dialog_id, "businessConnection"), connection_date_, can_reply_,
         !is_disabled_);
   }
@@ -155,7 +156,7 @@ class BusinessConnectionManager::SendBusinessMessageQuery final : public Td::Res
 
     const FormattedText *message_text = get_message_content_text(message_->content_.get());
     CHECK(message_text != nullptr);
-    auto entities = get_input_message_entities(td_->contacts_manager_.get(), message_text, "SendBusinessMessageQuery");
+    auto entities = get_input_message_entities(td_->user_manager_.get(), message_text, "SendBusinessMessageQuery");
     if (!entities.empty()) {
       flags |= telegram_api::messages_sendMessage::ENTITIES_MASK;
     }
@@ -169,7 +170,7 @@ class BusinessConnectionManager::SendBusinessMessageQuery final : public Td::Res
         telegram_api::messages_sendMessage(
             flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
             false /*ignored*/, false /*ignored*/, std::move(input_peer), std::move(reply_to), message_text->text,
-            message_->random_id_, get_input_reply_markup(td_->contacts_manager_.get(), message_->reply_markup_),
+            message_->random_id_, get_input_reply_markup(td_->user_manager_.get(), message_->reply_markup_),
             std::move(entities), 0, nullptr, nullptr),
         td_->business_connection_manager_->get_business_connection_dc_id(message_->business_connection_id_),
         {{message_->dialog_id_}}));
@@ -225,7 +226,7 @@ class BusinessConnectionManager::SendBusinessMediaQuery final : public Td::Resul
     }
 
     const FormattedText *message_text = get_message_content_text(message_->content_.get());
-    auto entities = get_input_message_entities(td_->contacts_manager_.get(), message_text, "SendBusinessMediaQuery");
+    auto entities = get_input_message_entities(td_->user_manager_.get(), message_text, "SendBusinessMediaQuery");
     if (!entities.empty()) {
       flags |= telegram_api::messages_sendMedia::ENTITIES_MASK;
     }
@@ -240,7 +241,7 @@ class BusinessConnectionManager::SendBusinessMediaQuery final : public Td::Resul
                                          false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer),
                                          std::move(reply_to), std::move(input_media),
                                          message_text == nullptr ? string() : message_text->text, message_->random_id_,
-                                         get_input_reply_markup(td_->contacts_manager_.get(), message_->reply_markup_),
+                                         get_input_reply_markup(td_->user_manager_.get(), message_->reply_markup_),
                                          std::move(entities), 0, nullptr, nullptr),
         td_->business_connection_manager_->get_business_connection_dc_id(message_->business_connection_id_),
         {{message_->dialog_id_}}));
@@ -599,7 +600,7 @@ void BusinessConnectionManager::on_get_business_connection(
   }
   auto update = telegram_api::move_object_as<telegram_api::updateBotBusinessConnect>(updates->updates_[0]);
 
-  td_->contacts_manager_->on_get_users(std::move(updates->users_), "on_get_business_connection");
+  td_->user_manager_->on_get_users(std::move(updates->users_), "on_get_business_connection");
   td_->contacts_manager_->on_get_chats(std::move(updates->chats_), "on_get_business_connection");
 
   auto business_connection = make_unique<BusinessConnection>(update->connection_);
@@ -763,7 +764,7 @@ void BusinessConnectionManager::process_sent_business_message(
   }
   auto update = telegram_api::move_object_as<telegram_api::updateBotNewBusinessMessage>(updates->updates_[0]);
 
-  td_->contacts_manager_->on_get_users(std::move(updates->users_), "SendBusinessMediaQuery");
+  td_->user_manager_->on_get_users(std::move(updates->users_), "SendBusinessMediaQuery");
   td_->contacts_manager_->on_get_chats(std::move(updates->chats_), "SendBusinessMediaQuery");
 
   promise.set_value(td_->messages_manager_->get_business_message_object(std::move(update->message_),
@@ -1067,7 +1068,7 @@ void BusinessConnectionManager::on_upload_message_album_media(int64 request_id, 
     auto message = std::move(upload_result.message_);
     int32 flags = 0;
     const FormattedText *caption = get_message_content_text(message->content_.get());
-    auto entities = get_input_message_entities(td_->contacts_manager_.get(), caption, "on_upload_message_album_media");
+    auto entities = get_input_message_entities(td_->user_manager_.get(), caption, "on_upload_message_album_media");
     if (!entities.empty()) {
       flags |= telegram_api::inputSingleMedia::ENTITIES_MASK;
     }
@@ -1095,7 +1096,7 @@ void BusinessConnectionManager::process_sent_business_message_album(
       return promise.set_error(Status::Error(500, "Receive invalid business connection messages"));
     }
   }
-  td_->contacts_manager_->on_get_users(std::move(updates->users_), "process_sent_business_message_album");
+  td_->user_manager_->on_get_users(std::move(updates->users_), "process_sent_business_message_album");
   td_->contacts_manager_->on_get_chats(std::move(updates->chats_), "process_sent_business_message_album");
 
   auto messages = td_api::make_object<td_api::businessMessages>();

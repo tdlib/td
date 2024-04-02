@@ -16,6 +16,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/TdDb.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/actor/MultiPromise.h"
 
@@ -49,8 +50,8 @@ void RecentDialogList::save_dialogs() const {
       string username;
       switch (dialog_id.get_type()) {
         case DialogType::User:
-          if (!td_->contacts_manager_->is_user_contact(dialog_id.get_user_id())) {
-            username = td_->contacts_manager_->get_user_first_username(dialog_id.get_user_id());
+          if (!td_->user_manager_->is_user_contact(dialog_id.get_user_id())) {
+            username = td_->user_manager_->get_user_first_username(dialog_id.get_user_id());
           }
           break;
         case DialogType::Chat:
@@ -116,7 +117,7 @@ void RecentDialogList::load_dialogs(Promise<Unit> &&promise) {
           PromiseCreator::lambda([promise = mpas.get_promise()](td_api::object_ptr<td_api::chats> &&chats) mutable {
             promise.set_value(Unit());
           }));
-      td_->contacts_manager_->search_contacts("", 1, mpas.get_promise());
+      td_->user_manager_->search_contacts("", 1, mpas.get_promise());
     }
   }
 

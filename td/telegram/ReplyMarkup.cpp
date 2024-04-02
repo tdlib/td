@@ -6,13 +6,13 @@
 //
 #include "td/telegram/ReplyMarkup.h"
 
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -903,7 +903,7 @@ static tl_object_ptr<telegram_api::KeyboardButton> get_input_keyboard_button(con
 }
 
 static tl_object_ptr<telegram_api::KeyboardButton> get_input_keyboard_button(
-    ContactsManager *contacts_manager, const InlineKeyboardButton &keyboard_button) {
+    UserManager *user_manager, const InlineKeyboardButton &keyboard_button) {
   switch (keyboard_button.type) {
     case InlineKeyboardButton::Type::Url:
       return make_tl_object<telegram_api::keyboardButtonUrl>(keyboard_button.text, keyboard_button.data);
@@ -952,7 +952,7 @@ static tl_object_ptr<telegram_api::KeyboardButton> get_input_keyboard_button(
       if (!keyboard_button.forward_text.empty()) {
         flags |= telegram_api::inputKeyboardButtonUrlAuth::FWD_TEXT_MASK;
       }
-      auto r_input_user = contacts_manager->get_input_user(UserId(bot_user_id));
+      auto r_input_user = user_manager->get_input_user(UserId(bot_user_id));
       if (r_input_user.is_error()) {
         LOG(ERROR) << "Failed to get InputUser for " << bot_user_id << ": " << r_input_user.error();
         return make_tl_object<telegram_api::keyboardButtonUrl>(keyboard_button.text, keyboard_button.data);
@@ -965,7 +965,7 @@ static tl_object_ptr<telegram_api::KeyboardButton> get_input_keyboard_button(
       UNREACHABLE();
       break;
     case InlineKeyboardButton::Type::User: {
-      auto r_input_user = contacts_manager->get_input_user(keyboard_button.user_id);
+      auto r_input_user = user_manager->get_input_user(keyboard_button.user_id);
       if (r_input_user.is_error()) {
         LOG(ERROR) << "Failed to get InputUser for " << keyboard_button.user_id << ": " << r_input_user.error();
         r_input_user = make_tl_object<telegram_api::inputUserEmpty>();
@@ -981,7 +981,7 @@ static tl_object_ptr<telegram_api::KeyboardButton> get_input_keyboard_button(
   }
 }
 
-tl_object_ptr<telegram_api::ReplyMarkup> ReplyMarkup::get_input_reply_markup(ContactsManager *contacts_manager) const {
+tl_object_ptr<telegram_api::ReplyMarkup> ReplyMarkup::get_input_reply_markup(UserManager *user_manager) const {
   LOG(DEBUG) << "Send " << *this;
   switch (type) {
     case ReplyMarkup::Type::InlineKeyboard: {
@@ -991,7 +991,7 @@ tl_object_ptr<telegram_api::ReplyMarkup> ReplyMarkup::get_input_reply_markup(Con
         vector<tl_object_ptr<telegram_api::KeyboardButton>> buttons;
         buttons.reserve(row.size());
         for (auto &button : row) {
-          buttons.push_back(get_input_keyboard_button(contacts_manager, button));
+          buttons.push_back(get_input_keyboard_button(user_manager, button));
         }
         rows.push_back(make_tl_object<telegram_api::keyboardButtonRow>(std::move(buttons)));
       }
@@ -1067,7 +1067,7 @@ static tl_object_ptr<td_api::keyboardButton> get_keyboard_button_object(const Ke
 }
 
 static tl_object_ptr<td_api::inlineKeyboardButton> get_inline_keyboard_button_object(
-    ContactsManager *contacts_manager, const InlineKeyboardButton &keyboard_button) {
+    UserManager *user_manager, const InlineKeyboardButton &keyboard_button) {
   tl_object_ptr<td_api::InlineKeyboardButtonType> type;
   switch (keyboard_button.type) {
     case InlineKeyboardButton::Type::Url:
@@ -1106,9 +1106,9 @@ static tl_object_ptr<td_api::inlineKeyboardButton> get_inline_keyboard_button_ob
       type = make_tl_object<td_api::inlineKeyboardButtonTypeCallbackWithPassword>(keyboard_button.data);
       break;
     case InlineKeyboardButton::Type::User: {
-      bool need_user = contacts_manager != nullptr && !contacts_manager->is_user_bot(contacts_manager->get_my_id());
+      bool need_user = user_manager != nullptr && !user_manager->is_user_bot(user_manager->get_my_id());
       auto user_id =
-          need_user ? contacts_manager->get_user_id_object(keyboard_button.user_id, "get_inline_keyboard_button_object")
+          need_user ? user_manager->get_user_id_object(keyboard_button.user_id, "get_inline_keyboard_button_object")
                     : keyboard_button.user_id.get();
       type = make_tl_object<td_api::inlineKeyboardButtonTypeUser>(user_id);
       break;
@@ -1123,7 +1123,7 @@ static tl_object_ptr<td_api::inlineKeyboardButton> get_inline_keyboard_button_ob
   return make_tl_object<td_api::inlineKeyboardButton>(keyboard_button.text, std::move(type));
 }
 
-tl_object_ptr<td_api::ReplyMarkup> ReplyMarkup::get_reply_markup_object(ContactsManager *contacts_manager) const {
+tl_object_ptr<td_api::ReplyMarkup> ReplyMarkup::get_reply_markup_object(UserManager *user_manager) const {
   switch (type) {
     case ReplyMarkup::Type::InlineKeyboard: {
       vector<vector<tl_object_ptr<td_api::inlineKeyboardButton>>> rows;
@@ -1132,7 +1132,7 @@ tl_object_ptr<td_api::ReplyMarkup> ReplyMarkup::get_reply_markup_object(Contacts
         vector<tl_object_ptr<td_api::inlineKeyboardButton>> buttons;
         buttons.reserve(row.size());
         for (auto &button : row) {
-          buttons.push_back(get_inline_keyboard_button_object(contacts_manager, button));
+          buttons.push_back(get_inline_keyboard_button_object(user_manager, button));
         }
         rows.push_back(std::move(buttons));
       }
@@ -1186,22 +1186,22 @@ Status ReplyMarkup::check_shared_dialog_count(int32 button_id, size_t count) con
   return Status::Error(400, "Button not found");
 }
 
-tl_object_ptr<telegram_api::ReplyMarkup> get_input_reply_markup(ContactsManager *contacts_manager,
+tl_object_ptr<telegram_api::ReplyMarkup> get_input_reply_markup(UserManager *user_manager,
                                                                 const unique_ptr<ReplyMarkup> &reply_markup) {
   if (reply_markup == nullptr) {
     return nullptr;
   }
 
-  return reply_markup->get_input_reply_markup(contacts_manager);
+  return reply_markup->get_input_reply_markup(user_manager);
 }
 
-tl_object_ptr<td_api::ReplyMarkup> get_reply_markup_object(ContactsManager *contacts_manager,
+tl_object_ptr<td_api::ReplyMarkup> get_reply_markup_object(UserManager *user_manager,
                                                            const unique_ptr<ReplyMarkup> &reply_markup) {
   if (reply_markup == nullptr) {
     return nullptr;
   }
 
-  return reply_markup->get_reply_markup_object(contacts_manager);
+  return reply_markup->get_reply_markup_object(user_manager);
 }
 
 void add_reply_markup_dependencies(Dependencies &dependencies, const ReplyMarkup *reply_markup) {

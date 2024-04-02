@@ -7,13 +7,13 @@
 #include "td/telegram/BotInfoManager.h"
 
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -44,7 +44,7 @@ class SetBotGroupDefaultAdminRightsQuery final : public Td::ResultHandler {
 
     bool result = result_ptr.move_as_ok();
     LOG_IF(WARNING, !result) << "Failed to set group default administrator rights";
-    td_->contacts_manager_->invalidate_user_full(td_->contacts_manager_->get_my_id());
+    td_->user_manager_->invalidate_user_full(td_->user_manager_->get_my_id());
     promise_.set_value(Unit());
   }
 
@@ -52,7 +52,7 @@ class SetBotGroupDefaultAdminRightsQuery final : public Td::ResultHandler {
     if (status.message() == "RIGHTS_NOT_MODIFIED") {
       return promise_.set_value(Unit());
     }
-    td_->contacts_manager_->invalidate_user_full(td_->contacts_manager_->get_my_id());
+    td_->user_manager_->invalidate_user_full(td_->user_manager_->get_my_id());
     promise_.set_error(std::move(status));
   }
 };
@@ -77,7 +77,7 @@ class SetBotBroadcastDefaultAdminRightsQuery final : public Td::ResultHandler {
 
     bool result = result_ptr.move_as_ok();
     LOG_IF(WARNING, !result) << "Failed to set channel default administrator rights";
-    td_->contacts_manager_->invalidate_user_full(td_->contacts_manager_->get_my_id());
+    td_->user_manager_->invalidate_user_full(td_->user_manager_->get_my_id());
     promise_.set_value(Unit());
   }
 
@@ -85,7 +85,7 @@ class SetBotBroadcastDefaultAdminRightsQuery final : public Td::ResultHandler {
     if (status.message() == "RIGHTS_NOT_MODIFIED") {
       return promise_.set_value(Unit());
     }
-    td_->contacts_manager_->invalidate_user_full(td_->contacts_manager_->get_my_id());
+    td_->user_manager_->invalidate_user_full(td_->user_manager_->get_my_id());
     promise_.set_error(std::move(status));
   }
 };
@@ -98,7 +98,7 @@ class CanBotSendMessageQuery final : public Td::ResultHandler {
   }
 
   void send(UserId bot_user_id) {
-    auto r_input_user = td_->contacts_manager_->get_input_user(bot_user_id);
+    auto r_input_user = td_->user_manager_->get_input_user(bot_user_id);
     if (r_input_user.is_error()) {
       return on_error(r_input_user.move_as_error());
     }
@@ -132,7 +132,7 @@ class AllowBotSendMessageQuery final : public Td::ResultHandler {
   }
 
   void send(UserId bot_user_id) {
-    auto r_input_user = td_->contacts_manager_->get_input_user(bot_user_id);
+    auto r_input_user = td_->user_manager_->get_input_user(bot_user_id);
     if (r_input_user.is_error()) {
       return on_error(r_input_user.move_as_error());
     }
@@ -158,15 +158,15 @@ class AllowBotSendMessageQuery final : public Td::ResultHandler {
 
 static Result<telegram_api::object_ptr<telegram_api::InputUser>> get_bot_input_user(const Td *td, UserId bot_user_id) {
   if (td->auth_manager_->is_bot()) {
-    if (bot_user_id != UserId() && bot_user_id != td->contacts_manager_->get_my_id()) {
+    if (bot_user_id != UserId() && bot_user_id != td->user_manager_->get_my_id()) {
       return Status::Error(400, "Invalid bot user identifier specified");
     }
   } else {
-    TRY_RESULT(bot_data, td->contacts_manager_->get_bot_data(bot_user_id));
+    TRY_RESULT(bot_data, td->user_manager_->get_bot_data(bot_user_id));
     if (!bot_data.can_be_edited) {
       return Status::Error(400, "The bot can't be edited");
     }
-    return td->contacts_manager_->get_input_user(bot_user_id);
+    return td->user_manager_->get_input_user(bot_user_id);
   }
   return nullptr;
 }
@@ -179,7 +179,7 @@ class SetBotInfoQuery final : public Td::ResultHandler {
 
   void invalidate_bot_info() {
     if (set_info_) {
-      td_->contacts_manager_->invalidate_user_full(bot_user_id_);
+      td_->user_manager_->invalidate_user_full(bot_user_id_);
     }
   }
 
@@ -207,7 +207,7 @@ class SetBotInfoQuery final : public Td::ResultHandler {
       flags |= telegram_api::bots_setBotInfo::BOT_MASK;
       bot_user_id_ = bot_user_id;
     } else {
-      bot_user_id_ = td_->contacts_manager_->get_my_id();
+      bot_user_id_ = td_->user_manager_->get_my_id();
     }
     set_name_ = set_name;
     set_info_ = set_about || set_description;
@@ -228,11 +228,11 @@ class SetBotInfoQuery final : public Td::ResultHandler {
     if (set_info_) {
       invalidate_bot_info();
       if (!td_->auth_manager_->is_bot()) {
-        return td_->contacts_manager_->reload_user_full(bot_user_id_, std::move(promise_), "SetBotInfoQuery");
+        return td_->user_manager_->reload_user_full(bot_user_id_, std::move(promise_), "SetBotInfoQuery");
       }
     }
     if (set_name_) {
-      return td_->contacts_manager_->reload_user(bot_user_id_, std::move(promise_), "SetBotInfoQuery");
+      return td_->user_manager_->reload_user(bot_user_id_, std::move(promise_), "SetBotInfoQuery");
     }
     // invalidation is enough for bots if name wasn't changed
     promise_.set_value(Unit());
@@ -374,13 +374,13 @@ void BotInfoManager::timeout_expired() {
 
 void BotInfoManager::set_default_group_administrator_rights(AdministratorRights administrator_rights,
                                                             Promise<Unit> &&promise) {
-  td_->contacts_manager_->invalidate_user_full(td_->contacts_manager_->get_my_id());
+  td_->user_manager_->invalidate_user_full(td_->user_manager_->get_my_id());
   td_->create_handler<SetBotGroupDefaultAdminRightsQuery>(std::move(promise))->send(administrator_rights);
 }
 
 void BotInfoManager::set_default_channel_administrator_rights(AdministratorRights administrator_rights,
                                                               Promise<Unit> &&promise) {
-  td_->contacts_manager_->invalidate_user_full(td_->contacts_manager_->get_my_id());
+  td_->user_manager_->invalidate_user_full(td_->user_manager_->get_my_id());
   td_->create_handler<SetBotBroadcastDefaultAdminRightsQuery>(std::move(promise))->send(administrator_rights);
 }
 

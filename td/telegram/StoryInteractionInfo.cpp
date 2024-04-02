@@ -6,10 +6,10 @@
 //
 #include "td/telegram/StoryInteractionInfo.h"
 
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/FlatHashSet.h"
@@ -25,7 +25,7 @@ StoryInteractionInfo::StoryInteractionInfo(Td *td, telegram_api::object_ptr<tele
   }
   for (auto &viewer_id : story_views->recent_viewers_) {
     UserId user_id(viewer_id);
-    if (user_id.is_valid() && td->contacts_manager_->have_min_user(user_id)) {
+    if (user_id.is_valid() && td->user_manager_->have_min_user(user_id)) {
       if (recent_viewer_user_ids_.size() == MAX_RECENT_VIEWERS) {
         LOG(ERROR) << "Receive too many recent story viewers: " << story_views->recent_viewers_;
         break;
@@ -135,7 +135,7 @@ td_api::object_ptr<td_api::storyInteractionInfo> StoryInteractionInfo::get_story
   }
   return td_api::make_object<td_api::storyInteractionInfo>(
       view_count_, forward_count_, reaction_count_,
-      td->contacts_manager_->get_user_ids_object(recent_viewer_user_ids_, "get_story_interaction_info_object"));
+      td->user_manager_->get_user_ids_object(recent_viewer_user_ids_, "get_story_interaction_info_object"));
 }
 
 bool operator==(const StoryInteractionInfo &lhs, const StoryInteractionInfo &rhs) {

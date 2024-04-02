@@ -33,6 +33,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserManager.h"
 #include "td/telegram/VideoNotesManager.h"
 #include "td/telegram/VideosManager.h"
 #include "td/telegram/VoiceNotesManager.h"
@@ -125,7 +126,7 @@ class GetWebPageQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetWebPageQuery: " << to_string(ptr);
-    td_->contacts_manager_->on_get_users(std::move(ptr->users_), "GetWebPageQuery");
+    td_->user_manager_->on_get_users(std::move(ptr->users_), "GetWebPageQuery");
     td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetWebPageQuery");
     auto page = std::move(ptr->webpage_);
     if (page->get_id() == telegram_api::webPageNotModified::ID) {
@@ -920,7 +921,7 @@ void WebPagesManager::get_web_page_preview(td_api::object_ptr<td_api::formattedT
   options->link_preview_options_ = std::move(link_preview_options);
   td_->create_handler<GetWebPagePreviewQuery>(std::move(promise))
       ->send(formatted_text.text,
-             get_input_message_entities(td_->contacts_manager_.get(), formatted_text.entities, "get_web_page_preview"),
+             get_input_message_entities(td_->user_manager_.get(), formatted_text.entities, "get_web_page_preview"),
              std::move(options));
 }
 

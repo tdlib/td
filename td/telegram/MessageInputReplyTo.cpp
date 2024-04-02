@@ -57,8 +57,8 @@ MessageInputReplyTo::MessageInputReplyTo(Td *td,
       dialog_id_ = dialog_id;
 
       if (!reply_to->quote_text_.empty()) {
-        auto entities = get_message_entities(td->contacts_manager_.get(), std::move(reply_to->quote_entities_),
-                                             "inputReplyToMessage");
+        auto entities =
+            get_message_entities(td->user_manager_.get(), std::move(reply_to->quote_entities_), "inputReplyToMessage");
         auto status = fix_formatted_text(reply_to->quote_text_, entities, true, true, true, true, false);
         if (status.is_error()) {
           if (!clean_input_string(reply_to->quote_text_)) {
@@ -120,7 +120,7 @@ telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_in
   if (!quote_.text.empty()) {
     flags |= telegram_api::inputReplyToMessage::QUOTE_TEXT_MASK;
   }
-  auto quote_entities = get_input_message_entities(td->contacts_manager_.get(), quote_.entities, "get_input_reply_to");
+  auto quote_entities = get_input_message_entities(td->user_manager_.get(), quote_.entities, "get_input_reply_to");
   if (!quote_entities.empty()) {
     flags |= telegram_api::inputReplyToMessage::QUOTE_ENTITIES_MASK;
   }

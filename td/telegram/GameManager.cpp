@@ -9,7 +9,6 @@
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ChainId.h"
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
@@ -21,6 +20,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
@@ -212,7 +212,7 @@ void GameManager::set_game_score(MessageFullId message_full_id, bool edit_messag
     return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
 
-  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
 
   if (!td_->messages_manager_->can_set_game_score(message_full_id)) {
     return promise.set_error(Status::Error(400, "Game score can't be set"));
@@ -243,7 +243,7 @@ void GameManager::set_inline_game_score(const string &inline_message_id, bool ed
     return promise.set_error(Status::Error(400, "Invalid inline message identifier specified"));
   }
 
-  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
 
   td_->create_handler<SetInlineGameScoreQuery>(std::move(promise))
       ->send(std::move(input_bot_inline_message_id), edit_message, std::move(input_user), score, force);
@@ -266,7 +266,7 @@ void GameManager::get_game_high_scores(MessageFullId message_full_id, UserId use
     return promise.set_error(Status::Error(400, "Wrong message identifier specified"));
   }
 
-  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
 
   td_->create_handler<GetGameHighScoresQuery>(std::move(promise))->send(dialog_id, message_id, std::move(input_user));
 }
@@ -280,7 +280,7 @@ void GameManager::get_inline_game_high_scores(const string &inline_message_id, U
     return promise.set_error(Status::Error(400, "Invalid inline message identifier specified"));
   }
 
-  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
 
   td_->create_handler<GetInlineGameHighScoresQuery>(std::move(promise))
       ->send(std::move(input_bot_inline_message_id), std::move(input_user));
@@ -288,7 +288,7 @@ void GameManager::get_inline_game_high_scores(const string &inline_message_id, U
 
 td_api::object_ptr<td_api::gameHighScores> GameManager::get_game_high_scores_object(
     telegram_api::object_ptr<telegram_api::messages_highScores> &&high_scores) {
-  td_->contacts_manager_->on_get_users(std::move(high_scores->users_), "get_game_high_scores_object");
+  td_->user_manager_->on_get_users(std::move(high_scores->users_), "get_game_high_scores_object");
 
   auto result = td_api::make_object<td_api::gameHighScores>();
   for (const auto &high_score : high_scores->scores_) {
@@ -300,7 +300,7 @@ td_api::object_ptr<td_api::gameHighScores> GameManager::get_game_high_scores_obj
       continue;
     }
     result->scores_.push_back(make_tl_object<td_api::gameHighScore>(
-        position, td_->contacts_manager_->get_user_id_object(user_id, "get_game_high_scores_object"), score));
+        position, td_->user_manager_->get_user_id_object(user_id, "get_game_high_scores_object"), score));
   }
   return result;
 }

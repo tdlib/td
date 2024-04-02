@@ -30,6 +30,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/ThemeManager.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
@@ -54,7 +55,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
         return nullptr;
       }
       return td_api::make_object<td_api::chatEventMemberJoinedByInviteLink>(
-          invite_link.get_chat_invite_link_object(td->contacts_manager_.get()), action->via_chatlist_);
+          invite_link.get_chat_invite_link_object(td->user_manager_.get()), action->via_chatlist_);
     }
     case telegram_api::channelAdminLogEventActionParticipantJoinByRequest::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantJoinByRequest>(action_ptr);
@@ -65,8 +66,8 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
         return nullptr;
       }
       return td_api::make_object<td_api::chatEventMemberJoinedByRequest>(
-          td->contacts_manager_->get_user_id_object(approver_user_id, "chatEventMemberJoinedByRequest"),
-          invite_link.get_chat_invite_link_object(td->contacts_manager_.get()));
+          td->user_manager_->get_user_id_object(approver_user_id, "chatEventMemberJoinedByRequest"),
+          invite_link.get_chat_invite_link_object(td->user_manager_.get()));
     }
     case telegram_api::channelAdminLogEventActionParticipantLeave::ID:
       return td_api::make_object<td_api::chatEventMemberLeft>();
@@ -79,8 +80,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
         return nullptr;
       }
       return td_api::make_object<td_api::chatEventMemberInvited>(
-          td->contacts_manager_->get_user_id_object(dialog_participant.dialog_id_.get_user_id(),
-                                                    "chatEventMemberInvited"),
+          td->user_manager_->get_user_id_object(dialog_participant.dialog_id_.get_user_id(), "chatEventMemberInvited"),
           dialog_participant.status_.get_chat_member_status_object());
     }
     case telegram_api::channelAdminLogEventActionParticipantToggleBan::ID: {
@@ -116,8 +116,8 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
         return nullptr;
       }
       return td_api::make_object<td_api::chatEventMemberPromoted>(
-          td->contacts_manager_->get_user_id_object(old_dialog_participant.dialog_id_.get_user_id(),
-                                                    "chatEventMemberPromoted"),
+          td->user_manager_->get_user_id_object(old_dialog_participant.dialog_id_.get_user_id(),
+                                                "chatEventMemberPromoted"),
           old_dialog_participant.status_.get_chat_member_status_object(),
           new_dialog_participant.status_.get_chat_member_status_object());
     }
@@ -281,8 +281,8 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
         return nullptr;
       }
       return td_api::make_object<td_api::chatEventInviteLinkEdited>(
-          old_invite_link.get_chat_invite_link_object(td->contacts_manager_.get()),
-          new_invite_link.get_chat_invite_link_object(td->contacts_manager_.get()));
+          old_invite_link.get_chat_invite_link_object(td->user_manager_.get()),
+          new_invite_link.get_chat_invite_link_object(td->user_manager_.get()));
     }
     case telegram_api::channelAdminLogEventActionExportedInviteRevoke::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionExportedInviteRevoke>(action_ptr);
@@ -292,7 +292,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
         return nullptr;
       }
       return td_api::make_object<td_api::chatEventInviteLinkRevoked>(
-          invite_link.get_chat_invite_link_object(td->contacts_manager_.get()));
+          invite_link.get_chat_invite_link_object(td->user_manager_.get()));
     }
     case telegram_api::channelAdminLogEventActionExportedInviteDelete::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionExportedInviteDelete>(action_ptr);
@@ -302,7 +302,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
         return nullptr;
       }
       return td_api::make_object<td_api::chatEventInviteLinkDeleted>(
-          invite_link.get_chat_invite_link_object(td->contacts_manager_.get()));
+          invite_link.get_chat_invite_link_object(td->user_manager_.get()));
     }
     case telegram_api::channelAdminLogEventActionStartGroupCall::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionStartGroupCall>(action_ptr);
@@ -513,7 +513,7 @@ class GetChannelAdminLogQuery final : public Td::ResultHandler {
 
     auto events = result_ptr.move_as_ok();
     LOG(INFO) << "Receive in " << channel_id_ << ' ' << to_string(events);
-    td_->contacts_manager_->on_get_users(std::move(events->users_), "on_get_event_log");
+    td_->user_manager_->on_get_users(std::move(events->users_), "on_get_event_log");
     td_->contacts_manager_->on_get_chats(std::move(events->chats_), "on_get_event_log");
 
     auto anti_spam_user_id = UserId(G()->get_option_integer("anti_spam_bot_user_id"));
@@ -530,7 +530,7 @@ class GetChannelAdminLogQuery final : public Td::ResultHandler {
         LOG(ERROR) << "Receive invalid " << user_id;
         continue;
       }
-      LOG_IF(ERROR, !td_->contacts_manager_->have_user(user_id)) << "Receive unknown " << user_id;
+      LOG_IF(ERROR, !td_->user_manager_->have_user(user_id)) << "Receive unknown " << user_id;
 
       DialogId actor_dialog_id;
       auto action = get_chat_event_action_object(td_, channel_id_, std::move(event->action_), actor_dialog_id);
@@ -541,7 +541,7 @@ class GetChannelAdminLogQuery final : public Td::ResultHandler {
           action->get_id() == td_api::chatEventMessageDeleted::ID) {
         static_cast<td_api::chatEventMessageDeleted *>(action.get())->can_report_anti_spam_false_positive_ = true;
       }
-      if (user_id == ContactsManager::get_channel_bot_user_id() && actor_dialog_id.is_valid() &&
+      if (user_id == UserManager::get_channel_bot_user_id() && actor_dialog_id.is_valid() &&
           actor_dialog_id.get_type() != DialogType::User) {
         user_id = UserId();
       } else {
@@ -641,7 +641,7 @@ void get_dialog_event_log(Td *td, DialogId dialog_id, const string &query, int64
 
   vector<tl_object_ptr<telegram_api::InputUser>> input_users;
   for (auto user_id : user_ids) {
-    TRY_RESULT_PROMISE(promise, input_user, td->contacts_manager_->get_input_user(user_id));
+    TRY_RESULT_PROMISE(promise, input_user, td->user_manager_->get_input_user(user_id));
     input_users.push_back(std::move(input_user));
   }
 

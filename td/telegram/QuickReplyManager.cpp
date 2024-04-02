@@ -29,6 +29,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserManager.h"
 #include "td/telegram/Version.h"
 
 #include "td/utils/algorithm.h"
@@ -535,8 +536,8 @@ unique_ptr<QuickReplyManager::QuickReplyMessage> QuickReplyManager::create_messa
       bool disable_web_page_preview = false;
       auto content = get_message_content(
           td_,
-          get_message_text(td_->contacts_manager_.get(), std::move(message->message_), std::move(message->entities_),
-                           true, td_->auth_manager_->is_bot(), 0, media_album_id != 0, source),
+          get_message_text(td_->user_manager_.get(), std::move(message->message_), std::move(message->entities_), true,
+                           td_->auth_manager_->is_bot(), 0, media_album_id != 0, source),
           std::move(message->media_), my_dialog_id, message->date_, true, via_bot_user_id, &ttl,
           &disable_web_page_preview, source);
 
@@ -662,9 +663,9 @@ td_api::object_ptr<td_api::quickReplyMessage> QuickReplyManager::get_quick_reply
   auto can_be_edited = can_edit_quick_reply_message(m);
   return td_api::make_object<td_api::quickReplyMessage>(
       m->message_id.get(), get_message_sending_state_object(m), can_be_edited, m->reply_to_message_id.get(),
-      td_->contacts_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id"), m->media_album_id,
+      td_->user_manager_->get_user_id_object(m->via_bot_user_id, "via_bot_user_id"), m->media_album_id,
       get_quick_reply_message_message_content_object(m),
-      get_reply_markup_object(td_->contacts_manager_.get(), m->reply_markup));
+      get_reply_markup_object(td_->user_manager_.get(), m->reply_markup));
 }
 
 int32 QuickReplyManager::get_shortcut_message_count(const Shortcut *s) {
@@ -727,7 +728,7 @@ void QuickReplyManager::on_reload_quick_reply_shortcuts(
       break;
     case telegram_api::messages_quickReplies::ID: {
       auto shortcuts = telegram_api::move_object_as<telegram_api::messages_quickReplies>(shortcuts_ptr);
-      td_->contacts_manager_->on_get_users(std::move(shortcuts->users_), "messages.quickReplies");
+      td_->user_manager_->on_get_users(std::move(shortcuts->users_), "messages.quickReplies");
       td_->contacts_manager_->on_get_chats(std::move(shortcuts->chats_), "messages.quickReplies");
 
       FlatHashMap<MessageId, telegram_api::object_ptr<telegram_api::Message>, MessageIdHash> message_id_to_message;
@@ -1239,7 +1240,7 @@ void QuickReplyManager::on_reload_quick_reply_messages(
       break;
     case telegram_api::messages_messages::ID: {
       auto messages = telegram_api::move_object_as<telegram_api::messages_messages>(messages_ptr);
-      td_->contacts_manager_->on_get_users(std::move(messages->users_), "on_reload_quick_reply_messages");
+      td_->user_manager_->on_get_users(std::move(messages->users_), "on_reload_quick_reply_messages");
       td_->contacts_manager_->on_get_chats(std::move(messages->chats_), "on_reload_quick_reply_messages");
 
       vector<unique_ptr<QuickReplyMessage>> quick_reply_messages;
@@ -1366,7 +1367,7 @@ void QuickReplyManager::on_reload_quick_reply_message(
       return promise.set_error(Status::Error(400, "Receive wrong response"));
     case telegram_api::messages_messages::ID: {
       auto messages = telegram_api::move_object_as<telegram_api::messages_messages>(messages_ptr);
-      td_->contacts_manager_->on_get_users(std::move(messages->users_), "on_reload_quick_reply_message");
+      td_->user_manager_->on_get_users(std::move(messages->users_), "on_reload_quick_reply_message");
       td_->contacts_manager_->on_get_chats(std::move(messages->chats_), "on_reload_quick_reply_message");
 
       if (messages->messages_.size() > 1u) {
@@ -1413,7 +1414,7 @@ Result<vector<QuickReplyManager::QuickReplyMessageContent>> QuickReplyManager::g
   if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
     return Status::Error(400, "Have no write access to the chat");
   }
-  if (dialog_id.get_type() != DialogType::User || td_->contacts_manager_->is_user_bot(dialog_id.get_user_id())) {
+  if (dialog_id.get_type() != DialogType::User || td_->user_manager_->is_user_bot(dialog_id.get_user_id())) {
     return Status::Error(400, "Can't use quick replies in the chat");
   }
 

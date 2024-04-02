@@ -20,7 +20,7 @@
 
 namespace td {
 
-class ContactsManager;
+class UserManager;
 class Td;
 
 class Game {
@@ -79,7 +79,7 @@ bool operator!=(const Game &lhs, const Game &rhs);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const Game &game);
 
-Result<Game> process_input_message_game(const ContactsManager *contacts_manager,
+Result<Game> process_input_message_game(const UserManager *user_manager,
                                         tl_object_ptr<td_api::InputMessageContent> &&input_message_content)
     TD_WARN_UNUSED_RESULT;
 

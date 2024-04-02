@@ -18,6 +18,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -84,7 +85,7 @@ static td_api::object_ptr<td_api::chatStatisticsSupergroup> convert_megagroup_st
     Td *td, telegram_api::object_ptr<telegram_api::stats_megagroupStats> obj) {
   CHECK(obj != nullptr);
 
-  td->contacts_manager_->on_get_users(std::move(obj->users_), "convert_megagroup_stats");
+  td->user_manager_->on_get_users(std::move(obj->users_), "convert_megagroup_stats");
 
   // just in case
   td::remove_if(obj->top_posters_, [](auto &obj) {
@@ -99,19 +100,19 @@ static td_api::object_ptr<td_api::chatStatisticsSupergroup> convert_megagroup_st
   auto top_senders = transform(
       std::move(obj->top_posters_), [td](telegram_api::object_ptr<telegram_api::statsGroupTopPoster> &&top_poster) {
         return td_api::make_object<td_api::chatStatisticsMessageSenderInfo>(
-            td->contacts_manager_->get_user_id_object(UserId(top_poster->user_id_), "get_top_senders"),
+            td->user_manager_->get_user_id_object(UserId(top_poster->user_id_), "get_top_senders"),
             top_poster->messages_, top_poster->avg_chars_);
       });
   auto top_administrators = transform(
       std::move(obj->top_admins_), [td](telegram_api::object_ptr<telegram_api::statsGroupTopAdmin> &&top_admin) {
         return td_api::make_object<td_api::chatStatisticsAdministratorActionsInfo>(
-            td->contacts_manager_->get_user_id_object(UserId(top_admin->user_id_), "get_top_administrators"),
+            td->user_manager_->get_user_id_object(UserId(top_admin->user_id_), "get_top_administrators"),
             top_admin->deleted_, top_admin->kicked_, top_admin->banned_);
       });
   auto top_inviters = transform(
       std::move(obj->top_inviters_), [td](telegram_api::object_ptr<telegram_api::statsGroupTopInviter> &&top_inviter) {
         return td_api::make_object<td_api::chatStatisticsInviterInfo>(
-            td->contacts_manager_->get_user_id_object(UserId(top_inviter->user_id_), "get_top_inviters"),
+            td->user_manager_->get_user_id_object(UserId(top_inviter->user_id_), "get_top_inviters"),
             top_inviter->invitations_);
       });
 
@@ -713,7 +714,7 @@ void StatisticsManager::on_get_public_forwards(
 void StatisticsManager::get_channel_differences_if_needed(
     telegram_api::object_ptr<telegram_api::stats_publicForwards> &&public_forwards,
     Promise<td_api::object_ptr<td_api::publicForwards>> promise, const char *source) {
-  td_->contacts_manager_->on_get_users(std::move(public_forwards->users_), "stats_publicForwards");
+  td_->user_manager_->on_get_users(std::move(public_forwards->users_), "stats_publicForwards");
   td_->contacts_manager_->on_get_chats(std::move(public_forwards->chats_), "stats_publicForwards");
 
   vector<const telegram_api::object_ptr<telegram_api::Message> *> messages;

@@ -6,7 +6,6 @@
 //
 #include "td/telegram/CallActor.h"
 
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/DhCache.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileManager.h"
@@ -19,6 +18,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/as.h"
@@ -504,7 +504,7 @@ void CallActor::update_call(tl_object_ptr<telegram_api::PhoneCall> call) {
 
 void CallActor::update_call_inner(tl_object_ptr<telegram_api::phone_phoneCall> call) {
   LOG(INFO) << "Update call with " << to_string(call);
-  send_closure(G()->contacts_manager(), &ContactsManager::on_get_users, std::move(call->users_), "UpdatePhoneCall");
+  send_closure(G()->user_manager(), &UserManager::on_get_users, std::move(call->users_), "UpdatePhoneCall");
   update_call(std::move(call->phone_call_));
 }
 
@@ -921,7 +921,7 @@ void CallActor::flush_call_state() {
     call_state_need_flush_ = false;
 
     // TODO can't call const function
-    // send_closure(G()->contacts_manager(), &ContactsManager::get_user_id_object, user_id_, "flush_call_state");
+    // send_closure(G()->user_manager(), &UserManager::get_user_id_object, user_id_, "flush_call_state");
     send_closure(G()->td(), &Td::send_update,
                  make_tl_object<td_api::updateCall>(make_tl_object<td_api::call>(
                      local_call_id_.get(), is_outgoing_ ? user_id_.get() : call_admin_user_id_.get(), is_outgoing_,

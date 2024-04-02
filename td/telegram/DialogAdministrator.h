@@ -15,7 +15,7 @@
 
 namespace td {
 
-class ContactsManager;
+class UserManager;
 
 class DialogAdministrator {
   UserId user_id_;
@@ -31,8 +31,7 @@ class DialogAdministrator {
       : user_id_(user_id), rank_(rank), is_creator_(is_creator) {
   }
 
-  td_api::object_ptr<td_api::chatAdministrator> get_chat_administrator_object(
-      const ContactsManager *contacts_manager) const;
+  td_api::object_ptr<td_api::chatAdministrator> get_chat_administrator_object(const UserManager *user_manager) const;
 
   UserId get_user_id() const {
     return user_id_;

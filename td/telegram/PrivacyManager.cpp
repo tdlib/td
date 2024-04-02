@@ -6,13 +6,13 @@
 //
 #include "td/telegram/PrivacyManager.h"
 
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -211,7 +211,7 @@ void PrivacyManager::do_update_privacy(UserPrivacySetting user_privacy_setting, 
     if (!G()->close_flag() && (from_update || was_synchronized)) {
       switch (user_privacy_setting.type()) {
         case UserPrivacySetting::Type::UserStatus: {
-          send_closure_later(G()->contacts_manager(), &ContactsManager::on_update_online_status_privacy);
+          send_closure_later(G()->user_manager(), &UserManager::on_update_online_status_privacy);
 
           auto old_restricted = info.rules_.get_restricted_user_ids();
           auto new_restricted = privacy_rules.get_restricted_user_ids();
@@ -223,14 +223,14 @@ void PrivacyManager::do_update_privacy(UserPrivacySetting user_privacy_setting, 
                                 new_restricted.end(), std::back_inserter(unrestricted),
                                 [](UserId lhs, UserId rhs) { return lhs.get() < rhs.get(); });
             for (auto &user_id : unrestricted) {
-              send_closure_later(G()->contacts_manager(), &ContactsManager::reload_user, user_id, Promise<Unit>(),
+              send_closure_later(G()->user_manager(), &UserManager::reload_user, user_id, Promise<Unit>(),
                                  "do_update_privacy");
             }
           }
           break;
         }
         case UserPrivacySetting::Type::UserPhoneNumber:
-          send_closure_later(G()->contacts_manager(), &ContactsManager::on_update_phone_number_privacy);
+          send_closure_later(G()->user_manager(), &UserManager::on_update_phone_number_privacy);
           break;
         default:
           break;

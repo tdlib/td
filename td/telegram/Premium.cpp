@@ -29,6 +29,7 @@
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/UserId.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -198,7 +199,7 @@ static Result<tl_object_ptr<telegram_api::InputStorePaymentPurpose>> get_input_s
     case td_api::storePaymentPurposeGiftedPremium::ID: {
       auto p = static_cast<const td_api::storePaymentPurposeGiftedPremium *>(purpose.get());
       UserId user_id(p->user_id_);
-      TRY_RESULT(input_user, td->contacts_manager_->get_input_user(user_id));
+      TRY_RESULT(input_user, td->user_manager_->get_input_user(user_id));
       if (p->amount_ <= 0 || !check_currency_amount(p->amount_)) {
         return Status::Error(400, "Invalid amount of the currency specified");
       }
@@ -209,7 +210,7 @@ static Result<tl_object_ptr<telegram_api::InputStorePaymentPurpose>> get_input_s
       auto p = static_cast<const td_api::storePaymentPurposePremiumGiftCodes *>(purpose.get());
       vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
       for (auto user_id : p->user_ids_) {
-        TRY_RESULT(input_user, td->contacts_manager_->get_input_user(UserId(user_id)));
+        TRY_RESULT(input_user, td->user_manager_->get_input_user(UserId(user_id)));
         input_users.push_back(std::move(input_user));
       }
       if (p->amount_ <= 0 || !check_currency_amount(p->amount_)) {
@@ -259,9 +260,9 @@ class GetPremiumPromoQuery final : public Td::ResultHandler {
     auto promo = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetPremiumPromoQuery: " << to_string(promo);
 
-    td_->contacts_manager_->on_get_users(std::move(promo->users_), "GetPremiumPromoQuery");
+    td_->user_manager_->on_get_users(std::move(promo->users_), "GetPremiumPromoQuery");
 
-    auto state = get_message_text(td_->contacts_manager_.get(), std::move(promo->status_text_),
+    auto state = get_message_text(td_->user_manager_.get(), std::move(promo->status_text_),
                                   std::move(promo->status_entities_), true, true, 0, false, "GetPremiumPromoQuery");
 
     if (promo->video_sections_.size() != promo->videos_.size()) {
@@ -391,7 +392,7 @@ class CheckGiftCodeQuery final : public Td::ResultHandler {
 
     auto result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for CheckGiftCodeQuery: " << to_string(result);
-    td_->contacts_manager_->on_get_users(std::move(result->users_), "CheckGiftCodeQuery");
+    td_->user_manager_->on_get_users(std::move(result->users_), "CheckGiftCodeQuery");
     td_->contacts_manager_->on_get_chats(std::move(result->chats_), "CheckGiftCodeQuery");
 
     if (result->date_ <= 0 || result->months_ <= 0 || result->used_date_ < 0) {
@@ -429,7 +430,7 @@ class CheckGiftCodeQuery final : public Td::ResultHandler {
         creator_dialog_id == DialogId() ? nullptr
                                         : get_message_sender_object(td_, creator_dialog_id, "premiumGiftCodeInfo"),
         result->date_, result->via_giveaway_, message_id.get(), result->months_,
-        td_->contacts_manager_->get_user_id_object(user_id, "premiumGiftCodeInfo"), result->used_date_));
+        td_->user_manager_->get_user_id_object(user_id, "premiumGiftCodeInfo"), result->used_date_));
   }
 
   void on_error(Status status) final {

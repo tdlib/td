@@ -19,6 +19,7 @@
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/ThemeManager.h"
 #include "td/telegram/UserId.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -41,7 +42,7 @@ static td_api::object_ptr<td_api::chatBoost> get_chat_boost_object(
         giveaway_message_id = MessageId::min();
       }
       return td_api::make_object<td_api::chatBoostSourceGiveaway>(
-          td->contacts_manager_->get_user_id_object(user_id, "chatBoostSourceGiveaway"), boost->used_gift_slug_,
+          td->user_manager_->get_user_id_object(user_id, "chatBoostSourceGiveaway"), boost->used_gift_slug_,
           giveaway_message_id.get(), boost->unclaimed_);
     }
     if (boost->gift_) {
@@ -50,7 +51,7 @@ static td_api::object_ptr<td_api::chatBoost> get_chat_boost_object(
         return nullptr;
       }
       return td_api::make_object<td_api::chatBoostSourceGiftCode>(
-          td->contacts_manager_->get_user_id_object(user_id, "chatBoostSourceGiftCode"), boost->used_gift_slug_);
+          td->user_manager_->get_user_id_object(user_id, "chatBoostSourceGiftCode"), boost->used_gift_slug_);
     }
 
     UserId user_id(boost->user_id_);
@@ -58,7 +59,7 @@ static td_api::object_ptr<td_api::chatBoost> get_chat_boost_object(
       return nullptr;
     }
     return td_api::make_object<td_api::chatBoostSourcePremium>(
-        td->contacts_manager_->get_user_id_object(user_id, "chatBoostSourcePremium"));
+        td->user_manager_->get_user_id_object(user_id, "chatBoostSourcePremium"));
   }();
   if (source == nullptr) {
     LOG(ERROR) << "Receive " << to_string(boost);
@@ -70,7 +71,7 @@ static td_api::object_ptr<td_api::chatBoost> get_chat_boost_object(
 
 static td_api::object_ptr<td_api::chatBoostSlots> get_chat_boost_slots_object(
     Td *td, telegram_api::object_ptr<telegram_api::premium_myBoosts> &&my_boosts) {
-  td->contacts_manager_->on_get_users(std::move(my_boosts->users_), "GetMyBoostsQuery");
+  td->user_manager_->on_get_users(std::move(my_boosts->users_), "GetMyBoostsQuery");
   td->contacts_manager_->on_get_chats(std::move(my_boosts->chats_), "GetMyBoostsQuery");
   vector<td_api::object_ptr<td_api::chatBoostSlot>> slots;
   for (auto &my_boost : my_boosts->my_boosts_) {
@@ -268,7 +269,7 @@ class GetBoostsListQuery final : public Td::ResultHandler {
 
     auto result = result_ptr.move_as_ok();
     LOG(DEBUG) << "Receive result for GetBoostsListQuery: " << to_string(result);
-    td_->contacts_manager_->on_get_users(std::move(result->users_), "GetBoostsListQuery");
+    td_->user_manager_->on_get_users(std::move(result->users_), "GetBoostsListQuery");
 
     auto total_count = result->count_;
     vector<td_api::object_ptr<td_api::chatBoost>> boosts;
@@ -302,7 +303,7 @@ class GetUserBoostsQuery final : public Td::ResultHandler {
     dialog_id_ = dialog_id;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     CHECK(input_peer != nullptr);
-    auto r_input_user = td_->contacts_manager_->get_input_user(user_id);
+    auto r_input_user = td_->user_manager_->get_input_user(user_id);
     CHECK(r_input_user.is_ok());
     send_query(G()->net_query_creator().create(
         telegram_api::premium_getUserBoosts(std::move(input_peer), r_input_user.move_as_ok())));
@@ -316,7 +317,7 @@ class GetUserBoostsQuery final : public Td::ResultHandler {
 
     auto result = result_ptr.move_as_ok();
     LOG(DEBUG) << "Receive result for GetUserBoostsQuery: " << to_string(result);
-    td_->contacts_manager_->on_get_users(std::move(result->users_), "GetUserBoostsQuery");
+    td_->user_manager_->on_get_users(std::move(result->users_), "GetUserBoostsQuery");
 
     auto total_count = result->count_;
     vector<td_api::object_ptr<td_api::chatBoost>> boosts;

@@ -31,6 +31,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/TopDialogManager.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/db/KeyValueSyncInterface.h"
 #include "td/db/TsSeqKeyValue.h"
@@ -98,11 +99,11 @@ OptionManager::OptionManager(Td *td)
     }
   };
   set_default_integer_option("telegram_service_notifications_chat_id",
-                             DialogId(ContactsManager::get_service_notifications_user_id()).get());
-  set_default_integer_option("replies_bot_chat_id", DialogId(ContactsManager::get_replies_bot_user_id()).get());
-  set_default_integer_option("group_anonymous_bot_user_id", ContactsManager::get_anonymous_bot_user_id().get());
-  set_default_integer_option("channel_bot_user_id", ContactsManager::get_channel_bot_user_id().get());
-  set_default_integer_option("anti_spam_bot_user_id", ContactsManager::get_anti_spam_bot_user_id().get());
+                             DialogId(UserManager::get_service_notifications_user_id()).get());
+  set_default_integer_option("replies_bot_chat_id", DialogId(UserManager::get_replies_bot_user_id()).get());
+  set_default_integer_option("group_anonymous_bot_user_id", UserManager::get_anonymous_bot_user_id().get());
+  set_default_integer_option("channel_bot_user_id", UserManager::get_channel_bot_user_id().get());
+  set_default_integer_option("anti_spam_bot_user_id", UserManager::get_anti_spam_bot_user_id().get());
   set_default_integer_option("message_caption_length_max", 1024);
   set_default_integer_option("message_reply_quote_length_max", 1024);
   set_default_integer_option("story_caption_length_max", 200);
@@ -524,6 +525,7 @@ void OptionManager::on_option_updated(Slice name) {
     case 'i':
       if (name == "ignored_restriction_reasons") {
         send_closure(td_->contacts_manager_actor_, &ContactsManager::on_ignored_restriction_reasons_changed);
+        send_closure(td_->user_manager_actor_, &UserManager::on_ignored_restriction_reasons_changed);
       }
       if (name == "is_emulator") {
         if (G()->mtproto_header().set_is_emulator(get_option_boolean(name))) {

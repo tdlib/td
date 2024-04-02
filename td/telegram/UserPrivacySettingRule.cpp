@@ -12,6 +12,7 @@
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/logging.h"
@@ -131,7 +132,7 @@ UserPrivacySettingRule::UserPrivacySettingRule(Td *td,
       UNREACHABLE();
   }
   td::remove_if(user_ids_, [td](UserId user_id) {
-    if (!td->contacts_manager_->have_user(user_id)) {
+    if (!td->user_manager_->have_user(user_id)) {
       LOG(ERROR) << "Receive unknown " << user_id;
       return true;
     }
@@ -171,7 +172,7 @@ td_api::object_ptr<td_api::UserPrivacySettingRule> UserPrivacySettingRule::get_u
       return make_tl_object<td_api::userPrivacySettingRuleAllowAll>();
     case Type::AllowUsers:
       return make_tl_object<td_api::userPrivacySettingRuleAllowUsers>(
-          td->contacts_manager_->get_user_ids_object(user_ids_, "userPrivacySettingRuleAllowUsers"));
+          td->user_manager_->get_user_ids_object(user_ids_, "userPrivacySettingRuleAllowUsers"));
     case Type::AllowChatParticipants:
       return make_tl_object<td_api::userPrivacySettingRuleAllowChatMembers>(
           td->dialog_manager_->get_chat_ids_object(dialog_ids_, "UserPrivacySettingRule"));
@@ -181,7 +182,7 @@ td_api::object_ptr<td_api::UserPrivacySettingRule> UserPrivacySettingRule::get_u
       return make_tl_object<td_api::userPrivacySettingRuleRestrictAll>();
     case Type::RestrictUsers:
       return make_tl_object<td_api::userPrivacySettingRuleRestrictUsers>(
-          td->contacts_manager_->get_user_ids_object(user_ids_, "userPrivacySettingRuleRestrictUsers"));
+          td->user_manager_->get_user_ids_object(user_ids_, "userPrivacySettingRuleRestrictUsers"));
     case Type::RestrictChatParticipants:
       return make_tl_object<td_api::userPrivacySettingRuleRestrictChatMembers>(
           td->dialog_manager_->get_chat_ids_object(dialog_ids_, "UserPrivacySettingRule"));
@@ -221,7 +222,7 @@ telegram_api::object_ptr<telegram_api::InputPrivacyRule> UserPrivacySettingRule:
 vector<telegram_api::object_ptr<telegram_api::InputUser>> UserPrivacySettingRule::get_input_users(Td *td) const {
   vector<telegram_api::object_ptr<telegram_api::InputUser>> result;
   for (auto user_id : user_ids_) {
-    auto r_input_user = td->contacts_manager_->get_input_user(user_id);
+    auto r_input_user = td->user_manager_->get_input_user(user_id);
     if (r_input_user.is_ok()) {
       result.push_back(r_input_user.move_as_ok());
     } else {
@@ -266,7 +267,7 @@ void UserPrivacySettingRule::add_dependencies(Dependencies &dependencies) const 
 
 UserPrivacySettingRules UserPrivacySettingRules::get_user_privacy_setting_rules(
     Td *td, telegram_api::object_ptr<telegram_api::account_privacyRules> rules) {
-  td->contacts_manager_->on_get_users(std::move(rules->users_), "on get privacy rules");
+  td->user_manager_->on_get_users(std::move(rules->users_), "on get privacy rules");
   td->contacts_manager_->on_get_chats(std::move(rules->chats_), "on get privacy rules");
   return get_user_privacy_setting_rules(td, std::move(rules->rules_));
 }
@@ -355,7 +356,7 @@ td_api::object_ptr<td_api::StoryPrivacySettings> UserPrivacySettingRules::get_st
   if (rules_.size() == 2u && rules_[0].type_ == UserPrivacySettingRule::Type::RestrictUsers &&
       rules_[1].type_ == UserPrivacySettingRule::Type::AllowAll) {
     return td_api::make_object<td_api::storyPrivacySettingsEveryone>(
-        td->contacts_manager_->get_user_ids_object(rules_[0].user_ids_, "storyPrivacySettingsEveryone"));
+        td->user_manager_->get_user_ids_object(rules_[0].user_ids_, "storyPrivacySettingsEveryone"));
   }
   if (rules_.size() == 1u && rules_[0].type_ == UserPrivacySettingRule::Type::AllowContacts) {
     return td_api::make_object<td_api::storyPrivacySettingsContacts>();
@@ -363,14 +364,14 @@ td_api::object_ptr<td_api::StoryPrivacySettings> UserPrivacySettingRules::get_st
   if (rules_.size() == 2u && rules_[0].type_ == UserPrivacySettingRule::Type::RestrictUsers &&
       rules_[1].type_ == UserPrivacySettingRule::Type::AllowContacts) {
     return td_api::make_object<td_api::storyPrivacySettingsContacts>(
-        td->contacts_manager_->get_user_ids_object(rules_[0].user_ids_, "storyPrivacySettingsContacts"));
+        td->user_manager_->get_user_ids_object(rules_[0].user_ids_, "storyPrivacySettingsContacts"));
   }
   if (rules_.size() == 1u && rules_[0].type_ == UserPrivacySettingRule::Type::AllowCloseFriends) {
     return td_api::make_object<td_api::storyPrivacySettingsCloseFriends>();
   }
   if (rules_.size() == 1u && rules_[0].type_ == UserPrivacySettingRule::Type::AllowUsers) {
     return td_api::make_object<td_api::storyPrivacySettingsSelectedUsers>(
-        td->contacts_manager_->get_user_ids_object(rules_[0].user_ids_, "storyPrivacySettingsSelectedUsers"));
+        td->user_manager_->get_user_ids_object(rules_[0].user_ids_, "storyPrivacySettingsSelectedUsers"));
   }
   return td_api::make_object<td_api::storyPrivacySettingsSelectedUsers>();
 }

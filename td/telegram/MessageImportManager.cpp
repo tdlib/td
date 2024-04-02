@@ -16,6 +16,7 @@
 #include "td/telegram/MessageContent.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
@@ -295,7 +296,7 @@ Status MessageImportManager::can_import_messages(DialogId dialog_id) {
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      if (!td_->contacts_manager_->is_user_contact(dialog_id.get_user_id(), true)) {
+      if (!td_->user_manager_->is_user_contact(dialog_id.get_user_id(), true)) {
         return Status::Error(400, "User must be a mutual contact");
       }
       break;

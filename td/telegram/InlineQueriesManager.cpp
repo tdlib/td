@@ -39,6 +39,7 @@
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/ThemeManager.h"
 #include "td/telegram/UpdatesManager.h"
+#include "td/telegram/UserManager.h"
 #include "td/telegram/Venue.h"
 #include "td/telegram/VideosManager.h"
 #include "td/telegram/VoiceNotesManager.h"
@@ -372,14 +373,14 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
     return Status::Error(400, "Inline message must be non-empty");
   }
   TRY_RESULT(reply_markup, get_reply_markup(std::move(reply_markup_ptr), true, true, false, true));
-  auto input_reply_markup = get_input_reply_markup(td_->contacts_manager_.get(), reply_markup);
+  auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), reply_markup);
 
   auto constructor_id = input_message_content->get_id();
   if (constructor_id == td_api::inputMessageText::ID) {
     TRY_RESULT(input_message_text, process_input_message_text(td_, td_->dialog_manager_->get_my_dialog_id(),
                                                               std::move(input_message_content), true));
-    auto entities = get_input_message_entities(td_->contacts_manager_.get(), input_message_text.text.entities,
-                                               "get_inline_message");
+    auto entities =
+        get_input_message_entities(td_->user_manager_.get(), input_message_text.text.entities, "get_inline_message");
     if (!input_message_text.web_page_url.empty()) {
       int32 flags = 0;
       if (input_reply_markup != nullptr) {
@@ -458,7 +459,7 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
     if (input_reply_markup != nullptr) {
       flags |= telegram_api::inputBotInlineMessageMediaAuto::REPLY_MARKUP_MASK;
     }
-    auto entities = get_input_message_entities(td_->contacts_manager_.get(), caption.entities, "get_inline_message");
+    auto entities = get_input_message_entities(td_->user_manager_.get(), caption.entities, "get_inline_message");
     if (!entities.empty()) {
       flags |= telegram_api::inputBotInlineMessageMediaAuto::ENTITIES_MASK;
     }
@@ -581,8 +582,8 @@ void InlineQueriesManager::answer_inline_query(
 void InlineQueriesManager::get_simple_web_view_url(UserId bot_user_id, string &&url,
                                                    const td_api::object_ptr<td_api::themeParameters> &theme,
                                                    string &&platform, Promise<string> &&promise) {
-  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(bot_user_id));
-  TRY_RESULT_PROMISE(promise, bot_data, td_->contacts_manager_->get_bot_data(bot_user_id));
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
+  TRY_RESULT_PROMISE(promise, bot_data, td_->user_manager_->get_bot_data(bot_user_id));
 
   td_->create_handler<RequestSimpleWebViewQuery>(std::move(promise))
       ->send(std::move(input_user), std::move(url), theme, std::move(platform));
@@ -590,14 +591,14 @@ void InlineQueriesManager::get_simple_web_view_url(UserId bot_user_id, string &&
 
 void InlineQueriesManager::send_web_view_data(UserId bot_user_id, string &&button_text, string &&data,
                                               Promise<Unit> &&promise) const {
-  TRY_RESULT_PROMISE(promise, bot_data, td_->contacts_manager_->get_bot_data(bot_user_id));
+  TRY_RESULT_PROMISE(promise, bot_data, td_->user_manager_->get_bot_data(bot_user_id));
 
   int64 random_id;
   do {
     random_id = Random::secure_int64();
   } while (random_id == 0);
 
-  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(bot_user_id));
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
 
   td_->create_handler<SendWebViewDataQuery>(std::move(promise))
       ->send(std::move(input_user), random_id, button_text, data);
@@ -776,7 +777,7 @@ Result<tl_object_ptr<telegram_api::InputBotInlineResult>> InlineQueriesManager::
         return r_reply_markup.move_as_error();
       }
 
-      auto input_reply_markup = get_input_reply_markup(td_->contacts_manager_.get(), r_reply_markup.ok());
+      auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), r_reply_markup.ok());
       int32 flags = 0;
       if (input_reply_markup != nullptr) {
         flags |= telegram_api::inputBotInlineMessageGame::REPLY_MARKUP_MASK;
@@ -1022,7 +1023,7 @@ uint64 InlineQueriesManager::send_inline_query(UserId bot_user_id, DialogId dial
     return 0;
   }
 
-  auto r_bot_data = td_->contacts_manager_->get_bot_data(bot_user_id);
+  auto r_bot_data = td_->user_manager_->get_bot_data(bot_user_id);
   if (r_bot_data.is_error()) {
     promise.set_error(r_bot_data.move_as_error());
     return 0;
@@ -1104,7 +1105,7 @@ void InlineQueriesManager::loop() {
   auto now = Time::now();
   if (now >= next_inline_query_time_) {
     LOG(INFO) << "Send inline query " << pending_inline_query_->query_hash;
-    auto r_bot_input_user = td_->contacts_manager_->get_input_user(pending_inline_query_->bot_user_id);
+    auto r_bot_input_user = td_->user_manager_->get_input_user(pending_inline_query_->bot_user_id);
     if (r_bot_input_user.is_ok()) {
       if (!sent_query_.empty()) {
         LOG(INFO) << "Cancel inline query request";
@@ -1582,7 +1583,7 @@ void InlineQueriesManager::on_get_inline_query_results(DialogId dialog_id, UserI
   }
   LOG(INFO) << to_string(results);
 
-  td_->contacts_manager_->on_get_users(std::move(results->users_), "on_get_inline_query_results");
+  td_->user_manager_->on_get_users(std::move(results->users_), "on_get_inline_query_results");
 
   auto dialog_type = dialog_id.get_type();
   bool allow_invoice = dialog_type != DialogType::SecretChat;
@@ -2060,7 +2061,7 @@ void InlineQueriesManager::save_recently_used_bots() {
       value += ',';
       value_ids += ',';
     }
-    value += td_->contacts_manager_->get_user_first_username(bot_user_id);
+    value += td_->user_manager_->get_user_first_username(bot_user_id);
     value_ids += to_string(bot_user_id.get());
   }
   G()->td_db()->get_binlog_pmc()->set("recently_used_inline_bot_usernames", value);
@@ -2092,7 +2093,7 @@ bool InlineQueriesManager::load_recently_used_bots(Promise<Unit> &promise) {
 
     for (auto it = bot_ids.rbegin(); it != bot_ids.rend(); ++it) {
       UserId user_id(to_integer<int64>(*it));
-      if (td_->contacts_manager_->have_user(user_id)) {
+      if (td_->user_manager_->have_user(user_id)) {
         update_bot_usage(user_id);
       } else {
         LOG(ERROR) << "Can't find " << user_id;
@@ -2120,7 +2121,7 @@ bool InlineQueriesManager::load_recently_used_bots(Promise<Unit> &promise) {
     } else {
       for (auto &bot_id : bot_ids) {
         UserId user_id(to_integer<int64>(bot_id));
-        td_->contacts_manager_->get_user(user_id, 3, resolve_recent_inline_bots_multipromise_.get_promise());
+        td_->user_manager_->get_user(user_id, 3, resolve_recent_inline_bots_multipromise_.get_promise());
       }
     }
     lock.set_value(Unit());
@@ -2152,7 +2153,7 @@ void InlineQueriesManager::on_new_query(int64 query_id, UserId sender_user_id, L
     switch (peer_type->get_id()) {
       case telegram_api::inlineQueryPeerTypeSameBotPM::ID:
         return td_api::make_object<td_api::chatTypePrivate>(
-            td_->contacts_manager_->get_user_id_object(sender_user_id, "inlineQueryPeerTypeSameBotPM"));
+            td_->user_manager_->get_user_id_object(sender_user_id, "inlineQueryPeerTypeSameBotPM"));
       case telegram_api::inlineQueryPeerTypeBotPM::ID:
       case telegram_api::inlineQueryPeerTypePM::ID:
         return td_api::make_object<td_api::chatTypePrivate>(0);
@@ -2169,7 +2170,7 @@ void InlineQueriesManager::on_new_query(int64 query_id, UserId sender_user_id, L
   }();
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateNewInlineQuery>(
-                   query_id, td_->contacts_manager_->get_user_id_object(sender_user_id, "updateNewInlineQuery"),
+                   query_id, td_->user_manager_->get_user_id_object(sender_user_id, "updateNewInlineQuery"),
                    user_location.get_location_object(), std::move(chat_type), query, offset));
 }
 
@@ -2180,14 +2181,14 @@ void InlineQueriesManager::on_chosen_result(
     LOG(ERROR) << "Receive chosen inline query result from invalid " << user_id;
     return;
   }
-  LOG_IF(ERROR, !td_->contacts_manager_->have_user(user_id)) << "Receive unknown " << user_id;
+  LOG_IF(ERROR, !td_->user_manager_->have_user(user_id)) << "Receive unknown " << user_id;
   if (!td_->auth_manager_->is_bot()) {
     LOG(ERROR) << "Receive chosen inline query result";
     return;
   }
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateNewChosenInlineResult>(
-                   td_->contacts_manager_->get_user_id_object(user_id, "updateNewChosenInlineResult"),
+                   td_->user_manager_->get_user_id_object(user_id, "updateNewChosenInlineResult"),
                    user_location.get_location_object(), query, result_id,
                    get_inline_message_id(std::move(input_bot_inline_message_id))));
 }
@@ -2199,7 +2200,7 @@ bool InlineQueriesManager::update_bot_usage(UserId bot_user_id) {
   if (!recently_used_bot_user_ids_.empty() && recently_used_bot_user_ids_[0] == bot_user_id) {
     return false;
   }
-  auto r_bot_data = td_->contacts_manager_->get_bot_data(bot_user_id);
+  auto r_bot_data = td_->user_manager_->get_bot_data(bot_user_id);
   if (r_bot_data.is_error()) {
     return false;
   }

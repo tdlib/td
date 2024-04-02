@@ -15,6 +15,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/db/SqliteKeyValueAsync.h"
 
@@ -384,7 +385,7 @@ void AutosaveManager::on_get_autosave_settings(
   }
 
   auto settings = r_settings.move_as_ok();
-  td_->contacts_manager_->on_get_users(std::move(settings->users_), "on_get_autosave_settings");
+  td_->user_manager_->on_get_users(std::move(settings->users_), "on_get_autosave_settings");
   td_->contacts_manager_->on_get_chats(std::move(settings->chats_), "on_get_autosave_settings");
 
   DialogAutosaveSettings new_user_settings(settings->users_settings_.get());

@@ -9,7 +9,6 @@
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ConfigManager.h"
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Document.h"
@@ -38,6 +37,7 @@
 #include "td/telegram/td_api.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserManager.h"
 #include "td/telegram/Version.h"
 
 #include "td/db/SqliteKeyValue.h"
@@ -4405,12 +4405,12 @@ vector<FileId> StickersManager::get_stickers(StickerType sticker_type, string qu
   if (sticker_type == StickerType::CustomEmoji) {
     switch (dialog_id.get_type()) {
       case DialogType::User:
-        if (dialog_id.get_user_id() == td_->contacts_manager_->get_my_id()) {
+        if (dialog_id.get_user_id() == td_->user_manager_->get_my_id()) {
           allow_premium = true;
         }
         break;
       case DialogType::SecretChat:
-        if (td_->contacts_manager_->get_secret_chat_layer(dialog_id.get_secret_chat_id()) <
+        if (td_->user_manager_->get_secret_chat_layer(dialog_id.get_secret_chat_id()) <
             static_cast<int32>(SecretChatLayer::SpoilerAndCustomEmojiEntities)) {
           promise.set_value(Unit());
           return {};
@@ -7845,10 +7845,10 @@ FileId StickersManager::upload_sticker_file(UserId user_id, StickerFormat sticke
                                             Promise<Unit> &&promise) {
   bool is_bot = td_->auth_manager_->is_bot();
   if (!is_bot) {
-    user_id = td_->contacts_manager_->get_my_id();
+    user_id = td_->user_manager_->get_my_id();
   }
 
-  auto r_input_user = td_->contacts_manager_->get_input_user(user_id);
+  auto r_input_user = td_->user_manager_->get_input_user(user_id);
   if (r_input_user.is_error()) {
     promise.set_error(r_input_user.move_as_error());
     return FileId();
@@ -7952,10 +7952,10 @@ void StickersManager::create_new_sticker_set(UserId user_id, string title, strin
                                              Promise<td_api::object_ptr<td_api::stickerSet>> &&promise) {
   bool is_bot = td_->auth_manager_->is_bot();
   if (!is_bot) {
-    user_id = td_->contacts_manager_->get_my_id();
+    user_id = td_->user_manager_->get_my_id();
   }
 
-  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
 
   title = strip_empty_characters(title, MAX_STICKER_SET_TITLE_LENGTH);
   if (title.empty()) {
@@ -8189,7 +8189,7 @@ void StickersManager::on_new_stickers_uploaded(int64 random_id, Result<Unit> res
   CHECK(pending_new_sticker_set->upload_files_multipromise_.promise_count() == 0);
 
   auto &promise = pending_new_sticker_set->promise_;
-  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(pending_new_sticker_set->user_id_));
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(pending_new_sticker_set->user_id_));
 
   StickerType sticker_type = pending_new_sticker_set->sticker_type_;
 
@@ -8224,10 +8224,10 @@ void StickersManager::add_sticker_to_set(UserId user_id, string short_name,
                                          td_api::object_ptr<td_api::InputFile> &&old_sticker, Promise<Unit> &&promise) {
   bool is_bot = td_->auth_manager_->is_bot();
   if (!is_bot) {
-    user_id = td_->contacts_manager_->get_my_id();
+    user_id = td_->user_manager_->get_my_id();
   }
 
-  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
 
   short_name = clean_username(strip_empty_characters(short_name, MAX_STICKER_SET_SHORT_NAME_LENGTH));
   if (short_name.empty()) {
@@ -8340,10 +8340,10 @@ void StickersManager::set_sticker_set_thumbnail(UserId user_id, string short_nam
                                                 Promise<Unit> &&promise) {
   bool is_bot = td_->auth_manager_->is_bot();
   if (!is_bot) {
-    user_id = td_->contacts_manager_->get_my_id();
+    user_id = td_->user_manager_->get_my_id();
   }
 
-  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
 
   short_name = clean_username(strip_empty_characters(short_name, MAX_STICKER_SET_SHORT_NAME_LENGTH));
   if (short_name.empty()) {

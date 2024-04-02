@@ -11,6 +11,7 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/UserManager.h"
 
 namespace td {
 
@@ -54,7 +55,7 @@ Result<BotCommandScope> BotCommandScope::get_bot_command_scope(Td *td,
       type = Type::DialogParticipant;
       dialog_id = DialogId(scope->chat_id_);
       user_id = UserId(scope->user_id_);
-      TRY_STATUS(td->contacts_manager_->get_input_user(user_id));
+      TRY_STATUS(td->user_manager_->get_input_user(user_id));
       break;
     }
     default:
@@ -94,7 +95,7 @@ telegram_api::object_ptr<telegram_api::BotCommandScope> BotCommandScope::get_inp
     const Td *td) const {
   auto input_peer =
       dialog_id_.is_valid() ? td->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read) : nullptr;
-  auto r_input_user = td->contacts_manager_->get_input_user(user_id_);
+  auto r_input_user = td->user_manager_->get_input_user(user_id_);
   auto input_user = r_input_user.is_ok() ? r_input_user.move_as_ok() : nullptr;
   switch (type_) {
     case Type::Default:

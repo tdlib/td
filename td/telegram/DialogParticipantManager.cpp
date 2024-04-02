@@ -23,6 +23,7 @@
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/db/SqliteKeyValueAsync.h"
 
@@ -99,7 +100,7 @@ class GetChatJoinRequestsQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
 
-    auto r_input_user = td_->contacts_manager_->get_input_user(offset_user_id);
+    auto r_input_user = td_->user_manager_->get_input_user(offset_user_id);
     if (r_input_user.is_error()) {
       r_input_user = make_tl_object<telegram_api::inputUserEmpty>();
     }
@@ -125,7 +126,7 @@ class GetChatJoinRequestsQuery final : public Td::ResultHandler {
     auto result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetChatJoinRequestsQuery: " << to_string(result);
 
-    td_->contacts_manager_->on_get_users(std::move(result->users_), "GetChatJoinRequestsQuery");
+    td_->user_manager_->on_get_users(std::move(result->users_), "GetChatJoinRequestsQuery");
 
     int32 total_count = result->count_;
     if (total_count < static_cast<int32>(result->importers_.size())) {
@@ -146,7 +147,7 @@ class GetChatJoinRequestsQuery final : public Td::ResultHandler {
         recent_requesters.push_back(user_id.get());
       }
       join_requests.push_back(td_api::make_object<td_api::chatJoinRequest>(
-          td_->contacts_manager_->get_user_id_object(user_id, "chatJoinRequest"), request->date_, request->about_));
+          td_->user_manager_->get_user_id_object(user_id, "chatJoinRequest"), request->date_, request->about_));
     }
     if (is_full_list_) {
       td_->messages_manager_->on_update_dialog_pending_join_requests(dialog_id_, total_count,
@@ -176,7 +177,7 @@ class HideChatJoinRequestQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
 
-    TRY_RESULT_PROMISE(promise_, input_user, td_->contacts_manager_->get_input_user(user_id));
+    TRY_RESULT_PROMISE(promise_, input_user, td_->user_manager_->get_input_user(user_id));
 
     int32 flags = 0;
     if (approve) {
@@ -279,7 +280,7 @@ class GetChannelAdministratorsQuery final : public Td::ResultHandler {
     switch (participants_ptr->get_id()) {
       case telegram_api::channels_channelParticipants::ID: {
         auto participants = telegram_api::move_object_as<telegram_api::channels_channelParticipants>(participants_ptr);
-        td_->contacts_manager_->on_get_users(std::move(participants->users_), "GetChannelAdministratorsQuery");
+        td_->user_manager_->on_get_users(std::move(participants->users_), "GetChannelAdministratorsQuery");
         td_->contacts_manager_->on_get_chats(std::move(participants->chats_), "GetChannelAdministratorsQuery");
 
         auto channel_type = td_->contacts_manager_->get_channel_type(channel_id_);
@@ -350,7 +351,7 @@ class GetChannelParticipantQuery final : public Td::ResultHandler {
     auto participant = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetChannelParticipantQuery: " << to_string(participant);
 
-    td_->contacts_manager_->on_get_users(std::move(participant->users_), "GetChannelParticipantQuery");
+    td_->user_manager_->on_get_users(std::move(participant->users_), "GetChannelParticipantQuery");
     td_->contacts_manager_->on_get_chats(std::move(participant->chats_), "GetChannelParticipantQuery");
     DialogParticipant result(std::move(participant->participant_),
                              td_->contacts_manager_->get_channel_type(channel_id_));
@@ -744,7 +745,7 @@ class CanEditChannelCreatorQuery final : public Td::ResultHandler {
   }
 
   void send() {
-    auto r_input_user = td_->contacts_manager_->get_input_user(td_->contacts_manager_->get_my_id());
+    auto r_input_user = td_->user_manager_->get_input_user(td_->user_manager_->get_my_id());
     CHECK(r_input_user.is_ok());
     send_query(G()->net_query_creator().create(telegram_api::channels_editCreator(
         telegram_api::make_object<telegram_api::inputChannelEmpty>(), r_input_user.move_as_ok(),
@@ -784,7 +785,7 @@ class EditChannelCreatorQuery final : public Td::ResultHandler {
     if (input_channel == nullptr) {
       return promise_.set_error(Status::Error(400, "Have no access to the chat"));
     }
-    TRY_RESULT_PROMISE(promise_, input_user, td_->contacts_manager_->get_input_user(user_id));
+    TRY_RESULT_PROMISE(promise_, input_user, td_->user_manager_->get_input_user(user_id));
     send_query(G()->net_query_creator().create(
         telegram_api::channels_editCreator(std::move(input_channel), std::move(input_user),
                                            std::move(input_check_password)),
@@ -1059,8 +1060,8 @@ void DialogParticipantManager::update_dialog_online_member_count(const vector<Di
       continue;
     }
     auto user_id = participant.dialog_id_.get_user_id();
-    if (!td_->contacts_manager_->is_user_deleted(user_id) && !td_->contacts_manager_->is_user_bot(user_id)) {
-      if (td_->contacts_manager_->is_user_online(user_id, 0, unix_time)) {
+    if (!td_->user_manager_->is_user_deleted(user_id) && !td_->user_manager_->is_user_bot(user_id)) {
+      if (td_->user_manager_->is_user_online(user_id, 0, unix_time)) {
         online_member_count++;
       }
       if (is_from_server) {
@@ -1183,7 +1184,7 @@ void DialogParticipantManager::speculative_update_dialog_administrators(DialogId
 td_api::object_ptr<td_api::chatAdministrators> DialogParticipantManager::get_chat_administrators_object(
     const vector<DialogAdministrator> &dialog_administrators) {
   auto administrator_objects = transform(dialog_administrators, [this](const DialogAdministrator &administrator) {
-    return administrator.get_chat_administrator_object(td_->contacts_manager_.get());
+    return administrator.get_chat_administrator_object(td_->user_manager_.get());
   });
   return td_api::make_object<td_api::chatAdministrators>(std::move(administrator_objects));
 }
@@ -1259,7 +1260,7 @@ void DialogParticipantManager::on_load_dialog_administrators_from_database(
   auto lock_promise = load_users_multipromise.get_promise();
 
   for (auto &administrator : administrators) {
-    td_->contacts_manager_->get_user(administrator.get_user_id(), 3, load_users_multipromise.get_promise());
+    td_->user_manager_->get_user(administrator.get_user_id(), 3, load_users_multipromise.get_promise());
   }
 
   lock_promise.set_value(Unit());
@@ -1377,25 +1378,24 @@ void DialogParticipantManager::send_update_chat_member(DialogId dialog_id, UserI
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateChatMember>(
                    td_->dialog_manager_->get_chat_id_object(dialog_id, "updateChatMember"),
-                   td_->contacts_manager_->get_user_id_object(agent_user_id, "updateChatMember"), date,
-                   invite_link.get_chat_invite_link_object(td_->contacts_manager_.get()), via_dialog_filter_invite_link,
+                   td_->user_manager_->get_user_id_object(agent_user_id, "updateChatMember"), date,
+                   invite_link.get_chat_invite_link_object(td_->user_manager_.get()), via_dialog_filter_invite_link,
                    td_->contacts_manager_->get_chat_member_object(old_dialog_participant, "updateChatMember old"),
                    td_->contacts_manager_->get_chat_member_object(new_dialog_participant, "updateChatMember new")));
 }
 
 void DialogParticipantManager::on_update_bot_stopped(UserId user_id, int32 date, bool is_stopped, bool force) {
   CHECK(td_->auth_manager_->is_bot());
-  if (date <= 0 || !td_->contacts_manager_->have_user_force(user_id, "on_update_bot_stopped")) {
+  if (date <= 0 || !td_->user_manager_->have_user_force(user_id, "on_update_bot_stopped")) {
     LOG(ERROR) << "Receive invalid updateBotStopped by " << user_id << " at " << date;
     return;
   }
-  auto my_user_id = td_->contacts_manager_->get_my_id();
-  if (!td_->contacts_manager_->have_user_force(my_user_id, "on_update_bot_stopped 2")) {
+  auto my_user_id = td_->user_manager_->get_my_id();
+  if (!td_->user_manager_->have_user_force(my_user_id, "on_update_bot_stopped 2")) {
     if (!force) {
-      td_->contacts_manager_->get_me(
-          PromiseCreator::lambda([actor_id = actor_id(this), user_id, date, is_stopped](Unit) {
-            send_closure(actor_id, &DialogParticipantManager::on_update_bot_stopped, user_id, date, is_stopped, true);
-          }));
+      td_->user_manager_->get_me(PromiseCreator::lambda([actor_id = actor_id(this), user_id, date, is_stopped](Unit) {
+        send_closure(actor_id, &DialogParticipantManager::on_update_bot_stopped, user_id, date, is_stopped, true);
+      }));
       return;
     }
     LOG(ERROR) << "Have no self-user to process updateBotStopped";
@@ -1449,7 +1449,7 @@ void DialogParticipantManager::on_update_chat_participant(
     LOG(ERROR) << "Receive wrong updateChatParticipant: " << old_dialog_participant << " -> " << new_dialog_participant;
     return;
   }
-  if (new_dialog_participant.dialog_id_ == DialogId(td_->contacts_manager_->get_my_id()) &&
+  if (new_dialog_participant.dialog_id_ == DialogId(td_->user_manager_->get_my_id()) &&
       new_dialog_participant.status_ != chat_status && false) {
     LOG(ERROR) << "Have status " << chat_status << " after receiving updateChatParticipant in " << chat_id << " by "
                << user_id << " at " << date << " from " << old_dialog_participant << " to " << new_dialog_participant;
@@ -1495,7 +1495,7 @@ void DialogParticipantManager::on_update_channel_participant(
                << new_dialog_participant;
     return;
   }
-  if (new_dialog_participant.status_.is_administrator() && user_id == td_->contacts_manager_->get_my_id() &&
+  if (new_dialog_participant.status_.is_administrator() && user_id == td_->user_manager_->get_my_id() &&
       !new_dialog_participant.status_.can_be_edited()) {
     LOG(ERROR) << "Fix wrong can_be_edited in " << new_dialog_participant << " from " << channel_id << " changed from "
                << old_dialog_participant;
@@ -1524,7 +1524,7 @@ void DialogParticipantManager::on_update_channel_participant(
 void DialogParticipantManager::on_update_chat_invite_requester(DialogId dialog_id, UserId user_id, string about,
                                                                int32 date, DialogInviteLink invite_link) {
   CHECK(td_->auth_manager_->is_bot());
-  if (date <= 0 || !td_->contacts_manager_->have_user_force(user_id, "on_update_chat_invite_requester") ||
+  if (date <= 0 || !td_->user_manager_->have_user_force(user_id, "on_update_chat_invite_requester") ||
       !td_->dialog_manager_->have_dialog_info_force(dialog_id, "on_update_chat_invite_requester")) {
     LOG(ERROR) << "Receive invalid updateBotChatInviteRequester by " << user_id << " in " << dialog_id << " at "
                << date;
@@ -1538,9 +1538,9 @@ void DialogParticipantManager::on_update_chat_invite_requester(DialogId dialog_i
                td_api::make_object<td_api::updateNewChatJoinRequest>(
                    td_->dialog_manager_->get_chat_id_object(dialog_id, "updateNewChatJoinRequest"),
                    td_api::make_object<td_api::chatJoinRequest>(
-                       td_->contacts_manager_->get_user_id_object(user_id, "updateNewChatJoinRequest"), date, about),
+                       td_->user_manager_->get_user_id_object(user_id, "updateNewChatJoinRequest"), date, about),
                    td_->dialog_manager_->get_chat_id_object(user_dialog_id, "updateNewChatJoinRequest 2"),
-                   invite_link.get_chat_invite_link_object(td_->contacts_manager_.get())));
+                   invite_link.get_chat_invite_link_object(td_->user_manager_.get())));
 }
 
 void DialogParticipantManager::get_dialog_participant(DialogId dialog_id, DialogId participant_dialog_id,
@@ -1560,7 +1560,7 @@ void DialogParticipantManager::finish_get_dialog_participant(
 
   auto participant_dialog_id = dialog_participant.dialog_id_;
   bool is_user = participant_dialog_id.get_type() == DialogType::User;
-  if ((is_user && !td_->contacts_manager_->have_user(participant_dialog_id.get_user_id())) ||
+  if ((is_user && !td_->user_manager_->have_user(participant_dialog_id.get_user_id())) ||
       (!is_user && !td_->messages_manager_->have_dialog(participant_dialog_id))) {
     return promise.set_error(Status::Error(400, "Member not found"));
   }
@@ -1578,7 +1578,7 @@ void DialogParticipantManager::do_get_dialog_participant(DialogId dialog_id, Dia
 
   switch (dialog_id.get_type()) {
     case DialogType::User: {
-      auto my_user_id = td_->contacts_manager_->get_my_id();
+      auto my_user_id = td_->user_manager_->get_my_id();
       auto peer_user_id = dialog_id.get_user_id();
       if (participant_dialog_id == DialogId(my_user_id)) {
         return promise.set_value(DialogParticipant::private_member(my_user_id, peer_user_id));
@@ -1598,8 +1598,8 @@ void DialogParticipantManager::do_get_dialog_participant(DialogId dialog_id, Dia
     case DialogType::Channel:
       return get_channel_participant(dialog_id.get_channel_id(), participant_dialog_id, std::move(promise));
     case DialogType::SecretChat: {
-      auto my_user_id = td_->contacts_manager_->get_my_id();
-      auto peer_user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
+      auto my_user_id = td_->user_manager_->get_my_id();
+      auto peer_user_id = td_->user_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
       if (participant_dialog_id == DialogId(my_user_id)) {
         return promise.set_value(DialogParticipant::private_member(my_user_id, peer_user_id));
       }
@@ -1675,8 +1675,7 @@ std::pair<int32, vector<DialogId>> DialogParticipantManager::search_among_dialog
       hints.add(dialog_id.get(), td_->dialog_manager_->get_dialog_search_text(dialog_id));
     }
     if (dialog_id.get_type() == DialogType::User) {
-      hints.set_rating(dialog_id.get(),
-                       -td_->contacts_manager_->get_user_was_online(dialog_id.get_user_id(), unix_time));
+      hints.set_rating(dialog_id.get(), -td_->user_manager_->get_user_was_online(dialog_id.get_user_id(), unix_time));
     }
   }
 
@@ -1687,7 +1686,7 @@ std::pair<int32, vector<DialogId>> DialogParticipantManager::search_among_dialog
 DialogParticipants DialogParticipantManager::search_private_chat_participants(UserId peer_user_id, const string &query,
                                                                               int32 limit,
                                                                               DialogParticipantFilter filter) const {
-  auto my_user_id = td_->contacts_manager_->get_my_id();
+  auto my_user_id = td_->user_manager_->get_my_id();
   vector<DialogId> dialog_ids;
   if (filter.is_dialog_participant_suitable(td_, DialogParticipant::private_member(my_user_id, peer_user_id))) {
     dialog_ids.push_back(DialogId(my_user_id));
@@ -1798,7 +1797,7 @@ void DialogParticipantManager::on_get_channel_participants(
     Promise<DialogParticipants> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
-  td_->contacts_manager_->on_get_users(std::move(channel_participants->users_), "on_get_channel_participants");
+  td_->user_manager_->on_get_users(std::move(channel_participants->users_), "on_get_channel_participants");
   td_->contacts_manager_->on_get_chats(std::move(channel_participants->chats_), "on_get_channel_participants");
   int32 total_count = channel_participants->count_;
   auto participants = std::move(channel_participants->participants_);
@@ -1819,15 +1818,15 @@ void DialogParticipantManager::on_get_channel_participants(
     if (participant.dialog_id_.get_type() == DialogType::User) {
       participant_user_id = participant.dialog_id_.get_user_id();
     }
-    if (!participant.is_valid() || (filter.is_bots() && !td_->contacts_manager_->is_user_bot(participant_user_id)) ||
+    if (!participant.is_valid() || (filter.is_bots() && !td_->user_manager_->is_user_bot(participant_user_id)) ||
         (filter.is_administrators() && !participant.status_.is_administrator()) ||
         ((filter.is_recent() || filter.is_contacts() || filter.is_search()) && !participant.status_.is_member()) ||
-        (filter.is_contacts() && !td_->contacts_manager_->is_user_contact(participant_user_id)) ||
+        (filter.is_contacts() && !td_->user_manager_->is_user_contact(participant_user_id)) ||
         (filter.is_restricted() && !participant.status_.is_restricted()) ||
         (filter.is_banned() && !participant.status_.is_banned())) {
       bool skip_error = ((filter.is_administrators() || filter.is_bots()) &&
-                         td_->contacts_manager_->is_user_deleted(participant_user_id)) ||
-                        (filter.is_contacts() && participant_user_id == td_->contacts_manager_->get_my_id());
+                         td_->user_manager_->is_user_deleted(participant_user_id)) ||
+                        (filter.is_contacts() && participant_user_id == td_->user_manager_->get_my_id());
       if (!skip_error) {
         LOG(ERROR) << "Receive " << participant << ", while searching for " << filter << " in " << channel_id
                    << " with offset " << offset << " and limit " << limit << ": " << oneline(debug_participant);
@@ -1868,7 +1867,7 @@ void DialogParticipantManager::on_get_channel_participants(
               administrators.emplace_back(participant_user_id, participant.status_.get_rank(),
                                           participant.status_.is_creator());
             }
-            if (is_full_recent && td_->contacts_manager_->is_user_bot(participant_user_id)) {
+            if (is_full_recent && td_->user_manager_->is_user_bot(participant_user_id)) {
               bot_user_ids.push_back(participant_user_id);
             }
           }
@@ -1971,7 +1970,7 @@ void DialogParticipantManager::search_dialog_participants(DialogId dialog_id, co
       }
     }
     case DialogType::SecretChat: {
-      auto peer_user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
+      auto peer_user_id = td_->user_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
       return promise.set_value(search_private_chat_participants(peer_user_id, query, limit, filter));
     }
     case DialogType::None:
@@ -2098,7 +2097,7 @@ void DialogParticipantManager::leave_dialog(DialogId dialog_id, Promise<Unit> &&
     case DialogType::User:
       return promise.set_error(Status::Error(400, "Can't leave private chats"));
     case DialogType::Chat:
-      return delete_chat_participant(dialog_id.get_chat_id(), td_->contacts_manager_->get_my_id(), false,
+      return delete_chat_participant(dialog_id.get_chat_id(), td_->user_manager_->get_my_id(), false,
                                      std::move(promise));
     case DialogType::Channel: {
       auto channel_id = dialog_id.get_channel_id();
@@ -2128,7 +2127,7 @@ void DialogParticipantManager::add_chat_participant(ChatId chat_id, UserId user_
     return promise.set_error(Status::Error(400, "Can't forward negative number of messages"));
   }
   auto permissions = td_->contacts_manager_->get_chat_permissions(chat_id);
-  if (user_id != td_->contacts_manager_->get_my_id()) {
+  if (user_id != td_->user_manager_->get_my_id()) {
     if (!permissions.can_invite_users()) {
       return promise.set_error(Status::Error(400, "Not enough rights to invite members to the group chat"));
     }
@@ -2137,7 +2136,7 @@ void DialogParticipantManager::add_chat_participant(ChatId chat_id, UserId user_
   }
   // TODO upper bound on forward_limit
 
-  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
 
   // TODO invoke after
   td_->create_handler<AddChatUserQuery>(std::move(promise))
@@ -2191,7 +2190,7 @@ void DialogParticipantManager::set_chat_participant_status(ChatId chat_id, UserI
     return promise.set_error(Status::Error(400, "Need owner rights in the group chat"));
   }
 
-  if (user_id == td_->contacts_manager_->get_my_id()) {
+  if (user_id == td_->user_manager_->get_my_id()) {
     return promise.set_error(Status::Error(400, "Can't promote or demote self"));
   }
 
@@ -2216,7 +2215,7 @@ void DialogParticipantManager::set_chat_participant_status(ChatId chat_id, UserI
 void DialogParticipantManager::send_edit_chat_admin_query(ChatId chat_id, UserId user_id, bool is_administrator,
                                                           Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
-  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
 
   td_->create_handler<EditChatAdminQuery>(std::move(promise))
       ->send(chat_id, user_id, std::move(input_user), is_administrator);
@@ -2231,7 +2230,7 @@ void DialogParticipantManager::delete_chat_participant(ChatId chat_id, UserId us
     return promise.set_error(Status::Error(400, "Chat is deactivated"));
   }
 
-  auto my_id = td_->contacts_manager_->get_my_id();
+  auto my_id = td_->user_manager_->get_my_id();
   auto permissions = td_->contacts_manager_->get_chat_permissions(chat_id);
   if (permissions.is_left()) {
     if (user_id == my_id) {
@@ -2268,7 +2267,7 @@ void DialogParticipantManager::delete_chat_participant(ChatId chat_id, UserId us
     }
   }
   */
-  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
 
   // TODO invoke after
   td_->create_handler<DeleteChatUserQuery>(std::move(promise))->send(chat_id, std::move(input_user), revoke_messages);
@@ -2284,9 +2283,9 @@ void DialogParticipantManager::add_channel_participant(ChannelId channel_id, Use
   if (!td_->contacts_manager_->have_channel(channel_id)) {
     return promise.set_error(Status::Error(400, "Chat info not found"));
   }
-  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
 
-  if (user_id == td_->contacts_manager_->get_my_id()) {
+  if (user_id == td_->user_manager_->get_my_id()) {
     // join the channel
     auto my_status = td_->contacts_manager_->get_channel_status(channel_id);
     if (my_status.is_banned()) {
@@ -2354,9 +2353,9 @@ void DialogParticipantManager::add_channel_participants(ChannelId channel_id, co
 
   vector<tl_object_ptr<telegram_api::InputUser>> input_users;
   for (auto user_id : user_ids) {
-    TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
+    TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
 
-    if (user_id == td_->contacts_manager_->get_my_id()) {
+    if (user_id == td_->user_manager_->get_my_id()) {
       // can't invite self
       continue;
     }
@@ -2436,13 +2435,13 @@ void DialogParticipantManager::set_channel_participant_status_impl(ChannelId cha
     if (!new_status.is_creator()) {
       return promise.set_error(Status::Error(400, "Can't remove chat owner"));
     }
-    auto user_id = td_->contacts_manager_->get_my_id();
+    auto user_id = td_->user_manager_->get_my_id();
     if (participant_dialog_id != DialogId(user_id)) {
       return promise.set_error(Status::Error(400, "Not enough rights to edit chat owner rights"));
     }
     if (new_status.is_member() == old_status.is_member()) {
       // change rank and is_anonymous
-      auto r_input_user = td_->contacts_manager_->get_input_user(user_id);
+      auto r_input_user = td_->user_manager_->get_input_user(user_id);
       CHECK(r_input_user.is_ok());
       td_->create_handler<EditChannelAdminQuery>(std::move(promise))
           ->send(channel_id, user_id, r_input_user.move_as_ok(), new_status);
@@ -2507,7 +2506,7 @@ void DialogParticipantManager::promote_channel_participant(ChannelId channel_id,
                                                            const DialogParticipantStatus &old_status,
                                                            Promise<Unit> &&promise) {
   LOG(INFO) << "Promote " << user_id << " in " << channel_id << " from " << old_status << " to " << new_status;
-  if (user_id == td_->contacts_manager_->get_my_id()) {
+  if (user_id == td_->user_manager_->get_my_id()) {
     if (new_status.is_administrator()) {
       return promise.set_error(Status::Error(400, "Can't promote self"));
     }
@@ -2522,7 +2521,7 @@ void DialogParticipantManager::promote_channel_participant(ChannelId channel_id,
     CHECK(!new_status.is_creator());
   }
 
-  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
 
   speculative_add_channel_user(channel_id, user_id, new_status, old_status);
   td_->create_handler<EditChannelAdminQuery>(std::move(promise))
@@ -2681,7 +2680,7 @@ void DialogParticipantManager::send_update_add_chat_members_privacy_forbidden(Di
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateAddChatMembersPrivacyForbidden>(
                    td_->dialog_manager_->get_chat_id_object(dialog_id, "updateAddChatMembersPrivacyForbidden"),
-                   td_->contacts_manager_->get_user_ids_object(user_ids, source)));
+                   td_->user_manager_->get_user_ids_object(user_ids, source)));
 }
 
 void DialogParticipantManager::on_channel_participant_cache_timeout_callback(void *dialog_participant_manager_ptr,
@@ -2863,7 +2862,7 @@ void DialogParticipantManager::update_cached_channel_participant_status(ChannelI
     }
   }
   if (!is_found && status.is_member()) {
-    participants.emplace_back(DialogId(user_id), td_->contacts_manager_->get_my_id(), G()->unix_time(), status);
+    participants.emplace_back(DialogId(user_id), td_->user_manager_->get_my_id(), G()->unix_time(), status);
     update_channel_online_member_count(channel_id, false);
   }
 }
@@ -2925,13 +2924,13 @@ void DialogParticipantManager::transfer_dialog_ownership(DialogId dialog_id, Use
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "transfer_dialog_ownership")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
-  if (!td_->contacts_manager_->have_user_force(user_id, "transfer_dialog_ownership")) {
+  if (!td_->user_manager_->have_user_force(user_id, "transfer_dialog_ownership")) {
     return promise.set_error(Status::Error(400, "User not found"));
   }
-  if (td_->contacts_manager_->is_user_bot(user_id)) {
+  if (td_->user_manager_->is_user_bot(user_id)) {
     return promise.set_error(Status::Error(400, "User is a bot"));
   }
-  if (td_->contacts_manager_->is_user_deleted(user_id)) {
+  if (td_->user_manager_->is_user_deleted(user_id)) {
     return promise.set_error(Status::Error(400, "User is deleted"));
   }
   if (password.empty()) {

@@ -12,12 +12,12 @@
 #include "td/telegram/BusinessIntro.h"
 #include "td/telegram/BusinessRecipients.h"
 #include "td/telegram/BusinessWorkHours.h"
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogLocation.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
@@ -46,7 +46,7 @@ class GetConnectedBotsQuery final : public Td::ResultHandler {
     auto result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetConnectedBotsQuery: " << to_string(result);
 
-    td_->contacts_manager_->on_get_users(std::move(result->users_), "GetConnectedBotsQuery");
+    td_->user_manager_->on_get_users(std::move(result->users_), "GetConnectedBotsQuery");
     if (result->connected_bots_.size() > 1u) {
       return on_error(Status::Error(500, "Receive invalid response"));
     }
@@ -135,7 +135,7 @@ class UpdateBusinessLocationQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->contacts_manager_->on_update_user_location(td_->contacts_manager_->get_my_id(), std::move(location_));
+    td_->user_manager_->on_update_user_location(td_->user_manager_->get_my_id(), std::move(location_));
 
     promise_.set_value(Unit());
   }
@@ -169,7 +169,7 @@ class UpdateBusinessWorkHoursQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->contacts_manager_->on_update_user_work_hours(td_->contacts_manager_->get_my_id(), std::move(work_hours_));
+    td_->user_manager_->on_update_user_work_hours(td_->user_manager_->get_my_id(), std::move(work_hours_));
 
     promise_.set_value(Unit());
   }
@@ -204,8 +204,7 @@ class UpdateBusinessGreetingMessageQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->contacts_manager_->on_update_user_greeting_message(td_->contacts_manager_->get_my_id(),
-                                                            std::move(greeting_message_));
+    td_->user_manager_->on_update_user_greeting_message(td_->user_manager_->get_my_id(), std::move(greeting_message_));
 
     promise_.set_value(Unit());
   }
@@ -240,7 +239,7 @@ class UpdateBusinessAwayMessageQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->contacts_manager_->on_update_user_away_message(td_->contacts_manager_->get_my_id(), std::move(away_message_));
+    td_->user_manager_->on_update_user_away_message(td_->user_manager_->get_my_id(), std::move(away_message_));
 
     promise_.set_value(Unit());
   }
@@ -275,7 +274,7 @@ class UpdateBusinessIntroQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->contacts_manager_->on_update_user_intro(td_->contacts_manager_->get_my_id(), std::move(intro_));
+    td_->user_manager_->on_update_user_intro(td_->user_manager_->get_my_id(), std::move(intro_));
 
     promise_.set_value(Unit());
   }
@@ -302,12 +301,12 @@ void BusinessManager::set_business_connected_bot(td_api::object_ptr<td_api::busi
     return promise.set_error(Status::Error(400, "Bot must be non-empty"));
   }
   BusinessConnectedBot connected_bot(std::move(bot));
-  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(connected_bot.get_user_id()));
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(connected_bot.get_user_id()));
   td_->create_handler<UpdateConnectedBotQuery>(std::move(promise))->send(connected_bot, std::move(input_user));
 }
 
 void BusinessManager::delete_business_connected_bot(UserId bot_user_id, Promise<Unit> &&promise) {
-  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(bot_user_id));
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
   td_->create_handler<UpdateConnectedBotQuery>(std::move(promise))->send(std::move(input_user));
 }
 

@@ -26,6 +26,7 @@
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/db/binlog/BinlogEvent.h"
 #include "td/db/binlog/BinlogHelper.h"
@@ -197,7 +198,7 @@ class StopPollQuery final : public Td::ResultHandler {
     }
 
     int32 flags = telegram_api::messages_editMessage::MEDIA_MASK;
-    auto input_reply_markup = get_input_reply_markup(td_->contacts_manager_.get(), reply_markup);
+    auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), reply_markup);
     if (input_reply_markup != nullptr) {
       flags |= telegram_api::messages_editMessage::REPLY_MARKUP_MASK;
     }
@@ -1187,7 +1188,7 @@ void PollManager::on_get_poll_voters(PollId poll_id, int32 option_id, string off
   }
 
   auto vote_list = result.move_as_ok();
-  td_->contacts_manager_->on_get_users(std::move(vote_list->users_), "on_get_poll_voters");
+  td_->user_manager_->on_get_users(std::move(vote_list->users_), "on_get_poll_voters");
   td_->contacts_manager_->on_get_chats(std::move(vote_list->chats_), "on_get_poll_voters");
 
   voters.next_offset_ = std::move(vote_list->next_offset_);
@@ -1551,7 +1552,7 @@ tl_object_ptr<telegram_api::InputMedia> PollManager::get_input_media(PollId poll
           0, poll_flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, poll->question_,
           transform(poll->options_, get_input_poll_option), poll->open_period_, poll->close_date_),
       std::move(correct_answers), poll->explanation_.text,
-      get_input_message_entities(td_->contacts_manager_.get(), poll->explanation_.entities, "get_input_media_poll"));
+      get_input_message_entities(td_->user_manager_.get(), poll->explanation_.entities, "get_input_media_poll"));
 }
 
 vector<PollManager::PollOption> PollManager::get_poll_options(
@@ -1811,8 +1812,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     }
   }
 
-  auto entities =
-      get_message_entities(td_->contacts_manager_.get(), std::move(poll_results->solution_entities_), source);
+  auto entities = get_message_entities(td_->user_manager_.get(), std::move(poll_results->solution_entities_), source);
   auto status = fix_formatted_text(poll_results->solution_, entities, true, true, true, true, false);
   if (status.is_error()) {
     if (!clean_input_string(poll_results->solution_)) {

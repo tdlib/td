@@ -29,6 +29,7 @@
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -316,7 +317,7 @@ class GetForumTopicQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetForumTopicQuery: " << to_string(ptr);
 
-    td_->contacts_manager_->on_get_users(std::move(ptr->users_), "GetForumTopicQuery");
+    td_->user_manager_->on_get_users(std::move(ptr->users_), "GetForumTopicQuery");
     td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetForumTopicQuery");
 
     if (ptr->topics_.size() != 1u) {
@@ -386,7 +387,7 @@ class GetForumTopicsQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetForumTopicsQuery: " << to_string(ptr);
 
-    td_->contacts_manager_->on_get_users(std::move(ptr->users_), "GetForumTopicsQuery");
+    td_->user_manager_->on_get_users(std::move(ptr->users_), "GetForumTopicsQuery");
     td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetForumTopicsQuery");
 
     MessagesInfo messages_info;

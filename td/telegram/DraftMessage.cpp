@@ -57,7 +57,7 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
         flags |= telegram_api::messages_saveDraft::INVERT_MEDIA_MASK;
       }
       input_message_entities = get_input_message_entities(
-          td_->contacts_manager_.get(), draft_message->input_message_text_.text.entities, "SaveDraftMessageQuery");
+          td_->user_manager_.get(), draft_message->input_message_text_.text.entities, "SaveDraftMessageQuery");
       if (!input_message_entities.empty()) {
         flags |= telegram_api::messages_saveDraft::ENTITIES_MASK;
       }
@@ -409,8 +409,7 @@ DraftMessage::DraftMessage(Td *td, telegram_api::object_ptr<telegram_api::draftM
   CHECK(draft_message != nullptr);
   date_ = draft_message->date_;
   message_input_reply_to_ = MessageInputReplyTo(td, std::move(draft_message->reply_to_));
-  auto entities =
-      get_message_entities(td->contacts_manager_.get(), std::move(draft_message->entities_), "draftMessage");
+  auto entities = get_message_entities(td->user_manager_.get(), std::move(draft_message->entities_), "draftMessage");
   auto status = fix_formatted_text(draft_message->message_, entities, true, true, true, true, true);
   if (status.is_error()) {
     LOG(ERROR) << "Receive error " << status << " while parsing draft " << draft_message->message_;

@@ -19,6 +19,7 @@
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/ThemeManager.h"
 #include "td/telegram/UpdatesManager.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
@@ -151,13 +152,13 @@ class ExportChatInviteQuery final : public Td::ResultHandler {
     if (!invite_link.is_valid()) {
       return on_error(Status::Error(500, "Receive invalid invite link"));
     }
-    if (invite_link.get_creator_user_id() != td_->contacts_manager_->get_my_id()) {
+    if (invite_link.get_creator_user_id() != td_->user_manager_->get_my_id()) {
       return on_error(Status::Error(500, "Receive invalid invite link creator"));
     }
     if (invite_link.is_permanent()) {
       td_->dialog_invite_link_manager_->on_get_permanent_dialog_invite_link(dialog_id_, invite_link);
     }
-    promise_.set_value(invite_link.get_chat_invite_link_object(td_->contacts_manager_.get()));
+    promise_.set_value(invite_link.get_chat_invite_link_object(td_->user_manager_.get()));
   }
 
   void on_error(Status status) final {
@@ -207,13 +208,13 @@ class EditChatInviteLinkQuery final : public Td::ResultHandler {
 
     auto invite = move_tl_object_as<telegram_api::messages_exportedChatInvite>(result);
 
-    td_->contacts_manager_->on_get_users(std::move(invite->users_), "EditChatInviteLinkQuery");
+    td_->user_manager_->on_get_users(std::move(invite->users_), "EditChatInviteLinkQuery");
 
     DialogInviteLink invite_link(std::move(invite->invite_), false, "EditChatInviteLinkQuery");
     if (!invite_link.is_valid()) {
       return on_error(Status::Error(500, "Receive invalid invite link"));
     }
-    promise_.set_value(invite_link.get_chat_invite_link_object(td_->contacts_manager_.get()));
+    promise_.set_value(invite_link.get_chat_invite_link_object(td_->user_manager_.get()));
   }
 
   void on_error(Status status) final {
@@ -256,14 +257,14 @@ class GetExportedChatInviteQuery final : public Td::ResultHandler {
     auto result = move_tl_object_as<telegram_api::messages_exportedChatInvite>(result_ptr.ok_ref());
     LOG(INFO) << "Receive result for GetExportedChatInviteQuery: " << to_string(result);
 
-    td_->contacts_manager_->on_get_users(std::move(result->users_), "GetExportedChatInviteQuery");
+    td_->user_manager_->on_get_users(std::move(result->users_), "GetExportedChatInviteQuery");
 
     DialogInviteLink invite_link(std::move(result->invite_), false, "GetExportedChatInviteQuery");
     if (!invite_link.is_valid()) {
       LOG(ERROR) << "Receive invalid invite link in " << dialog_id_;
       return on_error(Status::Error(500, "Receive invalid invite link"));
     }
-    promise_.set_value(invite_link.get_chat_invite_link_object(td_->contacts_manager_.get()));
+    promise_.set_value(invite_link.get_chat_invite_link_object(td_->user_manager_.get()));
   }
 
   void on_error(Status status) final {
@@ -311,7 +312,7 @@ class GetExportedChatInvitesQuery final : public Td::ResultHandler {
     auto result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetExportedChatInvitesQuery: " << to_string(result);
 
-    td_->contacts_manager_->on_get_users(std::move(result->users_), "GetExportedChatInvitesQuery");
+    td_->user_manager_->on_get_users(std::move(result->users_), "GetExportedChatInvitesQuery");
 
     int32 total_count = result->count_;
     if (total_count < static_cast<int32>(result->invites_.size())) {
@@ -326,7 +327,7 @@ class GetExportedChatInvitesQuery final : public Td::ResultHandler {
         total_count--;
         continue;
       }
-      invite_links.push_back(invite_link.get_chat_invite_link_object(td_->contacts_manager_.get()));
+      invite_links.push_back(invite_link.get_chat_invite_link_object(td_->user_manager_.get()));
     }
     promise_.set_value(td_api::make_object<td_api::chatInviteLinks>(total_count, std::move(invite_links)));
   }
@@ -365,7 +366,7 @@ class GetChatAdminWithInvitesQuery final : public Td::ResultHandler {
     auto result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetChatAdminWithInvitesQuery: " << to_string(result);
 
-    td_->contacts_manager_->on_get_users(std::move(result->users_), "GetChatAdminWithInvitesQuery");
+    td_->user_manager_->on_get_users(std::move(result->users_), "GetChatAdminWithInvitesQuery");
 
     vector<td_api::object_ptr<td_api::chatInviteLinkCount>> invite_link_counts;
     for (auto &admin : result->admins_) {
@@ -375,7 +376,7 @@ class GetChatAdminWithInvitesQuery final : public Td::ResultHandler {
         continue;
       }
       invite_link_counts.push_back(td_api::make_object<td_api::chatInviteLinkCount>(
-          td_->contacts_manager_->get_user_id_object(user_id, "chatInviteLinkCount"), admin->invites_count_,
+          td_->user_manager_->get_user_id_object(user_id, "chatInviteLinkCount"), admin->invites_count_,
           admin->revoked_invites_count_));
     }
     promise_.set_value(td_api::make_object<td_api::chatInviteLinkCounts>(std::move(invite_link_counts)));
@@ -403,7 +404,7 @@ class GetChatInviteImportersQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
 
-    auto r_input_user = td_->contacts_manager_->get_input_user(offset_user_id);
+    auto r_input_user = td_->user_manager_->get_input_user(offset_user_id);
     if (r_input_user.is_error()) {
       r_input_user = make_tl_object<telegram_api::inputUserEmpty>();
     }
@@ -423,7 +424,7 @@ class GetChatInviteImportersQuery final : public Td::ResultHandler {
     auto result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetChatInviteImportersQuery: " << to_string(result);
 
-    td_->contacts_manager_->on_get_users(std::move(result->users_), "GetChatInviteImportersQuery");
+    td_->user_manager_->on_get_users(std::move(result->users_), "GetChatInviteImportersQuery");
 
     int32 total_count = result->count_;
     if (total_count < static_cast<int32>(result->importers_.size())) {
@@ -441,9 +442,8 @@ class GetChatInviteImportersQuery final : public Td::ResultHandler {
         continue;
       }
       invite_link_members.push_back(td_api::make_object<td_api::chatInviteLinkMember>(
-          td_->contacts_manager_->get_user_id_object(user_id, "chatInviteLinkMember"), importer->date_,
-          importer->via_chatlist_,
-          td_->contacts_manager_->get_user_id_object(approver_user_id, "chatInviteLinkMember")));
+          td_->user_manager_->get_user_id_object(user_id, "chatInviteLinkMember"), importer->date_,
+          importer->via_chatlist_, td_->user_manager_->get_user_id_object(approver_user_id, "chatInviteLinkMember")));
     }
     promise_.set_value(td_api::make_object<td_api::chatInviteLinkMembers>(total_count, std::move(invite_link_members)));
   }
@@ -489,19 +489,19 @@ class RevokeChatInviteLinkQuery final : public Td::ResultHandler {
       case telegram_api::messages_exportedChatInvite::ID: {
         auto invite = move_tl_object_as<telegram_api::messages_exportedChatInvite>(result);
 
-        td_->contacts_manager_->on_get_users(std::move(invite->users_), "RevokeChatInviteLinkQuery");
+        td_->user_manager_->on_get_users(std::move(invite->users_), "RevokeChatInviteLinkQuery");
 
         DialogInviteLink invite_link(std::move(invite->invite_), false, "RevokeChatInviteLinkQuery");
         if (!invite_link.is_valid()) {
           return on_error(Status::Error(500, "Receive invalid invite link"));
         }
-        links.push_back(invite_link.get_chat_invite_link_object(td_->contacts_manager_.get()));
+        links.push_back(invite_link.get_chat_invite_link_object(td_->user_manager_.get()));
         break;
       }
       case telegram_api::messages_exportedChatInviteReplaced::ID: {
         auto invite = move_tl_object_as<telegram_api::messages_exportedChatInviteReplaced>(result);
 
-        td_->contacts_manager_->on_get_users(std::move(invite->users_), "RevokeChatInviteLinkQuery replaced");
+        td_->user_manager_->on_get_users(std::move(invite->users_), "RevokeChatInviteLinkQuery replaced");
 
         DialogInviteLink invite_link(std::move(invite->invite_), false, "RevokeChatInviteLinkQuery replaced");
         DialogInviteLink new_invite_link(std::move(invite->new_invite_), false,
@@ -509,12 +509,12 @@ class RevokeChatInviteLinkQuery final : public Td::ResultHandler {
         if (!invite_link.is_valid() || !new_invite_link.is_valid()) {
           return on_error(Status::Error(500, "Receive invalid invite link"));
         }
-        if (new_invite_link.get_creator_user_id() == td_->contacts_manager_->get_my_id() &&
+        if (new_invite_link.get_creator_user_id() == td_->user_manager_->get_my_id() &&
             new_invite_link.is_permanent()) {
           td_->dialog_invite_link_manager_->on_get_permanent_dialog_invite_link(dialog_id_, new_invite_link);
         }
-        links.push_back(invite_link.get_chat_invite_link_object(td_->contacts_manager_.get()));
-        links.push_back(new_invite_link.get_chat_invite_link_object(td_->contacts_manager_.get()));
+        links.push_back(invite_link.get_chat_invite_link_object(td_->user_manager_.get()));
+        links.push_back(new_invite_link.get_chat_invite_link_object(td_->user_manager_.get()));
         break;
       }
       default:
@@ -727,13 +727,13 @@ void DialogInviteLinkManager::on_get_dialog_invite_link_info(
       auto chat_invite = telegram_api::move_object_as<telegram_api::chatInvite>(chat_invite_ptr);
       vector<UserId> participant_user_ids;
       for (auto &user : chat_invite->participants_) {
-        auto user_id = ContactsManager::get_user_id(user);
+        auto user_id = UserManager::get_user_id(user);
         if (!user_id.is_valid()) {
           LOG(ERROR) << "Receive invalid " << user_id;
           continue;
         }
 
-        td_->contacts_manager_->on_get_user(std::move(user), "chatInvite");
+        td_->user_manager_->on_get_user(std::move(user), "chatInvite");
         participant_user_ids.push_back(user_id);
       }
 
@@ -850,8 +850,8 @@ td_api::object_ptr<td_api::chatInviteLinkInfo> DialogInviteLinkManager::get_chat
     accent_color_id_object = td_->theme_manager_->get_accent_color_id_object(invite_link_info->accent_color_id);
     description = invite_link_info->description;
     participant_count = invite_link_info->participant_count;
-    member_user_ids = td_->contacts_manager_->get_user_ids_object(invite_link_info->participant_user_ids,
-                                                                  "get_chat_invite_link_info_object");
+    member_user_ids = td_->user_manager_->get_user_ids_object(invite_link_info->participant_user_ids,
+                                                              "get_chat_invite_link_info_object");
     creates_join_request = invite_link_info->creates_join_request;
     is_public = invite_link_info->is_public;
     is_verified = invite_link_info->is_verified;
@@ -978,9 +978,9 @@ void DialogInviteLinkManager::on_get_permanent_dialog_invite_link(DialogId dialo
 void DialogInviteLinkManager::export_dialog_invite_link(DialogId dialog_id, string title, int32 expire_date,
                                                         int32 usage_limit, bool creates_join_request, bool is_permanent,
                                                         Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise) {
-  td_->contacts_manager_->get_me(PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, title = std::move(title),
-                                                         expire_date, usage_limit, creates_join_request, is_permanent,
-                                                         promise = std::move(promise)](Result<Unit> &&result) mutable {
+  td_->user_manager_->get_me(PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, title = std::move(title),
+                                                     expire_date, usage_limit, creates_join_request, is_permanent,
+                                                     promise = std::move(promise)](Result<Unit> &&result) mutable {
     if (result.is_error()) {
       promise.set_error(result.move_as_error());
     } else {
@@ -1045,8 +1045,8 @@ void DialogInviteLinkManager::get_dialog_invite_links(DialogId dialog_id, UserId
                                                       int32 offset_date, const string &offset_invite_link, int32 limit,
                                                       Promise<td_api::object_ptr<td_api::chatInviteLinks>> &&promise) {
   TRY_STATUS_PROMISE(promise,
-                     can_manage_dialog_invite_links(dialog_id, creator_user_id != td_->contacts_manager_->get_my_id()));
-  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(creator_user_id));
+                     can_manage_dialog_invite_links(dialog_id, creator_user_id != td_->user_manager_->get_my_id()));
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(creator_user_id));
 
   if (limit <= 0) {
     return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
@@ -1105,8 +1105,8 @@ void DialogInviteLinkManager::delete_revoked_dialog_invite_link(DialogId dialog_
 void DialogInviteLinkManager::delete_all_revoked_dialog_invite_links(DialogId dialog_id, UserId creator_user_id,
                                                                      Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise,
-                     can_manage_dialog_invite_links(dialog_id, creator_user_id != td_->contacts_manager_->get_my_id()));
-  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(creator_user_id));
+                     can_manage_dialog_invite_links(dialog_id, creator_user_id != td_->user_manager_->get_my_id()));
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(creator_user_id));
 
   td_->create_handler<DeleteRevokedExportedChatInvitesQuery>(std::move(promise))
       ->send(dialog_id, std::move(input_user));

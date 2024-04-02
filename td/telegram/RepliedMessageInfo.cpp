@@ -117,8 +117,8 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, tl_object_ptr<telegram_api::messa
   }
   if ((!origin_.is_empty() || message_id_ != MessageId()) && !reply_header->quote_text_.empty()) {
     is_quote_manual_ = reply_header->quote_;
-    auto entities = get_message_entities(td->contacts_manager_.get(), std::move(reply_header->quote_entities_),
-                                         "RepliedMessageInfo");
+    auto entities =
+        get_message_entities(td->user_manager_.get(), std::move(reply_header->quote_entities_), "RepliedMessageInfo");
     auto status = fix_formatted_text(reply_header->quote_text_, entities, true, true, true, true, false);
     if (status.is_error()) {
       if (!clean_input_string(reply_header->quote_text_)) {

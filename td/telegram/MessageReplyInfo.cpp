@@ -11,6 +11,7 @@
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/logging.h"
@@ -59,7 +60,7 @@ MessageReplyInfo::MessageReplyInfo(Td *td, tl_object_ptr<telegram_api::messageRe
         auto dialog_type = dialog_id.get_type();
         if (dialog_type == DialogType::User) {
           auto replier_user_id = dialog_id.get_user_id();
-          if (!td->contacts_manager_->have_min_user(replier_user_id)) {
+          if (!td->user_manager_->have_min_user(replier_user_id)) {
             LOG(ERROR) << "Receive unknown replied " << replier_user_id;
             continue;
           }

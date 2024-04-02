@@ -24,6 +24,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -141,7 +142,7 @@ class GetGroupCallJoinAsQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetGroupCallJoinAsQuery: " << to_string(ptr);
 
-    td_->contacts_manager_->on_get_users(std::move(ptr->users_), "GetGroupCallJoinAsQuery");
+    td_->user_manager_->on_get_users(std::move(ptr->users_), "GetGroupCallJoinAsQuery");
     td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetGroupCallJoinAsQuery");
 
     promise_.set_value(convert_message_senders_object(td_, ptr->peers_));
@@ -1460,7 +1461,7 @@ void GroupCallManager::finish_get_group_call(InputGroupCallId input_group_call_i
   load_group_call_queries_.erase(it);
 
   if (result.is_ok()) {
-    td_->contacts_manager_->on_get_users(std::move(result.ok_ref()->users_), "finish_get_group_call");
+    td_->user_manager_->on_get_users(std::move(result.ok_ref()->users_), "finish_get_group_call");
     td_->contacts_manager_->on_get_chats(std::move(result.ok_ref()->chats_), "finish_get_group_call");
 
     if (update_group_call(result.ok()->call_, DialogId()) != input_group_call_id) {
@@ -1605,7 +1606,7 @@ void GroupCallManager::on_get_group_call_participants(
   LOG(INFO) << "Receive group call participants: " << to_string(participants);
 
   CHECK(participants != nullptr);
-  td_->contacts_manager_->on_get_users(std::move(participants->users_), "on_get_group_call_participants");
+  td_->user_manager_->on_get_users(std::move(participants->users_), "on_get_group_call_participants");
   td_->contacts_manager_->on_get_chats(std::move(participants->chats_), "on_get_group_call_participants");
 
   if (!need_group_call_participants(input_group_call_id)) {
@@ -2642,7 +2643,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
       if (as_dialog_id != my_dialog_id) {
         return promise.set_error(Status::Error(400, "Can't join voice chat as another user"));
       }
-      if (!td_->contacts_manager_->have_user_force(as_dialog_id.get_user_id(), "join_group_call")) {
+      if (!td_->user_manager_->have_user_force(as_dialog_id.get_user_id(), "join_group_call")) {
         have_as_dialog_id = false;
       }
     } else {
@@ -3520,9 +3521,9 @@ void GroupCallManager::invite_group_call_participants(GroupCallId group_call_id,
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
   vector<tl_object_ptr<telegram_api::InputUser>> input_users;
-  auto my_user_id = td_->contacts_manager_->get_my_id();
+  auto my_user_id = td_->user_manager_->get_my_id();
   for (auto user_id : user_ids) {
-    TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
+    TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
 
     if (user_id == my_user_id) {
       // can't invite self

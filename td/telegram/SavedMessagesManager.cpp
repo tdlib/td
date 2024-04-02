@@ -18,6 +18,7 @@
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -584,7 +585,7 @@ void SavedMessagesManager::on_get_saved_messages_topics(
     default:
       UNREACHABLE();
   }
-  td_->contacts_manager_->on_get_users(std::move(users), "on_get_saved_messages_topics");
+  td_->user_manager_->on_get_users(std::move(users), "on_get_saved_messages_topics");
   td_->contacts_manager_->on_get_chats(std::move(chats), "on_get_saved_messages_topics");
 
   FlatHashMap<MessageId, telegram_api::object_ptr<telegram_api::Message>, MessageIdHash> message_id_to_message;

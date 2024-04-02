@@ -7,13 +7,13 @@
 #include "td/telegram/PhoneNumberManager.h"
 
 #include "td/telegram/ConfigManager.h"
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/SuggestedAction.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/logging.h"
 
@@ -168,8 +168,7 @@ void PhoneNumberManager::process_check_code_result(Result<tl_object_ptr<telegram
   if (result.is_error()) {
     return on_current_query_error(result.move_as_error());
   }
-  send_closure(G()->contacts_manager(), &ContactsManager::on_get_user, result.move_as_ok(),
-               "process_check_code_result");
+  send_closure(G()->user_manager(), &UserManager::on_get_user, result.move_as_ok(), "process_check_code_result");
   state_ = State::Ok;
   on_current_query_ok();
 }

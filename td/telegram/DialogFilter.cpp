@@ -13,6 +13,7 @@
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/emoji.h"
@@ -692,20 +693,18 @@ void DialogFilter::sort_input_dialog_ids(const Td *td, const char *source) {
     excluded_dialog_ids_.clear();
   }
 
-  auto sort_input_dialog_ids = [contacts_manager =
-                                    td->contacts_manager_.get()](vector<InputDialogId> &input_dialog_ids) {
-    std::sort(input_dialog_ids.begin(), input_dialog_ids.end(),
-              [contacts_manager](InputDialogId lhs, InputDialogId rhs) {
-                auto get_order = [contacts_manager](InputDialogId input_dialog_id) {
-                  auto dialog_id = input_dialog_id.get_dialog_id();
-                  if (dialog_id.get_type() != DialogType::SecretChat) {
-                    return dialog_id.get() * 10;
-                  }
-                  auto user_id = contacts_manager->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
-                  return DialogId(user_id).get() * 10 + 1;
-                };
-                return get_order(lhs) < get_order(rhs);
-              });
+  auto sort_input_dialog_ids = [user_manager = td->user_manager_.get()](vector<InputDialogId> &input_dialog_ids) {
+    std::sort(input_dialog_ids.begin(), input_dialog_ids.end(), [user_manager](InputDialogId lhs, InputDialogId rhs) {
+      auto get_order = [user_manager](InputDialogId input_dialog_id) {
+        auto dialog_id = input_dialog_id.get_dialog_id();
+        if (dialog_id.get_type() != DialogType::SecretChat) {
+          return dialog_id.get() * 10;
+        }
+        auto user_id = user_manager->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
+        return DialogId(user_id).get() * 10 + 1;
+      };
+      return get_order(lhs) < get_order(rhs);
+    });
   };
 
   sort_input_dialog_ids(excluded_dialog_ids_);
@@ -773,7 +772,7 @@ bool DialogFilter::need_dialog(const Td *td, const DialogFilterDialogInfo &dialo
     return false;
   }
   if (dialog_id.get_type() == DialogType::SecretChat) {
-    auto user_id = td->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
+    auto user_id = td->user_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
     if (user_id.is_valid()) {
       auto user_dialog_id = DialogId(user_id);
       if (is_dialog_included(user_dialog_id)) {
@@ -798,10 +797,10 @@ bool DialogFilter::need_dialog(const Td *td, const DialogFilterDialogInfo &dialo
   switch (dialog_id.get_type()) {
     case DialogType::User: {
       auto user_id = dialog_id.get_user_id();
-      if (td->contacts_manager_->is_user_bot(user_id)) {
+      if (td->user_manager_->is_user_bot(user_id)) {
         return include_bots_;
       }
-      if (user_id == td->contacts_manager_->get_my_id() || td->contacts_manager_->is_user_contact(user_id)) {
+      if (user_id == td->user_manager_->get_my_id() || td->user_manager_->is_user_contact(user_id)) {
         return include_contacts_;
       }
       return include_non_contacts_;
@@ -812,11 +811,11 @@ bool DialogFilter::need_dialog(const Td *td, const DialogFilterDialogInfo &dialo
       return td->contacts_manager_->is_broadcast_channel(dialog_id.get_channel_id()) ? include_channels_
                                                                                      : include_groups_;
     case DialogType::SecretChat: {
-      auto user_id = td->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
-      if (td->contacts_manager_->is_user_bot(user_id)) {
+      auto user_id = td->user_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
+      if (td->user_manager_->is_user_bot(user_id)) {
         return include_bots_;
       }
-      if (td->contacts_manager_->is_user_contact(user_id)) {
+      if (td->user_manager_->is_user_contact(user_id)) {
         return include_contacts_;
       }
       return include_non_contacts_;

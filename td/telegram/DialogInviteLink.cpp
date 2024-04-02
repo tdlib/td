@@ -6,8 +6,8 @@
 //
 #include "td/telegram/DialogInviteLink.h"
 
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/LinkManager.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -99,15 +99,15 @@ bool DialogInviteLink::is_valid_invite_link(Slice invite_link, bool allow_trunca
 }
 
 td_api::object_ptr<td_api::chatInviteLink> DialogInviteLink::get_chat_invite_link_object(
-    const ContactsManager *contacts_manager) const {
-  CHECK(contacts_manager != nullptr);
+    const UserManager *user_manager) const {
+  CHECK(user_manager != nullptr);
   if (!is_valid()) {
     return nullptr;
   }
 
   return td_api::make_object<td_api::chatInviteLink>(
-      invite_link_, title_, contacts_manager->get_user_id_object(creator_user_id_, "get_chat_invite_link_object"),
-      date_, edit_date_, expire_date_, usage_limit_, usage_count_, request_count_, creates_join_request_, is_permanent_,
+      invite_link_, title_, user_manager->get_user_id_object(creator_user_id_, "get_chat_invite_link_object"), date_,
+      edit_date_, expire_date_, usage_limit_, usage_count_, request_count_, creates_join_request_, is_permanent_,
       is_revoked_);
 }
 

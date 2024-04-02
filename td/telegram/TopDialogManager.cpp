@@ -21,6 +21,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/actor/PromiseFuture.h"
 
@@ -408,16 +409,16 @@ void TopDialogManager::on_load_dialogs(GetTopDialogsQuery &&query, vector<Dialog
   for (auto dialog_id : dialog_ids) {
     if (dialog_id.get_type() == DialogType::User) {
       auto user_id = dialog_id.get_user_id();
-      if (td_->contacts_manager_->is_user_deleted(user_id)) {
+      if (td_->user_manager_->is_user_deleted(user_id)) {
         LOG(INFO) << "Skip deleted " << user_id;
         continue;
       }
-      if (td_->contacts_manager_->get_my_id() == user_id) {
+      if (td_->user_manager_->get_my_id() == user_id) {
         LOG(INFO) << "Skip self " << user_id;
         continue;
       }
       if (query.category == TopDialogCategory::BotInline || query.category == TopDialogCategory::BotPM) {
-        auto r_bot_info = td_->contacts_manager_->get_bot_data(user_id);
+        auto r_bot_info = td_->user_manager_->get_bot_data(user_id);
         if (r_bot_info.is_error()) {
           LOG(INFO) << "Skip not a bot " << user_id;
           continue;
@@ -495,7 +496,7 @@ void TopDialogManager::on_get_top_peers(Result<telegram_api::object_ptr<telegram
       set_is_enabled(true);  // apply immediately
       auto top_peers = move_tl_object_as<telegram_api::contacts_topPeers>(std::move(top_peers_parent));
 
-      td_->contacts_manager_->on_get_users(std::move(top_peers->users_), "on get top chats");
+      td_->user_manager_->on_get_users(std::move(top_peers->users_), "on get top chats");
       td_->contacts_manager_->on_get_chats(std::move(top_peers->chats_), "on get top chats");
       for (auto &category : top_peers->categories_) {
         auto dialog_category = get_top_dialog_category(category->category_);

@@ -8,6 +8,7 @@
 
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/logging.h"
 
@@ -113,9 +114,9 @@ void DialogActionBar::fix(Td *td, DialogId dialog_id, bool is_dialog_blocked, Fo
   }
   if (dialog_type == DialogType::User) {
     auto user_id = dialog_id.get_user_id();
-    bool is_me = user_id == td->contacts_manager_->get_my_id();
-    bool is_deleted = td->contacts_manager_->is_user_deleted(user_id);
-    bool is_contact = td->contacts_manager_->is_user_contact(user_id);
+    bool is_me = user_id == td->user_manager_->get_my_id();
+    bool is_deleted = td->user_manager_->is_user_deleted(user_id);
+    bool is_contact = td->user_manager_->is_user_contact(user_id);
     if (is_me || is_dialog_blocked) {
       can_report_spam_ = false;
       can_unarchive_ = false;

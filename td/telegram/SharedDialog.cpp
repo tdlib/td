@@ -9,10 +9,10 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UserId.h"
+#include "td/telegram/UserManager.h"
 
 namespace td {
 
@@ -52,7 +52,7 @@ td_api::object_ptr<td_api::sharedUser> SharedDialog::get_shared_user_object(Td *
   CHECK(is_user());
   auto user_id = td->auth_manager_->is_bot()
                      ? dialog_id_.get_user_id().get()
-                     : td->contacts_manager_->get_user_id_object(dialog_id_.get_user_id(), "sharedUser");
+                     : td->user_manager_->get_user_id_object(dialog_id_.get_user_id(), "sharedUser");
   return td_api::make_object<td_api::sharedUser>(user_id, first_name_, last_name_, username_,
                                                  get_photo_object(td->file_manager_.get(), photo_));
 }

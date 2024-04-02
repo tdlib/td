@@ -17,7 +17,7 @@
 
 namespace td {
 
-class ContactsManager;
+class UserManager;
 
 class DialogInviteLink {
   string invite_link_;
@@ -45,7 +45,7 @@ class DialogInviteLink {
 
   static bool is_valid_invite_link(Slice invite_link, bool allow_truncated = false);
 
-  td_api::object_ptr<td_api::chatInviteLink> get_chat_invite_link_object(const ContactsManager *contacts_manager) const;
+  td_api::object_ptr<td_api::chatInviteLink> get_chat_invite_link_object(const UserManager *user_manager) const;
 
   bool is_valid() const {
     return !invite_link_.empty() && creator_user_id_.is_valid() && date_ > 0;

@@ -8,7 +8,6 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/InlineQueriesManager.h"
@@ -17,6 +16,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/actor/actor.h"
 
@@ -174,7 +174,7 @@ void CallbackQueriesManager::on_new_query(int32 flags, int64 callback_query_id, 
     LOG(ERROR) << "Receive new callback query from invalid " << sender_user_id << " in " << dialog_id;
     return;
   }
-  LOG_IF(ERROR, !td_->contacts_manager_->have_user(sender_user_id)) << "Receive unknown " << sender_user_id;
+  LOG_IF(ERROR, !td_->user_manager_->have_user(sender_user_id)) << "Receive unknown " << sender_user_id;
   if (!td_->auth_manager_->is_bot()) {
     LOG(ERROR) << "Receive new callback query";
     return;
@@ -191,12 +191,11 @@ void CallbackQueriesManager::on_new_query(int32 flags, int64 callback_query_id, 
   }
 
   td_->dialog_manager_->force_create_dialog(dialog_id, "on_new_callback_query", true);
-  send_closure(
-      G()->td(), &Td::send_update,
-      td_api::make_object<td_api::updateNewCallbackQuery>(
-          callback_query_id, td_->contacts_manager_->get_user_id_object(sender_user_id, "updateNewCallbackQuery"),
-          td_->dialog_manager_->get_chat_id_object(dialog_id, "updateNewCallbackQuery"), message_id.get(),
-          chat_instance, std::move(payload)));
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateNewCallbackQuery>(
+                   callback_query_id, td_->user_manager_->get_user_id_object(sender_user_id, "updateNewCallbackQuery"),
+                   td_->dialog_manager_->get_chat_id_object(dialog_id, "updateNewCallbackQuery"), message_id.get(),
+                   chat_instance, std::move(payload)));
 }
 
 void CallbackQueriesManager::on_new_inline_query(
@@ -207,7 +206,7 @@ void CallbackQueriesManager::on_new_inline_query(
     LOG(ERROR) << "Receive new callback query from invalid " << sender_user_id;
     return;
   }
-  LOG_IF(ERROR, !td_->contacts_manager_->have_user(sender_user_id)) << "Receive unknown " << sender_user_id;
+  LOG_IF(ERROR, !td_->user_manager_->have_user(sender_user_id)) << "Receive unknown " << sender_user_id;
   if (!td_->auth_manager_->is_bot()) {
     LOG(ERROR) << "Receive new callback query";
     return;
@@ -221,7 +220,7 @@ void CallbackQueriesManager::on_new_inline_query(
   send_closure(
       G()->td(), &Td::send_update,
       make_tl_object<td_api::updateNewInlineCallbackQuery>(
-          callback_query_id, td_->contacts_manager_->get_user_id_object(sender_user_id, "updateNewInlineCallbackQuery"),
+          callback_query_id, td_->user_manager_->get_user_id_object(sender_user_id, "updateNewInlineCallbackQuery"),
           InlineQueriesManager::get_inline_message_id(std::move(inline_message_id)), chat_instance,
           std::move(payload)));
 }

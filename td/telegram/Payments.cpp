@@ -7,7 +7,6 @@
 #include "td/telegram/Payments.h"
 
 #include "td/telegram/AccessRights.h"
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/GiveawayParameters.h"
@@ -26,6 +25,7 @@
 #include "td/telegram/ThemeManager.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/UserId.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -82,7 +82,7 @@ Result<InputInvoiceInfo> get_input_invoice_info(Td *td, td_api::object_ptr<td_ap
           auto p = static_cast<const td_api::telegramPaymentPurposePremiumGiftCodes *>(invoice->purpose_.get());
           vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
           for (auto user_id : p->user_ids_) {
-            TRY_RESULT(input_user, td->contacts_manager_->get_input_user(UserId(user_id)));
+            TRY_RESULT(input_user, td->user_manager_->get_input_user(UserId(user_id)));
             input_users.push_back(std::move(input_user));
           }
           if (p->amount_ <= 0 || !check_currency_amount(p->amount_)) {
@@ -433,7 +433,7 @@ class GetPaymentFormQuery final : public Td::ResultHandler {
     auto payment_form = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetPaymentFormQuery: " << to_string(payment_form);
 
-    td_->contacts_manager_->on_get_users(std::move(payment_form->users_), "GetPaymentFormQuery");
+    td_->user_manager_->on_get_users(std::move(payment_form->users_), "GetPaymentFormQuery");
 
     UserId payments_provider_user_id(payment_form->provider_id_);
     if (!payments_provider_user_id.is_valid()) {
@@ -459,8 +459,8 @@ class GetPaymentFormQuery final : public Td::ResultHandler {
         });
     promise_.set_value(make_tl_object<td_api::paymentForm>(
         payment_form->form_id_, convert_invoice(std::move(payment_form->invoice_)),
-        td_->contacts_manager_->get_user_id_object(seller_bot_user_id, "paymentForm seller"),
-        td_->contacts_manager_->get_user_id_object(payments_provider_user_id, "paymentForm provider"),
+        td_->user_manager_->get_user_id_object(seller_bot_user_id, "paymentForm seller"),
+        td_->user_manager_->get_user_id_object(payments_provider_user_id, "paymentForm provider"),
         std::move(payment_provider), std::move(additional_payment_options),
         convert_order_info(std::move(payment_form->saved_info_)),
         convert_saved_credentials(std::move(payment_form->saved_credentials_)), can_save_credentials, need_password,
@@ -613,7 +613,7 @@ class GetPaymentReceiptQuery final : public Td::ResultHandler {
     auto payment_receipt = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetPaymentReceiptQuery: " << to_string(payment_receipt);
 
-    td_->contacts_manager_->on_get_users(std::move(payment_receipt->users_), "GetPaymentReceiptQuery");
+    td_->user_manager_->on_get_users(std::move(payment_receipt->users_), "GetPaymentReceiptQuery");
 
     UserId payments_provider_user_id(payment_receipt->provider_id_);
     if (!payments_provider_user_id.is_valid()) {
@@ -634,8 +634,8 @@ class GetPaymentReceiptQuery final : public Td::ResultHandler {
     promise_.set_value(make_tl_object<td_api::paymentReceipt>(
         payment_receipt->title_, get_product_description_object(payment_receipt->description_),
         get_photo_object(td_->file_manager_.get(), photo), payment_receipt->date_,
-        td_->contacts_manager_->get_user_id_object(seller_bot_user_id, "paymentReceipt seller"),
-        td_->contacts_manager_->get_user_id_object(payments_provider_user_id, "paymentReceipt provider"),
+        td_->user_manager_->get_user_id_object(seller_bot_user_id, "paymentReceipt seller"),
+        td_->user_manager_->get_user_id_object(payments_provider_user_id, "paymentReceipt provider"),
         convert_invoice(std::move(payment_receipt->invoice_)), convert_order_info(std::move(payment_receipt->info_)),
         convert_shipping_option(std::move(payment_receipt->shipping_)), std::move(payment_receipt->credentials_title_),
         payment_receipt->tip_amount_));

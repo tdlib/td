@@ -6,11 +6,11 @@
 //
 #include "td/telegram/BusinessRecipients.h"
 
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/algorithm.h"
 
@@ -107,7 +107,7 @@ telegram_api::object_ptr<telegram_api::inputBusinessRecipients> BusinessRecipien
   }
   vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
   for (auto user_id : user_ids_) {
-    auto r_input_user = td->contacts_manager_->get_input_user(user_id);
+    auto r_input_user = td->user_manager_->get_input_user(user_id);
     if (r_input_user.is_ok()) {
       input_users.push_back(r_input_user.move_as_ok());
     }
@@ -140,7 +140,7 @@ BusinessRecipients::get_input_business_bot_recipients(Td *td) const {
   }
   vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
   for (auto user_id : user_ids_) {
-    auto r_input_user = td->contacts_manager_->get_input_user(user_id);
+    auto r_input_user = td->user_manager_->get_input_user(user_id);
     if (r_input_user.is_ok()) {
       input_users.push_back(r_input_user.move_as_ok());
     }
@@ -150,7 +150,7 @@ BusinessRecipients::get_input_business_bot_recipients(Td *td) const {
   }
   vector<telegram_api::object_ptr<telegram_api::InputUser>> excluded_input_users;
   for (auto user_id : excluded_user_ids_) {
-    auto r_input_user = td->contacts_manager_->get_input_user(user_id);
+    auto r_input_user = td->user_manager_->get_input_user(user_id);
     if (r_input_user.is_ok()) {
       excluded_input_users.push_back(r_input_user.move_as_ok());
     }

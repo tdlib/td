@@ -11,7 +11,6 @@
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChannelType.h"
 #include "td/telegram/ConfigManager.h"
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/DialogParticipant.h"
@@ -27,6 +26,7 @@
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/mtproto/ProxySecret.h"
 
@@ -877,13 +877,13 @@ class RequestUrlAuthQuery final : public Td::ResultHandler {
     switch (result->get_id()) {
       case telegram_api::urlAuthResultRequest::ID: {
         auto request = telegram_api::move_object_as<telegram_api::urlAuthResultRequest>(result);
-        UserId bot_user_id = ContactsManager::get_user_id(request->bot_);
+        UserId bot_user_id = UserManager::get_user_id(request->bot_);
         if (!bot_user_id.is_valid()) {
           return on_error(Status::Error(500, "Receive invalid bot_user_id"));
         }
-        td_->contacts_manager_->on_get_user(std::move(request->bot_), "RequestUrlAuthQuery");
+        td_->user_manager_->on_get_user(std::move(request->bot_), "RequestUrlAuthQuery");
         promise_.set_value(td_api::make_object<td_api::loginUrlInfoRequestConfirmation>(
-            url_, request->domain_, td_->contacts_manager_->get_user_id_object(bot_user_id, "RequestUrlAuthQuery"),
+            url_, request->domain_, td_->user_manager_->get_user_id_object(bot_user_id, "RequestUrlAuthQuery"),
             request->request_write_access_));
         break;
       }

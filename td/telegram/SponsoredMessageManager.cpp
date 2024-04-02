@@ -22,6 +22,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
+#include "td/telegram/UserManager.h"
 #include "td/telegram/WebApp.h"
 
 #include "td/utils/algorithm.h"
@@ -285,11 +286,11 @@ td_api::object_ptr<td_api::messageSponsor> SponsoredMessageManager::get_message_
   switch (sponsored_message.sponsor_dialog_id.get_type()) {
     case DialogType::User: {
       auto user_id = sponsored_message.sponsor_dialog_id.get_user_id();
-      if (!td_->contacts_manager_->is_user_bot(user_id)) {
+      if (!td_->user_manager_->is_user_bot(user_id)) {
         LOG(ERROR) << "Sponsor " << user_id << " is not a bot";
         return nullptr;
       }
-      auto bot_username = td_->contacts_manager_->get_user_first_username(user_id);
+      auto bot_username = td_->user_manager_->get_user_first_username(user_id);
       if (bot_username.empty()) {
         LOG(ERROR) << "Sponsor " << user_id << " has no username";
         return nullptr;
@@ -298,12 +299,12 @@ td_api::object_ptr<td_api::messageSponsor> SponsoredMessageManager::get_message_
         type = sponsored_message.web_app.get_message_sponsor_type_web_app(bot_username, sponsored_message.start_param);
       } else {
         type = td_api::make_object<td_api::messageSponsorTypeBot>(
-            td_->contacts_manager_->get_user_id_object(user_id, "messageSponsorTypeBot"),
+            td_->user_manager_->get_user_id_object(user_id, "messageSponsorTypeBot"),
             td_api::make_object<td_api::internalLinkTypeBotStart>(bot_username, sponsored_message.start_param, false));
       }
       if (sponsored_message.show_dialog_photo) {
-        photo = get_chat_photo_info_object(td_->file_manager_.get(),
-                                           td_->contacts_manager_->get_user_dialog_photo(user_id));
+        photo =
+            get_chat_photo_info_object(td_->file_manager_.get(), td_->user_manager_->get_user_dialog_photo(user_id));
       }
       break;
     }
@@ -442,7 +443,7 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
       auto sponsored_messages =
           telegram_api::move_object_as<telegram_api::messages_sponsoredMessages>(sponsored_messages_ptr);
 
-      td_->contacts_manager_->on_get_users(std::move(sponsored_messages->users_), "on_get_dialog_sponsored_messages");
+      td_->user_manager_->on_get_users(std::move(sponsored_messages->users_), "on_get_dialog_sponsored_messages");
       td_->contacts_manager_->on_get_chats(std::move(sponsored_messages->chats_), "on_get_dialog_sponsored_messages");
 
       for (auto &sponsored_message : sponsored_messages->messages_) {
@@ -493,7 +494,7 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
           continue;
         }
 
-        auto message_text = get_message_text(td_->contacts_manager_.get(), std::move(sponsored_message->message_),
+        auto message_text = get_message_text(td_->user_manager_.get(), std::move(sponsored_message->message_),
                                              std::move(sponsored_message->entities_), true, true, 0, false,
                                              "on_get_dialog_sponsored_messages");
         MessageSelfDestructType ttl;

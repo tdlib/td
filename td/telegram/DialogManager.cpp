@@ -27,6 +27,7 @@
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/UserId.h"
+#include "td/telegram/UserManager.h"
 #include "td/telegram/Usernames.h"
 
 #include "td/utils/algorithm.h"
@@ -123,7 +124,7 @@ class ResolveUsernameQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(DEBUG) << "Receive result for ResolveUsernameQuery: " << to_string(ptr);
-    td_->contacts_manager_->on_get_users(std::move(ptr->users_), "ResolveUsernameQuery");
+    td_->user_manager_->on_get_users(std::move(ptr->users_), "ResolveUsernameQuery");
     td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "ResolveUsernameQuery");
 
     promise_.set_value(DialogId(ptr->peer_));
@@ -552,7 +553,7 @@ void DialogManager::tear_down() {
 }
 
 DialogId DialogManager::get_my_dialog_id() const {
-  return DialogId(td_->contacts_manager_->get_my_id());
+  return DialogId(td_->user_manager_->get_my_id());
 }
 
 InputDialogId DialogManager::get_input_dialog_id(DialogId dialog_id) const {
@@ -569,7 +570,7 @@ tl_object_ptr<telegram_api::InputPeer> DialogManager::get_input_peer(DialogId di
                                                                      AccessRights access_rights) const {
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return td_->contacts_manager_->get_input_peer_user(dialog_id.get_user_id(), access_rights);
+      return td_->user_manager_->get_input_peer_user(dialog_id.get_user_id(), access_rights);
     case DialogType::Chat:
       return td_->contacts_manager_->get_input_peer_chat(dialog_id.get_chat_id(), access_rights);
     case DialogType::Channel:
@@ -658,7 +659,7 @@ tl_object_ptr<telegram_api::inputEncryptedChat> DialogManager::get_input_encrypt
   switch (dialog_id.get_type()) {
     case DialogType::SecretChat: {
       SecretChatId secret_chat_id = dialog_id.get_secret_chat_id();
-      return td_->contacts_manager_->get_input_encrypted_chat(secret_chat_id, access_rights);
+      return td_->user_manager_->get_input_encrypted_chat(secret_chat_id, access_rights);
     }
     case DialogType::User:
     case DialogType::Chat:
@@ -674,7 +675,7 @@ bool DialogManager::have_input_peer(DialogId dialog_id, AccessRights access_righ
   switch (dialog_id.get_type()) {
     case DialogType::User: {
       UserId user_id = dialog_id.get_user_id();
-      return td_->contacts_manager_->have_input_peer_user(user_id, access_rights);
+      return td_->user_manager_->have_input_peer_user(user_id, access_rights);
     }
     case DialogType::Chat: {
       ChatId chat_id = dialog_id.get_chat_id();
@@ -686,7 +687,7 @@ bool DialogManager::have_input_peer(DialogId dialog_id, AccessRights access_righ
     }
     case DialogType::SecretChat: {
       SecretChatId secret_chat_id = dialog_id.get_secret_chat_id();
-      return td_->contacts_manager_->have_input_encrypted_peer(secret_chat_id, access_rights);
+      return td_->user_manager_->have_input_encrypted_peer(secret_chat_id, access_rights);
     }
     case DialogType::None:
       return false;
@@ -723,7 +724,7 @@ bool DialogManager::have_dialog_info(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User: {
       UserId user_id = dialog_id.get_user_id();
-      return td_->contacts_manager_->have_user(user_id);
+      return td_->user_manager_->have_user(user_id);
     }
     case DialogType::Chat: {
       ChatId chat_id = dialog_id.get_chat_id();
@@ -735,7 +736,7 @@ bool DialogManager::have_dialog_info(DialogId dialog_id) const {
     }
     case DialogType::SecretChat: {
       SecretChatId secret_chat_id = dialog_id.get_secret_chat_id();
-      return td_->contacts_manager_->have_secret_chat(secret_chat_id);
+      return td_->user_manager_->have_secret_chat(secret_chat_id);
     }
     case DialogType::None:
     default:
@@ -746,7 +747,7 @@ bool DialogManager::have_dialog_info(DialogId dialog_id) const {
 bool DialogManager::is_dialog_info_received_from_server(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return td_->contacts_manager_->is_user_received_from_server(dialog_id.get_user_id());
+      return td_->user_manager_->is_user_received_from_server(dialog_id.get_user_id());
     case DialogType::Chat:
       return td_->contacts_manager_->is_chat_received_from_server(dialog_id.get_chat_id());
     case DialogType::Channel:
@@ -760,7 +761,7 @@ bool DialogManager::have_dialog_info_force(DialogId dialog_id, const char *sourc
   switch (dialog_id.get_type()) {
     case DialogType::User: {
       UserId user_id = dialog_id.get_user_id();
-      return td_->contacts_manager_->have_user_force(user_id, source);
+      return td_->user_manager_->have_user_force(user_id, source);
     }
     case DialogType::Chat: {
       ChatId chat_id = dialog_id.get_chat_id();
@@ -772,7 +773,7 @@ bool DialogManager::have_dialog_info_force(DialogId dialog_id, const char *sourc
     }
     case DialogType::SecretChat: {
       SecretChatId secret_chat_id = dialog_id.get_secret_chat_id();
-      return td_->contacts_manager_->have_secret_chat_force(secret_chat_id, source);
+      return td_->user_manager_->have_secret_chat_force(secret_chat_id, source);
     }
     case DialogType::None:
     default:
@@ -783,7 +784,7 @@ bool DialogManager::have_dialog_info_force(DialogId dialog_id, const char *sourc
 void DialogManager::reload_dialog_info(DialogId dialog_id, Promise<Unit> &&promise) {
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return td_->contacts_manager_->reload_user(dialog_id.get_user_id(), std::move(promise), "reload_dialog_info");
+      return td_->user_manager_->reload_user(dialog_id.get_user_id(), std::move(promise), "reload_dialog_info");
     case DialogType::Chat:
       return td_->contacts_manager_->reload_chat(dialog_id.get_chat_id(), std::move(promise), "reload_dialog_info");
     case DialogType::Channel:
@@ -797,7 +798,7 @@ void DialogManager::reload_dialog_info(DialogId dialog_id, Promise<Unit> &&promi
 void DialogManager::get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&promise, const char *source) {
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      send_closure_later(td_->contacts_manager_actor_, &ContactsManager::load_user_full, dialog_id.get_user_id(), false,
+      send_closure_later(td_->user_manager_actor_, &UserManager::load_user_full, dialog_id.get_user_id(), false,
                          std::move(promise), source);
       return;
     case DialogType::Chat:
@@ -825,7 +826,7 @@ void DialogManager::reload_dialog_info_full(DialogId dialog_id, const char *sour
   LOG(INFO) << "Reload full info about " << dialog_id << " from " << source;
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      send_closure_later(td_->contacts_manager_actor_, &ContactsManager::reload_user_full, dialog_id.get_user_id(),
+      send_closure_later(td_->user_manager_actor_, &UserManager::reload_user_full, dialog_id.get_user_id(),
                          Promise<Unit>(), source);
       return;
     case DialogType::Chat:
@@ -876,7 +877,7 @@ td_api::object_ptr<td_api::ChatType> DialogManager::get_chat_type_object(DialogI
   switch (dialog_id.get_type()) {
     case DialogType::User:
       return td_api::make_object<td_api::chatTypePrivate>(
-          td_->contacts_manager_->get_user_id_object(dialog_id.get_user_id(), source));
+          td_->user_manager_->get_user_id_object(dialog_id.get_user_id(), source));
     case DialogType::Chat:
       return td_api::make_object<td_api::chatTypeBasicGroup>(
           td_->contacts_manager_->get_basic_group_id_object(dialog_id.get_chat_id(), source));
@@ -888,10 +889,10 @@ td_api::object_ptr<td_api::ChatType> DialogManager::get_chat_type_object(DialogI
     }
     case DialogType::SecretChat: {
       auto secret_chat_id = dialog_id.get_secret_chat_id();
-      auto user_id = td_->contacts_manager_->get_secret_chat_user_id(secret_chat_id);
+      auto user_id = td_->user_manager_->get_secret_chat_user_id(secret_chat_id);
       return td_api::make_object<td_api::chatTypeSecret>(
-          td_->contacts_manager_->get_secret_chat_id_object(secret_chat_id, source),
-          td_->contacts_manager_->get_user_id_object(user_id, source));
+          td_->user_manager_->get_secret_chat_id_object(secret_chat_id, source),
+          td_->user_manager_->get_user_id_object(user_id, source));
     }
     case DialogType::None:
     default:
@@ -1066,13 +1067,13 @@ void DialogManager::delete_dialog(DialogId dialog_id, Promise<Unit> &&promise) {
 string DialogManager::get_dialog_title(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return td_->contacts_manager_->get_user_title(dialog_id.get_user_id());
+      return td_->user_manager_->get_user_title(dialog_id.get_user_id());
     case DialogType::Chat:
       return td_->contacts_manager_->get_chat_title(dialog_id.get_chat_id());
     case DialogType::Channel:
       return td_->contacts_manager_->get_channel_title(dialog_id.get_channel_id());
     case DialogType::SecretChat:
-      return td_->contacts_manager_->get_secret_chat_title(dialog_id.get_secret_chat_id());
+      return td_->user_manager_->get_secret_chat_title(dialog_id.get_secret_chat_id());
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -1083,13 +1084,13 @@ string DialogManager::get_dialog_title(DialogId dialog_id) const {
 const DialogPhoto *DialogManager::get_dialog_photo(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return td_->contacts_manager_->get_user_dialog_photo(dialog_id.get_user_id());
+      return td_->user_manager_->get_user_dialog_photo(dialog_id.get_user_id());
     case DialogType::Chat:
       return td_->contacts_manager_->get_chat_dialog_photo(dialog_id.get_chat_id());
     case DialogType::Channel:
       return td_->contacts_manager_->get_channel_dialog_photo(dialog_id.get_channel_id());
     case DialogType::SecretChat:
-      return td_->contacts_manager_->get_secret_chat_dialog_photo(dialog_id.get_secret_chat_id());
+      return td_->user_manager_->get_secret_chat_dialog_photo(dialog_id.get_secret_chat_id());
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -1100,13 +1101,13 @@ const DialogPhoto *DialogManager::get_dialog_photo(DialogId dialog_id) const {
 int32 DialogManager::get_dialog_accent_color_id_object(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return td_->contacts_manager_->get_user_accent_color_id_object(dialog_id.get_user_id());
+      return td_->user_manager_->get_user_accent_color_id_object(dialog_id.get_user_id());
     case DialogType::Chat:
       return td_->contacts_manager_->get_chat_accent_color_id_object(dialog_id.get_chat_id());
     case DialogType::Channel:
       return td_->contacts_manager_->get_channel_accent_color_id_object(dialog_id.get_channel_id());
     case DialogType::SecretChat:
-      return td_->contacts_manager_->get_secret_chat_accent_color_id_object(dialog_id.get_secret_chat_id());
+      return td_->user_manager_->get_secret_chat_accent_color_id_object(dialog_id.get_secret_chat_id());
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -1117,13 +1118,13 @@ int32 DialogManager::get_dialog_accent_color_id_object(DialogId dialog_id) const
 CustomEmojiId DialogManager::get_dialog_background_custom_emoji_id(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return td_->contacts_manager_->get_user_background_custom_emoji_id(dialog_id.get_user_id());
+      return td_->user_manager_->get_user_background_custom_emoji_id(dialog_id.get_user_id());
     case DialogType::Chat:
       return td_->contacts_manager_->get_chat_background_custom_emoji_id(dialog_id.get_chat_id());
     case DialogType::Channel:
       return td_->contacts_manager_->get_channel_background_custom_emoji_id(dialog_id.get_channel_id());
     case DialogType::SecretChat:
-      return td_->contacts_manager_->get_secret_chat_background_custom_emoji_id(dialog_id.get_secret_chat_id());
+      return td_->user_manager_->get_secret_chat_background_custom_emoji_id(dialog_id.get_secret_chat_id());
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -1134,13 +1135,13 @@ CustomEmojiId DialogManager::get_dialog_background_custom_emoji_id(DialogId dial
 int32 DialogManager::get_dialog_profile_accent_color_id_object(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return td_->contacts_manager_->get_user_profile_accent_color_id_object(dialog_id.get_user_id());
+      return td_->user_manager_->get_user_profile_accent_color_id_object(dialog_id.get_user_id());
     case DialogType::Chat:
       return td_->contacts_manager_->get_chat_profile_accent_color_id_object(dialog_id.get_chat_id());
     case DialogType::Channel:
       return td_->contacts_manager_->get_channel_profile_accent_color_id_object(dialog_id.get_channel_id());
     case DialogType::SecretChat:
-      return td_->contacts_manager_->get_secret_chat_profile_accent_color_id_object(dialog_id.get_secret_chat_id());
+      return td_->user_manager_->get_secret_chat_profile_accent_color_id_object(dialog_id.get_secret_chat_id());
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -1151,13 +1152,13 @@ int32 DialogManager::get_dialog_profile_accent_color_id_object(DialogId dialog_i
 CustomEmojiId DialogManager::get_dialog_profile_background_custom_emoji_id(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return td_->contacts_manager_->get_user_profile_background_custom_emoji_id(dialog_id.get_user_id());
+      return td_->user_manager_->get_user_profile_background_custom_emoji_id(dialog_id.get_user_id());
     case DialogType::Chat:
       return td_->contacts_manager_->get_chat_profile_background_custom_emoji_id(dialog_id.get_chat_id());
     case DialogType::Channel:
       return td_->contacts_manager_->get_channel_profile_background_custom_emoji_id(dialog_id.get_channel_id());
     case DialogType::SecretChat:
-      return td_->contacts_manager_->get_secret_chat_profile_background_custom_emoji_id(dialog_id.get_secret_chat_id());
+      return td_->user_manager_->get_secret_chat_profile_background_custom_emoji_id(dialog_id.get_secret_chat_id());
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -1168,13 +1169,13 @@ CustomEmojiId DialogManager::get_dialog_profile_background_custom_emoji_id(Dialo
 RestrictedRights DialogManager::get_dialog_default_permissions(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return td_->contacts_manager_->get_user_default_permissions(dialog_id.get_user_id());
+      return td_->user_manager_->get_user_default_permissions(dialog_id.get_user_id());
     case DialogType::Chat:
       return td_->contacts_manager_->get_chat_default_permissions(dialog_id.get_chat_id());
     case DialogType::Channel:
       return td_->contacts_manager_->get_channel_default_permissions(dialog_id.get_channel_id());
     case DialogType::SecretChat:
-      return td_->contacts_manager_->get_secret_chat_default_permissions(dialog_id.get_secret_chat_id());
+      return td_->user_manager_->get_secret_chat_default_permissions(dialog_id.get_secret_chat_id());
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -1186,13 +1187,13 @@ RestrictedRights DialogManager::get_dialog_default_permissions(DialogId dialog_i
 td_api::object_ptr<td_api::emojiStatus> DialogManager::get_dialog_emoji_status_object(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return td_->contacts_manager_->get_user_emoji_status_object(dialog_id.get_user_id());
+      return td_->user_manager_->get_user_emoji_status_object(dialog_id.get_user_id());
     case DialogType::Chat:
       return td_->contacts_manager_->get_chat_emoji_status_object(dialog_id.get_chat_id());
     case DialogType::Channel:
       return td_->contacts_manager_->get_channel_emoji_status_object(dialog_id.get_channel_id());
     case DialogType::SecretChat:
-      return td_->contacts_manager_->get_secret_chat_emoji_status_object(dialog_id.get_secret_chat_id());
+      return td_->user_manager_->get_secret_chat_emoji_status_object(dialog_id.get_secret_chat_id());
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -1203,13 +1204,13 @@ td_api::object_ptr<td_api::emojiStatus> DialogManager::get_dialog_emoji_status_o
 string DialogManager::get_dialog_about(DialogId dialog_id) {
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return td_->contacts_manager_->get_user_about(dialog_id.get_user_id());
+      return td_->user_manager_->get_user_about(dialog_id.get_user_id());
     case DialogType::Chat:
       return td_->contacts_manager_->get_chat_about(dialog_id.get_chat_id());
     case DialogType::Channel:
       return td_->contacts_manager_->get_channel_about(dialog_id.get_channel_id());
     case DialogType::SecretChat:
-      return td_->contacts_manager_->get_secret_chat_about(dialog_id.get_secret_chat_id());
+      return td_->user_manager_->get_secret_chat_about(dialog_id.get_secret_chat_id());
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -1220,14 +1221,14 @@ string DialogManager::get_dialog_about(DialogId dialog_id) {
 string DialogManager::get_dialog_search_text(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return td_->contacts_manager_->get_user_search_text(dialog_id.get_user_id());
+      return td_->user_manager_->get_user_search_text(dialog_id.get_user_id());
     case DialogType::Chat:
       return td_->contacts_manager_->get_chat_title(dialog_id.get_chat_id());
     case DialogType::Channel:
       return td_->contacts_manager_->get_channel_search_text(dialog_id.get_channel_id());
     case DialogType::SecretChat:
-      return td_->contacts_manager_->get_user_search_text(
-          td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id()));
+      return td_->user_manager_->get_user_search_text(
+          td_->user_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id()));
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -1261,20 +1262,20 @@ bool DialogManager::is_dialog_action_unneeded(DialogId dialog_id) const {
   if (dialog_type == DialogType::User || dialog_type == DialogType::SecretChat) {
     UserId user_id = dialog_type == DialogType::User
                          ? dialog_id.get_user_id()
-                         : td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
-    if (td_->contacts_manager_->is_user_deleted(user_id)) {
+                         : td_->user_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
+    if (td_->user_manager_->is_user_deleted(user_id)) {
       return true;
     }
-    if (td_->contacts_manager_->is_user_bot(user_id) && !td_->contacts_manager_->is_user_support(user_id)) {
+    if (td_->user_manager_->is_user_bot(user_id) && !td_->user_manager_->is_user_support(user_id)) {
       return true;
     }
-    if (user_id == td_->contacts_manager_->get_my_id()) {
+    if (user_id == td_->user_manager_->get_my_id()) {
       return true;
     }
 
     if (!td_->auth_manager_->is_bot()) {
-      if (td_->contacts_manager_->is_user_status_exact(user_id)) {
-        if (!td_->contacts_manager_->is_user_online(user_id, 30)) {
+      if (td_->user_manager_->is_user_status_exact(user_id)) {
+        if (!td_->user_manager_->is_user_online(user_id, 30)) {
           return true;
         }
       } else {
@@ -1369,7 +1370,7 @@ void DialogManager::set_dialog_photo(DialogId dialog_id, const td_api::object_pt
     switch (input_photo->get_id()) {
       case td_api::inputChatPhotoPrevious::ID: {
         auto photo = static_cast<const td_api::inputChatPhotoPrevious *>(input_photo.get());
-        auto file_id = td_->contacts_manager_->get_profile_photo_file_id(photo->chat_photo_id_);
+        auto file_id = td_->user_manager_->get_profile_photo_file_id(photo->chat_photo_id_);
         if (!file_id.is_valid()) {
           return promise.set_error(Status::Error(400, "Unknown profile photo ID specified"));
         }
@@ -1545,8 +1546,7 @@ void DialogManager::set_dialog_accent_color(DialogId dialog_id, AccentColorId ac
   switch (dialog_id.get_type()) {
     case DialogType::User:
       if (dialog_id == get_my_dialog_id()) {
-        return td_->contacts_manager_->set_accent_color(accent_color_id, background_custom_emoji_id,
-                                                        std::move(promise));
+        return td_->user_manager_->set_accent_color(accent_color_id, background_custom_emoji_id, std::move(promise));
       }
       break;
     case DialogType::Chat:
@@ -1573,8 +1573,8 @@ void DialogManager::set_dialog_profile_accent_color(DialogId dialog_id, AccentCo
   switch (dialog_id.get_type()) {
     case DialogType::User:
       if (dialog_id == get_my_dialog_id()) {
-        return td_->contacts_manager_->set_profile_accent_color(profile_accent_color_id,
-                                                                profile_background_custom_emoji_id, std::move(promise));
+        return td_->user_manager_->set_profile_accent_color(profile_accent_color_id, profile_background_custom_emoji_id,
+                                                            std::move(promise));
       }
       break;
     case DialogType::Chat:
@@ -1655,7 +1655,7 @@ void DialogManager::set_dialog_emoji_status(DialogId dialog_id, const EmojiStatu
   switch (dialog_id.get_type()) {
     case DialogType::User:
       if (dialog_id == get_my_dialog_id()) {
-        return td_->contacts_manager_->set_emoji_status(emoji_status, std::move(promise));
+        return td_->user_manager_->set_emoji_status(emoji_status, std::move(promise));
       }
       break;
     case DialogType::Chat:
@@ -1757,7 +1757,7 @@ bool DialogManager::can_report_dialog(DialogId dialog_id) const {
   // doesn't include possibility of report from action bar
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return td_->contacts_manager_->can_report_user(dialog_id.get_user_id());
+      return td_->user_manager_->can_report_user(dialog_id.get_user_id());
     case DialogType::Chat:
       return false;
     case DialogType::Channel:
@@ -1914,8 +1914,8 @@ void DialogManager::on_update_dialog_bot_commands(
     LOG(ERROR) << "Receive updateBotCommands about invalid " << bot_user_id;
     return;
   }
-  if (!td_->contacts_manager_->have_user_force(bot_user_id, "on_update_dialog_bot_commands") ||
-      !td_->contacts_manager_->is_user_bot(bot_user_id)) {
+  if (!td_->user_manager_->have_user_force(bot_user_id, "on_update_dialog_bot_commands") ||
+      !td_->user_manager_->is_user_bot(bot_user_id)) {
     return;
   }
   if (td_->auth_manager_->is_bot()) {
@@ -1928,7 +1928,7 @@ void DialogManager::on_update_dialog_bot_commands(
         LOG(ERROR) << "Receive commands of " << bot_user_id << " in " << dialog_id;
         return;
       }
-      return td_->contacts_manager_->on_update_user_commands(bot_user_id, std::move(bot_commands));
+      return td_->user_manager_->on_update_user_commands(bot_user_id, std::move(bot_commands));
     case DialogType::Chat:
       return td_->contacts_manager_->on_update_chat_bot_commands(dialog_id.get_chat_id(),
                                                                  BotCommands(bot_user_id, std::move(bot_commands)));

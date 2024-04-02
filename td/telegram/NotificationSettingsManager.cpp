@@ -31,6 +31,7 @@
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
+#include "td/telegram/UserManager.h"
 #include "td/telegram/VoiceNotesManager.h"
 
 #include "td/db/binlog/BinlogEvent.h"
@@ -271,7 +272,7 @@ class GetNotifySettingsExceptionsQuery final : public Td::ResultHandler {
         break;
       }
     }
-    td_->contacts_manager_->on_get_users(std::move(users), "GetNotifySettingsExceptionsQuery");
+    td_->user_manager_->on_get_users(std::move(users), "GetNotifySettingsExceptionsQuery");
     td_->contacts_manager_->on_get_chats(std::move(chats), "GetNotifySettingsExceptionsQuery");
     for (auto &dialog_id : dialog_ids) {
       td_->dialog_manager_->force_create_dialog(dialog_id, "GetNotifySettingsExceptionsQuery");
@@ -326,7 +327,7 @@ class GetStoryNotifySettingsExceptionsQuery final : public Td::ResultHandler {
         break;
       }
     }
-    td_->contacts_manager_->on_get_users(std::move(users), "GetStoryNotifySettingsExceptionsQuery");
+    td_->user_manager_->on_get_users(std::move(users), "GetStoryNotifySettingsExceptionsQuery");
     td_->contacts_manager_->on_get_chats(std::move(chats), "GetStoryNotifySettingsExceptionsQuery");
     for (auto &dialog_id : dialog_ids) {
       td_->dialog_manager_->force_create_dialog(dialog_id, "GetStoryNotifySettingsExceptionsQuery");

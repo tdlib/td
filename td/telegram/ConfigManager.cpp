@@ -8,7 +8,6 @@
 
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ConnectionState.h"
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/JsonValue.h"
 #include "td/telegram/LinkManager.h"
@@ -32,6 +31,7 @@
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/TranscriptionManager.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/mtproto/AuthData.h"
 #include "td/mtproto/AuthKey.h"
@@ -1502,7 +1502,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   int32 dialog_filter_update_period = 300;
   // bool archive_all_stories = false;
   int32 story_viewers_expire_period = 86400;
-  int64 stories_changelog_user_id = ContactsManager::get_service_notifications_user_id().get();
+  int64 stories_changelog_user_id = UserManager::get_service_notifications_user_id().get();
   int32 transcribe_audio_trial_weekly_number = 0;
   int32 transcribe_audio_trial_duration_max = 0;
   int32 transcribe_audio_trial_cooldown_until = 0;
@@ -2173,7 +2173,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   } else {
     options.set_option_empty("gift_premium_from_input_field");
   }
-  if (stories_changelog_user_id != ContactsManager::get_service_notifications_user_id().get()) {
+  if (stories_changelog_user_id != UserManager::get_service_notifications_user_id().get()) {
     options.set_option_integer("stories_changelog_user_id", stories_changelog_user_id);
   } else {
     options.set_option_empty("stories_changelog_user_id");

@@ -24,6 +24,7 @@
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/ThemeManager.h"
+#include "td/telegram/UserManager.h"
 #include "td/telegram/WebApp.h"
 
 #include "td/utils/algorithm.h"
@@ -222,7 +223,7 @@ class ProlongWebViewQuery final : public Td::ResultHandler {
     dialog_id_ = dialog_id;
 
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
-    auto r_input_user = td_->contacts_manager_->get_input_user(bot_user_id);
+    auto r_input_user = td_->user_manager_->get_input_user(bot_user_id);
     if (input_peer == nullptr || r_input_user.is_error()) {
       return;
     }
@@ -275,7 +276,7 @@ class InvokeWebViewCustomMethodQuery final : public Td::ResultHandler {
   }
 
   void send(UserId bot_user_id, const string &method, const string &parameters) {
-    auto r_input_user = td_->contacts_manager_->get_input_user(bot_user_id);
+    auto r_input_user = td_->user_manager_->get_input_user(bot_user_id);
     if (r_input_user.is_error()) {
       return on_error(r_input_user.move_as_error());
     }
@@ -770,8 +771,8 @@ void AttachMenuManager::schedule_ping_web_view() {
 
 void AttachMenuManager::get_web_app(UserId bot_user_id, const string &web_app_short_name,
                                     Promise<td_api::object_ptr<td_api::foundWebApp>> &&promise) {
-  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(bot_user_id));
-  TRY_RESULT_PROMISE(promise, bot_data, td_->contacts_manager_->get_bot_data(bot_user_id));
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
+  TRY_RESULT_PROMISE(promise, bot_data, td_->user_manager_->get_bot_data(bot_user_id));
   auto query_promise =
       PromiseCreator::lambda([actor_id = actor_id(this), bot_user_id, web_app_short_name, promise = std::move(promise)](
                                  Result<telegram_api::object_ptr<telegram_api::messages_botApp>> result) mutable {
@@ -827,8 +828,8 @@ void AttachMenuManager::request_app_web_view(DialogId dialog_id, UserId bot_user
       dialog_id.get_type() == DialogType::SecretChat) {
     dialog_id = DialogId(bot_user_id);
   }
-  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(bot_user_id));
-  TRY_RESULT_PROMISE(promise, bot_data, td_->contacts_manager_->get_bot_data(bot_user_id));
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
+  TRY_RESULT_PROMISE(promise, bot_data, td_->user_manager_->get_bot_data(bot_user_id));
 
   td_->create_handler<RequestAppWebViewQuery>(std::move(promise))
       ->send(dialog_id, std::move(input_user), web_app_short_name, start_parameter, theme, platform,
@@ -839,9 +840,9 @@ void AttachMenuManager::request_web_view(DialogId dialog_id, UserId bot_user_id,
                                          td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to, string &&url,
                                          td_api::object_ptr<td_api::themeParameters> &&theme, string &&platform,
                                          Promise<td_api::object_ptr<td_api::webAppInfo>> &&promise) {
-  TRY_STATUS_PROMISE(promise, td_->contacts_manager_->get_bot_data(bot_user_id));
-  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(bot_user_id));
-  TRY_RESULT_PROMISE(promise, bot_data, td_->contacts_manager_->get_bot_data(bot_user_id));
+  TRY_STATUS_PROMISE(promise, td_->user_manager_->get_bot_data(bot_user_id));
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
+  TRY_RESULT_PROMISE(promise, bot_data, td_->user_manager_->get_bot_data(bot_user_id));
 
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "request_web_view")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
@@ -917,7 +918,7 @@ void AttachMenuManager::invoke_web_view_custom_method(
 Result<AttachMenuManager::AttachMenuBot> AttachMenuManager::get_attach_menu_bot(
     tl_object_ptr<telegram_api::attachMenuBot> &&bot) {
   UserId user_id(bot->bot_id_);
-  if (!td_->contacts_manager_->have_user(user_id)) {
+  if (!td_->user_manager_->have_user(user_id)) {
     return Status::Error(PSLICE() << "Have no information about " << user_id);
   }
 
@@ -1102,7 +1103,7 @@ void AttachMenuManager::on_reload_attach_menu_bots(
   CHECK(constructor_id == telegram_api::attachMenuBots::ID);
   auto attach_menu_bots = move_tl_object_as<telegram_api::attachMenuBots>(attach_menu_bots_ptr);
 
-  td_->contacts_manager_->on_get_users(std::move(attach_menu_bots->users_), "on_reload_attach_menu_bots");
+  td_->user_manager_->on_get_users(std::move(attach_menu_bots->users_), "on_reload_attach_menu_bots");
 
   auto new_hash = attach_menu_bots->hash_;
   vector<AttachMenuBot> new_attach_menu_bots;
@@ -1147,9 +1148,9 @@ void AttachMenuManager::remove_bot_from_attach_menu(UserId user_id) {
 
 void AttachMenuManager::get_attach_menu_bot(UserId user_id,
                                             Promise<td_api::object_ptr<td_api::attachmentMenuBot>> &&promise) {
-  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
 
-  TRY_RESULT_PROMISE(promise, bot_data, td_->contacts_manager_->get_bot_data(user_id));
+  TRY_RESULT_PROMISE(promise, bot_data, td_->user_manager_->get_bot_data(user_id));
   if (!bot_data.can_be_added_to_attach_menu) {
     return promise.set_error(Status::Error(400, "The bot can't be added to attachment menu"));
   }
@@ -1168,7 +1169,7 @@ void AttachMenuManager::reload_attach_menu_bot(UserId user_id, Promise<Unit> &&p
     return promise.set_error(Status::Error(400, "Can't reload attachment menu bot"));
   }
 
-  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
 
   auto wrapped_promise = PromiseCreator::lambda(
       [promise = std::move(promise)](Result<td_api::object_ptr<td_api::attachmentMenuBot>> result) mutable {
@@ -1193,7 +1194,7 @@ void AttachMenuManager::on_get_attach_menu_bot(
   TRY_STATUS_PROMISE(promise, G()->close_status());
   TRY_RESULT_PROMISE(promise, bot, std::move(result));
 
-  td_->contacts_manager_->on_get_users(std::move(bot->users_), "on_get_attach_menu_bot");
+  td_->user_manager_->on_get_users(std::move(bot->users_), "on_get_attach_menu_bot");
 
   auto r_attach_menu_bot = get_attach_menu_bot(std::move(bot->bot_));
   if (r_attach_menu_bot.is_error()) {
@@ -1263,10 +1264,10 @@ void AttachMenuManager::toggle_bot_is_added_to_attach_menu(UserId user_id, bool 
                                                            Promise<Unit> &&promise) {
   CHECK(is_active());
 
-  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
 
   if (is_added) {
-    TRY_RESULT_PROMISE(promise, bot_data, td_->contacts_manager_->get_bot_data(user_id));
+    TRY_RESULT_PROMISE(promise, bot_data, td_->user_manager_->get_bot_data(user_id));
     if (!bot_data.can_be_added_to_attach_menu) {
       return promise.set_error(Status::Error(400, "The bot can't be added to attachment menu"));
     }
@@ -1304,8 +1305,8 @@ td_api::object_ptr<td_api::attachmentMenuBot> AttachMenuManager::get_attachment_
   };
 
   return td_api::make_object<td_api::attachmentMenuBot>(
-      td_->contacts_manager_->get_user_id_object(bot.user_id_, "get_attachment_menu_bot_object"),
-      bot.supports_self_dialog_, bot.supports_user_dialogs_, bot.supports_bot_dialogs_, bot.supports_group_dialogs_,
+      td_->user_manager_->get_user_id_object(bot.user_id_, "get_attachment_menu_bot_object"), bot.supports_self_dialog_,
+      bot.supports_user_dialogs_, bot.supports_bot_dialogs_, bot.supports_group_dialogs_,
       bot.supports_broadcast_dialogs_, bot.request_write_access_, bot.is_added_, bot.show_in_attach_menu_,
       bot.show_in_side_menu_, bot.side_menu_disclaimer_needed_, bot.name_,
       get_attach_menu_bot_color_object(bot.name_color_), get_file(bot.default_icon_file_id_),

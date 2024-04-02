@@ -9,6 +9,7 @@
 #include "td/telegram/ChannelType.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/UserManager.h"
 
 namespace td {
 
@@ -207,10 +208,10 @@ Status RequestedDialogType::check_shared_dialog(Td *td, DialogId dialog_id) cons
         return Status::Error(400, "Wrong chat type");
       }
       auto user_id = dialog_id.get_user_id();
-      if (restrict_is_bot_ && td->contacts_manager_->is_user_bot(user_id) != is_bot_) {
+      if (restrict_is_bot_ && td->user_manager_->is_user_bot(user_id) != is_bot_) {
         return Status::Error(400, "Wrong is_bot value");
       }
-      if (restrict_is_premium_ && td->contacts_manager_->is_user_premium(user_id) != is_premium_) {
+      if (restrict_is_premium_ && td->user_manager_->is_user_premium(user_id) != is_premium_) {
         return Status::Error(400, "Wrong is_premium value");
       }
       break;
