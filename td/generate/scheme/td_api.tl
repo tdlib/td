@@ -3922,7 +3922,8 @@ publicForwards total_count:int32 forwards:vector<PublicForward> next_offset:stri
 //@can_set_custom_background True, if custom background can be set in the chat for all users
 //@can_set_custom_emoji_sticker_set True, if custom emoji sticker set can be set for the chat
 //@can_recognize_speech True, if speech recognition can be used for video note and voice note messages by all users
-chatBoostLevelFeatures level:int32 story_per_day_count:int32 custom_emoji_reaction_count:int32 title_color_count:int32 profile_accent_color_count:int32 can_set_profile_background_custom_emoji:Bool accent_color_count:int32 can_set_background_custom_emoji:Bool can_set_emoji_status:Bool chat_theme_background_count:int32 can_set_custom_background:Bool can_set_custom_emoji_sticker_set:Bool can_recognize_speech:Bool = ChatBoostLevelFeatures;
+//@can_disable_sponsored_messages True, if sponsored messages can be disabled in the chat
+chatBoostLevelFeatures level:int32 story_per_day_count:int32 custom_emoji_reaction_count:int32 title_color_count:int32 profile_accent_color_count:int32 can_set_profile_background_custom_emoji:Bool accent_color_count:int32 can_set_background_custom_emoji:Bool can_set_emoji_status:Bool chat_theme_background_count:int32 can_set_custom_background:Bool can_set_custom_emoji_sticker_set:Bool can_recognize_speech:Bool can_disable_sponsored_messages:Bool = ChatBoostLevelFeatures;
 
 //@description Contains a list of features available on the first chat boost levels
 //@features The list of features
@@ -3933,7 +3934,8 @@ chatBoostLevelFeatures level:int32 story_per_day_count:int32 custom_emoji_reacti
 //@min_custom_background_boost_level The minimum boost level required to set custom chat background
 //@min_custom_emoji_sticker_set_boost_level The minimum boost level required to set custom emoji sticker set for the chat; for supergroup chats only
 //@min_speech_recognition_boost_level The minimum boost level allowing to recognize speech in video note and voice note messages for non-Premium users; for supergroup chats only
-chatBoostFeatures features:vector<chatBoostLevelFeatures> min_profile_background_custom_emoji_boost_level:int32 min_background_custom_emoji_boost_level:int32 min_emoji_status_boost_level:int32 min_chat_theme_background_boost_level:int32 min_custom_background_boost_level:int32 min_custom_emoji_sticker_set_boost_level:int32 min_speech_recognition_boost_level:int32 = ChatBoostFeatures;
+//@min_sponsored_message_disable_boost_level The minimum boost level allowing to disable sponsored messages in the chat; for channel chats only
+chatBoostFeatures features:vector<chatBoostLevelFeatures> min_profile_background_custom_emoji_boost_level:int32 min_background_custom_emoji_boost_level:int32 min_emoji_status_boost_level:int32 min_chat_theme_background_boost_level:int32 min_custom_background_boost_level:int32 min_custom_emoji_sticker_set_boost_level:int32 min_speech_recognition_boost_level:int32 min_sponsored_message_disable_boost_level:int32 = ChatBoostFeatures;
 
 
 //@class ChatBoostSource @description Describes source of a chat boost

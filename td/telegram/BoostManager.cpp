@@ -361,12 +361,13 @@ td_api::object_ptr<td_api::chatBoostLevelFeatures> BoostManager::get_chat_boost_
   auto can_set_custom_background = have_enough_boost_level("custom_wallpaper");
   auto can_set_custom_emoji_sticker_set = have_enough_boost_level("emoji_stickers");
   auto can_recognize_speech = have_enough_boost_level("transcribe");
+  auto can_restrict_sponsored_messages = have_enough_boost_level("restrict_sponsored");
   return td_api::make_object<td_api::chatBoostLevelFeatures>(
       level, actual_level, for_megagroup ? 0 : actual_level, theme_counts.title_color_count_,
       theme_counts.profile_accent_color_count_, can_set_profile_background_custom_emoji,
       theme_counts.accent_color_count_, can_set_background_custom_emoji, can_set_emoji_status,
-      theme_counts.chat_theme_count_, can_set_custom_background, can_set_custom_emoji_sticker_set,
-      can_recognize_speech);
+      theme_counts.chat_theme_count_, can_set_custom_background, can_set_custom_emoji_sticker_set, can_recognize_speech,
+      can_restrict_sponsored_messages);
 }
 
 td_api::object_ptr<td_api::chatBoostFeatures> BoostManager::get_chat_boost_features_object(bool for_megagroup) const {
@@ -381,7 +382,8 @@ td_api::object_ptr<td_api::chatBoostFeatures> BoostManager::get_chat_boost_featu
   return td_api::make_object<td_api::chatBoostFeatures>(
       std::move(features), get_min_boost_level("profile_bg_icon"), get_min_boost_level("bg_icon"),
       get_min_boost_level("emoji_status"), get_min_boost_level("wallpaper"), get_min_boost_level("custom_wallpaper"),
-      get_min_boost_level("emoji_stickers"), get_min_boost_level("transcribe"));
+      get_min_boost_level("emoji_stickers"), get_min_boost_level("transcribe"),
+      get_min_boost_level("restrict_sponsored"));
 }
 
 void BoostManager::get_boost_slots(Promise<td_api::object_ptr<td_api::chatBoostSlots>> &&promise) {
