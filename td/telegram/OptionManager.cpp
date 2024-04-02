@@ -132,6 +132,7 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("channel_custom_wallpaper_level_min", is_test_dc ? 4 : 10);
   set_default_integer_option("channel_emoji_status_level_min", is_test_dc ? 2 : 8);
   set_default_integer_option("channel_profile_bg_icon_level_min", is_test_dc ? 1 : 7);
+  set_default_integer_option("channel_restrict_sponsored_level_min", is_test_dc ? 5 : 50);
   set_default_integer_option("channel_wallpaper_level_min", is_test_dc ? 3 : 9);
   set_default_integer_option("pm_read_date_expire_period", 604800);
   set_default_integer_option("group_transcribe_level_min", is_test_dc ? 4 : 6);
@@ -352,6 +353,7 @@ bool OptionManager::is_internal_option(Slice name) {
                                                               "channel_custom_wallpaper_level_min",
                                                               "channel_emoji_status_level_min",
                                                               "channel_profile_bg_icon_level_min",
+                                                              "channel_restrict_sponsored_level_min",
                                                               "channel_wallpaper_level_min",
                                                               "channels_limit_default",
                                                               "channels_limit_premium",
