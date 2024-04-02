@@ -6,7 +6,7 @@
 //
 #include "td/telegram/InputMessageText.h"
 
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/misc.h"
@@ -50,7 +50,7 @@ Result<InputMessageText> process_input_message_text(const Td *td, DialogId dialo
 
     if (disable_web_page_preview ||
         (dialog_id.get_type() == DialogType::Channel &&
-         !td->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id()).can_add_web_page_previews())) {
+         !td->chat_manager_->get_channel_permissions(dialog_id.get_channel_id()).can_add_web_page_previews())) {
       web_page_url.clear();
     }
     if (web_page_url.empty()) {

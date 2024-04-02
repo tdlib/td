@@ -11,7 +11,7 @@
 #include "td/telegram/BackgroundManager.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/MessageFullId.h"
@@ -121,12 +121,12 @@ FileSourceId FileReferenceManager::parse_file_source(Td *td, ParserT &parser) {
     case 10: {
       ChatId chat_id;
       td::parse(chat_id, parser);
-      return td->contacts_manager_->get_chat_full_file_source_id(chat_id);
+      return td->chat_manager_->get_chat_full_file_source_id(chat_id);
     }
     case 11: {
       ChannelId channel_id;
       td::parse(channel_id, parser);
-      return td->contacts_manager_->get_channel_full_file_source_id(channel_id);
+      return td->chat_manager_->get_channel_full_file_source_id(channel_id);
     }
     case 12:
       return td->stickers_manager_->get_app_config_file_source_id();

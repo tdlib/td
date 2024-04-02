@@ -10,8 +10,8 @@
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AudiosManager.h"
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/Contact.h"
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
@@ -1051,7 +1051,7 @@ uint64 InlineQueriesManager::send_inline_query(UserId bot_user_id, DialogId dial
         return dialog_id == DialogId(bot_user_id) ? 3 : 4;
       case telegram_api::inputPeerChannel::ID:
       case telegram_api::inputPeerChannelFromMessage::ID:
-        return 5 + static_cast<int>(td_->contacts_manager_->get_channel_type(dialog_id.get_channel_id()));
+        return 5 + static_cast<int>(td_->chat_manager_->get_channel_type(dialog_id.get_channel_id()));
       default:
         UNREACHABLE();
         return -1;
@@ -1603,7 +1603,7 @@ void InlineQueriesManager::on_get_inline_query_results(DialogId dialog_id, UserI
             break;
           }
           if (dialog_type == DialogType::Channel &&
-              td_->contacts_manager_->is_broadcast_channel(dialog_id.get_channel_id())) {
+              td_->chat_manager_->is_broadcast_channel(dialog_id.get_channel_id())) {
             continue;
           }
           if (dialog_type == DialogType::SecretChat) {

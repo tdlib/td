@@ -8,7 +8,7 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileLocation.h"
@@ -601,7 +601,7 @@ void BusinessConnectionManager::on_get_business_connection(
   auto update = telegram_api::move_object_as<telegram_api::updateBotBusinessConnect>(updates->updates_[0]);
 
   td_->user_manager_->on_get_users(std::move(updates->users_), "on_get_business_connection");
-  td_->contacts_manager_->on_get_chats(std::move(updates->chats_), "on_get_business_connection");
+  td_->chat_manager_->on_get_chats(std::move(updates->chats_), "on_get_business_connection");
 
   auto business_connection = make_unique<BusinessConnection>(update->connection_);
   if (!business_connection->is_valid() || connection_id != business_connection->connection_id_) {
@@ -765,7 +765,7 @@ void BusinessConnectionManager::process_sent_business_message(
   auto update = telegram_api::move_object_as<telegram_api::updateBotNewBusinessMessage>(updates->updates_[0]);
 
   td_->user_manager_->on_get_users(std::move(updates->users_), "SendBusinessMediaQuery");
-  td_->contacts_manager_->on_get_chats(std::move(updates->chats_), "SendBusinessMediaQuery");
+  td_->chat_manager_->on_get_chats(std::move(updates->chats_), "SendBusinessMediaQuery");
 
   promise.set_value(td_->messages_manager_->get_business_message_object(std::move(update->message_),
                                                                         std::move(update->reply_to_message_)));
@@ -1097,7 +1097,7 @@ void BusinessConnectionManager::process_sent_business_message_album(
     }
   }
   td_->user_manager_->on_get_users(std::move(updates->users_), "process_sent_business_message_album");
-  td_->contacts_manager_->on_get_chats(std::move(updates->chats_), "process_sent_business_message_album");
+  td_->chat_manager_->on_get_chats(std::move(updates->chats_), "process_sent_business_message_album");
 
   auto messages = td_api::make_object<td_api::businessMessages>();
   for (auto &update_ptr : updates->updates_) {

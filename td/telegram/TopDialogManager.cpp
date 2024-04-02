@@ -8,7 +8,7 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
@@ -497,7 +497,7 @@ void TopDialogManager::on_get_top_peers(Result<telegram_api::object_ptr<telegram
       auto top_peers = move_tl_object_as<telegram_api::contacts_topPeers>(std::move(top_peers_parent));
 
       td_->user_manager_->on_get_users(std::move(top_peers->users_), "on get top chats");
-      td_->contacts_manager_->on_get_chats(std::move(top_peers->chats_), "on get top chats");
+      td_->chat_manager_->on_get_chats(std::move(top_peers->chats_), "on get top chats");
       for (auto &category : top_peers->categories_) {
         auto dialog_category = get_top_dialog_category(category->category_);
         auto pos = static_cast<size_t>(dialog_category);

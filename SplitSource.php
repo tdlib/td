@@ -326,8 +326,8 @@ function split_file($file, $chunks, $undo) {
                 'ChannelId' => 'ChannelId',
                 'channel_recommendation_manager[_(-](?![.]get[(][)])|ChannelRecommendationManager' => 'ChannelRecommendationManager',
                 'ChatId' => 'ChatId',
+                'chat_manager[_(-](?![.]get[(][)])|ChatManager([^ ;.]| [^*])' => 'ChatManager',
                 'common_dialog_manager[_(-](?![.]get[(][)])|CommonDialogManager' => 'CommonDialogManager',
-                'contacts_manager[_(-](?![.]get[(][)])|ContactsManager([^ ;.]| [^*])' => 'ContactsManager',
                 'country_info_manager[_(-](?![.]get[(][)])|CountryInfoManager' => 'CountryInfoManager',
                 'CustomEmojiId' => 'CustomEmojiId',
                 'device_token_manager[_(-](?![.]get[(][)])|DeviceTokenManager' => 'DeviceTokenManager',
@@ -464,12 +464,12 @@ if (in_array('--help', $argv) || in_array('-h', $argv)) {
 }
 
 $undo = in_array('--undo', $argv) || in_array('-u', $argv);
-$files = array('td/telegram/ContactsManager' => 20,
+$files = array('td/telegram/ChatManager' => 10,
                'td/telegram/MessagesManager' => 50,
                'td/telegram/NotificationManager' => 10,
                'td/telegram/StickersManager' => 10,
                'td/telegram/Td' => 50,
-               'td/telegram/UserManager' => 20,
+               'td/telegram/UserManager' => 10,
                'td/generate/auto/td/telegram/td_api' => 10,
                'td/generate/auto/td/telegram/td_api_json' => 10,
                'td/generate/auto/td/telegram/telegram_api' => 10);

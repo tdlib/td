@@ -318,13 +318,13 @@ set(TDLIB_SOURCE
   td/telegram/CallManager.cpp
   td/telegram/ChannelParticipantFilter.cpp
   td/telegram/ChannelRecommendationManager.cpp
+  td/telegram/ChatManager.cpp
   td/telegram/ChatReactions.cpp
   td/telegram/ClientActor.cpp
   td/telegram/CommonDialogManager.cpp
   td/telegram/ConfigManager.cpp
   td/telegram/ConnectionState.cpp
   td/telegram/Contact.cpp
-  td/telegram/ContactsManager.cpp
   td/telegram/CountryInfoManager.cpp
   td/telegram/DelayDispatcher.cpp
   td/telegram/Dependencies.cpp
@@ -617,13 +617,13 @@ set(TDLIB_SOURCE
   td/telegram/ChannelRecommendationManager.h
   td/telegram/ChannelType.h
   td/telegram/ChatId.h
+  td/telegram/ChatManager.h
   td/telegram/ChatReactions.h
   td/telegram/ClientActor.h
   td/telegram/CommonDialogManager.h
   td/telegram/ConfigManager.h
   td/telegram/ConnectionState.h
   td/telegram/Contact.h
-  td/telegram/ContactsManager.h
   td/telegram/CountryInfoManager.h
   td/telegram/CustomEmojiId.h
   td/telegram/DelayDispatcher.h

@@ -11,7 +11,7 @@
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChannelType.h"
 #include "td/telegram/ChatId.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
@@ -79,7 +79,7 @@ class CheckChannelUsernameQuery final : public Td::ResultHandler {
     channel_id_ = channel_id;
     telegram_api::object_ptr<telegram_api::InputChannel> input_channel;
     if (channel_id.is_valid()) {
-      input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+      input_channel = td_->chat_manager_->get_input_channel(channel_id);
     } else {
       input_channel = telegram_api::make_object<telegram_api::inputChannelEmpty>();
     }
@@ -99,7 +99,7 @@ class CheckChannelUsernameQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     if (channel_id_.is_valid()) {
-      td_->contacts_manager_->on_get_channel_error(channel_id_, status, "CheckChannelUsernameQuery");
+      td_->chat_manager_->on_get_channel_error(channel_id_, status, "CheckChannelUsernameQuery");
     }
     promise_.set_error(std::move(status));
   }
@@ -125,7 +125,7 @@ class ResolveUsernameQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(DEBUG) << "Receive result for ResolveUsernameQuery: " << to_string(ptr);
     td_->user_manager_->on_get_users(std::move(ptr->users_), "ResolveUsernameQuery");
-    td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "ResolveUsernameQuery");
+    td_->chat_manager_->on_get_chats(std::move(ptr->chats_), "ResolveUsernameQuery");
 
     promise_.set_value(DialogId(ptr->peer_));
   }
@@ -211,7 +211,7 @@ class EditDialogTitleQuery final : public Td::ResultHandler {
         break;
       case DialogType::Channel: {
         auto channel_id = dialog_id.get_channel_id();
-        auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+        auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
         CHECK(input_channel != nullptr);
         send_query(G()->net_query_creator().create(telegram_api::channels_editTitle(std::move(input_channel), title)));
         break;
@@ -274,7 +274,7 @@ class EditDialogPhotoQuery final : public Td::ResultHandler {
         break;
       case DialogType::Channel: {
         auto channel_id = dialog_id.get_channel_id();
-        auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+        auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
         CHECK(input_channel != nullptr);
         send_query(G()->net_query_creator().create(
             telegram_api::channels_editPhoto(std::move(input_channel), std::move(input_chat_photo))));
@@ -572,9 +572,9 @@ tl_object_ptr<telegram_api::InputPeer> DialogManager::get_input_peer(DialogId di
     case DialogType::User:
       return td_->user_manager_->get_input_peer_user(dialog_id.get_user_id(), access_rights);
     case DialogType::Chat:
-      return td_->contacts_manager_->get_input_peer_chat(dialog_id.get_chat_id(), access_rights);
+      return td_->chat_manager_->get_input_peer_chat(dialog_id.get_chat_id(), access_rights);
     case DialogType::Channel:
-      return td_->contacts_manager_->get_input_peer_channel(dialog_id.get_channel_id(), access_rights);
+      return td_->chat_manager_->get_input_peer_channel(dialog_id.get_channel_id(), access_rights);
     case DialogType::SecretChat:
       return nullptr;
     case DialogType::None:
@@ -679,11 +679,11 @@ bool DialogManager::have_input_peer(DialogId dialog_id, AccessRights access_righ
     }
     case DialogType::Chat: {
       ChatId chat_id = dialog_id.get_chat_id();
-      return td_->contacts_manager_->have_input_peer_chat(chat_id, access_rights);
+      return td_->chat_manager_->have_input_peer_chat(chat_id, access_rights);
     }
     case DialogType::Channel: {
       ChannelId channel_id = dialog_id.get_channel_id();
-      return td_->contacts_manager_->have_input_peer_channel(channel_id, access_rights);
+      return td_->chat_manager_->have_input_peer_channel(channel_id, access_rights);
     }
     case DialogType::SecretChat: {
       SecretChatId secret_chat_id = dialog_id.get_secret_chat_id();
@@ -728,11 +728,11 @@ bool DialogManager::have_dialog_info(DialogId dialog_id) const {
     }
     case DialogType::Chat: {
       ChatId chat_id = dialog_id.get_chat_id();
-      return td_->contacts_manager_->have_chat(chat_id);
+      return td_->chat_manager_->have_chat(chat_id);
     }
     case DialogType::Channel: {
       ChannelId channel_id = dialog_id.get_channel_id();
-      return td_->contacts_manager_->have_channel(channel_id);
+      return td_->chat_manager_->have_channel(channel_id);
     }
     case DialogType::SecretChat: {
       SecretChatId secret_chat_id = dialog_id.get_secret_chat_id();
@@ -749,9 +749,9 @@ bool DialogManager::is_dialog_info_received_from_server(DialogId dialog_id) cons
     case DialogType::User:
       return td_->user_manager_->is_user_received_from_server(dialog_id.get_user_id());
     case DialogType::Chat:
-      return td_->contacts_manager_->is_chat_received_from_server(dialog_id.get_chat_id());
+      return td_->chat_manager_->is_chat_received_from_server(dialog_id.get_chat_id());
     case DialogType::Channel:
-      return td_->contacts_manager_->is_channel_received_from_server(dialog_id.get_channel_id());
+      return td_->chat_manager_->is_channel_received_from_server(dialog_id.get_channel_id());
     default:
       return false;
   }
@@ -765,11 +765,11 @@ bool DialogManager::have_dialog_info_force(DialogId dialog_id, const char *sourc
     }
     case DialogType::Chat: {
       ChatId chat_id = dialog_id.get_chat_id();
-      return td_->contacts_manager_->have_chat_force(chat_id, source);
+      return td_->chat_manager_->have_chat_force(chat_id, source);
     }
     case DialogType::Channel: {
       ChannelId channel_id = dialog_id.get_channel_id();
-      return td_->contacts_manager_->have_channel_force(channel_id, source);
+      return td_->chat_manager_->have_channel_force(channel_id, source);
     }
     case DialogType::SecretChat: {
       SecretChatId secret_chat_id = dialog_id.get_secret_chat_id();
@@ -786,10 +786,9 @@ void DialogManager::reload_dialog_info(DialogId dialog_id, Promise<Unit> &&promi
     case DialogType::User:
       return td_->user_manager_->reload_user(dialog_id.get_user_id(), std::move(promise), "reload_dialog_info");
     case DialogType::Chat:
-      return td_->contacts_manager_->reload_chat(dialog_id.get_chat_id(), std::move(promise), "reload_dialog_info");
+      return td_->chat_manager_->reload_chat(dialog_id.get_chat_id(), std::move(promise), "reload_dialog_info");
     case DialogType::Channel:
-      return td_->contacts_manager_->reload_channel(dialog_id.get_channel_id(), std::move(promise),
-                                                    "reload_dialog_info");
+      return td_->chat_manager_->reload_channel(dialog_id.get_channel_id(), std::move(promise), "reload_dialog_info");
     default:
       return promise.set_error(Status::Error("Invalid chat identifier to reload"));
   }
@@ -802,12 +801,12 @@ void DialogManager::get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&pro
                          std::move(promise), source);
       return;
     case DialogType::Chat:
-      send_closure_later(td_->contacts_manager_actor_, &ContactsManager::load_chat_full, dialog_id.get_chat_id(), false,
+      send_closure_later(td_->chat_manager_actor_, &ChatManager::load_chat_full, dialog_id.get_chat_id(), false,
                          std::move(promise), source);
       return;
     case DialogType::Channel:
-      send_closure_later(td_->contacts_manager_actor_, &ContactsManager::load_channel_full, dialog_id.get_channel_id(),
-                         false, std::move(promise), source);
+      send_closure_later(td_->chat_manager_actor_, &ChatManager::load_channel_full, dialog_id.get_channel_id(), false,
+                         std::move(promise), source);
       return;
     case DialogType::SecretChat:
       return promise.set_value(Unit());
@@ -830,12 +829,12 @@ void DialogManager::reload_dialog_info_full(DialogId dialog_id, const char *sour
                          Promise<Unit>(), source);
       return;
     case DialogType::Chat:
-      send_closure_later(td_->contacts_manager_actor_, &ContactsManager::reload_chat_full, dialog_id.get_chat_id(),
+      send_closure_later(td_->chat_manager_actor_, &ChatManager::reload_chat_full, dialog_id.get_chat_id(),
                          Promise<Unit>(), source);
       return;
     case DialogType::Channel:
-      send_closure_later(td_->contacts_manager_actor_, &ContactsManager::reload_channel_full,
-                         dialog_id.get_channel_id(), Promise<Unit>(), source);
+      send_closure_later(td_->chat_manager_actor_, &ChatManager::reload_channel_full, dialog_id.get_channel_id(),
+                         Promise<Unit>(), source);
       return;
     case DialogType::SecretChat:
       return;
@@ -880,12 +879,12 @@ td_api::object_ptr<td_api::ChatType> DialogManager::get_chat_type_object(DialogI
           td_->user_manager_->get_user_id_object(dialog_id.get_user_id(), source));
     case DialogType::Chat:
       return td_api::make_object<td_api::chatTypeBasicGroup>(
-          td_->contacts_manager_->get_basic_group_id_object(dialog_id.get_chat_id(), source));
+          td_->chat_manager_->get_basic_group_id_object(dialog_id.get_chat_id(), source));
     case DialogType::Channel: {
       auto channel_id = dialog_id.get_channel_id();
       return td_api::make_object<td_api::chatTypeSupergroup>(
-          td_->contacts_manager_->get_supergroup_id_object(channel_id, source),
-          !td_->contacts_manager_->is_megagroup_channel(channel_id));
+          td_->chat_manager_->get_supergroup_id_object(channel_id, source),
+          !td_->chat_manager_->is_megagroup_channel(channel_id));
     }
     case DialogType::SecretChat: {
       auto secret_chat_id = dialog_id.get_secret_chat_id();
@@ -927,10 +926,10 @@ void DialogManager::migrate_dialog_to_megagroup(DialogId dialog_id,
   }
 
   auto chat_id = dialog_id.get_chat_id();
-  if (!td_->contacts_manager_->get_chat_status(chat_id).is_creator()) {
+  if (!td_->chat_manager_->get_chat_status(chat_id).is_creator()) {
     return promise.set_error(Status::Error(400, "Need creator rights in the chat"));
   }
-  if (td_->contacts_manager_->get_chat_migrated_to_channel_id(chat_id).is_valid()) {
+  if (td_->chat_manager_->get_chat_migrated_to_channel_id(chat_id).is_valid()) {
     return on_migrate_chat_to_megagroup(chat_id, std::move(promise));
   }
 
@@ -945,12 +944,12 @@ void DialogManager::migrate_dialog_to_megagroup(DialogId dialog_id,
 }
 
 void DialogManager::on_migrate_chat_to_megagroup(ChatId chat_id, Promise<td_api::object_ptr<td_api::chat>> &&promise) {
-  auto channel_id = td_->contacts_manager_->get_chat_migrated_to_channel_id(chat_id);
+  auto channel_id = td_->chat_manager_->get_chat_migrated_to_channel_id(chat_id);
   if (!channel_id.is_valid()) {
     LOG(ERROR) << "Can't find the supergroup to which the basic group has migrated";
     return promise.set_error(Status::Error(500, "Supergroup not found"));
   }
-  if (!td_->contacts_manager_->have_channel(channel_id)) {
+  if (!td_->chat_manager_->have_channel(channel_id)) {
     LOG(ERROR) << "Can't find info about the supergroup to which the basic group has migrated";
     return promise.set_error(Status::Error(500, "Supergroup info is not found"));
   }
@@ -975,7 +974,7 @@ bool DialogManager::is_anonymous_administrator(DialogId dialog_id, string *autho
     return false;
   }
 
-  auto status = td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id());
+  auto status = td_->chat_manager_->get_channel_status(dialog_id.get_channel_id());
   if (!status.is_anonymous()) {
     return false;
   }
@@ -991,7 +990,7 @@ bool DialogManager::is_group_dialog(DialogId dialog_id) const {
     case DialogType::Chat:
       return true;
     case DialogType::Channel:
-      return td_->contacts_manager_->is_megagroup_channel(dialog_id.get_channel_id());
+      return td_->chat_manager_->is_megagroup_channel(dialog_id.get_channel_id());
     default:
       return false;
   }
@@ -999,7 +998,7 @@ bool DialogManager::is_group_dialog(DialogId dialog_id) const {
 
 bool DialogManager::is_forum_channel(DialogId dialog_id) const {
   return dialog_id.get_type() == DialogType::Channel &&
-         td_->contacts_manager_->is_forum_channel(dialog_id.get_channel_id());
+         td_->chat_manager_->is_forum_channel(dialog_id.get_channel_id());
 }
 
 bool DialogManager::is_broadcast_channel(DialogId dialog_id) const {
@@ -1007,7 +1006,7 @@ bool DialogManager::is_broadcast_channel(DialogId dialog_id) const {
     return false;
   }
 
-  return td_->contacts_manager_->is_broadcast_channel(dialog_id.get_channel_id());
+  return td_->chat_manager_->is_broadcast_channel(dialog_id.get_channel_id());
 }
 
 bool DialogManager::on_get_dialog_error(DialogId dialog_id, const Status &status, const char *source) {
@@ -1033,7 +1032,7 @@ bool DialogManager::on_get_dialog_error(DialogId dialog_id, const Status &status
       // to be implemented if necessary
       break;
     case DialogType::Channel:
-      return td_->contacts_manager_->on_get_channel_error(dialog_id.get_channel_id(), status, source);
+      return td_->chat_manager_->on_get_channel_error(dialog_id.get_channel_id(), status, source);
     case DialogType::None:
       // to be implemented if necessary
       break;
@@ -1052,9 +1051,9 @@ void DialogManager::delete_dialog(DialogId dialog_id, Promise<Unit> &&promise) {
     case DialogType::User:
       return td_->messages_manager_->delete_dialog_history(dialog_id, true, true, std::move(promise));
     case DialogType::Chat:
-      return td_->contacts_manager_->delete_chat(dialog_id.get_chat_id(), std::move(promise));
+      return td_->chat_manager_->delete_chat(dialog_id.get_chat_id(), std::move(promise));
     case DialogType::Channel:
-      return td_->contacts_manager_->delete_channel(dialog_id.get_channel_id(), std::move(promise));
+      return td_->chat_manager_->delete_channel(dialog_id.get_channel_id(), std::move(promise));
     case DialogType::SecretChat:
       send_closure(td_->secret_chats_manager_, &SecretChatsManager::cancel_chat, dialog_id.get_secret_chat_id(), true,
                    std::move(promise));
@@ -1069,9 +1068,9 @@ string DialogManager::get_dialog_title(DialogId dialog_id) const {
     case DialogType::User:
       return td_->user_manager_->get_user_title(dialog_id.get_user_id());
     case DialogType::Chat:
-      return td_->contacts_manager_->get_chat_title(dialog_id.get_chat_id());
+      return td_->chat_manager_->get_chat_title(dialog_id.get_chat_id());
     case DialogType::Channel:
-      return td_->contacts_manager_->get_channel_title(dialog_id.get_channel_id());
+      return td_->chat_manager_->get_channel_title(dialog_id.get_channel_id());
     case DialogType::SecretChat:
       return td_->user_manager_->get_secret_chat_title(dialog_id.get_secret_chat_id());
     case DialogType::None:
@@ -1086,9 +1085,9 @@ const DialogPhoto *DialogManager::get_dialog_photo(DialogId dialog_id) const {
     case DialogType::User:
       return td_->user_manager_->get_user_dialog_photo(dialog_id.get_user_id());
     case DialogType::Chat:
-      return td_->contacts_manager_->get_chat_dialog_photo(dialog_id.get_chat_id());
+      return td_->chat_manager_->get_chat_dialog_photo(dialog_id.get_chat_id());
     case DialogType::Channel:
-      return td_->contacts_manager_->get_channel_dialog_photo(dialog_id.get_channel_id());
+      return td_->chat_manager_->get_channel_dialog_photo(dialog_id.get_channel_id());
     case DialogType::SecretChat:
       return td_->user_manager_->get_secret_chat_dialog_photo(dialog_id.get_secret_chat_id());
     case DialogType::None:
@@ -1103,9 +1102,9 @@ int32 DialogManager::get_dialog_accent_color_id_object(DialogId dialog_id) const
     case DialogType::User:
       return td_->user_manager_->get_user_accent_color_id_object(dialog_id.get_user_id());
     case DialogType::Chat:
-      return td_->contacts_manager_->get_chat_accent_color_id_object(dialog_id.get_chat_id());
+      return td_->chat_manager_->get_chat_accent_color_id_object(dialog_id.get_chat_id());
     case DialogType::Channel:
-      return td_->contacts_manager_->get_channel_accent_color_id_object(dialog_id.get_channel_id());
+      return td_->chat_manager_->get_channel_accent_color_id_object(dialog_id.get_channel_id());
     case DialogType::SecretChat:
       return td_->user_manager_->get_secret_chat_accent_color_id_object(dialog_id.get_secret_chat_id());
     case DialogType::None:
@@ -1120,9 +1119,9 @@ CustomEmojiId DialogManager::get_dialog_background_custom_emoji_id(DialogId dial
     case DialogType::User:
       return td_->user_manager_->get_user_background_custom_emoji_id(dialog_id.get_user_id());
     case DialogType::Chat:
-      return td_->contacts_manager_->get_chat_background_custom_emoji_id(dialog_id.get_chat_id());
+      return td_->chat_manager_->get_chat_background_custom_emoji_id(dialog_id.get_chat_id());
     case DialogType::Channel:
-      return td_->contacts_manager_->get_channel_background_custom_emoji_id(dialog_id.get_channel_id());
+      return td_->chat_manager_->get_channel_background_custom_emoji_id(dialog_id.get_channel_id());
     case DialogType::SecretChat:
       return td_->user_manager_->get_secret_chat_background_custom_emoji_id(dialog_id.get_secret_chat_id());
     case DialogType::None:
@@ -1137,9 +1136,9 @@ int32 DialogManager::get_dialog_profile_accent_color_id_object(DialogId dialog_i
     case DialogType::User:
       return td_->user_manager_->get_user_profile_accent_color_id_object(dialog_id.get_user_id());
     case DialogType::Chat:
-      return td_->contacts_manager_->get_chat_profile_accent_color_id_object(dialog_id.get_chat_id());
+      return td_->chat_manager_->get_chat_profile_accent_color_id_object(dialog_id.get_chat_id());
     case DialogType::Channel:
-      return td_->contacts_manager_->get_channel_profile_accent_color_id_object(dialog_id.get_channel_id());
+      return td_->chat_manager_->get_channel_profile_accent_color_id_object(dialog_id.get_channel_id());
     case DialogType::SecretChat:
       return td_->user_manager_->get_secret_chat_profile_accent_color_id_object(dialog_id.get_secret_chat_id());
     case DialogType::None:
@@ -1154,9 +1153,9 @@ CustomEmojiId DialogManager::get_dialog_profile_background_custom_emoji_id(Dialo
     case DialogType::User:
       return td_->user_manager_->get_user_profile_background_custom_emoji_id(dialog_id.get_user_id());
     case DialogType::Chat:
-      return td_->contacts_manager_->get_chat_profile_background_custom_emoji_id(dialog_id.get_chat_id());
+      return td_->chat_manager_->get_chat_profile_background_custom_emoji_id(dialog_id.get_chat_id());
     case DialogType::Channel:
-      return td_->contacts_manager_->get_channel_profile_background_custom_emoji_id(dialog_id.get_channel_id());
+      return td_->chat_manager_->get_channel_profile_background_custom_emoji_id(dialog_id.get_channel_id());
     case DialogType::SecretChat:
       return td_->user_manager_->get_secret_chat_profile_background_custom_emoji_id(dialog_id.get_secret_chat_id());
     case DialogType::None:
@@ -1171,9 +1170,9 @@ RestrictedRights DialogManager::get_dialog_default_permissions(DialogId dialog_i
     case DialogType::User:
       return td_->user_manager_->get_user_default_permissions(dialog_id.get_user_id());
     case DialogType::Chat:
-      return td_->contacts_manager_->get_chat_default_permissions(dialog_id.get_chat_id());
+      return td_->chat_manager_->get_chat_default_permissions(dialog_id.get_chat_id());
     case DialogType::Channel:
-      return td_->contacts_manager_->get_channel_default_permissions(dialog_id.get_channel_id());
+      return td_->chat_manager_->get_channel_default_permissions(dialog_id.get_channel_id());
     case DialogType::SecretChat:
       return td_->user_manager_->get_secret_chat_default_permissions(dialog_id.get_secret_chat_id());
     case DialogType::None:
@@ -1189,9 +1188,9 @@ td_api::object_ptr<td_api::emojiStatus> DialogManager::get_dialog_emoji_status_o
     case DialogType::User:
       return td_->user_manager_->get_user_emoji_status_object(dialog_id.get_user_id());
     case DialogType::Chat:
-      return td_->contacts_manager_->get_chat_emoji_status_object(dialog_id.get_chat_id());
+      return td_->chat_manager_->get_chat_emoji_status_object(dialog_id.get_chat_id());
     case DialogType::Channel:
-      return td_->contacts_manager_->get_channel_emoji_status_object(dialog_id.get_channel_id());
+      return td_->chat_manager_->get_channel_emoji_status_object(dialog_id.get_channel_id());
     case DialogType::SecretChat:
       return td_->user_manager_->get_secret_chat_emoji_status_object(dialog_id.get_secret_chat_id());
     case DialogType::None:
@@ -1206,9 +1205,9 @@ string DialogManager::get_dialog_about(DialogId dialog_id) {
     case DialogType::User:
       return td_->user_manager_->get_user_about(dialog_id.get_user_id());
     case DialogType::Chat:
-      return td_->contacts_manager_->get_chat_about(dialog_id.get_chat_id());
+      return td_->chat_manager_->get_chat_about(dialog_id.get_chat_id());
     case DialogType::Channel:
-      return td_->contacts_manager_->get_channel_about(dialog_id.get_channel_id());
+      return td_->chat_manager_->get_channel_about(dialog_id.get_channel_id());
     case DialogType::SecretChat:
       return td_->user_manager_->get_secret_chat_about(dialog_id.get_secret_chat_id());
     case DialogType::None:
@@ -1223,9 +1222,9 @@ string DialogManager::get_dialog_search_text(DialogId dialog_id) const {
     case DialogType::User:
       return td_->user_manager_->get_user_search_text(dialog_id.get_user_id());
     case DialogType::Chat:
-      return td_->contacts_manager_->get_chat_title(dialog_id.get_chat_id());
+      return td_->chat_manager_->get_chat_title(dialog_id.get_chat_id());
     case DialogType::Channel:
-      return td_->contacts_manager_->get_channel_search_text(dialog_id.get_channel_id());
+      return td_->chat_manager_->get_channel_search_text(dialog_id.get_channel_id());
     case DialogType::SecretChat:
       return td_->user_manager_->get_user_search_text(
           td_->user_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id()));
@@ -1241,9 +1240,9 @@ bool DialogManager::get_dialog_has_protected_content(DialogId dialog_id) const {
     case DialogType::User:
       return false;
     case DialogType::Chat:
-      return td_->contacts_manager_->get_chat_has_protected_content(dialog_id.get_chat_id());
+      return td_->chat_manager_->get_chat_has_protected_content(dialog_id.get_chat_id());
     case DialogType::Channel:
-      return td_->contacts_manager_->get_channel_has_protected_content(dialog_id.get_channel_id());
+      return td_->chat_manager_->get_channel_has_protected_content(dialog_id.get_channel_id());
     case DialogType::SecretChat:
       return false;
     case DialogType::None:
@@ -1301,15 +1300,15 @@ void DialogManager::set_dialog_title(DialogId dialog_id, const string &title, Pr
       return promise.set_error(Status::Error(400, "Can't change private chat title"));
     case DialogType::Chat: {
       auto chat_id = dialog_id.get_chat_id();
-      auto status = td_->contacts_manager_->get_chat_permissions(chat_id);
+      auto status = td_->chat_manager_->get_chat_permissions(chat_id);
       if (!status.can_change_info_and_settings() ||
-          (td_->auth_manager_->is_bot() && !td_->contacts_manager_->is_appointed_chat_administrator(chat_id))) {
+          (td_->auth_manager_->is_bot() && !td_->chat_manager_->is_appointed_chat_administrator(chat_id))) {
         return promise.set_error(Status::Error(400, "Not enough rights to change chat title"));
       }
       break;
     }
     case DialogType::Channel: {
-      auto status = td_->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id());
+      auto status = td_->chat_manager_->get_channel_permissions(dialog_id.get_channel_id());
       if (!status.can_change_info_and_settings()) {
         return promise.set_error(Status::Error(400, "Not enough rights to change chat title"));
       }
@@ -1342,15 +1341,15 @@ void DialogManager::set_dialog_photo(DialogId dialog_id, const td_api::object_pt
       return promise.set_error(Status::Error(400, "Can't change private chat photo"));
     case DialogType::Chat: {
       auto chat_id = dialog_id.get_chat_id();
-      auto status = td_->contacts_manager_->get_chat_permissions(chat_id);
+      auto status = td_->chat_manager_->get_chat_permissions(chat_id);
       if (!status.can_change_info_and_settings() ||
-          (td_->auth_manager_->is_bot() && !td_->contacts_manager_->is_appointed_chat_administrator(chat_id))) {
+          (td_->auth_manager_->is_bot() && !td_->chat_manager_->is_appointed_chat_administrator(chat_id))) {
         return promise.set_error(Status::Error(400, "Not enough rights to change chat photo"));
       }
       break;
     }
     case DialogType::Channel: {
-      auto status = td_->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id());
+      auto status = td_->chat_manager_->get_channel_permissions(dialog_id.get_channel_id());
       if (!status.can_change_info_and_settings()) {
         return promise.set_error(Status::Error(400, "Not enough rights to change chat photo"));
       }
@@ -1552,8 +1551,8 @@ void DialogManager::set_dialog_accent_color(DialogId dialog_id, AccentColorId ac
     case DialogType::Chat:
       break;
     case DialogType::Channel:
-      return td_->contacts_manager_->set_channel_accent_color(dialog_id.get_channel_id(), accent_color_id,
-                                                              background_custom_emoji_id, std::move(promise));
+      return td_->chat_manager_->set_channel_accent_color(dialog_id.get_channel_id(), accent_color_id,
+                                                          background_custom_emoji_id, std::move(promise));
     case DialogType::SecretChat:
       break;
     case DialogType::None:
@@ -1580,7 +1579,7 @@ void DialogManager::set_dialog_profile_accent_color(DialogId dialog_id, AccentCo
     case DialogType::Chat:
       break;
     case DialogType::Channel:
-      return td_->contacts_manager_->set_channel_profile_accent_color(
+      return td_->chat_manager_->set_channel_profile_accent_color(
           dialog_id.get_channel_id(), profile_accent_color_id, profile_background_custom_emoji_id, std::move(promise));
     case DialogType::SecretChat:
       break;
@@ -1611,7 +1610,7 @@ void DialogManager::set_dialog_permissions(DialogId dialog_id,
       return promise.set_error(Status::Error(400, "Can't change private chat permissions"));
     case DialogType::Chat: {
       auto chat_id = dialog_id.get_chat_id();
-      auto status = td_->contacts_manager_->get_chat_permissions(chat_id);
+      auto status = td_->chat_manager_->get_chat_permissions(chat_id);
       if (!status.can_restrict_members()) {
         return promise.set_error(Status::Error(400, "Not enough rights to change chat permissions"));
       }
@@ -1621,7 +1620,7 @@ void DialogManager::set_dialog_permissions(DialogId dialog_id,
       if (is_broadcast_channel(dialog_id)) {
         return promise.set_error(Status::Error(400, "Can't change channel chat permissions"));
       }
-      auto status = td_->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id());
+      auto status = td_->chat_manager_->get_channel_permissions(dialog_id.get_channel_id());
       if (!status.can_restrict_members()) {
         return promise.set_error(Status::Error(400, "Not enough rights to change chat permissions"));
       }
@@ -1661,8 +1660,7 @@ void DialogManager::set_dialog_emoji_status(DialogId dialog_id, const EmojiStatu
     case DialogType::Chat:
       break;
     case DialogType::Channel:
-      return td_->contacts_manager_->set_channel_emoji_status(dialog_id.get_channel_id(), emoji_status,
-                                                              std::move(promise));
+      return td_->chat_manager_->set_channel_emoji_status(dialog_id.get_channel_id(), emoji_status, std::move(promise));
     case DialogType::SecretChat:
       break;
     case DialogType::None:
@@ -1687,14 +1685,14 @@ void DialogManager::toggle_dialog_has_protected_content(DialogId dialog_id, bool
       return promise.set_error(Status::Error(400, "Can't restrict saving content in the chat"));
     case DialogType::Chat: {
       auto chat_id = dialog_id.get_chat_id();
-      auto status = td_->contacts_manager_->get_chat_status(chat_id);
+      auto status = td_->chat_manager_->get_chat_status(chat_id);
       if (!status.is_creator()) {
         return promise.set_error(Status::Error(400, "Only owner can restrict saving content"));
       }
       break;
     }
     case DialogType::Channel: {
-      auto status = td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id());
+      auto status = td_->chat_manager_->get_channel_status(dialog_id.get_channel_id());
       if (!status.is_creator()) {
         return promise.set_error(Status::Error(400, "Only owner can restrict saving content"));
       }
@@ -1723,10 +1721,9 @@ void DialogManager::set_dialog_description(DialogId dialog_id, const string &des
     case DialogType::User:
       return promise.set_error(Status::Error(400, "Can't change private chat description"));
     case DialogType::Chat:
-      return td_->contacts_manager_->set_chat_description(dialog_id.get_chat_id(), description, std::move(promise));
+      return td_->chat_manager_->set_chat_description(dialog_id.get_chat_id(), description, std::move(promise));
     case DialogType::Channel:
-      return td_->contacts_manager_->set_channel_description(dialog_id.get_channel_id(), description,
-                                                             std::move(promise));
+      return td_->chat_manager_->set_channel_description(dialog_id.get_channel_id(), description, std::move(promise));
     case DialogType::SecretChat:
       return promise.set_error(Status::Error(400, "Can't change secret chat description"));
     case DialogType::None:
@@ -1746,7 +1743,7 @@ void DialogManager::set_dialog_location(DialogId dialog_id, const DialogLocation
     case DialogType::SecretChat:
       return promise.set_error(Status::Error(400, "The chat can't have location"));
     case DialogType::Channel:
-      return td_->contacts_manager_->set_channel_location(dialog_id.get_channel_id(), location, std::move(promise));
+      return td_->chat_manager_->set_channel_location(dialog_id.get_channel_id(), location, std::move(promise));
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -1761,7 +1758,7 @@ bool DialogManager::can_report_dialog(DialogId dialog_id) const {
     case DialogType::Chat:
       return false;
     case DialogType::Channel:
-      return !td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id()).is_creator();
+      return !td_->chat_manager_->get_channel_status(dialog_id.get_channel_id()).is_creator();
     case DialogType::SecretChat:
       return false;
     case DialogType::None:
@@ -1848,15 +1845,15 @@ Status DialogManager::can_pin_messages(DialogId dialog_id) const {
       break;
     case DialogType::Chat: {
       auto chat_id = dialog_id.get_chat_id();
-      auto status = td_->contacts_manager_->get_chat_permissions(chat_id);
+      auto status = td_->chat_manager_->get_chat_permissions(chat_id);
       if (!status.can_pin_messages() ||
-          (td_->auth_manager_->is_bot() && !td_->contacts_manager_->is_appointed_chat_administrator(chat_id))) {
+          (td_->auth_manager_->is_bot() && !td_->chat_manager_->is_appointed_chat_administrator(chat_id))) {
         return Status::Error(400, "Not enough rights to manage pinned messages in the chat");
       }
       break;
     }
     case DialogType::Channel: {
-      auto status = td_->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id());
+      auto status = td_->chat_manager_->get_channel_permissions(dialog_id.get_channel_id());
       bool can_pin = is_broadcast_channel(dialog_id) ? status.can_edit_messages() : status.can_pin_messages();
       if (!can_pin) {
         return Status::Error(400, "Not enough rights to manage pinned messages in the chat");
@@ -1884,7 +1881,7 @@ bool DialogManager::can_use_premium_custom_emoji_in_dialog(DialogId dialog_id) c
     return true;
   }
   if (dialog_id.get_type() == DialogType::Channel &&
-      td_->contacts_manager_->can_use_premium_custom_emoji_in_channel(dialog_id.get_channel_id())) {
+      td_->chat_manager_->can_use_premium_custom_emoji_in_channel(dialog_id.get_channel_id())) {
     return true;
   }
   return false;
@@ -1895,9 +1892,9 @@ bool DialogManager::is_dialog_removed_from_dialog_list(DialogId dialog_id) const
     case DialogType::User:
       break;
     case DialogType::Chat:
-      return !td_->contacts_manager_->get_chat_is_active(dialog_id.get_chat_id());
+      return !td_->chat_manager_->get_chat_is_active(dialog_id.get_chat_id());
     case DialogType::Channel:
-      return !td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id()).is_member();
+      return !td_->chat_manager_->get_channel_status(dialog_id.get_channel_id()).is_member();
     case DialogType::SecretChat:
       break;
     case DialogType::None:
@@ -1930,11 +1927,11 @@ void DialogManager::on_update_dialog_bot_commands(
       }
       return td_->user_manager_->on_update_user_commands(bot_user_id, std::move(bot_commands));
     case DialogType::Chat:
-      return td_->contacts_manager_->on_update_chat_bot_commands(dialog_id.get_chat_id(),
-                                                                 BotCommands(bot_user_id, std::move(bot_commands)));
+      return td_->chat_manager_->on_update_chat_bot_commands(dialog_id.get_chat_id(),
+                                                             BotCommands(bot_user_id, std::move(bot_commands)));
     case DialogType::Channel:
-      return td_->contacts_manager_->on_update_channel_bot_commands(dialog_id.get_channel_id(),
-                                                                    BotCommands(bot_user_id, std::move(bot_commands)));
+      return td_->chat_manager_->on_update_channel_bot_commands(dialog_id.get_channel_id(),
+                                                                BotCommands(bot_user_id, std::move(bot_commands)));
     case DialogType::SecretChat:
     default:
       LOG(ERROR) << "Receive updateBotCommands in " << dialog_id;
@@ -1980,10 +1977,10 @@ void DialogManager::check_dialog_username(DialogId dialog_id, const string &user
     }
     case DialogType::Channel: {
       auto channel_id = dialog_id.get_channel_id();
-      if (!td_->contacts_manager_->get_channel_status(channel_id).is_creator()) {
+      if (!td_->chat_manager_->get_channel_status(channel_id).is_creator()) {
         return promise.set_error(Status::Error(400, "Not enough rights to change username"));
       }
-      if (username == td_->contacts_manager_->get_channel_editable_username(channel_id)) {
+      if (username == td_->chat_manager_->get_channel_editable_username(channel_id)) {
         return promise.set_value(CheckDialogUsernameResult::Ok);
       }
       break;
@@ -2123,7 +2120,7 @@ void DialogManager::on_resolved_username(const string &username, Result<DialogId
 void DialogManager::resolve_dialog(const string &username, ChannelId channel_id, Promise<DialogId> promise) {
   CHECK(username.empty() == channel_id.is_valid());
 
-  bool have_dialog = username.empty() ? td_->contacts_manager_->have_channel_force(channel_id, "resolve_dialog")
+  bool have_dialog = username.empty() ? td_->chat_manager_->have_channel_force(channel_id, "resolve_dialog")
                                       : get_resolved_dialog_by_username(username).is_valid();
   if (!have_dialog) {
     auto query_promise = PromiseCreator::lambda(
@@ -2134,7 +2131,7 @@ void DialogManager::resolve_dialog(const string &username, ChannelId channel_id,
           send_closure(actor_id, &DialogManager::on_resolve_dialog, username, channel_id, std::move(promise));
         });
     if (username.empty()) {
-      td_->contacts_manager_->reload_channel(channel_id, std::move(query_promise), "resolve_dialog");
+      td_->chat_manager_->reload_channel(channel_id, std::move(query_promise), "resolve_dialog");
     } else {
       send_resolve_dialog_username_query(username, std::move(query_promise));
     }
@@ -2149,7 +2146,7 @@ void DialogManager::on_resolve_dialog(const string &username, ChannelId channel_
 
   DialogId dialog_id;
   if (username.empty()) {
-    if (!td_->contacts_manager_->have_channel(channel_id)) {
+    if (!td_->chat_manager_->have_channel(channel_id)) {
       return promise.set_error(Status::Error(500, "Chat info not found"));
     }
 
@@ -2212,8 +2209,7 @@ DialogId DialogManager::search_public_dialog(const string &username_to_search, b
     if (!force && reload_voice_chat_on_search_usernames_.count(username)) {
       reload_voice_chat_on_search_usernames_.erase(username);
       if (dialog_id.get_type() == DialogType::Channel) {
-        td_->contacts_manager_->reload_channel_full(dialog_id.get_channel_id(), std::move(promise),
-                                                    "search_public_dialog");
+        td_->chat_manager_->reload_channel_full(dialog_id.get_channel_id(), std::move(promise), "search_public_dialog");
         return DialogId();
       }
     }
@@ -2277,7 +2273,7 @@ void DialogManager::set_dialog_pending_suggestions(DialogId dialog_id, vector<st
     if (!suggested_action.is_empty()) {
       if (suggested_action == SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, dialog_id} &&
           (dialog_id.get_type() != DialogType::Channel ||
-           !td_->contacts_manager_->can_convert_channel_to_gigagroup(dialog_id.get_channel_id()))) {
+           !td_->chat_manager_->can_convert_channel_to_gigagroup(dialog_id.get_channel_id()))) {
         LOG(INFO) << "Skip ConvertToGigagroup suggested action";
       } else {
         suggested_actions.push_back(suggested_action);

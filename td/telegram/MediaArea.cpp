@@ -7,7 +7,7 @@
 #include "td/telegram/MediaArea.h"
 
 #include "td/telegram/ChannelId.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
@@ -235,8 +235,7 @@ telegram_api::object_ptr<telegram_api::MediaArea> MediaArea::get_input_media_are
     }
     case Type::Message:
       if (!is_old_message_) {
-        auto input_channel =
-            td->contacts_manager_->get_input_channel(message_full_id_.get_dialog_id().get_channel_id());
+        auto input_channel = td->chat_manager_->get_input_channel(message_full_id_.get_dialog_id().get_channel_id());
         if (input_channel == nullptr) {
           return nullptr;
         }

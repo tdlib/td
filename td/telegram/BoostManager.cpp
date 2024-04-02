@@ -8,7 +8,7 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/LinkManager.h"
@@ -72,7 +72,7 @@ static td_api::object_ptr<td_api::chatBoost> get_chat_boost_object(
 static td_api::object_ptr<td_api::chatBoostSlots> get_chat_boost_slots_object(
     Td *td, telegram_api::object_ptr<telegram_api::premium_myBoosts> &&my_boosts) {
   td->user_manager_->on_get_users(std::move(my_boosts->users_), "GetMyBoostsQuery");
-  td->contacts_manager_->on_get_chats(std::move(my_boosts->chats_), "GetMyBoostsQuery");
+  td->chat_manager_->on_get_chats(std::move(my_boosts->chats_), "GetMyBoostsQuery");
   vector<td_api::object_ptr<td_api::chatBoostSlot>> slots;
   for (auto &my_boost : my_boosts->my_boosts_) {
     auto expiration_date = my_boost->expires_;
@@ -179,7 +179,7 @@ class GetBoostsStatusQuery final : public Td::ResultHandler {
       premium_member_count = max(0, static_cast<int32>(result->premium_audience_->part_));
       auto participant_count = max(static_cast<int32>(result->premium_audience_->total_), premium_member_count);
       if (dialog_id_.get_type() == DialogType::Channel) {
-        td_->contacts_manager_->on_update_channel_participant_count(dialog_id_.get_channel_id(), participant_count);
+        td_->chat_manager_->on_update_channel_participant_count(dialog_id_.get_channel_id(), participant_count);
       }
       if (participant_count > 0) {
         premium_member_percentage = 100.0 * premium_member_count / participant_count;
@@ -429,7 +429,7 @@ Result<std::pair<string, bool>> BoostManager::get_dialog_boost_link(DialogId dia
   SliceBuilder sb;
   sb << LinkManager::get_t_me_url() << "boost";
 
-  auto username = td_->contacts_manager_->get_channel_first_username(dialog_id.get_channel_id());
+  auto username = td_->chat_manager_->get_channel_first_username(dialog_id.get_channel_id());
   bool is_public = !username.empty();
   if (is_public) {
     sb << '/' << username;

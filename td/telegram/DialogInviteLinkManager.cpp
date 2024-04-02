@@ -9,7 +9,7 @@
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogInviteLink.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
@@ -646,7 +646,7 @@ void DialogInviteLinkManager::check_dialog_invite_link(const string &invite_link
   if (it != invite_link_infos_.end()) {
     auto dialog_id = it->second->dialog_id;
     if (!force && dialog_id.get_type() == DialogType::Chat &&
-        !td_->contacts_manager_->get_chat_is_active(dialog_id.get_chat_id())) {
+        !td_->chat_manager_->get_chat_is_active(dialog_id.get_chat_id())) {
       invite_link_infos_.erase(it);
     } else {
       return promise.set_value(Unit());
@@ -687,12 +687,12 @@ void DialogInviteLinkManager::on_get_dialog_invite_link_info(
         chat = std::move(chat_invite_peek->chat_);
         accessible_before_date = chat_invite_peek->expires_;
       }
-      auto chat_id = ContactsManager::get_chat_id(chat);
+      auto chat_id = ChatManager::get_chat_id(chat);
       if (chat_id != ChatId() && !chat_id.is_valid()) {
         LOG(ERROR) << "Receive invalid " << chat_id;
         chat_id = ChatId();
       }
-      auto channel_id = ContactsManager::get_channel_id(chat);
+      auto channel_id = ChatManager::get_channel_id(chat);
       if (channel_id != ChannelId() && !channel_id.is_valid()) {
         LOG(ERROR) << "Receive invalid " << channel_id;
         channel_id = ChannelId();
@@ -702,7 +702,7 @@ void DialogInviteLinkManager::on_get_dialog_invite_link_info(
                    << to_string(chat);
         accessible_before_date = 0;
       }
-      td_->contacts_manager_->on_get_chat(std::move(chat), "chatInviteAlready");
+      td_->chat_manager_->on_get_chat(std::move(chat), "chatInviteAlready");
 
       CHECK(chat_id == ChatId() || channel_id == ChannelId());
 
@@ -816,25 +816,25 @@ td_api::object_ptr<td_api::chatInviteLinkInfo> DialogInviteLinkManager::get_chat
         auto chat_id = dialog_id.get_chat_id();
         is_chat = true;
 
-        title = td_->contacts_manager_->get_chat_title(chat_id);
-        photo = td_->contacts_manager_->get_chat_dialog_photo(chat_id);
-        participant_count = td_->contacts_manager_->get_chat_participant_count(chat_id);
-        is_member = td_->contacts_manager_->get_chat_status(chat_id).is_member();
-        accent_color_id_object = td_->contacts_manager_->get_chat_accent_color_id_object(chat_id);
+        title = td_->chat_manager_->get_chat_title(chat_id);
+        photo = td_->chat_manager_->get_chat_dialog_photo(chat_id);
+        participant_count = td_->chat_manager_->get_chat_participant_count(chat_id);
+        is_member = td_->chat_manager_->get_chat_status(chat_id).is_member();
+        accent_color_id_object = td_->chat_manager_->get_chat_accent_color_id_object(chat_id);
         break;
       }
       case DialogType::Channel: {
         auto channel_id = dialog_id.get_channel_id();
-        title = td_->contacts_manager_->get_channel_title(channel_id);
-        photo = td_->contacts_manager_->get_channel_dialog_photo(channel_id);
-        is_public = td_->contacts_manager_->is_channel_public(channel_id);
-        is_megagroup = td_->contacts_manager_->is_megagroup_channel(channel_id);
-        participant_count = td_->contacts_manager_->get_channel_participant_count(channel_id);
-        is_member = td_->contacts_manager_->get_channel_status(channel_id).is_member();
-        is_verified = td_->contacts_manager_->get_channel_is_verified(channel_id);
-        is_scam = td_->contacts_manager_->get_channel_is_scam(channel_id);
-        is_fake = td_->contacts_manager_->get_channel_is_fake(channel_id);
-        accent_color_id_object = td_->contacts_manager_->get_channel_accent_color_id_object(channel_id);
+        title = td_->chat_manager_->get_channel_title(channel_id);
+        photo = td_->chat_manager_->get_channel_dialog_photo(channel_id);
+        is_public = td_->chat_manager_->is_channel_public(channel_id);
+        is_megagroup = td_->chat_manager_->is_megagroup_channel(channel_id);
+        participant_count = td_->chat_manager_->get_channel_participant_count(channel_id);
+        is_member = td_->chat_manager_->get_channel_status(channel_id).is_member();
+        is_verified = td_->chat_manager_->get_channel_is_verified(channel_id);
+        is_scam = td_->chat_manager_->get_channel_is_scam(channel_id);
+        is_fake = td_->chat_manager_->get_channel_is_fake(channel_id);
+        accent_color_id_object = td_->chat_manager_->get_channel_accent_color_id_object(channel_id);
         break;
       }
       default:
@@ -932,10 +932,10 @@ Status DialogInviteLinkManager::can_manage_dialog_invite_links(DialogId dialog_i
       return Status::Error(400, "Can't invite members to a private chat");
     case DialogType::Chat: {
       auto chat_id = dialog_id.get_chat_id();
-      if (!td_->contacts_manager_->get_chat_is_active(chat_id)) {
+      if (!td_->chat_manager_->get_chat_is_active(chat_id)) {
         return Status::Error(400, "Chat is deactivated");
       }
-      auto status = td_->contacts_manager_->get_chat_status(chat_id);
+      auto status = td_->chat_manager_->get_chat_status(chat_id);
       bool have_rights = creator_only ? status.is_creator() : status.can_manage_invite_links();
       if (!have_rights) {
         return Status::Error(400, "Not enough rights to manage chat invite link");
@@ -944,7 +944,7 @@ Status DialogInviteLinkManager::can_manage_dialog_invite_links(DialogId dialog_i
     }
     case DialogType::Channel: {
       auto channel_id = dialog_id.get_channel_id();
-      auto status = td_->contacts_manager_->get_channel_status(channel_id);
+      auto status = td_->chat_manager_->get_channel_status(channel_id);
       bool have_rights = creator_only ? status.is_creator() : status.can_manage_invite_links();
       if (!have_rights) {
         return Status::Error(400, "Not enough rights to manage chat invite link");
@@ -964,9 +964,9 @@ void DialogInviteLinkManager::on_get_permanent_dialog_invite_link(DialogId dialo
                                                                   const DialogInviteLink &invite_link) {
   switch (dialog_id.get_type()) {
     case DialogType::Chat:
-      return td_->contacts_manager_->on_update_chat_permanent_invite_link(dialog_id.get_chat_id(), invite_link);
+      return td_->chat_manager_->on_update_chat_permanent_invite_link(dialog_id.get_chat_id(), invite_link);
     case DialogType::Channel:
-      return td_->contacts_manager_->on_update_channel_permanent_invite_link(dialog_id.get_channel_id(), invite_link);
+      return td_->chat_manager_->on_update_channel_permanent_invite_link(dialog_id.get_channel_id(), invite_link);
     case DialogType::User:
     case DialogType::SecretChat:
     case DialogType::None:

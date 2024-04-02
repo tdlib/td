@@ -7,7 +7,7 @@
 #include "td/telegram/GiveawayParameters.h"
 
 #include "td/telegram/AccessRights.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
@@ -29,9 +29,8 @@ Result<ChannelId> GiveawayParameters::get_boosted_channel_id(Td *td, DialogId di
     return Status::Error(400, "Can't boost the chat");
   }
   auto channel_id = dialog_id.get_channel_id();
-  auto status = td->contacts_manager_->get_channel_status(channel_id);
-  if (td->contacts_manager_->is_broadcast_channel(channel_id) ? !status.can_post_messages()
-                                                              : !status.is_administrator()) {
+  auto status = td->chat_manager_->get_channel_status(channel_id);
+  if (td->chat_manager_->is_broadcast_channel(channel_id) ? !status.can_post_messages() : !status.is_administrator()) {
     return Status::Error(400, "Not enough rights in the chat");
   }
   return channel_id;

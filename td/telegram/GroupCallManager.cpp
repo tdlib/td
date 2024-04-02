@@ -8,7 +8,7 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogAction.h"
 #include "td/telegram/DialogActionManager.h"
 #include "td/telegram/DialogManager.h"
@@ -143,7 +143,7 @@ class GetGroupCallJoinAsQuery final : public Td::ResultHandler {
     LOG(INFO) << "Receive result for GetGroupCallJoinAsQuery: " << to_string(ptr);
 
     td_->user_manager_->on_get_users(std::move(ptr->users_), "GetGroupCallJoinAsQuery");
-    td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetGroupCallJoinAsQuery");
+    td_->chat_manager_->on_get_chats(std::move(ptr->chats_), "GetGroupCallJoinAsQuery");
 
     promise_.set_value(convert_message_senders_object(td_, ptr->peers_));
   }
@@ -1251,14 +1251,14 @@ Status GroupCallManager::can_manage_group_calls(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::Chat: {
       auto chat_id = dialog_id.get_chat_id();
-      if (!td_->contacts_manager_->get_chat_permissions(chat_id).can_manage_calls()) {
+      if (!td_->chat_manager_->get_chat_permissions(chat_id).can_manage_calls()) {
         return Status::Error(400, "Not enough rights in the chat");
       }
       break;
     }
     case DialogType::Channel: {
       auto channel_id = dialog_id.get_channel_id();
-      if (!td_->contacts_manager_->get_channel_permissions(channel_id).can_manage_calls()) {
+      if (!td_->chat_manager_->get_channel_permissions(channel_id).can_manage_calls()) {
         return Status::Error(400, "Not enough rights in the chat");
       }
       break;
@@ -1462,7 +1462,7 @@ void GroupCallManager::finish_get_group_call(InputGroupCallId input_group_call_i
 
   if (result.is_ok()) {
     td_->user_manager_->on_get_users(std::move(result.ok_ref()->users_), "finish_get_group_call");
-    td_->contacts_manager_->on_get_chats(std::move(result.ok_ref()->chats_), "finish_get_group_call");
+    td_->chat_manager_->on_get_chats(std::move(result.ok_ref()->chats_), "finish_get_group_call");
 
     if (update_group_call(result.ok()->call_, DialogId()) != input_group_call_id) {
       LOG(ERROR) << "Expected " << input_group_call_id << ", but received " << to_string(result.ok());
@@ -1607,7 +1607,7 @@ void GroupCallManager::on_get_group_call_participants(
 
   CHECK(participants != nullptr);
   td_->user_manager_->on_get_users(std::move(participants->users_), "on_get_group_call_participants");
-  td_->contacts_manager_->on_get_chats(std::move(participants->chats_), "on_get_group_call_participants");
+  td_->chat_manager_->on_get_chats(std::move(participants->chats_), "on_get_group_call_participants");
 
   if (!need_group_call_participants(input_group_call_id)) {
     return;
@@ -4128,7 +4128,7 @@ void GroupCallManager::on_group_call_left_impl(GroupCall *group_call, bool need_
     auto dialog_id = group_call->dialog_id;
     if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read) ||
         (dialog_id.get_type() == DialogType::Chat &&
-         !td_->contacts_manager_->get_chat_status(dialog_id.get_chat_id()).is_member())) {
+         !td_->chat_manager_->get_chat_status(dialog_id.get_chat_id()).is_member())) {
       group_call->need_rejoin = false;
     }
   }

@@ -6,7 +6,7 @@
 //
 #include "td/telegram/CommonDialogManager.h"
 
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/Td.h"
@@ -197,12 +197,12 @@ void CommonDialogManager::on_get_common_dialogs(UserId user_id, int64 offset_cha
   }
   bool is_last = chats.empty() && offset_chat_id == 0;
   for (auto &chat : chats) {
-    auto dialog_id = ContactsManager::get_dialog_id(chat);
+    auto dialog_id = ChatManager::get_dialog_id(chat);
     if (!dialog_id.is_valid()) {
       LOG(ERROR) << "Receive invalid " << to_string(chat);
       continue;
     }
-    td_->contacts_manager_->on_get_chat(std::move(chat), "on_get_common_dialogs");
+    td_->chat_manager_->on_get_chat(std::move(chat), "on_get_common_dialogs");
 
     if (!td::contains(result, dialog_id)) {
       td_->dialog_manager_->force_create_dialog(dialog_id, "get common dialogs");

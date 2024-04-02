@@ -6,7 +6,7 @@
 //
 #include "td/telegram/DialogActionBar.h"
 
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UserManager.h"
 
@@ -97,8 +97,8 @@ void DialogActionBar::fix(Td *td, DialogId dialog_id, bool is_dialog_blocked, Fo
     }
   }
   if (can_invite_members_) {
-    if (dialog_type != DialogType::Chat && (dialog_type != DialogType::Channel ||
-                                            td->contacts_manager_->is_broadcast_channel(dialog_id.get_channel_id()))) {
+    if (dialog_type != DialogType::Chat &&
+        (dialog_type != DialogType::Channel || td->chat_manager_->is_broadcast_channel(dialog_id.get_channel_id()))) {
       LOG(ERROR) << "Receive can_invite_members in " << dialog_id;
       can_invite_members_ = false;
     } else if (can_report_spam_ || can_add_contact_ || can_block_user_ || can_share_phone_number_ || can_unarchive_) {

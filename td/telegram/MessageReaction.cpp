@@ -7,7 +7,7 @@
 #include "td/telegram/MessageReaction.h"
 
 #include "td/telegram/AccessRights.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
@@ -200,7 +200,7 @@ class GetMessageReactionsListQuery final : public Td::ResultHandler {
     LOG(INFO) << "Receive result for GetMessageReactionsListQuery: " << to_string(ptr);
 
     td_->user_manager_->on_get_users(std::move(ptr->users_), "GetMessageReactionsListQuery");
-    td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetMessageReactionsListQuery");
+    td_->chat_manager_->on_get_chats(std::move(ptr->chats_), "GetMessageReactionsListQuery");
 
     int32 total_count = ptr->count_;
     auto received_reaction_count = static_cast<int32>(ptr->reactions_.size());
@@ -523,7 +523,7 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
             }
           } else if (dialog_type == DialogType::Channel) {
             auto channel_id = dialog_id.get_channel_id();
-            auto min_channel = td->contacts_manager_->get_min_channel(channel_id);
+            auto min_channel = td->chat_manager_->get_min_channel(channel_id);
             if (min_channel == nullptr) {
               LOG(ERROR) << "Receive unknown reacted " << channel_id;
               continue;
@@ -815,7 +815,7 @@ void MessageReactions::add_min_channels(Td *td) const {
   for (const auto &reaction : reactions_) {
     for (const auto &recent_chooser_min_channel : reaction.get_recent_chooser_min_channels()) {
       LOG(INFO) << "Add min reacted " << recent_chooser_min_channel.first;
-      td->contacts_manager_->add_min_channel(recent_chooser_min_channel.first, recent_chooser_min_channel.second);
+      td->chat_manager_->add_min_channel(recent_chooser_min_channel.first, recent_chooser_min_channel.second);
     }
   }
 }

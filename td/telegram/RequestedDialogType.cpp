@@ -7,7 +7,7 @@
 #include "td/telegram/RequestedDialogType.h"
 
 #include "td/telegram/ChannelType.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UserManager.h"
 
@@ -227,10 +227,10 @@ Status RequestedDialogType::check_shared_dialog(Td *td, DialogId dialog_id) cons
         return Status::Error(400, "Wrong has_username value");
       }
       auto chat_id = dialog_id.get_chat_id();
-      if (!td->contacts_manager_->get_chat_is_active(chat_id)) {
+      if (!td->chat_manager_->get_chat_is_active(chat_id)) {
         return Status::Error(400, "Chat is deactivated");
       }
-      auto status = td->contacts_manager_->get_chat_status(chat_id);
+      auto status = td->chat_manager_->get_chat_status(chat_id);
       if (is_created_ && !status.is_creator()) {
         return Status::Error(400, "The chat must be created by the current user");
       }
@@ -253,23 +253,23 @@ Status RequestedDialogType::check_shared_dialog(Td *td, DialogId dialog_id) cons
     }
     case DialogType::Channel: {
       auto channel_id = dialog_id.get_channel_id();
-      bool is_broadcast = td->contacts_manager_->is_broadcast_channel(channel_id);
+      bool is_broadcast = td->chat_manager_->is_broadcast_channel(channel_id);
       if (type_ != (is_broadcast ? Type::Channel : Type::Group)) {
         return Status::Error(400, "Wrong chat type");
       }
-      if (!is_broadcast && restrict_is_forum_ && td->contacts_manager_->is_forum_channel(channel_id) != is_forum_) {
+      if (!is_broadcast && restrict_is_forum_ && td->chat_manager_->is_forum_channel(channel_id) != is_forum_) {
         return Status::Error(400, "Wrong is_forum value");
       }
       if (restrict_has_username_ &&
-          td->contacts_manager_->get_channel_first_username(channel_id).empty() == has_username_) {
+          td->chat_manager_->get_channel_first_username(channel_id).empty() == has_username_) {
         return Status::Error(400, "Wrong has_username value");
       }
-      auto status = td->contacts_manager_->get_channel_status(channel_id);
+      auto status = td->chat_manager_->get_channel_status(channel_id);
       if (is_created_ && !status.is_creator()) {
         return Status::Error(400, "The chat must be created by the current user");
       }
-      bool can_invite_bot = status.can_invite_users() &&
-                            (status.is_administrator() || !td->contacts_manager_->is_channel_public(channel_id));
+      bool can_invite_bot =
+          status.can_invite_users() && (status.is_administrator() || !td->chat_manager_->is_channel_public(channel_id));
       if (!is_broadcast && bot_is_participant_) {
         // can't synchronously check that the bot is already participant
         if (!can_invite_bot) {

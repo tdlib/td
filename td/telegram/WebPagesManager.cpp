@@ -9,7 +9,7 @@
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AudiosManager.h"
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Dimensions.h"
@@ -127,7 +127,7 @@ class GetWebPageQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetWebPageQuery: " << to_string(ptr);
     td_->user_manager_->on_get_users(std::move(ptr->users_), "GetWebPageQuery");
-    td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetWebPageQuery");
+    td_->chat_manager_->on_get_chats(std::move(ptr->chats_), "GetWebPageQuery");
     auto page = std::move(ptr->webpage_);
     if (page->get_id() == telegram_api::webPageNotModified::ID) {
       if (web_page_id_.is_valid()) {

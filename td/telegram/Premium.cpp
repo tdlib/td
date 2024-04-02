@@ -10,7 +10,7 @@
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/Application.h"
 #include "td/telegram/ChannelId.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Document.h"
@@ -169,7 +169,7 @@ Result<telegram_api::object_ptr<telegram_api::InputPeer>> get_boost_input_peer(T
   if (dialog_id.get_type() != DialogType::Channel) {
     return Status::Error(400, "Can't boost the chat");
   }
-  if (!td->contacts_manager_->get_channel_status(dialog_id.get_channel_id()).is_administrator()) {
+  if (!td->chat_manager_->get_channel_status(dialog_id.get_channel_id()).is_administrator()) {
     return Status::Error(400, "Not enough rights in the chat");
   }
   auto boost_input_peer = td->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
@@ -393,7 +393,7 @@ class CheckGiftCodeQuery final : public Td::ResultHandler {
     auto result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for CheckGiftCodeQuery: " << to_string(result);
     td_->user_manager_->on_get_users(std::move(result->users_), "CheckGiftCodeQuery");
-    td_->contacts_manager_->on_get_chats(std::move(result->chats_), "CheckGiftCodeQuery");
+    td_->chat_manager_->on_get_chats(std::move(result->chats_), "CheckGiftCodeQuery");
 
     if (result->date_ <= 0 || result->months_ <= 0 || result->used_date_ < 0) {
       LOG(ERROR) << "Receive " << to_string(result);
@@ -533,8 +533,7 @@ class GetGiveawayInfoQuery final : public Td::ResultHandler {
           }
           if (info->admin_disallowed_chat_id_ > 0) {
             ChannelId channel_id(info->admin_disallowed_chat_id_);
-            if (!channel_id.is_valid() ||
-                !td_->contacts_manager_->have_channel_force(channel_id, "GetGiveawayInfoQuery")) {
+            if (!channel_id.is_valid() || !td_->chat_manager_->have_channel_force(channel_id, "GetGiveawayInfoQuery")) {
               LOG(ERROR) << "Receive " << to_string(info);
             } else {
               DialogId dialog_id(channel_id);

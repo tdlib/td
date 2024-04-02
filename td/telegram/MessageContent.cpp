@@ -17,8 +17,8 @@
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChannelType.h"
 #include "td/telegram/ChatId.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/Contact.h"
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
@@ -2653,7 +2653,7 @@ static Result<InputMessageContent> create_input_message_content(
       WebPageId web_page_id;
       bool can_add_web_page_previews =
           dialog_id.get_type() != DialogType::Channel ||
-          td->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id()).can_add_web_page_previews();
+          td->chat_manager_->get_channel_permissions(dialog_id.get_channel_id()).can_add_web_page_previews();
       if (!is_bot && !disable_web_page_preview && can_add_web_page_previews) {
         web_page_id = td->web_pages_manager_->get_web_page_by_url(
             web_page_url.empty() ? get_first_url(input_message_text.text).str() : web_page_url);
@@ -3589,10 +3589,9 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
       case DialogType::User:
         return td->user_manager_->get_user_default_permissions(dialog_id.get_user_id());
       case DialogType::Chat:
-        return td->contacts_manager_->get_chat_permissions(dialog_id.get_chat_id()).get_effective_restricted_rights();
+        return td->chat_manager_->get_chat_permissions(dialog_id.get_chat_id()).get_effective_restricted_rights();
       case DialogType::Channel:
-        return td->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id())
-            .get_effective_restricted_rights();
+        return td->chat_manager_->get_channel_permissions(dialog_id.get_channel_id()).get_effective_restricted_rights();
       case DialogType::SecretChat:
         return td->user_manager_->get_secret_chat_default_permissions(dialog_id.get_secret_chat_id());
       case DialogType::None:
@@ -3633,8 +3632,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
       }
       break;
     case MessageContentType::Game:
-      if (dialog_type == DialogType::Channel &&
-          td->contacts_manager_->is_broadcast_channel(dialog_id.get_channel_id())) {
+      if (dialog_type == DialogType::Channel && td->chat_manager_->is_broadcast_channel(dialog_id.get_channel_id())) {
         // return Status::Error(400, "Games can't be sent to channel chats");
       }
       if (dialog_type == DialogType::SecretChat) {
@@ -3687,8 +3685,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
       if (!permissions.can_send_polls()) {
         return Status::Error(400, "Not enough rights to send polls to the chat");
       }
-      if (dialog_type == DialogType::Channel &&
-          td->contacts_manager_->is_broadcast_channel(dialog_id.get_channel_id()) &&
+      if (dialog_type == DialogType::Channel && td->chat_manager_->is_broadcast_channel(dialog_id.get_channel_id()) &&
           !td->poll_manager_->get_poll_is_anonymous(static_cast<const MessagePoll *>(content)->poll_id)) {
         return Status::Error(400, "Non-anonymous polls can't be sent to channel chats");
       }
@@ -7092,7 +7089,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     case MessageContentType::ChatMigrateTo: {
       const auto *m = static_cast<const MessageChatMigrateTo *>(content);
       return make_tl_object<td_api::messageChatUpgradeTo>(
-          td->contacts_manager_->get_supergroup_id_object(m->migrated_to_channel_id, "MessageChatUpgradeTo"));
+          td->chat_manager_->get_supergroup_id_object(m->migrated_to_channel_id, "MessageChatUpgradeTo"));
     }
     case MessageContentType::ChannelCreate: {
       const auto *m = static_cast<const MessageChannelCreate *>(content);
@@ -7101,8 +7098,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     case MessageContentType::ChannelMigrateFrom: {
       const auto *m = static_cast<const MessageChannelMigrateFrom *>(content);
       return make_tl_object<td_api::messageChatUpgradeFrom>(
-          m->title,
-          td->contacts_manager_->get_basic_group_id_object(m->migrated_from_chat_id, "MessageChatUpgradeFrom"));
+          m->title, td->chat_manager_->get_basic_group_id_object(m->migrated_from_chat_id, "MessageChatUpgradeFrom"));
     }
     case MessageContentType::PinMessage: {
       const auto *m = static_cast<const MessagePinMessage *>(content);

@@ -18,9 +18,9 @@
 #include "td/telegram/BusinessIntro.h"
 #include "td/telegram/BusinessWorkHours.h"
 #include "td/telegram/ChannelType.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/CommonDialogManager.h"
 #include "td/telegram/ConfigManager.h"
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogLocation.h"
 #include "td/telegram/DialogManager.h"
@@ -1061,7 +1061,7 @@ class UpdatePersonalChannelQuery final : public Td::ResultHandler {
     if (channel_id == ChannelId()) {
       input_channel = telegram_api::make_object<telegram_api::inputChannelEmpty>();
     } else {
-      input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+      input_channel = td_->chat_manager_->get_input_channel(channel_id);
       CHECK(input_channel != nullptr);
     }
     send_query(G()->net_query_creator().create(telegram_api::account_updatePersonalChannel(std::move(input_channel)),
@@ -1166,7 +1166,7 @@ class GetFullUserQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(DEBUG) << "Receive result for GetFullUserQuery: " << to_string(ptr);
     td_->user_manager_->on_get_users(std::move(ptr->users_), "GetFullUserQuery");
-    td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetFullUserQuery");
+    td_->chat_manager_->on_get_chats(std::move(ptr->chats_), "GetFullUserQuery");
     td_->user_manager_->on_get_user_full(std::move(ptr->full_user_));
     promise_.set_value(Unit());
   }
@@ -3882,7 +3882,7 @@ Result<telegram_api::object_ptr<telegram_api::InputUser>> UserManager::get_input
       CHECK(!it->second.empty());
       auto message_full_id = *it->second.begin();
       return telegram_api::make_object<telegram_api::inputUserFromMessage>(
-          td_->contacts_manager_->get_simple_input_peer(message_full_id.get_dialog_id()),
+          td_->chat_manager_->get_simple_input_peer(message_full_id.get_dialog_id()),
           message_full_id.get_message_id().get_server_message_id().get(), user_id.get());
     }
     if (u == nullptr) {
@@ -3957,7 +3957,7 @@ telegram_api::object_ptr<telegram_api::InputPeer> UserManager::get_input_peer_us
     CHECK(!it->second.empty());
     auto message_full_id = *it->second.begin();
     return telegram_api::make_object<telegram_api::inputPeerUserFromMessage>(
-        td_->contacts_manager_->get_simple_input_peer(message_full_id.get_dialog_id()),
+        td_->chat_manager_->get_simple_input_peer(message_full_id.get_dialog_id()),
         message_full_id.get_message_id().get_server_message_id().get(), user_id.get());
   }
 
@@ -5505,7 +5505,7 @@ void UserManager::apply_pending_user_photo(User *u, UserId user_id) {
 void UserManager::register_message_users(MessageFullId message_full_id, vector<UserId> user_ids) {
   auto dialog_id = message_full_id.get_dialog_id();
   CHECK(dialog_id.get_type() == DialogType::Channel);
-  if (!td_->contacts_manager_->have_channel(dialog_id.get_channel_id())) {
+  if (!td_->chat_manager_->have_channel(dialog_id.get_channel_id())) {
     return;
   }
   for (auto user_id : user_ids) {

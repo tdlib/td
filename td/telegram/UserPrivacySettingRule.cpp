@@ -8,7 +8,7 @@
 
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Td.h"
@@ -36,7 +36,7 @@ void UserPrivacySettingRule::set_dialog_ids(Td *td, const vector<int64> &chat_id
         break;
       case DialogType::Channel: {
         auto channel_id = dialog_id.get_channel_id();
-        if (!td->contacts_manager_->is_megagroup_channel(channel_id)) {
+        if (!td->chat_manager_->is_megagroup_channel(channel_id)) {
           LOG(INFO) << "Ignore broadcast " << channel_id;
           break;
         }
@@ -145,10 +145,10 @@ void UserPrivacySettingRule::set_dialog_ids_from_server(Td *td, const vector<int
   for (auto server_chat_id : server_chat_ids) {
     ChatId chat_id(server_chat_id);
     DialogId dialog_id(chat_id);
-    if (!td->contacts_manager_->have_chat(chat_id)) {
+    if (!td->chat_manager_->have_chat(chat_id)) {
       ChannelId channel_id(server_chat_id);
       dialog_id = DialogId(channel_id);
-      if (!td->contacts_manager_->have_channel(channel_id)) {
+      if (!td->chat_manager_->have_channel(channel_id)) {
         LOG(ERROR) << "Receive unknown group " << server_chat_id << " from the server";
         continue;
       }
@@ -268,7 +268,7 @@ void UserPrivacySettingRule::add_dependencies(Dependencies &dependencies) const 
 UserPrivacySettingRules UserPrivacySettingRules::get_user_privacy_setting_rules(
     Td *td, telegram_api::object_ptr<telegram_api::account_privacyRules> rules) {
   td->user_manager_->on_get_users(std::move(rules->users_), "on get privacy rules");
-  td->contacts_manager_->on_get_chats(std::move(rules->chats_), "on get privacy rules");
+  td->chat_manager_->on_get_chats(std::move(rules->chats_), "on get privacy rules");
   return get_user_privacy_setting_rules(td, std::move(rules->rules_));
 }
 

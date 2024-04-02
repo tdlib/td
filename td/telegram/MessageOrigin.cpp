@@ -7,7 +7,7 @@
 #include "td/telegram/MessageOrigin.h"
 
 #include "td/telegram/ChannelId.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
@@ -67,8 +67,8 @@ Result<MessageOrigin> MessageOrigin::get_message_origin(
     return Status::Error("Forward from a non-channel");
   } else {
     auto channel_id = sender_dialog_id.get_channel_id();
-    if (!td->contacts_manager_->have_channel(channel_id)) {
-      LOG(ERROR) << "Receive forward from " << (td->contacts_manager_->have_min_channel(channel_id) ? "min" : "unknown")
+    if (!td->chat_manager_->have_channel(channel_id)) {
+      LOG(ERROR) << "Receive forward from " << (td->chat_manager_->have_min_channel(channel_id) ? "min" : "unknown")
                  << ' ' << channel_id;
     }
     td->dialog_manager_->force_create_dialog(sender_dialog_id, "get_message_origin", true);

@@ -57,14 +57,14 @@ struct BinlogEvent;
 struct MinChannel;
 class Td;
 
-class ContactsManager final : public Actor {
+class ChatManager final : public Actor {
  public:
-  ContactsManager(Td *td, ActorShared<> parent);
-  ContactsManager(const ContactsManager &) = delete;
-  ContactsManager &operator=(const ContactsManager &) = delete;
-  ContactsManager(ContactsManager &&) = delete;
-  ContactsManager &operator=(ContactsManager &&) = delete;
-  ~ContactsManager() final;
+  ChatManager(Td *td, ActorShared<> parent);
+  ChatManager(const ChatManager &) = delete;
+  ChatManager &operator=(const ChatManager &) = delete;
+  ChatManager(ChatManager &&) = delete;
+  ChatManager &operator=(ChatManager &&) = delete;
+  ~ChatManager() final;
 
   static ChatId get_chat_id(const tl_object_ptr<telegram_api::Chat> &chat);
   static ChannelId get_channel_id(const tl_object_ptr<telegram_api::Chat> &chat);
@@ -875,11 +875,11 @@ class ContactsManager final : public Actor {
 
   void get_channel_statistics_dc_id_impl(ChannelId channel_id, bool for_full_statistics, Promise<DcId> &&promise);
 
-  static void on_channel_emoji_status_timeout_callback(void *contacts_manager_ptr, int64 channel_id_long);
+  static void on_channel_emoji_status_timeout_callback(void *chat_manager_ptr, int64 channel_id_long);
 
-  static void on_channel_unban_timeout_callback(void *contacts_manager_ptr, int64 channel_id_long);
+  static void on_channel_unban_timeout_callback(void *chat_manager_ptr, int64 channel_id_long);
 
-  static void on_slow_mode_delay_timeout_callback(void *contacts_manager_ptr, int64 channel_id_long);
+  static void on_slow_mode_delay_timeout_callback(void *chat_manager_ptr, int64 channel_id_long);
 
   void on_channel_emoji_status_timeout(ChannelId channel_id);
 

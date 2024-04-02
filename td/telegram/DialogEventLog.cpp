@@ -9,8 +9,8 @@
 #include "td/telegram/AccentColorId.h"
 #include "td/telegram/BackgroundInfo.h"
 #include "td/telegram/ChannelId.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/ChatReactions.h"
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogInviteLink.h"
 #include "td/telegram/DialogLocation.h"
 #include "td/telegram/DialogManager.h"
@@ -74,7 +74,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
     case telegram_api::channelAdminLogEventActionParticipantInvite::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantInvite>(action_ptr);
       DialogParticipant dialog_participant(std::move(action->participant_),
-                                           td->contacts_manager_->get_channel_type(channel_id));
+                                           td->chat_manager_->get_channel_type(channel_id));
       if (!dialog_participant.is_valid() || dialog_participant.dialog_id_.get_type() != DialogType::User) {
         LOG(ERROR) << "Wrong invite: " << dialog_participant;
         return nullptr;
@@ -85,7 +85,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
     }
     case telegram_api::channelAdminLogEventActionParticipantToggleBan::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantToggleBan>(action_ptr);
-      auto channel_type = td->contacts_manager_->get_channel_type(channel_id);
+      auto channel_type = td->chat_manager_->get_channel_type(channel_id);
       DialogParticipant old_dialog_participant(std::move(action->prev_participant_), channel_type);
       DialogParticipant new_dialog_participant(std::move(action->new_participant_), channel_type);
       if (old_dialog_participant.dialog_id_ != new_dialog_participant.dialog_id_) {
@@ -103,7 +103,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
     }
     case telegram_api::channelAdminLogEventActionParticipantToggleAdmin::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantToggleAdmin>(action_ptr);
-      auto channel_type = td->contacts_manager_->get_channel_type(channel_id);
+      auto channel_type = td->chat_manager_->get_channel_type(channel_id);
       DialogParticipant old_dialog_participant(std::move(action->prev_participant_), channel_type);
       DialogParticipant new_dialog_participant(std::move(action->new_participant_), channel_type);
       if (old_dialog_participant.dialog_id_ != new_dialog_participant.dialog_id_) {
@@ -151,7 +151,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
     }
     case telegram_api::channelAdminLogEventActionDefaultBannedRights::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionDefaultBannedRights>(action_ptr);
-      auto channel_type = td->contacts_manager_->get_channel_type(channel_id);
+      auto channel_type = td->chat_manager_->get_channel_type(channel_id);
       auto old_permissions = RestrictedRights(action->prev_banned_rights_, channel_type);
       auto new_permissions = RestrictedRights(action->new_banned_rights_, channel_type);
       return td_api::make_object<td_api::chatEventPermissionsChanged>(old_permissions.get_chat_permissions_object(),
@@ -490,7 +490,7 @@ class GetChannelAdminLogQuery final : public Td::ResultHandler {
             vector<tl_object_ptr<telegram_api::InputUser>> input_users) {
     channel_id_ = channel_id;
 
-    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
 
     int32 flags = 0;
@@ -514,7 +514,7 @@ class GetChannelAdminLogQuery final : public Td::ResultHandler {
     auto events = result_ptr.move_as_ok();
     LOG(INFO) << "Receive in " << channel_id_ << ' ' << to_string(events);
     td_->user_manager_->on_get_users(std::move(events->users_), "on_get_event_log");
-    td_->contacts_manager_->on_get_chats(std::move(events->chats_), "on_get_event_log");
+    td_->chat_manager_->on_get_chats(std::move(events->chats_), "on_get_event_log");
 
     auto anti_spam_user_id = UserId(G()->get_option_integer("anti_spam_bot_user_id"));
     auto result = td_api::make_object<td_api::chatEvents>();
@@ -556,7 +556,7 @@ class GetChannelAdminLogQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "GetChannelAdminLogQuery");
+    td_->chat_manager_->on_get_channel_error(channel_id_, status, "GetChannelAdminLogQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -631,11 +631,11 @@ void get_dialog_event_log(Td *td, DialogId dialog_id, const string &query, int64
   }
 
   auto channel_id = dialog_id.get_channel_id();
-  if (!td->contacts_manager_->have_channel(channel_id)) {
+  if (!td->chat_manager_->have_channel(channel_id)) {
     return promise.set_error(Status::Error(400, "Chat info not found"));
   }
 
-  if (!td->contacts_manager_->get_channel_status(channel_id).is_administrator()) {
+  if (!td->chat_manager_->get_channel_status(channel_id).is_administrator()) {
     return promise.set_error(Status::Error(400, "Not enough rights to get event log"));
   }
 

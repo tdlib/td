@@ -8,7 +8,7 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Document.h"
@@ -867,7 +867,7 @@ void AttachMenuManager::request_web_view(DialogId dialog_id, UserId bot_user_id,
 
   if (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server() ||
       dialog_id.get_type() != DialogType::Channel ||
-      !td_->contacts_manager_->is_megagroup_channel(dialog_id.get_channel_id())) {
+      !td_->chat_manager_->is_megagroup_channel(dialog_id.get_channel_id())) {
     top_thread_message_id = MessageId();
   }
   auto input_reply_to = td_->messages_manager_->create_message_input_reply_to(dialog_id, top_thread_message_id,

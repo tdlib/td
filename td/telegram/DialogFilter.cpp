@@ -6,7 +6,7 @@
 //
 #include "td/telegram/DialogFilter.h"
 
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
@@ -734,16 +734,16 @@ vector<DialogId> DialogFilter::get_dialogs_for_invite_link(Td *td) {
       case DialogType::Chat: {
         auto chat_id = dialog_id.get_chat_id();
         // the user can manage invite links in the chat
-        is_good = td->contacts_manager_->get_chat_status(chat_id).can_manage_invite_links();
+        is_good = td->chat_manager_->get_chat_status(chat_id).can_manage_invite_links();
         break;
       }
       case DialogType::Channel: {
         auto channel_id = dialog_id.get_channel_id();
         // the user can manage invite links in the chat
         // or the chat is a public chat, which can be joined without administrator approval
-        is_good = td->contacts_manager_->get_channel_status(channel_id).can_manage_invite_links() ||
-                  (td->contacts_manager_->is_channel_public(channel_id) &&
-                   !td->contacts_manager_->get_channel_join_request(channel_id));
+        is_good = td->chat_manager_->get_channel_status(channel_id).can_manage_invite_links() ||
+                  (td->chat_manager_->is_channel_public(channel_id) &&
+                   !td->chat_manager_->get_channel_join_request(channel_id));
         break;
       }
       default:
@@ -808,8 +808,7 @@ bool DialogFilter::need_dialog(const Td *td, const DialogFilterDialogInfo &dialo
     case DialogType::Chat:
       return include_groups_;
     case DialogType::Channel:
-      return td->contacts_manager_->is_broadcast_channel(dialog_id.get_channel_id()) ? include_channels_
-                                                                                     : include_groups_;
+      return td->chat_manager_->is_broadcast_channel(dialog_id.get_channel_id()) ? include_channels_ : include_groups_;
     case DialogType::SecretChat: {
       auto user_id = td->user_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
       if (td->user_manager_->is_user_bot(user_id)) {

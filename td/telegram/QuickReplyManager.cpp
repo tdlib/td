@@ -8,7 +8,7 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/FileReferenceManager.h"
@@ -729,7 +729,7 @@ void QuickReplyManager::on_reload_quick_reply_shortcuts(
     case telegram_api::messages_quickReplies::ID: {
       auto shortcuts = telegram_api::move_object_as<telegram_api::messages_quickReplies>(shortcuts_ptr);
       td_->user_manager_->on_get_users(std::move(shortcuts->users_), "messages.quickReplies");
-      td_->contacts_manager_->on_get_chats(std::move(shortcuts->chats_), "messages.quickReplies");
+      td_->chat_manager_->on_get_chats(std::move(shortcuts->chats_), "messages.quickReplies");
 
       FlatHashMap<MessageId, telegram_api::object_ptr<telegram_api::Message>, MessageIdHash> message_id_to_message;
       for (auto &message : shortcuts->messages_) {
@@ -1241,7 +1241,7 @@ void QuickReplyManager::on_reload_quick_reply_messages(
     case telegram_api::messages_messages::ID: {
       auto messages = telegram_api::move_object_as<telegram_api::messages_messages>(messages_ptr);
       td_->user_manager_->on_get_users(std::move(messages->users_), "on_reload_quick_reply_messages");
-      td_->contacts_manager_->on_get_chats(std::move(messages->chats_), "on_reload_quick_reply_messages");
+      td_->chat_manager_->on_get_chats(std::move(messages->chats_), "on_reload_quick_reply_messages");
 
       vector<unique_ptr<QuickReplyMessage>> quick_reply_messages;
       for (auto &server_message : messages->messages_) {
@@ -1368,7 +1368,7 @@ void QuickReplyManager::on_reload_quick_reply_message(
     case telegram_api::messages_messages::ID: {
       auto messages = telegram_api::move_object_as<telegram_api::messages_messages>(messages_ptr);
       td_->user_manager_->on_get_users(std::move(messages->users_), "on_reload_quick_reply_message");
-      td_->contacts_manager_->on_get_chats(std::move(messages->chats_), "on_reload_quick_reply_message");
+      td_->chat_manager_->on_get_chats(std::move(messages->chats_), "on_reload_quick_reply_message");
 
       if (messages->messages_.size() > 1u) {
         LOG(ERROR) << "Receive " << to_string(messages_ptr);

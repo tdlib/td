@@ -6,7 +6,7 @@
 //
 #include "td/telegram/Dependencies.h"
 
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/StoryManager.h"
 #include "td/telegram/Td.h"
@@ -101,7 +101,7 @@ bool Dependencies::resolve_force(Td *td, const char *source, bool ignore_errors)
     }
   }
   for (auto chat_id : chat_ids) {
-    if (!td->contacts_manager_->have_chat_force(chat_id, source)) {
+    if (!td->chat_manager_->have_chat_force(chat_id, source)) {
       if (!ignore_errors) {
         LOG(ERROR) << "Can't find " << chat_id << " from " << source;
       }
@@ -109,8 +109,8 @@ bool Dependencies::resolve_force(Td *td, const char *source, bool ignore_errors)
     }
   }
   for (auto channel_id : channel_ids) {
-    if (!td->contacts_manager_->have_channel_force(channel_id, source)) {
-      if (td->contacts_manager_->have_min_channel(channel_id)) {
+    if (!td->chat_manager_->have_channel_force(channel_id, source)) {
+      if (td->chat_manager_->have_min_channel(channel_id)) {
         LOG(INFO) << "Can't find " << channel_id << " from " << source << ", but have it as a min-channel";
         continue;
       }

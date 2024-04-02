@@ -40,9 +40,9 @@ class BoostManager;
 class BusinessConnectionManager;
 class BusinessManager;
 class CallManager;
+class ChatManager;
 class ConfigManager;
 class ConnectionCreator;
-class ContactsManager;
 class DialogActionManager;
 class DialogFilterManager;
 class DialogInviteLinkManager;
@@ -256,18 +256,18 @@ class Global final : public ActorContext {
     call_manager_ = call_manager;
   }
 
+  ActorId<ChatManager> chat_manager() const {
+    return chat_manager_;
+  }
+  void set_chat_manager(ActorId<ChatManager> chat_manager) {
+    chat_manager_ = chat_manager;
+  }
+
   ActorId<ConfigManager> config_manager() const {
     return config_manager_;
   }
   void set_config_manager(ActorId<ConfigManager> config_manager) {
     config_manager_ = config_manager;
-  }
-
-  ActorId<ContactsManager> contacts_manager() const {
-    return contacts_manager_;
-  }
-  void set_contacts_manager(ActorId<ContactsManager> contacts_manager) {
-    contacts_manager_ = contacts_manager;
   }
 
   ActorId<DialogActionManager> dialog_action_manager() const {
@@ -642,8 +642,8 @@ class Global final : public ActorContext {
   ActorId<BusinessConnectionManager> business_connection_manager_;
   ActorId<BusinessManager> business_manager_;
   ActorId<CallManager> call_manager_;
+  ActorId<ChatManager> chat_manager_;
   ActorId<ConfigManager> config_manager_;
-  ActorId<ContactsManager> contacts_manager_;
   ActorId<DialogActionManager> dialog_action_manager_;
   ActorId<DialogFilterManager> dialog_filter_manager_;
   ActorId<DialogInviteLinkManager> dialog_invite_link_manager_;

@@ -7,7 +7,7 @@
 #include "td/telegram/AutosaveManager.h"
 
 #include "td/telegram/AccessRights.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
@@ -386,7 +386,7 @@ void AutosaveManager::on_get_autosave_settings(
 
   auto settings = r_settings.move_as_ok();
   td_->user_manager_->on_get_users(std::move(settings->users_), "on_get_autosave_settings");
-  td_->contacts_manager_->on_get_chats(std::move(settings->chats_), "on_get_autosave_settings");
+  td_->chat_manager_->on_get_chats(std::move(settings->chats_), "on_get_autosave_settings");
 
   DialogAutosaveSettings new_user_settings(settings->users_settings_.get());
   DialogAutosaveSettings new_chat_settings(settings->chats_settings_.get());

@@ -71,7 +71,7 @@ class SecretChatActor final : public NetQueryCallback {
 
     virtual bool close_flag() = 0;
 
-    // We don't want to expose the whole NetQueryDispatcher, MessagesManager and ContactsManager.
+    // We don't want to expose the whole NetQueryDispatcher, MessagesManager and UserManager.
     // So it is more clear which parts of MessagesManager are really used. And it is much easier to create tests.
     virtual void send_net_query(NetQueryPtr query, ActorShared<NetQueryCallback> callback, bool ordered) = 0;
 

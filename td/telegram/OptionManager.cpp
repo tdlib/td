@@ -10,8 +10,8 @@
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AttachMenuManager.h"
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/ConfigManager.h"
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/CountryInfoManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/GitCommitHash.h"
@@ -524,7 +524,7 @@ void OptionManager::on_option_updated(Slice name) {
       break;
     case 'i':
       if (name == "ignored_restriction_reasons") {
-        send_closure(td_->contacts_manager_actor_, &ContactsManager::on_ignored_restriction_reasons_changed);
+        send_closure(td_->chat_manager_actor_, &ChatManager::on_ignored_restriction_reasons_changed);
         send_closure(td_->user_manager_actor_, &UserManager::on_ignored_restriction_reasons_changed);
       }
       if (name == "is_emulator") {

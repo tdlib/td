@@ -9,7 +9,7 @@
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ChainId.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
@@ -384,7 +384,7 @@ void PollManager::on_load_poll_from_database(PollId poll_id, string value) {
     }
     for (const auto &recent_voter_min_channel : poll->recent_voter_min_channels_) {
       LOG(INFO) << "Add min voted " << recent_voter_min_channel.first;
-      td_->contacts_manager_->add_min_channel(recent_voter_min_channel.first, recent_voter_min_channel.second);
+      td_->chat_manager_->add_min_channel(recent_voter_min_channel.first, recent_voter_min_channel.second);
     }
     Dependencies dependencies;
     for (auto dialog_id : poll->recent_voter_dialog_ids_) {
@@ -1189,7 +1189,7 @@ void PollManager::on_get_poll_voters(PollId poll_id, int32 option_id, string off
 
   auto vote_list = result.move_as_ok();
   td_->user_manager_->on_get_users(std::move(vote_list->users_), "on_get_poll_voters");
-  td_->contacts_manager_->on_get_chats(std::move(vote_list->chats_), "on_get_poll_voters");
+  td_->chat_manager_->on_get_chats(std::move(vote_list->chats_), "on_get_poll_voters");
 
   voters.next_offset_ = std::move(vote_list->next_offset_);
   if (poll->options_[option_id].voter_count_ != vote_list->count_) {

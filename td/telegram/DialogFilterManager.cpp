@@ -8,7 +8,7 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogFilter.h"
 #include "td/telegram/DialogFilter.hpp"
 #include "td/telegram/DialogFilterInviteLink.h"
@@ -209,7 +209,7 @@ class GetExportedChatlistInvitesQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetExportedChatlistInvitesQuery: " << to_string(ptr);
     td_->user_manager_->on_get_users(std::move(ptr->users_), "GetExportedChatlistInvitesQuery");
-    td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetExportedChatlistInvitesQuery");
+    td_->chat_manager_->on_get_chats(std::move(ptr->chats_), "GetExportedChatlistInvitesQuery");
     auto result = td_api::make_object<td_api::chatFolderInviteLinks>();
     for (auto &invite : ptr->invites_) {
       result->invite_links_.push_back(
@@ -426,7 +426,7 @@ class GetChatlistUpdatesQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetChatlistUpdatesQuery: " << to_string(ptr);
     td_->user_manager_->on_get_users(std::move(ptr->users_), "GetChatlistUpdatesQuery");
-    td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetChatlistUpdatesQuery");
+    td_->chat_manager_->on_get_chats(std::move(ptr->chats_), "GetChatlistUpdatesQuery");
     auto missing_dialog_ids = td_->dialog_manager_->get_peers_dialog_ids(std::move(ptr->missing_peers_), true);
     promise_.set_value(td_->dialog_manager_->get_chats_object(-1, missing_dialog_ids, "GetChatlistUpdatesQuery"));
   }
@@ -519,7 +519,7 @@ class GetDialogsQuery final : public Td::ResultHandler {
     LOG(INFO) << "Receive result for GetDialogsQuery: " << to_string(result);
 
     td_->user_manager_->on_get_users(std::move(result->users_), "GetDialogsQuery");
-    td_->contacts_manager_->on_get_chats(std::move(result->chats_), "GetDialogsQuery");
+    td_->chat_manager_->on_get_chats(std::move(result->chats_), "GetDialogsQuery");
     td_->messages_manager_->on_get_dialogs(FolderId(), std::move(result->dialogs_), -1, std::move(result->messages_),
                                            std::move(promise_));
   }
@@ -2132,7 +2132,7 @@ void DialogFilterManager::on_get_chatlist_invite(
   }
 
   td_->user_manager_->on_get_users(std::move(users), "on_get_chatlist_invite");
-  td_->contacts_manager_->on_get_chats(std::move(chats), "on_get_chatlist_invite");
+  td_->chat_manager_->on_get_chats(std::move(chats), "on_get_chatlist_invite");
 
   auto missing_dialog_ids = td_->dialog_manager_->get_peers_dialog_ids(std::move(missing_peers), true);
   auto already_dialog_ids = td_->dialog_manager_->get_peers_dialog_ids(std::move(already_peers));

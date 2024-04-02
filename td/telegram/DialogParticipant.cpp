@@ -6,7 +6,7 @@
 //
 #include "td/telegram/DialogParticipant.h"
 
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/Td.h"
@@ -827,7 +827,7 @@ td_api::object_ptr<td_api::chatMembers> DialogParticipants::get_chat_members_obj
   vector<tl_object_ptr<td_api::chatMember>> chat_members;
   chat_members.reserve(participants_.size());
   for (auto &participant : participants_) {
-    chat_members.push_back(td->contacts_manager_->get_chat_member_object(participant, source));
+    chat_members.push_back(td->chat_manager_->get_chat_member_object(participant, source));
   }
 
   return td_api::make_object<td_api::chatMembers>(total_count_, std::move(chat_members));

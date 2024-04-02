@@ -7,7 +7,7 @@
 #include "td/telegram/RecentDialogList.h"
 
 #include "td/telegram/AccessRights.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogListId.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/FolderId.h"
@@ -57,7 +57,7 @@ void RecentDialogList::save_dialogs() const {
         case DialogType::Chat:
           break;
         case DialogType::Channel:
-          username = td_->contacts_manager_->get_channel_first_username(dialog_id.get_channel_id());
+          username = td_->chat_manager_->get_channel_first_username(dialog_id.get_channel_id());
           break;
         case DialogType::SecretChat:
           break;
@@ -207,7 +207,7 @@ void RecentDialogList::update_dialogs() {
         // always keep
         break;
       case DialogType::Chat: {
-        auto channel_id = td_->contacts_manager_->get_chat_migrated_to_channel_id(dialog_id.get_chat_id());
+        auto channel_id = td_->chat_manager_->get_chat_migrated_to_channel_id(dialog_id.get_chat_id());
         if (channel_id.is_valid() && td_->messages_manager_->have_dialog(DialogId(channel_id))) {
           dialog_id = DialogId(channel_id);
         }

@@ -7,7 +7,7 @@
 #include "td/telegram/SponsoredMessageManager.h"
 
 #include "td/telegram/ChannelId.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogInviteLinkManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
@@ -45,7 +45,7 @@ class GetSponsoredMessagesQuery final : public Td::ResultHandler {
 
   void send(ChannelId channel_id) {
     channel_id_ = channel_id;
-    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     if (input_channel == nullptr) {
       return promise_.set_error(Status::Error(400, "Chat info not found"));
     }
@@ -64,7 +64,7 @@ class GetSponsoredMessagesQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "GetSponsoredMessagesQuery");
+    td_->chat_manager_->on_get_channel_error(channel_id_, status, "GetSponsoredMessagesQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -75,7 +75,7 @@ class ViewSponsoredMessageQuery final : public Td::ResultHandler {
  public:
   void send(ChannelId channel_id, const string &message_id) {
     channel_id_ = channel_id;
-    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     if (input_channel == nullptr) {
       return;
     }
@@ -91,7 +91,7 @@ class ViewSponsoredMessageQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "ViewSponsoredMessageQuery");
+    td_->chat_manager_->on_get_channel_error(channel_id_, status, "ViewSponsoredMessageQuery");
   }
 };
 
@@ -105,7 +105,7 @@ class ClickSponsoredMessageQuery final : public Td::ResultHandler {
 
   void send(ChannelId channel_id, const string &message_id) {
     channel_id_ = channel_id;
-    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     if (input_channel == nullptr) {
       return promise_.set_value(Unit());
     }
@@ -122,7 +122,7 @@ class ClickSponsoredMessageQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "ClickSponsoredMessageQuery");
+    td_->chat_manager_->on_get_channel_error(channel_id_, status, "ClickSponsoredMessageQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -138,7 +138,7 @@ class ReportSponsoredMessageQuery final : public Td::ResultHandler {
 
   void send(ChannelId channel_id, const string &message_id, const string &option_id) {
     channel_id_ = channel_id;
-    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     if (input_channel == nullptr) {
       return promise_.set_value(td_api::make_object<td_api::reportChatSponsoredMessageResultFailed>());
     }
@@ -185,7 +185,7 @@ class ReportSponsoredMessageQuery final : public Td::ResultHandler {
     if (status.message() == "PREMIUM_ACCOUNT_REQUIRED") {
       return promise_.set_value(td_api::make_object<td_api::reportChatSponsoredMessageResultPremiumRequired>());
     }
-    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "ReportSponsoredMessageQuery");
+    td_->chat_manager_->on_get_channel_error(channel_id_, status, "ReportSponsoredMessageQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -310,7 +310,7 @@ td_api::object_ptr<td_api::messageSponsor> SponsoredMessageManager::get_message_
     }
     case DialogType::Channel: {
       auto channel_id = sponsored_message.sponsor_dialog_id.get_channel_id();
-      if (!td_->contacts_manager_->is_broadcast_channel(channel_id)) {
+      if (!td_->chat_manager_->is_broadcast_channel(channel_id)) {
         LOG(ERROR) << "Sponsor " << channel_id << " is not a channel";
         return nullptr;
       }
@@ -325,7 +325,7 @@ td_api::object_ptr<td_api::messageSponsor> SponsoredMessageManager::get_message_
           std::move(link));
       if (sponsored_message.show_dialog_photo) {
         photo = get_chat_photo_info_object(td_->file_manager_.get(),
-                                           td_->contacts_manager_->get_channel_dialog_photo(channel_id));
+                                           td_->chat_manager_->get_channel_dialog_photo(channel_id));
       }
       break;
     }
@@ -444,7 +444,7 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
           telegram_api::move_object_as<telegram_api::messages_sponsoredMessages>(sponsored_messages_ptr);
 
       td_->user_manager_->on_get_users(std::move(sponsored_messages->users_), "on_get_dialog_sponsored_messages");
-      td_->contacts_manager_->on_get_chats(std::move(sponsored_messages->chats_), "on_get_dialog_sponsored_messages");
+      td_->chat_manager_->on_get_chats(std::move(sponsored_messages->chats_), "on_get_dialog_sponsored_messages");
 
       for (auto &sponsored_message : sponsored_messages->messages_) {
         DialogId sponsor_dialog_id;

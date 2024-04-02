@@ -6,7 +6,7 @@
 //
 #include "td/telegram/MessageReplyInfo.h"
 
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/ServerMessageId.h"
@@ -66,7 +66,7 @@ MessageReplyInfo::MessageReplyInfo(Td *td, tl_object_ptr<telegram_api::messageRe
           }
         } else if (dialog_type == DialogType::Channel) {
           auto replier_channel_id = dialog_id.get_channel_id();
-          auto min_channel = td->contacts_manager_->get_min_channel(replier_channel_id);
+          auto min_channel = td->chat_manager_->get_min_channel(replier_channel_id);
           if (min_channel == nullptr) {
             LOG(ERROR) << "Receive unknown replied " << replier_channel_id;
             continue;
@@ -188,7 +188,7 @@ bool MessageReplyInfo::need_reget(const Td *td) const {
   for (auto &dialog_id : recent_replier_dialog_ids_) {
     if (dialog_id.get_type() != DialogType::User && !td->dialog_manager_->have_dialog_info(dialog_id)) {
       if (dialog_id.get_type() == DialogType::Channel &&
-          td->contacts_manager_->have_min_channel(dialog_id.get_channel_id())) {
+          td->chat_manager_->have_min_channel(dialog_id.get_channel_id())) {
         return false;
       }
       LOG(INFO) << "Reget a message because of replied " << dialog_id;

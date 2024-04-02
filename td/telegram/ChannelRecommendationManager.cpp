@@ -8,7 +8,7 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/Application.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
@@ -41,7 +41,7 @@ class GetChannelRecommendationsQuery final : public Td::ResultHandler {
   void send(ChannelId channel_id) {
     channel_id_ = channel_id;
 
-    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     send_query(
         G()->net_query_creator().create(telegram_api::channels_getChannelRecommendations(std::move(input_channel))));
@@ -72,7 +72,7 @@ class GetChannelRecommendationsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "GetChannelRecommendationsQuery");
+    td_->chat_manager_->on_get_channel_error(channel_id_, status, "GetChannelRecommendationsQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -132,8 +132,8 @@ bool ChannelRecommendationManager::is_suitable_recommended_channel(DialogId dial
 }
 
 bool ChannelRecommendationManager::is_suitable_recommended_channel(ChannelId channel_id) const {
-  auto status = td_->contacts_manager_->get_channel_status(channel_id);
-  return !status.is_member() && td_->contacts_manager_->have_input_peer_channel(channel_id, AccessRights::Read);
+  auto status = td_->chat_manager_->get_channel_status(channel_id);
+  return !status.is_member() && td_->chat_manager_->have_input_peer_channel(channel_id, AccessRights::Read);
 }
 
 bool ChannelRecommendationManager::are_suitable_recommended_dialogs(
@@ -173,8 +173,8 @@ void ChannelRecommendationManager::get_channel_recommendations(
     return;
   }
   auto channel_id = dialog_id.get_channel_id();
-  if (!td_->contacts_manager_->is_broadcast_channel(channel_id) ||
-      td_->contacts_manager_->get_input_channel(channel_id) == nullptr) {
+  if (!td_->chat_manager_->is_broadcast_channel(channel_id) ||
+      td_->chat_manager_->get_input_channel(channel_id) == nullptr) {
     if (chats_promise) {
       chats_promise.set_value(td_api::make_object<td_api::chats>());
     }
@@ -347,7 +347,7 @@ void ChannelRecommendationManager::on_get_channel_recommendations(
 
   auto chats = r_chats.move_as_ok();
   auto total_count = chats.first;
-  auto channel_ids = td_->contacts_manager_->get_channel_ids(std::move(chats.second), "on_get_channel_recommendations");
+  auto channel_ids = td_->chat_manager_->get_channel_ids(std::move(chats.second), "on_get_channel_recommendations");
   vector<DialogId> dialog_ids;
   if (total_count < static_cast<int32>(channel_ids.size())) {
     LOG(ERROR) << "Receive total_count = " << total_count << " and " << channel_ids.size() << " similar chats for "

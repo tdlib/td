@@ -7,7 +7,7 @@
 #include "td/telegram/StatisticsManager.h"
 
 #include "td/telegram/AccessRights.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageId.h"
@@ -185,7 +185,7 @@ class GetMegagroupStatsQuery final : public Td::ResultHandler {
   void send(ChannelId channel_id, bool is_dark, DcId dc_id) {
     channel_id_ = channel_id;
 
-    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
 
     int32 flags = 0;
@@ -206,7 +206,7 @@ class GetMegagroupStatsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "GetMegagroupStatsQuery");
+    td_->chat_manager_->on_get_channel_error(channel_id_, status, "GetMegagroupStatsQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -223,7 +223,7 @@ class GetBroadcastStatsQuery final : public Td::ResultHandler {
   void send(ChannelId channel_id, bool is_dark, DcId dc_id) {
     channel_id_ = channel_id;
 
-    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
 
     int32 flags = 0;
@@ -260,7 +260,7 @@ class GetBroadcastStatsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "GetBroadcastStatsQuery");
+    td_->chat_manager_->on_get_channel_error(channel_id_, status, "GetBroadcastStatsQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -284,7 +284,7 @@ class GetMessageStatsQuery final : public Td::ResultHandler {
   void send(ChannelId channel_id, MessageId message_id, bool is_dark, DcId dc_id) {
     channel_id_ = channel_id;
 
-    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     if (input_channel == nullptr) {
       return promise_.set_error(Status::Error(400, "Supergroup not found"));
     }
@@ -309,7 +309,7 @@ class GetMessageStatsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "GetMessageStatsQuery");
+    td_->chat_manager_->on_get_channel_error(channel_id_, status, "GetMessageStatsQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -355,7 +355,7 @@ class GetStoryStatsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "GetStoryStatsQuery");
+    td_->chat_manager_->on_get_channel_error(channel_id_, status, "GetStoryStatsQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -403,7 +403,7 @@ class GetMessagePublicForwardsQuery final : public Td::ResultHandler {
   void send(DcId dc_id, MessageFullId message_full_id, const string &offset, int32 limit) {
     dialog_id_ = message_full_id.get_dialog_id();
 
-    auto input_channel = td_->contacts_manager_->get_input_channel(dialog_id_.get_channel_id());
+    auto input_channel = td_->chat_manager_->get_input_channel(dialog_id_.get_channel_id());
     CHECK(input_channel != nullptr);
 
     send_query(G()->net_query_creator().create(
@@ -484,14 +484,14 @@ void StatisticsManager::get_channel_statistics(DialogId dialog_id, bool is_dark,
         send_closure(actor_id, &StatisticsManager::send_get_channel_stats_query, r_dc_id.move_as_ok(),
                      dialog_id.get_channel_id(), is_dark, std::move(promise));
       });
-  td_->contacts_manager_->get_channel_statistics_dc_id(dialog_id, true, std::move(dc_id_promise));
+  td_->chat_manager_->get_channel_statistics_dc_id(dialog_id, true, std::move(dc_id_promise));
 }
 
 void StatisticsManager::send_get_channel_stats_query(DcId dc_id, ChannelId channel_id, bool is_dark,
                                                      Promise<td_api::object_ptr<td_api::ChatStatistics>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
-  if (td_->contacts_manager_->is_megagroup_channel(channel_id)) {
+  if (td_->chat_manager_->is_megagroup_channel(channel_id)) {
     td_->create_handler<GetMegagroupStatsQuery>(std::move(promise))->send(channel_id, is_dark, dc_id);
   } else {
     td_->create_handler<GetBroadcastStatsQuery>(std::move(promise))->send(channel_id, is_dark, dc_id);
@@ -508,8 +508,7 @@ void StatisticsManager::get_channel_message_statistics(
     send_closure(actor_id, &StatisticsManager::send_get_channel_message_stats_query, r_dc_id.move_as_ok(),
                  message_full_id, is_dark, std::move(promise));
   });
-  td_->contacts_manager_->get_channel_statistics_dc_id(message_full_id.get_dialog_id(), false,
-                                                       std::move(dc_id_promise));
+  td_->chat_manager_->get_channel_statistics_dc_id(message_full_id.get_dialog_id(), false, std::move(dc_id_promise));
 }
 
 void StatisticsManager::send_get_channel_message_stats_query(
@@ -539,7 +538,7 @@ void StatisticsManager::get_channel_story_statistics(StoryFullId story_full_id, 
         send_closure(actor_id, &StatisticsManager::send_get_channel_story_stats_query, r_dc_id.move_as_ok(),
                      story_full_id, is_dark, std::move(promise));
       });
-  td_->contacts_manager_->get_channel_statistics_dc_id(story_full_id.get_dialog_id(), false, std::move(dc_id_promise));
+  td_->chat_manager_->get_channel_statistics_dc_id(story_full_id.get_dialog_id(), false, std::move(dc_id_promise));
 }
 
 void StatisticsManager::send_get_channel_story_stats_query(
@@ -569,7 +568,7 @@ void StatisticsManager::load_statistics_graph(DialogId dialog_id, string token, 
     send_closure(actor_id, &StatisticsManager::send_load_async_graph_query, r_dc_id.move_as_ok(), std::move(token), x,
                  std::move(promise));
   });
-  td_->contacts_manager_->get_channel_statistics_dc_id(dialog_id, false, std::move(dc_id_promise));
+  td_->chat_manager_->get_channel_statistics_dc_id(dialog_id, false, std::move(dc_id_promise));
 }
 
 void StatisticsManager::send_load_async_graph_query(DcId dc_id, string token, int64 x,
@@ -593,8 +592,7 @@ void StatisticsManager::get_message_public_forwards(MessageFullId message_full_i
     send_closure(actor_id, &StatisticsManager::send_get_message_public_forwards_query, r_dc_id.move_as_ok(),
                  message_full_id, std::move(offset), limit, std::move(promise));
   });
-  td_->contacts_manager_->get_channel_statistics_dc_id(message_full_id.get_dialog_id(), false,
-                                                       std::move(dc_id_promise));
+  td_->chat_manager_->get_channel_statistics_dc_id(message_full_id.get_dialog_id(), false, std::move(dc_id_promise));
 }
 
 void StatisticsManager::send_get_message_public_forwards_query(
@@ -637,7 +635,7 @@ void StatisticsManager::get_story_public_forwards(StoryFullId story_full_id, str
     send_closure(actor_id, &StatisticsManager::send_get_story_public_forwards_query, r_dc_id.move_as_ok(),
                  story_full_id, std::move(offset), limit, std::move(promise));
   });
-  td_->contacts_manager_->get_channel_statistics_dc_id(dialog_id, false, std::move(dc_id_promise));
+  td_->chat_manager_->get_channel_statistics_dc_id(dialog_id, false, std::move(dc_id_promise));
 }
 
 void StatisticsManager::send_get_story_public_forwards_query(
@@ -715,7 +713,7 @@ void StatisticsManager::get_channel_differences_if_needed(
     telegram_api::object_ptr<telegram_api::stats_publicForwards> &&public_forwards,
     Promise<td_api::object_ptr<td_api::publicForwards>> promise, const char *source) {
   td_->user_manager_->on_get_users(std::move(public_forwards->users_), "stats_publicForwards");
-  td_->contacts_manager_->on_get_chats(std::move(public_forwards->chats_), "stats_publicForwards");
+  td_->chat_manager_->on_get_chats(std::move(public_forwards->chats_), "stats_publicForwards");
 
   vector<const telegram_api::object_ptr<telegram_api::Message> *> messages;
   for (const auto &forward : public_forwards->forwards_) {
