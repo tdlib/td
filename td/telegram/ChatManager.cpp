@@ -2206,6 +2206,7 @@ void ChatManager::ChannelFull::store(StorerT &storer) const {
     STORE_FLAG(has_emoji_sticker_set);
     STORE_FLAG(has_boost_count);
     STORE_FLAG(has_unrestrict_boost_count);
+    STORE_FLAG(can_have_sponsored_messages);
     END_STORE_FLAGS();
   }
   if (has_description) {
@@ -2333,6 +2334,7 @@ void ChatManager::ChannelFull::parse(ParserT &parser) {
     PARSE_FLAG(has_emoji_sticker_set);
     PARSE_FLAG(has_boost_count);
     PARSE_FLAG(has_unrestrict_boost_count);
+    PARSE_FLAG(can_have_sponsored_messages);
     END_PARSE_FLAGS();
   }
   if (has_description) {
@@ -5291,6 +5293,7 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
     auto can_set_sticker_set = channel->can_set_stickers_;
     auto can_set_location = channel->can_set_location_;
     auto is_all_history_available = !channel->hidden_prehistory_;
+    auto can_have_sponsored_messages = !channel->restricted_sponsored_;
     auto has_aggressive_anti_spam_enabled = channel->antispam_;
     auto can_view_statistics = channel->can_view_stats_;
     bool has_pinned_stories = channel->stories_pinned_available_;
@@ -5326,6 +5329,7 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
         channel_full->can_view_statistics != can_view_statistics || channel_full->stats_dc_id != stats_dc_id ||
         channel_full->sticker_set_id != sticker_set_id || channel_full->emoji_sticker_set_id != emoji_sticker_set_id ||
         channel_full->is_all_history_available != is_all_history_available ||
+        channel_full->can_have_sponsored_messages != can_have_sponsored_messages ||
         channel_full->has_aggressive_anti_spam_enabled != has_aggressive_anti_spam_enabled ||
         channel_full->has_hidden_participants != has_hidden_participants ||
         channel_full->has_pinned_stories != has_pinned_stories || channel_full->boost_count != boost_count ||
@@ -5343,6 +5347,7 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
       channel_full->sticker_set_id = sticker_set_id;
       channel_full->emoji_sticker_set_id = emoji_sticker_set_id;
       channel_full->is_all_history_available = is_all_history_available;
+      channel_full->can_have_sponsored_messages = can_have_sponsored_messages;
       channel_full->has_aggressive_anti_spam_enabled = has_aggressive_anti_spam_enabled;
       channel_full->has_pinned_stories = has_pinned_stories;
       channel_full->boost_count = boost_count;
@@ -8787,9 +8792,10 @@ tl_object_ptr<td_api::supergroupFullInfo> ChatManager::get_supergroup_full_info_
       can_hide_channel_participants(channel_id, channel_full).is_ok(), channel_full->can_set_sticker_set,
       channel_full->can_set_location, channel_full->can_view_statistics,
       can_toggle_channel_aggressive_anti_spam(channel_id, channel_full).is_ok(), channel_full->is_all_history_available,
-      channel_full->has_aggressive_anti_spam_enabled, channel_full->has_pinned_stories, channel_full->boost_count,
-      channel_full->unrestrict_boost_count, channel_full->sticker_set_id.get(),
-      channel_full->emoji_sticker_set_id.get(), channel_full->location.get_chat_location_object(),
+      channel_full->can_have_sponsored_messages, channel_full->has_aggressive_anti_spam_enabled,
+      channel_full->has_pinned_stories, channel_full->boost_count, channel_full->unrestrict_boost_count,
+      channel_full->sticker_set_id.get(), channel_full->emoji_sticker_set_id.get(),
+      channel_full->location.get_chat_location_object(),
       channel_full->invite_link.get_chat_invite_link_object(td_->user_manager_.get()), std::move(bot_commands),
       get_basic_group_id_object(channel_full->migrated_from_chat_id, "get_supergroup_full_info_object"),
       channel_full->migrated_from_max_message_id.get());

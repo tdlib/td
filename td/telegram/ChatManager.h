@@ -576,6 +576,7 @@ class ChatManager final : public Actor {
     bool can_view_statistics = false;
     bool is_can_view_statistics_inited = false;
     bool is_all_history_available = true;
+    bool can_have_sponsored_messages = true;
     bool has_aggressive_anti_spam_enabled = false;
     bool can_be_deleted = false;
     bool has_pinned_stories = false;
