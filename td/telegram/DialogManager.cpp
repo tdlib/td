@@ -1964,7 +1964,8 @@ void DialogManager::on_dialog_usernames_received(DialogId dialog_id, const Usern
 
 void DialogManager::check_dialog_username(DialogId dialog_id, const string &username,
                                           Promise<CheckDialogUsernameResult> &&promise) {
-  if (dialog_id != DialogId() && !have_dialog_force(dialog_id, "check_dialog_username")) {
+  if (dialog_id != DialogId() && dialog_id.get_type() != DialogType::User &&
+      !have_dialog_force(dialog_id, "check_dialog_username")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
 
