@@ -2421,7 +2421,7 @@ class CliClient final : public Actor {
     string args;
     std::tie(op, args) = split(cmd);
 
-    const int32 OP_BLOCK_COUNT = 10;
+    const int32 OP_BLOCK_COUNT = 19;
     int32 op_not_found_count = 0;
 
     if (op == "gas") {
@@ -2598,7 +2598,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::checkPhoneNumberConfirmationCode>(args));
     } else if (op == "rpncc") {
       send_request(td_api::make_object<td_api::resendPhoneNumberConfirmationCode>());
-    } else if (op == "rpr") {
+    } else {
+      op_not_found_count++;
+    }
+
+    if (op == "rpr") {
       send_request(td_api::make_object<td_api::requestPasswordRecovery>());
     } else if (op == "cprc") {
       string recovery_code = args;
@@ -3127,7 +3131,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setCustomLanguagePackString>(language_code, std::move(str)));
     } else if (op == "dlp") {
       send_request(td_api::make_object<td_api::deleteLanguagePack>(args));
-    } else if (op == "on" || op == "off") {
+    } else {
+      op_not_found_count++;
+    }
+
+    if (op == "on" || op == "off") {
       send_request(td_api::make_object<td_api::setOption>("online",
                                                           td_api::make_object<td_api::optionValueBoolean>(op == "on")));
     } else if (op == "go") {
@@ -3403,7 +3411,11 @@ class CliClient final : public Actor {
       FileId file_id;
       get_args(args, file_id);
       send_request(td_api::make_object<td_api::getAttachedStickerSets>(file_id));
-    } else if (op == "storage") {
+    } else {
+      op_not_found_count++;
+    }
+
+    if (op == "storage") {
       int32 chat_limit;
       get_args(args, chat_limit);
       send_request(td_api::make_object<td_api::getStorageStatistics>(chat_limit));
@@ -4149,7 +4161,11 @@ class CliClient final : public Actor {
       GroupCallId group_call_id;
       get_args(args, group_call_id);
       send_request(td_api::make_object<td_api::endGroupCall>(group_call_id));
-    } else if (op == "rpcil") {
+    } else {
+      op_not_found_count++;
+    }
+
+    if (op == "rpcil") {
       ChatId chat_id;
       get_args(args, chat_id);
       send_request(td_api::make_object<td_api::replacePrimaryChatInviteLink>(chat_id));
@@ -4641,7 +4657,11 @@ class CliClient final : public Actor {
       UserId user_id;
       get_args(args, chat_id, user_id);
       send_request(td_api::make_object<td_api::getUserChatBoosts>(chat_id, user_id));
-    } else if (op == "gamb") {
+    } else {
+      op_not_found_count++;
+    }
+
+    if (op == "gamb") {
       UserId user_id;
       get_args(args, user_id);
       send_request(td_api::make_object<td_api::getAttachmentMenuBot>(user_id));
@@ -4912,7 +4932,11 @@ class CliClient final : public Actor {
       get_args(args, chat_id, message_id, date);
       send_request(td_api::make_object<td_api::editMessageSchedulingState>(chat_id, message_id,
                                                                            as_message_scheduling_state(date)));
-    } else if (op == "cqrsn") {
+    } else {
+      op_not_found_count++;
+    }
+
+    if (op == "cqrsn") {
       execute(td_api::make_object<td_api::checkQuickReplyShortcutName>(args));
     } else if (op == "lqrs") {
       send_request(td_api::make_object<td_api::loadQuickReplyShortcuts>());
@@ -5465,7 +5489,11 @@ class CliClient final : public Actor {
       bool force;
       get_args(args, supergroup_id, force);
       send_request(td_api::make_object<td_api::createSupergroupChat>(as_supergroup_id(supergroup_id), force));
-    } else if (op == "gcltac") {
+    } else {
+      op_not_found_count++;
+    }
+
+    if (op == "gcltac") {
       ChatId chat_id;
       get_args(args, chat_id);
       send_request(td_api::make_object<td_api::getChatListsToAddChat>(chat_id));
@@ -5964,7 +5992,11 @@ class CliClient final : public Actor {
       get_args(args, supergroup_id, join_by_request);
       send_request(
           td_api::make_object<td_api::toggleSupergroupJoinByRequest>(as_supergroup_id(supergroup_id), join_by_request));
-    } else if (op == "scar") {
+    } else {
+      op_not_found_count++;
+    }
+
+    if (op == "scar") {
       ChatId chat_id;
       string available_reactions;
       get_args(args, chat_id, available_reactions);
@@ -6179,7 +6211,11 @@ class CliClient final : public Actor {
       UserId bot_user_id;
       get_args(args, bot_user_id);
       send_request(td_api::make_object<td_api::allowBotToSendMessages>(bot_user_id));
-    } else if (op == "swacr") {
+    } else {
+      op_not_found_count++;
+    }
+
+    if (op == "swacr") {
       UserId bot_user_id;
       string method;
       string parameters;
