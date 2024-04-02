@@ -4333,6 +4333,8 @@ void Td::on_request(uint64 id, const td_api::getCurrentState &request) {
   updates.push_back(get_update_connection_state_object(connection_state_));
 
   if (auth_manager_->is_authorized()) {
+    user_manager_->get_current_state(updates);
+
     contacts_manager_->get_current_state(updates);
 
     background_manager_->get_current_state(updates);
