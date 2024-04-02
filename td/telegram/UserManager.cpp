@@ -2958,12 +2958,12 @@ void UserManager::on_update_user_is_contact(User *u, UserId user_id, bool is_con
     if (u->is_contact != is_contact) {
       u->is_contact = is_contact;
       u->is_is_contact_changed = true;
-
-      reload_contact_birthdates(true);
     }
     if (u->is_mutual_contact != is_mutual_contact) {
       u->is_mutual_contact = is_mutual_contact;
       u->is_is_mutual_contact_changed = true;
+
+      reload_contact_birthdates(true);
     }
     u->is_close_friend = is_close_friend;
     u->is_changed = true;
@@ -6752,7 +6752,7 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
     user_full->birthdate = birthdate;
     user_full->is_changed = true;
 
-    if (u->is_contact) {
+    if (u->is_mutual_contact) {
       reload_contact_birthdates(true);
     }
   }
