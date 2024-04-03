@@ -2258,6 +2258,7 @@ void ChatManager::ChannelFull::store(StorerT &storer) const {
     STORE_FLAG(has_boost_count);
     STORE_FLAG(has_unrestrict_boost_count);
     STORE_FLAG(can_have_sponsored_messages);
+    STORE_FLAG(can_view_revenue);
     END_STORE_FLAGS();
   }
   if (has_description) {
@@ -2386,6 +2387,7 @@ void ChatManager::ChannelFull::parse(ParserT &parser) {
     PARSE_FLAG(has_boost_count);
     PARSE_FLAG(has_unrestrict_boost_count);
     PARSE_FLAG(can_have_sponsored_messages);
+    PARSE_FLAG(can_view_revenue);
     END_PARSE_FLAGS();
   }
   if (has_description) {
@@ -5364,6 +5366,7 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
     auto can_have_sponsored_messages = !channel->restricted_sponsored_;
     auto has_aggressive_anti_spam_enabled = channel->antispam_;
     auto can_view_statistics = channel->can_view_stats_;
+    auto can_view_revenue = channel->can_view_revenue_;
     bool has_pinned_stories = channel->stories_pinned_available_;
     auto boost_count = channel->boosts_applied_;
     auto unrestrict_boost_count = channel->boosts_unrestrict_;
@@ -5401,7 +5404,8 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
         channel_full->has_aggressive_anti_spam_enabled != has_aggressive_anti_spam_enabled ||
         channel_full->has_hidden_participants != has_hidden_participants ||
         channel_full->has_pinned_stories != has_pinned_stories || channel_full->boost_count != boost_count ||
-        channel_full->unrestrict_boost_count != unrestrict_boost_count) {
+        channel_full->unrestrict_boost_count != unrestrict_boost_count ||
+        channel_full->can_view_revenue != can_view_revenue) {
       channel_full->participant_count = participant_count;
       channel_full->administrator_count = administrator_count;
       channel_full->restricted_count = restricted_count;
@@ -5420,6 +5424,7 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
       channel_full->has_pinned_stories = has_pinned_stories;
       channel_full->boost_count = boost_count;
       channel_full->unrestrict_boost_count = unrestrict_boost_count;
+      channel_full->can_view_revenue = can_view_revenue;
 
       channel_full->is_changed = true;
     }
@@ -8871,7 +8876,7 @@ tl_object_ptr<td_api::supergroupFullInfo> ChatManager::get_supergroup_full_info_
       channel_full->banned_count, DialogId(channel_full->linked_channel_id).get(), channel_full->slow_mode_delay,
       slow_mode_delay_expires_in, channel_full->can_get_participants, has_hidden_participants,
       can_hide_channel_participants(channel_id, channel_full).is_ok(), channel_full->can_set_sticker_set,
-      channel_full->can_set_location, channel_full->can_view_statistics,
+      channel_full->can_set_location, channel_full->can_view_statistics, channel_full->can_view_revenue,
       can_toggle_channel_aggressive_anti_spam(channel_id, channel_full).is_ok(), channel_full->is_all_history_available,
       channel_full->can_have_sponsored_messages, channel_full->has_aggressive_anti_spam_enabled,
       channel_full->has_pinned_stories, channel_full->boost_count, channel_full->unrestrict_boost_count,

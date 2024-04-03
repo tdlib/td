@@ -1184,6 +1184,7 @@ supergroup id:int53 usernames:usernames date:int32 status:ChatMemberStatus membe
 //@can_set_sticker_set True, if the supergroup sticker set can be changed
 //@can_set_location True, if the supergroup location can be changed
 //@can_get_statistics True, if the supergroup or channel statistics are available
+//@can_get_revenue True, if the supergroup or channel revenue statistics are available
 //@can_toggle_aggressive_anti_spam True, if aggressive anti-spam checks can be enabled or disabled in the supergroup
 //@is_all_history_available True, if new chat members will have access to old messages. In public, discussion, of forum groups and all channels, old messages are always available,
 //-so this option affects only private non-forum supergroups without a linked chat. The value of this field is only available to chat administrators
@@ -1199,7 +1200,7 @@ supergroup id:int53 usernames:usernames date:int32 status:ChatMemberStatus membe
 //@bot_commands List of commands of bots in the group
 //@upgraded_from_basic_group_id Identifier of the basic group from which supergroup was upgraded; 0 if none
 //@upgraded_from_max_message_id Identifier of the last message in the basic group from which supergroup was upgraded; 0 if none
-supergroupFullInfo photo:chatPhoto description:string member_count:int32 administrator_count:int32 restricted_count:int32 banned_count:int32 linked_chat_id:int53 slow_mode_delay:int32 slow_mode_delay_expires_in:double can_get_members:Bool has_hidden_members:Bool can_hide_members:Bool can_set_sticker_set:Bool can_set_location:Bool can_get_statistics:Bool can_toggle_aggressive_anti_spam:Bool is_all_history_available:Bool can_have_sponsored_messages:Bool has_aggressive_anti_spam_enabled:Bool has_pinned_stories:Bool my_boost_count:int32 unrestrict_boost_count:int32 sticker_set_id:int64 custom_emoji_sticker_set_id:int64 location:chatLocation invite_link:chatInviteLink bot_commands:vector<botCommands> upgraded_from_basic_group_id:int53 upgraded_from_max_message_id:int53 = SupergroupFullInfo;
+supergroupFullInfo photo:chatPhoto description:string member_count:int32 administrator_count:int32 restricted_count:int32 banned_count:int32 linked_chat_id:int53 slow_mode_delay:int32 slow_mode_delay_expires_in:double can_get_members:Bool has_hidden_members:Bool can_hide_members:Bool can_set_sticker_set:Bool can_set_location:Bool can_get_statistics:Bool can_get_revenue:Bool can_toggle_aggressive_anti_spam:Bool is_all_history_available:Bool can_have_sponsored_messages:Bool has_aggressive_anti_spam_enabled:Bool has_pinned_stories:Bool my_boost_count:int32 unrestrict_boost_count:int32 sticker_set_id:int64 custom_emoji_sticker_set_id:int64 location:chatLocation invite_link:chatInviteLink bot_commands:vector<botCommands> upgraded_from_basic_group_id:int53 upgraded_from_max_message_id:int53 = SupergroupFullInfo;
 
 
 //@class SecretChatState @description Describes the current secret chat state
