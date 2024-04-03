@@ -12,6 +12,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StoryId.h"
 #include "td/telegram/StoryManager.h"
@@ -265,6 +266,62 @@ class GetBroadcastStatsQuery final : public Td::ResultHandler {
   }
 };
 
+static td_api::object_ptr<td_api::chatRevenueStatistics> convert_broadcast_revenue_stats(
+    telegram_api::object_ptr<telegram_api::stats_broadcastRevenueStats> obj) {
+  CHECK(obj != nullptr);
+  auto get_amount = [](int64 amount) {
+    if (amount < 0 || !check_currency_amount(amount)) {
+      LOG(ERROR) << "Receive currency amount = " << amount;
+      return static_cast<int64>(0);
+    }
+    return amount;
+  };
+  return td_api::make_object<td_api::chatRevenueStatistics>(
+      convert_stats_graph(std::move(obj->top_hours_graph_)), convert_stats_graph(std::move(obj->revenue_graph_)), "TON",
+      get_amount(obj->overall_revenue_), get_amount(obj->current_balance_), get_amount(obj->available_balance_),
+      obj->usd_rate_ > 0 ? clamp(obj->usd_rate_ * 1e-7, 1e-18, 1e18) : 1.0);
+}
+
+class GetBroadcastRevenueStatsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::chatRevenueStatistics>> promise_;
+  ChannelId channel_id_;
+
+ public:
+  explicit GetBroadcastRevenueStatsQuery(Promise<td_api::object_ptr<td_api::chatRevenueStatistics>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id, bool is_dark) {
+    channel_id_ = channel_id;
+
+    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
+    if (input_channel == nullptr) {
+      return on_error(Status::Error(500, "Chat info not found"));
+    }
+
+    int32 flags = 0;
+    if (is_dark) {
+      flags |= telegram_api::stats_getBroadcastRevenueStats::DARK_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::stats_getBroadcastRevenueStats(flags, false /*ignored*/, std::move(input_channel))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stats_getBroadcastRevenueStats>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(convert_broadcast_revenue_stats(result_ptr.move_as_ok()));
+  }
+
+  void on_error(Status status) final {
+    td_->chat_manager_->on_get_channel_error(channel_id_, status, "GetBroadcastStatsQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 static td_api::object_ptr<td_api::messageStatistics> convert_message_stats(
     telegram_api::object_ptr<telegram_api::stats_messageStats> obj) {
   return td_api::make_object<td_api::messageStatistics>(
@@ -496,6 +553,17 @@ void StatisticsManager::send_get_channel_stats_query(DcId dc_id, ChannelId chann
   } else {
     td_->create_handler<GetBroadcastStatsQuery>(std::move(promise))->send(channel_id, is_dark, dc_id);
   }
+}
+
+void StatisticsManager::get_channel_revenue_statistics(
+    DialogId dialog_id, bool is_dark, Promise<td_api::object_ptr<td_api::chatRevenueStatistics>> &&promise) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "get_channel_revenue_statistics")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  if (!td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
+    return promise.set_error(Status::Error(400, "Chat is not a channel"));
+  }
+  td_->create_handler<GetBroadcastRevenueStatsQuery>(std::move(promise))->send(dialog_id.get_channel_id(), is_dark);
 }
 
 void StatisticsManager::get_channel_message_statistics(

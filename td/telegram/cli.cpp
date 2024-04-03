@@ -6464,6 +6464,11 @@ class CliClient final : public Actor {
       bool is_dark;
       get_args(args, chat_id, is_dark);
       send_request(td_api::make_object<td_api::getChatStatistics>(chat_id, is_dark));
+    } else if (op == "gcrst") {
+      ChatId chat_id;
+      bool is_dark;
+      get_args(args, chat_id, is_dark);
+      send_request(td_api::make_object<td_api::getChatRevenueStatistics>(chat_id, is_dark));
     } else {
       op_not_found_count++;
     }
