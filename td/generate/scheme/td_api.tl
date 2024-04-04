@@ -6599,6 +6599,37 @@ messageStatistics message_interaction_graph:StatisticalGraph message_reaction_gr
 storyStatistics story_interaction_graph:StatisticalGraph story_reaction_graph:StatisticalGraph = StoryStatistics;
 
 
+//@class ChatRevenueTransaction @description Describes a transaction for revenue earned from sponsored messages in a chat
+
+//@description Describes earnings from sponsored messages in a chat in some time frame
+//@cryptocurrency Cryptocurrency in which revenue is calculated
+//@cryptocurrency_amount The earned amount, in the smallest units of the cryptocurrency
+//@start_date Point in time (Unix timestamp) when the earnings started
+//@end_date Point in time (Unix timestamp) when the earnings ended
+chatRevenueTransactionEarnings cryptocurrency:string cryptocurrency_amount:int64 start_date:int32 end_date:int32 = ChatRevenueTransaction;
+
+//@description Describes a withdrawal of earnings
+//@cryptocurrency Cryptocurrency in which revenue is calculated
+//@cryptocurrency_amount The withdrawn amount, in the smallest units of the cryptocurrency
+//@withdrawal_date Point in time (Unix timestamp) when the earnings were withdrawn
+//@is_pending True, if the transaction didn't complete yet
+//@is_failed True, if the transaction has failed
+//@provider Name of the payment provider
+//@transaction_date Point in time (Unix timestamp) when the withdrawal was completed; 0 if none
+//@transaction_url The URL where the transaction can be viewed; empty if none
+chatRevenueTransactionWithdrawal cryptocurrency:string cryptocurrency_amount:int64 withdrawal_date:int32 is_pending:Bool is_failed:Bool provider:string transaction_date:int32 transaction_url:string = ChatRevenueTransaction;
+
+//@description Describes a refund for failed withdrawal of earnings
+//@cryptocurrency Cryptocurrency in which revenue is calculated
+//@cryptocurrency_amount The withdrawn amount, in the smallest units of the cryptocurrency
+//@refund_date Point in time (Unix timestamp) when the transaction was refunded
+//@provider Name of the payment provider
+chatRevenueTransactionRefund cryptocurrency:string cryptocurrency_amount:int64 refund_date:int32 provider:string = ChatRevenueTransaction;
+
+//@description Contains a list of chat revenue transactions @total_count Total number of transactions @transactions List of transactions
+chatRevenueTransactions total_count:int32 transactions:vector<ChatRevenueTransaction> = ChatRevenueTransactions;
+
+
 //@description A point on a Cartesian plane @x The point's first coordinate @y The point's second coordinate
 point x:double y:double = Point;
 
@@ -9879,7 +9910,7 @@ reportSupergroupAntiSpamFalsePositive supergroup_id:int53 message_id:int53 = Ok;
 //@supergroup_id Identifier of the supergroup or channel
 //@filter The type of users to return; pass null to use supergroupMembersFilterRecent
 //@offset Number of users to skip
-//@limit The maximum number of users be returned; up to 200
+//@limit The maximum number of users to be returned; up to 200
 getSupergroupMembers supergroup_id:int53 filter:SupergroupMembersFilter offset:int32 limit:int32 = ChatMembers;
 
 
@@ -10100,8 +10131,14 @@ reportMessageReactions chat_id:int53 message_id:int53 sender_id:MessageSender = 
 //@description Returns detailed statistics about a chat. Currently, this method can be used only for supergroups and channels. Can be used only if supergroupFullInfo.can_get_statistics == true @chat_id Chat identifier @is_dark Pass true if a dark theme is used by the application
 getChatStatistics chat_id:int53 is_dark:Bool = ChatStatistics;
 
-//@description Returns detailed revemue statistics about a chat. Currently, this method can be used only for channels. Can be used only if supergroupFullInfo.can_get_revenue_statistics == true @chat_id Chat identifier @is_dark Pass true if a dark theme is used by the application
+//@description Returns detailed revenue statistics about a chat. Currently, this method can be used only for channels if supergroupFullInfo.can_get_revenue_statistics == true @chat_id Chat identifier @is_dark Pass true if a dark theme is used by the application
 getChatRevenueStatistics chat_id:int53 is_dark:Bool = ChatRevenueStatistics;
+
+//@description Returns list of revenue transactions for a chat. Currently, this method can be used only for channels if supergroupFullInfo.can_get_revenue_statistics == true
+//@chat_id Chat identifier
+//@offset Number of transactions to skip
+//@limit The maximum number of transactions to be returned; up to 200
+getChatRevenueTransactions chat_id:int53 offset:int32 limit:int32 = ChatRevenueTransactions;
 
 //@description Returns detailed statistics about a message. Can be used only if message.can_get_statistics == true @chat_id Chat identifier @message_id Message identifier @is_dark Pass true if a dark theme is used by the application
 getMessageStatistics chat_id:int53 message_id:int53 is_dark:Bool = MessageStatistics;

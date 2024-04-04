@@ -8548,6 +8548,13 @@ void Td::on_request(uint64 id, const td_api::getChatRevenueStatistics &request) 
   statistics_manager_->get_channel_revenue_statistics(DialogId(request.chat_id_), request.is_dark_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getChatRevenueTransactions &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  statistics_manager_->get_channel_revenue_transactions(DialogId(request.chat_id_), request.offset_, request.limit_,
+                                                        std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getMessageStatistics &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

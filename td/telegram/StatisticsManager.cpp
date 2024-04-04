@@ -266,16 +266,17 @@ class GetBroadcastStatsQuery final : public Td::ResultHandler {
   }
 };
 
+static int64 get_amount(int64 amount, bool allow_negative = false) {
+  if (!allow_negative && amount < 0) {
+    LOG(ERROR) << "Receive currency amount = " << amount;
+    return 0;
+  }
+  return amount;
+}
+
 static td_api::object_ptr<td_api::chatRevenueStatistics> convert_broadcast_revenue_stats(
     telegram_api::object_ptr<telegram_api::stats_broadcastRevenueStats> obj) {
   CHECK(obj != nullptr);
-  auto get_amount = [](int64 amount) {
-    if (amount < 0 || !check_currency_amount(amount)) {
-      LOG(ERROR) << "Receive currency amount = " << amount;
-      return static_cast<int64>(0);
-    }
-    return amount;
-  };
   return td_api::make_object<td_api::chatRevenueStatistics>(
       convert_stats_graph(std::move(obj->top_hours_graph_)), convert_stats_graph(std::move(obj->revenue_graph_)), "TON",
       get_amount(obj->overall_revenue_), get_amount(obj->current_balance_), get_amount(obj->available_balance_),
@@ -318,6 +319,79 @@ class GetBroadcastRevenueStatsQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     td_->chat_manager_->on_get_channel_error(channel_id_, status, "GetBroadcastStatsQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
+class GetBroadcastRevenueTransactionsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::chatRevenueTransactions>> promise_;
+  ChannelId channel_id_;
+
+ public:
+  explicit GetBroadcastRevenueTransactionsQuery(Promise<td_api::object_ptr<td_api::chatRevenueTransactions>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id, int32 offset, int32 limit) {
+    channel_id_ = channel_id;
+
+    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
+    if (input_channel == nullptr) {
+      return on_error(Status::Error(500, "Chat info not found"));
+    }
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::stats_getBroadcastRevenueTransactions(std::move(input_channel), offset, limit)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stats_getBroadcastRevenueTransactions>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetBroadcastRevenueTransactionsQuery: " << to_string(ptr);
+    auto total_count = ptr->count_;
+    if (total_count < static_cast<int32>(ptr->transactions_.size())) {
+      LOG(ERROR) << "Receive total_count = " << total_count << " and " << ptr->transactions_.size() << " transactions";
+      total_count = static_cast<int32>(ptr->transactions_.size());
+    }
+    vector<td_api::object_ptr<td_api::ChatRevenueTransaction>> transactions;
+    for (auto &transaction_ptr : ptr->transactions_) {
+      switch (transaction_ptr->get_id()) {
+        case telegram_api::broadcastRevenueTransactionProceeds::ID: {
+          auto transaction =
+              telegram_api::move_object_as<telegram_api::broadcastRevenueTransactionProceeds>(transaction_ptr);
+          transactions.push_back(td_api::make_object<td_api::chatRevenueTransactionEarnings>(
+              "TON", get_amount(transaction->amount_), transaction->from_date_, transaction->to_date_));
+          break;
+        }
+        case telegram_api::broadcastRevenueTransactionWithdrawal::ID: {
+          auto transaction =
+              telegram_api::move_object_as<telegram_api::broadcastRevenueTransactionWithdrawal>(transaction_ptr);
+          transactions.push_back(td_api::make_object<td_api::chatRevenueTransactionWithdrawal>(
+              "TON", get_amount(transaction->amount_, true), transaction->date_, transaction->pending_,
+              transaction->failed_, transaction->provider_, transaction->transaction_date_,
+              transaction->transaction_url_));
+          break;
+        }
+        case telegram_api::broadcastRevenueTransactionRefund::ID: {
+          auto transaction =
+              telegram_api::move_object_as<telegram_api::broadcastRevenueTransactionRefund>(transaction_ptr);
+          transactions.push_back(td_api::make_object<td_api::chatRevenueTransactionRefund>(
+              "TON", get_amount(transaction->amount_), transaction->date_, transaction->provider_));
+          break;
+        }
+        default:
+          UNREACHABLE();
+      }
+    }
+    promise_.set_value(td_api::make_object<td_api::chatRevenueTransactions>(total_count, std::move(transactions)));
+  }
+
+  void on_error(Status status) final {
+    td_->chat_manager_->on_get_channel_error(channel_id_, status, "GetBroadcastRevenueTransactionsQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -564,6 +638,19 @@ void StatisticsManager::get_channel_revenue_statistics(
     return promise.set_error(Status::Error(400, "Chat is not a channel"));
   }
   td_->create_handler<GetBroadcastRevenueStatsQuery>(std::move(promise))->send(dialog_id.get_channel_id(), is_dark);
+}
+
+void StatisticsManager::get_channel_revenue_transactions(
+    DialogId dialog_id, int32 offset, int32 limit,
+    Promise<td_api::object_ptr<td_api::chatRevenueTransactions>> &&promise) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "get_channel_revenue_transactions")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  if (!td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
+    return promise.set_error(Status::Error(400, "Chat is not a channel"));
+  }
+  td_->create_handler<GetBroadcastRevenueTransactionsQuery>(std::move(promise))
+      ->send(dialog_id.get_channel_id(), offset, limit);
 }
 
 void StatisticsManager::get_channel_message_statistics(

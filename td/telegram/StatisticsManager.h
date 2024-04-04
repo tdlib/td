@@ -33,6 +33,9 @@ class StatisticsManager final : public Actor {
   void get_channel_revenue_statistics(DialogId dialog_id, bool is_dark,
                                       Promise<td_api::object_ptr<td_api::chatRevenueStatistics>> &&promise);
 
+  void get_channel_revenue_transactions(DialogId dialog_id, int32 offset, int32 limit,
+                                        Promise<td_api::object_ptr<td_api::chatRevenueTransactions>> &&promise);
+
   void get_channel_message_statistics(MessageFullId message_full_id, bool is_dark,
                                       Promise<td_api::object_ptr<td_api::messageStatistics>> &&promise);
 
