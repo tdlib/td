@@ -49,6 +49,9 @@ class NativeFd {
 
   Status duplicate(const NativeFd &to) const;
 
+  Result<uint32> maximize_snd_buffer(uint32 max_size = 0) const;
+  Result<uint32> maximize_rcv_buffer(uint32 max_size = 0) const;
+
   void close();
   Fd release();
 
@@ -61,6 +64,8 @@ class NativeFd {
 #if TD_PORT_WINDOWS
   bool is_socket_{false};
 #endif
+  static constexpr uint32 DEFAULT_MAX_SND_BUFFER_SIZE = (1 << 24);
+  static constexpr uint32 DEFAULT_MAX_RCV_BUFFER_SIZE = (1 << 24);
 };
 
 StringBuilder &operator<<(StringBuilder &sb, const NativeFd &fd);
