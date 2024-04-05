@@ -822,4 +822,12 @@ bool UdpSocketFd::is_critical_read_error(const Status &status) {
   return status.code() == ENOMEM || status.code() == ENOBUFS;
 }
 
+Result<uint32> UdpSocketFd::maximize_snd_buffer(uint32 max_size) {
+  return get_native_fd().maximize_snd_buffer(max_size);
+}
+
+Result<uint32> UdpSocketFd::maximize_rcv_buffer(uint32 max_size) {
+  return get_native_fd().maximize_rcv_buffer(max_size);
+}
+
 }  // namespace td

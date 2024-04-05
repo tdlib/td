@@ -717,4 +717,12 @@ Result<size_t> SocketFd::read(MutableSlice slice) {
   return impl_->read(slice);
 }
 
+Result<uint32> SocketFd::maximize_snd_buffer(uint32 max_size) {
+  return get_native_fd().maximize_snd_buffer(max_size);
+}
+
+Result<uint32> SocketFd::maximize_rcv_buffer(uint32 max_size) {
+  return get_native_fd().maximize_rcv_buffer(max_size);
+}
+
 }  // namespace td
