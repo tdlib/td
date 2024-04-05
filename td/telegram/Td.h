@@ -1615,6 +1615,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::getChatRevenueStatistics &request);
 
+  void on_request(uint64 id, const td_api::getChatRevenueWithdrawalUrl &request);
+
   void on_request(uint64 id, const td_api::getChatRevenueTransactions &request);
 
   void on_request(uint64 id, const td_api::getMessageStatistics &request);

@@ -8548,6 +8548,20 @@ void Td::on_request(uint64 id, const td_api::getChatRevenueStatistics &request) 
   statistics_manager_->get_channel_revenue_statistics(DialogId(request.chat_id_), request.is_dark_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getChatRevenueWithdrawalUrl &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      promise.set_value(td_api::make_object<td_api::httpUrl>(result.move_as_ok()));
+    }
+  });
+  statistics_manager_->get_channel_revenue_withdrawal_url(DialogId(request.chat_id_), request.password_,
+                                                          std::move(query_promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getChatRevenueTransactions &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

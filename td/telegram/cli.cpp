@@ -6469,6 +6469,11 @@ class CliClient final : public Actor {
       bool is_dark;
       get_args(args, chat_id, is_dark);
       send_request(td_api::make_object<td_api::getChatRevenueStatistics>(chat_id, is_dark));
+    } else if (op == "gcrwu") {
+      ChatId chat_id;
+      string password;
+      get_args(args, chat_id, password);
+      send_request(td_api::make_object<td_api::getChatRevenueWithdrawalUrl>(chat_id, password));
     } else if (op == "gcrt") {
       ChatId chat_id;
       int32 offset;

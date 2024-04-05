@@ -13,6 +13,7 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/PasswordManager.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StoryId.h"
 #include "td/telegram/StoryManager.h"
@@ -319,6 +320,41 @@ class GetBroadcastRevenueStatsQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     td_->chat_manager_->on_get_channel_error(channel_id_, status, "GetBroadcastStatsQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
+class GetBroadcastRevenueWithdrawalUrlQuery final : public Td::ResultHandler {
+  Promise<string> promise_;
+  ChannelId channel_id_;
+
+ public:
+  explicit GetBroadcastRevenueWithdrawalUrlQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id, telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password) {
+    channel_id_ = channel_id;
+
+    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
+    if (input_channel == nullptr) {
+      return on_error(Status::Error(500, "Chat info not found"));
+    }
+
+    send_query(G()->net_query_creator().create(telegram_api::stats_getBroadcastRevenueWithdrawalUrl(
+        std::move(input_channel), std::move(input_check_password))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stats_getBroadcastRevenueWithdrawalUrl>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(std::move(result_ptr.ok_ref()->url_));
+  }
+
+  void on_error(Status status) final {
+    td_->chat_manager_->on_get_channel_error(channel_id_, status, "GetBroadcastRevenueWithdrawalUrlQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -653,6 +689,42 @@ void StatisticsManager::get_channel_revenue_statistics(
     return promise.set_error(Status::Error(400, "Chat is not a channel"));
   }
   td_->create_handler<GetBroadcastRevenueStatsQuery>(std::move(promise))->send(dialog_id.get_channel_id(), is_dark);
+}
+
+void StatisticsManager::get_channel_revenue_withdrawal_url(DialogId dialog_id, const string &password,
+                                                           Promise<string> &&promise) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "get_channel_revenue_withdrawal_url")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  if (!td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
+    return promise.set_error(Status::Error(400, "Chat is not a channel"));
+  }
+  auto channel_id = dialog_id.get_channel_id();
+  if (!td_->chat_manager_->get_channel_permissions(channel_id).is_creator()) {
+    return promise.set_error(Status::Error(400, "Not enough rights to withdraw revenue"));
+  }
+  if (password.empty()) {
+    return promise.set_error(Status::Error(400, "PASSWORD_HASH_INVALID"));
+  }
+  send_closure(
+      td_->password_manager_, &PasswordManager::get_input_check_password_srp, password,
+      PromiseCreator::lambda([actor_id = actor_id(this), channel_id, promise = std::move(promise)](
+                                 Result<telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP>> result) mutable {
+        if (result.is_error()) {
+          return promise.set_error(result.move_as_error());
+        }
+        send_closure(actor_id, &StatisticsManager::send_get_channel_revenue_withdrawal_url_query, channel_id,
+                     result.move_as_ok(), std::move(promise));
+      }));
+}
+
+void StatisticsManager::send_get_channel_revenue_withdrawal_url_query(
+    ChannelId channel_id, telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password,
+    Promise<string> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  td_->create_handler<GetBroadcastRevenueWithdrawalUrlQuery>(std::move(promise))
+      ->send(channel_id, std::move(input_check_password));
 }
 
 void StatisticsManager::get_channel_revenue_transactions(
