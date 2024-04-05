@@ -37,6 +37,9 @@ class SocketFd {
   SocketFd &operator=(SocketFd &&) noexcept;
   ~SocketFd();
 
+  Result<uint32> maximize_snd_buffer(uint32 max_size = 0);
+  Result<uint32> maximize_rcv_buffer(uint32 max_size = 0);
+
   static Result<SocketFd> open(const IPAddress &address) TD_WARN_UNUSED_RESULT;
 
   PollableFdInfo &get_poll_info();

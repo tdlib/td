@@ -33,6 +33,9 @@ class ServerSocketFd {
   ServerSocketFd &operator=(ServerSocketFd &&) noexcept;
   ~ServerSocketFd();
 
+  Result<uint32> maximize_snd_buffer(uint32 max_size = 0);
+  Result<uint32> maximize_rcv_buffer(uint32 max_size = 0);
+
   static Result<ServerSocketFd> open(int32 port, CSlice addr = CSlice("0.0.0.0")) TD_WARN_UNUSED_RESULT;
 
   PollableFdInfo &get_poll_info();
