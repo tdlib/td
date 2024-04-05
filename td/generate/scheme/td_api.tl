@@ -6599,35 +6599,35 @@ messageStatistics message_interaction_graph:StatisticalGraph message_reaction_gr
 storyStatistics story_interaction_graph:StatisticalGraph story_reaction_graph:StatisticalGraph = StoryStatistics;
 
 
-//@class ChatRevenueTransaction @description Describes a transaction for revenue earned from sponsored messages in a chat
+//@class ChatRevenueTransactionType @description Describes type of a transaction for revenue earned from sponsored messages in a chat
 
 //@description Describes earnings from sponsored messages in a chat in some time frame
-//@cryptocurrency Cryptocurrency in which revenue is calculated
-//@cryptocurrency_amount The earned amount, in the smallest units of the cryptocurrency
 //@start_date Point in time (Unix timestamp) when the earnings started
 //@end_date Point in time (Unix timestamp) when the earnings ended
-chatRevenueTransactionEarnings cryptocurrency:string cryptocurrency_amount:int64 start_date:int32 end_date:int32 = ChatRevenueTransaction;
+chatRevenueTransactionTypeEarnings start_date:int32 end_date:int32 = ChatRevenueTransactionType;
 
 //@description Describes a withdrawal of earnings
-//@cryptocurrency Cryptocurrency in which revenue is calculated
-//@cryptocurrency_amount The withdrawn amount, in the smallest units of the cryptocurrency
 //@withdrawal_date Point in time (Unix timestamp) when the earnings were withdrawn
 //@is_pending True, if the transaction didn't complete yet
 //@is_failed True, if the transaction has failed
 //@provider Name of the payment provider
 //@transaction_date Point in time (Unix timestamp) when the withdrawal was completed; 0 if none
 //@transaction_url The URL where the transaction can be viewed; empty if none
-chatRevenueTransactionWithdrawal cryptocurrency:string cryptocurrency_amount:int64 withdrawal_date:int32 is_pending:Bool is_failed:Bool provider:string transaction_date:int32 transaction_url:string = ChatRevenueTransaction;
+chatRevenueTransactionTypeWithdrawal withdrawal_date:int32 is_pending:Bool is_failed:Bool provider:string transaction_date:int32 transaction_url:string = ChatRevenueTransactionType;
 
 //@description Describes a refund for failed withdrawal of earnings
-//@cryptocurrency Cryptocurrency in which revenue is calculated
-//@cryptocurrency_amount The withdrawn amount, in the smallest units of the cryptocurrency
 //@refund_date Point in time (Unix timestamp) when the transaction was refunded
 //@provider Name of the payment provider
-chatRevenueTransactionRefund cryptocurrency:string cryptocurrency_amount:int64 refund_date:int32 provider:string = ChatRevenueTransaction;
+chatRevenueTransactionTypeRefund refund_date:int32 provider:string = ChatRevenueTransactionType;
+
+//@description Contains a chat revenue transactions
+//@cryptocurrency Cryptocurrency in which revenue is calculated
+//@cryptocurrency_amount The withdrawn amount, in the smallest units of the cryptocurrency
+//@type Type of the transaction
+chatRevenueTransaction cryptocurrency:string cryptocurrency_amount:int64 type:ChatRevenueTransactionType = ChatRevenueTransaction;
 
 //@description Contains a list of chat revenue transactions @total_count Total number of transactions @transactions List of transactions
-chatRevenueTransactions total_count:int32 transactions:vector<ChatRevenueTransaction> = ChatRevenueTransactions;
+chatRevenueTransactions total_count:int32 transactions:vector<chatRevenueTransaction> = ChatRevenueTransactions;
 
 
 //@description A point on a Cartesian plane @x The point's first coordinate @y The point's second coordinate

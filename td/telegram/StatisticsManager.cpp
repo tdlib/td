@@ -357,35 +357,39 @@ class GetBroadcastRevenueTransactionsQuery final : public Td::ResultHandler {
       LOG(ERROR) << "Receive total_count = " << total_count << " and " << ptr->transactions_.size() << " transactions";
       total_count = static_cast<int32>(ptr->transactions_.size());
     }
-    vector<td_api::object_ptr<td_api::ChatRevenueTransaction>> transactions;
+    vector<td_api::object_ptr<td_api::chatRevenueTransaction>> transactions;
     for (auto &transaction_ptr : ptr->transactions_) {
-      switch (transaction_ptr->get_id()) {
-        case telegram_api::broadcastRevenueTransactionProceeds::ID: {
-          auto transaction =
-              telegram_api::move_object_as<telegram_api::broadcastRevenueTransactionProceeds>(transaction_ptr);
-          transactions.push_back(td_api::make_object<td_api::chatRevenueTransactionEarnings>(
-              "TON", get_amount(transaction->amount_), transaction->from_date_, transaction->to_date_));
-          break;
+      int64 amount = 0;
+      auto type = [&]() -> td_api::object_ptr<td_api::ChatRevenueTransactionType> {
+        switch (transaction_ptr->get_id()) {
+          case telegram_api::broadcastRevenueTransactionProceeds::ID: {
+            auto transaction =
+                telegram_api::move_object_as<telegram_api::broadcastRevenueTransactionProceeds>(transaction_ptr);
+            amount = get_amount(transaction->amount_);
+            return td_api::make_object<td_api::chatRevenueTransactionTypeEarnings>(transaction->from_date_,
+                                                                                   transaction->to_date_);
+          }
+          case telegram_api::broadcastRevenueTransactionWithdrawal::ID: {
+            auto transaction =
+                telegram_api::move_object_as<telegram_api::broadcastRevenueTransactionWithdrawal>(transaction_ptr);
+            amount = get_amount(transaction->amount_, true);
+            return td_api::make_object<td_api::chatRevenueTransactionTypeWithdrawal>(
+                transaction->date_, transaction->pending_, transaction->failed_, transaction->provider_,
+                transaction->transaction_date_, transaction->transaction_url_);
+          }
+          case telegram_api::broadcastRevenueTransactionRefund::ID: {
+            auto transaction =
+                telegram_api::move_object_as<telegram_api::broadcastRevenueTransactionRefund>(transaction_ptr);
+            amount = get_amount(transaction->amount_);
+            return td_api::make_object<td_api::chatRevenueTransactionTypeRefund>(transaction->date_,
+                                                                             transaction->provider_);
+          }
+          default:
+            UNREACHABLE();
+            return nullptr;
         }
-        case telegram_api::broadcastRevenueTransactionWithdrawal::ID: {
-          auto transaction =
-              telegram_api::move_object_as<telegram_api::broadcastRevenueTransactionWithdrawal>(transaction_ptr);
-          transactions.push_back(td_api::make_object<td_api::chatRevenueTransactionWithdrawal>(
-              "TON", get_amount(transaction->amount_, true), transaction->date_, transaction->pending_,
-              transaction->failed_, transaction->provider_, transaction->transaction_date_,
-              transaction->transaction_url_));
-          break;
-        }
-        case telegram_api::broadcastRevenueTransactionRefund::ID: {
-          auto transaction =
-              telegram_api::move_object_as<telegram_api::broadcastRevenueTransactionRefund>(transaction_ptr);
-          transactions.push_back(td_api::make_object<td_api::chatRevenueTransactionRefund>(
-              "TON", get_amount(transaction->amount_), transaction->date_, transaction->provider_));
-          break;
-        }
-        default:
-          UNREACHABLE();
-      }
+      }();
+      transactions.push_back(td_api::make_object<td_api::chatRevenueTransaction>("TON", amount, std::move(type)));
     }
     promise_.set_value(td_api::make_object<td_api::chatRevenueTransactions>(total_count, std::move(transactions)));
   }
