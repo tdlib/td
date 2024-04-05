@@ -6599,6 +6599,20 @@ messageStatistics message_interaction_graph:StatisticalGraph message_reaction_gr
 storyStatistics story_interaction_graph:StatisticalGraph story_reaction_graph:StatisticalGraph = StoryStatistics;
 
 
+//@class ChatRevenueWithdrawalState @description Describes state of a chat revenue withdrawal
+
+//@description Withdrawal is pending
+chatRevenueWithdrawalStatePending = ChatRevenueWithdrawalState;
+
+//@description Withdrawal was completed
+//@date Point in time (Unix timestamp) when the withdrawal was completed
+//@url The URL where the withdrawal transaction can be viewed
+chatRevenueWithdrawalStateCompleted date:int32 url:string = ChatRevenueWithdrawalState;
+
+//@description Withdrawal has_failed
+chatRevenueWithdrawalStateFailed = ChatRevenueWithdrawalState;
+
+
 //@class ChatRevenueTransactionType @description Describes type of a transaction for revenue earned from sponsored messages in a chat
 
 //@description Describes earnings from sponsored messages in a chat in some time frame
@@ -6607,13 +6621,10 @@ storyStatistics story_interaction_graph:StatisticalGraph story_reaction_graph:St
 chatRevenueTransactionTypeEarnings start_date:int32 end_date:int32 = ChatRevenueTransactionType;
 
 //@description Describes a withdrawal of earnings
-//@withdrawal_date Point in time (Unix timestamp) when the earnings were withdrawn
-//@is_pending True, if the transaction didn't complete yet
-//@is_failed True, if the transaction has failed
+//@withdrawal_date Point in time (Unix timestamp) when the earnings withdrawal started
 //@provider Name of the payment provider
-//@transaction_date Point in time (Unix timestamp) when the withdrawal was completed; 0 if none
-//@transaction_url The URL where the transaction can be viewed; empty if none
-chatRevenueTransactionTypeWithdrawal withdrawal_date:int32 is_pending:Bool is_failed:Bool provider:string transaction_date:int32 transaction_url:string = ChatRevenueTransactionType;
+//@state State of the withdrawal
+chatRevenueTransactionTypeWithdrawal withdrawal_date:int32 provider:string state:ChatRevenueWithdrawalState = ChatRevenueTransactionType;
 
 //@description Describes a refund for failed withdrawal of earnings
 //@refund_date Point in time (Unix timestamp) when the transaction was refunded
