@@ -1882,6 +1882,13 @@ chatActionBarSharePhoneNumber = ChatActionBar;
 //@request_date Point in time (Unix timestamp) when the join request was sent
 chatActionBarJoinRequest title:string is_channel:Bool request_date:int32 = ChatActionBar;
 
+//@description The chat is a private chat administered by a business bot
+//@bot_user_id User identifier of the bot
+//@manage_url URL to be opened to manage the bot
+//@is_bot_paused True, if the bot is paused
+//@can_bot_reply True, if the bot can reply
+chatActionBarManageBusinessBot bot_user_id:int53 manage_url:string is_bot_paused:Bool can_bot_reply:Bool = ChatActionBar;
+
 
 //@class KeyboardButtonType @description Describes a keyboard button type
 

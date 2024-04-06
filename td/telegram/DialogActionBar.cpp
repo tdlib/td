@@ -18,12 +18,9 @@ unique_ptr<DialogActionBar> DialogActionBar::create(bool can_report_spam, bool c
                                                     bool can_share_phone_number, bool can_report_location,
                                                     bool can_unarchive, int32 distance, bool can_invite_members,
                                                     string join_request_dialog_title, bool is_join_request_broadcast,
-                                                    int32 join_request_date) {
-  if (!can_report_spam && !can_add_contact && !can_block_user && !can_share_phone_number && !can_report_location &&
-      !can_invite_members && join_request_dialog_title.empty()) {
-    return nullptr;
-  }
-
+                                                    int32 join_request_date, bool is_business_bot_paused,
+                                                    bool can_business_bot_reply, UserId business_bot_user_id,
+                                                    string business_bot_manage_url) {
   auto action_bar = make_unique<DialogActionBar>();
   action_bar->can_report_spam_ = can_report_spam;
   action_bar->can_add_contact_ = can_add_contact;
@@ -36,12 +33,20 @@ unique_ptr<DialogActionBar> DialogActionBar::create(bool can_report_spam, bool c
   action_bar->join_request_dialog_title_ = std::move(join_request_dialog_title);
   action_bar->is_join_request_broadcast_ = is_join_request_broadcast;
   action_bar->join_request_date_ = join_request_date;
+  action_bar->is_business_bot_paused_ = is_business_bot_paused;
+  action_bar->can_business_bot_reply_ = can_business_bot_reply;
+  action_bar->business_bot_user_id_ = business_bot_user_id;
+  action_bar->business_bot_manage_url_ = std::move(business_bot_manage_url);
+  if (action_bar->is_empty()) {
+    return nullptr;
+  }
   return action_bar;
 }
 
 bool DialogActionBar::is_empty() const {
   return !can_report_spam_ && !can_add_contact_ && !can_block_user_ && !can_share_phone_number_ &&
-         !can_report_location_ && !can_invite_members_ && join_request_dialog_title_.empty();
+         !can_report_location_ && !can_invite_members_ && join_request_dialog_title_.empty() &&
+         !business_bot_user_id_.is_valid();
 }
 
 void DialogActionBar::fix(Td *td, DialogId dialog_id, bool is_dialog_blocked, FolderId folder_id) {
@@ -51,6 +56,22 @@ void DialogActionBar::fix(Td *td, DialogId dialog_id, bool is_dialog_blocked, Fo
     distance_ = -1;
   }
 
+  if (business_bot_user_id_.is_valid()) {
+    if (dialog_type != DialogType::User || business_bot_manage_url_.empty()) {
+      LOG(ERROR) << "Receive business bot " << business_bot_user_id_ << " in " << dialog_id << " with manage URL "
+                 << business_bot_manage_url_;
+      business_bot_user_id_ = {};
+      business_bot_manage_url_ = {};
+      is_business_bot_paused_ = false;
+      can_business_bot_reply_ = false;
+    }
+  } else if (!business_bot_manage_url_.empty() || is_business_bot_paused_ || can_business_bot_reply_) {
+    LOG(ERROR) << "Receive business bot " << business_bot_user_id_ << " in " << dialog_id << " with manage URL "
+               << business_bot_manage_url_;
+    business_bot_manage_url_ = {};
+    is_business_bot_paused_ = false;
+    can_business_bot_reply_ = false;
+  }
   if (!join_request_dialog_title_.empty()) {
     if (dialog_type != DialogType::User || join_request_date_ <= 0) {
       LOG(ERROR) << "Receive join_request_date = " << join_request_date_ << " in " << dialog_id;
@@ -182,7 +203,7 @@ void DialogActionBar::fix(Td *td, DialogId dialog_id, bool is_dialog_blocked, Fo
   }
 }
 
-td_api::object_ptr<td_api::ChatActionBar> DialogActionBar::get_chat_action_bar_object(DialogType dialog_type,
+td_api::object_ptr<td_api::ChatActionBar> DialogActionBar::get_chat_action_bar_object(Td *td, DialogType dialog_type,
                                                                                       bool hide_unarchive) const {
   if (!join_request_dialog_title_.empty()) {
     CHECK(dialog_type == DialogType::User);
@@ -226,6 +247,12 @@ td_api::object_ptr<td_api::ChatActionBar> DialogActionBar::get_chat_action_bar_o
   if (can_report_spam_) {
     return td_api::make_object<td_api::chatActionBarReportSpam>(can_unarchive_);
   }
+  if (business_bot_user_id_.is_valid()) {
+    CHECK(dialog_type == DialogType::User);
+    return td_api::make_object<td_api::chatActionBarManageBusinessBot>(
+        td->user_manager_->get_user_id_object(business_bot_user_id_, "chatActionBarManageBusinessBot"),
+        business_bot_manage_url_, is_business_bot_paused_, can_business_bot_reply_);
+  }
   return nullptr;
 }
 
@@ -254,11 +281,15 @@ bool DialogActionBar::on_user_contact_added() {
 }
 
 bool DialogActionBar::on_user_deleted() {
-  if (join_request_dialog_title_.empty() && !can_share_phone_number_ && !can_block_user_ && !can_add_contact_ &&
-      distance_ < 0) {
+  if (!business_bot_user_id_.is_valid() && join_request_dialog_title_.empty() && !can_share_phone_number_ &&
+      !can_block_user_ && !can_add_contact_ && distance_ < 0) {
     return false;
   }
 
+  business_bot_user_id_ = {};
+  business_bot_manage_url_.clear();
+  is_business_bot_paused_ = false;
+  can_business_bot_reply_ = false;
   join_request_dialog_title_.clear();
   is_join_request_broadcast_ = false;
   join_request_date_ = 0;
@@ -291,7 +322,11 @@ bool operator==(const unique_ptr<DialogActionBar> &lhs, const unique_ptr<DialogA
          lhs->distance_ == rhs->distance_ && lhs->can_invite_members_ == rhs->can_invite_members_ &&
          lhs->join_request_dialog_title_ == rhs->join_request_dialog_title_ &&
          lhs->is_join_request_broadcast_ == lhs->is_join_request_broadcast_ &&
-         lhs->join_request_date_ == rhs->join_request_date_;
+         lhs->join_request_date_ == rhs->join_request_date_ &&
+         lhs->business_bot_user_id_ == rhs->business_bot_user_id_ &&
+         lhs->business_bot_manage_url_ == rhs->business_bot_manage_url_ &&
+         lhs->is_business_bot_paused_ == rhs->is_business_bot_paused_ &&
+         lhs->can_business_bot_reply_ == rhs->can_business_bot_reply_;
 }
 
 }  // namespace td
