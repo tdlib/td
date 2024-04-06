@@ -7,6 +7,7 @@
 #include "td/telegram/DialogActionBar.h"
 
 #include "td/telegram/ChatManager.h"
+#include "td/telegram/Dependencies.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UserManager.h"
 
@@ -307,6 +308,10 @@ bool DialogActionBar::on_outgoing_message() {
 
   distance_ = -1;
   return true;
+}
+
+void DialogActionBar::add_dependencies(Dependencies &dependencies) const {
+  dependencies.add(business_bot_user_id_);
 }
 
 bool operator==(const unique_ptr<DialogActionBar> &lhs, const unique_ptr<DialogActionBar> &rhs) {

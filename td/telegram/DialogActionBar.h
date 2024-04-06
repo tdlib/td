@@ -15,6 +15,7 @@
 
 namespace td {
 
+class Dependencies;
 class Td;
 
 class DialogActionBar {
@@ -67,6 +68,8 @@ class DialogActionBar {
   bool on_user_deleted();
 
   bool on_outgoing_message();
+
+  void add_dependencies(Dependencies &dependencies) const;
 
   template <class StorerT>
   void store(StorerT &storer) const {

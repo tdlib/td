@@ -35633,6 +35633,9 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
     add_message_dependencies(dependencies, message.get());
   });
   add_draft_message_dependencies(dependencies, d->draft_message);
+  if (d->action_bar != nullptr) {
+    d->action_bar->add_dependencies(dependencies);
+  }
   for (auto user_id : d->pending_join_request_user_ids) {
     dependencies.add(user_id);
   }
