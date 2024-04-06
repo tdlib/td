@@ -3309,7 +3309,12 @@ class EditMessageQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    LOG(INFO) << "Receive error for EditMessageQuery: " << status;
+    if (status.code() != 403 && !(status.code() == 500 && G()->close_flag())) {
+      LOG(WARNING) << "Failed to edit " << MessageFullId{dialog_id_, message_id_} << " with the error "
+                   << status.message();
+    } else {
+      LOG(INFO) << "Receive error for EditMessageQuery: " << status;
+    }
     if (!td_->auth_manager_->is_bot() && status.message() == "MESSAGE_NOT_MODIFIED") {
       return promise_.set_value(0);
     }
