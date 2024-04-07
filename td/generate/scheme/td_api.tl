@@ -1782,6 +1782,14 @@ savedMessagesTag tag:ReactionType label:string count:int32 = SavedMessagesTag;
 savedMessagesTags tags:vector<savedMessagesTag> = SavedMessagesTags;
 
 
+//@description Contains information about a business bot that manages the chat
+//@bot_user_id User identifier of the bot
+//@manage_url URL to be opened to manage the bot
+//@is_bot_paused True, if the bot is paused. Use toggleBusinessConnectedBotChatIsPaused to change the value of the field
+//@can_bot_reply True, if the bot can reply
+businessBotManageBar bot_user_id:int53 manage_url:string is_bot_paused:Bool can_bot_reply:Bool = BusinessBotManageBar;
+
+
 //@description Describes a video chat
 //@group_call_id Group call identifier of an active video chat; 0 if none. Full information about the video chat can be received through the method getGroupCall
 //@has_participants True, if the video chat has participants
@@ -1825,12 +1833,13 @@ videoChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@background Background set for the chat; may be null if none
 //@theme_name If non-empty, name of a theme, set for the chat
 //@action_bar Information about actions which must be possible to do through the chat action bar; may be null if none
+//@business_bot_manage_bar Information about bar for managing a business bot in the chat; may be null if none
 //@video_chat Information about video chat of the chat
 //@pending_join_requests Information about pending join requests; may be null if none
 //@reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat
 //@draft_message A draft of a message in the chat; may be null if none
 //@client_data Application-specific data associated with the chat. (For example, the chat scroll position or local chat notification settings can be stored here.) Persistent if the message database is used
-chat id:int53 type:ChatType title:string photo:chatPhotoInfo accent_color_id:int32 background_custom_emoji_id:int64 profile_accent_color_id:int32 profile_background_custom_emoji_id:int64 permissions:chatPermissions last_message:message positions:vector<chatPosition> chat_lists:vector<ChatList> message_sender_id:MessageSender block_list:BlockList has_protected_content:Bool is_translatable:Bool is_marked_as_unread:Bool view_as_topics:Bool has_scheduled_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 unread_reaction_count:int32 notification_settings:chatNotificationSettings available_reactions:ChatAvailableReactions message_auto_delete_time:int32 emoji_status:emojiStatus background:chatBackground theme_name:string action_bar:ChatActionBar video_chat:videoChat pending_join_requests:chatJoinRequestsInfo reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
+chat id:int53 type:ChatType title:string photo:chatPhotoInfo accent_color_id:int32 background_custom_emoji_id:int64 profile_accent_color_id:int32 profile_background_custom_emoji_id:int64 permissions:chatPermissions last_message:message positions:vector<chatPosition> chat_lists:vector<ChatList> message_sender_id:MessageSender block_list:BlockList has_protected_content:Bool is_translatable:Bool is_marked_as_unread:Bool view_as_topics:Bool has_scheduled_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 unread_reaction_count:int32 notification_settings:chatNotificationSettings available_reactions:ChatAvailableReactions message_auto_delete_time:int32 emoji_status:emojiStatus background:chatBackground theme_name:string action_bar:ChatActionBar business_bot_manage_bar:businessBotManageBar video_chat:videoChat pending_join_requests:chatJoinRequestsInfo reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
 
 //@description Represents a list of chats @total_count Approximate total number of chats found @chat_ids List of chat identifiers
 chats total_count:int32 chat_ids:vector<int53> = Chats;
@@ -1881,13 +1890,6 @@ chatActionBarSharePhoneNumber = ChatActionBar;
 //@is_channel True, if the join request was sent to a channel chat
 //@request_date Point in time (Unix timestamp) when the join request was sent
 chatActionBarJoinRequest title:string is_channel:Bool request_date:int32 = ChatActionBar;
-
-//@description The chat is a private chat administered by a business bot
-//@bot_user_id User identifier of the bot
-//@manage_url URL to be opened to manage the bot
-//@is_bot_paused True, if the bot is paused. Use toggleBusinessConnectedBotChatIsPaused to change the value of the field
-//@can_bot_reply True, if the bot can reply
-chatActionBarManageBusinessBot bot_user_id:int53 manage_url:string is_bot_paused:Bool can_bot_reply:Bool = ChatActionBar;
 
 
 //@class KeyboardButtonType @description Describes a keyboard button type
@@ -6787,6 +6789,9 @@ updateChatReadOutbox chat_id:int53 last_read_outbox_message_id:int53 = Update;
 
 //@description The chat action bar was changed @chat_id Chat identifier @action_bar The new value of the action bar; may be null
 updateChatActionBar chat_id:int53 action_bar:ChatActionBar = Update;
+
+//@description The bar for managing business bot was changed in a chat @chat_id Chat identifier @business_bot_manage_bar The new value of the business bot manage bar; may be null
+updateChatBusinessBotManageBar chat_id:int53 business_bot_manage_bar:businessBotManageBar = Update;
 
 //@description The chat available reactions were changed @chat_id Chat identifier @available_reactions The new reactions, available in the chat
 updateChatAvailableReactions chat_id:int53 available_reactions:ChatAvailableReactions = Update;

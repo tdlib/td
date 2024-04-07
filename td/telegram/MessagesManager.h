@@ -105,6 +105,7 @@
 namespace td {
 
 struct BinlogEvent;
+class BusinessBotManageBar;
 class Dependencies;
 class DialogActionBar;
 class DialogFilter;
@@ -1206,6 +1207,7 @@ class MessagesManager final : public Actor {
     MessageTtl message_ttl;
     unique_ptr<DraftMessage> draft_message;
     unique_ptr<DialogActionBar> action_bar;
+    unique_ptr<BusinessBotManageBar> business_bot_manage_bar;
     LogEventIdWithGeneration save_draft_message_log_event_id;
     LogEventIdWithGeneration save_notification_settings_log_event_id;
     LogEventIdWithGeneration set_folder_id_log_event_id;
@@ -2357,6 +2359,8 @@ class MessagesManager final : public Actor {
 
   void send_update_chat_action_bar(Dialog *d);
 
+  void send_update_chat_business_bot_manage_bar(Dialog *d);
+
   void send_update_chat_available_reactions(const Dialog *d);
 
   void send_update_secret_chats_with_user_background(const Dialog *d) const;
@@ -2602,7 +2606,11 @@ class MessagesManager final : public Actor {
 
   void fix_dialog_action_bar(const Dialog *d, DialogActionBar *action_bar);
 
+  void fix_dialog_business_bot_manage_bar(DialogId dialog_id, BusinessBotManageBar *business_bot_manage_bar);
+
   td_api::object_ptr<td_api::ChatActionBar> get_chat_action_bar_object(const Dialog *d) const;
+
+  td_api::object_ptr<td_api::businessBotManageBar> get_business_bot_manage_bar_object(const Dialog *d) const;
 
   td_api::object_ptr<td_api::chatBackground> get_chat_background_object(const Dialog *d) const;
 

@@ -11,6 +11,7 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/BackgroundInfo.hpp"
 #include "td/telegram/BlockListId.h"
+#include "td/telegram/BusinessBotManageBar.h"
 #include "td/telegram/ChainId.h"
 #include "td/telegram/ChannelType.h"
 #include "td/telegram/ChatManager.h"
@@ -4719,6 +4720,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   bool has_available_reactions = !available_reactions.empty();
   bool has_history_generation = history_generation != 0;
   bool has_background = background_info.is_valid();
+  bool has_business_bot_manage_bar = business_bot_manage_bar != nullptr;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_draft_message);
   STORE_FLAG(has_last_database_message);
@@ -4812,6 +4814,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(is_view_as_messages_inited);
     STORE_FLAG(is_forum);
     STORE_FLAG(is_saved_messages_view_as_messages_inited);
+    STORE_FLAG(has_business_bot_manage_bar);
     END_STORE_FLAGS();
   }
 
@@ -4930,6 +4933,9 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   if (has_background) {
     store(background_info, storer);
   }
+  if (has_business_bot_manage_bar) {
+    store(business_bot_manage_bar, storer);
+  }
 }
 
 // do not forget to resolve dialog dependencies including dependencies of last_message
@@ -4981,6 +4987,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   bool has_available_reactions = false;
   bool has_history_generation = false;
   bool has_background = false;
+  bool has_business_bot_manage_bar = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_draft_message);
   PARSE_FLAG(has_last_database_message);
@@ -5089,6 +5096,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(is_view_as_messages_inited);
     PARSE_FLAG(is_forum);
     PARSE_FLAG(is_saved_messages_view_as_messages_inited);
+    PARSE_FLAG(has_business_bot_manage_bar);
     END_PARSE_FLAGS();
   } else {
     need_repair_action_bar = false;
@@ -5260,14 +5268,16 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   if (has_background) {
     parse(background_info, parser);
   }
+  if (has_business_bot_manage_bar) {
+    parse(business_bot_manage_bar, parser);
+  }
 
   (void)legacy_know_can_report_spam;
   if (know_action_bar && !has_action_bar) {
-    action_bar =
-        DialogActionBar::create(action_bar_can_report_spam, action_bar_can_add_contact, action_bar_can_block_user,
-                                action_bar_can_share_phone_number, action_bar_can_report_location,
-                                action_bar_can_unarchive, has_outgoing_messages ? -1 : action_bar_distance,
-                                action_bar_can_invite_members, string(), false, 0, false, false, UserId(), string());
+    action_bar = DialogActionBar::create(
+        action_bar_can_report_spam, action_bar_can_add_contact, action_bar_can_block_user,
+        action_bar_can_share_phone_number, action_bar_can_report_location, action_bar_can_unarchive,
+        has_outgoing_messages ? -1 : action_bar_distance, action_bar_can_invite_members, string(), false, 0);
   }
 }
 
@@ -7956,17 +7966,25 @@ void MessagesManager::on_get_peer_settings(DialogId dialog_id,
     return;
   }
 
+  auto business_bot_manage_bar = BusinessBotManageBar::create(
+      peer_settings->business_bot_paused_, peer_settings->business_bot_can_reply_,
+      UserId(peer_settings->business_bot_id_), std::move(peer_settings->business_bot_manage_url_));
+  fix_dialog_business_bot_manage_bar(dialog_id, business_bot_manage_bar.get());
+  if (d->business_bot_manage_bar != business_bot_manage_bar) {
+    d->business_bot_manage_bar = std::move(business_bot_manage_bar);
+    send_update_chat_business_bot_manage_bar(d);
+  }
+
   auto distance =
       (peer_settings->flags_ & telegram_api::peerSettings::GEO_DISTANCE_MASK) != 0 ? peer_settings->geo_distance_ : -1;
   if (distance < -1 || d->has_outgoing_messages) {
     distance = -1;
   }
-  auto action_bar = DialogActionBar::create(
-      peer_settings->report_spam_, peer_settings->add_contact_, peer_settings->block_contact_,
-      peer_settings->share_contact_, peer_settings->report_geo_, peer_settings->autoarchived_, distance,
-      peer_settings->invite_members_, peer_settings->request_chat_title_, peer_settings->request_chat_broadcast_,
-      peer_settings->request_chat_date_, peer_settings->business_bot_paused_, peer_settings->business_bot_can_reply_,
-      UserId(peer_settings->business_bot_id_), std::move(peer_settings->business_bot_manage_url_));
+  auto action_bar =
+      DialogActionBar::create(peer_settings->report_spam_, peer_settings->add_contact_, peer_settings->block_contact_,
+                              peer_settings->share_contact_, peer_settings->report_geo_, peer_settings->autoarchived_,
+                              distance, peer_settings->invite_members_, peer_settings->request_chat_title_,
+                              peer_settings->request_chat_broadcast_, peer_settings->request_chat_date_);
 
   fix_dialog_action_bar(d, action_bar.get());
 
@@ -7993,6 +8011,15 @@ void MessagesManager::fix_dialog_action_bar(const Dialog *d, DialogActionBar *ac
 
   CHECK(d != nullptr);
   action_bar->fix(td_, d->dialog_id, d->is_blocked, d->folder_id);
+}
+
+void MessagesManager::fix_dialog_business_bot_manage_bar(DialogId dialog_id,
+                                                         BusinessBotManageBar *business_bot_manage_bar) {
+  if (business_bot_manage_bar == nullptr) {
+    return;
+  }
+
+  business_bot_manage_bar->fix(dialog_id);
 }
 
 Result<string> MessagesManager::get_login_button_url(MessageFullId message_full_id, int64 button_id) {
@@ -19222,13 +19249,22 @@ td_api::object_ptr<td_api::ChatActionBar> MessagesManager::get_chat_action_bar_o
     if (user_d == nullptr || user_d->action_bar == nullptr) {
       return nullptr;
     }
-    return user_d->action_bar->get_chat_action_bar_object(td_, DialogType::User, d->folder_id != FolderId::archive());
+    return user_d->action_bar->get_chat_action_bar_object(DialogType::User, d->folder_id != FolderId::archive());
   }
 
   if (d->action_bar == nullptr) {
     return nullptr;
   }
-  return d->action_bar->get_chat_action_bar_object(td_, dialog_type, false);
+  return d->action_bar->get_chat_action_bar_object(dialog_type, false);
+}
+
+td_api::object_ptr<td_api::businessBotManageBar> MessagesManager::get_business_bot_manage_bar_object(
+    const Dialog *d) const {
+  CHECK(d != nullptr);
+  if (d->business_bot_manage_bar == nullptr) {
+    return nullptr;
+  }
+  return d->business_bot_manage_bar->get_business_bot_manage_bar_object(td_);
 }
 
 td_api::object_ptr<td_api::chatBackground> MessagesManager::get_chat_background_object(const Dialog *d) const {
@@ -19321,9 +19357,9 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       d->unread_reaction_count, get_chat_notification_settings_object(&d->notification_settings),
       std::move(available_reactions), d->message_ttl.get_message_auto_delete_time_object(),
       td_->dialog_manager_->get_dialog_emoji_status_object(d->dialog_id), get_chat_background_object(d),
-      get_dialog_theme_name(d), get_chat_action_bar_object(d), get_video_chat_object(d),
-      get_chat_join_requests_info_object(d), d->reply_markup_message_id.get(), std::move(draft_message),
-      d->client_data);
+      get_dialog_theme_name(d), get_chat_action_bar_object(d), get_business_bot_manage_bar_object(d),
+      get_video_chat_object(d), get_chat_join_requests_info_object(d), d->reply_markup_message_id.get(),
+      std::move(draft_message), d->client_data);
 }
 
 td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(DialogId dialog_id, const char *source) {
@@ -29003,6 +29039,23 @@ void MessagesManager::send_update_chat_action_bar(Dialog *d) {
   send_update_secret_chats_with_user_action_bar(d);
 }
 
+void MessagesManager::send_update_chat_business_bot_manage_bar(Dialog *d) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  if (d->business_bot_manage_bar != nullptr && d->business_bot_manage_bar->is_empty()) {
+    d->business_bot_manage_bar = nullptr;
+  }
+
+  CHECK(d != nullptr);
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_business_bot_manage_bar";
+  on_dialog_updated(d->dialog_id, "send_update_chat_business_bot_manage_bar");
+  send_closure(
+      G()->td(), &Td::send_update,
+      td_api::make_object<td_api::updateChatBusinessBotManageBar>(
+          get_chat_id_object(d->dialog_id, "updateChatBusinessBotManageBar"), get_business_bot_manage_bar_object(d)));
+}
+
 void MessagesManager::send_update_chat_available_reactions(const Dialog *d) {
   CHECK(d != nullptr);
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_available_reactions";
@@ -30252,10 +30305,10 @@ void MessagesManager::set_dialog_is_blocked(Dialog *d, bool is_blocked, bool is_
 }
 
 void MessagesManager::on_update_dialog_business_bot_is_paused(DialogId dialog_id, bool is_paused) {
-  auto d = get_dialog_force(dialog_id, "on_update_dialog_is_blocked");
+  auto d = get_dialog_force(dialog_id, "on_update_dialog_business_bot_is_paused");
   CHECK(d != nullptr);
-  if (d->action_bar != nullptr && d->action_bar->set_business_bot_is_paused(is_paused)) {
-    send_update_chat_action_bar(d);
+  if (d->business_bot_manage_bar != nullptr && d->business_bot_manage_bar->set_business_bot_is_paused(is_paused)) {
+    send_update_chat_business_bot_manage_bar(d);
   }
 }
 
@@ -31027,6 +31080,9 @@ void MessagesManager::on_dialog_user_is_deleted_updated(DialogId dialog_id, bool
       if (is_deleted) {
         if (d->action_bar != nullptr && d->action_bar->on_user_deleted()) {
           send_update_chat_action_bar(d);
+        }
+        if (d->business_bot_manage_bar != nullptr && d->business_bot_manage_bar->on_user_deleted()) {
+          send_update_chat_business_bot_manage_bar(d);
         }
       } else {
         repair_dialog_action_bar(d, "on_dialog_user_is_deleted_updated");
@@ -34539,6 +34595,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
   failed_to_load_dialogs_.erase(dialog_id);
 
   fix_dialog_action_bar(d, d->action_bar.get());
+  fix_dialog_business_bot_manage_bar(dialog_id, d->business_bot_manage_bar.get());
 
   send_update_new_chat(d);
 
@@ -35641,8 +35698,8 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
     add_message_dependencies(dependencies, message.get());
   });
   add_draft_message_dependencies(dependencies, d->draft_message);
-  if (d->action_bar != nullptr) {
-    d->action_bar->add_dependencies(dependencies);
+  if (d->business_bot_manage_bar != nullptr) {
+    d->business_bot_manage_bar->add_dependencies(dependencies);
   }
   for (auto user_id : d->pending_join_request_user_ids) {
     dependencies.add(user_id);
