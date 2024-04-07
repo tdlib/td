@@ -850,6 +850,8 @@ class MessagesManager final : public Actor {
 
   void reget_dialog_action_bar(DialogId dialog_id, const char *source, bool is_repair = true);
 
+  void hide_all_business_bot_manager_bars();
+
   void on_get_peer_settings(DialogId dialog_id, tl_object_ptr<telegram_api::peerSettings> &&peer_settings,
                             bool ignore_privacy_exception = false);
 

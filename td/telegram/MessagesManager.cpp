@@ -7859,6 +7859,16 @@ void MessagesManager::remove_dialog_action_bar(DialogId dialog_id, Promise<Unit>
   toggle_dialog_report_spam_state_on_server(dialog_id, false, 0, std::move(promise));
 }
 
+void MessagesManager::hide_all_business_bot_manager_bars() {
+  dialogs_.foreach([&](const DialogId &dialog_id, unique_ptr<Dialog> &dialog) {
+    Dialog *d = dialog.get();
+    if (d->business_bot_manage_bar != nullptr) {
+      d->business_bot_manage_bar = nullptr;
+      send_update_chat_business_bot_manage_bar(d);
+    }
+  });
+}
+
 void MessagesManager::repair_dialog_active_group_call_id(DialogId dialog_id) {
   if (td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
     LOG(INFO) << "Repair active voice chat ID in " << dialog_id;

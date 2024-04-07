@@ -102,6 +102,7 @@ class UpdateConnectedBotQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for UpdateConnectedBotQuery: " << to_string(ptr);
+    td_->messages_manager_->hide_all_business_bot_manager_bars();
     td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
