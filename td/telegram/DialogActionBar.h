@@ -69,6 +69,8 @@ class DialogActionBar {
 
   bool on_outgoing_message();
 
+  bool set_business_bot_is_paused(bool is_paused);
+
   void add_dependencies(Dependencies &dependencies) const;
 
   template <class StorerT>

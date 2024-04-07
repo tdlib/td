@@ -310,6 +310,14 @@ bool DialogActionBar::on_outgoing_message() {
   return true;
 }
 
+bool DialogActionBar::set_business_bot_is_paused(bool is_paused) {
+  if (!business_bot_user_id_.is_valid() || is_business_bot_paused_ == is_paused) {
+    return false;
+  }
+  is_business_bot_paused_ = is_paused;
+  return true;
+}
+
 void DialogActionBar::add_dependencies(Dependencies &dependencies) const {
   dependencies.add(business_bot_user_id_);
 }

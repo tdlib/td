@@ -6152,10 +6152,15 @@ class CliClient final : public Actor {
     } else if (op == "sbcb") {
       UserId bot_user_id;
       string chat_ids;
-      bool can_reply = false;
+      bool can_reply;
       get_args(args, bot_user_id, chat_ids, can_reply);
       send_request(td_api::make_object<td_api::setBusinessConnectedBot>(
           td_api::make_object<td_api::businessConnectedBot>(bot_user_id, as_business_recipients(chat_ids), can_reply)));
+    } else if (op == "tbcbcip") {
+      ChatId chat_id;
+      bool is_paused;
+      get_args(args, chat_id, is_paused);
+      send_request(td_api::make_object<td_api::toggleBusinessConnectedBotChatIsPaused>(chat_id, is_paused));
     } else if (op == "dbcb") {
       UserId bot_user_id;
       get_args(args, bot_user_id);

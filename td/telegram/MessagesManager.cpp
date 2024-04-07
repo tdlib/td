@@ -30251,6 +30251,14 @@ void MessagesManager::set_dialog_is_blocked(Dialog *d, bool is_blocked, bool is_
   }
 }
 
+void MessagesManager::on_update_dialog_business_bot_is_paused(DialogId dialog_id, bool is_paused) {
+  auto d = get_dialog_force(dialog_id, "on_update_dialog_is_blocked");
+  CHECK(d != nullptr);
+  if (d->action_bar != nullptr && d->action_bar->set_business_bot_is_paused(is_paused)) {
+    send_update_chat_action_bar(d);
+  }
+}
+
 void MessagesManager::on_update_dialog_last_pinned_message_id(DialogId dialog_id, MessageId pinned_message_id) {
   if (!dialog_id.is_valid()) {
     LOG(ERROR) << "Receive pinned message in invalid " << dialog_id;

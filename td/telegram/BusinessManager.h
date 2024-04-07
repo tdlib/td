@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/UserId.h"
 
@@ -32,6 +33,8 @@ class BusinessManager final : public Actor {
   void set_business_connected_bot(td_api::object_ptr<td_api::businessConnectedBot> &&bot, Promise<Unit> &&promise);
 
   void delete_business_connected_bot(UserId bot_user_id, Promise<Unit> &&promise);
+
+  void toggle_business_connected_bot_chat_is_paused(DialogId dialog_id, bool is_paused, Promise<Unit> &&promise);
 
   void set_business_location(DialogLocation &&location, Promise<Unit> &&promise);
 

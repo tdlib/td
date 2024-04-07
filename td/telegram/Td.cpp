@@ -7970,6 +7970,13 @@ void Td::on_request(uint64 id, const td_api::deleteBusinessConnectedBot &request
   business_manager_->delete_business_connected_bot(UserId(request.bot_user_id_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::toggleBusinessConnectedBotChatIsPaused &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  business_manager_->toggle_business_connected_bot_chat_is_paused(DialogId(request.chat_id_), request.is_paused_,
+                                                                  std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::setSupergroupUsername &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.username_);

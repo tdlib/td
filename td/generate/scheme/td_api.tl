@@ -1885,7 +1885,7 @@ chatActionBarJoinRequest title:string is_channel:Bool request_date:int32 = ChatA
 //@description The chat is a private chat administered by a business bot
 //@bot_user_id User identifier of the bot
 //@manage_url URL to be opened to manage the bot
-//@is_bot_paused True, if the bot is paused
+//@is_bot_paused True, if the bot is paused. Use toggleBusinessConnectedBotChatIsPaused to change the value of the field
 //@can_bot_reply True, if the bot can reply
 chatActionBarManageBusinessBot bot_user_id:int53 manage_url:string is_bot_paused:Bool can_bot_reply:Bool = ChatActionBar;
 
@@ -9719,6 +9719,9 @@ setBusinessConnectedBot bot:businessConnectedBot = Ok;
 
 //@description Deletes the business bot that is connected to the current user account @bot_user_id Unique user identifier for the bot
 deleteBusinessConnectedBot bot_user_id:int53 = Ok;
+
+//@description Pauses or resumes the connected business bot in a specific chat @chat_id Chat identifier @is_paused Pass true to pause the connected bot in the chat; pass false to resume the bot
+toggleBusinessConnectedBotChatIsPaused chat_id:int53 is_paused:Bool = Ok;
 
 
 //@description Returns an HTTPS link, which can be used to get information about the current user
