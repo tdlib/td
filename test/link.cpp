@@ -314,8 +314,8 @@ static auto proxy_socks(const td::string &server, td::int32 port, const td::stri
       server, port, td::td_api::make_object<td::td_api::proxyTypeSocks5>(username, password));
 }
 
-static auto public_chat(const td::string &chat_username) {
-  return td::td_api::make_object<td::td_api::internalLinkTypePublicChat>(chat_username);
+static auto public_chat(const td::string &chat_username, const td::string &draft_text = td::string()) {
+  return td::td_api::make_object<td::td_api::internalLinkTypePublicChat>(chat_username, draft_text);
 }
 
 static auto qr_code_authentication() {
@@ -359,8 +359,8 @@ static auto unsupported_proxy() {
   return td::td_api::make_object<td::td_api::internalLinkTypeUnsupportedProxy>();
 }
 
-static auto user_phone_number(const td::string &phone_number) {
-  return td::td_api::make_object<td::td_api::internalLinkTypeUserPhoneNumber>(phone_number);
+static auto user_phone_number(const td::string &phone_number, const td::string &draft_text = td::string()) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeUserPhoneNumber>(phone_number, draft_text);
 }
 
 static auto user_token(const td::string &token) {
@@ -482,6 +482,12 @@ TEST(Link, parse_internal_link_part1) {
   parse_internal_link("tg:resolve?phone=", unknown_deep_link("tg://resolve?phone="));
   parse_internal_link("tg:resolve?phone=+123", unknown_deep_link("tg://resolve?phone=+123"));
   parse_internal_link("tg:resolve?phone=123456 ", unknown_deep_link("tg://resolve?phone=123456 "));
+  parse_internal_link("tg:resolve?domain=telegram&text=asd", public_chat("telegram", "asd"));
+  parse_internal_link("tg:resolve?phone=12345678901&text=asd", user_phone_number("12345678901", "asd"));
+  parse_internal_link("tg:resolve?domain=telegram&text=@asd", public_chat("telegram", " @asd"));
+  parse_internal_link("tg:resolve?phone=12345678901&text=@asd", user_phone_number("12345678901", " @asd"));
+  parse_internal_link("tg:resolve?domain=telegram&text=1%A02", public_chat("telegram"));
+  parse_internal_link("tg:resolve?phone=12345678901&text=1%A02", user_phone_number("12345678901"));
 
   parse_internal_link("tg:contact?token=1", user_token("1"));
   parse_internal_link("tg:contact?token=123456", user_token("123456"));
@@ -773,6 +779,13 @@ TEST(Link, parse_internal_link_part2) {
                       attachment_menu_bot(nullptr, user_phone_number("123456"), "bot", ""));
   parse_internal_link("t.me/+123456?attach=bot&startattach=1",
                       attachment_menu_bot(nullptr, user_phone_number("123456"), "bot", "1"));
+
+  parse_internal_link("telegram.t.me?text=asd", public_chat("telegram", "asd"));
+  parse_internal_link("t.me/%2012345678901?text=asd", user_phone_number("12345678901", "asd"));
+  parse_internal_link("t.me/telegram?text=@asd", public_chat("telegram", " @asd"));
+  parse_internal_link("t.me/%2012345678901?text=@asd", user_phone_number("12345678901", " @asd"));
+  parse_internal_link("t.me/telegram?text=1%A02", public_chat("telegram"));
+  parse_internal_link("t.me/%2012345678901?text=1%A02", user_phone_number("12345678901"));
 
   parse_internal_link("t.me/addlist?invite=abcdef", nullptr);
   parse_internal_link("t.me/addlist", nullptr);
