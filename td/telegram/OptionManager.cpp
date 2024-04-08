@@ -147,6 +147,7 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("business_start_page_message_length_max", 70);
   set_default_integer_option("premium_download_speedup", 10);
   set_default_integer_option("premium_upload_speedup", 10);
+  set_default_integer_option("upload_premium_speedup_notify_period", 3600);
 
   if (options.isset("my_phone_number") || !options.isset("my_id")) {
     update_premium_options();
@@ -441,6 +442,7 @@ bool OptionManager::is_internal_option(Slice name) {
                                                               "story_caption_length_limit_premium",
                                                               "story_expiring_limit_default",
                                                               "story_expiring_limit_premium",
+                                                              "upload_premium_speedup_notify_period",
                                                               "video_note_size_max",
                                                               "webfile_dc_id"};
   return internal_options.count(name) > 0;
