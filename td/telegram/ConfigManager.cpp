@@ -2042,6 +2042,14 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         G()->set_option_boolean("can_withdraw_chat_revenue", get_json_value_bool(std::move(key_value->value_), key));
         continue;
       }
+      if (key == "upload_premium_speedup_download") {
+        G()->set_option_integer("premium_download_speedup", get_json_value_int(std::move(key_value->value_), key));
+        continue;
+      }
+      if (key == "upload_premium_speedup_upload") {
+        G()->set_option_integer("premium_upload_speedup", get_json_value_int(std::move(key_value->value_), key));
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }

@@ -145,6 +145,8 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("quick_reply_shortcut_message_count_max", 20);
   set_default_integer_option("business_start_page_title_length_max", 32);
   set_default_integer_option("business_start_page_message_length_max", 70);
+  set_default_integer_option("premium_download_speedup", 10);
+  set_default_integer_option("premium_upload_speedup", 10);
 
   if (options.isset("my_phone_number") || !options.isset("my_id")) {
     update_premium_options();
