@@ -138,7 +138,7 @@ static td_api::object_ptr<td_api::BusinessFeature> get_business_feature_object(S
     return td_api::make_object<td_api::businessFeatureAccountLinks>();
   }
   if (business_feature == "business_intro") {
-    return td_api::make_object<td_api::businessFeatureIntro>();
+    return td_api::make_object<td_api::businessFeatureStartPage>();
   }
   if (business_feature == "business_bots") {
     return td_api::make_object<td_api::businessFeatureBots>();
@@ -848,7 +848,7 @@ static string get_premium_source(const td_api::BusinessFeature *feature) {
       return "away_message";
     case td_api::businessFeatureAccountLinks::ID:
       return "business_links";
-    case td_api::businessFeatureIntro::ID:
+    case td_api::businessFeatureStartPage::ID:
       return "business_intro";
     case td_api::businessFeatureBots::ID:
       return "business_bots";

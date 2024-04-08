@@ -630,17 +630,17 @@ businessGreetingMessageSettings shortcut_id:int32 recipients:businessRecipients 
 //@can_reply True, if the bot can send messages to the private chats; false otherwise
 businessConnectedBot bot_user_id:int53 recipients:businessRecipients can_reply:Bool = BusinessConnectedBot;
 
-//@description Describes settings for a business account intro
-//@title Title text of the intro
-//@message Message text of the intro
-//@sticker Greeting sticker of the intro; may be null if none
-businessIntro title:string message:string sticker:sticker = BusinessIntro;
+//@description Describes settings for a business account start page
+//@title Title text of the start page
+//@message Message text of the start page
+//@sticker Greeting sticker of the start page; may be null if none
+businessStartPage title:string message:string sticker:sticker = BusinessStartPage;
 
-//@description Describes settings for a business account intro to set
-//@title Title text of the intro; 0-getOption("business_intro_title_length_max") characters
-//@message Message text of the intro; 0-getOption("business_intro_message_length_max") characters
-//@sticker Greeting sticker of the intro; pass null if none. The sticker must belong to a sticker set and must not be a custom emoji
-inputBusinessIntro title:string message:string sticker:InputFile = InputBusinessIntro;
+//@description Describes settings for a business account start page to set
+//@title Title text of the start page; 0-getOption("business_start_page_title_length_max") characters
+//@message Message text of the start page; 0-getOption("business_start_page_message_length_max") characters
+//@sticker Greeting sticker of the start page; pass null if none. The sticker must belong to a sticker set and must not be a custom emoji
+inputBusinessStartPage title:string message:string sticker:InputFile = InputBusinessStartPage;
 
 //@description Describes an interval of time when the business is open
 //@start_minute The first minute of the interval since start of the week; 0-7*24*60
@@ -655,8 +655,8 @@ businessOpeningHours time_zone_id:string opening_hours:vector<businessOpeningHou
 //@opening_hours Opening hours of the business; may be null if none. The hours are guaranteed to be valid and has already been split by week days
 //@greeting_message_settings The greeting message; may be null if none or the Business account is not of the current user
 //@away_message_settings The away message; may be null if none or the Business account is not of the current user
-//@intro Information about intro of the business; may be null if none
-businessInfo location:businessLocation opening_hours:businessOpeningHours greeting_message_settings:businessGreetingMessageSettings away_message_settings:businessAwayMessageSettings intro:businessIntro = BusinessInfo;
+//@start_page Information about start page of the account; may be null if none
+businessInfo location:businessLocation opening_hours:businessOpeningHours greeting_message_settings:businessGreetingMessageSettings away_message_settings:businessAwayMessageSettings start_page:businessStartPage = BusinessInfo;
 
 
 //@class ChatPhotoStickerType @description Describes type of a sticker, which was used to create a chat photo
@@ -5033,8 +5033,8 @@ businessFeatureAwayMessage = BusinessFeature;
 //@description The ability to create links to the business account with predefined message text
 businessFeatureAccountLinks = BusinessFeature;
 
-//@description The ability to customize intro
-businessFeatureIntro = BusinessFeature;
+//@description The ability to customize start page
+businessFeatureStartPage = BusinessFeature;
 
 //@description The ability to connect a bot to the account
 businessFeatureBots = BusinessFeature;
@@ -9701,8 +9701,8 @@ setBusinessGreetingMessageSettings greeting_message_settings:businessGreetingMes
 //@description Changes the business away message settings of the current user. Requires Telegram Business subscription @away_message_settings The new settings for the away message of the business; pass null to disable the away message
 setBusinessAwayMessageSettings away_message_settings:businessAwayMessageSettings = Ok;
 
-//@description Changes the business intro of the current user. Requires Telegram Business subscription @intro The new intro of the business; pass null to remove the intro
-setBusinessIntro intro:inputBusinessIntro = Ok;
+//@description Changes the business start page of the current user. Requires Telegram Business subscription @start_page The new start page of the business; pass null to remove custom start page
+setBusinessStartPage start_page:inputBusinessStartPage = Ok;
 
 //@description Changes the phone number of the user and sends an authentication code to the user's new phone number; for official Android and iOS applications only. On success, returns information about the sent code
 //@phone_number The new phone number of the user in international format

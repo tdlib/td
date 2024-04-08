@@ -34,7 +34,7 @@ BusinessIntro::BusinessIntro(Td *td, telegram_api::object_ptr<telegram_api::busi
       td->stickers_manager_->on_get_sticker_document(std::move(intro->sticker_), StickerFormat::Unknown).second;
 }
 
-BusinessIntro::BusinessIntro(Td *td, td_api::object_ptr<td_api::inputBusinessIntro> intro) {
+BusinessIntro::BusinessIntro(Td *td, td_api::object_ptr<td_api::inputBusinessStartPage> intro) {
   if (intro == nullptr) {
     return;
   }
@@ -53,12 +53,12 @@ BusinessIntro::BusinessIntro(Td *td, td_api::object_ptr<td_api::inputBusinessInt
   sticker_file_id_ = file_id;
 }
 
-td_api::object_ptr<td_api::businessIntro> BusinessIntro::get_business_intro_object(Td *td) const {
+td_api::object_ptr<td_api::businessStartPage> BusinessIntro::get_business_start_page_object(Td *td) const {
   if (is_empty()) {
     return nullptr;
   }
-  return td_api::make_object<td_api::businessIntro>(title_, description_,
-                                                    td->stickers_manager_->get_sticker_object(sticker_file_id_));
+  return td_api::make_object<td_api::businessStartPage>(title_, description_,
+                                                        td->stickers_manager_->get_sticker_object(sticker_file_id_));
 }
 
 telegram_api::object_ptr<telegram_api::inputBusinessIntro> BusinessIntro::get_input_business_intro(Td *td) const {

@@ -143,14 +143,16 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("group_custom_wallpaper_level_min", is_test_dc ? 4 : 10);
   set_default_integer_option("quick_reply_shortcut_count_max", is_test_dc ? 10 : 100);
   set_default_integer_option("quick_reply_shortcut_message_count_max", 20);
-  set_default_integer_option("business_intro_title_length_max", 32);
-  set_default_integer_option("business_intro_message_length_max", 70);
+  set_default_integer_option("business_start_page_title_length_max", 32);
+  set_default_integer_option("business_start_page_message_length_max", 70);
 
   if (options.isset("my_phone_number") || !options.isset("my_id")) {
     update_premium_options();
   }
 
   set_option_empty("archive_and_mute_new_chats_from_unknown_users");
+  set_option_empty("business_intro_title_length_max");
+  set_option_empty("business_intro_message_length_max");
   set_option_empty("channel_custom_accent_color_boost_level_min");
   set_option_empty("chat_filter_count_max");
   set_option_empty("chat_filter_chosen_chat_count_max");

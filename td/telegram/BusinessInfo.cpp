@@ -17,7 +17,7 @@ td_api::object_ptr<td_api::businessInfo> BusinessInfo::get_business_info_object(
   return td_api::make_object<td_api::businessInfo>(
       location_.get_business_location_object(), work_hours_.get_business_opening_hours_object(),
       greeting_message_.get_business_greeting_message_settings_object(td),
-      away_message_.get_business_away_message_settings_object(td), intro_.get_business_intro_object(td));
+      away_message_.get_business_away_message_settings_object(td), intro_.get_business_start_page_object(td));
 }
 
 bool BusinessInfo::is_empty_location(const DialogLocation &location) {

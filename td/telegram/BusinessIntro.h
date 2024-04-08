@@ -23,9 +23,9 @@ class BusinessIntro {
 
   BusinessIntro(Td *td, telegram_api::object_ptr<telegram_api::businessIntro> intro);
 
-  BusinessIntro(Td *td, td_api::object_ptr<td_api::inputBusinessIntro> intro);
+  BusinessIntro(Td *td, td_api::object_ptr<td_api::inputBusinessStartPage> intro);
 
-  td_api::object_ptr<td_api::businessIntro> get_business_intro_object(Td *td) const;
+  td_api::object_ptr<td_api::businessStartPage> get_business_start_page_object(Td *td) const;
 
   telegram_api::object_ptr<telegram_api::inputBusinessIntro> get_input_business_intro(Td *td) const;
 

@@ -6136,16 +6136,16 @@ class CliClient final : public Actor {
             td_api::make_object<td_api::businessAwayMessageSettings>(shortcut_id, as_business_recipients(chat_ids),
                                                                      std::move(schedule_object), op == "sbamso")));
       }
-    } else if (op == "sbi") {
+    } else if (op == "sbsp") {
       string title;
       string message;
       string sticker;
       get_args(args, title, message, sticker);
       if (title.empty()) {
-        send_request(td_api::make_object<td_api::setBusinessIntro>(nullptr));
+        send_request(td_api::make_object<td_api::setBusinessStartPage>(nullptr));
       } else {
-        send_request(td_api::make_object<td_api::setBusinessIntro>(
-            td_api::make_object<td_api::inputBusinessIntro>(title, message, as_input_file(sticker))));
+        send_request(td_api::make_object<td_api::setBusinessStartPage>(
+            td_api::make_object<td_api::inputBusinessStartPage>(title, message, as_input_file(sticker))));
       }
     } else if (op == "gbcb") {
       send_request(td_api::make_object<td_api::getBusinessConnectedBot>());

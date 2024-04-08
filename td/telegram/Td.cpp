@@ -7914,10 +7914,10 @@ void Td::on_request(uint64 id, td_api::setBusinessAwayMessageSettings &request) 
                                                std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::setBusinessIntro &request) {
+void Td::on_request(uint64 id, td_api::setBusinessStartPage &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  business_manager_->set_business_intro(BusinessIntro(this, std::move(request.intro_)), std::move(promise));
+  business_manager_->set_business_intro(BusinessIntro(this, std::move(request.start_page_)), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setProfilePhoto &request) {
