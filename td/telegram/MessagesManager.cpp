@@ -30322,6 +30322,15 @@ void MessagesManager::on_update_dialog_business_bot_is_paused(DialogId dialog_id
   }
 }
 
+void MessagesManager::on_update_dialog_business_bot_removed(DialogId dialog_id) {
+  auto d = get_dialog_force(dialog_id, "on_update_dialog_business_bot_removed");
+  CHECK(d != nullptr);
+  if (d->business_bot_manage_bar != nullptr) {
+    d->business_bot_manage_bar = nullptr;
+    send_update_chat_business_bot_manage_bar(d);
+  }
+}
+
 void MessagesManager::on_update_dialog_last_pinned_message_id(DialogId dialog_id, MessageId pinned_message_id) {
   if (!dialog_id.is_valid()) {
     LOG(ERROR) << "Receive pinned message in invalid " << dialog_id;

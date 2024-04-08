@@ -266,6 +266,8 @@ class MessagesManager final : public Actor {
 
   void on_update_dialog_business_bot_is_paused(DialogId dialog_id, bool is_paused);
 
+  void on_update_dialog_business_bot_removed(DialogId dialog_id);
+
   void on_update_dialog_last_pinned_message_id(DialogId dialog_id, MessageId last_pinned_message_id);
 
   void on_update_dialog_background(DialogId dialog_id, telegram_api::object_ptr<telegram_api::WallPaper> &&wallpaper);

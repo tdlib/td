@@ -9728,6 +9728,9 @@ deleteBusinessConnectedBot bot_user_id:int53 = Ok;
 //@description Pauses or resumes the connected business bot in a specific chat @chat_id Chat identifier @is_paused Pass true to pause the connected bot in the chat; pass false to resume the bot
 toggleBusinessConnectedBotChatIsPaused chat_id:int53 is_paused:Bool = Ok;
 
+//@description Removes the connected business bot from a specific chat by adding the chat to businessRecipients.excluded_chat_ids @chat_id Chat identifier
+removeBusinessConnectedBotFromChat chat_id:int53 = Ok;
+
 
 //@description Returns an HTTPS link, which can be used to get information about the current user
 getUserLink = UserLink;

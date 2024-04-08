@@ -1441,6 +1441,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::toggleBusinessConnectedBotChatIsPaused &request);
 
+  void on_request(uint64 id, const td_api::removeBusinessConnectedBotFromChat &request);
+
   void on_request(uint64 id, td_api::setSupergroupUsername &request);
 
   void on_request(uint64 id, td_api::toggleSupergroupUsernameIsActive &request);

@@ -6161,6 +6161,10 @@ class CliClient final : public Actor {
       bool is_paused;
       get_args(args, chat_id, is_paused);
       send_request(td_api::make_object<td_api::toggleBusinessConnectedBotChatIsPaused>(chat_id, is_paused));
+    } else if (op == "rbcbfc") {
+      ChatId chat_id;
+      get_args(args, chat_id);
+      send_request(td_api::make_object<td_api::removeBusinessConnectedBotFromChat>(chat_id));
     } else if (op == "dbcb") {
       UserId bot_user_id;
       get_args(args, bot_user_id);

@@ -113,12 +113,14 @@ class UpdateConnectedBotQuery final : public Td::ResultHandler {
 
 class ToggleConnectedBotPausedQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
+  DialogId dialog_id_;
 
  public:
   explicit ToggleConnectedBotPausedQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(DialogId dialog_id, bool is_paused) {
+    dialog_id_ = dialog_id;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Have no write access to the chat"));
@@ -140,6 +142,45 @@ class ToggleConnectedBotPausedQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ToggleConnectedBotPausedQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
+class DisablePeerConnectedBotQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit DisablePeerConnectedBotQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Have no write access to the chat"));
+    }
+    send_query(G()->net_query_creator().create(telegram_api::account_disablePeerConnectedBot(std::move(input_peer)),
+                                               {{"me"}, {dialog_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_disablePeerConnectedBot>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    if (!result_ptr.ok()) {
+      LOG(INFO) << "Failed to remove business bot";
+    } else {
+      td_->messages_manager_->on_update_dialog_business_bot_removed(dialog_id_);
+    }
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "DisablePeerConnectedBotQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -347,9 +388,9 @@ void BusinessManager::delete_business_connected_bot(UserId bot_user_id, Promise<
   td_->create_handler<UpdateConnectedBotQuery>(std::move(promise))->send(std::move(input_user));
 }
 
-void BusinessManager::toggle_business_connected_bot_chat_is_paused(DialogId dialog_id, bool is_paused,
-                                                                   Promise<Unit> &&promise) {
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "toggle_business_connected_bot_chat_is_paused")) {
+void BusinessManager::toggle_business_connected_bot_dialog_is_paused(DialogId dialog_id, bool is_paused,
+                                                                     Promise<Unit> &&promise) {
+  if (!td_->messages_manager_->have_dialog_force(dialog_id, "toggle_business_connected_bot_dialog_is_paused")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
   if (dialog_id.get_type() != DialogType::User) {
@@ -357,6 +398,17 @@ void BusinessManager::toggle_business_connected_bot_chat_is_paused(DialogId dial
   }
   td_->messages_manager_->on_update_dialog_business_bot_is_paused(dialog_id, is_paused);
   td_->create_handler<ToggleConnectedBotPausedQuery>(std::move(promise))->send(dialog_id, is_paused);
+}
+
+void BusinessManager::remove_business_connected_bot_from_dialog(DialogId dialog_id, Promise<Unit> &&promise) {
+  if (!td_->messages_manager_->have_dialog_force(dialog_id, "remove_business_connected_bot_from_dialog")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  if (dialog_id.get_type() != DialogType::User) {
+    return promise.set_error(Status::Error(400, "The chat has no connected bot"));
+  }
+  td_->messages_manager_->on_update_dialog_business_bot_removed(dialog_id);
+  td_->create_handler<DisablePeerConnectedBotQuery>(std::move(promise))->send(dialog_id);
 }
 
 void BusinessManager::set_business_location(DialogLocation &&location, Promise<Unit> &&promise) {

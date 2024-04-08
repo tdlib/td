@@ -34,7 +34,9 @@ class BusinessManager final : public Actor {
 
   void delete_business_connected_bot(UserId bot_user_id, Promise<Unit> &&promise);
 
-  void toggle_business_connected_bot_chat_is_paused(DialogId dialog_id, bool is_paused, Promise<Unit> &&promise);
+  void toggle_business_connected_bot_dialog_is_paused(DialogId dialog_id, bool is_paused, Promise<Unit> &&promise);
+
+  void remove_business_connected_bot_from_dialog(DialogId dialog_id, Promise<Unit> &&promise);
 
   void set_business_location(DialogLocation &&location, Promise<Unit> &&promise);
 
