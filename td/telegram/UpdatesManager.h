@@ -131,6 +131,8 @@ class UpdatesManager final : public Actor {
 
   void ping_server();
 
+  void notify_speed_limited(bool is_upload);
+
   bool running_get_difference() const {
     return running_get_difference_;
   }
@@ -279,6 +281,8 @@ class UpdatesManager final : public Actor {
     double last_update_time = 0.0;
   };
   FlatHashMap<uint64, SessionInfo> session_infos_;
+
+  double next_notify_speed_limited_[2] = {0.0, 0.0};
 
   void start_up() final;
 

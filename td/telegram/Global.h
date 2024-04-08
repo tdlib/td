@@ -626,6 +626,8 @@ class Global final : public ActorContext {
     store_all_files_in_files_directory_ = flag;
   }
 
+  void notify_speed_limited(bool is_upload);
+
  private:
   std::shared_ptr<DhConfig> dh_config_;
 

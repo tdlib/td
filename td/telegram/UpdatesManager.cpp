@@ -1784,6 +1784,15 @@ void UpdatesManager::on_server_pong(tl_object_ptr<telegram_api::updates_state> &
   }
 }
 
+void UpdatesManager::notify_speed_limited(bool is_upload) {
+  if (Time::now() < next_notify_speed_limited_[is_upload]) {
+    return;
+  }
+  next_notify_speed_limited_[is_upload] =
+      Time::now() + td_->option_manager_->get_option_integer("upload_premium_speedup_notify_period");
+  send_closure(G()->td(), &Td::send_update, td_api::make_object<td_api::updateSpeedLimitNotification>(is_upload));
+}
+
 void UpdatesManager::process_get_difference_updates(
     vector<tl_object_ptr<telegram_api::Message>> &&new_messages,
     vector<tl_object_ptr<telegram_api::EncryptedMessage>> &&new_encrypted_messages,

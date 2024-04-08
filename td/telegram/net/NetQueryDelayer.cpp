@@ -34,10 +34,26 @@ void NetQueryDelayer::delay(NetQueryPtr query) {
     }
   } else if (code == 420) {
     auto error_message = query->error().message();
-    for (auto prefix :
-         {Slice("FLOOD_WAIT_"), Slice("SLOWMODE_WAIT_"), Slice("2FA_CONFIRM_WAIT_"), Slice("TAKEOUT_INIT_DELAY_")}) {
+    for (auto prefix : {Slice("FLOOD_WAIT_"), Slice("SLOWMODE_WAIT_"), Slice("2FA_CONFIRM_WAIT_"),
+                        Slice("TAKEOUT_INIT_DELAY_"), Slice("FLOOD_PREMIUM_WAIT_")}) {
       if (begins_with(error_message, prefix)) {
         timeout = clamp(to_integer<int>(error_message.substr(prefix.size())), 1, 14 * 24 * 60 * 60);
+        if (prefix == "FLOOD_PREMIUM_WAIT_") {
+          switch (query->type()) {
+            case NetQuery::Type::Common:
+              LOG(ERROR) << "Receive " << error_message << " for " << query;
+              break;
+            case NetQuery::Type::Upload:
+              G()->notify_speed_limited(true);
+              break;
+            case NetQuery::Type::Download:
+            case NetQuery::Type::DownloadSmall:
+              G()->notify_speed_limited(false);
+              break;
+            default:
+              UNREACHABLE();
+          }
+        }
         break;
       }
     }

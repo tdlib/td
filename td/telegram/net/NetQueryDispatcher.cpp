@@ -121,6 +121,8 @@ void NetQueryDispatcher::dispatch(NetQueryPtr net_query) {
       net_query->debug(PSTRING() << "sent to download small session multi proxy " << dest_dc_id);
       send_closure_later(dcs_[dc_pos].download_small_session_, &SessionMultiProxy::send, std::move(net_query));
       break;
+    default:
+      UNREACHABLE();
   }
 }
 

@@ -7151,6 +7151,11 @@ updateAnimationSearchParameters provider:string emojis:vector<string> = Update;
 //@description The list of suggested to the user actions has changed @added_actions Added suggested actions @removed_actions Removed suggested actions
 updateSuggestedActions added_actions:vector<SuggestedAction> removed_actions:vector<SuggestedAction> = Update;
 
+//@description Download or upload file speed for the user was limited, but it can be restored by subscription to Telegram Premium.
+//-Use getOption("premium_download_speedup") or getOption("premium_upload_speedup") to get expected speedup after subscription to Telegram Premium 
+//@is_upload True, if upload speed was limited; false, if download speed was limited
+updateSpeedLimitNotification is_upload:Bool = Update;
+
 //@description The list of contacts that had birthdays recently or will have birthday soon has changed @close_birthday_users List of contact users with close birthday
 updateContactCloseBirthdays close_birthday_users:vector<closeBirthdayUser> = Update;
 
