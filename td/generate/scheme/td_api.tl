@@ -311,7 +311,7 @@ stickerFormatTgs = StickerFormat;
 stickerFormatWebm = StickerFormat;
 
 
-//@class StickerType @description Describes type of a sticker
+//@class StickerType @description Describes type of sticker
 
 //@description The sticker is a regular sticker
 stickerTypeRegular = StickerType;
@@ -350,7 +350,7 @@ closedVectorPath commands:vector<VectorPathCommand> = ClosedVectorPath;
 pollOption text:string voter_count:int32 vote_percentage:int32 is_chosen:Bool is_being_chosen:Bool = PollOption;
 
 
-//@class PollType @description Describes the type of a poll
+//@class PollType @description Describes the type of poll
 
 //@description A regular poll @allow_multiple_answers True, if multiple answer options can be chosen simultaneously
 pollTypeRegular allow_multiple_answers:Bool = PollType;
@@ -540,7 +540,7 @@ profilePhoto id:int64 small:file big:file minithumbnail:minithumbnail has_animat
 chatPhotoInfo small:file big:file minithumbnail:minithumbnail has_animation:Bool is_personal:Bool = ChatPhotoInfo;
 
 
-//@class UserType @description Represents the type of a user. The following types are possible: regular users, deleted users and bots
+//@class UserType @description Represents the type of user. The following types are possible: regular users, deleted users and bots
 
 //@description A regular user
 userTypeRegular = UserType;
@@ -659,7 +659,7 @@ businessOpeningHours time_zone_id:string opening_hours:vector<businessOpeningHou
 businessInfo location:businessLocation opening_hours:businessOpeningHours greeting_message_settings:businessGreetingMessageSettings away_message_settings:businessAwayMessageSettings start_page:businessStartPage = BusinessInfo;
 
 
-//@class ChatPhotoStickerType @description Describes type of a sticker, which was used to create a chat photo
+//@class ChatPhotoStickerType @description Describes type of sticker, which was used to create a chat photo
 
 //@description Information about the sticker, which was used to create the chat photo
 //@sticker_set_id Sticker set identifier
@@ -1079,7 +1079,7 @@ chatInviteLinkMember user_id:int53 joined_chat_date:int32 via_chat_folder_invite
 chatInviteLinkMembers total_count:int32 members:vector<chatInviteLinkMember> = ChatInviteLinkMembers;
 
 
-//@class InviteLinkChatType @description Describes the type of a chat to which points an invite link
+//@class InviteLinkChatType @description Describes the type of chat to which points an invite link
 
 //@description The link is an invite link for a basic group
 inviteLinkChatTypeBasicGroup = InviteLinkChatType;
@@ -1315,7 +1315,7 @@ reactionTypeCustomEmoji custom_emoji_id:int64 = ReactionType;
 //@origin Origin of the forwarded message
 //@date Point in time (Unix timestamp) when the message was originally sent
 //@source For messages forwarded to the chat with the current user (Saved Messages), to the Replies bot chat, or to the channel's discussion group, information about the source message from which the message was forwarded last time; may be null for other forwards or if unknown
-//@public_service_announcement_type The type of a public service announcement for the forwarded message
+//@public_service_announcement_type The type of public service announcement for the forwarded message
 messageForwardInfo origin:MessageOrigin date:int32 source:forwardSource public_service_announcement_type:string = MessageForwardInfo;
 
 //@description Contains information about a message created with importMessages
@@ -1526,7 +1526,7 @@ messageSourceScreenshot = MessageSource;
 messageSourceOther = MessageSource;
 
 
-//@class MessageSponsorType @description Describes type of a message sponsor
+//@class MessageSponsorType @description Describes type of message sponsor
 
 //@description The sponsor is a bot @bot_user_id User identifier of the bot @link An internal link to be opened when the sponsored message is clicked
 messageSponsorTypeBot bot_user_id:int53 link:InternalLinkType = MessageSponsorType;
@@ -1657,7 +1657,7 @@ scopeNotificationSettings mute_for:int32 sound_id:int64 show_preview:Bool use_de
 draftMessage reply_to:InputMessageReplyTo date:int32 input_message_text:InputMessageContent = DraftMessage;
 
 
-//@class ChatType @description Describes the type of a chat
+//@class ChatType @description Describes the type of chat
 
 //@description An ordinary chat with a user @user_id User identifier
 chatTypePrivate user_id:int53 = ChatType;
@@ -1942,7 +1942,7 @@ keyboardButtonTypeWebApp url:string = KeyboardButtonType;
 keyboardButton text:string type:KeyboardButtonType = KeyboardButton;
 
 
-//@class InlineKeyboardButtonType @description Describes the type of an inline keyboard button
+//@class InlineKeyboardButtonType @description Describes the type of inline keyboard button
 
 //@description A button that opens a specified URL @url HTTP or tg:// URL to open
 inlineKeyboardButtonTypeUrl url:string = InlineKeyboardButtonType;
@@ -2034,7 +2034,7 @@ webAppInfo launch_id:int64 url:string = WebAppInfo;
 messageThreadInfo chat_id:int53 message_thread_id:int53 reply_info:messageReplyInfo unread_message_count:int32 messages:vector<message> draft_message:draftMessage = MessageThreadInfo;
 
 
-//@class SavedMessagesTopicType @description Describes type of a Saved Messages topic
+//@class SavedMessagesTopicType @description Describes type of Saved Messages topic
 
 //@description Topic containing messages sent by the current user of forwarded from an unknown chat
 savedMessagesTopicTypeMyNotes = SavedMessagesTopicType;
@@ -2638,7 +2638,7 @@ premiumGiveawayParameters boosted_chat_id:int53 additional_chat_ids:vector<int53
 datedFile file:file date:int32 = DatedFile;
 
 
-//@class PassportElementType @description Contains the type of a Telegram Passport element
+//@class PassportElementType @description Contains the type of Telegram Passport element
 
 //@description A Telegram Passport element containing the user's personal details
 passportElementTypePersonalDetails = PassportElementType;
@@ -3032,7 +3032,7 @@ messageVideoChatStarted group_call_id:int32 = MessageContent;
 //@description A message with information about an ended video chat @duration Call duration, in seconds
 messageVideoChatEnded duration:int32 = MessageContent;
 
-//@description A message with information about an invite to a video chat @group_call_id Identifier of the video chat. The video chat can be received through the method getGroupCall @user_ids Invited user identifiers
+//@description A message with information about an invitation to a video chat @group_call_id Identifier of the video chat. The video chat can be received through the method getGroupCall @user_ids Invited user identifiers
 messageInviteVideoChatParticipants group_call_id:int32 user_ids:vector<int53> = MessageContent;
 
 //@description A newly created basic group @title Title of the basic group @member_user_ids User identifiers of members in the basic group
@@ -3655,7 +3655,7 @@ emojiCategory name:string icon:sticker emojis:vector<string> = EmojiCategory;
 emojiCategories categories:vector<emojiCategory> = EmojiCategories;
 
 
-//@class EmojiCategoryType @description Describes type of an emoji category
+//@class EmojiCategoryType @description Describes type of emoji category
 
 //@description The category must be used by default
 emojiCategoryTypeDefault = EmojiCategoryType;
@@ -3676,7 +3676,7 @@ emojiCategoryTypeChatPhoto = EmojiCategoryType;
 storyAreaPosition x_percentage:double y_percentage:double width_percentage:double height_percentage:double rotation_angle:double = StoryAreaPosition;
 
 
-//@class StoryAreaType @description Describes type of a clickable rectangle area on a story media
+//@class StoryAreaType @description Describes type of clickable rectangle area on a story media
 
 //@description An area pointing to a location @location The location
 storyAreaTypeLocation location:location = StoryAreaType;
@@ -3699,7 +3699,7 @@ storyAreaTypeMessage chat_id:int53 message_id:int53 = StoryAreaType;
 storyArea position:storyAreaPosition type:StoryAreaType = StoryArea;
 
 
-//@class InputStoryAreaType @description Describes type of a clickable rectangle area on a story media to be added
+//@class InputStoryAreaType @description Describes type of clickable rectangle area on a story media to be added
 
 //@description An area pointing to a location @location The location
 inputStoryAreaTypeLocation location:location = InputStoryAreaType;
@@ -4040,7 +4040,7 @@ callDiscardReasonHungUp = CallDiscardReason;
 callProtocol udp_p2p:Bool udp_reflector:Bool min_layer:int32 max_layer:int32 library_versions:vector<string> = CallProtocol;
 
 
-//@class CallServerType @description Describes the type of a call server
+//@class CallServerType @description Describes the type of call server
 
 //@description A Telegram call reflector @peer_tag A peer tag to be used with the reflector @is_tcp True, if the server uses TCP instead of UDP
 callServerTypeTelegramReflector peer_tag:bytes is_tcp:Bool = CallServerType;
@@ -4184,7 +4184,7 @@ groupCallParticipantVideoInfo source_groups:vector<groupCallVideoSourceGroup> en
 groupCallParticipant participant_id:MessageSender audio_source_id:int32 screen_sharing_audio_source_id:int32 video_info:groupCallParticipantVideoInfo screen_sharing_video_info:groupCallParticipantVideoInfo bio:string is_current_user:Bool is_speaking:Bool is_hand_raised:Bool can_be_muted_for_all_users:Bool can_be_unmuted_for_all_users:Bool can_be_muted_for_current_user:Bool can_be_unmuted_for_current_user:Bool is_muted_for_all_users:Bool is_muted_for_current_user:Bool can_unmute_self:Bool volume_level:int32 order:string = GroupCallParticipant;
 
 
-//@class CallProblem @description Describes the exact type of a problem with a call
+//@class CallProblem @description Describes the exact type of problem with a call
 
 //@description The user heard their own voice
 callProblemEcho = CallProblem;
@@ -4604,7 +4604,7 @@ inlineQueryResultVideo id:string video:video title:string description:string = I
 inlineQueryResultVoiceNote id:string voice_note:voiceNote title:string = InlineQueryResult;
 
 
-//@class InlineQueryResultsButtonType @description Represents a type of a button in results of inline query
+//@class InlineQueryResultsButtonType @description Represents a type of button in results of inline query
 
 //@description Describes the button that opens a private chat with the bot and sends a start message to the bot with the given parameter @parameter The parameter for the bot start message
 inlineQueryResultsButtonTypeStartBot parameter:string = InlineQueryResultsButtonType;
@@ -4880,7 +4880,7 @@ languagePackInfo id:string base_language_pack_id:string name:string native_name:
 localizationTargetInfo language_packs:vector<languagePackInfo> = LocalizationTargetInfo;
 
 
-//@class PremiumLimitType @description Describes type of a limit, increased for Premium users
+//@class PremiumLimitType @description Describes type of limit, increased for Premium users
 
 //@description The maximum number of joined supergroups and channels
 premiumLimitTypeSupergroupCount = PremiumLimitType;
@@ -5224,7 +5224,7 @@ backgroundFillGradient top_color:int32 bottom_color:int32 rotation_angle:int32 =
 backgroundFillFreeformGradient colors:vector<int32> = BackgroundFill;
 
 
-//@class BackgroundType @description Describes the type of a background
+//@class BackgroundType @description Describes the type of background
 
 //@description A wallpaper in JPEG format
 //@is_blurred True, if the wallpaper must be downscaled to fit in 450x450 square and then box-blurred with radius 12
@@ -5730,7 +5730,7 @@ accountTtl days:int32 = AccountTtl;
 messageAutoDeleteTime time:int32 = MessageAutoDeleteTime;
 
 
-//@class SessionType @description Represents the type of a session
+//@class SessionType @description Represents the type of session
 
 //@description The session is running on an Android device
 sessionTypeAndroid = SessionType;
@@ -6120,7 +6120,7 @@ chatBoostLink link:string is_public:Bool = ChatBoostLink;
 chatBoostLinkInfo is_public:Bool chat_id:int53 = ChatBoostLinkInfo;
 
 
-//@class BlockList @description Describes a type of a block list
+//@class BlockList @description Describes a type of block list
 
 //@description The main block list that disallows writing messages to the current user, receiving their status and photo, viewing of stories, and some other actions
 blockListMain = BlockList;
@@ -6133,7 +6133,7 @@ blockListStories = BlockList;
 filePart data:bytes = FilePart;
 
 
-//@class FileType @description Represents the type of a file
+//@class FileType @description Represents the type of file
 
 //@description The data is not a file
 fileTypeNone = FileType;
@@ -6225,7 +6225,7 @@ storageStatisticsFast files_size:int53 file_count:int32 database_size:int53 lang
 databaseStatistics statistics:string = DatabaseStatistics;
 
 
-//@class NetworkType @description Represents the type of a network
+//@class NetworkType @description Represents the type of network
 
 //@description The network is not available
 networkTypeNone = NetworkType;
@@ -6365,7 +6365,7 @@ foundPosition position:int32 = FoundPosition;
 foundPositions total_count:int32 positions:vector<int32> = FoundPositions;
 
 
-//@class TMeUrlType @description Describes the type of a URL linking to an internal Telegram entity
+//@class TMeUrlType @description Describes the type of URL linking to an internal Telegram entity
 
 //@description A URL linking to a user @user_id Identifier of the user
 tMeUrlTypeUser user_id:int53 = TMeUrlType;
@@ -6450,7 +6450,7 @@ textParseModeMarkdown version:int32 = TextParseMode;
 textParseModeHTML = TextParseMode;
 
 
-//@class ProxyType @description Describes the type of a proxy server
+//@class ProxyType @description Describes the type of proxy server
 
 //@description A SOCKS5 proxy server @username Username for logging in; may be empty @password Password for logging in; may be empty
 proxyTypeSocks5 username:string password:string = ProxyType;
@@ -6505,7 +6505,7 @@ statisticalGraphAsync token:string = StatisticalGraph;
 statisticalGraphError error_message:string = StatisticalGraph;
 
 
-//@class ChatStatisticsObjectType @description Describes type of an object, for which statistics are provided
+//@class ChatStatisticsObjectType @description Describes type of object, for which statistics are provided
 
 //@description Describes a message sent in the chat @message_id Message identifier
 chatStatisticsObjectTypeMessage message_id:int53 = ChatStatisticsObjectType;
@@ -6622,7 +6622,7 @@ chatRevenueWithdrawalStateCompleted date:int32 url:string = ChatRevenueWithdrawa
 chatRevenueWithdrawalStateFailed = ChatRevenueWithdrawalState;
 
 
-//@class ChatRevenueTransactionType @description Describes type of a transaction for revenue earned from sponsored messages in a chat
+//@class ChatRevenueTransactionType @description Describes type of transaction for revenue earned from sponsored messages in a chat
 
 //@description Describes earnings from sponsored messages in a chat in some time frame
 //@start_date Point in time (Unix timestamp) when the earnings started
@@ -7602,7 +7602,7 @@ getChatSimilarChats chat_id:int53 = Chats;
 //@return_local Pass true to get the number of chats without sending network requests, or -1 if the number of chats is unknown locally
 getChatSimilarChatCount chat_id:int53 return_local:Bool = Count;
 
-//@description Informs TDLib that a chat was opened from the list of similar chats. The method is independent from openChat and closeChat methods
+//@description Informs TDLib that a chat was opened from the list of similar chats. The method is independent of openChat and closeChat methods
 //@chat_id Identifier of the original chat, which similar chats were requested
 //@opened_chat_id Identifier of the opened chat
 openChatSimilarChat chat_id:int53 opened_chat_id:int53 = Ok;
@@ -8483,7 +8483,7 @@ clickAnimatedEmojiMessage chat_id:int53 message_id:int53 = Sticker;
 //@description Returns an HTTPS or a tg: link with the given type. Can be called before authorization @type Expected type of the link @is_http Pass true to create an HTTPS link (only available for some link types); pass false to create a tg: link
 getInternalLink type:InternalLinkType is_http:Bool = HttpUrl;
 
-//@description Returns information about the type of an internal link. Returns a 404 error if the link is not internal. Can be called before authorization @link The link
+//@description Returns information about the type of internal link. Returns a 404 error if the link is not internal. Can be called before authorization @link The link
 getInternalLinkType link:string = InternalLinkType;
 
 //@description Returns information about an action to be done when the current user clicks an external link. Don't use this method for links from secret chats if web page preview is disabled in secret chats @link The link
@@ -9114,7 +9114,7 @@ readFilePart file_id:int32 offset:int53 count:int53 = FilePart;
 deleteFile file_id:int32 = Ok;
 
 //@description Adds a file from a message to the list of file downloads. Download progress and completion of the download will be notified through updateFile updates.
-//-If message database is used, the list of file downloads is persistent across application restarts. The downloading is independent from download using downloadFile, i.e. it continues if downloadFile is canceled or is used to download a part of the file
+//-If message database is used, the list of file downloads is persistent across application restarts. The downloading is independent of download using downloadFile, i.e. it continues if downloadFile is canceled or is used to download a part of the file
 //@file_id Identifier of the file to download
 //@chat_id Chat identifier of the message with the file
 //@message_id Message identifier
