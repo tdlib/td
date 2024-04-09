@@ -114,6 +114,7 @@ struct InputMessageContent;
 class MessageContent;
 class MessageForwardInfo;
 struct MessageReactions;
+class MissingInvitees;
 class Td;
 class Usernames;
 
@@ -888,8 +889,10 @@ class MessagesManager final : public Actor {
 
   void on_upload_message_media_fail(DialogId dialog_id, MessageId message_id, Status error);
 
-  void on_create_new_dialog(telegram_api::object_ptr<telegram_api::Updates> &&updates, DialogType expected_type,
-                            Promise<td_api::object_ptr<td_api::chat>> &&promise);
+  void on_create_new_dialog(telegram_api::object_ptr<telegram_api::Updates> &&updates,
+                            MissingInvitees &&missing_invitees,
+                            Promise<td_api::object_ptr<td_api::createdBasicGroupChat>> &&chat_promise,
+                            Promise<td_api::object_ptr<td_api::chat>> &&channel_promise);
 
   void on_get_channel_difference(DialogId dialog_id, int32 request_pts, int32 request_limit,
                                  tl_object_ptr<telegram_api::updates_ChannelDifference> &&difference_ptr,
@@ -3210,7 +3213,9 @@ class MessagesManager final : public Actor {
   vector<ChannelId> created_public_broadcasts_;
 
   struct PendingCreatedDialog {
-    Promise<td_api::object_ptr<td_api::chat>> promise_;
+    td_api::object_ptr<td_api::failedToAddMembers> failed_to_add_members_;
+    Promise<td_api::object_ptr<td_api::createdBasicGroupChat>> chat_promise_;
+    Promise<td_api::object_ptr<td_api::chat>> channel_promise_;
   };
   FlatHashMap<DialogId, PendingCreatedDialog, DialogIdHash> pending_created_dialogs_;
 

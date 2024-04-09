@@ -27,6 +27,7 @@
 #include "td/telegram/MessageTtl.h"
 #include "td/telegram/MinChannel.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/MissingInvitee.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/PeerColor.h"
@@ -71,10 +72,11 @@
 namespace td {
 
 class CreateChatQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::chat>> promise_;
+  Promise<td_api::object_ptr<td_api::createdBasicGroupChat>> promise_;
 
  public:
-  explicit CreateChatQuery(Promise<td_api::object_ptr<td_api::chat>> &&promise) : promise_(std::move(promise)) {
+  explicit CreateChatQuery(Promise<td_api::object_ptr<td_api::createdBasicGroupChat>> &&promise)
+      : promise_(std::move(promise)) {
   }
 
   void send(vector<tl_object_ptr<telegram_api::InputUser>> &&input_users, const string &title, MessageTtl message_ttl) {
@@ -91,7 +93,8 @@ class CreateChatQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for CreateChatQuery: " << to_string(ptr);
-    td_->messages_manager_->on_create_new_dialog(std::move(ptr->updates_), DialogType::Chat, std::move(promise_));
+    td_->messages_manager_->on_create_new_dialog(
+        std::move(ptr->updates_), MissingInvitees(std::move(ptr->missing_invitees_)), std::move(promise_), Auto());
   }
 
   void on_error(Status status) final {
@@ -134,7 +137,7 @@ class CreateChannelQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->messages_manager_->on_create_new_dialog(result_ptr.move_as_ok(), DialogType::Channel, std::move(promise_));
+    td_->messages_manager_->on_create_new_dialog(result_ptr.move_as_ok(), Auto(), Auto(), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -7459,7 +7462,7 @@ FileSourceId ChatManager::get_channel_full_file_source_id(ChannelId channel_id) 
 }
 
 void ChatManager::create_new_chat(const vector<UserId> &user_ids, const string &title, MessageTtl message_ttl,
-                                  Promise<td_api::object_ptr<td_api::chat>> &&promise) {
+                                  Promise<td_api::object_ptr<td_api::createdBasicGroupChat>> &&promise) {
   auto new_title = clean_name(title, MAX_TITLE_LENGTH);
   if (new_title.empty()) {
     return promise.set_error(Status::Error(400, "Title must be non-empty"));
@@ -7467,11 +7470,8 @@ void ChatManager::create_new_chat(const vector<UserId> &user_ids, const string &
 
   vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
   for (auto user_id : user_ids) {
-    auto r_input_user = td_->user_manager_->get_input_user(user_id);
-    if (r_input_user.is_error()) {
-      return promise.set_error(r_input_user.move_as_error());
-    }
-    input_users.push_back(r_input_user.move_as_ok());
+    TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
+    input_users.push_back(std::move(input_user));
   }
 
   td_->create_handler<CreateChatQuery>(std::move(promise))->send(std::move(input_users), new_title, message_ttl);

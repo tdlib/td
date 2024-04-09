@@ -297,7 +297,7 @@ class ChatManager final : public Actor {
   vector<DialogId> get_inactive_channels(Promise<Unit> &&promise);
 
   void create_new_chat(const vector<UserId> &user_ids, const string &title, MessageTtl message_ttl,
-                       Promise<td_api::object_ptr<td_api::chat>> &&promise);
+                       Promise<td_api::object_ptr<td_api::createdBasicGroupChat>> &&promise);
 
   bool have_chat(ChatId chat_id) const;
   bool have_chat_force(ChatId chat_id, const char *source);

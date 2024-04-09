@@ -1855,6 +1855,10 @@ failedToAddMember user_id:int53 premium_would_allow_invite:Bool premium_required
 failedToAddMembers failed_to_add_members:vector<failedToAddMember> = FailedToAddMembers;
 
 
+//@description Contains information about a newly created basic group chat @chat_id Chat identifier @failed_to_add_members Information about failed to add members
+createdBasicGroupChat chat_id:int53 failed_to_add_members:failedToAddMembers = CreatedBasicGroupChat;
+
+
 //@description Describes a chat located nearby @chat_id Chat identifier @distance Distance to the chat location, in meters
 chatNearby chat_id:int53 distance:int32 = ChatNearby;
 
@@ -8538,11 +8542,11 @@ createSupergroupChat supergroup_id:int53 force:Bool = Chat;
 //@description Returns an existing chat corresponding to a known secret chat @secret_chat_id Secret chat identifier
 createSecretChat secret_chat_id:int32 = Chat;
 
-//@description Creates a new basic group and sends a corresponding messageBasicGroupChatCreate. Returns the newly created chat
+//@description Creates a new basic group and sends a corresponding messageBasicGroupChatCreate. Returns information about the newly created chat
 //@user_ids Identifiers of users to be added to the basic group; may be empty to create a basic group without other members
 //@title Title of the new basic group; 1-128 characters
 //@message_auto_delete_time Message auto-delete time value, in seconds; must be from 0 up to 365 * 86400 and be divisible by 86400. If 0, then messages aren't deleted automatically
-createNewBasicGroupChat user_ids:vector<int53> title:string message_auto_delete_time:int32 = Chat;
+createNewBasicGroupChat user_ids:vector<int53> title:string message_auto_delete_time:int32 = CreatedBasicGroupChat;
 
 //@description Creates a new supergroup or channel and sends a corresponding messageSupergroupChatCreate. Returns the newly created chat
 //@title Title of the new chat; 1-128 characters

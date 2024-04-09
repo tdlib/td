@@ -55,6 +55,7 @@
 #include "td/telegram/MessageReplyInfo.hpp"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/MissingInvitee.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/NotificationGroupInfo.hpp"
 #include "td/telegram/NotificationGroupType.h"
@@ -13720,7 +13721,12 @@ MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const 
       auto pending_created_dialog = std::move(it->second);
       pending_created_dialogs_.erase(it);
 
-      pending_created_dialog.promise_.set_value(get_chat_object(d, "on_get_message"));
+      if (pending_created_dialog.chat_promise_) {
+        pending_created_dialog.chat_promise_.set_value(td_api::make_object<td_api::createdBasicGroupChat>(
+            get_chat_id_object(dialog_id, "on_get_message"), std::move(pending_created_dialog.failed_to_add_members_)));
+      } else {
+        pending_created_dialog.channel_promise_.set_value(get_chat_object(d, "on_get_message"));
+      }
     }
   }
 
@@ -30891,15 +30897,20 @@ void MessagesManager::set_dialog_message_ttl(Dialog *d, MessageTtl message_ttl) 
 }
 
 void MessagesManager::on_create_new_dialog(telegram_api::object_ptr<telegram_api::Updates> &&updates,
-                                           DialogType expected_type,
-                                           Promise<td_api::object_ptr<td_api::chat>> &&promise) {
+                                           MissingInvitees &&missing_invitees,
+                                           Promise<td_api::object_ptr<td_api::createdBasicGroupChat>> &&chat_promise,
+                                           Promise<td_api::object_ptr<td_api::chat>> &&channel_promise) {
   LOG(INFO) << "Receive result for creation of a chat: " << to_string(updates);
 
+  auto fail = [&](Slice message) {
+    chat_promise.set_error(Status::Error(500, message));
+    channel_promise.set_error(Status::Error(500, message));
+  };
   auto sent_messages = UpdatesManager::get_new_messages(updates.get());
   auto sent_messages_random_ids = UpdatesManager::get_sent_messages_random_ids(updates.get());
   if (sent_messages.size() != 1u || sent_messages_random_ids.size() != 1u) {
     LOG(ERROR) << "Receive wrong result for create group or channel chat " << oneline(to_string(updates));
-    return promise.set_error(Status::Error(500, "Unsupported server response"));
+    return fail("Unsupported server response");
   }
 
   auto *message = sent_messages.begin()->first;
@@ -30907,20 +30918,21 @@ void MessagesManager::on_create_new_dialog(telegram_api::object_ptr<telegram_api
   // TODO check that message_random_id equals random_id after messages_createChat will be updated
 
   if (sent_messages.begin()->second) {
-    return promise.set_error(Status::Error(500, "Scheduled message received"));
+    return fail("Scheduled message received");
   }
 
+  auto expected_type = chat_promise ? DialogType::Chat : DialogType::Channel;
   auto dialog_id = DialogId::get_message_dialog_id(message);
   if (dialog_id.get_type() != expected_type) {
-    return promise.set_error(Status::Error(500, "Chat of wrong type has been created"));
+    return fail("Chat of wrong type has been created");
   }
   if (message->get_id() != telegram_api::messageService::ID) {
-    return promise.set_error(Status::Error(500, "Invalid message received"));
+    return fail("Invalid message received");
   }
   auto action_id = static_cast<const telegram_api::messageService *>(message)->action_->get_id();
   if (action_id != telegram_api::messageActionChatCreate::ID &&
       action_id != telegram_api::messageActionChannelCreate::ID) {
-    return promise.set_error(Status::Error(500, "Invalid service message received"));
+    return fail("Invalid service message received");
   }
 
   const Dialog *d = get_dialog(dialog_id);
@@ -30928,16 +30940,25 @@ void MessagesManager::on_create_new_dialog(telegram_api::object_ptr<telegram_api
     // dialog have been already created and at least one non-temporary message was added,
     // i.e. we are not interested in the creation of dialog by searchMessages
     // then messages have already been added, so just set promise
-    return promise.set_value(get_chat_object(d, "on_create_new_dialog"));
+    if (chat_promise) {
+      return chat_promise.set_value(td_api::make_object<td_api::createdBasicGroupChat>(
+          get_chat_id_object(dialog_id, "on_create_new_dialog"),
+          missing_invitees.get_failed_to_add_members_object(td_->user_manager_.get())));
+    } else {
+      return channel_promise.set_value(get_chat_object(d, "on_create_new_dialog"));
+    }
   }
 
   if (pending_created_dialogs_.count(dialog_id) == 0) {
     PendingCreatedDialog pending_created_dialog;
-    pending_created_dialog.promise_ = std::move(promise);
+    pending_created_dialog.failed_to_add_members_ =
+        missing_invitees.get_failed_to_add_members_object(td_->user_manager_.get());
+    pending_created_dialog.chat_promise_ = std::move(chat_promise);
+    pending_created_dialog.channel_promise_ = std::move(channel_promise);
     pending_created_dialogs_.emplace(dialog_id, std::move(pending_created_dialog));
   } else {
     LOG(ERROR) << "Receive twice " << dialog_id << " as result of chat creation";
-    return promise.set_error(Status::Error(500, "Chat was created earlier"));
+    return fail("Chat was created earlier");
   }
 
   td_->updates_manager_->on_get_updates(std::move(updates), Promise<Unit>());

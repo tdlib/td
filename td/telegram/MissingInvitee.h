@@ -42,6 +42,8 @@ class MissingInvitees {
   friend StringBuilder &operator<<(StringBuilder &string_builder, const MissingInvitees &invitees);
 
  public:
+  MissingInvitees() = default;
+
   explicit MissingInvitees(vector<telegram_api::object_ptr<telegram_api::missingInvitee>> &&invitees);
 
   td_api::object_ptr<td_api::failedToAddMembers> get_failed_to_add_members_object(UserManager *user_manager) const;
