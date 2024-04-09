@@ -17,6 +17,7 @@
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/MissingInvitee.h"
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/StoryManager.h"
 #include "td/telegram/Td.h"
@@ -423,12 +424,13 @@ class GetChannelParticipantsQuery final : public Td::ResultHandler {
 };
 
 class AddChatUserQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
+  Promise<td_api::object_ptr<td_api::failedToAddMembers>> promise_;
   ChatId chat_id_;
   UserId user_id_;
 
  public:
-  explicit AddChatUserQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit AddChatUserQuery(Promise<td_api::object_ptr<td_api::failedToAddMembers>> &&promise)
+      : promise_(std::move(promise)) {
   }
 
   void send(ChatId chat_id, UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user, int32 forward_limit) {
@@ -446,15 +448,15 @@ class AddChatUserQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for AddChatUserQuery: " << to_string(ptr);
-    td_->updates_manager_->on_get_updates(std::move(ptr->updates_), std::move(promise_));
+    td_->updates_manager_->on_get_updates(
+        std::move(ptr->updates_),
+        PromiseCreator::lambda(
+            [missing_invitees = MissingInvitees(std::move(ptr->missing_invitees_))
+                                    .get_failed_to_add_members_object(td_->user_manager_.get()),
+             promise = std::move(promise_)](Result<Unit>) mutable { promise.set_value(std::move(missing_invitees)); }));
   }
 
   void on_error(Status status) final {
-    if (!td_->auth_manager_->is_bot() && status.message() == "USER_PRIVACY_RESTRICTED") {
-      td_->dialog_participant_manager_->send_update_add_chat_members_privacy_forbidden(DialogId(chat_id_), {user_id_},
-                                                                                       "AddChatUserQuery");
-      return promise_.set_error(Status::Error(406, "USER_PRIVACY_RESTRICTED"));
-    }
     promise_.set_error(std::move(status));
   }
 };
@@ -569,12 +571,13 @@ class JoinChannelQuery final : public Td::ResultHandler {
 };
 
 class InviteToChannelQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
+  Promise<td_api::object_ptr<td_api::failedToAddMembers>> promise_;
   ChannelId channel_id_;
   vector<UserId> user_ids_;
 
  public:
-  explicit InviteToChannelQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit InviteToChannelQuery(Promise<td_api::object_ptr<td_api::failedToAddMembers>> &&promise)
+      : promise_(std::move(promise)) {
   }
 
   void send(ChannelId channel_id, vector<UserId> user_ids,
@@ -596,15 +599,15 @@ class InviteToChannelQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for InviteToChannelQuery: " << to_string(ptr);
     td_->chat_manager_->invalidate_channel_full(channel_id_, false, "InviteToChannelQuery");
-    td_->updates_manager_->on_get_updates(std::move(std::move(ptr->updates_)), std::move(promise_));
+    td_->updates_manager_->on_get_updates(
+        std::move(std::move(ptr->updates_)),
+        PromiseCreator::lambda(
+            [missing_invitees = MissingInvitees(std::move(ptr->missing_invitees_))
+                                    .get_failed_to_add_members_object(td_->user_manager_.get()),
+             promise = std::move(promise_)](Result<Unit>) mutable { promise.set_value(std::move(missing_invitees)); }));
   }
 
   void on_error(Status status) final {
-    if (!td_->auth_manager_->is_bot() && status.message() == "USER_PRIVACY_RESTRICTED") {
-      td_->dialog_participant_manager_->send_update_add_chat_members_privacy_forbidden(
-          DialogId(channel_id_), std::move(user_ids_), "InviteToChannelQuery");
-      return promise_.set_error(Status::Error(406, "USER_PRIVACY_RESTRICTED"));
-    }
     td_->chat_manager_->on_get_channel_error(channel_id_, status, "InviteToChannelQuery");
     td_->chat_manager_->invalidate_channel_full(channel_id_, false, "InviteToChannelQuery");
     promise_.set_error(std::move(status));
@@ -1978,8 +1981,9 @@ void DialogParticipantManager::search_dialog_participants(DialogId dialog_id, co
   }
 }
 
-void DialogParticipantManager::add_dialog_participant(DialogId dialog_id, UserId user_id, int32 forward_limit,
-                                                      Promise<Unit> &&promise) {
+void DialogParticipantManager::add_dialog_participant(
+    DialogId dialog_id, UserId user_id, int32 forward_limit,
+    Promise<td_api::object_ptr<td_api::failedToAddMembers>> &&promise) {
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "add_dialog_participant")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
@@ -2000,8 +2004,9 @@ void DialogParticipantManager::add_dialog_participant(DialogId dialog_id, UserId
   }
 }
 
-void DialogParticipantManager::add_dialog_participants(DialogId dialog_id, const vector<UserId> &user_ids,
-                                                       Promise<Unit> &&promise) {
+void DialogParticipantManager::add_dialog_participants(
+    DialogId dialog_id, const vector<UserId> &user_ids,
+    Promise<td_api::object_ptr<td_api::failedToAddMembers>> &&promise) {
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "add_dialog_participants")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
@@ -2113,8 +2118,24 @@ void DialogParticipantManager::leave_dialog(DialogId dialog_id, Promise<Unit> &&
   }
 }
 
+Promise<td_api::object_ptr<td_api::failedToAddMembers>> DialogParticipantManager::wrap_failed_to_add_members_promise(
+    Promise<Unit> &&promise) {
+  return PromiseCreator::lambda(
+      [promise = std::move(promise)](Result<td_api::object_ptr<td_api::failedToAddMembers>> &&result) mutable {
+        if (result.is_ok()) {
+          if (result.ok()->failed_to_add_members_.empty()) {
+            promise.set_value(Unit());
+          } else {
+            promise.set_error(Status::Error(403, "USER_PRIVACY_RESTRICTED"));
+          }
+        } else {
+          promise.set_error(result.move_as_error());
+        }
+      });
+}
+
 void DialogParticipantManager::add_chat_participant(ChatId chat_id, UserId user_id, int32 forward_limit,
-                                                    Promise<Unit> &&promise) {
+                                                    Promise<td_api::object_ptr<td_api::failedToAddMembers>> &&promise) {
   if (!td_->chat_manager_->get_chat_is_active(chat_id)) {
     if (!td_->chat_manager_->have_chat(chat_id)) {
       return promise.set_error(Status::Error(400, "Chat info not found"));
@@ -2180,7 +2201,7 @@ void DialogParticipantManager::set_chat_participant_status(ChatId chat_id, UserI
   auto participant = td_->chat_manager_->get_chat_participant(chat_id, user_id);
   if (participant == nullptr && !status.is_administrator()) {
     // the user isn't a member, but needs to be added
-    return add_chat_participant(chat_id, user_id, 0, std::move(promise));
+    return add_chat_participant(chat_id, user_id, 0, wrap_failed_to_add_members_promise(std::move(promise)));
   }
 
   auto permissions = td_->chat_manager_->get_chat_permissions(chat_id);
@@ -2195,15 +2216,19 @@ void DialogParticipantManager::set_chat_participant_status(ChatId chat_id, UserI
   if (participant == nullptr) {
     // the user must be added first
     CHECK(status.is_administrator());
-    auto add_chat_participant_promise = PromiseCreator::lambda(
-        [actor_id = actor_id(this), chat_id, user_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
+    auto add_chat_participant_promise =
+        PromiseCreator::lambda([actor_id = actor_id(this), chat_id, user_id, promise = std::move(promise)](
+                                   Result<td_api::object_ptr<td_api::failedToAddMembers>> &&result) mutable {
           if (result.is_error()) {
             promise.set_error(result.move_as_error());
+          } else if (!result.ok()->failed_to_add_members_.empty()) {
+            promise.set_error(Status::Error(403, "USER_PRIVACY_RESTRICTED"));
           } else {
             send_closure(actor_id, &DialogParticipantManager::send_edit_chat_admin_query, chat_id, user_id, true,
                          std::move(promise));
           }
         });
+
     return add_chat_participant(chat_id, user_id, 0, std::move(add_chat_participant_promise));
   }
 
@@ -2271,9 +2296,9 @@ void DialogParticipantManager::delete_chat_participant(ChatId chat_id, UserId us
   td_->create_handler<DeleteChatUserQuery>(std::move(promise))->send(chat_id, std::move(input_user), revoke_messages);
 }
 
-void DialogParticipantManager::add_channel_participant(ChannelId channel_id, UserId user_id,
-                                                       const DialogParticipantStatus &old_status,
-                                                       Promise<Unit> &&promise) {
+void DialogParticipantManager::add_channel_participant(
+    ChannelId channel_id, UserId user_id, const DialogParticipantStatus &old_status,
+    Promise<td_api::object_ptr<td_api::failedToAddMembers>> &&promise) {
   if (td_->auth_manager_->is_bot()) {
     return promise.set_error(Status::Error(400, "Bots can't add new chat members"));
   }
@@ -2290,7 +2315,7 @@ void DialogParticipantManager::add_channel_participant(ChannelId channel_id, Use
       return promise.set_error(Status::Error(400, "Can't return to kicked from chat"));
     }
     if (my_status.is_member()) {
-      return promise.set_value(Unit());
+      return promise.set_value(MissingInvitees().get_failed_to_add_members_object(td_->user_manager_.get()));
     }
 
     auto &queries = join_channel_queries_[channel_id];
@@ -2329,14 +2354,17 @@ void DialogParticipantManager::on_join_channel(ChannelId channel_id, Result<Unit
   join_channel_queries_.erase(it);
 
   if (result.is_ok()) {
-    set_promises(promises);
+    for (auto &promise : promises) {
+      promise.set_value(MissingInvitees().get_failed_to_add_members_object(td_->user_manager_.get()));
+    }
   } else {
     fail_promises(promises, result.move_as_error());
   }
 }
 
-void DialogParticipantManager::add_channel_participants(ChannelId channel_id, const vector<UserId> &user_ids,
-                                                        Promise<Unit> &&promise) {
+void DialogParticipantManager::add_channel_participants(
+    ChannelId channel_id, const vector<UserId> &user_ids,
+    Promise<td_api::object_ptr<td_api::failedToAddMembers>> &&promise) {
   if (td_->auth_manager_->is_bot()) {
     return promise.set_error(Status::Error(400, "Bots can't add new chat members"));
   }
@@ -2364,7 +2392,7 @@ void DialogParticipantManager::add_channel_participants(ChannelId channel_id, co
   }
 
   if (input_users.empty()) {
-    return promise.set_value(Unit());
+    return promise.set_value(MissingInvitees().get_failed_to_add_members_object(td_->user_manager_.get()));
   }
 
   td_->create_handler<InviteToChannelQuery>(std::move(promise))->send(channel_id, user_ids, std::move(input_users));
@@ -2493,7 +2521,8 @@ void DialogParticipantManager::set_channel_participant_status_impl(ChannelId cha
     if (participant_dialog_id.get_type() != DialogType::User) {
       return promise.set_error(Status::Error(400, "Can't add chats as chat members"));
     }
-    return add_channel_participant(channel_id, participant_dialog_id.get_user_id(), old_status, std::move(promise));
+    return add_channel_participant(channel_id, participant_dialog_id.get_user_id(), old_status,
+                                   wrap_failed_to_add_members_promise(std::move(promise)));
   }
 }
 
@@ -2628,13 +2657,14 @@ void DialogParticipantManager::restrict_channel_participant(ChannelId channel_id
           create_actor<SleepActor>(
               "AddChannelParticipantSleepActor", 1.0,
               PromiseCreator::lambda([actor_id, channel_id, participant_dialog_id, old_status = std::move(old_status),
-                                      promise = std::move(promise)](Result<> result) mutable {
+                                      promise = std::move(promise)](Result<Unit> result) mutable {
                 if (result.is_error()) {
                   return promise.set_error(result.move_as_error());
                 }
 
                 send_closure(actor_id, &DialogParticipantManager::add_channel_participant, channel_id,
-                             participant_dialog_id.get_user_id(), old_status, std::move(promise));
+                             participant_dialog_id.get_user_id(), old_status,
+                             wrap_failed_to_add_members_promise(std::move(promise)));
               }))
               .release();
         });

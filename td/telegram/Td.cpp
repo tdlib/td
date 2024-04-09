@@ -7054,8 +7054,9 @@ void Td::on_request(uint64 id, const td_api::unpinAllMessageThreadMessages &requ
 void Td::on_request(uint64 id, const td_api::joinChat &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  dialog_participant_manager_->add_dialog_participant(DialogId(request.chat_id_), user_manager_->get_my_id(), 0,
-                                                      std::move(promise));
+  dialog_participant_manager_->add_dialog_participant(
+      DialogId(request.chat_id_), user_manager_->get_my_id(), 0,
+      DialogParticipantManager::wrap_failed_to_add_members_promise(std::move(promise)));
 }
 
 void Td::on_request(uint64 id, const td_api::leaveChat &request) {
@@ -7079,14 +7080,14 @@ void Td::on_request(uint64 id, const td_api::leaveChat &request) {
 
 void Td::on_request(uint64 id, const td_api::addChatMember &request) {
   CHECK_IS_USER();
-  CREATE_OK_REQUEST_PROMISE();
+  CREATE_REQUEST_PROMISE();
   dialog_participant_manager_->add_dialog_participant(DialogId(request.chat_id_), UserId(request.user_id_),
                                                       request.forward_limit_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::addChatMembers &request) {
   CHECK_IS_USER();
-  CREATE_OK_REQUEST_PROMISE();
+  CREATE_REQUEST_PROMISE();
   dialog_participant_manager_->add_dialog_participants(DialogId(request.chat_id_),
                                                        UserId::get_user_ids(request.user_ids_), std::move(promise));
 }

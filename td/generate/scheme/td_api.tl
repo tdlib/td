@@ -8779,16 +8779,17 @@ joinChat chat_id:int53 = Ok;
 //@description Removes the current user from chat members. Private and secret chats can't be left using this method @chat_id Chat identifier
 leaveChat chat_id:int53 = Ok;
 
-//@description Adds a new member to a chat; requires can_invite_users member right. Members can't be added to private or secret chats
+//@description Adds a new member to a chat; requires can_invite_users member right. Members can't be added to private or secret chats. Returns information about members that weren't added
 //@chat_id Chat identifier
 //@user_id Identifier of the user
 //@forward_limit The number of earlier messages from the chat to be forwarded to the new member; up to 100. Ignored for supergroups and channels, or if the added user is a bot
-addChatMember chat_id:int53 user_id:int53 forward_limit:int32 = Ok;
+addChatMember chat_id:int53 user_id:int53 forward_limit:int32 = FailedToAddMembers;
 
-//@description Adds multiple new members to a chat; requires can_invite_users member right. Currently, this method is only available for supergroups and channels. This method can't be used to join a chat. Members can't be added to a channel if it has more than 200 members
+//@description Adds multiple new members to a chat; requires can_invite_users member right. Currently, this method is only available for supergroups and channels.
+//-This method can't be used to join a chat. Members can't be added to a channel if it has more than 200 members. Returns information about members that weren't added
 //@chat_id Chat identifier
 //@user_ids Identifiers of the users to be added to the chat. The maximum number of added users is 20 for supergroups and 100 for channels
-addChatMembers chat_id:int53 user_ids:vector<int53> = Ok;
+addChatMembers chat_id:int53 user_ids:vector<int53> = FailedToAddMembers;
 
 //@description Changes the status of a chat member; requires can_invite_users member right to add a chat member, can_promote_members administrator right to change administrator rights of the member,
 //-and can_restrict_members administrator right to change restrictions of a user. This function is currently not suitable for transferring chat ownership; use transferChatOwnership instead.
