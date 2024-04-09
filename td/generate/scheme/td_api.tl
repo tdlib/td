@@ -1845,6 +1845,16 @@ chat id:int53 type:ChatType title:string photo:chatPhotoInfo accent_color_id:int
 chats total_count:int32 chat_ids:vector<int53> = Chats;
 
 
+//@description Contains information about a user that has failed to be added to a chat
+//@user_id User identifier
+//@premium_would_allow_invite True, if subscription to Telegram Premium would have allowed to add the user to the chat
+//@premium_required_to_send_messages True, if subscription to Telegram Premium is required to send the user chat invite link
+failedToAddMember user_id:int53 premium_would_allow_invite:Bool premium_required_to_send_messages:Bool = FailedToAddMember;
+
+//@description Represents a list of users that has failed to be added to a chat @failed_to_add_members Information about users that weren't added to the chat
+failedToAddMembers failed_to_add_members:vector<failedToAddMember> = FailedToAddMembers;
+
+
 //@description Describes a chat located nearby @chat_id Chat identifier @distance Distance to the chat location, in meters
 chatNearby chat_id:int53 distance:int32 = ChatNearby;
 

@@ -431,6 +431,7 @@ set(TDLIB_SOURCE
   td/telegram/MessageTtl.cpp
   td/telegram/MessageViewer.cpp
   td/telegram/misc.cpp
+  td/telegram/MissingInvitee.cpp
   td/telegram/net/AuthDataShared.cpp
   td/telegram/net/ConnectionCreator.cpp
   td/telegram/net/DcAuthManager.cpp
@@ -757,6 +758,7 @@ set(TDLIB_SOURCE
   td/telegram/MessageViewer.h
   td/telegram/MinChannel.h
   td/telegram/misc.h
+  td/telegram/MissingInvitee.h
   td/telegram/net/AuthDataShared.h
   td/telegram/net/AuthKeyState.h
   td/telegram/net/ConnectionCreator.h
