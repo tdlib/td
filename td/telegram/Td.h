@@ -1445,6 +1445,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::getBusinessChatLinks &request);
 
+  void on_request(uint64 id, td_api::createBusinessChatLink &request);
+
   void on_request(uint64 id, td_api::setSupergroupUsername &request);
 
   void on_request(uint64 id, td_api::toggleSupergroupUsernameIsActive &request);

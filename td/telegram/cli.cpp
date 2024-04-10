@@ -6171,6 +6171,12 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::deleteBusinessConnectedBot>(bot_user_id));
     } else if (op == "gbcl") {
       send_request(td_api::make_object<td_api::getBusinessChatLinks>());
+    } else if (op == "cbcl") {
+      string text;
+      string title;
+      get_args(args, text, title);
+      send_request(td_api::make_object<td_api::createBusinessChatLink>(
+          td_api::make_object<td_api::inputBusinessChatLink>(as_formatted_text(text), title)));
     } else if (op == "gbc") {
       send_request(td_api::make_object<td_api::getBusinessConnection>(args.empty() ? business_connection_id_ : args));
     } else if (op == "sco") {

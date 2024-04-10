@@ -18,6 +18,7 @@
 #include "td/telegram/DialogLocation.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/InputBusinessChatLink.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
@@ -211,6 +212,36 @@ class GetBusinessChatLinksQuery final : public Td::ResultHandler {
     td_->chat_manager_->on_get_chats(std::move(ptr->chats_), "GetBusinessChatLinksQuery");
     promise_.set_value(
         BusinessChatLinks(td_->user_manager_.get(), std::move(ptr->links_)).get_business_chat_links_object());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class CreateBusinessChatLinkQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::businessChatLink>> promise_;
+
+ public:
+  explicit CreateBusinessChatLinkQuery(Promise<td_api::object_ptr<td_api::businessChatLink>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(InputBusinessChatLink &&link) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::account_createBusinessChatLink(link.get_input_business_chat_link(td_->user_manager_.get())),
+        {{"me"}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_createBusinessChatLink>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for CreateBusinessChatLinkQuery: " << to_string(ptr);
+    promise_.set_value(BusinessChatLink(td_->user_manager_.get(), std::move(ptr)).get_business_chat_link_object());
   }
 
   void on_error(Status status) final {
@@ -446,6 +477,12 @@ void BusinessManager::remove_business_connected_bot_from_dialog(DialogId dialog_
 
 void BusinessManager::get_business_chat_links(Promise<td_api::object_ptr<td_api::businessChatLinks>> &&promise) {
   td_->create_handler<GetBusinessChatLinksQuery>(std::move(promise))->send();
+}
+
+void BusinessManager::create_business_chat_link(td_api::object_ptr<td_api::inputBusinessChatLink> &&link,
+                                                Promise<td_api::object_ptr<td_api::businessChatLink>> &&promise) {
+  td_->create_handler<CreateBusinessChatLinkQuery>(std::move(promise))
+      ->send(InputBusinessChatLink(td_, std::move(link)));
 }
 
 void BusinessManager::set_business_location(DialogLocation &&location, Promise<Unit> &&promise) {

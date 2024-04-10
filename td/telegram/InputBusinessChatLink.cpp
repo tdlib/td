@@ -13,6 +13,9 @@
 namespace td {
 
 InputBusinessChatLink::InputBusinessChatLink(const Td *td, td_api::object_ptr<td_api::inputBusinessChatLink> &&link) {
+  if (link == nullptr) {
+    return;
+  }
   auto r_text =
       get_formatted_text(td, td->dialog_manager_->get_my_dialog_id(), std::move(link->text_), false, true, true, false);
   if (r_text.is_error()) {
@@ -20,7 +23,7 @@ InputBusinessChatLink::InputBusinessChatLink(const Td *td, td_api::object_ptr<td
   } else {
     text_ = r_text.move_as_ok();
   }
-  if (!clean_input_string(link->title_)) {
+  if (clean_input_string(link->title_)) {
     title_ = std::move(link->title_);
   }
 }
