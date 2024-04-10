@@ -130,8 +130,6 @@ class DialogParticipantManager final : public Actor {
   void on_set_channel_participant_status(ChannelId channel_id, DialogId participant_dialog_id,
                                          DialogParticipantStatus status);
 
-  void send_update_add_chat_members_privacy_forbidden(DialogId dialog_id, vector<UserId> user_ids, const char *source);
-
   bool have_channel_participant_cache(ChannelId channel_id) const;
 
   void add_channel_participant_to_cache(ChannelId channel_id, const DialogParticipant &dialog_participant,

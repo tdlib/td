@@ -7176,9 +7176,6 @@ updateSpeedLimitNotification is_upload:Bool = Update;
 //@description The list of contacts that had birthdays recently or will have birthday soon has changed @close_birthday_users List of contact users with close birthday
 updateContactCloseBirthdays close_birthday_users:vector<closeBirthdayUser> = Update;
 
-//@description Adding users to a chat has failed because of their privacy settings. An invite link can be shared with the users if appropriate @chat_id Chat identifier @user_ids Identifiers of users, which weren't added because of their privacy settings
-updateAddChatMembersPrivacyForbidden chat_id:int53 user_ids:vector<int53> = Update;
-
 //@description Autosave settings for some type of chats were updated @scope Type of chats for which autosave settings were updated @settings The new autosave settings; may be null if the settings are reset to default
 updateAutosaveSettings scope:AutosaveSettingsScope settings:scopeAutosaveSettings = Update;
 

@@ -495,12 +495,6 @@ class EditChatAdminQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    if (!td_->auth_manager_->is_bot() && status.message() == "USER_PRIVACY_RESTRICTED") {
-      // impossible now, because the user must be in the chat already
-      td_->dialog_participant_manager_->send_update_add_chat_members_privacy_forbidden(DialogId(chat_id_), {user_id_},
-                                                                                       "EditChatAdminQuery");
-      return promise_.set_error(Status::Error(406, "USER_PRIVACY_RESTRICTED"));
-    }
     promise_.set_error(std::move(status));
   }
 };
@@ -649,11 +643,6 @@ class EditChannelAdminQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    if (!td_->auth_manager_->is_bot() && status.message() == "USER_PRIVACY_RESTRICTED") {
-      td_->dialog_participant_manager_->send_update_add_chat_members_privacy_forbidden(
-          DialogId(channel_id_), {user_id_}, "EditChannelAdminQuery");
-      return promise_.set_error(Status::Error(406, "USER_PRIVACY_RESTRICTED"));
-    }
     td_->chat_manager_->on_get_channel_error(channel_id_, status, "EditChannelAdminQuery");
     td_->chat_manager_->invalidate_channel_full(channel_id_, false, "EditChannelAdminQuery");
     promise_.set_error(std::move(status));
@@ -807,11 +796,6 @@ class EditChannelCreatorQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    if (!td_->auth_manager_->is_bot() && status.message() == "USER_PRIVACY_RESTRICTED") {
-      td_->dialog_participant_manager_->send_update_add_chat_members_privacy_forbidden(
-          DialogId(channel_id_), {user_id_}, "EditChannelCreatorQuery");
-      return promise_.set_error(Status::Error(406, "USER_PRIVACY_RESTRICTED"));
-    }
     td_->chat_manager_->on_get_channel_error(channel_id_, status, "EditChannelCreatorQuery");
     promise_.set_error(std::move(status));
   }
@@ -2697,16 +2681,6 @@ void DialogParticipantManager::speculative_add_channel_user(ChannelId channel_id
   speculative_update_dialog_administrators(DialogId(channel_id), user_id, new_status, old_status);
 
   td_->chat_manager_->speculative_add_channel_user(channel_id, user_id, new_status, old_status);
-}
-
-void DialogParticipantManager::send_update_add_chat_members_privacy_forbidden(DialogId dialog_id,
-                                                                              vector<UserId> user_ids,
-                                                                              const char *source) {
-  td_->dialog_manager_->force_create_dialog(dialog_id, source);
-  send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateAddChatMembersPrivacyForbidden>(
-                   td_->dialog_manager_->get_chat_id_object(dialog_id, "updateAddChatMembersPrivacyForbidden"),
-                   td_->user_manager_->get_user_ids_object(user_ids, source)));
 }
 
 void DialogParticipantManager::on_channel_participant_cache_timeout_callback(void *dialog_participant_manager_ptr,
