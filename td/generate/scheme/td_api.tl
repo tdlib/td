@@ -9016,7 +9016,7 @@ getStoryPublicForwards story_sender_chat_id:int53 story_id:int32 offset:string l
 //@level Chat boost level
 getChatBoostLevelFeatures is_channel:Bool level:int32 = ChatBoostLevelFeatures;
 
-//@description Returns list of features available on the first 10 chat boost levels; this is an offline request
+//@description Returns list of features available for different chat boost levels; this is an offline request
 //@is_channel Pass true to get the list of features for channels; pass false to get the list of features for supergroups
 getChatBoostFeatures is_channel:Bool = ChatBoostFeatures;
 
