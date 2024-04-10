@@ -305,6 +305,7 @@ set(TDLIB_SOURCE
   td/telegram/BusinessAwayMessage.cpp
   td/telegram/BusinessAwayMessageSchedule.cpp
   td/telegram/BusinessBotManageBar.cpp
+  td/telegram/BusinessChatLink.cpp
   td/telegram/BusinessConnectedBot.cpp
   td/telegram/BusinessConnectionManager.cpp
   td/telegram/BusinessGreetingMessage.cpp
@@ -600,6 +601,7 @@ set(TDLIB_SOURCE
   td/telegram/BusinessAwayMessage.h
   td/telegram/BusinessAwayMessageSchedule.h
   td/telegram/BusinessBotManageBar.h
+  td/telegram/BusinessChatLink.h
   td/telegram/BusinessConnectedBot.h
   td/telegram/BusinessConnectionId.h
   td/telegram/BusinessConnectionManager.h

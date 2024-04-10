@@ -659,6 +659,17 @@ businessOpeningHours time_zone_id:string opening_hours:vector<businessOpeningHou
 businessInfo location:businessLocation opening_hours:businessOpeningHours greeting_message_settings:businessGreetingMessageSettings away_message_settings:businessAwayMessageSettings start_page:businessStartPage = BusinessInfo;
 
 
+//@description Contains information about a business chat link
+//@link The HTTPS link
+//@text Message draft text that will be added to the input field
+//@title Link title
+//@view_count Number of times the link was used
+businessChatLink link:string text:formattedText title:string view_count:int32 = BusinessChatLink;
+
+//@description Contains a list of business chat links created by the user @links List of links
+businessChatLinks links:vector<businessChatLink> = BusinessChatLinks;
+
+
 //@class ChatPhotoStickerType @description Describes type of sticker, which was used to create a chat photo
 
 //@description Information about the sticker, which was used to create the chat photo
@@ -9723,6 +9734,7 @@ setBusinessAwayMessageSettings away_message_settings:businessAwayMessageSettings
 
 //@description Changes the business start page of the current user. Requires Telegram Business subscription @start_page The new start page of the business; pass null to remove custom start page
 setBusinessStartPage start_page:inputBusinessStartPage = Ok;
+
 
 //@description Changes the phone number of the user and sends an authentication code to the user's new phone number; for official Android and iOS applications only. On success, returns information about the sent code
 //@phone_number The new phone number of the user in international format
