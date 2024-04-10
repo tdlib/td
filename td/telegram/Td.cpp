@@ -7985,6 +7985,12 @@ void Td::on_request(uint64 id, const td_api::removeBusinessConnectedBotFromChat 
   business_manager_->remove_business_connected_bot_from_dialog(DialogId(request.chat_id_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getBusinessChatLinks &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  business_manager_->get_business_chat_links(std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::setSupergroupUsername &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.username_);

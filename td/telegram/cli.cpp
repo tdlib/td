@@ -6169,6 +6169,8 @@ class CliClient final : public Actor {
       UserId bot_user_id;
       get_args(args, bot_user_id);
       send_request(td_api::make_object<td_api::deleteBusinessConnectedBot>(bot_user_id));
+    } else if (op == "gbcl") {
+      send_request(td_api::make_object<td_api::getBusinessChatLinks>());
     } else if (op == "gbc") {
       send_request(td_api::make_object<td_api::getBusinessConnection>(args.empty() ? business_connection_id_ : args));
     } else if (op == "sco") {

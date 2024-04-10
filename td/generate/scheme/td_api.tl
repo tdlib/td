@@ -9764,6 +9764,10 @@ toggleBusinessConnectedBotChatIsPaused chat_id:int53 is_paused:Bool = Ok;
 removeBusinessConnectedBotFromChat chat_id:int53 = Ok;
 
 
+//@description Returns business chat links created for the current account
+getBusinessChatLinks = BusinessChatLinks;
+
+
 //@description Returns an HTTPS link, which can be used to get information about the current user
 getUserLink = UserLink;
 

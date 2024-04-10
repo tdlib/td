@@ -8,11 +8,13 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/BusinessAwayMessage.h"
+#include "td/telegram/BusinessChatLink.h"
 #include "td/telegram/BusinessConnectedBot.h"
 #include "td/telegram/BusinessGreetingMessage.h"
 #include "td/telegram/BusinessIntro.h"
 #include "td/telegram/BusinessRecipients.h"
 #include "td/telegram/BusinessWorkHours.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogLocation.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
@@ -181,6 +183,37 @@ class DisablePeerConnectedBotQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "DisablePeerConnectedBotQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
+class GetBusinessChatLinksQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::businessChatLinks>> promise_;
+
+ public:
+  explicit GetBusinessChatLinksQuery(Promise<td_api::object_ptr<td_api::businessChatLinks>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::account_getBusinessChatLinks(), {{"me"}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_getBusinessChatLinks>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetBusinessChatLinksQuery: " << to_string(ptr);
+    td_->user_manager_->on_get_users(std::move(ptr->users_), "GetBusinessChatLinksQuery");
+    td_->chat_manager_->on_get_chats(std::move(ptr->chats_), "GetBusinessChatLinksQuery");
+    promise_.set_value(
+        BusinessChatLinks(td_->user_manager_.get(), std::move(ptr->links_)).get_business_chat_links_object());
+  }
+
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -409,6 +442,10 @@ void BusinessManager::remove_business_connected_bot_from_dialog(DialogId dialog_
   }
   td_->messages_manager_->on_update_dialog_business_bot_removed(dialog_id);
   td_->create_handler<DisablePeerConnectedBotQuery>(std::move(promise))->send(dialog_id);
+}
+
+void BusinessManager::get_business_chat_links(Promise<td_api::object_ptr<td_api::businessChatLinks>> &&promise) {
+  td_->create_handler<GetBusinessChatLinksQuery>(std::move(promise))->send();
 }
 
 void BusinessManager::set_business_location(DialogLocation &&location, Promise<Unit> &&promise) {
