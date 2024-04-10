@@ -362,6 +362,7 @@ function split_file($file, $chunks, $undo) {
                 'group_call_manager[_(-](?![.]get[(][)])|GroupCallManager' => 'GroupCallManager',
                 'hashtag_hints[_(-](?![.]get[(][)])|HashtagHints' => 'HashtagHints',
                 'inline_queries_manager[_(-](?![.]get[(][)])|InlineQueriesManager' => 'InlineQueriesManager',
+                'InputBusinessChatLink' => 'InputBusinessChatLink',
                 'language_pack_manager[_(-]|LanguagePackManager' => 'LanguagePackManager',
                 'link_manager[_(-](?![.]get[(][)])|LinkManager' => 'LinkManager',
                 'LogeventIdWithGeneration|add_log_event|delete_log_event|get_erase_log_event_promise|parse_time|store_time' => 'logevent/LogEventHelper',

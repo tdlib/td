@@ -669,6 +669,11 @@ businessChatLink link:string text:formattedText title:string view_count:int32 = 
 //@description Contains a list of business chat links created by the user @links List of links
 businessChatLinks links:vector<businessChatLink> = BusinessChatLinks;
 
+//@description Describes a business chat link to create or edit
+//@text Message draft text that will be added to the input field
+//@title Link title
+inputBusinessChatLink text:formattedText title:string = InputBusinessChatLink;
+
 
 //@class ChatPhotoStickerType @description Describes type of sticker, which was used to create a chat photo
 
