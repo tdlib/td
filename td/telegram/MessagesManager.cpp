@@ -26876,6 +26876,44 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_quick_reply_s
   return get_messages_object(-1, std::move(result), false);
 }
 
+class MessagesManager::SendQuickReplyShortcutMessagesLogEvent {
+ public:
+  DialogId dialog_id;
+  QuickReplyShortcutId shortcut_id;
+  vector<MessageId> message_ids;
+  vector<Message *> messages_in;
+  vector<unique_ptr<Message>> messages_out;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    BEGIN_STORE_FLAGS();
+    END_STORE_FLAGS();
+    td::store(dialog_id, storer);
+    td::store(shortcut_id, storer);
+    td::store(message_ids, storer);
+    td::store(messages_in, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    BEGIN_PARSE_FLAGS();
+    END_PARSE_FLAGS();
+    td::parse(dialog_id, parser);
+    td::parse(shortcut_id, parser);
+    td::parse(message_ids, parser);
+    td::parse(messages_out, parser);
+  }
+};
+
+uint64 MessagesManager::save_send_quick_reply_shortcut_messages_log_event(DialogId dialog_id,
+                                                                          QuickReplyShortcutId shortcut_id,
+                                                                          const vector<Message *> &messages,
+                                                                          const vector<MessageId> &message_ids) {
+  SendQuickReplyShortcutMessagesLogEvent log_event{dialog_id, shortcut_id, message_ids, messages, Auto()};
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::SendQuickReplyShortcutMessages,
+                    get_log_event_storer(log_event));
+}
+
 void MessagesManager::do_send_quick_reply_shortcut_messages(DialogId dialog_id, QuickReplyShortcutId shortcut_id,
                                                             const vector<Message *> &messages,
                                                             const vector<MessageId> &message_ids, uint64 log_event_id) {
@@ -26889,7 +26927,7 @@ void MessagesManager::do_send_quick_reply_shortcut_messages(DialogId dialog_id, 
   }
 
   if (log_event_id == 0 && G()->use_message_database()) {
-    // log_event_id = save_send_quick_reply_shortcut_messages_log_event(dialog_id, shprtcut_id, messages, message_ids);
+    log_event_id = save_send_quick_reply_shortcut_messages_log_event(dialog_id, shortcut_id, messages, message_ids);
   }
 
   vector<int64> random_ids =
@@ -37503,6 +37541,71 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         do_forward_messages(to_dialog_id, from_dialog_id, forwarded_messages, log_event.message_ids,
                             log_event.drop_author, log_event.drop_media_captions, event.id_);
+        break;
+      }
+      case LogEvent::HandlerType::SendQuickReplyShortcutMessages: {
+        if (!have_old_message_database) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          continue;
+        }
+
+        SendQuickReplyShortcutMessagesLogEvent log_event;
+        log_event_parse(log_event, event.get_data()).ensure();
+
+        auto dialog_id = log_event.dialog_id;
+        auto messages = std::move(log_event.messages_out);
+
+        Dependencies dependencies;
+        dependencies.add_dialog_and_dependencies(dialog_id);
+        for (auto &message : messages) {
+          add_message_dependencies(dependencies, message.get());
+        }
+        if (!dependencies.resolve_force(td_, "SendQuickReplyShortcutMessagesLogEvent")) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          continue;
+        }
+
+        Dialog *d = get_dialog(dialog_id);
+        CHECK(d != nullptr);
+        d->was_opened = true;
+
+        auto now = G()->unix_time();
+        if (can_send_message(dialog_id).is_error() || messages.empty() ||
+            (messages[0]->send_date < now - MAX_RESEND_DELAY &&
+             dialog_id != td_->dialog_manager_->get_my_dialog_id())) {
+          LOG(WARNING) << "Can't continue sending quick reply shortcut " << messages.size() << " message(s) to "
+                       << dialog_id;
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          continue;
+        }
+
+        LOG(INFO) << "Continue to send quick reply shortcut " << messages.size() << " message(s) to " << dialog_id
+                  << " from binlog";
+
+        bool need_update = false;
+        bool need_update_dialog_pos = false;
+        vector<Message *> sent_messages;
+        for (auto &message : messages) {
+          message->message_id = get_next_yet_unsent_message_id(d);
+          message->date = now;
+          message->content = dup_message_content(td_, dialog_id, message->content.get(),
+                                                 MessageContentDupType::ServerCopy, MessageCopyOptions(true, false));
+          CHECK(message->content != nullptr);
+
+          restore_message_reply_to_message_id(d, message.get());
+
+          sent_messages.push_back(add_message_to_dialog(d, std::move(message), false, true, &need_update,
+                                                        &need_update_dialog_pos,
+                                                        "send quick reply shortcut message again"));
+          send_update_new_message(d, sent_messages.back());
+        }
+
+        if (need_update_dialog_pos) {
+          send_update_chat_last_message(d, "on_resent_quick_reply_shortcut_message");
+        }
+
+        do_send_quick_reply_shortcut_messages(dialog_id, log_event.shortcut_id, sent_messages, log_event.message_ids,
+                                              event.id_);
         break;
       }
       case LogEvent::HandlerType::DeleteMessage: {
