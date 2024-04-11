@@ -674,6 +674,11 @@ businessChatLinks links:vector<businessChatLink> = BusinessChatLinks;
 //@title Link title
 inputBusinessChatLink text:formattedText title:string = InputBusinessChatLink;
 
+//@description Contains information about a business chat link
+//@chat_id Identifier of the private chat that created the link
+//@text Message draft text that must be added to the input field
+businessChatLinkInfo chat_id:int53 text:formattedText = BusinessChatLinkInfo;
+
 
 //@class ChatPhotoStickerType @description Describes type of sticker, which was used to create a chat photo
 
@@ -9783,6 +9788,9 @@ editBusinessChatLink link:string link_info:inputBusinessChatLink = BusinessChatL
 
 //@description Deletes a business chat link of the current account @link The link to delete
 deleteBusinessChatLink link:string = Ok;
+
+//@description Returns information about a business chat link @link The link
+getBusinessChatLinkInfo link:string = BusinessChatLinkInfo;
 
 
 //@description Returns an HTTPS link, which can be used to get information about the current user

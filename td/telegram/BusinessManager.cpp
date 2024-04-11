@@ -19,6 +19,7 @@
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/InputBusinessChatLink.h"
+#include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
@@ -305,6 +306,54 @@ class DeleteBusinessChatLinkQuery final : public Td::ResultHandler {
   }
 };
 
+class ResolveBusinessChatLinkQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::businessChatLinkInfo>> promise_;
+
+ public:
+  explicit ResolveBusinessChatLinkQuery(Promise<td_api::object_ptr<td_api::businessChatLinkInfo>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &link) {
+    send_query(G()->net_query_creator().create(telegram_api::account_resolveBusinessChatLink(link), {{"me"}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_resolveBusinessChatLink>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for ResolveBusinessChatLinkQuery: " << to_string(ptr);
+    td_->user_manager_->on_get_users(std::move(ptr->users_), "ResolveBusinessChatLinkQuery");
+    td_->chat_manager_->on_get_chats(std::move(ptr->chats_), "ResolveBusinessChatLinkQuery");
+
+    auto text = get_message_text(td_->user_manager_.get(), std::move(ptr->message_), std::move(ptr->entities_), true, true, 0, false, "ResolveBusinessChatLinkQuery");
+    if (text.text[0] == '@') {
+      text.text = ' ' + text.text;
+      for (auto &entity : text.entities) {
+        entity.offset++;
+      }
+    }
+    DialogId dialog_id(ptr->peer_);
+    if (dialog_id.get_type() != DialogType::User) {
+      LOG(ERROR) << "Receive " << dialog_id;
+      return on_error(Status::Error(500, "Receive invalid business chat"));
+    }
+    remove_unallowed_entities(td_, text, dialog_id);
+    td_->dialog_manager_->force_create_dialog(dialog_id, "ResolveBusinessChatLinkQuery");
+
+    promise_.set_value(td_api::make_object<td_api::businessChatLinkInfo>(
+        td_->dialog_manager_->get_chat_id_object(dialog_id, "businessChatLinkInfo"),
+        get_formatted_text_object(text, true, -1)));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class UpdateBusinessLocationQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogLocation location_;
@@ -550,6 +599,11 @@ void BusinessManager::edit_business_chat_link(const string &link,
 
 void BusinessManager::delete_business_chat_link(const string &link, Promise<Unit> &&promise) {
   td_->create_handler<DeleteBusinessChatLinkQuery>(std::move(promise))->send(link);
+}
+
+void BusinessManager::get_business_chat_link_info(const string &link,
+                                                  Promise<td_api::object_ptr<td_api::businessChatLinkInfo>> &&promise) {
+  td_->create_handler<ResolveBusinessChatLinkQuery>(std::move(promise))->send(link);
 }
 
 void BusinessManager::set_business_location(DialogLocation &&location, Promise<Unit> &&promise) {
