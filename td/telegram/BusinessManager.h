@@ -40,8 +40,11 @@ class BusinessManager final : public Actor {
 
   void get_business_chat_links(Promise<td_api::object_ptr<td_api::businessChatLinks>> &&promise);
 
-  void create_business_chat_link(td_api::object_ptr<td_api::inputBusinessChatLink> &&link,
+  void create_business_chat_link(td_api::object_ptr<td_api::inputBusinessChatLink> &&link_info,
                                  Promise<td_api::object_ptr<td_api::businessChatLink>> &&promise);
+
+  void edit_business_chat_link(const string &link, td_api::object_ptr<td_api::inputBusinessChatLink> &&link_info,
+                               Promise<td_api::object_ptr<td_api::businessChatLink>> &&promise);
 
   void set_business_location(DialogLocation &&location, Promise<Unit> &&promise);
 

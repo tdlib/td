@@ -7994,7 +7994,14 @@ void Td::on_request(uint64 id, const td_api::getBusinessChatLinks &request) {
 void Td::on_request(uint64 id, td_api::createBusinessChatLink &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  business_manager_->create_business_chat_link(std::move(request.link_), std::move(promise));
+  business_manager_->create_business_chat_link(std::move(request.link_info_), std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::editBusinessChatLink &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.link_);
+  CREATE_REQUEST_PROMISE();
+  business_manager_->edit_business_chat_link(request.link_, std::move(request.link_info_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setSupergroupUsername &request) {

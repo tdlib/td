@@ -9773,8 +9773,13 @@ removeBusinessConnectedBotFromChat chat_id:int53 = Ok;
 getBusinessChatLinks = BusinessChatLinks;
 
 //@description Creates a business chat link for the current account. Requires Telegram Business subscription. There can be up to getOption("business_chat_link_count_max") links created. Returns the created link
-//@link Description of the link to create
-createBusinessChatLink link:inputBusinessChatLink = BusinessChatLink;
+//@link_info Description of the link to create
+createBusinessChatLink link_info:inputBusinessChatLink = BusinessChatLink;
+
+//@description Edits existing business chat link for the current account. Requires Telegram Business subscription. Returns the edited link
+//@link The link to edit
+//@link_info New description of the link
+editBusinessChatLink link:string link_info:inputBusinessChatLink = BusinessChatLink;
 
 
 //@description Returns an HTTPS link, which can be used to get information about the current user
