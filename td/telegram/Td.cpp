@@ -8193,6 +8193,12 @@ void Td::on_request(uint64 id, td_api::searchStickers &request) {
   stickers_manager_->search_stickers(sticker_type, std::move(request.emojis_), request.limit_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getGreetingStickers &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  stickers_manager_->search_stickers(StickerType::Regular, "👋⭐️", 100, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getPremiumStickers &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
