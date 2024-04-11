@@ -148,6 +148,7 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("premium_download_speedup", 10);
   set_default_integer_option("premium_upload_speedup", 10);
   set_default_integer_option("upload_premium_speedup_notify_period", 3600);
+  set_default_integer_option("business_chat_link_count_max", is_test_dc ? 5 : 100);
 
   if (options.isset("my_phone_number") || !options.isset("my_id")) {
     update_premium_options();
