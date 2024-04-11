@@ -280,6 +280,31 @@ class EditBusinessChatLinkQuery final : public Td::ResultHandler {
   }
 };
 
+class DeleteBusinessChatLinkQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit DeleteBusinessChatLinkQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const string &link) {
+    send_query(G()->net_query_creator().create(telegram_api::account_deleteBusinessChatLink(link), {{"me"}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_deleteBusinessChatLink>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class UpdateBusinessLocationQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogLocation location_;
@@ -521,6 +546,10 @@ void BusinessManager::edit_business_chat_link(const string &link,
                                               Promise<td_api::object_ptr<td_api::businessChatLink>> &&promise) {
   td_->create_handler<EditBusinessChatLinkQuery>(std::move(promise))
       ->send(link, InputBusinessChatLink(td_, std::move(link_info)));
+}
+
+void BusinessManager::delete_business_chat_link(const string &link, Promise<Unit> &&promise) {
+  td_->create_handler<DeleteBusinessChatLinkQuery>(std::move(promise))->send(link);
 }
 
 void BusinessManager::set_business_location(DialogLocation &&location, Promise<Unit> &&promise) {

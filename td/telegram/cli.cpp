@@ -6184,6 +6184,8 @@ class CliClient final : public Actor {
       get_args(args, link, text, title);
       send_request(td_api::make_object<td_api::editBusinessChatLink>(
           link, td_api::make_object<td_api::inputBusinessChatLink>(as_formatted_text(text), title)));
+    } else if (op == "dbcl") {
+      send_request(td_api::make_object<td_api::deleteBusinessChatLink>(args));
     } else if (op == "gbc") {
       send_request(td_api::make_object<td_api::getBusinessConnection>(args.empty() ? business_connection_id_ : args));
     } else if (op == "sco") {

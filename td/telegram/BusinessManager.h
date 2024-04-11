@@ -46,6 +46,8 @@ class BusinessManager final : public Actor {
   void edit_business_chat_link(const string &link, td_api::object_ptr<td_api::inputBusinessChatLink> &&link_info,
                                Promise<td_api::object_ptr<td_api::businessChatLink>> &&promise);
 
+  void delete_business_chat_link(const string &link, Promise<Unit> &&promise);
+
   void set_business_location(DialogLocation &&location, Promise<Unit> &&promise);
 
   void set_business_work_hours(BusinessWorkHours &&work_hours, Promise<Unit> &&promise);

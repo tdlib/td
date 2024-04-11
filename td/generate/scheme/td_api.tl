@@ -9776,10 +9776,13 @@ getBusinessChatLinks = BusinessChatLinks;
 //@link_info Description of the link to create
 createBusinessChatLink link_info:inputBusinessChatLink = BusinessChatLink;
 
-//@description Edits existing business chat link for the current account. Requires Telegram Business subscription. Returns the edited link
+//@description Edits a business chat link of the current account. Requires Telegram Business subscription. Returns the edited link
 //@link The link to edit
 //@link_info New description of the link
 editBusinessChatLink link:string link_info:inputBusinessChatLink = BusinessChatLink;
+
+//@description Deletes a business chat link of the current account @link The link to delete
+deleteBusinessChatLink link:string = Ok;
 
 
 //@description Returns an HTTPS link, which can be used to get information about the current user
