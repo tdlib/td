@@ -8013,9 +8013,9 @@ void Td::on_request(uint64 id, td_api::deleteBusinessChatLink &request) {
 
 void Td::on_request(uint64 id, td_api::getBusinessChatLinkInfo &request) {
   CHECK_IS_USER();
-  CLEAN_INPUT_STRING(request.link_);
+  CLEAN_INPUT_STRING(request.link_name_);
   CREATE_REQUEST_PROMISE();
-  business_manager_->get_business_chat_link_info(request.link_, std::move(promise));
+  business_manager_->get_business_chat_link_info(request.link_name_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setSupergroupUsername &request) {

@@ -384,6 +384,18 @@ class LinkManager::InternalLinkBotStartInGroup final : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkBusinessChat final : public InternalLink {
+  string link_name_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeBusinessChat>(link_name_);
+  }
+
+ public:
+  explicit InternalLinkBusinessChat(string link_name) : link_name_(std::move(link_name)) {
+  }
+};
+
 class LinkManager::InternalLinkChangePhoneNumber final : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeChangePhoneNumber>();
@@ -1130,9 +1142,9 @@ LinkManager::LinkInfo LinkManager::get_link_info(Slice link) {
     if (ends_with(host, ".t.me") && host.size() >= 9 && host.find('.') == host.size() - 5) {
       Slice subdomain(&host[0], host.size() - 5);
       static const FlatHashSet<Slice, SliceHash> disallowed_subdomains(
-          {"addemoji", "addlist",  "addstickers", "addtheme", "auth",  "boost", "confirmphone",
-           "contact",  "giftcode", "invoice",     "joinchat", "login", "proxy", "setlanguage",
-           "share",    "socks",    "web",         "a",        "k",     "z"});
+          {"addemoji",    "addlist",  "addstickers", "addtheme", "auth",  "boost", "confirmphone",
+           "contact",     "giftcode", "invoice",     "joinchat", "login", "m",     "proxy",
+           "setlanguage", "share",    "socks",       "web",      "a",     "k",     "z"});
       if (is_valid_username(subdomain) && disallowed_subdomains.count(subdomain) == 0) {
         result.type_ = LinkType::TMe;
         result.query_ = PSTRING() << '/' << subdomain << http_url.query_;
@@ -1514,6 +1526,11 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     if (has_arg("slug")) {
       return td::make_unique<InternalLinkPremiumGiftCode>(url_query.get_arg("slug").str());
     }
+  } else if (path.size() == 1 && path[0] == "message") {
+    // message?slug=<name>
+    if (has_arg("slug")) {
+      return td::make_unique<InternalLinkBusinessChat>(url_query.get_arg("slug").str());
+    }
   } else if (path.size() == 1 && (path[0] == "share" || path[0] == "msg" || path[0] == "msg_url")) {
     // msg_url?url=<url>
     // msg_url?url=<url>&text=<text>
@@ -1668,6 +1685,11 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
     if (path.size() >= 2 && !path[1].empty()) {
       // /giftcode/<code>
       return td::make_unique<InternalLinkPremiumGiftCode>(path[1]);
+    }
+  } else if (path[0] == "m") {
+    if (path.size() >= 2 && !path[1].empty()) {
+      // /m/<link_name>
+      return td::make_unique<InternalLinkBusinessChat>(path[1]);
     }
   } else if (path[0][0] == '$') {
     if (path[0].size() >= 2) {
@@ -2037,6 +2059,14 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return PSTRING() << "tg://resolve?domain=" << link->bot_username_ << "&startgroup" << start_parameter << admin;
       } else {
         return PSTRING() << get_t_me_url() << link->bot_username_ << "?startgroup" << start_parameter << admin;
+      }
+    }
+    case td_api::internalLinkTypeBusinessChat::ID: {
+      auto link = static_cast<const td_api::internalLinkTypeBusinessChat *>(type_ptr);
+      if (is_internal) {
+        return PSTRING() << "tg://message?slug=" << url_encode(link->link_name_);
+      } else {
+        return PSTRING() << get_t_me_url() << "m/" << url_encode(link->link_name_);
       }
     }
     case td_api::internalLinkTypeChangePhoneNumber::ID:

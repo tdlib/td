@@ -5964,6 +5964,11 @@ internalLinkTypeBotStart bot_username:string start_parameter:string autostart:Bo
 //@administrator_rights Expected administrator rights for the bot; may be null
 internalLinkTypeBotStartInGroup bot_username:string start_parameter:string administrator_rights:chatAdministratorRights = InternalLinkType;
 
+//@description The link is a link to a business chat. Use getBusinessChatLinkInfo with the provided link name to get information about the link,
+//-then open received private chat and replace chat draft with the provided text
+//@link_name Name of the link
+internalLinkTypeBusinessChat link_name:string = InternalLinkType;
+
 //@description The link is a link to the change phone number section of the app
 internalLinkTypeChangePhoneNumber = InternalLinkType;
 
@@ -9789,8 +9794,8 @@ editBusinessChatLink link:string link_info:inputBusinessChatLink = BusinessChatL
 //@description Deletes a business chat link of the current account @link The link to delete
 deleteBusinessChatLink link:string = Ok;
 
-//@description Returns information about a business chat link @link The link
-getBusinessChatLinkInfo link:string = BusinessChatLinkInfo;
+//@description Returns information about a business chat link @link_name Name of the link
+getBusinessChatLinkInfo link_name:string = BusinessChatLinkInfo;
 
 
 //@description Returns an HTTPS link, which can be used to get information about the current user

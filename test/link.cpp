@@ -219,6 +219,10 @@ static auto bot_start_in_group(const td::string &bot_username, const td::string 
                                                                               std::move(administrator_rights));
 }
 
+static auto business_chat(const td::string &link_name) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeBusinessChat>(link_name);
+}
+
 static auto change_phone_number() {
   return td::td_api::make_object<td::td_api::internalLinkTypeChangePhoneNumber>();
 }
@@ -671,6 +675,24 @@ TEST(Link, parse_internal_link_part2) {
   parse_internal_link("tg:giftcode?slug=abcdef", premium_gift_code("abcdef"));
   parse_internal_link("tg:giftcode?slug=abc%30ef", premium_gift_code("abc0ef"));
   parse_internal_link("tg://giftcode?slug=", unknown_deep_link("tg://giftcode?slug="));
+
+  parse_internal_link("t.me/m?slug=abcdef", nullptr);
+  parse_internal_link("t.me/m", nullptr);
+  parse_internal_link("t.me/m/", nullptr);
+  parse_internal_link("t.me/m//abcdef", nullptr);
+  parse_internal_link("t.me/m?/abcdef", nullptr);
+  parse_internal_link("t.me/m/?abcdef", nullptr);
+  parse_internal_link("t.me/m/#abcdef", nullptr);
+  parse_internal_link("t.me/m/abacaba", business_chat("abacaba"));
+  parse_internal_link("t.me/m/aba%20aba", business_chat("aba aba"));
+  parse_internal_link("t.me/m/123456a", business_chat("123456a"));
+  parse_internal_link("t.me/m/12345678901", business_chat("12345678901"));
+  parse_internal_link("t.me/m/123456", business_chat("123456"));
+  parse_internal_link("t.me/m/123456/123123/12/31/a/s//21w/?asdas#test", business_chat("123456"));
+
+  parse_internal_link("tg:message?slug=abcdef", business_chat("abcdef"));
+  parse_internal_link("tg:message?slug=abc%30ef", business_chat("abc0ef"));
+  parse_internal_link("tg://message?slug=", unknown_deep_link("tg://message?slug="));
 
   parse_internal_link("tg:share?url=google.com&text=text#asdasd", message_draft("google.com\ntext", true));
   parse_internal_link("tg:share?url=google.com&text=", message_draft("google.com", false));
@@ -1308,6 +1330,7 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("invoice.t.me", nullptr);
   parse_internal_link("joinchat.t.me", nullptr);
   parse_internal_link("login.t.me", nullptr);
+  parse_internal_link("m.t.me", nullptr);
   parse_internal_link("proxy.t.me", nullptr);
   parse_internal_link("setlanguage.t.me", nullptr);
   parse_internal_link("share.t.me", nullptr);
