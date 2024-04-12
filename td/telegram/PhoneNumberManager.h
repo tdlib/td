@@ -23,7 +23,6 @@ class PhoneNumberManager final : public NetActor {
  public:
   enum class Type : int32 { ChangePhone, VerifyPhone, ConfirmPhone };
   PhoneNumberManager(Type type, ActorShared<> parent);
-  void get_state(uint64 query_id);
 
   using Settings = td_api::object_ptr<td_api::phoneNumberAuthenticationSettings>;
 

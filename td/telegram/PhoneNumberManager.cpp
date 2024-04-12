@@ -19,21 +19,7 @@
 
 namespace td {
 
-void PhoneNumberManager::get_state(uint64 query_id) {
-  tl_object_ptr<td_api::Object> obj;
-  switch (state_) {
-    case State::Ok:
-      obj = make_tl_object<td_api::ok>();
-      break;
-    case State::WaitCode:
-      obj = send_code_helper_.get_authentication_code_info_object();
-      break;
-  }
-  CHECK(obj);
-  send_closure(G()->td(), &Td::send_result, query_id, std::move(obj));
-}
-
-PhoneNumberManager::PhoneNumberManager(PhoneNumberManager::Type type, ActorShared<> parent)
+PhoneNumberManager::PhoneNumberManager(Type type, ActorShared<> parent)
     : type_(type), parent_(std::move(parent)) {
 }
 
@@ -154,7 +140,17 @@ void PhoneNumberManager::on_current_query_ok() {
   net_query_id_ = 0;
   net_query_type_ = NetQueryType::None;
   query_id_ = 0;
-  get_state(id);
+
+  switch (state_) {
+    case State::Ok:
+      send_closure(G()->td(), &Td::send_result, id, td_api::make_object<td_api::ok>());
+      break;
+    case State::WaitCode:
+      send_closure(G()->td(), &Td::send_result, id, send_code_helper_.get_authentication_code_info_object());
+      break;
+    default:
+      UNREACHABLE();
+  }
 }
 
 void PhoneNumberManager::start_net_query(NetQueryType net_query_type, NetQueryPtr net_query) {
