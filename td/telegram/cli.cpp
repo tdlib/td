@@ -3386,9 +3386,7 @@ class CliClient final : public Actor {
       get_args(args, query);
       send_request(td_api::make_object<td_api::searchStickers>(as_sticker_type(op), query.query, query.limit));
     } else if (op == "ggs") {
-      string limit;
-      get_args(args, limit);
-      send_request(td_api::make_object<td_api::getGreetingStickers>(as_limit(limit)));
+      send_request(td_api::make_object<td_api::getGreetingStickers>());
     } else if (op == "gprst") {
       string limit;
       get_args(args, limit);

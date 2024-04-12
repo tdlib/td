@@ -9550,8 +9550,8 @@ getAllStickerEmojis sticker_type:StickerType query:string chat_id:int53 return_o
 //@limit The maximum number of stickers to be returned; 0-100
 searchStickers sticker_type:StickerType emojis:string limit:int32 = Stickers;
 
-//@description Returns greeting stickers from regular sticker sets that can be used for the start page of other users @limit The maximum number of stickers to be returned; 0-100
-getGreetingStickers limit:int32 = Stickers;
+//@description Returns greeting stickers from regular sticker sets that can be used for the start page of other users
+getGreetingStickers = Stickers;
 
 //@description Returns premium stickers from regular sticker sets @limit The maximum number of stickers to be returned; 0-100
 getPremiumStickers limit:int32 = Stickers;
