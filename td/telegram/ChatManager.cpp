@@ -2222,6 +2222,7 @@ void ChatManager::ChannelFull::store(StorerT &storer) const {
   bool has_emoji_sticker_set = emoji_sticker_set_id.is_valid();
   bool has_boost_count = boost_count != 0;
   bool has_unrestrict_boost_count = unrestrict_boost_count != 0;
+  bool has_can_have_sponsored_messages = true;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_description);
   STORE_FLAG(has_administrator_count);
@@ -2262,6 +2263,7 @@ void ChatManager::ChannelFull::store(StorerT &storer) const {
     STORE_FLAG(has_unrestrict_boost_count);
     STORE_FLAG(can_have_sponsored_messages);
     STORE_FLAG(can_view_revenue);
+    STORE_FLAG(has_can_have_sponsored_messages);
     END_STORE_FLAGS();
   }
   if (has_description) {
@@ -2351,6 +2353,7 @@ void ChatManager::ChannelFull::parse(ParserT &parser) {
   bool has_emoji_sticker_set = false;
   bool has_boost_count = false;
   bool has_unrestrict_boost_count = false;
+  bool has_can_have_sponsored_messages = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_description);
   PARSE_FLAG(has_administrator_count);
@@ -2391,6 +2394,7 @@ void ChatManager::ChannelFull::parse(ParserT &parser) {
     PARSE_FLAG(has_unrestrict_boost_count);
     PARSE_FLAG(can_have_sponsored_messages);
     PARSE_FLAG(can_view_revenue);
+    PARSE_FLAG(has_can_have_sponsored_messages);
     END_PARSE_FLAGS();
   }
   if (has_description) {
@@ -2466,6 +2470,9 @@ void ChatManager::ChannelFull::parse(ParserT &parser) {
   }
   if (!is_can_view_statistics_inited) {
     can_view_statistics = stats_dc_id.is_exact();
+  }
+  if (!has_can_have_sponsored_messages) {
+    can_have_sponsored_messages = true;
   }
 }
 
