@@ -3239,6 +3239,7 @@ void Td::dec_actor_refcnt() {
       reset_manager(notification_manager_, "NotificationManager");
       reset_manager(notification_settings_manager_, "NotificationSettingsManager");
       reset_manager(people_nearby_manager_, "PeopleNearbyManager");
+      reset_manager(phone_number_manager_, "PhoneNumberManager");
       reset_manager(poll_manager_, "PollManager");
       reset_manager(privacy_manager_, "PrivacyManager");
       reset_manager(quick_reply_manager_, "QuickReplyManager");
@@ -3364,9 +3365,7 @@ void Td::clear() {
 
   // close all pure actors
   reset_actor(ActorOwn<Actor>(std::move(call_manager_)));
-  reset_actor(ActorOwn<Actor>(std::move(change_phone_number_manager_)));
   reset_actor(ActorOwn<Actor>(std::move(config_manager_)));
-  reset_actor(ActorOwn<Actor>(std::move(confirm_phone_number_manager_)));
   reset_actor(ActorOwn<Actor>(std::move(device_token_manager_)));
   reset_actor(ActorOwn<Actor>(std::move(hashtag_hints_)));
   reset_actor(ActorOwn<Actor>(std::move(language_pack_manager_)));
@@ -3375,7 +3374,6 @@ void Td::clear() {
   reset_actor(ActorOwn<Actor>(std::move(secure_manager_)));
   reset_actor(ActorOwn<Actor>(std::move(secret_chats_manager_)));
   reset_actor(ActorOwn<Actor>(std::move(storage_manager_)));
-  reset_actor(ActorOwn<Actor>(std::move(verify_phone_number_manager_)));
 
   G()->set_connection_creator(ActorOwn<ConnectionCreator>());
   LOG(DEBUG) << "ConnectionCreator was cleared" << timer;
@@ -3415,6 +3413,7 @@ void Td::clear() {
   reset_actor(ActorOwn<Actor>(std::move(notification_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(notification_settings_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(people_nearby_manager_actor_)));
+  reset_actor(ActorOwn<Actor>(std::move(phone_number_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(poll_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(privacy_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(quick_reply_manager_actor_)));
@@ -3950,6 +3949,8 @@ void Td::init_managers() {
   people_nearby_manager_ = make_unique<PeopleNearbyManager>(this, create_reference());
   people_nearby_manager_actor_ = register_actor("PeopleNearbyManager", people_nearby_manager_.get());
   G()->set_people_nearby_manager(people_nearby_manager_actor_.get());
+  phone_number_manager_ = make_unique<PhoneNumberManager>(this, create_reference());
+  phone_number_manager_actor_ = register_actor("PhoneNumberManager", phone_number_manager_.get());
   poll_manager_ = make_unique<PollManager>(this, create_reference());
   poll_manager_actor_ = register_actor("PollManager", poll_manager_.get());
   privacy_manager_ = make_unique<PrivacyManager>(this, create_reference());
@@ -4006,10 +4007,6 @@ void Td::init_managers() {
 void Td::init_pure_actor_managers() {
   call_manager_ = create_actor<CallManager>("CallManager", create_reference());
   G()->set_call_manager(call_manager_.get());
-  change_phone_number_manager_ = create_actor<PhoneNumberManager>(
-      "ChangePhoneNumberManager", PhoneNumberManager::Type::ChangePhone, create_reference());
-  confirm_phone_number_manager_ = create_actor<PhoneNumberManager>(
-      "ConfirmPhoneNumberManager", PhoneNumberManager::Type::ConfirmPhone, create_reference());
   device_token_manager_ = create_actor<DeviceTokenManager>("DeviceTokenManager", create_reference());
   hashtag_hints_ = create_actor<HashtagHints>("HashtagHints", "text", create_reference());
   language_pack_manager_ = create_actor<LanguagePackManager>("LanguagePackManager", create_reference());
@@ -4017,8 +4014,6 @@ void Td::init_pure_actor_managers() {
   password_manager_ = create_actor<PasswordManager>("PasswordManager", create_reference());
   G()->set_password_manager(password_manager_.get());
   secure_manager_ = create_actor<SecureManager>("SecureManager", create_reference());
-  verify_phone_number_manager_ = create_actor<PhoneNumberManager>(
-      "VerifyPhoneNumberManager", PhoneNumberManager::Type::VerifyPhone, create_reference());
 }
 
 void Td::send_update(tl_object_ptr<td_api::Update> &&object) {
@@ -4618,19 +4613,22 @@ void Td::on_request(uint64 id, td_api::deleteAccount &request) {
 void Td::on_request(uint64 id, td_api::changePhoneNumber &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.phone_number_);
-  send_closure(change_phone_number_manager_, &PhoneNumberManager::set_phone_number, id,
-               std::move(request.phone_number_), std::move(request.settings_));
+  CREATE_REQUEST_PROMISE();
+  phone_number_manager_->set_phone_number(PhoneNumberManager::Type::ChangePhone, std::move(request.phone_number_),
+                                          std::move(request.settings_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::checkChangePhoneNumberCode &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.code_);
-  send_closure(change_phone_number_manager_, &PhoneNumberManager::check_code, id, std::move(request.code_));
+  CREATE_OK_REQUEST_PROMISE();
+  phone_number_manager_->check_code(std::move(request.code_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::resendChangePhoneNumberCode &request) {
   CHECK_IS_USER();
-  send_closure(change_phone_number_manager_, &PhoneNumberManager::resend_authentication_code, id);
+  CREATE_REQUEST_PROMISE();
+  phone_number_manager_->resend_authentication_code(std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getUserLink &request) {
@@ -9093,19 +9091,22 @@ void Td::on_request(uint64 id, td_api::getPreferredCountryLanguage &request) {
 void Td::on_request(uint64 id, td_api::sendPhoneNumberVerificationCode &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.phone_number_);
-  send_closure(verify_phone_number_manager_, &PhoneNumberManager::set_phone_number, id,
-               std::move(request.phone_number_), std::move(request.settings_));
+  CREATE_REQUEST_PROMISE();
+  phone_number_manager_->set_phone_number(PhoneNumberManager::Type::VerifyPhone, std::move(request.phone_number_),
+                                          std::move(request.settings_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::resendPhoneNumberVerificationCode &request) {
   CHECK_IS_USER();
-  send_closure(verify_phone_number_manager_, &PhoneNumberManager::resend_authentication_code, id);
+  CREATE_REQUEST_PROMISE();
+  phone_number_manager_->resend_authentication_code(std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::checkPhoneNumberVerificationCode &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.code_);
-  send_closure(verify_phone_number_manager_, &PhoneNumberManager::check_code, id, std::move(request.code_));
+  CREATE_OK_REQUEST_PROMISE();
+  phone_number_manager_->check_code(std::move(request.code_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::sendEmailAddressVerificationCode &request) {
@@ -9186,19 +9187,22 @@ void Td::on_request(uint64 id, td_api::sendPhoneNumberConfirmationCode &request)
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.phone_number_);
   CLEAN_INPUT_STRING(request.hash_);
-  send_closure(confirm_phone_number_manager_, &PhoneNumberManager::set_phone_number_and_hash, id,
-               std::move(request.hash_), std::move(request.phone_number_), std::move(request.settings_));
+  CREATE_REQUEST_PROMISE();
+  phone_number_manager_->set_phone_number_and_hash(std::move(request.hash_), std::move(request.phone_number_),
+                                                   std::move(request.settings_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::resendPhoneNumberConfirmationCode &request) {
   CHECK_IS_USER();
-  send_closure(confirm_phone_number_manager_, &PhoneNumberManager::resend_authentication_code, id);
+  CREATE_REQUEST_PROMISE();
+  phone_number_manager_->resend_authentication_code(std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::checkPhoneNumberConfirmationCode &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.code_);
-  send_closure(confirm_phone_number_manager_, &PhoneNumberManager::check_code, id, std::move(request.code_));
+  CREATE_OK_REQUEST_PROMISE();
+  phone_number_manager_->check_code(std::move(request.code_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getSupportUser &request) {

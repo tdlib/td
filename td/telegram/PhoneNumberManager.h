@@ -6,8 +6,6 @@
 //
 #pragma once
 
-#include "td/telegram/net/NetActor.h"
-#include "td/telegram/net/NetQuery.h"
 #include "td/telegram/SendCodeHelper.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -19,57 +17,47 @@
 
 namespace td {
 
-class PhoneNumberManager final : public NetActor {
+class Td;
+
+class PhoneNumberManager final : public Actor {
  public:
+  PhoneNumberManager(Td *td, ActorShared<> parent);
+
   enum class Type : int32 { ChangePhone, VerifyPhone, ConfirmPhone };
-  PhoneNumberManager(Type type, ActorShared<> parent);
 
-  using Settings = td_api::object_ptr<td_api::phoneNumberAuthenticationSettings>;
+  void set_phone_number(Type type, string phone_number,
+                        td_api::object_ptr<td_api::phoneNumberAuthenticationSettings> settings,
+                        Promise<td_api::object_ptr<td_api::authenticationCodeInfo>> &&promise);
 
-  void set_phone_number(uint64 query_id, string phone_number, Settings settings);
-  void set_phone_number_and_hash(uint64 query_id, string hash, string phone_number, Settings settings);
+  void set_phone_number_and_hash(string hash, string phone_number,
+                                 td_api::object_ptr<td_api::phoneNumberAuthenticationSettings> settings,
+                                 Promise<td_api::object_ptr<td_api::authenticationCodeInfo>> &&promise);
 
-  void resend_authentication_code(uint64 query_id);
-  void check_code(uint64 query_id, string code);
+  void resend_authentication_code(Promise<td_api::object_ptr<td_api::authenticationCodeInfo>> &&promise);
+
+  void check_code(string code, Promise<Unit> &&promise);
 
  private:
-  Type type_;
-
   enum class State : int32 { Ok, WaitCode } state_ = State::Ok;
-  enum class NetQueryType : int32 { None, SendCode, CheckCode };
-
-  ActorShared<> parent_;
-  uint64 query_id_ = 0;
-  uint64 net_query_id_ = 0;
-  NetQueryType net_query_type_ = NetQueryType::None;
-
-  SendCodeHelper send_code_helper_;
-
-  void on_new_query(uint64 query_id);
-
-  void on_current_query_ok();
-
-  void on_current_query_error(Status status);
-
-  static void on_query_error(uint64 id, Status status);
-
-  void start_net_query(NetQueryType net_query_type, NetQueryPtr net_query);
-
-  void send_new_send_code_query(uint64 query_id, const telegram_api::Function &send_code);
-
-  void send_new_check_code_query(const telegram_api::Function &check_code);
-
-  void process_check_code_result(Result<tl_object_ptr<telegram_api::User>> &&result);
-
-  void process_check_code_result(Result<bool> &&result);
-
-  void on_result(NetQueryPtr net_query) final;
-
-  void on_send_code_result(NetQueryPtr &&net_query);
-
-  void on_check_code_result(NetQueryPtr &&net_query);
 
   void tear_down() final;
+
+  void inc_generation();
+
+  void send_new_send_code_query(const telegram_api::Function &send_code,
+                                Promise<td_api::object_ptr<td_api::authenticationCodeInfo>> &&promise);
+
+  void on_send_code_result(Result<telegram_api::object_ptr<telegram_api::auth_sentCode>> r_sent_code, int64 generation,
+                           Promise<td_api::object_ptr<td_api::authenticationCodeInfo>> &&promise);
+
+  void on_check_code_result(Result<Unit> result, int64 generation, Promise<Unit> &&promise);
+
+  Td *td_;
+  ActorShared<> parent_;
+
+  Type type_;
+  SendCodeHelper send_code_helper_;
+  int64 generation_ = 0;
 };
 
 }  // namespace td

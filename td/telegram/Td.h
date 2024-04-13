@@ -234,6 +234,8 @@ class Td final : public Actor {
   ActorOwn<PrivacyManager> privacy_manager_actor_;
   unique_ptr<PeopleNearbyManager> people_nearby_manager_;
   ActorOwn<PeopleNearbyManager> people_nearby_manager_actor_;
+  unique_ptr<PhoneNumberManager> phone_number_manager_;
+  ActorOwn<PhoneNumberManager> phone_number_manager_actor_;
   unique_ptr<QuickReplyManager> quick_reply_manager_;
   ActorOwn<QuickReplyManager> quick_reply_manager_actor_;
   unique_ptr<ReactionManager> reaction_manager_;
@@ -270,9 +272,7 @@ class Td final : public Actor {
   ActorOwn<WebPagesManager> web_pages_manager_actor_;
 
   ActorOwn<CallManager> call_manager_;
-  ActorOwn<PhoneNumberManager> change_phone_number_manager_;
   ActorOwn<ConfigManager> config_manager_;
-  ActorOwn<PhoneNumberManager> confirm_phone_number_manager_;
   ActorOwn<DeviceTokenManager> device_token_manager_;
   ActorOwn<HashtagHints> hashtag_hints_;
   ActorOwn<LanguagePackManager> language_pack_manager_;
@@ -282,7 +282,6 @@ class Td final : public Actor {
   ActorOwn<SecureManager> secure_manager_;
   ActorOwn<StateManager> state_manager_;
   ActorOwn<StorageManager> storage_manager_;
-  ActorOwn<PhoneNumberManager> verify_phone_number_manager_;
 
   class ResultHandler : public std::enable_shared_from_this<ResultHandler> {
    public:
@@ -422,9 +421,8 @@ class Td final : public Actor {
   void on_get_promo_data(Result<telegram_api::object_ptr<telegram_api::help_PromoData>> r_promo_data, bool dummy);
 
   template <class T>
-  friend class RequestActor;        // uses send_result/send_error
-  friend class AuthManager;         // uses send_result/send_error, TODO pass Promise<>
-  friend class PhoneNumberManager;  // uses send_result/send_error, TODO pass Promise<>
+  friend class RequestActor;  // uses send_result/send_error
+  friend class AuthManager;   // uses send_result/send_error, TODO pass Promise<>
 
   void add_handler(uint64 id, std::shared_ptr<ResultHandler> handler);
   std::shared_ptr<ResultHandler> extract_handler(uint64 id);
