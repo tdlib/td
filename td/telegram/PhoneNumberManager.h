@@ -27,6 +27,8 @@ class PhoneNumberManager final : public Actor {
                         td_api::object_ptr<td_api::PhoneNumberCodeType> type,
                         Promise<td_api::object_ptr<td_api::authenticationCodeInfo>> &&promise);
 
+  void send_firebase_sms(const string &token, Promise<Unit> &&promise);
+
   void resend_authentication_code(Promise<td_api::object_ptr<td_api::authenticationCodeInfo>> &&promise);
 
   void check_code(string code, Promise<Unit> &&promise);

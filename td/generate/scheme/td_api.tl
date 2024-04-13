@@ -9773,6 +9773,10 @@ setBusinessStartPage start_page:inputBusinessStartPage = Ok;
 //@type Type of the request for which the code is sent
 sendPhoneNumberCode phone_number:string settings:phoneNumberAuthenticationSettings type:PhoneNumberCodeType = AuthenticationCodeInfo;
 
+//@description Sends Firebase Authentication SMS to the specified phone number. Works only when received a code of the type authenticationCodeTypeFirebaseAndroid or authenticationCodeTypeFirebaseIos
+//@token SafetyNet Attestation API token for the Android application, or secret from push notification for the iOS application
+sendPhoneNumberFirebaseSms token:string = Ok;
+
 //@description Resends the authentication code sent to a phone number. Works only if the previously received authenticationCodeInfo next_code_type was not null and the server-specified timeout has passed
 resendPhoneNumberCode = AuthenticationCodeInfo;
 

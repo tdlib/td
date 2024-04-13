@@ -53,6 +53,31 @@ class SendCodeQuery final : public Td::ResultHandler {
   }
 };
 
+class RequestFirebaseSmsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit RequestFirebaseSmsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const telegram_api::auth_requestFirebaseSms &query) {
+    send_query(G()->net_query_creator().create(query));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::auth_requestFirebaseSms>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ChangePhoneQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -220,6 +245,14 @@ void PhoneNumberManager::set_phone_number(string phone_number,
     default:
       UNREACHABLE();
   }
+}
+
+void PhoneNumberManager::send_firebase_sms(const string &token, Promise<Unit> &&promise) {
+  if (state_ != State::WaitCode) {
+    return promise.set_error(Status::Error(400, "Can't send Firebase SMS"));
+  }
+
+  td_->create_handler<RequestFirebaseSmsQuery>(std::move(promise))->send(send_code_helper_.request_firebase_sms(token));
 }
 
 void PhoneNumberManager::resend_authentication_code(

@@ -2726,6 +2726,8 @@ class CliClient final : public Actor {
       get_args(args, hash, phone_number);
       send_request(td_api::make_object<td_api::sendPhoneNumberCode>(
           phone_number, nullptr, td_api::make_object<td_api::phoneNumberCodeTypeConfirmOwnership>(hash)));
+    } else if (op == "spnfs") {
+      send_request(td_api::make_object<td_api::sendPhoneNumberFirebaseSms>(args));
     } else if (op == "rpnc") {
       send_request(td_api::make_object<td_api::resendPhoneNumberCode>());
     } else if (op == "cpnc") {

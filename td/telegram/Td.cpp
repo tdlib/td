@@ -4618,6 +4618,13 @@ void Td::on_request(uint64 id, td_api::sendPhoneNumberCode &request) {
                                           std::move(request.type_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::sendPhoneNumberFirebaseSms &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.token_);
+  CREATE_OK_REQUEST_PROMISE();
+  phone_number_manager_->send_firebase_sms(std::move(request.token_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::resendPhoneNumberCode &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
