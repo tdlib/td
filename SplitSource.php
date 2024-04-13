@@ -383,7 +383,7 @@ function split_file($file, $chunks, $undo) {
                 'option_manager[_(-](?![.]get[(][)])|OptionManager' => 'OptionManager',
                 'password_manager[_(-](?![.]get[(][)])|PasswordManager' => 'PasswordManager',
                 'people_nearby_manager[_(-](?![.]get[(][)])|PeopleNearbyManager' => 'PeopleNearbyManager',
-                '[a-z_]*phone_number_manager[_(-](?![.]get[(][)])|PhoneNumberManager' => 'PhoneNumberManager',
+                'phone_number_manager[_(-](?![.]get[(][)])|PhoneNumberManager' => 'PhoneNumberManager',
                 'PhotoSizeSource' => 'PhotoSizeSource',
                 'poll_manager[_(-](?![.]get[(][)])|PollManager' => 'PollManager',
                 'privacy_manager[_(-](?![.]get[(][)])|PrivacyManager' => 'PrivacyManager',

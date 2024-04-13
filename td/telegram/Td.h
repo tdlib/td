@@ -567,11 +567,11 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::deleteAccount &request);
 
-  void on_request(uint64 id, td_api::changePhoneNumber &request);
+  void on_request(uint64 id, td_api::sendPhoneNumberCode &request);
 
-  void on_request(uint64 id, td_api::checkChangePhoneNumberCode &request);
+  void on_request(uint64 id, const td_api::resendPhoneNumberCode &request);
 
-  void on_request(uint64 id, td_api::resendChangePhoneNumberCode &request);
+  void on_request(uint64 id, td_api::checkPhoneNumberCode &request);
 
   void on_request(uint64 id, const td_api::getUserLink &request);
 
@@ -1737,12 +1737,6 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::getPreferredCountryLanguage &request);
 
-  void on_request(uint64 id, td_api::sendPhoneNumberVerificationCode &request);
-
-  void on_request(uint64 id, const td_api::resendPhoneNumberVerificationCode &request);
-
-  void on_request(uint64 id, td_api::checkPhoneNumberVerificationCode &request);
-
   void on_request(uint64 id, td_api::sendEmailAddressVerificationCode &request);
 
   void on_request(uint64 id, const td_api::resendEmailAddressVerificationCode &request);
@@ -1754,12 +1748,6 @@ class Td final : public Actor {
   void on_request(uint64 id, td_api::getPassportAuthorizationFormAvailableElements &request);
 
   void on_request(uint64 id, td_api::sendPassportAuthorizationForm &request);
-
-  void on_request(uint64 id, td_api::sendPhoneNumberConfirmationCode &request);
-
-  void on_request(uint64 id, const td_api::resendPhoneNumberConfirmationCode &request);
-
-  void on_request(uint64 id, td_api::checkPhoneNumberConfirmationCode &request);
 
   void on_request(uint64 id, const td_api::getSupportUser &request);
 

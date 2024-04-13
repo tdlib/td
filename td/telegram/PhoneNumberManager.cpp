@@ -8,6 +8,7 @@
 
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/SuggestedAction.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
@@ -180,43 +181,45 @@ void PhoneNumberManager::on_send_code_result(Result<telegram_api::object_ptr<tel
   promise.set_value(send_code_helper_.get_authentication_code_info_object());
 }
 
-void PhoneNumberManager::set_phone_number(Type type, string phone_number,
+void PhoneNumberManager::set_phone_number(string phone_number,
                                           td_api::object_ptr<td_api::phoneNumberAuthenticationSettings> settings,
+                                          td_api::object_ptr<td_api::PhoneNumberCodeType> type,
                                           Promise<td_api::object_ptr<td_api::authenticationCodeInfo>> &&promise) {
+  inc_generation();
   if (phone_number.empty()) {
     return promise.set_error(Status::Error(400, "Phone number must be non-empty"));
   }
+  if (type == nullptr) {
+    return promise.set_error(Status::Error(400, "Type must be non-empty"));
+  }
 
-  inc_generation();
-  type_ = type;
-  switch (type_) {
-    case Type::ChangePhone:
+  switch (type->get_id()) {
+    case td_api::phoneNumberCodeTypeChange::ID:
+      type_ = Type::ChangePhone;
       send_closure(G()->config_manager(), &ConfigManager::hide_suggested_action,
                    SuggestedAction{SuggestedAction::Type::CheckPhoneNumber});
       return send_new_send_code_query(send_code_helper_.send_change_phone_code(phone_number, settings),
                                       std::move(promise));
-    case Type::VerifyPhone:
+    case td_api::phoneNumberCodeTypeVerify::ID:
+      type_ = Type::VerifyPhone;
       return send_new_send_code_query(send_code_helper_.send_verify_phone_code(phone_number, settings),
                                       std::move(promise));
-    case Type::ConfirmPhone:
+    case td_api::phoneNumberCodeTypeConfirmOwnership::ID: {
+      auto hash = std::move(static_cast<td_api::phoneNumberCodeTypeConfirmOwnership *>(type.get())->hash_);
+      if (!clean_input_string(hash)) {
+        return promise.set_error(Status::Error(400, "Hash must be encoded in UTF-8"));
+      }
+      if (hash.empty()) {
+        return promise.set_error(Status::Error(400, "Hash must be non-empty"));
+      }
+
+      type_ = Type::ConfirmPhone;
+      return send_new_send_code_query(send_code_helper_.send_confirm_phone_code(hash, phone_number, settings),
+                                      std::move(promise));
+    }
     default:
       UNREACHABLE();
   }
-}
-
-void PhoneNumberManager::set_phone_number_and_hash(
-    string hash, string phone_number, td_api::object_ptr<td_api::phoneNumberAuthenticationSettings> settings,
-    Promise<td_api::object_ptr<td_api::authenticationCodeInfo>> &&promise) {
-  if (phone_number.empty()) {
-    return promise.set_error(Status::Error(400, "Phone number must be non-empty"));
-  }
-  if (hash.empty()) {
-    return promise.set_error(Status::Error(400, "Hash must be non-empty"));
-  }
-
-  inc_generation();
-  type_ = Type::ConfirmPhone;
-  send_new_send_code_query(send_code_helper_.send_confirm_phone_code(hash, phone_number, settings), std::move(promise));
 }
 
 void PhoneNumberManager::resend_authentication_code(

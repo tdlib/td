@@ -6039,8 +6039,8 @@ internalLinkTypeMessageDraft text:formattedText contains_link:Bool = InternalLin
 //-If empty, then onActivityResult method must be used to return response on Android, or the link tgbot{bot_user_id}://passport/success or tgbot{bot_user_id}://passport/cancel must be opened otherwise
 internalLinkTypePassportDataRequest bot_user_id:int53 scope:string public_key:string nonce:string callback_url:string = InternalLinkType;
 
-//@description The link can be used to confirm ownership of a phone number to prevent account deletion. Call sendPhoneNumberConfirmationCode with the given hash and phone number to process the link.
-//-If succeeded, call checkPhoneNumberConfirmationCode to check entered by the user code, or resendPhoneNumberConfirmationCode to resend it
+//@description The link can be used to confirm ownership of a phone number to prevent account deletion. Call sendPhoneNumberCode with the given phone number and with phoneNumberCodeTypeConfirmOwnership with the given hash to process the link.
+//-If succeeded, call checkPhoneNumberCode to check entered by the user code, or resendPhoneNumberCode to resend it
 //@hash Hash value from the link
 //@phone_number Phone number value from the link
 internalLinkTypePhoneNumberConfirmation hash:string phone_number:string = InternalLinkType;
@@ -6728,6 +6728,19 @@ botCommandScopeChatAdministrators chat_id:int53 = BotCommandScope;
 
 //@description A scope covering a member of a chat @chat_id Chat identifier @user_id User identifier
 botCommandScopeChatMember chat_id:int53 user_id:int53 = BotCommandScope;
+
+
+//@class PhoneNumberCodeType @description Describes type of the request for which a code is sent to a phone number
+
+//@description Checks ownership of a new phone number to change the user's authentication phone number; for official Android and iOS applications only.
+phoneNumberCodeTypeChange = PhoneNumberCodeType;
+
+//@description Verifies ownership of a phone number to be added to the user's Telegram Passport
+phoneNumberCodeTypeVerify = PhoneNumberCodeType;
+
+//@description Confirms ownership of a phone number to prevent account deletion while handling links of the type internalLinkTypePhoneNumberConfirmation
+//@hash Hash value from the link
+phoneNumberCodeTypeConfirmOwnership hash:string = PhoneNumberCodeType;
 
 
 //@class Update @description Contains notifications about data changes
@@ -9754,16 +9767,17 @@ setBusinessAwayMessageSettings away_message_settings:businessAwayMessageSettings
 setBusinessStartPage start_page:inputBusinessStartPage = Ok;
 
 
-//@description Changes the phone number of the user and sends an authentication code to the user's new phone number; for official Android and iOS applications only. On success, returns information about the sent code
-//@phone_number The new phone number of the user in international format
+//@description Sends a code to the specified phone number. Aborts previous phone number verification if any. On success, returns information about the sent code
+//@phone_number The phone number, in international format
 //@settings Settings for the authentication of the user's phone number; pass null to use default settings
-changePhoneNumber phone_number:string settings:phoneNumberAuthenticationSettings = AuthenticationCodeInfo;
+//@type Type of the request for which the code is sent
+sendPhoneNumberCode phone_number:string settings:phoneNumberAuthenticationSettings type:PhoneNumberCodeType = AuthenticationCodeInfo;
 
-//@description Resends the authentication code sent to confirm a new phone number for the current user. Works only if the previously received authenticationCodeInfo next_code_type was not null and the server-specified timeout has passed
-resendChangePhoneNumberCode = AuthenticationCodeInfo;
+//@description Resends the authentication code sent to a phone number. Works only if the previously received authenticationCodeInfo next_code_type was not null and the server-specified timeout has passed
+resendPhoneNumberCode = AuthenticationCodeInfo;
 
-//@description Checks the authentication code sent to confirm a new phone number of the user @code Authentication code to check
-checkChangePhoneNumberCode code:string = Ok;
+//@description Check the authentication code and completes the request for which the code was sent if appropriate @code Authentication code to check
+checkPhoneNumberCode code:string = Ok;
 
 
 //@description Returns the business bot that is connected to the current user account. Returns a 404 error if there is no connected bot
@@ -10340,18 +10354,6 @@ setPassportElementErrors user_id:int53 errors:vector<inputPassportElementError> 
 getPreferredCountryLanguage country_code:string = Text;
 
 
-//@description Sends a code to verify a phone number to be added to a user's Telegram Passport
-//@phone_number The phone number of the user, in international format
-//@settings Settings for the authentication of the user's phone number; pass null to use default settings
-sendPhoneNumberVerificationCode phone_number:string settings:phoneNumberAuthenticationSettings = AuthenticationCodeInfo;
-
-//@description Resends the code to verify a phone number to be added to a user's Telegram Passport
-resendPhoneNumberVerificationCode = AuthenticationCodeInfo;
-
-//@description Checks the phone number verification code for Telegram Passport @code Verification code to check
-checkPhoneNumberVerificationCode code:string = Ok;
-
-
 //@description Sends a code to verify an email address to be added to a user's Telegram Passport @email_address Email address
 sendEmailAddressVerificationCode email_address:string = EmailAddressAuthenticationCodeInfo;
 
@@ -10378,19 +10380,6 @@ getPassportAuthorizationFormAvailableElements authorization_form_id:int32 passwo
 //@authorization_form_id Authorization form identifier
 //@types Types of Telegram Passport elements chosen by user to complete the authorization form
 sendPassportAuthorizationForm authorization_form_id:int32 types:vector<PassportElementType> = Ok;
-
-
-//@description Sends phone number confirmation code to handle links of the type internalLinkTypePhoneNumberConfirmation
-//@hash Hash value from the link
-//@phone_number Phone number value from the link
-//@settings Settings for the authentication of the user's phone number; pass null to use default settings
-sendPhoneNumberConfirmationCode hash:string phone_number:string settings:phoneNumberAuthenticationSettings = AuthenticationCodeInfo;
-
-//@description Resends phone number confirmation code
-resendPhoneNumberConfirmationCode = AuthenticationCodeInfo;
-
-//@description Checks phone number confirmation code @code Confirmation code to check
-checkPhoneNumberConfirmationCode code:string = Ok;
 
 
 //@description Informs the server about the number of pending bot updates if they haven't been processed for a long time; for bots only @pending_update_count The number of pending updates @error_message The last error message

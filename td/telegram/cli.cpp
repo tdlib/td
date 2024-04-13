@@ -2558,12 +2558,6 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::sendPassportAuthorizationForm>(form_id, as_passport_element_types(types)));
     } else if (op == "gpcl") {
       send_request(td_api::make_object<td_api::getPreferredCountryLanguage>(args));
-    } else if (op == "spnvc" || op == "SendPhoneNumberVerificationCode") {
-      send_request(td_api::make_object<td_api::sendPhoneNumberVerificationCode>(args, nullptr));
-    } else if (op == "cpnvc" || op == "CheckPhoneNumberVerificationCode") {
-      send_request(td_api::make_object<td_api::checkPhoneNumberVerificationCode>(args));
-    } else if (op == "rpnvc" || op == "ResendPhoneNumberVerificationCode") {
-      send_request(td_api::make_object<td_api::resendPhoneNumberVerificationCode>());
     } else if (op == "seavc" || op == "SendEmailAddressVerificationCode") {
       send_request(td_api::make_object<td_api::sendEmailAddressVerificationCode>(args));
     } else if (op == "ceavc" || op == "CheckEmailAddressVerificationCode") {
@@ -2589,15 +2583,6 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::resendRecoveryEmailAddressCode>());
     } else if (op == "creav") {
       send_request(td_api::make_object<td_api::cancelRecoveryEmailAddressVerification>());
-    } else if (op == "spncc") {
-      string hash;
-      string phone_number;
-      get_args(args, hash, phone_number);
-      send_request(td_api::make_object<td_api::sendPhoneNumberConfirmationCode>(hash, phone_number, nullptr));
-    } else if (op == "cpncc") {
-      send_request(td_api::make_object<td_api::checkPhoneNumberConfirmationCode>(args));
-    } else if (op == "rpncc") {
-      send_request(td_api::make_object<td_api::resendPhoneNumberConfirmationCode>());
     } else {
       op_not_found_count++;
     }
@@ -2729,12 +2714,22 @@ class CliClient final : public Actor {
       PrivacyRules rules;
       get_args(args, setting, rules);
       send_request(td_api::make_object<td_api::setUserPrivacySettingRules>(as_user_privacy_setting(setting), rules));
-    } else if (op == "cp" || op == "ChangePhone") {
-      send_request(td_api::make_object<td_api::changePhoneNumber>(args, nullptr));
-    } else if (op == "ccpc" || op == "CheckChangePhoneCode") {
-      send_request(td_api::make_object<td_api::checkChangePhoneNumberCode>(args));
-    } else if (op == "rcpc" || op == "ResendChangePhoneCode") {
-      send_request(td_api::make_object<td_api::resendChangePhoneNumberCode>());
+    } else if (op == "spncc") {
+      send_request(td_api::make_object<td_api::sendPhoneNumberCode>(
+          args, nullptr, td_api::make_object<td_api::phoneNumberCodeTypeChange>()));
+    } else if (op == "spncv") {
+      send_request(td_api::make_object<td_api::sendPhoneNumberCode>(
+          args, nullptr, td_api::make_object<td_api::phoneNumberCodeTypeVerify>()));
+    } else if (op == "spncco") {
+      string hash;
+      string phone_number;
+      get_args(args, hash, phone_number);
+      send_request(td_api::make_object<td_api::sendPhoneNumberCode>(
+          phone_number, nullptr, td_api::make_object<td_api::phoneNumberCodeTypeConfirmOwnership>(hash)));
+    } else if (op == "rpnc") {
+      send_request(td_api::make_object<td_api::resendPhoneNumberCode>());
+    } else if (op == "cpnc") {
+      send_request(td_api::make_object<td_api::checkPhoneNumberCode>(args));
     } else if (op == "gco") {
       if (args.empty()) {
         send_request(td_api::make_object<td_api::getContacts>());

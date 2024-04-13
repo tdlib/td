@@ -23,21 +23,16 @@ class PhoneNumberManager final : public Actor {
  public:
   PhoneNumberManager(Td *td, ActorShared<> parent);
 
-  enum class Type : int32 { ChangePhone, VerifyPhone, ConfirmPhone };
-
-  void set_phone_number(Type type, string phone_number,
-                        td_api::object_ptr<td_api::phoneNumberAuthenticationSettings> settings,
+  void set_phone_number(string phone_number, td_api::object_ptr<td_api::phoneNumberAuthenticationSettings> settings,
+                        td_api::object_ptr<td_api::PhoneNumberCodeType> type,
                         Promise<td_api::object_ptr<td_api::authenticationCodeInfo>> &&promise);
-
-  void set_phone_number_and_hash(string hash, string phone_number,
-                                 td_api::object_ptr<td_api::phoneNumberAuthenticationSettings> settings,
-                                 Promise<td_api::object_ptr<td_api::authenticationCodeInfo>> &&promise);
 
   void resend_authentication_code(Promise<td_api::object_ptr<td_api::authenticationCodeInfo>> &&promise);
 
   void check_code(string code, Promise<Unit> &&promise);
 
  private:
+  enum class Type : int32 { ChangePhone, VerifyPhone, ConfirmPhone };
   enum class State : int32 { Ok, WaitCode } state_ = State::Ok;
 
   void tear_down() final;

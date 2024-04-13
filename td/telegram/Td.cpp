@@ -4610,25 +4610,25 @@ void Td::on_request(uint64 id, td_api::deleteAccount &request) {
   send_closure(auth_manager_actor_, &AuthManager::delete_account, id, request.reason_, request.password_);
 }
 
-void Td::on_request(uint64 id, td_api::changePhoneNumber &request) {
+void Td::on_request(uint64 id, td_api::sendPhoneNumberCode &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.phone_number_);
   CREATE_REQUEST_PROMISE();
-  phone_number_manager_->set_phone_number(PhoneNumberManager::Type::ChangePhone, std::move(request.phone_number_),
-                                          std::move(request.settings_), std::move(promise));
+  phone_number_manager_->set_phone_number(std::move(request.phone_number_), std::move(request.settings_),
+                                          std::move(request.type_), std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::checkChangePhoneNumberCode &request) {
+void Td::on_request(uint64 id, const td_api::resendPhoneNumberCode &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  phone_number_manager_->resend_authentication_code(std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::checkPhoneNumberCode &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.code_);
   CREATE_OK_REQUEST_PROMISE();
   phone_number_manager_->check_code(std::move(request.code_), std::move(promise));
-}
-
-void Td::on_request(uint64 id, td_api::resendChangePhoneNumberCode &request) {
-  CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
-  phone_number_manager_->resend_authentication_code(std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getUserLink &request) {
@@ -9088,27 +9088,6 @@ void Td::on_request(uint64 id, td_api::getPreferredCountryLanguage &request) {
                std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::sendPhoneNumberVerificationCode &request) {
-  CHECK_IS_USER();
-  CLEAN_INPUT_STRING(request.phone_number_);
-  CREATE_REQUEST_PROMISE();
-  phone_number_manager_->set_phone_number(PhoneNumberManager::Type::VerifyPhone, std::move(request.phone_number_),
-                                          std::move(request.settings_), std::move(promise));
-}
-
-void Td::on_request(uint64 id, const td_api::resendPhoneNumberVerificationCode &request) {
-  CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
-  phone_number_manager_->resend_authentication_code(std::move(promise));
-}
-
-void Td::on_request(uint64 id, td_api::checkPhoneNumberVerificationCode &request) {
-  CHECK_IS_USER();
-  CLEAN_INPUT_STRING(request.code_);
-  CREATE_OK_REQUEST_PROMISE();
-  phone_number_manager_->check_code(std::move(request.code_), std::move(promise));
-}
-
 void Td::on_request(uint64 id, td_api::sendEmailAddressVerificationCode &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.email_address_);
@@ -9181,28 +9160,6 @@ void Td::on_request(uint64 id, td_api::sendPassportAuthorizationForm &request) {
   CREATE_OK_REQUEST_PROMISE();
   send_closure(secure_manager_, &SecureManager::send_passport_authorization_form, request.authorization_form_id_,
                get_secure_value_types_td_api(request.types_), std::move(promise));
-}
-
-void Td::on_request(uint64 id, td_api::sendPhoneNumberConfirmationCode &request) {
-  CHECK_IS_USER();
-  CLEAN_INPUT_STRING(request.phone_number_);
-  CLEAN_INPUT_STRING(request.hash_);
-  CREATE_REQUEST_PROMISE();
-  phone_number_manager_->set_phone_number_and_hash(std::move(request.hash_), std::move(request.phone_number_),
-                                                   std::move(request.settings_), std::move(promise));
-}
-
-void Td::on_request(uint64 id, const td_api::resendPhoneNumberConfirmationCode &request) {
-  CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
-  phone_number_manager_->resend_authentication_code(std::move(promise));
-}
-
-void Td::on_request(uint64 id, td_api::checkPhoneNumberConfirmationCode &request) {
-  CHECK_IS_USER();
-  CLEAN_INPUT_STRING(request.code_);
-  CREATE_OK_REQUEST_PROMISE();
-  phone_number_manager_->check_code(std::move(request.code_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getSupportUser &request) {
