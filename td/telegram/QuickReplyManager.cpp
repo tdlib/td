@@ -1411,7 +1411,7 @@ Result<vector<QuickReplyManager::QuickReplyMessageContent>> QuickReplyManager::g
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "get_quick_reply_message_contents")) {
     return Status::Error(400, "Chat not found");
   }
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Write)) {
     return Status::Error(400, "Have no write access to the chat");
   }
   if (dialog_id.get_type() != DialogType::User || td_->user_manager_->is_user_bot(dialog_id.get_user_id())) {

@@ -48,7 +48,7 @@ MessageInputReplyTo::MessageInputReplyTo(Td *td,
       DialogId dialog_id;
       if (reply_to->reply_to_peer_id_ != nullptr) {
         dialog_id = InputDialogId(reply_to->reply_to_peer_id_).get_dialog_id();
-        if (!dialog_id.is_valid() || !td->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+        if (!dialog_id.is_valid() || !td->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
           return;
         }
         td->dialog_manager_->force_create_dialog(dialog_id, "inputReplyToMessage");

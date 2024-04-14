@@ -323,7 +323,7 @@ void DialogActionManager::send_dialog_action(DialogId dialog_id, MessageId top_t
   } else if (as_business) {
     input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Know);
   } else {
-    if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
+    if (!td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Write)) {
       if (td_->auth_manager_->is_bot()) {
         return promise.set_error(Status::Error(400, "Have no write access to the chat"));
       }

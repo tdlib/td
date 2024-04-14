@@ -873,8 +873,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const unique_ptr<Messag
 }
 
 void reload_message_reactions(Td *td, DialogId dialog_id, vector<MessageId> &&message_ids) {
-  if (!td->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read) ||
-      dialog_id.get_type() == DialogType::SecretChat || message_ids.empty()) {
+  if (!td->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read) || message_ids.empty()) {
     create_actor<SleepActor>(
         "RetryReloadMessageReactionsActor", 0.2,
         PromiseCreator::lambda([actor_id = G()->messages_manager(), dialog_id](Result<Unit> result) mutable {
@@ -941,11 +940,8 @@ void report_message_reactions(Td *td, MessageFullId message_full_id, DialogId ch
   if (!td->dialog_manager_->have_dialog_force(dialog_id, "send_callback_query")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
-  if (!td->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!td->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the chat"));
-  }
-  if (dialog_id.get_type() == DialogType::SecretChat) {
-    return promise.set_error(Status::Error(400, "Reactions can't be reported in the chat"));
   }
 
   if (!td->messages_manager_->have_message_force(message_full_id, "report_user_reactions")) {
@@ -959,7 +955,7 @@ void report_message_reactions(Td *td, MessageFullId message_full_id, DialogId ch
     return promise.set_error(Status::Error(400, "Message reactions can't be reported"));
   }
 
-  if (!td->dialog_manager_->have_input_peer(chooser_dialog_id, AccessRights::Know)) {
+  if (!td->dialog_manager_->have_input_peer(chooser_dialog_id, false, AccessRights::Know)) {
     return promise.set_error(Status::Error(400, "Reaction sender not found"));
   }
 

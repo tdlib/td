@@ -2150,7 +2150,7 @@ void DialogFilterManager::add_dialog_filter_by_invite_link(const string &invite_
     if (!td_->dialog_manager_->have_dialog_force(dialog_id, "add_dialog_filter_by_invite_link")) {
       return promise.set_error(Status::Error(400, "Chat not found"));
     }
-    if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Know)) {
+    if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Know)) {
       return promise.set_error(Status::Error(400, "Can't access the chat"));
     }
   }
@@ -2184,7 +2184,7 @@ void DialogFilterManager::add_dialog_filter_new_chats(DialogFilterId dialog_filt
     if (!td_->dialog_manager_->have_dialog_force(dialog_id, "add_dialog_filter_new_chats")) {
       return promise.set_error(Status::Error(400, "Chat not found"));
     }
-    if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Know)) {
+    if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Know)) {
       return promise.set_error(Status::Error(400, "Can't access the chat"));
     }
   }

@@ -6922,7 +6922,7 @@ void StickersManager::schedule_update_animated_emoji_clicked(const StickerSet *s
     return;
   }
   auto dialog_id = message_full_id.get_dialog_id();
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Write)) {
     return;
   }
 
@@ -6971,7 +6971,7 @@ void StickersManager::send_update_animated_emoji_clicked(MessageFullId message_f
     return;
   }
   auto dialog_id = message_full_id.get_dialog_id();
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Write)) {
     return;
   }
 

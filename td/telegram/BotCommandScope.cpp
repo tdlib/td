@@ -66,7 +66,7 @@ Result<BotCommandScope> BotCommandScope::get_bot_command_scope(Td *td,
   if (!td->dialog_manager_->have_dialog_force(dialog_id, "get_bot_command_scope")) {
     return Status::Error(400, "Chat not found");
   }
-  if (!td->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!td->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
     return Status::Error(400, "Can't access the chat");
   }
   switch (dialog_id.get_type()) {
@@ -85,7 +85,7 @@ Result<BotCommandScope> BotCommandScope::get_bot_command_scope(Td *td,
       break;
     case DialogType::SecretChat:
     default:
-      return Status::Error(400, "Can't access the chat");
+      UNREACHABLE();
   }
 
   return BotCommandScope(type, dialog_id, user_id);

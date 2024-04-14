@@ -824,8 +824,7 @@ void AttachMenuManager::request_app_web_view(DialogId dialog_id, UserId bot_user
                                              string &&start_parameter,
                                              const td_api::object_ptr<td_api::themeParameters> &theme,
                                              string &&platform, bool allow_write_access, Promise<string> &&promise) {
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read) ||
-      dialog_id.get_type() == DialogType::SecretChat) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
     dialog_id = DialogId(bot_user_id);
   }
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
@@ -861,7 +860,7 @@ void AttachMenuManager::request_web_view(DialogId dialog_id, UserId bot_user_id,
       UNREACHABLE();
   }
 
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Write)) {
     return promise.set_error(Status::Error(400, "Have no write access to the chat"));
   }
 

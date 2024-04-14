@@ -151,9 +151,7 @@ class ToggleStoriesHiddenQuery final : public Td::ResultHandler {
     dialog_id_ = dialog_id;
     are_hidden_ = are_hidden;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
-    if (input_peer == nullptr) {
-      return on_error(Status::Error(400, "Can't access the chat"));
-    }
+    CHECK(input_peer != nullptr);
     send_query(G()->net_query_creator().create(
         telegram_api::stories_togglePeerStoriesHidden(std::move(input_peer), are_hidden), {{dialog_id_}}));
   }
@@ -2304,7 +2302,7 @@ void StoryManager::toggle_dialog_stories_hidden(DialogId dialog_id, StoryListId 
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "toggle_dialog_stories_hidden")) {
     return promise.set_error(Status::Error(400, "Story sender not found"));
   }
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the story sender"));
   }
   if (story_list_id == get_dialog_story_list_id(dialog_id)) {
@@ -2327,7 +2325,7 @@ void StoryManager::get_dialog_pinned_stories(DialogId owner_dialog_id, StoryId f
   if (!td_->dialog_manager_->have_dialog_force(owner_dialog_id, "get_dialog_pinned_stories")) {
     return promise.set_error(Status::Error(400, "Story sender not found"));
   }
-  if (!td_->dialog_manager_->have_input_peer(owner_dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(owner_dialog_id, false, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the story sender"));
   }
 
@@ -2401,7 +2399,7 @@ void StoryManager::get_dialog_expiring_stories(DialogId owner_dialog_id,
   if (!td_->dialog_manager_->have_dialog_force(owner_dialog_id, "get_dialog_expiring_stories")) {
     return promise.set_error(Status::Error(400, "Story sender not found"));
   }
-  if (!td_->dialog_manager_->have_input_peer(owner_dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(owner_dialog_id, false, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the story sender"));
   }
 
@@ -2431,7 +2429,7 @@ void StoryManager::get_dialog_expiring_stories(DialogId owner_dialog_id,
 }
 
 void StoryManager::reload_dialog_expiring_stories(DialogId dialog_id) {
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
     return;
   }
   td_->dialog_manager_->force_create_dialog(dialog_id, "reload_dialog_expiring_stories");
@@ -2521,7 +2519,7 @@ void StoryManager::open_story(DialogId owner_dialog_id, StoryId story_id, Promis
   if (!td_->dialog_manager_->have_dialog_force(owner_dialog_id, "open_story")) {
     return promise.set_error(Status::Error(400, "Story sender not found"));
   }
-  if (!td_->dialog_manager_->have_input_peer(owner_dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(owner_dialog_id, false, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the story sender"));
   }
   if (!story_id.is_valid()) {
@@ -2584,7 +2582,7 @@ void StoryManager::close_story(DialogId owner_dialog_id, StoryId story_id, Promi
   if (!td_->dialog_manager_->have_dialog_force(owner_dialog_id, "close_story")) {
     return promise.set_error(Status::Error(400, "Story sender not found"));
   }
-  if (!td_->dialog_manager_->have_input_peer(owner_dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(owner_dialog_id, false, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the story sender"));
   }
   if (!story_id.is_valid()) {
@@ -2696,7 +2694,7 @@ void StoryManager::set_story_reaction(StoryFullId story_full_id, ReactionType re
   if (!td_->dialog_manager_->have_dialog_force(owner_dialog_id, "set_story_reaction")) {
     return promise.set_error(Status::Error(400, "Story sender not found"));
   }
-  if (!td_->dialog_manager_->have_input_peer(owner_dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(owner_dialog_id, false, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the story sender"));
   }
   if (!story_full_id.get_story_id().is_valid()) {
@@ -4609,7 +4607,7 @@ void StoryManager::get_story(DialogId owner_dialog_id, StoryId story_id, bool on
   if (!td_->dialog_manager_->have_dialog_force(owner_dialog_id, "get_story")) {
     return promise.set_error(Status::Error(400, "Story sender not found"));
   }
-  if (!td_->dialog_manager_->have_input_peer(owner_dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(owner_dialog_id, false, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the story sender"));
   }
   if (!story_id.is_valid()) {

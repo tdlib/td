@@ -1229,7 +1229,7 @@ Status GroupCallManager::can_join_group_calls(DialogId dialog_id) const {
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "get_group_call_join_as")) {
     return Status::Error(400, "Chat not found");
   }
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
     return Status::Error(400, "Can't access chat");
   }
   switch (dialog_id.get_type()) {
@@ -1237,8 +1237,8 @@ Status GroupCallManager::can_join_group_calls(DialogId dialog_id) const {
     case DialogType::Channel:
       break;
     case DialogType::User:
-    case DialogType::SecretChat:
       return Status::Error(400, "Chat can't have a voice chat");
+    case DialogType::SecretChat:
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -1323,7 +1323,7 @@ void GroupCallManager::set_group_call_default_join_as(DialogId dialog_id, Dialog
     default:
       return promise.set_error(Status::Error(400, "Invalid default participant identifier specified"));
   }
-  if (!td_->dialog_manager_->have_input_peer(as_dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(as_dialog_id, false, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access specified default participant chat"));
   }
 
@@ -1339,7 +1339,7 @@ void GroupCallManager::create_voice_chat(DialogId dialog_id, string title, int32
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "create_voice_chat")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access chat"));
   }
 
@@ -1368,7 +1368,7 @@ void GroupCallManager::get_voice_chat_rtmp_stream_url(DialogId dialog_id, bool r
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "get_voice_chat_rtmp_stream_url")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access chat"));
   }
 
@@ -2651,11 +2651,8 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
         return promise.set_error(Status::Error(400, "Join as chat not found"));
       }
     }
-    if (!td_->dialog_manager_->have_input_peer(as_dialog_id, AccessRights::Read)) {
+    if (!td_->dialog_manager_->have_input_peer(as_dialog_id, false, AccessRights::Read)) {
       return promise.set_error(Status::Error(400, "Can't access the join as participant"));
-    }
-    if (dialog_type == DialogType::SecretChat) {
-      return promise.set_error(Status::Error(400, "Can't join voice chat as a secret chat"));
     }
   }
 
@@ -4126,7 +4123,7 @@ void GroupCallManager::on_group_call_left_impl(GroupCall *group_call, bool need_
   group_call->need_rejoin = need_rejoin && !group_call->is_being_left;
   if (group_call->need_rejoin && group_call->dialog_id.is_valid()) {
     auto dialog_id = group_call->dialog_id;
-    if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read) ||
+    if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read) ||
         (dialog_id.get_type() == DialogType::Chat &&
          !td_->chat_manager_->get_chat_status(dialog_id.get_chat_id()).is_member())) {
       group_call->need_rejoin = false;

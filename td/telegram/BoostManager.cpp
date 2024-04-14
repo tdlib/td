@@ -403,7 +403,7 @@ void BoostManager::get_dialog_boost_status(DialogId dialog_id,
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "get_dialog_boost_status")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
 
@@ -415,7 +415,7 @@ void BoostManager::boost_dialog(DialogId dialog_id, vector<int32> slot_ids,
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "boost_dialog")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
   if (slot_ids.empty()) {
@@ -429,7 +429,7 @@ Result<std::pair<string, bool>> BoostManager::get_dialog_boost_link(DialogId dia
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "get_dialog_boost_link")) {
     return Status::Error(400, "Chat not found");
   }
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
     return Status::Error(400, "Can't access the chat");
   }
   if (dialog_id.get_type() != DialogType::Channel) {
@@ -478,7 +478,7 @@ void BoostManager::get_dialog_boosts(DialogId dialog_id, bool only_gift_codes, c
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "get_dialog_boosts")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
   if (limit <= 0) {
@@ -493,7 +493,7 @@ void BoostManager::get_user_dialog_boosts(DialogId dialog_id, UserId user_id,
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "get_user_dialog_boosts")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
   if (!user_id.is_valid()) {

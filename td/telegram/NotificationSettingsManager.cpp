@@ -1409,7 +1409,7 @@ void NotificationSettingsManager::send_get_dialog_notification_settings_query(Di
     LOG(WARNING) << "Can't get notification settings for " << dialog_id;
     return promise.set_error(Status::Error(500, "Wrong getDialogNotificationSettings query"));
   }
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
     LOG(WARNING) << "Have no access to " << dialog_id << " to get notification settings";
     return promise.set_error(Status::Error(400, "Can't access the chat"));
   }

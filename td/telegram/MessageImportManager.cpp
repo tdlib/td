@@ -290,7 +290,7 @@ Status MessageImportManager::can_import_messages(DialogId dialog_id) {
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "can_import_messages")) {
     return Status::Error(400, "Chat not found");
   }
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Write)) {
     return Status::Error(400, "Have no write access to the chat");
   }
 
@@ -311,7 +311,6 @@ Status MessageImportManager::can_import_messages(DialogId dialog_id) {
       }
       break;
     case DialogType::SecretChat:
-      return Status::Error(400, "Can't import messages to secret chats");
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -386,7 +385,7 @@ void MessageImportManager::on_upload_imported_messages(FileId file_id,
 
   being_uploaded_imported_messages_.erase(it);
 
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Write)) {
     return promise.set_error(Status::Error(400, "Have no write access to the chat"));
   }
 
@@ -438,7 +437,7 @@ void MessageImportManager::on_upload_imported_messages_error(FileId file_id, Sta
 void MessageImportManager::start_import_messages(DialogId dialog_id, int64 import_id,
                                                  vector<FileId> &&attached_file_ids, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Write)) {
     return promise.set_error(Status::Error(400, "Have no write access to the chat"));
   }
 
@@ -573,7 +572,7 @@ void MessageImportManager::on_imported_message_attachments_uploaded(int64 random
   auto promise = std::move(pending_message_import->promise);
   auto dialog_id = pending_message_import->dialog_id;
 
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Write)) {
     return promise.set_error(Status::Error(400, "Have no write access to the chat"));
   }
 

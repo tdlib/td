@@ -671,7 +671,7 @@ tl_object_ptr<telegram_api::inputEncryptedChat> DialogManager::get_input_encrypt
   }
 }
 
-bool DialogManager::have_input_peer(DialogId dialog_id, AccessRights access_rights) const {
+bool DialogManager::have_input_peer(DialogId dialog_id, bool allow_secret_chats, AccessRights access_rights) const {
   switch (dialog_id.get_type()) {
     case DialogType::User: {
       UserId user_id = dialog_id.get_user_id();
@@ -686,6 +686,9 @@ bool DialogManager::have_input_peer(DialogId dialog_id, AccessRights access_righ
       return td_->chat_manager_->have_input_peer_channel(channel_id, access_rights);
     }
     case DialogType::SecretChat: {
+      if (!allow_secret_chats) {
+        return false;
+      }
       SecretChatId secret_chat_id = dialog_id.get_secret_chat_id();
       return td_->user_manager_->have_input_encrypted_peer(secret_chat_id, access_rights);
     }
@@ -1596,7 +1599,7 @@ void DialogManager::set_dialog_permissions(DialogId dialog_id,
   if (!have_dialog_force(dialog_id, "set_dialog_permissions")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
-  if (!have_input_peer(dialog_id, AccessRights::Write)) {
+  if (!have_input_peer(dialog_id, false, AccessRights::Write)) {
     return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
 
@@ -1628,7 +1631,6 @@ void DialogManager::set_dialog_permissions(DialogId dialog_id,
       break;
     }
     case DialogType::SecretChat:
-      return promise.set_error(Status::Error(400, "Can't change secret chat permissions"));
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -1675,13 +1677,12 @@ void DialogManager::toggle_dialog_has_protected_content(DialogId dialog_id, bool
   if (!have_dialog_force(dialog_id, "toggle_dialog_has_protected_content")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
-  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!have_input_peer(dialog_id, false, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
-    case DialogType::SecretChat:
       return promise.set_error(Status::Error(400, "Can't restrict saving content in the chat"));
     case DialogType::Chat: {
       auto chat_id = dialog_id.get_chat_id();
@@ -1698,6 +1699,7 @@ void DialogManager::toggle_dialog_has_protected_content(DialogId dialog_id, bool
       }
       break;
     }
+    case DialogType::SecretChat:
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -1774,7 +1776,7 @@ void DialogManager::report_dialog(DialogId dialog_id, const vector<MessageId> &m
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
 
-  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!have_input_peer(dialog_id, true, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
 
@@ -1818,7 +1820,7 @@ void DialogManager::report_dialog_photo(DialogId dialog_id, FileId file_id, Repo
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
 
-  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!have_input_peer(dialog_id, false, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
 
@@ -1866,7 +1868,7 @@ Status DialogManager::can_pin_messages(DialogId dialog_id) const {
     default:
       UNREACHABLE();
   }
-  if (!have_input_peer(dialog_id, AccessRights::Write)) {
+  if (!have_input_peer(dialog_id, false, AccessRights::Write)) {
     return Status::Error(400, "Not enough rights");
   }
 
@@ -2206,7 +2208,7 @@ DialogId DialogManager::search_public_dialog(const string &username_to_search, b
     return DialogId();
   }
 
-  if (have_input_peer(dialog_id, AccessRights::Read)) {
+  if (have_input_peer(dialog_id, false, AccessRights::Read)) {
     if (!force && reload_voice_chat_on_search_usernames_.count(username)) {
       reload_voice_chat_on_search_usernames_.erase(username);
       if (dialog_id.get_type() == DialogType::Channel) {
@@ -2251,8 +2253,7 @@ void DialogManager::drop_username(const string &username) {
   auto resolved_username = resolved_usernames_.get(cleaned_username);
   if (resolved_username.dialog_id.is_valid()) {
     auto dialog_id = resolved_username.dialog_id;
-    if (have_input_peer(dialog_id, AccessRights::Read)) {
-      CHECK(dialog_id.get_type() != DialogType::SecretChat);
+    if (have_input_peer(dialog_id, false, AccessRights::Read)) {
       reload_dialog_info_full(dialog_id, "drop_username");
     }
 
@@ -2306,7 +2307,7 @@ void DialogManager::dismiss_dialog_suggested_action(SuggestedAction action, Prom
   if (!td_->messages_manager_->have_dialog(dialog_id)) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
-  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!have_input_peer(dialog_id, false, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
 

@@ -208,7 +208,7 @@ void GameManager::set_game_score(MessageFullId message_full_id, bool edit_messag
   }
 
   auto dialog_id = message_full_id.get_dialog_id();
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Edit)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Edit)) {
     return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
 
@@ -258,11 +258,11 @@ void GameManager::get_game_high_scores(MessageFullId message_full_id, UserId use
   }
 
   auto dialog_id = message_full_id.get_dialog_id();
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
   auto message_id = message_full_id.get_message_id();
-  if (message_id.is_scheduled() || !message_id.is_server() || dialog_id.get_type() == DialogType::SecretChat) {
+  if (message_id.is_scheduled() || !message_id.is_server()) {
     return promise.set_error(Status::Error(400, "Wrong message identifier specified"));
   }
 

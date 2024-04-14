@@ -768,7 +768,7 @@ Result<DialogId> BackgroundManager::get_background_dialog(DialogId dialog_id) {
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "get_background_dialog")) {
     return Status::Error(400, "Chat not found");
   }
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Write)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Write)) {
     return Status::Error(400, "Can't access the chat");
   }
 

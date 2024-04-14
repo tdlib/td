@@ -72,7 +72,7 @@ class DialogManager final : public Actor {
   tl_object_ptr<telegram_api::inputEncryptedChat> get_input_encrypted_chat(DialogId dialog_id,
                                                                            AccessRights access_rights) const;
 
-  bool have_input_peer(DialogId dialog_id, AccessRights access_rights) const;
+  bool have_input_peer(DialogId dialog_id, bool allow_secret_chats, AccessRights access_rights) const;
 
   bool have_dialog_force(DialogId dialog_id, const char *source) const;
 

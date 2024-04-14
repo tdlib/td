@@ -238,7 +238,7 @@ void CallbackQueriesManager::send_callback_query(MessageFullId message_full_id,
 
   auto dialog_id = message_full_id.get_dialog_id();
   td_->dialog_manager_->have_dialog_force(dialog_id, "send_callback_query");
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
 
@@ -250,9 +250,6 @@ void CallbackQueriesManager::send_callback_query(MessageFullId message_full_id,
   }
   if (!message_full_id.get_message_id().is_server()) {
     return promise.set_error(Status::Error(400, "Bad message identifier"));
-  }
-  if (dialog_id.get_type() == DialogType::SecretChat) {
-    return promise.set_error(Status::Error(400, "Secret chat messages can't have callback buttons"));
   }
 
   if (payload->get_id() == td_api::callbackQueryPayloadDataWithPassword::ID) {
@@ -278,10 +275,10 @@ void CallbackQueriesManager::send_get_callback_answer_query(
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   auto dialog_id = message_full_id.get_dialog_id();
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
     return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
-  if (!td_->messages_manager_->have_message_force(message_full_id, "send_callback_query")) {
+  if (!td_->messages_manager_->have_message_force(message_full_id, "send_get_callback_answer_query")) {
     return promise.set_error(Status::Error(400, "Message not found"));
   }
 
