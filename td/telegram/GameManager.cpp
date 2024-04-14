@@ -203,13 +203,11 @@ void GameManager::set_game_score(MessageFullId message_full_id, bool edit_messag
                                  bool force, Promise<td_api::object_ptr<td_api::message>> &&promise) {
   CHECK(td_->auth_manager_->is_bot());
 
+  auto dialog_id = message_full_id.get_dialog_id();
+  TRY_STATUS_PROMISE(promise,
+                     td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Edit, "set_game_score"));
   if (!td_->messages_manager_->have_message_force(message_full_id, "set_game_score")) {
     return promise.set_error(Status::Error(400, "Message not found"));
-  }
-
-  auto dialog_id = message_full_id.get_dialog_id();
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Edit)) {
-    return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
 
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
@@ -253,14 +251,14 @@ void GameManager::get_game_high_scores(MessageFullId message_full_id, UserId use
                                        Promise<td_api::object_ptr<td_api::gameHighScores>> &&promise) {
   CHECK(td_->auth_manager_->is_bot());
 
+  auto dialog_id = message_full_id.get_dialog_id();
+  TRY_STATUS_PROMISE(
+      promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "get_game_high_scores"));
+
   if (!td_->messages_manager_->have_message_force(message_full_id, "get_game_high_scores")) {
     return promise.set_error(Status::Error(400, "Message not found"));
   }
 
-  auto dialog_id = message_full_id.get_dialog_id();
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
-    return promise.set_error(Status::Error(400, "Can't access the chat"));
-  }
   auto message_id = message_full_id.get_message_id();
   if (message_id.is_scheduled() || !message_id.is_server()) {
     return promise.set_error(Status::Error(400, "Wrong message identifier specified"));

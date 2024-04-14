@@ -287,12 +287,7 @@ void MessageImportManager::get_message_file_type(const string &message_file_head
 }
 
 Status MessageImportManager::can_import_messages(DialogId dialog_id) {
-  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "can_import_messages")) {
-    return Status::Error(400, "Chat not found");
-  }
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Write)) {
-    return Status::Error(400, "Have no write access to the chat");
-  }
+  TRY_STATUS(td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Write, "can_import_messages"));
 
   switch (dialog_id.get_type()) {
     case DialogType::User:

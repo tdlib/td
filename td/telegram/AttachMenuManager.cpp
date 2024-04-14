@@ -842,27 +842,8 @@ void AttachMenuManager::request_web_view(DialogId dialog_id, UserId bot_user_id,
   TRY_STATUS_PROMISE(promise, td_->user_manager_->get_bot_data(bot_user_id));
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
   TRY_RESULT_PROMISE(promise, bot_data, td_->user_manager_->get_bot_data(bot_user_id));
-
-  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "request_web_view")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
-
-  switch (dialog_id.get_type()) {
-    case DialogType::User:
-    case DialogType::Chat:
-    case DialogType::Channel:
-      // ok
-      break;
-    case DialogType::SecretChat:
-      return promise.set_error(Status::Error(400, "Web Apps can't be opened in secret chats"));
-    case DialogType::None:
-    default:
-      UNREACHABLE();
-  }
-
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Write)) {
-    return promise.set_error(Status::Error(400, "Have no write access to the chat"));
-  }
+  TRY_STATUS_PROMISE(
+      promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Write, "request_web_view"));
 
   if (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server() ||
       dialog_id.get_type() != DialogType::Channel ||

@@ -237,10 +237,8 @@ void CallbackQueriesManager::send_callback_query(MessageFullId message_full_id,
   }
 
   auto dialog_id = message_full_id.get_dialog_id();
-  td_->dialog_manager_->have_dialog_force(dialog_id, "send_callback_query");
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
-    return promise.set_error(Status::Error(400, "Can't access the chat"));
-  }
+  TRY_STATUS_PROMISE(
+      promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "send_callback_query"));
 
   if (!td_->messages_manager_->have_message_force(message_full_id, "send_callback_query")) {
     return promise.set_error(Status::Error(400, "Message not found"));
@@ -275,9 +273,8 @@ void CallbackQueriesManager::send_get_callback_answer_query(
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   auto dialog_id = message_full_id.get_dialog_id();
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
-    return promise.set_error(Status::Error(400, "Can't access the chat"));
-  }
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
+                                                                        "send_get_callback_answer_query"));
   if (!td_->messages_manager_->have_message_force(message_full_id, "send_get_callback_answer_query")) {
     return promise.set_error(Status::Error(400, "Message not found"));
   }

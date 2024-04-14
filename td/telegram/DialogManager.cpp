@@ -1616,12 +1616,7 @@ void DialogManager::set_dialog_profile_accent_color(DialogId dialog_id, AccentCo
 void DialogManager::set_dialog_permissions(DialogId dialog_id,
                                            const td_api::object_ptr<td_api::chatPermissions> &permissions,
                                            Promise<Unit> &&promise) {
-  if (!have_dialog_force(dialog_id, "set_dialog_permissions")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
-  if (!have_input_peer(dialog_id, false, AccessRights::Write)) {
-    return promise.set_error(Status::Error(400, "Can't access the chat"));
-  }
+  TRY_STATUS_PROMISE(promise, check_dialog_access(dialog_id, false, AccessRights::Write, "set_dialog_permissions"));
 
   if (permissions == nullptr) {
     return promise.set_error(Status::Error(400, "New permissions must be non-empty"));
@@ -1694,12 +1689,8 @@ void DialogManager::set_dialog_emoji_status(DialogId dialog_id, const EmojiStatu
 
 void DialogManager::toggle_dialog_has_protected_content(DialogId dialog_id, bool has_protected_content,
                                                         Promise<Unit> &&promise) {
-  if (!have_dialog_force(dialog_id, "toggle_dialog_has_protected_content")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
-  if (!have_input_peer(dialog_id, false, AccessRights::Read)) {
-    return promise.set_error(Status::Error(400, "Can't access the chat"));
-  }
+  TRY_STATUS_PROMISE(promise,
+                     check_dialog_access(dialog_id, false, AccessRights::Read, "toggle_dialog_has_protected_content"));
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
@@ -1792,13 +1783,7 @@ bool DialogManager::can_report_dialog(DialogId dialog_id) const {
 
 void DialogManager::report_dialog(DialogId dialog_id, const vector<MessageId> &message_ids, ReportReason &&reason,
                                   Promise<Unit> &&promise) {
-  if (!have_dialog_force(dialog_id, "report_dialog")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
-
-  if (!have_input_peer(dialog_id, true, AccessRights::Read)) {
-    return promise.set_error(Status::Error(400, "Can't access the chat"));
-  }
+  TRY_STATUS_PROMISE(promise, check_dialog_access(dialog_id, true, AccessRights::Read, "report_dialog"));
 
   MessagesManager::ReportDialogFromActionBar report_from_action_bar;
   if (reason.is_spam() && message_ids.empty()) {
@@ -1836,13 +1821,7 @@ void DialogManager::report_dialog(DialogId dialog_id, const vector<MessageId> &m
 
 void DialogManager::report_dialog_photo(DialogId dialog_id, FileId file_id, ReportReason &&reason,
                                         Promise<Unit> &&promise) {
-  if (!have_dialog_force(dialog_id, "report_dialog_photo")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
-
-  if (!have_input_peer(dialog_id, false, AccessRights::Read)) {
-    return promise.set_error(Status::Error(400, "Can't access the chat"));
-  }
+  TRY_STATUS_PROMISE(promise, check_dialog_access(dialog_id, false, AccessRights::Read, "report_dialog_photo"));
 
   if (!can_report_dialog(dialog_id)) {
     return promise.set_error(Status::Error(400, "Chat photo can't be reported"));
@@ -2324,12 +2303,8 @@ void DialogManager::remove_dialog_suggested_action(SuggestedAction action) {
 
 void DialogManager::dismiss_dialog_suggested_action(SuggestedAction action, Promise<Unit> &&promise) {
   auto dialog_id = action.dialog_id_;
-  if (!td_->messages_manager_->have_dialog(dialog_id)) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
-  if (!have_input_peer(dialog_id, false, AccessRights::Read)) {
-    return promise.set_error(Status::Error(400, "Can't access the chat"));
-  }
+  TRY_STATUS_PROMISE(promise,
+                     check_dialog_access(dialog_id, false, AccessRights::Read, "dismiss_dialog_suggested_action"));
 
   auto it = dialog_suggested_actions_.find(dialog_id);
   if (it == dialog_suggested_actions_.end() || !td::contains(it->second, action)) {

@@ -2147,12 +2147,8 @@ void DialogFilterManager::add_dialog_filter_by_invite_link(const string &invite_
     return promise.set_error(Status::Error(400, "Wrong invite link"));
   }
   for (auto dialog_id : dialog_ids) {
-    if (!td_->dialog_manager_->have_dialog_force(dialog_id, "add_dialog_filter_by_invite_link")) {
-      return promise.set_error(Status::Error(400, "Chat not found"));
-    }
-    if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Know)) {
-      return promise.set_error(Status::Error(400, "Can't access the chat"));
-    }
+    TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Know,
+                                                                          "add_dialog_filter_by_invite_link"));
   }
 
   CHECK(!invite_link.empty());
@@ -2181,12 +2177,8 @@ void DialogFilterManager::add_dialog_filter_new_chats(DialogFilterId dialog_filt
     return promise.set_error(Status::Error(400, "Chat folder must be shareable"));
   }
   for (auto dialog_id : dialog_ids) {
-    if (!td_->dialog_manager_->have_dialog_force(dialog_id, "add_dialog_filter_new_chats")) {
-      return promise.set_error(Status::Error(400, "Chat not found"));
-    }
-    if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Know)) {
-      return promise.set_error(Status::Error(400, "Can't access the chat"));
-    }
+    TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Know,
+                                                                          "add_dialog_filter_new_chats"));
   }
 
   if (dialog_ids.empty()) {

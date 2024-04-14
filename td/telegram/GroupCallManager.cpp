@@ -1223,15 +1223,7 @@ GroupCallManager::GroupCall *GroupCallManager::get_group_call(InputGroupCallId i
 }
 
 Status GroupCallManager::can_join_group_calls(DialogId dialog_id) const {
-  if (!dialog_id.is_valid()) {
-    return Status::Error(400, "Invalid chat identifier specified");
-  }
-  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "get_group_call_join_as")) {
-    return Status::Error(400, "Chat not found");
-  }
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
-    return Status::Error(400, "Can't access chat");
-  }
+  TRY_STATUS(td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "can_join_group_calls"));
   switch (dialog_id.get_type()) {
     case DialogType::Chat:
     case DialogType::Channel:
@@ -1333,16 +1325,8 @@ void GroupCallManager::set_group_call_default_join_as(DialogId dialog_id, Dialog
 
 void GroupCallManager::create_voice_chat(DialogId dialog_id, string title, int32 start_date, bool is_rtmp_stream,
                                          Promise<GroupCallId> &&promise) {
-  if (!dialog_id.is_valid()) {
-    return promise.set_error(Status::Error(400, "Invalid chat identifier specified"));
-  }
-  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "create_voice_chat")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
-    return promise.set_error(Status::Error(400, "Can't access chat"));
-  }
-
+  TRY_STATUS_PROMISE(
+      promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "create_voice_chat"));
   TRY_STATUS_PROMISE(promise, can_manage_group_calls(dialog_id));
 
   title = clean_name(title, MAX_TITLE_LENGTH);
@@ -1362,16 +1346,8 @@ void GroupCallManager::create_voice_chat(DialogId dialog_id, string title, int32
 
 void GroupCallManager::get_voice_chat_rtmp_stream_url(DialogId dialog_id, bool revoke,
                                                       Promise<td_api::object_ptr<td_api::rtmpUrl>> &&promise) {
-  if (!dialog_id.is_valid()) {
-    return promise.set_error(Status::Error(400, "Invalid chat identifier specified"));
-  }
-  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "get_voice_chat_rtmp_stream_url")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
-    return promise.set_error(Status::Error(400, "Can't access chat"));
-  }
-
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
+                                                                        "get_voice_chat_rtmp_stream_url"));
   TRY_STATUS_PROMISE(promise, can_manage_group_calls(dialog_id));
 
   td_->create_handler<GetGroupCallRtmpStreamUrlGroupCallQuery>(std::move(promise))->send(dialog_id, revoke);
