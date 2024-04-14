@@ -3726,13 +3726,9 @@ class DeleteMessagesQuery final : public Td::ResultHandler {
 
     auto affected_messages = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for DeleteMessagesQuery: " << to_string(affected_messages);
-    if (affected_messages->pts_count_ > 0) {
-      td_->updates_manager_->add_pending_pts_update(make_tl_object<dummyUpdate>(), affected_messages->pts_,
-                                                    affected_messages->pts_count_, Time::now(), std::move(promise_),
-                                                    "delete messages query");
-    } else {
-      promise_.set_value(Unit());
-    }
+    td_->updates_manager_->add_pending_pts_update(make_tl_object<dummyUpdate>(), affected_messages->pts_,
+                                                  affected_messages->pts_count_, Time::now(), std::move(promise_),
+                                                  "delete messages query");
   }
 
   void on_error(Status status) final {
@@ -3778,13 +3774,9 @@ class DeleteChannelMessagesQuery final : public Td::ResultHandler {
 
     auto affected_messages = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for DeleteChannelMessagesQuery: " << to_string(affected_messages);
-    if (affected_messages->pts_count_ > 0) {
-      td_->messages_manager_->add_pending_channel_update(DialogId(channel_id_), make_tl_object<dummyUpdate>(),
-                                                         affected_messages->pts_, affected_messages->pts_count_,
-                                                         std::move(promise_), "DeleteChannelMessagesQuery");
-    } else {
-      promise_.set_value(Unit());
-    }
+    td_->messages_manager_->add_pending_channel_update(DialogId(channel_id_), make_tl_object<dummyUpdate>(),
+                                                       affected_messages->pts_, affected_messages->pts_count_,
+                                                       std::move(promise_), "DeleteChannelMessagesQuery");
   }
 
   void on_error(Status status) final {
