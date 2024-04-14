@@ -566,6 +566,26 @@ InputDialogId DialogManager::get_input_dialog_id(DialogId dialog_id) const {
   }
 }
 
+Status DialogManager::check_dialog_access(DialogId dialog_id, bool allow_secret_chats, AccessRights access_rights,
+                                          const char *source) const {
+  if (!have_dialog_force(dialog_id, source)) {
+    if (!dialog_id.is_valid()) {
+      return Status::Error(400, "Invalid chat identifier specified");
+    }
+    return Status::Error(400, "Chat not found");
+  }
+  if (!have_input_peer(dialog_id, allow_secret_chats, access_rights)) {
+    if (dialog_id.get_type() == DialogType::SecretChat && !allow_secret_chats) {
+      return Status::Error(400, "Not supported in secret chats");
+    }
+    if (access_rights == AccessRights::Write || access_rights == AccessRights::Edit) {
+      return Status::Error(400, "Have no write access to the chat");
+    }
+    return Status::Error(400, "Can't access the chat");
+  }
+  return Status::OK();
+}
+
 tl_object_ptr<telegram_api::InputPeer> DialogManager::get_input_peer(DialogId dialog_id,
                                                                      AccessRights access_rights) const {
   switch (dialog_id.get_type()) {
