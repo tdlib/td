@@ -92,7 +92,6 @@ class QuickReplyManager final : public Actor {
 
     MessageId message_id;
     QuickReplyShortcutId shortcut_id;
-    int32 sending_id = 0;  // for yet unsent messages
     int32 edit_date = 0;
 
     int64 random_id = 0;  // for send_message
@@ -122,8 +121,6 @@ class QuickReplyManager final : public Actor {
     unique_ptr<MessageContent> content;
     unique_ptr<ReplyMarkup> reply_markup;
 
-    mutable uint64 send_message_log_event_id = 0;
-
     template <class StorerT>
     void store(StorerT &storer) const;
 
@@ -144,6 +141,7 @@ class QuickReplyManager final : public Actor {
     int32 server_total_count_ = 0;
     int32 local_total_count_ = 0;
     vector<unique_ptr<QuickReplyMessage>> messages_;
+    MessageId last_assigned_message_id_;
 
     template <class StorerT>
     void store(StorerT &storer) const;
@@ -237,6 +235,16 @@ class QuickReplyManager final : public Actor {
 
   Result<InputMessageContent> process_input_message_content(
       td_api::object_ptr<td_api::InputMessageContent> &&input_message_content);
+
+  MessageId get_next_message_id(Shortcut *s, MessageType type) const;
+
+  MessageId get_next_yet_unsent_message_id(Shortcut *s) const;
+
+  MessageId get_next_local_message_id(Shortcut *s) const;
+
+  QuickReplyMessage *add_local_message(Shortcut *s, MessageId reply_to_message_id, unique_ptr<MessageContent> &&content,
+                                       bool invert_media, UserId via_bot_user_id, bool hide_via_bot,
+                                       bool disable_web_page_preview, string &&send_emoji);
 
   bool is_shortcut_list_changed(const vector<unique_ptr<Shortcut>> &new_shortcuts) const;
 

@@ -38,6 +38,7 @@
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/Random.h"
 #include "td/utils/Time.h"
 #include "td/utils/tl_helpers.h"
 #include "td/utils/unicode.h"
@@ -638,7 +639,7 @@ td_api::object_ptr<td_api::MessageSendingState> QuickReplyManager::get_message_s
     const QuickReplyMessage *m) const {
   CHECK(m != nullptr);
   if (m->message_id.is_yet_unsent()) {
-    return td_api::make_object<td_api::messageSendingStatePending>(m->sending_id);
+    return td_api::make_object<td_api::messageSendingStatePending>(0);
   }
   if (m->is_failed_to_send) {
     auto can_retry = can_resend_quick_reply_message(m);
@@ -1101,7 +1102,7 @@ void QuickReplyManager::delete_quick_reply_messages_from_updates(QuickReplyShort
   }
 
   load_quick_reply_shortcuts();
-  auto s = get_shortcut(shortcut_id);
+  auto *s = get_shortcut(shortcut_id);
   if (s == nullptr) {
     return;
   }
@@ -1151,7 +1152,7 @@ void QuickReplyManager::delete_quick_reply_shortcut_messages(QuickReplyShortcutI
                                                              const vector<MessageId> &message_ids,
                                                              Promise<Unit> &&promise) {
   load_quick_reply_shortcuts();
-  auto s = get_shortcut(shortcut_id);
+  auto *s = get_shortcut(shortcut_id);
   if (s == nullptr) {
     return promise.set_error(Status::Error(400, "Shortcut not found"));
   }
@@ -1184,7 +1185,7 @@ void QuickReplyManager::delete_quick_reply_messages_on_server(QuickReplyShortcut
 
 void QuickReplyManager::get_quick_reply_shortcut_messages(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise) {
   load_quick_reply_shortcuts();
-  auto s = get_shortcut(shortcut_id);
+  auto *s = get_shortcut(shortcut_id);
   if (s == nullptr) {
     return promise.set_error(Status::Error(400, "Shortcut not found"));
   }
@@ -1303,7 +1304,7 @@ void QuickReplyManager::on_reload_quick_reply_messages(
     default:
       UNREACHABLE();
   }
-  auto s = get_shortcut(shortcut_id);
+  auto *s = get_shortcut(shortcut_id);
   if (s == nullptr) {
     return fail_promises(promises, Status::Error(400, "Shortcut not found"));
   }
@@ -1331,7 +1332,7 @@ void QuickReplyManager::reload_quick_reply_message(QuickReplyShortcutId shortcut
   }
 
   load_quick_reply_shortcuts();
-  auto s = get_shortcut(shortcut_id);
+  auto *s = get_shortcut(shortcut_id);
   if (s == nullptr) {
     return promise.set_error(Status::Error(400, "Shortcut not found"));
   }
@@ -1355,7 +1356,7 @@ void QuickReplyManager::on_reload_quick_reply_message(
   if (r_messages.is_error()) {
     return promise.set_error(r_messages.move_as_error());
   }
-  auto s = get_shortcut(shortcut_id);
+  auto *s = get_shortcut(shortcut_id);
   if (s == nullptr) {
     return promise.set_error(Status::Error(400, "Shortcut not found"));
   }
@@ -1563,6 +1564,50 @@ Result<InputMessageContent> QuickReplyManager::process_input_message_content(
     return Status::Error(400, "Can't add quick reply poll");
   }
   return get_input_message_content(DialogId(), std::move(input_message_content), td_, true);
+}
+
+MessageId QuickReplyManager::get_next_message_id(Shortcut *s, MessageType type) const {
+  CHECK(s != nullptr);
+  MessageId last_message_id = s->last_assigned_message_id_;
+  if (!s->messages_.empty() && s->messages_.back() != nullptr && s->messages_.back()->message_id > last_message_id) {
+    last_message_id = s->messages_.back()->message_id;
+  }
+  s->last_assigned_message_id_ = last_message_id.get_next_message_id(type);
+  CHECK(s->last_assigned_message_id_.is_valid());
+  return s->last_assigned_message_id_;
+}
+
+MessageId QuickReplyManager::get_next_yet_unsent_message_id(Shortcut *s) const {
+  return get_next_message_id(s, MessageType::YetUnsent);
+}
+
+MessageId QuickReplyManager::get_next_local_message_id(Shortcut *s) const {
+  return get_next_message_id(s, MessageType::Local);
+}
+
+QuickReplyManager::QuickReplyMessage *QuickReplyManager::add_local_message(
+    Shortcut *s, MessageId reply_to_message_id, unique_ptr<MessageContent> &&content, bool invert_media,
+    UserId via_bot_user_id, bool hide_via_bot, bool disable_web_page_preview, string &&send_emoji) {
+  CHECK(s != nullptr);
+  auto message = make_unique<QuickReplyMessage>();
+  auto *m = message.get();
+  m->shortcut_id = s->shortcut_id_;
+  m->message_id = get_next_yet_unsent_message_id(s);
+  m->reply_to_message_id = reply_to_message_id;
+  m->send_emoji = std::move(send_emoji);
+  m->via_bot_user_id = via_bot_user_id;
+  m->hide_via_bot = hide_via_bot;
+  m->invert_media = invert_media;
+  m->disable_web_page_preview = disable_web_page_preview;
+  m->content = std::move(content);
+  do {
+    m->random_id = Random::secure_int64();
+  } while (m->random_id == 0);
+
+  s->messages_.push_back(std::move(message));
+  s->local_total_count_++;
+
+  return m;
 }
 
 vector<QuickReplyShortcutId> QuickReplyManager::get_shortcut_ids() const {
