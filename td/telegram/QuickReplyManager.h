@@ -30,6 +30,7 @@
 namespace td {
 
 class Dependencies;
+struct InputMessageContent;
 class MessageContent;
 struct ReplyMarkup;
 class Td;
@@ -233,6 +234,9 @@ class QuickReplyManager final : public Actor {
   Status check_new_shortcut_name(const string &name, int32 new_message_count);
 
   static MessageId get_input_reply_to_message_id(const Shortcut *s, MessageId reply_to_message_id);
+
+  Result<InputMessageContent> process_input_message_content(
+      td_api::object_ptr<td_api::InputMessageContent> &&input_message_content);
 
   bool is_shortcut_list_changed(const vector<unique_ptr<Shortcut>> &new_shortcuts) const;
 

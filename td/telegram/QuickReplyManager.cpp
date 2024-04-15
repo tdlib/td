@@ -1533,6 +1533,20 @@ MessageId QuickReplyManager::get_input_reply_to_message_id(const Shortcut *s, Me
   return MessageId();
 }
 
+Result<InputMessageContent> QuickReplyManager::process_input_message_content(
+    td_api::object_ptr<td_api::InputMessageContent> &&input_message_content) {
+  if (input_message_content == nullptr) {
+    return Status::Error(400, "Can't add quick reply without content");
+  }
+  if (input_message_content->get_id() == td_api::inputMessageForwarded::ID) {
+    return Status::Error(400, "Can't forward messages to quick replies");
+  }
+  if (input_message_content->get_id() == td_api::inputMessagePoll::ID) {
+    return Status::Error(400, "Can't add quick reply poll");
+  }
+  return get_input_message_content(DialogId(), std::move(input_message_content), td_, true);
+}
+
 vector<QuickReplyShortcutId> QuickReplyManager::get_shortcut_ids() const {
   return transform(shortcuts_.shortcuts_, [](const unique_ptr<Shortcut> &shortcut) { return shortcut->shortcut_id_; });
 }
