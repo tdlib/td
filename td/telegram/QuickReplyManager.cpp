@@ -1425,7 +1425,8 @@ Result<vector<QuickReplyManager::QuickReplyMessageContent>> QuickReplyManager::g
     auto can_send_status = can_send_message_content(dialog_id, content.get(), false, true, td_);
     if (can_send_status.is_error()) {
       LOG(INFO) << "Can't send " << message->message_id << ": " << can_send_status.message();
-      continue;
+      // if we skip the message, the sending will fail anyway with MESSAGE_IDS_MISMATCH
+      // continue;
     }
 
     auto disable_web_page_preview = message->disable_web_page_preview &&
