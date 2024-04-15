@@ -1520,6 +1520,19 @@ Status QuickReplyManager::check_new_shortcut_name(const string &name, int32 new_
   return Status::OK();
 }
 
+MessageId QuickReplyManager::get_input_reply_to_message_id(const Shortcut *s, MessageId reply_to_message_id) {
+  if (s == nullptr || !reply_to_message_id.is_valid() || !reply_to_message_id.is_server()) {
+    return MessageId();
+  }
+  for (auto &message : s->messages_) {
+    CHECK(message != nullptr);
+    if (message->message_id == reply_to_message_id) {
+      return reply_to_message_id;
+    }
+  }
+  return MessageId();
+}
+
 vector<QuickReplyShortcutId> QuickReplyManager::get_shortcut_ids() const {
   return transform(shortcuts_.shortcuts_, [](const unique_ptr<Shortcut> &shortcut) { return shortcut->shortcut_id_; });
 }
