@@ -1479,7 +1479,7 @@ inputMessageReplyToStory story_sender_chat_id:int53 story_id:int32 = InputMessag
 //@sender_business_bot_user_id If non-zero, the user identifier of the business bot that sent this message
 //@sender_boost_count Number of times the sender of the message boosted the supergroup at the time the message was sent; 0 if none or unknown. For messages sent by the current user, supergroupFullInfo.my_boost_count must be used instead
 //@author_signature For channel posts and anonymous group messages, optional author signature
-//@media_album_id Unique identifier of an album this message belongs to. Only audios, documents, photos and videos can be grouped together in albums
+//@media_album_id Unique identifier of an album this message belongs to; 0 if none. Only audios, documents, photos and videos can be grouped together in albums
 //@restriction_reason If non-empty, contains a human-readable description of the reason why access to this message must be restricted
 //@content Content of the message
 //@reply_markup Reply markup for the message; may be null if none
@@ -3922,9 +3922,9 @@ storyInteractions total_count:int32 total_forward_count:int32 total_reaction_cou
 //@id Unique message identifier among all quick replies
 //@sending_state The sending state of the message; may be null if the message isn't being sent and didn't fail to be sent
 //@can_be_edited True, if the message can be edited
-//@reply_to_message_id Information about the identifier of the quick reply message to which the message replies
+//@reply_to_message_id The identifier of the quick reply message to which the message replies; 0 if none
 //@via_bot_user_id If non-zero, the user identifier of the bot through which this message was sent
-//@media_album_id Unique identifier of an album this message belongs to. Only audios, documents, photos and videos can be grouped together in albums
+//@media_album_id Unique identifier of an album this message belongs to; 0 if none. Only audios, documents, photos and videos can be grouped together in albums
 //@content Content of the message
 //@reply_markup Inline keyboard reply markup for the message; may be null if none
 quickReplyMessage id:int53 sending_state:MessageSendingState can_be_edited:Bool reply_to_message_id:int53 via_bot_user_id:int53 media_album_id:int64 content:MessageContent reply_markup:ReplyMarkup = QuickReplyMessage;
