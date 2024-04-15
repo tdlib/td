@@ -574,6 +574,11 @@ Status DialogManager::check_dialog_access(DialogId dialog_id, bool allow_secret_
     }
     return Status::Error(400, "Chat not found");
   }
+  return check_dialog_access_in_memory(dialog_id, allow_secret_chats, access_rights);
+}
+
+Status DialogManager::check_dialog_access_in_memory(DialogId dialog_id, bool allow_secret_chats,
+                                                    AccessRights access_rights) const {
   if (!have_input_peer(dialog_id, allow_secret_chats, access_rights)) {
     if (dialog_id.get_type() == DialogType::SecretChat && !allow_secret_chats) {
       return Status::Error(400, "Not supported in secret chats");

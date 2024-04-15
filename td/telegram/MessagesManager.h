@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/AccessRights.h"
 #include "td/telegram/AffectedHistory.h"
 #include "td/telegram/BackgroundInfo.h"
 #include "td/telegram/ChannelId.h"
@@ -2645,6 +2646,9 @@ class MessagesManager final : public Actor {
 
   void on_get_dialogs_from_database(FolderId folder_id, int32 limit, DialogDbGetDialogsResult &&dialogs,
                                     Promise<Unit> &&promise);
+
+  Result<Dialog *> check_dialog_access(DialogId dialog_id, bool allow_secret_chats, AccessRights access_rights,
+                                       const char *source);
 
   void send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&promise, uint64 log_event_id, const char *source);
 

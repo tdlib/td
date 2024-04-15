@@ -75,6 +75,8 @@ class DialogManager final : public Actor {
   Status check_dialog_access(DialogId dialog_id, bool allow_secret_chats, AccessRights access_rights,
                              const char *source) const;
 
+  Status check_dialog_access_in_memory(DialogId dialog_id, bool allow_secret_chats, AccessRights access_rights) const;
+
   bool have_input_peer(DialogId dialog_id, bool allow_secret_chats, AccessRights access_rights) const;
 
   bool have_dialog_force(DialogId dialog_id, const char *source) const;

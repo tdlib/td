@@ -6,7 +6,6 @@
 //
 #include "td/telegram/MessagesManager.h"
 
-#include "td/telegram/AccessRights.h"
 #include "td/telegram/AccountManager.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/BackgroundInfo.hpp"
@@ -35825,6 +35824,19 @@ MessagesManager::Dialog *MessagesManager::on_load_dialog_from_database(DialogId 
 
   LOG(INFO) << "Add new " << dialog_id << " from database from " << source;
   return add_new_dialog(parse_dialog(dialog_id, value, source), true, source);
+}
+
+Result<MessagesManager::Dialog *> MessagesManager::check_dialog_access(DialogId dialog_id, bool allow_secret_chats,
+                                                                       AccessRights access_rights, const char *source) {
+  auto *d = get_dialog_force(dialog_id, source);
+  if (d == nullptr) {
+    if (!dialog_id.is_valid()) {
+      return Status::Error(400, "Invalid chat identifier specified");
+    }
+    return Status::Error(400, "Chat not found");
+  }
+  TRY_STATUS(td_->dialog_manager_->check_dialog_access_in_memory(dialog_id, allow_secret_chats, access_rights));
+  return d;
 }
 
 vector<FolderId> MessagesManager::get_dialog_list_folder_ids(const DialogList &list) const {

@@ -273,8 +273,8 @@ void CallbackQueriesManager::send_get_callback_answer_query(
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   auto dialog_id = message_full_id.get_dialog_id();
-  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
-                                                                        "send_get_callback_answer_query"));
+  TRY_STATUS_PROMISE(promise,
+                     td_->dialog_manager_->check_dialog_access_in_memory(dialog_id, false, AccessRights::Read));
   if (!td_->messages_manager_->have_message_force(message_full_id, "send_get_callback_answer_query")) {
     return promise.set_error(Status::Error(400, "Message not found"));
   }
