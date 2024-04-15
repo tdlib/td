@@ -22,6 +22,7 @@
 #include "td/telegram/MessageReplyHeader.h"
 #include "td/telegram/MessageSelfDestructType.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/OptionManager.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/ReplyMarkup.hpp"
 #include "td/telegram/ServerMessageId.h"
@@ -1496,6 +1497,27 @@ vector<unique_ptr<QuickReplyManager::QuickReplyMessage>>::iterator QuickReplyMan
     }
   }
   return s->messages_.end();
+}
+
+Status QuickReplyManager::check_new_shortcut_name(const string &name, int32 new_message_count) {
+  TRY_STATUS(check_shortcut_name(name));
+
+  load_quick_reply_shortcuts();
+  const auto *s = get_shortcut(name);
+  auto max_message_count = td_->option_manager_->get_option_integer("quick_reply_shortcut_message_count_max");
+  if (s != nullptr) {
+    max_message_count -= s->server_total_count_ + s->local_total_count_;
+  } else {
+    auto max_shortcut_count = td_->option_manager_->get_option_integer("quick_reply_shortcut_count_max");
+    if (static_cast<int64>(shortcuts_.shortcuts_.size()) == max_shortcut_count) {
+      return Status::Error(400, "Quick reply shortcut count exceeded");
+    }
+  }
+  if (new_message_count > max_message_count) {
+    return Status::Error(400, "Quick reply message count exceeded");
+  }
+
+  return Status::OK();
 }
 
 vector<QuickReplyShortcutId> QuickReplyManager::get_shortcut_ids() const {

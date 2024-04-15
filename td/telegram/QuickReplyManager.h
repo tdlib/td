@@ -230,6 +230,8 @@ class QuickReplyManager final : public Actor {
 
   vector<unique_ptr<QuickReplyMessage>>::iterator get_message_it(Shortcut *s, MessageId message_id);
 
+  Status check_new_shortcut_name(const string &name, int32 new_message_count);
+
   bool is_shortcut_list_changed(const vector<unique_ptr<Shortcut>> &new_shortcuts) const;
 
   vector<QuickReplyShortcutId> get_shortcut_ids() const;
