@@ -380,9 +380,8 @@ void MessageImportManager::on_upload_imported_messages(FileId file_id,
 
   being_uploaded_imported_messages_.erase(it);
 
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Write)) {
-    return promise.set_error(Status::Error(400, "Have no write access to the chat"));
-  }
+  TRY_STATUS_PROMISE(promise,
+                     td_->dialog_manager_->check_dialog_access_in_memory(dialog_id, false, AccessRights::Write));
 
   FileView file_view = td_->file_manager_->get_file_view(file_id);
   CHECK(!file_view.is_encrypted());
@@ -432,9 +431,8 @@ void MessageImportManager::on_upload_imported_messages_error(FileId file_id, Sta
 void MessageImportManager::start_import_messages(DialogId dialog_id, int64 import_id,
                                                  vector<FileId> &&attached_file_ids, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Write)) {
-    return promise.set_error(Status::Error(400, "Have no write access to the chat"));
-  }
+  TRY_STATUS_PROMISE(promise,
+                     td_->dialog_manager_->check_dialog_access_in_memory(dialog_id, false, AccessRights::Write));
 
   auto pending_message_import = make_unique<PendingMessageImport>();
   pending_message_import->dialog_id = dialog_id;
@@ -567,9 +565,8 @@ void MessageImportManager::on_imported_message_attachments_uploaded(int64 random
   auto promise = std::move(pending_message_import->promise);
   auto dialog_id = pending_message_import->dialog_id;
 
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Write)) {
-    return promise.set_error(Status::Error(400, "Have no write access to the chat"));
-  }
+  TRY_STATUS_PROMISE(promise,
+                     td_->dialog_manager_->check_dialog_access_in_memory(dialog_id, false, AccessRights::Write));
 
   td_->create_handler<StartImportHistoryQuery>(std::move(promise))->send(dialog_id, pending_message_import->import_id);
 }

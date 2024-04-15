@@ -1405,14 +1405,12 @@ FileSourceId NotificationSettingsManager::get_saved_ringtones_file_source_id() {
 void NotificationSettingsManager::send_get_dialog_notification_settings_query(DialogId dialog_id,
                                                                               MessageId top_thread_message_id,
                                                                               Promise<Unit> &&promise) {
-  if (td_->auth_manager_->is_bot() || dialog_id.get_type() == DialogType::SecretChat) {
-    LOG(WARNING) << "Can't get notification settings for " << dialog_id;
+  if (td_->auth_manager_->is_bot()) {
+    LOG(ERROR) << "Can't get notification settings for " << dialog_id;
     return promise.set_error(Status::Error(500, "Wrong getDialogNotificationSettings query"));
   }
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
-    LOG(WARNING) << "Have no access to " << dialog_id << " to get notification settings";
-    return promise.set_error(Status::Error(400, "Can't access the chat"));
-  }
+  TRY_STATUS_PROMISE(promise,
+                     td_->dialog_manager_->check_dialog_access_in_memory(dialog_id, false, AccessRights::Read));
 
   auto &promises = get_dialog_notification_settings_queries_[{dialog_id, top_thread_message_id}];
   promises.push_back(std::move(promise));
