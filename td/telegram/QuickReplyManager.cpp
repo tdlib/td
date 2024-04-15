@@ -1499,25 +1499,43 @@ vector<unique_ptr<QuickReplyManager::QuickReplyMessage>>::iterator QuickReplyMan
   return s->messages_.end();
 }
 
-Status QuickReplyManager::check_new_shortcut_name(const string &name, int32 new_message_count) {
+Result<QuickReplyManager::Shortcut *> QuickReplyManager::create_new_local_shortcut(const string &name,
+                                                                                   int32 new_message_count) {
   TRY_STATUS(check_shortcut_name(name));
 
   load_quick_reply_shortcuts();
-  const auto *s = get_shortcut(name);
+  if (!shortcuts_.are_inited_) {
+    return Status::Error(400, "Quick reply shortcuts must be loaded first");
+  }
+
+  auto *s = get_shortcut(name);
   auto max_message_count = td_->option_manager_->get_option_integer("quick_reply_shortcut_message_count_max");
   if (s != nullptr) {
     max_message_count -= s->server_total_count_ + s->local_total_count_;
   } else {
     auto max_shortcut_count = td_->option_manager_->get_option_integer("quick_reply_shortcut_count_max");
-    if (static_cast<int64>(shortcuts_.shortcuts_.size()) == max_shortcut_count) {
+    if (static_cast<int64>(shortcuts_.shortcuts_.size()) >= max_shortcut_count) {
       return Status::Error(400, "Quick reply shortcut count exceeded");
     }
   }
   if (new_message_count > max_message_count) {
     return Status::Error(400, "Quick reply message count exceeded");
   }
+  if (s != nullptr) {
+    return s;
+  }
+  if (next_local_shortcut_id_ >= std::numeric_limits<int32>::max() - 10) {
+    return Status::Error(400, "Too many local shortcuts created");
+  }
 
-  return Status::OK();
+  auto shortcut = td::make_unique<Shortcut>();
+  shortcut->name_ = name;
+  shortcut->shortcut_id_ = QuickReplyShortcutId(next_local_shortcut_id_++);
+  s = shortcut.get();
+
+  shortcuts_.shortcuts_.push_back(std::move(shortcut));
+
+  return s;
 }
 
 MessageId QuickReplyManager::get_input_reply_to_message_id(const Shortcut *s, MessageId reply_to_message_id) {
@@ -1703,6 +1721,9 @@ void QuickReplyManager::load_quick_reply_shortcuts() {
 
   shortcuts_.are_inited_ = true;
   for (const auto &shortcut : shortcuts_.shortcuts_) {
+    if (shortcut->shortcut_id_.get() >= next_local_shortcut_id_) {
+      next_local_shortcut_id_ = shortcut->shortcut_id_.get() + 1;
+    }
     for (const auto &message : shortcut->messages_) {
       change_message_files({shortcut->shortcut_id_, message->message_id}, message.get(), {});
 

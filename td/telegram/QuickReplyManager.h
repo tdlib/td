@@ -231,7 +231,7 @@ class QuickReplyManager final : public Actor {
 
   vector<unique_ptr<QuickReplyMessage>>::iterator get_message_it(Shortcut *s, MessageId message_id);
 
-  Status check_new_shortcut_name(const string &name, int32 new_message_count);
+  Result<Shortcut *> create_new_local_shortcut(const string &name, int32 new_message_count);
 
   static MessageId get_input_reply_to_message_id(const Shortcut *s, MessageId reply_to_message_id);
 
@@ -302,6 +302,8 @@ class QuickReplyManager final : public Actor {
                             const vector<FileId> &old_file_ids);
 
   Shortcuts shortcuts_;
+
+  int32 next_local_shortcut_id_ = QuickReplyShortcutId::MAX_SERVER_SHORTCUT_ID + 1;
 
   FlatHashSet<QuickReplyShortcutId, QuickReplyShortcutIdHash> deleted_shortcut_ids_;
 
