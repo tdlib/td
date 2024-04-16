@@ -139,7 +139,7 @@ void BusinessWorkHours::combine_work_hour_intervals() {
   auto max_minute = work_hours_[0].start_minute_ + 7 * 24 * 60;
   if (work_hours_.back().end_minute_ > max_minute || work_hours_.back().start_minute_ >= 7 * 24 * 60) {
     auto size = work_hours_.size();
-    for (size_t i = 1; i < size; i++) {
+    for (size_t i = 0; i < size; i++) {
       if (work_hours_[i].start_minute_ >= 7 * 24 * 60) {
         work_hours_[i].start_minute_ -= 7 * 24 * 60;
         work_hours_[i].end_minute_ -= 7 * 24 * 60;
@@ -148,6 +148,7 @@ void BusinessWorkHours::combine_work_hour_intervals() {
         work_hours_[i].end_minute_ = max_minute;
       }
     }
+    LOG(INFO) << "Need to normalize " << work_hours_;
     combine_work_hour_intervals();
   }
 }
