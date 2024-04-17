@@ -1450,7 +1450,7 @@ void QuickReplyManager::process_send_quick_reply_updates(QuickReplyShortcutId sh
   td_->user_manager_->on_get_users(std::move(updates->users_), "process_send_quick_reply_updates");
   td_->chat_manager_->on_get_chats(std::move(updates->chats_), "process_send_quick_reply_updates");
 
-  bool is_shortcut_new = !shortcut_id.is_server();
+  bool is_shortcut_new = false;
   {
     auto it = get_shortcut_it(shortcut_id);
     if (it == shortcuts_.shortcuts_.end()) {
@@ -1459,7 +1459,7 @@ void QuickReplyManager::process_send_quick_reply_updates(QuickReplyShortcutId sh
       return;
     }
 
-    if (is_shortcut_new) {
+    if (!shortcut_id.is_server()) {
       QuickReplyShortcutId new_shortcut_id;
       for (auto &update : updates->updates_) {
         if (update->get_id() == telegram_api::updateNewQuickReply::ID) {
@@ -1470,10 +1470,26 @@ void QuickReplyManager::process_send_quick_reply_updates(QuickReplyShortcutId sh
       }
       CHECK(new_shortcut_id.is_server());
       send_update_quick_reply_shortcut_deleted(it->get());
-      (*it)->shortcut_id_ = new_shortcut_id;
+
       for (auto &message : (*it)->messages_) {
         CHECK(message->shortcut_id == shortcut_id);
         message->shortcut_id = new_shortcut_id;
+      }
+
+      auto *s = get_shortcut(new_shortcut_id);
+      if (s == nullptr) {
+        (*it)->shortcut_id_ = new_shortcut_id;
+        is_shortcut_new = true;
+      } else {
+        if ((*it)->last_assigned_message_id_ > s->last_assigned_message_id_) {
+          s->last_assigned_message_id_ = (*it)->last_assigned_message_id_;
+        }
+        for (auto &message : (*it)->messages_) {
+          CHECK(!message->message_id.is_server());
+          s->messages_.push_back(std::move(message));
+          s->local_total_count_++;
+        }
+        shortcuts_.shortcuts_.erase(it);
       }
       shortcut_id = new_shortcut_id;
     }
