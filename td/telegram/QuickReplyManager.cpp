@@ -1180,6 +1180,9 @@ void QuickReplyManager::delete_quick_reply_shortcut_messages(QuickReplyShortcutI
 void QuickReplyManager::delete_quick_reply_messages_on_server(QuickReplyShortcutId shortcut_id,
                                                               const vector<MessageId> &message_ids,
                                                               Promise<Unit> &&promise) {
+  if (message_ids.empty()) {
+    return promise.set_value(Unit());
+  }
   td_->create_handler<DeleteQuickReplyMessagesQuery>(std::move(promise))->send(shortcut_id, message_ids);
 }
 
