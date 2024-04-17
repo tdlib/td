@@ -1496,8 +1496,6 @@ void QuickReplyManager::do_send_message(const QuickReplyMessage *m, vector<int> 
   auto content_type = content->get_type();
   if (content_type == MessageContentType::Text) {
     CHECK(!is_edit);
-    const FormattedText *message_text = get_message_content_text(content);
-    CHECK(message_text != nullptr);
     auto input_media = get_message_content_input_media_web_page(td_, content);
     if (input_media == nullptr) {
       td_->create_handler<SendQuickReplyMessageQuery>()->send(m);
@@ -1506,6 +1504,44 @@ void QuickReplyManager::do_send_message(const QuickReplyMessage *m, vector<int> 
     }
     return;
   }
+
+  FileId file_id = get_message_content_any_file_id(content);  // any_file_id, because it could be a photo sent by ID
+  FileView file_view = td_->file_manager_->get_file_view(file_id);
+  FileId thumbnail_file_id = get_message_content_thumbnail_file_id(content, td_);
+  LOG(DEBUG) << "Need to send file " << file_id << " with thumbnail " << thumbnail_file_id;
+  auto input_media = get_input_media(content, td_, {}, m->send_emoji, false);
+  if (input_media == nullptr) {
+    if (content_type == MessageContentType::Game || content_type == MessageContentType::Story) {
+      return;
+    }
+    if (get_main_file_type(file_view.get_type()) == FileType::Photo) {
+      thumbnail_file_id = FileId();
+    }
+
+    LOG(INFO) << "Ask to upload file " << file_id << " with bad parts " << bad_parts;
+    CHECK(file_id.is_valid());
+  } else {
+    on_message_media_uploaded(m, std::move(input_media), file_id, thumbnail_file_id);
+  }
+}
+
+void QuickReplyManager::on_message_media_uploaded(const QuickReplyMessage *m,
+                                                  telegram_api::object_ptr<telegram_api::InputMedia> &&input_media,
+                                                  FileId file_id, FileId thumbnail_file_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  CHECK(m != nullptr);
+  CHECK(input_media != nullptr);
+  auto message_id = m->message_id;
+  if (message_id.is_any_server()) {
+    UNREACHABLE();
+    return;
+  }
+
+  CHECK(m->media_album_id == 0);
+  td_->create_handler<SendQuickReplyMediaQuery>()->send(file_id, thumbnail_file_id, m, std::move(input_media));
 }
 
 void QuickReplyManager::get_quick_reply_shortcut_messages(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise) {
@@ -1886,7 +1922,11 @@ Result<InputMessageContent> QuickReplyManager::process_input_message_content(
     return Status::Error(400, "Can't forward messages to quick replies");
   }
   if (input_message_content->get_id() == td_api::inputMessagePoll::ID) {
-    return Status::Error(400, "Can't add quick reply poll");
+    return Status::Error(400, "Can't add poll as a quick reply");
+  }
+  if (input_message_content->get_id() == td_api::inputMessageLocation::ID &&
+      static_cast<const td_api::inputMessageLocation *>(input_message_content.get())->live_period_ != 0) {
+    return Status::Error(400, "Can't add live location as a quick reply");
   }
   return get_input_message_content(DialogId(), std::move(input_message_content), td_, true);
 }

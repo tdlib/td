@@ -318,6 +318,10 @@ class QuickReplyManager final : public Actor {
 
   void do_send_message(const QuickReplyMessage *m, vector<int> bad_parts = {});
 
+  void on_message_media_uploaded(const QuickReplyMessage *m,
+                                 telegram_api::object_ptr<telegram_api::InputMedia> &&input_media, FileId file_id,
+                                 FileId thumbnail_file_id);
+
   string get_quick_reply_shortcuts_database_key();
 
   void save_quick_reply_shortcuts();
