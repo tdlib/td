@@ -334,6 +334,12 @@ class QuickReplyManager::SendQuickReplyMediaQuery final : public Td::ResultHandl
       return on_error(result_ptr.move_as_error());
     }
 
+    if (was_thumbnail_uploaded_) {
+      CHECK(thumbnail_file_id_.is_valid());
+      // always delete partial remote location for the thumbnail, because it can't be reused anyway
+      td_->file_manager_->delete_partial_remote_location(thumbnail_file_id_);
+    }
+
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for SendQuickReplyMediaQuery for " << random_id_ << ": " << to_string(ptr);
     td_->quick_reply_manager_->process_send_quick_reply_updates(shortcut_id_, std::move(ptr), {random_id_});
@@ -345,7 +351,70 @@ class QuickReplyManager::SendQuickReplyMediaQuery final : public Td::ResultHandl
       // do not send error, message will be re-sent after restart
       return;
     }
+    if (was_uploaded_) {
+      if (was_thumbnail_uploaded_) {
+        CHECK(thumbnail_file_id_.is_valid());
+        // always delete partial remote location for the thumbnail, because it can't be reused anyway
+        td_->file_manager_->delete_partial_remote_location(thumbnail_file_id_);
+      }
+
+      CHECK(file_id_.is_valid());
+      auto bad_parts = FileManager::get_missing_file_parts(status);
+      if (!bad_parts.empty()) {
+        // td_->quick_reply_manager_->on_send_message_file_parts_missing(random_id_, std::move(bad_parts));
+        // return;
+      } else {
+        td_->file_manager_->delete_partial_remote_location_if_needed(file_id_, status);
+      }
+    } else if (FileReferenceManager::is_file_reference_error(status)) {
+      if (file_id_.is_valid() && !was_uploaded_) {
+        VLOG(file_references) << "Receive " << status << " for " << file_id_;
+        td_->file_manager_->delete_file_reference(file_id_, file_reference_);
+        // td_->quick_reply_manager_->on_send_message_file_reference_error(random_id_);
+        // return;
+      } else {
+        LOG(ERROR) << "Receive file reference error, but file_id = " << file_id_
+                   << ", was_uploaded = " << was_uploaded_;
+      }
+    }
+
     td_->quick_reply_manager_->on_failed_send_quick_reply_messages(shortcut_id_, {random_id_}, std::move(status));
+  }
+};
+
+class QuickReplyManager::UploadMediaCallback final : public FileManager::UploadCallback {
+ public:
+  void on_upload_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
+    send_closure_later(G()->quick_reply_manager(), &QuickReplyManager::on_upload_media, file_id, std::move(input_file));
+  }
+  void on_upload_encrypted_ok(FileId file_id,
+                              telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file) final {
+    UNREACHABLE();
+  }
+  void on_upload_secure_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputSecureFile> input_file) final {
+    UNREACHABLE();
+  }
+  void on_upload_error(FileId file_id, Status error) final {
+    send_closure_later(G()->quick_reply_manager(), &QuickReplyManager::on_upload_media_error, file_id,
+                       std::move(error));
+  }
+};
+
+class QuickReplyManager::UploadThumbnailCallback final : public FileManager::UploadCallback {
+ public:
+  void on_upload_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
+    send_closure_later(G()->quick_reply_manager(), &QuickReplyManager::on_upload_thumbnail, file_id,
+                       std::move(input_file));
+  }
+  void on_upload_encrypted_ok(FileId file_id,
+                              telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file) final {
+    UNREACHABLE();
+  }
+  void on_upload_secure_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputSecureFile> input_file) final {
+    UNREACHABLE();
+  }
+  void on_upload_error(FileId file_id, Status error) final {
+    send_closure_later(G()->quick_reply_manager(), &QuickReplyManager::on_upload_thumbnail, file_id, nullptr);
   }
 };
 
@@ -571,6 +640,8 @@ void QuickReplyManager::Shortcuts::parse(ParserT &parser) {
 }
 
 QuickReplyManager::QuickReplyManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
+  upload_media_callback_ = std::make_shared<UploadMediaCallback>();
+  upload_thumbnail_callback_ = std::make_shared<UploadThumbnailCallback>();
 }
 
 void QuickReplyManager::tear_down() {
@@ -1526,7 +1597,8 @@ Result<td_api::object_ptr<td_api::quickReplyMessage>> QuickReplyManager::send_me
 
 void QuickReplyManager::do_send_message(const QuickReplyMessage *m, vector<int> bad_parts) {
   bool is_edit = m->message_id.is_server();
-  LOG(INFO) << "Do " << (is_edit ? "edit" : "send") << ' ' << QuickReplyMessageFullId(m->shortcut_id, m->message_id);
+  auto message_full_id = QuickReplyMessageFullId(m->shortcut_id, m->message_id);
+  LOG(INFO) << "Do " << (is_edit ? "edit" : "send") << ' ' << message_full_id;
 
   auto content = m->content.get();
   CHECK(content != nullptr);
@@ -1557,9 +1629,118 @@ void QuickReplyManager::do_send_message(const QuickReplyMessage *m, vector<int> 
 
     LOG(INFO) << "Ask to upload file " << file_id << " with bad parts " << bad_parts;
     CHECK(file_id.is_valid());
+
+    bool is_inserted =
+        being_uploaded_files_.emplace(file_id, std::make_pair(message_full_id, thumbnail_file_id)).second;
+    CHECK(is_inserted);
+    td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_media_callback_, 1, m->message_id.get());
   } else {
     on_message_media_uploaded(m, std::move(input_media), file_id, thumbnail_file_id);
   }
+}
+
+void QuickReplyManager::on_upload_media(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) {
+  LOG(INFO) << "File " << file_id << " has been uploaded";
+
+  auto it = being_uploaded_files_.find(file_id);
+  CHECK(it != being_uploaded_files_.end());
+
+  auto message_full_id = it->second.first;
+  auto thumbnail_file_id = it->second.second;
+
+  being_uploaded_files_.erase(it);
+
+  auto *m = get_message(message_full_id);
+  if (m == nullptr) {
+    send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_id);
+    return;
+  }
+
+  if (input_file && thumbnail_file_id.is_valid()) {
+    // TODO: download thumbnail if needed (like in secret chats)
+    LOG(INFO) << "Ask to upload thumbnail " << thumbnail_file_id;
+    bool is_inserted =
+        being_uploaded_thumbnails_
+            .emplace(thumbnail_file_id, UploadedThumbnailInfo{message_full_id, file_id, std::move(input_file)})
+            .second;
+    CHECK(is_inserted);
+    td_->file_manager_->upload(thumbnail_file_id, upload_thumbnail_callback_, 32, m->message_id.get());
+  } else {
+    do_send_media(m, file_id, thumbnail_file_id, std::move(input_file), nullptr);
+  }
+}
+
+void QuickReplyManager::do_send_media(QuickReplyMessage *m, FileId file_id, FileId thumbnail_file_id,
+                                      telegram_api::object_ptr<telegram_api::InputFile> input_file,
+                                      telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail) {
+  CHECK(m != nullptr);
+
+  bool have_input_file = input_file != nullptr;
+  bool have_input_thumbnail = input_thumbnail != nullptr;
+  LOG(INFO) << "Do send media file " << file_id << " with thumbnail " << thumbnail_file_id
+            << ", have_input_file = " << have_input_file << ", have_input_thumbnail = " << have_input_thumbnail;
+
+  auto input_media = get_input_media(m->content.get(), td_, std::move(input_file), std::move(input_thumbnail), file_id,
+                                     thumbnail_file_id, {}, m->send_emoji, true);
+  CHECK(input_media != nullptr);
+
+  on_message_media_uploaded(m, std::move(input_media), file_id, thumbnail_file_id);
+}
+
+void QuickReplyManager::on_upload_media_error(FileId file_id, Status status) {
+  if (G()->close_flag()) {
+    // do not fail upload if closing
+    return;
+  }
+
+  LOG(WARNING) << "File " << file_id << " has upload error " << status;
+  CHECK(status.is_error());
+
+  auto it = being_uploaded_files_.find(file_id);
+  CHECK(it != being_uploaded_files_.end());
+
+  auto message_full_id = it->second.first;
+
+  being_uploaded_files_.erase(it);
+
+  auto *m = get_message(message_full_id);
+  if (m == nullptr) {
+    return;
+  }
+
+  on_failed_send_quick_reply_messages(message_full_id.get_quick_reply_shortcut_id(), {m->random_id}, std::move(status));
+}
+
+void QuickReplyManager::on_upload_thumbnail(FileId thumbnail_file_id,
+                                            telegram_api::object_ptr<telegram_api::InputFile> thumbnail_input_file) {
+  if (G()->close_flag()) {
+    // do not fail upload if closing
+    return;
+  }
+
+  LOG(INFO) << "Thumbnail " << thumbnail_file_id << " has been uploaded as " << to_string(thumbnail_input_file);
+
+  auto it = being_uploaded_thumbnails_.find(thumbnail_file_id);
+  CHECK(it != being_uploaded_thumbnails_.end());
+
+  auto message_full_id = it->second.quick_reply_message_full_id;
+  auto file_id = it->second.file_id;
+  auto input_file = std::move(it->second.input_file);
+
+  being_uploaded_thumbnails_.erase(it);
+
+  auto *m = get_message(message_full_id);
+  if (m == nullptr) {
+    send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_id);
+    send_closure_later(G()->file_manager(), &FileManager::cancel_upload, thumbnail_file_id);
+    return;
+  }
+
+  if (thumbnail_input_file == nullptr) {
+    delete_message_content_thumbnail(m->content.get(), td_);
+  }
+
+  do_send_media(m, file_id, thumbnail_file_id, std::move(input_file), std::move(thumbnail_input_file));
 }
 
 void QuickReplyManager::on_message_media_uploaded(const QuickReplyMessage *m,
@@ -1896,6 +2077,24 @@ vector<unique_ptr<QuickReplyManager::QuickReplyMessage>>::iterator QuickReplyMan
     }
   }
   return s->messages_.end();
+}
+
+QuickReplyManager::QuickReplyMessage *QuickReplyManager::get_message(QuickReplyMessageFullId message_full_id) {
+  auto *s = get_shortcut(message_full_id.get_quick_reply_shortcut_id());
+  if (s != nullptr) {
+    return get_message(s, message_full_id.get_message_id());
+  }
+  return nullptr;
+}
+
+QuickReplyManager::QuickReplyMessage *QuickReplyManager::get_message(Shortcut *s, MessageId message_id) {
+  CHECK(s != nullptr);
+  for (auto it = s->messages_.begin(); it != s->messages_.end(); ++it) {
+    if ((*it)->message_id == message_id) {
+      return it->get();
+    }
+  }
+  return nullptr;
 }
 
 Result<QuickReplyManager::Shortcut *> QuickReplyManager::create_new_local_shortcut(const string &name,

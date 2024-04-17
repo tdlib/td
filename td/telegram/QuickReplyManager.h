@@ -25,6 +25,7 @@
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
+#include <memory>
 #include <utility>
 
 namespace td {
@@ -171,6 +172,12 @@ class QuickReplyManager final : public Actor {
   class SendQuickReplyMessageQuery;
   class SendQuickReplyMediaQuery;
 
+  class UploadMediaCallback;
+  class UploadThumbnailCallback;
+
+  std::shared_ptr<UploadMediaCallback> upload_media_callback_;
+  std::shared_ptr<UploadThumbnailCallback> upload_thumbnail_callback_;
+
   void tear_down() final;
 
   static bool is_shortcut_name_letter(uint32 code);
@@ -235,6 +242,10 @@ class QuickReplyManager final : public Actor {
   vector<unique_ptr<Shortcut>>::iterator get_shortcut_it(QuickReplyShortcutId shortcut_id);
 
   vector<unique_ptr<QuickReplyMessage>>::iterator get_message_it(Shortcut *s, MessageId message_id);
+
+  QuickReplyMessage *get_message(QuickReplyMessageFullId message_full_id);
+
+  QuickReplyMessage *get_message(Shortcut *s, MessageId message_id);
 
   Result<Shortcut *> create_new_local_shortcut(const string &name, int32 new_message_count);
 
@@ -318,6 +329,17 @@ class QuickReplyManager final : public Actor {
 
   void do_send_message(const QuickReplyMessage *m, vector<int> bad_parts = {});
 
+  void on_upload_media(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
+
+  void do_send_media(QuickReplyMessage *m, FileId file_id, FileId thumbnail_file_id,
+                     telegram_api::object_ptr<telegram_api::InputFile> input_file,
+                     telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail);
+
+  void on_upload_media_error(FileId file_id, Status status);
+
+  void on_upload_thumbnail(FileId thumbnail_file_id,
+                           telegram_api::object_ptr<telegram_api::InputFile> thumbnail_input_file);
+
   void on_message_media_uploaded(const QuickReplyMessage *m,
                                  telegram_api::object_ptr<telegram_api::InputMedia> &&input_media, FileId file_id,
                                  FileId thumbnail_file_id);
@@ -346,6 +368,16 @@ class QuickReplyManager final : public Actor {
   FlatHashSet<QuickReplyMessageFullId, QuickReplyMessageFullIdHash> deleted_message_full_ids_;
 
   FlatHashMap<QuickReplyMessageFullId, FileSourceId, QuickReplyMessageFullIdHash> message_full_id_to_file_source_id_;
+
+  FlatHashMap<FileId, std::pair<QuickReplyMessageFullId, FileId>, FileIdHash>
+      being_uploaded_files_;  // file_id -> message, thumbnail_file_id
+
+  struct UploadedThumbnailInfo {
+    QuickReplyMessageFullId quick_reply_message_full_id;
+    FileId file_id;                                     // original file file_id
+    tl_object_ptr<telegram_api::InputFile> input_file;  // original file InputFile
+  };
+  FlatHashMap<FileId, UploadedThumbnailInfo, FileIdHash> being_uploaded_thumbnails_;  // thumbnail_file_id -> ...
 
   Td *td_;
   ActorShared<> parent_;
