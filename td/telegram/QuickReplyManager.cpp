@@ -1412,7 +1412,7 @@ void QuickReplyManager::process_send_quick_reply_updates(QuickReplyShortcutId sh
 
   for (auto &random_id : random_ids) {
     for (auto it = s->messages_.begin(); it != s->messages_.end(); ++it) {
-      if ((*it)->random_id == random_id) {
+      if ((*it)->random_id == random_id && (*it)->message_id.is_yet_unsent()) {
         MessageId new_message_id;
         for (auto &update : updates->updates_) {
           if (update != nullptr && update->get_id() == telegram_api::updateMessageID::ID &&
@@ -1458,7 +1458,44 @@ void QuickReplyManager::process_send_quick_reply_updates(QuickReplyShortcutId sh
 
 void QuickReplyManager::on_failed_send_quick_reply_messages(QuickReplyShortcutId shortcut_id, vector<int64> random_ids,
                                                             Status error) {
-  // TODO
+  auto *s = get_shortcut(shortcut_id);
+  if (s == nullptr) {
+    // the shortcut was deleted
+    return;
+  }
+
+  for (auto &random_id : random_ids) {
+    for (auto it = s->messages_.begin(); it != s->messages_.end(); ++it) {
+      if ((*it)->random_id == random_id && (*it)->message_id.is_yet_unsent()) {
+        auto old_message_id = (*it)->message_id;
+        auto new_message_id = old_message_id.get_next_message_id(MessageType::Local);
+        if (get_message_it(s, new_message_id) != s->messages_.end() ||
+            deleted_message_full_ids_.count({shortcut_id, new_message_id})) {
+          new_message_id = get_next_local_message_id(s);
+        } else if (new_message_id > s->last_assigned_message_id_) {
+          s->last_assigned_message_id_ = new_message_id;
+        }
+        CHECK(new_message_id.is_valid());
+        (*it)->message_id = new_message_id;
+        (*it)->is_failed_to_send = true;
+        (*it)->send_error_code = error.code();
+        (*it)->send_error_message = error.message().str();
+        (*it)->try_resend_at = 0.0;
+        auto retry_after = Global::get_retry_after((*it)->send_error_code, (*it)->send_error_message);
+        if (retry_after > 0) {
+          (*it)->try_resend_at = Time::now() + retry_after;
+        }
+        update_failed_to_send_message_content(td_, (*it)->content);
+
+        break;
+      }
+    }
+  }
+
+  sort_quick_reply_messages(s->messages_);
+  send_update_quick_reply_shortcut(s, "on_failed_send_quick_reply_messages");
+  send_update_quick_reply_shortcut_messages(s, "on_failed_send_quick_reply_messages");
+  save_quick_reply_shortcuts();
 }
 
 Result<td_api::object_ptr<td_api::quickReplyMessage>> QuickReplyManager::send_message(
