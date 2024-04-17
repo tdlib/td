@@ -937,28 +937,7 @@ void BusinessConnectionManager::complete_upload_media(unique_ptr<PendingMessage>
   if (old_content_type != new_content_type) {
     need_update = true;
 
-    auto new_file_id = get_message_content_any_file_id(new_content.get());
-    if (new_file_id.is_valid()) {
-      FileView old_file_view = td_->file_manager_->get_file_view(old_file_id);
-      FileView new_file_view = td_->file_manager_->get_file_view(new_file_id);
-      // if file type has changed, but file size remains the same, we are trying to update local location of the new
-      // file with the old local location
-      if (old_file_view.has_local_location() && !new_file_view.has_local_location() && old_file_view.size() != 0 &&
-          old_file_view.size() == new_file_view.size()) {
-        auto old_file_type = old_file_view.get_type();
-        auto new_file_type = new_file_view.get_type();
-
-        if (is_document_file_type(old_file_type) && is_document_file_type(new_file_type)) {
-          auto &old_location = old_file_view.local_location();
-          auto r_file_id = td_->file_manager_->register_local(
-              FullLocalFileLocation(new_file_type, old_location.path_, old_location.mtime_nsec_), DialogId(),
-              old_file_view.size());
-          if (r_file_id.is_ok()) {
-            LOG_STATUS(td_->file_manager_->merge(new_file_id, r_file_id.ok()));
-          }
-        }
-      }
-    }
+    td_->file_manager_->try_merge_documents(old_file_id, get_message_content_any_file_id(new_content.get()));
   } else {
     merge_message_contents(td_, old_content.get(), new_content.get(), false, DialogId(), true, is_content_changed,
                            need_update);

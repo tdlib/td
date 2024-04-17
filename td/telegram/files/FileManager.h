@@ -472,6 +472,8 @@ class FileManager final : public FileLoadManager::Callback {
 
   Status merge(FileId x_file_id, FileId y_file_id, bool no_sync = false);
 
+  void try_merge_documents(FileId old_file_id, FileId new_file_id);
+
   void add_file_source(FileId file_id, FileSourceId file_source_id);
 
   void remove_file_source(FileId file_id, FileSourceId file_source_id);

@@ -1903,6 +1903,31 @@ Status FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sync) {
   return Status::OK();
 }
 
+void FileManager::try_merge_documents(FileId old_file_id, FileId new_file_id) {
+  if (!old_file_id.is_valid() || !new_file_id.is_valid()) {
+    return;
+  }
+  FileView old_file_view = get_file_view(old_file_id);
+  FileView new_file_view = get_file_view(new_file_id);
+  // if file type has changed, but file size remains the same, we are trying to update local location of the new
+  // file with the old local location
+  if (old_file_view.has_local_location() && !new_file_view.has_local_location() && old_file_view.size() != 0 &&
+      old_file_view.size() == new_file_view.size()) {
+    auto old_file_type = old_file_view.get_type();
+    auto new_file_type = new_file_view.get_type();
+
+    if (is_document_file_type(old_file_type) && is_document_file_type(new_file_type)) {
+      auto &old_location = old_file_view.local_location();
+      auto r_file_id =
+          register_local(FullLocalFileLocation(new_file_type, old_location.path_, old_location.mtime_nsec_), DialogId(),
+                         old_file_view.size());
+      if (r_file_id.is_ok()) {
+        LOG_STATUS(merge(new_file_id, r_file_id.ok()));
+      }
+    }
+  }
+}
+
 void FileManager::add_file_source(FileId file_id, FileSourceId file_source_id) {
   auto node = get_sync_file_node(file_id);  // synchronously load the file to preload known file sources
   if (!node) {
