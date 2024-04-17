@@ -1519,12 +1519,20 @@ void QuickReplyManager::process_send_quick_reply_updates(QuickReplyShortcutId sh
                   std::move(static_cast<telegram_api::updateQuickReplyMessage *>(update.get())->message_),
                   "process_send_quick_reply_updates");
               if (message != nullptr && message->shortcut_id == shortcut_id) {
-                change_message_files({shortcut_id, message->message_id}, message.get(), {});
-                *it = std::move(message);
-                s->server_total_count_++;
+                auto old_message_it = get_message_it(s, message->message_id);
+                if (old_message_it == s->messages_.end()) {
+                  change_message_files({shortcut_id, message->message_id}, message.get(), {});
+                  *it = std::move(message);
+                  s->server_total_count_++;
+                } else {
+                  // the message has already been added
+                  update_quick_reply_message(shortcut_id, *old_message_it, std::move(message));
+                  s->messages_.erase(it);
+                }
                 s->local_total_count_--;
               }
               update = nullptr;
+              break;
             }
           }
         }
