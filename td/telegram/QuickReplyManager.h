@@ -58,6 +58,10 @@ class QuickReplyManager final : public Actor {
   void delete_quick_reply_shortcut_messages(QuickReplyShortcutId shortcut_id, const vector<MessageId> &message_ids,
                                             Promise<Unit> &&promise);
 
+  Result<td_api::object_ptr<td_api::quickReplyMessage>> send_message(
+      const string &shortcut_name, MessageId reply_to_message_id,
+      td_api::object_ptr<td_api::InputMessageContent> &&input_message_content);
+
   void reload_quick_reply_shortcuts();
 
   void reload_quick_reply_messages(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise);
@@ -163,6 +167,9 @@ class QuickReplyManager final : public Actor {
     template <class ParserT>
     void parse(ParserT &parser);
   };
+
+  class SendQuickReplyMessageQuery;
+  class SendQuickReplyMediaQuery;
 
   void tear_down() final;
 
@@ -295,6 +302,21 @@ class QuickReplyManager final : public Actor {
 
   void delete_quick_reply_messages_on_server(QuickReplyShortcutId shortcut_id, const vector<MessageId> &message_ids,
                                              Promise<Unit> &&promise);
+
+  telegram_api::object_ptr<telegram_api::InputQuickReplyShortcut> get_input_quick_reply_shortcut(
+      QuickReplyShortcutId shortcut_id) const;
+
+  bool check_send_quick_reply_messages_response(QuickReplyShortcutId shortcut_id,
+                                                const telegram_api::object_ptr<telegram_api::Updates> &updates_ptr,
+                                                const vector<int64> &random_ids);
+
+  void process_send_quick_reply_updates(QuickReplyShortcutId shortcut_id,
+                                        telegram_api::object_ptr<telegram_api::Updates> updates_ptr,
+                                        vector<int64> random_ids);
+
+  void on_failed_send_quick_reply_messages(QuickReplyShortcutId shortcut_id, vector<int64> random_ids, Status error);
+
+  void do_send_message(const QuickReplyMessage *m, vector<int> bad_parts = {});
 
   string get_quick_reply_shortcuts_database_key();
 

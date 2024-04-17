@@ -2364,6 +2364,11 @@ class CliClient final : public Actor {
           std::move(input_message_content)));
       return;
     }
+    if (!quick_reply_shortcut_name_.empty()) {
+      send_request(td_api::make_object<td_api::addQuickReplyShortcutMessage>(
+          quick_reply_shortcut_name_, reply_message_id_, std::move(input_message_content)));
+      return;
+    }
     auto id = send_request(td_api::make_object<td_api::sendMessage>(
         chat_id, message_thread_id_, get_input_message_reply_to(),
         td_api::make_object<td_api::messageSendOptions>(disable_notification, from_background, true, true,
@@ -4771,6 +4776,8 @@ class CliClient final : public Actor {
                link_preview_force_large_media_, link_preview_show_above_text_);
     } else if (op == "ssmt") {
       saved_messages_topic_id_ = as_chat_id(args);
+    } else if (op == "sqrs") {
+      quick_reply_shortcut_name_ = args;
     } else if (op == "sm" || op == "sms" || op == "smf") {
       ChatId chat_id;
       string message;
@@ -6867,6 +6874,7 @@ class CliClient final : public Actor {
   bool link_preview_force_large_media_ = false;
   bool link_preview_show_above_text_ = false;
   int64 saved_messages_topic_id_ = 0;
+  string quick_reply_shortcut_name_;
 
   ConcurrentScheduler *scheduler_{nullptr};
 

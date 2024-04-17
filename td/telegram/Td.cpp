@@ -5878,6 +5878,17 @@ void Td::on_request(uint64 id, const td_api::deleteQuickReplyShortcutMessages &r
       QuickReplyShortcutId(request.shortcut_id_), MessageId::get_message_ids(request.message_ids_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::addQuickReplyShortcutMessage &request) {
+  CLEAN_INPUT_STRING(request.shortcut_name_);
+  auto r_sent_message = quick_reply_manager_->send_message(
+      request.shortcut_name_, MessageId(request.reply_to_message_id_), std::move(request.input_message_content_));
+  if (r_sent_message.is_error()) {
+    send_closure(actor_id(this), &Td::send_error, id, r_sent_message.move_as_error());
+  } else {
+    send_closure(actor_id(this), &Td::send_result, id, r_sent_message.move_as_ok());
+  }
+}
+
 void Td::on_request(uint64 id, const td_api::getStory &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
