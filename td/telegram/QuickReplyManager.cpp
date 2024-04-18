@@ -1391,11 +1391,11 @@ telegram_api::object_ptr<telegram_api::InputQuickReplyShortcut> QuickReplyManage
   return telegram_api::make_object<telegram_api::inputQuickReplyShortcut>(s->name_);
 }
 
-bool QuickReplyManager::check_send_quick_reply_messages_response(
+Status QuickReplyManager::check_send_quick_reply_messages_response(
     QuickReplyShortcutId shortcut_id, const telegram_api::object_ptr<telegram_api::Updates> &updates_ptr,
     const vector<int64> &random_ids) {
   if (updates_ptr->get_id() != telegram_api::updates::ID) {
-    return false;
+    return Status::Error("Receive unexpected updates class");
   }
   const auto &updates = static_cast<const telegram_api::updates *>(updates_ptr.get())->updates_;
   FlatHashSet<int64> sent_random_ids;
@@ -1404,19 +1404,21 @@ bool QuickReplyManager::check_send_quick_reply_messages_response(
       auto update_message_id = static_cast<const telegram_api::updateMessageID *>(update.get());
       int64 random_id = update_message_id->random_id_;
       if (random_id == 0) {
-        return false;
+        return Status::Error("Receive zero random_id");
       }
       if (!sent_random_ids.insert(random_id).second) {
-        return false;
+        return Status::Error("Receive duplicate random_id");
       }
     }
   }
   if (sent_random_ids.size() != random_ids.size()) {
-    return false;
+    return Status::Error("Receive duplicate random_id");
+    ;
   }
   for (auto random_id : random_ids) {
     if (sent_random_ids.count(random_id) != 1) {
-      return false;
+      return Status::Error("Don't receive expected random_id");
+      ;
     }
   }
   int32 new_shortcut_count = 0;
@@ -1425,22 +1427,23 @@ bool QuickReplyManager::check_send_quick_reply_messages_response(
       if (!QuickReplyShortcutId(
                static_cast<const telegram_api::updateNewQuickReply *>(update.get())->quick_reply_->shortcut_id_)
                .is_server()) {
-        return false;
+        return Status::Error("Receive unexpected new shortcut");
       }
       new_shortcut_count++;
     }
   }
   if (new_shortcut_count != (shortcut_id.is_server() ? 0 : 1)) {
-    return false;
+    return Status::Error("Receive unexpected number of new shortcuts");
   }
-  return true;
+  return Status::OK();
 }
 
 void QuickReplyManager::process_send_quick_reply_updates(QuickReplyShortcutId shortcut_id,
                                                          telegram_api::object_ptr<telegram_api::Updates> updates_ptr,
                                                          vector<int64> random_ids) {
-  if (!check_send_quick_reply_messages_response(shortcut_id, updates_ptr, random_ids)) {
-    LOG(ERROR) << "Receive " << to_string(updates_ptr);
+  auto check_status = check_send_quick_reply_messages_response(shortcut_id, updates_ptr, random_ids);
+  if (check_status.is_error()) {
+    LOG(ERROR) << check_status << " for sending messages " << random_ids << ": " << to_string(updates_ptr);
     on_failed_send_quick_reply_messages(shortcut_id, std::move(random_ids),
                                         Status::Error(500, "Receive wrong response"));
     return;

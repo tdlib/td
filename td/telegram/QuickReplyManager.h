@@ -317,9 +317,9 @@ class QuickReplyManager final : public Actor {
   telegram_api::object_ptr<telegram_api::InputQuickReplyShortcut> get_input_quick_reply_shortcut(
       QuickReplyShortcutId shortcut_id) const;
 
-  bool check_send_quick_reply_messages_response(QuickReplyShortcutId shortcut_id,
-                                                const telegram_api::object_ptr<telegram_api::Updates> &updates_ptr,
-                                                const vector<int64> &random_ids);
+  Status check_send_quick_reply_messages_response(QuickReplyShortcutId shortcut_id,
+                                                  const telegram_api::object_ptr<telegram_api::Updates> &updates_ptr,
+                                                  const vector<int64> &random_ids);
 
   void process_send_quick_reply_updates(QuickReplyShortcutId shortcut_id,
                                         telegram_api::object_ptr<telegram_api::Updates> updates_ptr,
