@@ -327,6 +327,8 @@ class QuickReplyManager final : public Actor {
 
   void on_failed_send_quick_reply_messages(QuickReplyShortcutId shortcut_id, vector<int64> random_ids, Status error);
 
+  void update_message_content(QuickReplyMessage *old_message, QuickReplyMessage *new_message);
+
   void do_send_message(const QuickReplyMessage *m, vector<int> bad_parts = {});
 
   void on_upload_media(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);

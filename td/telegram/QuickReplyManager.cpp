@@ -1519,6 +1519,7 @@ void QuickReplyManager::process_send_quick_reply_updates(QuickReplyShortcutId sh
                   std::move(static_cast<telegram_api::updateQuickReplyMessage *>(update.get())->message_),
                   "process_send_quick_reply_updates");
               if (message != nullptr && message->shortcut_id == shortcut_id) {
+                update_message_content(it->get(), message.get());
                 auto old_message_it = get_message_it(s, message->message_id);
                 if (old_message_it == s->messages_.end()) {
                   change_message_files({shortcut_id, message->message_id}, message.get(), {});
@@ -1549,6 +1550,34 @@ void QuickReplyManager::process_send_quick_reply_updates(QuickReplyShortcutId sh
     send_update_quick_reply_shortcuts();
   }
   save_quick_reply_shortcuts();
+}
+
+void QuickReplyManager::update_message_content(QuickReplyMessage *old_message, QuickReplyMessage *new_message) {
+  CHECK(old_message->message_id.is_yet_unsent());
+  unique_ptr<MessageContent> &old_content = old_message->content;
+  unique_ptr<MessageContent> &new_content = new_message->content;
+  MessageContentType old_content_type = old_content->get_type();
+  MessageContentType new_content_type = new_content->get_type();
+
+  auto old_file_id = get_message_content_any_file_id(old_content.get());
+  auto need_merge_files = new_message->edit_date == 0 && old_file_id.is_valid();
+  if (old_content_type != new_content_type) {
+    if (need_merge_files) {
+      td_->file_manager_->try_merge_documents(old_file_id, get_message_content_any_file_id(new_content.get()));
+    }
+  } else {
+    bool is_content_changed = false;
+    bool need_update = false;
+    merge_message_contents(td_, old_content.get(), new_content.get(), true, DialogId(), need_merge_files,
+                           is_content_changed, need_update);
+  }
+  if (old_file_id.is_valid()) {
+    // the file is likely to be already merged with a server file, but if not we need to
+    // cancel file upload of the main file to allow next upload with the same file to succeed
+    send_closure_later(G()->file_manager(), &FileManager::cancel_upload, old_file_id);
+
+    update_message_content_file_id_remote(new_content.get(), old_file_id);
+  }
 }
 
 void QuickReplyManager::on_failed_send_quick_reply_messages(QuickReplyShortcutId shortcut_id, vector<int64> random_ids,
