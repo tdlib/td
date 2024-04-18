@@ -1432,7 +1432,7 @@ Status QuickReplyManager::check_send_quick_reply_messages_response(
       new_shortcut_count++;
     }
   }
-  if (new_shortcut_count != (shortcut_id.is_server() ? 0 : 1)) {
+  if (new_shortcut_count >= 2 || (new_shortcut_count >= 1 && shortcut_id.is_server())) {
     return Status::Error("Receive unexpected number of new shortcuts");
   }
   return Status::OK();
@@ -1471,7 +1471,25 @@ void QuickReplyManager::process_send_quick_reply_updates(QuickReplyShortcutId sh
           update = nullptr;
         }
       }
-      CHECK(new_shortcut_id.is_server());
+      if (!new_shortcut_id.is_server()) {
+        for (const auto &update : updates->updates_) {
+          if (update != nullptr && update->get_id() == telegram_api::updateQuickReplyMessage::ID) {
+            auto &message = static_cast<const telegram_api::updateQuickReplyMessage *>(update.get())->message_;
+            if (message->get_id() == telegram_api::message::ID) {
+              new_shortcut_id = QuickReplyShortcutId(
+                  static_cast<const telegram_api::message *>(message.get())->quick_reply_shortcut_id_);
+              break;
+            }
+          }
+        }
+      }
+      if (!new_shortcut_id.is_server()) {
+        LOG(ERROR) << "Failed to find new shortcut identifier for " << shortcut_id;
+        reload_quick_reply_shortcuts();
+        on_failed_send_quick_reply_messages(shortcut_id, std::move(random_ids),
+                                            Status::Error(500, "Receive wrong response"));
+        return;
+      }
       send_update_quick_reply_shortcut_deleted(it->get());
 
       for (auto &message : (*it)->messages_) {
