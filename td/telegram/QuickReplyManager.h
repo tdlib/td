@@ -63,6 +63,12 @@ class QuickReplyManager final : public Actor {
       const string &shortcut_name, MessageId reply_to_message_id,
       td_api::object_ptr<td_api::InputMessageContent> &&input_message_content);
 
+  Result<td_api::object_ptr<td_api::quickReplyMessage>> send_inline_query_result_message(const string &shortcut_name,
+                                                                                         MessageId reply_to_message_id,
+                                                                                         int64 query_id,
+                                                                                         const string &result_id,
+                                                                                         bool hide_via_bot);
+
   void reload_quick_reply_shortcuts();
 
   void reload_quick_reply_messages(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise);
@@ -104,6 +110,9 @@ class QuickReplyManager final : public Actor {
     MessageId reply_to_message_id;
 
     string send_emoji;  // for send_message
+
+    int64 inline_query_id = 0;  // for send_message
+    string inline_result_id;    // for send_message
 
     UserId via_bot_user_id;
 
@@ -171,6 +180,7 @@ class QuickReplyManager final : public Actor {
 
   class SendQuickReplyMessageQuery;
   class SendQuickReplyMediaQuery;
+  class SendQuickReplyInlineMessageQuery;
 
   class UploadMediaCallback;
   class UploadThumbnailCallback;

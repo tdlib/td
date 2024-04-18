@@ -14,6 +14,7 @@
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/InlineQueriesManager.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessageContent.h"
@@ -281,6 +282,55 @@ class QuickReplyManager::SendQuickReplyMessageQuery final : public Td::ResultHan
   }
 };
 
+class QuickReplyManager::SendQuickReplyInlineMessageQuery final : public Td::ResultHandler {
+  int64 random_id_;
+  QuickReplyShortcutId shortcut_id_;
+
+ public:
+  void send(const QuickReplyMessage *m) {
+    random_id_ = m->random_id;
+    shortcut_id_ = m->shortcut_id;
+
+    int32 flags = telegram_api::messages_sendInlineBotResult::QUICK_REPLY_SHORTCUT_MASK;
+    if (m->hide_via_bot) {
+      flags |= telegram_api::messages_sendInlineBotResult::HIDE_VIA_MASK;
+    }
+    auto reply_to =
+        MessageInputReplyTo(m->reply_to_message_id, DialogId(), Auto(), 0).get_input_reply_to(td_, MessageId());
+    if (reply_to != nullptr) {
+      flags |= telegram_api::messages_sendInlineBotResult::REPLY_TO_MASK;
+    }
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_sendInlineBotResult(
+            flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+            telegram_api::make_object<telegram_api::inputPeerSelf>(), std::move(reply_to), m->random_id,
+            m->inline_query_id, m->inline_result_id, 0, nullptr,
+            td_->quick_reply_manager_->get_input_quick_reply_shortcut(m->shortcut_id)),
+        {{"me"}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_sendInlineBotResult>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SendQuickReplyInlineMessageQuery for " << random_id_ << ": " << to_string(ptr);
+    td_->quick_reply_manager_->process_send_quick_reply_updates(shortcut_id_, std::move(ptr), {random_id_});
+  }
+
+  void on_error(Status status) final {
+    LOG(INFO) << "Receive error for SendQuickReplyInlineMessageQuery: " << status;
+    if (G()->close_flag()) {
+      // do not send error, message will be re-sent after restart
+      return;
+    }
+    td_->quick_reply_manager_->on_failed_send_quick_reply_messages(shortcut_id_, {random_id_}, std::move(status));
+  }
+};
+
 class QuickReplyManager::SendQuickReplyMediaQuery final : public Td::ResultHandler {
   int64 random_id_;
   QuickReplyShortcutId shortcut_id_;
@@ -313,7 +363,7 @@ class QuickReplyManager::SendQuickReplyMediaQuery final : public Td::ResultHandl
     vector<telegram_api::object_ptr<telegram_api::MessageEntity>> entities;
     const FormattedText *message_text = get_message_content_text(m->content.get());
     if (message_text != nullptr) {
-      entities = get_input_message_entities(td_->user_manager_.get(), message_text, "SendQuickReplyMessageQuery");
+      entities = get_input_message_entities(td_->user_manager_.get(), message_text, "SendQuickReplyMediaQuery");
       if (!entities.empty()) {
         flags |= telegram_api::messages_sendMedia::ENTITIES_MASK;
       }
@@ -434,6 +484,8 @@ void QuickReplyManager::QuickReplyMessage::store(StorerT &storer) const {
   bool has_try_resend_at = !is_server && try_resend_at != 0;
   bool has_media_album_id = media_album_id != 0;
   bool has_reply_markup = reply_markup != nullptr;
+  bool has_inline_query_id = inline_query_id != 0;
+  bool has_inline_result_id = !inline_result_id.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_edit_date);
   STORE_FLAG(has_random_id);
@@ -452,6 +504,8 @@ void QuickReplyManager::QuickReplyMessage::store(StorerT &storer) const {
   STORE_FLAG(has_try_resend_at);
   STORE_FLAG(has_media_album_id);
   STORE_FLAG(has_reply_markup);
+  STORE_FLAG(has_inline_query_id);
+  STORE_FLAG(has_inline_result_id);
   END_STORE_FLAGS();
   td::store(message_id, storer);
   td::store(shortcut_id, storer);
@@ -489,6 +543,12 @@ void QuickReplyManager::QuickReplyMessage::store(StorerT &storer) const {
   if (has_reply_markup) {
     td::store(reply_markup, storer);
   }
+  if (has_inline_query_id) {
+    td::store(inline_query_id, storer);
+  }
+  if (has_inline_result_id) {
+    td::store(inline_result_id, storer);
+  }
 }
 
 template <class ParserT>
@@ -504,6 +564,8 @@ void QuickReplyManager::QuickReplyMessage::parse(ParserT &parser) {
   bool has_try_resend_at;
   bool has_media_album_id;
   bool has_reply_markup;
+  bool has_inline_query_id;
+  bool has_inline_result_id;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_edit_date);
   PARSE_FLAG(has_random_id);
@@ -522,6 +584,8 @@ void QuickReplyManager::QuickReplyMessage::parse(ParserT &parser) {
   PARSE_FLAG(has_try_resend_at);
   PARSE_FLAG(has_media_album_id);
   PARSE_FLAG(has_reply_markup);
+  PARSE_FLAG(has_inline_query_id);
+  PARSE_FLAG(has_inline_result_id);
   END_PARSE_FLAGS();
   td::parse(message_id, parser);
   td::parse(shortcut_id, parser);
@@ -558,6 +622,12 @@ void QuickReplyManager::QuickReplyMessage::parse(ParserT &parser) {
   parse_message_content(content, parser);
   if (has_reply_markup) {
     td::parse(reply_markup, parser);
+  }
+  if (has_inline_query_id) {
+    td::parse(inline_query_id, parser);
+  }
+  if (has_inline_result_id) {
+    td::parse(inline_result_id, parser);
   }
 }
 
@@ -822,9 +892,6 @@ bool QuickReplyManager::can_edit_quick_reply_message(const QuickReplyMessage *m)
 
 bool QuickReplyManager::can_resend_quick_reply_message(const QuickReplyMessage *m) const {
   if (m->send_error_code != 429) {
-    return false;
-  }
-  if (m->via_bot_user_id.is_valid() || m->hide_via_bot) {
     return false;
   }
   return true;
@@ -1669,10 +1736,52 @@ Result<td_api::object_ptr<td_api::quickReplyMessage>> QuickReplyManager::send_me
   return get_quick_reply_message_object(m, "send_message");
 }
 
+Result<td_api::object_ptr<td_api::quickReplyMessage>> QuickReplyManager::send_inline_query_result_message(
+    const string &shortcut_name, MessageId reply_to_message_id, int64 query_id, const string &result_id,
+    bool hide_via_bot) {
+  const InlineMessageContent *message_content =
+      td_->inline_queries_manager_->get_inline_message_content(query_id, result_id);
+  if (message_content == nullptr || query_id == 0) {
+    return Status::Error(400, "Inline query result not found");
+  }
+  TRY_RESULT(s, create_new_local_shortcut(shortcut_name, 1));
+  bool is_new = s->messages_.empty();
+  reply_to_message_id = get_input_reply_to_message_id(s, reply_to_message_id);
+
+  UserId via_bot_user_id;
+  if (!hide_via_bot) {
+    via_bot_user_id = td_->inline_queries_manager_->get_inline_bot_user_id(query_id);
+  }
+  auto content =
+      dup_message_content(td_, td_->dialog_manager_->get_my_dialog_id(), message_content->message_content.get(),
+                          MessageContentDupType::SendViaBot, MessageCopyOptions());
+  auto *m = add_local_message(s, reply_to_message_id, std::move(content), message_content->invert_media,
+                              via_bot_user_id, hide_via_bot, message_content->disable_web_page_preview, string());
+  m->reply_markup = dup_reply_markup(message_content->message_reply_markup);
+  m->inline_query_id = query_id;
+  m->inline_result_id = result_id;
+
+  send_update_quick_reply_shortcut(s, "send_inline_query_result_message");
+  send_update_quick_reply_shortcut_messages(s, "send_inline_query_result_message");
+  if (is_new) {
+    send_update_quick_reply_shortcuts();
+  }
+  save_quick_reply_shortcuts();
+
+  do_send_message(m);
+
+  return get_quick_reply_message_object(m, "send_inline_query_result_message");
+}
+
 void QuickReplyManager::do_send_message(const QuickReplyMessage *m, vector<int> bad_parts) {
   bool is_edit = m->message_id.is_server();
   auto message_full_id = QuickReplyMessageFullId(m->shortcut_id, m->message_id);
   LOG(INFO) << "Do " << (is_edit ? "edit" : "send") << ' ' << message_full_id;
+
+  if (!is_edit && m->inline_query_id != 0) {
+    td_->create_handler<SendQuickReplyInlineMessageQuery>()->send(m);
+    return;
+  }
 
   auto content = m->content.get();
   CHECK(content != nullptr);

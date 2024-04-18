@@ -8165,6 +8165,15 @@ deleteQuickReplyShortcutMessages shortcut_id:int32 message_ids:vector<int53> = O
 //@input_message_content The content of the message to be added; inputMessagePoll, inputMessageForwarded and inputMessageLocation with live_period aren't supported
 addQuickReplyShortcutMessage shortcut_name:string reply_to_message_id:int53 input_message_content:InputMessageContent = QuickReplyMessage;
 
+//@description Adds a message to a quick reply shortcut. If shortcut doesn't exist and there are less than getOption("quick_reply_shortcut_count_max") shortcuts, then a new shortcut is created.
+//-The shortcut must not contain more than getOption("quick_reply_shortcut_message_count_max") messages after adding the new message. Returns the added message
+//@shortcut_name Name of the target shortcut
+//@reply_to_message_id Identifier of a quick reply message in the same shortcut to be replied; pass 0 if none
+//@query_id Identifier of the inline query
+//@result_id Identifier of the inline query result
+//@hide_via_bot Pass true to hide the bot, via which the message is sent. Can be used only for bots getOption("animation_search_bot_username"), getOption("photo_search_bot_username"), and getOption("venue_search_bot_username")
+addQuickReplyShortcutInlineQueryResultMessage shortcut_name:string reply_to_message_id:int53 query_id:int64 result_id:string hide_via_bot:Bool = Message;
+
 
 //@description Returns list of custom emojis, which can be used as forum topic icon by all users
 getForumTopicDefaultIcons = Stickers;

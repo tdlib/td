@@ -5889,6 +5889,19 @@ void Td::on_request(uint64 id, td_api::addQuickReplyShortcutMessage &request) {
   }
 }
 
+void Td::on_request(uint64 id, td_api::addQuickReplyShortcutInlineQueryResultMessage &request) {
+  CLEAN_INPUT_STRING(request.shortcut_name_);
+  CLEAN_INPUT_STRING(request.result_id_);
+  auto r_sent_message = quick_reply_manager_->send_inline_query_result_message(
+      request.shortcut_name_, MessageId(request.reply_to_message_id_), request.query_id_, request.result_id_,
+      request.hide_via_bot_);
+  if (r_sent_message.is_error()) {
+    send_closure(actor_id(this), &Td::send_error, id, r_sent_message.move_as_error());
+  } else {
+    send_closure(actor_id(this), &Td::send_result, id, r_sent_message.move_as_ok());
+  }
+}
+
 void Td::on_request(uint64 id, const td_api::getStory &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

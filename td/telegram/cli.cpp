@@ -5066,8 +5066,13 @@ class CliClient final : public Actor {
       int64 query_id;
       string result_id;
       get_args(args, chat_id, query_id, result_id);
-      send_request(td_api::make_object<td_api::sendInlineQueryResultMessage>(
-          chat_id, message_thread_id_, nullptr, default_message_send_options(), query_id, result_id, op == "siqrh"));
+      if (quick_reply_shortcut_name_.empty()) {
+        send_request(td_api::make_object<td_api::sendInlineQueryResultMessage>(
+            chat_id, message_thread_id_, nullptr, default_message_send_options(), query_id, result_id, op == "siqrh"));
+      } else {
+        send_request(td_api::make_object<td_api::addQuickReplyShortcutInlineQueryResultMessage>(
+            quick_reply_shortcut_name_, reply_message_id_, query_id, result_id, op == "siqrh"));
+      }
     } else if (op == "gcqa") {
       ChatId chat_id;
       MessageId message_id;
