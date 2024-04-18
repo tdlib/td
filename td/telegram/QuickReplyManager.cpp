@@ -361,8 +361,8 @@ class QuickReplyManager::SendQuickReplyMediaQuery final : public Td::ResultHandl
       CHECK(file_id_.is_valid());
       auto bad_parts = FileManager::get_missing_file_parts(status);
       if (!bad_parts.empty()) {
-        // td_->quick_reply_manager_->on_send_message_file_parts_missing(random_id_, std::move(bad_parts));
-        // return;
+        td_->quick_reply_manager_->on_send_message_file_parts_missing(shortcut_id_, random_id_, std::move(bad_parts));
+        return;
       } else {
         td_->file_manager_->delete_partial_remote_location_if_needed(file_id_, status);
       }
@@ -1689,6 +1689,18 @@ void QuickReplyManager::do_send_message(const QuickReplyMessage *m, vector<int> 
     td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_media_callback_, 1, m->message_id.get());
   } else {
     on_message_media_uploaded(m, std::move(input_media), file_id, thumbnail_file_id);
+  }
+}
+
+void QuickReplyManager::on_send_message_file_parts_missing(QuickReplyShortcutId shortcut_id, int64 random_id,
+                                                           vector<int> &&bad_parts) {
+  auto *s = get_shortcut(shortcut_id);
+  if (s != nullptr) {
+    for (auto &message : s->messages_) {
+      if (message->random_id == random_id && message->message_id.is_yet_unsent()) {
+        do_send_message(message.get(), std::move(bad_parts));
+      }
+    }
   }
 }
 
