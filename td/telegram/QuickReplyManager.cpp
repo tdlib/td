@@ -1029,6 +1029,10 @@ void QuickReplyManager::on_reload_quick_reply_shortcuts(
                           << shortcut->shortcut_id_;
                 CHECK(shortcut->local_total_count_ == 0);
                 shortcut->local_total_count_ = static_cast<int32>(old_shortcut->messages_.size());
+                for (auto &message : old_shortcut->messages_) {
+                  CHECK(message->shortcut_id == shortcut_id);
+                  message->shortcut_id = shortcut->shortcut_id_;
+                }
                 append(shortcut->messages_, std::move(old_shortcut->messages_));
                 sort_quick_reply_messages(shortcut->messages_);
                 send_update_quick_reply_shortcut_deleted(old_shortcut);
