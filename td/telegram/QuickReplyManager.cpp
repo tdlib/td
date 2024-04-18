@@ -1454,42 +1454,36 @@ void QuickReplyManager::process_send_quick_reply_updates(QuickReplyShortcutId sh
   td_->chat_manager_->on_get_chats(std::move(updates->chats_), "process_send_quick_reply_updates");
 
   bool is_shortcut_new = false;
-  {
-    auto it = get_shortcut_it(shortcut_id);
-    if (it == shortcuts_.shortcuts_.end()) {
-      // the shortcut was deleted
-      reload_quick_reply_shortcuts();
-      return;
-    }
-
-    if (!shortcut_id.is_server()) {
-      QuickReplyShortcutId new_shortcut_id;
-      for (auto &update : updates->updates_) {
-        if (update->get_id() == telegram_api::updateNewQuickReply::ID) {
-          new_shortcut_id = QuickReplyShortcutId(
-              static_cast<const telegram_api::updateNewQuickReply *>(update.get())->quick_reply_->shortcut_id_);
-          update = nullptr;
-        }
+  if (!shortcut_id.is_server()) {
+    QuickReplyShortcutId new_shortcut_id;
+    for (auto &update : updates->updates_) {
+      if (update->get_id() == telegram_api::updateNewQuickReply::ID) {
+        new_shortcut_id = QuickReplyShortcutId(
+            static_cast<const telegram_api::updateNewQuickReply *>(update.get())->quick_reply_->shortcut_id_);
+        update = nullptr;
       }
-      if (!new_shortcut_id.is_server()) {
-        for (const auto &update : updates->updates_) {
-          if (update != nullptr && update->get_id() == telegram_api::updateQuickReplyMessage::ID) {
-            auto &message = static_cast<const telegram_api::updateQuickReplyMessage *>(update.get())->message_;
-            if (message->get_id() == telegram_api::message::ID) {
-              new_shortcut_id = QuickReplyShortcutId(
-                  static_cast<const telegram_api::message *>(message.get())->quick_reply_shortcut_id_);
-              break;
-            }
+    }
+    if (!new_shortcut_id.is_server()) {
+      for (const auto &update : updates->updates_) {
+        if (update != nullptr && update->get_id() == telegram_api::updateQuickReplyMessage::ID) {
+          auto &message = static_cast<const telegram_api::updateQuickReplyMessage *>(update.get())->message_;
+          if (message->get_id() == telegram_api::message::ID) {
+            new_shortcut_id = QuickReplyShortcutId(
+                static_cast<const telegram_api::message *>(message.get())->quick_reply_shortcut_id_);
+            break;
           }
         }
       }
-      if (!new_shortcut_id.is_server()) {
-        LOG(ERROR) << "Failed to find new shortcut identifier for " << shortcut_id;
-        reload_quick_reply_shortcuts();
-        on_failed_send_quick_reply_messages(shortcut_id, std::move(random_ids),
-                                            Status::Error(500, "Receive wrong response"));
-        return;
-      }
+    }
+    if (!new_shortcut_id.is_server()) {
+      LOG(ERROR) << "Failed to find new shortcut identifier for " << shortcut_id;
+      reload_quick_reply_shortcuts();
+      on_failed_send_quick_reply_messages(shortcut_id, std::move(random_ids),
+                                          Status::Error(500, "Receive wrong response"));
+      return;
+    }
+    auto it = get_shortcut_it(shortcut_id);
+    if (it != shortcuts_.shortcuts_.end()) {
       send_update_quick_reply_shortcut_deleted(it->get());
 
       for (auto &message : (*it)->messages_) {
@@ -1512,8 +1506,10 @@ void QuickReplyManager::process_send_quick_reply_updates(QuickReplyShortcutId sh
         }
         shortcuts_.shortcuts_.erase(it);
       }
-      shortcut_id = new_shortcut_id;
+    } else if (get_shortcut(new_shortcut_id) == nullptr) {
+      return;
     }
+    shortcut_id = new_shortcut_id;
   }
   auto *s = get_shortcut(shortcut_id);
   CHECK(s != nullptr);
