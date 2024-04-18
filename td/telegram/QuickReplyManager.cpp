@@ -370,8 +370,8 @@ class QuickReplyManager::SendQuickReplyMediaQuery final : public Td::ResultHandl
       if (file_id_.is_valid() && !was_uploaded_) {
         VLOG(file_references) << "Receive " << status << " for " << file_id_;
         td_->file_manager_->delete_file_reference(file_id_, file_reference_);
-        // td_->quick_reply_manager_->on_send_message_file_reference_error(random_id_);
-        // return;
+        td_->quick_reply_manager_->on_send_message_file_reference_error(shortcut_id_, random_id_);
+        return;
       } else {
         LOG(ERROR) << "Receive file reference error, but file_id = " << file_id_
                    << ", was_uploaded = " << was_uploaded_;
@@ -1689,6 +1689,17 @@ void QuickReplyManager::do_send_message(const QuickReplyMessage *m, vector<int> 
     td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_media_callback_, 1, m->message_id.get());
   } else {
     on_message_media_uploaded(m, std::move(input_media), file_id, thumbnail_file_id);
+  }
+}
+
+void QuickReplyManager::on_send_message_file_reference_error(QuickReplyShortcutId shortcut_id, int64 random_id) {
+  auto *s = get_shortcut(shortcut_id);
+  if (s != nullptr) {
+    for (auto &message : s->messages_) {
+      if (message->random_id == random_id && message->message_id.is_yet_unsent()) {
+        do_send_message(message.get(), {-1});
+      }
+    }
   }
 }
 
