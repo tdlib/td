@@ -3929,6 +3929,9 @@ storyInteractions total_count:int32 total_forward_count:int32 total_reaction_cou
 //@reply_markup Inline keyboard reply markup for the message; may be null if none
 quickReplyMessage id:int53 sending_state:MessageSendingState can_be_edited:Bool reply_to_message_id:int53 via_bot_user_id:int53 media_album_id:int64 content:MessageContent reply_markup:ReplyMarkup = QuickReplyMessage;
 
+//@description Contains a list of quick reply messages @messages List of quick reply messages; messages may be null
+quickReplyMessages messages:vector<quickReplyMessage> = QuickReplyMessages;
+
 //@description Describes a shortcut that can be used for a quick reply
 //@id Unique shortcut identifier
 //@name The name of the shortcut that can be used to use the shortcut
@@ -8165,7 +8168,7 @@ deleteQuickReplyShortcutMessages shortcut_id:int32 message_ids:vector<int53> = O
 //@input_message_content The content of the message to be added; inputMessagePoll, inputMessageForwarded and inputMessageLocation with live_period aren't supported
 addQuickReplyShortcutMessage shortcut_name:string reply_to_message_id:int53 input_message_content:InputMessageContent = QuickReplyMessage;
 
-//@description Adds a message to a quick reply shortcut. If shortcut doesn't exist and there are less than getOption("quick_reply_shortcut_count_max") shortcuts, then a new shortcut is created.
+//@description Adds a message to a quick reply shortcut via inline bot. If shortcut doesn't exist and there are less than getOption("quick_reply_shortcut_count_max") shortcuts, then a new shortcut is created.
 //-The shortcut must not contain more than getOption("quick_reply_shortcut_message_count_max") messages after adding the new message. Returns the added message
 //@shortcut_name Name of the target shortcut
 //@reply_to_message_id Identifier of a quick reply message in the same shortcut to be replied; pass 0 if none
@@ -8173,6 +8176,12 @@ addQuickReplyShortcutMessage shortcut_name:string reply_to_message_id:int53 inpu
 //@result_id Identifier of the inline query result
 //@hide_via_bot Pass true to hide the bot, via which the message is sent. Can be used only for bots getOption("animation_search_bot_username"), getOption("photo_search_bot_username"), and getOption("venue_search_bot_username")
 addQuickReplyShortcutInlineQueryResultMessage shortcut_name:string reply_to_message_id:int53 query_id:int64 result_id:string hide_via_bot:Bool = Message;
+
+//@description Readds quick reply messages which failed to add. Can be called only for messages for which messageSendingStateFailed.can_retry is true and after specified in messageSendingStateFailed.retry_after time passed.
+//-If a message is readded, the corresponding failed to send message is deleted. Returns the sent messages in the same order as the message identifiers passed in message_ids. If a message can't be readded, null will be returned instead of the message
+//@shortcut_name Name of the target shortcut
+//@message_ids Identifiers of the  quick reply messages to readd. Message identifiers must be in a strictly increasing order
+readdQuickReplyShortcutMessages shortcut_name:string message_ids:vector<int53> = QuickReplyMessages;
 
 
 //@description Returns list of custom emojis, which can be used as forum topic icon by all users

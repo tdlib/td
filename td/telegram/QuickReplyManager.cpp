@@ -46,6 +46,7 @@
 #include "td/utils/utf8.h"
 
 #include <algorithm>
+#include <unordered_map>
 
 namespace td {
 
@@ -1966,6 +1967,113 @@ void QuickReplyManager::on_message_media_uploaded(const QuickReplyMessage *m,
 
   CHECK(m->media_album_id == 0);
   td_->create_handler<SendQuickReplyMediaQuery>()->send(file_id, thumbnail_file_id, m, std::move(input_media));
+}
+
+int64 QuickReplyManager::generate_new_media_album_id() {
+  int64 media_album_id = 0;
+  do {
+    media_album_id = Random::secure_int64();
+  } while (media_album_id >= 0);
+  return media_album_id;
+}
+
+Result<td_api::object_ptr<td_api::quickReplyMessages>> QuickReplyManager::resend_messages(
+    const string &shortcut_name, vector<MessageId> message_ids) {
+  if (message_ids.empty()) {
+    return Status::Error(400, "There are no messages to resend");
+  }
+
+  load_quick_reply_shortcuts();
+
+  auto *s = get_shortcut(shortcut_name);
+  if (s == nullptr) {
+    return Status::Error(400, "Quick reply shortcut not found");
+  }
+
+  MessageId last_message_id;
+  for (auto &message_id : message_ids) {
+    const auto *m = get_message(s, message_id);
+    if (m == nullptr) {
+      return Status::Error(400, "Message not found");
+    }
+    if (!m->is_failed_to_send) {
+      return Status::Error(400, "Message is not failed to send");
+    }
+    if (!can_resend_quick_reply_message(m)) {
+      return Status::Error(400, "Message can't be re-sent");
+    }
+    if (m->try_resend_at > Time::now()) {
+      return Status::Error(400, "Message can't be re-sent yet");
+    }
+    if (last_message_id != MessageId() && m->message_id <= last_message_id) {
+      return Status::Error(400, "Message identifiers must be in a strictly increasing order");
+    }
+    last_message_id = m->message_id;
+  }
+
+  vector<unique_ptr<MessageContent>> new_contents(message_ids.size());
+  std::unordered_map<int64, std::pair<int64, int32>, Hash<int64>> new_media_album_ids;
+  for (size_t i = 0; i < message_ids.size(); i++) {
+    MessageId message_id = message_ids[i];
+    const auto *m = get_message(s, message_id);
+    CHECK(m != nullptr);
+
+    unique_ptr<MessageContent> content =
+        dup_message_content(td_, td_->dialog_manager_->get_my_dialog_id(), m->content.get(),
+                            m->inline_query_id != 0 ? MessageContentDupType::SendViaBot : MessageContentDupType::Send,
+                            MessageCopyOptions());
+    if (content == nullptr) {
+      LOG(INFO) << "Can't resend " << m->message_id;
+      continue;
+    }
+
+    new_contents[i] = std::move(content);
+
+    if (m->media_album_id != 0) {
+      auto &new_media_album_id = new_media_album_ids[m->media_album_id];
+      new_media_album_id.second++;
+      if (new_media_album_id.second == 2) {  // have at least 2 messages in the new album
+        CHECK(new_media_album_id.first == 0);
+        new_media_album_id.first = generate_new_media_album_id();
+      }
+      if (new_media_album_id.second == MAX_GROUPED_MESSAGES + 1) {
+        CHECK(new_media_album_id.first != 0);
+        new_media_album_id.first = 0;  // just in case
+      }
+    }
+  }
+
+  bool is_changed = false;
+  auto result = td_api::make_object<td_api::quickReplyMessages>();
+  for (size_t i = 0; i < message_ids.size(); i++) {
+    if (new_contents[i] == nullptr) {
+      result->messages_.push_back(nullptr);
+      continue;
+    }
+
+    auto *m = get_message(s, message_ids[i]);
+    CHECK(m != nullptr);
+    m->message_id = get_next_yet_unsent_message_id(s);
+    m->media_album_id = new_media_album_ids[m->media_album_id].first;
+    m->is_failed_to_send = false;
+    m->send_error_code = 0;
+    m->send_error_message = string();
+    m->try_resend_at = 0.0;
+
+    do_send_message(m);
+
+    result->messages_.push_back(get_quick_reply_message_object(m, "resend_message"));
+    is_changed = true;
+  }
+
+  if (is_changed) {
+    sort_quick_reply_messages(s->messages_);
+    send_update_quick_reply_shortcut(s, "resend_message");
+    send_update_quick_reply_shortcut_messages(s, "resend_message");
+    save_quick_reply_shortcuts();
+  }
+
+  return result;
 }
 
 void QuickReplyManager::get_quick_reply_shortcut_messages(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise) {

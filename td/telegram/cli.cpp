@@ -3929,9 +3929,14 @@ class CliClient final : public Actor {
       string quote;
       int32 quote_position;
       get_args(args, chat_id, message_ids, quote, quote_position);
-      send_request(td_api::make_object<td_api::resendMessages>(
-          chat_id, as_message_ids(message_ids),
-          td_api::make_object<td_api::inputTextQuote>(as_formatted_text(quote), quote_position)));
+      if (quick_reply_shortcut_name_.empty()) {
+        send_request(td_api::make_object<td_api::resendMessages>(
+            chat_id, as_message_ids(message_ids),
+            td_api::make_object<td_api::inputTextQuote>(as_formatted_text(quote), quote_position)));
+      } else {
+        send_request(td_api::make_object<td_api::readdQuickReplyShortcutMessages>(quick_reply_shortcut_name_,
+                                                                                  as_message_ids(message_ids)));
+      }
     } else if (op == "csc" || op == "CreateSecretChat") {
       send_request(td_api::make_object<td_api::createSecretChat>(as_secret_chat_id(args)));
     } else if (op == "cnsc" || op == "CreateNewSecretChat") {

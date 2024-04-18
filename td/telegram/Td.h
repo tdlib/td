@@ -903,6 +903,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::addQuickReplyShortcutInlineQueryResultMessage &request);
 
+  void on_request(uint64 id, td_api::readdQuickReplyShortcutMessages &request);
+
   void on_request(uint64 id, const td_api::getStory &request);
 
   void on_request(uint64 id, const td_api::getChatsToSendStories &request);

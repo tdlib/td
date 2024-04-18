@@ -5902,6 +5902,16 @@ void Td::on_request(uint64 id, td_api::addQuickReplyShortcutInlineQueryResultMes
   }
 }
 
+void Td::on_request(uint64 id, td_api::readdQuickReplyShortcutMessages &request) {
+  CLEAN_INPUT_STRING(request.shortcut_name_);
+  auto r_messages =
+      quick_reply_manager_->resend_messages(request.shortcut_name_, MessageId::get_message_ids(request.message_ids_));
+  if (r_messages.is_error()) {
+    return send_closure(actor_id(this), &Td::send_error, id, r_messages.move_as_error());
+  }
+  send_closure(actor_id(this), &Td::send_result, id, r_messages.move_as_ok());
+}
+
 void Td::on_request(uint64 id, const td_api::getStory &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

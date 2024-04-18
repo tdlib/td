@@ -69,6 +69,9 @@ class QuickReplyManager final : public Actor {
                                                                                          const string &result_id,
                                                                                          bool hide_via_bot);
 
+  Result<td_api::object_ptr<td_api::quickReplyMessages>> resend_messages(const string &shortcut_name,
+                                                                         vector<MessageId> message_ids);
+
   void reload_quick_reply_shortcuts();
 
   void reload_quick_reply_messages(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise);
@@ -93,6 +96,8 @@ class QuickReplyManager final : public Actor {
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
+  static constexpr size_t MAX_GROUPED_MESSAGES = 10;  // server side limit
+
   struct QuickReplyMessage {
     QuickReplyMessage() = default;
     QuickReplyMessage(const QuickReplyMessage &) = delete;
@@ -359,6 +364,8 @@ class QuickReplyManager final : public Actor {
   void on_message_media_uploaded(const QuickReplyMessage *m,
                                  telegram_api::object_ptr<telegram_api::InputMedia> &&input_media, FileId file_id,
                                  FileId thumbnail_file_id);
+
+  static int64 generate_new_media_album_id();
 
   string get_quick_reply_shortcuts_database_key();
 
