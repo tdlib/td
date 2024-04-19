@@ -25039,7 +25039,6 @@ void MessagesManager::edit_message_text(MessageFullId message_full_id,
   if (m == nullptr) {
     return promise.set_error(Status::Error(400, "Message not found"));
   }
-
   if (!can_edit_message(dialog_id, m, true)) {
     return promise.set_error(Status::Error(400, "Message can't be edited"));
   }
@@ -25049,19 +25048,13 @@ void MessagesManager::edit_message_text(MessageFullId message_full_id,
     return promise.set_error(Status::Error(400, "There is no text in the message to edit"));
   }
 
-  auto r_input_message_text =
-      process_input_message_text(td_, dialog_id, std::move(input_message_content), td_->auth_manager_->is_bot());
-  if (r_input_message_text.is_error()) {
-    return promise.set_error(r_input_message_text.move_as_error());
-  }
-  const InputMessageText input_message_text = r_input_message_text.move_as_ok();
-
-  auto r_new_reply_markup = get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false,
-                                             has_message_sender_user_id(dialog_id, m));
-  if (r_new_reply_markup.is_error()) {
-    return promise.set_error(r_new_reply_markup.move_as_error());
-  }
-  auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), r_new_reply_markup.ok());
+  TRY_RESULT_PROMISE(
+      promise, input_message_text,
+      process_input_message_text(td_, dialog_id, std::move(input_message_content), td_->auth_manager_->is_bot()));
+  TRY_RESULT_PROMISE(promise, new_reply_markup,
+                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false,
+                                      has_message_sender_user_id(dialog_id, m)));
+  auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), new_reply_markup);
   int32 flags = 0;
   if (input_message_text.disable_web_page_preview) {
     flags |= SEND_MESSAGE_FLAG_DISABLE_WEB_PAGE_PREVIEW;
@@ -25087,7 +25080,6 @@ void MessagesManager::edit_message_live_location(MessageFullId message_full_id,
   if (m == nullptr) {
     return promise.set_error(Status::Error(400, "Message not found"));
   }
-
   if (!can_edit_message(dialog_id, m, true)) {
     return promise.set_error(Status::Error(400, "Message can't be edited"));
   }
@@ -25106,12 +25098,10 @@ void MessagesManager::edit_message_live_location(MessageFullId message_full_id,
     return promise.set_error(Status::Error(400, "Invalid location specified"));
   }
 
-  auto r_new_reply_markup = get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false,
-                                             has_message_sender_user_id(dialog_id, m));
-  if (r_new_reply_markup.is_error()) {
-    return promise.set_error(r_new_reply_markup.move_as_error());
-  }
-  auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), r_new_reply_markup.ok());
+  TRY_RESULT_PROMISE(promise, new_reply_markup,
+                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false,
+                                      has_message_sender_user_id(dialog_id, m)));
+  auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), new_reply_markup);
 
   int32 flags = 0;
   if (location.empty()) {
@@ -25252,7 +25242,6 @@ void MessagesManager::edit_message_media(MessageFullId message_full_id,
   if (m == nullptr) {
     return promise.set_error(Status::Error(400, "Message not found"));
   }
-
   if (!can_edit_message(dialog_id, m, true)) {
     return promise.set_error(Status::Error(400, "Message can't be edited"));
   }
@@ -25269,11 +25258,7 @@ void MessagesManager::edit_message_media(MessageFullId message_full_id,
     return promise.set_error(Status::Error(400, "Can't edit media in self-destructing message"));
   }
 
-  auto r_input_message_content = process_input_message_content(dialog_id, std::move(input_message_content));
-  if (r_input_message_content.is_error()) {
-    return promise.set_error(r_input_message_content.move_as_error());
-  }
-  InputMessageContent content = r_input_message_content.move_as_ok();
+  TRY_RESULT_PROMISE(promise, content, process_input_message_content(dialog_id, std::move(input_message_content)));
   if (!content.ttl.is_empty()) {
     return promise.set_error(Status::Error(400, "Can't enable self-destruction for media"));
   }
@@ -25291,11 +25276,9 @@ void MessagesManager::edit_message_media(MessageFullId message_full_id,
     }
   }
 
-  auto r_new_reply_markup = get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false,
-                                             has_message_sender_user_id(dialog_id, m));
-  if (r_new_reply_markup.is_error()) {
-    return promise.set_error(r_new_reply_markup.move_as_error());
-  }
+  TRY_RESULT_PROMISE(promise, new_reply_markup,
+                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false,
+                                      has_message_sender_user_id(dialog_id, m)));
 
   cancel_edit_message_media(dialog_id, m, "Canceled by new editMessageMedia request");
 
@@ -25303,7 +25286,7 @@ void MessagesManager::edit_message_media(MessageFullId message_full_id,
       dup_message_content(td_, dialog_id, content.content.get(), MessageContentDupType::Send, MessageCopyOptions());
   CHECK(m->edited_content != nullptr);
   m->edited_invert_media = content.invert_media;
-  m->edited_reply_markup = r_new_reply_markup.move_as_ok();
+  m->edited_reply_markup = std::move(new_reply_markup);
   m->edit_generation = ++current_message_edit_generation_;
   m->edit_promise = std::move(promise);
 
@@ -25321,7 +25304,6 @@ void MessagesManager::edit_message_caption(MessageFullId message_full_id,
   if (m == nullptr) {
     return promise.set_error(Status::Error(400, "Message not found"));
   }
-
   if (!can_edit_message(dialog_id, m, true)) {
     return promise.set_error(Status::Error(400, "Message can't be edited"));
   }
@@ -25330,19 +25312,13 @@ void MessagesManager::edit_message_caption(MessageFullId message_full_id,
     return promise.set_error(Status::Error(400, "There is no caption in the message to edit"));
   }
 
-  auto r_caption =
-      get_formatted_text(td_, dialog_id, std::move(input_caption), td_->auth_manager_->is_bot(), true, false, false);
-  if (r_caption.is_error()) {
-    return promise.set_error(r_caption.move_as_error());
-  }
-  auto caption = r_caption.move_as_ok();
-
-  auto r_new_reply_markup = get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false,
-                                             has_message_sender_user_id(dialog_id, m));
-  if (r_new_reply_markup.is_error()) {
-    return promise.set_error(r_new_reply_markup.move_as_error());
-  }
-  auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), r_new_reply_markup.ok());
+  TRY_RESULT_PROMISE(
+      promise, caption,
+      get_formatted_text(td_, dialog_id, std::move(input_caption), td_->auth_manager_->is_bot(), true, false, false));
+  TRY_RESULT_PROMISE(promise, new_reply_markup,
+                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false,
+                                      has_message_sender_user_id(dialog_id, m)));
+  auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), new_reply_markup);
 
   td_->create_handler<EditMessageQuery>(std::move(promise))
       ->send(1 << 11, dialog_id, m->message_id, caption.text,
@@ -25362,17 +25338,14 @@ void MessagesManager::edit_message_reply_markup(MessageFullId message_full_id,
   if (m == nullptr) {
     return promise.set_error(Status::Error(400, "Message not found"));
   }
-
   if (!can_edit_message(dialog_id, m, true, true)) {
     return promise.set_error(Status::Error(400, "Message can't be edited"));
   }
 
-  auto r_new_reply_markup = get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false,
-                                             has_message_sender_user_id(dialog_id, m));
-  if (r_new_reply_markup.is_error()) {
-    return promise.set_error(r_new_reply_markup.move_as_error());
-  }
-  auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), r_new_reply_markup.ok());
+  TRY_RESULT_PROMISE(promise, new_reply_markup,
+                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false,
+                                      has_message_sender_user_id(dialog_id, m)));
+  auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), new_reply_markup);
   td_->create_handler<EditMessageQuery>(std::move(promise))
       ->send(0, dialog_id, m->message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), nullptr,
              false, std::move(input_reply_markup), get_message_schedule_date(m));
@@ -25392,17 +25365,11 @@ void MessagesManager::edit_inline_message_text(const string &inline_message_id,
     return promise.set_error(Status::Error(400, "Input message content type must be InputMessageText"));
   }
 
-  auto r_input_message_text =
-      process_input_message_text(td_, DialogId(), std::move(input_message_content), td_->auth_manager_->is_bot());
-  if (r_input_message_text.is_error()) {
-    return promise.set_error(r_input_message_text.move_as_error());
-  }
-  const InputMessageText input_message_text = r_input_message_text.move_as_ok();
-
-  auto r_new_reply_markup = get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true);
-  if (r_new_reply_markup.is_error()) {
-    return promise.set_error(r_new_reply_markup.move_as_error());
-  }
+  TRY_RESULT_PROMISE(
+      promise, input_message_text,
+      process_input_message_text(td_, DialogId(), std::move(input_message_content), td_->auth_manager_->is_bot()));
+  TRY_RESULT_PROMISE(promise, new_reply_markup,
+                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true));
 
   auto input_bot_inline_message_id = td_->inline_queries_manager_->get_input_bot_inline_message_id(inline_message_id);
   if (input_bot_inline_message_id == nullptr) {
@@ -25418,7 +25385,7 @@ void MessagesManager::edit_inline_message_text(const string &inline_message_id,
              get_input_message_entities(td_->user_manager_.get(), input_message_text.text.entities,
                                         "edit_inline_message_text"),
              input_message_text.get_input_media_web_page(), input_message_text.show_above_text,
-             get_input_reply_markup(td_->user_manager_.get(), r_new_reply_markup.ok()));
+             get_input_reply_markup(td_->user_manager_.get(), new_reply_markup));
 }
 
 void MessagesManager::edit_inline_message_live_location(const string &inline_message_id,
@@ -25427,10 +25394,8 @@ void MessagesManager::edit_inline_message_live_location(const string &inline_mes
                                                         int32 proximity_alert_radius, Promise<Unit> &&promise) {
   CHECK(td_->auth_manager_->is_bot());
 
-  auto r_new_reply_markup = get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true);
-  if (r_new_reply_markup.is_error()) {
-    return promise.set_error(r_new_reply_markup.move_as_error());
-  }
+  TRY_RESULT_PROMISE(promise, new_reply_markup,
+                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true));
 
   auto input_bot_inline_message_id = td_->inline_queries_manager_->get_input_bot_inline_message_id(inline_message_id);
   if (input_bot_inline_message_id == nullptr) {
@@ -25454,7 +25419,7 @@ void MessagesManager::edit_inline_message_live_location(const string &inline_mes
       flags, false /*ignored*/, location.get_input_geo_point(), heading, 0, proximity_alert_radius);
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
       ->send(0, std::move(input_bot_inline_message_id), "", vector<tl_object_ptr<telegram_api::MessageEntity>>(),
-             std::move(input_media), false, get_input_reply_markup(td_->user_manager_.get(), r_new_reply_markup.ok()));
+             std::move(input_media), false, get_input_reply_markup(td_->user_manager_.get(), new_reply_markup));
 }
 
 void MessagesManager::edit_inline_message_media(const string &inline_message_id,
@@ -25475,19 +25440,13 @@ void MessagesManager::edit_inline_message_media(const string &inline_message_id,
     return promise.set_error(Status::Error(400, "Unsupported input message content type"));
   }
 
-  auto r_input_message_content = process_input_message_content(DialogId(), std::move(input_message_content));
-  if (r_input_message_content.is_error()) {
-    return promise.set_error(r_input_message_content.move_as_error());
-  }
-  InputMessageContent content = r_input_message_content.move_as_ok();
+  TRY_RESULT_PROMISE(promise, content, process_input_message_content(DialogId(), std::move(input_message_content)));
   if (!content.ttl.is_empty()) {
     return promise.set_error(Status::Error(400, "Can't enable self-destruction for media"));
   }
 
-  auto r_new_reply_markup = get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true);
-  if (r_new_reply_markup.is_error()) {
-    return promise.set_error(r_new_reply_markup.move_as_error());
-  }
+  TRY_RESULT_PROMISE(promise, new_reply_markup,
+                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true));
 
   auto input_bot_inline_message_id = td_->inline_queries_manager_->get_input_bot_inline_message_id(inline_message_id);
   if (input_bot_inline_message_id == nullptr) {
@@ -25504,7 +25463,7 @@ void MessagesManager::edit_inline_message_media(const string &inline_message_id,
       ->send(1 << 11, std::move(input_bot_inline_message_id), caption == nullptr ? "" : caption->text,
              get_input_message_entities(td_->user_manager_.get(), caption, "edit_inline_message_media"),
              std::move(input_media), content.invert_media,
-             get_input_reply_markup(td_->user_manager_.get(), r_new_reply_markup.ok()));
+             get_input_reply_markup(td_->user_manager_.get(), new_reply_markup));
 }
 
 void MessagesManager::edit_inline_message_caption(const string &inline_message_id,
@@ -25513,17 +25472,11 @@ void MessagesManager::edit_inline_message_caption(const string &inline_message_i
                                                   Promise<Unit> &&promise) {
   CHECK(td_->auth_manager_->is_bot());
 
-  auto r_caption =
-      get_formatted_text(td_, DialogId(), std::move(input_caption), td_->auth_manager_->is_bot(), true, false, false);
-  if (r_caption.is_error()) {
-    return promise.set_error(r_caption.move_as_error());
-  }
-  auto caption = r_caption.move_as_ok();
-
-  auto r_new_reply_markup = get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true);
-  if (r_new_reply_markup.is_error()) {
-    return promise.set_error(r_new_reply_markup.move_as_error());
-  }
+  TRY_RESULT_PROMISE(
+      promise, caption,
+      get_formatted_text(td_, DialogId(), std::move(input_caption), td_->auth_manager_->is_bot(), true, false, false));
+  TRY_RESULT_PROMISE(promise, new_reply_markup,
+                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true));
 
   auto input_bot_inline_message_id = td_->inline_queries_manager_->get_input_bot_inline_message_id(inline_message_id);
   if (input_bot_inline_message_id == nullptr) {
@@ -25533,7 +25486,7 @@ void MessagesManager::edit_inline_message_caption(const string &inline_message_i
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
       ->send(1 << 11, std::move(input_bot_inline_message_id), caption.text,
              get_input_message_entities(td_->user_manager_.get(), caption.entities, "edit_inline_message_caption"),
-             nullptr, false, get_input_reply_markup(td_->user_manager_.get(), r_new_reply_markup.ok()));
+             nullptr, false, get_input_reply_markup(td_->user_manager_.get(), new_reply_markup));
 }
 
 void MessagesManager::edit_inline_message_reply_markup(const string &inline_message_id,
@@ -25541,10 +25494,8 @@ void MessagesManager::edit_inline_message_reply_markup(const string &inline_mess
                                                        Promise<Unit> &&promise) {
   CHECK(td_->auth_manager_->is_bot());
 
-  auto r_new_reply_markup = get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true);
-  if (r_new_reply_markup.is_error()) {
-    return promise.set_error(r_new_reply_markup.move_as_error());
-  }
+  TRY_RESULT_PROMISE(promise, new_reply_markup,
+                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true));
 
   auto input_bot_inline_message_id = td_->inline_queries_manager_->get_input_bot_inline_message_id(inline_message_id);
   if (input_bot_inline_message_id == nullptr) {
@@ -25553,17 +25504,13 @@ void MessagesManager::edit_inline_message_reply_markup(const string &inline_mess
 
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
       ->send(0, std::move(input_bot_inline_message_id), string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(),
-             nullptr, false, get_input_reply_markup(td_->user_manager_.get(), r_new_reply_markup.ok()));
+             nullptr, false, get_input_reply_markup(td_->user_manager_.get(), new_reply_markup));
 }
 
 void MessagesManager::edit_message_scheduling_state(
     MessageFullId message_full_id, td_api::object_ptr<td_api::MessageSchedulingState> &&scheduling_state,
     Promise<Unit> &&promise) {
-  auto r_schedule_date = get_message_schedule_date(std::move(scheduling_state));
-  if (r_schedule_date.is_error()) {
-    return promise.set_error(r_schedule_date.move_as_error());
-  }
-  auto schedule_date = r_schedule_date.move_as_ok();
+  TRY_RESULT_PROMISE(promise, schedule_date, get_message_schedule_date(std::move(scheduling_state)));
 
   auto dialog_id = message_full_id.get_dialog_id();
   TRY_RESULT_PROMISE(promise, d,
@@ -38147,14 +38094,11 @@ void MessagesManager::stop_poll(MessageFullId message_full_id, td_api::object_pt
     return promise.set_error(Status::Error(400, "Poll can't be stopped"));
   }
 
-  auto r_new_reply_markup = get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false,
-                                             has_message_sender_user_id(message_full_id.get_dialog_id(), m));
-  if (r_new_reply_markup.is_error()) {
-    return promise.set_error(r_new_reply_markup.move_as_error());
-  }
+  TRY_RESULT_PROMISE(promise, new_reply_markup,
+                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false,
+                                      has_message_sender_user_id(message_full_id.get_dialog_id(), m)));
 
-  stop_message_content_poll(td_, m->content.get(), message_full_id, r_new_reply_markup.move_as_ok(),
-                            std::move(promise));
+  stop_message_content_poll(td_, m->content.get(), message_full_id, std::move(new_reply_markup), std::move(promise));
 }
 
 Result<ServerMessageId> MessagesManager::get_invoice_message_id(MessageFullId message_full_id) {
