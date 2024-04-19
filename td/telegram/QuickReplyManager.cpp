@@ -858,8 +858,8 @@ unique_ptr<QuickReplyManager::QuickReplyMessage> QuickReplyManager::create_messa
           message->fwd_from_ != nullptr || message->views_ != 0 || message->forwards_ != 0 ||
           message->replies_ != nullptr || message->reactions_ != nullptr || message->ttl_period_ != 0 ||
           !message->out_ || message->post_ || message->from_scheduled_ || message->pinned_ || message->noforwards_ ||
-          message->mentioned_ || !message->restriction_reason_.empty() ||
-          !message->post_author_.empty() || message->from_boosts_applied_ != 0) {
+          message->mentioned_ || !message->restriction_reason_.empty() || !message->post_author_.empty() ||
+          message->from_boosts_applied_ != 0) {
         LOG(ERROR) << "Receive an invalid quick reply from " << source << ": " << to_string(message);
       }
       if (message->saved_peer_id_ != nullptr) {
@@ -2234,12 +2234,15 @@ void QuickReplyManager::edit_quick_reply_message(
       UNREACHABLE();
   }
 
+  auto old_file_ids = get_message_file_ids(m);
   m->edited_content = dup_message_content(td_, td_->dialog_manager_->get_my_dialog_id(), message_content.content.get(),
                                           MessageContentDupType::Send, MessageCopyOptions());
   CHECK(m->edited_content != nullptr);
   m->edited_invert_media = message_content.invert_media;
   m->edited_disable_web_page_preview = message_content.disable_web_page_preview;
   m->edit_generation = ++current_message_edit_generation_;
+
+  change_message_files({shortcut_id, message_id}, m, old_file_ids);
 
   if (s->messages_[0]->message_id == message_id) {
     send_update_quick_reply_shortcut(s, "edit_quick_reply_message 1");
@@ -2267,6 +2270,7 @@ void QuickReplyManager::on_edit_quick_reply_message(QuickReplyShortcutId shortcu
   LOG(INFO) << "Receive result for editing of " << QuickReplyMessageFullId(m->shortcut_id, m->message_id) << ": "
             << to_string(updates_ptr);
 
+  auto old_file_ids = get_message_file_ids(m);
   m->content = std::move(m->edited_content);
   m->invert_media = m->edited_invert_media;
   m->disable_web_page_preview = m->edited_disable_web_page_preview;
@@ -2275,6 +2279,7 @@ void QuickReplyManager::on_edit_quick_reply_message(QuickReplyShortcutId shortcu
   m->edited_content = nullptr;
   m->edited_invert_media = false;
   m->edited_disable_web_page_preview = false;
+  change_message_files({shortcut_id, message_id}, m, old_file_ids);
 
   auto *s = get_shortcut(shortcut_id);
   CHECK(s != nullptr);
@@ -2301,10 +2306,12 @@ void QuickReplyManager::fail_edit_quick_reply_message(QuickReplyMessage *m, int6
     return;
   }
 
+  auto old_file_ids = get_message_file_ids(m);
   m->edit_generation = 0;
   m->edited_content = nullptr;
   m->edited_invert_media = false;
   m->edited_disable_web_page_preview = false;
+  change_message_files({m->shortcut_id, m->message_id}, m, old_file_ids);
 
   auto *s = get_shortcut(m->shortcut_id);
   CHECK(s != nullptr);
@@ -2936,7 +2943,11 @@ void QuickReplyManager::load_quick_reply_shortcuts() {
             (message->legacy_layer != 0 && message->legacy_layer < MTPROTO_LAYER)) {
           reload_quick_reply_message(shortcut->shortcut_id_, message->message_id, Promise<Unit>());
         }
-      } else if (message->message_id.is_yet_unsent() || message->edited_content != nullptr) {
+        if (message->edited_content != nullptr) {
+          message->edit_generation = ++current_message_edit_generation_;
+          do_send_message(message.get());
+        }
+      } else if (message->message_id.is_yet_unsent()) {
         do_send_message(message.get());
       }
     }
