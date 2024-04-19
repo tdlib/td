@@ -103,12 +103,10 @@ class ResetTopPeerRatingQuery final : public Td::ResultHandler {
 
  public:
   void send(TopDialogCategory category, DialogId dialog_id) {
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
-    if (input_peer == nullptr) {
-      return;
-    }
-
     dialog_id_ = dialog_id;
+
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
     send_query(G()->net_query_creator().create(
         telegram_api::contacts_resetTopPeerRating(get_input_top_peer_category(category), std::move(input_peer))));
   }
@@ -240,9 +238,8 @@ void TopDialogManager::remove_dialog(TopDialogCategory category, DialogId dialog
   if (category == TopDialogCategory::Size) {
     return promise.set_error(Status::Error(400, "Top chat category must be non-empty"));
   }
-  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "remove_dialog")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
+  TRY_STATUS_PROMISE(promise,
+                     td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "remove_dialog"));
   CHECK(!td_->auth_manager_->is_bot());
   if (!is_enabled_) {
     return promise.set_value(Unit());

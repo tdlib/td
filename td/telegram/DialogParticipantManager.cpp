@@ -97,9 +97,7 @@ class GetChatJoinRequestsQuery final : public Td::ResultHandler {
         invite_link.empty() && query.empty() && offset_date == 0 && !offset_user_id.is_valid() && limit >= 3;
 
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
-    if (input_peer == nullptr) {
-      return on_error(Status::Error(400, "Can't access the chat"));
-    }
+    CHECK(input_peer != nullptr);
 
     auto r_input_user = td_->user_manager_->get_input_user(offset_user_id);
     if (r_input_user.is_error()) {
@@ -174,9 +172,7 @@ class HideChatJoinRequestQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, UserId user_id, bool approve) {
     dialog_id_ = dialog_id;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
-    if (input_peer == nullptr) {
-      return on_error(Status::Error(400, "Can't access the chat"));
-    }
+    CHECK(input_peer != nullptr);
 
     TRY_RESULT_PROMISE(promise_, input_user, td_->user_manager_->get_input_user(user_id));
 
@@ -216,9 +212,7 @@ class HideAllChatJoinRequestsQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, const string &invite_link, bool approve) {
     dialog_id_ = dialog_id;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
-    if (input_peer == nullptr) {
-      return on_error(Status::Error(400, "Can't access the chat"));
-    }
+    CHECK(input_peer != nullptr);
 
     int32 flags = 0;
     if (approve) {
@@ -1063,9 +1057,8 @@ void DialogParticipantManager::update_dialog_online_member_count(const vector<Di
 }
 
 Status DialogParticipantManager::can_manage_dialog_join_requests(DialogId dialog_id) {
-  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "can_manage_dialog_join_requests")) {
-    return Status::Error(400, "Chat not found");
-  }
+  TRY_STATUS(td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Write,
+                                                       "can_manage_dialog_join_requests"));
 
   switch (dialog_id.get_type()) {
     case DialogType::SecretChat:

@@ -114,9 +114,7 @@ class ExportChatInviteQuery final : public Td::ResultHandler {
             bool is_permanent) {
     dialog_id_ = dialog_id;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
-    if (input_peer == nullptr) {
-      return on_error(Status::Error(400, "Can't access the chat"));
-    }
+    CHECK(input_peer != nullptr);
 
     int32 flags = 0;
     if (expire_date > 0) {
@@ -180,9 +178,7 @@ class EditChatInviteLinkQuery final : public Td::ResultHandler {
             bool creates_join_request) {
     dialog_id_ = dialog_id;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
-    if (input_peer == nullptr) {
-      return on_error(Status::Error(400, "Can't access the chat"));
-    }
+    CHECK(input_peer != nullptr);
 
     int32 flags = telegram_api::messages_editExportedChatInvite::EXPIRE_DATE_MASK |
                   telegram_api::messages_editExportedChatInvite::USAGE_LIMIT_MASK |
@@ -235,9 +231,7 @@ class GetExportedChatInviteQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, const string &invite_link) {
     dialog_id_ = dialog_id;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
-    if (input_peer == nullptr) {
-      return on_error(Status::Error(400, "Can't access the chat"));
-    }
+    CHECK(input_peer != nullptr);
 
     send_query(G()->net_query_creator().create(
         telegram_api::messages_getExportedChatInvite(std::move(input_peer), invite_link)));
@@ -286,9 +280,7 @@ class GetExportedChatInvitesQuery final : public Td::ResultHandler {
             const string &offset_invite_link, int32 limit) {
     dialog_id_ = dialog_id;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
-    if (input_peer == nullptr) {
-      return on_error(Status::Error(400, "Can't access the chat"));
-    }
+    CHECK(input_peer != nullptr);
 
     int32 flags = 0;
     if (!offset_invite_link.empty() || offset_date != 0) {
@@ -350,9 +342,7 @@ class GetChatAdminWithInvitesQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id) {
     dialog_id_ = dialog_id;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
-    if (input_peer == nullptr) {
-      return on_error(Status::Error(400, "Can't access the chat"));
-    }
+    CHECK(input_peer != nullptr);
 
     send_query(G()->net_query_creator().create(telegram_api::messages_getAdminsWithInvites(std::move(input_peer))));
   }
@@ -400,9 +390,7 @@ class GetChatInviteImportersQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, const string &invite_link, int32 offset_date, UserId offset_user_id, int32 limit) {
     dialog_id_ = dialog_id;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
-    if (input_peer == nullptr) {
-      return on_error(Status::Error(400, "Can't access the chat"));
-    }
+    CHECK(input_peer != nullptr);
 
     auto r_input_user = td_->user_manager_->get_input_user(offset_user_id);
     if (r_input_user.is_error()) {
@@ -466,9 +454,7 @@ class RevokeChatInviteLinkQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, const string &invite_link) {
     dialog_id_ = dialog_id;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
-    if (input_peer == nullptr) {
-      return on_error(Status::Error(400, "Can't access the chat"));
-    }
+    CHECK(input_peer != nullptr);
 
     int32 flags = telegram_api::messages_editExportedChatInvite::REVOKED_MASK;
     send_query(G()->net_query_creator().create(telegram_api::messages_editExportedChatInvite(
@@ -541,9 +527,7 @@ class DeleteExportedChatInviteQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, const string &invite_link) {
     dialog_id_ = dialog_id;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
-    if (input_peer == nullptr) {
-      return on_error(Status::Error(400, "Can't access the chat"));
-    }
+    CHECK(input_peer != nullptr);
 
     send_query(G()->net_query_creator().create(
         telegram_api::messages_deleteExportedChatInvite(std::move(input_peer), invite_link)));
@@ -575,9 +559,7 @@ class DeleteRevokedExportedChatInvitesQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, tl_object_ptr<telegram_api::InputUser> &&input_user) {
     dialog_id_ = dialog_id;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
-    if (input_peer == nullptr) {
-      return on_error(Status::Error(400, "Can't access the chat"));
-    }
+    CHECK(input_peer != nullptr);
 
     send_query(G()->net_query_creator().create(
         telegram_api::messages_deleteRevokedExportedChatInvites(std::move(input_peer), std::move(input_user))));
@@ -923,9 +905,8 @@ void DialogInviteLinkManager::remove_dialog_access_by_invite_link(DialogId dialo
 }
 
 Status DialogInviteLinkManager::can_manage_dialog_invite_links(DialogId dialog_id, bool creator_only) {
-  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "can_manage_dialog_invite_links")) {
-    return Status::Error(400, "Chat not found");
-  }
+  TRY_STATUS(td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Write,
+                                                       "can_manage_dialog_invite_links"));
 
   switch (dialog_id.get_type()) {
     case DialogType::User:

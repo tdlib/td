@@ -77,12 +77,7 @@ class SaveAutoSaveSettingsQuery final : public Td::ResultHandler {
     } else {
       flags |= telegram_api::account_saveAutoSaveSettings::PEER_MASK;
       input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
-      if (input_peer == nullptr) {
-        if (dialog_id.get_type() == DialogType::SecretChat) {
-          return on_error(Status::Error(400, "Can't set autosave settings for secret chats"));
-        }
-        return on_error(Status::Error(400, "Can't access the chat"));
-      }
+      CHECK(input_peer != nullptr);
     }
     send_query(G()->net_query_creator().create(
         telegram_api::account_saveAutoSaveSettings(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
@@ -483,9 +478,8 @@ void AutosaveManager::set_autosave_settings(td_api::object_ptr<td_api::AutosaveS
       break;
     case td_api::autosaveSettingsScopeChat::ID:
       dialog_id = DialogId(static_cast<const td_api::autosaveSettingsScopeChat *>(scope.get())->chat_id_);
-      if (!td_->dialog_manager_->have_dialog_force(dialog_id, "set_autosave_settings")) {
-        return promise.set_error(Status::Error(400, "Chat not found"));
-      }
+      TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
+                                                                            "set_autosave_settings"));
       old_settings = &settings_.exceptions_[dialog_id];
       break;
     default:

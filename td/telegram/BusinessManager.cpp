@@ -126,9 +126,7 @@ class ToggleConnectedBotPausedQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, bool is_paused) {
     dialog_id_ = dialog_id;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
-    if (input_peer == nullptr) {
-      return on_error(Status::Error(400, "Have no write access to the chat"));
-    }
+    CHECK(input_peer != nullptr);
     send_query(G()->net_query_creator().create(
         telegram_api::account_toggleConnectedBotPaused(std::move(input_peer), is_paused), {{"me"}, {dialog_id}}));
   }
@@ -162,9 +160,7 @@ class DisablePeerConnectedBotQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id) {
     dialog_id_ = dialog_id;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
-    if (input_peer == nullptr) {
-      return on_error(Status::Error(400, "Have no write access to the chat"));
-    }
+    CHECK(input_peer != nullptr);
     send_query(G()->net_query_creator().create(telegram_api::account_disablePeerConnectedBot(std::move(input_peer)),
                                                {{"me"}, {dialog_id}}));
   }
@@ -329,7 +325,8 @@ class ResolveBusinessChatLinkQuery final : public Td::ResultHandler {
     td_->user_manager_->on_get_users(std::move(ptr->users_), "ResolveBusinessChatLinkQuery");
     td_->chat_manager_->on_get_chats(std::move(ptr->chats_), "ResolveBusinessChatLinkQuery");
 
-    auto text = get_message_text(td_->user_manager_.get(), std::move(ptr->message_), std::move(ptr->entities_), true, true, 0, false, "ResolveBusinessChatLinkQuery");
+    auto text = get_message_text(td_->user_manager_.get(), std::move(ptr->message_), std::move(ptr->entities_), true,
+                                 true, 0, false, "ResolveBusinessChatLinkQuery");
     if (text.text[0] == '@') {
       text.text = ' ' + text.text;
       for (auto &entity : text.entities) {
@@ -559,9 +556,9 @@ void BusinessManager::delete_business_connected_bot(UserId bot_user_id, Promise<
 
 void BusinessManager::toggle_business_connected_bot_dialog_is_paused(DialogId dialog_id, bool is_paused,
                                                                      Promise<Unit> &&promise) {
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "toggle_business_connected_bot_dialog_is_paused")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
+  TRY_STATUS_PROMISE(promise,
+                     td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Write,
+                                                               "toggle_business_connected_bot_dialog_is_paused"));
   if (dialog_id.get_type() != DialogType::User) {
     return promise.set_error(Status::Error(400, "The chat has no connected bot"));
   }
@@ -570,9 +567,8 @@ void BusinessManager::toggle_business_connected_bot_dialog_is_paused(DialogId di
 }
 
 void BusinessManager::remove_business_connected_bot_from_dialog(DialogId dialog_id, Promise<Unit> &&promise) {
-  if (!td_->messages_manager_->have_dialog_force(dialog_id, "remove_business_connected_bot_from_dialog")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Write,
+                                                                        "remove_business_connected_bot_from_dialog"));
   if (dialog_id.get_type() != DialogType::User) {
     return promise.set_error(Status::Error(400, "The chat has no connected bot"));
   }

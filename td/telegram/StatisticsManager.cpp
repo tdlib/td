@@ -683,9 +683,8 @@ void StatisticsManager::send_get_channel_stats_query(DcId dc_id, ChannelId chann
 
 void StatisticsManager::get_channel_revenue_statistics(
     DialogId dialog_id, bool is_dark, Promise<td_api::object_ptr<td_api::chatRevenueStatistics>> &&promise) {
-  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "get_channel_revenue_statistics")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Write,
+                                                                        "get_channel_revenue_statistics"));
   if (!td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
     return promise.set_error(Status::Error(400, "Chat is not a channel"));
   }
@@ -694,9 +693,8 @@ void StatisticsManager::get_channel_revenue_statistics(
 
 void StatisticsManager::get_channel_revenue_withdrawal_url(DialogId dialog_id, const string &password,
                                                            Promise<string> &&promise) {
-  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "get_channel_revenue_withdrawal_url")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Write,
+                                                                        "get_channel_revenue_withdrawal_url"));
   if (!td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
     return promise.set_error(Status::Error(400, "Chat is not a channel"));
   }
@@ -731,9 +729,8 @@ void StatisticsManager::send_get_channel_revenue_withdrawal_url_query(
 void StatisticsManager::get_channel_revenue_transactions(
     DialogId dialog_id, int32 offset, int32 limit,
     Promise<td_api::object_ptr<td_api::chatRevenueTransactions>> &&promise) {
-  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "get_channel_revenue_transactions")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Write,
+                                                                        "get_channel_revenue_transactions"));
   if (!td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
     return promise.set_error(Status::Error(400, "Chat is not a channel"));
   }
