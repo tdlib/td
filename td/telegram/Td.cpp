@@ -5879,6 +5879,7 @@ void Td::on_request(uint64 id, const td_api::deleteQuickReplyShortcutMessages &r
 }
 
 void Td::on_request(uint64 id, td_api::addQuickReplyShortcutMessage &request) {
+  CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.shortcut_name_);
   auto r_sent_message = quick_reply_manager_->send_message(
       request.shortcut_name_, MessageId(request.reply_to_message_id_), std::move(request.input_message_content_));
@@ -5890,6 +5891,7 @@ void Td::on_request(uint64 id, td_api::addQuickReplyShortcutMessage &request) {
 }
 
 void Td::on_request(uint64 id, td_api::addQuickReplyShortcutInlineQueryResultMessage &request) {
+  CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.shortcut_name_);
   CLEAN_INPUT_STRING(request.result_id_);
   auto r_sent_message = quick_reply_manager_->send_inline_query_result_message(
@@ -5903,6 +5905,7 @@ void Td::on_request(uint64 id, td_api::addQuickReplyShortcutInlineQueryResultMes
 }
 
 void Td::on_request(uint64 id, td_api::readdQuickReplyShortcutMessages &request) {
+  CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.shortcut_name_);
   auto r_messages =
       quick_reply_manager_->resend_messages(request.shortcut_name_, MessageId::get_message_ids(request.message_ids_));
@@ -5910,6 +5913,14 @@ void Td::on_request(uint64 id, td_api::readdQuickReplyShortcutMessages &request)
     return send_closure(actor_id(this), &Td::send_error, id, r_messages.move_as_error());
   }
   send_closure(actor_id(this), &Td::send_result, id, r_messages.move_as_ok());
+}
+
+void Td::on_request(uint64 id, td_api::editQuickReplyMessage &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  quick_reply_manager_->edit_quick_reply_message(QuickReplyShortcutId(request.shortcut_id_),
+                                                 MessageId(request.message_id_),
+                                                 std::move(request.input_message_content_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getStory &request) {

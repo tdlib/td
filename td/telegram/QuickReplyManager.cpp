@@ -246,6 +246,7 @@ class QuickReplyManager::SendQuickReplyMessageQuery final : public Td::ResultHan
     if (reply_to != nullptr) {
       flags |= telegram_api::messages_sendMessage::REPLY_TO_MASK;
     }
+    CHECK(m->edited_content == nullptr);
     const FormattedText *message_text = get_message_content_text(m->content.get());
     CHECK(message_text != nullptr);
     auto entities = get_input_message_entities(td_->user_manager_.get(), message_text, "SendQuickReplyMessageQuery");
@@ -361,6 +362,7 @@ class QuickReplyManager::SendQuickReplyMediaQuery final : public Td::ResultHandl
     if (reply_to != nullptr) {
       flags |= telegram_api::messages_sendMedia::REPLY_TO_MASK;
     }
+    CHECK(m->edited_content == nullptr);
     vector<telegram_api::object_ptr<telegram_api::MessageEntity>> entities;
     const FormattedText *message_text = get_message_content_text(m->content.get());
     if (message_text != nullptr) {
@@ -433,6 +435,66 @@ class QuickReplyManager::SendQuickReplyMediaQuery final : public Td::ResultHandl
   }
 };
 
+class QuickReplyManager::EditQuickReplyMessageQuery final : public Td::ResultHandler {
+  QuickReplyShortcutId shortcut_id_;
+  MessageId message_id_;
+  int64 edit_generation_ = 0;
+
+ public:
+  void send(const QuickReplyMessage *m) {
+    CHECK(m != nullptr);
+    CHECK(m->edited_content != nullptr);
+    CHECK(m->edit_generation > 0);
+    shortcut_id_ = m->shortcut_id;
+    message_id_ = m->message_id;
+    edit_generation_ = m->edit_generation;
+
+    auto *content = m->edited_content.get();
+    const auto *text = get_message_content_text(content);
+    vector<telegram_api::object_ptr<telegram_api::MessageEntity>> entities;
+    int32 flags = telegram_api::messages_editMessage::QUICK_REPLY_SHORTCUT_ID_MASK;
+    if (text != nullptr) {
+      entities = get_input_message_entities(td_->user_manager_.get(), text, "EditQuickReplyMessageQuery");
+      if (!entities.empty()) {
+        flags |= telegram_api::messages_editMessage::ENTITIES_MASK;
+      }
+      flags |= telegram_api::messages_editMessage::MESSAGE_MASK;
+    }
+    if (m->edited_invert_media) {
+      flags |= telegram_api::messages_editMessage::INVERT_MEDIA_MASK;
+    }
+    if (m->edited_disable_web_page_preview) {
+      flags |= telegram_api::messages_editMessage::NO_WEBPAGE_MASK;
+    }
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_editMessage(
+            flags, false /*ignored*/, false /*ignored*/, telegram_api::make_object<telegram_api::inputPeerSelf>(),
+            m->message_id.get_server_message_id().get(), text != nullptr ? text->text : string(), nullptr, nullptr,
+            std::move(entities), 0, m->shortcut_id.get()),
+        {{"me"}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_editMessage>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for EditMessageQuery: " << to_string(ptr);
+    td_->quick_reply_manager_->on_edit_quick_reply_message(shortcut_id_, message_id_, edit_generation_, std::move(ptr));
+  }
+
+  void on_error(Status status) final {
+    if (!td_->auth_manager_->is_bot() && status.message() == "MESSAGE_NOT_MODIFIED") {
+      return td_->quick_reply_manager_->on_edit_quick_reply_message(shortcut_id_, message_id_, edit_generation_,
+                                                                    nullptr);
+    }
+    td_->quick_reply_manager_->fail_edit_quick_reply_message(shortcut_id_, message_id_, edit_generation_);
+  }
+};
+
 class QuickReplyManager::UploadMediaCallback final : public FileManager::UploadCallback {
  public:
   void on_upload_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
@@ -487,6 +549,7 @@ void QuickReplyManager::QuickReplyMessage::store(StorerT &storer) const {
   bool has_reply_markup = reply_markup != nullptr;
   bool has_inline_query_id = inline_query_id != 0;
   bool has_inline_result_id = !inline_result_id.empty();
+  bool has_edited_content = edited_content != nullptr;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_edit_date);
   STORE_FLAG(has_random_id);
@@ -507,6 +570,9 @@ void QuickReplyManager::QuickReplyMessage::store(StorerT &storer) const {
   STORE_FLAG(has_reply_markup);
   STORE_FLAG(has_inline_query_id);
   STORE_FLAG(has_inline_result_id);
+  STORE_FLAG(has_edited_content);
+  STORE_FLAG(edited_invert_media);
+  STORE_FLAG(edited_disable_web_page_preview);
   END_STORE_FLAGS();
   td::store(message_id, storer);
   td::store(shortcut_id, storer);
@@ -550,6 +616,9 @@ void QuickReplyManager::QuickReplyMessage::store(StorerT &storer) const {
   if (has_inline_result_id) {
     td::store(inline_result_id, storer);
   }
+  if (has_edited_content) {
+    store_message_content(edited_content.get(), storer);
+  }
 }
 
 template <class ParserT>
@@ -567,6 +636,7 @@ void QuickReplyManager::QuickReplyMessage::parse(ParserT &parser) {
   bool has_reply_markup;
   bool has_inline_query_id;
   bool has_inline_result_id;
+  bool has_edited_content;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_edit_date);
   PARSE_FLAG(has_random_id);
@@ -587,6 +657,9 @@ void QuickReplyManager::QuickReplyMessage::parse(ParserT &parser) {
   PARSE_FLAG(has_reply_markup);
   PARSE_FLAG(has_inline_query_id);
   PARSE_FLAG(has_inline_result_id);
+  PARSE_FLAG(has_edited_content);
+  PARSE_FLAG(edited_invert_media);
+  PARSE_FLAG(edited_disable_web_page_preview);
   END_PARSE_FLAGS();
   td::parse(message_id, parser);
   td::parse(shortcut_id, parser);
@@ -629,6 +702,9 @@ void QuickReplyManager::QuickReplyMessage::parse(ParserT &parser) {
   }
   if (has_inline_result_id) {
     td::parse(inline_result_id, parser);
+  }
+  if (has_edited_content) {
+    parse_message_content(edited_content, parser);
   }
 }
 
@@ -782,7 +858,7 @@ unique_ptr<QuickReplyManager::QuickReplyMessage> QuickReplyManager::create_messa
           message->fwd_from_ != nullptr || message->views_ != 0 || message->forwards_ != 0 ||
           message->replies_ != nullptr || message->reactions_ != nullptr || message->ttl_period_ != 0 ||
           !message->out_ || message->post_ || message->from_scheduled_ || message->pinned_ || message->noforwards_ ||
-          message->mentioned_ || message->media_unread_ || !message->restriction_reason_.empty() ||
+          message->mentioned_ || !message->restriction_reason_.empty() ||
           !message->post_author_.empty() || message->from_boosts_applied_ != 0) {
         LOG(ERROR) << "Receive an invalid quick reply from " << source << ": " << to_string(message);
       }
@@ -829,7 +905,7 @@ unique_ptr<QuickReplyManager::QuickReplyMessage> QuickReplyManager::create_messa
 
       auto content_type = content->get_type();
       if (is_service_message_content(content_type) || content_type == MessageContentType::LiveLocation ||
-          is_expired_message_content(content_type)) {
+          is_expired_message_content(content_type) || content_type == MessageContentType::Poll) {
         LOG(ERROR) << "Receive " << content_type << " from " << source;
         break;
       }
@@ -883,12 +959,15 @@ void QuickReplyManager::add_quick_reply_message_dependencies(Dependencies &depen
   auto is_bot = td_->auth_manager_->is_bot();
   dependencies.add(m->via_bot_user_id);
   add_message_content_dependencies(dependencies, m->content.get(), is_bot);
+  if (m->edited_content != nullptr) {
+    add_message_content_dependencies(dependencies, m->edited_content.get(), is_bot);
+  }
   add_reply_markup_dependencies(dependencies, m->reply_markup.get());
 }
 
 bool QuickReplyManager::can_edit_quick_reply_message(const QuickReplyMessage *m) const {
   return m->message_id.is_server() && !m->via_bot_user_id.is_valid() &&
-         is_editable_message_content(m->content->get_type());
+         is_editable_message_content(m->content->get_type()) && m->content->get_type() != MessageContentType::Game;
 }
 
 bool QuickReplyManager::can_resend_quick_reply_message(const QuickReplyMessage *m) const {
@@ -918,6 +997,10 @@ td_api::object_ptr<td_api::MessageSendingState> QuickReplyManager::get_message_s
 
 td_api::object_ptr<td_api::MessageContent> QuickReplyManager::get_quick_reply_message_message_content_object(
     const QuickReplyMessage *m) const {
+  if (m->edited_content != nullptr) {
+    return get_message_content_object(m->edited_content.get(), td_, DialogId(), 0, false, true, -1,
+                                      m->edited_invert_media, m->edited_disable_web_page_preview);
+  }
   return get_message_content_object(m->content.get(), td_, DialogId(), 0, false, true, -1, m->invert_media,
                                     m->disable_web_page_preview);
 }
@@ -1358,6 +1441,10 @@ void QuickReplyManager::update_quick_reply_message(QuickReplyShortcutId shortcut
     return;
   }
   auto old_file_ids = get_message_file_ids(old_message.get());
+  new_message->edited_content = std::move(old_message->edited_content);
+  new_message->edited_invert_media = old_message->edited_invert_media;
+  new_message->edited_disable_web_page_preview = old_message->edited_disable_web_page_preview;
+  new_message->edit_generation = old_message->edit_generation;
   old_message = std::move(new_message);
   change_message_files({shortcut_id, old_message->message_id}, old_message.get(), old_file_ids);
 }
@@ -1698,6 +1785,7 @@ void QuickReplyManager::on_failed_send_quick_reply_messages(QuickReplyShortcutId
         if (retry_after > 0) {
           (*it)->try_resend_at = Time::now() + retry_after;
         }
+        CHECK((*it)->edited_content == nullptr);
         update_failed_to_send_message_content(td_, (*it)->content);
 
         break;
@@ -1784,11 +1872,14 @@ void QuickReplyManager::do_send_message(const QuickReplyMessage *m, vector<int> 
     return;
   }
 
-  auto content = m->content.get();
+  auto content = is_edit ? m->edited_content.get() : m->content.get();
   CHECK(content != nullptr);
   auto content_type = content->get_type();
   if (content_type == MessageContentType::Text) {
-    CHECK(!is_edit);
+    if (is_edit) {
+      td_->create_handler<EditQuickReplyMessageQuery>()->send(m);
+      return;
+    }
     auto input_media = get_message_content_input_media_web_page(td_, content);
     if (input_media == nullptr) {
       td_->create_handler<SendQuickReplyMessageQuery>()->send(m);
@@ -1796,6 +1887,9 @@ void QuickReplyManager::do_send_message(const QuickReplyMessage *m, vector<int> 
       td_->create_handler<SendQuickReplyMediaQuery>()->send(FileId(), FileId(), m, std::move(input_media));
     }
     return;
+  }
+  if (is_edit) {
+    return fail_edit_quick_reply_message(m->shortcut_id, m->message_id, m->edit_generation);
   }
 
   FileId file_id = get_message_content_any_file_id(content);  // any_file_id, because it could be a photo sent by ID
@@ -1887,7 +1981,9 @@ void QuickReplyManager::do_send_media(QuickReplyMessage *m, FileId file_id, File
   LOG(INFO) << "Do send media file " << file_id << " with thumbnail " << thumbnail_file_id
             << ", have_input_file = " << have_input_file << ", have_input_thumbnail = " << have_input_thumbnail;
 
-  auto input_media = get_input_media(m->content.get(), td_, std::move(input_file), std::move(input_thumbnail), file_id,
+  auto content = m->message_id.is_server() ? m->edited_content.get() : m->content.get();
+  CHECK(content != nullptr);
+  auto input_media = get_input_media(content, td_, std::move(input_file), std::move(input_thumbnail), file_id,
                                      thumbnail_file_id, {}, m->send_emoji, true);
   CHECK(input_media != nullptr);
 
@@ -1944,7 +2040,8 @@ void QuickReplyManager::on_upload_thumbnail(FileId thumbnail_file_id,
   }
 
   if (thumbnail_input_file == nullptr) {
-    delete_message_content_thumbnail(m->content.get(), td_);
+    auto content = m->message_id.is_server() ? m->edited_content.get() : m->content.get();
+    delete_message_content_thumbnail(content, td_);
   }
 
   do_send_media(m, file_id, thumbnail_file_id, std::move(input_file), std::move(thumbnail_input_file));
@@ -2017,6 +2114,7 @@ Result<td_api::object_ptr<td_api::quickReplyMessages>> QuickReplyManager::resend
     MessageId message_id = message_ids[i];
     const auto *m = get_message(s, message_id);
     CHECK(m != nullptr);
+    CHECK(m->edited_content == nullptr);
 
     unique_ptr<MessageContent> content =
         dup_message_content(td_, td_->dialog_manager_->get_my_dialog_id(), m->content.get(),
@@ -2074,6 +2172,147 @@ Result<td_api::object_ptr<td_api::quickReplyMessages>> QuickReplyManager::resend
   }
 
   return result;
+}
+
+void QuickReplyManager::edit_quick_reply_message(
+    QuickReplyShortcutId shortcut_id, MessageId message_id,
+    td_api::object_ptr<td_api::InputMessageContent> &&input_message_content, Promise<Unit> &&promise) {
+  load_quick_reply_shortcuts();
+  auto *s = get_shortcut(shortcut_id);
+  if (s == nullptr) {
+    return promise.set_error(Status::Error(400, "Shortcut not found"));
+  }
+  auto *m = get_message(s, message_id);
+  if (m == nullptr) {
+    return promise.set_error(Status::Error(400, "Message not found"));
+  }
+  if (!can_edit_quick_reply_message(m)) {
+    return promise.set_error(Status::Error(400, "Message can't be edited"));
+  }
+
+  TRY_RESULT_PROMISE(promise, message_content, process_input_message_content(std::move(input_message_content)));
+  auto new_message_content_type = message_content.content->get_type();
+  auto old_message_content_type = m->content->get_type();
+  switch (old_message_content_type) {
+    case MessageContentType::Text:
+      if (new_message_content_type != MessageContentType::Text) {
+        return promise.set_error(Status::Error(400, "Text messages can be edited only to text messages"));
+      }
+      break;
+    case MessageContentType::Animation:
+    case MessageContentType::Audio:
+    case MessageContentType::Document:
+    case MessageContentType::Photo:
+    case MessageContentType::Video:
+      if (new_message_content_type != MessageContentType::Animation &&
+          new_message_content_type != MessageContentType::Audio &&
+          new_message_content_type != MessageContentType::Document &&
+          new_message_content_type != MessageContentType::Photo &&
+          new_message_content_type != MessageContentType::Video) {
+        return promise.set_error(Status::Error(400, "Media messages can be edited only to media messages"));
+      }
+      if (m->media_album_id != 0) {
+        if (old_message_content_type != new_message_content_type) {
+          if (!is_allowed_media_group_content(new_message_content_type)) {
+            return promise.set_error(Status::Error(400, "Message content type can't be used in an album"));
+          }
+          if (is_homogenous_media_group_content(old_message_content_type) ||
+              is_homogenous_media_group_content(new_message_content_type)) {
+            return promise.set_error(Status::Error(400, "Can't change media type in the album"));
+          }
+        }
+      }
+      break;
+    case MessageContentType::VoiceNote:
+      if (new_message_content_type != MessageContentType::VoiceNote ||
+          get_message_content_any_file_id(m->content.get()) !=
+              get_message_content_any_file_id(message_content.content.get())) {
+        return promise.set_error(Status::Error(400, "Only caption can be edited in voice note messages"));
+      }
+      break;
+    default:
+      UNREACHABLE();
+  }
+
+  m->edited_content = dup_message_content(td_, td_->dialog_manager_->get_my_dialog_id(), message_content.content.get(),
+                                          MessageContentDupType::Send, MessageCopyOptions());
+  CHECK(m->edited_content != nullptr);
+  m->edited_invert_media = message_content.invert_media;
+  m->edited_disable_web_page_preview = message_content.disable_web_page_preview;
+  m->edit_generation = ++current_message_edit_generation_;
+
+  if (s->messages_[0]->message_id == message_id) {
+    send_update_quick_reply_shortcut(s, "edit_quick_reply_message 1");
+  }
+  send_update_quick_reply_shortcut_messages(s, "edit_quick_reply_message 2");
+  save_quick_reply_shortcuts();
+
+  do_send_message(m);
+
+  promise.set_value(Unit());
+}
+
+void QuickReplyManager::on_edit_quick_reply_message(QuickReplyShortcutId shortcut_id, MessageId message_id,
+                                                    int64 edit_generation,
+                                                    telegram_api::object_ptr<telegram_api::Updates> updates_ptr) {
+  auto *m = get_message({shortcut_id, message_id});
+  if (m == nullptr) {
+    return;
+  }
+  if (m->edit_generation != edit_generation) {
+    LOG(INFO) << "Ignore succesful edit of " << QuickReplyMessageFullId(m->shortcut_id, m->message_id)
+              << " with generation " << edit_generation << " instead of " << m->edit_generation;
+    return;
+  }
+  LOG(INFO) << "Receive result for editing of " << QuickReplyMessageFullId(m->shortcut_id, m->message_id) << ": "
+            << to_string(updates_ptr);
+
+  m->content = std::move(m->edited_content);
+  m->invert_media = m->edited_invert_media;
+  m->disable_web_page_preview = m->edited_disable_web_page_preview;
+
+  m->edit_generation = 0;
+  m->edited_content = nullptr;
+  m->edited_invert_media = false;
+  m->edited_disable_web_page_preview = false;
+
+  auto *s = get_shortcut(shortcut_id);
+  CHECK(s != nullptr);
+  if (s->messages_[0]->message_id == m->message_id) {
+    send_update_quick_reply_shortcut(s, "fail_edit_quick_reply_message 1");
+  }
+  send_update_quick_reply_shortcut_messages(s, "fail_edit_quick_reply_message 2");
+  save_quick_reply_shortcuts();
+}
+
+void QuickReplyManager::fail_edit_quick_reply_message(QuickReplyShortcutId shortcut_id, MessageId message_id,
+                                                      int64 edit_generation) {
+  auto *m = get_message({shortcut_id, message_id});
+  if (m != nullptr) {
+    fail_edit_quick_reply_message(m, edit_generation);
+  }
+}
+
+void QuickReplyManager::fail_edit_quick_reply_message(QuickReplyMessage *m, int64 edit_generation) {
+  CHECK(m != nullptr);
+  if (m->edit_generation != edit_generation) {
+    LOG(INFO) << "Ignore failed edit of " << QuickReplyMessageFullId(m->shortcut_id, m->message_id)
+              << " with generation " << edit_generation << " instead of " << m->edit_generation;
+    return;
+  }
+
+  m->edit_generation = 0;
+  m->edited_content = nullptr;
+  m->edited_invert_media = false;
+  m->edited_disable_web_page_preview = false;
+
+  auto *s = get_shortcut(m->shortcut_id);
+  CHECK(s != nullptr);
+  if (s->messages_[0]->message_id == m->message_id) {
+    send_update_quick_reply_shortcut(s, "fail_edit_quick_reply_message 1");
+  }
+  send_update_quick_reply_shortcut_messages(s, "fail_edit_quick_reply_message 2");
+  save_quick_reply_shortcuts();
 }
 
 void QuickReplyManager::get_quick_reply_shortcut_messages(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise) {
@@ -2697,7 +2936,7 @@ void QuickReplyManager::load_quick_reply_shortcuts() {
             (message->legacy_layer != 0 && message->legacy_layer < MTPROTO_LAYER)) {
           reload_quick_reply_message(shortcut->shortcut_id_, message->message_id, Promise<Unit>());
         }
-      } else if (message->message_id.is_yet_unsent()) {
+      } else if (message->message_id.is_yet_unsent() || message->edited_content != nullptr) {
         do_send_message(message.get());
       }
     }
@@ -2758,6 +2997,16 @@ void QuickReplyManager::send_update_quick_reply_shortcut_messages(const Shortcut
 vector<FileId> QuickReplyManager::get_message_file_ids(const QuickReplyMessage *m) const {
   if (m == nullptr) {
     return {};
+  }
+  if (m->edited_content != nullptr) {
+    auto file_ids = get_message_content_file_ids(m->edited_content.get(), td_);
+    if (!file_ids.empty()) {
+      for (auto file_id : get_message_content_file_ids(m->content.get(), td_)) {
+        if (!td::contains(file_ids, file_id)) {
+          file_ids.push_back(file_id);
+        }
+      }
+    }
   }
   return get_message_content_file_ids(m->content.get(), td_);
 }

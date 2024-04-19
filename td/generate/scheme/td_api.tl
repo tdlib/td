@@ -8183,6 +8183,13 @@ addQuickReplyShortcutInlineQueryResultMessage shortcut_name:string reply_to_mess
 //@message_ids Identifiers of the  quick reply messages to readd. Message identifiers must be in a strictly increasing order
 readdQuickReplyShortcutMessages shortcut_name:string message_ids:vector<int53> = QuickReplyMessages;
 
+//@description Asynchronously edits the text, media or caption of a quick reply message. Use quickReplyMessage.can_be_edited to check whether a message can be edited.
+//-Text message can be edited only to a text message. The type of message content in an album can't be changed with exception of replacing a photo with a video or vice versa
+//@shortcut_id Unique identifier of the quick reply shortcut with the message
+//@message_id Identifier of the message
+//@input_message_content New content of the message. Must be one of the following types: inputMessageText, inputMessageAnimation, inputMessageAudio, inputMessageDocument, inputMessagePhoto or inputMessageVideo
+editQuickReplyMessage shortcut_id:int32 message_id:int53 input_message_content:InputMessageContent = Ok;
+
 
 //@description Returns list of custom emojis, which can be used as forum topic icon by all users
 getForumTopicDefaultIcons = Stickers;

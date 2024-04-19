@@ -72,6 +72,10 @@ class QuickReplyManager final : public Actor {
   Result<td_api::object_ptr<td_api::quickReplyMessages>> resend_messages(const string &shortcut_name,
                                                                          vector<MessageId> message_ids);
 
+  void edit_quick_reply_message(QuickReplyShortcutId shortcut_id, MessageId message_id,
+                                td_api::object_ptr<td_api::InputMessageContent> &&input_message_content,
+                                Promise<Unit> &&promise);
+
   void reload_quick_reply_shortcuts();
 
   void reload_quick_reply_messages(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise);
@@ -129,6 +133,9 @@ class QuickReplyManager final : public Actor {
     bool from_background = false;  // for send_message
     bool hide_via_bot = false;     // for resend_message
 
+    bool edited_invert_media = false;
+    bool edited_disable_web_page_preview = false;
+
     int32 legacy_layer = 0;
 
     int32 send_error_code = 0;
@@ -139,6 +146,9 @@ class QuickReplyManager final : public Actor {
 
     unique_ptr<MessageContent> content;
     unique_ptr<ReplyMarkup> reply_markup;
+
+    unique_ptr<MessageContent> edited_content;
+    int64 edit_generation = 0;
 
     template <class StorerT>
     void store(StorerT &storer) const;
@@ -186,6 +196,7 @@ class QuickReplyManager final : public Actor {
   class SendQuickReplyMessageQuery;
   class SendQuickReplyMediaQuery;
   class SendQuickReplyInlineMessageQuery;
+  class EditQuickReplyMessageQuery;
 
   class UploadMediaCallback;
   class UploadThumbnailCallback;
@@ -367,6 +378,13 @@ class QuickReplyManager final : public Actor {
 
   static int64 generate_new_media_album_id();
 
+  void on_edit_quick_reply_message(QuickReplyShortcutId shortcut_id, MessageId message_id, int64 edit_generation,
+                                   telegram_api::object_ptr<telegram_api::Updates> updates_ptr);
+
+  void fail_edit_quick_reply_message(QuickReplyShortcutId shortcut_id, MessageId message_id, int64 edit_generation);
+
+  void fail_edit_quick_reply_message(QuickReplyMessage *m, int64 edit_generation);
+
   string get_quick_reply_shortcuts_database_key();
 
   void save_quick_reply_shortcuts();
@@ -401,6 +419,8 @@ class QuickReplyManager final : public Actor {
     tl_object_ptr<telegram_api::InputFile> input_file;  // original file InputFile
   };
   FlatHashMap<FileId, UploadedThumbnailInfo, FileIdHash> being_uploaded_thumbnails_;  // thumbnail_file_id -> ...
+
+  int64 current_message_edit_generation_ = 0;
 
   Td *td_;
   ActorShared<> parent_;

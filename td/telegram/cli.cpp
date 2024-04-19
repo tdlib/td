@@ -4881,6 +4881,14 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::editMessageText>(
           chat_id, message_id, nullptr,
           td_api::make_object<td_api::inputMessageText>(as_formatted_text(message), get_link_preview_options(), true)));
+    } else if (op == "eqrm") {
+      ShortcutId shortcut_id;
+      MessageId message_id;
+      string message;
+      get_args(args, shortcut_id, message_id, message);
+      send_request(td_api::make_object<td_api::editQuickReplyMessage>(
+          shortcut_id, message_id,
+          td_api::make_object<td_api::inputMessageText>(as_formatted_text(message), get_link_preview_options(), true)));
     } else if (op == "eman") {
       ChatId chat_id;
       MessageId message_id;
