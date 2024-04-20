@@ -1789,7 +1789,8 @@ void UpdatesManager::notify_speed_limited(bool is_upload) {
     return;
   }
   next_notify_speed_limited_[is_upload] =
-      Time::now() + td_->option_manager_->get_option_integer("upload_premium_speedup_notify_period");
+      Time::now() +
+      static_cast<double>(td_->option_manager_->get_option_integer("upload_premium_speedup_notify_period"));
   send_closure(G()->td(), &Td::send_update, td_api::make_object<td_api::updateSpeedLimitNotification>(is_upload));
 }
 
