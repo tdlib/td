@@ -37323,7 +37323,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         }
 
         if (need_update_dialog_pos) {
-          send_update_chat_last_message(d, "on_resent_quick_reply_shortcut_message");
+          send_update_chat_last_message(d, "SendQuickReplyShortcutMessagesLogEvent");
         }
 
         do_send_quick_reply_shortcut_messages(dialog_id, log_event.shortcut_id, sent_messages, log_event.message_ids,

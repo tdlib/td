@@ -2318,7 +2318,7 @@ void QuickReplyManager::on_edit_quick_reply_message(QuickReplyShortcutId shortcu
     return;
   }
   if (m->edit_generation != edit_generation) {
-    LOG(INFO) << "Ignore succesful edit of " << QuickReplyMessageFullId(m->shortcut_id, m->message_id)
+    LOG(INFO) << "Ignore successful edit of " << QuickReplyMessageFullId(m->shortcut_id, m->message_id)
               << " with generation " << edit_generation << " instead of " << m->edit_generation;
     if (was_uploaded) {
       send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_id);
