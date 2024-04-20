@@ -790,6 +790,7 @@ FileId BusinessConnectionManager::get_message_thumbnail_file_id(const unique_ptr
 void BusinessConnectionManager::upload_media(unique_ptr<PendingMessage> &&message, Promise<UploadMediaResult> &&promise,
                                              vector<int> bad_parts) {
   auto file_id = get_message_file_id(message);
+  CHECK(file_id.is_valid());
   FileView file_view = td_->file_manager_->get_file_view(file_id);
   if (file_view.is_encrypted()) {
     return promise.set_error(Status::Error(400, "Can't use encrypted file"));

@@ -4912,6 +4912,14 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::editMessageMedia>(
           chat_id, message_id, nullptr,
           td_api::make_object<td_api::inputMessageDocument>(as_input_file(document), nullptr, false, as_caption(""))));
+    } else if (op == "eqrmd") {
+      ShortcutId shortcut_id;
+      MessageId message_id;
+      string document;
+      get_args(args, shortcut_id, message_id, document);
+      send_request(td_api::make_object<td_api::editQuickReplyMessage>(
+          shortcut_id, message_id,
+          td_api::make_object<td_api::inputMessageDocument>(as_input_file(document), nullptr, false, as_caption(""))));
     } else if (op == "emp") {
       ChatId chat_id;
       MessageId message_id;
@@ -4922,6 +4930,15 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::inputMessagePhoto>(as_input_file(photo), as_input_thumbnail(photo), Auto(), 0, 0,
                                                          as_caption(""), get_message_self_destruct_type(),
                                                          has_spoiler_)));
+    } else if (op == "eqrmp") {
+      ShortcutId shortcut_id;
+      MessageId message_id;
+      string photo;
+      get_args(args, shortcut_id, message_id, photo);
+      send_request(td_api::make_object<td_api::editQuickReplyMessage>(
+          shortcut_id, message_id,
+          td_api::make_object<td_api::inputMessagePhoto>(as_input_file(photo), as_input_thumbnail(photo), Auto(), 0, 0,
+                                                         as_caption(""), nullptr, has_spoiler_)));
     } else if (op == "emvt") {
       ChatId chat_id;
       MessageId message_id;

@@ -23892,7 +23892,6 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vect
   }
 
   FileId file_id = get_message_content_any_file_id(content);  // any_file_id, because it could be a photo sent by ID
-  FileView file_view = td_->file_manager_->get_file_view(file_id);
   FileId thumbnail_file_id = get_message_content_thumbnail_file_id(content, td_);
   LOG(DEBUG) << "Need to send file " << file_id << " with thumbnail " << thumbnail_file_id;
   if (is_secret) {
@@ -23901,8 +23900,9 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vect
     auto secret_input_media = get_secret_input_media(content, td_, nullptr, BufferSlice(), layer);
     if (secret_input_media.empty()) {
       LOG(INFO) << "Ask to upload encrypted file " << file_id;
-      CHECK(file_view.is_encrypted_secret());
       CHECK(file_id.is_valid());
+      FileView file_view = td_->file_manager_->get_file_view(file_id);
+      CHECK(file_view.is_encrypted_secret());
       bool is_inserted =
           being_uploaded_files_
               .emplace(file_id, std::make_pair(MessageFullId(dialog_id, m->message_id), thumbnail_file_id))
@@ -23921,6 +23921,8 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vect
           content_type == MessageContentType::Story) {
         return;
       }
+      CHECK(file_id.is_valid());
+      FileView file_view = td_->file_manager_->get_file_view(file_id);
       if (get_main_file_type(file_view.get_type()) == FileType::Photo) {
         thumbnail_file_id = FileId();
       }

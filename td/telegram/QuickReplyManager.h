@@ -354,7 +354,7 @@ class QuickReplyManager final : public Actor {
 
   void on_failed_send_quick_reply_messages(QuickReplyShortcutId shortcut_id, vector<int64> random_ids, Status error);
 
-  void update_message_content(QuickReplyMessage *old_message, QuickReplyMessage *new_message);
+  void update_message_content(QuickReplyMessage *old_message, QuickReplyMessage *new_message, bool is_edit);
 
   void do_send_message(const QuickReplyMessage *m, vector<int> bad_parts = {});
 

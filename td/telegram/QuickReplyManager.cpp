@@ -502,7 +502,7 @@ class QuickReplyManager::EditQuickReplyMessageQuery final : public Td::ResultHan
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for EditMessageQuery: " << to_string(ptr);
+    LOG(INFO) << "Receive result for EditQuickReplyMessageQuery: " << to_string(ptr);
     td_->quick_reply_manager_->on_edit_quick_reply_message(shortcut_id_, message_id_, edit_generation_, file_id_,
                                                            was_uploaded_, std::move(ptr));
   }
@@ -1728,7 +1728,7 @@ void QuickReplyManager::process_send_quick_reply_updates(QuickReplyShortcutId sh
                   std::move(static_cast<telegram_api::updateQuickReplyMessage *>(update.get())->message_),
                   "process_send_quick_reply_updates");
               if (message != nullptr && message->shortcut_id == shortcut_id) {
-                update_message_content(it->get(), message.get());
+                update_message_content(it->get(), message.get(), false);
                 auto old_message_it = get_message_it(s, message->message_id);
                 if (old_message_it == s->messages_.end()) {
                   change_message_files({shortcut_id, message->message_id}, message.get(), {});
@@ -1761,15 +1761,17 @@ void QuickReplyManager::process_send_quick_reply_updates(QuickReplyShortcutId sh
   save_quick_reply_shortcuts();
 }
 
-void QuickReplyManager::update_message_content(QuickReplyMessage *old_message, QuickReplyMessage *new_message) {
-  CHECK(old_message->message_id.is_yet_unsent());
-  unique_ptr<MessageContent> &old_content = old_message->content;
+void QuickReplyManager::update_message_content(QuickReplyMessage *old_message, QuickReplyMessage *new_message,
+                                               bool is_edit) {
+  CHECK(is_edit ? old_message->message_id.is_server() : old_message->message_id.is_yet_unsent());
+  CHECK(new_message->edited_content == nullptr);
+  unique_ptr<MessageContent> &old_content = is_edit ? old_message->edited_content : old_message->content;
   unique_ptr<MessageContent> &new_content = new_message->content;
   MessageContentType old_content_type = old_content->get_type();
   MessageContentType new_content_type = new_content->get_type();
 
   auto old_file_id = get_message_content_any_file_id(old_content.get());
-  auto need_merge_files = new_message->edit_date == 0 && old_file_id.is_valid();
+  auto need_merge_files = (is_edit || new_message->edit_date == 0) && old_file_id.is_valid();
   if (old_content_type != new_content_type) {
     if (need_merge_files) {
       td_->file_manager_->try_merge_documents(old_file_id, get_message_content_any_file_id(new_content.get()));
@@ -1900,14 +1902,23 @@ void QuickReplyManager::do_send_message(const QuickReplyMessage *m, vector<int> 
   auto message_full_id = QuickReplyMessageFullId(m->shortcut_id, m->message_id);
   LOG(INFO) << "Do " << (is_edit ? "edit" : "send") << ' ' << message_full_id;
 
+  auto content = is_edit ? m->edited_content.get() : m->content.get();
+  CHECK(content != nullptr);
+  auto content_type = content->get_type();
+  if (content_type == MessageContentType::Unsupported) {
+    if (is_edit) {
+      return fail_edit_quick_reply_message(m->shortcut_id, m->message_id, m->edit_generation, FileId(), FileId(),
+                                           string(), false, false, Status::Error(400, "Failed to upload file"));
+    }
+    return on_failed_send_quick_reply_messages(m->shortcut_id, {m->random_id},
+                                               Status::Error(400, "Failed to upload file"));
+  }
+
   if (!is_edit && m->inline_query_id != 0) {
     td_->create_handler<SendQuickReplyInlineMessageQuery>()->send(m);
     return;
   }
 
-  auto content = is_edit ? m->edited_content.get() : m->content.get();
-  CHECK(content != nullptr);
-  auto content_type = content->get_type();
   if (content_type == MessageContentType::Text) {
     if (is_edit) {
       td_->create_handler<EditQuickReplyMessageQuery>()->send(FileId(), FileId(), m, nullptr);
@@ -1923,7 +1934,6 @@ void QuickReplyManager::do_send_message(const QuickReplyMessage *m, vector<int> 
   }
 
   FileId file_id = get_message_content_any_file_id(content);  // any_file_id, because it could be a photo sent by ID
-  FileView file_view = td_->file_manager_->get_file_view(file_id);
   FileId thumbnail_file_id = get_message_content_thumbnail_file_id(content, td_);
   LOG(DEBUG) << "Need to send file " << file_id << " with thumbnail " << thumbnail_file_id;
   auto input_media = get_input_media(content, td_, {}, m->send_emoji, false);
@@ -1931,6 +1941,8 @@ void QuickReplyManager::do_send_message(const QuickReplyMessage *m, vector<int> 
     if (content_type == MessageContentType::Game || content_type == MessageContentType::Story) {
       return;
     }
+    CHECK(file_id.is_valid());
+    FileView file_view = td_->file_manager_->get_file_view(file_id);
     if (get_main_file_type(file_view.get_type()) == FileType::Photo) {
       thumbnail_file_id = FileId();
     }
@@ -2293,7 +2305,8 @@ void QuickReplyManager::edit_quick_reply_message(
 void QuickReplyManager::on_edit_quick_reply_message(QuickReplyShortcutId shortcut_id, MessageId message_id,
                                                     int64 edit_generation, FileId file_id, bool was_uploaded,
                                                     telegram_api::object_ptr<telegram_api::Updates> updates_ptr) {
-  auto *m = get_message({shortcut_id, message_id});
+  auto *s = get_shortcut(shortcut_id);
+  auto *m = get_message(s, message_id);
   if (m == nullptr) {
     if (was_uploaded) {
       send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_id);
@@ -2311,10 +2324,47 @@ void QuickReplyManager::on_edit_quick_reply_message(QuickReplyShortcutId shortcu
   LOG(INFO) << "Receive result for editing of " << QuickReplyMessageFullId(m->shortcut_id, m->message_id) << ": "
             << to_string(updates_ptr);
 
+  bool was_updated = updates_ptr == nullptr;
+  if (updates_ptr == nullptr || updates_ptr->get_id() != telegram_api::updates::ID) {
+    if (was_uploaded) {
+      send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_id);
+    }
+    reload_quick_reply_message(shortcut_id, message_id, Promise<Unit>());
+  } else {
+    auto updates = telegram_api::move_object_as<telegram_api::updates>(updates_ptr);
+    td_->user_manager_->on_get_users(std::move(updates->users_), "on_edit_quick_reply_message");
+    td_->chat_manager_->on_get_chats(std::move(updates->chats_), "on_edit_quick_reply_message");
+
+    if (updates->updates_.size() != 1 || updates->updates_[0]->get_id() != telegram_api::updateQuickReplyMessage::ID) {
+      LOG(ERROR) << "Receive " << to_string(updates);
+      if (was_uploaded) {
+        send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_id);
+      }
+    } else {
+      auto update_message = telegram_api::move_object_as<telegram_api::updateQuickReplyMessage>(updates->updates_[0]);
+      auto message = create_message(std::move(update_message->message_), "on_edit_quick_reply_message");
+      if (message == nullptr || message->shortcut_id != shortcut_id || message->message_id != message_id) {
+        LOG(ERROR) << "Receive unexpected message";
+        if (was_uploaded) {
+          send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_id);
+        }
+      } else {
+        update_message_content(m, message.get(), true);
+        auto old_message_it = get_message_it(s, message_id);
+        update_quick_reply_message(shortcut_id, *old_message_it, std::move(message));
+        m = old_message_it->get();
+        was_updated = true;
+      }
+    }
+  }
+
   auto old_file_ids = get_message_file_ids(m);
-  m->content = std::move(m->edited_content);
-  m->invert_media = m->edited_invert_media;
-  m->disable_web_page_preview = m->edited_disable_web_page_preview;
+  CHECK(m->edited_content != nullptr);
+  if (!was_updated) {
+    m->content = std::move(m->edited_content);
+    m->invert_media = m->edited_invert_media;
+    m->disable_web_page_preview = m->edited_disable_web_page_preview;
+  }
 
   m->edit_generation = 0;
   m->edited_content = nullptr;
@@ -2322,8 +2372,6 @@ void QuickReplyManager::on_edit_quick_reply_message(QuickReplyShortcutId shortcu
   m->edited_disable_web_page_preview = false;
   change_message_files({shortcut_id, message_id}, m, old_file_ids);
 
-  auto *s = get_shortcut(shortcut_id);
-  CHECK(s != nullptr);
   if (s->messages_[0]->message_id == m->message_id) {
     send_update_quick_reply_shortcut(s, "on_edit_quick_reply_message 1");
   }
@@ -2390,7 +2438,7 @@ void QuickReplyManager::fail_edit_quick_reply_message(QuickReplyShortcutId short
   }
   send_update_quick_reply_shortcut_messages(s, "fail_edit_quick_reply_message 2");
   save_quick_reply_shortcuts();
-  reload_quick_reply_messages(m->shortcut_id, Auto());
+  reload_quick_reply_message(shortcut_id, message_id, Promise<Unit>());
 }
 
 void QuickReplyManager::get_quick_reply_shortcut_messages(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise) {
@@ -2712,17 +2760,15 @@ vector<unique_ptr<QuickReplyManager::QuickReplyMessage>>::iterator QuickReplyMan
 
 QuickReplyManager::QuickReplyMessage *QuickReplyManager::get_message(QuickReplyMessageFullId message_full_id) {
   auto *s = get_shortcut(message_full_id.get_quick_reply_shortcut_id());
-  if (s != nullptr) {
-    return get_message(s, message_full_id.get_message_id());
-  }
-  return nullptr;
+  return get_message(s, message_full_id.get_message_id());
 }
 
 QuickReplyManager::QuickReplyMessage *QuickReplyManager::get_message(Shortcut *s, MessageId message_id) {
-  CHECK(s != nullptr);
-  for (auto it = s->messages_.begin(); it != s->messages_.end(); ++it) {
-    if ((*it)->message_id == message_id) {
-      return it->get();
+  if (s != nullptr) {
+    for (auto it = s->messages_.begin(); it != s->messages_.end(); ++it) {
+      if ((*it)->message_id == message_id) {
+        return it->get();
+      }
     }
   }
   return nullptr;
@@ -3116,6 +3162,7 @@ void QuickReplyManager::change_message_files(QuickReplyMessageFullId message_ful
     return;
   }
 
+  LOG(INFO) << "Change files of " << message_full_id << " from " << old_file_ids << " to " << new_file_ids;
   for (auto file_id : old_file_ids) {
     if (!td::contains(new_file_ids, file_id)) {
       send_closure(G()->file_manager(), &FileManager::delete_file, file_id, Promise<Unit>(), "change_message_files");
