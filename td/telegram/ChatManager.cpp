@@ -137,7 +137,8 @@ class CreateChannelQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->messages_manager_->on_create_new_dialog(result_ptr.move_as_ok(), Auto(), Auto(), std::move(promise_));
+    td_->messages_manager_->on_create_new_dialog(result_ptr.move_as_ok(), MissingInvitees(), Auto(),
+                                                 std::move(promise_));
   }
 
   void on_error(Status status) final {
