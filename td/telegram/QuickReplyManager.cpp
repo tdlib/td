@@ -1127,6 +1127,7 @@ void QuickReplyManager::on_reload_quick_reply_shortcuts(
 
       FlatHashSet<QuickReplyShortcutId, QuickReplyShortcutIdHash> old_shortcut_ids;
       for (auto &shortcut : shortcuts_.shortcuts_) {
+        CHECK(shortcut->shortcut_id_.is_valid());
         old_shortcut_ids.insert(shortcut->shortcut_id_);
       }
       FlatHashSet<QuickReplyShortcutId, QuickReplyShortcutIdHash> added_shortcut_ids;
@@ -1385,6 +1386,7 @@ void QuickReplyManager::reorder_quick_reply_shortcuts(const vector<QuickReplySho
     if (get_shortcut(shortcut_id) == nullptr) {
       return promise.set_error(Status::Error(400, "Shortcut not found"));
     }
+    CHECK(shortcut_id.is_valid());
     unique_shortcut_ids.insert(shortcut_id);
   }
   if (unique_shortcut_ids.size() != shortcut_ids.size()) {
