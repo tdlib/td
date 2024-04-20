@@ -10,6 +10,8 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/Td.h"
 
+#include "td/utils/logging.h"
+
 namespace td {
 
 InputBusinessChatLink::InputBusinessChatLink(const Td *td, td_api::object_ptr<td_api::inputBusinessChatLink> &&link) {

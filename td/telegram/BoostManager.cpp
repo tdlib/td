@@ -27,6 +27,8 @@
 #include "td/utils/misc.h"
 #include "td/utils/SliceBuilder.h"
 
+#include <algorithm>
+
 namespace td {
 
 static td_api::object_ptr<td_api::chatBoost> get_chat_boost_object(
@@ -371,12 +373,12 @@ td_api::object_ptr<td_api::chatBoostLevelFeatures> BoostManager::get_chat_boost_
 }
 
 td_api::object_ptr<td_api::chatBoostFeatures> BoostManager::get_chat_boost_features_object(bool for_megagroup) const {
-  std::set<int32> big_levels;
+  vector<int32> big_levels;
   auto get_min_boost_level = [&](Slice name) {
     auto min_level = narrow_cast<int32>(td_->option_manager_->get_option_integer(
         PSLICE() << (for_megagroup ? "group" : "channel") << '_' << name << "_level_min", 1000000000));
     if (min_level > 10 && min_level < 1000000) {
-      big_levels.insert(min_level);
+      big_levels.push_back(min_level);
     }
     return min_level;
   };
@@ -388,6 +390,7 @@ td_api::object_ptr<td_api::chatBoostFeatures> BoostManager::get_chat_boost_featu
   for (int32 level = 1; level <= 10; level++) {
     result->features_.push_back(get_chat_boost_level_features_object(for_megagroup, level));
   }
+  td::unique(big_levels);
   for (auto level : big_levels) {
     result->features_.push_back(get_chat_boost_level_features_object(for_megagroup, level));
   }

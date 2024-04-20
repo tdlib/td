@@ -13,6 +13,7 @@
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileManager.h"
+#include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/InlineQueriesManager.h"
 #include "td/telegram/logevent/LogEvent.h"
@@ -20,6 +21,7 @@
 #include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageCopyOptions.h"
+#include "td/telegram/MessageInputReplyTo.h"
 #include "td/telegram/MessageReplyHeader.h"
 #include "td/telegram/MessageSelfDestructType.h"
 #include "td/telegram/misc.h"
@@ -37,6 +39,7 @@
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/format.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Random.h"
@@ -46,6 +49,7 @@
 #include "td/utils/utf8.h"
 
 #include <algorithm>
+#include <limits>
 #include <unordered_map>
 
 namespace td {
@@ -275,11 +279,11 @@ class QuickReplyManager::SendQuickReplyMessageQuery final : public Td::ResultHan
   }
 
   void on_error(Status status) final {
-    LOG(INFO) << "Receive error for SendQuickReplyMessageQuery: " << status;
     if (G()->close_flag()) {
       // do not send error, message will be re-sent after restart
       return;
     }
+    LOG(INFO) << "Receive error for SendQuickReplyMessageQuery: " << status;
     td_->quick_reply_manager_->on_failed_send_quick_reply_messages(shortcut_id_, {random_id_}, std::move(status));
   }
 };
@@ -324,11 +328,11 @@ class QuickReplyManager::SendQuickReplyInlineMessageQuery final : public Td::Res
   }
 
   void on_error(Status status) final {
-    LOG(INFO) << "Receive error for SendQuickReplyInlineMessageQuery: " << status;
     if (G()->close_flag()) {
       // do not send error, message will be re-sent after restart
       return;
     }
+    LOG(INFO) << "Receive error for SendQuickReplyInlineMessageQuery: " << status;
     td_->quick_reply_manager_->on_failed_send_quick_reply_messages(shortcut_id_, {random_id_}, std::move(status));
   }
 };
@@ -399,11 +403,11 @@ class QuickReplyManager::SendQuickReplyMediaQuery final : public Td::ResultHandl
   }
 
   void on_error(Status status) final {
-    LOG(INFO) << "Receive error for SendQuickReplyMediaQuery: " << status;
     if (G()->close_flag()) {
       // do not send error, message will be re-sent after restart
       return;
     }
+    LOG(INFO) << "Receive error for SendQuickReplyMediaQuery: " << status;
     if (was_uploaded_) {
       if (was_thumbnail_uploaded_) {
         CHECK(thumbnail_file_id_.is_valid());
@@ -1605,12 +1609,10 @@ Status QuickReplyManager::check_send_quick_reply_messages_response(
   }
   if (sent_random_ids.size() != random_ids.size()) {
     return Status::Error("Receive duplicate random_id");
-    ;
   }
   for (auto random_id : random_ids) {
     if (sent_random_ids.count(random_id) != 1) {
       return Status::Error("Don't receive expected random_id");
-      ;
     }
   }
   int32 new_shortcut_count = 0;

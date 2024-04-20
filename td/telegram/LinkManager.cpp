@@ -2277,7 +2277,7 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return Status::Error(400, "Invalid chat username specified");
       }
       if (!check_utf8(link->draft_text_)) {
-        return Status::Error(400, "Draft text nust be encoded in UTF-8");
+        return Status::Error(400, "Draft text must be encoded in UTF-8");
       }
       return get_public_dialog_link(link->chat_username_, link->draft_text_, is_internal);
     }
@@ -2385,7 +2385,7 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return Status::Error(400, "Invalid phone number specified");
       }
       if (!check_utf8(link->draft_text_)) {
-        return Status::Error(400, "Draft text nust be encoded in UTF-8");
+        return Status::Error(400, "Draft text must be encoded in UTF-8");
       }
       if (is_internal) {
         return PSTRING() << "tg://resolve?phone=" << link->phone_number_ << (link->draft_text_.empty() ? "" : "&text=")

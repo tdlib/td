@@ -7211,7 +7211,7 @@ updateAnimationSearchParameters provider:string emojis:vector<string> = Update;
 updateSuggestedActions added_actions:vector<SuggestedAction> removed_actions:vector<SuggestedAction> = Update;
 
 //@description Download or upload file speed for the user was limited, but it can be restored by subscription to Telegram Premium. The notification can be postponed until a being downloaded or uploaded file is visible to the user
-//-Use getOption("premium_download_speedup") or getOption("premium_upload_speedup") to get expected speedup after subscription to Telegram Premium 
+//-Use getOption("premium_download_speedup") or getOption("premium_upload_speedup") to get expected speedup after subscription to Telegram Premium
 //@is_upload True, if upload speed was limited; false, if download speed was limited
 updateSpeedLimitNotification is_upload:Bool = Update;
 
@@ -8180,7 +8180,7 @@ addQuickReplyShortcutInlineQueryResultMessage shortcut_name:string reply_to_mess
 //@description Readds quick reply messages which failed to add. Can be called only for messages for which messageSendingStateFailed.can_retry is true and after specified in messageSendingStateFailed.retry_after time passed.
 //-If a message is readded, the corresponding failed to send message is deleted. Returns the sent messages in the same order as the message identifiers passed in message_ids. If a message can't be readded, null will be returned instead of the message
 //@shortcut_name Name of the target shortcut
-//@message_ids Identifiers of the  quick reply messages to readd. Message identifiers must be in a strictly increasing order
+//@message_ids Identifiers of the quick reply messages to readd. Message identifiers must be in a strictly increasing order
 readdQuickReplyShortcutMessages shortcut_name:string message_ids:vector<int53> = QuickReplyMessages;
 
 //@description Asynchronously edits the text, media or caption of a quick reply message. Use quickReplyMessage.can_be_edited to check whether a message can be edited.
@@ -9799,7 +9799,7 @@ setBusinessAwayMessageSettings away_message_settings:businessAwayMessageSettings
 setBusinessStartPage start_page:inputBusinessStartPage = Ok;
 
 
-//@description Sends a code to the specified phone number. Aborts previous phone number verification if any. On success, returns information about the sent code
+//@description Sends a code to the specified phone number. Aborts previous phone number verification if there was one. On success, returns information about the sent code
 //@phone_number The phone number, in international format
 //@settings Settings for the authentication of the user's phone number; pass null to use default settings
 //@type Type of the request for which the code is sent
@@ -9836,7 +9836,7 @@ removeBusinessConnectedBotFromChat chat_id:int53 = Ok;
 getBusinessChatLinks = BusinessChatLinks;
 
 //@description Creates a business chat link for the current account. Requires Telegram Business subscription. There can be up to getOption("business_chat_link_count_max") links created. Returns the created link
-//@link_info Description of the link to create
+//@link_info Information about the link to create
 createBusinessChatLink link_info:inputBusinessChatLink = BusinessChatLink;
 
 //@description Edits a business chat link of the current account. Requires Telegram Business subscription. Returns the edited link
