@@ -25138,6 +25138,12 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
                                               Result<int32> &&result) {
   // must not run getDifference
 
+  if (was_thumbnail_uploaded) {
+    CHECK(thumbnail_file_id.is_valid());
+    // always delete partial remote location for the thumbnail, because it can't be reused anyway
+    td_->file_manager_->delete_partial_remote_location(thumbnail_file_id);
+  }
+
   CHECK(message_id.is_any_server());
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);

@@ -26,6 +26,7 @@
 #include "td/utils/Status.h"
 
 #include <memory>
+#include <tuple>
 #include <utility>
 
 namespace td {
@@ -379,11 +380,12 @@ class QuickReplyManager final : public Actor {
   static int64 generate_new_media_album_id();
 
   void on_edit_quick_reply_message(QuickReplyShortcutId shortcut_id, MessageId message_id, int64 edit_generation,
+                                   FileId file_id, bool was_uploaded,
                                    telegram_api::object_ptr<telegram_api::Updates> updates_ptr);
 
-  void fail_edit_quick_reply_message(QuickReplyShortcutId shortcut_id, MessageId message_id, int64 edit_generation);
-
-  void fail_edit_quick_reply_message(QuickReplyMessage *m, int64 edit_generation);
+  void fail_edit_quick_reply_message(QuickReplyShortcutId shortcut_id, MessageId message_id, int64 edit_generation,
+                                     FileId file_id, FileId thumbnail_file_id, string file_reference, bool was_uploaded,
+                                     bool was_thumbnail_uploaded, Status status);
 
   string get_quick_reply_shortcuts_database_key();
 
@@ -410,13 +412,14 @@ class QuickReplyManager final : public Actor {
 
   FlatHashMap<QuickReplyMessageFullId, FileSourceId, QuickReplyMessageFullIdHash> message_full_id_to_file_source_id_;
 
-  FlatHashMap<FileId, std::pair<QuickReplyMessageFullId, FileId>, FileIdHash>
+  FlatHashMap<FileId, std::tuple<QuickReplyMessageFullId, FileId, int64>, FileIdHash>
       being_uploaded_files_;  // file_id -> message, thumbnail_file_id
 
   struct UploadedThumbnailInfo {
     QuickReplyMessageFullId quick_reply_message_full_id;
-    FileId file_id;                                     // original file file_id
-    tl_object_ptr<telegram_api::InputFile> input_file;  // original file InputFile
+    FileId file_id;                                                // original file file_id
+    telegram_api::object_ptr<telegram_api::InputFile> input_file;  // original file InputFile
+    int64 edit_generation;
   };
   FlatHashMap<FileId, UploadedThumbnailInfo, FileIdHash> being_uploaded_thumbnails_;  // thumbnail_file_id -> ...
 
