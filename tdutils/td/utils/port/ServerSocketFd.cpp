@@ -22,6 +22,7 @@
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
+#include <sys/un.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -364,6 +365,50 @@ Result<ServerSocketFd> ServerSocketFd::open(int32 port, CSlice addr) {
   auto impl = make_unique<detail::ServerSocketFdImpl>(std::move(fd));
 #elif TD_PORT_WINDOWS
   auto impl = make_unique<detail::ServerSocketFdImpl>(std::move(fd), address.get_address_family());
+#endif
+
+  return ServerSocketFd(std::move(impl));
+}
+
+Result<ServerSocketFd> ServerSocketFd::open(string path) {
+  NativeFd fd{socket(AF_UNIX, SOCK_STREAM, 0)};
+  if (!fd) {
+    return OS_SOCKET_ERROR("Failed to create a socket");
+  }
+
+  TRY_STATUS(fd.set_is_blocking_unsafe(false));
+  auto sock = fd.socket();
+
+  linger ling = {0, 0};
+#if TD_PORT_POSIX
+  int flags = 1;
+#ifdef SO_REUSEPORT
+  setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, reinterpret_cast<const char *>(&flags), sizeof(flags));
+#endif
+#endif
+  setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char *>(&flags), sizeof(flags));
+  setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, reinterpret_cast<const char *>(&flags), sizeof(flags));
+  setsockopt(sock, SOL_SOCKET, SO_LINGER, reinterpret_cast<const char *>(&ling), sizeof(ling));
+  setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<const char *>(&flags), sizeof(flags));
+
+  #define UNIX_PATH_MAX 108
+  struct sockaddr_un server_addr = { .sun_family = AF_UNIX };
+  memset(server_addr.sun_path, 0, UNIX_PATH_MAX);
+  strcpy(server_addr.sun_path, path.c_str());
+
+  int e_bind = bind(sock, (struct sockaddr *) &server_addr, sizeof(server_addr));
+  if (e_bind != 0) {
+    return OS_SOCKET_ERROR("Failed to bind a socket");
+  }
+
+  // TODO: magic constant
+  int e_listen = listen(sock, 8192);
+  if (e_listen != 0) {
+    return OS_SOCKET_ERROR("Failed to listen on a socket");
+  }
+
+#if TD_PORT_POSIX
+  auto impl = make_unique<detail::ServerSocketFdImpl>(std::move(fd));
 #endif
 
   return ServerSocketFd(std::move(impl));
