@@ -592,6 +592,12 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
             page->story_full_ids_.push_back(story_full_id);
             break;
           }
+          case telegram_api::webPageAttributeStickerSet::ID: {
+            auto attribute = telegram_api::move_object_as<telegram_api::webPageAttributeStickerSet>(attribute_ptr);
+            break;
+          }
+          default:
+            UNREACHABLE();
         }
       }
       if (web_page->cached_page_ != nullptr) {

@@ -89,9 +89,9 @@ telegram_api::object_ptr<telegram_api::codeSettings> SendCodeHelper::get_input_c
       flags |= telegram_api::codeSettings::LOGOUT_TOKENS_MASK;
     }
   }
-  return telegram_api::make_object<telegram_api::codeSettings>(flags, false /*ignored*/, false /*ignored*/,
-                                                               false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                                               std::move(logout_tokens), device_token, is_app_sandbox);
+  return telegram_api::make_object<telegram_api::codeSettings>(
+      flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+      false /*ignored*/, std::move(logout_tokens), device_token, is_app_sandbox);
 }
 
 telegram_api::auth_sendCode SendCodeHelper::send_code(string phone_number, const Settings &settings, int32 api_id,
@@ -203,6 +203,10 @@ SendCodeHelper::AuthenticationCodeInfo SendCodeHelper::get_sent_authentication_c
       }
       return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::Sms, code_type->length_, ""};
     }
+    case telegram_api::auth_sentCodeTypeSmsWord::ID:
+      return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::Sms, 0, ""};
+    case telegram_api::auth_sentCodeTypeSmsPhrase::ID:
+      return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::Sms, 0, ""};
     case telegram_api::auth_sentCodeTypeEmailCode::ID:
     case telegram_api::auth_sentCodeTypeSetUpEmailRequired::ID:
     default:

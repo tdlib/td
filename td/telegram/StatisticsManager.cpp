@@ -279,7 +279,8 @@ static td_api::object_ptr<td_api::chatRevenueStatistics> convert_broadcast_reven
   CHECK(obj != nullptr);
   return td_api::make_object<td_api::chatRevenueStatistics>(
       convert_stats_graph(std::move(obj->top_hours_graph_)), convert_stats_graph(std::move(obj->revenue_graph_)), "TON",
-      get_amount(obj->overall_revenue_), get_amount(obj->current_balance_), get_amount(obj->available_balance_),
+      get_amount(obj->balances_->overall_revenue_), get_amount(obj->balances_->current_balance_),
+      get_amount(obj->balances_->available_balance_),
       obj->usd_rate_ > 0 ? clamp(obj->usd_rate_ * 1e-7, 1e-18, 1e18) : 1.0);
 }
 

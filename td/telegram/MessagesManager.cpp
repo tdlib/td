@@ -794,8 +794,9 @@ class SetChatAvailableReactionsQuery final : public Td::ResultHandler {
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
+    int32 flags = 0;
     send_query(G()->net_query_creator().create(telegram_api::messages_setChatAvailableReactions(
-        std::move(input_peer), available_reactions.get_input_chat_reactions())));
+        flags, std::move(input_peer), available_reactions.get_input_chat_reactions(), 0)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -2083,8 +2084,8 @@ class SearchMessagesGlobalQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_searchGlobal::FOLDER_ID_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_searchGlobal(
-        flags, folder_id.get(), query, get_input_messages_filter(filter), min_date_, max_date_, offset_date_,
-        std::move(input_peer), offset_message_id.get_server_message_id().get(), limit)));
+        flags, false /*ignored*/, folder_id.get(), query, get_input_messages_filter(filter), min_date_, max_date_,
+        offset_date_, std::move(input_peer), offset_message_id.get_server_message_id().get(), limit)));
   }
 
   void on_result(BufferSlice packet) final {

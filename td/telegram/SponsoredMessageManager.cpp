@@ -445,7 +445,7 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
 
       td_->user_manager_->on_get_users(std::move(sponsored_messages->users_), "on_get_dialog_sponsored_messages");
       td_->chat_manager_->on_get_chats(std::move(sponsored_messages->chats_), "on_get_dialog_sponsored_messages");
-
+      /*
       for (auto &sponsored_message : sponsored_messages->messages_) {
         DialogId sponsor_dialog_id;
         ServerMessageId server_message_id;
@@ -530,6 +530,7 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
             std::move(sponsored_message->additional_info_), std::move(site_url), std::move(site_name),
             std::move(site_photo));
       }
+        */
       messages->messages_between = sponsored_messages->posts_between_;
       break;
     }
