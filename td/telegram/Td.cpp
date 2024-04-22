@@ -2762,6 +2762,7 @@ bool Td::is_authentication_request(int32 id) {
     case td_api::getAuthorizationState::ID:
     case td_api::setAuthenticationPhoneNumber::ID:
     case td_api::sendAuthenticationFirebaseSms::ID:
+    case td_api::reportAuthenticationCodeMissing::ID:
     case td_api::setAuthenticationEmailAddress::ID:
     case td_api::resendAuthenticationCode::ID:
     case td_api::checkAuthenticationEmailCode::ID:
@@ -4234,6 +4235,11 @@ void Td::on_request(uint64 id, td_api::setAuthenticationPhoneNumber &request) {
 void Td::on_request(uint64 id, td_api::sendAuthenticationFirebaseSms &request) {
   CLEAN_INPUT_STRING(request.token_);
   send_closure(auth_manager_actor_, &AuthManager::set_firebase_token, id, std::move(request.token_));
+}
+
+void Td::on_request(uint64 id, td_api::reportAuthenticationCodeMissing &request) {
+  CLEAN_INPUT_STRING(request.mobile_network_code_);
+  send_closure(auth_manager_actor_, &AuthManager::report_missing_code, id, std::move(request.mobile_network_code_));
 }
 
 void Td::on_request(uint64 id, td_api::setAuthenticationEmailAddress &request) {

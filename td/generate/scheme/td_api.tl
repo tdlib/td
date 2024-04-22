@@ -7456,6 +7456,9 @@ recoverAuthenticationPassword recovery_code:string new_password:string new_hint:
 //@token SafetyNet Attestation API token for the Android application, or secret from push notification for the iOS application
 sendAuthenticationFirebaseSms token:string = Ok;
 
+//@description Reports that authentication code wasn't delivered via SMS; for official mobile apps only. Works only when the current authorization state is authorizationStateWaitCode @mobile_network_code Current mobile network code
+reportAuthenticationCodeMissing mobile_network_code:string = Ok;
+
 //@description Checks the authentication token of a bot; to log in as a bot. Works only when the current authorization state is authorizationStateWaitPhoneNumber. Can be used instead of setAuthenticationPhoneNumber and checkAuthenticationCode to log in @token The bot token
 checkAuthenticationBotToken token:string = Ok;
 

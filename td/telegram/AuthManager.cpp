@@ -539,6 +539,15 @@ void AuthManager::set_firebase_token(uint64 query_id, string token) {
                   G()->net_query_creator().create_unauth(send_code_helper_.request_firebase_sms(token)));
 }
 
+void AuthManager::report_missing_code(uint64 query_id, string mobile_network_code) {
+  if (state_ != State::WaitCode) {
+    return on_query_error(query_id, Status::Error(400, "Call to reportAuthenticationCodeMissing unexpected"));
+  }
+  G()->net_query_dispatcher().dispatch_with_callback(
+      G()->net_query_creator().create_unauth(send_code_helper_.report_missing_code(mobile_network_code)),
+      actor_shared(this));
+}
+
 void AuthManager::set_email_address(uint64 query_id, string email_address) {
   if (state_ != State::WaitEmailAddress) {
     if (state_ == State::WaitEmailCode && net_query_id_ == 0) {

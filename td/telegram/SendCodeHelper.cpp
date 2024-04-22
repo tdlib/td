@@ -119,6 +119,10 @@ telegram_api::auth_requestFirebaseSms SendCodeHelper::request_firebase_sms(const
                                                ios_push_secret);
 }
 
+telegram_api::auth_reportMissingCode SendCodeHelper::report_missing_code(const string &mobile_network_code) {
+  return telegram_api::auth_reportMissingCode(phone_number_, phone_code_hash_, mobile_network_code);
+}
+
 telegram_api::account_sendVerifyEmailCode SendCodeHelper::send_verify_email_code(const string &email_address) {
   return telegram_api::account_sendVerifyEmailCode(get_email_verify_purpose_login_setup(), email_address);
 }

@@ -34,6 +34,8 @@ class SendCodeHelper {
 
   telegram_api::auth_requestFirebaseSms request_firebase_sms(const string &token);
 
+  telegram_api::auth_reportMissingCode report_missing_code(const string &mobile_network_code);
+
   telegram_api::account_sendVerifyEmailCode send_verify_email_code(const string &email_address);
 
   telegram_api::account_sendChangePhoneCode send_change_phone_code(Slice phone_number, const Settings &settings);
