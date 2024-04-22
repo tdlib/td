@@ -7652,6 +7652,9 @@ searchChatsOnServer query:string limit:int32 = Chats;
 //@location Current user location
 searchChatsNearby location:location = ChatsNearby;
 
+//@description Returns a list of channel chats recommended to the current user
+getRecommendedChats = Chats;
+
 //@description Returns a list of chats similar to the given chat @chat_id Identifier of the target chat; must be an identifier of a channel chat
 getChatSimilarChats chat_id:int53 = Chats;
 

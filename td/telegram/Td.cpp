@@ -5087,6 +5087,12 @@ void Td::on_request(uint64 id, const td_api::clearAutosaveSettingsExceptions &re
   autosave_manager_->clear_autosave_settings_exceptions(std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getRecommendedChats &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  channel_recommendation_manager_->get_recommended_channels(std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getChatSimilarChats &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

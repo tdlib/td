@@ -42,8 +42,11 @@ class GetChannelRecommendationsQuery final : public Td::ResultHandler {
     channel_id_ = channel_id;
 
     auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
-    CHECK(input_channel != nullptr);
-    int32 flags = telegram_api::channels_getChannelRecommendations::CHANNEL_MASK;
+    CHECK(!channel_id.is_valid() || input_channel != nullptr);
+    int32 flags = 0;
+    if (input_channel != nullptr) {
+      flags |= telegram_api::channels_getChannelRecommendations::CHANNEL_MASK;
+    }
     send_query(G()->net_query_creator().create(
         telegram_api::channels_getChannelRecommendations(flags, std::move(input_channel))));
   }
@@ -73,7 +76,9 @@ class GetChannelRecommendationsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->chat_manager_->on_get_channel_error(channel_id_, status, "GetChannelRecommendationsQuery");
+    if (channel_id_.is_valid()) {
+      td_->chat_manager_->on_get_channel_error(channel_id_, status, "GetChannelRecommendationsQuery");
+    }
     promise_.set_error(std::move(status));
   }
 };
@@ -150,6 +155,144 @@ bool ChannelRecommendationManager::are_suitable_recommended_dialogs(
     return false;
   }
   return true;
+}
+
+void ChannelRecommendationManager::get_recommended_channels(Promise<td_api::object_ptr<td_api::chats>> &&promise) {
+  bool use_database = true;
+  if (are_recommended_channels_inited_) {
+    if (are_suitable_recommended_dialogs(recommended_channels_)) {
+      auto next_reload_time = recommended_channels_.next_reload_time_;
+      promise.set_value(td_->dialog_manager_->get_chats_object(
+          recommended_channels_.total_count_, recommended_channels_.dialog_ids_, "get_recommended_channels"));
+      if (next_reload_time > Time::now()) {
+        return;
+      }
+      promise = {};
+    } else {
+      LOG(INFO) << "Drop cache for recommended chats";
+      are_recommended_channels_inited_ = false;
+      if (G()->use_message_database()) {
+        G()->td_db()->get_sqlite_pmc()->erase(get_recommended_channels_database_key(), Auto());
+      }
+    }
+    use_database = false;
+  }
+  load_recommended_channels(use_database, std::move(promise));
+}
+
+string ChannelRecommendationManager::get_recommended_channels_database_key() {
+  return "recommended_channels";
+}
+
+void ChannelRecommendationManager::load_recommended_channels(bool use_database,
+                                                             Promise<td_api::object_ptr<td_api::chats>> &&promise) {
+  get_recommended_channels_queries_.push_back(std::move(promise));
+  if (get_recommended_channels_queries_.size() == 1) {
+    if (G()->use_message_database() && use_database) {
+      G()->td_db()->get_sqlite_pmc()->get(
+          get_recommended_channels_database_key(), PromiseCreator::lambda([actor_id = actor_id(this)](string value) {
+            send_closure(actor_id, &ChannelRecommendationManager::on_load_recommended_channels_from_database,
+                         std::move(value));
+          }));
+    } else {
+      reload_recommended_channels();
+    }
+  }
+}
+
+void ChannelRecommendationManager::fail_load_recommended_channels_queries(Status &&error) {
+  CHECK(!get_recommended_channels_queries_.empty());
+  fail_promises(get_recommended_channels_queries_, std::move(error));
+}
+
+void ChannelRecommendationManager::finish_load_recommended_channels_queries(int32 total_count,
+                                                                            vector<DialogId> dialog_ids) {
+  are_recommended_channels_inited_ = true;
+  auto promises = std::move(get_recommended_channels_queries_);
+  CHECK(!promises.empty());
+  for (auto &promise : promises) {
+    if (promise) {
+      promise.set_value(
+          td_->dialog_manager_->get_chats_object(total_count, dialog_ids, "finish_load_recommended_channels_queries"));
+    }
+  }
+}
+
+void ChannelRecommendationManager::on_load_recommended_channels_from_database(string value) {
+  if (G()->close_flag()) {
+    return fail_load_recommended_channels_queries(G()->close_status());
+  }
+
+  if (value.empty()) {
+    return reload_recommended_channels();
+  }
+  if (log_event_parse(recommended_channels_, value).is_error()) {
+    recommended_channels_ = {};
+    G()->td_db()->get_sqlite_pmc()->erase(get_recommended_channels_database_key(), Auto());
+    return reload_recommended_channels();
+  }
+  Dependencies dependencies;
+  for (auto dialog_id : recommended_channels_.dialog_ids_) {
+    dependencies.add_dialog_and_dependencies(dialog_id);
+  }
+  if (!dependencies.resolve_force(td_, "on_load_recommended_channels_from_database") ||
+      !are_suitable_recommended_dialogs(recommended_channels_)) {
+    recommended_channels_ = {};
+    G()->td_db()->get_sqlite_pmc()->erase(get_recommended_channels_database_key(), Auto());
+    return reload_recommended_channels();
+  }
+
+  auto next_reload_time = recommended_channels_.next_reload_time_;
+  finish_load_recommended_channels_queries(recommended_channels_.total_count_, recommended_channels_.dialog_ids_);
+
+  if (next_reload_time <= Time::now()) {
+    load_recommended_channels(false, Auto());
+  }
+}
+
+void ChannelRecommendationManager::reload_recommended_channels() {
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this)](Result<std::pair<int32, vector<tl_object_ptr<telegram_api::Chat>>>> &&result) {
+        send_closure(actor_id, &ChannelRecommendationManager::on_get_recommended_channels, std::move(result));
+      });
+  td_->create_handler<GetChannelRecommendationsQuery>(std::move(query_promise))->send(ChannelId());
+}
+
+void ChannelRecommendationManager::on_get_recommended_channels(
+    Result<std::pair<int32, vector<tl_object_ptr<telegram_api::Chat>>>> &&r_chats) {
+  G()->ignore_result_if_closing(r_chats);
+
+  if (r_chats.is_error()) {
+    return fail_load_recommended_channels_queries(r_chats.move_as_error());
+  }
+
+  auto chats = r_chats.move_as_ok();
+  auto total_count = chats.first;
+  auto channel_ids = td_->chat_manager_->get_channel_ids(std::move(chats.second), "on_get_recommended_channels");
+  vector<DialogId> dialog_ids;
+  if (total_count < static_cast<int32>(channel_ids.size())) {
+    LOG(ERROR) << "Receive total_count = " << total_count << " and " << channel_ids.size() << " recommended chats";
+    total_count = static_cast<int32>(channel_ids.size());
+  }
+  for (auto recommended_channel_id : channel_ids) {
+    auto recommended_dialog_id = DialogId(recommended_channel_id);
+    td_->dialog_manager_->force_create_dialog(recommended_dialog_id, "on_get_recommended_channels");
+    if (is_suitable_recommended_channel(recommended_channel_id)) {
+      dialog_ids.push_back(recommended_dialog_id);
+    } else {
+      total_count--;
+    }
+  }
+  recommended_channels_.total_count_ = total_count;
+  recommended_channels_.dialog_ids_ = dialog_ids;
+  recommended_channels_.next_reload_time_ = Time::now() + CHANNEL_RECOMMENDATIONS_CACHE_TIME;
+
+  if (G()->use_message_database()) {
+    G()->td_db()->get_sqlite_pmc()->set(get_recommended_channels_database_key(),
+                                        log_event_store(recommended_channels_).as_slice().str(), Promise<Unit>());
+  }
+
+  finish_load_recommended_channels_queries(total_count, std::move(dialog_ids));
 }
 
 void ChannelRecommendationManager::get_channel_recommendations(

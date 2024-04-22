@@ -5490,6 +5490,8 @@ class CliClient final : public Actor {
       ChatId chat_id;
       get_args(args, chat_id);
       send_request(td_api::make_object<td_api::deleteChat>(chat_id));
+    } else if (op == "grc") {
+      send_request(td_api::make_object<td_api::getRecommendedChats>());
     } else if (op == "gcsc") {
       ChatId chat_id;
       get_args(args, chat_id);
