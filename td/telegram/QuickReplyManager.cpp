@@ -177,6 +177,7 @@ class GetQuickReplyMessagesQuery final : public Td::ResultHandler {
     if (!message_ids.empty()) {
       flags |= telegram_api::messages_getQuickReplyMessages::ID_MASK;
     }
+    CHECK(shortcut_id.is_server());
     send_query(G()->net_query_creator().create(
         telegram_api::messages_getQuickReplyMessages(flags, shortcut_id.get(),
                                                      MessageId::get_server_message_ids(message_ids), hash),
@@ -209,6 +210,7 @@ class DeleteQuickReplyMessagesQuery final : public Td::ResultHandler {
 
   void send(QuickReplyShortcutId shortcut_id, const vector<MessageId> &message_ids) {
     shortcut_id_ = shortcut_id;
+    CHECK(shortcut_id.is_server());
     send_query(G()->net_query_creator().create(telegram_api::messages_deleteQuickReplyMessages(
                                                    shortcut_id.get(), MessageId::get_server_message_ids(message_ids)),
                                                {{"quick_reply"}}));
@@ -485,6 +487,7 @@ class QuickReplyManager::EditQuickReplyMessageQuery final : public Td::ResultHan
       flags |= telegram_api::messages_editMessage::MEDIA_MASK;
     }
 
+    CHECK(m->shortcut_id.is_server());
     send_query(G()->net_query_creator().create(
         telegram_api::messages_editMessage(
             flags, false /*ignored*/, false /*ignored*/, telegram_api::make_object<telegram_api::inputPeerSelf>(),
@@ -1298,6 +1301,7 @@ int64 QuickReplyManager::get_shortcuts_hash() const {
   for (auto &shortcut : shortcuts_.shortcuts_) {
     for (auto &message : shortcut->messages_) {
       if (message->message_id.is_server()) {
+        CHECK(shortcut->shortcut_id_.is_server());
         numbers.push_back(shortcut->shortcut_id_.get());
         numbers.push_back(get_md5_string_hash(shortcut->name_));
         numbers.push_back(message->message_id.get_server_message_id().get());
