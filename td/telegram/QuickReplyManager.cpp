@@ -2794,6 +2794,9 @@ Result<QuickReplyManager::Shortcut *> QuickReplyManager::create_new_local_shortc
   auto *s = get_shortcut(name);
   auto max_message_count = td_->option_manager_->get_option_integer("quick_reply_shortcut_message_count_max");
   if (s != nullptr) {
+    if (!have_all_shortcut_messages(s)) {
+      return Status::Error(400, "The quick reply shortcut must be loaded first");
+    }
     max_message_count -= s->server_total_count_ + s->local_total_count_;
   } else {
     auto max_shortcut_count = td_->option_manager_->get_option_integer("quick_reply_shortcut_count_max");
