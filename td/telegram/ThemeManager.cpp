@@ -678,9 +678,8 @@ string ThemeManager::get_theme_parameters_json_string(const td_api::object_ptr<t
 
 int32 ThemeManager::get_accent_color_id_object(AccentColorId accent_color_id,
                                                AccentColorId fallback_accent_color_id) const {
-  CHECK(accent_color_id.is_valid());
-  if (td_->auth_manager_->is_bot() || accent_color_id.is_built_in() ||
-      accent_colors_.light_colors_.count(accent_color_id) != 0) {
+  if (accent_color_id.is_valid() && (td_->auth_manager_->is_bot() || accent_color_id.is_built_in() ||
+                                     accent_colors_.light_colors_.count(accent_color_id) != 0)) {
     return accent_color_id.get();
   }
   if (!fallback_accent_color_id.is_valid()) {

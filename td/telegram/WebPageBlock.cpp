@@ -2219,9 +2219,7 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
               std::move(channel->title_),
               get_dialog_photo(td->file_manager_.get(), DialogId(channel_id),
                                has_access_hash ? channel->access_hash_ : 0, std::move(channel->photo_)),
-              std::move(channel->username_),
-              peer_color.accent_color_id_.is_valid() ? peer_color.accent_color_id_ : AccentColorId(channel_id),
-              channel_id);
+              std::move(channel->username_), peer_color.accent_color_id_, channel_id);
         }
       } else {
         LOG(ERROR) << "Receive wrong channel " << to_string(page_block->channel_);

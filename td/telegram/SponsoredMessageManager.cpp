@@ -15,9 +15,11 @@
 #include "td/telegram/MessageSelfDestructType.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/OptionManager.h"
+#include "td/telegram/PeerColor.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/ThemeManager.h"
 #include "td/telegram/UserId.h"
 #include "td/telegram/UserManager.h"
 
@@ -195,11 +197,12 @@ struct SponsoredMessageManager::SponsoredMessage {
   Photo photo;
   string title;
   string button_text;
+  PeerColor peer_color;
   string sponsor_info;
   string additional_info;
 
   SponsoredMessage(int64 local_id, bool is_recommended, bool can_be_reported, unique_ptr<MessageContent> content,
-                   string url, Photo photo, string title, string button_text, string sponsor_info,
+                   string url, Photo photo, string title, string button_text, PeerColor peer_color, string sponsor_info,
                    string additional_info)
       : local_id(local_id)
       , is_recommended(is_recommended)
@@ -209,6 +212,7 @@ struct SponsoredMessageManager::SponsoredMessage {
       , photo(std::move(photo))
       , title(std::move(title))
       , button_text(std::move(button_text))
+      , peer_color(std::move(peer_color))
       , sponsor_info(std::move(sponsor_info))
       , additional_info(std::move(additional_info)) {
   }
@@ -277,7 +281,9 @@ td_api::object_ptr<td_api::sponsoredMessage> SponsoredMessageManager::get_sponso
   return td_api::make_object<td_api::sponsoredMessage>(
       sponsored_message.local_id, sponsored_message.is_recommended, sponsored_message.can_be_reported,
       get_message_content_object(sponsored_message.content.get(), td_, dialog_id, 0, false, true, -1, false, false),
-      std::move(sponsor), sponsored_message.title, sponsored_message.button_text, sponsored_message.additional_info);
+      std::move(sponsor), sponsored_message.title, sponsored_message.button_text,
+      td_->theme_manager_->get_accent_color_id_object(sponsored_message.peer_color.accent_color_id_, AccentColorId()),
+      sponsored_message.peer_color.background_custom_emoji_id_.get(), sponsored_message.additional_info);
 }
 
 td_api::object_ptr<td_api::sponsoredMessages> SponsoredMessageManager::get_sponsored_messages_object(
@@ -357,8 +363,8 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
                                              std::move(sponsored_message->entities_), true, true, 0, false,
                                              "on_get_dialog_sponsored_messages");
         MessageSelfDestructType ttl;
-        auto content = get_message_content(td_, std::move(message_text), nullptr, DialogId(), G()->unix_time(),
-                                           true, UserId(), &ttl, nullptr, "on_get_dialog_sponsored_messages");
+        auto content = get_message_content(td_, std::move(message_text), nullptr, DialogId(), G()->unix_time(), true,
+                                           UserId(), &ttl, nullptr, "on_get_dialog_sponsored_messages");
         if (!ttl.is_empty()) {
           LOG(ERROR) << "Receive sponsored message with " << ttl;
           continue;
@@ -380,8 +386,8 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
         messages->messages.emplace_back(
             local_id, sponsored_message->recommended_, sponsored_message->can_report_, std::move(content),
             std::move(sponsored_message->url_), std::move(photo), std::move(sponsored_message->title_),
-            std::move(sponsored_message->button_text_), std::move(sponsored_message->sponsor_info_),
-            std::move(sponsored_message->additional_info_));
+            std::move(sponsored_message->button_text_), PeerColor(sponsored_message->color_),
+            std::move(sponsored_message->sponsor_info_), std::move(sponsored_message->additional_info_));
       }
       messages->messages_between = sponsored_messages->posts_between_;
       break;
