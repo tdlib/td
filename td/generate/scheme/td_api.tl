@@ -9807,6 +9807,9 @@ sendPhoneNumberCode phone_number:string settings:phoneNumberAuthenticationSettin
 //@token SafetyNet Attestation API token for the Android application, or secret from push notification for the iOS application
 sendPhoneNumberFirebaseSms token:string = Ok;
 
+//@description Reports that authentication code wasn't delivered via SMS to the specified phone number; for official mobile apps only @mobile_network_code Current mobile network code
+reportPhoneNumberCodeMissing mobile_network_code:string = Ok;
+
 //@description Resends the authentication code sent to a phone number. Works only if the previously received authenticationCodeInfo next_code_type was not null and the server-specified timeout has passed
 resendPhoneNumberCode = AuthenticationCodeInfo;
 

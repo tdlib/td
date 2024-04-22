@@ -78,6 +78,31 @@ class RequestFirebaseSmsQuery final : public Td::ResultHandler {
   }
 };
 
+class ReportMissingCodeQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit ReportMissingCodeQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const telegram_api::auth_reportMissingCode &query) {
+    send_query(G()->net_query_creator().create(query));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::auth_reportMissingCode>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ChangePhoneQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -253,6 +278,15 @@ void PhoneNumberManager::send_firebase_sms(const string &token, Promise<Unit> &&
   }
 
   td_->create_handler<RequestFirebaseSmsQuery>(std::move(promise))->send(send_code_helper_.request_firebase_sms(token));
+}
+
+void PhoneNumberManager::report_missing_code(const string &mobile_network_code, Promise<Unit> &&promise) {
+  if (state_ != State::WaitCode) {
+    return promise.set_error(Status::Error(400, "Can't report missing code"));
+  }
+
+  td_->create_handler<ReportMissingCodeQuery>(std::move(promise))
+      ->send(send_code_helper_.report_missing_code(mobile_network_code));
 }
 
 void PhoneNumberManager::resend_authentication_code(

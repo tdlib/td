@@ -4635,6 +4635,13 @@ void Td::on_request(uint64 id, td_api::sendPhoneNumberFirebaseSms &request) {
   phone_number_manager_->send_firebase_sms(std::move(request.token_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::reportPhoneNumberCodeMissing &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.mobile_network_code_);
+  CREATE_OK_REQUEST_PROMISE();
+  phone_number_manager_->report_missing_code(std::move(request.mobile_network_code_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::resendPhoneNumberCode &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

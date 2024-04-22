@@ -573,6 +573,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::sendPhoneNumberFirebaseSms &request);
 
+  void on_request(uint64 id, td_api::reportPhoneNumberCodeMissing &request);
+
   void on_request(uint64 id, const td_api::resendPhoneNumberCode &request);
 
   void on_request(uint64 id, td_api::checkPhoneNumberCode &request);

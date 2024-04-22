@@ -2735,6 +2735,8 @@ class CliClient final : public Actor {
           phone_number, nullptr, td_api::make_object<td_api::phoneNumberCodeTypeConfirmOwnership>(hash)));
     } else if (op == "spnfs") {
       send_request(td_api::make_object<td_api::sendPhoneNumberFirebaseSms>(args));
+    } else if (op == "rpncm") {
+      send_request(td_api::make_object<td_api::reportPhoneNumberCodeMissing>(args));
     } else if (op == "rpnc") {
       send_request(td_api::make_object<td_api::resendPhoneNumberCode>());
     } else if (op == "cpnc") {
