@@ -9,6 +9,7 @@
 #include "td/utils/base64.h"
 #include "td/utils/buffer.h"
 #include "td/utils/Time.h"
+#include "td/utils/utf8.h"
 
 namespace td {
 
@@ -206,10 +207,18 @@ SendCodeHelper::AuthenticationCodeInfo SendCodeHelper::get_sent_authentication_c
       }
       return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::Sms, code_type->length_, ""};
     }
-    case telegram_api::auth_sentCodeTypeSmsWord::ID:
-      return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::Sms, 0, ""};
-    case telegram_api::auth_sentCodeTypeSmsPhrase::ID:
-      return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::Sms, 0, ""};
+    case telegram_api::auth_sentCodeTypeSmsWord::ID: {
+      auto code_type = move_tl_object_as<telegram_api::auth_sentCodeTypeSmsWord>(sent_code_type_ptr);
+      if (utf8_length(code_type->beginning_) > 1u) {
+        LOG(ERROR) << "Receive \"" << code_type->beginning_ << "\" as word first letter";
+        code_type->beginning_ = string();
+      }
+      return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::SmsWord, 0, code_type->beginning_};
+    }
+    case telegram_api::auth_sentCodeTypeSmsPhrase::ID: {
+      auto code_type = move_tl_object_as<telegram_api::auth_sentCodeTypeSmsPhrase>(sent_code_type_ptr);
+      return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::SmsPhrase, 0, code_type->beginning_};
+    }
     case telegram_api::auth_sentCodeTypeEmailCode::ID:
     case telegram_api::auth_sentCodeTypeSetUpEmailRequired::ID:
     default:
@@ -243,6 +252,10 @@ td_api::object_ptr<td_api::AuthenticationCodeType> SendCodeHelper::get_authentic
     case AuthenticationCodeInfo::Type::FirebaseIos:
       return td_api::make_object<td_api::authenticationCodeTypeFirebaseIos>(
           authentication_code_info.pattern, authentication_code_info.push_timeout, authentication_code_info.length);
+    case AuthenticationCodeInfo::Type::SmsWord:
+      return td_api::make_object<td_api::authenticationCodeTypeSmsWord>(authentication_code_info.pattern);
+    case AuthenticationCodeInfo::Type::SmsPhrase:
+      return td_api::make_object<td_api::authenticationCodeTypeSmsPhrase>(authentication_code_info.pattern);
     default:
       UNREACHABLE();
       return nullptr;

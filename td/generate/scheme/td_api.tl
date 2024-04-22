@@ -24,15 +24,23 @@ ok = Ok;
 
 //@class AuthenticationCodeType @description Provides information about the method by which an authentication code is delivered to the user
 
-//@description An authentication code is delivered via a private Telegram message, which can be viewed from another active session
+//@description A digit-only authentication code is delivered via a private Telegram message, which can be viewed from another active session
 //@length Length of the code
 authenticationCodeTypeTelegramMessage length:int32 = AuthenticationCodeType;
 
-//@description An authentication code is delivered via an SMS message to the specified phone number; applications may not receive this type of code
+//@description A digit-only authentication code is delivered via an SMS message to the specified phone number; non-official applications may not receive this type of code
 //@length Length of the code
 authenticationCodeTypeSms length:int32 = AuthenticationCodeType;
 
-//@description An authentication code is delivered via a phone call to the specified phone number
+//@description An authentication code is a word delivered via an SMS message to the specified phone number; non-official applications may not receive this type of code
+//@first_letter The first letters of the word if known
+authenticationCodeTypeSmsWord first_letter:string = AuthenticationCodeType;
+
+//@description An authentication code is a phrase from multiple words delivered via an SMS message to the specified phone number; non-official applications may not receive this type of code
+//@first_word The first word of the phrase if known
+authenticationCodeTypeSmsPhrase first_word:string = AuthenticationCodeType;
+
+//@description A digit-only authentication code is delivered via a phone call to the specified phone number
 //@length Length of the code
 authenticationCodeTypeCall length:int32 = AuthenticationCodeType;
 
@@ -45,17 +53,17 @@ authenticationCodeTypeFlashCall pattern:string = AuthenticationCodeType;
 //@length Number of digits in the code, excluding the prefix
 authenticationCodeTypeMissedCall phone_number_prefix:string length:int32 = AuthenticationCodeType;
 
-//@description An authentication code is delivered to https://fragment.com. The user must be logged in there via a wallet owning the phone number's NFT
+//@description A digit-only authentication code is delivered to https://fragment.com. The user must be logged in there via a wallet owning the phone number's NFT
 //@url URL to open to receive the code
 //@length Length of the code
 authenticationCodeTypeFragment url:string length:int32 = AuthenticationCodeType;
 
-//@description An authentication code is delivered via Firebase Authentication to the official Android application
+//@description A digit-only authentication code is delivered via Firebase Authentication to the official Android application
 //@nonce Nonce to pass to the SafetyNet Attestation API
 //@length Length of the code
 authenticationCodeTypeFirebaseAndroid nonce:bytes length:int32 = AuthenticationCodeType;
 
-//@description An authentication code is delivered via Firebase Authentication to the official iOS application
+//@description A digit-only authentication code is delivered via Firebase Authentication to the official iOS application
 //@receipt Receipt of successful application token validation to compare with receipt from push notification
 //@push_timeout Time after the next authentication method is supposed to be used if verification push notification isn't received, in seconds
 //@length Length of the code

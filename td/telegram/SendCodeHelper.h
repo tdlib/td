@@ -59,7 +59,19 @@ class SendCodeHelper {
 
  private:
   struct AuthenticationCodeInfo {
-    enum class Type : int32 { None, Message, Sms, Call, FlashCall, MissedCall, Fragment, FirebaseAndroid, FirebaseIos };
+    enum class Type : int32 {
+      None,
+      Message,
+      Sms,
+      Call,
+      FlashCall,
+      MissedCall,
+      Fragment,
+      FirebaseAndroid,
+      FirebaseIos,
+      SmsWord,
+      SmsPhrase
+    };
     Type type = Type::None;
     int32 length = 0;
     int32 push_timeout = 0;
