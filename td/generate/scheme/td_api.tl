@@ -7802,13 +7802,14 @@ searchChatMessages chat_id:int53 query:string sender_id:MessageSender from_messa
 //@description Searches for messages in all chats except secret chats. Returns the results in reverse chronological order (i.e., in order of decreasing (date, chat_id, message_id)).
 //-For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 //@chat_list Chat list in which to search messages; pass null to search in all chats regardless of their chat list. Only Main and Archive chat lists are supported
+//@only_in_channels Pass true to search only for messages in channels
 //@query Query to search for
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of messages to be returned; up to 100. For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 //@filter Additional filter for messages to search; pass null to search for all messages. Filters searchMessagesFilterMention, searchMessagesFilterUnreadMention, searchMessagesFilterUnreadReaction, searchMessagesFilterFailedToSend, and searchMessagesFilterPinned are unsupported in this function
 //@min_date If not 0, the minimum date of the messages to return
 //@max_date If not 0, the maximum date of the messages to return
-searchMessages chat_list:ChatList query:string offset:string limit:int32 filter:SearchMessagesFilter min_date:int32 max_date:int32 = FoundMessages;
+searchMessages chat_list:ChatList only_in_channels:Bool query:string offset:string limit:int32 filter:SearchMessagesFilter min_date:int32 max_date:int32 = FoundMessages;
 
 //@description Searches for messages in secret chats. Returns the results in reverse chronological order. For optimal performance, the number of returned messages is chosen by TDLib
 //@chat_id Identifier of the chat in which to search. Specify 0 to search in all secret chats

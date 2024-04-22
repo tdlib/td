@@ -734,9 +734,9 @@ class MessagesManager final : public Actor {
   FoundMessages offline_search_messages(DialogId dialog_id, const string &query, string offset, int32 limit,
                                         MessageSearchFilter filter, int64 &random_id, Promise<Unit> &&promise);
 
-  FoundMessages search_messages(FolderId folder_id, bool ignore_folder_id, const string &query, const string &offset,
-                                int32 limit, MessageSearchFilter filter, int32 min_date, int32 max_date,
-                                int64 &random_id, Promise<Unit> &&promise);
+  FoundMessages search_messages(FolderId folder_id, bool ignore_folder_id, bool broadcasts_only, const string &query,
+                                const string &offset, int32 limit, MessageSearchFilter filter, int32 min_date,
+                                int32 max_date, int64 &random_id, Promise<Unit> &&promise);
 
   FoundMessages search_call_messages(const string &offset, int32 limit, bool only_missed, int64 &random_id, bool use_db,
                                      Promise<Unit> &&promise);
