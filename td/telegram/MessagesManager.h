@@ -843,8 +843,9 @@ class MessagesManager final : public Actor {
                                         tl_object_ptr<telegram_api::peerNotifySettings> &&peer_notify_settings,
                                         const char *source);
 
-  void on_update_dialog_available_reactions(
-      DialogId dialog_id, telegram_api::object_ptr<telegram_api::ChatReactions> &&available_reactions);
+  void on_update_dialog_available_reactions(DialogId dialog_id,
+                                            telegram_api::object_ptr<telegram_api::ChatReactions> &&available_reactions,
+                                            int32 reactions_limit);
 
   void hide_dialog_action_bar(DialogId dialog_id);
 

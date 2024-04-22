@@ -1786,11 +1786,11 @@ chatPosition list:ChatList order:int64 is_pinned:Bool source:ChatSource = ChatPo
 
 //@class ChatAvailableReactions @description Describes reactions available in the chat
 
-//@description All reactions are available in the chat
-chatAvailableReactionsAll = ChatAvailableReactions;
+//@description All reactions are available in the chat @max_reaction_count The maximum allowed number of reactions per message; 1-11
+chatAvailableReactionsAll max_reaction_count:int32 = ChatAvailableReactions;
 
-//@description Only specific reactions are available in the chat @reactions The list of reactions
-chatAvailableReactionsSome reactions:vector<ReactionType> = ChatAvailableReactions;
+//@description Only specific reactions are available in the chat @reactions The list of reactions @max_reaction_count The maximum allowed number of reactions per message; 1-11
+chatAvailableReactionsSome reactions:vector<ReactionType> max_reaction_count:int32 = ChatAvailableReactions;
 
 
 //@description Represents a tag used in Saved Messages or a Saved Messages topic

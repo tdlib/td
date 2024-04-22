@@ -367,11 +367,11 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
     }
     case telegram_api::channelAdminLogEventActionChangeAvailableReactions::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeAvailableReactions>(action_ptr);
-      ChatReactions old_available_reactions(std::move(action->prev_value_));
-      ChatReactions new_available_reactions(std::move(action->new_value_));
+      ChatReactions old_available_reactions(std::move(action->prev_value_), 0);
+      ChatReactions new_available_reactions(std::move(action->new_value_), 0);
       return td_api::make_object<td_api::chatEventAvailableReactionsChanged>(
-          old_available_reactions.get_chat_available_reactions_object(),
-          new_available_reactions.get_chat_available_reactions_object());
+          old_available_reactions.get_chat_available_reactions_object(td),
+          new_available_reactions.get_chat_available_reactions_object(td));
     }
     case telegram_api::channelAdminLogEventActionToggleForum::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionToggleForum>(action_ptr);

@@ -6,11 +6,15 @@
 //
 #include "td/telegram/ChatReactions.h"
 
+#include "td/telegram/OptionManager.h"
+#include "td/telegram/Td.h"
+
 #include "td/utils/algorithm.h"
 
 namespace td {
 
-ChatReactions::ChatReactions(telegram_api::object_ptr<telegram_api::ChatReactions> &&chat_reactions_ptr) {
+ChatReactions::ChatReactions(telegram_api::object_ptr<telegram_api::ChatReactions> &&chat_reactions_ptr,
+                             int32 reactions_limit) {
   if (chat_reactions_ptr == nullptr) {
     return;
   }
@@ -31,6 +35,7 @@ ChatReactions::ChatReactions(telegram_api::object_ptr<telegram_api::ChatReaction
     default:
       UNREACHABLE();
   }
+  reactions_limit_ = reactions_limit;
 }
 
 ChatReactions::ChatReactions(td_api::object_ptr<td_api::ChatAvailableReactions> &&chat_reactions_ptr,
@@ -39,13 +44,17 @@ ChatReactions::ChatReactions(td_api::object_ptr<td_api::ChatAvailableReactions> 
     return;
   }
   switch (chat_reactions_ptr->get_id()) {
-    case td_api::chatAvailableReactionsAll::ID:
+    case td_api::chatAvailableReactionsAll::ID: {
+      auto chat_reactions = move_tl_object_as<td_api::chatAvailableReactionsAll>(chat_reactions_ptr);
       allow_all_regular_ = true;
       allow_all_custom_ = allow_all_custom;
+      reactions_limit_ = chat_reactions->max_reaction_count_;
       break;
+    }
     case td_api::chatAvailableReactionsSome::ID: {
       auto chat_reactions = move_tl_object_as<td_api::chatAvailableReactionsSome>(chat_reactions_ptr);
       reaction_types_ = ReactionType::get_reaction_types(chat_reactions->reactions_);
+      reactions_limit_ = chat_reactions->max_reaction_count_;
       break;
     }
     default:
@@ -74,12 +83,16 @@ bool ChatReactions::is_allowed_reaction_type(const ReactionType &reaction_type) 
   return td::contains(reaction_types_, reaction_type);
 }
 
-td_api::object_ptr<td_api::ChatAvailableReactions> ChatReactions::get_chat_available_reactions_object() const {
+td_api::object_ptr<td_api::ChatAvailableReactions> ChatReactions::get_chat_available_reactions_object(Td *td) const {
+  int32 reactions_uniq_max = static_cast<int32>(td->option_manager_->get_option_integer("reactions_uniq_max", 11));
+  if (0 < reactions_limit_ && reactions_limit_ < reactions_uniq_max) {
+    reactions_uniq_max = reactions_limit_;
+  }
   if (allow_all_regular_) {
-    return td_api::make_object<td_api::chatAvailableReactionsAll>();
+    return td_api::make_object<td_api::chatAvailableReactionsAll>(reactions_uniq_max);
   }
   return td_api::make_object<td_api::chatAvailableReactionsSome>(
-      ReactionType::get_reaction_types_object(reaction_types_));
+      ReactionType::get_reaction_types_object(reaction_types_), reactions_uniq_max);
 }
 
 telegram_api::object_ptr<telegram_api::ChatReactions> ChatReactions::get_input_chat_reactions() const {
@@ -99,10 +112,14 @@ telegram_api::object_ptr<telegram_api::ChatReactions> ChatReactions::get_input_c
 
 bool operator==(const ChatReactions &lhs, const ChatReactions &rhs) {
   // don't compare allow_all_custom_
-  return lhs.reaction_types_ == rhs.reaction_types_ && lhs.allow_all_regular_ == rhs.allow_all_regular_;
+  return lhs.reaction_types_ == rhs.reaction_types_ && lhs.allow_all_regular_ == rhs.allow_all_regular_ &&
+         lhs.reactions_limit_ == rhs.reactions_limit_;
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const ChatReactions &reactions) {
+  if (reactions.reactions_limit_ != 0) {
+    string_builder << '[' << reactions.reactions_limit_ << "] ";
+  }
   if (reactions.allow_all_regular_) {
     if (reactions.allow_all_custom_) {
       return string_builder << "AllReactions";

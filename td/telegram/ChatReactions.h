@@ -16,17 +16,23 @@
 
 namespace td {
 
+class Td;
+
 struct ChatReactions {
   vector<ReactionType> reaction_types_;
   bool allow_all_regular_ = false;  // implies empty reaction_types_
   bool allow_all_custom_ = false;   // implies allow_all_regular_
+  int32 reactions_limit_ = 0;
 
   ChatReactions() = default;
 
-  explicit ChatReactions(vector<ReactionType> &&reactions) : reaction_types_(std::move(reactions)) {
+  static ChatReactions legacy(vector<ReactionType> &&reactions) {
+    ChatReactions result;
+    result.reaction_types_ = std::move(reactions);
+    return result;
   }
 
-  explicit ChatReactions(telegram_api::object_ptr<telegram_api::ChatReactions> &&chat_reactions_ptr);
+  ChatReactions(telegram_api::object_ptr<telegram_api::ChatReactions> &&chat_reactions_ptr, int32 reactions_limit);
 
   ChatReactions(td_api::object_ptr<td_api::ChatAvailableReactions> &&chat_reactions_ptr, bool allow_all_custom);
 
@@ -41,7 +47,7 @@ struct ChatReactions {
 
   telegram_api::object_ptr<telegram_api::ChatReactions> get_input_chat_reactions() const;
 
-  td_api::object_ptr<td_api::ChatAvailableReactions> get_chat_available_reactions_object() const;
+  td_api::object_ptr<td_api::ChatAvailableReactions> get_chat_available_reactions_object(Td *td) const;
 
   bool empty() const {
     return reaction_types_.empty() && !allow_all_regular_;

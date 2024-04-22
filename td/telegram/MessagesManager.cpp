@@ -795,8 +795,12 @@ class SetChatAvailableReactionsQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
     int32 flags = 0;
+    if (available_reactions.reactions_limit_ != 0) {
+      flags |= telegram_api::messages_setChatAvailableReactions::REACTIONS_LIMIT_MASK;
+    }
     send_query(G()->net_query_creator().create(telegram_api::messages_setChatAvailableReactions(
-        flags, std::move(input_peer), available_reactions.get_input_chat_reactions(), 0)));
+        flags, std::move(input_peer), available_reactions.get_input_chat_reactions(),
+        available_reactions.reactions_limit_)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -5248,7 +5252,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   } else if (has_legacy_available_reactions) {
     vector<ReactionType> legacy_available_reaction_types;
     parse(legacy_available_reaction_types, parser);
-    available_reactions = ChatReactions(std::move(legacy_available_reaction_types));
+    available_reactions = ChatReactions::legacy(std::move(legacy_available_reaction_types));
   }
   if (has_available_reactions_generation) {
     parse(available_reactions_generation, parser);
@@ -7402,13 +7406,14 @@ void MessagesManager::on_update_dialog_notify_settings(
 }
 
 void MessagesManager::on_update_dialog_available_reactions(
-    DialogId dialog_id, telegram_api::object_ptr<telegram_api::ChatReactions> &&available_reactions) {
+    DialogId dialog_id, telegram_api::object_ptr<telegram_api::ChatReactions> &&available_reactions,
+    int32 reactions_limit) {
   Dialog *d = get_dialog_force(dialog_id, "on_update_dialog_available_reactions");
   if (d == nullptr) {
     return;
   }
 
-  set_dialog_available_reactions(d, ChatReactions(std::move(available_reactions)));
+  set_dialog_available_reactions(d, ChatReactions(std::move(available_reactions), reactions_limit));
 }
 
 void MessagesManager::set_dialog_available_reactions(Dialog *d, ChatReactions &&available_reactions) {
@@ -19189,7 +19194,7 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
   auto can_delete = can_delete_dialog(d);
   // TODO hide/show draft message when need_hide_dialog_draft_message changes
   auto draft_message = !need_hide_dialog_draft_message(d) ? get_draft_message_object(td_, d->draft_message) : nullptr;
-  auto available_reactions = get_dialog_active_reactions(d).get_chat_available_reactions_object();
+  auto available_reactions = get_dialog_active_reactions(d).get_chat_available_reactions_object(td_);
   auto is_translatable = d->is_translatable && is_premium;
   auto block_list_id = BlockListId(d->is_blocked, d->is_blocked_for_stories);
   auto chat_lists = transform(get_dialog_list_ids(d),
@@ -22283,6 +22288,9 @@ ChatReactions MessagesManager::get_message_available_reactions(const Dialog *d, 
   }
 
   int64 reactions_uniq_max = td_->option_manager_->get_option_integer("reactions_uniq_max", 11);
+  if (0 < active_reactions.reactions_limit_ && active_reactions.reactions_limit_ < reactions_uniq_max) {
+    reactions_uniq_max = active_reactions.reactions_limit_;
+  }
   bool can_add_new_reactions =
       m->reactions == nullptr || static_cast<int64>(m->reactions->reactions_.size()) < reactions_uniq_max;
 
@@ -28823,7 +28831,7 @@ void MessagesManager::send_update_chat_business_bot_manage_bar(Dialog *d) {
 void MessagesManager::send_update_chat_available_reactions(const Dialog *d) {
   CHECK(d != nullptr);
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_available_reactions";
-  auto available_reactions = get_dialog_active_reactions(d).get_chat_available_reactions_object();
+  auto available_reactions = get_dialog_active_reactions(d).get_chat_available_reactions_object(td_);
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateChatAvailableReactions>(
                    get_chat_id_object(d->dialog_id, "updateChatAvailableReactions"), std::move(available_reactions)));

@@ -6039,14 +6039,16 @@ class CliClient final : public Actor {
 
     if (op == "scar") {
       ChatId chat_id;
+      int32 max_reaction_count;
       string available_reactions;
-      get_args(args, chat_id, available_reactions);
+      get_args(args, chat_id, max_reaction_count, available_reactions);
       td_api::object_ptr<td_api::ChatAvailableReactions> chat_available_reactions;
       if (available_reactions == "all") {
-        chat_available_reactions = td_api::make_object<td_api::chatAvailableReactionsAll>();
+        chat_available_reactions = td_api::make_object<td_api::chatAvailableReactionsAll>(max_reaction_count);
       } else if (!available_reactions.empty()) {
         auto reactions = transform(autosplit_str(available_reactions), as_reaction_type);
-        chat_available_reactions = td_api::make_object<td_api::chatAvailableReactionsSome>(std::move(reactions));
+        chat_available_reactions =
+            td_api::make_object<td_api::chatAvailableReactionsSome>(std::move(reactions), max_reaction_count);
       }
       send_request(
           td_api::make_object<td_api::setChatAvailableReactions>(chat_id, std::move(chat_available_reactions)));
