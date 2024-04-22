@@ -4259,10 +4259,11 @@ firebaseAuthenticationSettingsIos device_token:string is_app_sandbox:Bool = Fire
 //@allow_flash_call Pass true if the authentication code may be sent via a flash call to the specified phone number
 //@allow_missed_call Pass true if the authentication code may be sent via a missed call to the specified phone number
 //@is_current_phone_number Pass true if the authenticated phone number is used on the current device
+//@has_unknown_phone_number Pass true if there is a SIM card in the current device, but it is not possible to check whether phone number matches
 //@allow_sms_retriever_api For official applications only. True, if the application can use Android SMS Retriever API (requires Google Play Services >= 10.2) to automatically receive the authentication code from the SMS. See https://developers.google.com/identity/sms-retriever/ for more details
 //@firebase_authentication_settings For official Android and iOS applications only; pass null otherwise. Settings for Firebase Authentication
 //@authentication_tokens List of up to 20 authentication tokens, recently received in updateOption("authentication_token") in previously logged out sessions
-phoneNumberAuthenticationSettings allow_flash_call:Bool allow_missed_call:Bool is_current_phone_number:Bool allow_sms_retriever_api:Bool firebase_authentication_settings:FirebaseAuthenticationSettings authentication_tokens:vector<string> = PhoneNumberAuthenticationSettings;
+phoneNumberAuthenticationSettings allow_flash_call:Bool allow_missed_call:Bool is_current_phone_number:Bool has_unknown_phone_number:Bool allow_sms_retriever_api:Bool firebase_authentication_settings:FirebaseAuthenticationSettings authentication_tokens:vector<string> = PhoneNumberAuthenticationSettings;
 
 
 //@description Represents a reaction applied to a message

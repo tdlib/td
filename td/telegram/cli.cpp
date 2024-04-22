@@ -2320,7 +2320,7 @@ class CliClient final : public Actor {
   }
 
   td_api::object_ptr<td_api::phoneNumberAuthenticationSettings> as_phone_number_authentication_settings() const {
-    return td_api::make_object<td_api::phoneNumberAuthenticationSettings>(false, true, false, false, nullptr,
+    return td_api::make_object<td_api::phoneNumberAuthenticationSettings>(false, true, false, false, false, nullptr,
                                                                           vector<string>(authentication_tokens_));
   }
 

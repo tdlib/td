@@ -62,6 +62,9 @@ telegram_api::object_ptr<telegram_api::codeSettings> SendCodeHelper::get_input_c
     if (settings->is_current_phone_number_) {
       flags |= telegram_api::codeSettings::CURRENT_NUMBER_MASK;
     }
+    if (settings->has_unknown_phone_number_) {
+      flags |= telegram_api::codeSettings::UNKNOWN_NUMBER_MASK;
+    }
     if (settings->allow_sms_retriever_api_) {
       flags |= telegram_api::codeSettings::ALLOW_APP_HASH_MASK;
     }
