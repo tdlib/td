@@ -212,10 +212,6 @@ vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(co
 vector<tl_object_ptr<secret_api::MessageEntity>> get_input_secret_message_entities(
     const vector<MessageEntity> &entities, int32 layer);
 
-vector<MessageEntity> get_message_entities(const UserManager *user_manager,
-                                           vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities,
-                                           const char *source);
-
 vector<MessageEntity> get_message_entities(Td *td, vector<tl_object_ptr<secret_api::MessageEntity>> &&secret_entities,
                                            bool is_premium, MultiPromiseActor &load_data_multipromise);
 

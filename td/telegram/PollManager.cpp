@@ -1812,16 +1812,9 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     }
   }
 
-  auto entities = get_message_entities(td_->user_manager_.get(), std::move(poll_results->solution_entities_), source);
-  auto status = fix_formatted_text(poll_results->solution_, entities, true, true, true, true, false);
-  if (status.is_error()) {
-    if (!clean_input_string(poll_results->solution_)) {
-      poll_results->solution_.clear();
-    }
-    entities = find_entities(poll_results->solution_, true, true);
-  }
-  FormattedText explanation{std::move(poll_results->solution_), std::move(entities)};
-
+  auto explanation =
+      get_formatted_text(td_->user_manager_.get(), std::move(poll_results->solution_),
+                         std::move(poll_results->solution_entities_), true, true, true, true, false, source);
   if (poll->is_quiz_) {
     if (poll->correct_option_id_ != correct_option_id) {
       if (correct_option_id == -1 && poll->correct_option_id_ != -1) {

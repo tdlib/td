@@ -3957,6 +3957,7 @@ FormattedText get_formatted_text(const UserManager *user_manager, string &&text,
   auto status = fix_formatted_text(text, entities, allow_empty, skip_new_entities, skip_bot_commands,
                                    skip_media_timestamps, skip_trim);
   if (status.is_error()) {
+    LOG(ERROR) << "Receive error " << status << " from " << source << " while parsing " << text;
     if (!clean_input_string(text)) {
       text.clear();
     }

@@ -848,16 +848,8 @@ class GetDeepLinkInfoQuery final : public Td::ResultHandler {
         return promise_.set_value(nullptr);
       case telegram_api::help_deepLinkInfo::ID: {
         auto info = telegram_api::move_object_as<telegram_api::help_deepLinkInfo>(result);
-        auto entities = get_message_entities(nullptr, std::move(info->entities_), "GetDeepLinkInfoQuery");
-        auto status = fix_formatted_text(info->message_, entities, true, true, true, true, true);
-        if (status.is_error()) {
-          LOG(ERROR) << "Receive error " << status << " while parsing deep link info " << info->message_;
-          if (!clean_input_string(info->message_)) {
-            info->message_.clear();
-          }
-          entities = find_entities(info->message_, true, true);
-        }
-        FormattedText text{std::move(info->message_), std::move(entities)};
+        auto text = get_formatted_text(nullptr, std::move(info->message_), std::move(info->entities_), true, true, true,
+                                       true, true, "GetDeepLinkInfoQuery");
         return promise_.set_value(
             td_api::make_object<td_api::deepLinkInfo>(get_formatted_text_object(text, true, -1), info->update_app_));
       }

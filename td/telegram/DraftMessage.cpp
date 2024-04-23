@@ -409,15 +409,9 @@ DraftMessage::DraftMessage(Td *td, telegram_api::object_ptr<telegram_api::draftM
   CHECK(draft_message != nullptr);
   date_ = draft_message->date_;
   message_input_reply_to_ = MessageInputReplyTo(td, std::move(draft_message->reply_to_));
-  auto entities = get_message_entities(td->user_manager_.get(), std::move(draft_message->entities_), "draftMessage");
-  auto status = fix_formatted_text(draft_message->message_, entities, true, true, true, true, true);
-  if (status.is_error()) {
-    LOG(ERROR) << "Receive error " << status << " while parsing draft " << draft_message->message_;
-    if (!clean_input_string(draft_message->message_)) {
-      draft_message->message_.clear();
-    }
-    entities = find_entities(draft_message->message_, false, true);
-  }
+  auto draft_text =
+      get_formatted_text(td->user_manager_.get(), std::move(draft_message->message_),
+                         std::move(draft_message->entities_), true, true, true, true, true, "DraftMessage");
   string web_page_url;
   bool force_small_media = false;
   bool force_large_media = false;
@@ -434,9 +428,8 @@ DraftMessage::DraftMessage(Td *td, telegram_api::object_ptr<telegram_api::draftM
       force_large_media = media->force_large_media_;
     }
   }
-  input_message_text_ = InputMessageText(FormattedText{std::move(draft_message->message_), std::move(entities)},
-                                         std::move(web_page_url), draft_message->no_webpage_, force_small_media,
-                                         force_large_media, draft_message->invert_media_, false);
+  input_message_text_ = InputMessageText(std::move(draft_text), std::move(web_page_url), draft_message->no_webpage_,
+                                         force_small_media, force_large_media, draft_message->invert_media_, false);
 }
 
 Result<unique_ptr<DraftMessage>> DraftMessage::get_draft_message(
