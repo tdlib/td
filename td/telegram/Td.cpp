@@ -7775,6 +7775,12 @@ void Td::on_request(uint64 id, const td_api::setEmojiStatus &request) {
   user_manager_->set_emoji_status(EmojiStatus(request.emoji_status_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::toggleHasSponsoredMessagesEnabled &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  user_manager_->toggle_sponsored_messages(request.has_sponsored_messages_enabled_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getThemedEmojiStatuses &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

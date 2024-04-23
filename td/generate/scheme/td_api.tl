@@ -9788,6 +9788,10 @@ setEmojiStatus emoji_status:emojiStatus = Ok;
 //@description Changes the location of the current user. Needs to be called if getOption("is_location_visible") is true and location changes for more than 1 kilometer. Must not be called if the user has a business location @location The new location of the user
 setLocation location:location = Ok;
 
+//@description Toggles whether the current user has sponsored messages enabled. The setting has no effect for users without Telegram Premium for which sponsored messages are always enabled
+//@has_sponsored_messages_enabled Pass true to enable sponsored messages for the current user; false to disable them
+toggleHasSponsoredMessagesEnabled has_sponsored_messages_enabled:Bool = Ok;
+
 //@description Changes the business location of the current user. Requires Telegram Business subscription @location The new location of the business; pass null to remove the location
 setBusinessLocation location:businessLocation = Ok;
 

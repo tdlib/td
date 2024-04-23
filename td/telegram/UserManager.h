@@ -355,6 +355,8 @@ class UserManager final : public Actor {
 
   void set_emoji_status(const EmojiStatus &emoji_status, Promise<Unit> &&promise);
 
+  void toggle_sponsored_messages(bool sponsored_enabled, Promise<Unit> &&promise);
+
   void get_support_user(Promise<td_api::object_ptr<td_api::user>> &&promise);
 
   void get_user_profile_photos(UserId user_id, int32 offset, int32 limit,
@@ -865,6 +867,8 @@ class UserManager final : public Actor {
   void on_set_personal_channel(ChannelId channel_id, Promise<Unit> &&promise);
 
   void on_set_emoji_status(EmojiStatus emoji_status, Promise<Unit> &&promise);
+
+  void on_toggle_sponsored_messages(bool sponsored_enabled, Promise<Unit> &&promise);
 
   void on_get_support_user(UserId user_id, Promise<td_api::object_ptr<td_api::user>> &&promise);
 

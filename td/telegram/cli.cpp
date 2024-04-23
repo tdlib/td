@@ -5933,6 +5933,8 @@ class CliClient final : public Actor {
       get_args(args, custom_emoji_id, expiration_date);
       send_request(td_api::make_object<td_api::setEmojiStatus>(
           td_api::make_object<td_api::emojiStatus>(custom_emoji_id, expiration_date)));
+    } else if (op == "thsme") {
+      send_request(td_api::make_object<td_api::toggleHasSponsoredMessagesEnabled>(as_bool(args)));
     } else if (op == "gtes") {
       send_request(td_api::make_object<td_api::getThemedEmojiStatuses>());
     } else if (op == "gdes") {

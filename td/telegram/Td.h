@@ -1375,6 +1375,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::setEmojiStatus &request);
 
+  void on_request(uint64 id, const td_api::toggleHasSponsoredMessagesEnabled &request);
+
   void on_request(uint64 id, const td_api::getThemedEmojiStatuses &request);
 
   void on_request(uint64 id, const td_api::getThemedChatEmojiStatuses &request);

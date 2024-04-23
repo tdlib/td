@@ -1119,6 +1119,33 @@ class UpdateEmojiStatusQuery final : public Td::ResultHandler {
   }
 };
 
+class ToggleSponsoredMessagesQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit ToggleSponsoredMessagesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(bool sponsored_enabled) {
+    send_query(
+        G()->net_query_creator().create(telegram_api::account_toggleSponsoredMessages(sponsored_enabled), {{"me"}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_toggleSponsoredMessages>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    LOG(DEBUG) << "Receive result for ToggleSponsoredMessagesQuery: " << result_ptr.ok();
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetUsersQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -5181,6 +5208,29 @@ void UserManager::on_set_emoji_status(EmojiStatus emoji_status, Promise<Unit> &&
   if (u != nullptr) {
     on_update_user_emoji_status(u, user_id, emoji_status);
     update_user(u, user_id);
+  }
+  promise.set_value(Unit());
+}
+
+void UserManager::toggle_sponsored_messages(bool sponsored_enabled, Promise<Unit> &&promise) {
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), sponsored_enabled, promise = std::move(promise)](Result<Unit> result) mutable {
+        if (result.is_ok()) {
+          send_closure(actor_id, &UserManager::on_toggle_sponsored_messages, sponsored_enabled, std::move(promise));
+        } else {
+          promise.set_error(result.move_as_error());
+        }
+      });
+  td_->create_handler<ToggleSponsoredMessagesQuery>(std::move(query_promise))->send(sponsored_enabled);
+}
+
+void UserManager::on_toggle_sponsored_messages(bool sponsored_enabled, Promise<Unit> &&promise) {
+  auto my_user_id = get_my_id();
+  UserFull *user_full = get_user_full_force(my_user_id, "on_toggle_sponsored_messages");
+  if (user_full != nullptr && user_full->sponsored_enabled != sponsored_enabled) {
+    user_full->sponsored_enabled = sponsored_enabled;
+    user_full->is_changed = true;
+    update_user_full(user_full, my_user_id, "on_toggle_sponsored_messages");
   }
   promise.set_value(Unit());
 }
