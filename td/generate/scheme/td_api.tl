@@ -350,12 +350,12 @@ closedVectorPath commands:vector<VectorPathCommand> = ClosedVectorPath;
 
 
 //@description Describes one answer option of a poll
-//@text Option text; 1-100 characters
+//@text Option text; 1-100 characters. Only custom emoji entities are allowed
 //@voter_count Number of voters for this option, available only for closed or voted polls
 //@vote_percentage The percentage of votes for this option; 0-100
 //@is_chosen True, if the option was chosen by the user
 //@is_being_chosen True, if the option is being chosen by a pending setPollAnswer request
-pollOption text:string voter_count:int32 vote_percentage:int32 is_chosen:Bool is_being_chosen:Bool = PollOption;
+pollOption text:formattedText voter_count:int32 vote_percentage:int32 is_chosen:Bool is_being_chosen:Bool = PollOption;
 
 
 //@class PollType @description Describes the type of poll
@@ -502,7 +502,7 @@ webApp short_name:string title:string description:string photo:photo animation:a
 
 //@description Describes a poll
 //@id Unique poll identifier
-//@question Poll question; 1-300 characters
+//@question Poll question; 1-300 characters. Only custom emoji entities are allowed
 //@options List of poll answer options
 //@total_voter_count Total number of voters, participating in the poll
 //@recent_voter_ids Identifiers of recent voters, if the poll is non-anonymous
@@ -511,7 +511,7 @@ webApp short_name:string title:string description:string photo:photo animation:a
 //@open_period Amount of time the poll will be active after creation, in seconds
 //@close_date Point in time (Unix timestamp) when the poll will automatically be closed
 //@is_closed True, if the poll is closed
-poll id:int64 question:string options:vector<pollOption> total_voter_count:int32 recent_voter_ids:vector<MessageSender> is_anonymous:Bool type:PollType open_period:int32 close_date:int32 is_closed:Bool = Poll;
+poll id:int64 question:formattedText options:vector<pollOption> total_voter_count:int32 recent_voter_ids:vector<MessageSender> is_anonymous:Bool type:PollType open_period:int32 close_date:int32 is_closed:Bool = Poll;
 
 
 //@description Describes a chat background
@@ -3473,14 +3473,14 @@ inputMessageGame bot_user_id:int53 game_short_name:string = InputMessageContent;
 inputMessageInvoice invoice:invoice title:string description:string photo_url:string photo_size:int32 photo_width:int32 photo_height:int32 payload:bytes provider_token:string provider_data:string start_parameter:string extended_media_content:InputMessageContent = InputMessageContent;
 
 //@description A message with a poll. Polls can't be sent to secret chats. Polls can be sent only to a private chat with a bot
-//@question Poll question; 1-255 characters (up to 300 characters for bots)
-//@options List of poll answer options, 2-10 strings 1-100 characters each
+//@question Poll question; 1-255 characters (up to 300 characters for bots). Only custom emoji entities are allowed to be added and only by Premium users
+//@options List of poll answer options, 2-10 strings 1-100 characters each. Only custom emoji entities are allowed to be added and only by Premium users
 //@is_anonymous True, if the poll voters are anonymous. Non-anonymous polls can't be sent or forwarded to channels
 //@type Type of the poll
 //@open_period Amount of time the poll will be active after creation, in seconds; for bots only
 //@close_date Point in time (Unix timestamp) when the poll will automatically be closed; for bots only
 //@is_closed True, if the poll needs to be sent already closed; for bots only
-inputMessagePoll question:string options:vector<string> is_anonymous:Bool type:PollType open_period:int32 close_date:int32 is_closed:Bool = InputMessageContent;
+inputMessagePoll question:formattedText options:vector<formattedText> is_anonymous:Bool type:PollType open_period:int32 close_date:int32 is_closed:Bool = InputMessageContent;
 
 //@description A message with a forwarded story. Stories can't be sent to secret chats. A story can be forwarded only if story.can_be_forwarded
 //@story_sender_chat_id Identifier of the chat that posted the story

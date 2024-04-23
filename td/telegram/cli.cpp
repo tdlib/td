@@ -1728,7 +1728,7 @@ class CliClient final : public Actor {
   static td_api::object_ptr<td_api::formattedText> as_formatted_text(
       const string &text, vector<td_api::object_ptr<td_api::textEntity>> entities = {}) {
     if (entities.empty() && !text.empty()) {
-      Slice unused_reserved_characters("#+-={}.!");
+      Slice unused_reserved_characters("#+-={}.");
       string new_text;
       for (size_t i = 0; i < text.size(); i++) {
         auto c = text[i];
@@ -5301,7 +5301,8 @@ class CliClient final : public Actor {
       ChatId chat_id;
       string question;
       get_args(args, chat_id, question, args);
-      auto options = autosplit_str(args);
+      vector<td_api::object_ptr<td_api::formattedText>> options =
+          transform(autosplit_str(args), [](const string &option) { return as_formatted_text(option); });
       td_api::object_ptr<td_api::PollType> poll_type;
       if (op == "squiz") {
         poll_type = td_api::make_object<td_api::pollTypeQuiz>(narrow_cast<int32>(options.size() - 1),
@@ -5309,8 +5310,9 @@ class CliClient final : public Actor {
       } else {
         poll_type = td_api::make_object<td_api::pollTypeRegular>(op == "spollm");
       }
-      send_message(chat_id, td_api::make_object<td_api::inputMessagePoll>(question, std::move(options), op != "spollp",
-                                                                          std::move(poll_type), 0, 0, false));
+      send_message(chat_id,
+                   td_api::make_object<td_api::inputMessagePoll>(as_formatted_text(question), std::move(options),
+                                                                 op != "spollp", std::move(poll_type), 0, 0, false));
     } else if (op == "sp") {
       ChatId chat_id;
       string photo;

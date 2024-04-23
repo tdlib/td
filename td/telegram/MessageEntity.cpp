@@ -4351,7 +4351,7 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
       entities.clear();
       return Status::OK();
     }
-    return Status::Error(400, "Message must be non-empty");
+    return Status::Error(400, "Text must be non-empty");
   }
 
   // re-fix entities if needed after removal of some characters
@@ -4407,7 +4407,7 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
   LOG_CHECK(check_utf8(text)) << text;
 
   if (!allow_empty && is_empty_string(text)) {
-    return Status::Error(400, "Message must be non-empty");
+    return Status::Error(400, "Text must be non-empty");
   }
 
   constexpr size_t LENGTH_LIMIT = 35000;  // server side limit
@@ -4640,6 +4640,7 @@ vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(co
             make_tl_object<telegram_api::messageEntityTextUrl>(entity.offset, entity.length, entity.argument));
         break;
       case MessageEntity::Type::MentionName: {
+        CHECK(user_manager != nullptr);
         auto input_user = user_manager->get_input_user_force(entity.user_id);
         result.push_back(make_tl_object<telegram_api::inputMessageEntityMentionName>(entity.offset, entity.length,
                                                                                      std::move(input_user)));

@@ -2801,13 +2801,9 @@ static Result<InputMessageContent> create_input_message_content(
       constexpr size_t MAX_POLL_OPTION_LENGTH = 100;               // server-side limit
       constexpr size_t MAX_POLL_OPTIONS = 10;                      // server-side limit
       auto input_poll = static_cast<td_api::inputMessagePoll *>(input_message_content.get());
-      if (!clean_input_string(input_poll->question_)) {
-        return Status::Error(400, "Poll question must be encoded in UTF-8");
-      }
-      if (input_poll->question_.empty()) {
-        return Status::Error(400, "Poll question must be non-empty");
-      }
-      if (utf8_length(input_poll->question_) > MAX_POLL_QUESTION_LENGTH) {
+      TRY_RESULT(question,
+                 get_formatted_text(td, dialog_id, std::move(input_poll->question_), is_bot, false, true, false));
+      if (utf8_length(question.text) > MAX_POLL_QUESTION_LENGTH) {
         return Status::Error(400, PSLICE() << "Poll question length must not exceed " << MAX_POLL_QUESTION_LENGTH);
       }
       if (input_poll->options_.size() <= 1) {
@@ -2816,16 +2812,13 @@ static Result<InputMessageContent> create_input_message_content(
       if (input_poll->options_.size() > MAX_POLL_OPTIONS) {
         return Status::Error(400, PSLICE() << "Poll can't have more than " << MAX_POLL_OPTIONS << " options");
       }
-      for (auto &option : input_poll->options_) {
-        if (!clean_input_string(option)) {
-          return Status::Error(400, "Poll options must be encoded in UTF-8");
-        }
-        if (option.empty()) {
-          return Status::Error(400, "Poll options must be non-empty");
-        }
-        if (utf8_length(option) > MAX_POLL_OPTION_LENGTH) {
+      vector<FormattedText> options;
+      for (auto &input_option : input_poll->options_) {
+        TRY_RESULT(option, get_formatted_text(td, dialog_id, std::move(input_option), is_bot, false, true, false));
+        if (utf8_length(option.text) > MAX_POLL_OPTION_LENGTH) {
           return Status::Error(400, PSLICE() << "Poll options length must not exceed " << MAX_POLL_OPTION_LENGTH);
         }
+        options.push_back(std::move(option));
       }
 
       bool allow_multiple_answers = false;
@@ -2862,10 +2855,9 @@ static Result<InputMessageContent> create_input_message_content(
         close_date = 0;
       }
       bool is_closed = is_bot ? input_poll->is_closed_ : false;
-      content = make_unique<MessagePoll>(
-          td->poll_manager_->create_poll(std::move(input_poll->question_), std::move(input_poll->options_),
-                                         input_poll->is_anonymous_, allow_multiple_answers, is_quiz, correct_option_id,
-                                         std::move(explanation), open_period, close_date, is_closed));
+      content = make_unique<MessagePoll>(td->poll_manager_->create_poll(
+          std::move(question), std::move(options), input_poll->is_anonymous_, allow_multiple_answers, is_quiz,
+          correct_option_id, std::move(explanation), open_period, close_date, is_closed));
       break;
     }
     case td_api::inputMessageStory::ID: {
