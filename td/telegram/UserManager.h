@@ -598,6 +598,7 @@ class UserManager final : public Actor {
     bool has_pinned_stories = false;
     bool read_dates_private = false;
     bool contact_require_premium = false;
+    bool sponsored_enabled = false;
 
     bool is_common_chat_count_changed = true;
     bool is_being_updated = false;

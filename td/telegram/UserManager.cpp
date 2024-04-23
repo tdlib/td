@@ -1641,6 +1641,7 @@ void UserManager::UserFull::store(StorerT &storer) const {
   STORE_FLAG(has_business_info);  // 25
   STORE_FLAG(has_birthdate);
   STORE_FLAG(has_personal_channel_id);
+  STORE_FLAG(sponsored_enabled);
   END_STORE_FLAGS();
   if (has_about) {
     store(about, storer);
@@ -1743,6 +1744,7 @@ void UserManager::UserFull::parse(ParserT &parser) {
   PARSE_FLAG(has_business_info);
   PARSE_FLAG(has_birthdate);
   PARSE_FLAG(has_personal_channel_id);
+  PARSE_FLAG(sponsored_enabled);
   END_PARSE_FLAGS();
   if (has_about) {
     parse(about, parser);
@@ -6729,13 +6731,15 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
   bool has_pinned_stories = user->stories_pinned_available_;
   auto birthdate = Birthdate(std::move(user->birthday_));
   auto personal_channel_id = ChannelId(user->personal_channel_id_);
+  auto sponsored_enabled = user->sponsored_enabled_;
   if (user_full->can_be_called != can_be_called || user_full->supports_video_calls != supports_video_calls ||
       user_full->has_private_calls != has_private_calls ||
       user_full->group_administrator_rights != group_administrator_rights ||
       user_full->broadcast_administrator_rights != broadcast_administrator_rights ||
       user_full->premium_gift_options != premium_gift_options ||
       user_full->voice_messages_forbidden != voice_messages_forbidden ||
-      user_full->can_pin_messages != can_pin_messages || user_full->has_pinned_stories != has_pinned_stories) {
+      user_full->can_pin_messages != can_pin_messages || user_full->has_pinned_stories != has_pinned_stories ||
+      user_full->sponsored_enabled != sponsored_enabled) {
     user_full->can_be_called = can_be_called;
     user_full->supports_video_calls = supports_video_calls;
     user_full->has_private_calls = has_private_calls;
@@ -6745,6 +6749,7 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
     user_full->voice_messages_forbidden = voice_messages_forbidden;
     user_full->can_pin_messages = can_pin_messages;
     user_full->has_pinned_stories = has_pinned_stories;
+    user_full->sponsored_enabled = sponsored_enabled;
 
     user_full->is_changed = true;
   }
@@ -7071,6 +7076,7 @@ void UserManager::drop_user_full(UserId user_id) {
   user_full->read_dates_private = false;
   user_full->contact_require_premium = false;
   user_full->birthdate = {};
+  user_full->sponsored_enabled = false;
   user_full->is_changed = true;
 
   update_user_full(user_full, user_id, "drop_user_full");
@@ -7852,8 +7858,8 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
       get_chat_photo_object(td_->file_manager_.get(), user_full->fallback_photo), block_list_id.get_block_list_object(),
       user_full->can_be_called, user_full->supports_video_calls, user_full->has_private_calls,
       !user_full->private_forward_name.empty(), voice_messages_forbidden, user_full->has_pinned_stories,
-      user_full->need_phone_number_privacy_exception, user_full->wallpaper_overridden, std::move(bio_object),
-      user_full->birthdate.get_birthdate_object(), personal_chat_id,
+      user_full->sponsored_enabled, user_full->need_phone_number_privacy_exception, user_full->wallpaper_overridden,
+      std::move(bio_object), user_full->birthdate.get_birthdate_object(), personal_chat_id,
       get_premium_payment_options_object(user_full->premium_gift_options), user_full->common_chat_count,
       std::move(business_info), std::move(bot_info));
 }
