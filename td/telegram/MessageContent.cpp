@@ -6359,7 +6359,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::Poll:
       if (type == MessageContentDupType::Copy || type == MessageContentDupType::ServerCopy) {
         return make_unique<MessagePoll>(
-            td->poll_manager_->dup_poll(static_cast<const MessagePoll *>(content)->poll_id));
+            td->poll_manager_->dup_poll(dialog_id, static_cast<const MessagePoll *>(content)->poll_id));
       } else {
         return make_unique<MessagePoll>(*static_cast<const MessagePoll *>(content));
       }

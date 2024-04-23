@@ -1501,13 +1501,18 @@ void PollManager::on_online() {
   });
 }
 
-PollId PollManager::dup_poll(PollId poll_id) {
+PollId PollManager::dup_poll(DialogId dialog_id, PollId poll_id) {
   auto poll = get_poll(poll_id);
   CHECK(poll != nullptr);
 
   auto question = poll->question_;
+  ::td::remove_unallowed_entities(td_, question, dialog_id);
   auto options = transform(poll->options_, [](auto &option) { return option.text_; });
+  for (auto &option : options) {
+    ::td::remove_unallowed_entities(td_, option, dialog_id);
+  }
   auto explanation = poll->explanation_;
+  ::td::remove_unallowed_entities(td_, explanation, dialog_id);
   return create_poll(std::move(question), std::move(options), poll->is_anonymous_, poll->allow_multiple_answers_,
                      poll->is_quiz_, poll->correct_option_id_, std::move(explanation), poll->open_period_,
                      poll->open_period_ == 0 ? 0 : G()->unix_time(), false);

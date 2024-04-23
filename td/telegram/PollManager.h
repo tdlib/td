@@ -78,7 +78,7 @@ class PollManager final : public Actor {
 
   void stop_local_poll(PollId poll_id);
 
-  PollId dup_poll(PollId poll_id);
+  PollId dup_poll(DialogId dialog_id, PollId poll_id);
 
   bool has_input_media(PollId poll_id) const;
 
