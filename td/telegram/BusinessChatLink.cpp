@@ -22,8 +22,8 @@ BusinessChatLink::BusinessChatLink(const UserManager *user_manager,
 }
 
 td_api::object_ptr<td_api::businessChatLink> BusinessChatLink::get_business_chat_link_object() const {
-  return td_api::make_object<td_api::businessChatLink>(
-      link_, get_formatted_text_object(text_, true, -1), title_, view_count_);
+  return td_api::make_object<td_api::businessChatLink>(link_, get_formatted_text_object(text_, true, -1), title_,
+                                                       view_count_);
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const BusinessChatLink &link) {

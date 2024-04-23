@@ -18,7 +18,6 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
-#include "td/telegram/misc.h"
 #include "td/telegram/PollId.hpp"
 #include "td/telegram/PollManager.hpp"
 #include "td/telegram/StateManager.h"

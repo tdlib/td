@@ -13,7 +13,6 @@
 #include "td/telegram/MessageCopyOptions.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessagesManager.h"
-#include "td/telegram/misc.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/ScheduledServerMessageId.h"
 #include "td/telegram/ServerMessageId.h"

@@ -7,7 +7,6 @@
 #include "td/telegram/TermsOfService.h"
 
 #include "td/telegram/Global.h"
-#include "td/telegram/misc.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"

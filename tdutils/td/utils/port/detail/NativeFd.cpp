@@ -12,8 +12,9 @@
 
 #if TD_PORT_POSIX
 #include <fcntl.h>
-#include <unistd.h>
 #include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 #endif
 
 #if TD_FD_DEBUG

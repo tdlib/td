@@ -11,7 +11,6 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/InputDialogId.h"
-#include "td/telegram/misc.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StoryId.h"
 #include "td/telegram/Td.h"
