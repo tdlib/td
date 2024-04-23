@@ -25480,9 +25480,9 @@ void MessagesManager::edit_inline_message_caption(const string &inline_message_i
                                                   Promise<Unit> &&promise) {
   CHECK(td_->auth_manager_->is_bot());
 
-  TRY_RESULT_PROMISE(
-      promise, caption,
-      get_formatted_text(td_, DialogId(), std::move(input_caption), td_->auth_manager_->is_bot(), true, false, false));
+  TRY_RESULT_PROMISE(promise, caption,
+                     get_formatted_text(td_, td_->dialog_manager_->get_my_dialog_id(), std::move(input_caption),
+                                        td_->auth_manager_->is_bot(), true, false, false));
   TRY_RESULT_PROMISE(promise, new_reply_markup,
                      get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true));
 

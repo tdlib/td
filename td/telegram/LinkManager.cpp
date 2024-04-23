@@ -849,7 +849,7 @@ class GetDeepLinkInfoQuery final : public Td::ResultHandler {
       case telegram_api::help_deepLinkInfo::ID: {
         auto info = telegram_api::move_object_as<telegram_api::help_deepLinkInfo>(result);
         auto text = get_formatted_text(nullptr, std::move(info->message_), std::move(info->entities_), true, true, true,
-                                       true, true, "GetDeepLinkInfoQuery");
+                                       "GetDeepLinkInfoQuery");
         return promise_.set_value(
             td_api::make_object<td_api::deepLinkInfo>(get_formatted_text_object(text, true, -1), info->update_app_));
       }

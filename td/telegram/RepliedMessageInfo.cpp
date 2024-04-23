@@ -118,8 +118,7 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, tl_object_ptr<telegram_api::messa
   if ((!origin_.is_empty() || message_id_ != MessageId()) && !reply_header->quote_text_.empty()) {
     is_quote_manual_ = reply_header->quote_;
     quote_ = get_formatted_text(td->user_manager_.get(), std::move(reply_header->quote_text_),
-                                std::move(reply_header->quote_entities_), true, true, true, true, false,
-                                "RepliedMessageInfo");
+                                std::move(reply_header->quote_entities_), true, true, false, "RepliedMessageInfo");
     remove_unallowed_quote_entities(quote_);
     quote_position_ = max(0, reply_header->quote_offset_);
   }

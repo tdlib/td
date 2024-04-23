@@ -58,8 +58,7 @@ MessageInputReplyTo::MessageInputReplyTo(Td *td,
 
       if (!reply_to->quote_text_.empty()) {
         quote_ = get_formatted_text(td->user_manager_.get(), std::move(reply_to->quote_text_),
-                                    std::move(reply_to->quote_entities_), true, true, true, true, false,
-                                    "inputReplyToMessage");
+                                    std::move(reply_to->quote_entities_), true, true, false, "inputReplyToMessage");
         remove_unallowed_quote_entities(quote_);
         quote_position_ = max(0, reply_to->quote_offset_);
       }

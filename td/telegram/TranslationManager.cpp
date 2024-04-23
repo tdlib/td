@@ -119,7 +119,7 @@ void TranslationManager::on_get_translated_texts(vector<telegram_api::object_ptr
   if (texts.size() != 1u) {
     return promise.set_error(Status::Error(500, "Receive invalid number of results"));
   }
-  auto formatted_text = get_formatted_text(td_->user_manager_.get(), std::move(texts[0]), true, true, skip_bot_commands,
+  auto formatted_text = get_formatted_text(td_->user_manager_.get(), std::move(texts[0]), true,
                                            max_media_timestamp == -1, true, "on_get_translated_texts");
   promise.set_value(get_formatted_text_object(formatted_text, skip_bot_commands, max_media_timestamp));
 }

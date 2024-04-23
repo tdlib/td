@@ -3951,29 +3951,26 @@ telegram_api::object_ptr<telegram_api::textWithEntities> get_input_text_with_ent
 
 FormattedText get_formatted_text(const UserManager *user_manager, string &&text,
                                  vector<telegram_api::object_ptr<telegram_api::MessageEntity>> &&server_entities,
-                                 bool allow_empty, bool skip_new_entities, bool skip_bot_commands,
-                                 bool skip_media_timestamps, bool skip_trim, const char *source) {
+                                 bool allow_empty, bool skip_media_timestamps, bool skip_trim, const char *source) {
   auto entities = get_message_entities(user_manager, std::move(server_entities), source);
-  auto status = fix_formatted_text(text, entities, allow_empty, skip_new_entities, skip_bot_commands,
-                                   skip_media_timestamps, skip_trim);
+  auto status = fix_formatted_text(text, entities, allow_empty, true, true, skip_media_timestamps, skip_trim);
   if (status.is_error()) {
     LOG(ERROR) << "Receive error " << status << " from " << source << " while parsing " << text;
     if (!clean_input_string(text)) {
       text.clear();
     }
-    entities = find_entities(text, skip_bot_commands, skip_media_timestamps);
+    entities = find_entities(text, true, skip_media_timestamps);
   }
   return {std::move(text), std::move(entities)};
 }
 
 FormattedText get_formatted_text(const UserManager *user_manager,
                                  telegram_api::object_ptr<telegram_api::textWithEntities> text_with_entities,
-                                 bool allow_empty, bool skip_new_entities, bool skip_bot_commands,
-                                 bool skip_media_timestamps, bool skip_trim, const char *source) {
+                                 bool allow_empty, bool skip_media_timestamps, bool skip_trim, const char *source) {
   CHECK(text_with_entities != nullptr);
   return get_formatted_text(user_manager, std::move(text_with_entities->text_),
-                            std::move(text_with_entities->entities_), allow_empty, skip_new_entities, skip_bot_commands,
-                            skip_media_timestamps, skip_trim, source);
+                            std::move(text_with_entities->entities_), allow_empty, skip_media_timestamps, skip_trim,
+                            source);
 }
 
 // like clean_input_string but also fixes entities

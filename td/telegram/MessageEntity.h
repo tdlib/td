@@ -221,13 +221,11 @@ telegram_api::object_ptr<telegram_api::textWithEntities> get_input_text_with_ent
 
 FormattedText get_formatted_text(const UserManager *user_manager, string &&text,
                                  vector<telegram_api::object_ptr<telegram_api::MessageEntity>> &&server_entities,
-                                 bool allow_empty, bool skip_new_entities, bool skip_bot_commands,
-                                 bool skip_media_timestamps, bool skip_trim, const char *source);
+                                 bool allow_empty, bool skip_media_timestamps, bool skip_trim, const char *source);
 
 FormattedText get_formatted_text(const UserManager *user_manager,
                                  telegram_api::object_ptr<telegram_api::textWithEntities> text_with_entities,
-                                 bool allow_empty, bool skip_new_entities, bool skip_bot_commands,
-                                 bool skip_media_timestamps, bool skip_trim, const char *source);
+                                 bool allow_empty, bool skip_media_timestamps, bool skip_trim, const char *source);
 
 // like clean_input_string but also validates entities
 Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool allow_empty, bool skip_new_entities,
