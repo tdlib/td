@@ -22,9 +22,10 @@
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
-#include <sys/un.h>
+#include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/un.h>
 #include <unistd.h>
 #endif
 
@@ -378,14 +379,11 @@ Result<ServerSocketFd> ServerSocketFd::open(string path) {
 
   TRY_STATUS(fd.set_is_blocking_unsafe(false));
   auto sock = fd.socket();
+  fchmod(sock, S_IRWXU | S_IRWXG | S_IRWXO);
 
   linger ling = {0, 0};
-#if TD_PORT_POSIX
   int flags = 1;
-#ifdef SO_REUSEPORT
   setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, reinterpret_cast<const char *>(&flags), sizeof(flags));
-#endif
-#endif
   setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char *>(&flags), sizeof(flags));
   setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, reinterpret_cast<const char *>(&flags), sizeof(flags));
   setsockopt(sock, SOL_SOCKET, SO_LINGER, reinterpret_cast<const char *>(&ling), sizeof(ling));
@@ -399,6 +397,11 @@ Result<ServerSocketFd> ServerSocketFd::open(string path) {
   int e_bind = bind(sock, (struct sockaddr *) &server_addr, sizeof(server_addr));
   if (e_bind != 0) {
     return OS_SOCKET_ERROR("Failed to bind a socket");
+  }
+
+  int e_chmod = chmod(server_addr.sun_path, 0777);
+  if (e_chmod != 0) {
+    return OS_SOCKET_ERROR("Failed to chmod the socket file");
   }
 
   // TODO: magic constant
