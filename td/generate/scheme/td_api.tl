@@ -6627,15 +6627,19 @@ chatStatisticsSupergroup period:dateRange member_count:statisticalValue message_
 chatStatisticsChannel period:dateRange member_count:statisticalValue mean_message_view_count:statisticalValue mean_message_share_count:statisticalValue mean_message_reaction_count:statisticalValue mean_story_view_count:statisticalValue mean_story_share_count:statisticalValue mean_story_reaction_count:statisticalValue enabled_notifications_percentage:double member_count_graph:StatisticalGraph join_graph:StatisticalGraph mute_graph:StatisticalGraph view_count_by_hour_graph:StatisticalGraph view_count_by_source_graph:StatisticalGraph join_by_source_graph:StatisticalGraph language_graph:StatisticalGraph message_interaction_graph:StatisticalGraph message_reaction_graph:StatisticalGraph story_interaction_graph:StatisticalGraph story_reaction_graph:StatisticalGraph instant_view_interaction_graph:StatisticalGraph recent_interactions:vector<chatStatisticsInteractionInfo> = ChatStatistics;
 
 
+//@description Contains information about revenue earned from sponsored messages in a chat
+//@cryptocurrency Cryptocurrency in which revenue is calculated
+//@total_amount Total amount of the cryptocurrency earned, in the smallest units of the cryptocurrency
+//@balance_amount Amount of the cryptocurrency that isn't withdrawn yet, in the smallest units of the cryptocurrency
+//@available_amount Amount of the cryptocurrency available for withdrawal, in the smallest units of the cryptocurrency
+chatRevenueAmount cryptocurrency:string total_amount:int64 balance_amount:int64 available_amount:int64 = ChatRevenueAmount;
+
 //@description A detailed statistics about revenue earned from sponsored messages in a chat
 //@revenue_by_hour_graph A graph containing amount of revenue in a given hour
 //@revenue_graph A graph containing amount of revenue
-//@cryptocurrency Cryptocurrency in which revenue is calculated
-//@cryptocurrency_total_amount Total amount of the cryptocurrency earned, in the smallest units of the cryptocurrency
-//@cryptocurrency_balance_amount Amount of the cryptocurrency that isn't withdrawn yet, in the smallest units of the cryptocurrency
-//@cryptocurrency_available_amount Amount of the cryptocurrency available for withdrawal, in the smallest units of the cryptocurrency
-//@usd_rate Current conversion rate of the cryptocurrency to USD
-chatRevenueStatistics revenue_by_hour_graph:StatisticalGraph revenue_graph:StatisticalGraph cryptocurrency:string cryptocurrency_total_amount:int64 cryptocurrency_balance_amount:int64 cryptocurrency_available_amount:int64 usd_rate:double = ChatRevenueStatistics;
+//@revenue_amount Amount of earned revenue
+//@usd_rate Current conversion rate of the cryptocurrency in which revenue is calculated to USD
+chatRevenueStatistics revenue_by_hour_graph:StatisticalGraph revenue_graph:StatisticalGraph revenue_amount:chatRevenueAmount usd_rate:double = ChatRevenueStatistics;
 
 //@description A detailed statistics about a message
 //@message_interaction_graph A graph containing number of message views and shares
