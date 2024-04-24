@@ -6979,6 +6979,9 @@ updateForumTopicInfo chat_id:int53 info:forumTopicInfo = Update;
 //@description Notification settings for some type of chats were updated @scope Types of chats for which notification settings were updated @notification_settings The new notification settings
 updateScopeNotificationSettings scope:NotificationSettingsScope notification_settings:scopeNotificationSettings = Update;
 
+//@description Notification settings for reactions were updated @notification_settings The new notification settings
+updateReactionNotificationSettings notification_settings:reactionNotificationSettings = Update;
+
 //@description A notification was changed @notification_group_id Unique notification group identifier @notification Changed notification
 updateNotification notification_group_id:int32 notification:notification = Update;
 

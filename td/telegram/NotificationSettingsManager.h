@@ -13,6 +13,7 @@
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/NotificationSettingsScope.h"
+#include "td/telegram/ReactionNotificationSettings.h"
 #include "td/telegram/ScopeNotificationSettings.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -67,6 +68,8 @@ class NotificationSettingsManager final : public Actor {
   void on_update_scope_notify_settings(NotificationSettingsScope scope,
                                        tl_object_ptr<telegram_api::peerNotifySettings> &&peer_notify_settings);
 
+  void on_update_reaction_notification_settings(ReactionNotificationSettings reaction_notification_settings);
+
   void add_saved_ringtone(td_api::object_ptr<td_api::InputFile> &&input_file,
                           Promise<td_api::object_ptr<td_api::notificationSound>> &&promise);
 
@@ -91,6 +94,8 @@ class NotificationSettingsManager final : public Actor {
   const ScopeNotificationSettings *get_scope_notification_settings(NotificationSettingsScope scope,
                                                                    Promise<Unit> &&promise);
   void send_get_scope_notification_settings_query(NotificationSettingsScope scope, Promise<Unit> &&promise);
+
+  void send_get_reaction_notification_settings_query(Promise<Unit> &&promise);
 
   void on_get_dialog_notification_settings_query_finished(DialogId dialog_id, MessageId top_thread_message_id,
                                                           Status &&status);
@@ -172,6 +177,9 @@ class NotificationSettingsManager final : public Actor {
   td_api::object_ptr<td_api::updateScopeNotificationSettings> get_update_scope_notification_settings_object(
       NotificationSettingsScope scope) const;
 
+  td_api::object_ptr<td_api::updateReactionNotificationSettings> get_update_reaction_notification_settings_object()
+      const;
+
   td_api::object_ptr<td_api::updateSavedNotificationSounds> get_update_saved_notification_sounds_object() const;
 
   void on_scope_unmute(NotificationSettingsScope scope);
@@ -202,6 +210,8 @@ class NotificationSettingsManager final : public Actor {
   ScopeNotificationSettings users_notification_settings_;
   ScopeNotificationSettings chats_notification_settings_;
   ScopeNotificationSettings channels_notification_settings_;
+
+  ReactionNotificationSettings reaction_notification_settings_;
 
   MultiTimeout scope_unmute_timeout_{"ScopeUnmuteTimeout"};
 

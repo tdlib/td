@@ -375,6 +375,34 @@ class GetScopeNotifySettingsQuery final : public Td::ResultHandler {
   }
 };
 
+class GetReactionsNotifySettingsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit GetReactionsNotifySettingsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::account_getReactionsNotifySettings()));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_getReactionsNotifySettings>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    td_->notification_settings_manager_->on_update_reaction_notification_settings(
+        ReactionNotificationSettings(std::move(ptr)));
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class UpdateDialogNotifySettingsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -717,6 +745,12 @@ NotificationSettingsManager::get_update_scope_notification_settings_object(Notif
       get_notification_settings_scope_object(scope), get_scope_notification_settings_object(notification_settings));
 }
 
+td_api::object_ptr<td_api::updateReactionNotificationSettings>
+NotificationSettingsManager::get_update_reaction_notification_settings_object() const {
+  return td_api::make_object<td_api::updateReactionNotificationSettings>(
+      reaction_notification_settings_.get_reaction_notification_settings_object());
+}
+
 void NotificationSettingsManager::on_scope_unmute(NotificationSettingsScope scope) {
   if (td_->auth_manager_->is_bot()) {
     // just in case
@@ -824,6 +858,30 @@ bool NotificationSettingsManager::update_scope_notification_settings(Notificatio
     send_closure(G()->td(), &Td::send_update, get_update_scope_notification_settings_object(scope));
   }
   return need_update_server;
+}
+
+void NotificationSettingsManager::send_get_reaction_notification_settings_query(Promise<Unit> &&promise) {
+  if (td_->auth_manager_->is_bot()) {
+    LOG(ERROR) << "Can't get reaction notification settings";
+    return promise.set_error(Status::Error(500, "Wrong getReactionNotificationSettings query"));
+  }
+
+  td_->create_handler<GetReactionsNotifySettingsQuery>(std::move(promise))->send();
+}
+
+void NotificationSettingsManager::on_update_reaction_notification_settings(
+    ReactionNotificationSettings reaction_notification_settings) {
+  CHECK(!td_->auth_manager_->is_bot());
+  if (reaction_notification_settings == reaction_notification_settings_) {
+    return;
+  }
+
+  VLOG(notifications) << "Update reaction notification settings from " << reaction_notification_settings_ << " to "
+                      << reaction_notification_settings;
+
+  reaction_notification_settings_ = std::move(reaction_notification_settings);
+
+  send_closure(G()->td(), &Td::send_update, get_update_reaction_notification_settings_object());
 }
 
 void NotificationSettingsManager::schedule_scope_unmute(NotificationSettingsScope scope, int32 mute_until,
@@ -1565,6 +1623,8 @@ void NotificationSettingsManager::get_current_state(vector<td_api::object_ptr<td
       updates.push_back(get_update_scope_notification_settings_object(scope));
     }
   }
+
+  updates.push_back(get_update_reaction_notification_settings_object());
 
   if (are_saved_ringtones_loaded_) {
     updates.push_back(get_update_saved_notification_sounds_object());
