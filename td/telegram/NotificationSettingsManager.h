@@ -200,6 +200,10 @@ class NotificationSettingsManager final : public Actor {
 
   void update_scope_unmute_timeout(NotificationSettingsScope scope, int32 &old_mute_until, int32 new_mute_until);
 
+  static string get_reaction_notification_settings_database_key();
+
+  void save_reaction_notification_settings() const;
+
   Td *td_;
   ActorShared<> parent_;
 
@@ -212,6 +216,7 @@ class NotificationSettingsManager final : public Actor {
   ScopeNotificationSettings channels_notification_settings_;
 
   ReactionNotificationSettings reaction_notification_settings_;
+  bool have_reaction_notification_settings_ = false;
 
   MultiTimeout scope_unmute_timeout_{"ScopeUnmuteTimeout"};
 

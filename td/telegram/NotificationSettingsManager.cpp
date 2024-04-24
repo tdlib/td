@@ -26,6 +26,7 @@
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/NotificationSound.h"
 #include "td/telegram/OptionManager.h"
+#include "td/telegram/ReactionNotificationSettings.hpp"
 #include "td/telegram/ScopeNotificationSettings.hpp"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
@@ -633,6 +634,17 @@ void NotificationSettingsManager::init() {
       channels_notification_settings_.is_synchronized = false;
       send_get_scope_notification_settings_query(NotificationSettingsScope::Channel, Promise<>());
     }
+    auto reaction_notification_settings_string =
+        G()->td_db()->get_binlog_pmc()->get(get_reaction_notification_settings_database_key());
+    if (!reaction_notification_settings_string.empty()) {
+      log_event_parse(reaction_notification_settings_, reaction_notification_settings_string).ensure();
+      have_reaction_notification_settings_ = true;
+
+      VLOG(notifications) << "Loaded reaction notification settings: " << reaction_notification_settings_;
+    } else {
+      send_get_reaction_notification_settings_query(Promise<Unit>());
+    }
+    send_closure(G()->td(), &Td::send_update, get_update_reaction_notification_settings_object());
   }
   G()->td_db()->get_binlog_pmc()->erase("nsfac");
 }
@@ -873,6 +885,10 @@ void NotificationSettingsManager::on_update_reaction_notification_settings(
     ReactionNotificationSettings reaction_notification_settings) {
   CHECK(!td_->auth_manager_->is_bot());
   if (reaction_notification_settings == reaction_notification_settings_) {
+    if (!have_reaction_notification_settings_) {
+      have_reaction_notification_settings_ = true;
+      save_reaction_notification_settings();
+    }
     return;
   }
 
@@ -880,8 +896,20 @@ void NotificationSettingsManager::on_update_reaction_notification_settings(
                       << reaction_notification_settings;
 
   reaction_notification_settings_ = std::move(reaction_notification_settings);
+  have_reaction_notification_settings_ = true;
+
+  save_reaction_notification_settings();
 
   send_closure(G()->td(), &Td::send_update, get_update_reaction_notification_settings_object());
+}
+
+string NotificationSettingsManager::get_reaction_notification_settings_database_key() {
+  return "rns";
+}
+
+void NotificationSettingsManager::save_reaction_notification_settings() const {
+  string key = get_reaction_notification_settings_database_key();
+  G()->td_db()->get_binlog_pmc()->set(key, log_event_store(reaction_notification_settings_).as_slice().str());
 }
 
 void NotificationSettingsManager::schedule_scope_unmute(NotificationSettingsScope scope, int32 mute_until,
