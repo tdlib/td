@@ -482,6 +482,8 @@ set(TDLIB_SOURCE
   td/telegram/QuickReplyManager.cpp
   td/telegram/ReactionListType.cpp
   td/telegram/ReactionManager.cpp
+  td/telegram/ReactionNotificationSettings.cpp
+  td/telegram/ReactionNotificationsFrom.cpp
   td/telegram/ReactionType.cpp
   td/telegram/RecentDialogList.cpp
   td/telegram/RepliedMessageInfo.cpp
@@ -832,6 +834,8 @@ set(TDLIB_SOURCE
   td/telegram/QuickReplyShortcutId.h
   td/telegram/ReactionListType.h
   td/telegram/ReactionManager.h
+  td/telegram/ReactionNotificationSettings.h
+  td/telegram/ReactionNotificationsFrom.h
   td/telegram/ReactionType.h
   td/telegram/ReactionUnavailabilityReason.h
   td/telegram/RecentDialogList.h
@@ -970,6 +974,8 @@ set(TDLIB_SOURCE
   td/telegram/PollManager.hpp
   td/telegram/PremiumGiftOption.hpp
   td/telegram/ReactionManager.hpp
+  td/telegram/ReactionNotificationSettings.hpp
+  td/telegram/ReactionNotificationsFrom.hpp
   td/telegram/ReactionType.hpp
   td/telegram/RepliedMessageInfo.hpp
   td/telegram/ReplyMarkup.hpp

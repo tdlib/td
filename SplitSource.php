@@ -392,6 +392,8 @@ function split_file($file, $chunks, $undo) {
                 'quick_reply_manager[_(-](?![.]get[(][)])|QuickReplyManager' => 'QuickReplyManager',
                 'ReactionListType|[a-z_]*_reaction_list_type' => 'ReactionListType',
                 'reaction_manager[_(-](?![.]get[(][)])|ReactionManager' => 'ReactionManager',
+                'ReactionNotificationSettings' => 'ReactionNotificationSettings',
+                'ReactionNotificationsFrom' => 'ReactionNotificationsFrom',
                 'ReactionType|[a-z_]*_reaction_type' => 'ReactionType',
                 'RequestActor|RequestOnceActor' => 'RequestActor',
                 'saved_messages_manager[_(-](?![.]get[(][)])|SavedMessagesManager' => 'SavedMessagesManager',

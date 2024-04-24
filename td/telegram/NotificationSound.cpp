@@ -223,7 +223,7 @@ unique_ptr<NotificationSound> get_notification_sound(bool use_default_sound, int
   return td::make_unique<NotificationSoundRingtone>(ringtone_id);
 }
 
-static unique_ptr<NotificationSound> get_notification_sound(telegram_api::NotificationSound *notification_sound) {
+unique_ptr<NotificationSound> get_notification_sound(telegram_api::NotificationSound *notification_sound) {
   if (notification_sound == nullptr) {
     return nullptr;
   }
@@ -265,8 +265,11 @@ unique_ptr<NotificationSound> get_notification_sound(telegram_api::peerNotifySet
 }
 
 telegram_api::object_ptr<telegram_api::NotificationSound> get_input_notification_sound(
-    const unique_ptr<NotificationSound> &notification_sound) {
+    const unique_ptr<NotificationSound> &notification_sound, bool return_non_null) {
   if (notification_sound == nullptr) {
+    if (return_non_null) {
+      return telegram_api::make_object<telegram_api::notificationSoundDefault>();
+    }
     return nullptr;
   }
 
