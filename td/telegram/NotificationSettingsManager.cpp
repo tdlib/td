@@ -499,6 +499,41 @@ class UpdateScopeNotifySettingsQuery final : public Td::ResultHandler {
   }
 };
 
+class SetReactionsNotifySettingsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit SetReactionsNotifySettingsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const ReactionNotificationSettings &settings) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::account_setReactionsNotifySettings(settings.get_input_reactions_notify_settings())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_setReactionsNotifySettings>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SetReactionsNotifySettingsQuery: " << to_string(ptr);
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    LOG(INFO) << "Receive error for set reaction notification settings: " << status;
+
+    if (!td_->auth_manager_->is_bot()) {
+      // trying to repair notification settings
+      td_->notification_settings_manager_->send_get_reaction_notification_settings_query(Promise<>());
+    }
+
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ResetNotifySettingsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -1608,6 +1643,61 @@ void NotificationSettingsManager::reset_notify_settings(Promise<Unit> &&promise)
   td_->create_handler<ResetNotifySettingsQuery>(std::move(promise))->send();
 }
 
+Status NotificationSettingsManager::set_reaction_notification_settings(
+    ReactionNotificationSettings &&notification_settings) {
+  CHECK(!td_->auth_manager_->is_bot());
+  notification_settings.update_default_notification_sound(reaction_notification_settings_);
+  if (notification_settings == reaction_notification_settings_) {
+    have_reaction_notification_settings_ = true;
+    return Status::OK();
+  }
+
+  VLOG(notifications) << "Update reaction notification settings from " << reaction_notification_settings_ << " to "
+                      << notification_settings;
+
+  reaction_notification_settings_ = std::move(notification_settings);
+  have_reaction_notification_settings_ = true;
+
+  save_reaction_notification_settings();
+
+  send_closure(G()->td(), &Td::send_update, get_update_reaction_notification_settings_object());
+
+  update_reaction_notification_settings_on_server(0);
+  return Status::OK();
+}
+
+class NotificationSettingsManager::UpdateReactionNotificationSettingsOnServerLogEvent {
+ public:
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    BEGIN_STORE_FLAGS();
+    END_STORE_FLAGS();
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    BEGIN_PARSE_FLAGS();
+    END_PARSE_FLAGS();
+  }
+};
+
+uint64 NotificationSettingsManager::save_update_reaction_notification_settings_on_server_log_event() {
+  UpdateReactionNotificationSettingsOnServerLogEvent log_event;
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::UpdateReactionNotificationSettingsOnServer,
+                    get_log_event_storer(log_event));
+}
+
+void NotificationSettingsManager::update_reaction_notification_settings_on_server(uint64 log_event_id) {
+  CHECK(!td_->auth_manager_->is_bot());
+  if (log_event_id == 0) {
+    log_event_id = save_update_reaction_notification_settings_on_server_log_event();
+  }
+
+  LOG(INFO) << "Update reaction notification settings on server with log_event " << log_event_id;
+  td_->create_handler<SetReactionsNotifySettingsQuery>(get_erase_log_event_promise(log_event_id))
+      ->send(reaction_notification_settings_);
+}
+
 void NotificationSettingsManager::get_notify_settings_exceptions(NotificationSettingsScope scope, bool filter_scope,
                                                                  bool compare_sound, Promise<Unit> &&promise) {
   td_->create_handler<GetNotifySettingsExceptionsQuery>(std::move(promise))->send(scope, filter_scope, compare_sound);
@@ -1630,6 +1720,13 @@ void NotificationSettingsManager::on_binlog_events(vector<BinlogEvent> &&events)
         log_event_parse(log_event, event.get_data()).ensure();
 
         update_scope_notification_settings_on_server(log_event.scope_, event.id_);
+        break;
+      }
+      case LogEvent::HandlerType::UpdateReactionNotificationSettingsOnServer: {
+        UpdateReactionNotificationSettingsOnServerLogEvent log_event;
+        log_event_parse(log_event, event.get_data()).ensure();
+
+        update_reaction_notification_settings_on_server(event.id_);
         break;
       }
       default:

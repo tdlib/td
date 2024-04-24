@@ -129,6 +129,7 @@
 #include "td/telegram/PublicDialogType.h"
 #include "td/telegram/QuickReplyManager.h"
 #include "td/telegram/ReactionManager.h"
+#include "td/telegram/ReactionNotificationSettings.h"
 #include "td/telegram/ReactionType.h"
 #include "td/telegram/ReportReason.h"
 #include "td/telegram/RequestActor.h"
@@ -8746,6 +8747,12 @@ void Td::on_request(uint64 id, td_api::setScopeNotificationSettings &request) {
   }
   answer_ok_query(id, notification_settings_manager_->set_scope_notification_settings(
                           get_notification_settings_scope(request.scope_), std::move(request.notification_settings_)));
+}
+
+void Td::on_request(uint64 id, td_api::setReactionNotificationSettings &request) {
+  CHECK_IS_USER();
+  answer_ok_query(id, notification_settings_manager_->set_reaction_notification_settings(
+                          ReactionNotificationSettings(std::move(request.notification_settings_))));
 }
 
 void Td::on_request(uint64 id, const td_api::resetAllNotificationSettings &request) {

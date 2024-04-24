@@ -107,6 +107,8 @@ class NotificationSettingsManager final : public Actor {
                                          td_api::object_ptr<td_api::scopeNotificationSettings> &&notification_settings)
       TD_WARN_UNUSED_RESULT;
 
+  Status set_reaction_notification_settings(ReactionNotificationSettings &&notification_settings) TD_WARN_UNUSED_RESULT;
+
   void reset_scope_notification_settings();
 
   void reset_notify_settings(Promise<Unit> &&promise);
@@ -124,6 +126,7 @@ class NotificationSettingsManager final : public Actor {
 
  private:
   class UpdateScopeNotificationSettingsOnServerLogEvent;
+  class UpdateReactionNotificationSettingsOnServerLogEvent;
 
   class RingtoneListLogEvent;
 
@@ -203,6 +206,10 @@ class NotificationSettingsManager final : public Actor {
   static string get_reaction_notification_settings_database_key();
 
   void save_reaction_notification_settings() const;
+
+  uint64 save_update_reaction_notification_settings_on_server_log_event();
+
+  void update_reaction_notification_settings_on_server(uint64 log_event_id);
 
   Td *td_;
   ActorShared<> parent_;

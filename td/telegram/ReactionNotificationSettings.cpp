@@ -54,6 +54,12 @@ ReactionNotificationSettings::get_input_reactions_notify_settings() const {
       get_input_notification_sound(sound_, true), show_preview_);
 }
 
+void ReactionNotificationSettings::update_default_notification_sound(const ReactionNotificationSettings &other) {
+  if (is_notification_sound_default(sound_) && is_notification_sound_default(other.sound_)) {
+    sound_ = dup_notification_sound(other.sound_);
+  }
+}
+
 bool operator==(const ReactionNotificationSettings &lhs, const ReactionNotificationSettings &rhs) {
   return lhs.message_reactions_ == rhs.message_reactions_ && lhs.story_reactions_ == rhs.story_reactions_ &&
          are_equivalent_notification_sounds(lhs.sound_, rhs.sound_) && lhs.show_preview_ == rhs.show_preview_;

@@ -8955,7 +8955,10 @@ getScopeNotificationSettings scope:NotificationSettingsScope = ScopeNotification
 //@description Changes notification settings for chats of a given type @scope Types of chats for which to change the notification settings @notification_settings The new notification settings for the given scope
 setScopeNotificationSettings scope:NotificationSettingsScope notification_settings:scopeNotificationSettings = Ok;
 
-//@description Resets all notification settings to their default values. By default, all chats are unmuted and message previews are shown
+//@description Changes notification settings for reactions @notification_settings The new notification settings for reactions
+setReactionNotificationSettings notification_settings:reactionNotificationSettings = Ok;
+
+//@description Resets all chat and scope notification settings to their default values. By default, all chats are unmuted and message previews are shown
 resetAllNotificationSettings = Ok;
 
 

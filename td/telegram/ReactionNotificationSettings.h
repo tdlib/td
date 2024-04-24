@@ -41,6 +41,8 @@ class ReactionNotificationSettings {
 
   telegram_api::object_ptr<telegram_api::reactionsNotifySettings> get_input_reactions_notify_settings() const;
 
+  void update_default_notification_sound(const ReactionNotificationSettings &other);
+
   template <class StorerT>
   void store(StorerT &storer) const;
 

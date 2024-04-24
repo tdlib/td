@@ -1239,6 +1239,27 @@ class CliClient final : public Actor {
     }
   }
 
+  struct ReactionNotificationSource {
+    string source;
+
+    operator td_api::object_ptr<td_api::ReactionNotificationSource>() const {
+      if (source == "none" || source == "n") {
+        return td_api::make_object<td_api::reactionNotificationSourceNone>();
+      }
+      if (source == "contacts" || source == "c") {
+        return td_api::make_object<td_api::reactionNotificationSourceContacts>();
+      }
+      if (source == "all" || source == "a") {
+        return td_api::make_object<td_api::reactionNotificationSourceAll>();
+      }
+      return nullptr;
+    }
+  };
+
+  void get_args(string &args, ReactionNotificationSource &arg) const {
+    arg.source = trim(args);
+  }
+
   struct PrivacyRules {
     string rules_str;
 
@@ -6502,6 +6523,15 @@ class CliClient final : public Actor {
               as_chat_id(chat_id), as_message_id(message_id), std::move(settings)));
         }
       }
+    } else if (op == "srns") {
+      ReactionNotificationSource message_reactions;
+      ReactionNotificationSource story_reactions;
+      int64 sound_id;
+      bool show_preview;
+      get_args(args, message_reactions, story_reactions, sound_id, show_preview);
+      send_request(td_api::make_object<td_api::setReactionNotificationSettings>(
+          td_api::make_object<td_api::reactionNotificationSettings>(message_reactions, story_reactions, sound_id,
+                                                                    show_preview)));
     } else if (op == "rans") {
       send_request(td_api::make_object<td_api::resetAllNotificationSettings>());
     } else if (op == "rn") {

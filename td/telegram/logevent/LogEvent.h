@@ -105,6 +105,7 @@ class LogEvent {
     ToggleDialogIsTranslatableOnServer = 0x126,
     ToggleDialogViewAsMessagesOnServer = 0x127,
     SendQuickReplyShortcutMessages = 0x128,
+    UpdateReactionNotificationSettingsOnServer = 0x129,
     GetChannelDifference = 0x140,
     AddMessagePushNotification = 0x200,
     EditMessagePushNotification = 0x201,
