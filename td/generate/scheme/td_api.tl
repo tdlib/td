@@ -3695,11 +3695,21 @@ stickerSets total_count:int32 sets:vector<stickerSetInfo> = StickerSets;
 trendingStickerSets total_count:int32 sets:vector<stickerSetInfo> is_premium:Bool = TrendingStickerSets;
 
 
-//@description Contains a list of similar emoji to search for in getStickers and searchStickers
+//@class EmojiCategorySource @description Describes source of stickers for an emoji category
+
+//@description The category contains a list of similar emoji to search for in getStickers and searchStickers @emojis List of emojis for search for
+emojiCategorySourceSearch emojis:vector<string> = EmojiCategorySource;
+
+//@description The category contains Premium stickers that must be found by getPremiumStickers
+emojiCategorySourcePremium = EmojiCategorySource;
+
+
+//@description Describes an emoji category
 //@name Name of the category
 //@icon Custom emoji sticker, which represents icon of the category
-//@emojis List of emojis in the category
-emojiCategory name:string icon:sticker emojis:vector<string> = EmojiCategory;
+//@source Source of stickers for the emoji category
+//@is_greeting True, if the category must be shown first when choosing a sticker for the start page
+emojiCategory name:string icon:sticker source:EmojiCategorySource is_greeting:Bool = EmojiCategory;
 
 //@description Represents a list of emoji categories @categories List of categories
 emojiCategories categories:vector<emojiCategory> = EmojiCategories;

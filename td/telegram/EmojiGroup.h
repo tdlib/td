@@ -20,6 +20,8 @@ class EmojiGroup {
   string title_;
   CustomEmojiId icon_custom_emoji_id_;
   vector<string> emojis_;
+  bool is_greeting_ = false;
+  bool is_premium_ = false;
 
  public:
   EmojiGroup() = default;

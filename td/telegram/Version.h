@@ -66,6 +66,7 @@ enum class Version : int32 {
   AddPageBlockChatLinkFlags,  // 50
   SupportRepliesInOtherChats,
   SupportMultipleSharedUsers,
+  SupportMoreEmojiGroups,
   Next
 };
 
