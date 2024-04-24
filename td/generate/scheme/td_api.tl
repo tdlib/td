@@ -75,7 +75,7 @@ authenticationCodeInfo phone_number:string type:AuthenticationCodeType next_type
 emailAddressAuthenticationCodeInfo email_address_pattern:string length:int32 = EmailAddressAuthenticationCodeInfo;
 
 
-//@class EmailAddressAuthentication @description Contains authentication data for a email address
+//@class EmailAddressAuthentication @description Contains authentication data for an email address
 
 //@description An authentication code delivered to a user's email address @code The code
 emailAddressAuthenticationCode code:string = EmailAddressAuthentication;
@@ -7422,7 +7422,7 @@ setAuthenticationEmailAddress email_address:string = Ok;
 //-or when the current authorization state is authorizationStateWaitEmailCode
 resendAuthenticationCode = Ok;
 
-//@description Checks the authentication of a email address. Works only when the current authorization state is authorizationStateWaitEmailCode @code Email address authentication to check
+//@description Checks the authentication of an email address. Works only when the current authorization state is authorizationStateWaitEmailCode @code Email address authentication to check
 checkAuthenticationEmailCode code:EmailAddressAuthentication = Ok;
 
 //@description Checks the authentication code. Works only when the current authorization state is authorizationStateWaitCode @code Authentication code to check
@@ -7500,7 +7500,7 @@ getPasswordState = PasswordState;
 setPassword old_password:string new_password:string new_hint:string set_recovery_email_address:Bool new_recovery_email_address:string = PasswordState;
 
 //@description Changes the login email address of the user. The email address can be changed only if the current user already has login email and passwordState.login_email_address_pattern is non-empty.
-//-The change will not be applied until the new login email address is confirmed with checkLoginEmailAddressCode. To use Apple ID/Google ID instead of a email address, call checkLoginEmailAddressCode directly
+//-The change will not be applied until the new login email address is confirmed with checkLoginEmailAddressCode. To use Apple ID/Google ID instead of an email address, call checkLoginEmailAddressCode directly
 //@new_login_email_address New login email address
 setLoginEmailAddress new_login_email_address:string = EmailAddressAuthenticationCodeInfo;
 
