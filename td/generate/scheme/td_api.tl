@@ -3892,8 +3892,11 @@ storyInteractionInfo view_count:int32 forward_count:int32 reaction_count:int32 r
 //@caption Caption of the story
 story id:int32 sender_chat_id:int53 sender_id:MessageSender date:int32 is_being_sent:Bool is_being_edited:Bool is_edited:Bool is_posted_to_chat_page:Bool is_visible_only_for_self:Bool can_be_deleted:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_replied:Bool can_toggle_is_posted_to_chat_page:Bool can_get_statistics:Bool can_get_interactions:Bool has_expired_viewers:Bool repost_info:storyRepostInfo interaction_info:storyInteractionInfo chosen_reaction_type:ReactionType privacy_settings:StoryPrivacySettings content:StoryContent areas:vector<storyArea> caption:formattedText = Story;
 
-//@description Represents a list of stories @total_count Approximate total number of stories found @stories The list of stories
-stories total_count:int32 stories:vector<story> = Stories;
+//@description Represents a list of stories
+//@total_count Approximate total number of stories found
+//@stories The list of stories
+//@pinned_story_ids Identifiers of the pinned stories; returned only in getChatPostedToChatPageStories with from_story_id == 0
+stories total_count:int32 stories:vector<story> pinned_story_ids:vector<int32> = Stories;
 
 //@description Contains identifier of a story along with identifier of its sender
 //@sender_chat_id Identifier of the chat that posted the story

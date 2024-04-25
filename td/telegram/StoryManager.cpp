@@ -2373,11 +2373,13 @@ void StoryManager::on_get_dialog_pinned_stories(DialogId owner_dialog_id,
                                                 telegram_api::object_ptr<telegram_api::stories_stories> &&stories,
                                                 Promise<td_api::object_ptr<td_api::stories>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
+  auto pinned_story_ids = StoryId::get_story_ids(stories->pinned_to_top_);
   auto result = on_get_stories(owner_dialog_id, {}, std::move(stories));
   on_update_dialog_has_pinned_stories(owner_dialog_id, result.first > 0);
-  promise.set_value(get_stories_object(result.first, transform(result.second, [owner_dialog_id](StoryId story_id) {
-                                         return StoryFullId(owner_dialog_id, story_id);
-                                       })));
+  promise.set_value(get_stories_object(
+      result.first,
+      transform(result.second, [owner_dialog_id](StoryId story_id) { return StoryFullId(owner_dialog_id, story_id); }),
+      pinned_story_ids));
 }
 
 void StoryManager::get_story_archive(DialogId owner_dialog_id, StoryId from_story_id, int32 limit,
@@ -2411,10 +2413,12 @@ void StoryManager::on_get_story_archive(DialogId owner_dialog_id,
                                         telegram_api::object_ptr<telegram_api::stories_stories> &&stories,
                                         Promise<td_api::object_ptr<td_api::stories>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
+  LOG_IF(ERROR, !stories->pinned_to_top_.empty()) << "Receive pinned stories in archive";
   auto result = on_get_stories(owner_dialog_id, {}, std::move(stories));
-  promise.set_value(get_stories_object(result.first, transform(result.second, [owner_dialog_id](StoryId story_id) {
-                                         return StoryFullId(owner_dialog_id, story_id);
-                                       })));
+  promise.set_value(get_stories_object(
+      result.first,
+      transform(result.second, [owner_dialog_id](StoryId story_id) { return StoryFullId(owner_dialog_id, story_id); }),
+      {}));
 }
 
 void StoryManager::get_dialog_expiring_stories(DialogId owner_dialog_id,
@@ -3297,13 +3301,15 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
 }
 
 td_api::object_ptr<td_api::stories> StoryManager::get_stories_object(int32 total_count,
-                                                                     const vector<StoryFullId> &story_full_ids) const {
+                                                                     const vector<StoryFullId> &story_full_ids,
+                                                                     const vector<StoryId> &pinned_story_ids) const {
   if (total_count == -1) {
     total_count = static_cast<int32>(story_full_ids.size());
   }
-  return td_api::make_object<td_api::stories>(total_count, transform(story_full_ids, [this](StoryFullId story_full_id) {
-                                                return get_story_object(story_full_id);
-                                              }));
+  return td_api::make_object<td_api::stories>(
+      total_count,
+      transform(story_full_ids, [this](StoryFullId story_full_id) { return get_story_object(story_full_id); }),
+      StoryId::get_input_story_ids(pinned_story_ids));
 }
 
 td_api::object_ptr<td_api::chatActiveStories> StoryManager::get_chat_active_stories_object(
