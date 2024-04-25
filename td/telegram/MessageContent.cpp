@@ -6940,7 +6940,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     case MessageContentType::LiveLocation: {
       const auto *m = static_cast<const MessageLiveLocation *>(content);
       auto passed = max(G()->unix_time() - message_date, 0);
-      auto expires_in = max(0, m->period - passed);
+      auto expires_in = m->period == std::numeric_limits<int32>::max() ? m->period : max(0, m->period - passed);
       auto heading = expires_in == 0 ? 0 : m->heading;
       auto proximity_alert_radius = expires_in == 0 ? 0 : m->proximity_alert_radius;
       return make_tl_object<td_api::messageLocation>(m->location.get_location_object(), m->period, expires_in, heading,
