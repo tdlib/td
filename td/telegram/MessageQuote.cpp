@@ -14,7 +14,11 @@
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserManager.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
+#include "td/utils/Slice.h"
+#include "td/utils/utf8.h"
 
 namespace td {
 
@@ -69,7 +73,6 @@ MessageQuote MessageQuote::clone(bool ignore_is_manual) const {
 }
 
 MessageQuote MessageQuote::create_automatic_quote(Td *td, FormattedText &&text) {
-  remove_unallowed_quote_entities(text);
   truncate_formatted_text(
       text, static_cast<size_t>(td->option_manager_->get_option_integer("message_reply_quote_length_max")));
   return MessageQuote(std::move(text), 0, false);
@@ -153,6 +156,83 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageQuote &quo
     }
   }
   return string_builder;
+}
+
+void MessageQuote::remove_unallowed_quote_entities(FormattedText &text) {
+  auto is_allowed_quote_entity = [](const MessageEntity &entity) {
+    switch (entity.type) {
+      case MessageEntity::Type::Bold:
+      case MessageEntity::Type::Italic:
+      case MessageEntity::Type::Underline:
+      case MessageEntity::Type::Strikethrough:
+      case MessageEntity::Type::Spoiler:
+      case MessageEntity::Type::CustomEmoji:
+        return true;
+      default:
+        return false;
+    }
+  };
+
+  td::remove_if(text.entities, [&](const auto &entity) { return !is_allowed_quote_entity(entity); });
+}
+
+int32 MessageQuote::search_quote(FormattedText &&text, FormattedText &&quote, int32 quote_position) {
+  auto process_quote_entities = [](FormattedText &text, int32 length) {
+    remove_unallowed_quote_entities(text);
+    td::remove_if(text.entities, [length](const MessageEntity &entity) {
+      if (entity.offset < 0 || entity.offset >= length) {
+        return true;
+      }
+      if (entity.length <= 0 || entity.length > length - entity.offset) {
+        return true;
+      }
+      return false;
+    });
+    remove_empty_entities(text.entities);
+    fix_entities(text.entities);
+    remove_empty_entities(text.entities);
+  };
+  int32 length = narrow_cast<int32>(utf8_utf16_length(text.text));
+  int32 quote_length = narrow_cast<int32>(utf8_utf16_length(quote.text));
+  if (quote_length == 0 || quote_length > length) {
+    return -1;
+  }
+  process_quote_entities(text, length);
+  process_quote_entities(quote, quote_length);
+
+  quote_position = clamp(quote_position, 0, length - 1);
+  vector<size_t> byte_positions;
+  byte_positions.reserve(length);
+  for (size_t i = 0; i < text.text.size(); i++) {
+    auto c = static_cast<unsigned char>(text.text[i]);
+    if (is_utf8_character_first_code_unit(c)) {
+      byte_positions.push_back(i);
+      if (c >= 0xf0) {  // >= 4 bytes in symbol => surrogate pair
+        byte_positions.push_back(string::npos);
+      }
+    }
+  }
+  CHECK(byte_positions.size() == static_cast<size_t>(length));
+  auto check_position = [&text, &quote, &byte_positions, length, quote_length](int32 position) {
+    if (position < 0 || position > length - quote_length) {
+      return false;
+    }
+    auto byte_position = byte_positions[position];
+    if (byte_position == string::npos || text.text[byte_position] != quote.text[0] ||
+        Slice(text.text).substr(byte_position, quote.text.size()) != quote.text) {
+      return false;
+    }
+    return true;
+  };
+  for (int32 i = 0; quote_position - i >= 0 || quote_position + i + 1 <= length - quote_length; i++) {
+    if (check_position(quote_position - i)) {
+      return quote_position - i;
+    }
+    if (check_position(quote_position + i + 1)) {
+      return quote_position + i + 1;
+    }
+  }
+  return -1;
 }
 
 }  // namespace td

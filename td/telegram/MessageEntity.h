@@ -183,10 +183,6 @@ vector<std::pair<Slice, int32>> find_media_timestamps(Slice str);  // slice + me
 
 void remove_empty_entities(vector<MessageEntity> &entities);
 
-void remove_unallowed_quote_entities(FormattedText &text);
-
-int32 search_quote(FormattedText &&text, FormattedText &&quote, int32 quote_position);
-
 Slice get_first_url(const FormattedText &text);
 
 bool is_visible_url(const FormattedText &text, const string &url);
@@ -226,6 +222,8 @@ FormattedText get_formatted_text(const UserManager *user_manager, string &&text,
 FormattedText get_formatted_text(const UserManager *user_manager,
                                  telegram_api::object_ptr<telegram_api::textWithEntities> text_with_entities,
                                  bool allow_empty, bool skip_media_timestamps, bool skip_trim, const char *source);
+
+void fix_entities(vector<MessageEntity> &entities);
 
 // like clean_input_string but also validates entities
 Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool allow_empty, bool skip_new_entities,

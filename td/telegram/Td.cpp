@@ -92,6 +92,7 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageImportManager.h"
 #include "td/telegram/MessageLinkInfo.h"
+#include "td/telegram/MessageQuote.h"
 #include "td/telegram/MessageReaction.h"
 #include "td/telegram/MessageSearchFilter.h"
 #include "td/telegram/MessageSender.h"
@@ -9706,9 +9707,9 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::searchQuote &re
   if (r_quote_entities.is_error()) {
     return make_error(400, r_quote_entities.error().message());
   }
-  auto position =
-      search_quote({std::move(request.text_->text_), r_text_entities.move_as_ok()},
-                   {std::move(request.quote_->text_), r_quote_entities.move_as_ok()}, request.quote_position_);
+  auto position = MessageQuote::search_quote({std::move(request.text_->text_), r_text_entities.move_as_ok()},
+                                             {std::move(request.quote_->text_), r_quote_entities.move_as_ok()},
+                                             request.quote_position_);
   if (position == -1) {
     return make_error(404, "Not Found");
   }

@@ -28,6 +28,8 @@ class MessageQuote {
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const MessageQuote &quote);
 
+  static void remove_unallowed_quote_entities(FormattedText &text);
+
  public:
   MessageQuote() = default;
   MessageQuote(const MessageQuote &) = delete;
@@ -50,6 +52,8 @@ class MessageQuote {
   static MessageQuote create_automatic_quote(Td *td, FormattedText &&text);
 
   static int need_quote_changed_warning(const MessageQuote &old_quote, const MessageQuote &new_quote);
+
+  static int32 search_quote(FormattedText &&text, FormattedText &&quote, int32 quote_position);
 
   bool is_empty() const {
     return text_.text.empty();
