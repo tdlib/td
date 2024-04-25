@@ -1143,7 +1143,7 @@ void AuthManager::on_account_banned() const {
     return;
   }
   LOG(ERROR) << "Your account was banned for suspicious activity. If you think that this is a mistake, please try to "
-                "log in from an official mobile app and send a email to recover the account by following instructions "
+                "log in from an official mobile app and send an email to recover the account by following instructions "
                 "provided by the app";
 }
 
