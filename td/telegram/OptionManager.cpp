@@ -410,6 +410,7 @@ bool OptionManager::is_internal_option(Slice name) {
                                                               "premium_bot_username",
                                                               "premium_features",
                                                               "premium_invoice_slug",
+                                                              "premium_manage_subscription_url",
                                                               "rating_e_decay",
                                                               "reactions_uniq_max",
                                                               "reactions_user_max_default",

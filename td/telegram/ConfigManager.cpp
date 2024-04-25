@@ -1507,6 +1507,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   int32 transcribe_audio_trial_duration_max = 0;
   int32 transcribe_audio_trial_cooldown_until = 0;
   vector<string> business_features;
+  string premium_manage_subscription_url;
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
@@ -2058,6 +2059,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         G()->set_option_integer("business_chat_link_count_max", get_json_value_int(std::move(key_value->value_), key));
         continue;
       }
+      if (key == "premium_manage_subscription_url") {
+        premium_manage_subscription_url = get_json_value_string(std::move(key_value->value_), key);
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -2215,6 +2220,12 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   options.set_option_empty("default_ton_blockchain_config");
   options.set_option_empty("default_ton_blockchain_name");
   options.set_option_empty("story_viewers_expire_period");
+
+  if (premium_manage_subscription_url.empty()) {
+    G()->set_option_empty("premium_manage_subscription_url");
+  } else {
+    G()->set_option_string("premium_manage_subscription_url", premium_manage_subscription_url);
+  }
 
   // do not update suggested actions while changing content settings or dismissing an action
   if (!is_set_content_settings_request_sent_ && dismiss_suggested_action_request_count_ == 0) {
