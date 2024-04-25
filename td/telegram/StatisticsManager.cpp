@@ -697,6 +697,11 @@ void StatisticsManager::get_channel_revenue_statistics(
   td_->create_handler<GetBroadcastRevenueStatsQuery>(std::move(promise))->send(dialog_id.get_channel_id(), is_dark);
 }
 
+void StatisticsManager::on_update_dialog_revenue_transactions(
+    telegram_api::object_ptr<telegram_api::broadcastRevenueBalances> balances) {
+  send_closure(G()->td(), &Td::send_update, td_api::make_object<td_api::updateChatRevenueAmount>());
+}
+
 void StatisticsManager::get_channel_revenue_withdrawal_url(DialogId dialog_id, const string &password,
                                                            Promise<string> &&promise) {
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Write,
