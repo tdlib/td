@@ -2125,6 +2125,12 @@ class CliClient final : public Actor {
     if (action == "checks") {
       return td_api::make_object<td_api::suggestedActionViewChecksHint>();
     }
+    if (action == "prolong") {
+      return td_api::make_object<td_api::suggestedActionProlongPremium>("");
+    }
+    if (action == "annual") {
+      return td_api::make_object<td_api::suggestedActionSubscribeToAnnualPremium>();
+    }
     if (begins_with(action, "giga")) {
       return td_api::make_object<td_api::suggestedActionConvertToBroadcastGroup>(as_supergroup_id(action.substr(4)));
     }

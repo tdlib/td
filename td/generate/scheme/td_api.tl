@@ -6494,6 +6494,9 @@ suggestedActionGiftPremiumForChristmas = SuggestedAction;
 //@description Suggests the user to set birthdate
 suggestedActionSetBirthdate = SuggestedAction;
 
+//@description Suggests the user to prolong about to expire Telegram Premium @manage_premium_subscription_url A URL for managing Telegram Premium subscription
+suggestedActionProlongPremium manage_premium_subscription_url:string = SuggestedAction;
+
 
 //@description Contains a counter @count Count
 count count:int32 = Count;

@@ -28,7 +28,8 @@ struct SuggestedAction {
     SubscribeToAnnualPremium,
     RestorePremium,
     GiftPremiumForChristmas,
-    BirthdaySetup
+    BirthdaySetup,
+    PremiumGrace
   };
   Type type_ = Type::Empty;
   DialogId dialog_id_;

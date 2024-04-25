@@ -48,6 +48,8 @@ SuggestedAction::SuggestedAction(Slice action_str) {
     init(Type::GiftPremiumForChristmas);
   } else if (action_str == Slice("BIRTHDAY_SETUP")) {
     init(Type::BirthdaySetup);
+  } else if (action_str == Slice("PREMIUM_GRACE")) {
+    init(Type::PremiumGrace);
   }
 }
 
@@ -106,6 +108,9 @@ SuggestedAction::SuggestedAction(const td_api::object_ptr<td_api::SuggestedActio
     case td_api::suggestedActionSetBirthdate::ID:
       init(Type::BirthdaySetup);
       break;
+    case td_api::suggestedActionProlongPremium::ID:
+      init(Type::PremiumGrace);
+      break;
     default:
       UNREACHABLE();
   }
@@ -135,6 +140,8 @@ string SuggestedAction::get_suggested_action_str() const {
       return "PREMIUM_CHRISTMAS";
     case Type::BirthdaySetup:
       return "BIRTHDAY_SETUP";
+    case Type::PremiumGrace:
+      return "PREMIUM_GRACE";
     default:
       return string();
   }
@@ -166,6 +173,9 @@ td_api::object_ptr<td_api::SuggestedAction> SuggestedAction::get_suggested_actio
       return td_api::make_object<td_api::suggestedActionGiftPremiumForChristmas>();
     case Type::BirthdaySetup:
       return td_api::make_object<td_api::suggestedActionSetBirthdate>();
+    case Type::PremiumGrace:
+      return td_api::make_object<td_api::suggestedActionProlongPremium>(
+          G()->get_option_string("premium_manage_subscription_url", "https://T.me/premiumbot?start=status"));
     default:
       UNREACHABLE();
       return nullptr;
@@ -232,6 +242,7 @@ void dismiss_suggested_action(SuggestedAction action, Promise<Unit> &&promise) {
     case SuggestedAction::Type::RestorePremium:
     case SuggestedAction::Type::GiftPremiumForChristmas:
     case SuggestedAction::Type::BirthdaySetup:
+    case SuggestedAction::Type::PremiumGrace:
       return send_closure_later(G()->config_manager(), &ConfigManager::dismiss_suggested_action, std::move(action),
                                 std::move(promise));
     case SuggestedAction::Type::ConvertToGigagroup:
