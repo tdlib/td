@@ -4604,6 +4604,19 @@ class CliClient final : public Actor {
       string limit;
       get_args(args, chat_id, from_story_id, limit);
       send_request(td_api::make_object<td_api::getChatArchivedStories>(chat_id, from_story_id, as_limit(limit)));
+    } else if (op == "scps") {
+      ChatId chat_id;
+      get_args(args, chat_id, args);
+      vector<int32> story_ids;
+      while (true) {
+        StoryId story_id;
+        get_args(args, story_id, args);
+        if (story_id <= 0) {
+          break;
+        }
+        story_ids.push_back(story_id);
+      }
+      send_request(td_api::make_object<td_api::setChatPinnedStories>(chat_id, std::move(story_ids)));
     } else if (op == "gsnse") {
       send_request(td_api::make_object<td_api::getStoryNotificationSettingsExceptions>());
     } else if (op == "gcas") {

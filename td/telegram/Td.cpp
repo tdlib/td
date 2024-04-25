@@ -6929,6 +6929,13 @@ void Td::on_request(uint64 id, const td_api::getChatArchivedStories &request) {
                                     std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::setChatPinnedStories &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  story_manager_->set_pinned_stories(DialogId(request.chat_id_), StoryId::get_story_ids(request.story_ids_),
+                                     std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::openStory &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

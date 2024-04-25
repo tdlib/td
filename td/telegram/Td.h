@@ -1169,6 +1169,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::getChatArchivedStories &request);
 
+  void on_request(uint64 id, const td_api::setChatPinnedStories &request);
+
   void on_request(uint64 id, const td_api::openStory &request);
 
   void on_request(uint64 id, const td_api::closeStory &request);

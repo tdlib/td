@@ -703,6 +703,39 @@ class DeleteStoriesQuery final : public Td::ResultHandler {
   }
 };
 
+class TogglePinnedStoriesToTopQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit TogglePinnedStoriesToTopQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, vector<StoryId> story_ids) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Write);
+    CHECK(input_peer != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::stories_togglePinnedToTop(std::move(input_peer), StoryId::get_input_story_ids(story_ids))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_togglePinnedToTop>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for TogglePinnedStoriesToTopQuery: " << ptr;
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetStoriesViewsQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetStoriesViewsQuery final : public Td::ResultHandler {
   vector<StoryId> story_ids_;
   DialogId dialog_id_;
@@ -2500,6 +2533,28 @@ void StoryManager::on_get_dialog_expiring_stories(DialogId owner_dialog_id,
   } else {
     promise.set_value(nullptr);
   }
+}
+
+void StoryManager::set_pinned_stories(DialogId owner_dialog_id, vector<StoryId> story_ids, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(owner_dialog_id, false, AccessRights::Write,
+                                                                        "set_pinned_stories"));
+  if (!can_edit_stories(owner_dialog_id)) {
+    return promise.set_error(Status::Error(400, "Can't change pinned stories in the chat"));
+  }
+  for (const auto &story_id : story_ids) {
+    StoryFullId story_full_id{owner_dialog_id, story_id};
+    const Story *story = get_story(story_full_id);
+    if (story == nullptr) {
+      return promise.set_error(Status::Error(400, "Story not found"));
+    }
+    if (!story->is_pinned_) {
+      return promise.set_error(Status::Error(400, "The story must be posted to the chat page first"));
+    }
+    if (!story_id.is_server()) {
+      return promise.set_error(Status::Error(400, "Story must be sent first"));
+    }
+  }
+  td_->create_handler<TogglePinnedStoriesToTopQuery>(std::move(promise))->send(owner_dialog_id, std::move(story_ids));
 }
 
 void StoryManager::open_story(DialogId owner_dialog_id, StoryId story_id, Promise<Unit> &&promise) {

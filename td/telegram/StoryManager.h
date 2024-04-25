@@ -253,6 +253,8 @@ class StoryManager final : public Actor {
 
   void reload_dialog_expiring_stories(DialogId dialog_id);
 
+  void set_pinned_stories(DialogId owner_dialog_id, vector<StoryId> story_ids, Promise<Unit> &&promise);
+
   void open_story(DialogId owner_dialog_id, StoryId story_id, Promise<Unit> &&promise);
 
   void close_story(DialogId owner_dialog_id, StoryId story_id, Promise<Unit> &&promise);
