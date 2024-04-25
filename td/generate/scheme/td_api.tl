@@ -9068,7 +9068,7 @@ getChatArchivedStories chat_id:int53 from_story_id:int32 limit:int32 = Stories;
 
 //@description Changes list of pinned stories on a chat page; requires can_edit_stories right in the chat
 //@chat_id Identifier of the chat that posted the stories
-//@story_ids New list of pinned stories. All stories must be posted to chat page
+//@story_ids New list of pinned stories. All stories must be posted to the chat page first. There can be up to getOption("pinned_story_count_max") pinned stories on a chat page
 setChatPinnedStories chat_id:int53 story_ids:vector<int32> = Ok;
 
 //@description Informs TDLib that a story is opened and is being viewed by the user

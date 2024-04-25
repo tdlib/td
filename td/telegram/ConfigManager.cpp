@@ -2063,6 +2063,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         premium_manage_subscription_url = get_json_value_string(std::move(key_value->value_), key);
         continue;
       }
+      if (key == "stories_pinned_to_top_count_max") {
+        G()->set_option_integer("pinned_story_count_max", get_json_value_int(std::move(key_value->value_), key));
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
