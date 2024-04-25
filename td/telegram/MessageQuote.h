@@ -59,10 +59,6 @@ class MessageQuote {
     return text_.text.empty();
   }
 
-  bool is_manual() const {
-    return is_manual_;
-  }
-
   MessageQuote clone(bool ignore_is_manual = false) const;
 
   void add_dependencies(Dependencies &dependencies) const;

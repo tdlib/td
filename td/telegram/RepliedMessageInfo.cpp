@@ -124,9 +124,7 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, const MessageInputReplyTo &input_
     return;
   }
   message_id_ = input_reply_to.message_id_;
-  if (!input_reply_to.quote_.is_empty()) {
-    quote_ = input_reply_to.quote_.clone();
-  }
+  quote_ = input_reply_to.quote_.clone();
   if (input_reply_to.dialog_id_ != DialogId()) {
     auto info =
         td->messages_manager_->get_forwarded_message_info({input_reply_to.dialog_id_, input_reply_to.message_id_});
@@ -139,7 +137,7 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, const MessageInputReplyTo &input_
     content_ = std::move(info.content_);
     auto content_text = get_message_content_text_mutable(content_.get());
     if (content_text != nullptr) {
-      if (!quote_.is_manual()) {
+      if (quote_.is_empty()) {
         quote_ = MessageQuote::create_automatic_quote(td, std::move(*content_text));
       }
       *content_text = FormattedText();
