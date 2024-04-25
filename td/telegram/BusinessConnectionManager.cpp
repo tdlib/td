@@ -633,24 +633,7 @@ MessageInputReplyTo BusinessConnectionManager::create_business_message_input_rep
       if (reply_to_message->chat_id_ != 0) {
         return {};
       }
-      FormattedText quote;
-      int32 quote_position = 0;
-      if (reply_to_message->quote_ != nullptr) {
-        int32 ltrim_count = 0;
-        auto r_quote = get_formatted_text(td_, td_->dialog_manager_->get_my_dialog_id(),
-                                          std::move(reply_to_message->quote_->text_), td_->auth_manager_->is_bot(),
-                                          true, true, false, &ltrim_count);
-        if (r_quote.is_ok() && !r_quote.ok().text.empty()) {
-          quote = r_quote.move_as_ok();
-          quote_position = reply_to_message->quote_->position_;
-          if (0 <= quote_position && quote_position <= 1000000) {  // some unreasonably big bound
-            quote_position += ltrim_count;
-          } else {
-            quote_position = 0;
-          }
-        }
-      }
-      return MessageInputReplyTo{message_id, DialogId(), {std::move(quote), quote_position}};
+      return MessageInputReplyTo{message_id, DialogId(), MessageQuote(td_, std::move(reply_to_message->quote_))};
     }
     default:
       UNREACHABLE();

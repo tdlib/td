@@ -6,7 +6,9 @@
 //
 #include "td/telegram/MessageQuote.h"
 
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/Dependencies.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
@@ -41,6 +43,25 @@ MessageQuote::MessageQuote(Td *td, telegram_api::object_ptr<telegram_api::messag
   remove_unallowed_quote_entities(text_);
   position_ = max(0, reply_header->quote_offset_);
   is_manual_ = reply_header->quote_;
+}
+
+MessageQuote::MessageQuote(Td *td, td_api::object_ptr<td_api::inputTextQuote> quote) {
+  if (quote == nullptr) {
+    return;
+  }
+  int32 ltrim_count = 0;
+  auto r_text = get_formatted_text(td, td->dialog_manager_->get_my_dialog_id(), std::move(quote->text_),
+                                   td->auth_manager_->is_bot(), true, true, false, &ltrim_count);
+  if (!r_text.is_ok() || r_text.ok().text.empty()) {
+    return;
+  }
+  text_ = r_text.move_as_ok();
+  position_ = quote->position_;
+  if (0 <= position_ && position_ <= 1000000) {  // some unreasonably big bound
+    position_ += ltrim_count;
+  } else {
+    position_ = 0;
+  }
 }
 
 MessageQuote MessageQuote::clone(bool ignore_is_manual) const {

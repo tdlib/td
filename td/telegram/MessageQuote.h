@@ -45,6 +45,8 @@ class MessageQuote {
 
   MessageQuote(Td *td, telegram_api::object_ptr<telegram_api::messageReplyHeader> &reply_header);
 
+  MessageQuote(Td *td, td_api::object_ptr<td_api::inputTextQuote> quote);
+
   static MessageQuote create_automatic_quote(Td *td, FormattedText &&text);
 
   static int need_quote_changed_warning(const MessageQuote &old_quote, const MessageQuote &new_quote);
