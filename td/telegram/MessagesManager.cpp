@@ -49,6 +49,7 @@
 #include "td/telegram/MessageForwardInfo.h"
 #include "td/telegram/MessageForwardInfo.hpp"
 #include "td/telegram/MessageOrigin.hpp"
+#include "td/telegram/MessageQuote.h"
 #include "td/telegram/MessageReaction.h"
 #include "td/telegram/MessageReaction.hpp"
 #include "td/telegram/MessageReplyInfo.hpp"
@@ -4632,7 +4633,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     if (reply_to_story_full_id.is_valid()) {
       input_reply_to = MessageInputReplyTo(reply_to_story_full_id);
     } else if (legacy_reply_to_message_id.is_valid()) {
-      input_reply_to = MessageInputReplyTo{legacy_reply_to_message_id, DialogId(), FormattedText(), 0};
+      input_reply_to = MessageInputReplyTo{legacy_reply_to_message_id, DialogId(), MessageQuote()};
     }
   }
   if (has_replied_message_info) {
@@ -23097,7 +23098,7 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
   }
   if (reply_to == nullptr) {
     if (!for_draft && top_thread_message_id.is_valid() && top_thread_message_id.is_server()) {
-      return MessageInputReplyTo{top_thread_message_id, DialogId(), FormattedText(), 0};
+      return MessageInputReplyTo{top_thread_message_id, DialogId(), MessageQuote()};
     }
     return {};
   }
@@ -23125,7 +23126,7 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
       if (!message_id.is_valid()) {
         if (!for_draft && message_id == MessageId() && top_thread_message_id.is_valid() &&
             top_thread_message_id.is_server()) {
-          return MessageInputReplyTo{top_thread_message_id, DialogId(), FormattedText(), 0};
+          return MessageInputReplyTo{top_thread_message_id, DialogId(), MessageQuote()};
         }
         return {};
       }
@@ -23169,10 +23170,10 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
             (reply_d->notification_info != nullptr &&
              message_id <= reply_d->notification_info->max_push_notification_message_id_)) {
           // allow to reply yet unreceived server message in the same chat
-          return MessageInputReplyTo{message_id, reply_dialog_id, std::move(quote), quote_position};
+          return MessageInputReplyTo{message_id, reply_dialog_id, MessageQuote{std::move(quote), quote_position}};
         }
         if (!for_draft && top_thread_message_id.is_valid() && top_thread_message_id.is_server()) {
-          return MessageInputReplyTo{top_thread_message_id, DialogId(), FormattedText(), 0};
+          return MessageInputReplyTo{top_thread_message_id, DialogId(), MessageQuote()};
         }
         LOG(INFO) << "Can't find " << message_id << " in " << reply_d->dialog_id;
 
@@ -23184,7 +23185,7 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
         LOG(INFO) << "Can't reply in another chat " << m->message_id << " in " << reply_d->dialog_id;
         return {};
       }
-      return MessageInputReplyTo{m->message_id, reply_dialog_id, std::move(quote), quote_position};
+      return MessageInputReplyTo{m->message_id, reply_dialog_id, MessageQuote{std::move(quote), quote_position}};
     }
     default:
       UNREACHABLE();
@@ -23276,7 +23277,7 @@ void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) 
         CHECK(input_reply_to != nullptr);
         CHECK(input_reply_to->get_reply_message_full_id(reply_d->dialog_id) == MessageFullId(dialog_id, m->message_id));
         set_message_reply(reply_d, replied_m,
-                          MessageInputReplyTo{replied_m->top_thread_message_id, DialogId(), FormattedText(), 0}, true);
+                          MessageInputReplyTo{replied_m->top_thread_message_id, DialogId(), MessageQuote()}, true);
       }
       replied_yet_unsent_messages_.erase(it);
     }
@@ -26505,7 +26506,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     if (!input_reply_to.is_valid() && copied_message.original_reply_to_message_id.is_valid() && is_secret) {
       auto it = forwarded_message_id_to_new_message_id.find(copied_message.original_reply_to_message_id);
       if (it != forwarded_message_id_to_new_message_id.end()) {
-        input_reply_to = MessageInputReplyTo{it->second, DialogId(), FormattedText(), 0};
+        input_reply_to = MessageInputReplyTo{it->second, DialogId(), MessageQuote()};
       }
     }
 
@@ -26597,7 +26598,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_quick_reply_s
     if (content.original_reply_to_message_id_.is_valid()) {
       auto it = original_message_id_to_new_message_id.find(content.original_reply_to_message_id_);
       if (it != original_message_id_to_new_message_id.end()) {
-        input_reply_to = MessageInputReplyTo{it->second, DialogId(), FormattedText(), 0};
+        input_reply_to = MessageInputReplyTo{it->second, DialogId(), MessageQuote()};
       }
     }
 
@@ -26795,7 +26796,7 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
       auto r_quote = get_formatted_text(td_, td_->dialog_manager_->get_my_dialog_id(), std::move(quote->text_),
                                         td_->auth_manager_->is_bot(), true, true, true);
       if (r_quote.is_ok()) {
-        message->input_reply_to.set_quote(r_quote.move_as_ok(), quote->position_);
+        message->input_reply_to.set_quote(MessageQuote{r_quote.move_as_ok(), quote->position_});
       }
     } else if (need_drop_reply) {
       message->input_reply_to = {};
@@ -36969,7 +36970,7 @@ void MessagesManager::restore_message_reply_to_message_id(Dialog *d, Message *m)
   if (message_id.is_valid() || message_id.is_valid_scheduled()) {
     update_message_reply_to_message_id(d, m, message_id, false);
   } else {
-    set_message_reply(d, m, MessageInputReplyTo{m->top_thread_message_id, DialogId(), FormattedText(), 0}, false);
+    set_message_reply(d, m, MessageInputReplyTo{m->top_thread_message_id, DialogId(), MessageQuote()}, false);
   }
 }
 

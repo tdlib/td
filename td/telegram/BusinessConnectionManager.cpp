@@ -650,7 +650,7 @@ MessageInputReplyTo BusinessConnectionManager::create_business_message_input_rep
           }
         }
       }
-      return MessageInputReplyTo{message_id, DialogId(), std::move(quote), quote_position};
+      return MessageInputReplyTo{message_id, DialogId(), {std::move(quote), quote_position}};
     }
     default:
       UNREACHABLE();

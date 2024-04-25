@@ -10,11 +10,11 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/MessageContent.h"
-#include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageInputReplyTo.h"
 #include "td/telegram/MessageOrigin.h"
+#include "td/telegram/MessageQuote.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
@@ -36,9 +36,7 @@ class RepliedMessageInfo {
   int32 origin_date_ = 0;               // for replies in other chats
   MessageOrigin origin_;                // for replies in other chats
   unique_ptr<MessageContent> content_;  // for replies in other chats
-  FormattedText quote_;
-  int32 quote_position_ = 0;
-  bool is_quote_manual_ = false;
+  MessageQuote quote_;
 
   friend bool operator==(const RepliedMessageInfo &lhs, const RepliedMessageInfo &rhs);
 

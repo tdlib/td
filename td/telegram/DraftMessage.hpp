@@ -10,6 +10,7 @@
 
 #include "td/telegram/InputMessageText.hpp"
 #include "td/telegram/MessageInputReplyTo.hpp"
+#include "td/telegram/MessageQuote.h"
 #include "td/telegram/Version.h"
 
 #include "td/utils/tl_helpers.h"
@@ -59,7 +60,7 @@ void DraftMessage::parse(ParserT &parser) {
   if (has_legacy_reply_to_message_id) {
     MessageId legacy_reply_to_message_id;
     td::parse(legacy_reply_to_message_id, parser);
-    message_input_reply_to_ = MessageInputReplyTo{legacy_reply_to_message_id, DialogId(), FormattedText(), 0};
+    message_input_reply_to_ = MessageInputReplyTo{legacy_reply_to_message_id, DialogId(), MessageQuote()};
   }
   if (has_input_message_text) {
     td::parse(input_message_text_, parser);

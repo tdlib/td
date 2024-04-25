@@ -420,6 +420,7 @@ set(TDLIB_SOURCE
   td/telegram/MessageImportManager.cpp
   td/telegram/MessageInputReplyTo.cpp
   td/telegram/MessageOrigin.cpp
+  td/telegram/MessageQuote.cpp
   td/telegram/MessageReaction.cpp
   td/telegram/MessageReplyHeader.cpp
   td/telegram/MessageReplyInfo.cpp
@@ -747,6 +748,7 @@ set(TDLIB_SOURCE
   td/telegram/MessageInputReplyTo.h
   td/telegram/MessageLinkInfo.h
   td/telegram/MessageOrigin.h
+  td/telegram/MessageQuote.h
   td/telegram/MessageReaction.h
   td/telegram/MessageReplyHeader.h
   td/telegram/MessageReplyInfo.h
@@ -955,6 +957,7 @@ set(TDLIB_SOURCE
   td/telegram/MessageForwardInfo.hpp
   td/telegram/MessageInputReplyTo.hpp
   td/telegram/MessageOrigin.hpp
+  td/telegram/MessageQuote.hpp
   td/telegram/MessageReaction.hpp
   td/telegram/MessageReplyInfo.hpp
   td/telegram/MinChannel.hpp

@@ -7,9 +7,9 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
-#include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
+#include "td/telegram/MessageQuote.h"
 #include "td/telegram/StoryFullId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -26,8 +26,7 @@ class Td;
 class MessageInputReplyTo {
   MessageId message_id_;
   DialogId dialog_id_;
-  FormattedText quote_;
-  int32 quote_position_ = 0;
+  MessageQuote quote_;
   // or
   StoryFullId story_full_id_;
 
@@ -45,12 +44,8 @@ class MessageInputReplyTo {
   MessageInputReplyTo &operator=(MessageInputReplyTo &&) = default;
   ~MessageInputReplyTo();
 
-  MessageInputReplyTo(MessageId message_id, DialogId dialog_id, FormattedText &&quote, int32 quote_position)
-      : message_id_(message_id)
-      , dialog_id_(dialog_id)
-      , quote_(std::move(quote))
-      , quote_position_(max(0, quote_position)) {
-    remove_unallowed_quote_entities(quote_);
+  MessageInputReplyTo(MessageId message_id, DialogId dialog_id, MessageQuote quote)
+      : message_id_(message_id), dialog_id_(dialog_id), quote_(std::move(quote)) {
   }
 
   explicit MessageInputReplyTo(StoryFullId story_full_id) : story_full_id_(story_full_id) {
@@ -67,12 +62,11 @@ class MessageInputReplyTo {
   }
 
   bool has_quote() const {
-    return !quote_.text.empty();
+    return !quote_.is_empty();
   }
 
-  void set_quote(FormattedText &&quote, int32 quote_position) {
+  void set_quote(MessageQuote quote) {
     quote_ = std::move(quote);
-    quote_position_ = max(0, quote_position);
   }
 
   StoryFullId get_story_full_id() const {
@@ -83,7 +77,7 @@ class MessageInputReplyTo {
     if (story_full_id_.is_valid()) {
       return MessageInputReplyTo(story_full_id_);
     }
-    return MessageInputReplyTo(message_id_, dialog_id_, FormattedText(quote_), quote_position_);
+    return MessageInputReplyTo(message_id_, dialog_id_, quote_.clone());
   }
 
   void add_dependencies(Dependencies &dependencies) const;

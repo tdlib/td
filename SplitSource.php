@@ -372,6 +372,7 @@ function split_file($file, $chunks, $undo) {
                 'MessageId' => 'MessageId',
                 'message_import_manager[_(-](?![.]get[(][)])|MessageImportManager' => 'MessageImportManager',
                 'MessageLinkInfo' => 'MessageLinkInfo',
+                'MessageQuote' => 'MessageQuote',
                 'MessageReaction|UnreadMessageReaction|[a-z_]*message[a-z_]*reaction' => 'MessageReaction',
                 '[a-z_]*_message_sender' => 'MessageSender',
                 'messages_manager[_(-](?![.]get[(][)])|MessagesManager' => 'MessagesManager',

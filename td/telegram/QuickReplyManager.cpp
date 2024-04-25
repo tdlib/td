@@ -22,6 +22,7 @@
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageCopyOptions.h"
 #include "td/telegram/MessageInputReplyTo.h"
+#include "td/telegram/MessageQuote.h"
 #include "td/telegram/MessageReplyHeader.h"
 #include "td/telegram/MessageSelfDestructType.h"
 #include "td/telegram/misc.h"
@@ -248,7 +249,7 @@ class QuickReplyManager::SendQuickReplyMessageQuery final : public Td::ResultHan
       flags |= telegram_api::messages_sendMessage::INVERT_MEDIA_MASK;
     }
     auto reply_to =
-        MessageInputReplyTo(m->reply_to_message_id, DialogId(), Auto(), 0).get_input_reply_to(td_, MessageId());
+        MessageInputReplyTo(m->reply_to_message_id, DialogId(), MessageQuote()).get_input_reply_to(td_, MessageId());
     if (reply_to != nullptr) {
       flags |= telegram_api::messages_sendMessage::REPLY_TO_MASK;
     }
@@ -304,7 +305,7 @@ class QuickReplyManager::SendQuickReplyInlineMessageQuery final : public Td::Res
       flags |= telegram_api::messages_sendInlineBotResult::HIDE_VIA_MASK;
     }
     auto reply_to =
-        MessageInputReplyTo(m->reply_to_message_id, DialogId(), Auto(), 0).get_input_reply_to(td_, MessageId());
+        MessageInputReplyTo(m->reply_to_message_id, DialogId(), MessageQuote()).get_input_reply_to(td_, MessageId());
     if (reply_to != nullptr) {
       flags |= telegram_api::messages_sendInlineBotResult::REPLY_TO_MASK;
     }
@@ -364,7 +365,7 @@ class QuickReplyManager::SendQuickReplyMediaQuery final : public Td::ResultHandl
       flags |= telegram_api::messages_sendMedia::INVERT_MEDIA_MASK;
     }
     auto reply_to =
-        MessageInputReplyTo(m->reply_to_message_id, DialogId(), Auto(), 0).get_input_reply_to(td_, MessageId());
+        MessageInputReplyTo(m->reply_to_message_id, DialogId(), MessageQuote()).get_input_reply_to(td_, MessageId());
     if (reply_to != nullptr) {
       flags |= telegram_api::messages_sendMedia::REPLY_TO_MASK;
     }
