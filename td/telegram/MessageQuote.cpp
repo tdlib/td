@@ -12,10 +12,8 @@
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
-#include "td/telegram/UserManager.h"
 
 #include "td/utils/algorithm.h"
-#include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"
 #include "td/utils/utf8.h"
@@ -192,8 +190,8 @@ int32 MessageQuote::search_quote(FormattedText &&text, FormattedText &&quote, in
     fix_entities(text.entities);
     remove_empty_entities(text.entities);
   };
-  int32 length = narrow_cast<int32>(utf8_utf16_length(text.text));
-  int32 quote_length = narrow_cast<int32>(utf8_utf16_length(quote.text));
+  auto length = narrow_cast<int32>(utf8_utf16_length(text.text));
+  auto quote_length = narrow_cast<int32>(utf8_utf16_length(quote.text));
   if (quote_length == 0 || quote_length > length) {
     return -1;
   }
