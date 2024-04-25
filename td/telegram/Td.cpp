@@ -5971,8 +5971,8 @@ void Td::on_request(uint64 id, td_api::sendStory &request) {
   CREATE_REQUEST_PROMISE();
   story_manager_->send_story(DialogId(request.chat_id_), std::move(request.content_), std::move(request.areas_),
                              std::move(request.caption_), std::move(request.privacy_settings_), request.active_period_,
-                             std::move(request.from_story_full_id_), request.is_pinned_, request.protect_content_,
-                             std::move(promise));
+                             std::move(request.from_story_full_id_), request.is_posted_to_chat_page_,
+                             request.protect_content_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::editStory &request) {
@@ -5990,11 +5990,11 @@ void Td::on_request(uint64 id, td_api::setStoryPrivacySettings &request) {
                                              std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::toggleStoryIsPinned &request) {
+void Td::on_request(uint64 id, const td_api::toggleStoryIsPostedToChatPage &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   story_manager_->toggle_story_is_pinned(DialogId(request.story_sender_chat_id_), StoryId(request.story_id_),
-                                         request.is_pinned_, std::move(promise));
+                                         request.is_posted_to_chat_page_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::deleteStory &request) {
@@ -6915,7 +6915,7 @@ void Td::on_request(uint64 id, const td_api::getChatActiveStories &request) {
   story_manager_->get_dialog_expiring_stories(DialogId(request.chat_id_), std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::getChatPinnedStories &request) {
+void Td::on_request(uint64 id, const td_api::getChatPostedToChatPageStories &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   story_manager_->get_dialog_pinned_stories(DialogId(request.chat_id_), StoryId(request.from_story_id_), request.limit_,

@@ -925,7 +925,7 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::setStoryPrivacySettings &request);
 
-  void on_request(uint64 id, const td_api::toggleStoryIsPinned &request);
+  void on_request(uint64 id, const td_api::toggleStoryIsPostedToChatPage &request);
 
   void on_request(uint64 id, const td_api::deleteStory &request);
 
@@ -1165,7 +1165,7 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::getChatActiveStories &request);
 
-  void on_request(uint64 id, const td_api::getChatPinnedStories &request);
+  void on_request(uint64 id, const td_api::getChatPostedToChatPageStories &request);
 
   void on_request(uint64 id, const td_api::getChatArchivedStories &request);
 

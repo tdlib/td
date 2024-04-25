@@ -4567,12 +4567,13 @@ class CliClient final : public Actor {
       StoryPrivacySettings rules;
       get_args(args, story_id, rules);
       send_request(td_api::make_object<td_api::setStoryPrivacySettings>(story_id, rules));
-    } else if (op == "tsip") {
+    } else if (op == "tsiptcp") {
       ChatId story_sender_chat_id;
       StoryId story_id;
-      bool is_pinned;
-      get_args(args, story_sender_chat_id, story_id, is_pinned);
-      send_request(td_api::make_object<td_api::toggleStoryIsPinned>(story_sender_chat_id, story_id, is_pinned));
+      bool is_posted_to_chat_page;
+      get_args(args, story_sender_chat_id, story_id, is_posted_to_chat_page);
+      send_request(td_api::make_object<td_api::toggleStoryIsPostedToChatPage>(story_sender_chat_id, story_id,
+                                                                              is_posted_to_chat_page));
     } else if (op == "ds") {
       ChatId story_sender_chat_id;
       StoryId story_id;
@@ -4584,12 +4585,13 @@ class CliClient final : public Actor {
       ChatId chat_id;
       get_args(args, chat_id);
       send_request(td_api::make_object<td_api::setChatActiveStoriesList>(chat_id, as_story_list(op)));
-    } else if (op == "gcps") {
+    } else if (op == "gcptcps") {
       ChatId chat_id;
       StoryId from_story_id;
       string limit;
       get_args(args, chat_id, from_story_id, limit);
-      send_request(td_api::make_object<td_api::getChatPinnedStories>(chat_id, from_story_id, as_limit(limit)));
+      send_request(
+          td_api::make_object<td_api::getChatPostedToChatPageStories>(chat_id, from_story_id, as_limit(limit)));
     } else if (op == "gcast") {
       ChatId chat_id;
       StoryId from_story_id;

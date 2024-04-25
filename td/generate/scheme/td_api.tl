@@ -773,7 +773,7 @@ chatPermissions can_send_basic_messages:Bool can_send_audios:Bool can_send_docum
 //@can_promote_members True, if the administrator can add new administrators with a subset of their own privileges or demote administrators that were directly or indirectly promoted by them
 //@can_manage_video_chats True, if the administrator can manage video chats
 //@can_post_stories True, if the administrator can create new chat stories, or edit and delete posted stories; applicable to supergroups and channels only
-//@can_edit_stories True, if the administrator can edit stories posted by other users, pin stories and access story archive; applicable to supergroups and channels only
+//@can_edit_stories True, if the administrator can edit stories posted by other users, post stories to the chat page, and access story archive; applicable to supergroups and channels only
 //@can_delete_stories True, if the administrator can delete stories posted by other users; applicable to supergroups and channels only
 //@is_anonymous True, if the administrator isn't shown in the chat member list and sends messages anonymously; applicable to supergroups only
 chatAdministratorRights can_manage_chat:Bool can_change_info:Bool can_post_messages:Bool can_edit_messages:Bool can_delete_messages:Bool can_invite_users:Bool can_restrict_members:Bool can_pin_messages:Bool can_manage_topics:Bool can_promote_members:Bool can_manage_video_chats:Bool can_post_stories:Bool can_edit_stories:Bool can_delete_stories:Bool is_anonymous:Bool = ChatAdministratorRights;
@@ -953,7 +953,7 @@ botInfo short_description:string description:string photo:photo animation:animat
 //@has_private_calls True, if the user can't be called due to their privacy settings
 //@has_private_forwards True, if the user can't be linked in forwarded messages due to their privacy settings
 //@has_restricted_voice_and_video_note_messages True, if voice and video notes can't be sent or forwarded to the user
-//@has_pinned_stories True, if the user has pinned stories
+//@has_posted_to_profile_stories True, if the user has posted to profile stories
 //@has_sponsored_messages_enabled True, if the user always enabled sponsored messages; known only for the current user
 //@need_phone_number_privacy_exception True, if the current user needs to explicitly allow to share their phone number with the user when the method addContact is used
 //@set_chat_background True, if the user set chat background for both chat users and it wasn't reverted yet
@@ -964,7 +964,7 @@ botInfo short_description:string description:string photo:photo animation:animat
 //@group_in_common_count Number of group chats where both the other user and the current user are a member; 0 for the current user
 //@business_info Information about business settings for Telegram Business accounts; may be null if none
 //@bot_info For bots, information about the bot; may be null if the user isn't a bot
-userFullInfo personal_photo:chatPhoto photo:chatPhoto public_photo:chatPhoto block_list:BlockList can_be_called:Bool supports_video_calls:Bool has_private_calls:Bool has_private_forwards:Bool has_restricted_voice_and_video_note_messages:Bool has_pinned_stories:Bool has_sponsored_messages_enabled:Bool need_phone_number_privacy_exception:Bool set_chat_background:Bool bio:formattedText birthdate:birthdate personal_chat_id:int53 premium_gift_options:vector<premiumPaymentOption> group_in_common_count:int32 business_info:businessInfo bot_info:botInfo = UserFullInfo;
+userFullInfo personal_photo:chatPhoto photo:chatPhoto public_photo:chatPhoto block_list:BlockList can_be_called:Bool supports_video_calls:Bool has_private_calls:Bool has_private_forwards:Bool has_restricted_voice_and_video_note_messages:Bool has_posted_to_profile_stories:Bool has_sponsored_messages_enabled:Bool need_phone_number_privacy_exception:Bool set_chat_background:Bool bio:formattedText birthdate:birthdate personal_chat_id:int53 premium_gift_options:vector<premiumPaymentOption> group_in_common_count:int32 business_info:businessInfo bot_info:botInfo = UserFullInfo;
 
 //@description Represents a list of users @total_count Approximate total number of users found @user_ids A list of user identifiers
 users total_count:int32 user_ids:vector<int53> = Users;
@@ -3873,13 +3873,13 @@ storyInteractionInfo view_count:int32 forward_count:int32 reaction_count:int32 r
 //@is_being_sent True, if the story is being sent by the current user
 //@is_being_edited True, if the story is being edited by the current user
 //@is_edited True, if the story was edited
-//@is_pinned True, if the story is saved in the sender's profile and will be available there after expiration
+//@is_posted_to_chat_page True, if the story is saved in the sender's profile and will be available there after expiration
 //@is_visible_only_for_self True, if the story is visible only for the current user
 //@can_be_deleted True, if the story can be deleted
 //@can_be_edited True, if the story can be edited
 //@can_be_forwarded True, if the story can be forwarded as a message. Otherwise, screenshots and saving of the story content must be also forbidden
 //@can_be_replied True, if the story can be replied in the chat with the story sender
-//@can_toggle_is_pinned True, if the story's is_pinned value can be changed
+//@can_toggle_is_posted_to_chat_page True, if the story's is_posted_to_chat_page value can be changed
 //@can_get_statistics True, if the story statistics are available through getStoryStatistics
 //@can_get_interactions True, if interactions with the story can be received through getStoryInteractions
 //@has_expired_viewers True, if users viewed the story can't be received, because the story has expired more than getOption("story_viewers_expiration_delay") seconds ago
@@ -3890,7 +3890,7 @@ storyInteractionInfo view_count:int32 forward_count:int32 reaction_count:int32 r
 //@content Content of the story
 //@areas Clickable areas to be shown on the story content
 //@caption Caption of the story
-story id:int32 sender_chat_id:int53 sender_id:MessageSender date:int32 is_being_sent:Bool is_being_edited:Bool is_edited:Bool is_pinned:Bool is_visible_only_for_self:Bool can_be_deleted:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_replied:Bool can_toggle_is_pinned:Bool can_get_statistics:Bool can_get_interactions:Bool has_expired_viewers:Bool repost_info:storyRepostInfo interaction_info:storyInteractionInfo chosen_reaction_type:ReactionType privacy_settings:StoryPrivacySettings content:StoryContent areas:vector<storyArea> caption:formattedText = Story;
+story id:int32 sender_chat_id:int53 sender_id:MessageSender date:int32 is_being_sent:Bool is_being_edited:Bool is_edited:Bool is_posted_to_chat_page:Bool is_visible_only_for_self:Bool can_be_deleted:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_replied:Bool can_toggle_is_posted_to_chat_page:Bool can_get_statistics:Bool can_get_interactions:Bool has_expired_viewers:Bool repost_info:storyRepostInfo interaction_info:storyInteractionInfo chosen_reaction_type:ReactionType privacy_settings:StoryPrivacySettings content:StoryContent areas:vector<storyArea> caption:formattedText = Story;
 
 //@description Represents a list of stories @total_count Approximate total number of stories found @stories The list of stories
 stories total_count:int32 stories:vector<story> = Stories;
@@ -9005,9 +9005,9 @@ canSendStory chat_id:int53 = CanSendStoryResult;
 //@privacy_settings The privacy settings for the story; ignored for stories sent to supergroup and channel chats
 //@active_period Period after which the story is moved to archive, in seconds; must be one of 6 * 3600, 12 * 3600, 86400, or 2 * 86400 for Telegram Premium users, and 86400 otherwise
 //@from_story_full_id Full identifier of the original story, which content was used to create the story
-//@is_pinned Pass true to keep the story accessible after expiration
+//@is_posted_to_chat_page Pass true to keep the story accessible after expiration
 //@protect_content Pass true if the content of the story must be protected from forwarding and screenshotting
-sendStory chat_id:int53 content:InputStoryContent areas:inputStoryAreas caption:formattedText privacy_settings:StoryPrivacySettings active_period:int32 from_story_full_id:storyFullId is_pinned:Bool protect_content:Bool = Story;
+sendStory chat_id:int53 content:InputStoryContent areas:inputStoryAreas caption:formattedText privacy_settings:StoryPrivacySettings active_period:int32 from_story_full_id:storyFullId is_posted_to_chat_page:Bool protect_content:Bool = Story;
 
 //@description Changes content and caption of a story. Can be called only if story.can_be_edited == true
 //@story_sender_chat_id Identifier of the chat that posted the story
@@ -9022,11 +9022,11 @@ editStory story_sender_chat_id:int53 story_id:int32 content:InputStoryContent ar
 //@privacy_settings The new privacy settigs for the story
 setStoryPrivacySettings story_id:int32 privacy_settings:StoryPrivacySettings = Ok;
 
-//@description Toggles whether a story is accessible after expiration. Can be called only if story.can_toggle_is_pinned == true
+//@description Toggles whether a story is accessible after expiration. Can be called only if story.can_toggle_is_posted_to_chat_page == true
 //@story_sender_chat_id Identifier of the chat that posted the story
 //@story_id Identifier of the story
-//@is_pinned Pass true to make the story accessible after expiration; pass false to make it private
-toggleStoryIsPinned story_sender_chat_id:int53 story_id:int32 is_pinned:Bool = Ok;
+//@is_posted_to_chat_page Pass true to make the story accessible after expiration; pass false to make it private
+toggleStoryIsPostedToChatPage story_sender_chat_id:int53 story_id:int32 is_posted_to_chat_page:Bool = Ok;
 
 //@description Deletes a previously sent story. Can be called only if story.can_be_deleted == true
 //@story_sender_chat_id Identifier of the chat that posted the story
@@ -9047,13 +9047,13 @@ setChatActiveStoriesList chat_id:int53 story_list:StoryList = Ok;
 //@description Returns the list of active stories posted by the given chat @chat_id Chat identifier
 getChatActiveStories chat_id:int53 = ChatActiveStories;
 
-//@description Returns the list of pinned stories posted by the given chat. The stories are returned in a reverse chronological order (i.e., in order of decreasing story_id).
+//@description Returns the list of stories that posted by the given chat to its chat page. The stories are returned in a reverse chronological order (i.e., in order of decreasing story_id).
 //-For optimal performance, the number of returned stories is chosen by TDLib
 //@chat_id Chat identifier
 //@from_story_id Identifier of the story starting from which stories must be returned; use 0 to get results from the last story
 //@limit The maximum number of stories to be returned
 //-For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
-getChatPinnedStories chat_id:int53 from_story_id:int32 limit:int32 = Stories;
+getChatPostedToChatPageStories chat_id:int53 from_story_id:int32 limit:int32 = Stories;
 
 //@description Returns the list of all stories posted by the given chat; requires can_edit_stories right in the chat.
 //-The stories are returned in a reverse chronological order (i.e., in order of decreasing story_id). For optimal performance, the number of returned stories is chosen by TDLib
