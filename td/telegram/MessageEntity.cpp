@@ -4723,7 +4723,7 @@ void remove_unallowed_entities(const Td *td, FormattedText &text, DialogId dialo
     }
   }
   if (!td->dialog_manager_->can_use_premium_custom_emoji_in_dialog(dialog_id)) {
-    remove_premium_custom_emoji_entities(td, text.entities, false);
+    remove_premium_custom_emoji_entities(td, text.entities, true);
   }
 }
 
