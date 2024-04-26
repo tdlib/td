@@ -386,6 +386,7 @@ bool OptionManager::is_internal_option(Slice name) {
                                                               "dialogs_pinned_limit_premium",
                                                               "dice_emojis",
                                                               "dice_success_values",
+                                                              "dismiss_birthday_contact_today",
                                                               "edit_time_limit",
                                                               "emoji_sounds",
                                                               "fragment_prefixes",
@@ -518,6 +519,9 @@ void OptionManager::on_option_updated(Slice name) {
       }
       if (name == "disable_top_chats") {
         send_closure(td_->top_dialog_manager_actor_, &TopDialogManager::update_is_enabled, !get_option_boolean(name));
+      }
+      if (name == "dismiss_birthday_contact_today") {
+        send_closure(td_->user_manager_actor_, &UserManager::reload_contact_birthdates, true);
       }
       break;
     case 'e':

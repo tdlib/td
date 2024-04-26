@@ -1482,6 +1482,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   string animation_search_provider;
   string animation_search_emojis;
   vector<SuggestedAction> suggested_actions;
+  vector<string> dismissed_suggestions;
   bool can_archive_and_mute_new_chats_from_unknown_users = false;
   int32 chat_read_mark_expire_period = 0;
   int32 chat_read_mark_size_threshold = 0;
@@ -1675,12 +1676,16 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         }
         continue;
       }
-      if (key == "pending_suggestions") {
+      if (key == "pending_suggestions" || key == "dismissed_suggestions") {
         if (value->get_id() == telegram_api::jsonArray::ID) {
           auto actions = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
           auto otherwise_relogin_days = G()->get_option_integer("otherwise_relogin_days");
           for (auto &action : actions) {
             auto action_str = get_json_value_string(std::move(action), key);
+            if (key == "dismissed_suggestions") {
+              dismissed_suggestions.push_back(action_str);
+              continue;
+            }
             SuggestedAction suggested_action(action_str);
             if (!suggested_action.is_empty()) {
               if (otherwise_relogin_days > 0 &&
@@ -2164,6 +2169,11 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   }
   if (dialog_filter_update_period > 0) {
     options.set_option_integer("chat_folder_new_chats_update_period", dialog_filter_update_period);
+  }
+  if (td::contains(dismissed_suggestions, "BIRTHDAY_CONTACTS_TODAY")) {
+    options.set_option_boolean("dismiss_birthday_contact_today", true);
+  } else {
+    options.set_option_empty("dismiss_birthday_contact_today");
   }
 
   if (!is_premium_available) {
