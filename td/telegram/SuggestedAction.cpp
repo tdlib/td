@@ -108,7 +108,7 @@ SuggestedAction::SuggestedAction(const td_api::object_ptr<td_api::SuggestedActio
     case td_api::suggestedActionSetBirthdate::ID:
       init(Type::BirthdaySetup);
       break;
-    case td_api::suggestedActionProlongPremium::ID:
+    case td_api::suggestedActionExtendPremium::ID:
       init(Type::PremiumGrace);
       break;
     default:
@@ -174,7 +174,7 @@ td_api::object_ptr<td_api::SuggestedAction> SuggestedAction::get_suggested_actio
     case Type::BirthdaySetup:
       return td_api::make_object<td_api::suggestedActionSetBirthdate>();
     case Type::PremiumGrace:
-      return td_api::make_object<td_api::suggestedActionProlongPremium>(
+      return td_api::make_object<td_api::suggestedActionExtendPremium>(
           G()->get_option_string("premium_manage_subscription_url", "https://T.me/premiumbot?start=status"));
     default:
       UNREACHABLE();

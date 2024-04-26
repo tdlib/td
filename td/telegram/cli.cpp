@@ -2125,8 +2125,8 @@ class CliClient final : public Actor {
     if (action == "checks") {
       return td_api::make_object<td_api::suggestedActionViewChecksHint>();
     }
-    if (action == "prolong") {
-      return td_api::make_object<td_api::suggestedActionProlongPremium>("");
+    if (action == "extend") {
+      return td_api::make_object<td_api::suggestedActionExtendPremium>("");
     }
     if (action == "annual") {
       return td_api::make_object<td_api::suggestedActionSubscribeToAnnualPremium>();
