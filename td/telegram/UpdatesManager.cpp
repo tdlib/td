@@ -395,11 +395,10 @@ void UpdatesManager::fill_pts_gap(void *td) {
     }
     max_pts = max(max_pts, updates_manager->postponed_pts_updates_.rbegin()->pts);
   }
-  string source = PSTRING() << "PTS from " << updates_manager->get_pts() << " to " << min_pts << "(-" << min_pts_count
-                            << ")-" << max_pts << ' '
-                            << (first_update == nullptr ? string() : oneline(to_string(*first_update)));
   updates_manager->pts_gap_++;
-  fill_gap(td, source.c_str());
+  fill_gap(td, PSTRING() << "PTS from " << updates_manager->get_pts() << " to " << min_pts << "(-" << min_pts_count
+                         << ")-" << max_pts << ' '
+                         << (first_update == nullptr ? string() : oneline(to_string(*first_update))));
 }
 
 void UpdatesManager::fill_seq_gap(void *td) {
@@ -415,8 +414,7 @@ void UpdatesManager::fill_seq_gap(void *td) {
     min_seq = updates_manager->pending_seq_updates_.begin()->seq_begin;
     max_seq = updates_manager->pending_seq_updates_.rbegin()->seq_end;
   }
-  string source = PSTRING() << "seq from " << updates_manager->seq_ << " to " << min_seq << '-' << max_seq;
-  fill_gap(td, source.c_str());
+  fill_gap(td, PSTRING() << "seq from " << updates_manager->seq_ << " to " << min_seq << '-' << max_seq);
 }
 
 void UpdatesManager::fill_qts_gap(void *td) {
@@ -432,16 +430,15 @@ void UpdatesManager::fill_qts_gap(void *td) {
     min_qts = updates_manager->pending_qts_updates_.begin()->first;
     max_qts = updates_manager->pending_qts_updates_.rbegin()->first;
   }
-  string source = PSTRING() << "QTS from " << updates_manager->get_qts() << " to " << min_qts << '-' << max_qts;
   updates_manager->qts_gap_++;
-  fill_gap(td, source.c_str());
+  fill_gap(td, PSTRING() << "QTS from " << updates_manager->get_qts() << " to " << min_qts << '-' << max_qts);
 }
 
 void UpdatesManager::fill_get_difference_gap(void *td) {
-  fill_gap(td, nullptr);
+  fill_gap(td, string());
 }
 
-void UpdatesManager::fill_gap(void *td, const char *source) {
+void UpdatesManager::fill_gap(void *td, const string &source) {
   if (G()->close_flag()) {
     return;
   }
@@ -451,7 +448,7 @@ void UpdatesManager::fill_gap(void *td, const char *source) {
   }
   auto updates_manager = static_cast<Td *>(td)->updates_manager_.get();
 
-  if (source != nullptr && !updates_manager->running_get_difference_) {
+  if (!source.empty() && !updates_manager->running_get_difference_) {
     auto auth_key_id = updates_manager->get_most_unused_auth_key_id();
     uint64 update_count = 0;
     double active_time = 0.0;

@@ -384,7 +384,7 @@ class UpdatesManager final : public Actor {
 
   static void fill_get_difference_gap(void *td);
 
-  static void fill_gap(void *td, const char *source);
+  static void fill_gap(void *td, const string &source);
 
   void repair_pts_gap();
 
