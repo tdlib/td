@@ -8892,6 +8892,13 @@ void Td::on_request(uint64 id, const td_api::hideSuggestedAction &request) {
   dismiss_suggested_action(SuggestedAction(request.action_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::hideContactCloseBirthdays &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  option_manager_->set_option_boolean("dismiss_birthday_contact_today", true);
+  user_manager_->hide_contact_birthdays(std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::getBusinessConnection &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.connection_id_);

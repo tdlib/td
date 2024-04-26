@@ -1693,6 +1693,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::hideSuggestedAction &request);
 
+  void on_request(uint64 id, const td_api::hideContactCloseBirthdays &request);
+
   void on_request(uint64 id, td_api::getBusinessConnection &request);
 
   void on_request(uint64 id, const td_api::getLoginUrlInfo &request);

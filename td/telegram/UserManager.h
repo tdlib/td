@@ -421,6 +421,8 @@ class UserManager final : public Actor {
 
   void on_get_contact_birthdates(telegram_api::object_ptr<telegram_api::contacts_contactBirthdays> &&birthdays);
 
+  void hide_contact_birthdays(Promise<Unit> &&promise);
+
   vector<UserId> get_close_friends(Promise<Unit> &&promise);
 
   void set_close_friends(vector<UserId> user_ids, Promise<Unit> &&promise);

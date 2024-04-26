@@ -8431,6 +8431,9 @@ stopPoll chat_id:int53 message_id:int53 reply_markup:ReplyMarkup = Ok;
 //@description Hides a suggested action @action Suggested action to hide
 hideSuggestedAction action:SuggestedAction = Ok;
 
+//@description Hides the list of contacts that have close birthdays for 24 hours
+hideContactCloseBirthdays = Ok;
+
 
 //@description Returns information about a business connection by its identifier; for bots only @connection_id Identifier of the business connection to return
 getBusinessConnection connection_id:string = BusinessConnection;

@@ -137,6 +137,32 @@ class GetContactsBirthdaysQuery final : public Td::ResultHandler {
   }
 };
 
+class DismissContactBirtdaysSuggestionQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit DismissContactBirtdaysSuggestionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::help_dismissSuggestion(
+        telegram_api::make_object<telegram_api::inputPeerEmpty>(), "BIRTHDAY_CONTACTS_TODAY")));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::help_dismissSuggestion>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetContactsStatusesQuery final : public Td::ResultHandler {
  public:
   void send() {
@@ -6544,6 +6570,10 @@ void UserManager::on_get_contact_birthdates(
     send_closure(G()->td(), &Td::send_update, get_update_contact_close_birthdays());
   }
   // there is no need to save them between restarts
+}
+
+void UserManager::hide_contact_birthdays(Promise<Unit> &&promise) {
+  td_->create_handler<DismissContactBirtdaysSuggestionQuery>(std::move(promise))->send();
 }
 
 vector<UserId> UserManager::get_close_friends(Promise<Unit> &&promise) {

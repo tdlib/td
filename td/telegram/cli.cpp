@@ -6650,6 +6650,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getStatisticalGraph>(chat_id, token, x));
     } else if (op == "hsa") {
       send_request(td_api::make_object<td_api::hideSuggestedAction>(as_suggested_action(args)));
+    } else if (op == "hccb") {
+      send_request(td_api::make_object<td_api::hideContactCloseBirthdays>());
     } else if (op == "glui" || op == "glu" || op == "glua") {
       ChatId chat_id;
       MessageId message_id;
