@@ -6593,13 +6593,13 @@ void MessagesManager::on_update_some_live_location_viewed(Promise<Unit> &&promis
 void MessagesManager::on_update_message_extended_media(
     MessageFullId message_full_id, telegram_api::object_ptr<telegram_api::MessageExtendedMedia> extended_media) {
   auto dialog_id = message_full_id.get_dialog_id();
-  Dialog *d = get_dialog_force(dialog_id, "on_update_message_extended_media");
+  Dialog *d = get_dialog_force(dialog_id, "on_update_message_extended_media 1");
   if (d == nullptr) {
     LOG(INFO) << "Ignore update of message extended media in unknown " << dialog_id;
     return;
   }
 
-  auto m = get_message_force(d, message_full_id.get_message_id(), "on_update_message_extended_media");
+  auto m = get_message_force(d, message_full_id.get_message_id(), "on_update_message_extended_media 2");
   if (m == nullptr) {
     LOG(INFO) << "Ignore update of message extended media in unknown " << message_full_id;
     return;
@@ -6614,9 +6614,9 @@ void MessagesManager::on_update_message_extended_media(
     return;
   }
   if (update_message_content_extended_media(content, std::move(extended_media), dialog_id, td_)) {
-    send_update_message_content(d, m, true, "on_update_message_extended_media");
-    on_message_changed(d, m, true, "on_update_message_extended_media");
-    on_message_notification_changed(d, m, "on_update_message_extended_media");  // usually a no-op
+    send_update_message_content(d, m, true, "on_update_message_extended_media 3");
+    on_message_changed(d, m, true, "on_update_message_extended_media 4");
+    on_message_notification_changed(d, m, "on_update_message_extended_media 5");  // usually a no-op
   }
 }
 
@@ -6639,10 +6639,10 @@ void MessagesManager::on_external_update_message_content(MessageFullId message_f
   CHECK(d != nullptr);
   Message *m = get_message(d, message_full_id.get_message_id());
   CHECK(m != nullptr);
-  send_update_message_content(d, m, true, "on_external_update_message_content");
+  send_update_message_content(d, m, true, "on_external_update_message_content 1");
   // must not call on_message_changed, because the message itself wasn't changed
-  send_update_last_message_if_needed(d, m, "on_external_update_message_content");
-  on_message_notification_changed(d, m, "on_external_update_message_content");
+  send_update_last_message_if_needed(d, m, "on_external_update_message_content 2");
+  on_message_notification_changed(d, m, "on_external_update_message_content 3");
 }
 
 void MessagesManager::on_update_message_content(MessageFullId message_full_id) {
@@ -6650,9 +6650,9 @@ void MessagesManager::on_update_message_content(MessageFullId message_full_id) {
   CHECK(d != nullptr);
   Message *m = get_message(d, message_full_id.get_message_id());
   CHECK(m != nullptr);
-  send_update_message_content(d, m, true, "on_update_message_content");
-  on_message_changed(d, m, true, "on_update_message_content");
-  on_message_notification_changed(d, m, "on_update_message_content");
+  send_update_message_content(d, m, true, "on_update_message_content 1");
+  on_message_changed(d, m, true, "on_update_message_content 2");
+  on_message_notification_changed(d, m, "on_update_message_content 3");
 }
 
 bool MessagesManager::update_message_contains_unread_mention(Dialog *d, Message *m, bool contains_unread_mention,
@@ -33029,8 +33029,7 @@ void MessagesManager::on_message_notification_changed(Dialog *d, const Message *
   if (m->is_pinned && d->notification_info != nullptr &&
       d->notification_info->pinned_message_notification_message_id_.is_valid() &&
       d->notification_info->mention_notification_group_.is_valid()) {
-    auto pinned_message =
-        get_message_force(d, d->notification_info->pinned_message_notification_message_id_, "after update_message");
+    auto pinned_message = get_message_force(d, d->notification_info->pinned_message_notification_message_id_, source);
     if (pinned_message != nullptr && pinned_message->notification_id.is_valid() &&
         is_message_notification_active(d, pinned_message) &&
         get_message_content_pinned_message_id(pinned_message->content.get()) == m->message_id) {
