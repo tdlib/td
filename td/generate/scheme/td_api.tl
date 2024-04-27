@@ -3726,6 +3726,9 @@ emojiCategoryTypeEmojiStatus = EmojiCategoryType;
 //@description The category must be used for chat photo emoji selection
 emojiCategoryTypeChatPhoto = EmojiCategoryType;
 
+//@description The category containing greeting emoji and Premium stickers that emust be used for start page sticker selection
+emojiCategoryTypeCombined = EmojiCategoryType;
+
 
 //@description Describes position of a clickable rectangle area on a story media
 //@x_percentage The abscissa of the rectangle's center, as a percentage of the media width
