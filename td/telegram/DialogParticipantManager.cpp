@@ -2402,7 +2402,6 @@ void DialogParticipantManager::set_channel_participant_status(
   auto on_result_promise =
       PromiseCreator::lambda([actor_id = actor_id(this), channel_id, participant_dialog_id, new_status,
                               promise = std::move(promise)](Result<DialogParticipant> r_dialog_participant) mutable {
-        // ResultHandlers are cleared before managers, so it is safe to capture this
         if (r_dialog_participant.is_error()) {
           return promise.set_error(r_dialog_participant.move_as_error());
         }
