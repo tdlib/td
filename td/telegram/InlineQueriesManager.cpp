@@ -535,13 +535,13 @@ void InlineQueriesManager::answer_inline_query(
       case td_api::inlineQueryResultsButtonTypeStartBot::ID: {
         auto type = td_api::move_object_as<td_api::inlineQueryResultsButtonTypeStartBot>(button->type_);
         if (type->parameter_.empty()) {
-          return promise.set_error(Status::Error(400, "Can't use empty switch_pm_parameter"));
+          return promise.set_error(Status::Error(400, "Can't use empty start_parameter"));
         }
         if (type->parameter_.size() > 64) {
-          return promise.set_error(Status::Error(400, "Too long switch_pm_parameter specified"));
+          return promise.set_error(Status::Error(400, "Too long start_parameter specified"));
         }
         if (!is_base64url_characters(type->parameter_)) {
-          return promise.set_error(Status::Error(400, "Unallowed characters in switch_pm_parameter are used"));
+          return promise.set_error(Status::Error(400, "Unallowed characters in start_parameter are used"));
         }
         switch_pm = telegram_api::make_object<telegram_api::inlineBotSwitchPM>(button->text_, type->parameter_);
         break;
