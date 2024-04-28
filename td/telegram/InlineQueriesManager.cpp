@@ -423,7 +423,7 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
                                                                    std::move(entities), std::move(input_reply_markup));
   }
   if (constructor_id == td_api::inputMessageContact::ID) {
-    TRY_RESULT(contact, process_input_message_contact(std::move(input_message_content)));
+    TRY_RESULT(contact, process_input_message_contact(td_, std::move(input_message_content)));
     return contact.get_input_bot_inline_message_media_contact(std::move(input_reply_markup));
   }
   if (constructor_id == td_api::inputMessageInvoice::ID) {
@@ -1797,10 +1797,10 @@ void InlineQueriesManager::on_get_inline_query_results(DialogId dialog_id, UserI
                 static_cast<const telegram_api::botInlineMessageMediaContact *>(result->send_message_.get());
             Contact c(inline_message_contact->phone_number_, inline_message_contact->first_name_,
                       inline_message_contact->last_name_, inline_message_contact->vcard_, UserId());
-            contact->contact_ = c.get_contact_object();
+            contact->contact_ = c.get_contact_object(td_);
           } else {
             Contact c(std::move(result->description_), std::move(result->title_), string(), string(), UserId());
-            contact->contact_ = c.get_contact_object();
+            contact->contact_ = c.get_contact_object(td_);
           }
           contact->thumbnail_ = register_thumbnail(std::move(result->thumb_));
 

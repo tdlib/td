@@ -7594,7 +7594,7 @@ void Td::on_request(uint64 id, const td_api::getBlockedMessageSenders &request) 
 
 void Td::on_request(uint64 id, td_api::addContact &request) {
   CHECK_IS_USER();
-  auto r_contact = get_contact(std::move(request.contact_));
+  auto r_contact = get_contact(this, std::move(request.contact_));
   if (r_contact.is_error()) {
     return send_closure(actor_id(this), &Td::send_error, id, r_contact.move_as_error());
   }
@@ -7607,7 +7607,7 @@ void Td::on_request(uint64 id, td_api::importContacts &request) {
   vector<Contact> contacts;
   contacts.reserve(request.contacts_.size());
   for (auto &contact : request.contacts_) {
-    auto r_contact = get_contact(std::move(contact));
+    auto r_contact = get_contact(this, std::move(contact));
     if (r_contact.is_error()) {
       return send_closure(actor_id(this), &Td::send_error, id, r_contact.move_as_error());
     }
@@ -7642,7 +7642,7 @@ void Td::on_request(uint64 id, td_api::changeImportedContacts &request) {
   vector<Contact> contacts;
   contacts.reserve(request.contacts_.size());
   for (auto &contact : request.contacts_) {
-    auto r_contact = get_contact(std::move(contact));
+    auto r_contact = get_contact(this, std::move(contact));
     if (r_contact.is_error()) {
       return send_closure(actor_id(this), &Td::send_error, id, r_contact.move_as_error());
     }

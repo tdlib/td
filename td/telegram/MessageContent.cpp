@@ -2772,7 +2772,7 @@ static Result<InputMessageContent> create_input_message_content(
       break;
     }
     case td_api::inputMessageContact::ID: {
-      TRY_RESULT(contact, process_input_message_contact(std::move(input_message_content)));
+      TRY_RESULT(contact, process_input_message_contact(td, std::move(input_message_content)));
       content = make_unique<MessageContact>(std::move(contact));
       break;
     }
@@ -6929,7 +6929,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::Contact: {
       const auto *m = static_cast<const MessageContact *>(content);
-      return make_tl_object<td_api::messageContact>(m->contact.get_contact_object());
+      return make_tl_object<td_api::messageContact>(m->contact.get_contact_object(td));
     }
     case MessageContentType::Document: {
       const auto *m = static_cast<const MessageDocument *>(content);

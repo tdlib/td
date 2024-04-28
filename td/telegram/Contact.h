@@ -22,6 +22,8 @@
 
 namespace td {
 
+class Td;
+
 class Contact {
   string phone_number_;
   string first_name_;
@@ -52,7 +54,7 @@ class Contact {
 
   const string &get_last_name() const;
 
-  tl_object_ptr<td_api::contact> get_contact_object() const;
+  tl_object_ptr<td_api::contact> get_contact_object(Td *td) const;
 
   tl_object_ptr<telegram_api::inputMediaContact> get_input_media_contact() const;
 
@@ -141,9 +143,9 @@ struct ContactHash {
   }
 };
 
-Result<Contact> get_contact(td_api::object_ptr<td_api::contact> &&contact) TD_WARN_UNUSED_RESULT;
+Result<Contact> get_contact(Td *td, td_api::object_ptr<td_api::contact> &&contact) TD_WARN_UNUSED_RESULT;
 
-Result<Contact> process_input_message_contact(tl_object_ptr<td_api::InputMessageContent> &&input_message_content)
-    TD_WARN_UNUSED_RESULT;
+Result<Contact> process_input_message_contact(
+    Td *td, td_api::object_ptr<td_api::InputMessageContent> &&input_message_content) TD_WARN_UNUSED_RESULT;
 
 }  // namespace td
