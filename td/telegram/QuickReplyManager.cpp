@@ -1377,6 +1377,7 @@ void QuickReplyManager::on_reload_quick_reply_shortcuts(
                 send_update_quick_reply_shortcut_deleted(old_shortcut);
                 changed_shortcut_ids.push_back(shortcut->shortcut_id_);
                 changed_message_shortcut_ids.push_back(shortcut->shortcut_id_);
+                persistent_shortcut_ids_[shortcut_id] = shortcut->shortcut_id_;
                 break;
               }
             }
@@ -1806,7 +1807,7 @@ void QuickReplyManager::process_send_quick_reply_updates(QuickReplyShortcutId sh
   td_->chat_manager_->on_get_chats(std::move(updates->chats_), "process_send_quick_reply_updates");
 
   bool is_shortcut_new = false;
-  if (!shortcut_id.is_server()) {
+  if (shortcut_id.is_local()) {
     QuickReplyShortcutId new_shortcut_id;
     for (auto &update : updates->updates_) {
       if (update->get_id() == telegram_api::updateNewQuickReply::ID) {
@@ -1835,7 +1836,7 @@ void QuickReplyManager::process_send_quick_reply_updates(QuickReplyShortcutId sh
       return;
     }
     auto it = get_shortcut_it(shortcut_id);
-    if (it != shortcuts_.shortcuts_.end()) {
+    if (it != shortcuts_.shortcuts_.end() && (*it)->shortcut_id_ == shortcut_id) {
       send_update_quick_reply_shortcut_deleted(it->get());
 
       for (auto &message : (*it)->messages_) {
@@ -1858,6 +1859,7 @@ void QuickReplyManager::process_send_quick_reply_updates(QuickReplyShortcutId sh
         }
         shortcuts_.shortcuts_.erase(it);
       }
+      persistent_shortcut_ids_[shortcut_id] = new_shortcut_id;
     } else if (get_shortcut(new_shortcut_id) == nullptr) {
       return;
     }
@@ -3162,6 +3164,12 @@ QuickReplyManager::Shortcut *QuickReplyManager::get_shortcut(QuickReplyShortcutI
       return shortcut.get();
     }
   }
+  if (shortcut_id.is_local()) {
+    auto it = persistent_shortcut_ids_.find(shortcut_id);
+    if (it != persistent_shortcut_ids_.end()) {
+      return get_shortcut(it->second);
+    }
+  }
   return nullptr;
 }
 
@@ -3172,6 +3180,12 @@ const QuickReplyManager::Shortcut *QuickReplyManager::get_shortcut(QuickReplySho
   for (auto &shortcut : shortcuts_.shortcuts_) {
     if (shortcut->shortcut_id_ == shortcut_id) {
       return shortcut.get();
+    }
+  }
+  if (shortcut_id.is_local()) {
+    auto it = persistent_shortcut_ids_.find(shortcut_id);
+    if (it != persistent_shortcut_ids_.end()) {
+      return get_shortcut(it->second);
     }
   }
   return nullptr;
@@ -3194,6 +3208,12 @@ vector<unique_ptr<QuickReplyManager::Shortcut>>::iterator QuickReplyManager::get
   for (auto it = shortcuts_.shortcuts_.begin(); it != shortcuts_.shortcuts_.end(); ++it) {
     if (*it != nullptr && (*it)->shortcut_id_ == shortcut_id) {
       return it;
+    }
+  }
+  if (shortcut_id.is_local()) {
+    auto it = persistent_shortcut_ids_.find(shortcut_id);
+    if (it != persistent_shortcut_ids_.end()) {
+      return get_shortcut_it(it->second);
     }
   }
   return shortcuts_.shortcuts_.end();
@@ -3385,6 +3405,7 @@ void QuickReplyManager::update_shortcut_from(Shortcut *new_shortcut, Shortcut *o
                                              bool *is_shortcut_changed, bool *are_messages_changed) {
   CHECK(old_shortcut != nullptr);
   CHECK(new_shortcut != nullptr);
+  CHECK(old_shortcut->shortcut_id_.is_server());
   CHECK(old_shortcut->shortcut_id_ == new_shortcut->shortcut_id_);
   CHECK(!old_shortcut->messages_.empty());
   CHECK(!new_shortcut->messages_.empty());

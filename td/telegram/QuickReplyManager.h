@@ -427,6 +427,8 @@ class QuickReplyManager final : public Actor {
 
   FlatHashSet<QuickReplyShortcutId, QuickReplyShortcutIdHash> deleted_shortcut_ids_;
 
+  FlatHashMap<QuickReplyShortcutId, QuickReplyShortcutId, QuickReplyShortcutIdHash> persistent_shortcut_ids_;
+
   FlatHashMap<QuickReplyShortcutId, vector<Promise<Unit>>, QuickReplyShortcutIdHash> get_shortcut_messages_queries_;
 
   FlatHashSet<QuickReplyMessageFullId, QuickReplyMessageFullIdHash> deleted_message_full_ids_;

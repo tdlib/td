@@ -66,6 +66,10 @@ class QuickReplyShortcutId {
     return id > 0 && id <= MAX_SERVER_SHORTCUT_ID;
   }
 
+  bool is_local() const {
+    return id > MAX_SERVER_SHORTCUT_ID;
+  }
+
   template <class StorerT>
   void store(StorerT &storer) const {
     storer.store_int(id);
