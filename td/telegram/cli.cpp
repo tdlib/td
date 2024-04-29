@@ -4878,6 +4878,9 @@ class CliClient final : public Actor {
         send_request(td_api::make_object<td_api::sendBusinessMessageAlbum>(
             business_connection_id_, chat_id, get_input_message_reply_to(), rand_bool(), rand_bool(),
             std::move(input_message_contents)));
+      } else if (!quick_reply_shortcut_name_.empty()) {
+        send_request(td_api::make_object<td_api::addQuickReplyShortcutMessageAlbum>(
+            quick_reply_shortcut_name_, reply_message_id_, std::move(input_message_contents)));
       } else {
         send_request(td_api::make_object<td_api::sendMessageAlbum>(
             chat_id, message_thread_id_, get_input_message_reply_to(), default_message_send_options(),
@@ -4895,6 +4898,9 @@ class CliClient final : public Actor {
         send_request(td_api::make_object<td_api::sendBusinessMessageAlbum>(
             business_connection_id_, chat_id, get_input_message_reply_to(), rand_bool(), rand_bool(),
             std::move(input_message_contents)));
+      } else if (!quick_reply_shortcut_name_.empty()) {
+        send_request(td_api::make_object<td_api::addQuickReplyShortcutMessageAlbum>(
+            quick_reply_shortcut_name_, reply_message_id_, std::move(input_message_contents)));
       } else {
         send_request(td_api::make_object<td_api::sendMessageAlbum>(
             chat_id, message_thread_id_, get_input_message_reply_to(), default_message_send_options(),

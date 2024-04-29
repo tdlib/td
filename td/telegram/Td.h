@@ -909,6 +909,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::addQuickReplyShortcutInlineQueryResultMessage &request);
 
+  void on_request(uint64 id, td_api::addQuickReplyShortcutMessageAlbum &request);
+
   void on_request(uint64 id, td_api::readdQuickReplyShortcutMessages &request);
 
   void on_request(uint64 id, td_api::editQuickReplyMessage &request);

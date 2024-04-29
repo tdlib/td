@@ -70,6 +70,10 @@ class QuickReplyManager final : public Actor {
                                                                                          const string &result_id,
                                                                                          bool hide_via_bot);
 
+  Result<td_api::object_ptr<td_api::quickReplyMessages>> send_message_group(
+      const string &shortcut_name, MessageId reply_to_message_id,
+      vector<td_api::object_ptr<td_api::InputMessageContent>> &&input_message_contents);
+
   Result<td_api::object_ptr<td_api::quickReplyMessages>> resend_messages(const string &shortcut_name,
                                                                          vector<MessageId> message_ids);
 
@@ -194,10 +198,12 @@ class QuickReplyManager final : public Actor {
     void parse(ParserT &parser);
   };
 
-  class SendQuickReplyMessageQuery;
-  class SendQuickReplyMediaQuery;
-  class SendQuickReplyInlineMessageQuery;
   class EditQuickReplyMessageQuery;
+  class SendQuickReplyInlineMessageQuery;
+  class SendQuickReplyMediaQuery;
+  class SendQuickReplyMessageQuery;
+  class SendQuickReplyMultiMediaQuery;
+  class UploadQuickReplyMediaQuery;
 
   class UploadMediaCallback;
   class UploadThumbnailCallback;
@@ -354,7 +360,10 @@ class QuickReplyManager final : public Actor {
 
   void on_failed_send_quick_reply_messages(QuickReplyShortcutId shortcut_id, vector<int64> random_ids, Status error);
 
-  void update_message_content(QuickReplyMessage *old_message, QuickReplyMessage *new_message, bool is_edit);
+  void update_message_content(const QuickReplyMessage *old_message, QuickReplyMessage *new_message, bool is_edit);
+
+  void update_message_content(const unique_ptr<MessageContent> &old_content, unique_ptr<MessageContent> &new_content,
+                              bool need_merge_files);
 
   void do_send_message(const QuickReplyMessage *m, vector<int> bad_parts = {});
 
@@ -373,11 +382,23 @@ class QuickReplyManager final : public Actor {
   void on_upload_thumbnail(FileId thumbnail_file_id,
                            telegram_api::object_ptr<telegram_api::InputFile> thumbnail_input_file);
 
+  void on_upload_message_media_success(QuickReplyShortcutId shortcut_id, MessageId message_id, FileId file_id,
+                                       telegram_api::object_ptr<telegram_api::MessageMedia> &&media);
+
+  void on_upload_message_media_fail(QuickReplyShortcutId shortcut_id, MessageId message_id, Status error);
+
+  void on_upload_message_media_finished(int64 media_album_id, QuickReplyShortcutId shortcut_id, MessageId message_id,
+                                        Status result);
+
+  void do_send_message_group(QuickReplyShortcutId shortcut_id, int64 media_album_id);
+
   void on_message_media_uploaded(const QuickReplyMessage *m,
                                  telegram_api::object_ptr<telegram_api::InputMedia> &&input_media, FileId file_id,
                                  FileId thumbnail_file_id);
 
-  static int64 generate_new_media_album_id();
+  void on_send_media_group_file_reference_error(QuickReplyShortcutId shortcut_id, vector<int64> random_ids);
+
+  int64 generate_new_media_album_id() const;
 
   void on_edit_quick_reply_message(QuickReplyShortcutId shortcut_id, MessageId message_id, int64 edit_generation,
                                    FileId file_id, bool was_uploaded,
@@ -422,6 +443,14 @@ class QuickReplyManager final : public Actor {
     int64 edit_generation;
   };
   FlatHashMap<FileId, UploadedThumbnailInfo, FileIdHash> being_uploaded_thumbnails_;  // thumbnail_file_id -> ...
+
+  struct PendingMessageGroupSend {
+    size_t finished_count = 0;
+    vector<MessageId> message_ids;
+    vector<bool> is_finished;
+    vector<Status> results;
+  };
+  FlatHashMap<int64, PendingMessageGroupSend> pending_message_group_sends_;  // media_album_id -> ...
 
   int64 current_message_edit_generation_ = 0;
 

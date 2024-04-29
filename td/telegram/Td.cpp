@@ -5928,6 +5928,18 @@ void Td::on_request(uint64 id, td_api::addQuickReplyShortcutInlineQueryResultMes
   }
 }
 
+void Td::on_request(uint64 id, td_api::addQuickReplyShortcutMessageAlbum &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.shortcut_name_);
+  auto r_messages = quick_reply_manager_->send_message_group(
+      request.shortcut_name_, MessageId(request.reply_to_message_id_), std::move(request.input_message_contents_));
+  if (r_messages.is_error()) {
+    send_closure(actor_id(this), &Td::send_error, id, r_messages.move_as_error());
+  } else {
+    send_closure(actor_id(this), &Td::send_result, id, r_messages.move_as_ok());
+  }
+}
+
 void Td::on_request(uint64 id, td_api::readdQuickReplyShortcutMessages &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.shortcut_name_);

@@ -8230,6 +8230,13 @@ addQuickReplyShortcutMessage shortcut_name:string reply_to_message_id:int53 inpu
 //@hide_via_bot Pass true to hide the bot, via which the message is sent. Can be used only for bots getOption("animation_search_bot_username"), getOption("photo_search_bot_username"), and getOption("venue_search_bot_username")
 addQuickReplyShortcutInlineQueryResultMessage shortcut_name:string reply_to_message_id:int53 query_id:int64 result_id:string hide_via_bot:Bool = QuickReplyMessage;
 
+//@description Adds 2-10 messages grouped together into an album to a quick reply shortcut. Currently, only audio, document, photo and video messages can be grouped into an album.
+//-Documents and audio files can be only grouped in an album with messages of the same type. Returns sent messages
+//@shortcut_name Name of the target shortcut
+//@reply_to_message_id Identifier of a quick reply message in the same shortcut to be replied; pass 0 if none
+//@input_message_contents Contents of messages to be sent. At most 10 messages can be added to an album
+addQuickReplyShortcutMessageAlbum shortcut_name:string reply_to_message_id:int53 input_message_contents:vector<InputMessageContent> = QuickReplyMessages;
+
 //@description Readds quick reply messages which failed to add. Can be called only for messages for which messageSendingStateFailed.can_retry is true and after specified in messageSendingStateFailed.retry_after time passed.
 //-If a message is readded, the corresponding failed to send message is deleted. Returns the sent messages in the same order as the message identifiers passed in message_ids. If a message can't be readded, null will be returned instead of the message
 //@shortcut_name Name of the target shortcut
