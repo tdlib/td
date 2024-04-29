@@ -200,8 +200,8 @@ class DialogParticipantManager final : public Actor {
   void finish_get_dialog_participant(DialogParticipant &&dialog_participant,
                                      Promise<td_api::object_ptr<td_api::chatMember>> &&promise);
 
-  void finish_get_channel_participant(ChannelId channel_id, DialogParticipant &&dialog_participant,
-                                      Promise<DialogParticipant> &&promise);
+  void finish_get_channel_participant(ChannelId channel_id, DialogId participant_dialog_id,
+                                      DialogParticipant &&dialog_participant, Promise<DialogParticipant> &&promise);
 
   std::pair<int32, vector<DialogId>> search_among_dialogs(const vector<DialogId> &dialog_ids, const string &query,
                                                           int32 limit) const;

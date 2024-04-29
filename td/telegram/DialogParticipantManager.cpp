@@ -1610,23 +1610,29 @@ void DialogParticipantManager::get_channel_participant(ChannelId channel_id, Dia
     }
   }
 
-  auto on_result_promise = PromiseCreator::lambda([actor_id = actor_id(this), channel_id, promise = std::move(promise)](
-                                                      Result<DialogParticipant> r_dialog_participant) mutable {
-    TRY_RESULT_PROMISE(promise, dialog_participant, std::move(r_dialog_participant));
-    send_closure(actor_id, &DialogParticipantManager::finish_get_channel_participant, channel_id,
-                 std::move(dialog_participant), std::move(promise));
-  });
+  auto on_result_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), channel_id, participant_dialog_id,
+                              promise = std::move(promise)](Result<DialogParticipant> r_dialog_participant) mutable {
+        TRY_RESULT_PROMISE(promise, dialog_participant, std::move(r_dialog_participant));
+        send_closure(actor_id, &DialogParticipantManager::finish_get_channel_participant, channel_id,
+                     participant_dialog_id, std::move(dialog_participant), std::move(promise));
+      });
 
   td_->create_handler<GetChannelParticipantQuery>(std::move(on_result_promise))
       ->send(channel_id, participant_dialog_id, std::move(input_peer));
 }
 
-void DialogParticipantManager::finish_get_channel_participant(ChannelId channel_id,
+void DialogParticipantManager::finish_get_channel_participant(ChannelId channel_id, DialogId participant_dialog_id,
                                                               DialogParticipant &&dialog_participant,
                                                               Promise<DialogParticipant> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   CHECK(dialog_participant.is_valid());  // checked in GetChannelParticipantQuery
+  if (dialog_participant.dialog_id_ != participant_dialog_id) {
+    LOG(ERROR) << "Receive " << dialog_participant.dialog_id_ << " in " << channel_id << " instead of requested "
+               << participant_dialog_id;
+    return promise.set_error(Status::Error(500, "Data is unavailable"));
+  }
 
   LOG(INFO) << "Receive " << dialog_participant.dialog_id_ << " as a member of a channel " << channel_id;
 
