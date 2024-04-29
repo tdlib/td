@@ -2992,18 +2992,22 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
       }
       case telegram_api::updateChatParticipant::ID: {
         auto update = move_tl_object_as<telegram_api::updateChatParticipant>(update_ptr);
+        bool via_join_request =
+            update->invite_ != nullptr && update->invite_->get_id() == telegram_api::chatInvitePublicJoinRequests::ID;
         td_->dialog_participant_manager_->on_update_chat_participant(
             ChatId(update->chat_id_), UserId(update->actor_id_), update->date_,
-            DialogInviteLink(std::move(update->invite_), true, "updateChatParticipant"),
+            DialogInviteLink(std::move(update->invite_), true, "updateChatParticipant"), via_join_request,
             std::move(update->prev_participant_), std::move(update->new_participant_));
         break;
       }
       case telegram_api::updateChannelParticipant::ID: {
         auto update = move_tl_object_as<telegram_api::updateChannelParticipant>(update_ptr);
+        bool via_join_request =
+            update->invite_ != nullptr && update->invite_->get_id() == telegram_api::chatInvitePublicJoinRequests::ID;
         td_->dialog_participant_manager_->on_update_channel_participant(
             ChannelId(update->channel_id_), UserId(update->actor_id_), update->date_,
-            DialogInviteLink(std::move(update->invite_), true, "updateChannelParticipant"), update->via_chatlist_,
-            std::move(update->prev_participant_), std::move(update->new_participant_));
+            DialogInviteLink(std::move(update->invite_), true, "updateChannelParticipant"), via_join_request,
+            update->via_chatlist_, std::move(update->prev_participant_), std::move(update->new_participant_));
         break;
       }
       case telegram_api::updateBotChatInviteRequester::ID: {

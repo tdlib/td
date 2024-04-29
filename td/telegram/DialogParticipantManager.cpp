@@ -1348,7 +1348,7 @@ void DialogParticipantManager::on_reload_dialog_administrators(
 }
 
 void DialogParticipantManager::send_update_chat_member(DialogId dialog_id, UserId agent_user_id, int32 date,
-                                                       const DialogInviteLink &invite_link,
+                                                       const DialogInviteLink &invite_link, bool via_join_request,
                                                        bool via_dialog_filter_invite_link,
                                                        const DialogParticipant &old_dialog_participant,
                                                        const DialogParticipant &new_dialog_participant) {
@@ -1358,7 +1358,8 @@ void DialogParticipantManager::send_update_chat_member(DialogId dialog_id, UserI
                td_api::make_object<td_api::updateChatMember>(
                    td_->dialog_manager_->get_chat_id_object(dialog_id, "updateChatMember"),
                    td_->user_manager_->get_user_id_object(agent_user_id, "updateChatMember"), date,
-                   invite_link.get_chat_invite_link_object(td_->user_manager_.get()), via_dialog_filter_invite_link,
+                   invite_link.get_chat_invite_link_object(td_->user_manager_.get()), via_join_request,
+                   via_dialog_filter_invite_link,
                    td_->chat_manager_->get_chat_member_object(old_dialog_participant, "updateChatMember old"),
                    td_->chat_manager_->get_chat_member_object(new_dialog_participant, "updateChatMember new")));
 }
@@ -1386,12 +1387,12 @@ void DialogParticipantManager::on_update_bot_stopped(UserId user_id, int32 date,
     std::swap(old_dialog_participant.status_, new_dialog_participant.status_);
   }
 
-  send_update_chat_member(DialogId(user_id), user_id, date, DialogInviteLink(), false, old_dialog_participant,
+  send_update_chat_member(DialogId(user_id), user_id, date, DialogInviteLink(), false, false, old_dialog_participant,
                           new_dialog_participant);
 }
 
 void DialogParticipantManager::on_update_chat_participant(
-    ChatId chat_id, UserId user_id, int32 date, DialogInviteLink invite_link,
+    ChatId chat_id, UserId user_id, int32 date, DialogInviteLink invite_link, bool via_join_request,
     telegram_api::object_ptr<telegram_api::ChatParticipant> old_participant,
     telegram_api::object_ptr<telegram_api::ChatParticipant> new_participant) {
   CHECK(td_->auth_manager_->is_bot());
@@ -1434,13 +1435,13 @@ void DialogParticipantManager::on_update_chat_participant(
                << user_id << " at " << date << " from " << old_dialog_participant << " to " << new_dialog_participant;
   }
 
-  send_update_chat_member(DialogId(chat_id), user_id, date, invite_link, false, old_dialog_participant,
-                          new_dialog_participant);
+  send_update_chat_member(DialogId(chat_id), user_id, date, invite_link, via_join_request, false,
+                          old_dialog_participant, new_dialog_participant);
 }
 
 void DialogParticipantManager::on_update_channel_participant(
-    ChannelId channel_id, UserId user_id, int32 date, DialogInviteLink invite_link, bool via_dialog_filter_invite_link,
-    telegram_api::object_ptr<telegram_api::ChannelParticipant> old_participant,
+    ChannelId channel_id, UserId user_id, int32 date, DialogInviteLink invite_link, bool via_join_request,
+    bool via_dialog_filter_invite_link, telegram_api::object_ptr<telegram_api::ChannelParticipant> old_participant,
     telegram_api::object_ptr<telegram_api::ChannelParticipant> new_participant) {
   CHECK(td_->auth_manager_->is_bot());
   if (!channel_id.is_valid() || !user_id.is_valid() || date <= 0 ||
@@ -1496,8 +1497,8 @@ void DialogParticipantManager::on_update_channel_participant(
                << new_dialog_participant;
   }
 
-  send_update_chat_member(DialogId(channel_id), user_id, date, invite_link, via_dialog_filter_invite_link,
-                          old_dialog_participant, new_dialog_participant);
+  send_update_chat_member(DialogId(channel_id), user_id, date, invite_link, via_join_request,
+                          via_dialog_filter_invite_link, old_dialog_participant, new_dialog_participant);
 }
 
 void DialogParticipantManager::on_update_chat_invite_requester(DialogId dialog_id, UserId user_id, string about,
