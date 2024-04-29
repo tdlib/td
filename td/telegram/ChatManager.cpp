@@ -8115,6 +8115,12 @@ void ChatManager::get_chat_participant(ChatId chat_id, UserId user_id, Promise<D
     return promise.set_error(Status::Error(400, "Group not found"));
   }
 
+  if (td_->auth_manager_->is_bot() && user_id == td_->user_manager_->get_my_id()) {
+    // bots don't need inviter information
+    reload_chat(chat_id, Auto(), "get_chat_participant");
+    return promise.set_value(DialogParticipant{DialogId(user_id), user_id, c->date, c->status});
+  }
+
   auto chat_full = get_chat_full_force(chat_id, "get_chat_participant");
   if (chat_full == nullptr || (td_->auth_manager_->is_bot() && is_chat_full_outdated(chat_full, c, chat_id, true))) {
     auto query_promise = PromiseCreator::lambda(

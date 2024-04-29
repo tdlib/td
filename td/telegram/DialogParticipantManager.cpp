@@ -1611,6 +1611,15 @@ void DialogParticipantManager::get_channel_participant(ChannelId channel_id, Dia
     }
   }
 
+  if (td_->auth_manager_->is_bot() && participant_dialog_id == td_->dialog_manager_->get_my_dialog_id() &&
+      td_->chat_manager_->have_channel(channel_id)) {
+    // bots don't need inviter information
+    td_->chat_manager_->reload_channel(channel_id, Auto(), "get_channel_participant");
+    return promise.set_value(DialogParticipant{participant_dialog_id, participant_dialog_id.get_user_id(),
+                                               td_->chat_manager_->get_channel_date(channel_id),
+                                               td_->chat_manager_->get_channel_status(channel_id)});
+  }
+
   auto on_result_promise =
       PromiseCreator::lambda([actor_id = actor_id(this), channel_id, participant_dialog_id,
                               promise = std::move(promise)](Result<DialogParticipant> r_dialog_participant) mutable {
