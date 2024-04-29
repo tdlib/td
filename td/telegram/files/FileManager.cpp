@@ -2775,7 +2775,11 @@ void FileManager::resume_upload(FileId file_id, vector<int> bad_parts, std::shar
         .release();
     return;
   }
-  LOG(INFO) << "Resume upload of file " << file_id << " with priority " << new_priority << " and force = " << force;
+  if (new_priority == 0) {
+    LOG(INFO) << "Cancel upload of file " << file_id;
+  } else {
+    LOG(INFO) << "Resume upload of file " << file_id << " with priority " << new_priority << " and force = " << force;
+  }
 
   if (force) {
     node->remote_.is_full_alive = false;
@@ -2791,7 +2795,7 @@ void FileManager::resume_upload(FileId file_id, vector<int> bad_parts, std::shar
   };
   FileView file_view(node);
   if (file_view.has_active_upload_remote_location() && can_reuse_remote_file(file_view.get_type())) {
-    LOG(INFO) << "File " << file_id << " is already uploaded";
+    LOG(INFO) << "Upload of file " << file_id << " has already been completed";
     if (callback) {
       callback->on_upload_ok(file_id, nullptr);
     }
