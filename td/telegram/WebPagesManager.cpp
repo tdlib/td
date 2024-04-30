@@ -26,6 +26,7 @@
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/PhotoFormat.h"
+#include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StickersManager.hpp"
 #include "td/telegram/StoryFullId.h"

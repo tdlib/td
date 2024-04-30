@@ -174,7 +174,7 @@ void PollManager::store_poll(PollId poll_id, StorerT &storer) const {
     bool has_explanation = !poll->explanation_.text.empty();
     bool has_question_entities = !poll->question_.entities.empty();
     bool has_option_entities =
-        td::any_of(poll->options_, [](const PollOption &option) { return !option.text_.entities.empty(); });
+        any_of(poll->options_, [](const auto &option) { return !option.text_.entities.empty(); });
     BEGIN_STORE_FLAGS();
     STORE_FLAG(poll->is_closed_);
     STORE_FLAG(poll->is_anonymous_);

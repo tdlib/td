@@ -44,6 +44,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Random.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/Time.h"
 #include "td/utils/tl_helpers.h"
 #include "td/utils/unicode.h"
@@ -566,11 +567,11 @@ class QuickReplyManager::SendQuickReplyMultiMediaQuery final : public Td::Result
   }
 
   void on_error(Status status) final {
-    LOG(INFO) << "Receive error for SendMultiMedia: " << status;
     if (G()->close_flag()) {
       // do not send error, message will be re-sent after restart
       return;
     }
+    LOG(INFO) << "Receive error for SendQuickReplyMultiMediaQuery: " << status;
     if (FileReferenceManager::is_file_reference_error(status)) {
       auto pos = FileReferenceManager::get_file_reference_error_pos(status);
       if (1 <= pos && pos <= file_ids_.size() && file_ids_[pos - 1].is_valid()) {

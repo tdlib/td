@@ -6,6 +6,7 @@
 //
 #include "td/telegram/SponsoredMessageManager.h"
 
+#include "td/telegram/AccentColorId.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogManager.h"
@@ -26,7 +27,6 @@
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
-#include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 
 namespace td {

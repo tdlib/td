@@ -5352,8 +5352,7 @@ class CliClient final : public Actor {
       ChatId chat_id;
       string question;
       get_args(args, chat_id, question, args);
-      vector<td_api::object_ptr<td_api::formattedText>> options =
-          transform(autosplit_str(args), [](const string &option) { return as_formatted_text(option); });
+      auto options = transform(autosplit_str(args), [](const string &option) { return as_formatted_text(option); });
       td_api::object_ptr<td_api::PollType> poll_type;
       if (op == "squiz") {
         poll_type = td_api::make_object<td_api::pollTypeQuiz>(narrow_cast<int32>(options.size() - 1),

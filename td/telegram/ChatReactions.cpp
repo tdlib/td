@@ -84,7 +84,7 @@ bool ChatReactions::is_allowed_reaction_type(const ReactionType &reaction_type) 
 }
 
 td_api::object_ptr<td_api::ChatAvailableReactions> ChatReactions::get_chat_available_reactions_object(Td *td) const {
-  int32 reactions_uniq_max = static_cast<int32>(td->option_manager_->get_option_integer("reactions_uniq_max", 11));
+  auto reactions_uniq_max = static_cast<int32>(td->option_manager_->get_option_integer("reactions_uniq_max", 11));
   if (0 < reactions_limit_ && reactions_limit_ < reactions_uniq_max) {
     reactions_uniq_max = reactions_limit_;
   }

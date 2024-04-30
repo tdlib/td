@@ -137,11 +137,11 @@ class GetContactsBirthdaysQuery final : public Td::ResultHandler {
   }
 };
 
-class DismissContactBirtdaysSuggestionQuery final : public Td::ResultHandler {
+class DismissContactBirthdaysSuggestionQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
  public:
-  explicit DismissContactBirtdaysSuggestionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit DismissContactBirthdaysSuggestionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   void send() {
@@ -6573,7 +6573,7 @@ void UserManager::on_get_contact_birthdates(
 }
 
 void UserManager::hide_contact_birthdays(Promise<Unit> &&promise) {
-  td_->create_handler<DismissContactBirtdaysSuggestionQuery>(std::move(promise))->send();
+  td_->create_handler<DismissContactBirthdaysSuggestionQuery>(std::move(promise))->send();
 }
 
 vector<UserId> UserManager::get_close_friends(Promise<Unit> &&promise) {

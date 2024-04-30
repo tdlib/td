@@ -2984,11 +2984,11 @@ class SendMultiMediaQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    LOG(INFO) << "Receive error for SendMultiMedia: " << status;
     if (G()->close_flag() && G()->use_message_database()) {
       // do not send error, message will be re-sent after restart
       return;
     }
+    LOG(INFO) << "Receive error for SendMultiMedia: " << status;
     if (!td_->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
       auto pos = FileReferenceManager::get_file_reference_error_pos(status);
       if (1 <= pos && pos <= file_ids_.size() && file_ids_[pos - 1].is_valid()) {

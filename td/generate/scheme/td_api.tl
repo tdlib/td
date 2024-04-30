@@ -3730,7 +3730,7 @@ emojiCategoryTypeEmojiStatus = EmojiCategoryType;
 //@description The category must be used for chat photo emoji selection
 emojiCategoryTypeChatPhoto = EmojiCategoryType;
 
-//@description The category containing greeting emoji and Premium stickers that emust be used for start page sticker selection
+//@description The category containing greeting emoji and Premium stickers that must be used for start page sticker selection
 emojiCategoryTypeCombined = EmojiCategoryType;
 
 
@@ -8012,7 +8012,7 @@ recognizeSpeech chat_id:int53 message_id:int53 = Ok;
 rateSpeechRecognition chat_id:int53 message_id:int53 is_good:Bool = Ok;
 
 
-//@description Returns list of message sender identifiers, which can be used to send messages in a chat @chat_id Chat identifier
+//@description Returns the list of message sender identifiers, which can be used to send messages in a chat @chat_id Chat identifier
 getChatAvailableMessageSenders chat_id:int53 = ChatMessageSenders;
 
 //@description Selects a message sender to send messages in a chat @chat_id Chat identifier @message_sender_id New message sender for the chat
@@ -8255,7 +8255,7 @@ readdQuickReplyShortcutMessages shortcut_name:string message_ids:vector<int53> =
 editQuickReplyMessage shortcut_id:int32 message_id:int53 input_message_content:InputMessageContent = Ok;
 
 
-//@description Returns list of custom emojis, which can be used as forum topic icon by all users
+//@description Returns the list of custom emojis, which can be used as forum topic icon by all users
 getForumTopicDefaultIcons = Stickers;
 
 //@description Creates a topic in a forum supergroup chat; requires can_manage_topics administrator or can_create_topics member right in the supergroup
@@ -8971,7 +8971,7 @@ clearAllDraftMessages exclude_secret_chats:Bool = Ok;
 //@description Returns saved notification sound by its identifier. Returns a 404 error if there is no saved notification sound with the specified identifier @notification_sound_id Identifier of the notification sound
 getSavedNotificationSound notification_sound_id:int64 = NotificationSounds;
 
-//@description Returns list of saved notification sounds. If a sound isn't in the list, then default sound needs to be used
+//@description Returns the list of saved notification sounds. If a sound isn't in the list, then default sound needs to be used
 getSavedNotificationSounds = NotificationSounds;
 
 //@description Adds a new notification sound to the list of saved notification sounds. The new notification sound is added to the top of the list. If it is already in the list, its position isn't changed @sound Notification sound file to add
@@ -8981,7 +8981,7 @@ addSavedNotificationSound sound:InputFile = NotificationSound;
 removeSavedNotificationSound notification_sound_id:int64 = Ok;
 
 
-//@description Returns list of chats with non-default notification settings for new messages
+//@description Returns the list of chats with non-default notification settings for new messages
 //@scope If specified, only chats from the scope will be returned; pass null to return chats from all scopes
 //@compare_sound Pass true to include in the response chats with only non-default sound
 getChatNotificationSettingsExceptions scope:NotificationSettingsScope compare_sound:Bool = Chats;
@@ -9060,7 +9060,7 @@ toggleStoryIsPostedToChatPage story_sender_chat_id:int53 story_id:int32 is_poste
 //@story_id Identifier of the story to delete
 deleteStory story_sender_chat_id:int53 story_id:int32 = Ok;
 
-//@description Returns list of chats with non-default notification settings for stories
+//@description Returns the list of chats with non-default notification settings for stories
 getStoryNotificationSettingsExceptions = Chats;
 
 //@description Loads more active stories from a story list. The loaded stories will be sent through updates. Active stories are sorted by
@@ -9090,7 +9090,7 @@ getChatPostedToChatPageStories chat_id:int53 from_story_id:int32 limit:int32 = S
 //-For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
 getChatArchivedStories chat_id:int53 from_story_id:int32 limit:int32 = Stories;
 
-//@description Changes list of pinned stories on a chat page; requires can_edit_stories right in the chat
+//@description Changes the list of pinned stories on a chat page; requires can_edit_stories right in the chat
 //@chat_id Identifier of the chat that posted the stories
 //@story_ids New list of pinned stories. All stories must be posted to the chat page first. There can be up to getOption("pinned_story_count_max") pinned stories on a chat page
 setChatPinnedStories chat_id:int53 story_ids:vector<int32> = Ok;
@@ -9154,12 +9154,12 @@ activateStoryStealthMode = Ok;
 getStoryPublicForwards story_sender_chat_id:int53 story_id:int32 offset:string limit:int32 = PublicForwards;
 
 
-//@description Returns list of features available on the specific chat boost level; this is an offline request
+//@description Returns the list of features available on the specific chat boost level; this is an offline request
 //@is_channel Pass true to get the list of features for channels; pass false to get the list of features for supergroups
 //@level Chat boost level
 getChatBoostLevelFeatures is_channel:Bool level:int32 = ChatBoostLevelFeatures;
 
-//@description Returns list of features available for different chat boost levels; this is an offline request
+//@description Returns the list of features available for different chat boost levels; this is an offline request
 //@is_channel Pass true to get the list of features for channels; pass false to get the list of features for supergroups
 getChatBoostFeatures is_channel:Bool = ChatBoostFeatures;
 
@@ -9180,14 +9180,14 @@ getChatBoostLink chat_id:int53 = ChatBoostLink;
 //@description Returns information about a link to boost a chat. Can be called for any internal link of the type internalLinkTypeChatBoost @url The link to boost a chat
 getChatBoostLinkInfo url:string = ChatBoostLinkInfo;
 
-//@description Returns list of boosts applied to a chat; requires administrator rights in the chat
+//@description Returns the list of boosts applied to a chat; requires administrator rights in the chat
 //@chat_id Identifier of the chat
 //@only_gift_codes Pass true to receive only boosts received from gift codes and giveaways created by the chat
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of boosts to be returned; up to 100. For optimal performance, the number of returned boosts can be smaller than the specified limit
 getChatBoosts chat_id:int53 only_gift_codes:Bool offset:string limit:int32 = FoundChatBoosts;
 
-//@description Returns list of boosts applied to a chat by a given user; requires administrator rights in the chat; for bots only
+//@description Returns the list of boosts applied to a chat by a given user; requires administrator rights in the chat; for bots only
 //@chat_id Identifier of the chat
 //@user_id Identifier of the user
 getUserChatBoosts chat_id:int53 user_id:int53 = FoundChatBoosts;
@@ -9353,7 +9353,7 @@ editChatInviteLink chat_id:int53 invite_link:string name:string expiration_date:
 //@invite_link Invite link to get
 getChatInviteLink chat_id:int53 invite_link:string = ChatInviteLink;
 
-//@description Returns list of chat administrators with number of their invite links. Requires owner privileges in the chat @chat_id Chat identifier
+//@description Returns the list of chat administrators with number of their invite links. Requires owner privileges in the chat @chat_id Chat identifier
 getChatInviteLinkCounts chat_id:int53 = ChatInviteLinkCounts;
 
 //@description Returns invite links for a chat created by specified administrator. Requires administrator privileges and can_invite_users right in the chat to get own links and owner privileges to get other links
@@ -9441,7 +9441,7 @@ sendCallDebugInformation call_id:int32 debug_information:string = Ok;
 sendCallLog call_id:int32 log_file:InputFile = Ok;
 
 
-//@description Returns list of participant identifiers, on whose behalf a video chat in the chat can be joined @chat_id Chat identifier
+//@description Returns the list of participant identifiers, on whose behalf a video chat in the chat can be joined @chat_id Chat identifier
 getVideoChatAvailableParticipants chat_id:int53 = MessageSenders;
 
 //@description Changes default participant identifier, on whose behalf a video chat in the chat will be joined @chat_id Chat identifier @default_participant_id Default group call participant identifier to join the video chats
@@ -9763,10 +9763,12 @@ getEmojiCategories type:EmojiCategoryType = EmojiCategories;
 //@description Returns an animated emoji corresponding to a given emoji. Returns a 404 error if the emoji has no animated emoji @emoji The emoji
 getAnimatedEmoji emoji:string = AnimatedEmoji;
 
-//@description Returns an HTTP URL which can be used to automatically log in to the translation platform and suggest new emoji replacements. The URL will be valid for 30 seconds after generation @language_code Language code for which the emoji replacements will be suggested
+//@description Returns an HTTP URL which can be used to automatically log in to the translation platform and suggest new emoji replacements. The URL will be valid for 30 seconds after generation
+//@language_code Language code for which the emoji replacements will be suggested
 getEmojiSuggestionsUrl language_code:string = HttpUrl;
 
-//@description Returns list of custom emoji stickers by their identifiers. Stickers are returned in arbitrary order. Only found stickers are returned @custom_emoji_ids Identifiers of custom emoji stickers. At most 200 custom emoji stickers can be received simultaneously
+//@description Returns the list of custom emoji stickers by their identifiers. Stickers are returned in arbitrary order. Only found stickers are returned
+//@custom_emoji_ids Identifiers of custom emoji stickers. At most 200 custom emoji stickers can be received simultaneously
 getCustomEmojiStickers custom_emoji_ids:vector<int64> = Stickers;
 
 //@description Returns default list of custom emoji stickers for placing on a chat photo
@@ -9782,7 +9784,8 @@ getDefaultBackgroundCustomEmojiStickers = Stickers;
 //@description Returns saved animations
 getSavedAnimations = Animations;
 
-//@description Manually adds a new animation to the list of saved animations. The new animation is added to the beginning of the list. If the animation was already in the list, it is removed first. Only non-secret video animations with MIME type "video/mp4" can be added to the list
+//@description Manually adds a new animation to the list of saved animations. The new animation is added to the beginning of the list. If the animation was already in the list, it is removed first.
+//-Only non-secret video animations with MIME type "video/mp4" can be added to the list
 //@animation The animation file to be added. Only animations known to the server (i.e., successfully sent via a message) can be added to the list
 addSavedAnimation animation:InputFile = Ok;
 
@@ -9952,7 +9955,7 @@ setCommands scope:BotCommandScope language_code:string commands:vector<botComman
 //@language_code A two-letter ISO 639-1 language code or an empty string
 deleteCommands scope:BotCommandScope language_code:string = Ok;
 
-//@description Returns list of commands supported by the bot for the given user scope and language; for bots only
+//@description Returns the list of commands supported by the bot for the given user scope and language; for bots only
 //@scope The scope to which the commands are relevant; pass null to get commands in the default bot command scope
 //@language_code A two-letter ISO 639-1 language code or an empty string
 getCommands scope:BotCommandScope language_code:string = BotCommands;
@@ -10367,7 +10370,7 @@ getChatRevenueStatistics chat_id:int53 is_dark:Bool = ChatRevenueStatistics;
 //@password The 2-step verification password of the current user
 getChatRevenueWithdrawalUrl chat_id:int53 password:string = HttpUrl;
 
-//@description Returns list of revenue transactions for a chat. Currently, this method can be used only for channels if supergroupFullInfo.can_get_revenue_statistics == true
+//@description Returns the list of revenue transactions for a chat. Currently, this method can be used only for channels if supergroupFullInfo.can_get_revenue_statistics == true
 //@chat_id Chat identifier
 //@offset Number of transactions to skip
 //@limit The maximum number of transactions to be returned; up to 200
@@ -10736,7 +10739,7 @@ disableProxy = Ok;
 //@description Removes a proxy server. Can be called before authorization @proxy_id Proxy identifier
 removeProxy proxy_id:int32 = Ok;
 
-//@description Returns list of proxies that are currently set up. Can be called before authorization
+//@description Returns the list of proxies that are currently set up. Can be called before authorization
 getProxies = Proxies;
 
 //@description Returns an HTTPS link, which can be used to add a proxy. Available only for SOCKS5 and MTProto proxies. Can be called before authorization @proxy_id Proxy identifier
@@ -10760,7 +10763,7 @@ setLogVerbosityLevel new_verbosity_level:int32 = Ok;
 //@description Returns current verbosity level of the internal logging of TDLib. Can be called synchronously
 getLogVerbosityLevel = LogVerbosityLevel;
 
-//@description Returns list of available TDLib internal log tags, for example, ["actor", "binlog", "connections", "notifications", "proxy"]. Can be called synchronously
+//@description Returns the list of available TDLib internal log tags, for example, ["actor", "binlog", "connections", "notifications", "proxy"]. Can be called synchronously
 getLogTags = LogTags;
 
 //@description Sets the verbosity level for a specified TDLib internal log tag. Can be called synchronously
