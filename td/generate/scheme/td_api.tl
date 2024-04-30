@@ -661,10 +661,11 @@ businessOpeningHours time_zone_id:string opening_hours:vector<businessOpeningHou
 //@description Contains information about a Telegram Business account
 //@location Location of the business; may be null if none
 //@opening_hours Opening hours of the business; may be null if none. The hours are guaranteed to be valid and has already been split by week days
+//@local_opening_hours Opening hours of the business in the local time; may be null if none. The hours are guaranteed to be valid and has already been split by week days. Local time zone identifier will be empty
 //@greeting_message_settings The greeting message; may be null if none or the Business account is not of the current user
 //@away_message_settings The away message; may be null if none or the Business account is not of the current user
 //@start_page Information about start page of the account; may be null if none
-businessInfo location:businessLocation opening_hours:businessOpeningHours greeting_message_settings:businessGreetingMessageSettings away_message_settings:businessAwayMessageSettings start_page:businessStartPage = BusinessInfo;
+businessInfo location:businessLocation opening_hours:businessOpeningHours local_opening_hours:businessOpeningHours greeting_message_settings:businessGreetingMessageSettings away_message_settings:businessAwayMessageSettings start_page:businessStartPage = BusinessInfo;
 
 
 //@description Contains information about a business chat link

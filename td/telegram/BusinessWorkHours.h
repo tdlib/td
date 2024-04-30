@@ -14,6 +14,8 @@
 
 namespace td {
 
+class Td;
+
 class BusinessWorkHours {
  public:
   BusinessWorkHours() = default;
@@ -25,6 +27,8 @@ class BusinessWorkHours {
   bool is_empty() const;
 
   td_api::object_ptr<td_api::businessOpeningHours> get_business_opening_hours_object() const;
+
+  td_api::object_ptr<td_api::businessOpeningHours> get_local_business_opening_hours_object(Td *td) const;
 
   telegram_api::object_ptr<telegram_api::businessWorkHours> get_input_business_work_hours() const;
 

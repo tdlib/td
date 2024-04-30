@@ -28,6 +28,8 @@ class TimeZoneManager final : public Actor {
   TimeZoneManager &operator=(TimeZoneManager &&) = delete;
   ~TimeZoneManager() final;
 
+  int32 get_time_zone_offset(const string &time_zone_id);
+
   void get_time_zones(Promise<td_api::object_ptr<td_api::timeZones>> &&promise);
 
   void reload_time_zones(Promise<td_api::object_ptr<td_api::timeZones>> &&promise);

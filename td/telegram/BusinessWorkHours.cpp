@@ -6,9 +6,15 @@
 //
 #include "td/telegram/BusinessWorkHours.h"
 
+#include "td/telegram/AuthManager.h"
+#include "td/telegram/OptionManager.h"
+#include "td/telegram/Td.h"
+#include "td/telegram/TimeZoneManager.h"
+
 #include "td/utils/algorithm.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 
 #include <algorithm>
 
@@ -66,6 +72,46 @@ td_api::object_ptr<td_api::businessOpeningHours> BusinessWorkHours::get_business
     intervals.push_back(interval.get_business_opening_hours_interval_object());
   }
   return td_api::make_object<td_api::businessOpeningHours>(time_zone_id_, std::move(intervals));
+}
+
+td_api::object_ptr<td_api::businessOpeningHours> BusinessWorkHours::get_local_business_opening_hours_object(
+    Td *td) const {
+  if (is_empty() || td->auth_manager_->is_bot()) {
+    return nullptr;
+  }
+
+  auto offset = narrow_cast<int32>((td->time_zone_manager_->get_time_zone_offset(time_zone_id_) -
+                 td->option_manager_->get_option_integer("utc_time_offset")) /
+                60);
+  if (offset == 0) {
+    return get_business_opening_hours_object();
+  }
+
+  BusinessWorkHours local_work_hours;
+  for (auto &interval : work_hours_) {
+    auto start_minute = interval.start_minute_ - offset;
+    auto end_minute = interval.end_minute_ - offset;
+    if (start_minute < 0) {
+      if (end_minute <= 24 * 60) {
+        start_minute += 7 * 24 * 60;
+        end_minute += 7 * 24 * 60;
+      } else {
+        local_work_hours.work_hours_.emplace_back(start_minute + 7 * 24 * 60, 7 * 24 * 60);
+        start_minute = 0;
+      }
+    } else if (end_minute > 8 * 24 * 60) {
+      if (start_minute >= 7 * 24 * 60) {
+        start_minute -= 7 * 24 * 60;
+        end_minute -= 7 * 24 * 60;
+      } else {
+        local_work_hours.work_hours_.emplace_back(0, end_minute - 7 * 24 * 60);
+        end_minute = 7 * 24 * 60;
+      }
+    }
+    local_work_hours.work_hours_.emplace_back(start_minute, end_minute);
+  }
+  local_work_hours.sanitize_work_hours();
+  return local_work_hours.get_business_opening_hours_object();
 }
 
 telegram_api::object_ptr<telegram_api::businessWorkHours> BusinessWorkHours::get_input_business_work_hours() const {
