@@ -352,8 +352,6 @@ class MessagesManager final : public Actor {
 
   void on_update_delete_scheduled_messages(DialogId dialog_id, vector<ScheduledServerMessageId> &&server_message_ids);
 
-  void on_update_created_public_broadcasts(vector<ChannelId> channel_ids);
-
   void on_dialog_speaking_action(DialogId dialog_id, DialogId speaking_dialog_id, int32 date);
 
   void on_message_animated_emoji_clicked(MessageFullId message_full_id, string &&emoji, string &&data);
@@ -3217,9 +3215,6 @@ class MessagesManager final : public Actor {
 
   WaitFreeHashMap<MessageId, DialogId, MessageIdHash> message_id_to_dialog_id_;
   FlatHashMap<MessageId, DialogId, MessageIdHash> last_clear_history_message_id_to_dialog_id_;
-
-  bool created_public_broadcasts_inited_ = false;
-  vector<ChannelId> created_public_broadcasts_;
 
   struct PendingCreatedDialog {
     td_api::object_ptr<td_api::failedToAddMembers> failed_to_add_members_;

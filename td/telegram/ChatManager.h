@@ -190,6 +190,10 @@ class ChatManager final : public Actor {
 
   void on_get_created_public_channels(PublicDialogType type, vector<tl_object_ptr<telegram_api::Chat>> &&chats);
 
+  bool are_created_public_broadcasts_inited() const;
+
+  const vector<ChannelId> &get_created_public_broadcasts() const;
+
   void on_get_dialogs_for_discussion(vector<tl_object_ptr<telegram_api::Chat>> &&chats);
 
   void on_get_inactive_channels(vector<tl_object_ptr<telegram_api::Chat>> &&chats, Promise<Unit> &&promise);
@@ -832,8 +836,6 @@ class ChatManager final : public Actor {
   void update_created_public_channels(Channel *c, ChannelId channel_id);
 
   void save_created_public_channels(PublicDialogType type);
-
-  void update_created_public_broadcasts();
 
   bool update_permanent_invite_link(DialogInviteLink &invite_link, DialogInviteLink new_invite_link);
 

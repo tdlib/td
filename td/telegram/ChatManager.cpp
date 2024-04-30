@@ -3721,10 +3721,6 @@ void ChatManager::get_created_public_dialogs(PublicDialogType type,
           }
           created_public_channels_inited_[index] = true;
 
-          if (type == PublicDialogType::ForPersonalDialog) {
-            update_created_public_broadcasts();
-          }
-
           if (from_binlog) {
             return_created_public_dialogs(std::move(promise), created_public_channels_[index]);
             promise = {};
@@ -3782,10 +3778,6 @@ void ChatManager::update_created_public_channels(Channel *c, ChannelId channel_i
       }
     }
     if (was_changed) {
-      if (type == PublicDialogType::ForPersonalDialog) {
-        update_created_public_broadcasts();
-      }
-
       save_created_public_channels(type);
 
       reload_created_public_dialogs(type, Promise<td_api::object_ptr<td_api::chats>>());
@@ -3809,10 +3801,6 @@ void ChatManager::on_get_created_public_channels(PublicDialogType type,
   }
   created_public_channels_inited_[index] = true;
 
-  if (type == PublicDialogType::ForPersonalDialog) {
-    update_created_public_broadcasts();
-  }
-
   save_created_public_channels(type);
 }
 
@@ -3828,13 +3816,16 @@ void ChatManager::save_created_public_channels(PublicDialogType type) {
   }
 }
 
-void ChatManager::update_created_public_broadcasts() {
-  send_closure_later(G()->messages_manager(), &MessagesManager::on_update_created_public_broadcasts,
-                     created_public_channels_[2]);
-}
-
 void ChatManager::check_created_public_dialogs_limit(PublicDialogType type, Promise<Unit> &&promise) {
   td_->create_handler<GetCreatedPublicChannelsQuery>(std::move(promise))->send(type, true);
+}
+
+bool ChatManager::are_created_public_broadcasts_inited() const {
+  return created_public_channels_inited_[2];
+}
+
+const vector<ChannelId> &ChatManager::get_created_public_broadcasts() const {
+  return created_public_channels_[2];
 }
 
 vector<DialogId> ChatManager::get_dialogs_for_discussion(Promise<Unit> &&promise) {

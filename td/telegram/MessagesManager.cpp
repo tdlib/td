@@ -6806,25 +6806,6 @@ void MessagesManager::on_update_delete_scheduled_messages(DialogId dialog_id,
   send_update_chat_has_scheduled_messages(d, true);
 }
 
-void MessagesManager::on_update_created_public_broadcasts(vector<ChannelId> channel_ids) {
-  if (td_->auth_manager_->is_bot()) {
-    // just in case
-    return;
-  }
-
-  if (created_public_broadcasts_inited_ && created_public_broadcasts_ == channel_ids) {
-    return;
-  }
-
-  LOG(INFO) << "Update create public channels to " << channel_ids;
-  for (auto channel_id : channel_ids) {
-    force_create_dialog(DialogId(channel_id), "on_update_created_public_broadcasts");
-  }
-
-  created_public_broadcasts_inited_ = true;
-  created_public_broadcasts_ = std::move(channel_ids);
-}
-
 void MessagesManager::on_dialog_speaking_action(DialogId dialog_id, DialogId speaking_dialog_id, int32 date) {
   const Dialog *d = get_dialog_force(dialog_id, "on_dialog_speaking_action");
   if (d != nullptr && d->active_group_call_id.is_valid()) {
@@ -23368,9 +23349,10 @@ void MessagesManager::get_dialog_send_message_as_dialog_ids(
   }
   CHECK(dialog_id.get_type() == DialogType::Channel);
 
-  if (created_public_broadcasts_inited_) {
+  if (td_->chat_manager_->are_created_public_broadcasts_inited()) {
     auto senders = td_api::make_object<td_api::chatMessageSenders>();
-    if (!created_public_broadcasts_.empty()) {
+    const auto &created_public_broadcasts = td_->chat_manager_->get_created_public_broadcasts();
+    if (!created_public_broadcasts.empty()) {
       auto add_sender = [&senders, td = td_](DialogId dialog_id, bool needs_premium) {
         auto sender = get_message_sender_object(td, dialog_id, "add_sender");
         senders->senders_.push_back(td_api::make_object<td_api::chatMessageSender>(std::move(sender), needs_premium));
@@ -23390,7 +23372,7 @@ void MessagesManager::get_dialog_send_message_as_dialog_ids(
       bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
       auto linked_channel_id = td_->chat_manager_->get_channel_linked_channel_id(
           dialog_id.get_channel_id(), "get_dialog_send_message_as_dialog_ids");
-      for (auto channel_id : created_public_broadcasts_) {
+      for (auto channel_id : created_public_broadcasts) {
         int64 score = td_->chat_manager_->get_channel_participant_count(channel_id);
         bool needs_premium =
             !is_premium && channel_id != linked_channel_id && !td_->chat_manager_->get_channel_is_verified(channel_id);
@@ -30622,7 +30604,8 @@ void MessagesManager::on_update_dialog_default_send_message_as_dialog_id(DialogI
 
   if (d->default_send_message_as_dialog_id != default_send_as_dialog_id) {
     if (force || default_send_as_dialog_id.is_valid() ||
-        (created_public_broadcasts_inited_ && created_public_broadcasts_.empty())) {
+        (td_->chat_manager_->are_created_public_broadcasts_inited() &&
+         td_->chat_manager_->get_created_public_broadcasts().empty())) {
       LOG(INFO) << "Set message sender in " << dialog_id << " to " << default_send_as_dialog_id;
       d->need_drop_default_send_message_as_dialog_id = false;
       d->default_send_message_as_dialog_id = default_send_as_dialog_id;
