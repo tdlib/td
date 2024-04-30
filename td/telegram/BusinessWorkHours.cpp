@@ -80,9 +80,9 @@ td_api::object_ptr<td_api::businessOpeningHours> BusinessWorkHours::get_local_bu
     return nullptr;
   }
 
-  auto offset = narrow_cast<int32>((td->time_zone_manager_->get_time_zone_offset(time_zone_id_) -
-                 td->option_manager_->get_option_integer("utc_time_offset")) /
-                60);
+  auto offset = (td->time_zone_manager_->get_time_zone_offset(time_zone_id_) -
+                 narrow_cast<int32>(td->option_manager_->get_option_integer("utc_time_offset"))) /
+                60;
   if (offset == 0) {
     return get_business_opening_hours_object();
   }
@@ -122,6 +122,31 @@ telegram_api::object_ptr<telegram_api::businessWorkHours> BusinessWorkHours::get
       0, false, time_zone_id_, transform(work_hours_, [](const WorkHoursInterval &interval) {
         return interval.get_input_business_weekly_open();
       }));
+}
+
+int32 BusinessWorkHours::get_next_open_close_in(Td *td, int32 unix_time, bool is_close) const {
+  if (is_empty()) {
+    return 0;
+  }
+  auto get_week_time = [](int32 time) {
+    const auto week_length = 7 * 86400;
+    return ((time % week_length) + week_length) % week_length;
+  };
+  // the Unix time 0 was on a Thursday, the first Monday was at 4 * 86400
+  auto current_week_time = get_week_time(unix_time - 4 * 86400);
+  auto offset = td->time_zone_manager_->get_time_zone_offset(time_zone_id_);
+  int32 result = 1000000000;
+  for (auto &interval : work_hours_) {
+    auto change_week_time = get_week_time((is_close ? interval.end_minute_ : interval.start_minute_) * 60 - offset);
+    auto wait_time = change_week_time - current_week_time;
+    if (wait_time < 0) {
+      wait_time += 7 * 86400;
+    }
+    if (wait_time < result) {
+      result = wait_time;
+    }
+  }
+  return result;
 }
 
 void BusinessWorkHours::sanitize_work_hours() {

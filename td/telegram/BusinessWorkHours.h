@@ -32,6 +32,8 @@ class BusinessWorkHours {
 
   telegram_api::object_ptr<telegram_api::businessWorkHours> get_input_business_work_hours() const;
 
+  int32 get_next_open_close_in(Td *td, int32 unix_time, bool is_close) const;
+
   template <class StorerT>
   void store(StorerT &storer) const;
 

@@ -7,6 +7,7 @@
 #include "td/telegram/BusinessInfo.h"
 
 #include "td/telegram/Dependencies.h"
+#include "td/telegram/Global.h"
 
 namespace td {
 
@@ -14,9 +15,11 @@ td_api::object_ptr<td_api::businessInfo> BusinessInfo::get_business_info_object(
   if (is_empty()) {
     return nullptr;
   }
+  auto unix_time = G()->unix_time();
   return td_api::make_object<td_api::businessInfo>(
       location_.get_business_location_object(), work_hours_.get_business_opening_hours_object(),
-      work_hours_.get_local_business_opening_hours_object(td),
+      work_hours_.get_local_business_opening_hours_object(td), work_hours_.get_next_open_close_in(td, unix_time, false),
+      work_hours_.get_next_open_close_in(td, unix_time, true),
       greeting_message_.get_business_greeting_message_settings_object(td),
       away_message_.get_business_away_message_settings_object(td), intro_.get_business_start_page_object(td));
 }

@@ -651,8 +651,8 @@ businessStartPage title:string message:string sticker:sticker = BusinessStartPag
 inputBusinessStartPage title:string message:string sticker:InputFile = InputBusinessStartPage;
 
 //@description Describes an interval of time when the business is open
-//@start_minute The first minute of the interval since start of the week; 0-7*24*60
-//@end_minute The first minute after the end of the interval since start of the week; 1-8*24*60
+//@start_minute The minute's sequence number in a week, starting on Monday, marking the start of the time interval during which the business is open; 0-7*24*60
+//@end_minute The minute's sequence number in a week, starting on Monday, marking the end of the time interval during which the business is open; 1-8*24*60
 businessOpeningHoursInterval start_minute:int32 end_minute:int32 = BusinessOpeningHoursInterval;
 
 //@description Describes opening hours of a business @time_zone_id Unique time zone identifier @opening_hours Intervals of the time when the business is open
@@ -661,11 +661,14 @@ businessOpeningHours time_zone_id:string opening_hours:vector<businessOpeningHou
 //@description Contains information about a Telegram Business account
 //@location Location of the business; may be null if none
 //@opening_hours Opening hours of the business; may be null if none. The hours are guaranteed to be valid and has already been split by week days
-//@local_opening_hours Opening hours of the business in the local time; may be null if none. The hours are guaranteed to be valid and has already been split by week days. Local time zone identifier will be empty
+//@local_opening_hours Opening hours of the business in the local time; may be null if none. The hours are guaranteed to be valid and has already been split by week days.
+//-Local time zone identifier will be empty. An updateUserFullInfo update is not triggered when value of this field changes
+//@next_open_in Time left before the business will open the next time, in seconds; 0 if unknown. An updateUserFullInfo update is not triggered when value of this field changes
+//@next_close_in Time left before the business will close the next time, in seconds; 0 if unknown. An updateUserFullInfo update is not triggered when value of this field changes
 //@greeting_message_settings The greeting message; may be null if none or the Business account is not of the current user
 //@away_message_settings The away message; may be null if none or the Business account is not of the current user
 //@start_page Information about start page of the account; may be null if none
-businessInfo location:businessLocation opening_hours:businessOpeningHours local_opening_hours:businessOpeningHours greeting_message_settings:businessGreetingMessageSettings away_message_settings:businessAwayMessageSettings start_page:businessStartPage = BusinessInfo;
+businessInfo location:businessLocation opening_hours:businessOpeningHours local_opening_hours:businessOpeningHours next_open_in:int32 next_close_in:int32 greeting_message_settings:businessGreetingMessageSettings away_message_settings:businessAwayMessageSettings start_page:businessStartPage = BusinessInfo;
 
 
 //@description Contains information about a business chat link
