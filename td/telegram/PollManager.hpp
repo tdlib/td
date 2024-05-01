@@ -135,7 +135,7 @@ void PollManager::Poll::parse(ParserT &parser) {
   if (is_quiz_) {
     parse(correct_option_id_, parser);
     if (correct_option_id_ < -1 || correct_option_id_ >= static_cast<int32>(options_.size())) {
-      parser.set_error("Wrong correct_option_id");
+      parser.set_error("Wrong quiz correct_option_id");
     }
   }
   if (has_recent_voter_user_ids) {
@@ -252,7 +252,7 @@ PollId PollManager::parse_poll(ParserT &parser) {
     if (is_quiz) {
       parse(correct_option_id, parser);
       if (correct_option_id < -1 || correct_option_id >= static_cast<int32>(options.size())) {
-        parser.set_error("Wrong correct_option_id");
+        parser.set_error("Wrong local quiz correct_option_id");
       }
     }
     if (has_open_period) {
