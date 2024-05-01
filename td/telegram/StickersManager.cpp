@@ -1463,7 +1463,7 @@ class GetEmojiGroupsQuery final : public Td::ResultHandler {
       case EmojiGroupType::ProfilePhoto:
         send_query(G()->net_query_creator().create(telegram_api::messages_getEmojiProfilePhotoGroups(hash)));
         break;
-      case EmojiGroupType::Combined:
+      case EmojiGroupType::RegularStickers:
         send_query(G()->net_query_creator().create(telegram_api::messages_getEmojiStickerGroups(hash)));
         break;
       default:

@@ -13,7 +13,7 @@
 
 namespace td {
 
-enum class EmojiGroupType : int32 { Default, EmojiStatus, ProfilePhoto, Combined };
+enum class EmojiGroupType : int32 { Default, EmojiStatus, ProfilePhoto, RegularStickers };
 
 static constexpr int32 MAX_EMOJI_GROUP_TYPE = 4;
 

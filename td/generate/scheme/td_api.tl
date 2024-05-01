@@ -3701,7 +3701,9 @@ trendingStickerSets total_count:int32 sets:vector<stickerSetInfo> is_premium:Boo
 
 //@class EmojiCategorySource @description Describes source of stickers for an emoji category
 
-//@description The category contains a list of similar emoji to search for in getStickers and searchStickers @emojis List of emojis for search for
+//@description The category contains a list of similar emoji to search for in getStickers and searchStickers for stickers,
+//-or getInlineQueryResults with the bot getOption("animation_search_bot_username") for animations
+//@emojis List of emojis for search for
 emojiCategorySourceSearch emojis:vector<string> = EmojiCategorySource;
 
 //@description The category contains Premium stickers that must be found by getPremiumStickers
@@ -3721,17 +3723,17 @@ emojiCategories categories:vector<emojiCategory> = EmojiCategories;
 
 //@class EmojiCategoryType @description Describes type of emoji category
 
-//@description The category must be used by default
+//@description The category must be used by default (e.g., for custom emoji or animation search)
 emojiCategoryTypeDefault = EmojiCategoryType;
+
+//@description The category must be used by default for regular sticker selection. It may contain greeting emoji category and Premium stickers
+emojiCategoryTypeRegularStickers = EmojiCategoryType;
 
 //@description The category must be used for emoji status selection
 emojiCategoryTypeEmojiStatus = EmojiCategoryType;
 
 //@description The category must be used for chat photo emoji selection
 emojiCategoryTypeChatPhoto = EmojiCategoryType;
-
-//@description The category containing greeting emoji and Premium stickers that must be used for start page sticker selection
-emojiCategoryTypeCombined = EmojiCategoryType;
 
 
 //@description Describes position of a clickable rectangle area on a story media
