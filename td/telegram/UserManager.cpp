@@ -5196,11 +5196,13 @@ void UserManager::on_set_birthdate(Birthdate birthdate, Promise<Unit> &&promise)
 
 void UserManager::set_personal_channel(DialogId dialog_id, Promise<Unit> &&promise) {
   ChannelId channel_id;
-  if (dialog_id != DialogId() && !td_->dialog_manager_->have_dialog_force(dialog_id, "set_personal_channel")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
-  if (dialog_id != DialogId() && dialog_id.get_type() != DialogType::Channel) {
-    return promise.set_error(Status::Error(400, "Chat can't be set as a personal chat"));
+  if (dialog_id != DialogId()) {
+    if (!td_->dialog_manager_->have_dialog_force(dialog_id, "set_personal_channel")) {
+      return promise.set_error(Status::Error(400, "Chat not found"));
+    }
+    if (!td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
+      return promise.set_error(Status::Error(400, "Chat can't be set as a personal chat"));
+    }
   }
   auto query_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), channel_id, promise = std::move(promise)](Result<Unit> result) mutable {
@@ -6910,8 +6912,10 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
     user_full->description_animation_file_id = description_animation_file_id;
     user_full->is_changed = true;
   }
-  if (personal_channel_id != ChannelId() && !personal_channel_id.is_valid()) {
-    LOG(ERROR) << "Receive personal " << personal_channel_id;
+  if (personal_channel_id != ChannelId() &&
+      td_->chat_manager_->get_channel_type(personal_channel_id) != ChannelType::Broadcast) {
+    LOG(ERROR) << "Receive personal " << personal_channel_id << " of the type "
+               << static_cast<uint8>(td_->chat_manager_->get_channel_type(personal_channel_id));
     personal_channel_id = ChannelId();
   }
   if (user_full->personal_channel_id != personal_channel_id) {
