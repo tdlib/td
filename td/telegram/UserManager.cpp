@@ -1665,37 +1665,43 @@ void UserManager::UserFull::store(StorerT &storer) const {
   bool has_business_info = business_info != nullptr && !business_info->is_empty();
   bool has_birthdate = !birthdate.is_empty();
   bool has_personal_channel_id = personal_channel_id.is_valid();
+  bool has_flags2 = true;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
   STORE_FLAG(is_blocked);
   STORE_FLAG(can_be_called);
   STORE_FLAG(has_private_calls);
   STORE_FLAG(can_pin_messages);
-  STORE_FLAG(need_phone_number_privacy_exception);  // 5
+  STORE_FLAG(need_phone_number_privacy_exception);
   STORE_FLAG(has_photo);
   STORE_FLAG(supports_video_calls);
   STORE_FLAG(has_description);
   STORE_FLAG(has_commands);
-  STORE_FLAG(has_private_forward_name);  // 10
+  STORE_FLAG(has_private_forward_name);
   STORE_FLAG(has_group_administrator_rights);
   STORE_FLAG(has_broadcast_administrator_rights);
   STORE_FLAG(has_menu_button);
   STORE_FLAG(has_description_photo);
-  STORE_FLAG(has_description_animation);  // 15
+  STORE_FLAG(has_description_animation);
   STORE_FLAG(has_premium_gift_options);
   STORE_FLAG(voice_messages_forbidden);
   STORE_FLAG(has_personal_photo);
   STORE_FLAG(has_fallback_photo);
-  STORE_FLAG(has_pinned_stories);  // 20
+  STORE_FLAG(has_pinned_stories);
   STORE_FLAG(is_blocked_for_stories);
   STORE_FLAG(wallpaper_overridden);
   STORE_FLAG(read_dates_private);
   STORE_FLAG(contact_require_premium);
-  STORE_FLAG(has_business_info);  // 25
+  STORE_FLAG(has_business_info);
   STORE_FLAG(has_birthdate);
   STORE_FLAG(has_personal_channel_id);
   STORE_FLAG(sponsored_enabled);
+  STORE_FLAG(has_flags2);
   END_STORE_FLAGS();
+  if (has_flags2) {
+    BEGIN_STORE_FLAGS();
+    END_STORE_FLAGS();
+  }
   if (has_about) {
     store(about, storer);
   }
@@ -1768,6 +1774,7 @@ void UserManager::UserFull::parse(ParserT &parser) {
   bool has_business_info;
   bool has_birthdate;
   bool has_personal_channel_id;
+  bool has_flags2;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_about);
   PARSE_FLAG(is_blocked);
@@ -1798,7 +1805,12 @@ void UserManager::UserFull::parse(ParserT &parser) {
   PARSE_FLAG(has_birthdate);
   PARSE_FLAG(has_personal_channel_id);
   PARSE_FLAG(sponsored_enabled);
+  PARSE_FLAG(has_flags2);
   END_PARSE_FLAGS();
+  if (has_flags2) {
+    BEGIN_PARSE_FLAGS();
+    END_PARSE_FLAGS();
+  }
   if (has_about) {
     parse(about, parser);
   }

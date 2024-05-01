@@ -1931,27 +1931,27 @@ void ChatManager::Channel::store(StorerT &storer) const {
   STORE_FLAG(false);
   STORE_FLAG(sign_messages);
   STORE_FLAG(false);
-  STORE_FLAG(false);  // 5
+  STORE_FLAG(false);
   STORE_FLAG(false);
   STORE_FLAG(is_megagroup);
   STORE_FLAG(is_verified);
   STORE_FLAG(has_photo);
-  STORE_FLAG(legacy_has_username);  // 10
+  STORE_FLAG(legacy_has_username);
   STORE_FLAG(false);
   STORE_FLAG(use_new_rights);
   STORE_FLAG(has_participant_count);
   STORE_FLAG(have_default_permissions);
-  STORE_FLAG(is_scam);  // 15
+  STORE_FLAG(is_scam);
   STORE_FLAG(has_cache_version);
   STORE_FLAG(has_linked_channel);
   STORE_FLAG(has_location);
   STORE_FLAG(is_slow_mode_enabled);
-  STORE_FLAG(has_restriction_reasons);  // 20
+  STORE_FLAG(has_restriction_reasons);
   STORE_FLAG(legacy_has_active_group_call);
   STORE_FLAG(is_fake);
   STORE_FLAG(is_gigagroup);
   STORE_FLAG(noforwards);
-  STORE_FLAG(can_be_deleted);  // 25
+  STORE_FLAG(can_be_deleted);
   STORE_FLAG(join_to_send);
   STORE_FLAG(join_request);
   STORE_FLAG(has_usernames);
@@ -2230,27 +2230,27 @@ void ChatManager::ChannelFull::store(StorerT &storer) const {
   STORE_FLAG(has_restricted_count);
   STORE_FLAG(has_banned_count);
   STORE_FLAG(legacy_has_invite_link);
-  STORE_FLAG(has_sticker_set);  // 5
+  STORE_FLAG(has_sticker_set);
   STORE_FLAG(has_linked_channel_id);
   STORE_FLAG(has_migrated_from_max_message_id);
   STORE_FLAG(has_migrated_from_chat_id);
   STORE_FLAG(can_get_participants);
-  STORE_FLAG(can_set_username);  // 10
+  STORE_FLAG(can_set_username);
   STORE_FLAG(can_set_sticker_set);
   STORE_FLAG(false);  // legacy_can_view_statistics
   STORE_FLAG(is_all_history_available);
   STORE_FLAG(can_set_location);
-  STORE_FLAG(has_location);  // 15
+  STORE_FLAG(has_location);
   STORE_FLAG(has_bot_user_ids);
   STORE_FLAG(is_slow_mode_enabled);
   STORE_FLAG(is_slow_mode_delay_active);
   STORE_FLAG(has_stats_dc_id);
-  STORE_FLAG(has_photo);  // 20
+  STORE_FLAG(has_photo);
   STORE_FLAG(is_can_view_statistics_inited);
   STORE_FLAG(can_view_statistics);
   STORE_FLAG(legacy_has_active_group_call_id);
   STORE_FLAG(has_invite_link);
-  STORE_FLAG(has_bot_commands);  // 25
+  STORE_FLAG(has_bot_commands);
   STORE_FLAG(can_be_deleted);
   STORE_FLAG(has_aggressive_anti_spam_enabled);
   STORE_FLAG(has_hidden_participants);
