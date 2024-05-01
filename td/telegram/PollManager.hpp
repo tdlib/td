@@ -218,7 +218,6 @@ PollId PollManager::parse_poll(ParserT &parser) {
   PollId poll_id(poll_id_int);
   if (is_local_poll_id(poll_id)) {
     FormattedText question;
-    vector<FormattedText> options;
     FormattedText explanation;
     int32 open_period = 0;
     int32 close_date = 0;
@@ -251,7 +250,7 @@ PollId PollManager::parse_poll(ParserT &parser) {
     parse(option_texts, parser);
     if (is_quiz) {
       parse(correct_option_id, parser);
-      if (correct_option_id < -1 || correct_option_id >= static_cast<int32>(options.size())) {
+      if (correct_option_id < -1 || correct_option_id >= static_cast<int32>(option_texts.size())) {
         parser.set_error("Wrong local quiz correct_option_id");
       }
     }
@@ -274,9 +273,11 @@ PollId PollManager::parse_poll(ParserT &parser) {
     } else {
       option_entities.resize(option_texts.size());
     }
+    vector<FormattedText> options;
     for (size_t i = 0; i < option_texts.size(); i++) {
       options.push_back({std::move(option_texts[i]), std::move(option_entities[i])});
     }
+
     if (parser.get_error() != nullptr) {
       return PollId();
     }
