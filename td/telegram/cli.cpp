@@ -1187,7 +1187,15 @@ class CliClient final : public Actor {
   }
 
   struct BackgroundType {
-    enum class Type : int32 { Null, Wallpaper, SolidPattern, GradientPattern, Fill, ChatTheme };
+    enum class Type : int32 {
+      Null,
+      Wallpaper,
+      SolidPattern,
+      GradientPattern,
+      FreeformGradientPattern,
+      Fill,
+      ChatTheme
+    };
     Type type = Type::Null;
     vector<int32> colors;
     string theme_name;
@@ -1202,6 +1210,8 @@ class CliClient final : public Actor {
           return as_solid_pattern_background(0xABCDef, 49, true);
         case Type::GradientPattern:
           return as_gradient_pattern_background(0xABCDEF, 0xFE, 51, rand_bool(), false);
+        case Type::FreeformGradientPattern:
+          return as_freeform_gradient_pattern_background({0xABCDEF, 0xFE, 0xFF0000}, 52, rand_bool(), rand_bool());
         case Type::Fill:
           if (colors.size() == 1) {
             return as_solid_background(colors[0]);
@@ -1230,6 +1240,8 @@ class CliClient final : public Actor {
       arg.type = BackgroundType::Type::SolidPattern;
     } else if (args == "gp") {
       arg.type = BackgroundType::Type::GradientPattern;
+    } else if (args == "fgp") {
+      arg.type = BackgroundType::Type::FreeformGradientPattern;
     } else if (args[0] == 't') {
       arg.type = BackgroundType::Type::ChatTheme;
       arg.theme_name = args.substr(1);
