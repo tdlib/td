@@ -54,6 +54,8 @@ class BackgroundFill {
 
   friend bool operator==(const BackgroundFill &lhs, const BackgroundFill &rhs);
 
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const BackgroundFill &fill);
+
   friend class BackgroundType;
 
   static Result<BackgroundFill> get_background_fill(Slice name);
@@ -62,6 +64,8 @@ class BackgroundFill {
 };
 
 bool operator==(const BackgroundFill &lhs, const BackgroundFill &rhs);
+
+StringBuilder &operator<<(StringBuilder &string_builder, const BackgroundFill &fill);
 
 class BackgroundType {
   enum class Type : int32 { Wallpaper, Pattern, Fill, ChatTheme };
