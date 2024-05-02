@@ -482,8 +482,8 @@ class MessagesManager final : public Actor {
 
   void edit_inline_message_live_location(const string &inline_message_id,
                                          tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
-                                         tl_object_ptr<td_api::location> &&input_location, int32 heading,
-                                         int32 proximity_alert_radius, Promise<Unit> &&promise);
+                                         tl_object_ptr<td_api::location> &&input_location, int32 live_period,
+                                         int32 heading, int32 proximity_alert_radius, Promise<Unit> &&promise);
 
   void edit_inline_message_media(const string &inline_message_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                  tl_object_ptr<td_api::InputMessageContent> &&input_message_content,
