@@ -3026,7 +3026,7 @@ messageExpiredVoiceNote = MessageContent;
 
 //@description A message with a location
 //@location The location description
-//@live_period Time relative to the message send date, for which the location can be updated, in seconds; if 2147483647, then location can be updated forever
+//@live_period Time relative to the message send date, for which the location can be updated, in seconds; if 0x7FFFFFFF, then location can be updated forever
 //@expires_in Left time for which the location can be updated, in seconds. updateMessageContent is not sent when this field changes
 //@heading For live locations, a direction in which the location moves, in degrees; 1-360. If 0 the direction is unknown
 //@proximity_alert_radius For live locations, a maximum distance to another chat member for proximity alerts, in meters (0-100000). 0 if the notification is disabled. Available only to the message sender
@@ -3466,7 +3466,7 @@ inputMessageVoiceNote voice_note:InputFile duration:int32 waveform:bytes caption
 
 //@description A message with a location
 //@location Location to be sent
-//@live_period Period for which the location can be updated, in seconds; must be between 60 and 86400 for a temporary live location, 2147483647 for permanent live location, and 0 otherwise
+//@live_period Period for which the location can be updated, in seconds; must be between 60 and 86400 for a temporary live location, 0x7FFFFFFF for permanent live location, and 0 otherwise
 //@heading For live locations, a direction in which the location moves, in degrees; 1-360. Pass 0 if unknown
 //@proximity_alert_radius For live locations, a maximum distance to another chat member for proximity alerts, in meters (0-100000). Pass 0 if the notification is disabled. Can't be enabled in channels and Saved Messages
 inputMessageLocation location:location live_period:int32 heading:int32 proximity_alert_radius:int32 = InputMessageContent;
