@@ -103,6 +103,9 @@ class Scheduler {
   template <class T>
   void destroy_on_scheduler(int32 sched_id, T &value);
 
+  template <class T>
+  void destroy_on_scheduler_unique_ptr(int32 sched_id, T &value);
+
   template <class... ArgsT>
   void destroy_on_scheduler(int32 sched_id, ArgsT &...values);
 

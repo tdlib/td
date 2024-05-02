@@ -6850,7 +6850,6 @@ void MessagesManager::add_postponed_channel_update(DialogId dialog_id, tl_object
 void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_ptr<telegram_api::Update> &&update,
                                                  int32 new_pts, int32 pts_count, Promise<Unit> &&promise,
                                                  const char *source, bool is_postponed_update) {
-  LOG(INFO) << "Receive from " << source << " pending " << to_string(update);
   CHECK(update != nullptr);
   if (dialog_id.get_type() != DialogType::Channel) {
     LOG(ERROR) << "Receive channel update in invalid " << dialog_id << " from " << source << ": "
@@ -6894,7 +6893,8 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
   }
   if (d == nullptr) {
     // if there is no dialog, it can be created by the update
-    LOG(INFO) << "Receive pending update from " << source << " about unknown " << dialog_id;
+    LOG(INFO) << "Receive from " << source << " pending update about unknown " << dialog_id << ": "
+              << to_string(update);
     if (running_get_channel_difference(dialog_id)) {
       add_postponed_channel_update(dialog_id, std::move(update), new_pts, pts_count, std::move(promise));
       return;
@@ -6931,11 +6931,13 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
 
       LOG_IF(WARNING, new_pts == old_pts && pts_count == 0 && !is_allowed_useless_update(update))
           << "Receive from " << source << " useless channel update " << oneline(to_string(update));
-      LOG(INFO) << "Skip already applied channel update";
+      LOG(INFO) << "Skip already applied channel update with PTS " << new_pts << " from " << source;
+      Scheduler::instance()->destroy_on_scheduler_unique_ptr(G()->get_gc_scheduler_id(), update);
       promise.set_value(Unit());
       return;
     }
 
+    LOG(INFO) << "Receive from " << source << " pending " << to_string(update);
     if (running_get_channel_difference(dialog_id)) {
       LOG(INFO) << "Postpone channel update, because getChannelDifference is run";
       add_postponed_channel_update(dialog_id, std::move(update), new_pts, pts_count, std::move(promise));
@@ -15360,7 +15362,8 @@ bool MessagesManager::load_dialog(DialogId dialog_id, int left_tries, Promise<Un
   }
 
   bool need_load = !have_dialog_force(dialog_id, "load_dialog");
-  if (!need_load && td_->auth_manager_->is_bot() && dialog_id.get_type() == DialogType::User && !td_->user_manager_->have_user(dialog_id.get_user_id())) {
+  if (!need_load && td_->auth_manager_->is_bot() && dialog_id.get_type() == DialogType::User &&
+      !td_->user_manager_->have_user(dialog_id.get_user_id())) {
     need_load = true;
   }
   if (need_load) {
