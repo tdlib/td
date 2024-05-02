@@ -1212,12 +1212,14 @@ class EditMessageLiveLocationRequest final : public RequestOnceActor {
   MessageFullId message_full_id_;
   tl_object_ptr<td_api::ReplyMarkup> reply_markup_;
   tl_object_ptr<td_api::location> location_;
+  int32 live_period_;
   int32 heading_;
   int32 proximity_alert_radius_;
 
   void do_run(Promise<Unit> &&promise) final {
     td_->messages_manager_->edit_message_live_location(message_full_id_, std::move(reply_markup_), std::move(location_),
-                                                       heading_, proximity_alert_radius_, std::move(promise));
+                                                       live_period_, heading_, proximity_alert_radius_,
+                                                       std::move(promise));
   }
 
   void do_send_result() final {
@@ -1227,11 +1229,13 @@ class EditMessageLiveLocationRequest final : public RequestOnceActor {
  public:
   EditMessageLiveLocationRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 message_id,
                                  tl_object_ptr<td_api::ReplyMarkup> reply_markup,
-                                 tl_object_ptr<td_api::location> location, int32 heading, int32 proximity_alert_radius)
+                                 tl_object_ptr<td_api::location> location, int32 live_period, int32 heading,
+                                 int32 proximity_alert_radius)
       : RequestOnceActor(std::move(td), request_id)
       , message_full_id_(DialogId(dialog_id), MessageId(message_id))
       , reply_markup_(std::move(reply_markup))
       , location_(std::move(location))
+      , live_period_(live_period)
       , heading_(heading)
       , proximity_alert_radius_(proximity_alert_radius) {
   }
@@ -5776,7 +5780,7 @@ void Td::on_request(uint64 id, td_api::editMessageText &request) {
 
 void Td::on_request(uint64 id, td_api::editMessageLiveLocation &request) {
   CREATE_REQUEST(EditMessageLiveLocationRequest, request.chat_id_, request.message_id_,
-                 std::move(request.reply_markup_), std::move(request.location_), request.heading_,
+                 std::move(request.reply_markup_), std::move(request.location_), request.live_period_, request.heading_,
                  request.proximity_alert_radius_);
 }
 
