@@ -2299,7 +2299,7 @@ class CliClient final : public Actor {
   }
 
   static td_api::object_ptr<td_api::BackgroundFill> as_background_fill(int32 top_color, int32 bottom_color) {
-    return td_api::make_object<td_api::backgroundFillGradient>(top_color, bottom_color, Random::fast(0, 7) * 45);
+    return td_api::make_object<td_api::backgroundFillGradient>(top_color, bottom_color, Random::fast(1, 7) * 45);
   }
 
   static td_api::object_ptr<td_api::BackgroundFill> as_background_fill(vector<int32> colors) {

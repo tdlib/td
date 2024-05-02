@@ -89,6 +89,9 @@ BackgroundFill::BackgroundFill(const telegram_api::wallPaperSettings *settings) 
   } else {
     bottom_color_ = top_color_;
   }
+  if (get_type() != Type::Gradient) {
+    rotation_angle_ = 0;
+  }
 }
 
 Result<BackgroundFill> BackgroundFill::get_background_fill(const td_api::BackgroundFill *fill) {
