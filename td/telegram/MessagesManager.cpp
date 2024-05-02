@@ -15359,7 +15359,11 @@ bool MessagesManager::load_dialog(DialogId dialog_id, int left_tries, Promise<Un
     return false;
   }
 
-  if (!have_dialog_force(dialog_id, "load_dialog")) {  // TODO remove _force
+  bool need_load = !have_dialog_force(dialog_id, "load_dialog");
+  if (!need_load && td_->auth_manager_->is_bot() && dialog_id.get_type() == DialogType::User && !td_->user_manager_->have_user(dialog_id.get_user_id())) {
+    need_load = true;
+  }
+  if (need_load) {
     if (G()->use_message_database()) {
       //      TODO load dialog from database, DialogLoader
       //      send_closure_later(actor_id(this), &MessagesManager::load_dialog_from_database, dialog_id,
