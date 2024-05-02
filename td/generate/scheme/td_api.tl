@@ -443,10 +443,10 @@ video duration:int32 width:int32 height:int32 file_name:string mime_type:string 
 //@video File containing the video
 videoNote duration:int32 waveform:bytes length:int32 minithumbnail:minithumbnail thumbnail:thumbnail speech_recognition_result:SpeechRecognitionResult video:file = VideoNote;
 
-//@description Describes a voice note. The voice note must be encoded with the Opus codec, and stored inside an OGG container. Voice notes can have only a single audio channel
+//@description Describes a voice note
 //@duration Duration of the voice note, in seconds; as defined by the sender
 //@waveform A waveform representation of the voice note in 5-bit format
-//@mime_type MIME type of the file; as defined by the sender
+//@mime_type MIME type of the file; as defined by the sender. Usually, one of "audio/ogg" for Opus in an OGG container, "audio/mpeg" for an MP3 audio, or "audio/mp4" for an M4A audio
 //@speech_recognition_result Result of speech recognition in the voice note; may be null
 //@voice File containing the voice note
 voiceNote duration:int32 waveform:bytes mime_type:string speech_recognition_result:SpeechRecognitionResult voice:file = VoiceNote;
@@ -3457,7 +3457,7 @@ inputMessageVideo video:InputFile thumbnail:inputThumbnail added_sticker_file_id
 inputMessageVideoNote video_note:InputFile thumbnail:inputThumbnail duration:int32 length:int32 self_destruct_type:MessageSelfDestructType = InputMessageContent;
 
 //@description A voice note message
-//@voice_note Voice note to be sent
+//@voice_note Voice note to be sent. The voice note must be encoded with the Opus codec and stored inside an OGG container with a single audio channel, or be in MP3 or M4A format as regular audio
 //@duration Duration of the voice note, in seconds
 //@waveform Waveform representation of the voice note in 5-bit format
 //@caption Voice note caption; may be null if empty; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
