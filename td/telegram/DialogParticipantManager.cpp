@@ -2314,13 +2314,18 @@ void DialogParticipantManager::add_channel_participant(
     auto &queries = join_channel_queries_[channel_id];
     queries.push_back(std::move(promise));
     if (queries.size() == 1u) {
+      auto new_status = my_status;
+      bool was_speculatively_updated = false;
       if (!td_->chat_manager_->get_channel_join_request(channel_id)) {
-        auto new_status = my_status;
         new_status.set_is_member(true);
+        was_speculatively_updated = true;
         speculative_add_channel_user(channel_id, user_id, new_status, my_status);
       }
-      auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), channel_id](Result<Unit> result) {
-        send_closure(actor_id, &DialogParticipantManager::on_join_channel, channel_id, std::move(result));
+      auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), channel_id, was_speculatively_updated,
+                                                   old_status = std::move(my_status),
+                                                   new_status = std::move(new_status)](Result<Unit> result) mutable {
+        send_closure(actor_id, &DialogParticipantManager::on_join_channel, channel_id, was_speculatively_updated,
+                     std::move(old_status), std::move(new_status), std::move(result));
       });
       td_->create_handler<JoinChannelQuery>(std::move(query_promise))->send(channel_id);
     }
@@ -2337,7 +2342,9 @@ void DialogParticipantManager::add_channel_participant(
   td_->create_handler<InviteToChannelQuery>(std::move(promise))->send(channel_id, {user_id}, std::move(input_users));
 }
 
-void DialogParticipantManager::on_join_channel(ChannelId channel_id, Result<Unit> &&result) {
+void DialogParticipantManager::on_join_channel(ChannelId channel_id, bool was_speculatively_updated,
+                                               DialogParticipantStatus &&old_status,
+                                               DialogParticipantStatus &&new_status, Result<Unit> &&result) {
   G()->ignore_result_if_closing(result);
 
   auto it = join_channel_queries_.find(channel_id);
@@ -2351,6 +2358,9 @@ void DialogParticipantManager::on_join_channel(ChannelId channel_id, Result<Unit
       promise.set_value(MissingInvitees().get_failed_to_add_members_object(td_->user_manager_.get()));
     }
   } else {
+    if (was_speculatively_updated) {
+      speculative_add_channel_user(channel_id, td_->user_manager_->get_my_id(), old_status, new_status);
+    }
     fail_promises(promises, result.move_as_error());
   }
 }
