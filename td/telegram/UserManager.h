@@ -1101,6 +1101,7 @@ class UserManager final : public Actor {
     vector<std::pair<UserId, Birthdate>> users_;
     double next_sync_time_ = 0.0;
     bool is_being_synced_ = false;
+    bool need_drop_ = false;
   };
   ContactBirthdates contact_birthdates_;
 

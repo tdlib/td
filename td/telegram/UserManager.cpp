@@ -6541,9 +6541,12 @@ std::pair<int32, vector<UserId>> UserManager::search_contacts(const string &quer
 
 void UserManager::reload_contact_birthdates(bool force) {
   if (td_->option_manager_->get_option_boolean("dismiss_birthday_contact_today")) {
-    contact_birthdates_.is_being_synced_ = true;
-    return on_get_contact_birthdates(
-        telegram_api::make_object<telegram_api::contacts_contactBirthdays>(Auto(), Auto()));
+    contact_birthdates_.need_drop_ = true;
+    if (!contact_birthdates_.is_being_synced_) {
+      contact_birthdates_.is_being_synced_ = true;
+      on_get_contact_birthdates(nullptr);
+    }
+    return;
   }
   if (!G()->close_flag() && !td_->auth_manager_->is_bot() && !contact_birthdates_.is_being_synced_ &&
       (contact_birthdates_.next_sync_time_ < Time::now() || force)) {
@@ -6556,6 +6559,10 @@ void UserManager::on_get_contact_birthdates(
     telegram_api::object_ptr<telegram_api::contacts_contactBirthdays> &&birthdays) {
   CHECK(contact_birthdates_.is_being_synced_);
   contact_birthdates_.is_being_synced_ = false;
+  if (contact_birthdates_.need_drop_) {
+    birthdays = telegram_api::make_object<telegram_api::contacts_contactBirthdays>(Auto(), Auto());
+    contact_birthdates_.need_drop_ = false;
+  }
   if (birthdays == nullptr) {
     contact_birthdates_.next_sync_time_ = Time::now() + Random::fast(120, 180);
     return;
