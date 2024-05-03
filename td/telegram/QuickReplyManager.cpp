@@ -2673,7 +2673,7 @@ Result<td_api::object_ptr<td_api::quickReplyMessages>> QuickReplyManager::resend
     save_quick_reply_shortcuts();
   }
 
-  return result;
+  return std::move(result);
 }
 
 void QuickReplyManager::edit_quick_reply_message(
