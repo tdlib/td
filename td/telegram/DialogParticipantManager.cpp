@@ -718,6 +718,7 @@ class LeaveChannelQuery final : public Td::ResultHandler {
       return td_->chat_manager_->reload_channel(channel_id_, std::move(promise_), "LeaveChannelQuery");
     }
     td_->chat_manager_->on_get_channel_error(channel_id_, status, "LeaveChannelQuery");
+    td_->chat_manager_->reload_channel_full(channel_id_, Promise<Unit>(), "LeaveChannelQuery");
     promise_.set_error(std::move(status));
   }
 };
