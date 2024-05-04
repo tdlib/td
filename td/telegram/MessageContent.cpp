@@ -2472,7 +2472,7 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
     case telegram_api::botInlineMessageText::ID: {
       auto inline_message = move_tl_object_as<telegram_api::botInlineMessageText>(bot_inline_message);
       auto text = get_formatted_text(td->user_manager_.get(), std::move(inline_message->message_),
-                                     std::move(inline_message->entities_), false, false, false, "botInlineMessageText");
+                                     std::move(inline_message->entities_), false, false, "botInlineMessageText");
       result.disable_web_page_preview = inline_message->no_webpage_;
       result.invert_media = inline_message->invert_media_;
       WebPageId web_page_id;
@@ -2490,9 +2490,9 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
       if (inline_message->manual_) {
         web_page_url = std::move(inline_message->url_);
       }
-      auto text = get_formatted_text(td->user_manager_.get(), std::move(inline_message->message_),
-                                     std::move(inline_message->entities_), !web_page_url.empty(), false, false,
-                                     "botInlineMessageMediaWebPage");
+      auto text =
+          get_formatted_text(td->user_manager_.get(), std::move(inline_message->message_),
+                             std::move(inline_message->entities_), false, false, "botInlineMessageMediaWebPage");
       auto web_page_id =
           td->web_pages_manager_->get_web_page_by_url(web_page_url.empty() ? get_first_url(text).str() : web_page_url);
       result.message_content = td::make_unique<MessageText>(

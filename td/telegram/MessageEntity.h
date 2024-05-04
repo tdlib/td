@@ -217,11 +217,11 @@ telegram_api::object_ptr<telegram_api::textWithEntities> get_input_text_with_ent
 
 FormattedText get_formatted_text(const UserManager *user_manager, string &&text,
                                  vector<telegram_api::object_ptr<telegram_api::MessageEntity>> &&server_entities,
-                                 bool allow_empty, bool skip_media_timestamps, bool skip_trim, const char *source);
+                                 bool skip_media_timestamps, bool skip_trim, const char *source);
 
 FormattedText get_formatted_text(const UserManager *user_manager,
                                  telegram_api::object_ptr<telegram_api::textWithEntities> text_with_entities,
-                                 bool allow_empty, bool skip_media_timestamps, bool skip_trim, const char *source);
+                                 bool skip_media_timestamps, bool skip_trim, const char *source);
 
 void fix_entities(vector<MessageEntity> &entities);
 

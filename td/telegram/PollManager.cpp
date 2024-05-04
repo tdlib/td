@@ -1575,7 +1575,7 @@ vector<PollManager::PollOption> PollManager::get_poll_options(
     vector<telegram_api::object_ptr<telegram_api::pollAnswer>> &&poll_options) {
   return transform(std::move(poll_options), [](telegram_api::object_ptr<telegram_api::pollAnswer> &&poll_option) {
     PollOption option;
-    option.text_ = get_formatted_text(nullptr, std::move(poll_option->text_), false, true, true, "get_poll_options");
+    option.text_ = get_formatted_text(nullptr, std::move(poll_option->text_), true, true, "get_poll_options");
     remove_unallowed_entities(option.text_);
     option.data_ = poll_option->option_.as_slice().str();
     return option;
@@ -1686,7 +1686,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
       }
       is_changed = true;
     }
-    auto question = get_formatted_text(nullptr, std::move(poll_server->question_), false, true, true, "on_get_poll");
+    auto question = get_formatted_text(nullptr, std::move(poll_server->question_), true, true, "on_get_poll");
     remove_unallowed_entities(question);
     if (poll->question_ != question) {
       poll->question_ = std::move(question);
@@ -1833,7 +1833,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
   }
 
   auto explanation = get_formatted_text(td_->user_manager_.get(), std::move(poll_results->solution_),
-                                        std::move(poll_results->solution_entities_), true, true, false, source);
+                                        std::move(poll_results->solution_entities_), true, false, source);
   if (poll->is_quiz_) {
     if (poll->correct_option_id_ != correct_option_id) {
       if (correct_option_id == -1 && poll->correct_option_id_ != -1) {

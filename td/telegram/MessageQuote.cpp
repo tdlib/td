@@ -28,9 +28,8 @@ MessageQuote::MessageQuote(Td *td,
   if (input_reply_to_message->quote_text_.empty()) {
     return;
   }
-  text_ =
-      get_formatted_text(td->user_manager_.get(), std::move(input_reply_to_message->quote_text_),
-                         std::move(input_reply_to_message->quote_entities_), true, true, false, "inputReplyToMessage");
+  text_ = get_formatted_text(td->user_manager_.get(), std::move(input_reply_to_message->quote_text_),
+                             std::move(input_reply_to_message->quote_entities_), true, false, "inputReplyToMessage");
   remove_unallowed_quote_entities(text_);
   position_ = max(0, input_reply_to_message->quote_offset_);
 }
@@ -41,7 +40,7 @@ MessageQuote::MessageQuote(Td *td, telegram_api::object_ptr<telegram_api::messag
     return;
   }
   text_ = get_formatted_text(td->user_manager_.get(), std::move(reply_header->quote_text_),
-                             std::move(reply_header->quote_entities_), true, true, false, "messageReplyHeader");
+                             std::move(reply_header->quote_entities_), true, false, "messageReplyHeader");
   remove_unallowed_quote_entities(text_);
   position_ = max(0, reply_header->quote_offset_);
   is_manual_ = reply_header->quote_;

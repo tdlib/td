@@ -409,7 +409,7 @@ DraftMessage::DraftMessage(Td *td, telegram_api::object_ptr<telegram_api::draftM
   date_ = draft_message->date_;
   message_input_reply_to_ = MessageInputReplyTo(td, std::move(draft_message->reply_to_));
   auto draft_text = get_formatted_text(td->user_manager_.get(), std::move(draft_message->message_),
-                                       std::move(draft_message->entities_), true, true, true, "DraftMessage");
+                                       std::move(draft_message->entities_), true, true, "DraftMessage");
   string web_page_url;
   bool force_small_media = false;
   bool force_large_media = false;
