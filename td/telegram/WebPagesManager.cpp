@@ -879,6 +879,8 @@ void WebPagesManager::unregister_web_page(WebPageId web_page_id, MessageFullId m
     web_page_messages_.erase(web_page_id);
     if (pending_get_web_pages_.count(web_page_id) == 0) {
       pending_web_pages_timeout_.cancel_timeout(web_page_id.get());
+    } else {
+      LOG(INFO) << "Still waiting for " << web_page_id;
     }
   }
 }
@@ -1573,6 +1575,7 @@ void WebPagesManager::on_pending_web_page_timeout(WebPageId web_page_id) {
     return;
   }
 
+  LOG(INFO) << "Process timeout for " << web_page_id;
   int32 count = 0;
   auto it = web_page_messages_.find(web_page_id);
   if (it != web_page_messages_.end()) {
@@ -1598,7 +1601,7 @@ void WebPagesManager::on_pending_web_page_timeout(WebPageId web_page_id) {
     }
   }
   if (count == 0) {
-    LOG(WARNING) << "Have no messages and requests waiting for " << web_page_id;
+    LOG(INFO) << "Have no messages and requests waiting for " << web_page_id;
   }
 }
 
