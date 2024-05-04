@@ -3937,7 +3937,8 @@ FormattedText get_formatted_text(const UserManager *user_manager, string &&text,
   auto entities = get_message_entities(user_manager, std::move(server_entities), source);
   auto status = fix_formatted_text(text, entities, allow_empty, true, true, skip_media_timestamps, skip_trim);
   if (status.is_error()) {
-    LOG(ERROR) << "Receive error " << status << " from " << source << " while parsing " << text;
+    LOG(ERROR) << "Receive error " << status << " from " << source << " while parsing \"" << text << "\"("
+               << hex_encode(text) << ')';
     if (!clean_input_string(text)) {
       text.clear();
     }
