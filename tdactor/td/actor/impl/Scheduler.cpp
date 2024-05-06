@@ -310,12 +310,23 @@ void Scheduler::get_actor_sched_id_to_send_immediately(const ActorInfo *actor_in
   can_send_immediately = on_current_sched && !actor_info->is_running() && actor_info->mailbox_.empty();
 }
 
-void Scheduler::get_actor_sched_id_to_send_later(const ActorInfo *actor_info, int32 &actor_sched_id,
-                                                 bool &on_current_sched) {
+void Scheduler::send_later_impl(const ActorId<> &actor_id, Event &&event) {
+  ActorInfo *actor_info = actor_id.get_actor_info();
+  if (unlikely(actor_info == nullptr || close_flag_)) {
+    return;
+  }
+
+  int32 actor_sched_id;
   bool is_migrating;
   std::tie(actor_sched_id, is_migrating) = actor_info->migrate_dest_flag_atomic();
-  on_current_sched = !is_migrating && sched_id_ == actor_sched_id;
+  bool on_current_sched = !is_migrating && sched_id_ == actor_sched_id;
   CHECK(has_guard_ || !on_current_sched);
+
+  if (on_current_sched) {
+    add_to_mailbox(actor_info, std::move(event));
+  } else {
+    send_to_scheduler(actor_sched_id, actor_id, std::move(event));
+  }
 }
 
 void Scheduler::register_migrated_actor(ActorInfo *actor_info) {

@@ -203,24 +203,6 @@ void Scheduler::send_immediately_impl(const ActorId<> &actor_id, const RunFuncT 
   }
 }
 
-template <class EventFuncT>
-void Scheduler::send_later_impl(const ActorId<> &actor_id, const EventFuncT &event_func) {
-  ActorInfo *actor_info = actor_id.get_actor_info();
-  if (unlikely(actor_info == nullptr || close_flag_)) {
-    return;
-  }
-
-  int32 actor_sched_id;
-  bool on_current_sched;
-  get_actor_sched_id_to_send_later(actor_info, actor_sched_id, on_current_sched);
-
-  if (on_current_sched) {
-    add_to_mailbox(actor_info, event_func());
-  } else {
-    send_to_scheduler(actor_sched_id, actor_id, event_func());
-  }
-}
-
 template <class EventT>
 void Scheduler::send_lambda_immediately(ActorRef actor_ref, EventT &&func) {
   return send_immediately_impl(
@@ -238,11 +220,9 @@ void Scheduler::send_lambda_immediately(ActorRef actor_ref, EventT &&func) {
 
 template <class EventT>
 void Scheduler::send_lambda_later(ActorRef actor_ref, EventT &&func) {
-  return send_later_impl(actor_ref.get(), [&] {
-    auto event = Event::from_lambda(std::forward<EventT>(func));
-    event.set_link_token(actor_ref.token());
-    return event;
-  });
+  auto event = Event::from_lambda(std::forward<EventT>(func));
+  event.set_link_token(actor_ref.token());
+  return send_later_impl(actor_ref.get(), std::move(event));
 }
 
 template <class EventT>
@@ -262,11 +242,9 @@ void Scheduler::send_closure_immediately(ActorRef actor_ref, EventT &&closure) {
 
 template <class EventT>
 void Scheduler::send_closure_later(ActorRef actor_ref, EventT &&closure) {
-  return send_later_impl(actor_ref.get(), [&] {
-    auto event = Event::immediate_closure(std::forward<EventT>(closure));
-    event.set_link_token(actor_ref.token());
-    return event;
-  });
+  auto event = Event::immediate_closure(std::forward<EventT>(closure));
+  event.set_link_token(actor_ref.token());
+  return send_later_impl(actor_ref.get(), std::move(event));
 }
 
 inline void Scheduler::send_immediately(ActorRef actor_ref, Event &&event) {
@@ -278,7 +256,7 @@ inline void Scheduler::send_immediately(ActorRef actor_ref, Event &&event) {
 
 inline void Scheduler::send_later(ActorRef actor_ref, Event &&event) {
   event.set_link_token(actor_ref.token());
-  return send_later_impl(actor_ref.get(), [&] { return std::move(event); });
+  return send_later_impl(actor_ref.get(), std::move(event));
 }
 
 inline void Scheduler::subscribe(PollableFd fd, PollFlags flags) {

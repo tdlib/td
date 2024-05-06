@@ -207,13 +207,10 @@ class Scheduler {
   void get_actor_sched_id_to_send_immediately(const ActorInfo *actor_info, int32 &actor_sched_id,
                                               bool &on_current_sched, bool &can_send_immediately);
 
-  void get_actor_sched_id_to_send_later(const ActorInfo *actor_info, int32 &actor_sched_id, bool &on_current_sched);
-
   template <class RunFuncT, class EventFuncT>
   void send_immediately_impl(const ActorId<> &actor_id, const RunFuncT &run_func, const EventFuncT &event_func);
 
-  template <class EventFuncT>
-  void send_later_impl(const ActorId<> &actor_id, const EventFuncT &event_func);
+  void send_later_impl(const ActorId<> &actor_id, Event &&event);
 
   Timestamp run_timeout();
   void run_mailbox();
