@@ -108,12 +108,12 @@ ActorOwn<ActorT> Scheduler::register_actor_impl(Slice name, ActorT *actor_ptr, A
 
   ActorId<ActorT> actor_id = weak_info->actor_id(actor_ptr);
   if (sched_id != sched_id_) {
-    send<ActorSendType::Later>(actor_id, Event::start());
+    send_later(actor_id, Event::start());
     do_migrate_actor(actor_info, sched_id);
   } else {
     pending_actors_list_.put(weak_info->get_list_node());
     if (ActorTraits<ActorT>::need_start_up) {
-      send<ActorSendType::Later>(actor_id, Event::start());
+      send_later(actor_id, Event::start());
     }
   }
 
@@ -178,8 +178,9 @@ inline void Scheduler::before_tail_send(const ActorId<> &actor_id) {
   // TODO
 }
 
-template <ActorSendType send_type, class RunFuncT, class EventFuncT>
-void Scheduler::send_impl(const ActorId<> &actor_id, const RunFuncT &run_func, const EventFuncT &event_func) {
+template <class RunFuncT, class EventFuncT>
+void Scheduler::send_immediately_impl(const ActorId<> &actor_id, const RunFuncT &run_func,
+                                      const EventFuncT &event_func) {
   ActorInfo *actor_info = actor_id.get_actor_info();
   if (unlikely(actor_info == nullptr || close_flag_)) {
     return;
@@ -188,9 +189,9 @@ void Scheduler::send_impl(const ActorId<> &actor_id, const RunFuncT &run_func, c
   int32 actor_sched_id;
   bool on_current_sched;
   bool can_send_immediately;
-  get_actor_sched_id(actor_info, actor_sched_id, on_current_sched, can_send_immediately);
+  get_actor_sched_id_to_send_immediately(actor_info, actor_sched_id, on_current_sched, can_send_immediately);
 
-  if (likely(send_type == ActorSendType::Immediate && can_send_immediately)) {  // run immediately
+  if (likely(can_send_immediately)) {  // run immediately
     EventGuard guard(this, actor_info);
     run_func(actor_info);
   } else {
@@ -202,9 +203,27 @@ void Scheduler::send_impl(const ActorId<> &actor_id, const RunFuncT &run_func, c
   }
 }
 
-template <ActorSendType send_type, class EventT>
-void Scheduler::send_lambda(ActorRef actor_ref, EventT &&func) {
-  return send_impl<send_type>(
+template <class EventFuncT>
+void Scheduler::send_later_impl(const ActorId<> &actor_id, const EventFuncT &event_func) {
+  ActorInfo *actor_info = actor_id.get_actor_info();
+  if (unlikely(actor_info == nullptr || close_flag_)) {
+    return;
+  }
+
+  int32 actor_sched_id;
+  bool on_current_sched;
+  get_actor_sched_id_to_send_later(actor_info, actor_sched_id, on_current_sched);
+
+  if (on_current_sched) {
+    add_to_mailbox(actor_info, event_func());
+  } else {
+    send_to_scheduler(actor_sched_id, actor_id, event_func());
+  }
+}
+
+template <class EventT>
+void Scheduler::send_lambda_immediately(ActorRef actor_ref, EventT &&func) {
+  return send_immediately_impl(
       actor_ref.get(),
       [&](ActorInfo *actor_info) {
         event_context_ptr_->link_token = actor_ref.token();
@@ -217,9 +236,18 @@ void Scheduler::send_lambda(ActorRef actor_ref, EventT &&func) {
       });
 }
 
-template <ActorSendType send_type, class EventT>
-void Scheduler::send_closure(ActorRef actor_ref, EventT &&closure) {
-  return send_impl<send_type>(
+template <class EventT>
+void Scheduler::send_lambda_later(ActorRef actor_ref, EventT &&func) {
+  return send_later_impl(actor_ref.get(), [&] {
+    auto event = Event::from_lambda(std::forward<EventT>(func));
+    event.set_link_token(actor_ref.token());
+    return event;
+  });
+}
+
+template <class EventT>
+void Scheduler::send_closure_immediately(ActorRef actor_ref, EventT &&closure) {
+  return send_immediately_impl(
       actor_ref.get(),
       [&](ActorInfo *actor_info) {
         event_context_ptr_->link_token = actor_ref.token();
@@ -232,12 +260,25 @@ void Scheduler::send_closure(ActorRef actor_ref, EventT &&closure) {
       });
 }
 
-template <ActorSendType send_type>
-void Scheduler::send(ActorRef actor_ref, Event &&event) {
+template <class EventT>
+void Scheduler::send_closure_later(ActorRef actor_ref, EventT &&closure) {
+  return send_later_impl(actor_ref.get(), [&] {
+    auto event = Event::immediate_closure(std::forward<EventT>(closure));
+    event.set_link_token(actor_ref.token());
+    return event;
+  });
+}
+
+inline void Scheduler::send_immediately(ActorRef actor_ref, Event &&event) {
   event.set_link_token(actor_ref.token());
-  return send_impl<send_type>(
+  return send_immediately_impl(
       actor_ref.get(), [&](ActorInfo *actor_info) { do_event(actor_info, std::move(event)); },
       [&] { return std::move(event); });
+}
+
+inline void Scheduler::send_later(ActorRef actor_ref, Event &&event) {
+  event.set_link_token(actor_ref.token());
+  return send_later_impl(actor_ref.get(), [&] { return std::move(event); });
 }
 
 inline void Scheduler::subscribe(PollableFd fd, PollFlags flags) {
@@ -256,7 +297,7 @@ inline void Scheduler::yield_actor(Actor *actor) {
   yield_actor(actor->get_info());
 }
 inline void Scheduler::yield_actor(ActorInfo *actor_info) {
-  send<ActorSendType::Later>(actor_info->actor_id(), Event::yield());
+  send_later(actor_info->actor_id(), Event::yield());
 }
 
 inline void Scheduler::stop_actor(Actor *actor) {

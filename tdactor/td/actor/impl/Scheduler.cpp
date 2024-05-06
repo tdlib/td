@@ -301,13 +301,21 @@ void Scheduler::do_event(ActorInfo *actor_info, Event &&event) {
   // can't clear event here. It may be already destroyed during destroy_actor
 }
 
-void Scheduler::get_actor_sched_id(const ActorInfo *actor_info, int32 &actor_sched_id, bool &on_current_sched,
-                                   bool &can_send_immediately) {
+void Scheduler::get_actor_sched_id_to_send_immediately(const ActorInfo *actor_info, int32 &actor_sched_id,
+                                                       bool &on_current_sched, bool &can_send_immediately) {
   bool is_migrating;
   std::tie(actor_sched_id, is_migrating) = actor_info->migrate_dest_flag_atomic();
   on_current_sched = !is_migrating && sched_id_ == actor_sched_id;
   CHECK(has_guard_ || !on_current_sched);
   can_send_immediately = on_current_sched && !actor_info->is_running() && actor_info->mailbox_.empty();
+}
+
+void Scheduler::get_actor_sched_id_to_send_later(const ActorInfo *actor_info, int32 &actor_sched_id,
+                                                 bool &on_current_sched) {
+  bool is_migrating;
+  std::tie(actor_sched_id, is_migrating) = actor_info->migrate_dest_flag_atomic();
+  on_current_sched = !is_migrating && sched_id_ == actor_sched_id;
+  CHECK(has_guard_ || !on_current_sched);
 }
 
 void Scheduler::register_migrated_actor(ActorInfo *actor_info) {
@@ -549,7 +557,7 @@ Timestamp Scheduler::run_timeout() {
   while (!timeout_queue_.empty() && timeout_queue_.top_key() < now) {
     HeapNode *node = timeout_queue_.pop();
     ActorInfo *actor_info = ActorInfo::from_heap_node(node);
-    send<ActorSendType::Immediate>(actor_info->actor_id(), Event::timeout());
+    send_immediately(actor_info->actor_id(), Event::timeout());
   }
   return get_timeout();
 }
