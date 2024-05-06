@@ -46,7 +46,8 @@ Result<telegram_api::auth_resendCode> SendCodeHelper::resend_code() const {
   if (next_code_info_.type == AuthenticationCodeInfo::Type::None) {
     return Status::Error(400, "Authentication code can't be resend");
   }
-  return telegram_api::auth_resendCode(phone_number_, phone_code_hash_);
+  int32 flags = 0;
+  return telegram_api::auth_resendCode(flags, phone_number_, phone_code_hash_, string());
 }
 
 telegram_api::object_ptr<telegram_api::codeSettings> SendCodeHelper::get_input_code_settings(const Settings &settings) {
@@ -107,6 +108,7 @@ telegram_api::auth_sendCode SendCodeHelper::send_code(string phone_number, const
 
 telegram_api::auth_requestFirebaseSms SendCodeHelper::request_firebase_sms(const string &token) {
   string safety_net_token;
+  string play_integrity_token;
   string ios_push_secret;
   int32 flags = 0;
 #if TD_ANDROID
@@ -117,7 +119,7 @@ telegram_api::auth_requestFirebaseSms SendCodeHelper::request_firebase_sms(const
   ios_push_secret = token;
 #endif
   return telegram_api::auth_requestFirebaseSms(flags, phone_number_, phone_code_hash_, safety_net_token,
-                                               ios_push_secret);
+                                               play_integrity_token, ios_push_secret);
 }
 
 telegram_api::auth_reportMissingCode SendCodeHelper::report_missing_code(const string &mobile_network_code) {

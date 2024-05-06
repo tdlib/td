@@ -338,6 +338,9 @@ tl_object_ptr<telegram_api::inputMediaInvoice> InputInvoice::get_input_media_inv
       return nullptr;
     }
   }
+  if (!provider_token_.empty()) {
+    flags |= telegram_api::inputMediaInvoice::PROVIDER_MASK;
+  }
 
   return make_tl_object<telegram_api::inputMediaInvoice>(
       flags, title_, description_, std::move(input_web_document), invoice_.get_input_invoice(), BufferSlice(payload_),

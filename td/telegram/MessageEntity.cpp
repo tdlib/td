@@ -3481,7 +3481,7 @@ vector<tl_object_ptr<secret_api::MessageEntity>> get_input_secret_message_entiti
         break;
       case MessageEntity::Type::BlockQuote:
         if (layer >= static_cast<int32>(SecretChatLayer::NewEntities)) {
-          // result.push_back(make_tl_object<secret_api::messageEntityBlockquote>(entity.offset, entity.length));
+          // result.push_back(make_tl_object<secret_api::messageEntityBlockquote>(0, false /*ignored*/, entity.offset, entity.length));
         }
         break;
       case MessageEntity::Type::Code:
@@ -4622,7 +4622,8 @@ vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(co
     user_entity_count++;
     switch (entity.type) {
       case MessageEntity::Type::BlockQuote:
-        result.push_back(make_tl_object<telegram_api::messageEntityBlockquote>(entity.offset, entity.length));
+        result.push_back(
+            make_tl_object<telegram_api::messageEntityBlockquote>(0, false /*ignored*/, entity.offset, entity.length));
         break;
       case MessageEntity::Type::Code:
         result.push_back(make_tl_object<telegram_api::messageEntityCode>(entity.offset, entity.length));

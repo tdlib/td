@@ -430,8 +430,12 @@ class GetPaymentFormQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    auto payment_form = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for GetPaymentFormQuery: " << to_string(payment_form);
+    auto payment_form_ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetPaymentFormQuery: " << to_string(payment_form_ptr);
+    if (payment_form_ptr->get_id() != telegram_api::payments_paymentForm::ID) {
+      return on_error(Status::Error(400, "Stars unsupported"));
+    }
+    auto payment_form = telegram_api::move_object_as<telegram_api::payments_paymentForm>(payment_form_ptr);
 
     td_->user_manager_->on_get_users(std::move(payment_form->users_), "GetPaymentFormQuery");
 
@@ -610,8 +614,12 @@ class GetPaymentReceiptQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    auto payment_receipt = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for GetPaymentReceiptQuery: " << to_string(payment_receipt);
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetPaymentReceiptQuery: " << to_string(ptr);
+    if (ptr->get_id() != telegram_api::payments_paymentReceipt::ID) {
+      return on_error(Status::Error(500, "Receive unsupported response"));
+    }
+    auto payment_receipt = telegram_api::move_object_as<telegram_api::payments_paymentReceipt>(ptr);
 
     td_->user_manager_->on_get_users(std::move(payment_receipt->users_), "GetPaymentReceiptQuery");
 

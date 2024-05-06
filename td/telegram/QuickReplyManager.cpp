@@ -268,7 +268,7 @@ class QuickReplyManager::SendQuickReplyMessageQuery final : public Td::ResultHan
             flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
             false /*ignored*/, false /*ignored*/, telegram_api::make_object<telegram_api::inputPeerSelf>(),
             std::move(reply_to), message_text->text, m->random_id, nullptr, std::move(entities), 0, nullptr,
-            td_->quick_reply_manager_->get_input_quick_reply_shortcut(m->shortcut_id)),
+            td_->quick_reply_manager_->get_input_quick_reply_shortcut(m->shortcut_id), 0),
         {{"me"}}));
   }
 
@@ -386,7 +386,8 @@ class QuickReplyManager::SendQuickReplyMediaQuery final : public Td::ResultHandl
             flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
             false /*ignored*/, telegram_api::make_object<telegram_api::inputPeerSelf>(), std::move(reply_to),
             std::move(input_media), message_text == nullptr ? string() : message_text->text, m->random_id, nullptr,
-            std::move(entities), 0, nullptr, td_->quick_reply_manager_->get_input_quick_reply_shortcut(m->shortcut_id)),
+            std::move(entities), 0, nullptr, td_->quick_reply_manager_->get_input_quick_reply_shortcut(m->shortcut_id),
+            0),
         {{"me"}}));
   }
 
@@ -547,11 +548,11 @@ class QuickReplyManager::SendQuickReplyMultiMediaQuery final : public Td::Result
     }
 
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_sendMultiMedia(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                              false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                              telegram_api::make_object<telegram_api::inputPeerSelf>(),
-                                              std::move(reply_to), std::move(input_single_media), 0, nullptr,
-                                              td_->quick_reply_manager_->get_input_quick_reply_shortcut(shortcut_id_)),
+        telegram_api::messages_sendMultiMedia(
+            flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+            false /*ignored*/, telegram_api::make_object<telegram_api::inputPeerSelf>(), std::move(reply_to),
+            std::move(input_single_media), 0, nullptr,
+            td_->quick_reply_manager_->get_input_quick_reply_shortcut(shortcut_id_), 0),
         {{"me"}}));
   }
 
