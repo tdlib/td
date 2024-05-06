@@ -185,7 +185,6 @@ void Scheduler::send_impl(const ActorId<> &actor_id, const RunFuncT &run_func, c
     return;
   }
 
-  CHECK(actor_info != nullptr);
   int32 actor_sched_id;
   bool is_migrating;
   std::tie(actor_sched_id, is_migrating) = actor_info->migrate_dest_flag_atomic();
