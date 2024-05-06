@@ -199,6 +199,9 @@ class Scheduler {
 
   void flush_mailbox(ActorInfo *actor_info);
 
+  void get_actor_sched_id(const ActorInfo *actor_info, int32 &actor_sched_id, bool &on_current_sched,
+                          bool &can_send_immediately);
+
   template <ActorSendType send_type, class RunFuncT, class EventFuncT>
   void send_impl(const ActorId<> &actor_id, const RunFuncT &run_func, const EventFuncT &event_func);
 

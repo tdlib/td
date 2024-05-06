@@ -186,13 +186,11 @@ void Scheduler::send_impl(const ActorId<> &actor_id, const RunFuncT &run_func, c
   }
 
   int32 actor_sched_id;
-  bool is_migrating;
-  std::tie(actor_sched_id, is_migrating) = actor_info->migrate_dest_flag_atomic();
-  bool on_current_sched = !is_migrating && sched_id_ == actor_sched_id;
-  CHECK(has_guard_ || !on_current_sched);
+  bool on_current_sched;
+  bool can_send_immediately;
+  get_actor_sched_id(actor_info, actor_sched_id, on_current_sched, can_send_immediately);
 
-  if (likely(send_type == ActorSendType::Immediate && on_current_sched && !actor_info->is_running() &&
-             actor_info->mailbox_.empty())) {  // run immediately
+  if (likely(send_type == ActorSendType::Immediate && can_send_immediately)) {  // run immediately
     EventGuard guard(this, actor_info);
     run_func(actor_info);
   } else {

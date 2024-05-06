@@ -301,6 +301,15 @@ void Scheduler::do_event(ActorInfo *actor_info, Event &&event) {
   // can't clear event here. It may be already destroyed during destroy_actor
 }
 
+void Scheduler::get_actor_sched_id(const ActorInfo *actor_info, int32 &actor_sched_id, bool &on_current_sched,
+                                   bool &can_send_immediately) {
+  bool is_migrating;
+  std::tie(actor_sched_id, is_migrating) = actor_info->migrate_dest_flag_atomic();
+  on_current_sched = !is_migrating && sched_id_ == actor_sched_id;
+  CHECK(has_guard_ || !on_current_sched);
+  can_send_immediately = on_current_sched && !actor_info->is_running() && actor_info->mailbox_.empty();
+}
+
 void Scheduler::register_migrated_actor(ActorInfo *actor_info) {
   VLOG(actor) << "Register migrated actor " << *actor_info << ", " << tag("actor_count", actor_count_);
   actor_count_++;
