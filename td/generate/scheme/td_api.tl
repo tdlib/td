@@ -7237,7 +7237,9 @@ updateDefaultReactionType reaction_type:ReactionType = Update;
 updateSavedMessagesTags saved_messages_topic_id:int53 tags:savedMessagesTags = Update;
 
 //@description The revenue earned from sponsored messages in a chat has changed. If chat revenue screen is opened, then getChatRevenueTransactions may be called to fetch new transactions
-updateChatRevenueAmount = Update;
+//@chat_id Identifier of the chat
+//@revenue_amount New amount of earned revenue
+updateChatRevenueAmount chat_id:int53 revenue_amount:chatRevenueAmount = Update;
 
 //@description The parameters of speech recognition without Telegram Premium subscription has changed
 //@max_media_duration The maximum allowed duration of media for speech recognition without Telegram Premium subscription, in seconds

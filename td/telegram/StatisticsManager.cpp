@@ -698,8 +698,19 @@ void StatisticsManager::get_channel_revenue_statistics(
 }
 
 void StatisticsManager::on_update_dialog_revenue_transactions(
-    telegram_api::object_ptr<telegram_api::broadcastRevenueBalances> balances) {
-  send_closure(G()->td(), &Td::send_update, td_api::make_object<td_api::updateChatRevenueAmount>());
+    DialogId dialog_id, telegram_api::object_ptr<telegram_api::broadcastRevenueBalances> balances) {
+  if (!dialog_id.is_valid()) {
+    LOG(ERROR) << "Receive updateBroadcastRevenueTransactions in invalid " << dialog_id;
+    return;
+  }
+  if (!td_->messages_manager_->have_dialog(dialog_id)) {
+    LOG(INFO) << "Ignore unnneeded updateBroadcastRevenueTransactions in " << dialog_id;
+    return;
+  }
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateChatRevenueAmount>(
+                   td_->dialog_manager_->get_chat_id_object(dialog_id, "updateChatRevenueAmount"),
+                   convert_broadcast_revenue_balances(std::move(balances))));
 }
 
 void StatisticsManager::get_channel_revenue_withdrawal_url(DialogId dialog_id, const string &password,

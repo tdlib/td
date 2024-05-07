@@ -4554,7 +4554,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotDeleteBusine
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBroadcastRevenueTransactions> update,
                                Promise<Unit> &&promise) {
-  td_->statistics_manager_->on_update_dialog_revenue_transactions(std::move(update->balances_));
+  td_->statistics_manager_->on_update_dialog_revenue_transactions(DialogId(update->peer_),
+                                                                  std::move(update->balances_));
   promise.set_value(Unit());
 }
 
