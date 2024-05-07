@@ -28503,7 +28503,7 @@ void MessagesManager::send_update_delete_messages(DialogId dialog_id, vector<int
                                                                  std::move(message_ids), is_permanent, false));
 }
 
-void MessagesManager::send_update_new_chat(Dialog *d) {
+void MessagesManager::send_update_new_chat(Dialog *d, const char *source) {
   CHECK(d != nullptr);
   CHECK(d->messages.empty());
   if ((d->dialog_id.get_type() == DialogType::User || d->dialog_id.get_type() == DialogType::SecretChat) &&
@@ -28511,7 +28511,7 @@ void MessagesManager::send_update_new_chat(Dialog *d) {
     (void)td_->dialog_manager_->get_dialog_photo(d->dialog_id);  // to apply pending user photo
   }
   d->is_update_new_chat_being_sent = true;
-  auto chat_object = get_chat_object(d, "send_update_new_chat");
+  auto chat_object = get_chat_object(d, source);
   bool has_action_bar = chat_object->action_bar_ != nullptr;
   bool has_background = chat_object->background_ != nullptr;
   bool has_theme = !chat_object->theme_name_.empty();
@@ -34372,7 +34372,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
   fix_dialog_action_bar(d, d->action_bar.get());
   fix_dialog_business_bot_manage_bar(dialog_id, d->business_bot_manage_bar.get());
 
-  send_update_new_chat(d);
+  send_update_new_chat(d, source);
 
   being_added_new_dialog_id_ = DialogId();
 

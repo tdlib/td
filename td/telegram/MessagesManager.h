@@ -2339,7 +2339,7 @@ class MessagesManager final : public Actor {
 
   void send_update_delete_messages(DialogId dialog_id, vector<int64> &&message_ids, bool is_permanent) const;
 
-  void send_update_new_chat(Dialog *d);
+  void send_update_new_chat(Dialog *d, const char *source);
 
   bool need_hide_dialog_draft_message(const Dialog *d) const;
 
