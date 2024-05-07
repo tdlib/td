@@ -59,9 +59,10 @@ authenticationCodeTypeMissedCall phone_number_prefix:string length:int32 = Authe
 authenticationCodeTypeFragment url:string length:int32 = AuthenticationCodeType;
 
 //@description A digit-only authentication code is delivered via Firebase Authentication to the official Android application
-//@nonce Nonce to pass to the SafetyNet Attestation API
+//@use_play_integrity True, if Play Integrity API must be used for device verification. Otherwise, SafetyNet Attestation API must be used
+//@nonce Nonce to pass to the Play Integrity API or the SafetyNet Attestation API
 //@length Length of the code
-authenticationCodeTypeFirebaseAndroid nonce:bytes length:int32 = AuthenticationCodeType;
+authenticationCodeTypeFirebaseAndroid use_play_integrity:Bool nonce:bytes length:int32 = AuthenticationCodeType;
 
 //@description A digit-only authentication code is delivered via Firebase Authentication to the official iOS application
 //@receipt Receipt of successful application token validation to compare with receipt from push notification
@@ -7513,7 +7514,7 @@ checkAuthenticationPasswordRecoveryCode recovery_code:string = Ok;
 recoverAuthenticationPassword recovery_code:string new_password:string new_hint:string = Ok;
 
 //@description Sends Firebase Authentication SMS to the phone number of the user. Works only when the current authorization state is authorizationStateWaitCode and the server returned code of the type authenticationCodeTypeFirebaseAndroid or authenticationCodeTypeFirebaseIos
-//@token SafetyNet Attestation API token for the Android application, or secret from push notification for the iOS application
+//@token Play Integrity API or SafetyNet Attestation API token for the Android application, or secret from push notification for the iOS application
 sendAuthenticationFirebaseSms token:string = Ok;
 
 //@description Reports that authentication code wasn't delivered via SMS; for official mobile apps only. Works only when the current authorization state is authorizationStateWaitCode @mobile_network_code Current mobile network code
@@ -9897,7 +9898,7 @@ setBusinessStartPage start_page:inputBusinessStartPage = Ok;
 sendPhoneNumberCode phone_number:string settings:phoneNumberAuthenticationSettings type:PhoneNumberCodeType = AuthenticationCodeInfo;
 
 //@description Sends Firebase Authentication SMS to the specified phone number. Works only when received a code of the type authenticationCodeTypeFirebaseAndroid or authenticationCodeTypeFirebaseIos
-//@token SafetyNet Attestation API token for the Android application, or secret from push notification for the iOS application
+//@token Play Integrity API or SafetyNet Attestation API token for the Android application, or secret from push notification for the iOS application
 sendPhoneNumberFirebaseSms token:string = Ok;
 
 //@description Reports that authentication code wasn't delivered via SMS to the specified phone number; for official mobile apps only @mobile_network_code Current mobile network code

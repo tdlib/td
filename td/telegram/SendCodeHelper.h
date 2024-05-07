@@ -69,10 +69,11 @@ class SendCodeHelper {
       FlashCall,
       MissedCall,
       Fragment,
-      FirebaseAndroid,
+      FirebaseAndroidSafetyNet,
       FirebaseIos,
       SmsWord,
-      SmsPhrase
+      SmsPhrase,
+      FirebaseAndroidPlayIntegrity
     };
     Type type = Type::None;
     int32 length = 0;

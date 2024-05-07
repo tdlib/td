@@ -21,7 +21,8 @@ void SendCodeHelper::on_sent_code(telegram_api::object_ptr<telegram_api::auth_se
   next_code_timestamp_ = Time::now() + sent_code->timeout_;
 
   if (next_code_info_.type == AuthenticationCodeInfo::Type::None &&
-      (sent_code_info_.type == AuthenticationCodeInfo::Type::FirebaseAndroid ||
+      (sent_code_info_.type == AuthenticationCodeInfo::Type::FirebaseAndroidSafetyNet ||
+       sent_code_info_.type == AuthenticationCodeInfo::Type::FirebaseAndroidPlayIntegrity ||
        sent_code_info_.type == AuthenticationCodeInfo::Type::FirebaseIos)) {
     next_code_info_ = {AuthenticationCodeInfo::Type::Sms, sent_code_info_.length, string()};
   }
@@ -112,11 +113,18 @@ telegram_api::auth_requestFirebaseSms SendCodeHelper::request_firebase_sms(const
   string ios_push_secret;
   int32 flags = 0;
 #if TD_ANDROID
-  flags |= telegram_api::auth_requestFirebaseSms::SAFETY_NET_TOKEN_MASK;
-  safety_net_token = token;
+  if (sent_code_info_.type == AuthenticationCodeInfo::Type::FirebaseAndroidSafetyNet) {
+    flags |= telegram_api::auth_requestFirebaseSms::SAFETY_NET_TOKEN_MASK;
+    safety_net_token = token;
+  } else if (sent_code_info_.type == AuthenticationCodeInfo::Type::FirebaseAndroidPlayIntegrity) {
+    flags |= telegram_api::auth_requestFirebaseSms::PLAY_INTEGRITY_TOKEN_MASK;
+    play_integrity_token = token;
+  }
 #elif TD_DARWIN
-  flags |= telegram_api::auth_requestFirebaseSms::IOS_PUSH_SECRET_MASK;
-  ios_push_secret = token;
+  if (sent_code_info_.type == AuthenticationCodeInfo::Type::FirebaseIos) {
+    flags |= telegram_api::auth_requestFirebaseSms::IOS_PUSH_SECRET_MASK;
+    ios_push_secret = token;
+  }
 #endif
   return telegram_api::auth_requestFirebaseSms(flags, phone_number_, phone_code_hash_, safety_net_token,
                                                play_integrity_token, ios_push_secret);
@@ -204,14 +212,21 @@ SendCodeHelper::AuthenticationCodeInfo SendCodeHelper::get_sent_authentication_c
     }
     case telegram_api::auth_sentCodeTypeFirebaseSms::ID: {
       auto code_type = move_tl_object_as<telegram_api::auth_sentCodeTypeFirebaseSms>(sent_code_type_ptr);
+#if TD_ANDROID
       if ((code_type->flags_ & telegram_api::auth_sentCodeTypeFirebaseSms::NONCE_MASK) != 0) {
-        return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::FirebaseAndroid, code_type->length_,
+        return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::FirebaseAndroidSafetyNet, code_type->length_,
                                       code_type->nonce_.as_slice().str()};
       }
+      if ((code_type->flags_ & telegram_api::auth_sentCodeTypeFirebaseSms::PLAY_INTEGRITY_NONCE_MASK) != 0) {
+        return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::FirebaseAndroidPlayIntegrity, code_type->length_,
+                                      code_type->play_integrity_nonce_.as_slice().str()};
+      }
+#elif TD_DARWIN
       if ((code_type->flags_ & telegram_api::auth_sentCodeTypeFirebaseSms::RECEIPT_MASK) != 0) {
         return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::FirebaseIos, code_type->length_,
                                       std::move(code_type->receipt_), code_type->push_timeout_};
       }
+#endif
       return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::Sms, code_type->length_, ""};
     }
     case telegram_api::auth_sentCodeTypeSmsWord::ID: {
@@ -253,8 +268,11 @@ td_api::object_ptr<td_api::AuthenticationCodeType> SendCodeHelper::get_authentic
     case AuthenticationCodeInfo::Type::Fragment:
       return td_api::make_object<td_api::authenticationCodeTypeFragment>(authentication_code_info.pattern,
                                                                          authentication_code_info.length);
-    case AuthenticationCodeInfo::Type::FirebaseAndroid:
-      return td_api::make_object<td_api::authenticationCodeTypeFirebaseAndroid>(authentication_code_info.pattern,
+    case AuthenticationCodeInfo::Type::FirebaseAndroidSafetyNet:
+      return td_api::make_object<td_api::authenticationCodeTypeFirebaseAndroid>(false, authentication_code_info.pattern,
+                                                                                authentication_code_info.length);
+    case AuthenticationCodeInfo::Type::FirebaseAndroidPlayIntegrity:
+      return td_api::make_object<td_api::authenticationCodeTypeFirebaseAndroid>(true, authentication_code_info.pattern,
                                                                                 authentication_code_info.length);
     case AuthenticationCodeInfo::Type::FirebaseIos:
       return td_api::make_object<td_api::authenticationCodeTypeFirebaseIos>(
