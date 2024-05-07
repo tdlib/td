@@ -1392,6 +1392,17 @@ messageInteractionInfo view_count:int32 forward_count:int32 reply_info:messageRe
 unreadReaction type:ReactionType sender_id:MessageSender is_big:Bool = UnreadReaction;
 
 
+//@description Contains information about an effect added to a message
+//@id Unique identifier of the effect
+//@static_icon Static icon for the effect in WEBP format; may be null if none
+//@emoji Emoji corresponding to the effect that can be used if static icon isn't available
+//@is_premium True, if Telegram Premium subscription is required to use the effect
+messageEffect id:int64 static_icon:sticker emoji:string is_premium:Bool = MessageEffect;
+
+//@description Contains a list of message effects @effects List of available message effects
+messageEffects effects:vector<messageEffect> = MessageEffects;
+
+
 //@class MessageSendingState @description Contains information about the sending state of the message
 
 //@description The message is being sent now, but has not yet been delivered to the server @sending_id Non-persistent message sending identifier, specified by the application
@@ -8381,6 +8392,9 @@ getSavedMessagesTags saved_messages_topic_id:int53 = SavedMessagesTags;
 
 //@description Changes label of a Saved Messages tag; for Telegram Premium users only @tag The tag which label will be changed @label New label for the tag; 0-12 characters
 setSavedMessagesTagLabel tag:ReactionType label:string = Ok;
+
+//@description Returns effects that can be added to a message sent in a private chat
+getMessageEffects = MessageEffects;
 
 
 //@description Searches for a given quote in a text. Returns found quote start position in UTF-16 code units. Returns a 404 error if the quote is not found. Can be called synchronously

@@ -831,6 +831,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::setSavedMessagesTagLabel &request);
 
+  void on_request(uint64 id, td_api::getMessageEffects &request);
+
   void on_request(uint64 id, td_api::getMessagePublicForwards &request);
 
   void on_request(uint64 id, td_api::getStoryPublicForwards &request);

@@ -5503,6 +5503,12 @@ void Td::on_request(uint64 id, td_api::setSavedMessagesTagLabel &request) {
                                                   std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::getMessageEffects &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  reaction_manager_->get_message_effects(std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::getMessagePublicForwards &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.offset_);

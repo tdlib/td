@@ -2027,6 +2027,12 @@ StickerType StickersManager::get_sticker_type(FileId file_id) const {
   return sticker->type_;
 }
 
+StickerFormat StickersManager::get_sticker_format(FileId file_id) const {
+  const auto *sticker = get_sticker(file_id);
+  CHECK(sticker != nullptr);
+  return sticker->format_;
+}
+
 bool StickersManager::is_premium_custom_emoji(CustomEmojiId custom_emoji_id, bool default_result) const {
   auto sticker_id = custom_emoji_to_sticker_id_.get(custom_emoji_id);
   if (!sticker_id.is_valid()) {
@@ -7786,7 +7792,7 @@ Result<std::tuple<FileId, bool, bool>> StickersManager::prepare_input_sticker(td
     }
   }
 
-  return prepare_input_file(sticker->sticker_, get_sticker_format(sticker->format_), sticker_type, false);
+  return prepare_input_file(sticker->sticker_, ::td::get_sticker_format(sticker->format_), sticker_type, false);
 }
 
 Result<std::tuple<FileId, bool, bool>> StickersManager::prepare_input_file(

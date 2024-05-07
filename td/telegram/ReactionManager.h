@@ -81,6 +81,8 @@ class ReactionManager final : public Actor {
 
   void set_saved_messages_tag_title(ReactionType reaction_type, string title, Promise<Unit> &&promise);
 
+  void get_message_effects(Promise<td_api::object_ptr<td_api::messageEffects>> &&promise);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
@@ -189,6 +191,24 @@ class ReactionManager final : public Actor {
     void parse(ParserT &parser);
   };
 
+  struct Effect {
+    int64 id_ = 0;
+    string emoji_;
+    FileId static_icon_id_;
+    FileId effect_sticker_id_;
+    FileId effect_animation_id_;
+    bool is_premium_ = false;
+
+    bool is_valid() const {
+      return id_ != 0 && effect_sticker_id_.is_valid();
+    }
+  };
+
+  struct Effects {
+    int32 hash_ = 0;
+    vector<Effect> effects_;
+  };
+
   td_api::object_ptr<td_api::emojiReaction> get_emoji_reaction_object(const string &emoji) const;
 
   ReactionList &get_reaction_list(ReactionListType reaction_list_type);
@@ -233,6 +253,13 @@ class ReactionManager final : public Actor {
   void send_update_saved_messages_tags(SavedMessagesTopicId saved_messages_topic_id, const SavedReactionTags *tags,
                                        bool from_database = false);
 
+  td_api::object_ptr<td_api::messageEffect> get_message_effect_object(const Effect &effect) const;
+
+  td_api::object_ptr<td_api::messageEffects> get_message_effects_object() const;
+
+  void on_get_message_effects(Result<telegram_api::object_ptr<telegram_api::messages_AvailableEffects>> r_effects,
+                              Promise<td_api::object_ptr<td_api::messageEffects>> promise);
+
   Td *td_;
   ActorShared<> parent_;
 
@@ -254,6 +281,8 @@ class ReactionManager final : public Actor {
   FlatHashMap<SavedMessagesTopicId, vector<Promise<td_api::object_ptr<td_api::savedMessagesTags>>>,
               SavedMessagesTopicIdHash>
       pending_get_topic_saved_reaction_tags_queries_;
+
+  Effects message_effects_;
 };
 
 }  // namespace td

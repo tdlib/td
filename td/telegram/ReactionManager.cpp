@@ -246,6 +246,35 @@ class UpdateSavedReactionTagQuery final : public Td::ResultHandler {
   }
 };
 
+class GetMessageAvailableEffectsQuery final : public Td::ResultHandler {
+  Promise<telegram_api::object_ptr<telegram_api::messages_AvailableEffects>> promise_;
+
+ public:
+  explicit GetMessageAvailableEffectsQuery(
+      Promise<telegram_api::object_ptr<telegram_api::messages_AvailableEffects>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::messages_getAvailableEffects(0)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getAvailableEffects>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetMessageAvailableEffectsQuery: " << to_string(ptr);
+    promise_.set_value(std::move(ptr));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 ReactionManager::SavedReactionTag::SavedReactionTag(telegram_api::object_ptr<telegram_api::savedReactionTag> &&tag)
     : reaction_type_(tag->reaction_)
     , hash_(reaction_type_.get_hash())
@@ -1167,6 +1196,112 @@ void ReactionManager::set_saved_messages_tag_title(ReactionType reaction_type, s
         }
       });
   td_->create_handler<UpdateSavedReactionTagQuery>(std::move(query_promise))->send(reaction_type, title);
+}
+
+td_api::object_ptr<td_api::messageEffect> ReactionManager::get_message_effect_object(const Effect &effect) const {
+  return td_api::make_object<td_api::messageEffect>(effect.id_,
+                                                    td_->stickers_manager_->get_sticker_object(effect.static_icon_id_),
+                                                    effect.emoji_, effect.is_premium_);
+}
+
+td_api::object_ptr<td_api::messageEffects> ReactionManager::get_message_effects_object() const {
+  auto effects =
+      transform(message_effects_.effects_, [&](const Effect &effect) { return get_message_effect_object(effect); });
+  return td_api::make_object<td_api::messageEffects>(std::move(effects));
+}
+
+void ReactionManager::get_message_effects(Promise<td_api::object_ptr<td_api::messageEffects>> &&promise) {
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), promise = std::move(promise)](
+          Result<telegram_api::object_ptr<telegram_api::messages_AvailableEffects>> r_effects) mutable {
+        send_closure(actor_id, &ReactionManager::on_get_message_effects, std::move(r_effects), std::move(promise));
+      });
+  td_->create_handler<GetMessageAvailableEffectsQuery>(std::move(query_promise))->send();
+}
+
+void ReactionManager::on_get_message_effects(
+    Result<telegram_api::object_ptr<telegram_api::messages_AvailableEffects>> r_effects,
+    Promise<td_api::object_ptr<td_api::messageEffects>> promise) {
+  G()->ignore_result_if_closing(r_effects);
+  if (r_effects.is_error()) {
+    return promise.set_error(r_effects.move_as_error());
+  }
+  auto message_effects = r_effects.move_as_ok();
+
+  switch (message_effects->get_id()) {
+    case telegram_api::messages_availableEffectsNotModified::ID:
+      break;
+    case telegram_api::messages_availableEffects::ID: {
+      auto effects = telegram_api::move_object_as<telegram_api::messages_availableEffects>(message_effects);
+      FlatHashMap<int64, FileId> stickers;
+      for (auto &document : effects->documents_) {
+        auto sticker = td_->stickers_manager_->on_get_sticker_document(std::move(document), StickerFormat::Unknown);
+        if (sticker.first != 0 && sticker.second.is_valid()) {
+          stickers.emplace(sticker.first, sticker.second);
+        } else {
+          LOG(ERROR) << "Receive " << sticker.first << ' ' << sticker.second;
+        }
+      }
+      vector<Effect> new_effects;
+      for (const auto &available_effect : effects->effects_) {
+        Effect effect;
+        effect.id_ = available_effect->id_;
+        effect.emoji_ = std::move(available_effect->emoticon_);
+        effect.is_premium_ = available_effect->premium_required_;
+        if (available_effect->static_icon_id_ != 0) {
+          auto it = stickers.find(available_effect->static_icon_id_);
+          if (it == stickers.end()) {
+            LOG(ERROR) << "Can't find " << available_effect->static_icon_id_;
+          } else {
+            auto sticker_id = it->second;
+            if (td_->stickers_manager_->get_sticker_format(sticker_id) != StickerFormat::Webp) {
+              LOG(ERROR) << "Receive static sticker in wrong format";
+            } else {
+              effect.static_icon_id_ = sticker_id;
+            }
+          }
+        }
+        if (available_effect->effect_sticker_id_ != 0) {
+          auto it = stickers.find(available_effect->effect_sticker_id_);
+          if (it == stickers.end()) {
+            LOG(ERROR) << "Can't find " << available_effect->effect_sticker_id_;
+          } else {
+            auto sticker_id = it->second;
+            if (td_->stickers_manager_->get_sticker_format(sticker_id) != StickerFormat::Tgs) {
+              LOG(ERROR) << "Receive effect sticker in wrong format";
+            } else {
+              effect.effect_sticker_id_ = sticker_id;
+            }
+          }
+        }
+        if (available_effect->effect_animation_id_ != 0) {
+          auto it = stickers.find(available_effect->effect_animation_id_);
+          if (it == stickers.end()) {
+            LOG(ERROR) << "Can't find " << available_effect->effect_animation_id_;
+          } else {
+            auto sticker_id = it->second;
+            if (td_->stickers_manager_->get_sticker_format(sticker_id) != StickerFormat::Tgs) {
+              LOG(ERROR) << "Receive effect animation in wrong format";
+            } else {
+              effect.effect_animation_id_ = sticker_id;
+            }
+          }
+        }
+        if (effect.is_valid()) {
+          new_effects.push_back(std::move(effect));
+        } else {
+          // LOG(ERROR) << "Receive " << to_string(effect);
+        }
+      }
+
+      message_effects_.effects_ = std::move(new_effects);
+      message_effects_.hash_ = effects->hash_;
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+  promise.set_value(get_message_effects_object());
 }
 
 void ReactionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {

@@ -71,6 +71,8 @@ class StickersManager final : public Actor {
 
   StickerType get_sticker_type(FileId file_id) const;
 
+  StickerFormat get_sticker_format(FileId file_id) const;
+
   bool is_premium_custom_emoji(CustomEmojiId custom_emoji_id, bool default_result) const;
 
   bool have_sticker(StickerSetId sticker_set_id, int64 sticker_id);
