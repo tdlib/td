@@ -107,7 +107,7 @@ telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_in
       flags, reply_to_message_id.get_server_message_id().get(), top_thread_message_id.get_server_message_id().get(),
       std::move(input_peer), string(), Auto(), 0);
   quote_.update_input_reply_to_message(td, result.get());
-  return result;
+  return std::move(result);
 }
 
 // only for draft messages
