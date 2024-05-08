@@ -1509,6 +1509,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   int32 transcribe_audio_trial_cooldown_until = 0;
   vector<string> business_features;
   string premium_manage_subscription_url;
+  bool need_premium_for_new_chat_privacy = true;
+  bool channel_revenue_withdrawal_enabled = false;
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
@@ -2040,12 +2042,11 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         continue;
       }
       if (key == "new_noncontact_peers_require_premium_without_ownpremium") {
-        G()->set_option_boolean("need_premium_for_new_chat_privacy",
-                                !get_json_value_bool(std::move(key_value->value_), key));
+        need_premium_for_new_chat_privacy = !get_json_value_bool(std::move(key_value->value_), key);
         continue;
       }
       if (key == "channel_revenue_withdrawal_enabled") {
-        G()->set_option_boolean("can_withdraw_chat_revenue", get_json_value_bool(std::move(key_value->value_), key));
+        channel_revenue_withdrawal_enabled = get_json_value_bool(std::move(key_value->value_), key);
         continue;
       }
       if (key == "upload_premium_speedup_download") {
@@ -2230,6 +2231,9 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
 
   options.set_option_integer("stickers_premium_by_emoji_num", stickers_premium_by_emoji_num);
   options.set_option_integer("stickers_normal_by_emoji_per_premium_num", stickers_normal_by_emoji_per_premium_num);
+
+  options.set_option_boolean("can_withdraw_chat_revenue", channel_revenue_withdrawal_enabled);
+  options.set_option_boolean("need_premium_for_new_chat_privacy", need_premium_for_new_chat_privacy);
 
   options.set_option_empty("default_ton_blockchain_config");
   options.set_option_empty("default_ton_blockchain_name");
