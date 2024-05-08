@@ -36338,6 +36338,7 @@ void MessagesManager::on_get_channel_difference(DialogId dialog_id, int32 reques
   if (difference_ptr == nullptr) {
     CHECK(status.is_error());
     bool have_access = td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read) &&
+                       td_->chat_manager_->have_channel(dialog_id.get_channel_id()) &&
                        status.message() != "CHANNEL_INVALID";
     if (have_access) {
       if (d == nullptr) {
@@ -36580,7 +36581,8 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
   }
 
   auto d = get_dialog(dialog_id);
-  bool have_access = td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read);
+  bool have_access = td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read) &&
+                     td_->chat_manager_->have_channel(dialog_id.get_channel_id());
   auto pts = d != nullptr ? d->pts : load_channel_pts(dialog_id);
   auto postponed_updates_it = postponed_channel_updates_.find(dialog_id);
   if (postponed_updates_it != postponed_channel_updates_.end()) {
