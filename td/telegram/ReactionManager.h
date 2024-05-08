@@ -202,6 +202,10 @@ class ReactionManager final : public Actor {
     bool is_valid() const {
       return id_ != 0 && effect_sticker_id_.is_valid();
     }
+
+    bool is_sticker() const {
+      return effect_animation_id_ == FileId();
+    }
   };
 
   struct Effects {

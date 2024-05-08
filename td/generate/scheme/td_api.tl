@@ -1392,14 +1392,24 @@ messageInteractionInfo view_count:int32 forward_count:int32 reply_info:messageRe
 unreadReaction type:ReactionType sender_id:MessageSender is_big:Bool = UnreadReaction;
 
 
+//@class MessageEffectType @description Describes type of an emoji effect
+
+//@description An effect from an emoji reaction @select_animation Select animation for the effect in TGS format @effect_animation Effect animation for the effect in TGS format
+messageEffectTypeEmojiReaction select_animation:sticker effect_animation:sticker = MessageEffectType;
+
+//@description An effect from a premium sticker @sticker The premium sticker. The effect can be found at sticker.full_type.premium_animation
+messageEffectTypePremiumSticker sticker:sticker = MessageEffectType;
+
+
 //@description Contains information about an effect added to a message
 //@id Unique identifier of the effect
 //@static_icon Static icon for the effect in WEBP format; may be null if none
 //@emoji Emoji corresponding to the effect that can be used if static icon isn't available
 //@is_premium True, if Telegram Premium subscription is required to use the effect
-messageEffect id:int64 static_icon:sticker emoji:string is_premium:Bool = MessageEffect;
+//@type Type of the effect
+messageEffect id:int64 static_icon:sticker emoji:string is_premium:Bool type:MessageEffectType = MessageEffect;
 
-//@description Contains a list of message effects @effects List of available message effects
+//@description Contains a list of message effects @effects List of available message effects. Emoji reaction effects are guaranteed to be returned before sticker effects
 messageEffects effects:vector<messageEffect> = MessageEffects;
 
 
@@ -3718,7 +3728,7 @@ trendingStickerSets total_count:int32 sets:vector<stickerSetInfo> is_premium:Boo
 //@emojis List of emojis for search for
 emojiCategorySourceSearch emojis:vector<string> = EmojiCategorySource;
 
-//@description The category contains Premium stickers that must be found by getPremiumStickers
+//@description The category contains premium stickers that must be found by getPremiumStickers
 emojiCategorySourcePremium = EmojiCategorySource;
 
 
@@ -3738,7 +3748,7 @@ emojiCategories categories:vector<emojiCategory> = EmojiCategories;
 //@description The category must be used by default (e.g., for custom emoji or animation search)
 emojiCategoryTypeDefault = EmojiCategoryType;
 
-//@description The category must be used by default for regular sticker selection. It may contain greeting emoji category and Premium stickers
+//@description The category must be used by default for regular sticker selection. It may contain greeting emoji category and premium stickers
 emojiCategoryTypeRegularStickers = EmojiCategoryType;
 
 //@description The category must be used for emoji status selection

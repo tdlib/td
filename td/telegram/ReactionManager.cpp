@@ -1199,9 +1199,18 @@ void ReactionManager::set_saved_messages_tag_title(ReactionType reaction_type, s
 }
 
 td_api::object_ptr<td_api::messageEffect> ReactionManager::get_message_effect_object(const Effect &effect) const {
+  auto type = [&]() -> td_api::object_ptr<td_api::MessageEffectType> {
+    if (effect.is_sticker()) {
+      return td_api::make_object<td_api::messageEffectTypePremiumSticker>(
+          td_->stickers_manager_->get_sticker_object(effect.effect_sticker_id_));
+    }
+    return td_api::make_object<td_api::messageEffectTypeEmojiReaction>(
+        td_->stickers_manager_->get_sticker_object(effect.effect_sticker_id_),
+        td_->stickers_manager_->get_sticker_object(effect.effect_animation_id_));
+  }();
   return td_api::make_object<td_api::messageEffect>(effect.id_,
                                                     td_->stickers_manager_->get_sticker_object(effect.static_icon_id_),
-                                                    effect.emoji_, effect.is_premium_);
+                                                    effect.emoji_, effect.is_premium_, std::move(type));
 }
 
 td_api::object_ptr<td_api::messageEffects> ReactionManager::get_message_effects_object() const {
@@ -1243,6 +1252,8 @@ void ReactionManager::on_get_message_effects(
         }
       }
       vector<Effect> new_effects;
+      bool was_sticker = false;
+      bool have_invalid_order = false;
       for (const auto &available_effect : effects->effects_) {
         Effect effect;
         effect.id_ = available_effect->id_;
@@ -1288,10 +1299,18 @@ void ReactionManager::on_get_message_effects(
           }
         }
         if (effect.is_valid()) {
+          if (was_sticker && !effect.is_sticker()) {
+            have_invalid_order = true;
+          }
           new_effects.push_back(std::move(effect));
         } else {
-          // LOG(ERROR) << "Receive " << to_string(effect);
+          LOG(ERROR) << "Receive " << to_string(available_effect);
         }
+      }
+      if (have_invalid_order) {
+        LOG(ERROR) << "Have invalid effect order";
+        std::stable_sort(new_effects.begin(), new_effects.end(),
+                         [](const Effect &lhs, const Effect &rhs) { return !lhs.is_sticker() && rhs.is_sticker(); });
       }
 
       message_effects_.effects_ = std::move(new_effects);
