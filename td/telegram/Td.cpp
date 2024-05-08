@@ -4555,9 +4555,6 @@ void Td::on_request(uint64 id, td_api::processPushNotification &request) {
 
 void Td::on_request(uint64 id, td_api::registerDevice &request) {
   CHECK_IS_USER();
-  if (request.device_token_ == nullptr) {
-    return send_error_raw(id, 400, "Device token must be non-empty");
-  }
   CREATE_REQUEST_PROMISE();
   send_closure(device_token_manager_, &DeviceTokenManager::register_device, std::move(request.device_token_),
                UserId::get_user_ids(request.other_user_ids_), std::move(promise));
