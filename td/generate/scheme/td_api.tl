@@ -8406,6 +8406,9 @@ setSavedMessagesTagLabel tag:ReactionType label:string = Ok;
 //@description Returns effects that can be added to a message sent in a private chat
 getMessageEffects = MessageEffects;
 
+//@description Returns information about a message effect. Returns a 404 error if the effect is not found @effect_id Unique identifier of the effect
+getMessageEffect effect_id:int64 = MessageEffect;
+
 
 //@description Searches for a given quote in a text. Returns found quote start position in UTF-16 code units. Returns a 404 error if the quote is not found. Can be called synchronously
 //@text Text in which to search for the quote

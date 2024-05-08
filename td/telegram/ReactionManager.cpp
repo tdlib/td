@@ -1213,6 +1213,15 @@ td_api::object_ptr<td_api::messageEffect> ReactionManager::get_message_effect_ob
                                                     effect.emoji_, effect.is_premium_, std::move(type));
 }
 
+td_api::object_ptr<td_api::messageEffect> ReactionManager::get_message_effect_object(int64 effect_id) const {
+  for (auto &effect : message_effects_.effects_) {
+    if (effect.id_ == effect_id) {
+      return get_message_effect_object(effect);
+    }
+  }
+  return nullptr;
+}
+
 td_api::object_ptr<td_api::messageEffects> ReactionManager::get_message_effects_object() const {
   auto effects =
       transform(message_effects_.effects_, [&](const Effect &effect) { return get_message_effect_object(effect); });
@@ -1321,6 +1330,18 @@ void ReactionManager::on_get_message_effects(
       UNREACHABLE();
   }
   promise.set_value(get_message_effects_object());
+}
+
+void ReactionManager::get_message_effect(int64 effect_id,
+                                         Promise<td_api::object_ptr<td_api::messageEffect>> &&promise) {
+  /*
+  load_message_effects();
+  if (effects_.effects_.empty() && effects_.are_being_reloaded_) {
+    pending_get_message_effect_queries_.emplace_back(effect_id, std::move(promise));
+    return;
+  }
+  */
+  promise.set_value(get_message_effect_object(effect_id));
 }
 
 void ReactionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {

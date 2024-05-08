@@ -2958,7 +2958,7 @@ class CliClient final : public Actor {
       get_args(args, reaction, label);
       send_request(td_api::make_object<td_api::setSavedMessagesTagLabel>(as_reaction_type(reaction), label));
     } else if (op == "gme") {
-      send_request(td_api::make_object<td_api::getMessageEffects>());
+      send_request(td_api::make_object<td_api::getMessageEffect>(to_integer<int64>(args)));
     } else if (op == "gmpf") {
       ChatId chat_id;
       MessageId message_id;

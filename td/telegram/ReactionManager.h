@@ -83,6 +83,8 @@ class ReactionManager final : public Actor {
 
   void get_message_effects(Promise<td_api::object_ptr<td_api::messageEffects>> &&promise);
 
+  void get_message_effect(int64 effect_id, Promise<td_api::object_ptr<td_api::messageEffect>> &&promise);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
@@ -258,6 +260,8 @@ class ReactionManager final : public Actor {
                                        bool from_database = false);
 
   td_api::object_ptr<td_api::messageEffect> get_message_effect_object(const Effect &effect) const;
+
+  td_api::object_ptr<td_api::messageEffect> get_message_effect_object(int64 effect_id) const;
 
   td_api::object_ptr<td_api::messageEffects> get_message_effects_object() const;
 
