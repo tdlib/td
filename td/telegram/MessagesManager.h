@@ -136,6 +136,7 @@ class MessagesManager final : public Actor {
   static constexpr int32 SEND_MESSAGE_FLAG_NOFORWARDS = 1 << 14;
   static constexpr int32 SEND_MESSAGE_FLAG_UPDATE_STICKER_SETS_ORDER = 1 << 15;
   static constexpr int32 SEND_MESSAGE_FLAG_INVERT_MEDIA = 1 << 16;
+  static constexpr int32 SEND_MESSAGE_FLAG_EFFECT = 1 << 18;
 
   MessagesManager(Td *td, ActorShared<> parent);
   MessagesManager(const MessagesManager &) = delete;
@@ -1490,17 +1491,19 @@ class MessagesManager final : public Actor {
     bool only_preview = false;
     int32 schedule_date = 0;
     int32 sending_id = 0;
+    int64 effect_id = 0;
 
     MessageSendOptions() = default;
     MessageSendOptions(bool disable_notification, bool from_background, bool update_stickersets_order,
-                       bool protect_content, bool only_preview, int32 schedule_date, int32 sending_id)
+                       bool protect_content, bool only_preview, int32 schedule_date, int32 sending_id, int64 effect_id)
         : disable_notification(disable_notification)
         , from_background(from_background)
         , update_stickersets_order(update_stickersets_order)
         , protect_content(protect_content)
         , only_preview(only_preview)
         , schedule_date(schedule_date)
-        , sending_id(sending_id) {
+        , sending_id(sending_id)
+        , effect_id(effect_id) {
     }
   };
 
@@ -1688,7 +1691,7 @@ class MessagesManager final : public Actor {
 
   Result<MessageSendOptions> process_message_send_options(DialogId dialog_id,
                                                           tl_object_ptr<td_api::messageSendOptions> &&options,
-                                                          bool allow_update_stickersets_order) const;
+                                                          bool allow_update_stickersets_order, bool allow_effect) const;
 
   static Status can_use_message_send_options(const MessageSendOptions &options,
                                              const unique_ptr<MessageContent> &content, MessageSelfDestructType ttl);

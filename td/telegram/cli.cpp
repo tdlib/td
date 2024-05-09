@@ -2411,7 +2411,7 @@ class CliClient final : public Actor {
     auto id = send_request(td_api::make_object<td_api::sendMessage>(
         chat_id, message_thread_id_, get_input_message_reply_to(),
         td_api::make_object<td_api::messageSendOptions>(disable_notification, from_background, false, false,
-                                                        as_message_scheduling_state(schedule_date_),
+                                                        as_message_scheduling_state(schedule_date_), message_effect_id_,
                                                         Random::fast(1, 1000), only_preview_),
         nullptr, std::move(input_message_content)));
     if (id != 0) {
@@ -2420,8 +2420,9 @@ class CliClient final : public Actor {
   }
 
   td_api::object_ptr<td_api::messageSendOptions> default_message_send_options() const {
-    return td_api::make_object<td_api::messageSendOptions>(
-        false, false, false, true, as_message_scheduling_state(schedule_date_), Random::fast(1, 1000), only_preview_);
+    return td_api::make_object<td_api::messageSendOptions>(false, false, false, true,
+                                                           as_message_scheduling_state(schedule_date_),
+                                                           message_effect_id_, Random::fast(1, 1000), only_preview_);
   }
 
   void send_get_background_url(td_api::object_ptr<td_api::BackgroundType> &&background_type) {
@@ -4813,6 +4814,8 @@ class CliClient final : public Actor {
                                                                      as_search_messages_filter(filter)));
     } else if (op == "ssd") {
       schedule_date_ = std::move(args);
+    } else if (op == "smei") {
+      message_effect_id_ = to_integer<int64>(args);
     } else if (op == "sop") {
       only_preview_ = as_bool(args);
     } else if (op == "smti") {
@@ -6978,6 +6981,7 @@ class CliClient final : public Actor {
   int64 my_id_ = 0;
   td_api::object_ptr<td_api::AuthorizationState> authorization_state_;
   string schedule_date_;
+  int64 message_effect_id_ = 0;
   bool only_preview_ = false;
   MessageThreadId message_thread_id_;
   string business_connection_id_;

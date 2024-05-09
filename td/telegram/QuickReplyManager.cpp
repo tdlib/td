@@ -1048,7 +1048,7 @@ unique_ptr<QuickReplyManager::QuickReplyMessage> QuickReplyManager::create_messa
           message->replies_ != nullptr || message->reactions_ != nullptr || message->ttl_period_ != 0 ||
           !message->out_ || message->post_ || message->from_scheduled_ || message->pinned_ || message->noforwards_ ||
           message->mentioned_ || !message->restriction_reason_.empty() || !message->post_author_.empty() ||
-          message->from_boosts_applied_ != 0) {
+          message->from_boosts_applied_ != 0 || message->effect_ != 0) {
         LOG(ERROR) << "Receive an invalid quick reply from " << source << ": " << to_string(message);
       }
       if (message->saved_peer_id_ != nullptr) {

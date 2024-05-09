@@ -2700,7 +2700,7 @@ class SendMessageQuery final : public Td::ResultHandler {
  public:
   void send(int32 flags, DialogId dialog_id, tl_object_ptr<telegram_api::InputPeer> as_input_peer,
             const MessageInputReplyTo &input_reply_to, MessageId top_thread_message_id, int32 schedule_date,
-            tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup,
+            int64 effect_id, tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup,
             vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities, const string &text, bool is_copy,
             int64 random_id, NetQueryRef *send_query_ref) {
     random_id_ = random_id;
@@ -2727,7 +2727,7 @@ class SendMessageQuery final : public Td::ResultHandler {
         telegram_api::messages_sendMessage(
             flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
             false /*ignored*/, false /*ignored*/, std::move(input_peer), std::move(reply_to), text, random_id,
-            std::move(reply_markup), std::move(entities), schedule_date, std::move(as_input_peer), nullptr, 0),
+            std::move(reply_markup), std::move(entities), schedule_date, std::move(as_input_peer), nullptr, effect_id),
         {{dialog_id, MessageContentType::Text},
          {dialog_id, is_copy ? MessageContentType::Photo : MessageContentType::Text}});
     if (td_->option_manager_->get_option_boolean("use_quick_ack")) {
@@ -2900,8 +2900,8 @@ class SendMultiMediaQuery final : public Td::ResultHandler {
  public:
   void send(int32 flags, DialogId dialog_id, tl_object_ptr<telegram_api::InputPeer> as_input_peer,
             const MessageInputReplyTo &input_reply_to, MessageId top_thread_message_id, int32 schedule_date,
-            vector<FileId> &&file_ids, vector<tl_object_ptr<telegram_api::inputSingleMedia>> &&input_single_media,
-            bool is_copy) {
+            int64 effect_id, vector<FileId> &&file_ids,
+            vector<tl_object_ptr<telegram_api::inputSingleMedia>> &&input_single_media, bool is_copy) {
     for (auto &single_media : input_single_media) {
       random_ids_.push_back(single_media->random_id_);
       CHECK(FileManager::extract_was_uploaded(single_media->media_) == false);
@@ -2930,7 +2930,7 @@ class SendMultiMediaQuery final : public Td::ResultHandler {
         telegram_api::messages_sendMultiMedia(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
                                               false /*ignored*/, false /*ignored*/, false /*ignored*/,
                                               std::move(input_peer), std::move(reply_to), std::move(input_single_media),
-                                              schedule_date, std::move(as_input_peer), nullptr, 0),
+                                              schedule_date, std::move(as_input_peer), nullptr, effect_id),
         {{dialog_id, is_copy ? MessageContentType::Text : MessageContentType::Photo},
          {dialog_id, MessageContentType::Photo}}));
   }
@@ -3018,7 +3018,7 @@ class SendMediaQuery final : public Td::ResultHandler {
  public:
   void send(FileId file_id, FileId thumbnail_file_id, int32 flags, DialogId dialog_id,
             tl_object_ptr<telegram_api::InputPeer> as_input_peer, const MessageInputReplyTo &input_reply_to,
-            MessageId top_thread_message_id, int32 schedule_date,
+            MessageId top_thread_message_id, int32 schedule_date, int64 effect_id,
             tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup,
             vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities, const string &text,
             tl_object_ptr<telegram_api::InputMedia> &&input_media, MessageContentType content_type, bool is_copy,
@@ -3052,7 +3052,7 @@ class SendMediaQuery final : public Td::ResultHandler {
         telegram_api::messages_sendMedia(
             flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
             false /*ignored*/, std::move(input_peer), std::move(reply_to), std::move(input_media), text, random_id,
-            std::move(reply_markup), std::move(entities), schedule_date, std::move(as_input_peer), nullptr, 0),
+            std::move(reply_markup), std::move(entities), schedule_date, std::move(as_input_peer), nullptr, effect_id),
         {{dialog_id, content_type}, {dialog_id, is_copy ? MessageContentType::Text : content_type}});
     if (td_->option_manager_->get_option_boolean("use_quick_ack") && was_uploaded_) {
       query->quick_ack_promise_ = PromiseCreator::lambda([random_id](Result<Unit> result) {
@@ -22903,6 +22903,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   if (m->sender_user_id == my_id && dialog_type == DialogType::Channel) {
     m->sender_boost_count = td_->chat_manager_->get_channel_my_boost_count(dialog_id.get_channel_id());
   }
+  m->effect_id = options.effect_id;
   m->content = std::move(content);
   m->invert_media = invert_media;
   m->forward_info = std::move(forward_info);
@@ -23450,7 +23451,7 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_message(
   TRY_STATUS(can_send_message(dialog_id));
   TRY_RESULT(message_reply_markup, get_dialog_reply_markup(dialog_id, std::move(reply_markup)));
   TRY_RESULT(message_content, process_input_message_content(dialog_id, std::move(input_message_content)));
-  TRY_RESULT(message_send_options, process_message_send_options(dialog_id, std::move(options), true));
+  TRY_RESULT(message_send_options, process_message_send_options(dialog_id, std::move(options), true, true));
   TRY_STATUS(can_use_message_send_options(message_send_options, message_content));
   TRY_STATUS(can_use_top_thread_message_id(d, top_thread_message_id, input_reply_to));
 
@@ -23568,8 +23569,8 @@ Result<MessageCopyOptions> MessagesManager::process_message_copy_options(
 }
 
 Result<MessagesManager::MessageSendOptions> MessagesManager::process_message_send_options(
-    DialogId dialog_id, tl_object_ptr<td_api::messageSendOptions> &&options,
-    bool allow_update_stickersets_order) const {
+    DialogId dialog_id, tl_object_ptr<td_api::messageSendOptions> &&options, bool allow_update_stickersets_order,
+    bool allow_effect) const {
   MessageSendOptions result;
   if (options == nullptr) {
     return std::move(result);
@@ -23604,6 +23605,16 @@ Result<MessagesManager::MessageSendOptions> MessagesManager::process_message_sen
         return Status::Error(400, "Can't scheduled till online messages in chat with self");
       }
     }
+  }
+  if (options->effect_id_ != 0) {
+    auto dialog_type = dialog_id.get_type();
+    if (dialog_type != DialogType::User) {
+      return Status::Error(400, "Can't use message effects in the chat");
+    }
+    if (!allow_effect) {
+      return Status::Error(400, "Can't use message effects in the method");
+    }
+    result.effect_id = options->effect_id_;
   }
 
   return std::move(result);
@@ -23689,7 +23700,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_message_group
   }
 
   TRY_STATUS(can_send_message(dialog_id));
-  TRY_RESULT(message_send_options, process_message_send_options(dialog_id, std::move(options), true));
+  TRY_RESULT(message_send_options, process_message_send_options(dialog_id, std::move(options), true, true));
 
   vector<InputMessageContent> message_contents;
   std::unordered_set<MessageContentType, MessageContentTypeHash> message_content_types;
@@ -23906,7 +23917,7 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
                          td_->create_handler<SendMediaQuery>()->send(
                              file_id, thumbnail_file_id, get_message_flags(m), dialog_id,
                              get_send_message_as_input_peer(m), *get_message_input_reply_to(m),
-                             m->initial_top_thread_message_id, get_message_schedule_date(m),
+                             m->initial_top_thread_message_id, get_message_schedule_date(m), m->effect_id,
                              get_input_reply_markup(td_->user_manager_.get(), m->reply_markup),
                              get_input_message_entities(td_->user_manager_.get(), caption, "on_message_media_uploaded"),
                              caption == nullptr ? "" : caption->text, std::move(input_media), m->content->get_type(),
@@ -24211,6 +24222,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
   MessageId top_thread_message_id;
   int32 flags = 0;
   int32 schedule_date = 0;
+  int64 effect_id = 0;
   bool is_copy = false;
   for (size_t i = 0; i < request.message_ids.size(); i++) {
     auto *m = get_message(d, request.message_ids[i]);
@@ -24224,6 +24236,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
     top_thread_message_id = m->initial_top_thread_message_id;
     flags = get_message_flags(m);
     schedule_date = get_message_schedule_date(m);
+    effect_id = m->effect_id;
     is_copy = m->is_copy;
     as_input_peer = get_send_message_as_input_peer(m);
 
@@ -24287,7 +24300,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
   }
   CHECK(input_reply_to != nullptr);
   td_->create_handler<SendMultiMediaQuery>()->send(flags, dialog_id, std::move(as_input_peer), *input_reply_to,
-                                                   top_thread_message_id, schedule_date, std::move(file_ids),
+                                                   top_thread_message_id, schedule_date, effect_id, std::move(file_ids),
                                                    std::move(input_single_media), is_copy);
 }
 
@@ -24320,14 +24333,14 @@ void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageI
     if (input_media == nullptr) {
       td_->create_handler<SendMessageQuery>()->send(
           get_message_flags(m), dialog_id, get_send_message_as_input_peer(m), *get_message_input_reply_to(m),
-          m->initial_top_thread_message_id, get_message_schedule_date(m),
+          m->initial_top_thread_message_id, get_message_schedule_date(m), m->effect_id,
           get_input_reply_markup(td_->user_manager_.get(), m->reply_markup),
           get_input_message_entities(td_->user_manager_.get(), message_text, "on_text_message_ready_to_send"),
           message_text->text, m->is_copy, random_id, &m->send_query_ref);
     } else {
       td_->create_handler<SendMediaQuery>()->send(
           FileId(), FileId(), get_message_flags(m), dialog_id, get_send_message_as_input_peer(m),
-          *get_message_input_reply_to(m), m->initial_top_thread_message_id, get_message_schedule_date(m),
+          *get_message_input_reply_to(m), m->initial_top_thread_message_id, get_message_schedule_date(m), m->effect_id,
           get_input_reply_markup(td_->user_manager_.get(), m->reply_markup),
           get_input_message_entities(td_->user_manager_.get(), message_text, "on_text_message_ready_to_send"),
           message_text->text, std::move(input_media), MessageContentType::Text, m->is_copy, random_id,
@@ -24583,7 +24596,7 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_inline_query_r
   }
 
   TRY_STATUS(can_send_message(dialog_id));
-  TRY_RESULT(message_send_options, process_message_send_options(dialog_id, std::move(options), false));
+  TRY_RESULT(message_send_options, process_message_send_options(dialog_id, std::move(options), false, false));
   bool to_secret = false;
   switch (dialog_id.get_type()) {
     case DialogType::User:
@@ -25775,6 +25788,9 @@ int32 MessagesManager::get_message_flags(const Message *m) {
   if (m->invert_media) {
     flags |= SEND_MESSAGE_FLAG_INVERT_MEDIA;
   }
+  if (m->effect_id != 0) {
+    flags |= SEND_MESSAGE_FLAG_EFFECT;
+  }
   return flags;
 }
 
@@ -26149,7 +26165,7 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
   }
 
   TRY_STATUS(can_send_message(to_dialog_id));
-  TRY_RESULT(message_send_options, process_message_send_options(to_dialog_id, std::move(options), false));
+  TRY_RESULT(message_send_options, process_message_send_options(to_dialog_id, std::move(options), false, false));
   TRY_STATUS(can_use_top_thread_message_id(to_dialog, top_thread_message_id, MessageInputReplyTo()));
 
   {
@@ -26505,7 +26521,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_quick_reply_s
   auto *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
 
-  MessageSendOptions message_send_options(false, false, false, false, false, 0, sending_id);
+  MessageSendOptions message_send_options(false, false, false, false, false, 0, sending_id, 0);
   FlatHashMap<MessageId, MessageId, MessageIdHash> original_message_id_to_new_message_id;
   vector<td_api::object_ptr<td_api::message>> result;
   vector<Message *> sent_messages;
@@ -26717,7 +26733,7 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
     }
     MessageSendOptions options(message->disable_notification, message->from_background,
                                message->update_stickersets_order, message->noforwards, false,
-                               get_message_schedule_date(message.get()), message->sending_id);
+                               get_message_schedule_date(message.get()), message->sending_id, message->effect_id);
     Message *m = get_message_to_send(d, message->top_thread_message_id, std::move(message->input_reply_to), options,
                                      std::move(new_contents[i]), message->invert_media, &need_update_dialog_pos, false,
                                      nullptr, DialogId(), message->is_copy,
