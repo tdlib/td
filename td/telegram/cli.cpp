@@ -4923,6 +4923,11 @@ class CliClient final : public Actor {
             chat_id, message_thread_id_, get_input_message_reply_to(), default_message_send_options(),
             std::move(input_message_contents)));
       }
+    } else if (op == "savt") {
+      int64 verification_id;
+      string token;
+      get_args(args, verification_id, token);
+      send_request(td_api::make_object<td_api::setApplicationVerificationToken>(verification_id, token));
     } else if (op == "gmft") {
       auto r_message_file_head = read_file_str(args, 2 << 10);
       if (r_message_file_head.is_error()) {

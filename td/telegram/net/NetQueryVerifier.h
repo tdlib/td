@@ -21,7 +21,10 @@ class NetQueryVerifier final : public Actor {
  public:
   explicit NetQueryVerifier(ActorShared<> parent) : parent_(std::move(parent)) {
   }
+
   void verify(NetQueryPtr query, string nonce);
+
+  void set_verification_token(int64 query_id, string &&token, Promise<Unit> &&promise);
 
  private:
   void tear_down() final;

@@ -57,6 +57,8 @@ class NetQueryDispatcher {
   void set_main_dc_id(int32 new_main_dc_id);
   void check_authorization_is_ok();
 
+  void set_verification_token(int64 verification_id, string &&token, Promise<Unit> &&promise);
+
  private:
   std::atomic<bool> stop_flag_{false};
   bool need_destroy_auth_key_{false};

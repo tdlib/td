@@ -9358,6 +9358,13 @@ removeAllFilesFromDownloads only_active:Bool only_completed:Bool delete_from_cac
 searchFileDownloads query:string only_active:Bool only_completed:Bool offset:string limit:int32 = FoundFileDownloads;
 
 
+//@description Application verification has been completed. Can be called before authorization
+//@verification_id Unique identifier for the verification process as received from updateApplicationVerificationRequired
+//@token Play Integrity API token for the Android application, or secret from push notification for the iOS application;
+//-pass an empty string to abort verification and receive error VERIFICATION_FAILED for the request
+setApplicationVerificationToken verification_id:int53 token:string = Ok;
+
+
 //@description Returns information about a file with messages exported from another application @message_file_head Beginning of the message file; up to 100 first lines
 getMessageFileType message_file_head:string = MessageFileType;
 

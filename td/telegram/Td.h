@@ -1325,6 +1325,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::searchFileDownloads &request);
 
+  void on_request(uint64 id, td_api::setApplicationVerificationToken &request);
+
   void on_request(uint64 id, td_api::getMessageFileType &request);
 
   void on_request(uint64 id, const td_api::getMessageImportConfirmationText &request);

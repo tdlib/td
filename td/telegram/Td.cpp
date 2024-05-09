@@ -2768,6 +2768,7 @@ bool Td::is_preauthentication_request(int32 id) {
     case td_api::getNetworkStatistics::ID:
     case td_api::addNetworkStatistics::ID:
     case td_api::resetNetworkStatistics::ID:
+    case td_api::setApplicationVerificationToken::ID:
     case td_api::getCountries::ID:
     case td_api::getCountryCode::ID:
     case td_api::getPhoneNumberInfo::ID:
@@ -7497,6 +7498,14 @@ void Td::on_request(uint64 id, td_api::searchFileDownloads &request) {
   CREATE_REQUEST_PROMISE();
   send_closure(download_manager_actor_, &DownloadManager::search, std::move(request.query_), request.only_active_,
                request.only_completed_, std::move(request.offset_), request.limit_, std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::setApplicationVerificationToken &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.token_);
+  CREATE_OK_REQUEST_PROMISE();
+  G()->net_query_dispatcher().set_verification_token(request.verification_id_, std::move(request.token_),
+                                                     std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getMessageFileType &request) {
