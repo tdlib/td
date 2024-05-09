@@ -771,12 +771,12 @@ void ReactionManager::load_reactions() {
   }
   are_reactions_loaded_from_database_ = true;
 
-  LOG(INFO) << "Loading available reactions";
   string reactions = G()->td_db()->get_binlog_pmc()->get("reactions");
   if (reactions.empty()) {
     return reload_reactions();
   }
 
+  LOG(INFO) << "Loaded available reactions of size " << reactions.size();
   Reactions new_reactions;
   new_reactions.are_being_reloaded_ = reactions_.are_being_reloaded_;
   auto status = log_event_parse(new_reactions, reactions);
@@ -1250,11 +1250,11 @@ void ReactionManager::load_message_effects() {
   }
   are_message_effects_loaded_from_database_ = true;
 
-  LOG(INFO) << "Loading message effects";
   string message_effects = G()->td_db()->get_binlog_pmc()->get("message_effects");
   if (message_effects.empty()) {
     return reload_message_effects();
   }
+  LOG(INFO) << "Loaded message effects of size " << message_effects.size();
 
   Effects new_message_effects;
   new_message_effects.are_being_reloaded_ = message_effects_.are_being_reloaded_;
