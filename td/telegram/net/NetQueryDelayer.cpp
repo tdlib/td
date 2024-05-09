@@ -135,6 +135,7 @@ void NetQueryDelayer::tear_down() {
     query_slot.query_->set_error(Global::request_aborted_error());
     G()->net_query_dispatcher().dispatch(std::move(query_slot.query_));
   });
+  parent_.reset();
 }
 
 }  // namespace td

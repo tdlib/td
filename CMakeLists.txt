@@ -442,6 +442,7 @@ set(TDLIB_SOURCE
   td/telegram/net/NetQueryDelayer.cpp
   td/telegram/net/NetQueryDispatcher.cpp
   td/telegram/net/NetQueryStats.cpp
+  td/telegram/net/NetQueryVerifier.cpp
   td/telegram/net/NetStatsManager.cpp
   td/telegram/net/Proxy.cpp
   td/telegram/net/PublicRsaKeySharedCdn.cpp
@@ -778,6 +779,7 @@ set(TDLIB_SOURCE
   td/telegram/net/NetQueryDelayer.h
   td/telegram/net/NetQueryDispatcher.h
   td/telegram/net/NetQueryStats.h
+  td/telegram/net/NetQueryVerifier.h
   td/telegram/net/NetStatsManager.h
   td/telegram/net/NetType.h
   td/telegram/net/Proxy.h

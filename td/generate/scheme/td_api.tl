@@ -6801,7 +6801,7 @@ botCommandScopeChatMember chat_id:int53 user_id:int53 = BotCommandScope;
 
 //@class PhoneNumberCodeType @description Describes type of the request for which a code is sent to a phone number
 
-//@description Checks ownership of a new phone number to change the user's authentication phone number; for official Android and iOS applications only.
+//@description Checks ownership of a new phone number to change the user's authentication phone number; for official Android and iOS applications only
 phoneNumberCodeTypeChange = PhoneNumberCodeType;
 
 //@description Verifies ownership of a phone number to be added to the user's Telegram Passport
@@ -7124,6 +7124,13 @@ updateFileDownload file_id:int32 complete_date:int32 is_paused:Bool counts:downl
 
 //@description A file was removed from the file download list. This update is sent only after file download list is loaded for the first time @file_id File identifier @counts New number of being downloaded and recently downloaded files found
 updateFileRemovedFromDownloads file_id:int32 counts:downloadedFileCounts = Update;
+
+//@description A request can't be completed unless application verification is performed; for official mobile applications only.
+//-The method setApplicationVerificationToken must be called once the verification is completed or failed
+//@verification_id Unique identifier for the verification process
+//@nonce Unique nonce for the classic Play Integrity verification (https://developer.android.com/google/play/integrity/classic) for Android,
+//-or a unique string to compare with verify_nonce field from a push notification for iOS
+updateApplicationVerificationRequired verification_id:int53 nonce:string = Update;
 
 //@description New call was created or information about a call was updated @call New data about a call
 updateCall call:call = Update;
@@ -7540,7 +7547,7 @@ recoverAuthenticationPassword recovery_code:string new_password:string new_hint:
 //@token Play Integrity API or SafetyNet Attestation API token for the Android application, or secret from push notification for the iOS application
 sendAuthenticationFirebaseSms token:string = Ok;
 
-//@description Reports that authentication code wasn't delivered via SMS; for official mobile apps only. Works only when the current authorization state is authorizationStateWaitCode @mobile_network_code Current mobile network code
+//@description Reports that authentication code wasn't delivered via SMS; for official mobile applications only. Works only when the current authorization state is authorizationStateWaitCode @mobile_network_code Current mobile network code
 reportAuthenticationCodeMissing mobile_network_code:string = Ok;
 
 //@description Checks the authentication token of a bot; to log in as a bot. Works only when the current authorization state is authorizationStateWaitPhoneNumber. Can be used instead of setAuthenticationPhoneNumber and checkAuthenticationCode to log in @token The bot token
@@ -9929,7 +9936,7 @@ sendPhoneNumberCode phone_number:string settings:phoneNumberAuthenticationSettin
 //@token Play Integrity API or SafetyNet Attestation API token for the Android application, or secret from push notification for the iOS application
 sendPhoneNumberFirebaseSms token:string = Ok;
 
-//@description Reports that authentication code wasn't delivered via SMS to the specified phone number; for official mobile apps only @mobile_network_code Current mobile network code
+//@description Reports that authentication code wasn't delivered via SMS to the specified phone number; for official mobile applications only @mobile_network_code Current mobile network code
 reportPhoneNumberCodeMissing mobile_network_code:string = Ok;
 
 //@description Resends the authentication code sent to a phone number. Works only if the previously received authenticationCodeInfo next_code_type was not null and the server-specified timeout has passed

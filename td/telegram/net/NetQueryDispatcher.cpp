@@ -11,6 +11,7 @@
 #include "td/telegram/net/DcAuthManager.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/net/NetQueryDelayer.h"
+#include "td/telegram/net/NetQueryVerifier.h"
 #include "td/telegram/net/PublicRsaKeySharedCdn.h"
 #include "td/telegram/net/PublicRsaKeySharedMain.h"
 #include "td/telegram/net/PublicRsaKeyWatchdog.h"
@@ -92,6 +93,23 @@ void NetQueryDispatcher::dispatch(NetQueryPtr net_query) {
         return;
       }
       return send_closure_later(delayer_, &NetQueryDelayer::delay, std::move(net_query));
+#if TD_ANDROID || TD_DARWIN_IOS || TD_DARWIN_VISION_OS || TD_DARWIN_WATCH_OS
+    } else if (code == 403) {
+#if TD_ANDROID
+      Slice prefix("INTEGRITY_CHECK_CLASSIC_");
+#else
+      Slice prefix("APNS_VERIFY_CHECK_");
+#endif
+      if (begins_with(net_query->error().message(), prefix)) {
+        net_query->debug("sent to NetQueryVerifier");
+        std::lock_guard<std::mutex> guard(mutex_);
+        if (check_stop_flag(net_query)) {
+          return;
+        }
+        string nonce = net_query->error().message().substr(prefix.size()).str();
+        return send_closure_later(verifier_, &NetQueryVerifier::verify, std::move(net_query), std::move(nonce));
+      }
+#endif
     }
   }
 
@@ -232,6 +250,7 @@ void NetQueryDispatcher::stop() {
   std::lock_guard<std::mutex> guard(mutex_);
   stop_flag_ = true;
   delayer_.reset();
+  verifier_.reset();
   for (auto &dc : dcs_) {
     dc.main_session_.reset();
     dc.upload_session_.reset();
@@ -324,6 +343,9 @@ NetQueryDispatcher::NetQueryDispatcher(const std::function<ActorShared<>()> &cre
     main_dc_id_ = to_integer<int32>(s_main_dc_id);
   }
   delayer_ = create_actor<NetQueryDelayer>("NetQueryDelayer", create_reference());
+#if TD_ANDROID || TD_DARWIN_IOS || TD_DARWIN_VISION_OS || TD_DARWIN_WATCH_OS
+  verifier_ = create_actor<NetQueryVerifier>("NetQueryVerifier", create_reference());
+#endif
   dc_auth_manager_ =
       create_actor_on_scheduler<DcAuthManager>("DcAuthManager", get_main_session_scheduler_id(), create_reference());
   public_rsa_key_watchdog_ = create_actor<PublicRsaKeyWatchdog>("PublicRsaKeyWatchdog", create_reference());
