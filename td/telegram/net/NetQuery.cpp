@@ -171,4 +171,15 @@ StringBuilder &operator<<(StringBuilder &stream, const NetQueryPtr &net_query_pt
   return stream << *net_query_ptr;
 }
 
+void NetQuery::add_verification_prefix(const string &prefix) {
+  CHECK(is_ready());
+  CHECK(is_error());
+  CHECK(!query_.empty());
+  BufferSlice query(prefix.size() + query_.size() - verification_prefix_length_);
+  query.as_mutable_slice().copy_from(prefix);
+  query.as_mutable_slice().substr(prefix.size()).copy_from(query_.as_slice().substr(verification_prefix_length_));
+  verification_prefix_length_ = narrow_cast<int32>(prefix.size());
+  query_ = std::move(query);
+}
+
 }  // namespace td

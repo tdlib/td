@@ -238,6 +238,8 @@ class NetQuery final : public TsListNode<NetQueryDebug> {
     return in_sequence_dispacher_;
   }
 
+  void add_verification_prefix(const string &prefix);
+
  private:
   State state_ = State::Empty;
   Type type_ = Type::Common;
@@ -251,6 +253,7 @@ class NetQuery final : public TsListNode<NetQueryDebug> {
   BufferSlice query_;
   BufferSlice answer_;
   int32 tl_constructor_ = 0;
+  int32 verification_prefix_length_ = 0;
 
   vector<NetQueryRef> invoke_after_;
   vector<uint64> chain_ids_;
