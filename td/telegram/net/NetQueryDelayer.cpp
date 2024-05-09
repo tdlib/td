@@ -21,7 +21,7 @@ namespace td {
 
 void NetQueryDelayer::delay(NetQueryPtr query) {
   query->debug("trying to delay");
-  query->is_ready();
+  CHECK(query->is_ready());
   CHECK(query->is_error());
   auto code = query->error().code();
   int32 timeout = 0;
