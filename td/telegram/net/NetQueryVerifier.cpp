@@ -57,8 +57,8 @@ void NetQueryVerifier::set_verification_token(int64 query_id, string &&token, Pr
     auto real_size = storer.store(MutableSlice(prefix_str).ubegin());
     CHECK(real_size == prefix_str.size());
     query->add_verification_prefix(prefix_str);
+    query->resend();
   }
-  query->resend();
   G()->net_query_dispatcher().dispatch(std::move(query));
 }
 

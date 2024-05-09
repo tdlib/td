@@ -32,6 +32,8 @@
 
 namespace td {
 
+#define TD_TEST_VERIFICATION 0
+
 void NetQueryDispatcher::complete_net_query(NetQueryPtr net_query) {
   auto callback = net_query->move_callback();
   if (callback.empty()) {
@@ -67,6 +69,12 @@ void NetQueryDispatcher::dispatch(NetQueryPtr net_query) {
     net_query->set_error(Status::Error(429, "Too Many Requests: retry after 10"));
     return complete_net_query(std::move(net_query));
   }
+#if TD_TEST_VERIFICATION
+  if (net_query->tl_constructor() == telegram_api::account_getAuthorizations::ID &&
+      !net_query->has_verification_prefix() && !net_query->is_ready()) {
+    net_query->set_error(Status::Error(403, "APNS_VERIFY_CHECK_ABCD"));
+  }
+#endif
 
   if (!net_query->in_sequence_dispatcher() && !net_query->get_chain_ids().empty()) {
     net_query->debug("sent to main sequence dispatcher");
@@ -93,7 +101,7 @@ void NetQueryDispatcher::dispatch(NetQueryPtr net_query) {
         return;
       }
       return send_closure_later(delayer_, &NetQueryDelayer::delay, std::move(net_query));
-#if TD_ANDROID || TD_DARWIN_IOS || TD_DARWIN_VISION_OS || TD_DARWIN_WATCH_OS
+#if TD_ANDROID || TD_DARWIN_IOS || TD_DARWIN_VISION_OS || TD_DARWIN_WATCH_OS || TD_TEST_VERIFICATION
     } else if (code == 403) {
 #if TD_ANDROID
       Slice prefix("INTEGRITY_CHECK_CLASSIC_");
@@ -343,7 +351,7 @@ NetQueryDispatcher::NetQueryDispatcher(const std::function<ActorShared<>()> &cre
     main_dc_id_ = to_integer<int32>(s_main_dc_id);
   }
   delayer_ = create_actor<NetQueryDelayer>("NetQueryDelayer", create_reference());
-#if TD_ANDROID || TD_DARWIN_IOS || TD_DARWIN_VISION_OS || TD_DARWIN_WATCH_OS
+#if TD_ANDROID || TD_DARWIN_IOS || TD_DARWIN_VISION_OS || TD_DARWIN_WATCH_OS || TD_TEST_VERIFICATION
   verifier_ = create_actor<NetQueryVerifier>("NetQueryVerifier", create_reference());
 #endif
   dc_auth_manager_ =

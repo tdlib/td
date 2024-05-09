@@ -240,6 +240,10 @@ class NetQuery final : public TsListNode<NetQueryDebug> {
 
   void add_verification_prefix(const string &prefix);
 
+  bool has_verification_prefix() const {
+    return verification_prefix_length_ != 0;
+  }
+
  private:
   State state_ = State::Empty;
   Type type_ = Type::Common;
