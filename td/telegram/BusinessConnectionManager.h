@@ -61,13 +61,13 @@ class BusinessConnectionManager final : public Actor {
 
   void send_message(BusinessConnectionId business_connection_id, DialogId dialog_id,
                     td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to, bool disable_notification,
-                    bool protect_content, td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
+                    bool protect_content, int64 effect_id, td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
                     td_api::object_ptr<td_api::InputMessageContent> &&input_message_content,
                     Promise<td_api::object_ptr<td_api::businessMessage>> &&promise);
 
   void send_message_album(BusinessConnectionId business_connection_id, DialogId dialog_id,
                           td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to, bool disable_notification,
-                          bool protect_content,
+                          bool protect_content, int64 effect_id,
                           vector<td_api::object_ptr<td_api::InputMessageContent>> &&input_message_contents,
                           Promise<td_api::object_ptr<td_api::businessMessages>> &&promise);
 
@@ -116,7 +116,7 @@ class BusinessConnectionManager final : public Actor {
   unique_ptr<PendingMessage> create_business_message_to_send(BusinessConnectionId business_connection_id,
                                                              DialogId dialog_id, MessageInputReplyTo &&input_reply_to,
                                                              bool disable_notification, bool protect_content,
-                                                             unique_ptr<ReplyMarkup> &&reply_markup,
+                                                             int64 effect_id, unique_ptr<ReplyMarkup> &&reply_markup,
                                                              InputMessageContent &&input_content) const;
 
   void do_send_message(unique_ptr<PendingMessage> &&message,

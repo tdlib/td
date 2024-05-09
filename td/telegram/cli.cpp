@@ -2399,8 +2399,8 @@ class CliClient final : public Actor {
                     bool disable_notification = false, bool from_background = false) {
     if (!business_connection_id_.empty()) {
       send_request(td_api::make_object<td_api::sendBusinessMessage>(
-          business_connection_id_, chat_id, get_input_message_reply_to(), disable_notification, rand_bool(), nullptr,
-          std::move(input_message_content)));
+          business_connection_id_, chat_id, get_input_message_reply_to(), disable_notification, rand_bool(),
+          message_effect_id_, nullptr, std::move(input_message_content)));
       return;
     }
     if (!quick_reply_shortcut_name_.empty()) {
@@ -4894,7 +4894,7 @@ class CliClient final : public Actor {
       if (!business_connection_id_.empty()) {
         send_request(td_api::make_object<td_api::sendBusinessMessageAlbum>(
             business_connection_id_, chat_id, get_input_message_reply_to(), rand_bool(), rand_bool(),
-            std::move(input_message_contents)));
+            message_effect_id_, std::move(input_message_contents)));
       } else if (!quick_reply_shortcut_name_.empty()) {
         send_request(td_api::make_object<td_api::addQuickReplyShortcutMessageAlbum>(
             quick_reply_shortcut_name_, reply_message_id_, std::move(input_message_contents)));
@@ -4914,7 +4914,7 @@ class CliClient final : public Actor {
       if (!business_connection_id_.empty()) {
         send_request(td_api::make_object<td_api::sendBusinessMessageAlbum>(
             business_connection_id_, chat_id, get_input_message_reply_to(), rand_bool(), rand_bool(),
-            std::move(input_message_contents)));
+            message_effect_id_, std::move(input_message_contents)));
       } else if (!quick_reply_shortcut_name_.empty()) {
         send_request(td_api::make_object<td_api::addQuickReplyShortcutMessageAlbum>(
             quick_reply_shortcut_name_, reply_message_id_, std::move(input_message_contents)));
