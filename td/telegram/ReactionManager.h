@@ -81,6 +81,8 @@ class ReactionManager final : public Actor {
 
   void set_saved_messages_tag_title(ReactionType reaction_type, string title, Promise<Unit> &&promise);
 
+  void reload_message_effects();
+
   void get_message_effects(Promise<td_api::object_ptr<td_api::messageEffects>> &&promise);
 
   void get_message_effect(int64 effect_id, Promise<td_api::object_ptr<td_api::messageEffect>> &&promise);
@@ -265,8 +267,16 @@ class ReactionManager final : public Actor {
 
   td_api::object_ptr<td_api::messageEffects> get_message_effects_object() const;
 
+  td_api::object_ptr<td_api::updateAvailableMessageEffects> get_update_available_message_effects_object() const;
+
   void on_get_message_effects(Result<telegram_api::object_ptr<telegram_api::messages_AvailableEffects>> r_effects,
                               Promise<td_api::object_ptr<td_api::messageEffects>> promise);
+
+  void save_active_message_effects();
+
+  void load_active_message_effects();
+
+  void update_active_message_effects();
 
   Td *td_;
   ActorShared<> parent_;
@@ -291,6 +301,7 @@ class ReactionManager final : public Actor {
       pending_get_topic_saved_reaction_tags_queries_;
 
   Effects message_effects_;
+  vector<int64> active_message_effects_;
 };
 
 }  // namespace td

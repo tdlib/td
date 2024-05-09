@@ -7250,6 +7250,9 @@ updateWebAppMessageSent web_app_launch_id:int64 = Update;
 //@description The list of active emoji reactions has changed @emojis The new list of active emoji reactions
 updateActiveEmojiReactions emojis:vector<string> = Update;
 
+//@description The list of available message effects has changed @effect_ids The new list of available message effects. Emoji reaction effects are guaranteed to be returned before sticker effects
+updateAvailableMessageEffects effect_ids:vector<int64> = Update;
+
 //@description The type of default reaction has changed @reaction_type The new type of the default reaction
 updateDefaultReactionType reaction_type:ReactionType = Update;
 

@@ -3957,7 +3957,6 @@ void Td::send_update(tl_object_ptr<td_api::Update> &&object) {
         VLOG(td_requests) << "Sending update: " << to_string(object);
       }
       break;
-    case td_api::updateSpeedLimitNotification::ID:
     case td_api::updateDefaultReactionType::ID / 2:
       LOG(ERROR) << "Sending update: " << oneline(to_string(object));
       break;

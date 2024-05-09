@@ -475,6 +475,7 @@ void ReactionManager::init() {
   td_->stickers_manager_->init();
 
   load_active_reactions();
+  load_active_message_effects();
 
   if (td_->option_manager_->get_option_boolean("default_reaction_needs_sync")) {
     send_set_default_reaction_query();
@@ -1228,6 +1229,14 @@ td_api::object_ptr<td_api::messageEffects> ReactionManager::get_message_effects_
   return td_api::make_object<td_api::messageEffects>(std::move(effects));
 }
 
+td_api::object_ptr<td_api::updateAvailableMessageEffects> ReactionManager::get_update_available_message_effects_object()
+    const {
+  return td_api::make_object<td_api::updateAvailableMessageEffects>(vector<int64>(active_message_effects_));
+}
+
+void ReactionManager::reload_message_effects() {
+}
+
 void ReactionManager::get_message_effects(Promise<td_api::object_ptr<td_api::messageEffects>> &&promise) {
   auto query_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), promise = std::move(promise)](
@@ -1324,12 +1333,54 @@ void ReactionManager::on_get_message_effects(
 
       message_effects_.effects_ = std::move(new_effects);
       message_effects_.hash_ = effects->hash_;
+
+      update_active_message_effects();
       break;
     }
     default:
       UNREACHABLE();
   }
   promise.set_value(get_message_effects_object());
+}
+
+void ReactionManager::save_active_message_effects() {
+  LOG(INFO) << "Save " << active_message_effects_.size() << " available message effects";
+  G()->td_db()->get_binlog_pmc()->set("active_message_effects",
+                                      log_event_store(active_message_effects_).as_slice().str());
+}
+
+void ReactionManager::load_active_message_effects() {
+  LOG(INFO) << "Loading active message effects";
+  string active_message_effects = G()->td_db()->get_binlog_pmc()->get("active_message_effects");
+  if (active_message_effects.empty()) {
+    return reload_message_effects();
+  }
+
+  auto status = log_event_parse(active_message_effects_, active_message_effects);
+  if (status.is_error()) {
+    LOG(ERROR) << "Can't load active message effects: " << status;
+    active_message_effects_ = {};
+    return reload_message_effects();
+  }
+
+  LOG(INFO) << "Successfully loaded " << active_message_effects_.size() << " active message effects";
+
+  send_closure(G()->td(), &Td::send_update, get_update_available_message_effects_object());
+}
+
+void ReactionManager::update_active_message_effects() {
+  vector<int64> active_message_effects;
+  for (auto &effect : message_effects_.effects_) {
+    active_message_effects.push_back(effect.id_);
+  }
+  if (active_message_effects == active_message_effects_) {
+    return;
+  }
+  active_message_effects_ = std::move(active_message_effects);
+
+  save_active_message_effects();
+
+  send_closure(G()->td(), &Td::send_update, get_update_available_message_effects_object());
 }
 
 void ReactionManager::get_message_effect(int64 effect_id,
@@ -1357,6 +1408,9 @@ void ReactionManager::get_current_state(vector<td_api::object_ptr<td_api::Update
   }
   for (auto &it : topic_tags_) {
     updates.push_back(get_update_saved_messages_tags_object(it.first, it.second.get()));
+  }
+  if (!active_message_effects_.empty()) {
+    updates.push_back(get_update_available_message_effects_object());
   }
 }
 

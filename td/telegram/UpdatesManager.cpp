@@ -2260,6 +2260,7 @@ void UpdatesManager::try_reload_data() {
                                                                                   Auto());
   td_->quick_reply_manager_->reload_quick_reply_shortcuts();
   td_->reaction_manager_->reload_reactions();
+  td_->reaction_manager_->reload_message_effects();
 
   for (int32 type = 0; type < MAX_REACTION_LIST_TYPE; type++) {
     auto reaction_list_type = static_cast<ReactionListType>(type);
