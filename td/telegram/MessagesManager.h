@@ -1005,6 +1005,7 @@ class MessagesManager final : public Actor {
     vector<RestrictionReason> restriction_reasons;
     string author_signature;
     int64 media_album_id = 0;
+    int64 effect_id = 0;
     bool is_outgoing = false;
     bool is_silent = false;
     bool is_channel_post = false;
@@ -1120,6 +1121,7 @@ class MessagesManager final : public Actor {
     double ttl_expires_at = 0;    // only for TTL
 
     int64 media_album_id = 0;
+    int64 effect_id = 0;
 
     unique_ptr<MessageContent> content;
 

@@ -4114,6 +4114,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_initial_top_thread_message_id = !message_id.is_any_server() && initial_top_thread_message_id.is_valid();
   bool has_sender_boost_count = sender_boost_count != 0;
   bool has_via_business_bot_user_id = via_business_bot_user_id.is_valid();
+  bool has_effect_id = effect_id != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -4200,6 +4201,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_sender_boost_count);
     STORE_FLAG(has_via_business_bot_user_id);
     STORE_FLAG(is_from_offline);
+    STORE_FLAG(has_effect_id);
     END_STORE_FLAGS();
   }
 
@@ -4326,6 +4328,9 @@ void MessagesManager::Message::store(StorerT &storer) const {
   if (has_via_business_bot_user_id) {
     store(via_business_bot_user_id, storer);
   }
+  if (has_effect_id) {
+    store(effect_id, storer);
+  }
 }
 
 // do not forget to resolve message dependencies
@@ -4383,6 +4388,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_initial_top_thread_message_id = false;
   bool has_sender_boost_count = false;
   bool has_via_business_bot_user_id = false;
+  bool has_effect_id = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
   PARSE_FLAG(is_outgoing);
@@ -4469,6 +4475,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(has_sender_boost_count);
     PARSE_FLAG(has_via_business_bot_user_id);
     PARSE_FLAG(is_from_offline);
+    PARSE_FLAG(has_effect_id);
     END_PARSE_FLAGS();
   }
 
@@ -4658,6 +4665,9 @@ void MessagesManager::Message::parse(ParserT &parser) {
   }
   if (has_via_business_bot_user_id) {
     parse(via_business_bot_user_id, parser);
+  }
+  if (has_effect_id) {
+    parse(effect_id, parser);
   }
 
   CHECK(content != nullptr);
@@ -13051,6 +13061,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       message_info.has_mention = message->mentioned_;
       message_info.has_unread_content = message->media_unread_;
       message_info.invert_media = message->invert_media_;
+      message_info.effect_id = message->effect_;
 
       bool is_content_read = true;
       if (!td->auth_manager_->is_bot()) {
@@ -13381,6 +13392,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->forward_count = forward_count;
   message->reply_info = std::move(reply_info);
   message->reactions = std::move(reactions);
+  message->effect_id = message_info.effect_id;
   message->legacy_layer = (message_info.is_legacy ? MTPROTO_LAYER : 0);
   message->invert_media = message_info.invert_media;
   message->content = std::move(message_info.content);
@@ -22509,7 +22521,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
       nullptr, nullptr, m->is_outgoing, m->is_pinned, m->is_from_offline, false, false, false, can_be_saved, false,
       false, false, false, false, false, false, false, false, true, m->is_channel_post, m->is_topic_message, false,
       m->date, edit_date, std::move(forward_info), std::move(import_info), std::move(interaction_info), Auto(), nullptr,
-      0, 0, nullptr, 0.0, 0.0, via_bot_user_id, 0, m->sender_boost_count, m->author_signature, 0,
+      0, 0, nullptr, 0.0, 0.0, via_bot_user_id, 0, m->sender_boost_count, m->author_signature, 0, 0,
       get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
 }
 
@@ -22578,7 +22590,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_business_message_messag
       false, false, false, false, false, false, false, false, false, false, false, m->date, m->edit_date,
       std::move(forward_info), std::move(import_info), nullptr, Auto(), std::move(reply_to), 0, 0,
       std::move(self_destruct_type), 0.0, 0.0, via_bot_user_id, via_business_bot_user_id, 0, string(),
-      m->media_album_id, get_restriction_reason_description(m->restriction_reasons), std::move(content),
+      m->media_album_id, m->effect_id, get_restriction_reason_description(m->restriction_reasons), std::move(content),
       std::move(reply_markup));
 }
 
@@ -22695,7 +22707,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_message_object(DialogId
       std::move(interaction_info), std::move(unread_reactions), std::move(reply_to), top_thread_message_id,
       td_->saved_messages_manager_->get_saved_messages_topic_id_object(m->saved_messages_topic_id),
       std::move(self_destruct_type), ttl_expires_in, auto_delete_in, via_bot_user_id, via_business_bot_user_id,
-      m->sender_boost_count, m->author_signature, m->media_album_id,
+      m->sender_boost_count, m->author_signature, m->media_album_id, m->effect_id,
       get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
 }
 
@@ -33675,6 +33687,10 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
        td_->auth_manager_->is_bot())) {
     old_message->media_album_id = new_message->media_album_id;
     LOG(DEBUG) << "Update message media_album_id";
+    need_send_update = true;
+  }
+  if (old_message->effect_id != new_message->effect_id) {
+    old_message->effect_id = new_message->effect_id;
     need_send_update = true;
   }
   if (old_message->hide_edit_date != new_message->hide_edit_date) {
