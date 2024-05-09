@@ -83,8 +83,6 @@ class ReactionManager final : public Actor {
 
   void reload_message_effects();
 
-  void get_message_effects(Promise<td_api::object_ptr<td_api::messageEffects>> &&promise);
-
   void get_message_effect(int64 effect_id, Promise<td_api::object_ptr<td_api::messageEffect>> &&promise);
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
@@ -210,11 +208,24 @@ class ReactionManager final : public Actor {
     bool is_sticker() const {
       return effect_animation_id_ == FileId();
     }
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
   struct Effects {
     int32 hash_ = 0;
+    bool are_being_reloaded_ = false;
     vector<Effect> effects_;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
   td_api::object_ptr<td_api::emojiReaction> get_emoji_reaction_object(const string &emoji) const;
@@ -265,12 +276,13 @@ class ReactionManager final : public Actor {
 
   td_api::object_ptr<td_api::messageEffect> get_message_effect_object(int64 effect_id) const;
 
-  td_api::object_ptr<td_api::messageEffects> get_message_effects_object() const;
-
   td_api::object_ptr<td_api::updateAvailableMessageEffects> get_update_available_message_effects_object() const;
 
-  void on_get_message_effects(Result<telegram_api::object_ptr<telegram_api::messages_AvailableEffects>> r_effects,
-                              Promise<td_api::object_ptr<td_api::messageEffects>> promise);
+  void load_message_effects();
+
+  void save_message_effects();
+
+  void on_get_message_effects(Result<telegram_api::object_ptr<telegram_api::messages_AvailableEffects>> r_effects);
 
   void save_active_message_effects();
 
@@ -284,6 +296,7 @@ class ReactionManager final : public Actor {
   bool is_inited_ = false;
   bool are_reactions_loaded_from_database_ = false;
   bool are_all_tags_loaded_from_database_ = false;
+  bool are_message_effects_loaded_from_database_ = false;
 
   vector<std::pair<string, Promise<td_api::object_ptr<td_api::emojiReaction>>>> pending_get_emoji_reaction_queries_;
 
@@ -302,6 +315,8 @@ class ReactionManager final : public Actor {
 
   Effects message_effects_;
   vector<int64> active_message_effects_;
+
+  vector<std::pair<int64, Promise<td_api::object_ptr<td_api::messageEffect>>>> pending_get_message_effect_queries_;
 };
 
 }  // namespace td

@@ -255,8 +255,8 @@ class GetMessageAvailableEffectsQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send() {
-    send_query(G()->net_query_creator().create(telegram_api::messages_getAvailableEffects(0)));
+  void send(int32 hash) {
+    send_query(G()->net_query_creator().create(telegram_api::messages_getAvailableEffects(hash)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -777,7 +777,8 @@ void ReactionManager::load_reactions() {
     return reload_reactions();
   }
 
-  auto new_reactions = reactions_;
+  Reactions new_reactions;
+  new_reactions.are_being_reloaded_ = reactions_.are_being_reloaded_;
   auto status = log_event_parse(new_reactions, reactions);
   if (status.is_error()) {
     LOG(ERROR) << "Can't load available reactions: " << status;
@@ -1223,35 +1224,80 @@ td_api::object_ptr<td_api::messageEffect> ReactionManager::get_message_effect_ob
   return nullptr;
 }
 
-td_api::object_ptr<td_api::messageEffects> ReactionManager::get_message_effects_object() const {
-  auto effects =
-      transform(message_effects_.effects_, [&](const Effect &effect) { return get_message_effect_object(effect); });
-  return td_api::make_object<td_api::messageEffects>(std::move(effects));
-}
-
 td_api::object_ptr<td_api::updateAvailableMessageEffects> ReactionManager::get_update_available_message_effects_object()
     const {
   return td_api::make_object<td_api::updateAvailableMessageEffects>(vector<int64>(active_message_effects_));
 }
 
 void ReactionManager::reload_message_effects() {
+  if (G()->close_flag() || message_effects_.are_being_reloaded_) {
+    return;
+  }
+  CHECK(!td_->auth_manager_->is_bot());
+  message_effects_.are_being_reloaded_ = true;
+  load_message_effects();  // must be after are_being_reloaded_ is set to true to avoid recursion
+  auto promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this)](
+          Result<telegram_api::object_ptr<telegram_api::messages_AvailableEffects>> r_effects) mutable {
+        send_closure(actor_id, &ReactionManager::on_get_message_effects, std::move(r_effects));
+      });
+  td_->create_handler<GetMessageAvailableEffectsQuery>(std::move(promise))->send(message_effects_.hash_);
 }
 
-void ReactionManager::get_message_effects(Promise<td_api::object_ptr<td_api::messageEffects>> &&promise) {
-  auto query_promise = PromiseCreator::lambda(
-      [actor_id = actor_id(this), promise = std::move(promise)](
-          Result<telegram_api::object_ptr<telegram_api::messages_AvailableEffects>> r_effects) mutable {
-        send_closure(actor_id, &ReactionManager::on_get_message_effects, std::move(r_effects), std::move(promise));
-      });
-  td_->create_handler<GetMessageAvailableEffectsQuery>(std::move(query_promise))->send();
+void ReactionManager::load_message_effects() {
+  if (are_message_effects_loaded_from_database_) {
+    return;
+  }
+  are_message_effects_loaded_from_database_ = true;
+
+  LOG(INFO) << "Loading message effects";
+  string message_effects = G()->td_db()->get_binlog_pmc()->get("message_effects");
+  if (message_effects.empty()) {
+    return reload_message_effects();
+  }
+
+  Effects new_message_effects;
+  new_message_effects.are_being_reloaded_ = message_effects_.are_being_reloaded_;
+  auto status = log_event_parse(new_message_effects, message_effects);
+  if (status.is_error()) {
+    LOG(ERROR) << "Can't load message effects: " << status;
+    return reload_message_effects();
+  }
+  for (auto &effect : new_message_effects.effects_) {
+    if (!effect.is_valid()) {
+      LOG(ERROR) << "Loaded invalid message effect";
+      return reload_message_effects();
+    }
+  }
+  message_effects_ = std::move(new_message_effects);
+
+  LOG(INFO) << "Successfully loaded " << message_effects_.effects_.size() << " message effects";
+
+  update_active_message_effects();
+}
+
+void ReactionManager::save_message_effects() {
+  LOG(INFO) << "Save " << message_effects_.effects_.size() << " message effects";
+  are_message_effects_loaded_from_database_ = true;
+  G()->td_db()->get_binlog_pmc()->set("message_effects", log_event_store(message_effects_).as_slice().str());
 }
 
 void ReactionManager::on_get_message_effects(
-    Result<telegram_api::object_ptr<telegram_api::messages_AvailableEffects>> r_effects,
-    Promise<td_api::object_ptr<td_api::messageEffects>> promise) {
+    Result<telegram_api::object_ptr<telegram_api::messages_AvailableEffects>> r_effects) {
+  CHECK(message_effects_.are_being_reloaded_);
+  message_effects_.are_being_reloaded_ = false;
+
+  auto get_message_effect_queries = std::move(pending_get_message_effect_queries_);
+  pending_get_message_effect_queries_.clear();
+  SCOPE_EXIT {
+    for (auto &query : get_message_effect_queries) {
+      query.second.set_value(get_message_effect_object(query.first));
+    }
+  };
+
   G()->ignore_result_if_closing(r_effects);
   if (r_effects.is_error()) {
-    return promise.set_error(r_effects.move_as_error());
+    return;
   }
   auto message_effects = r_effects.move_as_ok();
 
@@ -1334,13 +1380,14 @@ void ReactionManager::on_get_message_effects(
       message_effects_.effects_ = std::move(new_effects);
       message_effects_.hash_ = effects->hash_;
 
+      save_message_effects();
+
       update_active_message_effects();
       break;
     }
     default:
       UNREACHABLE();
   }
-  promise.set_value(get_message_effects_object());
 }
 
 void ReactionManager::save_active_message_effects() {
@@ -1385,13 +1432,11 @@ void ReactionManager::update_active_message_effects() {
 
 void ReactionManager::get_message_effect(int64 effect_id,
                                          Promise<td_api::object_ptr<td_api::messageEffect>> &&promise) {
-  /*
   load_message_effects();
-  if (effects_.effects_.empty() && effects_.are_being_reloaded_) {
+  if (message_effects_.effects_.empty() && message_effects_.are_being_reloaded_) {
     pending_get_message_effect_queries_.emplace_back(effect_id, std::move(promise));
     return;
   }
-  */
   promise.set_value(get_message_effect_object(effect_id));
 }
 
