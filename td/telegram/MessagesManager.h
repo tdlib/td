@@ -733,7 +733,7 @@ class MessagesManager final : public Actor {
   FoundMessages offline_search_messages(DialogId dialog_id, const string &query, string offset, int32 limit,
                                         MessageSearchFilter filter, int64 &random_id, Promise<Unit> &&promise);
 
-  void search_messages(FolderId folder_id, bool ignore_folder_id, bool broadcasts_only, const string &query,
+  void search_messages(DialogListId dialog_list_id, bool ignore_folder_id, bool broadcasts_only, const string &query,
                        const string &offset, int32 limit, MessageSearchFilter filter, int32 min_date, int32 max_date,
                        Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 

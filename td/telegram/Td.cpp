@@ -5376,12 +5376,8 @@ void Td::on_request(uint64 id, td_api::searchMessages &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);
   CLEAN_INPUT_STRING(request.offset_);
-  DialogListId dialog_list_id(request.chat_list_);
-  if (!dialog_list_id.is_folder()) {
-    return send_error_raw(id, 400, "Wrong chat list specified");
-  }
   CREATE_REQUEST_PROMISE();
-  messages_manager_->search_messages(dialog_list_id.get_folder_id(), request.chat_list_ == nullptr,
+  messages_manager_->search_messages(DialogListId(request.chat_list_), request.chat_list_ == nullptr,
                                      request.only_in_channels_, std::move(request.query_), std::move(request.offset_),
                                      request.limit_, get_message_search_filter(request.filter_), request.min_date_,
                                      request.max_date_, std::move(promise));

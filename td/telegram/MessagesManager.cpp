@@ -2123,7 +2123,6 @@ class SearchMessagesGlobalQuery final : public Td::ResultHandler {
   void on_error(Status status) final {
     if (status.message() == "SEARCH_QUERY_EMPTY") {
       return promise_.set_value(td_->messages_manager_->get_found_messages_object({}, "SearchMessagesGlobalQuery"));
-      ;
     }
     promise_.set_error(std::move(status));
   }
@@ -21075,10 +21074,13 @@ void MessagesManager::on_message_db_calls_result(Result<MessageDbCallsResult> re
   promise.set_value(Unit());
 }
 
-void MessagesManager::search_messages(FolderId folder_id, bool ignore_folder_id, bool broadcasts_only,
+void MessagesManager::search_messages(DialogListId dialog_list_id, bool ignore_folder_id, bool broadcasts_only,
                                       const string &query, const string &offset, int32 limit,
                                       MessageSearchFilter filter, int32 min_date, int32 max_date,
                                       Promise<td_api::object_ptr<td_api::foundMessages>> &&promise) {
+  if (!dialog_list_id.is_folder()) {
+    return promise.set_error(Status::Error(400, "Wrong chat list specified"));
+  }
   if (limit <= 0) {
     return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
   }
@@ -21133,8 +21135,8 @@ void MessagesManager::search_messages(FolderId folder_id, bool ignore_folder_id,
              << offset << " and limit " << limit;
 
   td_->create_handler<SearchMessagesGlobalQuery>(std::move(promise))
-      ->send(folder_id, ignore_folder_id, broadcasts_only, query, offset_date, offset_dialog_id, offset_message_id,
-             limit, filter, min_date, max_date);
+      ->send(dialog_list_id.get_folder_id(), ignore_folder_id, broadcasts_only, query, offset_date, offset_dialog_id,
+             offset_message_id, limit, filter, min_date, max_date);
 }
 
 int64 MessagesManager::get_dialog_message_by_date(DialogId dialog_id, int32 date, Promise<Unit> &&promise) {
