@@ -193,10 +193,9 @@ class MessagesManager final : public Actor {
 
   void on_get_messages_search_result(const string &query, int32 offset_date, DialogId offset_dialog_id,
                                      MessageId offset_message_id, int32 limit, MessageSearchFilter filter,
-                                     int32 min_date, int32 max_date, int64 random_id, int32 total_count,
+                                     int32 min_date, int32 max_date, int32 total_count,
                                      vector<tl_object_ptr<telegram_api::Message>> &&messages, int32 next_rate,
-                                     Promise<Unit> &&promise);
-  void on_failed_messages_search(int64 random_id);
+                                     Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 
   void on_get_outgoing_document_messages(vector<tl_object_ptr<telegram_api::Message>> &&messages,
                                          Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
@@ -734,9 +733,9 @@ class MessagesManager final : public Actor {
   FoundMessages offline_search_messages(DialogId dialog_id, const string &query, string offset, int32 limit,
                                         MessageSearchFilter filter, int64 &random_id, Promise<Unit> &&promise);
 
-  FoundMessages search_messages(FolderId folder_id, bool ignore_folder_id, bool broadcasts_only, const string &query,
-                                const string &offset, int32 limit, MessageSearchFilter filter, int32 min_date,
-                                int32 max_date, int64 &random_id, Promise<Unit> &&promise);
+  void search_messages(FolderId folder_id, bool ignore_folder_id, bool broadcasts_only, const string &query,
+                       const string &offset, int32 limit, MessageSearchFilter filter, int32 min_date, int32 max_date,
+                       Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 
   FoundMessages search_call_messages(const string &offset, int32 limit, bool only_missed, int64 &random_id, bool use_db,
                                      Promise<Unit> &&promise);
@@ -3243,7 +3242,6 @@ class MessagesManager final : public Actor {
   FlatHashMap<int64, td_api::object_ptr<td_api::messageCalendar>> found_dialog_message_calendars_;
   FlatHashMap<int64, FoundDialogMessages> found_dialog_messages_;  // random_id -> FoundDialogMessages
   FlatHashMap<int64, DialogId> found_dialog_messages_dialog_id_;   // random_id -> dialog_id
-  FlatHashMap<int64, FoundMessages> found_messages_;               // random_id -> FoundMessages
   FlatHashMap<int64, FoundMessages> found_call_messages_;          // random_id -> FoundMessages
 
   FlatHashMap<int64, FoundMessages> found_fts_messages_;  // random_id -> FoundMessages

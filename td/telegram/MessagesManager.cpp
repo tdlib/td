@@ -2052,7 +2052,7 @@ class GetSearchCountersQuery final : public Td::ResultHandler {
 };
 
 class SearchMessagesGlobalQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
+  Promise<td_api::object_ptr<td_api::foundMessages>> promise_;
   string query_;
   int32 offset_date_;
   DialogId offset_dialog_id_;
@@ -2061,21 +2061,20 @@ class SearchMessagesGlobalQuery final : public Td::ResultHandler {
   MessageSearchFilter filter_;
   int32 min_date_;
   int32 max_date_;
-  int64 random_id_;
 
  public:
-  explicit SearchMessagesGlobalQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit SearchMessagesGlobalQuery(Promise<td_api::object_ptr<td_api::foundMessages>> &&promise)
+      : promise_(std::move(promise)) {
   }
 
   void send(FolderId folder_id, bool ignore_folder_id, bool broadcasts_only, const string &query, int32 offset_date,
             DialogId offset_dialog_id, MessageId offset_message_id, int32 limit, MessageSearchFilter filter,
-            int32 min_date, int32 max_date, int64 random_id) {
+            int32 min_date, int32 max_date) {
     query_ = query;
     offset_date_ = offset_date;
     offset_dialog_id_ = offset_dialog_id;
     offset_message_id_ = offset_message_id;
     limit_ = limit;
-    random_id_ = random_id;
     filter_ = filter;
     min_date_ = min_date;
     max_date_ = max_date;
@@ -2107,22 +2106,25 @@ class SearchMessagesGlobalQuery final : public Td::ResultHandler {
         PromiseCreator::lambda([actor_id = td_->messages_manager_actor_.get(), query = std::move(query_),
                                 offset_date = offset_date_, offset_dialog_id = offset_dialog_id_,
                                 offset_message_id = offset_message_id_, limit = limit_, filter = std::move(filter_),
-                                min_date = min_date_, max_date = max_date_, random_id = random_id_,
+                                min_date = min_date_, max_date = max_date_,
                                 promise = std::move(promise_)](Result<MessagesInfo> &&result) mutable {
           if (result.is_error()) {
             promise.set_error(result.move_as_error());
           } else {
             auto info = result.move_as_ok();
             send_closure(actor_id, &MessagesManager::on_get_messages_search_result, query, offset_date,
-                         offset_dialog_id, offset_message_id, limit, filter, min_date, max_date, random_id,
-                         info.total_count, std::move(info.messages), info.next_rate, std::move(promise));
+                         offset_dialog_id, offset_message_id, limit, filter, min_date, max_date, info.total_count,
+                         std::move(info.messages), info.next_rate, std::move(promise));
           }
         }),
         "SearchMessagesGlobalQuery");
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_failed_messages_search(random_id_);
+    if (status.message() == "SEARCH_QUERY_EMPTY") {
+      return promise_.set_value(td_->messages_manager_->get_found_messages_object({}, "SearchMessagesGlobalQuery"));
+      ;
+    }
     promise_.set_error(std::move(status));
   }
 };
@@ -9231,16 +9233,16 @@ void MessagesManager::on_get_dialog_message_count(DialogId dialog_id, SavedMessa
 void MessagesManager::on_get_messages_search_result(const string &query, int32 offset_date, DialogId offset_dialog_id,
                                                     MessageId offset_message_id, int32 limit,
                                                     MessageSearchFilter filter, int32 min_date, int32 max_date,
-                                                    int64 random_id, int32 total_count,
+                                                    int32 total_count,
                                                     vector<tl_object_ptr<telegram_api::Message>> &&messages,
-                                                    int32 next_rate, Promise<Unit> &&promise) {
+                                                    int32 next_rate,
+                                                    Promise<td_api::object_ptr<td_api::foundMessages>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   LOG(INFO) << "Receive " << messages.size() << " found messages";
-  auto it = found_messages_.find(random_id);
-  CHECK(it != found_messages_.end());
 
-  auto &result = it->second.message_full_ids;
+  FoundMessages found_messages;
+  auto &result = found_messages.message_full_ids;
   CHECK(result.empty());
   int32 last_message_date = 0;
   MessageId last_message_id;
@@ -9269,21 +9271,15 @@ void MessagesManager::on_get_messages_search_result(const string &query, int32 o
                << " messages";
     total_count = static_cast<int32>(result.size());
   }
-  it->second.total_count = total_count;
+  found_messages.total_count = total_count;
   if (!result.empty()) {
     if (next_rate > 0) {
       last_message_date = next_rate;
     }
-    it->second.next_offset = PSTRING() << last_message_date << ',' << last_dialog_id.get() << ','
-                                       << last_message_id.get_server_message_id().get();
+    found_messages.next_offset = PSTRING() << last_message_date << ',' << last_dialog_id.get() << ','
+                                           << last_message_id.get_server_message_id().get();
   }
-  promise.set_value(Unit());
-}
-
-void MessagesManager::on_failed_messages_search(int64 random_id) {
-  auto it = found_messages_.find(random_id);
-  CHECK(it != found_messages_.end());
-  found_messages_.erase(it);
+  promise.set_value(get_found_messages_object(found_messages, "on_get_messages_search_result"));
 }
 
 void MessagesManager::on_get_outgoing_document_messages(vector<tl_object_ptr<telegram_api::Message>> &&messages,
@@ -21079,25 +21075,12 @@ void MessagesManager::on_message_db_calls_result(Result<MessageDbCallsResult> re
   promise.set_value(Unit());
 }
 
-MessagesManager::FoundMessages MessagesManager::search_messages(FolderId folder_id, bool ignore_folder_id,
-                                                                bool broadcasts_only, const string &query,
-                                                                const string &offset, int32 limit,
-                                                                MessageSearchFilter filter, int32 min_date,
-                                                                int32 max_date, int64 &random_id,
-                                                                Promise<Unit> &&promise) {
-  if (random_id != 0) {
-    // request has already been sent before
-    auto it = found_messages_.find(random_id);
-    CHECK(it != found_messages_.end());
-    auto result = std::move(it->second);
-    found_messages_.erase(it);
-    promise.set_value(Unit());
-    return result;
-  }
-
+void MessagesManager::search_messages(FolderId folder_id, bool ignore_folder_id, bool broadcasts_only,
+                                      const string &query, const string &offset, int32 limit,
+                                      MessageSearchFilter filter, int32 min_date, int32 max_date,
+                                      Promise<td_api::object_ptr<td_api::foundMessages>> &&promise) {
   if (limit <= 0) {
-    promise.set_error(Status::Error(400, "Parameter limit must be positive"));
-    return {};
+    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
   }
   if (limit > MAX_SEARCH_MESSAGES) {
     limit = MAX_SEARCH_MESSAGES;
@@ -21132,35 +21115,26 @@ MessagesManager::FoundMessages MessagesManager::search_messages(FolderId folder_
     return true;
   }();
   if (!is_offset_valid) {
-    promise.set_error(Status::Error(400, "Invalid offset specified"));
-    return {};
+    return promise.set_error(Status::Error(400, "Invalid offset specified"));
   }
 
   CHECK(filter != MessageSearchFilter::Call && filter != MessageSearchFilter::MissedCall);
   if (filter == MessageSearchFilter::Mention || filter == MessageSearchFilter::UnreadMention ||
       filter == MessageSearchFilter::UnreadReaction || filter == MessageSearchFilter::FailedToSend ||
       filter == MessageSearchFilter::Pinned) {
-    promise.set_error(Status::Error(400, "The filter is not supported"));
-    return {};
+    return promise.set_error(Status::Error(400, "The filter is not supported"));
   }
 
   if (query.empty() && filter == MessageSearchFilter::Empty) {
-    promise.set_value(Unit());
-    return {};
+    return promise.set_value(get_found_messages_object({}, "search_messages"));
   }
-
-  do {
-    random_id = Random::secure_int64();
-  } while (random_id == 0 || found_messages_.count(random_id) > 0);
-  found_messages_[random_id];  // reserve place for result
 
   LOG(DEBUG) << "Search all messages filtered by " << filter << " with query = \"" << query << "\" from offset "
              << offset << " and limit " << limit;
 
   td_->create_handler<SearchMessagesGlobalQuery>(std::move(promise))
       ->send(folder_id, ignore_folder_id, broadcasts_only, query, offset_date, offset_dialog_id, offset_message_id,
-             limit, filter, min_date, max_date, random_id);
-  return {};
+             limit, filter, min_date, max_date);
 }
 
 int64 MessagesManager::get_dialog_message_by_date(DialogId dialog_id, int32 date, Promise<Unit> &&promise) {
