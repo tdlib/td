@@ -5353,6 +5353,15 @@ void Td::on_request(uint64 id, td_api::searchOutgoingDocumentMessages &request) 
   messages_manager_->search_outgoing_document_messages(request.query_, request.limit_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::searchPublicHashtagMessages &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.hashtag_);
+  CLEAN_INPUT_STRING(request.offset_);
+  CREATE_REQUEST_PROMISE();
+  messages_manager_->search_hashtag_posts(std::move(request.hashtag_), std::move(request.offset_), request.limit_,
+                                          std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::deleteAllCallMessages &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

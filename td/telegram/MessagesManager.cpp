@@ -2126,6 +2126,60 @@ class SearchMessagesGlobalQuery final : public Td::ResultHandler {
   }
 };
 
+class SearchPostsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::foundMessages>> promise_;
+  string hashtag_;
+  MessageSearchOffset offset_;
+  int32 limit_;
+
+ public:
+  explicit SearchPostsQuery(Promise<td_api::object_ptr<td_api::foundMessages>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &hashtag, MessageSearchOffset offset, int32 limit) {
+    hashtag_ = hashtag;
+    offset_ = offset;
+    limit_ = limit;
+
+    auto input_peer = DialogManager::get_input_peer_force(offset.dialog_id_);
+    CHECK(input_peer != nullptr);
+
+    send_query(G()->net_query_creator().create(telegram_api::channels_searchPosts(
+        hashtag, offset.date_, std::move(input_peer), offset.message_id_.get_server_message_id().get(), limit)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_searchPosts>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto info = get_messages_info(td_, DialogId(), result_ptr.move_as_ok(), "SearchPostsQuery");
+    td_->messages_manager_->get_channel_differences_if_needed(
+        std::move(info),
+        PromiseCreator::lambda([actor_id = td_->messages_manager_actor_.get(), hashtag = std::move(hashtag_),
+                                offset = offset_, limit = limit_,
+                                promise = std::move(promise_)](Result<MessagesInfo> &&result) mutable {
+          if (result.is_error()) {
+            promise.set_error(result.move_as_error());
+          } else {
+            auto info = result.move_as_ok();
+            send_closure(actor_id, &MessagesManager::on_get_hashtag_search_result, hashtag, offset, limit,
+                         info.total_count, std::move(info.messages), info.next_rate, std::move(promise));
+          }
+        }),
+        "SearchPostsQuery");
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "SEARCH_QUERY_EMPTY") {
+      return promise_.set_value(td_->messages_manager_->get_found_messages_object({}, "SearchPostsQuery"));
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetAllScheduledMessagesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -9250,7 +9304,6 @@ void MessagesManager::on_get_messages_search_result(const string &query, int32 o
 
   FoundMessages found_messages;
   auto &result = found_messages.message_full_ids;
-  CHECK(result.empty());
   MessageSearchOffset next_offset;
   for (auto &message : messages) {
     next_offset.update_from_message(message);
@@ -9276,6 +9329,41 @@ void MessagesManager::on_get_messages_search_result(const string &query, int32 o
     found_messages.next_offset = next_offset.to_string();
   }
   promise.set_value(get_found_messages_object(found_messages, "on_get_messages_search_result"));
+}
+
+void MessagesManager::on_get_hashtag_search_result(const string &hashtag, const MessageSearchOffset &old_offset,
+                                                   int32 limit, int32 total_count,
+                                                   vector<tl_object_ptr<telegram_api::Message>> &&messages,
+                                                   int32 next_rate,
+                                                   Promise<td_api::object_ptr<td_api::foundMessages>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  FoundMessages found_messages;
+  auto &result = found_messages.message_full_ids;
+  MessageSearchOffset next_offset;
+  for (auto &message : messages) {
+    next_offset.update_from_message(message);
+
+    auto new_message_full_id = on_get_message(std::move(message), false, true, false, "search hashtag");
+    if (new_message_full_id != MessageFullId()) {
+      result.push_back(new_message_full_id);
+    } else {
+      total_count--;
+    }
+  }
+  if (total_count < static_cast<int32>(result.size())) {
+    LOG(ERROR) << "Receive " << result.size() << " valid messages out of " << total_count << " in " << messages.size()
+               << " messages";
+    total_count = static_cast<int32>(result.size());
+  }
+  found_messages.total_count = total_count;
+  if (!result.empty()) {
+    if (next_rate > 0) {
+      next_offset.date_ = next_rate;
+    }
+    found_messages.next_offset = next_offset.to_string();
+  }
+  promise.set_value(get_found_messages_object(found_messages, "on_get_hashtag_search_result"));
 }
 
 void MessagesManager::on_get_outgoing_document_messages(vector<tl_object_ptr<telegram_api::Message>> &&messages,
@@ -20422,6 +20510,27 @@ void MessagesManager::search_outgoing_document_messages(const string &query, int
   }
 
   td_->create_handler<SearchSentMediaQuery>(std::move(promise))->send(query, limit);
+}
+
+void MessagesManager::search_hashtag_posts(string hashtag, string offset_str, int32 limit,
+                                           Promise<td_api::object_ptr<td_api::foundMessages>> &&promise) {
+  if (limit <= 0) {
+    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+  }
+  if (limit > MAX_SEARCH_MESSAGES) {
+    limit = MAX_SEARCH_MESSAGES;
+  }
+
+  TRY_RESULT_PROMISE(promise, offset, MessageSearchOffset::from_string(offset_str));
+
+  if (hashtag[0] == '#') {
+    hashtag = hashtag.substr(1);
+  }
+  if (hashtag.empty()) {
+    return promise.set_value(get_found_messages_object({}, "search_hashtag_posts"));
+  }
+
+  td_->create_handler<SearchPostsQuery>(std::move(promise))->send(hashtag, offset, limit);
 }
 
 void MessagesManager::search_dialog_recent_location_messages(DialogId dialog_id, int32 limit,

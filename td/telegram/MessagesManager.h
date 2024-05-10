@@ -115,6 +115,7 @@ struct InputMessageContent;
 class MessageContent;
 class MessageForwardInfo;
 struct MessageReactions;
+struct MessageSearchOffset;
 class MissingInvitees;
 class Td;
 class Usernames;
@@ -197,6 +198,10 @@ class MessagesManager final : public Actor {
                                      int32 min_date, int32 max_date, int32 total_count,
                                      vector<tl_object_ptr<telegram_api::Message>> &&messages, int32 next_rate,
                                      Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
+
+  void on_get_hashtag_search_result(const string &hashtag, const MessageSearchOffset &old_offset, int32 limit,
+                                    int32 total_count, vector<tl_object_ptr<telegram_api::Message>> &&messages,
+                                    int32 next_rate, Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 
   void on_get_outgoing_document_messages(vector<tl_object_ptr<telegram_api::Message>> &&messages,
                                          Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
@@ -744,6 +749,9 @@ class MessagesManager final : public Actor {
 
   void search_outgoing_document_messages(const string &query, int32 limit,
                                          Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
+
+  void search_hashtag_posts(string hashtag, string offset_str, int32 limit,
+                            Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 
   void search_dialog_recent_location_messages(DialogId dialog_id, int32 limit,
                                               Promise<td_api::object_ptr<td_api::messages>> &&promise);

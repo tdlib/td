@@ -45,8 +45,7 @@ Result<MessageSearchOffset> MessageSearchOffset::from_string(const string &offse
     auto r_offset_date = to_integer_safe<int32>(parts[0]);
     auto r_offset_dialog_id = to_integer_safe<int64>(parts[1]);
     auto r_offset_message_id = to_integer_safe<int32>(parts[2]);
-    if (r_offset_date.is_error() || r_offset_message_id.is_error() ||
-        r_offset_dialog_id.is_error()) {
+    if (r_offset_date.is_error() || r_offset_message_id.is_error() || r_offset_dialog_id.is_error()) {
       return false;
     }
     result.date_ = r_offset_date.ok();

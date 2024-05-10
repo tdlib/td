@@ -3047,6 +3047,12 @@ class CliClient final : public Actor {
       SearchQuery query;
       get_args(args, query);
       send_request(td_api::make_object<td_api::searchOutgoingDocumentMessages>(query.query, query.limit));
+    } else if (op == "sphm") {
+      string hashtag;
+      string limit;
+      string offset;
+      get_args(args, hashtag, limit, offset);
+      send_request(td_api::make_object<td_api::searchPublicHashtagMessages>(hashtag, offset, as_limit(limit)));
     } else if (op == "DeleteAllCallMessages") {
       bool revoke = as_bool(args);
       send_request(td_api::make_object<td_api::deleteAllCallMessages>(revoke));
