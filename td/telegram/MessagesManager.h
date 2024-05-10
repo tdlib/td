@@ -736,8 +736,8 @@ class MessagesManager final : public Actor {
                                Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 
   void search_messages(DialogListId dialog_list_id, bool ignore_folder_id, bool broadcasts_only, const string &query,
-                       const string &offset, int32 limit, MessageSearchFilter filter, int32 min_date, int32 max_date,
-                       Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
+                       const string &offset_str, int32 limit, MessageSearchFilter filter, int32 min_date,
+                       int32 max_date, Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 
   FoundMessages search_call_messages(const string &offset, int32 limit, bool only_missed, int64 &random_id, bool use_db,
                                      Promise<Unit> &&promise);
