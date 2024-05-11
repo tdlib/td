@@ -1467,38 +1467,6 @@ class SearchChatMessagesRequest final : public RequestActor<> {
   }
 };
 
-class SearchSecretMessagesRequest final : public RequestActor<> {
-  DialogId dialog_id_;
-  string query_;
-  string offset_;
-  int32 limit_;
-  MessageSearchFilter filter_;
-  int64 random_id_;
-
-  MessagesManager::FoundMessages found_messages_;
-
-  void do_run(Promise<Unit> &&promise) final {
-    found_messages_ = td_->messages_manager_->offline_search_messages(dialog_id_, query_, offset_, limit_, filter_,
-                                                                      random_id_, std::move(promise));
-  }
-
-  void do_send_result() final {
-    send_result(td_->messages_manager_->get_found_messages_object(found_messages_, "SearchSecretMessagesRequest"));
-  }
-
- public:
-  SearchSecretMessagesRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, string query, string offset,
-                              int32 limit, tl_object_ptr<td_api::SearchMessagesFilter> filter)
-      : RequestActor(std::move(td), request_id)
-      , dialog_id_(dialog_id)
-      , query_(std::move(query))
-      , offset_(std::move(offset))
-      , limit_(limit)
-      , filter_(get_message_search_filter(filter))
-      , random_id_(0) {
-  }
-};
-
 class SearchCallMessagesRequest final : public RequestActor<> {
   string offset_;
   int32 limit_;
@@ -5368,8 +5336,10 @@ void Td::on_request(uint64 id, td_api::searchSecretMessages &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);
   CLEAN_INPUT_STRING(request.offset_);
-  CREATE_REQUEST(SearchSecretMessagesRequest, request.chat_id_, std::move(request.query_), std::move(request.offset_),
-                 request.limit_, std::move(request.filter_));
+  CREATE_REQUEST_PROMISE();
+  messages_manager_->offline_search_messages(DialogId(request.chat_id_), std::move(request.query_),
+                                             std::move(request.offset_), request.limit_,
+                                             get_message_search_filter(request.filter_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::searchMessages &request) {

@@ -20941,36 +20941,20 @@ td_api::object_ptr<td_api::foundMessages> MessagesManager::get_found_messages_ob
                                                     found_messages.next_offset);
 }
 
-MessagesManager::FoundMessages MessagesManager::offline_search_messages(DialogId dialog_id, const string &query,
-                                                                        string offset, int32 limit,
-                                                                        MessageSearchFilter filter, int64 &random_id,
-                                                                        Promise<Unit> &&promise) {
+void MessagesManager::offline_search_messages(DialogId dialog_id, const string &query, string offset, int32 limit,
+                                              MessageSearchFilter filter,
+                                              Promise<td_api::object_ptr<td_api::foundMessages>> &&promise) {
   if (!G()->use_message_database()) {
-    promise.set_error(Status::Error(400, "Message database is required to search messages in secret chats"));
-    return {};
+    return promise.set_error(Status::Error(400, "Message database is required to search messages in secret chats"));
   }
-
-  if (random_id != 0) {
-    // request has already been sent before
-    auto it = found_fts_messages_.find(random_id);
-    CHECK(it != found_fts_messages_.end());
-    auto result = std::move(it->second);
-    found_fts_messages_.erase(it);
-    promise.set_value(Unit());
-    return result;
-  }
-
   if (query.empty()) {
-    promise.set_value(Unit());
-    return {};
+    return promise.set_value(get_found_messages_object({}, "offline_search_messages"));
   }
   if (dialog_id != DialogId() && !have_dialog_force(dialog_id, "offline_search_messages")) {
-    promise.set_error(Status::Error(400, "Chat not found"));
-    return {};
+    return promise.set_error(Status::Error(400, "Chat not found"));
   }
   if (limit <= 0) {
-    promise.set_error(Status::Error(400, "Limit must be positive"));
-    return {};
+    return promise.set_error(Status::Error(400, "Limit must be positive"));
   }
   if (limit > MAX_SEARCH_MESSAGES) {
     limit = MAX_SEARCH_MESSAGES;
@@ -20983,56 +20967,43 @@ MessagesManager::FoundMessages MessagesManager::offline_search_messages(DialogId
   if (!offset.empty()) {
     auto r_from_search_id = to_integer_safe<int64>(offset);
     if (r_from_search_id.is_error()) {
-      promise.set_error(Status::Error(400, "Invalid offset specified"));
-      return {};
+      return promise.set_error(Status::Error(400, "Invalid offset specified"));
     }
     fts_query.from_search_id = r_from_search_id.ok();
   }
   fts_query.limit = limit;
 
-  do {
-    random_id = Random::secure_int64();
-  } while (random_id == 0 || found_fts_messages_.count(random_id) > 0);
-  found_fts_messages_[random_id];  // reserve place for result
-
   G()->td_db()->get_message_db_async()->get_messages_fts(
-      std::move(fts_query),
-      PromiseCreator::lambda([random_id, offset = std::move(offset), limit,
-                              promise = std::move(promise)](Result<MessageDbFtsResult> fts_result) mutable {
+      std::move(fts_query), PromiseCreator::lambda([offset = std::move(offset), limit, promise = std::move(promise)](
+                                                       Result<MessageDbFtsResult> fts_result) mutable {
         send_closure(G()->messages_manager(), &MessagesManager::on_message_db_fts_result, std::move(fts_result),
-                     std::move(offset), limit, random_id, std::move(promise));
+                     std::move(offset), limit, std::move(promise));
       }));
-
-  return {};
 }
 
 void MessagesManager::on_message_db_fts_result(Result<MessageDbFtsResult> result, string offset, int32 limit,
-                                               int64 random_id, Promise<Unit> &&promise) {
+                                               Promise<td_api::object_ptr<td_api::foundMessages>> &&promise) {
   G()->ignore_result_if_closing(result);
   if (result.is_error()) {
-    found_fts_messages_.erase(random_id);
     return promise.set_error(result.move_as_error());
   }
   auto fts_result = result.move_as_ok();
 
-  auto it = found_fts_messages_.find(random_id);
-  CHECK(it != found_fts_messages_.end());
-  auto &res = it->second.message_full_ids;
-
-  res.reserve(fts_result.messages.size());
+  FoundMessages found_messages;
+  found_messages.message_full_ids.reserve(fts_result.messages.size());
   for (auto &message : fts_result.messages) {
     auto m = on_get_message_from_database(message, false, "on_message_db_fts_result");
     if (m != nullptr) {
-      res.emplace_back(message.dialog_id, m->message_id);
+      found_messages.message_full_ids.emplace_back(message.dialog_id, m->message_id);
     }
   }
 
-  it->second.next_offset = fts_result.next_search_id <= 1 ? string() : to_string(fts_result.next_search_id);
-  it->second.total_count = offset.empty() && fts_result.messages.size() < static_cast<size_t>(limit)
-                               ? static_cast<int32>(fts_result.messages.size())
-                               : -1;
+  found_messages.next_offset = fts_result.next_search_id <= 1 ? string() : to_string(fts_result.next_search_id);
+  found_messages.total_count = offset.empty() && fts_result.messages.size() < static_cast<size_t>(limit)
+                                   ? static_cast<int32>(fts_result.messages.size())
+                                   : -1;
 
-  promise.set_value(Unit());
+  promise.set_value(get_found_messages_object(found_messages, "on_message_db_fts_result"));
 }
 
 void MessagesManager::on_message_db_calls_result(Result<MessageDbCallsResult> result, int64 random_id,

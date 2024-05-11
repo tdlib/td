@@ -730,8 +730,9 @@ class MessagesManager final : public Actor {
   td_api::object_ptr<td_api::foundMessages> get_found_messages_object(const FoundMessages &found_messages,
                                                                       const char *source);
 
-  FoundMessages offline_search_messages(DialogId dialog_id, const string &query, string offset, int32 limit,
-                                        MessageSearchFilter filter, int64 &random_id, Promise<Unit> &&promise);
+  void offline_search_messages(DialogId dialog_id, const string &query, string offset, int32 limit,
+                               MessageSearchFilter filter,
+                               Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 
   void search_messages(DialogListId dialog_list_id, bool ignore_folder_id, bool broadcasts_only, const string &query,
                        const string &offset, int32 limit, MessageSearchFilter filter, int32 min_date, int32 max_date,
@@ -2821,8 +2822,8 @@ class MessagesManager final : public Actor {
                                           int32 limit, Result<vector<MessageDbDialogMessage>> r_messages,
                                           Promise<Unit> promise);
 
-  void on_message_db_fts_result(Result<MessageDbFtsResult> result, string offset, int32 limit, int64 random_id,
-                                Promise<Unit> &&promise);
+  void on_message_db_fts_result(Result<MessageDbFtsResult> result, string offset, int32 limit,
+                                Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 
   void on_message_db_calls_result(Result<MessageDbCallsResult> result, int64 random_id, MessageId first_db_message_id,
                                   MessageSearchFilter filter, Promise<Unit> &&promise);
@@ -3243,8 +3244,6 @@ class MessagesManager final : public Actor {
   FlatHashMap<int64, FoundDialogMessages> found_dialog_messages_;  // random_id -> FoundDialogMessages
   FlatHashMap<int64, DialogId> found_dialog_messages_dialog_id_;   // random_id -> dialog_id
   FlatHashMap<int64, FoundMessages> found_call_messages_;          // random_id -> FoundMessages
-
-  FlatHashMap<int64, FoundMessages> found_fts_messages_;  // random_id -> FoundMessages
 
   struct MessageEmbeddingCodes {
     FlatHashMap<MessageId, string, MessageIdHash> embedding_codes_;
