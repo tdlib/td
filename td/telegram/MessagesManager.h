@@ -749,13 +749,12 @@ class MessagesManager final : public Actor {
 
   vector<MessageFullId> get_active_live_location_messages(Promise<Unit> &&promise);
 
-  int64 get_dialog_message_by_date(DialogId dialog_id, int32 date, Promise<Unit> &&promise);
+  void get_dialog_message_by_date(DialogId dialog_id, int32 date,
+                                  Promise<td_api::object_ptr<td_api::message>> &&promise);
 
-  void on_get_dialog_message_by_date_success(DialogId dialog_id, int32 date, int64 random_id,
-                                             vector<tl_object_ptr<telegram_api::Message>> &&messages,
-                                             Promise<Unit> &&promise);
-
-  void on_get_dialog_message_by_date_fail(int64 random_id);
+  void on_get_dialog_message_by_date(DialogId dialog_id, int32 date,
+                                     vector<telegram_api::object_ptr<telegram_api::Message>> &&messages,
+                                     Promise<td_api::object_ptr<td_api::message>> &&promise);
 
   void get_dialog_sparse_message_positions(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
                                            MessageSearchFilter filter, MessageId from_message_id, int32 limit,
@@ -788,8 +787,6 @@ class MessagesManager final : public Actor {
                             Promise<Unit> &&promise);
 
   void remove_message_reaction(MessageFullId message_full_id, ReactionType reaction_type, Promise<Unit> &&promise);
-
-  tl_object_ptr<td_api::message> get_dialog_message_by_date_object(int64 random_id);
 
   td_api::object_ptr<td_api::message> get_dialog_event_log_message_object(
       DialogId dialog_id, tl_object_ptr<telegram_api::Message> &&message, DialogId &sender_dialog_id);
@@ -2722,11 +2719,12 @@ class MessagesManager final : public Actor {
   vector<MessageId> on_get_messages_from_database(Dialog *d, vector<MessageDbDialogMessage> &&messages,
                                                   MessageId first_message_id, bool &have_error, const char *source);
 
-  void get_dialog_message_by_date_from_server(const Dialog *d, int32 date, int64 random_id, bool after_database_search,
-                                              Promise<Unit> &&promise);
+  void get_dialog_message_by_date_from_server(const Dialog *d, int32 date, bool after_database_search,
+                                              Promise<td_api::object_ptr<td_api::message>> &&promise);
 
-  void on_get_dialog_message_by_date_from_database(DialogId dialog_id, int32 date, int64 random_id,
-                                                   Result<MessageDbDialogMessage> result, Promise<Unit> promise);
+  void on_get_dialog_message_by_date_from_database(DialogId dialog_id, int32 date,
+                                                   Result<MessageDbDialogMessage> result,
+                                                   Promise<td_api::object_ptr<td_api::message>> promise);
 
   std::pair<bool, int32> get_dialog_mute_until(DialogId dialog_id, const Dialog *d) const;
 
@@ -3237,8 +3235,6 @@ class MessagesManager final : public Actor {
   FlatHashMap<string, vector<Promise<Unit>>> search_public_dialogs_queries_;
   FlatHashMap<string, vector<DialogId>> found_public_dialogs_;     // TODO time bound cache
   FlatHashMap<string, vector<DialogId>> found_on_server_dialogs_;  // TODO time bound cache
-
-  FlatHashMap<int64, MessageFullId> get_dialog_message_by_date_results_;
 
   FlatHashMap<int64, td_api::object_ptr<td_api::messageCalendar>> found_dialog_message_calendars_;
   FlatHashMap<int64, FoundDialogMessages> found_dialog_messages_;  // random_id -> FoundDialogMessages

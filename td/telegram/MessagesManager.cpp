@@ -1365,16 +1365,16 @@ class ReadChannelMessagesContentsQuery final : public Td::ResultHandler {
 };
 
 class GetDialogMessageByDateQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
+  Promise<td_api::object_ptr<td_api::message>> promise_;
   DialogId dialog_id_;
   int32 date_;
-  int64 random_id_;
 
  public:
-  explicit GetDialogMessageByDateQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit GetDialogMessageByDateQuery(Promise<td_api::object_ptr<td_api::message>> &&promise)
+      : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, int32 date, int64 random_id) {
+  void send(DialogId dialog_id, int32 date) {
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
       return promise_.set_error(Status::Error(400, "Can't access the chat"));
@@ -1382,7 +1382,6 @@ class GetDialogMessageByDateQuery final : public Td::ResultHandler {
 
     dialog_id_ = dialog_id;
     date_ = date;
-    random_id_ = random_id;
 
     send_query(G()->net_query_creator().create(
         telegram_api::messages_getHistory(std::move(input_peer), 0, date, -3, 5, 0, 0, 0)));
@@ -1398,13 +1397,12 @@ class GetDialogMessageByDateQuery final : public Td::ResultHandler {
     td_->messages_manager_->get_channel_difference_if_needed(
         dialog_id_, std::move(info),
         PromiseCreator::lambda([actor_id = td_->messages_manager_actor_.get(), dialog_id = dialog_id_, date = date_,
-                                random_id = random_id_,
                                 promise = std::move(promise_)](Result<MessagesInfo> &&result) mutable {
           if (result.is_error()) {
             promise.set_error(result.move_as_error());
           } else {
             auto info = result.move_as_ok();
-            send_closure(actor_id, &MessagesManager::on_get_dialog_message_by_date_success, dialog_id, date, random_id,
+            send_closure(actor_id, &MessagesManager::on_get_dialog_message_by_date, dialog_id, date,
                          std::move(info.messages), std::move(promise));
           }
         }),
@@ -1416,7 +1414,6 @@ class GetDialogMessageByDateQuery final : public Td::ResultHandler {
       LOG(ERROR) << "Receive error for GetDialogMessageByDateQuery in " << dialog_id_ << ": " << status;
     }
     promise_.set_error(std::move(status));
-    td_->messages_manager_->on_get_dialog_message_by_date_fail(random_id_);
   }
 };
 
@@ -21110,49 +21107,33 @@ void MessagesManager::search_messages(DialogListId dialog_list_id, bool ignore_f
              offset_message_id, limit, filter, min_date, max_date);
 }
 
-int64 MessagesManager::get_dialog_message_by_date(DialogId dialog_id, int32 date, Promise<Unit> &&promise) {
-  Dialog *d = get_dialog_force(dialog_id, "get_dialog_message_by_date");
-  if (d == nullptr) {
-    promise.set_error(Status::Error(400, "Chat not found"));
-    return 0;
-  }
-
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read)) {
-    promise.set_error(Status::Error(400, "Can't access the chat"));
-    return 0;
-  }
+void MessagesManager::get_dialog_message_by_date(DialogId dialog_id, int32 date,
+                                                 Promise<td_api::object_ptr<td_api::message>> &&promise) {
+  TRY_RESULT_PROMISE(promise, d,
+                     check_dialog_access(dialog_id, true, AccessRights::Read, "get_dialog_message_by_date"));
 
   if (date <= 0) {
     date = 1;
   }
 
-  int64 random_id = 0;
-  do {
-    random_id = Random::secure_int64();
-  } while (random_id == 0 || get_dialog_message_by_date_results_.count(random_id) > 0);
-  get_dialog_message_by_date_results_[random_id];  // reserve place for result
-
   auto message_id = d->ordered_messages.find_message_by_date(date, get_get_message_date(d));
   if (message_id.is_valid() &&
       (message_id == d->last_message_id || (*d->ordered_messages.get_const_iterator(message_id))->have_next())) {
-    get_dialog_message_by_date_results_[random_id] = {dialog_id, message_id};
-    promise.set_value(Unit());
-    return random_id;
+    return promise.set_value(get_message_object(dialog_id, get_message(d, message_id), "get_dialog_message_by_date"));
   }
 
   if (G()->use_message_database() && d->last_database_message_id != MessageId()) {
     CHECK(d->first_database_message_id != MessageId());
     G()->td_db()->get_message_db_async()->get_dialog_message_by_date(
         dialog_id, d->first_database_message_id, d->last_database_message_id, date,
-        PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, date, random_id,
+        PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, date,
                                 promise = std::move(promise)](Result<MessageDbDialogMessage> result) mutable {
           send_closure(actor_id, &MessagesManager::on_get_dialog_message_by_date_from_database, dialog_id, date,
-                       random_id, std::move(result), std::move(promise));
+                       std::move(result), std::move(promise));
         }));
   } else {
-    get_dialog_message_by_date_from_server(d, date, random_id, false, std::move(promise));
+    get_dialog_message_by_date_from_server(d, date, false, std::move(promise));
   }
-  return random_id;
 }
 
 void MessagesManager::run_affected_history_query_until_complete(DialogId dialog_id, AffectedHistoryQuery query,
@@ -21208,9 +21189,9 @@ std::function<int32(MessageId)> MessagesManager::get_get_message_date(const Dial
   };
 }
 
-void MessagesManager::on_get_dialog_message_by_date_from_database(DialogId dialog_id, int32 date, int64 random_id,
-                                                                  Result<MessageDbDialogMessage> result,
-                                                                  Promise<Unit> promise) {
+void MessagesManager::on_get_dialog_message_by_date_from_database(
+    DialogId dialog_id, int32 date, Result<MessageDbDialogMessage> result,
+    Promise<td_api::object_ptr<td_api::message>> promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   Dialog *d = get_dialog(dialog_id);
@@ -21223,49 +21204,43 @@ void MessagesManager::on_get_dialog_message_by_date_from_database(DialogId dialo
         LOG(ERROR) << "Failed to find " << m->message_id << " in " << dialog_id << " by date " << date;
         message_id = m->message_id;
       }
-      get_dialog_message_by_date_results_[random_id] = {dialog_id, message_id};
-      promise.set_value(Unit());
+      promise.set_value(
+          get_message_object(dialog_id, get_message(d, message_id), "on_get_dialog_message_by_date_from_database"));
       return;
     }
     // TODO if m == nullptr, we need to just adjust it to the next non-nullptr message, not get from server
   }
 
-  return get_dialog_message_by_date_from_server(d, date, random_id, true, std::move(promise));
+  return get_dialog_message_by_date_from_server(d, date, true, std::move(promise));
 }
 
-void MessagesManager::get_dialog_message_by_date_from_server(const Dialog *d, int32 date, int64 random_id,
-                                                             bool after_database_search, Promise<Unit> &&promise) {
+void MessagesManager::get_dialog_message_by_date_from_server(const Dialog *d, int32 date, bool after_database_search,
+                                                             Promise<td_api::object_ptr<td_api::message>> &&promise) {
   CHECK(d != nullptr);
   if (d->have_full_history) {
     // request can always be done locally/in memory. There is no need to send request to the server
     if (after_database_search) {
-      return promise.set_value(Unit());
+      return promise.set_value(nullptr);
     }
 
     auto message_id = d->ordered_messages.find_message_by_date(date, get_get_message_date(d));
     if (message_id.is_valid()) {
-      get_dialog_message_by_date_results_[random_id] = {d->dialog_id, message_id};
+      promise.set_value(
+          get_message_object(d->dialog_id, get_message(d, message_id), "get_dialog_message_by_date_from_server"));
+    } else {
+      promise.set_value(nullptr);
     }
-    promise.set_value(Unit());
     return;
   }
-  if (d->dialog_id.get_type() == DialogType::SecretChat) {
-    // there is no way to send request to the server
-    return promise.set_value(Unit());
-  }
+  CHECK(d->dialog_id.get_type() != DialogType::SecretChat);
 
-  td_->create_handler<GetDialogMessageByDateQuery>(std::move(promise))->send(d->dialog_id, date, random_id);
+  td_->create_handler<GetDialogMessageByDateQuery>(std::move(promise))->send(d->dialog_id, date);
 }
 
-void MessagesManager::on_get_dialog_message_by_date_success(DialogId dialog_id, int32 date, int64 random_id,
-                                                            vector<tl_object_ptr<telegram_api::Message>> &&messages,
-                                                            Promise<Unit> &&promise) {
+void MessagesManager::on_get_dialog_message_by_date(DialogId dialog_id, int32 date,
+                                                    vector<telegram_api::object_ptr<telegram_api::Message>> &&messages,
+                                                    Promise<td_api::object_ptr<td_api::message>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
-
-  auto it = get_dialog_message_by_date_results_.find(random_id);
-  CHECK(it != get_dialog_message_by_date_results_.end());
-  auto &result = it->second;
-  CHECK(result == MessageFullId());
 
   for (auto &message : messages) {
     auto message_date = get_message_date(message);
@@ -21275,8 +21250,8 @@ void MessagesManager::on_get_dialog_message_by_date_success(DialogId dialog_id, 
       continue;
     }
     if (message_date != 0 && message_date <= date) {
-      result = on_get_message(std::move(message), false, dialog_id.get_type() == DialogType::Channel, false,
-                              "on_get_dialog_message_by_date_success");
+      auto result = on_get_message(std::move(message), false, dialog_id.get_type() == DialogType::Channel, false,
+                                   "on_get_dialog_message_by_date_success");
       if (result != MessageFullId()) {
         const Dialog *d = get_dialog(dialog_id);
         CHECK(d != nullptr);
@@ -21285,27 +21260,12 @@ void MessagesManager::on_get_dialog_message_by_date_success(DialogId dialog_id, 
           LOG(ERROR) << "Failed to find " << result.get_message_id() << " in " << dialog_id << " by date " << date;
           message_id = result.get_message_id();
         }
-        get_dialog_message_by_date_results_[random_id] = {dialog_id, message_id};
-        // TODO result must be adjusted by local messages
-        promise.set_value(Unit());
-        return;
+        return promise.set_value(
+            get_message_object(dialog_id, get_message(d, message_id), "on_get_dialog_message_by_date"));
       }
     }
   }
-  promise.set_value(Unit());
-}
-
-void MessagesManager::on_get_dialog_message_by_date_fail(int64 random_id) {
-  auto erased_count = get_dialog_message_by_date_results_.erase(random_id);
-  CHECK(erased_count > 0);
-}
-
-tl_object_ptr<td_api::message> MessagesManager::get_dialog_message_by_date_object(int64 random_id) {
-  auto it = get_dialog_message_by_date_results_.find(random_id);
-  CHECK(it != get_dialog_message_by_date_results_.end());
-  auto message_full_id = std::move(it->second);
-  get_dialog_message_by_date_results_.erase(it);
-  return get_message_object(message_full_id, "get_dialog_message_by_date_object");
+  promise.set_value(nullptr);
 }
 
 void MessagesManager::get_dialog_sparse_message_positions(

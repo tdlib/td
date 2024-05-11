@@ -1513,26 +1513,6 @@ class GetActiveLiveLocationMessagesRequest final : public RequestActor<> {
   }
 };
 
-class GetChatMessageByDateRequest final : public RequestOnceActor {
-  DialogId dialog_id_;
-  int32 date_;
-
-  int64 random_id_;
-
-  void do_run(Promise<Unit> &&promise) final {
-    random_id_ = td_->messages_manager_->get_dialog_message_by_date(dialog_id_, date_, std::move(promise));
-  }
-
-  void do_send_result() final {
-    send_result(td_->messages_manager_->get_dialog_message_by_date_object(random_id_));
-  }
-
- public:
-  GetChatMessageByDateRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int32 date)
-      : RequestOnceActor(std::move(td), request_id), dialog_id_(dialog_id), date_(date), random_id_(0) {
-  }
-};
-
 class GetChatScheduledMessagesRequest final : public RequestActor<> {
   DialogId dialog_id_;
 
@@ -5392,7 +5372,9 @@ void Td::on_request(uint64 id, const td_api::getActiveLiveLocationMessages &requ
 }
 
 void Td::on_request(uint64 id, const td_api::getChatMessageByDate &request) {
-  CREATE_REQUEST(GetChatMessageByDateRequest, request.chat_id_, request.date_);
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  messages_manager_->get_dialog_message_by_date(DialogId(request.chat_id_), request.date_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getChatSparseMessagePositions &request) {
