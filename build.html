@@ -807,6 +807,16 @@ function onOptionsChanged() {
     }
   }
 
+  function getLibcplusplusVersionSuffix() {
+    switch (linux_distro) {
+      case 'Ubuntu 20':
+      case 'Ubuntu 22':
+        return getClangVersionSuffix();
+      default:
+        return ''; // use default version
+    }
+  }
+
   var commands = [];
 
   var php = 'php';
@@ -878,9 +888,9 @@ function onOptionsChanged() {
           packages += ' default-jdk';
         }
         if (use_clang) {
-          packages += ' clang' + getClangVersionSuffix() + ' libc++-dev';
+          packages += ' clang' + getClangVersionSuffix() + ' libc++' + getLibcplusplusVersionSuffix() + '-dev';
           if (linux_distro === 'Debian 10+' || linux_distro === 'Ubuntu 18' || linux_distro === 'Ubuntu 20' || linux_distro === 'Ubuntu 22') {
-            packages += ' libc++abi-dev';
+            packages += ' libc++abi' + getLibcplusplusVersionSuffix() + '-dev';
           }
         } else {
           packages += ' g++';
