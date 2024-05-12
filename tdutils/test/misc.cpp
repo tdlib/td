@@ -83,14 +83,11 @@ TEST(Misc, update_atime_saves_mtime) {
   r_file.move_as_ok().close();
 
   auto info = td::stat(name).ok();
-  td::int32 tests_ok = 0;
   td::int32 tests_wa = 0;
   for (int i = 0; i < 10000; i++) {
     td::update_atime(name).ensure();
     auto new_info = td::stat(name).ok();
-    if (info.mtime_nsec_ == new_info.mtime_nsec_) {
-      tests_ok++;
-    } else {
+    if (info.mtime_nsec_ != new_info.mtime_nsec_) {
       tests_wa++;
       info.mtime_nsec_ = new_info.mtime_nsec_;
     }
