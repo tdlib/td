@@ -259,7 +259,7 @@ class InitTask : public Task {
   }
   template <class T>
   void send(T &&query) {
-    send_query(std::move(query), [this](auto res) {
+    send_query(std::move(query), [this](td::Result<typename T::element_type::ReturnType> res) {
       if (is_alive()) {
         res.ensure();
       }
