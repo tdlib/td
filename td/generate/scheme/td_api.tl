@@ -4109,6 +4109,16 @@ chatBoostSlot slot_id:int32 currently_boosted_chat_id:int53 start_date:int32 exp
 chatBoostSlots slots:vector<chatBoostSlot> = ChatBoostSlots;
 
 
+//@class ResendCodeReason @description Describes the reason why a code needs to be re-sent
+
+//@description The user requested to resend the code
+resendCodeReasonUserRequest = ResendCodeReason;
+
+//@description The code is resent, because device verification has failed
+//@error_message Cause of the verification failure, for example, PLAY_SERVICES_NOT_AVAILABLE, APNS_RECEIVE_TIMEOUT, APNS_INIT_FAILED, etc.
+resendCodeReasonVerificationFailed error_message:string = ResendCodeReason;
+
+
 //@class CallDiscardReason @description Describes the reason why a call was discarded
 
 //@description The call wasn't discarded, or the reason is unknown
@@ -7503,9 +7513,10 @@ setAuthenticationPhoneNumber phone_number:string settings:phoneNumberAuthenticat
 //@description Sets the email address of the user and sends an authentication code to the email address. Works only when the current authorization state is authorizationStateWaitEmailAddress @email_address The email address of the user
 setAuthenticationEmailAddress email_address:string = Ok;
 
-//@description Resends an authentication code to the user. Works only when the current authorization state is authorizationStateWaitCode, the next_code_type of the result is not null and the server-specified timeout has passed,
-//-or when the current authorization state is authorizationStateWaitEmailCode
-resendAuthenticationCode = Ok;
+//@description Resends an authentication code to the user. Works only when the current authorization state is authorizationStateWaitCode, the next_code_type of the result is not null
+//-and the server-specified timeout has passed, or when the current authorization state is authorizationStateWaitEmailCode
+//@reason Reason of code resending; pass null if unknown
+resendAuthenticationCode reason:ResendCodeReason = Ok;
 
 //@description Checks the authentication of an email address. Works only when the current authorization state is authorizationStateWaitEmailCode @code Email address authentication to check
 checkAuthenticationEmailCode code:EmailAddressAuthentication = Ok;
@@ -9953,7 +9964,8 @@ sendPhoneNumberFirebaseSms token:string = Ok;
 reportPhoneNumberCodeMissing mobile_network_code:string = Ok;
 
 //@description Resends the authentication code sent to a phone number. Works only if the previously received authenticationCodeInfo next_code_type was not null and the server-specified timeout has passed
-resendPhoneNumberCode = AuthenticationCodeInfo;
+//@reason Reason of code resending; pass null if unknown
+resendPhoneNumberCode reason:ResendCodeReason = AuthenticationCodeInfo;
 
 //@description Check the authentication code and completes the request for which the code was sent if appropriate @code Authentication code to check
 checkPhoneNumberCode code:string = Ok;

@@ -25,7 +25,7 @@ class SendCodeHelper {
 
   td_api::object_ptr<td_api::authenticationCodeInfo> get_authentication_code_info_object() const;
 
-  Result<telegram_api::auth_resendCode> resend_code() const;
+  Result<telegram_api::auth_resendCode> resend_code(td_api::object_ptr<td_api::ResendCodeReason> &&reason) const;
 
   using Settings = td_api::object_ptr<td_api::phoneNumberAuthenticationSettings>;
 

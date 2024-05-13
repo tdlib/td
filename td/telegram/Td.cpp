@@ -4150,8 +4150,8 @@ void Td::on_request(uint64 id, td_api::setAuthenticationEmailAddress &request) {
   send_closure(auth_manager_actor_, &AuthManager::set_email_address, id, std::move(request.email_address_));
 }
 
-void Td::on_request(uint64 id, const td_api::resendAuthenticationCode &request) {
-  send_closure(auth_manager_actor_, &AuthManager::resend_authentication_code, id);
+void Td::on_request(uint64 id, td_api::resendAuthenticationCode &request) {
+  send_closure(auth_manager_actor_, &AuthManager::resend_authentication_code, id, std::move(request.reason_));
 }
 
 void Td::on_request(uint64 id, td_api::checkAuthenticationEmailCode &request) {
@@ -4542,10 +4542,10 @@ void Td::on_request(uint64 id, td_api::reportPhoneNumberCodeMissing &request) {
   phone_number_manager_->report_missing_code(std::move(request.mobile_network_code_), std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::resendPhoneNumberCode &request) {
+void Td::on_request(uint64 id, td_api::resendPhoneNumberCode &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  phone_number_manager_->resend_authentication_code(std::move(promise));
+  phone_number_manager_->resend_authentication_code(std::move(request.reason_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::checkPhoneNumberCode &request) {

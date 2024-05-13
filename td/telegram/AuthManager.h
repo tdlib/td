@@ -41,7 +41,7 @@ class AuthManager final : public NetActor {
   void set_firebase_token(uint64 query_id, string token);
   void report_missing_code(uint64 query_id, string mobile_network_code);
   void set_email_address(uint64 query_id, string email_address);
-  void resend_authentication_code(uint64 query_id);
+  void resend_authentication_code(uint64 query_id, td_api::object_ptr<td_api::ResendCodeReason> &&reason);
   void check_email_code(uint64 query_id, EmailVerification &&code);
   void reset_email_address(uint64 query_id);
   void check_code(uint64 query_id, string code);

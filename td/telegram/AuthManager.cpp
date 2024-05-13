@@ -568,7 +568,7 @@ void AuthManager::set_email_address(uint64 query_id, string email_address) {
                   G()->net_query_creator().create_unauth(send_code_helper_.send_verify_email_code(email_address_)));
 }
 
-void AuthManager::resend_authentication_code(uint64 query_id) {
+void AuthManager::resend_authentication_code(uint64 query_id, td_api::object_ptr<td_api::ResendCodeReason> &&reason) {
   if (state_ != State::WaitCode) {
     if (state_ == State::WaitEmailCode) {
       on_new_query(query_id);
@@ -580,7 +580,7 @@ void AuthManager::resend_authentication_code(uint64 query_id) {
     return on_query_error(query_id, Status::Error(400, "Call to resendAuthenticationCode unexpected"));
   }
 
-  auto r_resend_code = send_code_helper_.resend_code();
+  auto r_resend_code = send_code_helper_.resend_code(std::move(reason));
   if (r_resend_code.is_error()) {
     return on_query_error(query_id, r_resend_code.move_as_error());
   }

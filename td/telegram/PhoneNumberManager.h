@@ -32,7 +32,8 @@ class PhoneNumberManager final : public Actor {
 
   void report_missing_code(const string &mobile_network_code, Promise<Unit> &&promise);
 
-  void resend_authentication_code(Promise<td_api::object_ptr<td_api::authenticationCodeInfo>> &&promise);
+  void resend_authentication_code(td_api::object_ptr<td_api::ResendCodeReason> &&reason,
+                                  Promise<td_api::object_ptr<td_api::authenticationCodeInfo>> &&promise);
 
   void check_code(string code, Promise<Unit> &&promise);
 

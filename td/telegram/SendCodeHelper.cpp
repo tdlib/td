@@ -6,6 +6,8 @@
 //
 #include "td/telegram/SendCodeHelper.h"
 
+#include "td/telegram/misc.h"
+
 #include "td/utils/base64.h"
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
@@ -43,12 +45,20 @@ td_api::object_ptr<td_api::authenticationCodeInfo> SendCodeHelper::get_authentic
       max(static_cast<int32>(next_code_timestamp_ - Time::now() + 1 - 1e-9), 0));
 }
 
-Result<telegram_api::auth_resendCode> SendCodeHelper::resend_code() const {
+Result<telegram_api::auth_resendCode> SendCodeHelper::resend_code(
+    td_api::object_ptr<td_api::ResendCodeReason> &&reason) const {
   if (next_code_info_.type == AuthenticationCodeInfo::Type::None) {
     return Status::Error(400, "Authentication code can't be resend");
   }
   int32 flags = 0;
-  return telegram_api::auth_resendCode(flags, phone_number_, phone_code_hash_, string());
+  string reason_str;
+  if (reason->get_id() == td_api::resendCodeReasonVerificationFailed::ID) {
+    reason_str = std::move(static_cast<td_api::resendCodeReasonVerificationFailed *>(reason.get())->error_message_);
+  }
+  if (!reason_str.empty() && clean_input_string(reason_str)) {
+    flags |= telegram_api::auth_resendCode::REASON_MASK;
+  }
+  return telegram_api::auth_resendCode(flags, phone_number_, phone_code_hash_, reason_str);
 }
 
 telegram_api::object_ptr<telegram_api::codeSettings> SendCodeHelper::get_input_code_settings(const Settings &settings) {

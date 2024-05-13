@@ -290,12 +290,13 @@ void PhoneNumberManager::report_missing_code(const string &mobile_network_code, 
 }
 
 void PhoneNumberManager::resend_authentication_code(
+    td_api::object_ptr<td_api::ResendCodeReason> &&reason,
     Promise<td_api::object_ptr<td_api::authenticationCodeInfo>> &&promise) {
   if (state_ != State::WaitCode) {
     return promise.set_error(Status::Error(400, "Can't resend code"));
   }
 
-  auto r_resend_code = send_code_helper_.resend_code();
+  auto r_resend_code = send_code_helper_.resend_code(std::move(reason));
   if (r_resend_code.is_error()) {
     return promise.set_error(r_resend_code.move_as_error());
   }

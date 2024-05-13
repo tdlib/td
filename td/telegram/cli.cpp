@@ -2477,7 +2477,7 @@ class CliClient final : public Actor {
     } else if (op == "sae" || op == "saea") {
       send_request(td_api::make_object<td_api::setAuthenticationEmailAddress>(args));
     } else if (op == "rac") {
-      send_request(td_api::make_object<td_api::resendAuthenticationCode>());
+      send_request(td_api::make_object<td_api::resendAuthenticationCode>(nullptr));
     } else if (op == "sdek") {
       send_request(td_api::make_object<td_api::setDatabaseEncryptionKey>(args));
     } else if (op == "caec") {
@@ -2778,7 +2778,7 @@ class CliClient final : public Actor {
     } else if (op == "rpncm") {
       send_request(td_api::make_object<td_api::reportPhoneNumberCodeMissing>(args));
     } else if (op == "rpnc") {
-      send_request(td_api::make_object<td_api::resendPhoneNumberCode>());
+      send_request(td_api::make_object<td_api::resendPhoneNumberCode>(nullptr));
     } else if (op == "cpnc") {
       send_request(td_api::make_object<td_api::checkPhoneNumberCode>(args));
     } else if (op == "gco") {
