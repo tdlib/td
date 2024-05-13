@@ -15,7 +15,7 @@ RUN ./build-openssl.sh SDK "$ANDROID_NDK_VERSION" openssl "$OPENSSL_VERSION"
 ADD "https://api.github.com/repos/tdlib/td/git/refs/heads/master" version.json
 ARG COMMIT_HASH=master
 RUN git clone https://github.com/tdlib/td.git && cd td && git checkout "$COMMIT_HASH"
-RUN cd td && git merge-base --is-ancestor bcd89728c3b93b67448b93b4863dc5bd4e122a4c "$COMMIT_HASH"
+RUN cd td && git merge-base --is-ancestor f28fa6a860af8a88a330d22fe34628eba6d69d89 "$COMMIT_HASH"
 
 ARG ANDROID_STL=c++_static
 ARG TDLIB_INTERFACE=Java
