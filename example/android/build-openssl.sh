@@ -49,6 +49,9 @@ ANDROID_API64=21
 if [[ ${ANDROID_NDK_VERSION%%.*} -ge 24 ]] ; then
   ANDROID_API32=19
 fi
+if [[ ${ANDROID_NDK_VERSION%%.*} -ge 26 ]] ; then
+  ANDROID_API32=21
+fi
 
 for ABI in arm64-v8a armeabi-v7a x86_64 x86 ; do
   if [[ $ABI == "x86" ]] ; then

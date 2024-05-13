@@ -50,7 +50,7 @@ mv {,tdlib/java/}org/drinkless/tdlib/TdApi.java || exit 1
 rm -rf org || exit 1
 
 echo "Generating Javadoc documentation..."
-cp "$ANDROID_SDK_ROOT/platforms/android-33/android.jar" . || exit 1
+cp "$ANDROID_SDK_ROOT/platforms/android-34/android.jar" . || exit 1
 JAVADOC_SEPARATOR=$([ "$OS_NAME" == "win" ] && echo ";" || echo ":")
 javadoc -d tdlib/javadoc -encoding UTF-8 -charset UTF-8 -classpath "android.jar${JAVADOC_SEPARATOR}annotation-1.4.0.jar" -quiet -sourcepath tdlib/java org.drinkless.tdlib || exit 1
 rm android.jar annotation-1.4.0.jar || exit 1
