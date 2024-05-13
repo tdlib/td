@@ -18,7 +18,8 @@ RUN git clone https://github.com/tdlib/td.git && cd td && git checkout "$COMMIT_
 RUN cd td && git merge-base --is-ancestor bcd89728c3b93b67448b93b4863dc5bd4e122a4c "$COMMIT_HASH"
 
 ARG ANDROID_STL=c++_static
-RUN td/example/android/build-tdlib.sh SDK "$ANDROID_NDK_VERSION" openssl "$ANDROID_STL" && rm -rf td/example/android/build-*
+ARG TDLIB_INTERFACE=Java
+RUN td/example/android/build-tdlib.sh SDK "$ANDROID_NDK_VERSION" openssl "$ANDROID_STL" "$TDLIB_INTERFACE" && rm -rf td/example/android/build-*
 
 
 FROM scratch

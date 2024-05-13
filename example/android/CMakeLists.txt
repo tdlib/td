@@ -2,9 +2,18 @@ cmake_minimum_required(VERSION 3.4.1 FATAL_ERROR)
 
 project(TdAndroid VERSION 1.0 LANGUAGES CXX)
 
-option(TD_ENABLE_JNI "Enable JNI-compatible TDLib API" ON)
-
 set(TD_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../..)
+
+if (TD_ANDROID_JSON)
+  if (CMAKE_CROSSCOMPILING)
+    string(APPEND CMAKE_CXX_FLAGS_RELWITHDEBINFO " -flto=thin -Oz")
+    list(APPEND CMAKE_FIND_ROOT_PATH "${OPENSSL_ROOT_DIR}")
+  endif()
+  add_subdirectory(${TD_DIR} td)
+  return()
+endif()
+
+option(TD_ENABLE_JNI "Enable JNI-compatible TDLib API" ON)
 
 if (CMAKE_CROSSCOMPILING)
   set(CMAKE_MODULE_PATH "${TD_DIR}/CMake")
