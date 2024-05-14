@@ -1226,7 +1226,9 @@ td_api::object_ptr<td_api::messageEffect> ReactionManager::get_message_effect_ob
 
 td_api::object_ptr<td_api::updateAvailableMessageEffects> ReactionManager::get_update_available_message_effects_object()
     const {
-  return td_api::make_object<td_api::updateAvailableMessageEffects>(vector<int64>(active_message_effects_));
+  return td_api::make_object<td_api::updateAvailableMessageEffects>(
+      vector<int64>(active_message_effects_.reaction_effects_),
+      vector<int64>(active_message_effects_.sticker_effects_));
 }
 
 void ReactionManager::reload_message_effects() {
@@ -1391,7 +1393,8 @@ void ReactionManager::on_get_message_effects(
 }
 
 void ReactionManager::save_active_message_effects() {
-  LOG(INFO) << "Save " << active_message_effects_.size() << " available message effects";
+  LOG(INFO) << "Save " << active_message_effects_.reaction_effects_.size() << " + "
+            << active_message_effects_.sticker_effects_.size() << " available message effects";
   G()->td_db()->get_binlog_pmc()->set("active_message_effects",
                                       log_event_store(active_message_effects_).as_slice().str());
 }
@@ -1410,17 +1413,23 @@ void ReactionManager::load_active_message_effects() {
     return reload_message_effects();
   }
 
-  LOG(INFO) << "Successfully loaded " << active_message_effects_.size() << " active message effects";
+  LOG(INFO) << "Successfully loaded " << active_message_effects_.reaction_effects_.size() << " + "
+            << active_message_effects_.sticker_effects_.size() << " active message effects";
 
   send_closure(G()->td(), &Td::send_update, get_update_available_message_effects_object());
 }
 
 void ReactionManager::update_active_message_effects() {
-  vector<int64> active_message_effects;
+  ActiveEffects active_message_effects;
   for (auto &effect : message_effects_.effects_) {
-    active_message_effects.push_back(effect.id_);
+    if (effect.is_sticker()) {
+      active_message_effects.sticker_effects_.push_back(effect.id_);
+    } else {
+      active_message_effects.reaction_effects_.push_back(effect.id_);
+    }
   }
-  if (active_message_effects == active_message_effects_) {
+  if (active_message_effects.reaction_effects_ == active_message_effects_.reaction_effects_ &&
+      active_message_effects.sticker_effects_ == active_message_effects_.sticker_effects_) {
     return;
   }
   active_message_effects_ = std::move(active_message_effects);
@@ -1454,7 +1463,7 @@ void ReactionManager::get_current_state(vector<td_api::object_ptr<td_api::Update
   for (auto &it : topic_tags_) {
     updates.push_back(get_update_saved_messages_tags_object(it.first, it.second.get()));
   }
-  if (!active_message_effects_.empty()) {
+  if (!active_message_effects_.is_empty()) {
     updates.push_back(get_update_available_message_effects_object());
   }
 }

@@ -185,4 +185,36 @@ void ReactionManager::Effects::parse(ParserT &parser) {
   }
 }
 
+template <class StorerT>
+void ReactionManager::ActiveEffects::store(StorerT &storer) const {
+  bool has_reaction_effects = !reaction_effects_.empty();
+  bool has_sticker_effects = !sticker_effects_.empty();
+  BEGIN_STORE_FLAGS();
+  STORE_FLAG(has_reaction_effects);
+  STORE_FLAG(has_sticker_effects);
+  END_STORE_FLAGS();
+  if (has_reaction_effects) {
+    td::store(reaction_effects_, storer);
+  }
+  if (has_sticker_effects) {
+    td::store(sticker_effects_, storer);
+  }
+}
+
+template <class ParserT>
+void ReactionManager::ActiveEffects::parse(ParserT &parser) {
+  bool has_reaction_effects;
+  bool has_sticker_effects;
+  BEGIN_PARSE_FLAGS();
+  PARSE_FLAG(has_reaction_effects);
+  PARSE_FLAG(has_sticker_effects);
+  END_PARSE_FLAGS();
+  if (has_reaction_effects) {
+    td::parse(reaction_effects_, parser);
+  }
+  if (has_sticker_effects) {
+    td::parse(sticker_effects_, parser);
+  }
+}
+
 }  // namespace td

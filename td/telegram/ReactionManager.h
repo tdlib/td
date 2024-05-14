@@ -228,6 +228,21 @@ class ReactionManager final : public Actor {
     void parse(ParserT &parser);
   };
 
+  struct ActiveEffects {
+    vector<int64> reaction_effects_;
+    vector<int64> sticker_effects_;
+
+    bool is_empty() const {
+      return reaction_effects_.empty() && sticker_effects_.empty();
+    }
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
+  };
+
   td_api::object_ptr<td_api::emojiReaction> get_emoji_reaction_object(const string &emoji) const;
 
   ReactionList &get_reaction_list(ReactionListType reaction_list_type);
@@ -314,7 +329,7 @@ class ReactionManager final : public Actor {
       pending_get_topic_saved_reaction_tags_queries_;
 
   Effects message_effects_;
-  vector<int64> active_message_effects_;
+  ActiveEffects active_message_effects_;
 
   vector<std::pair<int64, Promise<td_api::object_ptr<td_api::messageEffect>>>> pending_get_message_effect_queries_;
 };
