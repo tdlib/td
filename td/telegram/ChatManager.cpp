@@ -5004,17 +5004,11 @@ void ChatManager::update_channel(Channel *c, ChannelId channel_id, bool from_bin
   }
 
   bool have_read_access = have_input_peer_channel(c, channel_id, AccessRights::Read);
-  bool is_member = c->status.is_member();
   if (c->had_read_access && !have_read_access) {
     send_closure_later(G()->messages_manager(), &MessagesManager::on_dialog_deleted, DialogId(channel_id),
                        Promise<Unit>());
-  } else if (!from_database && c->was_member != is_member) {
-    DialogId dialog_id(channel_id);
-    send_closure_later(G()->messages_manager(), &MessagesManager::force_create_dialog, dialog_id, "update channel",
-                       true, true);
   }
   c->had_read_access = have_read_access;
-  c->was_member = is_member;
 
   if (c->cache_version != Channel::CACHE_VERSION && !c->is_repaired &&
       have_input_peer_channel(c, channel_id, AccessRights::Read) && !G()->close_flag()) {
@@ -6976,13 +6970,16 @@ void ChatManager::on_channel_status_changed(Channel *c, ChannelId channel_id, co
                        Promise<Unit>());
   }
   if (!is_bot && old_status.is_member() != new_status.is_member()) {
+    DialogId dialog_id(channel_id);
     if (new_status.is_member()) {
-      send_closure_later(td_->story_manager_actor_, &StoryManager::reload_dialog_expiring_stories,
-                         DialogId(channel_id));
+      send_closure_later(td_->story_manager_actor_, &StoryManager::reload_dialog_expiring_stories, dialog_id);
     } else {
-      send_closure_later(td_->story_manager_actor_, &StoryManager::on_dialog_active_stories_order_updated,
-                         DialogId(channel_id), "on_channel_status_changed");
+      send_closure_later(td_->story_manager_actor_, &StoryManager::on_dialog_active_stories_order_updated, dialog_id,
+                         "on_channel_status_changed");
     }
+
+    send_closure_later(G()->messages_manager(), &MessagesManager::force_create_dialog, dialog_id,
+                       "on_channel_status_changed", true, true);
   }
 
   // must not load ChannelFull, because must not change the Channel

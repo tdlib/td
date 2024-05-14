@@ -517,7 +517,6 @@ class ChatManager final : public Actor {
     bool is_noforwards_changed = true;
     bool is_creator_changed = true;
     bool had_read_access = true;
-    bool was_member = false;
     bool is_being_updated = false;
     bool is_changed = true;             // have new changes that need to be sent to the client and database
     bool need_save_to_database = true;  // have new changes that need only to be saved to the database
