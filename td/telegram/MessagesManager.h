@@ -3177,7 +3177,7 @@ class MessagesManager final : public Actor {
     }
 
     bool operator==(const TtlNode &other) const {
-      return message_full_id_ == other.message_full_id_;
+      return message_full_id_ == other.message_full_id_ && by_ttl_period_ == other.by_ttl_period_;
     }
   };
   struct TtlNodeHash {
