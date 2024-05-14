@@ -764,11 +764,12 @@ class GetChatRequest final : public RequestActor<> {
 
 class SearchUserByPhoneNumberRequest final : public RequestActor<> {
   string phone_number_;
+  bool only_local_;
 
   UserId user_id_;
 
   void do_run(Promise<Unit> &&promise) final {
-    user_id_ = td_->user_manager_->search_user_by_phone_number(phone_number_, std::move(promise));
+    user_id_ = td_->user_manager_->search_user_by_phone_number(phone_number_, only_local_, std::move(promise));
   }
 
   void do_send_result() final {
@@ -776,8 +777,8 @@ class SearchUserByPhoneNumberRequest final : public RequestActor<> {
   }
 
  public:
-  SearchUserByPhoneNumberRequest(ActorShared<Td> td, uint64 request_id, string &&phone_number)
-      : RequestActor(std::move(td), request_id), phone_number_(std::move(phone_number)) {
+  SearchUserByPhoneNumberRequest(ActorShared<Td> td, uint64 request_id, string &&phone_number, bool only_local)
+      : RequestActor(std::move(td), request_id), phone_number_(std::move(phone_number)), only_local_(only_local) {
   }
 };
 
@@ -7649,7 +7650,7 @@ void Td::on_request(uint64 id, td_api::suggestUserProfilePhoto &request) {
 void Td::on_request(uint64 id, td_api::searchUserByPhoneNumber &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.phone_number_);
-  CREATE_REQUEST(SearchUserByPhoneNumberRequest, std::move(request.phone_number_));
+  CREATE_REQUEST(SearchUserByPhoneNumberRequest, std::move(request.phone_number_), request.only_local_);
 }
 
 void Td::on_request(uint64 id, const td_api::sharePhoneNumber &request) {

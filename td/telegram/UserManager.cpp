@@ -6645,7 +6645,7 @@ void UserManager::on_set_close_friends(const vector<UserId> &user_ids, Promise<U
   promise.set_value(Unit());
 }
 
-UserId UserManager::search_user_by_phone_number(string phone_number, Promise<Unit> &&promise) {
+UserId UserManager::search_user_by_phone_number(string phone_number, bool only_local, Promise<Unit> &&promise) {
   clean_phone_number(phone_number);
   if (phone_number.empty()) {
     promise.set_error(Status::Error(200, "Phone number is invalid"));
@@ -6658,7 +6658,11 @@ UserId UserManager::search_user_by_phone_number(string phone_number, Promise<Uni
     return it->second;
   }
 
-  td_->create_handler<ResolvePhoneQuery>(std::move(promise))->send(phone_number);
+  if (only_local) {
+    promise.set_value(Unit());
+  } else {
+    td_->create_handler<ResolvePhoneQuery>(std::move(promise))->send(phone_number);
+  }
   return UserId();
 }
 

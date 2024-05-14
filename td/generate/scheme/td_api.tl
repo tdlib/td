@@ -9708,8 +9708,10 @@ setUserPersonalProfilePhoto user_id:int53 photo:InputChatPhoto = Ok;
 suggestUserProfilePhoto user_id:int53 photo:InputChatPhoto = Ok;
 
 
-//@description Searches a user by their phone number. Returns a 404 error if the user can't be found @phone_number Phone number to search for
-searchUserByPhoneNumber phone_number:string = User;
+//@description Searches a user by their phone number. Returns a 404 error if the user can't be found
+//@phone_number Phone number to search for
+//@only_local Pass true to get only locally available information without sending network requests
+searchUserByPhoneNumber phone_number:string only_local:Bool = User;
 
 //@description Shares the phone number of the current user with a mutual contact. Supposed to be called when the user clicks on chatActionBarSharePhoneNumber @user_id Identifier of the user with whom to share the phone number. The user must be a mutual contact
 sharePhoneNumber user_id:int53 = Ok;

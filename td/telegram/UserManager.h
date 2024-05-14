@@ -429,7 +429,7 @@ class UserManager final : public Actor {
 
   void on_set_close_friends(const vector<UserId> &user_ids, Promise<Unit> &&promise);
 
-  UserId search_user_by_phone_number(string phone_number, Promise<Unit> &&promise);
+  UserId search_user_by_phone_number(string phone_number, bool only_local, Promise<Unit> &&promise);
 
   void on_resolved_phone_number(const string &phone_number, UserId user_id);
 
