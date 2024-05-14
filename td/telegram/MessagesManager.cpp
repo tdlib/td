@@ -15885,11 +15885,15 @@ void MessagesManager::get_dialogs_from_list_impl(int64 task_id) {
 void MessagesManager::on_get_dialogs_from_list(int64 task_id, Result<Unit> &&result) {
   auto task_it = get_dialogs_tasks_.find(task_id);
   if (task_it == get_dialogs_tasks_.end()) {
-    // the task has already been completed
     LOG(INFO) << "Chat list load task " << task_id << " has already been completed";
     return;
   }
   auto &task = task_it->second;
+  auto list_ptr = get_dialog_list(task.dialog_list_id);
+  if (result.is_ok() && list_ptr == nullptr) {
+    CHECK(!task.dialog_list_id.is_folder());
+    result = Status::Error(400, "Chat list not found");
+  }
   if (result.is_error()) {
     LOG(INFO) << "Chat list load task " << task_id << " failed with the error " << result.error();
     auto task_promise = std::move(task.promise);
@@ -15897,7 +15901,6 @@ void MessagesManager::on_get_dialogs_from_list(int64 task_id, Result<Unit> &&res
     return task_promise.set_error(result.move_as_error());
   }
 
-  auto list_ptr = get_dialog_list(task.dialog_list_id);
   CHECK(list_ptr != nullptr);
   auto &list = *list_ptr;
   if (task.last_dialog_date == list.list_last_dialog_date_) {
