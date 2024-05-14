@@ -28987,6 +28987,7 @@ void MessagesManager::update_reply_to_message_id(DialogId dialog_id, MessageId o
   CHECK(old_message_id.is_yet_unsent());
   CHECK(new_message_id == MessageId() || new_message_id.is_valid() || new_message_id.is_valid_scheduled());
 
+  MessageFullId old_message_full_id(dialog_id, old_message_id);
   for (auto message_full_id : it->second) {
     auto reply_d = get_dialog(message_full_id.get_dialog_id());
     CHECK(reply_d != nullptr);
@@ -28994,8 +28995,11 @@ void MessagesManager::update_reply_to_message_id(DialogId dialog_id, MessageId o
     CHECK(replied_m != nullptr);
     const auto *input_reply_to = get_message_input_reply_to(replied_m);
     CHECK(input_reply_to != nullptr);
-    CHECK(input_reply_to->get_reply_message_full_id(reply_d->dialog_id) == MessageFullId(dialog_id, old_message_id));
+    CHECK(input_reply_to->get_reply_message_full_id(reply_d->dialog_id) == old_message_full_id);
     if (new_message_id != MessageId()) {
+      LOG_CHECK(replied_m->replied_message_info.get_reply_message_full_id(reply_d->dialog_id, true) ==
+                old_message_full_id)
+          << old_message_full_id << ' ' << replied_m->replied_message_info << ' ' << *input_reply_to;
       update_message_reply_to_message_id(reply_d, replied_m, new_message_id, true);
     } else {
       set_message_reply(reply_d, replied_m, MessageInputReplyTo(), true);
@@ -36869,6 +36873,8 @@ void MessagesManager::restore_message_reply_to_message_id(Dialog *d, Message *m)
     return;
   }
   CHECK(replied_message_full_id.get_dialog_id() == d->dialog_id);
+  LOG_CHECK(m->replied_message_info.get_reply_message_full_id(d->dialog_id, true) == replied_message_full_id)
+      << replied_message_full_id << ' ' << m->replied_message_info << ' ' << *input_reply_to;
 
   auto message_id = get_message_id_by_random_id(d, m->reply_to_random_id, "restore_message_reply_to_message_id");
   if (message_id.is_valid() || message_id.is_valid_scheduled()) {
