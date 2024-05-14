@@ -1370,6 +1370,7 @@ class MessagesManager final : public Actor {
     int32 in_memory_dialog_total_count_ = 0;
     int32 server_dialog_total_count_ = -1;
     int32 secret_chat_total_count_ = -1;
+    int64 unique_id_ = 0;
 
     vector<Promise<Unit>> load_list_queries_;
 
@@ -3270,6 +3271,7 @@ class MessagesManager final : public Actor {
 
   int64 current_pinned_dialog_order_ = static_cast<int64>(MIN_PINNED_DIALOG_DATE) << 32;
 
+  int64 current_dialog_list_unique_id_ = 0;
   std::unordered_map<DialogListId, DialogList, DialogListIdHash> dialog_lists_;
   std::unordered_map<FolderId, DialogFolder, FolderIdHash> dialog_folders_;
 
@@ -3327,6 +3329,7 @@ class MessagesManager final : public Actor {
 
   struct GetDialogsTask {
     DialogListId dialog_list_id;
+    int64 dialog_list_unique_id;
     int32 limit;
     int32 retry_count;
     DialogDate last_dialog_date = MIN_DIALOG_DATE;

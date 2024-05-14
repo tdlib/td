@@ -15837,7 +15837,8 @@ void MessagesManager::get_dialogs_from_list(DialogListId dialog_list_id, int32 l
                                             Promise<td_api::object_ptr<td_api::chats>> &&promise) {
   CHECK(!td_->auth_manager_->is_bot());
 
-  if (get_dialog_list(dialog_list_id) == nullptr) {
+  auto *list = get_dialog_list(dialog_list_id);
+  if (list == nullptr) {
     return promise.set_error(Status::Error(400, "Chat list not found"));
   }
 
@@ -15848,6 +15849,7 @@ void MessagesManager::get_dialogs_from_list(DialogListId dialog_list_id, int32 l
   auto task_id = ++current_get_dialogs_task_id_;
   auto &task = get_dialogs_tasks_[task_id];
   task.dialog_list_id = dialog_list_id;
+  task.dialog_list_unique_id = list->unique_id_;
   task.retry_count = 5;
   task.limit = limit;
   task.promise = std::move(promise);
@@ -15890,7 +15892,7 @@ void MessagesManager::on_get_dialogs_from_list(int64 task_id, Result<Unit> &&res
   }
   auto &task = task_it->second;
   auto list_ptr = get_dialog_list(task.dialog_list_id);
-  if (result.is_ok() && list_ptr == nullptr) {
+  if (result.is_ok() && (list_ptr == nullptr || list_ptr->unique_id_ != task.dialog_list_unique_id)) {
     CHECK(!task.dialog_list_id.is_folder());
     result = Status::Error(400, "Chat list not found");
   }
@@ -35608,11 +35610,13 @@ MessagesManager::DialogListView MessagesManager::get_dialog_lists(const Dialog *
 
 MessagesManager::DialogList &MessagesManager::add_dialog_list(DialogListId dialog_list_id) {
   CHECK(!td_->auth_manager_->is_bot());
-  if (dialog_lists_.count(dialog_list_id) == 0) {
-    LOG(INFO) << "Create " << dialog_list_id;
-  }
+  bool is_new = dialog_lists_.count(dialog_list_id) == 0;
   auto &list = dialog_lists_[dialog_list_id];
   list.dialog_list_id = dialog_list_id;
+  if (is_new) {
+    LOG(INFO) << "Create " << dialog_list_id;
+    list.unique_id_ = ++current_dialog_list_unique_id_;
+  }
   return list;
 }
 
