@@ -6628,8 +6628,8 @@ bool MessagesManager::need_skip_bot_commands(DialogId dialog_id, const Message *
   }
 
   auto d = get_dialog(dialog_id);
-  CHECK(d != nullptr);
-  return (d->is_has_bots_inited && !d->has_bots) || td_->dialog_manager_->is_broadcast_channel(dialog_id);
+  return (d != nullptr && d->is_has_bots_inited && !d->has_bots) ||
+         td_->dialog_manager_->is_broadcast_channel(dialog_id);
 }
 
 void MessagesManager::on_external_update_message_content(MessageFullId message_full_id) {
@@ -30684,6 +30684,7 @@ void MessagesManager::on_dialog_bots_updated(DialogId dialog_id, vector<UserId> 
 }
 
 void MessagesManager::set_dialog_has_bots(Dialog *d, bool has_bots) {
+  CHECK(!td_->auth_manager_->is_bot());
   CHECK(d != nullptr);
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in set_dialog_has_bots";
 
