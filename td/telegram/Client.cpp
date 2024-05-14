@@ -380,6 +380,7 @@ class MultiImpl {
   }
 
   void create(int32 td_id, unique_ptr<TdCallback> callback) {
+    LOG(INFO) << "Initialize client " << td_id;
     auto guard = concurrent_scheduler_->get_send_guard();
     send_closure(multi_td_, &MultiTd::create, td_id, std::move(callback));
   }
@@ -395,6 +396,7 @@ class MultiImpl {
   }
 
   void close(ClientManager::ClientId client_id) {
+    LOG(INFO) << "Close client";
     auto guard = concurrent_scheduler_->get_send_guard();
     send_closure(multi_td_, &MultiTd::close, client_id);
   }
@@ -478,6 +480,7 @@ class ClientManager::Impl final {
  public:
   ClientId create_client_id() {
     auto client_id = MultiImpl::create_id();
+    LOG(INFO) << "Created managed client " << client_id;
     {
       auto lock = impls_mutex_.lock_write().move_as_ok();
       impls_[client_id];  // create empty MultiImplInfo
@@ -521,6 +524,7 @@ class ClientManager::Impl final {
         response.object->get_id() == td_api::updateAuthorizationState::ID &&
         static_cast<const td_api::updateAuthorizationState *>(response.object.get())->authorization_state_->get_id() ==
             td_api::authorizationStateClosed::ID) {
+      LOG(INFO) << "Release closed client";
       auto lock = impls_mutex_.lock_write().move_as_ok();
       close_impl(response.client_id);
 
@@ -567,6 +571,7 @@ class ClientManager::Impl final {
     if (ExitGuard::is_exited()) {
       return;
     }
+    LOG(INFO) << "Destroy ClientManager";
     for (auto &it : impls_) {
       close_impl(it.first);
     }
@@ -592,6 +597,7 @@ class Client::Impl final {
     static MultiImplPool pool;
     multi_impl_ = pool.get();
     td_id_ = MultiImpl::create_id();
+    LOG(INFO) << "Create client " << td_id_;
     multi_impl_->create(td_id_, receiver_.create_callback(td_id_));
   }
 
@@ -618,6 +624,7 @@ class Client::Impl final {
   Impl(Impl &&) = delete;
   Impl &operator=(Impl &&) = delete;
   ~Impl() {
+    LOG(INFO) << "Destroy Client";
     multi_impl_->close(td_id_);
     while (!ExitGuard::is_exited()) {
       auto response = receiver_.receive(0.1, false);
