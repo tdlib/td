@@ -914,7 +914,7 @@ void PollManager::do_set_poll_answer(PollId poll_id, MessageFullId message_full_
     log_event.message_full_id_ = message_full_id;
     log_event.options_ = options;
     auto storer = get_log_event_storer(log_event);
-    if (pending_answer.generation_ == 0) {
+    if (pending_answer.generation_ == 0 || pending_answer.is_finished_) {
       CHECK(pending_answer.log_event_id_ == 0);
       log_event_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::SetPollAnswer, storer);
       LOG(INFO) << "Add set poll answer log event " << log_event_id;
