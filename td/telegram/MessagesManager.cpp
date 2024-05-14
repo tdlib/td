@@ -28985,6 +28985,7 @@ void MessagesManager::update_reply_to_message_id(DialogId dialog_id, MessageId o
     return;
   }
   CHECK(old_message_id.is_yet_unsent());
+  CHECK(new_message_id == MessageId() || new_message_id.is_valid() || new_message_id.is_valid_scheduled());
 
   for (auto message_full_id : it->second) {
     auto reply_d = get_dialog(message_full_id.get_dialog_id());
@@ -29001,6 +29002,7 @@ void MessagesManager::update_reply_to_message_id(DialogId dialog_id, MessageId o
     }
   }
   if (have_new_message) {
+    CHECK(new_message_id != MessageId());
     CHECK(!new_message_id.is_yet_unsent());
     replied_by_yet_unsent_messages_[MessageFullId{dialog_id, new_message_id}] = static_cast<int32>(it->second.size());
   } else {
