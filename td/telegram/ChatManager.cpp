@@ -2122,7 +2122,10 @@ void ChatManager::Channel::parse(ParserT &parser) {
     parse(photo, parser);
   }
   if (legacy_has_username) {
-    CHECK(!has_usernames);
+    if (has_usernames) {
+      parser.set_error("Have invalid channel flags");
+      return;
+    }
     string username;
     parse(username, parser);
     usernames = Usernames(std::move(username), vector<telegram_api::object_ptr<telegram_api::username>>());
