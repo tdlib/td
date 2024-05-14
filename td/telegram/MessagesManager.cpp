@@ -34471,6 +34471,9 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<DraftMessage> &&draft
     set_dialog_last_clear_history_date(d, last_clear_history_date, last_clear_history_message_id, "fix_new_dialog 8",
                                        is_loaded_from_database);
 
+    if (td_->dialog_manager_->is_dialog_removed_from_dialog_list(dialog_id)) {
+      order = DEFAULT_ORDER;
+    }
     set_dialog_order(d, order, false, is_loaded_from_database, "fix_new_dialog 9");
   }
 
