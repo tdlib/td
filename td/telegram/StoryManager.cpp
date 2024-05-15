@@ -3809,7 +3809,8 @@ void StoryManager::on_story_changed(StoryFullId story_full_id, const Story *stor
           [&message_full_ids](const MessageFullId &message_full_id) { message_full_ids.push_back(message_full_id); });
       CHECK(!message_full_ids.empty());
       for (const auto &message_full_id : message_full_ids) {
-        td_->messages_manager_->on_external_update_message_content(message_full_id, "on_story_changed");
+        send_closure_later(G()->messages_manager(), &MessagesManager::on_external_update_message_content,
+                           message_full_id, "on_story_changed");
       }
     }
   }
