@@ -115,6 +115,7 @@
 #include "td/utils/utf8.h"
 
 #include <limits>
+#include <unordered_set>
 #include <utility>
 
 namespace td {
@@ -3048,6 +3049,33 @@ Result<InputMessageContent> get_input_message_content(
       dialog_id, std::move(input_message_content), td, std::move(caption), file_id,
       get_input_thumbnail_photo_size(td->file_manager_.get(), input_thumbnail.get(), dialog_id, is_secret),
       std::move(sticker_file_ids), is_premium);
+}
+
+Status check_message_group_message_contents(const vector<InputMessageContent> &message_contents) {
+  static constexpr size_t MAX_GROUPED_MESSAGES = 10;  // server side limit
+  if (message_contents.size() > MAX_GROUPED_MESSAGES) {
+    return Status::Error(400, "Too many messages to send as an album");
+  }
+  if (message_contents.empty()) {
+    return Status::Error(400, "There are no messages to send");
+  }
+
+  std::unordered_set<MessageContentType, MessageContentTypeHash> message_content_types;
+  for (const auto &message_content : message_contents) {
+    auto message_content_type = message_content.content->get_type();
+    if (!is_allowed_media_group_content(message_content_type)) {
+      return Status::Error(400, "Invalid message content type");
+    }
+    message_content_types.insert(message_content_type);
+  }
+  if (message_content_types.size() > 1) {
+    for (auto message_content_type : message_content_types) {
+      if (is_homogenous_media_group_content(message_content_type)) {
+        return Status::Error(400, PSLICE() << message_content_type << " can't be mixed with other media types");
+      }
+    }
+  }
+  return Status::OK();
 }
 
 bool can_have_input_media(const Td *td, const MessageContent *content, bool is_server) {

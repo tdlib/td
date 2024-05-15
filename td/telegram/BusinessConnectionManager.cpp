@@ -36,8 +36,6 @@
 #include "td/utils/Random.h"
 #include "td/utils/SliceBuilder.h"
 
-#include <unordered_set>
-
 namespace td {
 
 class GetBotBusinessConnectionQuery final : public Td::ResultHandler {
@@ -962,35 +960,15 @@ void BusinessConnectionManager::send_message_album(
     td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to, bool disable_notification, bool protect_content,
     int64 effect_id, vector<td_api::object_ptr<td_api::InputMessageContent>> &&input_message_contents,
     Promise<td_api::object_ptr<td_api::businessMessages>> &&promise) {
-  if (input_message_contents.size() > MAX_GROUPED_MESSAGES) {
-    return promise.set_error(Status::Error(400, "Too many messages to send as an album"));
-  }
-  if (input_message_contents.empty()) {
-    return promise.set_error(Status::Error(400, "There are no messages to send"));
-  }
-
   TRY_STATUS_PROMISE(promise, check_business_connection(business_connection_id, dialog_id));
 
   vector<InputMessageContent> message_contents;
-  std::unordered_set<MessageContentType, MessageContentTypeHash> message_content_types;
   for (auto &input_message_content : input_message_contents) {
     TRY_RESULT_PROMISE(promise, message_content, process_input_message_content(std::move(input_message_content)));
-    auto message_content_type = message_content.content->get_type();
-    if (!is_allowed_media_group_content(message_content_type)) {
-      return promise.set_error(Status::Error(400, "Invalid message content type"));
-    }
-    message_content_types.insert(message_content_type);
-
     message_contents.push_back(std::move(message_content));
   }
-  if (message_content_types.size() > 1) {
-    for (auto message_content_type : message_content_types) {
-      if (is_homogenous_media_group_content(message_content_type)) {
-        return promise.set_error(
-            Status::Error(400, PSLICE() << message_content_type << " can't be mixed with other media types"));
-      }
-    }
-  }
+  TRY_STATUS_PROMISE(promise, check_message_group_message_contents(message_contents));
+
   auto input_reply_to = create_business_message_input_reply_to(std::move(reply_to));
 
   auto request_id = ++current_media_group_send_request_id_;

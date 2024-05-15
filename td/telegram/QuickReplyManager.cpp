@@ -53,7 +53,6 @@
 #include <algorithm>
 #include <limits>
 #include <unordered_map>
-#include <unordered_set>
 
 namespace td {
 
@@ -2068,32 +2067,12 @@ Result<td_api::object_ptr<td_api::quickReplyMessage>> QuickReplyManager::send_in
 Result<td_api::object_ptr<td_api::quickReplyMessages>> QuickReplyManager::send_message_group(
     const string &shortcut_name, MessageId reply_to_message_id,
     vector<td_api::object_ptr<td_api::InputMessageContent>> &&input_message_contents) {
-  if (input_message_contents.size() > MAX_GROUPED_MESSAGES) {
-    return Status::Error(400, "Too many messages to send as an album");
-  }
-  if (input_message_contents.empty()) {
-    return Status::Error(400, "There are no messages to send");
-  }
-
   vector<InputMessageContent> message_contents;
-  std::unordered_set<MessageContentType, MessageContentTypeHash> message_content_types;
   for (auto &input_message_content : input_message_contents) {
     TRY_RESULT(message_content, process_input_message_content(std::move(input_message_content)));
-    auto message_content_type = message_content.content->get_type();
-    if (!is_allowed_media_group_content(message_content_type)) {
-      return Status::Error(400, "Invalid message content type");
-    }
-    message_content_types.insert(message_content_type);
-
     message_contents.push_back(std::move(message_content));
   }
-  if (message_content_types.size() > 1) {
-    for (auto message_content_type : message_content_types) {
-      if (is_homogenous_media_group_content(message_content_type)) {
-        return Status::Error(400, PSLICE() << message_content_type << " can't be mixed with other media types");
-      }
-    }
-  }
+  TRY_STATUS(check_message_group_message_contents(message_contents));
 
   TRY_RESULT(s, create_new_local_shortcut(shortcut_name, static_cast<int32>(message_contents.size())));
   bool is_new = s->messages_.empty();

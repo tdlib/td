@@ -74,8 +74,6 @@ class BusinessConnectionManager final : public Actor {
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
-  static constexpr size_t MAX_GROUPED_MESSAGES = 10;  // server side limit
-
   struct BusinessConnection;
   struct PendingMessage;
   class SendBusinessMessageQuery;
