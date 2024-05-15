@@ -237,9 +237,6 @@ FormattedText get_message_text(const UserManager *user_manager, string message_t
 
 void truncate_formatted_text(FormattedText &text, size_t length);
 
-td_api::object_ptr<td_api::formattedText> extract_input_caption(
-    tl_object_ptr<td_api::InputMessageContent> &input_message_content);
-
 Result<FormattedText> get_formatted_text(const Td *td, DialogId dialog_id,
                                          td_api::object_ptr<td_api::formattedText> &&text, bool is_bot,
                                          bool allow_empty, bool skip_media_timestamps, bool skip_trim,

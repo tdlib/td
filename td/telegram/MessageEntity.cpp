@@ -4472,38 +4472,6 @@ void truncate_formatted_text(FormattedText &text, size_t length) {
   remove_empty_entities(text.entities);
 }
 
-td_api::object_ptr<td_api::formattedText> extract_input_caption(
-    tl_object_ptr<td_api::InputMessageContent> &input_message_content) {
-  switch (input_message_content->get_id()) {
-    case td_api::inputMessageAnimation::ID: {
-      auto input_animation = static_cast<td_api::inputMessageAnimation *>(input_message_content.get());
-      return std::move(input_animation->caption_);
-    }
-    case td_api::inputMessageAudio::ID: {
-      auto input_audio = static_cast<td_api::inputMessageAudio *>(input_message_content.get());
-      return std::move(input_audio->caption_);
-    }
-    case td_api::inputMessageDocument::ID: {
-      auto input_document = static_cast<td_api::inputMessageDocument *>(input_message_content.get());
-      return std::move(input_document->caption_);
-    }
-    case td_api::inputMessagePhoto::ID: {
-      auto input_photo = static_cast<td_api::inputMessagePhoto *>(input_message_content.get());
-      return std::move(input_photo->caption_);
-    }
-    case td_api::inputMessageVideo::ID: {
-      auto input_video = static_cast<td_api::inputMessageVideo *>(input_message_content.get());
-      return std::move(input_video->caption_);
-    }
-    case td_api::inputMessageVoiceNote::ID: {
-      auto input_voice_note = static_cast<td_api::inputMessageVoiceNote *>(input_message_content.get());
-      return std::move(input_voice_note->caption_);
-    }
-    default:
-      return nullptr;
-  }
-}
-
 Result<FormattedText> get_formatted_text(const Td *td, DialogId dialog_id,
                                          td_api::object_ptr<td_api::formattedText> &&text, bool is_bot,
                                          bool allow_empty, bool skip_media_timestamps, bool skip_trim,
