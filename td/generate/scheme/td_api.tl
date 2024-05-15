@@ -3402,7 +3402,8 @@ messageSendOptions disable_notification:Bool from_background:Bool protect_conten
 //@send_copy True, if content of the message needs to be copied without reference to the original sender. Always true if the message is forwarded to a secret chat or is local
 //@replace_caption True, if media caption of the message copy needs to be replaced. Ignored if send_copy is false
 //@new_caption New message caption; pass null to copy message without caption. Ignored if replace_caption is false
-messageCopyOptions send_copy:Bool replace_caption:Bool new_caption:formattedText = MessageCopyOptions;
+//@new_show_caption_above_media True, if new caption must be shown above the animation; otherwise new caption must be shown below the animation; not supported in secret chats. Ignored if replace_caption is false
+messageCopyOptions send_copy:Bool replace_caption:Bool new_caption:formattedText new_show_caption_above_media:Bool = MessageCopyOptions;
 
 
 //@class InputMessageContent @description The content of a message to send

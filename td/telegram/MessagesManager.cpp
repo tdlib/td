@@ -23598,6 +23598,10 @@ Result<InputMessageContent> MessagesManager::process_input_message_content(
       return Status::Error(400, "Message copying is restricted");
     }
 
+    auto new_invert_media =
+        copy_options.replace_caption && is_allowed_invert_caption_message_content(copied_message->content->get_type())
+            ? copy_options.new_invert_media
+            : copied_message->invert_media;
     unique_ptr<MessageContent> content = dup_message_content(td_, dialog_id, copied_message->content.get(),
                                                              MessageContentDupType::Copy, std::move(copy_options));
     if (content == nullptr) {
@@ -23605,7 +23609,7 @@ Result<InputMessageContent> MessagesManager::process_input_message_content(
     }
 
     return InputMessageContent(std::move(content), get_message_disable_web_page_preview(copied_message),
-                               copied_message->invert_media, false, MessageSelfDestructType(), UserId(),
+                               new_invert_media, false, MessageSelfDestructType(), UserId(),
                                copied_message->send_emoji);
   }
 
@@ -23630,6 +23634,7 @@ Result<MessageCopyOptions> MessagesManager::process_message_copy_options(
   if (result.replace_caption) {
     TRY_RESULT_ASSIGN(result.new_caption, get_formatted_text(td_, dialog_id, std::move(options->new_caption_),
                                                              td_->auth_manager_->is_bot(), true, false, false));
+    result.new_invert_media = options->new_show_caption_above_media_;
   }
   return std::move(result);
 }
@@ -26293,6 +26298,10 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
                           : MessageContentDupType::Forward;
     auto input_reply_to = std::move(copy_options[i].input_reply_to);
     auto reply_markup = std::move(copy_options[i].reply_markup);
+    auto new_invert_media = is_local_copy && copy_options[i].replace_caption &&
+                                    is_allowed_invert_caption_message_content(forwarded_message->content->get_type())
+                                ? copy_options[i].new_invert_media
+                                : forwarded_message->invert_media;
     unique_ptr<MessageContent> content =
         dup_message_content(td_, to_dialog_id, forwarded_message->content.get(), type, std::move(copy_options[i]));
     if (content == nullptr) {
@@ -26335,13 +26344,13 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
     if (is_local_copy) {
       auto original_reply_to_message_id =
           forwarded_message->replied_message_info.get_same_chat_reply_to_message_id(true);
-      copied_messages.push_back(
-          {std::move(content), std::move(input_reply_to), forwarded_message->message_id, original_reply_to_message_id,
-           std::move(reply_markup), forwarded_message->media_album_id,
-           get_message_disable_web_page_preview(forwarded_message), forwarded_message->invert_media, i});
+      copied_messages.push_back({std::move(content), std::move(input_reply_to), forwarded_message->message_id,
+                                 original_reply_to_message_id, std::move(reply_markup),
+                                 forwarded_message->media_album_id,
+                                 get_message_disable_web_page_preview(forwarded_message), new_invert_media, i});
     } else {
       forwarded_message_contents.push_back(
-          {std::move(content), forwarded_message->invert_media, forwarded_message->media_album_id, i});
+          {std::move(content), new_invert_media, forwarded_message->media_album_id, i});
     }
   }
   result.top_thread_message_id = top_thread_message_id;

@@ -5290,7 +5290,8 @@ class CliClient final : public Actor {
       get_args(args, chat_id, from_chat_id, from_message_id);
       td_api::object_ptr<td_api::messageCopyOptions> copy_options;
       if (op == "scopy") {
-        copy_options = td_api::make_object<td_api::messageCopyOptions>(true, rand_bool(), as_caption("_as_d"));
+        copy_options = td_api::make_object<td_api::messageCopyOptions>(true, rand_bool(), as_caption("_as_d"),
+                                                                       show_caption_above_media_);
       }
       send_message(chat_id, td_api::make_object<td_api::inputMessageForwarded>(from_chat_id, from_message_id, true,
                                                                                std::move(copy_options)));
