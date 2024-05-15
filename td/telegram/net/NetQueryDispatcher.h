@@ -79,7 +79,7 @@ class NetQueryDispatcher {
   std::atomic<int32> main_dc_id_{1};
 #endif
   ActorOwn<PublicRsaKeyWatchdog> public_rsa_key_watchdog_;
-  std::mutex main_dc_id_mutex_;
+  std::mutex mutex_;
   std::shared_ptr<Guard> td_guard_;
 
   Status wait_dc_init(DcId dc_id, bool force);
@@ -90,6 +90,7 @@ class NetQueryDispatcher {
   static bool get_use_pfs();
 
   static void complete_net_query(NetQueryPtr net_query);
+  bool check_stop_flag(NetQueryPtr &net_query) const;
 
   void try_fix_migrate(NetQueryPtr &net_query);
 };
