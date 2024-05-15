@@ -86,6 +86,8 @@ enum class MessageContentType : int32 {
 
 StringBuilder &operator<<(StringBuilder &string_builder, MessageContentType content_type);
 
+bool is_allowed_invert_caption_message_content(MessageContentType content_type);
+
 bool is_allowed_media_group_content(MessageContentType content_type);
 
 bool is_homogenous_media_group_content(MessageContentType content_type);

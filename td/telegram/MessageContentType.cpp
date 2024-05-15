@@ -151,6 +151,17 @@ StringBuilder &operator<<(StringBuilder &string_builder, MessageContentType cont
   }
 }
 
+bool is_allowed_invert_caption_message_content(MessageContentType content_type) {
+  switch (content_type) {
+    case MessageContentType::Animation:
+    case MessageContentType::Photo:
+    case MessageContentType::Video:
+      return true;
+    default:
+     return false;
+  }
+}
+
 bool is_allowed_media_group_content(MessageContentType content_type) {
   switch (content_type) {
     case MessageContentType::Audio:
