@@ -59,6 +59,45 @@ NetQuery::NetQuery(uint64 id, BufferSlice &&query, DcId dc_id, Type type, AuthFl
   }
 }
 
+void NetQuery::clear() {
+  if (!is_ready()) {
+    auto guard = lock();
+    LOG(ERROR) << "Destroy not ready query " << *this << " " << tag("state", get_data_unsafe().state_);
+  }
+  // TODO: CHECK if net_query is lost here
+  cancel_slot_.close();
+  *this = NetQuery();
+}
+
+void NetQuery::resend(DcId new_dc_id) {
+  VLOG(net_query) << "Resend " << *this;
+  {
+    auto guard = lock();
+    get_data_unsafe().resend_count_++;
+  }
+  dc_id_ = new_dc_id;
+  status_ = Status::OK();
+  state_ = State::Query;
+}
+
+bool NetQuery::update_is_ready() {
+  if (state_ == State::Query) {
+    if (cancellation_token_.load(std::memory_order_relaxed) == 0 || cancel_slot_.was_signal()) {
+      set_error_canceled();
+      return true;
+    }
+    return false;
+  }
+  return true;
+}
+
+void NetQuery::set_ok(BufferSlice slice) {
+  VLOG(net_query) << "Receive answer " << *this;
+  CHECK(state_ == State::Query);
+  answer_ = std::move(slice);
+  state_ = State::OK;
+}
+
 void NetQuery::on_net_write(size_t size) {
   const auto &callbacks = G()->get_net_stats_file_callbacks();
   if (static_cast<size_t>(file_type_) < callbacks.size()) {
@@ -99,6 +138,37 @@ void NetQuery::set_error(Status status, string source) {
     status = Status::Error(400, "MSG_WAIT_FAILED");
   }
   set_error_impl(std::move(status), std::move(source));
+}
+
+void NetQuery::set_error_impl(Status status, string source) {
+  VLOG(net_query) << "Receive error " << *this << " " << status;
+  status_ = std::move(status);
+  state_ = State::Error;
+  source_ = std::move(source);
+}
+
+StringBuilder &operator<<(StringBuilder &stream, const NetQuery &net_query) {
+  stream << "[Query:";
+  stream << tag("id", net_query.id());
+  stream << tag("tl", format::as_hex(net_query.tl_constructor()));
+  auto message_id = net_query.message_id();
+  if (message_id != 0) {
+    stream << tag("msg_id", format::as_hex(message_id));
+  }
+  if (net_query.is_error()) {
+    stream << net_query.error();
+  } else if (net_query.is_ok()) {
+    stream << tag("result_tl", format::as_hex(net_query.ok_tl_constructor()));
+  }
+  stream << ']';
+  return stream;
+}
+
+StringBuilder &operator<<(StringBuilder &stream, const NetQueryPtr &net_query_ptr) {
+  if (net_query_ptr.empty()) {
+    return stream << "[Query: null]";
+  }
+  return stream << *net_query_ptr;
 }
 
 }  // namespace td
