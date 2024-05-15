@@ -32712,17 +32712,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   d->message_lru_list.put_back(result_message);
 
-  if (m->message_id.is_yet_unsent() && !m->message_id.is_scheduled() && m->top_thread_message_id.is_valid() &&
-      !td_->auth_manager_->is_bot()) {
-    auto is_inserted =
-        yet_unsent_thread_message_ids_[MessageFullId{dialog_id, m->top_thread_message_id}].insert(m->message_id).second;
-    CHECK(is_inserted);
-  }
-
-  if (!td_->auth_manager_->is_bot() && dialog_type == DialogType::User && !m->is_outgoing) {
-    td_->user_manager_->allow_send_message_to_user(dialog_id.get_user_id());
-  }
-
   switch (dialog_type) {
     case DialogType::User:
     case DialogType::Chat:
@@ -32731,7 +32720,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       }
       break;
     case DialogType::Channel:
-      if (m->message_id.is_server() && !td_->auth_manager_->is_bot()) {
+      if (!td_->auth_manager_->is_bot() && m->message_id.is_server()) {
         td_->user_manager_->register_message_users({dialog_id, m->message_id}, get_message_user_ids(m));
         td_->chat_manager_->register_message_channels({dialog_id, m->message_id}, get_message_channel_ids(m));
       }
@@ -32743,23 +32732,37 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       UNREACHABLE();
   }
 
-  if (m->notification_id.is_valid()) {
-    auto notification_info = add_dialog_notification_info(d);
-    add_notification_id_to_message_id_correspondence(notification_info, m->notification_id, m->message_id);
-  }
   if (m->message_id.is_yet_unsent() || dialog_type == DialogType::SecretChat) {
     add_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
   }
 
-  try_add_bot_command_message_id(dialog_id, m);
+  if (!td_->auth_manager_->is_bot()) {
+    if (m->message_id.is_yet_unsent() && !m->message_id.is_scheduled() && m->top_thread_message_id.is_valid()) {
+      auto is_inserted = yet_unsent_thread_message_ids_[MessageFullId{dialog_id, m->top_thread_message_id}]
+                             .insert(m->message_id)
+                             .second;
+      CHECK(is_inserted);
+    }
 
-  // must be called after the message is added to correctly update replies
-  update_message_max_reply_media_timestamp(d, result_message, false);
-  update_message_max_own_media_timestamp(d, result_message);
+    if (dialog_type == DialogType::User && !m->is_outgoing) {
+      td_->user_manager_->allow_send_message_to_user(dialog_id.get_user_id());
+    }
 
-  if (!td_->auth_manager_->is_bot() && from_update && m->saved_messages_topic_id.is_valid()) {
-    CHECK(dialog_id == td_->dialog_manager_->get_my_dialog_id());
-    td_->saved_messages_manager_->set_topic_last_message_id(m->saved_messages_topic_id, m->message_id, m->date);
+    if (m->notification_id.is_valid()) {
+      auto notification_info = add_dialog_notification_info(d);
+      add_notification_id_to_message_id_correspondence(notification_info, m->notification_id, m->message_id);
+    }
+
+    try_add_bot_command_message_id(dialog_id, m);
+
+    // must be called after the message is added to correctly update replies
+    update_message_max_reply_media_timestamp(d, result_message, false);
+    update_message_max_own_media_timestamp(d, result_message);
+
+    if (from_update && m->saved_messages_topic_id.is_valid()) {
+      CHECK(dialog_id == td_->dialog_manager_->get_my_dialog_id());
+      td_->saved_messages_manager_->set_topic_last_message_id(m->saved_messages_topic_id, m->message_id, m->date);
+    }
   }
 
   result_message->debug_source = source;
