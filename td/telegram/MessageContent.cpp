@@ -6910,7 +6910,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       const auto *m = static_cast<const MessageAnimation *>(content);
       return make_tl_object<td_api::messageAnimation>(
           td->animations_manager_->get_animation_object(m->file_id),
-          get_formatted_text_object(m->caption, skip_bot_commands, max_media_timestamp), m->has_spoiler,
+          get_formatted_text_object(m->caption, skip_bot_commands, max_media_timestamp), invert_media, m->has_spoiler,
           is_content_secret);
     }
     case MessageContentType::Audio: {
@@ -6958,7 +6958,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
         return make_tl_object<td_api::messageExpiredPhoto>();
       }
       auto caption = get_formatted_text_object(m->caption, skip_bot_commands, max_media_timestamp);
-      return make_tl_object<td_api::messagePhoto>(std::move(photo), std::move(caption), m->has_spoiler,
+      return make_tl_object<td_api::messagePhoto>(std::move(photo), std::move(caption), invert_media, m->has_spoiler,
                                                   is_content_secret);
     }
     case MessageContentType::Sticker: {
@@ -7010,7 +7010,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       const auto *m = static_cast<const MessageVideo *>(content);
       return make_tl_object<td_api::messageVideo>(
           td->videos_manager_->get_video_object(m->file_id),
-          get_formatted_text_object(m->caption, skip_bot_commands, max_media_timestamp), m->has_spoiler,
+          get_formatted_text_object(m->caption, skip_bot_commands, max_media_timestamp), invert_media, m->has_spoiler,
           is_content_secret);
     }
     case MessageContentType::VideoNote: {

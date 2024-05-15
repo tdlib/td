@@ -2999,9 +2999,10 @@ messageText text:formattedText web_page:webPage link_preview_options:linkPreview
 //@description An animation message (GIF-style).
 //@animation The animation description
 //@caption Animation caption
+//@show_caption_above_media True, if caption must be shown above the animation; otherwise caption must be shown below the animation
 //@has_spoiler True, if the animation preview must be covered by a spoiler animation
 //@is_secret True, if the animation thumbnail must be blurred and the animation must be shown only while tapped
-messageAnimation animation:animation caption:formattedText has_spoiler:Bool is_secret:Bool = MessageContent;
+messageAnimation animation:animation caption:formattedText show_caption_above_media:Bool has_spoiler:Bool is_secret:Bool = MessageContent;
 
 //@description An audio message @audio The audio description @caption Audio caption
 messageAudio audio:audio caption:formattedText = MessageContent;
@@ -3012,9 +3013,10 @@ messageDocument document:document caption:formattedText = MessageContent;
 //@description A photo message
 //@photo The photo
 //@caption Photo caption
+//@show_caption_above_media True, if caption must be shown above the photo; otherwise caption must be shown below the photo
 //@has_spoiler True, if the photo preview must be covered by a spoiler animation
 //@is_secret True, if the photo must be blurred and must be shown only while tapped
-messagePhoto photo:photo caption:formattedText has_spoiler:Bool is_secret:Bool = MessageContent;
+messagePhoto photo:photo caption:formattedText show_caption_above_media:Bool has_spoiler:Bool is_secret:Bool = MessageContent;
 
 //@description A sticker message @sticker The sticker description @is_premium True, if premium animation of the sticker must be played
 messageSticker sticker:sticker is_premium:Bool = MessageContent;
@@ -3022,9 +3024,10 @@ messageSticker sticker:sticker is_premium:Bool = MessageContent;
 //@description A video message
 //@video The video description
 //@caption Video caption
+//@show_caption_above_media True, if caption must be shown above the video; otherwise caption must be shown below the video
 //@has_spoiler True, if the video preview must be covered by a spoiler animation
 //@is_secret True, if the video thumbnail must be blurred and the video must be shown only while tapped
-messageVideo video:video caption:formattedText has_spoiler:Bool is_secret:Bool = MessageContent;
+messageVideo video:video caption:formattedText show_caption_above_media:Bool has_spoiler:Bool is_secret:Bool = MessageContent;
 
 //@description A video note message @video_note The video note description @is_viewed True, if at least one of the recipients has viewed the video note @is_secret True, if the video note thumbnail must be blurred and the video note must be shown only while tapped
 messageVideoNote video_note:videoNote is_viewed:Bool is_secret:Bool = MessageContent;

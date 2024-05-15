@@ -25350,7 +25350,7 @@ void MessagesManager::edit_message_reply_markup(MessageFullId message_full_id,
   auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), new_reply_markup);
   td_->create_handler<EditMessageQuery>(std::move(promise))
       ->send(0, dialog_id, m->message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), nullptr,
-             false, std::move(input_reply_markup), get_message_schedule_date(m));
+             m->invert_media, std::move(input_reply_markup), get_message_schedule_date(m));
 }
 
 void MessagesManager::edit_inline_message_text(const string &inline_message_id,
@@ -25542,7 +25542,7 @@ void MessagesManager::edit_message_scheduling_state(
   if (schedule_date > 0) {
     td_->create_handler<EditMessageQuery>(std::move(promise))
         ->send(0, dialog_id, m->message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), nullptr,
-               false, nullptr, schedule_date);
+               m->invert_media, nullptr, schedule_date);
   } else {
     td_->create_handler<SendScheduledMessageQuery>(std::move(promise))->send(dialog_id, m->message_id);
   }
