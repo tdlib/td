@@ -337,7 +337,7 @@ class MessagesManager final : public Actor {
   void on_update_message_extended_media(MessageFullId message_full_id,
                                         telegram_api::object_ptr<telegram_api::MessageExtendedMedia> extended_media);
 
-  void on_external_update_message_content(MessageFullId message_full_id);
+  void on_external_update_message_content(MessageFullId message_full_id, const char *source);
 
   void on_update_message_content(MessageFullId message_full_id);
 

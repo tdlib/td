@@ -1508,7 +1508,7 @@ void WebPagesManager::on_web_page_changed(WebPageId web_page_id, bool have_web_p
       if (!have_web_page) {
         td_->messages_manager_->delete_pending_message_web_page(message_full_id);
       } else {
-        td_->messages_manager_->on_external_update_message_content(message_full_id);
+        td_->messages_manager_->on_external_update_message_content(message_full_id, "on_web_page_changed");
       }
     }
 

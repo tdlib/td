@@ -2013,7 +2013,7 @@ void StickersManager::on_load_special_sticker_set(const SpecialStickerSetType &t
   it->second.foreach([&](const MessageFullId &message_full_id) { message_full_ids.push_back(message_full_id); });
   CHECK(!message_full_ids.empty());
   for (const auto &message_full_id : message_full_ids) {
-    td_->messages_manager_->on_external_update_message_content(message_full_id);
+    td_->messages_manager_->on_external_update_message_content(message_full_id, "on_load_special_sticker_set");
   }
 }
 
@@ -5751,7 +5751,7 @@ void StickersManager::try_update_animated_emoji_messages() {
     }
   }
   for (const auto &message_full_id : message_full_ids) {
-    td_->messages_manager_->on_external_update_message_content(message_full_id);
+    td_->messages_manager_->on_external_update_message_content(message_full_id, "try_update_animated_emoji_messages");
   }
 }
 
@@ -5769,7 +5769,7 @@ void StickersManager::try_update_custom_emoji_messages(CustomEmojiId custom_emoj
         [&](const MessageFullId &message_full_id) { message_full_ids.push_back(message_full_id); });
   }
   for (const auto &message_full_id : message_full_ids) {
-    td_->messages_manager_->on_external_update_message_content(message_full_id);
+    td_->messages_manager_->on_external_update_message_content(message_full_id, "try_update_custom_emoji_messages");
   }
 }
 
@@ -5786,7 +5786,7 @@ void StickersManager::try_update_premium_gift_messages() {
     }
   }
   for (const auto &message_full_id : message_full_ids) {
-    td_->messages_manager_->on_external_update_message_content(message_full_id);
+    td_->messages_manager_->on_external_update_message_content(message_full_id, "try_update_premium_gift_messages");
   }
 }
 

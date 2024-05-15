@@ -340,13 +340,13 @@ void PollManager::notify_on_poll_update(PollId poll_id) {
 
   if (server_poll_messages_.count(poll_id) > 0) {
     server_poll_messages_[poll_id].foreach([&](const MessageFullId &message_full_id) {
-      td_->messages_manager_->on_external_update_message_content(message_full_id);
+      td_->messages_manager_->on_external_update_message_content(message_full_id, "notify_on_poll_update 1");
     });
   }
 
   if (other_poll_messages_.count(poll_id) > 0) {
     other_poll_messages_[poll_id].foreach([&](const MessageFullId &message_full_id) {
-      td_->messages_manager_->on_external_update_message_content(message_full_id);
+      td_->messages_manager_->on_external_update_message_content(message_full_id, "notify_on_poll_update 2");
     });
   }
 }
@@ -1335,7 +1335,7 @@ void PollManager::on_stop_poll_finished(PollId poll_id, MessageFullId message_fu
   if (td_->auth_manager_->is_bot()) {
     if ((server_poll_messages_.count(poll_id) > 0 && server_poll_messages_[poll_id].count(message_full_id) > 0) ||
         (other_poll_messages_.count(poll_id) > 0 && other_poll_messages_[poll_id].count(message_full_id) > 0)) {
-      td_->messages_manager_->on_external_update_message_content(message_full_id);
+      td_->messages_manager_->on_external_update_message_content(message_full_id, "on_stop_poll_finished");
     }
   }
 
