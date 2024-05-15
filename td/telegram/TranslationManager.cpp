@@ -47,6 +47,11 @@ class TranslateTextQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    if (status.message() == "INPUT_TEXT_EMPTY") {
+      vector<telegram_api::object_ptr<telegram_api::textWithEntities>> result;
+      result.push_back(telegram_api::make_object<telegram_api::textWithEntities>(string(), Auto()));
+      return promise_.set_value(std::move(result));
+    }
     promise_.set_error(std::move(status));
   }
 };
