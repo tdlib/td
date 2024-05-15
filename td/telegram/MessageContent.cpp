@@ -3066,6 +3066,9 @@ Status check_message_group_message_contents(const vector<InputMessageContent> &m
     if (!is_allowed_media_group_content(message_content_type)) {
       return Status::Error(400, "Invalid message content type");
     }
+    if (message_content.invert_media != message_contents[0].invert_media) {
+      return Status::Error(400, "Parameter show_caption_above_media must be the same for all messages");
+    }
     message_content_types.insert(message_content_type);
   }
   if (message_content_types.size() > 1) {

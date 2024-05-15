@@ -8093,7 +8093,7 @@ sendMessage chat_id:int53 message_thread_id:int53 reply_to:InputMessageReplyTo o
 //@message_thread_id If not 0, the message thread identifier in which the messages will be sent
 //@reply_to Information about the message or story to be replied; pass null if none
 //@options Options to be used to send the messages; pass null to use default options
-//@input_message_contents Contents of messages to be sent. At most 10 messages can be added to an album
+//@input_message_contents Contents of messages to be sent. At most 10 messages can be added to an album. All messages must have the same value of show_caption_above_media
 sendMessageAlbum chat_id:int53 message_thread_id:int53 reply_to:InputMessageReplyTo options:messageSendOptions input_message_contents:vector<InputMessageContent> = Messages;
 
 //@description Invites a bot to a chat (if it is not yet a member) and sends it the /start command; requires can_invite_users member right. Bots can't be invited to a private chat other than the chat with the bot.
@@ -8256,7 +8256,7 @@ sendBusinessMessage business_connection_id:string chat_id:int53 reply_to:InputMe
 //@disable_notification Pass true to disable notification for the message
 //@protect_content Pass true if the content of the message must be protected from forwarding and saving
 //@effect_id Identifier of the effect to apply to the message
-//@input_message_contents Contents of messages to be sent. At most 10 messages can be added to an album
+//@input_message_contents Contents of messages to be sent. At most 10 messages can be added to an album. All messages must have the same value of show_caption_above_media
 sendBusinessMessageAlbum business_connection_id:string chat_id:int53 reply_to:InputMessageReplyTo disable_notification:Bool protect_content:Bool effect_id:int64 input_message_contents:vector<InputMessageContent> = BusinessMessages;
 
 
@@ -8304,7 +8304,7 @@ addQuickReplyShortcutInlineQueryResultMessage shortcut_name:string reply_to_mess
 //-Documents and audio files can be only grouped in an album with messages of the same type. Returns sent messages
 //@shortcut_name Name of the target shortcut
 //@reply_to_message_id Identifier of a quick reply message in the same shortcut to be replied; pass 0 if none
-//@input_message_contents Contents of messages to be sent. At most 10 messages can be added to an album
+//@input_message_contents Contents of messages to be sent. At most 10 messages can be added to an album. All messages must have the same value of show_caption_above_media
 addQuickReplyShortcutMessageAlbum shortcut_name:string reply_to_message_id:int53 input_message_contents:vector<InputMessageContent> = QuickReplyMessages;
 
 //@description Readds quick reply messages which failed to add. Can be called only for messages for which messageSendingStateFailed.can_retry is true and after specified in messageSendingStateFailed.retry_after time passed.
