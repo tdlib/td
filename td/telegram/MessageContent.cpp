@@ -2627,6 +2627,25 @@ td_api::object_ptr<td_api::formattedText> extract_input_caption(
   }
 }
 
+bool extract_input_invert_media(const td_api::object_ptr<td_api::InputMessageContent> &input_message_content) {
+  switch (input_message_content->get_id()) {
+    case td_api::inputMessageAnimation::ID: {
+      auto input_animation = static_cast<const td_api::inputMessageAnimation *>(input_message_content.get());
+      return input_animation->show_caption_above_media_;
+    }
+    case td_api::inputMessagePhoto::ID: {
+      auto input_photo = static_cast<const td_api::inputMessagePhoto *>(input_message_content.get());
+      return input_photo->show_caption_above_media_;
+    }
+    case td_api::inputMessageVideo::ID: {
+      auto input_video = static_cast<const td_api::inputMessageVideo *>(input_message_content.get());
+      return input_video->show_caption_above_media_;
+    }
+    default:
+      return false;
+  }
+}
+
 static Result<InputMessageContent> create_input_message_content(
     DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td,
     FormattedText caption, FileId file_id, PhotoSize thumbnail, vector<FileId> sticker_file_ids, bool is_premium) {
@@ -2683,6 +2702,8 @@ static Result<InputMessageContent> create_input_message_content(
     case td_api::inputMessageAnimation::ID: {
       auto input_animation = static_cast<td_api::inputMessageAnimation *>(input_message_content.get());
 
+      invert_media = input_animation->show_caption_above_media_ && !is_secret;
+
       bool has_stickers = !sticker_file_ids.empty();
       td->animations_manager_->create_animation(
           file_id, string(), thumbnail, AnimationSize(), has_stickers, std::move(sticker_file_ids),
@@ -2727,6 +2748,7 @@ static Result<InputMessageContent> create_input_message_content(
     case td_api::inputMessagePhoto::ID: {
       auto input_photo = static_cast<td_api::inputMessagePhoto *>(input_message_content.get());
 
+      invert_media = input_photo->show_caption_above_media_ && !is_secret;
       self_destruct_type = std::move(input_photo->self_destruct_type_);
 
       TRY_RESULT(photo, create_photo(td->file_manager_.get(), file_id, std::move(thumbnail), input_photo->width_,
@@ -2751,6 +2773,7 @@ static Result<InputMessageContent> create_input_message_content(
     case td_api::inputMessageVideo::ID: {
       auto input_video = static_cast<td_api::inputMessageVideo *>(input_message_content.get());
 
+      invert_media = input_video->show_caption_above_media_ && !is_secret;
       self_destruct_type = std::move(input_video->self_destruct_type_);
 
       bool has_stickers = !sticker_file_ids.empty();

@@ -113,6 +113,8 @@ unique_ptr<MessageContent> create_chat_set_ttl_message_content(int32 ttl, UserId
 td_api::object_ptr<td_api::formattedText> extract_input_caption(
     td_api::object_ptr<td_api::InputMessageContent> &input_message_content);
 
+bool extract_input_invert_media(const td_api::object_ptr<td_api::InputMessageContent> &input_message_content);
+
 Result<InputMessageContent> get_input_message_content(
     DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td, bool is_premium);
 

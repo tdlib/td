@@ -463,6 +463,9 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
     if (!entities.empty()) {
       flags |= telegram_api::inputBotInlineMessageMediaAuto::ENTITIES_MASK;
     }
+    if (extract_input_invert_media(input_message_content)) {
+      flags |= telegram_api::inputBotInlineMessageMediaAuto::INVERT_MEDIA_MASK;
+    }
     return make_tl_object<telegram_api::inputBotInlineMessageMediaAuto>(
         flags, false /*ignored*/, caption.text, std::move(entities), std::move(input_reply_markup));
   }
