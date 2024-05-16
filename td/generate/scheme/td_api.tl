@@ -7286,6 +7286,9 @@ updateDefaultReactionType reaction_type:ReactionType = Update;
 //@tags The new tags
 updateSavedMessagesTags saved_messages_topic_id:int53 tags:savedMessagesTags = Update;
 
+//@description The number of stars owned by the current user has changed @star_count The new number of stars owned
+updateOwnedStarCount star_count:int53 = Update;
+
 //@description The revenue earned from sponsored messages in a chat has changed. If chat revenue screen is opened, then getChatRevenueTransactions may be called to fetch new transactions
 //@chat_id Identifier of the chat
 //@revenue_amount New amount of earned revenue

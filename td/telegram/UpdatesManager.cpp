@@ -4560,13 +4560,18 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBroadcastRevenu
   promise.set_value(Unit());
 }
 
-// unsupported updates
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise) {
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStarsBalance> update, Promise<Unit> &&promise) {
+  if (update->balance_ < 0) {
+    LOG(ERROR) << "Receive " << update->balance_ << " stars";
+    update->balance_ = 0;
+  }
+  send_closure(G()->td(), &Td::send_update, td_api::make_object<td_api::updateOwnedStarCount>(update->balance_));
   promise.set_value(Unit());
 }
 
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStarsBalance> update, Promise<Unit> &&promise) {
+// unsupported updates
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 
