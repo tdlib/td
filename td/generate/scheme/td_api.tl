@@ -833,6 +833,27 @@ starPaymentOption currency:string amount:int53 star_count:int53 store_product_id
 starPaymentOptions options:vector<starPaymentOption> = StarPaymentOptions;
 
 
+//@class StarTransactionDirection @description Describes direction of a transaction with Telegram stars
+
+//@description The transaction is incoming and increases the number of owned Telegram stars
+starTransactionDirectionIncoming = StarTransactionDirection;
+
+//@description The transaction is outgoing and decreases the number of owned Telegram stars
+starTransactionDirectionOutgoing = StarTransactionDirection;
+
+
+//@description Represents a transaction changing the amount of owned Telegram stars
+//@id Unique identifier of the transaction
+//@star_count The amount of added owned Telegram stars; negative for outgoing transactions
+//@date Point in time (Unix timestamp) when the transaction was completed
+starTransaction id:string star_count:int53 date:int32 = StarTransaction;
+
+//@description Represents a list of Telegram star transactions
+//@star_count The amount of owned Telegram stars
+//@transactions List of transactions with Telegram stars
+//@next_offset The offset for the next request. If empty, then there are no more results
+starTransactions star_count:int53 transactions:vector<starTransaction> next_offset:string = StarTransactions;
+
 
 //@class PremiumGiveawayParticipantStatus @description Contains information about status of a user in a Telegram Premium giveaway
 
@@ -10755,6 +10776,11 @@ getPremiumGiveawayInfo chat_id:int53 message_id:int53 = PremiumGiveawayInfo;
 
 //@description Returns available options for Telegram stars purchase
 getStarPaymentOptions = StarPaymentOptions;
+
+//@description Returns the list of Telegram star transactions for the current user
+//@offset Offset of the first transaction to return as received from the previous request; use empty string to get the first chunk of results
+//@direction Direction of the transactions to receive; pass null to get all transactions
+getStarTransactions offset:string direction:StarTransactionDirection = StarTransactions;
 
 //@description Checks whether an in-store purchase is possible. Must be called before any in-store purchase @purpose Transaction purpose
 canPurchaseFromStore purpose:StorePaymentPurpose = Ok;

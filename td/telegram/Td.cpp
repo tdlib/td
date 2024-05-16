@@ -9394,6 +9394,13 @@ void Td::on_request(uint64 id, const td_api::getStarPaymentOptions &request) {
   get_star_payment_options(this, std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::getStarTransactions &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.offset_);
+  CREATE_REQUEST_PROMISE();
+  get_star_transactions(this, request.offset_, std::move(request.direction_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::canPurchaseFromStore &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

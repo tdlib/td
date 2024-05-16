@@ -640,6 +640,58 @@ class GetStarsTopupOptionsQuery final : public Td::ResultHandler {
   }
 };
 
+class GetStarsTransactionsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::starTransactions>> promise_;
+
+ public:
+  explicit GetStarsTransactionsQuery(Promise<td_api::object_ptr<td_api::starTransactions>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &offset, td_api::object_ptr<td_api::StarTransactionDirection> &&direction) {
+    int32 flags = 0;
+    if (direction != nullptr) {
+      switch (direction->get_id()) {
+        case td_api::starTransactionDirectionIncoming::ID:
+          flags |= telegram_api::payments_getStarsTransactions::INBOUND_MASK;
+          break;
+        case td_api::starTransactionDirectionOutgoing::ID:
+          flags |= telegram_api::payments_getStarsTransactions::OUTBOUND_MASK;
+          break;
+        default:
+          UNREACHABLE();
+      }
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_getStarsTransactions(flags, false /*ignored*/, false /*ignored*/,
+                                                    telegram_api::make_object<telegram_api::inputPeerSelf>(), offset)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getStarsTransactions>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    td_->user_manager_->on_get_users(std::move(result->users_), "GetStarsTransactionsQuery");
+    td_->chat_manager_->on_get_chats(std::move(result->chats_), "GetStarsTransactionsQuery");
+
+    vector<td_api::object_ptr<td_api::starTransaction>> transactions;
+    for (auto &transaction : result->history_) {
+      transactions.push_back(
+          td_api::make_object<td_api::starTransaction>(transaction->id_, transaction->stars_, transaction->date_));
+    }
+
+    promise_.set_value(
+        td_api::make_object<td_api::starTransactions>(result->balance_, std::move(transactions), result->next_offset_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class CanPurchasePremiumQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -1194,6 +1246,12 @@ void get_premium_giveaway_info(Td *td, MessageFullId message_full_id,
 
 void get_star_payment_options(Td *td, Promise<td_api::object_ptr<td_api::starPaymentOptions>> &&promise) {
   td->create_handler<GetStarsTopupOptionsQuery>(std::move(promise))->send();
+}
+
+void get_star_transactions(Td *td, const string &offset,
+                           td_api::object_ptr<td_api::StarTransactionDirection> &&direction,
+                           Promise<td_api::object_ptr<td_api::starTransactions>> &&promise) {
+  td->create_handler<GetStarsTransactionsQuery>(std::move(promise))->send(offset, std::move(direction));
 }
 
 void can_purchase_premium(Td *td, td_api::object_ptr<td_api::StorePaymentPurpose> &&purpose, Promise<Unit> &&promise) {

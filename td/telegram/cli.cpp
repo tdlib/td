@@ -3382,6 +3382,14 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getPremiumGiveawayInfo>(chat_id, message_id));
     } else if (op == "gspo") {
       send_request(td_api::make_object<td_api::getStarPaymentOptions>());
+    } else if (op == "gsta" || op == "gsti" || op == "gsto") {
+      td_api::object_ptr<td_api::StarTransactionDirection> direction;
+      if (op == "gsti") {
+        direction = td_api::make_object<td_api::starTransactionDirectionIncoming>();
+      } else if (op == "gsto") {
+        direction = td_api::make_object<td_api::starTransactionDirectionOutgoing>();
+      }
+      send_request(td_api::make_object<td_api::getStarTransactions>(args, std::move(direction)));
     } else if (op == "cpfs" || op == "cpfsb") {
       UserId user_id;
       string currency;
