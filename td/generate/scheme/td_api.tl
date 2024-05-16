@@ -8159,14 +8159,16 @@ deleteChatMessagesBySender chat_id:int53 sender_id:MessageSender = Ok;
 deleteChatMessagesByDate chat_id:int53 min_date:int32 max_date:int32 revoke:Bool = Ok;
 
 
-//@description Edits the text of a message (or a text of a game message). Returns the edited message after the edit is completed on the server side
+//@description Edits the text of a message (or a text of a game message). Returns the edited message after the edit is completed on the server side.
+//-Can be used only if message.can_be_edited == true
 //@chat_id The chat the message belongs to
 //@message_id Identifier of the message
 //@reply_markup The new message reply markup; pass null if none; for bots only
 //@input_message_content New text content of the message. Must be of type inputMessageText
 editMessageText chat_id:int53 message_id:int53 reply_markup:ReplyMarkup input_message_content:InputMessageContent = Message;
 
-//@description Edits the message content of a live location. Messages can be edited for a limited period of time specified in the live location. Returns the edited message after the edit is completed on the server side
+//@description Edits the message content of a live location. Messages can be edited for a limited period of time specified in the live location.
+//-Returns the edited message after the edit is completed on the server side. Can be used only if message.can_be_edited == true
 //@chat_id The chat the message belongs to
 //@message_id Identifier of the message
 //@reply_markup The new message reply markup; pass null if none; for bots only
@@ -8178,14 +8180,16 @@ editMessageText chat_id:int53 message_id:int53 reply_markup:ReplyMarkup input_me
 editMessageLiveLocation chat_id:int53 message_id:int53 reply_markup:ReplyMarkup location:location live_period:int32 heading:int32 proximity_alert_radius:int32 = Message;
 
 //@description Edits the content of a message with an animation, an audio, a document, a photo or a video, including message caption. If only the caption needs to be edited, use editMessageCaption instead.
-//-The media can't be edited if the message was set to self-destruct or to a self-destructing media. The type of message content in an album can't be changed with exception of replacing a photo with a video or vice versa. Returns the edited message after the edit is completed on the server side
+//-The media can't be edited if the message was set to self-destruct or to a self-destructing media. The type of message content in an album can't be changed with exception of replacing a photo with a video or vice versa.
+//-Returns the edited message after the edit is completed on the server side. Can be used only if message.can_be_edited == true
 //@chat_id The chat the message belongs to
 //@message_id Identifier of the message
 //@reply_markup The new message reply markup; pass null if none; for bots only
 //@input_message_content New content of the message. Must be one of the following types: inputMessageAnimation, inputMessageAudio, inputMessageDocument, inputMessagePhoto or inputMessageVideo
 editMessageMedia chat_id:int53 message_id:int53 reply_markup:ReplyMarkup input_message_content:InputMessageContent = Message;
 
-//@description Edits the message content caption. Returns the edited message after the edit is completed on the server side
+//@description Edits the message content caption. Returns the edited message after the edit is completed on the server side.
+//-Can be used only if message.can_be_edited == true
 //@chat_id The chat the message belongs to
 //@message_id Identifier of the message
 //@reply_markup The new message reply markup; pass null if none; for bots only
@@ -8193,7 +8197,8 @@ editMessageMedia chat_id:int53 message_id:int53 reply_markup:ReplyMarkup input_m
 //@show_caption_above_media True, if caption must be shown above the media; otherwise caption must be shown below the media. Can be true only for animation, photo, and video messages
 editMessageCaption chat_id:int53 message_id:int53 reply_markup:ReplyMarkup caption:formattedText show_caption_above_media:Bool = Message;
 
-//@description Edits the message reply markup; for bots only. Returns the edited message after the edit is completed on the server side
+//@description Edits the message reply markup; for bots only. Returns the edited message after the edit is completed on the server side.
+//-Can be used only if message.can_be_edited == true
 //@chat_id The chat the message belongs to
 //@message_id Identifier of the message
 //@reply_markup The new message reply markup; pass null if none
