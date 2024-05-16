@@ -3380,6 +3380,8 @@ class CliClient final : public Actor {
       MessageId message_id;
       get_args(args, chat_id, message_id);
       send_request(td_api::make_object<td_api::getPremiumGiveawayInfo>(chat_id, message_id));
+    } else if (op == "gspo") {
+      send_request(td_api::make_object<td_api::getStarPaymentOptions>());
     } else if (op == "cpfs" || op == "cpfsb") {
       UserId user_id;
       string currency;

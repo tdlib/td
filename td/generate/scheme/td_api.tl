@@ -822,6 +822,17 @@ premiumGiftCodePaymentOptions options:vector<premiumGiftCodePaymentOption> = Pre
 //@use_date Point in time (Unix timestamp) when the code was activated; 0 if none
 premiumGiftCodeInfo creator_id:MessageSender creation_date:int32 is_from_giveaway:Bool giveaway_message_id:int53 month_count:int32 user_id:int53 use_date:int32 = PremiumGiftCodeInfo;
 
+//@description Describes an option for buying Telegram stars
+//@currency ISO 4217 currency code for the payment
+//@amount The amount to pay, in the smallest units of the currency
+//@star_count Number of stars that will be purchased
+//@store_product_id Identifier of the store product associated with the option; may be empty if none
+starPaymentOption currency:string amount:int53 star_count:int53 store_product_id:string = StarPaymentOption;
+
+//@description Contains a list of options for buying Telegram stars @options The list of options
+starPaymentOptions options:vector<starPaymentOption> = StarPaymentOptions;
+
+
 
 //@class PremiumGiveawayParticipantStatus @description Contains information about status of a user in a Telegram Premium giveaway
 
@@ -10741,6 +10752,9 @@ launchPrepaidPremiumGiveaway giveaway_id:int64 parameters:premiumGiveawayParamet
 //@chat_id Identifier of the channel chat which started the giveaway
 //@message_id Identifier of the giveaway or a giveaway winners message in the chat
 getPremiumGiveawayInfo chat_id:int53 message_id:int53 = PremiumGiveawayInfo;
+
+//@description Returns available options for Telegram stars purchase
+getStarPaymentOptions = StarPaymentOptions;
 
 //@description Checks whether an in-store purchase is possible. Must be called before any in-store purchase @purpose Transaction purpose
 canPurchaseFromStore purpose:StorePaymentPurpose = Ok;

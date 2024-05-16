@@ -607,6 +607,39 @@ class GetGiveawayInfoQuery final : public Td::ResultHandler {
   }
 };
 
+class GetStarsTopupOptionsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::starPaymentOptions>> promise_;
+
+ public:
+  explicit GetStarsTopupOptionsQuery(Promise<td_api::object_ptr<td_api::starPaymentOptions>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::payments_getStarsTopupOptions()));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getStarsTopupOptions>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto results = result_ptr.move_as_ok();
+    vector<td_api::object_ptr<td_api::starPaymentOption>> options;
+    for (auto &result : results) {
+      options.push_back(td_api::make_object<td_api::starPaymentOption>(result->currency_, result->amount_,
+                                                                       result->stars_, result->store_product_));
+    }
+
+    promise_.set_value(td_api::make_object<td_api::starPaymentOptions>(std::move(options)));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class CanPurchasePremiumQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -1157,6 +1190,10 @@ void get_premium_giveaway_info(Td *td, MessageFullId message_full_id,
   TRY_RESULT_PROMISE(promise, server_message_id, td->messages_manager_->get_giveaway_message_id(message_full_id));
   td->create_handler<GetGiveawayInfoQuery>(std::move(promise))
       ->send(message_full_id.get_dialog_id(), server_message_id);
+}
+
+void get_star_payment_options(Td *td, Promise<td_api::object_ptr<td_api::starPaymentOptions>> &&promise) {
+  td->create_handler<GetStarsTopupOptionsQuery>(std::move(promise))->send();
 }
 
 void can_purchase_premium(Td *td, td_api::object_ptr<td_api::StorePaymentPurpose> &&purpose, Promise<Unit> &&promise) {
