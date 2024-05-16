@@ -1833,7 +1833,7 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::getPremiumGiveawayInfo &request);
 
-  void on_request(uint64 id, td_api::canPurchasePremium &request);
+  void on_request(uint64 id, td_api::canPurchaseFromStore &request);
 
   void on_request(uint64 id, td_api::assignAppStoreTransaction &request);
 

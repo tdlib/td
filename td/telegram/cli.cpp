@@ -3380,36 +3380,36 @@ class CliClient final : public Actor {
       MessageId message_id;
       get_args(args, chat_id, message_id);
       send_request(td_api::make_object<td_api::getPremiumGiveawayInfo>(chat_id, message_id));
-    } else if (op == "cppr" || op == "cpprb") {
+    } else if (op == "cpfs" || op == "cpfsb") {
       UserId user_id;
       string currency;
       int64 amount;
       ChatId boosted_chat_id;
       get_args(args, user_id, currency, amount, boosted_chat_id);
       if (currency.empty()) {
-        send_request(td_api::make_object<td_api::canPurchasePremium>(
+        send_request(td_api::make_object<td_api::canPurchaseFromStore>(
             td_api::make_object<td_api::storePaymentPurposePremiumSubscription>(false, false)));
-      } else if (op == "cppr") {
-        send_request(td_api::make_object<td_api::canPurchasePremium>(
+      } else if (op == "cpfs") {
+        send_request(td_api::make_object<td_api::canPurchaseFromStore>(
             td_api::make_object<td_api::storePaymentPurposeGiftedPremium>(user_id, currency, amount)));
       } else {
-        send_request(td_api::make_object<td_api::canPurchasePremium>(
+        send_request(td_api::make_object<td_api::canPurchaseFromStore>(
             td_api::make_object<td_api::storePaymentPurposePremiumGiftCodes>(boosted_chat_id, currency, amount,
                                                                              vector<int64>{user_id})));
       }
-    } else if (op == "cpprg") {
+    } else if (op == "cpfsg") {
       PremiumGiveawayParameters parameters;
       string currency;
       int64 amount;
       get_args(args, parameters, currency, amount);
-      send_request(td_api::make_object<td_api::canPurchasePremium>(
+      send_request(td_api::make_object<td_api::canPurchaseFromStore>(
           td_api::make_object<td_api::storePaymentPurposePremiumGiveaway>(parameters, currency, amount)));
-    } else if (op == "cpprs") {
+    } else if (op == "cpfss") {
       string currency;
       int64 amount;
       int64 star_count;
       get_args(args, currency, amount, star_count);
-      send_request(td_api::make_object<td_api::canPurchasePremium>(
+      send_request(td_api::make_object<td_api::canPurchaseFromStore>(
           td_api::make_object<td_api::storePaymentPurposeStars>(currency, amount, star_count)));
     } else if (op == "gbf") {
       send_request(td_api::make_object<td_api::getBusinessFeatures>(nullptr));
