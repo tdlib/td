@@ -1271,10 +1271,11 @@ class EditMessageCaptionRequest final : public RequestOnceActor {
   MessageFullId message_full_id_;
   tl_object_ptr<td_api::ReplyMarkup> reply_markup_;
   tl_object_ptr<td_api::formattedText> caption_;
+  bool invert_media_;
 
   void do_run(Promise<Unit> &&promise) final {
     td_->messages_manager_->edit_message_caption(message_full_id_, std::move(reply_markup_), std::move(caption_),
-                                                 std::move(promise));
+                                                 invert_media_, std::move(promise));
   }
 
   void do_send_result() final {
@@ -1284,11 +1285,12 @@ class EditMessageCaptionRequest final : public RequestOnceActor {
  public:
   EditMessageCaptionRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 message_id,
                             tl_object_ptr<td_api::ReplyMarkup> reply_markup,
-                            tl_object_ptr<td_api::formattedText> caption)
+                            tl_object_ptr<td_api::formattedText> caption, bool invert_media)
       : RequestOnceActor(std::move(td), request_id)
       , message_full_id_(DialogId(dialog_id), MessageId(message_id))
       , reply_markup_(std::move(reply_markup))
-      , caption_(std::move(caption)) {
+      , caption_(std::move(caption))
+      , invert_media_(invert_media) {
   }
 };
 
@@ -5704,7 +5706,7 @@ void Td::on_request(uint64 id, td_api::editMessageMedia &request) {
 
 void Td::on_request(uint64 id, td_api::editMessageCaption &request) {
   CREATE_REQUEST(EditMessageCaptionRequest, request.chat_id_, request.message_id_, std::move(request.reply_markup_),
-                 std::move(request.caption_));
+                 std::move(request.caption_), request.show_caption_above_media_);
 }
 
 void Td::on_request(uint64 id, td_api::editMessageReplyMarkup &request) {
@@ -5743,7 +5745,8 @@ void Td::on_request(uint64 id, td_api::editInlineMessageCaption &request) {
   CLEAN_INPUT_STRING(request.inline_message_id_);
   CREATE_OK_REQUEST_PROMISE();
   messages_manager_->edit_inline_message_caption(request.inline_message_id_, std::move(request.reply_markup_),
-                                                 std::move(request.caption_), std::move(promise));
+                                                 std::move(request.caption_), request.show_caption_above_media_,
+                                                 std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::editInlineMessageReplyMarkup &request) {

@@ -476,7 +476,8 @@ class MessagesManager final : public Actor {
                           tl_object_ptr<td_api::InputMessageContent> &&input_message_content, Promise<Unit> &&promise);
 
   void edit_message_caption(MessageFullId message_full_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
-                            tl_object_ptr<td_api::formattedText> &&input_caption, Promise<Unit> &&promise);
+                            tl_object_ptr<td_api::formattedText> &&input_caption, bool invert_media,
+                            Promise<Unit> &&promise);
 
   void edit_message_reply_markup(MessageFullId message_full_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                  Promise<Unit> &&promise);
@@ -495,7 +496,8 @@ class MessagesManager final : public Actor {
                                  Promise<Unit> &&promise);
 
   void edit_inline_message_caption(const string &inline_message_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
-                                   tl_object_ptr<td_api::formattedText> &&input_caption, Promise<Unit> &&promise);
+                                   tl_object_ptr<td_api::formattedText> &&input_caption, bool invert_media,
+                                   Promise<Unit> &&promise);
 
   void edit_inline_message_reply_markup(const string &inline_message_id,
                                         tl_object_ptr<td_api::ReplyMarkup> &&reply_markup, Promise<Unit> &&promise);

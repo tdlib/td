@@ -25096,7 +25096,7 @@ void MessagesManager::edit_message_live_location(MessageFullId message_full_id,
       flags, false /*ignored*/, location.get_input_geo_point(), heading, live_period, proximity_alert_radius);
   td_->create_handler<EditMessageQuery>(std::move(promise))
       ->send(0, dialog_id, m->message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(),
-             std::move(input_media), false, std::move(input_reply_markup), get_message_schedule_date(m));
+             std::move(input_media), false /*ignored*/, std::move(input_reply_markup), get_message_schedule_date(m));
 }
 
 void MessagesManager::cancel_edit_message_media(DialogId dialog_id, Message *m, Slice error_message) {
@@ -25282,7 +25282,7 @@ void MessagesManager::edit_message_media(MessageFullId message_full_id,
 
 void MessagesManager::edit_message_caption(MessageFullId message_full_id,
                                            tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
-                                           tl_object_ptr<td_api::formattedText> &&input_caption,
+                                           tl_object_ptr<td_api::formattedText> &&input_caption, bool invert_media,
                                            Promise<Unit> &&promise) {
   auto dialog_id = message_full_id.get_dialog_id();
   TRY_RESULT_PROMISE(promise, d, check_dialog_access(dialog_id, true, AccessRights::Edit, "edit_message_caption"));
@@ -25298,6 +25298,9 @@ void MessagesManager::edit_message_caption(MessageFullId message_full_id,
   if (!can_have_message_content_caption(m->content->get_type())) {
     return promise.set_error(Status::Error(400, "There is no caption in the message to edit"));
   }
+  if (invert_media && !is_allowed_invert_caption_message_content(m->content->get_type())) {
+    invert_media = false;
+  }
 
   TRY_RESULT_PROMISE(
       promise, caption,
@@ -25310,7 +25313,7 @@ void MessagesManager::edit_message_caption(MessageFullId message_full_id,
   td_->create_handler<EditMessageQuery>(std::move(promise))
       ->send(1 << 11, dialog_id, m->message_id, caption.text,
              get_input_message_entities(td_->user_manager_.get(), caption.entities, "edit_message_caption"), nullptr,
-             m->invert_media, std::move(input_reply_markup), get_message_schedule_date(m));
+             invert_media, std::move(input_reply_markup), get_message_schedule_date(m));
 }
 
 void MessagesManager::edit_message_reply_markup(MessageFullId message_full_id,
@@ -25335,7 +25338,7 @@ void MessagesManager::edit_message_reply_markup(MessageFullId message_full_id,
   auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), new_reply_markup);
   td_->create_handler<EditMessageQuery>(std::move(promise))
       ->send(0, dialog_id, m->message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), nullptr,
-             m->invert_media, std::move(input_reply_markup), get_message_schedule_date(m));
+             m->invert_media /*ignored*/, std::move(input_reply_markup), get_message_schedule_date(m));
 }
 
 void MessagesManager::edit_inline_message_text(const string &inline_message_id,
@@ -25410,7 +25413,8 @@ void MessagesManager::edit_inline_message_live_location(const string &inline_mes
       flags, false /*ignored*/, location.get_input_geo_point(), heading, live_period, proximity_alert_radius);
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
       ->send(0, std::move(input_bot_inline_message_id), "", vector<tl_object_ptr<telegram_api::MessageEntity>>(),
-             std::move(input_media), false, get_input_reply_markup(td_->user_manager_.get(), new_reply_markup));
+             std::move(input_media), false /*ignored*/,
+             get_input_reply_markup(td_->user_manager_.get(), new_reply_markup));
 }
 
 void MessagesManager::edit_inline_message_media(const string &inline_message_id,
@@ -25460,7 +25464,7 @@ void MessagesManager::edit_inline_message_media(const string &inline_message_id,
 void MessagesManager::edit_inline_message_caption(const string &inline_message_id,
                                                   tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                                   tl_object_ptr<td_api::formattedText> &&input_caption,
-                                                  Promise<Unit> &&promise) {
+                                                  bool invert_media, Promise<Unit> &&promise) {
   CHECK(td_->auth_manager_->is_bot());
 
   TRY_RESULT_PROMISE(promise, caption,
@@ -25477,7 +25481,7 @@ void MessagesManager::edit_inline_message_caption(const string &inline_message_i
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
       ->send(1 << 11, std::move(input_bot_inline_message_id), caption.text,
              get_input_message_entities(td_->user_manager_.get(), caption.entities, "edit_inline_message_caption"),
-             nullptr, false, get_input_reply_markup(td_->user_manager_.get(), new_reply_markup));
+             nullptr, invert_media, get_input_reply_markup(td_->user_manager_.get(), new_reply_markup));
 }
 
 void MessagesManager::edit_inline_message_reply_markup(const string &inline_message_id,
@@ -25495,7 +25499,7 @@ void MessagesManager::edit_inline_message_reply_markup(const string &inline_mess
 
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
       ->send(0, std::move(input_bot_inline_message_id), string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(),
-             nullptr, false, get_input_reply_markup(td_->user_manager_.get(), new_reply_markup));
+             nullptr, false /*ignored*/, get_input_reply_markup(td_->user_manager_.get(), new_reply_markup));
 }
 
 void MessagesManager::edit_message_scheduling_state(
@@ -25527,7 +25531,7 @@ void MessagesManager::edit_message_scheduling_state(
   if (schedule_date > 0) {
     td_->create_handler<EditMessageQuery>(std::move(promise))
         ->send(0, dialog_id, m->message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), nullptr,
-               m->invert_media, nullptr, schedule_date);
+               m->invert_media /*ignored*/, nullptr, schedule_date);
   } else {
     td_->create_handler<SendScheduledMessageQuery>(std::move(promise))->send(dialog_id, m->message_id);
   }

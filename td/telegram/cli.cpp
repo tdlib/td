@@ -4990,7 +4990,8 @@ class CliClient final : public Actor {
       MessageId message_id;
       string caption;
       get_args(args, chat_id, message_id, caption);
-      send_request(td_api::make_object<td_api::editMessageCaption>(chat_id, message_id, nullptr, as_caption(caption)));
+      send_request(td_api::make_object<td_api::editMessageCaption>(chat_id, message_id, nullptr, as_caption(caption),
+                                                                   show_caption_above_media_));
     } else if (op == "emd") {
       ChatId chat_id;
       MessageId message_id;
