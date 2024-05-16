@@ -5256,6 +5256,12 @@ storePaymentPurposePremiumGiftCodes boosted_chat_id:int53 currency:string amount
 //@amount Paid amount, in the smallest units of the currency
 storePaymentPurposePremiumGiveaway parameters:premiumGiveawayParameters currency:string amount:int53 = StorePaymentPurpose;
 
+//@description The user buying Telegram stars
+//@currency ISO 4217 currency code of the payment currency
+//@amount Paid amount, in the smallest units of the currency
+//@star_count Number of bought stars
+storePaymentPurposeStars currency:string amount:int53 star_count:int53 = StorePaymentPurpose;
+
 
 //@class TelegramPaymentPurpose @description Describes a purpose of a payment toward Telegram
 
