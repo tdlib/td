@@ -3552,7 +3552,7 @@ inputMessageGame bot_user_id:int53 game_short_name:string = InputMessageContent;
 //@photo_width Product photo width
 //@photo_height Product photo height
 //@payload The invoice payload
-//@provider_token Payment provider token
+//@provider_token Payment provider token; may be empty for payments in Telegram Stars
 //@provider_data JSON-encoded data about the invoice, which will be shared with the payment provider
 //@start_parameter Unique invoice bot deep link parameter for the generation of this invoice. If empty, it would be possible to pay directly from forwards of the invoice message
 //@extended_media_content The content of extended media attached to the invoice. The content of the message to be sent. Must be one of the following types: inputMessagePhoto, inputMessageVideo
