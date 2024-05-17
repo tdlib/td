@@ -3436,7 +3436,8 @@ Result<FileId> FileManager::get_input_file_id(FileType type, const tl_object_ptr
               auto file_id = file_hash_to_file_id_.get(hash);
               LOG(INFO) << "Found file " << file_id << " by hash " << hex_encode(hash);
               if (file_id.is_valid()) {
-                auto file_view = get_file_view(file_id);
+                auto file_node = get_file_node(file_id);
+                auto file_view = FileView(file_node);
                 if (!file_view.empty()) {
                   if (force_reuse) {
                     return file_id;
@@ -3445,8 +3446,13 @@ Result<FileId> FileManager::get_input_file_id(FileType type, const tl_object_ptr
                     return file_id;
                   }
                   if (file_view.is_uploading()) {
+                    CHECK(file_node);
+                    LOG(DEBUG) << "File " << file_id << " is still uploading: " << file_node->upload_priority_ << ' '
+                               << file_node->generate_upload_priority_ << ' ' << file_node->upload_pause_;
                     hash.clear();
                   }
+                } else {
+                  LOG(DEBUG) << "File " << file_id << " isn't found";
                 }
               }
             }
