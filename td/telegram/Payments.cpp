@@ -480,15 +480,16 @@ class GetPaymentFormQuery final : public Td::ResultHandler {
         payment_form->additional_methods_, [](const telegram_api::object_ptr<telegram_api::paymentFormMethod> &method) {
           return td_api::make_object<td_api::paymentOption>(method->title_, method->url_);
         });
-    promise_.set_value(make_tl_object<td_api::paymentForm>(
-        payment_form->form_id_, convert_invoice(std::move(payment_form->invoice_)),
-        td_->user_manager_->get_user_id_object(seller_bot_user_id, "paymentForm seller"),
+    auto type = td_api::make_object<td_api::paymentFormType>(
+        convert_invoice(std::move(payment_form->invoice_)),
         td_->user_manager_->get_user_id_object(payments_provider_user_id, "paymentForm provider"),
         std::move(payment_provider), std::move(additional_payment_options),
         convert_order_info(std::move(payment_form->saved_info_)),
-        convert_saved_credentials(std::move(payment_form->saved_credentials_)), can_save_credentials, need_password,
-        payment_form->title_, get_product_description_object(payment_form->description_),
-        get_photo_object(td_->file_manager_.get(), photo)));
+        convert_saved_credentials(std::move(payment_form->saved_credentials_)), can_save_credentials, need_password);
+    promise_.set_value(td_api::make_object<td_api::paymentForm>(
+        payment_form->form_id_, std::move(type),
+        td_->user_manager_->get_user_id_object(seller_bot_user_id, "paymentForm seller"), payment_form->title_,
+        get_product_description_object(payment_form->description_), get_photo_object(td_->file_manager_.get(), photo)));
   }
 
   void on_error(Status status) final {
