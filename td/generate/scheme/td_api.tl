@@ -10327,7 +10327,7 @@ validateOrderInfo input_invoice:InputInvoice order_info:orderInfo allow_save:Boo
 //@payment_form_id Payment form identifier returned by getPaymentForm
 //@order_info_id Identifier returned by validateOrderInfo, or an empty string
 //@shipping_option_id Identifier of a chosen shipping option, if applicable
-//@credentials The credentials chosen by user for payment
+//@credentials The credentials chosen by user for payment; pass null for a payment in Telegram stars
 //@tip_amount Chosen by the user amount of tip in the smallest units of the currency
 sendPaymentForm input_invoice:InputInvoice payment_form_id:int64 order_info_id:string shipping_option_id:string credentials:InputCredentials tip_amount:int53 = PaymentResult;
 

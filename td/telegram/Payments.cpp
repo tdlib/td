@@ -638,6 +638,56 @@ class SendPaymentFormQuery final : public Td::ResultHandler {
   }
 };
 
+class SendStarPaymentFormQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::paymentResult>> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit SendStarPaymentFormQuery(Promise<td_api::object_ptr<td_api::paymentResult>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(InputInvoiceInfo &&input_invoice_info, int64 payment_form_id) {
+    dialog_id_ = input_invoice_info.dialog_id_;
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_sendStarsForm(0, payment_form_id, std::move(input_invoice_info.input_invoice_))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_sendPaymentForm>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto payment_result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SendPaymentFormQuery: " << to_string(payment_result);
+
+    switch (payment_result->get_id()) {
+      case telegram_api::payments_paymentResult::ID: {
+        auto result = move_tl_object_as<telegram_api::payments_paymentResult>(payment_result);
+        td_->updates_manager_->on_get_updates(
+            std::move(result->updates_), PromiseCreator::lambda([promise = std::move(promise_)](Unit) mutable {
+              promise.set_value(make_tl_object<td_api::paymentResult>(true, string()));
+            }));
+        return;
+      }
+      case telegram_api::payments_paymentVerificationNeeded::ID: {
+        auto result = move_tl_object_as<telegram_api::payments_paymentVerificationNeeded>(payment_result);
+        promise_.set_value(make_tl_object<td_api::paymentResult>(false, std::move(result->url_)));
+        return;
+      }
+      default:
+        UNREACHABLE();
+    }
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "SendPaymentFormQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetPaymentReceiptQuery final : public Td::ResultHandler {
   Promise<tl_object_ptr<td_api::paymentReceipt>> promise_;
   DialogId dialog_id_;
@@ -966,7 +1016,12 @@ void send_payment_form(Td *td, td_api::object_ptr<td_api::InputInvoice> &&input_
   TRY_RESULT_PROMISE(promise, input_invoice_info, get_input_invoice_info(td, std::move(input_invoice)));
 
   if (credentials == nullptr) {
-    return promise.set_error(Status::Error(400, "Input payment credentials must be non-empty"));
+    if (tip_amount != 0 || !order_info_id.empty() || !shipping_option_id.empty()) {
+      return promise.set_error(Status::Error(400, "Invalid payment form parameters specified"));
+    }
+    td->create_handler<SendStarPaymentFormQuery>(std::move(promise))
+        ->send(std::move(input_invoice_info), payment_form_id);
+    return;
   }
 
   tl_object_ptr<telegram_api::InputPaymentCredentials> input_credentials;

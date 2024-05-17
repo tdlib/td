@@ -2739,6 +2739,12 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::sendPaymentForm>(
           input_invoice, payment_form_id, order_info_id, shipping_option_id,
           td_api::make_object<td_api::inputCredentialsNew>(data, true), tip_amount));
+    } else if (op == "spfstar") {
+      InputInvoice input_invoice;
+      int64 payment_form_id;
+      get_args(args, input_invoice, payment_form_id);
+      send_request(
+          td_api::make_object<td_api::sendPaymentForm>(input_invoice, payment_form_id, string(), string(), nullptr, 0));
     } else if (op == "gpre") {
       ChatId chat_id;
       MessageId message_id;
