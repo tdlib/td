@@ -357,6 +357,7 @@ set(TDLIB_SOURCE
   td/telegram/EmojiGroup.cpp
   td/telegram/EmojiGroupType.cpp
   td/telegram/EmojiStatus.cpp
+  td/telegram/FactCheck.cpp
   td/telegram/FileReferenceManager.cpp
   td/telegram/files/FileBitmask.cpp
   td/telegram/files/FileDb.cpp
@@ -673,6 +674,7 @@ set(TDLIB_SOURCE
   td/telegram/EmojiGroupType.h
   td/telegram/EmojiStatus.h
   td/telegram/EncryptedFile.h
+  td/telegram/FactCheck.h
   td/telegram/FileReferenceManager.h
   td/telegram/files/FileBitmask.h
   td/telegram/files/FileData.h
@@ -940,6 +942,7 @@ set(TDLIB_SOURCE
   td/telegram/DocumentsManager.hpp
   td/telegram/DraftMessage.hpp
   td/telegram/EmojiGroup.hpp
+  td/telegram/FactCheck.hpp
   td/telegram/FileReferenceManager.hpp
   td/telegram/files/FileData.hpp
   td/telegram/files/FileId.hpp

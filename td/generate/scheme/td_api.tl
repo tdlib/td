@@ -1524,6 +1524,12 @@ inputMessageReplyToMessage chat_id:int53 message_id:int53 quote:inputTextQuote =
 inputMessageReplyToStory story_sender_chat_id:int53 story_id:int32 = InputMessageReplyTo;
 
 
+//@description Describes a fact check added to the message by an independent checker
+//@text Text of the fact check
+//@country_code A two-letter ISO 3166-1 alpha-2 country code of the country for which the fact check is shown
+factCheck text:formattedText country_code:string = FactCheck;
+
+
 //@description Describes a message
 //@id Message identifier; unique for the chat to which the message belongs
 //@sender_id Identifier of the sender of the message
