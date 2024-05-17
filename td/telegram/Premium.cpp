@@ -628,8 +628,8 @@ class GetStarsTopupOptionsQuery final : public Td::ResultHandler {
     auto results = result_ptr.move_as_ok();
     vector<td_api::object_ptr<td_api::starPaymentOption>> options;
     for (auto &result : results) {
-      options.push_back(td_api::make_object<td_api::starPaymentOption>(result->currency_, result->amount_,
-                                                                       result->stars_, result->store_product_));
+      options.push_back(td_api::make_object<td_api::starPaymentOption>(
+          result->currency_, result->amount_, result->stars_, result->store_product_, result->extended_));
     }
 
     promise_.set_value(td_api::make_object<td_api::starPaymentOptions>(std::move(options)));

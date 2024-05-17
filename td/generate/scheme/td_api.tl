@@ -827,7 +827,8 @@ premiumGiftCodeInfo creator_id:MessageSender creation_date:int32 is_from_giveawa
 //@amount The amount to pay, in the smallest units of the currency
 //@star_count Number of stars that will be purchased
 //@store_product_id Identifier of the store product associated with the option; may be empty if none
-starPaymentOption currency:string amount:int53 star_count:int53 store_product_id:string = StarPaymentOption;
+//@is_additional True, if the option must be shown only in the full list of payment options
+starPaymentOption currency:string amount:int53 star_count:int53 store_product_id:string is_additional:Bool = StarPaymentOption;
 
 //@description Contains a list of options for buying Telegram stars @options The list of options
 starPaymentOptions options:vector<starPaymentOption> = StarPaymentOptions;
