@@ -2658,7 +2658,9 @@ paymentProviderOther url:string = PaymentProvider;
 paymentOption title:string url:string = PaymentOption;
 
 
-//@description Describes type of a payment form
+//@class PaymentFormType @description Describes type of a payment form
+
+//@description The payment form is for a regular payment
 //@invoice Full information about the invoice
 //@payment_provider_user_id User identifier of the payment provider bot
 //@payment_provider Information about the payment provider
@@ -2667,7 +2669,10 @@ paymentOption title:string url:string = PaymentOption;
 //@saved_credentials The list of saved payment credentials
 //@can_save_credentials True, if the user can choose to save credentials
 //@need_password True, if the user will be able to save credentials, if sets up a 2-step verification password
-paymentFormType invoice:invoice payment_provider_user_id:int53 payment_provider:PaymentProvider additional_payment_options:vector<paymentOption> saved_order_info:orderInfo saved_credentials:vector<savedCredentials> can_save_credentials:Bool need_password:Bool = PaymentFormType;
+paymentFormTypeRegular invoice:invoice payment_provider_user_id:int53 payment_provider:PaymentProvider additional_payment_options:vector<paymentOption> saved_order_info:orderInfo saved_credentials:vector<savedCredentials> can_save_credentials:Bool need_password:Bool = PaymentFormType;
+
+//@description The payment form is for a payment in Telegram stars @star_count Number of stars that will be paid
+paymentFormTypeStars star_count:int53 = PaymentFormType;
 
 
 //@description Contains information about an invoice payment form
@@ -2677,7 +2682,7 @@ paymentFormType invoice:invoice payment_provider_user_id:int53 payment_provider:
 //@product_title Product title
 //@product_description Product description
 //@product_photo Product photo; may be null
-paymentForm id:int64 type:paymentFormType seller_bot_user_id:int53 product_title:string product_description:formattedText product_photo:photo = PaymentForm;
+paymentForm id:int64 type:PaymentFormType seller_bot_user_id:int53 product_title:string product_description:formattedText product_photo:photo = PaymentForm;
 
 //@description Contains a temporary identifier of validated order information, which is stored for one hour, and the available shipping options @order_info_id Temporary identifier of the order information @shipping_options Available shipping options
 validatedOrderInfo order_info_id:string shipping_options:vector<shippingOption> = ValidatedOrderInfo;

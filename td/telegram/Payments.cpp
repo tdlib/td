@@ -451,45 +451,75 @@ class GetPaymentFormQuery final : public Td::ResultHandler {
 
     auto payment_form_ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetPaymentFormQuery: " << to_string(payment_form_ptr);
-    if (payment_form_ptr->get_id() != telegram_api::payments_paymentForm::ID) {
-      return on_error(Status::Error(400, "Stars unsupported"));
-    }
-    auto payment_form = telegram_api::move_object_as<telegram_api::payments_paymentForm>(payment_form_ptr);
+    switch (payment_form_ptr->get_id()) {
+      case telegram_api::payments_paymentForm::ID: {
+        auto payment_form = telegram_api::move_object_as<telegram_api::payments_paymentForm>(payment_form_ptr);
 
-    td_->user_manager_->on_get_users(std::move(payment_form->users_), "GetPaymentFormQuery");
+        td_->user_manager_->on_get_users(std::move(payment_form->users_), "GetPaymentFormQuery");
 
-    UserId payments_provider_user_id(payment_form->provider_id_);
-    if (!payments_provider_user_id.is_valid()) {
-      LOG(ERROR) << "Receive invalid payments provider " << payments_provider_user_id;
-      return on_error(Status::Error(500, "Receive invalid payments provider identifier"));
+        UserId payments_provider_user_id(payment_form->provider_id_);
+        if (!payments_provider_user_id.is_valid()) {
+          LOG(ERROR) << "Receive invalid payments provider " << payments_provider_user_id;
+          return on_error(Status::Error(500, "Receive invalid payments provider identifier"));
+        }
+        UserId seller_bot_user_id(payment_form->bot_id_);
+        if (!seller_bot_user_id.is_valid()) {
+          LOG(ERROR) << "Receive invalid seller " << seller_bot_user_id;
+          return on_error(Status::Error(500, "Receive invalid seller identifier"));
+        }
+        bool can_save_credentials = payment_form->can_save_credentials_;
+        bool need_password = payment_form->password_missing_;
+        auto photo = get_web_document_photo(td_->file_manager_.get(), std::move(payment_form->photo_), dialog_id_);
+        auto payment_provider = convert_payment_provider(
+            payment_form->native_provider_, std::move(payment_form->native_params_), payment_form->invoice_->test_);
+        if (payment_provider == nullptr) {
+          payment_provider = td_api::make_object<td_api::paymentProviderOther>(std::move(payment_form->url_));
+        }
+        auto additional_payment_options =
+            transform(payment_form->additional_methods_,
+                      [](const telegram_api::object_ptr<telegram_api::paymentFormMethod> &method) {
+                        return td_api::make_object<td_api::paymentOption>(method->title_, method->url_);
+                      });
+        auto type = td_api::make_object<td_api::paymentFormTypeRegular>(
+            convert_invoice(std::move(payment_form->invoice_)),
+            td_->user_manager_->get_user_id_object(payments_provider_user_id, "paymentForm provider"),
+            std::move(payment_provider), std::move(additional_payment_options),
+            convert_order_info(std::move(payment_form->saved_info_)),
+            convert_saved_credentials(std::move(payment_form->saved_credentials_)), can_save_credentials,
+            need_password);
+        promise_.set_value(td_api::make_object<td_api::paymentForm>(
+            payment_form->form_id_, std::move(type),
+            td_->user_manager_->get_user_id_object(seller_bot_user_id, "paymentForm seller"), payment_form->title_,
+            get_product_description_object(payment_form->description_),
+            get_photo_object(td_->file_manager_.get(), photo)));
+        break;
+      }
+      case telegram_api::payments_paymentFormStars::ID: {
+        auto payment_form = telegram_api::move_object_as<telegram_api::payments_paymentFormStars>(payment_form_ptr);
+
+        td_->user_manager_->on_get_users(std::move(payment_form->users_), "GetPaymentFormQuery");
+
+        UserId seller_bot_user_id(payment_form->bot_id_);
+        if (!seller_bot_user_id.is_valid()) {
+          LOG(ERROR) << "Receive invalid seller " << seller_bot_user_id;
+          return on_error(Status::Error(500, "Receive invalid seller identifier"));
+        }
+        if (payment_form->invoice_->prices_.size() != 1u) {
+          LOG(ERROR) << "Receive invalid prices " << to_string(payment_form->invoice_->prices_);
+          return on_error(Status::Error(500, "Receive invalid price"));
+        }
+        auto photo = get_web_document_photo(td_->file_manager_.get(), std::move(payment_form->photo_), dialog_id_);
+        auto type = td_api::make_object<td_api::paymentFormTypeStars>(payment_form->invoice_->prices_[0]->amount_);
+        promise_.set_value(td_api::make_object<td_api::paymentForm>(
+            payment_form->form_id_, std::move(type),
+            td_->user_manager_->get_user_id_object(seller_bot_user_id, "paymentForm seller"), payment_form->title_,
+            get_product_description_object(payment_form->description_),
+            get_photo_object(td_->file_manager_.get(), photo)));
+        break;
+      }
+      default:
+        UNREACHABLE();
     }
-    UserId seller_bot_user_id(payment_form->bot_id_);
-    if (!seller_bot_user_id.is_valid()) {
-      LOG(ERROR) << "Receive invalid seller " << seller_bot_user_id;
-      return on_error(Status::Error(500, "Receive invalid seller identifier"));
-    }
-    bool can_save_credentials = payment_form->can_save_credentials_;
-    bool need_password = payment_form->password_missing_;
-    auto photo = get_web_document_photo(td_->file_manager_.get(), std::move(payment_form->photo_), dialog_id_);
-    auto payment_provider = convert_payment_provider(
-        payment_form->native_provider_, std::move(payment_form->native_params_), payment_form->invoice_->test_);
-    if (payment_provider == nullptr) {
-      payment_provider = td_api::make_object<td_api::paymentProviderOther>(std::move(payment_form->url_));
-    }
-    auto additional_payment_options = transform(
-        payment_form->additional_methods_, [](const telegram_api::object_ptr<telegram_api::paymentFormMethod> &method) {
-          return td_api::make_object<td_api::paymentOption>(method->title_, method->url_);
-        });
-    auto type = td_api::make_object<td_api::paymentFormType>(
-        convert_invoice(std::move(payment_form->invoice_)),
-        td_->user_manager_->get_user_id_object(payments_provider_user_id, "paymentForm provider"),
-        std::move(payment_provider), std::move(additional_payment_options),
-        convert_order_info(std::move(payment_form->saved_info_)),
-        convert_saved_credentials(std::move(payment_form->saved_credentials_)), can_save_credentials, need_password);
-    promise_.set_value(td_api::make_object<td_api::paymentForm>(
-        payment_form->form_id_, std::move(type),
-        td_->user_manager_->get_user_id_object(seller_bot_user_id, "paymentForm seller"), payment_form->title_,
-        get_product_description_object(payment_form->description_), get_photo_object(td_->file_manager_.get(), photo)));
   }
 
   void on_error(Status status) final {
