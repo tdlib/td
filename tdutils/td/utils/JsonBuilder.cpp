@@ -542,6 +542,13 @@ Slice JsonValue::get_type_name(Type type) {
   }
 }
 
+JsonObject::JsonObject(vector<std::pair<Slice, JsonValue>> &&field_values) : field_values_(std::move(field_values)) {
+}
+
+size_t JsonObject::field_count() const {
+  return field_values_.size();
+}
+
 JsonValue JsonObject::extract_field(Slice name) {
   for (auto &field_value : field_values_) {
     if (field_value.first == name) {
