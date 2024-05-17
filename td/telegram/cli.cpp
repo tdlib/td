@@ -1019,8 +1019,8 @@ class CliClient final : public Actor {
   };
 
   void get_args(string &args, InputInvoice &arg) const {
-    if (args.size() > 1 && args[0] == '#') {
-      arg.invoice_name = args;
+    if (args.size() > 1 && (args[0] == '#' || args[0] == '$')) {
+      arg.invoice_name = args.substr(1);
     } else {
       string chat_id;
       string message_id;
