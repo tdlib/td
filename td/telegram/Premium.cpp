@@ -679,8 +679,33 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
 
     vector<td_api::object_ptr<td_api::starTransaction>> transactions;
     for (auto &transaction : result->history_) {
-      transactions.push_back(
-          td_api::make_object<td_api::starTransaction>(transaction->id_, transaction->stars_, transaction->date_));
+      auto source = [&]() -> td_api::object_ptr<td_api::StarTransactionSource> {
+        switch (transaction->peer_->get_id()) {
+          case telegram_api::starsTransactionPeerUnsupported::ID:
+            return td_api::make_object<td_api::starTransactionSourceUnsupported>();
+          case telegram_api::starsTransactionPeerPremiumBot::ID:
+            return td_api::make_object<td_api::starTransactionSourceTelegram>();
+          case telegram_api::starsTransactionPeerAppStore::ID:
+            return td_api::make_object<td_api::starTransactionSourceAppStore>();
+          case telegram_api::starsTransactionPeerPlayMarket::ID:
+            return td_api::make_object<td_api::starTransactionSourceGooglePlay>();
+          case telegram_api::starsTransactionPeerFragment::ID:
+            return td_api::make_object<td_api::starTransactionSourceFragment>();
+          case telegram_api::starsTransactionPeer::ID: {
+            DialogId dialog_id(
+                static_cast<const telegram_api::starsTransactionPeer *>(transaction->peer_.get())->peer_);
+            if (dialog_id.get_type() == DialogType::User) {
+              return td_api::make_object<td_api::starTransactionSourceUser>(
+                  td_->user_manager_->get_user_id_object(dialog_id.get_user_id(), "starTransactionSourceUser"));
+            }
+            return td_api::make_object<td_api::starTransactionSourceUnsupported>();
+          }
+          default:
+            UNREACHABLE();
+        }
+      }();
+      transactions.push_back(td_api::make_object<td_api::starTransaction>(transaction->id_, transaction->stars_,
+                                                                          transaction->date_, std::move(source)));
     }
 
     promise_.set_value(

@@ -843,11 +843,33 @@ starTransactionDirectionIncoming = StarTransactionDirection;
 starTransactionDirectionOutgoing = StarTransactionDirection;
 
 
+//@class StarTransactionSource @description Describes source or recipient of a transaction with Telegram stars
+
+//@description The transaction is a transaction with Telegram through a bot
+starTransactionSourceTelegram = StarTransactionSource;
+
+//@description The transaction is a transaction with App Store
+starTransactionSourceAppStore = StarTransactionSource;
+
+//@description The transaction is a transaction with Google Play
+starTransactionSourceGooglePlay = StarTransactionSource;
+
+//@description The transaction is a transaction with Fragment
+starTransactionSourceFragment = StarTransactionSource;
+
+//@description The transaction is a transaction with another user @user_id Identifier of the user
+starTransactionSourceUser user_id:int53 = StarTransactionSource;
+
+//@description The transaction is a transaction with unknown source
+starTransactionSourceUnsupported = StarTransactionSource;
+
+
 //@description Represents a transaction changing the amount of owned Telegram stars
 //@id Unique identifier of the transaction
 //@star_count The amount of added owned Telegram stars; negative for outgoing transactions
 //@date Point in time (Unix timestamp) when the transaction was completed
-starTransaction id:string star_count:int53 date:int32 = StarTransaction;
+//@source Source of the transaction, or its recipient for outgoing transactions
+starTransaction id:string star_count:int53 date:int32 source:StarTransactionSource = StarTransaction;
 
 //@description Represents a list of Telegram star transactions
 //@star_count The amount of owned Telegram stars
