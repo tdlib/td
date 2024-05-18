@@ -111,6 +111,7 @@ class Dependencies;
 class DialogActionBar;
 class DialogFilter;
 class DraftMessage;
+class FactCheck;
 struct InputMessageContent;
 class MessageContent;
 class MessageForwardInfo;
@@ -1011,6 +1012,7 @@ class MessagesManager final : public Actor {
     int32 forward_count = 0;
     tl_object_ptr<telegram_api::messageReplies> reply_info;
     tl_object_ptr<telegram_api::messageReactions> reactions;
+    tl_object_ptr<telegram_api::factCheck> fact_check;
     int32 sender_boost_count = 0;
     int32 edit_date = 0;
     vector<RestrictionReason> restriction_reasons;
@@ -1116,6 +1118,7 @@ class MessagesManager final : public Actor {
     int32 forward_count = 0;
     MessageReplyInfo reply_info;
     unique_ptr<MessageReactions> reactions;
+    unique_ptr<FactCheck> fact_check;
     unique_ptr<DraftMessage> thread_draft_message;
     uint32 available_reactions_generation = 0;
     int32 interaction_info_update_date = 0;
@@ -2033,6 +2036,8 @@ class MessagesManager final : public Actor {
   td_api::object_ptr<td_api::messageInteractionInfo> get_message_interaction_info_object(DialogId dialog_id,
                                                                                          const Message *m) const;
 
+  td_api::object_ptr<td_api::factCheck> get_message_fact_check_object(const Message *m) const;
+
   vector<td_api::object_ptr<td_api::unreadReaction>> get_unread_reactions_object(DialogId dialog_id,
                                                                                  const Message *m) const;
 
@@ -2345,6 +2350,8 @@ class MessagesManager final : public Actor {
   void send_update_message_edited(DialogId dialog_id, const Message *m);
 
   void send_update_message_interaction_info(DialogId dialog_id, const Message *m) const;
+
+  void send_update_message_fact_check(DialogId dialog_id, const Message *m) const;
 
   void send_update_message_unread_reactions(DialogId dialog_id, const Message *m, int32 unread_reaction_count) const;
 

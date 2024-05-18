@@ -28,6 +28,8 @@
 #include "td/telegram/DownloadManager.h"
 #include "td/telegram/DraftMessage.h"
 #include "td/telegram/DraftMessage.hpp"
+#include "td/telegram/FactCheck.h"
+#include "td/telegram/FactCheck.hpp"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileId.hpp"
 #include "td/telegram/files/FileLocation.h"
@@ -4170,6 +4172,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_sender_boost_count = sender_boost_count != 0;
   bool has_via_business_bot_user_id = via_business_bot_user_id.is_valid();
   bool has_effect_id = effect_id != 0;
+  bool has_fact_check = fact_check != nullptr;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -4257,6 +4260,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_via_business_bot_user_id);
     STORE_FLAG(is_from_offline);
     STORE_FLAG(has_effect_id);
+    STORE_FLAG(has_fact_check);
     END_STORE_FLAGS();
   }
 
@@ -4386,6 +4390,9 @@ void MessagesManager::Message::store(StorerT &storer) const {
   if (has_effect_id) {
     store(effect_id, storer);
   }
+  if (has_fact_check) {
+    store(fact_check, storer);
+  }
 }
 
 // do not forget to resolve message dependencies
@@ -4444,6 +4451,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_sender_boost_count = false;
   bool has_via_business_bot_user_id = false;
   bool has_effect_id = false;
+  bool has_fact_check = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
   PARSE_FLAG(is_outgoing);
@@ -4531,6 +4539,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(has_via_business_bot_user_id);
     PARSE_FLAG(is_from_offline);
     PARSE_FLAG(has_effect_id);
+    PARSE_FLAG(has_fact_check);
     END_PARSE_FLAGS();
   }
 
@@ -4723,6 +4732,9 @@ void MessagesManager::Message::parse(ParserT &parser) {
   }
   if (has_effect_id) {
     parse(effect_id, parser);
+  }
+  if (has_fact_check) {
+    parse(fact_check, parser);
   }
 
   CHECK(content != nullptr);
@@ -6447,6 +6459,13 @@ td_api::object_ptr<td_api::messageInteractionInfo> MessagesManager::get_message_
 
   return td_api::make_object<td_api::messageInteractionInfo>(m->view_count, m->forward_count, std::move(reply_info),
                                                              std::move(reactions));
+}
+
+td_api::object_ptr<td_api::factCheck> MessagesManager::get_message_fact_check_object(const Message *m) const {
+  if (m->fact_check == nullptr) {
+    return nullptr;
+  }
+  return m->fact_check->get_fact_check_object();
 }
 
 vector<td_api::object_ptr<td_api::unreadReaction>> MessagesManager::get_unread_reactions_object(
@@ -12324,7 +12343,7 @@ void MessagesManager::init() {
   is_inited_ = true;
 
   td_->notification_settings_manager_->init();  // load scope notification settings
-  td_->reaction_manager_->init();               // load available reactions
+  td_->reaction_manager_->init();               // load active reactions
 
   start_time_ = Time::now();
   last_channel_pts_jump_warning_time_ = start_time_ - 3600;
@@ -13124,6 +13143,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       message_info.forward_count = message->forwards_;
       message_info.reply_info = std::move(message->replies_);
       message_info.reactions = std::move(message->reactions_);
+      message_info.fact_check = std::move(message->factcheck_);
       message_info.edit_date = message->edit_date_;
       message_info.media_album_id = message->grouped_id_;
       message_info.ttl_period = message->ttl_period_;
@@ -13229,6 +13249,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
 
   CHECK(message_info.content != nullptr);
 
+  auto is_bot = td->auth_manager_->is_bot();
   auto dialog_type = dialog_id.get_type();
   UserId sender_user_id = message_info.sender_user_id;
   DialogId sender_dialog_id = message_info.sender_dialog_id;
@@ -13237,7 +13258,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
       LOG(ERROR) << "Receive invalid " << sender_user_id;
       sender_user_id = UserId();
     }
-    if (!td->dialog_manager_->is_broadcast_channel(dialog_id) && td->auth_manager_->is_bot()) {
+    if (!td->dialog_manager_->is_broadcast_channel(dialog_id) && is_bot) {
       if (dialog_id == sender_dialog_id) {
         td->user_manager_->add_anonymous_bot_user();
       } else {
@@ -13338,7 +13359,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   }
 
   bool hide_edit_date = message_info.hide_edit_date;
-  if (hide_edit_date && td->auth_manager_->is_bot()) {
+  if (hide_edit_date && is_bot) {
     hide_edit_date = false;
   }
   if (hide_edit_date && content_type == MessageContentType::LiveLocation) {
@@ -13371,6 +13392,10 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
       LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << " with " << to_string(message_info.reactions);
       message_info.reactions = nullptr;
     }
+    if (message_info.fact_check != nullptr) {
+      LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << " with " << to_string(message_info.fact_check);
+      message_info.fact_check = nullptr;
+    }
   }
   int32 view_count = message_info.view_count;
   if (view_count < 0) {
@@ -13382,7 +13407,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     LOG(ERROR) << "Wrong forward_count = " << forward_count << " received in " << message_id << " in " << dialog_id;
     forward_count = 0;
   }
-  MessageReplyInfo reply_info(td, std::move(message_info.reply_info), td->auth_manager_->is_bot());
+  MessageReplyInfo reply_info(td, std::move(message_info.reply_info), is_bot);
   if (!top_thread_message_id.is_valid() &&
       td->messages_manager_->is_thread_message(dialog_id, message_id, reply_info, content_type)) {
     top_thread_message_id = message_id;
@@ -13396,13 +13421,13 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     // just in case
     is_topic_message = false;
   }
-  auto reactions =
-      MessageReactions::get_message_reactions(td, std::move(message_info.reactions), td->auth_manager_->is_bot());
+  auto reactions = MessageReactions::get_message_reactions(td, std::move(message_info.reactions), is_bot);
   if (reactions != nullptr) {
     reactions->sort_reactions(td->messages_manager_->active_reaction_pos_);
     reactions->fix_chosen_reaction();
     reactions->fix_my_recent_chooser_dialog_id(my_dialog_id);
   }
+  auto fact_check = FactCheck::get_fact_check(td, std::move(message_info.fact_check), is_bot);
 
   bool has_forward_info = message_info.forward_header != nullptr;
   bool noforwards = message_info.noforwards;
@@ -13451,8 +13476,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->saved_messages_topic_id = message_info.saved_messages_topic_id;
   message->is_outgoing = is_outgoing;
   message->is_channel_post = is_channel_post;
-  message->contains_mention =
-      !is_outgoing && dialog_type != DialogType::User && !is_expired && has_mention && !td->auth_manager_->is_bot();
+  message->contains_mention = !is_outgoing && dialog_type != DialogType::User && !is_expired && has_mention && !is_bot;
   message->contains_unread_mention =
       !message_id.is_scheduled() && message_id.is_server() && message->contains_mention &&
       message_info.has_unread_content &&
@@ -13470,11 +13494,12 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->forward_count = forward_count;
   message->reply_info = std::move(reply_info);
   message->reactions = std::move(reactions);
+  message->fact_check = std::move(fact_check);
   message->effect_id = message_info.effect_id;
   message->legacy_layer = (message_info.is_legacy ? MTPROTO_LAYER : 0);
   message->invert_media = message_info.invert_media;
   message->content = std::move(message_info.content);
-  message->reply_markup = get_reply_markup(std::move(message_info.reply_markup), td->auth_manager_->is_bot(), false,
+  message->reply_markup = get_reply_markup(std::move(message_info.reply_markup), is_bot, false,
                                            message->contains_mention || dialog_type == DialogType::User);
   if (message->reply_markup != nullptr && is_expired) {
     // just in case
@@ -22587,7 +22612,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
       nullptr, nullptr, m->is_outgoing, m->is_pinned, m->is_from_offline, false, false, false, can_be_saved, false,
       false, false, false, false, false, false, false, false, true, m->is_channel_post, m->is_topic_message, false,
       m->date, edit_date, std::move(forward_info), std::move(import_info), std::move(interaction_info), Auto(), nullptr,
-      0, 0, nullptr, 0.0, 0.0, via_bot_user_id, 0, m->sender_boost_count, m->author_signature, 0, 0,
+      nullptr, 0, 0, nullptr, 0.0, 0.0, via_bot_user_id, 0, m->sender_boost_count, m->author_signature, 0, 0,
       get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
 }
 
@@ -22654,7 +22679,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_business_message_messag
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_business_message_message_object"),
       nullptr, nullptr, m->is_outgoing, m->is_from_offline, false, false, false, false, can_be_saved, false, false,
       false, false, false, false, false, false, false, false, false, false, false, m->date, m->edit_date,
-      std::move(forward_info), std::move(import_info), nullptr, Auto(), std::move(reply_to), 0, 0,
+      std::move(forward_info), std::move(import_info), nullptr, Auto(), nullptr, std::move(reply_to), 0, 0,
       std::move(self_destruct_type), 0.0, 0.0, via_bot_user_id, via_business_bot_user_id, 0, string(),
       m->media_album_id, m->effect_id, get_restriction_reason_description(m->restriction_reasons), std::move(content),
       std::move(reply_markup));
@@ -22725,6 +22750,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_message_object(DialogId
   auto import_info = m->forward_info == nullptr ? nullptr : m->forward_info->get_message_import_info_object();
   auto interaction_info = is_bot ? nullptr : get_message_interaction_info_object(dialog_id, m);
   auto unread_reactions = get_unread_reactions_object(dialog_id, m);
+  auto fact_check = get_message_fact_check_object(m);
   auto can_be_saved = can_save_message(dialog_id, m);
   auto can_be_edited = can_edit_message(dialog_id, m, false, is_bot);
   auto can_be_forwarded = can_be_saved && can_forward_message(dialog_id, m);
@@ -22770,7 +22796,8 @@ td_api::object_ptr<td_api::message> MessagesManager::get_message_object(DialogId
       can_delete_for_all_users, can_get_added_reactions, can_get_statistics, can_get_message_thread, can_get_read_date,
       can_get_viewers, can_get_media_timestamp_links, can_report_reactions, has_timestamped_media, m->is_channel_post,
       m->is_topic_message, m->contains_unread_mention, date, edit_date, std::move(forward_info), std::move(import_info),
-      std::move(interaction_info), std::move(unread_reactions), std::move(reply_to), top_thread_message_id,
+      std::move(interaction_info), std::move(unread_reactions), std::move(fact_check), std::move(reply_to),
+      top_thread_message_id,
       td_->saved_messages_manager_->get_saved_messages_topic_id_object(m->saved_messages_topic_id),
       std::move(self_destruct_type), ttl_expires_in, auto_delete_in, via_bot_user_id, via_business_bot_user_id,
       m->sender_boost_count, m->author_signature, m->media_album_id, m->effect_id,
@@ -23344,6 +23371,9 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, const
   if (m->reactions != nullptr) {
     m->reactions->add_min_channels(td_);
     m->reactions->add_dependencies(dependencies);
+  }
+  if (m->fact_check != nullptr) {
+    m->fact_check->add_dependencies(dependencies);
   }
   add_message_content_dependencies(dependencies, m->content.get(), is_bot);
   add_reply_markup_dependencies(dependencies, m->reply_markup.get());
@@ -28481,6 +28511,18 @@ void MessagesManager::send_update_message_unread_reactions(DialogId dialog_id, c
                td_api::make_object<td_api::updateMessageUnreadReactions>(
                    get_chat_id_object(dialog_id, "updateMessageUnreadReactions"), m->message_id.get(),
                    get_unread_reactions_object(dialog_id, m), unread_reaction_count));
+}
+
+void MessagesManager::send_update_message_fact_check(DialogId dialog_id, const Message *m) const {
+  CHECK(m != nullptr);
+  if (td_->auth_manager_->is_bot() || !m->is_update_sent) {
+    return;
+  }
+
+  send_closure(
+      G()->td(), &Td::send_update,
+      td_api::make_object<td_api::updateMessageFactCheck>(get_chat_id_object(dialog_id, "updateMessageFactCheck"),
+                                                          m->message_id.get(), get_message_fact_check_object(m)));
 }
 
 void MessagesManager::send_update_message_live_location_viewed(MessageFullId message_full_id) {
@@ -33869,6 +33911,17 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
                                       std::move(new_message->reply_info), true, std::move(new_message->reactions),
                                       "update_message")) {
     need_send_update = true;
+  }
+  if (new_message->fact_check != nullptr && old_message->fact_check != nullptr) {
+    new_message->fact_check->update_from(*old_message->fact_check);
+  }
+  if (new_message->fact_check != old_message->fact_check) {
+    if ((new_message->fact_check != nullptr && !new_message->fact_check->need_check()) ||
+        (old_message->fact_check != nullptr && !old_message->fact_check->need_check())) {
+      send_update_message_fact_check(dialog_id, new_message.get());
+      need_send_update = true;
+    }
+    old_message->fact_check = std::move(new_message->fact_check);
   }
 
   bool is_preview_changed = false;
