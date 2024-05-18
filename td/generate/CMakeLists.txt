@@ -14,10 +14,14 @@ set(TL_TD_AUTO_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/auto PARENT_SCOPE)
 
 set(TD_AUTO_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/auto/td)
 
-set(TL_TD_AUTO_SOURCE
+set(TL_MTPROTO_AUTO_SOURCE
   ${TD_AUTO_INCLUDE_DIR}/mtproto/mtproto_api.cpp
   ${TD_AUTO_INCLUDE_DIR}/mtproto/mtproto_api.h
   ${TD_AUTO_INCLUDE_DIR}/mtproto/mtproto_api.hpp
+  PARENT_SCOPE
+)
+
+set(TL_TD_AUTO_SOURCE
   ${TD_AUTO_INCLUDE_DIR}/telegram/telegram_api.cpp
   ${TD_AUTO_INCLUDE_DIR}/telegram/telegram_api.h
   ${TD_AUTO_INCLUDE_DIR}/telegram/telegram_api.hpp

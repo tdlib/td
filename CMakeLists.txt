@@ -239,13 +239,9 @@ set(TL_TD_API_SOURCE
   td/tl/TlObject.h
 )
 
+set_source_files_properties(${TL_MTPROTO_AUTO_SOURCE} PROPERTIES GENERATED TRUE)
+
 set_source_files_properties(${TL_TD_AUTO_SOURCE} PROPERTIES GENERATED TRUE)
-set(TL_TD_SCHEME_SOURCE
-  ${TL_TD_AUTO_SOURCE}
-  td/tl/TlObject.h
-  td/tl/tl_object_parse.h
-  td/tl/tl_object_store.h
-)
 
 set_source_files_properties(${TL_TD_JSON_AUTO_SOURCE} PROPERTIES GENERATED TRUE)
 set(TL_TD_JSON_SOURCE
@@ -997,7 +993,13 @@ set(TDLIB_SOURCE
   td/telegram/VoiceNotesManager.hpp
   td/telegram/WebApp.hpp
 
-  ${TL_TD_SCHEME_SOURCE}
+  ${TL_MTPROTO_AUTO_SOURCE}
+
+  ${TL_TD_AUTO_SOURCE}
+
+  td/tl/TlObject.h
+  td/tl/tl_object_parse.h
+  td/tl/tl_object_store.h
 
   ${CMAKE_CURRENT_BINARY_DIR}/td/telegram/GitCommitHash.cpp
 )
