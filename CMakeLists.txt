@@ -260,7 +260,7 @@ set(TL_DOTNET_SCHEME_SOURCE
   td/tl/tl_dotnet_object.h
 )
 
-set(TDLIB_SOURCE
+set(TD_MTPROTO_SOURCE
   td/mtproto/AuthData.cpp
   td/mtproto/ConnectionManager.cpp
   td/mtproto/DhHandshake.cpp
@@ -281,6 +281,44 @@ set(TDLIB_SOURCE
   td/mtproto/Transport.cpp
   td/mtproto/utils.cpp
 
+  td/mtproto/AuthData.h
+  td/mtproto/AuthKey.h
+  td/mtproto/ConnectionManager.h
+  td/mtproto/CryptoStorer.h
+  td/mtproto/DhCallback.h
+  td/mtproto/DhHandshake.h
+  td/mtproto/Handshake.h
+  td/mtproto/HandshakeActor.h
+  td/mtproto/HandshakeConnection.h
+  td/mtproto/HttpTransport.h
+  td/mtproto/IStreamTransport.h
+  td/mtproto/KDF.h
+  td/mtproto/MessageId.h
+  td/mtproto/MtprotoQuery.h
+  td/mtproto/NoCryptoStorer.h
+  td/mtproto/PacketInfo.h
+  td/mtproto/PacketStorer.h
+  td/mtproto/Ping.h
+  td/mtproto/PingConnection.h
+  td/mtproto/ProxySecret.h
+  td/mtproto/RawConnection.h
+  td/mtproto/RSA.h
+  td/mtproto/SessionConnection.h
+  td/mtproto/TcpTransport.h
+  td/mtproto/TlsInit.h
+  td/mtproto/TlsReaderByteFlow.h
+  td/mtproto/Transport.h
+  td/mtproto/TransportType.h
+  td/mtproto/utils.h
+
+  ${TL_MTPROTO_AUTO_SOURCE}
+
+  td/tl/TlObject.h
+  td/tl/tl_object_parse.h
+  td/tl/tl_object_store.h
+)
+
+set(TDLIB_SOURCE
   td/telegram/AccountManager.cpp
   td/telegram/AnimationsManager.cpp
   td/telegram/Application.cpp
@@ -548,36 +586,6 @@ set(TDLIB_SOURCE
   td/telegram/WebApp.cpp
   td/telegram/WebPageBlock.cpp
   td/telegram/WebPagesManager.cpp
-
-  td/mtproto/AuthData.h
-  td/mtproto/AuthKey.h
-  td/mtproto/ConnectionManager.h
-  td/mtproto/CryptoStorer.h
-  td/mtproto/DhCallback.h
-  td/mtproto/DhHandshake.h
-  td/mtproto/Handshake.h
-  td/mtproto/HandshakeActor.h
-  td/mtproto/HandshakeConnection.h
-  td/mtproto/HttpTransport.h
-  td/mtproto/IStreamTransport.h
-  td/mtproto/KDF.h
-  td/mtproto/MessageId.h
-  td/mtproto/MtprotoQuery.h
-  td/mtproto/NoCryptoStorer.h
-  td/mtproto/PacketInfo.h
-  td/mtproto/PacketStorer.h
-  td/mtproto/Ping.h
-  td/mtproto/PingConnection.h
-  td/mtproto/ProxySecret.h
-  td/mtproto/RawConnection.h
-  td/mtproto/RSA.h
-  td/mtproto/SessionConnection.h
-  td/mtproto/TcpTransport.h
-  td/mtproto/TlsInit.h
-  td/mtproto/TlsReaderByteFlow.h
-  td/mtproto/Transport.h
-  td/mtproto/TransportType.h
-  td/mtproto/utils.h
 
   td/telegram/AccentColorId.h
   td/telegram/AccessRights.h
@@ -1000,8 +1008,6 @@ set(TDLIB_SOURCE
   td/telegram/VoiceNotesManager.hpp
   td/telegram/WebApp.hpp
 
-  ${TL_MTPROTO_AUTO_SOURCE}
-
   ${TL_TD_AUTO_SOURCE}
 
   td/tl/TlObject.h
@@ -1060,18 +1066,22 @@ if (NOT CMAKE_CROSSCOMPILING)
   add_dependencies(tdapi tl_generate_common)
 endif()
 
+add_library(tdmtproto STATIC ${TD_MTPROTO_SOURCE})
+target_include_directories(tdmtproto PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
+target_include_directories(tdmtproto SYSTEM PRIVATE ${OPENSSL_INCLUDE_DIR})
+target_link_libraries(tdmtproto PUBLIC tdactor tdnet tdutils PRIVATE ${OPENSSL_CRYPTO_LIBRARY} ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES})
+if (WIN32)
+  if (MINGW)
+    target_link_libraries(tdmtproto PRIVATE ws2_32 mswsock crypt32)
+  else()
+    target_link_libraries(tdmtproto PRIVATE ws2_32 Mswsock Crypt32)
+  endif()
+endif()
+
 # tdcore - mostly internal TDLib interface. One should use tdactor for interactions with it.
 add_library(tdcore STATIC ${TDLIB_SOURCE})
 target_include_directories(tdcore PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
-target_include_directories(tdcore SYSTEM PRIVATE ${OPENSSL_INCLUDE_DIR})
-target_link_libraries(tdcore PUBLIC tdapi tdactor tdutils tdnet tddb PRIVATE ${OPENSSL_CRYPTO_LIBRARY} ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES})
-if (WIN32)
-  if (MINGW)
-    target_link_libraries(tdcore PRIVATE ws2_32 mswsock crypt32)
-  else()
-    target_link_libraries(tdcore PRIVATE ws2_32 Mswsock Crypt32)
-  endif()
-endif()
+target_link_libraries(tdcore PUBLIC tdapi tdnet tddb tdactor tdutils PRIVATE tdmtproto)
 
 if (NOT CMAKE_CROSSCOMPILING)
   add_dependencies(tdcore tl_generate_common)
@@ -1211,7 +1221,7 @@ add_library(Td::TdJson ALIAS TdJson)
 add_library(Td::TdJsonStatic ALIAS TdJsonStatic)
 
 set(INSTALL_TARGETS tdjson TdJson)
-set(INSTALL_STATIC_TARGETS tdjson_static TdJsonStatic tdjson_private tdcore)
+set(INSTALL_STATIC_TARGETS tdjson_static TdJsonStatic tdjson_private tdcore tdmtproto)
 if (BUILD_SHARED_LIBS)
   set(INSTALL_TARGETS ${INSTALL_TARGETS} tdclient TdStatic tdapi)
 else()
@@ -1242,6 +1252,7 @@ generate_pkgconfig(tddb "Telegram Library - Database")
 if (MEMPROF)
   # generate_pkgconfig(memprof "memprof - simple library for memory usage profiling")
 endif()
+generate_pkgconfig(tdmtproto "Telegram Library - MTProto implementation")
 generate_pkgconfig(tdcore "Telegram Library - Core")
 generate_pkgconfig(tdclient "Telegram Library - C++ Interface")
 if (TD_ENABLE_DOTNET)
