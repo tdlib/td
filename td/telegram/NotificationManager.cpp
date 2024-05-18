@@ -35,7 +35,6 @@
 #include "td/telegram/UserManager.h"
 
 #include "td/mtproto/AuthKey.h"
-#include "td/mtproto/mtproto_api.h"
 #include "td/mtproto/PacketInfo.h"
 #include "td/mtproto/Transport.h"
 
@@ -3100,14 +3099,14 @@ Status NotificationManager::parse_push_notification_attach(DialogId dialog_id, s
     return Status::Error(PSLICE() << "Failed to parse attach: " << gzip_parser.get_error());
   }
   BufferSlice buffer;
-  if (id == mtproto_api::gzip_packed::ID) {
-    mtproto_api::gzip_packed gzip(gzip_parser);
+  static constexpr int32 GZIP_PACKED_ID = 812830625;
+  if (id == GZIP_PACKED_ID) {
+    auto packed_data = gzip_parser.template fetch_string<Slice>();
     gzip_parser.fetch_end();
     if (gzip_parser.get_error()) {
-      return Status::Error(PSLICE() << "Failed to parse mtproto_api::gzip_packed in attach: "
-                                    << gzip_parser.get_error());
+      return Status::Error(PSLICE() << "Failed to parse gzip_packed in attach: " << gzip_parser.get_error());
     }
-    buffer = gzdecode(gzip.packed_data_);
+    buffer = gzdecode(packed_data);
     if (buffer.empty()) {
       return Status::Error("Failed to uncompress attach");
     }
