@@ -2045,6 +2045,8 @@ class MessagesManager final : public Actor {
                                        bool has_reply_info, MessageReplyInfo &&reply_info, bool has_reactions,
                                        unique_ptr<MessageReactions> &&reactions, const char *source);
 
+  bool update_message_fact_check(const Dialog *d, Message *m, unique_ptr<FactCheck> &&fact_check, bool need_save);
+
   bool update_message_contains_unread_mention(Dialog *d, Message *m, bool contains_unread_mention, const char *source);
 
   bool remove_message_unread_reactions(Dialog *d, Message *m, const char *source);
@@ -2611,6 +2613,9 @@ class MessagesManager final : public Actor {
   void queue_message_reactions_reload(MessageFullId message_full_id);
 
   void queue_message_reactions_reload(DialogId dialog_id, const vector<MessageId> &message_ids);
+
+  void on_get_message_fact_checks(DialogId dialog_id, const vector<MessageId> &message_ids,
+                                  Result<vector<telegram_api::object_ptr<telegram_api::factCheck>>> r_fact_checks);
 
   void on_send_dialog_action_timeout(DialogId dialog_id);
 
@@ -3442,6 +3447,8 @@ class MessagesManager final : public Actor {
     bool is_request_sent = false;
   };
   FlatHashMap<DialogId, ReactionsToReload, DialogIdHash> being_reloaded_reactions_;
+
+  FlatHashSet<MessageFullId, MessageFullIdHash> being_reloaded_fact_checks_;
 
   FlatHashMap<DialogId, std::pair<bool, bool>, DialogIdHash> pending_dialog_group_call_updates_;
 
