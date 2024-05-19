@@ -1434,6 +1434,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   string premium_manage_subscription_url;
   bool need_premium_for_new_chat_privacy = true;
   bool channel_revenue_withdrawal_enabled = false;
+  bool can_edit_fact_check = false;
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
@@ -1996,6 +1997,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         G()->set_option_integer("pinned_story_count_max", get_json_value_int(std::move(key_value->value_), key));
         continue;
       }
+      if (key == "can_edit_factcheck") {
+        can_edit_fact_check = get_json_value_bool(std::move(key_value->value_), key);
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -2141,6 +2146,11 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     options.set_option_integer("stories_changelog_user_id", stories_changelog_user_id);
   } else {
     options.set_option_empty("stories_changelog_user_id");
+  }
+  if (can_edit_fact_check) {
+    options.set_option_boolean("can_edit_fact_check", can_edit_fact_check);
+  } else {
+    options.set_option_empty("can_edit_fact_check");
   }
 
   if (story_viewers_expire_period >= 0) {
