@@ -451,6 +451,8 @@ class UserManager final : public Actor {
 
   int64 get_user_id_object(UserId user_id, const char *source) const;
 
+  void get_user_id_object_async(UserId user_id, Promise<int64> &&promise);
+
   td_api::object_ptr<td_api::user> get_user_object(UserId user_id) const;
 
   vector<int64> get_user_ids_object(const vector<UserId> &user_ids, const char *source) const;
