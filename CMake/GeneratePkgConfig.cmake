@@ -27,6 +27,7 @@ function(get_relative_link OUTPUT PATH)
   set(${OUTPUT} "${LINK}" PARENT_SCOPE)
 endfunction()
 
+# TODO: support interface libraries in dependencies
 function(generate_pkgconfig TARGET DESCRIPTION)
   # message("Generating pkg-config for ${TARGET}")
   get_filename_component(PREFIX "${CMAKE_INSTALL_PREFIX}" REALPATH)

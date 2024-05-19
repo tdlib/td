@@ -318,7 +318,7 @@ set(TD_MTPROTO_SOURCE
   td/tl/tl_object_store.h
 )
 
-set(TDLIB_SOURCE
+set(TDLIB_SOURCE_PART1
   td/telegram/AccountManager.cpp
   td/telegram/AnimationsManager.cpp
   td/telegram/Application.cpp
@@ -471,6 +471,8 @@ set(TDLIB_SOURCE
   td/telegram/MessageViewer.cpp
   td/telegram/misc.cpp
   td/telegram/MissingInvitee.cpp
+)
+set(TDLIB_SOURCE_PART2
   td/telegram/net/AuthDataShared.cpp
   td/telegram/net/ConnectionCreator.cpp
   td/telegram/net/DcAuthManager.cpp
@@ -1016,6 +1018,10 @@ set(TDLIB_SOURCE
 
   ${CMAKE_CURRENT_BINARY_DIR}/td/telegram/GitCommitHash.cpp
 )
+set(TDLIB_SOURCE
+  ${TDLIB_SOURCE_PART1}
+  ${TDLIB_SOURCE_PART2}
+)
 
 set(MEMPROF_SOURCE
   memprof/memprof.cpp
@@ -1079,9 +1085,26 @@ if (WIN32)
 endif()
 
 # tdcore - mostly internal TDLib interface. One should use tdactor for interactions with it.
-add_library(tdcore STATIC ${TDLIB_SOURCE})
-target_include_directories(tdcore PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
-target_link_libraries(tdcore PUBLIC tdapi tdnet tddb tdactor tdutils PRIVATE tdmtproto)
+if (MSVC AND TD_ENABLE_LTO)
+  add_library(tdcore_part1 STATIC ${TDLIB_SOURCE_PART1})
+  target_include_directories(tdcore_part1 PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
+  target_link_libraries(tdcore_part1 PUBLIC tdapi tdnet tddb tdactor tdutils PRIVATE tdmtproto)
+
+  add_library(tdcore_part2 STATIC ${TDLIB_SOURCE_PART2})
+  target_include_directories(tdcore_part2 PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
+  target_link_libraries(tdcore_part2 PUBLIC tdapi tdnet tddb tdactor tdutils PRIVATE tdmtproto)
+
+  add_library(tdcore INTERFACE)
+  target_link_libraries(tdcore INTERFACE tdcore_part1 tdcore_part2)
+
+  set(TD_CORE_PART_TARGETS tdcore_part1 tdcore_part2)
+else()
+  add_library(tdcore STATIC ${TDLIB_SOURCE})
+  target_include_directories(tdcore PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
+  target_link_libraries(tdcore PUBLIC tdapi tdnet tddb tdactor tdutils PRIVATE tdmtproto)
+
+  set(TD_CORE_PART_TARGETS)
+endif()
 
 if (NOT CMAKE_CROSSCOMPILING)
   add_dependencies(tdcore tl_generate_common)
@@ -1221,7 +1244,7 @@ add_library(Td::TdJson ALIAS TdJson)
 add_library(Td::TdJsonStatic ALIAS TdJsonStatic)
 
 set(INSTALL_TARGETS tdjson TdJson)
-set(INSTALL_STATIC_TARGETS tdjson_static TdJsonStatic tdjson_private tdcore tdmtproto)
+set(INSTALL_STATIC_TARGETS tdjson_static TdJsonStatic tdjson_private "${TD_CORE_PART_TARGETS}" tdcore tdmtproto)
 if (BUILD_SHARED_LIBS)
   set(INSTALL_TARGETS ${INSTALL_TARGETS} tdclient TdStatic tdapi)
 else()
