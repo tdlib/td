@@ -107,6 +107,7 @@ set(TDUTILS_SOURCE
   td/utils/Gzip.cpp
   td/utils/GzipByteFlow.cpp
   td/utils/Hints.cpp
+  td/utils/HttpDate.cpp
   td/utils/HttpUrl.cpp
   td/utils/JsonBuilder.cpp
   td/utils/logging.cpp
@@ -231,6 +232,7 @@ set(TDUTILS_SOURCE
   td/utils/HazardPointers.h
   td/utils/Heap.h
   td/utils/Hints.h
+  td/utils/HttpDate.h
   td/utils/HttpUrl.h
   td/utils/int_types.h
   td/utils/invoke.h
