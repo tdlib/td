@@ -5764,6 +5764,13 @@ void Td::on_request(uint64 id, td_api::editMessageSchedulingState &request) {
                                                    std::move(request.scheduling_state_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::setMessageFactCheck &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->set_message_fact_check({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                            std::move(request.text_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::sendBusinessMessage &request) {
   CHECK_IS_BOT();
   CREATE_REQUEST_PROMISE();

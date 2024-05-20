@@ -1524,9 +1524,9 @@ inputMessageReplyToMessage chat_id:int53 message_id:int53 quote:inputTextQuote =
 inputMessageReplyToStory story_sender_chat_id:int53 story_id:int32 = InputMessageReplyTo;
 
 
-//@description Describes a fact check added to the message by an independent checker
-//@text Text of the fact check
-//@country_code A two-letter ISO 3166-1 alpha-2 country code of the country for which the fact check is shown
+//@description Describes a fact-check added to the message by an independent checker
+//@text Text of the fact-check
+//@country_code A two-letter ISO 3166-1 alpha-2 country code of the country for which the fact-check is shown
 factCheck text:formattedText country_code:string = FactCheck;
 
 
@@ -1562,7 +1562,7 @@ factCheck text:formattedText country_code:string = FactCheck;
 //@import_info Information about the initial message for messages created with importMessages; may be null if the message isn't imported
 //@interaction_info Information about interactions with the message; may be null if none
 //@unread_reactions Information about unread reactions added to the message
-//@fact_check Information about fact check added to the message; may be null if none
+//@fact_check Information about fact-check added to the message; may be null if none
 //@reply_to Information about the message or the story this message is replying to; may be null if none
 //@message_thread_id If non-zero, the identifier of the message thread the message belongs to; unique within the chat to which the message belongs
 //@saved_messages_topic_id Identifier of the Saved Messages topic for the message; 0 for messages not from Saved Messages
@@ -6231,7 +6231,7 @@ internalLinkTypeProxy server:string port:int32 type:ProxyType = InternalLinkType
 
 //@description The link is a link to a chat by its username. Call searchPublicChat with the given chat username to process the link
 //-If the chat is found, open its profile information screen or the chat itself.
-//-If draft text isn't empty and the chat is a private chat, then put the draft text in the input field
+//-If draft text isn't empty and the chat is a private chat with a regular user, then put the draft text in the input field
 //@chat_username Username of the chat
 //@draft_text Draft text for message to send in the chat
 internalLinkTypePublicChat chat_username:string draft_text:string = InternalLinkType;
@@ -6965,10 +6965,10 @@ updateMessageMentionRead chat_id:int53 message_id:int53 unread_mention_count:int
 //@unread_reaction_count The new number of messages with unread reactions left in the chat
 updateMessageUnreadReactions chat_id:int53 message_id:int53 unread_reactions:vector<unreadReaction> unread_reaction_count:int32 = Update;
 
-//@description A fact check added to a message was changed
+//@description A fact-check added to a message was changed
 //@chat_id Chat identifier
 //@message_id Message identifier
-//@fact_check The new fact check
+//@fact_check The new fact-check
 updateMessageFactCheck chat_id:int53 message_id:int53 fact_check:factCheck = Update;
 
 //@description A message with a live location was viewed. When the update is received, the application is supposed to update the live location
@@ -8336,6 +8336,12 @@ editInlineMessageReplyMarkup inline_message_id:string reply_markup:ReplyMarkup =
 //@message_id Identifier of the message
 //@scheduling_state The new message scheduling state; pass null to send the message immediately
 editMessageSchedulingState chat_id:int53 message_id:int53 scheduling_state:MessageSchedulingState = Ok;
+
+//@description Changes the fact-check of a message. Can be only used if getOption("can_edit_fact_check") == true
+//@chat_id The channel chat the message belongs to
+//@message_id Identifier of the message
+//@text New text of the fact-check; 0-1024 characters; pass null to remove it. Only Bold, Italic, and TextUrl entities are supported
+setMessageFactCheck chat_id:int53 message_id:int53 text:formattedText = Ok;
 
 
 //@description Sends a message on behalf of a business account; for bots only. Returns the message after it was sent

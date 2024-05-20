@@ -5082,6 +5082,12 @@ class CliClient final : public Actor {
       get_args(args, chat_id, message_id, date);
       send_request(td_api::make_object<td_api::editMessageSchedulingState>(chat_id, message_id,
                                                                            as_message_scheduling_state(date)));
+    } else if (op == "smfc") {
+      ChatId chat_id;
+      MessageId message_id;
+      string message;
+      get_args(args, chat_id, message_id, message);
+      send_request(td_api::make_object<td_api::setMessageFactCheck>(chat_id, message_id, as_formatted_text(message)));
     } else {
       op_not_found_count++;
     }

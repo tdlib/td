@@ -893,6 +893,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::editMessageSchedulingState &request);
 
+  void on_request(uint64 id, td_api::setMessageFactCheck &request);
+
   void on_request(uint64 id, td_api::sendBusinessMessage &request);
 
   void on_request(uint64 id, td_api::sendBusinessMessageAlbum &request);
