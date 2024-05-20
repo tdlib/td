@@ -1987,7 +1987,7 @@ chatNearby chat_id:int53 distance:int32 = ChatNearby;
 chatsNearby users_nearby:vector<chatNearby> supergroups_nearby:vector<chatNearby> = ChatsNearby;
 
 
-//@class PublicChatType @description Describes type of public chats
+//@class PublicChatType @description Describes type of a public chat
 
 //@description The chat is public, because it has an active username
 publicChatTypeHasUsername = PublicChatType;
@@ -4790,7 +4790,7 @@ inlineQueryResultVideo id:string video:video title:string description:string = I
 inlineQueryResultVoiceNote id:string voice_note:voiceNote title:string = InlineQueryResult;
 
 
-//@class InlineQueryResultsButtonType @description Represents type of button in results of inline query
+//@class InlineQueryResultsButtonType @description Represents type of a button in results of inline query
 
 //@description Describes the button that opens a private chat with the bot and sends a start message to the bot with the given parameter @parameter The parameter for the bot start message
 inlineQueryResultsButtonTypeStartBot parameter:string = InlineQueryResultsButtonType;
