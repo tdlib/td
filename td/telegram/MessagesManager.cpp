@@ -29796,7 +29796,11 @@ void MessagesManager::fail_send_message(MessageFullId message_full_id, int32 err
     if (get_message_force(d, new_message_id, "fail_send_message") != nullptr || is_deleted_message(d, new_message_id) ||
         new_message_id <= d->last_clear_history_message_id) {
       new_message_id = get_next_local_message_id(d);
-    } else if (new_message_id > d->last_assigned_message_id) {
+      while (get_message_force(d, new_message_id, "fail_send_message") != nullptr) {
+        new_message_id = new_message_id.get_next_message_id(MessageType::Local);
+      }
+    }
+    if (new_message_id > d->last_assigned_message_id) {
       d->last_assigned_message_id = new_message_id;
     }
   } else {
