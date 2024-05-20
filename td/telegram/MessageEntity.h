@@ -53,6 +53,7 @@ class MessageEntity {
     MediaTimestamp,
     Spoiler,
     CustomEmoji,
+    ExpandableBlockQuote,
     Size
   };
   Type type = Type::Size;

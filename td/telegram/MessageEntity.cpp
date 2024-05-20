@@ -57,7 +57,8 @@ int MessageEntity::get_type_priority(Type type) {
                                    50 /*BankCardNumber*/,
                                    50 /*MediaTimestamp*/,
                                    94 /*Spoiler*/,
-                                   99 /*CustomEmoji*/};
+                                   99 /*CustomEmoji*/,
+                                   0 /*ExpandableBlockQuote*/};
   static_assert(sizeof(priorities) / sizeof(priorities[0]) == static_cast<size_t>(MessageEntity::Type::Size), "");
   return priorities[static_cast<int32>(type)];
 }
@@ -106,6 +107,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageEntity::Ty
       return string_builder << "Spoiler";
     case MessageEntity::Type::CustomEmoji:
       return string_builder << "CustomEmoji";
+    case MessageEntity::Type::ExpandableBlockQuote:
+      return string_builder << "ExpandableBlockQuote";
     default:
       UNREACHABLE();
       return string_builder << "Impossible";
@@ -176,6 +179,8 @@ tl_object_ptr<td_api::TextEntityType> MessageEntity::get_text_entity_type_object
       return make_tl_object<td_api::textEntityTypeSpoiler>();
     case MessageEntity::Type::CustomEmoji:
       return make_tl_object<td_api::textEntityTypeCustomEmoji>(custom_emoji_id.get());
+    case MessageEntity::Type::ExpandableBlockQuote:
+      return make_tl_object<td_api::textEntityTypeExpandableBlockQuote>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -1449,7 +1454,8 @@ static constexpr int32 get_splittable_entities_mask() {
 }
 
 static constexpr int32 get_blockquote_entities_mask() {
-  return get_entity_type_mask(MessageEntity::Type::BlockQuote);
+  return get_entity_type_mask(MessageEntity::Type::BlockQuote) |
+         get_entity_type_mask(MessageEntity::Type::ExpandableBlockQuote);
 }
 
 static constexpr int32 get_continuous_entities_mask() {
@@ -1479,7 +1485,7 @@ static int32 is_splittable_entity(MessageEntity::Type type) {
 }
 
 static int32 is_blockquote_entity(MessageEntity::Type type) {
-  return type == MessageEntity::Type::BlockQuote;
+  return (get_entity_type_mask(type) & get_blockquote_entities_mask()) != 0;
 }
 
 static int32 is_continuous_entity(MessageEntity::Type type) {
@@ -1604,7 +1610,7 @@ static void remove_entities_intersecting_blockquote(vector<MessageEntity> &entit
   size_t left_entities = 0;
   for (size_t i = 0; i < entities.size(); i++) {
     while (blockquote_it != blockquote_entities.end() &&
-           (blockquote_it->type != MessageEntity::Type::BlockQuote ||
+           (!is_blockquote_entity(blockquote_it->type) ||
             blockquote_it->offset + blockquote_it->length <= entities[i].offset)) {
       ++blockquote_it;
     }
@@ -1819,6 +1825,8 @@ Slice get_first_url(const FormattedText &text) {
       case MessageEntity::Type::Spoiler:
         break;
       case MessageEntity::Type::CustomEmoji:
+        break;
+      case MessageEntity::Type::ExpandableBlockQuote:
         break;
       default:
         UNREACHABLE();
@@ -3512,6 +3520,12 @@ vector<tl_object_ptr<secret_api::MessageEntity>> get_input_secret_message_entiti
                                                                                 entity.custom_emoji_id.get()));
         }
         break;
+      case MessageEntity::Type::ExpandableBlockQuote:
+        if (layer >= static_cast<int32>(SecretChatLayer::NewEntities)) {
+          // result.push_back(make_tl_object<secret_api::messageEntityBlockquote>(
+          //     secret_api::messageEntityBlockquote::COLLAPSED_MASK, false /*ignored*/, entity.offset, entity.length));
+        }
+        break;
       default:
         UNREACHABLE();
     }
@@ -3635,6 +3649,9 @@ Result<vector<MessageEntity>> get_message_entities(const UserManager *user_manag
         entities.emplace_back(MessageEntity::Type::CustomEmoji, offset, length, custom_emoji_id);
         break;
       }
+      case td_api::textEntityTypeExpandableBlockQuote::ID:
+        entities.emplace_back(MessageEntity::Type::ExpandableBlockQuote, offset, length);
+        break;
       default:
         UNREACHABLE();
     }
@@ -3722,7 +3739,8 @@ vector<MessageEntity> get_message_entities(const UserManager *user_manager,
       }
       case telegram_api::messageEntityBlockquote::ID: {
         auto entity = static_cast<const telegram_api::messageEntityBlockquote *>(server_entity.get());
-        entities.emplace_back(MessageEntity::Type::BlockQuote, entity->offset_, entity->length_);
+        auto type = entity->collapsed_ ? MessageEntity::Type::ExpandableBlockQuote : MessageEntity::Type::BlockQuote;
+        entities.emplace_back(type, entity->offset_, entity->length_);
         break;
       }
       case telegram_api::messageEntityCode::ID: {
@@ -4613,6 +4631,10 @@ vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(co
                                                                                      std::move(input_user)));
         break;
       }
+      case MessageEntity::Type::ExpandableBlockQuote:
+        result.push_back(make_tl_object<telegram_api::messageEntityBlockquote>(
+            telegram_api::messageEntityBlockquote::COLLAPSED_MASK, false /*ignored*/, entity.offset, entity.length));
+        break;
       default:
         UNREACHABLE();
     }
@@ -4674,7 +4696,8 @@ void remove_unallowed_entities(const Td *td, FormattedText &text, DialogId dialo
     td::remove_if(text.entities, [layer](const MessageEntity &entity) {
       if (layer < static_cast<int32>(SecretChatLayer::NewEntities) &&
           (entity.type == MessageEntity::Type::Underline || entity.type == MessageEntity::Type::Strikethrough ||
-           entity.type == MessageEntity::Type::BlockQuote)) {
+           entity.type == MessageEntity::Type::BlockQuote ||
+           entity.type == MessageEntity::Type::ExpandableBlockQuote)) {
         return true;
       }
       if (layer < static_cast<int32>(SecretChatLayer::SpoilerAndCustomEmojiEntities) &&
