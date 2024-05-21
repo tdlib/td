@@ -3261,7 +3261,8 @@ Result<vector<MessageEntity>> parse_html(string &str) {
           break;
         }
         auto attribute_begin_pos = i;
-        while (!is_space(text[i]) && text[i] != '=') {
+        while (!is_space(text[i]) && text[i] != '=' && text[i] != '>' && text[i] != '/' && text[i] != '"' &&
+               text[i] != '\'') {
           i++;
         }
         Slice attribute_name(text + attribute_begin_pos, i - attribute_begin_pos);
@@ -3273,8 +3274,14 @@ Result<vector<MessageEntity>> parse_html(string &str) {
           i++;
         }
         if (text[i] != '=') {
-          return Status::Error(400, PSLICE() << "Expected equal sign in declaration of an attribute of the tag \""
-                                             << tag_name << "\" at byte offset " << begin_pos);
+          if (text[i] == 0) {
+            return Status::Error(400, PSLICE()
+                                          << "Unclosed start tag \"" << tag_name << "\" at byte offset " << begin_pos);
+          }
+          if (tag_name == "blockquote" && attribute_name == Slice("expandable")) {
+            argument = "1";
+          }
+          continue;
         }
         i++;
         while (text[i] != 0 && is_space(text[i])) {
@@ -3331,6 +3338,8 @@ Result<vector<MessageEntity>> parse_html(string &str) {
           argument = attribute_value.substr(3);
         } else if (tag_name == "tg-emoji" && attribute_name == Slice("emoji-id")) {
           argument = std::move(attribute_value);
+        } else if (tag_name == "blockquote" && attribute_name == Slice("expandable")) {
+          argument = "1";
         }
       }
 
@@ -3416,7 +3425,11 @@ Result<vector<MessageEntity>> parse_html(string &str) {
                                   nested_entities.back().argument);
           }
         } else if (tag_name == "blockquote") {
-          entities.emplace_back(MessageEntity::Type::BlockQuote, entity_offset, entity_length);
+          if (!nested_entities.back().argument.empty()) {
+            entities.emplace_back(MessageEntity::Type::ExpandableBlockQuote, entity_offset, entity_length);
+          } else {
+            entities.emplace_back(MessageEntity::Type::BlockQuote, entity_offset, entity_length);
+          }
         } else {
           UNREACHABLE();
         }
@@ -3426,7 +3439,7 @@ Result<vector<MessageEntity>> parse_html(string &str) {
   }
   if (!nested_entities.empty()) {
     return Status::Error(
-        400, PSLICE() << "Can't find end tag corresponding to start tag " << nested_entities.back().tag_name);
+        400, PSLICE() << "Can't find end tag corresponding to start tag \"" << nested_entities.back().tag_name << '"');
   }
 
   for (auto &entity : entities) {

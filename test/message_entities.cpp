@@ -1243,8 +1243,7 @@ TEST(MessageEntities, parse_html) {
   check_parse_html("🏟 🏟&lt;<abac aba>", "Unsupported start tag \"abac\" at byte offset 13");
   check_parse_html("🏟 🏟&lt;<abac>", "Unsupported start tag \"abac\" at byte offset 13");
   check_parse_html("🏟 🏟&lt;<i   =aba>", "Empty attribute name in the tag \"i\" at byte offset 13");
-  check_parse_html("🏟 🏟&lt;<i    aba>",
-                   "Expected equal sign in declaration of an attribute of the tag \"i\" at byte offset 13");
+  check_parse_html("🏟 🏟&lt;<i    aba>", "Can't find end tag corresponding to start tag \"i\"");
   check_parse_html("🏟 🏟&lt;<i    aba  =  ", "Unclosed start tag \"i\" at byte offset 13");
   check_parse_html("🏟 🏟&lt;<i    aba  =  190azAz-.,", "Unexpected end of name token at byte offset 27");
   check_parse_html("🏟 🏟&lt;<i    aba  =  \"&lt;&gt;&quot;>", "Unclosed start tag at byte offset 13");
@@ -1352,8 +1351,14 @@ TEST(MessageEntities, parse_html) {
   check_parse_html("🏟 🏟<b aba   =   caba><tg-emoji emoji-id=\"1\">🏟</tg-emoji>1</b>", "🏟 🏟🏟1",
                    {{td::MessageEntity::Type::Bold, 5, 3},
                     {td::MessageEntity::Type::CustomEmoji, 5, 2, td::CustomEmojiId(static_cast<td::int64>(1))}});
-  check_parse_html("<blockquote   cite=\"\">a&lt;<pre  >b;</></>", "a<b;",
+  check_parse_html("<blockquote   cite=\"\" askdlbas nasjdbaj nj12b3>a&lt;<pre  >b;</></>", "a<b;",
                    {{td::MessageEntity::Type::BlockQuote, 0, 4}, {td::MessageEntity::Type::Pre, 2, 2}});
+  check_parse_html("<blockquote   expandable>a&lt;<pre  >b;</></>", "a<b;",
+                   {{td::MessageEntity::Type::ExpandableBlockQuote, 0, 4}, {td::MessageEntity::Type::Pre, 2, 2}});
+  check_parse_html("<blockquote   expandable   asd>a&lt;<pre  >b;</></>", "a<b;",
+                   {{td::MessageEntity::Type::ExpandableBlockQuote, 0, 4}, {td::MessageEntity::Type::Pre, 2, 2}});
+  check_parse_html("<blockquote   expandable=false>a&lt;<pre  >b;</></>", "a<b;",
+                   {{td::MessageEntity::Type::ExpandableBlockQuote, 0, 4}, {td::MessageEntity::Type::Pre, 2, 2}});
 }
 
 static void check_parse_markdown(td::string text, const td::string &result,
