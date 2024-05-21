@@ -2171,8 +2171,21 @@ Result<vector<MessageEntity>> parse_markdown_v2(string &text) {
       // end of an entity
       auto type = nested_entities.back().type;
       if (c == '\n' && type != MessageEntity::Type::BlockQuote) {
-        return Status::Error(400, PSLICE() << "Can't find end of " << nested_entities.back().type
-                                           << " entity at byte offset " << nested_entities.back().entity_byte_offset);
+        if (type != MessageEntity::Type::Spoiler || !(nested_entities.back().entity_byte_offset == i - 2 ||
+                                                      (nested_entities.back().entity_byte_offset == i - 3 &&
+                                                       result_size != 0 && text[result_size - 1] == '\r'))) {
+          return Status::Error(400, PSLICE() << "Can't find end of " << nested_entities.back().type
+                                             << " entity at byte offset " << nested_entities.back().entity_byte_offset);
+        }
+        nested_entities.pop_back();
+        CHECK(!nested_entities.empty());
+        type = nested_entities.back().type;
+        if (type != MessageEntity::Type::BlockQuote) {
+          CHECK(type != MessageEntity::Type::Spoiler);
+          return Status::Error(400, PSLICE() << "Can't find end of " << nested_entities.back().type
+                                             << " entity at byte offset " << nested_entities.back().entity_byte_offset);
+        }
+        type = MessageEntity::Type::ExpandableBlockQuote;
       }
       auto argument = std::move(nested_entities.back().argument);
       UserId user_id;
@@ -2247,6 +2260,7 @@ Result<vector<MessageEntity>> parse_markdown_v2(string &text) {
           break;
         }
         case MessageEntity::Type::BlockQuote:
+        case MessageEntity::Type::ExpandableBlockQuote:
           CHECK(have_blockquote);
           have_blockquote = false;
           text[result_size++] = text[i];
@@ -2275,12 +2289,19 @@ Result<vector<MessageEntity>> parse_markdown_v2(string &text) {
   }
   if (have_blockquote) {
     CHECK(!nested_entities.empty());
+    auto type = MessageEntity::Type::BlockQuote;
+    if (nested_entities.back().type == MessageEntity::Type::Spoiler &&
+        nested_entities.back().entity_byte_offset == text.size() - 2) {
+      nested_entities.pop_back();
+      CHECK(!nested_entities.empty());
+      type = MessageEntity::Type::ExpandableBlockQuote;
+    }
     if (nested_entities.back().type == MessageEntity::Type::BlockQuote) {
       have_blockquote = false;
       auto entity_offset = nested_entities.back().entity_offset;
       auto entity_length = utf16_offset - entity_offset;
       if (entity_length != 0) {
-        entities.emplace_back(MessageEntity::Type::BlockQuote, entity_offset, entity_length);
+        entities.emplace_back(type, entity_offset, entity_length);
       }
       nested_entities.pop_back();
     }
