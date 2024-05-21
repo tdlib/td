@@ -2410,7 +2410,7 @@ class CliClient final : public Actor {
     }
     auto id = send_request(td_api::make_object<td_api::sendMessage>(
         chat_id, message_thread_id_, get_input_message_reply_to(),
-        td_api::make_object<td_api::messageSendOptions>(disable_notification, from_background, true, true,
+        td_api::make_object<td_api::messageSendOptions>(disable_notification, from_background, false, false,
                                                         as_message_scheduling_state(schedule_date_),
                                                         Random::fast(1, 1000), only_preview_),
         nullptr, std::move(input_message_content)));
