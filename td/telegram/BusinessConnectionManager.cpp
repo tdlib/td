@@ -981,6 +981,20 @@ void BusinessConnectionManager::send_message_album(
     auto message =
         create_business_message_to_send(business_connection_id, dialog_id, input_reply_to.clone(), disable_notification,
                                         protect_content, effect_id, nullptr, std::move(message_content));
+    auto input_media = get_input_media(message->content_.get(), td_, message->ttl_, message->send_emoji_,
+                                       td_->auth_manager_->is_bot());
+    if (input_media != nullptr) {
+      auto file_id = get_message_file_id(message);
+      CHECK(file_id.is_valid());
+      FileView file_view = td_->file_manager_->get_file_view(file_id);
+      if (file_view.has_remote_location()) {
+        UploadMediaResult result;
+        result.message_ = std::move(message);
+        result.input_media_ = std::move(input_media);
+        on_upload_message_album_media(request_id, media_pos, std::move(result));
+        continue;
+      }
+    }
     upload_media(std::move(message), PromiseCreator::lambda([actor_id = actor_id(this), request_id,
                                                              media_pos](Result<UploadMediaResult> &&result) mutable {
                    send_closure(actor_id, &BusinessConnectionManager::on_upload_message_album_media, request_id,
