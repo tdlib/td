@@ -42,7 +42,7 @@ class FactCheck {
   }
 
   bool need_check() const {
-    return hash_ == 0;
+    return need_check_;
   }
 
   void update_from(const FactCheck &old_fact_check);

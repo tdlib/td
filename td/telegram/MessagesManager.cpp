@@ -18807,16 +18807,17 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
           if (need_poll_message_reactions(d, m)) {
             viewed_reaction_message_ids.push_back(message_id);
           }
-          if (m->fact_check != nullptr && m->fact_check->need_check() &&
-              being_reloaded_fact_checks_.insert({dialog_id, message_id}).second) {
-            CHECK(message_id.is_server());
-            viewed_fact_check_message_ids.push_back(message_id);
-          }
         } else {
           info->recently_viewed_messages.erase(view_id);
         }
         view_id = ++info->current_view_id;
         info->recently_viewed_messages[view_id] = message_id;
+      }
+
+      if (m->message_id.is_server() && m->fact_check != nullptr && m->fact_check->need_check() &&
+          being_reloaded_fact_checks_.insert({dialog_id, message_id}).second) {
+        CHECK(message_id.is_server());
+        viewed_fact_check_message_ids.push_back(message_id);
       }
 
       if (need_invalidate_authentication_code) {
@@ -18868,17 +18869,17 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
     if (!viewed_reaction_message_ids.empty()) {
       queue_message_reactions_reload(dialog_id, viewed_reaction_message_ids);
     }
-    if (!viewed_fact_check_message_ids.empty()) {
-      CHECK(dialog_id.get_type() != DialogType::SecretChat);
-      auto promise =
-          PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, message_ids = viewed_fact_check_message_ids](
-                                     Result<vector<telegram_api::object_ptr<telegram_api::factCheck>>> r_fact_checks) {
-            send_closure(actor_id, &MessagesManager::on_get_message_fact_checks, dialog_id, message_ids,
-                         std::move(r_fact_checks));
-          });
-      td_->create_handler<GetFactCheckQuery>(std::move(promise))
-          ->send(dialog_id, std::move(viewed_fact_check_message_ids));
-    }
+  }
+  if (!viewed_fact_check_message_ids.empty()) {
+    CHECK(dialog_id.get_type() != DialogType::SecretChat);
+    auto promise =
+        PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, message_ids = viewed_fact_check_message_ids](
+                                   Result<vector<telegram_api::object_ptr<telegram_api::factCheck>>> r_fact_checks) {
+          send_closure(actor_id, &MessagesManager::on_get_message_fact_checks, dialog_id, message_ids,
+                       std::move(r_fact_checks));
+        });
+    td_->create_handler<GetFactCheckQuery>(std::move(promise))
+        ->send(dialog_id, std::move(viewed_fact_check_message_ids));
   }
   if (td_->is_online() && dialog_viewed_messages_.count(dialog_id) != 0) {
     update_viewed_messages_timeout_.add_timeout_in(dialog_id.get(), UPDATE_VIEWED_MESSAGES_PERIOD);
