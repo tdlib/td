@@ -1160,7 +1160,9 @@ TEST(MessageEntities, fix_formatted_text) {
 
       if (keep_url && ((1 << static_cast<td::int32>(entity.type)) & splittable_mask) == 0 &&
           !(end <= url_offset || url_end <= offset)) {
-        keep_url = (entity.type == td::MessageEntity::Type::BlockQuote && offset <= url_offset && url_end <= end);
+        keep_url = ((entity.type == td::MessageEntity::Type::BlockQuote ||
+                     entity.type == td::MessageEntity::Type::ExpandableBlockQuote) &&
+                    offset <= url_offset && url_end <= end);
       }
     }
     ASSERT_EQ(keep_url, std::count(entities.begin(), entities.end(), url_entity) == 1);
@@ -1183,7 +1185,8 @@ TEST(MessageEntities, fix_formatted_text) {
           // pre can't contain other entities
           ASSERT_TRUE((type_mask & pre_mask) == 0);
 
-          if ((type_mask & splittable_mask) == 0 && entities[i].type != td::MessageEntity::Type::BlockQuote) {
+          if ((type_mask & splittable_mask) == 0 && entities[i].type != td::MessageEntity::Type::BlockQuote &&
+              entities[i].type != td::MessageEntity::Type::ExpandableBlockQuote) {
             // continuous entities can contain only splittable entities
             ASSERT_TRUE(((1 << static_cast<td::int32>(entities[j].type)) & splittable_mask) != 0);
           }
