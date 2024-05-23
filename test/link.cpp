@@ -364,7 +364,7 @@ static auto unsupported_proxy() {
 }
 
 static auto user_phone_number(const td::string &phone_number, const td::string &draft_text = td::string()) {
-  return td::td_api::make_object<td::td_api::internalLinkTypeUserPhoneNumber>(phone_number, draft_text);
+  return td::td_api::make_object<td::td_api::internalLinkTypeUserPhoneNumber>('+' + phone_number, draft_text);
 }
 
 static auto user_token(const td::string &token) {
@@ -467,6 +467,7 @@ TEST(Link, parse_internal_link_part1) {
                       attachment_menu_bot(nullptr, public_chat("telegram"), "test", "1"));
 
   parse_internal_link("tg:resolve?phone=1", user_phone_number("1"));
+  parse_internal_link("tg:resolve?phone=+1", user_phone_number("1"));
   parse_internal_link("tg:resolve?phone=123456", user_phone_number("123456"));
   parse_internal_link("tg:resolve?phone=123456&startattach", user_phone_number("123456"));
   parse_internal_link("tg:resolve?phone=123456&startattach=123", user_phone_number("123456"));
@@ -475,6 +476,10 @@ TEST(Link, parse_internal_link_part1) {
   parse_internal_link("tg:resolve?phone=123456&attach=&startattach=123", user_phone_number("123456"));
   parse_internal_link("tg:resolve?phone=123456&attach=test",
                       attachment_menu_bot(nullptr, user_phone_number("123456"), "test", ""));
+  parse_internal_link("tg:resolve?phone=+123456&attach=test",
+                      attachment_menu_bot(nullptr, user_phone_number("123456"), "test", ""));
+  parse_internal_link("tg:resolve?phone=++123456&attach=test",
+                      unknown_deep_link("tg://resolve?phone=++123456&attach=test"));
   parse_internal_link("tg:resolve?phone=123456&attach=test&startattach&choose=users",
                       attachment_menu_bot(nullptr, user_phone_number("123456"), "test", ""));
   parse_internal_link("tg:resolve?phone=123456&attach=test&startattach=123",
@@ -484,7 +489,7 @@ TEST(Link, parse_internal_link_part1) {
   parse_internal_link("tg:resolve?phone=012345678901234567890123456789123",
                       unknown_deep_link("tg://resolve?phone=012345678901234567890123456789123"));
   parse_internal_link("tg:resolve?phone=", unknown_deep_link("tg://resolve?phone="));
-  parse_internal_link("tg:resolve?phone=+123", unknown_deep_link("tg://resolve?phone=+123"));
+  parse_internal_link("tg:resolve?phone=+123", user_phone_number("123"));
   parse_internal_link("tg:resolve?phone=123456 ", unknown_deep_link("tg://resolve?phone=123456 "));
   parse_internal_link("tg:resolve?domain=telegram&text=asd", public_chat("telegram", "asd"));
   parse_internal_link("tg:resolve?phone=12345678901&text=asd", user_phone_number("12345678901", "asd"));

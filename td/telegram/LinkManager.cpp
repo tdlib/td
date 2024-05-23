@@ -773,8 +773,8 @@ class LinkManager::InternalLinkUserPhoneNumber final : public InternalLink {
   }
 
  public:
-  InternalLinkUserPhoneNumber(string phone_number, string draft_text)
-      : phone_number_(std::move(phone_number)), draft_text_(std::move(draft_text)) {
+  InternalLinkUserPhoneNumber(Slice phone_number, string draft_text)
+      : phone_number_(PSTRING() << '+' << phone_number), draft_text_(std::move(draft_text)) {
   }
 };
 
@@ -1347,16 +1347,20 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
       }
       // resolve?domain=<username>
       return td::make_unique<InternalLinkPublicDialog>(std::move(username), get_url_query_draft_text(url_query));
-    } else if (is_valid_phone_number(get_arg("phone"))) {
-      if (!url_query.get_arg("attach").empty()) {
-        // resolve?phone=<phone_number>&attach=<bot_username>
-        // resolve?phone=<phone_number>&attach=<bot_username>&startattach=<start_parameter>
-        return td::make_unique<InternalLinkAttachMenuBot>(
-            nullptr, td::make_unique<InternalLinkUserPhoneNumber>(get_arg("phone"), string()),
-            url_query.get_arg("attach").str(), url_query.get_arg("startattach"));
+    } else {
+      string phone_number_str = get_arg("phone");
+      auto phone_number = phone_number_str[0] == ' ' ? Slice(phone_number_str).substr(1) : Slice(phone_number_str);
+      if (is_valid_phone_number(phone_number)) {
+        if (!url_query.get_arg("attach").empty()) {
+          // resolve?phone=<phone_number>&attach=<bot_username>
+          // resolve?phone=<phone_number>&attach=<bot_username>&startattach=<start_parameter>
+          return td::make_unique<InternalLinkAttachMenuBot>(
+              nullptr, td::make_unique<InternalLinkUserPhoneNumber>(phone_number, string()),
+              url_query.get_arg("attach").str(), url_query.get_arg("startattach"));
+        }
+        // resolve?phone=12345
+        return td::make_unique<InternalLinkUserPhoneNumber>(phone_number, get_url_query_draft_text(url_query));
       }
-      // resolve?phone=12345
-      return td::make_unique<InternalLinkUserPhoneNumber>(get_arg("phone"), get_url_query_draft_text(url_query));
     }
   } else if (path.size() == 1 && path[0] == "contact") {
     // contact?token=<token>
@@ -1938,15 +1942,21 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
             if (target->link_->get_id() == td_api::internalLinkTypeUserPhoneNumber::ID) {
               auto user_phone_number_link =
                   static_cast<const td_api::internalLinkTypeUserPhoneNumber *>(target->link_.get());
-              if (!is_valid_phone_number(user_phone_number_link->phone_number_)) {
+              string phone_number;
+              if (user_phone_number_link->phone_number_[0] == '+') {
+                phone_number = user_phone_number_link->phone_number_.substr(1);
+              } else {
+                phone_number = user_phone_number_link->phone_number_;
+              }
+              if (!is_valid_phone_number(phone_number)) {
                 return Status::Error(400, "Invalid target phone number specified");
               }
               if (is_internal) {
-                return PSTRING() << "tg://resolve?phone=" << user_phone_number_link->phone_number_
-                                 << "&attach=" << link->bot_username_ << start_parameter;
+                return PSTRING() << "tg://resolve?phone=+" << phone_number << "&attach=" << link->bot_username_
+                                 << start_parameter;
               } else {
-                return PSTRING() << get_t_me_url() << '+' << user_phone_number_link->phone_number_
-                                 << "?attach=" << link->bot_username_ << start_parameter;
+                return PSTRING() << get_t_me_url() << '+' << phone_number << "?attach=" << link->bot_username_
+                                 << start_parameter;
               }
             }
             return Status::Error(400, "Unsupported target link specified");
@@ -2373,17 +2383,23 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
       }
     case td_api::internalLinkTypeUserPhoneNumber::ID: {
       auto link = static_cast<const td_api::internalLinkTypeUserPhoneNumber *>(type_ptr);
-      if (!is_valid_phone_number(link->phone_number_)) {
+      string phone_number;
+      if (link->phone_number_[0] == '+') {
+        phone_number = link->phone_number_.substr(1);
+      } else {
+        phone_number = link->phone_number_;
+      }
+      if (!is_valid_phone_number(phone_number)) {
         return Status::Error(400, "Invalid phone number specified");
       }
       if (!check_utf8(link->draft_text_)) {
         return Status::Error(400, "Draft text must be encoded in UTF-8");
       }
       if (is_internal) {
-        return PSTRING() << "tg://resolve?phone=" << link->phone_number_ << (link->draft_text_.empty() ? "" : "&text=")
+        return PSTRING() << "tg://resolve?phone=+" << phone_number << (link->draft_text_.empty() ? "" : "&text=")
                          << url_encode(link->draft_text_);
       } else {
-        return PSTRING() << get_t_me_url() << '+' << link->phone_number_ << (link->draft_text_.empty() ? "" : "?text=")
+        return PSTRING() << get_t_me_url() << '+' << phone_number << (link->draft_text_.empty() ? "" : "?text=")
                          << url_encode(link->draft_text_);
       }
     }
