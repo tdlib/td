@@ -11,7 +11,10 @@
 #include "td/telegram/ServerMessageId.h"
 
 #include "td/utils/misc.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/StringBuilder.h"
+
+#include <limits>
 
 namespace td {
 

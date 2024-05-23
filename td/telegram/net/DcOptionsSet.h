@@ -89,7 +89,7 @@ class DcOptionsSet {
   struct DcOptionId {
     size_t pos = 0;
 
-    explicit DcOptionId(size_t pos) : pos(pos) {
+    explicit constexpr DcOptionId(size_t pos) : pos(pos) {
     }
 
     size_t as_tie() const {

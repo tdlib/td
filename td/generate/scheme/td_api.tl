@@ -1447,7 +1447,7 @@ messageInteractionInfo view_count:int32 forward_count:int32 reply_info:messageRe
 unreadReaction type:ReactionType sender_id:MessageSender is_big:Bool = UnreadReaction;
 
 
-//@class MessageEffectType @description Describes type of an emoji effect
+//@class MessageEffectType @description Describes type of emoji effect
 
 //@description An effect from an emoji reaction @select_animation Select animation for the effect in TGS format @effect_animation Effect animation for the effect in TGS format
 messageEffectTypeEmojiReaction select_animation:sticker effect_animation:sticker = MessageEffectType;
@@ -1987,7 +1987,7 @@ chatNearby chat_id:int53 distance:int32 = ChatNearby;
 chatsNearby users_nearby:vector<chatNearby> supergroups_nearby:vector<chatNearby> = ChatsNearby;
 
 
-//@class PublicChatType @description Describes type of a public chat
+//@class PublicChatType @description Describes type of public chat
 
 //@description The chat is public, because it has an active username
 publicChatTypeHasUsername = PublicChatType;
@@ -2688,7 +2688,7 @@ paymentProviderOther url:string = PaymentProvider;
 paymentOption title:string url:string = PaymentOption;
 
 
-//@class PaymentFormType @description Describes type of a payment form
+//@class PaymentFormType @description Describes type of payment form
 
 //@description The payment form is for a regular payment
 //@invoice Full information about the invoice
@@ -3071,7 +3071,7 @@ messageText text:formattedText web_page:webPage link_preview_options:linkPreview
 //@description An animation message (GIF-style).
 //@animation The animation description
 //@caption Animation caption
-//@show_caption_above_media True, if caption must be shown above the animation; otherwise caption must be shown below the animation
+//@show_caption_above_media True, if caption must be shown above the animation; otherwise, caption must be shown below the animation
 //@has_spoiler True, if the animation preview must be covered by a spoiler animation
 //@is_secret True, if the animation thumbnail must be blurred and the animation must be shown only while tapped
 messageAnimation animation:animation caption:formattedText show_caption_above_media:Bool has_spoiler:Bool is_secret:Bool = MessageContent;
@@ -3085,7 +3085,7 @@ messageDocument document:document caption:formattedText = MessageContent;
 //@description A photo message
 //@photo The photo
 //@caption Photo caption
-//@show_caption_above_media True, if caption must be shown above the photo; otherwise caption must be shown below the photo
+//@show_caption_above_media True, if caption must be shown above the photo; otherwise, caption must be shown below the photo
 //@has_spoiler True, if the photo preview must be covered by a spoiler animation
 //@is_secret True, if the photo must be blurred and must be shown only while tapped
 messagePhoto photo:photo caption:formattedText show_caption_above_media:Bool has_spoiler:Bool is_secret:Bool = MessageContent;
@@ -3096,7 +3096,7 @@ messageSticker sticker:sticker is_premium:Bool = MessageContent;
 //@description A video message
 //@video The video description
 //@caption Video caption
-//@show_caption_above_media True, if caption must be shown above the video; otherwise caption must be shown below the video
+//@show_caption_above_media True, if caption must be shown above the video; otherwise, caption must be shown below the video
 //@has_spoiler True, if the video preview must be covered by a spoiler animation
 //@is_secret True, if the video thumbnail must be blurred and the video must be shown only while tapped
 messageVideo video:video caption:formattedText show_caption_above_media:Bool has_spoiler:Bool is_secret:Bool = MessageContent;
@@ -3477,7 +3477,7 @@ messageSendOptions disable_notification:Bool from_background:Bool protect_conten
 //@send_copy True, if content of the message needs to be copied without reference to the original sender. Always true if the message is forwarded to a secret chat or is local
 //@replace_caption True, if media caption of the message copy needs to be replaced. Ignored if send_copy is false
 //@new_caption New message caption; pass null to copy message without caption. Ignored if replace_caption is false
-//@new_show_caption_above_media True, if new caption must be shown above the animation; otherwise new caption must be shown below the animation; not supported in secret chats. Ignored if replace_caption is false
+//@new_show_caption_above_media True, if new caption must be shown above the animation; otherwise, new caption must be shown below the animation; not supported in secret chats. Ignored if replace_caption is false
 messageCopyOptions send_copy:Bool replace_caption:Bool new_caption:formattedText new_show_caption_above_media:Bool = MessageCopyOptions;
 
 
@@ -3498,7 +3498,7 @@ inputMessageText text:formattedText link_preview_options:linkPreviewOptions clea
 //@width Width of the animation; may be replaced by the server
 //@height Height of the animation; may be replaced by the server
 //@caption Animation caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
-//@show_caption_above_media True, if caption must be shown above the animation; otherwise caption must be shown below the animation; not supported in secret chats
+//@show_caption_above_media True, if caption must be shown above the animation; otherwise, caption must be shown below the animation; not supported in secret chats
 //@has_spoiler True, if the animation preview must be covered by a spoiler animation; not supported in secret chats
 inputMessageAnimation animation:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> duration:int32 width:int32 height:int32 caption:formattedText show_caption_above_media:Bool has_spoiler:Bool = InputMessageContent;
 
@@ -3525,7 +3525,7 @@ inputMessageDocument document:InputFile thumbnail:inputThumbnail disable_content
 //@width Photo width
 //@height Photo height
 //@caption Photo caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
-//@show_caption_above_media True, if caption must be shown above the photo; otherwise caption must be shown below the photo; not supported in secret chats
+//@show_caption_above_media True, if caption must be shown above the photo; otherwise, caption must be shown below the photo; not supported in secret chats
 //@self_destruct_type Photo self-destruct type; pass null if none; private chats only
 //@has_spoiler True, if the photo preview must be covered by a spoiler animation; not supported in secret chats
 inputMessagePhoto photo:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> width:int32 height:int32 caption:formattedText show_caption_above_media:Bool self_destruct_type:MessageSelfDestructType has_spoiler:Bool = InputMessageContent;
@@ -3547,7 +3547,7 @@ inputMessageSticker sticker:InputFile thumbnail:inputThumbnail width:int32 heigh
 //@height Video height
 //@supports_streaming True, if the video is supposed to be streamed
 //@caption Video caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
-//@show_caption_above_media True, if caption must be shown above the video; otherwise caption must be shown below the video; not supported in secret chats
+//@show_caption_above_media True, if caption must be shown above the video; otherwise, caption must be shown below the video; not supported in secret chats
 //@self_destruct_type Video self-destruct type; pass null if none; private chats only
 //@has_spoiler True, if the video preview must be covered by a spoiler animation; not supported in secret chats
 inputMessageVideo video:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> duration:int32 width:int32 height:int32 supports_streaming:Bool caption:formattedText show_caption_above_media:Bool self_destruct_type:MessageSelfDestructType has_spoiler:Bool = InputMessageContent;
@@ -4197,7 +4197,7 @@ chatBoostSlots slots:vector<chatBoostSlot> = ChatBoostSlots;
 //@description The user requested to resend the code
 resendCodeReasonUserRequest = ResendCodeReason;
 
-//@description The code is resent, because device verification has failed
+//@description The code is re-sent, because device verification has failed
 //@error_message Cause of the verification failure, for example, PLAY_SERVICES_NOT_AVAILABLE, APNS_RECEIVE_TIMEOUT, APNS_INIT_FAILED, etc.
 resendCodeReasonVerificationFailed error_message:string = ResendCodeReason;
 
@@ -4794,7 +4794,7 @@ inlineQueryResultVideo id:string video:video title:string description:string = I
 inlineQueryResultVoiceNote id:string voice_note:voiceNote title:string = InlineQueryResult;
 
 
-//@class InlineQueryResultsButtonType @description Represents type of a button in results of inline query
+//@class InlineQueryResultsButtonType @description Represents type of button in results of inline query
 
 //@description Describes the button that opens a private chat with the bot and sends a start message to the bot with the given parameter @parameter The parameter for the bot start message
 inlineQueryResultsButtonTypeStartBot parameter:string = InlineQueryResultsButtonType;
@@ -8291,7 +8291,7 @@ editMessageMedia chat_id:int53 message_id:int53 reply_markup:ReplyMarkup input_m
 //@message_id Identifier of the message
 //@reply_markup The new message reply markup; pass null if none; for bots only
 //@caption New message content caption; 0-getOption("message_caption_length_max") characters; pass null to remove caption
-//@show_caption_above_media True, if caption must be shown above the media; otherwise caption must be shown below the media. Can be true only for animation, photo, and video messages
+//@show_caption_above_media Pass true to show the caption above the media; otherwise, caption will be shown below the media. Can be true only for animation, photo, and video messages
 editMessageCaption chat_id:int53 message_id:int53 reply_markup:ReplyMarkup caption:formattedText show_caption_above_media:Bool = Message;
 
 //@description Edits the message reply markup; for bots only. Returns the edited message after the edit is completed on the server side.
@@ -8327,7 +8327,7 @@ editInlineMessageMedia inline_message_id:string reply_markup:ReplyMarkup input_m
 //@inline_message_id Inline message identifier
 //@reply_markup The new message reply markup; pass null if none
 //@caption New message content caption; pass null to remove caption; 0-getOption("message_caption_length_max") characters
-//@show_caption_above_media True, if caption must be shown above the media; otherwise caption must be shown below the media. Can be true only for animation, photo, and video messages
+//@show_caption_above_media Pass true to show the caption above the media; otherwise, caption will be shown below the media. Can be true only for animation, photo, and video messages
 editInlineMessageCaption inline_message_id:string reply_markup:ReplyMarkup caption:formattedText show_caption_above_media:Bool = Ok;
 
 //@description Edits the reply markup of an inline message sent via a bot; for bots only

@@ -704,7 +704,7 @@ void StatisticsManager::on_update_dialog_revenue_transactions(
     return;
   }
   if (!td_->messages_manager_->have_dialog(dialog_id)) {
-    LOG(INFO) << "Ignore unnneeded updateBroadcastRevenueTransactions in " << dialog_id;
+    LOG(INFO) << "Ignore unneeded updateBroadcastRevenueTransactions in " << dialog_id;
     return;
   }
   send_closure(G()->td(), &Td::send_update,

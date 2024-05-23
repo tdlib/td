@@ -661,7 +661,7 @@ class SendStarPaymentFormQuery final : public Td::ResultHandler {
     }
 
     auto payment_result = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for SendPaymentFormQuery: " << to_string(payment_result);
+    LOG(INFO) << "Receive result for SendStarPaymentFormQuery: " << to_string(payment_result);
 
     switch (payment_result->get_id()) {
       case telegram_api::payments_paymentResult::ID: {
@@ -683,7 +683,7 @@ class SendStarPaymentFormQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "SendPaymentFormQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "SendStarPaymentFormQuery");
     promise_.set_error(std::move(status));
   }
 };

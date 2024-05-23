@@ -1286,6 +1286,7 @@ void ReactionManager::save_message_effects() {
 
 void ReactionManager::on_get_message_effects(
     Result<telegram_api::object_ptr<telegram_api::messages_AvailableEffects>> r_effects) {
+  G()->ignore_result_if_closing(r_effects);
   CHECK(message_effects_.are_being_reloaded_);
   message_effects_.are_being_reloaded_ = false;
 
@@ -1297,7 +1298,6 @@ void ReactionManager::on_get_message_effects(
     }
   };
 
-  G()->ignore_result_if_closing(r_effects);
   if (r_effects.is_error()) {
     return;
   }

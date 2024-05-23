@@ -72,7 +72,6 @@
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/files/FileStats.h"
 #include "td/telegram/files/FileType.h"
-#include "td/telegram/FolderId.h"
 #include "td/telegram/ForumTopicManager.h"
 #include "td/telegram/GameManager.h"
 #include "td/telegram/Global.h"

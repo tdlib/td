@@ -9,7 +9,6 @@
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
-#include "td/telegram/UserManager.h"
 
 namespace td {
 

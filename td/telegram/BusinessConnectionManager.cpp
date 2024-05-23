@@ -34,7 +34,6 @@
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/Random.h"
-#include "td/utils/SliceBuilder.h"
 
 namespace td {
 
