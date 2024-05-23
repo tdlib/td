@@ -1557,6 +1557,10 @@ static bool are_entities_valid(const vector<MessageEntity> &entities) {
         // continuous and blockquote can't be part of other continuous entity
         return false;
       }
+      if (is_blockquote_entity(entity.type) && (nested_entity_type_mask & get_blockquote_entities_mask()) != 0) {
+        // blockquote entities can't be nested
+        return false;
+      }
       if ((nested_entity_type_mask & get_splittable_entities_mask()) != 0) {
         // the previous nested entity may be needed to split for consistency
         // alternatively, better entity merging needs to be implemented
