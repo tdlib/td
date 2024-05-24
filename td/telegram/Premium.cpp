@@ -17,6 +17,7 @@
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/GiveawayParameters.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/InputInvoice.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageSender.h"
@@ -704,8 +705,13 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
             UNREACHABLE();
         }
       }();
-      transactions.push_back(td_api::make_object<td_api::starTransaction>(transaction->id_, transaction->stars_,
-                                                                          transaction->date_, std::move(source)));
+      td_api::object_ptr<td_api::productInfo> product_info;
+      if (!transaction->title_.empty() || !transaction->description_.empty() || transaction->photo_ != nullptr) {
+        auto photo = get_web_document_photo(td_->file_manager_.get(), std::move(transaction->photo_), DialogId());
+        product_info = get_product_info_object(td_, transaction->title_, transaction->description_, photo);
+      }
+      transactions.push_back(td_api::make_object<td_api::starTransaction>(
+          transaction->id_, transaction->stars_, transaction->date_, std::move(source), std::move(product_info)));
     }
 
     promise_.set_value(

@@ -876,7 +876,8 @@ starTransactionSourceUnsupported = StarTransactionSource;
 //@star_count The amount of added owned Telegram stars; negative for outgoing transactions
 //@date Point in time (Unix timestamp) when the transaction was completed
 //@source Source of the transaction, or its recipient for outgoing transactions
-starTransaction id:string star_count:int53 date:int32 source:StarTransactionSource = StarTransaction;
+//@product_info Information about the product; may be null if unknown
+starTransaction id:string star_count:int53 date:int32 source:StarTransactionSource product_info:productInfo = StarTransaction;
 
 //@description Represents a list of Telegram star transactions
 //@star_count The amount of owned Telegram stars
