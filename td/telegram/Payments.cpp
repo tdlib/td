@@ -714,36 +714,65 @@ class GetPaymentReceiptQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetPaymentReceiptQuery: " << to_string(ptr);
-    if (ptr->get_id() != telegram_api::payments_paymentReceipt::ID) {
-      return on_error(Status::Error(500, "Receive unsupported response"));
-    }
-    auto payment_receipt = telegram_api::move_object_as<telegram_api::payments_paymentReceipt>(ptr);
+    switch (ptr->get_id()) {
+      case telegram_api::payments_paymentReceiptStars::ID: {
+        auto payment_receipt = telegram_api::move_object_as<telegram_api::payments_paymentReceiptStars>(ptr);
 
-    td_->user_manager_->on_get_users(std::move(payment_receipt->users_), "GetPaymentReceiptQuery");
+        td_->user_manager_->on_get_users(std::move(payment_receipt->users_), "GetPaymentReceiptQuery");
+        UserId seller_bot_user_id(payment_receipt->bot_id_);
+        if (!seller_bot_user_id.is_valid()) {
+          LOG(ERROR) << "Receive invalid seller " << seller_bot_user_id;
+          return on_error(Status::Error(500, "Receive invalid seller identifier"));
+        }
+        auto photo = get_web_document_photo(td_->file_manager_.get(), std::move(payment_receipt->photo_), dialog_id_);
+        if (payment_receipt->invoice_->prices_.size() != 1u) {
+          LOG(ERROR) << "Receive invalid prices " << to_string(payment_receipt->invoice_->prices_);
+          return on_error(Status::Error(500, "Receive invalid price"));
+        }
+        auto type = td_api::make_object<td_api::paymentFormTypeStars>();
 
-    UserId payments_provider_user_id(payment_receipt->provider_id_);
-    if (!payments_provider_user_id.is_valid()) {
-      LOG(ERROR) << "Receive invalid payments provider " << payments_provider_user_id;
-      return on_error(Status::Error(500, "Receive invalid payments provider identifier"));
-    }
-    UserId seller_bot_user_id(payment_receipt->bot_id_);
-    if (!seller_bot_user_id.is_valid()) {
-      LOG(ERROR) << "Receive invalid seller " << seller_bot_user_id;
-      return on_error(Status::Error(500, "Receive invalid seller identifier"));
-    }
-    auto photo = get_web_document_photo(td_->file_manager_.get(), std::move(payment_receipt->photo_), dialog_id_);
-    if (payment_receipt->tip_amount_ < 0 || !check_currency_amount(payment_receipt->tip_amount_)) {
-      LOG(ERROR) << "Receive invalid tip amount " << payment_receipt->tip_amount_;
-      payment_receipt->tip_amount_ = 0;
-    }
+        promise_.set_value(make_tl_object<td_api::paymentReceipt>(
+            get_product_info_object(td_, payment_receipt->title_, payment_receipt->description_, photo),
+            payment_receipt->date_, td_->user_manager_->get_user_id_object(seller_bot_user_id, "paymentReceipt seller"),
+            td_api::make_object<td_api::paymentReceiptTypeStars>(payment_receipt->invoice_->prices_[0]->amount_,
+                                                                 payment_receipt->transaction_id_)));
+        break;
+      }
+      case telegram_api::payments_paymentReceipt::ID: {
+        auto payment_receipt = telegram_api::move_object_as<telegram_api::payments_paymentReceipt>(ptr);
 
-    promise_.set_value(make_tl_object<td_api::paymentReceipt>(
-        get_product_info_object(td_, payment_receipt->title_, payment_receipt->description_, photo),
-        payment_receipt->date_, td_->user_manager_->get_user_id_object(seller_bot_user_id, "paymentReceipt seller"),
-        td_->user_manager_->get_user_id_object(payments_provider_user_id, "paymentReceipt provider"),
-        convert_invoice(std::move(payment_receipt->invoice_)), convert_order_info(std::move(payment_receipt->info_)),
-        convert_shipping_option(std::move(payment_receipt->shipping_)), std::move(payment_receipt->credentials_title_),
-        payment_receipt->tip_amount_));
+        td_->user_manager_->on_get_users(std::move(payment_receipt->users_), "GetPaymentReceiptQuery");
+
+        UserId payments_provider_user_id(payment_receipt->provider_id_);
+        if (!payments_provider_user_id.is_valid()) {
+          LOG(ERROR) << "Receive invalid payments provider " << payments_provider_user_id;
+          return on_error(Status::Error(500, "Receive invalid payments provider identifier"));
+        }
+        UserId seller_bot_user_id(payment_receipt->bot_id_);
+        if (!seller_bot_user_id.is_valid()) {
+          LOG(ERROR) << "Receive invalid seller " << seller_bot_user_id;
+          return on_error(Status::Error(500, "Receive invalid seller identifier"));
+        }
+        auto photo = get_web_document_photo(td_->file_manager_.get(), std::move(payment_receipt->photo_), dialog_id_);
+        if (payment_receipt->tip_amount_ < 0 || !check_currency_amount(payment_receipt->tip_amount_)) {
+          LOG(ERROR) << "Receive invalid tip amount " << payment_receipt->tip_amount_;
+          payment_receipt->tip_amount_ = 0;
+        }
+
+        promise_.set_value(make_tl_object<td_api::paymentReceipt>(
+            get_product_info_object(td_, payment_receipt->title_, payment_receipt->description_, photo),
+            payment_receipt->date_, td_->user_manager_->get_user_id_object(seller_bot_user_id, "paymentReceipt seller"),
+            td_api::make_object<td_api::paymentReceiptTypeRegular>(
+                td_->user_manager_->get_user_id_object(payments_provider_user_id, "paymentReceipt provider"),
+                convert_invoice(std::move(payment_receipt->invoice_)),
+                convert_order_info(std::move(payment_receipt->info_)),
+                convert_shipping_option(std::move(payment_receipt->shipping_)),
+                std::move(payment_receipt->credentials_title_), payment_receipt->tip_amount_)));
+        break;
+      }
+      default:
+        UNREACHABLE();
+    }
   }
 
   void on_error(Status status) final {

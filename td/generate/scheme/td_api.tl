@@ -2726,17 +2726,30 @@ validatedOrderInfo order_info_id:string shipping_options:vector<shippingOption> 
 //@description Contains the result of a payment request @success True, if the payment request was successful; otherwise, the verification_url will be non-empty @verification_url URL for additional payment credentials verification
 paymentResult success:Bool verification_url:string = PaymentResult;
 
-//@description Contains information about a successful payment
-//@product_info Information about the product
-//@date Point in time (Unix timestamp) when the payment was made
-//@seller_bot_user_id User identifier of the seller bot
+
+//@class PaymentReceiptType @description Describes type of a successful payment
+
+//@description The payment was done using a third-party payment provider
 //@payment_provider_user_id User identifier of the payment provider bot
 //@invoice Information about the invoice
 //@order_info Order information; may be null
 //@shipping_option Chosen shipping option; may be null
 //@credentials_title Title of the saved credentials chosen by the buyer
 //@tip_amount The amount of tip chosen by the buyer in the smallest units of the currency
-paymentReceipt product_info:productInfo date:int32 seller_bot_user_id:int53 payment_provider_user_id:int53 invoice:invoice order_info:orderInfo shipping_option:shippingOption credentials_title:string tip_amount:int53 = PaymentReceipt;
+paymentReceiptTypeRegular payment_provider_user_id:int53 invoice:invoice order_info:orderInfo shipping_option:shippingOption credentials_title:string tip_amount:int53 = PaymentReceiptType;
+
+//@description The payment was done using Telegram stars
+//@star_count Number of stars that were paid
+//@transaction_id Unique identifier of the transaction that can be used to dispute it
+paymentReceiptTypeStars star_count:int53 transaction_id:string = PaymentReceiptType;
+
+
+//@description Contains information about a successful payment
+//@product_info Information about the product
+//@date Point in time (Unix timestamp) when the payment was made
+//@seller_bot_user_id User identifier of the seller bot
+//@type Type of the payment receipt
+paymentReceipt product_info:productInfo date:int32 seller_bot_user_id:int53 type:PaymentReceiptType = PaymentReceipt;
 
 
 //@class InputInvoice @description Describes an invoice to process
