@@ -1759,6 +1759,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::createInvoiceLink &request);
 
+  void on_request(uint64 id, td_api::refundStarPayment &request);
+
   void on_request(uint64 id, td_api::getPassportElement &request);
 
   void on_request(uint64 id, td_api::getAllPassportElements &request);

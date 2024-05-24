@@ -10410,6 +10410,11 @@ deleteSavedCredentials = Ok;
 //@description Creates a link for the given invoice; for bots only @invoice Information about the invoice of the type inputMessageInvoice
 createInvoiceLink invoice:InputMessageContent = HttpUrl;
 
+//@description Refunds a previously done payment in Telegram Stars
+//@user_id Identifier of the user that did the payment
+//@telegram_payment_charge_id Telegram payment identifier
+refundStarPayment user_id:int53 telegram_payment_charge_id:string = Ok;
+
 
 //@description Returns a user that can be contacted to get support
 getSupportUser = User;

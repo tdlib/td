@@ -868,6 +868,34 @@ class ExportInvoiceQuery final : public Td::ResultHandler {
   }
 };
 
+class RefundStarsChargeQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit RefundStarsChargeQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::InputUser> &&input_user, const string &telegram_payment_charge_id) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_refundStarsCharge(std::move(input_user), telegram_payment_charge_id)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_refundStarsCharge>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for RefundStarsChargeQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetBankCardInfoQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::bankCardInfo>> promise_;
 
@@ -1128,6 +1156,12 @@ void export_invoice(Td *td, td_api::object_ptr<td_api::InputMessageContent> &&in
   auto input_media = input_invoice.get_input_media_invoice(td, nullptr, nullptr);
   CHECK(input_media != nullptr);
   td->create_handler<ExportInvoiceQuery>(std::move(promise))->send(std::move(input_media));
+}
+
+void refund_star_payment(Td *td, UserId user_id, const string &telegram_payment_charge_id, Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_user, td->user_manager_->get_input_user(user_id));
+  td->create_handler<RefundStarsChargeQuery>(std::move(promise))
+      ->send(std::move(input_user), telegram_payment_charge_id);
 }
 
 void get_bank_card_info(Td *td, const string &bank_card_number,

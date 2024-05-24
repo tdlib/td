@@ -9076,6 +9076,13 @@ void Td::on_request(uint64 id, td_api::createInvoiceLink &request) {
   export_invoice(this, std::move(request.invoice_), std::move(query_promise));
 }
 
+void Td::on_request(uint64 id, td_api::refundStarPayment &request) {
+  CHECK_IS_BOT();
+  CLEAN_INPUT_STRING(request.telegram_payment_charge_id_);
+  CREATE_OK_REQUEST_PROMISE();
+  refund_star_payment(this, UserId(request.user_id_), request.telegram_payment_charge_id_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::getPassportElement &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.password_);

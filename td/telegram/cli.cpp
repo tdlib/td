@@ -2760,6 +2760,11 @@ class CliClient final : public Actor {
       //   send_request(td_api::make_object<td_api::sendTonLiteServerRequest>());
       // } else if (op == "gtwps") {
       //   send_request(td_api::make_object<td_api::getTonWalletPasswordSalt>());
+    } else if (op == "rsp") {
+      UserId user_id;
+      string telegram_payment_charge_id;
+      get_args(args, user_id, telegram_payment_charge_id);
+      send_request(td_api::make_object<td_api::refundStarPayment>(user_id, telegram_payment_charge_id));
     } else if (op == "gpr") {
       send_request(td_api::make_object<td_api::getUserPrivacySettingRules>(as_user_privacy_setting(args)));
     } else if (op == "spr") {
