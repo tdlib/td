@@ -489,9 +489,8 @@ class GetPaymentFormQuery final : public Td::ResultHandler {
             need_password);
         promise_.set_value(td_api::make_object<td_api::paymentForm>(
             payment_form->form_id_, std::move(type),
-            td_->user_manager_->get_user_id_object(seller_bot_user_id, "paymentForm seller"), payment_form->title_,
-            get_product_description_object(payment_form->description_),
-            get_photo_object(td_->file_manager_.get(), photo)));
+            td_->user_manager_->get_user_id_object(seller_bot_user_id, "paymentForm seller"),
+            get_product_info_object(td_, payment_form->title_, payment_form->description_, photo)));
         break;
       }
       case telegram_api::payments_paymentFormStars::ID: {
@@ -512,9 +511,8 @@ class GetPaymentFormQuery final : public Td::ResultHandler {
         auto type = td_api::make_object<td_api::paymentFormTypeStars>(payment_form->invoice_->prices_[0]->amount_);
         promise_.set_value(td_api::make_object<td_api::paymentForm>(
             payment_form->form_id_, std::move(type),
-            td_->user_manager_->get_user_id_object(seller_bot_user_id, "paymentForm seller"), payment_form->title_,
-            get_product_description_object(payment_form->description_),
-            get_photo_object(td_->file_manager_.get(), photo)));
+            td_->user_manager_->get_user_id_object(seller_bot_user_id, "paymentForm seller"),
+            get_product_info_object(td_, payment_form->title_, payment_form->description_, photo)));
         break;
       }
       default:
@@ -740,9 +738,8 @@ class GetPaymentReceiptQuery final : public Td::ResultHandler {
     }
 
     promise_.set_value(make_tl_object<td_api::paymentReceipt>(
-        payment_receipt->title_, get_product_description_object(payment_receipt->description_),
-        get_photo_object(td_->file_manager_.get(), photo), payment_receipt->date_,
-        td_->user_manager_->get_user_id_object(seller_bot_user_id, "paymentReceipt seller"),
+        get_product_info_object(td_, payment_receipt->title_, payment_receipt->description_, photo),
+        payment_receipt->date_, td_->user_manager_->get_user_id_object(seller_bot_user_id, "paymentReceipt seller"),
         td_->user_manager_->get_user_id_object(payments_provider_user_id, "paymentReceipt provider"),
         convert_invoice(std::move(payment_receipt->invoice_)), convert_order_info(std::move(payment_receipt->info_)),
         convert_shipping_option(std::move(payment_receipt->shipping_)), std::move(payment_receipt->credentials_title_),

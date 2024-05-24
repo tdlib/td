@@ -129,6 +129,7 @@ class InputInvoice {
 bool operator==(const InputInvoice &lhs, const InputInvoice &rhs);
 bool operator!=(const InputInvoice &lhs, const InputInvoice &rhs);
 
-tl_object_ptr<td_api::formattedText> get_product_description_object(const string &description);
+td_api::object_ptr<td_api::productInfo> get_product_info_object(Td *td, const string &title, const string &description,
+                                                                const Photo &photo);
 
 }  // namespace td

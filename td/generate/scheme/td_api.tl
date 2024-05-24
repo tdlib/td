@@ -784,6 +784,13 @@ chatPermissions can_send_basic_messages:Bool can_send_audios:Bool can_send_docum
 chatAdministratorRights can_manage_chat:Bool can_change_info:Bool can_post_messages:Bool can_edit_messages:Bool can_delete_messages:Bool can_invite_users:Bool can_restrict_members:Bool can_pin_messages:Bool can_manage_topics:Bool can_promote_members:Bool can_manage_video_chats:Bool can_post_stories:Bool can_edit_stories:Bool can_delete_stories:Bool is_anonymous:Bool = ChatAdministratorRights;
 
 
+//@description Contains information about a product that can be paid with invoice
+//@title Product title
+//@param_description Product description
+//@photo Product photo; may be null
+productInfo title:string description:formattedText photo:photo = ProductInfo;
+
+
 //@description Describes an option for buying Telegram Premium to a user
 //@currency ISO 4217 currency code for Telegram Premium subscription payment
 //@amount The amount to pay, in the smallest units of the currency
@@ -2709,10 +2716,8 @@ paymentFormTypeStars star_count:int53 = PaymentFormType;
 //@id The payment form identifier
 //@type Type of the payment form
 //@seller_bot_user_id User identifier of the seller bot
-//@product_title Product title
-//@product_description Product description
-//@product_photo Product photo; may be null
-paymentForm id:int64 type:PaymentFormType seller_bot_user_id:int53 product_title:string product_description:formattedText product_photo:photo = PaymentForm;
+//@product_info Information about the product
+paymentForm id:int64 type:PaymentFormType seller_bot_user_id:int53 product_info:productInfo = PaymentForm;
 
 //@description Contains a temporary identifier of validated order information, which is stored for one hour, and the available shipping options @order_info_id Temporary identifier of the order information @shipping_options Available shipping options
 validatedOrderInfo order_info_id:string shipping_options:vector<shippingOption> = ValidatedOrderInfo;
@@ -2721,9 +2726,7 @@ validatedOrderInfo order_info_id:string shipping_options:vector<shippingOption> 
 paymentResult success:Bool verification_url:string = PaymentResult;
 
 //@description Contains information about a successful payment
-//@title Product title
-//@param_description Product description
-//@photo Product photo; may be null
+//@product_info Information about the product
 //@date Point in time (Unix timestamp) when the payment was made
 //@seller_bot_user_id User identifier of the seller bot
 //@payment_provider_user_id User identifier of the payment provider bot
@@ -2732,7 +2735,7 @@ paymentResult success:Bool verification_url:string = PaymentResult;
 //@shipping_option Chosen shipping option; may be null
 //@credentials_title Title of the saved credentials chosen by the buyer
 //@tip_amount The amount of tip chosen by the buyer in the smallest units of the currency
-paymentReceipt title:string description:formattedText photo:photo date:int32 seller_bot_user_id:int53 payment_provider_user_id:int53 invoice:invoice order_info:orderInfo shipping_option:shippingOption credentials_title:string tip_amount:int53 = PaymentReceipt;
+paymentReceipt product_info:productInfo date:int32 seller_bot_user_id:int53 payment_provider_user_id:int53 invoice:invoice order_info:orderInfo shipping_option:shippingOption credentials_title:string tip_amount:int53 = PaymentReceipt;
 
 
 //@class InputInvoice @description Describes an invoice to process
@@ -3157,9 +3160,7 @@ messagePoll poll:poll = MessageContent;
 messageStory story_sender_chat_id:int53 story_id:int32 via_mention:Bool = MessageContent;
 
 //@description A message with an invoice from a bot. Use getInternalLink with internalLinkTypeBotStart to share the invoice
-//@title Product title
-//@param_description Product description
-//@photo Product photo; may be null
+//@product_info Information about the product
 //@currency Currency for the product price
 //@total_amount Product total price in the smallest units of the currency
 //@start_parameter Unique invoice bot start_parameter to be passed to getInternalLink
@@ -3167,7 +3168,7 @@ messageStory story_sender_chat_id:int53 story_id:int32 via_mention:Bool = Messag
 //@need_shipping_address True, if the shipping address must be specified
 //@receipt_message_id The identifier of the message with the receipt, after the product has been purchased
 //@extended_media Extended media attached to the invoice; may be null
-messageInvoice title:string description:formattedText photo:photo currency:string total_amount:int53 start_parameter:string is_test:Bool need_shipping_address:Bool receipt_message_id:int53 extended_media:MessageExtendedMedia = MessageContent;
+messageInvoice product_info:productInfo currency:string total_amount:int53 start_parameter:string is_test:Bool need_shipping_address:Bool receipt_message_id:int53 extended_media:MessageExtendedMedia = MessageContent;
 
 //@description A message with information about an ended call @is_video True, if the call was a video call @discard_reason Reason why the call was discarded @duration Call duration, in seconds
 messageCall is_video:Bool discard_reason:CallDiscardReason duration:int32 = MessageContent;
