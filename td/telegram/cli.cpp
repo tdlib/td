@@ -3064,6 +3064,11 @@ class CliClient final : public Actor {
       string offset;
       get_args(args, hashtag, limit, offset);
       send_request(td_api::make_object<td_api::searchPublicHashtagMessages>(hashtag, offset, as_limit(limit)));
+    } else if (op == "gsfh") {
+      string hashtag;
+      string limit;
+      get_args(args, hashtag, limit);
+      send_request(td_api::make_object<td_api::getSearchedForHashtags>(hashtag, as_limit(limit)));
     } else if (op == "DeleteAllCallMessages") {
       bool revoke = as_bool(args);
       send_request(td_api::make_object<td_api::deleteAllCallMessages>(revoke));

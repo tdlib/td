@@ -8071,6 +8071,9 @@ searchOutgoingDocumentMessages query:string limit:int32 = FoundMessages;
 //@limit The maximum number of messages to be returned; up to 100. For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 searchPublicHashtagMessages hashtag:string offset:string limit:int32 = FoundMessages;
 
+//@description Returns recently searched for hashtags by their prefix @prefix Prefix of hashtags to return @limit The maximum number of hashtags to be returned
+getSearchedForHashtags prefix:string limit:int32 = Hashtags;
+
 //@description Deletes all call messages @revoke Pass true to delete the messages for all users
 deleteAllCallMessages revoke:Bool = Ok;
 

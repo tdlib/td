@@ -38,6 +38,7 @@
 #include "td/telegram/ForumTopicManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/GroupCallManager.h"
+#include "td/telegram/HashtagHints.h"
 #include "td/telegram/InlineQueriesManager.h"
 #include "td/telegram/InputDialogId.h"
 #include "td/telegram/InputMessageText.h"
@@ -20705,6 +20706,7 @@ void MessagesManager::search_hashtag_posts(string hashtag, string offset_str, in
   if (hashtag.empty()) {
     return promise.set_value(get_found_messages_object({}, "search_hashtag_posts"));
   }
+  send_closure(td_->hashtag_search_hints_, &HashtagHints::hashtag_used, hashtag);
 
   td_->create_handler<SearchPostsQuery>(std::move(promise))->send(hashtag, offset, limit);
 }

@@ -275,6 +275,7 @@ class Td final : public Actor {
   ActorOwn<ConfigManager> config_manager_;
   ActorOwn<DeviceTokenManager> device_token_manager_;
   ActorOwn<HashtagHints> hashtag_hints_;
+  ActorOwn<HashtagHints> hashtag_search_hints_;
   ActorOwn<LanguagePackManager> language_pack_manager_;
   ActorOwn<NetStatsManager> net_stats_manager_;
   ActorOwn<PasswordManager> password_manager_;
@@ -794,6 +795,8 @@ class Td final : public Actor {
   void on_request(uint64 id, td_api::searchOutgoingDocumentMessages &request);
 
   void on_request(uint64 id, td_api::searchPublicHashtagMessages &request);
+
+  void on_request(uint64 id, td_api::getSearchedForHashtags &request);
 
   void on_request(uint64 id, const td_api::deleteAllCallMessages &request);
 

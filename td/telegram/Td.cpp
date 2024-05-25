@@ -3279,6 +3279,7 @@ void Td::clear() {
   reset_actor(ActorOwn<Actor>(std::move(config_manager_)));
   reset_actor(ActorOwn<Actor>(std::move(device_token_manager_)));
   reset_actor(ActorOwn<Actor>(std::move(hashtag_hints_)));
+  reset_actor(ActorOwn<Actor>(std::move(hashtag_search_hints_)));
   reset_actor(ActorOwn<Actor>(std::move(language_pack_manager_)));
   reset_actor(ActorOwn<Actor>(std::move(net_stats_manager_)));
   reset_actor(ActorOwn<Actor>(std::move(password_manager_)));
@@ -3920,6 +3921,7 @@ void Td::init_pure_actor_managers() {
   G()->set_call_manager(call_manager_.get());
   device_token_manager_ = create_actor<DeviceTokenManager>("DeviceTokenManager", create_reference());
   hashtag_hints_ = create_actor<HashtagHints>("HashtagHints", "text", create_reference());
+  hashtag_search_hints_ = create_actor<HashtagHints>("HashtagSearchHints", "search", create_reference());
   language_pack_manager_ = create_actor<LanguagePackManager>("LanguagePackManager", create_reference());
   G()->set_language_pack_manager(language_pack_manager_.get());
   password_manager_ = create_actor<PasswordManager>("PasswordManager", create_reference());
@@ -5362,6 +5364,21 @@ void Td::on_request(uint64 id, td_api::searchPublicHashtagMessages &request) {
   CREATE_REQUEST_PROMISE();
   messages_manager_->search_hashtag_posts(std::move(request.hashtag_), std::move(request.offset_), request.limit_,
                                           std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::getSearchedForHashtags &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.prefix_);
+  CREATE_REQUEST_PROMISE();
+  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<vector<string>> result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      promise.set_value(td_api::make_object<td_api::hashtags>(result.move_as_ok()));
+    }
+  });
+  send_closure(hashtag_search_hints_, &HashtagHints::query, std::move(request.prefix_), request.limit_,
+               std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, const td_api::deleteAllCallMessages &request) {
