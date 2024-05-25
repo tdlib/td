@@ -21,9 +21,11 @@ class HashtagHints final : public Actor {
 
   void hashtag_used(const string &hashtag);
 
-  void remove_hashtag(string hashtag, Promise<> promise);
+  void remove_hashtag(string hashtag, Promise<Unit> promise);
 
-  void query(const string &prefix, int32 limit, Promise<std::vector<string>> promise);
+  void clear(Promise<Unit> promise);
+
+  void query(const string &prefix, int32 limit, Promise<vector<string>> promise);
 
  private:
   string mode_;
@@ -39,7 +41,7 @@ class HashtagHints final : public Actor {
 
   void hashtag_used_impl(const string &hashtag);
   void from_db(Result<string> data, bool dummy);
-  std::vector<string> keys_to_strings(const std::vector<int64> &keys);
+  vector<string> keys_to_strings(const vector<int64> &keys);
 };
 
 }  // namespace td

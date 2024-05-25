@@ -3073,6 +3073,8 @@ class CliClient final : public Actor {
       string hashtag;
       get_args(args, hashtag);
       send_request(td_api::make_object<td_api::removeSearchedForHashtag>(hashtag));
+    } else if (op == "csfh") {
+      send_request(td_api::make_object<td_api::clearSearchedForHashtags>());
     } else if (op == "DeleteAllCallMessages") {
       bool revoke = as_bool(args);
       send_request(td_api::make_object<td_api::deleteAllCallMessages>(revoke));

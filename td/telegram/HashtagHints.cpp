@@ -36,13 +36,12 @@ void HashtagHints::hashtag_used(const string &hashtag) {
   }
   hashtag_used_impl(hashtag);
   G()->td_db()->get_sqlite_pmc()->set(get_key(), serialize(keys_to_strings(hints_.search_empty(101).second)),
-                                      Promise<>());
+                                      Promise<Unit>());
 }
 
-void HashtagHints::remove_hashtag(string hashtag, Promise<> promise) {
+void HashtagHints::remove_hashtag(string hashtag, Promise<Unit> promise) {
   if (!sync_with_db_) {
-    promise.set_value(Unit());
-    return;
+    return promise.set_value(Unit());
   }
   if (hashtag[0] == '#') {
     hashtag = hashtag.substr(1);
@@ -51,16 +50,25 @@ void HashtagHints::remove_hashtag(string hashtag, Promise<> promise) {
   if (hints_.has_key(key)) {
     hints_.remove(key);
     G()->td_db()->get_sqlite_pmc()->set(get_key(), serialize(keys_to_strings(hints_.search_empty(101).second)),
-                                        Promise<>());
+                                        Promise<Unit>());
     promise.set_value(Unit());  // set promise explicitly, because sqlite_pmc waits for too long before setting promise
   } else {
     promise.set_value(Unit());
   }
 }
 
-void HashtagHints::query(const string &prefix, int32 limit, Promise<std::vector<string>> promise) {
+void HashtagHints::clear(Promise<Unit> promise) {
   if (!sync_with_db_) {
-    promise.set_value(std::vector<string>());
+    return promise.set_value(Unit());
+  }
+  hints_ = {};
+  G()->td_db()->get_sqlite_pmc()->set(get_key(), serialize(vector<string>()), Promise<Unit>());
+  promise.set_value(Unit());
+}
+
+void HashtagHints::query(const string &prefix, int32 limit, Promise<vector<string>> promise) {
+  if (!sync_with_db_) {
+    promise.set_value(vector<string>());
     return;
   }
 
@@ -92,7 +100,7 @@ void HashtagHints::from_db(Result<string> data, bool dummy) {
   if (data.is_error() || data.ok().empty()) {
     return;
   }
-  std::vector<string> hashtags;
+  vector<string> hashtags;
   auto status = unserialize(hashtags, data.ok());
   if (status.is_error()) {
     LOG(ERROR) << "Failed to unserialize hashtag hints: " << status;
@@ -104,12 +112,13 @@ void HashtagHints::from_db(Result<string> data, bool dummy) {
   }
 }
 
-std::vector<string> HashtagHints::keys_to_strings(const std::vector<int64> &keys) {
-  std::vector<string> result;
+vector<string> HashtagHints::keys_to_strings(const vector<int64> &keys) {
+  vector<string> result;
   result.reserve(keys.size());
   for (auto &it : keys) {
     result.push_back(hints_.key_to_string(it));
   }
   return result;
 }
+
 }  // namespace td

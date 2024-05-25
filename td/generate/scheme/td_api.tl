@@ -8077,6 +8077,9 @@ getSearchedForHashtags prefix:string limit:int32 = Hashtags;
 //@description Removes a hashtag from the list of recently searched for hashtags @hashtag Hashtag to delete
 removeSearchedForHashtag hashtag:string = Ok;
 
+//@description Clears the list of recently searched for hashtags
+clearSearchedForHashtags = Ok;
+
 //@description Deletes all call messages @revoke Pass true to delete the messages for all users
 deleteAllCallMessages revoke:Bool = Ok;
 
