@@ -798,6 +798,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::getSearchedForHashtags &request);
 
+  void on_request(uint64 id, td_api::removeSearchedForHashtag &request);
+
   void on_request(uint64 id, const td_api::deleteAllCallMessages &request);
 
   void on_request(uint64 id, const td_api::searchChatRecentLocationMessages &request);

@@ -8074,6 +8074,9 @@ searchPublicHashtagMessages hashtag:string offset:string limit:int32 = FoundMess
 //@description Returns recently searched for hashtags by their prefix @prefix Prefix of hashtags to return @limit The maximum number of hashtags to be returned
 getSearchedForHashtags prefix:string limit:int32 = Hashtags;
 
+//@description Removes a hashtag from the list of recently searched for hashtags @hashtag Hashtag to delete
+removeSearchedForHashtag hashtag:string = Ok;
+
 //@description Deletes all call messages @revoke Pass true to delete the messages for all users
 deleteAllCallMessages revoke:Bool = Ok;
 

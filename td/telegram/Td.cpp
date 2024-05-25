@@ -5381,6 +5381,13 @@ void Td::on_request(uint64 id, td_api::getSearchedForHashtags &request) {
                std::move(query_promise));
 }
 
+void Td::on_request(uint64 id, td_api::removeSearchedForHashtag &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.hashtag_);
+  CREATE_OK_REQUEST_PROMISE();
+  send_closure(hashtag_search_hints_, &HashtagHints::remove_hashtag, std::move(request.hashtag_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::deleteAllCallMessages &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
