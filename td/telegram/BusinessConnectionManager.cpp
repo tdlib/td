@@ -246,7 +246,7 @@ class BusinessConnectionManager::SendBusinessMediaQuery final : public Td::Resul
                                          std::move(reply_to), std::move(input_media),
                                          message_text == nullptr ? string() : message_text->text, message_->random_id_,
                                          get_input_reply_markup(td_->user_manager_.get(), message_->reply_markup_),
-                                         std::move(entities), 0, nullptr, nullptr, message->effect_id_),
+                                         std::move(entities), 0, nullptr, nullptr, message_->effect_id_),
         td_->business_connection_manager_->get_business_connection_dc_id(message_->business_connection_id_),
         {{message_->dialog_id_}}));
   }
