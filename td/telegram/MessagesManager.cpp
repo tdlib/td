@@ -25314,6 +25314,9 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
   auto m = get_message(d, message_id);
   if (m == nullptr || m->edit_generation != generation) {
     // message is already deleted or was edited again
+    if (was_uploaded) {
+      cancel_upload_file(file_id, "on_message_media_edited");
+    }
     return;
   }
 
@@ -25373,6 +25376,9 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
     if (dialog_id.get_type() != DialogType::SecretChat) {
       get_message_from_server({dialog_id, m->message_id}, Auto(), "on_message_media_edited");
     }
+  }
+  if (was_uploaded) {
+    cancel_upload_file(file_id, "on_message_media_edited");
   }
 
   if (m->edited_schedule_date == schedule_date) {
