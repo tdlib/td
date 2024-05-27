@@ -34445,7 +34445,8 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
         d->last_read_inbox_message_id = d->last_new_message_id;
         d->last_read_outbox_message_id = d->last_new_message_id;
       }
-      d->has_bots = dialog_id.get_user_id() != UserManager::get_replies_bot_user_id() &&
+      d->has_bots = !td_->auth_manager_->is_bot() &&
+                    dialog_id.get_user_id() != UserManager::get_replies_bot_user_id() &&
                     td_->user_manager_->is_user_bot(dialog_id.get_user_id());
       d->is_has_bots_inited = true;
       d->is_available_reactions_inited = true;
