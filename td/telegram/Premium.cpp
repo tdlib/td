@@ -712,8 +712,8 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
             UNREACHABLE();
         }
       }();
-      transactions.push_back(td_api::make_object<td_api::starTransaction>(transaction->id_, transaction->stars_,
-                                                                          transaction->date_, std::move(source)));
+      transactions.push_back(td_api::make_object<td_api::starTransaction>(
+          transaction->id_, transaction->stars_, transaction->refund_, transaction->date_, std::move(source)));
     }
 
     promise_.set_value(

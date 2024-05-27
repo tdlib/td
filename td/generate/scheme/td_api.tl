@@ -874,9 +874,10 @@ starTransactionSourceUnsupported = StarTransactionSource;
 //@description Represents a transaction changing the amount of owned Telegram stars
 //@id Unique identifier of the transaction
 //@star_count The amount of added owned Telegram stars; negative for outgoing transactions
+//@is_refund True, if the transaction is a refund of a previous transaction
 //@date Point in time (Unix timestamp) when the transaction was completed
 //@source Source of the transaction, or its recipient for outgoing transactions
-starTransaction id:string star_count:int53 date:int32 source:StarTransactionSource = StarTransaction;
+starTransaction id:string star_count:int53 is_refund:Bool date:int32 source:StarTransactionSource = StarTransaction;
 
 //@description Represents a list of Telegram star transactions
 //@star_count The amount of owned Telegram stars
