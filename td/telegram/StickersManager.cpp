@@ -3049,15 +3049,10 @@ std::pair<int64, FileId> StickersManager::on_get_sticker_document(tl_object_ptr<
     }
   }
   if (sticker == nullptr && custom_emoji == nullptr) {
-    if (document->id_ == 5310062947890890996 || document->id_ == 5229108402113745134) {
-      sticker = telegram_api::make_object<telegram_api::documentAttributeSticker>(
-          0, false /*ignored*/, string(), telegram_api::make_object<telegram_api::inputStickerSetEmpty>(), nullptr);
-    } else {
-      if (document->mime_type_ != "application/x-bad-tgsticker") {
-        LOG(ERROR) << "Have no attributeSticker in sticker " << to_string(document);
-      }
-      return {};
+    if (document->mime_type_ != "application/x-bad-tgsticker") {
+      LOG(ERROR) << "Have no attributeSticker in sticker " << to_string(document);
     }
+    return {};
   }
 
   auto format = get_sticker_format_by_mime_type(document->mime_type_);
