@@ -2727,7 +2727,7 @@ validatedOrderInfo order_info_id:string shipping_options:vector<shippingOption> 
 paymentResult success:Bool verification_url:string = PaymentResult;
 
 
-//@class PaymentReceiptType @description Describes type of a successful payment
+//@class PaymentReceiptType @description Describes type of successful payment
 
 //@description The payment was done using a third-party payment provider
 //@payment_provider_user_id User identifier of the payment provider bot

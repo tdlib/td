@@ -455,7 +455,7 @@ class GetPaymentFormQuery final : public Td::ResultHandler {
       case telegram_api::payments_paymentForm::ID: {
         auto payment_form = telegram_api::move_object_as<telegram_api::payments_paymentForm>(payment_form_ptr);
 
-        td_->user_manager_->on_get_users(std::move(payment_form->users_), "GetPaymentFormQuery");
+        td_->user_manager_->on_get_users(std::move(payment_form->users_), "GetPaymentFormQuery 1");
 
         UserId payments_provider_user_id(payment_form->provider_id_);
         if (!payments_provider_user_id.is_valid()) {
@@ -496,7 +496,7 @@ class GetPaymentFormQuery final : public Td::ResultHandler {
       case telegram_api::payments_paymentFormStars::ID: {
         auto payment_form = telegram_api::move_object_as<telegram_api::payments_paymentFormStars>(payment_form_ptr);
 
-        td_->user_manager_->on_get_users(std::move(payment_form->users_), "GetPaymentFormQuery");
+        td_->user_manager_->on_get_users(std::move(payment_form->users_), "GetPaymentFormQuery 2");
 
         UserId seller_bot_user_id(payment_form->bot_id_);
         if (!seller_bot_user_id.is_valid()) {
@@ -718,7 +718,7 @@ class GetPaymentReceiptQuery final : public Td::ResultHandler {
       case telegram_api::payments_paymentReceiptStars::ID: {
         auto payment_receipt = telegram_api::move_object_as<telegram_api::payments_paymentReceiptStars>(ptr);
 
-        td_->user_manager_->on_get_users(std::move(payment_receipt->users_), "GetPaymentReceiptQuery");
+        td_->user_manager_->on_get_users(std::move(payment_receipt->users_), "GetPaymentReceiptQuery 1");
         UserId seller_bot_user_id(payment_receipt->bot_id_);
         if (!seller_bot_user_id.is_valid()) {
           LOG(ERROR) << "Receive invalid seller " << seller_bot_user_id;
@@ -741,7 +741,7 @@ class GetPaymentReceiptQuery final : public Td::ResultHandler {
       case telegram_api::payments_paymentReceipt::ID: {
         auto payment_receipt = telegram_api::move_object_as<telegram_api::payments_paymentReceipt>(ptr);
 
-        td_->user_manager_->on_get_users(std::move(payment_receipt->users_), "GetPaymentReceiptQuery");
+        td_->user_manager_->on_get_users(std::move(payment_receipt->users_), "GetPaymentReceiptQuery 2");
 
         UserId payments_provider_user_id(payment_receipt->provider_id_);
         if (!payments_provider_user_id.is_valid()) {
