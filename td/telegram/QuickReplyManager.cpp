@@ -3480,12 +3480,15 @@ void QuickReplyManager::load_quick_reply_shortcuts() {
   CHECK(shortcuts_.load_queries_.empty());
 
   auto shortcuts_str = G()->td_db()->get_binlog_pmc()->get(get_quick_reply_shortcuts_database_key());
+  if (shortcuts_str.empty()) {
+    return reload_quick_reply_shortcuts();
+  }
   auto status = log_event_parse(shortcuts_, shortcuts_str);
   if (status.is_error()) {
     LOG(ERROR) << "Can't load quick replies: " << status;
     G()->td_db()->get_binlog_pmc()->erase(get_quick_reply_shortcuts_database_key());
     shortcuts_.shortcuts_.clear();
-    return;
+    return reload_quick_reply_shortcuts();
   }
 
   Dependencies dependencies;
@@ -3496,7 +3499,7 @@ void QuickReplyManager::load_quick_reply_shortcuts() {
   }
   if (!dependencies.resolve_force(td_, "load_quick_reply_shortcuts")) {
     shortcuts_.shortcuts_.clear();
-    return;
+    return reload_quick_reply_shortcuts();
   }
 
   shortcuts_.are_inited_ = true;
