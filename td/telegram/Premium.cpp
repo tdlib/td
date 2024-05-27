@@ -681,6 +681,11 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
 
     vector<td_api::object_ptr<td_api::starTransaction>> transactions;
     for (auto &transaction : result->history_) {
+      td_api::object_ptr<td_api::productInfo> product_info;
+      if (!transaction->title_.empty() || !transaction->description_.empty() || transaction->photo_ != nullptr) {
+        auto photo = get_web_document_photo(td_->file_manager_.get(), std::move(transaction->photo_), DialogId());
+        product_info = get_product_info_object(td_, transaction->title_, transaction->description_, photo);
+      }
       auto source = [&]() -> td_api::object_ptr<td_api::StarTransactionSource> {
         switch (transaction->peer_->get_id()) {
           case telegram_api::starsTransactionPeerUnsupported::ID:
@@ -698,7 +703,8 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                 static_cast<const telegram_api::starsTransactionPeer *>(transaction->peer_.get())->peer_);
             if (dialog_id.get_type() == DialogType::User) {
               return td_api::make_object<td_api::starTransactionSourceUser>(
-                  td_->user_manager_->get_user_id_object(dialog_id.get_user_id(), "starTransactionSourceUser"));
+                  td_->user_manager_->get_user_id_object(dialog_id.get_user_id(), "starTransactionSourceUser"),
+                  std::move(product_info));
             }
             return td_api::make_object<td_api::starTransactionSourceUnsupported>();
           }
@@ -706,13 +712,8 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
             UNREACHABLE();
         }
       }();
-      td_api::object_ptr<td_api::productInfo> product_info;
-      if (!transaction->title_.empty() || !transaction->description_.empty() || transaction->photo_ != nullptr) {
-        auto photo = get_web_document_photo(td_->file_manager_.get(), std::move(transaction->photo_), DialogId());
-        product_info = get_product_info_object(td_, transaction->title_, transaction->description_, photo);
-      }
-      transactions.push_back(td_api::make_object<td_api::starTransaction>(
-          transaction->id_, transaction->stars_, transaction->date_, std::move(source), std::move(product_info)));
+      transactions.push_back(td_api::make_object<td_api::starTransaction>(transaction->id_, transaction->stars_,
+                                                                          transaction->date_, std::move(source)));
     }
 
     promise_.set_value(

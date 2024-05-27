@@ -864,8 +864,8 @@ starTransactionSourceGooglePlay = StarTransactionSource;
 //@description The transaction is a transaction with Fragment
 starTransactionSourceFragment = StarTransactionSource;
 
-//@description The transaction is a transaction with another user @user_id Identifier of the user
-starTransactionSourceUser user_id:int53 = StarTransactionSource;
+//@description The transaction is a transaction with another user @user_id Identifier of the user @product_info Information about the bought product; may be null if none
+starTransactionSourceUser user_id:int53 product_info:productInfo = StarTransactionSource;
 
 //@description The transaction is a transaction with unknown source
 starTransactionSourceUnsupported = StarTransactionSource;
@@ -876,8 +876,7 @@ starTransactionSourceUnsupported = StarTransactionSource;
 //@star_count The amount of added owned Telegram stars; negative for outgoing transactions
 //@date Point in time (Unix timestamp) when the transaction was completed
 //@source Source of the transaction, or its recipient for outgoing transactions
-//@product_info Information about the product; may be null if unknown
-starTransaction id:string star_count:int53 date:int32 source:StarTransactionSource product_info:productInfo = StarTransaction;
+starTransaction id:string star_count:int53 date:int32 source:StarTransactionSource = StarTransaction;
 
 //@description Represents a list of Telegram star transactions
 //@star_count The amount of owned Telegram stars
