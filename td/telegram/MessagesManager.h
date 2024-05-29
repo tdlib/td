@@ -483,26 +483,6 @@ class MessagesManager final : public Actor {
   void edit_message_reply_markup(MessageFullId message_full_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                  Promise<Unit> &&promise);
 
-  void edit_inline_message_text(const string &inline_message_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
-                                tl_object_ptr<td_api::InputMessageContent> &&input_message_content,
-                                Promise<Unit> &&promise);
-
-  void edit_inline_message_live_location(const string &inline_message_id,
-                                         tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
-                                         tl_object_ptr<td_api::location> &&input_location, int32 live_period,
-                                         int32 heading, int32 proximity_alert_radius, Promise<Unit> &&promise);
-
-  void edit_inline_message_media(const string &inline_message_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
-                                 tl_object_ptr<td_api::InputMessageContent> &&input_message_content,
-                                 Promise<Unit> &&promise);
-
-  void edit_inline_message_caption(const string &inline_message_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
-                                   tl_object_ptr<td_api::formattedText> &&input_caption, bool invert_media,
-                                   Promise<Unit> &&promise);
-
-  void edit_inline_message_reply_markup(const string &inline_message_id,
-                                        tl_object_ptr<td_api::ReplyMarkup> &&reply_markup, Promise<Unit> &&promise);
-
   void edit_message_scheduling_state(MessageFullId message_full_id,
                                      td_api::object_ptr<td_api::MessageSchedulingState> &&scheduling_state,
                                      Promise<Unit> &&promise);

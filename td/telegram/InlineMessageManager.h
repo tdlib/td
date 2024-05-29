@@ -6,9 +6,12 @@
 //
 #pragma once
 
+#include "td/telegram/td_api.h"
+
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Promise.h"
 
 namespace td {
 
@@ -17,6 +20,29 @@ class Td;
 class InlineMessageManager final : public Actor {
  public:
   InlineMessageManager(Td *td, ActorShared<> parent);
+
+  void edit_inline_message_text(const string &inline_message_id, td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
+                                td_api::object_ptr<td_api::InputMessageContent> &&input_message_content,
+                                Promise<Unit> &&promise);
+
+  void edit_inline_message_live_location(const string &inline_message_id,
+                                         td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
+                                         td_api::object_ptr<td_api::location> &&input_location, int32 live_period,
+                                         int32 heading, int32 proximity_alert_radius, Promise<Unit> &&promise);
+
+  void edit_inline_message_media(const string &inline_message_id,
+                                 td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
+                                 td_api::object_ptr<td_api::InputMessageContent> &&input_message_content,
+                                 Promise<Unit> &&promise);
+
+  void edit_inline_message_caption(const string &inline_message_id,
+                                   td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
+                                   td_api::object_ptr<td_api::formattedText> &&input_caption, bool invert_media,
+                                   Promise<Unit> &&promise);
+
+  void edit_inline_message_reply_markup(const string &inline_message_id,
+                                        td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
+                                        Promise<Unit> &&promise);
 
  private:
   void tear_down() final;

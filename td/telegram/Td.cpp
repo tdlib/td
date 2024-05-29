@@ -5754,15 +5754,15 @@ void Td::on_request(uint64 id, td_api::editInlineMessageText &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.inline_message_id_);
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->edit_inline_message_text(request.inline_message_id_, std::move(request.reply_markup_),
-                                              std::move(request.input_message_content_), std::move(promise));
+  inline_message_manager_->edit_inline_message_text(request.inline_message_id_, std::move(request.reply_markup_),
+                                                    std::move(request.input_message_content_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::editInlineMessageLiveLocation &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.inline_message_id_);
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->edit_inline_message_live_location(
+  inline_message_manager_->edit_inline_message_live_location(
       request.inline_message_id_, std::move(request.reply_markup_), std::move(request.location_), request.live_period_,
       request.heading_, request.proximity_alert_radius_, std::move(promise));
 }
@@ -5771,25 +5771,25 @@ void Td::on_request(uint64 id, td_api::editInlineMessageMedia &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.inline_message_id_);
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->edit_inline_message_media(request.inline_message_id_, std::move(request.reply_markup_),
-                                               std::move(request.input_message_content_), std::move(promise));
+  inline_message_manager_->edit_inline_message_media(request.inline_message_id_, std::move(request.reply_markup_),
+                                                     std::move(request.input_message_content_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::editInlineMessageCaption &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.inline_message_id_);
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->edit_inline_message_caption(request.inline_message_id_, std::move(request.reply_markup_),
-                                                 std::move(request.caption_), request.show_caption_above_media_,
-                                                 std::move(promise));
+  inline_message_manager_->edit_inline_message_caption(request.inline_message_id_, std::move(request.reply_markup_),
+                                                       std::move(request.caption_), request.show_caption_above_media_,
+                                                       std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::editInlineMessageReplyMarkup &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.inline_message_id_);
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->edit_inline_message_reply_markup(request.inline_message_id_, std::move(request.reply_markup_),
-                                                      std::move(promise));
+  inline_message_manager_->edit_inline_message_reply_markup(request.inline_message_id_,
+                                                            std::move(request.reply_markup_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::editMessageSchedulingState &request) {
