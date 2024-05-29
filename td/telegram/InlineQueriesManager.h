@@ -78,11 +78,6 @@ class InlineQueriesManager final : public Actor {
   void on_chosen_result(UserId user_id, Location user_location, const string &query, const string &result_id,
                         tl_object_ptr<telegram_api::InputBotInlineMessageID> &&input_bot_inline_message_id);
 
-  static int32 get_inline_message_dc_id(const tl_object_ptr<telegram_api::InputBotInlineMessageID> &inline_message_id);
-
-  static tl_object_ptr<telegram_api::InputBotInlineMessageID> get_input_bot_inline_message_id(
-      const string &inline_message_id);
-
   static string get_inline_message_id(
       tl_object_ptr<telegram_api::InputBotInlineMessageID> &&input_bot_inline_message_id);
 
