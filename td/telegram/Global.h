@@ -54,6 +54,7 @@ class FileReferenceManager;
 class ForumTopicManager;
 class GameManager;
 class GroupCallManager;
+class InlineMessageManager;
 class LanguagePackManager;
 class LinkManager;
 class MessageImportManager;
@@ -345,6 +346,13 @@ class Global final : public ActorContext {
   }
   void set_group_call_manager(ActorId<GroupCallManager> group_call_manager) {
     group_call_manager_ = group_call_manager;
+  }
+
+  ActorId<InlineMessageManager> inline_message_manager() const {
+    return inline_message_manager_;
+  }
+  void set_inline_message_manager(ActorId<InlineMessageManager> inline_message_manager) {
+    inline_message_manager_ = inline_message_manager;
   }
 
   ActorId<LanguagePackManager> language_pack_manager() const {
@@ -657,6 +665,7 @@ class Global final : public ActorContext {
   ActorId<ForumTopicManager> forum_topic_manager_;
   ActorId<GameManager> game_manager_;
   ActorId<GroupCallManager> group_call_manager_;
+  ActorId<InlineMessageManager> inline_message_manager_;
   ActorId<LanguagePackManager> language_pack_manager_;
   ActorId<LinkManager> link_manager_;
   ActorId<MessageImportManager> message_import_manager_;

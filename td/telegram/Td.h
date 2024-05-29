@@ -68,6 +68,7 @@ class FileReferenceManager;
 class ForumTopicManager;
 class GameManager;
 class GroupCallManager;
+class InlineMessageManager;
 class InlineQueriesManager;
 class HashtagHints;
 class LanguagePackManager;
@@ -216,6 +217,8 @@ class Td final : public Actor {
   ActorOwn<GameManager> game_manager_actor_;
   unique_ptr<GroupCallManager> group_call_manager_;
   ActorOwn<GroupCallManager> group_call_manager_actor_;
+  unique_ptr<InlineMessageManager> inline_message_manager_;
+  ActorOwn<InlineMessageManager> inline_message_manager_actor_;
   unique_ptr<InlineQueriesManager> inline_queries_manager_;
   ActorOwn<InlineQueriesManager> inline_queries_manager_actor_;
   unique_ptr<LinkManager> link_manager_;

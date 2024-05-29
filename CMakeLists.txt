@@ -431,6 +431,7 @@ set(TDLIB_SOURCE_PART1
   td/telegram/GroupCallParticipantOrder.cpp
   td/telegram/GroupCallVideoPayload.cpp
   td/telegram/HashtagHints.cpp
+  td/telegram/InlineMessageManager.cpp
   td/telegram/InlineQueriesManager.cpp
   td/telegram/InputBusinessChatLink.cpp
   td/telegram/InputDialogId.cpp
@@ -730,6 +731,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/GroupCallParticipantOrder.h
   td/telegram/GroupCallVideoPayload.h
   td/telegram/HashtagHints.h
+  td/telegram/InlineMessageManager.h
   td/telegram/InlineQueriesManager.h
   td/telegram/InputBusinessChatLink.h
   td/telegram/InputDialogId.h

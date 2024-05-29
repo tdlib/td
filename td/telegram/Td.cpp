@@ -79,6 +79,7 @@
 #include "td/telegram/GroupCallId.h"
 #include "td/telegram/GroupCallManager.h"
 #include "td/telegram/HashtagHints.h"
+#include "td/telegram/InlineMessageManager.h"
 #include "td/telegram/InlineQueriesManager.h"
 #include "td/telegram/JsonValue.h"
 #include "td/telegram/LanguagePackManager.h"
@@ -3143,6 +3144,7 @@ void Td::dec_actor_refcnt() {
       reset_manager(forum_topic_manager_, "ForumTopicManager");
       reset_manager(game_manager_, "GameManager");
       reset_manager(group_call_manager_, "GroupCallManager");
+      reset_manager(inline_message_manager_, "InlineMessageManager");
       reset_manager(inline_queries_manager_, "InlineQueriesManager");
       reset_manager(link_manager_, "LinkManager");
       reset_manager(message_import_manager_, "MessageImportManager");
@@ -3318,6 +3320,7 @@ void Td::clear() {
   reset_actor(ActorOwn<Actor>(std::move(forum_topic_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(game_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(group_call_manager_actor_)));
+  reset_actor(ActorOwn<Actor>(std::move(inline_message_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(inline_queries_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(link_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(message_import_manager_actor_)));
@@ -3840,6 +3843,9 @@ void Td::init_managers() {
   group_call_manager_ = make_unique<GroupCallManager>(this, create_reference());
   group_call_manager_actor_ = register_actor("GroupCallManager", group_call_manager_.get());
   G()->set_group_call_manager(group_call_manager_actor_.get());
+  inline_message_manager_ = make_unique<InlineMessageManager>(this, create_reference());
+  inline_message_manager_actor_ = register_actor("InlineMessageManager", inline_message_manager_.get());
+  G()->set_inline_message_manager(inline_message_manager_actor_.get());
   inline_queries_manager_ = make_unique<InlineQueriesManager>(this, create_reference());
   inline_queries_manager_actor_ = register_actor("InlineQueriesManager", inline_queries_manager_.get());
   link_manager_ = make_unique<LinkManager>(this, create_reference());
