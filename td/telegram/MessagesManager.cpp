@@ -23694,6 +23694,7 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_message(
 
 Result<InputMessageContent> MessagesManager::process_input_message_content(
     DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content, bool check_permissions) {
+  CHECK(dialog_id.is_valid());
   if (input_message_content != nullptr && input_message_content->get_id() == td_api::inputMessageForwarded::ID) {
     // for sendMessageAlbum/editMessageMedia/addLocalMessage
     auto input_message = td_api::move_object_as<td_api::inputMessageForwarded>(input_message_content);
@@ -23740,11 +23741,7 @@ Result<InputMessageContent> MessagesManager::process_input_message_content(
 
   bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
   TRY_RESULT(content, get_input_message_content(dialog_id, std::move(input_message_content), td_, is_premium));
-
-  if (dialog_id != DialogId()) {
-    TRY_STATUS(can_send_message_content(dialog_id, content.content.get(), false, check_permissions, td_));
-  }
-
+  TRY_STATUS(can_send_message_content(dialog_id, content.content.get(), false, check_permissions, td_));
   return std::move(content);
 }
 
