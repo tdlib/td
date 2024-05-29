@@ -6075,8 +6075,9 @@ void Td::on_request(uint64 id, td_api::setInlineGameScore &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.inline_message_id_);
   CREATE_OK_REQUEST_PROMISE();
-  game_manager_->set_inline_game_score(request.inline_message_id_, request.edit_message_, UserId(request.user_id_),
-                                       request.score_, request.force_, std::move(promise));
+  inline_message_manager_->set_inline_game_score(request.inline_message_id_, request.edit_message_,
+                                                 UserId(request.user_id_), request.score_, request.force_,
+                                                 std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getGameHighScores &request) {
@@ -6090,7 +6091,8 @@ void Td::on_request(uint64 id, td_api::getInlineGameHighScores &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.inline_message_id_);
   CREATE_REQUEST_PROMISE();
-  game_manager_->get_inline_game_high_scores(request.inline_message_id_, UserId(request.user_id_), std::move(promise));
+  inline_message_manager_->get_inline_game_high_scores(request.inline_message_id_, UserId(request.user_id_),
+                                                       std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::deleteChatReplyMarkup &request) {

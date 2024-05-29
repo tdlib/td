@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/td_api.h"
+#include "td/telegram/UserId.h"
 
 #include "td/actor/actor.h"
 
@@ -43,6 +44,12 @@ class InlineMessageManager final : public Actor {
   void edit_inline_message_reply_markup(const string &inline_message_id,
                                         td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                         Promise<Unit> &&promise);
+
+  void set_inline_game_score(const string &inline_message_id, bool edit_message, UserId user_id, int32 score,
+                             bool force, Promise<Unit> &&promise);
+
+  void get_inline_game_high_scores(const string &inline_message_id, UserId user_id,
+                                   Promise<td_api::object_ptr<td_api::gameHighScores>> &&promise);
 
  private:
   void tear_down() final;
