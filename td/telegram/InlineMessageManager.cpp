@@ -7,6 +7,7 @@
 #include "td/telegram/InlineMessageManager.h"
 
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/GameManager.h"
@@ -15,6 +16,7 @@
 #include "td/telegram/Location.h"
 #include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageEntity.h"
+#include "td/telegram/MessageSelfDestructType.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/ReplyMarkup.h"
