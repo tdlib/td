@@ -64,8 +64,15 @@ add_custom_target(build_java
   DEPENDS td_generate_java_api
 )
 
+if (CMAKE_VERSION VERSION_LESS "3.17")
+  set(CMAKE_RM_COMMAND remove_directory)
+else()
+  set(CMAKE_RM_COMMAND rm -rf --)
+endif()
+
 add_custom_target(generate_javadoc
-  COMMAND ${Java_JAVADOC_EXECUTABLE} -encoding UTF-8 -charset UTF-8 -d ${JAVA_OUTPUT_DIRECTORY}/../docs org.drinkless.tdlib
+  COMMAND ${CMAKE_COMMAND} -E ${CMAKE_RM_COMMAND} "${JAVA_OUTPUT_DIRECTORY}/../docs"
+  COMMAND ${Java_JAVADOC_EXECUTABLE} -encoding UTF-8 -charset UTF-8 -d "${JAVA_OUTPUT_DIRECTORY}/../docs" org.drinkless.tdlib
   WORKING_DIRECTORY ${TD_API_JAVA_PATH}
   COMMENT "Generating Javadoc documentation"
   DEPENDS td_generate_java_api
