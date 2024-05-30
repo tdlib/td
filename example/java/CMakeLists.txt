@@ -56,10 +56,12 @@ add_custom_target(td_generate_java_api
 )
 
 set(JAVA_SOURCE_PATH "${TD_API_JAVA_PATH}/${TD_API_JAVA_PACKAGE}")
+set(JAVA_EXAMPLE_FILES "${JAVA_SOURCE_PATH}/example/Example.java")
+set(JAVA_SOURCE_FILES "${JAVA_SOURCE_PATH}/Client.java" "${JAVA_SOURCE_PATH}/TdApi.java")
 get_filename_component(JAVA_OUTPUT_DIRECTORY ${CMAKE_INSTALL_PREFIX}/bin REALPATH BASE_DIR "${CMAKE_CURRENT_BINARY_DIR}")
 file(MAKE_DIRECTORY ${JAVA_OUTPUT_DIRECTORY})
 add_custom_target(build_java
-  COMMAND ${Java_JAVAC_EXECUTABLE} -encoding UTF-8 -d ${JAVA_OUTPUT_DIRECTORY} ${JAVA_SOURCE_PATH}/example/Example.java ${JAVA_SOURCE_PATH}/Client.java ${JAVA_SOURCE_PATH}/TdApi.java
+  COMMAND ${Java_JAVAC_EXECUTABLE} -encoding UTF-8 -d "${JAVA_OUTPUT_DIRECTORY}" ${JAVA_EXAMPLE_FILES} ${JAVA_SOURCE_FILES}
   COMMENT "Building Java code"
   DEPENDS td_generate_java_api
 )
@@ -72,7 +74,7 @@ endif()
 
 add_custom_target(generate_javadoc
   COMMAND ${CMAKE_COMMAND} -E ${CMAKE_RM_COMMAND} "${JAVA_OUTPUT_DIRECTORY}/../docs"
-  COMMAND ${Java_JAVADOC_EXECUTABLE} -encoding UTF-8 -charset UTF-8 -d "${JAVA_OUTPUT_DIRECTORY}/../docs" org.drinkless.tdlib
+  COMMAND ${Java_JAVADOC_EXECUTABLE} -encoding UTF-8 -charset UTF-8 -d "${JAVA_OUTPUT_DIRECTORY}/../docs" ${JAVA_SOURCE_FILES}
   WORKING_DIRECTORY ${TD_API_JAVA_PATH}
   COMMENT "Generating Javadoc documentation"
   DEPENDS td_generate_java_api
