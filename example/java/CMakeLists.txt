@@ -55,22 +55,23 @@ add_custom_target(td_generate_java_api
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/td/bin/td_generate_java_api ${TD_API_TLO_PATH} ${TD_API_TL_PATH} ${JAVADOC_TL_DOCUMENTATION_GENERATOR_PATH}
 )
 
+if (CMAKE_VERSION VERSION_LESS "3.17")
+  set(CMAKE_RM_COMMAND remove_directory)
+else()
+  set(CMAKE_RM_COMMAND rm -rf --)
+endif()
+
 set(JAVA_SOURCE_PATH "${TD_API_JAVA_PATH}/${TD_API_JAVA_PACKAGE}")
 set(JAVA_EXAMPLE_FILES "${JAVA_SOURCE_PATH}/example/Example.java")
 set(JAVA_SOURCE_FILES "${JAVA_SOURCE_PATH}/Client.java" "${JAVA_SOURCE_PATH}/TdApi.java")
 get_filename_component(JAVA_OUTPUT_DIRECTORY ${CMAKE_INSTALL_PREFIX}/bin REALPATH BASE_DIR "${CMAKE_CURRENT_BINARY_DIR}")
 file(MAKE_DIRECTORY ${JAVA_OUTPUT_DIRECTORY})
 add_custom_target(build_java
+  COMMAND ${CMAKE_COMMAND} -E ${CMAKE_RM_COMMAND} "${JAVA_OUTPUT_DIRECTORY}/${TD_API_JAVA_PACKAGE}"
   COMMAND ${Java_JAVAC_EXECUTABLE} -encoding UTF-8 -d "${JAVA_OUTPUT_DIRECTORY}" ${JAVA_EXAMPLE_FILES} ${JAVA_SOURCE_FILES}
   COMMENT "Building Java code"
   DEPENDS td_generate_java_api
 )
-
-if (CMAKE_VERSION VERSION_LESS "3.17")
-  set(CMAKE_RM_COMMAND remove_directory)
-else()
-  set(CMAKE_RM_COMMAND rm -rf --)
-endif()
 
 add_custom_target(generate_javadoc
   COMMAND ${CMAKE_COMMAND} -E ${CMAKE_RM_COMMAND} "${JAVA_OUTPUT_DIRECTORY}/../docs"
