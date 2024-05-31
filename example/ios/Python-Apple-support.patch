@@ -21,7 +21,7 @@ index a1d13e9..8efcf20 100644
  # probably some other packages as well) only works with 1.1.1, so
  # we need to preserve the ability to build the older OpenSSL (for now...)
 -OPENSSL_VERSION=3.1.0
-+OPENSSL_VERSION=3.1.2
++OPENSSL_VERSION=3.1.5
  # OPENSSL_VERSION_NUMBER=1.1.1
  # OPENSSL_REVISION=q
  # OPENSSL_VERSION=$(OPENSSL_VERSION_NUMBER)$(OPENSSL_REVISION)
