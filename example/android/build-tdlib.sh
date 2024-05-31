@@ -100,6 +100,11 @@ for ABI in arm64-v8a armeabi-v7a x86_64 x86 ; do
     cp "$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/$HOST_ARCH/sysroot/usr/lib/$FULL_ABI/libc++_shared.so" tdlib/libs/$ABI/ || exit 1
     "$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/$HOST_ARCH/bin/llvm-strip" tdlib/libs/$ABI/libc++_shared.so || exit 1
   fi
+  if [ -e "$OPENSSL_INSTALL_DIR/$ABI/lib/libcrypto.so" ] ; then
+    cp "$OPENSSL_INSTALL_DIR/$ABI/lib/libcrypto.so" "$OPENSSL_INSTALL_DIR/$ABI/lib/libssl.so" tdlib/libs/$ABI/ || exit 1
+    "$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/$HOST_ARCH/bin/llvm-strip" tdlib/libs/$ABI/libcrypto.so || exit 1
+    "$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/$HOST_ARCH/bin/llvm-strip" tdlib/libs/$ABI/libssl.so || exit 1
+  fi
 done
 
 echo "Compressing..."

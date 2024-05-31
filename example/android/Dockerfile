@@ -9,8 +9,9 @@ COPY ./check-environment.sh ./fetch-sdk.sh ./
 RUN ./fetch-sdk.sh SDK "$ANDROID_NDK_VERSION"
 
 ARG OPENSSL_VERSION=OpenSSL_1_1_1w
+ARG BUILD_SHARED_OPENSSL_LIBS=
 COPY ./build-openssl.sh ./
-RUN ./build-openssl.sh SDK "$ANDROID_NDK_VERSION" openssl "$OPENSSL_VERSION"
+RUN ./build-openssl.sh SDK "$ANDROID_NDK_VERSION" openssl "$OPENSSL_VERSION" "$BUILD_SHARED_OPENSSL_LIBS"
 
 ADD "https://api.github.com/repos/tdlib/td/git/refs/heads/master" version.json
 ARG COMMIT_HASH=master
