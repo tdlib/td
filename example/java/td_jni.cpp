@@ -4,8 +4,12 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
+#ifdef TD_JSON_JAVA
+#include <td/telegram/td_json_client.h>
+#else
 #include <td/telegram/Client.h>
 #include <td/telegram/td_api.h>
+#endif
 
 #include <td/tl/tl_jni_object.h>
 
@@ -16,6 +20,31 @@
 
 namespace td_jni {
 
+#ifdef TD_JSON_JAVA
+static jint JsonClient_createClientId(JNIEnv *env, jclass clazz) {
+  return static_cast<jint>(td_create_client_id());
+}
+
+static void JsonClient_send(JNIEnv *env, jclass clazz, jint client_id, jstring request) {
+  td_send(static_cast<int>(client_id), td::jni::from_jstring(env, request).c_str());
+}
+
+static jstring JsonClient_receive(JNIEnv *env, jclass clazz, jdouble timeout) {
+  auto result = td_receive(timeout);
+  if (result == nullptr) {
+    return nullptr;
+  }
+  return td::jni::to_jstring(env, result);
+}
+
+static jstring JsonClient_execute(JNIEnv *env, jclass clazz, jstring request) {
+  auto result = td_execute(td::jni::from_jstring(env, request).c_str());
+  if (result == nullptr) {
+    return nullptr;
+  }
+  return td::jni::to_jstring(env, result);
+}
+#else
 static td::td_api::object_ptr<td::td_api::Function> fetch_function(JNIEnv *env, jobject function) {
   td::jni::reset_parse_error();
   auto result = td::td_api::Function::fetch(env, function);
@@ -83,6 +112,7 @@ static jstring Object_toString(JNIEnv *env, jobject object) {
 static jstring Function_toString(JNIEnv *env, jobject object) {
   return td::jni::to_jstring(env, to_string(td::td_api::Function::fetch(env, object)));
 }
+#endif
 
 static constexpr jint JAVA_VERSION = JNI_VERSION_1_6;
 static JavaVM *java_vm;
@@ -118,7 +148,11 @@ static void on_log_message(int verbosity_level, const char *log_message) {
 static void Client_nativeClientSetLogMessageHandler(JNIEnv *env, jclass clazz, jint max_verbosity_level,
                                                     jobject new_log_message_handler) {
   if (log_message_handler) {
+#ifdef TD_JSON_JAVA
+    td_set_log_message_callback(0, nullptr);
+#else
     td::ClientManager::set_log_message_callback(0, nullptr);
+#endif
     jobject old_log_message_handler = log_message_handler;
     log_message_handler = jobject();
     env->DeleteGlobalRef(old_log_message_handler);
@@ -131,7 +165,11 @@ static void Client_nativeClientSetLogMessageHandler(JNIEnv *env, jclass clazz, j
       return;
     }
 
+#ifdef TD_JSON_JAVA
+    td_set_log_message_callback(static_cast<int>(max_verbosity_level), on_log_message);
+#else
     td::ClientManager::set_log_message_callback(static_cast<int>(max_verbosity_level), on_log_message);
+#endif
   }
 }
 
@@ -148,6 +186,16 @@ static jint register_native(JavaVM *vm) {
                                     reinterpret_cast<void *>(function_ptr));
   };
 
+#ifdef TD_JSON_JAVA
+  auto client_class = td::jni::get_jclass(env, PACKAGE_NAME "/JsonClient");
+
+  register_method(client_class, "createClientId", "()I", JsonClient_createClientId);
+  register_method(client_class, "send", "(ILjava/lang/String;)V", JsonClient_send);
+  register_method(client_class, "receive", "(D)Ljava/lang/String;", JsonClient_receive);
+  register_method(client_class, "execute", "(Ljava/lang/String;)Ljava/lang/String;", JsonClient_execute);
+  register_method(client_class, "setLogMessageHandler", "(IL" PACKAGE_NAME "/JsonClient$LogMessageHandler;)V",
+                  Client_nativeClientSetLogMessageHandler);
+#else
   auto client_class = td::jni::get_jclass(env, PACKAGE_NAME "/Client");
   auto object_class = td::jni::get_jclass(env, PACKAGE_NAME "/TdApi$Object");
   auto function_class = td::jni::get_jclass(env, PACKAGE_NAME "/TdApi$Function");
@@ -169,6 +217,7 @@ static jint register_native(JavaVM *vm) {
 
   td::jni::init_vars(env, PACKAGE_NAME);
   td::td_api::get_package_name_ref() = PACKAGE_NAME;
+#endif
 
   return JAVA_VERSION;
 }
