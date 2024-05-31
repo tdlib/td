@@ -20642,15 +20642,19 @@ void MessagesManager::search_hashtag_posts(string hashtag, string offset_str, in
 
   TRY_RESULT_PROMISE(promise, offset, MessageSearchOffset::from_string(offset_str));
 
-  if (hashtag[0] == '#') {
+  bool is_cashtag = false;
+  if (hashtag[0] == '#' || hashtag[0] == '$') {
+    is_cashtag = true;
     hashtag = hashtag.substr(1);
   }
   if (hashtag.empty()) {
     return promise.set_value(get_found_messages_object({}, "search_hashtag_posts"));
   }
-  send_closure(td_->hashtag_search_hints_, &HashtagHints::hashtag_used, hashtag);
+  send_closure(is_cashtag ? td_->cashtag_search_hints_ : td_->hashtag_search_hints_, &HashtagHints::hashtag_used,
+               hashtag);
 
-  td_->create_handler<SearchPostsQuery>(std::move(promise))->send(hashtag, offset, limit);
+  td_->create_handler<SearchPostsQuery>(std::move(promise))
+      ->send(PSTRING() << (is_cashtag ? '$' : '#') << hashtag, offset, limit);
 }
 
 void MessagesManager::search_dialog_recent_location_messages(DialogId dialog_id, int32 limit,

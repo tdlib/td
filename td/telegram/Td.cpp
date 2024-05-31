@@ -3278,6 +3278,7 @@ void Td::clear() {
 
   // close all pure actors
   reset_actor(ActorOwn<Actor>(std::move(call_manager_)));
+  reset_actor(ActorOwn<Actor>(std::move(cashtag_search_hints_)));
   reset_actor(ActorOwn<Actor>(std::move(config_manager_)));
   reset_actor(ActorOwn<Actor>(std::move(device_token_manager_)));
   reset_actor(ActorOwn<Actor>(std::move(hashtag_hints_)));
@@ -3925,6 +3926,7 @@ void Td::init_managers() {
 void Td::init_pure_actor_managers() {
   call_manager_ = create_actor<CallManager>("CallManager", create_reference());
   G()->set_call_manager(call_manager_.get());
+  cashtag_search_hints_ = create_actor<HashtagHints>("CashtagSearchHints", "cashtag_search", create_reference());
   device_token_manager_ = create_actor<DeviceTokenManager>("DeviceTokenManager", create_reference());
   hashtag_hints_ = create_actor<HashtagHints>("HashtagHints", "text", create_reference());
   hashtag_search_hints_ = create_actor<HashtagHints>("HashtagSearchHints", "search", create_reference());
