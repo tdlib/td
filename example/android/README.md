@@ -21,7 +21,9 @@ You can specify different OpenSSL version as the fourth parameter to the script 
 
 You can build TDLib against shared standard C++ library by specifying "c++_shared" as the fourth parameter to the script `./build-tdlib.sh`. This can reduce total application size if you have a lot of other C++ code and want it to use the same shared library.
 
-You can build TDLib with [JSON interface](https://github.com/tdlib/td#using-json) instead of [Java](https://github.com/tdlib/td#using-java) interface by passing "JSON" as the fifth parameter to the script `./build-tdlib.sh`.
+You can also build TDLib with [JSON interface](https://github.com/tdlib/td#using-json) instead of [Java](https://github.com/tdlib/td#using-java) interface by passing "JSON" as the fifth parameter to the script `./build-tdlib.sh`.
+
+You can also build TDLib with [JSON interface](https://github.com/tdlib/td#using-json) that can be called from Java by passing "JSONJava" as the fifth parameter to the script `./build-tdlib.sh`.
 
 You can pass an empty string instead of any script parameter to use its default value. For example, you can use the command `./build-tdlib.sh '' '' '' '' 'JSON'` to build TDLib with [JSON interface](https://github.com/tdlib/td#using-json) using default values for other parameters.
 

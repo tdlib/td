@@ -11,8 +11,8 @@ if [ "$ANDROID_STL" != "c++_static" ] && [ "$ANDROID_STL" != "c++_shared" ] ; th
   exit 1
 fi
 
-if [ "$TDLIB_INTERFACE" != "Java" ] && [ "$TDLIB_INTERFACE" != "JSON" ] ; then
-  echo 'Error: TDLIB_INTERFACE must be either "Java" or "JSON".'
+if [ "$TDLIB_INTERFACE" != "Java" ] && [ "$TDLIB_INTERFACE" != "JSON" ] && [ "$TDLIB_INTERFACE" != "JSONJava" ] ; then
+  echo 'Error: TDLIB_INTERFACE must be either "Java", "JSON", or "JSONJava".'
   exit 1
 fi
 
@@ -32,7 +32,7 @@ ANDROID_SDK_ROOT="$(cd "$(dirname -- "$ANDROID_SDK_ROOT")" >/dev/null; pwd -P)/$
 ANDROID_NDK_ROOT="$ANDROID_SDK_ROOT/ndk/$ANDROID_NDK_VERSION"
 OPENSSL_INSTALL_DIR="$(cd "$(dirname -- "$OPENSSL_INSTALL_DIR")" >/dev/null; pwd -P)/$(basename -- "$OPENSSL_INSTALL_DIR")"
 PATH=$ANDROID_SDK_ROOT/cmake/3.22.1/bin:$PATH
-TDLIB_INTERFACE_OPTION=$([ "$TDLIB_INTERFACE" == "JSON" ] && echo "-DTD_ANDROID_JSON=ON" || echo "")
+TDLIB_INTERFACE_OPTION=$([ "$TDLIB_INTERFACE" == "JSON" ] && echo "-DTD_ANDROID_JSON=ON" || [ "$TDLIB_INTERFACE" == "JSONJava" ] && echo "-DTD_ANDROID_JSON_JAVA=ON" || echo "")
 
 cd $(dirname $0)
 
@@ -54,7 +54,7 @@ if [ "$TDLIB_INTERFACE" == "Java" ] ; then
   cmake --build build-native-$TDLIB_INTERFACE --target tl_generate_java || exit 1
   php AddIntDef.php org/drinkless/tdlib/TdApi.java || exit 1
   mkdir -p tdlib/java/org/drinkless/tdlib || exit 1
-  cp -p {../../example,tdlib}/java/org/drinkless/tdlib/Client.java || exit 1
+  cp -p {..,tdlib}/java/org/drinkless/tdlib/Client.java || exit 1
   mv {,tdlib/java/}org/drinkless/tdlib/TdApi.java || exit 1
   rm -rf org || exit 1
 
@@ -64,6 +64,10 @@ if [ "$TDLIB_INTERFACE" == "Java" ] ; then
   javadoc -d tdlib/javadoc -encoding UTF-8 -charset UTF-8 -classpath "android.jar${JAVADOC_SEPARATOR}annotation-1.4.0.jar" -quiet -sourcepath tdlib/java org.drinkless.tdlib || exit 1
   rm android.jar annotation-1.4.0.jar || exit 1
 fi
+if [ "$TDLIB_INTERFACE" == "JSONJava" ] ; then
+  mkdir -p tdlib/java/org/drinkless/tdlib || exit 1
+  cp -p {..,tdlib}/java/org/drinkless/tdlib/JsonClient.java || exit 1
+fi
 
 echo "Building TDLib..."
 for ABI in arm64-v8a armeabi-v7a x86_64 x86 ; do
@@ -72,7 +76,7 @@ for ABI in arm64-v8a armeabi-v7a x86_64 x86 ; do
   mkdir -p build-$ABI-$TDLIB_INTERFACE || exit 1
   cd build-$ABI-$TDLIB_INTERFACE
   cmake -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake" -DOPENSSL_ROOT_DIR="$OPENSSL_INSTALL_DIR/$ABI" -DCMAKE_BUILD_TYPE=RelWithDebInfo -GNinja -DANDROID_ABI=$ABI -DANDROID_STL=$ANDROID_STL -DANDROID_PLATFORM=android-16 $TDLIB_INTERFACE_OPTION .. || exit 1
-  if [ "$TDLIB_INTERFACE" == "Java" ] ; then
+  if [ "$TDLIB_INTERFACE" == "Java" ] || [ "$TDLIB_INTERFACE" == "JSONJava" ] ; then
     cmake --build . --target tdjni || exit 1
     cp -p libtd*.so* ../tdlib/libs/$ABI/ || exit 1
   fi
