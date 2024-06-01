@@ -7,7 +7,6 @@
 #pragma once
 
 #include "td/telegram/td_api.h"
-#include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
 
 #include "td/actor/actor.h"
@@ -52,14 +51,8 @@ class InlineMessageManager final : public Actor {
   void get_inline_game_high_scores(const string &inline_message_id, UserId user_id,
                                    Promise<td_api::object_ptr<td_api::gameHighScores>> &&promise);
 
-  static int32 get_inline_message_dc_id(
-      const telegram_api::object_ptr<telegram_api::InputBotInlineMessageID> &inline_message_id);
-
  private:
   void tear_down() final;
-
-  static telegram_api::object_ptr<telegram_api::InputBotInlineMessageID> get_input_bot_inline_message_id(
-      const string &inline_message_id);
 
   Td *td_;
   ActorShared<> parent_;

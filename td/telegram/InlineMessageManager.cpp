@@ -21,6 +21,7 @@
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/telegram_api.h"
 #include "td/telegram/UserManager.h"
 
 #include "td/utils/base64.h"
@@ -30,6 +31,41 @@
 #include "td/utils/tl_parsers.h"
 
 namespace td {
+
+static int32 get_inline_message_dc_id(
+    const telegram_api::object_ptr<telegram_api::InputBotInlineMessageID> &inline_message_id) {
+  CHECK(inline_message_id != nullptr);
+  switch (inline_message_id->get_id()) {
+    case telegram_api::inputBotInlineMessageID::ID:
+      return static_cast<const telegram_api::inputBotInlineMessageID *>(inline_message_id.get())->dc_id_;
+    case telegram_api::inputBotInlineMessageID64::ID:
+      return static_cast<const telegram_api::inputBotInlineMessageID64 *>(inline_message_id.get())->dc_id_;
+    default:
+      UNREACHABLE();
+      return 0;
+  }
+}
+
+static telegram_api::object_ptr<telegram_api::InputBotInlineMessageID> get_input_bot_inline_message_id(
+    const string &inline_message_id) {
+  auto r_binary = base64url_decode(inline_message_id);
+  if (r_binary.is_error()) {
+    return nullptr;
+  }
+  BufferSlice buffer_slice(r_binary.ok());
+  TlBufferParser parser(&buffer_slice);
+  auto result = buffer_slice.size() == 20 ? telegram_api::inputBotInlineMessageID::fetch(parser)
+                                          : telegram_api::inputBotInlineMessageID64::fetch(parser);
+  parser.fetch_end();
+  if (parser.get_error()) {
+    return nullptr;
+  }
+  if (!DcId::is_valid(get_inline_message_dc_id(result))) {
+    return nullptr;
+  }
+  LOG(INFO) << "Have inline message identifier: " << to_string(result);
+  return result;
+}
 
 class EditInlineMessageQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
@@ -69,7 +105,7 @@ class EditInlineMessageQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_editInlineBotMessage::INVERT_MEDIA_MASK;
     }
 
-    auto dc_id = DcId::internal(InlineMessageManager::get_inline_message_dc_id(input_bot_inline_message_id));
+    auto dc_id = DcId::internal(get_inline_message_dc_id(input_bot_inline_message_id));
     send_query(G()->net_query_creator().create(
         telegram_api::messages_editInlineBotMessage(
             flags, false /*ignored*/, false /*ignored*/, std::move(input_bot_inline_message_id), text,
@@ -114,7 +150,7 @@ class SetInlineGameScoreQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_setInlineGameScore::FORCE_MASK;
     }
 
-    auto dc_id = DcId::internal(InlineMessageManager::get_inline_message_dc_id(input_bot_inline_message_id));
+    auto dc_id = DcId::internal(get_inline_message_dc_id(input_bot_inline_message_id));
     send_query(G()->net_query_creator().create(
         telegram_api::messages_setInlineGameScore(flags, false /*ignored*/, false /*ignored*/,
                                                   std::move(input_bot_inline_message_id), std::move(input_user), score),
@@ -151,7 +187,7 @@ class GetInlineGameHighScoresQuery final : public Td::ResultHandler {
     CHECK(input_bot_inline_message_id != nullptr);
     CHECK(input_user != nullptr);
 
-    auto dc_id = DcId::internal(InlineMessageManager::get_inline_message_dc_id(input_bot_inline_message_id));
+    auto dc_id = DcId::internal(get_inline_message_dc_id(input_bot_inline_message_id));
     send_query(G()->net_query_creator().create(
         telegram_api::messages_getInlineGameHighScores(std::move(input_bot_inline_message_id), std::move(input_user)),
         {}, dc_id));
@@ -364,41 +400,6 @@ void InlineMessageManager::get_inline_game_high_scores(const string &inline_mess
 
   td_->create_handler<GetInlineGameHighScoresQuery>(std::move(promise))
       ->send(std::move(input_bot_inline_message_id), std::move(input_user));
-}
-
-int32 InlineMessageManager::get_inline_message_dc_id(
-    const telegram_api::object_ptr<telegram_api::InputBotInlineMessageID> &inline_message_id) {
-  CHECK(inline_message_id != nullptr);
-  switch (inline_message_id->get_id()) {
-    case telegram_api::inputBotInlineMessageID::ID:
-      return static_cast<const telegram_api::inputBotInlineMessageID *>(inline_message_id.get())->dc_id_;
-    case telegram_api::inputBotInlineMessageID64::ID:
-      return static_cast<const telegram_api::inputBotInlineMessageID64 *>(inline_message_id.get())->dc_id_;
-    default:
-      UNREACHABLE();
-      return 0;
-  }
-}
-
-telegram_api::object_ptr<telegram_api::InputBotInlineMessageID> InlineMessageManager::get_input_bot_inline_message_id(
-    const string &inline_message_id) {
-  auto r_binary = base64url_decode(inline_message_id);
-  if (r_binary.is_error()) {
-    return nullptr;
-  }
-  BufferSlice buffer_slice(r_binary.ok());
-  TlBufferParser parser(&buffer_slice);
-  auto result = buffer_slice.size() == 20 ? telegram_api::inputBotInlineMessageID::fetch(parser)
-                                          : telegram_api::inputBotInlineMessageID64::fetch(parser);
-  parser.fetch_end();
-  if (parser.get_error()) {
-    return nullptr;
-  }
-  if (!DcId::is_valid(get_inline_message_dc_id(result))) {
-    return nullptr;
-  }
-  LOG(INFO) << "Have inline message identifier: " << to_string(result);
-  return result;
 }
 
 }  // namespace td
