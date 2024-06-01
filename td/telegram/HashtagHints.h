@@ -17,7 +17,7 @@ namespace td {
 
 class HashtagHints final : public Actor {
  public:
-  HashtagHints(string mode, ActorShared<> parent);
+  HashtagHints(string mode, char first_character, ActorShared<> parent);
 
   void hashtag_used(const string &hashtag);
 
@@ -30,6 +30,7 @@ class HashtagHints final : public Actor {
  private:
   string mode_;
   Hints hints_;
+  char first_character_ = '#';
   bool sync_with_db_ = false;
   int64 counter_ = 0;
 

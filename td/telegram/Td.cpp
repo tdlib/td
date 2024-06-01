@@ -3926,10 +3926,10 @@ void Td::init_managers() {
 void Td::init_pure_actor_managers() {
   call_manager_ = create_actor<CallManager>("CallManager", create_reference());
   G()->set_call_manager(call_manager_.get());
-  cashtag_search_hints_ = create_actor<HashtagHints>("CashtagSearchHints", "cashtag_search", create_reference());
+  cashtag_search_hints_ = create_actor<HashtagHints>("CashtagSearchHints", "cashtag_search", '$', create_reference());
   device_token_manager_ = create_actor<DeviceTokenManager>("DeviceTokenManager", create_reference());
-  hashtag_hints_ = create_actor<HashtagHints>("HashtagHints", "text", create_reference());
-  hashtag_search_hints_ = create_actor<HashtagHints>("HashtagSearchHints", "search", create_reference());
+  hashtag_hints_ = create_actor<HashtagHints>("HashtagHints", "text", '#', create_reference());
+  hashtag_search_hints_ = create_actor<HashtagHints>("HashtagSearchHints", "search", '#', create_reference());
   language_pack_manager_ = create_actor<LanguagePackManager>("LanguagePackManager", create_reference());
   G()->set_language_pack_manager(language_pack_manager_.get());
   password_manager_ = create_actor<PasswordManager>("PasswordManager", create_reference());
@@ -5385,15 +5385,16 @@ void Td::on_request(uint64 id, td_api::getSearchedForHashtags &request) {
       promise.set_value(td_api::make_object<td_api::hashtags>(result.move_as_ok()));
     }
   });
-  send_closure(hashtag_search_hints_, &HashtagHints::query, std::move(request.prefix_), request.limit_,
-               std::move(query_promise));
+  send_closure(request.prefix_[0] == '$' ? cashtag_search_hints_ : hashtag_search_hints_, &HashtagHints::query,
+               std::move(request.prefix_), request.limit_, std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, td_api::removeSearchedForHashtag &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.hashtag_);
   CREATE_OK_REQUEST_PROMISE();
-  send_closure(hashtag_search_hints_, &HashtagHints::remove_hashtag, std::move(request.hashtag_), std::move(promise));
+  send_closure(request.hashtag_[0] == '$' ? cashtag_search_hints_ : hashtag_search_hints_,
+               &HashtagHints::remove_hashtag, std::move(request.hashtag_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::clearSearchedForHashtags &request) {
