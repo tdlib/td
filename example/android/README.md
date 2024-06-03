@@ -19,6 +19,8 @@ If you want to update TDLib to a newer version, you need to run only the script 
 
 You can specify different OpenSSL version as the fourth parameter to the script `./build-openssl.sh`. By default OpenSSL 1.1.1 is used because of much smaller binary footprint and better performance than newer OpenSSL versions.
 
+You can build shared OpenSSL libraries instead of static ones by passing any non-empty string as the fifth parameter to the script `./build-openssl.sh`. This can reduce total application size if you have a lot of other code that uses OpenSSL and want it to use the same shared library.
+
 You can build TDLib against shared standard C++ library by specifying "c++_shared" as the fourth parameter to the script `./build-tdlib.sh`. This can reduce total application size if you have a lot of other C++ code and want it to use the same shared library.
 
 You can also build TDLib with [JSON interface](https://github.com/tdlib/td#using-json) instead of [Java](https://github.com/tdlib/td#using-java) interface by passing "JSON" as the fifth parameter to the script `./build-tdlib.sh`.
