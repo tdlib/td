@@ -168,13 +168,13 @@ add_subdirectory(tdutils)
 add_subdirectory(td/generate)
 
 if (NOT CMAKE_CROSSCOMPILING)
-  add_custom_target(prepare_cross_compiling DEPENDS tl_generate_common tdmime_auto tl_generate_json)
+  add_custom_target(prepare_cross_compiling DEPENDS tl_generate_mtproto tl_generate_common tdmime_auto tl_generate_json)
   if (TD_ENABLE_DOTNET)
     add_custom_target(remove_cpp_documentation
       WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
       COMMAND remove_documentation ${TL_TD_API_AUTO_SOURCE} td/telegram/Client.h td/telegram/Log.h td/tl/TlObject.h
       COMMENT "Remove C++ documentation from sources"
-      DEPENDS remove_documentation tl_generate_common generate_dotnet_api ${TL_TD_API_AUTO_SOURCE} td/telegram/Client.h td/telegram/Log.h td/tl/TlObject.h
+      DEPENDS remove_documentation tl_generate_mtproto tl_generate_common generate_dotnet_api ${TL_TD_API_AUTO_SOURCE} td/telegram/Client.h td/telegram/Log.h td/tl/TlObject.h
     )
 
     add_dependencies(prepare_cross_compiling generate_dotnet_api remove_cpp_documentation)
@@ -1084,6 +1084,9 @@ if (WIN32)
   else()
     target_link_libraries(tdmtproto PRIVATE ws2_32 Mswsock Crypt32)
   endif()
+endif()
+if (NOT CMAKE_CROSSCOMPILING)
+  add_dependencies(tdmtproto tl_generate_mtproto)
 endif()
 
 # tdcore - mostly internal TDLib interface. One should use tdactor for interactions with it.

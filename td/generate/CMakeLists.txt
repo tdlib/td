@@ -57,9 +57,7 @@ set(TL_DOTNET_AUTO_SOURCE
   PARENT_SCOPE
 )
 
-set(TL_GENERATE_COMMON_SOURCE
-  generate_common.cpp
-
+set(TL_WRITER_CPP_SOURCE
   tl_writer_cpp.cpp
   tl_writer_h.cpp
   tl_writer_hpp.cpp
@@ -73,6 +71,14 @@ set(TL_GENERATE_COMMON_SOURCE
   tl_writer_jni_cpp.h
   tl_writer_jni_h.h
   tl_writer_td.h
+)
+
+set(TL_GENERATE_MTPROTO_SOURCE
+  generate_mtproto.cpp
+)
+
+set(TL_GENERATE_COMMON_SOURCE
+  generate_common.cpp
 )
 
 set(TL_GENERATE_C_SOURCE
@@ -133,8 +139,21 @@ if (NOT CMAKE_CROSSCOMPILING)
     DEPENDS tl-parser ${CMAKE_CURRENT_SOURCE_DIR}/scheme/mtproto_api.tl ${CMAKE_CURRENT_SOURCE_DIR}/scheme/secret_api.tl ${CMAKE_CURRENT_SOURCE_DIR}/scheme/td_api.tl ${CMAKE_CURRENT_SOURCE_DIR}/scheme/telegram_api.tl
   )
 
+  add_library(tl_writer_cpp STATIC ${TL_WRITER_CPP_SOURCE})
+  target_link_libraries(tl_writer_cpp PRIVATE tdtl)
+  target_include_directories(tl_writer_cpp PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+
+  add_executable(generate_mtproto ${TL_GENERATE_MTPROTO_SOURCE})
+  target_link_libraries(generate_mtproto PRIVATE tdtl tl_writer_cpp)
+  add_custom_target(tl_generate_mtproto
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/auto
+    COMMAND generate_mtproto
+    COMMENT "Generate MTProto API source files"
+    DEPENDS generate_mtproto tl_generate_tlo ${TLO_FILES}
+  )
+
   add_executable(generate_common ${TL_GENERATE_COMMON_SOURCE})
-  target_link_libraries(generate_common PRIVATE tdtl)
+  target_link_libraries(generate_common PRIVATE tdtl tl_writer_cpp)
   add_custom_target(tl_generate_common
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/auto
     COMMAND ${GENERATE_COMMON_CMD}
