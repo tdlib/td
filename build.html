@@ -473,6 +473,9 @@ function getTarget(language, os) {
     return 'WebAssembly';
   }
   if (os.includes('Android')) {
+    if (language === 'Dart') {
+      return 'AndroidJson';
+    }
     return 'Android';
   }
   if (os.includes('iOS') || os.includes('tvOS') || os.includes('visionOS') || os.includes('watchOS')) {
@@ -495,6 +498,7 @@ function getTargetName(target) {
     case 'tdjson':
     case 'WebAssembly':
     case 'iOS':
+    case 'AndroidJson':
       return '<a href="https://github.com/tdlib/td#using-json">JSON</a>';
     case 'tdclient':
       return '<a href="https://github.com/tdlib/td#using-cxx">simple and convenient C++11</a>';
@@ -524,9 +528,9 @@ function onOsChanged() {
            'If you want to build it manually, take a look at our <a href="https://github.com/tdlib/td/tree/master/example/web">example</a>.';
     target = '';
   }
-  if (target === 'Android') {
-    text = 'TDLib for Android is available in a prebuilt form and can be downloaded from <a href="https://core.telegram.org/tdlib/tdlib.zip">there</a>.<br>' +
-           'See <a href="https://github.com/tdlib/td/issues/77#issuecomment-640719893">build instructions</a> if you want to build the latest TDLib version or want to build TDLib with different interface.';
+  if (target === 'Android' || target === 'AndroidJson') {
+    text = 'TDLib can be used from ' + language + ' on ' + os + ' through the ' + getTargetName(target) + ' interface.<br>' +
+           'See <a href="https://github.com/tdlib/td/blob/master/example/android">Android example</a> for the example of building TDLib for Android.<br>';
     target = '';
   }
   if (target === 'iOS') {
