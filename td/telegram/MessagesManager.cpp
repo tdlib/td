@@ -20644,7 +20644,7 @@ void MessagesManager::search_hashtag_posts(string hashtag, string offset_str, in
 
   bool is_cashtag = false;
   if (hashtag[0] == '#' || hashtag[0] == '$') {
-    is_cashtag = true;
+    is_cashtag = (hashtag[0] == '$');
     hashtag = hashtag.substr(1);
   }
   if (hashtag.empty()) {
