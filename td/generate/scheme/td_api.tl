@@ -8077,8 +8077,8 @@ getSearchedForHashtags prefix:string limit:int32 = Hashtags;
 //@description Removes a hashtag or a cashtag from the list of recently searched for hashtags or cashtags @hashtag Hashtag or cashtag to delete
 removeSearchedForHashtag hashtag:string = Ok;
 
-//@description Clears the list of recently searched for hashtags
-clearSearchedForHashtags = Ok;
+//@description Clears the list of recently searched for hashtags or cashtags @clear_cashtags Pass true to clear the list of recently searched for cashtags; otherwise the list of recently searched for hashtags will be cleared
+clearSearchedForHashtags clear_cashtags:Bool = Ok;
 
 //@description Deletes all call messages @revoke Pass true to delete the messages for all users
 deleteAllCallMessages revoke:Bool = Ok;
