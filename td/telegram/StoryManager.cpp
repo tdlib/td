@@ -15,6 +15,7 @@
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/HashtagHints.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MediaArea.hpp"
@@ -699,6 +700,61 @@ class DeleteStoriesQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "DeleteStoriesQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
+class SearchStoriesQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::foundStories>> promise_;
+
+ public:
+  explicit SearchStoriesQuery(Promise<td_api::object_ptr<td_api::foundStories>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(string hashtag, string offset, int32 limit) {
+    int32 flags = telegram_api::stories_searchPosts::HASHTAG_MASK;
+    send_query(
+        G()->net_query_creator().create(telegram_api::stories_searchPosts(flags, hashtag, nullptr, offset, limit)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_searchPosts>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for SearchStoriesQuery: " << to_string(ptr);
+    td_->user_manager_->on_get_users(std::move(ptr->users_), "SearchStoriesQuery");
+    td_->chat_manager_->on_get_chats(std::move(ptr->chats_), "SearchStoriesQuery");
+
+    auto total_count = ptr->count_;
+    if (total_count < static_cast<int32>(ptr->stories_.size())) {
+      LOG(ERROR) << "Receive total count = " << total_count << " and " << ptr->stories_.size() << " stories";
+      total_count = static_cast<int32>(ptr->stories_.size());
+    }
+    vector<td_api::object_ptr<td_api::story>> stories;
+    for (auto &found_story : ptr->stories_) {
+      DialogId owner_dialog_id(found_story->peer_);
+      auto story_id = td_->story_manager_->on_get_story(owner_dialog_id, std::move(found_story->story_));
+      if (story_id.is_valid()) {
+        auto story_object = td_->story_manager_->get_story_object({owner_dialog_id, story_id});
+        if (story_object == nullptr) {
+          LOG(ERROR) << "Receive deleted " << story_id << " from " << owner_dialog_id;
+        } else {
+          stories.push_back(std::move(story_object));
+        }
+      }
+    }
+
+    promise_.set_value(td_api::make_object<td_api::foundStories>(total_count, std::move(stories), ptr->next_offset_));
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "SEARCH_QUERY_EMPTY") {
+      return promise_.set_value(td_api::make_object<td_api::foundStories>());
+    }
     promise_.set_error(std::move(status));
   }
 };
@@ -2537,6 +2593,30 @@ void StoryManager::on_get_dialog_expiring_stories(DialogId owner_dialog_id,
   } else {
     promise.set_value(nullptr);
   }
+}
+
+void StoryManager::search_hashtag_posts(string hashtag, string offset, int32 limit,
+                                        Promise<td_api::object_ptr<td_api::foundStories>> &&promise) {
+  if (limit <= 0) {
+    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+  }
+  if (limit > MAX_SEARCH_STORIES) {
+    limit = MAX_SEARCH_STORIES;
+  }
+
+  bool is_cashtag = false;
+  if (hashtag[0] == '#' || hashtag[0] == '$') {
+    is_cashtag = (hashtag[0] == '$');
+    hashtag = hashtag.substr(1);
+  }
+  if (hashtag.empty()) {
+    return promise.set_value(td_api::make_object<td_api::foundStories>());
+  }
+  send_closure(is_cashtag ? td_->cashtag_search_hints_ : td_->hashtag_search_hints_, &HashtagHints::hashtag_used,
+               hashtag);
+
+  td_->create_handler<SearchStoriesQuery>(std::move(promise))
+      ->send(PSTRING() << (is_cashtag ? '$' : '#') << hashtag, std::move(offset), limit);
 }
 
 void StoryManager::set_pinned_stories(DialogId owner_dialog_id, vector<StoryId> story_ids, Promise<Unit> &&promise) {

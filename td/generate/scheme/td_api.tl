@@ -4026,6 +4026,9 @@ story id:int32 sender_chat_id:int53 sender_id:MessageSender date:int32 is_being_
 //@pinned_story_ids Identifiers of the pinned stories; returned only in getChatPostedToChatPageStories with from_story_id == 0
 stories total_count:int32 stories:vector<story> pinned_story_ids:vector<int32> = Stories;
 
+//@description Contains a list of stories found by a search @total_count Approximate total number of stories found @stories List of stories @next_offset The offset for the next request. If empty, then there are no more results
+foundStories total_count:int32 stories:vector<story> next_offset:string = FoundStories;
+
 //@description Contains identifier of a story along with identifier of its sender
 //@sender_chat_id Identifier of the chat that posted the story
 //@story_id Unique story identifier among stories of the given sender
@@ -8065,11 +8068,17 @@ searchCallMessages offset:string limit:int32 only_missed:Bool = FoundMessages;
 //@limit The maximum number of messages to be returned; up to 100
 searchOutgoingDocumentMessages query:string limit:int32 = FoundMessages;
 
-//@description Searches for public channel posts with the given hashtag or cashtag. For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
+//@description Searches for public channel posts containing the given hashtag or cashtag. For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 //@hashtag Hashtag or cashtag to search for
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of messages to be returned; up to 100. For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 searchPublicHashtagMessages hashtag:string offset:string limit:int32 = FoundMessages;
+
+//@description Searches for public stories containing the given hashtag or cashtag. For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
+//@hashtag Hashtag or cashtag to search for
+//@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
+//@limit The maximum number of stories to be returned; up to 100. For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
+searchPublicHashtagStories hashtag:string offset:string limit:int32 = FoundStories;
 
 //@description Returns recently searched for hashtags or cashtags by their prefix @prefix Prefix of hashtags or cashtags to return @limit The maximum number of items to be returned
 getSearchedForHashtags prefix:string limit:int32 = Hashtags;

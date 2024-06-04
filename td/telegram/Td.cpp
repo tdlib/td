@@ -5315,6 +5315,15 @@ void Td::on_request(uint64 id, td_api::searchPublicHashtagMessages &request) {
                                           std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::searchPublicHashtagStories &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.hashtag_);
+  CLEAN_INPUT_STRING(request.offset_);
+  CREATE_REQUEST_PROMISE();
+  story_manager_->search_hashtag_posts(std::move(request.hashtag_), std::move(request.offset_), request.limit_,
+                                       std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::getSearchedForHashtags &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.prefix_);

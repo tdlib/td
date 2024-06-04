@@ -3064,6 +3064,12 @@ class CliClient final : public Actor {
       string offset;
       get_args(args, hashtag, limit, offset);
       send_request(td_api::make_object<td_api::searchPublicHashtagMessages>(hashtag, offset, as_limit(limit)));
+    } else if (op == "sphs") {
+      string hashtag;
+      string limit;
+      string offset;
+      get_args(args, hashtag, limit, offset);
+      send_request(td_api::make_object<td_api::searchPublicHashtagStories>(hashtag, offset, as_limit(limit)));
     } else if (op == "gsfh") {
       string hashtag;
       string limit;

@@ -253,6 +253,9 @@ class StoryManager final : public Actor {
 
   void reload_dialog_expiring_stories(DialogId dialog_id);
 
+  void search_hashtag_posts(string hashtag, string offset, int32 limit,
+                            Promise<td_api::object_ptr<td_api::foundStories>> &&promise);
+
   void set_pinned_stories(DialogId owner_dialog_id, vector<StoryId> story_ids, Promise<Unit> &&promise);
 
   void open_story(DialogId owner_dialog_id, StoryId story_id, Promise<Unit> &&promise);
@@ -365,6 +368,8 @@ class StoryManager final : public Actor {
   class LoadDialogExpiringStoriesLogEvent;
   class SendStoryLogEvent;
   class EditStoryLogEvent;
+
+  static constexpr int32 MAX_SEARCH_STORIES = 100;  // server-side limit
 
   static constexpr int32 OPENED_STORY_POLL_PERIOD = 60;
   static constexpr int32 VIEWED_STORY_POLL_PERIOD = 300;
