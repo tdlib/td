@@ -69,7 +69,7 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
         telegram_api::messages_saveDraft(
             flags, false /*ignored*/, false /*ignored*/, std::move(input_reply_to), std::move(input_peer),
             draft_message == nullptr ? string() : draft_message->input_message_text_.text.text,
-            std::move(input_message_entities), std::move(media)),
+            std::move(input_message_entities), std::move(media), 0),
         {{dialog_id}}));
   }
 

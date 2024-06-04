@@ -73,6 +73,8 @@ MediaArea::MediaArea(Td *td, telegram_api::object_ptr<telegram_api::MediaArea> &
       }
       break;
     }
+    case telegram_api::mediaAreaUrl::ID:
+      break;
     case telegram_api::inputMediaAreaVenue::ID:
       LOG(ERROR) << "Receive " << to_string(media_area_ptr);
       break;
@@ -212,9 +214,11 @@ td_api::object_ptr<td_api::storyArea> MediaArea::get_story_area_object(
 telegram_api::object_ptr<telegram_api::MediaArea> MediaArea::get_input_media_area(const Td *td) const {
   CHECK(is_valid());
   switch (type_) {
-    case Type::Location:
-      return telegram_api::make_object<telegram_api::mediaAreaGeoPoint>(coordinates_.get_input_media_area_coordinates(),
-                                                                        location_.get_fake_geo_point());
+    case Type::Location: {
+      int32 flags = 0;
+      return telegram_api::make_object<telegram_api::mediaAreaGeoPoint>(
+          flags, coordinates_.get_input_media_area_coordinates(), location_.get_fake_geo_point(), nullptr);
+    }
     case Type::Venue:
       if (input_query_id_ != 0) {
         return telegram_api::make_object<telegram_api::inputMediaAreaVenue>(

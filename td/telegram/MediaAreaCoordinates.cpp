@@ -55,7 +55,7 @@ td_api::object_ptr<td_api::storyAreaPosition> MediaAreaCoordinates::get_story_ar
 telegram_api::object_ptr<telegram_api::mediaAreaCoordinates> MediaAreaCoordinates::get_input_media_area_coordinates()
     const {
   CHECK(is_valid());
-  return telegram_api::make_object<telegram_api::mediaAreaCoordinates>(x_, y_, width_, height_, rotation_angle_);
+  return telegram_api::make_object<telegram_api::mediaAreaCoordinates>(0, x_, y_, width_, height_, rotation_angle_, 0.0);
 }
 
 bool operator==(const MediaAreaCoordinates &lhs, const MediaAreaCoordinates &rhs) {

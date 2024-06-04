@@ -664,9 +664,9 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
           UNREACHABLE();
       }
     }
-    send_query(G()->net_query_creator().create(
-        telegram_api::payments_getStarsTransactions(flags, false /*ignored*/, false /*ignored*/,
-                                                    telegram_api::make_object<telegram_api::inputPeerSelf>(), offset)));
+    send_query(G()->net_query_creator().create(telegram_api::payments_getStarsTransactions(
+        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+        telegram_api::make_object<telegram_api::inputPeerSelf>(), offset, 100)));
   }
 
   void on_result(BufferSlice packet) final {
