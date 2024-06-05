@@ -22,7 +22,7 @@ void DraftMessage::store(StorerT &storer) const {
   bool has_input_message_text = !input_message_text_.is_empty();
   bool has_message_input_reply_to = !message_input_reply_to_.is_empty();
   bool has_local_content = local_content_ != nullptr;
-  bool has_message_effect_id = message_effect_id_ != 0;
+  bool has_message_effect_id = message_effect_id_.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_input_message_text);
   STORE_FLAG(has_message_input_reply_to);

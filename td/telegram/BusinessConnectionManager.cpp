@@ -111,7 +111,7 @@ struct BusinessConnectionManager::PendingMessage {
   unique_ptr<MessageContent> content_;
   unique_ptr<ReplyMarkup> reply_markup_;
   int64 random_id_ = 0;
-  int64 effect_id_ = 0;
+  MessageEffectId effect_id_;
   bool noforwards_ = false;
   bool disable_notification_ = false;
   bool invert_media_ = false;
@@ -140,7 +140,7 @@ class BusinessConnectionManager::SendBusinessMessageQuery final : public Td::Res
     if (message_->noforwards_) {
       flags |= telegram_api::messages_sendMessage::NOFORWARDS_MASK;
     }
-    if (message_->effect_id_) {
+    if (message_->effect_id_.is_valid()) {
       flags |= telegram_api::messages_sendMessage::EFFECT_MASK;
     }
     if (message_->invert_media_) {
@@ -172,7 +172,7 @@ class BusinessConnectionManager::SendBusinessMessageQuery final : public Td::Res
             flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
             false /*ignored*/, false /*ignored*/, std::move(input_peer), std::move(reply_to), message_text->text,
             message_->random_id_, get_input_reply_markup(td_->user_manager_.get(), message_->reply_markup_),
-            std::move(entities), 0, nullptr, nullptr, message_->effect_id_),
+            std::move(entities), 0, nullptr, nullptr, message_->effect_id_.get()),
         td_->business_connection_manager_->get_business_connection_dc_id(message_->business_connection_id_),
         {{message_->dialog_id_}}));
   }
@@ -214,7 +214,7 @@ class BusinessConnectionManager::SendBusinessMediaQuery final : public Td::Resul
     if (message_->noforwards_) {
       flags |= telegram_api::messages_sendMedia::NOFORWARDS_MASK;
     }
-    if (message_->effect_id_) {
+    if (message_->effect_id_.is_valid()) {
       flags |= telegram_api::messages_sendMedia::EFFECT_MASK;
     }
     if (message_->invert_media_) {
@@ -246,7 +246,7 @@ class BusinessConnectionManager::SendBusinessMediaQuery final : public Td::Resul
                                          std::move(reply_to), std::move(input_media),
                                          message_text == nullptr ? string() : message_text->text, message_->random_id_,
                                          get_input_reply_markup(td_->user_manager_.get(), message_->reply_markup_),
-                                         std::move(entities), 0, nullptr, nullptr, message_->effect_id_),
+                                         std::move(entities), 0, nullptr, nullptr, message_->effect_id_.get()),
         td_->business_connection_manager_->get_business_connection_dc_id(message_->business_connection_id_),
         {{message_->dialog_id_}}));
   }
@@ -289,7 +289,7 @@ class BusinessConnectionManager::SendBusinessMultiMediaQuery final : public Td::
     if (messages_[0]->noforwards_) {
       flags |= telegram_api::messages_sendMultiMedia::NOFORWARDS_MASK;
     }
-    if (messages_[0]->effect_id_) {
+    if (messages_[0]->effect_id_.is_valid()) {
       flags |= telegram_api::messages_sendMultiMedia::EFFECT_MASK;
     }
     if (messages_[0]->invert_media_) {
@@ -309,7 +309,7 @@ class BusinessConnectionManager::SendBusinessMultiMediaQuery final : public Td::
         telegram_api::messages_sendMultiMedia(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
                                               false /*ignored*/, false /*ignored*/, false /*ignored*/,
                                               std::move(input_peer), std::move(reply_to), std::move(input_single_media),
-                                              0, nullptr, nullptr, messages_[0]->effect_id_),
+                                              0, nullptr, nullptr, messages_[0]->effect_id_.get()),
         td_->business_connection_manager_->get_business_connection_dc_id(messages_[0]->business_connection_id_),
         {{messages_[0]->dialog_id_}}));
   }
@@ -662,7 +662,7 @@ Result<InputMessageContent> BusinessConnectionManager::process_input_message_con
 
 unique_ptr<BusinessConnectionManager::PendingMessage> BusinessConnectionManager::create_business_message_to_send(
     BusinessConnectionId business_connection_id, DialogId dialog_id, MessageInputReplyTo &&input_reply_to,
-    bool disable_notification, bool protect_content, int64 effect_id, unique_ptr<ReplyMarkup> &&reply_markup,
+    bool disable_notification, bool protect_content, MessageEffectId effect_id, unique_ptr<ReplyMarkup> &&reply_markup,
     InputMessageContent &&input_content) const {
   auto content = dup_message_content(td_, td_->dialog_manager_->get_my_dialog_id(), input_content.content.get(),
                                      MessageContentDupType::Send, MessageCopyOptions());
@@ -685,7 +685,7 @@ unique_ptr<BusinessConnectionManager::PendingMessage> BusinessConnectionManager:
 
 void BusinessConnectionManager::send_message(BusinessConnectionId business_connection_id, DialogId dialog_id,
                                              td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
-                                             bool disable_notification, bool protect_content, int64 effect_id,
+                                             bool disable_notification, bool protect_content, MessageEffectId effect_id,
                                              td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                              td_api::object_ptr<td_api::InputMessageContent> &&input_message_content,
                                              Promise<td_api::object_ptr<td_api::businessMessage>> &&promise) {
@@ -957,7 +957,7 @@ void BusinessConnectionManager::complete_upload_media(unique_ptr<PendingMessage>
 void BusinessConnectionManager::send_message_album(
     BusinessConnectionId business_connection_id, DialogId dialog_id,
     td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to, bool disable_notification, bool protect_content,
-    int64 effect_id, vector<td_api::object_ptr<td_api::InputMessageContent>> &&input_message_contents,
+    MessageEffectId effect_id, vector<td_api::object_ptr<td_api::InputMessageContent>> &&input_message_contents,
     Promise<td_api::object_ptr<td_api::businessMessages>> &&promise) {
   TRY_STATUS_PROMISE(promise, check_business_connection(business_connection_id, dialog_id));
 

@@ -753,6 +753,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/MessageContentType.h
   td/telegram/MessageCopyOptions.h
   td/telegram/MessageDb.h
+  td/telegram/MessageEffectId.h
   td/telegram/MessageEntity.h
   td/telegram/MessageExtendedMedia.h
   td/telegram/MessageForwardInfo.h

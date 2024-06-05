@@ -2885,7 +2885,7 @@ class SendMessageQuery final : public Td::ResultHandler {
  public:
   void send(int32 flags, DialogId dialog_id, tl_object_ptr<telegram_api::InputPeer> as_input_peer,
             const MessageInputReplyTo &input_reply_to, MessageId top_thread_message_id, int32 schedule_date,
-            int64 effect_id, tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup,
+            MessageEffectId effect_id, tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup,
             vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities, const string &text, bool is_copy,
             int64 random_id, NetQueryRef *send_query_ref) {
     random_id_ = random_id;
@@ -2909,10 +2909,11 @@ class SendMessageQuery final : public Td::ResultHandler {
     }
 
     auto query = G()->net_query_creator().create(
-        telegram_api::messages_sendMessage(
-            flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-            false /*ignored*/, false /*ignored*/, std::move(input_peer), std::move(reply_to), text, random_id,
-            std::move(reply_markup), std::move(entities), schedule_date, std::move(as_input_peer), nullptr, effect_id),
+        telegram_api::messages_sendMessage(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                                           false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                                           std::move(input_peer), std::move(reply_to), text, random_id,
+                                           std::move(reply_markup), std::move(entities), schedule_date,
+                                           std::move(as_input_peer), nullptr, effect_id.get()),
         {{dialog_id, MessageContentType::Text},
          {dialog_id, is_copy ? MessageContentType::Photo : MessageContentType::Text}});
     if (td_->option_manager_->get_option_boolean("use_quick_ack")) {
@@ -3085,7 +3086,7 @@ class SendMultiMediaQuery final : public Td::ResultHandler {
  public:
   void send(int32 flags, DialogId dialog_id, tl_object_ptr<telegram_api::InputPeer> as_input_peer,
             const MessageInputReplyTo &input_reply_to, MessageId top_thread_message_id, int32 schedule_date,
-            int64 effect_id, vector<FileId> &&file_ids,
+            MessageEffectId effect_id, vector<FileId> &&file_ids,
             vector<tl_object_ptr<telegram_api::inputSingleMedia>> &&input_single_media, bool is_copy) {
     for (auto &single_media : input_single_media) {
       random_ids_.push_back(single_media->random_id_);
@@ -3115,7 +3116,7 @@ class SendMultiMediaQuery final : public Td::ResultHandler {
         telegram_api::messages_sendMultiMedia(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
                                               false /*ignored*/, false /*ignored*/, false /*ignored*/,
                                               std::move(input_peer), std::move(reply_to), std::move(input_single_media),
-                                              schedule_date, std::move(as_input_peer), nullptr, effect_id),
+                                              schedule_date, std::move(as_input_peer), nullptr, effect_id.get()),
         {{dialog_id, is_copy ? MessageContentType::Text : MessageContentType::Photo},
          {dialog_id, MessageContentType::Photo}}));
   }
@@ -3203,7 +3204,7 @@ class SendMediaQuery final : public Td::ResultHandler {
  public:
   void send(FileId file_id, FileId thumbnail_file_id, int32 flags, DialogId dialog_id,
             tl_object_ptr<telegram_api::InputPeer> as_input_peer, const MessageInputReplyTo &input_reply_to,
-            MessageId top_thread_message_id, int32 schedule_date, int64 effect_id,
+            MessageId top_thread_message_id, int32 schedule_date, MessageEffectId effect_id,
             tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup,
             vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities, const string &text,
             tl_object_ptr<telegram_api::InputMedia> &&input_media, MessageContentType content_type, bool is_copy,
@@ -3234,10 +3235,11 @@ class SendMediaQuery final : public Td::ResultHandler {
     }
 
     auto query = G()->net_query_creator().create(
-        telegram_api::messages_sendMedia(
-            flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-            false /*ignored*/, std::move(input_peer), std::move(reply_to), std::move(input_media), text, random_id,
-            std::move(reply_markup), std::move(entities), schedule_date, std::move(as_input_peer), nullptr, effect_id),
+        telegram_api::messages_sendMedia(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                                         false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer),
+                                         std::move(reply_to), std::move(input_media), text, random_id,
+                                         std::move(reply_markup), std::move(entities), schedule_date,
+                                         std::move(as_input_peer), nullptr, effect_id.get()),
         {{dialog_id, content_type}, {dialog_id, is_copy ? MessageContentType::Text : content_type}});
     if (td_->option_manager_->get_option_boolean("use_quick_ack") && was_uploaded_) {
       query->quick_ack_promise_ = PromiseCreator::lambda([random_id](Result<Unit> result) {
@@ -4241,7 +4243,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_initial_top_thread_message_id = !message_id.is_any_server() && initial_top_thread_message_id.is_valid();
   bool has_sender_boost_count = sender_boost_count != 0;
   bool has_via_business_bot_user_id = via_business_bot_user_id.is_valid();
-  bool has_effect_id = effect_id != 0;
+  bool has_effect_id = effect_id.is_valid();
   bool has_fact_check = fact_check != nullptr;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
@@ -13240,7 +13242,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       message_info.has_mention = message->mentioned_;
       message_info.has_unread_content = message->media_unread_;
       message_info.invert_media = message->invert_media_;
-      message_info.effect_id = message->effect_;
+      message_info.effect_id = MessageEffectId(message->effect_);
 
       bool is_content_read = true;
       if (!td->auth_manager_->is_bot()) {
@@ -22748,8 +22750,8 @@ td_api::object_ptr<td_api::message> MessagesManager::get_business_message_messag
       false, false, false, false, false, false, false, false, false, false, false, m->date, m->edit_date,
       std::move(forward_info), std::move(import_info), nullptr, Auto(), nullptr, std::move(reply_to), 0, 0,
       std::move(self_destruct_type), 0.0, 0.0, via_bot_user_id, via_business_bot_user_id, 0, string(),
-      m->media_album_id, m->effect_id, get_restriction_reason_description(m->restriction_reasons), std::move(content),
-      std::move(reply_markup));
+      m->media_album_id, m->effect_id.get(), get_restriction_reason_description(m->restriction_reasons),
+      std::move(content), std::move(reply_markup));
 }
 
 td_api::object_ptr<td_api::message> MessagesManager::get_message_object(MessageFullId message_full_id,
@@ -22867,7 +22869,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_message_object(DialogId
       top_thread_message_id,
       td_->saved_messages_manager_->get_saved_messages_topic_id_object(m->saved_messages_topic_id),
       std::move(self_destruct_type), ttl_expires_in, auto_delete_in, via_bot_user_id, via_business_bot_user_id,
-      m->sender_boost_count, m->author_signature, m->media_album_id, m->effect_id,
+      m->sender_boost_count, m->author_signature, m->media_album_id, m->effect_id.get(),
       get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
 }
 
@@ -23063,7 +23065,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   if (m->sender_user_id == my_id && dialog_type == DialogType::Channel) {
     m->sender_boost_count = td_->chat_manager_->get_channel_my_boost_count(dialog_id.get_channel_id());
   }
-  m->effect_id = options.effect_id;
+  m->effect_id = MessageEffectId(options.effect_id);
   m->content = std::move(content);
   m->invert_media = invert_media;
   m->forward_info = std::move(forward_info);
@@ -23779,7 +23781,7 @@ Result<MessagesManager::MessageSendOptions> MessagesManager::process_message_sen
     if (!allow_effect) {
       return Status::Error(400, "Can't use message effects in the method");
     }
-    result.effect_id = options->effect_id_;
+    result.effect_id = MessageEffectId(options->effect_id_);
   }
 
   return std::move(result);
@@ -24367,7 +24369,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
   MessageId top_thread_message_id;
   int32 flags = 0;
   int32 schedule_date = 0;
-  int64 effect_id = 0;
+  MessageEffectId effect_id;
   bool is_copy = false;
   for (size_t i = 0; i < request.message_ids.size(); i++) {
     auto *m = get_message(d, request.message_ids[i]);
@@ -25803,7 +25805,7 @@ int32 MessagesManager::get_message_flags(const Message *m) {
   if (m->invert_media) {
     flags |= SEND_MESSAGE_FLAG_INVERT_MEDIA;
   }
-  if (m->effect_id != 0) {
+  if (m->effect_id.is_valid()) {
     flags |= SEND_MESSAGE_FLAG_EFFECT;
   }
   return flags;
@@ -26540,7 +26542,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_quick_reply_s
   auto *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
 
-  MessageSendOptions message_send_options(false, false, false, false, false, 0, sending_id, 0);
+  MessageSendOptions message_send_options(false, false, false, false, false, 0, sending_id, MessageEffectId());
   FlatHashMap<MessageId, MessageId, MessageIdHash> original_message_id_to_new_message_id;
   vector<td_api::object_ptr<td_api::message>> result;
   vector<Message *> sent_messages;

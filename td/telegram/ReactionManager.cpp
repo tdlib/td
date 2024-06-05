@@ -1211,12 +1211,12 @@ td_api::object_ptr<td_api::messageEffect> ReactionManager::get_message_effect_ob
         td_->stickers_manager_->get_sticker_object(effect.effect_sticker_id_),
         td_->stickers_manager_->get_sticker_object(effect.effect_animation_id_));
   }();
-  return td_api::make_object<td_api::messageEffect>(effect.id_,
+  return td_api::make_object<td_api::messageEffect>(effect.id_.get(),
                                                     td_->stickers_manager_->get_sticker_object(effect.static_icon_id_),
                                                     effect.emoji_, effect.is_premium_, std::move(type));
 }
 
-td_api::object_ptr<td_api::messageEffect> ReactionManager::get_message_effect_object(int64 effect_id) const {
+td_api::object_ptr<td_api::messageEffect> ReactionManager::get_message_effect_object(MessageEffectId effect_id) const {
   for (auto &effect : message_effects_.effects_) {
     if (effect.id_ == effect_id) {
       return get_message_effect_object(effect);
@@ -1227,9 +1227,12 @@ td_api::object_ptr<td_api::messageEffect> ReactionManager::get_message_effect_ob
 
 td_api::object_ptr<td_api::updateAvailableMessageEffects> ReactionManager::get_update_available_message_effects_object()
     const {
+  auto get_raw_effect_ids = [](const vector<MessageEffectId> &message_effect_ids) {
+    return transform(message_effect_ids, [](MessageEffectId effect_id) { return effect_id.get(); });
+  };
   return td_api::make_object<td_api::updateAvailableMessageEffects>(
-      vector<int64>(active_message_effects_.reaction_effects_),
-      vector<int64>(active_message_effects_.sticker_effects_));
+      get_raw_effect_ids(active_message_effects_.reaction_effects_),
+      get_raw_effect_ids(active_message_effects_.sticker_effects_));
 }
 
 void ReactionManager::reload_message_effects() {
@@ -1324,7 +1327,7 @@ void ReactionManager::on_get_message_effects(
       bool have_invalid_order = false;
       for (const auto &available_effect : effects->effects_) {
         Effect effect;
-        effect.id_ = available_effect->id_;
+        effect.id_ = MessageEffectId(available_effect->id_);
         effect.emoji_ = std::move(available_effect->emoticon_);
         effect.is_premium_ = available_effect->premium_required_;
         if (available_effect->static_icon_id_ != 0) {
@@ -1441,7 +1444,7 @@ void ReactionManager::update_active_message_effects() {
   send_closure(G()->td(), &Td::send_update, get_update_available_message_effects_object());
 }
 
-void ReactionManager::get_message_effect(int64 effect_id,
+void ReactionManager::get_message_effect(MessageEffectId effect_id,
                                          Promise<td_api::object_ptr<td_api::messageEffect>> &&promise) {
   load_message_effects();
   if (message_effects_.effects_.empty() && message_effects_.are_being_reloaded_) {

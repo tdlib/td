@@ -29,6 +29,7 @@
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageCopyOptions.h"
 #include "td/telegram/MessageDb.h"
+#include "td/telegram/MessageEffectId.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageInputReplyTo.h"
@@ -1003,7 +1004,7 @@ class MessagesManager final : public Actor {
     vector<RestrictionReason> restriction_reasons;
     string author_signature;
     int64 media_album_id = 0;
-    int64 effect_id = 0;
+    MessageEffectId effect_id;
     bool is_outgoing = false;
     bool is_silent = false;
     bool is_channel_post = false;
@@ -1120,7 +1121,7 @@ class MessagesManager final : public Actor {
     double ttl_expires_at = 0;    // only for TTL
 
     int64 media_album_id = 0;
-    int64 effect_id = 0;
+    MessageEffectId effect_id;
 
     unique_ptr<MessageContent> content;
 
@@ -1489,11 +1490,12 @@ class MessagesManager final : public Actor {
     bool only_preview = false;
     int32 schedule_date = 0;
     int32 sending_id = 0;
-    int64 effect_id = 0;
+    MessageEffectId effect_id;
 
     MessageSendOptions() = default;
     MessageSendOptions(bool disable_notification, bool from_background, bool update_stickersets_order,
-                       bool protect_content, bool only_preview, int32 schedule_date, int32 sending_id, int64 effect_id)
+                       bool protect_content, bool only_preview, int32 schedule_date, int32 sending_id,
+                       MessageEffectId effect_id)
         : disable_notification(disable_notification)
         , from_background(from_background)
         , update_stickersets_order(update_stickersets_order)

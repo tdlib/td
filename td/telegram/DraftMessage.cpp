@@ -64,7 +64,7 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
       if (media != nullptr) {
         flags |= telegram_api::messages_saveDraft::MEDIA_MASK;
       }
-      if (draft_message->message_effect_id_ != 0) {
+      if (draft_message->message_effect_id_.is_valid()) {
         flags |= telegram_api::messages_saveDraft::EFFECT_MASK;
       }
     }
@@ -72,7 +72,7 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
         telegram_api::messages_saveDraft(
             flags, false /*ignored*/, false /*ignored*/, std::move(input_reply_to), std::move(input_peer),
             draft_message == nullptr ? string() : draft_message->input_message_text_.text.text,
-            std::move(input_message_entities), std::move(media), draft_message->message_effect_id_),
+            std::move(input_message_entities), std::move(media), draft_message->message_effect_id_.get()),
         {{dialog_id}}));
   }
 
@@ -405,7 +405,7 @@ td_api::object_ptr<td_api::draftMessage> DraftMessage::get_draft_message_object(
     input_message_content = input_message_text_.get_input_message_text_object();
   }
   return td_api::make_object<td_api::draftMessage>(message_input_reply_to_.get_input_message_reply_to_object(td), date_,
-                                                   std::move(input_message_content), message_effect_id_);
+                                                   std::move(input_message_content), message_effect_id_.get());
 }
 
 DraftMessage::DraftMessage(Td *td, telegram_api::object_ptr<telegram_api::draftMessage> &&draft_message) {
@@ -432,7 +432,7 @@ DraftMessage::DraftMessage(Td *td, telegram_api::object_ptr<telegram_api::draftM
   }
   input_message_text_ = InputMessageText(std::move(draft_text), std::move(web_page_url), draft_message->no_webpage_,
                                          force_small_media, force_large_media, draft_message->invert_media_, false);
-  message_effect_id_ = draft_message->effect_;
+  message_effect_id_ = MessageEffectId(draft_message->effect_);
 }
 
 Result<unique_ptr<DraftMessage>> DraftMessage::get_draft_message(
@@ -445,7 +445,7 @@ Result<unique_ptr<DraftMessage>> DraftMessage::get_draft_message(
   auto result = make_unique<DraftMessage>();
   result->message_input_reply_to_ = td->messages_manager_->create_message_input_reply_to(
       dialog_id, top_thread_message_id, std::move(draft_message->reply_to_), true);
-  result->message_effect_id_ = draft_message->effect_id_;
+  result->message_effect_id_ = MessageEffectId(draft_message->effect_id_);
 
   auto input_message_content = std::move(draft_message->input_message_text_);
   if (input_message_content != nullptr) {

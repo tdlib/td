@@ -87,6 +87,7 @@
 #include "td/telegram/Location.h"
 #include "td/telegram/Logging.h"
 #include "td/telegram/MessageCopyOptions.h"
+#include "td/telegram/MessageEffectId.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
@@ -5517,7 +5518,7 @@ void Td::on_request(uint64 id, td_api::setSavedMessagesTagLabel &request) {
 void Td::on_request(uint64 id, const td_api::getMessageEffect &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  reaction_manager_->get_message_effect(request.effect_id_, std::move(promise));
+  reaction_manager_->get_message_effect(MessageEffectId(request.effect_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getMessagePublicForwards &request) {
@@ -5773,10 +5774,11 @@ void Td::on_request(uint64 id, td_api::setMessageFactCheck &request) {
 void Td::on_request(uint64 id, td_api::sendBusinessMessage &request) {
   CHECK_IS_BOT();
   CREATE_REQUEST_PROMISE();
-  business_connection_manager_->send_message(
-      BusinessConnectionId(std::move(request.business_connection_id_)), DialogId(request.chat_id_),
-      std::move(request.reply_to_), request.disable_notification_, request.protect_content_, request.effect_id_,
-      std::move(request.reply_markup_), std::move(request.input_message_content_), std::move(promise));
+  business_connection_manager_->send_message(BusinessConnectionId(std::move(request.business_connection_id_)),
+                                             DialogId(request.chat_id_), std::move(request.reply_to_),
+                                             request.disable_notification_, request.protect_content_,
+                                             MessageEffectId(request.effect_id_), std::move(request.reply_markup_),
+                                             std::move(request.input_message_content_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::sendBusinessMessageAlbum &request) {
@@ -5784,8 +5786,8 @@ void Td::on_request(uint64 id, td_api::sendBusinessMessageAlbum &request) {
   CREATE_REQUEST_PROMISE();
   business_connection_manager_->send_message_album(
       BusinessConnectionId(std::move(request.business_connection_id_)), DialogId(request.chat_id_),
-      std::move(request.reply_to_), request.disable_notification_, request.protect_content_, request.effect_id_,
-      std::move(request.input_message_contents_), std::move(promise));
+      std::move(request.reply_to_), request.disable_notification_, request.protect_content_,
+      MessageEffectId(request.effect_id_), std::move(request.input_message_contents_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::loadQuickReplyShortcuts &request) {
