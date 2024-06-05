@@ -8080,6 +8080,13 @@ searchPublicHashtagMessages hashtag:string offset:string limit:int32 = FoundMess
 //@limit The maximum number of stories to be returned; up to 100. For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
 searchPublicHashtagStories hashtag:string offset:string limit:int32 = FoundStories;
 
+//@description Searches for public stories from the given venue. For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
+//@venue_provider Provider of the venue
+//@venue_id Identifier of the venue in the provider database
+//@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
+//@limit The maximum number of stories to be returned; up to 100. For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
+searchPublicVenueStories venue_provider:string venue_id:string offset:string limit:int32 = FoundStories;
+
 //@description Returns recently searched for hashtags or cashtags by their prefix @prefix Prefix of hashtags or cashtags to return @limit The maximum number of items to be returned
 getSearchedForHashtags prefix:string limit:int32 = Hashtags;
 

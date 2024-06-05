@@ -712,10 +712,20 @@ class SearchStoriesQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(string hashtag, string offset, int32 limit) {
+  void send(string hashtag, const string &offset, int32 limit) {
     int32 flags = telegram_api::stories_searchPosts::HASHTAG_MASK;
     send_query(
         G()->net_query_creator().create(telegram_api::stories_searchPosts(flags, hashtag, nullptr, offset, limit)));
+  }
+
+  void send(const string &venue_provider, const string &venue_id, const string &offset, int32 limit) {
+    int32 flags = telegram_api::stories_searchPosts::AREA_MASK;
+    auto area = telegram_api::make_object<telegram_api::mediaAreaVenue>(
+        telegram_api::make_object<telegram_api::mediaAreaCoordinates>(0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        telegram_api::make_object<telegram_api::geoPoint>(0, 0.0, 0.0, 0, 0), string(), string(), venue_provider,
+        venue_id, string());
+    send_query(G()->net_query_creator().create(
+        telegram_api::stories_searchPosts(flags, string(), std::move(area), offset, limit)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -2616,7 +2626,19 @@ void StoryManager::search_hashtag_posts(string hashtag, string offset, int32 lim
                hashtag);
 
   td_->create_handler<SearchStoriesQuery>(std::move(promise))
-      ->send(PSTRING() << (is_cashtag ? '$' : '#') << hashtag, std::move(offset), limit);
+      ->send(PSTRING() << (is_cashtag ? '$' : '#') << hashtag, offset, limit);
+}
+
+void StoryManager::search_venue_posts(string venue_provider, string venue_id, string offset, int32 limit,
+                                      Promise<td_api::object_ptr<td_api::foundStories>> &&promise) {
+  if (limit <= 0) {
+    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+  }
+  if (limit > MAX_SEARCH_STORIES) {
+    limit = MAX_SEARCH_STORIES;
+  }
+
+  td_->create_handler<SearchStoriesQuery>(std::move(promise))->send(venue_provider, venue_id, offset, limit);
 }
 
 void StoryManager::set_pinned_stories(DialogId owner_dialog_id, vector<StoryId> story_ids, Promise<Unit> &&promise) {

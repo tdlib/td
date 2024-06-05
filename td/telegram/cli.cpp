@@ -3070,6 +3070,14 @@ class CliClient final : public Actor {
       string offset;
       get_args(args, hashtag, limit, offset);
       send_request(td_api::make_object<td_api::searchPublicHashtagStories>(hashtag, offset, as_limit(limit)));
+    } else if (op == "spvs") {
+      string venue_provider;
+      string venue_id;
+      string limit;
+      string offset;
+      get_args(args, venue_provider, venue_id, limit, offset);
+      send_request(
+          td_api::make_object<td_api::searchPublicVenueStories>(venue_provider, venue_id, offset, as_limit(limit)));
     } else if (op == "gsfh") {
       string hashtag;
       string limit;

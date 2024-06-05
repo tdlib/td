@@ -5324,6 +5324,16 @@ void Td::on_request(uint64 id, td_api::searchPublicHashtagStories &request) {
                                        std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::searchPublicVenueStories &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.venue_provider_);
+  CLEAN_INPUT_STRING(request.venue_id_);
+  CLEAN_INPUT_STRING(request.offset_);
+  CREATE_REQUEST_PROMISE();
+  story_manager_->search_venue_posts(std::move(request.venue_provider_), std::move(request.venue_id_),
+                                     std::move(request.offset_), request.limit_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::getSearchedForHashtags &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.prefix_);

@@ -256,6 +256,9 @@ class StoryManager final : public Actor {
   void search_hashtag_posts(string hashtag, string offset, int32 limit,
                             Promise<td_api::object_ptr<td_api::foundStories>> &&promise);
 
+  void search_venue_posts(string venue_provider, string venue_id, string offset, int32 limit,
+                          Promise<td_api::object_ptr<td_api::foundStories>> &&promise);
+
   void set_pinned_stories(DialogId owner_dialog_id, vector<StoryId> story_ids, Promise<Unit> &&promise);
 
   void open_story(DialogId owner_dialog_id, StoryId story_id, Promise<Unit> &&promise);
