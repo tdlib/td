@@ -22,10 +22,12 @@ void DraftMessage::store(StorerT &storer) const {
   bool has_input_message_text = !input_message_text_.is_empty();
   bool has_message_input_reply_to = !message_input_reply_to_.is_empty();
   bool has_local_content = local_content_ != nullptr;
+  bool has_message_effect_id = message_effect_id_ != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_input_message_text);
   STORE_FLAG(has_message_input_reply_to);
   STORE_FLAG(has_local_content);
+  STORE_FLAG(has_message_effect_id);
   END_STORE_FLAGS();
   td::store(date_, storer);
   if (has_input_message_text) {
@@ -37,6 +39,9 @@ void DraftMessage::store(StorerT &storer) const {
   if (has_local_content) {
     store_draft_message_content(local_content_.get(), storer);
   }
+  if (has_message_effect_id) {
+    td::store(message_effect_id_, storer);
+  }
 }
 
 template <class ParserT>
@@ -45,12 +50,14 @@ void DraftMessage::parse(ParserT &parser) {
   bool has_input_message_text;
   bool has_message_input_reply_to = false;
   bool has_local_content = false;
+  bool has_message_effect_id = false;
   if (parser.version() >= static_cast<int32>(Version::SupportRepliesInOtherChats)) {
     has_legacy_reply_to_message_id = false;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_input_message_text);
     PARSE_FLAG(has_message_input_reply_to);
     PARSE_FLAG(has_local_content);
+    PARSE_FLAG(has_message_effect_id);
     END_PARSE_FLAGS();
   } else {
     has_legacy_reply_to_message_id = true;
@@ -70,6 +77,9 @@ void DraftMessage::parse(ParserT &parser) {
   }
   if (has_local_content) {
     parse_draft_message_content(local_content_, parser);
+  }
+  if (has_message_effect_id) {
+    td::parse(message_effect_id_, parser);
   }
 }
 
