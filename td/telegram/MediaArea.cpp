@@ -14,6 +14,7 @@
 #include "td/telegram/InlineQueriesManager.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 
@@ -73,8 +74,17 @@ MediaArea::MediaArea(Td *td, telegram_api::object_ptr<telegram_api::MediaArea> &
       }
       break;
     }
-    case telegram_api::mediaAreaUrl::ID:
+    case telegram_api::mediaAreaUrl::ID: {
+      auto area = telegram_api::move_object_as<telegram_api::mediaAreaUrl>(media_area_ptr);
+      coordinates_ = MediaAreaCoordinates(area->coordinates_);
+      if (coordinates_.is_valid()) {
+        type_ = Type::Url;
+        url_ = std::move(area->url_);
+      } else {
+        LOG(ERROR) << "Receive " << to_string(area);
+      }
       break;
+    }
     case telegram_api::inputMediaAreaVenue::ID:
       LOG(ERROR) << "Receive " << to_string(media_area_ptr);
       break;
@@ -169,6 +179,15 @@ MediaArea::MediaArea(Td *td, td_api::object_ptr<td_api::inputStoryArea> &&input_
       }
       break;
     }
+    case td_api::inputStoryAreaTypeLink::ID: {
+      auto type = td_api::move_object_as<td_api::inputStoryAreaTypeLink>(input_story_area->type_);
+      if (!clean_input_string(type->url_)) {
+        break;
+      }
+      url_ = std::move(type->url_);
+      type_ = Type::Url;
+      break;
+    }
     default:
       UNREACHABLE();
   }
@@ -205,6 +224,9 @@ td_api::object_ptr<td_api::storyArea> MediaArea::get_story_area_object(
           td->dialog_manager_->get_chat_id_object(message_full_id_.get_dialog_id(), "storyAreaTypeMessage"),
           message_full_id_.get_message_id().get());
       break;
+    case Type::Url:
+      type = td_api::make_object<td_api::storyAreaTypeLink>(url_);
+      break;
     default:
       UNREACHABLE();
   }
@@ -237,20 +259,23 @@ telegram_api::object_ptr<telegram_api::MediaArea> MediaArea::get_input_media_are
           flags, false /*ignored*/, false /*ignored*/, coordinates_.get_input_media_area_coordinates(),
           reaction_type_.get_input_reaction());
     }
-    case Type::Message:
+    case Type::Message: {
+      auto channel_id = message_full_id_.get_dialog_id().get_channel_id();
+      auto server_message_id = message_full_id_.get_message_id().get_server_message_id();
       if (!is_old_message_) {
-        auto input_channel = td->chat_manager_->get_input_channel(message_full_id_.get_dialog_id().get_channel_id());
+        auto input_channel = td->chat_manager_->get_input_channel(channel_id);
         if (input_channel == nullptr) {
           return nullptr;
         }
         return telegram_api::make_object<telegram_api::inputMediaAreaChannelPost>(
-            coordinates_.get_input_media_area_coordinates(), std::move(input_channel),
-            message_full_id_.get_message_id().get_server_message_id().get());
+            coordinates_.get_input_media_area_coordinates(), std::move(input_channel), server_message_id.get());
       }
       return telegram_api::make_object<telegram_api::mediaAreaChannelPost>(
-          coordinates_.get_input_media_area_coordinates(),
-          message_full_id_.get_message_id().get_server_message_id().get(),
-          message_full_id_.get_message_id().get_server_message_id().get());
+          coordinates_.get_input_media_area_coordinates(), channel_id.get(), server_message_id.get());
+    }
+    case Type::Url:
+      return telegram_api::make_object<telegram_api::mediaAreaUrl>(coordinates_.get_input_media_area_coordinates(),
+                                                                   url_);
     default:
       UNREACHABLE();
       return nullptr;

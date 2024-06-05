@@ -1379,6 +1379,8 @@ class CliClient final : public Actor {
           std::tie(chat_id, message_id) = split(area.substr(1), ':');
           type = td_api::make_object<td_api::inputStoryAreaTypeMessage>(to_integer<int64>(chat_id),
                                                                         as_message_id(message_id));
+        } else if (area[0] == 'u') {
+          type = td_api::make_object<td_api::inputStoryAreaTypeLink>(area.substr(1));
         }
         result->areas_.push_back(td_api::make_object<td_api::inputStoryArea>(std::move(position), std::move(type)));
       }

@@ -42,6 +42,9 @@ void MediaArea::store(StorerT &storer) const {
     case Type::Message:
       store(message_full_id_, storer);
       break;
+    case Type::Url:
+      store(url_, storer);
+      break;
     default:
       UNREACHABLE();
   }
@@ -75,6 +78,9 @@ void MediaArea::parse(ParserT &parser) {
       break;
     case Type::Message:
       parse(message_full_id_, parser);
+      break;
+    case Type::Url:
+      parse(url_, parser);
       break;
     default:
       parser.set_error("Load invalid area type");

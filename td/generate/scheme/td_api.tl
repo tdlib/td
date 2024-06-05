@@ -3882,6 +3882,9 @@ storyAreaTypeSuggestedReaction reaction_type:ReactionType total_count:int32 is_d
 //@description An area pointing to a message @chat_id Identifier of the chat with the message @message_id Identifier of the message
 storyAreaTypeMessage chat_id:int53 message_id:int53 = StoryAreaType;
 
+//@description An area pointing to a HTTP or tg:// link @url HTTP or tg:// URL to be opened when the area is clicked
+storyAreaTypeLink url:string = StoryAreaType;
+
 
 //@description Describes a clickable rectangle area on a story media @position Position of the area @type Type of the area
 storyArea position:storyAreaPosition type:StoryAreaType = StoryArea;
@@ -3912,6 +3915,10 @@ inputStoryAreaTypeSuggestedReaction reaction_type:ReactionType is_dark:Bool is_f
 //@chat_id Identifier of the chat with the message. Currently, the chat must be a supergroup or a channel chat
 //@message_id Identifier of the message. Only successfully sent non-scheduled messages can be specified
 inputStoryAreaTypeMessage chat_id:int53 message_id:int53 = InputStoryAreaType;
+
+//@description An area pointing to a HTTP or tg:// link
+//@url HTTP or tg:// URL to be opened when the area is clicked
+inputStoryAreaTypeLink url:string = InputStoryAreaType;
 
 
 //@description Describes a clickable rectangle area on a story media to be added @position Position of the area @type Type of the area
