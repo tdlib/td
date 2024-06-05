@@ -5306,25 +5306,25 @@ void Td::on_request(uint64 id, td_api::searchOutgoingDocumentMessages &request) 
   messages_manager_->search_outgoing_document_messages(request.query_, request.limit_, std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::searchPublicHashtagMessages &request) {
+void Td::on_request(uint64 id, td_api::searchPublicMessagesByTag &request) {
   CHECK_IS_USER();
-  CLEAN_INPUT_STRING(request.hashtag_);
+  CLEAN_INPUT_STRING(request.tag_);
   CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();
-  messages_manager_->search_hashtag_posts(std::move(request.hashtag_), std::move(request.offset_), request.limit_,
+  messages_manager_->search_hashtag_posts(std::move(request.tag_), std::move(request.offset_), request.limit_,
                                           std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::searchPublicHashtagStories &request) {
+void Td::on_request(uint64 id, td_api::searchPublicStoriesByTag &request) {
   CHECK_IS_USER();
-  CLEAN_INPUT_STRING(request.hashtag_);
+  CLEAN_INPUT_STRING(request.tag_);
   CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();
-  story_manager_->search_hashtag_posts(std::move(request.hashtag_), std::move(request.offset_), request.limit_,
+  story_manager_->search_hashtag_posts(std::move(request.tag_), std::move(request.offset_), request.limit_,
                                        std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::searchPublicVenueStories &request) {
+void Td::on_request(uint64 id, td_api::searchPublicStoriesByVenue &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.venue_provider_);
   CLEAN_INPUT_STRING(request.venue_id_);
@@ -5334,9 +5334,9 @@ void Td::on_request(uint64 id, td_api::searchPublicVenueStories &request) {
                                      std::move(request.offset_), request.limit_, std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::getSearchedForHashtags &request) {
+void Td::on_request(uint64 id, td_api::getSearchedForTags &request) {
   CHECK_IS_USER();
-  CLEAN_INPUT_STRING(request.prefix_);
+  CLEAN_INPUT_STRING(request.tag_prefix_);
   CREATE_REQUEST_PROMISE();
   auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<vector<string>> result) mutable {
     if (result.is_error()) {
@@ -5345,19 +5345,19 @@ void Td::on_request(uint64 id, td_api::getSearchedForHashtags &request) {
       promise.set_value(td_api::make_object<td_api::hashtags>(result.move_as_ok()));
     }
   });
-  send_closure(request.prefix_[0] == '$' ? cashtag_search_hints_ : hashtag_search_hints_, &HashtagHints::query,
-               std::move(request.prefix_), request.limit_, std::move(query_promise));
+  send_closure(request.tag_prefix_[0] == '$' ? cashtag_search_hints_ : hashtag_search_hints_, &HashtagHints::query,
+               std::move(request.tag_prefix_), request.limit_, std::move(query_promise));
 }
 
-void Td::on_request(uint64 id, td_api::removeSearchedForHashtag &request) {
+void Td::on_request(uint64 id, td_api::removeSearchedForTag &request) {
   CHECK_IS_USER();
-  CLEAN_INPUT_STRING(request.hashtag_);
+  CLEAN_INPUT_STRING(request.tag_);
   CREATE_OK_REQUEST_PROMISE();
-  send_closure(request.hashtag_[0] == '$' ? cashtag_search_hints_ : hashtag_search_hints_,
-               &HashtagHints::remove_hashtag, std::move(request.hashtag_), std::move(promise));
+  send_closure(request.tag_[0] == '$' ? cashtag_search_hints_ : hashtag_search_hints_, &HashtagHints::remove_hashtag,
+               std::move(request.tag_), std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::clearSearchedForHashtags &request) {
+void Td::on_request(uint64 id, td_api::clearSearchedForTags &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   send_closure(request.clear_cashtags_ ? cashtag_search_hints_ : hashtag_search_hints_, &HashtagHints::clear,

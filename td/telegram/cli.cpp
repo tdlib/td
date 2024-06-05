@@ -3058,37 +3058,37 @@ class CliClient final : public Actor {
       SearchQuery query;
       get_args(args, query);
       send_request(td_api::make_object<td_api::searchOutgoingDocumentMessages>(query.query, query.limit));
-    } else if (op == "sphm") {
-      string hashtag;
+    } else if (op == "spmbt") {
+      string tag;
       string limit;
       string offset;
-      get_args(args, hashtag, limit, offset);
-      send_request(td_api::make_object<td_api::searchPublicHashtagMessages>(hashtag, offset, as_limit(limit)));
-    } else if (op == "sphs") {
-      string hashtag;
+      get_args(args, tag, limit, offset);
+      send_request(td_api::make_object<td_api::searchPublicMessagesByTag>(tag, offset, as_limit(limit)));
+    } else if (op == "spsbt") {
+      string tag;
       string limit;
       string offset;
-      get_args(args, hashtag, limit, offset);
-      send_request(td_api::make_object<td_api::searchPublicHashtagStories>(hashtag, offset, as_limit(limit)));
-    } else if (op == "spvs") {
+      get_args(args, tag, limit, offset);
+      send_request(td_api::make_object<td_api::searchPublicStoriesByTag>(tag, offset, as_limit(limit)));
+    } else if (op == "spsbv") {
       string venue_provider;
       string venue_id;
       string limit;
       string offset;
       get_args(args, venue_provider, venue_id, limit, offset);
       send_request(
-          td_api::make_object<td_api::searchPublicVenueStories>(venue_provider, venue_id, offset, as_limit(limit)));
+          td_api::make_object<td_api::searchPublicStoriesByVenue>(venue_provider, venue_id, offset, as_limit(limit)));
     } else if (op == "gsfh") {
-      string hashtag;
+      string tag_prefix;
       string limit;
-      get_args(args, hashtag, limit);
-      send_request(td_api::make_object<td_api::getSearchedForHashtags>(hashtag, as_limit(limit)));
+      get_args(args, tag_prefix, limit);
+      send_request(td_api::make_object<td_api::getSearchedForTags>(tag_prefix, as_limit(limit)));
     } else if (op == "rsfh") {
-      string hashtag;
-      get_args(args, hashtag);
-      send_request(td_api::make_object<td_api::removeSearchedForHashtag>(hashtag));
+      string tag;
+      get_args(args, tag);
+      send_request(td_api::make_object<td_api::removeSearchedForTag>(tag));
     } else if (op == "csfh" || op == "csfc") {
-      send_request(td_api::make_object<td_api::clearSearchedForHashtags>(op == "csfc"));
+      send_request(td_api::make_object<td_api::clearSearchedForTags>(op == "csfc"));
     } else if (op == "DeleteAllCallMessages") {
       bool revoke = as_bool(args);
       send_request(td_api::make_object<td_api::deleteAllCallMessages>(revoke));

@@ -8069,32 +8069,32 @@ searchCallMessages offset:string limit:int32 only_missed:Bool = FoundMessages;
 searchOutgoingDocumentMessages query:string limit:int32 = FoundMessages;
 
 //@description Searches for public channel posts containing the given hashtag or cashtag. For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
-//@hashtag Hashtag or cashtag to search for
+//@tag Hashtag or cashtag to search for
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of messages to be returned; up to 100. For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
-searchPublicHashtagMessages hashtag:string offset:string limit:int32 = FoundMessages;
+searchPublicMessagesByTag tag:string offset:string limit:int32 = FoundMessages;
 
 //@description Searches for public stories containing the given hashtag or cashtag. For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
-//@hashtag Hashtag or cashtag to search for
+//@tag Hashtag or cashtag to search for
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of stories to be returned; up to 100. For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
-searchPublicHashtagStories hashtag:string offset:string limit:int32 = FoundStories;
+searchPublicStoriesByTag tag:string offset:string limit:int32 = FoundStories;
 
 //@description Searches for public stories from the given venue. For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
 //@venue_provider Provider of the venue
 //@venue_id Identifier of the venue in the provider database
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of stories to be returned; up to 100. For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
-searchPublicVenueStories venue_provider:string venue_id:string offset:string limit:int32 = FoundStories;
+searchPublicStoriesByVenue venue_provider:string venue_id:string offset:string limit:int32 = FoundStories;
 
-//@description Returns recently searched for hashtags or cashtags by their prefix @prefix Prefix of hashtags or cashtags to return @limit The maximum number of items to be returned
-getSearchedForHashtags prefix:string limit:int32 = Hashtags;
+//@description Returns recently searched for hashtags or cashtags by their prefix @tag_prefix Prefix of hashtags or cashtags to return @limit The maximum number of items to be returned
+getSearchedForTags tag_prefix:string limit:int32 = Hashtags;
 
-//@description Removes a hashtag or a cashtag from the list of recently searched for hashtags or cashtags @hashtag Hashtag or cashtag to delete
-removeSearchedForHashtag hashtag:string = Ok;
+//@description Removes a hashtag or a cashtag from the list of recently searched for hashtags or cashtags @tag Hashtag or cashtag to delete
+removeSearchedForTag tag:string = Ok;
 
 //@description Clears the list of recently searched for hashtags or cashtags @clear_cashtags Pass true to clear the list of recently searched for cashtags; otherwise the list of recently searched for hashtags will be cleared
-clearSearchedForHashtags clear_cashtags:Bool = Ok;
+clearSearchedForTags clear_cashtags:Bool = Ok;
 
 //@description Deletes all call messages @revoke Pass true to delete the messages for all users
 deleteAllCallMessages revoke:Bool = Ok;

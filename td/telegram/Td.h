@@ -798,17 +798,17 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::searchOutgoingDocumentMessages &request);
 
-  void on_request(uint64 id, td_api::searchPublicHashtagMessages &request);
+  void on_request(uint64 id, td_api::searchPublicMessagesByTag &request);
 
-  void on_request(uint64 id, td_api::searchPublicHashtagStories &request);
+  void on_request(uint64 id, td_api::searchPublicStoriesByTag &request);
 
-  void on_request(uint64 id, td_api::searchPublicVenueStories &request);
+  void on_request(uint64 id, td_api::searchPublicStoriesByVenue &request);
 
-  void on_request(uint64 id, td_api::getSearchedForHashtags &request);
+  void on_request(uint64 id, td_api::getSearchedForTags &request);
 
-  void on_request(uint64 id, td_api::removeSearchedForHashtag &request);
+  void on_request(uint64 id, td_api::removeSearchedForTag &request);
 
-  void on_request(uint64 id, td_api::clearSearchedForHashtags &request);
+  void on_request(uint64 id, td_api::clearSearchedForTags &request);
 
   void on_request(uint64 id, const td_api::deleteAllCallMessages &request);
 
