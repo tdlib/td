@@ -4605,7 +4605,7 @@ class CliClient final : public Actor {
       double duration;
       string sticker_file_ids;
       bool protect_content;
-      get_args(args, chat_id, video, caption, areas, rules, active_period, duration, sticker_file_ids, protect_content);
+      get_args(args, chat_id, video, caption, rules, areas, active_period, duration, sticker_file_ids, protect_content);
       send_request(td_api::make_object<td_api::sendStory>(
           chat_id,
           td_api::make_object<td_api::inputStoryContentVideo>(as_input_file(video),
