@@ -30,8 +30,9 @@ BusinessIntro::BusinessIntro(Td *td, telegram_api::object_ptr<telegram_api::busi
   }
   title_ = std::move(intro->title_);
   description_ = std::move(intro->description_);
-  sticker_file_id_ =
-      td->stickers_manager_->on_get_sticker_document(std::move(intro->sticker_), StickerFormat::Unknown).second;
+  sticker_file_id_ = td->stickers_manager_
+                         ->on_get_sticker_document(std::move(intro->sticker_), StickerFormat::Unknown, "BusinessIntro")
+                         .second;
 }
 
 BusinessIntro::BusinessIntro(Td *td, td_api::object_ptr<td_api::inputBusinessStartPage> intro) {

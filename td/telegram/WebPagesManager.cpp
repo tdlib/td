@@ -623,8 +623,10 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
               LOG(ERROR) << "Receive duplicate webPageAttributeStickerSet";
             }
             for (auto &sticker : attribute->stickers_) {
-              auto sticker_id =
-                  td_->stickers_manager_->on_get_sticker_document(std::move(sticker), StickerFormat::Unknown).second;
+              auto sticker_id = td_->stickers_manager_
+                                    ->on_get_sticker_document(std::move(sticker), StickerFormat::Unknown,
+                                                              "webPageAttributeStickerSet")
+                                    .second;
               if (sticker_id.is_valid() && page->sticker_ids_.size() < 4) {
                 page->sticker_ids_.push_back(sticker_id);
               }

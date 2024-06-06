@@ -3005,20 +3005,20 @@ bool StickersManager::has_webp_thumbnail(const vector<tl_object_ptr<telegram_api
 }
 
 std::pair<int64, FileId> StickersManager::on_get_sticker_document(tl_object_ptr<telegram_api::Document> &&document_ptr,
-                                                                  StickerFormat expected_format) {
+                                                                  StickerFormat expected_format, const char *source) {
   if (document_ptr == nullptr) {
     return {};
   }
   int32 document_constructor_id = document_ptr->get_id();
   if (document_constructor_id == telegram_api::documentEmpty::ID) {
-    LOG(ERROR) << "Empty sticker document received";
+    LOG(ERROR) << "Empty sticker document received from " << source;
     return {};
   }
   CHECK(document_constructor_id == telegram_api::document::ID);
   auto document = move_tl_object_as<telegram_api::document>(document_ptr);
 
   if (!DcId::is_valid(document->dc_id_)) {
-    LOG(ERROR) << "Wrong dc_id = " << document->dc_id_ << " in document " << to_string(document);
+    LOG(ERROR) << "Wrong dc_id = " << document->dc_id_ << " from " << source << " in document " << to_string(document);
     return {};
   }
   auto dc_id = DcId::internal(document->dc_id_);
@@ -3050,14 +3050,15 @@ std::pair<int64, FileId> StickersManager::on_get_sticker_document(tl_object_ptr<
   }
   if (sticker == nullptr && custom_emoji == nullptr) {
     if (document->mime_type_ != "application/x-bad-tgsticker") {
-      LOG(ERROR) << "Have no attributeSticker in sticker " << to_string(document);
+      LOG(ERROR) << "Have no attributeSticker from " << source << " in " << to_string(document);
     }
     return {};
   }
 
   auto format = get_sticker_format_by_mime_type(document->mime_type_);
   if (format == StickerFormat::Unknown || (expected_format != StickerFormat::Unknown && format != expected_format)) {
-    LOG(ERROR) << "Expected sticker of the type " << expected_format << ", but received of the type " << format;
+    LOG(ERROR) << "Expected sticker of the type " << expected_format << ", but received of the type " << format
+               << " from " << source;
     return {};
   }
   int64 document_id = document->id_;
@@ -3808,7 +3809,7 @@ StickerSetId StickersManager::on_get_sticker_set_covered(tl_object_ptr<telegram_
 
       auto &sticker_ids = sticker_set->sticker_ids_;
 
-      auto sticker_id = on_get_sticker_document(std::move(covered_set->cover_), StickerFormat::Unknown).second;
+      auto sticker_id = on_get_sticker_document(std::move(covered_set->cover_), StickerFormat::Unknown, source).second;
       if (sticker_id.is_valid() && !td::contains(sticker_ids, sticker_id)) {
         sticker_ids.push_back(sticker_id);
         sticker_set->is_changed_ = true;
@@ -3832,7 +3833,7 @@ StickerSetId StickersManager::on_get_sticker_set_covered(tl_object_ptr<telegram_
       auto &sticker_ids = sticker_set->sticker_ids_;
 
       for (auto &cover : multicovered_set->covers_) {
-        auto sticker_id = on_get_sticker_document(std::move(cover), StickerFormat::Unknown).second;
+        auto sticker_id = on_get_sticker_document(std::move(cover), StickerFormat::Unknown, source).second;
         if (sticker_id.is_valid() && !td::contains(sticker_ids, sticker_id)) {
           sticker_ids.push_back(sticker_id);
           sticker_set->is_changed_ = true;
@@ -3915,7 +3916,7 @@ StickerSetId StickersManager::on_get_messages_sticker_set(StickerSetId sticker_s
   s->premium_sticker_positions_.clear();
   bool is_bot = td_->auth_manager_->is_bot();
   for (auto &document_ptr : set->documents_) {
-    auto sticker_id = on_get_sticker_document(std::move(document_ptr), StickerFormat::Unknown);
+    auto sticker_id = on_get_sticker_document(std::move(document_ptr), StickerFormat::Unknown, source);
     if (!sticker_id.second.is_valid() || sticker_id.first == 0) {
       continue;
     }
@@ -4730,7 +4731,8 @@ void StickersManager::on_find_stickers_success(const string &emoji,
 
       vector<FileId> sticker_ids;
       for (auto &sticker : received_stickers->stickers_) {
-        FileId sticker_id = on_get_sticker_document(std::move(sticker), StickerFormat::Unknown).second;
+        FileId sticker_id =
+            on_get_sticker_document(std::move(sticker), StickerFormat::Unknown, "on_find_stickers_success").second;
         if (sticker_id.is_valid()) {
           sticker_ids.push_back(sticker_id);
         }
@@ -6404,7 +6406,7 @@ void StickersManager::on_get_custom_emoji_documents(
       continue;
     }
 
-    on_get_sticker_document(std::move(document), StickerFormat::Unknown);
+    on_get_sticker_document(std::move(document), StickerFormat::Unknown, "on_get_custom_emoji_documents");
   }
 
   promise.set_value(get_custom_emoji_stickers_object(custom_emoji_ids));
@@ -8938,7 +8940,8 @@ void StickersManager::on_get_recent_stickers(bool is_repair, bool is_attached,
   vector<FileId> recent_sticker_ids;
   recent_sticker_ids.reserve(stickers->stickers_.size());
   for (auto &document_ptr : stickers->stickers_) {
-    auto sticker_id = on_get_sticker_document(std::move(document_ptr), StickerFormat::Unknown).second;
+    auto sticker_id =
+        on_get_sticker_document(std::move(document_ptr), StickerFormat::Unknown, "on_get_recent_stickers").second;
     if (!sticker_id.is_valid()) {
       continue;
     }
@@ -9332,7 +9335,8 @@ void StickersManager::on_get_favorite_stickers(
   vector<FileId> favorite_sticker_ids;
   favorite_sticker_ids.reserve(favorite_stickers->stickers_.size());
   for (auto &document_ptr : favorite_stickers->stickers_) {
-    auto sticker_id = on_get_sticker_document(std::move(document_ptr), StickerFormat::Unknown).second;
+    auto sticker_id =
+        on_get_sticker_document(std::move(document_ptr), StickerFormat::Unknown, "on_get_favorite_stickers").second;
     if (!sticker_id.is_valid()) {
       continue;
     }

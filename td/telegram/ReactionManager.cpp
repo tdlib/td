@@ -874,31 +874,32 @@ void ReactionManager::on_get_available_reactions(
     reaction.title_ = std::move(available_reaction->title_);
     reaction.static_icon_ =
         td_->stickers_manager_
-            ->on_get_sticker_document(std::move(available_reaction->static_icon_), StickerFormat::Webp)
+            ->on_get_sticker_document(std::move(available_reaction->static_icon_), StickerFormat::Webp, "static_icon")
             .second;
-    reaction.appear_animation_ =
-        td_->stickers_manager_
-            ->on_get_sticker_document(std::move(available_reaction->appear_animation_), StickerFormat::Tgs)
-            .second;
-    reaction.select_animation_ =
-        td_->stickers_manager_
-            ->on_get_sticker_document(std::move(available_reaction->select_animation_), StickerFormat::Tgs)
-            .second;
-    reaction.activate_animation_ =
-        td_->stickers_manager_
-            ->on_get_sticker_document(std::move(available_reaction->activate_animation_), StickerFormat::Tgs)
-            .second;
-    reaction.effect_animation_ =
-        td_->stickers_manager_
-            ->on_get_sticker_document(std::move(available_reaction->effect_animation_), StickerFormat::Tgs)
-            .second;
-    reaction.around_animation_ =
-        td_->stickers_manager_
-            ->on_get_sticker_document(std::move(available_reaction->around_animation_), StickerFormat::Tgs)
-            .second;
-    reaction.center_animation_ =
-        td_->stickers_manager_->on_get_sticker_document(std::move(available_reaction->center_icon_), StickerFormat::Tgs)
-            .second;
+    reaction.appear_animation_ = td_->stickers_manager_
+                                     ->on_get_sticker_document(std::move(available_reaction->appear_animation_),
+                                                               StickerFormat::Tgs, "appear_animation")
+                                     .second;
+    reaction.select_animation_ = td_->stickers_manager_
+                                     ->on_get_sticker_document(std::move(available_reaction->select_animation_),
+                                                               StickerFormat::Tgs, "select_animation")
+                                     .second;
+    reaction.activate_animation_ = td_->stickers_manager_
+                                       ->on_get_sticker_document(std::move(available_reaction->activate_animation_),
+                                                                 StickerFormat::Tgs, "activate_animation")
+                                       .second;
+    reaction.effect_animation_ = td_->stickers_manager_
+                                     ->on_get_sticker_document(std::move(available_reaction->effect_animation_),
+                                                               StickerFormat::Tgs, "effect_animation")
+                                     .second;
+    reaction.around_animation_ = td_->stickers_manager_
+                                     ->on_get_sticker_document(std::move(available_reaction->around_animation_),
+                                                               StickerFormat::Tgs, "around_animation")
+                                     .second;
+    reaction.center_animation_ = td_->stickers_manager_
+                                     ->on_get_sticker_document(std::move(available_reaction->center_icon_),
+                                                               StickerFormat::Tgs, "center_animation")
+                                     .second;
 
     if (!reaction.is_valid()) {
       LOG(ERROR) << "Receive invalid " << reaction.reaction_type_;
@@ -1310,7 +1311,8 @@ void ReactionManager::on_get_message_effects(
       auto effects = telegram_api::move_object_as<telegram_api::messages_availableEffects>(message_effects);
       FlatHashMap<int64, FileId> stickers;
       for (auto &document : effects->documents_) {
-        auto sticker = td_->stickers_manager_->on_get_sticker_document(std::move(document), StickerFormat::Unknown);
+        auto sticker = td_->stickers_manager_->on_get_sticker_document(std::move(document), StickerFormat::Unknown,
+                                                                       "on_get_message_effects");
         if (sticker.first != 0 && sticker.second.is_valid()) {
           stickers.emplace(sticker.first, sticker.second);
         } else {

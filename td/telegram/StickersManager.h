@@ -206,7 +206,7 @@ class StickersManager final : public Actor {
   void reload_special_sticker_set_by_type(SpecialStickerSetType type, bool is_recursive = false);
 
   std::pair<int64, FileId> on_get_sticker_document(tl_object_ptr<telegram_api::Document> &&document_ptr,
-                                                   StickerFormat expected_format);
+                                                   StickerFormat expected_format, const char *source);
 
   void on_get_installed_sticker_sets(StickerType sticker_type,
                                      tl_object_ptr<telegram_api::messages_AllStickers> &&stickers_ptr);
