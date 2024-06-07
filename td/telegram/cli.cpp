@@ -3073,6 +3073,17 @@ class CliClient final : public Actor {
       string offset;
       get_args(args, tag, limit, offset);
       send_request(td_api::make_object<td_api::searchPublicStoriesByTag>(tag, offset, as_limit(limit)));
+    } else if (op == "spsbl") {
+      string country_code;
+      string state;
+      string city;
+      string street;
+      string venue_id;
+      string limit;
+      string offset;
+      get_args(args, country_code, state, city, street, limit, offset);
+      send_request(td_api::make_object<td_api::searchPublicStoriesByLocation>(
+          td_api::make_object<td_api::locationAddress>(country_code, state, city, street), offset, as_limit(limit)));
     } else if (op == "spsbv") {
       string venue_provider;
       string venue_id;

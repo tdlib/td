@@ -8104,6 +8104,12 @@ searchPublicMessagesByTag tag:string offset:string limit:int32 = FoundMessages;
 //@limit The maximum number of stories to be returned; up to 100. For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
 searchPublicStoriesByTag tag:string offset:string limit:int32 = FoundStories;
 
+//@description Searches for public stories by the given address location. For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
+//@address Address of the location
+//@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
+//@limit The maximum number of stories to be returned; up to 100. For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
+searchPublicStoriesByLocation address:locationAddress offset:string limit:int32 = FoundStories;
+
 //@description Searches for public stories from the given venue. For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
 //@venue_provider Provider of the venue
 //@venue_id Identifier of the venue in the provider database

@@ -718,6 +718,30 @@ class SearchStoriesQuery final : public Td::ResultHandler {
         G()->net_query_creator().create(telegram_api::stories_searchPosts(flags, hashtag, nullptr, offset, limit)));
   }
 
+  void send(td_api::object_ptr<td_api::locationAddress> &&address, const string &offset, int32 limit) {
+    int32 flags = telegram_api::stories_searchPosts::AREA_MASK;
+
+    int32 address_flags = 0;
+    if (!address->state_.empty()) {
+      address_flags |= telegram_api::geoPointAddress::STATE_MASK;
+    }
+    if (!address->city_.empty()) {
+      address_flags |= telegram_api::geoPointAddress::CITY_MASK;
+    }
+    if (!address->street_.empty()) {
+      address_flags |= telegram_api::geoPointAddress::STREET_MASK;
+    }
+
+    auto area = telegram_api::make_object<telegram_api::mediaAreaGeoPoint>(
+        telegram_api::mediaAreaGeoPoint::ADDRESS_MASK,
+        telegram_api::make_object<telegram_api::mediaAreaCoordinates>(0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        telegram_api::make_object<telegram_api::geoPoint>(0, 0.0, 0.0, 0, 0),
+        telegram_api::make_object<telegram_api::geoPointAddress>(address_flags, address->country_code_, address->state_,
+                                                                 address->city_, address->street_));
+    send_query(G()->net_query_creator().create(
+        telegram_api::stories_searchPosts(flags, string(), std::move(area), offset, limit)));
+  }
+
   void send(const string &venue_provider, const string &venue_id, const string &offset, int32 limit) {
     int32 flags = telegram_api::stories_searchPosts::AREA_MASK;
     auto area = telegram_api::make_object<telegram_api::mediaAreaVenue>(
@@ -2627,6 +2651,18 @@ void StoryManager::search_hashtag_posts(string hashtag, string offset, int32 lim
 
   td_->create_handler<SearchStoriesQuery>(std::move(promise))
       ->send(PSTRING() << (is_cashtag ? '$' : '#') << hashtag, offset, limit);
+}
+
+void StoryManager::search_location_posts(td_api::object_ptr<td_api::locationAddress> &&address, string offset,
+                                         int32 limit, Promise<td_api::object_ptr<td_api::foundStories>> &&promise) {
+  if (limit <= 0) {
+    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+  }
+  if (limit > MAX_SEARCH_STORIES) {
+    limit = MAX_SEARCH_STORIES;
+  }
+
+  td_->create_handler<SearchStoriesQuery>(std::move(promise))->send(std::move(address), offset, limit);
 }
 
 void StoryManager::search_venue_posts(string venue_provider, string venue_id, string offset, int32 limit,

@@ -5325,6 +5325,21 @@ void Td::on_request(uint64 id, td_api::searchPublicStoriesByTag &request) {
                                        std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::searchPublicStoriesByLocation &request) {
+  CHECK_IS_USER();
+  if (request.address_ == nullptr) {
+    return send_error_raw(id, 400, "Address must be non-empty");
+  }
+  CLEAN_INPUT_STRING(request.address_->country_code_);
+  CLEAN_INPUT_STRING(request.address_->state_);
+  CLEAN_INPUT_STRING(request.address_->city_);
+  CLEAN_INPUT_STRING(request.address_->street_);
+  CLEAN_INPUT_STRING(request.offset_);
+  CREATE_REQUEST_PROMISE();
+  story_manager_->search_location_posts(std::move(request.address_), std::move(request.offset_), request.limit_,
+                                        std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::searchPublicStoriesByVenue &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.venue_provider_);

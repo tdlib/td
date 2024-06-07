@@ -802,6 +802,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::searchPublicStoriesByTag &request);
 
+  void on_request(uint64 id, td_api::searchPublicStoriesByLocation &request);
+
   void on_request(uint64 id, td_api::searchPublicStoriesByVenue &request);
 
   void on_request(uint64 id, td_api::getSearchedForTags &request);
