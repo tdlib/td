@@ -5278,6 +5278,12 @@ class CliClient final : public Actor {
       get_args(args, chat_id, message_id);
       send_request(td_api::make_object<td_api::getCallbackQueryAnswer>(
           chat_id, message_id, td_api::make_object<td_api::callbackQueryPayloadGame>("")));
+    } else if (op == "acq" || op == "acqa") {
+      int64 callback_query_id;
+      string text;
+      get_args(args, callback_query_id, text);
+      send_request(
+          td_api::make_object<td_api::answerCallbackQuery>(callback_query_id, text, op == "acqa", string(), 0));
     } else {
       op_not_found_count++;
     }
