@@ -1359,7 +1359,8 @@ class CliClient final : public Actor {
         td_api::object_ptr<td_api::InputStoryAreaType> type;
         if (area == "l") {
           type = td_api::make_object<td_api::inputStoryAreaTypeLocation>(
-              td_api::make_object<td_api::location>(Random::fast(-50, 50), Random::fast(-50, 50), 0.0));
+              td_api::make_object<td_api::location>(Random::fast(-50, 50), Random::fast(-50, 50), 0.0),
+              td_api::make_object<td_api::locationAddress>("US", "ZZ", "Deniles", "Road"));
         } else if (area[0] == 'v') {
           string query_id;
           string result_id;

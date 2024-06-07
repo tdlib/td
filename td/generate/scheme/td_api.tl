@@ -2607,6 +2607,13 @@ bankCardInfo title:string actions:vector<bankCardActionOpenUrl> = BankCardInfo;
 //@postal_code Address postal code
 address country_code:string state:string city:string street_line1:string street_line2:string postal_code:string = Address;
 
+//@description Describes an address of a location
+//@country_code A two-letter ISO 3166-1 alpha-2 country code
+//@state State, if applicable; empty if unknown
+//@city City; empty if unknown
+//@street The address; empty if unknown
+locationAddress country_code:string state:string city:string street:string = LocationAddress;
+
 
 //@description Contains parameters of the application theme
 //@background_color A color of the background in the RGB24 format
@@ -3867,8 +3874,8 @@ storyAreaPosition x_percentage:double y_percentage:double width_percentage:doubl
 
 //@class StoryAreaType @description Describes type of clickable rectangle area on a story media
 
-//@description An area pointing to a location @location The location
-storyAreaTypeLocation location:location = StoryAreaType;
+//@description An area pointing to a location @location The location @address Address of the location; may be null if unknown
+storyAreaTypeLocation location:location address:locationAddress = StoryAreaType;
 
 //@description An area pointing to a venue @venue Information about the venue
 storyAreaTypeVenue venue:venue = StoryAreaType;
@@ -3893,8 +3900,8 @@ storyArea position:storyAreaPosition type:StoryAreaType = StoryArea;
 
 //@class InputStoryAreaType @description Describes type of clickable rectangle area on a story media to be added
 
-//@description An area pointing to a location @location The location
-inputStoryAreaTypeLocation location:location = InputStoryAreaType;
+//@description An area pointing to a location @location The location @address Address of the location; pass null if unknown
+inputStoryAreaTypeLocation location:location address:locationAddress = InputStoryAreaType;
 
 //@description An area pointing to a venue found by the bot getOption("venue_search_bot_username")
 //@query_id Identifier of the inline query, used to found the venue
