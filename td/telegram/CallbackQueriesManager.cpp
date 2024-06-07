@@ -154,10 +154,10 @@ tl_object_ptr<td_api::CallbackQueryPayload> CallbackQueriesManager::get_query_pa
   }
 
   if (has_data) {
-    return make_tl_object<td_api::callbackQueryPayloadData>(data.as_slice().str());
+    return td_api::make_object<td_api::callbackQueryPayloadData>(data.as_slice().str());
   }
   if (has_game) {
-    return make_tl_object<td_api::callbackQueryPayloadGame>(game_short_name);
+    return td_api::make_object<td_api::callbackQueryPayloadGame>(game_short_name);
   }
   UNREACHABLE();
   return nullptr;
@@ -208,7 +208,7 @@ void CallbackQueriesManager::on_new_inline_query(
   }
   LOG_IF(ERROR, !td_->user_manager_->have_user(sender_user_id)) << "Receive unknown " << sender_user_id;
   if (!td_->auth_manager_->is_bot()) {
-    LOG(ERROR) << "Receive new callback query";
+    LOG(ERROR) << "Receive new inline callback query";
     return;
   }
   CHECK(inline_message_id != nullptr);
@@ -219,10 +219,38 @@ void CallbackQueriesManager::on_new_inline_query(
   }
   send_closure(
       G()->td(), &Td::send_update,
-      make_tl_object<td_api::updateNewInlineCallbackQuery>(
+      td_api::make_object<td_api::updateNewInlineCallbackQuery>(
           callback_query_id, td_->user_manager_->get_user_id_object(sender_user_id, "updateNewInlineCallbackQuery"),
           InlineQueriesManager::get_inline_message_id(std::move(inline_message_id)), chat_instance,
           std::move(payload)));
+}
+
+void CallbackQueriesManager::on_new_business_query(int64 callback_query_id, UserId sender_user_id,
+                                                   string &&connection_id,
+                                                   telegram_api::object_ptr<telegram_api::Message> &&message,
+                                                   telegram_api::object_ptr<telegram_api::Message> &&reply_to_message,
+                                                   BufferSlice &&data, int64 chat_instance) {
+  if (!sender_user_id.is_valid()) {
+    LOG(ERROR) << "Receive new callback query from invalid " << sender_user_id;
+    return;
+  }
+  LOG_IF(ERROR, !td_->user_manager_->have_user(sender_user_id)) << "Receive unknown " << sender_user_id;
+  if (!td_->auth_manager_->is_bot()) {
+    LOG(ERROR) << "Receive new business callback query";
+    return;
+  }
+  auto message_object =
+      td_->messages_manager_->get_business_message_object(std::move(message), std::move(reply_to_message));
+  if (message_object == nullptr) {
+    return;
+  }
+
+  auto payload = td_api::make_object<td_api::callbackQueryPayloadData>(data.as_slice().str());
+  send_closure(
+      G()->td(), &Td::send_update,
+      td_api::make_object<td_api::updateNewBusinessCallbackQuery>(
+          callback_query_id, td_->user_manager_->get_user_id_object(sender_user_id, "updateNewInlineCallbackQuery"),
+          connection_id, std::move(message_object), chat_instance, std::move(payload)));
 }
 
 void CallbackQueriesManager::send_callback_query(MessageFullId message_full_id,

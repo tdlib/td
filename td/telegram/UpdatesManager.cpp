@@ -4148,6 +4148,14 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateInlineBotCallba
   promise.set_value(Unit());
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBusinessBotCallbackQuery> update,
+                               Promise<Unit> &&promise) {
+  td_->callback_queries_manager_->on_new_business_query(
+      update->query_id_, UserId(update->user_id_), std::move(update->connection_id_), std::move(update->message_),
+      std::move(update->reply_to_message_), std::move(update->data_), update->chat_instance_);
+  promise.set_value(Unit());
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateFavedStickers> update, Promise<Unit> &&promise) {
   td_->stickers_manager_->reload_favorite_stickers(true);
   promise.set_value(Unit());
@@ -4572,11 +4580,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStarsBalance> u
 // unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBusinessBotCallbackQuery> update,
-                               Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 

@@ -7496,6 +7496,15 @@ updateNewCallbackQuery id:int64 sender_user_id:int53 chat_id:int53 message_id:in
 //@payload Query payload
 updateNewInlineCallbackQuery id:int64 sender_user_id:int53 inline_message_id:string chat_instance:int64 payload:CallbackQueryPayload = Update;
 
+//@description A new incoming callback query from a business message; for bots only
+//@id Unique query identifier
+//@sender_user_id Identifier of the user who sent the query
+//@connection_id Unique identifier of the business connection
+//@message The message from the business account from which the query originated
+//@chat_instance An identifier uniquely corresponding to the chat a message was sent to
+//@payload Query payload
+updateNewBusinessCallbackQuery id:int64 sender_user_id:int53 connection_id:string message:businessMessage chat_instance:int64 payload:CallbackQueryPayload = Update;
+
 //@description A new incoming shipping query; for bots only. Only for invoices with flexible price
 //@id Unique query identifier
 //@sender_user_id Identifier of the user who sent the query
