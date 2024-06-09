@@ -36360,7 +36360,7 @@ void MessagesManager::on_get_channel_difference(DialogId dialog_id, int32 reques
       for (const auto &message : difference->new_messages_) {
         if (is_invalid_poll_message(message.get())) {
           LOG(ERROR) << "Receive invalid poll message in updates.channelDifference: " << oneline(to_string(message));
-          if (channel_get_difference_retry_timeouts_[dialog_id] <= 2) {
+          if (d != nullptr && channel_get_difference_retry_timeouts_[dialog_id] <= 2) {
             return retry_get_channel_difference_later(dialog_id);
           }
         }
