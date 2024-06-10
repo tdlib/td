@@ -73,6 +73,11 @@ class BusinessConnectionManager final : public Actor {
                           vector<td_api::object_ptr<td_api::InputMessageContent>> &&input_message_contents,
                           Promise<td_api::object_ptr<td_api::businessMessages>> &&promise);
 
+  void edit_business_message_text(BusinessConnectionId business_connection_id, DialogId dialog_id, MessageId message_id,
+                                  td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
+                                  td_api::object_ptr<td_api::InputMessageContent> &&input_message_content,
+                                  Promise<td_api::object_ptr<td_api::businessMessage>> &&promise);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
@@ -84,6 +89,7 @@ class BusinessConnectionManager final : public Actor {
   class UploadBusinessMediaQuery;
   class UploadMediaCallback;
   class UploadThumbnailCallback;
+  class EditBusinessMessageQuery;
 
   struct UploadMediaResult {
     unique_ptr<PendingMessage> message_;
@@ -103,6 +109,8 @@ class BusinessConnectionManager final : public Actor {
   };
 
   void tear_down() final;
+
+  Status check_business_message_id(MessageId message_id) const;
 
   void on_get_business_connection(const BusinessConnectionId &connection_id,
                                   Result<telegram_api::object_ptr<telegram_api::Updates>> r_updates);

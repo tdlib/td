@@ -5805,6 +5805,15 @@ void Td::on_request(uint64 id, td_api::sendBusinessMessageAlbum &request) {
       MessageEffectId(request.effect_id_), std::move(request.input_message_contents_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::editBusinessMessageText &request) {
+  CHECK_IS_BOT();
+  CREATE_REQUEST_PROMISE();
+  business_connection_manager_->edit_business_message_text(
+      BusinessConnectionId(std::move(request.business_connection_id_)), DialogId(request.chat_id_),
+      MessageId(request.message_id_), std::move(request.reply_markup_), std::move(request.input_message_content_),
+      std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::loadQuickReplyShortcuts &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

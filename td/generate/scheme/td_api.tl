@@ -8440,6 +8440,14 @@ sendBusinessMessage business_connection_id:string chat_id:int53 reply_to:InputMe
 //@input_message_contents Contents of messages to be sent. At most 10 messages can be added to an album. All messages must have the same value of show_caption_above_media
 sendBusinessMessageAlbum business_connection_id:string chat_id:int53 reply_to:InputMessageReplyTo disable_notification:Bool protect_content:Bool effect_id:int64 input_message_contents:vector<InputMessageContent> = BusinessMessages;
 
+//@description Edits the text of a text or game message sent on behalf of a business account; for bots only
+//@business_connection_id Unique identifier of business connection on behalf of which the message was sent
+//@chat_id The chat the message belongs to
+//@message_id Identifier of the message
+//@reply_markup The new message reply markup; pass null if none
+//@input_message_content New text content of the message. Must be of type inputMessageText
+editBusinessMessageText business_connection_id:string chat_id:int53 message_id:int53 reply_markup:ReplyMarkup input_message_content:InputMessageContent = BusinessMessage;
+
 
 //@description Checks validness of a name for a quick reply shortcut. Can be called synchronously @name The name of the shortcut; 1-32 characters
 checkQuickReplyShortcutName name:string = Ok;

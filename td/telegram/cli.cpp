@@ -5033,9 +5033,17 @@ class CliClient final : public Actor {
       MessageId message_id;
       string message;
       get_args(args, chat_id, message_id, message);
-      send_request(td_api::make_object<td_api::editMessageText>(
-          chat_id, message_id, nullptr,
-          td_api::make_object<td_api::inputMessageText>(as_formatted_text(message), get_link_preview_options(), true)));
+      if (!business_connection_id_.empty()) {
+        send_request(td_api::make_object<td_api::editBusinessMessageText>(
+            business_connection_id_, chat_id, message_id, nullptr,
+            td_api::make_object<td_api::inputMessageText>(as_formatted_text(message), get_link_preview_options(),
+                                                          true)));
+      } else {
+        send_request(td_api::make_object<td_api::editMessageText>(
+            chat_id, message_id, nullptr,
+            td_api::make_object<td_api::inputMessageText>(as_formatted_text(message), get_link_preview_options(),
+                                                          true)));
+      }
     } else if (op == "eqrm") {
       ShortcutId shortcut_id;
       MessageId message_id;

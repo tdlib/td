@@ -14,6 +14,7 @@
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/InputMessageText.h"
 #include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageCopyOptions.h"
@@ -404,6 +405,71 @@ class BusinessConnectionManager::UploadBusinessMediaQuery final : public Td::Res
   }
 };
 
+class BusinessConnectionManager::EditBusinessMessageQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::businessMessage>> promise_;
+
+ public:
+  explicit EditBusinessMessageQuery(Promise<td_api::object_ptr<td_api::businessMessage>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(int32 flags, BusinessConnectionId business_connection_id, DialogId dialog_id, MessageId message_id,
+            const string &text, vector<telegram_api::object_ptr<telegram_api::MessageEntity>> &&entities,
+            telegram_api::object_ptr<telegram_api::InputMedia> &&input_media, bool invert_media,
+            telegram_api::object_ptr<telegram_api::ReplyMarkup> &&reply_markup) {
+    if (input_media != nullptr && false) {
+      return on_error(Status::Error(400, "FILE_PART_1_MISSING"));
+    }
+
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Know);
+    CHECK(input_peer != nullptr);
+
+    if (reply_markup != nullptr) {
+      flags |= telegram_api::messages_editMessage::REPLY_MARKUP_MASK;
+    }
+    if (!entities.empty()) {
+      flags |= telegram_api::messages_editMessage::ENTITIES_MASK;
+    }
+    if (!text.empty()) {
+      flags |= telegram_api::messages_editMessage::MESSAGE_MASK;
+    }
+    if (input_media != nullptr) {
+      flags |= telegram_api::messages_editMessage::MEDIA_MASK;
+    }
+    if (invert_media) {
+      flags |= telegram_api::messages_editMessage::INVERT_MEDIA_MASK;
+    }
+
+    int32 server_message_id = message_id.get_server_message_id().get();
+    send_query(G()->net_query_creator().create_with_prefix(
+        business_connection_id.get_invoke_prefix(),
+        telegram_api::messages_editMessage(flags, false /*ignored*/, false /*ignored*/, std::move(input_peer),
+                                           server_message_id, text, std::move(input_media), std::move(reply_markup),
+                                           std::move(entities), 0, 0),
+        td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id), {{dialog_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_editMessage>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for EditBusinessMessageQuery: " << to_string(ptr);
+    td_->business_connection_manager_->process_sent_business_message(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    if (status.code() != 403 && !(status.code() == 500 && G()->close_flag())) {
+      LOG(WARNING) << "Failed to edit business message with the error " << status.message();
+    } else {
+      LOG(INFO) << "Receive error for EditBusinessMessageQuery: " << status;
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class BusinessConnectionManager::UploadMediaCallback final : public FileManager::UploadCallback {
  public:
   void on_upload_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
@@ -458,6 +524,7 @@ void BusinessConnectionManager::tear_down() {
 
 Status BusinessConnectionManager::check_business_connection(const BusinessConnectionId &connection_id,
                                                             DialogId dialog_id) const {
+  CHECK(td_->auth_manager_->is_bot());
   auto connection = business_connections_.get_pointer(connection_id);
   if (connection == nullptr) {
     return Status::Error(400, "Business connection not found");
@@ -469,6 +536,16 @@ Status BusinessConnectionManager::check_business_connection(const BusinessConnec
     return Status::Error(400, "Messages must not be sent to self");
   }
   // no need to check connection->can_reply_ and connection->is_disabled_
+  return Status::OK();
+}
+
+Status BusinessConnectionManager::check_business_message_id(MessageId message_id) const {
+  if (!message_id.is_valid()) {
+    return Status::Error(400, "Invalid message identifier specified");
+  }
+  if (!message_id.is_server()) {
+    return Status::Error(400, "Wrong message identifier specified");
+  }
   return Status::OK();
 }
 
@@ -1071,6 +1148,41 @@ void BusinessConnectionManager::process_sent_business_message_album(
         std::move(update->message_), std::move(update->reply_to_message_)));
   }
   promise.set_value(std::move(messages));
+}
+
+void BusinessConnectionManager::edit_business_message_text(
+    BusinessConnectionId business_connection_id, DialogId dialog_id, MessageId message_id,
+    td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
+    td_api::object_ptr<td_api::InputMessageContent> &&input_message_content,
+    Promise<td_api::object_ptr<td_api::businessMessage>> &&promise) {
+  TRY_STATUS_PROMISE(promise, check_business_connection(business_connection_id, dialog_id));
+  TRY_STATUS_PROMISE(promise, check_business_message_id(message_id));
+
+  if (input_message_content == nullptr) {
+    return promise.set_error(Status::Error(400, "Can't edit message without new content"));
+  }
+  int32 new_message_content_type = input_message_content->get_id();
+  if (new_message_content_type != td_api::inputMessageText::ID) {
+    return promise.set_error(Status::Error(400, "Input message content type must be InputMessageText"));
+  }
+
+  TRY_RESULT_PROMISE(
+      promise, input_message_text,
+      process_input_message_text(td_, DialogId(), std::move(input_message_content), td_->auth_manager_->is_bot()));
+  TRY_RESULT_PROMISE(promise, new_reply_markup,
+                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true));
+
+  auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), new_reply_markup);
+  int32 flags = 0;
+  if (input_message_text.disable_web_page_preview) {
+    flags |= telegram_api::messages_editMessage::NO_WEBPAGE_MASK;
+  }
+  td_->create_handler<EditBusinessMessageQuery>(std::move(promise))
+      ->send(flags, business_connection_id, dialog_id, message_id, input_message_text.text.text,
+             get_input_message_entities(td_->user_manager_.get(), input_message_text.text.entities,
+                                        "edit_business_message_text"),
+             input_message_text.get_input_media_web_page(), input_message_text.show_above_text,
+             std::move(input_reply_markup));
 }
 
 td_api::object_ptr<td_api::updateBusinessConnection> BusinessConnectionManager::get_update_business_connection(
