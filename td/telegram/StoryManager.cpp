@@ -3810,7 +3810,7 @@ void StoryManager::on_story_changed(StoryFullId story_full_id, const Story *stor
       CHECK(!message_full_ids.empty());
       for (const auto &message_full_id : message_full_ids) {
         send_closure_later(G()->messages_manager(), &MessagesManager::on_external_update_message_content,
-                           message_full_id, "on_story_changed");
+                           message_full_id, "on_story_changed", true);
       }
     }
   }

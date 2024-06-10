@@ -6762,10 +6762,14 @@ bool MessagesManager::need_skip_bot_commands(DialogId dialog_id, const Message *
          td_->dialog_manager_->is_broadcast_channel(dialog_id);
 }
 
-void MessagesManager::on_external_update_message_content(MessageFullId message_full_id, const char *source) {
+void MessagesManager::on_external_update_message_content(MessageFullId message_full_id, const char *source,
+                                                         bool expect_no_message) {
   Dialog *d = get_dialog(message_full_id.get_dialog_id());
   CHECK(d != nullptr);
   Message *m = get_message(d, message_full_id.get_message_id());
+  if (expect_no_message && m == nullptr) {
+    return;
+  }
   CHECK(m != nullptr);
   send_update_message_content(d, m, true, source);
   // must not call on_message_changed, because the message itself wasn't changed
