@@ -208,7 +208,7 @@ class Session final
   void on_connected() final;
   void on_closed(Status status) final;
 
-  Status on_pong() final;
+  Status on_pong(double ping_time, double pong_time) final;
 
   void on_network(bool network_flag, uint32 network_generation);
   void on_online(bool online_flag);

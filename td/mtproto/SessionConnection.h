@@ -98,7 +98,7 @@ class SessionConnection final
     virtual void on_session_failed(Status status) = 0;
 
     virtual void on_container_sent(MessageId container_message_id, vector<MessageId> message_ids) = 0;
-    virtual Status on_pong() = 0;
+    virtual Status on_pong(double ping_time, double pong_time) = 0;
 
     virtual Status on_update(BufferSlice packet) = 0;
 
