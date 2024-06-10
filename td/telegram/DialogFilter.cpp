@@ -426,10 +426,7 @@ string DialogFilter::get_default_icon_name(const td_api::chatFolder *filter) {
 
 telegram_api::object_ptr<telegram_api::DialogFilter> DialogFilter::get_input_dialog_filter() const {
   if (is_shareable_) {
-    int32 flags = 0;
-    if (!emoji_.empty()) {
-      flags |= telegram_api::dialogFilterChatlist::EMOTICON_MASK;
-    }
+    int32 flags = telegram_api::dialogFilterChatlist::EMOTICON_MASK;
     if (color_id_ != -1) {
       flags |= telegram_api::dialogFilterChatlist::COLOR_MASK;
     }
@@ -440,10 +437,7 @@ telegram_api::object_ptr<telegram_api::DialogFilter> DialogFilter::get_input_dia
         flags, false /*ignored*/, dialog_filter_id_.get(), title_, emoji_, color_id_,
         InputDialogId::get_input_peers(pinned_dialog_ids_), InputDialogId::get_input_peers(included_dialog_ids_));
   }
-  int32 flags = 0;
-  if (!emoji_.empty()) {
-    flags |= telegram_api::dialogFilter::EMOTICON_MASK;
-  }
+  int32 flags = telegram_api::dialogFilter::EMOTICON_MASK;
   if (color_id_ != -1) {
     flags |= telegram_api::dialogFilter::COLOR_MASK;
   }
