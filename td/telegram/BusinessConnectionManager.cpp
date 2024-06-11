@@ -1315,6 +1315,21 @@ void BusinessConnectionManager::edit_business_message_caption(
              nullptr, invert_media, get_input_reply_markup(td_->user_manager_.get(), new_reply_markup));
 }
 
+void BusinessConnectionManager::edit_business_message_reply_markup(
+    BusinessConnectionId business_connection_id, DialogId dialog_id, MessageId message_id,
+    td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
+    Promise<td_api::object_ptr<td_api::businessMessage>> &&promise) {
+  TRY_STATUS_PROMISE(promise, check_business_connection(business_connection_id, dialog_id));
+  TRY_STATUS_PROMISE(promise, check_business_message_id(message_id));
+  TRY_RESULT_PROMISE(promise, new_reply_markup,
+                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true));
+
+  td_->create_handler<EditBusinessMessageQuery>(std::move(promise))
+      ->send(0, business_connection_id, dialog_id, message_id, string(),
+             vector<telegram_api::object_ptr<telegram_api::MessageEntity>>(), nullptr, false /*ignored*/,
+             get_input_reply_markup(td_->user_manager_.get(), new_reply_markup));
+}
+
 td_api::object_ptr<td_api::updateBusinessConnection> BusinessConnectionManager::get_update_business_connection(
     const BusinessConnection *connection) const {
   return td_api::make_object<td_api::updateBusinessConnection>(connection->get_business_connection_object(td_));

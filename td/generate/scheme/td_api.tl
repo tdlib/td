@@ -8477,6 +8477,13 @@ editBusinessMessageMedia business_connection_id:string chat_id:int53 message_id:
 //@show_caption_above_media Pass true to show the caption above the media; otherwise, caption will be shown below the media. Can be true only for animation, photo, and video messages
 editBusinessMessageCaption business_connection_id:string chat_id:int53 message_id:int53 reply_markup:ReplyMarkup caption:formattedText show_caption_above_media:Bool = BusinessMessage;
 
+//@description Edits the reply markup of a message sent on behalf of a business account; for bots only
+//@business_connection_id Unique identifier of business connection on behalf of which the message was sent
+//@chat_id The chat the message belongs to
+//@message_id Identifier of the message
+//@reply_markup The new message reply markup; pass null if none
+editBusinessMessageReplyMarkup business_connection_id:string chat_id:int53 message_id:int53 reply_markup:ReplyMarkup = BusinessMessage;
+
 
 //@description Checks validness of a name for a quick reply shortcut. Can be called synchronously @name The name of the shortcut; 1-32 characters
 checkQuickReplyShortcutName name:string = Ok;
