@@ -23,6 +23,7 @@
 #include "td/telegram/MessageQuote.h"
 #include "td/telegram/MessageSelfDestructType.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/OptionManager.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
@@ -106,6 +107,7 @@ struct BusinessConnectionManager::BusinessConnection {
 struct BusinessConnectionManager::PendingMessage {
   BusinessConnectionId business_connection_id_;
   DialogId dialog_id_;
+  MessageId message_id_;
   MessageInputReplyTo input_reply_to_;
   string send_emoji_;
   MessageSelfDestructType ttl_;
@@ -1219,6 +1221,80 @@ void BusinessConnectionManager::edit_business_message_live_location(
       ->send(0, business_connection_id, dialog_id, message_id, string(),
              vector<telegram_api::object_ptr<telegram_api::MessageEntity>>(), std::move(input_media), false /*ignored*/,
              std::move(input_reply_markup));
+}
+
+void BusinessConnectionManager::edit_business_message_media(
+    BusinessConnectionId business_connection_id, DialogId dialog_id, MessageId message_id,
+    td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
+    td_api::object_ptr<td_api::InputMessageContent> &&input_message_content,
+    Promise<td_api::object_ptr<td_api::businessMessage>> &&promise) {
+  TRY_STATUS_PROMISE(promise, check_business_connection(business_connection_id, dialog_id));
+  TRY_STATUS_PROMISE(promise, check_business_message_id(message_id));
+
+  if (input_message_content == nullptr) {
+    return promise.set_error(Status::Error(400, "Can't edit message without new content"));
+  }
+  int32 new_message_content_type = input_message_content->get_id();
+  if (new_message_content_type != td_api::inputMessageAnimation::ID &&
+      new_message_content_type != td_api::inputMessageAudio::ID &&
+      new_message_content_type != td_api::inputMessageDocument::ID &&
+      new_message_content_type != td_api::inputMessagePhoto::ID &&
+      new_message_content_type != td_api::inputMessageVideo::ID) {
+    return promise.set_error(Status::Error(400, "Unsupported input message content type"));
+  }
+
+  bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
+  TRY_RESULT_PROMISE(promise, content,
+                     get_input_message_content(DialogId(), std::move(input_message_content), td_, is_premium));
+  if (!content.ttl.is_empty()) {
+    return promise.set_error(Status::Error(400, "Can't enable self-destruction for media"));
+  }
+
+  TRY_RESULT_PROMISE(promise, new_reply_markup,
+                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true));
+
+  auto input_media = get_input_media(content.content.get(), td_, MessageSelfDestructType(), string(), true);
+  if (input_media != nullptr) {
+    auto file_id = get_message_content_any_file_id(content.content.get());
+    CHECK(file_id.is_valid());
+    FileView file_view = td_->file_manager_->get_file_view(file_id);
+    if (file_view.has_remote_location()) {
+      const FormattedText *caption = get_message_content_caption(content.content.get());
+      td_->create_handler<EditBusinessMessageQuery>(std::move(promise))
+          ->send(1 << 11, business_connection_id, dialog_id, message_id, caption == nullptr ? "" : caption->text,
+                 get_input_message_entities(td_->user_manager_.get(), caption, "edit_business_message_media"),
+                 std::move(input_media), content.invert_media,
+                 get_input_reply_markup(td_->user_manager_.get(), new_reply_markup));
+      return;
+    }
+  }
+
+  auto message = create_business_message_to_send(business_connection_id, dialog_id, MessageInputReplyTo(), false, false,
+                                                 MessageEffectId(), std::move(new_reply_markup), std::move(content));
+  message->message_id_ = message_id;
+
+  upload_media(std::move(message), PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](
+                                                              Result<UploadMediaResult> &&result) mutable {
+                 send_closure(actor_id, &BusinessConnectionManager::do_edit_business_message_media, std::move(result),
+                              std::move(promise));
+               }));
+}
+
+void BusinessConnectionManager::do_edit_business_message_media(
+    Result<UploadMediaResult> &&result, Promise<td_api::object_ptr<td_api::businessMessage>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  TRY_RESULT_PROMISE(promise, upload_result, std::move(result));
+  CHECK(upload_result.input_media_ != nullptr);
+
+  auto message = std::move(upload_result.message_);
+  CHECK(message != nullptr);
+  const FormattedText *caption = get_message_content_caption(message->content_.get());
+  td_->create_handler<EditBusinessMessageQuery>(std::move(promise))
+      ->send(1 << 11, message->business_connection_id_, message->dialog_id_, message->message_id_,
+             caption == nullptr ? "" : caption->text,
+             get_input_message_entities(td_->user_manager_.get(), caption, "do_edit_business_message_media"),
+             std::move(upload_result.input_media_), message->invert_media_,
+             get_input_reply_markup(td_->user_manager_.get(), message->reply_markup_));
 }
 
 td_api::object_ptr<td_api::updateBusinessConnection> BusinessConnectionManager::get_update_business_connection(

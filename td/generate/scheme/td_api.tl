@@ -8448,7 +8448,7 @@ sendBusinessMessageAlbum business_connection_id:string chat_id:int53 reply_to:In
 //@input_message_content New text content of the message. Must be of type inputMessageText
 editBusinessMessageText business_connection_id:string chat_id:int53 message_id:int53 reply_markup:ReplyMarkup input_message_content:InputMessageContent = BusinessMessage;
 
-//@description Edits the content of a live location in a message message sent on behalf of a business account; for bots only
+//@description Edits the content of a live location in a message sent on behalf of a business account; for bots only
 //@business_connection_id Unique identifier of business connection on behalf of which the message was sent
 //@chat_id The chat the message belongs to
 //@message_id Identifier of the message
@@ -8460,6 +8460,13 @@ editBusinessMessageText business_connection_id:string chat_id:int53 message_id:i
 //@proximity_alert_radius The new maximum distance for proximity alerts, in meters (0-100000). Pass 0 if the notification is disabled
 editBusinessMessageLiveLocation business_connection_id:string chat_id:int53 message_id:int53 reply_markup:ReplyMarkup location:location live_period:int32 heading:int32 proximity_alert_radius:int32 = BusinessMessage;
 
+//@description Edits the content of a message with an animation, an audio, a document, a photo or a video in a message sent on behalf of a business account; for bots only
+//@business_connection_id Unique identifier of business connection on behalf of which the message was sent
+//@chat_id The chat the message belongs to
+//@message_id Identifier of the message
+//@reply_markup The new message reply markup; pass null if none; for bots only
+//@input_message_content New content of the message. Must be one of the following types: inputMessageAnimation, inputMessageAudio, inputMessageDocument, inputMessagePhoto or inputMessageVideo
+editBusinessMessageMedia business_connection_id:string chat_id:int53 message_id:int53 reply_markup:ReplyMarkup input_message_content:InputMessageContent = BusinessMessage;
 
 //@description Checks validness of a name for a quick reply shortcut. Can be called synchronously @name The name of the shortcut; 1-32 characters
 checkQuickReplyShortcutName name:string = Ok;

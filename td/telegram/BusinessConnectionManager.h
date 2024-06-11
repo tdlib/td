@@ -85,6 +85,11 @@ class BusinessConnectionManager final : public Actor {
                                            int32 heading, int32 proximity_alert_radius,
                                            Promise<td_api::object_ptr<td_api::businessMessage>> &&promise);
 
+  void edit_business_message_media(BusinessConnectionId business_connection_id, DialogId dialog_id,
+                                   MessageId message_id, td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
+                                   td_api::object_ptr<td_api::InputMessageContent> &&input_message_content,
+                                   Promise<td_api::object_ptr<td_api::businessMessage>> &&promise);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
@@ -172,6 +177,9 @@ class BusinessConnectionManager final : public Actor {
 
   void process_sent_business_message_album(telegram_api::object_ptr<telegram_api::Updates> &&updates_ptr,
                                            Promise<td_api::object_ptr<td_api::businessMessages>> &&promise);
+
+  void do_edit_business_message_media(Result<UploadMediaResult> &&result,
+                                      Promise<td_api::object_ptr<td_api::businessMessage>> &&promise);
 
   td_api::object_ptr<td_api::updateBusinessConnection> get_update_business_connection(
       const BusinessConnection *connection) const;

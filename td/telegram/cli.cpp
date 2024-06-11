@@ -5074,9 +5074,15 @@ class CliClient final : public Actor {
       MessageId message_id;
       string document;
       get_args(args, chat_id, message_id, document);
-      send_request(td_api::make_object<td_api::editMessageMedia>(
-          chat_id, message_id, nullptr,
-          td_api::make_object<td_api::inputMessageDocument>(as_input_file(document), nullptr, false, as_caption(""))));
+      auto input_document =
+          td_api::make_object<td_api::inputMessageDocument>(as_input_file(document), nullptr, false, as_caption(""));
+      if (!business_connection_id_.empty()) {
+        send_request(td_api::make_object<td_api::editBusinessMessageMedia>(business_connection_id_, chat_id, message_id,
+                                                                           nullptr, std::move(input_document)));
+      } else {
+        send_request(
+            td_api::make_object<td_api::editMessageMedia>(chat_id, message_id, nullptr, std::move(input_document)));
+      }
     } else if (op == "eqrmd") {
       ShortcutId shortcut_id;
       MessageId message_id;
@@ -5090,11 +5096,16 @@ class CliClient final : public Actor {
       MessageId message_id;
       string photo;
       get_args(args, chat_id, message_id, photo);
-      send_request(td_api::make_object<td_api::editMessageMedia>(
-          chat_id, message_id, nullptr,
-          td_api::make_object<td_api::inputMessagePhoto>(as_input_file(photo), as_input_thumbnail(photo), Auto(), 0, 0,
-                                                         as_caption(""), show_caption_above_media_,
-                                                         get_message_self_destruct_type(), has_spoiler_)));
+      auto input_photo = td_api::make_object<td_api::inputMessagePhoto>(
+          as_input_file(photo), as_input_thumbnail(photo), Auto(), 0, 0, as_caption(""), show_caption_above_media_,
+          get_message_self_destruct_type(), has_spoiler_);
+      if (!business_connection_id_.empty()) {
+        send_request(td_api::make_object<td_api::editBusinessMessageMedia>(business_connection_id_, chat_id, message_id,
+                                                                           nullptr, std::move(input_photo)));
+      } else {
+        send_request(
+            td_api::make_object<td_api::editMessageMedia>(chat_id, message_id, nullptr, std::move(input_photo)));
+      }
     } else if (op == "eqrmp") {
       ShortcutId shortcut_id;
       MessageId message_id;
@@ -5111,11 +5122,16 @@ class CliClient final : public Actor {
       string video;
       string thumbnail;
       get_args(args, chat_id, message_id, video, thumbnail);
-      send_request(td_api::make_object<td_api::editMessageMedia>(
-          chat_id, message_id, nullptr,
-          td_api::make_object<td_api::inputMessageVideo>(as_input_file(video), as_input_thumbnail(thumbnail), Auto(), 1,
-                                                         2, 3, true, as_caption(""), show_caption_above_media_,
-                                                         get_message_self_destruct_type(), has_spoiler_)));
+      auto input_video = td_api::make_object<td_api::inputMessageVideo>(
+          as_input_file(video), as_input_thumbnail(thumbnail), Auto(), 1, 2, 3, true, as_caption(""),
+          show_caption_above_media_, get_message_self_destruct_type(), has_spoiler_);
+      if (!business_connection_id_.empty()) {
+        send_request(td_api::make_object<td_api::editBusinessMessageMedia>(business_connection_id_, chat_id, message_id,
+                                                                           nullptr, std::move(input_video)));
+      } else {
+        send_request(
+            td_api::make_object<td_api::editMessageMedia>(chat_id, message_id, nullptr, std::move(input_video)));
+      }
     } else if (op == "emll") {
       ChatId chat_id;
       MessageId message_id;
