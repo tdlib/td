@@ -1514,14 +1514,13 @@ void WebPagesManager::on_web_page_changed(WebPageId web_page_id, bool have_web_p
       }
     }
 
-    bool is_ok = (have_web_page ? web_page_messages_[web_page_id].size() == message_full_ids.size()
-                                : web_page_messages_.count(web_page_id) == 0);
-    if (!is_ok) {
+    // don't check that on_external_update_message_content doesn't load new messages
+    if (!have_web_page && web_page_messages_.count(web_page_id) != 0) {
       vector<MessageFullId> new_message_full_ids;
       for (const auto &message_full_id : web_page_messages_[web_page_id]) {
         new_message_full_ids.push_back(message_full_id);
       }
-      LOG_CHECK(is_ok) << have_web_page << ' ' << message_full_ids << ' ' << new_message_full_ids;
+      LOG(FATAL) << message_full_ids << ' ' << new_message_full_ids;
     }
   }
   auto get_it = pending_get_web_pages_.find(web_page_id);
