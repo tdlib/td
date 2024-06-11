@@ -120,12 +120,12 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, tl_object_ptr<telegram_api::messa
 }
 
 RepliedMessageInfo::RepliedMessageInfo(Td *td, const MessageInputReplyTo &input_reply_to) {
-  if (!input_reply_to.message_id_.is_valid()) {
+  if (!input_reply_to.message_id_.is_valid() && !input_reply_to.message_id_.is_valid_scheduled()) {
     return;
   }
   message_id_ = input_reply_to.message_id_;
   quote_ = input_reply_to.quote_.clone();
-  if (input_reply_to.dialog_id_ != DialogId()) {
+  if (input_reply_to.dialog_id_ != DialogId() && input_reply_to.message_id_.is_valid()) {
     auto info =
         td->messages_manager_->get_forwarded_message_info({input_reply_to.dialog_id_, input_reply_to.message_id_});
     if (info.origin_date_ == 0 || info.origin_.is_empty() || info.content_ == nullptr) {
@@ -315,7 +315,7 @@ td_api::object_ptr<td_api::messageReplyToMessage> RepliedMessageInfo::get_messag
 
 MessageInputReplyTo RepliedMessageInfo::get_input_reply_to() const {
   CHECK(!is_external());
-  if (message_id_.is_valid()) {
+  if (message_id_.is_valid() || message_id_.is_valid_scheduled()) {
     return MessageInputReplyTo(message_id_, dialog_id_, quote_.clone(true));
   }
   return {};

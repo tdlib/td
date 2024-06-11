@@ -29030,14 +29030,14 @@ void MessagesManager::update_reply_to_message_id(DialogId dialog_id, MessageId o
                                                  bool have_new_message, const char *source) {
   LOG(INFO) << "Update replies of " << MessageFullId{dialog_id, old_message_id} << " to " << new_message_id << " from "
             << source;
-  auto it = replied_yet_unsent_messages_.find({dialog_id, old_message_id});
+  MessageFullId old_message_full_id(dialog_id, old_message_id);
+  auto it = replied_yet_unsent_messages_.find(old_message_full_id);
   if (it == replied_yet_unsent_messages_.end()) {
     return;
   }
   CHECK(old_message_id.is_yet_unsent());
   CHECK(new_message_id == MessageId() || new_message_id.is_valid() || new_message_id.is_valid_scheduled());
 
-  MessageFullId old_message_full_id(dialog_id, old_message_id);
   for (auto message_full_id : it->second) {
     auto reply_d = get_dialog(message_full_id.get_dialog_id());
     CHECK(reply_d != nullptr);
@@ -29049,7 +29049,8 @@ void MessagesManager::update_reply_to_message_id(DialogId dialog_id, MessageId o
     if (new_message_id != MessageId()) {
       LOG_CHECK(replied_m->replied_message_info.get_reply_message_full_id(reply_d->dialog_id, true) ==
                 old_message_full_id)
-          << old_message_full_id << ' ' << replied_m->replied_message_info << ' ' << *input_reply_to;
+          << old_message_full_id << ' ' << new_message_id << ' ' << replied_m->replied_message_info << ' '
+          << *input_reply_to;
       update_message_reply_to_message_id(reply_d, replied_m, new_message_id, true);
     } else {
       set_message_reply(reply_d, replied_m, MessageInputReplyTo(), true);
