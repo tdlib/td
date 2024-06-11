@@ -5849,6 +5849,14 @@ void Td::on_request(uint64 id, td_api::editBusinessMessageReplyMarkup &request) 
       MessageId(request.message_id_), std::move(request.reply_markup_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::stopBusinessPoll &request) {
+  CHECK_IS_BOT();
+  CREATE_REQUEST_PROMISE();
+  business_connection_manager_->stop_poll(BusinessConnectionId(std::move(request.business_connection_id_)),
+                                          DialogId(request.chat_id_), MessageId(request.message_id_),
+                                          std::move(request.reply_markup_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::loadQuickReplyShortcuts &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

@@ -5033,16 +5033,13 @@ class CliClient final : public Actor {
       MessageId message_id;
       string message;
       get_args(args, chat_id, message_id, message);
+      auto input_text =
+          td_api::make_object<td_api::inputMessageText>(as_formatted_text(message), get_link_preview_options(), true);
       if (!business_connection_id_.empty()) {
-        send_request(td_api::make_object<td_api::editBusinessMessageText>(
-            business_connection_id_, chat_id, message_id, nullptr,
-            td_api::make_object<td_api::inputMessageText>(as_formatted_text(message), get_link_preview_options(),
-                                                          true)));
+        send_request(td_api::make_object<td_api::editBusinessMessageText>(business_connection_id_, chat_id, message_id,
+                                                                          nullptr, std::move(input_text)));
       } else {
-        send_request(td_api::make_object<td_api::editMessageText>(
-            chat_id, message_id, nullptr,
-            td_api::make_object<td_api::inputMessageText>(as_formatted_text(message), get_link_preview_options(),
-                                                          true)));
+        send_request(td_api::make_object<td_api::editMessageText>(chat_id, message_id, nullptr, std::move(input_text)));
       }
     } else if (op == "eqrm") {
       ShortcutId shortcut_id;
@@ -5966,7 +5963,12 @@ class CliClient final : public Actor {
       ChatId chat_id;
       MessageId message_id;
       get_args(args, chat_id, message_id);
-      send_request(td_api::make_object<td_api::stopPoll>(chat_id, message_id, nullptr));
+      if (!business_connection_id_.empty()) {
+        send_request(
+            td_api::make_object<td_api::stopBusinessPoll>(business_connection_id_, chat_id, message_id, nullptr));
+      } else {
+        send_request(td_api::make_object<td_api::stopPoll>(chat_id, message_id, nullptr));
+      }
     } else {
       op_not_found_count++;
     }

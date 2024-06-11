@@ -99,6 +99,10 @@ class BusinessConnectionManager final : public Actor {
                                           MessageId message_id, td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                           Promise<td_api::object_ptr<td_api::businessMessage>> &&promise);
 
+  void stop_poll(BusinessConnectionId business_connection_id, DialogId dialog_id, MessageId message_id,
+                 td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
+                 Promise<td_api::object_ptr<td_api::businessMessage>> &&promise);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
@@ -111,6 +115,7 @@ class BusinessConnectionManager final : public Actor {
   class UploadMediaCallback;
   class UploadThumbnailCallback;
   class EditBusinessMessageQuery;
+  class StopBusinessPollQuery;
 
   struct UploadMediaResult {
     unique_ptr<PendingMessage> message_;

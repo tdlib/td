@@ -38110,8 +38110,6 @@ void MessagesManager::stop_poll(MessageFullId message_full_id, td_api::object_pt
   TRY_RESULT_PROMISE(promise, new_reply_markup,
                      get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false,
                                       has_message_sender_user_id(message_full_id.get_dialog_id(), m)));
-
-  stop_message_content_poll(td_, m->content.get(), message_full_id, std::move(new_reply_markup), std::move(promise));
 }
 
 Result<ServerMessageId> MessagesManager::get_invoice_message_id(MessageFullId message_full_id) {

@@ -419,10 +419,6 @@ class BusinessConnectionManager::EditBusinessMessageQuery final : public Td::Res
             const string &text, vector<telegram_api::object_ptr<telegram_api::MessageEntity>> &&entities,
             telegram_api::object_ptr<telegram_api::InputMedia> &&input_media, bool invert_media,
             telegram_api::object_ptr<telegram_api::ReplyMarkup> &&reply_markup) {
-    if (input_media != nullptr && false) {
-      return on_error(Status::Error(400, "FILE_PART_1_MISSING"));
-    }
-
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Know);
     CHECK(input_peer != nullptr);
 
@@ -468,6 +464,56 @@ class BusinessConnectionManager::EditBusinessMessageQuery final : public Td::Res
     } else {
       LOG(INFO) << "Receive error for EditBusinessMessageQuery: " << status;
     }
+    promise_.set_error(std::move(status));
+  }
+};
+
+class BusinessConnectionManager::StopBusinessPollQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::businessMessage>> promise_;
+
+ public:
+  explicit StopBusinessPollQuery(Promise<td_api::object_ptr<td_api::businessMessage>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(BusinessConnectionId business_connection_id, DialogId dialog_id, MessageId message_id,
+            unique_ptr<ReplyMarkup> &&reply_markup) {
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Know);
+    CHECK(input_peer != nullptr);
+
+    int32 flags = telegram_api::messages_editMessage::MEDIA_MASK;
+    auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), reply_markup);
+    if (input_reply_markup != nullptr) {
+      flags |= telegram_api::messages_editMessage::REPLY_MARKUP_MASK;
+    }
+
+    auto poll = telegram_api::make_object<telegram_api::poll>(
+        0, telegram_api::poll::CLOSED_MASK, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+        telegram_api::make_object<telegram_api::textWithEntities>(string(), Auto()), Auto(), 0, 0);
+    auto input_media = telegram_api::make_object<telegram_api::inputMediaPoll>(0, std::move(poll),
+                                                                               vector<BufferSlice>(), string(), Auto());
+    int32 server_message_id = message_id.get_server_message_id().get();
+    send_query(G()->net_query_creator().create_with_prefix(
+        business_connection_id.get_invoke_prefix(),
+        telegram_api::messages_editMessage(flags, false /*ignored*/, false /*ignored*/, std::move(input_peer),
+                                           server_message_id, string(), std::move(input_media),
+                                           std::move(input_reply_markup),
+                                           vector<telegram_api::object_ptr<telegram_api::MessageEntity>>(), 0, 0),
+        td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id), {{dialog_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_editMessage>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for StopBusinessPollQuery: " << to_string(ptr);
+    td_->business_connection_manager_->process_sent_business_message(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -1328,6 +1374,18 @@ void BusinessConnectionManager::edit_business_message_reply_markup(
       ->send(0, business_connection_id, dialog_id, message_id, string(),
              vector<telegram_api::object_ptr<telegram_api::MessageEntity>>(), nullptr, false /*ignored*/,
              get_input_reply_markup(td_->user_manager_.get(), new_reply_markup));
+}
+
+void BusinessConnectionManager::stop_poll(BusinessConnectionId business_connection_id, DialogId dialog_id,
+                                          MessageId message_id, td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
+                                          Promise<td_api::object_ptr<td_api::businessMessage>> &&promise) {
+  TRY_STATUS_PROMISE(promise, check_business_connection(business_connection_id, dialog_id));
+  TRY_STATUS_PROMISE(promise, check_business_message_id(message_id));
+  TRY_RESULT_PROMISE(promise, new_reply_markup,
+                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true));
+
+  td_->create_handler<StopBusinessPollQuery>(std::move(promise))
+      ->send(business_connection_id, dialog_id, message_id, std::move(new_reply_markup));
 }
 
 td_api::object_ptr<td_api::updateBusinessConnection> BusinessConnectionManager::get_update_business_connection(
