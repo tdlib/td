@@ -922,6 +922,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::editBusinessMessageMedia &request);
 
+  void on_request(uint64 id, td_api::editBusinessMessageCaption &request);
+
   void on_request(uint64 id, const td_api::loadQuickReplyShortcuts &request);
 
   void on_request(uint64 id, const td_api::setQuickReplyShortcutName &request);

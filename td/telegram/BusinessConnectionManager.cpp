@@ -1297,6 +1297,24 @@ void BusinessConnectionManager::do_edit_business_message_media(
              get_input_reply_markup(td_->user_manager_.get(), message->reply_markup_));
 }
 
+void BusinessConnectionManager::edit_business_message_caption(
+    BusinessConnectionId business_connection_id, DialogId dialog_id, MessageId message_id,
+    td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup, td_api::object_ptr<td_api::formattedText> &&input_caption,
+    bool invert_media, Promise<td_api::object_ptr<td_api::businessMessage>> &&promise) {
+  TRY_STATUS_PROMISE(promise, check_business_connection(business_connection_id, dialog_id));
+  TRY_STATUS_PROMISE(promise, check_business_message_id(message_id));
+  TRY_RESULT_PROMISE(promise, caption,
+                     get_formatted_text(td_, td_->dialog_manager_->get_my_dialog_id(), std::move(input_caption),
+                                        td_->auth_manager_->is_bot(), true, false, false));
+  TRY_RESULT_PROMISE(promise, new_reply_markup,
+                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true));
+
+  td_->create_handler<EditBusinessMessageQuery>(std::move(promise))
+      ->send(1 << 11, business_connection_id, dialog_id, message_id, caption.text,
+             get_input_message_entities(td_->user_manager_.get(), caption.entities, "edit_business_message_caption"),
+             nullptr, invert_media, get_input_reply_markup(td_->user_manager_.get(), new_reply_markup));
+}
+
 td_api::object_ptr<td_api::updateBusinessConnection> BusinessConnectionManager::get_update_business_connection(
     const BusinessConnection *connection) const {
   return td_api::make_object<td_api::updateBusinessConnection>(connection->get_business_connection_object(td_));

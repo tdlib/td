@@ -90,6 +90,11 @@ class BusinessConnectionManager final : public Actor {
                                    td_api::object_ptr<td_api::InputMessageContent> &&input_message_content,
                                    Promise<td_api::object_ptr<td_api::businessMessage>> &&promise);
 
+  void edit_business_message_caption(BusinessConnectionId business_connection_id, DialogId dialog_id,
+                                     MessageId message_id, td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
+                                     td_api::object_ptr<td_api::formattedText> &&input_caption, bool invert_media,
+                                     Promise<td_api::object_ptr<td_api::businessMessage>> &&promise);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
