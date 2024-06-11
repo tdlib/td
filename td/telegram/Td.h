@@ -918,6 +918,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::editBusinessMessageText &request);
 
+  void on_request(uint64 id, td_api::editBusinessMessageLiveLocation &request);
+
   void on_request(uint64 id, const td_api::loadQuickReplyShortcuts &request);
 
   void on_request(uint64 id, const td_api::setQuickReplyShortcutName &request);

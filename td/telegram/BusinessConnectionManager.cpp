@@ -1185,6 +1185,42 @@ void BusinessConnectionManager::edit_business_message_text(
              std::move(input_reply_markup));
 }
 
+void BusinessConnectionManager::edit_business_message_live_location(
+    BusinessConnectionId business_connection_id, DialogId dialog_id, MessageId message_id,
+    td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup, td_api::object_ptr<td_api::location> &&input_location,
+    int32 live_period, int32 heading, int32 proximity_alert_radius,
+    Promise<td_api::object_ptr<td_api::businessMessage>> &&promise) {
+  TRY_STATUS_PROMISE(promise, check_business_connection(business_connection_id, dialog_id));
+  TRY_STATUS_PROMISE(promise, check_business_message_id(message_id));
+
+  Location location(input_location);
+  if (location.empty() && input_location != nullptr) {
+    return promise.set_error(Status::Error(400, "Invalid location specified"));
+  }
+
+  TRY_RESULT_PROMISE(promise, new_reply_markup,
+                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true));
+  auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), new_reply_markup);
+
+  int32 flags = 0;
+  if (location.empty()) {
+    flags |= telegram_api::inputMediaGeoLive::STOPPED_MASK;
+  }
+  if (live_period != 0) {
+    flags |= telegram_api::inputMediaGeoLive::PERIOD_MASK;
+  }
+  if (heading != 0) {
+    flags |= telegram_api::inputMediaGeoLive::HEADING_MASK;
+  }
+  flags |= telegram_api::inputMediaGeoLive::PROXIMITY_NOTIFICATION_RADIUS_MASK;
+  auto input_media = telegram_api::make_object<telegram_api::inputMediaGeoLive>(
+      flags, false /*ignored*/, location.get_input_geo_point(), heading, live_period, proximity_alert_radius);
+  td_->create_handler<EditBusinessMessageQuery>(std::move(promise))
+      ->send(0, business_connection_id, dialog_id, message_id, string(),
+             vector<telegram_api::object_ptr<telegram_api::MessageEntity>>(), std::move(input_media), false /*ignored*/,
+             std::move(input_reply_markup));
+}
+
 td_api::object_ptr<td_api::updateBusinessConnection> BusinessConnectionManager::get_update_business_connection(
     const BusinessConnection *connection) const {
   return td_api::make_object<td_api::updateBusinessConnection>(connection->get_business_connection_object(td_));

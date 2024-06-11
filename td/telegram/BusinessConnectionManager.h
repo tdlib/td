@@ -10,6 +10,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/MessageEffectId.h"
+#include "td/telegram/MessageId.h"
 #include "td/telegram/MessageInputReplyTo.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/td_api.h"
@@ -77,6 +78,12 @@ class BusinessConnectionManager final : public Actor {
                                   td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                   td_api::object_ptr<td_api::InputMessageContent> &&input_message_content,
                                   Promise<td_api::object_ptr<td_api::businessMessage>> &&promise);
+
+  void edit_business_message_live_location(BusinessConnectionId business_connection_id, DialogId dialog_id,
+                                           MessageId message_id, td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
+                                           td_api::object_ptr<td_api::location> &&input_location, int32 live_period,
+                                           int32 heading, int32 proximity_alert_radius,
+                                           Promise<td_api::object_ptr<td_api::businessMessage>> &&promise);
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
