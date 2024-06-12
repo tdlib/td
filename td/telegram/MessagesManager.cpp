@@ -29450,6 +29450,15 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
                  << *m->reply_markup;
     }
   }
+  if (error.message() == "ENTITY_BOUNDS_INVALID") {
+    LOG(ERROR) << "Receive ENTITY_BOUNDS_INVALID for "
+               << to_string(get_message_object(dialog_id, m, "on_send_message_fail"));
+    auto text = get_message_content_text(m->content.get());
+    if (text != nullptr) {
+      LOG(ERROR) << "Receive ENTITY_BOUNDS_INVALID for " << hex_encode(text->text) << " with entities "
+                 << text->entities;
+    }
+  }
   if (error_code != 403 && !(error_code == 500 && G()->close_flag())) {
     LOG(WARNING) << "Failed to send " << message_full_id << " with the error " << error;
   }
