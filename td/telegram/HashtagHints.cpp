@@ -13,6 +13,7 @@
 
 #include "td/utils/HashTableUtils.h"
 #include "td/utils/logging.h"
+#include "td/utils/Slice.h"
 #include "td/utils/tl_helpers.h"
 #include "td/utils/utf8.h"
 
