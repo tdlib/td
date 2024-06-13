@@ -763,11 +763,10 @@ MessageInputReplyTo BusinessConnectionManager::create_business_message_input_rep
       if (!message_id.is_valid() || !message_id.is_server()) {
         return {};
       }
-      if (reply_to_message->chat_id_ != 0) {
-        return {};
-      }
       return MessageInputReplyTo{message_id, DialogId(), MessageQuote(td_, std::move(reply_to_message->quote_))};
     }
+    case td_api::inputMessageReplyToExternalMessage::ID:
+      return {};
     default:
       UNREACHABLE();
       return {};

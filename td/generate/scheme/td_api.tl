@@ -1520,11 +1520,16 @@ messageReplyToStory story_sender_chat_id:int53 story_id:int32 = MessageReplyTo;
 
 //@class InputMessageReplyTo @description Contains information about the message or the story to be replied
 
-//@description Describes a message to be replied
-//@chat_id The identifier of the chat to which the message to be replied belongs; pass 0 if the message to be replied is in the same chat. Must always be 0 for replies in secret chats. A message can be replied in another chat or topic only if message.can_be_replied_in_another_chat
-//@message_id The identifier of the message to be replied in the same or the specified chat
+//@description Describes a message to be replied in the same chat and forum topic
+//@message_id The identifier of the message to be replied in the same chat and forum topic
 //@quote Quote from the message to be replied; pass null if none. Must always be null for replies in secret chats
-inputMessageReplyToMessage chat_id:int53 message_id:int53 quote:inputTextQuote = InputMessageReplyTo;
+inputMessageReplyToMessage message_id:int53 quote:inputTextQuote = InputMessageReplyTo;
+
+//@description Describes a message to be replied that is from a different chat or a forum topic; not supported in secret chats
+//@chat_id The identifier of the chat to which the message to be replied belongs
+//@message_id The identifier of the message to be replied in the specified chat. A message can be replied in another chat or topic only if message.can_be_replied_in_another_chat
+//@quote Quote from the message to be replied; pass null if none
+inputMessageReplyToExternalMessage chat_id:int53 message_id:int53 quote:inputTextQuote = InputMessageReplyTo;
 
 //@description Describes a story to be replied
 //@story_sender_chat_id The identifier of the sender of the story. Currently, stories can be replied only in the sender's chat and channel stories can't be replied

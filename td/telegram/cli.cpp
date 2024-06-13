@@ -955,8 +955,11 @@ class CliClient final : public Actor {
       if (!reply_quote_.empty()) {
         quote = td_api::make_object<td_api::inputTextQuote>(as_formatted_text(reply_quote_), reply_quote_position_);
       }
-      return td_api::make_object<td_api::inputMessageReplyToMessage>(reply_chat_id_, reply_message_id_,
-                                                                     std::move(quote));
+      if (reply_chat_id_ == 0) {
+        return td_api::make_object<td_api::inputMessageReplyToMessage>(reply_message_id_, std::move(quote));
+      }
+      return td_api::make_object<td_api::inputMessageReplyToExternalMessage>(reply_chat_id_, reply_message_id_,
+                                                                             std::move(quote));
     }
     if (reply_story_chat_id_ != 0 || reply_story_id_ != 0) {
       return td_api::make_object<td_api::inputMessageReplyToStory>(reply_story_chat_id_, reply_story_id_);

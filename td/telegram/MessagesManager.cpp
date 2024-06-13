@@ -23218,43 +23218,48 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
         }
         return {};
       }
-      auto *reply_d = d;
-      auto reply_dialog_id = DialogId(reply_to_message->chat_id_);
-      if (reply_dialog_id != DialogId()) {
-        reply_d = get_dialog_force(reply_dialog_id, "create_message_input_reply_to");
-        if (reply_d == nullptr) {
-          return {};
-        }
-        if (d->dialog_id.get_type() == DialogType::SecretChat) {
-          return {};
-        }
-      }
-      message_id = get_persistent_message_id(reply_d, message_id);
-      if (message_id == MessageId(ServerMessageId(1)) && reply_d->dialog_id.get_type() == DialogType::Channel) {
+      message_id = get_persistent_message_id(d, message_id);
+      if (message_id == MessageId(ServerMessageId(1)) && d->dialog_id.get_type() == DialogType::Channel) {
         return {};
       }
-      const Message *m = get_message_force(reply_d, message_id, "create_message_input_reply_to 2");
+      const Message *m = get_message_force(d, message_id, "create_message_input_reply_to 2");
       if (m == nullptr || m->message_id.is_yet_unsent() ||
-          (m->message_id.is_local() && reply_d->dialog_id.get_type() != DialogType::SecretChat)) {
-        if (message_id.is_server() && reply_d->dialog_id.get_type() != DialogType::SecretChat &&
-            reply_dialog_id == DialogId() && message_id > reply_d->last_new_message_id &&
-            (reply_d->notification_info != nullptr &&
-             message_id <= reply_d->notification_info->max_push_notification_message_id_)) {
+          (m->message_id.is_local() && d->dialog_id.get_type() != DialogType::SecretChat)) {
+        if (message_id.is_server() && d->dialog_id.get_type() != DialogType::SecretChat &&
+            message_id > d->last_new_message_id &&
+            (d->notification_info != nullptr &&
+             message_id <= d->notification_info->max_push_notification_message_id_)) {
           // allow to reply yet unreceived server message in the same chat
-          return MessageInputReplyTo{message_id, reply_dialog_id,
-                                     MessageQuote{td_, std::move(reply_to_message->quote_)}};
+          return MessageInputReplyTo{message_id, DialogId(), MessageQuote{td_, std::move(reply_to_message->quote_)}};
         }
         if (!for_draft && top_thread_message_id.is_valid() && top_thread_message_id.is_server()) {
           return MessageInputReplyTo{top_thread_message_id, DialogId(), MessageQuote()};
         }
-        LOG(INFO) << "Can't find " << message_id << " in " << reply_d->dialog_id;
+        LOG(INFO) << "Can't find " << message_id << " in " << d->dialog_id;
 
         // TODO local replies to local messages can be allowed
         // TODO replies to yet unsent messages can be allowed with special handling of them on application restart
         return {};
       }
-      if (reply_dialog_id != DialogId() && (!can_forward_message(reply_dialog_id, m) || !m->message_id.is_server())) {
-        LOG(INFO) << "Can't reply in another chat " << m->message_id << " in " << reply_d->dialog_id;
+      return MessageInputReplyTo{m->message_id, DialogId(), MessageQuote{td_, std::move(reply_to_message->quote_)}};
+    }
+    case td_api::inputMessageReplyToExternalMessage::ID: {
+      auto reply_to_message = td_api::move_object_as<td_api::inputMessageReplyToExternalMessage>(reply_to);
+      if (d->dialog_id.get_type() == DialogType::SecretChat) {
+        return {};
+      }
+      auto reply_dialog_id = DialogId(reply_to_message->chat_id_);
+      auto *reply_d = get_dialog_force(reply_dialog_id, "create_message_input_reply_to");
+      if (reply_d == nullptr) {
+        return {};
+      }
+      auto message_id = get_persistent_message_id(reply_d, MessageId(reply_to_message->message_id_));
+      if (message_id == MessageId(ServerMessageId(1)) && reply_d->dialog_id.get_type() == DialogType::Channel) {
+        return {};
+      }
+      const Message *m = get_message_force(reply_d, message_id, "create_message_input_reply_to 2");
+      if (!can_forward_message(reply_dialog_id, m) || !m->message_id.is_valid() || !m->message_id.is_server()) {
+        LOG(INFO) << "Can't reply in another chat " << message_id << " in " << reply_d->dialog_id;
         return {};
       }
       return MessageInputReplyTo{m->message_id, reply_dialog_id,
