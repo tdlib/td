@@ -861,8 +861,8 @@ starTransactionSourceAppStore = StarTransactionSource;
 //@description The transaction is a transaction with Google Play
 starTransactionSourceGooglePlay = StarTransactionSource;
 
-//@description The transaction is a transaction with Fragment
-starTransactionSourceFragment = StarTransactionSource;
+//@description The transaction is a transaction with Fragment @withdrawal_state State of the withdrawal; may be null for refunds from Fragment
+starTransactionSourceFragment withdrawal_state:RevenueWithdrawalState = StarTransactionSource;
 
 //@description The transaction is a transaction with another user @user_id Identifier of the user @product_info Information about the bought product; may be null if none
 starTransactionSourceUser user_id:int53 product_info:productInfo = StarTransactionSource;

@@ -696,8 +696,25 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
             return td_api::make_object<td_api::starTransactionSourceAppStore>();
           case telegram_api::starsTransactionPeerPlayMarket::ID:
             return td_api::make_object<td_api::starTransactionSourceGooglePlay>();
-          case telegram_api::starsTransactionPeerFragment::ID:
-            return td_api::make_object<td_api::starTransactionSourceFragment>();
+          case telegram_api::starsTransactionPeerFragment::ID: {
+            auto state = [&]() -> td_api::object_ptr<td_api::RevenueWithdrawalState> {
+              if (transaction->transaction_date_ > 0) {
+                return td_api::make_object<td_api::revenueWithdrawalStateCompleted>(transaction->transaction_date_,
+                                                                                    transaction->transaction_url_);
+              }
+              if (transaction->pending_) {
+                return td_api::make_object<td_api::revenueWithdrawalStatePending>();
+              }
+              if (transaction->failed_) {
+                return td_api::make_object<td_api::revenueWithdrawalStateFailed>();
+              }
+              if (!transaction->refund_) {
+                LOG(ERROR) << "Receive " << to_string(transaction);
+              }
+              return nullptr;
+            }();
+            return td_api::make_object<td_api::starTransactionSourceFragment>(std::move(state));
+          }
           case telegram_api::starsTransactionPeer::ID: {
             DialogId dialog_id(
                 static_cast<const telegram_api::starsTransactionPeer *>(transaction->peer_.get())->peer_);
