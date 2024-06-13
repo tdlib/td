@@ -6,7 +6,9 @@
 //
 #pragma once
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
 
 #include "td/actor/actor.h"
@@ -29,8 +31,14 @@ class StarManager final : public Actor {
 
   void refund_star_payment(UserId user_id, const string &telegram_payment_charge_id, Promise<Unit> &&promise);
 
+  void get_star_withdrawal_url(DialogId dialog_id, int64 star_count, const string &password, Promise<string> &&promise);
+
  private:
   void tear_down() final;
+
+  void send_get_star_withdrawal_url_query(
+      DialogId dialog_id, int64 star_count,
+      telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password, Promise<string> &&promise);
 
   Td *td_;
   ActorShared<> parent_;
