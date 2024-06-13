@@ -6863,18 +6863,18 @@ messageStatistics message_interaction_graph:StatisticalGraph message_reaction_gr
 storyStatistics story_interaction_graph:StatisticalGraph story_reaction_graph:StatisticalGraph = StoryStatistics;
 
 
-//@class ChatRevenueWithdrawalState @description Describes state of a chat revenue withdrawal
+//@class RevenueWithdrawalState @description Describes state of a revenue withdrawal
 
 //@description Withdrawal is pending
-chatRevenueWithdrawalStatePending = ChatRevenueWithdrawalState;
+revenueWithdrawalStatePending = RevenueWithdrawalState;
 
 //@description Withdrawal was completed
 //@date Point in time (Unix timestamp) when the withdrawal was completed
 //@url The URL where the withdrawal transaction can be viewed
-chatRevenueWithdrawalStateCompleted date:int32 url:string = ChatRevenueWithdrawalState;
+revenueWithdrawalStateCompleted date:int32 url:string = RevenueWithdrawalState;
 
 //@description Withdrawal has_failed
-chatRevenueWithdrawalStateFailed = ChatRevenueWithdrawalState;
+revenueWithdrawalStateFailed = RevenueWithdrawalState;
 
 
 //@class ChatRevenueTransactionType @description Describes type of transaction for revenue earned from sponsored messages in a chat
@@ -6888,7 +6888,7 @@ chatRevenueTransactionTypeEarnings start_date:int32 end_date:int32 = ChatRevenue
 //@withdrawal_date Point in time (Unix timestamp) when the earnings withdrawal started
 //@provider Name of the payment provider
 //@state State of the withdrawal
-chatRevenueTransactionTypeWithdrawal withdrawal_date:int32 provider:string state:ChatRevenueWithdrawalState = ChatRevenueTransactionType;
+chatRevenueTransactionTypeWithdrawal withdrawal_date:int32 provider:string state:RevenueWithdrawalState = ChatRevenueTransactionType;
 
 //@description Describes a refund for failed withdrawal of earnings
 //@refund_date Point in time (Unix timestamp) when the transaction was refunded

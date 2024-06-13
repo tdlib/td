@@ -415,18 +415,18 @@ class GetBroadcastRevenueTransactionsQuery final : public Td::ResultHandler {
             auto transaction =
                 telegram_api::move_object_as<telegram_api::broadcastRevenueTransactionWithdrawal>(transaction_ptr);
             amount = get_amount(transaction->amount_, true);
-            auto state = [&]() -> td_api::object_ptr<td_api::ChatRevenueWithdrawalState> {
+            auto state = [&]() -> td_api::object_ptr<td_api::RevenueWithdrawalState> {
               if (transaction->transaction_date_ > 0) {
-                return td_api::make_object<td_api::chatRevenueWithdrawalStateCompleted>(transaction->transaction_date_,
+                return td_api::make_object<td_api::revenueWithdrawalStateCompleted>(transaction->transaction_date_,
                                                                                         transaction->transaction_url_);
               }
               if (transaction->pending_) {
-                return td_api::make_object<td_api::chatRevenueWithdrawalStatePending>();
+                return td_api::make_object<td_api::revenueWithdrawalStatePending>();
               }
               if (!transaction->failed_) {
                 LOG(ERROR) << "Transaction has unknown state";
               }
-              return td_api::make_object<td_api::chatRevenueWithdrawalStateFailed>();
+              return td_api::make_object<td_api::revenueWithdrawalStateFailed>();
             }();
             return td_api::make_object<td_api::chatRevenueTransactionTypeWithdrawal>(
                 transaction->date_, transaction->provider_, std::move(state));
