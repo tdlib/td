@@ -9156,7 +9156,7 @@ void Td::on_request(uint64 id, td_api::refundStarPayment &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.telegram_payment_charge_id_);
   CREATE_OK_REQUEST_PROMISE();
-  refund_star_payment(this, UserId(request.user_id_), request.telegram_payment_charge_id_, std::move(promise));
+  star_manager_->refund_star_payment(UserId(request.user_id_), request.telegram_payment_charge_id_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getPassportElement &request) {
@@ -9480,14 +9480,14 @@ void Td::on_request(uint64 id, const td_api::getPremiumGiveawayInfo &request) {
 void Td::on_request(uint64 id, const td_api::getStarPaymentOptions &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  get_star_payment_options(this, std::move(promise));
+  star_manager_->get_star_payment_options(std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getStarTransactions &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();
-  get_star_transactions(this, request.offset_, std::move(request.direction_), std::move(promise));
+  star_manager_->get_star_transactions(request.offset_, std::move(request.direction_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::canPurchaseFromStore &request) {
