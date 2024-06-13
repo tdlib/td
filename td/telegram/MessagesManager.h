@@ -182,6 +182,10 @@ class MessagesManager final : public Actor {
                                              vector<tl_object_ptr<telegram_api::searchResultsCalendarPeriod>> &&periods,
                                              Promise<td_api::object_ptr<td_api::messageCalendar>> &&promise);
 
+  void on_get_call_messages(MessageId from_message_id, int32 limit, MessageSearchFilter filter, int32 total_count,
+                            vector<telegram_api::object_ptr<telegram_api::Message>> &&messages,
+                            Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
+
   void on_get_dialog_messages_search_result(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
                                             const string &query, DialogId sender_dialog_id, MessageId from_message_id,
                                             int32 offset, int32 limit, MessageSearchFilter filter,
@@ -728,8 +732,8 @@ class MessagesManager final : public Actor {
                        const string &offset_str, int32 limit, MessageSearchFilter filter, int32 min_date,
                        int32 max_date, Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 
-  FoundMessages search_call_messages(const string &offset, int32 limit, bool only_missed, int64 &random_id, bool use_db,
-                                     Promise<Unit> &&promise);
+  void search_call_messages(const string &offset, int32 limit, bool only_missed,
+                            Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 
   void search_outgoing_document_messages(const string &query, int32 limit,
                                          Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
@@ -2837,8 +2841,9 @@ class MessagesManager final : public Actor {
   void on_message_db_fts_result(Result<MessageDbFtsResult> result, string offset, int32 limit,
                                 Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 
-  void on_message_db_calls_result(Result<MessageDbCallsResult> result, int64 random_id, MessageId first_db_message_id,
-                                  MessageSearchFilter filter, Promise<Unit> &&promise);
+  void on_message_db_calls_result(Result<MessageDbCallsResult> result, MessageId first_db_message_id,
+                                  MessageId offset_message_id, int32 limit, MessageSearchFilter filter,
+                                  Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 
   void on_load_active_live_location_message_full_ids_from_database(string value);
 
@@ -3252,7 +3257,6 @@ class MessagesManager final : public Actor {
 
   FlatHashMap<int64, FoundDialogMessages> found_dialog_messages_;  // random_id -> FoundDialogMessages
   FlatHashMap<int64, DialogId> found_dialog_messages_dialog_id_;   // random_id -> dialog_id
-  FlatHashMap<int64, FoundMessages> found_call_messages_;          // random_id -> FoundMessages
 
   struct MessageEmbeddingCodes {
     FlatHashMap<MessageId, string, MessageIdHash> embedding_codes_;

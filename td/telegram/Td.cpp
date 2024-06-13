@@ -1437,34 +1437,6 @@ class SearchChatMessagesRequest final : public RequestActor<> {
   }
 };
 
-class SearchCallMessagesRequest final : public RequestActor<> {
-  string offset_;
-  int32 limit_;
-  bool only_missed_;
-  int64 random_id_;
-
-  MessagesManager::FoundMessages messages_;
-
-  void do_run(Promise<Unit> &&promise) final {
-    messages_ = td_->messages_manager_->search_call_messages(offset_, limit_, only_missed_, random_id_,
-                                                             get_tries() == 3, std::move(promise));
-  }
-
-  void do_send_result() final {
-    send_result(td_->messages_manager_->get_found_messages_object(messages_, "SearchCallMessagesRequest"));
-  }
-
- public:
-  SearchCallMessagesRequest(ActorShared<Td> td, uint64 request_id, string offset, int32 limit, bool only_missed)
-      : RequestActor(std::move(td), request_id)
-      , offset_(std::move(offset))
-      , limit_(limit)
-      , only_missed_(only_missed)
-      , random_id_(0) {
-    set_tries(3);
-  }
-};
-
 class GetActiveLiveLocationMessagesRequest final : public RequestActor<> {
   vector<MessageFullId> message_full_ids_;
 
@@ -5323,7 +5295,8 @@ void Td::on_request(uint64 id, td_api::searchSavedMessages &request) {
 
 void Td::on_request(uint64 id, const td_api::searchCallMessages &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(SearchCallMessagesRequest, std::move(request.offset_), request.limit_, request.only_missed_);
+  CREATE_REQUEST_PROMISE();
+  messages_manager_->search_call_messages(request.offset_, request.limit_, request.only_missed_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::searchOutgoingDocumentMessages &request) {
