@@ -3942,7 +3942,8 @@ inputStoryArea position:storyAreaPosition type:InputStoryAreaType = InputStoryAr
 
 //@description Contains a list of story areas to be added @areas List of input story areas. Currently, a story can have
 //-up to 10 inputStoryAreaTypeLocation, inputStoryAreaTypeFoundVenue, and inputStoryAreaTypePreviousVenue areas,
-//-up to getOption("story_suggested_reaction_area_count_max") inputStoryAreaTypeSuggestedReaction areas, and up to 1 inputStoryAreaTypeMessage area
+//-up to getOption("story_suggested_reaction_area_count_max") inputStoryAreaTypeSuggestedReaction areas,
+//-up to 1 inputStoryAreaTypeMessage area, and up to 3 inputStoryAreaTypeLink areas if the current user is a Telegram Premium user
 inputStoryAreas areas:vector<inputStoryArea> = InputStoryAreas;
 
 
@@ -5297,7 +5298,7 @@ premiumStoryFeatureCustomExpirationDuration = PremiumStoryFeature;
 //@description The ability to save other's unprotected stories
 premiumStoryFeatureSaveStories = PremiumStoryFeature;
 
-//@description The ability to use links and formatting in story caption
+//@description The ability to use links and formatting in story caption, and use inputStoryAreaTypeLink areas
 premiumStoryFeatureLinksAndFormatting = PremiumStoryFeature;
 
 //@description The ability to choose better quality for viewed stories
