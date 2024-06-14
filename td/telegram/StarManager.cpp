@@ -47,8 +47,9 @@ class GetStarsTopupOptionsQuery final : public Td::ResultHandler {
     auto results = result_ptr.move_as_ok();
     vector<td_api::object_ptr<td_api::starPaymentOption>> options;
     for (auto &result : results) {
-      options.push_back(td_api::make_object<td_api::starPaymentOption>(
-          result->currency_, result->amount_, result->stars_, result->store_product_, result->extended_));
+      options.push_back(td_api::make_object<td_api::starPaymentOption>(result->currency_, result->amount_,
+                                                                       StarManager::get_star_count(result->stars_),
+                                                                       result->store_product_, result->extended_));
     }
 
     promise_.set_value(td_api::make_object<td_api::starPaymentOptions>(std::move(options)));
@@ -156,11 +157,12 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         }
       }();
       transactions.push_back(td_api::make_object<td_api::starTransaction>(
-          transaction->id_, transaction->stars_, transaction->refund_, transaction->date_, std::move(source)));
+          transaction->id_, StarManager::get_star_count(transaction->stars_), transaction->refund_, transaction->date_,
+          std::move(source)));
     }
 
-    promise_.set_value(
-        td_api::make_object<td_api::starTransactions>(result->balance_, std::move(transactions), result->next_offset_));
+    promise_.set_value(td_api::make_object<td_api::starTransactions>(StarManager::get_star_count(result->balance_),
+                                                                     std::move(transactions), result->next_offset_));
   }
 
   void on_error(Status status) final {
@@ -200,16 +202,9 @@ class RefundStarsChargeQuery final : public Td::ResultHandler {
 static td_api::object_ptr<td_api::starRevenueStatus> convert_stars_revenue_status(
     telegram_api::object_ptr<telegram_api::starsRevenueStatus> obj) {
   CHECK(obj != nullptr);
-  auto get_amount = [](int64 amount) {
-    if (amount < 0) {
-      LOG(ERROR) << "Receive star amount = " << amount;
-      return static_cast<int64>(0);
-    }
-    return amount;
-  };
-  return td_api::make_object<td_api::starRevenueStatus>(get_amount(obj->overall_revenue_),
-                                                        get_amount(obj->current_balance_),
-                                                        get_amount(obj->available_balance_), obj->withdrawal_enabled_);
+  return td_api::make_object<td_api::starRevenueStatus>(
+      StarManager::get_star_count(obj->overall_revenue_), StarManager::get_star_count(obj->current_balance_),
+      StarManager::get_star_count(obj->available_balance_), obj->withdrawal_enabled_);
 }
 
 class GetStarsRevenueStatsQuery final : public Td::ResultHandler {
@@ -381,6 +376,19 @@ void StarManager::send_get_star_withdrawal_url_query(
 
   td_->create_handler<GetStarsRevenueWithdrawalUrlQuery>(std::move(promise))
       ->send(dialog_id, star_count, std::move(input_check_password));
+}
+
+int64 StarManager::get_star_count(int64 amount) {
+  if (amount < 0) {
+    LOG(ERROR) << "Receive star amount = " << amount;
+    return 0;
+  }
+  auto max_amount = static_cast<int64>(1) << 51;
+  if (amount > max_amount) {
+    LOG(ERROR) << "Receive star amount = " << amount;
+    return max_amount;
+  }
+  return amount;
 }
 
 }  // namespace td

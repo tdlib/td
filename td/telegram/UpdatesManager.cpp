@@ -66,6 +66,7 @@
 #include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/SpecialStickerSetType.h"
+#include "td/telegram/StarManager.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/StatisticsManager.h"
 #include "td/telegram/StickerListType.h"
@@ -4569,11 +4570,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBroadcastRevenu
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStarsBalance> update, Promise<Unit> &&promise) {
-  if (update->balance_ < 0) {
-    LOG(ERROR) << "Receive " << update->balance_ << " stars";
-    update->balance_ = 0;
-  }
-  send_closure(G()->td(), &Td::send_update, td_api::make_object<td_api::updateOwnedStarCount>(update->balance_));
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateOwnedStarCount>(StarManager::get_star_count(update->balance_)));
   promise.set_value(Unit());
 }
 

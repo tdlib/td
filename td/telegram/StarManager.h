@@ -38,6 +38,8 @@ class StarManager final : public Actor {
   void get_star_withdrawal_url(const td_api::object_ptr<td_api::MessageSender> &owner_id, int64 star_count,
                                const string &password, Promise<string> &&promise);
 
+  static int64 get_star_count(int64 amount);
+
  private:
   void tear_down() final;
 
