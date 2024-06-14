@@ -10734,7 +10734,7 @@ getStarRevenueStatistics owner_id:MessageSender is_dark:Bool = StarRevenueStatis
 
 //@description Returns URL for Telegram star withdrawal
 //@owner_id Identifier of the owner of the Telegram stars; can be identifier of an owned bot, or identifier of a channel chat with supergroupFullInfo.can_get_revenue_statistics == true
-//@star_count The number of Telegram stars to withdraw
+//@star_count The number of Telegram stars to withdraw. Must be at least getOption("star_withdrawal_count_min")
 //@password The 2-step verification password of the current user
 getStarWithdrawalUrl owner_id:MessageSender star_count:int53 password:string = HttpUrl;
 
