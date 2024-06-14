@@ -26,7 +26,8 @@ class StarManager final : public Actor {
 
   void get_star_payment_options(Promise<td_api::object_ptr<td_api::starPaymentOptions>> &&promise);
 
-  void get_star_transactions(const string &offset, td_api::object_ptr<td_api::StarTransactionDirection> &&direction,
+  void get_star_transactions(const string &offset, int32 limit,
+                             td_api::object_ptr<td_api::StarTransactionDirection> &&direction,
                              Promise<td_api::object_ptr<td_api::starTransactions>> &&promise);
 
   void refund_star_payment(UserId user_id, const string &telegram_payment_charge_id, Promise<Unit> &&promise);

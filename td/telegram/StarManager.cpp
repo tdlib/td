@@ -64,7 +64,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(const string &offset, td_api::object_ptr<td_api::StarTransactionDirection> &&direction) {
+  void send(const string &offset, int32 limit, td_api::object_ptr<td_api::StarTransactionDirection> &&direction) {
     int32 flags = 0;
     if (direction != nullptr) {
       switch (direction->get_id()) {
@@ -80,7 +80,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
     }
     send_query(G()->net_query_creator().create(telegram_api::payments_getStarsTransactions(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        telegram_api::make_object<telegram_api::inputPeerSelf>(), offset, 100)));
+        telegram_api::make_object<telegram_api::inputPeerSelf>(), offset, limit)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -231,10 +231,13 @@ void StarManager::get_star_payment_options(Promise<td_api::object_ptr<td_api::st
   td_->create_handler<GetStarsTopupOptionsQuery>(std::move(promise))->send();
 }
 
-void StarManager::get_star_transactions(const string &offset,
+void StarManager::get_star_transactions(const string &offset, int32 limit,
                                         td_api::object_ptr<td_api::StarTransactionDirection> &&direction,
                                         Promise<td_api::object_ptr<td_api::starTransactions>> &&promise) {
-  td_->create_handler<GetStarsTransactionsQuery>(std::move(promise))->send(offset, std::move(direction));
+  if (limit < 0) {
+    return promise.set_error(Status::Error(400, "Limit must be non-negative"));
+  }
+  td_->create_handler<GetStarsTransactionsQuery>(std::move(promise))->send(offset, limit, std::move(direction));
 }
 
 void StarManager::refund_star_payment(UserId user_id, const string &telegram_payment_charge_id,

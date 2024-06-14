@@ -10979,9 +10979,10 @@ getPremiumGiveawayInfo chat_id:int53 message_id:int53 = PremiumGiveawayInfo;
 getStarPaymentOptions = StarPaymentOptions;
 
 //@description Returns the list of Telegram star transactions for the current user
-//@offset Offset of the first transaction to return as received from the previous request; use empty string to get the first chunk of results
 //@direction Direction of the transactions to receive; pass null to get all transactions
-getStarTransactions offset:string direction:StarTransactionDirection = StarTransactions;
+//@offset Offset of the first transaction to return as received from the previous request; use empty string to get the first chunk of results
+//@limit The maximum number of transactions to return
+getStarTransactions direction:StarTransactionDirection offset:string limit:int32 = StarTransactions;
 
 //@description Checks whether an in-store purchase is possible. Must be called before any in-store purchase @purpose Transaction purpose
 canPurchaseFromStore purpose:StorePaymentPurpose = Ok;
