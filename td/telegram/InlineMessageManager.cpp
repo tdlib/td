@@ -46,7 +46,7 @@ static int32 get_inline_message_dc_id(
   }
 }
 
-static telegram_api::object_ptr<telegram_api::InputBotInlineMessageID> get_input_bot_inline_message_id(
+static telegram_api::object_ptr<telegram_api::InputBotInlineMessageID> parse_input_bot_inline_message_id(
     const string &inline_message_id) {
   auto r_binary = base64url_decode(inline_message_id);
   if (r_binary.is_error()) {
@@ -65,6 +65,15 @@ static telegram_api::object_ptr<telegram_api::InputBotInlineMessageID> get_input
   }
   LOG(INFO) << "Have inline message identifier: " << to_string(result);
   return result;
+}
+
+static Result<telegram_api::object_ptr<telegram_api::InputBotInlineMessageID>> get_input_bot_inline_message_id(
+    const string &inline_message_id) {
+  auto result = parse_input_bot_inline_message_id(inline_message_id);
+  if (result == nullptr) {
+    return Status::Error(400, "Invalid inline message identifier specified");
+  }
+  return std::move(result);
 }
 
 class EditInlineMessageQuery final : public Td::ResultHandler {
@@ -232,11 +241,7 @@ void InlineMessageManager::edit_inline_message_text(
       process_input_message_text(td_, DialogId(), std::move(input_message_content), td_->auth_manager_->is_bot()));
   TRY_RESULT_PROMISE(promise, new_reply_markup,
                      get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true));
-
-  auto input_bot_inline_message_id = get_input_bot_inline_message_id(inline_message_id);
-  if (input_bot_inline_message_id == nullptr) {
-    return promise.set_error(Status::Error(400, "Invalid inline message identifier specified"));
-  }
+  TRY_RESULT_PROMISE(promise, input_bot_inline_message_id, get_input_bot_inline_message_id(inline_message_id));
 
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
       ->send(std::move(input_bot_inline_message_id), true, input_message_text.text.text,
@@ -255,11 +260,7 @@ void InlineMessageManager::edit_inline_message_live_location(const string &inlin
 
   TRY_RESULT_PROMISE(promise, new_reply_markup,
                      get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true));
-
-  auto input_bot_inline_message_id = get_input_bot_inline_message_id(inline_message_id);
-  if (input_bot_inline_message_id == nullptr) {
-    return promise.set_error(Status::Error(400, "Invalid inline message identifier specified"));
-  }
+  TRY_RESULT_PROMISE(promise, input_bot_inline_message_id, get_input_bot_inline_message_id(inline_message_id));
 
   Location location(input_location);
   if (location.empty() && input_location != nullptr) {
@@ -311,11 +312,7 @@ void InlineMessageManager::edit_inline_message_media(
 
   TRY_RESULT_PROMISE(promise, new_reply_markup,
                      get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true));
-
-  auto input_bot_inline_message_id = get_input_bot_inline_message_id(inline_message_id);
-  if (input_bot_inline_message_id == nullptr) {
-    return promise.set_error(Status::Error(400, "Invalid inline message identifier specified"));
-  }
+  TRY_RESULT_PROMISE(promise, input_bot_inline_message_id, get_input_bot_inline_message_id(inline_message_id));
 
   auto input_media = get_input_media(content.content.get(), td_, MessageSelfDestructType(), string(), true);
   if (input_media == nullptr) {
@@ -341,11 +338,7 @@ void InlineMessageManager::edit_inline_message_caption(const string &inline_mess
                                         td_->auth_manager_->is_bot(), true, false, false));
   TRY_RESULT_PROMISE(promise, new_reply_markup,
                      get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true));
-
-  auto input_bot_inline_message_id = get_input_bot_inline_message_id(inline_message_id);
-  if (input_bot_inline_message_id == nullptr) {
-    return promise.set_error(Status::Error(400, "Invalid inline message identifier specified"));
-  }
+  TRY_RESULT_PROMISE(promise, input_bot_inline_message_id, get_input_bot_inline_message_id(inline_message_id));
 
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
       ->send(std::move(input_bot_inline_message_id), true, caption.text,
@@ -360,11 +353,7 @@ void InlineMessageManager::edit_inline_message_reply_markup(const string &inline
 
   TRY_RESULT_PROMISE(promise, new_reply_markup,
                      get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true));
-
-  auto input_bot_inline_message_id = get_input_bot_inline_message_id(inline_message_id);
-  if (input_bot_inline_message_id == nullptr) {
-    return promise.set_error(Status::Error(400, "Invalid inline message identifier specified"));
-  }
+  TRY_RESULT_PROMISE(promise, input_bot_inline_message_id, get_input_bot_inline_message_id(inline_message_id));
 
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
       ->send(std::move(input_bot_inline_message_id), false, string(),
@@ -376,11 +365,7 @@ void InlineMessageManager::set_inline_game_score(const string &inline_message_id
                                                  int32 score, bool force, Promise<Unit> &&promise) {
   CHECK(td_->auth_manager_->is_bot());
 
-  auto input_bot_inline_message_id = get_input_bot_inline_message_id(inline_message_id);
-  if (input_bot_inline_message_id == nullptr) {
-    return promise.set_error(Status::Error(400, "Invalid inline message identifier specified"));
-  }
-
+  TRY_RESULT_PROMISE(promise, input_bot_inline_message_id, get_input_bot_inline_message_id(inline_message_id));
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
 
   td_->create_handler<SetInlineGameScoreQuery>(std::move(promise))
@@ -391,11 +376,7 @@ void InlineMessageManager::get_inline_game_high_scores(const string &inline_mess
                                                        Promise<td_api::object_ptr<td_api::gameHighScores>> &&promise) {
   CHECK(td_->auth_manager_->is_bot());
 
-  auto input_bot_inline_message_id = get_input_bot_inline_message_id(inline_message_id);
-  if (input_bot_inline_message_id == nullptr) {
-    return promise.set_error(Status::Error(400, "Invalid inline message identifier specified"));
-  }
-
+  TRY_RESULT_PROMISE(promise, input_bot_inline_message_id, get_input_bot_inline_message_id(inline_message_id));
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
 
   td_->create_handler<GetInlineGameHighScoresQuery>(std::move(promise))
