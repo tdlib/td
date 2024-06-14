@@ -6905,6 +6905,20 @@ chatRevenueTransaction cryptocurrency:string cryptocurrency_amount:int64 type:Ch
 chatRevenueTransactions total_count:int32 transactions:vector<chatRevenueTransaction> = ChatRevenueTransactions;
 
 
+//@description Contains information about Telegram stars earned by a bot or a chat
+//@total_count Total number of the stars earned
+//@current_count The number of Telegram stars that isn't withdrawn yet
+//@available_count The number of Telegram stars that are available for withdrawal
+//@withdrawal_enabled True, if Telegram stars can be withdrawn
+starRevenueStatus total_count:int53 current_count:int53 available_count:int53 withdrawal_enabled:Bool = StarRevenueStatus;
+
+//@description A detailed statistics about Telegram stars earned by a bot or a chat
+//@revenue_by_day_graph A graph containing amount of revenue in a given day
+//@status Telegram star revenue status
+//@usd_rate Current conversion rate of a Telegram star to USD
+starRevenueStatistics revenue_by_day_graph:StatisticalGraph status:starRevenueStatus usd_rate:double = StarRevenueStatistics;
+
+
 //@description A point on a Cartesian plane @x The point's first coordinate @y The point's second coordinate
 point x:double y:double = Point;
 
@@ -10704,6 +10718,11 @@ getChatRevenueWithdrawalUrl chat_id:int53 password:string = HttpUrl;
 //@limit The maximum number of transactions to be returned; up to 200
 getChatRevenueTransactions chat_id:int53 offset:int32 limit:int32 = ChatRevenueTransactions;
 
+
+//@description Returns detailed Telegram star revenue statistics
+//@owner_id Identifier of the owner of the Telegram stars; can be identifier of an owned bot, or identifier of a channel chat with supergroupFullInfo.can_get_revenue_statistics == true
+//@is_dark Pass true if a dark theme is used by the application
+getStarRevenueStatistics owner_id:MessageSender is_dark:Bool = StarRevenueStatistics;
 
 //@description Returns URL for Telegram star withdrawal
 //@owner_id Identifier of the owner of the Telegram stars; can be identifier of an owned bot, or identifier of a channel chat with supergroupFullInfo.can_get_revenue_statistics == true

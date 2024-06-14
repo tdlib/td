@@ -23,6 +23,9 @@ namespace td {
 
 class Td;
 
+td_api::object_ptr<td_api::StatisticalGraph> convert_stats_graph(
+    telegram_api::object_ptr<telegram_api::StatsGraph> obj);
+
 class StatisticsManager final : public Actor {
  public:
   StatisticsManager(Td *td, ActorShared<> parent);

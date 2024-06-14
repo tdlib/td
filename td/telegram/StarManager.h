@@ -32,6 +32,9 @@ class StarManager final : public Actor {
 
   void refund_star_payment(UserId user_id, const string &telegram_payment_charge_id, Promise<Unit> &&promise);
 
+  void get_star_revenue_statistics(const td_api::object_ptr<td_api::MessageSender> &owner_id, bool is_dark,
+                                   Promise<td_api::object_ptr<td_api::starRevenueStatistics>> &&promise);
+
   void get_star_withdrawal_url(const td_api::object_ptr<td_api::MessageSender> &owner_id, int64 star_count,
                                const string &password, Promise<string> &&promise);
 

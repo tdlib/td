@@ -34,7 +34,7 @@ static td_api::object_ptr<td_api::dateRange> convert_date_range(
   return td_api::make_object<td_api::dateRange>(obj->min_date_, obj->max_date_);
 }
 
-static td_api::object_ptr<td_api::StatisticalGraph> convert_stats_graph(
+td_api::object_ptr<td_api::StatisticalGraph> convert_stats_graph(
     telegram_api::object_ptr<telegram_api::StatsGraph> obj) {
   CHECK(obj != nullptr);
 
@@ -325,7 +325,7 @@ class GetBroadcastRevenueStatsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->chat_manager_->on_get_channel_error(channel_id_, status, "GetBroadcastStatsQuery");
+    td_->chat_manager_->on_get_channel_error(channel_id_, status, "GetBroadcastRevenueStatsQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -418,7 +418,7 @@ class GetBroadcastRevenueTransactionsQuery final : public Td::ResultHandler {
             auto state = [&]() -> td_api::object_ptr<td_api::RevenueWithdrawalState> {
               if (transaction->transaction_date_ > 0) {
                 return td_api::make_object<td_api::revenueWithdrawalStateCompleted>(transaction->transaction_date_,
-                                                                                        transaction->transaction_url_);
+                                                                                    transaction->transaction_url_);
               }
               if (transaction->pending_) {
                 return td_api::make_object<td_api::revenueWithdrawalStatePending>();

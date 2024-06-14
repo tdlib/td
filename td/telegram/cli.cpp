@@ -6780,6 +6780,11 @@ class CliClient final : public Actor {
       string limit;
       get_args(args, chat_id, offset, limit);
       send_request(td_api::make_object<td_api::getChatRevenueTransactions>(chat_id, offset, as_limit(limit)));
+    } else if (op == "gsrs") {
+      string owner_id;
+      bool is_dark;
+      get_args(args, owner_id, is_dark);
+      send_request(td_api::make_object<td_api::getStarRevenueStatistics>(as_message_sender(owner_id), is_dark));
     } else if (op == "gswu") {
       string owner_id;
       int32 star_count;

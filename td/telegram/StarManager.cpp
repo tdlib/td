@@ -15,6 +15,7 @@
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/Photo.h"
+#include "td/telegram/StatisticsManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
@@ -70,8 +71,10 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, const string &offset, int32 limit,
             td_api::object_ptr<td_api::StarTransactionDirection> &&direction) {
     dialog_id_ = dialog_id;
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
-    CHECK(input_peer != nullptr);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Have no access to the chat"));
+    }
     int32 flags = 0;
     if (direction != nullptr) {
       switch (direction->get_id()) {
@@ -194,6 +197,65 @@ class RefundStarsChargeQuery final : public Td::ResultHandler {
   }
 };
 
+static td_api::object_ptr<td_api::starRevenueStatus> convert_stars_revenue_status(
+    telegram_api::object_ptr<telegram_api::starsRevenueStatus> obj) {
+  CHECK(obj != nullptr);
+  auto get_amount = [](int64 amount) {
+    if (amount < 0) {
+      LOG(ERROR) << "Receive star amount = " << amount;
+      return static_cast<int64>(0);
+    }
+    return amount;
+  };
+  return td_api::make_object<td_api::starRevenueStatus>(get_amount(obj->overall_revenue_),
+                                                        get_amount(obj->current_balance_),
+                                                        get_amount(obj->available_balance_), obj->withdrawal_enabled_);
+}
+
+class GetStarsRevenueStatsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::starRevenueStatistics>> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit GetStarsRevenueStatsQuery(Promise<td_api::object_ptr<td_api::starRevenueStatistics>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, bool is_dark) {
+    dialog_id_ = dialog_id;
+
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Have no access to the chat"));
+    }
+
+    int32 flags = 0;
+    if (is_dark) {
+      flags |= telegram_api::payments_getStarsRevenueStats::DARK_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_getStarsRevenueStats(flags, false /*ignored*/, std::move(input_peer))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getStarsRevenueStats>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for GetStarsRevenueStatsQuery: " << to_string(ptr);
+    promise_.set_value(td_api::make_object<td_api::starRevenueStatistics>(
+        convert_stats_graph(std::move(ptr->revenue_graph_)), convert_stars_revenue_status(std::move(ptr->status_)),
+        ptr->usd_rate_ > 0 ? clamp(ptr->usd_rate_ * 1e2, 1e-18, 1e18) : 1.3));
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetStarsRevenueStatsQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetStarsRevenueWithdrawalUrlQuery final : public Td::ResultHandler {
   Promise<string> promise_;
   DialogId dialog_id_;
@@ -208,7 +270,7 @@ class GetStarsRevenueWithdrawalUrlQuery final : public Td::ResultHandler {
 
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
-      return promise_.set_error(Status::Error(400, "Have no access to the chat"));
+      return on_error(Status::Error(400, "Have no access to the chat"));
     }
 
     send_query(G()->net_query_creator().create(telegram_api::payments_getStarsRevenueWithdrawalUrl(
@@ -284,6 +346,13 @@ void StarManager::refund_star_payment(UserId user_id, const string &telegram_pay
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
   td_->create_handler<RefundStarsChargeQuery>(std::move(promise))
       ->send(std::move(input_user), telegram_payment_charge_id);
+}
+
+void StarManager::get_star_revenue_statistics(const td_api::object_ptr<td_api::MessageSender> &owner_id, bool is_dark,
+                                              Promise<td_api::object_ptr<td_api::starRevenueStatistics>> &&promise) {
+  TRY_RESULT_PROMISE(promise, dialog_id, get_message_sender_dialog_id(td_, owner_id, true, false));
+  TRY_STATUS_PROMISE(promise, can_manage_stars(dialog_id));
+  td_->create_handler<GetStarsRevenueStatsQuery>(std::move(promise))->send(dialog_id, is_dark);
 }
 
 void StarManager::get_star_withdrawal_url(const td_api::object_ptr<td_api::MessageSender> &owner_id, int64 star_count,

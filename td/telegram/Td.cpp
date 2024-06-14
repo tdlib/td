@@ -8734,6 +8734,12 @@ void Td::on_request(uint64 id, const td_api::getChatRevenueTransactions &request
                                                         std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getStarRevenueStatistics &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  star_manager_->get_star_revenue_statistics(request.owner_id_, request.is_dark_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getStarWithdrawalUrl &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
