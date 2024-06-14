@@ -8744,7 +8744,7 @@ void Td::on_request(uint64 id, const td_api::getStarWithdrawalUrl &request) {
       promise.set_value(td_api::make_object<td_api::httpUrl>(result.move_as_ok()));
     }
   });
-  star_manager_->get_star_withdrawal_url(DialogId(request.chat_id_), request.star_count_, request.password_,
+  star_manager_->get_star_withdrawal_url(request.owner_id_, request.star_count_, request.password_,
                                          std::move(query_promise));
 }
 

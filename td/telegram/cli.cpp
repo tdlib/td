@@ -6781,11 +6781,12 @@ class CliClient final : public Actor {
       get_args(args, chat_id, offset, limit);
       send_request(td_api::make_object<td_api::getChatRevenueTransactions>(chat_id, offset, as_limit(limit)));
     } else if (op == "gswu") {
-      ChatId chat_id;
+      string owner_id;
       int32 star_count;
       string password;
-      get_args(args, chat_id, star_count, password);
-      send_request(td_api::make_object<td_api::getStarWithdrawalUrl>(chat_id, star_count, password));
+      get_args(args, owner_id, star_count, password);
+      send_request(
+          td_api::make_object<td_api::getStarWithdrawalUrl>(as_message_sender(owner_id), star_count, password));
     } else {
       op_not_found_count++;
     }

@@ -286,10 +286,9 @@ void StarManager::refund_star_payment(UserId user_id, const string &telegram_pay
       ->send(std::move(input_user), telegram_payment_charge_id);
 }
 
-void StarManager::get_star_withdrawal_url(DialogId dialog_id, int64 star_count, const string &password,
-                                          Promise<string> &&promise) {
-  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Write,
-                                                                        "get_star_withdrawal_url"));
+void StarManager::get_star_withdrawal_url(const td_api::object_ptr<td_api::MessageSender> &owner_id, int64 star_count,
+                                          const string &password, Promise<string> &&promise) {
+  TRY_RESULT_PROMISE(promise, dialog_id, get_message_sender_dialog_id(td_, owner_id, true, false));
   TRY_STATUS_PROMISE(promise, can_manage_stars(dialog_id));
   if (password.empty()) {
     return promise.set_error(Status::Error(400, "PASSWORD_HASH_INVALID"));
