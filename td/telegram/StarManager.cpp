@@ -11,6 +11,7 @@
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/InputInvoice.h"
+#include "td/telegram/MessageSender.h"
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/Td.h"
@@ -58,13 +59,18 @@ class GetStarsTopupOptionsQuery final : public Td::ResultHandler {
 
 class GetStarsTransactionsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::starTransactions>> promise_;
+  DialogId dialog_id_;
 
  public:
   explicit GetStarsTransactionsQuery(Promise<td_api::object_ptr<td_api::starTransactions>> &&promise)
       : promise_(std::move(promise)) {
   }
 
-  void send(const string &offset, int32 limit, td_api::object_ptr<td_api::StarTransactionDirection> &&direction) {
+  void send(DialogId dialog_id, const string &offset, int32 limit,
+            td_api::object_ptr<td_api::StarTransactionDirection> &&direction) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
     int32 flags = 0;
     if (direction != nullptr) {
       switch (direction->get_id()) {
@@ -79,8 +85,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
       }
     }
     send_query(G()->net_query_creator().create(telegram_api::payments_getStarsTransactions(
-        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        telegram_api::make_object<telegram_api::inputPeerSelf>(), offset, limit)));
+        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer), offset, limit)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -152,6 +157,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetStarsTransactionsQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -227,17 +233,46 @@ void StarManager::tear_down() {
   parent_.reset();
 }
 
+Status StarManager::can_manage_stars(DialogId dialog_id) const {
+  switch (dialog_id.get_type()) {
+    case DialogType::User: {
+      auto user_id = dialog_id.get_user_id();
+      TRY_RESULT(bot_data, td_->user_manager_->get_bot_data(user_id));
+      if (!bot_data.can_be_edited) {
+        return Status::Error(400, "The bot isn't owned");
+      }
+      break;
+    }
+    case DialogType::Channel: {
+      auto channel_id = dialog_id.get_channel_id();
+      if (!td_->chat_manager_->is_broadcast_channel(channel_id)) {
+        return Status::Error(400, "Chat is not a channel");
+      }
+      if (!td_->chat_manager_->get_channel_permissions(channel_id).is_creator()) {
+        return Status::Error(400, "Not enough rights to withdraw stars");
+      }
+      break;
+    }
+    default:
+      return Status::Error(400, "Unallowed chat specified");
+  }
+  return Status::OK();
+}
+
 void StarManager::get_star_payment_options(Promise<td_api::object_ptr<td_api::starPaymentOptions>> &&promise) {
   td_->create_handler<GetStarsTopupOptionsQuery>(std::move(promise))->send();
 }
 
-void StarManager::get_star_transactions(const string &offset, int32 limit,
-                                        td_api::object_ptr<td_api::StarTransactionDirection> &&direction,
+void StarManager::get_star_transactions(td_api::object_ptr<td_api::MessageSender> owner_id, const string &offset,
+                                        int32 limit, td_api::object_ptr<td_api::StarTransactionDirection> &&direction,
                                         Promise<td_api::object_ptr<td_api::starTransactions>> &&promise) {
+  TRY_RESULT_PROMISE(promise, dialog_id, get_message_sender_dialog_id(td_, owner_id, true, false));
+  TRY_STATUS_PROMISE(promise, can_manage_stars(dialog_id));
   if (limit < 0) {
     return promise.set_error(Status::Error(400, "Limit must be non-negative"));
   }
-  td_->create_handler<GetStarsTransactionsQuery>(std::move(promise))->send(offset, limit, std::move(direction));
+  td_->create_handler<GetStarsTransactionsQuery>(std::move(promise))
+      ->send(dialog_id, offset, limit, std::move(direction));
 }
 
 void StarManager::refund_star_payment(UserId user_id, const string &telegram_payment_charge_id,
@@ -251,27 +286,7 @@ void StarManager::get_star_withdrawal_url(DialogId dialog_id, int64 star_count, 
                                           Promise<string> &&promise) {
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Write,
                                                                         "get_star_withdrawal_url"));
-  switch (dialog_id.get_type()) {
-    case DialogType::User: {
-      auto user_id = dialog_id.get_user_id();
-      if (!td_->user_manager_->is_user_bot(user_id)) {
-        return promise.set_error(Status::Error(400, "User is not a bot"));
-      }
-      break;
-    }
-    case DialogType::Channel: {
-      auto channel_id = dialog_id.get_channel_id();
-      if (!td_->chat_manager_->is_broadcast_channel(channel_id)) {
-        return promise.set_error(Status::Error(400, "Chat is not a channel"));
-      }
-      if (!td_->chat_manager_->get_channel_permissions(channel_id).is_creator()) {
-        return promise.set_error(Status::Error(400, "Not enough rights to withdraw stars"));
-      }
-      break;
-    }
-    default:
-      return promise.set_error(Status::Error(400, "Unallowed chat specified"));
-  }
+  TRY_STATUS_PROMISE(promise, can_manage_stars(dialog_id));
   if (password.empty()) {
     return promise.set_error(Status::Error(400, "PASSWORD_HASH_INVALID"));
   }

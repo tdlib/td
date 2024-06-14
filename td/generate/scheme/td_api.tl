@@ -10978,11 +10978,13 @@ getPremiumGiveawayInfo chat_id:int53 message_id:int53 = PremiumGiveawayInfo;
 //@description Returns available options for Telegram stars purchase
 getStarPaymentOptions = StarPaymentOptions;
 
-//@description Returns the list of Telegram star transactions for the current user
+//@description Returns the list of Telegram star transactions for the specified owner
+//@owner_id Identifier of the owner of the Telegram stars; can be the identifier of the current user, identifier of an owned bot,
+//-or identifier of a channel chat with supergroupFullInfo.can_get_revenue_statistics == true
 //@direction Direction of the transactions to receive; pass null to get all transactions
 //@offset Offset of the first transaction to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of transactions to return
-getStarTransactions direction:StarTransactionDirection offset:string limit:int32 = StarTransactions;
+getStarTransactions owner_id:MessageSender direction:StarTransactionDirection offset:string limit:int32 = StarTransactions;
 
 //@description Checks whether an in-store purchase is possible. Must be called before any in-store purchase @purpose Transaction purpose
 canPurchaseFromStore purpose:StorePaymentPurpose = Ok;

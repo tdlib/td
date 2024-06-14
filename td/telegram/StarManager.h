@@ -26,7 +26,7 @@ class StarManager final : public Actor {
 
   void get_star_payment_options(Promise<td_api::object_ptr<td_api::starPaymentOptions>> &&promise);
 
-  void get_star_transactions(const string &offset, int32 limit,
+  void get_star_transactions(td_api::object_ptr<td_api::MessageSender> owner_id, const string &offset, int32 limit,
                              td_api::object_ptr<td_api::StarTransactionDirection> &&direction,
                              Promise<td_api::object_ptr<td_api::starTransactions>> &&promise);
 
@@ -36,6 +36,8 @@ class StarManager final : public Actor {
 
  private:
   void tear_down() final;
+
+  Status can_manage_stars(DialogId dialog_id) const;
 
   void send_get_star_withdrawal_url_query(
       DialogId dialog_id, int64 star_count,

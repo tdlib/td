@@ -3436,16 +3436,18 @@ class CliClient final : public Actor {
     } else if (op == "gspo") {
       send_request(td_api::make_object<td_api::getStarPaymentOptions>());
     } else if (op == "gsta" || op == "gsti" || op == "gsto") {
+      string owner_id;
       string offset;
       string limit;
-      get_args(args, offset, limit);
+      get_args(args, owner_id, offset, limit);
       td_api::object_ptr<td_api::StarTransactionDirection> direction;
       if (op == "gsti") {
         direction = td_api::make_object<td_api::starTransactionDirectionIncoming>();
       } else if (op == "gsto") {
         direction = td_api::make_object<td_api::starTransactionDirectionOutgoing>();
       }
-      send_request(td_api::make_object<td_api::getStarTransactions>(std::move(direction), offset, as_limit(limit)));
+      send_request(td_api::make_object<td_api::getStarTransactions>(as_message_sender(owner_id), std::move(direction),
+                                                                    offset, as_limit(limit)));
     } else if (op == "cpfs" || op == "cpfsb") {
       UserId user_id;
       string currency;
