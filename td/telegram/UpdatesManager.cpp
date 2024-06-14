@@ -4575,13 +4575,14 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStarsBalance> u
   promise.set_value(Unit());
 }
 
-// unsupported updates
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise) {
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStarsRevenueStatus> update, Promise<Unit> &&promise) {
+  td_->star_manager_->on_update_stars_revenue_status(std::move(update));
   promise.set_value(Unit());
 }
 
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStarsRevenueStatus> update, Promise<Unit> &&promise) {
+// unsupported updates
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 

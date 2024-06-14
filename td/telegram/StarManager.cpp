@@ -378,6 +378,19 @@ void StarManager::send_get_star_withdrawal_url_query(
       ->send(dialog_id, star_count, std::move(input_check_password));
 }
 
+void StarManager::on_update_stars_revenue_status(
+    telegram_api::object_ptr<telegram_api::updateStarsRevenueStatus> &&update) {
+  DialogId dialog_id(update->peer_);
+  if (can_manage_stars(dialog_id).is_error()) {
+    LOG(ERROR) << "Receive " << to_string(update);
+    return;
+  }
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateStarRevenueStatus>(
+                   get_message_sender_object(td_, dialog_id, "updateStarRevenueStatus"),
+                   convert_stars_revenue_status(std::move(update->status_))));
+}
+
 int64 StarManager::get_star_count(int64 amount) {
   if (amount < 0) {
     LOG(ERROR) << "Receive star amount = " << amount;

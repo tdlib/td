@@ -7440,6 +7440,11 @@ updateOwnedStarCount star_count:int53 = Update;
 //@revenue_amount New amount of earned revenue
 updateChatRevenueAmount chat_id:int53 revenue_amount:chatRevenueAmount = Update;
 
+//@description The Telegram star revenue earned by a bot or a chat has changed. If star transactions screen of the chat is opened, then getStarTransactions may be called to fetch new transactions
+//@owner_id Identifier of the owner of the Telegram stars
+//@status New Telegram star revenue status
+updateStarRevenueStatus owner_id:MessageSender status:starRevenueStatus = Update;
+
 //@description The parameters of speech recognition without Telegram Premium subscription has changed
 //@max_media_duration The maximum allowed duration of media for speech recognition without Telegram Premium subscription, in seconds
 //@weekly_count The total number of allowed speech recognitions per week; 0 if none
