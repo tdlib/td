@@ -150,6 +150,10 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                   td_->user_manager_->get_user_id_object(dialog_id.get_user_id(), "starTransactionSourceUser"),
                   std::move(product_info));
             }
+            if (td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
+              return td_api::make_object<td_api::starTransactionSourceChannel>(
+                  td_->dialog_manager_->get_chat_id_object(dialog_id, "starTransactionSourceUser"));
+            }
             return td_api::make_object<td_api::starTransactionSourceUnsupported>();
           }
           default:

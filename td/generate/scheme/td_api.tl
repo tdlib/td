@@ -867,6 +867,9 @@ starTransactionSourceFragment withdrawal_state:RevenueWithdrawalState = StarTran
 //@description The transaction is a transaction with another user @user_id Identifier of the user @product_info Information about the bought product; may be null if none
 starTransactionSourceUser user_id:int53 product_info:productInfo = StarTransactionSource;
 
+//@description The transaction is a transaction with a channel chat @chat_id Identifier of the chat
+starTransactionSourceChannel chat_id:int53 = StarTransactionSource;
+
 //@description The transaction is a transaction with unknown source
 starTransactionSourceUnsupported = StarTransactionSource;
 
