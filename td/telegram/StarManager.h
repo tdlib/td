@@ -45,7 +45,7 @@ class StarManager final : public Actor {
  private:
   void tear_down() final;
 
-  Status can_manage_stars(DialogId dialog_id) const;
+  Status can_manage_stars(DialogId dialog_id, bool allow_self = false) const;
 
   void send_get_star_withdrawal_url_query(
       DialogId dialog_id, int64 star_count,

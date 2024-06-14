@@ -298,10 +298,13 @@ void StarManager::tear_down() {
   parent_.reset();
 }
 
-Status StarManager::can_manage_stars(DialogId dialog_id) const {
+Status StarManager::can_manage_stars(DialogId dialog_id, bool allow_self) const {
   switch (dialog_id.get_type()) {
     case DialogType::User: {
       auto user_id = dialog_id.get_user_id();
+      if (allow_self && user_id == td_->user_manager_->get_my_id()) {
+        break;
+      }
       TRY_RESULT(bot_data, td_->user_manager_->get_bot_data(user_id));
       if (!bot_data.can_be_edited) {
         return Status::Error(400, "The bot isn't owned");
@@ -332,7 +335,7 @@ void StarManager::get_star_transactions(td_api::object_ptr<td_api::MessageSender
                                         int32 limit, td_api::object_ptr<td_api::StarTransactionDirection> &&direction,
                                         Promise<td_api::object_ptr<td_api::starTransactions>> &&promise) {
   TRY_RESULT_PROMISE(promise, dialog_id, get_message_sender_dialog_id(td_, owner_id, true, false));
-  TRY_STATUS_PROMISE(promise, can_manage_stars(dialog_id));
+  TRY_STATUS_PROMISE(promise, can_manage_stars(dialog_id, true));
   if (limit < 0) {
     return promise.set_error(Status::Error(400, "Limit must be non-negative"));
   }
