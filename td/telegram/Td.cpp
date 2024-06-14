@@ -9498,7 +9498,6 @@ void Td::on_request(uint64 id, const td_api::getStarPaymentOptions &request) {
 }
 
 void Td::on_request(uint64 id, td_api::getStarTransactions &request) {
-  CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();
   star_manager_->get_star_transactions(std::move(request.owner_id_), request.offset_, request.limit_,

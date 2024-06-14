@@ -6,6 +6,7 @@
 //
 #include "td/telegram/StarManager.h"
 
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
@@ -83,6 +84,9 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         default:
           UNREACHABLE();
       }
+    }
+    if (td_->auth_manager_->is_bot()) {
+      flags |= telegram_api::payments_getStarsTransactions::ASCENDING_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::payments_getStarsTransactions(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer), offset, limit)));
