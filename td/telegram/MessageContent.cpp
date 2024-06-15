@@ -4456,6 +4456,10 @@ static void merge_location_access_hash(const Location &first, const Location &se
 }
 
 static bool need_message_text_changed_warning(const MessageText *old_content, const MessageText *new_content) {
+  const int32 MAX_CUSTOM_ENTITIES_COUNT = 100;  // server-side limit
+  if (old_content->text.entities.size() > MAX_CUSTOM_ENTITIES_COUNT) {
+    return false;
+  }
   if (new_content->text.text == "Unsupported characters" ||
       new_content->text.text == "This channel is blocked because it was used to spread pornographic content." ||
       begins_with(new_content->text.text,
@@ -4539,9 +4543,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
         }
       }
       if (old_->text.entities != new_->text.entities) {
-        const int32 MAX_CUSTOM_ENTITIES_COUNT = 100;  // server-side limit
         if (need_message_changed_warning && need_message_text_changed_warning(old_, new_) &&
-            old_->text.entities.size() <= MAX_CUSTOM_ENTITIES_COUNT &&
             need_message_entities_changed_warning(old_->text.entities, new_->text.entities) &&
             td->option_manager_->get_option_integer("session_count") <= 1) {
           LOG(WARNING) << "Entities have changed for a message in " << dialog_id << " from "
