@@ -161,12 +161,12 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         }
       }();
       transactions.push_back(td_api::make_object<td_api::starTransaction>(
-          transaction->id_, StarManager::get_star_count(transaction->stars_), transaction->refund_, transaction->date_,
-          std::move(source)));
+          transaction->id_, StarManager::get_star_count(transaction->stars_, true), transaction->refund_,
+          transaction->date_, std::move(source)));
     }
 
-    promise_.set_value(td_api::make_object<td_api::starTransactions>(StarManager::get_star_count(result->balance_),
-                                                                     std::move(transactions), result->next_offset_));
+    promise_.set_value(td_api::make_object<td_api::starTransactions>(
+        StarManager::get_star_count(result->balance_, true), std::move(transactions), result->next_offset_));
   }
 
   void on_error(Status status) final {
@@ -398,12 +398,18 @@ void StarManager::on_update_stars_revenue_status(
                    convert_stars_revenue_status(std::move(update->status_))));
 }
 
-int64 StarManager::get_star_count(int64 amount) {
-  if (amount < 0) {
-    LOG(ERROR) << "Receive star amount = " << amount;
-    return 0;
-  }
+int64 StarManager::get_star_count(int64 amount, bool allow_negative) {
   auto max_amount = static_cast<int64>(1) << 51;
+  if (amount < 0) {
+    if (!allow_negative) {
+      LOG(ERROR) << "Receive star amount = " << amount;
+      return 0;
+    }
+    if (amount < -max_amount) {
+      LOG(ERROR) << "Receive star amount = " << amount;
+      return -max_amount;
+    }
+  }
   if (amount > max_amount) {
     LOG(ERROR) << "Receive star amount = " << amount;
     return max_amount;

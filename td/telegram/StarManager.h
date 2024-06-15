@@ -40,7 +40,7 @@ class StarManager final : public Actor {
 
   void on_update_stars_revenue_status(telegram_api::object_ptr<telegram_api::updateStarsRevenueStatus> &&update);
 
-  static int64 get_star_count(int64 amount);
+  static int64 get_star_count(int64 amount, bool allow_negative = false);
 
  private:
   void tear_down() final;
