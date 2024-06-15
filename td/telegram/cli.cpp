@@ -2410,7 +2410,7 @@ class CliClient final : public Actor {
     }
     auto id = send_request(td_api::make_object<td_api::sendMessage>(
         chat_id, message_thread_id_, get_input_message_reply_to(),
-        td_api::make_object<td_api::messageSendOptions>(disable_notification, from_background, false, false,
+        td_api::make_object<td_api::messageSendOptions>(0, disable_notification, from_background, false, false,
                                                         as_message_scheduling_state(schedule_date_), message_effect_id_,
                                                         Random::fast(1, 1000), only_preview_),
         nullptr, std::move(input_message_content)));
@@ -2420,7 +2420,7 @@ class CliClient final : public Actor {
   }
 
   td_api::object_ptr<td_api::messageSendOptions> default_message_send_options() const {
-    return td_api::make_object<td_api::messageSendOptions>(false, false, false, true,
+    return td_api::make_object<td_api::messageSendOptions>(0, false, false, false, true,
                                                            as_message_scheduling_state(schedule_date_),
                                                            message_effect_id_, Random::fast(1, 1000), only_preview_);
   }

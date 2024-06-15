@@ -1478,6 +1478,7 @@ class MessagesManager final : public Actor {
   };
 
   struct MessageSendOptions {
+    int32 random_id = 0;
     bool disable_notification = false;
     bool from_background = false;
     bool update_stickersets_order = false;
@@ -1488,9 +1489,10 @@ class MessagesManager final : public Actor {
     int64 effect_id = 0;
 
     MessageSendOptions() = default;
-    MessageSendOptions(bool disable_notification, bool from_background, bool update_stickersets_order,
+    MessageSendOptions(int32 random_id, bool disable_notification, bool from_background, bool update_stickersets_order,
                        bool protect_content, bool only_preview, int32 schedule_date, int32 sending_id, int64 effect_id)
-        : disable_notification(disable_notification)
+        : random_id(random_id)
+        , disable_notification(disable_notification)
         , from_background(from_background)
         , update_stickersets_order(update_stickersets_order)
         , protect_content(protect_content)

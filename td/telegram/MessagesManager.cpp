@@ -23095,7 +23095,7 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
                                         real_forward_from_dialog_id, is_copy, send_as_dialog_id);
 
   auto message_id = message->message_id;
-  message->random_id = generate_new_random_id(d);
+  message->random_id = options.random_id != 0 ? options.random_id : generate_new_random_id(d);
 
   bool need_update = false;
   CHECK(td_->dialog_manager_->have_input_peer(d->dialog_id, true, AccessRights::Read));
@@ -23730,6 +23730,7 @@ Result<MessagesManager::MessageSendOptions> MessagesManager::process_message_sen
     return std::move(result);
   }
 
+  result.random_id = options->random_id_;
   result.disable_notification = options->disable_notification_;
   result.from_background = options->from_background_;
   if (allow_update_stickersets_order) {
@@ -26529,7 +26530,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_quick_reply_s
   auto *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
 
-  MessageSendOptions message_send_options(false, false, false, false, false, 0, sending_id, 0);
+  MessageSendOptions message_send_options(0, false, false, false, false, false, 0, sending_id, 0);
   FlatHashMap<MessageId, MessageId, MessageIdHash> original_message_id_to_new_message_id;
   vector<td_api::object_ptr<td_api::message>> result;
   vector<Message *> sent_messages;
@@ -26739,7 +26740,7 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
     } else if (need_drop_reply) {
       message->input_reply_to = {};
     }
-    MessageSendOptions options(message->disable_notification, message->from_background,
+    MessageSendOptions options(0, message->disable_notification, message->from_background,
                                message->update_stickersets_order, message->noforwards, false,
                                get_message_schedule_date(message.get()), message->sending_id, message->effect_id);
     Message *m = get_message_to_send(d, message->top_thread_message_id, std::move(message->input_reply_to), options,
