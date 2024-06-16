@@ -115,16 +115,16 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         auto photo = get_web_document_photo(td_->file_manager_.get(), std::move(transaction->photo_), DialogId());
         product_info = get_product_info_object(td_, transaction->title_, transaction->description_, photo);
       }
-      auto source = [&]() -> td_api::object_ptr<td_api::StarTransactionSource> {
+      auto partner = [&]() -> td_api::object_ptr<td_api::StarTransactionPartner> {
         switch (transaction->peer_->get_id()) {
           case telegram_api::starsTransactionPeerUnsupported::ID:
-            return td_api::make_object<td_api::starTransactionSourceUnsupported>();
+            return td_api::make_object<td_api::starTransactionPartnerUnsupported>();
           case telegram_api::starsTransactionPeerPremiumBot::ID:
-            return td_api::make_object<td_api::starTransactionSourceTelegram>();
+            return td_api::make_object<td_api::starTransactionPartnerTelegram>();
           case telegram_api::starsTransactionPeerAppStore::ID:
-            return td_api::make_object<td_api::starTransactionSourceAppStore>();
+            return td_api::make_object<td_api::starTransactionPartnerAppStore>();
           case telegram_api::starsTransactionPeerPlayMarket::ID:
-            return td_api::make_object<td_api::starTransactionSourceGooglePlay>();
+            return td_api::make_object<td_api::starTransactionPartnerGooglePlay>();
           case telegram_api::starsTransactionPeerFragment::ID: {
             auto state = [&]() -> td_api::object_ptr<td_api::RevenueWithdrawalState> {
               if (transaction->transaction_date_ > 0) {
@@ -142,21 +142,21 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
               }
               return nullptr;
             }();
-            return td_api::make_object<td_api::starTransactionSourceFragment>(std::move(state));
+            return td_api::make_object<td_api::starTransactionPartnerFragment>(std::move(state));
           }
           case telegram_api::starsTransactionPeer::ID: {
             DialogId dialog_id(
                 static_cast<const telegram_api::starsTransactionPeer *>(transaction->peer_.get())->peer_);
             if (dialog_id.get_type() == DialogType::User) {
-              return td_api::make_object<td_api::starTransactionSourceUser>(
-                  td_->user_manager_->get_user_id_object(dialog_id.get_user_id(), "starTransactionSourceUser"),
+              return td_api::make_object<td_api::starTransactionPartnerUser>(
+                  td_->user_manager_->get_user_id_object(dialog_id.get_user_id(), "starTransactionPartnerUser"),
                   std::move(product_info));
             }
             if (td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
-              return td_api::make_object<td_api::starTransactionSourceChannel>(
-                  td_->dialog_manager_->get_chat_id_object(dialog_id, "starTransactionSourceUser"));
+              return td_api::make_object<td_api::starTransactionPartnerChannel>(
+                  td_->dialog_manager_->get_chat_id_object(dialog_id, "starTransactionPartnerChannel"));
             }
-            return td_api::make_object<td_api::starTransactionSourceUnsupported>();
+            return td_api::make_object<td_api::starTransactionPartnerUnsupported>();
           }
           default:
             UNREACHABLE();
@@ -164,7 +164,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
       }();
       transactions.push_back(td_api::make_object<td_api::starTransaction>(
           transaction->id_, StarManager::get_star_count(transaction->stars_, true), transaction->refund_,
-          transaction->date_, std::move(source)));
+          transaction->date_, std::move(partner)));
     }
 
     promise_.set_value(td_api::make_object<td_api::starTransactions>(

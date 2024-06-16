@@ -850,28 +850,28 @@ starTransactionDirectionIncoming = StarTransactionDirection;
 starTransactionDirectionOutgoing = StarTransactionDirection;
 
 
-//@class StarTransactionSource @description Describes source or recipient of a transaction with Telegram stars
+//@class StarTransactionPartner @description Describes source or recipient of a transaction with Telegram stars
 
 //@description The transaction is a transaction with Telegram through a bot
-starTransactionSourceTelegram = StarTransactionSource;
+starTransactionPartnerTelegram = StarTransactionPartner;
 
 //@description The transaction is a transaction with App Store
-starTransactionSourceAppStore = StarTransactionSource;
+starTransactionPartnerAppStore = StarTransactionPartner;
 
 //@description The transaction is a transaction with Google Play
-starTransactionSourceGooglePlay = StarTransactionSource;
+starTransactionPartnerGooglePlay = StarTransactionPartner;
 
 //@description The transaction is a transaction with Fragment @withdrawal_state State of the withdrawal; may be null for refunds from Fragment
-starTransactionSourceFragment withdrawal_state:RevenueWithdrawalState = StarTransactionSource;
+starTransactionPartnerFragment withdrawal_state:RevenueWithdrawalState = StarTransactionPartner;
 
 //@description The transaction is a transaction with another user @user_id Identifier of the user @product_info Information about the bought product; may be null if none
-starTransactionSourceUser user_id:int53 product_info:productInfo = StarTransactionSource;
+starTransactionPartnerUser user_id:int53 product_info:productInfo = StarTransactionPartner;
 
 //@description The transaction is a transaction with a channel chat @chat_id Identifier of the chat
-starTransactionSourceChannel chat_id:int53 = StarTransactionSource;
+starTransactionPartnerChannel chat_id:int53 = StarTransactionPartner;
 
-//@description The transaction is a transaction with unknown source
-starTransactionSourceUnsupported = StarTransactionSource;
+//@description The transaction is a transaction with unknown partner
+starTransactionPartnerUnsupported = StarTransactionPartner;
 
 
 //@description Represents a transaction changing the amount of owned Telegram stars
@@ -879,8 +879,8 @@ starTransactionSourceUnsupported = StarTransactionSource;
 //@star_count The amount of added owned Telegram stars; negative for outgoing transactions
 //@is_refund True, if the transaction is a refund of a previous transaction
 //@date Point in time (Unix timestamp) when the transaction was completed
-//@source Source of the transaction, or its recipient for outgoing transactions
-starTransaction id:string star_count:int53 is_refund:Bool date:int32 source:StarTransactionSource = StarTransaction;
+//@partner Source of the incoming transaction, or its recipient for outgoing transactions
+starTransaction id:string star_count:int53 is_refund:Bool date:int32 partner:StarTransactionPartner = StarTransaction;
 
 //@description Represents a list of Telegram star transactions
 //@star_count The amount of owned Telegram stars
