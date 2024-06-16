@@ -34,7 +34,7 @@ static td_api::object_ptr<td_api::dateRange> convert_date_range(
   return td_api::make_object<td_api::dateRange>(obj->min_date_, obj->max_date_);
 }
 
-td_api::object_ptr<td_api::StatisticalGraph> convert_stats_graph(
+static td_api::object_ptr<td_api::StatisticalGraph> convert_stats_graph(
     telegram_api::object_ptr<telegram_api::StatsGraph> obj) {
   CHECK(obj != nullptr);
 
@@ -997,6 +997,11 @@ void StatisticsManager::get_channel_differences_if_needed(
         }
       }),
       source);
+}
+
+td_api::object_ptr<td_api::StatisticalGraph> StatisticsManager::convert_stats_graph(
+    telegram_api::object_ptr<telegram_api::StatsGraph> obj) {
+  return ::td::convert_stats_graph(std::move(obj));
 }
 
 }  // namespace td

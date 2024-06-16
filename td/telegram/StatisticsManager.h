@@ -23,9 +23,6 @@ namespace td {
 
 class Td;
 
-td_api::object_ptr<td_api::StatisticalGraph> convert_stats_graph(
-    telegram_api::object_ptr<telegram_api::StatsGraph> obj);
-
 class StatisticsManager final : public Actor {
  public:
   StatisticsManager(Td *td, ActorShared<> parent);
@@ -65,6 +62,9 @@ class StatisticsManager final : public Actor {
   void get_channel_differences_if_needed(telegram_api::object_ptr<telegram_api::stats_publicForwards> &&public_forwards,
                                          Promise<td_api::object_ptr<td_api::publicForwards>> promise,
                                          const char *source);
+
+  static td_api::object_ptr<td_api::StatisticalGraph> convert_stats_graph(
+      telegram_api::object_ptr<telegram_api::StatsGraph> obj);
 
  private:
   void tear_down() final;

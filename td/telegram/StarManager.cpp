@@ -249,7 +249,8 @@ class GetStarsRevenueStatsQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(DEBUG) << "Receive result for GetStarsRevenueStatsQuery: " << to_string(ptr);
     promise_.set_value(td_api::make_object<td_api::starRevenueStatistics>(
-        convert_stats_graph(std::move(ptr->revenue_graph_)), convert_stars_revenue_status(std::move(ptr->status_)),
+        StatisticsManager::convert_stats_graph(std::move(ptr->revenue_graph_)),
+        convert_stars_revenue_status(std::move(ptr->status_)),
         ptr->usd_rate_ > 0 ? clamp(ptr->usd_rate_ * 1e2, 1e-18, 1e18) : 1.3));
   }
 
