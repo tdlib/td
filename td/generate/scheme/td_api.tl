@@ -1048,14 +1048,14 @@ chatAdministrators administrators:vector<chatAdministrator> = ChatAdministrators
 //@class ChatMemberStatus @description Provides information about the status of a member in a chat
 
 //@description The user is the owner of the chat and has all the administrator privileges
-//@custom_title A custom title of the owner; 0-16 characters without emojis; applicable to supergroups only
+//@custom_title A custom title of the owner; 0-16 characters without emoji; applicable to supergroups only
 //@is_anonymous True, if the creator isn't shown in the chat member list and sends messages anonymously; applicable to supergroups only
 //@is_member True, if the user is a member of the chat
 chatMemberStatusCreator custom_title:string is_anonymous:Bool is_member:Bool = ChatMemberStatus;
 
 //@description The user is a member of the chat and has some additional privileges. In basic groups, administrators can edit and delete messages sent by others, add new members, ban unprivileged members, and manage video chats.
 //-In supergroups and channels, there are more detailed options for administrator privileges
-//@custom_title A custom title of the administrator; 0-16 characters without emojis; applicable to supergroups only
+//@custom_title A custom title of the administrator; 0-16 characters without emoji; applicable to supergroups only
 //@can_be_edited True, if the current user can edit the administrator privileges for the called user
 //@rights Rights of the administrator
 chatMemberStatusAdministrator custom_title:string can_be_edited:Bool rights:chatAdministratorRights = ChatMemberStatus;
@@ -3766,13 +3766,13 @@ userStatusLastMonth by_my_privacy_settings:Bool = UserStatus;
 //@description Represents an emoji with its keyword @emoji The emoji @keyword The keyword
 emojiKeyword emoji:string keyword:string = EmojiKeyword;
 
-//@description Represents a list of emoji with their keywords @emoji_keywords List of emoji with their keywords
+//@description Represents a list of emojis with their keywords @emoji_keywords List of emojis with their keywords
 emojiKeywords emoji_keywords:vector<emojiKeyword> = EmojiKeywords;
 
 //@description Represents a list of stickers @stickers List of stickers
 stickers stickers:vector<sticker> = Stickers;
 
-//@description Represents a list of emoji @emojis List of emojis
+//@description Represents a list of emojis @emojis List of emojis
 emojis emojis:vector<string> = Emojis;
 
 //@description Represents a sticker set
@@ -3790,7 +3790,7 @@ emojis emojis:vector<string> = Emojis;
 //@is_allowed_as_chat_emoji_status True, if stickers in the sticker set are custom emoji that can be used as chat emoji status; for custom emoji sticker sets only
 //@is_viewed True for already viewed trending sticker sets
 //@stickers List of stickers in this set
-//@emojis A list of emoji corresponding to the stickers in the same order. The list is only for informational purposes, because a sticker is always sent with a fixed emoji from the corresponding Sticker object
+//@emojis A list of emojis corresponding to the stickers in the same order. The list is only for informational purposes, because a sticker is always sent with a fixed emoji from the corresponding Sticker object
 stickerSet id:int64 title:string name:string thumbnail:thumbnail thumbnail_outline:vector<closedVectorPath> is_owned:Bool is_installed:Bool is_archived:Bool is_official:Bool sticker_type:StickerType needs_repainting:Bool is_allowed_as_chat_emoji_status:Bool is_viewed:Bool stickers:vector<sticker> emojis:vector<emojis> = StickerSet;
 
 //@description Represents short information about a sticker set
@@ -3822,7 +3822,7 @@ trendingStickerSets total_count:int32 sets:vector<stickerSetInfo> is_premium:Boo
 
 //@description The category contains a list of similar emoji to search for in getStickers and searchStickers for stickers,
 //-or getInlineQueryResults with the bot getOption("animation_search_bot_username") for animations
-//@emojis List of emojis for search for
+//@emojis List of emojis to search for
 emojiCategorySourceSearch emojis:vector<string> = EmojiCategorySource;
 
 //@description The category contains premium stickers that must be found by getPremiumStickers
@@ -4286,7 +4286,7 @@ callStateExchangingKeys = CallState;
 //@servers List of available call servers
 //@config A JSON-encoded call config
 //@encryption_key Call encryption key
-//@emojis Encryption key emojis fingerprint
+//@emojis Encryption key fingerprint represented as 4 emoji
 //@allow_p2p True, if peer-to-peer connection is allowed by users privacy settings
 //@custom_parameters Custom JSON-encoded call parameters to be passed to tgcalls
 callStateReady protocol:callProtocol servers:vector<callServer> config:string encryption_key:bytes emojis:vector<string> allow_p2p:Bool custom_parameters:string = CallState;
@@ -8456,7 +8456,7 @@ readdQuickReplyShortcutMessages shortcut_name:string message_ids:vector<int53> =
 editQuickReplyMessage shortcut_id:int32 message_id:int53 input_message_content:InputMessageContent = Ok;
 
 
-//@description Returns the list of custom emojis, which can be used as forum topic icon by all users
+//@description Returns the list of custom emoji, which can be used as forum topic icon by all users
 getForumTopicDefaultIcons = Stickers;
 
 //@description Creates a topic in a forum supergroup chat; requires can_manage_topics administrator or can_create_topics member right in the supergroup
@@ -9869,7 +9869,7 @@ getUserProfilePhotos user_id:int53 offset:int32 limit:int32 = ChatPhotos;
 
 //@description Returns stickers from the installed sticker sets that correspond to any of the given emoji or can be found by sticker-specific keywords. If the query is non-empty, then favorite, recently used or trending stickers may also be returned
 //@sticker_type Type of the stickers to return
-//@query Search query; a space-separated list of emoji or a keyword prefix. If empty, returns all known installed stickers
+//@query Search query; a space-separated list of emojis or a keyword prefix. If empty, returns all known installed stickers
 //@limit The maximum number of stickers to be returned
 //@chat_id Chat identifier for which to return stickers. Available custom emoji stickers may be different for different chats
 getStickers sticker_type:StickerType query:string limit:int32 chat_id:int53 = Stickers;
@@ -9883,7 +9883,7 @@ getAllStickerEmojis sticker_type:StickerType query:string chat_id:int53 return_o
 
 //@description Searches for stickers from public sticker sets that correspond to any of the given emoji
 //@sticker_type Type of the stickers to return
-//@emojis Space-separated list of emoji to search for; must be non-empty
+//@emojis Space-separated list of emojis to search for; must be non-empty
 //@limit The maximum number of stickers to be returned; 0-100
 searchStickers sticker_type:StickerType emojis:string limit:int32 = Stickers;
 
@@ -9973,7 +9973,7 @@ searchEmojis text:string input_language_codes:vector<string> = EmojiKeywords;
 //@input_language_codes List of possible IETF language tags of the user's input language; may be empty if unknown
 getKeywordEmojis text:string input_language_codes:vector<string> = Emojis;
 
-//@description Returns available emojis categories @type Type of emoji categories to return; pass null to get default emoji categories
+//@description Returns available emoji categories @type Type of emoji categories to return; pass null to get default emoji categories
 getEmojiCategories type:EmojiCategoryType = EmojiCategories;
 
 //@description Returns an animated emoji corresponding to a given emoji. Returns a 404 error if the emoji has no animated emoji @emoji The emoji
@@ -10797,7 +10797,7 @@ setStickerPositionInSet sticker:InputFile position:int32 = Ok;
 //@description Removes a sticker from the set to which it belongs. The sticker set must be owned by the current user @sticker Sticker to remove from the set
 removeStickerFromSet sticker:InputFile = Ok;
 
-//@description Changes the list of emoji corresponding to a sticker. The sticker must belong to a regular or custom emoji sticker set that is owned by the current user
+//@description Changes the list of emojis corresponding to a sticker. The sticker must belong to a regular or custom emoji sticker set that is owned by the current user
 //@sticker Sticker
 //@emojis New string with 1-20 emoji corresponding to the sticker
 setStickerEmojis sticker:InputFile emojis:string = Ok;
