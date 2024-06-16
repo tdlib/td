@@ -8,7 +8,6 @@
 
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/td_api.h"
-#include "td/telegram/UserId.h"
 
 #include "td/utils/common.h"
 #include "td/utils/Promise.h"

@@ -832,7 +832,7 @@ premiumGiftCodeInfo creator_id:MessageSender creation_date:int32 is_from_giveawa
 //@description Describes an option for buying Telegram stars
 //@currency ISO 4217 currency code for the payment
 //@amount The amount to pay, in the smallest units of the currency
-//@star_count Number of stars that will be purchased
+//@star_count Number of Telegram stars that will be purchased
 //@store_product_id Identifier of the store product associated with the option; may be empty if none
 //@is_additional True, if the option must be shown only in the full list of payment options
 starPaymentOption currency:string amount:int53 star_count:int53 store_product_id:string is_additional:Bool = StarPaymentOption;
@@ -2725,7 +2725,7 @@ paymentOption title:string url:string = PaymentOption;
 //@need_password True, if the user will be able to save credentials, if sets up a 2-step verification password
 paymentFormTypeRegular invoice:invoice payment_provider_user_id:int53 payment_provider:PaymentProvider additional_payment_options:vector<paymentOption> saved_order_info:orderInfo saved_credentials:vector<savedCredentials> can_save_credentials:Bool need_password:Bool = PaymentFormType;
 
-//@description The payment form is for a payment in Telegram stars @star_count Number of stars that will be paid
+//@description The payment form is for a payment in Telegram stars @star_count Number of Telegram stars that will be paid
 paymentFormTypeStars star_count:int53 = PaymentFormType;
 
 
@@ -2755,7 +2755,7 @@ paymentResult success:Bool verification_url:string = PaymentResult;
 paymentReceiptTypeRegular payment_provider_user_id:int53 invoice:invoice order_info:orderInfo shipping_option:shippingOption credentials_title:string tip_amount:int53 = PaymentReceiptType;
 
 //@description The payment was done using Telegram stars
-//@star_count Number of stars that were paid
+//@star_count Number of Telegram stars that were paid
 //@transaction_id Unique identifier of the transaction that can be used to dispute it
 paymentReceiptTypeStars star_count:int53 transaction_id:string = PaymentReceiptType;
 
@@ -6912,7 +6912,7 @@ chatRevenueTransactions total_count:int32 transactions:vector<chatRevenueTransac
 
 //@description Contains information about Telegram stars earned by a bot or a chat
 //@total_count Total number of the stars earned
-//@current_count The number of Telegram stars that isn't withdrawn yet
+//@current_count The number of Telegram stars that aren't withdrawn yet
 //@available_count The number of Telegram stars that are available for withdrawal
 //@withdrawal_enabled True, if Telegram stars can be withdrawn now or later
 //@next_withdrawal_in Time left before the next withdrawal can be started, in seconds; 0 if withdrawal can be started now
@@ -8153,7 +8153,7 @@ getSearchedForTags tag_prefix:string limit:int32 = Hashtags;
 //@description Removes a hashtag or a cashtag from the list of recently searched for hashtags or cashtags @tag Hashtag or cashtag to delete
 removeSearchedForTag tag:string = Ok;
 
-//@description Clears the list of recently searched for hashtags or cashtags @clear_cashtags Pass true to clear the list of recently searched for cashtags; otherwise the list of recently searched for hashtags will be cleared
+//@description Clears the list of recently searched for hashtags or cashtags @clear_cashtags Pass true to clear the list of recently searched for cashtags; otherwise, the list of recently searched for hashtags will be cleared
 clearSearchedForTags clear_cashtags:Bool = Ok;
 
 //@description Deletes all call messages @revoke Pass true to delete the messages for all users
