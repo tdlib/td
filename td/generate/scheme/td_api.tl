@@ -3877,7 +3877,8 @@ emojiCategoryTypeChatPhoto = EmojiCategoryType;
 //@width_percentage The width of the rectangle, as a percentage of the media width
 //@height_percentage The height of the rectangle, as a percentage of the media height
 //@rotation_angle Clockwise rotation angle of the rectangle, in degrees; 0-360
-storyAreaPosition x_percentage:double y_percentage:double width_percentage:double height_percentage:double rotation_angle:double = StoryAreaPosition;
+//@corner_radius_percentage The radius of the rectangle corner rounding, as a percentage of the media width
+storyAreaPosition x_percentage:double y_percentage:double width_percentage:double height_percentage:double rotation_angle:double corner_radius_percentage:double = StoryAreaPosition;
 
 
 //@class StoryAreaType @description Describes type of clickable rectangle area on a story media

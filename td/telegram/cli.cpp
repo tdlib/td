@@ -1358,7 +1358,7 @@ class CliClient final : public Actor {
         }
         auto position = td_api::make_object<td_api::storyAreaPosition>(
             Random::fast(1, 99) * 0.01, Random::fast(1, 99) * 0.01, Random::fast(1, 99) * 0.01,
-            Random::fast(1, 99) * 0.01, Random::fast(0, 360));
+            Random::fast(1, 99) * 0.01, Random::fast(0, 360), Random::fast(1, 19) * 0.01);
         td_api::object_ptr<td_api::InputStoryAreaType> type;
         if (area == "l") {
           type = td_api::make_object<td_api::inputStoryAreaTypeLocation>(
