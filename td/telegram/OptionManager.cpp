@@ -152,6 +152,7 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("pinned_story_count_max", 3);
   set_default_integer_option("fact_check_length_max", 1024);
   set_default_integer_option("star_withdrawal_count_min", is_test_dc ? 10 : 1000);
+  set_default_integer_option("story_link_area_count_max", 3);
 
   if (options.isset("my_phone_number") || !options.isset("my_id")) {
     update_premium_options();
