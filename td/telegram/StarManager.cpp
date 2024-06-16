@@ -206,9 +206,13 @@ class RefundStarsChargeQuery final : public Td::ResultHandler {
 static td_api::object_ptr<td_api::starRevenueStatus> convert_stars_revenue_status(
     telegram_api::object_ptr<telegram_api::starsRevenueStatus> obj) {
   CHECK(obj != nullptr);
+  int32 next_withdrawal_in = 0;
+  if (obj->withdrawal_enabled_ && obj->next_withdrawal_at_ > 0) {
+    next_withdrawal_in = max(obj->next_withdrawal_at_ - G()->unix_time(), 1);
+  }
   return td_api::make_object<td_api::starRevenueStatus>(
       StarManager::get_star_count(obj->overall_revenue_), StarManager::get_star_count(obj->current_balance_),
-      StarManager::get_star_count(obj->available_balance_), obj->withdrawal_enabled_);
+      StarManager::get_star_count(obj->available_balance_), obj->withdrawal_enabled_, next_withdrawal_in);
 }
 
 class GetStarsRevenueStatsQuery final : public Td::ResultHandler {
