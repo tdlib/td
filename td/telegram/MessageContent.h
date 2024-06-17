@@ -20,6 +20,7 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageSelfDestructType.h"
 #include "td/telegram/Photo.h"
+#include "td/telegram/QuickReplyMessageFullId.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/secret_api.h"
 #include "td/telegram/SecretInputMedia.h"
@@ -216,6 +217,12 @@ void unregister_message_content(Td *td, const MessageContent *content, MessageFu
 void register_reply_message_content(Td *td, const MessageContent *content);
 
 void unregister_reply_message_content(Td *td, const MessageContent *content);
+
+void register_quick_reply_message_content(Td *td, const MessageContent *content,
+                                          QuickReplyMessageFullId message_full_id, const char *source);
+
+void unregister_quick_reply_message_content(Td *td, const MessageContent *content,
+                                            QuickReplyMessageFullId message_full_id, const char *source);
 
 unique_ptr<MessageContent> get_secret_message_content(
     Td *td, string message_text, unique_ptr<EncryptedFile> file,

@@ -5612,6 +5612,14 @@ void unregister_reply_message_content(Td *td, const MessageContent *content) {
   }
 }
 
+void register_quick_reply_message_content(Td *td, const MessageContent *content,
+                                          QuickReplyMessageFullId message_full_id, const char *source) {
+}
+
+void unregister_quick_reply_message_content(Td *td, const MessageContent *content,
+                                            QuickReplyMessageFullId message_full_id, const char *source) {
+}
+
 template <class ToT, class FromT>
 static tl_object_ptr<ToT> secret_to_telegram(FromT &from);
 

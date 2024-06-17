@@ -425,6 +425,10 @@ class QuickReplyManager final : public Actor {
   void change_message_files(QuickReplyMessageFullId message_full_id, const QuickReplyMessage *m,
                             const vector<FileId> &old_file_ids);
 
+  void register_message_content(const QuickReplyMessage *m, const char *source) const;
+
+  void unregister_message_content(const QuickReplyMessage *m, const char *source) const;
+
   Shortcuts shortcuts_;
 
   int32 next_local_shortcut_id_ = QuickReplyShortcutId::MAX_SERVER_SHORTCUT_ID + 1;
