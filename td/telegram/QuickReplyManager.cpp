@@ -3595,6 +3595,7 @@ vector<FileId> QuickReplyManager::get_message_file_ids(const QuickReplyMessage *
         }
       }
     }
+    return file_ids;
   }
   return get_message_content_file_ids(m->content.get(), td_);
 }
