@@ -30,6 +30,7 @@
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/PhotoSizeSource.h"
+#include "td/telegram/QuickReplyManager.h"
 #include "td/telegram/secret_api.h"
 #include "td/telegram/SecretChatLayer.h"
 #include "td/telegram/StickersManager.hpp"
@@ -5747,6 +5748,7 @@ void StickersManager::on_update_sticker_sets(StickerType sticker_type) {
 void StickersManager::try_update_animated_emoji_messages() {
   auto sticker_set = get_animated_emoji_sticker_set();
   vector<MessageFullId> message_full_ids;
+  vector<QuickReplyMessageFullId> quick_reply_message_full_ids;
   for (auto &it : emoji_messages_) {
     auto new_animated_sticker = get_animated_emoji_sticker(sticker_set, it.first);
     auto new_sound_file_id = get_animated_emoji_sound_file_id(it.first);
@@ -5756,10 +5758,17 @@ void StickersManager::try_update_animated_emoji_messages() {
       it.second->sound_file_id_ = new_sound_file_id;
       it.second->message_full_ids_.foreach(
           [&](const MessageFullId &message_full_id) { message_full_ids.push_back(message_full_id); });
+      it.second->quick_reply_message_full_ids_.foreach([&](const QuickReplyMessageFullId &message_full_id) {
+        quick_reply_message_full_ids.push_back(message_full_id);
+      });
     }
   }
   for (const auto &message_full_id : message_full_ids) {
     td_->messages_manager_->on_external_update_message_content(message_full_id, "try_update_animated_emoji_messages");
+  }
+  for (const auto &message_full_id : quick_reply_message_full_ids) {
+    td_->quick_reply_manager_->on_external_update_message_content(message_full_id,
+                                                                  "try_update_animated_emoji_messages");
   }
 }
 
@@ -5770,14 +5779,21 @@ void StickersManager::try_update_custom_emoji_messages(CustomEmojiId custom_emoj
   }
 
   vector<MessageFullId> message_full_ids;
+  vector<QuickReplyMessageFullId> quick_reply_message_full_ids;
   auto new_sticker_id = get_custom_animated_emoji_sticker_id(custom_emoji_id);
   if (new_sticker_id != it->second->sticker_id_) {
     it->second->sticker_id_ = new_sticker_id;
     it->second->message_full_ids_.foreach(
         [&](const MessageFullId &message_full_id) { message_full_ids.push_back(message_full_id); });
+    it->second->quick_reply_message_full_ids_.foreach([&](const QuickReplyMessageFullId &message_full_id) {
+      quick_reply_message_full_ids.push_back(message_full_id);
+    });
   }
   for (const auto &message_full_id : message_full_ids) {
     td_->messages_manager_->on_external_update_message_content(message_full_id, "try_update_custom_emoji_messages");
+  }
+  for (const auto &message_full_id : quick_reply_message_full_ids) {
+    td_->quick_reply_manager_->on_external_update_message_content(message_full_id, "try_update_custom_emoji_messages");
   }
 }
 
@@ -5893,21 +5909,21 @@ void StickersManager::unregister_dice(const string &emoji, int32 value, MessageF
 }
 
 void StickersManager::register_emoji(const string &emoji, CustomEmojiId custom_emoji_id, MessageFullId message_full_id,
-                                     const char *source) {
+                                     QuickReplyMessageFullId quick_reply_message_full_id, const char *source) {
   CHECK(!emoji.empty());
   if (td_->auth_manager_->is_bot()) {
     return;
   }
 
-  LOG(INFO) << "Register emoji " << emoji << " with " << custom_emoji_id << " from " << message_full_id << " from "
-            << source;
+  LOG(INFO) << "Register emoji " << emoji << " with " << custom_emoji_id << " from " << message_full_id << '/'
+            << quick_reply_message_full_id << " from " << source;
   if (custom_emoji_id.is_valid()) {
     auto &emoji_messages_ptr = custom_emoji_messages_[custom_emoji_id];
     if (emoji_messages_ptr == nullptr) {
       emoji_messages_ptr = make_unique<CustomEmojiMessages>();
     }
     auto &emoji_messages = *emoji_messages_ptr;
-    if (emoji_messages.message_full_ids_.empty()) {
+    if (emoji_messages.message_full_ids_.empty() && emoji_messages.quick_reply_message_full_ids_.empty()) {
       if (!disable_animated_emojis_ && custom_emoji_to_sticker_id_.count(custom_emoji_id) == 0) {
         load_custom_emoji_sticker_from_database_force(custom_emoji_id);
         if (custom_emoji_to_sticker_id_.count(custom_emoji_id) == 0) {
@@ -5916,7 +5932,12 @@ void StickersManager::register_emoji(const string &emoji, CustomEmojiId custom_e
       }
       emoji_messages.sticker_id_ = get_custom_animated_emoji_sticker_id(custom_emoji_id);
     }
-    emoji_messages.message_full_ids_.insert(message_full_id);
+    if (quick_reply_message_full_id.is_valid()) {
+      emoji_messages.quick_reply_message_full_ids_.insert(quick_reply_message_full_id);
+    } else {
+      CHECK(message_full_id.get_message_id().is_valid());
+      emoji_messages.message_full_ids_.insert(message_full_id);
+    }
     return;
   }
 
@@ -5925,30 +5946,40 @@ void StickersManager::register_emoji(const string &emoji, CustomEmojiId custom_e
     emoji_messages_ptr = make_unique<EmojiMessages>();
   }
   auto &emoji_messages = *emoji_messages_ptr;
-  if (emoji_messages.message_full_ids_.empty()) {
+  if (emoji_messages.message_full_ids_.empty() && emoji_messages.quick_reply_message_full_ids_.empty()) {
     emoji_messages.animated_emoji_sticker_ = get_animated_emoji_sticker(emoji);
     emoji_messages.sound_file_id_ = get_animated_emoji_sound_file_id(emoji);
   }
-  emoji_messages.message_full_ids_.insert(message_full_id);
+  if (quick_reply_message_full_id.is_valid()) {
+    emoji_messages.quick_reply_message_full_ids_.insert(quick_reply_message_full_id);
+  } else {
+    CHECK(message_full_id.get_message_id().is_valid());
+    emoji_messages.message_full_ids_.insert(message_full_id);
+  }
 }
 
 void StickersManager::unregister_emoji(const string &emoji, CustomEmojiId custom_emoji_id,
-                                       MessageFullId message_full_id, const char *source) {
+                                       MessageFullId message_full_id,
+                                       QuickReplyMessageFullId quick_reply_message_full_id, const char *source) {
   CHECK(!emoji.empty());
   if (td_->auth_manager_->is_bot()) {
     return;
   }
 
-  LOG(INFO) << "Unregister emoji " << emoji << " with " << custom_emoji_id << " from " << message_full_id << " from "
-            << source;
+  LOG(INFO) << "Unregister emoji " << emoji << " with " << custom_emoji_id << " from " << message_full_id << '/'
+            << quick_reply_message_full_id << " from " << source;
   if (custom_emoji_id.is_valid()) {
     auto it = custom_emoji_messages_.find(custom_emoji_id);
     CHECK(it != custom_emoji_messages_.end());
-    auto &message_full_ids = it->second->message_full_ids_;
-    auto is_deleted = message_full_ids.erase(message_full_id) > 0;
-    LOG_CHECK(is_deleted) << source << ' ' << custom_emoji_id << ' ' << message_full_id;
-
-    if (message_full_ids.empty()) {
+    if (quick_reply_message_full_id.is_valid()) {
+      auto is_deleted = it->second->quick_reply_message_full_ids_.erase(quick_reply_message_full_id) > 0;
+      LOG_CHECK(is_deleted) << source << ' ' << custom_emoji_id << ' ' << quick_reply_message_full_id;
+    } else {
+      CHECK(message_full_id.get_message_id().is_valid());
+      auto is_deleted = it->second->message_full_ids_.erase(message_full_id) > 0;
+      LOG_CHECK(is_deleted) << source << ' ' << custom_emoji_id << ' ' << message_full_id;
+    }
+    if (it->second->message_full_ids_.empty() && it->second->quick_reply_message_full_ids_.empty()) {
       custom_emoji_messages_.erase(it);
     }
     return;
@@ -5956,11 +5987,15 @@ void StickersManager::unregister_emoji(const string &emoji, CustomEmojiId custom
 
   auto it = emoji_messages_.find(emoji);
   CHECK(it != emoji_messages_.end());
-  auto &message_full_ids = it->second->message_full_ids_;
-  auto is_deleted = message_full_ids.erase(message_full_id) > 0;
-  LOG_CHECK(is_deleted) << source << ' ' << emoji << ' ' << message_full_id;
-
-  if (message_full_ids.empty()) {
+  if (quick_reply_message_full_id.is_valid()) {
+    auto is_deleted = it->second->quick_reply_message_full_ids_.erase(quick_reply_message_full_id) > 0;
+    LOG_CHECK(is_deleted) << source << ' ' << custom_emoji_id << ' ' << quick_reply_message_full_id;
+  } else {
+    CHECK(message_full_id.get_message_id().is_valid());
+    auto is_deleted = it->second->message_full_ids_.erase(message_full_id) > 0;
+    LOG_CHECK(is_deleted) << source << ' ' << custom_emoji_id << ' ' << message_full_id;
+  }
+  if (it->second->message_full_ids_.empty() && it->second->quick_reply_message_full_ids_.empty()) {
     emoji_messages_.erase(it);
   }
 }

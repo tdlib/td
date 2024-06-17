@@ -5432,7 +5432,7 @@ void register_message_content(Td *td, const MessageContent *content, MessageFull
       if (text->web_page_id.is_valid()) {
         td->web_pages_manager_->register_web_page(text->web_page_id, message_full_id, source);
       } else if (can_be_animated_emoji(text->text)) {
-        td->stickers_manager_->register_emoji(text->text.text, get_custom_emoji_id(text->text), message_full_id,
+        td->stickers_manager_->register_emoji(text->text.text, get_custom_emoji_id(text->text), message_full_id, {},
                                               source);
       }
       return;
@@ -5559,7 +5559,7 @@ void unregister_message_content(Td *td, const MessageContent *content, MessageFu
       if (text->web_page_id.is_valid()) {
         td->web_pages_manager_->unregister_web_page(text->web_page_id, message_full_id, source);
       } else if (can_be_animated_emoji(text->text)) {
-        td->stickers_manager_->unregister_emoji(text->text.text, get_custom_emoji_id(text->text), message_full_id,
+        td->stickers_manager_->unregister_emoji(text->text.text, get_custom_emoji_id(text->text), message_full_id, {},
                                                 source);
       }
       return;
@@ -5619,6 +5619,9 @@ void register_quick_reply_message_content(Td *td, const MessageContent *content,
       auto text = static_cast<const MessageText *>(content);
       if (text->web_page_id.is_valid()) {
         td->web_pages_manager_->register_quick_reply_web_page(text->web_page_id, message_full_id, source);
+      } else if (can_be_animated_emoji(text->text)) {
+        td->stickers_manager_->register_emoji(text->text.text, get_custom_emoji_id(text->text), {}, message_full_id,
+                                              source);
       }
       return;
     }
@@ -5634,6 +5637,9 @@ void unregister_quick_reply_message_content(Td *td, const MessageContent *conten
       auto text = static_cast<const MessageText *>(content);
       if (text->web_page_id.is_valid()) {
         td->web_pages_manager_->unregister_quick_reply_web_page(text->web_page_id, message_full_id, source);
+      } else if (can_be_animated_emoji(text->text)) {
+        td->stickers_manager_->unregister_emoji(text->text.text, get_custom_emoji_id(text->text), {}, message_full_id,
+                                                source);
       }
       return;
     }
