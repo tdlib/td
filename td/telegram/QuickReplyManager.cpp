@@ -2381,7 +2381,7 @@ void QuickReplyManager::on_upload_message_media_success(QuickReplyShortcutId sho
   // send_update_quick_reply_shortcut_messages(s, "on_upload_message_media_success");
   save_quick_reply_shortcuts();
 
-  auto input_media = get_input_media(m->content.get(), td_, {}, m->send_emoji, true);
+  auto input_media = get_input_media(content.get(), td_, {}, m->send_emoji, true);
   Status result;
   if (input_media == nullptr) {
     result = Status::Error(400, "Failed to upload file");
@@ -2785,6 +2785,7 @@ void QuickReplyManager::on_edit_quick_reply_message(QuickReplyShortcutId shortcu
       } else {
         update_message_content(m, message.get(), true);
         auto old_message_it = get_message_it(s, message_id);
+        CHECK(old_message_it != s->messages_.end());
         update_quick_reply_message(shortcut_id, *old_message_it, std::move(message));
         m = old_message_it->get();
         was_updated = true;
@@ -3109,7 +3110,7 @@ Result<vector<QuickReplyManager::QuickReplyMessageContent>> QuickReplyManager::g
   }
 
   vector<QuickReplyMessageContent> result;
-  for (auto &message : shortcut->messages_) {
+  for (const auto &message : shortcut->messages_) {
     if (!message->message_id.is_server()) {
       continue;
     }
@@ -3272,7 +3273,7 @@ MessageId QuickReplyManager::get_input_reply_to_message_id(const Shortcut *s, Me
   if (s == nullptr || !reply_to_message_id.is_valid() || !reply_to_message_id.is_server()) {
     return MessageId();
   }
-  for (auto &message : s->messages_) {
+  for (const auto &message : s->messages_) {
     CHECK(message != nullptr);
     if (message->message_id == reply_to_message_id) {
       return reply_to_message_id;
