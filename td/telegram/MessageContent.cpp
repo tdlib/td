@@ -5464,7 +5464,7 @@ void register_message_content(Td *td, const MessageContent *content, MessageFull
           static_cast<const MessageSuggestProfilePhoto *>(content)->photo);
     case MessageContentType::Story:
       return td->story_manager_->register_story(static_cast<const MessageStory *>(content)->story_full_id,
-                                                message_full_id, source);
+                                                message_full_id, {}, source);
     default:
       return;
   }
@@ -5588,7 +5588,7 @@ void unregister_message_content(Td *td, const MessageContent *content, MessageFu
                                                             message_full_id, source);
     case MessageContentType::Story:
       return td->story_manager_->unregister_story(static_cast<const MessageStory *>(content)->story_full_id,
-                                                  message_full_id, source);
+                                                  message_full_id, {}, source);
     default:
       return;
   }
@@ -5629,6 +5629,9 @@ void register_quick_reply_message_content(Td *td, const MessageContent *content,
       auto dice = static_cast<const MessageDice *>(content);
       return td->stickers_manager_->register_dice(dice->emoji, dice->dice_value, {}, message_full_id, source);
     }
+    case MessageContentType::Story:
+      return td->story_manager_->register_story(static_cast<const MessageStory *>(content)->story_full_id, {},
+                                                message_full_id, source);
     default:
       return;
   }
@@ -5651,6 +5654,9 @@ void unregister_quick_reply_message_content(Td *td, const MessageContent *conten
       auto dice = static_cast<const MessageDice *>(content);
       return td->stickers_manager_->unregister_dice(dice->emoji, dice->dice_value, {}, message_full_id, source);
     }
+    case MessageContentType::Story:
+      return td->story_manager_->unregister_story(static_cast<const MessageStory *>(content)->story_full_id, {},
+                                                  message_full_id, source);
     default:
       return;
   }

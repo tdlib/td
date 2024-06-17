@@ -25,6 +25,7 @@
 #include "td/telegram/NotificationId.h"
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/OptionManager.h"
+#include "td/telegram/QuickReplyManager.h"
 #include "td/telegram/ReactionManager.h"
 #include "td/telegram/ReactionType.hpp"
 #include "td/telegram/ReportReason.h"
@@ -1529,10 +1530,11 @@ StoryManager::StoryManager(Td *td, ActorShared<> parent) : td_(td), parent_(std:
 }
 
 StoryManager::~StoryManager() {
-  Scheduler::instance()->destroy_on_scheduler(
-      G()->get_gc_scheduler_id(), story_full_id_to_file_source_id_, stories_, stories_by_global_id_,
-      inaccessible_story_full_ids_, deleted_story_full_ids_, failed_to_load_story_full_ids_, story_messages_,
-      active_stories_, updated_active_stories_, max_read_story_ids_, failed_to_load_active_stories_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), story_full_id_to_file_source_id_, stories_,
+                                              stories_by_global_id_, inaccessible_story_full_ids_,
+                                              deleted_story_full_ids_, failed_to_load_story_full_ids_, story_messages_,
+                                              story_quick_reply_messages_, active_stories_, updated_active_stories_,
+                                              max_read_story_ids_, failed_to_load_active_stories_);
 }
 
 void StoryManager::start_up() {
@@ -3295,27 +3297,45 @@ int32 StoryManager::get_story_duration(StoryFullId story_full_id) const {
   return get_story_content_duration(td_, content);
 }
 
-void StoryManager::register_story(StoryFullId story_full_id, MessageFullId message_full_id, const char *source) {
+void StoryManager::register_story(StoryFullId story_full_id, MessageFullId message_full_id,
+                                  QuickReplyMessageFullId quick_reply_message_full_id, const char *source) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
   CHECK(story_full_id.is_server());
 
-  LOG(INFO) << "Register " << story_full_id << " from " << message_full_id << " from " << source;
-  story_messages_[story_full_id].insert(message_full_id);
+  LOG(INFO) << "Register " << story_full_id << " from " << message_full_id << '/' << quick_reply_message_full_id
+            << " from " << source;
+  if (quick_reply_message_full_id.is_valid()) {
+    story_quick_reply_messages_[story_full_id].insert(quick_reply_message_full_id);
+  } else {
+    CHECK(message_full_id.get_dialog_id().is_valid());
+    story_messages_[story_full_id].insert(message_full_id);
+  }
 }
 
-void StoryManager::unregister_story(StoryFullId story_full_id, MessageFullId message_full_id, const char *source) {
+void StoryManager::unregister_story(StoryFullId story_full_id, MessageFullId message_full_id,
+                                    QuickReplyMessageFullId quick_reply_message_full_id, const char *source) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
   CHECK(story_full_id.is_server());
-  LOG(INFO) << "Unregister " << story_full_id << " from " << message_full_id << " from " << source;
-  auto &message_ids = story_messages_[story_full_id];
-  auto is_deleted = message_ids.erase(message_full_id) > 0;
-  LOG_CHECK(is_deleted) << source << ' ' << story_full_id << ' ' << message_full_id;
-  if (message_ids.empty()) {
-    story_messages_.erase(story_full_id);
+  LOG(INFO) << "Unregister " << story_full_id << " from " << message_full_id << '/' << quick_reply_message_full_id
+            << " from " << source;
+  if (quick_reply_message_full_id.is_valid()) {
+    auto &message_ids = story_quick_reply_messages_[story_full_id];
+    auto is_deleted = message_ids.erase(quick_reply_message_full_id) > 0;
+    LOG_CHECK(is_deleted) << source << ' ' << story_full_id << ' ' << quick_reply_message_full_id;
+    if (message_ids.empty()) {
+      story_quick_reply_messages_.erase(story_full_id);
+    }
+  } else {
+    auto &message_ids = story_messages_[story_full_id];
+    auto is_deleted = message_ids.erase(message_full_id) > 0;
+    LOG_CHECK(is_deleted) << source << ' ' << story_full_id << ' ' << message_full_id;
+    if (message_ids.empty()) {
+      story_messages_.erase(story_full_id);
+    }
   }
 }
 
@@ -3948,6 +3968,19 @@ void StoryManager::on_story_changed(StoryFullId story_full_id, const Story *stor
       CHECK(!message_full_ids.empty());
       for (const auto &message_full_id : message_full_ids) {
         send_closure_later(G()->messages_manager(), &MessagesManager::on_external_update_message_content,
+                           message_full_id, "on_story_changed", true);
+      }
+    }
+
+    if (story_quick_reply_messages_.count(story_full_id) != 0) {
+      vector<QuickReplyMessageFullId> message_full_ids;
+      story_quick_reply_messages_[story_full_id].foreach(
+          [&message_full_ids](const QuickReplyMessageFullId &message_full_id) {
+            message_full_ids.push_back(message_full_id);
+          });
+      CHECK(!message_full_ids.empty());
+      for (const auto &message_full_id : message_full_ids) {
+        send_closure_later(G()->quick_reply_manager(), &QuickReplyManager::on_external_update_message_content,
                            message_full_id, "on_story_changed", true);
       }
     }

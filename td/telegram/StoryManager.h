@@ -14,6 +14,7 @@
 #include "td/telegram/MediaArea.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageFullId.h"
+#include "td/telegram/QuickReplyMessageFullId.h"
 #include "td/telegram/ReactionType.h"
 #include "td/telegram/StoryDb.h"
 #include "td/telegram/StoryFullId.h"
@@ -342,9 +343,11 @@ class StoryManager final : public Actor {
 
   int32 get_story_duration(StoryFullId story_full_id) const;
 
-  void register_story(StoryFullId story_full_id, MessageFullId message_full_id, const char *source);
+  void register_story(StoryFullId story_full_id, MessageFullId message_full_id,
+                      QuickReplyMessageFullId quick_reply_message_full_id, const char *source);
 
-  void unregister_story(StoryFullId story_full_id, MessageFullId message_full_id, const char *source);
+  void unregister_story(StoryFullId story_full_id, MessageFullId message_full_id,
+                        QuickReplyMessageFullId quick_reply_message_full_id, const char *source);
 
   td_api::object_ptr<td_api::story> get_story_object(StoryFullId story_full_id) const;
 
@@ -662,6 +665,9 @@ class StoryManager final : public Actor {
   WaitFreeHashSet<StoryFullId, StoryFullIdHash> failed_to_load_story_full_ids_;
 
   WaitFreeHashMap<StoryFullId, WaitFreeHashSet<MessageFullId, MessageFullIdHash>, StoryFullIdHash> story_messages_;
+
+  WaitFreeHashMap<StoryFullId, WaitFreeHashSet<QuickReplyMessageFullId, QuickReplyMessageFullIdHash>, StoryFullIdHash>
+      story_quick_reply_messages_;
 
   WaitFreeHashMap<DialogId, unique_ptr<ActiveStories>, DialogIdHash> active_stories_;
 
