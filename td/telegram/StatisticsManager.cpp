@@ -417,7 +417,7 @@ class GetBroadcastRevenueTransactionsQuery final : public Td::ResultHandler {
             amount = get_amount(transaction->amount_, true);
             auto state = [&]() -> td_api::object_ptr<td_api::RevenueWithdrawalState> {
               if (transaction->transaction_date_ > 0) {
-                return td_api::make_object<td_api::revenueWithdrawalStateCompleted>(transaction->transaction_date_,
+                return td_api::make_object<td_api::revenueWithdrawalStateSucceeded>(transaction->transaction_date_,
                                                                                     transaction->transaction_url_);
               }
               if (transaction->pending_) {

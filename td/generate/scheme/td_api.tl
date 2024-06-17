@@ -6874,12 +6874,12 @@ storyStatistics story_interaction_graph:StatisticalGraph story_reaction_graph:St
 //@description Withdrawal is pending
 revenueWithdrawalStatePending = RevenueWithdrawalState;
 
-//@description Withdrawal was completed
+//@description Withdrawal succeeded
 //@date Point in time (Unix timestamp) when the withdrawal was completed
 //@url The URL where the withdrawal transaction can be viewed
-revenueWithdrawalStateCompleted date:int32 url:string = RevenueWithdrawalState;
+revenueWithdrawalStateSucceeded date:int32 url:string = RevenueWithdrawalState;
 
-//@description Withdrawal has_failed
+//@description Withdrawal failed
 revenueWithdrawalStateFailed = RevenueWithdrawalState;
 
 
