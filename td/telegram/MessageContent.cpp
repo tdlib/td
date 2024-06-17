@@ -5448,7 +5448,7 @@ void register_message_content(Td *td, const MessageContent *content, MessageFull
                                               source);
     case MessageContentType::Dice: {
       auto dice = static_cast<const MessageDice *>(content);
-      return td->stickers_manager_->register_dice(dice->emoji, dice->dice_value, message_full_id, source);
+      return td->stickers_manager_->register_dice(dice->emoji, dice->dice_value, message_full_id, {}, source);
     }
     case MessageContentType::GiftPremium:
       return td->stickers_manager_->register_premium_gift(static_cast<const MessageGiftPremium *>(content)->months,
@@ -5575,7 +5575,7 @@ void unregister_message_content(Td *td, const MessageContent *content, MessageFu
                                                 source);
     case MessageContentType::Dice: {
       auto dice = static_cast<const MessageDice *>(content);
-      return td->stickers_manager_->unregister_dice(dice->emoji, dice->dice_value, message_full_id, source);
+      return td->stickers_manager_->unregister_dice(dice->emoji, dice->dice_value, message_full_id, {}, source);
     }
     case MessageContentType::GiftPremium:
       return td->stickers_manager_->unregister_premium_gift(static_cast<const MessageGiftPremium *>(content)->months,
@@ -5625,6 +5625,10 @@ void register_quick_reply_message_content(Td *td, const MessageContent *content,
       }
       return;
     }
+    case MessageContentType::Dice: {
+      auto dice = static_cast<const MessageDice *>(content);
+      return td->stickers_manager_->register_dice(dice->emoji, dice->dice_value, {}, message_full_id, source);
+    }
     default:
       return;
   }
@@ -5642,6 +5646,10 @@ void unregister_quick_reply_message_content(Td *td, const MessageContent *conten
                                                 source);
       }
       return;
+    }
+    case MessageContentType::Dice: {
+      auto dice = static_cast<const MessageDice *>(content);
+      return td->stickers_manager_->unregister_dice(dice->emoji, dice->dice_value, {}, message_full_id, source);
     }
     default:
       return;

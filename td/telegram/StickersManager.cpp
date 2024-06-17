@@ -1703,7 +1703,7 @@ StickersManager::~StickersManager() {
       found_stickers_[0], found_stickers_[1], found_stickers_[2], found_sticker_sets_[0], found_sticker_sets_[1],
       found_sticker_sets_[2], emoji_language_codes_, emoji_language_code_versions_,
       emoji_language_code_last_difference_times_, reloaded_emoji_keywords_, premium_gift_messages_, dice_messages_,
-      emoji_messages_, custom_emoji_messages_, custom_emoji_to_sticker_id_);
+      dice_quick_reply_messages_, emoji_messages_, custom_emoji_messages_, custom_emoji_to_sticker_id_);
 }
 
 void StickersManager::start_up() {
@@ -1868,7 +1868,7 @@ void StickersManager::load_special_sticker_set(SpecialStickerSet &sticker_set) {
     return;
   }
   sticker_set.is_being_loaded_ = true;
-  LOG(INFO) << "Load " << sticker_set.type_.type_ << " " << sticker_set.id_;
+  LOG(INFO) << "Load " << sticker_set.type_.type_ << ' ' << sticker_set.id_;
   if (sticker_set.id_.is_valid()) {
     auto s = get_sticker_set(sticker_set.id_);
     CHECK(s != nullptr);
@@ -2005,16 +2005,28 @@ void StickersManager::on_load_special_sticker_set(const SpecialStickerSetType &t
   auto emoji = type.get_dice_emoji();
   CHECK(!emoji.empty());
 
-  auto it = dice_messages_.find(emoji);
-  if (it == dice_messages_.end()) {
-    return;
+  {
+    auto it = dice_messages_.find(emoji);
+    if (it != dice_messages_.end()) {
+      vector<MessageFullId> message_full_ids;
+      it->second.foreach([&](const MessageFullId &message_full_id) { message_full_ids.push_back(message_full_id); });
+      CHECK(!message_full_ids.empty());
+      for (const auto &message_full_id : message_full_ids) {
+        td_->messages_manager_->on_external_update_message_content(message_full_id, "on_load_special_sticker_set");
+      }
+    }
   }
-
-  vector<MessageFullId> message_full_ids;
-  it->second.foreach([&](const MessageFullId &message_full_id) { message_full_ids.push_back(message_full_id); });
-  CHECK(!message_full_ids.empty());
-  for (const auto &message_full_id : message_full_ids) {
-    td_->messages_manager_->on_external_update_message_content(message_full_id, "on_load_special_sticker_set");
+  {
+    auto it = dice_quick_reply_messages_.find(emoji);
+    if (it != dice_quick_reply_messages_.end()) {
+      vector<QuickReplyMessageFullId> message_full_ids;
+      it->second.foreach(
+          [&](const QuickReplyMessageFullId &message_full_id) { message_full_ids.push_back(message_full_id); });
+      CHECK(!message_full_ids.empty());
+      for (const auto &message_full_id : message_full_ids) {
+        td_->quick_reply_manager_->on_external_update_message_content(message_full_id, "on_load_special_sticker_set");
+      }
+    }
   }
 }
 
@@ -5831,7 +5843,7 @@ void StickersManager::register_premium_gift(int32 months, MessageFullId message_
   }
 
   bool is_inserted = premium_gift_messages.message_full_ids_.insert(message_full_id).second;
-  LOG_CHECK(is_inserted) << source << " " << months << " " << message_full_id;
+  LOG_CHECK(is_inserted) << source << ' ' << months << ' ' << message_full_id;
 }
 
 void StickersManager::unregister_premium_gift(int32 months, MessageFullId message_full_id, const char *source) {
@@ -5844,7 +5856,7 @@ void StickersManager::unregister_premium_gift(int32 months, MessageFullId messag
   CHECK(it != premium_gift_messages_.end());
   auto &message_ids = it->second->message_full_ids_;
   auto is_deleted = message_ids.erase(message_full_id) > 0;
-  LOG_CHECK(is_deleted) << source << " " << months << " " << message_full_id;
+  LOG_CHECK(is_deleted) << source << ' ' << months << ' ' << message_full_id;
 
   if (message_ids.empty()) {
     premium_gift_messages_.erase(it);
@@ -5852,19 +5864,25 @@ void StickersManager::unregister_premium_gift(int32 months, MessageFullId messag
 }
 
 void StickersManager::register_dice(const string &emoji, int32 value, MessageFullId message_full_id,
-                                    const char *source) {
+                                    QuickReplyMessageFullId quick_reply_message_full_id, const char *source) {
   CHECK(!emoji.empty());
   if (td_->auth_manager_->is_bot()) {
     return;
   }
 
-  LOG(INFO) << "Register dice " << emoji << " with value " << value << " from " << message_full_id << " from "
-            << source;
-  dice_messages_[emoji].insert(message_full_id);
+  LOG(INFO) << "Register dice " << emoji << " with value " << value << " from " << message_full_id << '/'
+            << quick_reply_message_full_id << " from " << source;
+  if (quick_reply_message_full_id.is_valid()) {
+    dice_quick_reply_messages_[emoji].insert(quick_reply_message_full_id);
+  } else {
+    CHECK(message_full_id.get_dialog_id().is_valid());
+    dice_messages_[emoji].insert(message_full_id);
+  }
 
   if (!td::contains(dice_emojis_, emoji)) {
-    if (message_full_id.get_message_id().is_any_server() &&
-        message_full_id.get_dialog_id().get_type() != DialogType::SecretChat) {
+    if (quick_reply_message_full_id.is_valid() ||
+        (message_full_id.get_message_id().is_any_server() &&
+         message_full_id.get_dialog_id().get_type() != DialogType::SecretChat)) {
       send_closure(G()->config_manager(), &ConfigManager::reget_app_config, Promise<Unit>());
     }
     return;
@@ -5882,7 +5900,7 @@ void StickersManager::register_dice(const string &emoji, int32 value, MessageFul
   }
 
   if (need_load) {
-    LOG(INFO) << "Waiting for a dice sticker set needed in " << message_full_id;
+    LOG(INFO) << "Waiting for a dice sticker set needed in " << message_full_id << '/' << quick_reply_message_full_id;
     load_special_sticker_set(special_sticker_set);
   } else {
     // TODO reload once in a while
@@ -5891,20 +5909,30 @@ void StickersManager::register_dice(const string &emoji, int32 value, MessageFul
 }
 
 void StickersManager::unregister_dice(const string &emoji, int32 value, MessageFullId message_full_id,
-                                      const char *source) {
+                                      QuickReplyMessageFullId quick_reply_message_full_id, const char *source) {
   CHECK(!emoji.empty());
   if (td_->auth_manager_->is_bot()) {
     return;
   }
 
-  LOG(INFO) << "Unregister dice " << emoji << " with value " << value << " from " << message_full_id << " from "
-            << source;
-  auto &message_ids = dice_messages_[emoji];
-  auto is_deleted = message_ids.erase(message_full_id) > 0;
-  LOG_CHECK(is_deleted) << source << " " << emoji << " " << value << " " << message_full_id;
+  LOG(INFO) << "Unregister dice " << emoji << " with value " << value << " from " << message_full_id << '/'
+            << quick_reply_message_full_id << " from " << source;
+  if (quick_reply_message_full_id.is_valid()) {
+    auto &message_ids = dice_quick_reply_messages_[emoji];
+    auto is_deleted = message_ids.erase(quick_reply_message_full_id) > 0;
+    LOG_CHECK(is_deleted) << source << ' ' << emoji << ' ' << value << ' ' << quick_reply_message_full_id;
 
-  if (message_ids.empty()) {
-    dice_messages_.erase(emoji);
+    if (message_ids.empty()) {
+      dice_quick_reply_messages_.erase(emoji);
+    }
+  } else {
+    auto &message_ids = dice_messages_[emoji];
+    auto is_deleted = message_ids.erase(message_full_id) > 0;
+    LOG_CHECK(is_deleted) << source << ' ' << emoji << ' ' << value << ' ' << message_full_id;
+
+    if (message_ids.empty()) {
+      dice_messages_.erase(emoji);
+    }
   }
 }
 
@@ -5935,7 +5963,7 @@ void StickersManager::register_emoji(const string &emoji, CustomEmojiId custom_e
     if (quick_reply_message_full_id.is_valid()) {
       emoji_messages.quick_reply_message_full_ids_.insert(quick_reply_message_full_id);
     } else {
-      CHECK(message_full_id.get_message_id().is_valid());
+      CHECK(message_full_id.get_dialog_id().is_valid());
       emoji_messages.message_full_ids_.insert(message_full_id);
     }
     return;
@@ -5953,7 +5981,7 @@ void StickersManager::register_emoji(const string &emoji, CustomEmojiId custom_e
   if (quick_reply_message_full_id.is_valid()) {
     emoji_messages.quick_reply_message_full_ids_.insert(quick_reply_message_full_id);
   } else {
-    CHECK(message_full_id.get_message_id().is_valid());
+    CHECK(message_full_id.get_dialog_id().is_valid());
     emoji_messages.message_full_ids_.insert(message_full_id);
   }
 }
@@ -5975,7 +6003,6 @@ void StickersManager::unregister_emoji(const string &emoji, CustomEmojiId custom
       auto is_deleted = it->second->quick_reply_message_full_ids_.erase(quick_reply_message_full_id) > 0;
       LOG_CHECK(is_deleted) << source << ' ' << custom_emoji_id << ' ' << quick_reply_message_full_id;
     } else {
-      CHECK(message_full_id.get_message_id().is_valid());
       auto is_deleted = it->second->message_full_ids_.erase(message_full_id) > 0;
       LOG_CHECK(is_deleted) << source << ' ' << custom_emoji_id << ' ' << message_full_id;
     }
@@ -5991,7 +6018,6 @@ void StickersManager::unregister_emoji(const string &emoji, CustomEmojiId custom
     auto is_deleted = it->second->quick_reply_message_full_ids_.erase(quick_reply_message_full_id) > 0;
     LOG_CHECK(is_deleted) << source << ' ' << custom_emoji_id << ' ' << quick_reply_message_full_id;
   } else {
-    CHECK(message_full_id.get_message_id().is_valid());
     auto is_deleted = it->second->message_full_ids_.erase(message_full_id) > 0;
     LOG_CHECK(is_deleted) << source << ' ' << custom_emoji_id << ' ' << message_full_id;
   }

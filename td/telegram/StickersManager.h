@@ -111,9 +111,11 @@ class StickersManager final : public Actor {
 
   void unregister_premium_gift(int32 months, MessageFullId message_full_id, const char *source);
 
-  void register_dice(const string &emoji, int32 value, MessageFullId message_full_id, const char *source);
+  void register_dice(const string &emoji, int32 value, MessageFullId message_full_id,
+                     QuickReplyMessageFullId quick_reply_message_full_id, const char *source);
 
-  void unregister_dice(const string &emoji, int32 value, MessageFullId message_full_id, const char *source);
+  void unregister_dice(const string &emoji, int32 value, MessageFullId message_full_id,
+                       QuickReplyMessageFullId quick_reply_message_full_id, const char *source);
 
   void register_emoji(const string &emoji, CustomEmojiId custom_emoji_id, MessageFullId message_full_id,
                       QuickReplyMessageFullId quick_reply_message_full_id, const char *source);
@@ -1133,6 +1135,7 @@ class StickersManager final : public Actor {
   FlatHashMap<int32, unique_ptr<GiftPremiumMessages>> premium_gift_messages_;
 
   FlatHashMap<string, WaitFreeHashSet<MessageFullId, MessageFullIdHash>> dice_messages_;
+  FlatHashMap<string, WaitFreeHashSet<QuickReplyMessageFullId, QuickReplyMessageFullIdHash>> dice_quick_reply_messages_;
 
   struct EmojiMessages {
     WaitFreeHashSet<MessageFullId, MessageFullIdHash> message_full_ids_;
