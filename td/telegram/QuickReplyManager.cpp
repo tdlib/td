@@ -2267,7 +2267,7 @@ void QuickReplyManager::on_upload_media_error(FileId file_id, Status status) {
 
   being_uploaded_files_.erase(it);
 
-  auto *m = get_message(message_full_id);
+  const auto *m = get_message(message_full_id);
   if (m == nullptr) {
     return;
   }
@@ -2294,7 +2294,7 @@ void QuickReplyManager::on_upload_thumbnail(FileId thumbnail_file_id,
 
   being_uploaded_thumbnails_.erase(it);
 
-  auto *m = get_message(message_full_id);
+  auto *m = get_message_editable(message_full_id);
   if (m == nullptr || (m->message_id.is_server() && m->edit_generation != edit_generation)) {
     send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_id);
     send_closure_later(G()->file_manager(), &FileManager::cancel_upload, thumbnail_file_id);
@@ -2357,8 +2357,7 @@ void QuickReplyManager::on_message_media_uploaded(const QuickReplyMessage *m,
 void QuickReplyManager::on_upload_message_media_success(QuickReplyShortcutId shortcut_id, MessageId message_id,
                                                         FileId file_id,
                                                         telegram_api::object_ptr<telegram_api::MessageMedia> &&media) {
-  auto *s = get_shortcut(shortcut_id);
-  auto *m = get_message(s, message_id);
+  const auto *m = get_message({shortcut_id, message_id});
   if (m == nullptr) {
     send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_id);
     return;
@@ -2375,10 +2374,6 @@ void QuickReplyManager::on_upload_message_media_success(QuickReplyShortcutId sho
 
   update_message_content(m->content, content, true);
 
-  if (s->messages_[0]->message_id == message_id) {
-    // send_update_quick_reply_shortcut(s, "on_upload_message_media_success");
-  }
-  // send_update_quick_reply_shortcut_messages(s, "on_upload_message_media_success");
   save_quick_reply_shortcuts();
 
   auto input_media = get_input_media(content.get(), td_, {}, m->send_emoji, true);
@@ -2393,7 +2388,7 @@ void QuickReplyManager::on_upload_message_media_success(QuickReplyShortcutId sho
 
 void QuickReplyManager::on_upload_message_media_fail(QuickReplyShortcutId shortcut_id, MessageId message_id,
                                                      Status error) {
-  auto *m = get_message({shortcut_id, message_id});
+  const auto *m = get_message({shortcut_id, message_id});
   if (m == nullptr) {
     return;
   }
@@ -2458,7 +2453,7 @@ void QuickReplyManager::do_send_message_group(QuickReplyShortcutId shortcut_id, 
   Status error = Status::OK();
   for (size_t i = 0; i < request.message_ids.size(); i++) {
     CHECK(request.is_finished[i]);
-    auto *m = get_message(s, request.message_ids[i]);
+    const auto *m = get_message(s, request.message_ids[i]);
     if (m == nullptr) {
       // skip deleted messages
       continue;
@@ -2630,7 +2625,7 @@ Result<td_api::object_ptr<td_api::quickReplyMessages>> QuickReplyManager::resend
       continue;
     }
 
-    auto *m = get_message(s, message_ids[i]);
+    auto *m = get_message_editable(s, message_ids[i]);
     CHECK(m != nullptr);
     m->message_id = get_next_yet_unsent_message_id(s);
     m->media_album_id = new_media_album_ids[m->media_album_id].first;
@@ -2663,7 +2658,7 @@ void QuickReplyManager::edit_quick_reply_message(
   if (s == nullptr) {
     return promise.set_error(Status::Error(400, "Shortcut not found"));
   }
-  auto *m = get_message(s, message_id);
+  auto *m = get_message_editable(s, message_id);
   if (m == nullptr) {
     return promise.set_error(Status::Error(400, "Message not found"));
   }
@@ -2740,7 +2735,7 @@ void QuickReplyManager::on_edit_quick_reply_message(QuickReplyShortcutId shortcu
                                                     int64 edit_generation, FileId file_id, bool was_uploaded,
                                                     telegram_api::object_ptr<telegram_api::Updates> updates_ptr) {
   auto *s = get_shortcut(shortcut_id);
-  auto *m = get_message(s, message_id);
+  auto *m = get_message_editable(s, message_id);
   if (m == nullptr) {
     if (was_uploaded) {
       send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_id);
@@ -2818,7 +2813,7 @@ void QuickReplyManager::fail_edit_quick_reply_message(QuickReplyShortcutId short
                                                       int64 edit_generation, FileId file_id, FileId thumbnail_file_id,
                                                       string file_reference, bool was_uploaded,
                                                       bool was_thumbnail_uploaded, Status status) {
-  auto *m = get_message({shortcut_id, message_id});
+  auto *m = get_message_editable({shortcut_id, message_id});
   if (m == nullptr) {
     if (was_uploaded) {
       send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_id);
@@ -3211,12 +3206,30 @@ vector<unique_ptr<QuickReplyManager::QuickReplyMessage>>::iterator QuickReplyMan
   return s->messages_.end();
 }
 
-QuickReplyManager::QuickReplyMessage *QuickReplyManager::get_message(QuickReplyMessageFullId message_full_id) {
-  auto *s = get_shortcut(message_full_id.get_quick_reply_shortcut_id());
+const QuickReplyManager::QuickReplyMessage *QuickReplyManager::get_message(
+    QuickReplyMessageFullId message_full_id) const {
+  const auto *s = get_shortcut(message_full_id.get_quick_reply_shortcut_id());
   return get_message(s, message_full_id.get_message_id());
 }
 
-QuickReplyManager::QuickReplyMessage *QuickReplyManager::get_message(Shortcut *s, MessageId message_id) {
+const QuickReplyManager::QuickReplyMessage *QuickReplyManager::get_message(const Shortcut *s,
+                                                                           MessageId message_id) const {
+  if (s != nullptr) {
+    for (auto it = s->messages_.begin(); it != s->messages_.end(); ++it) {
+      if ((*it)->message_id == message_id) {
+        return it->get();
+      }
+    }
+  }
+  return nullptr;
+}
+
+QuickReplyManager::QuickReplyMessage *QuickReplyManager::get_message_editable(QuickReplyMessageFullId message_full_id) {
+  auto *s = get_shortcut(message_full_id.get_quick_reply_shortcut_id());
+  return get_message_editable(s, message_full_id.get_message_id());
+}
+
+QuickReplyManager::QuickReplyMessage *QuickReplyManager::get_message_editable(Shortcut *s, MessageId message_id) {
   if (s != nullptr) {
     for (auto it = s->messages_.begin(); it != s->messages_.end(); ++it) {
       if ((*it)->message_id == message_id) {

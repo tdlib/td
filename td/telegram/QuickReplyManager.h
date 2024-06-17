@@ -276,9 +276,13 @@ class QuickReplyManager final : public Actor {
 
   vector<unique_ptr<QuickReplyMessage>>::iterator get_message_it(Shortcut *s, MessageId message_id);
 
-  QuickReplyMessage *get_message(QuickReplyMessageFullId message_full_id);
+  const QuickReplyMessage *get_message(QuickReplyMessageFullId message_full_id) const;
 
-  QuickReplyMessage *get_message(Shortcut *s, MessageId message_id);
+  const QuickReplyMessage *get_message(const Shortcut *s, MessageId message_id) const;
+
+  QuickReplyMessage *get_message_editable(QuickReplyMessageFullId message_full_id);
+
+  QuickReplyMessage *get_message_editable(Shortcut *s, MessageId message_id);
 
   Result<Shortcut *> create_new_local_shortcut(const string &name, int32 new_message_count);
 
