@@ -2212,7 +2212,7 @@ void QuickReplyManager::on_upload_media(FileId file_id, telegram_api::object_ptr
 
   being_uploaded_files_.erase(it);
 
-  auto *m = get_message(message_full_id);
+  const auto *m = get_message(message_full_id);
   if (m == nullptr || (m->message_id.is_server() && m->edit_generation != edit_generation)) {
     send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_id);
     return;
@@ -2232,7 +2232,7 @@ void QuickReplyManager::on_upload_media(FileId file_id, telegram_api::object_ptr
   }
 }
 
-void QuickReplyManager::do_send_media(QuickReplyMessage *m, FileId file_id, FileId thumbnail_file_id,
+void QuickReplyManager::do_send_media(const QuickReplyMessage *m, FileId file_id, FileId thumbnail_file_id,
                                       telegram_api::object_ptr<telegram_api::InputFile> input_file,
                                       telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail) {
   CHECK(m != nullptr);

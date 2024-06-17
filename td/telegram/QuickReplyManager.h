@@ -373,7 +373,7 @@ class QuickReplyManager final : public Actor {
 
   void on_upload_media(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
 
-  void do_send_media(QuickReplyMessage *m, FileId file_id, FileId thumbnail_file_id,
+  void do_send_media(const QuickReplyMessage *m, FileId file_id, FileId thumbnail_file_id,
                      telegram_api::object_ptr<telegram_api::InputFile> input_file,
                      telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail);
 

@@ -8277,7 +8277,7 @@ void MessagesManager::on_upload_media(FileId file_id, tl_object_ptr<telegram_api
 
   being_uploaded_files_.erase(it);
 
-  Message *m = get_message(message_full_id);
+  const Message *m = get_message(message_full_id);
   if (m == nullptr) {
     // message has already been deleted by the user or sent to inaccessible channel, do not need to send or edit it
     // file upload should be already canceled in cancel_send_message_query, it shouldn't happen
@@ -8334,7 +8334,7 @@ void MessagesManager::on_upload_media(FileId file_id, tl_object_ptr<telegram_api
   }
 }
 
-void MessagesManager::do_send_media(DialogId dialog_id, Message *m, FileId file_id, FileId thumbnail_file_id,
+void MessagesManager::do_send_media(DialogId dialog_id, const Message *m, FileId file_id, FileId thumbnail_file_id,
                                     tl_object_ptr<telegram_api::InputFile> input_file,
                                     tl_object_ptr<telegram_api::InputFile> input_thumbnail) {
   CHECK(m != nullptr);
@@ -8365,7 +8365,8 @@ void MessagesManager::do_send_media(DialogId dialog_id, Message *m, FileId file_
   on_message_media_uploaded(dialog_id, m, std::move(input_media), file_id, thumbnail_file_id);
 }
 
-void MessagesManager::do_send_secret_media(DialogId dialog_id, Message *m, FileId file_id, FileId thumbnail_file_id,
+void MessagesManager::do_send_secret_media(DialogId dialog_id, const Message *m, FileId file_id,
+                                           FileId thumbnail_file_id,
                                            tl_object_ptr<telegram_api::InputEncryptedFile> input_encrypted_file,
                                            BufferSlice thumbnail) {
   CHECK(dialog_id.get_type() == DialogType::SecretChat);

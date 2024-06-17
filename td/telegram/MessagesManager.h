@@ -1843,11 +1843,11 @@ class MessagesManager final : public Actor {
                                                    td_api::object_ptr<td_api::messageSendOptions> &&options,
                                                    bool in_game_share, vector<MessageCopyOptions> &&copy_options);
 
-  void do_send_media(DialogId dialog_id, Message *m, FileId file_id, FileId thumbnail_file_id,
+  void do_send_media(DialogId dialog_id, const Message *m, FileId file_id, FileId thumbnail_file_id,
                      tl_object_ptr<telegram_api::InputFile> input_file,
                      tl_object_ptr<telegram_api::InputFile> input_thumbnail);
 
-  void do_send_secret_media(DialogId dialog_id, Message *m, FileId file_id, FileId thumbnail_file_id,
+  void do_send_secret_media(DialogId dialog_id, const Message *m, FileId file_id, FileId thumbnail_file_id,
                             tl_object_ptr<telegram_api::InputEncryptedFile> input_encrypted_file,
                             BufferSlice thumbnail);
 
