@@ -11,6 +11,7 @@
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/MessageFullId.h"
+#include "td/telegram/QuickReplyMessageFullId.h"
 #include "td/telegram/StoryFullId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -63,6 +64,12 @@ class WebPagesManager final : public Actor {
   void register_web_page(WebPageId web_page_id, MessageFullId message_full_id, const char *source);
 
   void unregister_web_page(WebPageId web_page_id, MessageFullId message_full_id, const char *source);
+
+  void register_quick_reply_web_page(WebPageId web_page_id, QuickReplyMessageFullId message_full_id,
+                                     const char *source);
+
+  void unregister_quick_reply_web_page(WebPageId web_page_id, QuickReplyMessageFullId message_full_id,
+                                       const char *source);
 
   bool have_web_page(WebPageId web_page_id) const;
 
@@ -198,6 +205,8 @@ class WebPagesManager final : public Actor {
   FlatHashMap<WebPageId, PendingWebPageInstantViewQueries, WebPageIdHash> load_web_page_instant_view_queries_;
 
   FlatHashMap<WebPageId, FlatHashSet<MessageFullId, MessageFullIdHash>, WebPageIdHash> web_page_messages_;
+  FlatHashMap<WebPageId, FlatHashSet<QuickReplyMessageFullId, QuickReplyMessageFullIdHash>, WebPageIdHash>
+      web_page_quick_reply_messages_;
 
   FlatHashMap<WebPageId,
               vector<std::pair<unique_ptr<GetWebPagePreviewOptions>, Promise<td_api::object_ptr<td_api::webPage>>>>,

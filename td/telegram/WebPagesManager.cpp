@@ -26,6 +26,7 @@
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/PhotoFormat.h"
+#include "td/telegram/QuickReplyManager.h"
 #include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StickersManager.hpp"
@@ -468,7 +469,8 @@ void WebPagesManager::tear_down() {
 
 WebPagesManager::~WebPagesManager() {
   Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), web_pages_, web_page_messages_,
-                                              url_to_web_page_id_, url_to_file_source_id_);
+                                              web_page_quick_reply_messages_, url_to_web_page_id_,
+                                              url_to_file_source_id_);
 }
 
 string WebPagesManager::get_web_page_url(const tl_object_ptr<telegram_api::WebPage> &web_page_ptr) {
@@ -879,11 +881,38 @@ void WebPagesManager::unregister_web_page(WebPageId web_page_id, MessageFullId m
 
   if (message_ids.empty()) {
     web_page_messages_.erase(web_page_id);
-    if (pending_get_web_pages_.count(web_page_id) == 0) {
-      pending_web_pages_timeout_.cancel_timeout(web_page_id.get());
-    } else {
-      LOG(INFO) << "Still waiting for " << web_page_id;
-    }
+  }
+}
+
+void WebPagesManager::register_quick_reply_web_page(WebPageId web_page_id, QuickReplyMessageFullId message_full_id,
+                                                    const char *source) {
+  if (!web_page_id.is_valid()) {
+    return;
+  }
+
+  LOG(INFO) << "Register " << web_page_id << " from " << message_full_id << " from " << source;
+  bool is_inserted = web_page_quick_reply_messages_[web_page_id].insert(message_full_id).second;
+  LOG_CHECK(is_inserted) << source << " " << web_page_id << " " << message_full_id;
+
+  if (!have_web_page_force(web_page_id)) {
+    LOG(INFO) << "Waiting for " << web_page_id << " needed in " << message_full_id;
+    pending_web_pages_timeout_.add_timeout_in(web_page_id.get(), 1.0);
+  }
+}
+
+void WebPagesManager::unregister_quick_reply_web_page(WebPageId web_page_id, QuickReplyMessageFullId message_full_id,
+                                                      const char *source) {
+  if (!web_page_id.is_valid()) {
+    return;
+  }
+
+  LOG(INFO) << "Unregister " << web_page_id << " from " << message_full_id << " from " << source;
+  auto &message_ids = web_page_quick_reply_messages_[web_page_id];
+  auto is_deleted = message_ids.erase(message_full_id) > 0;
+  LOG_CHECK(is_deleted) << source << " " << web_page_id << " " << message_full_id;
+
+  if (message_ids.empty()) {
+    web_page_quick_reply_messages_.erase(web_page_id);
   }
 }
 
@@ -1499,37 +1528,67 @@ tl_object_ptr<td_api::webPageInstantView> WebPagesManager::get_web_page_instant_
 
 void WebPagesManager::on_web_page_changed(WebPageId web_page_id, bool have_web_page) {
   LOG(INFO) << "Updated " << web_page_id;
-  auto it = web_page_messages_.find(web_page_id);
-  if (it != web_page_messages_.end()) {
-    vector<MessageFullId> message_full_ids;
-    for (const auto &message_full_id : it->second) {
-      message_full_ids.push_back(message_full_id);
-    }
-    CHECK(!message_full_ids.empty());
-    for (const auto &message_full_id : message_full_ids) {
-      if (!have_web_page) {
-        td_->messages_manager_->delete_pending_message_web_page(message_full_id);
-      } else {
-        td_->messages_manager_->on_external_update_message_content(message_full_id, "on_web_page_changed");
+  {
+    auto it = web_page_messages_.find(web_page_id);
+    if (it != web_page_messages_.end()) {
+      vector<MessageFullId> message_full_ids;
+      for (const auto &message_full_id : it->second) {
+        message_full_ids.push_back(message_full_id);
       }
-    }
+      CHECK(!message_full_ids.empty());
+      for (const auto &message_full_id : message_full_ids) {
+        if (!have_web_page) {
+          td_->messages_manager_->delete_pending_message_web_page(message_full_id);
+        } else {
+          td_->messages_manager_->on_external_update_message_content(message_full_id, "on_web_page_changed");
+        }
+      }
 
-    // don't check that on_external_update_message_content doesn't load new messages
-    if (!have_web_page && web_page_messages_.count(web_page_id) != 0) {
-      vector<MessageFullId> new_message_full_ids;
-      for (const auto &message_full_id : web_page_messages_[web_page_id]) {
-        new_message_full_ids.push_back(message_full_id);
+      // don't check that on_external_update_message_content doesn't load new messages
+      if (!have_web_page && web_page_messages_.count(web_page_id) != 0) {
+        vector<MessageFullId> new_message_full_ids;
+        for (const auto &message_full_id : web_page_messages_[web_page_id]) {
+          new_message_full_ids.push_back(message_full_id);
+        }
+        LOG(FATAL) << message_full_ids << ' ' << new_message_full_ids;
       }
-      LOG(FATAL) << message_full_ids << ' ' << new_message_full_ids;
     }
   }
-  auto get_it = pending_get_web_pages_.find(web_page_id);
-  if (get_it != pending_get_web_pages_.end()) {
-    auto requests = std::move(get_it->second);
-    pending_get_web_pages_.erase(get_it);
-    for (auto &request : requests) {
-      on_get_web_page_preview_success(std::move(request.first), have_web_page ? web_page_id : WebPageId(),
-                                      std::move(request.second));
+  {
+    auto it = web_page_quick_reply_messages_.find(web_page_id);
+    if (it != web_page_quick_reply_messages_.end()) {
+      vector<QuickReplyMessageFullId> message_full_ids;
+      for (const auto &message_full_id : it->second) {
+        message_full_ids.push_back(message_full_id);
+      }
+      CHECK(!message_full_ids.empty());
+      for (const auto &message_full_id : message_full_ids) {
+        if (!have_web_page) {
+          td_->quick_reply_manager_->delete_pending_message_web_page(message_full_id);
+        } else {
+          td_->quick_reply_manager_->on_external_update_message_content(message_full_id, "on_web_page_changed");
+        }
+      }
+
+      // don't check that on_external_update_message_content doesn't load new messages
+      if (!have_web_page && web_page_quick_reply_messages_.count(web_page_id) != 0) {
+        vector<QuickReplyMessageFullId> new_message_full_ids;
+        for (const auto &message_full_id : web_page_quick_reply_messages_[web_page_id]) {
+          new_message_full_ids.push_back(message_full_id);
+        }
+        LOG(FATAL) << message_full_ids << ' ' << new_message_full_ids;
+      }
+    }
+  }
+  {
+    auto it = pending_get_web_pages_.find(web_page_id);
+    if (it != pending_get_web_pages_.end()) {
+      auto requests = std::move(it->second);
+      pending_get_web_pages_.erase(it);
+      for (auto &request : requests) {
+        on_get_web_page_preview_success(std::move(request.first), have_web_page ? web_page_id : WebPageId(),
+                                        std::move(request.second));
+      }
     }
   }
   pending_web_pages_timeout_.cancel_timeout(web_page_id.get());
@@ -1578,27 +1637,42 @@ void WebPagesManager::on_pending_web_page_timeout(WebPageId web_page_id) {
 
   LOG(INFO) << "Process timeout for " << web_page_id;
   int32 count = 0;
-  auto it = web_page_messages_.find(web_page_id);
-  if (it != web_page_messages_.end()) {
-    vector<MessageFullId> message_full_ids;
-    for (const auto &message_full_id : it->second) {
-      if (message_full_id.get_dialog_id().get_type() != DialogType::SecretChat) {
-        message_full_ids.push_back(message_full_id);
+  {
+    auto it = web_page_messages_.find(web_page_id);
+    if (it != web_page_messages_.end()) {
+      vector<MessageFullId> message_full_ids;
+      for (const auto &message_full_id : it->second) {
+        if (message_full_id.get_dialog_id().get_type() != DialogType::SecretChat) {
+          message_full_ids.push_back(message_full_id);
+        }
+        count++;
       }
-      count++;
-    }
-    if (!message_full_ids.empty()) {
-      send_closure_later(G()->messages_manager(), &MessagesManager::get_messages_from_server,
-                         std::move(message_full_ids), Promise<Unit>(), "on_pending_web_page_timeout", nullptr);
+      if (!message_full_ids.empty()) {
+        send_closure_later(G()->messages_manager(), &MessagesManager::get_messages_from_server,
+                           std::move(message_full_ids), Promise<Unit>(), "on_pending_web_page_timeout", nullptr);
+      }
     }
   }
-  auto get_it = pending_get_web_pages_.find(web_page_id);
-  if (get_it != pending_get_web_pages_.end()) {
-    auto requests = std::move(get_it->second);
-    pending_get_web_pages_.erase(get_it);
-    for (auto &request : requests) {
-      request.second.set_error(Status::Error(500, "Request timeout exceeded"));
-      count++;
+  {
+    auto it = web_page_quick_reply_messages_.find(web_page_id);
+    if (it != web_page_quick_reply_messages_.end()) {
+      for (const auto &message_full_id : it->second) {
+        send_closure_later(G()->quick_reply_manager(), &QuickReplyManager::reload_quick_reply_message,
+                           message_full_id.get_quick_reply_shortcut_id(), message_full_id.get_message_id(),
+                           Promise<Unit>());
+        count++;
+      }
+    }
+  }
+  {
+    auto it = pending_get_web_pages_.find(web_page_id);
+    if (it != pending_get_web_pages_.end()) {
+      auto requests = std::move(it->second);
+      pending_get_web_pages_.erase(it);
+      for (auto &request : requests) {
+        request.second.set_error(Status::Error(500, "Request timeout exceeded"));
+        count++;
+      }
     }
   }
   if (count == 0) {

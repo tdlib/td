@@ -53,6 +53,11 @@ class QuickReplyManager final : public Actor {
 
   void update_quick_reply_message(telegram_api::object_ptr<telegram_api::Message> &&message_ptr);
 
+  void delete_pending_message_web_page(QuickReplyMessageFullId message_full_id);
+
+  void on_external_update_message_content(QuickReplyMessageFullId message_full_id, const char *source,
+                                          bool expect_no_message = false);
+
   void delete_quick_reply_messages_from_updates(QuickReplyShortcutId shortcut_id, const vector<MessageId> &message_ids);
 
   void get_quick_reply_shortcut_messages(QuickReplyShortcutId shortcut_id, Promise<Unit> &&promise);

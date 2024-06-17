@@ -1646,6 +1646,34 @@ void QuickReplyManager::update_quick_reply_message(QuickReplyShortcutId shortcut
   change_message_files({shortcut_id, old_message->message_id}, old_message.get(), old_file_ids);
 }
 
+void QuickReplyManager::on_external_update_message_content(QuickReplyMessageFullId message_full_id, const char *source,
+                                                           bool expect_no_message) {
+  const auto *s = get_shortcut(message_full_id.get_quick_reply_shortcut_id());
+  auto message_id = message_full_id.get_message_id();
+  const auto *m = get_message(s, message_id);
+  if (expect_no_message && m == nullptr) {
+    return;
+  }
+  CHECK(m != nullptr);
+  if (s->messages_[0]->message_id == message_id) {
+    send_update_quick_reply_shortcut(s, "on_external_update_message_content");
+  }
+  send_update_quick_reply_shortcut_messages(s, "on_external_update_message_content");
+  // must not call save_quick_reply_shortcuts, because the message itself wasn't changed
+}
+
+void QuickReplyManager::delete_pending_message_web_page(QuickReplyMessageFullId message_full_id) {
+  auto *m = get_message_editable(message_full_id);
+  CHECK(has_message_content_web_page(m->content.get()));
+  unregister_message_content(m, "delete_pending_message_web_page");
+  remove_message_content_web_page(m->content.get());
+  register_message_content(m, "delete_pending_message_web_page");
+
+  // don't need to send updates, because the web page was pending
+
+  save_quick_reply_shortcuts();
+}
+
 void QuickReplyManager::delete_quick_reply_messages_from_updates(QuickReplyShortcutId shortcut_id,
                                                                  const vector<MessageId> &message_ids) {
   if (td_->auth_manager_->is_bot()) {

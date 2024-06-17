@@ -5614,10 +5614,32 @@ void unregister_reply_message_content(Td *td, const MessageContent *content) {
 
 void register_quick_reply_message_content(Td *td, const MessageContent *content,
                                           QuickReplyMessageFullId message_full_id, const char *source) {
+  switch (content->get_type()) {
+    case MessageContentType::Text: {
+      auto text = static_cast<const MessageText *>(content);
+      if (text->web_page_id.is_valid()) {
+        td->web_pages_manager_->register_quick_reply_web_page(text->web_page_id, message_full_id, source);
+      }
+      return;
+    }
+    default:
+      return;
+  }
 }
 
 void unregister_quick_reply_message_content(Td *td, const MessageContent *content,
                                             QuickReplyMessageFullId message_full_id, const char *source) {
+  switch (content->get_type()) {
+    case MessageContentType::Text: {
+      auto text = static_cast<const MessageText *>(content);
+      if (text->web_page_id.is_valid()) {
+        td->web_pages_manager_->unregister_quick_reply_web_page(text->web_page_id, message_full_id, source);
+      }
+      return;
+    }
+    default:
+      return;
+  }
 }
 
 template <class ToT, class FromT>
