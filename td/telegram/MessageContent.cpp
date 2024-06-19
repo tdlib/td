@@ -6614,9 +6614,62 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
 
 unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<telegram_api::MessageAction> &&action_ptr,
                                                       DialogId owner_dialog_id, int32 message_date,
-                                                      const RepliedMessageInfo &replied_message_info) {
+                                                      const RepliedMessageInfo &replied_message_info,
+                                                      bool is_business_message) {
   CHECK(action_ptr != nullptr);
-
+  if (is_business_message) {
+    switch (action_ptr->get_id()) {
+      case telegram_api::messageActionEmpty::ID:
+      case telegram_api::messageActionChatCreate::ID:
+      case telegram_api::messageActionChatEditTitle::ID:
+      case telegram_api::messageActionChatEditPhoto::ID:
+      case telegram_api::messageActionChatDeletePhoto::ID:
+      case telegram_api::messageActionChatAddUser::ID:
+      case telegram_api::messageActionChatJoinedByLink::ID:
+      case telegram_api::messageActionChatDeleteUser::ID:
+      case telegram_api::messageActionChatMigrateTo::ID:
+      case telegram_api::messageActionChannelCreate::ID:
+      case telegram_api::messageActionChannelMigrateFrom::ID:
+      case telegram_api::messageActionPaymentSent::ID:
+      case telegram_api::messageActionPaymentSentMe::ID:
+      case telegram_api::messageActionBotAllowed::ID:
+      case telegram_api::messageActionSecureValuesSent::ID:
+      case telegram_api::messageActionSecureValuesSentMe::ID:
+      case telegram_api::messageActionGroupCall::ID:
+      case telegram_api::messageActionInviteToGroupCall::ID:
+      case telegram_api::messageActionGroupCallScheduled::ID:
+      case telegram_api::messageActionChatJoinedByRequest::ID:
+      case telegram_api::messageActionWebViewDataSent::ID:
+      case telegram_api::messageActionWebViewDataSentMe::ID:
+      case telegram_api::messageActionTopicCreate::ID:
+      case telegram_api::messageActionTopicEdit::ID:
+      case telegram_api::messageActionRequestedPeer::ID:
+      case telegram_api::messageActionGiveawayLaunch::ID:
+      case telegram_api::messageActionGiveawayResults::ID:
+      case telegram_api::messageActionBoostApply::ID:
+        LOG(ERROR) << "Receive business " << to_string(action_ptr);
+        break;
+      case telegram_api::messageActionHistoryClear::ID:
+      case telegram_api::messageActionPinMessage::ID:
+      case telegram_api::messageActionGameScore::ID:
+      case telegram_api::messageActionPhoneCall::ID:
+      case telegram_api::messageActionScreenshotTaken::ID:
+      case telegram_api::messageActionCustomAction::ID:
+      case telegram_api::messageActionContactSignUp::ID:
+      case telegram_api::messageActionGeoProximityReached::ID:
+      case telegram_api::messageActionSetMessagesTTL::ID:
+      case telegram_api::messageActionSetChatTheme::ID:
+      case telegram_api::messageActionGiftPremium::ID:
+      case telegram_api::messageActionSuggestProfilePhoto::ID:
+      case telegram_api::messageActionSetChatWallPaper::ID:
+      case telegram_api::messageActionGiftCode::ID:
+      case telegram_api::messageActionRequestedPeerSentMe::ID:
+        // ok
+        break;
+      default:
+        UNREACHABLE();
+    }
+  }
   switch (action_ptr->get_id()) {
     case telegram_api::messageActionEmpty::ID:
       LOG(ERROR) << "Receive empty message action in " << owner_dialog_id;
@@ -6649,12 +6702,10 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       }
       return make_unique<MessageChatChangePhoto>(std::move(photo));
     }
-    case telegram_api::messageActionChatDeletePhoto::ID: {
+    case telegram_api::messageActionChatDeletePhoto::ID:
       return make_unique<MessageChatDeletePhoto>();
-    }
-    case telegram_api::messageActionHistoryClear::ID: {
+    case telegram_api::messageActionHistoryClear::ID:
       return make_unique<MessageChatDeleteHistory>();
-    }
     case telegram_api::messageActionChatAddUser::ID: {
       auto action = move_tl_object_as<telegram_api::messageActionChatAddUser>(action_ptr);
 
@@ -6777,9 +6828,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       result->provider_payment_charge_id = std::move(action->charge_->provider_charge_id_);
       return std::move(result);
     }
-    case telegram_api::messageActionScreenshotTaken::ID: {
+    case telegram_api::messageActionScreenshotTaken::ID:
       return make_unique<MessageScreenshotTaken>();
-    }
     case telegram_api::messageActionCustomAction::ID: {
       auto action = move_tl_object_as<telegram_api::messageActionCustomAction>(action_ptr);
       return td::make_unique<MessageCustomServiceAction>(std::move(action->message_));
@@ -6813,10 +6863,11 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
           get_encrypted_secure_values(td->file_manager_.get(), std::move(action->values_)),
           get_encrypted_secure_credentials(std::move(action->credentials_)));
     }
-    case telegram_api::messageActionContactSignUp::ID: {
-      LOG_IF(ERROR, td->auth_manager_->is_bot()) << "Receive ContactRegistered in " << owner_dialog_id;
+    case telegram_api::messageActionContactSignUp::ID:
+      if (!is_business_message && td->auth_manager_->is_bot()) {
+        LOG(ERROR) << "Receive ContactRegistered in " << owner_dialog_id;
+      }
       return td::make_unique<MessageContactRegistered>();
-    }
     case telegram_api::messageActionGeoProximityReached::ID: {
       auto action = move_tl_object_as<telegram_api::messageActionGeoProximityReached>(action_ptr);
       DialogId traveler_id(action->from_id_);

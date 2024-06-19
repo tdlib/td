@@ -13179,10 +13179,12 @@ void MessagesManager::finish_add_secret_message(unique_ptr<PendingSecretMessage>
 }
 
 MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
-    Td *td, tl_object_ptr<telegram_api::Message> message_ptr, bool is_scheduled, const char *source) {
+    Td *td, tl_object_ptr<telegram_api::Message> message_ptr, bool is_scheduled, bool is_business_message,
+    const char *source) {
   LOG(DEBUG) << "Receive from " << source << " " << to_string(message_ptr);
   LOG_CHECK(message_ptr != nullptr) << source;
 
+  auto is_bot = td->auth_manager_->is_bot();
   MessageInfo message_info;
   message_info.message_id = MessageId::get_message_id(message_ptr, is_scheduled);
   switch (message_ptr->get_id()) {
@@ -13246,7 +13248,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       message_info.effect_id = MessageEffectId(message->effect_);
 
       bool is_content_read = true;
-      if (!td->auth_manager_->is_bot()) {
+      if (!is_bot) {
         if (is_scheduled) {
           is_content_read = false;
         } else if (td->messages_manager_->is_message_auto_read(message_info.dialog_id, message_info.is_outgoing)) {
@@ -13260,8 +13262,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       message_info.content = get_message_content(
           td,
           get_message_text(td->user_manager_.get(), std::move(message->message_), std::move(message->entities_), true,
-                           td->auth_manager_->is_bot(),
-                           message_info.forward_header ? message_info.forward_header->date_ : message_info.date,
+                           is_bot, message_info.forward_header ? message_info.forward_header->date_ : message_info.date,
                            message_info.media_album_id != 0, new_source.c_str()),
           std::move(message->media_), message_info.dialog_id, message_info.date, is_content_read,
           message_info.via_bot_user_id, &message_info.ttl, &message_info.disable_web_page_preview, new_source.c_str());
@@ -13269,7 +13270,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       message_info.restriction_reasons = get_restriction_reasons(std::move(message->restriction_reason_));
       message_info.author_signature = std::move(message->post_author_);
       message_info.sender_boost_count = message->from_boosts_applied_;
-      if (message->saved_peer_id_ != nullptr) {
+      if (!is_bot && message->saved_peer_id_ != nullptr) {
         message_info.saved_messages_topic_id = SavedMessagesTopicId(DialogId(message->saved_peer_id_));
       }
       break;
@@ -13297,10 +13298,10 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
                                                      message_info.message_id, message_info.date, can_have_thread);
       message_info.content =
           get_action_message_content(td, std::move(message->action_), message_info.dialog_id, message_info.date,
-                                     message_info.reply_header.replied_message_info_);
+                                     message_info.reply_header.replied_message_info_, is_business_message);
       message_info.reply_header.replied_message_info_ = RepliedMessageInfo();
       message_info.reply_header.story_full_id_ = StoryFullId();
-      if (message_info.dialog_id == td->dialog_manager_->get_my_dialog_id()) {
+      if (!is_bot && message_info.dialog_id == td->dialog_manager_->get_my_dialog_id()) {
         message_info.saved_messages_topic_id = SavedMessagesTopicId(message_info.dialog_id);
       }
       break;
@@ -13415,7 +13416,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   if (reply_to_story_full_id != StoryFullId()) {
     auto story_dialog_id = reply_to_story_full_id.get_dialog_id();
     if (story_dialog_id != my_dialog_id && story_dialog_id != dialog_id &&
-        story_dialog_id != DialogId(sender_user_id)) {
+        story_dialog_id != DialogId(sender_user_id) && !is_business_message) {
       LOG(ERROR) << "Receive reply to " << reply_to_story_full_id << " in " << dialog_id;
       reply_to_story_full_id = {};
     }
@@ -13673,8 +13674,8 @@ void MessagesManager::delete_update_message_id(DialogId dialog_id, MessageId mes
 
 MessageFullId MessagesManager::on_get_message(tl_object_ptr<telegram_api::Message> message_ptr, bool from_update,
                                               bool is_channel_message, bool is_scheduled, const char *source) {
-  return on_get_message(parse_telegram_api_message(td_, std::move(message_ptr), is_scheduled, source), from_update,
-                        is_channel_message, source);
+  return on_get_message(parse_telegram_api_message(td_, std::move(message_ptr), is_scheduled, false, source),
+                        from_update, is_channel_message, source);
 }
 
 MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const bool from_update,
@@ -22654,7 +22655,7 @@ td_api::object_ptr<td_api::MessageContent> MessagesManager::get_message_message_
 td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_message_object(
     DialogId dialog_id, tl_object_ptr<telegram_api::Message> &&message, DialogId &sender_dialog_id) {
   auto dialog_message = create_message(
-      td_, parse_telegram_api_message(td_, std::move(message), false, "get_dialog_event_log_message_object"),
+      td_, parse_telegram_api_message(td_, std::move(message), false, false, "get_dialog_event_log_message_object"),
       dialog_id.get_type() == DialogType::Channel, false, "get_dialog_event_log_message_object");
   const Message *m = dialog_message.second.get();
   if (m == nullptr || dialog_message.first != dialog_id) {
@@ -22705,8 +22706,8 @@ td_api::object_ptr<td_api::message> MessagesManager::get_business_message_messag
     return nullptr;
   }
   auto dialog_message = create_message(
-      td_, parse_telegram_api_message(td_, std::move(message), false, "get_business_message_message_object"), false,
-      true, "get_business_message_message_object");
+      td_, parse_telegram_api_message(td_, std::move(message), false, true, "get_business_message_message_object"),
+      false, true, "get_business_message_message_object");
   const Message *m = dialog_message.second.get();
   if (m == nullptr) {
     return nullptr;
@@ -22724,7 +22725,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_business_message_messag
   auto forward_info =
       m->forward_info == nullptr ? nullptr : m->forward_info->get_message_forward_info_object(td_, false);
   auto import_info = m->forward_info == nullptr ? nullptr : m->forward_info->get_message_import_info_object();
-  auto can_be_saved = can_save_message(dialog_id, m);
+  auto can_be_saved = !m->noforwards && !m->is_content_secret;
   auto via_bot_user_id =
       td_->user_manager_->get_user_id_object(m->via_bot_user_id, "get_business_message_message_object via_bot_user_id");
   auto via_business_bot_user_id = td_->user_manager_->get_user_id_object(

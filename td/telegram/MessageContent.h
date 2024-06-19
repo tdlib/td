@@ -249,7 +249,8 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
 
 unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<telegram_api::MessageAction> &&action_ptr,
                                                       DialogId owner_dialog_id, int32 message_date,
-                                                      const RepliedMessageInfo &replied_message_info);
+                                                      const RepliedMessageInfo &replied_message_info,
+                                                      bool is_business_message);
 
 tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageContent *content, Td *td,
                                                                  DialogId dialog_id, int32 message_date,

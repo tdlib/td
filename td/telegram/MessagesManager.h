@@ -1666,7 +1666,7 @@ class MessagesManager final : public Actor {
                                          Promise<Unit> promise);
 
   static MessageInfo parse_telegram_api_message(Td *td, tl_object_ptr<telegram_api::Message> message_ptr,
-                                                bool is_scheduled, const char *source);
+                                                bool is_scheduled, bool is_business_message, const char *source);
 
   static std::pair<DialogId, unique_ptr<Message>> create_message(Td *td, MessageInfo &&message_info,
                                                                  bool is_channel_message, bool is_business_message,
