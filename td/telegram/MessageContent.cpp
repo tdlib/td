@@ -6313,6 +6313,8 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
           std::move(media->prize_description_), media->until_date_, media->only_new_subscribers_, media->refunded_,
           media->winners_count_, media->unclaimed_count_, std::move(winner_user_ids));
     }
+    case telegram_api::messageMediaPaidMedia::ID:
+      return make_unique<MessageUnsupported>();
     case telegram_api::messageMediaUnsupported::ID:
       return make_unique<MessageUnsupported>();
     default:
@@ -7940,12 +7942,16 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
   }
 }
 
-bool update_message_content_extended_media(MessageContent *content,
-                                           telegram_api::object_ptr<telegram_api::MessageExtendedMedia> extended_media,
-                                           DialogId owner_dialog_id, Td *td) {
+bool update_message_content_extended_media(
+    MessageContent *content, vector<telegram_api::object_ptr<telegram_api::MessageExtendedMedia>> extended_media,
+    DialogId owner_dialog_id, Td *td) {
   CHECK(content != nullptr);
   CHECK(content->get_type() == MessageContentType::Invoice);
-  return static_cast<MessageInvoice *>(content)->input_invoice.update_extended_media(std::move(extended_media),
+  if (extended_media.size() != 1) {
+    LOG(ERROR) << "Receive " << extended_media.size() << " extended media in " << owner_dialog_id;
+    return false;
+  }
+  return static_cast<MessageInvoice *>(content)->input_invoice.update_extended_media(std::move(extended_media[0]),
                                                                                      owner_dialog_id, td);
 }
 

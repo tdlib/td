@@ -288,9 +288,9 @@ StoryFullId get_message_content_story_full_id(const Td *td, const MessageContent
 
 string get_message_content_search_text(const Td *td, const MessageContent *content);
 
-bool update_message_content_extended_media(MessageContent *content,
-                                           telegram_api::object_ptr<telegram_api::MessageExtendedMedia> extended_media,
-                                           DialogId owner_dialog_id, Td *td);
+bool update_message_content_extended_media(
+    MessageContent *content, vector<telegram_api::object_ptr<telegram_api::MessageExtendedMedia>> extended_media,
+    DialogId owner_dialog_id, Td *td);
 
 bool need_poll_message_content_extended_media(const MessageContent *content);
 

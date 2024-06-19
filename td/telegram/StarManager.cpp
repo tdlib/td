@@ -158,6 +158,9 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
             }
             return td_api::make_object<td_api::starTransactionPartnerUnsupported>();
           }
+          case telegram_api::starsTransactionPeerAds::ID: {
+            return td_api::make_object<td_api::starTransactionPartnerUnsupported>();
+          }
           default:
             UNREACHABLE();
         }

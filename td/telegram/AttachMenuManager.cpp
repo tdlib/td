@@ -97,7 +97,7 @@ class RequestAppWebViewQuery final : public Td::ResultHandler {
     auto input_bot_app =
         telegram_api::make_object<telegram_api::inputBotAppShortName>(std::move(input_user), web_app_short_name);
     send_query(G()->net_query_creator().create(telegram_api::messages_requestAppWebView(
-        flags, false /*ignored*/, std::move(input_peer), std::move(input_bot_app), start_parameter,
+        flags, false /*ignored*/, false /*ignored*/, std::move(input_peer), std::move(input_bot_app), start_parameter,
         std::move(theme_parameters), platform)));
   }
 
@@ -188,8 +188,8 @@ class RequestWebViewQuery final : public Td::ResultHandler {
     }
 
     send_query(G()->net_query_creator().create(telegram_api::messages_requestWebView(
-        flags, false /*ignored*/, false /*ignored*/, std::move(input_peer), std::move(input_user), url, start_parameter,
-        std::move(theme_parameters), platform, std::move(reply_to), std::move(as_input_peer))));
+        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer), std::move(input_user),
+        url, start_parameter, std::move(theme_parameters), platform, std::move(reply_to), std::move(as_input_peer))));
   }
 
   void on_result(BufferSlice packet) final {

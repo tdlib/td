@@ -6771,7 +6771,8 @@ void MessagesManager::on_update_some_live_location_viewed(Promise<Unit> &&promis
 }
 
 void MessagesManager::on_update_message_extended_media(
-    MessageFullId message_full_id, telegram_api::object_ptr<telegram_api::MessageExtendedMedia> extended_media) {
+    MessageFullId message_full_id,
+    vector<telegram_api::object_ptr<telegram_api::MessageExtendedMedia>> extended_media) {
   auto dialog_id = message_full_id.get_dialog_id();
   Dialog *d = get_dialog_force(dialog_id, "on_update_message_extended_media 1");
   if (d == nullptr) {
