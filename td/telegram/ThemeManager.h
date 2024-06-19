@@ -36,8 +36,7 @@ class ThemeManager final : public Actor {
 
   void reload_profile_accent_colors();
 
-  static string get_theme_parameters_json_string(const td_api::object_ptr<td_api::themeParameters> &theme,
-                                                 bool for_web_view);
+  static string get_theme_parameters_json_string(const td_api::object_ptr<td_api::themeParameters> &theme);
 
   int32 get_accent_color_id_object(AccentColorId accent_color_id,
                                    AccentColorId fallback_accent_color_id = AccentColorId()) const;

@@ -989,7 +989,7 @@ void get_payment_form(Td *td, td_api::object_ptr<td_api::InputInvoice> &&input_i
   tl_object_ptr<telegram_api::dataJSON> theme_parameters;
   if (theme != nullptr) {
     theme_parameters = make_tl_object<telegram_api::dataJSON>(string());
-    theme_parameters->data_ = ThemeManager::get_theme_parameters_json_string(theme, false);
+    theme_parameters->data_ = ThemeManager::get_theme_parameters_json_string(theme);
   }
   td->create_handler<GetPaymentFormQuery>(std::move(promise))
       ->send(std::move(input_invoice_info), std::move(theme_parameters));

@@ -181,7 +181,7 @@ class RequestSimpleWebViewQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_requestSimpleWebView::THEME_PARAMS_MASK;
 
       theme_parameters = make_tl_object<telegram_api::dataJSON>(string());
-      theme_parameters->data_ = ThemeManager::get_theme_parameters_json_string(theme, false);
+      theme_parameters->data_ = ThemeManager::get_theme_parameters_json_string(theme);
     }
     string start_parameter;
     if (ends_with(url, "#kb")) {

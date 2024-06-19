@@ -84,7 +84,7 @@ class RequestAppWebViewQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_requestAppWebView::THEME_PARAMS_MASK;
 
       theme_parameters = make_tl_object<telegram_api::dataJSON>(string());
-      theme_parameters->data_ = ThemeManager::get_theme_parameters_json_string(theme, false);
+      theme_parameters->data_ = ThemeManager::get_theme_parameters_json_string(theme);
     }
     if (allow_write_access) {
       flags |= telegram_api::messages_requestAppWebView::WRITE_ALLOWED_MASK;
@@ -165,7 +165,7 @@ class RequestWebViewQuery final : public Td::ResultHandler {
     tl_object_ptr<telegram_api::dataJSON> theme_parameters;
     if (theme != nullptr) {
       theme_parameters = make_tl_object<telegram_api::dataJSON>(string());
-      theme_parameters->data_ = ThemeManager::get_theme_parameters_json_string(theme, false);
+      theme_parameters->data_ = ThemeManager::get_theme_parameters_json_string(theme);
 
       flags |= telegram_api::messages_requestWebView::THEME_PARAMS_MASK;
     }

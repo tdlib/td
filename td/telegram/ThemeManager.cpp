@@ -622,34 +622,18 @@ bool ThemeManager::on_update_profile_accent_colors(
   return true;
 }
 
-namespace {
-template <bool for_web_view>
-static auto get_color_json(int32 color);
-
-template <>
-auto get_color_json<false>(int32 color) {
-  return static_cast<int64>(static_cast<uint32>(color) | 0xFF000000);
-}
-
-template <>
-auto get_color_json<true>(int32 color) {
-  string res(7, '#');
-  const char *hex = "0123456789abcdef";
-  for (int i = 0; i < 3; i++) {
-    int32 num = (color >> (i * 8)) & 0xFF;
-    res[2 * i + 1] = hex[num >> 4];
-    res[2 * i + 2] = hex[num & 15];
-  }
-  return res;
-}
-
-template <bool for_web_view>
-string get_theme_parameters_json_string_impl(const td_api::object_ptr<td_api::themeParameters> &theme) {
-  if (for_web_view && theme == nullptr) {
-    return "null";
-  }
+string ThemeManager::get_theme_parameters_json_string(const td_api::object_ptr<td_api::themeParameters> &theme) {
   return json_encode<string>(json_object([&theme](auto &o) {
-    auto get_color = &get_color_json<for_web_view>;
+    auto get_color = [](int32 color) {
+      string res(7, '#');
+      const char *hex = "0123456789abcdef";
+      for (int i = 0; i < 3; i++) {
+        int32 num = (color >> (i * 8)) & 0xFF;
+        res[2 * i + 1] = hex[num >> 4];
+        res[2 * i + 2] = hex[num & 15];
+      }
+      return res;
+    };
     o("bg_color", get_color(theme->background_color_));
     o("secondary_bg_color", get_color(theme->secondary_background_color_));
     o("text_color", get_color(theme->text_color_));
@@ -664,16 +648,6 @@ string get_theme_parameters_json_string_impl(const td_api::object_ptr<td_api::th
     o("subtitle_text_color", get_color(theme->subtitle_text_color_));
     o("destructive_text_color", get_color(theme->destructive_text_color_));
   }));
-}
-}  // namespace
-
-string ThemeManager::get_theme_parameters_json_string(const td_api::object_ptr<td_api::themeParameters> &theme,
-                                                      bool for_web_view) {
-  if (for_web_view) {
-    return get_theme_parameters_json_string_impl<true>(theme);
-  } else {
-    return get_theme_parameters_json_string_impl<false>(theme);
-  }
 }
 
 int32 ThemeManager::get_accent_color_id_object(AccentColorId accent_color_id,

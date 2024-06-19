@@ -10016,7 +10016,7 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getJsonSt
 }
 
 td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getThemeParametersJsonString &request) {
-  return td_api::make_object<td_api::text>(ThemeManager::get_theme_parameters_json_string(request.theme_, true));
+  return td_api::make_object<td_api::text>(ThemeManager::get_theme_parameters_json_string(request.theme_));
 }
 
 td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::setLogStream &request) {
