@@ -22375,7 +22375,8 @@ ChatReactions MessagesManager::get_message_available_reactions(const Dialog *d, 
       can_use_reactions = false;
     } else if (td_->dialog_manager_->is_anonymous_administrator(d->dialog_id, nullptr) &&
                !td_->dialog_manager_->is_broadcast_channel(d->dialog_id) &&
-               !td_->chat_manager_->get_channel_status(channel_id).is_creator()) {
+               !td_->chat_manager_->get_channel_status(channel_id).is_creator() &&
+               get_my_reaction_dialog_id(d) == d->dialog_id) {
       // only creator can react as the chat
       if (unavailability_reason != nullptr) {
         *unavailability_reason = ReactionUnavailabilityReason::AnonymousAdministrator;
