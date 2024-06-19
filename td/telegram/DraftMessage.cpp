@@ -44,6 +44,7 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
     telegram_api::object_ptr<telegram_api::InputReplyTo> input_reply_to;
     vector<telegram_api::object_ptr<telegram_api::MessageEntity>> input_message_entities;
     telegram_api::object_ptr<telegram_api::InputMedia> media;
+    int64 message_effect_id = 0;
     if (draft_message != nullptr) {
       CHECK(!draft_message->is_local());
       input_reply_to = draft_message->message_input_reply_to_.get_input_reply_to(td_, MessageId() /*TODO*/);
@@ -66,13 +67,14 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
       }
       if (draft_message->message_effect_id_.is_valid()) {
         flags |= telegram_api::messages_saveDraft::EFFECT_MASK;
+        message_effect_id = draft_message->message_effect_id_.get();
       }
     }
     send_query(G()->net_query_creator().create(
         telegram_api::messages_saveDraft(
             flags, false /*ignored*/, false /*ignored*/, std::move(input_reply_to), std::move(input_peer),
             draft_message == nullptr ? string() : draft_message->input_message_text_.text.text,
-            std::move(input_message_entities), std::move(media), draft_message->message_effect_id_.get()),
+            std::move(input_message_entities), std::move(media), message_effect_id),
         {{dialog_id}}));
   }
 
