@@ -2790,17 +2790,16 @@ inputInvoiceTelegram purpose:TelegramPaymentPurpose = InputInvoice;
 //@height Media height; 0 if unknown
 //@duration Media duration, in seconds; 0 if unknown
 //@minithumbnail Media minithumbnail; may be null
-//@caption Media caption
-messageExtendedMediaPreview width:int32 height:int32 duration:int32 minithumbnail:minithumbnail caption:formattedText = MessageExtendedMedia;
+messageExtendedMediaPreview width:int32 height:int32 duration:int32 minithumbnail:minithumbnail = MessageExtendedMedia;
 
-//@description The media is a photo @photo The photo @caption Photo caption
-messageExtendedMediaPhoto photo:photo caption:formattedText = MessageExtendedMedia;
+//@description The media is a photo @photo The photo
+messageExtendedMediaPhoto photo:photo = MessageExtendedMedia;
 
-//@description The media is a video @video The video @caption Photo caption
-messageExtendedMediaVideo video:video caption:formattedText = MessageExtendedMedia;
+//@description The media is a video @video The video
+messageExtendedMediaVideo video:video = MessageExtendedMedia;
 
-//@description The media is unsupported @caption Media caption
-messageExtendedMediaUnsupported caption:formattedText = MessageExtendedMedia;
+//@description The media is unsupported
+messageExtendedMediaUnsupported = MessageExtendedMedia;
 
 
 //@description Describes parameters of a Telegram Premium giveaway
@@ -3200,8 +3199,9 @@ messageStory story_sender_chat_id:int53 story_id:int32 via_mention:Bool = Messag
 //@is_test True, if the invoice is a test invoice
 //@need_shipping_address True, if the shipping address must be specified
 //@receipt_message_id The identifier of the message with the receipt, after the product has been purchased
-//@extended_media Extended media attached to the invoice; may be null
-messageInvoice product_info:productInfo currency:string total_amount:int53 start_parameter:string is_test:Bool need_shipping_address:Bool receipt_message_id:int53 extended_media:MessageExtendedMedia = MessageContent;
+//@extended_media Extended media attached to the invoice; may be null if none
+//@extended_media_caption Extended media caption; may be null if none
+messageInvoice product_info:productInfo currency:string total_amount:int53 start_parameter:string is_test:Bool need_shipping_address:Bool receipt_message_id:int53 extended_media:MessageExtendedMedia extended_media_caption:formattedText = MessageContent;
 
 //@description A message with information about an ended call @is_video True, if the call was a video call @discard_reason Reason why the call was discarded @duration Call duration, in seconds
 messageCall is_video:Bool discard_reason:CallDiscardReason duration:int32 = MessageContent;

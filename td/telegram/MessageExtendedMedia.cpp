@@ -152,32 +152,37 @@ bool MessageExtendedMedia::update_to(Td *td,
   return false;
 }
 
-td_api::object_ptr<td_api::MessageExtendedMedia> MessageExtendedMedia::get_message_extended_media_object(
-    Td *td, bool skip_bot_commands, int32 max_media_timestamp) const {
+td_api::object_ptr<td_api::MessageExtendedMedia> MessageExtendedMedia::get_message_extended_media_object(Td *td) const {
   if (type_ == Type::Empty) {
     return nullptr;
   }
 
-  auto caption = get_formatted_text_object(caption_, skip_bot_commands, max_media_timestamp);
   switch (type_) {
     case Type::Unsupported:
-      return td_api::make_object<td_api::messageExtendedMediaUnsupported>(std::move(caption));
+      return td_api::make_object<td_api::messageExtendedMediaUnsupported>();
     case Type::Preview:
       return td_api::make_object<td_api::messageExtendedMediaPreview>(dimensions_.width, dimensions_.height, duration_,
-                                                                      get_minithumbnail_object(minithumbnail_),
-                                                                      std::move(caption));
+                                                                      get_minithumbnail_object(minithumbnail_));
     case Type::Photo: {
       auto photo = get_photo_object(td->file_manager_.get(), photo_);
       CHECK(photo != nullptr);
-      return td_api::make_object<td_api::messageExtendedMediaPhoto>(std::move(photo), std::move(caption));
+      return td_api::make_object<td_api::messageExtendedMediaPhoto>(std::move(photo));
     }
     case Type::Video:
       return td_api::make_object<td_api::messageExtendedMediaVideo>(
-          td->videos_manager_->get_video_object(video_file_id_), std::move(caption));
+          td->videos_manager_->get_video_object(video_file_id_));
     default:
       UNREACHABLE();
       return nullptr;
   }
+}
+
+td_api::object_ptr<td_api::formattedText> MessageExtendedMedia::get_caption_object(bool skip_bot_commands,
+                                                                                   int32 max_media_timestamp) const {
+  if (type_ == Type::Empty) {
+    return nullptr;
+  }
+  return get_formatted_text_object(caption_, skip_bot_commands, max_media_timestamp);
 }
 
 void MessageExtendedMedia::append_file_ids(const Td *td, vector<FileId> &file_ids) const {

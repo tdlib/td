@@ -242,7 +242,8 @@ tl_object_ptr<td_api::messageInvoice> InputInvoice::get_message_invoice_object(T
   return make_tl_object<td_api::messageInvoice>(
       get_product_info_object(td, title_, description_, photo_), invoice_.currency_, total_amount_, start_parameter_,
       invoice_.is_test_, invoice_.need_shipping_address_, receipt_message_id_.get(),
-      extended_media_.get_message_extended_media_object(td, skip_bot_commands, max_media_timestamp));
+      extended_media_.get_message_extended_media_object(td),
+      extended_media_.get_caption_object(skip_bot_commands, max_media_timestamp));
 }
 
 tl_object_ptr<telegram_api::invoice> InputInvoice::Invoice::get_input_invoice() const {
