@@ -25,6 +25,7 @@
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/ScopeGuard.h"
 
 namespace td {
 
@@ -136,13 +137,23 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
           case telegram_api::starsTransactionPeerFragment::ID: {
             auto state = [&]() -> td_api::object_ptr<td_api::RevenueWithdrawalState> {
               if (transaction->transaction_date_ > 0) {
+                SCOPE_EXIT {
+                  transaction->transaction_date_ = 0;
+                  transaction->transaction_url_.clear();
+                };
                 return td_api::make_object<td_api::revenueWithdrawalStateSucceeded>(transaction->transaction_date_,
                                                                                     transaction->transaction_url_);
               }
               if (transaction->pending_) {
+                SCOPE_EXIT {
+                  transaction->pending_ = false;
+                };
                 return td_api::make_object<td_api::revenueWithdrawalStatePending>();
               }
               if (transaction->failed_) {
+                SCOPE_EXIT {
+                  transaction->failed_ = false;
+                };
                 return td_api::make_object<td_api::revenueWithdrawalStateFailed>();
               }
               if (!transaction->refund_) {
@@ -156,6 +167,9 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
             DialogId dialog_id(
                 static_cast<const telegram_api::starsTransactionPeer *>(transaction->peer_.get())->peer_);
             if (dialog_id.get_type() == DialogType::User) {
+              SCOPE_EXIT {
+                bot_payload.clear();
+              };
               return td_api::make_object<td_api::starTransactionPartnerUser>(
                   td_->user_manager_->get_user_id_object(dialog_id.get_user_id(), "starTransactionPartnerUser"),
                   std::move(product_info), bot_payload);
@@ -173,9 +187,22 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
             UNREACHABLE();
         }
       }();
-      transactions.push_back(td_api::make_object<td_api::starTransaction>(
+      auto star_transaction = td_api::make_object<td_api::starTransaction>(
           transaction->id_, StarManager::get_star_count(transaction->stars_, true), transaction->refund_,
-          transaction->date_, std::move(partner)));
+          transaction->date_, std::move(partner));
+      if (star_transaction->partner_->get_id() != td_api::starTransactionPartnerUnsupported::ID) {
+        if (product_info != nullptr) {
+          LOG(ERROR) << "Receive product info with " << to_string(star_transaction);
+        }
+        if (!bot_payload.empty()) {
+          LOG(ERROR) << "Receive bot payload with " << to_string(star_transaction);
+        }
+        if (transaction->transaction_date_ || !transaction->transaction_url_.empty() || transaction->pending_ ||
+            transaction->failed_) {
+          LOG(ERROR) << "Receive withdrawal state with " << to_string(star_transaction);
+        }
+      }
+      transactions.push_back(std::move(star_transaction));
     }
 
     promise_.set_value(td_api::make_object<td_api::starTransactions>(
