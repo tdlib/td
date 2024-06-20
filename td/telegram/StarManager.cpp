@@ -111,9 +111,17 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
     vector<td_api::object_ptr<td_api::starTransaction>> transactions;
     for (auto &transaction : result->history_) {
       td_api::object_ptr<td_api::productInfo> product_info;
+      string bot_payload;
       if (!transaction->title_.empty() || !transaction->description_.empty() || transaction->photo_ != nullptr) {
         auto photo = get_web_document_photo(td_->file_manager_.get(), std::move(transaction->photo_), DialogId());
         product_info = get_product_info_object(td_, transaction->title_, transaction->description_, photo);
+      }
+      if (!transaction->bot_payload_.empty()) {
+        if (td_->auth_manager_->is_bot()) {
+          bot_payload = transaction->bot_payload_.as_slice().str();
+        } else {
+          LOG(ERROR) << "Receive Star transaction with bot payload";
+        }
       }
       auto partner = [&]() -> td_api::object_ptr<td_api::StarTransactionPartner> {
         switch (transaction->peer_->get_id()) {
@@ -150,7 +158,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
             if (dialog_id.get_type() == DialogType::User) {
               return td_api::make_object<td_api::starTransactionPartnerUser>(
                   td_->user_manager_->get_user_id_object(dialog_id.get_user_id(), "starTransactionPartnerUser"),
-                  std::move(product_info));
+                  std::move(product_info), bot_payload);
             }
             if (td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
               return td_api::make_object<td_api::starTransactionPartnerChannel>(

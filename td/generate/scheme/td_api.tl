@@ -864,8 +864,11 @@ starTransactionPartnerGooglePlay = StarTransactionPartner;
 //@description The transaction is a transaction with Fragment @withdrawal_state State of the withdrawal; may be null for refunds from Fragment
 starTransactionPartnerFragment withdrawal_state:RevenueWithdrawalState = StarTransactionPartner;
 
-//@description The transaction is a transaction with another user @user_id Identifier of the user @product_info Information about the bought product; may be null if none
-starTransactionPartnerUser user_id:int53 product_info:productInfo = StarTransactionPartner;
+//@description The transaction is a transaction with another user
+//@user_id Identifier of the user
+//@product_info Information about the bought product; may be null if none
+//@invoice_payload Invoice payload; for bots only
+starTransactionPartnerUser user_id:int53 product_info:productInfo invoice_payload:bytes = StarTransactionPartner;
 
 //@description The transaction is a transaction with a channel chat @chat_id Identifier of the chat
 starTransactionPartnerChannel chat_id:int53 = StarTransactionPartner;
