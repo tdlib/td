@@ -425,7 +425,7 @@ class QuickReplyManager final : public Actor {
 
   vector<FileId> get_message_file_ids(const QuickReplyMessage *m) const;
 
-  void delete_message_files(QuickReplyShortcutId shortcut_id, const QuickReplyMessage *m) const;
+  void delete_message_files(const QuickReplyMessage *m) const;
 
   void change_message_files(const QuickReplyMessage *m, const vector<FileId> &old_file_ids);
 

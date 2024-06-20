@@ -1351,7 +1351,7 @@ void QuickReplyManager::on_reload_quick_reply_shortcuts(
         CHECK(old_shortcut != nullptr);
         auto is_changed = td::remove_if(old_shortcut->messages_, [&](const unique_ptr<QuickReplyMessage> &message) {
           if (message->message_id.is_server()) {
-            delete_message_files(shortcut_id, message.get());
+            delete_message_files(message.get());
             return true;
           }
           return false;
@@ -1704,7 +1704,7 @@ void QuickReplyManager::delete_quick_reply_messages(Shortcut *s, const vector<Me
     auto it = get_message_it(s, message_id);
     if (it != s->messages_.end()) {
       const auto *m = it->get();
-      delete_message_files(s->shortcut_id_, m);
+      delete_message_files(m);
       if (message_id.is_server()) {
         s->server_total_count_--;
       } else {
@@ -3462,7 +3462,7 @@ void QuickReplyManager::update_shortcut_from(Shortcut *new_shortcut, Shortcut *o
     auto it = old_shortcut->messages_.begin();
     while (it != old_shortcut->messages_.end() && (*it)->message_id < new_first_message_id) {
       if ((*it)->message_id.is_server()) {
-        delete_message_files(old_shortcut->shortcut_id_, it->get());
+        delete_message_files(it->get());
         it = old_shortcut->messages_.erase(it);
       } else {
         ++it;
@@ -3511,7 +3511,7 @@ void QuickReplyManager::update_shortcut_from(Shortcut *new_shortcut, Shortcut *o
             }
           }
           if (is_deleted) {
-            delete_message_files(old_shortcut->shortcut_id_, old_message.get());
+            delete_message_files(old_message.get());
           }
         }
       }
@@ -3665,7 +3665,7 @@ vector<FileId> QuickReplyManager::get_message_file_ids(const QuickReplyMessage *
   return get_message_content_file_ids(m->content.get(), td_);
 }
 
-void QuickReplyManager::delete_message_files(QuickReplyShortcutId shortcut_id, const QuickReplyMessage *m) const {
+void QuickReplyManager::delete_message_files(const QuickReplyMessage *m) const {
   CHECK(m != nullptr);
   unregister_message_content(m, "delete_message_files");
   auto file_ids = get_message_file_ids(m);
@@ -3675,7 +3675,7 @@ void QuickReplyManager::delete_message_files(QuickReplyShortcutId shortcut_id, c
   for (auto file_id : file_ids) {
     send_closure(G()->file_manager(), &FileManager::delete_file, file_id, Promise<Unit>(), "delete_message_files");
   }
-  auto it = message_full_id_to_file_source_id_.find({shortcut_id, m->message_id});
+  auto it = message_full_id_to_file_source_id_.find({m->shortcut_id, m->message_id});
   if (it != message_full_id_to_file_source_id_.end()) {
     td_->file_manager_->change_files_source(it->second, file_ids, {});
   }
