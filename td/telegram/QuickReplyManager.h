@@ -266,7 +266,7 @@ class QuickReplyManager final : public Actor {
 
   void on_get_quick_reply_message(Shortcut *s, unique_ptr<QuickReplyMessage> message);
 
-  void update_quick_reply_message(QuickReplyShortcutId shortcut_id, unique_ptr<QuickReplyMessage> &old_message,
+  void update_quick_reply_message(unique_ptr<QuickReplyMessage> &old_message,
                                   unique_ptr<QuickReplyMessage> &&new_message);
 
   void delete_quick_reply_messages(Shortcut *s, const vector<MessageId> &message_ids, const char *source);
@@ -427,8 +427,7 @@ class QuickReplyManager final : public Actor {
 
   void delete_message_files(QuickReplyShortcutId shortcut_id, const QuickReplyMessage *m) const;
 
-  void change_message_files(QuickReplyMessageFullId message_full_id, const QuickReplyMessage *m,
-                            const vector<FileId> &old_file_ids);
+  void change_message_files(const QuickReplyMessage *m, const vector<FileId> &old_file_ids);
 
   void register_message_content(const QuickReplyMessage *m, const char *source) const;
 
