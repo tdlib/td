@@ -8120,10 +8120,21 @@ bool update_message_content_extended_media(
 
 bool need_poll_message_content_extended_media(const MessageContent *content) {
   CHECK(content != nullptr);
-  if (content->get_type() != MessageContentType::Invoice) {
-    return false;
+  switch (content->get_type()) {
+    case MessageContentType::Invoice:
+      return static_cast<const MessageInvoice *>(content)->input_invoice.need_poll_extended_media();
+    case MessageContentType::PaidMedia: {
+      const auto &media = static_cast<const MessagePaidMedia *>(content)->media;
+      for (auto &extended_media : media) {
+        if (extended_media.need_poll()) {
+          return true;
+        }
+      }
+      return false;
+    }
+    default:
+      return false;
   }
-  return static_cast<const MessageInvoice *>(content)->input_invoice.need_poll_extended_media();
 }
 
 void get_message_content_animated_emoji_click_sticker(const MessageContent *content, MessageFullId message_full_id,
