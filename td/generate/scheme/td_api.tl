@@ -873,7 +873,8 @@ starTransactionPartnerBot bot_user_id:int53 product_info:productInfo invoice_pay
 //@description The transaction is a transaction with a channel chat
 //@chat_id Identifier of the chat
 //@paid_media_message_id Identifier of the corresponding message with paid media; can be an identifier of a deleted message
-starTransactionPartnerChannel chat_id:int53 paid_media_message_id:int53 = StarTransactionPartner;
+//@media Information about the bought media
+starTransactionPartnerChannel chat_id:int53 paid_media_message_id:int53 media:vector<MessageExtendedMedia> = StarTransactionPartner;
 
 //@description The transaction is a transaction with unknown partner
 starTransactionPartnerUnsupported = StarTransactionPartner;

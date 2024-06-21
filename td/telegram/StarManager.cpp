@@ -13,6 +13,7 @@
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/InputInvoice.h"
+#include "td/telegram/MessageExtendedMedia.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/Photo.h"
@@ -22,6 +23,7 @@
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/UserManager.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -183,15 +185,20 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
             if (td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
               SCOPE_EXIT {
                 transaction->msg_id_ = 0;
+                transaction->extended_media_.clear();
               };
               auto message_id = MessageId(ServerMessageId(transaction->msg_id_));
               if (message_id != MessageId() && !message_id.is_valid()) {
                 LOG(ERROR) << "Receive " << message_id << " in " << to_string(transaction);
                 message_id = MessageId();
               }
+              auto extended_media =
+                  transform(std::move(transaction->extended_media_), [td = td_, dialog_id](auto &&media) {
+                    return MessageExtendedMedia(td, std::move(media), dialog_id).get_message_extended_media_object(td);
+                  });
               return td_api::make_object<td_api::starTransactionPartnerChannel>(
                   td_->dialog_manager_->get_chat_id_object(dialog_id, "starTransactionPartnerChannel"),
-                  message_id.get());
+                  message_id.get(), std::move(extended_media));
             }
             LOG(ERROR) << "Receive star transaction with " << dialog_id;
             return td_api::make_object<td_api::starTransactionPartnerUnsupported>();
