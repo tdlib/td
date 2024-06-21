@@ -428,7 +428,8 @@ Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::pong
   auto get_time = [](int64 msg_id) {
     return static_cast<double>(msg_id) / (static_cast<uint64>(1) << 32);
   };
-  return callback_->on_pong(get_time(pong.ping_id_), get_time(pong.msg_id_));
+  return callback_->on_pong(get_time(pong.ping_id_), get_time(pong.msg_id_),
+                            auth_data_->get_server_time(Time::now_cached()));
 }
 
 Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::future_salts &salts) {
