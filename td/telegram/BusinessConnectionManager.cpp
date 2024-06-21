@@ -1047,8 +1047,8 @@ void BusinessConnectionManager::complete_upload_media(unique_ptr<PendingMessage>
   bool need_update = false;
 
   unique_ptr<MessageContent> &old_content = message->content_;
-  MessageContentType old_content_type = old_content->get_type();
-  MessageContentType new_content_type = new_content->get_type();
+  auto old_content_type = old_content->get_type();
+  auto new_content_type = new_content->get_type();
 
   auto old_file_id = get_message_file_id(message);
   if (old_content_type != new_content_type) {

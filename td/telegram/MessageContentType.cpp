@@ -146,6 +146,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, MessageContentType cont
       return string_builder << "BoostApply";
     case MessageContentType::DialogShared:
       return string_builder << "ChatShared";
+    case MessageContentType::PaidMedia:
+      return string_builder << "PaidMedia";
     default:
       return string_builder << "Invalid type " << static_cast<int32>(content_type);
   }
@@ -232,6 +234,7 @@ bool is_allowed_media_group_content(MessageContentType content_type) {
     case MessageContentType::ExpiredVoiceNote:
     case MessageContentType::BoostApply:
     case MessageContentType::DialogShared:
+    case MessageContentType::PaidMedia:
       return false;
     default:
       UNREACHABLE();
@@ -313,6 +316,7 @@ bool can_be_secret_message_content(MessageContentType content_type) {
     case MessageContentType::ExpiredVoiceNote:
     case MessageContentType::BoostApply:
     case MessageContentType::DialogShared:
+    case MessageContentType::PaidMedia:
       return false;
     default:
       UNREACHABLE();
@@ -390,6 +394,7 @@ bool can_be_local_message_content(MessageContentType content_type) {
     case MessageContentType::ExpiredVoiceNote:
     case MessageContentType::BoostApply:
     case MessageContentType::DialogShared:
+    case MessageContentType::PaidMedia:
       return false;
     default:
       UNREACHABLE();
@@ -414,6 +419,7 @@ bool is_service_message_content(MessageContentType content_type) {
     case MessageContentType::Invoice:
     case MessageContentType::LiveLocation:
     case MessageContentType::Location:
+    case MessageContentType::PaidMedia:
     case MessageContentType::Photo:
     case MessageContentType::Poll:
     case MessageContentType::Sticker:
@@ -480,6 +486,7 @@ bool is_editable_message_content(MessageContentType content_type) {
     case MessageContentType::Audio:
     case MessageContentType::Document:
     case MessageContentType::Game:
+    case MessageContentType::PaidMedia:
     case MessageContentType::Photo:
     case MessageContentType::Text:
     case MessageContentType::Video:
@@ -563,6 +570,7 @@ bool is_supported_reply_message_content(MessageContentType content_type) {
     case MessageContentType::GiveawayWinners:
     case MessageContentType::Invoice:
     case MessageContentType::Location:
+    case MessageContentType::PaidMedia:
     case MessageContentType::Photo:
     case MessageContentType::Poll:
     case MessageContentType::Sticker:
@@ -619,6 +627,7 @@ bool can_have_message_content_caption(MessageContentType content_type) {
     case MessageContentType::Animation:
     case MessageContentType::Audio:
     case MessageContentType::Document:
+    case MessageContentType::PaidMedia:
     case MessageContentType::Photo:
     case MessageContentType::Video:
     case MessageContentType::VoiceNote:
@@ -697,6 +706,7 @@ uint64 get_message_content_chain_id(MessageContentType content_type) {
     case MessageContentType::Audio:
     case MessageContentType::Document:
     case MessageContentType::Invoice:
+    case MessageContentType::PaidMedia:
     case MessageContentType::Photo:
     case MessageContentType::Sticker:
     case MessageContentType::Video:

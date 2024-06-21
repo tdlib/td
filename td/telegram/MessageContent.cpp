@@ -51,6 +51,7 @@
 #include "td/telegram/Location.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageEntity.hpp"
+#include "td/telegram/MessageExtendedMedia.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageSearchFilter.h"
 #include "td/telegram/MessageSender.h"
@@ -72,6 +73,7 @@
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/SharedDialog.h"
 #include "td/telegram/SharedDialog.hpp"
+#include "td/telegram/StarManager.h"
 #include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StickersManager.hpp"
@@ -502,7 +504,7 @@ class MessageChatSetTtl final : public MessageContent {
 
 class MessageUnsupported final : public MessageContent {
  public:
-  static constexpr int32 CURRENT_VERSION = 31;
+  static constexpr int32 CURRENT_VERSION = 32;
   int32 version = CURRENT_VERSION;
 
   MessageUnsupported() = default;
@@ -1120,6 +1122,22 @@ class MessageDialogShared final : public MessageContent {
   }
 };
 
+class MessagePaidMedia final : public MessageContent {
+ public:
+  vector<MessageExtendedMedia> media;
+  FormattedText caption;
+  int64 star_count = 0;
+
+  MessagePaidMedia() = default;
+  MessagePaidMedia(vector<MessageExtendedMedia> &&media, FormattedText &&caption, int64 star_count)
+      : media(std::move(media)), caption(std::move(caption)), star_count(star_count) {
+  }
+
+  MessageContentType get_type() const final {
+    return MessageContentType::PaidMedia;
+  }
+};
+
 template <class StorerT>
 static void store(const MessageContent *content, StorerT &storer) {
   CHECK(content != nullptr);
@@ -1682,6 +1700,19 @@ static void store(const MessageContent *content, StorerT &storer) {
       END_STORE_FLAGS();
       store(m->shared_dialogs, storer);
       store(m->button_id, storer);
+      break;
+    }
+    case MessageContentType::PaidMedia: {
+      const auto *m = static_cast<const MessagePaidMedia *>(content);
+      bool has_caption = !m->caption.text.empty();
+      BEGIN_STORE_FLAGS();
+      STORE_FLAG(has_caption);
+      END_STORE_FLAGS();
+      store(m->media, storer);
+      if (has_caption) {
+        store(m->caption, storer);
+      }
+      store(m->star_count, storer);
       break;
     }
     default:
@@ -2433,6 +2464,26 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       content = std::move(m);
       break;
     }
+    case MessageContentType::PaidMedia: {
+      auto m = make_unique<MessagePaidMedia>();
+      bool has_caption;
+      BEGIN_PARSE_FLAGS();
+      PARSE_FLAG(has_caption);
+      END_PARSE_FLAGS();
+      parse(m->media, parser);
+      if (has_caption) {
+        parse(m->caption, parser);
+      }
+      parse(m->star_count, parser);
+
+      for (auto &media : m->media) {
+        if (media.is_empty()) {
+          is_bad = true;
+        }
+      }
+      content = std::move(m);
+      break;
+    }
 
     default:
       is_bad = true;
@@ -3158,6 +3209,7 @@ bool can_have_input_media(const Td *td, const MessageContent *content, bool is_s
     case MessageContentType::Video:
     case MessageContentType::VideoNote:
     case MessageContentType::VoiceNote:
+    case MessageContentType::PaidMedia:
       return true;
     default:
       UNREACHABLE();
@@ -3284,6 +3336,7 @@ SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
     case MessageContentType::ExpiredVoiceNote:
     case MessageContentType::BoostApply:
     case MessageContentType::DialogShared:
+    case MessageContentType::PaidMedia:
       break;
     default:
       UNREACHABLE();
@@ -3341,6 +3394,11 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
     case MessageContentType::Location: {
       const auto *m = static_cast<const MessageLocation *>(content);
       return m->location.get_input_media_geo_point();
+    }
+    case MessageContentType::PaidMedia: {
+      // const auto *m = static_cast<const MessagePaidMedia *>(content);
+      // TODO get_input_media
+      return nullptr;
     }
     case MessageContentType::Photo: {
       const auto *m = static_cast<const MessagePhoto *>(content);
@@ -3559,6 +3617,9 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td) {
       auto *m = static_cast<MessageInvoice *>(content);
       return m->input_invoice.delete_thumbnail(td);
     }
+    case MessageContentType::PaidMedia:
+      // TODO delete_message_content_thumbnail
+      break;
     case MessageContentType::Photo: {
       auto *m = static_cast<MessagePhoto *>(content);
       return photo_delete_thumbnail(m->photo);
@@ -3737,6 +3798,14 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
     case MessageContentType::Location:
       if (!permissions.can_send_messages()) {
         return Status::Error(400, "Not enough rights to send locations to the chat");
+      }
+      break;
+    case MessageContentType::PaidMedia:
+      if (!permissions.can_send_photos() || !permissions.can_send_videos()) {
+        return Status::Error(400, "Not enough rights to send paid media to the chat");
+      }
+      if (dialog_type == DialogType::SecretChat) {
+        return Status::Error(400, "Paid media can't be sent to secret chats");
       }
       break;
     case MessageContentType::Photo:
@@ -4005,6 +4074,7 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
     case MessageContentType::ExpiredVoiceNote:
     case MessageContentType::BoostApply:
     case MessageContentType::DialogShared:
+    case MessageContentType::PaidMedia:
       return 0;
     default:
       UNREACHABLE();
@@ -4289,6 +4359,8 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
     case MessageContentType::BoostApply:
       break;
     case MessageContentType::DialogShared:
+      break;
+    case MessageContentType::PaidMedia:
       break;
     default:
       UNREACHABLE();
@@ -4598,6 +4670,14 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       }
       break;
     }
+    case MessageContentType::PaidMedia: {
+      //const auto *old_ = static_cast<const MessagePaidMedia *>(old_content);
+      //const auto *new_ = static_cast<const MessagePaidMedia *>(new_content);
+      if (need_merge_files) {
+        // TODO merge extended media
+      }
+      break;
+    }
     case MessageContentType::Photo: {
       const auto *old_ = static_cast<const MessagePhoto *>(old_content);
       auto *new_ = static_cast<MessagePhoto *>(new_content);
@@ -4795,6 +4875,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::Invoice:
     case MessageContentType::LiveLocation:
     case MessageContentType::Location:
+    case MessageContentType::PaidMedia:
     case MessageContentType::Story:
     case MessageContentType::Text:
     case MessageContentType::Venue:
@@ -5387,6 +5468,14 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       const auto *lhs = static_cast<const MessageDialogShared *>(old_content);
       const auto *rhs = static_cast<const MessageDialogShared *>(new_content);
       if (lhs->shared_dialogs != rhs->shared_dialogs || lhs->button_id != rhs->button_id) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::PaidMedia: {
+      const auto *lhs = static_cast<const MessagePaidMedia *>(old_content);
+      const auto *rhs = static_cast<const MessagePaidMedia *>(new_content);
+      if (lhs->caption != rhs->caption || lhs->star_count != rhs->star_count) {
         need_update = true;
       }
       break;
@@ -6313,8 +6402,14 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
           std::move(media->prize_description_), media->until_date_, media->only_new_subscribers_, media->refunded_,
           media->winners_count_, media->unclaimed_count_, std::move(winner_user_ids));
     }
-    case telegram_api::messageMediaPaidMedia::ID:
-      return make_unique<MessageUnsupported>();
+    case telegram_api::messageMediaPaidMedia::ID: {
+      auto media = telegram_api::move_object_as<telegram_api::messageMediaPaidMedia>(media_ptr);
+      auto extended_media = transform(std::move(media->extended_media_), [&](auto &&extended_media) {
+        return MessageExtendedMedia(td, std::move(extended_media), FormattedText(), owner_dialog_id);
+      });
+      return td::make_unique<MessagePaidMedia>(std::move(extended_media), std::move(message),
+                                               StarManager::get_star_count(media->stars_amount_));
+    }
     case telegram_api::messageMediaUnsupported::ID:
       return make_unique<MessageUnsupported>();
     default:
@@ -6425,6 +6520,17 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       }
     case MessageContentType::Location:
       return make_unique<MessageLocation>(*static_cast<const MessageLocation *>(content));
+    case MessageContentType::PaidMedia: {
+      if (type == MessageContentDupType::Copy || type == MessageContentDupType::ServerCopy) {
+        return nullptr;
+      }
+      auto result = make_unique<MessagePaidMedia>(*static_cast<const MessagePaidMedia *>(content));
+      if (type != MessageContentDupType::Forward) {
+        // TODO support PaidMedia sending
+        return nullptr;
+      }
+      return result;
+    }
     case MessageContentType::Photo: {
       auto result = make_unique<MessagePhoto>(*static_cast<const MessagePhoto *>(content));
       if (replace_caption) {
@@ -6437,7 +6543,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
         // having remote location is not enough to have InputMedia, because the file may not have valid file_reference
         // also file_id needs to be duped, because upload can be called to repair the file_reference and every upload
         // request must have unique file_id
-        if (!td->auth_manager_->is_bot()) {
+        if (!td->auth_manager_->is_bot() && type != MessageContentDupType::Forward) {
           result->photo.photos.back().file_id = fix_file_id(result->photo.photos.back().file_id);
         }
         return std::move(result);
@@ -7499,6 +7605,13 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       return td_api::make_object<td_api::messageChatShared>(m->shared_dialogs[0].get_shared_chat_object(td),
                                                             m->button_id);
     }
+    case MessageContentType::PaidMedia: {
+      const auto *m = static_cast<const MessagePaidMedia *>(content);
+      return td_api::make_object<td_api::messagePaidMedia>(
+          m->star_count,
+          transform(m->media, [&](const auto &media) { return media.get_message_extended_media_object(td); }),
+          get_formatted_text_object(m->caption, skip_bot_commands, max_media_timestamp));
+    }
     default:
       UNREACHABLE();
       return nullptr;
@@ -7532,6 +7645,8 @@ const FormattedText *get_message_content_caption(const MessageContent *content) 
       return &static_cast<const MessageDocument *>(content)->caption;
     case MessageContentType::Invoice:
       return static_cast<const MessageInvoice *>(content)->input_invoice.get_caption();
+    case MessageContentType::PaidMedia:
+      return &static_cast<const MessagePaidMedia *>(content)->caption;
     case MessageContentType::Photo:
       return &static_cast<const MessagePhoto *>(content)->caption;
     case MessageContentType::Video:
@@ -7585,6 +7700,13 @@ int32 get_message_content_duration(const MessageContent *content, const Td *td) 
     }
     case MessageContentType::Invoice:
       return static_cast<const MessageInvoice *>(content)->input_invoice.get_duration(td);
+    case MessageContentType::PaidMedia: {
+      int32 result = -1;
+      for (auto &media : static_cast<const MessagePaidMedia *>(content)->media) {
+        result = max(result, media.get_duration(td));
+      }
+      return result;
+    }
     case MessageContentType::Video: {
       auto video_file_id = static_cast<const MessageVideo *>(content)->file_id;
       return td->videos_manager_->get_video_duration(video_file_id);
@@ -7611,6 +7733,13 @@ int32 get_message_content_media_duration(const MessageContent *content, const Td
     }
     case MessageContentType::Invoice:
       return static_cast<const MessageInvoice *>(content)->input_invoice.get_duration(td);
+    case MessageContentType::PaidMedia: {
+      int32 result = -1;
+      for (const auto &media : static_cast<const MessagePaidMedia *>(content)->media) {
+        result = max(result, media.get_duration(td));
+      }
+      return result;
+    }
     case MessageContentType::Story: {
       auto story_full_id = static_cast<const MessageStory *>(content)->story_full_id;
       return td->story_manager_->get_story_duration(story_full_id);
@@ -7814,6 +7943,13 @@ vector<FileId> get_message_content_file_ids(const MessageContent *content, const
     case MessageContentType::Story:
       // story file references are repaired independently
       return {};
+    case MessageContentType::PaidMedia: {
+      vector<FileId> result;
+      for (const auto &media : static_cast<const MessagePaidMedia *>(content)->media) {
+        media.append_file_ids(td, result);
+      }
+      return result;
+    }
     default:
       return {};
   }
@@ -7857,6 +7993,10 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::Invoice: {
       const auto *invoice = static_cast<const MessageInvoice *>(content);
       return invoice->input_invoice.get_caption()->text;
+    }
+    case MessageContentType::PaidMedia: {
+      const auto *paid_media = static_cast<const MessagePaidMedia *>(content);
+      return paid_media->caption.text;
     }
     case MessageContentType::Photo: {
       const auto *photo = static_cast<const MessagePhoto *>(content);
@@ -8003,6 +8143,15 @@ bool need_reget_message_content(const MessageContent *content) {
     case MessageContentType::Invoice: {
       const auto *m = static_cast<const MessageInvoice *>(content);
       return m->input_invoice.need_reget();
+    }
+    case MessageContentType::PaidMedia: {
+      const auto *m = static_cast<const MessagePaidMedia *>(content);
+      for (const auto &media : m->media) {
+        if (media.need_reget()) {
+          return true;
+        }
+      }
+      return false;
     }
     default:
       return false;
@@ -8284,6 +8433,8 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
     case MessageContentType::BoostApply:
       break;
     case MessageContentType::DialogShared:
+      break;
+    case MessageContentType::PaidMedia:
       break;
     default:
       UNREACHABLE();
