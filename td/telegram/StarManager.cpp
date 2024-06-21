@@ -167,17 +167,23 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
             DialogId dialog_id(
                 static_cast<const telegram_api::starsTransactionPeer *>(transaction->peer_.get())->peer_);
             if (dialog_id.get_type() == DialogType::User) {
+              auto user_id = dialog_id.get_user_id();
+              if (td_->auth_manager_->is_bot() == td_->user_manager_->is_user_bot(user_id)) {
+                LOG(ERROR) << "Receive star transaction with " << user_id;
+                return td_api::make_object<td_api::starTransactionPartnerUnsupported>();
+              }
               SCOPE_EXIT {
                 bot_payload.clear();
               };
-              return td_api::make_object<td_api::starTransactionPartnerUser>(
-                  td_->user_manager_->get_user_id_object(dialog_id.get_user_id(), "starTransactionPartnerUser"),
-                  std::move(product_info), bot_payload);
+              return td_api::make_object<td_api::starTransactionPartnerBot>(
+                  td_->user_manager_->get_user_id_object(user_id, "starTransactionPartnerBot"), std::move(product_info),
+                  bot_payload);
             }
             if (td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
               return td_api::make_object<td_api::starTransactionPartnerChannel>(
                   td_->dialog_manager_->get_chat_id_object(dialog_id, "starTransactionPartnerChannel"));
             }
+            LOG(ERROR) << "Receive star transaction with " << dialog_id;
             return td_api::make_object<td_api::starTransactionPartnerUnsupported>();
           }
           case telegram_api::starsTransactionPeerAds::ID: {
