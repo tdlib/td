@@ -120,7 +120,8 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
       if (!transaction->bot_payload_.empty()) {
         if (td_->auth_manager_->is_bot()) {
           bot_payload = transaction->bot_payload_.as_slice().str();
-        } else {
+        } else if (dialog_id_.get_type() != DialogType::User ||
+                   !td_->user_manager_->is_user_bot(dialog_id_.get_user_id())) {
           LOG(ERROR) << "Receive Star transaction with bot payload";
         }
       }
