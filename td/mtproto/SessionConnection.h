@@ -183,7 +183,6 @@ class SessionConnection final
   double last_pong_at_ = 0;
   double real_last_read_at_ = 0;
   double real_last_pong_at_ = 0;
-  int64 cur_ping_id_ = 0;
   MessageId last_ping_message_id_;
   MessageId last_ping_container_message_id_;
 

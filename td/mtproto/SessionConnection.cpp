@@ -914,8 +914,8 @@ void SessionConnection::flush_packet() {
   MessageId container_message_id;
   int64 ping_id = 0;
   if (has_salt && may_ping()) {
-    ping_id = ++cur_ping_id_;
     last_ping_at_ = Time::now_cached();
+    ping_id = auth_data_->next_message_id(last_ping_at_).get();
   }
 
   // http_wait
