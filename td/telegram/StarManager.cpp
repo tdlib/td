@@ -181,8 +181,17 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                   bot_payload);
             }
             if (td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
+              SCOPE_EXIT {
+                transaction->msg_id_ = 0;
+              };
+              auto message_id = MessageId(ServerMessageId(transaction->msg_id_));
+              if (message_id != MessageId() && !message_id.is_valid()) {
+                LOG(ERROR) << "Receive " << message_id << " in " << to_string(transaction);
+                message_id = MessageId();
+              }
               return td_api::make_object<td_api::starTransactionPartnerChannel>(
-                  td_->dialog_manager_->get_chat_id_object(dialog_id, "starTransactionPartnerChannel"));
+                  td_->dialog_manager_->get_chat_id_object(dialog_id, "starTransactionPartnerChannel"),
+                  message_id.get());
             }
             LOG(ERROR) << "Receive star transaction with " << dialog_id;
             return td_api::make_object<td_api::starTransactionPartnerUnsupported>();
@@ -207,6 +216,9 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         if (transaction->transaction_date_ || !transaction->transaction_url_.empty() || transaction->pending_ ||
             transaction->failed_) {
           LOG(ERROR) << "Receive withdrawal state with " << to_string(star_transaction);
+        }
+        if (transaction->msg_id_ != 0) {
+          LOG(ERROR) << "Receive message identifier with " << to_string(star_transaction);
         }
       }
       transactions.push_back(std::move(star_transaction));
