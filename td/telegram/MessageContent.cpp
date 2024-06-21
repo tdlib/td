@@ -8086,13 +8086,36 @@ bool update_message_content_extended_media(
     MessageContent *content, vector<telegram_api::object_ptr<telegram_api::MessageExtendedMedia>> extended_media,
     DialogId owner_dialog_id, Td *td) {
   CHECK(content != nullptr);
-  CHECK(content->get_type() == MessageContentType::Invoice);
-  if (extended_media.size() != 1) {
-    LOG(ERROR) << "Receive " << extended_media.size() << " extended media in " << owner_dialog_id;
-    return false;
+  switch (content->get_type()) {
+    case MessageContentType::Invoice:
+      if (extended_media.size() != 1) {
+        LOG(ERROR) << "Receive " << extended_media.size() << " extended media in " << owner_dialog_id;
+        return false;
+      }
+      return static_cast<MessageInvoice *>(content)->input_invoice.update_extended_media(std::move(extended_media[0]),
+                                                                                         owner_dialog_id, td);
+    case MessageContentType::PaidMedia: {
+      auto &media = static_cast<MessagePaidMedia *>(content)->media;
+      if (extended_media.size() != media.size()) {
+        LOG(ERROR) << "Receive " << extended_media.size() << " paid media instead of " << media.size() << " in "
+                   << owner_dialog_id;
+        return false;
+      }
+      bool result = false;
+      for (size_t i = 0; i < media.size(); i++) {
+        if (media[i].update_to(td, std::move(extended_media[i]), owner_dialog_id)) {
+          result = true;
+        }
+      }
+      return result;
+    }
+    case MessageContentType::Unsupported:
+      return false;
+    default:
+      LOG(ERROR) << "Receive updateMessageExtendedMedia for a message of type " << content->get_type() << " in "
+                 << owner_dialog_id;
+      return false;
   }
-  return static_cast<MessageInvoice *>(content)->input_invoice.update_extended_media(std::move(extended_media[0]),
-                                                                                     owner_dialog_id, td);
 }
 
 bool need_poll_message_content_extended_media(const MessageContent *content) {

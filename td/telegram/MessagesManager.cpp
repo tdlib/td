@@ -6786,15 +6786,7 @@ void MessagesManager::on_update_message_extended_media(
     return;
   }
 
-  auto content = m->content.get();
-  auto content_type = content->get_type();
-  if (content_type != MessageContentType::Invoice) {
-    if (content_type != MessageContentType::Unsupported) {
-      LOG(ERROR) << "Receive updateMessageExtendedMedia for " << message_full_id << " of type " << content_type;
-    }
-    return;
-  }
-  if (update_message_content_extended_media(content, std::move(extended_media), dialog_id, td_)) {
+  if (update_message_content_extended_media(m->content.get(), std::move(extended_media), dialog_id, td_)) {
     send_update_message_content(d, m, true, "on_update_message_extended_media 3");
     on_message_changed(d, m, true, "on_update_message_extended_media 4");
     on_message_notification_changed(d, m, "on_update_message_extended_media 5");  // usually a no-op
