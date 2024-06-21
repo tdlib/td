@@ -566,7 +566,6 @@ void Session::on_connected() {
 }
 
 Status Session::on_pong(double ping_time, double pong_time, double current_time) {
-  constexpr int MAX_QUERY_TIMEOUT = 60;
   constexpr int MIN_CONNECTION_ACTIVE = 60;
   if (current_info_ == &main_connection_ &&
       Timestamp::at(current_info_->created_at_ + MIN_CONNECTION_ACTIVE).is_in_past()) {
@@ -579,9 +578,10 @@ Status Session::on_pong(double ping_time, double pong_time, double current_time)
                                       << " with the current server time " << current_time);
     }
     if (!sent_queries_list_.empty()) {
+      double query_timeout = 60 + (current_time - ping_time);
       for (auto it = sent_queries_list_.prev; it != &sent_queries_list_; it = it->prev) {
         auto query = Query::from_list_node(it);
-        if (Timestamp::at(query->sent_at_ + MAX_QUERY_TIMEOUT).is_in_past()) {
+        if (Timestamp::at(query->sent_at_ + query_timeout).is_in_past()) {
           if (status.is_ok()) {
             status =
                 Status::Error(PSLICE() << "No answer from auth key " << auth_data_.get_auth_key().id() << " for "
