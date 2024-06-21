@@ -33945,12 +33945,8 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
   bool need_finish_upload = old_file_id.is_valid() && need_merge_files;
   if (old_content_type != new_content_type) {
     if (old_message->ttl.is_valid() && old_message->ttl_expires_at > 0 &&
-        ((new_content_type == MessageContentType::ExpiredPhoto && old_content_type == MessageContentType::Photo) ||
-         (new_content_type == MessageContentType::ExpiredVideo && old_content_type == MessageContentType::Video) ||
-         (new_content_type == MessageContentType::ExpiredVideoNote &&
-          old_content_type == MessageContentType::VideoNote) ||
-         (new_content_type == MessageContentType::ExpiredVoiceNote &&
-          old_content_type == MessageContentType::VoiceNote))) {
+        is_expired_message_content(new_content_type) &&
+        get_expired_message_content_type(old_content_type) == new_content_type) {
       LOG(INFO) << "Do not apply expired message content early";
     } else {
       need_update = true;

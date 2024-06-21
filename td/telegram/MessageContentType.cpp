@@ -158,7 +158,7 @@ bool is_allowed_invert_caption_message_content(MessageContentType content_type) 
     case MessageContentType::Video:
       return true;
     default:
-     return false;
+      return false;
   }
 }
 
@@ -519,6 +519,21 @@ bool is_expired_message_content(MessageContentType content_type) {
       return true;
     default:
       return false;
+  }
+}
+
+MessageContentType get_expired_message_content_type(MessageContentType content_type) {
+  switch (content_type) {
+    case MessageContentType::Photo:
+      return MessageContentType::ExpiredPhoto;
+    case MessageContentType::Video:
+      return MessageContentType::ExpiredVideo;
+    case MessageContentType::VideoNote:
+      return MessageContentType::ExpiredVideoNote;
+    case MessageContentType::VoiceNote:
+      return MessageContentType::ExpiredVoiceNote;
+    default:
+      return MessageContentType::None;
   }
 }
 

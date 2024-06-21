@@ -102,6 +102,8 @@ bool is_supported_reply_message_content(MessageContentType content_type);
 
 bool is_expired_message_content(MessageContentType content_type);
 
+MessageContentType get_expired_message_content_type(MessageContentType content_type);
+
 bool can_have_message_content_caption(MessageContentType content_type);
 
 uint64 get_message_content_chain_id(MessageContentType content_type);
