@@ -26908,14 +26908,8 @@ Result<MessageId> MessagesManager::add_local_message(
 
   TRY_RESULT(d, check_dialog_access(dialog_id, true, AccessRights::Read, "add_local_message"));
   TRY_RESULT(message_content, process_input_message_content(dialog_id, std::move(input_message_content), false));
-  if (message_content.content->get_type() == MessageContentType::Poll) {
-    return Status::Error(400, "Can't add local poll message");
-  }
-  if (message_content.content->get_type() == MessageContentType::Game) {
-    return Status::Error(400, "Can't add local game message");
-  }
-  if (message_content.content->get_type() == MessageContentType::Dice) {
-    return Status::Error(400, "Can't add local dice message");
+  if (!can_be_local_message_content(message_content.content->get_type())) {
+    return Status::Error(400, "Can't add a local message with the specified content");
   }
 
   bool is_channel_post = td_->dialog_manager_->is_broadcast_channel(dialog_id);
