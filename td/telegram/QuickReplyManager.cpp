@@ -1928,7 +1928,7 @@ void QuickReplyManager::process_send_quick_reply_updates(QuickReplyShortcutId sh
                   std::move(static_cast<telegram_api::updateQuickReplyMessage *>(update.get())->message_),
                   "process_send_quick_reply_updates");
               if (message != nullptr && message->shortcut_id == shortcut_id) {
-                update_message_content(it->get(), message.get(), false);
+                update_sent_message_content_from_temporary_message(it->get(), message.get(), false);
                 unregister_message_content(it->get(), "process_send_quick_reply_updates 2");
                 auto old_message_it = get_message_it(s, message->message_id);
                 if (old_message_it == s->messages_.end()) {
@@ -1963,16 +1963,17 @@ void QuickReplyManager::process_send_quick_reply_updates(QuickReplyShortcutId sh
   save_quick_reply_shortcuts();
 }
 
-void QuickReplyManager::update_message_content(const QuickReplyMessage *old_message, QuickReplyMessage *new_message,
-                                               bool is_edit) {
+void QuickReplyManager::update_sent_message_content_from_temporary_message(const QuickReplyMessage *old_message,
+                                                                           QuickReplyMessage *new_message,
+                                                                           bool is_edit) {
   CHECK(is_edit ? old_message->message_id.is_server() : old_message->message_id.is_yet_unsent());
   CHECK(new_message->edited_content == nullptr);
-  update_message_content(is_edit ? old_message->edited_content : old_message->content, new_message->content,
-                         is_edit || new_message->edit_date == 0);
+  update_sent_message_content_from_temporary_message(is_edit ? old_message->edited_content : old_message->content,
+                                                     new_message->content, is_edit || new_message->edit_date == 0);
 }
 
-void QuickReplyManager::update_message_content(const unique_ptr<MessageContent> &old_content,
-                                               unique_ptr<MessageContent> &new_content, bool need_merge_files) {
+void QuickReplyManager::update_sent_message_content_from_temporary_message(
+    const unique_ptr<MessageContent> &old_content, unique_ptr<MessageContent> &new_content, bool need_merge_files) {
   MessageContentType old_content_type = old_content->get_type();
   MessageContentType new_content_type = new_content->get_type();
 
@@ -2414,7 +2415,7 @@ void QuickReplyManager::on_upload_message_media_success(QuickReplyShortcutId sho
                                      "on_upload_message_media_success");
   set_message_content_has_spoiler(content.get(), has_spoiler);
 
-  update_message_content(m->content, content, true);
+  update_sent_message_content_from_temporary_message(m->content, content, true);
 
   save_quick_reply_shortcuts();
 
@@ -2822,7 +2823,7 @@ void QuickReplyManager::on_edit_quick_reply_message(QuickReplyShortcutId shortcu
           send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_id);
         }
       } else {
-        update_message_content(m, message.get(), true);
+        update_sent_message_content_from_temporary_message(m, message.get(), true);
         auto old_message_it = get_message_it(s, message_id);
         CHECK(old_message_it != s->messages_.end());
         update_quick_reply_message(*old_message_it, std::move(message));
