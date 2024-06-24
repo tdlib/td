@@ -3345,13 +3345,17 @@ Result<InputMessageContent> QuickReplyManager::process_input_message_content(
   if (input_message_content == nullptr) {
     return Status::Error(400, "Can't add quick reply without content");
   }
-  if (input_message_content->get_id() == td_api::inputMessageForwarded::ID) {
+  auto message_content_id = input_message_content->get_id();
+  if (message_content_id == td_api::inputMessageForwarded::ID) {
     return Status::Error(400, "Can't forward messages to quick replies");
   }
-  if (input_message_content->get_id() == td_api::inputMessagePoll::ID) {
+  if (message_content_id == td_api::inputMessagePoll::ID) {
     return Status::Error(400, "Can't add poll as a quick reply");
   }
-  if (input_message_content->get_id() == td_api::inputMessageLocation::ID &&
+  if (message_content_id == td_api::inputMessagePaidMedia::ID) {
+    return Status::Error(400, "Can't send paid media as business");
+  }
+  if (message_content_id == td_api::inputMessageLocation::ID &&
       static_cast<const td_api::inputMessageLocation *>(input_message_content.get())->live_period_ != 0) {
     return Status::Error(400, "Can't add live location as a quick reply");
   }

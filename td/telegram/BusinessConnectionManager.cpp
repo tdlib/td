@@ -779,8 +779,12 @@ Result<InputMessageContent> BusinessConnectionManager::process_input_message_con
   if (input_message_content == nullptr) {
     return Status::Error(400, "Can't send message without content");
   }
-  if (input_message_content->get_id() == td_api::inputMessageForwarded::ID) {
+  auto message_content_id = input_message_content->get_id();
+  if (message_content_id == td_api::inputMessageForwarded::ID) {
     return Status::Error(400, "Can't forward messages as business");
+  }
+  if (message_content_id == td_api::inputMessagePaidMedia::ID) {
+    return Status::Error(400, "Can't send paid media as business");
   }
   return get_input_message_content(DialogId(), std::move(input_message_content), td_, true);
 }

@@ -4967,6 +4967,26 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::addLocalMessage>(
           chat_id, as_message_sender(sender_id), get_input_message_reply_to(), false,
           td_api::make_object<td_api::inputMessageText>(as_formatted_text(message), get_link_preview_options(), true)));
+    } else if (op == "spmp") {
+      ChatId chat_id;
+      get_args(args, chat_id, args);
+      auto paid_media = transform(full_split(args), [this](const string &photo) {
+        return td_api::make_object<td_api::inputMessageExtendedMedia>(
+            td_api::make_object<td_api::inputMessageExtendedMediaTypePhoto>(), as_input_file(photo), nullptr,
+            vector<int32>(), 0, 0);
+      });
+      send_message(chat_id, td_api::make_object<td_api::inputMessagePaidMedia>(11, std::move(paid_media),
+                                                                               as_caption("12_3_ __4__"), rand_bool()));
+    } else if (op == "spmv") {
+      ChatId chat_id;
+      get_args(args, chat_id, args);
+      auto paid_media = transform(full_split(args), [this](const string &video) {
+        return td_api::make_object<td_api::inputMessageExtendedMedia>(
+            td_api::make_object<td_api::inputMessageExtendedMediaTypeVideo>(10, true), as_input_file(video), nullptr,
+            vector<int32>(), 0, 0);
+      });
+      send_message(chat_id, td_api::make_object<td_api::inputMessagePaidMedia>(12, std::move(paid_media),
+                                                                               as_caption("12_3_ __4__"), rand_bool()));
     } else if (op == "smap") {
       ChatId chat_id;
       get_args(args, chat_id, args);

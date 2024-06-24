@@ -2662,6 +2662,10 @@ td_api::object_ptr<td_api::formattedText> extract_input_caption(
       auto input_document = static_cast<td_api::inputMessageDocument *>(input_message_content.get());
       return std::move(input_document->caption_);
     }
+    case td_api::inputMessagePaidMedia::ID: {
+      auto input_paid_media = static_cast<td_api::inputMessagePaidMedia *>(input_message_content.get());
+      return std::move(input_paid_media->caption_);
+    }
     case td_api::inputMessagePhoto::ID: {
       auto input_photo = static_cast<td_api::inputMessagePhoto *>(input_message_content.get());
       return std::move(input_photo->caption_);
@@ -2684,6 +2688,10 @@ bool extract_input_invert_media(const td_api::object_ptr<td_api::InputMessageCon
     case td_api::inputMessageAnimation::ID: {
       auto input_animation = static_cast<const td_api::inputMessageAnimation *>(input_message_content.get());
       return input_animation->show_caption_above_media_;
+    }
+    case td_api::inputMessagePaidMedia::ID: {
+      auto input_paid_media = static_cast<const td_api::inputMessagePaidMedia *>(input_message_content.get());
+      return input_paid_media->show_caption_above_media_;
     }
     case td_api::inputMessagePhoto::ID: {
       auto input_photo = static_cast<const td_api::inputMessagePhoto *>(input_message_content.get());
@@ -2797,6 +2805,33 @@ static Result<InputMessageContent> create_input_message_content(
 
       content = make_unique<MessageDocument>(file_id, std::move(caption));
       break;
+    case td_api::inputMessagePaidMedia::ID: {
+      auto input_paid_media = static_cast<td_api::inputMessagePaidMedia *>(input_message_content.get());
+
+      invert_media = input_paid_media->show_caption_above_media_ && !is_secret;
+
+      if (input_paid_media->star_count_ <= 0 ||
+          input_paid_media->star_count_ >
+              td->option_manager_->get_option_integer("paid_media_message_star_count_max")) {
+        return Status::Error(400, "Invalid media price specified");
+      }
+      vector<MessageExtendedMedia> extended_media;
+      for (auto &paid_media : input_paid_media->paid_media_) {
+        TRY_RESULT(media, MessageExtendedMedia::get_message_extended_media(td, std::move(paid_media), dialog_id));
+        if (media.is_empty()) {
+          return Status::Error(400, "Paid media must be non-empty");
+        }
+        extended_media.push_back(std::move(media));
+      }
+      static constexpr size_t MAX_PAID_MEDIA = 10;  // server side limit
+      if (extended_media.empty() || extended_media.size() > MAX_PAID_MEDIA) {
+        return Status::Error(400, "Invalid number of paid media specified");
+      }
+
+      content = td::make_unique<MessagePaidMedia>(std::move(extended_media), std::move(caption),
+                                                  input_paid_media->star_count_);
+      break;
+    }
     case td_api::inputMessagePhoto::ID: {
       auto input_photo = static_cast<td_api::inputMessagePhoto *>(input_message_content.get());
 
@@ -3396,9 +3431,16 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
       return m->location.get_input_media_geo_point();
     }
     case MessageContentType::PaidMedia: {
-      // const auto *m = static_cast<const MessagePaidMedia *>(content);
-      // TODO get_input_media
-      return nullptr;
+      const auto *m = static_cast<const MessagePaidMedia *>(content);
+      vector<telegram_api::object_ptr<telegram_api::InputMedia>> input_media;
+      for (auto &extended_media : m->media) {
+        auto media = extended_media.get_input_media(td, std::move(input_file), std::move(input_thumbnail));
+        if (media == nullptr) {
+          return nullptr;
+        }
+        input_media.push_back(std::move(media));
+      }
+      return telegram_api::make_object<telegram_api::inputMediaPaidMedia>(m->star_count, std::move(input_media));
     }
     case MessageContentType::Photo: {
       const auto *m = static_cast<const MessagePhoto *>(content);
@@ -6533,7 +6575,6 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       auto result = make_unique<MessagePaidMedia>(*static_cast<const MessagePaidMedia *>(content));
       if (type != MessageContentDupType::Forward) {
         // TODO support PaidMedia sending
-        return nullptr;
       }
       return result;
     }

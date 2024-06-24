@@ -24000,6 +24000,10 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vect
   } else {
     auto input_media =
         get_input_media(content, td_, m->ttl, m->send_emoji, td_->auth_manager_->is_bot() && bad_parts.empty());
+    if (file_ids.size() > 1u) {
+      // TODO PaidMedia
+      return;
+    }
     if (input_media == nullptr) {
       if (content_type == MessageContentType::Game || content_type == MessageContentType::Poll ||
           content_type == MessageContentType::Story) {
