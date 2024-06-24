@@ -391,7 +391,7 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
   }
   if (constructor_id == td_api::inputMessageInvoice::ID) {
     TRY_RESULT(input_invoice,
-               InputInvoice::process_input_message_invoice(std::move(input_message_content), td_, DialogId(), false));
+               InputInvoice::process_input_message_invoice(std::move(input_message_content), td_, DialogId()));
     return input_invoice.get_input_bot_inline_message_media_invoice(std::move(input_reply_markup), td_);
   }
   if (constructor_id == td_api::inputMessageLocation::ID) {

@@ -59,8 +59,8 @@ class MessageExtendedMedia {
   MessageExtendedMedia(Td *td, telegram_api::object_ptr<telegram_api::MessageMedia> &&media, DialogId owner_dialog_id);
 
   static Result<MessageExtendedMedia> get_message_extended_media(
-      Td *td, td_api::object_ptr<td_api::InputMessageContent> &&extended_media_content, DialogId owner_dialog_id,
-      bool is_premium);
+      Td *td, td_api::object_ptr<td_api::inputMessageExtendedMedia> &&paid_media, FormattedText &&caption,
+      DialogId owner_dialog_id);
 
   bool is_empty() const {
     return type_ == Type::Empty;

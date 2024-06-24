@@ -2789,7 +2789,7 @@ inputInvoiceName name:string = InputInvoice;
 inputInvoiceTelegram purpose:TelegramPaymentPurpose = InputInvoice;
 
 
-//@class MessageExtendedMedia @description Describes a media, which is attached to an invoice
+//@class MessageExtendedMedia @description Describes a paid media
 
 //@description The media is hidden until the invoice is paid
 //@width Media width; 0 if unknown
@@ -3490,6 +3490,27 @@ textEntityTypeMediaTimestamp media_timestamp:int32 = TextEntityType;
 inputThumbnail thumbnail:InputFile width:int32 height:int32 = InputThumbnail;
 
 
+//@class InputMessageExtendedMediaType @description Describes type of paid media to sent
+
+//@description The media is a photo. The photo must be at most 10 MB in size. The photo's width and height must not exceed 10000 in total. Width and height ratio must be at most 20
+inputMessageExtendedMediaTypePhoto = InputMessageExtendedMediaType;
+
+//@description The media is a video
+//@duration Duration of the video, in seconds
+//@supports_streaming True, if the video is supposed to be streamed
+inputMessageExtendedMediaTypeVideo duration:int32 supports_streaming:Bool = InputMessageExtendedMediaType;
+
+
+//@description Describes a paid media to be sent
+//@type Type of the media
+//@media Photo or video to be sent
+//@thumbnail Media thumbnail; pass null to skip thumbnail uploading
+//@added_sticker_file_ids File identifiers of the stickers added to the media, if applicable
+//@width Media width
+//@height Media height
+inputMessageExtendedMedia type:InputMessageExtendedMediaType media:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> width:int32 height:int32 = InputMessageExtendedMedia;
+
+
 //@class MessageSchedulingState @description Contains information about the time when a scheduled message will be sent
 
 //@description The message will be sent at the specified date @send_date Point in time (Unix timestamp) when the message will be sent. The date must be within 367 days in the future
@@ -3645,8 +3666,9 @@ inputMessageGame bot_user_id:int53 game_short_name:string = InputMessageContent;
 //@provider_token Payment provider token; may be empty for payments in Telegram Stars
 //@provider_data JSON-encoded data about the invoice, which will be shared with the payment provider
 //@start_parameter Unique invoice bot deep link parameter for the generation of this invoice. If empty, it would be possible to pay directly from forwards of the invoice message
-//@extended_media_content The content of extended media attached to the invoice. The content of the message to be sent. Must be one of the following types: inputMessagePhoto, inputMessageVideo
-inputMessageInvoice invoice:invoice title:string description:string photo_url:string photo_size:int32 photo_width:int32 photo_height:int32 payload:bytes provider_token:string provider_data:string start_parameter:string extended_media_content:InputMessageContent = InputMessageContent;
+//@paid_media The content of paid media attached to the invoice; pass null if none
+//@paid_media_caption Paid media caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
+inputMessageInvoice invoice:invoice title:string description:string photo_url:string photo_size:int32 photo_width:int32 photo_height:int32 payload:bytes provider_token:string provider_data:string start_parameter:string paid_media:inputMessageExtendedMedia paid_media_caption:formattedText = InputMessageContent;
 
 //@description A message with a poll. Polls can't be sent to secret chats. Polls can be sent only to a private chat with a bot
 //@question Poll question; 1-255 characters (up to 300 characters for bots). Only custom emoji entities are allowed to be added and only by Premium users

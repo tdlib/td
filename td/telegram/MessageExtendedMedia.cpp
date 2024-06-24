@@ -6,17 +6,23 @@
 //
 #include "td/telegram/MessageExtendedMedia.h"
 
+#include "td/telegram/Dimensions.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
+#include "td/telegram/files/FileManager.h"
 #include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageContentType.h"
+#include "td/telegram/Photo.h"
 #include "td/telegram/PhotoSize.h"
+#include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/VideosManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/logging.h"
+#include "td/utils/MimeType.h"
+#include "td/utils/PathView.h"
 
 namespace td {
 
@@ -108,36 +114,69 @@ void MessageExtendedMedia::init_from_media(Td *td, telegram_api::object_ptr<tele
 }
 
 Result<MessageExtendedMedia> MessageExtendedMedia::get_message_extended_media(
-    Td *td, td_api::object_ptr<td_api::InputMessageContent> &&extended_media_content, DialogId owner_dialog_id,
-    bool is_premium) {
-  if (extended_media_content == nullptr) {
+    Td *td, td_api::object_ptr<td_api::inputMessageExtendedMedia> &&paid_media, FormattedText &&caption,
+    DialogId owner_dialog_id) {
+  if (paid_media == nullptr) {
     return MessageExtendedMedia();
   }
   if (!owner_dialog_id.is_valid()) {
     return Status::Error(400, "Extended media can't be added to the invoice");
   }
-
-  auto input_content_type = extended_media_content->get_id();
-  if (input_content_type != td_api::inputMessagePhoto::ID && input_content_type != td_api::inputMessageVideo::ID) {
-    return Status::Error("Invalid extended media content specified");
-  }
-  TRY_RESULT(input_message_content,
-             get_input_message_content(owner_dialog_id, std::move(extended_media_content), td, is_premium));
-  if (!input_message_content.ttl.is_empty()) {
-    return Status::Error("Can't use self-destructing extended media");
+  if (paid_media->type_ == nullptr) {
+    return Status::Error(400, "Paid media type must be non-empty");
   }
 
-  auto content = input_message_content.content.get();
-  auto content_type = content->get_type();
   MessageExtendedMedia result;
-  CHECK(content_type == MessageContentType::Photo || content_type == MessageContentType::Video);
-  result.caption_ = *get_message_content_caption(content);
-  if (content_type == MessageContentType::Photo) {
-    result.type_ = Type::Photo;
-    result.photo_ = *get_message_content_photo(content);
-  } else {
-    result.type_ = Type::Video;
-    result.video_file_id_ = get_message_content_upload_file_id(content);
+  result.caption_ = std::move(caption);
+
+  auto file_type = FileType::None;
+  switch (paid_media->type_->get_id()) {
+    case td_api::inputMessageExtendedMediaTypePhoto::ID:
+      file_type = FileType::Photo;
+      result.type_ = Type::Photo;
+      break;
+    case td_api::inputMessageExtendedMediaTypeVideo::ID:
+      file_type = FileType::Video;
+      result.type_ = Type::Video;
+      break;
+    default:
+      UNREACHABLE();
+      break;
+  }
+
+  TRY_RESULT(file_id, td->file_manager_->get_input_file_id(file_type, std::move(paid_media->media_), owner_dialog_id,
+                                                           false, false));
+  CHECK(file_id.is_valid());
+
+  auto sticker_file_ids = td->stickers_manager_->get_attached_sticker_file_ids(paid_media->added_sticker_file_ids_);
+  auto thumbnail =
+      get_input_thumbnail_photo_size(td->file_manager_.get(), paid_media->thumbnail_.get(), owner_dialog_id, false);
+
+  switch (result.type_) {
+    case Type::Photo: {
+      TRY_RESULT(photo, create_photo(td->file_manager_.get(), file_id, std::move(thumbnail), paid_media->width_,
+                                     paid_media->height_, std::move(sticker_file_ids)));
+      result.photo_ = std::move(photo);
+      break;
+    }
+    case Type::Video: {
+      auto type = static_cast<td_api::inputMessageExtendedMediaTypeVideo *>(paid_media->type_.get());
+      FileView file_view = td->file_manager_->get_file_view(file_id);
+      auto suggested_path = file_view.suggested_path();
+      const PathView path_view(suggested_path);
+      string file_name = path_view.file_name().str();
+      string mime_type = MimeType::from_extension(path_view.extension());
+
+      bool has_stickers = !sticker_file_ids.empty();
+      td->videos_manager_->create_video(
+          file_id, string(), std::move(thumbnail), AnimationSize(), has_stickers, std::move(sticker_file_ids),
+          std::move(file_name), std::move(mime_type), type->duration_, type->duration_,
+          get_dimensions(paid_media->width_, paid_media->height_, nullptr), type->supports_streaming_, false, 0, false);
+      result.video_file_id_ = file_id;
+      break;
+    }
+    default:
+      UNREACHABLE();
   }
   return result;
 }

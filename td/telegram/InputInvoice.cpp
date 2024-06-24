@@ -6,6 +6,7 @@
 //
 #include "td/telegram/InputInvoice.h"
 
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/Dimensions.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
@@ -100,8 +101,7 @@ InputInvoice::InputInvoice(tl_object_ptr<telegram_api::botInlineMessageMediaInvo
 }
 
 Result<InputInvoice> InputInvoice::process_input_message_invoice(
-    td_api::object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td, DialogId owner_dialog_id,
-    bool is_premium) {
+    td_api::object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td, DialogId owner_dialog_id) {
   CHECK(input_message_content != nullptr);
   CHECK(input_message_content->get_id() == td_api::inputMessageInvoice::ID);
   auto input_invoice = move_tl_object_as<td_api::inputMessageInvoice>(input_message_content);
@@ -230,16 +230,21 @@ Result<InputInvoice> InputInvoice::process_input_message_invoice(
   result.provider_token_ = std::move(input_invoice->provider_token_);
   result.provider_data_ = std::move(input_invoice->provider_data_);
 
-  TRY_RESULT(extended_media, MessageExtendedMedia::get_message_extended_media(
-                                 td, std::move(input_invoice->extended_media_content_), owner_dialog_id, is_premium));
+  bool is_bot = td->auth_manager_->is_bot();
+  TRY_RESULT(extended_media_caption,
+             get_formatted_text(td, owner_dialog_id, std::move(input_invoice->paid_media_caption_), is_bot, true, false,
+                                false));
+  TRY_RESULT(extended_media,
+             MessageExtendedMedia::get_message_extended_media(td, std::move(input_invoice->paid_media_),
+                                                              std::move(extended_media_caption), owner_dialog_id));
   result.extended_media_ = std::move(extended_media);
 
   return result;
 }
 
-tl_object_ptr<td_api::messageInvoice> InputInvoice::get_message_invoice_object(Td *td, bool skip_bot_commands,
-                                                                               int32 max_media_timestamp) const {
-  return make_tl_object<td_api::messageInvoice>(
+td_api::object_ptr<td_api::messageInvoice> InputInvoice::get_message_invoice_object(Td *td, bool skip_bot_commands,
+                                                                                    int32 max_media_timestamp) const {
+  return td_api::make_object<td_api::messageInvoice>(
       get_product_info_object(td, title_, description_, photo_), invoice_.currency_, total_amount_, start_parameter_,
       invoice_.is_test_, invoice_.need_shipping_address_, receipt_message_id_.get(),
       extended_media_.get_message_extended_media_object(td),

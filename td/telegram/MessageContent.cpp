@@ -2758,7 +2758,7 @@ static Result<InputMessageContent> create_input_message_content(
 
       bool has_stickers = !sticker_file_ids.empty();
       td->animations_manager_->create_animation(
-          file_id, string(), thumbnail, AnimationSize(), has_stickers, std::move(sticker_file_ids),
+          file_id, string(), std::move(thumbnail), AnimationSize(), has_stickers, std::move(sticker_file_ids),
           std::move(file_name), std::move(mime_type), input_animation->duration_,
           get_dimensions(input_animation->width_, input_animation->height_, nullptr), false);
 
@@ -2775,8 +2775,8 @@ static Result<InputMessageContent> create_input_message_content(
         return Status::Error(400, "Audio performer must be encoded in UTF-8");
       }
 
-      td->audios_manager_->create_audio(file_id, string(), thumbnail, std::move(file_name), std::move(mime_type),
-                                        input_audio->duration_, std::move(input_audio->title_),
+      td->audios_manager_->create_audio(file_id, string(), std::move(thumbnail), std::move(file_name),
+                                        std::move(mime_type), input_audio->duration_, std::move(input_audio->title_),
                                         std::move(input_audio->performer_), 0, false);
 
       content = make_unique<MessageAudio>(file_id, std::move(caption));
@@ -2792,8 +2792,8 @@ static Result<InputMessageContent> create_input_message_content(
       break;
     }
     case td_api::inputMessageDocument::ID:
-      td->documents_manager_->create_document(file_id, string(), thumbnail, std::move(file_name), std::move(mime_type),
-                                              false);
+      td->documents_manager_->create_document(file_id, string(), std::move(thumbnail), std::move(file_name),
+                                              std::move(mime_type), false);
 
       content = make_unique<MessageDocument>(file_id, std::move(caption));
       break;
@@ -2815,7 +2815,7 @@ static Result<InputMessageContent> create_input_message_content(
 
       emoji = std::move(input_sticker->emoji_);
 
-      td->stickers_manager_->create_sticker(file_id, FileId(), string(), thumbnail,
+      td->stickers_manager_->create_sticker(file_id, FileId(), string(), std::move(thumbnail),
                                             get_dimensions(input_sticker->width_, input_sticker->height_, nullptr),
                                             nullptr, nullptr, StickerFormat::Unknown, nullptr);
 
@@ -2829,7 +2829,7 @@ static Result<InputMessageContent> create_input_message_content(
       self_destruct_type = std::move(input_video->self_destruct_type_);
 
       bool has_stickers = !sticker_file_ids.empty();
-      td->videos_manager_->create_video(file_id, string(), thumbnail, AnimationSize(), has_stickers,
+      td->videos_manager_->create_video(file_id, string(), std::move(thumbnail), AnimationSize(), has_stickers,
                                         std::move(sticker_file_ids), std::move(file_name), std::move(mime_type),
                                         input_video->duration_, input_video->duration_,
                                         get_dimensions(input_video->width_, input_video->height_, nullptr),
@@ -2847,7 +2847,7 @@ static Result<InputMessageContent> create_input_message_content(
         return Status::Error(400, "Wrong video note length");
       }
 
-      td->video_notes_manager_->create_video_note(file_id, string(), thumbnail, input_video_note->duration_,
+      td->video_notes_manager_->create_video_note(file_id, string(), std::move(thumbnail), input_video_note->duration_,
                                                   get_dimensions(length, length, nullptr), string(), false);
 
       content = make_unique<MessageVideoNote>(file_id, false);
@@ -2898,8 +2898,8 @@ static Result<InputMessageContent> create_input_message_content(
         return Status::Error(400, "Invoices can be sent only by bots");
       }
 
-      TRY_RESULT(input_invoice, InputInvoice::process_input_message_invoice(std::move(input_message_content), td,
-                                                                            dialog_id, is_premium));
+      TRY_RESULT(input_invoice,
+                 InputInvoice::process_input_message_invoice(std::move(input_message_content), td, dialog_id));
       content = make_unique<MessageInvoice>(std::move(input_invoice));
       break;
     }

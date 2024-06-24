@@ -1125,7 +1125,7 @@ void export_invoice(Td *td, td_api::object_ptr<td_api::InputMessageContent> &&in
     return promise.set_error(Status::Error(400, "Invoice must be non-empty"));
   }
   TRY_RESULT_PROMISE(promise, input_invoice,
-                     InputInvoice::process_input_message_invoice(std::move(invoice), td, DialogId(), false));
+                     InputInvoice::process_input_message_invoice(std::move(invoice), td, DialogId()));
   auto input_media = input_invoice.get_input_media_invoice(td, nullptr, nullptr);
   CHECK(input_media != nullptr);
   td->create_handler<ExportInvoiceQuery>(std::move(promise))->send(std::move(input_media));
