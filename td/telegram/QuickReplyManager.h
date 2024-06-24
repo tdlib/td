@@ -431,6 +431,8 @@ class QuickReplyManager final : public Actor {
 
   void change_message_files(const QuickReplyMessage *m, const vector<FileId> &old_file_ids);
 
+  void register_new_message(const QuickReplyMessage *m, const char *source);
+
   void register_message_content(const QuickReplyMessage *m, const char *source) const;
 
   void unregister_message_content(const QuickReplyMessage *m, const char *source) const;

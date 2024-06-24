@@ -1329,8 +1329,7 @@ void QuickReplyManager::on_reload_quick_reply_shortcuts(
         if (old_shortcut == nullptr) {
           changed_shortcut_ids.push_back(shortcut_id);
           changed_message_shortcut_ids.push_back(shortcut_id);
-          change_message_files(shortcut->messages_[0].get(), {});
-          register_message_content(shortcut->messages_[0].get(), "on_reload_quick_reply_shortcuts 1");
+          register_new_message(shortcut->messages_[0].get(), "on_reload_quick_reply_shortcuts 1");
         } else {
           bool is_shortcut_changed = false;
           bool are_messages_changed = false;
@@ -1606,8 +1605,7 @@ void QuickReplyManager::on_get_quick_reply_message(Shortcut *s, unique_ptr<Quick
   CHECK(s->shortcut_id_ == message->shortcut_id);
   auto it = get_message_it(s, message->message_id);
   if (it == s->messages_.end()) {
-    change_message_files(message.get(), {});
-    register_message_content(message.get(), "on_get_quick_reply_message");
+    register_new_message(message.get(), "on_get_quick_reply_message");
     s->messages_.push_back(std::move(message));
     s->server_total_count_++;
     sort_quick_reply_messages(s->messages_);
@@ -1932,9 +1930,8 @@ void QuickReplyManager::process_send_quick_reply_updates(QuickReplyShortcutId sh
                 unregister_message_content(it->get(), "process_send_quick_reply_updates 2");
                 auto old_message_it = get_message_it(s, message->message_id);
                 if (old_message_it == s->messages_.end()) {
-                  change_message_files(message.get(), {});
                   *it = std::move(message);
-                  register_message_content(it->get(), "process_send_quick_reply_updates 2");
+                  register_new_message(it->get(), "process_send_quick_reply_updates 2");
                   s->server_total_count_++;
                 } else {
                   // the message has already been added
@@ -3016,8 +3013,7 @@ void QuickReplyManager::on_reload_quick_reply_messages(
         send_update_quick_reply_shortcut(shortcut.get(), "on_reload_quick_reply_messages 1");
         send_update_quick_reply_shortcut_messages(shortcut.get(), "on_reload_quick_reply_messages 2");
         for (auto &message : shortcut->messages_) {
-          change_message_files(message.get(), {});
-          register_message_content(message.get(), "on_reload_quick_reply_messages 5");
+          register_new_message(message.get(), "on_reload_quick_reply_messages 5");
         }
         shortcuts_.shortcuts_.push_back(std::move(shortcut));
       } else {
@@ -3399,7 +3395,7 @@ QuickReplyManager::QuickReplyMessage *QuickReplyManager::add_local_message(
     m->random_id = Random::secure_int64();
   } while (m->random_id == 0);
 
-  register_message_content(m, "add_local_message");
+  register_new_message(m, "add_local_message");
 
   s->messages_.push_back(std::move(message));
   s->local_total_count_++;
@@ -3470,8 +3466,7 @@ void QuickReplyManager::update_shortcut_from(Shortcut *new_shortcut, Shortcut *o
       }
     }
     if (it == old_shortcut->messages_.end() || (*it)->message_id != new_first_message_id) {
-      change_message_files(new_shortcut->messages_[0].get(), {});
-      register_message_content(new_shortcut->messages_[0].get(), "update_shortcut_from");
+      register_new_message(new_shortcut->messages_[0].get(), "update_shortcut_from");
       old_shortcut->messages_.insert(it, std::move(new_shortcut->messages_[0]));
     } else {
       update_quick_reply_message(*it, std::move(new_shortcut->messages_[0]));
@@ -3578,8 +3573,7 @@ void QuickReplyManager::load_quick_reply_shortcuts() {
                    << shortcut->shortcut_id_;
         message->shortcut_id = shortcut->shortcut_id_;
       }
-      change_message_files(message.get(), {});
-      register_message_content(message.get(), "load_quick_reply_shortcuts");
+      register_new_message(message.get(), "load_quick_reply_shortcuts");
 
       if (message->message_id.is_server()) {
         if (need_reget_message_content(message->content.get()) ||
@@ -3701,6 +3695,11 @@ void QuickReplyManager::change_message_files(const QuickReplyMessage *m, const v
   if (file_source_id.is_valid()) {
     td_->file_manager_->change_files_source(file_source_id, old_file_ids, new_file_ids);
   }
+}
+
+void QuickReplyManager::register_new_message(const QuickReplyMessage *m, const char *source) {
+  change_message_files(m, {});
+  register_message_content(m, source);
 }
 
 void QuickReplyManager::register_message_content(const QuickReplyMessage *m, const char *source) const {
