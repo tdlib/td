@@ -391,6 +391,54 @@ Result<Photo> create_photo(FileManager *file_manager, FileId file_id, PhotoSize 
   return std::move(photo);
 }
 
+Photo dup_photo(Photo photo) {
+  // Find 'i' or largest
+  PhotoSize input_size;
+  for (const auto &size : photo.photos) {
+    if (size.type == 'i') {
+      input_size = size;
+    }
+  }
+  if (input_size.type == 0) {
+    for (const auto &size : photo.photos) {
+      if (input_size.type == 0 || input_size < size) {
+        input_size = size;
+      }
+    }
+  }
+
+  // Find 't' or smallest
+  PhotoSize thumbnail;
+  for (const auto &size : photo.photos) {
+    if (size.type == 't') {
+      thumbnail = size;
+    }
+  }
+  if (thumbnail.type == 0) {
+    for (const auto &size : photo.photos) {
+      if (size.type != input_size.type && (thumbnail.type == 0 || size < thumbnail)) {
+        thumbnail = size;
+      }
+    }
+  }
+
+  Photo result;
+  result.id = std::move(photo.id);
+  result.date = photo.date;
+  result.minithumbnail = std::move(photo.minithumbnail);
+  result.has_stickers = photo.has_stickers;
+  result.sticker_file_ids = std::move(photo.sticker_file_ids);
+
+  if (thumbnail.type != 0) {
+    thumbnail.type = 't';
+    result.photos.push_back(std::move(thumbnail));
+  }
+  input_size.type = 'i';
+  result.photos.push_back(std::move(input_size));
+
+  return result;
+}
+
 tl_object_ptr<td_api::photo> get_photo_object(FileManager *file_manager, const Photo &photo) {
   if (photo.is_empty()) {
     return nullptr;

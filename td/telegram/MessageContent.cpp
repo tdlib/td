@@ -6596,54 +6596,14 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
         return std::move(result);
       }
 
-      // Find 'i' or largest
-      PhotoSize photo;
-      for (const auto &size : result->photo.photos) {
-        if (size.type == 'i') {
-          photo = size;
-        }
-      }
-      if (photo.type == 0) {
-        for (const auto &size : result->photo.photos) {
-          if (photo.type == 0 || photo < size) {
-            photo = size;
-          }
-        }
-      }
-
-      // Find 't' or smallest
-      PhotoSize thumbnail;
-      for (const auto &size : result->photo.photos) {
-        if (size.type == 't') {
-          thumbnail = size;
-        }
-      }
-      if (thumbnail.type == 0) {
-        for (const auto &size : result->photo.photos) {
-          if (size.type != photo.type && (thumbnail.type == 0 || size < thumbnail)) {
-            thumbnail = size;
-          }
-        }
-      }
-
-      result->photo.photos.clear();
-      result->photo.animations.clear();
-      result->photo.sticker_photo_size = nullptr;
-
-      bool has_thumbnail = thumbnail.type != 0;
-      if (has_thumbnail) {
-        thumbnail.type = 't';
-        result->photo.photos.push_back(std::move(thumbnail));
-      }
-      photo.type = 'i';
-      result->photo.photos.push_back(std::move(photo));
+      result->photo = dup_photo(result->photo);
 
       if (photo_has_input_media(td->file_manager_.get(), result->photo, to_secret, td->auth_manager_->is_bot())) {
         return std::move(result);
       }
 
       result->photo.photos.back().file_id = fix_file_id(result->photo.photos.back().file_id);
-      if (has_thumbnail) {
+      if (result->photo.photos.size() > 1) {
         result->photo.photos[0].file_id =
             td->file_manager_->dup_file_id(result->photo.photos[0].file_id, "dup_message_content photo");
       }

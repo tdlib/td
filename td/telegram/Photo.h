@@ -121,6 +121,8 @@ Photo get_web_document_photo(FileManager *file_manager, tl_object_ptr<telegram_a
 Result<Photo> create_photo(FileManager *file_manager, FileId file_id, PhotoSize &&thumbnail, int32 width, int32 height,
                            vector<FileId> &&sticker_file_ids);
 
+Photo dup_photo(Photo photo);
+
 tl_object_ptr<td_api::photo> get_photo_object(FileManager *file_manager, const Photo &photo);
 
 tl_object_ptr<td_api::chatPhoto> get_chat_photo_object(FileManager *file_manager, const Photo &photo);
