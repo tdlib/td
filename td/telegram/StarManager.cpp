@@ -361,6 +361,41 @@ class GetStarsRevenueWithdrawalUrlQuery final : public Td::ResultHandler {
   }
 };
 
+class GetStarsRevenueAdsAccountUrlQuery final : public Td::ResultHandler {
+  Promise<string> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit GetStarsRevenueAdsAccountUrlQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id) {
+    dialog_id_ = dialog_id;
+
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Have no access to the chat"));
+    }
+
+    send_query(
+        G()->net_query_creator().create(telegram_api::payments_getStarsRevenueAdsAccountUrl(std::move(input_peer))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getStarsRevenueAdsAccountUrl>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(std::move(result_ptr.ok_ref()->url_));
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetStarsRevenueAdsAccountUrlQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 StarManager::StarManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
@@ -386,8 +421,8 @@ Status StarManager::can_manage_stars(DialogId dialog_id, bool allow_self) const 
       if (!td_->chat_manager_->is_broadcast_channel(channel_id)) {
         return Status::Error(400, "Chat is not a channel");
       }
-      if (!td_->chat_manager_->get_channel_permissions(channel_id).is_creator()) {
-        return Status::Error(400, "Not enough rights to withdraw stars");
+      if (!td_->chat_manager_->get_channel_permissions(channel_id).is_creator() && !allow_self) {
+        return Status::Error(400, "Not enough rights");
       }
       break;
     }
@@ -453,6 +488,13 @@ void StarManager::send_get_star_withdrawal_url_query(
 
   td_->create_handler<GetStarsRevenueWithdrawalUrlQuery>(std::move(promise))
       ->send(dialog_id, star_count, std::move(input_check_password));
+}
+
+void StarManager::get_star_ad_account_url(const td_api::object_ptr<td_api::MessageSender> &owner_id,
+                                          Promise<string> &&promise) {
+  TRY_RESULT_PROMISE(promise, dialog_id, get_message_sender_dialog_id(td_, owner_id, true, false));
+  TRY_STATUS_PROMISE(promise, can_manage_stars(dialog_id));
+  td_->create_handler<GetStarsRevenueAdsAccountUrlQuery>(std::move(promise))->send(dialog_id);
 }
 
 void StarManager::on_update_stars_revenue_status(

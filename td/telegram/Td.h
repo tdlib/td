@@ -1701,6 +1701,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::getStarWithdrawalUrl &request);
 
+  void on_request(uint64 id, const td_api::getStarAdAccountUrl &request);
+
   void on_request(uint64 id, const td_api::getMessageStatistics &request);
 
   void on_request(uint64 id, const td_api::getStoryStatistics &request);

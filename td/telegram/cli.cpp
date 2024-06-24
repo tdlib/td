@@ -6792,6 +6792,10 @@ class CliClient final : public Actor {
       get_args(args, owner_id, star_count, password);
       send_request(
           td_api::make_object<td_api::getStarWithdrawalUrl>(as_message_sender(owner_id), star_count, password));
+    } else if (op == "gsaau") {
+      string owner_id;
+      get_args(args, owner_id);
+      send_request(td_api::make_object<td_api::getStarAdAccountUrl>(as_message_sender(owner_id)));
     } else {
       op_not_found_count++;
     }
