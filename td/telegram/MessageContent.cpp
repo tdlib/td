@@ -6405,7 +6405,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
     case telegram_api::messageMediaPaidMedia::ID: {
       auto media = telegram_api::move_object_as<telegram_api::messageMediaPaidMedia>(media_ptr);
       auto extended_media = transform(std::move(media->extended_media_), [&](auto &&extended_media) {
-        return MessageExtendedMedia(td, std::move(extended_media), FormattedText(), owner_dialog_id);
+        return MessageExtendedMedia(td, std::move(extended_media), owner_dialog_id);
       });
       return td::make_unique<MessagePaidMedia>(std::move(extended_media), std::move(message),
                                                StarManager::get_star_count(media->stars_amount_));

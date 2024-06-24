@@ -9,6 +9,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/LabeledPricePart.h"
+#include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageExtendedMedia.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/Photo.h"
@@ -63,6 +64,7 @@ class InputInvoice {
   string provider_token_;
   string provider_data_;
   MessageExtendedMedia extended_media_;
+  FormattedText extended_media_caption_;
 
   int64 total_amount_ = 0;
   MessageId receipt_message_id_;

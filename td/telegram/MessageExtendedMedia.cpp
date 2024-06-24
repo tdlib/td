@@ -27,12 +27,10 @@
 namespace td {
 
 MessageExtendedMedia::MessageExtendedMedia(
-    Td *td, telegram_api::object_ptr<telegram_api::MessageExtendedMedia> &&extended_media, FormattedText &&caption,
-    DialogId owner_dialog_id) {
+    Td *td, telegram_api::object_ptr<telegram_api::MessageExtendedMedia> &&extended_media, DialogId owner_dialog_id) {
   if (extended_media == nullptr) {
     return;
   }
-  caption_ = std::move(caption);
 
   switch (extended_media->get_id()) {
     case telegram_api::messageExtendedMediaPreview::ID: {
@@ -114,8 +112,7 @@ void MessageExtendedMedia::init_from_media(Td *td, telegram_api::object_ptr<tele
 }
 
 Result<MessageExtendedMedia> MessageExtendedMedia::get_message_extended_media(
-    Td *td, td_api::object_ptr<td_api::inputMessageExtendedMedia> &&paid_media, FormattedText &&caption,
-    DialogId owner_dialog_id) {
+    Td *td, td_api::object_ptr<td_api::inputMessageExtendedMedia> &&paid_media, DialogId owner_dialog_id) {
   if (paid_media == nullptr) {
     return MessageExtendedMedia();
   }
@@ -127,7 +124,6 @@ Result<MessageExtendedMedia> MessageExtendedMedia::get_message_extended_media(
   }
 
   MessageExtendedMedia result;
-  result.caption_ = std::move(caption);
 
   auto file_type = FileType::None;
   switch (paid_media->type_->get_id()) {
@@ -190,7 +186,7 @@ void MessageExtendedMedia::update_from(const MessageExtendedMedia &old_extended_
 bool MessageExtendedMedia::update_to(Td *td,
                                      telegram_api::object_ptr<telegram_api::MessageExtendedMedia> extended_media_ptr,
                                      DialogId owner_dialog_id) {
-  MessageExtendedMedia new_extended_media(td, std::move(extended_media_ptr), FormattedText(caption_), owner_dialog_id);
+  MessageExtendedMedia new_extended_media(td, std::move(extended_media_ptr), owner_dialog_id);
   if (!new_extended_media.is_media() && is_media()) {
     return false;
   }
@@ -224,14 +220,6 @@ td_api::object_ptr<td_api::MessageExtendedMedia> MessageExtendedMedia::get_messa
       UNREACHABLE();
       return nullptr;
   }
-}
-
-td_api::object_ptr<td_api::formattedText> MessageExtendedMedia::get_caption_object(bool skip_bot_commands,
-                                                                                   int32 max_media_timestamp) const {
-  if (type_ == Type::Empty) {
-    return nullptr;
-  }
-  return get_formatted_text_object(caption_, skip_bot_commands, max_media_timestamp);
 }
 
 void MessageExtendedMedia::append_file_ids(const Td *td, vector<FileId> &file_ids) const {
@@ -354,7 +342,7 @@ bool MessageExtendedMedia::is_equal_but_different(const MessageExtendedMedia &ot
 }
 
 bool operator==(const MessageExtendedMedia &lhs, const MessageExtendedMedia &rhs) {
-  if (lhs.type_ != rhs.type_ || lhs.caption_ != rhs.caption_) {
+  if (lhs.type_ != rhs.type_) {
     return false;
   }
   switch (lhs.type_) {

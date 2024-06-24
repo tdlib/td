@@ -9,7 +9,6 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Dimensions.h"
 #include "td/telegram/files/FileId.h"
-#include "td/telegram/MessageEntity.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -24,7 +23,6 @@ class Td;
 class MessageExtendedMedia {
   enum class Type : int32 { Empty, Unsupported, Preview, Photo, Video };
   Type type_ = Type::Empty;
-  FormattedText caption_;
 
   static constexpr int32 CURRENT_VERSION = 1;
 
@@ -54,13 +52,12 @@ class MessageExtendedMedia {
   MessageExtendedMedia() = default;
 
   MessageExtendedMedia(Td *td, telegram_api::object_ptr<telegram_api::MessageExtendedMedia> &&extended_media,
-                       FormattedText &&caption, DialogId owner_dialog_id);
+                       DialogId owner_dialog_id);
 
   MessageExtendedMedia(Td *td, telegram_api::object_ptr<telegram_api::MessageMedia> &&media, DialogId owner_dialog_id);
 
   static Result<MessageExtendedMedia> get_message_extended_media(
-      Td *td, td_api::object_ptr<td_api::inputMessageExtendedMedia> &&paid_media, FormattedText &&caption,
-      DialogId owner_dialog_id);
+      Td *td, td_api::object_ptr<td_api::inputMessageExtendedMedia> &&paid_media, DialogId owner_dialog_id);
 
   bool is_empty() const {
     return type_ == Type::Empty;
@@ -72,8 +69,6 @@ class MessageExtendedMedia {
                  DialogId owner_dialog_id);
 
   td_api::object_ptr<td_api::MessageExtendedMedia> get_message_extended_media_object(Td *td) const;
-
-  td_api::object_ptr<td_api::formattedText> get_caption_object(bool skip_bot_commands, int32 max_media_timestamp) const;
 
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const;
 
@@ -94,10 +89,6 @@ class MessageExtendedMedia {
   bool is_equal_but_different(const MessageExtendedMedia &other) const;
 
   int32 get_duration(const Td *td) const;
-
-  const FormattedText *get_caption() const {
-    return &caption_;
-  }
 
   FileId get_upload_file_id() const;
 

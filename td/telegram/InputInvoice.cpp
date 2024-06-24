@@ -44,7 +44,8 @@ bool operator==(const InputInvoice &lhs, const InputInvoice &rhs) {
          lhs.start_parameter_ == rhs.start_parameter_ && are_invoice_equal(lhs.invoice_, rhs.invoice_) &&
          lhs.payload_ == rhs.payload_ && lhs.provider_token_ == rhs.provider_token_ &&
          lhs.provider_data_ == rhs.provider_data_ && lhs.extended_media_ == rhs.extended_media_ &&
-         lhs.total_amount_ == rhs.total_amount_ && lhs.receipt_message_id_ == rhs.receipt_message_id_;
+         lhs.extended_media_caption_ == rhs.extended_media_caption_ && lhs.total_amount_ == rhs.total_amount_ &&
+         lhs.receipt_message_id_ == rhs.receipt_message_id_;
 }
 
 bool operator!=(const InputInvoice &lhs, const InputInvoice &rhs) {
@@ -63,8 +64,10 @@ InputInvoice::InputInvoice(tl_object_ptr<telegram_api::messageMediaInvoice> &&me
   // payload_ = string();
   // provider_token_ = string();
   // provider_data_ = string();
-  extended_media_ =
-      MessageExtendedMedia(td, std::move(message_invoice->extended_media_), std::move(message), owner_dialog_id);
+  extended_media_ = MessageExtendedMedia(td, std::move(message_invoice->extended_media_), owner_dialog_id);
+  if (!extended_media_.is_empty()) {
+    extended_media_caption_ = std::move(message);
+  }
   if (message_invoice->total_amount_ <= 0 || !check_currency_amount(message_invoice->total_amount_)) {
     LOG(ERROR) << "Receive invalid total amount " << message_invoice->total_amount_;
     message_invoice->total_amount_ = 0;
@@ -92,6 +95,7 @@ InputInvoice::InputInvoice(tl_object_ptr<telegram_api::botInlineMessageMediaInvo
   // provider_token_ = string();
   // provider_data_ = string();
   // extended_media_ = MessageExtendedMedia();
+  // extended_media_caption_ = FormattedText();
   if (message_invoice->total_amount_ <= 0 || !check_currency_amount(message_invoice->total_amount_)) {
     LOG(ERROR) << "Receive invalid total amount " << message_invoice->total_amount_;
     message_invoice->total_amount_ = 0;
@@ -230,25 +234,31 @@ Result<InputInvoice> InputInvoice::process_input_message_invoice(
   result.provider_token_ = std::move(input_invoice->provider_token_);
   result.provider_data_ = std::move(input_invoice->provider_data_);
 
-  bool is_bot = td->auth_manager_->is_bot();
-  TRY_RESULT(extended_media_caption,
-             get_formatted_text(td, owner_dialog_id, std::move(input_invoice->paid_media_caption_), is_bot, true, false,
-                                false));
-  TRY_RESULT(extended_media,
-             MessageExtendedMedia::get_message_extended_media(td, std::move(input_invoice->paid_media_),
-                                                              std::move(extended_media_caption), owner_dialog_id));
+  TRY_RESULT(extended_media, MessageExtendedMedia::get_message_extended_media(td, std::move(input_invoice->paid_media_),
+                                                                              owner_dialog_id));
   result.extended_media_ = std::move(extended_media);
+  if (!result.extended_media_.is_empty()) {
+    bool is_bot = td->auth_manager_->is_bot();
+    TRY_RESULT(extended_media_caption,
+               get_formatted_text(td, owner_dialog_id, std::move(input_invoice->paid_media_caption_), is_bot, true,
+                                  false, false));
+    result.extended_media_caption_ = std::move(extended_media_caption);
+  }
 
   return result;
 }
 
 td_api::object_ptr<td_api::messageInvoice> InputInvoice::get_message_invoice_object(Td *td, bool skip_bot_commands,
                                                                                     int32 max_media_timestamp) const {
+  auto extended_media_object = extended_media_.get_message_extended_media_object(td);
+  auto extended_media_caption_object =
+      extended_media_object == nullptr
+          ? nullptr
+          : get_formatted_text_object(extended_media_caption_, skip_bot_commands, max_media_timestamp);
   return td_api::make_object<td_api::messageInvoice>(
       get_product_info_object(td, title_, description_, photo_), invoice_.currency_, total_amount_, start_parameter_,
-      invoice_.is_test_, invoice_.need_shipping_address_, receipt_message_id_.get(),
-      extended_media_.get_message_extended_media_object(td),
-      extended_media_.get_caption_object(skip_bot_commands, max_media_timestamp));
+      invoice_.is_test_, invoice_.need_shipping_address_, receipt_message_id_.get(), std::move(extended_media_object),
+      std::move(extended_media_caption_object));
 }
 
 tl_object_ptr<telegram_api::invoice> InputInvoice::Invoice::get_input_invoice() const {
@@ -394,7 +404,7 @@ bool InputInvoice::is_equal_but_different(const InputInvoice &other) const {
 }
 
 const FormattedText *InputInvoice::get_caption() const {
-  return extended_media_.get_caption();
+  return &extended_media_caption_;
 }
 
 int32 InputInvoice::get_duration(const Td *td) const {

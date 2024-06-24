@@ -8,6 +8,7 @@
 
 #include "td/telegram/InputInvoice.h"
 
+#include "td/telegram/MessageEntity.hpp"
 #include "td/telegram/MessageExtendedMedia.hpp"
 #include "td/telegram/Photo.hpp"
 #include "td/telegram/Version.h"
@@ -84,6 +85,7 @@ void InputInvoice::store(StorerT &storer) const {
   bool has_total_amount = total_amount_ != 0;
   bool has_receipt_message_id = receipt_message_id_.is_valid();
   bool has_extended_media = !extended_media_.is_empty();
+  bool has_extended_media_caption = !extended_media_caption_.text.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_description);
   STORE_FLAG(has_photo);
@@ -94,6 +96,7 @@ void InputInvoice::store(StorerT &storer) const {
   STORE_FLAG(has_total_amount);
   STORE_FLAG(has_receipt_message_id);
   STORE_FLAG(has_extended_media);
+  STORE_FLAG(has_extended_media_caption);
   END_STORE_FLAGS();
   store(title_, storer);
   if (has_description) {
@@ -124,6 +127,9 @@ void InputInvoice::store(StorerT &storer) const {
   if (has_extended_media) {
     store(extended_media_, storer);
   }
+  if (has_extended_media_caption) {
+    store(extended_media_caption_, storer);
+  }
 }
 
 template <class ParserT>
@@ -138,6 +144,7 @@ void InputInvoice::parse(ParserT &parser) {
   bool has_total_amount;
   bool has_receipt_message_id;
   bool has_extended_media;
+  bool has_extended_media_caption = false;
   if (parser.version() >= static_cast<int32>(Version::AddInputInvoiceFlags)) {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_description);
@@ -149,6 +156,7 @@ void InputInvoice::parse(ParserT &parser) {
     PARSE_FLAG(has_total_amount);
     PARSE_FLAG(has_receipt_message_id);
     PARSE_FLAG(has_extended_media);
+    PARSE_FLAG(has_extended_media_caption);
     END_PARSE_FLAGS();
   } else {
     has_description = true;
@@ -189,6 +197,9 @@ void InputInvoice::parse(ParserT &parser) {
   }
   if (has_extended_media) {
     parse(extended_media_, parser);
+  }
+  if (has_extended_media_caption) {
+    parse(extended_media_caption_, parser);
   }
 }
 
