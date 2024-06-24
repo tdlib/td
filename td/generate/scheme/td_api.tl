@@ -3127,7 +3127,8 @@ messageDocument document:document caption:formattedText = MessageContent;
 //@star_count Number of stars needed to buy access to the media in the message
 //@media Information about the media
 //@caption Media caption
-messagePaidMedia star_count:int53 media:vector<MessageExtendedMedia> caption:formattedText = MessageContent;
+//@show_caption_above_media True, if the caption must be shown above the media; otherwise, the caption must be shown below the media
+messagePaidMedia star_count:int53 media:vector<MessageExtendedMedia> caption:formattedText show_caption_above_media:Bool = MessageContent;
 
 //@description A photo message
 //@photo The photo

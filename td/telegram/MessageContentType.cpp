@@ -156,6 +156,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, MessageContentType cont
 bool is_allowed_invert_caption_message_content(MessageContentType content_type) {
   switch (content_type) {
     case MessageContentType::Animation:
+    case MessageContentType::PaidMedia:
     case MessageContentType::Photo:
     case MessageContentType::Video:
       return true;

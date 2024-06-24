@@ -7657,7 +7657,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       return td_api::make_object<td_api::messagePaidMedia>(
           m->star_count,
           transform(m->media, [&](const auto &media) { return media.get_message_extended_media_object(td); }),
-          get_formatted_text_object(m->caption, skip_bot_commands, max_media_timestamp));
+          get_formatted_text_object(m->caption, skip_bot_commands, max_media_timestamp), invert_media);
     }
     default:
       UNREACHABLE();
