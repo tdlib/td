@@ -429,31 +429,12 @@ unique_ptr<StoryContent> dup_story_content(Td *td, const StoryContent *content) 
   switch (content->get_type()) {
     case StoryContentType::Photo: {
       const auto *old_content = static_cast<const StoryContentPhoto *>(content);
-      // Find 'i' or largest
-      PhotoSize photo_size;
-      for (const auto &size : old_content->photo_.photos) {
-        if (size.type == 'i') {
-          photo_size = size;
-        }
+      auto photo = dup_photo(old_content->photo_);
+      photo.photos.back().file_id = fix_file_id(photo.photos.back().file_id);
+      if (photo.photos.size() > 1) {
+        photo.photos[0].file_id = fix_file_id(photo.photos[0].file_id);
       }
-      if (photo_size.type == 0) {
-        for (const auto &size : old_content->photo_.photos) {
-          if (photo_size.type == 0 || photo_size < size) {
-            photo_size = size;
-          }
-        }
-      }
-      photo_size.type = 'i';
-      photo_size.file_id = fix_file_id(photo_size.file_id);
-
-      auto result = make_unique<StoryContentPhoto>(Photo(old_content->photo_));
-
-      result->photo_.photos.clear();
-      result->photo_.animations.clear();
-      result->photo_.sticker_photo_size = nullptr;
-
-      result->photo_.photos.push_back(std::move(photo_size));
-      return std::move(result);
+      return make_unique<StoryContentPhoto>(std::move(photo));
     }
     case StoryContentType::Video: {
       const auto *old_content = static_cast<const StoryContentVideo *>(content);

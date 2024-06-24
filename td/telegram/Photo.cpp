@@ -392,6 +392,8 @@ Result<Photo> create_photo(FileManager *file_manager, FileId file_id, PhotoSize 
 }
 
 Photo dup_photo(Photo photo) {
+  CHECK(!photo.photos.empty());
+
   // Find 'i' or largest
   PhotoSize input_size;
   for (const auto &size : photo.photos) {
