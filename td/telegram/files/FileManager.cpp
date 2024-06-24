@@ -3604,7 +3604,7 @@ vector<tl_object_ptr<telegram_api::InputDocument>> FileManager::get_input_docume
   return result;
 }
 
-bool FileManager::extract_was_uploaded(const tl_object_ptr<telegram_api::InputMedia> &input_media) {
+bool FileManager::extract_was_uploaded(const telegram_api::object_ptr<telegram_api::InputMedia> &input_media) {
   if (input_media == nullptr) {
     return false;
   }
@@ -3614,7 +3614,8 @@ bool FileManager::extract_was_uploaded(const tl_object_ptr<telegram_api::InputMe
          input_media_id == telegram_api::inputMediaUploadedDocument::ID;
 }
 
-bool FileManager::extract_was_thumbnail_uploaded(const tl_object_ptr<telegram_api::InputMedia> &input_media) {
+bool FileManager::extract_was_thumbnail_uploaded(
+    const telegram_api::object_ptr<telegram_api::InputMedia> &input_media) {
   if (input_media == nullptr || input_media->get_id() != telegram_api::inputMediaUploadedDocument::ID) {
     return false;
   }
@@ -3622,7 +3623,7 @@ bool FileManager::extract_was_thumbnail_uploaded(const tl_object_ptr<telegram_ap
   return static_cast<const telegram_api::inputMediaUploadedDocument *>(input_media.get())->thumb_ != nullptr;
 }
 
-string FileManager::extract_file_reference(const tl_object_ptr<telegram_api::InputMedia> &input_media) {
+string FileManager::extract_file_reference(const telegram_api::object_ptr<telegram_api::InputMedia> &input_media) {
   if (input_media == nullptr) {
     return string();
   }
@@ -3632,12 +3633,35 @@ string FileManager::extract_file_reference(const tl_object_ptr<telegram_api::Inp
       return extract_file_reference(static_cast<const telegram_api::inputMediaDocument *>(input_media.get())->id_);
     case telegram_api::inputMediaPhoto::ID:
       return extract_file_reference(static_cast<const telegram_api::inputMediaPhoto *>(input_media.get())->id_);
+    case telegram_api::inputMediaPaidMedia::ID:
+      UNREACHABLE();
+      break;
     default:
       return string();
   }
 }
 
-string FileManager::extract_file_reference(const tl_object_ptr<telegram_api::InputDocument> &input_document) {
+vector<string> FileManager::extract_file_references(
+    const telegram_api::object_ptr<telegram_api::InputMedia> &input_media) {
+  if (input_media == nullptr) {
+    return {};
+  }
+  switch (input_media->get_id()) {
+    case telegram_api::inputMediaDocument::ID:
+    case telegram_api::inputMediaPhoto::ID:
+      return {extract_file_reference(input_media)};
+    case telegram_api::inputMediaPaidMedia::ID:
+      return transform(static_cast<const telegram_api::inputMediaPaidMedia *>(input_media.get())->extended_media_,
+                       [](const telegram_api::object_ptr<telegram_api::InputMedia> &media) {
+                         return extract_file_reference(media);
+                       });
+    default:
+      return {};
+  }
+}
+
+string FileManager::extract_file_reference(
+    const telegram_api::object_ptr<telegram_api::InputDocument> &input_document) {
   if (input_document == nullptr || input_document->get_id() != telegram_api::inputDocument::ID) {
     return string();
   }
@@ -3645,7 +3669,7 @@ string FileManager::extract_file_reference(const tl_object_ptr<telegram_api::Inp
   return static_cast<const telegram_api::inputDocument *>(input_document.get())->file_reference_.as_slice().str();
 }
 
-string FileManager::extract_file_reference(const tl_object_ptr<telegram_api::InputPhoto> &input_photo) {
+string FileManager::extract_file_reference(const telegram_api::object_ptr<telegram_api::InputPhoto> &input_photo) {
   if (input_photo == nullptr || input_photo->get_id() != telegram_api::inputPhoto::ID) {
     return string();
   }
@@ -3653,11 +3677,12 @@ string FileManager::extract_file_reference(const tl_object_ptr<telegram_api::Inp
   return static_cast<const telegram_api::inputPhoto *>(input_photo.get())->file_reference_.as_slice().str();
 }
 
-bool FileManager::extract_was_uploaded(const tl_object_ptr<telegram_api::InputChatPhoto> &input_chat_photo) {
+bool FileManager::extract_was_uploaded(const telegram_api::object_ptr<telegram_api::InputChatPhoto> &input_chat_photo) {
   return input_chat_photo != nullptr && input_chat_photo->get_id() == telegram_api::inputChatUploadedPhoto::ID;
 }
 
-string FileManager::extract_file_reference(const tl_object_ptr<telegram_api::InputChatPhoto> &input_chat_photo) {
+string FileManager::extract_file_reference(
+    const telegram_api::object_ptr<telegram_api::InputChatPhoto> &input_chat_photo) {
   if (input_chat_photo == nullptr || input_chat_photo->get_id() != telegram_api::inputChatPhoto::ID) {
     return string();
   }

@@ -3517,13 +3517,15 @@ tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *co
     CHECK(!had_input_thumbnail);
   }
   if (!was_uploaded) {
-    auto file_reference = FileManager::extract_file_reference(input_media);
-    if (file_reference == FileReferenceView::invalid_file_reference()) {
-      if (!force) {
-        LOG(INFO) << "File " << file_id << " has invalid file reference";
-        return nullptr;
+    auto file_references = FileManager::extract_file_references(input_media);
+    for (auto &file_reference : file_references) {
+      if (file_reference == FileReferenceView::invalid_file_reference()) {
+        if (!force) {
+          LOG(INFO) << "File " << file_id << " has invalid file reference";
+          return nullptr;
+        }
+        LOG(ERROR) << "File " << file_id << " has invalid file reference, but we are forced to use it";
       }
-      LOG(ERROR) << "File " << file_id << " has invalid file reference, but we forced to use it";
     }
   }
   return input_media;
@@ -3532,14 +3534,16 @@ tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *co
 tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content, Td *td,
                                                         MessageSelfDestructType ttl, const string &emoji, bool force) {
   auto input_media = get_input_media_impl(content, td, nullptr, nullptr, ttl, emoji);
-  auto file_reference = FileManager::extract_file_reference(input_media);
-  if (file_reference == FileReferenceView::invalid_file_reference()) {
-    auto file_id = get_message_content_any_file_id(content);
-    if (!force) {
-      LOG(INFO) << "File " << file_id << " has invalid file reference";
-      return nullptr;
+  auto file_references = FileManager::extract_file_references(input_media);
+  for (size_t i = 0; i < file_references.size(); i++) {
+    if (file_references[i] == FileReferenceView::invalid_file_reference()) {
+      auto file_id = get_message_content_any_file_id(content);
+      if (!force) {
+        LOG(INFO) << "File " << file_id << " has invalid file reference";
+        return nullptr;
+      }
+      LOG(ERROR) << "File " << file_id << " has invalid file reference, but we are forced to use it";
     }
-    LOG(ERROR) << "File " << file_id << " has invalid file reference, but we forced to use it";
   }
   return input_media;
 }

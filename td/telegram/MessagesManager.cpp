@@ -3197,7 +3197,7 @@ class SendMediaQuery final : public Td::ResultHandler {
   FileId file_id_;
   FileId thumbnail_file_id_;
   DialogId dialog_id_;
-  string file_reference_;
+  vector<string> file_references_;
   bool was_uploaded_ = false;
   bool was_thumbnail_uploaded_ = false;
 
@@ -3213,7 +3213,7 @@ class SendMediaQuery final : public Td::ResultHandler {
     file_id_ = file_id;
     thumbnail_file_id_ = thumbnail_file_id;
     dialog_id_ = dialog_id;
-    file_reference_ = FileManager::extract_file_reference(input_media);
+    file_references_ = FileManager::extract_file_references(input_media);
     was_uploaded_ = FileManager::extract_was_uploaded(input_media);
     was_thumbnail_uploaded_ = FileManager::extract_was_thumbnail_uploaded(input_media);
 
@@ -3292,9 +3292,10 @@ class SendMediaQuery final : public Td::ResultHandler {
         td_->file_manager_->delete_partial_remote_location_if_needed(file_id_, status);
       }
     } else if (!td_->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
-      if (file_id_.is_valid() && !was_uploaded_) {
+      auto pos = FileReferenceManager::get_file_reference_error_pos(status);
+      if (file_id_.is_valid() && !was_uploaded_ && pos == 0 && !file_references_.empty()) {
         VLOG(file_references) << "Receive " << status << " for " << file_id_;
-        td_->file_manager_->delete_file_reference(file_id_, file_reference_);
+        td_->file_manager_->delete_file_reference(file_id_, file_references_[0]);
         td_->messages_manager_->on_send_message_file_reference_error(random_id_);
         return;
       } else {
