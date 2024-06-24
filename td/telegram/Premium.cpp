@@ -112,6 +112,9 @@ static td_api::object_ptr<td_api::PremiumFeature> get_premium_feature_object(Sli
   if (premium_feature == "business") {
     return td_api::make_object<td_api::premiumFeatureBusiness>();
   }
+  if (premium_feature == "effects") {
+    return td_api::make_object<td_api::premiumFeatureMessageEffects>();
+  }
   if (G()->is_test_dc()) {
     LOG(ERROR) << "Receive unsupported premium feature " << premium_feature;
   }
@@ -844,6 +847,8 @@ static string get_premium_source(const td_api::PremiumFeature *feature) {
       return "last_seen";
     case td_api::premiumFeatureBusiness::ID:
       return "business";
+    case td_api::premiumFeatureMessageEffects::ID:
+      return "effects";
     default:
       UNREACHABLE();
   }
@@ -1032,7 +1037,7 @@ void get_premium_features(Td *td, const td_api::object_ptr<td_api::PremiumSource
                      "premium_features",
                      "stories,more_upload,double_limits,last_seen,voice_to_text,faster_download,translations,animated_"
                      "emoji,emoji_status,saved_tags,peer_colors,wallpapers,profile_badge,message_privacy,advanced_chat_"
-                     "management,no_ads,app_icons,infinite_reactions,animated_userpics,premium_stickers"),
+                     "management,no_ads,app_icons,infinite_reactions,animated_userpics,premium_stickers,effects"),
                  ',');
   vector<td_api::object_ptr<td_api::PremiumFeature>> features;
   for (const auto &premium_feature : premium_features) {

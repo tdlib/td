@@ -5261,6 +5261,9 @@ premiumFeatureLastSeenTimes = PremiumFeature;
 //@description The ability to use Business features
 premiumFeatureBusiness = PremiumFeature;
 
+//@description The ability to use all available message effects
+premiumFeatureMessageEffects = PremiumFeature;
+
 
 //@class BusinessFeature @description Describes a feature available to Business user accounts
 
