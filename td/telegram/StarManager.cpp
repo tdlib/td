@@ -203,9 +203,8 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
             LOG(ERROR) << "Receive star transaction with " << dialog_id;
             return td_api::make_object<td_api::starTransactionPartnerUnsupported>();
           }
-          case telegram_api::starsTransactionPeerAds::ID: {
-            return td_api::make_object<td_api::starTransactionPartnerUnsupported>();
-          }
+          case telegram_api::starsTransactionPeerAds::ID:
+            return td_api::make_object<td_api::starTransactionPartnerTelegramAds>();
           default:
             UNREACHABLE();
         }
