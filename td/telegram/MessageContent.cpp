@@ -3537,7 +3537,9 @@ tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *co
   auto file_references = FileManager::extract_file_references(input_media);
   for (size_t i = 0; i < file_references.size(); i++) {
     if (file_references[i] == FileReferenceView::invalid_file_reference()) {
-      auto file_id = get_message_content_any_file_id(content);
+      auto file_ids = get_message_content_any_file_ids(content);
+      CHECK(file_ids.size() == file_references.size());
+      auto file_id = file_ids[i];
       if (!force) {
         LOG(INFO) << "File " << file_id << " has invalid file reference";
         return nullptr;
@@ -7799,10 +7801,25 @@ FileId get_message_content_upload_file_id(const MessageContent *content) {
       return static_cast<const MessageVideoNote *>(content)->file_id;
     case MessageContentType::VoiceNote:
       return static_cast<const MessageVoiceNote *>(content)->file_id;
+    case MessageContentType::PaidMedia:
+      UNREACHABLE();
+      break;
     default:
       break;
   }
   return FileId();
+}
+
+vector<FileId> get_message_content_upload_file_ids(const MessageContent *content) {
+  if (content->get_type() == MessageContentType::PaidMedia) {
+    return transform(static_cast<const MessagePaidMedia *>(content)->media,
+                     [](const MessageExtendedMedia &media) { return media.get_upload_file_id(); });
+  }
+  auto file_id = get_message_content_upload_file_id(content);
+  if (file_id.is_valid()) {
+    return {file_id};
+  }
+  return {};
 }
 
 FileId get_message_content_any_file_id(const MessageContent *content) {
@@ -7815,6 +7832,18 @@ FileId get_message_content_any_file_id(const MessageContent *content) {
     }
   }
   return result;
+}
+
+vector<FileId> get_message_content_any_file_ids(const MessageContent *content) {
+  if (content->get_type() == MessageContentType::PaidMedia) {
+    return transform(static_cast<const MessagePaidMedia *>(content)->media,
+                     [](const MessageExtendedMedia &media) { return media.get_any_file_id(); });
+  }
+  auto file_id = get_message_content_any_file_id(content);
+  if (file_id.is_valid()) {
+    return {file_id};
+  }
+  return {};
 }
 
 void update_message_content_file_id_remote(MessageContent *content, FileId file_id) {
@@ -7837,6 +7866,9 @@ void update_message_content_file_id_remote(MessageContent *content, FileId file_
         return &static_cast<MessageVideoNote *>(content)->file_id;
       case MessageContentType::VoiceNote:
         return &static_cast<MessageVoiceNote *>(content)->file_id;
+      case MessageContentType::PaidMedia:
+        UNREACHABLE();
+        return static_cast<FileId *>(nullptr);
       default:
         return static_cast<FileId *>(nullptr);
     }
@@ -7844,6 +7876,23 @@ void update_message_content_file_id_remote(MessageContent *content, FileId file_
   if (old_file_id != nullptr && *old_file_id == file_id && old_file_id->get_remote() == 0) {
     *old_file_id = file_id;
   }
+}
+
+void update_message_content_file_id_remotes(MessageContent *content, const vector<FileId> &file_ids) {
+  if (content->get_type() == MessageContentType::PaidMedia) {
+    auto &media = static_cast<MessagePaidMedia *>(content)->media;
+    if (file_ids.size() != media.size()) {
+      return;
+    }
+    for (size_t i = 0; i < file_ids.size(); i++) {
+      media[i].update_file_id_remote(file_ids[i]);
+    }
+    return;
+  }
+  if (file_ids.size() != 1) {
+    return;
+  }
+  update_message_content_file_id_remote(content, file_ids[0]);
 }
 
 FileId get_message_content_thumbnail_file_id(const MessageContent *content, const Td *td) {
@@ -7870,10 +7919,25 @@ FileId get_message_content_thumbnail_file_id(const MessageContent *content, cons
           static_cast<const MessageVideoNote *>(content)->file_id);
     case MessageContentType::VoiceNote:
       return FileId();
+    case MessageContentType::PaidMedia:
+      UNREACHABLE();
+      return FileId();
     default:
       break;
   }
   return FileId();
+}
+
+vector<FileId> get_message_content_thumbnail_file_ids(const MessageContent *content, const Td *td) {
+  if (content->get_type() == MessageContentType::PaidMedia) {
+    return transform(static_cast<const MessagePaidMedia *>(content)->media,
+                     [td](const MessageExtendedMedia &media) { return media.get_thumbnail_file_id(td); });
+  }
+  auto file_id = get_message_content_thumbnail_file_id(content, td);
+  if (file_id.is_valid()) {
+    return {file_id};
+  }
+  return {};
 }
 
 vector<FileId> get_message_content_file_ids(const MessageContent *content, const Td *td) {

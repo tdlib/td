@@ -23298,14 +23298,18 @@ vector<FileId> MessagesManager::get_message_file_ids(const Message *m) const {
 }
 
 void MessagesManager::cancel_upload_message_content_files(const MessageContent *content) {
-  auto file_id = get_message_content_upload_file_id(content);
+  auto file_ids = get_message_content_upload_file_ids(content);
   // always cancel file upload, it should be a no-op in the worst case
-  if (being_uploaded_files_.erase(file_id) || file_id.is_valid()) {
-    cancel_upload_file(file_id, "cancel_upload_message_content_files");
+  for (auto file_id : file_ids) {
+    if (being_uploaded_files_.erase(file_id) || file_id.is_valid()) {
+      cancel_upload_file(file_id, "cancel_upload_message_content_files");
+    }
   }
-  file_id = get_message_content_thumbnail_file_id(content, td_);
-  if (being_uploaded_thumbnails_.erase(file_id) || file_id.is_valid()) {
-    cancel_upload_file(file_id, "cancel_upload_message_content_files");
+  file_ids = get_message_content_thumbnail_file_ids(content, td_);
+  for (auto file_id : file_ids) {
+    if (being_uploaded_thumbnails_.erase(file_id) || file_id.is_valid()) {
+      cancel_upload_file(file_id, "cancel_upload_message_content_files");
+    }
   }
 }
 
@@ -23963,10 +23967,18 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vect
     return;
   }
 
-  FileId file_id = get_message_content_any_file_id(content);  // any_file_id, because it could be a photo sent by ID
-  FileId thumbnail_file_id = get_message_content_thumbnail_file_id(content, td_);
-  LOG(DEBUG) << "Need to send file " << file_id << " with thumbnail " << thumbnail_file_id;
+  auto file_ids = get_message_content_any_file_ids(content);  // any_file_ids, because it could be a photo sent by ID
+  auto thumbnail_file_ids = get_message_content_thumbnail_file_ids(content, td_);
+  LOG(DEBUG) << "Need to send files " << file_ids << " with thumbnails " << thumbnail_file_ids;
+  if (file_ids.size() != thumbnail_file_ids.size()) {
+    CHECK(file_ids.size() == 1u);
+    CHECK(thumbnail_file_ids.empty());
+  }
   if (is_secret) {
+    CHECK(file_ids.size() <= 1);
+    auto file_id = file_ids.empty() ? FileId() : file_ids[0];
+    auto thumbnail_file_id = thumbnail_file_ids.empty() ? FileId() : thumbnail_file_ids[0];
+
     CHECK(!is_edit);
     auto layer = td_->user_manager_->get_secret_chat_layer(dialog_id.get_secret_chat_id());
     auto secret_input_media = get_secret_input_media(content, td_, nullptr, BufferSlice(), layer);
@@ -23993,23 +24005,32 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vect
           content_type == MessageContentType::Story) {
         return;
       }
-      CHECK(file_id.is_valid());
-      FileView file_view = td_->file_manager_->get_file_view(file_id);
-      if (get_main_file_type(file_view.get_type()) == FileType::Photo) {
-        thumbnail_file_id = FileId();
-      }
+      CHECK(!file_ids.empty());
+      for (size_t i = 0; i < file_ids.size(); i++) {
+        auto file_id = file_ids[i];
+        CHECK(file_id.is_valid());
 
-      LOG(INFO) << "Ask to upload file " << file_id << " with bad parts " << bad_parts;
-      CHECK(file_id.is_valid());
-      bool is_inserted =
-          being_uploaded_files_
-              .emplace(file_id, std::make_pair(MessageFullId(dialog_id, m->message_id), thumbnail_file_id))
-              .second;
-      CHECK(is_inserted);
-      // need to call resume_upload synchronously to make upload process consistent with being_uploaded_files_
-      // and to send is_uploading_active == true in the updates
-      td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_media_callback_, 1, m->message_id.get());
+        auto thumbnail_file_id = i < thumbnail_file_ids.size() ? thumbnail_file_ids[i] : FileId();
+        FileView file_view = td_->file_manager_->get_file_view(file_id);
+        if (get_main_file_type(file_view.get_type()) == FileType::Photo) {
+          thumbnail_file_id = FileId();
+        }
+
+        LOG(INFO) << "Ask to upload file " << file_id << " with bad parts " << bad_parts;
+        bool is_inserted =
+            being_uploaded_files_
+                .emplace(file_id, std::make_pair(MessageFullId(dialog_id, m->message_id), thumbnail_file_id))
+                .second;
+        CHECK(is_inserted);
+        // need to call resume_upload synchronously to make upload process consistent with being_uploaded_files_
+        // and to send is_uploading_active == true in the updates
+        td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_media_callback_, 1,
+                                          m->message_id.get());
+      }
     } else {
+      CHECK(file_ids.size() <= 1);  // TODO PaidMedia
+      auto file_id = file_ids.empty() ? FileId() : file_ids[0];
+      auto thumbnail_file_id = thumbnail_file_ids.empty() ? FileId() : thumbnail_file_ids[0];
       on_message_media_uploaded(dialog_id, m, std::move(input_media), file_id, thumbnail_file_id);
     }
   }
@@ -31106,7 +31127,7 @@ void MessagesManager::on_send_dialog_action_timeout(DialogId dialog_id) {
   }
   CHECK(m->message_id.is_yet_unsent());
   if (m->forward_info != nullptr || m->had_forward_info || m->is_copy || m->message_id.is_scheduled() ||
-      m->sender_dialog_id.is_valid()) {
+      m->sender_dialog_id.is_valid() || m->content->get_type() == MessageContentType::PaidMedia) {
     return;
   }
 
@@ -33927,8 +33948,7 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
   MessageContentType old_content_type = old_content->get_type();
   MessageContentType new_content_type = new_content->get_type();
 
-  auto old_file_id = get_message_content_any_file_id(old_content.get());
-  bool need_finish_upload = old_file_id.is_valid() && need_merge_files;
+  auto old_file_ids = get_message_content_any_file_ids(old_content.get());
   if (old_content_type != new_content_type) {
     if (old_message->ttl.is_valid() && old_message->ttl_expires_at > 0 &&
         is_expired_message_content(new_content_type) &&
@@ -33941,18 +33961,25 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
       old_message->is_content_secret = old_message->ttl.is_secret_message_content(new_content->get_type());
     }
 
-    if (need_merge_files && old_file_id.is_valid()) {
-      td_->file_manager_->try_merge_documents(old_file_id, get_message_content_any_file_id(new_content.get()));
+    if (need_merge_files) {
+      auto new_file_ids = get_message_content_any_file_ids(new_content.get());
+      if (new_file_ids.size() == old_file_ids.size()) {
+        for (size_t i = 0; i < old_file_ids.size(); i++) {
+          td_->file_manager_->try_merge_documents(old_file_ids[i], new_file_ids[i]);
+        }
+      }
     }
   } else {
     merge_message_contents(td_, old_content.get(), new_content.get(), need_message_changed_warning(old_message),
                            dialog_id, need_merge_files, is_content_changed, need_update);
     compare_message_contents(td_, old_content.get(), new_content.get(), is_content_changed, need_update);
   }
-  if (need_finish_upload) {
+  if (need_merge_files) {
     // the file is likely to be already merged with a server file, but if not we need to
     // cancel file upload of the main file to allow next upload with the same file to succeed
-    cancel_upload_file(old_file_id, "update_message_content");
+    for (auto old_file_id : old_file_ids) {
+      cancel_upload_file(old_file_id, "update_message_content");
+    }
   }
 
   if (is_content_changed || need_update) {
@@ -33962,9 +33989,9 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
     }
     old_content = std::move(new_content);
     old_message->last_edit_pts = 0;
-    update_message_content_file_id_remote(old_content.get(), old_file_id);
+    update_message_content_file_id_remotes(old_content.get(), old_file_ids);
   } else {
-    update_message_content_file_id_remote(old_content.get(), get_message_content_any_file_id(new_content.get()));
+    update_message_content_file_id_remotes(old_content.get(), get_message_content_any_file_ids(new_content.get()));
   }
   if (is_content_changed && !need_update) {
     LOG(INFO) << "Content of " << old_message->message_id << " in " << dialog_id << " has changed";

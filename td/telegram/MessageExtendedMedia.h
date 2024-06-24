@@ -96,6 +96,8 @@ class MessageExtendedMedia {
 
   FileId get_thumbnail_file_id(const Td *td) const;
 
+  void update_file_id_remote(FileId file_id);
+
   telegram_api::object_ptr<telegram_api::InputMedia> get_input_media(
       Td *td, tl_object_ptr<telegram_api::InputFile> input_file,
       tl_object_ptr<telegram_api::InputFile> input_thumbnail) const;
