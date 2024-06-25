@@ -1604,6 +1604,10 @@ void DialogParticipantManager::get_channel_participant(ChannelId channel_id, Dia
   if (input_peer == nullptr) {
     return promise.set_error(Status::Error(400, "Member not found"));
   }
+  if (td_->chat_manager_->is_broadcast_channel(channel_id) &&
+      !td_->chat_manager_->get_channel_status(channel_id).is_administrator()) {
+    return promise.set_error(Status::Error(400, "Member list is inaccessible"));
+  }
 
   if (have_channel_participant_cache(channel_id)) {
     auto *participant = get_channel_participant_from_cache(channel_id, participant_dialog_id);
