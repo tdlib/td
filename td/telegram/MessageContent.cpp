@@ -5539,8 +5539,17 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
     case MessageContentType::PaidMedia: {
       const auto *lhs = static_cast<const MessagePaidMedia *>(old_content);
       const auto *rhs = static_cast<const MessagePaidMedia *>(new_content);
-      if (lhs->caption != rhs->caption || lhs->star_count != rhs->star_count) {
+      if (lhs->caption != rhs->caption || lhs->star_count != rhs->star_count ||
+          lhs->media.size() != rhs->media.size()) {
         need_update = true;
+      } else {
+        for (size_t i = 0; i < lhs->media.size(); i++) {
+          if (lhs->media[i] != rhs->media[i]) {
+            need_update = true;
+          } else if (lhs->media[i].is_equal_but_different(rhs->media[i])) {
+            is_content_changed = true;
+          }
+        }
       }
       break;
     }
