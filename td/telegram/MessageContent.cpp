@@ -4735,10 +4735,14 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       break;
     }
     case MessageContentType::PaidMedia: {
-      //const auto *old_ = static_cast<const MessagePaidMedia *>(old_content);
-      //const auto *new_ = static_cast<const MessagePaidMedia *>(new_content);
-      if (need_merge_files) {
-        // TODO merge extended media
+      const auto *old_ = static_cast<const MessagePaidMedia *>(old_content);
+      auto *new_ = static_cast<MessagePaidMedia *>(new_content);
+      if (old_->media.size() != new_->media.size()) {
+        LOG(ERROR) << "Had " << old_->media.size() << " paid media, but now have " << new_->media.size();
+      } else {
+        for (size_t i = 0; i < old_->media.size(); i++) {
+          old_->media[i].merge_files(td, new_->media[i], dialog_id, need_merge_files, is_content_changed, need_update);
+        }
       }
       break;
     }

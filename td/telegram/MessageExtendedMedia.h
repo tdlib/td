@@ -108,6 +108,9 @@ class MessageExtendedMedia {
       Td *td, tl_object_ptr<telegram_api::InputFile> input_file,
       tl_object_ptr<telegram_api::InputFile> input_thumbnail) const;
 
+  void merge_files(Td *td, MessageExtendedMedia &other, DialogId dialog_id, bool need_merge_files,
+                   bool &is_content_changed, bool &need_update) const;
+
   template <class StorerT>
   void store(StorerT &storer) const;
 

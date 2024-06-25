@@ -394,6 +394,33 @@ telegram_api::object_ptr<telegram_api::InputMedia> MessageExtendedMedia::get_inp
   return nullptr;
 }
 
+void MessageExtendedMedia::merge_files(Td *td, MessageExtendedMedia &other, DialogId dialog_id, bool need_merge_files,
+                                       bool &is_content_changed, bool &need_update) const {
+  if (!has_input_media() || !other.has_input_media()) {
+    return;
+  }
+  if (type_ != other.type_) {
+    LOG(ERROR) << "Type of a paid media has changed";
+    return;
+  }
+  switch (type_) {
+    case Type::Photo:
+      merge_photos(td, &photo_, &other.photo_, dialog_id, need_merge_files, is_content_changed, need_update);
+      break;
+    case Type::Video:
+      if (video_file_id_ != other.video_file_id_ && need_merge_files) {
+        td->videos_manager_->merge_videos(other.video_file_id_, video_file_id_);
+      }
+      break;
+    case Type::Empty:
+    case Type::Preview:
+    case Type::Unsupported:
+    default:
+      UNREACHABLE();
+      break;
+  }
+}
+
 bool MessageExtendedMedia::is_equal_but_different(const MessageExtendedMedia &other) const {
   return type_ == Type::Unsupported && other.type_ == Type::Unsupported &&
          unsupported_version_ != other.unsupported_version_;
