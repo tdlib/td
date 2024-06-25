@@ -3849,11 +3849,18 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
       }
       break;
     case MessageContentType::PaidMedia:
-      if (!permissions.can_send_photos() || !permissions.can_send_videos()) {
-        return Status::Error(400, "Not enough rights to send paid media to the chat");
-      }
-      if (dialog_type == DialogType::SecretChat) {
-        return Status::Error(400, "Paid media can't be sent to secret chats");
+      if (is_forward) {
+        if (!permissions.can_send_photos() || !permissions.can_send_videos()) {
+          return Status::Error(400, "Not enough rights to send paid media to the chat");
+        }
+        if (dialog_type == DialogType::SecretChat) {
+          return Status::Error(400, "Paid media can't be sent to secret chats");
+        }
+      } else {
+        if (dialog_type != DialogType::Channel ||
+            !td->chat_manager_->is_broadcast_channel(dialog_id.get_channel_id())) {
+          return Status::Error(400, "Paid media can be sent only in channel chats");
+        }
       }
       break;
     case MessageContentType::Photo:
