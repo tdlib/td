@@ -3181,6 +3181,16 @@ bool can_have_input_media(const Td *td, const MessageContent *content, bool is_s
     case MessageContentType::Giveaway:
     case MessageContentType::GiveawayWinners:
       return is_server;
+    case MessageContentType::PaidMedia:
+      if (is_server) {
+        return true;
+      }
+      for (const auto &media : static_cast<const MessagePaidMedia *>(content)->media) {
+        if (!media.has_input_media()) {
+          return false;
+        }
+      }
+      return true;
     case MessageContentType::Unsupported:
     case MessageContentType::ChatCreate:
     case MessageContentType::ChatChangeTitle:
@@ -3244,7 +3254,6 @@ bool can_have_input_media(const Td *td, const MessageContent *content, bool is_s
     case MessageContentType::Video:
     case MessageContentType::VideoNote:
     case MessageContentType::VoiceNote:
-    case MessageContentType::PaidMedia:
       return true;
     default:
       UNREACHABLE();
@@ -6579,9 +6588,16 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       if (type == MessageContentDupType::Copy || type == MessageContentDupType::ServerCopy) {
         return nullptr;
       }
+      CHECK(!to_secret);
       auto result = make_unique<MessagePaidMedia>(*static_cast<const MessagePaidMedia *>(content));
+      if (replace_caption) {
+        result->caption = std::move(copy_options.new_caption);
+      }
       if (type != MessageContentDupType::Forward) {
-        // TODO support PaidMedia sending
+        for (auto &media : result->media) {
+          media = media.dup_to_send(td);
+          CHECK(!media.is_empty());
+        }
       }
       return result;
     }

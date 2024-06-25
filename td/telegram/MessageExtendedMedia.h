@@ -63,6 +63,10 @@ class MessageExtendedMedia {
     return type_ == Type::Empty;
   }
 
+  bool has_input_media() const {
+    return type_ == Type::Photo || type_ == Type::Video;
+  }
+
   void update_from(const MessageExtendedMedia &old_extended_media);
 
   bool update_to(Td *td, telegram_api::object_ptr<telegram_api::MessageExtendedMedia> extended_media_ptr,
@@ -97,6 +101,8 @@ class MessageExtendedMedia {
   FileId get_thumbnail_file_id(const Td *td) const;
 
   void update_file_id_remote(FileId file_id);
+
+  MessageExtendedMedia dup_to_send(Td *td) const;
 
   telegram_api::object_ptr<telegram_api::InputMedia> get_input_media(
       Td *td, tl_object_ptr<telegram_api::InputFile> input_file,
