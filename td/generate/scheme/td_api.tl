@@ -807,7 +807,7 @@ premiumPaymentOption currency:string amount:int53 discount_percentage:int32 mont
 //@last_transaction_id Identifier of the last in-store transaction for the currently used option
 premiumStatePaymentOption payment_option:premiumPaymentOption is_current:Bool is_upgrade:Bool last_transaction_id:string = PremiumStatePaymentOption;
 
-//@description Describes an option for creating Telegram Premium gift codes
+//@description Describes an option for creating Telegram Premium gift codes. Use telegramPaymentPurposePremiumGiftCodes for out-of-store payments
 //@currency ISO 4217 currency code for Telegram Premium gift code payment
 //@amount The amount to pay, in the smallest units of the currency
 //@user_count Number of users which will be able to activate the gift codes
@@ -829,7 +829,7 @@ premiumGiftCodePaymentOptions options:vector<premiumGiftCodePaymentOption> = Pre
 //@use_date Point in time (Unix timestamp) when the code was activated; 0 if none
 premiumGiftCodeInfo creator_id:MessageSender creation_date:int32 is_from_giveaway:Bool giveaway_message_id:int53 month_count:int32 user_id:int53 use_date:int32 = PremiumGiftCodeInfo;
 
-//@description Describes an option for buying Telegram stars
+//@description Describes an option for buying Telegram stars. Use telegramPaymentPurposeStars for out-of-store payments
 //@currency ISO 4217 currency code for the payment
 //@amount The amount to pay, in the smallest units of the currency
 //@star_count Number of Telegram stars that will be purchased
@@ -3354,7 +3354,7 @@ messageGiftedPremium gifter_user_id:int53 currency:string amount:int53 cryptocur
 //@code The gift code
 messagePremiumGiftCode creator_id:MessageSender is_from_giveaway:Bool is_unclaimed:Bool currency:string amount:int53 cryptocurrency:string cryptocurrency_amount:int64 month_count:int32 sticker:sticker code:string = MessageContent;
 
-//@description A Telegram Premium giveaway was created for the chat
+//@description A Telegram Premium giveaway was created for the chat. Use telegramPaymentPurposePremiumGiveaway or storePaymentPurposePremiumGiveaway to create a giveaway
 messagePremiumGiveawayCreated = MessageContent;
 
 //@description A Telegram Premium giveaway
