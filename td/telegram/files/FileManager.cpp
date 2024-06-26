@@ -3610,17 +3610,43 @@ bool FileManager::extract_was_uploaded(const telegram_api::object_ptr<telegram_a
   }
 
   auto input_media_id = input_media->get_id();
+  if (input_media_id == telegram_api::inputMediaPaidMedia::ID) {
+    auto &extended_media = static_cast<const telegram_api::inputMediaPaidMedia *>(input_media.get())->extended_media_;
+    if (extended_media.size() > 1u) {
+      for (auto &media : extended_media) {
+        CHECK(!extract_was_uploaded(media));
+      }
+      return false;
+    }
+    CHECK(extended_media.size() == 1u);
+    return extract_was_uploaded(extended_media[0]);
+  }
   return input_media_id == telegram_api::inputMediaUploadedPhoto::ID ||
          input_media_id == telegram_api::inputMediaUploadedDocument::ID;
 }
 
 bool FileManager::extract_was_thumbnail_uploaded(
     const telegram_api::object_ptr<telegram_api::InputMedia> &input_media) {
-  if (input_media == nullptr || input_media->get_id() != telegram_api::inputMediaUploadedDocument::ID) {
+  if (input_media == nullptr) {
     return false;
   }
-
-  return static_cast<const telegram_api::inputMediaUploadedDocument *>(input_media.get())->thumb_ != nullptr;
+  switch (input_media->get_id()) {
+    case telegram_api::inputMediaDocument::ID:
+      return static_cast<const telegram_api::inputMediaUploadedDocument *>(input_media.get())->thumb_ != nullptr;
+    case telegram_api::inputMediaPaidMedia::ID: {
+      auto &extended_media = static_cast<const telegram_api::inputMediaPaidMedia *>(input_media.get())->extended_media_;
+      if (extended_media.size() > 1u) {
+        for (auto &media : extended_media) {
+          CHECK(!extract_was_thumbnail_uploaded(media));
+        }
+        return false;
+      }
+      CHECK(extended_media.size() == 1u);
+      return extract_was_thumbnail_uploaded(extended_media[0]);
+    }
+    default:
+      return false;
+  }
 }
 
 string FileManager::extract_file_reference(const telegram_api::object_ptr<telegram_api::InputMedia> &input_media) {
@@ -3635,7 +3661,7 @@ string FileManager::extract_file_reference(const telegram_api::object_ptr<telegr
       return extract_file_reference(static_cast<const telegram_api::inputMediaPhoto *>(input_media.get())->id_);
     case telegram_api::inputMediaPaidMedia::ID:
       UNREACHABLE();
-      break;
+      return string();
     default:
       return string();
   }
