@@ -872,7 +872,7 @@ class MessagesManager final : public Actor {
 
   void on_send_message_file_parts_missing(int64 random_id, vector<int> &&bad_parts);
 
-  void on_send_message_file_reference_error(int64 random_id);
+  void on_send_message_file_reference_error(int64 random_id, size_t pos);
 
   void on_send_media_group_file_reference_error(DialogId dialog_id, vector<int64> random_ids);
 
@@ -1844,7 +1844,7 @@ class MessagesManager final : public Actor {
                                                    td_api::object_ptr<td_api::messageSendOptions> &&options,
                                                    bool in_game_share, vector<MessageCopyOptions> &&copy_options);
 
-  void do_send_media(DialogId dialog_id, const Message *m, FileId file_id, FileId thumbnail_file_id,
+  void do_send_media(DialogId dialog_id, const Message *m, int32 media_pos, FileId file_id, FileId thumbnail_file_id,
                      tl_object_ptr<telegram_api::InputFile> input_file,
                      tl_object_ptr<telegram_api::InputFile> input_thumbnail);
 
@@ -1855,8 +1855,8 @@ class MessagesManager final : public Actor {
   void do_send_message(DialogId dialog_id, const Message *m, vector<int> bad_parts = {});
 
   void on_message_media_uploaded(DialogId dialog_id, const Message *m,
-                                 tl_object_ptr<telegram_api::InputMedia> &&input_media, FileId file_id,
-                                 FileId thumbnail_file_id);
+                                 tl_object_ptr<telegram_api::InputMedia> &&input_media, vector<FileId> file_ids,
+                                 vector<FileId> thumbnail_file_ids);
 
   void on_secret_message_media_uploaded(DialogId dialog_id, const Message *m, SecretInputMedia &&secret_input_media,
                                         FileId file_id, FileId thumbnail_file_id);
@@ -3167,12 +3167,14 @@ class MessagesManager final : public Actor {
   struct UploadedFileInfo {
     MessageFullId message_full_id;
     FileId thumbnail_file_id;
+    int32 media_pos;
   };
   FlatHashMap<FileId, UploadedFileInfo, FileIdHash> being_uploaded_files_;
   struct UploadedThumbnailInfo {
     MessageFullId message_full_id;
     FileId file_id;                                     // original file file_id
     tl_object_ptr<telegram_api::InputFile> input_file;  // original file InputFile
+    int32 media_pos;
   };
   FlatHashMap<FileId, UploadedThumbnailInfo, FileIdHash> being_uploaded_thumbnails_;  // thumbnail_file_id -> ...
   struct UploadedSecretThumbnailInfo {

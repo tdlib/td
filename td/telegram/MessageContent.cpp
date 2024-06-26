@@ -3442,6 +3442,7 @@ static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_in
     }
     case MessageContentType::PaidMedia: {
       const auto *m = static_cast<const MessagePaidMedia *>(content);
+      CHECK(m->media.size() == 1u || (input_file == nullptr && input_thumbnail == nullptr));
       vector<telegram_api::object_ptr<telegram_api::InputMedia>> input_media;
       for (auto &extended_media : m->media) {
         auto media = extended_media.get_input_media(td, std::move(input_file), std::move(input_thumbnail));
