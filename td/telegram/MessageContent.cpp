@@ -6631,7 +6631,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       }
       if (type != MessageContentDupType::Forward) {
         for (auto &media : result->media) {
-          media = media.dup_to_send(td);
+          media = media.dup_to_send(td, result->media.size() > 1u);
           CHECK(!media.is_empty());
         }
       }

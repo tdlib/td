@@ -102,7 +102,7 @@ class MessageExtendedMedia {
 
   void update_file_id_remote(FileId file_id);
 
-  MessageExtendedMedia dup_to_send(Td *td) const;
+  MessageExtendedMedia dup_to_send(Td *td, bool always_dup_files) const;
 
   telegram_api::object_ptr<telegram_api::InputMedia> get_input_media(
       Td *td, tl_object_ptr<telegram_api::InputFile> input_file,
