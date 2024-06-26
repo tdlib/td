@@ -3679,7 +3679,10 @@ bool is_uploaded_input_media(telegram_api::object_ptr<telegram_api::InputMedia> 
   }
 }
 
-void delete_message_content_thumbnail(MessageContent *content, Td *td) {
+void delete_message_content_thumbnail(MessageContent *content, Td *td, int32 media_pos) {
+  if (media_pos != -1) {
+    CHECK(content->get_type() == MessageContentType::PaidMedia);
+  }
   switch (content->get_type()) {
     case MessageContentType::Animation: {
       auto *m = static_cast<MessageAnimation *>(content);
@@ -3697,9 +3700,17 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td) {
       auto *m = static_cast<MessageInvoice *>(content);
       return m->input_invoice.delete_thumbnail(td);
     }
-    case MessageContentType::PaidMedia:
-      // TODO delete_message_content_thumbnail
+    case MessageContentType::PaidMedia: {
+      auto *m = static_cast<MessagePaidMedia *>(content);
+      if (media_pos == -1) {
+        CHECK(m->media.size() == 1u);
+        media_pos = 0;
+      } else {
+        CHECK(static_cast<size_t>(media_pos) < m->media.size());
+      }
+      m->media[media_pos].delete_thumbnail(td);
       break;
+    }
     case MessageContentType::Photo: {
       auto *m = static_cast<MessagePhoto *>(content);
       return photo_delete_thumbnail(m->photo);
