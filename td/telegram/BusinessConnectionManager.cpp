@@ -1024,14 +1024,9 @@ void BusinessConnectionManager::do_upload_media(BeingUploadedMedia &&being_uploa
 void BusinessConnectionManager::complete_upload_media(unique_ptr<PendingMessage> &&message,
                                                       telegram_api::object_ptr<telegram_api::MessageMedia> &&media,
                                                       Promise<UploadMediaResult> &&promise) {
-  auto *content = message->content_.get();
-  auto *caption = get_message_content_caption(content);
-  auto has_spoiler = get_message_content_has_spoiler(content);
-  auto new_content = get_message_content(td_, caption == nullptr ? FormattedText() : *caption, std::move(media),
-                                         td_->dialog_manager_->get_my_dialog_id(), G()->unix_time(), false, UserId(),
-                                         nullptr, nullptr, "complete_upload_media");
-  set_message_content_has_spoiler(new_content.get(), has_spoiler);
-
+  auto new_content =
+      get_uploaded_message_content(td_, message->content_.get(), std::move(media),
+                                   td_->dialog_manager_->get_my_dialog_id(), G()->unix_time(), "complete_upload_media");
   bool is_content_changed = false;
   bool need_update = false;
 

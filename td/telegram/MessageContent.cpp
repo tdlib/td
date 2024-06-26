@@ -7736,7 +7736,7 @@ const FormattedText *get_message_content_caption(const MessageContent *content) 
   }
 }
 
-bool get_message_content_has_spoiler(const MessageContent *content) {
+static bool get_message_content_has_spoiler(const MessageContent *content) {
   switch (content->get_type()) {
     case MessageContentType::Animation:
       return static_cast<const MessageAnimation *>(content)->has_spoiler;
@@ -7749,7 +7749,7 @@ bool get_message_content_has_spoiler(const MessageContent *content) {
   }
 }
 
-void set_message_content_has_spoiler(MessageContent *content, bool has_spoiler) {
+static void set_message_content_has_spoiler(MessageContent *content, bool has_spoiler) {
   switch (content->get_type()) {
     case MessageContentType::Animation:
       static_cast<MessageAnimation *>(content)->has_spoiler = has_spoiler;
@@ -7763,6 +7763,17 @@ void set_message_content_has_spoiler(MessageContent *content, bool has_spoiler) 
     default:
       break;
   }
+}
+
+unique_ptr<MessageContent> get_uploaded_message_content(
+    Td *td, const MessageContent *old_content, telegram_api::object_ptr<telegram_api::MessageMedia> &&media_ptr,
+    DialogId owner_dialog_id, int32 message_date, const char *source) {
+  auto caption = get_message_content_caption(old_content);
+  auto has_spoiler = get_message_content_has_spoiler(old_content);
+  auto content = get_message_content(td, caption == nullptr ? FormattedText() : *caption, std::move(media_ptr),
+                                     owner_dialog_id, message_date, false, UserId(), nullptr, nullptr, source);
+  set_message_content_has_spoiler(content.get(), has_spoiler);
+  return content;
 }
 
 int32 get_message_content_duration(const MessageContent *content, const Td *td) {

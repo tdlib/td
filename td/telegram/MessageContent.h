@@ -238,6 +238,10 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message_tex
                                                UserId via_bot_user_id, MessageSelfDestructType *ttl,
                                                bool *disable_web_page_preview, const char *source);
 
+unique_ptr<MessageContent> get_uploaded_message_content(
+    Td *td, const MessageContent *old_content, telegram_api::object_ptr<telegram_api::MessageMedia> &&media_ptr,
+    DialogId owner_dialog_id, int32 message_date, const char *source);
+
 enum class MessageContentDupType : int32 {
   Send,        // normal message sending
   SendViaBot,  // message sending via bot
@@ -265,10 +269,6 @@ FormattedText *get_message_content_text_mutable(MessageContent *content);
 const FormattedText *get_message_content_text(const MessageContent *content);
 
 const FormattedText *get_message_content_caption(const MessageContent *content);
-
-bool get_message_content_has_spoiler(const MessageContent *content);
-
-void set_message_content_has_spoiler(MessageContent *content, bool has_spoiler);
 
 int32 get_message_content_duration(const MessageContent *content, const Td *td);
 

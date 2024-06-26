@@ -24243,12 +24243,8 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
     return;  // the message should be deleted soon
   }
 
-  auto caption = get_message_content_caption(m->content.get());
-  auto has_spoiler = get_message_content_has_spoiler(m->content.get());
-  auto content = get_message_content(td_, caption == nullptr ? FormattedText() : *caption, std::move(media), dialog_id,
-                                     m->date, false, UserId(), nullptr, nullptr, "on_upload_message_media_success");
-  set_message_content_has_spoiler(content.get(), has_spoiler);
-
+  auto content = get_uploaded_message_content(td_, m->content.get(), std::move(media), dialog_id, m->date,
+                                              "on_upload_message_media_success");
   bool is_content_changed = false;
   bool need_update = update_message_content(dialog_id, m, std::move(content), true, true, is_content_changed);
   if (need_update) {
