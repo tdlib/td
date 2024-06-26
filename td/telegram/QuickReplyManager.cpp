@@ -2194,7 +2194,7 @@ void QuickReplyManager::do_send_message(const QuickReplyMessage *m, vector<int> 
   FileId file_id = get_message_content_any_file_id(content);  // any_file_id, because it could be a photo sent by ID
   FileId thumbnail_file_id = get_message_content_thumbnail_file_id(content, td_);
   LOG(DEBUG) << "Need to send file " << file_id << " with thumbnail " << thumbnail_file_id;
-  auto input_media = get_input_media(content, td_, {}, m->send_emoji, false);
+  auto input_media = get_message_content_input_media(content, td_, {}, m->send_emoji, false);
   if (input_media == nullptr) {
     if (content_type == MessageContentType::Game || content_type == MessageContentType::Story) {
       return;
@@ -2285,8 +2285,8 @@ void QuickReplyManager::do_send_media(const QuickReplyMessage *m, FileId file_id
 
   auto content = m->message_id.is_server() ? m->edited_content.get() : m->content.get();
   CHECK(content != nullptr);
-  auto input_media = get_input_media(content, td_, std::move(input_file), std::move(input_thumbnail), file_id,
-                                     thumbnail_file_id, {}, m->send_emoji, true);
+  auto input_media = get_message_content_input_media(content, td_, std::move(input_file), std::move(input_thumbnail),
+                                                     file_id, thumbnail_file_id, {}, m->send_emoji, true);
   CHECK(input_media != nullptr);
 
   on_message_media_uploaded(m, std::move(input_media), file_id, thumbnail_file_id);
@@ -2417,7 +2417,7 @@ void QuickReplyManager::on_upload_message_media_success(QuickReplyShortcutId sho
 
   save_quick_reply_shortcuts();
 
-  auto input_media = get_input_media(content.get(), td_, {}, m->send_emoji, true);
+  auto input_media = get_message_content_input_media(content.get(), td_, {}, m->send_emoji, true);
   Status result;
   if (input_media == nullptr) {
     result = Status::Error(400, "Failed to upload file");
@@ -2515,7 +2515,7 @@ void QuickReplyManager::do_send_message_group(QuickReplyShortcutId shortcut_id, 
               << " and is_finished = " << static_cast<bool>(request.is_finished[i]);
 
     const FormattedText *caption = get_message_content_caption(m->content.get());
-    auto input_media = get_input_media(m->content.get(), td_, {}, m->send_emoji, true);
+    auto input_media = get_message_content_input_media(m->content.get(), td_, {}, m->send_emoji, true);
     CHECK(input_media != nullptr);
     auto entities = get_input_message_entities(td_->user_manager_.get(), caption, "do_send_message_group");
     int32 input_single_media_flags = 0;

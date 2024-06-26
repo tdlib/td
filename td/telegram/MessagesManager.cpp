@@ -8350,8 +8350,8 @@ void MessagesManager::do_send_media(DialogId dialog_id, const Message *m, FileId
     content = m->content.get();
   }
 
-  auto input_media = get_input_media(content, td_, std::move(input_file), std::move(input_thumbnail), file_id,
-                                     thumbnail_file_id, m->ttl, m->send_emoji, true);
+  auto input_media = get_message_content_input_media(content, td_, std::move(input_file), std::move(input_thumbnail),
+                                                     file_id, thumbnail_file_id, m->ttl, m->send_emoji, true);
   LOG_CHECK(input_media != nullptr) << to_string(get_message_object(dialog_id, m, "do_send_media")) << ' '
                                     << have_input_file << ' ' << have_input_thumbnail << ' ' << file_id << ' '
                                     << thumbnail_file_id << ' ' << m->ttl;
@@ -8375,7 +8375,8 @@ void MessagesManager::do_send_secret_media(DialogId dialog_id, const Message *m,
   auto layer = td_->user_manager_->get_secret_chat_layer(dialog_id.get_secret_chat_id());
   on_secret_message_media_uploaded(
       dialog_id, m,
-      get_secret_input_media(m->content.get(), td_, std::move(input_encrypted_file), std::move(thumbnail), layer),
+      get_message_content_secret_input_media(m->content.get(), td_, std::move(input_encrypted_file),
+                                             std::move(thumbnail), layer),
       file_id, thumbnail_file_id);
 }
 
@@ -23981,7 +23982,7 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vect
 
     CHECK(!is_edit);
     auto layer = td_->user_manager_->get_secret_chat_layer(dialog_id.get_secret_chat_id());
-    auto secret_input_media = get_secret_input_media(content, td_, nullptr, BufferSlice(), layer);
+    auto secret_input_media = get_message_content_secret_input_media(content, td_, nullptr, BufferSlice(), layer);
     if (secret_input_media.empty()) {
       LOG(INFO) << "Ask to upload encrypted file " << file_id;
       CHECK(file_id.is_valid());
@@ -23998,8 +23999,8 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vect
       on_secret_message_media_uploaded(dialog_id, m, std::move(secret_input_media), file_id, thumbnail_file_id);
     }
   } else {
-    auto input_media =
-        get_input_media(content, td_, m->ttl, m->send_emoji, td_->auth_manager_->is_bot() && bad_parts.empty());
+    auto input_media = get_message_content_input_media(content, td_, m->ttl, m->send_emoji,
+                                                       td_->auth_manager_->is_bot() && bad_parts.empty());
     if (file_ids.size() > 1u) {
       // TODO PaidMedia
       return;
@@ -24250,7 +24251,7 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
     on_message_changed(d, m, need_update, "on_upload_message_media_success");
   }
 
-  auto input_media = get_input_media(m->content.get(), td_, m->ttl, m->send_emoji, true);
+  auto input_media = get_message_content_input_media(m->content.get(), td_, m->ttl, m->send_emoji, true);
   Status result;
   if (input_media == nullptr) {
     result = Status::Error(400, "Failed to upload file");
@@ -24426,7 +24427,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
     }
 
     const FormattedText *caption = get_message_content_caption(m->content.get());
-    auto input_media = get_input_media(m->content.get(), td_, m->ttl, m->send_emoji, true);
+    auto input_media = get_message_content_input_media(m->content.get(), td_, m->ttl, m->send_emoji, true);
     if (input_media == nullptr) {
       // TODO return CHECK
       auto file_id = get_message_content_any_file_id(m->content.get());
@@ -24498,7 +24499,8 @@ void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageI
   if (dialog_id.get_type() == DialogType::SecretChat) {
     CHECK(!message_id.is_scheduled());
     auto layer = td_->user_manager_->get_secret_chat_layer(dialog_id.get_secret_chat_id());
-    send_secret_message(dialog_id, m, get_secret_input_media(content, td_, nullptr, BufferSlice(), layer));
+    send_secret_message(dialog_id, m,
+                        get_message_content_secret_input_media(content, td_, nullptr, BufferSlice(), layer));
   } else {
     const FormattedText *message_text = get_message_content_text(content);
     CHECK(message_text != nullptr);
@@ -25047,7 +25049,7 @@ bool MessagesManager::can_resend_message(const Message *m) const {
   auto content_type = m->content->get_type();
   if (m->via_bot_user_id.is_valid() || m->hide_via_bot) {
     // via bot message
-    if (!can_have_input_media(td_, m->content.get(), false)) {
+    if (!can_message_content_have_input_media(td_, m->content.get(), false)) {
       return false;
     }
 

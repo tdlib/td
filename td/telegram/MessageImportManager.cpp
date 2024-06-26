@@ -519,7 +519,7 @@ void MessageImportManager::on_upload_imported_message_attachment(FileId file_id,
   const PathView path_view(suggested_path);
   td_->create_handler<UploadImportedMediaQuery>(std::move(promise))
       ->send(dialog_id, import_id, path_view.file_name().str(), file_id,
-             get_fake_input_media(td_, std::move(input_file), file_id));
+             get_message_content_fake_input_media(td_, std::move(input_file), file_id));
 }
 
 void MessageImportManager::on_upload_imported_message_attachment_error(FileId file_id, Status status) {

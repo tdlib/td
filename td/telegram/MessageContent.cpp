@@ -3167,7 +3167,7 @@ Status check_message_group_message_contents(const vector<InputMessageContent> &m
   return Status::OK();
 }
 
-bool can_have_input_media(const Td *td, const MessageContent *content, bool is_server) {
+bool can_message_content_have_input_media(const Td *td, const MessageContent *content, bool is_server) {
   switch (content->get_type()) {
     case MessageContentType::Game:
       return is_server || static_cast<const MessageGame *>(content)->game.has_input_media();
@@ -3260,9 +3260,9 @@ bool can_have_input_media(const Td *td, const MessageContent *content, bool is_s
   }
 }
 
-SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
-                                        tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
-                                        BufferSlice thumbnail, int32 layer) {
+SecretInputMedia get_message_content_secret_input_media(
+    const MessageContent *content, Td *td, telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file,
+    BufferSlice thumbnail, int32 layer) {
   switch (content->get_type()) {
     case MessageContentType::Animation: {
       const auto *m = static_cast<const MessageAnimation *>(content);
@@ -3388,10 +3388,11 @@ SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
   return SecretInputMedia{};
 }
 
-static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
-    const MessageContent *content, Td *td, tl_object_ptr<telegram_api::InputFile> input_file,
-    tl_object_ptr<telegram_api::InputFile> input_thumbnail, MessageSelfDestructType ttl, const string &emoji) {
-  if (!can_have_input_media(td, content, false)) {
+static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_media_impl(
+    const MessageContent *content, Td *td, telegram_api::object_ptr<telegram_api::InputFile> input_file,
+    telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail, MessageSelfDestructType ttl,
+    const string &emoji) {
+  if (!can_message_content_have_input_media(td, content, false)) {
     return nullptr;
   }
   switch (content->get_type()) {
@@ -3544,14 +3545,14 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media_impl(
   return nullptr;
 }
 
-tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content, Td *td,
-                                                        tl_object_ptr<telegram_api::InputFile> input_file,
-                                                        tl_object_ptr<telegram_api::InputFile> input_thumbnail,
-                                                        FileId file_id, FileId thumbnail_file_id,
-                                                        MessageSelfDestructType ttl, const string &emoji, bool force) {
+telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_media(
+    const MessageContent *content, Td *td, telegram_api::object_ptr<telegram_api::InputFile> input_file,
+    telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail, FileId file_id, FileId thumbnail_file_id,
+    MessageSelfDestructType ttl, const string &emoji, bool force) {
   bool had_input_file = input_file != nullptr;
   bool had_input_thumbnail = input_thumbnail != nullptr;
-  auto input_media = get_input_media_impl(content, td, std::move(input_file), std::move(input_thumbnail), ttl, emoji);
+  auto input_media =
+      get_message_content_input_media_impl(content, td, std::move(input_file), std::move(input_thumbnail), ttl, emoji);
   auto was_uploaded = FileManager::extract_was_uploaded(input_media);
   if (had_input_file) {
     if (!was_uploaded) {
@@ -3582,9 +3583,10 @@ tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *co
   return input_media;
 }
 
-tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content, Td *td,
-                                                        MessageSelfDestructType ttl, const string &emoji, bool force) {
-  auto input_media = get_input_media_impl(content, td, nullptr, nullptr, ttl, emoji);
+telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_media(const MessageContent *content,
+                                                                                   Td *td, MessageSelfDestructType ttl,
+                                                                                   const string &emoji, bool force) {
+  auto input_media = get_message_content_input_media_impl(content, td, nullptr, nullptr, ttl, emoji);
   auto file_references = FileManager::extract_file_references(input_media);
   for (size_t i = 0; i < file_references.size(); i++) {
     if (file_references[i] == FileReferenceView::invalid_file_reference()) {
@@ -3601,17 +3603,17 @@ tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *co
   return input_media;
 }
 
-tl_object_ptr<telegram_api::InputMedia> get_fake_input_media(Td *td, tl_object_ptr<telegram_api::InputFile> input_file,
-                                                             FileId file_id) {
+telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_fake_input_media(
+    Td *td, telegram_api::object_ptr<telegram_api::InputFile> input_file, FileId file_id) {
   FileView file_view = td->file_manager_->get_file_view(file_id);
   auto file_type = file_view.get_type();
   if (is_document_file_type(file_type)) {
-    vector<tl_object_ptr<telegram_api::DocumentAttribute>> attributes;
+    vector<telegram_api::object_ptr<telegram_api::DocumentAttribute>> attributes;
     auto file_path = file_view.suggested_path();
     const PathView path_view(file_path);
     Slice file_name = path_view.file_name();
     if (!file_name.empty()) {
-      attributes.push_back(make_tl_object<telegram_api::documentAttributeFilename>(file_name.str()));
+      attributes.push_back(telegram_api::make_object<telegram_api::documentAttributeFilename>(file_name.str()));
     }
     string mime_type = MimeType::from_extension(path_view.extension());
     int32 flags = 0;
@@ -3621,19 +3623,20 @@ tl_object_ptr<telegram_api::InputMedia> get_fake_input_media(Td *td, tl_object_p
     if (file_type == FileType::DocumentAsFile) {
       flags |= telegram_api::inputMediaUploadedDocument::FORCE_FILE_MASK;
     }
-    return make_tl_object<telegram_api::inputMediaUploadedDocument>(
+    return telegram_api::make_object<telegram_api::inputMediaUploadedDocument>(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_file), nullptr, mime_type,
-        std::move(attributes), vector<tl_object_ptr<telegram_api::InputDocument>>(), 0);
+        std::move(attributes), vector<telegram_api::object_ptr<telegram_api::InputDocument>>(), 0);
   } else {
     CHECK(file_type == FileType::Photo || file_type == FileType::PhotoStory);
     int32 flags = 0;
-    return make_tl_object<telegram_api::inputMediaUploadedPhoto>(
-        flags, false /*ignored*/, std::move(input_file), vector<tl_object_ptr<telegram_api::InputDocument>>(), 0);
+    return telegram_api::make_object<telegram_api::inputMediaUploadedPhoto>(
+        flags, false /*ignored*/, std::move(input_file),
+        vector<telegram_api::object_ptr<telegram_api::InputDocument>>(), 0);
   }
 }
 
-tl_object_ptr<telegram_api::InputMedia> get_message_content_input_media_web_page(const Td *td,
-                                                                                 const MessageContent *content) {
+telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_media_web_page(
+    const Td *td, const MessageContent *content) {
   CHECK(content != nullptr);
   if (content->get_type() != MessageContentType::Text) {
     return nullptr;
@@ -6507,7 +6510,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     CHECK(type == MessageContentDupType::Copy || type == MessageContentDupType::ServerCopy);
   }
   if (type != MessageContentDupType::Forward && type != MessageContentDupType::SendViaBot &&
-      !can_have_input_media(td, content, type == MessageContentDupType::ServerCopy)) {
+      !can_message_content_have_input_media(td, content, type == MessageContentDupType::ServerCopy)) {
     return nullptr;
   }
 

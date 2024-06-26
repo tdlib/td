@@ -121,26 +121,26 @@ Result<InputMessageContent> get_input_message_content(
 
 Status check_message_group_message_contents(const vector<InputMessageContent> &message_contents);
 
-bool can_have_input_media(const Td *td, const MessageContent *content, bool is_server);
+bool can_message_content_have_input_media(const Td *td, const MessageContent *content, bool is_server);
 
-SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
-                                        tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
-                                        BufferSlice thumbnail, int32 layer);
+SecretInputMedia get_message_content_secret_input_media(
+    const MessageContent *content, Td *td, telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file,
+    BufferSlice thumbnail, int32 layer);
 
-tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content, Td *td,
-                                                        tl_object_ptr<telegram_api::InputFile> input_file,
-                                                        tl_object_ptr<telegram_api::InputFile> input_thumbnail,
-                                                        FileId file_id, FileId thumbnail_file_id,
-                                                        MessageSelfDestructType ttl, const string &emoji, bool force);
+telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_media(
+    const MessageContent *content, Td *td, telegram_api::object_ptr<telegram_api::InputFile> input_file,
+    telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail, FileId file_id, FileId thumbnail_file_id,
+    MessageSelfDestructType ttl, const string &emoji, bool force);
 
-tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content, Td *td,
-                                                        MessageSelfDestructType ttl, const string &emoji, bool force);
+telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_media(const MessageContent *content,
+                                                                                   Td *td, MessageSelfDestructType ttl,
+                                                                                   const string &emoji, bool force);
 
-tl_object_ptr<telegram_api::InputMedia> get_fake_input_media(Td *td, tl_object_ptr<telegram_api::InputFile> input_file,
-                                                             FileId file_id);
+telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_fake_input_media(
+    Td *td, telegram_api::object_ptr<telegram_api::InputFile> input_file, FileId file_id);
 
-tl_object_ptr<telegram_api::InputMedia> get_message_content_input_media_web_page(const Td *td,
-                                                                                 const MessageContent *content);
+telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_media_web_page(
+    const Td *td, const MessageContent *content);
 
 void delete_message_content_thumbnail(MessageContent *content, Td *td);
 
