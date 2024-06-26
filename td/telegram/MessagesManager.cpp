@@ -8266,8 +8266,8 @@ void MessagesManager::on_upload_media(FileId file_id, tl_object_ptr<telegram_api
     return;
   }
 
-  auto message_full_id = it->second.first;
-  auto thumbnail_file_id = it->second.second;
+  auto message_full_id = it->second.message_full_id;
+  auto thumbnail_file_id = it->second.thumbnail_file_id;
 
   being_uploaded_files_.erase(it);
 
@@ -8395,7 +8395,7 @@ void MessagesManager::on_upload_media_error(FileId file_id, Status status) {
     return;
   }
 
-  auto message_full_id = it->second.first;
+  auto message_full_id = it->second.message_full_id;
 
   being_uploaded_files_.erase(it);
 
@@ -12314,7 +12314,7 @@ void MessagesManager::hangup() {
   if (!G()->use_message_database()) {
     while (!being_uploaded_files_.empty()) {
       auto it = being_uploaded_files_.begin();
-      auto message_full_id = it->second.first;
+      auto message_full_id = it->second.message_full_id;
       being_uploaded_files_.erase(it);
       if (message_full_id.get_message_id().is_yet_unsent()) {
         fail_send_message(message_full_id, Global::request_aborted_error());
@@ -23990,7 +23990,7 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vect
       CHECK(file_view.is_encrypted_secret());
       bool is_inserted =
           being_uploaded_files_
-              .emplace(file_id, std::make_pair(MessageFullId(dialog_id, m->message_id), thumbnail_file_id))
+              .emplace(file_id, UploadedFileInfo{MessageFullId(dialog_id, m->message_id), thumbnail_file_id})
               .second;
       CHECK(is_inserted);
       // need to call resume_upload synchronously to make upload process consistent with being_uploaded_files_
@@ -24024,7 +24024,7 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, vect
         LOG(INFO) << "Ask to upload file " << file_id << " with bad parts " << bad_parts;
         bool is_inserted =
             being_uploaded_files_
-                .emplace(file_id, std::make_pair(MessageFullId(dialog_id, m->message_id), thumbnail_file_id))
+                .emplace(file_id, UploadedFileInfo{MessageFullId(dialog_id, m->message_id), thumbnail_file_id})
                 .second;
         CHECK(is_inserted);
         // need to call resume_upload synchronously to make upload process consistent with being_uploaded_files_

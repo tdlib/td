@@ -3164,8 +3164,11 @@ class MessagesManager final : public Actor {
 
   double last_channel_pts_jump_warning_time_ = 0;
 
-  FlatHashMap<FileId, std::pair<MessageFullId, FileId>, FileIdHash>
-      being_uploaded_files_;  // file_id -> message, thumbnail_file_id
+  struct UploadedFileInfo {
+    MessageFullId message_full_id;
+    FileId thumbnail_file_id;
+  };
+  FlatHashMap<FileId, UploadedFileInfo, FileIdHash> being_uploaded_files_;
   struct UploadedThumbnailInfo {
     MessageFullId message_full_id;
     FileId file_id;                                     // original file file_id
