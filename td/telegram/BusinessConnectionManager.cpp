@@ -1010,31 +1010,14 @@ void BusinessConnectionManager::do_upload_media(BeingUploadedMedia &&being_uploa
       get_message_content_input_media(message->content_.get(), td_, std::move(input_file), std::move(input_thumbnail),
                                       file_id, thumbnail_file_id, message->ttl_, message->send_emoji_, true);
   CHECK(input_media != nullptr);
-  auto input_media_id = input_media->get_id();
-  if (input_media_id == telegram_api::inputMediaDocument::ID || input_media_id == telegram_api::inputMediaPhoto::ID) {
-    // can use input media directly
+  if (is_uploaded_input_media(input_media)) {
     UploadMediaResult result;
     result.message_ = std::move(being_uploaded_media.message_);
     result.input_media_ = std::move(input_media);
     return being_uploaded_media.promise_.set_value(std::move(result));
-  }
-
-  switch (input_media->get_id()) {
-    case telegram_api::inputMediaUploadedDocument::ID:
-      if (message->content_->get_type() != MessageContentType::Animation) {
-        static_cast<telegram_api::inputMediaUploadedDocument *>(input_media.get())->flags_ |=
-            telegram_api::inputMediaUploadedDocument::NOSOUND_VIDEO_MASK;
-      }
-    // fallthrough
-    case telegram_api::inputMediaUploadedPhoto::ID:
-    case telegram_api::inputMediaDocumentExternal::ID:
-    case telegram_api::inputMediaPhotoExternal::ID:
-      td_->create_handler<UploadBusinessMediaQuery>(std::move(being_uploaded_media.promise_))
-          ->send(std::move(being_uploaded_media.message_), std::move(input_media));
-      break;
-    default:
-      LOG(ERROR) << "Have wrong input media " << to_string(input_media);
-      being_uploaded_media.promise_.set_error(Status::Error(400, "Invalid input media"));
+  } else {
+    td_->create_handler<UploadBusinessMediaQuery>(std::move(being_uploaded_media.promise_))
+        ->send(std::move(being_uploaded_media.message_), std::move(input_media));
   }
 }
 

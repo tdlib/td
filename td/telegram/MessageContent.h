@@ -142,6 +142,8 @@ telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_fake_inpu
 telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_media_web_page(
     const Td *td, const MessageContent *content);
 
+bool is_uploaded_input_media(telegram_api::object_ptr<telegram_api::InputMedia> &input_media);
+
 void delete_message_content_thumbnail(MessageContent *content, Td *td);
 
 Status can_send_message_content(DialogId dialog_id, const MessageContent *content, bool is_forward,

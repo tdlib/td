@@ -2368,26 +2368,11 @@ void QuickReplyManager::on_message_media_uploaded(const QuickReplyMessage *m,
   }
 
   if (m->media_album_id != 0) {
-    // must use UploadMedia and wait for other messages
-    switch (input_media->get_id()) {
-      case telegram_api::inputMediaUploadedDocument::ID:
-        static_cast<telegram_api::inputMediaUploadedDocument *>(input_media.get())->flags_ |=
-            telegram_api::inputMediaUploadedDocument::NOSOUND_VIDEO_MASK;
-      // fallthrough
-      case telegram_api::inputMediaUploadedPhoto::ID:
-      case telegram_api::inputMediaDocumentExternal::ID:
-      case telegram_api::inputMediaPhotoExternal::ID:
-        td_->create_handler<UploadQuickReplyMediaQuery>()->send(file_id, thumbnail_file_id, m, std::move(input_media));
-        break;
-      case telegram_api::inputMediaDocument::ID:
-      case telegram_api::inputMediaPhoto::ID:
-        send_closure_later(actor_id(this), &QuickReplyManager::on_upload_message_media_finished, m->media_album_id,
-                           m->shortcut_id, m->message_id, Status::OK());
-        break;
-      default:
-        LOG(ERROR) << "Have wrong input media " << to_string(input_media);
-        send_closure_later(actor_id(this), &QuickReplyManager::on_upload_message_media_finished, m->media_album_id,
-                           m->shortcut_id, m->message_id, Status::Error(400, "Invalid input media"));
+    if (!is_uploaded_input_media(input_media)) {
+      td_->create_handler<UploadQuickReplyMediaQuery>()->send(file_id, thumbnail_file_id, m, std::move(input_media));
+    } else {
+      send_closure_later(actor_id(this), &QuickReplyManager::on_upload_message_media_finished, m->media_album_id,
+                         m->shortcut_id, m->message_id, Status::OK());
     }
     return;
   }

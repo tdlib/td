@@ -24099,27 +24099,12 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
                              m->is_copy, random_id, &m->send_query_ref);
                        }));
   } else {
-    switch (input_media->get_id()) {
-      case telegram_api::inputMediaUploadedDocument::ID:
-        static_cast<telegram_api::inputMediaUploadedDocument *>(input_media.get())->flags_ |=
-            telegram_api::inputMediaUploadedDocument::NOSOUND_VIDEO_MASK;
-      // fallthrough
-      case telegram_api::inputMediaUploadedPhoto::ID:
-      case telegram_api::inputMediaDocumentExternal::ID:
-      case telegram_api::inputMediaPhotoExternal::ID:
-        LOG(INFO) << "Upload media from " << message_id << " in " << dialog_id;
-        td_->create_handler<UploadMediaQuery>()->send(dialog_id, message_id, file_id, thumbnail_file_id,
-                                                      std::move(input_media));
-        break;
-      case telegram_api::inputMediaDocument::ID:
-      case telegram_api::inputMediaPhoto::ID:
-        send_closure_later(actor_id(this), &MessagesManager::on_upload_message_media_finished, m->media_album_id,
-                           dialog_id, message_id, Status::OK());
-        break;
-      default:
-        LOG(ERROR) << "Have wrong input media " << to_string(input_media);
-        send_closure_later(actor_id(this), &MessagesManager::on_upload_message_media_finished, m->media_album_id,
-                           dialog_id, message_id, Status::Error(400, "Invalid input media"));
+    if (!is_uploaded_input_media(input_media)) {
+      td_->create_handler<UploadMediaQuery>()->send(dialog_id, message_id, file_id, thumbnail_file_id,
+                                                    std::move(input_media));
+    } else {
+      send_closure_later(actor_id(this), &MessagesManager::on_upload_message_media_finished, m->media_album_id,
+                         dialog_id, message_id, Status::OK());
     }
   }
 }
