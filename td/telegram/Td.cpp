@@ -3831,6 +3831,7 @@ void Td::init_managers() {
   G()->set_sponsored_message_manager(sponsored_message_manager_actor_.get());
   star_manager_ = make_unique<StarManager>(this, create_reference());
   star_manager_actor_ = register_actor("StarManager", star_manager_.get());
+  G()->set_star_manager(star_manager_actor_.get());
   statistics_manager_ = make_unique<StatisticsManager>(this, create_reference());
   statistics_manager_actor_ = register_actor("StatisticsManager", statistics_manager_.get());
   stickers_manager_ = make_unique<StickersManager>(this, create_reference());

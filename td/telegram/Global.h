@@ -70,6 +70,7 @@ class ReactionManager;
 class SavedMessagesManager;
 class SecretChatsManager;
 class SponsoredMessageManager;
+class StarManager;
 class StateManager;
 class StickersManager;
 class StorageManager;
@@ -451,6 +452,13 @@ class Global final : public ActorContext {
     sponsored_message_manager_ = sponsored_message_manager;
   }
 
+  ActorId<StarManager> star_manager() const {
+    return star_manager_;
+  }
+  void set_star_manager(ActorId<StarManager> star_manager) {
+    star_manager_ = star_manager;
+  }
+
   ActorId<StickersManager> stickers_manager() const {
     return stickers_manager_;
   }
@@ -679,6 +687,7 @@ class Global final : public ActorContext {
   ActorId<SavedMessagesManager> saved_messages_manager_;
   ActorId<SecretChatsManager> secret_chats_manager_;
   ActorId<SponsoredMessageManager> sponsored_message_manager_;
+  ActorId<StarManager> star_manager_;
   ActorId<StickersManager> stickers_manager_;
   ActorId<StorageManager> storage_manager_;
   ActorId<StoryManager> story_manager_;
