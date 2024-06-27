@@ -30264,13 +30264,11 @@ void MessagesManager::on_update_dialog_pending_join_requests(DialogId dialog_id,
     return;
   }
 
-  set_dialog_pending_join_requests(d, pending_join_request_count, UserId::get_user_ids(pending_requesters));
+  set_dialog_pending_join_requests(d, pending_join_request_count, UserId::get_user_ids(pending_requesters, true));
 }
 
 void MessagesManager::fix_pending_join_requests(DialogId dialog_id, int32 &pending_join_request_count,
                                                 vector<UserId> &pending_join_request_user_ids) const {
-  td::remove_if(pending_join_request_user_ids, [](UserId user_id) { return !user_id.is_valid(); });
-
   bool need_drop_pending_join_requests = [&] {
     if (pending_join_request_count < 0) {
       return true;

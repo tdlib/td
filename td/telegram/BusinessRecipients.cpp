@@ -17,25 +17,22 @@
 namespace td {
 
 BusinessRecipients::BusinessRecipients(telegram_api::object_ptr<telegram_api::businessRecipients> recipients)
-    : user_ids_(UserId::get_user_ids(recipients->users_))
+    : user_ids_(UserId::get_user_ids(recipients->users_, true))
     , existing_chats_(recipients->existing_chats_)
     , new_chats_(recipients->new_chats_)
     , contacts_(recipients->contacts_)
     , non_contacts_(recipients->non_contacts_)
     , exclude_selected_(recipients->exclude_selected_) {
-  td::remove_if(user_ids_, [](UserId user_id) { return !user_id.is_valid(); });
 }
 
 BusinessRecipients::BusinessRecipients(telegram_api::object_ptr<telegram_api::businessBotRecipients> recipients)
-    : user_ids_(UserId::get_user_ids(recipients->users_))
-    , excluded_user_ids_(UserId::get_user_ids(recipients->exclude_users_))
+    : user_ids_(UserId::get_user_ids(recipients->users_, true))
+    , excluded_user_ids_(UserId::get_user_ids(recipients->exclude_users_, true))
     , existing_chats_(recipients->existing_chats_)
     , new_chats_(recipients->new_chats_)
     , contacts_(recipients->contacts_)
     , non_contacts_(recipients->non_contacts_)
     , exclude_selected_(recipients->exclude_selected_) {
-  td::remove_if(user_ids_, [](UserId user_id) { return !user_id.is_valid(); });
-  td::remove_if(excluded_user_ids_, [](UserId user_id) { return !user_id.is_valid(); });
 }
 
 BusinessRecipients::BusinessRecipients(td_api::object_ptr<td_api::businessRecipients> recipients, bool allow_excluded) {
