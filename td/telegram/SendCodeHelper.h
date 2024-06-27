@@ -78,11 +78,17 @@ class SendCodeHelper {
     Type type = Type::None;
     int32 length = 0;
     int32 push_timeout = 0;
+    int64 cloud_project_number = 0;
     string pattern;
 
     AuthenticationCodeInfo() = default;
-    AuthenticationCodeInfo(Type type, int32 length, string pattern, int32 push_timeout = 0)
-        : type(type), length(length), push_timeout(push_timeout), pattern(std::move(pattern)) {
+    AuthenticationCodeInfo(Type type, int32 length, string pattern, int32 push_timeout = 0,
+                           int64 cloud_project_number = 0)
+        : type(type)
+        , length(length)
+        , push_timeout(push_timeout)
+        , cloud_project_number(cloud_project_number)
+        , pattern(std::move(pattern)) {
     }
 
     template <class StorerT>

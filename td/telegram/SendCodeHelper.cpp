@@ -229,7 +229,11 @@ SendCodeHelper::AuthenticationCodeInfo SendCodeHelper::get_sent_authentication_c
       }
       if ((code_type->flags_ & telegram_api::auth_sentCodeTypeFirebaseSms::PLAY_INTEGRITY_NONCE_MASK) != 0) {
         return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::FirebaseAndroidPlayIntegrity, code_type->length_,
+<<<<<<< HEAD
                                       code_type->play_integrity_nonce_.as_slice().str()};
+=======
+                                      std::move(nonce), 0, code_type->play_integrity_project_id_};
+>>>>>>> 1062f39ce (Add firebaseDeviceVerificationParametersPlayIntegrity.cloud_project_number.)
       }
 #elif TD_DARWIN
       if ((code_type->flags_ & telegram_api::auth_sentCodeTypeFirebaseSms::RECEIPT_MASK) != 0) {
@@ -285,7 +289,7 @@ td_api::object_ptr<td_api::AuthenticationCodeType> SendCodeHelper::get_authentic
     case AuthenticationCodeInfo::Type::FirebaseAndroidPlayIntegrity:
       return td_api::make_object<td_api::authenticationCodeTypeFirebaseAndroid>(
           td_api::make_object<td_api::firebaseDeviceVerificationParametersPlayIntegrity>(
-              base64url_encode(authentication_code_info.pattern)),
+              base64url_encode(authentication_code_info.pattern), authentication_code_info.cloud_project_number),
           authentication_code_info.length);
     case AuthenticationCodeInfo::Type::FirebaseIos:
       return td_api::make_object<td_api::authenticationCodeTypeFirebaseIos>(

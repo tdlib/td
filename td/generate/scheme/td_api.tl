@@ -177,8 +177,10 @@ authorizationStateClosed = AuthorizationState;
 //@description Device verification must be performed with the SafetyNet Attestation API @nonce Nonce to pass to the SafetyNet Attestation API
 firebaseDeviceVerificationParametersSafetyNet nonce:bytes = FirebaseDeviceVerificationParameters;
 
-//@description Device verification must be performed with the Play Integrity API @nonce Base64url-encoded nonce to pass to the Play Integrity API
-firebaseDeviceVerificationParametersPlayIntegrity nonce:string = FirebaseDeviceVerificationParameters;
+//@description Device verification must be performed with the Play Integrity API
+//@nonce Base64url-encoded nonce to pass to the Play Integrity API
+//@cloud_project_number Cloud project number to pass to the Play Integrity API
+firebaseDeviceVerificationParametersPlayIntegrity nonce:string cloud_project_number:int64 = FirebaseDeviceVerificationParameters;
 
 
 //@description Represents the current state of 2-step verification
