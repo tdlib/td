@@ -128,13 +128,15 @@ SecretInputMedia get_message_content_secret_input_media(
     BufferSlice thumbnail, int32 layer);
 
 telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_media(
-    const MessageContent *content, Td *td, telegram_api::object_ptr<telegram_api::InputFile> input_file,
+    const MessageContent *content, int32 media_pos, Td *td,
+    telegram_api::object_ptr<telegram_api::InputFile> input_file,
     telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail, FileId file_id, FileId thumbnail_file_id,
     MessageSelfDestructType ttl, const string &emoji, bool force);
 
 telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_media(const MessageContent *content,
                                                                                    Td *td, MessageSelfDestructType ttl,
-                                                                                   const string &emoji, bool force);
+                                                                                   const string &emoji, bool force,
+                                                                                   int32 media_pos = -1);
 
 telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_fake_input_media(
     Td *td, telegram_api::object_ptr<telegram_api::InputFile> input_file, FileId file_id);
@@ -239,8 +241,9 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message_tex
                                                bool *disable_web_page_preview, const char *source);
 
 unique_ptr<MessageContent> get_uploaded_message_content(
-    Td *td, const MessageContent *old_content, telegram_api::object_ptr<telegram_api::MessageMedia> &&media_ptr,
-    DialogId owner_dialog_id, int32 message_date, const char *source);
+    Td *td, const MessageContent *old_content, int32 media_pos,
+    telegram_api::object_ptr<telegram_api::MessageMedia> &&media_ptr, DialogId owner_dialog_id, int32 message_date,
+    const char *source);
 
 enum class MessageContentDupType : int32 {
   Send,        // normal message sending

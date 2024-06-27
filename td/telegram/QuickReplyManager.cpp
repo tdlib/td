@@ -2285,8 +2285,9 @@ void QuickReplyManager::do_send_media(const QuickReplyMessage *m, FileId file_id
 
   auto content = m->message_id.is_server() ? m->edited_content.get() : m->content.get();
   CHECK(content != nullptr);
-  auto input_media = get_message_content_input_media(content, td_, std::move(input_file), std::move(input_thumbnail),
-                                                     file_id, thumbnail_file_id, {}, m->send_emoji, true);
+  auto input_media =
+      get_message_content_input_media(content, -1, td_, std::move(input_file), std::move(input_thumbnail), file_id,
+                                      thumbnail_file_id, {}, m->send_emoji, true);
   CHECK(input_media != nullptr);
 
   on_message_media_uploaded(m, std::move(input_media), file_id, thumbnail_file_id);
@@ -2392,8 +2393,8 @@ void QuickReplyManager::on_upload_message_media_success(QuickReplyShortcutId sho
   CHECK(message_id.is_yet_unsent());
 
   auto content =
-      get_uploaded_message_content(td_, m->content.get(), std::move(media), td_->dialog_manager_->get_my_dialog_id(), 0,
-                                   "on_upload_message_media_success");
+      get_uploaded_message_content(td_, m->content.get(), -1, std::move(media),
+                                   td_->dialog_manager_->get_my_dialog_id(), 0, "on_upload_message_media_success");
   update_sent_message_content_from_temporary_message(m->content, content, true);
 
   save_quick_reply_shortcuts();

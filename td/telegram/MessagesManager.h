@@ -878,12 +878,13 @@ class MessagesManager final : public Actor {
 
   void on_send_message_fail(int64 random_id, Status error);
 
-  void on_upload_message_media_success(DialogId dialog_id, MessageId message_id,
-                                       tl_object_ptr<telegram_api::MessageMedia> &&media);
+  void on_upload_message_media_success(DialogId dialog_id, MessageId message_id, int32 media_pos,
+                                       telegram_api::object_ptr<telegram_api::MessageMedia> &&media);
 
-  void on_upload_message_media_file_parts_missing(DialogId dialog_id, MessageId message_id, vector<int> &&bad_parts);
+  void on_upload_message_media_file_parts_missing(DialogId dialog_id, MessageId message_id, int32 media_pos,
+                                                  vector<int> &&bad_parts);
 
-  void on_upload_message_media_fail(DialogId dialog_id, MessageId message_id, Status error);
+  void on_upload_message_media_fail(DialogId dialog_id, MessageId message_id, int32 media_pos, Status error);
 
   void on_create_new_dialog(telegram_api::object_ptr<telegram_api::Updates> &&updates,
                             MissingInvitees &&missing_invitees,
@@ -1852,18 +1853,21 @@ class MessagesManager final : public Actor {
                             tl_object_ptr<telegram_api::InputEncryptedFile> input_encrypted_file,
                             BufferSlice thumbnail);
 
-  void do_send_message(DialogId dialog_id, const Message *m, vector<int> bad_parts = {});
+  void do_send_message(DialogId dialog_id, const Message *m, int32 media_pos = -1, vector<int> bad_parts = {});
 
-  void on_message_media_uploaded(DialogId dialog_id, const Message *m,
-                                 tl_object_ptr<telegram_api::InputMedia> &&input_media, vector<FileId> file_ids,
-                                 vector<FileId> thumbnail_file_ids);
+  void on_message_media_uploaded(DialogId dialog_id, const Message *m, int32 media_pos,
+                                 telegram_api::object_ptr<telegram_api::InputMedia> &&input_media,
+                                 vector<FileId> file_ids, vector<FileId> thumbnail_file_ids);
 
   void on_secret_message_media_uploaded(DialogId dialog_id, const Message *m, SecretInputMedia &&secret_input_media,
                                         FileId file_id, FileId thumbnail_file_id);
 
-  void on_upload_message_media_finished(int64 media_album_id, DialogId dialog_id, MessageId message_id, Status result);
+  void on_upload_message_media_finished(int64 media_album_id, DialogId dialog_id, MessageId message_id, int32 media_pos,
+                                        Status result);
 
   void do_send_message_group(int64 media_album_id);
+
+  void do_send_paid_media_group(DialogId dialog_id, MessageId message_id);
 
   void on_text_message_ready_to_send(DialogId dialog_id, MessageId message_id);
 
@@ -3238,6 +3242,13 @@ class MessagesManager final : public Actor {
     vector<Status> results;
   };
   FlatHashMap<int64, PendingMessageGroupSend> pending_message_group_sends_;  // media_album_id -> ...
+
+  struct PendingPaidMediaGroupSend {
+    size_t finished_count = 0;
+    vector<bool> is_finished;
+    vector<Status> results;
+  };
+  FlatHashMap<MessageFullId, PendingPaidMediaGroupSend, MessageFullIdHash> pending_paid_media_group_sends_;
 
   WaitFreeHashMap<MessageId, DialogId, MessageIdHash> message_id_to_dialog_id_;
   FlatHashMap<MessageId, DialogId, MessageIdHash> last_clear_history_message_id_to_dialog_id_;

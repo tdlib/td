@@ -3389,11 +3389,15 @@ SecretInputMedia get_message_content_secret_input_media(
 }
 
 static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_media_impl(
-    const MessageContent *content, Td *td, telegram_api::object_ptr<telegram_api::InputFile> input_file,
+    const MessageContent *content, int32 media_pos, Td *td,
+    telegram_api::object_ptr<telegram_api::InputFile> input_file,
     telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail, MessageSelfDestructType ttl,
     const string &emoji) {
   if (!can_message_content_have_input_media(td, content, false)) {
     return nullptr;
+  }
+  if (media_pos >= 0) {
+    CHECK(content->get_type() == MessageContentType::PaidMedia);
   }
   switch (content->get_type()) {
     case MessageContentType::Animation: {
@@ -3442,6 +3446,10 @@ static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_in
     }
     case MessageContentType::PaidMedia: {
       const auto *m = static_cast<const MessagePaidMedia *>(content);
+      if (media_pos >= 0) {
+        CHECK(static_cast<size_t>(media_pos) < m->media.size());
+        return m->media[media_pos].get_input_media(td, std::move(input_file), std::move(input_thumbnail));
+      }
       CHECK(m->media.size() == 1u || (input_file == nullptr && input_thumbnail == nullptr));
       vector<telegram_api::object_ptr<telegram_api::InputMedia>> input_media;
       for (auto &extended_media : m->media) {
@@ -3547,13 +3555,14 @@ static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_in
 }
 
 telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_media(
-    const MessageContent *content, Td *td, telegram_api::object_ptr<telegram_api::InputFile> input_file,
+    const MessageContent *content, int32 media_pos, Td *td,
+    telegram_api::object_ptr<telegram_api::InputFile> input_file,
     telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail, FileId file_id, FileId thumbnail_file_id,
     MessageSelfDestructType ttl, const string &emoji, bool force) {
   bool had_input_file = input_file != nullptr;
   bool had_input_thumbnail = input_thumbnail != nullptr;
-  auto input_media =
-      get_message_content_input_media_impl(content, td, std::move(input_file), std::move(input_thumbnail), ttl, emoji);
+  auto input_media = get_message_content_input_media_impl(content, media_pos, td, std::move(input_file),
+                                                          std::move(input_thumbnail), ttl, emoji);
   auto was_uploaded = FileManager::extract_was_uploaded(input_media);
   if (had_input_file) {
     if (!was_uploaded) {
@@ -3586,8 +3595,9 @@ telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_med
 
 telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_media(const MessageContent *content,
                                                                                    Td *td, MessageSelfDestructType ttl,
-                                                                                   const string &emoji, bool force) {
-  auto input_media = get_message_content_input_media_impl(content, td, nullptr, nullptr, ttl, emoji);
+                                                                                   const string &emoji, bool force,
+                                                                                   int32 media_pos) {
+  auto input_media = get_message_content_input_media_impl(content, media_pos, td, nullptr, nullptr, ttl, emoji);
   auto file_references = FileManager::extract_file_references(input_media);
   for (size_t i = 0; i < file_references.size(); i++) {
     if (file_references[i] == FileReferenceView::invalid_file_reference()) {
@@ -3662,6 +3672,7 @@ telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_med
 
 bool is_uploaded_input_media(telegram_api::object_ptr<telegram_api::InputMedia> &input_media) {
   CHECK(input_media != nullptr);
+  LOG(DEBUG) << "Have " << to_string(input_media);
   switch (input_media->get_id()) {
     case telegram_api::inputMediaUploadedDocument::ID:
       static_cast<telegram_api::inputMediaUploadedDocument *>(input_media.get())->flags_ |=
@@ -7766,8 +7777,24 @@ static void set_message_content_has_spoiler(MessageContent *content, bool has_sp
 }
 
 unique_ptr<MessageContent> get_uploaded_message_content(
-    Td *td, const MessageContent *old_content, telegram_api::object_ptr<telegram_api::MessageMedia> &&media_ptr,
-    DialogId owner_dialog_id, int32 message_date, const char *source) {
+    Td *td, const MessageContent *old_content, int32 media_pos,
+    telegram_api::object_ptr<telegram_api::MessageMedia> &&media_ptr, DialogId owner_dialog_id, int32 message_date,
+    const char *source) {
+  if (media_pos >= 0) {
+    CHECK(old_content->get_type() == MessageContentType::PaidMedia);
+    auto paid_media = static_cast<const MessagePaidMedia *>(old_content);
+    CHECK(static_cast<size_t>(media_pos) < paid_media->media.size());
+    auto content = make_unique<MessagePaidMedia>(*paid_media);
+    auto media = MessageExtendedMedia(td, std::move(media_ptr), owner_dialog_id);
+    if (!media.has_input_media()) {
+      LOG(ERROR) << "Receive invalid uploaded paid media";
+    } else {
+      bool is_content_changed = false;
+      bool need_update = false;
+      content->media[media_pos].merge_files(td, media, owner_dialog_id, true, is_content_changed, need_update);
+    }
+    return content;
+  }
   auto caption = get_message_content_caption(old_content);
   auto has_spoiler = get_message_content_has_spoiler(old_content);
   auto content = get_message_content(td, caption == nullptr ? FormattedText() : *caption, std::move(media_ptr),

@@ -1006,9 +1006,9 @@ void BusinessConnectionManager::do_upload_media(BeingUploadedMedia &&being_uploa
             << ", have_input_file = " << have_input_file << ", have_input_thumbnail = " << have_input_thumbnail;
 
   const auto *message = being_uploaded_media.message_.get();
-  auto input_media =
-      get_message_content_input_media(message->content_.get(), td_, std::move(input_file), std::move(input_thumbnail),
-                                      file_id, thumbnail_file_id, message->ttl_, message->send_emoji_, true);
+  auto input_media = get_message_content_input_media(message->content_.get(), -1, td_, std::move(input_file),
+                                                     std::move(input_thumbnail), file_id, thumbnail_file_id,
+                                                     message->ttl_, message->send_emoji_, true);
   CHECK(input_media != nullptr);
   if (is_uploaded_input_media(input_media)) {
     UploadMediaResult result;
@@ -1025,7 +1025,7 @@ void BusinessConnectionManager::complete_upload_media(unique_ptr<PendingMessage>
                                                       telegram_api::object_ptr<telegram_api::MessageMedia> &&media,
                                                       Promise<UploadMediaResult> &&promise) {
   auto new_content =
-      get_uploaded_message_content(td_, message->content_.get(), std::move(media),
+      get_uploaded_message_content(td_, message->content_.get(), -1, std::move(media),
                                    td_->dialog_manager_->get_my_dialog_id(), G()->unix_time(), "complete_upload_media");
   bool is_content_changed = false;
   bool need_update = false;
