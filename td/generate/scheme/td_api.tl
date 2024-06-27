@@ -59,10 +59,9 @@ authenticationCodeTypeMissedCall phone_number_prefix:string length:int32 = Authe
 authenticationCodeTypeFragment url:string length:int32 = AuthenticationCodeType;
 
 //@description A digit-only authentication code is delivered via Firebase Authentication to the official Android application
-//@use_play_integrity True, if Play Integrity API must be used for device verification. Otherwise, SafetyNet Attestation API must be used
-//@nonce Nonce to pass to the Play Integrity API or the SafetyNet Attestation API
+//@device_verification_parameters Parameters to be used for device verification
 //@length Length of the code
-authenticationCodeTypeFirebaseAndroid use_play_integrity:Bool nonce:bytes length:int32 = AuthenticationCodeType;
+authenticationCodeTypeFirebaseAndroid device_verification_parameters:FirebaseDeviceVerificationParameters length:int32 = AuthenticationCodeType;
 
 //@description A digit-only authentication code is delivered via Firebase Authentication to the official iOS application
 //@receipt Receipt of successful application token validation to compare with receipt from push notification
@@ -171,6 +170,15 @@ authorizationStateClosing = AuthorizationState;
 //@description TDLib client is in its final state. All databases are closed and all resources are released. No other updates will be received after this. All queries will be responded to
 //-with error code 500. To continue working, one must create a new instance of the TDLib client
 authorizationStateClosed = AuthorizationState;
+
+
+//@class FirebaseDeviceVerificationParameters @description Describes parameters to be used for device verification
+
+//@description Device verification must be performed with the SafetyNet Attestation API @nonce Nonce to pass to the SafetyNet Attestation API
+firebaseDeviceVerificationParametersSafetyNet nonce:bytes = FirebaseDeviceVerificationParameters;
+
+//@description Device verification must be performed with the Play Integrity API @nonce Base64url-encoded nonce to pass to the Play Integrity API
+firebaseDeviceVerificationParametersPlayIntegrity nonce:string = FirebaseDeviceVerificationParameters;
 
 
 //@description Represents the current state of 2-step verification
