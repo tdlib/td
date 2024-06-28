@@ -589,6 +589,7 @@ class ChatManager final : public Actor {
     bool has_aggressive_anti_spam_enabled = false;
     bool can_be_deleted = false;
     bool has_pinned_stories = false;
+    bool has_paid_media_allowed = false;
 
     bool is_slow_mode_next_send_date_changed = true;
     bool is_being_updated = false;
