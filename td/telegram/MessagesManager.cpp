@@ -38281,7 +38281,8 @@ Result<ServerMessageId> MessagesManager::get_invoice_message_id(MessageFullId me
   if (m == nullptr) {
     return Status::Error(400, "Message not found");
   }
-  if (m->content->get_type() != MessageContentType::Invoice) {
+  auto content_type = m->content->get_type();
+  if (content_type != MessageContentType::Invoice && content_type != MessageContentType::PaidMedia) {
     return Status::Error(400, "Message has no invoice");
   }
   if (m->message_id.is_scheduled()) {
@@ -38293,7 +38294,9 @@ Result<ServerMessageId> MessagesManager::get_invoice_message_id(MessageFullId me
   if (m->reply_markup == nullptr || m->reply_markup->inline_keyboard.empty() ||
       m->reply_markup->inline_keyboard[0].empty() ||
       m->reply_markup->inline_keyboard[0][0].type != InlineKeyboardButton::Type::Buy) {
-    return Status::Error(400, "Message has no Pay button");
+    if (content_type != MessageContentType::PaidMedia) {
+      return Status::Error(400, "Message has no Pay button");
+    }
   }
 
   return m->message_id.get_server_message_id();

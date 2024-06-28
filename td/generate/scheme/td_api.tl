@@ -2789,7 +2789,7 @@ paymentReceipt product_info:productInfo date:int32 seller_bot_user_id:int53 type
 
 //@class InputInvoice @description Describes an invoice to process
 
-//@description An invoice from a message of the type messageInvoice @chat_id Chat identifier of the message @message_id Message identifier
+//@description An invoice from a message of the type messageInvoice or paid media purchase from messagePaidMedia @chat_id Chat identifier of the message @message_id Message identifier
 inputInvoiceMessage chat_id:int53 message_id:int53 = InputInvoice;
 
 //@description An invoice from a link of the type internalLinkTypeInvoice @name Name of the invoice
