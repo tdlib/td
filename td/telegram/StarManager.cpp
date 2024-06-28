@@ -132,6 +132,8 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
     }
 
     auto result = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for GetStarsTransactionsQuery: " << to_string(result);
+
     td_->user_manager_->on_get_users(std::move(result->users_), "GetStarsTransactionsQuery");
     td_->chat_manager_->on_get_chats(std::move(result->chats_), "GetStarsTransactionsQuery");
 
@@ -228,6 +230,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
               auto extended_media_objects = transform(std::move(extended_media), [td = td_, dialog_id](auto &&media) {
                 return media.get_message_extended_media_object(td);
               });
+              td_->dialog_manager_->force_create_dialog(dialog_id, "starsTransactionPeer", true);
               return td_api::make_object<td_api::starTransactionPartnerChannel>(
                   td_->dialog_manager_->get_chat_id_object(dialog_id, "starTransactionPartnerChannel"),
                   message_id.get(), std::move(extended_media_objects));
