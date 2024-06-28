@@ -645,11 +645,13 @@ Promise<> UpdatesManager::set_pts(int32 pts, const char *source) {
       if (old_pts > 0) {
         pts_diff_ += pts - old_pts;
         if (pts_diff_ >= 1000000) {
-          LOG(WARNING) << "Fixed " << pts_gap_ << " PTS gaps and " << pts_fixed_short_gap_ << " short gaps by sending "
-                       << pts_short_gap_ << " requests";
-          pts_short_gap_ = 0;
-          pts_fixed_short_gap_ = 0;
-          pts_gap_ = 0;
+          if (pts_gap_ > 0 || pts_short_gap_ > 0) {
+            LOG(WARNING) << "Fixed " << pts_gap_ << " PTS gaps and " << pts_fixed_short_gap_
+                         << " short gaps by sending " << pts_short_gap_ << " requests";
+            pts_short_gap_ = 0;
+            pts_fixed_short_gap_ = 0;
+            pts_gap_ = 0;
+          }
           pts_diff_ = 0;
         }
       }
