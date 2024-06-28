@@ -26,6 +26,7 @@
 #include "td/telegram/Photo.hpp"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/ServerMessageId.h"
+#include "td/telegram/StarManager.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/StoryId.h"
 #include "td/telegram/StoryManager.h"
@@ -2832,6 +2833,9 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
       if (loc_key == "MESSAGE_AUDIO") {
         return "MESSAGE_VOICE_NOTE";
       }
+      if (loc_key == "PINNED_PAID_MEDIA") {
+        return "PINNED_MESSAGE_PAID_MEDIA";
+      }
       break;
     case 'C':
       if (loc_key == "MESSAGE_CONTACT") {
@@ -2969,6 +2973,9 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
       }
       if (loc_key == "MESSAGE_POLL") {
         return "MESSAGE_POLL";
+      }
+      if (loc_key == "MESSAGE_PAID_MEDIA") {
+        return "MESSAGE_PAID_MEDIA";
       }
       break;
     case 'Q':
@@ -3561,6 +3568,15 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
       return Status::Error("Expected month count to be non-negative");
     }
     arg = PSTRING() << user_count << ' ' << month_count;
+    loc_args.clear();
+  }
+  if (loc_key == "MESSAGE_PAID_MEDIA") {
+    if (loc_args.size() != 1) {
+      return Status::Error("Expected 1 argument for MESSAGE_PAID_MEDIA");
+    }
+    TRY_RESULT(star_count, to_integer_safe<int64>(loc_args[0]));
+    star_count = StarManager::get_star_count(star_count);
+    arg = to_string(star_count);
     loc_args.clear();
   }
   if (loc_args.size() > 1) {

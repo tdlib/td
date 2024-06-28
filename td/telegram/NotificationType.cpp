@@ -297,6 +297,13 @@ class NotificationTypePushMessage final : public NotificationType {
         if (key == "MESSAGE_POLL") {
           return td_api::make_object<td_api::pushMessageContentPoll>(arg, true, is_pinned);
         }
+        if (key == "MESSAGE_PAID_MEDIA") {
+          int64 star_count = 0;
+          if (!is_pinned) {
+            star_count = to_integer<int64>(arg);
+          }
+          return td_api::make_object<td_api::pushMessageContentPaidMedia>(star_count, is_pinned);
+        }
         break;
       case 'Q':
         if (key == "MESSAGE_QUIZ") {

@@ -5718,6 +5718,11 @@ pushMessageContentInvoice price:string is_pinned:Bool = PushMessageContent;
 //@description A message with a location @is_live True, if the location is live @is_pinned True, if the message is a pinned message with the specified content
 pushMessageContentLocation is_live:Bool is_pinned:Bool = PushMessageContent;
 
+//@description A message with paid media
+//@star_count Number of stars needed to buy access to the media in the message; 0 for pinned message
+//@is_pinned True, if the message is a pinned message with the specified content
+pushMessageContentPaidMedia star_count:int53 is_pinned:Bool = PushMessageContent;
+
 //@description A photo message
 //@photo Message content; may be null
 //@caption Photo caption
