@@ -11,6 +11,8 @@
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
+#include "td/telegram/FileReferenceManager.h"
+#include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/InputInvoice.h"
 #include "td/telegram/MessageExtendedMedia.h"
@@ -135,10 +137,12 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
 
     vector<td_api::object_ptr<td_api::starTransaction>> transactions;
     for (auto &transaction : result->history_) {
+      vector<FileId> file_ids;
       td_api::object_ptr<td_api::productInfo> product_info;
       string bot_payload;
       if (!transaction->title_.empty() || !transaction->description_.empty() || transaction->photo_ != nullptr) {
         auto photo = get_web_document_photo(td_->file_manager_.get(), std::move(transaction->photo_), DialogId());
+        append(file_ids, photo_get_file_ids(photo));
         product_info = get_product_info_object(td_, transaction->title_, transaction->description_, photo);
       }
       if (!transaction->bot_payload_.empty()) {
@@ -216,11 +220,17 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
               }
               auto extended_media =
                   transform(std::move(transaction->extended_media_), [td = td_, dialog_id](auto &&media) {
-                    return MessageExtendedMedia(td, std::move(media), dialog_id).get_message_extended_media_object(td);
+                    return MessageExtendedMedia(td, std::move(media), dialog_id);
                   });
+              for (auto &media : extended_media) {
+                media.append_file_ids(td_, file_ids);
+              }
+              auto extended_media_objects = transform(std::move(extended_media), [td = td_, dialog_id](auto &&media) {
+                return media.get_message_extended_media_object(td);
+              });
               return td_api::make_object<td_api::starTransactionPartnerChannel>(
                   td_->dialog_manager_->get_chat_id_object(dialog_id, "starTransactionPartnerChannel"),
-                  message_id.get(), std::move(extended_media));
+                  message_id.get(), std::move(extended_media_objects));
             }
             LOG(ERROR) << "Receive star transaction with " << dialog_id;
             return td_api::make_object<td_api::starTransactionPartnerUnsupported>();
@@ -247,6 +257,13 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         }
         if (transaction->msg_id_ != 0) {
           LOG(ERROR) << "Receive message identifier with " << to_string(star_transaction);
+        }
+      }
+      if (!file_ids.empty()) {
+        auto file_source_id =
+            td_->star_manager_->get_star_transaction_file_source_id(dialog_id_, transaction->id_, transaction->refund_);
+        for (auto file_id : file_ids) {
+          td_->file_manager_->add_file_source(file_id, file_source_id);
         }
       }
       transactions.push_back(std::move(star_transaction));
@@ -544,6 +561,21 @@ void StarManager::on_update_stars_revenue_status(
                td_api::make_object<td_api::updateStarRevenueStatus>(
                    get_message_sender_object(td_, dialog_id, "updateStarRevenueStatus"),
                    convert_stars_revenue_status(std::move(update->status_))));
+}
+
+FileSourceId StarManager::get_star_transaction_file_source_id(DialogId dialog_id, const string &transaction_id,
+                                                              bool is_refund) {
+  if (!dialog_id.is_valid() || transaction_id.empty()) {
+    return FileSourceId();
+  }
+
+  auto &source_id = star_transaction_file_source_ids_[is_refund][dialog_id][transaction_id];
+  if (!source_id.is_valid()) {
+    source_id = td_->file_reference_manager_->create_star_transaction_file_source(dialog_id, transaction_id, is_refund);
+  }
+  VLOG(file_references) << "Return " << source_id << " for " << (is_refund ? "refund " : "") << "transaction "
+                        << transaction_id << " in " << dialog_id;
+  return source_id;
 }
 
 int64 StarManager::get_star_count(int64 amount, bool allow_negative) {

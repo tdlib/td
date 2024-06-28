@@ -17,6 +17,7 @@
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/NotificationSettingsManager.h"
 #include "td/telegram/QuickReplyManager.h"
+#include "td/telegram/StarManager.h"
 #include "td/telegram/StickerSetId.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StoryManager.h"
@@ -64,25 +65,26 @@ size_t FileReferenceManager::get_file_reference_error_pos(const Status &error) {
 }
 
 /*
-fileSourceMessage chat_id:int53 message_id:int53 = FileSource;           // repaired with get_message_from_server
-fileSourceUserProfilePhoto user_id:int53 photo_id:int64 = FileSource;    // repaired with photos.getUserPhotos
-fileSourceBasicGroupPhoto basic_group_id:int53 = FileSource;             // no need to repair
-fileSourceSupergroupPhoto supergroup_id:int53 = FileSource;              // no need to repair
-fileSourceWebPage url:string = FileSource;                               // repaired with messages.getWebPage
-fileSourceWallpapers = FileSource;                                       // can't be repaired
-fileSourceSavedAnimations = FileSource;                                  // repaired with messages.getSavedGifs
-fileSourceRecentStickers is_attached:Bool = FileSource;                  // repaired with messages.getRecentStickers, not reliable
-fileSourceFavoriteStickers = FileSource;                                 // repaired with messages.getFavedStickers, not reliable
-fileSourceBackground background_id:int64 access_hash:int64 = FileSource; // repaired with account.getWallPaper
-fileSourceBasicGroupFull basic_group_id:int53 = FileSource;              // repaired with messages.getFullChat
-fileSourceSupergroupFull supergroup_id:int53 = FileSource;               // repaired with messages.getFullChannel
-fileSourceAppConfig = FileSource;                                        // repaired with help.getAppConfig, not reliable
-fileSourceSavedRingtones = FileSource;                                   // repaired with account.getSavedRingtones
-fileSourceUserFull = FileSource;                                         // repaired with users.getFullUser
-fileSourceAttachmentMenuBot user_id:int53 = FileSource;                  // repaired with messages.getAttachMenuBot
-fileSourceWebApp user_id:int53 short_name:string = FileSource;           // repaired with messages.getAttachMenuBot
-fileSourceStory chat_id:int53 story_id:int32 = FileSource;               // repaired with stories.getStoriesByID
-fileSourceQuickReplyMessage shortcut_id:int32 message_id:int53 = FileSource; // repaired with messages.getQuickReplyMessages
+fileSourceMessage chat_id:int53 message_id:int53 = FileSource;                             // get_message_from_server
+fileSourceUserProfilePhoto user_id:int53 photo_id:int64 = FileSource;                      // photos.getUserPhotos
+fileSourceBasicGroupPhoto basic_group_id:int53 = FileSource;                               // no need to repair
+fileSourceSupergroupPhoto supergroup_id:int53 = FileSource;                                // no need to repair
+fileSourceWebPage url:string = FileSource;                                                 // messages.getWebPage
+fileSourceWallpapers = FileSource;                                                         // can't be repaired
+fileSourceSavedAnimations = FileSource;                                                    // messages.getSavedGifs
+fileSourceRecentStickers is_attached:Bool = FileSource;                                    // messages.getRecentStickers, not reliable
+fileSourceFavoriteStickers = FileSource;                                                   // messages.getFavedStickers, not reliable
+fileSourceBackground background_id:int64 access_hash:int64 = FileSource;                   // account.getWallPaper
+fileSourceBasicGroupFull basic_group_id:int53 = FileSource;                                // messages.getFullChat
+fileSourceSupergroupFull supergroup_id:int53 = FileSource;                                 // messages.getFullChannel
+fileSourceAppConfig = FileSource;                                                          // help.getAppConfig, not reliable
+fileSourceSavedRingtones = FileSource;                                                     // account.getSavedRingtones
+fileSourceUserFull = FileSource;                                                           // users.getFullUser
+fileSourceAttachmentMenuBot user_id:int53 = FileSource;                                    // messages.getAttachMenuBot
+fileSourceWebApp user_id:int53 short_name:string = FileSource;                             // messages.getAttachMenuBot
+fileSourceStory chat_id:int53 story_id:int32 = FileSource;                                 // stories.getStoriesByID
+fileSourceQuickReplyMessage shortcut_id:int32 message_id:int53 = FileSource;               // messages.getQuickReplyMessages
+fileSourceStarTransaction chat_id:int53 transaction_id:string is_refund:Bool = FileSource; // payments.getStarsTransactionsByID
 */
 
 FileSourceId FileReferenceManager::get_current_file_source_id() const {
@@ -175,6 +177,12 @@ FileSourceId FileReferenceManager::create_story_file_source(StoryFullId story_fu
 FileSourceId FileReferenceManager::create_quick_reply_message_file_source(QuickReplyMessageFullId message_full_id) {
   FileSourceQuickReplyMessage source{message_full_id};
   return add_file_source_id(source, PSLICE() << "quick reply " << message_full_id);
+}
+
+FileSourceId FileReferenceManager::create_star_transaction_file_source(DialogId dialog_id, const string &transaction_id,
+                                                                       bool is_refund) {
+  FileSourceStarTransaction source{dialog_id, transaction_id, is_refund};
+  return add_file_source_id(source, PSLICE() << "star transaction " << transaction_id << " in " << dialog_id);
 }
 
 FileReferenceManager::Node &FileReferenceManager::add_node(NodeId node_id) {
@@ -396,6 +404,10 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
         send_closure_later(G()->quick_reply_manager(), &QuickReplyManager::reload_quick_reply_message,
                            source.message_full_id.get_quick_reply_shortcut_id(),
                            source.message_full_id.get_message_id(), std::move(promise));
+      },
+      [&](const FileSourceStarTransaction &source) {
+        send_closure_later(G()->star_manager(), &StarManager::reload_star_transaction, source.dialog_id,
+                           source.transaction_id, source.is_refund, std::move(promise));
       }));
 }
 

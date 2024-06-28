@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
@@ -46,6 +47,8 @@ class StarManager final : public Actor {
 
   void on_update_stars_revenue_status(telegram_api::object_ptr<telegram_api::updateStarsRevenueStatus> &&update);
 
+  FileSourceId get_star_transaction_file_source_id(DialogId dialog_id, const string &transaction_id, bool is_refund);
+
   static int64 get_star_count(int64 amount, bool allow_negative = false);
 
  private:
@@ -59,6 +62,8 @@ class StarManager final : public Actor {
 
   Td *td_;
   ActorShared<> parent_;
+
+  FlatHashMap<DialogId, FlatHashMap<string, FileSourceId>, DialogIdHash> star_transaction_file_source_ids_[2];
 };
 
 }  // namespace td
