@@ -29,6 +29,8 @@
 #include "td/utils/misc.h"
 #include "td/utils/ScopeGuard.h"
 
+#include <type_traits>
+
 namespace td {
 
 class GetStarsTopupOptionsQuery final : public Td::ResultHandler {
@@ -101,7 +103,27 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer), offset, limit)));
   }
 
+  void send(DialogId dialog_id, const string &transaction_id, bool is_refund) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Have no access to the chat"));
+    }
+    int32 flags = 0;
+    if (is_refund) {
+      flags |= telegram_api::inputStarsTransaction::REFUND_MASK;
+    }
+    vector<telegram_api::object_ptr<telegram_api::inputStarsTransaction>> transaction_ids;
+    transaction_ids.push_back(
+        telegram_api::make_object<telegram_api::inputStarsTransaction>(flags, false /*ignored*/, transaction_id));
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_getStarsTransactionsByID(std::move(input_peer), std::move(transaction_ids))));
+  }
+
   void on_result(BufferSlice packet) final {
+    static_assert(std::is_same<telegram_api::payments_getStarsTransactionsByID::ReturnType,
+                               telegram_api::payments_getStarsTransactions::ReturnType>::value,
+                  "");
     auto result_ptr = fetch_result<telegram_api::payments_getStarsTransactions>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
@@ -495,6 +517,20 @@ void StarManager::get_star_ad_account_url(const td_api::object_ptr<td_api::Messa
   TRY_RESULT_PROMISE(promise, dialog_id, get_message_sender_dialog_id(td_, owner_id, true, false));
   TRY_STATUS_PROMISE(promise, can_manage_stars(dialog_id));
   td_->create_handler<GetStarsRevenueAdsAccountUrlQuery>(std::move(promise))->send(dialog_id);
+}
+
+void StarManager::reload_star_transaction(DialogId dialog_id, const string &transaction_id, bool is_refund,
+                                          Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, can_manage_stars(dialog_id, true));
+  auto query_promise = PromiseCreator::lambda(
+      [promise = std::move(promise)](Result<td_api::object_ptr<td_api::starTransactions>> r_transactions) mutable {
+        if (r_transactions.is_error()) {
+          promise.set_error(r_transactions.move_as_error());
+        } else {
+          promise.set_value(Unit());
+        }
+      });
+  td_->create_handler<GetStarsTransactionsQuery>(std::move(query_promise))->send(dialog_id, transaction_id, is_refund);
 }
 
 void StarManager::on_update_stars_revenue_status(
