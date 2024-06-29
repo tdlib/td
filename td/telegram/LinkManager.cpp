@@ -811,16 +811,19 @@ class LinkManager::InternalLinkWebApp final : public InternalLink {
   string bot_username_;
   string web_app_short_name_;
   string start_parameter_;
+  string mode_;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypeWebApp>(bot_username_, web_app_short_name_, start_parameter_);
+    return td_api::make_object<td_api::internalLinkTypeWebApp>(bot_username_, web_app_short_name_, start_parameter_,
+                                                               mode_ == "compact");
   }
 
  public:
-  InternalLinkWebApp(string bot_username, string web_app_short_name, string start_parameter)
+  InternalLinkWebApp(string bot_username, string web_app_short_name, string start_parameter, string mode)
       : bot_username_(std::move(bot_username))
       , web_app_short_name_(std::move(web_app_short_name))
-      , start_parameter_(std::move(start_parameter)) {
+      , start_parameter_(std::move(start_parameter))
+      , mode_(std::move(mode)) {
   }
 };
 
@@ -1312,9 +1315,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
         }
         if (arg.first == "appname" && is_valid_web_app_name(arg.second)) {
           // resolve?domain=<bot_username>&appname=<app_name>
-          // resolve?domain=<bot_username>&appname=<app_name>&startapp=<start_parameter>
-          return td::make_unique<InternalLinkWebApp>(std::move(username), arg.second,
-                                                     url_query.get_arg("startapp").str());
+          // resolve?domain=<bot_username>&appname=<app_name>&startapp=<start_parameter>&mode=compact
+          return td::make_unique<InternalLinkWebApp>(
+              std::move(username), arg.second, url_query.get_arg("startapp").str(), url_query.get_arg("mode").str());
         }
         if (arg.first == "story" && is_valid_story_id(arg.second)) {
           // resolve?domain=<username>&story=<story_id>
@@ -1738,8 +1741,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
     }
     if (path.size() == 2 && is_valid_web_app_name(path[1])) {
       // /<username>/<web_app_name>
-      // /<username>/<web_app_name>?startapp=<start_parameter>
-      return td::make_unique<InternalLinkWebApp>(std::move(username), path[1], url_query.get_arg("startapp").str());
+      // /<username>/<web_app_name>?startapp=<start_parameter>&mode=compact
+      return td::make_unique<InternalLinkWebApp>(std::move(username), path[1], url_query.get_arg("startapp").str(),
+                                                 url_query.get_arg("mode").str());
     }
     for (auto &arg : url_query.args_) {
       if (arg.first == "voicechat" || arg.first == "videochat" || arg.first == "livestream") {
@@ -2441,16 +2445,18 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
       if (!is_valid_start_parameter(link->start_parameter_)) {
         return Status::Error(400, "Invalid start parameter specified");
       }
-      string start_parameter;
+      string parameters;
       if (!link->start_parameter_.empty()) {
-        start_parameter = PSTRING() << (is_internal ? '&' : '?') << "startapp=" << link->start_parameter_;
+        parameters = PSTRING() << (is_internal ? '&' : '?') << "startapp=" << link->start_parameter_
+                               << (link->is_compact_ ? "&mode=compact" : "");
+      } else if (link->is_compact_) {
+        parameters = PSTRING() << (is_internal ? '&' : '?') << "mode=compact";
       }
       if (is_internal) {
         return PSTRING() << "tg://resolve?domain=" << link->bot_username_ << "&appname=" << link->web_app_short_name_
-                         << start_parameter;
+                         << parameters;
       } else {
-        return PSTRING() << get_t_me_url() << link->bot_username_ << '/' << link->web_app_short_name_
-                         << start_parameter;
+        return PSTRING() << get_t_me_url() << link->bot_username_ << '/' << link->web_app_short_name_ << parameters;
       }
     }
     default:
