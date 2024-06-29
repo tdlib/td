@@ -6365,7 +6365,8 @@ internalLinkTypeSettings = InternalLinkType;
 //-If the bot is added to side menu, then use getWebAppUrl with the given URL and open the returned URL as a Web App
 //@bot_username Username of the bot
 //@url URL to be passed to getWebAppUrl
-internalLinkTypeSideMenuBot bot_username:string url:string = InternalLinkType;
+//@is_compact True, if the Web App must be opened in a compact mode instead of a full-size mode
+internalLinkTypeSideMenuBot bot_username:string url:string is_compact:Bool = InternalLinkType;
 
 //@description The link is a link to a sticker set. Call searchStickerSet with the given sticker set name to process the link and show the sticker set.
 //-If the sticker set is found and the user wants to add it, then call changeStickerSet
@@ -6414,7 +6415,7 @@ internalLinkTypeVideoChat chat_username:string invite_hash:string is_live_stream
 //@bot_username Username of the bot that owns the Web App
 //@web_app_short_name Short name of the Web App
 //@start_parameter Start parameter to be passed to getWebAppLinkUrl
-//@is_compact True, if the Web App must be tried to open in a compact mode with getWebAppLinkUrl
+//@is_compact True, if the Web App must be opened in a compact mode instead of a full-size mode
 internalLinkTypeWebApp bot_username:string web_app_short_name:string start_parameter:string is_compact:Bool = InternalLinkType;
 
 
