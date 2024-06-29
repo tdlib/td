@@ -643,6 +643,7 @@ string ThemeManager::get_theme_parameters_json_string(const td_api::object_ptr<t
     o("button_text_color", get_color(theme->button_text_color_));
     o("header_bg_color", get_color(theme->header_background_color_));
     o("section_bg_color", get_color(theme->section_background_color_));
+    o("section_separator_color", get_color(theme->section_separator_color_));
     o("accent_text_color", get_color(theme->accent_text_color_));
     o("section_header_text_color", get_color(theme->section_header_text_color_));
     o("subtitle_text_color", get_color(theme->subtitle_text_color_));
