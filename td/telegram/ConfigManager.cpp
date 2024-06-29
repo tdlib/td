@@ -2018,6 +2018,22 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
                                 clamp(get_json_value_int(std::move(key_value->value_), key), 0, 1000000));
         continue;
       }
+      if (key == "web_app_allowed_protocols") {
+        if (value->get_id() == telegram_api::jsonArray::ID) {
+          vector<string> protocol_names;
+          auto protocols = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
+          for (auto &protocol : protocols) {
+            auto protocol_name = get_json_value_string(std::move(protocol), key);
+            if (!td::contains(protocol_name, ' ')) {
+              protocol_names.push_back(std::move(protocol_name));
+            }
+          }
+          G()->set_option_string("web_app_allowed_protocols", implode(protocol_names, ' '));
+        } else {
+          LOG(ERROR) << "Receive unexpected web_app_allowed_protocols " << to_string(*value);
+        }
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
