@@ -29421,7 +29421,7 @@ void MessagesManager::on_send_message_file_reference_error(int64 random_id, size
   int32 media_pos = -1;
   auto file_ids = get_message_content_any_file_ids(m->content.get());
   if (file_ids.size() > 1u) {
-    media_pos = pos;
+    media_pos = static_cast<int32>(pos);
 
     LOG(INFO) << "Add paid media group send for " << message_full_id;
     auto &request = pending_paid_media_group_sends_[message_full_id];
