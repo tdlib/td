@@ -12,6 +12,7 @@
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
+#include "td/utils/base64.h"
 #include "td/utils/common.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
@@ -24,7 +25,22 @@ void NetQueryVerifier::verify(NetQueryPtr query, string nonce) {
   CHECK(query->is_ready());
   CHECK(query->is_error());
 
-  if (!check_utf8(nonce)) {
+  int64 cloud_project_number = 0;
+  auto status = [&] {
+    if (!check_utf8(nonce)) {
+      return Status::Error(400, "Invalid encoding");
+    }
+#if TD_ANDROID
+    string cloud_project_number_str;
+    std::tie(cloud_project_number_str, nonce) = split(nonce, '_');
+    TRY_RESULT_ASSIGN(cloud_project_number, to_integer_safe<int64>(cloud_project_number_str));
+    TRY_RESULT_ASSIGN(nonce, hex_decode(nonce));
+    nonce = base64url_encode(nonce);
+#endif
+    return Status::OK();
+  }();
+  if (status.is_error()) {
+    LOG(ERROR) << "Receive " << status;
     query->set_error(Status::Error(400, "Invalid verification nonce"));
     G()->net_query_dispatcher().dispatch(std::move(query));
     return;
@@ -33,8 +49,9 @@ void NetQueryVerifier::verify(NetQueryPtr query, string nonce) {
   auto query_id = next_query_id_++;
   queries_.emplace(query_id, std::make_pair(std::move(query), nonce));
 
-  send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateApplicationVerificationRequired>(query_id, nonce));
+  send_closure(
+      G()->td(), &Td::send_update,
+      td_api::make_object<td_api::updateApplicationVerificationRequired>(query_id, nonce, cloud_project_number));
 }
 
 void NetQueryVerifier::set_verification_token(int64 query_id, string &&token, Promise<Unit> &&promise) {

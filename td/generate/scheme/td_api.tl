@@ -177,7 +177,7 @@ authorizationStateClosed = AuthorizationState;
 //@description Device verification must be performed with the SafetyNet Attestation API @nonce Nonce to pass to the SafetyNet Attestation API
 firebaseDeviceVerificationParametersSafetyNet nonce:bytes = FirebaseDeviceVerificationParameters;
 
-//@description Device verification must be performed with the Play Integrity API
+//@description Device verification must be performed with the classic Play Integrity verification (https://developer.android.com/google/play/integrity/classic)
 //@nonce Base64url-encoded nonce to pass to the Play Integrity API
 //@cloud_project_number Cloud project number to pass to the Play Integrity API
 firebaseDeviceVerificationParametersPlayIntegrity nonce:string cloud_project_number:int64 = FirebaseDeviceVerificationParameters;
@@ -7362,9 +7362,10 @@ updateFileRemovedFromDownloads file_id:int32 counts:downloadedFileCounts = Updat
 //@description A request can't be completed unless application verification is performed; for official mobile applications only.
 //-The method setApplicationVerificationToken must be called once the verification is completed or failed
 //@verification_id Unique identifier for the verification process
-//@nonce Unique nonce for the classic Play Integrity verification (https://developer.android.com/google/play/integrity/classic) for Android,
+//@nonce Unique base64url-encoded nonce for the classic Play Integrity verification (https://developer.android.com/google/play/integrity/classic) for Android,
 //-or a unique string to compare with verify_nonce field from a push notification for iOS
-updateApplicationVerificationRequired verification_id:int53 nonce:string = Update;
+//@cloud_project_number Cloud project number to pass to the Play Integrity API on Android
+updateApplicationVerificationRequired verification_id:int53 nonce:string cloud_project_number:int64 = Update;
 
 //@description New call was created or information about a call was updated @call New data about a call
 updateCall call:call = Update;
