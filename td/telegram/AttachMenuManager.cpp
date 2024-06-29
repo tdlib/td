@@ -109,6 +109,7 @@ class RequestAppWebViewQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for RequestAppWebViewQuery: " << to_string(ptr);
+    LOG_IF(ERROR, ptr->query_id_ != 0) << "Receive " << to_string(ptr);
     promise_.set_value(std::move(ptr->url_));
   }
 
@@ -199,6 +200,7 @@ class RequestWebViewQuery final : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
+    LOG_IF(ERROR, (ptr->flags_ & telegram_api::webViewResultUrl::QUERY_ID_MASK) == 0) << "Receive " << to_string(ptr);
     td_->attach_menu_manager_->open_web_view(ptr->query_id_, dialog_id_, bot_user_id_, top_thread_message_id_,
                                              std::move(input_reply_to_), as_dialog_id_);
     promise_.set_value(td_api::make_object<td_api::webAppInfo>(ptr->query_id_, ptr->url_));

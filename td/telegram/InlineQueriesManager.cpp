@@ -217,6 +217,7 @@ class RequestSimpleWebViewQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for RequestSimpleWebViewQuery: " << to_string(ptr);
+    LOG_IF(ERROR, ptr->query_id_ != 0) << "Receive " << to_string(ptr);
     promise_.set_value(std::move(ptr->url_));
   }
 
