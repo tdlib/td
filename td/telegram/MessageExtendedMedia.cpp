@@ -11,8 +11,7 @@
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/files/FileManager.h"
-#include "td/telegram/MessageContent.h"
-#include "td/telegram/MessageContentType.h"
+#include "td/telegram/files/FileType.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/PhotoSize.h"
 #include "td/telegram/StickersManager.h"
@@ -401,7 +400,7 @@ void MessageExtendedMedia::merge_files(Td *td, MessageExtendedMedia &other, Dial
     return;
   }
   if (type_ != other.type_) {
-    LOG(ERROR) << "Type of a paid media has changed";
+    LOG(ERROR) << "Type of paid media has changed";
     return;
   }
   switch (type_) {

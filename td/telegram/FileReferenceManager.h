@@ -9,6 +9,7 @@
 #include "td/telegram/BackgroundId.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
+#include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/MessageFullId.h"

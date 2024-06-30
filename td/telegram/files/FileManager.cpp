@@ -3631,7 +3631,7 @@ bool FileManager::extract_was_thumbnail_uploaded(
     return false;
   }
   switch (input_media->get_id()) {
-    case telegram_api::inputMediaDocument::ID:
+    case telegram_api::inputMediaUploadedDocument::ID:
       return static_cast<const telegram_api::inputMediaUploadedDocument *>(input_media.get())->thumb_ != nullptr;
     case telegram_api::inputMediaPaidMedia::ID: {
       auto &extended_media = static_cast<const telegram_api::inputMediaPaidMedia *>(input_media.get())->extended_media_;

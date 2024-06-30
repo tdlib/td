@@ -8041,7 +8041,7 @@ FileId get_message_content_thumbnail_file_id(const MessageContent *content, cons
 vector<FileId> get_message_content_thumbnail_file_ids(const MessageContent *content, const Td *td) {
   if (content->get_type() == MessageContentType::PaidMedia) {
     return transform(static_cast<const MessagePaidMedia *>(content)->media,
-                     [td](const MessageExtendedMedia &media) { return media.get_thumbnail_file_id(td); });
+                     [&](const MessageExtendedMedia &media) { return media.get_thumbnail_file_id(td); });
   }
   auto file_id = get_message_content_thumbnail_file_id(content, td);
   if (file_id.is_valid()) {

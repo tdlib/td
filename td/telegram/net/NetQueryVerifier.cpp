@@ -14,10 +14,14 @@
 
 #include "td/utils/base64.h"
 #include "td/utils/common.h"
+#include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/Storer.h"
 #include "td/utils/utf8.h"
+
+#include <tuple>
 
 namespace td {
 
