@@ -24026,13 +24026,14 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
     }
     auto input_media = get_message_content_input_media(content, td_, m->ttl, m->send_emoji,
                                                        td_->auth_manager_->is_bot() && bad_parts.empty());
-    if (input_media == nullptr || media_pos >= 0 || !bad_parts.empty()) {
+    if (input_media == nullptr || media_pos >= 0 || !bad_parts.empty() ||
+        content_type == MessageContentType::PaidMedia) {
       if (content_type == MessageContentType::Game || content_type == MessageContentType::Poll ||
           content_type == MessageContentType::Story) {
         return;
       }
       CHECK(!file_ids.empty());
-      if (file_ids.size() > 1u && bad_parts.empty()) {
+      if (content_type == MessageContentType::PaidMedia && bad_parts.empty()) {
         CHECK(!is_secret && !is_edit);
         CHECK(media_pos == -1);
         LOG(INFO) << "Add paid media group send for " << MessageFullId{dialog_id, m->message_id};
@@ -24054,11 +24055,17 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
           thumbnail_file_id = FileId();
         }
 
+        if (content_type == MessageContentType::PaidMedia && !file_view.has_remote_location() && file_view.has_url()) {
+          do_send_media(dialog_id, m, static_cast<int32>(i), file_id, FileId(), nullptr, nullptr);
+          continue;
+        }
+
         LOG(INFO) << "Ask to upload file " << file_id << " with bad parts " << bad_parts;
         bool is_inserted =
             being_uploaded_files_
-                .emplace(file_id, UploadedFileInfo{MessageFullId(dialog_id, m->message_id), thumbnail_file_id,
-                                                   file_ids.size() > 1u ? static_cast<int32>(i) : -1})
+                .emplace(file_id,
+                         UploadedFileInfo{MessageFullId(dialog_id, m->message_id), thumbnail_file_id,
+                                          content_type == MessageContentType::PaidMedia ? static_cast<int32>(i) : -1})
                 .second;
         CHECK(is_inserted);
         // need to call resume_upload synchronously to make upload process consistent with being_uploaded_files_
@@ -29420,7 +29427,7 @@ void MessagesManager::on_send_message_file_reference_error(int64 random_id, size
 
   int32 media_pos = -1;
   auto file_ids = get_message_content_any_file_ids(m->content.get());
-  if (file_ids.size() > 1u) {
+  if (m->content->get_type() == MessageContentType::PaidMedia) {
     media_pos = static_cast<int32>(pos);
 
     LOG(INFO) << "Add paid media group send for " << message_full_id;
