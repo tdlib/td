@@ -1,6 +1,6 @@
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011">
   <Metadata>
-    <Identity Id="Telegram.Td.UWP" Version="1.8.31" Language="en-US" Publisher="Telegram LLC" />
+    <Identity Id="Telegram.Td.UWP" Version="1.8.32" Language="en-US" Publisher="Telegram LLC" />
     <DisplayName>TDLib for Universal Windows Platform</DisplayName>
     <Description>TDLib is a library for building Telegram clients</Description>
     <MoreInfo>https://core.telegram.org/tdlib</MoreInfo>

@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2013/01/nuspec.xsd">
   <metadata>
     <id>Telegram.Td.UWP</id>
-    <version>1.8.31</version>
+    <version>1.8.32</version>
     <title>TDLib for Universal Windows Platform</title>
     <authors>Telegram</authors>
     <owners>Telegram</owners>
