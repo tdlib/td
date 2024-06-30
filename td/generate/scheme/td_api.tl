@@ -889,7 +889,7 @@ starTransactionPartnerBot bot_user_id:int53 product_info:productInfo invoice_pay
 //@chat_id Identifier of the chat
 //@paid_media_message_id Identifier of the corresponding message with paid media; can be an identifier of a deleted message
 //@media Information about the bought media
-starTransactionPartnerChannel chat_id:int53 paid_media_message_id:int53 media:vector<MessageExtendedMedia> = StarTransactionPartner;
+starTransactionPartnerChannel chat_id:int53 paid_media_message_id:int53 media:vector<PaidMedia> = StarTransactionPartner;
 
 //@description The transaction is a transaction with unknown partner
 starTransactionPartnerUnsupported = StarTransactionPartner;
@@ -2803,23 +2803,23 @@ inputInvoiceName name:string = InputInvoice;
 inputInvoiceTelegram purpose:TelegramPaymentPurpose = InputInvoice;
 
 
-//@class MessageExtendedMedia @description Describes a paid media
+//@class PaidMedia @description Describes a paid media
 
 //@description The media is hidden until the invoice is paid
 //@width Media width; 0 if unknown
 //@height Media height; 0 if unknown
 //@duration Media duration, in seconds; 0 if unknown
 //@minithumbnail Media minithumbnail; may be null
-messageExtendedMediaPreview width:int32 height:int32 duration:int32 minithumbnail:minithumbnail = MessageExtendedMedia;
+paidMediaPreview width:int32 height:int32 duration:int32 minithumbnail:minithumbnail = PaidMedia;
 
 //@description The media is a photo @photo The photo
-messageExtendedMediaPhoto photo:photo = MessageExtendedMedia;
+paidMediaPhoto photo:photo = PaidMedia;
 
 //@description The media is a video @video The video
-messageExtendedMediaVideo video:video = MessageExtendedMedia;
+paidMediaVideo video:video = PaidMedia;
 
 //@description The media is unsupported
-messageExtendedMediaUnsupported = MessageExtendedMedia;
+paidMediaUnsupported = PaidMedia;
 
 
 //@description Describes parameters of a Telegram Premium giveaway
@@ -3142,7 +3142,7 @@ messageDocument document:document caption:formattedText = MessageContent;
 //@media Information about the media
 //@caption Media caption
 //@show_caption_above_media True, if the caption must be shown above the media; otherwise, the caption must be shown below the media
-messagePaidMedia star_count:int53 media:vector<MessageExtendedMedia> caption:formattedText show_caption_above_media:Bool = MessageContent;
+messagePaidMedia star_count:int53 media:vector<PaidMedia> caption:formattedText show_caption_above_media:Bool = MessageContent;
 
 //@description A photo message
 //@photo The photo
@@ -3226,9 +3226,9 @@ messageStory story_sender_chat_id:int53 story_id:int32 via_mention:Bool = Messag
 //@is_test True, if the invoice is a test invoice
 //@need_shipping_address True, if the shipping address must be specified
 //@receipt_message_id The identifier of the message with the receipt, after the product has been purchased
-//@extended_media Extended media attached to the invoice; may be null if none
-//@extended_media_caption Extended media caption; may be null if none
-messageInvoice product_info:productInfo currency:string total_amount:int53 start_parameter:string is_test:Bool need_shipping_address:Bool receipt_message_id:int53 extended_media:MessageExtendedMedia extended_media_caption:formattedText = MessageContent;
+//@paid_media Extended media attached to the invoice; may be null if none
+//@paid_media_caption Extended media caption; may be null if none
+messageInvoice product_info:productInfo currency:string total_amount:int53 start_parameter:string is_test:Bool need_shipping_address:Bool receipt_message_id:int53 paid_media:PaidMedia paid_media_caption:formattedText = MessageContent;
 
 //@description A message with information about an ended call @is_video True, if the call was a video call @discard_reason Reason why the call was discarded @duration Call duration, in seconds
 messageCall is_video:Bool discard_reason:CallDiscardReason duration:int32 = MessageContent;
@@ -3505,15 +3505,15 @@ textEntityTypeMediaTimestamp media_timestamp:int32 = TextEntityType;
 inputThumbnail thumbnail:InputFile width:int32 height:int32 = InputThumbnail;
 
 
-//@class InputMessageExtendedMediaType @description Describes type of paid media to sent
+//@class InputPaidMediaType @description Describes type of paid media to sent
 
 //@description The media is a photo. The photo must be at most 10 MB in size. The photo's width and height must not exceed 10000 in total. Width and height ratio must be at most 20
-inputMessageExtendedMediaTypePhoto = InputMessageExtendedMediaType;
+inputPaidMediaTypePhoto = InputPaidMediaType;
 
 //@description The media is a video
 //@duration Duration of the video, in seconds
 //@supports_streaming True, if the video is supposed to be streamed
-inputMessageExtendedMediaTypeVideo duration:int32 supports_streaming:Bool = InputMessageExtendedMediaType;
+inputPaidMediaTypeVideo duration:int32 supports_streaming:Bool = InputPaidMediaType;
 
 
 //@description Describes a paid media to be sent
@@ -3523,7 +3523,7 @@ inputMessageExtendedMediaTypeVideo duration:int32 supports_streaming:Bool = Inpu
 //@added_sticker_file_ids File identifiers of the stickers added to the media, if applicable
 //@width Media width
 //@height Media height
-inputMessageExtendedMedia type:InputMessageExtendedMediaType media:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> width:int32 height:int32 = InputMessageExtendedMedia;
+inputPaidMedia type:InputPaidMediaType media:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> width:int32 height:int32 = InputPaidMedia;
 
 
 //@class MessageSchedulingState @description Contains information about the time when a scheduled message will be sent
@@ -3605,7 +3605,7 @@ inputMessageDocument document:InputFile thumbnail:inputThumbnail disable_content
 //@paid_media The content of the paid media
 //@caption Message caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
 //@show_caption_above_media True, if the caption must be shown above the video; otherwise, the caption must be shown below the video; not supported in secret chats
-inputMessagePaidMedia star_count:int53 paid_media:vector<inputMessageExtendedMedia> caption:formattedText show_caption_above_media:Bool = InputMessageContent;
+inputMessagePaidMedia star_count:int53 paid_media:vector<inputPaidMedia> caption:formattedText show_caption_above_media:Bool = InputMessageContent;
 
 //@description A photo message
 //@photo Photo to send. The photo must be at most 10 MB in size. The photo's width and height must not exceed 10000 in total. Width and height ratio must be at most 20
@@ -3690,7 +3690,7 @@ inputMessageGame bot_user_id:int53 game_short_name:string = InputMessageContent;
 //@start_parameter Unique invoice bot deep link parameter for the generation of this invoice. If empty, it would be possible to pay directly from forwards of the invoice message
 //@paid_media The content of paid media attached to the invoice; pass null if none
 //@paid_media_caption Paid media caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
-inputMessageInvoice invoice:invoice title:string description:string photo_url:string photo_size:int32 photo_width:int32 photo_height:int32 payload:bytes provider_token:string provider_data:string start_parameter:string paid_media:inputMessageExtendedMedia paid_media_caption:formattedText = InputMessageContent;
+inputMessageInvoice invoice:invoice title:string description:string photo_url:string photo_size:int32 photo_width:int32 photo_height:int32 payload:bytes provider_token:string provider_data:string start_parameter:string paid_media:inputPaidMedia paid_media_caption:formattedText = InputMessageContent;
 
 //@description A message with a poll. Polls can't be sent to secret chats. Polls can be sent only to a private chat with a bot
 //@question Poll question; 1-255 characters (up to 300 characters for bots). Only custom emoji entities are allowed to be added and only by Premium users

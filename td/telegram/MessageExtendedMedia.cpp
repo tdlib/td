@@ -112,7 +112,7 @@ void MessageExtendedMedia::init_from_media(Td *td, telegram_api::object_ptr<tele
 }
 
 Result<MessageExtendedMedia> MessageExtendedMedia::get_message_extended_media(
-    Td *td, td_api::object_ptr<td_api::inputMessageExtendedMedia> &&paid_media, DialogId owner_dialog_id) {
+    Td *td, td_api::object_ptr<td_api::inputPaidMedia> &&paid_media, DialogId owner_dialog_id) {
   if (paid_media == nullptr) {
     return MessageExtendedMedia();
   }
@@ -127,11 +127,11 @@ Result<MessageExtendedMedia> MessageExtendedMedia::get_message_extended_media(
 
   auto file_type = FileType::None;
   switch (paid_media->type_->get_id()) {
-    case td_api::inputMessageExtendedMediaTypePhoto::ID:
+    case td_api::inputPaidMediaTypePhoto::ID:
       file_type = FileType::Photo;
       result.type_ = Type::Photo;
       break;
-    case td_api::inputMessageExtendedMediaTypeVideo::ID:
+    case td_api::inputPaidMediaTypeVideo::ID:
       file_type = FileType::Video;
       result.type_ = Type::Video;
       break;
@@ -156,7 +156,7 @@ Result<MessageExtendedMedia> MessageExtendedMedia::get_message_extended_media(
       break;
     }
     case Type::Video: {
-      auto type = static_cast<td_api::inputMessageExtendedMediaTypeVideo *>(paid_media->type_.get());
+      auto type = static_cast<td_api::inputPaidMediaTypeVideo *>(paid_media->type_.get());
       FileView file_view = td->file_manager_->get_file_view(file_id);
       auto suggested_path = file_view.suggested_path();
       const PathView path_view(suggested_path);
@@ -197,25 +197,24 @@ bool MessageExtendedMedia::update_to(Td *td,
   return false;
 }
 
-td_api::object_ptr<td_api::MessageExtendedMedia> MessageExtendedMedia::get_message_extended_media_object(Td *td) const {
+td_api::object_ptr<td_api::PaidMedia> MessageExtendedMedia::get_message_extended_media_object(Td *td) const {
   if (type_ == Type::Empty) {
     return nullptr;
   }
 
   switch (type_) {
     case Type::Unsupported:
-      return td_api::make_object<td_api::messageExtendedMediaUnsupported>();
+      return td_api::make_object<td_api::paidMediaUnsupported>();
     case Type::Preview:
-      return td_api::make_object<td_api::messageExtendedMediaPreview>(dimensions_.width, dimensions_.height, duration_,
-                                                                      get_minithumbnail_object(minithumbnail_));
+      return td_api::make_object<td_api::paidMediaPreview>(dimensions_.width, dimensions_.height, duration_,
+                                                           get_minithumbnail_object(minithumbnail_));
     case Type::Photo: {
       auto photo = get_photo_object(td->file_manager_.get(), photo_);
       CHECK(photo != nullptr);
-      return td_api::make_object<td_api::messageExtendedMediaPhoto>(std::move(photo));
+      return td_api::make_object<td_api::paidMediaPhoto>(std::move(photo));
     }
     case Type::Video:
-      return td_api::make_object<td_api::messageExtendedMediaVideo>(
-          td->videos_manager_->get_video_object(video_file_id_));
+      return td_api::make_object<td_api::paidMediaVideo>(td->videos_manager_->get_video_object(video_file_id_));
     default:
       UNREACHABLE();
       return nullptr;

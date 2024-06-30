@@ -4971,9 +4971,8 @@ class CliClient final : public Actor {
       ChatId chat_id;
       get_args(args, chat_id, args);
       auto paid_media = transform(full_split(args), [this](const string &photo) {
-        return td_api::make_object<td_api::inputMessageExtendedMedia>(
-            td_api::make_object<td_api::inputMessageExtendedMediaTypePhoto>(), as_input_file(photo), nullptr,
-            vector<int32>(), 0, 0);
+        return td_api::make_object<td_api::inputPaidMedia>(td_api::make_object<td_api::inputPaidMediaTypePhoto>(),
+                                                           as_input_file(photo), nullptr, vector<int32>(), 0, 0);
       });
       send_message(chat_id, td_api::make_object<td_api::inputMessagePaidMedia>(11, std::move(paid_media),
                                                                                as_caption("12_3_ __4__"), rand_bool()));
@@ -4981,8 +4980,8 @@ class CliClient final : public Actor {
       ChatId chat_id;
       get_args(args, chat_id, args);
       auto paid_media = transform(full_split(args), [this](const string &video) {
-        return td_api::make_object<td_api::inputMessageExtendedMedia>(
-            td_api::make_object<td_api::inputMessageExtendedMediaTypeVideo>(10, true), as_input_file(video), nullptr,
+        return td_api::make_object<td_api::inputPaidMedia>(
+            td_api::make_object<td_api::inputPaidMediaTypeVideo>(10, true), as_input_file(video), nullptr,
             vector<int32>(), 0, 0);
       });
       send_message(chat_id, td_api::make_object<td_api::inputMessagePaidMedia>(12, std::move(paid_media),

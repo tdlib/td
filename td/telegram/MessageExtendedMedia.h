@@ -57,7 +57,7 @@ class MessageExtendedMedia {
   MessageExtendedMedia(Td *td, telegram_api::object_ptr<telegram_api::MessageMedia> &&media, DialogId owner_dialog_id);
 
   static Result<MessageExtendedMedia> get_message_extended_media(
-      Td *td, td_api::object_ptr<td_api::inputMessageExtendedMedia> &&paid_media, DialogId owner_dialog_id);
+      Td *td, td_api::object_ptr<td_api::inputPaidMedia> &&paid_media, DialogId owner_dialog_id);
 
   bool is_empty() const {
     return type_ == Type::Empty;
@@ -72,7 +72,7 @@ class MessageExtendedMedia {
   bool update_to(Td *td, telegram_api::object_ptr<telegram_api::MessageExtendedMedia> extended_media_ptr,
                  DialogId owner_dialog_id);
 
-  td_api::object_ptr<td_api::MessageExtendedMedia> get_message_extended_media_object(Td *td) const;
+  td_api::object_ptr<td_api::PaidMedia> get_message_extended_media_object(Td *td) const;
 
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const;
 
