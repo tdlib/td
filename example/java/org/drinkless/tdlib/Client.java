@@ -6,6 +6,7 @@
 //
 package org.drinkless.tdlib;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -63,6 +64,30 @@ public final class Client {
     }
 
     /**
+     * Result class for an asynchronous function call with a future response.
+     *
+     * @param <T> The object type that is returned by the function
+     */
+    public final static class Result<T extends TdApi.Object> {
+
+        /**
+         * An object of this type can be returned upon a successful function call, otherwise it will be null.
+         */
+        public final T object;
+
+        /**
+         * An object of this type can be returned on every function call, in case of an error, otherwise it will be null.
+         */
+        public final TdApi.Error error;
+
+        private Result(T object, TdApi.Error error) {
+            this.object = object;
+            this.error = error;
+        }
+
+    }
+
+    /**
      * Exception class thrown when TDLib error occurred while performing {@link #execute(TdApi.Function)}.
      */
     public static class ExecutionException extends Exception {
@@ -109,6 +134,27 @@ public final class Client {
      */
     public void send(TdApi.Function query, ResultHandler resultHandler) {
         send(query, resultHandler, null);
+    }
+
+    /**
+     * Sends a request to the TDLib.
+     *
+     * @param query Object representing a query to the TDLib.
+     * @param <T>   Automatically deduced return type of the query.
+     * @return      {@link CompletableFuture} response with {@link Result}
+     * If this stage completes exceptionally it throws {@link ExecutionException}
+     */
+    @SuppressWarnings("unchecked")
+    public <T extends TdApi.Object> CompletableFuture<Result<T>> send(TdApi.Function<T> query) {
+        CompletableFuture<Result<T>> future = new CompletableFuture<>();
+        send(query, object -> {
+            if (object instanceof TdApi.Error) {
+                future.complete(new Result<>(null, (TdApi.Error) object));
+            } else {
+                future.complete(new Result<>((T) object, null));
+            }
+        });
+        return future;
     }
 
     /**
