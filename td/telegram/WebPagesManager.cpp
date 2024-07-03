@@ -1346,6 +1346,9 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
     if (type == "chatlist") {
       return td_api::make_object<td_api::linkPreviewTypeShareableChatFolder>();
     }
+    if (type == "giftcode") {
+      return td_api::make_object<td_api::linkPreviewTypePremiumGiftCode>();
+    }
     if (type == "stickerset") {
       auto stickers = transform(web_page->sticker_ids_, [&](FileId sticker_id) {
         return td_->stickers_manager_->get_sticker_object(sticker_id);
