@@ -1333,11 +1333,23 @@ bool WebPagesManager::have_web_page(WebPageId web_page_id) const {
   return get_web_page(web_page_id) != nullptr;
 }
 
-tl_object_ptr<td_api::linkPreview> WebPagesManager::get_link_preview_object(WebPageId web_page_id,
-                                                                            bool force_small_media,
-                                                                            bool force_large_media,
-                                                                            bool skip_confirmation,
-                                                                            bool invert_media) const {
+td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_type_object(
+    const WebPage *web_page, bool force_small_media, bool force_large_media) const {
+  if (web_page->type_ == "telegram_stickerset") {
+    auto stickers = transform(web_page->sticker_ids_, [&](FileId sticker_id) {
+      return td_->stickers_manager_->get_sticker_object(sticker_id);
+    });
+    return td_api::make_object<td_api::linkPreviewTypeStickerSet>(std::move(stickers));
+  }
+  // TODO LOG(ERROR) << "Receive link preview of unsupported type " << web_page->type_;
+  return td_api::make_object<td_api::linkPreviewTypeOther>(web_page->type_);
+}
+
+td_api::object_ptr<td_api::linkPreview> WebPagesManager::get_link_preview_object(WebPageId web_page_id,
+                                                                                 bool force_small_media,
+                                                                                 bool force_large_media,
+                                                                                 bool skip_confirmation,
+                                                                                 bool invert_media) const {
   if (!web_page_id.is_valid()) {
     return nullptr;
   }
@@ -1470,11 +1482,10 @@ tl_object_ptr<td_api::linkPreview> WebPagesManager::get_link_preview_object(WebP
     }
     return false;
   }();
-  auto stickers = transform(web_page->sticker_ids_,
-                            [&](FileId sticker_id) { return td_->stickers_manager_->get_sticker_object(sticker_id); });
   return td_api::make_object<td_api::linkPreview>(
-      web_page->url_, web_page->display_url_, web_page->type_, web_page->site_name_, web_page->title_,
+      web_page->url_, web_page->display_url_, web_page->site_name_, web_page->title_,
       get_formatted_text_object(description, true, duration == 0 ? std::numeric_limits<int32>::max() : duration),
+      get_link_preview_type_object(web_page, force_small_media, force_large_media),
       get_photo_object(td_->file_manager_.get(), web_page->photo_), web_page->embed_url_, web_page->embed_type_,
       web_page->embed_dimensions_.width, web_page->embed_dimensions_.height, web_page->duration_, web_page->author_,
       web_page->has_large_media_, show_large_media, skip_confirmation, invert_media,
@@ -1499,11 +1510,11 @@ tl_object_ptr<td_api::linkPreview> WebPagesManager::get_link_preview_object(WebP
       web_page->document_.type == Document::Type::VoiceNote
           ? td_->voice_notes_manager_->get_voice_note_object(web_page->document_.file_id)
           : nullptr,
-      td_->dialog_manager_->get_chat_id_object(story_sender_dialog_id, "webPage"), story_id.get(), std::move(stickers),
+      td_->dialog_manager_->get_chat_id_object(story_sender_dialog_id, "webPage"), story_id.get(),
       instant_view_version);
 }
 
-tl_object_ptr<td_api::webPageInstantView> WebPagesManager::get_web_page_instant_view_object(
+td_api::object_ptr<td_api::webPageInstantView> WebPagesManager::get_web_page_instant_view_object(
     WebPageId web_page_id) const {
   const WebPage *web_page = get_web_page(web_page_id);
   if (web_page == nullptr || web_page->instant_view_.is_empty_) {
@@ -1512,7 +1523,7 @@ tl_object_ptr<td_api::webPageInstantView> WebPagesManager::get_web_page_instant_
   return get_web_page_instant_view_object(web_page_id, &web_page->instant_view_, web_page->url_);
 }
 
-tl_object_ptr<td_api::webPageInstantView> WebPagesManager::get_web_page_instant_view_object(
+td_api::object_ptr<td_api::webPageInstantView> WebPagesManager::get_web_page_instant_view_object(
     WebPageId web_page_id, const WebPageInstantView *web_page_instant_view, Slice web_page_url) const {
   if (web_page_instant_view == nullptr) {
     return nullptr;

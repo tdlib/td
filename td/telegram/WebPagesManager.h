@@ -75,11 +75,11 @@ class WebPagesManager final : public Actor {
 
   bool have_web_page_force(WebPageId web_page_id);
 
-  tl_object_ptr<td_api::linkPreview> get_link_preview_object(WebPageId web_page_id, bool force_small_media,
-                                                             bool force_large_media, bool skip_confirmation,
-                                                             bool invert_media) const;
+  td_api::object_ptr<td_api::linkPreview> get_link_preview_object(WebPageId web_page_id, bool force_small_media,
+                                                                  bool force_large_media, bool skip_confirmation,
+                                                                  bool invert_media) const;
 
-  tl_object_ptr<td_api::webPageInstantView> get_web_page_instant_view_object(WebPageId web_page_id) const;
+  td_api::object_ptr<td_api::webPageInstantView> get_web_page_instant_view_object(WebPageId web_page_id) const;
 
   void get_web_page_preview(td_api::object_ptr<td_api::formattedText> &&text,
                             td_api::object_ptr<td_api::linkPreviewOptions> &&link_preview_options,
@@ -138,7 +138,11 @@ class WebPagesManager final : public Actor {
 
   void get_web_page_instant_view_impl(WebPageId web_page_id, bool force_full, Promise<WebPageId> &&promise);
 
-  tl_object_ptr<td_api::webPageInstantView> get_web_page_instant_view_object(
+  td_api::object_ptr<td_api::LinkPreviewType> get_link_preview_type_object(const WebPage *web_page,
+                                                                           bool force_small_media,
+                                                                           bool force_large_media) const;
+
+  td_api::object_ptr<td_api::webPageInstantView> get_web_page_instant_view_object(
       WebPageId web_page_id, const WebPageInstantView *web_page_instant_view, Slice web_page_url) const;
 
   static void on_pending_web_page_timeout_callback(void *web_pages_manager_ptr, int64 web_page_id_int);
