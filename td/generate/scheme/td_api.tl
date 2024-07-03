@@ -2553,7 +2553,8 @@ webPageInstantView page_blocks:vector<PageBlock> view_count:int32 version:int32 
 
 //@class LinkPreviewType @description Describes type of a link preview
 
-//@description The link is a link to a background @document Document with the background; may be null for filled backgrounds
+//@description The link is a link to a background. Link preview title and description are available only for filled backgrounds
+//@document Document with the background; may be null for filled backgrounds
 linkPreviewTypeBackground document:document = LinkPreviewType;
 
 //@description The link is a link to a Telegram Premium gift code
@@ -2565,7 +2566,7 @@ linkPreviewTypeShareableChatFolder = LinkPreviewType;
 //@description The link is a link to a sticker set @stickers Up to 4 stickers from the sticker set
 linkPreviewTypeStickerSet stickers:vector<sticker> = LinkPreviewType;
 
-//@description The link is a link to a story @story_sender_chat_id The identifier of the chat that posted the story @story_id Story identifier
+//@description The link is a link to a story. Link preview description is unavailable @story_sender_chat_id The identifier of the chat that posted the story @story_id Story identifier
 linkPreviewTypeStory story_sender_chat_id:int53 story_id:int32 = LinkPreviewType;
 
 //@description The link is a link to a cloud theme. TDLib has no theme support yet @documents The list of files with theme description
