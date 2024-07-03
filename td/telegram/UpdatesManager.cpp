@@ -1084,6 +1084,13 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
           }
           break;
         }
+        case telegram_api::messageActionPaymentRefunded::ID: {
+          auto payment_refunded = static_cast<const telegram_api::messageActionPaymentRefunded *>(action);
+          if (!is_acceptable_peer(payment_refunded->peer_)) {
+            return false;
+          }
+          break;
+        }
         default:
           UNREACHABLE();
           return false;

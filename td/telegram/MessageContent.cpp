@@ -6847,6 +6847,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       case telegram_api::messageActionGiveawayLaunch::ID:
       case telegram_api::messageActionGiveawayResults::ID:
       case telegram_api::messageActionBoostApply::ID:
+      case telegram_api::messageActionPaymentRefunded::ID:
         LOG(ERROR) << "Receive business " << to_string(action_ptr);
         break;
       case telegram_api::messageActionHistoryClear::ID:
@@ -7280,6 +7281,10 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       }
 
       return td::make_unique<MessageDialogShared>(std::move(shared_dialogs), action->button_id_);
+    }
+    case telegram_api::messageActionPaymentRefunded::ID: {
+      // auto action = move_tl_object_as<telegram_api::messageActionPaymentRefunded>(action_ptr);
+      return make_unique<MessageUnsupported>();
     }
     default:
       UNREACHABLE();
