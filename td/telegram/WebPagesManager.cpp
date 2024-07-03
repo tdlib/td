@@ -1347,11 +1347,19 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
       return td_api::make_object<td_api::linkPreviewTypeChannel>(
           get_chat_photo_object(td_->file_manager_.get(), web_page->photo_));
     }
+    if (type == "channel_boost") {
+      return td_api::make_object<td_api::linkPreviewTypeChannelBoost>(
+          get_chat_photo_object(td_->file_manager_.get(), web_page->photo_));
+    }
     if (type == "chatlist") {
       return td_api::make_object<td_api::linkPreviewTypeShareableChatFolder>();
     }
     if (type == "giftcode") {
       return td_api::make_object<td_api::linkPreviewTypePremiumGiftCode>();
+    }
+    if (type == "group_boost") {
+      return td_api::make_object<td_api::linkPreviewTypeSupergroupBoost>(
+          get_chat_photo_object(td_->file_manager_.get(), web_page->photo_));
     }
     if (type == "livestream") {
       return td_api::make_object<td_api::linkPreviewTypeVideoChat>(

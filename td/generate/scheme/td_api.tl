@@ -2560,6 +2560,9 @@ linkPreviewTypeBackground document:document = LinkPreviewType;
 //@description The link is a link to a channel chat @photo Photo of the chat
 linkPreviewTypeChannel photo:chatPhoto = LinkPreviewType;
 
+//@description The link is a link to boost a channel chat @photo Photo of the chat
+linkPreviewTypeChannelBoost photo:chatPhoto = LinkPreviewType;
+
 //@description The link is a link to a Telegram Premium gift code
 linkPreviewTypePremiumGiftCode = LinkPreviewType;
 
@@ -2574,6 +2577,9 @@ linkPreviewTypeStory story_sender_chat_id:int53 story_id:int32 = LinkPreviewType
 
 //@description The link is a link to a supergroup chat @photo Photo of the chat
 linkPreviewTypeSupergroup photo:chatPhoto = LinkPreviewType;
+
+//@description The link is a link to boost a supergroup chat @photo Photo of the chat
+linkPreviewTypeSupergroupBoost photo:chatPhoto = LinkPreviewType;
 
 //@description The link is a link to a cloud theme. TDLib has no theme support yet @documents The list of files with theme description
 linkPreviewTypeTheme documents:vector<document> = LinkPreviewType;
