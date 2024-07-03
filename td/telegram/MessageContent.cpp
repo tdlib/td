@@ -7373,7 +7373,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
           return td_api::make_object<td_api::messageAnimatedEmoji>(std::move(animated_emoji), m->text.text);
         }
       }
-      auto web_page = td->web_pages_manager_->get_web_page_object(
+      auto web_page = td->web_pages_manager_->get_link_preview_object(
           m->web_page_id, m->force_small_media, m->force_large_media, m->skip_web_page_confirmation, invert_media);
       if (web_page != nullptr && !web_page->skip_confirmation_ && is_visible_url(m->text, web_page->url_)) {
         web_page->skip_confirmation_ = true;

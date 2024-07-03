@@ -298,7 +298,7 @@ td_api::object_ptr<td_api::messageReplyToMessage> RepliedMessageInfo::get_messag
         break;
       case td_api::messageText::ID: {
         const auto *message_text = static_cast<const td_api::messageText *>(content.get());
-        if (message_text->web_page_ == nullptr && message_text->link_preview_options_ == nullptr) {
+        if (message_text->link_preview_ == nullptr && message_text->link_preview_options_ == nullptr) {
           content = nullptr;
         }
         break;

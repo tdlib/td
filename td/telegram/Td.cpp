@@ -6185,7 +6185,7 @@ void Td::on_request(uint64 id, td_api::resendMessages &request) {
                messages_manager_->get_messages_object(-1, dialog_id, r_message_ids.ok(), false, "resendMessages"));
 }
 
-void Td::on_request(uint64 id, td_api::getWebPagePreview &request) {
+void Td::on_request(uint64 id, td_api::getLinkPreview &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   web_pages_manager_->get_web_page_preview(std::move(request.text_), std::move(request.link_preview_options_),
