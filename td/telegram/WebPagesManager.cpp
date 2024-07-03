@@ -1367,6 +1367,9 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
       return td_api::make_object<td_api::linkPreviewTypeSupergroupBoost>(
           get_chat_photo_object(td_->file_manager_.get(), web_page->photo_));
     }
+    if (type == "invoice") {
+      return td_api::make_object<td_api::linkPreviewTypeInvoice>();
+    }
     if (type == "livestream") {
       return td_api::make_object<td_api::linkPreviewTypeVideoChat>(
           get_chat_photo_object(td_->file_manager_.get(), web_page->photo_), true);
