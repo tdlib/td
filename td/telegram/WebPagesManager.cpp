@@ -1335,11 +1335,20 @@ bool WebPagesManager::have_web_page(WebPageId web_page_id) const {
 
 td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_type_object(
     const WebPage *web_page, bool force_small_media, bool force_large_media) const {
-  if (web_page->type_ == "telegram_stickerset") {
-    auto stickers = transform(web_page->sticker_ids_, [&](FileId sticker_id) {
-      return td_->stickers_manager_->get_sticker_object(sticker_id);
-    });
-    return td_api::make_object<td_api::linkPreviewTypeStickerSet>(std::move(stickers));
+  if (begins_with(web_page->type_, "telegram_")) {
+    Slice type = Slice(web_page->type_).substr(9);
+    if (type == "background") {
+      return td_api::make_object<td_api::linkPreviewTypeBackground>(
+          web_page->document_.type == Document::Type::General
+              ? td_->documents_manager_->get_document_object(web_page->document_.file_id, PhotoFormat::Png)
+              : nullptr);
+    }
+    if (type == "stickerset") {
+      auto stickers = transform(web_page->sticker_ids_, [&](FileId sticker_id) {
+        return td_->stickers_manager_->get_sticker_object(sticker_id);
+      });
+      return td_api::make_object<td_api::linkPreviewTypeStickerSet>(std::move(stickers));
+    }
   }
   // TODO LOG(ERROR) << "Receive link preview of unsupported type " << web_page->type_;
   return td_api::make_object<td_api::linkPreviewTypeOther>(web_page->type_);
