@@ -2565,6 +2565,9 @@ linkPreviewTypeShareableChatFolder = LinkPreviewType;
 //@description The link is a link to a sticker set @stickers Up to 4 stickers from the sticker set
 linkPreviewTypeStickerSet stickers:vector<sticker> = LinkPreviewType;
 
+//@description The link is a link to a story @story_sender_chat_id The identifier of the chat that posted the story @story_id Story identifier
+linkPreviewTypeStory story_sender_chat_id:int53 story_id:int32 = LinkPreviewType;
+
 //@description The link is a link to a cloud theme. TDLib has no theme support yet @documents The list of files with theme description
 linkPreviewTypeTheme documents:vector<document> = LinkPreviewType;
 
@@ -2597,10 +2600,8 @@ linkPreviewTypeOther type:string = LinkPreviewType;
 //@video Preview of the content as a video, if available; may be null
 //@video_note Preview of the content as a video note, if available; may be null
 //@voice_note Preview of the content as a voice note, if available; may be null
-//@story_sender_chat_id The identifier of the sender of the previewed story; 0 if none
-//@story_id The identifier of the previewed story; 0 if none
 //@instant_view_version Version of instant view (currently, can be 1 or 2) for the web page; 0 if none
-linkPreview url:string display_url:string site_name:string title:string description:formattedText type:LinkPreviewType photo:photo embed_url:string embed_type:string embed_width:int32 embed_height:int32 duration:int32 author:string has_large_media:Bool show_large_media:Bool skip_confirmation:Bool show_above_text:Bool animation:animation audio:audio document:document sticker:sticker video:video video_note:videoNote voice_note:voiceNote story_sender_chat_id:int53 story_id:int32 instant_view_version:int32 = LinkPreview;
+linkPreview url:string display_url:string site_name:string title:string description:formattedText type:LinkPreviewType photo:photo embed_url:string embed_type:string embed_width:int32 embed_height:int32 duration:int32 author:string has_large_media:Bool show_large_media:Bool skip_confirmation:Bool show_above_text:Bool animation:animation audio:audio document:document sticker:sticker video:video video_note:videoNote voice_note:voiceNote instant_view_version:int32 = LinkPreview;
 
 
 //@description Contains information about a country

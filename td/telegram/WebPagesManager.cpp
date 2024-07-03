@@ -1355,6 +1355,19 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
       });
       return td_api::make_object<td_api::linkPreviewTypeStickerSet>(std::move(stickers));
     }
+    if (type == "story") {
+      DialogId story_sender_dialog_id;
+      StoryId story_id;
+      if (web_page->story_full_ids_.size() == 1) {
+        story_sender_dialog_id = web_page->story_full_ids_[0].get_dialog_id();
+        story_id = web_page->story_full_ids_[0].get_story_id();
+        td_api::make_object<td_api::linkPreviewTypeStory>(
+            td_->dialog_manager_->get_chat_id_object(story_sender_dialog_id, "webPage"), story_id.get());
+      } else {
+        LOG(ERROR) << "Receive telegram story " << web_page->url_ << " without story";
+        return td_api::make_object<td_api::linkPreviewTypeOther>("unsupported_telegram_story");
+      }
+    }
     if (type == "theme") {
       vector<td_api::object_ptr<td_api::document>> documents;
       for (auto &document : web_page->documents_) {
@@ -1467,12 +1480,6 @@ td_api::object_ptr<td_api::linkPreview> WebPagesManager::get_link_preview_object
   }
 
   auto duration = get_web_page_media_duration(web_page);
-  DialogId story_sender_dialog_id;
-  StoryId story_id;
-  if (web_page->story_full_ids_.size() == 1) {
-    story_sender_dialog_id = web_page->story_full_ids_[0].get_dialog_id();
-    story_id = web_page->story_full_ids_[0].get_story_id();
-  }
   auto show_large_media = [&] {
     if (web_page->document_.type == Document::Type::Audio || web_page->document_.type == Document::Type::VoiceNote ||
         web_page->document_.type == Document::Type::General) {
@@ -1535,7 +1542,6 @@ td_api::object_ptr<td_api::linkPreview> WebPagesManager::get_link_preview_object
       web_page->document_.type == Document::Type::VoiceNote
           ? td_->voice_notes_manager_->get_voice_note_object(web_page->document_.file_id)
           : nullptr,
-      td_->dialog_manager_->get_chat_id_object(story_sender_dialog_id, "webPage"), story_id.get(),
       instant_view_version);
 }
 
