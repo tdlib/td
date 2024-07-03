@@ -1355,6 +1355,16 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
       });
       return td_api::make_object<td_api::linkPreviewTypeStickerSet>(std::move(stickers));
     }
+    if (type == "theme") {
+      vector<td_api::object_ptr<td_api::document>> documents;
+      for (auto &document : web_page->documents_) {
+        if (document.type == Document::Type::General) {
+          documents.push_back(td_->documents_manager_->get_document_object(document.file_id, PhotoFormat::Jpeg));
+        }
+      }
+      // TODO add theme settings
+      return td_api::make_object<td_api::linkPreviewTypeTheme>(std::move(documents));
+    }
   }
   // TODO LOG(ERROR) << "Receive link preview of unsupported type " << web_page->type_;
   return td_api::make_object<td_api::linkPreviewTypeOther>(web_page->type_);

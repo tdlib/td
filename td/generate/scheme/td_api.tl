@@ -2565,6 +2565,9 @@ linkPreviewTypeShareableChatFolder = LinkPreviewType;
 //@description The link is a link to a sticker set @stickers Up to 4 stickers from the sticker set
 linkPreviewTypeStickerSet stickers:vector<sticker> = LinkPreviewType;
 
+//@description The link is a link to a cloud theme. TDLib has no theme support yet @documents The list of files with theme description
+linkPreviewTypeTheme documents:vector<document> = LinkPreviewType;
+
 //@description The link preview type is unsupported yet @type String type of the link preview. Can be: article, photo, audio, video, document, profile, app, or something else
 linkPreviewTypeOther type:string = LinkPreviewType;
 
@@ -6398,7 +6401,7 @@ internalLinkTypeStickerSet sticker_set_name:string expect_custom_emoji:Bool = In
 //@story_id Story identifier
 internalLinkTypeStory story_sender_username:string story_id:int32 = InternalLinkType;
 
-//@description The link is a link to a theme. TDLib has no theme support yet @theme_name Name of the theme
+//@description The link is a link to a cloud theme. TDLib has no theme support yet @theme_name Name of the theme
 internalLinkTypeTheme theme_name:string = InternalLinkType;
 
 //@description The link is a link to the theme section of the app settings
