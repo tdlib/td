@@ -1344,11 +1344,17 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
               : nullptr);
     }
     if (type == "channel") {
-      return td_api::make_object<td_api::linkPreviewTypeChannel>(
+      return td_api::make_object<td_api::linkPreviewTypeChat>(
+          td_api::make_object<td_api::inviteLinkChatTypeChannel>(),
           get_chat_photo_object(td_->file_manager_.get(), web_page->photo_));
     }
     if (type == "channel_boost") {
       return td_api::make_object<td_api::linkPreviewTypeChannelBoost>(
+          get_chat_photo_object(td_->file_manager_.get(), web_page->photo_));
+    }
+    if (type == "chat") {
+      return td_api::make_object<td_api::linkPreviewTypeChat>(
+          td_api::make_object<td_api::inviteLinkChatTypeBasicGroup>(),
           get_chat_photo_object(td_->file_manager_.get(), web_page->photo_));
     }
     if (type == "chatlist") {
@@ -1366,7 +1372,8 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
           get_chat_photo_object(td_->file_manager_.get(), web_page->photo_), true);
     }
     if (type == "megagroup") {
-      return td_api::make_object<td_api::linkPreviewTypeSupergroup>(
+      return td_api::make_object<td_api::linkPreviewTypeChat>(
+          td_api::make_object<td_api::inviteLinkChatTypeSupergroup>(),
           get_chat_photo_object(td_->file_manager_.get(), web_page->photo_));
     }
     if (type == "stickerset") {
