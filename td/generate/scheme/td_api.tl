@@ -2557,6 +2557,9 @@ webPageInstantView page_blocks:vector<PageBlock> view_count:int32 version:int32 
 //@document Document with the background; may be null for filled backgrounds
 linkPreviewTypeBackground document:document = LinkPreviewType;
 
+//@description The link is a link to a channel chat @photo Photo of the chat
+linkPreviewTypeChannel photo:chatPhoto = LinkPreviewType;
+
 //@description The link is a link to a Telegram Premium gift code
 linkPreviewTypePremiumGiftCode = LinkPreviewType;
 

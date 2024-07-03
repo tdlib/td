@@ -1343,6 +1343,10 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
               ? td_->documents_manager_->get_document_object(web_page->document_.file_id, PhotoFormat::Png)
               : nullptr);
     }
+    if (type == "channel") {
+      return td_api::make_object<td_api::linkPreviewTypeChannel>(
+          get_chat_photo_object(td_->file_manager_.get(), web_page->photo_));
+    }
     if (type == "chatlist") {
       return td_api::make_object<td_api::linkPreviewTypeShareableChatFolder>();
     }
