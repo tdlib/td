@@ -2571,6 +2571,11 @@ linkPreviewTypeStory story_sender_chat_id:int53 story_id:int32 = LinkPreviewType
 //@description The link is a link to a cloud theme. TDLib has no theme support yet @documents The list of files with theme description
 linkPreviewTypeTheme documents:vector<document> = LinkPreviewType;
 
+//@description The link is a link to a video chat
+//@photo Photo of the chat with the video chat; may be null if none
+//@is_live_stream True, if the video chat is expected to be a live stream in a channel or a broadcast group
+linkPreviewTypeVideoChat photo:chatPhoto is_live_stream:Bool = LinkPreviewType;
+
 //@description The link preview type is unsupported yet @type String type of the link preview. Can be: article, photo, audio, video, document, profile, app, or something else
 linkPreviewTypeOther type:string = LinkPreviewType;
 
