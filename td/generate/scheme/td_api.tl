@@ -2556,6 +2556,9 @@ webPageInstantView page_blocks:vector<PageBlock> view_count:int32 version:int32 
 //@description The link is a link to a background @document Document with the background; may be null for filled backgrounds
 linkPreviewTypeBackground document:document = LinkPreviewType;
 
+//@description The link is a link to a shareable chat folder
+linkPreviewTypeShareableChatFolder = LinkPreviewType;
+
 //@description The link is a link to a sticker set @stickers Up to 4 stickers from the sticker set
 linkPreviewTypeStickerSet stickers:vector<sticker> = LinkPreviewType;
 

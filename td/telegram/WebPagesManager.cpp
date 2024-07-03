@@ -1343,6 +1343,9 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
               ? td_->documents_manager_->get_document_object(web_page->document_.file_id, PhotoFormat::Png)
               : nullptr);
     }
+    if (type == "chatlist") {
+      return td_api::make_object<td_api::linkPreviewTypeShareableChatFolder>();
+    }
     if (type == "stickerset") {
       auto stickers = transform(web_page->sticker_ids_, [&](FileId sticker_id) {
         return td_->stickers_manager_->get_sticker_object(sticker_id);
