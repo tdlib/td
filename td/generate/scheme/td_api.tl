@@ -2560,8 +2560,11 @@ linkPreviewTypeBackground document:document = LinkPreviewType;
 //@description The link is a link to boost a channel chat @photo Photo of the chat; may be null
 linkPreviewTypeChannelBoost photo:chatPhoto = LinkPreviewType;
 
-//@description The link is a link to a chat @type Type of the chat @photo Photo of the chat; may be null
-linkPreviewTypeChat type:InviteLinkChatType photo:chatPhoto = LinkPreviewType;
+//@description The link is a link to a chat
+//@type Type of the chat
+//@photo Photo of the chat; may be null
+//@creates_join_request True, if the link only creates join request
+linkPreviewTypeChat type:InviteLinkChatType photo:chatPhoto creates_join_request:Bool = LinkPreviewType;
 
 //@description The link is a link to a Telegram Premium gift code
 linkPreviewTypePremiumGiftCode = LinkPreviewType;

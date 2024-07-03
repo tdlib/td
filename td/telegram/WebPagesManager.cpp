@@ -1343,19 +1343,19 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
               ? td_->documents_manager_->get_document_object(web_page->document_.file_id, PhotoFormat::Png)
               : nullptr);
     }
-    if (type == "channel") {
+    if (type == "channel" || type == "channel_request") {
       return td_api::make_object<td_api::linkPreviewTypeChat>(
           td_api::make_object<td_api::inviteLinkChatTypeChannel>(),
-          get_chat_photo_object(td_->file_manager_.get(), web_page->photo_));
+          get_chat_photo_object(td_->file_manager_.get(), web_page->photo_), type.size() > 10);
     }
     if (type == "channel_boost") {
       return td_api::make_object<td_api::linkPreviewTypeChannelBoost>(
           get_chat_photo_object(td_->file_manager_.get(), web_page->photo_));
     }
-    if (type == "chat") {
+    if (type == "chat" || type == "chat_request") {
       return td_api::make_object<td_api::linkPreviewTypeChat>(
           td_api::make_object<td_api::inviteLinkChatTypeBasicGroup>(),
-          get_chat_photo_object(td_->file_manager_.get(), web_page->photo_));
+          get_chat_photo_object(td_->file_manager_.get(), web_page->photo_), type.size() > 10);
     }
     if (type == "chatlist") {
       return td_api::make_object<td_api::linkPreviewTypeShareableChatFolder>();
@@ -1371,10 +1371,10 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
       return td_api::make_object<td_api::linkPreviewTypeVideoChat>(
           get_chat_photo_object(td_->file_manager_.get(), web_page->photo_), true);
     }
-    if (type == "megagroup") {
+    if (type == "megagroup" || type == "megagroup_request") {
       return td_api::make_object<td_api::linkPreviewTypeChat>(
           td_api::make_object<td_api::inviteLinkChatTypeSupergroup>(),
-          get_chat_photo_object(td_->file_manager_.get(), web_page->photo_));
+          get_chat_photo_object(td_->file_manager_.get(), web_page->photo_), type.size() > 10);
     }
     if (type == "stickerset") {
       auto stickers = transform(web_page->sticker_ids_, [&](FileId sticker_id) {
