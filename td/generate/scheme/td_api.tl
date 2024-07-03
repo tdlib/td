@@ -2569,6 +2569,9 @@ linkPreviewTypeStickerSet stickers:vector<sticker> = LinkPreviewType;
 //@description The link is a link to a story. Link preview description is unavailable @story_sender_chat_id The identifier of the chat that posted the story @story_id Story identifier
 linkPreviewTypeStory story_sender_chat_id:int53 story_id:int32 = LinkPreviewType;
 
+//@description The link is a link to a supergroup chat @photo Photo of the chat
+linkPreviewTypeSupergroup photo:chatPhoto = LinkPreviewType;
+
 //@description The link is a link to a cloud theme. TDLib has no theme support yet @documents The list of files with theme description
 linkPreviewTypeTheme documents:vector<document> = LinkPreviewType;
 
