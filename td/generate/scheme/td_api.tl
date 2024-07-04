@@ -2553,6 +2553,9 @@ webPageInstantView page_blocks:vector<PageBlock> view_count:int32 version:int32 
 
 //@class LinkPreviewType @description Describes type of a link preview
 
+//@description The link is a link to an animation @animation The animation @author Author of the animation
+linkPreviewTypeAnimation animation:animation author:string = LinkPreviewType;
+
 //@description The link is a link to an app at App Store or Google Play @photo Photo for the app @author Author of the app
 linkPreviewTypeApp photo:photo author:string = LinkPreviewType;
 

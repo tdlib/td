@@ -1469,6 +1469,18 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
     return td_api::make_object<td_api::linkPreviewTypeApp>(get_photo_object(td_->file_manager_.get(), web_page->photo_),
                                                            web_page->author_);
   }
+  if (web_page->type_ == "gif" ||
+      (web_page->document_.type == Document::Type::Animation && web_page->type_ == "document")) {
+    auto animation = web_page->document_.type == Document::Type::Animation
+                         ? td_->animations_manager_->get_animation_object(web_page->document_.file_id)
+                         : nullptr;
+    if (animation != nullptr) {
+      return td_api::make_object<td_api::linkPreviewTypeAnimation>(std::move(animation), web_page->author_);
+    } else {
+      LOG(ERROR) << "Receive animation without animation for " << web_page->url_;
+      return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
+    }
+  }
   if (web_page->type_ == "photo") {
     auto photo = get_photo_object(td_->file_manager_.get(), web_page->photo_);
     if (photo != nullptr) {
