@@ -2593,6 +2593,9 @@ linkPreviewTypeEmbeddedVideoPlayer url:string duration:int32 author:string width
 //@description The link is a link to an invoice
 linkPreviewTypeInvoice = LinkPreviewType;
 
+//@description The link is a link to a photo @photo The photo @author Author of the photo
+linkPreviewTypePhoto photo:photo author:string = LinkPreviewType;
+
 //@description The link is a link to a Telegram Premium gift code
 linkPreviewTypePremiumGiftCode = LinkPreviewType;
 
