@@ -1343,6 +1343,10 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
               ? td_->documents_manager_->get_document_object(web_page->document_.file_id, PhotoFormat::Png)
               : nullptr);
     }
+    if (type == "bot") {
+      return td_api::make_object<td_api::linkPreviewTypeUser>(
+          get_chat_photo_object(td_->file_manager_.get(), web_page->photo_), true);
+    }
     if (type == "channel" || type == "channel_request") {
       return td_api::make_object<td_api::linkPreviewTypeChat>(
           td_api::make_object<td_api::inviteLinkChatTypeChannel>(),
@@ -1407,6 +1411,10 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
       }
       // TODO add theme settings
       return td_api::make_object<td_api::linkPreviewTypeTheme>(std::move(documents));
+    }
+    if (type == "user") {
+      return td_api::make_object<td_api::linkPreviewTypeUser>(
+          get_chat_photo_object(td_->file_manager_.get(), web_page->photo_), false);
     }
     if (type == "videochat") {
       return td_api::make_object<td_api::linkPreviewTypeVideoChat>(
