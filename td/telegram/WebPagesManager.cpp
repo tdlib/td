@@ -1337,6 +1337,63 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
     const WebPage *web_page, bool force_small_media, bool force_large_media) const {
   if (begins_with(web_page->type_, "telegram_")) {
     Slice type = Slice(web_page->type_).substr(9);
+    if (type == "album") {
+      if (web_page->instant_view_.is_empty_ || !web_page->instant_view_.is_loaded_) {
+        LOG(ERROR) << "Have no instant view in Telegram album for " << web_page->url_;
+        return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
+      }
+      vector<td_api::object_ptr<td_api::LinkPreviewAlbumMedia>> media;
+      string caption;
+      for (auto &block_object : get_page_blocks_object(web_page->instant_view_.page_blocks_, td_, Slice(), Slice())) {
+        switch (block_object->get_id()) {
+          case td_api::pageBlockTitle::ID:
+          case td_api::pageBlockAuthorDate::ID:
+            continue;
+          case td_api::pageBlockCollage::ID: {
+            auto *collage = static_cast<td_api::pageBlockCollage *>(block_object.get());
+            for (auto &block : collage->page_blocks_) {
+              switch (block->get_id()) {
+                case td_api::pageBlockPhoto::ID: {
+                  auto photo = std::move(static_cast<td_api::pageBlockPhoto *>(block.get())->photo_);
+                  if (photo == nullptr) {
+                    LOG(ERROR) << "Receive pageBlockPhoto without photo";
+                  } else {
+                    media.push_back(td_api::make_object<td_api::linkPreviewAlbumMediaPhoto>(std::move(photo)));
+                  }
+                  break;
+                }
+                case td_api::pageBlockVideo::ID: {
+                  auto video = std::move(static_cast<td_api::pageBlockVideo *>(block.get())->video_);
+                  if (video == nullptr) {
+                    LOG(ERROR) << "Receive pageBlockVideo without video";
+                  } else {
+                    media.push_back(td_api::make_object<td_api::linkPreviewAlbumMediaVideo>(std::move(video)));
+                  }
+                  break;
+                }
+                default:
+                  LOG(ERROR) << "Receive " << to_string(block_object);
+                  break;
+              }
+            }
+            if (collage->caption_->text_->get_id() == td_api::richTextPlain::ID) {
+              caption = std::move(static_cast<const td_api::richTextPlain *>(collage->caption_->text_.get())->text_);
+            } else {
+              LOG(ERROR) << "Receive instead of caption text: " << to_string(collage->caption_->text_);
+            }
+            break;
+          }
+          default:
+            LOG(ERROR) << "Receive " << to_string(block_object);
+            break;
+        }
+      }
+      if (!media.empty()) {
+        return td_api::make_object<td_api::linkPreviewTypeAlbum>(std::move(media), caption);
+      }
+      LOG(ERROR) << "Have no media in Telegram album for " << web_page->url_;
+      return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
+    }
     if (type == "background") {
       return td_api::make_object<td_api::linkPreviewTypeBackground>(
           web_page->document_.type == Document::Type::General
@@ -1545,7 +1602,7 @@ td_api::object_ptr<td_api::linkPreview> WebPagesManager::get_link_preview_object
     return nullptr;
   }
   int32 instant_view_version = [web_page] {
-    if (web_page->instant_view_.is_empty_) {
+    if (web_page->instant_view_.is_empty_ || web_page->type_ == "telegram_album") {
       return 0;
     }
     if (web_page->instant_view_.is_v2_) {
@@ -2119,6 +2176,15 @@ void WebPagesManager::on_load_web_page_from_database(WebPageId web_page_id, stri
                    << ", value = " << format::as_hex_dump<4>(Slice(value));
       } else {
         update_web_page(std::move(result), web_page_id, true, true);
+
+        const WebPage *web_page = get_web_page(web_page_id);
+        if (web_page != nullptr && web_page->type_ == "telegram_album" && !web_page->instant_view_.is_empty_ &&
+            !web_page->instant_view_.is_loaded_) {
+          LOG(INFO) << "Forcely load instant view of " << web_page_id;
+          on_load_web_page_instant_view_from_database(
+              web_page_id,
+              G()->td_db()->get_sqlite_sync_pmc()->get(get_web_page_instant_view_database_key(web_page_id)));
+        }
       }
     }
   } else {

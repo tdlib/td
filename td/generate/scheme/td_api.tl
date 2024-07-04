@@ -2551,7 +2551,19 @@ pageBlockMap location:location zoom:int32 width:int32 height:int32 caption:pageB
 webPageInstantView page_blocks:vector<PageBlock> view_count:int32 version:int32 is_rtl:Bool is_full:Bool feedback_link:InternalLinkType = WebPageInstantView;
 
 
+//@class LinkPreviewAlbumMedia @description Describes a media from a link preview album
+
+//@description The media is a photo @photo Photo description
+linkPreviewAlbumMediaPhoto photo:photo = LinkPreviewAlbumMedia;
+
+//@description The media is a video @video Video description
+linkPreviewAlbumMediaVideo video:video = LinkPreviewAlbumMedia;
+
+
 //@class LinkPreviewType @description Describes type of a link preview
+
+//@description The link is a link to a media album consisting of photos and videos @media The list of album media @caption Album caption
+linkPreviewTypeAlbum media:vector<LinkPreviewAlbumMedia> caption:string = LinkPreviewType;
 
 //@description The link is a link to an animation @animation The animation @author Author of the animation
 linkPreviewTypeAnimation animation:animation author:string = LinkPreviewType;
