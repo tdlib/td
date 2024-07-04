@@ -1334,7 +1334,7 @@ bool WebPagesManager::have_web_page(WebPageId web_page_id) const {
 }
 
 td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_type_object(
-    const WebPage *web_page, bool force_small_media, bool force_large_media) const {
+    const WebPage *web_page) const {
   if (begins_with(web_page->type_, "telegram_")) {
     Slice type = Slice(web_page->type_).substr(9);
     if (type == "album") {
@@ -1739,8 +1739,8 @@ td_api::object_ptr<td_api::linkPreview> WebPagesManager::get_link_preview_object
   return td_api::make_object<td_api::linkPreview>(
       web_page->url_, web_page->display_url_, web_page->site_name_, web_page->title_,
       get_formatted_text_object(description, true, duration == 0 ? std::numeric_limits<int32>::max() : duration),
-      get_link_preview_type_object(web_page, force_small_media, force_large_media), web_page->has_large_media_,
-      show_large_media, skip_confirmation, invert_media, instant_view_version);
+      get_link_preview_type_object(web_page), web_page->has_large_media_, show_large_media, skip_confirmation,
+      invert_media, instant_view_version);
 }
 
 td_api::object_ptr<td_api::webPageInstantView> WebPagesManager::get_web_page_instant_view_object(
