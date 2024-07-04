@@ -650,9 +650,15 @@ void Session::on_closed(Status status) {
         auth_data_.set_use_pfs(true);
       } else if (need_check_main_key_) {
         LOG(WARNING) << "Invalidate main key";
+        bool can_drop_main_auth_key_without_logging_out =
+            !is_main_ && G()->net_query_dispatcher().get_main_dc_id().get_raw_id() != raw_dc_id_;
         auth_data_.drop_main_auth_key();
         on_auth_key_updated();
-        G()->log_out("Main PFS authorization key is invalid");
+        if (can_drop_main_auth_key_without_logging_out) {
+          on_session_failed(status.clone());
+        } else {
+          G()->log_out("Main PFS authorization key is invalid");
+        }
       } else {
         LOG(WARNING) << "Session connection was closed: " << status << ' ' << current_info_->connection_->get_name();
       }
