@@ -1604,8 +1604,7 @@ td_api::object_ptr<td_api::linkPreview> WebPagesManager::get_link_preview_object
       web_page->url_, web_page->display_url_, web_page->site_name_, web_page->title_,
       get_formatted_text_object(description, true, duration == 0 ? std::numeric_limits<int32>::max() : duration),
       get_link_preview_type_object(web_page, force_small_media, force_large_media),
-      get_photo_object(td_->file_manager_.get(), web_page->photo_), web_page->embed_url_, web_page->embed_type_,
-      web_page->embed_dimensions_.width, web_page->embed_dimensions_.height, web_page->duration_, web_page->author_,
+      get_photo_object(td_->file_manager_.get(), web_page->photo_), web_page->duration_, web_page->author_,
       web_page->has_large_media_, show_large_media, skip_confirmation, invert_media,
       web_page->document_.type == Document::Type::Animation
           ? td_->animations_manager_->get_animation_object(web_page->document_.file_id)

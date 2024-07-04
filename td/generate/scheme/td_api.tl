@@ -2641,10 +2641,6 @@ linkPreviewTypeOther type:string = LinkPreviewType;
 //@param_description Description of the content
 //@type Type of the link preview
 //@photo Image representing the content; may be null
-//@embed_url URL to show in the embedded preview
-//@embed_type MIME type of the embedded preview, (e.g., text/html or video/mp4)
-//@embed_width Width of the embedded preview
-//@embed_height Height of the embedded preview
 //@duration Duration of the content, in seconds
 //@author Author of the content
 //@has_large_media True, if size of media in the preview can be changed
@@ -2659,7 +2655,7 @@ linkPreviewTypeOther type:string = LinkPreviewType;
 //@video_note Preview of the content as a video note, if available; may be null
 //@voice_note Preview of the content as a voice note, if available; may be null
 //@instant_view_version Version of instant view (currently, can be 1 or 2) for the web page; 0 if none
-linkPreview url:string display_url:string site_name:string title:string description:formattedText type:LinkPreviewType photo:photo embed_url:string embed_type:string embed_width:int32 embed_height:int32 duration:int32 author:string has_large_media:Bool show_large_media:Bool skip_confirmation:Bool show_above_text:Bool animation:animation audio:audio document:document sticker:sticker video:video video_note:videoNote voice_note:voiceNote instant_view_version:int32 = LinkPreview;
+linkPreview url:string display_url:string site_name:string title:string description:formattedText type:LinkPreviewType photo:photo duration:int32 author:string has_large_media:Bool show_large_media:Bool skip_confirmation:Bool show_above_text:Bool animation:animation audio:audio document:document sticker:sticker video:video video_note:videoNote voice_note:voiceNote instant_view_version:int32 = LinkPreview;
 
 
 //@description Contains information about a country
