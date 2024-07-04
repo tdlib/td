@@ -1425,6 +1425,22 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
           get_chat_photo_object(td_->file_manager_.get(), web_page->photo_), false);
     }
   }
+  if (!web_page->embed_type_.empty() || !web_page->embed_url_.empty()) {
+    if (web_page->embed_type_ == "iframe") {
+      if (web_page->type_ == "audio") {
+        return td_api::make_object<td_api::linkPreviewTypeEmbeddedAudioPlayer>(web_page->embed_url_,
+                                                                               web_page->duration_, web_page->author_);
+      }
+      if (web_page->type_ == "video") {
+        return td_api::make_object<td_api::linkPreviewTypeEmbeddedVideoPlayer>(
+            web_page->embed_url_, web_page->duration_, web_page->author_, web_page->embed_dimensions_.width,
+            web_page->embed_dimensions_.height);
+      }
+      LOG(ERROR) << "Have type = " << web_page->type_ << " for embedded " << web_page->url_;
+      return td_api::make_object<td_api::linkPreviewTypeOther>(web_page->type_);
+    }
+    // ordinary audio/video
+  }
   // TODO LOG(ERROR) << "Receive link preview of unsupported type " << web_page->type_;
   return td_api::make_object<td_api::linkPreviewTypeOther>(web_page->type_);
 }

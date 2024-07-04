@@ -2565,6 +2565,20 @@ linkPreviewTypeChannelBoost photo:chatPhoto = LinkPreviewType;
 //@creates_join_request True, if the link only creates join request
 linkPreviewTypeChat type:InviteLinkChatType photo:chatPhoto creates_join_request:Bool = LinkPreviewType;
 
+//@description The link is a link to an audio player
+//@url URL of the external audio player
+//@duration Duration of the audio, in seconds
+//@author Author of the audio
+linkPreviewTypeEmbeddedAudioPlayer url:string duration:int32 author:string = LinkPreviewType;
+
+//@description The link is a link to a video player
+//@url URL of the external video player
+//@duration Duration of the video, in seconds
+//@author Author of the video
+//@width Expected width of the preview
+//@height Expected height of the preview
+linkPreviewTypeEmbeddedVideoPlayer url:string duration:int32 author:string width:int32 height:int32 = LinkPreviewType;
+
 //@description The link is a link to an invoice
 linkPreviewTypeInvoice = LinkPreviewType;
 
