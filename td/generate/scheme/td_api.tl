@@ -2676,22 +2676,12 @@ linkPreviewTypeWebApp photo:photo = LinkPreviewType;
 //@title Title of the content
 //@param_description Description of the content
 //@type Type of the link preview
-//@photo Image representing the content; may be null
-//@duration Duration of the content, in seconds
-//@author Author of the content
 //@has_large_media True, if size of media in the preview can be changed
 //@show_large_media True, if large media preview must be shown; otherwise, the media preview must be shown small and only the first frame must be shown for videos
 //@skip_confirmation True, if there is no need to show an ordinary open URL confirmation, when opening the URL from the preview, because the URL is shown in the message text in clear
 //@show_above_text True, if the link preview must be shown above message text; otherwise, the link preview must be shown below the message text
-//@animation Preview of the content as an animation, if available; may be null
-//@audio Preview of the content as an audio file, if available; may be null
-//@document Preview of the content as a document, if available; may be null
-//@sticker Preview of the content as a sticker for small WEBP files, if available; may be null
-//@video Preview of the content as a video, if available; may be null
-//@video_note Preview of the content as a video note, if available; may be null
-//@voice_note Preview of the content as a voice note, if available; may be null
 //@instant_view_version Version of instant view (currently, can be 1 or 2) for the web page; 0 if none
-linkPreview url:string display_url:string site_name:string title:string description:formattedText type:LinkPreviewType photo:photo duration:int32 author:string has_large_media:Bool show_large_media:Bool skip_confirmation:Bool show_above_text:Bool animation:animation audio:audio document:document sticker:sticker video:video video_note:videoNote voice_note:voiceNote instant_view_version:int32 = LinkPreview;
+linkPreview url:string display_url:string site_name:string title:string description:formattedText type:LinkPreviewType has_large_media:Bool show_large_media:Bool skip_confirmation:Bool show_above_text:Bool instant_view_version:int32 = LinkPreview;
 
 
 //@description Contains information about a country

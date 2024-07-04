@@ -1736,31 +1736,8 @@ td_api::object_ptr<td_api::linkPreview> WebPagesManager::get_link_preview_object
   return td_api::make_object<td_api::linkPreview>(
       web_page->url_, web_page->display_url_, web_page->site_name_, web_page->title_,
       get_formatted_text_object(description, true, duration == 0 ? std::numeric_limits<int32>::max() : duration),
-      get_link_preview_type_object(web_page, force_small_media, force_large_media),
-      get_photo_object(td_->file_manager_.get(), web_page->photo_), web_page->duration_, web_page->author_,
-      web_page->has_large_media_, show_large_media, skip_confirmation, invert_media,
-      web_page->document_.type == Document::Type::Animation
-          ? td_->animations_manager_->get_animation_object(web_page->document_.file_id)
-          : nullptr,
-      web_page->document_.type == Document::Type::Audio
-          ? td_->audios_manager_->get_audio_object(web_page->document_.file_id)
-          : nullptr,
-      web_page->document_.type == Document::Type::General
-          ? td_->documents_manager_->get_document_object(web_page->document_.file_id, PhotoFormat::Jpeg)
-          : nullptr,
-      web_page->document_.type == Document::Type::Sticker
-          ? td_->stickers_manager_->get_sticker_object(web_page->document_.file_id)
-          : nullptr,
-      web_page->document_.type == Document::Type::Video
-          ? td_->videos_manager_->get_video_object(web_page->document_.file_id)
-          : nullptr,
-      web_page->document_.type == Document::Type::VideoNote
-          ? td_->video_notes_manager_->get_video_note_object(web_page->document_.file_id)
-          : nullptr,
-      web_page->document_.type == Document::Type::VoiceNote
-          ? td_->voice_notes_manager_->get_voice_note_object(web_page->document_.file_id)
-          : nullptr,
-      instant_view_version);
+      get_link_preview_type_object(web_page, force_small_media, force_large_media), web_page->has_large_media_,
+      show_large_media, skip_confirmation, invert_media, instant_view_version);
 }
 
 td_api::object_ptr<td_api::webPageInstantView> WebPagesManager::get_web_page_instant_view_object(
