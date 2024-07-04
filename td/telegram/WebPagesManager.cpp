@@ -1469,6 +1469,21 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
     return td_api::make_object<td_api::linkPreviewTypeApp>(get_photo_object(td_->file_manager_.get(), web_page->photo_),
                                                            web_page->author_);
   }
+  if (web_page->type_ == "video") {
+    auto video = web_page->document_.type == Document::Type::Video
+                     ? td_->videos_manager_->get_video_object(web_page->document_.file_id)
+                     : nullptr;
+    if (video != nullptr) {
+      auto width = video->width_;
+      auto height = video->height_;
+      auto duration = video->duration_;
+      return td_api::make_object<td_api::linkPreviewTypeVideo>(string(), string(), std::move(video), width, height,
+                                                               duration, web_page->author_);
+    } else {
+      return td_api::make_object<td_api::linkPreviewTypeVideo>(web_page->url_, "video/mp4", nullptr, 0, 0,
+                                                               web_page->duration_, web_page->author_);
+    }
+  }
   // TODO LOG(ERROR) << "Receive link preview of unsupported type " << web_page->type_;
   return td_api::make_object<td_api::linkPreviewTypeOther>(web_page->type_);
 }
