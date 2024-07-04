@@ -1444,6 +1444,9 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
           td_api::make_object<td_api::inviteLinkChatTypeSupergroup>(),
           get_chat_photo_object(td_->file_manager_.get(), web_page->photo_), type.size() > 10);
     }
+    if (type == "message") {
+      return td_api::make_object<td_api::linkPreviewTypeMessage>();
+    }
     if (type == "stickerset") {
       auto stickers = transform(web_page->sticker_ids_, [&](FileId sticker_id) {
         return td_->stickers_manager_->get_sticker_object(sticker_id);
