@@ -1465,6 +1465,10 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
     LOG(ERROR) << "Have type = " << web_page->type_ << " for embedded " << web_page->url_;
     return td_api::make_object<td_api::linkPreviewTypeOther>(web_page->type_);
   }
+  if (web_page->type_ == "app") {
+    return td_api::make_object<td_api::linkPreviewTypeApp>(get_photo_object(td_->file_manager_.get(), web_page->photo_),
+                                                           web_page->author_);
+  }
   // TODO LOG(ERROR) << "Receive link preview of unsupported type " << web_page->type_;
   return td_api::make_object<td_api::linkPreviewTypeOther>(web_page->type_);
 }
