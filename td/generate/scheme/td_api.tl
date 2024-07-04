@@ -2559,6 +2559,9 @@ linkPreviewTypeAnimation animation:animation author:string = LinkPreviewType;
 //@description The link is a link to an app at App Store or Google Play @photo Photo for the app @author Author of the app
 linkPreviewTypeApp photo:photo author:string = LinkPreviewType;
 
+//@description The link is a link to a web site @photo Article's main photo; may be null @author Author of the article
+linkPreviewTypeArticle photo:photo author:string = LinkPreviewType;
+
 //@description The link is a link to an audio
 //@url URL of the audio; may be empty if none
 //@mime_type MIME type of the audio file
