@@ -1347,6 +1347,10 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
       return td_api::make_object<td_api::linkPreviewTypeUser>(
           get_chat_photo_object(td_->file_manager_.get(), web_page->photo_), true);
     }
+    if (type == "botapp") {
+      return td_api::make_object<td_api::linkPreviewTypeWebApp>(
+          get_photo_object(td_->file_manager_.get(), web_page->photo_));
+    }
     if (type == "channel" || type == "channel_request") {
       return td_api::make_object<td_api::linkPreviewTypeChat>(
           td_api::make_object<td_api::inviteLinkChatTypeChannel>(),
