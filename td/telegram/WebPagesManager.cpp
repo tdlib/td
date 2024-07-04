@@ -1569,6 +1569,10 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
       return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
     }
   }
+  if (web_page->document_.type == Document::Type::Sticker && web_page->type_ == "document") {
+    auto sticker = td_->stickers_manager_->get_sticker_object(web_page->document_.file_id);
+    return td_api::make_object<td_api::linkPreviewTypeSticker>(std::move(sticker));
+  }
   if (web_page->type_ == "video" ||
       (web_page->document_.type == Document::Type::Video && web_page->type_ == "document")) {
     auto video = web_page->document_.type == Document::Type::Video

@@ -2623,6 +2623,9 @@ linkPreviewTypePremiumGiftCode = LinkPreviewType;
 //@description The link is a link to a shareable chat folder
 linkPreviewTypeShareableChatFolder = LinkPreviewType;
 
+//@description The link is a link to a sticker message @sticker The sticker
+linkPreviewTypeSticker sticker:sticker = LinkPreviewType;
+
 //@description The link is a link to a sticker set @stickers Up to 4 stickers from the sticker set
 linkPreviewTypeStickerSet stickers:vector<sticker> = LinkPreviewType;
 
