@@ -1473,6 +1473,24 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
     return td_api::make_object<td_api::linkPreviewTypeArticle>(
         get_photo_object(td_->file_manager_.get(), web_page->photo_), web_page->author_);
   }
+  if (web_page->type_ == "audio" ||
+      (web_page->document_.type == Document::Type::Audio && web_page->type_ == "document")) {
+    auto audio = web_page->document_.type == Document::Type::Audio
+                     ? td_->audios_manager_->get_audio_object(web_page->document_.file_id)
+                     : nullptr;
+    if (audio != nullptr) {
+      auto duration = audio->duration_;
+      return td_api::make_object<td_api::linkPreviewTypeAudio>(string(), string(), std::move(audio), duration,
+                                                               web_page->author_);
+    } else {
+      LOG(ERROR) << "Receive audio without audio for " << web_page->url_;
+      return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
+    }
+  }
+  if (web_page->document_.type == Document::Type::General && web_page->type_ == "document") {
+    auto document = td_->documents_manager_->get_document_object(web_page->document_.file_id, PhotoFormat::Jpeg);
+    return td_api::make_object<td_api::linkPreviewTypeDocument>(std::move(document), web_page->author_);
+  }
   if (web_page->type_ == "gif" ||
       (web_page->document_.type == Document::Type::Animation && web_page->type_ == "document")) {
     auto animation = web_page->document_.type == Document::Type::Animation
@@ -1494,7 +1512,8 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
       return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
     }
   }
-  if (web_page->type_ == "video") {
+  if (web_page->type_ == "video" ||
+      (web_page->document_.type == Document::Type::Video && web_page->type_ == "document")) {
     auto video = web_page->document_.type == Document::Type::Video
                      ? td_->videos_manager_->get_video_object(web_page->document_.file_id)
                      : nullptr;

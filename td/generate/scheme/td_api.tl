@@ -2582,6 +2582,9 @@ linkPreviewTypeChannelBoost photo:chatPhoto = LinkPreviewType;
 //@creates_join_request True, if the link only creates join request
 linkPreviewTypeChat type:InviteLinkChatType photo:chatPhoto creates_join_request:Bool = LinkPreviewType;
 
+//@description The link is a link to a general file @document The document description @author Author of the document
+linkPreviewTypeDocument document:document author:string = LinkPreviewType;
+
 //@description The link is a link to an audio player
 //@url URL of the external audio player
 //@duration Duration of the audio, in seconds
