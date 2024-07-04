@@ -2614,6 +2614,9 @@ linkPreviewTypeSupergroupBoost photo:chatPhoto = LinkPreviewType;
 //@description The link is a link to a cloud theme. TDLib has no theme support yet @documents The list of files with theme description
 linkPreviewTypeTheme documents:vector<document> = LinkPreviewType;
 
+//@description The link preview type is unsupported yet
+linkPreviewTypeUnsupported = LinkPreviewType;
+
 //@description The link is a link to a user @photo Photo of the user; may be null if none @is_bot True, if the user is a bot
 linkPreviewTypeUser photo:chatPhoto is_bot:Bool = LinkPreviewType;
 
@@ -2634,9 +2637,6 @@ linkPreviewTypeVideoChat photo:chatPhoto is_live_stream:Bool = LinkPreviewType;
 
 //@description The link is a link to a Web App @photo Web App photo
 linkPreviewTypeWebApp photo:photo = LinkPreviewType;
-
-//@description The link preview type is unsupported yet @type String type of the link preview. Can be: article, photo, audio, video, document, profile, app, or something else
-linkPreviewTypeOther type:string = LinkPreviewType;
 
 
 //@description Describes a link preview

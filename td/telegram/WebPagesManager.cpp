@@ -1403,7 +1403,7 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
             td_->dialog_manager_->get_chat_id_object(story_sender_dialog_id, "webPage"), story_id.get());
       } else {
         LOG(ERROR) << "Receive telegram story " << web_page->url_ << " without story";
-        return td_api::make_object<td_api::linkPreviewTypeOther>();
+        return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
       }
     }
     if (type == "theme") {
@@ -1446,7 +1446,7 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
           return td_api::make_object<td_api::linkPreviewTypeAudio>(
               web_page->embed_url_, web_page->embed_type_, std::move(audio), web_page->duration_, web_page->author_);
         } else {
-          return td_api::make_object<td_api::linkPreviewTypeOther>();
+          return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
         }
       }
       if (web_page->type_ == "video") {
@@ -1458,12 +1458,12 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
               web_page->embed_url_, web_page->embed_type_, std::move(video), web_page->embed_dimensions_.width,
               web_page->embed_dimensions_.height, web_page->duration_, web_page->author_);
         } else {
-          return td_api::make_object<td_api::linkPreviewTypeOther>();
+          return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
         }
       }
     }
     LOG(ERROR) << "Have type = " << web_page->type_ << " for embedded " << web_page->url_;
-    return td_api::make_object<td_api::linkPreviewTypeOther>();
+    return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
   }
   if (web_page->type_ == "app") {
     return td_api::make_object<td_api::linkPreviewTypeApp>(get_photo_object(td_->file_manager_.get(), web_page->photo_),
@@ -1475,7 +1475,7 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
       return td_api::make_object<td_api::linkPreviewTypePhoto>(std::move(photo), web_page->author_);
     } else {
       LOG(ERROR) << "Receive photo without photo for " << web_page->url_;
-      return td_api::make_object<td_api::linkPreviewTypeOther>();
+      return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
     }
   }
   if (web_page->type_ == "video") {
@@ -1493,8 +1493,8 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
                                                                web_page->duration_, web_page->author_);
     }
   }
-  // TODO LOG(ERROR) << "Receive link preview of unsupported type " << web_page->type_;
-  return td_api::make_object<td_api::linkPreviewTypeOther>(web_page->type_);
+  LOG(ERROR) << "Receive link preview of unsupported type " << web_page->type_;
+  return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
 }
 
 td_api::object_ptr<td_api::linkPreview> WebPagesManager::get_link_preview_object(WebPageId web_page_id,
