@@ -1436,10 +1436,34 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
             web_page->embed_url_, web_page->duration_, web_page->author_, web_page->embed_dimensions_.width,
             web_page->embed_dimensions_.height);
       }
-      LOG(ERROR) << "Have type = " << web_page->type_ << " for embedded " << web_page->url_;
-      return td_api::make_object<td_api::linkPreviewTypeOther>(web_page->type_);
+    } else {
+      // ordinary audio/video
+      if (web_page->type_ == "audio") {
+        auto audio = web_page->document_.type == Document::Type::Audio
+                         ? td_->audios_manager_->get_audio_object(web_page->document_.file_id)
+                         : nullptr;
+        if (audio != nullptr || !web_page->embed_url_.empty()) {
+          return td_api::make_object<td_api::linkPreviewTypeAudio>(
+              web_page->embed_url_, web_page->embed_type_, std::move(audio), web_page->duration_, web_page->author_);
+        } else {
+          return td_api::make_object<td_api::linkPreviewTypeOther>(web_page->type_);
+        }
+      }
+      if (web_page->type_ == "video") {
+        auto video = web_page->document_.type == Document::Type::Video
+                         ? td_->videos_manager_->get_video_object(web_page->document_.file_id)
+                         : nullptr;
+        if (video != nullptr || !web_page->embed_url_.empty()) {
+          return td_api::make_object<td_api::linkPreviewTypeVideo>(
+              web_page->embed_url_, web_page->embed_type_, std::move(video), web_page->embed_dimensions_.width,
+              web_page->embed_dimensions_.height, web_page->duration_, web_page->author_);
+        } else {
+          return td_api::make_object<td_api::linkPreviewTypeOther>(web_page->type_);
+        }
+      }
     }
-    // ordinary audio/video
+    LOG(ERROR) << "Have type = " << web_page->type_ << " for embedded " << web_page->url_;
+    return td_api::make_object<td_api::linkPreviewTypeOther>(web_page->type_);
   }
   // TODO LOG(ERROR) << "Receive link preview of unsupported type " << web_page->type_;
   return td_api::make_object<td_api::linkPreviewTypeOther>(web_page->type_);
