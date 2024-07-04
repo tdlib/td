@@ -1589,6 +1589,15 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
                                                                web_page->duration_, web_page->author_);
     }
   }
+  if (web_page->document_.type == Document::Type::VideoNote && web_page->type_ == "document") {
+    auto video_note = td_->video_notes_manager_->get_video_note_object(web_page->document_.file_id);
+    return td_api::make_object<td_api::linkPreviewTypeVideoNote>(std::move(video_note));
+  }
+  if (web_page->document_.type == Document::Type::VoiceNote && web_page->type_ == "document") {
+    auto voice_note = td_->voice_notes_manager_->get_voice_note_object(web_page->document_.file_id);
+    return td_api::make_object<td_api::linkPreviewTypeVoiceNote>(std::move(voice_note));
+  }
+
   LOG(ERROR) << "Receive link preview of unsupported type " << web_page->type_;
   return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
 }

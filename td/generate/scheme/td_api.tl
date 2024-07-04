@@ -2659,6 +2659,12 @@ linkPreviewTypeVideo url:string mime_type:string video:video width:int32 height:
 //@is_live_stream True, if the video chat is expected to be a live stream in a channel or a broadcast group
 linkPreviewTypeVideoChat photo:chatPhoto is_live_stream:Bool = LinkPreviewType;
 
+//@description The link is a link to a video note message @video_note The video note
+linkPreviewTypeVideoNote video_note:videoNote = LinkPreviewType;
+
+//@description The link is a link to a voice note message @voice_note The voice note
+linkPreviewTypeVoiceNote voice_note:voiceNote = LinkPreviewType;
+
 //@description The link is a link to a Web App @photo Web App photo
 linkPreviewTypeWebApp photo:photo = LinkPreviewType;
 
