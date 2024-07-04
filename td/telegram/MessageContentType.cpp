@@ -148,6 +148,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, MessageContentType cont
       return string_builder << "ChatShared";
     case MessageContentType::PaidMedia:
       return string_builder << "PaidMedia";
+    case MessageContentType::PaymentRefunded:
+      return string_builder << "PaymentRefunded";
     default:
       return string_builder << "Invalid type " << static_cast<int32>(content_type);
   }
@@ -236,6 +238,7 @@ bool is_allowed_media_group_content(MessageContentType content_type) {
     case MessageContentType::BoostApply:
     case MessageContentType::DialogShared:
     case MessageContentType::PaidMedia:
+    case MessageContentType::PaymentRefunded:
       return false;
     default:
       UNREACHABLE();
@@ -318,6 +321,7 @@ bool can_be_secret_message_content(MessageContentType content_type) {
     case MessageContentType::BoostApply:
     case MessageContentType::DialogShared:
     case MessageContentType::PaidMedia:
+    case MessageContentType::PaymentRefunded:
       return false;
     default:
       UNREACHABLE();
@@ -396,6 +400,7 @@ bool can_be_local_message_content(MessageContentType content_type) {
     case MessageContentType::BoostApply:
     case MessageContentType::DialogShared:
     case MessageContentType::PaidMedia:
+    case MessageContentType::PaymentRefunded:
       return false;
     default:
       UNREACHABLE();
@@ -474,6 +479,7 @@ bool is_service_message_content(MessageContentType content_type) {
     case MessageContentType::GiveawayResults:
     case MessageContentType::BoostApply:
     case MessageContentType::DialogShared:
+    case MessageContentType::PaymentRefunded:
       return true;
     default:
       UNREACHABLE();
@@ -552,6 +558,7 @@ bool is_editable_message_content(MessageContentType content_type) {
     case MessageContentType::ExpiredVoiceNote:
     case MessageContentType::BoostApply:
     case MessageContentType::DialogShared:
+    case MessageContentType::PaymentRefunded:
       return false;
     default:
       UNREACHABLE();
@@ -694,6 +701,7 @@ bool can_have_message_content_caption(MessageContentType content_type) {
     case MessageContentType::ExpiredVoiceNote:
     case MessageContentType::BoostApply:
     case MessageContentType::DialogShared:
+    case MessageContentType::PaymentRefunded:
       return false;
     default:
       UNREACHABLE();

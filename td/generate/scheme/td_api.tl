@@ -3449,6 +3449,15 @@ messagePaymentSuccessful invoice_chat_id:int53 invoice_message_id:int53 currency
 //@provider_payment_charge_id Provider payment identifier
 messagePaymentSuccessfulBot currency:string total_amount:int53 is_recurring:Bool is_first_recurring:Bool invoice_payload:bytes shipping_option_id:string order_info:orderInfo telegram_payment_charge_id:string provider_payment_charge_id:string = MessageContent;
 
+//@description A payment has been refunded
+//@owner_id Identifier of the previous owner of the Telegram stars that refunds them
+//@currency Currency for the price of the product
+//@total_amount Total price for the product, in the smallest units of the currency
+//@invoice_payload Invoice payload; only for bots
+//@telegram_payment_charge_id Telegram payment identifier
+//@provider_payment_charge_id Provider payment identifier
+messagePaymentRefunded owner_id:MessageSender currency:string total_amount:int53 invoice_payload:bytes telegram_payment_charge_id:string provider_payment_charge_id:string = MessageContent;
+
 //@description Telegram Premium was gifted to the user
 //@gifter_user_id The identifier of a user that gifted Telegram Premium; 0 if the gift was anonymous
 //@currency Currency for the paid amount
