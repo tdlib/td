@@ -495,21 +495,6 @@ ThemeManager::DialogBoostAvailableCounts ThemeManager::get_dialog_boost_availabl
   return result;
 }
 
-bool ThemeManager::is_dark_base_theme(BaseTheme base_theme) {
-  switch (base_theme) {
-    case BaseTheme::Classic:
-    case BaseTheme::Day:
-    case BaseTheme::Arctic:
-      return false;
-    case BaseTheme::Night:
-    case BaseTheme::Tinted:
-      return true;
-    default:
-      UNREACHABLE();
-      return false;
-  }
-}
-
 void ThemeManager::on_update_theme(telegram_api::object_ptr<telegram_api::theme> &&theme, Promise<Unit> &&promise) {
   CHECK(theme != nullptr);
   bool is_changed = false;
@@ -1050,26 +1035,6 @@ void ThemeManager::on_get_profile_accent_colors(
                                        std::move(min_broadcast_boost_levels), std::move(min_megagroup_boost_levels)) &&
       is_changed) {
     save_profile_accent_colors();
-  }
-}
-
-ThemeManager::BaseTheme ThemeManager::get_base_theme(
-    const telegram_api::object_ptr<telegram_api::BaseTheme> &base_theme) {
-  CHECK(base_theme != nullptr);
-  switch (base_theme->get_id()) {
-    case telegram_api::baseThemeClassic::ID:
-      return BaseTheme::Classic;
-    case telegram_api::baseThemeDay::ID:
-      return BaseTheme::Day;
-    case telegram_api::baseThemeNight::ID:
-      return BaseTheme::Night;
-    case telegram_api::baseThemeTinted::ID:
-      return BaseTheme::Tinted;
-    case telegram_api::baseThemeArctic::ID:
-      return BaseTheme::Arctic;
-    default:
-      UNREACHABLE();
-      return BaseTheme::Classic;
   }
 }
 

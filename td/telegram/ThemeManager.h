@@ -8,6 +8,7 @@
 
 #include "td/telegram/AccentColorId.h"
 #include "td/telegram/BackgroundInfo.h"
+#include "td/telegram/BaseTheme.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -54,9 +55,6 @@ class ThemeManager final : public Actor {
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
-  // append-only
-  enum class BaseTheme : int32 { Classic, Day, Night, Tinted, Arctic };
-
   struct ThemeSettings {
     int32 accent_color = 0;
     int32 message_accent_color = 0;
@@ -164,8 +162,6 @@ class ThemeManager final : public Actor {
 
   void load_profile_accent_colors();
 
-  static bool is_dark_base_theme(BaseTheme base_theme);
-
   void on_get_chat_themes(Result<telegram_api::object_ptr<telegram_api::account_Themes>> result);
 
   bool on_update_accent_colors(FlatHashMap<AccentColorId, vector<int32>, AccentColorIdHash> light_colors,
@@ -204,8 +200,6 @@ class ThemeManager final : public Actor {
   void save_profile_accent_colors();
 
   void send_update_chat_themes() const;
-
-  static BaseTheme get_base_theme(const telegram_api::object_ptr<telegram_api::BaseTheme> &base_theme);
 
   ThemeSettings get_chat_theme_settings(telegram_api::object_ptr<telegram_api::themeSettings> settings);
 

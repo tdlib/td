@@ -330,6 +330,7 @@ set(TDLIB_SOURCE_PART1
   td/telegram/BackgroundInfo.cpp
   td/telegram/BackgroundManager.cpp
   td/telegram/BackgroundType.cpp
+  td/telegram/BaseTheme.cpp
   td/telegram/Birthdate.cpp
   td/telegram/BoostManager.cpp
   td/telegram/BotCommand.cpp
@@ -606,6 +607,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/BackgroundInfo.h
   td/telegram/BackgroundManager.h
   td/telegram/BackgroundType.h
+  td/telegram/BaseTheme.h
   td/telegram/Birthdate.h
   td/telegram/BlockListId.h
   td/telegram/BoostManager.h
