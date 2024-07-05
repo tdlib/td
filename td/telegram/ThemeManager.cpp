@@ -450,10 +450,10 @@ void ThemeManager::on_update_theme(telegram_api::object_ptr<telegram_api::theme>
     if (chat_theme.id == theme->id_) {
       for (auto &settings : theme->settings_) {
         ThemeSettings theme_settings(td_, std::move(settings));
-        if (theme_settings.message_colors.empty()) {
+        if (theme_settings.is_empty()) {
           continue;
         }
-        if (is_dark_base_theme(theme_settings.base_theme)) {
+        if (theme_settings.are_dark()) {
           if (!was_dark) {
             was_dark = true;
             if (chat_theme.dark_theme != theme_settings) {
@@ -777,10 +777,10 @@ void ThemeManager::on_get_chat_themes(Result<telegram_api::object_ptr<telegram_a
     chat_theme.id = theme->id_;
     for (auto &settings : theme->settings_) {
       ThemeSettings theme_settings(td_, std::move(settings));
-      if (theme_settings.message_colors.empty()) {
+      if (theme_settings.is_empty()) {
         continue;
       }
-      if (is_dark_base_theme(theme_settings.base_theme)) {
+      if (theme_settings.are_dark()) {
         if (!was_dark) {
           was_dark = true;
           if (chat_theme.dark_theme != theme_settings) {

@@ -10,37 +10,37 @@ namespace td {
 
 ThemeSettings::ThemeSettings(Td *td, telegram_api::object_ptr<telegram_api::themeSettings> settings) {
   if (settings != nullptr && !settings->message_colors_.empty() && settings->message_colors_.size() <= 4) {
-    accent_color = settings->accent_color_;
+    accent_color_ = settings->accent_color_;
     bool has_outbox_accent_color = (settings->flags_ & telegram_api::themeSettings::OUTBOX_ACCENT_COLOR_MASK) != 0;
-    message_accent_color = (has_outbox_accent_color ? settings->outbox_accent_color_ : accent_color);
-    background_info = BackgroundInfo(td, std::move(settings->wallpaper_), true);
-    base_theme = get_base_theme(settings->base_theme_);
-    message_colors = std::move(settings->message_colors_);
-    animate_message_colors = settings->message_colors_animated_;
+    message_accent_color_ = (has_outbox_accent_color ? settings->outbox_accent_color_ : accent_color_);
+    background_info_ = BackgroundInfo(td, std::move(settings->wallpaper_), true);
+    base_theme_ = get_base_theme(settings->base_theme_);
+    message_colors_ = std::move(settings->message_colors_);
+    animate_message_colors_ = settings->message_colors_animated_;
   }
 }
 
 td_api::object_ptr<td_api::themeSettings> ThemeSettings::get_theme_settings_object(Td *td) const {
   auto fill = [&]() -> td_api::object_ptr<td_api::BackgroundFill> {
-    if (message_colors.size() >= 3) {
-      return td_api::make_object<td_api::backgroundFillFreeformGradient>(vector<int32>(message_colors));
+    if (message_colors_.size() >= 3) {
+      return td_api::make_object<td_api::backgroundFillFreeformGradient>(vector<int32>(message_colors_));
     }
-    CHECK(!message_colors.empty());
-    if (message_colors.size() == 1 || message_colors[0] == message_colors[1]) {
-      return td_api::make_object<td_api::backgroundFillSolid>(message_colors[0]);
+    CHECK(!message_colors_.empty());
+    if (message_colors_.size() == 1 || message_colors_[0] == message_colors_[1]) {
+      return td_api::make_object<td_api::backgroundFillSolid>(message_colors_[0]);
     }
-    return td_api::make_object<td_api::backgroundFillGradient>(message_colors[1], message_colors[0], 0);
+    return td_api::make_object<td_api::backgroundFillGradient>(message_colors_[1], message_colors_[0], 0);
   }();
 
-  // ignore base_theme for now
-  return td_api::make_object<td_api::themeSettings>(accent_color, background_info.get_background_object(td),
-                                                    std::move(fill), animate_message_colors, message_accent_color);
+  // ignore base_theme_ for now
+  return td_api::make_object<td_api::themeSettings>(accent_color_, background_info_.get_background_object(td),
+                                                    std::move(fill), animate_message_colors_, message_accent_color_);
 }
 
 bool operator==(const ThemeSettings &lhs, const ThemeSettings &rhs) {
-  return lhs.accent_color == rhs.accent_color && lhs.message_accent_color == rhs.message_accent_color &&
-         lhs.background_info == rhs.background_info && lhs.base_theme == rhs.base_theme &&
-         lhs.message_colors == rhs.message_colors && lhs.animate_message_colors == rhs.animate_message_colors;
+  return lhs.accent_color_ == rhs.accent_color_ && lhs.message_accent_color_ == rhs.message_accent_color_ &&
+         lhs.background_info_ == rhs.background_info_ && lhs.base_theme_ == rhs.base_theme_ &&
+         lhs.message_colors_ == rhs.message_colors_ && lhs.animate_message_colors_ == rhs.animate_message_colors_;
 }
 
 }  // namespace td
