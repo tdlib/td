@@ -796,7 +796,7 @@ void ThemeManager::on_get_chat_themes(Result<telegram_api::object_ptr<telegram_a
         }
       }
     }
-    if (chat_theme.light_theme.message_colors.empty() || chat_theme.dark_theme.message_colors.empty()) {
+    if (chat_theme.light_theme.is_empty() || chat_theme.dark_theme.is_empty()) {
       continue;
     }
     chat_themes_.themes.push_back(std::move(chat_theme));

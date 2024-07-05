@@ -31,6 +31,10 @@ struct ThemeSettings {
 
   td_api::object_ptr<td_api::themeSettings> get_theme_settings_object(Td *td) const;
 
+  bool is_empty() const {
+    return message_colors.empty();
+  }
+
   template <class StorerT>
   void store(StorerT &storer) const;
 
