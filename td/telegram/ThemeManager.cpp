@@ -7,7 +7,6 @@
 #include "td/telegram/ThemeManager.h"
 
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/BackgroundInfo.hpp"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/net/NetQueryCreator.h"
@@ -15,6 +14,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/ThemeSettings.hpp"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -116,16 +116,6 @@ class GetPeerProfileColorsQuery final : public Td::ResultHandler {
   }
 };
 
-bool operator==(const ThemeManager::ThemeSettings &lhs, const ThemeManager::ThemeSettings &rhs) {
-  return lhs.accent_color == rhs.accent_color && lhs.message_accent_color == rhs.message_accent_color &&
-         lhs.background_info == rhs.background_info && lhs.base_theme == rhs.base_theme &&
-         lhs.message_colors == rhs.message_colors && lhs.animate_message_colors == rhs.animate_message_colors;
-}
-
-bool operator!=(const ThemeManager::ThemeSettings &lhs, const ThemeManager::ThemeSettings &rhs) {
-  return !(lhs == rhs);
-}
-
 bool operator==(const ThemeManager::ProfileAccentColor &lhs, const ThemeManager::ProfileAccentColor &rhs) {
   return lhs.palette_colors_ == rhs.palette_colors_ && lhs.background_colors_ == rhs.background_colors_ &&
          lhs.story_colors_ == rhs.story_colors_;
@@ -133,50 +123,6 @@ bool operator==(const ThemeManager::ProfileAccentColor &lhs, const ThemeManager:
 
 bool operator!=(const ThemeManager::ProfileAccentColor &lhs, const ThemeManager::ProfileAccentColor &rhs) {
   return !(lhs == rhs);
-}
-
-template <class StorerT>
-void ThemeManager::ThemeSettings::store(StorerT &storer) const {
-  using td::store;
-  bool has_message_accent_color = message_accent_color != accent_color;
-  bool has_background = background_info.is_valid();
-  BEGIN_STORE_FLAGS();
-  STORE_FLAG(animate_message_colors);
-  STORE_FLAG(has_message_accent_color);
-  STORE_FLAG(has_background);
-  END_STORE_FLAGS();
-  store(accent_color, storer);
-  if (has_message_accent_color) {
-    store(message_accent_color, storer);
-  }
-  if (has_background) {
-    store(background_info, storer);
-  }
-  store(base_theme, storer);
-  store(message_colors, storer);
-}
-
-template <class ParserT>
-void ThemeManager::ThemeSettings::parse(ParserT &parser) {
-  using td::parse;
-  bool has_message_accent_color;
-  bool has_background;
-  BEGIN_PARSE_FLAGS();
-  PARSE_FLAG(animate_message_colors);
-  PARSE_FLAG(has_message_accent_color);
-  PARSE_FLAG(has_background);
-  END_PARSE_FLAGS();
-  parse(accent_color, parser);
-  if (has_message_accent_color) {
-    parse(message_accent_color, parser);
-  } else {
-    message_accent_color = accent_color;
-  }
-  if (has_background) {
-    parse(background_info, parser);
-  }
-  parse(base_theme, parser);
-  parse(message_colors, parser);
 }
 
 template <class StorerT>
@@ -503,7 +449,7 @@ void ThemeManager::on_update_theme(telegram_api::object_ptr<telegram_api::theme>
   for (auto &chat_theme : chat_themes_.themes) {
     if (chat_theme.id == theme->id_) {
       for (auto &settings : theme->settings_) {
-        auto theme_settings = get_chat_theme_settings(std::move(settings));
+        ThemeSettings theme_settings(td_, std::move(settings));
         if (theme_settings.message_colors.empty()) {
           continue;
         }
@@ -659,27 +605,9 @@ int32 ThemeManager::get_profile_accent_color_id_object(AccentColorId accent_colo
   return -1;
 }
 
-td_api::object_ptr<td_api::themeSettings> ThemeManager::get_theme_settings_object(const ThemeSettings &settings) const {
-  auto fill = [colors = settings.message_colors]() mutable -> td_api::object_ptr<td_api::BackgroundFill> {
-    if (colors.size() >= 3) {
-      return td_api::make_object<td_api::backgroundFillFreeformGradient>(std::move(colors));
-    }
-    CHECK(!colors.empty());
-    if (colors.size() == 1 || colors[0] == colors[1]) {
-      return td_api::make_object<td_api::backgroundFillSolid>(colors[0]);
-    }
-    return td_api::make_object<td_api::backgroundFillGradient>(colors[1], colors[0], 0);
-  }();
-
-  // ignore settings.base_theme for now
-  return td_api::make_object<td_api::themeSettings>(
-      settings.accent_color, settings.background_info.get_background_object(td_), std::move(fill),
-      settings.animate_message_colors, settings.message_accent_color);
-}
-
 td_api::object_ptr<td_api::chatTheme> ThemeManager::get_chat_theme_object(const ChatTheme &theme) const {
-  return td_api::make_object<td_api::chatTheme>(theme.emoji, get_theme_settings_object(theme.light_theme),
-                                                get_theme_settings_object(theme.dark_theme));
+  return td_api::make_object<td_api::chatTheme>(theme.emoji, theme.light_theme.get_theme_settings_object(td_),
+                                                theme.dark_theme.get_theme_settings_object(td_));
 }
 
 td_api::object_ptr<td_api::updateChatThemes> ThemeManager::get_update_chat_themes_object() const {
@@ -848,7 +776,7 @@ void ThemeManager::on_get_chat_themes(Result<telegram_api::object_ptr<telegram_a
     chat_theme.emoji = std::move(theme->emoticon_);
     chat_theme.id = theme->id_;
     for (auto &settings : theme->settings_) {
-      auto theme_settings = get_chat_theme_settings(std::move(settings));
+      ThemeSettings theme_settings(td_, std::move(settings));
       if (theme_settings.message_colors.empty()) {
         continue;
       }
@@ -1036,21 +964,6 @@ void ThemeManager::on_get_profile_accent_colors(
       is_changed) {
     save_profile_accent_colors();
   }
-}
-
-ThemeManager::ThemeSettings ThemeManager::get_chat_theme_settings(
-    telegram_api::object_ptr<telegram_api::themeSettings> settings) {
-  ThemeSettings result;
-  if (settings != nullptr && !settings->message_colors_.empty() && settings->message_colors_.size() <= 4) {
-    result.accent_color = settings->accent_color_;
-    bool has_outbox_accent_color = (settings->flags_ & telegram_api::themeSettings::OUTBOX_ACCENT_COLOR_MASK) != 0;
-    result.message_accent_color = (has_outbox_accent_color ? settings->outbox_accent_color_ : result.accent_color);
-    result.background_info = BackgroundInfo(td_, std::move(settings->wallpaper_), true);
-    result.base_theme = get_base_theme(settings->base_theme_);
-    result.message_colors = std::move(settings->message_colors_);
-    result.animate_message_colors = settings->message_colors_animated_;
-  }
-  return result;
 }
 
 void ThemeManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {

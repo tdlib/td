@@ -573,6 +573,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/TdDb.cpp
   td/telegram/TermsOfService.cpp
   td/telegram/ThemeManager.cpp
+  td/telegram/ThemeSettings.cpp
   td/telegram/TimeZoneManager.cpp
   td/telegram/TopDialogCategory.cpp
   td/telegram/TopDialogManager.cpp
@@ -914,6 +915,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/TdDb.h
   td/telegram/TermsOfService.h
   td/telegram/ThemeManager.h
+  td/telegram/ThemeSettings.h
   td/telegram/TimeZoneManager.h
   td/telegram/TopDialogCategory.h
   td/telegram/TopDialogManager.h
@@ -1011,6 +1013,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/StoryInteractionInfo.hpp
   td/telegram/StoryStealthMode.hpp
   td/telegram/SuggestedAction.hpp
+  td/telegram/ThemeSettings.hpp
   td/telegram/TranscriptionInfo.hpp
   td/telegram/VideoNotesManager.hpp
   td/telegram/VideosManager.hpp

@@ -7,10 +7,10 @@
 #pragma once
 
 #include "td/telegram/AccentColorId.h"
-#include "td/telegram/BackgroundInfo.h"
 #include "td/telegram/BaseTheme.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/ThemeSettings.h"
 
 #include "td/actor/actor.h"
 
@@ -55,25 +55,6 @@ class ThemeManager final : public Actor {
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
-  struct ThemeSettings {
-    int32 accent_color = 0;
-    int32 message_accent_color = 0;
-    BackgroundInfo background_info;
-    BaseTheme base_theme = BaseTheme::Classic;
-    vector<int32> message_colors;
-    bool animate_message_colors = false;
-
-    template <class StorerT>
-    void store(StorerT &storer) const;
-
-    template <class ParserT>
-    void parse(ParserT &parser);
-  };
-
-  friend bool operator==(const ThemeSettings &lhs, const ThemeSettings &rhs);
-
-  friend bool operator!=(const ThemeSettings &lhs, const ThemeSettings &rhs);
-
   struct ChatTheme {
     string emoji;
     int64 id = 0;
@@ -181,8 +162,6 @@ class ThemeManager final : public Actor {
 
   void on_get_profile_accent_colors(Result<telegram_api::object_ptr<telegram_api::help_PeerColors>> result);
 
-  td_api::object_ptr<td_api::themeSettings> get_theme_settings_object(const ThemeSettings &settings) const;
-
   td_api::object_ptr<td_api::chatTheme> get_chat_theme_object(const ChatTheme &theme) const;
 
   td_api::object_ptr<td_api::updateChatThemes> get_update_chat_themes_object() const;
@@ -200,8 +179,6 @@ class ThemeManager final : public Actor {
   void save_profile_accent_colors();
 
   void send_update_chat_themes() const;
-
-  ThemeSettings get_chat_theme_settings(telegram_api::object_ptr<telegram_api::themeSettings> settings);
 
   td_api::object_ptr<td_api::updateAccentColors> get_update_accent_colors_object() const;
 
