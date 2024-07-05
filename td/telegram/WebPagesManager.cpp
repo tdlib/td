@@ -36,6 +36,8 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/ThemeSettings.h"
+#include "td/telegram/ThemeSettings.hpp"
 #include "td/telegram/UserManager.h"
 #include "td/telegram/VideoNotesManager.h"
 #include "td/telegram/VideosManager.h"
@@ -245,6 +247,7 @@ class WebPagesManager::WebPage {
   bool has_large_media_ = false;
   Document document_;
   vector<Document> documents_;
+  ThemeSettings theme_settings_;
   vector<StoryFullId> story_full_ids_;
   vector<FileId> sticker_ids_;
   WebPageInstantView instant_view_;
@@ -272,6 +275,7 @@ class WebPagesManager::WebPage {
     bool has_documents = !documents_.empty();
     bool has_story_full_ids = !story_full_ids_.empty();
     bool has_sticker_ids = !sticker_ids_.empty();
+    bool has_theme_settings = !theme_settings_.is_empty();
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_type);
     STORE_FLAG(has_site_name);
@@ -290,6 +294,7 @@ class WebPagesManager::WebPage {
     STORE_FLAG(has_story_full_ids);
     STORE_FLAG(has_large_media_);
     STORE_FLAG(has_sticker_ids);
+    STORE_FLAG(has_theme_settings);
     END_STORE_FLAGS();
 
     store(url_, storer);
@@ -338,6 +343,9 @@ class WebPagesManager::WebPage {
         td->stickers_manager_->store_sticker(sticker_id, false, storer, "WebPage");
       }
     }
+    if (has_theme_settings) {
+      store(theme_settings_, storer);
+    }
   }
 
   template <class ParserT>
@@ -359,6 +367,7 @@ class WebPagesManager::WebPage {
     bool has_documents;
     bool has_story_full_ids;
     bool has_sticker_ids;
+    bool has_theme_settings;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_type);
     PARSE_FLAG(has_site_name);
@@ -377,6 +386,7 @@ class WebPagesManager::WebPage {
     PARSE_FLAG(has_story_full_ids);
     PARSE_FLAG(has_large_media_);
     PARSE_FLAG(has_sticker_ids);
+    PARSE_FLAG(has_theme_settings);
     END_PARSE_FLAGS();
 
     parse(url_, parser);
@@ -434,6 +444,9 @@ class WebPagesManager::WebPage {
         }
       }
     }
+    if (has_theme_settings) {
+      parse(theme_settings_, parser);
+    }
 
     if (has_instant_view) {
       instant_view_.is_empty_ = false;
@@ -450,8 +463,9 @@ class WebPagesManager::WebPage {
            lhs.embed_type_ == rhs.embed_type_ && lhs.embed_dimensions_ == rhs.embed_dimensions_ &&
            lhs.duration_ == rhs.duration_ && lhs.author_ == rhs.author_ &&
            lhs.has_large_media_ == rhs.has_large_media_ && lhs.document_ == rhs.document_ &&
-           lhs.documents_ == rhs.documents_ && lhs.story_full_ids_ == rhs.story_full_ids_ &&
-           lhs.sticker_ids_ == rhs.sticker_ids_ && lhs.instant_view_.is_empty_ == rhs.instant_view_.is_empty_ &&
+           lhs.documents_ == rhs.documents_ && lhs.theme_settings_ == rhs.theme_settings_ &&
+           lhs.story_full_ids_ == rhs.story_full_ids_ && lhs.sticker_ids_ == rhs.sticker_ids_ &&
+           lhs.instant_view_.is_empty_ == rhs.instant_view_.is_empty_ &&
            lhs.instant_view_.is_v2_ == rhs.instant_view_.is_v2_;
   }
 };
@@ -597,7 +611,7 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
                 }
               }
             }
-            // TODO attribute->settings_
+            page->theme_settings_ = ThemeSettings(td_, std::move(attribute->settings_));
             break;
           }
           case telegram_api::webPageAttributeStory::ID: {
@@ -1473,8 +1487,9 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
           documents.push_back(td_->documents_manager_->get_document_object(document.file_id, PhotoFormat::Jpeg));
         }
       }
-      // TODO add theme settings
-      return td_api::make_object<td_api::linkPreviewTypeTheme>(std::move(documents));
+      auto theme_settings =
+          !web_page->theme_settings_.is_empty() ? web_page->theme_settings_.get_theme_settings_object(td_) : nullptr;
+      return td_api::make_object<td_api::linkPreviewTypeTheme>(std::move(documents), std::move(theme_settings));
     }
     if (type == "user") {
       return td_api::make_object<td_api::linkPreviewTypeUser>(

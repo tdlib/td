@@ -2292,6 +2292,15 @@ sharedUser user_id:int53 first_name:string last_name:string username:string phot
 sharedChat chat_id:int53 title:string username:string photo:photo = SharedChat;
 
 
+//@description Describes theme settings
+//@accent_color Theme accent color in ARGB format
+//@background The background to be used in chats; may be null
+//@outgoing_message_fill The fill to be used as a background for outgoing messages
+//@animate_outgoing_message_fill If true, the freeform gradient fill needs to be animated on every sent message
+//@outgoing_message_accent_color Accent color of outgoing messages in ARGB format
+themeSettings accent_color:int32 background:background outgoing_message_fill:BackgroundFill animate_outgoing_message_fill:Bool outgoing_message_accent_color:int32 = ThemeSettings;
+
+
 //@class RichText @description Describes a formatted text object
 
 //@description A plain text @text Text
@@ -2638,8 +2647,8 @@ linkPreviewTypeStory story_sender_chat_id:int53 story_id:int32 = LinkPreviewType
 //@description The link is a link to boost a supergroup chat @photo Photo of the chat; may be null
 linkPreviewTypeSupergroupBoost photo:chatPhoto = LinkPreviewType;
 
-//@description The link is a link to a cloud theme. TDLib has no theme support yet @documents The list of files with theme description
-linkPreviewTypeTheme documents:vector<document> = LinkPreviewType;
+//@description The link is a link to a cloud theme. TDLib has no theme support yet @documents The list of files with theme description @settings Settings for the cloud theme
+linkPreviewTypeTheme documents:vector<document> settings:themeSettings = LinkPreviewType;
 
 //@description The link preview type is unsupported yet
 linkPreviewTypeUnsupported = LinkPreviewType;
@@ -5677,15 +5686,6 @@ inputBackgroundRemote background_id:int64 = InputBackground;
 
 //@description A background previously set in the chat; for chat backgrounds only @message_id Identifier of the message with the background
 inputBackgroundPrevious message_id:int53 = InputBackground;
-
-
-//@description Describes theme settings
-//@accent_color Theme accent color in ARGB format
-//@background The background to be used in chats; may be null
-//@outgoing_message_fill The fill to be used as a background for outgoing messages
-//@animate_outgoing_message_fill If true, the freeform gradient fill needs to be animated on every sent message
-//@outgoing_message_accent_color Accent color of outgoing messages in ARGB format
-themeSettings accent_color:int32 background:background outgoing_message_fill:BackgroundFill animate_outgoing_message_fill:Bool outgoing_message_accent_color:int32 = ThemeSettings;
 
 
 //@description Describes a chat theme
