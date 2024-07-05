@@ -584,6 +584,7 @@ class ChatManager final : public Actor {
     bool can_view_statistics = false;
     bool is_can_view_statistics_inited = false;
     bool can_view_revenue = false;
+    bool can_view_star_revenue = false;
     bool is_all_history_available = true;
     bool can_have_sponsored_messages = true;
     bool has_aggressive_anti_spam_enabled = false;

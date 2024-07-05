@@ -1307,6 +1307,7 @@ supergroup id:int53 usernames:usernames date:int32 status:ChatMemberStatus membe
 //@can_set_location True, if the supergroup location can be changed
 //@can_get_statistics True, if the supergroup or channel statistics are available
 //@can_get_revenue_statistics True, if the supergroup or channel revenue statistics are available
+//@can_get_star_revenue_statistics True, if the supergroup or channel Telegram Star revenue statistics are available
 //@can_toggle_aggressive_anti_spam True, if aggressive anti-spam checks can be enabled or disabled in the supergroup
 //@is_all_history_available True, if new chat members will have access to old messages. In public, discussion, of forum groups and all channels, old messages are always available,
 //-so this option affects only private non-forum supergroups without a linked chat. The value of this field is only available to chat administrators
@@ -1323,7 +1324,7 @@ supergroup id:int53 usernames:usernames date:int32 status:ChatMemberStatus membe
 //@bot_commands List of commands of bots in the group
 //@upgraded_from_basic_group_id Identifier of the basic group from which supergroup was upgraded; 0 if none
 //@upgraded_from_max_message_id Identifier of the last message in the basic group from which supergroup was upgraded; 0 if none
-supergroupFullInfo photo:chatPhoto description:string member_count:int32 administrator_count:int32 restricted_count:int32 banned_count:int32 linked_chat_id:int53 slow_mode_delay:int32 slow_mode_delay_expires_in:double can_get_members:Bool has_hidden_members:Bool can_hide_members:Bool can_set_sticker_set:Bool can_set_location:Bool can_get_statistics:Bool can_get_revenue_statistics:Bool can_toggle_aggressive_anti_spam:Bool is_all_history_available:Bool can_have_sponsored_messages:Bool has_aggressive_anti_spam_enabled:Bool has_paid_media_allowed:Bool has_pinned_stories:Bool my_boost_count:int32 unrestrict_boost_count:int32 sticker_set_id:int64 custom_emoji_sticker_set_id:int64 location:chatLocation invite_link:chatInviteLink bot_commands:vector<botCommands> upgraded_from_basic_group_id:int53 upgraded_from_max_message_id:int53 = SupergroupFullInfo;
+supergroupFullInfo photo:chatPhoto description:string member_count:int32 administrator_count:int32 restricted_count:int32 banned_count:int32 linked_chat_id:int53 slow_mode_delay:int32 slow_mode_delay_expires_in:double can_get_members:Bool has_hidden_members:Bool can_hide_members:Bool can_set_sticker_set:Bool can_set_location:Bool can_get_statistics:Bool can_get_revenue_statistics:Bool can_get_star_revenue_statistics:Bool can_toggle_aggressive_anti_spam:Bool is_all_history_available:Bool can_have_sponsored_messages:Bool has_aggressive_anti_spam_enabled:Bool has_paid_media_allowed:Bool has_pinned_stories:Bool my_boost_count:int32 unrestrict_boost_count:int32 sticker_set_id:int64 custom_emoji_sticker_set_id:int64 location:chatLocation invite_link:chatInviteLink bot_commands:vector<botCommands> upgraded_from_basic_group_id:int53 upgraded_from_max_message_id:int53 = SupergroupFullInfo;
 
 
 //@class SecretChatState @description Describes the current secret chat state
@@ -10915,7 +10916,7 @@ getChatRevenueTransactions chat_id:int53 offset:int32 limit:int32 = ChatRevenueT
 
 
 //@description Returns detailed Telegram star revenue statistics
-//@owner_id Identifier of the owner of the Telegram stars; can be identifier of an owned bot, or identifier of an owned channel chat
+//@owner_id Identifier of the owner of the Telegram stars; can be identifier of an owned bot, or identifier of a channel chat with supergroupFullInfo.can_get_star_revenue_statistics == true
 //@is_dark Pass true if a dark theme is used by the application
 getStarRevenueStatistics owner_id:MessageSender is_dark:Bool = StarRevenueStatistics;
 
@@ -11198,7 +11199,7 @@ getStarPaymentOptions = StarPaymentOptions;
 
 //@description Returns the list of Telegram star transactions for the specified owner
 //@owner_id Identifier of the owner of the Telegram stars; can be the identifier of the current user, identifier of an owned bot,
-//-or identifier of a channel chat with supergroupFullInfo.can_get_revenue_statistics == true
+//-or identifier of a channel chat with supergroupFullInfo.can_get_star_revenue_statistics == true
 //@direction Direction of the transactions to receive; pass null to get all transactions
 //@offset Offset of the first transaction to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of transactions to return
