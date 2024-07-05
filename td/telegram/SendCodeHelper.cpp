@@ -229,11 +229,8 @@ SendCodeHelper::AuthenticationCodeInfo SendCodeHelper::get_sent_authentication_c
       }
       if ((code_type->flags_ & telegram_api::auth_sentCodeTypeFirebaseSms::PLAY_INTEGRITY_NONCE_MASK) != 0) {
         return AuthenticationCodeInfo{AuthenticationCodeInfo::Type::FirebaseAndroidPlayIntegrity, code_type->length_,
-<<<<<<< HEAD
-                                      code_type->play_integrity_nonce_.as_slice().str()};
-=======
-                                      std::move(nonce), 0, code_type->play_integrity_project_id_};
->>>>>>> 1062f39ce (Add firebaseDeviceVerificationParametersPlayIntegrity.cloud_project_number.)
+                                      code_type->play_integrity_nonce_.as_slice().str(), 0,
+                                      code_type->play_integrity_project_id_};
       }
 #elif TD_DARWIN
       if ((code_type->flags_ & telegram_api::auth_sentCodeTypeFirebaseSms::RECEIPT_MASK) != 0) {
