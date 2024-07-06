@@ -1479,7 +1479,7 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
       if (web_page->story_full_ids_.size() == 1) {
         story_sender_dialog_id = web_page->story_full_ids_[0].get_dialog_id();
         story_id = web_page->story_full_ids_[0].get_story_id();
-        td_api::make_object<td_api::linkPreviewTypeStory>(
+        return td_api::make_object<td_api::linkPreviewTypeStory>(
             td_->dialog_manager_->get_chat_id_object(story_sender_dialog_id, "webPage"), story_id.get());
       } else {
         LOG(ERROR) << "Receive telegram story " << web_page->url_ << " without story";
