@@ -7,7 +7,6 @@
 #pragma once
 
 #include "td/telegram/AccentColorId.h"
-#include "td/telegram/BaseTheme.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/ThemeSettings.h"

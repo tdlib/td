@@ -2570,7 +2570,7 @@ linkPreviewAlbumMediaPhoto photo:photo = LinkPreviewAlbumMedia;
 linkPreviewAlbumMediaVideo video:video = LinkPreviewAlbumMedia;
 
 
-//@class LinkPreviewType @description Describes type of a link preview
+//@class LinkPreviewType @description Describes type of link preview
 
 //@description The link is a link to a media album consisting of photos and videos @media The list of album media @caption Album caption
 linkPreviewTypeAlbum media:vector<LinkPreviewAlbumMedia> caption:string = LinkPreviewType;
@@ -2587,7 +2587,7 @@ linkPreviewTypeArticle photo:photo author:string = LinkPreviewType;
 //@description The link is a link to an audio
 //@url URL of the audio; may be empty if none
 //@mime_type MIME type of the audio file
-//@audio Description of the audio; may be null if unknown
+//@audio The audio description; may be null if unknown
 //@duration Duration of the audio, in seconds; 0 if unknown
 //@author Author of the audio
 linkPreviewTypeAudio url:string mime_type:string audio:audio duration:int32 author:string = LinkPreviewType;
@@ -2660,7 +2660,7 @@ linkPreviewTypeUser photo:chatPhoto is_bot:Bool = LinkPreviewType;
 //@description The link is a link to a video
 //@url URL of the video; may be empty if none
 //@mime_type MIME type of the video file
-//@video Description of the video; may be null if unknown
+//@video The video description; may be null if unknown
 //@width Expected width of the preview
 //@height Expected height of the preview
 //@duration Duration of the video, in seconds; 0 if unknown
