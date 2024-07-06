@@ -1606,17 +1606,21 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
   }
   if (web_page->type_ == "video" ||
       (web_page->document_.type == Document::Type::Video && web_page->type_ == "document")) {
-    LOG_IF(ERROR, !web_page->photo_.is_empty()) << "Receive photo for " << web_page->url_;
     auto video = web_page->document_.type == Document::Type::Video
                      ? td_->videos_manager_->get_video_object(web_page->document_.file_id)
                      : nullptr;
     if (video != nullptr) {
+      LOG_IF(ERROR, !web_page->photo_.is_empty()) << "Receive photo for " << web_page->url_;
       auto width = video->width_;
       auto height = video->height_;
       auto duration = video->duration_;
       return td_api::make_object<td_api::linkPreviewTypeVideo>(string(), string(), std::move(video), width, height,
                                                                duration, web_page->author_);
     } else {
+      if (!web_page->photo_.is_empty()) {
+        return td_api::make_object<td_api::linkPreviewTypePhoto>(
+            get_photo_object(td_->file_manager_.get(), web_page->photo_), web_page->author_);
+      }
       return td_api::make_object<td_api::linkPreviewTypeVideo>(web_page->url_, "video/mp4", nullptr, 0, 0,
                                                                web_page->duration_, web_page->author_);
     }
