@@ -1588,7 +1588,9 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
       return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
     }
   }
-  if (web_page->type_ == "photo") {
+  if (web_page->type_ == "photo" ||
+      (web_page->type_ == "document" && web_page->document_.type == Document::Type::Unknown &&
+       !web_page->photo_.is_empty())) {
     auto photo = get_photo_object(td_->file_manager_.get(), web_page->photo_);
     if (photo != nullptr) {
       return td_api::make_object<td_api::linkPreviewTypePhoto>(std::move(photo), web_page->author_);
