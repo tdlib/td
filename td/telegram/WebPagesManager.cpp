@@ -1528,6 +1528,10 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
           return td_api::make_object<td_api::linkPreviewTypeAudio>(
               web_page->embed_url_, web_page->embed_type_, std::move(audio), web_page->duration_, web_page->author_);
         } else {
+          if (!web_page->photo_.is_empty()) {
+            return td_api::make_object<td_api::linkPreviewTypePhoto>(
+                get_photo_object(td_->file_manager_.get(), web_page->photo_), web_page->author_);
+          }
           return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
         }
       }
@@ -1540,6 +1544,10 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
               web_page->embed_url_, web_page->embed_type_, std::move(video), web_page->embed_dimensions_.width,
               web_page->embed_dimensions_.height, web_page->duration_, web_page->author_);
         } else {
+          if (!web_page->photo_.is_empty()) {
+            return td_api::make_object<td_api::linkPreviewTypePhoto>(
+                get_photo_object(td_->file_manager_.get(), web_page->photo_), web_page->author_);
+          }
           return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
         }
       }
