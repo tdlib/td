@@ -17310,9 +17310,9 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   const Message *m = get_message_force(d, message_id, "get_message_properties");
   if (m == nullptr) {
     if (message_id.is_valid_sponsored()) {
-      return promise.set_value(td_api::make_object<td_api::messageProperties>(false, false, false, false, false, false,
-                                                                              false, false, false, false, false, false,
-                                                                              false, false, false, false, false));
+      return promise.set_value(td_api::make_object<td_api::messageProperties>(
+          false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+          false, false, false));
     }
     return promise.set_error(Status::Error(400, "Message not found"));
   }
@@ -17362,12 +17362,13 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   auto can_get_read_date = can_get_message_read_date(dialog_id, m).is_ok();
   auto can_get_viewers = can_get_message_viewers(dialog_id, m).is_ok();
   auto can_get_media_timestamp_links = can_get_media_timestamp_link(dialog_id, m).is_ok();
+  auto can_get_link = can_get_media_timestamp_links && dialog_type == DialogType::Channel;
   auto can_report_reactions = can_report_message_reactions(dialog_id, m);
   promise.set_value(td_api::make_object<td_api::messageProperties>(
       can_delete_for_self, can_delete_for_all_users, can_be_edited, can_be_forwarded, can_be_paid, can_be_replied,
       can_be_replied_in_another_chat, can_be_reported, can_be_saved, can_be_shared_in_story, can_get_added_reactions,
-      can_get_media_timestamp_links, can_get_message_thread, can_get_read_date, can_get_statistics, can_get_viewers,
-      can_report_reactions));
+      can_get_link, can_get_media_timestamp_links, can_get_message_thread, can_get_read_date, can_get_statistics,
+      can_get_viewers, can_report_reactions));
 }
 
 bool MessagesManager::is_message_edited_recently(MessageFullId message_full_id, int32 seconds) {
@@ -17482,19 +17483,11 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(MessageFullId 
   auto *m = get_message_force(d, message_full_id.get_message_id(), "get_message_link");
   TRY_STATUS(can_get_media_timestamp_link(dialog_id, m));
 
-  if (media_timestamp <= 0 || !can_message_content_have_media_timestamp(m->content.get())) {
-    media_timestamp = 0;
-  }
-  if (media_timestamp != 0) {
-    for_group = false;
-    auto duration = get_message_content_media_duration(m->content.get(), td_);
-    if (duration != 0 && media_timestamp > duration) {
-      media_timestamp = 0;
-    }
-  }
-
   auto message_id = m->message_id;
   if (dialog_id.get_type() != DialogType::Channel) {
+    if (media_timestamp == 0) {
+      return Status::Error(400, "Message can't have link");
+    }
     CHECK(m->forward_info != nullptr);
 
     auto origin_message_full_id = m->forward_info->get_origin_message_full_id();
@@ -17512,9 +17505,19 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(MessageFullId 
       for_group = true;  // default is true
     }
   }
+  if (media_timestamp <= 0 || !can_message_content_have_media_timestamp(m->content.get())) {
+    media_timestamp = 0;
+  }
+  if (media_timestamp != 0) {
+    for_group = false;
+    auto duration = get_message_content_media_duration(m->content.get(), td_);
+    if (duration != 0 && media_timestamp > duration) {
+      media_timestamp = 0;
+    }
+  }
 
   bool is_forum = td_->dialog_manager_->is_forum_channel(dialog_id);
-  if (!is_forum &&
+  if (in_message_thread && !is_forum &&
       (!m->top_thread_message_id.is_valid() || !m->top_thread_message_id.is_server() ||
        is_deleted_message(d, m->top_thread_message_id) || td_->dialog_manager_->is_broadcast_channel(dialog_id))) {
     in_message_thread = false;
@@ -17530,6 +17533,7 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(MessageFullId 
 
   if (in_message_thread && !is_forum) {
     // try to generate a comment link
+    CHECK(dialog_id == d->dialog_id);
     auto *top_m = get_message_force(d, m->top_thread_message_id, "get_public_message_link");
     if (is_discussion_message(dialog_id, top_m) && is_active_message_reply_info(dialog_id, top_m->reply_info)) {
       auto linked_message_full_id = top_m->forward_info->get_last_message_full_id();
