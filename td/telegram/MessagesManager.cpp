@@ -17301,7 +17301,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   if (m == nullptr) {
     if (message_id.is_valid_sponsored()) {
       return promise.set_value(td_api::make_object<td_api::messageProperties>(
-          false, false, false, false, false, false, false, false, false, false, false, false, false, false));
+          false, false, false, false, false, false, false, false, false, false, false, false, false, false, false));
     }
     return promise.set_error(Status::Error(400, "Message not found"));
   }
@@ -17311,8 +17311,9 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   bool is_from_saved_messages = (dialog_id == td_->dialog_manager_->get_my_dialog_id());
   bool can_delete_for_self = false;
   bool can_delete_for_all_users = can_delete && can_revoke_message(dialog_id, m);
+  auto dialog_type = dialog_id.get_type();
   if (can_delete) {
-    switch (dialog_id.get_type()) {
+    switch (dialog_type) {
       case DialogType::User:
       case DialogType::Chat:
         // TODO allow to delete yet unsent message just for self
@@ -17336,8 +17337,12 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   auto can_be_saved = can_save_message(dialog_id, m);
   auto can_be_edited = can_edit_message(dialog_id, m, false, is_bot);
   auto can_be_forwarded = can_be_saved && can_forward_message(dialog_id, m);
+  auto can_be_replied =
+      message_id.is_valid() && !(message_id == MessageId(ServerMessageId(1)) && dialog_type == DialogType::Channel) &&
+      m->message_id.is_yet_unsent() && (!m->message_id.is_local() || dialog_type == DialogType::SecretChat) &&
+      (dialog_type != DialogType::Chat || td_->chat_manager_->get_chat_is_active(dialog_id.get_chat_id()));
   auto can_be_replied_in_another_chat = can_be_forwarded && m->message_id.is_server();
-  auto can_be_reported = dialog_id.get_type() != DialogType::SecretChat && can_report_message(m->message_id).is_ok();
+  auto can_be_reported = dialog_type != DialogType::SecretChat && can_report_message(m->message_id).is_ok();
   auto can_get_added_reactions = m->reactions != nullptr && m->reactions->can_get_added_reactions_;
   auto can_get_statistics = can_get_message_statistics(dialog_id, m);
   auto can_get_message_thread = get_top_thread_message_full_id(dialog_id, m, false).is_ok();
@@ -17346,9 +17351,10 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   auto can_get_media_timestamp_links = can_get_media_timestamp_link(dialog_id, m).is_ok();
   auto can_report_reactions = can_report_message_reactions(dialog_id, m);
   promise.set_value(td_api::make_object<td_api::messageProperties>(
-      can_delete_for_self, can_delete_for_all_users, can_be_edited, can_be_forwarded, can_be_replied_in_another_chat,
-      can_be_reported, can_be_saved, can_get_added_reactions, can_get_media_timestamp_links, can_get_message_thread,
-      can_get_read_date, can_get_statistics, can_get_viewers, can_report_reactions));
+      can_delete_for_self, can_delete_for_all_users, can_be_edited, can_be_forwarded, can_be_replied,
+      can_be_replied_in_another_chat, can_be_reported, can_be_saved, can_get_added_reactions,
+      can_get_media_timestamp_links, can_get_message_thread, can_get_read_date, can_get_statistics, can_get_viewers,
+      can_report_reactions));
 }
 
 bool MessagesManager::is_message_edited_recently(MessageFullId message_full_id, int32 seconds) {
