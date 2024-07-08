@@ -1585,13 +1585,16 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
   }
   if (web_page->type_ == "gif" ||
       (web_page->document_.type == Document::Type::Animation && web_page->type_ == "document")) {
-    LOG_IF(ERROR, !web_page->photo_.is_empty()) << "Receive photo for " << web_page->url_;
     auto animation = web_page->document_.type == Document::Type::Animation
                          ? td_->animations_manager_->get_animation_object(web_page->document_.file_id)
                          : nullptr;
     if (animation != nullptr) {
       return td_api::make_object<td_api::linkPreviewTypeAnimation>(std::move(animation), web_page->author_);
     } else {
+      if (!web_page->photo_.is_empty()) {
+        return td_api::make_object<td_api::linkPreviewTypePhoto>(
+            get_photo_object(td_->file_manager_.get(), web_page->photo_), web_page->author_);
+      }
       LOG(ERROR) << "Receive animation without animation for " << web_page->url_;
       return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
     }
