@@ -3871,7 +3871,7 @@ class CliClient final : public Actor {
     } else if (op == "gmp") {
       ChatId chat_id;
       MessageId message_id;
-      get_args(args, chat_id, message_ids);
+      get_args(args, chat_id, message_id);
       send_request(td_api::make_object<td_api::getMessageProperties>(chat_id, message_id));
     } else if (op == "gcspm") {
       ChatId chat_id;

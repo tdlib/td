@@ -3828,14 +3828,15 @@ inputMessageForwarded from_chat_id:int53 message_id:int53 in_game_share:Bool cop
 
 
 //@description Contains properties of a message and describes actions that can be done with the message right now
-//@can_be_deleted_only_for_self True, if the message can be deleted only for the current user while other users will continue to see it
-//@can_be_deleted_for_all_users True, if the message can be deleted for all users
-//@can_be_edited True, if the message can be edited. For live location and poll messages this fields shows whether editMessageLiveLocation or stopPoll can be used with this message by the application
-//@can_be_forwarded True, if the message can be forwarded
-//@can_be_replied_in_another_chat True, if the message can be replied in another chat or topic
-//@can_be_saved True, if content of the message can be saved locally or copied
-//@can_get_added_reactions True, if the list of added reactions is available through getMessageAddedReactions
-//@can_get_media_timestamp_links True, if media timestamp links can be generated for media timestamp entities in the message text, caption or link preview description through getMessageLink
+//@can_be_deleted_only_for_self True, if the message can be deleted only for the current user while other users will continue to see it using the method deleteMessages with revoke == false
+//@can_be_deleted_for_all_users True, if the message can be deleted for all users using the method deleteMessages with revoke == true
+//@can_be_edited True, if the message can be edited using the methods editMessageText, editMessageMedia, editMessageCaption, or editMessageReplyMarkup.
+//-For live location and poll messages this fields shows whether editMessageLiveLocation or stopPoll can be used with this message
+//@can_be_forwarded True, if the message can be forwarded using inputMessageForwarded or forwardMessages
+//@can_be_replied_in_another_chat True, if the message can be replied in another chat or topic using inputMessageReplyToExternalMessage
+//@can_be_saved True, if content of the message can be saved locally or copied using inputMessageForwarded or forwardMessages with copy options
+//@can_get_added_reactions True, if the list of added reactions is available using getMessageAddedReactions
+//@can_get_media_timestamp_links True, if media timestamp links can be generated for media timestamp entities in the message text, caption or link preview description using getMessageLink
 //@can_get_message_thread True, if information about the message thread is available through getMessageThread and getMessageThreadHistory
 //@can_get_read_date True, if read date of the message can be received through getMessageReadDate
 //@can_get_statistics True, if the message statistics are available through getMessageStatistics
