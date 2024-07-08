@@ -560,6 +560,8 @@ class MessagesManager final : public Actor {
                               vector<tl_object_ptr<telegram_api::peerBlocked>> &&blocked_peers,
                               Promise<td_api::object_ptr<td_api::messageSenders>> &&promise);
 
+  static Status can_report_message(MessageId message_id);
+
   bool can_get_message_statistics(MessageFullId message_full_id);
 
   DialogId get_dialog_message_sender(MessageFullId message_full_id);

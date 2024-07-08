@@ -1506,7 +1506,7 @@ messageSendingStatePending sending_id:int32 = MessageSendingState;
 
 //@description The message failed to be sent
 //@error The cause of the message sending failure
-//@can_retry True, if the message can be re-sent
+//@can_retry True, if the message can be re-sent using resendMessages or readdQuickReplyShortcutMessages
 //@need_another_sender True, if the message can be re-sent only on behalf of a different sender
 //@need_another_reply_quote True, if the message can be re-sent only if another quote is chosen in the message that is replied by the given message
 //@need_drop_reply True, if the message can be re-sent only if the message to be replied is removed. This will be done automatically by resendMessages
@@ -3834,6 +3834,7 @@ inputMessageForwarded from_chat_id:int53 message_id:int53 in_game_share:Bool cop
 //-For live location and poll messages this fields shows whether editMessageLiveLocation or stopPoll can be used with this message
 //@can_be_forwarded True, if the message can be forwarded using inputMessageForwarded or forwardMessages
 //@can_be_replied_in_another_chat True, if the message can be replied in another chat or topic using inputMessageReplyToExternalMessage
+//@can_be_reported True, if the message can be reported using reportSupergroupSpam or reportChat
 //@can_be_saved True, if content of the message can be saved locally or copied using inputMessageForwarded or forwardMessages with copy options
 //@can_get_added_reactions True, if the list of added reactions is available using getMessageAddedReactions
 //@can_get_media_timestamp_links True, if media timestamp links can be generated for media timestamp entities in the message text, caption or link preview description using getMessageLink
@@ -3842,7 +3843,7 @@ inputMessageForwarded from_chat_id:int53 message_id:int53 in_game_share:Bool cop
 //@can_get_statistics True, if the message statistics are available through getMessageStatistics
 //@can_get_viewers True, if chat members already viewed the message can be received through getMessageViewers
 //@can_report_reactions True, if reactions on the message can be reported through reportMessageReactions
-messageProperties can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_replied_in_another_chat:Bool can_be_saved:Bool can_get_added_reactions:Bool can_get_media_timestamp_links:Bool can_get_message_thread:Bool can_get_read_date:Bool can_get_statistics:Bool can_get_viewers:Bool can_report_reactions:Bool = MessageProperties;
+messageProperties can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_replied_in_another_chat:Bool can_be_reported:Bool can_be_saved:Bool can_get_added_reactions:Bool can_get_media_timestamp_links:Bool can_get_message_thread:Bool can_get_read_date:Bool can_get_statistics:Bool can_get_viewers:Bool can_report_reactions:Bool = MessageProperties;
 
 
 //@class SearchMessagesFilter @description Represents a filter for message search results

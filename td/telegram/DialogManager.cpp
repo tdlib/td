@@ -1807,21 +1807,15 @@ void DialogManager::report_dialog(DialogId dialog_id, const vector<MessageId> &m
     return promise.set_error(Status::Error(400, "Chat can't be reported"));
   }
 
-  vector<MessageId> server_message_ids;
   for (auto message_id : message_ids) {
-    if (message_id.is_scheduled()) {
-      return promise.set_error(Status::Error(400, "Can't report scheduled messages"));
-    }
-    if (message_id.is_valid() && message_id.is_server()) {
-      server_message_ids.push_back(message_id);
-    }
+    TRY_STATUS_PROMISE(promise, MessagesManager::can_report_message(message_id));
   }
 
   if (dialog_id.get_type() == DialogType::Channel && reason.is_unrelated_location()) {
     td_->messages_manager_->hide_dialog_action_bar(dialog_id);
   }
 
-  td_->create_handler<ReportPeerQuery>(std::move(promise))->send(dialog_id, server_message_ids, std::move(reason));
+  td_->create_handler<ReportPeerQuery>(std::move(promise))->send(dialog_id, message_ids, std::move(reason));
 }
 
 void DialogManager::report_dialog_photo(DialogId dialog_id, FileId file_id, ReportReason &&reason,

@@ -17301,7 +17301,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   if (m == nullptr) {
     if (message_id.is_valid_sponsored()) {
       return promise.set_value(td_api::make_object<td_api::messageProperties>(
-          false, false, false, false, false, false, false, false, false, false, false, false, false));
+          false, false, false, false, false, false, false, false, false, false, false, false, false, false));
     }
     return promise.set_error(Status::Error(400, "Message not found"));
   }
@@ -17337,6 +17337,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   auto can_be_edited = can_edit_message(dialog_id, m, false, is_bot);
   auto can_be_forwarded = can_be_saved && can_forward_message(dialog_id, m);
   auto can_be_replied_in_another_chat = can_be_forwarded && m->message_id.is_server();
+  auto can_be_reported = dialog_id.get_type() != DialogType::SecretChat && can_report_message(m->message_id).is_ok();
   auto can_get_added_reactions = m->reactions != nullptr && m->reactions->can_get_added_reactions_;
   auto can_get_statistics = can_get_message_statistics(dialog_id, m);
   auto can_get_message_thread = get_top_thread_message_full_id(dialog_id, m, false).is_ok();
@@ -17346,8 +17347,8 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   auto can_report_reactions = can_report_message_reactions(dialog_id, m);
   promise.set_value(td_api::make_object<td_api::messageProperties>(
       can_delete_for_self, can_delete_for_all_users, can_be_edited, can_be_forwarded, can_be_replied_in_another_chat,
-      can_be_saved, can_get_added_reactions, can_get_media_timestamp_links, can_get_message_thread, can_get_read_date,
-      can_get_statistics, can_get_viewers, can_report_reactions));
+      can_be_reported, can_be_saved, can_get_added_reactions, can_get_media_timestamp_links, can_get_message_thread,
+      can_get_read_date, can_get_statistics, can_get_viewers, can_report_reactions));
 }
 
 bool MessagesManager::is_message_edited_recently(MessageFullId message_full_id, int32 seconds) {
@@ -17418,6 +17419,22 @@ Status MessagesManager::can_get_media_timestamp_link(DialogId dialog_id, const M
   }
   if (!m->message_id.is_server()) {
     return Status::Error(400, "Message is local");
+  }
+  return Status::OK();
+}
+
+Status MessagesManager::can_report_message(MessageId message_id) {
+  if (message_id.is_valid_scheduled()) {
+    return Status::Error(400, "Can't report scheduled messages");
+  }
+  if (message_id.is_valid_sponsored()) {
+    return Status::Error(400, "Can't report sponsored messages");
+  }
+  if (!message_id.is_valid()) {
+    return Status::Error(400, "Message not found");
+  }
+  if (!message_id.is_server()) {
+    return Status::Error(400, "Message can't be reported");
   }
   return Status::OK();
 }

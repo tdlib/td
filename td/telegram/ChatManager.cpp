@@ -3542,18 +3542,7 @@ void ChatManager::report_channel_spam(ChannelId channel_id, const vector<Message
 
   FlatHashMap<DialogId, vector<MessageId>, DialogIdHash> server_message_ids;
   for (auto &message_id : message_ids) {
-    if (message_id.is_valid_scheduled()) {
-      return promise.set_error(Status::Error(400, "Can't report scheduled messages"));
-    }
-
-    if (!message_id.is_valid()) {
-      return promise.set_error(Status::Error(400, "Message not found"));
-    }
-
-    if (!message_id.is_server()) {
-      continue;
-    }
-
+    TRY_STATUS_PROMISE(promise, MessagesManager::can_report_message(message_id));
     auto sender_dialog_id = td_->messages_manager_->get_dialog_message_sender({DialogId(channel_id), message_id});
     CHECK(sender_dialog_id.get_type() != DialogType::SecretChat);
     if (sender_dialog_id.is_valid() && sender_dialog_id != td_->dialog_manager_->get_my_dialog_id() &&
