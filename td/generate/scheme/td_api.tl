@@ -3850,7 +3850,8 @@ inputMessageForwarded from_chat_id:int53 message_id:int53 in_game_share:Bool cop
 //@can_get_statistics True, if the message statistics are available through getMessageStatistics and message forwards can be received using getMessagePublicForwards
 //@can_get_viewers True, if chat members already viewed the message can be received through getMessageViewers
 //@can_report_reactions True, if reactions on the message can be reported through reportMessageReactions
-messageProperties can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_paid:Bool can_be_replied:Bool can_be_replied_in_another_chat:Bool can_be_reported:Bool can_be_saved:Bool can_be_shared_in_story:Bool can_get_added_reactions:Bool can_get_embedding_code:Bool can_get_link:Bool can_get_media_timestamp_links:Bool can_get_message_thread:Bool can_get_read_date:Bool can_get_statistics:Bool can_get_viewers:Bool can_report_reactions:Bool = MessageProperties;
+//@can_recognize_speech True, if speech can be recognized for the message through recognizeSpeech
+messageProperties can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_paid:Bool can_be_replied:Bool can_be_replied_in_another_chat:Bool can_be_reported:Bool can_be_saved:Bool can_be_shared_in_story:Bool can_get_added_reactions:Bool can_get_embedding_code:Bool can_get_link:Bool can_get_media_timestamp_links:Bool can_get_message_thread:Bool can_get_read_date:Bool can_get_statistics:Bool can_get_viewers:Bool can_report_reactions:Bool can_recognize_speech:Bool = MessageProperties;
 
 
 //@class SearchMessagesFilter @description Represents a filter for message search results
@@ -8464,9 +8465,9 @@ translateText text:formattedText to_language_code:string = FormattedText;
 //-"st", "sn", "sd", "si", "sk", "sl", "so", "es", "su", "sw", "sv", "tl", "tg", "ta", "tt", "te", "th", "tr", "tk", "uk", "ur", "ug", "uz", "vi", "cy", "xh", "yi", "ji", "yo", "zu"
 translateMessageText chat_id:int53 message_id:int53 to_language_code:string = FormattedText;
 
-//@description Recognizes speech in a video note or a voice note message. The message must be successfully sent, must not be scheduled, and must be from a non-secret chat
+//@description Recognizes speech in a video note or a voice note message
 //@chat_id Identifier of the chat to which the message belongs
-//@message_id Identifier of the message
+//@message_id Identifier of the message. Use messageProperties.can_recognize_speech to check whether the message is suitable
 recognizeSpeech chat_id:int53 message_id:int53 = Ok;
 
 //@description Rates recognized speech in a video note or a voice note message @chat_id Identifier of the chat to which the message belongs @message_id Identifier of the message @is_good Pass true if the speech recognition is good

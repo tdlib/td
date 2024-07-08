@@ -17111,7 +17111,7 @@ void MessagesManager::translate_message_text(MessageFullId message_full_id, cons
   }
 
   auto text = get_message_content_text(m->content.get());
-  if (text == nullptr) {
+  if (text == nullptr || text->text.empty()) {
     return promise.set_value(td_api::make_object<td_api::formattedText>());
   }
 
@@ -17312,7 +17312,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
     if (message_id.is_valid_sponsored()) {
       return promise.set_value(td_api::make_object<td_api::messageProperties>(
           false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
-          false, false, false, false));
+          false, false, false, false, false));
     }
     return promise.set_error(Status::Error(400, "Message not found"));
   }
@@ -17365,11 +17365,12 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   auto can_get_link = can_get_media_timestamp_links && dialog_type == DialogType::Channel;
   auto can_get_embedding_code = can_get_message_embedding_code(dialog_id, m).is_ok();
   auto can_report_reactions = can_report_message_reactions(dialog_id, m);
+  auto can_recognize_speech = can_recognize_message_speech(dialog_id, m);
   promise.set_value(td_api::make_object<td_api::messageProperties>(
       can_delete_for_self, can_delete_for_all_users, can_be_edited, can_be_forwarded, can_be_paid, can_be_replied,
       can_be_replied_in_another_chat, can_be_reported, can_be_saved, can_be_shared_in_story, can_get_added_reactions,
       can_get_embedding_code, can_get_link, can_get_media_timestamp_links, can_get_message_thread, can_get_read_date,
-      can_get_statistics, can_get_viewers, can_report_reactions));
+      can_get_statistics, can_get_viewers, can_report_reactions, can_recognize_speech));
 }
 
 bool MessagesManager::is_message_edited_recently(MessageFullId message_full_id, int32 seconds) {
@@ -17473,6 +17474,18 @@ bool MessagesManager::can_report_message_reactions(DialogId dialog_id, const Mes
     return false;
   }
 
+  return true;
+}
+
+bool MessagesManager::can_recognize_message_speech(DialogId dialog_id, const Message *m) const {
+  if (td_->auth_manager_->is_bot() || m == nullptr || !m->message_id.is_valid() || !m->message_id.is_server() ||
+      dialog_id.get_type() == DialogType::SecretChat) {
+    return false;
+  }
+  auto content_type = m->content->get_type();
+  if (content_type != MessageContentType::VideoNote && content_type != MessageContentType::VoiceNote) {
+    return false;
+  }
   return true;
 }
 

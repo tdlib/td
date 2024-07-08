@@ -1738,6 +1738,8 @@ class MessagesManager final : public Actor {
 
   bool can_report_message_reactions(DialogId dialog_id, const Message *m) const;
 
+  bool can_recognize_message_speech(DialogId dialog_id, const Message *m) const;
+
   Status can_get_message_read_date(DialogId dialog_id, const Message *m) const TD_WARN_UNUSED_RESULT;
 
   Status can_get_message_viewers(MessageFullId message_full_id) TD_WARN_UNUSED_RESULT;
