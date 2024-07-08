@@ -17310,9 +17310,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   const Message *m = get_message_force(d, message_id, "get_message_properties");
   if (m == nullptr) {
     if (message_id.is_valid_sponsored()) {
-      return promise.set_value(td_api::make_object<td_api::messageProperties>(
-          false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
-          false, false, false, false, false));
+      return promise.set_value(td_api::make_object<td_api::messageProperties>());
     }
     return promise.set_error(Status::Error(400, "Message not found"));
   }
@@ -17356,6 +17354,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   auto can_be_replied_in_another_chat = can_be_forwarded && m->message_id.is_server();
   auto can_be_reported = dialog_type != DialogType::SecretChat && can_report_message(m->message_id).is_ok();
   auto can_be_shared_in_story = can_share_message_in_story(dialog_id, m);
+  auto can_edit_scheduling_state = m->message_id.is_valid_scheduled() && m->message_id.is_scheduled_server();
   auto can_get_added_reactions = m->reactions != nullptr && m->reactions->can_get_added_reactions_;
   auto can_get_statistics = can_get_message_statistics(dialog_id, m);
   auto can_get_message_thread = get_top_thread_message_full_id(dialog_id, m, false).is_ok();
@@ -17368,9 +17367,10 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   auto can_recognize_speech = can_recognize_message_speech(dialog_id, m);
   promise.set_value(td_api::make_object<td_api::messageProperties>(
       can_delete_for_self, can_delete_for_all_users, can_be_edited, can_be_forwarded, can_be_paid, can_be_replied,
-      can_be_replied_in_another_chat, can_be_reported, can_be_saved, can_be_shared_in_story, can_get_added_reactions,
-      can_get_embedding_code, can_get_link, can_get_media_timestamp_links, can_get_message_thread, can_get_read_date,
-      can_get_statistics, can_get_viewers, can_report_reactions, can_recognize_speech));
+      can_be_replied_in_another_chat, can_be_reported, can_be_saved, can_be_shared_in_story, can_edit_scheduling_state,
+      can_get_added_reactions, can_get_embedding_code, can_get_link, can_get_media_timestamp_links,
+      can_get_message_thread, can_get_read_date, can_get_statistics, can_get_viewers, can_report_reactions,
+      can_recognize_speech));
 }
 
 bool MessagesManager::is_message_edited_recently(MessageFullId message_full_id, int32 seconds) {
@@ -25692,7 +25692,7 @@ void MessagesManager::edit_message_scheduling_state(
   if (!m->message_id.is_scheduled()) {
     return promise.set_error(Status::Error(400, "Message is not scheduled"));
   }
-  if (!m->message_id.is_scheduled_server()) {
+  if (!m->message_id.is_valid_scheduled() || !m->message_id.is_scheduled_server()) {
     return promise.set_error(Status::Error(400, "Can't reschedule the message"));
   }
 
