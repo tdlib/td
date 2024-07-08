@@ -91,6 +91,10 @@ MediaArea::MediaArea(Td *td, telegram_api::object_ptr<telegram_api::MediaArea> &
       }
       break;
     }
+    case telegram_api::mediaAreaWeather::ID: {
+      // auto area = telegram_api::move_object_as<telegram_api::mediaAreaWeather>(media_area_ptr);
+      break;
+    }
     case telegram_api::inputMediaAreaVenue::ID:
       LOG(ERROR) << "Receive " << to_string(media_area_ptr);
       break;

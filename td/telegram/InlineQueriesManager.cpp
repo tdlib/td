@@ -962,7 +962,7 @@ Result<tl_object_ptr<telegram_api::InputBotInlineResult>> InlineQueriesManager::
     if (width > 0 && height > 0) {
       if ((duration > 0 || type == "video" || content_type == "video/mp4") && !begins_with(content_type, "image/")) {
         attributes.push_back(make_tl_object<telegram_api::documentAttributeVideo>(
-            0, false /*ignored*/, false /*ignored*/, false /*ignored*/, duration, width, height, 0));
+            0, false /*ignored*/, false /*ignored*/, false /*ignored*/, duration, width, height, 0, 0.0));
       } else {
         attributes.push_back(make_tl_object<telegram_api::documentAttributeImageSize>(width, height));
       }

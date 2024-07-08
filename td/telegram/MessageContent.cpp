@@ -6021,7 +6021,7 @@ static auto secret_to_telegram(secret_api::documentAttributeSticker &sticker) {
 // documentAttributeVideo23 duration:int w:int h:int = DocumentAttribute;
 static auto secret_to_telegram(secret_api::documentAttributeVideo23 &video) {
   return make_tl_object<telegram_api::documentAttributeVideo>(0, false, false, false, video.duration_, video.w_,
-                                                              video.h_, 0);
+                                                              video.h_, 0, 0.0);
 }
 
 // documentAttributeFilename file_name:string = DocumentAttribute;
@@ -6036,7 +6036,7 @@ static auto secret_to_telegram(secret_api::documentAttributeFilename &filename) 
 static auto secret_to_telegram(secret_api::documentAttributeVideo &video) {
   return make_tl_object<telegram_api::documentAttributeVideo>(
       video.round_message_ ? telegram_api::documentAttributeVideo::ROUND_MESSAGE_MASK : 0, video.round_message_, false,
-      false, video.duration_, video.w_, video.h_, 0);
+      false, video.duration_, video.w_, video.h_, 0, 0.0);
 }
 
 static auto telegram_documentAttributeAudio(bool is_voice_note, int duration, string title, string performer,
@@ -6946,6 +6946,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       case telegram_api::messageActionSetChatWallPaper::ID:
       case telegram_api::messageActionGiftCode::ID:
       case telegram_api::messageActionRequestedPeerSentMe::ID:
+      case telegram_api::messageActionGiftStars::ID:
         // ok
         break;
       default:
@@ -7374,6 +7375,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
                                                      std::move(action->charge_->id_),
                                                      std::move(action->charge_->provider_charge_id_));
     }
+    case telegram_api::messageActionGiftStars::ID:
+      return make_unique<MessageUnsupported>();
     default:
       UNREACHABLE();
   }

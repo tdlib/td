@@ -292,7 +292,7 @@ tl_object_ptr<telegram_api::InputMedia> VideosManager::get_input_media(
       }
       attributes.push_back(make_tl_object<telegram_api::documentAttributeVideo>(
           attribute_flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, video->precise_duration,
-          video->dimensions.width, video->dimensions.height, 0));
+          video->dimensions.width, video->dimensions.height, 0, 0.0));
     }
     if (!video->file_name.empty()) {
       attributes.push_back(make_tl_object<telegram_api::documentAttributeFilename>(video->file_name));

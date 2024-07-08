@@ -131,9 +131,9 @@ Result<InputInvoiceInfo> get_input_invoice_info(Td *td, td_api::object_ptr<td_ap
           if (!clean_input_string(p->currency_)) {
             return Status::Error(400, "Strings must be encoded in UTF-8");
           }
-          auto option = telegram_api::make_object<telegram_api::starsTopupOption>(0, false /*ignored*/, p->star_count_,
-                                                                                  string(), p->currency_, p->amount_);
-          result.input_invoice_ = telegram_api::make_object<telegram_api::inputInvoiceStars>(std::move(option));
+          auto purpose = telegram_api::make_object<telegram_api::inputStorePaymentStarsTopup>(p->star_count_,
+                                                                                              p->currency_, p->amount_);
+          result.input_invoice_ = telegram_api::make_object<telegram_api::inputInvoiceStars>(std::move(purpose));
           break;
         }
         default:
