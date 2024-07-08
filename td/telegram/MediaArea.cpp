@@ -189,9 +189,7 @@ MediaArea::MediaArea(Td *td, td_api::object_ptr<td_api::inputStoryArea> &&input_
         }
       }
       if (!is_old_message_) {
-        if (dialog_id.get_type() != DialogType::Channel ||
-            !td->messages_manager_->have_message_force(message_full_id, "inputStoryAreaTypeMessage") ||
-            !message_id.is_valid() || !message_id.is_server()) {
+        if (!td->messages_manager_->can_share_message_in_story(message_full_id)) {
           break;
         }
         message_full_id_ = message_full_id;

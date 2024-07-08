@@ -562,6 +562,8 @@ class MessagesManager final : public Actor {
 
   static Status can_report_message(MessageId message_id);
 
+  bool can_share_message_in_story(MessageFullId message_full_id);
+
   bool can_get_message_statistics(MessageFullId message_full_id);
 
   DialogId get_dialog_message_sender(MessageFullId message_full_id);
@@ -1916,6 +1918,8 @@ class MessagesManager final : public Actor {
   static bool can_forward_message(DialogId from_dialog_id, const Message *m);
 
   bool can_save_message(DialogId dialog_id, const Message *m) const;
+
+  bool can_share_message_in_story(DialogId dialog_id, const Message *m) const;
 
   bool can_get_message_statistics(DialogId dialog_id, const Message *m) const;
 

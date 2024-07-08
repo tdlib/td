@@ -9789,6 +9789,16 @@ bool MessagesManager::can_save_message(DialogId dialog_id, const Message *m) con
   return !td_->dialog_manager_->get_dialog_has_protected_content(dialog_id);
 }
 
+bool MessagesManager::can_share_message_in_story(MessageFullId message_full_id) {
+  return can_share_message_in_story(message_full_id.get_dialog_id(),
+                                    get_message_force(message_full_id, "can_share_message_in_story"));
+}
+
+bool MessagesManager::can_share_message_in_story(DialogId dialog_id, const Message *m) const {
+  return dialog_id.get_type() == DialogType::Channel && m != nullptr && m->message_id.is_valid() &&
+         m->message_id.is_server();
+}
+
 bool MessagesManager::can_get_message_statistics(MessageFullId message_full_id) {
   return can_get_message_statistics(message_full_id.get_dialog_id(),
                                     get_message_force(message_full_id, "can_get_message_statistics"));
@@ -17302,7 +17312,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
     if (message_id.is_valid_sponsored()) {
       return promise.set_value(td_api::make_object<td_api::messageProperties>(false, false, false, false, false, false,
                                                                               false, false, false, false, false, false,
-                                                                              false, false, false, false));
+                                                                              false, false, false, false, false));
     }
     return promise.set_error(Status::Error(400, "Message not found"));
   }
@@ -17345,6 +17355,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
       (dialog_type != DialogType::Chat || td_->chat_manager_->get_chat_is_active(dialog_id.get_chat_id()));
   auto can_be_replied_in_another_chat = can_be_forwarded && m->message_id.is_server();
   auto can_be_reported = dialog_type != DialogType::SecretChat && can_report_message(m->message_id).is_ok();
+  auto can_be_shared_in_story = can_share_message_in_story(dialog_id, m);
   auto can_get_added_reactions = m->reactions != nullptr && m->reactions->can_get_added_reactions_;
   auto can_get_statistics = can_get_message_statistics(dialog_id, m);
   auto can_get_message_thread = get_top_thread_message_full_id(dialog_id, m, false).is_ok();
@@ -17354,7 +17365,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   auto can_report_reactions = can_report_message_reactions(dialog_id, m);
   promise.set_value(td_api::make_object<td_api::messageProperties>(
       can_delete_for_self, can_delete_for_all_users, can_be_edited, can_be_forwarded, can_be_paid, can_be_replied,
-      can_be_replied_in_another_chat, can_be_reported, can_be_saved, can_get_added_reactions,
+      can_be_replied_in_another_chat, can_be_reported, can_be_saved, can_be_shared_in_story, can_get_added_reactions,
       can_get_media_timestamp_links, can_get_message_thread, can_get_read_date, can_get_statistics, can_get_viewers,
       can_report_reactions));
 }
