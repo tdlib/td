@@ -1923,6 +1923,8 @@ class MessagesManager final : public Actor {
 
   bool can_get_message_statistics(DialogId dialog_id, const Message *m) const;
 
+  Status can_get_message_embedding_code(DialogId dialog_id, const Message *m) const;
+
   struct CanDeleteDialog {
     bool for_self_;
     bool for_all_users_;

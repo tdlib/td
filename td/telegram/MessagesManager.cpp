@@ -17312,7 +17312,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
     if (message_id.is_valid_sponsored()) {
       return promise.set_value(td_api::make_object<td_api::messageProperties>(
           false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
-          false, false, false));
+          false, false, false, false));
     }
     return promise.set_error(Status::Error(400, "Message not found"));
   }
@@ -17363,12 +17363,13 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   auto can_get_viewers = can_get_message_viewers(dialog_id, m).is_ok();
   auto can_get_media_timestamp_links = can_get_media_timestamp_link(dialog_id, m).is_ok();
   auto can_get_link = can_get_media_timestamp_links && dialog_type == DialogType::Channel;
+  auto can_get_embedding_code = can_get_message_embedding_code(dialog_id, m).is_ok();
   auto can_report_reactions = can_report_message_reactions(dialog_id, m);
   promise.set_value(td_api::make_object<td_api::messageProperties>(
       can_delete_for_self, can_delete_for_all_users, can_be_edited, can_be_forwarded, can_be_paid, can_be_replied,
       can_be_replied_in_another_chat, can_be_reported, can_be_saved, can_be_shared_in_story, can_get_added_reactions,
-      can_get_link, can_get_media_timestamp_links, can_get_message_thread, can_get_read_date, can_get_statistics,
-      can_get_viewers, can_report_reactions));
+      can_get_embedding_code, can_get_link, can_get_media_timestamp_links, can_get_message_thread, can_get_read_date,
+      can_get_statistics, can_get_viewers, can_report_reactions));
 }
 
 bool MessagesManager::is_message_edited_recently(MessageFullId message_full_id, int32 seconds) {
@@ -17601,6 +17602,27 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(MessageFullId 
   return std::make_pair(sb.as_cslice().str(), is_public);
 }
 
+Status MessagesManager::can_get_message_embedding_code(DialogId dialog_id, const Message *m) const {
+  if (dialog_id.get_type() != DialogType::Channel ||
+      td_->chat_manager_->get_channel_first_username(dialog_id.get_channel_id()).empty()) {
+    return Status::Error(
+        400, "Message embedding code is available only for messages in public supergroups and channel chats");
+  }
+  if (m == nullptr) {
+    return Status::Error(400, "Message not found");
+  }
+  if (m->message_id.is_yet_unsent()) {
+    return Status::Error(400, "Message is not sent yet");
+  }
+  if (m->message_id.is_scheduled()) {
+    return Status::Error(400, "Message is scheduled");
+  }
+  if (!m->message_id.is_server()) {
+    return Status::Error(400, "Message is local");
+  }
+  return Status::OK();
+}
+
 string MessagesManager::get_message_embedding_code(MessageFullId message_full_id, bool for_group,
                                                    Promise<Unit> &&promise) {
   auto dialog_id = message_full_id.get_dialog_id();
@@ -17610,28 +17632,10 @@ string MessagesManager::get_message_embedding_code(MessageFullId message_full_id
     return {};
   }
   auto d = r_d.move_as_ok();
-  if (dialog_id.get_type() != DialogType::Channel ||
-      td_->chat_manager_->get_channel_first_username(dialog_id.get_channel_id()).empty()) {
-    promise.set_error(Status::Error(
-        400, "Message embedding code is available only for messages in public supergroups and channel chats"));
-    return {};
-  }
-
   auto *m = get_message_force(d, message_full_id.get_message_id(), "get_message_embedding_code");
-  if (m == nullptr) {
-    promise.set_error(Status::Error(400, "Message not found"));
-    return {};
-  }
-  if (m->message_id.is_yet_unsent()) {
-    promise.set_error(Status::Error(400, "Message is not sent yet"));
-    return {};
-  }
-  if (m->message_id.is_scheduled()) {
-    promise.set_error(Status::Error(400, "Message is scheduled"));
-    return {};
-  }
-  if (!m->message_id.is_server()) {
-    promise.set_error(Status::Error(400, "Message is local"));
+  auto status = can_get_message_embedding_code(dialog_id, m);
+  if (status.is_error()) {
+    promise.set_error(std::move(status));
     return {};
   }
 
