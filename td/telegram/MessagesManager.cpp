@@ -17300,8 +17300,9 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   const Message *m = get_message_force(d, message_id, "get_message_properties");
   if (m == nullptr) {
     if (message_id.is_valid_sponsored()) {
-      return promise.set_value(td_api::make_object<td_api::messageProperties>(
-          false, false, false, false, false, false, false, false, false, false, false, false, false, false, false));
+      return promise.set_value(td_api::make_object<td_api::messageProperties>(false, false, false, false, false, false,
+                                                                              false, false, false, false, false, false,
+                                                                              false, false, false, false));
     }
     return promise.set_error(Status::Error(400, "Message not found"));
   }
@@ -17337,6 +17338,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   auto can_be_saved = can_save_message(dialog_id, m);
   auto can_be_edited = can_edit_message(dialog_id, m, false, is_bot);
   auto can_be_forwarded = can_be_saved && can_forward_message(dialog_id, m);
+  auto can_be_paid = get_invoice_message_id({dialog_id, m->message_id}).is_ok();
   auto can_be_replied =
       message_id.is_valid() && !(message_id == MessageId(ServerMessageId(1)) && dialog_type == DialogType::Channel) &&
       m->message_id.is_yet_unsent() && (!m->message_id.is_local() || dialog_type == DialogType::SecretChat) &&
@@ -17351,7 +17353,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   auto can_get_media_timestamp_links = can_get_media_timestamp_link(dialog_id, m).is_ok();
   auto can_report_reactions = can_report_message_reactions(dialog_id, m);
   promise.set_value(td_api::make_object<td_api::messageProperties>(
-      can_delete_for_self, can_delete_for_all_users, can_be_edited, can_be_forwarded, can_be_replied,
+      can_delete_for_self, can_delete_for_all_users, can_be_edited, can_be_forwarded, can_be_paid, can_be_replied,
       can_be_replied_in_another_chat, can_be_reported, can_be_saved, can_get_added_reactions,
       can_get_media_timestamp_links, can_get_message_thread, can_get_read_date, can_get_statistics, can_get_viewers,
       can_report_reactions));
