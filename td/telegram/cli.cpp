@@ -3868,6 +3868,11 @@ class CliClient final : public Actor {
       string message_ids;
       get_args(args, chat_id, message_ids);
       send_request(td_api::make_object<td_api::getMessages>(chat_id, as_message_ids(message_ids)));
+    } else if (op == "gmp") {
+      ChatId chat_id;
+      MessageId message_id;
+      get_args(args, chat_id, message_ids);
+      send_request(td_api::make_object<td_api::getMessageProperties>(chat_id, message_id));
     } else if (op == "gcspm") {
       ChatId chat_id;
       get_args(args, chat_id);

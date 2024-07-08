@@ -583,6 +583,9 @@ class MessagesManager final : public Actor {
   void get_messages_from_server(vector<MessageFullId> &&message_ids, Promise<Unit> &&promise, const char *source,
                                 tl_object_ptr<telegram_api::InputMessage> input_message = nullptr);
 
+  void get_message_properties(DialogId dialog_id, MessageId message_id,
+                              Promise<td_api::object_ptr<td_api::messageProperties>> &&promise);
+
   void get_message_thread(DialogId dialog_id, MessageId message_id, Promise<MessageThreadInfo> &&promise);
 
   td_api::object_ptr<td_api::messageThreadInfo> get_message_thread_info_object(const MessageThreadInfo &info);

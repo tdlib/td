@@ -17294,6 +17294,62 @@ void MessagesManager::get_messages_from_server(vector<MessageFullId> &&message_i
   lock.set_value(Unit());
 }
 
+void MessagesManager::get_message_properties(DialogId dialog_id, MessageId message_id,
+                                             Promise<td_api::object_ptr<td_api::messageProperties>> &&promise) {
+  TRY_RESULT_PROMISE(promise, d, check_dialog_access(dialog_id, true, AccessRights::Read, "get_message_properties"));
+  const Message *m = get_message_force(d, message_id, "get_message_properties");
+  if (m == nullptr) {
+    if (message_id.is_valid_sponsored()) {
+      return promise.set_value(td_api::make_object<td_api::messageProperties>(
+          false, false, false, false, false, false, false, false, false, false, false, false, false));
+    }
+    return promise.set_error(Status::Error(400, "Message not found"));
+  }
+
+  bool can_delete = can_delete_message(dialog_id, m);
+  bool is_scheduled = m->message_id.is_scheduled();
+  bool is_from_saved_messages = (dialog_id == td_->dialog_manager_->get_my_dialog_id());
+  bool can_delete_for_self = false;
+  bool can_delete_for_all_users = can_delete && can_revoke_message(dialog_id, m);
+  if (can_delete) {
+    switch (dialog_id.get_type()) {
+      case DialogType::User:
+      case DialogType::Chat:
+        // TODO allow to delete yet unsent message just for self
+        can_delete_for_self = !m->message_id.is_yet_unsent() || is_from_saved_messages;
+        break;
+      case DialogType::Channel:
+      case DialogType::SecretChat:
+        can_delete_for_self = !can_delete_for_all_users;
+        break;
+      case DialogType::None:
+      default:
+        UNREACHABLE();
+    }
+  }
+  if (is_scheduled) {
+    can_delete_for_self = is_from_saved_messages;
+    can_delete_for_all_users = !can_delete_for_self;
+  }
+
+  auto is_bot = td_->auth_manager_->is_bot();
+  auto can_be_saved = can_save_message(dialog_id, m);
+  auto can_be_edited = can_edit_message(dialog_id, m, false, is_bot);
+  auto can_be_forwarded = can_be_saved && can_forward_message(dialog_id, m);
+  auto can_be_replied_in_another_chat = can_be_forwarded && m->message_id.is_server();
+  auto can_get_added_reactions = m->reactions != nullptr && m->reactions->can_get_added_reactions_;
+  auto can_get_statistics = can_get_message_statistics(dialog_id, m);
+  auto can_get_message_thread = get_top_thread_message_full_id(dialog_id, m, false).is_ok();
+  auto can_get_read_date = can_get_message_read_date(dialog_id, m).is_ok();
+  auto can_get_viewers = can_get_message_viewers(dialog_id, m).is_ok();
+  auto can_get_media_timestamp_links = can_get_media_timestamp_link(dialog_id, m).is_ok();
+  auto can_report_reactions = can_report_message_reactions(dialog_id, m);
+  promise.set_value(td_api::make_object<td_api::messageProperties>(
+      can_delete_for_self, can_delete_for_all_users, can_be_edited, can_be_forwarded, can_be_replied_in_another_chat,
+      can_be_saved, can_get_added_reactions, can_get_media_timestamp_links, can_get_message_thread, can_get_read_date,
+      can_get_statistics, can_get_viewers, can_report_reactions));
+}
+
 bool MessagesManager::is_message_edited_recently(MessageFullId message_full_id, int32 seconds) {
   if (seconds < 0) {
     return false;
@@ -22690,11 +22746,11 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
                                  get_message_own_max_media_timestamp(m), m->invert_media, m->disable_web_page_preview);
   return td_api::make_object<td_api::message>(
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_dialog_event_log_message_object"),
-      nullptr, nullptr, m->is_outgoing, m->is_pinned, m->is_from_offline, false, false, false, can_be_saved, false,
-      false, false, false, false, false, false, false, false, true, m->is_channel_post, m->is_topic_message, false,
-      m->date, edit_date, std::move(forward_info), std::move(import_info), std::move(interaction_info), Auto(), nullptr,
-      nullptr, 0, 0, nullptr, 0.0, 0.0, via_bot_user_id, 0, m->sender_boost_count, m->author_signature, 0, 0,
-      get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
+      nullptr, nullptr, m->is_outgoing, m->is_pinned, m->is_from_offline, can_be_saved, true, m->is_channel_post,
+      m->is_topic_message, false, m->date, edit_date, std::move(forward_info), std::move(import_info),
+      std::move(interaction_info), Auto(), nullptr, nullptr, 0, 0, nullptr, 0.0, 0.0, via_bot_user_id, 0,
+      m->sender_boost_count, m->author_signature, 0, 0, get_restriction_reason_description(m->restriction_reasons),
+      std::move(content), std::move(reply_markup));
 }
 
 td_api::object_ptr<td_api::businessMessage> MessagesManager::get_business_message_object(
@@ -22758,10 +22814,9 @@ td_api::object_ptr<td_api::message> MessagesManager::get_business_message_messag
 
   return td_api::make_object<td_api::message>(
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_business_message_message_object"),
-      nullptr, nullptr, m->is_outgoing, m->is_from_offline, false, false, false, false, can_be_saved, false, false,
-      false, false, false, false, false, false, false, false, false, false, false, m->date, m->edit_date,
-      std::move(forward_info), std::move(import_info), nullptr, Auto(), nullptr, std::move(reply_to), 0, 0,
-      std::move(self_destruct_type), 0.0, 0.0, via_bot_user_id, via_business_bot_user_id, 0, string(),
+      nullptr, nullptr, m->is_outgoing, false, m->is_from_offline, can_be_saved, false, false, false, false, m->date,
+      m->edit_date, std::move(forward_info), std::move(import_info), nullptr, Auto(), nullptr, std::move(reply_to), 0,
+      0, std::move(self_destruct_type), 0.0, 0.0, via_bot_user_id, via_business_bot_user_id, 0, string(),
       m->media_album_id, m->effect_id.get(), get_restriction_reason_description(m->restriction_reasons),
       std::move(content), std::move(reply_markup));
 }
@@ -22783,34 +22838,10 @@ td_api::object_ptr<td_api::message> MessagesManager::get_message_object(DialogId
   if (sending_state == nullptr || !is_bot) {
     m->is_update_sent = true;
   }
-  bool can_delete = can_delete_message(dialog_id, m);
   bool is_scheduled = m->message_id.is_scheduled();
-  DialogId my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
-  bool can_delete_for_self = false;
-  bool can_delete_for_all_users = can_delete && can_revoke_message(dialog_id, m);
-  if (can_delete) {
-    switch (dialog_id.get_type()) {
-      case DialogType::User:
-      case DialogType::Chat:
-        // TODO allow to delete yet unsent message just for self
-        can_delete_for_self = !m->message_id.is_yet_unsent() || dialog_id == my_dialog_id;
-        break;
-      case DialogType::Channel:
-      case DialogType::SecretChat:
-        can_delete_for_self = !can_delete_for_all_users;
-        break;
-      case DialogType::None:
-      default:
-        UNREACHABLE();
-    }
-  }
-  if (is_scheduled) {
-    can_delete_for_self = (dialog_id == my_dialog_id);
-    can_delete_for_all_users = !can_delete_for_self;
-  }
-
+  bool is_from_saved_messages = (dialog_id == td_->dialog_manager_->get_my_dialog_id());
   bool is_outgoing = m->is_outgoing;
-  if (dialog_id == my_dialog_id) {
+  if (is_from_saved_messages) {
     // in Saved Messages all non-forwarded messages must be outgoing
     // a forwarded message is outgoing, only if it doesn't have from_dialog_id and its sender isn't hidden
     // i.e. a message is incoming only if it's a forwarded message with known from_dialog_id or with a hidden sender
@@ -22827,22 +22858,12 @@ td_api::object_ptr<td_api::message> MessagesManager::get_message_object(DialogId
   auto scheduling_state = is_scheduled ? get_message_scheduling_state_object(m->date) : nullptr;
   auto forward_info = m->forward_info == nullptr
                           ? nullptr
-                          : m->forward_info->get_message_forward_info_object(td_, dialog_id == my_dialog_id);
+                          : m->forward_info->get_message_forward_info_object(td_, is_from_saved_messages);
   auto import_info = m->forward_info == nullptr ? nullptr : m->forward_info->get_message_import_info_object();
   auto interaction_info = is_bot ? nullptr : get_message_interaction_info_object(dialog_id, m);
   auto unread_reactions = get_unread_reactions_object(dialog_id, m);
   auto fact_check = get_message_fact_check_object(m);
   auto can_be_saved = can_save_message(dialog_id, m);
-  auto can_be_edited = can_edit_message(dialog_id, m, false, is_bot);
-  auto can_be_forwarded = can_be_saved && can_forward_message(dialog_id, m);
-  auto can_be_replied_in_another_chat = can_be_forwarded && m->message_id.is_server();
-  auto can_get_added_reactions = m->reactions != nullptr && m->reactions->can_get_added_reactions_;
-  auto can_get_statistics = can_get_message_statistics(dialog_id, m);
-  auto can_get_message_thread = get_top_thread_message_full_id(dialog_id, m, false).is_ok();
-  auto can_get_read_date = can_get_message_read_date(dialog_id, m).is_ok();
-  auto can_get_viewers = can_get_message_viewers(dialog_id, m).is_ok();
-  auto can_get_media_timestamp_links = can_get_media_timestamp_link(dialog_id, m).is_ok();
-  auto can_report_reactions = can_report_message_reactions(dialog_id, m);
   auto via_bot_user_id =
       td_->user_manager_->get_user_id_object(m->via_bot_user_id, "get_message_object via_bot_user_id");
   auto via_business_bot_user_id = td_->user_manager_->get_user_id_object(m->via_business_bot_user_id,
@@ -22873,12 +22894,9 @@ td_api::object_ptr<td_api::message> MessagesManager::get_message_object(DialogId
   return td_api::make_object<td_api::message>(
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_message_object"),
       std::move(sending_state), std::move(scheduling_state), is_outgoing, m->is_pinned, m->is_from_offline,
-      can_be_edited, can_be_forwarded, can_be_replied_in_another_chat, can_be_saved, can_delete_for_self,
-      can_delete_for_all_users, can_get_added_reactions, can_get_statistics, can_get_message_thread, can_get_read_date,
-      can_get_viewers, can_get_media_timestamp_links, can_report_reactions, has_timestamped_media, m->is_channel_post,
-      m->is_topic_message, m->contains_unread_mention, date, edit_date, std::move(forward_info), std::move(import_info),
-      std::move(interaction_info), std::move(unread_reactions), std::move(fact_check), std::move(reply_to),
-      top_thread_message_id,
+      can_be_saved, has_timestamped_media, m->is_channel_post, m->is_topic_message, m->contains_unread_mention, date,
+      edit_date, std::move(forward_info), std::move(import_info), std::move(interaction_info),
+      std::move(unread_reactions), std::move(fact_check), std::move(reply_to), top_thread_message_id,
       td_->saved_messages_manager_->get_saved_messages_topic_id_object(m->saved_messages_topic_id),
       std::move(self_destruct_type), ttl_expires_in, auto_delete_in, via_bot_user_id, via_business_bot_user_id,
       m->sender_boost_count, m->author_signature, m->media_album_id, m->effect_id.get(),
