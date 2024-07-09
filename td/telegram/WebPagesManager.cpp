@@ -1611,7 +1611,6 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
     }
   }
   if (web_page->document_.type == Document::Type::Sticker && web_page->type_ == "document") {
-    LOG_IF(ERROR, !web_page->photo_.is_empty()) << "Receive photo for " << web_page->url_;
     auto sticker = td_->stickers_manager_->get_sticker_object(web_page->document_.file_id);
     return td_api::make_object<td_api::linkPreviewTypeSticker>(std::move(sticker));
   }
