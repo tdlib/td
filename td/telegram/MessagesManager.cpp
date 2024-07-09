@@ -38399,8 +38399,13 @@ Result<ServerMessageId> MessagesManager::get_invoice_message_id(MessageFullId me
     return Status::Error(400, "Message not found");
   }
   auto content_type = m->content->get_type();
-  if (content_type != MessageContentType::Invoice && content_type != MessageContentType::PaidMedia) {
-    return Status::Error(400, "Message has no invoice");
+  if (content_type != MessageContentType::Invoice) {
+    if (content_type != MessageContentType::PaidMedia) {
+      return Status::Error(400, "Message has no invoice");
+    }
+    if (!need_poll_message_content_extended_media(m->content.get())) {
+      return Status::Error(400, "Message media has already been bought");
+    }
   }
   if (m->message_id.is_scheduled()) {
     return Status::Error(400, "Wrong scheduled message identifier");
