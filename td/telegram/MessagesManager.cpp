@@ -17365,12 +17365,13 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   auto can_get_embedding_code = can_get_message_embedding_code(dialog_id, m).is_ok();
   auto can_report_reactions = can_report_message_reactions(dialog_id, m);
   auto can_recognize_speech = can_recognize_message_speech(dialog_id, m);
+  auto can_set_fact_check = can_set_message_fact_check(dialog_id, m);
   promise.set_value(td_api::make_object<td_api::messageProperties>(
       can_delete_for_self, can_delete_for_all_users, can_be_edited, can_be_forwarded, can_be_paid, can_be_replied,
       can_be_replied_in_another_chat, can_be_reported, can_be_saved, can_be_shared_in_story, can_edit_scheduling_state,
       can_get_added_reactions, can_get_embedding_code, can_get_link, can_get_media_timestamp_links,
       can_get_message_thread, can_get_read_date, can_get_statistics, can_get_viewers, can_report_reactions,
-      can_recognize_speech));
+      can_recognize_speech, can_set_fact_check));
 }
 
 bool MessagesManager::is_message_edited_recently(MessageFullId message_full_id, int32 seconds) {
@@ -17485,6 +17486,30 @@ bool MessagesManager::can_recognize_message_speech(DialogId dialog_id, const Mes
   auto content_type = m->content->get_type();
   if (content_type != MessageContentType::VideoNote && content_type != MessageContentType::VoiceNote) {
     return false;
+  }
+  return true;
+}
+
+bool MessagesManager::can_set_message_fact_check(DialogId dialog_id, const Message *m) const {
+  if (!td_->option_manager_->get_option_boolean("can_edit_fact_check")) {
+    return false;
+  }
+  if (td_->auth_manager_->is_bot() || m == nullptr || !m->message_id.is_valid() || !m->message_id.is_server() ||
+      !td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
+    return false;
+  }
+  auto content_type = m->content->get_type();
+  switch (content_type) {
+    case MessageContentType::Animation:
+    case MessageContentType::Audio:
+    case MessageContentType::Document:
+    case MessageContentType::Photo:
+    case MessageContentType::Text:
+    case MessageContentType::Video:
+      // ok
+      break;
+    default:
+      return false;
   }
   return true;
 }
@@ -25720,8 +25745,7 @@ void MessagesManager::set_message_fact_check(MessageFullId message_full_id,
   if (m == nullptr) {
     return promise.set_error(Status::Error(400, "Message not found"));
   }
-  if (!td_->dialog_manager_->is_broadcast_channel(dialog_id) || !m->message_id.is_valid() ||
-      !m->message_id.is_server()) {
+  if (!can_set_message_fact_check(dialog_id, m)) {
     return promise.set_error(Status::Error(400, "Message fact-check can't be changed for the message"));
   }
 

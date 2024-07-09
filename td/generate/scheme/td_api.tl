@@ -3852,7 +3852,8 @@ inputMessageForwarded from_chat_id:int53 message_id:int53 in_game_share:Bool cop
 //@can_get_viewers True, if chat members already viewed the message can be received through getMessageViewers
 //@can_report_reactions True, if reactions on the message can be reported through reportMessageReactions
 //@can_recognize_speech True, if speech can be recognized for the message through recognizeSpeech
-messageProperties can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_paid:Bool can_be_replied:Bool can_be_replied_in_another_chat:Bool can_be_reported:Bool can_be_saved:Bool can_be_shared_in_story:Bool can_edit_scheduling_state:Bool can_get_added_reactions:Bool can_get_embedding_code:Bool can_get_link:Bool can_get_media_timestamp_links:Bool can_get_message_thread:Bool can_get_read_date:Bool can_get_statistics:Bool can_get_viewers:Bool can_report_reactions:Bool can_recognize_speech:Bool = MessageProperties;
+//@can_set_fact_check True, if fact check for the message can be changed through setMessageFactCheck
+messageProperties can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_paid:Bool can_be_replied:Bool can_be_replied_in_another_chat:Bool can_be_reported:Bool can_be_saved:Bool can_be_shared_in_story:Bool can_edit_scheduling_state:Bool can_get_added_reactions:Bool can_get_embedding_code:Bool can_get_link:Bool can_get_media_timestamp_links:Bool can_get_message_thread:Bool can_get_read_date:Bool can_get_statistics:Bool can_get_viewers:Bool can_report_reactions:Bool can_recognize_speech:Bool can_set_fact_check:Bool = MessageProperties;
 
 
 //@class SearchMessagesFilter @description Represents a filter for message search results
@@ -8646,9 +8647,9 @@ editInlineMessageReplyMarkup inline_message_id:string reply_markup:ReplyMarkup =
 //@scheduling_state The new message scheduling state; pass null to send the message immediately
 editMessageSchedulingState chat_id:int53 message_id:int53 scheduling_state:MessageSchedulingState = Ok;
 
-//@description Changes the fact-check of a message. Can be only used if getOption("can_edit_fact_check") == true
+//@description Changes the fact-check of a message. Can be only used if messageProperties.can_set_fact_check == true
 //@chat_id The channel chat the message belongs to
-//@message_id Identifier of the message. The message must be one of the following types: messageAnimation, messageAudio, messageDocument, messagePhoto, messageText, messageVideo
+//@message_id Identifier of the message
 //@text New text of the fact-check; 0-getOption("fact_check_length_max") characters; pass null to remove it. Only Bold, Italic, and TextUrl entities with https://t.me/ links are supported
 setMessageFactCheck chat_id:int53 message_id:int53 text:formattedText = Ok;
 
