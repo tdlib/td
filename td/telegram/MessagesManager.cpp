@@ -17353,7 +17353,6 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
       !m->message_id.is_yet_unsent() && (!m->message_id.is_local() || dialog_type == DialogType::SecretChat) &&
       (dialog_type != DialogType::Chat || td_->chat_manager_->get_chat_is_active(dialog_id.get_chat_id()));
   auto can_be_replied_in_another_chat = can_be_forwarded && m->message_id.is_server();
-  auto can_be_reported = dialog_type != DialogType::SecretChat && can_report_message(m->message_id).is_ok();
   auto can_be_shared_in_story = can_share_message_in_story(dialog_id, m);
   auto can_edit_scheduling_state = m->message_id.is_valid_scheduled() && m->message_id.is_scheduled_server();
   auto can_get_added_reactions = m->reactions != nullptr && m->reactions->can_get_added_reactions_;
@@ -17364,15 +17363,22 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   auto can_get_media_timestamp_links = can_get_media_timestamp_link(dialog_id, m).is_ok();
   auto can_get_link = can_get_media_timestamp_links && dialog_type == DialogType::Channel;
   auto can_get_embedding_code = can_get_message_embedding_code(dialog_id, m).is_ok();
-  auto can_report_reactions = can_report_message_reactions(dialog_id, m);
   auto can_recognize_speech = can_recognize_message_speech(dialog_id, m);
+  auto can_report_chat =
+      td_->dialog_manager_->can_report_dialog(dialog_id) && can_report_message(m->message_id).is_ok();
+  auto can_report_reactions = can_report_message_reactions(dialog_id, m);
+  auto can_report_supergroup_spam =
+      dialog_id.get_type() == DialogType::Channel &&
+      td_->chat_manager_->is_megagroup_channel(dialog_id.get_channel_id()) &&
+      td_->chat_manager_->get_channel_status(dialog_id.get_channel_id()).is_administrator() &&
+      can_report_message(m->message_id).is_ok();
   auto can_set_fact_check = can_set_message_fact_check(dialog_id, m);
   promise.set_value(td_api::make_object<td_api::messageProperties>(
       can_delete_for_self, can_delete_for_all_users, can_be_edited, can_be_forwarded, can_be_paid, can_be_pinned,
-      can_be_replied, can_be_replied_in_another_chat, can_be_reported, can_be_saved, can_be_shared_in_story,
-      can_edit_scheduling_state, can_get_added_reactions, can_get_embedding_code, can_get_link,
-      can_get_media_timestamp_links, can_get_message_thread, can_get_read_date, can_get_statistics, can_get_viewers,
-      can_report_reactions, can_recognize_speech, can_set_fact_check));
+      can_be_replied, can_be_replied_in_another_chat, can_be_saved, can_be_shared_in_story, can_edit_scheduling_state,
+      can_get_added_reactions, can_get_embedding_code, can_get_link, can_get_media_timestamp_links,
+      can_get_message_thread, can_get_read_date, can_get_statistics, can_get_viewers, can_recognize_speech,
+      can_report_chat, can_report_reactions, can_report_supergroup_spam, can_set_fact_check));
 }
 
 bool MessagesManager::is_message_edited_recently(MessageFullId message_full_id, int32 seconds) {
