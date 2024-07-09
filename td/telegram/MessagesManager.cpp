@@ -17347,6 +17347,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   auto can_be_edited = can_edit_message(dialog_id, m, false, is_bot);
   auto can_be_forwarded = can_be_saved && can_forward_message(dialog_id, m);
   auto can_be_paid = get_invoice_message_id({dialog_id, m->message_id}).is_ok();
+  auto can_be_pinned = can_pin_message(dialog_id, m).is_ok();
   auto can_be_replied =
       message_id.is_valid() && !(message_id == MessageId(ServerMessageId(1)) && dialog_type == DialogType::Channel) &&
       m->message_id.is_yet_unsent() && (!m->message_id.is_local() || dialog_type == DialogType::SecretChat) &&
@@ -17367,11 +17368,11 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   auto can_recognize_speech = can_recognize_message_speech(dialog_id, m);
   auto can_set_fact_check = can_set_message_fact_check(dialog_id, m);
   promise.set_value(td_api::make_object<td_api::messageProperties>(
-      can_delete_for_self, can_delete_for_all_users, can_be_edited, can_be_forwarded, can_be_paid, can_be_replied,
-      can_be_replied_in_another_chat, can_be_reported, can_be_saved, can_be_shared_in_story, can_edit_scheduling_state,
-      can_get_added_reactions, can_get_embedding_code, can_get_link, can_get_media_timestamp_links,
-      can_get_message_thread, can_get_read_date, can_get_statistics, can_get_viewers, can_report_reactions,
-      can_recognize_speech, can_set_fact_check));
+      can_delete_for_self, can_delete_for_all_users, can_be_edited, can_be_forwarded, can_be_paid, can_be_pinned,
+      can_be_replied, can_be_replied_in_another_chat, can_be_reported, can_be_saved, can_be_shared_in_story,
+      can_edit_scheduling_state, can_get_added_reactions, can_get_embedding_code, can_get_link,
+      can_get_media_timestamp_links, can_get_message_thread, can_get_read_date, can_get_statistics, can_get_viewers,
+      can_report_reactions, can_recognize_speech, can_set_fact_check));
 }
 
 bool MessagesManager::is_message_edited_recently(MessageFullId message_full_id, int32 seconds) {
@@ -25261,6 +25262,23 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
   }
 }
 
+Status MessagesManager::can_pin_message(DialogId dialog_id, const Message *m) const {
+  if (m == nullptr) {
+    return Status::Error(400, "Message not found");
+  }
+  TRY_STATUS(td_->dialog_manager_->can_pin_messages(dialog_id));
+  if (m->message_id.is_scheduled()) {
+    return Status::Error(400, "Scheduled message can't be pinned");
+  }
+  if (!m->message_id.is_server()) {
+    return Status::Error(400, "Message can't be pinned");
+  }
+  if (is_service_message_content(m->content->get_type())) {
+    return Status::Error(400, "Service messages can't be pinned");
+  }
+  return Status::OK();
+}
+
 bool MessagesManager::can_resend_message(const Message *m) const {
   if (m->send_error_code != 429 && m->send_error_message != "Message is too old to be re-sent automatically" &&
       m->send_error_message != "SCHEDULE_TOO_MUCH" && m->send_error_message != "SEND_AS_PEER_INVALID" &&
@@ -31982,22 +32000,8 @@ void MessagesManager::pin_dialog_message(DialogId dialog_id, MessageId message_i
   if (d == nullptr) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
-  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->can_pin_messages(dialog_id));
-
   const Message *m = get_message_force(d, message_id, "pin_dialog_message");
-  if (m == nullptr) {
-    return promise.set_error(Status::Error(400, "Message not found"));
-  }
-  if (message_id.is_scheduled()) {
-    return promise.set_error(Status::Error(400, "Scheduled message can't be pinned"));
-  }
-  if (!message_id.is_server()) {
-    return promise.set_error(Status::Error(400, "Message can't be pinned"));
-  }
-
-  if (is_service_message_content(m->content->get_type())) {
-    return promise.set_error(Status::Error(400, "A service message can't be pinned"));
-  }
+  TRY_STATUS_PROMISE(promise, can_pin_message(dialog_id, m));
 
   if (only_for_self && dialog_id.get_type() != DialogType::User) {
     return promise.set_error(Status::Error(400, "Messages can't be pinned only for self in the chat"));
