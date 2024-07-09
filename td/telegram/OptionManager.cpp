@@ -358,6 +358,7 @@ bool OptionManager::is_internal_option(Slice name) {
                                                               "business_features",
                                                               "call_receive_timeout_ms",
                                                               "call_ring_timeout_ms",
+                                                              "can_edit_fact_check",
                                                               "caption_length_limit_default",
                                                               "caption_length_limit_premium",
                                                               "channel_bg_icon_level_min",
