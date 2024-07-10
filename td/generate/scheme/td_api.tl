@@ -11257,6 +11257,9 @@ getPremiumGiveawayInfo chat_id:int53 message_id:int53 = PremiumGiveawayInfo;
 //@description Returns available options for Telegram Stars purchase
 getStarPaymentOptions = StarPaymentOptions;
 
+//@description Returns available options for Telegram Stars gifting @user_id Identifier of the user that will receive Telegram Stars; pass 0 to get options for an unspecified user
+getStarGiftPaymentOptions user_id:int53 = StarPaymentOptions;
+
 //@description Returns the list of Telegram Star transactions for the specified owner
 //@owner_id Identifier of the owner of the Telegram Stars; can be the identifier of the current user, identifier of an owned bot,
 //-or identifier of a channel chat with supergroupFullInfo.can_get_star_revenue_statistics == true

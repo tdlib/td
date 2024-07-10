@@ -9523,6 +9523,12 @@ void Td::on_request(uint64 id, const td_api::getStarPaymentOptions &request) {
   star_manager_->get_star_payment_options(std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getStarGiftPaymentOptions &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  star_manager_->get_star_gift_payment_options(UserId(request.user_id_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::getStarTransactions &request) {
   CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();

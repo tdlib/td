@@ -29,6 +29,8 @@ class StarManager final : public Actor {
 
   void get_star_payment_options(Promise<td_api::object_ptr<td_api::starPaymentOptions>> &&promise);
 
+  void get_star_gift_payment_options(UserId user_id, Promise<td_api::object_ptr<td_api::starPaymentOptions>> &&promise);
+
   void get_star_transactions(td_api::object_ptr<td_api::MessageSender> owner_id, const string &offset, int32 limit,
                              td_api::object_ptr<td_api::StarTransactionDirection> &&direction,
                              Promise<td_api::object_ptr<td_api::starTransactions>> &&promise);

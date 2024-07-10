@@ -3435,6 +3435,10 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getPremiumGiveawayInfo>(chat_id, message_id));
     } else if (op == "gspo") {
       send_request(td_api::make_object<td_api::getStarPaymentOptions>());
+    } else if (op == "gsgpo") {
+      UserId user_id;
+      get_args(args, user_id);
+      send_request(td_api::make_object<td_api::getStarGiftPaymentOptions>(user_id));
     } else if (op == "gsta" || op == "gsti" || op == "gsto") {
       string owner_id;
       string offset;

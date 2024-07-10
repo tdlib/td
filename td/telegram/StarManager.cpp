@@ -72,6 +72,45 @@ class GetStarsTopupOptionsQuery final : public Td::ResultHandler {
   }
 };
 
+class GetStarsGiftOptionsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::starPaymentOptions>> promise_;
+
+ public:
+  explicit GetStarsGiftOptionsQuery(Promise<td_api::object_ptr<td_api::starPaymentOptions>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::InputUser> input_user) {
+    int32 flags = 0;
+    if (input_user != nullptr) {
+      flags |= telegram_api::payments_getStarsGiftOptions::USER_ID_MASK;
+    }
+    send_query(
+        G()->net_query_creator().create(telegram_api::payments_getStarsGiftOptions(flags, std::move(input_user))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getStarsGiftOptions>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto results = result_ptr.move_as_ok();
+    vector<td_api::object_ptr<td_api::starPaymentOption>> options;
+    for (auto &result : results) {
+      options.push_back(td_api::make_object<td_api::starPaymentOption>(result->currency_, result->amount_,
+                                                                       StarManager::get_star_count(result->stars_),
+                                                                       result->store_product_, result->extended_));
+    }
+
+    promise_.set_value(td_api::make_object<td_api::starPaymentOptions>(std::move(options)));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetStarsTransactionsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::starTransactions>> promise_;
   DialogId dialog_id_;
@@ -493,6 +532,16 @@ Status StarManager::can_manage_stars(DialogId dialog_id, bool allow_self) const 
 
 void StarManager::get_star_payment_options(Promise<td_api::object_ptr<td_api::starPaymentOptions>> &&promise) {
   td_->create_handler<GetStarsTopupOptionsQuery>(std::move(promise))->send();
+}
+
+void StarManager::get_star_gift_payment_options(UserId user_id,
+                                                Promise<td_api::object_ptr<td_api::starPaymentOptions>> &&promise) {
+  if (user_id == UserId()) {
+    td_->create_handler<GetStarsGiftOptionsQuery>(std::move(promise))->send(nullptr);
+    return;
+  }
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
+  td_->create_handler<GetStarsGiftOptionsQuery>(std::move(promise))->send(std::move(input_user));
 }
 
 void StarManager::get_star_transactions(td_api::object_ptr<td_api::MessageSender> owner_id, const string &offset,
