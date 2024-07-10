@@ -261,11 +261,11 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
                                                       const RepliedMessageInfo &replied_message_info,
                                                       bool is_business_message);
 
-tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageContent *content, Td *td,
-                                                                 DialogId dialog_id, int32 message_date,
-                                                                 bool is_content_secret, bool skip_bot_commands,
-                                                                 int32 max_media_timestamp, bool invert_media,
-                                                                 bool disable_web_page_preview);
+td_api::object_ptr<td_api::MessageContent> get_message_content_object(const MessageContent *content, Td *td,
+                                                                      DialogId dialog_id, bool is_outgoing,
+                                                                      int32 message_date, bool is_content_secret,
+                                                                      bool skip_bot_commands, int32 max_media_timestamp,
+                                                                      bool invert_media, bool disable_web_page_preview);
 
 FormattedText *get_message_content_text_mutable(MessageContent *content);
 

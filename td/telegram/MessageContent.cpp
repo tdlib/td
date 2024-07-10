@@ -4782,7 +4782,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       const auto *old_ = static_cast<const MessageText *>(old_content);
       const auto *new_ = static_cast<const MessageText *>(new_content);
       auto get_content_object = [td, dialog_id](const MessageContent *content) {
-        return to_string(get_message_content_object(content, td, dialog_id, -1, false, false,
+        return to_string(get_message_content_object(content, td, dialog_id, false, -1, false, false,
                                                     std::numeric_limits<int32>::max(), false, false));
       };
       if (old_->text.text != new_->text.text) {
@@ -7385,10 +7385,10 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
 }
 
 tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageContent *content, Td *td,
-                                                                 DialogId dialog_id, int32 message_date,
-                                                                 bool is_content_secret, bool skip_bot_commands,
-                                                                 int32 max_media_timestamp, bool invert_media,
-                                                                 bool disable_web_page_preview) {
+                                                                 DialogId dialog_id, bool is_outgoing,
+                                                                 int32 message_date, bool is_content_secret,
+                                                                 bool skip_bot_commands, int32 max_media_timestamp,
+                                                                 bool invert_media, bool disable_web_page_preview) {
   CHECK(content != nullptr);
   switch (content->get_type()) {
     case MessageContentType::Animation: {
@@ -7678,15 +7678,24 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     case MessageContentType::GiftPremium: {
       const auto *m = static_cast<const MessageGiftPremium *>(content);
       int64 gifter_user_id = 0;
+      int64 receiver_user_id =
+          td->user_manager_->get_user_id_object(td->user_manager_->get_my_id(), "MessageGiftPremium 1");
       if (dialog_id.get_type() == DialogType::User) {
         auto user_id = dialog_id.get_user_id();
-        if (user_id != UserManager::get_service_notifications_user_id() && !td->user_manager_->is_user_bot(user_id) &&
-            !td->user_manager_->is_user_support(user_id)) {
-          gifter_user_id = td->user_manager_->get_user_id_object(user_id, "MessageGiftPremium");
+        if (is_outgoing) {
+          gifter_user_id = receiver_user_id;
+          receiver_user_id = td->user_manager_->get_user_id_object(user_id, "MessageGiftPremium 2");
+        } else {
+          if (user_id != UserManager::get_service_notifications_user_id() && !td->user_manager_->is_user_bot(user_id) &&
+              !td->user_manager_->is_user_support(user_id)) {
+            gifter_user_id = td->user_manager_->get_user_id_object(user_id, "MessageGiftPremium 3");
+          }
         }
+      } else {
+        LOG(ERROR) << "Receive gifted premium in " << dialog_id;
       }
-      return make_tl_object<td_api::messageGiftedPremium>(
-          gifter_user_id, m->currency, m->amount, m->crypto_currency, m->crypto_amount, m->months,
+      return td_api::make_object<td_api::messageGiftedPremium>(
+          gifter_user_id, receiver_user_id, m->currency, m->amount, m->crypto_currency, m->crypto_amount, m->months,
           td->stickers_manager_->get_premium_gift_sticker_object(m->months));
     }
     case MessageContentType::TopicCreate: {
