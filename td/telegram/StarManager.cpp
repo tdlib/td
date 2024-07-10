@@ -169,6 +169,10 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
           case telegram_api::starsTransactionPeerPlayMarket::ID:
             return td_api::make_object<td_api::starTransactionPartnerGooglePlay>();
           case telegram_api::starsTransactionPeerFragment::ID: {
+            if (transaction->gift_) {
+              transaction->gift_ = false;
+              return td_api::make_object<td_api::starTransactionPartnerUser>(0);
+            }
             auto state = [&]() -> td_api::object_ptr<td_api::RevenueWithdrawalState> {
               if (transaction->transaction_date_ > 0) {
                 SCOPE_EXIT {
@@ -203,6 +207,13 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
             if (dialog_id.get_type() == DialogType::User) {
               auto user_id = dialog_id.get_user_id();
               if (td_->auth_manager_->is_bot() == td_->user_manager_->is_user_bot(user_id)) {
+                if (transaction->gift_ && !td_->auth_manager_->is_bot()) {
+                  transaction->gift_ = false;
+                  return td_api::make_object<td_api::starTransactionPartnerUser>(
+                      user_id == UserManager::get_service_notifications_user_id()
+                          ? 0
+                          : td_->user_manager_->get_user_id_object(user_id, "starTransactionPartnerUser"));
+                }
                 LOG(ERROR) << "Receive star transaction with " << user_id;
                 return td_api::make_object<td_api::starTransactionPartnerUnsupported>();
               }
@@ -263,6 +274,9 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         }
         if (transaction->msg_id_ != 0) {
           LOG(ERROR) << "Receive message identifier with " << to_string(star_transaction);
+        }
+        if (transaction->gift_) {
+          LOG(ERROR) << "Receive gift with " << to_string(star_transaction);
         }
       }
       if (!file_ids.empty()) {

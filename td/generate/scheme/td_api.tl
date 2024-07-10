@@ -891,6 +891,10 @@ starTransactionPartnerBot bot_user_id:int53 product_info:productInfo invoice_pay
 //@media Information about the bought media
 starTransactionPartnerChannel chat_id:int53 paid_media_message_id:int53 media:vector<PaidMedia> = StarTransactionPartner;
 
+//@description The transaction is a gift of Telegram Stars from another user
+//@user_id Identifier of the user; 0 if the gift was anonymous
+starTransactionPartnerUser user_id:int53 = StarTransactionPartner;
+
 //@description The transaction is a transaction with unknown partner
 starTransactionPartnerUnsupported = StarTransactionPartner;
 
