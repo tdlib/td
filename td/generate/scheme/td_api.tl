@@ -841,28 +841,28 @@ premiumGiftCodePaymentOptions options:vector<premiumGiftCodePaymentOption> = Pre
 //@use_date Point in time (Unix timestamp) when the code was activated; 0 if none
 premiumGiftCodeInfo creator_id:MessageSender creation_date:int32 is_from_giveaway:Bool giveaway_message_id:int53 month_count:int32 user_id:int53 use_date:int32 = PremiumGiftCodeInfo;
 
-//@description Describes an option for buying Telegram stars. Use telegramPaymentPurposeStars for out-of-store payments
+//@description Describes an option for buying Telegram Stars. Use telegramPaymentPurposeStars for out-of-store payments
 //@currency ISO 4217 currency code for the payment
 //@amount The amount to pay, in the smallest units of the currency
-//@star_count Number of Telegram stars that will be purchased
+//@star_count Number of Telegram Stars that will be purchased
 //@store_product_id Identifier of the store product associated with the option; may be empty if none
 //@is_additional True, if the option must be shown only in the full list of payment options
 starPaymentOption currency:string amount:int53 star_count:int53 store_product_id:string is_additional:Bool = StarPaymentOption;
 
-//@description Contains a list of options for buying Telegram stars @options The list of options
+//@description Contains a list of options for buying Telegram Stars @options The list of options
 starPaymentOptions options:vector<starPaymentOption> = StarPaymentOptions;
 
 
-//@class StarTransactionDirection @description Describes direction of a transaction with Telegram stars
+//@class StarTransactionDirection @description Describes direction of a transaction with Telegram Stars
 
-//@description The transaction is incoming and increases the number of owned Telegram stars
+//@description The transaction is incoming and increases the number of owned Telegram Stars
 starTransactionDirectionIncoming = StarTransactionDirection;
 
-//@description The transaction is outgoing and decreases the number of owned Telegram stars
+//@description The transaction is outgoing and decreases the number of owned Telegram Stars
 starTransactionDirectionOutgoing = StarTransactionDirection;
 
 
-//@class StarTransactionPartner @description Describes source or recipient of a transaction with Telegram stars
+//@class StarTransactionPartner @description Describes source or recipient of a transaction with Telegram Stars
 
 //@description The transaction is a transaction with Telegram through a bot
 starTransactionPartnerTelegram = StarTransactionPartner;
@@ -899,17 +899,17 @@ starTransactionPartnerUser user_id:int53 = StarTransactionPartner;
 starTransactionPartnerUnsupported = StarTransactionPartner;
 
 
-//@description Represents a transaction changing the amount of owned Telegram stars
+//@description Represents a transaction changing the amount of owned Telegram Stars
 //@id Unique identifier of the transaction
-//@star_count The amount of added owned Telegram stars; negative for outgoing transactions
+//@star_count The amount of added owned Telegram Stars; negative for outgoing transactions
 //@is_refund True, if the transaction is a refund of a previous transaction
 //@date Point in time (Unix timestamp) when the transaction was completed
 //@partner Source of the incoming transaction, or its recipient for outgoing transactions
 starTransaction id:string star_count:int53 is_refund:Bool date:int32 partner:StarTransactionPartner = StarTransaction;
 
-//@description Represents a list of Telegram star transactions
-//@star_count The amount of owned Telegram stars
-//@transactions List of transactions with Telegram stars
+//@description Represents a list of Telegram Star transactions
+//@star_count The amount of owned Telegram Stars
+//@transactions List of transactions with Telegram Stars
 //@next_offset The offset for the next request. If empty, then there are no more results
 starTransactions star_count:int53 transactions:vector<starTransaction> next_offset:string = StarTransactions;
 
@@ -2856,7 +2856,7 @@ paymentOption title:string url:string = PaymentOption;
 //@need_password True, if the user will be able to save credentials, if sets up a 2-step verification password
 paymentFormTypeRegular invoice:invoice payment_provider_user_id:int53 payment_provider:PaymentProvider additional_payment_options:vector<paymentOption> saved_order_info:orderInfo saved_credentials:vector<savedCredentials> can_save_credentials:Bool need_password:Bool = PaymentFormType;
 
-//@description The payment form is for a payment in Telegram stars @star_count Number of Telegram stars that will be paid
+//@description The payment form is for a payment in Telegram Stars @star_count Number of Telegram Stars that will be paid
 paymentFormTypeStars star_count:int53 = PaymentFormType;
 
 
@@ -2885,8 +2885,8 @@ paymentResult success:Bool verification_url:string = PaymentResult;
 //@tip_amount The amount of tip chosen by the buyer in the smallest units of the currency
 paymentReceiptTypeRegular payment_provider_user_id:int53 invoice:invoice order_info:orderInfo shipping_option:shippingOption credentials_title:string tip_amount:int53 = PaymentReceiptType;
 
-//@description The payment was done using Telegram stars
-//@star_count Number of Telegram stars that were paid
+//@description The payment was done using Telegram Stars
+//@star_count Number of Telegram Stars that were paid
 //@transaction_id Unique identifier of the transaction that can be used to dispute it
 paymentReceiptTypeStars star_count:int53 transaction_id:string = PaymentReceiptType;
 
@@ -3456,7 +3456,7 @@ messagePaymentSuccessful invoice_chat_id:int53 invoice_message_id:int53 currency
 messagePaymentSuccessfulBot currency:string total_amount:int53 is_recurring:Bool is_first_recurring:Bool invoice_payload:bytes shipping_option_id:string order_info:orderInfo telegram_payment_charge_id:string provider_payment_charge_id:string = MessageContent;
 
 //@description A payment has been refunded
-//@owner_id Identifier of the previous owner of the Telegram stars that refunds them
+//@owner_id Identifier of the previous owner of the Telegram Stars that refunds them
 //@currency Currency for the price of the product
 //@total_amount Total price for the product, in the smallest units of the currency
 //@invoice_payload Invoice payload; only for bots
@@ -5601,14 +5601,14 @@ storePaymentPurposePremiumGiftCodes boosted_chat_id:int53 currency:string amount
 //@amount Paid amount, in the smallest units of the currency
 storePaymentPurposePremiumGiveaway parameters:premiumGiveawayParameters currency:string amount:int53 = StorePaymentPurpose;
 
-//@description The user buying Telegram stars
+//@description The user buying Telegram Stars
 //@currency ISO 4217 currency code of the payment currency
 //@amount Paid amount, in the smallest units of the currency
 //@star_count Number of bought stars
 storePaymentPurposeStars currency:string amount:int53 star_count:int53 = StorePaymentPurpose;
 
-//@description The user buying Telegram stars for other users
-//@user_id Identifier of the user to which Telegram stars are gifted
+//@description The user buying Telegram Stars for other users
+//@user_id Identifier of the user to which Telegram Stars are gifted
 //@currency ISO 4217 currency code of the payment currency
 //@amount Paid amount, in the smallest units of the currency
 //@star_count Number of bought stars
@@ -5633,14 +5633,14 @@ telegramPaymentPurposePremiumGiftCodes boosted_chat_id:int53 currency:string amo
 //@month_count Number of months the Telegram Premium subscription will be active for the users
 telegramPaymentPurposePremiumGiveaway parameters:premiumGiveawayParameters currency:string amount:int53 winner_count:int32 month_count:int32 = TelegramPaymentPurpose;
 
-//@description The user buying Telegram stars
+//@description The user buying Telegram Stars
 //@currency ISO 4217 currency code of the payment currency
 //@amount Paid amount, in the smallest units of the currency
 //@star_count Number of bought stars
 telegramPaymentPurposeStars currency:string amount:int53 star_count:int53 = TelegramPaymentPurpose;
 
-//@description The user buying Telegram stars for other users
-//@user_id Identifier of the user to which Telegram stars are gifted
+//@description The user buying Telegram Stars for other users
+//@user_id Identifier of the user to which Telegram Stars are gifted
 //@currency ISO 4217 currency code of the payment currency
 //@amount Paid amount, in the smallest units of the currency
 //@star_count Number of bought stars
@@ -7148,18 +7148,18 @@ chatRevenueTransaction cryptocurrency:string cryptocurrency_amount:int64 type:Ch
 chatRevenueTransactions total_count:int32 transactions:vector<chatRevenueTransaction> = ChatRevenueTransactions;
 
 
-//@description Contains information about Telegram stars earned by a bot or a chat
+//@description Contains information about Telegram Stars earned by a bot or a chat
 //@total_count Total number of the stars earned
-//@current_count The number of Telegram stars that aren't withdrawn yet
-//@available_count The number of Telegram stars that are available for withdrawal
-//@withdrawal_enabled True, if Telegram stars can be withdrawn now or later
+//@current_count The number of Telegram Stars that aren't withdrawn yet
+//@available_count The number of Telegram Stars that are available for withdrawal
+//@withdrawal_enabled True, if Telegram Stars can be withdrawn now or later
 //@next_withdrawal_in Time left before the next withdrawal can be started, in seconds; 0 if withdrawal can be started now
 starRevenueStatus total_count:int53 current_count:int53 available_count:int53 withdrawal_enabled:Bool next_withdrawal_in:int32 = StarRevenueStatus;
 
-//@description A detailed statistics about Telegram stars earned by a bot or a chat
+//@description A detailed statistics about Telegram Stars earned by a bot or a chat
 //@revenue_by_day_graph A graph containing amount of revenue in a given day
-//@status Telegram star revenue status
-//@usd_rate Current conversion rate of a Telegram star to USD
+//@status Telegram Star revenue status
+//@usd_rate Current conversion rate of a Telegram Star to USD
 starRevenueStatistics revenue_by_day_graph:StatisticalGraph status:starRevenueStatus usd_rate:double = StarRevenueStatistics;
 
 
@@ -7677,7 +7677,7 @@ updateDefaultReactionType reaction_type:ReactionType = Update;
 //@tags The new tags
 updateSavedMessagesTags saved_messages_topic_id:int53 tags:savedMessagesTags = Update;
 
-//@description The number of Telegram stars owned by the current user has changed @star_count The new number of Telegram stars owned
+//@description The number of Telegram Stars owned by the current user has changed @star_count The new number of Telegram Stars owned
 updateOwnedStarCount star_count:int53 = Update;
 
 //@description The revenue earned from sponsored messages in a chat has changed. If chat revenue screen is opened, then getChatRevenueTransactions may be called to fetch new transactions
@@ -7685,9 +7685,9 @@ updateOwnedStarCount star_count:int53 = Update;
 //@revenue_amount New amount of earned revenue
 updateChatRevenueAmount chat_id:int53 revenue_amount:chatRevenueAmount = Update;
 
-//@description The Telegram star revenue earned by a bot or a chat has changed. If star transactions screen of the chat is opened, then getStarTransactions may be called to fetch new transactions
-//@owner_id Identifier of the owner of the Telegram stars
-//@status New Telegram star revenue status
+//@description The Telegram Star revenue earned by a bot or a chat has changed. If star transactions screen of the chat is opened, then getStarTransactions may be called to fetch new transactions
+//@owner_id Identifier of the owner of the Telegram Stars
+//@status New Telegram Star revenue status
 updateStarRevenueStatus owner_id:MessageSender status:starRevenueStatus = Update;
 
 //@description The parameters of speech recognition without Telegram Premium subscription has changed
@@ -10775,7 +10775,7 @@ validateOrderInfo input_invoice:InputInvoice order_info:orderInfo allow_save:Boo
 //@payment_form_id Payment form identifier returned by getPaymentForm
 //@order_info_id Identifier returned by validateOrderInfo, or an empty string
 //@shipping_option_id Identifier of a chosen shipping option, if applicable
-//@credentials The credentials chosen by user for payment; pass null for a payment in Telegram stars
+//@credentials The credentials chosen by user for payment; pass null for a payment in Telegram Stars
 //@tip_amount Chosen by the user amount of tip in the smallest units of the currency
 sendPaymentForm input_invoice:InputInvoice payment_form_id:int64 order_info_id:string shipping_option_id:string credentials:InputCredentials tip_amount:int53 = PaymentResult;
 
@@ -10975,19 +10975,19 @@ getChatRevenueWithdrawalUrl chat_id:int53 password:string = HttpUrl;
 getChatRevenueTransactions chat_id:int53 offset:int32 limit:int32 = ChatRevenueTransactions;
 
 
-//@description Returns detailed Telegram star revenue statistics
-//@owner_id Identifier of the owner of the Telegram stars; can be identifier of an owned bot, or identifier of a channel chat with supergroupFullInfo.can_get_star_revenue_statistics == true
+//@description Returns detailed Telegram Star revenue statistics
+//@owner_id Identifier of the owner of the Telegram Stars; can be identifier of an owned bot, or identifier of a channel chat with supergroupFullInfo.can_get_star_revenue_statistics == true
 //@is_dark Pass true if a dark theme is used by the application
 getStarRevenueStatistics owner_id:MessageSender is_dark:Bool = StarRevenueStatistics;
 
-//@description Returns a URL for Telegram star withdrawal
-//@owner_id Identifier of the owner of the Telegram stars; can be identifier of an owned bot, or identifier of an owned channel chat
-//@star_count The number of Telegram stars to withdraw. Must be at least getOption("star_withdrawal_count_min")
+//@description Returns a URL for Telegram Star withdrawal
+//@owner_id Identifier of the owner of the Telegram Stars; can be identifier of an owned bot, or identifier of an owned channel chat
+//@star_count The number of Telegram Stars to withdraw. Must be at least getOption("star_withdrawal_count_min")
 //@password The 2-step verification password of the current user
 getStarWithdrawalUrl owner_id:MessageSender star_count:int53 password:string = HttpUrl;
 
-//@description Returns a URL for a Telegram Ad platform account that can be used to set up advertisements for the chat paid in the owned Telegram stars
-//@owner_id Identifier of the owner of the Telegram stars; can be identifier of an owned bot, or identifier of an owned channel chat
+//@description Returns a URL for a Telegram Ad platform account that can be used to set up advertisements for the chat paid in the owned Telegram Stars
+//@owner_id Identifier of the owner of the Telegram Stars; can be identifier of an owned bot, or identifier of an owned channel chat
 getStarAdAccountUrl owner_id:MessageSender = HttpUrl;
 
 
@@ -11254,11 +11254,11 @@ launchPrepaidPremiumGiveaway giveaway_id:int64 parameters:premiumGiveawayParamet
 //@message_id Identifier of the giveaway or a giveaway winners message in the chat
 getPremiumGiveawayInfo chat_id:int53 message_id:int53 = PremiumGiveawayInfo;
 
-//@description Returns available options for Telegram stars purchase
+//@description Returns available options for Telegram Stars purchase
 getStarPaymentOptions = StarPaymentOptions;
 
-//@description Returns the list of Telegram star transactions for the specified owner
-//@owner_id Identifier of the owner of the Telegram stars; can be the identifier of the current user, identifier of an owned bot,
+//@description Returns the list of Telegram Star transactions for the specified owner
+//@owner_id Identifier of the owner of the Telegram Stars; can be the identifier of the current user, identifier of an owned bot,
 //-or identifier of a channel chat with supergroupFullInfo.can_get_star_revenue_statistics == true
 //@direction Direction of the transactions to receive; pass null to get all transactions
 //@offset Offset of the first transaction to return as received from the previous request; use empty string to get the first chunk of results
