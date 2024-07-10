@@ -82,7 +82,8 @@ enum class MessageContentType : int32 {
   BoostApply,
   DialogShared,
   PaidMedia,
-  PaymentRefunded
+  PaymentRefunded,
+  GiftStars
 };
 // increase MessageUnsupported::CURRENT_VERSION each time a new message content type is added
 

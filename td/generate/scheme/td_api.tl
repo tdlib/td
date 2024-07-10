@@ -3518,6 +3518,17 @@ messagePremiumGiveawayCompleted giveaway_message_id:int53 winner_count:int32 unc
 //@unclaimed_prize_count Number of undistributed prizes
 messagePremiumGiveawayWinners boosted_chat_id:int53 giveaway_message_id:int53 additional_chat_count:int32 actual_winners_selection_date:int32 only_new_members:Bool was_refunded:Bool month_count:int32 prize_description:string winner_count:int32 winner_user_ids:vector<int53> unclaimed_prize_count:int32 = MessageContent;
 
+//@description Telegram Stars were gifted to a user
+//@gifter_user_id The identifier of a user that gifted Telegram Stars; 0 if the gift was anonymous
+//@receiver_user_id The identifier of a user that received Telegram Stars
+//@currency Currency for the paid amount
+//@amount The paid amount, in the smallest units of the currency
+//@cryptocurrency Cryptocurrency used to pay for the gift; may be empty if none
+//@cryptocurrency_amount The paid amount, in the smallest units of the cryptocurrency; 0 if none
+//@star_count Number of Telegram Stars that were gifted
+//@transaction_id Identifier of the transaction for Telegram Stars purchase; for receiver only
+messageGiftedStars gifter_user_id:int53 receiver_user_id:int53 currency:string amount:int53 cryptocurrency:string cryptocurrency_amount:int64 star_count:int53 transaction_id:string = MessageContent;
+
 //@description A contact has registered with Telegram
 messageContactRegistered = MessageContent;
 
