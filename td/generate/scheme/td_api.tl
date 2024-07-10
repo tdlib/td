@@ -2604,11 +2604,12 @@ linkPreviewTypeEmbeddedAudioPlayer url:string duration:int32 author:string = Lin
 
 //@description The link is a link to a video player
 //@url URL of the external video player
+//@thumbnail Thumbanil of the video; may be null if unknown
 //@duration Duration of the video, in seconds
 //@author Author of the video
 //@width Expected width of the preview
 //@height Expected height of the preview
-linkPreviewTypeEmbeddedVideoPlayer url:string duration:int32 author:string width:int32 height:int32 = LinkPreviewType;
+linkPreviewTypeEmbeddedVideoPlayer url:string thumbnail:photo duration:int32 author:string width:int32 height:int32 = LinkPreviewType;
 
 //@description The link is a link to an invoice
 linkPreviewTypeInvoice = LinkPreviewType;
