@@ -5627,6 +5627,13 @@ telegramPaymentPurposePremiumGiveaway parameters:premiumGiveawayParameters curre
 //@star_count Number of bought stars
 telegramPaymentPurposeStars currency:string amount:int53 star_count:int53 = TelegramPaymentPurpose;
 
+//@description The user buying Telegram stars for other users
+//@user_id Identifier of the user to which Telegram stars are gifted
+//@currency ISO 4217 currency code of the payment currency
+//@amount Paid amount, in the smallest units of the currency
+//@star_count Number of bought stars
+telegramPaymentPurposeGiftedStars user_id:int53 currency:string amount:int53 star_count:int53 = TelegramPaymentPurpose;
+
 
 //@class DeviceToken @description Represents a data needed to subscribe for push notifications through registerDevice method.
 //-To use specific push notification service, the correct application platform must be specified and a valid server authentication data must be uploaded at https://my.telegram.org

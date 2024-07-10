@@ -136,6 +136,21 @@ Result<InputInvoiceInfo> get_input_invoice_info(Td *td, td_api::object_ptr<td_ap
           result.input_invoice_ = telegram_api::make_object<telegram_api::inputInvoiceStars>(std::move(purpose));
           break;
         }
+        case td_api::telegramPaymentPurposeGiftedStars::ID: {
+          auto p = static_cast<td_api::telegramPaymentPurposeGiftedStars *>(invoice->purpose_.get());
+          UserId user_id(p->user_id_);
+          TRY_RESULT(input_user, td->user_manager_->get_input_user(user_id));
+          if (p->amount_ <= 0 || !check_currency_amount(p->amount_)) {
+            return Status::Error(400, "Invalid amount of the currency specified");
+          }
+          if (!clean_input_string(p->currency_)) {
+            return Status::Error(400, "Strings must be encoded in UTF-8");
+          }
+          auto purpose = telegram_api::make_object<telegram_api::inputStorePaymentStarsGift>(
+              std::move(input_user), p->star_count_, p->currency_, p->amount_);
+          result.input_invoice_ = telegram_api::make_object<telegram_api::inputInvoiceStars>(std::move(purpose));
+          break;
+        }
         default:
           UNREACHABLE();
       }
