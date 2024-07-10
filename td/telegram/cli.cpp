@@ -3479,6 +3479,14 @@ class CliClient final : public Actor {
       get_args(args, currency, amount, star_count);
       send_request(td_api::make_object<td_api::canPurchaseFromStore>(
           td_api::make_object<td_api::storePaymentPurposeStars>(currency, amount, star_count)));
+    } else if (op == "cpfsgs") {
+      UserId user_id;
+      string currency;
+      int64 amount;
+      int64 star_count;
+      get_args(args, user_id, currency, amount, star_count);
+      send_request(td_api::make_object<td_api::canPurchaseFromStore>(
+          td_api::make_object<td_api::storePaymentPurposeGiftedStars>(user_id, currency, amount, star_count)));
     } else if (op == "gbf") {
       send_request(td_api::make_object<td_api::getBusinessFeatures>(nullptr));
     } else if (op == "atos") {

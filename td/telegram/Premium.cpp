@@ -256,6 +256,19 @@ static Result<tl_object_ptr<telegram_api::InputStorePaymentPurpose>> get_input_s
       return telegram_api::make_object<telegram_api::inputStorePaymentStarsTopup>(p->star_count_, p->currency_,
                                                                                   p->amount_);
     }
+    case td_api::storePaymentPurposeGiftedStars::ID: {
+      auto p = static_cast<td_api::storePaymentPurposeGiftedStars *>(purpose.get());
+      UserId user_id(p->user_id_);
+      TRY_RESULT(input_user, td->user_manager_->get_input_user(user_id));
+      if (p->amount_ <= 0 || !check_currency_amount(p->amount_)) {
+        return Status::Error(400, "Invalid amount of the currency specified");
+      }
+      if (!clean_input_string(p->currency_)) {
+        return Status::Error(400, "Strings must be encoded in UTF-8");
+      }
+      return telegram_api::make_object<telegram_api::inputStorePaymentStarsGift>(std::move(input_user), p->star_count_,
+                                                                                 p->currency_, p->amount_);
+    }
     default:
       UNREACHABLE();
       return nullptr;
