@@ -158,6 +158,10 @@ function(td_set_up_compiler)
     # https://stackoverflow.com/questions/26744556/warning-returning-a-captured-reference-from-a-lambda
     add_cxx_compiler_flag("-Wno-return-stack-address")
   endif()
+  if (GCC AND (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 13.0))
+    # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=104030
+    add_cxx_compiler_flag("-Wbidi-chars=none")
+  endif()
 
   if (MINGW)
     add_cxx_compiler_flag("-ftrack-macro-expansion=0")
