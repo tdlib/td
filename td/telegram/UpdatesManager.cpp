@@ -648,8 +648,8 @@ Promise<> UpdatesManager::set_pts(int32 pts, const char *source) {
         pts_diff_ += pts - old_pts;
         if (pts_diff_ >= 1000000) {
           if (pts_gap_ > 0 || pts_short_gap_ > 0) {
-            LOG(WARNING) << "Fixed " << pts_gap_ << " PTS gaps and " << pts_fixed_short_gap_
-                         << " short gaps by sending " << pts_short_gap_ << " requests";
+            LOG(WARNING) << "Fixed " << pts_gap_ << " PTS gaps and " << pts_fixed_short_gap_ << " short gaps up to PTS "
+                         << pts << " by sending " << pts_short_gap_ << " requests";
             pts_short_gap_ = 0;
             pts_fixed_short_gap_ = 0;
             pts_gap_ = 0;
@@ -2981,7 +2981,7 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
   }
   qts_diff_++;
   if (qts_diff_ >= 1000000) {
-    LOG(WARNING) << "Fixed " << qts_gap_ << " QTS gaps";
+    LOG(WARNING) << "Fixed " << qts_gap_ << " QTS gaps up to QTS " << qts;
     qts_gap_ = 0;
     qts_diff_ = 0;
   }
