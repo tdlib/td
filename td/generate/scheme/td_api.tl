@@ -2686,10 +2686,11 @@ linkPreviewTypeWebApp photo:photo = LinkPreviewType;
 //@type Type of the link preview
 //@has_large_media True, if size of media in the preview can be changed
 //@show_large_media True, if large media preview must be shown; otherwise, the media preview must be shown small and only the first frame must be shown for videos
+//@show_media_above_description True, if media must be shown above link preview description; otherwise, the media must be shown below the description
 //@skip_confirmation True, if there is no need to show an ordinary open URL confirmation, when opening the URL from the preview, because the URL is shown in the message text in clear
 //@show_above_text True, if the link preview must be shown above message text; otherwise, the link preview must be shown below the message text
 //@instant_view_version Version of instant view (currently, can be 1 or 2) for the web page; 0 if none
-linkPreview url:string display_url:string site_name:string title:string description:formattedText type:LinkPreviewType has_large_media:Bool show_large_media:Bool skip_confirmation:Bool show_above_text:Bool instant_view_version:int32 = LinkPreview;
+linkPreview url:string display_url:string site_name:string title:string description:formattedText type:LinkPreviewType has_large_media:Bool show_large_media:Bool show_media_above_description:Bool skip_confirmation:Bool show_above_text:Bool instant_view_version:int32 = LinkPreview;
 
 
 //@description Contains information about a country
