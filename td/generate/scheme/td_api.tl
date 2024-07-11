@@ -2602,9 +2602,10 @@ linkPreviewTypeDocument document:document author:string = LinkPreviewType;
 
 //@description The link is a link to an audio player
 //@url URL of the external audio player
+//@thumbnail Thumbanil of the audio; may be null if unknown
 //@duration Duration of the audio, in seconds
 //@author Author of the audio
-linkPreviewTypeEmbeddedAudioPlayer url:string duration:int32 author:string = LinkPreviewType;
+linkPreviewTypeEmbeddedAudioPlayer url:string thumbnail:photo duration:int32 author:string = LinkPreviewType;
 
 //@description The link is a link to a video player
 //@url URL of the external video player
