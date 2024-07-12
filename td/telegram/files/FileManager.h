@@ -615,7 +615,6 @@ class FileManager final : public Actor {
 
   using FileNodeId = int32;
 
-  using QueryId = FileLoadManager::QueryId;
   class Query {
    public:
     FileId file_id_;
@@ -754,21 +753,23 @@ class FileManager final : public Actor {
   void run_download(FileNodePtr node, bool force_update_priority);
   void run_generate(FileNodePtr node);
 
-  void on_start_download(QueryId query_id);
-  void on_partial_download(QueryId query_id, PartialLocalFileLocation partial_local, int64 ready_size, int64 size);
-  void on_hash(QueryId query_id, string hash);
-  void on_partial_upload(QueryId query_id, PartialRemoteFileLocation partial_remote, int64 ready_size);
-  void on_download_ok(QueryId query_id, FullLocalFileLocation local, int64 size, bool is_new);
-  void on_upload_ok(QueryId query_id, FileType file_type, PartialRemoteFileLocation partial_remote, int64 size);
-  void on_upload_full_ok(QueryId query_id, FullRemoteFileLocation remote);
-  void on_error(QueryId query_id, Status status);
+  void on_start_download(FileLoadManager::QueryId query_id);
+  void on_partial_download(FileLoadManager::QueryId query_id, PartialLocalFileLocation partial_local, int64 ready_size,
+                           int64 size);
+  void on_hash(FileLoadManager::QueryId query_id, string hash);
+  void on_partial_upload(FileLoadManager::QueryId query_id, PartialRemoteFileLocation partial_remote, int64 ready_size);
+  void on_download_ok(FileLoadManager::QueryId query_id, FullLocalFileLocation local, int64 size, bool is_new);
+  void on_upload_ok(FileLoadManager::QueryId query_id, FileType file_type, PartialRemoteFileLocation partial_remote,
+                    int64 size);
+  void on_upload_full_ok(FileLoadManager::QueryId query_id, FullRemoteFileLocation remote);
+  void on_error(FileLoadManager::QueryId query_id, Status status);
 
   void on_error_impl(FileNodePtr node, Query::Type type, bool was_active, Status status);
 
-  void on_partial_generate(QueryId, PartialLocalFileLocation partial_local, int64 expected_size);
-  void on_generate_ok(QueryId, FullLocalFileLocation local);
+  void on_partial_generate(FileLoadManager::QueryId, PartialLocalFileLocation partial_local, int64 expected_size);
+  void on_generate_ok(FileLoadManager::QueryId, FullLocalFileLocation local);
 
-  std::pair<Query, bool> finish_query(QueryId query_id);
+  std::pair<Query, bool> finish_query(FileLoadManager::QueryId query_id);
 
   FullRemoteFileLocation *get_remote(int32 key);
 
