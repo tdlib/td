@@ -17,7 +17,9 @@
 
 namespace td {
 
-FileLoadManager::FileLoadManager(ActorShared<Callback> callback, ActorShared<> parent)
+FileLoadManager::Callback::~Callback() = default;
+
+FileLoadManager::FileLoadManager(unique_ptr<Callback> callback, ActorShared<> parent)
     : callback_(std::move(callback)), parent_(std::move(parent)) {
 }
 
@@ -212,7 +214,7 @@ void FileLoadManager::on_start_download() {
     return;
   }
   if (!stop_flag_) {
-    send_closure(callback_, &Callback::on_start_download, node->query_id_);
+    callback_->on_start_download(node->query_id_);
   }
 }
 
@@ -223,8 +225,7 @@ void FileLoadManager::on_partial_download(PartialLocalFileLocation partial_local
     return;
   }
   if (!stop_flag_) {
-    send_closure(callback_, &Callback::on_partial_download, node->query_id_, std::move(partial_local), ready_size,
-                 size);
+    callback_->on_partial_download(node->query_id_, std::move(partial_local), ready_size, size);
   }
 }
 
@@ -235,7 +236,7 @@ void FileLoadManager::on_hash(string hash) {
     return;
   }
   if (!stop_flag_) {
-    send_closure(callback_, &Callback::on_hash, node->query_id_, std::move(hash));
+    callback_->on_hash(node->query_id_, std::move(hash));
   }
 }
 
@@ -246,7 +247,7 @@ void FileLoadManager::on_partial_upload(PartialRemoteFileLocation partial_remote
     return;
   }
   if (!stop_flag_) {
-    send_closure(callback_, &Callback::on_partial_upload, node->query_id_, std::move(partial_remote), ready_size);
+    callback_->on_partial_upload(node->query_id_, std::move(partial_remote), ready_size);
   }
 }
 
@@ -257,7 +258,7 @@ void FileLoadManager::on_ok_download(FullLocalFileLocation local, int64 size, bo
     return;
   }
   if (!stop_flag_) {
-    send_closure(callback_, &Callback::on_download_ok, node->query_id_, std::move(local), size, is_new);
+    callback_->on_download_ok(node->query_id_, std::move(local), size, is_new);
   }
   close_node(node_id);
   loop();
@@ -270,7 +271,7 @@ void FileLoadManager::on_ok_upload(FileType file_type, PartialRemoteFileLocation
     return;
   }
   if (!stop_flag_) {
-    send_closure(callback_, &Callback::on_upload_ok, node->query_id_, file_type, std::move(remote), size);
+    callback_->on_upload_ok(node->query_id_, file_type, std::move(remote), size);
   }
   close_node(node_id);
   loop();
@@ -283,7 +284,7 @@ void FileLoadManager::on_ok_upload_full(FullRemoteFileLocation remote) {
     return;
   }
   if (!stop_flag_) {
-    send_closure(callback_, &Callback::on_upload_full_ok, node->query_id_, std::move(remote));
+    callback_->on_upload_full_ok(node->query_id_, std::move(remote));
   }
   close_node(node_id);
   loop();
@@ -301,7 +302,7 @@ void FileLoadManager::on_error_impl(NodeId node_id, Status status) {
     return;
   }
   if (!stop_flag_) {
-    send_closure(callback_, &Callback::on_error, node->query_id_, std::move(status));
+    callback_->on_error(node->query_id_, std::move(status));
   }
   close_node(node_id);
   loop();

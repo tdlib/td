@@ -887,7 +887,8 @@ FileManager::FileManager(unique_ptr<Context> context) : context_(std::move(conte
 
 void FileManager::init_actor() {
   file_load_manager_ = create_actor_on_scheduler<FileLoadManager>("FileLoadManager", G()->get_slow_net_scheduler_id(),
-                                                                  actor_shared(this), context_->create_reference());
+                                                                  make_unique<FileLoadManagerCallback>(actor_id(this)),
+                                                                  context_->create_reference());
   file_generate_manager_ = create_actor_on_scheduler<FileGenerateManager>(
       "FileGenerateManager", G()->get_slow_net_scheduler_id(), context_->create_reference());
 }

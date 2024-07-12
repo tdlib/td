@@ -32,8 +32,9 @@ namespace td {
 class FileLoadManager final : public Actor {
  public:
   using QueryId = uint64;
-  class Callback : public Actor {
+  class Callback {
    public:
+    virtual ~Callback();
     virtual void on_start_download(QueryId query_id) = 0;
     virtual void on_partial_download(QueryId query_id, PartialLocalFileLocation partial_local, int64 ready_size,
                                      int64 size) = 0;
@@ -45,7 +46,7 @@ class FileLoadManager final : public Actor {
     virtual void on_error(QueryId query_id, Status status) = 0;
   };
 
-  explicit FileLoadManager(ActorShared<Callback> callback, ActorShared<> parent);
+  explicit FileLoadManager(unique_ptr<Callback> callback, ActorShared<> parent);
 
   void download(QueryId query_id, const FullRemoteFileLocation &remote_location, const LocalFileLocation &local,
                 int64 size, string name, const FileEncryptionKey &encryption_key, bool search_file, int64 offset,
@@ -83,7 +84,7 @@ class FileLoadManager final : public Actor {
   ActorOwn<ResourceManager> upload_resource_manager_;
 
   Container<Node> nodes_container_;
-  ActorShared<Callback> callback_;
+  unique_ptr<Callback> callback_;
   ActorShared<> parent_;
   std::map<QueryId, NodeId> query_id_to_node_id_;
   int64 max_download_resource_limit_ = 1 << 21;

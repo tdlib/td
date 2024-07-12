@@ -376,7 +376,7 @@ class FileView {
   ConstFileNodePtr node_{};
 };
 
-class FileManager final : public FileLoadManager::Callback {
+class FileManager final : public Actor {
  public:
   static constexpr int64 KEEP_DOWNLOAD_LIMIT = -1;
   static constexpr int64 KEEP_DOWNLOAD_OFFSET = -1;
@@ -559,6 +559,50 @@ class FileManager final : public FileLoadManager::Callback {
   FileId parse_file(ParserT &parser);
 
  private:
+  class FileLoadManagerCallback final : public FileLoadManager::Callback {
+   public:
+    explicit FileLoadManagerCallback(ActorId<FileManager> actor_id) : actor_id_(std::move(actor_id)) {
+    }
+
+   private:
+    ActorId<FileManager> actor_id_;
+
+    void on_start_download(FileLoadManager::QueryId query_id) final {
+      send_closure(actor_id_, &FileManager::on_start_download, query_id);
+    }
+
+    void on_partial_download(FileLoadManager::QueryId query_id, PartialLocalFileLocation partial_local,
+                             int64 ready_size, int64 size) final {
+      send_closure(actor_id_, &FileManager::on_partial_download, query_id, std::move(partial_local), ready_size, size);
+    }
+
+    void on_partial_upload(FileLoadManager::QueryId query_id, PartialRemoteFileLocation partial_remote,
+                           int64 ready_size) final {
+      send_closure(actor_id_, &FileManager::on_partial_upload, query_id, std::move(partial_remote), ready_size);
+    }
+
+    void on_hash(FileLoadManager::QueryId query_id, string hash) final {
+      send_closure(actor_id_, &FileManager::on_hash, query_id, std::move(hash));
+    }
+
+    void on_upload_ok(FileLoadManager::QueryId query_id, FileType file_type, PartialRemoteFileLocation remote,
+                      int64 size) final {
+      send_closure(actor_id_, &FileManager::on_upload_ok, query_id, file_type, std::move(remote), size);
+    }
+
+    void on_upload_full_ok(FileLoadManager::QueryId query_id, FullRemoteFileLocation remote) final {
+      send_closure(actor_id_, &FileManager::on_upload_full_ok, query_id, std::move(remote));
+    }
+
+    void on_download_ok(FileLoadManager::QueryId query_id, FullLocalFileLocation local, int64 size, bool is_new) final {
+      send_closure(actor_id_, &FileManager::on_download_ok, query_id, std::move(local), size, is_new);
+    }
+
+    void on_error(FileLoadManager::QueryId query_id, Status status) final {
+      send_closure(actor_id_, &FileManager::on_error, query_id, std::move(status));
+    }
+  };
+
   Result<FileId> check_input_file_id(FileType type, Result<FileId> result, bool is_encrypted, bool allow_zero,
                                      bool is_secure) TD_WARN_UNUSED_RESULT;
 
@@ -710,15 +754,14 @@ class FileManager final : public FileLoadManager::Callback {
   void run_download(FileNodePtr node, bool force_update_priority);
   void run_generate(FileNodePtr node);
 
-  void on_start_download(QueryId query_id) final;
-  void on_partial_download(QueryId query_id, PartialLocalFileLocation partial_local, int64 ready_size,
-                           int64 size) final;
-  void on_hash(QueryId query_id, string hash) final;
-  void on_partial_upload(QueryId query_id, PartialRemoteFileLocation partial_remote, int64 ready_size) final;
-  void on_download_ok(QueryId query_id, FullLocalFileLocation local, int64 size, bool is_new) final;
-  void on_upload_ok(QueryId query_id, FileType file_type, PartialRemoteFileLocation partial_remote, int64 size) final;
-  void on_upload_full_ok(QueryId query_id, FullRemoteFileLocation remote) final;
-  void on_error(QueryId query_id, Status status) final;
+  void on_start_download(QueryId query_id);
+  void on_partial_download(QueryId query_id, PartialLocalFileLocation partial_local, int64 ready_size, int64 size);
+  void on_hash(QueryId query_id, string hash);
+  void on_partial_upload(QueryId query_id, PartialRemoteFileLocation partial_remote, int64 ready_size);
+  void on_download_ok(QueryId query_id, FullLocalFileLocation local, int64 size, bool is_new);
+  void on_upload_ok(QueryId query_id, FileType file_type, PartialRemoteFileLocation partial_remote, int64 size);
+  void on_upload_full_ok(QueryId query_id, FullRemoteFileLocation remote);
+  void on_error(QueryId query_id, Status status);
 
   void on_error_impl(FileNodePtr node, Query::Type type, bool was_active, Status status);
 
