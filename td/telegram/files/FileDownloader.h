@@ -22,6 +22,7 @@
 #include <utility>
 
 namespace td {
+
 class FileDownloader final : public FileLoader {
  public:
   class Callback {
@@ -87,8 +88,7 @@ class FileDownloader final : public FileLoader {
   Status on_ok(int64 size) final TD_WARN_UNUSED_RESULT;
   void on_error(Status status) final;
   Result<bool> should_restart_part(Part part, const NetQueryPtr &net_query) final TD_WARN_UNUSED_RESULT;
-  Result<std::pair<NetQueryPtr, bool>> start_part(Part part, int32 part_count,
-                                                  int64 streaming_offset) final TD_WARN_UNUSED_RESULT;
+  Result<NetQueryPtr> start_part(Part part, int32 part_count, int64 streaming_offset) final TD_WARN_UNUSED_RESULT;
   Result<size_t> process_part(Part part, NetQueryPtr net_query) final TD_WARN_UNUSED_RESULT;
   void on_progress(Progress progress) final;
   Status process_check_query(NetQueryPtr net_query) final;
@@ -102,4 +102,5 @@ class FileDownloader final : public FileLoader {
 
   Status check_net_query(NetQueryPtr &net_query);
 };
+
 }  // namespace td

@@ -67,8 +67,7 @@ class FileUploader final : public FileLoader {
   void on_error(Status status) final;
   Status before_start_parts() final;
   void after_start_parts() final;
-  Result<std::pair<NetQueryPtr, bool>> start_part(Part part, int32 part_count,
-                                                  int64 streaming_offset) final TD_WARN_UNUSED_RESULT;
+  Result<NetQueryPtr> start_part(Part part, int32 part_count, int64 streaming_offset) final TD_WARN_UNUSED_RESULT;
   Result<size_t> process_part(Part part, NetQueryPtr net_query) final TD_WARN_UNUSED_RESULT;
   void on_progress(Progress progress) final;
   Result<PrefixInfo> on_update_local_location(const LocalFileLocation &location,

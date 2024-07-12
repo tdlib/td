@@ -18,7 +18,6 @@
 #include "td/utils/as.h"
 #include "td/utils/base64.h"
 #include "td/utils/buffer.h"
-#include "td/utils/common.h"
 #include "td/utils/crypto.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
@@ -223,7 +222,7 @@ Result<bool> FileDownloader::should_restart_part(Part part, const NetQueryPtr &n
   return false;
 }
 
-Result<std::pair<NetQueryPtr, bool>> FileDownloader::start_part(Part part, int32 part_count, int64 streaming_offset) {
+Result<NetQueryPtr> FileDownloader::start_part(Part part, int32 part_count, int64 streaming_offset) {
   if (encryption_key_.is_secret()) {
     part.size = (part.size + 15) & ~15;  // fix for last part
   }
@@ -282,7 +281,7 @@ Result<std::pair<NetQueryPtr, bool>> FileDownloader::start_part(Part part, int32
     }
   }
   net_query->file_type_ = narrow_cast<int32>(remote_.file_type_);
-  return std::make_pair(std::move(net_query), false);
+  return std::move(net_query);
 }
 
 Status FileDownloader::check_net_query(NetQueryPtr &net_query) {

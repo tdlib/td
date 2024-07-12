@@ -7,7 +7,6 @@
 #include "td/telegram/files/FileLoader.h"
 
 #include "td/telegram/files/FileLoaderUtils.h"
-#include "td/telegram/files/ResourceManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/UniqueId.h"
@@ -17,8 +16,6 @@
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/ScopeGuard.h"
-
-#include <tuple>
 
 namespace td {
 
@@ -192,9 +189,6 @@ Status FileLoader::do_loop() {
     after_start_parts();
   };
   while (true) {
-    if (blocking_id_ != 0) {
-      break;
-    }
     if (resource_state_.unused() < narrow_cast<int64>(parts_manager_.get_part_size())) {
       VLOG(file_loader) << "Receive only " << resource_state_.unused() << " resource";
       break;
@@ -206,15 +200,8 @@ Status FileLoader::do_loop() {
     VLOG(file_loader) << "Start part " << tag("id", part.id) << tag("size", part.size);
     resource_state_.start_use(static_cast<int64>(part.size));
 
-    TRY_RESULT(query_flag, start_part(part, parts_manager_.get_part_count(), parts_manager_.get_streaming_offset()));
-    NetQueryPtr query;
-    bool is_blocking;
-    std::tie(query, is_blocking) = std::move(query_flag);
+    TRY_RESULT(query, start_part(part, parts_manager_.get_part_count(), parts_manager_.get_streaming_offset()));
     uint64 unique_id = UniqueId::next();
-    if (is_blocking) {
-      CHECK(blocking_id_ == 0);
-      blocking_id_ = unique_id;
-    }
     part_map_[unique_id] = std::make_pair(part, query->cancel_slot_.get_signal_new());
     // part_map_[unique_id] = std::make_pair(part, query.get_weak());
 
@@ -259,9 +246,6 @@ void FileLoader::on_result(NetQueryPtr query) {
     return;
   }
   auto unique_id = get_link_token();
-  if (unique_id == blocking_id_) {
-    blocking_id_ = 0;
-  }
   if (UniqueId::extract_key(unique_id) == COMMON_QUERY_KEY) {
     on_common_query(std::move(query));
     return loop();

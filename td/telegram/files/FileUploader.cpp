@@ -14,7 +14,6 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/buffer.h"
-#include "td/utils/common.h"
 #include "td/utils/crypto.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
@@ -249,7 +248,7 @@ void FileUploader::after_start_parts() {
   try_release_fd();
 }
 
-Result<std::pair<NetQueryPtr, bool>> FileUploader::start_part(Part part, int32 part_count, int64 streaming_offset) {
+Result<NetQueryPtr> FileUploader::start_part(Part part, int32 part_count, int64 streaming_offset) {
   auto padded_size = part.size;
   if (encryption_key_.is_secret()) {
     padded_size = (padded_size + 15) & ~15;
@@ -287,7 +286,7 @@ Result<std::pair<NetQueryPtr, bool>> FileUploader::start_part(Part part, int32 p
     net_query = G()->net_query_creator().create(query, {}, DcId::main(), NetQuery::Type::Upload);
   }
   net_query->file_type_ = narrow_cast<int32>(file_type_);
-  return std::make_pair(std::move(net_query), false);
+  return std::move(net_query);
 }
 
 Result<size_t> FileUploader::process_part(Part part, NetQueryPtr net_query) {
