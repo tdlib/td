@@ -110,34 +110,29 @@ Result<FileLoader::PrefixInfo> FileUploader::on_update_local_location(const Loca
 
   string path;
   int64 local_size = -1;
-  bool local_is_ready{false};
-  FileType file_type{FileType::Temp};
+  bool local_is_ready = false;
   if (location.type() == LocalFileLocation::Type::Empty ||
       (location.type() == LocalFileLocation::Type::Partial && encryption_key_.is_secure())) {
     path = "";
     local_size = 0;
-    local_is_ready = false;
-    file_type = FileType::Temp;
+    file_type_ = FileType::Temp;
   } else if (location.type() == LocalFileLocation::Type::Partial) {
     path = location.partial().path_;
     local_size = Bitmask(Bitmask::Decode{}, location.partial().ready_bitmask_)
                      .get_ready_prefix_size(0, location.partial().part_size_, file_size);
-    local_is_ready = false;
-    file_type = location.partial().file_type_;
+    file_type_ = location.partial().file_type_;
   } else {
     path = location.full().path_;
     if (path.empty()) {
       return Status::Error("FullLocalFileLocation with empty path");
     }
     local_is_ready = true;
-    file_type = location.full().file_type_;
+    file_type_ = location.full().file_type_;
   }
 
   LOG(INFO) << "In FileUploader::on_update_local_location with " << location << ". Have path = \"" << path
             << "\", local_size = " << local_size << ", local_is_ready = " << local_is_ready
-            << " and file type = " << file_type;
-
-  file_type_ = file_type;
+            << " and file type = " << file_type_;
 
   bool is_temp = false;
   if (encryption_key_.is_secure() && local_is_ready && remote_.type() == RemoteFileLocation::Type::Empty) {
