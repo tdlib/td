@@ -44,7 +44,6 @@ class FileDownloader final : public FileLoader {
   // Must not call any of them...
  private:
   enum class QueryType : uint8 { Default = 1, CDN, ReuploadCDN };
-  ResourceState resource_state_;
   FullRemoteFileLocation remote_;
   LocalFileLocation local_;
   int64 size_;

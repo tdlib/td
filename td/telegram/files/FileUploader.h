@@ -40,7 +40,6 @@ class FileUploader final : public FileLoader {
   // Should just implement all parent pure virtual methods.
   // Must not call any of them...
  private:
-  ResourceState resource_state_;
   LocalFileLocation local_;
   RemoteFileLocation remote_;
   int64 expected_size_;
