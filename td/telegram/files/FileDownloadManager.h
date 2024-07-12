@@ -19,7 +19,6 @@
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/Container.h"
-#include "td/utils/Promise.h"
 #include "td/utils/Status.h"
 
 #include <map>
@@ -42,7 +41,7 @@ class FileDownloadManager final : public Actor {
   explicit FileDownloadManager(unique_ptr<Callback> callback, ActorShared<> parent);
 
   void download(QueryId query_id, const FullRemoteFileLocation &remote_location, const LocalFileLocation &local,
-                int64 size, string name, const FileEncryptionKey &encryption_key, bool search_file, int64 offset,
+                int64 size, string name, const FileEncryptionKey &encryption_key, bool need_search_file, int64 offset,
                 int64 limit, int8 priority);
 
   void update_priority(QueryId query_id, int8 priority);

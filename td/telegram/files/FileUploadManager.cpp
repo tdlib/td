@@ -9,7 +9,6 @@
 #include "td/telegram/Global.h"
 
 #include "td/utils/common.h"
-#include "td/utils/SliceBuilder.h"
 
 namespace td {
 

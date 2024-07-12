@@ -38,9 +38,9 @@ ActorOwn<ResourceManager> &FileDownloadManager::get_download_resource_manager(bo
 }
 
 void FileDownloadManager::download(QueryId query_id, const FullRemoteFileLocation &remote_location,
-                               const LocalFileLocation &local, int64 size, string name,
-                               const FileEncryptionKey &encryption_key, bool search_file, int64 offset, int64 limit,
-                               int8 priority) {
+                                   const LocalFileLocation &local, int64 size, string name,
+                                   const FileEncryptionKey &encryption_key, bool need_search_file, int64 offset,
+                                   int64 limit, int8 priority) {
   if (stop_flag_) {
     return;
   }
@@ -52,7 +52,7 @@ void FileDownloadManager::download(QueryId query_id, const FullRemoteFileLocatio
   bool is_small = size < 20 * 1024;
   node->loader_ =
       create_actor<FileDownloader>("Downloader", remote_location, local, size, std::move(name), encryption_key,
-                                   is_small, search_file, offset, limit, std::move(callback));
+                                   is_small, need_search_file, offset, limit, std::move(callback));
   DcId dc_id = remote_location.is_web() ? G()->get_webfile_dc_id() : remote_location.get_dc_id();
   auto &resource_manager = get_download_resource_manager(is_small, dc_id);
   send_closure(resource_manager, &ResourceManager::register_worker,
