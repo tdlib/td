@@ -28,6 +28,7 @@ namespace td {
 class FileDownloadManager final : public Actor {
  public:
   using QueryId = uint64;
+
   class Callback {
    public:
     virtual ~Callback();

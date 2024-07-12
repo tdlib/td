@@ -2925,18 +2925,19 @@ void FileManager::delete_file_reference(FileId file_id, Slice file_reference) {
 
 void FileManager::external_file_generate_write_part(int64 generation_id, int64 offset, string data, Promise<> promise) {
   send_closure(file_generate_manager_, &FileGenerateManager::external_file_generate_write_part,
-               static_cast<uint64>(generation_id), offset, std::move(data), std::move(promise));
+               static_cast<FileGenerateManager::QueryId>(generation_id), offset, std::move(data), std::move(promise));
 }
 
 void FileManager::external_file_generate_progress(int64 generation_id, int64 expected_size, int64 local_prefix_size,
                                                   Promise<> promise) {
   send_closure(file_generate_manager_, &FileGenerateManager::external_file_generate_progress,
-               static_cast<uint64>(generation_id), expected_size, local_prefix_size, std::move(promise));
+               static_cast<FileGenerateManager::QueryId>(generation_id), expected_size, local_prefix_size,
+               std::move(promise));
 }
 
 void FileManager::external_file_generate_finish(int64 generation_id, Status status, Promise<> promise) {
   send_closure(file_generate_manager_, &FileGenerateManager::external_file_generate_finish,
-               static_cast<uint64>(generation_id), std::move(status), std::move(promise));
+               static_cast<FileGenerateManager::QueryId>(generation_id), std::move(status), std::move(promise));
 }
 
 void FileManager::run_generate(FileNodePtr node) {
@@ -2993,7 +2994,7 @@ void FileManager::run_generate(FileNodePtr node) {
     return;
   }
 
-  FileDownloadManager::QueryId query_id = queries_container_.create(Query{file_id, Query::Type::Generate});
+  FileGenerateManager::QueryId query_id = queries_container_.create(Query{file_id, Query::Type::Generate});
   node->generate_id_ = query_id;
   send_closure(file_generate_manager_, &FileGenerateManager::generate_file, query_id, *node->generate_, node->local_,
                node->suggested_path(), [file_manager = this, query_id] {
@@ -3002,7 +3003,7 @@ void FileManager::run_generate(FileNodePtr node) {
                    uint64 query_id_;
 
                   public:
-                   Callback(ActorId<FileManager> actor, FileDownloadManager::QueryId query_id)
+                   Callback(ActorId<FileManager> actor, FileGenerateManager::QueryId query_id)
                        : actor_(std::move(actor)), query_id_(query_id) {
                    }
                    void on_partial_generate(PartialLocalFileLocation partial_local, int64 expected_size) final {
@@ -3013,7 +3014,7 @@ void FileManager::run_generate(FileNodePtr node) {
                      send_closure(actor_, &FileManager::on_generate_ok, query_id_, std::move(local));
                    }
                    void on_error(Status error) final {
-                     send_closure(actor_, &FileManager::on_download_error, query_id_, std::move(error));
+                     send_closure(actor_, &FileManager::on_generate_error, query_id_, std::move(error));
                    }
                  };
                  return make_unique<Callback>(file_manager->actor_id(file_manager), query_id);
@@ -3963,7 +3964,7 @@ void FileManager::on_upload_full_ok(FileUploadManager::QueryId query_id, FullRem
   LOG_STATUS(merge(new_file_id, file_id));
 }
 
-void FileManager::on_partial_generate(FileDownloadManager::QueryId query_id, PartialLocalFileLocation partial_local,
+void FileManager::on_partial_generate(FileGenerateManager::QueryId query_id, PartialLocalFileLocation partial_local,
                                       int64 expected_size) {
   if (is_closed_) {
     return;
@@ -4000,7 +4001,7 @@ void FileManager::on_partial_generate(FileDownloadManager::QueryId query_id, Par
   try_flush_node(file_node, "on_partial_generate");
 }
 
-void FileManager::on_generate_ok(FileDownloadManager::QueryId query_id, FullLocalFileLocation local) {
+void FileManager::on_generate_ok(FileGenerateManager::QueryId query_id, FullLocalFileLocation local) {
   if (is_closed_) {
     return;
   }
@@ -4045,6 +4046,22 @@ void FileManager::on_generate_ok(FileDownloadManager::QueryId query_id, FullLoca
 }
 
 void FileManager::on_download_error(FileDownloadManager::QueryId query_id, Status status) {
+  if (is_closed_) {
+    return;
+  }
+
+  Query query;
+  bool was_active;
+  std::tie(query, was_active) = finish_query(static_cast<Container<Query>::Id>(query_id));
+  auto node = get_file_node(query.file_id_);
+  if (!node) {
+    LOG(ERROR) << "Can't find file node for " << query.file_id_ << " " << status;
+    return;
+  }
+  on_error_impl(node, query.type_, was_active, std::move(status));
+}
+
+void FileManager::on_generate_error(FileGenerateManager::QueryId query_id, Status status) {
   if (is_closed_) {
     return;
   }

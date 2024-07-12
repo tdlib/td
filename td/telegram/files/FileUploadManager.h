@@ -26,6 +26,7 @@ namespace td {
 class FileUploadManager final : public Actor {
  public:
   using QueryId = uint64;
+
   class Callback {
    public:
     virtual ~Callback();

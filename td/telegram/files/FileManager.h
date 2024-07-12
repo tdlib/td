@@ -147,7 +147,7 @@ class FileNode {
   FileDownloadManager::QueryId download_id_ = 0;
 
   unique_ptr<FullGenerateFileLocation> generate_;
-  FileDownloadManager::QueryId generate_id_ = 0;
+  FileGenerateManager::QueryId generate_id_ = 0;
 
   int64 size_ = 0;
   int64 expected_size_ = 0;
@@ -786,8 +786,9 @@ class FileManager final : public Actor {
 
   void on_error_impl(FileNodePtr node, Query::Type type, bool was_active, Status status);
 
-  void on_partial_generate(FileDownloadManager::QueryId, PartialLocalFileLocation partial_local, int64 expected_size);
-  void on_generate_ok(FileDownloadManager::QueryId, FullLocalFileLocation local);
+  void on_partial_generate(FileGenerateManager::QueryId, PartialLocalFileLocation partial_local, int64 expected_size);
+  void on_generate_ok(FileGenerateManager::QueryId, FullLocalFileLocation local);
+  void on_generate_error(FileGenerateManager::QueryId query_id, Status status);
 
   std::pair<Query, bool> finish_query(Container<Query>::Id query_id);
 
