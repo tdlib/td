@@ -8,6 +8,7 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileDbId.h"
+#include "td/telegram/files/FileDownloadManager.h"
 #include "td/telegram/files/FileEncryptionKey.h"
 #include "td/telegram/files/FileGenerateManager.h"
 #include "td/telegram/files/FileId.h"
@@ -143,10 +144,10 @@ class FileNode {
 
   NewRemoteFileLocation remote_;
 
-  FileLoadManager::QueryId download_id_ = 0;
+  FileDownloadManager::QueryId download_id_ = 0;
 
   unique_ptr<FullGenerateFileLocation> generate_;
-  FileLoadManager::QueryId generate_id_ = 0;
+  FileDownloadManager::QueryId generate_id_ = 0;
 
   int64 size_ = 0;
   int64 expected_size_ = 0;
@@ -560,28 +561,29 @@ class FileManager final : public Actor {
   FileId parse_file(ParserT &parser);
 
  private:
-  class FileLoadManagerCallback final : public FileLoadManager::Callback {
+  class FileDownloadManagerCallback final : public FileDownloadManager::Callback {
    public:
-    explicit FileLoadManagerCallback(ActorId<FileManager> actor_id) : actor_id_(std::move(actor_id)) {
+    explicit FileDownloadManagerCallback(ActorId<FileManager> actor_id) : actor_id_(std::move(actor_id)) {
     }
 
    private:
     ActorId<FileManager> actor_id_;
 
-    void on_start_download(FileLoadManager::QueryId query_id) final {
+    void on_start_download(FileDownloadManager::QueryId query_id) final {
       send_closure(actor_id_, &FileManager::on_start_download, query_id);
     }
 
-    void on_partial_download(FileLoadManager::QueryId query_id, PartialLocalFileLocation partial_local,
+    void on_partial_download(FileDownloadManager::QueryId query_id, PartialLocalFileLocation partial_local,
                              int64 ready_size, int64 size) final {
       send_closure(actor_id_, &FileManager::on_partial_download, query_id, std::move(partial_local), ready_size, size);
     }
 
-    void on_download_ok(FileLoadManager::QueryId query_id, FullLocalFileLocation local, int64 size, bool is_new) final {
+    void on_download_ok(FileDownloadManager::QueryId query_id, FullLocalFileLocation local, int64 size,
+                        bool is_new) final {
       send_closure(actor_id_, &FileManager::on_download_ok, query_id, std::move(local), size, is_new);
     }
 
-    void on_error(FileLoadManager::QueryId query_id, Status status) final {
+    void on_error(FileDownloadManager::QueryId query_id, Status status) final {
       send_closure(actor_id_, &FileManager::on_download_error, query_id, std::move(status));
     }
   };
@@ -692,6 +694,7 @@ class FileManager final : public Actor {
   WaitFreeVector<FileIdInfo> file_id_info_;
   WaitFreeVector<int32> empty_file_ids_;
   WaitFreeVector<unique_ptr<FileNode>> file_nodes_;
+  ActorOwn<FileDownloadManager> file_download_manager_;
   ActorOwn<FileLoadManager> file_load_manager_;
   ActorOwn<FileUploadManager> file_upload_manager_;
   ActorOwn<FileGenerateManager> file_generate_manager_;
@@ -767,11 +770,11 @@ class FileManager final : public Actor {
   void run_download(FileNodePtr node, bool force_update_priority);
   void run_generate(FileNodePtr node);
 
-  void on_start_download(FileLoadManager::QueryId query_id);
-  void on_partial_download(FileLoadManager::QueryId query_id, PartialLocalFileLocation partial_local, int64 ready_size,
-                           int64 size);
-  void on_download_ok(FileLoadManager::QueryId query_id, FullLocalFileLocation local, int64 size, bool is_new);
-  void on_download_error(FileLoadManager::QueryId query_id, Status status);
+  void on_start_download(FileDownloadManager::QueryId query_id);
+  void on_partial_download(FileDownloadManager::QueryId query_id, PartialLocalFileLocation partial_local,
+                           int64 ready_size, int64 size);
+  void on_download_ok(FileDownloadManager::QueryId query_id, FullLocalFileLocation local, int64 size, bool is_new);
+  void on_download_error(FileDownloadManager::QueryId query_id, Status status);
 
   void on_hash(FileUploadManager::QueryId query_id, string hash);
   void on_partial_upload(FileUploadManager::QueryId query_id, PartialRemoteFileLocation partial_remote,
@@ -783,8 +786,8 @@ class FileManager final : public Actor {
 
   void on_error_impl(FileNodePtr node, Query::Type type, bool was_active, Status status);
 
-  void on_partial_generate(FileLoadManager::QueryId, PartialLocalFileLocation partial_local, int64 expected_size);
-  void on_generate_ok(FileLoadManager::QueryId, FullLocalFileLocation local);
+  void on_partial_generate(FileDownloadManager::QueryId, PartialLocalFileLocation partial_local, int64 expected_size);
+  void on_generate_ok(FileDownloadManager::QueryId, FullLocalFileLocation local);
 
   std::pair<Query, bool> finish_query(Container<Query>::Id query_id);
 

@@ -886,9 +886,10 @@ FileManager::FileManager(unique_ptr<Context> context) : context_(std::move(conte
 }
 
 void FileManager::init_actor() {
-  file_load_manager_ = create_actor_on_scheduler<FileLoadManager>("FileLoadManager", G()->get_slow_net_scheduler_id(),
-                                                                  make_unique<FileLoadManagerCallback>(actor_id(this)),
-                                                                  context_->create_reference());
+  file_download_manager_ = create_actor_on_scheduler<FileDownloadManager>(
+      "FileDownloadManager", G()->get_slow_net_scheduler_id(), make_unique<FileDownloadManagerCallback>(actor_id(this)),
+      context_->create_reference());
+  file_load_manager_ = create_actor_on_scheduler<FileLoadManager>("FileLoadManager", G()->get_slow_net_scheduler_id());
   file_upload_manager_ = create_actor_on_scheduler<FileUploadManager>(
       "FileUploadManager", G()->get_slow_net_scheduler_id(), make_unique<FileUploadManagerCallback>(actor_id(this)),
       context_->create_reference());
@@ -1600,7 +1601,7 @@ void FileManager::do_cancel_download(FileNodePtr node) {
   if (node->download_id_ == 0) {
     return;
   }
-  send_closure(file_load_manager_, &FileLoadManager::cancel, node->download_id_);
+  send_closure(file_download_manager_, &FileDownloadManager::cancel, node->download_id_);
   node->download_id_ = 0;
   node->is_download_started_ = false;
   node->download_was_update_file_reference_ = false;
@@ -2246,11 +2247,11 @@ bool FileManager::set_content(FileId file_id, BufferSlice bytes) {
 
   node->set_download_priority(FROM_BYTES_PRIORITY);
 
-  FileLoadManager::QueryId query_id = queries_container_.create(Query{file_id, Query::Type::SetContent});
+  FileDownloadManager::QueryId query_id = queries_container_.create(Query{file_id, Query::Type::SetContent});
   node->download_id_ = query_id;
   node->is_download_started_ = true;
-  send_closure(file_load_manager_, &FileLoadManager::from_bytes, query_id, node->remote_.full.value().file_type_,
-               std::move(bytes), node->suggested_path());
+  send_closure(file_download_manager_, &FileDownloadManager::from_bytes, query_id,
+               node->remote_.full.value().file_type_, std::move(bytes), node->suggested_path());
   return true;
 }
 
@@ -2532,7 +2533,7 @@ void FileManager::run_download(FileNodePtr node, bool force_update_priority) {
     LOG(INFO) << "Update download offset and limits of file " << node->main_file_id_;
     CHECK(node->download_id_ != 0);
     if (force_update_priority || priority != old_priority) {
-      send_closure(file_load_manager_, &FileLoadManager::update_priority, node->download_id_, priority);
+      send_closure(file_download_manager_, &FileDownloadManager::update_priority, node->download_id_, priority);
     }
     if (need_update_limit || need_update_offset) {
       auto download_offset = node->download_offset_;
@@ -2543,8 +2544,8 @@ void FileManager::run_download(FileNodePtr node, bool force_update_priority) {
         download_limit += download_offset;
         download_offset = 0;
       }
-      send_closure(file_load_manager_, &FileLoadManager::update_downloaded_part, node->download_id_, download_offset,
-                   download_limit);
+      send_closure(file_download_manager_, &FileDownloadManager::update_downloaded_part, node->download_id_,
+                   download_offset, download_limit);
     }
     return;
   }
@@ -2555,7 +2556,8 @@ void FileManager::run_download(FileNodePtr node, bool force_update_priority) {
 
   if (node->need_reload_photo_ && file_view.may_reload_photo()) {
     LOG(INFO) << "Reload photo from file " << node->main_file_id_;
-    FileLoadManager::QueryId query_id = queries_container_.create(Query{file_id, Query::Type::DownloadReloadDialog});
+    FileDownloadManager::QueryId query_id =
+        queries_container_.create(Query{file_id, Query::Type::DownloadReloadDialog});
     node->download_id_ = query_id;
     context_->reload_photo(file_view.remote_location().get_source(),
                            PromiseCreator::lambda([actor_id = actor_id(this), query_id, file_id](Result<Unit> res) {
@@ -2576,7 +2578,7 @@ void FileManager::run_download(FileNodePtr node, bool force_update_priority) {
   // If file reference is needed
   if (!file_view.has_active_download_remote_location()) {
     VLOG(file_references) << "Do not have valid file_reference for file " << file_id;
-    FileLoadManager::QueryId query_id =
+    FileDownloadManager::QueryId query_id =
         queries_container_.create(Query{file_id, Query::Type::DownloadWaitFileReference});
     node->download_id_ = query_id;
     if (node->download_was_update_file_reference_) {
@@ -2598,7 +2600,7 @@ void FileManager::run_download(FileNodePtr node, bool force_update_priority) {
     return;
   }
 
-  FileLoadManager::QueryId query_id = queries_container_.create(Query{file_id, Query::Type::Download});
+  FileDownloadManager::QueryId query_id = queries_container_.create(Query{file_id, Query::Type::Download});
   node->download_id_ = query_id;
   node->is_download_started_ = false;
   LOG(INFO) << "Run download of file " << file_id << " of size " << node->size_ << " from "
@@ -2612,9 +2614,9 @@ void FileManager::run_download(FileNodePtr node, bool force_update_priority) {
     download_limit += download_offset;
     download_offset = 0;
   }
-  send_closure(file_load_manager_, &FileLoadManager::download, query_id, node->remote_.full.value(), node->local_,
-               node->size_, node->suggested_path(), node->encryption_key_, node->can_search_locally_, download_offset,
-               download_limit, priority);
+  send_closure(file_download_manager_, &FileDownloadManager::download, query_id, node->remote_.full.value(),
+               node->local_, node->size_, node->suggested_path(), node->encryption_key_, node->can_search_locally_,
+               download_offset, download_limit, priority);
 }
 
 class FileManager::ForceUploadActor final : public Actor {
@@ -2991,7 +2993,7 @@ void FileManager::run_generate(FileNodePtr node) {
     return;
   }
 
-  FileLoadManager::QueryId query_id = queries_container_.create(Query{file_id, Query::Type::Generate});
+  FileDownloadManager::QueryId query_id = queries_container_.create(Query{file_id, Query::Type::Generate});
   node->generate_id_ = query_id;
   send_closure(file_generate_manager_, &FileGenerateManager::generate_file, query_id, *node->generate_, node->local_,
                node->suggested_path(), [file_manager = this, query_id] {
@@ -3000,7 +3002,7 @@ void FileManager::run_generate(FileNodePtr node) {
                    uint64 query_id_;
 
                   public:
-                   Callback(ActorId<FileManager> actor, FileLoadManager::QueryId query_id)
+                   Callback(ActorId<FileManager> actor, FileDownloadManager::QueryId query_id)
                        : actor_(std::move(actor)), query_id_(query_id) {
                    }
                    void on_partial_generate(PartialLocalFileLocation partial_local, int64 expected_size) final {
@@ -3744,7 +3746,7 @@ FileManager::FileNodeId FileManager::next_file_node_id() {
   return res;
 }
 
-void FileManager::on_start_download(FileLoadManager::QueryId query_id) {
+void FileManager::on_start_download(FileDownloadManager::QueryId query_id) {
   if (is_closed_) {
     return;
   }
@@ -3766,7 +3768,7 @@ void FileManager::on_start_download(FileLoadManager::QueryId query_id) {
   file_node->is_download_started_ = true;
 }
 
-void FileManager::on_partial_download(FileLoadManager::QueryId query_id, PartialLocalFileLocation partial_local,
+void FileManager::on_partial_download(FileDownloadManager::QueryId query_id, PartialLocalFileLocation partial_local,
                                       int64 ready_size, int64 size) {
   if (is_closed_) {
     return;
@@ -3796,7 +3798,7 @@ void FileManager::on_partial_download(FileLoadManager::QueryId query_id, Partial
   try_flush_node(file_node, "on_partial_download");
 }
 
-void FileManager::on_hash(FileLoadManager::QueryId query_id, string hash) {
+void FileManager::on_hash(FileUploadManager::QueryId query_id, string hash) {
   if (is_closed_) {
     return;
   }
@@ -3845,7 +3847,7 @@ void FileManager::on_partial_upload(FileUploadManager::QueryId query_id, Partial
   try_flush_node(file_node, "on_partial_upload");
 }
 
-void FileManager::on_download_ok(FileLoadManager::QueryId query_id, FullLocalFileLocation local, int64 size,
+void FileManager::on_download_ok(FileDownloadManager::QueryId query_id, FullLocalFileLocation local, int64 size,
                                  bool is_new) {
   if (is_closed_) {
     return;
@@ -3961,7 +3963,7 @@ void FileManager::on_upload_full_ok(FileUploadManager::QueryId query_id, FullRem
   LOG_STATUS(merge(new_file_id, file_id));
 }
 
-void FileManager::on_partial_generate(FileLoadManager::QueryId query_id, PartialLocalFileLocation partial_local,
+void FileManager::on_partial_generate(FileDownloadManager::QueryId query_id, PartialLocalFileLocation partial_local,
                                       int64 expected_size) {
   if (is_closed_) {
     return;
@@ -3998,7 +4000,7 @@ void FileManager::on_partial_generate(FileLoadManager::QueryId query_id, Partial
   try_flush_node(file_node, "on_partial_generate");
 }
 
-void FileManager::on_generate_ok(FileLoadManager::QueryId query_id, FullLocalFileLocation local) {
+void FileManager::on_generate_ok(FileDownloadManager::QueryId query_id, FullLocalFileLocation local) {
   if (is_closed_) {
     return;
   }
@@ -4042,7 +4044,7 @@ void FileManager::on_generate_ok(FileLoadManager::QueryId query_id, FullLocalFil
   }
 }
 
-void FileManager::on_download_error(FileLoadManager::QueryId query_id, Status status) {
+void FileManager::on_download_error(FileDownloadManager::QueryId query_id, Status status) {
   if (is_closed_) {
     return;
   }
@@ -4283,7 +4285,7 @@ Result<string> FileManager::get_suggested_file_name(FileId file_id, const string
 void FileManager::hangup() {
   file_db_.reset();
   file_generate_manager_.reset();
-  file_load_manager_.reset();
+  file_download_manager_.reset();
   file_upload_manager_.reset();
   while (!queries_container_.empty()) {
     auto query_ids = queries_container_.ids();
