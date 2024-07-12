@@ -22,12 +22,16 @@ namespace td {
 
 class FileUploader final : public FileLoader {
  public:
-  class Callback : public FileLoader::Callback {
+  class Callback {
    public:
+    Callback() = default;
+    Callback(const Callback &) = delete;
+    Callback &operator=(const Callback &) = delete;
     virtual void on_hash(string hash) = 0;
     virtual void on_partial_upload(PartialRemoteFileLocation partial_remote, int64 ready_size) = 0;
     virtual void on_ok(FileType file_type, PartialRemoteFileLocation partial_remote, int64 size) = 0;
     virtual void on_error(Status status) = 0;
+    virtual ~Callback() = default;
   };
 
   FileUploader(const LocalFileLocation &local, const RemoteFileLocation &remote, int64 expected_size,

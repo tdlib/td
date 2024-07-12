@@ -27,13 +27,6 @@ namespace td {
 
 class FileLoader : public FileLoaderActor {
  public:
-  class Callback {
-   public:
-    Callback() = default;
-    Callback(const Callback &) = delete;
-    Callback &operator=(const Callback &) = delete;
-    virtual ~Callback() = default;
-  };
   void set_resource_manager(ActorShared<ResourceManager> resource_manager) final;
   void update_priority(int8 priority) final;
   void update_resources(const ResourceState &other) final;
