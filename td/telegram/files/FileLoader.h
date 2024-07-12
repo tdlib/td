@@ -31,17 +31,14 @@ class FileLoader : public FileLoaderActor {
   void update_priority(int8 priority) final;
   void update_resources(const ResourceState &other) final;
 
-  void update_local_file_location(const LocalFileLocation &local) final;
+  void update_local_file_location(const LocalFileLocation &local) final {
+  }
   void update_downloaded_part(int64 offset, int64 limit, int64 max_resource_limit) final;
 
  protected:
   void set_ordered_flag(bool flag);
   size_t get_part_size() const;
 
-  struct PrefixInfo {
-    int64 size = -1;
-    bool is_ready = false;
-  };
   struct FileInfo {
     int64 size{0};
     int64 expected_size{0};
@@ -75,10 +72,7 @@ class FileLoader : public FileLoaderActor {
     int64 size{0};
   };
   virtual void on_progress(Progress progress) = 0;
-  virtual Result<PrefixInfo> on_update_local_location(const LocalFileLocation &location,
-                                                      int64 file_size) TD_WARN_UNUSED_RESULT {
-    return Status::Error("Unsupported");
-  }
+
   virtual Result<bool> should_restart_part(Part part, const NetQueryPtr &net_query) TD_WARN_UNUSED_RESULT {
     return false;
   }

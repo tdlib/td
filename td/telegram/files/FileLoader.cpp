@@ -11,7 +11,6 @@
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/UniqueId.h"
 
-#include "td/utils/common.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -50,23 +49,6 @@ void FileLoader::hangup_shared() {
   if (get_link_token() == 1) {
     stop();
   }
-}
-
-void FileLoader::update_local_file_location(const LocalFileLocation &local) {
-  auto r_prefix_info = on_update_local_location(local, parts_manager_.get_size_or_zero());
-  if (r_prefix_info.is_error()) {
-    on_error(r_prefix_info.move_as_error());
-    stop_flag_ = true;
-    return;
-  }
-  auto prefix_info = r_prefix_info.move_as_ok();
-  auto status = parts_manager_.set_known_prefix(prefix_info.size, prefix_info.is_ready);
-  if (status.is_error()) {
-    on_error(std::move(status));
-    stop_flag_ = true;
-    return;
-  }
-  loop();
 }
 
 void FileLoader::update_downloaded_part(int64 offset, int64 limit, int64 max_resource_limit) {
