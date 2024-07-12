@@ -4254,7 +4254,7 @@ void Td::on_request(uint64 id, const td_api::getCurrentState &request) {
   send_result(id, td_api::make_object<td_api::updates>(std::move(updates)));
 }
 
-void Td::on_request(uint64 id, td_api::getPasswordState &request) {
+void Td::on_request(uint64 id, const td_api::getPasswordState &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   send_closure(password_manager_, &PasswordManager::get_state, std::move(promise));
@@ -4786,7 +4786,7 @@ void Td::on_request(uint64 id, td_api::getStorageStatisticsFast &request) {
   });
   send_closure(storage_manager_, &StorageManager::get_storage_stats_fast, std::move(query_promise));
 }
-void Td::on_request(uint64 id, td_api::getDatabaseStatistics &request) {
+void Td::on_request(uint64 id, const td_api::getDatabaseStatistics &request) {
   CREATE_REQUEST_PROMISE();
   auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<DatabaseStats> result) mutable {
     if (result.is_error()) {
@@ -7491,7 +7491,7 @@ void Td::on_request(uint64 id, const td_api::getSuggestedFileName &request) {
   send_closure(actor_id(this), &Td::send_result, id, td_api::make_object<td_api::text>(r_file_name.ok()));
 }
 
-void Td::on_request(uint64 id, td_api::preliminaryUploadFile &request) {
+void Td::on_request(uint64 id, const td_api::preliminaryUploadFile &request) {
   auto priority = request.priority_;
   if (!(1 <= priority && priority <= 32)) {
     return send_error_raw(id, 400, "Upload priority must be between 1 and 32");
