@@ -90,6 +90,7 @@ Result<FileLoader::FileInfo> FileUploader::init() {
   LOG(DEBUG) << "Init file uploader for " << remote_ << " with offset = " << offset << " and part size = " << part_size;
   FileInfo res;
   res.size = local_size_;
+  res.expected_size = expected_size_;
   res.is_size_final = local_is_ready_;
   res.part_size = part_size;
   res.ready_parts = std::move(parts);
