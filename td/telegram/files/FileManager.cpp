@@ -889,6 +889,9 @@ void FileManager::init_actor() {
   file_load_manager_ = create_actor_on_scheduler<FileLoadManager>("FileLoadManager", G()->get_slow_net_scheduler_id(),
                                                                   make_unique<FileLoadManagerCallback>(actor_id(this)),
                                                                   context_->create_reference());
+  file_upload_manager_ = create_actor_on_scheduler<FileUploadManager>(
+      "FileUploadManager", G()->get_slow_net_scheduler_id(), make_unique<FileUploadManagerCallback>(actor_id(this)),
+      context_->create_reference());
   file_generate_manager_ = create_actor_on_scheduler<FileGenerateManager>(
       "FileGenerateManager", G()->get_slow_net_scheduler_id(), context_->create_reference());
 }
@@ -1608,7 +1611,7 @@ void FileManager::do_cancel_upload(FileNodePtr node) {
   if (node->upload_id_ == 0) {
     return;
   }
-  send_closure(file_load_manager_, &FileLoadManager::cancel, node->upload_id_);
+  send_closure(file_upload_manager_, &FileUploadManager::cancel, node->upload_id_);
   node->upload_id_ = 0;
   node->upload_was_update_file_reference_ = false;
   node->set_upload_priority(0);
@@ -2564,7 +2567,7 @@ void FileManager::run_download(FileNodePtr node, bool force_update_priority) {
                              }
                              VLOG(file_references)
                                  << "Receive result from reload photo for file " << file_id << ": " << error;
-                             send_closure(actor_id, &FileManager::on_error, query_id, std::move(error));
+                             send_closure(actor_id, &FileManager::on_download_error, query_id, std::move(error));
                            }));
     node->need_reload_photo_ = false;
     return;
@@ -2577,7 +2580,7 @@ void FileManager::run_download(FileNodePtr node, bool force_update_priority) {
         queries_container_.create(Query{file_id, Query::Type::DownloadWaitFileReference});
     node->download_id_ = query_id;
     if (node->download_was_update_file_reference_) {
-      return on_error(query_id, Status::Error("Can't download file: have no valid file reference"));
+      return on_download_error(query_id, Status::Error("Can't download file: have no valid file reference"));
     }
     node->download_was_update_file_reference_ = true;
 
@@ -2590,7 +2593,7 @@ void FileManager::run_download(FileNodePtr node, bool force_update_priority) {
             error = res.move_as_error();
           }
           VLOG(file_references) << "Receive result from FileSourceManager for file " << file_id << ": " << error;
-          send_closure(actor_id, &FileManager::on_error, query_id, std::move(error));
+          send_closure(actor_id, &FileManager::on_download_error, query_id, std::move(error));
         }));
     return;
   }
@@ -3008,7 +3011,7 @@ void FileManager::run_generate(FileNodePtr node) {
                      send_closure(actor_, &FileManager::on_generate_ok, query_id_, std::move(local));
                    }
                    void on_error(Status error) final {
-                     send_closure(actor_, &FileManager::on_error, query_id_, std::move(error));
+                     send_closure(actor_, &FileManager::on_download_error, query_id_, std::move(error));
                    }
                  };
                  return make_unique<Callback>(file_manager->actor_id(file_manager), query_id);
@@ -3084,23 +3087,25 @@ void FileManager::run_upload(FileNodePtr node, vector<int> bad_parts) {
   if (old_priority != 0) {
     LOG(INFO) << "File " << file_id << " is already uploading";
     CHECK(node->upload_id_ != 0);
-    send_closure(file_load_manager_, &FileLoadManager::update_priority, node->upload_id_, narrow_cast<int8>(-priority));
+    send_closure(file_upload_manager_, &FileUploadManager::update_priority, node->upload_id_,
+                 narrow_cast<int8>(-priority));
     return;
   }
 
   CHECK(node->upload_id_ == 0);
   if (file_view.has_alive_remote_location() && !file_view.has_active_upload_remote_location() &&
       can_reuse_remote_file(file_view.get_type())) {
-    FileLoadManager::QueryId query_id = queries_container_.create(Query{file_id, Query::Type::UploadWaitFileReference});
+    FileUploadManager::QueryId query_id =
+        queries_container_.create(Query{file_id, Query::Type::UploadWaitFileReference});
     node->upload_id_ = query_id;
     if (node->upload_was_update_file_reference_) {
-      return on_error(query_id, Status::Error("Can't upload file: have no valid file reference"));
+      return on_upload_error(query_id, Status::Error("Can't upload file: have no valid file reference"));
     }
     node->upload_was_update_file_reference_ = true;
 
     context_->repair_file_reference(node->main_file_id_,
                                     PromiseCreator::lambda([actor_id = actor_id(this), query_id](Result<Unit> res) {
-                                      send_closure(actor_id, &FileManager::on_error, query_id,
+                                      send_closure(actor_id, &FileManager::on_upload_error, query_id,
                                                    Status::Error("FILE_UPLOAD_RESTART_WITH_FILE_REFERENCE"));
                                     }));
     return;
@@ -3108,10 +3113,10 @@ void FileManager::run_upload(FileNodePtr node, vector<int> bad_parts) {
 
   if (!node->remote_.partial && node->get_by_hash_) {
     LOG(INFO) << "Get file " << node->main_file_id_ << " by hash";
-    FileLoadManager::QueryId query_id = queries_container_.create(Query{file_id, Query::Type::UploadByHash});
+    FileUploadManager::QueryId query_id = queries_container_.create(Query{file_id, Query::Type::UploadByHash});
     node->upload_id_ = query_id;
 
-    send_closure(file_load_manager_, &FileLoadManager::upload_by_hash, query_id, node->local_.full(), node->size_,
+    send_closure(file_upload_manager_, &FileUploadManager::upload_by_hash, query_id, node->local_.full(), node->size_,
                  narrow_cast<int8>(-priority));
     return;
   }
@@ -3124,12 +3129,13 @@ void FileManager::run_upload(FileNodePtr node, vector<int> bad_parts) {
     expected_size = 10 << 20;
   }
 
-  FileLoadManager::QueryId query_id = queries_container_.create(Query{file_id, Query::Type::Upload});
+  FileUploadManager::QueryId query_id = queries_container_.create(Query{file_id, Query::Type::Upload});
   node->upload_id_ = query_id;
-  send_closure(file_load_manager_, &FileLoadManager::upload, query_id, node->local_, node->remote_.partial_or_empty(),
-               expected_size, node->encryption_key_, new_priority, std::move(bad_parts));
+  send_closure(file_upload_manager_, &FileUploadManager::upload, query_id, node->local_,
+               node->remote_.partial_or_empty(), expected_size, node->encryption_key_, new_priority,
+               std::move(bad_parts));
 
-  LOG(INFO) << "File " << file_id << " upload request has sent to FileLoadManager";
+  LOG(INFO) << "File " << file_id << " upload request has sent to FileUploadManager";
 }
 
 void FileManager::upload(FileId file_id, std::shared_ptr<UploadCallback> callback, int32 new_priority,
@@ -3812,7 +3818,7 @@ void FileManager::on_hash(FileLoadManager::QueryId query_id, string hash) {
   file_node->encryption_key_.set_value_hash(secure_storage::ValueHash::create(hash).move_as_ok());
 }
 
-void FileManager::on_partial_upload(FileLoadManager::QueryId query_id, PartialRemoteFileLocation partial_remote,
+void FileManager::on_partial_upload(FileUploadManager::QueryId query_id, PartialRemoteFileLocation partial_remote,
                                     int64 ready_size) {
   if (is_closed_) {
     return;
@@ -3847,7 +3853,7 @@ void FileManager::on_download_ok(FileLoadManager::QueryId query_id, FullLocalFil
 
   Query query;
   bool was_active;
-  std::tie(query, was_active) = finish_query(query_id);
+  std::tie(query, was_active) = finish_query(static_cast<Container<Query>::Id>(query_id));
   auto file_id = query.file_id_;
   LOG(INFO) << "ON DOWNLOAD OK of " << (is_new ? "new" : "checked") << " file " << file_id << " of size " << size;
   auto r_new_file_id = register_local(std::move(local), DialogId(), size, false, false, true, file_id);
@@ -3865,14 +3871,14 @@ void FileManager::on_download_ok(FileLoadManager::QueryId query_id, FullLocalFil
   }
 }
 
-void FileManager::on_upload_ok(FileLoadManager::QueryId query_id, FileType file_type,
+void FileManager::on_upload_ok(FileUploadManager::QueryId query_id, FileType file_type,
                                PartialRemoteFileLocation partial_remote, int64 size) {
   if (is_closed_) {
     return;
   }
 
   CHECK(partial_remote.ready_part_count_ == partial_remote.part_count_);
-  auto some_file_id = finish_query(query_id).first.file_id_;
+  auto some_file_id = finish_query(static_cast<Container<Query>::Id>(query_id)).first.file_id_;
   LOG(INFO) << "ON UPLOAD OK file " << some_file_id << " of size " << size;
 
   auto file_node = get_file_node(some_file_id);
@@ -3944,12 +3950,12 @@ void FileManager::on_upload_ok(FileLoadManager::QueryId query_id, FileType file_
 }
 
 // for upload by hash
-void FileManager::on_upload_full_ok(FileLoadManager::QueryId query_id, FullRemoteFileLocation remote) {
+void FileManager::on_upload_full_ok(FileUploadManager::QueryId query_id, FullRemoteFileLocation remote) {
   if (is_closed_) {
     return;
   }
 
-  auto file_id = finish_query(query_id).first.file_id_;
+  auto file_id = finish_query(static_cast<Container<Query>::Id>(query_id)).first.file_id_;
   LOG(INFO) << "ON UPLOAD FULL OK for file " << file_id;
   auto new_file_id = register_remote(std::move(remote), FileLocationSource::FromServer, DialogId(), 0, 0, "");
   LOG_STATUS(merge(new_file_id, file_id));
@@ -3985,7 +3991,7 @@ void FileManager::on_partial_generate(FileLoadManager::QueryId query_id, Partial
     run_upload(file_node, {});
   }
   if (file_node->upload_id_ != 0) {
-    send_closure(file_load_manager_, &FileLoadManager::update_local_file_location, file_node->upload_id_,
+    send_closure(file_upload_manager_, &FileUploadManager::update_local_file_location, file_node->upload_id_,
                  LocalFileLocation(std::move(partial_local)));
   }
 
@@ -3999,7 +4005,7 @@ void FileManager::on_generate_ok(FileLoadManager::QueryId query_id, FullLocalFil
 
   Query query;
   bool was_active;
-  std::tie(query, was_active) = finish_query(query_id);
+  std::tie(query, was_active) = finish_query(static_cast<Container<Query>::Id>(query_id));
   auto generate_file_id = query.file_id_;
 
   LOG(INFO) << "Receive on_generate_ok for file " << generate_file_id << ": " << local;
@@ -4030,20 +4036,36 @@ void FileManager::on_generate_ok(FileLoadManager::QueryId query_id, FullLocalFil
 
   if (was_active) {
     if (old_upload_id != 0 && old_upload_id == file_node->upload_id_) {
-      send_closure(file_load_manager_, &FileLoadManager::update_local_file_location, file_node->upload_id_,
+      send_closure(file_upload_manager_, &FileUploadManager::update_local_file_location, file_node->upload_id_,
                    LocalFileLocation(std::move(local)));
     }
   }
 }
 
-void FileManager::on_error(FileLoadManager::QueryId query_id, Status status) {
+void FileManager::on_download_error(FileLoadManager::QueryId query_id, Status status) {
   if (is_closed_) {
     return;
   }
 
   Query query;
   bool was_active;
-  std::tie(query, was_active) = finish_query(query_id);
+  std::tie(query, was_active) = finish_query(static_cast<Container<Query>::Id>(query_id));
+  auto node = get_file_node(query.file_id_);
+  if (!node) {
+    LOG(ERROR) << "Can't find file node for " << query.file_id_ << " " << status;
+    return;
+  }
+  on_error_impl(node, query.type_, was_active, std::move(status));
+}
+
+void FileManager::on_upload_error(FileUploadManager::QueryId query_id, Status status) {
+  if (is_closed_) {
+    return;
+  }
+
+  Query query;
+  bool was_active;
+  std::tie(query, was_active) = finish_query(static_cast<Container<Query>::Id>(query_id));
   auto node = get_file_node(query.file_id_);
   if (!node) {
     LOG(ERROR) << "Can't find file node for " << query.file_id_ << " " << status;
@@ -4204,7 +4226,7 @@ void FileManager::on_error_impl(FileNodePtr node, Query::Type type, bool was_act
   }
 }
 
-std::pair<FileManager::Query, bool> FileManager::finish_query(FileLoadManager::QueryId query_id) {
+std::pair<FileManager::Query, bool> FileManager::finish_query(Container<Query>::Id query_id) {
   SCOPE_EXIT {
     queries_container_.erase(query_id);
   };
@@ -4262,10 +4284,17 @@ void FileManager::hangup() {
   file_db_.reset();
   file_generate_manager_.reset();
   file_load_manager_.reset();
+  file_upload_manager_.reset();
   while (!queries_container_.empty()) {
     auto query_ids = queries_container_.ids();
     for (auto query_id : query_ids) {
-      on_error(query_id, Global::request_aborted_error());
+      Query query;
+      bool was_active;
+      std::tie(query, was_active) = finish_query(static_cast<Container<Query>::Id>(query_id));
+      auto node = get_file_node(query.file_id_);
+      if (node) {
+        on_error_impl(node, query.type_, was_active, Global::request_aborted_error());
+      }
     }
   }
   is_closed_ = true;
