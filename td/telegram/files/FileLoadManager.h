@@ -39,7 +39,7 @@ class FileLoadManager final : public Actor {
                                      int64 size) = 0;
     virtual void on_partial_upload(QueryId query_id, PartialRemoteFileLocation partial_remote, int64 ready_size) = 0;
     virtual void on_hash(QueryId query_id, string hash) = 0;
-    virtual void on_upload_ok(QueryId query_id, FileType file_type, PartialRemoteFileLocation remtoe, int64 size) = 0;
+    virtual void on_upload_ok(QueryId query_id, FileType file_type, PartialRemoteFileLocation remote, int64 size) = 0;
     virtual void on_upload_full_ok(QueryId query_id, FullRemoteFileLocation remote) = 0;
     virtual void on_download_ok(QueryId query_id, FullLocalFileLocation local, int64 size, bool is_new) = 0;
     virtual void on_error(QueryId query_id, Status status) = 0;
