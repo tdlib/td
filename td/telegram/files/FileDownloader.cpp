@@ -405,10 +405,6 @@ void FileDownloader::on_progress(Progress progress) {
   }
 }
 
-FileLoader::Callback *FileDownloader::get_callback() {
-  return static_cast<FileLoader::Callback *>(callback_.get());
-}
-
 Status FileDownloader::process_check_query(NetQueryPtr net_query) {
   has_hash_query_ = false;
   TRY_STATUS(check_net_query(net_query));

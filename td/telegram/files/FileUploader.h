@@ -68,7 +68,6 @@ class FileUploader final : public FileLoader {
                                                   int64 streaming_offset) final TD_WARN_UNUSED_RESULT;
   Result<size_t> process_part(Part part, NetQueryPtr net_query) final TD_WARN_UNUSED_RESULT;
   void on_progress(Progress progress) final;
-  FileLoader::Callback *get_callback() final;
   Result<PrefixInfo> on_update_local_location(const LocalFileLocation &location,
                                               int64 file_size) final TD_WARN_UNUSED_RESULT;
 

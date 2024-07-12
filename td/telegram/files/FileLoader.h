@@ -83,7 +83,6 @@ class FileLoader : public FileLoaderActor {
     int64 size{0};
   };
   virtual void on_progress(Progress progress) = 0;
-  virtual Callback *get_callback() = 0;
   virtual Result<PrefixInfo> on_update_local_location(const LocalFileLocation &location,
                                                       int64 file_size) TD_WARN_UNUSED_RESULT {
     return Status::Error("Unsupported");

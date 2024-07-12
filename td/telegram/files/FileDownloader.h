@@ -88,7 +88,6 @@ class FileDownloader final : public FileLoader {
                                                   int64 streaming_offset) final TD_WARN_UNUSED_RESULT;
   Result<size_t> process_part(Part part, NetQueryPtr net_query) final TD_WARN_UNUSED_RESULT;
   void on_progress(Progress progress) final;
-  FileLoader::Callback *get_callback() final;
   Status process_check_query(NetQueryPtr net_query) final;
   Result<CheckInfo> check_loop(int64 checked_prefix_size, int64 ready_prefix_size, bool is_ready) final;
   void add_hash_info(const std::vector<telegram_api::object_ptr<telegram_api::fileHash>> &hashes);

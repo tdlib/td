@@ -324,10 +324,6 @@ void FileUploader::on_progress(Progress progress) {
   }
 }
 
-FileLoader::Callback *FileUploader::get_callback() {
-  return static_cast<FileLoader::Callback *>(callback_.get());
-}
-
 void FileUploader::keep_fd_flag(bool keep_fd) {
   keep_fd_ = keep_fd;
   try_release_fd();
