@@ -6,7 +6,7 @@
 //
 #pragma once
 
-#include "td/telegram/files/FileLoader.h"
+#include "td/telegram/files/FileLoaderActor.h"
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileType.h"
 
@@ -14,10 +14,10 @@
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
-#include "td/utils/port/FileFd.h"
 #include "td/utils/Status.h"
 
 namespace td {
+
 class FileFromBytes final : public FileLoaderActor {
  public:
   class Callback {
@@ -41,15 +41,16 @@ class FileFromBytes final : public FileLoaderActor {
 
   unique_ptr<Callback> callback_;
 
-  FileFd fd_;
-  string path_;
-
   void wakeup() final;
+
   void set_resource_manager(ActorShared<ResourceManager>) final {
   }
+
   void update_priority(int8 priority) final {
   }
+
   void update_resources(const ResourceState &other) final {
   }
 };
+
 }  // namespace td

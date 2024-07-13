@@ -44,6 +44,7 @@ class FileHashUploader final : public FileLoaderActor {
   void update_priority(int8 priority) final {
     send_closure(resource_manager_, &ResourceManager::update_priority, priority);
   }
+
   void update_resources(const ResourceState &other) final {
     if (stop_flag_) {
       return;

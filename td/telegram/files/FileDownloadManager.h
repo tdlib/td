@@ -57,7 +57,6 @@ class FileDownloadManager final : public Actor {
   struct Node {
     QueryId query_id_;
     ActorOwn<FileLoaderActor> loader_;
-    ResourceState resource_state_;
   };
   using NodeId = uint64;
 
