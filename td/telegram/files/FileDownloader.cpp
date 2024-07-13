@@ -53,6 +53,7 @@ FileDownloader::FileDownloader(const FullRemoteFileLocation &remote, const Local
 
 void FileDownloader::on_error(Status status) {
   fd_.close();
+  stop_flag_ = true;
   callback_->on_error(std::move(status));
 }
 
@@ -478,9 +479,7 @@ void FileDownloader::update_downloaded_part(int64 offset, int64 limit, int64 max
 
 void FileDownloader::start_up() {
   if (local_.type() == LocalFileLocation::Type::Full) {
-    on_error(Status::Error("File is already downloaded"));
-    stop_flag_ = true;
-    return;
+    return on_error(Status::Error("File is already downloaded"));
   }
   if (encryption_key_.is_secure() && !encryption_key_.has_value_hash()) {
     LOG(ERROR) << "Can't download Secure file with unknown value_hash";
@@ -532,9 +531,7 @@ void FileDownloader::start_up() {
   LOG(DEBUG) << "Start downloading a file of size " << size_ << ", part size " << part_size << " and "
              << ready_parts.size() << " ready parts: " << status;
   if (status.is_error()) {
-    on_error(std::move(status));
-    stop_flag_ = true;
-    return;
+    return on_error(std::move(status));
   }
   if (only_check_) {
     parts_manager_.set_checked_prefix_size(0);
@@ -566,9 +563,7 @@ void FileDownloader::loop() {
     if (status.code() == -1) {
       return;
     }
-    on_error(std::move(status));
-    stop_flag_ = true;
-    return;
+    return on_error(std::move(status));
   }
 }
 
@@ -620,7 +615,6 @@ Status FileDownloader::do_loop() {
     TRY_RESULT(query, start_part(part, parts_manager_.get_part_count(), parts_manager_.get_streaming_offset()));
     uint64 unique_id = UniqueId::next();
     part_map_[unique_id] = std::make_pair(part, query->cancel_slot_.get_signal_new());
-    // part_map_[unique_id] = std::make_pair(part, query.get_weak());
 
     auto callback = actor_shared(this, unique_id);
     if (delay_dispatcher_.empty()) {
@@ -668,7 +662,6 @@ void FileDownloader::on_result(NetQueryPtr query) {
     auto status = process_check_query(std::move(query));
     if (status.is_error()) {
       on_error(std::move(status));
-      stop_flag_ = true;
     } else {
       loop();
     }
@@ -701,9 +694,7 @@ void FileDownloader::on_result(NetQueryPtr query) {
     return Status::OK();
   }();
   if (status.is_error()) {
-    on_error(std::move(status));
-    stop_flag_ = true;
-    return;
+    return on_error(std::move(status));
   }
 
   if (next) {
@@ -728,7 +719,6 @@ void FileDownloader::on_part_query(Part part, NetQueryPtr query) {
   auto status = try_on_part_query(part, std::move(query));
   if (status.is_error()) {
     on_error(std::move(status));
-    stop_flag_ = true;
   }
 }
 
