@@ -47,7 +47,6 @@ FileUploader::FileUploader(const LocalFileLocation &local, const RemoteFileLocat
 void FileUploader::start_up() {
   if (remote_.type() == RemoteFileLocation::Type::Full) {
     on_error(Status::Error("File is already uploaded"));
-    stop_flag_ = true;
     return;
   }
 
@@ -56,7 +55,6 @@ void FileUploader::start_up() {
   auto r_prefix_info = on_update_local_location(local_, 0);
   if (r_prefix_info.is_error()) {
     on_error(r_prefix_info.move_as_error());
-    stop_flag_ = true;
     return;
   }
 
@@ -113,7 +111,6 @@ void FileUploader::start_up() {
              << " and " << ready_parts.size() << " ready parts: " << status;
   if (status.is_error()) {
     on_error(std::move(status));
-    stop_flag_ = true;
     return;
   }
   resource_state_.set_unit_size(parts_manager_.get_part_size());
@@ -226,6 +223,7 @@ void FileUploader::on_error(Status status) {
     LOG(INFO) << "UNLINK " << fd_path_;
     unlink(fd_path_).ignore();
   }
+  stop_flag_ = true;
   callback_->on_error(std::move(status));
 }
 
@@ -356,14 +354,12 @@ void FileUploader::update_local_file_location(const LocalFileLocation &local) {
   auto r_prefix_info = on_update_local_location(local, parts_manager_.get_size_or_zero());
   if (r_prefix_info.is_error()) {
     on_error(r_prefix_info.move_as_error());
-    stop_flag_ = true;
     return;
   }
   auto prefix_info = r_prefix_info.move_as_ok();
   auto status = parts_manager_.set_known_prefix(prefix_info.size, prefix_info.is_ready);
   if (status.is_error()) {
     on_error(std::move(status));
-    stop_flag_ = true;
     return;
   }
   loop();
@@ -379,7 +375,6 @@ void FileUploader::loop() {
       return;
     }
     on_error(std::move(status));
-    stop_flag_ = true;
     return;
   }
 }
@@ -484,7 +479,6 @@ void FileUploader::on_part_query(Part part, NetQueryPtr query) {
   auto status = try_on_part_query(part, std::move(query));
   if (status.is_error()) {
     on_error(std::move(status));
-    stop_flag_ = true;
   }
 }
 
