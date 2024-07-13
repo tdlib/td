@@ -6,11 +6,15 @@
 //
 #include "td/telegram/files/FileDownloadManager.h"
 
+#include "td/telegram/files/FileLoaderUtils.h"
 #include "td/telegram/Global.h"
-#include "td/telegram/net/DcId.h"
+#include "td/telegram/net/NetQueryDispatcher.h"
+#include "td/telegram/UniqueId.h"
 
 #include "td/utils/common.h"
 #include "td/utils/format.h"
+#include "td/utils/logging.h"
+#include "td/utils/ScopeGuard.h"
 #include "td/utils/SliceBuilder.h"
 
 namespace td {

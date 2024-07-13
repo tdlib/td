@@ -408,7 +408,6 @@ set(TDLIB_SOURCE_PART1
   td/telegram/files/FileGcWorker.cpp
   td/telegram/files/FileGenerateManager.cpp
   td/telegram/files/FileHashUploader.cpp
-  td/telegram/files/FileLoader.cpp
   td/telegram/files/FileLoaderUtils.cpp
   td/telegram/files/FileLoadManager.cpp
   td/telegram/files/FileManager.cpp
@@ -707,7 +706,6 @@ set(TDLIB_SOURCE_PART2
   td/telegram/files/FileHashUploader.h
   td/telegram/files/FileId.h
   td/telegram/files/FileLoaderActor.h
-  td/telegram/files/FileLoader.h
   td/telegram/files/FileLoaderUtils.h
   td/telegram/files/FileLoadManager.h
   td/telegram/files/FileLocation.h
