@@ -51,75 +51,6 @@ FileDownloader::FileDownloader(const FullRemoteFileLocation &remote, const Local
   }
 }
 
-Result<FileDownloader::FileInfo> FileDownloader::init() {
-  SCOPE_EXIT {
-    try_release_fd();
-  };
-  if (local_.type() == LocalFileLocation::Type::Full) {
-    return Status::Error("File is already downloaded");
-  }
-  if (encryption_key_.is_secure() && !encryption_key_.has_value_hash()) {
-    LOG(ERROR) << "Can't download Secure file with unknown value_hash";
-  }
-  if (remote_.file_type_ == FileType::SecureEncrypted) {
-    size_ = 0;
-  }
-  int32 part_size = 0;
-  Bitmask bitmask{Bitmask::Ones{}, 0};
-  if (local_.type() == LocalFileLocation::Type::Partial) {
-    const auto &partial = local_.partial();
-    path_ = partial.path_;
-    auto result_fd = FileFd::open(path_, FileFd::Write | FileFd::Read);
-    // TODO: check timestamps..
-    if (result_fd.is_ok()) {
-      if ((!encryption_key_.is_secret() || partial.iv_.size() == 32) && partial.part_size_ >= 0 &&
-          partial.part_size_ <= (1 << 20) && (partial.part_size_ & (partial.part_size_ - 1)) == 0) {
-        bitmask = Bitmask(Bitmask::Decode{}, partial.ready_bitmask_);
-        if (encryption_key_.is_secret()) {
-          encryption_key_.mutable_iv() = as<UInt256>(partial.iv_.data());
-          next_part_ = narrow_cast<int32>(bitmask.get_ready_parts(0));
-        }
-        fd_ = result_fd.move_as_ok();
-        part_size = static_cast<int32>(partial.part_size_);
-      } else {
-        LOG(ERROR) << "Have invalid " << partial;
-      }
-    }
-  }
-  if (need_search_file_ && fd_.empty() && size_ > 0 && encryption_key_.empty() && !remote_.is_web()) {
-    auto r_path = search_file(remote_.file_type_, name_, size_);
-    if (r_path.is_ok()) {
-      auto r_fd = FileFd::open(r_path.ok(), FileFd::Read);
-      if (r_fd.is_ok()) {
-        path_ = r_path.move_as_ok();
-        fd_ = r_fd.move_as_ok();
-        need_check_ = true;
-        only_check_ = true;
-        part_size = 128 * (1 << 10);
-        bitmask = Bitmask{Bitmask::Ones{}, (size_ + part_size - 1) / part_size};
-        LOG(INFO) << "Check hash of local file " << path_;
-      }
-    }
-  }
-
-  FileInfo res;
-  res.size = size_;
-  res.is_size_final = true;
-  res.part_size = part_size;
-  res.ready_parts = bitmask.as_vector();
-  res.use_part_count_limit = false;
-  res.only_check = only_check_;
-  auto file_type = get_main_file_type(remote_.file_type_);
-  res.need_delay =
-      !is_small_ &&
-      (file_type == FileType::VideoNote || file_type == FileType::Document || file_type == FileType::VoiceNote ||
-       file_type == FileType::Audio || file_type == FileType::Video || file_type == FileType::Animation ||
-       file_type == FileType::VideoStory || (file_type == FileType::Encrypted && size_ > (1 << 20)));
-  res.offset = offset_;
-  res.limit = limit_;
-  return res;
-}
-
 void FileDownloader::on_error(Status status) {
   fd_.close();
   callback_->on_error(std::move(status));
@@ -546,38 +477,77 @@ void FileDownloader::update_downloaded_part(int64 offset, int64 limit, int64 max
 }
 
 void FileDownloader::start_up() {
-  auto r_file_info = init();
-  if (r_file_info.is_error()) {
-    on_error(r_file_info.move_as_error());
+  if (local_.type() == LocalFileLocation::Type::Full) {
+    on_error(Status::Error("File is already downloaded"));
     stop_flag_ = true;
     return;
   }
-  auto file_info = r_file_info.ok();
-  auto size = file_info.size;
-  auto expected_size = max(size, file_info.expected_size);
-  bool is_size_final = file_info.is_size_final;
-  auto part_size = file_info.part_size;
-  auto &ready_parts = file_info.ready_parts;
-  auto use_part_count_limit = file_info.use_part_count_limit;
+  if (encryption_key_.is_secure() && !encryption_key_.has_value_hash()) {
+    LOG(ERROR) << "Can't download Secure file with unknown value_hash";
+  }
+  if (remote_.file_type_ == FileType::SecureEncrypted) {
+    size_ = 0;
+  }
+  int32 part_size = 0;
+  Bitmask bitmask{Bitmask::Ones{}, 0};
+  if (local_.type() == LocalFileLocation::Type::Partial) {
+    const auto &partial = local_.partial();
+    path_ = partial.path_;
+    auto result_fd = FileFd::open(path_, FileFd::Write | FileFd::Read);
+    // TODO: check timestamps..
+    if (result_fd.is_ok()) {
+      if ((!encryption_key_.is_secret() || partial.iv_.size() == 32) && partial.part_size_ >= 0 &&
+          partial.part_size_ <= (1 << 20) && (partial.part_size_ & (partial.part_size_ - 1)) == 0) {
+        bitmask = Bitmask(Bitmask::Decode{}, partial.ready_bitmask_);
+        if (encryption_key_.is_secret()) {
+          encryption_key_.mutable_iv() = as<UInt256>(partial.iv_.data());
+          next_part_ = narrow_cast<int32>(bitmask.get_ready_parts(0));
+        }
+        fd_ = result_fd.move_as_ok();
+        part_size = static_cast<int32>(partial.part_size_);
+      } else {
+        LOG(ERROR) << "Have invalid " << partial;
+      }
+    }
+  }
+  if (need_search_file_ && fd_.empty() && size_ > 0 && encryption_key_.empty() && !remote_.is_web()) {
+    auto r_path = search_file(remote_.file_type_, name_, size_);
+    if (r_path.is_ok()) {
+      auto r_fd = FileFd::open(r_path.ok(), FileFd::Read);
+      if (r_fd.is_ok()) {
+        path_ = r_path.move_as_ok();
+        fd_ = r_fd.move_as_ok();
+        need_check_ = true;
+        only_check_ = true;
+        part_size = 128 * (1 << 10);
+        bitmask = Bitmask{Bitmask::Ones{}, (size_ + part_size - 1) / part_size};
+        LOG(INFO) << "Check hash of local file " << path_;
+      }
+    }
+  }
+  try_release_fd();
 
-  auto status =
-      parts_manager_.init(size, expected_size, is_size_final, part_size, ready_parts, use_part_count_limit, false);
-  LOG(DEBUG) << "Start downloading a file of size " << size << " with expected "
-             << (is_size_final ? "exact" : "approximate") << " size " << expected_size << ", part size " << part_size
-             << " and " << ready_parts.size() << " ready parts: " << status;
+  auto ready_parts = bitmask.as_vector();
+  auto status = parts_manager_.init(size_, size_, true, part_size, ready_parts, false, false);
+  LOG(DEBUG) << "Start downloading a file of size " << size_ << ", part size " << part_size << " and "
+             << ready_parts.size() << " ready parts: " << status;
   if (status.is_error()) {
     on_error(std::move(status));
     stop_flag_ = true;
     return;
   }
-  if (file_info.only_check) {
+  if (only_check_) {
     parts_manager_.set_checked_prefix_size(0);
   }
-  parts_manager_.set_streaming_offset(file_info.offset, file_info.limit);
+  parts_manager_.set_streaming_offset(offset_, limit_);
   if (ordered_flag_) {
     ordered_parts_ = OrderedEventsProcessor<std::pair<Part, NetQueryPtr>>(parts_manager_.get_ready_prefix_count());
   }
-  if (file_info.need_delay) {
+  auto file_type = get_main_file_type(remote_.file_type_);
+  if (!is_small_ &&
+      (file_type == FileType::VideoNote || file_type == FileType::Document || file_type == FileType::VoiceNote ||
+       file_type == FileType::Audio || file_type == FileType::Video || file_type == FileType::Animation ||
+       file_type == FileType::VideoStory || (file_type == FileType::Encrypted && size_ > (1 << 20)))) {
     delay_dispatcher_ = create_actor<DelayDispatcher>("DelayDispatcher", 0.003, actor_shared(this, 1));
     next_delay_ = 0.05;
   }

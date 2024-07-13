@@ -119,21 +119,6 @@ class FileDownloader final : public FileLoaderActor {
 
   Status check_loop(int64 checked_prefix_size, int64 ready_prefix_size, bool is_ready);
 
-  struct FileInfo {
-    int64 size{0};
-    int64 expected_size{0};
-    bool is_size_final{false};
-    int32 part_size{0};
-    std::vector<int> ready_parts;
-    bool use_part_count_limit{true};
-    bool only_check{false};
-    bool need_delay{false};
-    int64 offset{0};
-    int64 limit{0};
-    bool is_upload{false};
-  };
-  Result<FileInfo> init() TD_WARN_UNUSED_RESULT;
-
   Result<NetQueryPtr> start_part(Part part, int32 part_count, int64 streaming_offset) TD_WARN_UNUSED_RESULT;
 
   Result<size_t> process_part(Part part, NetQueryPtr net_query) TD_WARN_UNUSED_RESULT;
