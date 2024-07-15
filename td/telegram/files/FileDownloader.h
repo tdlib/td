@@ -137,9 +137,6 @@ class FileDownloader final : public FileLoaderActor {
 
   void update_resources(const ResourceState &other) final;
 
-  void update_local_file_location(const LocalFileLocation &local) final {
-  }
-
   void update_downloaded_part(int64 offset, int64 limit, int64 max_resource_limit) final;
 
   void start_up() final;

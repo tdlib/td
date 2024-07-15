@@ -36,10 +36,10 @@ void FileUploadManager::upload(QueryId query_id, const LocalFileLocation &local_
   CHECK(node);
   node->query_id_ = query_id;
   auto callback = make_unique<FileUploaderCallback>(actor_shared(this, node_id));
-  node->loader_ = create_actor<FileUploader>("Uploader", local_location, remote_location, expected_size, encryption_key,
-                                             std::move(bad_parts), std::move(callback));
+  node->uploader_ = create_actor<FileUploader>("Uploader", local_location, remote_location, expected_size,
+                                               encryption_key, std::move(bad_parts), std::move(callback));
   send_closure(upload_resource_manager_, &ResourceManager::register_worker,
-               ActorShared<FileLoaderActor>(node->loader_.get(), static_cast<uint64>(-1)), priority);
+               ActorShared<FileLoaderActor>(node->uploader_.get(), static_cast<uint64>(-1)), priority);
   bool is_inserted = query_id_to_node_id_.emplace(query_id, node_id).second;
   CHECK(is_inserted);
 }
@@ -54,9 +54,9 @@ void FileUploadManager::upload_by_hash(QueryId query_id, const FullLocalFileLoca
   CHECK(node);
   node->query_id_ = query_id;
   auto callback = make_unique<FileHashUploaderCallback>(actor_shared(this, node_id));
-  node->loader_ = create_actor<FileHashUploader>("HashUploader", local_location, size, std::move(callback));
+  node->hash_uploader_ = create_actor<FileHashUploader>("HashUploader", local_location, size, std::move(callback));
   send_closure(upload_resource_manager_, &ResourceManager::register_worker,
-               ActorShared<FileLoaderActor>(node->loader_.get(), static_cast<uint64>(-1)), priority);
+               ActorShared<FileLoaderActor>(node->hash_uploader_.get(), static_cast<uint64>(-1)), priority);
   bool is_inserted = query_id_to_node_id_.emplace(query_id, node_id).second;
   CHECK(is_inserted);
 }
@@ -73,7 +73,11 @@ void FileUploadManager::update_priority(QueryId query_id, int8 priority) {
   if (node == nullptr) {
     return;
   }
-  send_closure(node->loader_, &FileLoaderActor::update_priority, priority);
+  if (!node->uploader_.empty()) {
+    send_closure(node->uploader_, &FileLoaderActor::update_priority, priority);
+  } else {
+    send_closure(node->hash_uploader_, &FileLoaderActor::update_priority, priority);
+  }
 }
 
 void FileUploadManager::cancel(QueryId query_id) {
@@ -96,14 +100,17 @@ void FileUploadManager::update_local_file_location(QueryId query_id, const Local
     return;
   }
   auto node = nodes_container_.get(it->second);
-  if (node == nullptr) {
+  if (node == nullptr || node->uploader_.empty()) {
     return;
   }
-  send_closure(node->loader_, &FileLoaderActor::update_local_file_location, local);
+  send_closure(node->uploader_, &FileUploader::update_local_file_location, local);
 }
 
 void FileUploadManager::hangup() {
-  nodes_container_.for_each([](auto query_id, auto &node) { node.loader_.reset(); });
+  nodes_container_.for_each([](auto query_id, auto &node) {
+    node.uploader_.reset();
+    node.hash_uploader_.reset();
+  });
   stop_flag_ = true;
   loop();
 }

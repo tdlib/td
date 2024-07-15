@@ -53,7 +53,8 @@ class FileUploadManager final : public Actor {
  private:
   struct Node {
     QueryId query_id_;
-    ActorOwn<FileLoaderActor> loader_;
+    ActorOwn<FileUploader> uploader_;
+    ActorOwn<FileHashUploader> hash_uploader_;
   };
   using NodeId = uint64;
 
