@@ -3529,7 +3529,8 @@ messagePremiumGiveawayWinners boosted_chat_id:int53 giveaway_message_id:int53 ad
 //@cryptocurrency_amount The paid amount, in the smallest units of the cryptocurrency; 0 if none
 //@star_count Number of Telegram Stars that were gifted
 //@transaction_id Identifier of the transaction for Telegram Stars purchase; for receiver only
-messageGiftedStars gifter_user_id:int53 receiver_user_id:int53 currency:string amount:int53 cryptocurrency:string cryptocurrency_amount:int64 star_count:int53 transaction_id:string = MessageContent;
+//@sticker A sticker to be shown in the message; may be null if unknown
+messageGiftedStars gifter_user_id:int53 receiver_user_id:int53 currency:string amount:int53 cryptocurrency:string cryptocurrency_amount:int64 star_count:int53 transaction_id:string sticker:sticker = MessageContent;
 
 //@description A contact has registered with Telegram
 messageContactRegistered = MessageContent;

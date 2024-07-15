@@ -5798,6 +5798,10 @@ static bool need_register_message_content_for_bots(MessageContentType content_ty
   return content_type == MessageContentType::Poll;
 }
 
+static int32 get_months_by_star_count(int64 star_count) {
+  return star_count <= 1000 ? 3 : (star_count < 2500 ? 6 : 12);
+}
+
 void register_message_content(Td *td, const MessageContent *content, MessageFullId message_full_id,
                               const char *source) {
   auto content_type = content->get_type();
@@ -5843,6 +5847,11 @@ void register_message_content(Td *td, const MessageContent *content, MessageFull
     case MessageContentType::Story:
       return td->story_manager_->register_story(static_cast<const MessageStory *>(content)->story_full_id,
                                                 message_full_id, {}, source);
+    case MessageContentType::GiftStars: {
+      auto star_count = static_cast<const MessageGiftStars *>(content)->star_count;
+      return td->stickers_manager_->register_premium_gift(get_months_by_star_count(star_count), message_full_id,
+                                                          source);
+    }
     default:
       return;
   }
@@ -5917,6 +5926,12 @@ void reregister_message_content(Td *td, const MessageContent *old_content, const
           return;
         }
         break;
+      case MessageContentType::GiftStars:
+        if (static_cast<const MessageGiftStars *>(old_content)->star_count ==
+            static_cast<const MessageGiftStars *>(new_content)->star_count) {
+          return;
+        }
+        break;
       default:
         return;
     }
@@ -5967,6 +5982,11 @@ void unregister_message_content(Td *td, const MessageContent *content, MessageFu
     case MessageContentType::Story:
       return td->story_manager_->unregister_story(static_cast<const MessageStory *>(content)->story_full_id,
                                                   message_full_id, {}, source);
+    case MessageContentType::GiftStars: {
+      auto star_count = static_cast<const MessageGiftStars *>(content)->star_count;
+      return td->stickers_manager_->unregister_premium_gift(get_months_by_star_count(star_count), message_full_id,
+                                                            source);
+    }
     default:
       return;
   }
@@ -7941,9 +7961,10 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       } else {
         LOG(ERROR) << "Receive gifted stars in " << dialog_id;
       }
-      return td_api::make_object<td_api::messageGiftedStars>(gifter_user_id, receiver_user_id, m->currency, m->amount,
-                                                             m->crypto_currency, m->crypto_amount, m->star_count,
-                                                             m->transaction_id);
+      return td_api::make_object<td_api::messageGiftedStars>(
+          gifter_user_id, receiver_user_id, m->currency, m->amount, m->crypto_currency, m->crypto_amount, m->star_count,
+          m->transaction_id,
+          td->stickers_manager_->get_premium_gift_sticker_object(get_months_by_star_count(m->star_count)));
     }
     default:
       UNREACHABLE();
