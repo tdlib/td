@@ -54,13 +54,13 @@ void FileDownloadManager::download(QueryId query_id, const FullRemoteFileLocatio
   node->query_id_ = query_id;
   auto callback = make_unique<FileDownloaderCallback>(actor_shared(this, node_id));
   bool is_small = size < 20 * 1024;
-  node->loader_ =
+  node->downloader_ =
       create_actor<FileDownloader>("Downloader", remote_location, local, size, std::move(name), encryption_key,
                                    is_small, need_search_file, offset, limit, std::move(callback));
   DcId dc_id = remote_location.is_web() ? G()->get_webfile_dc_id() : remote_location.get_dc_id();
   auto &resource_manager = get_download_resource_manager(is_small, dc_id);
   send_closure(resource_manager, &ResourceManager::register_worker,
-               ActorShared<FileLoaderActor>(node->loader_.get(), static_cast<uint64>(-1)), priority);
+               ActorShared<FileLoaderActor>(node->downloader_.get(), static_cast<uint64>(-1)), priority);
   bool is_inserted = query_id_to_node_id_.emplace(query_id, node_id).second;
   CHECK(is_inserted);
 }
@@ -74,10 +74,10 @@ void FileDownloadManager::update_priority(QueryId query_id, int8 priority) {
     return;
   }
   auto node = nodes_container_.get(it->second);
-  if (node == nullptr) {
+  if (node == nullptr || node->downloader_.empty()) {
     return;
   }
-  send_closure(node->loader_, &FileLoaderActor::update_priority, priority);
+  send_closure(node->downloader_, &FileLoaderActor::update_priority, priority);
 }
 
 void FileDownloadManager::from_bytes(QueryId query_id, FileType type, BufferSlice bytes, string name) {
@@ -89,7 +89,7 @@ void FileDownloadManager::from_bytes(QueryId query_id, FileType type, BufferSlic
   CHECK(node);
   node->query_id_ = query_id;
   auto callback = make_unique<FileFromBytesCallback>(actor_shared(this, node_id));
-  node->loader_ =
+  node->from_bytes_ =
       create_actor<FileFromBytes>("FromBytes", type, std::move(bytes), std::move(name), std::move(callback));
   bool is_inserted = query_id_to_node_id_.emplace(query_id, node_id).second;
   CHECK(is_inserted);
@@ -115,14 +115,17 @@ void FileDownloadManager::update_downloaded_part(QueryId query_id, int64 offset,
     return;
   }
   auto node = nodes_container_.get(it->second);
-  if (node == nullptr) {
+  if (node == nullptr || node->downloader_.empty()) {
     return;
   }
-  send_closure(node->loader_, &FileLoaderActor::update_downloaded_part, offset, limit, max_download_resource_limit_);
+  send_closure(node->downloader_, &FileDownloader::update_downloaded_part, offset, limit, max_download_resource_limit_);
 }
 
 void FileDownloadManager::hangup() {
-  nodes_container_.for_each([](auto query_id, auto &node) { node.loader_.reset(); });
+  nodes_container_.for_each([](auto query_id, auto &node) {
+    node.downloader_.reset();
+    node.from_bytes_.reset();
+  });
   stop_flag_ = true;
   loop();
 }
