@@ -290,10 +290,10 @@ Result<unique_ptr<StoryContent>> get_input_story_content(
       auto sticker_file_ids =
           td->stickers_manager_->get_attached_sticker_file_ids(input_story->added_sticker_file_ids_);
       bool has_stickers = !sticker_file_ids.empty();
-      td->videos_manager_->create_video(file_id, string(), PhotoSize(), AnimationSize(), has_stickers,
-                                        std::move(sticker_file_ids), "story.mp4", "video/mp4",
-                                        static_cast<int32>(std::ceil(input_story->duration_)), input_story->duration_,
-                                        get_dimensions(720, 1280, nullptr), true, input_story->is_animation_, 0, false);
+      td->videos_manager_->create_video(
+          file_id, string(), PhotoSize(), AnimationSize(), has_stickers, std::move(sticker_file_ids), "story.mp4",
+          "video/mp4", static_cast<int32>(std::ceil(input_story->duration_)), input_story->duration_,
+          get_dimensions(720, 1280, nullptr), true, input_story->is_animation_, 0, 0.0, false);
 
       return make_unique<StoryContentVideo>(file_id, FileId());
     }

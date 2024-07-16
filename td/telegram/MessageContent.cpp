@@ -2992,7 +2992,7 @@ static Result<InputMessageContent> create_input_message_content(
                                         std::move(sticker_file_ids), std::move(file_name), std::move(mime_type),
                                         input_video->duration_, input_video->duration_,
                                         get_dimensions(input_video->width_, input_video->height_, nullptr),
-                                        input_video->supports_streaming_, false, 0, false);
+                                        input_video->supports_streaming_, false, 0, 0.0, false);
 
       content = make_unique<MessageVideo>(file_id, std::move(caption), input_video->has_spoiler_ && !is_secret);
       break;

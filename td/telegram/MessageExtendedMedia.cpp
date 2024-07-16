@@ -164,10 +164,11 @@ Result<MessageExtendedMedia> MessageExtendedMedia::get_message_extended_media(
       string mime_type = MimeType::from_extension(path_view.extension());
 
       bool has_stickers = !sticker_file_ids.empty();
-      td->videos_manager_->create_video(
-          file_id, string(), std::move(thumbnail), AnimationSize(), has_stickers, std::move(sticker_file_ids),
-          std::move(file_name), std::move(mime_type), type->duration_, type->duration_,
-          get_dimensions(paid_media->width_, paid_media->height_, nullptr), type->supports_streaming_, false, 0, false);
+      td->videos_manager_->create_video(file_id, string(), std::move(thumbnail), AnimationSize(), has_stickers,
+                                        std::move(sticker_file_ids), std::move(file_name), std::move(mime_type),
+                                        type->duration_, type->duration_,
+                                        get_dimensions(paid_media->width_, paid_media->height_, nullptr),
+                                        type->supports_streaming_, false, 0, 0.0, false);
       result.video_file_id_ = file_id;
       break;
     }

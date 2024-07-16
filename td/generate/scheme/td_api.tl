@@ -4184,8 +4184,9 @@ inputStoryAreas areas:vector<inputStoryArea> = InputStoryAreas;
 //@minithumbnail Video minithumbnail; may be null
 //@thumbnail Video thumbnail in JPEG or MPEG4 format; may be null
 //@preload_prefix_size Size of file prefix, which is supposed to be preloaded, in bytes
+//@main_frame_timestamp Timestamp of the frame, used as video thumbnail
 //@video File containing the video
-storyVideo duration:double width:int32 height:int32 has_stickers:Bool is_animation:Bool minithumbnail:minithumbnail thumbnail:thumbnail preload_prefix_size:int32 video:file = StoryVideo;
+storyVideo duration:double width:int32 height:int32 has_stickers:Bool is_animation:Bool minithumbnail:minithumbnail thumbnail:thumbnail preload_prefix_size:int32 main_frame_timestamp:double video:file = StoryVideo;
 
 
 //@class StoryContent @description Contains the content of a story

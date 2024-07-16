@@ -125,12 +125,14 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
   double video_precise_duration = 0.0;
   int32 video_duration = 0;
   int32 video_preload_prefix_size = 0;
+  double video_start_ts = 0.0;
   string video_waveform;
   if (video != nullptr) {
     video_precise_duration = video->duration_;
     video_duration = static_cast<int32>(std::ceil(video->duration_));
     if (document_subtype == Subtype::Story) {
       video_preload_prefix_size = video->preload_prefix_size_;
+      video_start_ts = video->video_start_ts_;
     }
     video_is_animation = video->nosound_;
     auto video_dimensions = get_dimensions(video->w_, video->h_, "documentAttributeVideo");
@@ -543,7 +545,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
       td_->videos_manager_->create_video(
           file_id, std::move(minithumbnail), std::move(thumbnail), std::move(animated_thumbnail), has_stickers,
           vector<FileId>(), std::move(file_name), std::move(mime_type), video_duration, video_precise_duration,
-          dimensions, supports_streaming, video_is_animation, video_preload_prefix_size, !is_web);
+          dimensions, supports_streaming, video_is_animation, video_preload_prefix_size, video_start_ts, !is_web);
       break;
     case Document::Type::VideoNote:
       td_->video_notes_manager_->create_video_note(file_id, std::move(minithumbnail), std::move(thumbnail),
