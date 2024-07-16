@@ -1361,6 +1361,7 @@ void UserManager::User::store(StorerT &storer) const {
   bool has_background_custom_emoji_id = background_custom_emoji_id.is_valid();
   bool has_profile_accent_color_id = profile_accent_color_id.is_valid();
   bool has_profile_background_custom_emoji_id = profile_background_custom_emoji_id.is_valid();
+  bool has_bot_active_users = bot_active_users != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_received);
   STORE_FLAG(is_verified);
@@ -1407,6 +1408,7 @@ void UserManager::User::store(StorerT &storer) const {
     STORE_FLAG(has_profile_background_custom_emoji_id);
     STORE_FLAG(contact_require_premium);
     STORE_FLAG(is_business_bot);
+    STORE_FLAG(has_bot_active_users);
     END_STORE_FLAGS();
   }
   store(first_name, storer);
@@ -1463,6 +1465,9 @@ void UserManager::User::store(StorerT &storer) const {
   if (has_profile_background_custom_emoji_id) {
     store(profile_background_custom_emoji_id, storer);
   }
+  if (has_bot_active_users) {
+    store(bot_active_users, storer);
+  }
 }
 
 template <class ParserT>
@@ -1488,6 +1493,7 @@ void UserManager::User::parse(ParserT &parser) {
   bool has_background_custom_emoji_id = false;
   bool has_profile_accent_color_id = false;
   bool has_profile_background_custom_emoji_id = false;
+  bool has_bot_active_users = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_received);
   PARSE_FLAG(is_verified);
@@ -1534,6 +1540,7 @@ void UserManager::User::parse(ParserT &parser) {
     PARSE_FLAG(has_profile_background_custom_emoji_id);
     PARSE_FLAG(contact_require_premium);
     PARSE_FLAG(is_business_bot);
+    PARSE_FLAG(has_bot_active_users);
     END_PARSE_FLAGS();
   }
   parse(first_name, parser);
@@ -1617,6 +1624,9 @@ void UserManager::User::parse(ParserT &parser) {
   }
   if (has_profile_background_custom_emoji_id) {
     parse(profile_background_custom_emoji_id, parser);
+  }
+  if (has_bot_active_users) {
+    parse(bot_active_users, parser);
   }
 
   if (!check_utf8(first_name)) {
@@ -2358,6 +2368,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
   bool is_inline_bot = (flags & USER_FLAG_IS_INLINE_BOT) != 0;
   bool is_business_bot = user->bot_business_;
   string inline_query_placeholder = std::move(user->bot_inline_placeholder_);
+  int32 bot_active_users = user->bot_active_users_;
   bool need_location_bot = (flags & USER_FLAG_NEED_LOCATION_BOT) != 0;
   bool has_bot_info_version = (flags & USER_FLAG_HAS_BOT_INFO_VERSION) != 0;
   bool need_apply_min_photo = (flags & USER_FLAG_NEED_APPLY_MIN_PHOTO) != 0;
@@ -2395,6 +2406,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
     is_inline_bot = false;
     is_business_bot = false;
     inline_query_placeholder = string();
+    bot_active_users = 0;
     need_location_bot = false;
     has_bot_info_version = false;
     need_apply_min_photo = false;
@@ -2408,7 +2420,8 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
       can_join_groups != u->can_join_groups || can_read_all_group_messages != u->can_read_all_group_messages ||
       is_scam != u->is_scam || is_fake != u->is_fake || is_inline_bot != u->is_inline_bot ||
       is_business_bot != u->is_business_bot || inline_query_placeholder != u->inline_query_placeholder ||
-      need_location_bot != u->need_location_bot || can_be_added_to_attach_menu != u->can_be_added_to_attach_menu) {
+      need_location_bot != u->need_location_bot || can_be_added_to_attach_menu != u->can_be_added_to_attach_menu ||
+      bot_active_users != u->bot_active_users) {
     if (is_bot != u->is_bot) {
       LOG_IF(ERROR, !is_deleted && !u->is_deleted && u->is_received)
           << "User.is_bot has changed for " << user_id << "/" << u->usernames << " from " << source << " from "
@@ -2427,6 +2440,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
     u->inline_query_placeholder = std::move(inline_query_placeholder);
     u->need_location_bot = need_location_bot;
     u->can_be_added_to_attach_menu = can_be_added_to_attach_menu;
+    u->bot_active_users = bot_active_users;
 
     LOG(DEBUG) << "Info has changed for " << user_id;
     u->is_changed = true;
@@ -7867,7 +7881,8 @@ td_api::object_ptr<td_api::user> UserManager::get_user_object(UserId user_id, co
   } else if (u->is_bot) {
     type = td_api::make_object<td_api::userTypeBot>(
         u->can_be_edited_bot, u->can_join_groups, u->can_read_all_group_messages, u->is_inline_bot,
-        u->inline_query_placeholder, u->need_location_bot, u->is_business_bot, u->can_be_added_to_attach_menu);
+        u->inline_query_placeholder, u->need_location_bot, u->is_business_bot, u->can_be_added_to_attach_menu,
+        u->bot_active_users);
   } else {
     type = td_api::make_object<td_api::userTypeRegular>();
   }

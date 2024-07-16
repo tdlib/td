@@ -481,6 +481,7 @@ class UserManager final : public Actor {
 
     vector<RestrictionReason> restriction_reasons;
     string inline_query_placeholder;
+    int32 bot_active_users = 0;
     int32 bot_info_version = -1;
 
     AccentColorId accent_color_id;
