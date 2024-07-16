@@ -72,11 +72,13 @@ class FileDownloadManager final : public Actor {
   bool stop_flag_ = false;
 
   void start_up() final;
-  void loop() final;
   void hangup() final;
   void hangup_shared() final;
 
   void close_node(NodeId node_id);
+
+  void try_stop();
+
   ActorOwn<ResourceManager> &get_download_resource_manager(bool is_small, DcId dc_id);
 
   void on_start_download();

@@ -112,7 +112,7 @@ void FileUploadManager::hangup() {
     node.hash_uploader_.reset();
   });
   stop_flag_ = true;
-  loop();
+  try_stop();
 }
 
 void FileUploadManager::on_hash(string hash) {
@@ -183,7 +183,7 @@ void FileUploadManager::hangup_shared() {
   on_error_impl(node_id, Status::Error(-1, "Canceled"));
 }
 
-void FileUploadManager::loop() {
+void FileUploadManager::try_stop() {
   if (stop_flag_ && nodes_container_.empty()) {
     stop();
   }
@@ -194,7 +194,7 @@ void FileUploadManager::close_node(NodeId node_id) {
   CHECK(node);
   query_id_to_node_id_.erase(node->query_id_);
   nodes_container_.erase(node_id);
-  loop();
+  try_stop();
 }
 
 }  // namespace td

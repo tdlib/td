@@ -67,11 +67,12 @@ class FileUploadManager final : public Actor {
   bool stop_flag_ = false;
 
   void start_up() final;
-  void loop() final;
   void hangup() final;
   void hangup_shared() final;
 
   void close_node(NodeId node_id);
+
+  void try_stop();
 
   void on_partial_upload(PartialRemoteFileLocation partial_remote, int64 ready_size);
   void on_hash(string hash);
