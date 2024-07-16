@@ -6845,6 +6845,9 @@ topChatCategoryChannels = TopChatCategory;
 //@description A category containing frequently used chats with inline bots sorted by their usage in inline mode
 topChatCategoryInlineBots = TopChatCategory;
 
+//@description A category containing frequently used chats with bots, which Web Apps were opened
+topChatCategoryWebAppBots = TopChatCategory;
+
 //@description A category containing frequently used chats used for calls
 topChatCategoryCalls = TopChatCategory;
 

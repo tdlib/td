@@ -37,6 +37,7 @@
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/ThemeManager.h"
+#include "td/telegram/TopDialogCategory.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/UserManager.h"
 #include "td/telegram/Venue.h"
@@ -551,6 +552,7 @@ void InlineQueriesManager::get_simple_web_view_url(UserId bot_user_id, string &&
                                                    string &&platform, Promise<string> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
   TRY_RESULT_PROMISE(promise, bot_data, td_->user_manager_->get_bot_data(bot_user_id));
+  on_dialog_used(TopDialogCategory::BotApp, DialogId(bot_user_id), G()->unix_time());
 
   td_->create_handler<RequestSimpleWebViewQuery>(std::move(promise))
       ->send(std::move(input_user), std::move(url), theme, std::move(platform));

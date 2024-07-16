@@ -53,7 +53,8 @@ class GetTopPeersQuery final : public Td::ResultHandler {
         telegram_api::contacts_getTopPeers::CORRESPONDENTS_MASK | telegram_api::contacts_getTopPeers::BOTS_PM_MASK |
         telegram_api::contacts_getTopPeers::BOTS_INLINE_MASK | telegram_api::contacts_getTopPeers::GROUPS_MASK |
         telegram_api::contacts_getTopPeers::CHANNELS_MASK | telegram_api::contacts_getTopPeers::PHONE_CALLS_MASK |
-        telegram_api::contacts_getTopPeers::FORWARD_USERS_MASK | telegram_api::contacts_getTopPeers::FORWARD_CHATS_MASK;
+        telegram_api::contacts_getTopPeers::FORWARD_USERS_MASK |
+        telegram_api::contacts_getTopPeers::FORWARD_CHATS_MASK | telegram_api::contacts_getTopPeers::BOTS_APP_MASK;
     send_query(G()->net_query_creator().create(
         telegram_api::contacts_getTopPeers(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
                                            false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,

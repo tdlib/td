@@ -18,12 +18,14 @@
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
+#include "td/telegram/MessageContent.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/ThemeManager.h"
+#include "td/telegram/TopDialogCategory.h"
 #include "td/telegram/UserManager.h"
 #include "td/telegram/WebApp.h"
 
@@ -831,6 +833,7 @@ void AttachMenuManager::request_app_web_view(DialogId dialog_id, UserId bot_user
   }
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
   TRY_RESULT_PROMISE(promise, bot_data, td_->user_manager_->get_bot_data(bot_user_id));
+  on_dialog_used(TopDialogCategory::BotApp, DialogId(bot_user_id), G()->unix_time());
 
   td_->create_handler<RequestAppWebViewQuery>(std::move(promise))
       ->send(dialog_id, std::move(input_user), web_app_short_name, start_parameter, theme, platform,
@@ -846,6 +849,7 @@ void AttachMenuManager::request_web_view(DialogId dialog_id, UserId bot_user_id,
   TRY_RESULT_PROMISE(promise, bot_data, td_->user_manager_->get_bot_data(bot_user_id));
   TRY_STATUS_PROMISE(
       promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Write, "request_web_view"));
+  on_dialog_used(TopDialogCategory::BotApp, DialogId(bot_user_id), G()->unix_time());
 
   if (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server() ||
       dialog_id.get_type() != DialogType::Channel ||
