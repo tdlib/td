@@ -36,6 +36,21 @@ class FileHashUploader final : public FileLoaderActor {
       : local_(local), size_(size), size_left_(size), callback_(std::move(callback)) {
   }
 
+ private:
+  ResourceState resource_state_;
+  BufferedFd<FileFd> fd_;
+
+  FullLocalFileLocation local_;
+  int64 size_;
+  int64 size_left_;
+  unique_ptr<Callback> callback_;
+
+  ActorShared<ResourceManager> resource_manager_;
+
+  enum class State : int32 { CalcSha, NetRequest, WaitNetResult } state_ = State::CalcSha;
+  bool stop_flag_ = false;
+  Sha256State sha256_state_;
+
   void set_resource_manager(ActorShared<ResourceManager> resource_manager) final {
     resource_manager_ = std::move(resource_manager);
     send_closure(resource_manager_, &ResourceManager::update_resources, resource_state_);
@@ -52,21 +67,6 @@ class FileHashUploader final : public FileLoaderActor {
     resource_state_.update_slave(other);
     loop();
   }
-
- private:
-  ResourceState resource_state_;
-  BufferedFd<FileFd> fd_;
-
-  FullLocalFileLocation local_;
-  int64 size_;
-  int64 size_left_;
-  unique_ptr<Callback> callback_;
-
-  ActorShared<ResourceManager> resource_manager_;
-
-  enum class State : int32 { CalcSha, NetRequest, WaitNetResult } state_ = State::CalcSha;
-  bool stop_flag_ = false;
-  Sha256State sha256_state_;
 
   void start_up() final;
   Status init();
