@@ -6,10 +6,8 @@
 //
 #pragma once
 
-#include "td/telegram/files/FileLoaderActor.h"
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileType.h"
-#include "td/telegram/files/ResourceManager.h"
 
 #include "td/actor/actor.h"
 
@@ -19,7 +17,7 @@
 
 namespace td {
 
-class FileFromBytes final : public FileLoaderActor {
+class FileFromBytes final : public Actor {
  public:
   class Callback {
    public:
@@ -33,25 +31,13 @@ class FileFromBytes final : public FileLoaderActor {
 
   FileFromBytes(FileType type, BufferSlice bytes, string name, unique_ptr<Callback> callback);
 
-  // Should just implement all parent pure virtual methods.
-  // Must not call any of them...
  private:
   FileType type_;
   BufferSlice bytes_;
   string name_;
-
   unique_ptr<Callback> callback_;
 
   void wakeup() final;
-
-  void set_resource_manager(ActorShared<ResourceManager>) final {
-  }
-
-  void update_priority(int8 priority) final {
-  }
-
-  void update_resources(const ResourceState &other) final {
-  }
 };
 
 }  // namespace td
