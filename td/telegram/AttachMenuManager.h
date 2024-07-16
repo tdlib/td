@@ -33,6 +33,9 @@ class AttachMenuManager final : public Actor {
 
   void init();
 
+  void get_popular_app_bots(const string &offset, int32 limit,
+                            Promise<td_api::object_ptr<td_api::foundUsers>> &&promise);
+
   void get_web_app(UserId bot_user_id, const string &web_app_short_name,
                    Promise<td_api::object_ptr<td_api::foundWebApp>> &&promise);
 

@@ -40,6 +40,43 @@
 
 namespace td {
 
+class GetPopularAppBotsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::foundUsers>> promise_;
+
+ public:
+  explicit GetPopularAppBotsQuery(Promise<td_api::object_ptr<td_api::foundUsers>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &offset, int32 limit) {
+    send_query(G()->net_query_creator().create(telegram_api::bots_getPopularAppBots(offset, limit)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::bots_getPopularAppBots>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetPopularAppBotsQuery: " << to_string(ptr);
+
+    vector<int64> user_ids;
+    for (auto &user : ptr->users_) {
+      auto user_id = td_->user_manager_->get_user_id(user);
+      td_->user_manager_->on_get_user(std::move(user), "GetPopularAppBotsQuery");
+      if (td_->user_manager_->is_user_bot(user_id)) {
+        user_ids.push_back(td_->user_manager_->get_user_id_object(user_id, "GetPopularAppBotsQuery"));
+      }
+    }
+    promise_.set_value(td_api::make_object<td_api::foundUsers>(std::move(user_ids), ptr->next_offset_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetBotAppQuery final : public Td::ResultHandler {
   Promise<telegram_api::object_ptr<telegram_api::messages_botApp>> promise_;
 
@@ -771,6 +808,14 @@ void AttachMenuManager::schedule_ping_web_view() {
   ping_web_view_timeout_.set_callback(ping_web_view_static);
   ping_web_view_timeout_.set_callback_data(static_cast<void *>(td_));
   ping_web_view_timeout_.set_timeout_in(PING_WEB_VIEW_TIMEOUT);
+}
+
+void AttachMenuManager::get_popular_app_bots(const string &offset, int32 limit,
+                                             Promise<td_api::object_ptr<td_api::foundUsers>> &&promise) {
+  if (limit <= 0) {
+    return promise.set_error(Status::Error(400, "Limit must be positive"));
+  }
+  td_->create_handler<GetPopularAppBotsQuery>(std::move(promise))->send(offset, limit);
 }
 
 void AttachMenuManager::get_web_app(UserId bot_user_id, const string &web_app_short_name,

@@ -9018,6 +9018,13 @@ void Td::on_request(uint64 id, td_api::answerInlineQuery &request) {
                                                request.cache_time_, request.next_offset_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::getPopularWebAppBots &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.offset_);
+  CREATE_REQUEST_PROMISE();
+  attach_menu_manager_->get_popular_app_bots(request.offset_, request.limit_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::searchWebApp &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.web_app_short_name_);
