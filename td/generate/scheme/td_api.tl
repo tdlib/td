@@ -4212,8 +4212,9 @@ inputStoryContentPhoto photo:InputFile added_sticker_file_ids:vector<int32> = In
 //@video Video to be sent. The video size must be 720x1280. The video must be streamable and stored in MPEG4 format, after encoding with x265 codec and key frames added each second
 //@added_sticker_file_ids File identifiers of the stickers added to the video, if applicable
 //@duration Precise duration of the video, in seconds; 0-60
+//@main_frame_timestamp Timestamp of the frame, which will be used as video thumbnail
 //@is_animation True, if the video has no sound
-inputStoryContentVideo video:InputFile added_sticker_file_ids:vector<int32> duration:double is_animation:Bool = InputStoryContent;
+inputStoryContentVideo video:InputFile added_sticker_file_ids:vector<int32> duration:double main_frame_timestamp:double is_animation:Bool = InputStoryContent;
 
 
 //@class StoryList @description Describes a list of stories

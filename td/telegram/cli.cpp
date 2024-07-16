@@ -4647,8 +4647,8 @@ class CliClient final : public Actor {
       get_args(args, chat_id, video, caption, rules, areas, active_period, duration, sticker_file_ids, protect_content);
       send_request(td_api::make_object<td_api::sendStory>(
           chat_id,
-          td_api::make_object<td_api::inputStoryContentVideo>(as_input_file(video),
-                                                              to_integers<int32>(sticker_file_ids), duration, true),
+          td_api::make_object<td_api::inputStoryContentVideo>(
+              as_input_file(video), to_integers<int32>(sticker_file_ids), duration, 0.5, true),
           areas, as_caption(caption), rules, active_period ? active_period : 86400, get_reposted_story_full_id(),
           op == "ssvp", protect_content));
     } else if (op == "esc") {
@@ -4683,8 +4683,8 @@ class CliClient final : public Actor {
       get_args(args, story_sender_chat_id, story_id, video, caption, duration, sticker_file_ids);
       send_request(td_api::make_object<td_api::editStory>(
           story_sender_chat_id, story_id,
-          td_api::make_object<td_api::inputStoryContentVideo>(as_input_file(video),
-                                                              to_integers<int32>(sticker_file_ids), duration, false),
+          td_api::make_object<td_api::inputStoryContentVideo>(
+              as_input_file(video), to_integers<int32>(sticker_file_ids), duration, 0.0, false),
           areas, as_caption(caption)));
     } else if (op == "ssps") {
       StoryId story_id;
