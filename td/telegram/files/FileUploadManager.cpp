@@ -147,7 +147,6 @@ void FileUploadManager::on_ok_upload(FileType file_type, PartialRemoteFileLocati
     callback_->on_upload_ok(node->query_id_, file_type, std::move(remote), size);
   }
   close_node(node_id);
-  loop();
 }
 
 void FileUploadManager::on_ok_upload_full(FullRemoteFileLocation remote) {
@@ -160,7 +159,6 @@ void FileUploadManager::on_ok_upload_full(FullRemoteFileLocation remote) {
     callback_->on_upload_full_ok(node->query_id_, std::move(remote));
   }
   close_node(node_id);
-  loop();
 }
 
 void FileUploadManager::on_error(Status status) {
@@ -178,7 +176,6 @@ void FileUploadManager::on_error_impl(NodeId node_id, Status status) {
     callback_->on_error(node->query_id_, std::move(status));
   }
   close_node(node_id);
-  loop();
 }
 
 void FileUploadManager::hangup_shared() {
@@ -197,6 +194,7 @@ void FileUploadManager::close_node(NodeId node_id) {
   CHECK(node);
   query_id_to_node_id_.erase(node->query_id_);
   nodes_container_.erase(node_id);
+  loop();
 }
 
 }  // namespace td
