@@ -501,6 +501,10 @@ TEST(MessageEntities, url) {
   check_url("ftp://telegram.org", {"ftp://telegram.org"});
   check_url("ftps://telegram.org", {});
   check_url("sftp://telegram.org", {});
+  check_url("tonsite://telegram.ton", {"tonsite://telegram.ton"});
+  check_url("telegram.ton", {"telegram.ton"});
+  check_url("telegram.onion", {"telegram.onion"});
+  check_url("telegram.tonsite", {});
   check_url("hTtPs://telegram.org", {"hTtPs://telegram.org"});
   check_url("HTTP://telegram.org", {"HTTP://telegram.org"});
   check_url("аHTTP://telegram.org", {"HTTP://telegram.org"});

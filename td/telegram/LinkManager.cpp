@@ -1056,21 +1056,25 @@ string LinkManager::get_checked_link(Slice link, bool http_only, bool https_only
 Result<string> LinkManager::check_link_impl(Slice link, bool http_only, bool https_only) {
   bool is_tg = false;
   bool is_ton = false;
+  bool is_tonsite = false;
   if (tolower_begins_with(link, "tg:")) {
     link.remove_prefix(3);
     is_tg = true;
   } else if (tolower_begins_with(link, "ton:")) {
     link.remove_prefix(4);
     is_ton = true;
+  } else if (tolower_begins_with(link, "tonsite:")) {
+    link.remove_prefix(8);
+    is_tonsite = true;
   }
-  if ((is_tg || is_ton) && begins_with(link, "//")) {
+  if ((is_tg || is_ton || is_tonsite) && begins_with(link, "//")) {
     link.remove_prefix(2);
   }
   TRY_RESULT(http_url, parse_url(link));
-  if (https_only && (http_url.protocol_ != HttpUrl::Protocol::Https || is_tg || is_ton)) {
+  if (https_only && (http_url.protocol_ != HttpUrl::Protocol::Https || is_tg || is_ton || is_tonsite)) {
     return Status::Error("Only HTTPS links are allowed");
   }
-  if (is_tg || is_ton) {
+  if (is_tg || is_ton || is_tonsite) {
     if (http_only) {
       return Status::Error("Only HTTP links are allowed");
     }
@@ -1089,7 +1093,7 @@ Result<string> LinkManager::check_link_impl(Slice link, bool http_only, bool htt
         return Status::Error("Unallowed characters in URL host");
       }
     }
-    return PSTRING() << (is_tg ? "tg" : "ton") << "://" << http_url.host_ << query;
+    return PSTRING() << (is_tg ? "tg" : (is_tonsite ? "tonsite" : "ton")) << "://" << http_url.host_ << query;
   }
 
   if (http_url.host_.find('.') == string::npos && !http_url.is_ipv6_) {

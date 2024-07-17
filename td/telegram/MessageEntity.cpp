@@ -632,7 +632,7 @@ static vector<Slice> match_tg_urls(Slice str) {
   const unsigned char *end = str.uend();
   const unsigned char *ptr = begin;
 
-  // '(tg|ton)://[a-z0-9_-]{1,253}([/?#][^\s\x{2000}-\x{200b}\x{200e}-\x{200f}\x{2016}-\x{206f}<>«»"]*)?'
+  // '(tg|ton|tonsite)://[a-z0-9_-]{1,253}([/?#][^\s\x{2000}-\x{200b}\x{200e}-\x{200f}\x{2016}-\x{206f}<>«»"]*)?'
 
   Slice bad_path_end_chars(".:;,('?!`");
 
@@ -647,6 +647,10 @@ static vector<Slice> match_tg_urls(Slice str) {
       if (ptr - begin >= 2 && to_lower(ptr[-2]) == 't' && to_lower(ptr[-1]) == 'g') {
         url_begin = ptr - 2;
       } else if (ptr - begin >= 3 && to_lower(ptr[-3]) == 't' && to_lower(ptr[-2]) == 'o' && to_lower(ptr[-1]) == 'n') {
+        url_begin = ptr - 3;
+      } else if (ptr - begin >= 7 && to_lower(ptr[-7]) == 't' && to_lower(ptr[-6]) == 'o' && to_lower(ptr[-5]) == 'n' &&
+                 to_lower(ptr[-5]) == 's' && to_lower(ptr[-5]) == 'i' && to_lower(ptr[-5]) == 't' &&
+                 to_lower(ptr[-5]) == 'e') {
         url_begin = ptr - 3;
       }
     }
@@ -867,6 +871,8 @@ static vector<Slice> match_urls(Slice str) {
           url_begin_ptr = url_begin_ptr - 8;
         } else if (ends_with(protocol, "ftp") && protocol != "tftp" && protocol != "sftp") {
           url_begin_ptr = url_begin_ptr - 6;
+        } else if (ends_with(protocol, "tonsite")) {
+          url_begin_ptr = url_begin_ptr - 10;
         } else {
           is_bad = true;
         }
@@ -1166,8 +1172,9 @@ static Slice fix_url(Slice str) {
   auto full_url = str;
 
   bool has_protocol = false;
-  auto str_begin = to_lower(str.substr(0, 8));
-  if (begins_with(str_begin, "http://") || begins_with(str_begin, "https://") || begins_with(str_begin, "ftp://")) {
+  auto str_begin = to_lower(str.substr(0, 10));
+  if (begins_with(str_begin, "http://") || begins_with(str_begin, "https://") || begins_with(str_begin, "ftp://") ||
+      begins_with(str_begin, "tonsite://")) {
     auto pos = str.find(':');
     str = str.substr(pos + 3);
     has_protocol = true;
@@ -1788,8 +1795,9 @@ Slice get_first_url(const FormattedText &text) {
           continue;
         }
         auto url = utf8_utf16_substr(text.text, entity.offset, entity.length);
-        string scheme = to_lower(url.substr(0, 4));
-        if (scheme == "ton:" || begins_with(scheme, "tg:") || scheme == "ftp:" || is_plain_domain(url)) {
+        string scheme = to_lower(url.substr(0, 8));
+        if (scheme == "ton:" || begins_with(scheme, "tg:") || scheme == "ftp:" || scheme == "tonsite:" ||
+            is_plain_domain(url)) {
           continue;
         }
         return url;
@@ -1814,8 +1822,8 @@ Slice get_first_url(const FormattedText &text) {
         break;
       case MessageEntity::Type::TextUrl: {
         Slice url = entity.argument;
-        string scheme = to_lower(url.substr(0, 4));
-        if (scheme == "ton:" || begins_with(scheme, "tg:") || scheme == "ftp:") {
+        string scheme = to_lower(url.substr(0, 8));
+        if (scheme == "ton:" || begins_with(scheme, "tg:") || scheme == "ftp:" || scheme == "tonsite:") {
           continue;
         }
         return url;
