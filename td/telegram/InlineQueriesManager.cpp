@@ -27,6 +27,7 @@
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/OptionManager.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/PhotoFormat.h"
 #include "td/telegram/PhotoSize.h"
@@ -47,6 +48,7 @@
 #include "td/utils/algorithm.h"
 #include "td/utils/base64.h"
 #include "td/utils/buffer.h"
+#include "td/utils/emoji.h"
 #include "td/utils/HashTableUtils.h"
 #include "td/utils/HttpUrl.h"
 #include "td/utils/logging.h"
@@ -985,12 +987,65 @@ Result<tl_object_ptr<telegram_api::InputBotInlineResult>> InlineQueriesManager::
       flags, id, type, title, description, url, std::move(thumbnail), std::move(content), std::move(inline_message));
 }
 
+void InlineQueriesManager::get_weather(Location location,
+                                       Promise<td_api::object_ptr<td_api::currentWeather>> &&promise) {
+  if (location.empty()) {
+    return promise.set_error(Status::Error(400, "Location must be non-empty"));
+  }
+  auto bot_username = td_->option_manager_->get_option_string("weather_bot_username");
+  if (bot_username.empty()) {
+    LOG(ERROR) << "Have no weather bot";
+    return promise.set_error(Status::Error(500, "Not supported"));
+  }
+  td_->dialog_manager_->resolve_dialog(
+      bot_username, ChannelId(),
+      PromiseCreator::lambda([actor_id = actor_id(this), location = std::move(location),
+                              promise = std::move(promise)](Result<DialogId> r_bot_dialog_id) mutable {
+        if (r_bot_dialog_id.is_error()) {
+          return promise.set_error(r_bot_dialog_id.move_as_error());
+        }
+        send_closure(actor_id, &InlineQueriesManager::do_get_weather, r_bot_dialog_id.ok(), std::move(location),
+                     std::move(promise));
+      }));
+}
+
+void InlineQueriesManager::do_get_weather(DialogId dialog_id, Location location,
+                                          Promise<td_api::object_ptr<td_api::currentWeather>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  if (dialog_id.get_type() != DialogType::User) {
+    LOG(ERROR) << "Weather bot isn't a user";
+    return promise.set_error(Status::Error(500, "Not supported"));
+  }
+  send_inline_query(
+      dialog_id.get_user_id(), DialogId(), std::move(location), string(), string(),
+      PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](
+                                 Result<td_api::object_ptr<td_api::inlineQueryResults>> r_results) mutable {
+        if (r_results.is_error()) {
+          return promise.set_error(Status::Error(500, "Not supported"));
+        }
+        send_closure(actor_id, &InlineQueriesManager::on_get_weather, r_results.move_as_ok(), std::move(promise));
+      }));
+}
+
+void InlineQueriesManager::on_get_weather(td_api::object_ptr<td_api::inlineQueryResults> results,
+                                          Promise<td_api::object_ptr<td_api::currentWeather>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  if (results->results_.size() != 1u || results->results_[0]->get_id() != td_api::inlineQueryResultArticle::ID) {
+    LOG(ERROR) << "Receive " << to_string(results);
+    return promise.set_error(Status::Error(500, "Not supported"));
+  }
+  auto result = td_api::move_object_as<td_api::inlineQueryResultArticle>(results->results_[0]);
+  if (!is_emoji(result->title_)) {
+    LOG(ERROR) << "Receive " << to_string(results);
+    return promise.set_error(Status::Error(500, "Not supported"));
+  }
+  promise.set_value(td_api::make_object<td_api::currentWeather>(to_double(result->description_), result->title_));
+}
+
 void InlineQueriesManager::send_inline_query(UserId bot_user_id, DialogId dialog_id, Location user_location,
                                              const string &query, const string &offset,
                                              Promise<td_api::object_ptr<td_api::inlineQueryResults>> &&promise) {
-  if (td_->auth_manager_->is_bot()) {
-    return promise.set_error(Status::Error(400, "Bot can't send inline queries to other bot"));
-  }
+  CHECK(!td_->auth_manager_->is_bot());
 
   auto r_bot_data = td_->user_manager_->get_bot_data(bot_user_id);
   if (r_bot_data.is_error()) {

@@ -4605,6 +4605,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setPinnedChats>(as_chat_list(op), as_chat_ids(args)));
     } else if (op == "rcl" || op == "rcla" || begins_with(op, "rcl-")) {
       send_request(td_api::make_object<td_api::readChatList>(as_chat_list(op)));
+    } else if (op == "gcwe") {
+      string latitude;
+      string longitude;
+      get_args(args, latitude, longitude);
+      send_request(td_api::make_object<td_api::getCurrentWeather>(as_location(latitude, longitude, "0.0")));
     } else if (op == "gst" || op == "gstl") {
       ChatId story_sender_chat_id;
       StoryId story_id;

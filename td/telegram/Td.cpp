@@ -5935,6 +5935,12 @@ void Td::on_request(uint64 id, td_api::editQuickReplyMessage &request) {
                                                  std::move(request.input_message_content_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getCurrentWeather &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  inline_queries_manager_->get_weather(Location(request.location_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getStory &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

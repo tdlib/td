@@ -55,6 +55,8 @@ class InlineQueriesManager final : public Actor {
                              td_api::object_ptr<td_api::InputInlineQueryResult> &&input_result,
                              Promise<td_api::object_ptr<td_api::sentWebAppMessage>> &&promise) const;
 
+  void get_weather(Location location, Promise<td_api::object_ptr<td_api::currentWeather>> &&promise);
+
   void send_inline_query(UserId bot_user_id, DialogId dialog_id, Location user_location, const string &query,
                          const string &offset, Promise<td_api::object_ptr<td_api::inlineQueryResults>> &&promise);
 
@@ -106,12 +108,20 @@ class InlineQueriesManager final : public Actor {
       tl_object_ptr<telegram_api::WebDocument> &&web_document_ptr) const;
 
   static string get_web_document_url(const tl_object_ptr<telegram_api::WebDocument> &web_document_ptr);
+
   static string get_web_document_content_type(const tl_object_ptr<telegram_api::WebDocument> &web_document_ptr);
 
   bool update_bot_usage(UserId bot_user_id);
 
   void save_recently_used_bots();
+
   bool load_recently_used_bots(Promise<Unit> &promise);
+
+  void do_get_weather(DialogId dialog_id, Location location,
+                      Promise<td_api::object_ptr<td_api::currentWeather>> &&promise);
+
+  void on_get_weather(td_api::object_ptr<td_api::inlineQueryResults> results,
+                      Promise<td_api::object_ptr<td_api::currentWeather>> &&promise);
 
   td_api::object_ptr<td_api::inlineQueryResults> get_inline_query_results_object(uint64 query_hash);
 

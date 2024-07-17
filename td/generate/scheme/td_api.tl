@@ -4097,6 +4097,12 @@ emojiCategoryTypeEmojiStatus = EmojiCategoryType;
 emojiCategoryTypeChatPhoto = EmojiCategoryType;
 
 
+//@description Describes the current weather
+//@temperature Temperature, in degree Celsius
+//@emoji Emoji representing the weather
+currentWeather temperature:double emoji:string = CurrentWeather;
+
+
 //@description Describes position of a clickable rectangle area on a story media
 //@x_percentage The abscissa of the rectangle's center, as a percentage of the media width
 //@y_percentage The ordinate of the rectangle's center, as a percentage of the media height
@@ -9617,6 +9623,10 @@ setPinnedChats chat_list:ChatList chat_ids:vector<int53> = Ok;
 
 //@description Traverse all chats in a chat list and marks all messages in the chats as read @chat_list Chat list in which to mark all chats as read
 readChatList chat_list:ChatList = Ok;
+
+
+//@description Returns the current weather in the given location @location The location
+getCurrentWeather location:location = CurrentWeather;
 
 
 //@description Returns a story
