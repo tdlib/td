@@ -1567,7 +1567,7 @@ void InlineQueriesManager::on_get_inline_query_results(
         if (result->type_ == "game") {
           if (!has_photo) {
             LOG(ERROR) << "Receive game without photo in the result of inline query: " << to_string(result);
-            break;
+            continue;
           }
           if (dialog_type == DialogType::Channel &&
               td_->chat_manager_->is_broadcast_channel(dialog_id.get_channel_id())) {
@@ -1595,7 +1595,7 @@ void InlineQueriesManager::on_get_inline_query_results(
           int32 document_id = document_ptr->get_id();
           if (document_id == telegram_api::documentEmpty::ID) {
             LOG(ERROR) << "Receive empty cached document in the result of inline query";
-            break;
+            continue;
           }
           CHECK(document_id == telegram_api::document::ID);
 
