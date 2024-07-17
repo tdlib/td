@@ -453,6 +453,7 @@ bool OptionManager::is_internal_option(Slice name) {
                                                               "story_expiring_limit_premium",
                                                               "upload_premium_speedup_notify_period",
                                                               "video_note_size_max",
+                                                              "weather_bot_username",
                                                               "webfile_dc_id"};
   return internal_options.count(name) > 0;
 }

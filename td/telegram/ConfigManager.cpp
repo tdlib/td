@@ -2034,6 +2034,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         }
         continue;
       }
+      if (key == "weather_search_username") {
+        G()->set_option_string("weather_bot_username", get_json_value_string(std::move(key_value->value_), key));
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
