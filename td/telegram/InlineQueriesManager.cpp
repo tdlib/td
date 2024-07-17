@@ -60,7 +60,7 @@
 namespace td {
 
 class GetInlineBotResultsQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
+  Promise<td_api::object_ptr<td_api::inlineQueryResults>> promise_;
   DialogId dialog_id_;
   UserId bot_user_id_;
   uint64 query_hash_;
@@ -68,7 +68,8 @@ class GetInlineBotResultsQuery final : public Td::ResultHandler {
   static constexpr int32 GET_INLINE_BOT_RESULTS_FLAG_HAS_LOCATION = 1 << 0;
 
  public:
-  explicit GetInlineBotResultsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit GetInlineBotResultsQuery(Promise<td_api::object_ptr<td_api::inlineQueryResults>> &&promise)
+      : promise_(std::move(promise)) {
   }
 
   NetQueryRef send(UserId bot_user_id, DialogId dialog_id, tl_object_ptr<telegram_api::InputUser> bot_input_user,
@@ -99,8 +100,7 @@ class GetInlineBotResultsQuery final : public Td::ResultHandler {
     }
 
     td_->inline_queries_manager_->on_get_inline_query_results(dialog_id_, bot_user_id_, query_hash_,
-                                                              result_ptr.move_as_ok());
-    promise_.set_value(Unit());
+                                                              result_ptr.move_as_ok(), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -111,7 +111,7 @@ class GetInlineBotResultsQuery final : public Td::ResultHandler {
     }
     LOG(INFO) << "Receive error for GetInlineBotResultsQuery: " << status;
 
-    td_->inline_queries_manager_->on_get_inline_query_results(dialog_id_, bot_user_id_, query_hash_, nullptr);
+    td_->inline_queries_manager_->on_get_inline_query_results(dialog_id_, bot_user_id_, query_hash_, nullptr, Auto());
     promise_.set_error(std::move(status));
   }
 };
@@ -985,21 +985,19 @@ Result<tl_object_ptr<telegram_api::InputBotInlineResult>> InlineQueriesManager::
       flags, id, type, title, description, url, std::move(thumbnail), std::move(content), std::move(inline_message));
 }
 
-uint64 InlineQueriesManager::send_inline_query(UserId bot_user_id, DialogId dialog_id, Location user_location,
-                                               const string &query, const string &offset, Promise<Unit> &&promise) {
+void InlineQueriesManager::send_inline_query(UserId bot_user_id, DialogId dialog_id, Location user_location,
+                                             const string &query, const string &offset,
+                                             Promise<td_api::object_ptr<td_api::inlineQueryResults>> &&promise) {
   if (td_->auth_manager_->is_bot()) {
-    promise.set_error(Status::Error(400, "Bot can't send inline queries to other bot"));
-    return 0;
+    return promise.set_error(Status::Error(400, "Bot can't send inline queries to other bot"));
   }
 
   auto r_bot_data = td_->user_manager_->get_bot_data(bot_user_id);
   if (r_bot_data.is_error()) {
-    promise.set_error(r_bot_data.move_as_error());
-    return 0;
+    return promise.set_error(r_bot_data.move_as_error());
   }
   if (!r_bot_data.ok().is_inline) {
-    promise.set_error(Status::Error(400, "Bot doesn't support inline queries"));
-    return 0;
+    return promise.set_error(Status::Error(400, "Bot doesn't support inline queries"));
   }
 
   auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
@@ -1044,8 +1042,7 @@ uint64 InlineQueriesManager::send_inline_query(UserId bot_user_id, DialogId dial
   if (it != inline_query_results_.end()) {
     it->second.pending_request_count++;
     if (Time::now() < it->second.cache_expire_time) {
-      promise.set_value(Unit());
-      return query_hash;
+      return promise.set_value(get_inline_query_results_object(query_hash));
     }
   } else {
     inline_query_results_[query_hash] = {nullptr, -1.0, 1};
@@ -1054,7 +1051,7 @@ uint64 InlineQueriesManager::send_inline_query(UserId bot_user_id, DialogId dial
   if (pending_inline_query_ != nullptr) {
     LOG(INFO) << "Drop inline query " << pending_inline_query_->query_hash;
     on_get_inline_query_results(pending_inline_query_->dialog_id, pending_inline_query_->bot_user_id,
-                                pending_inline_query_->query_hash, nullptr);
+                                pending_inline_query_->query_hash, nullptr, Auto());
     pending_inline_query_->promise.set_error(Status::Error(406, "Request canceled"));
   }
 
@@ -1062,8 +1059,6 @@ uint64 InlineQueriesManager::send_inline_query(UserId bot_user_id, DialogId dial
       query_hash, bot_user_id, dialog_id, std::move(input_peer), user_location, query, offset, std::move(promise)});
 
   loop();
-
-  return query_hash;
 }
 
 void InlineQueriesManager::loop() {
@@ -1457,12 +1452,13 @@ static tl_object_ptr<td_api::InlineQueryResult> copy_result(const tl_object_ptr<
 }
 
 template <>
-tl_object_ptr<td_api::inlineQueryResults> copy(const td_api::inlineQueryResults &obj) {
+td_api::object_ptr<td_api::inlineQueryResults> copy(const td_api::inlineQueryResults &obj) {
   return td_api::make_object<td_api::inlineQueryResults>(obj.inline_query_id_, copy(obj.button_),
                                                          transform(obj.results_, copy_result), obj.next_offset_);
 }
 
-tl_object_ptr<td_api::inlineQueryResults> InlineQueriesManager::decrease_pending_request_count(uint64 query_hash) {
+td_api::object_ptr<td_api::inlineQueryResults> InlineQueriesManager::get_inline_query_results_object(
+    uint64 query_hash) {
   auto it = inline_query_results_.find(query_hash);
   CHECK(it != inline_query_results_.end());
   CHECK(it->second.pending_request_count > 0);
@@ -1543,12 +1539,14 @@ string InlineQueriesManager::get_web_document_content_type(
   return {};
 }
 
-void InlineQueriesManager::on_get_inline_query_results(DialogId dialog_id, UserId bot_user_id, uint64 query_hash,
-                                                       tl_object_ptr<telegram_api::messages_botResults> &&results) {
+void InlineQueriesManager::on_get_inline_query_results(
+    DialogId dialog_id, UserId bot_user_id, uint64 query_hash,
+    tl_object_ptr<telegram_api::messages_botResults> &&results,
+    Promise<td_api::object_ptr<td_api::inlineQueryResults>> promise) {
   LOG(INFO) << "Receive results for inline query " << query_hash;
   if (results == nullptr || results->query_id_ == 0) {
-    decrease_pending_request_count(query_hash);
-    return;
+    get_inline_query_results_object(query_hash);
+    return promise.set_error(Status::Error(500, "Receive no response"));
   }
   LOG(INFO) << to_string(results);
 
@@ -2007,6 +2005,7 @@ void InlineQueriesManager::on_get_inline_query_results(DialogId dialog_id, UserI
   it->second.results = make_tl_object<td_api::inlineQueryResults>(results->query_id_, std::move(button),
                                                                   std::move(output_results), results->next_offset_);
   it->second.cache_expire_time = Time::now() + results->cache_time_;
+  promise.set_value(get_inline_query_results_object(query_hash));
 }
 
 vector<UserId> InlineQueriesManager::get_recent_inline_bots(Promise<Unit> &&promise) {
@@ -2097,10 +2096,6 @@ bool InlineQueriesManager::load_recently_used_bots(Promise<Unit> &promise) {
     recently_used_bots_loaded_ = 1;
   }
   return false;
-}
-
-tl_object_ptr<td_api::inlineQueryResults> InlineQueriesManager::get_inline_query_results_object(uint64 query_hash) {
-  return decrease_pending_request_count(query_hash);
 }
 
 void InlineQueriesManager::on_new_query(int64 query_id, UserId sender_user_id, Location user_location,

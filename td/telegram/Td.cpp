@@ -2332,37 +2332,6 @@ class RemoveSavedNotificationSoundRequest final : public RequestOnceActor {
   }
 };
 
-class GetInlineQueryResultsRequest final : public RequestOnceActor {
-  UserId bot_user_id_;
-  DialogId dialog_id_;
-  Location user_location_;
-  string query_;
-  string offset_;
-
-  uint64 query_hash_;
-
-  void do_run(Promise<Unit> &&promise) final {
-    query_hash_ = td_->inline_queries_manager_->send_inline_query(bot_user_id_, dialog_id_, user_location_, query_,
-                                                                  offset_, std::move(promise));
-  }
-
-  void do_send_result() final {
-    send_result(td_->inline_queries_manager_->get_inline_query_results_object(query_hash_));
-  }
-
- public:
-  GetInlineQueryResultsRequest(ActorShared<Td> td, uint64 request_id, int64 bot_user_id, int64 dialog_id,
-                               const tl_object_ptr<td_api::location> &user_location, string query, string offset)
-      : RequestOnceActor(std::move(td), request_id)
-      , bot_user_id_(bot_user_id)
-      , dialog_id_(dialog_id)
-      , user_location_(user_location)
-      , query_(std::move(query))
-      , offset_(std::move(offset))
-      , query_hash_(0) {
-  }
-};
-
 class SearchBackgroundRequest final : public RequestActor<> {
   string name_;
 
@@ -9005,8 +8974,10 @@ void Td::on_request(uint64 id, td_api::getInlineQueryResults &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);
   CLEAN_INPUT_STRING(request.offset_);
-  CREATE_REQUEST(GetInlineQueryResultsRequest, request.bot_user_id_, request.chat_id_, request.user_location_,
-                 std::move(request.query_), std::move(request.offset_));
+  CREATE_REQUEST_PROMISE();
+  inline_queries_manager_->send_inline_query(UserId(request.bot_user_id_), DialogId(request.chat_id_),
+                                             Location(request.user_location_), request.query_, request.offset_,
+                                             std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::answerInlineQuery &request) {

@@ -55,8 +55,8 @@ class InlineQueriesManager final : public Actor {
                              td_api::object_ptr<td_api::InputInlineQueryResult> &&input_result,
                              Promise<td_api::object_ptr<td_api::sentWebAppMessage>> &&promise) const;
 
-  uint64 send_inline_query(UserId bot_user_id, DialogId dialog_id, Location user_location, const string &query,
-                           const string &offset, Promise<Unit> &&promise);
+  void send_inline_query(UserId bot_user_id, DialogId dialog_id, Location user_location, const string &query,
+                         const string &offset, Promise<td_api::object_ptr<td_api::inlineQueryResults>> &&promise);
 
   vector<UserId> get_recent_inline_bots(Promise<Unit> &&promise);
 
@@ -67,9 +67,8 @@ class InlineQueriesManager final : public Actor {
   UserId get_inline_bot_user_id(int64 query_id) const;
 
   void on_get_inline_query_results(DialogId dialog_id, UserId bot_user_id, uint64 query_hash,
-                                   tl_object_ptr<telegram_api::messages_botResults> &&results);
-
-  tl_object_ptr<td_api::inlineQueryResults> get_inline_query_results_object(uint64 query_hash);
+                                   tl_object_ptr<telegram_api::messages_botResults> &&results,
+                                   Promise<td_api::object_ptr<td_api::inlineQueryResults>> promise);
 
   void on_new_query(int64 query_id, UserId sender_user_id, Location user_location,
                     tl_object_ptr<telegram_api::InlineQueryPeerType> peer_type, const string &query,
@@ -114,7 +113,7 @@ class InlineQueriesManager final : public Actor {
   void save_recently_used_bots();
   bool load_recently_used_bots(Promise<Unit> &promise);
 
-  tl_object_ptr<td_api::inlineQueryResults> decrease_pending_request_count(uint64 query_hash);
+  td_api::object_ptr<td_api::inlineQueryResults> get_inline_query_results_object(uint64 query_hash);
 
   static void on_drop_inline_query_result_timeout_callback(void *inline_queries_manager_ptr, int64 query_hash);
 
@@ -135,7 +134,7 @@ class InlineQueriesManager final : public Actor {
     Location user_location;
     string query;
     string offset;
-    Promise<Unit> promise;
+    Promise<td_api::object_ptr<td_api::inlineQueryResults>> promise;
   };
 
   double next_inline_query_time_ = 0.0;
@@ -143,7 +142,7 @@ class InlineQueriesManager final : public Actor {
   NetQueryRef sent_query_;
 
   struct InlineQueryResult {
-    tl_object_ptr<td_api::inlineQueryResults> results;
+    td_api::object_ptr<td_api::inlineQueryResults> results;
     double cache_expire_time;
     int32 pending_request_count;
   };
