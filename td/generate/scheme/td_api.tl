@@ -4107,7 +4107,7 @@ emojiCategoryTypeChatPhoto = EmojiCategoryType;
 storyAreaPosition x_percentage:double y_percentage:double width_percentage:double height_percentage:double rotation_angle:double corner_radius_percentage:double = StoryAreaPosition;
 
 
-//@class StoryAreaType @description Describes type of clickable rectangle area on a story media
+//@class StoryAreaType @description Describes type of clickable area on a story media
 
 //@description An area pointing to a location @location The location @address Address of the location; may be null if unknown
 storyAreaTypeLocation location:location address:locationAddress = StoryAreaType;
@@ -4128,12 +4128,18 @@ storyAreaTypeMessage chat_id:int53 message_id:int53 = StoryAreaType;
 //@description An area pointing to a HTTP or tg:// link @url HTTP or tg:// URL to be opened when the area is clicked
 storyAreaTypeLink url:string = StoryAreaType;
 
+//@description An area with information about weather
+//@temperature Temperature, in degree Celsius
+//@emoji Emoji representing the weather
+//@background_color A color of the area background in the ARGB format
+storyAreaTypeWeather temperature:double emoji:string background_color:int32 = StoryAreaType;
+
 
 //@description Describes a clickable rectangle area on a story media @position Position of the area @type Type of the area
 storyArea position:storyAreaPosition type:StoryAreaType = StoryArea;
 
 
-//@class InputStoryAreaType @description Describes type of clickable rectangle area on a story media to be added
+//@class InputStoryAreaType @description Describes type of clickable area on a story media to be added
 
 //@description An area pointing to a location @location The location @address Address of the location; pass null if unknown
 inputStoryAreaTypeLocation location:location address:locationAddress = InputStoryAreaType;
@@ -4162,6 +4168,12 @@ inputStoryAreaTypeMessage chat_id:int53 message_id:int53 = InputStoryAreaType;
 //@description An area pointing to a HTTP or tg:// link
 //@url HTTP or tg:// URL to be opened when the area is clicked
 inputStoryAreaTypeLink url:string = InputStoryAreaType;
+
+//@description An area with information about weather
+//@temperature Temperature, in degree Celsius
+//@emoji Emoji representing the weather
+//@background_color A color of the area background in the ARGB format
+inputStoryAreaTypeWeather temperature:double emoji:string background_color:int32 = InputStoryAreaType;
 
 
 //@description Describes a clickable rectangle area on a story media to be added @position Position of the area @type Type of the area

@@ -99,6 +99,11 @@ void MediaArea::store(StorerT &storer) const {
     case Type::Url:
       store(url_, storer);
       break;
+    case Type::Weather:
+      store(temperature_, storer);
+      store(url_, storer);
+      store(color_, storer);
+      break;
     default:
       UNREACHABLE();
   }
@@ -140,6 +145,11 @@ void MediaArea::parse(ParserT &parser) {
       break;
     case Type::Url:
       parse(url_, parser);
+      break;
+    case Type::Weather:
+      parse(temperature_, parser);
+      parse(url_, parser);
+      parse(color_, parser);
       break;
     default:
       parser.set_error("Load invalid area type");
