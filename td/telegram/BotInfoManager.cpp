@@ -7,6 +7,8 @@
 #include "td/telegram/BotInfoManager.h"
 
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/FileReferenceManager.h"
+#include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/NetQueryCreator.h"
@@ -115,12 +117,20 @@ class GetPreviewMediasQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetPreviewMediasQuery: " << to_string(ptr);
     vector<td_api::object_ptr<td_api::StoryContent>> contents;
+    vector<FileId> file_ids;
     for (auto &media_ptr : ptr) {
       auto content = get_story_content(td_, std::move(media_ptr->media_), DialogId(bot_user_id_));
       if (content == nullptr) {
         LOG(ERROR) << "Receive invalid preview media for " << bot_user_id_;
       } else {
+        append(file_ids, get_story_content_file_ids(td_, content.get()));
         contents.push_back(get_story_content_object(td_, content.get()));
+      }
+    }
+    if (!file_ids.empty()) {
+      auto file_source_id = td_->bot_info_manager_->get_bot_media_preview_file_source_id(bot_user_id_);
+      for (auto file_id : file_ids) {
+        td_->file_manager_->add_file_source(file_id, file_source_id);
       }
     }
     promise_.set_value(td_api::make_object<td_api::botMediaPreviews>(std::move(contents)));
@@ -431,6 +441,19 @@ void BotInfoManager::can_bot_send_messages(UserId bot_user_id, Promise<Unit> &&p
 
 void BotInfoManager::allow_bot_to_send_messages(UserId bot_user_id, Promise<Unit> &&promise) {
   td_->create_handler<AllowBotSendMessageQuery>(std::move(promise))->send(bot_user_id);
+}
+
+FileSourceId BotInfoManager::get_bot_media_preview_file_source_id(UserId bot_user_id) {
+  if (!bot_user_id.is_valid()) {
+    return FileSourceId();
+  }
+
+  auto &source_id = bot_media_preview_file_source_ids_[bot_user_id];
+  if (!source_id.is_valid()) {
+    source_id = td_->file_reference_manager_->create_bot_media_preview_file_source(bot_user_id);
+  }
+  VLOG(file_references) << "Return " << source_id << " for media previews of " << bot_user_id;
+  return source_id;
 }
 
 Result<telegram_api::object_ptr<telegram_api::InputUser>> BotInfoManager::get_media_preview_bot_input_user(

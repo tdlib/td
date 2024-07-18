@@ -7,11 +7,13 @@
 #pragma once
 
 #include "td/telegram/DialogParticipant.h"
+#include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/UserId.h"
 
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/Promise.h"
 
 namespace td {
@@ -29,6 +31,8 @@ class BotInfoManager final : public Actor {
   void can_bot_send_messages(UserId bot_user_id, Promise<Unit> &&promise);
 
   void allow_bot_to_send_messages(UserId bot_user_id, Promise<Unit> &&promise);
+
+  FileSourceId get_bot_media_preview_file_source_id(UserId bot_user_id);
 
   void get_bot_media_previews(UserId bot_user_id, Promise<td_api::object_ptr<td_api::botMediaPreviews>> &&promise);
 
@@ -96,6 +100,8 @@ class BotInfoManager final : public Actor {
   vector<PendingSetBotInfoQuery> pending_set_bot_info_queries_;
 
   vector<PendingGetBotInfoQuery> pending_get_bot_info_queries_;
+
+  FlatHashMap<UserId, FileSourceId, UserIdHash> bot_media_preview_file_source_ids_;
 
   Td *td_;
   ActorShared<> parent_;

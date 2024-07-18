@@ -9,6 +9,7 @@
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AttachMenuManager.h"
 #include "td/telegram/BackgroundManager.h"
+#include "td/telegram/BotInfoManager.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
 #include "td/telegram/ChatManager.h"
@@ -71,7 +72,8 @@ void FileReferenceManager::store_file_source(FileSourceId file_source_id, Storer
                             td::store(source.dialog_id, storer);
                             td::store(source.transaction_id, storer);
                             td::store(source.is_refund, storer);
-                          }));
+                          },
+                          [&](const FileSourceBotMediaPreview &source) { td::store(source.bot_user_id, storer); }));
 }
 
 template <class ParserT>
@@ -172,6 +174,11 @@ FileSourceId FileReferenceManager::parse_file_source(Td *td, ParserT &parser) {
       td::parse(transaction_id, parser);
       td::parse(is_refund, parser);
       return td->star_manager_->get_star_transaction_file_source_id(dialog_id, transaction_id, is_refund);
+    }
+    case 20: {
+      UserId bot_user_id;
+      td::parse(bot_user_id, parser);
+      return td->bot_info_manager_->get_bot_media_preview_file_source_id(bot_user_id);
     }
     default:
       parser.set_error("Invalid type in FileSource");

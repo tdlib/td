@@ -70,6 +70,7 @@ class FileReferenceManager final : public Actor {
   FileSourceId create_story_file_source(StoryFullId story_full_id);
   FileSourceId create_quick_reply_message_file_source(QuickReplyMessageFullId message_full_id);
   FileSourceId create_star_transaction_file_source(DialogId dialog_id, const string &transaction_id, bool is_refund);
+  FileSourceId create_bot_media_preview_file_source(UserId bot_user_id);
 
   using NodeId = FileId;
   void repair_file_reference(NodeId node_id, Promise<> promise);
@@ -186,6 +187,9 @@ class FileReferenceManager final : public Actor {
     string transaction_id;
     bool is_refund;
   };
+  struct FileSourceBotMediaPreview {
+    UserId bot_user_id;
+  };
 
   // append only
   using FileSource =
@@ -193,7 +197,7 @@ class FileReferenceManager final : public Actor {
               FileSourceWebPage, FileSourceSavedAnimations, FileSourceRecentStickers, FileSourceFavoriteStickers,
               FileSourceBackground, FileSourceChatFull, FileSourceChannelFull, FileSourceAppConfig,
               FileSourceSavedRingtones, FileSourceUserFull, FileSourceAttachMenuBot, FileSourceWebApp, FileSourceStory,
-              FileSourceQuickReplyMessage, FileSourceStarTransaction>;
+              FileSourceQuickReplyMessage, FileSourceStarTransaction, FileSourceBotMediaPreview>;
   WaitFreeVector<FileSource> file_sources_;
 
   int64 query_generation_{0};

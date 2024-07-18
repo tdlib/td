@@ -9,6 +9,7 @@
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AttachMenuManager.h"
 #include "td/telegram/BackgroundManager.h"
+#include "td/telegram/BotInfoManager.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/DialogManager.h"
@@ -85,6 +86,7 @@ fileSourceWebApp user_id:int53 short_name:string = FileSource;                  
 fileSourceStory chat_id:int53 story_id:int32 = FileSource;                                 // stories.getStoriesByID
 fileSourceQuickReplyMessage shortcut_id:int32 message_id:int53 = FileSource;               // messages.getQuickReplyMessages
 fileSourceStarTransaction chat_id:int53 transaction_id:string is_refund:Bool = FileSource; // payments.getStarsTransactionsByID
+fileSourceBotMediaPreview bot_user_id:int53 = FileSource;                                  // bots.getPreviewMedias
 */
 
 FileSourceId FileReferenceManager::get_current_file_source_id() const {
@@ -183,6 +185,11 @@ FileSourceId FileReferenceManager::create_star_transaction_file_source(DialogId 
                                                                        bool is_refund) {
   FileSourceStarTransaction source{dialog_id, transaction_id, is_refund};
   return add_file_source_id(source, PSLICE() << "star transaction " << transaction_id << " in " << dialog_id);
+}
+
+FileSourceId FileReferenceManager::create_bot_media_preview_file_source(UserId bot_user_id) {
+  FileSourceBotMediaPreview source{bot_user_id};
+  return add_file_source_id(source, PSLICE() << "bot media preview " << bot_user_id);
 }
 
 FileReferenceManager::Node &FileReferenceManager::add_node(NodeId node_id) {
@@ -408,6 +415,10 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
       [&](const FileSourceStarTransaction &source) {
         send_closure_later(G()->star_manager(), &StarManager::reload_star_transaction, source.dialog_id,
                            source.transaction_id, source.is_refund, std::move(promise));
+      },
+      [&](const FileSourceBotMediaPreview &source) {
+        send_closure_later(G()->bot_info_manager(), &BotInfoManager::reload_bot_media_previews, source.bot_user_id,
+                           std::move(promise));
       }));
 }
 
