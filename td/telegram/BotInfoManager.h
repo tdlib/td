@@ -127,6 +127,8 @@ class BotInfoManager final : public Actor {
 
   void on_upload_bot_media_preview_error(FileId file_id, Status status);
 
+  telegram_api::object_ptr<telegram_api::InputMedia> get_fake_input_media(FileId file_id) const;
+
   void add_pending_set_query(UserId bot_user_id, const string &language_code, int type, const string &value,
                              Promise<Unit> &&promise);
 
