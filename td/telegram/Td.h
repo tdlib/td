@@ -1457,6 +1457,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::sendWebAppCustomRequest &request);
 
+  void on_request(uint64 id, const td_api::getBotMediaPreviews &request);
+
   void on_request(uint64 id, td_api::setBotName &request);
 
   void on_request(uint64 id, const td_api::getBotName &request);

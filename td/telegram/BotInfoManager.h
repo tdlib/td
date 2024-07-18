@@ -30,6 +30,8 @@ class BotInfoManager final : public Actor {
 
   void allow_bot_to_send_messages(UserId bot_user_id, Promise<Unit> &&promise);
 
+  void get_bot_media_previews(UserId bot_user_id, Promise<td_api::object_ptr<td_api::botMediaPreviews>> &&promise);
+
   void set_bot_name(UserId bot_user_id, const string &language_code, const string &name, Promise<Unit> &&promise);
 
   void get_bot_name(UserId bot_user_id, const string &language_code, Promise<string> &&promise);
@@ -80,6 +82,9 @@ class BotInfoManager final : public Actor {
   void hangup() final;
 
   void timeout_expired() final;
+
+  Result<telegram_api::object_ptr<telegram_api::InputUser>> get_media_preview_bot_input_user(
+      UserId user_id, bool can_be_edited = false);
 
   void add_pending_set_query(UserId bot_user_id, const string &language_code, int type, const string &value,
                              Promise<Unit> &&promise);

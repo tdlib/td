@@ -7895,6 +7895,11 @@ void Td::on_request(uint64 id, td_api::sendWebAppCustomRequest &request) {
                                                       request.parameters_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getBotMediaPreviews &request) {
+  CREATE_REQUEST_PROMISE();
+  bot_info_manager_->get_bot_media_previews(UserId(request.bot_user_id_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::setBotName &request) {
   CLEAN_INPUT_STRING(request.name_);
   CREATE_OK_REQUEST_PROMISE();

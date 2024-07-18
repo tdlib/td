@@ -10,6 +10,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/NetQueryCreator.h"
+#include "td/telegram/StoryContent.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
@@ -86,6 +87,46 @@ class SetBotBroadcastDefaultAdminRightsQuery final : public Td::ResultHandler {
       return promise_.set_value(Unit());
     }
     td_->user_manager_->invalidate_user_full(td_->user_manager_->get_my_id());
+    promise_.set_error(std::move(status));
+  }
+};
+
+class GetPreviewMediasQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::botMediaPreviews>> promise_;
+  UserId bot_user_id_;
+
+ public:
+  explicit GetPreviewMediasQuery(Promise<td_api::object_ptr<td_api::botMediaPreviews>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(UserId bot_user_id, telegram_api::object_ptr<telegram_api::InputUser> input_user) {
+    bot_user_id_ = bot_user_id;
+    send_query(
+        G()->net_query_creator().create(telegram_api::bots_getPreviewMedias(std::move(input_user)), {{bot_user_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::bots_getPreviewMedias>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetPreviewMediasQuery: " << to_string(ptr);
+    vector<td_api::object_ptr<td_api::StoryContent>> contents;
+    for (auto &media_ptr : ptr) {
+      auto content = get_story_content(td_, std::move(media_ptr->media_), DialogId(bot_user_id_));
+      if (content == nullptr) {
+        LOG(ERROR) << "Receive invalid preview media for " << bot_user_id_;
+      } else {
+        contents.push_back(get_story_content_object(td_, content.get()));
+      }
+    }
+    promise_.set_value(td_api::make_object<td_api::botMediaPreviews>(std::move(contents)));
+  }
+
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -390,6 +431,21 @@ void BotInfoManager::can_bot_send_messages(UserId bot_user_id, Promise<Unit> &&p
 
 void BotInfoManager::allow_bot_to_send_messages(UserId bot_user_id, Promise<Unit> &&promise) {
   td_->create_handler<AllowBotSendMessageQuery>(std::move(promise))->send(bot_user_id);
+}
+
+Result<telegram_api::object_ptr<telegram_api::InputUser>> BotInfoManager::get_media_preview_bot_input_user(
+    UserId user_id, bool can_be_edited) {
+  TRY_RESULT(bot_data, td_->user_manager_->get_bot_data(user_id));
+  if (can_be_edited && !bot_data.can_be_edited) {
+    return Status::Error(400, "Bot must be owned");
+  }
+  return td_->user_manager_->get_input_user(user_id);
+}
+
+void BotInfoManager::get_bot_media_previews(UserId bot_user_id,
+                                            Promise<td_api::object_ptr<td_api::botMediaPreviews>> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_user, get_media_preview_bot_input_user(bot_user_id));
+  td_->create_handler<GetPreviewMediasQuery>(std::move(promise))->send(bot_user_id, std::move(input_user));
 }
 
 void BotInfoManager::add_pending_set_query(UserId bot_user_id, const string &language_code, int type,

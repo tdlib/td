@@ -6558,6 +6558,10 @@ class CliClient final : public Actor {
       string parameters;
       get_args(args, bot_user_id, method, parameters);
       send_request(td_api::make_object<td_api::sendWebAppCustomRequest>(bot_user_id, method, parameters));
+    } else if (op == "gbmp") {
+      UserId bot_user_id;
+      get_args(args, bot_user_id);
+      send_request(td_api::make_object<td_api::getBotMediaPreviews>(bot_user_id));
     } else if (op == "gbi") {
       UserId bot_user_id;
       string language_code;

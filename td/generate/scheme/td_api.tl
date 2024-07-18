@@ -4387,6 +4387,10 @@ publicForwardStory story:story = PublicForward;
 publicForwards total_count:int32 forwards:vector<PublicForward> next_offset:string = PublicForwards;
 
 
+//@description Contains a list of media previews of a bot @previews List of media previews
+botMediaPreviews previews:vector<StoryContent> = BotMediaPreviews;
+
+
 //@description Contains a list of features available on a specific chat boost level
 //@level Target chat boost level
 //@story_per_day_count Number of stories that the chat can publish daily
@@ -10614,6 +10618,11 @@ allowBotToSendMessages bot_user_id:int53 = Ok;
 //@method The method name
 //@parameters JSON-serialized method parameters
 sendWebAppCustomRequest bot_user_id:int53 method:string parameters:string = CustomRequestResult;
+
+
+//@description Returns the list of media previews of a bot
+//@bot_user_id Identifier of the target bot
+getBotMediaPreviews bot_user_id:int53 = BotMediaPreviews;
 
 
 //@description Sets the name of a bot. Can be called only if userTypeBot.can_be_edited == true
