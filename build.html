@@ -848,22 +848,24 @@ function onOptionsChanged() {
         commands.push(sudo + 'apk add ' + packages);
         break;
       case 'CentOS 7':
-      case 'CentOS 8':
         commands.push(sudo + 'yum update -y');
-        var packages = 'gcc-c++ make git zlib-devel openssl-devel php';
-        if (linux_distro === 'CentOS 7') {
-          commands.push(sudo + 'yum install -y centos-release-scl-rh epel-release');
-          commands.push(sudo + 'yum install -y devtoolset-9-gcc devtoolset-9-gcc-c++');
-          cmake = 'cmake3';
-          packages += ' gperf';
-        } else {
-          commands.push(sudo + 'dnf --enablerepo=powertools install gperf');
-        }
-        packages += ' ' + cmake;
+        commands.push(sudo + 'yum install -y centos-release-scl-rh epel-release');
+        commands.push(sudo + 'yum install -y devtoolset-9-gcc devtoolset-9-gcc-c++');
+        var packages = 'gcc-c++ make git zlib-devel openssl-devel php gperf cmake3';
         if (target === 'JNI') {
           packages += ' java-11-openjdk-devel';
         }
+        cmake = 'cmake3';
         commands.push(sudo + 'yum install -y ' + packages);
+        break;
+      case 'CentOS 8':
+        commands.push(sudo + 'dnf update -y');
+        commands.push(sudo + 'dnf --enablerepo=powertools install gperf');
+        var packages = 'gcc-c++ make git zlib-devel openssl-devel php cmake';
+        if (target === 'JNI') {
+          packages += ' java-11-openjdk-devel';
+        }
+        commands.push(sudo + 'dnf install -y ' + packages);
         break;
       case 'Debian 8':
       case 'Debian 9':
