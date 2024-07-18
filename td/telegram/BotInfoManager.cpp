@@ -448,6 +448,18 @@ void BotInfoManager::get_bot_media_previews(UserId bot_user_id,
   td_->create_handler<GetPreviewMediasQuery>(std::move(promise))->send(bot_user_id, std::move(input_user));
 }
 
+void BotInfoManager::reload_bot_media_previews(UserId bot_user_id, Promise<Unit> &&promise) {
+  get_bot_media_previews(
+      bot_user_id, PromiseCreator::lambda([promise = std::move(promise)](
+                                              Result<td_api::object_ptr<td_api::botMediaPreviews>> result) mutable {
+        if (result.is_error()) {
+          promise.set_error(result.move_as_error());
+        } else {
+          promise.set_value(Unit());
+        }
+      }));
+}
+
 void BotInfoManager::add_pending_set_query(UserId bot_user_id, const string &language_code, int type,
                                            const string &value, Promise<Unit> &&promise) {
   pending_set_bot_info_queries_.emplace_back(bot_user_id, language_code, type, value, std::move(promise));
