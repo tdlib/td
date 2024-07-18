@@ -3713,6 +3713,7 @@ void Td::init_managers() {
   G()->set_boost_manager(boost_manager_actor_.get());
   bot_info_manager_ = make_unique<BotInfoManager>(this, create_reference());
   bot_info_manager_actor_ = register_actor("BotInfoManager", bot_info_manager_.get());
+  G()->set_bot_info_manager(bot_info_manager_actor_.get());
   business_connection_manager_ = make_unique<BusinessConnectionManager>(this, create_reference());
   business_connection_manager_actor_ = register_actor("BusinessConnectionManager", business_connection_manager_.get());
   G()->set_business_connection_manager(business_connection_manager_actor_.get());
