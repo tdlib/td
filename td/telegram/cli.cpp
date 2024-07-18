@@ -6562,6 +6562,22 @@ class CliClient final : public Actor {
       UserId bot_user_id;
       get_args(args, bot_user_id);
       send_request(td_api::make_object<td_api::getBotMediaPreviews>(bot_user_id));
+    } else if (op == "abmpp") {
+      UserId bot_user_id;
+      string language_code;
+      string photo;
+      get_args(args, bot_user_id, language_code, photo);
+      send_request(td_api::make_object<td_api::addBotMediaPreview>(
+          bot_user_id, language_code,
+          td_api::make_object<td_api::inputStoryContentPhoto>(as_input_file(photo), Auto())));
+    } else if (op == "abmpv") {
+      UserId bot_user_id;
+      string language_code;
+      string video;
+      get_args(args, bot_user_id, language_code, video);
+      send_request(td_api::make_object<td_api::addBotMediaPreview>(
+          bot_user_id, language_code,
+          td_api::make_object<td_api::inputStoryContentVideo>(as_input_file(video), Auto(), 0.0, 1.5, true)));
     } else if (op == "gbi") {
       UserId bot_user_id;
       string language_code;

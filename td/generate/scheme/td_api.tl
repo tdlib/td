@@ -10620,9 +10620,15 @@ allowBotToSendMessages bot_user_id:int53 = Ok;
 sendWebAppCustomRequest bot_user_id:int53 method:string parameters:string = CustomRequestResult;
 
 
-//@description Returns the list of media previews of a bot
-//@bot_user_id Identifier of the target bot
+//@description Returns the list of media previews of a bot @bot_user_id Identifier of the target bot
 getBotMediaPreviews bot_user_id:int53 = BotMediaPreviews;
+
+//@description Adds a new media preview to the beginning of the list of bot's media previews. Returns the added preview. The total number of previews must not exceed getOption("bot_media_preview_count_max") for the given language
+//@bot_user_id Identifier of the target bot
+//@language_code A two-letter ISO 639-1 language code for which preview is added. If empty, then the preview will be shown to all users for whose languages there are no dedicated previews.
+//-If non-empty, then there must be an official language pack with the same name as returned by getLocalizationTargetInfo
+//@content Content of the added preview
+addBotMediaPreview bot_user_id:int53 language_code:string content:InputStoryContent = StoryContent;
 
 
 //@description Sets the name of a bot. Can be called only if userTypeBot.can_be_edited == true

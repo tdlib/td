@@ -121,7 +121,7 @@ class GetPreviewMediasQuery final : public Td::ResultHandler {
     for (auto &media_ptr : ptr) {
       auto content = get_story_content(td_, std::move(media_ptr->media_), DialogId(bot_user_id_));
       if (content == nullptr) {
-        LOG(ERROR) << "Receive invalid preview media for " << bot_user_id_;
+        LOG(ERROR) << "Receive invalid media preview for " << bot_user_id_;
       } else {
         append(file_ids, get_story_content_file_ids(td_, content.get()));
         contents.push_back(get_story_content_object(td_, content.get()));
@@ -138,6 +138,71 @@ class GetPreviewMediasQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     promise_.set_error(std::move(status));
+  }
+};
+
+class BotInfoManager::AddPreviewMediaQuery final : public Td::ResultHandler {
+  FileId file_id_;
+  unique_ptr<PendingBotMediaPreview> pending_preview_;
+
+ public:
+  void send(telegram_api::object_ptr<telegram_api::InputUser> input_user,
+            unique_ptr<PendingBotMediaPreview> pending_preview, FileId file_id,
+            telegram_api::object_ptr<telegram_api::InputFile> input_file) {
+    file_id_ = file_id;
+    pending_preview_ = std::move(pending_preview);
+    CHECK(pending_preview_ != nullptr);
+
+    const StoryContent *content = pending_preview_->content_.get();
+    CHECK(input_file != nullptr);
+    auto input_media = get_story_content_input_media(td_, content, std::move(input_file));
+    CHECK(input_media != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::bots_addPreviewMedia(std::move(input_user), pending_preview_->language_code_,
+                                           std::move(input_media)),
+        {{pending_preview_->bot_user_id_}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::bots_addPreviewMedia>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    if (file_id_.is_valid()) {
+      td_->file_manager_->delete_partial_remote_location(file_id_);
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for AddPreviewMediaQuery: " << to_string(ptr);
+    auto bot_user_id = pending_preview_->bot_user_id_;
+    auto content = get_story_content(td_, std::move(ptr->media_), DialogId(bot_user_id));
+    if (content == nullptr) {
+      LOG(ERROR) << "Receive invalid media preview";
+      return pending_preview_->promise_.set_error(Status::Error(500, "Receive invalid preview"));
+    }
+    auto file_ids = get_story_content_file_ids(td_, content.get());
+    if (!file_ids.empty()) {
+      auto file_source_id = td_->bot_info_manager_->get_bot_media_preview_file_source_id(bot_user_id);
+      for (auto file_id : file_ids) {
+        td_->file_manager_->add_file_source(file_id, file_source_id);
+      }
+    }
+    pending_preview_->promise_.set_value(get_story_content_object(td_, content.get()));
+  }
+
+  void on_error(Status status) final {
+    LOG(INFO) << "Receive error for AddPreviewMediaQuery: " << status;
+    auto bad_parts = FileManager::get_missing_file_parts(status);
+    if (!bad_parts.empty()) {
+      td_->bot_info_manager_->on_add_bot_media_preview_file_parts_missing(std::move(pending_preview_),
+                                                                          std::move(bad_parts));
+      return;
+    }
+    if (file_id_.is_valid()) {
+      td_->file_manager_->delete_partial_remote_location(file_id_);
+    }
+    pending_preview_->promise_.set_error(std::move(status));
   }
 };
 
@@ -347,7 +412,31 @@ class GetBotInfoQuery final : public Td::ResultHandler {
   }
 };
 
+class BotInfoManager::UploadMediaCallback final : public FileManager::UploadCallback {
+ public:
+  void on_upload_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
+    send_closure_later(G()->bot_info_manager(), &BotInfoManager::on_upload_bot_media_preview, file_id,
+                       std::move(input_file));
+  }
+  void on_upload_encrypted_ok(FileId file_id,
+                              telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file) final {
+    UNREACHABLE();
+  }
+  void on_upload_secure_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputSecureFile> input_file) final {
+    UNREACHABLE();
+  }
+  void on_upload_error(FileId file_id, Status error) final {
+    send_closure_later(G()->bot_info_manager(), &BotInfoManager::on_upload_bot_media_preview_error, file_id,
+                       std::move(error));
+  }
+};
+
 BotInfoManager::BotInfoManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
+  upload_media_callback_ = std::make_shared<UploadMediaCallback>();
+}
+
+BotInfoManager::~BotInfoManager() {
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), bot_media_preview_file_source_ids_);
 }
 
 void BotInfoManager::tear_down() {
@@ -481,6 +570,104 @@ void BotInfoManager::reload_bot_media_previews(UserId bot_user_id, Promise<Unit>
           promise.set_value(Unit());
         }
       }));
+}
+
+void BotInfoManager::add_bot_media_preview(UserId bot_user_id, const string &language_code,
+                                           td_api::object_ptr<td_api::InputStoryContent> &&input_content,
+                                           Promise<td_api::object_ptr<td_api::StoryContent>> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_user, get_media_preview_bot_input_user(bot_user_id, true));
+  TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
+  TRY_RESULT_PROMISE(promise, content, get_input_story_content(td_, std::move(input_content), DialogId(bot_user_id)));
+  auto pending_preview = make_unique<PendingBotMediaPreview>();
+  pending_preview->bot_user_id_ = bot_user_id;
+  pending_preview->language_code_ = language_code;
+  pending_preview->content_ = dup_story_content(td_, content.get());
+  pending_preview->upload_order_ = bot_media_preview_upload_order_;
+  pending_preview->promise_ = std::move(promise);
+
+  do_add_bot_media_preview(std::move(pending_preview), {});
+}
+
+void BotInfoManager::do_add_bot_media_preview(unique_ptr<PendingBotMediaPreview> &&pending_preview,
+                                              vector<int> bad_parts) {
+  auto content = pending_preview->content_.get();
+  auto upload_order = pending_preview->upload_order_;
+
+  FileId file_id = get_story_content_any_file_id(td_, content);
+  CHECK(file_id.is_valid());
+
+  LOG(INFO) << "Ask to upload file " << file_id << " with bad parts " << bad_parts;
+  bool is_inserted = being_uploaded_files_.emplace(file_id, std::move(pending_preview)).second;
+  CHECK(is_inserted);
+  // need to call resume_upload synchronously to make upload process consistent with being_uploaded_files_
+  // and to send is_uploading_active == true in response
+  td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_media_callback_, 1, upload_order);
+}
+
+void BotInfoManager::on_add_bot_media_preview_file_parts_missing(unique_ptr<PendingBotMediaPreview> &&pending_preview,
+                                                                 vector<int> &&bad_parts) {
+  do_add_bot_media_preview(std::move(pending_preview), std::move(bad_parts));
+}
+
+void BotInfoManager::on_upload_bot_media_preview(FileId file_id,
+                                                 telegram_api::object_ptr<telegram_api::InputFile> input_file) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  LOG(INFO) << "File " << file_id << " has been uploaded";
+
+  auto it = being_uploaded_files_.find(file_id);
+  if (it == being_uploaded_files_.end()) {
+    // callback may be called just before the file upload was canceled
+    return;
+  }
+
+  auto pending_preview = std::move(it->second);
+
+  being_uploaded_files_.erase(it);
+
+  FileView file_view = td_->file_manager_->get_file_view(file_id);
+  CHECK(!file_view.is_encrypted());
+  if (input_file == nullptr && file_view.has_remote_location()) {
+    if (file_view.main_remote_location().is_web()) {
+      return pending_preview->promise_.set_error(Status::Error(400, "Can't use web photo as a preview"));
+    }
+    if (pending_preview->was_reuploaded_) {
+      return pending_preview->promise_.set_error(Status::Error(500, "Failed to reupload preview"));
+    }
+    pending_preview->was_reuploaded_ = true;
+
+    // delete file reference and forcely reupload the file
+    td_->file_manager_->delete_file_reference(file_id, file_view.main_remote_location().get_file_reference());
+    return do_add_bot_media_preview(std::move(pending_preview), {-1});
+  }
+  CHECK(input_file != nullptr);
+  TRY_RESULT_PROMISE(pending_preview->promise_, input_user,
+                     get_media_preview_bot_input_user(pending_preview->bot_user_id_, true));
+
+  td_->create_handler<AddPreviewMediaQuery>()->send(std::move(input_user), std::move(pending_preview), file_id,
+                                                    std::move(input_file));
+}
+
+void BotInfoManager::on_upload_bot_media_preview_error(FileId file_id, Status status) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  LOG(INFO) << "File " << file_id << " has upload error " << status;
+
+  auto it = being_uploaded_files_.find(file_id);
+  if (it == being_uploaded_files_.end()) {
+    // callback may be called just before the file upload was canceled
+    return;
+  }
+
+  auto pending_preview = std::move(it->second);
+
+  being_uploaded_files_.erase(it);
+
+  pending_preview->promise_.set_error(std::move(status));
 }
 
 void BotInfoManager::add_pending_set_query(UserId bot_user_id, const string &language_code, int type,
