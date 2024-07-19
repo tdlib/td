@@ -158,6 +158,8 @@ class UserManager final : public Actor {
   void on_update_bot_menu_button(UserId bot_user_id,
                                  telegram_api::object_ptr<telegram_api::BotMenuButton> &&bot_menu_button);
 
+  void on_update_bot_has_preview_medias(UserId bot_user_id, bool has_preview_medias);
+
   void on_update_secret_chat(SecretChatId secret_chat_id, int64 access_hash, UserId user_id, SecretChatState state,
                              bool is_outbound, int32 ttl, int32 date, string key_hash, int32 layer,
                              FolderId initial_folder_id);
@@ -608,6 +610,7 @@ class UserManager final : public Actor {
     bool read_dates_private = false;
     bool contact_require_premium = false;
     bool sponsored_enabled = false;
+    bool has_preview_medias = false;
 
     bool is_common_chat_count_changed = true;
     bool is_being_updated = false;
@@ -841,6 +844,8 @@ class UserManager final : public Actor {
 
   static void on_update_user_full_menu_button(UserFull *user_full, UserId user_id,
                                               telegram_api::object_ptr<telegram_api::BotMenuButton> &&bot_menu_button);
+
+  static void on_update_user_full_has_preview_medias(UserFull *user_full, UserId user_id, bool has_preview_medias);
 
   bool have_input_peer_user(const User *u, UserId user_id, AccessRights access_rights) const;
 

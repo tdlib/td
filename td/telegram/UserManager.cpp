@@ -1712,6 +1712,7 @@ void UserManager::UserFull::store(StorerT &storer) const {
   END_STORE_FLAGS();
   if (has_flags2) {
     BEGIN_STORE_FLAGS();
+    STORE_FLAG(has_preview_medias);
     END_STORE_FLAGS();
   }
   if (has_about) {
@@ -1821,6 +1822,7 @@ void UserManager::UserFull::parse(ParserT &parser) {
   END_PARSE_FLAGS();
   if (has_flags2) {
     BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(has_preview_medias);
     END_PARSE_FLAGS();
   }
   if (has_about) {
@@ -3499,6 +3501,33 @@ void UserManager::on_update_user_full_menu_button(
   }
   if (is_changed) {
     user_full->menu_button = std::move(new_button);
+    user_full->is_changed = true;
+  }
+}
+
+void UserManager::on_update_bot_has_preview_medias(UserId bot_user_id, bool has_preview_medias) {
+  if (!bot_user_id.is_valid()) {
+    LOG(ERROR) << "Receive updateBotHasPreviewMedias about invalid " << bot_user_id;
+    return;
+  }
+  if (!have_user_force(bot_user_id, "on_update_bot_has_preview_medias") || !is_user_bot(bot_user_id)) {
+    return;
+  }
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  auto user_full = get_user_full_force(bot_user_id, "on_update_bot_has_preview_medias");
+  if (user_full != nullptr) {
+    on_update_user_full_has_preview_medias(user_full, bot_user_id, has_preview_medias);
+    update_user_full(user_full, bot_user_id, "on_update_bot_has_preview_medias");
+  }
+}
+
+void UserManager::on_update_user_full_has_preview_medias(UserFull *user_full, UserId user_id, bool has_preview_medias) {
+  CHECK(user_full != nullptr);
+  if (user_full->has_preview_medias != has_preview_medias) {
+    user_full->has_preview_medias = has_preview_medias;
     user_full->is_changed = true;
   }
 }
@@ -6934,6 +6963,7 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
 
     on_update_user_full_commands(user_full, user_id, std::move(user->bot_info_->commands_));
     on_update_user_full_menu_button(user_full, user_id, std::move(user->bot_info_->menu_button_));
+    on_update_user_full_has_preview_medias(user_full, user_id, std::move(user->bot_info_->has_preview_medias_));
   }
   if (user_full->description != description) {
     user_full->description = std::move(description);
@@ -7211,6 +7241,7 @@ void UserManager::drop_user_full(UserId user_id) {
   user_full->contact_require_premium = false;
   user_full->birthdate = {};
   user_full->sponsored_enabled = false;
+  user_full->has_preview_medias = false;
   user_full->is_changed = true;
 
   update_user_full(user_full, user_id, "drop_user_full");
@@ -7950,7 +7981,7 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
         user_full->broadcast_administrator_rights == AdministratorRights()
             ? nullptr
             : user_full->broadcast_administrator_rights.get_chat_administrator_rights_object(),
-        nullptr, nullptr, nullptr, nullptr);
+        user_full->has_preview_medias, nullptr, nullptr, nullptr, nullptr);
     if (u != nullptr && u->can_be_edited_bot && u->usernames.has_editable_username()) {
       auto bot_username = u->usernames.get_editable_username();
       bot_info->edit_commands_link_ = td_api::make_object<td_api::internalLinkTypeBotStart>(
