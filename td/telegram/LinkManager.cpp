@@ -528,6 +528,24 @@ class LinkManager::InternalLinkLanguageSettings final : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkMainWebApp final : public InternalLink {
+  string bot_username_;
+  string url_;
+  string mode_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeMainWebApp>(bot_username_, url_, mode_ == "compact");
+  }
+
+ public:
+  InternalLinkMainWebApp(string bot_username, string start_parameter, string mode)
+      : bot_username_(std::move(bot_username)), mode_(std::move(mode)) {
+    if (!start_parameter.empty()) {
+      url_ = PSTRING() << "start://" << start_parameter;
+    }
+  }
+};
+
 class LinkManager::InternalLinkMessage final : public InternalLink {
   string url_;
 
@@ -682,24 +700,6 @@ class LinkManager::InternalLinkRestorePurchases final : public InternalLink {
 class LinkManager::InternalLinkSettings final : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeSettings>();
-  }
-};
-
-class LinkManager::InternalLinkSideMenuBot final : public InternalLink {
-  string bot_username_;
-  string url_;
-  string mode_;
-
-  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypeSideMenuBot>(bot_username_, url_, mode_ == "compact");
-  }
-
- public:
-  InternalLinkSideMenuBot(string bot_username, string start_parameter, string mode)
-      : bot_username_(std::move(bot_username)), mode_(std::move(mode)) {
-    if (!start_parameter.empty()) {
-      url_ = PSTRING() << "start://" << start_parameter;
-    }
   }
 };
 
@@ -1337,8 +1337,8 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
       if (url_query.has_arg("startapp") && !url_query.has_arg("appname")) {
         // resolve?domain=<bot_username>&startapp=
         // resolve?domain=<bot_username>&startapp=<start_parameter>&mode=compact
-        return td::make_unique<InternalLinkSideMenuBot>(std::move(username), url_query.get_arg("startapp").str(),
-                                                        url_query.get_arg("mode").str());
+        return td::make_unique<InternalLinkMainWebApp>(std::move(username), url_query.get_arg("startapp").str(),
+                                                       url_query.get_arg("mode").str());
       }
       if (!url_query.get_arg("attach").empty()) {
         // resolve?domain=<username>&attach=<bot_username>
@@ -1794,8 +1794,8 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       if (arg.first == "startapp" && is_valid_start_parameter(arg.second)) {
         // /<bot_username>?startapp
         // /<bot_username>?startapp=<parameter>&mode=compact
-        return td::make_unique<InternalLinkSideMenuBot>(std::move(username), arg.second,
-                                                        url_query.get_arg("mode").str());
+        return td::make_unique<InternalLinkMainWebApp>(std::move(username), arg.second,
+                                                       url_query.get_arg("mode").str());
       }
       if (arg.first == "game" && is_valid_game_name(arg.second)) {
         // /<bot_username>?game=<short_name>
@@ -2208,6 +2208,29 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return Status::Error("HTTP link is unavailable for the link type");
       }
       return "tg://settings/language";
+    case td_api::internalLinkTypeMainWebApp::ID: {
+      auto link = static_cast<const td_api::internalLinkTypeMainWebApp *>(type_ptr);
+      if (!is_valid_username(link->bot_username_)) {
+        return Status::Error(400, "Invalid bot username specified");
+      }
+      string start_parameter;
+      if (!link->url_.empty()) {
+        if (!begins_with(link->url_, "start://")) {
+          return Status::Error(400, "Unsupported link URL specified");
+        }
+        auto start_parameter_slice = Slice(link->url_).substr(8);
+        if (start_parameter_slice.empty() || !is_valid_start_parameter(start_parameter_slice)) {
+          return Status::Error(400, "Invalid start parameter specified");
+        }
+        start_parameter = PSTRING() << '=' << start_parameter_slice;
+      }
+      string mode = link->is_compact_ ? "&mode=compact" : "";
+      if (is_internal) {
+        return PSTRING() << "tg://resolve?domain=" << link->bot_username_ << "&startapp" << start_parameter << mode;
+      } else {
+        return PSTRING() << get_t_me_url() << link->bot_username_ << "?startapp" << start_parameter << mode;
+      }
+    }
     case td_api::internalLinkTypeMessage::ID: {
       auto link = static_cast<const td_api::internalLinkTypeMessage *>(type_ptr);
       auto parsed_link = parse_internal_link(link->url_);
@@ -2321,29 +2344,6 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return Status::Error("HTTP link is unavailable for the link type");
       }
       return "tg://settings";
-    case td_api::internalLinkTypeSideMenuBot::ID: {
-      auto link = static_cast<const td_api::internalLinkTypeSideMenuBot *>(type_ptr);
-      if (!is_valid_username(link->bot_username_)) {
-        return Status::Error(400, "Invalid bot username specified");
-      }
-      string start_parameter;
-      if (!link->url_.empty()) {
-        if (!begins_with(link->url_, "start://")) {
-          return Status::Error(400, "Unsupported link URL specified");
-        }
-        auto start_parameter_slice = Slice(link->url_).substr(8);
-        if (start_parameter_slice.empty() || !is_valid_start_parameter(start_parameter_slice)) {
-          return Status::Error(400, "Invalid start parameter specified");
-        }
-        start_parameter = PSTRING() << '=' << start_parameter_slice;
-      }
-      string mode = link->is_compact_ ? "&mode=compact" : "";
-      if (is_internal) {
-        return PSTRING() << "tg://resolve?domain=" << link->bot_username_ << "&startapp" << start_parameter << mode;
-      } else {
-        return PSTRING() << get_t_me_url() << link->bot_username_ << "?startapp" << start_parameter << mode;
-      }
-    }
     case td_api::internalLinkTypeStickerSet::ID: {
       auto link = static_cast<const td_api::internalLinkTypeStickerSet *>(type_ptr);
       if (link->sticker_set_name_.empty()) {

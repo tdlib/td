@@ -6498,6 +6498,16 @@ internalLinkTypeLanguagePack language_pack_id:string = InternalLinkType;
 //@description The link is a link to the language section of the app settings
 internalLinkTypeLanguageSettings = InternalLinkType;
 
+//@description The link is a link to the main Web App of a bot. Call searchPublicChat with the given bot username, check that the user is a bot and has the main Web App.
+//-If the bot can be added to attachment menu, then use getAttachmentMenuBot to receive information about the bot, then if the bot isn't added to side menu,
+//-show a disclaimer about Mini Apps being a third-party apps, ask the user to accept their Terms of service and confirm adding the bot to side and attachment menu,
+//-then if the user accepts the terms and confirms adding, use toggleBotIsAddedToAttachmentMenu to add the bot.
+//-Then use getMainWebAppUrl with the given URL and open the returned URL as a Web App
+//@bot_username Username of the bot
+//@url URL to be passed to getMainWebAppUrl
+//@is_compact True, if the Web App must be opened in a compact mode instead of a full-size mode
+internalLinkTypeMainWebApp bot_username:string url:string is_compact:Bool = InternalLinkType;
+
 //@description The link is a link to a Telegram message or a forum topic. Call getMessageLinkInfo with the given URL to process the link,
 //-and then open received forum topic or chat and show the message there
 //@url URL to be passed to getMessageLinkInfo
@@ -6561,15 +6571,6 @@ internalLinkTypeRestorePurchases = InternalLinkType;
 
 //@description The link is a link to application settings
 internalLinkTypeSettings = InternalLinkType;
-
-//@description The link is a link to a bot, which can be installed to the side menu. Call searchPublicChat with the given bot username, check that the user is a bot and can be added to attachment menu.
-//-Then, use getAttachmentMenuBot to receive information about the bot. If the bot isn't added to side menu, then show a disclaimer about Mini Apps being a third-party apps,
-//-ask the user to accept their Terms of service and confirm adding the bot to side and attachment menu. If the user accept the terms and confirms adding, then use toggleBotIsAddedToAttachmentMenu to add the bot.
-//-If the bot is added to side menu, then use getWebAppUrl with the given URL and open the returned URL as a Web App
-//@bot_username Username of the bot
-//@url URL to be passed to getWebAppUrl
-//@is_compact True, if the Web App must be opened in a compact mode instead of a full-size mode
-internalLinkTypeSideMenuBot bot_username:string url:string is_compact:Bool = InternalLinkType;
 
 //@description The link is a link to a sticker set. Call searchStickerSet with the given sticker set name to process the link and show the sticker set.
 //-If the sticker set is found and the user wants to add it, then call changeStickerSet

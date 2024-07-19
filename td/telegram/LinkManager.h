@@ -138,6 +138,7 @@ class LinkManager final : public Actor {
   class InternalLinkInvoice;
   class InternalLinkLanguage;
   class InternalLinkLanguageSettings;
+  class InternalLinkMainWebApp;
   class InternalLinkMessage;
   class InternalLinkMessageDraft;
   class InternalLinkPassportDataRequest;
@@ -150,7 +151,6 @@ class LinkManager final : public Actor {
   class InternalLinkQrCodeAuthentication;
   class InternalLinkRestorePurchases;
   class InternalLinkSettings;
-  class InternalLinkSideMenuBot;
   class InternalLinkStickerSet;
   class InternalLinkStory;
   class InternalLinkTheme;
