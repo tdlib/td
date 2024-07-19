@@ -10637,7 +10637,13 @@ addBotMediaPreview bot_user_id:int53 language_code:string content:InputStoryCont
 //@content Content of the new preview
 editBotMediaPreview bot_user_id:int53 language_code:string file_id:int32 content:InputStoryContent = StoryContent;
 
-//@description Delete media preview from the list of bot's media previews
+//@description Changes order of media previews in the list of bot's media previews
+//@bot_user_id Identifier of the target bot
+//@language_code Language code of the media previews to reorder
+//@file_ids File identifiers of the media in the new order
+reorderBotMediaPreviews bot_user_id:int53 language_code:string file_ids:vector<int32> = Ok;
+
+//@description Delete media previews from the list of bot's media previews
 //@bot_user_id Identifier of the target bot
 //@language_code Language code of the media previews to delete
 //@file_ids File identifiers of the media to delete

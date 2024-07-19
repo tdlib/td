@@ -1463,6 +1463,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::editBotMediaPreview &request);
 
+  void on_request(uint64 id, const td_api::reorderBotMediaPreviews &request);
+
   void on_request(uint64 id, const td_api::deleteBotMediaPreviews &request);
 
   void on_request(uint64 id, td_api::setBotName &request);

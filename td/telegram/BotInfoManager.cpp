@@ -221,6 +221,34 @@ class BotInfoManager::AddPreviewMediaQuery final : public Td::ResultHandler {
   }
 };
 
+class ReorderPreviewMediasQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit ReorderPreviewMediasQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(UserId bot_user_id, telegram_api::object_ptr<telegram_api::InputUser> input_user,
+            const string &language_code, vector<telegram_api::object_ptr<telegram_api::InputMedia>> input_media) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::bots_reorderPreviewMedias(std::move(input_user), language_code, std::move(input_media)),
+        {{bot_user_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::bots_reorderPreviewMedias>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class DeletePreviewMediaQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -749,6 +777,22 @@ telegram_api::object_ptr<telegram_api::InputMedia> BotInfoManager::get_fake_inpu
     default:
       return nullptr;
   }
+}
+
+void BotInfoManager::reorder_bot_media_previews(UserId bot_user_id, const string &language_code,
+                                                const vector<int32> &file_ids, Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_user, get_media_preview_bot_input_user(bot_user_id, true));
+  TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
+  vector<telegram_api::object_ptr<telegram_api::InputMedia>> input_medias;
+  for (auto file_id : file_ids) {
+    auto input_media = get_fake_input_media(FileId(file_id, 0));
+    if (input_media == nullptr) {
+      return promise.set_error(Status::Error(400, "Wrong media to delete specified"));
+    }
+    input_medias.push_back(std::move(input_media));
+  }
+  td_->create_handler<ReorderPreviewMediasQuery>(std::move(promise))
+      ->send(bot_user_id, std::move(input_user), language_code, std::move(input_medias));
 }
 
 void BotInfoManager::delete_bot_media_previews(UserId bot_user_id, const string &language_code,

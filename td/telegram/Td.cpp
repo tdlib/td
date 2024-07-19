@@ -7917,6 +7917,13 @@ void Td::on_request(uint64 id, td_api::editBotMediaPreview &request) {
                                             std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::reorderBotMediaPreviews &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  bot_info_manager_->reorder_bot_media_previews(UserId(request.bot_user_id_), request.language_code_, request.file_ids_,
+                                                std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::deleteBotMediaPreviews &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

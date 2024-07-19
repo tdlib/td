@@ -6596,6 +6596,13 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::editBotMediaPreview>(
           bot_user_id, language_code, file_id,
           td_api::make_object<td_api::inputStoryContentVideo>(as_input_file(video), Auto(), 0.0, 1.5, true)));
+    } else if (op == "rbmp") {
+      UserId bot_user_id;
+      string language_code;
+      string file_ids;
+      get_args(args, bot_user_id, language_code, file_ids);
+      send_request(td_api::make_object<td_api::reorderBotMediaPreviews>(bot_user_id, language_code,
+                                                                        to_integers<int32>(file_ids)));
     } else if (op == "dbmp") {
       UserId bot_user_id;
       string language_code;

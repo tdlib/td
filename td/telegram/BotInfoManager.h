@@ -55,6 +55,9 @@ class BotInfoManager final : public Actor {
                               td_api::object_ptr<td_api::InputStoryContent> &&input_content,
                               Promise<td_api::object_ptr<td_api::StoryContent>> &&promise);
 
+  void reorder_bot_media_previews(UserId bot_user_id, const string &language_code, const vector<int32> &file_ids,
+                                  Promise<Unit> &&promise);
+
   void delete_bot_media_previews(UserId bot_user_id, const string &language_code, const vector<int32> &file_ids,
                                  Promise<Unit> &&promise);
 
