@@ -622,6 +622,9 @@ Result<telegram_api::object_ptr<telegram_api::InputUser>> BotInfoManager::get_me
   if (can_be_edited && !bot_data.can_be_edited) {
     return Status::Error(400, "Bot must be owned");
   }
+  if (!bot_data.has_main_app) {
+    return Status::Error(400, "Bot must have the main Mini App");
+  }
   return td_->user_manager_->get_input_user(user_id);
 }
 
