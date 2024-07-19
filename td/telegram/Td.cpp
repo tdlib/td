@@ -7897,21 +7897,31 @@ void Td::on_request(uint64 id, td_api::sendWebAppCustomRequest &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::getBotMediaPreviews &request) {
+  CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   bot_info_manager_->get_bot_media_previews(UserId(request.bot_user_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::addBotMediaPreview &request) {
+  CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   bot_info_manager_->add_bot_media_preview(UserId(request.bot_user_id_), request.language_code_,
                                            std::move(request.content_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::editBotMediaPreview &request) {
+  CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   bot_info_manager_->edit_bot_media_preview(UserId(request.bot_user_id_), request.language_code_,
                                             FileId(request.file_id_, 0), std::move(request.content_),
                                             std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::deleteBotMediaPreviews &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  bot_info_manager_->delete_bot_media_previews(UserId(request.bot_user_id_), request.language_code_, request.file_ids_,
+                                               std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setBotName &request) {

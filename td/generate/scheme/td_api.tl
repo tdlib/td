@@ -10632,10 +10632,16 @@ addBotMediaPreview bot_user_id:int53 language_code:string content:InputStoryCont
 
 //@description Replaces media preview in the list of bot's media previews. Returns the new preview
 //@bot_user_id Identifier of the target bot
-//@language_code Language code of the media preview
+//@language_code Language code of the media preview to edit
 //@file_id File identifier of the media to replace
 //@content Content of the new preview
 editBotMediaPreview bot_user_id:int53 language_code:string file_id:int32 content:InputStoryContent = StoryContent;
+
+//@description Delete media preview from the list of bot's media previews
+//@bot_user_id Identifier of the target bot
+//@language_code Language code of the media previews to delete
+//@file_ids File identifiers of the media to delete
+deleteBotMediaPreviews bot_user_id:int53 language_code:string file_ids:vector<int32> = Ok;
 
 
 //@description Sets the name of a bot. Can be called only if userTypeBot.can_be_edited == true
