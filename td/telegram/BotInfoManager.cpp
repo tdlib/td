@@ -134,6 +134,7 @@ class GetPreviewMediasQuery final : public Td::ResultHandler {
         td_->file_manager_->add_file_source(file_id, file_source_id);
       }
     }
+    td_->user_manager_->on_update_bot_has_preview_medias(bot_user_id_, !contents.empty());
     promise_.set_value(td_api::make_object<td_api::botMediaPreviews>(std::move(contents)));
   }
 
@@ -203,6 +204,7 @@ class BotInfoManager::AddPreviewMediaQuery final : public Td::ResultHandler {
         td_->file_manager_->add_file_source(file_id, file_source_id);
       }
     }
+    td_->user_manager_->on_update_bot_has_preview_medias(pending_preview_->bot_user_id_, true);
     pending_preview_->promise_.set_value(get_story_content_object(td_, content.get()));
   }
 
@@ -223,6 +225,7 @@ class BotInfoManager::AddPreviewMediaQuery final : public Td::ResultHandler {
 
 class ReorderPreviewMediasQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
+  UserId bot_user_id_;
 
  public:
   explicit ReorderPreviewMediasQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
@@ -230,6 +233,7 @@ class ReorderPreviewMediasQuery final : public Td::ResultHandler {
 
   void send(UserId bot_user_id, telegram_api::object_ptr<telegram_api::InputUser> input_user,
             const string &language_code, vector<telegram_api::object_ptr<telegram_api::InputMedia>> input_media) {
+    bot_user_id_ = bot_user_id;
     send_query(G()->net_query_creator().create(
         telegram_api::bots_reorderPreviewMedias(std::move(input_user), language_code, std::move(input_media)),
         {{bot_user_id}}));
@@ -241,6 +245,7 @@ class ReorderPreviewMediasQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
+    td_->user_manager_->on_update_bot_has_preview_medias(bot_user_id_, true);
     promise_.set_value(Unit());
   }
 
@@ -251,6 +256,7 @@ class ReorderPreviewMediasQuery final : public Td::ResultHandler {
 
 class DeletePreviewMediaQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
+  UserId bot_user_id_;
 
  public:
   explicit DeletePreviewMediaQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
@@ -258,6 +264,7 @@ class DeletePreviewMediaQuery final : public Td::ResultHandler {
 
   void send(UserId bot_user_id, telegram_api::object_ptr<telegram_api::InputUser> input_user,
             const string &language_code, vector<telegram_api::object_ptr<telegram_api::InputMedia>> input_media) {
+    bot_user_id_ = bot_user_id;
     send_query(G()->net_query_creator().create(
         telegram_api::bots_deletePreviewMedia(std::move(input_user), language_code, std::move(input_media)),
         {{bot_user_id}}));
@@ -269,7 +276,7 @@ class DeletePreviewMediaQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    promise_.set_value(Unit());
+    td_->user_manager_->reload_user_full(bot_user_id_, std::move(promise_), "DeletePreviewMediaQuery");
   }
 
   void on_error(Status status) final {
@@ -793,6 +800,9 @@ void BotInfoManager::reorder_bot_media_previews(UserId bot_user_id, const string
       return promise.set_error(Status::Error(400, "Wrong media to delete specified"));
     }
     input_medias.push_back(std::move(input_media));
+  }
+  if (input_medias.empty()) {
+    return promise.set_value(Unit());
   }
   td_->create_handler<ReorderPreviewMediasQuery>(std::move(promise))
       ->send(bot_user_id, std::move(input_user), language_code, std::move(input_medias));
