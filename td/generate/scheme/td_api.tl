@@ -10621,31 +10621,32 @@ allowBotToSendMessages bot_user_id:int53 = Ok;
 sendWebAppCustomRequest bot_user_id:int53 method:string parameters:string = CustomRequestResult;
 
 
-//@description Returns the list of media previews of a bot @bot_user_id Identifier of the target bot
+//@description Returns the list of media previews of a bot
+//@bot_user_id Identifier of the target bot. The bot must have main Web App
 getBotMediaPreviews bot_user_id:int53 = BotMediaPreviews;
 
 //@description Adds a new media preview to the beginning of the list of media previews of a bot. Returns the added preview after addition is completed server-side. The total number of previews must not exceed getOption("bot_media_preview_count_max") for the given language
-//@bot_user_id Identifier of the target bot
+//@bot_user_id Identifier of the target bot. The bot must be owned and must have main Web App
 //@language_code A two-letter ISO 639-1 language code for which preview is added. If empty, then the preview will be shown to all users for whose languages there are no dedicated previews.
 //-If non-empty, then there must be an official language pack with the same name as returned by getLocalizationTargetInfo
 //@content Content of the added preview
 addBotMediaPreview bot_user_id:int53 language_code:string content:InputStoryContent = StoryContent;
 
 //@description Replaces media preview in the list of media previews of a bot. Returns the new preview after edit is completed server-side
-//@bot_user_id Identifier of the target bot
+//@bot_user_id Identifier of the target bot. The bot must be owned and must have main Web App
 //@language_code Language code of the media preview to edit
 //@file_id File identifier of the media to replace
 //@content Content of the new preview
 editBotMediaPreview bot_user_id:int53 language_code:string file_id:int32 content:InputStoryContent = StoryContent;
 
 //@description Changes order of media previews in the list of media previews of a bot
-//@bot_user_id Identifier of the target bot
+//@bot_user_id Identifier of the target bot. The bot must be owned and must have main Web App
 //@language_code Language code of the media previews to reorder
 //@file_ids File identifiers of the media in the new order
 reorderBotMediaPreviews bot_user_id:int53 language_code:string file_ids:vector<int32> = Ok;
 
 //@description Delete media previews from the list of media previews of a bot
-//@bot_user_id Identifier of the target bot
+//@bot_user_id Identifier of the target bot. The bot must be owned and must have main Web App
 //@language_code Language code of the media previews to delete
 //@file_ids File identifiers of the media to delete
 deleteBotMediaPreviews bot_user_id:int53 language_code:string file_ids:vector<int32> = Ok;
