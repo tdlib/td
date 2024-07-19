@@ -157,6 +157,51 @@ class RequestAppWebViewQuery final : public Td::ResultHandler {
   }
 };
 
+class RequestMainWebViewQuery final : public Td::ResultHandler {
+  Promise<string> promise_;
+
+ public:
+  explicit RequestMainWebViewQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, telegram_api::object_ptr<telegram_api::InputUser> &&input_user,
+            const string &start_parameter, const td_api::object_ptr<td_api::themeParameters> &theme,
+            const string &platform) {
+    telegram_api::object_ptr<telegram_api::dataJSON> theme_parameters;
+    int32 flags = 0;
+    if (theme != nullptr) {
+      flags |= telegram_api::messages_requestMainWebView::THEME_PARAMS_MASK;
+
+      theme_parameters = make_tl_object<telegram_api::dataJSON>(string());
+      theme_parameters->data_ = ThemeManager::get_theme_parameters_json_string(theme);
+    }
+    if (!start_parameter.empty()) {
+      flags |= telegram_api::messages_requestMainWebView::START_PARAM_MASK;
+    }
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    send_query(G()->net_query_creator().create(telegram_api::messages_requestMainWebView(
+        flags, false /*ignored*/, std::move(input_peer), std::move(input_user), start_parameter,
+        std::move(theme_parameters), platform)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_requestMainWebView>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for RequestMainWebViewQuery: " << to_string(ptr);
+    LOG_IF(ERROR, ptr->query_id_ != 0) << "Receive " << to_string(ptr);
+    promise_.set_value(std::move(ptr->url_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class RequestWebViewQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::webAppInfo>> promise_;
   DialogId dialog_id_;
@@ -883,6 +928,23 @@ void AttachMenuManager::request_app_web_view(DialogId dialog_id, UserId bot_user
   td_->create_handler<RequestAppWebViewQuery>(std::move(promise))
       ->send(dialog_id, std::move(input_user), web_app_short_name, start_parameter, theme, platform,
              allow_write_access);
+}
+
+void AttachMenuManager::request_main_web_view(DialogId dialog_id, UserId bot_user_id, string &&start_parameter,
+                                              const td_api::object_ptr<td_api::themeParameters> &theme,
+                                              string &&platform, Promise<string> &&promise) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
+    dialog_id = DialogId(bot_user_id);
+  }
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
+  TRY_RESULT_PROMISE(promise, bot_data, td_->user_manager_->get_bot_data(bot_user_id));
+  if (!bot_data.has_main_app) {
+    return promise.set_error(Status::Error(400, "The bot has no main Mini App"));
+  }
+  on_dialog_used(TopDialogCategory::BotApp, DialogId(bot_user_id), G()->unix_time());
+
+  td_->create_handler<RequestMainWebViewQuery>(std::move(promise))
+      ->send(dialog_id, std::move(input_user), start_parameter, theme, platform);
 }
 
 void AttachMenuManager::request_web_view(DialogId dialog_id, UserId bot_user_id, MessageId top_thread_message_id,

@@ -9140,6 +9140,14 @@ searchWebApp bot_user_id:int53 web_app_short_name:string = FoundWebApp;
 //@allow_write_access Pass true if the current user allowed the bot to send them messages
 getWebAppLinkUrl chat_id:int53 bot_user_id:int53 web_app_short_name:string start_parameter:string theme:themeParameters application_name:string allow_write_access:Bool = HttpUrl;
 
+//@description Returns an HTTPS URL to open the main Web App of a bot
+//@chat_id Identifier of the chat in which the Web App is opened; pass 0 if none
+//@bot_user_id Identifier of the target bot
+//@start_parameter Start parameter from internalLinkTypeMainWebApp
+//@theme Preferred Web App theme; pass null to use the default theme
+//@application_name Short name of the application; 0-64 English letters, digits, and underscores
+getMainWebAppUrl chat_id:int53 bot_user_id:int53 start_parameter:string theme:themeParameters application_name:string = HttpUrl;
+
 //@description Returns an HTTPS URL of a Web App to open from the side menu, a keyboardButtonTypeWebApp button, an inlineQueryResultsButtonTypeWebApp button, or an internalLinkTypeSideMenuBot link
 //@bot_user_id Identifier of the target bot
 //@url The URL from a keyboardButtonTypeWebApp button, inlineQueryResultsButtonTypeWebApp button, an internalLinkTypeSideMenuBot link, or an empty when the bot is opened from the side menu

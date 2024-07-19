@@ -1777,6 +1777,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::getWebAppLinkUrl &request);
 
+  void on_request(uint64 id, td_api::getMainWebAppUrl &request);
+
   void on_request(uint64 id, td_api::getWebAppUrl &request);
 
   void on_request(uint64 id, td_api::sendWebAppData &request);
