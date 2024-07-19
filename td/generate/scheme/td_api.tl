@@ -571,13 +571,14 @@ userTypeDeleted = UserType;
 //@can_be_edited True, if the bot is owned by the current user and can be edited using the methods toggleBotUsernameIsActive, reorderBotActiveUsernames, setBotProfilePhoto, setBotName, setBotInfoDescription, and setBotInfoShortDescription
 //@can_join_groups True, if the bot can be invited to basic group and supergroup chats
 //@can_read_all_group_messages True, if the bot can read all messages in basic group or supergroup chats and not just those addressed to the bot. In private and channel chats a bot can always read all messages
+//@has_main_web_app True, if the bot has main Web App
 //@is_inline True, if the bot supports inline queries
 //@inline_query_placeholder Placeholder for inline queries (displayed on the application input field)
 //@need_location True, if the location of the user is expected to be sent with every inline query to this bot
 //@can_connect_to_business True, if the bot supports connection to Telegram Business accounts
 //@can_be_added_to_attachment_menu True, if the bot can be added to attachment or side menu
 //@active_user_count The number of recently active users of the bot
-userTypeBot can_be_edited:Bool can_join_groups:Bool can_read_all_group_messages:Bool is_inline:Bool inline_query_placeholder:string need_location:Bool can_connect_to_business:Bool can_be_added_to_attachment_menu:Bool active_user_count:int32 = UserType;
+userTypeBot can_be_edited:Bool can_join_groups:Bool can_read_all_group_messages:Bool has_main_web_app:Bool is_inline:Bool inline_query_placeholder:string need_location:Bool can_connect_to_business:Bool can_be_added_to_attachment_menu:Bool active_user_count:int32 = UserType;
 
 //@description No information on the user besides the user identifier is available, yet this user has not been deleted. This object is extremely rare and must be handled like a deleted user. It is not possible to perform any actions on users of this type
 userTypeUnknown = UserType;

@@ -213,6 +213,7 @@ class UserManager final : public Actor {
     bool can_be_edited;
     bool can_join_groups;
     bool can_read_all_group_messages;
+    bool has_main_app;
     bool is_inline;
     bool is_business;
     bool need_location;
@@ -513,6 +514,7 @@ class UserManager final : public Actor {
     bool can_join_groups = true;
     bool can_read_all_group_messages = true;
     bool can_be_edited_bot = false;
+    bool has_main_app = false;
     bool is_inline_bot = false;
     bool is_business_bot = false;
     bool need_location_bot = false;

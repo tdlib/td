@@ -1409,6 +1409,7 @@ void UserManager::User::store(StorerT &storer) const {
     STORE_FLAG(contact_require_premium);
     STORE_FLAG(is_business_bot);
     STORE_FLAG(has_bot_active_users);
+    STORE_FLAG(has_main_app);
     END_STORE_FLAGS();
   }
   store(first_name, storer);
@@ -1541,6 +1542,7 @@ void UserManager::User::parse(ParserT &parser) {
     PARSE_FLAG(contact_require_premium);
     PARSE_FLAG(is_business_bot);
     PARSE_FLAG(has_bot_active_users);
+    PARSE_FLAG(has_main_app);
     END_PARSE_FLAGS();
   }
   parse(first_name, parser);
@@ -2362,6 +2364,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
   bool can_join_groups = (flags & USER_FLAG_IS_PRIVATE_BOT) == 0;
   bool can_read_all_group_messages = (flags & USER_FLAG_IS_BOT_WITH_PRIVACY_DISABLED) != 0;
   bool can_be_added_to_attach_menu = (flags & USER_FLAG_IS_ATTACH_MENU_BOT) != 0;
+  bool has_main_app = user->bot_has_main_app_;
   bool attach_menu_enabled = (flags & USER_FLAG_ATTACH_MENU_ENABLED) != 0;
   bool is_scam = (flags & USER_FLAG_IS_SCAM) != 0;
   bool can_be_edited_bot = (flags2 & USER_FLAG_CAN_BE_EDITED_BOT) != 0;
@@ -2379,12 +2382,13 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
   bool contact_require_premium = user->contact_require_premium_;
 
   if (!is_bot && (!can_join_groups || can_read_all_group_messages || can_be_added_to_attach_menu || can_be_edited_bot ||
-                  is_inline_bot || is_business_bot)) {
+                  has_main_app || is_inline_bot || is_business_bot)) {
     LOG(ERROR) << "Receive not bot " << user_id << " with bot properties from " << source;
     can_join_groups = true;
     can_read_all_group_messages = false;
     can_be_added_to_attach_menu = false;
     can_be_edited_bot = false;
+    has_main_app = false;
     is_inline_bot = false;
     is_business_bot = false;
   }
@@ -2403,6 +2407,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
     can_read_all_group_messages = false;
     can_be_added_to_attach_menu = false;
     can_be_edited_bot = false;
+    has_main_app = false;
     is_inline_bot = false;
     is_business_bot = false;
     inline_query_placeholder = string();
@@ -2421,7 +2426,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
       is_scam != u->is_scam || is_fake != u->is_fake || is_inline_bot != u->is_inline_bot ||
       is_business_bot != u->is_business_bot || inline_query_placeholder != u->inline_query_placeholder ||
       need_location_bot != u->need_location_bot || can_be_added_to_attach_menu != u->can_be_added_to_attach_menu ||
-      bot_active_users != u->bot_active_users) {
+      bot_active_users != u->bot_active_users || has_main_app != u->has_main_app) {
     if (is_bot != u->is_bot) {
       LOG_IF(ERROR, !is_deleted && !u->is_deleted && u->is_received)
           << "User.is_bot has changed for " << user_id << "/" << u->usernames << " from " << source << " from "
@@ -2441,6 +2446,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
     u->need_location_bot = need_location_bot;
     u->can_be_added_to_attach_menu = can_be_added_to_attach_menu;
     u->bot_active_users = bot_active_users;
+    u->has_main_app = has_main_app;
 
     LOG(DEBUG) << "Info has changed for " << user_id;
     u->is_changed = true;
@@ -4134,6 +4140,7 @@ Result<UserManager::BotData> UserManager::get_bot_data(UserId user_id) const {
   bot_data.can_be_edited = u->can_be_edited_bot;
   bot_data.can_join_groups = u->can_join_groups;
   bot_data.can_read_all_group_messages = u->can_read_all_group_messages;
+  bot_data.has_main_app = u->has_main_app;
   bot_data.is_inline = u->is_inline_bot;
   bot_data.is_business = u->is_business_bot;
   bot_data.need_location = u->need_location_bot;
@@ -7880,7 +7887,7 @@ td_api::object_ptr<td_api::user> UserManager::get_user_object(UserId user_id, co
     type = td_api::make_object<td_api::userTypeDeleted>();
   } else if (u->is_bot) {
     type = td_api::make_object<td_api::userTypeBot>(
-        u->can_be_edited_bot, u->can_join_groups, u->can_read_all_group_messages, u->is_inline_bot,
+        u->can_be_edited_bot, u->can_join_groups, u->can_read_all_group_messages, u->has_main_app, u->is_inline_bot,
         u->inline_query_placeholder, u->need_location_bot, u->is_business_bot, u->can_be_added_to_attach_menu,
         u->bot_active_users);
   } else {
