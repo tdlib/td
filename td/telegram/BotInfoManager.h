@@ -51,6 +51,10 @@ class BotInfoManager final : public Actor {
                              td_api::object_ptr<td_api::InputStoryContent> &&input_content,
                              Promise<td_api::object_ptr<td_api::StoryContent>> &&promise);
 
+  void edit_bot_media_preview(UserId bot_user_id, const string &language_code, FileId file_id,
+                              td_api::object_ptr<td_api::InputStoryContent> &&input_content,
+                              Promise<td_api::object_ptr<td_api::StoryContent>> &&promise);
+
   void set_bot_name(UserId bot_user_id, const string &language_code, const string &name, Promise<Unit> &&promise);
 
   void get_bot_name(UserId bot_user_id, const string &language_code, Promise<string> &&promise);
@@ -73,6 +77,7 @@ class BotInfoManager final : public Actor {
   class AddPreviewMediaQuery;
 
   struct PendingBotMediaPreview {
+    FileId edited_file_id_;
     UserId bot_user_id_;
     string language_code_;
     unique_ptr<StoryContent> content_;

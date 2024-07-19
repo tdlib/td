@@ -10630,6 +10630,13 @@ getBotMediaPreviews bot_user_id:int53 = BotMediaPreviews;
 //@content Content of the added preview
 addBotMediaPreview bot_user_id:int53 language_code:string content:InputStoryContent = StoryContent;
 
+//@description Replaces media preview in the list of bot's media previews. Returns the new preview
+//@bot_user_id Identifier of the target bot
+//@language_code Language code of the media preview
+//@file_id File identifier of the media to replace
+//@content Content of the new preview
+editBotMediaPreview bot_user_id:int53 language_code:string file_id:int32 content:InputStoryContent = StoryContent;
+
 
 //@description Sets the name of a bot. Can be called only if userTypeBot.can_be_edited == true
 //@bot_user_id Identifier of the target bot

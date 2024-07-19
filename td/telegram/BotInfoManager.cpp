@@ -24,6 +24,7 @@
 #include "td/utils/Status.h"
 
 #include <algorithm>
+#include <type_traits>
 
 namespace td {
 
@@ -157,13 +158,27 @@ class BotInfoManager::AddPreviewMediaQuery final : public Td::ResultHandler {
     CHECK(input_file != nullptr);
     auto input_media = get_story_content_input_media(td_, content, std::move(input_file));
     CHECK(input_media != nullptr);
-    send_query(G()->net_query_creator().create(
-        telegram_api::bots_addPreviewMedia(std::move(input_user), pending_preview_->language_code_,
-                                           std::move(input_media)),
-        {{pending_preview_->bot_user_id_}}));
+    if (pending_preview_->edited_file_id_.is_valid()) {
+      auto edited_input_media = td_->bot_info_manager_->get_fake_input_media(pending_preview_->edited_file_id_);
+      if (edited_input_media == nullptr) {
+        return on_error(Status::Error(400, "Wrong media to edit specified"));
+      }
+      send_query(G()->net_query_creator().create(
+          telegram_api::bots_editPreviewMedia(std::move(input_user), pending_preview_->language_code_,
+                                              std::move(edited_input_media), std::move(input_media)),
+          {{pending_preview_->bot_user_id_}}));
+    } else {
+      send_query(G()->net_query_creator().create(
+          telegram_api::bots_addPreviewMedia(std::move(input_user), pending_preview_->language_code_,
+                                             std::move(input_media)),
+          {{pending_preview_->bot_user_id_}}));
+    }
   }
 
   void on_result(BufferSlice packet) final {
+    static_assert(std::is_same<telegram_api::bots_addPreviewMedia::ReturnType,
+                               telegram_api::bots_editPreviewMedia::ReturnType>::value,
+                  "");
     auto result_ptr = fetch_result<telegram_api::bots_addPreviewMedia>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
@@ -582,7 +597,28 @@ void BotInfoManager::add_bot_media_preview(UserId bot_user_id, const string &lan
   pending_preview->bot_user_id_ = bot_user_id;
   pending_preview->language_code_ = language_code;
   pending_preview->content_ = dup_story_content(td_, content.get());
-  pending_preview->upload_order_ = bot_media_preview_upload_order_;
+  pending_preview->upload_order_ = ++bot_media_preview_upload_order_;
+  pending_preview->promise_ = std::move(promise);
+
+  do_add_bot_media_preview(std::move(pending_preview), {});
+}
+
+void BotInfoManager::edit_bot_media_preview(UserId bot_user_id, const string &language_code, FileId file_id,
+                                            td_api::object_ptr<td_api::InputStoryContent> &&input_content,
+                                            Promise<td_api::object_ptr<td_api::StoryContent>> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_user, get_media_preview_bot_input_user(bot_user_id, true));
+  TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
+  TRY_RESULT_PROMISE(promise, content, get_input_story_content(td_, std::move(input_content), DialogId(bot_user_id)));
+  auto input_media = get_fake_input_media(file_id);
+  if (input_media == nullptr) {
+    return promise.set_error(Status::Error(400, "Wrong media to edit specified"));
+  }
+  auto pending_preview = make_unique<PendingBotMediaPreview>();
+  pending_preview->edited_file_id_ = file_id;
+  pending_preview->bot_user_id_ = bot_user_id;
+  pending_preview->language_code_ = language_code;
+  pending_preview->content_ = dup_story_content(td_, content.get());
+  pending_preview->upload_order_ = ++bot_media_preview_upload_order_;
   pending_preview->promise_ = std::move(promise);
 
   do_add_bot_media_preview(std::move(pending_preview), {});
