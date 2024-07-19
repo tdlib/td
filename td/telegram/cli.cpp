@@ -4970,7 +4970,7 @@ class CliClient final : public Actor {
     } else if (op == "spmp") {
       ChatId chat_id;
       get_args(args, chat_id, args);
-      auto paid_media = transform(full_split(args), [this](const string &photo) {
+      auto paid_media = transform(full_split(args), [](const string &photo) {
         return td_api::make_object<td_api::inputPaidMedia>(td_api::make_object<td_api::inputPaidMediaTypePhoto>(),
                                                            as_input_file(photo), nullptr, vector<int32>(), 0, 0);
       });
@@ -4979,7 +4979,7 @@ class CliClient final : public Actor {
     } else if (op == "spmv") {
       ChatId chat_id;
       get_args(args, chat_id, args);
-      auto paid_media = transform(full_split(args), [this](const string &video) {
+      auto paid_media = transform(full_split(args), [](const string &video) {
         return td_api::make_object<td_api::inputPaidMedia>(
             td_api::make_object<td_api::inputPaidMediaTypeVideo>(10, true), as_input_file(video), nullptr,
             vector<int32>(), 0, 0);
