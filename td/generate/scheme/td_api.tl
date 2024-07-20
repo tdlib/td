@@ -3874,14 +3874,15 @@ inputMessageForwarded from_chat_id:int53 message_id:int53 in_game_share:Bool cop
 //@can_get_media_timestamp_links True, if media timestamp links can be generated for media timestamp entities in the message text, caption or link preview description using getMessageLink
 //@can_get_message_thread True, if information about the message thread is available through getMessageThread and getMessageThreadHistory
 //@can_get_read_date True, if read date of the message can be received through getMessageReadDate
-//@can_get_statistics True, if the message statistics are available through getMessageStatistics and message forwards can be received using getMessagePublicForwards
+//@can_get_statistics True, if message statistics are available through getMessageStatistics and message forwards can be received using getMessagePublicForwards
 //@can_get_viewers True, if chat members already viewed the message can be received through getMessageViewers
 //@can_recognize_speech True, if speech can be recognized for the message through recognizeSpeech
 //@can_report_chat True, if the message can be reported using reportChat
 //@can_report_reactions True, if reactions on the message can be reported through reportMessageReactions
 //@can_report_supergroup_spam True, if the message can be reported using reportSupergroupSpam
 //@can_set_fact_check True, if fact check for the message can be changed through setMessageFactCheck
-messageProperties can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_paid:Bool can_be_pinned:Bool can_be_replied:Bool can_be_replied_in_another_chat:Bool can_be_saved:Bool can_be_shared_in_story:Bool can_edit_scheduling_state:Bool can_get_added_reactions:Bool can_get_embedding_code:Bool can_get_link:Bool can_get_media_timestamp_links:Bool can_get_message_thread:Bool can_get_read_date:Bool can_get_statistics:Bool can_get_viewers:Bool can_recognize_speech:Bool can_report_chat:Bool can_report_reactions:Bool can_report_supergroup_spam:Bool can_set_fact_check:Bool = MessageProperties;
+//@need_show_statistics True, if message statistics must be available from context menu of the message
+messageProperties can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_paid:Bool can_be_pinned:Bool can_be_replied:Bool can_be_replied_in_another_chat:Bool can_be_saved:Bool can_be_shared_in_story:Bool can_edit_scheduling_state:Bool can_get_added_reactions:Bool can_get_embedding_code:Bool can_get_link:Bool can_get_media_timestamp_links:Bool can_get_message_thread:Bool can_get_read_date:Bool can_get_statistics:Bool can_get_viewers:Bool can_recognize_speech:Bool can_report_chat:Bool can_report_reactions:Bool can_report_supergroup_spam:Bool can_set_fact_check:Bool need_show_statistics:Bool = MessageProperties;
 
 
 //@class SearchMessagesFilter @description Represents a filter for message search results
