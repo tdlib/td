@@ -240,6 +240,7 @@
       <option>Alpine</option>
       <option>CentOS 7</option>
       <option>CentOS 8</option>
+      <option>CentOS Stream 9</option>
       <option>Debian 8</option>
       <option>Debian 9</option>
       <option>Debian 10+</option>
@@ -859,8 +860,13 @@ function onOptionsChanged() {
         commands.push(sudo + 'yum install -y ' + packages);
         break;
       case 'CentOS 8':
+      case 'CentOS Stream 9':
         commands.push(sudo + 'dnf update -y');
-        commands.push(sudo + 'dnf --enablerepo=powertools install gperf');
+        if (linux_distro === 'CentOS 8') {
+          commands.push(sudo + 'dnf --enablerepo=powertools install -y gperf');
+        } else {
+          commands.push(sudo + 'dnf --enablerepo=crb install -y gperf');
+        }
         var packages = 'gcc-c++ make git zlib-devel openssl-devel php cmake';
         if (target === 'JNI') {
           packages += ' java-11-openjdk-devel';
