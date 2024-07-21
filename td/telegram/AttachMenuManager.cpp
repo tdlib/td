@@ -158,10 +158,11 @@ class RequestAppWebViewQuery final : public Td::ResultHandler {
 };
 
 class RequestMainWebViewQuery final : public Td::ResultHandler {
-  Promise<string> promise_;
+  Promise<td_api::object_ptr<td_api::mainWebApp>> promise_;
 
  public:
-  explicit RequestMainWebViewQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
+  explicit RequestMainWebViewQuery(Promise<td_api::object_ptr<td_api::mainWebApp>> &&promise)
+      : promise_(std::move(promise)) {
   }
 
   void send(DialogId dialog_id, telegram_api::object_ptr<telegram_api::InputUser> &&input_user,
@@ -194,7 +195,7 @@ class RequestMainWebViewQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for RequestMainWebViewQuery: " << to_string(ptr);
     LOG_IF(ERROR, ptr->query_id_ != 0) << "Receive " << to_string(ptr);
-    promise_.set_value(std::move(ptr->url_));
+    promise_.set_value(td_api::make_object<td_api::mainWebApp>(ptr->url_, !ptr->fullsize_));
   }
 
   void on_error(Status status) final {
@@ -932,7 +933,8 @@ void AttachMenuManager::request_app_web_view(DialogId dialog_id, UserId bot_user
 
 void AttachMenuManager::request_main_web_view(DialogId dialog_id, UserId bot_user_id, string &&start_parameter,
                                               const td_api::object_ptr<td_api::themeParameters> &theme,
-                                              string &&platform, Promise<string> &&promise) {
+                                              string &&platform,
+                                              Promise<td_api::object_ptr<td_api::mainWebApp>> &&promise) {
   if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
     dialog_id = DialogId(bot_user_id);
   }

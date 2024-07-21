@@ -2197,6 +2197,9 @@ foundWebApp web_app:webApp request_write_access:Bool skip_confirmation:Bool = Fo
 //@description Contains information about a Web App @launch_id Unique identifier for the Web App launch @url A Web App URL to open in a web view
 webAppInfo launch_id:int64 url:string = WebAppInfo;
 
+//@description Contains information about the main Web App of a bot @url URL of the Web App to open @is_compact True, if the Web App must be always opened in the compact mode instead of the full-size mode
+mainWebApp url:string is_compact:Bool = MainWebApp;
+
 
 //@description Contains information about a message thread
 //@chat_id Identifier of the chat to which the message thread belongs
@@ -6507,7 +6510,7 @@ internalLinkTypeLanguageSettings = InternalLinkType;
 //-Then use getMainWebAppUrl with the given URL and open the returned URL as a Web App
 //@bot_username Username of the bot
 //@url URL to be passed to getMainWebAppUrl
-//@is_compact True, if the Web App must be opened in a compact mode instead of a full-size mode
+//@is_compact True, if the Web App must be opened in the compact mode instead of the full-size mode
 internalLinkTypeMainWebApp bot_username:string url:string is_compact:Bool = InternalLinkType;
 
 //@description The link is a link to a Telegram message or a forum topic. Call getMessageLinkInfo with the given URL to process the link,
@@ -6622,7 +6625,7 @@ internalLinkTypeVideoChat chat_username:string invite_hash:string is_live_stream
 //@bot_username Username of the bot that owns the Web App
 //@web_app_short_name Short name of the Web App
 //@start_parameter Start parameter to be passed to getWebAppLinkUrl
-//@is_compact True, if the Web App must be opened in a compact mode instead of a full-size mode
+//@is_compact True, if the Web App must be opened in the compact mode instead of the full-size mode
 internalLinkTypeWebApp bot_username:string web_app_short_name:string start_parameter:string is_compact:Bool = InternalLinkType;
 
 
@@ -9138,23 +9141,23 @@ searchWebApp bot_user_id:int53 web_app_short_name:string = FoundWebApp;
 //@web_app_short_name Short name of the Web App
 //@start_parameter Start parameter from internalLinkTypeWebApp
 //@theme Preferred Web App theme; pass null to use the default theme
-//@application_name Short name of the application; 0-64 English letters, digits, and underscores
+//@application_name Short name of the current application; 0-64 English letters, digits, and underscores
 //@allow_write_access Pass true if the current user allowed the bot to send them messages
 getWebAppLinkUrl chat_id:int53 bot_user_id:int53 web_app_short_name:string start_parameter:string theme:themeParameters application_name:string allow_write_access:Bool = HttpUrl;
 
-//@description Returns an HTTPS URL to open the main Web App of a bot
+//@description Returns information needed to open the main Web App of a bot
 //@chat_id Identifier of the chat in which the Web App is opened; pass 0 if none
 //@bot_user_id Identifier of the target bot
 //@start_parameter Start parameter from internalLinkTypeMainWebApp
 //@theme Preferred Web App theme; pass null to use the default theme
-//@application_name Short name of the application; 0-64 English letters, digits, and underscores
-getMainWebAppUrl chat_id:int53 bot_user_id:int53 start_parameter:string theme:themeParameters application_name:string = HttpUrl;
+//@application_name Short name of the current application; 0-64 English letters, digits, and underscores
+getMainWebApp chat_id:int53 bot_user_id:int53 start_parameter:string theme:themeParameters application_name:string = MainWebApp;
 
 //@description Returns an HTTPS URL of a Web App to open from the side menu, a keyboardButtonTypeWebApp button, an inlineQueryResultsButtonTypeWebApp button, or an internalLinkTypeSideMenuBot link
 //@bot_user_id Identifier of the target bot
 //@url The URL from a keyboardButtonTypeWebApp button, inlineQueryResultsButtonTypeWebApp button, an internalLinkTypeSideMenuBot link, or an empty when the bot is opened from the side menu
 //@theme Preferred Web App theme; pass null to use the default theme
-//@application_name Short name of the application; 0-64 English letters, digits, and underscores
+//@application_name Short name of the current application; 0-64 English letters, digits, and underscores
 getWebAppUrl bot_user_id:int53 url:string theme:themeParameters application_name:string = HttpUrl;
 
 //@description Sends data received from a keyboardButtonTypeWebApp Web App to a bot
@@ -9169,7 +9172,7 @@ sendWebAppData bot_user_id:int53 button_text:string data:string = Ok;
 //@bot_user_id Identifier of the bot, providing the Web App
 //@url The URL from an inlineKeyboardButtonTypeWebApp button, a botMenuButton button, an internalLinkTypeAttachmentMenuBot link, or an empty string otherwise
 //@theme Preferred Web App theme; pass null to use the default theme
-//@application_name Short name of the application; 0-64 English letters, digits, and underscores
+//@application_name Short name of the current application; 0-64 English letters, digits, and underscores
 //@message_thread_id If not 0, the message thread identifier in which the message will be sent
 //@reply_to Information about the message or story to be replied in the message sent by the Web App; pass null if none
 openWebApp chat_id:int53 bot_user_id:int53 url:string theme:themeParameters application_name:string message_thread_id:int53 reply_to:InputMessageReplyTo = WebAppInfo;
