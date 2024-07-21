@@ -7392,14 +7392,14 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       const auto *m = static_cast<const MessageAnimation *>(content);
       return make_tl_object<td_api::messageAnimation>(
           td->animations_manager_->get_animation_object(m->file_id),
-          get_formatted_text_object(m->caption, skip_bot_commands, max_media_timestamp), invert_media, m->has_spoiler,
-          is_content_secret);
+          get_formatted_text_object(td->user_manager_.get(), m->caption, skip_bot_commands, max_media_timestamp),
+          invert_media, m->has_spoiler, is_content_secret);
     }
     case MessageContentType::Audio: {
       const auto *m = static_cast<const MessageAudio *>(content);
       return make_tl_object<td_api::messageAudio>(
           td->audios_manager_->get_audio_object(m->file_id),
-          get_formatted_text_object(m->caption, skip_bot_commands, max_media_timestamp));
+          get_formatted_text_object(td->user_manager_.get(), m->caption, skip_bot_commands, max_media_timestamp));
     }
     case MessageContentType::Contact: {
       const auto *m = static_cast<const MessageContact *>(content);
@@ -7409,7 +7409,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       const auto *m = static_cast<const MessageDocument *>(content);
       return make_tl_object<td_api::messageDocument>(
           td->documents_manager_->get_document_object(m->file_id, PhotoFormat::Jpeg),
-          get_formatted_text_object(m->caption, skip_bot_commands, max_media_timestamp));
+          get_formatted_text_object(td->user_manager_.get(), m->caption, skip_bot_commands, max_media_timestamp));
     }
     case MessageContentType::Game: {
       const auto *m = static_cast<const MessageGame *>(content);
@@ -7439,7 +7439,8 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
         LOG(ERROR) << "Have empty " << m->photo;
         return make_tl_object<td_api::messageExpiredPhoto>();
       }
-      auto caption = get_formatted_text_object(m->caption, skip_bot_commands, max_media_timestamp);
+      auto caption =
+          get_formatted_text_object(td->user_manager_.get(), m->caption, skip_bot_commands, max_media_timestamp);
       return make_tl_object<td_api::messagePhoto>(std::move(photo), std::move(caption), invert_media, m->has_spoiler,
                                                   is_content_secret);
     }
@@ -7479,8 +7480,8 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
             disable_web_page_preview, m->web_page_url, m->force_small_media, m->force_large_media, invert_media);
       }
       return make_tl_object<td_api::messageText>(
-          get_formatted_text_object(m->text, skip_bot_commands, max_media_timestamp), std::move(web_page),
-          std::move(link_preview_options));
+          get_formatted_text_object(td->user_manager_.get(), m->text, skip_bot_commands, max_media_timestamp),
+          std::move(web_page), std::move(link_preview_options));
     }
     case MessageContentType::Unsupported:
       return make_tl_object<td_api::messageUnsupported>();
@@ -7492,8 +7493,8 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       const auto *m = static_cast<const MessageVideo *>(content);
       return make_tl_object<td_api::messageVideo>(
           td->videos_manager_->get_video_object(m->file_id),
-          get_formatted_text_object(m->caption, skip_bot_commands, max_media_timestamp), invert_media, m->has_spoiler,
-          is_content_secret);
+          get_formatted_text_object(td->user_manager_.get(), m->caption, skip_bot_commands, max_media_timestamp),
+          invert_media, m->has_spoiler, is_content_secret);
     }
     case MessageContentType::VideoNote: {
       const auto *m = static_cast<const MessageVideoNote *>(content);
@@ -7504,7 +7505,8 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       const auto *m = static_cast<const MessageVoiceNote *>(content);
       return make_tl_object<td_api::messageVoiceNote>(
           td->voice_notes_manager_->get_voice_note_object(m->file_id),
-          get_formatted_text_object(m->caption, skip_bot_commands, max_media_timestamp), m->is_listened);
+          get_formatted_text_object(td->user_manager_.get(), m->caption, skip_bot_commands, max_media_timestamp),
+          m->is_listened);
     }
     case MessageContentType::ChatCreate: {
       const auto *m = static_cast<const MessageChatCreate *>(content);
@@ -7795,7 +7797,8 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       return td_api::make_object<td_api::messagePaidMedia>(
           m->star_count,
           transform(m->media, [&](const auto &media) { return media.get_message_extended_media_object(td); }),
-          get_formatted_text_object(m->caption, skip_bot_commands, max_media_timestamp), invert_media);
+          get_formatted_text_object(td->user_manager_.get(), m->caption, skip_bot_commands, max_media_timestamp),
+          invert_media);
     }
     case MessageContentType::PaymentRefunded: {
       const auto *m = static_cast<const MessagePaymentRefunded *>(content);

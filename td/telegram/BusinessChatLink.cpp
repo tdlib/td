@@ -21,9 +21,10 @@ BusinessChatLink::BusinessChatLink(const UserManager *user_manager,
     , view_count_(link->views_) {
 }
 
-td_api::object_ptr<td_api::businessChatLink> BusinessChatLink::get_business_chat_link_object() const {
-  return td_api::make_object<td_api::businessChatLink>(link_, get_formatted_text_object(text_, true, -1), title_,
-                                                       view_count_);
+td_api::object_ptr<td_api::businessChatLink> BusinessChatLink::get_business_chat_link_object(
+    const UserManager *user_manager) const {
+  return td_api::make_object<td_api::businessChatLink>(link_, get_formatted_text_object(user_manager, text_, true, -1),
+                                                       title_, view_count_);
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const BusinessChatLink &link) {
@@ -41,9 +42,11 @@ BusinessChatLinks::BusinessChatLinks(const UserManager *user_manager,
   }
 }
 
-td_api::object_ptr<td_api::businessChatLinks> BusinessChatLinks::get_business_chat_links_object() const {
+td_api::object_ptr<td_api::businessChatLinks> BusinessChatLinks::get_business_chat_links_object(
+    const UserManager *user_manager) const {
   return td_api::make_object<td_api::businessChatLinks>(transform(
-      business_chat_links_, [](const BusinessChatLink &link) { return link.get_business_chat_link_object(); }));
+      business_chat_links_,
+      [user_manager](const BusinessChatLink &link) { return link.get_business_chat_link_object(user_manager); }));
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const BusinessChatLinks &links) {

@@ -134,7 +134,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageEntity &me
   return string_builder;
 }
 
-tl_object_ptr<td_api::TextEntityType> MessageEntity::get_text_entity_type_object() const {
+tl_object_ptr<td_api::TextEntityType> MessageEntity::get_text_entity_type_object(
+    const UserManager *user_manager) const {
   switch (type) {
     case MessageEntity::Type::Mention:
       return make_tl_object<td_api::textEntityTypeMention>();
@@ -165,8 +166,9 @@ tl_object_ptr<td_api::TextEntityType> MessageEntity::get_text_entity_type_object
     case MessageEntity::Type::TextUrl:
       return make_tl_object<td_api::textEntityTypeTextUrl>(argument);
     case MessageEntity::Type::MentionName:
-      // can't use user_manager, because can be called from a static request
-      return make_tl_object<td_api::textEntityTypeMentionName>(user_id.get());
+      return make_tl_object<td_api::textEntityTypeMentionName>(
+          user_manager == nullptr ? user_id.get()
+                                  : user_manager->get_user_id_object(user_id, "textEntityTypeMentionName"));
     case MessageEntity::Type::Cashtag:
       return make_tl_object<td_api::textEntityTypeCashtag>();
     case MessageEntity::Type::PhoneNumber:
@@ -187,11 +189,12 @@ tl_object_ptr<td_api::TextEntityType> MessageEntity::get_text_entity_type_object
   }
 }
 
-tl_object_ptr<td_api::textEntity> MessageEntity::get_text_entity_object() const {
-  return make_tl_object<td_api::textEntity>(offset, length, get_text_entity_type_object());
+tl_object_ptr<td_api::textEntity> MessageEntity::get_text_entity_object(const UserManager *user_manager) const {
+  return make_tl_object<td_api::textEntity>(offset, length, get_text_entity_type_object(user_manager));
 }
 
-vector<tl_object_ptr<td_api::textEntity>> get_text_entities_object(const vector<MessageEntity> &entities,
+vector<tl_object_ptr<td_api::textEntity>> get_text_entities_object(const UserManager *user_manager,
+                                                                   const vector<MessageEntity> &entities,
                                                                    bool skip_bot_commands, int32 max_media_timestamp) {
   vector<tl_object_ptr<td_api::textEntity>> result;
   result.reserve(entities.size());
@@ -203,7 +206,7 @@ vector<tl_object_ptr<td_api::textEntity>> get_text_entities_object(const vector<
     if (entity.type == MessageEntity::Type::MediaTimestamp && max_media_timestamp < entity.media_timestamp) {
       continue;
     }
-    auto entity_object = entity.get_text_entity_object();
+    auto entity_object = entity.get_text_entity_object(user_manager);
     if (entity_object->type_ != nullptr) {
       result.push_back(std::move(entity_object));
     }
@@ -216,10 +219,11 @@ StringBuilder &operator<<(StringBuilder &string_builder, const FormattedText &te
   return string_builder << '"' << text.text << "\" with entities " << text.entities;
 }
 
-td_api::object_ptr<td_api::formattedText> get_formatted_text_object(const FormattedText &text, bool skip_bot_commands,
+td_api::object_ptr<td_api::formattedText> get_formatted_text_object(const UserManager *user_manager,
+                                                                    const FormattedText &text, bool skip_bot_commands,
                                                                     int32 max_media_timestamp) {
   return td_api::make_object<td_api::formattedText>(
-      text.text, get_text_entities_object(text.entities, skip_bot_commands, max_media_timestamp));
+      text.text, get_text_entities_object(user_manager, text.entities, skip_bot_commands, max_media_timestamp));
 }
 
 static bool is_word_character(uint32 code) {

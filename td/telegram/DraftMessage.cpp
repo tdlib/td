@@ -404,7 +404,7 @@ td_api::object_ptr<td_api::draftMessage> DraftMessage::get_draft_message_object(
   if (local_content_ != nullptr) {
     input_message_content = local_content_->get_draft_input_message_content_object();
   } else {
-    input_message_content = input_message_text_.get_input_message_text_object();
+    input_message_content = input_message_text_.get_input_message_text_object(td->user_manager_.get());
   }
   return td_api::make_object<td_api::draftMessage>(message_input_reply_to_.get_input_message_reply_to_object(td), date_,
                                                    std::move(input_message_content), message_effect_id_.get());

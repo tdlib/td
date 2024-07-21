@@ -545,8 +545,8 @@ class LinkManager::InternalLinkMessageDraft final : public InternalLink {
   bool contains_link_ = false;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypeMessageDraft>(get_formatted_text_object(text_, true, -1),
-                                                                     contains_link_);
+    return td_api::make_object<td_api::internalLinkTypeMessageDraft>(
+        get_formatted_text_object(nullptr, text_, true, -1), contains_link_);
   }
 
  public:
@@ -855,8 +855,8 @@ class GetDeepLinkInfoQuery final : public Td::ResultHandler {
         auto info = telegram_api::move_object_as<telegram_api::help_deepLinkInfo>(result);
         auto text = get_formatted_text(nullptr, std::move(info->message_), std::move(info->entities_), true, true,
                                        "GetDeepLinkInfoQuery");
-        return promise_.set_value(
-            td_api::make_object<td_api::deepLinkInfo>(get_formatted_text_object(text, true, -1), info->update_app_));
+        return promise_.set_value(td_api::make_object<td_api::deepLinkInfo>(
+            get_formatted_text_object(td_->user_manager_.get(), text, true, -1), info->update_app_));
       }
       default:
         UNREACHABLE();

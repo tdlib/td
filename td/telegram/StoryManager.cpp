@@ -3455,7 +3455,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
       can_get_interactions, has_expired_viewers, std::move(repost_info), std::move(interaction_info),
       story->chosen_reaction_type_.get_reaction_type_object(), std::move(privacy_settings),
       get_story_content_object(td_, content), std::move(story_areas),
-      get_formatted_text_object(*caption, true, get_story_content_duration(td_, content)));
+      get_formatted_text_object(td_->user_manager_.get(), *caption, true, get_story_content_duration(td_, content)));
 }
 
 td_api::object_ptr<td_api::stories> StoryManager::get_stories_object(int32 total_count,

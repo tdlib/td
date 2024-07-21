@@ -121,19 +121,22 @@ void MessageQuote::update_input_reply_to_message(Td *td,
 }
 
 // only for draft messages
-td_api::object_ptr<td_api::inputTextQuote> MessageQuote::get_input_text_quote_object() const {
+td_api::object_ptr<td_api::inputTextQuote> MessageQuote::get_input_text_quote_object(
+    const UserManager *user_manager) const {
   if (is_empty()) {
     return nullptr;
   }
   CHECK(is_manual_);
-  return td_api::make_object<td_api::inputTextQuote>(get_formatted_text_object(text_, true, -1), position_);
+  return td_api::make_object<td_api::inputTextQuote>(get_formatted_text_object(user_manager, text_, true, -1),
+                                                     position_);
 }
 
-td_api::object_ptr<td_api::textQuote> MessageQuote::get_text_quote_object() const {
+td_api::object_ptr<td_api::textQuote> MessageQuote::get_text_quote_object(const UserManager *user_manager) const {
   if (is_empty()) {
     return nullptr;
   }
-  return td_api::make_object<td_api::textQuote>(get_formatted_text_object(text_, true, -1), position_, is_manual_);
+  return td_api::make_object<td_api::textQuote>(get_formatted_text_object(user_manager, text_, true, -1), position_,
+                                                is_manual_);
 }
 
 bool operator==(const MessageQuote &lhs, const MessageQuote &rhs) {

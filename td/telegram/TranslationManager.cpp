@@ -129,7 +129,8 @@ void TranslationManager::on_get_translated_texts(vector<telegram_api::object_ptr
   }
   auto formatted_text = get_formatted_text(td_->user_manager_.get(), std::move(texts[0]), max_media_timestamp == -1,
                                            true, "on_get_translated_texts");
-  promise.set_value(get_formatted_text_object(formatted_text, skip_bot_commands, max_media_timestamp));
+  promise.set_value(
+      get_formatted_text_object(td_->user_manager_.get(), formatted_text, skip_bot_commands, max_media_timestamp));
 }
 
 }  // namespace td

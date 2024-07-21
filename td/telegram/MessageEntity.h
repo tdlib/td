@@ -81,7 +81,7 @@ class MessageEntity {
     CHECK(type == Type::CustomEmoji);
   }
 
-  tl_object_ptr<td_api::textEntity> get_text_entity_object() const;
+  tl_object_ptr<td_api::textEntity> get_text_entity_object(const UserManager *user_manager) const;
 
   bool operator==(const MessageEntity &other) const {
     return offset == other.offset && length == other.length && type == other.type &&
@@ -112,7 +112,7 @@ class MessageEntity {
   void parse(ParserT &parser);
 
  private:
-  tl_object_ptr<td_api::TextEntityType> get_text_entity_type_object() const;
+  tl_object_ptr<td_api::TextEntityType> get_text_entity_type_object(const UserManager *user_manager) const;
 
   static int get_type_priority(Type type);
 };
@@ -160,10 +160,12 @@ Result<vector<MessageEntity>> get_message_entities(const UserManager *user_manag
                                                    vector<tl_object_ptr<td_api::textEntity>> &&input_entities,
                                                    bool allow_all = false);
 
-vector<tl_object_ptr<td_api::textEntity>> get_text_entities_object(const vector<MessageEntity> &entities,
+vector<tl_object_ptr<td_api::textEntity>> get_text_entities_object(const UserManager *user_manager,
+                                                                   const vector<MessageEntity> &entities,
                                                                    bool skip_bot_commands, int32 max_media_timestamp);
 
-td_api::object_ptr<td_api::formattedText> get_formatted_text_object(const FormattedText &text, bool skip_bot_commands,
+td_api::object_ptr<td_api::formattedText> get_formatted_text_object(const UserManager *user_manager,
+                                                                    const FormattedText &text, bool skip_bot_commands,
                                                                     int32 max_media_timestamp);
 
 void remove_premium_custom_emoji_entities(const Td *td, vector<MessageEntity> &entities, bool remove_unknown);

@@ -65,9 +65,9 @@ class MessageQuote {
 
   void update_input_reply_to_message(Td *td, telegram_api::inputReplyToMessage *input_reply_to_message) const;
 
-  td_api::object_ptr<td_api::inputTextQuote> get_input_text_quote_object() const;
+  td_api::object_ptr<td_api::inputTextQuote> get_input_text_quote_object(const UserManager *user_manager) const;
 
-  td_api::object_ptr<td_api::textQuote> get_text_quote_object() const;
+  td_api::object_ptr<td_api::textQuote> get_text_quote_object(const UserManager *user_manager) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;

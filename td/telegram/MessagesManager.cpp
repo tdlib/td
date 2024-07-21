@@ -6546,7 +6546,7 @@ td_api::object_ptr<td_api::factCheck> MessagesManager::get_message_fact_check_ob
   if (m->fact_check == nullptr) {
     return nullptr;
   }
-  return m->fact_check->get_fact_check_object();
+  return m->fact_check->get_fact_check_object(td_->user_manager_.get());
 }
 
 vector<td_api::object_ptr<td_api::unreadReaction>> MessagesManager::get_unread_reactions_object(
@@ -13521,7 +13521,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     reactions->fix_chosen_reaction();
     reactions->fix_my_recent_chooser_dialog_id(my_dialog_id);
   }
-  auto fact_check = FactCheck::get_fact_check(td, std::move(message_info.fact_check), is_bot);
+  auto fact_check = FactCheck::get_fact_check(td->user_manager_.get(), std::move(message_info.fact_check), is_bot);
 
   bool has_forward_info = message_info.forward_header != nullptr;
   bool noforwards = message_info.noforwards;
@@ -19029,7 +19029,7 @@ void MessagesManager::on_get_message_fact_checks(
     if (m == nullptr) {
       continue;
     }
-    auto fact_check = FactCheck::get_fact_check(td_, std::move(fact_checks[i]), false);
+    auto fact_check = FactCheck::get_fact_check(td_->user_manager_.get(), std::move(fact_checks[i]), false);
     update_message_fact_check(d, m, std::move(fact_check), true);
   }
 }

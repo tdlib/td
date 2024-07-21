@@ -30,7 +30,7 @@ static td_api::object_ptr<td_api::userSupportInfo> get_user_support_info_object(
     result->author_ = std::move(info->author_);
     result->date_ = info->date_;
   }
-  result->message_ = get_formatted_text_object(message, true, 0);
+  result->message_ = get_formatted_text_object(td->user_manager_.get(), message, true, 0);
   return result;
 }
 

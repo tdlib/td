@@ -7955,7 +7955,7 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
         return false;
       });
     }
-    bio_object = get_formatted_text_object(bio, true, 0);
+    bio_object = get_formatted_text_object(this, bio, true, 0);
   }
   auto voice_messages_forbidden = is_premium ? user_full->voice_messages_forbidden : false;
   auto block_list_id = BlockListId(user_full->is_blocked, user_full->is_blocked_for_stories);

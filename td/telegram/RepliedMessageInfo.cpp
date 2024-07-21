@@ -309,7 +309,8 @@ td_api::object_ptr<td_api::messageReplyToMessage> RepliedMessageInfo::get_messag
     }
   }
 
-  return td_api::make_object<td_api::messageReplyToMessage>(chat_id, message_id_.get(), quote_.get_text_quote_object(),
+  return td_api::make_object<td_api::messageReplyToMessage>(chat_id, message_id_.get(),
+                                                            quote_.get_text_quote_object(td->user_manager_.get()),
                                                             std::move(origin), origin_date_, std::move(content));
 }
 

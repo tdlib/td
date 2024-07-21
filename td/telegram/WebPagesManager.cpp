@@ -1821,7 +1821,8 @@ td_api::object_ptr<td_api::linkPreview> WebPagesManager::get_link_preview_object
   }();
   return td_api::make_object<td_api::linkPreview>(
       web_page->url_, web_page->display_url_, web_page->site_name_, web_page->title_,
-      get_formatted_text_object(description, true, duration == 0 ? std::numeric_limits<int32>::max() : duration),
+      get_formatted_text_object(td_->user_manager_.get(), description, true,
+                                duration == 0 ? std::numeric_limits<int32>::max() : duration),
       get_link_preview_type_object(web_page), web_page->has_large_media_, show_large_media, skip_confirmation,
       invert_media, instant_view_version);
 }
