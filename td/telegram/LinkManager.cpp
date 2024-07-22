@@ -530,19 +530,16 @@ class LinkManager::InternalLinkLanguageSettings final : public InternalLink {
 
 class LinkManager::InternalLinkMainWebApp final : public InternalLink {
   string bot_username_;
-  string url_;
+  string start_parameter_;
   string mode_;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypeMainWebApp>(bot_username_, url_, mode_ == "compact");
+    return td_api::make_object<td_api::internalLinkTypeMainWebApp>(bot_username_, start_parameter_, mode_ == "compact");
   }
 
  public:
   InternalLinkMainWebApp(string bot_username, string start_parameter, string mode)
-      : bot_username_(std::move(bot_username)), mode_(std::move(mode)) {
-    if (!start_parameter.empty()) {
-      url_ = PSTRING() << "start://" << start_parameter;
-    }
+      : bot_username_(std::move(bot_username)), start_parameter_(std::move(start_parameter)), mode_(std::move(mode)) {
   }
 };
 
@@ -2214,15 +2211,11 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return Status::Error(400, "Invalid bot username specified");
       }
       string start_parameter;
-      if (!link->url_.empty()) {
-        if (!begins_with(link->url_, "start://")) {
-          return Status::Error(400, "Unsupported link URL specified");
-        }
-        auto start_parameter_slice = Slice(link->url_).substr(8);
-        if (start_parameter_slice.empty() || !is_valid_start_parameter(start_parameter_slice)) {
+      if (!link->start_parameter_.empty()) {
+        if (!is_valid_start_parameter(link->start_parameter_)) {
           return Status::Error(400, "Invalid start parameter specified");
         }
-        start_parameter = PSTRING() << '=' << start_parameter_slice;
+        start_parameter = PSTRING() << '=' << link->start_parameter_;
       }
       string mode = link->is_compact_ ? "&mode=compact" : "";
       if (is_internal) {

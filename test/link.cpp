@@ -273,8 +273,7 @@ static auto language_settings() {
 }
 
 static auto main_web_app(const td::string &bot_username, const td::string &start_parameter, bool is_compact) {
-  return td::td_api::make_object<td::td_api::internalLinkTypeMainWebApp>(
-      bot_username, start_parameter.empty() ? td::string() : "start://" + start_parameter, is_compact);
+  return td::td_api::make_object<td::td_api::internalLinkTypeMainWebApp>(bot_username, start_parameter, is_compact);
 }
 
 static auto message(const td::string &url) {

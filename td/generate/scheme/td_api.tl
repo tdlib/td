@@ -6507,11 +6507,11 @@ internalLinkTypeLanguageSettings = InternalLinkType;
 //-If the bot can be added to attachment menu, then use getAttachmentMenuBot to receive information about the bot, then if the bot isn't added to side menu,
 //-show a disclaimer about Mini Apps being a third-party apps, ask the user to accept their Terms of service and confirm adding the bot to side and attachment menu,
 //-then if the user accepts the terms and confirms adding, use toggleBotIsAddedToAttachmentMenu to add the bot.
-//-Then use getMainWebAppUrl with the given URL and open the returned URL as a Web App
+//-Then use getMainWebApp with the given start parameter and open the returned URL as a Web App
 //@bot_username Username of the bot
-//@url URL to be passed to getMainWebAppUrl
+//@start_parameter Start parameter to be passed to getMainWebApp
 //@is_compact True, if the Web App must be opened in the compact mode instead of the full-size mode
-internalLinkTypeMainWebApp bot_username:string url:string is_compact:Bool = InternalLinkType;
+internalLinkTypeMainWebApp bot_username:string start_parameter:string is_compact:Bool = InternalLinkType;
 
 //@description The link is a link to a Telegram message or a forum topic. Call getMessageLinkInfo with the given URL to process the link,
 //-and then open received forum topic or chat and show the message there
