@@ -181,9 +181,10 @@ class GetPreviewInfoQuery final : public Td::ResultHandler {
       }
     }
     if (!file_ids.empty()) {
-      // auto file_source_id = td_->bot_info_manager_->get_bot_media_preview_file_source_id(bot_user_id_);
+      auto file_source_id =
+          td_->bot_info_manager_->get_bot_media_preview_info_file_source_id(bot_user_id_, language_code_);
       for (auto file_id : file_ids) {
-        // td_->file_manager_->add_file_source(file_id, file_source_id);
+        td_->file_manager_->add_file_source(file_id, file_source_id);
       }
     }
     promise_.set_value(
@@ -251,7 +252,8 @@ class BotInfoManager::AddPreviewMediaQuery final : public Td::ResultHandler {
     }
     auto file_ids = get_story_content_file_ids(td_, content.get());
     if (!file_ids.empty()) {
-      auto file_source_id = td_->bot_info_manager_->get_bot_media_preview_file_source_id(bot_user_id);
+      auto file_source_id = td_->bot_info_manager_->get_bot_media_preview_info_file_source_id(
+          bot_user_id, pending_preview_->language_code_);
       for (auto file_id : file_ids) {
         td_->file_manager_->add_file_source(file_id, file_source_id);
       }
@@ -566,7 +568,8 @@ BotInfoManager::BotInfoManager(Td *td, ActorShared<> parent) : td_(td), parent_(
 }
 
 BotInfoManager::~BotInfoManager() {
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), bot_media_preview_file_source_ids_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), bot_media_preview_file_source_ids_,
+                                              bot_media_preview_info_file_source_ids_);
 }
 
 void BotInfoManager::tear_down() {
@@ -675,6 +678,21 @@ FileSourceId BotInfoManager::get_bot_media_preview_file_source_id(UserId bot_use
   return source_id;
 }
 
+FileSourceId BotInfoManager::get_bot_media_preview_info_file_source_id(UserId bot_user_id,
+                                                                       const string &language_code) {
+  if (!bot_user_id.is_valid()) {
+    return FileSourceId();
+  }
+
+  auto &source_id = bot_media_preview_info_file_source_ids_[{bot_user_id, language_code}];
+  if (!source_id.is_valid()) {
+    source_id = td_->file_reference_manager_->create_bot_media_preview_info_file_source(bot_user_id, language_code);
+  }
+  VLOG(file_references) << "Return " << source_id << " for media preview info of " << bot_user_id << " for "
+                        << language_code;
+  return source_id;
+}
+
 Result<telegram_api::object_ptr<telegram_api::InputUser>> BotInfoManager::get_media_preview_bot_input_user(
     UserId user_id, bool can_be_edited) {
   TRY_RESULT(bot_data, td_->user_manager_->get_bot_data(user_id));
@@ -710,6 +728,20 @@ void BotInfoManager::reload_bot_media_previews(UserId bot_user_id, Promise<Unit>
           promise.set_value(Unit());
         }
       }));
+}
+
+void BotInfoManager::reload_bot_media_preview_info(UserId bot_user_id, const string &language_code,
+                                                   Promise<Unit> &&promise) {
+  get_bot_media_preview_info(
+      bot_user_id, language_code,
+      PromiseCreator::lambda(
+          [promise = std::move(promise)](Result<td_api::object_ptr<td_api::botMediaPreviewInfo>> result) mutable {
+            if (result.is_error()) {
+              promise.set_error(result.move_as_error());
+            } else {
+              promise.set_value(Unit());
+            }
+          }));
 }
 
 void BotInfoManager::add_bot_media_preview(UserId bot_user_id, const string &language_code,

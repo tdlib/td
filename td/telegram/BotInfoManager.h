@@ -43,12 +43,16 @@ class BotInfoManager final : public Actor {
 
   FileSourceId get_bot_media_preview_file_source_id(UserId bot_user_id);
 
+  FileSourceId get_bot_media_preview_info_file_source_id(UserId bot_user_id, const string &language_code);
+
   void get_bot_media_previews(UserId bot_user_id, Promise<td_api::object_ptr<td_api::botMediaPreviews>> &&promise);
 
   void get_bot_media_preview_info(UserId bot_user_id, const string &language_code,
                                   Promise<td_api::object_ptr<td_api::botMediaPreviewInfo>> &&promise);
 
   void reload_bot_media_previews(UserId bot_user_id, Promise<Unit> &&promise);
+
+  void reload_bot_media_preview_info(UserId bot_user_id, const string &language_code, Promise<Unit> &&promise);
 
   void add_bot_media_preview(UserId bot_user_id, const string &language_code,
                              td_api::object_ptr<td_api::InputStoryContent> &&input_content,
@@ -153,6 +157,26 @@ class BotInfoManager final : public Actor {
   vector<PendingGetBotInfoQuery> pending_get_bot_info_queries_;
 
   FlatHashMap<UserId, FileSourceId, UserIdHash> bot_media_preview_file_source_ids_;
+
+  struct MediaPreviewSource {
+    UserId bot_user_id_;
+    string language_code_;
+
+    MediaPreviewSource() = default;
+    MediaPreviewSource(UserId bot_user_id, string language_code)
+        : bot_user_id_(bot_user_id), language_code_(std::move(language_code)) {
+    }
+
+    friend bool operator==(const MediaPreviewSource &lhs, const MediaPreviewSource &rhs) {
+      return lhs.bot_user_id_ == rhs.bot_user_id_ && lhs.language_code_ == rhs.language_code_;
+    }
+  };
+  struct MediaPreviewSourceHash {
+    uint32 operator()(MediaPreviewSource source) const {
+      return combine_hashes(UserIdHash()(source.bot_user_id_), Hash<string>()(source.language_code_));
+    }
+  };
+  FlatHashMap<MediaPreviewSource, FileSourceId, MediaPreviewSourceHash> bot_media_preview_info_file_source_ids_;
 
   FlatHashMap<FileId, unique_ptr<PendingBotMediaPreview>, FileIdHash> being_uploaded_files_;
 

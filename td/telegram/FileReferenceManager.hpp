@@ -73,7 +73,11 @@ void FileReferenceManager::store_file_source(FileSourceId file_source_id, Storer
                             td::store(source.transaction_id, storer);
                             td::store(source.is_refund, storer);
                           },
-                          [&](const FileSourceBotMediaPreview &source) { td::store(source.bot_user_id, storer); }));
+                          [&](const FileSourceBotMediaPreview &source) { td::store(source.bot_user_id, storer); },
+                          [&](const FileSourceBotMediaPreviewInfo &source) {
+                            td::store(source.bot_user_id, storer);
+                            td::store(source.language_code, storer);
+                          }));
 }
 
 template <class ParserT>
@@ -179,6 +183,13 @@ FileSourceId FileReferenceManager::parse_file_source(Td *td, ParserT &parser) {
       UserId bot_user_id;
       td::parse(bot_user_id, parser);
       return td->bot_info_manager_->get_bot_media_preview_file_source_id(bot_user_id);
+    }
+    case 21: {
+      UserId bot_user_id;
+      string language_code;
+      td::parse(bot_user_id, parser);
+      td::parse(language_code, parser);
+      return td->bot_info_manager_->get_bot_media_preview_info_file_source_id(bot_user_id, language_code);
     }
     default:
       parser.set_error("Invalid type in FileSource");

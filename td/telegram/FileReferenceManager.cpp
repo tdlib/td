@@ -87,6 +87,7 @@ fileSourceStory chat_id:int53 story_id:int32 = FileSource;                      
 fileSourceQuickReplyMessage shortcut_id:int32 message_id:int53 = FileSource;               // messages.getQuickReplyMessages
 fileSourceStarTransaction chat_id:int53 transaction_id:string is_refund:Bool = FileSource; // payments.getStarsTransactionsByID
 fileSourceBotMediaPreview bot_user_id:int53 = FileSource;                                  // bots.getPreviewMedias
+fileSourceBotMediaPreviewInfo bot_user_id:int53 language_code:string = FileSource;         // bots.getPreviewMediaInfo
 */
 
 FileSourceId FileReferenceManager::get_current_file_source_id() const {
@@ -190,6 +191,12 @@ FileSourceId FileReferenceManager::create_star_transaction_file_source(DialogId 
 FileSourceId FileReferenceManager::create_bot_media_preview_file_source(UserId bot_user_id) {
   FileSourceBotMediaPreview source{bot_user_id};
   return add_file_source_id(source, PSLICE() << "bot media preview " << bot_user_id);
+}
+
+FileSourceId FileReferenceManager::create_bot_media_preview_info_file_source(UserId bot_user_id,
+                                                                             const string &language_code) {
+  FileSourceBotMediaPreviewInfo source{bot_user_id, language_code};
+  return add_file_source_id(source, PSLICE() << "bot media preview info " << bot_user_id << " for " << language_code);
 }
 
 FileReferenceManager::Node &FileReferenceManager::add_node(NodeId node_id) {
@@ -419,6 +426,10 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
       [&](const FileSourceBotMediaPreview &source) {
         send_closure_later(G()->bot_info_manager(), &BotInfoManager::reload_bot_media_previews, source.bot_user_id,
                            std::move(promise));
+      },
+      [&](const FileSourceBotMediaPreviewInfo &source) {
+        send_closure_later(G()->bot_info_manager(), &BotInfoManager::reload_bot_media_preview_info, source.bot_user_id,
+                           source.language_code, std::move(promise));
       }));
 }
 
