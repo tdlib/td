@@ -45,6 +45,9 @@ class BotInfoManager final : public Actor {
 
   void get_bot_media_previews(UserId bot_user_id, Promise<td_api::object_ptr<td_api::botMediaPreviews>> &&promise);
 
+  void get_bot_media_preview_info(UserId bot_user_id, const string &language_code,
+                                  Promise<td_api::object_ptr<td_api::botMediaPreviewInfo>> &&promise);
+
   void reload_bot_media_previews(UserId bot_user_id, Promise<Unit> &&promise);
 
   void add_bot_media_preview(UserId bot_user_id, const string &language_code,

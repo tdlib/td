@@ -7902,6 +7902,13 @@ void Td::on_request(uint64 id, const td_api::getBotMediaPreviews &request) {
   bot_info_manager_->get_bot_media_previews(UserId(request.bot_user_id_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::getBotMediaPreviewInfo &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  bot_info_manager_->get_bot_media_preview_info(UserId(request.bot_user_id_), request.language_code_,
+                                                std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::addBotMediaPreview &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

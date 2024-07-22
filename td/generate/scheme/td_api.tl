@@ -4396,6 +4396,11 @@ publicForwards total_count:int32 forwards:vector<PublicForward> next_offset:stri
 //@description Contains a list of media previews of a bot @previews List of media previews
 botMediaPreviews previews:vector<StoryContent> = BotMediaPreviews;
 
+//@description Contains a list of media previews of a bot for the given language and the list of langauges for which the bot has dedicated previews
+//@previews List of media previews
+//@language_codes List of language codes for which the bot has dedicated previews
+botMediaPreviewInfo previews:vector<StoryContent> language_codes:vector<string> = BotMediaPreviewInfo;
+
 
 //@description Contains a list of features available on a specific chat boost level
 //@level Target chat boost level
@@ -10635,14 +10640,18 @@ allowBotToSendMessages bot_user_id:int53 = Ok;
 sendWebAppCustomRequest bot_user_id:int53 method:string parameters:string = CustomRequestResult;
 
 
-//@description Returns the list of media previews of a bot
-//@bot_user_id Identifier of the target bot. The bot must have the main Web App
+//@description Returns the list of media previews of a bot @bot_user_id Identifier of the target bot. The bot must have the main Web App
 getBotMediaPreviews bot_user_id:int53 = BotMediaPreviews;
+
+//@description Returns the list of media previews for the given language and the list of langauges for which the bot has dedicated previews
+//@bot_user_id Identifier of the target bot. The bot must be owned and must have the main Web App
+//@language_code A two-letter ISO 639-1 language code for which to get previews. If empty, then default previews are returned
+getBotMediaPreviewInfo bot_user_id:int53 language_code:string = BotMediaPreviewInfo;
 
 //@description Adds a new media preview to the beginning of the list of media previews of a bot. Returns the added preview after addition is completed server-side. The total number of previews must not exceed getOption("bot_media_preview_count_max") for the given language
 //@bot_user_id Identifier of the target bot. The bot must be owned and must have the main Web App
 //@language_code A two-letter ISO 639-1 language code for which preview is added. If empty, then the preview will be shown to all users for whose languages there are no dedicated previews.
-//-If non-empty, then there must be an official language pack with the same name as returned by getLocalizationTargetInfo
+//-If non-empty, then there must be an official language pack of the same name, which is returned by getLocalizationTargetInfo
 //@content Content of the added preview
 addBotMediaPreview bot_user_id:int53 language_code:string content:InputStoryContent = StoryContent;
 

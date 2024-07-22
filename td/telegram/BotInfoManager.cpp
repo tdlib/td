@@ -143,6 +143,58 @@ class GetPreviewMediasQuery final : public Td::ResultHandler {
   }
 };
 
+class GetPreviewInfoQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::botMediaPreviewInfo>> promise_;
+  UserId bot_user_id_;
+  string language_code_;
+
+ public:
+  explicit GetPreviewInfoQuery(Promise<td_api::object_ptr<td_api::botMediaPreviewInfo>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(UserId bot_user_id, telegram_api::object_ptr<telegram_api::InputUser> input_user,
+            const string &language_code) {
+    bot_user_id_ = bot_user_id;
+    language_code_ = language_code;
+    send_query(G()->net_query_creator().create(telegram_api::bots_getPreviewInfo(std::move(input_user), language_code),
+                                               {{bot_user_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::bots_getPreviewInfo>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetPreviewInfoQuery: " << to_string(ptr);
+    vector<td_api::object_ptr<td_api::StoryContent>> contents;
+    vector<FileId> file_ids;
+    for (auto &media_ptr : ptr->media_) {
+      auto content = get_story_content(td_, std::move(media_ptr->media_), DialogId(bot_user_id_));
+      if (content == nullptr) {
+        LOG(ERROR) << "Receive invalid media preview for " << bot_user_id_;
+      } else {
+        append(file_ids, get_story_content_file_ids(td_, content.get()));
+        contents.push_back(get_story_content_object(td_, content.get()));
+      }
+    }
+    if (!file_ids.empty()) {
+      // auto file_source_id = td_->bot_info_manager_->get_bot_media_preview_file_source_id(bot_user_id_);
+      for (auto file_id : file_ids) {
+        // td_->file_manager_->add_file_source(file_id, file_source_id);
+      }
+    }
+    promise_.set_value(
+        td_api::make_object<td_api::botMediaPreviewInfo>(std::move(contents), std::move(ptr->lang_codes_)));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class BotInfoManager::AddPreviewMediaQuery final : public Td::ResultHandler {
   FileId file_id_;
   unique_ptr<PendingBotMediaPreview> pending_preview_;
@@ -639,6 +691,13 @@ void BotInfoManager::get_bot_media_previews(UserId bot_user_id,
                                             Promise<td_api::object_ptr<td_api::botMediaPreviews>> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, get_media_preview_bot_input_user(bot_user_id));
   td_->create_handler<GetPreviewMediasQuery>(std::move(promise))->send(bot_user_id, std::move(input_user));
+}
+
+void BotInfoManager::get_bot_media_preview_info(UserId bot_user_id, const string &language_code,
+                                                Promise<td_api::object_ptr<td_api::botMediaPreviewInfo>> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_user, get_media_preview_bot_input_user(bot_user_id, true));
+  TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
+  td_->create_handler<GetPreviewInfoQuery>(std::move(promise))->send(bot_user_id, std::move(input_user), language_code);
 }
 
 void BotInfoManager::reload_bot_media_previews(UserId bot_user_id, Promise<Unit> &&promise) {

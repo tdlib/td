@@ -6569,6 +6569,11 @@ class CliClient final : public Actor {
       UserId bot_user_id;
       get_args(args, bot_user_id);
       send_request(td_api::make_object<td_api::getBotMediaPreviews>(bot_user_id));
+    } else if (op == "gbmpi") {
+      UserId bot_user_id;
+      string language_code;
+      get_args(args, bot_user_id, language_code);
+      send_request(td_api::make_object<td_api::getBotMediaPreviewInfo>(bot_user_id, language_code));
     } else if (op == "abmpp") {
       UserId bot_user_id;
       string language_code;
