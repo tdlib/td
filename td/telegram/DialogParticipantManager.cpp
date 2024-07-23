@@ -111,9 +111,9 @@ class GetChatJoinRequestsQuery final : public Td::ResultHandler {
     if (!query.empty()) {
       flags |= telegram_api::messages_getChatInviteImporters::Q_MASK;
     }
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_getChatInviteImporters(flags, false /*ignored*/, std::move(input_peer), invite_link,
-                                                      query, offset_date, r_input_user.move_as_ok(), limit)));
+    send_query(G()->net_query_creator().create(telegram_api::messages_getChatInviteImporters(
+        flags, false /*ignored*/, false /*ignored*/, std::move(input_peer), invite_link, query, offset_date,
+        r_input_user.move_as_ok(), limit)));
   }
 
   void on_result(BufferSlice packet) final {

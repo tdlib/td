@@ -817,7 +817,7 @@ class SetChatAvailableReactionsQuery final : public Td::ResultHandler {
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_setChatAvailableReactions(
         flags, std::move(input_peer), available_reactions.get_input_chat_reactions(),
-        available_reactions.reactions_limit_)));
+        available_reactions.reactions_limit_, false)));
   }
 
   void on_result(BufferSlice packet) final {

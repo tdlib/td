@@ -134,7 +134,7 @@ class ExportChatInviteQuery final : public Td::ResultHandler {
     }
 
     send_query(G()->net_query_creator().create(telegram_api::messages_exportChatInvite(
-        flags, false /*ignored*/, false /*ignored*/, std::move(input_peer), expire_date, usage_limit, title)));
+        flags, false /*ignored*/, false /*ignored*/, std::move(input_peer), expire_date, usage_limit, title, nullptr)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -398,9 +398,9 @@ class GetChatInviteImportersQuery final : public Td::ResultHandler {
     }
 
     int32 flags = telegram_api::messages_getChatInviteImporters::LINK_MASK;
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_getChatInviteImporters(flags, false /*ignored*/, std::move(input_peer), invite_link,
-                                                      string(), offset_date, r_input_user.move_as_ok(), limit)));
+    send_query(G()->net_query_creator().create(telegram_api::messages_getChatInviteImporters(
+        flags, false /*ignored*/, false /*ignored*/, std::move(input_peer), invite_link, string(), offset_date,
+        r_input_user.move_as_ok(), limit)));
   }
 
   void on_result(BufferSlice packet) final {

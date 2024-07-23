@@ -144,8 +144,9 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
     if (td_->auth_manager_->is_bot()) {
       flags |= telegram_api::payments_getStarsTransactions::ASCENDING_MASK;
     }
-    send_query(G()->net_query_creator().create(telegram_api::payments_getStarsTransactions(
-        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer), offset, limit)));
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_getStarsTransactions(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                                                    string(), std::move(input_peer), offset, limit)));
   }
 
   void send(DialogId dialog_id, const string &transaction_id, bool is_refund) {

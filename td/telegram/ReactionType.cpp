@@ -52,6 +52,8 @@ ReactionType::ReactionType(const telegram_api::object_ptr<telegram_api::Reaction
       reaction_ =
           get_custom_emoji_string(static_cast<const telegram_api::reactionCustomEmoji *>(reaction.get())->document_id_);
       break;
+    case telegram_api::reactionPaid::ID:
+      break;
     default:
       UNREACHABLE();
       break;

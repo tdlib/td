@@ -165,6 +165,9 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionToggleSignatures>(action_ptr);
       return td_api::make_object<td_api::chatEventSignMessagesToggled>(action->new_value_);
     }
+    case telegram_api::channelAdminLogEventActionToggleSignatureProfiles::ID: {
+      return nullptr;
+    }
     case telegram_api::channelAdminLogEventActionUpdatePinned::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionUpdatePinned>(action_ptr);
       auto message = td->messages_manager_->get_dialog_event_log_message_object(
