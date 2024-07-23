@@ -730,6 +730,8 @@ void DialogInviteLinkManager::on_get_dialog_invite_link_info(
       invite_link_info->description = std::move(chat_invite->about_);
       invite_link_info->participant_count = chat_invite->participants_count_;
       invite_link_info->participant_user_ids = std::move(participant_user_ids);
+      invite_link_info->subscription_pricing = StarSubscriptionPricing(std::move(chat_invite->subscription_pricing_));
+      invite_link_info->subscription_form_id = chat_invite->subscription_form_id_;
       invite_link_info->creates_join_request = std::move(chat_invite->request_needed_);
       invite_link_info->is_chat = !chat_invite->channel_;
       invite_link_info->is_channel = chat_invite->channel_;
@@ -772,7 +774,7 @@ td_api::object_ptr<td_api::chatInviteLinkInfo> DialogInviteLinkManager::get_chat
     return nullptr;
   }
 
-  auto invite_link_info = it->second.get();
+  const auto *invite_link_info = it->second.get();
   CHECK(invite_link_info != nullptr);
 
   DialogId dialog_id = invite_link_info->dialog_id;
@@ -785,6 +787,8 @@ td_api::object_ptr<td_api::chatInviteLinkInfo> DialogInviteLinkManager::get_chat
   string description;
   int32 participant_count = 0;
   vector<int64> member_user_ids;
+  td_api::object_ptr<td_api::starSubscriptionPricing> subscription_pricing;
+  int64 subscription_form_id = 0;
   bool creates_join_request = false;
   bool is_public = false;
   bool is_member = false;
@@ -834,6 +838,10 @@ td_api::object_ptr<td_api::chatInviteLinkInfo> DialogInviteLinkManager::get_chat
     participant_count = invite_link_info->participant_count;
     member_user_ids = td_->user_manager_->get_user_ids_object(invite_link_info->participant_user_ids,
                                                               "get_chat_invite_link_info_object");
+    subscription_pricing = invite_link_info->subscription_pricing.get_star_subscription_pricing_object();
+    if (subscription_pricing != nullptr) {
+      subscription_form_id = invite_link_info->subscription_form_id;
+    }
     creates_join_request = invite_link_info->creates_join_request;
     is_public = invite_link_info->is_public;
     is_verified = invite_link_info->is_verified;
@@ -861,7 +869,8 @@ td_api::object_ptr<td_api::chatInviteLinkInfo> DialogInviteLinkManager::get_chat
   return td_api::make_object<td_api::chatInviteLinkInfo>(
       td_->dialog_manager_->get_chat_id_object(dialog_id, "chatInviteLinkInfo"), accessible_for, std::move(chat_type),
       title, get_chat_photo_info_object(td_->file_manager_.get(), photo), accent_color_id_object, description,
-      participant_count, std::move(member_user_ids), creates_join_request, is_public, is_verified, is_scam, is_fake);
+      participant_count, std::move(member_user_ids), std::move(subscription_pricing), subscription_form_id,
+      creates_join_request, is_public, is_verified, is_scam, is_fake);
 }
 
 void DialogInviteLinkManager::add_dialog_access_by_invite_link(DialogId dialog_id, const string &invite_link,

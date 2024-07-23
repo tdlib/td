@@ -9,6 +9,7 @@
 #include "td/telegram/AccentColorId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Photo.h"
+#include "td/telegram/StarSubscriptionPricing.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
@@ -113,6 +114,8 @@ class DialogInviteLinkManager final : public Actor {
     int32 participant_count = 0;
     vector<UserId> participant_user_ids;
     string description;
+    StarSubscriptionPricing subscription_pricing;
+    int64 subscription_form_id;
     bool creates_join_request = false;
     bool is_chat = false;
     bool is_channel = false;
