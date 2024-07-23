@@ -1655,7 +1655,6 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
                      ? td_->videos_manager_->get_video_object(web_page->document_.file_id)
                      : nullptr;
     if (video != nullptr) {
-      LOG_IF(ERROR, !web_page->photo_.is_empty()) << "Receive photo for " << web_page->url_;
       auto width = video->width_;
       auto height = video->height_;
       auto duration = video->duration_;
