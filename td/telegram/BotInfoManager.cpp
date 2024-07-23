@@ -94,6 +94,19 @@ class SetBotBroadcastDefaultAdminRightsQuery final : public Td::ResultHandler {
   }
 };
 
+static td_api::object_ptr<td_api::botMediaPreview> convert_bot_media_preview(
+    Td *td, telegram_api::object_ptr<telegram_api::botPreviewMedia> media, UserId bot_user_id,
+    vector<FileId> &file_ids) {
+  auto content = get_story_content(td, std::move(media->media_), DialogId(bot_user_id));
+  if (content == nullptr) {
+    LOG(ERROR) << "Receive invalid media preview for " << bot_user_id;
+    return nullptr;
+  }
+  append(file_ids, get_story_content_file_ids(td, content.get()));
+  return td_api::make_object<td_api::botMediaPreview>(max(media->date_, 0),
+                                                      get_story_content_object(td, content.get()));
+}
+
 class GetPreviewMediasQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::botMediaPreviews>> promise_;
   UserId bot_user_id_;
@@ -117,15 +130,12 @@ class GetPreviewMediasQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetPreviewMediasQuery: " << to_string(ptr);
-    vector<td_api::object_ptr<td_api::StoryContent>> contents;
+    vector<td_api::object_ptr<td_api::botMediaPreview>> previews;
     vector<FileId> file_ids;
-    for (auto &media_ptr : ptr) {
-      auto content = get_story_content(td_, std::move(media_ptr->media_), DialogId(bot_user_id_));
-      if (content == nullptr) {
-        LOG(ERROR) << "Receive invalid media preview for " << bot_user_id_;
-      } else {
-        append(file_ids, get_story_content_file_ids(td_, content.get()));
-        contents.push_back(get_story_content_object(td_, content.get()));
+    for (auto &media : ptr) {
+      auto preview = convert_bot_media_preview(td_, std::move(media), bot_user_id_, file_ids);
+      if (preview != nullptr) {
+        previews.push_back(std::move(preview));
       }
     }
     if (!file_ids.empty()) {
@@ -134,8 +144,8 @@ class GetPreviewMediasQuery final : public Td::ResultHandler {
         td_->file_manager_->add_file_source(file_id, file_source_id);
       }
     }
-    td_->user_manager_->on_update_bot_has_preview_medias(bot_user_id_, !contents.empty());
-    promise_.set_value(td_api::make_object<td_api::botMediaPreviews>(std::move(contents)));
+    td_->user_manager_->on_update_bot_has_preview_medias(bot_user_id_, !previews.empty());
+    promise_.set_value(td_api::make_object<td_api::botMediaPreviews>(std::move(previews)));
   }
 
   void on_error(Status status) final {
@@ -169,15 +179,12 @@ class GetPreviewInfoQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetPreviewInfoQuery: " << to_string(ptr);
-    vector<td_api::object_ptr<td_api::StoryContent>> contents;
+    vector<td_api::object_ptr<td_api::botMediaPreview>> previews;
     vector<FileId> file_ids;
-    for (auto &media_ptr : ptr->media_) {
-      auto content = get_story_content(td_, std::move(media_ptr->media_), DialogId(bot_user_id_));
-      if (content == nullptr) {
-        LOG(ERROR) << "Receive invalid media preview for " << bot_user_id_;
-      } else {
-        append(file_ids, get_story_content_file_ids(td_, content.get()));
-        contents.push_back(get_story_content_object(td_, content.get()));
+    for (auto &media : ptr->media_) {
+      auto preview = convert_bot_media_preview(td_, std::move(media), bot_user_id_, file_ids);
+      if (preview != nullptr) {
+        previews.push_back(std::move(preview));
       }
     }
     if (!file_ids.empty()) {
@@ -188,7 +195,7 @@ class GetPreviewInfoQuery final : public Td::ResultHandler {
       }
     }
     promise_.set_value(
-        td_api::make_object<td_api::botMediaPreviewInfo>(std::move(contents), std::move(ptr->lang_codes_)));
+        td_api::make_object<td_api::botMediaPreviewInfo>(std::move(previews), std::move(ptr->lang_codes_)));
   }
 
   void on_error(Status status) final {
@@ -245,12 +252,12 @@ class BotInfoManager::AddPreviewMediaQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for AddPreviewMediaQuery: " << to_string(ptr);
     auto bot_user_id = pending_preview_->bot_user_id_;
-    auto content = get_story_content(td_, std::move(ptr->media_), DialogId(bot_user_id));
-    if (content == nullptr) {
-      LOG(ERROR) << "Receive invalid media preview";
+    vector<FileId> file_ids;
+    auto preview = convert_bot_media_preview(td_, std::move(ptr), bot_user_id, file_ids);
+    if (preview == nullptr) {
+      LOG(ERROR) << "Receive invalid sent media preview";
       return pending_preview_->promise_.set_error(Status::Error(500, "Receive invalid preview"));
     }
-    auto file_ids = get_story_content_file_ids(td_, content.get());
     if (!file_ids.empty()) {
       auto file_source_id = td_->bot_info_manager_->get_bot_media_preview_info_file_source_id(
           bot_user_id, pending_preview_->language_code_);
@@ -258,8 +265,10 @@ class BotInfoManager::AddPreviewMediaQuery final : public Td::ResultHandler {
         td_->file_manager_->add_file_source(file_id, file_source_id);
       }
     }
-    td_->user_manager_->on_update_bot_has_preview_medias(pending_preview_->bot_user_id_, true);
-    pending_preview_->promise_.set_value(get_story_content_object(td_, content.get()));
+    if (pending_preview_->language_code_.empty()) {
+      td_->user_manager_->on_update_bot_has_preview_medias(bot_user_id, true);
+    }
+    pending_preview_->promise_.set_value(std::move(preview));
   }
 
   void on_error(Status status) final {
@@ -746,7 +755,7 @@ void BotInfoManager::reload_bot_media_preview_info(UserId bot_user_id, const str
 
 void BotInfoManager::add_bot_media_preview(UserId bot_user_id, const string &language_code,
                                            td_api::object_ptr<td_api::InputStoryContent> &&input_content,
-                                           Promise<td_api::object_ptr<td_api::StoryContent>> &&promise) {
+                                           Promise<td_api::object_ptr<td_api::botMediaPreview>> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, get_media_preview_bot_input_user(bot_user_id, true));
   TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
   TRY_RESULT_PROMISE(promise, content, get_input_story_content(td_, std::move(input_content), DialogId(bot_user_id)));
@@ -762,7 +771,7 @@ void BotInfoManager::add_bot_media_preview(UserId bot_user_id, const string &lan
 
 void BotInfoManager::edit_bot_media_preview(UserId bot_user_id, const string &language_code, FileId file_id,
                                             td_api::object_ptr<td_api::InputStoryContent> &&input_content,
-                                            Promise<td_api::object_ptr<td_api::StoryContent>> &&promise) {
+                                            Promise<td_api::object_ptr<td_api::botMediaPreview>> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, get_media_preview_bot_input_user(bot_user_id, true));
   TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
   TRY_RESULT_PROMISE(promise, content, get_input_story_content(td_, std::move(input_content), DialogId(bot_user_id)));

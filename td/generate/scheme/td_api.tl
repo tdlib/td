@@ -4393,13 +4393,18 @@ publicForwardStory story:story = PublicForward;
 publicForwards total_count:int32 forwards:vector<PublicForward> next_offset:string = PublicForwards;
 
 
+//@description Describes media previews of a bot
+//@date Point in time (Unix timestamp) when the preview was added or changed last time
+//@content Content of the preview
+botMediaPreview date:int32 content:StoryContent = BotMediaPreview;
+
 //@description Contains a list of media previews of a bot @previews List of media previews
-botMediaPreviews previews:vector<StoryContent> = BotMediaPreviews;
+botMediaPreviews previews:vector<botMediaPreview> = BotMediaPreviews;
 
 //@description Contains a list of media previews of a bot for the given language and the list of langauges for which the bot has dedicated previews
 //@previews List of media previews
 //@language_codes List of language codes for which the bot has dedicated previews
-botMediaPreviewInfo previews:vector<StoryContent> language_codes:vector<string> = BotMediaPreviewInfo;
+botMediaPreviewInfo previews:vector<botMediaPreview> language_codes:vector<string> = BotMediaPreviewInfo;
 
 
 //@description Contains a list of features available on a specific chat boost level
@@ -10653,14 +10658,14 @@ getBotMediaPreviewInfo bot_user_id:int53 language_code:string = BotMediaPreviewI
 //@language_code A two-letter ISO 639-1 language code for which preview is added. If empty, then the preview will be shown to all users for whose languages there are no dedicated previews.
 //-If non-empty, then there must be an official language pack of the same name, which is returned by getLocalizationTargetInfo
 //@content Content of the added preview
-addBotMediaPreview bot_user_id:int53 language_code:string content:InputStoryContent = StoryContent;
+addBotMediaPreview bot_user_id:int53 language_code:string content:InputStoryContent = BotMediaPreview;
 
 //@description Replaces media preview in the list of media previews of a bot. Returns the new preview after edit is completed server-side
 //@bot_user_id Identifier of the target bot. The bot must be owned and must have the main Web App
 //@language_code Language code of the media preview to edit
 //@file_id File identifier of the media to replace
 //@content Content of the new preview
-editBotMediaPreview bot_user_id:int53 language_code:string file_id:int32 content:InputStoryContent = StoryContent;
+editBotMediaPreview bot_user_id:int53 language_code:string file_id:int32 content:InputStoryContent = BotMediaPreview;
 
 //@description Changes order of media previews in the list of media previews of a bot
 //@bot_user_id Identifier of the target bot. The bot must be owned and must have the main Web App

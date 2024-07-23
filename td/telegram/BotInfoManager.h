@@ -56,11 +56,11 @@ class BotInfoManager final : public Actor {
 
   void add_bot_media_preview(UserId bot_user_id, const string &language_code,
                              td_api::object_ptr<td_api::InputStoryContent> &&input_content,
-                             Promise<td_api::object_ptr<td_api::StoryContent>> &&promise);
+                             Promise<td_api::object_ptr<td_api::botMediaPreview>> &&promise);
 
   void edit_bot_media_preview(UserId bot_user_id, const string &language_code, FileId file_id,
                               td_api::object_ptr<td_api::InputStoryContent> &&input_content,
-                              Promise<td_api::object_ptr<td_api::StoryContent>> &&promise);
+                              Promise<td_api::object_ptr<td_api::botMediaPreview>> &&promise);
 
   void reorder_bot_media_previews(UserId bot_user_id, const string &language_code, const vector<int32> &file_ids,
                                   Promise<Unit> &&promise);
@@ -96,7 +96,7 @@ class BotInfoManager final : public Actor {
     unique_ptr<StoryContent> content_;
     uint32 upload_order_ = 0;
     bool was_reuploaded_ = false;
-    Promise<td_api::object_ptr<td_api::StoryContent>> promise_;
+    Promise<td_api::object_ptr<td_api::botMediaPreview>> promise_;
   };
 
   struct PendingSetBotInfoQuery {
