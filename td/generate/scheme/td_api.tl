@@ -9540,11 +9540,12 @@ getStory story_sender_chat_id:int53 story_id:int32 only_local:Bool = Story;
 //@description Returns supergroup and channel chats in which the current user has the right to post stories. The chats must be rechecked with canSendStory before actually trying to post a story there
 getChatsToSendStories = Chats;
 
-//@description Checks whether the current user can send a story on behalf of a chat; requires can_post_stories right for supergroup and channel chats @chat_id Chat identifier
+//@description Checks whether the current user can send a story on behalf of a chat; requires can_post_stories right for supergroup and channel chats
+//@chat_id Chat identifier. Pass Saved Messages chat identifier when posting a story on behalf of the current user
 canSendStory chat_id:int53 = CanSendStoryResult;
 
 //@description Sends a new story to a chat; requires can_post_stories right for supergroup and channel chats. Returns a temporary story
-//@chat_id Identifier of the chat that will post the story
+//@chat_id Identifier of the chat that will post the story. Pass Saved Messages chat identifier when posting a story on behalf of the current user
 //@content Content of the story
 //@areas Clickable rectangle areas to be shown on the story media; pass null if none
 //@caption Story caption; pass null to use an empty caption; 0-getOption("story_caption_length_max") characters; can have entities only if getOption("can_use_text_entities_in_story_caption")
