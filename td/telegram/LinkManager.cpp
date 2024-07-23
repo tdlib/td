@@ -20,6 +20,7 @@
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/Proxy.h"
+#include "td/telegram/OptionManager.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StoryId.h"
 #include "td/telegram/Td.h"
@@ -2522,6 +2523,11 @@ void LinkManager::get_deep_link_info(Slice link, Promise<td_api::object_ptr<td_a
 }
 
 void LinkManager::get_external_link_info(string &&link, Promise<td_api::object_ptr<td_api::LoginUrlInfo>> &&promise) {
+  bool is_ton = false;
+  if (tolower_begins_with(link, "tonsite://")) {
+    link = link.substr(10);
+    is_ton = true;
+  }
   auto default_result = td_api::make_object<td_api::loginUrlInfoOpen>(link, false);
   if (G()->close_flag()) {
     return promise.set_value(std::move(default_result));
@@ -2535,6 +2541,25 @@ void LinkManager::get_external_link_info(string &&link, Promise<td_api::object_p
   auto url = r_url.move_as_ok();
   if (!url.userinfo_.empty() || url.is_ipv6_) {
     return promise.set_value(std::move(default_result));
+  }
+  if (is_ton || (url.host_.size() >= 4u && to_lower(url.host_.substr(url.host_.size() - 4)) == ".ton")) {
+    auto ton_proxy_address = td_->option_manager_->get_option_string("ton_proxy_address");
+    if (ton_proxy_address.empty()) {
+      return promise.set_value(std::move(default_result));
+    }
+    url.protocol_ = HttpUrl::Protocol::Https;
+    string new_host;
+    for (auto c : url.host_) {
+      if (c == '.') {
+        new_host += "-d";
+      } else if (c == '-') {
+        new_host += "-h";
+      } else {
+        new_host += c;
+      }
+    }
+    url.host_ = PSTRING() << new_host << '.' << ton_proxy_address;
+    default_result->url_ = url.get_url();
   }
 
   bool skip_confirmation = td::contains(whitelisted_domains_, url.host_);
