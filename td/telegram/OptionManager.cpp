@@ -452,6 +452,7 @@ bool OptionManager::is_internal_option(Slice name) {
                                                               "story_caption_length_limit_premium",
                                                               "story_expiring_limit_default",
                                                               "story_expiring_limit_premium",
+                                                              "ton_proxy_address",
                                                               "upload_premium_speedup_notify_period",
                                                               "video_note_size_max",
                                                               "weather_bot_username",
