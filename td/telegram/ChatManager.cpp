@@ -9,7 +9,7 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogAdministrator.h"
-#include "td/telegram/DialogInviteLink.h"
+#include "td/telegram/DialogInviteLink.hpp"
 #include "td/telegram/DialogInviteLinkManager.h"
 #include "td/telegram/DialogLocation.h"
 #include "td/telegram/DialogManager.h"

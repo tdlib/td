@@ -957,6 +957,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/BusinessWorkHours.hpp
   td/telegram/ChatReactions.hpp
   td/telegram/DialogFilter.hpp
+  td/telegram/DialogInviteLink.hpp
   td/telegram/DialogNotificationSettings.hpp
   td/telegram/Dimensions.hpp
   td/telegram/Document.hpp
