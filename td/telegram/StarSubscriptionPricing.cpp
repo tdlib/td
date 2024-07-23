@@ -49,7 +49,10 @@ bool operator==(const StarSubscriptionPricing &lhs, const StarSubscriptionPricin
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const StarSubscriptionPricing &pricing) {
-  return string_builder << "Subscription for " << pricing.period_ << " days for " << pricing.amount_ << " stars";
+  if (pricing.is_empty()) {
+    return string_builder << "no subscription";
+  }
+  return string_builder << "subscription for " << pricing.period_ << " days for " << pricing.amount_ << " stars";
 }
 
 }  // namespace td

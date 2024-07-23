@@ -8,7 +8,8 @@
 
 #include "td/telegram/DialogInviteLink.h"
 
-#include "td/utils/common.h"
+#include "td/telegram/StarSubscriptionPricing.hpp"
+
 #include "td/utils/tl_helpers.h"
 
 namespace td {
@@ -22,6 +23,7 @@ void DialogInviteLink::store(StorerT &storer) const {
   bool has_edit_date = edit_date_ != 0;
   bool has_request_count = request_count_ != 0;
   bool has_title = !title_.empty();
+  bool has_pricing = !pricing_.is_empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_revoked_);
   STORE_FLAG(is_permanent_);
@@ -32,6 +34,7 @@ void DialogInviteLink::store(StorerT &storer) const {
   STORE_FLAG(has_request_count);
   STORE_FLAG(creates_join_request_);
   STORE_FLAG(has_title);
+  STORE_FLAG(has_pricing);
   END_STORE_FLAGS();
   store(invite_link_, storer);
   store(creator_user_id_, storer);
@@ -54,6 +57,9 @@ void DialogInviteLink::store(StorerT &storer) const {
   if (has_title) {
     store(title_, storer);
   }
+  if (has_pricing) {
+    store(pricing_, storer);
+  }
 }
 
 template <class ParserT>
@@ -65,6 +71,7 @@ void DialogInviteLink::parse(ParserT &parser) {
   bool has_edit_date;
   bool has_request_count;
   bool has_title;
+  bool has_pricing;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_revoked_);
   PARSE_FLAG(is_permanent_);
@@ -75,6 +82,7 @@ void DialogInviteLink::parse(ParserT &parser) {
   PARSE_FLAG(has_request_count);
   PARSE_FLAG(creates_join_request_);
   PARSE_FLAG(has_title);
+  PARSE_FLAG(has_pricing);
   END_PARSE_FLAGS();
   parse(invite_link_, parser);
   parse(creator_user_id_, parser);
@@ -96,6 +104,9 @@ void DialogInviteLink::parse(ParserT &parser) {
   }
   if (has_title) {
     parse(title_, parser);
+  }
+  if (has_pricing) {
+    parse(pricing_, parser);
   }
   if (creates_join_request_) {
     usage_limit_ = 0;

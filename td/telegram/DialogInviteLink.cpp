@@ -32,6 +32,7 @@ DialogInviteLink::DialogInviteLink(telegram_api::object_ptr<telegram_api::Export
   invite_link_ = std::move(exported_invite->link_);
   title_ = std::move(exported_invite->title_);
   creator_user_id_ = UserId(exported_invite->admin_id_);
+  pricing_ = StarSubscriptionPricing(std::move(exported_invite->subscription_pricing_));
   date_ = exported_invite->date_;
   expire_date_ = exported_invite->expire_date_;
   usage_limit_ = exported_invite->usage_limit_;
@@ -105,17 +106,17 @@ td_api::object_ptr<td_api::chatInviteLink> DialogInviteLink::get_chat_invite_lin
 
   return td_api::make_object<td_api::chatInviteLink>(
       invite_link_, title_, user_manager->get_user_id_object(creator_user_id_, "get_chat_invite_link_object"), date_,
-      edit_date_, expire_date_, usage_limit_, usage_count_, request_count_, creates_join_request_, is_permanent_,
-      is_revoked_);
+      edit_date_, expire_date_, pricing_.get_star_subscription_pricing_object(), usage_limit_, usage_count_,
+      request_count_, creates_join_request_, is_permanent_, is_revoked_);
 }
 
 bool operator==(const DialogInviteLink &lhs, const DialogInviteLink &rhs) {
   return lhs.invite_link_ == rhs.invite_link_ && lhs.title_ == rhs.title_ &&
-         lhs.creator_user_id_ == rhs.creator_user_id_ && lhs.date_ == rhs.date_ && lhs.edit_date_ == rhs.edit_date_ &&
-         lhs.expire_date_ == rhs.expire_date_ && lhs.usage_limit_ == rhs.usage_limit_ &&
-         lhs.usage_count_ == rhs.usage_count_ && lhs.request_count_ == rhs.request_count_ &&
-         lhs.creates_join_request_ == rhs.creates_join_request_ && lhs.is_permanent_ == rhs.is_permanent_ &&
-         lhs.is_revoked_ == rhs.is_revoked_;
+         lhs.creator_user_id_ == rhs.creator_user_id_ && lhs.pricing_ == rhs.pricing_ && lhs.date_ == rhs.date_ &&
+         lhs.edit_date_ == rhs.edit_date_ && lhs.expire_date_ == rhs.expire_date_ &&
+         lhs.usage_limit_ == rhs.usage_limit_ && lhs.usage_count_ == rhs.usage_count_ &&
+         lhs.request_count_ == rhs.request_count_ && lhs.creates_join_request_ == rhs.creates_join_request_ &&
+         lhs.is_permanent_ == rhs.is_permanent_ && lhs.is_revoked_ == rhs.is_revoked_;
 }
 
 bool operator!=(const DialogInviteLink &lhs, const DialogInviteLink &rhs) {
@@ -127,8 +128,9 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DialogInviteLink 
                         << (invite_link.creates_join_request_ ? " creating join request" : "") << " by "
                         << invite_link.creator_user_id_ << " created at " << invite_link.date_ << " edited at "
                         << invite_link.edit_date_ << " expiring at " << invite_link.expire_date_ << " used by "
-                        << invite_link.usage_count_ << " with usage limit " << invite_link.usage_limit_ << " and "
-                        << invite_link.request_count_ << " pending join requests]";
+                        << invite_link.usage_count_ << " with usage limit " << invite_link.usage_limit_ << ", "
+                        << invite_link.request_count_ << " pending join requests"
+                        << " and " << invite_link.pricing_ << "]";
 }
 
 }  // namespace td

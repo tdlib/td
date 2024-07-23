@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/StarSubscriptionPricing.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
@@ -22,6 +23,7 @@ class DialogInviteLink {
   string invite_link_;
   string title_;
   UserId creator_user_id_;
+  StarSubscriptionPricing pricing_;
   int32 date_ = 0;
   int32 edit_date_ = 0;
   int32 expire_date_ = 0;
