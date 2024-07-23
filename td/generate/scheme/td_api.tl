@@ -798,6 +798,12 @@ chatPermissions can_send_basic_messages:Bool can_send_audios:Bool can_send_docum
 chatAdministratorRights can_manage_chat:Bool can_change_info:Bool can_post_messages:Bool can_edit_messages:Bool can_delete_messages:Bool can_invite_users:Bool can_restrict_members:Bool can_pin_messages:Bool can_manage_topics:Bool can_promote_members:Bool can_manage_video_chats:Bool can_post_stories:Bool can_edit_stories:Bool can_delete_stories:Bool is_anonymous:Bool = ChatAdministratorRights;
 
 
+//@description Describes subscription plan paid in Telegram Stars
+//@period The number of seconds between consecutive Telegram Star debiting
+//@star_count The amount of Telegram Stars that must be paid for each period
+starSubscriptionPricing period:int32 star_count:int53 = StarSubscriptionPricing;
+
+
 //@description Contains information about a product that can be paid with invoice
 //@title Product title
 //@param_description Product description
