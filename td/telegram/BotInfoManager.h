@@ -136,6 +136,8 @@ class BotInfoManager final : public Actor {
   Result<telegram_api::object_ptr<telegram_api::InputUser>> get_media_preview_bot_input_user(
       UserId user_id, bool can_be_edited = false);
 
+  static Status validate_bot_media_preview_language_code(const string &language_code);
+
   void do_add_bot_media_preview(unique_ptr<PendingBotMediaPreview> &&pending_preview, vector<int> bad_parts);
 
   void on_add_bot_media_preview_file_parts_missing(unique_ptr<PendingBotMediaPreview> &&pending_preview,

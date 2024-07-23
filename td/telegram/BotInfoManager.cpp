@@ -714,6 +714,21 @@ Result<telegram_api::object_ptr<telegram_api::InputUser>> BotInfoManager::get_me
   return td_->user_manager_->get_input_user(user_id);
 }
 
+Status BotInfoManager::validate_bot_media_preview_language_code(const string &language_code) {
+  if (language_code.empty()) {
+    return Status::OK();
+  }
+  if (language_code.size() < 2 || language_code[0] == '-' || language_code[1] == '-') {
+    return Status::Error(400, "Invalid language code specified");
+  }
+  for (auto c : language_code) {
+    if ((c < 'a' || c > 'z') && c != '-') {
+      return Status::Error(400, "Invalid language code specified");
+    }
+  }
+  return Status::OK();
+}
+
 void BotInfoManager::get_bot_media_previews(UserId bot_user_id,
                                             Promise<td_api::object_ptr<td_api::botMediaPreviews>> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, get_media_preview_bot_input_user(bot_user_id));
@@ -723,7 +738,7 @@ void BotInfoManager::get_bot_media_previews(UserId bot_user_id,
 void BotInfoManager::get_bot_media_preview_info(UserId bot_user_id, const string &language_code,
                                                 Promise<td_api::object_ptr<td_api::botMediaPreviewInfo>> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, get_media_preview_bot_input_user(bot_user_id, true));
-  TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
+  TRY_STATUS_PROMISE(promise, validate_bot_media_preview_language_code(language_code));
   td_->create_handler<GetPreviewInfoQuery>(std::move(promise))->send(bot_user_id, std::move(input_user), language_code);
 }
 
@@ -757,7 +772,7 @@ void BotInfoManager::add_bot_media_preview(UserId bot_user_id, const string &lan
                                            td_api::object_ptr<td_api::InputStoryContent> &&input_content,
                                            Promise<td_api::object_ptr<td_api::botMediaPreview>> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, get_media_preview_bot_input_user(bot_user_id, true));
-  TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
+  TRY_STATUS_PROMISE(promise, validate_bot_media_preview_language_code(language_code));
   TRY_RESULT_PROMISE(promise, content, get_input_story_content(td_, std::move(input_content), DialogId(bot_user_id)));
   auto pending_preview = make_unique<PendingBotMediaPreview>();
   pending_preview->bot_user_id_ = bot_user_id;
@@ -773,7 +788,7 @@ void BotInfoManager::edit_bot_media_preview(UserId bot_user_id, const string &la
                                             td_api::object_ptr<td_api::InputStoryContent> &&input_content,
                                             Promise<td_api::object_ptr<td_api::botMediaPreview>> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, get_media_preview_bot_input_user(bot_user_id, true));
-  TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
+  TRY_STATUS_PROMISE(promise, validate_bot_media_preview_language_code(language_code));
   TRY_RESULT_PROMISE(promise, content, get_input_story_content(td_, std::move(input_content), DialogId(bot_user_id)));
   auto input_media = get_fake_input_media(file_id);
   if (input_media == nullptr) {
@@ -892,7 +907,7 @@ telegram_api::object_ptr<telegram_api::InputMedia> BotInfoManager::get_fake_inpu
 void BotInfoManager::reorder_bot_media_previews(UserId bot_user_id, const string &language_code,
                                                 const vector<int32> &file_ids, Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, get_media_preview_bot_input_user(bot_user_id, true));
-  TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
+  TRY_STATUS_PROMISE(promise, validate_bot_media_preview_language_code(language_code));
   vector<telegram_api::object_ptr<telegram_api::InputMedia>> input_medias;
   for (auto file_id : file_ids) {
     auto input_media = get_fake_input_media(FileId(file_id, 0));
@@ -911,7 +926,7 @@ void BotInfoManager::reorder_bot_media_previews(UserId bot_user_id, const string
 void BotInfoManager::delete_bot_media_previews(UserId bot_user_id, const string &language_code,
                                                const vector<int32> &file_ids, Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, get_media_preview_bot_input_user(bot_user_id, true));
-  TRY_STATUS_PROMISE(promise, validate_bot_language_code(language_code));
+  TRY_STATUS_PROMISE(promise, validate_bot_media_preview_language_code(language_code));
   vector<telegram_api::object_ptr<telegram_api::InputMedia>> input_medias;
   for (auto file_id : file_ids) {
     auto input_media = get_fake_input_media(FileId(file_id, 0));
