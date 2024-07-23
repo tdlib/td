@@ -4401,7 +4401,7 @@ botMediaPreview date:int32 content:StoryContent = BotMediaPreview;
 //@description Contains a list of media previews of a bot @previews List of media previews
 botMediaPreviews previews:vector<botMediaPreview> = BotMediaPreviews;
 
-//@description Contains a list of media previews of a bot for the given language and the list of langauges for which the bot has dedicated previews
+//@description Contains a list of media previews of a bot for the given language and the list of languages for which the bot has dedicated previews
 //@previews List of media previews
 //@language_codes List of language codes for which the bot has dedicated previews
 botMediaPreviewInfo previews:vector<botMediaPreview> language_codes:vector<string> = BotMediaPreviewInfo;
@@ -10648,7 +10648,7 @@ sendWebAppCustomRequest bot_user_id:int53 method:string parameters:string = Cust
 //@description Returns the list of media previews of a bot @bot_user_id Identifier of the target bot. The bot must have the main Web App
 getBotMediaPreviews bot_user_id:int53 = BotMediaPreviews;
 
-//@description Returns the list of media previews for the given language and the list of langauges for which the bot has dedicated previews
+//@description Returns the list of media previews for the given language and the list of languages for which the bot has dedicated previews
 //@bot_user_id Identifier of the target bot. The bot must be owned and must have the main Web App
 //@language_code A two-letter ISO 639-1 language code for which to get previews. If empty, then default previews are returned
 getBotMediaPreviewInfo bot_user_id:int53 language_code:string = BotMediaPreviewInfo;
