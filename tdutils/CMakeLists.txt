@@ -139,8 +139,8 @@ set(TDUTILS_SOURCE
   td/utils/port/EventFdBase.h
   td/utils/port/FileFd.h
   td/utils/port/FromApp.h
-  td/utils/port/IPAddress.h
   td/utils/port/IoSlice.h
+  td/utils/port/IPAddress.h
   td/utils/port/MemoryMapping.h
   td/utils/port/Mutex.h
   td/utils/port/path.h
@@ -213,8 +213,8 @@ set(TDUTILS_SOURCE
   td/utils/ExitGuard.h
   td/utils/FileLog.h
   td/utils/filesystem.h
-  td/utils/fixed_vector.h
   td/utils/find_boundary.h
+  td/utils/fixed_vector.h
   td/utils/FlatHashMap.h
   td/utils/FlatHashMapChunks.h
   td/utils/FlatHashSet.h
@@ -245,8 +245,8 @@ set(TDUTILS_SOURCE
   td/utils/MovableValue.h
   td/utils/MpmcQueue.h
   td/utils/MpmcWaiter.h
-  td/utils/MpscPollableQueue.h
   td/utils/MpscLinkQueue.h
+  td/utils/MpscPollableQueue.h
   td/utils/Named.h
   td/utils/NullLog.h
   td/utils/ObjectPool.h

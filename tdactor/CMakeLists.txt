@@ -21,9 +21,9 @@ set(TDACTOR_SOURCE
   td/actor/impl/ActorId.h
   td/actor/impl/ActorInfo-decl.h
   td/actor/impl/ActorInfo.h
+  td/actor/impl/Event.h
   td/actor/impl/EventFull-decl.h
   td/actor/impl/EventFull.h
-  td/actor/impl/Event.h
   td/actor/impl/Scheduler-decl.h
   td/actor/impl/Scheduler.h
   td/actor/MultiPromise.h
