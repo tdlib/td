@@ -56,8 +56,8 @@ class DialogInviteLinkManager final : public Actor {
   void remove_dialog_access_by_invite_link(DialogId dialog_id);
 
   void export_dialog_invite_link(DialogId dialog_id, string title, int32 expire_date, int32 usage_limit,
-                                 bool creates_join_request, bool is_permanent,
-                                 Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
+                                 bool creates_join_request, StarSubscriptionPricing subscription_pricing,
+                                 bool is_permanent, Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
 
   void edit_dialog_invite_link(DialogId dialog_id, const string &link, string title, int32 expire_date,
                                int32 usage_limit, bool creates_join_request,
@@ -98,8 +98,8 @@ class DialogInviteLinkManager final : public Actor {
   int32 get_dialog_accessible_by_invite_link_before_date(DialogId dialog_id) const;
 
   void export_dialog_invite_link_impl(DialogId dialog_id, string title, int32 expire_date, int32 usage_limit,
-                                      bool creates_join_request, bool is_permanent,
-                                      Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
+                                      bool creates_join_request, StarSubscriptionPricing subscription_pricing,
+                                      bool is_permanent, Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
 
   Status can_manage_dialog_invite_links(DialogId dialog_id, bool creator_only = false);
 

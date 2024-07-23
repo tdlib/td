@@ -4336,9 +4336,12 @@ class CliClient final : public Actor {
       int32 expiration_date;
       int32 member_limit;
       bool creates_join_request;
-      get_args(args, chat_id, name, expiration_date, member_limit, creates_join_request);
-      send_request(td_api::make_object<td_api::createChatInviteLink>(chat_id, name, expiration_date, member_limit,
-                                                                     creates_join_request));
+      int32 period;
+      int64 star_count;
+      get_args(args, chat_id, name, expiration_date, member_limit, creates_join_request, period, star_count);
+      send_request(td_api::make_object<td_api::createChatInviteLink>(
+          chat_id, name, expiration_date, member_limit, creates_join_request,
+          star_count == 0 ? nullptr : td_api::make_object<td_api::starSubscriptionPricing>(period, star_count)));
     } else if (op == "ecil") {
       ChatId chat_id;
       string invite_link;

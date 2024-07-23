@@ -142,6 +142,7 @@
 #include "td/telegram/SentEmailCode.h"
 #include "td/telegram/SponsoredMessageManager.h"
 #include "td/telegram/StarManager.h"
+#include "td/telegram/StarSubscriptionPricing.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/StatisticsManager.h"
 #include "td/telegram/StickerFormat.h"
@@ -6777,16 +6778,17 @@ void Td::on_request(uint64 id, const td_api::getChatAdministrators &request) {
 
 void Td::on_request(uint64 id, const td_api::replacePrimaryChatInviteLink &request) {
   CREATE_REQUEST_PROMISE();
-  dialog_invite_link_manager_->export_dialog_invite_link(DialogId(request.chat_id_), string(), 0, 0, false, true,
+  dialog_invite_link_manager_->export_dialog_invite_link(DialogId(request.chat_id_), string(), 0, 0, false, {}, true,
                                                          std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::createChatInviteLink &request) {
   CLEAN_INPUT_STRING(request.name_);
   CREATE_REQUEST_PROMISE();
-  dialog_invite_link_manager_->export_dialog_invite_link(DialogId(request.chat_id_), std::move(request.name_),
-                                                         request.expiration_date_, request.member_limit_,
-                                                         request.creates_join_request_, false, std::move(promise));
+  dialog_invite_link_manager_->export_dialog_invite_link(
+      DialogId(request.chat_id_), std::move(request.name_), request.expiration_date_, request.member_limit_,
+      request.creates_join_request_, StarSubscriptionPricing(std::move(request.subscription_pricing_)), false,
+      std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::editChatInviteLink &request) {
