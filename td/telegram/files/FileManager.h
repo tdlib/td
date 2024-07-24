@@ -630,22 +630,30 @@ class FileManager final : public Actor {
 
   using FileNodeId = int32;
 
-  class Query {
-   public:
+  struct DownloadQuery {
+    FileId file_id_;
+    enum class Type : int32 {
+      DownloadWaitFileReference,
+      DownloadReloadDialog,
+      Download,
+      SetContent,
+    } type_;
+  };
+  friend StringBuilder &operator<<(StringBuilder &string_builder, DownloadQuery::Type type);
+
+  struct GenerateQuery {
+    FileId file_id_;
+  };
+
+  struct UploadQuery {
     FileId file_id_;
     enum class Type : int32 {
       UploadByHash,
       UploadWaitFileReference,
       Upload,
-      DownloadWaitFileReference,
-      DownloadReloadDialog,
-      Download,
-      SetContent,
-      Generate
     } type_;
   };
-
-  friend StringBuilder &operator<<(StringBuilder &string_builder, Query::Type type);
+  friend StringBuilder &operator<<(StringBuilder &string_builder, UploadQuery::Type type);
 
   struct FileIdInfo {
     FileNodeId node_id_{0};
@@ -699,7 +707,9 @@ class FileManager final : public Actor {
   ActorOwn<FileUploadManager> file_upload_manager_;
   ActorOwn<FileGenerateManager> file_generate_manager_;
 
-  Container<Query> queries_container_;
+  Container<DownloadQuery> download_queries_;
+  Container<GenerateQuery> generate_queries_;
+  Container<UploadQuery> upload_queries_;
 
   bool is_closed_ = false;
 
@@ -775,7 +785,7 @@ class FileManager final : public Actor {
                            int64 ready_size, int64 size);
   void on_download_ok(FileDownloadManager::QueryId query_id, FullLocalFileLocation local, int64 size, bool is_new);
   void on_download_error(FileDownloadManager::QueryId query_id, Status status);
-  void on_download_error_impl(FileNodePtr node, Query::Type type, bool was_active, Status status);
+  void on_download_error_impl(FileNodePtr node, DownloadQuery::Type type, bool was_active, Status status);
 
   void on_hash(FileUploadManager::QueryId query_id, string hash);
   void on_partial_upload(FileUploadManager::QueryId query_id, PartialRemoteFileLocation partial_remote,
@@ -784,7 +794,7 @@ class FileManager final : public Actor {
                     int64 size);
   void on_upload_full_ok(FileUploadManager::QueryId query_id, FullRemoteFileLocation remote);
   void on_upload_error(FileUploadManager::QueryId query_id, Status status);
-  void on_upload_error_impl(FileNodePtr node, Query::Type type, bool was_active, Status status);
+  void on_upload_error_impl(FileNodePtr node, UploadQuery::Type type, bool was_active, Status status);
 
   void on_partial_generate(FileGenerateManager::QueryId, PartialLocalFileLocation partial_local, int64 expected_size);
   void on_generate_ok(FileGenerateManager::QueryId, FullLocalFileLocation local);
@@ -793,7 +803,11 @@ class FileManager final : public Actor {
 
   void on_file_load_error(FileNodePtr node, Status status);
 
-  std::pair<Query, bool> finish_query(Container<Query>::Id query_id);
+  std::pair<DownloadQuery, bool> finish_download_query(FileDownloadManager::QueryId query_id);
+
+  std::pair<GenerateQuery, bool> finish_generate_query(FileGenerateManager::QueryId query_id);
+
+  std::pair<UploadQuery, bool> finish_upload_query(FileUploadManager::QueryId query_id);
 
   FullRemoteFileLocation *get_remote(int32 key);
 
