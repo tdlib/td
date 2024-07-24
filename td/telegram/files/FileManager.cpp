@@ -3870,7 +3870,7 @@ void FileManager::on_download_ok(FileDownloadManager::QueryId query_id, FullLoca
   }
   if (status.is_error()) {
     LOG(ERROR) << status.message();
-    return on_error_impl(get_file_node(file_id), query.type_, was_active, std::move(status));
+    return on_download_error_impl(get_file_node(file_id), query.type_, was_active, std::move(status));
   }
 }
 
@@ -4022,8 +4022,8 @@ void FileManager::on_generate_ok(FileGenerateManager::QueryId query_id, FullLoca
   auto r_new_file_id = register_local(local, DialogId(), 0, false, false, false, generate_file_id);
   file_node = get_file_node(generate_file_id);
   if (r_new_file_id.is_error()) {
-    return on_error_impl(
-        file_node, query.type_, was_active,
+    return on_generate_error_impl(
+        file_node, was_active,
         Status::Error(PSLICE() << "Can't register local file after generate: " << r_new_file_id.error()));
   }
   CHECK(file_node);
@@ -4058,7 +4058,7 @@ void FileManager::on_download_error(FileDownloadManager::QueryId query_id, Statu
     LOG(ERROR) << "Can't find file node for " << query.file_id_ << " " << status;
     return;
   }
-  on_error_impl(node, query.type_, was_active, std::move(status));
+  on_download_error_impl(node, query.type_, was_active, std::move(status));
 }
 
 void FileManager::on_generate_error(FileGenerateManager::QueryId query_id, Status status) {
@@ -4074,7 +4074,7 @@ void FileManager::on_generate_error(FileGenerateManager::QueryId query_id, Statu
     LOG(ERROR) << "Can't find file node for " << query.file_id_ << " " << status;
     return;
   }
-  on_error_impl(node, query.type_, was_active, std::move(status));
+  on_generate_error_impl(node, was_active, std::move(status));
 }
 
 void FileManager::on_upload_error(FileUploadManager::QueryId query_id, Status status) {
@@ -4094,43 +4094,20 @@ void FileManager::on_upload_error(FileUploadManager::QueryId query_id, Status st
   if (query.type_ == Query::Type::UploadByHash && !G()->close_flag()) {
     LOG(INFO) << "Upload By Hash failed: " << status << ", restart upload";
     node->get_by_hash_ = false;
-    run_upload(node, {});
-    return;
+    return run_upload(node, {});
   }
-  on_error_impl(node, query.type_, was_active, std::move(status));
+  on_upload_error_impl(node, query.type_, was_active, std::move(status));
 }
 
-void FileManager::on_error_impl(FileNodePtr node, Query::Type type, bool was_active, Status status) {
+void FileManager::on_download_error_impl(FileNodePtr node, Query::Type type, bool was_active, Status status) {
   SCOPE_EXIT {
     try_flush_node(node, "on_error_impl");
   };
 
-  if (status.message() == "FILE_PART_INVALID") {
-    bool has_partial_small_location = node->remote_.partial && !node->remote_.partial->is_big_;
-    FileView file_view(node);
-    auto expected_size = file_view.expected_size(true);
-    bool should_be_big_location = is_file_big(file_view.get_type(), expected_size);
-
-    node->delete_partial_remote_location();
-    if (has_partial_small_location && should_be_big_location) {
-      run_upload(node, {});
-      return;
-    }
-
-    LOG(ERROR) << "Failed to upload file " << node->main_file_id_ << ": unexpected " << status
-               << ", is_small = " << has_partial_small_location << ", should_be_big = " << should_be_big_location
-               << ", expected size = " << expected_size;
-  }
-
-  if (begins_with(status.message(), "FILE_GENERATE_LOCATION_INVALID")) {
-    node->set_generate_location(nullptr);
-  }
-
   if ((status.message() == "FILE_ID_INVALID" || status.message() == "LOCATION_INVALID") &&
       FileView(node).may_reload_photo()) {
     node->need_reload_photo_ = true;
-    run_download(node, true);
-    return;
+    return run_download(node, true);
   }
 
   if (FileReferenceManager::is_file_reference_error(status)) {
@@ -4150,39 +4127,26 @@ void FileManager::on_error_impl(FileNodePtr node, Query::Type type, bool was_act
     }
     CHECK(!node->file_ids_.empty());
     delete_file_reference(node->file_ids_.back(), file_reference);
-    run_download(node, true);
-    return;
-  }
-
-  if (begins_with(status.message(), "FILE_UPLOAD_RESTART")) {
-    if (ends_with(status.message(), "WITH_FILE_REFERENCE")) {
-      node->upload_was_update_file_reference_ = true;
-    }
-    run_upload(node, {});
-    return;
+    return run_download(node, true);
   }
 
   if (begins_with(status.message(), "FILE_DOWNLOAD_RESTART")) {
     if (ends_with(status.message(), "WITH_FILE_REFERENCE")) {
       node->download_was_update_file_reference_ = true;
-      run_download(node, true);
-      return;
+      return run_download(node, true);
     } else if (ends_with(status.message(), "INCREASE_PART_SIZE")) {
       if (try_fix_partial_local_location(node)) {
-        run_download(node, true);
-        return;
+        return run_download(node, true);
       }
     } else {
       node->can_search_locally_ = false;
-      run_download(node, true);
-      return;
+      return run_download(node, true);
     }
   }
 
   if (status.message() == "MTPROTO_CLUSTER_INVALID") {
     send_closure(G()->config_manager(), &ConfigManager::request_config, true);
-    run_download(node, true);
-    return;
+    return run_download(node, true);
   }
 
   if (!was_active) {
@@ -4194,13 +4158,8 @@ void FileManager::on_error_impl(FileNodePtr node, Query::Type type, bool was_act
     status = Global::request_aborted_error();
   } else {
     if (status.code() != -1) {
-      if (type == Query::Type::Generate && node->generate_ != nullptr) {
-        LOG(WARNING) << "Failed to generate file " << node->main_file_id_ << " with " << *node->generate_ << ": "
-                     << status;
-      } else {
-        LOG(WARNING) << "Failed to " << type << " file " << node->main_file_id_ << " of type "
-                     << FileView(node).get_type() << ": " << status;
-      }
+      LOG(WARNING) << "Failed to " << type << " file " << node->main_file_id_ << " of type "
+                   << FileView(node).get_type() << ": " << status;
     }
     if (status.code() == 0) {
       // Remove partial locations
@@ -4221,6 +4180,92 @@ void FileManager::on_error_impl(FileNodePtr node, Query::Type type, bool was_act
     status = Status::Error(400, status.message());
   }
 
+  on_file_load_error(node, std::move(status));
+}
+
+void FileManager::on_generate_error_impl(FileNodePtr node, bool was_active, Status status) {
+  SCOPE_EXIT {
+    try_flush_node(node, "on_generate_error_impl");
+  };
+  if (begins_with(status.message(), "FILE_GENERATE_LOCATION_INVALID")) {
+    node->set_generate_location(nullptr);
+  }
+  if (!was_active) {
+    return;
+  }
+
+  if (G()->close_flag() && (status.code() < 400 || (status.code() == Global::request_aborted_error().code() &&
+                                                    status.message() == Global::request_aborted_error().message()))) {
+    status = Global::request_aborted_error();
+  } else {
+    if (status.code() != -1 && node->generate_ != nullptr) {
+      LOG(WARNING) << "Failed to generate file " << node->main_file_id_ << " with " << *node->generate_ << ": "
+                   << status;
+    }
+    if (status.code() == 0) {
+      // Remove partial locations
+      if (node->local_.type() == LocalFileLocation::Type::Partial) {
+        // the file itself has already been deleted
+        node->drop_local_location();
+      }
+      node->delete_partial_remote_location();
+    }
+    status = Status::Error(400, status.message());
+  }
+
+  on_file_load_error(node, std::move(status));
+}
+
+void FileManager::on_upload_error_impl(FileNodePtr node, Query::Type type, bool was_active, Status status) {
+  SCOPE_EXIT {
+    try_flush_node(node, "on_upload_error_impl");
+  };
+
+  if (status.message() == "FILE_PART_INVALID") {
+    bool has_partial_small_location = node->remote_.partial && !node->remote_.partial->is_big_;
+    FileView file_view(node);
+    auto expected_size = file_view.expected_size(true);
+    bool should_be_big_location = is_file_big(file_view.get_type(), expected_size);
+
+    node->delete_partial_remote_location();
+    if (has_partial_small_location && should_be_big_location) {
+      return run_upload(node, {});
+    }
+
+    LOG(ERROR) << "Failed to upload file " << node->main_file_id_ << ": unexpected " << status
+               << ", is_small = " << has_partial_small_location << ", should_be_big = " << should_be_big_location
+               << ", expected size = " << expected_size;
+  }
+
+  if (begins_with(status.message(), "FILE_UPLOAD_RESTART")) {
+    if (ends_with(status.message(), "WITH_FILE_REFERENCE")) {
+      node->upload_was_update_file_reference_ = true;
+    }
+    return run_upload(node, {});
+  }
+
+  if (!was_active) {
+    return;
+  }
+
+  if (G()->close_flag() && (status.code() < 400 || (status.code() == Global::request_aborted_error().code() &&
+                                                    status.message() == Global::request_aborted_error().message()))) {
+    status = Global::request_aborted_error();
+  } else {
+    if (status.code() != -1) {
+      LOG(WARNING) << "Failed to " << type << " file " << node->main_file_id_ << " of type "
+                   << FileView(node).get_type() << ": " << status;
+    }
+    if (status.code() == 0) {
+      node->delete_partial_remote_location();
+    }
+    status = Status::Error(400, status.message());
+  }
+
+  on_file_load_error(node, std::move(status));
+}
+
+void FileManager::on_file_load_error(FileNodePtr node, Status status) {
   // Stop everything on error
   do_cancel_generate(node);
   do_cancel_download(node);
@@ -4312,7 +4357,24 @@ void FileManager::hangup() {
       std::tie(query, was_active) = finish_query(static_cast<Container<Query>::Id>(query_id));
       auto node = get_file_node(query.file_id_);
       if (node) {
-        on_error_impl(node, query.type_, was_active, Global::request_aborted_error());
+        switch (query.type_) {
+          case Query::Type::UploadByHash:
+          case Query::Type::UploadWaitFileReference:
+          case Query::Type::Upload:
+            on_upload_error_impl(node, query.type_, was_active, Global::request_aborted_error());
+            break;
+          case Query::Type::DownloadWaitFileReference:
+          case Query::Type::DownloadReloadDialog:
+          case Query::Type::Download:
+          case Query::Type::SetContent:
+            on_download_error_impl(node, query.type_, was_active, Global::request_aborted_error());
+            break;
+          case Query::Type::Generate:
+            on_generate_error_impl(node, was_active, Global::request_aborted_error());
+            break;
+          default:
+            UNREACHABLE();
+        }
       }
     }
   }

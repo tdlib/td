@@ -775,6 +775,7 @@ class FileManager final : public Actor {
                            int64 ready_size, int64 size);
   void on_download_ok(FileDownloadManager::QueryId query_id, FullLocalFileLocation local, int64 size, bool is_new);
   void on_download_error(FileDownloadManager::QueryId query_id, Status status);
+  void on_download_error_impl(FileNodePtr node, Query::Type type, bool was_active, Status status);
 
   void on_hash(FileUploadManager::QueryId query_id, string hash);
   void on_partial_upload(FileUploadManager::QueryId query_id, PartialRemoteFileLocation partial_remote,
@@ -783,12 +784,14 @@ class FileManager final : public Actor {
                     int64 size);
   void on_upload_full_ok(FileUploadManager::QueryId query_id, FullRemoteFileLocation remote);
   void on_upload_error(FileUploadManager::QueryId query_id, Status status);
-
-  void on_error_impl(FileNodePtr node, Query::Type type, bool was_active, Status status);
+  void on_upload_error_impl(FileNodePtr node, Query::Type type, bool was_active, Status status);
 
   void on_partial_generate(FileGenerateManager::QueryId, PartialLocalFileLocation partial_local, int64 expected_size);
   void on_generate_ok(FileGenerateManager::QueryId, FullLocalFileLocation local);
   void on_generate_error(FileGenerateManager::QueryId query_id, Status status);
+  void on_generate_error_impl(FileNodePtr node, bool was_active, Status status);
+
+  void on_file_load_error(FileNodePtr node, Status status);
 
   std::pair<Query, bool> finish_query(Container<Query>::Id query_id);
 
