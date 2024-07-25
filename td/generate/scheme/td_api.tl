@@ -870,6 +870,18 @@ starTransactionDirectionIncoming = StarTransactionDirection;
 starTransactionDirectionOutgoing = StarTransactionDirection;
 
 
+//@class ChannelTransactionPurpose @description Describes purpose of a transaction with a channel
+
+//@description Paid media were bought
+//@message_id Identifier of the corresponding message with paid media; can be an identifier of a deleted message
+//@media The bought media if they are still accessible
+channelTransactionPurposePaidMedia message_id:int53 media:vector<PaidMedia> = ChannelTransactionPurpose;
+
+//@description User joined the channel and subscribed to regular payments in Telegram Stars
+//@period The number of seconds between consecutive Telegram Star debiting
+channelTransactionPurposeJoin period:int32 = ChannelTransactionPurpose;
+
+
 //@class StarTransactionPartner @description Describes source or recipient of a transaction with Telegram Stars
 
 //@description The transaction is a transaction with Telegram through a bot
@@ -893,11 +905,10 @@ starTransactionPartnerTelegramAds = StarTransactionPartner;
 //@invoice_payload Invoice payload; for bots only
 starTransactionPartnerBot user_id:int53 product_info:productInfo invoice_payload:bytes = StarTransactionPartner;
 
-//@description The transaction is a transaction with a channel chat
+//@description The transaction is a transaction with a channel
 //@chat_id Identifier of the chat
-//@paid_media_message_id Identifier of the corresponding message with paid media; can be an identifier of a deleted message
-//@media Information about the bought media
-starTransactionPartnerChannel chat_id:int53 paid_media_message_id:int53 media:vector<PaidMedia> = StarTransactionPartner;
+//@purpose Purpose of the transaction
+starTransactionPartnerChannel chat_id:int53 purpose:ChannelTransactionPurpose = StarTransactionPartner;
 
 //@description The transaction is a gift of Telegram Stars from another user
 //@user_id Identifier of the user; 0 if the gift was anonymous
@@ -5715,7 +5726,7 @@ telegramPaymentPurposeStars currency:string amount:int53 star_count:int53 = Tele
 //@star_count Number of bought Telegram Stars
 telegramPaymentPurposeGiftedStars user_id:int53 currency:string amount:int53 star_count:int53 = TelegramPaymentPurpose;
 
-//@description The user joins a chat and subscribes to regular Payments in Telegram Stars @invite_link Invite link to use
+//@description The user joins a chat and subscribes to regular payments in Telegram Stars @invite_link Invite link to use
 telegramPaymentPurposeJoinChat invite_link:string = TelegramPaymentPurpose;
 
 

@@ -273,6 +273,16 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                   bot_payload);
             }
             if (td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
+              if (transaction->subscription_period_ > 0) {
+                SCOPE_EXIT {
+                  transaction->subscription_period_ = 0;
+                };
+                td_->dialog_manager_->force_create_dialog(dialog_id, "starsTransactionPeer", true);
+                return td_api::make_object<td_api::starTransactionPartnerChannel>(
+                    td_->dialog_manager_->get_chat_id_object(dialog_id, "starTransactionPartnerChannel"),
+                    td_api::make_object<td_api::channelTransactionPurposeJoin>(transaction->subscription_period_));
+              }
+
               SCOPE_EXIT {
                 transaction->msg_id_ = 0;
                 transaction->extended_media_.clear();
@@ -295,7 +305,8 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
               td_->dialog_manager_->force_create_dialog(dialog_id, "starsTransactionPeer", true);
               return td_api::make_object<td_api::starTransactionPartnerChannel>(
                   td_->dialog_manager_->get_chat_id_object(dialog_id, "starTransactionPartnerChannel"),
-                  message_id.get(), std::move(extended_media_objects));
+                  td_api::make_object<td_api::channelTransactionPurposePaidMedia>(message_id.get(),
+                                                                                  std::move(extended_media_objects)));
             }
             LOG(ERROR) << "Receive Telegram Star transaction with " << dialog_id;
             return td_api::make_object<td_api::starTransactionPartnerUnsupported>();
@@ -325,6 +336,9 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         }
         if (transaction->gift_) {
           LOG(ERROR) << "Receive gift with " << to_string(star_transaction);
+        }
+        if (transaction->subscription_period_ != 0) {
+          LOG(ERROR) << "Receive subscription period with " << to_string(star_transaction);
         }
       }
       if (!file_ids.empty()) {
