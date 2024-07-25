@@ -1015,12 +1015,16 @@ class CliClient final : public Actor {
     int64 chat_id = 0;
     int64 message_id = 0;
     string invoice_name;
+    string invite_link;
 
     operator td_api::object_ptr<td_api::InputInvoice>() const {
-      if (invoice_name.empty()) {
-        return td_api::make_object<td_api::inputInvoiceMessage>(chat_id, message_id);
-      } else {
+      if (!invite_link.empty()) {
+        return td_api::make_object<td_api::inputInvoiceTelegram>(
+            td_api::make_object<td_api::telegramPaymentPurposeJoinChat>(invite_link));
+      } else if (!invoice_name.empty()) {
         return td_api::make_object<td_api::inputInvoiceName>(invoice_name);
+      } else {
+        return td_api::make_object<td_api::inputInvoiceMessage>(chat_id, message_id);
       }
     }
   };
@@ -1028,6 +1032,8 @@ class CliClient final : public Actor {
   void get_args(string &args, InputInvoice &arg) const {
     if (args.size() > 1 && (args[0] == '#' || args[0] == '$')) {
       arg.invoice_name = args.substr(1);
+    } else if (args[0] == '+' || begins_with(args, "https://t.me/+")) {
+      arg.invite_link = args;
     } else {
       string chat_id;
       string message_id;

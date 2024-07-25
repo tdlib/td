@@ -8,10 +8,12 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/DialogInviteLink.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/GiveawayParameters.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/InputInvoice.h"
+#include "td/telegram/LinkManager.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
@@ -149,6 +151,18 @@ Result<InputInvoiceInfo> get_input_invoice_info(Td *td, td_api::object_ptr<td_ap
           auto purpose = telegram_api::make_object<telegram_api::inputStorePaymentStarsGift>(
               std::move(input_user), p->star_count_, p->currency_, p->amount_);
           result.input_invoice_ = telegram_api::make_object<telegram_api::inputInvoiceStars>(std::move(purpose));
+          break;
+        }
+        case td_api::telegramPaymentPurposeJoinChat::ID: {
+          auto p = static_cast<td_api::telegramPaymentPurposeJoinChat *>(invoice->purpose_.get());
+          if (!DialogInviteLink::is_valid_invite_link(p->invite_link_)) {
+            return Status::Error(400, "Invalid invite link");
+          }
+          auto hash = LinkManager::get_dialog_invite_link_hash(p->invite_link_);
+          if (!clean_input_string(hash)) {
+            return Status::Error(400, "Invalid invite link");
+          }
+          result.input_invoice_ = telegram_api::make_object<telegram_api::inputInvoiceChatInviteSubscription>(hash);
           break;
         }
         default:

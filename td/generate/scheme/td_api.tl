@@ -5715,6 +5715,9 @@ telegramPaymentPurposeStars currency:string amount:int53 star_count:int53 = Tele
 //@star_count Number of bought Telegram Stars
 telegramPaymentPurposeGiftedStars user_id:int53 currency:string amount:int53 star_count:int53 = TelegramPaymentPurpose;
 
+//@description The user joins a chat and subscribes to regular Payments in Telegram Stars @invite_link Invite link to use
+telegramPaymentPurposeJoinChat invite_link:string = TelegramPaymentPurpose;
+
 
 //@class DeviceToken @description Represents a data needed to subscribe for push notifications through registerDevice method.
 //-To use specific push notification service, the correct application platform must be specified and a valid server authentication data must be uploaded at https://my.telegram.org
