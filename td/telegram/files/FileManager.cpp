@@ -4248,6 +4248,8 @@ void FileManager::on_upload_error_impl(FileNodePtr node, UploadQuery::Type type,
   if (begins_with(status.message(), "FILE_UPLOAD_RESTART")) {
     if (ends_with(status.message(), "WITH_FILE_REFERENCE")) {
       node->upload_was_update_file_reference_ = true;
+    } else {
+      node->delete_partial_remote_location();
     }
     return run_upload(node, {});
   }
