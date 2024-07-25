@@ -4194,8 +4194,9 @@ inputStoryArea position:storyAreaPosition type:InputStoryAreaType = InputStoryAr
 //@description Contains a list of story areas to be added @areas List of input story areas. Currently, a story can have
 //-up to 10 inputStoryAreaTypeLocation, inputStoryAreaTypeFoundVenue, and inputStoryAreaTypePreviousVenue areas,
 //-up to getOption("story_suggested_reaction_area_count_max") inputStoryAreaTypeSuggestedReaction areas,
-//-up to 1 inputStoryAreaTypeMessage area, and
-//-up to getOption("story_link_area_count_max") inputStoryAreaTypeLink areas if the current user is a Telegram Premium user
+//-up to 1 inputStoryAreaTypeMessage area,
+//-up to getOption("story_link_area_count_max") inputStoryAreaTypeLink areas if the current user is a Telegram Premium user, and
+//-up to 3 inputStoryAreaTypeWeather areas
 inputStoryAreas areas:vector<inputStoryArea> = InputStoryAreas;
 
 
