@@ -4169,21 +4169,18 @@ void FileManager::on_download_error_impl(FileNodePtr node, DownloadQuery::Type t
       LOG(WARNING) << "Failed to " << type << " file " << node->main_file_id_ << " of type "
                    << FileView(node).get_type() << ": " << status;
     }
-    if (status.code() == 0) {
-      // Remove partial locations
-      if (node->local_.type() == LocalFileLocation::Type::Partial &&
-          !begins_with(status.message(), "FILE_DOWNLOAD_ID_INVALID") &&
-          !begins_with(status.message(), "FILE_DOWNLOAD_LIMIT")) {
-        CSlice path = node->local_.partial().path_;
-        if (begins_with(path, get_files_temp_dir(FileType::SecureDecrypted)) ||
-            begins_with(path, get_files_temp_dir(FileType::Video))) {
-          LOG(INFO) << "Unlink file " << path;
-          send_closure(file_load_manager_, &FileLoadManager::unlink_file, std::move(node->local_.partial().path_),
-                       Promise<Unit>());
-          node->drop_local_location();
-        }
+    if (status.code() == 0 && node->local_.type() == LocalFileLocation::Type::Partial &&
+        !begins_with(status.message(), "FILE_DOWNLOAD_ID_INVALID") &&
+        !begins_with(status.message(), "FILE_DOWNLOAD_LIMIT")) {
+      // Remove partial location
+      CSlice path = node->local_.partial().path_;
+      if (begins_with(path, get_files_temp_dir(FileType::SecureDecrypted)) ||
+          begins_with(path, get_files_temp_dir(FileType::Video))) {
+        LOG(INFO) << "Unlink file " << path;
+        send_closure(file_load_manager_, &FileLoadManager::unlink_file, std::move(node->local_.partial().path_),
+                     Promise<Unit>());
+        node->drop_local_location();
       }
-      node->delete_partial_remote_location();
     }
     status = Status::Error(400, status.message());
   }
