@@ -553,6 +553,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/SpecialStickerSetType.cpp
   td/telegram/SponsoredMessageManager.cpp
   td/telegram/StarManager.cpp
+  td/telegram/StarSubscription.cpp
   td/telegram/StarSubscriptionPricing.cpp
   td/telegram/StateManager.cpp
   td/telegram/StatisticsManager.cpp
@@ -897,6 +898,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/SpecialStickerSetType.h
   td/telegram/SponsoredMessageManager.h
   td/telegram/StarManager.h
+  td/telegram/StarSubscription.h
   td/telegram/StarSubscriptionPricing.h
   td/telegram/StateManager.h
   td/telegram/StatisticsManager.h

@@ -412,6 +412,7 @@ function split_file($file, $chunks, $undo) {
                 'SharedDialog' => 'SharedDialog',
                 'sponsored_message_manager[_(-](?![.]get[(][)])|SponsoredMessageManager' => 'SponsoredMessageManager',
                 'star_manager[_(-](?![.]get[(][)])|StarManager' => 'StarManager',
+                'StarSubscription[^P]' => 'StarSubscription',
                 'StarSubscriptionPricing' => 'StarSubscriptionPricing',
                 'state_manager[_(-](?![.]get[(][)])|StateManager' => 'StateManager',
                 'statistics_manager[_(-](?![.]get[(][)])|StatisticsManager' => 'StatisticsManager',

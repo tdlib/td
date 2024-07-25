@@ -803,6 +803,14 @@ chatAdministratorRights can_manage_chat:Bool can_change_info:Bool can_post_messa
 //@star_count The amount of Telegram Stars that must be paid for each period
 starSubscriptionPricing period:int32 star_count:int53 = StarSubscriptionPricing;
 
+//@description Contains information about subscription to a channel chat paid in Telegram Stars
+//@id Unique identifier of the subscription
+//@chat_id Identifier of the channel chat that is subscribed
+//@expiration_date Point in time (Unix timestamp) when the subscription will expire or expired
+//@is_canceled True, if the subscription was canceled
+//@pricing The subscription plan
+starSubscription id:string chat_id:int53 expiration_date:int32 is_canceled:Bool pricing:starSubscriptionPricing = StarSubscription;
+
 
 //@description Contains information about a product that can be paid with invoice
 //@title Product title
