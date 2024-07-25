@@ -9112,6 +9112,12 @@ void Td::on_request(uint64 id, td_api::getStarTransactions &request) {
                                        std::move(request.direction_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::getStarSubscriptions &request) {
+  CLEAN_INPUT_STRING(request.offset_);
+  CREATE_REQUEST_PROMISE();
+  star_manager_->get_star_subscriptions(request.offset_, request.limit_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::canPurchaseFromStore &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

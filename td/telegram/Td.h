@@ -1874,6 +1874,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::getStarTransactions &request);
 
+  void on_request(uint64 id, td_api::getStarSubscriptions &request);
+
   void on_request(uint64 id, td_api::canPurchaseFromStore &request);
 
   void on_request(uint64 id, td_api::assignAppStoreTransaction &request);

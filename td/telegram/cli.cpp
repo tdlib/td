@@ -3462,6 +3462,11 @@ class CliClient final : public Actor {
       }
       send_request(td_api::make_object<td_api::getStarTransactions>(as_message_sender(owner_id), std::move(direction),
                                                                     offset, as_limit(limit)));
+    } else if (op == "gssu") {
+      string offset;
+      string limit;
+      get_args(args, offset, limit);
+      send_request(td_api::make_object<td_api::getStarSubscriptions>(offset, as_limit(limit)));
     } else if (op == "cpfs" || op == "cpfsb") {
       UserId user_id;
       string currency;

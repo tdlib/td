@@ -811,6 +811,12 @@ starSubscriptionPricing period:int32 star_count:int53 = StarSubscriptionPricing;
 //@pricing The subscription plan
 starSubscription id:string chat_id:int53 expiration_date:int32 is_canceled:Bool pricing:starSubscriptionPricing = StarSubscription;
 
+//@description Represents a list of Telegram Star subscriptions
+//@star_count The amount of owned Telegram Stars
+//@subscriptions List of subbscriptions for Telegram Stars
+//@next_offset The offset for the next request. If empty, then there are no more results
+starSubscriptions star_count:int53 subscriptions:vector<starSubscription> next_offset:string = StarSubscriptions;
+
 
 //@description Contains information about a product that can be paid with invoice
 //@title Product title
@@ -11433,6 +11439,11 @@ getStarGiftPaymentOptions user_id:int53 = StarPaymentOptions;
 //@offset Offset of the first transaction to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of transactions to return
 getStarTransactions owner_id:MessageSender direction:StarTransactionDirection offset:string limit:int32 = StarTransactions;
+
+//@description Returns the list of Telegram Star subscriptions for the current user
+//@offset Offset of the first subscription to return as received from the previous request; use empty string to get the first chunk of results
+//@limit The maximum number of results to return
+getStarSubscriptions offset:string limit:int32 = StarSubscriptions;
 
 //@description Checks whether an in-store purchase is possible. Must be called before any in-store purchase @purpose Transaction purpose
 canPurchaseFromStore purpose:StorePaymentPurpose = Ok;

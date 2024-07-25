@@ -35,6 +35,9 @@ class StarManager final : public Actor {
                              td_api::object_ptr<td_api::StarTransactionDirection> &&direction,
                              Promise<td_api::object_ptr<td_api::starTransactions>> &&promise);
 
+  void get_star_subscriptions(const string &offset, int32 limit,
+                              Promise<td_api::object_ptr<td_api::starSubscriptions>> &&promise);
+
   void refund_star_payment(UserId user_id, const string &telegram_payment_charge_id, Promise<Unit> &&promise);
 
   void get_star_revenue_statistics(const td_api::object_ptr<td_api::MessageSender> &owner_id, bool is_dark,

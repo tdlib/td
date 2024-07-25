@@ -22,6 +22,7 @@
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/ServerMessageId.h"
+#include "td/telegram/StarSubscription.h"
 #include "td/telegram/StatisticsManager.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
@@ -361,6 +362,51 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
   }
 };
 
+class GetStarsSubscriptionsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::starSubscriptions>> promise_;
+
+ public:
+  explicit GetStarsSubscriptionsQuery(Promise<td_api::object_ptr<td_api::starSubscriptions>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &offset, int32 limit) {
+    int32 flags = 0;
+    send_query(G()->net_query_creator().create(telegram_api::payments_getStarsSubscriptions(
+        flags, false /*ignored*/, telegram_api::make_object<telegram_api::inputPeerSelf>(), offset)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getStarsSubscriptions>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for GetStarsSubscriptionsQuery: " << to_string(result);
+
+    td_->user_manager_->on_get_users(std::move(result->users_), "GetStarsSubscriptionsQuery");
+    td_->chat_manager_->on_get_chats(std::move(result->chats_), "GetStarsSubscriptionsQuery");
+
+    vector<td_api::object_ptr<td_api::starSubscription>> subscriptions;
+    for (auto &subscription : result->subscriptions_) {
+      StarSubscription star_subscription(std::move(subscription));
+      if (!star_subscription.is_valid()) {
+        LOG(ERROR) << "Receive invalid subscription " << star_subscription;
+      } else {
+        subscriptions.push_back(star_subscription.get_star_subscription_object(td_));
+      }
+    }
+    promise_.set_value(
+        td_api::make_object<td_api::starSubscriptions>(StarManager::get_star_count(result->balance_, true),
+                                                       std::move(subscriptions), result->subscriptions_next_offset_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class RefundStarsChargeQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -595,6 +641,14 @@ void StarManager::do_get_star_transactions(DialogId dialog_id, const string &off
 
   td_->create_handler<GetStarsTransactionsQuery>(std::move(promise))
       ->send(dialog_id, offset, limit, std::move(direction));
+}
+
+void StarManager::get_star_subscriptions(const string &offset, int32 limit,
+                                         Promise<td_api::object_ptr<td_api::starSubscriptions>> &&promise) {
+  if (limit < 0) {
+    return promise.set_error(Status::Error(400, "Limit must be non-negative"));
+  }
+  td_->create_handler<GetStarsSubscriptionsQuery>(std::move(promise))->send(offset, limit);
 }
 
 void StarManager::refund_star_payment(UserId user_id, const string &telegram_payment_charge_id,
