@@ -6,7 +6,6 @@
 //
 #pragma once
 
-#include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/ResourceState.h"
 #include "td/telegram/net/NetQuery.h"
 
