@@ -407,6 +407,33 @@ class GetStarsSubscriptionsQuery final : public Td::ResultHandler {
   }
 };
 
+class ChangeStarsSubscriptionQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit ChangeStarsSubscriptionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const string &subscription_id, bool is_canceled) {
+    send_query(G()->net_query_creator().create(telegram_api::payments_changeStarsSubscription(
+        telegram_api::payments_changeStarsSubscription::CANCELED_MASK,
+        telegram_api::make_object<telegram_api::inputPeerSelf>(), subscription_id, is_canceled)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_changeStarsSubscription>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class RefundStarsChargeQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -649,6 +676,10 @@ void StarManager::get_star_subscriptions(const string &offset, int32 limit,
     return promise.set_error(Status::Error(400, "Limit must be non-negative"));
   }
   td_->create_handler<GetStarsSubscriptionsQuery>(std::move(promise))->send(offset, limit);
+}
+
+void StarManager::edit_star_subscriptions(const string &subscription_id, bool is_canceled, Promise<Unit> &&promise) {
+  td_->create_handler<ChangeStarsSubscriptionQuery>(std::move(promise))->send(subscription_id, is_canceled);
 }
 
 void StarManager::refund_star_payment(UserId user_id, const string &telegram_payment_charge_id,

@@ -11458,6 +11458,11 @@ assignAppStoreTransaction receipt:bytes purpose:StorePaymentPurpose = Ok;
 //@purpose Transaction purpose
 assignGooglePlayTransaction package_name:string store_product_id:string purchase_token:string purpose:StorePaymentPurpose = Ok;
 
+//@description Cancels or reenables Telegram Star subscription to a channel
+//@subscription_id Identifier of the subscription to change
+//@is_canceled New value of is_canceled
+editStarSubscription subscription_id:string is_canceled:Bool = Ok;
+
 
 //@description Returns information about features, available to Business users @source Source of the request; pass null if the method is called from settings or some non-standard source
 getBusinessFeatures source:BusinessFeature = BusinessFeatures;

@@ -3467,6 +3467,11 @@ class CliClient final : public Actor {
       string limit;
       get_args(args, offset, limit);
       send_request(td_api::make_object<td_api::getStarSubscriptions>(offset, as_limit(limit)));
+    } else if (op == "ess") {
+      string subscription_id;
+      bool is_canceled;
+      get_args(args, subscription_id, is_canceled);
+      send_request(td_api::make_object<td_api::editStarSubscription>(subscription_id, is_canceled));
     } else if (op == "cpfs" || op == "cpfsb") {
       UserId user_id;
       string currency;

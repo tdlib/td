@@ -9113,9 +9113,17 @@ void Td::on_request(uint64 id, td_api::getStarTransactions &request) {
 }
 
 void Td::on_request(uint64 id, td_api::getStarSubscriptions &request) {
+  CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();
   star_manager_->get_star_subscriptions(request.offset_, request.limit_, std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::editStarSubscription &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.subscription_id_);
+  CREATE_OK_REQUEST_PROMISE();
+  star_manager_->edit_star_subscriptions(request.subscription_id_, request.is_canceled_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::canPurchaseFromStore &request) {
