@@ -570,6 +570,10 @@ td_api::object_ptr<td_api::availableReactions> ReactionManager::get_sorted_avail
     CHECK(!reaction_type.is_empty());
     all_available_reaction_types.insert(reaction_type);
   }
+  if (available_reactions.paid_reactions_available_) {
+    all_available_reaction_types.insert(ReactionType::paid());
+    top_reactions.insert(top_reactions.begin(), ReactionType::paid());
+  }
 
   vector<td_api::object_ptr<td_api::availableReaction>> top_reaction_objects;
   vector<td_api::object_ptr<td_api::availableReaction>> recent_reaction_objects;
