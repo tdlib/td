@@ -594,7 +594,12 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
 
     bool is_chosen = (reaction_count->flags_ & telegram_api::reactionCount::CHOSEN_ORDER_MASK) != 0;
     if (is_chosen) {
-      chosen_reaction_order.emplace_back(reaction_count->chosen_order_, reaction_type);
+      if (reaction_type == ReactionType::paid()) {
+        LOG_IF(ERROR, reaction_count->chosen_order_ != -1)
+            << "Receive paid reaction with order " << reaction_count->chosen_order_;
+      } else {
+        chosen_reaction_order.emplace_back(reaction_count->chosen_order_, reaction_type);
+      }
     }
     result->reactions_.push_back({std::move(reaction_type), reaction_count->count_, is_chosen,
                                   my_recent_chooser_dialog_id, std::move(recent_chooser_dialog_ids),
