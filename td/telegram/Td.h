@@ -812,6 +812,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::addMessageReaction &request);
 
+  void on_request(uint64 id, const td_api::addPaidMessageReaction &request);
+
   void on_request(uint64 id, const td_api::removeMessageReaction &request);
 
   void on_request(uint64 id, const td_api::setMessageReactions &request);

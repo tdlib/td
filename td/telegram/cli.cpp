@@ -2958,6 +2958,12 @@ class CliClient final : public Actor {
       get_args(args, chat_id, message_id, reaction, is_big, update_recent_reactions);
       send_request(td_api::make_object<td_api::addMessageReaction>(chat_id, message_id, as_reaction_type(reaction),
                                                                    is_big, update_recent_reactions));
+    } else if (op == "payreact") {
+      ChatId chat_id;
+      MessageId message_id;
+      int64 star_count;
+      get_args(args, chat_id, message_id, star_count);
+      send_request(td_api::make_object<td_api::addPaidMessageReaction>(chat_id, message_id, star_count));
     } else if (op == "rmr") {
       ChatId chat_id;
       MessageId message_id;

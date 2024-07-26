@@ -152,6 +152,50 @@ class SendReactionQuery final : public Td::ResultHandler {
   }
 };
 
+class SendPaidReactionQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit SendPaidReactionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(MessageFullId message_full_id, int32 star_count, int64 random_id) {
+    dialog_id_ = message_full_id.get_dialog_id();
+
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
+
+    int32 flags = 0;
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_sendPaidReaction(flags, false /*ignored*/, std::move(input_peer),
+                                                message_full_id.get_message_id().get_server_message_id().get(),
+                                                star_count, random_id),
+        {{dialog_id_}, {message_full_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_sendPaidReaction>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SendPaidReactionQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "MESSAGE_NOT_MODIFIED") {
+      return promise_.set_value(Unit());
+    }
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "SendPaidReactionQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetMessageReactionsListQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::addedReactions>> promise_;
   DialogId dialog_id_;
@@ -908,6 +952,11 @@ void set_message_reactions(Td *td, MessageFullId message_full_id, vector<Reactio
     }
   }
   send_message_reaction(td, message_full_id, std::move(reaction_types), is_big, false, std::move(promise));
+}
+
+void send_paid_message_reaction(Td *td, MessageFullId message_full_id, int32 star_count, int64 random_id,
+                                Promise<Unit> &&promise) {
+  td->create_handler<SendPaidReactionQuery>(std::move(promise))->send(message_full_id, star_count, random_id);
 }
 
 void get_message_added_reactions(Td *td, MessageFullId message_full_id, ReactionType reaction_type, string offset,

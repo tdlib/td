@@ -222,6 +222,9 @@ void send_message_reaction(Td *td, MessageFullId message_full_id, vector<Reactio
 void set_message_reactions(Td *td, MessageFullId message_full_id, vector<ReactionType> reaction_types, bool is_big,
                            Promise<Unit> &&promise);
 
+void send_paid_message_reaction(Td *td, MessageFullId message_full_id, int32 star_count, int64 random_id,
+                                Promise<Unit> &&promise);
+
 void get_message_added_reactions(Td *td, MessageFullId message_full_id, ReactionType reaction_type, string offset,
                                  int32 limit, Promise<td_api::object_ptr<td_api::addedReactions>> &&promise);
 

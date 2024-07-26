@@ -22627,6 +22627,9 @@ void MessagesManager::add_message_reaction(MessageFullId message_full_id, Reacti
   if (!get_message_available_reactions(d, m, true, nullptr).is_allowed_reaction_type(reaction_type)) {
     return promise.set_error(Status::Error(400, "The reaction isn't available for the message"));
   }
+  if (reaction_type.is_paid_reaction()) {
+    return promise.set_error(Status::Error(400, "Use addPaidMessageReaction instead to add the paid reaction"));
+  }
 
   bool have_recent_choosers =
       !td_->dialog_manager_->is_broadcast_channel(dialog_id) && !is_discussion_message(dialog_id, m);
@@ -22652,6 +22655,50 @@ void MessagesManager::add_message_reaction(MessageFullId message_full_id, Reacti
   } else if (add_to_recent) {
     td_->reaction_manager_->add_recent_reaction(reaction_type);
   }
+}
+
+void MessagesManager::add_paid_message_reaction(MessageFullId message_full_id, int64 star_count,
+                                                Promise<Unit> &&promise) {
+  auto dialog_id = message_full_id.get_dialog_id();
+  Dialog *d = get_dialog_force(dialog_id, "add_paid_message_reaction");
+  if (d == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  Message *m = get_message_force(d, message_full_id.get_message_id(), "add_paid_message_reaction");
+  if (m == nullptr) {
+    return promise.set_error(Status::Error(400, "Message not found"));
+  }
+  if (!get_message_available_reactions(d, m, true, nullptr).is_allowed_reaction_type(ReactionType::paid()) ||
+      !td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
+    return promise.set_error(Status::Error(400, "The reaction isn't available for the message"));
+  }
+  if (star_count <= 0 || star_count > td_->option_manager_->get_option_integer("paid_reaction_star_count_max")) {
+    return promise.set_error(Status::Error(400, "Invalid Telegram Star count specified"));
+  }
+
+  if (m->reactions == nullptr) {
+    m->reactions = make_unique<MessageReactions>();
+    m->available_reactions_generation = d->available_reactions_generation;
+  }
+
+  LOG(INFO) << "Have message with " << *m->reactions;
+  // m->reactions->add_my_paid_reaction(star_count);
+  // m->reactions->sort_reactions(active_reaction_pos_);
+  LOG(INFO) << "Update message reactions to " << *m->reactions;
+
+  pending_reactions_[message_full_id].query_count++;
+
+  send_update_message_interaction_info(d->dialog_id, m);
+  on_message_changed(d, m, true, "add_paid_message_reaction");
+
+  // TODO log event
+  int64 random_id = (static_cast<int64>(G()->unix_time()) << 32) | static_cast<int64>(Random::secure_uint32());
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), message_full_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
+        send_closure(actor_id, &MessagesManager::on_set_message_reactions, message_full_id, std::move(result),
+                     std::move(promise));
+      });
+  send_paid_message_reaction(td_, message_full_id, narrow_cast<int32>(star_count), random_id, std::move(query_promise));
 }
 
 void MessagesManager::remove_message_reaction(MessageFullId message_full_id, ReactionType reaction_type,
