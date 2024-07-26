@@ -283,6 +283,21 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                     td_->dialog_manager_->get_chat_id_object(dialog_id, "starTransactionPartnerChannel"),
                     td_api::make_object<td_api::channelTransactionPurposeJoin>(transaction->subscription_period_));
               }
+              if (transaction->reaction_) {
+                SCOPE_EXIT {
+                  transaction->msg_id_ = 0;
+                  transaction->reaction_ = false;
+                };
+                auto message_id = MessageId(ServerMessageId(transaction->msg_id_));
+                if (message_id != MessageId() && !message_id.is_valid()) {
+                  LOG(ERROR) << "Receive " << message_id << " in " << to_string(transaction);
+                  message_id = MessageId();
+                }
+                td_->dialog_manager_->force_create_dialog(dialog_id, "starsTransactionPeer", true);
+                return td_api::make_object<td_api::starTransactionPartnerChannel>(
+                    td_->dialog_manager_->get_chat_id_object(dialog_id, "starTransactionPartnerChannel"),
+                    td_api::make_object<td_api::channelTransactionPurposeReaction>(message_id.get()));
+              }
 
               SCOPE_EXIT {
                 transaction->msg_id_ = 0;
@@ -340,6 +355,9 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         }
         if (transaction->subscription_period_ != 0) {
           LOG(ERROR) << "Receive subscription period with " << to_string(star_transaction);
+        }
+        if (transaction->reaction_) {
+          LOG(ERROR) << "Receive reaction with " << to_string(star_transaction);
         }
       }
       if (!file_ids.empty()) {

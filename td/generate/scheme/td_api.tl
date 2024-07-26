@@ -895,6 +895,10 @@ channelTransactionPurposePaidMedia message_id:int53 media:vector<PaidMedia> = Ch
 //@period The number of seconds between consecutive Telegram Star debiting
 channelTransactionPurposeJoin period:int32 = ChannelTransactionPurpose;
 
+//@description User paid for a reaction
+//@message_id Identifier of the reacted message; can be an identifier of a deleted message
+channelTransactionPurposeReaction message_id:int53 = ChannelTransactionPurpose;
+
 
 //@class StarTransactionPartner @description Describes source or recipient of a transaction with Telegram Stars
 
