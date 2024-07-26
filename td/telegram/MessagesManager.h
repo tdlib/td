@@ -849,7 +849,7 @@ class MessagesManager final : public Actor {
 
   void on_update_dialog_available_reactions(DialogId dialog_id,
                                             telegram_api::object_ptr<telegram_api::ChatReactions> &&available_reactions,
-                                            int32 reactions_limit);
+                                            int32 reactions_limit, bool paid_reactions_available);
 
   void hide_dialog_action_bar(DialogId dialog_id);
 

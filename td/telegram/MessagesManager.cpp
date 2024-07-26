@@ -811,13 +811,13 @@ class SetChatAvailableReactionsQuery final : public Td::ResultHandler {
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
-    int32 flags = 0;
+    int32 flags = telegram_api::messages_setChatAvailableReactions::PAID_ENABLED_MASK;
     if (available_reactions.reactions_limit_ != 0) {
       flags |= telegram_api::messages_setChatAvailableReactions::REACTIONS_LIMIT_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_setChatAvailableReactions(
         flags, std::move(input_peer), available_reactions.get_input_chat_reactions(),
-        available_reactions.reactions_limit_, false)));
+        available_reactions.reactions_limit_, available_reactions.paid_reactions_available_)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -7611,13 +7611,14 @@ void MessagesManager::on_update_dialog_notify_settings(
 
 void MessagesManager::on_update_dialog_available_reactions(
     DialogId dialog_id, telegram_api::object_ptr<telegram_api::ChatReactions> &&available_reactions,
-    int32 reactions_limit) {
+    int32 reactions_limit, bool paid_reactions_available) {
   Dialog *d = get_dialog_force(dialog_id, "on_update_dialog_available_reactions");
   if (d == nullptr) {
     return;
   }
 
-  set_dialog_available_reactions(d, ChatReactions(std::move(available_reactions), reactions_limit));
+  set_dialog_available_reactions(
+      d, ChatReactions(std::move(available_reactions), reactions_limit, paid_reactions_available));
 }
 
 void MessagesManager::set_dialog_available_reactions(Dialog *d, ChatReactions &&available_reactions) {

@@ -13,8 +13,14 @@
 
 namespace td {
 
+bool ChatReactions::remove_paid_reactions() {
+  return td::remove_if(reaction_types_,
+                       [&](const ReactionType &reaction_type) { return reaction_type.is_paid_reaction(); });
+}
+
 ChatReactions::ChatReactions(telegram_api::object_ptr<telegram_api::ChatReactions> &&chat_reactions_ptr,
-                             int32 reactions_limit) {
+                             int32 reactions_limit, bool paid_reactions_available)
+    : paid_reactions_available_(paid_reactions_available) {
   if (chat_reactions_ptr == nullptr) {
     return;
   }
@@ -30,6 +36,9 @@ ChatReactions::ChatReactions(telegram_api::object_ptr<telegram_api::ChatReaction
     case telegram_api::chatReactionsSome::ID: {
       auto chat_reactions = move_tl_object_as<telegram_api::chatReactionsSome>(chat_reactions_ptr);
       reaction_types_ = ReactionType::get_reaction_types(chat_reactions->reactions_);
+      if (remove_paid_reactions()) {
+        LOG(ERROR) << "Receive paid reaction allowed";
+      }
       break;
     }
     default:
@@ -55,6 +64,7 @@ ChatReactions::ChatReactions(td_api::object_ptr<td_api::ChatAvailableReactions> 
       auto chat_reactions = move_tl_object_as<td_api::chatAvailableReactionsSome>(chat_reactions_ptr);
       reaction_types_ = ReactionType::get_reaction_types(chat_reactions->reactions_);
       reactions_limit_ = chat_reactions->max_reaction_count_;
+      paid_reactions_available_ = remove_paid_reactions();
       break;
     }
     default:
@@ -80,6 +90,9 @@ bool ChatReactions::is_allowed_reaction_type(const ReactionType &reaction_type) 
   if (allow_all_custom_ && reaction_type.is_custom_reaction()) {
     return true;
   }
+  if (reaction_type.is_paid_reaction()) {
+    return paid_reactions_available_;
+  }
   return td::contains(reaction_types_, reaction_type);
 }
 
@@ -89,10 +102,11 @@ td_api::object_ptr<td_api::ChatAvailableReactions> ChatReactions::get_chat_avail
     reactions_uniq_max = reactions_limit_;
   }
   if (allow_all_regular_) {
+    LOG_IF(ERROR, paid_reactions_available_) << "Have paid reaction in a non-channel chat";
     return td_api::make_object<td_api::chatAvailableReactionsAll>(reactions_uniq_max);
   }
   return td_api::make_object<td_api::chatAvailableReactionsSome>(
-      ReactionType::get_reaction_types_object(reaction_types_), reactions_uniq_max);
+      ReactionType::get_reaction_types_object(reaction_types_, paid_reactions_available_), reactions_uniq_max);
 }
 
 telegram_api::object_ptr<telegram_api::ChatReactions> ChatReactions::get_input_chat_reactions() const {
@@ -113,12 +127,15 @@ telegram_api::object_ptr<telegram_api::ChatReactions> ChatReactions::get_input_c
 bool operator==(const ChatReactions &lhs, const ChatReactions &rhs) {
   // don't compare allow_all_custom_
   return lhs.reaction_types_ == rhs.reaction_types_ && lhs.allow_all_regular_ == rhs.allow_all_regular_ &&
-         lhs.reactions_limit_ == rhs.reactions_limit_;
+         lhs.reactions_limit_ == rhs.reactions_limit_ && lhs.paid_reactions_available_ == rhs.paid_reactions_available_;
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const ChatReactions &reactions) {
   if (reactions.reactions_limit_ != 0) {
     string_builder << '[' << reactions.reactions_limit_ << "] ";
+  }
+  if (reactions.paid_reactions_available_) {
+    string_builder << "Paid";
   }
   if (reactions.allow_all_regular_) {
     if (reactions.allow_all_custom_) {

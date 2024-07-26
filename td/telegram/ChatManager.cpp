@@ -5265,7 +5265,7 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
                                                              "on_get_chat_full");
 
     td_->messages_manager_->on_update_dialog_available_reactions(
-        DialogId(chat_id), std::move(chat->available_reactions_), chat->reactions_limit_);
+        DialogId(chat_id), std::move(chat->available_reactions_), chat->reactions_limit_, false);
 
     td_->messages_manager_->on_update_dialog_theme_name(DialogId(chat_id), std::move(chat->theme_emoticon_));
 
@@ -5322,7 +5322,8 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
     td_->messages_manager_->on_update_dialog_background(DialogId(channel_id), std::move(channel->wallpaper_));
 
     td_->messages_manager_->on_update_dialog_available_reactions(
-        DialogId(channel_id), std::move(channel->available_reactions_), channel->reactions_limit_);
+        DialogId(channel_id), std::move(channel->available_reactions_), channel->reactions_limit_,
+        channel->paid_reactions_available_);
 
     td_->messages_manager_->on_update_dialog_theme_name(DialogId(channel_id), std::move(channel->theme_emoticon_));
 

@@ -23,6 +23,7 @@ struct ChatReactions {
   bool allow_all_regular_ = false;  // implies empty reaction_types_
   bool allow_all_custom_ = false;   // implies allow_all_regular_
   int32 reactions_limit_ = 0;
+  bool paid_reactions_available_ = false;
 
   ChatReactions() = default;
 
@@ -32,7 +33,8 @@ struct ChatReactions {
     return result;
   }
 
-  ChatReactions(telegram_api::object_ptr<telegram_api::ChatReactions> &&chat_reactions_ptr, int32 reactions_limit);
+  ChatReactions(telegram_api::object_ptr<telegram_api::ChatReactions> &&chat_reactions_ptr, int32 reactions_limit,
+                bool paid_reactions_available);
 
   ChatReactions(td_api::object_ptr<td_api::ChatAvailableReactions> &&chat_reactions_ptr, bool allow_all_custom);
 
@@ -50,8 +52,10 @@ struct ChatReactions {
   td_api::object_ptr<td_api::ChatAvailableReactions> get_chat_available_reactions_object(Td *td) const;
 
   bool empty() const {
-    return reaction_types_.empty() && !allow_all_regular_;
+    return reaction_types_.empty() && !allow_all_regular_ && !paid_reactions_available_;
   }
+
+  bool remove_paid_reactions();
 
   template <class StorerT>
   void store(StorerT &storer) const;

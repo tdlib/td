@@ -3059,8 +3059,8 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
                      td_api::make_object<td_api::updateMessageReaction>(
                          td_->dialog_manager_->get_chat_id_object(dialog_id, "updateMessageReaction"), message_id.get(),
                          get_message_sender_object(td_, actor_dialog_id, "updateMessageReaction"), date,
-                         ReactionType::get_reaction_types_object(old_reaction_types),
-                         ReactionType::get_reaction_types_object(new_reaction_types)));
+                         ReactionType::get_reaction_types_object(old_reaction_types, false),
+                         ReactionType::get_reaction_types_object(new_reaction_types, false)));
         break;
       }
       case telegram_api::updateBotMessageReactions::ID: {

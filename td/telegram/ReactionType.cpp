@@ -91,6 +91,12 @@ ReactionType::ReactionType(const td_api::object_ptr<td_api::ReactionType> &type)
   }
 }
 
+ReactionType ReactionType::paid() {
+  ReactionType reaction_type;
+  reaction_type.reaction_ = "$";
+  return reaction_type;
+}
+
 vector<ReactionType> ReactionType::get_reaction_types(
     const vector<telegram_api::object_ptr<telegram_api::Reaction>> &reactions) {
   return transform(reactions, [](const auto &reaction) { return ReactionType(reaction); });
@@ -108,9 +114,16 @@ vector<telegram_api::object_ptr<telegram_api::Reaction>> ReactionType::get_input
 }
 
 vector<td_api::object_ptr<td_api::ReactionType>> ReactionType::get_reaction_types_object(
-    const vector<ReactionType> &reaction_types) {
-  return transform(reaction_types,
-                   [](const ReactionType &reaction_type) { return reaction_type.get_reaction_type_object(); });
+    const vector<ReactionType> &reaction_types, bool paid_reactions_available) {
+  vector<td_api::object_ptr<td_api::ReactionType>> result;
+  result.reserve(reaction_types.size() + (paid_reactions_available ? 1 : 0));
+  if (paid_reactions_available) {
+    result.push_back(paid().get_reaction_type_object());
+  }
+  for (auto &reaction_type : reaction_types) {
+    result.push_back(reaction_type.get_reaction_type_object());
+  }
+  return result;
 }
 
 telegram_api::object_ptr<telegram_api::Reaction> ReactionType::get_input_reaction() const {

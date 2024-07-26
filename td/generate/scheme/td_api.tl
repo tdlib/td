@@ -1963,7 +1963,8 @@ chatPosition list:ChatList order:int64 is_pinned:Bool source:ChatSource = ChatPo
 
 //@class ChatAvailableReactions @description Describes reactions available in the chat
 
-//@description All reactions are available in the chat @max_reaction_count The maximum allowed number of reactions per message; 1-11
+//@description All reactions are available in the chat, excluding the paid reaction and custom reactions in channel chats
+//@max_reaction_count The maximum allowed number of reactions per message; 1-11
 chatAvailableReactionsAll max_reaction_count:int32 = ChatAvailableReactions;
 
 //@description Only specific reactions are available in the chat @reactions The list of reactions @max_reaction_count The maximum allowed number of reactions per message; 1-11
