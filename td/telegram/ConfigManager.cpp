@@ -2054,6 +2054,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         G()->set_option_boolean("can_gift_stars", get_json_value_bool(std::move(key_value->value_), key));
         continue;
       }
+      if (key == "stars_paid_reaction_amount_max") {
+        G()->set_option_integer("paid_reaction_star_count_max", get_json_value_int(std::move(key_value->value_), key));
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }

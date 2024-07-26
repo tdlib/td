@@ -156,6 +156,7 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("story_link_area_count_max", 3);
   set_default_integer_option("paid_media_message_star_count_max", 10000);
   set_default_integer_option("bot_media_preview_count_max", 12);
+  set_default_integer_option("paid_reaction_star_count_max", 2500);
 
   if (options.isset("my_phone_number") || !options.isset("my_id")) {
     update_premium_options();
