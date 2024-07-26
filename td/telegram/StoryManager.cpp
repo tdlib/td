@@ -2910,6 +2910,9 @@ bool StoryManager::can_use_story_reaction(const Story *story, const ReactionType
     }
     return false;
   }
+  if (reaction_type.is_paid_reaction()) {
+    return false;
+  }
   return td_->reaction_manager_->is_active_reaction(reaction_type);
 }
 

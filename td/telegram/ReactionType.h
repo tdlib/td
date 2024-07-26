@@ -59,6 +59,8 @@ class ReactionType {
 
   bool is_custom_reaction() const;
 
+  bool is_paid_reaction() const;
+
   bool is_active_reaction(const FlatHashMap<ReactionType, size_t, ReactionTypeHash> &active_reaction_pos) const;
 
   bool is_empty() const {

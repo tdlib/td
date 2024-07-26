@@ -1479,6 +1479,9 @@ reactionTypeEmoji emoji:string = ReactionType;
 //@description A reaction with a custom emoji @custom_emoji_id Unique identifier of the custom emoji
 reactionTypeCustomEmoji custom_emoji_id:int64 = ReactionType;
 
+//@description The paid reaction in a channel chat
+reactionTypePaid = ReactionType;
+
 
 //@description Contains information about a forwarded message
 //@origin Origin of the forwarded message

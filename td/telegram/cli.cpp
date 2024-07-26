@@ -792,6 +792,9 @@ class CliClient final : public Actor {
     if (type.empty()) {
       return nullptr;
     }
+    if (type == "$") {
+      return td_api::make_object<td_api::reactionTypePaid>();
+    }
     auto r_custom_emoji_id = to_integer_safe<int64>(type);
     if (r_custom_emoji_id.is_ok()) {
       return td_api::make_object<td_api::reactionTypeCustomEmoji>(r_custom_emoji_id.ok());

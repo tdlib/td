@@ -964,8 +964,11 @@ void ReactionManager::set_default_reaction(ReactionType reaction_type, Promise<U
   if (reaction_type.is_empty()) {
     return promise.set_error(Status::Error(400, "Default reaction must be non-empty"));
   }
+  if (reaction_type.is_paid_reaction()) {
+    return promise.set_error(Status::Error(400, "Can't set paid reaction as default"));
+  }
   if (!reaction_type.is_custom_reaction() && !is_active_reaction(reaction_type)) {
-    return promise.set_error(Status::Error(400, "Can't set incative reaction as default"));
+    return promise.set_error(Status::Error(400, "Can't set inactive reaction as default"));
   }
 
   if (td_->option_manager_->get_option_string("default_reaction", "-") != reaction_type.get_string()) {
