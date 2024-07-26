@@ -55,8 +55,8 @@ StoryInteractionInfo::StoryInteractionInfo(Td *td, telegram_api::object_ptr<tele
   FlatHashSet<ReactionType, ReactionTypeHash> added_reaction_types;
   for (auto &reaction : story_views->reactions_) {
     ReactionType reaction_type(reaction->reaction_);
-    if (reaction_type.is_empty()) {
-      LOG(ERROR) << "Receive empty " << to_string(reaction);
+    if (reaction_type.is_empty() || reaction_type.is_paid_reaction()) {
+      LOG(ERROR) << "Receive " << to_string(reaction);
       continue;
     }
     if (!added_reaction_types.insert(reaction_type).second) {
@@ -81,6 +81,7 @@ void StoryInteractionInfo::add_dependencies(Dependencies &dependencies) const {
 void StoryInteractionInfo::set_chosen_reaction_type(const ReactionType &new_reaction_type,
                                                     const ReactionType &old_reaction_type) {
   if (!old_reaction_type.is_empty()) {
+    CHECK(!old_reaction_type.is_paid_reaction());
     for (auto it = reaction_counts_.begin(); it != reaction_counts_.end(); ++it) {
       if (it->first == old_reaction_type) {
         it->second--;
@@ -92,6 +93,7 @@ void StoryInteractionInfo::set_chosen_reaction_type(const ReactionType &new_reac
     }
   }
   if (!new_reaction_type.is_empty()) {
+    CHECK(!new_reaction_type.is_paid_reaction());
     bool is_found = false;
     for (auto it = reaction_counts_.begin(); it != reaction_counts_.end(); ++it) {
       if (it->first == old_reaction_type) {

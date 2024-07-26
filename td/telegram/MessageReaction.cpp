@@ -903,7 +903,7 @@ void set_message_reactions(Td *td, MessageFullId message_full_id, vector<Reactio
     return promise.set_error(Status::Error(400, "Message not found"));
   }
   for (const auto &reaction_type : reaction_types) {
-    if (reaction_type.is_empty()) {
+    if (reaction_type.is_empty() || reaction_type.is_paid_reaction()) {
       return promise.set_error(Status::Error(400, "Invalid reaction type specified"));
     }
   }

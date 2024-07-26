@@ -1348,7 +1348,7 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
 
   if (is_from_main_dc && !options.have_option("default_reaction_need_sync")) {
     ReactionType reaction_type(config->reactions_default_);
-    if (!reaction_type.is_empty()) {
+    if (!reaction_type.is_empty() && !reaction_type.is_paid_reaction()) {
       options.set_option_string("default_reaction", reaction_type.get_string());
     }
   }

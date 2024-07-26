@@ -22667,7 +22667,7 @@ void MessagesManager::remove_message_reaction(MessageFullId message_full_id, Rea
     return promise.set_error(Status::Error(400, "Message not found"));
   }
 
-  if (reaction_type.is_empty()) {
+  if (reaction_type.is_empty() || reaction_type.is_paid_reaction()) {
     return promise.set_error(Status::Error(400, "Invalid reaction specified"));
   }
 

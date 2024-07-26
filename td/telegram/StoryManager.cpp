@@ -310,6 +310,7 @@ class SendStoryReactionQuery final : public Td::ResultHandler {
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
+    CHECK(!reaction_type.is_paid_reaction());
 
     int32 flags = 0;
     if (!reaction_type.is_empty() && add_to_recent) {
@@ -411,6 +412,7 @@ class GetStoryReactionsListQuery final : public Td::ResultHandler {
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
+    CHECK(!reaction_type.is_paid_reaction());
 
     int32 flags = 0;
     if (!reaction_type.is_empty()) {
@@ -2890,7 +2892,7 @@ void StoryManager::on_story_replied(StoryFullId story_full_id, UserId replier_us
 }
 
 bool StoryManager::has_suggested_reaction(const Story *story, const ReactionType &reaction_type) {
-  if (reaction_type.is_empty()) {
+  if (reaction_type.is_empty() || reaction_type.is_paid_reaction()) {
     return false;
   }
   CHECK(story != nullptr);
@@ -3277,6 +3279,9 @@ void StoryManager::get_dialog_story_interactions(StoryFullId story_full_id, Reac
   }
   if (!story_full_id.get_story_id().is_server()) {
     return promise.set_value(td_api::make_object<td_api::storyInteractions>());
+  }
+  if (reaction_type.is_paid_reaction()) {
+    return promise.set_error(Status::Error(400, "Stories can't have paid reactions"));
   }
 
   auto query_promise = PromiseCreator::lambda(
@@ -4576,6 +4581,10 @@ void StoryManager::on_update_story_chosen_reaction_type(DialogId owner_dialog_id
     return;
   }
   if (!td_->dialog_manager_->have_dialog_info_force(owner_dialog_id, "on_update_story_chosen_reaction_type")) {
+    return;
+  }
+  if (chosen_reaction_type.is_paid_reaction()) {
+    LOG(ERROR) << "Receive paid reaction for " << story_id << " in " << owner_dialog_id;
     return;
   }
   StoryFullId story_full_id{owner_dialog_id, story_id};

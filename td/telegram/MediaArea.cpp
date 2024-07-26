@@ -63,7 +63,7 @@ MediaArea::MediaArea(Td *td, telegram_api::object_ptr<telegram_api::MediaArea> &
       reaction_type_ = ReactionType(area->reaction_);
       is_dark_ = area->dark_;
       is_flipped_ = area->flipped_;
-      if (coordinates_.is_valid() && !reaction_type_.is_empty()) {
+      if (coordinates_.is_valid() && !reaction_type_.is_empty() && !reaction_type_.is_paid_reaction()) {
         type_ = Type::Reaction;
       } else {
         LOG(ERROR) << "Receive " << to_string(area);
@@ -182,7 +182,7 @@ MediaArea::MediaArea(Td *td, td_api::object_ptr<td_api::inputStoryArea> &&input_
       reaction_type_ = ReactionType(type->reaction_type_);
       is_dark_ = type->is_dark_;
       is_flipped_ = type->is_flipped_;
-      if (!reaction_type_.is_empty()) {
+      if (!reaction_type_.is_empty() && !reaction_type_.is_paid_reaction()) {
         type_ = Type::Reaction;
       }
       break;

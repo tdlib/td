@@ -9026,7 +9026,7 @@ clearRecentReactions = Ok;
 //@update_recent_reactions Pass true if the reaction needs to be added to recent reactions; tags are never added to the list of recent reactions
 addMessageReaction chat_id:int53 message_id:int53 reaction_type:ReactionType is_big:Bool update_recent_reactions:Bool = Ok;
 
-//@description Removes a reaction from a message. A chosen reaction can always be removed
+//@description Removes a reaction from a message. The paid reaction can't be removed. A chosen reaction can always be removed
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
 //@reaction_type Type of the reaction to remove
@@ -9047,7 +9047,7 @@ setMessageReactions chat_id:int53 message_id:int53 reaction_types:vector<Reactio
 //@limit The maximum number of reactions to be returned; must be positive and can't be greater than 100
 getMessageAddedReactions chat_id:int53 message_id:int53 reaction_type:ReactionType offset:string limit:int32 = AddedReactions;
 
-//@description Changes type of default reaction for the current user @reaction_type New type of the default reaction
+//@description Changes type of default reaction for the current user @reaction_type New type of the default reaction. The paid reaction can't be set as default
 setDefaultReactionType reaction_type:ReactionType = Ok;
 
 //@description Returns tags used in Saved Messages or a Saved Messages topic

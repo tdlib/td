@@ -1190,6 +1190,9 @@ void ReactionManager::set_saved_messages_tag_title(ReactionType reaction_type, s
   if (reaction_type.is_empty()) {
     return promise.set_error(Status::Error(400, "Reaction type must be non-empty"));
   }
+  if (reaction_type.is_paid_reaction()) {
+    return promise.set_error(Status::Error(400, "Invalid reaction specified"));
+  }
   title = clean_name(title, MAX_TAG_TITLE_LENGTH);
 
   auto *all_tags = get_saved_reaction_tags(SavedMessagesTopicId());
