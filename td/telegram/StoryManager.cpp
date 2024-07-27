@@ -590,6 +590,52 @@ class GetPeerStoriesQuery final : public Td::ResultHandler {
   }
 };
 
+class EditStoryCoverQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit EditStoryCoverQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId owner_dialog_id, StoryId story_id,
+            telegram_api::object_ptr<telegram_api::InputMedia> input_media) {
+    dialog_id_ = owner_dialog_id;
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Write);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::stories_editStory(telegram_api::stories_editStory::MEDIA_MASK, std::move(input_peer),
+                                        story_id.get(), std::move(input_media),
+                                        vector<telegram_api::object_ptr<telegram_api::MediaArea>>(), string(),
+                                        vector<telegram_api::object_ptr<telegram_api::MessageEntity>>(), Auto()),
+        {{StoryFullId{dialog_id_, story_id}}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_editStory>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for EditStoryCoverQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    LOG(INFO) << "Receive error for EditStoryCoverQuery: " << status;
+    if (!td_->auth_manager_->is_bot() && status.message() == "STORY_NOT_MODIFIED") {
+      return promise_.set_value(Unit());
+    }
+
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "EditStoryCoverQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class EditStoryPrivacyQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -5501,6 +5547,33 @@ void StoryManager::do_edit_story(FileId file_id, unique_ptr<PendingStory> &&pend
   CHECK(story->content_ != nullptr);
   td_->create_handler<EditStoryQuery>()->send(file_id, story, std::move(pending_story), std::move(input_file),
                                               it->second.get());
+}
+
+void StoryManager::edit_story_cover(DialogId owner_dialog_id, StoryId story_id, double main_frame_timestamp,
+                                    Promise<Unit> &&promise) {
+  StoryFullId story_full_id{owner_dialog_id, story_id};
+  const Story *story = get_story(story_full_id);
+  if (story == nullptr || story->content_ == nullptr) {
+    return promise.set_error(Status::Error(400, "Story not found"));
+  }
+  if (!can_edit_story(story_full_id, story)) {
+    return promise.set_error(Status::Error(400, "Story can't be edited"));
+  }
+  if (being_edited_stories_.count(story_full_id) > 0) {
+    return promise.set_error(Status::Error(400, "Story is being edited"));
+  }
+  if (main_frame_timestamp < 0.0) {
+    return promise.set_error(Status::Error(400, "Wrong cover timestamp specified"));
+  }
+  if (story->content_->get_type() != StoryContentType::Video) {
+    return promise.set_error(Status::Error(400, "Cover timestamp can't be edited for the story"));
+  }
+  auto input_media = get_story_content_document_input_media(td_, story->content_.get(), main_frame_timestamp);
+  if (input_media == nullptr) {
+    return promise.set_error(Status::Error(400, "Can't edit story cover"));
+  }
+
+  td_->create_handler<EditStoryCoverQuery>(std::move(promise))->send(owner_dialog_id, story_id, std::move(input_media));
 }
 
 void StoryManager::delete_pending_story(FileId file_id, unique_ptr<PendingStory> &&pending_story, Status status) {

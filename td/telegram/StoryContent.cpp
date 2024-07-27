@@ -325,6 +325,22 @@ telegram_api::object_ptr<telegram_api::InputMedia> get_story_content_input_media
   }
 }
 
+telegram_api::object_ptr<telegram_api::InputMedia> get_story_content_document_input_media(Td *td,
+                                                                                          const StoryContent *content,
+                                                                                          double main_frame_timestamp) {
+  switch (content->get_type()) {
+    case StoryContentType::Video: {
+      const auto *story_content = static_cast<const StoryContentVideo *>(content);
+      return td->videos_manager_->get_story_document_input_media(story_content->file_id_, main_frame_timestamp);
+    }
+    case StoryContentType::Photo:
+    case StoryContentType::Unsupported:
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
 void compare_story_contents(const StoryContent *old_content, const StoryContent *new_content, bool &is_content_changed,
                             bool &need_update) {
   StoryContentType content_type = new_content->get_type();

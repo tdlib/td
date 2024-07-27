@@ -46,6 +46,9 @@ class VideosManager {
                                                           tl_object_ptr<telegram_api::InputFile> input_thumbnail,
                                                           int32 ttl, bool has_spoiler) const;
 
+  telegram_api::object_ptr<telegram_api::InputMedia> get_story_document_input_media(FileId file_id,
+                                                                                    double main_frame_timestamp) const;
+
   SecretInputMedia get_secret_input_media(FileId video_file_id,
                                           tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
                                           const string &caption, BufferSlice thumbnail, int32 layer) const;

@@ -967,6 +967,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::editStory &request);
 
+  void on_request(uint64 id, const td_api::editStoryCover &request);
+
   void on_request(uint64 id, td_api::setStoryPrivacySettings &request);
 
   void on_request(uint64 id, const td_api::toggleStoryIsPostedToChatPage &request);

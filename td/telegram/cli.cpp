@@ -4691,6 +4691,12 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::inputStoryContentVideo>(
               as_input_file(video), to_integers<int32>(sticker_file_ids), duration, 0.0, false),
           areas, as_caption(caption)));
+    } else if (op == "esco") {
+      ChatId story_sender_chat_id;
+      StoryId story_id;
+      double cover_frame_timetamp;
+      get_args(args, story_sender_chat_id, story_id, cover_frame_timetamp);
+      send_request(td_api::make_object<td_api::editStoryCover>(story_sender_chat_id, story_id, cover_frame_timetamp));
     } else if (op == "ssps") {
       StoryId story_id;
       StoryPrivacySettings rules;

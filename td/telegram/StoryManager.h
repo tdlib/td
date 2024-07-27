@@ -228,6 +228,9 @@ class StoryManager final : public Actor {
                   td_api::object_ptr<td_api::inputStoryAreas> &&input_areas,
                   td_api::object_ptr<td_api::formattedText> &&input_caption, Promise<Unit> &&promise);
 
+  void edit_story_cover(DialogId owner_dialog_id, StoryId story_id, double main_frame_timestamp,
+                        Promise<Unit> &&promise);
+
   void set_story_privacy_settings(StoryId story_id, td_api::object_ptr<td_api::StoryPrivacySettings> &&settings,
                                   Promise<Unit> &&promise);
 

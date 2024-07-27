@@ -5978,6 +5978,13 @@ void Td::on_request(uint64 id, td_api::editStory &request) {
                              std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::editStoryCover &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  story_manager_->edit_story_cover(DialogId(request.story_sender_chat_id_), StoryId(request.story_id_),
+                                   request.cover_frame_timestamp_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::setStoryPrivacySettings &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

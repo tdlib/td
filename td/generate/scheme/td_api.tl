@@ -9692,6 +9692,12 @@ sendStory chat_id:int53 content:InputStoryContent areas:inputStoryAreas caption:
 //@caption New story caption; pass null to keep the current caption
 editStory story_sender_chat_id:int53 story_id:int32 content:InputStoryContent areas:inputStoryAreas caption:formattedText = Ok;
 
+//@description Changes cover of a video story. Can be called only if story.can_be_edited == true and the story isn't being edited now
+//@story_sender_chat_id Identifier of the chat that posted the story
+//@story_id Identifier of the story to edit
+//@cover_frame_timestamp New timestamp of the frame, which will be used as video thumbnail
+editStoryCover story_sender_chat_id:int53 story_id:int32 cover_frame_timestamp:double = Ok;
+
 //@description Changes privacy settings of a story. The method can be called only for stories posted on behalf of the current user and if story.can_be_edited == true
 //@story_id Identifier of the story
 //@privacy_settings The new privacy settigs for the story
