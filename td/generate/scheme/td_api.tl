@@ -3476,8 +3476,8 @@ messagePaymentSuccessfulBot currency:string total_amount:int53 is_recurring:Bool
 messagePaymentRefunded owner_id:MessageSender currency:string total_amount:int53 invoice_payload:bytes telegram_payment_charge_id:string provider_payment_charge_id:string = MessageContent;
 
 //@description Telegram Premium was gifted to a user
-//@gifter_user_id The identifier of a user that gifted Telegram Premium; 0 if the gift was anonymous
-//@receiver_user_id The identifier of a user that received Telegram Premium
+//@gifter_user_id The identifier of a user that gifted Telegram Premium; 0 if the gift was anonymous or is outgoing
+//@receiver_user_id The identifier of a user that received Telegram Premium; 0 if the gift is incoming
 //@currency Currency for the paid amount
 //@amount The paid amount, in the smallest units of the currency
 //@cryptocurrency Cryptocurrency used to pay for the gift; may be empty if none
@@ -3530,8 +3530,8 @@ messagePremiumGiveawayCompleted giveaway_message_id:int53 winner_count:int32 unc
 messagePremiumGiveawayWinners boosted_chat_id:int53 giveaway_message_id:int53 additional_chat_count:int32 actual_winners_selection_date:int32 only_new_members:Bool was_refunded:Bool month_count:int32 prize_description:string winner_count:int32 winner_user_ids:vector<int53> unclaimed_prize_count:int32 = MessageContent;
 
 //@description Telegram Stars were gifted to a user
-//@gifter_user_id The identifier of a user that gifted Telegram Stars; 0 if the gift was anonymous
-//@receiver_user_id The identifier of a user that received Telegram Stars
+//@gifter_user_id The identifier of a user that gifted Telegram Stars; 0 if the gift was anonymous or is outgoing
+//@receiver_user_id The identifier of a user that received Telegram Stars; 0 if the gift is incoming
 //@currency Currency for the paid amount
 //@amount The paid amount, in the smallest units of the currency
 //@cryptocurrency Cryptocurrency used to pay for the gift; may be empty if none

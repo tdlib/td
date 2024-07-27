@@ -7802,12 +7802,10 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     case MessageContentType::GiftPremium: {
       const auto *m = static_cast<const MessageGiftPremium *>(content);
       int64 gifter_user_id = 0;
-      int64 receiver_user_id =
-          td->user_manager_->get_user_id_object(td->user_manager_->get_my_id(), "MessageGiftPremium 1");
+      int64 receiver_user_id = 0;
       if (dialog_id.get_type() == DialogType::User) {
         auto user_id = dialog_id.get_user_id();
         if (is_outgoing) {
-          gifter_user_id = receiver_user_id;
           receiver_user_id = td->user_manager_->get_user_id_object(user_id, "MessageGiftPremium 2");
         } else {
           if (user_id != UserManager::get_service_notifications_user_id() && !td->user_manager_->is_user_bot(user_id) &&
@@ -7945,12 +7943,10 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     case MessageContentType::GiftStars: {
       const auto *m = static_cast<const MessageGiftStars *>(content);
       int64 gifter_user_id = 0;
-      int64 receiver_user_id =
-          td->user_manager_->get_user_id_object(td->user_manager_->get_my_id(), "MessageGiftStars 1");
+      int64 receiver_user_id = 0;
       if (dialog_id.get_type() == DialogType::User) {
         auto user_id = dialog_id.get_user_id();
         if (is_outgoing) {
-          gifter_user_id = receiver_user_id;
           receiver_user_id = td->user_manager_->get_user_id_object(user_id, "MessageGiftStars 2");
         } else {
           if (user_id != UserManager::get_service_notifications_user_id() && !td->user_manager_->is_user_bot(user_id) &&
