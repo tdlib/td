@@ -4209,9 +4209,9 @@ inputStoryAreas areas:vector<inputStoryArea> = InputStoryAreas;
 //@minithumbnail Video minithumbnail; may be null
 //@thumbnail Video thumbnail in JPEG or MPEG4 format; may be null
 //@preload_prefix_size Size of file prefix, which is supposed to be preloaded, in bytes
-//@main_frame_timestamp Timestamp of the frame, used as video thumbnail
+//@cover_frame_timestamp Timestamp of the frame used as video thumbnail
 //@video File containing the video
-storyVideo duration:double width:int32 height:int32 has_stickers:Bool is_animation:Bool minithumbnail:minithumbnail thumbnail:thumbnail preload_prefix_size:int32 main_frame_timestamp:double video:file = StoryVideo;
+storyVideo duration:double width:int32 height:int32 has_stickers:Bool is_animation:Bool minithumbnail:minithumbnail thumbnail:thumbnail preload_prefix_size:int32 cover_frame_timestamp:double video:file = StoryVideo;
 
 
 //@class StoryContent @description Contains the content of a story
@@ -4237,9 +4237,9 @@ inputStoryContentPhoto photo:InputFile added_sticker_file_ids:vector<int32> = In
 //@video Video to be sent. The video size must be 720x1280. The video must be streamable and stored in MPEG4 format, after encoding with x265 codec and key frames added each second
 //@added_sticker_file_ids File identifiers of the stickers added to the video, if applicable
 //@duration Precise duration of the video, in seconds; 0-60
-//@main_frame_timestamp Timestamp of the frame, which will be used as video thumbnail
+//@cover_frame_timestamp Timestamp of the frame, which will be used as video thumbnail
 //@is_animation True, if the video has no sound
-inputStoryContentVideo video:InputFile added_sticker_file_ids:vector<int32> duration:double main_frame_timestamp:double is_animation:Bool = InputStoryContent;
+inputStoryContentVideo video:InputFile added_sticker_file_ids:vector<int32> duration:double cover_frame_timestamp:double is_animation:Bool = InputStoryContent;
 
 
 //@class StoryList @description Describes a list of stories

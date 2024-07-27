@@ -285,8 +285,8 @@ Result<unique_ptr<StoryContent>> get_input_story_content(
       if (input_story->duration_ < 0 || input_story->duration_ > 60.0) {
         return Status::Error(400, "Invalid video duration specified");
       }
-      if (input_story->main_frame_timestamp_ < 0.0) {
-        return Status::Error(400, "Wrong main frame timestamp specified");
+      if (input_story->cover_frame_timestamp_ < 0.0) {
+        return Status::Error(400, "Wrong cover timestamp specified");
       }
       file_id =
           td->file_manager_->copy_file_id(file_id, FileType::VideoStory, owner_dialog_id, "get_input_story_content");
@@ -297,7 +297,7 @@ Result<unique_ptr<StoryContent>> get_input_story_content(
                                         std::move(sticker_file_ids), "story.mp4", "video/mp4",
                                         static_cast<int32>(std::ceil(input_story->duration_)), input_story->duration_,
                                         get_dimensions(720, 1280, nullptr), true, input_story->is_animation_, 0,
-                                        input_story->main_frame_timestamp_, false);
+                                        input_story->cover_frame_timestamp_, false);
 
       return make_unique<StoryContentVideo>(file_id, FileId());
     }
