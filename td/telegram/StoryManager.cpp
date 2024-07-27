@@ -593,14 +593,22 @@ class GetPeerStoriesQuery final : public Td::ResultHandler {
 class EditStoryCoverQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
+  StoryId story_id_;
+  double main_frame_timestamp_;
+  FileId file_id_;
+  string file_reference_;
 
  public:
   explicit EditStoryCoverQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId owner_dialog_id, StoryId story_id,
+  void send(DialogId owner_dialog_id, StoryId story_id, double main_frame_timestamp, FileId file_id,
             telegram_api::object_ptr<telegram_api::InputMedia> input_media) {
     dialog_id_ = owner_dialog_id;
+    story_id_ = story_id;
+    main_frame_timestamp_ = main_frame_timestamp;
+    file_id_ = file_id;
+    file_reference_ = FileManager::extract_file_reference(input_media);
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
@@ -629,6 +637,21 @@ class EditStoryCoverQuery final : public Td::ResultHandler {
     LOG(INFO) << "Receive error for EditStoryCoverQuery: " << status;
     if (!td_->auth_manager_->is_bot() && status.message() == "STORY_NOT_MODIFIED") {
       return promise_.set_value(Unit());
+    }
+    if (!td_->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
+      td_->file_manager_->delete_file_reference(file_id_, file_reference_);
+      td_->file_reference_manager_->repair_file_reference(
+          file_id_, PromiseCreator::lambda([dialog_id = dialog_id_, story_id = story_id_,
+                                            main_frame_timestamp = main_frame_timestamp_,
+                                            promise = std::move(promise_)](Result<Unit> result) mutable {
+            if (result.is_error()) {
+              return promise.set_error(Status::Error(400, "Failed to edit cover"));
+            }
+
+            send_closure(G()->story_manager(), &StoryManager::edit_story_cover, dialog_id, story_id,
+                         main_frame_timestamp, std::move(promise));
+          }));
+      return;
     }
 
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "EditStoryCoverQuery");
@@ -5551,6 +5574,7 @@ void StoryManager::do_edit_story(FileId file_id, unique_ptr<PendingStory> &&pend
 
 void StoryManager::edit_story_cover(DialogId owner_dialog_id, StoryId story_id, double main_frame_timestamp,
                                     Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
   StoryFullId story_full_id{owner_dialog_id, story_id};
   const Story *story = get_story(story_full_id);
   if (story == nullptr || story->content_ == nullptr) {
@@ -5573,7 +5597,9 @@ void StoryManager::edit_story_cover(DialogId owner_dialog_id, StoryId story_id, 
     return promise.set_error(Status::Error(400, "Can't edit story cover"));
   }
 
-  td_->create_handler<EditStoryCoverQuery>(std::move(promise))->send(owner_dialog_id, story_id, std::move(input_media));
+  td_->create_handler<EditStoryCoverQuery>(std::move(promise))
+      ->send(owner_dialog_id, story_id, main_frame_timestamp, get_story_content_any_file_id(td_, story->content_.get()),
+             std::move(input_media));
 }
 
 void StoryManager::delete_pending_story(FileId file_id, unique_ptr<PendingStory> &&pending_story, Status status) {

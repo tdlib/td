@@ -3682,6 +3682,14 @@ string FileManager::extract_file_reference(const telegram_api::object_ptr<telegr
     case telegram_api::inputMediaPaidMedia::ID:
       UNREACHABLE();
       return string();
+    case telegram_api::inputMediaUploadedDocument::ID: {
+      auto uploaded_document = static_cast<const telegram_api::inputMediaUploadedDocument *>(input_media.get());
+      if (uploaded_document->file_->get_id() != telegram_api::inputFileStoryDocument::ID) {
+        return string();
+      }
+      return extract_file_reference(
+          static_cast<const telegram_api::inputFileStoryDocument *>(uploaded_document->file_.get())->id_);
+    }
     default:
       return string();
   }
