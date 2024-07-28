@@ -9,14 +9,19 @@
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
+#include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
 
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Status.h"
+
+#include <memory>
 
 namespace td {
 

@@ -2197,7 +2197,7 @@ foundWebApp web_app:webApp request_write_access:Bool skip_confirmation:Bool = Fo
 //@description Contains information about a Web App @launch_id Unique identifier for the Web App launch @url A Web App URL to open in a web view
 webAppInfo launch_id:int64 url:string = WebAppInfo;
 
-//@description Contains information about the main Web App of a bot @url URL of the Web App to open @is_compact True, if the Web App must be always opened in the compact mode instead of the full-size mode
+//@description Contains information about the main Web App of a bot @url URL of the Web App to open @is_compact True, if the Web App must always be opened in the compact mode instead of the full-size mode
 mainWebApp url:string is_compact:Bool = MainWebApp;
 
 
@@ -6518,7 +6518,7 @@ internalLinkTypeLanguageSettings = InternalLinkType;
 //-If the bot can be added to attachment menu, then use getAttachmentMenuBot to receive information about the bot, then if the bot isn't added to side menu,
 //-show a disclaimer about Mini Apps being third-party apps, ask the user to accept their Terms of service and confirm adding the bot to side and attachment menu,
 //-then if the user accepts the terms and confirms adding, use toggleBotIsAddedToAttachmentMenu to add the bot.
-//-Then use getMainWebApp with the given start parameter and open the returned URL as a Web App
+//-Then, use getMainWebApp with the given start parameter and open the returned URL as a Web App
 //@bot_username Username of the bot
 //@start_parameter Start parameter to be passed to getMainWebApp
 //@is_compact True, if the Web App must be opened in the compact mode instead of the full-size mode
@@ -6575,7 +6575,7 @@ internalLinkTypeProxy server:string port:int32 type:ProxyType = InternalLinkType
 //-If draft text isn't empty and the chat is a private chat with a regular user, then put the draft text in the input field
 //@chat_username Username of the chat
 //@draft_text Draft text for message to send in the chat
-//@open_profile True, if chat profile information screen must be opened; otherwise the chat itself must be opened
+//@open_profile True, if chat profile information screen must be opened; otherwise, the chat itself must be opened
 internalLinkTypePublicChat chat_username:string draft_text:string open_profile:Bool = InternalLinkType;
 
 //@description The link can be used to login the current user on another device, but it must be scanned from QR-code using in-app camera. An alert similar to
@@ -6615,7 +6615,7 @@ internalLinkTypeUnsupportedProxy = InternalLinkType;
 //-If the user is found, then call createPrivateChat and open user's profile information screen or the chat itself. If draft text isn't empty, then put the draft text in the input field
 //@phone_number Phone number of the user
 //@draft_text Draft text for message to send in the chat
-//@open_profile True, if user's profile information screen must be opened; otherwise the chat itself must be opened
+//@open_profile True, if user's profile information screen must be opened; otherwise, the chat itself must be opened
 internalLinkTypeUserPhoneNumber phone_number:string draft_text:string open_profile:Bool = InternalLinkType;
 
 //@description The link is a link to a user by a temporary token. Call searchUserByToken with the given token to process the link.
@@ -8655,7 +8655,7 @@ deleteChatMessagesBySender chat_id:int53 sender_id:MessageSender = Ok;
 deleteChatMessagesByDate chat_id:int53 min_date:int32 max_date:int32 revoke:Bool = Ok;
 
 
-//@description Edits the text of a message (or a text of a game message). Returns the edited message after the edit is completed on the server side.
+//@description Edits the text of a message (or a text of a game message). Returns the edited message after the edit is completed on the server side
 //@chat_id The chat the message belongs to
 //@message_id Identifier of the message. Use messageProperties.can_be_edited to check whether the message can be edited
 //@reply_markup The new message reply markup; pass null if none; for bots only
@@ -8683,7 +8683,7 @@ editMessageLiveLocation chat_id:int53 message_id:int53 reply_markup:ReplyMarkup 
 //@input_message_content New content of the message. Must be one of the following types: inputMessageAnimation, inputMessageAudio, inputMessageDocument, inputMessagePhoto or inputMessageVideo
 editMessageMedia chat_id:int53 message_id:int53 reply_markup:ReplyMarkup input_message_content:InputMessageContent = Message;
 
-//@description Edits the message content caption. Returns the edited message after the edit is completed on the server side.
+//@description Edits the message content caption. Returns the edited message after the edit is completed on the server side
 //@chat_id The chat the message belongs to
 //@message_id Identifier of the message. Use messageProperties.can_be_edited to check whether the message can be edited
 //@reply_markup The new message reply markup; pass null if none; for bots only
@@ -8691,7 +8691,7 @@ editMessageMedia chat_id:int53 message_id:int53 reply_markup:ReplyMarkup input_m
 //@show_caption_above_media Pass true to show the caption above the media; otherwise, the caption will be shown below the media. Can be true only for animation, photo, and video messages
 editMessageCaption chat_id:int53 message_id:int53 reply_markup:ReplyMarkup caption:formattedText show_caption_above_media:Bool = Message;
 
-//@description Edits the message reply markup; for bots only. Returns the edited message after the edit is completed on the server side.
+//@description Edits the message reply markup; for bots only. Returns the edited message after the edit is completed on the server side
 //@chat_id The chat the message belongs to
 //@message_id Identifier of the message. Use messageProperties.can_be_edited to check whether the message can be edited
 //@reply_markup The new message reply markup; pass null if none
