@@ -2614,15 +2614,17 @@ linkPreviewTypeDocument document:document author:string = LinkPreviewType;
 //@thumbnail Thumbnail of the audio; may be null if unknown
 //@duration Duration of the audio, in seconds
 //@author Author of the audio
-linkPreviewTypeEmbeddedAudioPlayer url:string thumbnail:photo duration:int32 author:string = LinkPreviewType;
+//@width Expected width of the embedded player
+//@height Expected height of the embedded player
+linkPreviewTypeEmbeddedAudioPlayer url:string thumbnail:photo duration:int32 author:string width:int32 height:int32 = LinkPreviewType;
 
 //@description The link is a link to a video player
 //@url URL of the external video player
 //@thumbnail Thumbnail of the video; may be null if unknown
 //@duration Duration of the video, in seconds
 //@author Author of the video
-//@width Expected width of the preview
-//@height Expected height of the preview
+//@width Expected width of the embedded player
+//@height Expected height of the embedded player
 linkPreviewTypeEmbeddedVideoPlayer url:string thumbnail:photo duration:int32 author:string width:int32 height:int32 = LinkPreviewType;
 
 //@description The link is a link to an invoice
