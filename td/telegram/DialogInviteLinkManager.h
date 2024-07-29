@@ -117,6 +117,7 @@ class DialogInviteLinkManager final : public Actor {
     StarSubscriptionPricing subscription_pricing;
     int64 subscription_form_id;
     bool creates_join_request = false;
+    bool can_refulfill_subscription = false;
     bool is_chat = false;
     bool is_channel = false;
     bool is_public = false;

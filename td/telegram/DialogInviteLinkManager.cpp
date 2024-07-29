@@ -736,6 +736,7 @@ void DialogInviteLinkManager::on_get_dialog_invite_link_info(
       invite_link_info->participant_user_ids = std::move(participant_user_ids);
       invite_link_info->subscription_pricing = StarSubscriptionPricing(std::move(chat_invite->subscription_pricing_));
       invite_link_info->subscription_form_id = chat_invite->subscription_form_id_;
+      invite_link_info->can_refulfill_subscription = chat_invite->can_refulfill_subscription_;
       invite_link_info->creates_join_request = std::move(chat_invite->request_needed_);
       invite_link_info->is_chat = !chat_invite->channel_;
       invite_link_info->is_channel = chat_invite->channel_;
@@ -844,7 +845,8 @@ td_api::object_ptr<td_api::chatInviteLinkInfo> DialogInviteLinkManager::get_chat
     auto subscription_pricing = invite_link_info->subscription_pricing.get_star_subscription_pricing_object();
     if (subscription_pricing != nullptr) {
       subscription_info = td_api::make_object<td_api::chatInviteLinkSubscriptionInfo>(
-          std::move(subscription_pricing), invite_link_info->subscription_form_id);
+          std::move(subscription_pricing), invite_link_info->can_refulfill_subscription,
+          invite_link_info->subscription_form_id);
     }
     creates_join_request = invite_link_info->creates_join_request;
     is_public = invite_link_info->is_public;

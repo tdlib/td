@@ -1262,8 +1262,9 @@ inviteLinkChatTypeChannel = InviteLinkChatType;
 
 //@description Contains information about subscription plan that must be paid by the user to use a chat invite link
 //@pricing Information about subscription plan that must be paid by the user to use the link
+//@can_reuse True, if the user has already paid for the subscription and can use the link to join the subscribed chat again
 //@form_id Identifier of the payment form to use for subscription payment; 0 if the subscription can't be paid
-chatInviteLinkSubscriptionInfo pricing:starSubscriptionPricing form_id:int64 = ChatInviteLinkSubscriptionInfo;
+chatInviteLinkSubscriptionInfo pricing:starSubscriptionPricing can_reuse:Bool form_id:int64 = ChatInviteLinkSubscriptionInfo;
 
 //@description Contains information about a chat invite link
 //@chat_id Chat identifier of the invite link; 0 if the user has no access to the chat before joining
