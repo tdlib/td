@@ -3270,7 +3270,7 @@ messageAudio audio:audio caption:formattedText = MessageContent;
 messageDocument document:document caption:formattedText = MessageContent;
 
 //@description A message with paid media
-//@star_count Number of stars needed to buy access to the media in the message
+//@star_count Number of Telegram Stars needed to buy access to the media in the message
 //@media Information about the media
 //@caption Media caption
 //@show_caption_above_media True, if the caption must be shown above the media; otherwise, the caption must be shown below the media
@@ -3755,7 +3755,7 @@ inputMessageAudio audio:InputFile album_cover_thumbnail:inputThumbnail duration:
 inputMessageDocument document:InputFile thumbnail:inputThumbnail disable_content_type_detection:Bool caption:formattedText = InputMessageContent;
 
 //@description A message with paid media; can be used only in channel chats with supergroupFullInfo.has_paid_media_allowed
-//@star_count The number of stars that must be paid to see the media; 1-getOption("paid_media_message_star_count_max")
+//@star_count The number of Telegram Stars that must be paid to see the media; 1-getOption("paid_media_message_star_count_max")
 //@paid_media The content of the paid media
 //@caption Message caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
 //@show_caption_above_media True, if the caption must be shown above the video; otherwise, the caption must be shown below the video; not supported in secret chats
@@ -5663,14 +5663,14 @@ storePaymentPurposePremiumGiveaway parameters:premiumGiveawayParameters currency
 //@description The user buying Telegram Stars
 //@currency ISO 4217 currency code of the payment currency
 //@amount Paid amount, in the smallest units of the currency
-//@star_count Number of bought stars
+//@star_count Number of bought Telegram Stars
 storePaymentPurposeStars currency:string amount:int53 star_count:int53 = StorePaymentPurpose;
 
 //@description The user buying Telegram Stars for other users
 //@user_id Identifier of the user to which Telegram Stars are gifted
 //@currency ISO 4217 currency code of the payment currency
 //@amount Paid amount, in the smallest units of the currency
-//@star_count Number of bought stars
+//@star_count Number of bought Telegram Stars
 storePaymentPurposeGiftedStars user_id:int53 currency:string amount:int53 star_count:int53 = StorePaymentPurpose;
 
 
@@ -5695,14 +5695,14 @@ telegramPaymentPurposePremiumGiveaway parameters:premiumGiveawayParameters curre
 //@description The user buying Telegram Stars
 //@currency ISO 4217 currency code of the payment currency
 //@amount Paid amount, in the smallest units of the currency
-//@star_count Number of bought stars
+//@star_count Number of bought Telegram Stars
 telegramPaymentPurposeStars currency:string amount:int53 star_count:int53 = TelegramPaymentPurpose;
 
 //@description The user buying Telegram Stars for other users
 //@user_id Identifier of the user to which Telegram Stars are gifted
 //@currency ISO 4217 currency code of the payment currency
 //@amount Paid amount, in the smallest units of the currency
-//@star_count Number of bought stars
+//@star_count Number of bought Telegram Stars
 telegramPaymentPurposeGiftedStars user_id:int53 currency:string amount:int53 star_count:int53 = TelegramPaymentPurpose;
 
 
@@ -5949,7 +5949,7 @@ pushMessageContentInvoice price:string is_pinned:Bool = PushMessageContent;
 pushMessageContentLocation is_live:Bool is_pinned:Bool = PushMessageContent;
 
 //@description A message with paid media
-//@star_count Number of stars needed to buy access to the media in the message; 0 for pinned message
+//@star_count Number of Telegram Stars needed to buy access to the media in the message; 0 for pinned message
 //@is_pinned True, if the message is a pinned message with the specified content
 pushMessageContentPaidMedia star_count:int53 is_pinned:Bool = PushMessageContent;
 
@@ -7214,7 +7214,7 @@ chatRevenueTransactions total_count:int32 transactions:vector<chatRevenueTransac
 
 
 //@description Contains information about Telegram Stars earned by a bot or a chat
-//@total_count Total number of the stars earned
+//@total_count Total number of Telegram Stars earned
 //@current_count The number of Telegram Stars that aren't withdrawn yet
 //@available_count The number of Telegram Stars that are available for withdrawal
 //@withdrawal_enabled True, if Telegram Stars can be withdrawn now or later
@@ -7750,7 +7750,7 @@ updateOwnedStarCount star_count:int53 = Update;
 //@revenue_amount New amount of earned revenue
 updateChatRevenueAmount chat_id:int53 revenue_amount:chatRevenueAmount = Update;
 
-//@description The Telegram Star revenue earned by a bot or a chat has changed. If star transactions screen of the chat is opened, then getStarTransactions may be called to fetch new transactions
+//@description The Telegram Star revenue earned by a bot or a chat has changed. If Telegram Star transaction screen of the chat is opened, then getStarTransactions may be called to fetch new transactions
 //@owner_id Identifier of the owner of the Telegram Stars
 //@status New Telegram Star revenue status
 updateStarRevenueStatus owner_id:MessageSender status:starRevenueStatus = Update;
