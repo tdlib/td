@@ -807,9 +807,10 @@ starSubscriptionPricing period:int32 star_count:int53 = StarSubscriptionPricing;
 //@id Unique identifier of the subscription
 //@chat_id Identifier of the channel chat that is subscribed
 //@expiration_date Point in time (Unix timestamp) when the subscription will expire or expired
+//@can_reuse True, if the subscription is active and the user can use the method reuseStarSubscription to join the subscribed chat again
 //@is_canceled True, if the subscription was canceled
 //@pricing The subscription plan
-starSubscription id:string chat_id:int53 expiration_date:int32 is_canceled:Bool pricing:starSubscriptionPricing = StarSubscription;
+starSubscription id:string chat_id:int53 expiration_date:int32 can_reuse:Bool is_canceled:Bool pricing:starSubscriptionPricing = StarSubscription;
 
 //@description Represents a list of Telegram Star subscriptions
 //@star_count The amount of owned Telegram Stars
@@ -1262,7 +1263,7 @@ inviteLinkChatTypeChannel = InviteLinkChatType;
 
 //@description Contains information about subscription plan that must be paid by the user to use a chat invite link
 //@pricing Information about subscription plan that must be paid by the user to use the link
-//@can_reuse True, if the user has already paid for the subscription and can use the link to join the subscribed chat again
+//@can_reuse True, if the user has already paid for the subscription and can use joinChatByInviteLink to join the subscribed chat again
 //@form_id Identifier of the payment form to use for subscription payment; 0 if the subscription can't be paid
 chatInviteLinkSubscriptionInfo pricing:starSubscriptionPricing can_reuse:Bool form_id:int64 = ChatInviteLinkSubscriptionInfo;
 

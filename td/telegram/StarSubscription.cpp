@@ -15,6 +15,7 @@ StarSubscription::StarSubscription(telegram_api::object_ptr<telegram_api::starsS
     : id_(std::move(subscription->id_))
     , dialog_id_(subscription->peer_)
     , until_date_(subscription->until_date_)
+    , can_reuse_(subscription->can_refulfill_)
     , is_canceled_(subscription->canceled_)
     , pricing_(std::move(subscription->pricing_)) {
 }
@@ -22,8 +23,8 @@ StarSubscription::StarSubscription(telegram_api::object_ptr<telegram_api::starsS
 td_api::object_ptr<td_api::starSubscription> StarSubscription::get_star_subscription_object(Td *td) const {
   td->dialog_manager_->force_create_dialog(dialog_id_, "starSubscription", true);
   return td_api::make_object<td_api::starSubscription>(
-      id_, td->dialog_manager_->get_chat_id_object(dialog_id_, "starSubscription"), until_date_, is_canceled_,
-      pricing_.get_star_subscription_pricing_object());
+      id_, td->dialog_manager_->get_chat_id_object(dialog_id_, "starSubscription"), until_date_, can_reuse_,
+      is_canceled_, pricing_.get_star_subscription_pricing_object());
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const StarSubscription &subscription) {

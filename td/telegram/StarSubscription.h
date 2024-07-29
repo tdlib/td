@@ -22,6 +22,7 @@ class StarSubscription {
   string id_;
   DialogId dialog_id_;
   int32 until_date_ = 0;
+  bool can_reuse_ = false;
   bool is_canceled_ = false;
   StarSubscriptionPricing pricing_;
 
