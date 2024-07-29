@@ -1260,6 +1260,11 @@ inviteLinkChatTypeSupergroup = InviteLinkChatType;
 inviteLinkChatTypeChannel = InviteLinkChatType;
 
 
+//@description Contains information about subscription plan that must be paid by the user to use a chat invite link
+//@pricing Information about subscription plan that must be paid by the user to use the link
+//@form_id Identifier of the payment form to use for subscription payment; 0 if the subscription can't be paid
+chatInviteLinkSubscriptionInfo pricing:starSubscriptionPricing form_id:int64 = ChatInviteLinkSubscriptionInfo;
+
 //@description Contains information about a chat invite link
 //@chat_id Chat identifier of the invite link; 0 if the user has no access to the chat before joining
 //@accessible_for If non-zero, the amount of time for which read access to the chat will remain available, in seconds
@@ -1270,14 +1275,13 @@ inviteLinkChatTypeChannel = InviteLinkChatType;
 //@param_description Chat description
 //@member_count Number of members in the chat
 //@member_user_ids User identifiers of some chat members that may be known to the current user
-//@subscription_pricing Information about subscription plan that must be paid by the user to use the link; may be null if the link doesn't require subscription
-//@subscription_form_id Identifier of the payment form to use for subscription payment
+//@subscription_info Information about subscription plan that must be paid by the user to use the link; may be null if the link doesn't require subscription
 //@creates_join_request True, if the link only creates join request
 //@is_public True, if the chat is a public supergroup or channel, i.e. it has a username or it is a location-based supergroup
 //@is_verified True, if the chat is verified
 //@is_scam True, if many users reported this chat as a scam
 //@is_fake True, if many users reported this chat as a fake account
-chatInviteLinkInfo chat_id:int53 accessible_for:int32 type:InviteLinkChatType title:string photo:chatPhotoInfo accent_color_id:int32 description:string member_count:int32 member_user_ids:vector<int53> subscription_pricing:starSubscriptionPricing subscription_form_id:int64 creates_join_request:Bool is_public:Bool is_verified:Bool is_scam:Bool is_fake:Bool = ChatInviteLinkInfo;
+chatInviteLinkInfo chat_id:int53 accessible_for:int32 type:InviteLinkChatType title:string photo:chatPhotoInfo accent_color_id:int32 description:string member_count:int32 member_user_ids:vector<int53> subscription_info:chatInviteLinkSubscriptionInfo creates_join_request:Bool is_public:Bool is_verified:Bool is_scam:Bool is_fake:Bool = ChatInviteLinkInfo;
 
 
 //@description Describes a user that sent a join request and waits for administrator approval @user_id User identifier @date Point in time (Unix timestamp) when the user sent the join request @bio A short bio of the user
