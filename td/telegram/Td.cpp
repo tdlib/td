@@ -5839,6 +5839,14 @@ void Td::on_request(uint64 id, td_api::stopBusinessPoll &request) {
                                           std::move(request.reply_markup_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::setBusinessMessageIsPinned &request) {
+  CHECK_IS_BOT();
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->pin_dialog_message(BusinessConnectionId(std::move(request.business_connection_id_)),
+                                        DialogId(request.chat_id_), MessageId(request.message_id_), true, false,
+                                        !request.is_pinned_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::loadQuickReplyShortcuts &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
@@ -7111,15 +7119,15 @@ void Td::on_request(uint64 id, const td_api::setChatSlowModeDelay &request) {
 
 void Td::on_request(uint64 id, const td_api::pinChatMessage &request) {
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->pin_dialog_message(DialogId(request.chat_id_), MessageId(request.message_id_),
-                                        request.disable_notification_, request.only_for_self_, false,
-                                        std::move(promise));
+  messages_manager_->pin_dialog_message(BusinessConnectionId(), DialogId(request.chat_id_),
+                                        MessageId(request.message_id_), request.disable_notification_,
+                                        request.only_for_self_, false, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::unpinChatMessage &request) {
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->pin_dialog_message(DialogId(request.chat_id_), MessageId(request.message_id_), false, false, true,
-                                        std::move(promise));
+  messages_manager_->pin_dialog_message(BusinessConnectionId(), DialogId(request.chat_id_),
+                                        MessageId(request.message_id_), false, false, true, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::unpinAllChatMessages &request) {

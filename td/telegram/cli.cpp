@@ -6357,12 +6357,22 @@ class CliClient final : public Actor {
       ChatId chat_id;
       MessageId message_id;
       get_args(args, chat_id, message_id);
-      send_request(td_api::make_object<td_api::pinChatMessage>(chat_id, message_id, op == "pcms", op == "pcmo"));
+      if (!business_connection_id_.empty()) {
+        send_request(td_api::make_object<td_api::setBusinessMessageIsPinned>(business_connection_id_, chat_id,
+                                                                             message_id, true));
+      } else {
+        send_request(td_api::make_object<td_api::pinChatMessage>(chat_id, message_id, op == "pcms", op == "pcmo"));
+      }
     } else if (op == "upcm") {
       ChatId chat_id;
       MessageId message_id;
       get_args(args, chat_id, message_id);
-      send_request(td_api::make_object<td_api::unpinChatMessage>(chat_id, message_id));
+      if (!business_connection_id_.empty()) {
+        send_request(td_api::make_object<td_api::setBusinessMessageIsPinned>(business_connection_id_, chat_id,
+                                                                             message_id, false));
+      } else {
+        send_request(td_api::make_object<td_api::unpinChatMessage>(chat_id, message_id));
+      }
     } else if (op == "uacm") {
       ChatId chat_id;
       get_args(args, chat_id);

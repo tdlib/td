@@ -9,6 +9,7 @@
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AffectedHistory.h"
 #include "td/telegram/BackgroundInfo.h"
+#include "td/telegram/BusinessConnectionId.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatReactions.h"
 #include "td/telegram/DialogDate.h"
@@ -518,8 +519,8 @@ class MessagesManager final : public Actor {
 
   void set_dialog_theme(DialogId dialog_id, const string &theme_name, Promise<Unit> &&promise);
 
-  void pin_dialog_message(DialogId dialog_id, MessageId message_id, bool disable_notification, bool only_for_self,
-                          bool is_unpin, Promise<Unit> &&promise);
+  void pin_dialog_message(BusinessConnectionId business_connection_id, DialogId dialog_id, MessageId message_id,
+                          bool disable_notification, bool only_for_self, bool is_unpin, Promise<Unit> &&promise);
 
   void unpin_all_dialog_messages(DialogId dialog_id, MessageId top_thread_message_id, Promise<Unit> &&promise);
 

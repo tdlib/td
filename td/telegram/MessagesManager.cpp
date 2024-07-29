@@ -11,6 +11,7 @@
 #include "td/telegram/BackgroundInfo.hpp"
 #include "td/telegram/BlockListId.h"
 #include "td/telegram/BusinessBotManageBar.h"
+#include "td/telegram/BusinessConnectionManager.h"
 #include "td/telegram/ChainId.h"
 #include "td/telegram/ChannelType.h"
 #include "td/telegram/ChatManager.h"
@@ -404,6 +405,7 @@ class GetScheduledMessagesQuery final : public Td::ResultHandler {
 
 class UpdateDialogPinnedMessageQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
+  BusinessConnectionId business_connection_id_;
   DialogId dialog_id_;
   MessageId message_id_;
 
@@ -411,7 +413,9 @@ class UpdateDialogPinnedMessageQuery final : public Td::ResultHandler {
   explicit UpdateDialogPinnedMessageQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, MessageId message_id, bool is_unpin, bool disable_notification, bool only_for_self) {
+  void send(BusinessConnectionId business_connection_id, DialogId dialog_id, MessageId message_id, bool is_unpin,
+            bool disable_notification, bool only_for_self) {
+    business_connection_id_ = business_connection_id;
     dialog_id_ = dialog_id;
     message_id_ = message_id;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
@@ -430,9 +434,11 @@ class UpdateDialogPinnedMessageQuery final : public Td::ResultHandler {
     if (only_for_self) {
       flags |= telegram_api::messages_updatePinnedMessage::PM_ONESIDE_MASK;
     }
-    send_query(G()->net_query_creator().create(
+    send_query(G()->net_query_creator().create_with_prefix(
+        business_connection_id.get_invoke_prefix(),
         telegram_api::messages_updatePinnedMessage(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                                   std::move(input_peer), message_id.get_server_message_id().get())));
+                                                   std::move(input_peer), message_id.get_server_message_id().get()),
+        td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -447,7 +453,9 @@ class UpdateDialogPinnedMessageQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_message_error(dialog_id_, message_id_, status, "UpdateDialogPinnedMessageQuery");
+    if (!business_connection_id_.is_empty()) {
+      td_->messages_manager_->on_get_message_error(dialog_id_, message_id_, status, "UpdateDialogPinnedMessageQuery");
+    }
     promise_.set_error(std::move(status));
   }
 };
@@ -32002,14 +32010,21 @@ void MessagesManager::set_dialog_theme(DialogId dialog_id, const string &theme_n
   td_->create_handler<SetChatThemeQuery>(std::move(promise))->send(dialog_id, theme_name);
 }
 
-void MessagesManager::pin_dialog_message(DialogId dialog_id, MessageId message_id, bool disable_notification,
-                                         bool only_for_self, bool is_unpin, Promise<Unit> &&promise) {
-  auto d = get_dialog_force(dialog_id, "pin_dialog_message");
-  if (d == nullptr) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
+void MessagesManager::pin_dialog_message(BusinessConnectionId business_connection_id, DialogId dialog_id,
+                                         MessageId message_id, bool disable_notification, bool only_for_self,
+                                         bool is_unpin, Promise<Unit> &&promise) {
+  bool as_business = business_connection_id.is_valid();
+  if (as_business) {
+    TRY_STATUS_PROMISE(promise,
+                       td_->business_connection_manager_->check_business_connection(business_connection_id, dialog_id));
+  } else {
+    auto d = get_dialog_force(dialog_id, "pin_dialog_message");
+    if (d == nullptr) {
+      return promise.set_error(Status::Error(400, "Chat not found"));
+    }
+    const Message *m = get_message_force(d, message_id, "pin_dialog_message");
+    TRY_STATUS_PROMISE(promise, can_pin_message(dialog_id, m));
   }
-  const Message *m = get_message_force(d, message_id, "pin_dialog_message");
-  TRY_STATUS_PROMISE(promise, can_pin_message(dialog_id, m));
 
   if (only_for_self && dialog_id.get_type() != DialogType::User) {
     return promise.set_error(Status::Error(400, "Messages can't be pinned only for self in the chat"));
@@ -32017,7 +32032,7 @@ void MessagesManager::pin_dialog_message(DialogId dialog_id, MessageId message_i
 
   // TODO log event
   td_->create_handler<UpdateDialogPinnedMessageQuery>(std::move(promise))
-      ->send(dialog_id, message_id, is_unpin, disable_notification, only_for_self);
+      ->send(business_connection_id, dialog_id, message_id, is_unpin, disable_notification, only_for_self);
 }
 
 void MessagesManager::unpin_all_dialog_messages(DialogId dialog_id, MessageId top_thread_message_id,

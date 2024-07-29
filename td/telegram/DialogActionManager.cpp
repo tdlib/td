@@ -75,8 +75,10 @@ class SetTypingQuery final : public Td::ResultHandler {
     // ignore result
     promise_.set_value(Unit());
 
-    send_closure_later(G()->dialog_action_manager(), &DialogActionManager::after_set_typing_query, dialog_id_,
-                       generation_);
+    if (business_connection_id_.is_empty()) {
+      send_closure_later(G()->dialog_action_manager(), &DialogActionManager::after_set_typing_query, dialog_id_,
+                         generation_);
+    }
   }
 
   void on_error(Status status) final {
@@ -90,8 +92,10 @@ class SetTypingQuery final : public Td::ResultHandler {
     }
     promise_.set_error(std::move(status));
 
-    send_closure_later(G()->dialog_action_manager(), &DialogActionManager::after_set_typing_query, dialog_id_,
-                       generation_);
+    if (business_connection_id_.is_empty()) {
+      send_closure_later(G()->dialog_action_manager(), &DialogActionManager::after_set_typing_query, dialog_id_,
+                         generation_);
+    }
   }
 };
 
