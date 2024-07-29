@@ -40,6 +40,8 @@ class StarManager final : public Actor {
 
   void edit_star_subscriptions(const string &subscription_id, bool is_canceled, Promise<Unit> &&promise);
 
+  void reuse_star_subscriptions(const string &subscription_id, Promise<Unit> &&promise);
+
   void refund_star_payment(UserId user_id, const string &telegram_payment_charge_id, Promise<Unit> &&promise);
 
   void get_star_revenue_statistics(const td_api::object_ptr<td_api::MessageSender> &owner_id, bool is_dark,

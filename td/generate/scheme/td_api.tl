@@ -11484,6 +11484,9 @@ assignGooglePlayTransaction package_name:string store_product_id:string purchase
 //@is_canceled New value of is_canceled
 editStarSubscription subscription_id:string is_canceled:Bool = Ok;
 
+//@description Reuses an active subscription and joins the subscribed chat again @subscription_id Identifier of the subscription
+reuseStarSubscription subscription_id:string = Ok;
+
 
 //@description Returns information about features, available to Business users @source Source of the request; pass null if the method is called from settings or some non-standard source
 getBusinessFeatures source:BusinessFeature = BusinessFeatures;

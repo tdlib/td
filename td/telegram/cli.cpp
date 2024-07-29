@@ -3481,6 +3481,10 @@ class CliClient final : public Actor {
       bool is_canceled;
       get_args(args, subscription_id, is_canceled);
       send_request(td_api::make_object<td_api::editStarSubscription>(subscription_id, is_canceled));
+    } else if (op == "rss") {
+      string subscription_id;
+      get_args(args, subscription_id);
+      send_request(td_api::make_object<td_api::reuseStarSubscription>(subscription_id));
     } else if (op == "cpfs" || op == "cpfsb") {
       UserId user_id;
       string currency;

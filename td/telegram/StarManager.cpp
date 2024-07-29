@@ -452,6 +452,32 @@ class ChangeStarsSubscriptionQuery final : public Td::ResultHandler {
   }
 };
 
+class FulfillStarsSubscriptionQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit FulfillStarsSubscriptionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const string &subscription_id) {
+    send_query(G()->net_query_creator().create(telegram_api::payments_fulfillStarsSubscription(
+        telegram_api::make_object<telegram_api::inputPeerSelf>(), subscription_id)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_fulfillStarsSubscription>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class RefundStarsChargeQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -698,6 +724,10 @@ void StarManager::get_star_subscriptions(const string &offset, int32 limit,
 
 void StarManager::edit_star_subscriptions(const string &subscription_id, bool is_canceled, Promise<Unit> &&promise) {
   td_->create_handler<ChangeStarsSubscriptionQuery>(std::move(promise))->send(subscription_id, is_canceled);
+}
+
+void StarManager::reuse_star_subscriptions(const string &subscription_id, Promise<Unit> &&promise) {
+  td_->create_handler<FulfillStarsSubscriptionQuery>(std::move(promise))->send(subscription_id);
 }
 
 void StarManager::refund_star_payment(UserId user_id, const string &telegram_payment_charge_id,
