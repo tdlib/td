@@ -1545,13 +1545,18 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
             web_page->embed_url_, get_photo_object(td_->file_manager_.get(), web_page->photo_), web_page->duration_,
             web_page->author_, web_page->embed_dimensions_.width, web_page->embed_dimensions_.height);
       }
+      if (web_page->type_ == "gif") {
+        return td_api::make_object<td_api::linkPreviewTypeEmbeddedAnimationPlayer>(
+            web_page->embed_url_, get_photo_object(td_->file_manager_.get(), web_page->photo_), web_page->duration_,
+            web_page->author_, web_page->embed_dimensions_.width, web_page->embed_dimensions_.height);
+      }
       if (web_page->type_ == "video") {
         return td_api::make_object<td_api::linkPreviewTypeEmbeddedVideoPlayer>(
             web_page->embed_url_, get_photo_object(td_->file_manager_.get(), web_page->photo_), web_page->duration_,
             web_page->author_, web_page->embed_dimensions_.width, web_page->embed_dimensions_.height);
       }
     } else {
-      // ordinary audio/video
+      // ordinary animation/audio/video
       if (web_page->type_ == "audio") {
         LOG_IF(ERROR,
                web_page->document_.type != Document::Type::Unknown && web_page->document_.type != Document::Type::Audio)
@@ -1562,6 +1567,23 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
         if (audio != nullptr || !web_page->embed_url_.empty()) {
           return td_api::make_object<td_api::linkPreviewTypeAudio>(
               web_page->embed_url_, web_page->embed_type_, std::move(audio), web_page->duration_, web_page->author_);
+        } else {
+          if (!web_page->photo_.is_empty()) {
+            return td_api::make_object<td_api::linkPreviewTypePhoto>(
+                get_photo_object(td_->file_manager_.get(), web_page->photo_), web_page->author_);
+          }
+          return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
+        }
+      }
+      if (web_page->type_ == "gif") {
+        LOG_IF(ERROR, web_page->document_.type != Document::Type::Unknown &&
+                          web_page->document_.type != Document::Type::Animation)
+            << "Receive wrong document for " << web_page->url_;
+        auto animation = web_page->document_.type == Document::Type::Animation
+                             ? td_->animations_manager_->get_animation_object(web_page->document_.file_id)
+                             : nullptr;
+        if (animation != nullptr) {
+          return td_api::make_object<td_api::linkPreviewTypeAnimation>(std::move(animation), web_page->author_);
         } else {
           if (!web_page->photo_.is_empty()) {
             return td_api::make_object<td_api::linkPreviewTypePhoto>(
