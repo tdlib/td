@@ -61,6 +61,10 @@ class StarManager final : public Actor {
 
   Status can_manage_stars(DialogId dialog_id, bool allow_self = false) const;
 
+  void do_get_star_transactions(DialogId dialog_id, const string &offset, int32 limit,
+                                td_api::object_ptr<td_api::StarTransactionDirection> &&direction,
+                                Promise<td_api::object_ptr<td_api::starTransactions>> &&promise);
+
   void send_get_star_withdrawal_url_query(
       DialogId dialog_id, int64 star_count,
       telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password, Promise<string> &&promise);

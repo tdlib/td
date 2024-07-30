@@ -895,7 +895,8 @@ starTransactionPartnerChannel chat_id:int53 paid_media_message_id:int53 media:ve
 
 //@description The transaction is a gift of Telegram Stars from another user
 //@user_id Identifier of the user; 0 if the gift was anonymous
-starTransactionPartnerUser user_id:int53 = StarTransactionPartner;
+//@sticker A sticker to be shown in the transaction information; may be null if unknown
+starTransactionPartnerUser user_id:int53 sticker:sticker = StarTransactionPartner;
 
 //@description The transaction is a transaction with unknown partner
 starTransactionPartnerUnsupported = StarTransactionPartner;
