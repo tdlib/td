@@ -449,7 +449,11 @@ class UpdateDialogPinnedMessageQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for UpdateDialogPinnedMessageQuery: " << to_string(ptr);
-    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+    if (!business_connection_id_.is_empty()) {
+      promise_.set_value(Unit());
+    } else {
+      td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+    }
   }
 
   void on_error(Status status) final {
