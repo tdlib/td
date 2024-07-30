@@ -882,10 +882,10 @@ starTransactionPartnerFragment withdrawal_state:RevenueWithdrawalState = StarTra
 starTransactionPartnerTelegramAds = StarTransactionPartner;
 
 //@description The transaction is a transaction with a bot
-//@bot_user_id Identifier of the bot
+//@user_id Identifier of the bot for the user, or the user for the bot
 //@product_info Information about the bought product; may be null if not applicable
 //@invoice_payload Invoice payload; for bots only
-starTransactionPartnerBot bot_user_id:int53 product_info:productInfo invoice_payload:bytes = StarTransactionPartner;
+starTransactionPartnerBot user_id:int53 product_info:productInfo invoice_payload:bytes = StarTransactionPartner;
 
 //@description The transaction is a transaction with a channel chat
 //@chat_id Identifier of the chat
