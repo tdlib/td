@@ -666,4 +666,8 @@ int64 StarManager::get_star_count(int64 amount, bool allow_negative) {
   return amount;
 }
 
+int32 StarManager::get_months_by_star_count(int64 star_count) {
+  return star_count <= 1000 ? 3 : (star_count < 2500 ? 6 : 12);
+}
+
 }  // namespace td
