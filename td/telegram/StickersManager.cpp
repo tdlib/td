@@ -1941,6 +1941,10 @@ void StickersManager::on_load_special_sticker_set(const SpecialStickerSetType &t
   if (result.is_error()) {
     LOG(INFO) << "Failed to load special sticker set " << type.type_ << ": " << result.error();
 
+    if (type == SpecialStickerSetType::premium_gifts()) {
+      set_promises(pending_get_premium_gift_option_sticker_queries_);
+    }
+
     // failed to load the special sticker set; repeat after some time
     create_actor<SleepActor>("RetryLoadSpecialStickerSetActor", Random::fast(300, 600),
                              PromiseCreator::lambda([actor_id = actor_id(this), type](Result<Unit> result) mutable {
@@ -2729,6 +2733,13 @@ FileId StickersManager::get_premium_gift_option_sticker_id(const StickerSet *sti
 
 FileId StickersManager::get_premium_gift_option_sticker_id(int32 month_count) {
   return get_premium_gift_option_sticker_id(get_premium_gift_sticker_set(), month_count);
+}
+
+void StickersManager::load_premium_gift_sticker_set(Promise<Unit> &&promise) {
+  if (td_->auth_manager_->is_bot() || get_premium_gift_sticker_set() != nullptr) {
+    return promise.set_value(Unit());
+  }
+  pending_get_premium_gift_option_sticker_queries_.push_back(std::move(promise));
 }
 
 const StickersManager::StickerSet *StickersManager::get_animated_emoji_sticker_set() {

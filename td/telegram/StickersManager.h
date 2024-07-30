@@ -107,6 +107,8 @@ class StickersManager final : public Actor {
 
   tl_object_ptr<telegram_api::InputStickerSet> get_input_sticker_set(StickerSetId sticker_set_id) const;
 
+  void load_premium_gift_sticker_set(Promise<Unit> &&promise);
+
   void register_premium_gift(int32 months, MessageFullId message_full_id, const char *source);
 
   void unregister_premium_gift(int32 months, MessageFullId message_full_id, const char *source);
