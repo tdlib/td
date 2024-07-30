@@ -1383,7 +1383,7 @@ void DialogParticipantManager::on_update_bot_stopped(UserId user_id, int32 date,
   }
 
   DialogParticipant old_dialog_participant(DialogId(my_user_id), user_id, date, DialogParticipantStatus::Banned(0));
-  DialogParticipant new_dialog_participant(DialogId(my_user_id), user_id, date, DialogParticipantStatus::Member());
+  DialogParticipant new_dialog_participant(DialogId(my_user_id), user_id, date, DialogParticipantStatus::Member(0));
   if (is_stopped) {
     std::swap(old_dialog_participant.status_, new_dialog_participant.status_);
   }
@@ -2341,7 +2341,7 @@ void DialogParticipantManager::add_channel_participant(
     return promise.set_error(Status::Error(400, "Not enough rights to invite members to the supergroup chat"));
   }
 
-  speculative_add_channel_user(channel_id, user_id, DialogParticipantStatus::Member(), old_status);
+  speculative_add_channel_user(channel_id, user_id, DialogParticipantStatus::Member(0), old_status);
   vector<tl_object_ptr<telegram_api::InputUser>> input_users;
   input_users.push_back(std::move(input_user));
   td_->create_handler<InviteToChannelQuery>(std::move(promise))->send(channel_id, {user_id}, std::move(input_users));
@@ -2395,7 +2395,7 @@ void DialogParticipantManager::add_channel_participants(
     }
     input_users.push_back(std::move(input_user));
 
-    speculative_add_channel_user(channel_id, user_id, DialogParticipantStatus::Member(),
+    speculative_add_channel_user(channel_id, user_id, DialogParticipantStatus::Member(0),
                                  DialogParticipantStatus::Left());
   }
 
@@ -2837,7 +2837,7 @@ void DialogParticipantManager::add_cached_channel_participants(ChannelId channel
     }
     if (!is_found) {
       is_participants_cache_changed = true;
-      participants.emplace_back(DialogId(user_id), inviter_user_id, date, DialogParticipantStatus::Member());
+      participants.emplace_back(DialogId(user_id), inviter_user_id, date, DialogParticipantStatus::Member(0));
     }
   }
   if (is_participants_cache_changed) {

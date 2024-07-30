@@ -1811,7 +1811,7 @@ void ChatManager::Chat::parse(ParserT &parser) {
     } else if (is_administrator && !everyone_is_administrator) {
       status = DialogParticipantStatus::GroupAdministrator(false);
     } else {
-      status = DialogParticipantStatus::Member();
+      status = DialogParticipantStatus::Member(0);
     }
     default_permissions = RestrictedRights(true, true, true, true, true, true, true, true, true, true, true, true, true,
                                            everyone_is_administrator, everyone_is_administrator,
@@ -2118,7 +2118,7 @@ void ChatManager::Channel::parse(ParserT &parser) {
     } else if (can_edit || can_moderate) {
       status = DialogParticipantStatus::ChannelAdministrator(false, is_megagroup);
     } else {
-      status = DialogParticipantStatus::Member();
+      status = DialogParticipantStatus::Member(0);
     }
   }
   parse(access_hash, parser);
@@ -2199,7 +2199,7 @@ void ChatManager::Channel::parse(ParserT &parser) {
   }
   if (!is_megagroup && status.is_restricted()) {
     if (status.is_member()) {
-      status = DialogParticipantStatus::Member();
+      status = DialogParticipantStatus::Member(0);
     } else {
       status = DialogParticipantStatus::Left();
     }
@@ -6324,7 +6324,7 @@ void ChatManager::on_update_chat_add_user(ChatId chat_id, UserId inviter_user_id
     chat_full->participants.push_back(DialogParticipant{DialogId(user_id), inviter_user_id, date,
                                                         user_id == chat_full->creator_user_id
                                                             ? DialogParticipantStatus::Creator(true, false, string())
-                                                            : DialogParticipantStatus::Member()});
+                                                            : DialogParticipantStatus::Member(0)});
     update_chat_online_member_count(chat_full, chat_id, false);
     chat_full->is_changed = true;
     update_chat_full(chat_full, chat_id, "on_update_chat_add_user");
@@ -6373,7 +6373,7 @@ void ChatManager::on_update_chat_edit_administrator(ChatId chat_id, UserId user_
   CHECK(c->version >= 0);
 
   auto status = is_administrator ? DialogParticipantStatus::GroupAdministrator(c->status.is_creator())
-                                 : DialogParticipantStatus::Member();
+                                 : DialogParticipantStatus::Member(0);
   if (version > c->version) {
     if (version != c->version + 1) {
       LOG(INFO) << "Administrators of " << chat_id << " with version " << c->version
@@ -8223,7 +8223,7 @@ void ChatManager::on_get_chat(telegram_api::chat &chat, const char *source) {
     } else if (has_left) {
       return DialogParticipantStatus::Left();
     } else {
-      return DialogParticipantStatus::Member();
+      return DialogParticipantStatus::Member(0);
     }
   }();
 
@@ -8401,27 +8401,6 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
         SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, DialogId(channel_id)});
   }
 
-  DialogParticipantStatus status = [&] {
-    bool has_left = (channel.flags_ & CHANNEL_FLAG_USER_HAS_LEFT) != 0;
-    bool is_creator = (channel.flags_ & CHANNEL_FLAG_USER_IS_CREATOR) != 0;
-
-    if (is_creator) {
-      bool is_anonymous = channel.admin_rights_ != nullptr &&
-                          (channel.admin_rights_->flags_ & telegram_api::chatAdminRights::ANONYMOUS_MASK) != 0;
-      return DialogParticipantStatus::Creator(!has_left, is_anonymous, string());
-    } else if (channel.admin_rights_ != nullptr) {
-      return DialogParticipantStatus(false, std::move(channel.admin_rights_), string(),
-                                     is_megagroup ? ChannelType::Megagroup : ChannelType::Broadcast);
-    } else if (channel.banned_rights_ != nullptr) {
-      return DialogParticipantStatus(!has_left, std::move(channel.banned_rights_),
-                                     is_megagroup ? ChannelType::Megagroup : ChannelType::Broadcast);
-    } else if (has_left) {
-      return DialogParticipantStatus::Left();
-    } else {
-      return DialogParticipantStatus::Member();
-    }
-  }();
-
   if (is_min) {
     Channel *c = get_channel_force(channel_id, source);
     if (c != nullptr) {
@@ -8507,6 +8486,26 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
     return;
   }
 
+  DialogParticipantStatus status = [&] {
+    bool has_left = (channel.flags_ & CHANNEL_FLAG_USER_HAS_LEFT) != 0;
+    bool is_creator = (channel.flags_ & CHANNEL_FLAG_USER_IS_CREATOR) != 0;
+
+    if (is_creator) {
+      bool is_anonymous = channel.admin_rights_ != nullptr &&
+                          (channel.admin_rights_->flags_ & telegram_api::chatAdminRights::ANONYMOUS_MASK) != 0;
+      return DialogParticipantStatus::Creator(!has_left, is_anonymous, string());
+    } else if (channel.admin_rights_ != nullptr) {
+      return DialogParticipantStatus(false, std::move(channel.admin_rights_), string(),
+                                     is_megagroup ? ChannelType::Megagroup : ChannelType::Broadcast);
+    } else if (channel.banned_rights_ != nullptr) {
+      return DialogParticipantStatus(!has_left, std::move(channel.banned_rights_),
+                                     is_megagroup ? ChannelType::Megagroup : ChannelType::Broadcast);
+    } else if (has_left) {
+      return DialogParticipantStatus::Left();
+    } else {
+      return DialogParticipantStatus::Member(channel.subscription_until_date_);
+    }
+  }();
   if (status.is_creator()) {
     // to correctly calculate is_ownership_transferred in on_update_channel_status
     get_channel_force(channel_id, source);

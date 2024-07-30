@@ -321,7 +321,7 @@ class DialogParticipantStatus {
   enum class Type : int32 { Creator, Administrator, Member, Restricted, Left, Banned };
   // all fields are logically const, but should be updated in update_restrictions()
   mutable Type type_;
-  mutable int32 until_date_;  // restricted and banned only
+  mutable int32 until_date_;  // member, restricted and banned only
   mutable uint64 flags_;
   string rank_;  // creator and administrator only
 
@@ -343,7 +343,7 @@ class DialogParticipantStatus {
   static DialogParticipantStatus Administrator(AdministratorRights administrator_rights, string &&rank,
                                                bool can_be_edited);
 
-  static DialogParticipantStatus Member();
+  static DialogParticipantStatus Member(int32 member_until_date);
 
   static DialogParticipantStatus Restricted(RestrictedRights restricted_rights, bool is_member,
                                             int32 restricted_until_date, ChannelType channel_type);
@@ -655,7 +655,7 @@ struct DialogParticipant {
 
   static DialogParticipant private_member(UserId user_id, UserId other_user_id) {
     auto inviter_user_id = other_user_id.is_valid() ? other_user_id : user_id;
-    return {DialogId(user_id), inviter_user_id, 0, DialogParticipantStatus::Member()};
+    return {DialogId(user_id), inviter_user_id, 0, DialogParticipantStatus::Member(0)};
   }
 
   bool is_valid() const;
