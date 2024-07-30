@@ -1495,6 +1495,14 @@ reactionTypeCustomEmoji custom_emoji_id:int64 = ReactionType;
 reactionTypePaid = ReactionType;
 
 
+//@description Contains information about a user that added paid reactions
+//@sender_id Identifier of the user or chat that added the reactions; may be null for anonymous reactors that aren't the current user
+//@star_count Number of Telegram Stars added
+//@is_top True, if the reactor is one of the most active reactors; can be false if the reactor is the current user
+//@is_me True, if the paid reaction was added by the current user
+//@is_anonymous True, if the reactor is anonymous
+paidReactor sender_id:MessageSender star_count:int32 is_top:Bool is_me:Bool is_anonymous:Bool = PaidReactor;
+
 //@description Contains information about a forwarded message
 //@origin Origin of the forwarded message
 //@date Point in time (Unix timestamp) when the message was originally sent
