@@ -22,6 +22,8 @@
 #include "td/telegram/ThemeManager.h"
 
 #include "td/utils/filesystem.h"
+#include "td/utils/format.h"
+#include "td/utils/logging.h"
 #include "td/utils/MimeType.h"
 #include "td/utils/PathView.h"
 #include "td/utils/SliceBuilder.h"

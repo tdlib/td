@@ -91,7 +91,6 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageImportManager.h"
 #include "td/telegram/MessageLinkInfo.h"
-#include "td/telegram/MessageQuote.h"
 #include "td/telegram/MessageReaction.h"
 #include "td/telegram/MessageSearchFilter.h"
 #include "td/telegram/MessageSender.h"
@@ -180,15 +179,12 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
-#include "td/utils/format.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/uname.h"
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"
-#include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 #include "td/utils/Timer.h"
-#include "td/utils/utf8.h"
 
 #include <limits>
 #include <tuple>
