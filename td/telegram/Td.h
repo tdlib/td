@@ -343,7 +343,9 @@ class Td final : public Actor {
 
   void on_connection_state_changed(ConnectionState new_state);
 
-  void run_request(uint64 id, tl_object_ptr<td_api::Function> function);
+  void run_request(uint64 id, td_api::object_ptr<td_api::Function> function);
+
+  void do_run_request(uint64 id, td_api::object_ptr<td_api::Function> &&function);
 
   void send_result(uint64 id, tl_object_ptr<td_api::Object> object);
   void send_error(uint64 id, Status error);

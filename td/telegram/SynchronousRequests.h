@@ -15,7 +15,7 @@ namespace td {
 
 class SynchronousRequests {
  public:
-  static td_api::object_ptr<td_api::Object> run_request(td_api::object_ptr<td_api::Function> function);
+  static td_api::object_ptr<td_api::Object> run_request(td_api::object_ptr<td_api::Function> &&function);
 
   static bool is_synchronous_request(const td_api::Function *function);
 

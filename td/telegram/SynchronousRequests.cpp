@@ -34,7 +34,7 @@
 
 namespace td {
 
-td_api::object_ptr<td_api::Object> SynchronousRequests::run_request(td_api::object_ptr<td_api::Function> function) {
+td_api::object_ptr<td_api::Object> SynchronousRequests::run_request(td_api::object_ptr<td_api::Function> &&function) {
   if (function == nullptr) {
     return td_api::make_object<td_api::error>(400, "Request is empty");
   }

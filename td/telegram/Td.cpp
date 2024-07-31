@@ -2598,7 +2598,7 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
   run_request(id, std::move(function));
 }
 
-void Td::run_request(uint64 id, tl_object_ptr<td_api::Function> function) {
+void Td::run_request(uint64 id, td_api::object_ptr<td_api::Function> function) {
   if (set_parameters_request_id_ > 0) {
     pending_set_parameters_requests_.emplace_back(id, std::move(function));
     return;
@@ -2675,6 +2675,10 @@ void Td::run_request(uint64 id, tl_object_ptr<td_api::Function> function) {
       !is_preinitialization_request(function_id) && !is_authentication_request(function_id)) {
     return send_error_impl(id, make_error(401, "Unauthorized"));
   }
+  do_run_request(id, std::move(function));
+}
+
+void Td::do_run_request(uint64 id, td_api::object_ptr<td_api::Function> &&function) {
   downcast_call(*function, [this, id](auto &request) { this->on_request(id, request); });
 }
 
@@ -3138,7 +3142,7 @@ template <class T>
 void Td::complete_pending_preauthentication_requests(const T &func) {
   for (auto &request : pending_preauthentication_requests_) {
     if (request.second != nullptr && func(request.second->get_id())) {
-      downcast_call(*request.second, [this, id = request.first](auto &request) { this->on_request(id, request); });
+      do_run_request(request.first, std::move(request.second));
       request.second = nullptr;
     }
   }
