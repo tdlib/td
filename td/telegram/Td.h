@@ -470,8 +470,6 @@ class Td final : public Actor {
 
   static bool is_authentication_request(int32 id);
 
-  static bool is_synchronous_request(const td_api::Function *function);
-
   static bool is_preinitialization_request(int32 id);
 
   static bool is_preauthentication_request(int32 id);
@@ -2019,39 +2017,6 @@ class Td final : public Actor {
   void on_request(uint64 id, td_api::testCallVectorIntObject &request);
   void on_request(uint64 id, td_api::testCallVectorString &request);
   void on_request(uint64 id, td_api::testCallVectorStringObject &request);
-
-  template <class T>
-  static td_api::object_ptr<td_api::Object> do_static_request(const T &request) {
-    return td_api::make_object<td_api::error>(400, "The method can't be executed synchronously");
-  }
-  static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getOption &request);
-  static td_api::object_ptr<td_api::Object> do_static_request(td_api::searchQuote &request);
-  static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getTextEntities &request);
-  static td_api::object_ptr<td_api::Object> do_static_request(td_api::parseTextEntities &request);
-  static td_api::object_ptr<td_api::Object> do_static_request(td_api::parseMarkdown &request);
-  static td_api::object_ptr<td_api::Object> do_static_request(td_api::getMarkdownText &request);
-  static td_api::object_ptr<td_api::Object> do_static_request(td_api::searchStringsByPrefix &request);
-  static td_api::object_ptr<td_api::Object> do_static_request(const td_api::checkQuickReplyShortcutName &request);
-  static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getCountryFlagEmoji &request);
-  static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getFileMimeType &request);
-  static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getFileExtension &request);
-  static td_api::object_ptr<td_api::Object> do_static_request(const td_api::cleanFileName &request);
-  static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getLanguagePackString &request);
-  static td_api::object_ptr<td_api::Object> do_static_request(td_api::getPhoneNumberInfoSync &request);
-  static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getPushReceiverId &request);
-  static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getChatFolderDefaultIconName &request);
-  static td_api::object_ptr<td_api::Object> do_static_request(td_api::getJsonValue &request);
-  static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getJsonString &request);
-  static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getThemeParametersJsonString &request);
-  static td_api::object_ptr<td_api::Object> do_static_request(td_api::setLogStream &request);
-  static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getLogStream &request);
-  static td_api::object_ptr<td_api::Object> do_static_request(const td_api::setLogVerbosityLevel &request);
-  static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getLogVerbosityLevel &request);
-  static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getLogTags &request);
-  static td_api::object_ptr<td_api::Object> do_static_request(const td_api::setLogTagVerbosityLevel &request);
-  static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getLogTagVerbosityLevel &request);
-  static td_api::object_ptr<td_api::Object> do_static_request(const td_api::addLogMessage &request);
-  static td_api::object_ptr<td_api::Object> do_static_request(td_api::testReturnError &request);
 
   static DbKey as_db_key(string key);
 
