@@ -15,6 +15,7 @@
 
 #include "td/mtproto/AuthData.h"
 #include "td/mtproto/ConnectionManager.h"
+#include "td/mtproto/Handshake.h"
 #include "td/mtproto/RawConnection.h"
 #include "td/mtproto/TransportType.h"
 
@@ -79,22 +80,7 @@ class ConnectionCreator final : public NetQueryCallback {
   void get_proxy_link(int32 proxy_id, Promise<string> promise);
   void ping_proxy(int32 proxy_id, Promise<double> promise);
 
-  struct ConnectionData {
-    IPAddress ip_address;
-    BufferedFd<SocketFd> buffered_socket_fd;
-    mtproto::ConnectionManager::ConnectionToken connection_token;
-    unique_ptr<mtproto::RawConnection::StatsCallback> stats_callback;
-  };
-
-  static DcOptions get_default_dc_options(bool is_test);
-
-  static ActorOwn<> prepare_connection(IPAddress ip_address, SocketFd socket_fd, const Proxy &proxy,
-                                       const IPAddress &mtproto_ip_address,
-                                       const mtproto::TransportType &transport_type, Slice actor_name_prefix,
-                                       Slice debug_str,
-                                       unique_ptr<mtproto::RawConnection::StatsCallback> stats_callback,
-                                       ActorShared<> parent, bool use_connection_token,
-                                       Promise<ConnectionData> promise);
+  void test_proxy(Proxy &&proxy, int32 dc_id, double timeout, Promise<Unit> &&promise);
 
  private:
   ActorShared<> parent_;
@@ -185,6 +171,26 @@ class ConnectionCreator final : public NetQueryCallback {
   };
   std::map<uint64, PingMainDcRequest> ping_main_dc_requests_;
 
+  struct ConnectionData {
+    IPAddress ip_address;
+    BufferedFd<SocketFd> buffered_socket_fd;
+    mtproto::ConnectionManager::ConnectionToken connection_token;
+    unique_ptr<mtproto::RawConnection::StatsCallback> stats_callback;
+  };
+
+  struct TestProxyRequest {
+    Proxy proxy_;
+    int16 dc_id_;
+    ActorOwn<> child_;
+    Promise<Unit> promise_;
+
+    mtproto::TransportType get_transport() const {
+      return mtproto::TransportType{mtproto::TransportType::ObfuscatedTcp, dc_id_, proxy_.secret()};
+    }
+  };
+  uint64 test_proxy_request_id_ = 0;
+  FlatHashMap<uint64, unique_ptr<TestProxyRequest>> test_proxy_requests_;
+
   uint64 next_token() {
     return ++current_token_;
   }
@@ -237,12 +243,21 @@ class ConnectionCreator final : public NetQueryCallback {
     IPAddress mtproto_ip_address;
     bool check_mode{false};
   };
+  Result<SocketFd> find_connection(const Proxy &proxy, const IPAddress &proxy_ip_address, DcId dc_id,
+                                   bool allow_media_only, FindConnectionExtra &extra);
+
+  static DcOptions get_default_dc_options(bool is_test);
 
   static Result<mtproto::TransportType> get_transport_type(const Proxy &proxy,
                                                            const DcOptionsSet::ConnectionInfo &info);
 
-  Result<SocketFd> find_connection(const Proxy &proxy, const IPAddress &proxy_ip_address, DcId dc_id,
-                                   bool allow_media_only, FindConnectionExtra &extra);
+  static ActorOwn<> prepare_connection(IPAddress ip_address, SocketFd socket_fd, const Proxy &proxy,
+                                       const IPAddress &mtproto_ip_address,
+                                       const mtproto::TransportType &transport_type, Slice actor_name_prefix,
+                                       Slice debug_str,
+                                       unique_ptr<mtproto::RawConnection::StatsCallback> stats_callback,
+                                       ActorShared<> parent, bool use_connection_token,
+                                       Promise<ConnectionData> promise);
 
   ActorId<GetHostByNameActor> get_dns_resolver();
 
@@ -252,6 +267,15 @@ class ConnectionCreator final : public NetQueryCallback {
                                      mtproto::TransportType transport_type, string debug_str, Promise<double> promise);
 
   void on_ping_main_dc_result(uint64 token, Result<double> result);
+
+  void on_test_proxy_connection_data(uint64 request_id, Result<ConnectionData> r_data);
+
+  void on_test_proxy_handshake_connection(uint64 request_id,
+                                          Result<unique_ptr<mtproto::RawConnection>> r_raw_connection);
+
+  void on_test_proxy_handshake(uint64 request_id, Result<unique_ptr<mtproto::AuthKeyHandshake>> r_handshake);
+
+  void on_test_proxy_timeout(uint64 request_id);
 };
 
 }  // namespace td

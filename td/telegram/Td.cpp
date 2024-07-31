@@ -110,7 +110,6 @@
 #include "td/telegram/net/NetStatsManager.h"
 #include "td/telegram/net/NetType.h"
 #include "td/telegram/net/Proxy.h"
-#include "td/telegram/net/PublicRsaKeySharedMain.h"
 #include "td/telegram/net/TempAuthKeyWatchdog.h"
 #include "td/telegram/NotificationGroupId.h"
 #include "td/telegram/NotificationId.h"
@@ -178,13 +177,6 @@
 
 #include "td/db/binlog/BinlogEvent.h"
 
-#include "td/mtproto/DhCallback.h"
-#include "td/mtproto/Handshake.h"
-#include "td/mtproto/HandshakeActor.h"
-#include "td/mtproto/RawConnection.h"
-#include "td/mtproto/RSA.h"
-#include "td/mtproto/TransportType.h"
-
 #include "td/actor/actor.h"
 
 #include "td/utils/algorithm.h"
@@ -194,8 +186,6 @@
 #include "td/utils/MimeType.h"
 #include "td/utils/misc.h"
 #include "td/utils/PathView.h"
-#include "td/utils/port/IPAddress.h"
-#include "td/utils/port/SocketFd.h"
 #include "td/utils/port/uname.h"
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"
@@ -490,114 +480,6 @@ class TestNetworkQuery final : public Td::ResultHandler {
   void on_error(Status status) final {
     LOG(ERROR) << "Test query failed: " << status;
     promise_.set_error(std::move(status));
-  }
-};
-
-class TestProxyRequest final : public RequestOnceActor {
-  Proxy proxy_;
-  int16 dc_id_;
-  double timeout_;
-  ActorOwn<> child_;
-  Promise<> promise_;
-
-  auto get_transport() {
-    return mtproto::TransportType{mtproto::TransportType::ObfuscatedTcp, dc_id_, proxy_.secret()};
-  }
-
-  void do_run(Promise<Unit> &&promise) final {
-    set_timeout_in(timeout_);
-
-    promise_ = std::move(promise);
-    IPAddress ip_address;
-    auto status = ip_address.init_host_port(proxy_.server(), proxy_.port());
-    if (status.is_error()) {
-      return promise_.set_error(Status::Error(400, status.public_message()));
-    }
-    auto r_socket_fd = SocketFd::open(ip_address);
-    if (r_socket_fd.is_error()) {
-      return promise_.set_error(Status::Error(400, r_socket_fd.error().public_message()));
-    }
-
-    auto dc_options = ConnectionCreator::get_default_dc_options(false);
-    IPAddress mtproto_ip_address;
-    for (auto &dc_option : dc_options.dc_options) {
-      if (dc_option.get_dc_id().get_raw_id() == dc_id_) {
-        mtproto_ip_address = dc_option.get_ip_address();
-        break;
-      }
-    }
-
-    auto connection_promise =
-        PromiseCreator::lambda([actor_id = actor_id(this)](Result<ConnectionCreator::ConnectionData> r_data) mutable {
-          send_closure(actor_id, &TestProxyRequest::on_connection_data, std::move(r_data));
-        });
-
-    child_ = ConnectionCreator::prepare_connection(ip_address, r_socket_fd.move_as_ok(), proxy_, mtproto_ip_address,
-                                                   get_transport(), "Test", "TestPingDC2", nullptr, {}, false,
-                                                   std::move(connection_promise));
-  }
-
-  void on_connection_data(Result<ConnectionCreator::ConnectionData> r_data) {
-    if (r_data.is_error()) {
-      return promise_.set_error(r_data.move_as_error());
-    }
-    class HandshakeContext final : public mtproto::AuthKeyHandshakeContext {
-     public:
-      mtproto::DhCallback *get_dh_callback() final {
-        return nullptr;
-      }
-      mtproto::PublicRsaKeyInterface *get_public_rsa_key_interface() final {
-        return public_rsa_key_.get();
-      }
-
-     private:
-      std::shared_ptr<mtproto::PublicRsaKeyInterface> public_rsa_key_ = PublicRsaKeySharedMain::create(false);
-    };
-    auto handshake = make_unique<mtproto::AuthKeyHandshake>(dc_id_, 3600);
-    auto data = r_data.move_as_ok();
-    auto raw_connection =
-        mtproto::RawConnection::create(data.ip_address, std::move(data.buffered_socket_fd), get_transport(), nullptr);
-    child_ = create_actor<mtproto::HandshakeActor>(
-        "HandshakeActor", std::move(handshake), std::move(raw_connection), make_unique<HandshakeContext>(), 10.0,
-        PromiseCreator::lambda([actor_id = actor_id(this)](Result<unique_ptr<mtproto::RawConnection>> raw_connection) {
-          send_closure(actor_id, &TestProxyRequest::on_handshake_connection, std::move(raw_connection));
-        }),
-        PromiseCreator::lambda(
-            [actor_id = actor_id(this)](Result<unique_ptr<mtproto::AuthKeyHandshake>> handshake) mutable {
-              send_closure(actor_id, &TestProxyRequest::on_handshake, std::move(handshake));
-            }));
-  }
-  void on_handshake_connection(Result<unique_ptr<mtproto::RawConnection>> r_raw_connection) {
-    if (r_raw_connection.is_error()) {
-      return promise_.set_error(Status::Error(400, r_raw_connection.move_as_error().public_message()));
-    }
-  }
-  void on_handshake(Result<unique_ptr<mtproto::AuthKeyHandshake>> r_handshake) {
-    if (!promise_) {
-      return;
-    }
-    if (r_handshake.is_error()) {
-      return promise_.set_error(Status::Error(400, r_handshake.move_as_error().public_message()));
-    }
-
-    auto handshake = r_handshake.move_as_ok();
-    if (!handshake->is_ready_for_finish()) {
-      promise_.set_error(Status::Error(400, "Handshake is not ready"));
-    }
-    promise_.set_value(Unit());
-  }
-
-  void timeout_expired() final {
-    send_error(Status::Error(400, "Timeout expired"));
-    stop();
-  }
-
- public:
-  TestProxyRequest(ActorShared<Td> td, uint64 request_id, Proxy proxy, int32 dc_id, double timeout)
-      : RequestOnceActor(std::move(td), request_id)
-      , proxy_(std::move(proxy))
-      , dc_id_(static_cast<int16>(dc_id))
-      , timeout_(timeout) {
   }
 };
 
@@ -10174,7 +10056,9 @@ void Td::on_request(uint64 id, td_api::testProxy &request) {
   if (r_proxy.is_error()) {
     return send_closure(actor_id(this), &Td::send_error, id, r_proxy.move_as_error());
   }
-  CREATE_REQUEST(TestProxyRequest, r_proxy.move_as_ok(), request.dc_id_, request.timeout_);
+  CREATE_OK_REQUEST_PROMISE();
+  send_closure(G()->connection_creator(), &ConnectionCreator::test_proxy, r_proxy.move_as_ok(), request.dc_id_,
+               request.timeout_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::testGetDifference &request) {
