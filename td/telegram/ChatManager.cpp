@@ -8382,7 +8382,8 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
     LOG_IF(ERROR, sign_messages) << "Need to sign messages in the supergroup " << channel_id << " from " << source;
     sign_messages = true;
   } else {
-    LOG_IF(ERROR, is_slow_mode_enabled) << "Slow mode enabled in the " << channel_id << " from " << source;
+    LOG_IF(ERROR, is_slow_mode_enabled && channel_id.get() >= 8000000000)
+        << "Slow mode enabled in the " << channel_id << " from " << source;
     LOG_IF(ERROR, is_gigagroup) << "Receive broadcast group as " << channel_id << " from " << source;
     LOG_IF(ERROR, is_forum) << "Receive broadcast forum as " << channel_id << " from " << source;
     is_slow_mode_enabled = false;
