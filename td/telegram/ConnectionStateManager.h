@@ -6,6 +6,8 @@
 //
 #pragma once
 
+#include "td/telegram/ConnectionState.h"
+
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
@@ -18,8 +20,16 @@ class ConnectionStateManager final : public Actor {
  public:
   ConnectionStateManager(Td *td, ActorShared<> parent);
 
+  void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
+
  private:
   void tear_down() final;
+
+  void start_up() final;
+
+  void on_connection_state_changed(ConnectionState new_state);
+
+  ConnectionState connection_state_ = ConnectionState::Empty;
 
   Td *td_;
   ActorShared<> parent_;

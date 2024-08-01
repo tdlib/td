@@ -2588,19 +2588,6 @@ void Td::on_result(NetQueryPtr query) {
   }
 }
 
-void Td::on_connection_state_changed(ConnectionState new_state) {
-  if (G()->close_flag()) {
-    return;
-  }
-  if (new_state == connection_state_) {
-    LOG(ERROR) << "State manager sends update about unchanged state " << static_cast<int32>(new_state);
-    return;
-  }
-  connection_state_ = new_state;
-
-  send_closure(actor_id(this), &Td::send_update, get_update_connection_state_object(connection_state_));
-}
-
 void Td::start_up() {
   uint64 check_endianness = 0x0706050403020100;
   auto check_endianness_raw = reinterpret_cast<const unsigned char *>(&check_endianness);
@@ -3216,20 +3203,7 @@ void Td::process_binlog_events(TdDb::OpenedDatabase &&events) {
 
 void Td::init_options_and_network() {
   VLOG(td_init) << "Create StateManager";
-  class StateManagerCallback final : public StateManager::Callback {
-   public:
-    explicit StateManagerCallback(ActorShared<Td> td) : td_(std::move(td)) {
-    }
-    bool on_state(ConnectionState state) final {
-      send_closure(td_, &Td::on_connection_state_changed, state);
-      return td_.is_alive();
-    }
-
-   private:
-    ActorShared<Td> td_;
-  };
   state_manager_ = create_actor<StateManager>("State manager", create_reference());
-  send_closure(state_manager_, &StateManager::add_callback, make_unique<StateManagerCallback>(create_reference()));
   G()->set_state_manager(state_manager_.get());
 
   VLOG(td_init) << "Create OptionManager";
@@ -3823,7 +3797,7 @@ void Td::on_request(uint64 id, const td_api::getCurrentState &request) {
     updates.push_back(td_api::make_object<td_api::updateAuthorizationState>(std::move(state)));
   }
 
-  updates.push_back(get_update_connection_state_object(connection_state_));
+  connection_state_manager_->get_current_state(updates);
 
   if (auth_manager_->is_authorized()) {
     user_manager_->get_current_state(updates);

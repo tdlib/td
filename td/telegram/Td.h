@@ -6,7 +6,6 @@
 //
 #pragma once
 
-#include "td/telegram/ConnectionState.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/net/MtprotoHeader.h"
 #include "td/telegram/net/NetQuery.h"
@@ -341,8 +340,6 @@ class Td final : public Actor {
   static constexpr int64 PING_SERVER_ALARM_ID = -1;
   static constexpr int32 PING_SERVER_TIMEOUT = 300;
 
-  void on_connection_state_changed(ConnectionState new_state);
-
   void run_request(uint64 id, td_api::object_ptr<td_api::Function> function);
 
   void do_run_request(uint64 id, td_api::object_ptr<td_api::Function> &&function);
@@ -370,8 +367,6 @@ class Td final : public Actor {
   Options td_options_;
 
   MtprotoHeader::Options options_;
-
-  ConnectionState connection_state_ = ConnectionState::Empty;
 
   std::unordered_multimap<uint64, int32> request_set_;
   int actor_refcnt_ = 0;
