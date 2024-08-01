@@ -31,6 +31,7 @@
 #include "td/utils/Status.h"
 
 #include <algorithm>
+#include <limits>
 #include <utility>
 
 namespace td {
@@ -408,6 +409,12 @@ void MessageReaction::unset_as_chosen() {
   fix_choose_count();
 }
 
+void MessageReaction::add_paid_reaction(int32 star_count) {
+  is_chosen_ = true;
+  CHECK(star_count <= std::numeric_limits<int32>::max() - choose_count_);
+  choose_count_ += star_count;
+}
+
 void MessageReaction::fix_choose_count() {
   choose_count_ = max(choose_count_, narrow_cast<int32>(recent_chooser_dialog_ids_.size()));
 }
@@ -776,6 +783,15 @@ bool MessageReactions::do_remove_my_reaction(const ReactionType &reaction_type) 
     }
   }
   return false;
+}
+
+void MessageReactions::add_my_paid_reaction(int32 star_count) {
+  auto added_reaction = get_reaction(ReactionType::paid());
+  if (added_reaction == nullptr) {
+    reactions_.push_back({ReactionType::paid(), star_count, true, DialogId(), Auto(), Auto()});
+  } else {
+    added_reaction->add_paid_reaction(star_count);
+  }
 }
 
 void MessageReactions::sort_reactions(const FlatHashMap<ReactionType, size_t, ReactionTypeHash> &active_reaction_pos) {

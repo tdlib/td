@@ -22682,8 +22682,8 @@ void MessagesManager::add_paid_message_reaction(MessageFullId message_full_id, i
   }
 
   LOG(INFO) << "Have message with " << *m->reactions;
-  // m->reactions->add_my_paid_reaction(star_count);
-  // m->reactions->sort_reactions(active_reaction_pos_);
+  m->reactions->add_my_paid_reaction(narrow_cast<int32>(star_count));
+  m->reactions->sort_reactions(active_reaction_pos_);
   LOG(INFO) << "Update message reactions to " << *m->reactions;
 
   pending_reactions_[message_full_id].query_count++;

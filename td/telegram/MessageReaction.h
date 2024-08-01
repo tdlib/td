@@ -64,6 +64,8 @@ class MessageReaction {
 
   void unset_as_chosen();
 
+  void add_paid_reaction(int32 star_count);
+
   void add_my_recent_chooser_dialog_id(DialogId dialog_id);
 
   bool remove_my_recent_chooser_dialog_id();
@@ -175,6 +177,8 @@ struct MessageReactions {
                        bool is_tag);
 
   bool remove_my_reaction(const ReactionType &reaction_type, DialogId my_dialog_id);
+
+  void add_my_paid_reaction(int32 star_count);
 
   void sort_reactions(const FlatHashMap<ReactionType, size_t, ReactionTypeHash> &active_reaction_pos);
 
