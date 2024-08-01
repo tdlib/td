@@ -3125,6 +3125,11 @@ void Td::init_options_and_network() {
   VLOG(td_init) << "Create ConfigManager";
   config_manager_ = create_actor<ConfigManager>("ConfigManager", create_reference());
   G()->set_config_manager(config_manager_.get());
+
+  VLOG(td_init) << "Create OnlineManager";
+  online_manager_ = make_unique<OnlineManager>(this, create_reference());
+  online_manager_actor_ = register_actor("OnlineManager", online_manager_.get());
+  G()->set_online_manager(online_manager_actor_.get());
 }
 
 void Td::init_file_manager() {
@@ -3293,9 +3298,6 @@ void Td::init_managers() {
   notification_settings_manager_actor_ =
       register_actor("NotificationSettingsManager", notification_settings_manager_.get());
   G()->set_notification_settings_manager(notification_settings_manager_actor_.get());
-  online_manager_ = make_unique<OnlineManager>(this, create_reference());
-  online_manager_actor_ = register_actor("OnlineManager", online_manager_.get());
-  G()->set_online_manager(online_manager_actor_.get());
   people_nearby_manager_ = make_unique<PeopleNearbyManager>(this, create_reference());
   people_nearby_manager_actor_ = register_actor("PeopleNearbyManager", people_nearby_manager_.get());
   G()->set_people_nearby_manager(people_nearby_manager_actor_.get());
