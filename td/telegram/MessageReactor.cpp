@@ -6,6 +6,7 @@
 //
 #include "td/telegram/MessageReactor.h"
 
+#include "td/telegram/Dependencies.h"
 #include "td/telegram/MessageSender.h"
 
 namespace td {
@@ -22,6 +23,10 @@ td_api::object_ptr<td_api::paidReactor> MessageReactor::get_paid_reactor_object(
   return td_api::make_object<td_api::paidReactor>(
       dialog_id_ == DialogId() ? nullptr : get_message_sender_object(td, dialog_id_, "paidReactor"), count_, is_top_,
       is_me_, is_anonymous_);
+}
+
+void MessageReactor::add_dependencies(Dependencies &dependencies) const {
+  dependencies.add_message_sender_dependencies(dialog_id_);
 }
 
 bool operator==(const MessageReactor &lhs, const MessageReactor &rhs) {
