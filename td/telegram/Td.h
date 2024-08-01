@@ -15,7 +15,6 @@
 #include "td/telegram/TdCallback.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
-#include "td/telegram/TermsOfService.h"
 
 #include "td/actor/actor.h"
 #include "td/actor/MultiTimeout.h"
@@ -136,8 +135,6 @@ class Td final : public Actor {
   void request(uint64 id, tl_object_ptr<td_api::Function> function);
 
   void destroy();
-
-  void schedule_get_terms_of_service(int32 expires_in);
 
   void reload_promo_data();
 
@@ -339,7 +336,6 @@ class Td final : public Actor {
   static constexpr int64 ONLINE_ALARM_ID = 0;
   static constexpr int64 PING_SERVER_ALARM_ID = -1;
   static constexpr int32 PING_SERVER_TIMEOUT = 300;
-  static constexpr int64 TERMS_OF_SERVICE_ALARM_ID = -2;
   static constexpr int64 PROMO_DATA_ALARM_ID = -3;
 
   void on_connection_state_changed(ConnectionState new_state);
@@ -401,8 +397,6 @@ class Td final : public Actor {
   FlatHashMap<int64, uint64> pending_alarms_;
   MultiTimeout alarm_timeout_{"AlarmTimeout"};
 
-  TermsOfService pending_terms_of_service_;
-
   struct DownloadInfo {
     int64 offset = -1;
     int64 limit = -1;
@@ -424,11 +418,8 @@ class Td final : public Actor {
   vector<td_api::object_ptr<td_api::Update>> get_fake_current_state() const;
 
   static void on_alarm_timeout_callback(void *td_ptr, int64 alarm_id);
+
   void on_alarm_timeout(int64 alarm_id);
-
-  td_api::object_ptr<td_api::updateTermsOfService> get_update_terms_of_service_object() const;
-
-  void on_get_terms_of_service(Result<std::pair<int32, TermsOfService>> result, bool dummy);
 
   void on_get_promo_data(Result<telegram_api::object_ptr<telegram_api::help_PromoData>> r_promo_data, bool dummy);
 

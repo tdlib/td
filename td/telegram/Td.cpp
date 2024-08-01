@@ -2255,15 +2255,6 @@ void Td::on_alarm_timeout(int64 alarm_id) {
     }
     return;
   }
-  if (alarm_id == TERMS_OF_SERVICE_ALARM_ID) {
-    if (!close_flag_ && !auth_manager_->is_bot()) {
-      terms_of_service_manager_->get_terms_of_service(
-          PromiseCreator::lambda([actor_id = actor_id(this)](Result<std::pair<int32, TermsOfService>> result) {
-            send_closure(actor_id, &Td::on_get_terms_of_service, std::move(result), false);
-          }));
-    }
-    return;
-  }
   if (alarm_id == PROMO_DATA_ALARM_ID) {
     if (!close_flag_ && !auth_manager_->is_bot()) {
       reloading_promo_data_ = true;
@@ -2313,44 +2304,6 @@ void Td::on_update_status_success(bool is_online) {
       update_status_query_ = NetQueryRef();
     }
     user_manager_->set_my_online_status(is_online_, true, false);
-  }
-}
-
-td_api::object_ptr<td_api::updateTermsOfService> Td::get_update_terms_of_service_object() const {
-  auto terms_of_service = pending_terms_of_service_.get_terms_of_service_object();
-  if (terms_of_service == nullptr) {
-    return nullptr;
-  }
-  return td_api::make_object<td_api::updateTermsOfService>(pending_terms_of_service_.get_id().str(),
-                                                           std::move(terms_of_service));
-}
-
-void Td::on_get_terms_of_service(Result<std::pair<int32, TermsOfService>> result, bool dummy) {
-  int32 expires_in = 0;
-  if (result.is_error()) {
-    expires_in = Random::fast(10, 60);
-  } else {
-    auto terms = result.move_as_ok();
-    pending_terms_of_service_ = std::move(terms.second);
-    auto update = get_update_terms_of_service_object();
-    if (update == nullptr) {
-      expires_in = min(max(terms.first, G()->unix_time() + 3600) - G()->unix_time(), 86400);
-    } else {
-      send_update(std::move(update));
-    }
-  }
-  if (expires_in > 0) {
-    schedule_get_terms_of_service(expires_in);
-  }
-}
-
-void Td::schedule_get_terms_of_service(int32 expires_in) {
-  if (expires_in == 0) {
-    // drop pending Terms of Service after successful accept
-    pending_terms_of_service_ = TermsOfService();
-  }
-  if (!close_flag_ && !auth_manager_->is_bot()) {
-    alarm_timeout_.set_timeout_in(TERMS_OF_SERVICE_ALARM_ID, expires_in);
   }
 }
 
@@ -2969,7 +2922,6 @@ void Td::clear() {
     alarm_timeout_.cancel_timeout(ONLINE_ALARM_ID);
   }
   alarm_timeout_.cancel_timeout(PING_SERVER_ALARM_ID);
-  alarm_timeout_.cancel_timeout(TERMS_OF_SERVICE_ALARM_ID);
   alarm_timeout_.cancel_timeout(PROMO_DATA_ALARM_ID);
 
   auto reset_actor = [&timer](ActorOwn<Actor> actor) {
@@ -3277,7 +3229,6 @@ void Td::init(Parameters parameters, Result<TdDb::OpenedDatabase> r_opened_datab
     country_info_manager_->get_current_country_code(Promise<string>());
   } else {
     updates_manager_->get_difference("init");
-    schedule_get_terms_of_service(0);
     reload_promo_data();
   }
 
@@ -4004,14 +3955,11 @@ void Td::on_request(uint64 id, const td_api::getCurrentState &request) {
 
     business_connection_manager_->get_current_state(updates);
 
+    terms_of_service_manager_->get_current_state(updates);
+
     // TODO updateFileGenerationStart generation_id:int64 original_path:string destination_path:string conversion:string = Update;
     // TODO updateCall call:call = Update;
     // TODO updateGroupCall call:groupCall = Update;
-  }
-
-  auto update_terms_of_service = get_update_terms_of_service_object();
-  if (update_terms_of_service != nullptr) {
-    updates.push_back(std::move(update_terms_of_service));
   }
 
   // send response synchronously to prevent "Request aborted" or other changes of the current state
@@ -9414,14 +9362,7 @@ void Td::on_request(uint64 id, const td_api::getBusinessFeatures &request) {
 void Td::on_request(uint64 id, td_api::acceptTermsOfService &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.terms_of_service_id_);
-  auto promise = PromiseCreator::lambda([actor_id = actor_id(this), id](Result<> result) {
-    if (result.is_error()) {
-      send_closure(actor_id, &Td::send_error, id, result.move_as_error());
-    } else {
-      send_closure(actor_id, &Td::send_result, id, td_api::make_object<td_api::ok>());
-      send_closure(actor_id, &Td::schedule_get_terms_of_service, 0);
-    }
-  });
+  CREATE_OK_REQUEST_PROMISE();
   terms_of_service_manager_->accept_terms_of_service(std::move(request.terms_of_service_id_), std::move(promise));
 }
 

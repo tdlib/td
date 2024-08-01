@@ -6,6 +6,7 @@
 //
 #include "td/telegram/TermsOfServiceManager.h"
 
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/Td.h"
@@ -13,10 +14,10 @@
 
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
+#include "td/utils/Random.h"
 #include "td/utils/Status.h"
 
 namespace td {
-
 
 class GetTermsOfServiceUpdateQuery final : public Td::ResultHandler {
   Promise<std::pair<int32, TermsOfService>> promise_;
@@ -81,6 +82,7 @@ class AcceptTermsOfServiceQuery final : public Td::ResultHandler {
     if (!result) {
       LOG(ERROR) << "Failed to accept terms of service";
     }
+    td_->terms_of_service_manager_->schedule_get_terms_of_service(0);
     promise_.set_value(Unit());
   }
 
@@ -96,12 +98,95 @@ void TermsOfServiceManager::tear_down() {
   parent_.reset();
 }
 
+void TermsOfServiceManager::start_up() {
+  init();
+}
+
+void TermsOfServiceManager::init() {
+  if (G()->close_flag()) {
+    return;
+  }
+  if (is_inited_ || !td_->auth_manager_->is_authorized() || td_->auth_manager_->is_bot()) {
+    return;
+  }
+  is_inited_ = true;
+
+  schedule_get_terms_of_service(0);
+}
+
+void TermsOfServiceManager::schedule_get_terms_of_service(int32 expires_in) {
+  if (G()->close_flag() || !is_inited_) {
+    return;
+  }
+
+  if (expires_in == 0) {
+    // drop pending Terms of Service after successful accept
+    pending_terms_of_service_ = TermsOfService();
+  }
+  set_timeout_in(expires_in);
+}
+
+void TermsOfServiceManager::timeout_expired() {
+  if (G()->close_flag() || !is_inited_) {
+    return;
+  }
+
+  get_terms_of_service(
+      PromiseCreator::lambda([actor_id = actor_id(this)](Result<std::pair<int32, TermsOfService>> result) {
+        send_closure(actor_id, &TermsOfServiceManager::on_get_terms_of_service, std::move(result), false);
+      }));
+}
+
+td_api::object_ptr<td_api::updateTermsOfService> TermsOfServiceManager::get_update_terms_of_service_object() const {
+  auto terms_of_service = pending_terms_of_service_.get_terms_of_service_object();
+  if (terms_of_service == nullptr) {
+    return nullptr;
+  }
+  return td_api::make_object<td_api::updateTermsOfService>(pending_terms_of_service_.get_id().str(),
+                                                           std::move(terms_of_service));
+}
+
+void TermsOfServiceManager::on_get_terms_of_service(Result<std::pair<int32, TermsOfService>> result, bool dummy) {
+  if (G()->close_flag()) {
+    return;
+  }
+  CHECK(is_inited_);
+
+  int32 expires_in = 0;
+  if (result.is_error()) {
+    expires_in = Random::fast(10, 60);
+  } else {
+    auto terms = result.move_as_ok();
+    pending_terms_of_service_ = std::move(terms.second);
+    auto update = get_update_terms_of_service_object();
+    if (update == nullptr) {
+      expires_in = min(max(terms.first, G()->unix_time() + 3600) - G()->unix_time(), 86400);
+    } else {
+      send_closure(G()->td(), &Td::send_update, std::move(update));
+    }
+  }
+  if (expires_in > 0) {
+    schedule_get_terms_of_service(expires_in);
+  }
+}
+
 void TermsOfServiceManager::get_terms_of_service(Promise<std::pair<int32, TermsOfService>> promise) {
   td_->create_handler<GetTermsOfServiceUpdateQuery>(std::move(promise))->send();
 }
 
 void TermsOfServiceManager::accept_terms_of_service(string &&terms_of_service_id, Promise<Unit> &&promise) {
   td_->create_handler<AcceptTermsOfServiceQuery>(std::move(promise))->send(terms_of_service_id);
+}
+
+void TermsOfServiceManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
+  if (!is_inited_) {
+    return;
+  }
+
+  auto update_terms_of_service_object = get_update_terms_of_service_object();
+  if (update_terms_of_service_object != nullptr) {
+    updates.push_back(std::move(update_terms_of_service_object));
+  }
 }
 
 }  // namespace td

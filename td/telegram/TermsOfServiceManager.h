@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/td_api.h"
 #include "td/telegram/TermsOfService.h"
 
 #include "td/actor/actor.h"
@@ -23,15 +24,33 @@ class TermsOfServiceManager final : public Actor {
  public:
   TermsOfServiceManager(Td *td, ActorShared<> parent);
 
-  void get_terms_of_service(Promise<std::pair<int32, TermsOfService>> promise);
+  void init();
 
   void accept_terms_of_service(string &&terms_of_service_id, Promise<Unit> &&promise);
+
+  void schedule_get_terms_of_service(int32 expires_in);
+
+  void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
   void tear_down() final;
 
+  void start_up() final;
+
+  void timeout_expired() final;
+
+  void get_terms_of_service(Promise<std::pair<int32, TermsOfService>> promise);
+
+  td_api::object_ptr<td_api::updateTermsOfService> get_update_terms_of_service_object() const;
+
+  void on_get_terms_of_service(Result<std::pair<int32, TermsOfService>> result, bool dummy);
+
   Td *td_;
   ActorShared<> parent_;
+
+  TermsOfService pending_terms_of_service_;
+
+  bool is_inited_ = false;
 };
 
 }  // namespace td
