@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/MessageEntity.hpp"
 #include "td/telegram/MinChannel.hpp"
 #include "td/telegram/PollManager.h"
 #include "td/telegram/UserId.h"
