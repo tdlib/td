@@ -28,8 +28,6 @@ class TermsOfServiceManager final : public Actor {
 
   void accept_terms_of_service(string &&terms_of_service_id, Promise<Unit> &&promise);
 
-  void schedule_get_terms_of_service(int32 expires_in);
-
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
@@ -39,11 +37,15 @@ class TermsOfServiceManager final : public Actor {
 
   void timeout_expired() final;
 
+  void schedule_get_terms_of_service(int32 expires_in);
+
   void get_terms_of_service(Promise<std::pair<int32, TermsOfService>> promise);
 
   td_api::object_ptr<td_api::updateTermsOfService> get_update_terms_of_service_object() const;
 
   void on_get_terms_of_service(Result<std::pair<int32, TermsOfService>> result, bool dummy);
+
+  void on_accept_terms_of_service(Promise<Unit> &&promise);
 
   Td *td_;
   ActorShared<> parent_;

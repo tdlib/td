@@ -14,6 +14,7 @@
 
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/Random.h"
 #include "td/utils/Status.h"
 
@@ -82,7 +83,6 @@ class AcceptTermsOfServiceQuery final : public Td::ResultHandler {
     if (!result) {
       LOG(ERROR) << "Failed to accept terms of service";
     }
-    td_->terms_of_service_manager_->schedule_get_terms_of_service(0);
     promise_.set_value(Unit());
   }
 
@@ -119,10 +119,6 @@ void TermsOfServiceManager::schedule_get_terms_of_service(int32 expires_in) {
     return;
   }
 
-  if (expires_in == 0) {
-    // drop pending Terms of Service after successful accept
-    pending_terms_of_service_ = TermsOfService();
-  }
   set_timeout_in(expires_in);
 }
 
@@ -160,7 +156,7 @@ void TermsOfServiceManager::on_get_terms_of_service(Result<std::pair<int32, Term
     pending_terms_of_service_ = std::move(terms.second);
     auto update = get_update_terms_of_service_object();
     if (update == nullptr) {
-      expires_in = min(max(terms.first, G()->unix_time() + 3600) - G()->unix_time(), 86400);
+      expires_in = clamp(terms.first - G()->unix_time(), 3600, 86400);
     } else {
       send_closure(G()->td(), &Td::send_update, std::move(update));
     }
@@ -175,7 +171,20 @@ void TermsOfServiceManager::get_terms_of_service(Promise<std::pair<int32, TermsO
 }
 
 void TermsOfServiceManager::accept_terms_of_service(string &&terms_of_service_id, Promise<Unit> &&promise) {
-  td_->create_handler<AcceptTermsOfServiceQuery>(std::move(promise))->send(terms_of_service_id);
+  auto query_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](Result<Unit> result) mutable {
+        if (result.is_error()) {
+          return promise.set_error(result.move_as_error());
+        }
+        send_closure(actor_id, &TermsOfServiceManager::on_accept_terms_of_service, std::move(promise));
+      });
+  td_->create_handler<AcceptTermsOfServiceQuery>(std::move(query_promise))->send(terms_of_service_id);
+}
+
+void TermsOfServiceManager::on_accept_terms_of_service(Promise<Unit> &&promise) {
+  pending_terms_of_service_ = TermsOfService();
+  promise.set_value(Unit());
+  schedule_get_terms_of_service(0);
 }
 
 void TermsOfServiceManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
