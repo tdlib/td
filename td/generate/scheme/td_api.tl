@@ -10092,7 +10092,8 @@ replacePrimaryChatInviteLink chat_id:int53 = ChatInviteLink;
 //-must not be used
 createChatInviteLink chat_id:int53 name:string expiration_date:int32 member_limit:int32 creates_join_request:Bool subscription_pricing:starSubscriptionPricing = ChatInviteLink;
 
-//@description Edits a non-primary invite link for a chat. Available for basic groups, supergroups, and channels. Links requiring subscription can't be edited.
+//@description Edits a non-primary invite link for a chat. Available for basic groups, supergroups, and channels.
+//-If the link creates a subscription, then expiration_date, member_limit and creates_join_request must not be used
 //-Requires administrator privileges and can_invite_users right in the chat for own links and owner privileges for other links
 //@chat_id Chat identifier
 //@invite_link Invite link to be edited
