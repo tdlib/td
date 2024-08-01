@@ -2257,8 +2257,8 @@ void Td::on_alarm_timeout(int64 alarm_id) {
   }
   if (alarm_id == TERMS_OF_SERVICE_ALARM_ID) {
     if (!close_flag_ && !auth_manager_->is_bot()) {
-      get_terms_of_service(
-          this, PromiseCreator::lambda([actor_id = actor_id(this)](Result<std::pair<int32, TermsOfService>> result) {
+      terms_of_service_manager_->get_terms_of_service(
+          PromiseCreator::lambda([actor_id = actor_id(this)](Result<std::pair<int32, TermsOfService>> result) {
             send_closure(actor_id, &Td::on_get_terms_of_service, std::move(result), false);
           }));
     }
@@ -9422,7 +9422,7 @@ void Td::on_request(uint64 id, td_api::acceptTermsOfService &request) {
       send_closure(actor_id, &Td::schedule_get_terms_of_service, 0);
     }
   });
-  accept_terms_of_service(this, std::move(request.terms_of_service_id_), std::move(promise));
+  terms_of_service_manager_->accept_terms_of_service(std::move(request.terms_of_service_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getCountries &request) {
