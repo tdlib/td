@@ -40,6 +40,7 @@
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/CommonDialogManager.h"
 #include "td/telegram/ConfigManager.h"
+#include "td/telegram/ConnectionStateManager.h"
 #include "td/telegram/CountryInfoManager.h"
 #include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DeviceTokenManager.h"
@@ -2685,8 +2686,9 @@ void Td::dec_actor_refcnt() {
       reset_manager(business_manager_, "BusinessManager");
       reset_manager(callback_queries_manager_, "CallbackQueriesManager");
       reset_manager(channel_recommendation_manager_, "ChannelRecommendationManager");
-      reset_manager(common_dialog_manager_, "CommonDialogManager");
       reset_manager(chat_manager_, "ChatManager");
+      reset_manager(common_dialog_manager_, "CommonDialogManager");
+      reset_manager(connection_state_manager_, "ConnectionStateManager");
       reset_manager(country_info_manager_, "CountryInfoManager");
       reset_manager(dialog_action_manager_, "DialogActionManager");
       reset_manager(dialog_filter_manager_, "DialogFilterManager");
@@ -2864,8 +2866,9 @@ void Td::clear() {
   reset_actor(ActorOwn<Actor>(std::move(business_connection_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(business_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(channel_recommendation_manager_actor_)));
-  reset_actor(ActorOwn<Actor>(std::move(common_dialog_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(chat_manager_actor_)));
+  reset_actor(ActorOwn<Actor>(std::move(common_dialog_manager_actor_)));
+  reset_actor(ActorOwn<Actor>(std::move(connection_state_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(country_info_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(dialog_action_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(dialog_filter_manager_actor_)));
@@ -3369,11 +3372,13 @@ void Td::init_managers() {
   channel_recommendation_manager_ = make_unique<ChannelRecommendationManager>(this, create_reference());
   channel_recommendation_manager_actor_ =
       register_actor("ChannelRecommendationManager", channel_recommendation_manager_.get());
-  common_dialog_manager_ = make_unique<CommonDialogManager>(this, create_reference());
-  common_dialog_manager_actor_ = register_actor("CommonDialogManager", common_dialog_manager_.get());
   chat_manager_ = make_unique<ChatManager>(this, create_reference());
   chat_manager_actor_ = register_actor("ChatManager", chat_manager_.get());
   G()->set_chat_manager(chat_manager_actor_.get());
+  common_dialog_manager_ = make_unique<CommonDialogManager>(this, create_reference());
+  common_dialog_manager_actor_ = register_actor("CommonDialogManager", common_dialog_manager_.get());
+  connection_state_manager_ = make_unique<ConnectionStateManager>(this, create_reference());
+  connection_state_manager_actor_ = register_actor("ConnectionStateManager", connection_state_manager_.get());
   country_info_manager_ = make_unique<CountryInfoManager>(this, create_reference());
   country_info_manager_actor_ = register_actor("CountryInfoManager", country_info_manager_.get());
   dialog_action_manager_ = make_unique<DialogActionManager>(this, create_reference());

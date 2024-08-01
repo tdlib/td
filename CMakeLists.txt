@@ -361,6 +361,7 @@ set(TDLIB_SOURCE_PART1
   td/telegram/CommonDialogManager.cpp
   td/telegram/ConfigManager.cpp
   td/telegram/ConnectionState.cpp
+  td/telegram/ConnectionStateManager.cpp
   td/telegram/Contact.cpp
   td/telegram/CountryInfoManager.cpp
   td/telegram/DelayDispatcher.cpp
@@ -650,6 +651,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/CommonDialogManager.h
   td/telegram/ConfigManager.h
   td/telegram/ConnectionState.h
+  td/telegram/ConnectionStateManager.h
   td/telegram/Contact.h
   td/telegram/CountryInfoManager.h
   td/telegram/CustomEmojiId.h

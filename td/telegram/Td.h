@@ -51,6 +51,7 @@ class ChannelRecommendationManager;
 class ChatManager;
 class CommonDialogManager;
 class ConfigManager;
+class ConnectionStateManager;
 class CountryInfoManager;
 class DeviceTokenManager;
 class DialogActionManager;
@@ -189,6 +190,8 @@ class Td final : public Actor {
   ActorOwn<ChatManager> chat_manager_actor_;
   unique_ptr<CommonDialogManager> common_dialog_manager_;
   ActorOwn<CommonDialogManager> common_dialog_manager_actor_;
+  unique_ptr<ConnectionStateManager> connection_state_manager_;
+  ActorOwn<ConnectionStateManager> connection_state_manager_actor_;
   unique_ptr<CountryInfoManager> country_info_manager_;
   ActorOwn<CountryInfoManager> country_info_manager_actor_;
   unique_ptr<DialogActionManager> dialog_action_manager_;
