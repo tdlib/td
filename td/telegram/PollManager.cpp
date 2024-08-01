@@ -18,6 +18,7 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/OnlineManager.h"
 #include "td/telegram/PollId.hpp"
 #include "td/telegram/PollManager.hpp"
 #include "td/telegram/StateManager.h"
@@ -1356,7 +1357,7 @@ void PollManager::stop_local_poll(PollId poll_id) {
 }
 
 double PollManager::get_polling_timeout() const {
-  double result = td_->is_online() ? 60 : 30 * 60;
+  double result = td_->online_manager_->is_online() ? 60 : 30 * 60;
   return result * Random::fast(70, 100) * 0.01;
 }
 

@@ -43,6 +43,7 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/NotificationManager.h"
+#include "td/telegram/OnlineManager.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/PeerColor.h"
 #include "td/telegram/PeopleNearbyManager.h"
@@ -2026,7 +2027,7 @@ UserManager::UserManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::m
     was_online_local_ = to_integer<int32>(G()->td_db()->get_binlog_pmc()->get("my_was_online_local"));
     was_online_remote_ = to_integer<int32>(G()->td_db()->get_binlog_pmc()->get("my_was_online_remote"));
     auto unix_time = G()->unix_time();
-    if (was_online_local_ >= unix_time && !td_->is_online()) {
+    if (was_online_local_ >= unix_time && !td_->online_manager_->is_online()) {
       was_online_local_ = unix_time - 1;
     }
   }
@@ -2220,7 +2221,7 @@ UserId UserManager::add_channel_bot_user() {
 
 UserManager::MyOnlineStatusInfo UserManager::get_my_online_status() const {
   MyOnlineStatusInfo status_info;
-  status_info.is_online_local = td_->is_online();
+  status_info.is_online_local = td_->online_manager_->is_online();
   status_info.is_online_remote = was_online_remote_ > G()->unix_time();
   status_info.was_online_local = was_online_local_;
   status_info.was_online_remote = was_online_remote_;
@@ -3147,7 +3148,7 @@ void UserManager::on_update_user_online(User *u, UserId user_id,
         u->is_online_status_changed = true;
       }
       if (is_offline) {
-        td_->on_online_updated(false, false);
+        td_->online_manager_->on_online_updated(false, false);
       }
     } else if (old_is_online != new_is_online) {
       u->is_online_status_changed = true;

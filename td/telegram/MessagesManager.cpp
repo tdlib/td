@@ -69,6 +69,7 @@
 #include "td/telegram/NotificationSettingsManager.h"
 #include "td/telegram/NotificationSound.h"
 #include "td/telegram/NotificationType.h"
+#include "td/telegram/OnlineManager.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/PollId.h"
@@ -12003,7 +12004,7 @@ void MessagesManager::on_update_viewed_messages_timeout(DialogId dialog_id) {
   }
 
   auto it = dialog_viewed_messages_.find(dialog_id);
-  if (it == dialog_viewed_messages_.end() || !td_->is_online()) {
+  if (it == dialog_viewed_messages_.end() || !td_->online_manager_->is_online()) {
     return;
   }
 
@@ -19029,7 +19030,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
     td_->create_handler<GetFactCheckQuery>(std::move(promise))
         ->send(dialog_id, std::move(viewed_fact_check_message_ids));
   }
-  if (td_->is_online() && dialog_viewed_messages_.count(dialog_id) != 0) {
+  if (td_->online_manager_->is_online() && dialog_viewed_messages_.count(dialog_id) != 0) {
     update_viewed_messages_timeout_.add_timeout_in(dialog_id.get(), UPDATE_VIEWED_MESSAGES_PERIOD);
   }
   if (!authentication_codes.empty()) {
@@ -28514,7 +28515,7 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   int32 min_delay_ms = 0;
   if (need_delay_message_content_notification(m->content.get(), td_->user_manager_->get_my_id())) {
     min_delay_ms = 3000;  // 3 seconds
-  } else if (td_->is_online() && d->open_count > 0) {
+  } else if (td_->online_manager_->is_online() && d->open_count > 0) {
     min_delay_ms = 1000;  // 1 second
   }
   auto ringtone_id = get_dialog_notification_ringtone_id(settings_dialog_id, settings_dialog);

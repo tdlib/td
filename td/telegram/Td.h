@@ -142,16 +142,6 @@ class Td final : public Actor {
 
   void on_result(NetQueryPtr query);
 
-  void on_online_updated(bool force, bool send_update);
-
-  void on_update_status_success(bool is_online);
-
-  bool is_online() const;
-
-  void set_is_online(bool is_online);
-
-  void set_is_bot_online(bool is_bot_online);
-
   bool can_ignore_background_updates() const {
     return can_ignore_background_updates_;
   }
@@ -339,10 +329,6 @@ class Td final : public Actor {
   static td_api::object_ptr<td_api::Object> static_request(td_api::object_ptr<td_api::Function> function);
 
  private:
-  static constexpr int64 ONLINE_ALARM_ID = 0;
-  static constexpr int64 PING_SERVER_ALARM_ID = -1;
-  static constexpr int32 PING_SERVER_TIMEOUT = 300;
-
   void run_request(uint64 id, td_api::object_ptr<td_api::Function> function);
 
   void do_run_request(uint64 id, td_api::object_ptr<td_api::Function> &&function);
@@ -386,10 +372,6 @@ class Td final : public Actor {
   Container<ActorOwn<Actor>> request_actors_;
 
   bool can_ignore_background_updates_ = false;
-
-  bool is_online_ = false;
-  bool is_bot_online_ = false;
-  NetQueryRef update_status_query_;
 
   int64 alarm_id_ = 1;
   FlatHashMap<int64, uint64> pending_alarms_;

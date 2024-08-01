@@ -21,6 +21,7 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/net/ConnectionCreator.h"
 #include "td/telegram/net/DcId.h"
+#include "td/telegram/OnlineManager.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/Photo.hpp"
@@ -2789,7 +2790,7 @@ void NotificationManager::process_push_notification(string payload, Promise<Unit
     }
   }
 
-  if (!td_->is_online()) {
+  if (!td_->online_manager_->is_online()) {
     // reset online flag to false to immediately check all connections aliveness
     send_closure(G()->state_manager(), &StateManager::on_online, false);
   }

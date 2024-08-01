@@ -48,6 +48,7 @@
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/NotificationSettingsManager.h"
 #include "td/telegram/NotificationSettingsScope.h"
+#include "td/telegram/OnlineManager.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/OrderInfo.h"
 #include "td/telegram/PeopleNearbyManager.h"
@@ -2240,7 +2241,7 @@ void UpdatesManager::try_reload_data_static(void *td) {
 
 void UpdatesManager::try_reload_data() {
   if (!td_->auth_manager_->is_authorized() || td_->auth_manager_->is_bot() || running_get_difference_ ||
-      !td_->is_online()) {
+      !td_->online_manager_->is_online()) {
     return;
   }
 

@@ -393,37 +393,6 @@ class SetBotUpdatesStatusQuery final : public Td::ResultHandler {
   }
 };
 
-class UpdateStatusQuery final : public Td::ResultHandler {
-  bool is_offline_;
-
- public:
-  NetQueryRef send(bool is_offline) {
-    is_offline_ = is_offline;
-    auto net_query = G()->net_query_creator().create(telegram_api::account_updateStatus(is_offline));
-    auto result = net_query.get_weak();
-    send_query(std::move(net_query));
-    return result;
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::account_updateStatus>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    bool result = result_ptr.ok();
-    LOG(INFO) << "Receive result for UpdateStatusQuery: " << result;
-    td_->on_update_status_success(!is_offline_);
-  }
-
-  void on_error(Status status) final {
-    if (status.code() != NetQuery::Canceled && !G()->is_expected_error(status)) {
-      LOG(ERROR) << "Receive error for UpdateStatusQuery: " << status;
-    }
-    status.ignore();
-  }
-};
-
 class TestNetworkQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -2219,17 +2188,6 @@ void Td::on_alarm_timeout_callback(void *td_ptr, int64 alarm_id) {
 }
 
 void Td::on_alarm_timeout(int64 alarm_id) {
-  if (alarm_id == ONLINE_ALARM_ID) {
-    on_online_updated(false, true);
-    return;
-  }
-  if (alarm_id == PING_SERVER_ALARM_ID) {
-    if (!close_flag_ && updates_manager_ != nullptr && auth_manager_->is_authorized()) {
-      updates_manager_->ping_server();
-      set_is_bot_online(false);
-    }
-    return;
-  }
   if (close_flag_ >= 2) {
     // pending_alarms_ was already cleared
     return;
@@ -2240,65 +2198,6 @@ void Td::on_alarm_timeout(int64 alarm_id) {
   uint64 request_id = it->second;
   pending_alarms_.erase(alarm_id);
   send_result(request_id, make_tl_object<td_api::ok>());
-}
-
-void Td::on_online_updated(bool force, bool send_update) {
-  if (close_flag_ >= 2 || !auth_manager_->is_authorized() || auth_manager_->is_bot()) {
-    return;
-  }
-  if (force || is_online_) {
-    user_manager_->set_my_online_status(is_online_, send_update, true);
-    if (!update_status_query_.empty()) {
-      LOG(INFO) << "Cancel previous update status query";
-      cancel_query(update_status_query_);
-    }
-    update_status_query_ = create_handler<UpdateStatusQuery>()->send(!is_online_);
-  }
-  if (is_online_) {
-    alarm_timeout_.set_timeout_in(
-        ONLINE_ALARM_ID, static_cast<double>(G()->get_option_integer("online_update_period_ms", 210000)) * 1e-3);
-  } else {
-    alarm_timeout_.cancel_timeout(ONLINE_ALARM_ID);
-  }
-}
-
-void Td::on_update_status_success(bool is_online) {
-  if (is_online == is_online_) {
-    if (!update_status_query_.empty()) {
-      update_status_query_ = NetQueryRef();
-    }
-    user_manager_->set_my_online_status(is_online_, true, false);
-  }
-}
-
-bool Td::is_online() const {
-  return is_online_;
-}
-
-void Td::set_is_online(bool is_online) {
-  if (is_online == is_online_) {
-    return;
-  }
-
-  is_online_ = is_online;
-  if (auth_manager_ != nullptr) {  // postpone if there is no AuthManager yet
-    on_online_updated(true, true);
-  }
-}
-
-void Td::set_is_bot_online(bool is_bot_online) {
-  alarm_timeout_.set_timeout_in(PING_SERVER_ALARM_ID, PING_SERVER_TIMEOUT + Random::fast(0, PING_SERVER_TIMEOUT / 5));
-
-  if (G()->get_option_integer("session_count") > 1) {
-    is_bot_online = false;
-  }
-
-  if (is_bot_online == is_bot_online_) {
-    return;
-  }
-
-  is_bot_online_ = is_bot_online;
-  send_closure(G()->state_manager(), &StateManager::on_online, is_bot_online_);
 }
 
 bool Td::ignore_background_updates() const {
@@ -2561,7 +2460,7 @@ void Td::on_update(telegram_api::object_ptr<telegram_api::Updates> updates, uint
     updates_manager_->on_update_from_auth_key_id(auth_key_id);
     updates_manager_->on_get_updates(std::move(updates), Promise<Unit>());
     if (auth_manager_->is_bot() && auth_manager_->is_authorized()) {
-      set_is_bot_online(true);
+      online_manager_->set_is_bot_online(true);
     }
   }
 }
@@ -2812,11 +2711,6 @@ void Td::clear() {
   state_manager_.reset();
   LOG(DEBUG) << "StateManager was cleared" << timer;
   clear_requests();
-  if (is_online_) {
-    is_online_ = false;
-    alarm_timeout_.cancel_timeout(ONLINE_ALARM_ID);
-  }
-  alarm_timeout_.cancel_timeout(PING_SERVER_ALARM_ID);
 
   auto reset_actor = [&timer](ActorOwn<Actor> actor) {
     if (!actor.empty()) {
@@ -3111,13 +3005,6 @@ void Td::init(Parameters parameters, Result<TdDb::OpenedDatabase> r_opened_datab
   G()->set_storage_manager(storage_manager_.get());
 
   option_manager_->on_td_inited();
-
-  if (is_online_) {
-    on_online_updated(true, true);
-  }
-  if (auth_manager_->is_bot()) {
-    set_is_bot_online(true);
-  }
 
   process_binlog_events(std::move(events));
 

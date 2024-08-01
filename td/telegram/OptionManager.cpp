@@ -21,6 +21,7 @@
 #include "td/telegram/net/MtprotoHeader.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/NotificationManager.h"
+#include "td/telegram/OnlineManager.h"
 #include "td/telegram/PeopleNearbyManager.h"
 #include "td/telegram/ReactionType.h"
 #include "td/telegram/StateManager.h"
@@ -687,7 +688,7 @@ void OptionManager::get_option(const string &name, Promise<td_api::object_ptr<td
       break;
     case 'o':
       if (name == "online") {
-        return promise.set_value(td_api::make_object<td_api::optionValueBoolean>(td_->is_online()));
+        return promise.set_value(td_api::make_object<td_api::optionValueBoolean>(td_->online_manager_->is_online()));
       }
       break;
     case 'u':
@@ -924,7 +925,7 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
         }
         bool is_online = value_constructor_id == td_api::optionValueEmpty::ID ||
                          static_cast<const td_api::optionValueBoolean *>(value.get())->value_;
-        td_->set_is_online(is_online);
+        td_->online_manager_->set_is_online(is_online);
         if (!is_bot) {
           send_closure(td_->state_manager_, &StateManager::on_online, is_online);
         }
@@ -1046,7 +1047,7 @@ void OptionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>>
   get_common_state(updates);
 
   updates.push_back(td_api::make_object<td_api::updateOption>(
-      "online", td_api::make_object<td_api::optionValueBoolean>(td_->is_online())));
+      "online", td_api::make_object<td_api::optionValueBoolean>(td_->online_manager_->is_online())));
 
   updates.push_back(td_api::make_object<td_api::updateOption>("unix_time", get_unix_time_option_value_object()));
 
