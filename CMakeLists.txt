@@ -1020,6 +1020,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/StoryInteractionInfo.hpp
   td/telegram/StoryStealthMode.hpp
   td/telegram/SuggestedAction.hpp
+  td/telegram/TermsOfService.hpp
   td/telegram/ThemeSettings.hpp
   td/telegram/TranscriptionInfo.hpp
   td/telegram/VideoNotesManager.hpp
