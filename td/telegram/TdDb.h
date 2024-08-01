@@ -148,6 +148,8 @@ class TdDb {
   StoryDbSyncInterface *get_story_db_sync();
   StoryDbAsyncInterface *get_story_db_async();
 
+  static DbKey as_db_key(string key);
+
   void change_key(DbKey key, Promise<> promise);
 
   void with_db_path(const std::function<void(CSlice)> &callback);

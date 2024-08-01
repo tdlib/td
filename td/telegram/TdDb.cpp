@@ -662,6 +662,13 @@ Status TdDb::check_parameters(Parameters &parameters) {
   return Status::OK();
 }
 
+DbKey TdDb::as_db_key(string key) {
+  if (key.empty()) {
+    return DbKey::raw_key("cucumber");
+  }
+  return DbKey::raw_key(std::move(key));
+}
+
 void TdDb::change_key(DbKey key, Promise<> promise) {
   get_binlog()->change_key(std::move(key), std::move(promise));
 }

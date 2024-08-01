@@ -2567,17 +2567,6 @@ vector<td_api::object_ptr<td_api::Update>> Td::get_fake_current_state() const {
   return updates;
 }
 
-DbKey Td::as_db_key(string key) {
-  // Database will still be effectively not encrypted, but
-  // 1. SQLite database will be protected from corruption, because that's how sqlcipher works
-  // 2. security through obscurity
-  // 3. no need for reencryption of SQLite database
-  if (key.empty()) {
-    return DbKey::raw_key("cucumber");
-  }
-  return DbKey::raw_key(std::move(key));
-}
-
 void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
   if (id == 0) {
     LOG(ERROR) << "Ignore request with ID == 0: " << to_string(function);
@@ -3802,7 +3791,7 @@ Result<std::pair<Td::Parameters, TdDb::Parameters>> Td::get_parameters(
   result.first.api_hash_ = std::move(parameters->api_hash_);
   result.first.use_secret_chats_ = parameters->use_secret_chats_;
 
-  result.second.encryption_key_ = as_db_key(std::move(parameters->database_encryption_key_));
+  result.second.encryption_key_ = TdDb::as_db_key(std::move(parameters->database_encryption_key_));
   result.second.database_directory_ = std::move(parameters->database_directory_);
   result.second.files_directory_ = std::move(parameters->files_directory_);
   result.second.is_test_dc_ = parameters->use_test_dc_;
@@ -3850,7 +3839,7 @@ void Td::on_request(uint64 id, const td_api::setTdlibParameters &request) {
 
 void Td::on_request(uint64 id, td_api::setDatabaseEncryptionKey &request) {
   CREATE_OK_REQUEST_PROMISE();
-  G()->td_db()->get_binlog()->change_key(as_db_key(std::move(request.new_encryption_key_)), std::move(promise));
+  G()->td_db()->get_binlog()->change_key(TdDb::as_db_key(std::move(request.new_encryption_key_)), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getAuthorizationState &request) {

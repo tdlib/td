@@ -17,8 +17,6 @@
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/TermsOfService.h"
 
-#include "td/db/DbKey.h"
-
 #include "td/actor/actor.h"
 #include "td/actor/MultiTimeout.h"
 
@@ -2019,8 +2017,6 @@ class Td final : public Actor {
   void on_request(uint64 id, td_api::testCallVectorIntObject &request);
   void on_request(uint64 id, td_api::testCallVectorString &request);
   void on_request(uint64 id, td_api::testCallVectorStringObject &request);
-
-  static DbKey as_db_key(string key);
 
   struct Parameters {
     int32 api_id_ = 0;
