@@ -502,7 +502,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const UnreadMessageReac
 }
 
 unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
-    Td *td, tl_object_ptr<telegram_api::messageReactions> &&reactions, bool is_bot) {
+    Td *td, telegram_api::object_ptr<telegram_api::messageReactions> &&reactions, bool is_bot) {
   if (reactions == nullptr || is_bot) {
     return nullptr;
   }
@@ -610,6 +610,22 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
     result->chosen_reaction_order_ =
         transform(chosen_reaction_order, [](const std::pair<int32, ReactionType> &order) { return order.second; });
   }
+  bool was_me = false;
+  for (auto &top_reactor : reactions->top_reactors_) {
+    MessageReactor reactor(std::move(top_reactor));
+    if (!reactor.is_valid() || (reactions->min_ && reactor.is_me())) {
+      LOG(ERROR) << "Receive " << reactor;
+      continue;
+    }
+    if (reactor.is_me()) {
+      if (was_me) {
+        LOG(ERROR) << "Receive duplicate " << reactor;
+        continue;
+      }
+      was_me = true;
+    }
+    result->top_reactors_.push_back(std::move(reactor));
+  }
   return result;
 }
 
@@ -649,6 +665,13 @@ void MessageReactions::update_from(const MessageReactions &old_reactions) {
     unread_reactions_ = old_reactions.unread_reactions_;
     if (chosen_reaction_order_.size() == 1) {
       reset_to_empty(chosen_reaction_order_);
+    }
+
+    // self paid reaction was known, keep it
+    for (auto &reactor : old_reactions.top_reactors_) {
+      if (reactor.is_me()) {
+        top_reactors_.push_back(reactor);
+      }
     }
   }
   for (const auto &old_reaction : old_reactions.reactions_) {
@@ -758,6 +781,9 @@ bool MessageReactions::do_remove_my_reaction(const ReactionType &reaction_type) 
 void MessageReactions::sort_reactions(const FlatHashMap<ReactionType, size_t, ReactionTypeHash> &active_reaction_pos) {
   std::sort(reactions_.begin(), reactions_.end(),
             [&active_reaction_pos](const MessageReaction &lhs, const MessageReaction &rhs) {
+              if (lhs.get_reaction_type().is_paid_reaction() != rhs.get_reaction_type().is_paid_reaction()) {
+                return lhs.get_reaction_type().is_paid_reaction();
+              }
               if (lhs.get_choose_count() != rhs.get_choose_count()) {
                 return lhs.get_choose_count() > rhs.get_choose_count();
               }
@@ -786,7 +812,8 @@ void MessageReactions::fix_chosen_reaction() {
     return;
   }
   for (auto &reaction : reactions_) {
-    if (reaction.is_chosen() && !reaction.get_my_recent_chooser_dialog_id().is_valid()) {
+    if (!reaction.get_reaction_type().is_paid_reaction() && reaction.is_chosen() &&
+        !reaction.get_my_recent_chooser_dialog_id().is_valid()) {
       reaction.add_my_recent_chooser_dialog_id(my_dialog_id);
     }
   }
@@ -794,7 +821,8 @@ void MessageReactions::fix_chosen_reaction() {
 
 void MessageReactions::fix_my_recent_chooser_dialog_id(DialogId my_dialog_id) {
   for (auto &reaction : reactions_) {
-    if (reaction.is_chosen() && !reaction.get_my_recent_chooser_dialog_id().is_valid() &&
+    if (!reaction.get_reaction_type().is_paid_reaction() && reaction.is_chosen() &&
+        !reaction.get_my_recent_chooser_dialog_id().is_valid() &&
         td::contains(reaction.get_recent_chooser_dialog_ids(), my_dialog_id)) {
       reaction.my_recent_chooser_dialog_id_ = my_dialog_id;
     }
@@ -808,7 +836,7 @@ vector<ReactionType> MessageReactions::get_chosen_reaction_types() const {
 
   vector<ReactionType> reaction_order;
   for (const auto &reaction : reactions_) {
-    if (reaction.is_chosen()) {
+    if (!reaction.get_reaction_type().is_paid_reaction() && reaction.is_chosen()) {
       reaction_order.push_back(reaction.get_reaction_type());
     }
   }
@@ -857,7 +885,9 @@ td_api::object_ptr<td_api::messageReactions> MessageReactions::get_message_react
   auto reactions = transform(reactions_, [td, my_user_id, peer_user_id](const MessageReaction &reaction) {
     return reaction.get_message_reaction_object(td, my_user_id, peer_user_id);
   });
-  return td_api::make_object<td_api::messageReactions>(std::move(reactions), are_tags_);
+  auto reactors =
+      transform(top_reactors_, [td](const MessageReactor &reactor) { return reactor.get_paid_reactor_object(td); });
+  return td_api::make_object<td_api::messageReactions>(std::move(reactions), are_tags_, std::move(reactors));
 }
 
 void MessageReactions::add_min_channels(Td *td) const {
@@ -876,6 +906,9 @@ void MessageReactions::add_dependencies(Dependencies &dependencies) const {
       dependencies.add_message_sender_dependencies(dialog_id);
     }
   }
+  for (const auto &reactor : top_reactors_) {
+    reactor.add_dependencies(dependencies);
+  }
 }
 
 bool MessageReactions::need_update_message_reactions(const MessageReactions *old_reactions,
@@ -893,7 +926,8 @@ bool MessageReactions::need_update_message_reactions(const MessageReactions *old
   return old_reactions->reactions_ != new_reactions->reactions_ || old_reactions->is_min_ != new_reactions->is_min_ ||
          old_reactions->can_get_added_reactions_ != new_reactions->can_get_added_reactions_ ||
          old_reactions->need_polling_ != new_reactions->need_polling_ ||
-         old_reactions->are_tags_ != new_reactions->are_tags_;
+         old_reactions->are_tags_ != new_reactions->are_tags_ ||
+         old_reactions->top_reactors_ != new_reactions->top_reactors_;
 }
 
 bool MessageReactions::need_update_unread_reactions(const MessageReactions *old_reactions,
@@ -911,7 +945,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageReactions 
   return string_builder << (reactions.is_min_ ? "Min" : "") << "MessageReactions{" << reactions.reactions_
                         << " with unread " << reactions.unread_reactions_ << ", reaction order "
                         << reactions.chosen_reaction_order_
-                        << " and can_get_added_reactions = " << reactions.can_get_added_reactions_ << '}';
+                        << " and can_get_added_reactions = " << reactions.can_get_added_reactions_
+                        << " with paid reactions by " << reactions.top_reactors_ << '}';
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const unique_ptr<MessageReactions> &reactions) {

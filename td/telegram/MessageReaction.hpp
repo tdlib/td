@@ -7,6 +7,8 @@
 #pragma once
 
 #include "td/telegram/MessageReaction.h"
+
+#include "td/telegram/MessageReactor.hpp"
 #include "td/telegram/MinChannel.hpp"
 #include "td/telegram/ReactionType.hpp"
 
@@ -100,6 +102,7 @@ void MessageReactions::store(StorerT &storer) const {
   bool has_reactions = !reactions_.empty();
   bool has_unread_reactions = !unread_reactions_.empty();
   bool has_chosen_reaction_order = !chosen_reaction_order_.empty();
+  bool has_top_reactors = !top_reactors_.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_min_);
   STORE_FLAG(need_polling_);
@@ -108,6 +111,7 @@ void MessageReactions::store(StorerT &storer) const {
   STORE_FLAG(has_reactions);
   STORE_FLAG(has_chosen_reaction_order);
   STORE_FLAG(are_tags_);
+  STORE_FLAG(has_top_reactors);
   END_STORE_FLAGS();
   if (has_reactions) {
     td::store(reactions_, storer);
@@ -118,6 +122,9 @@ void MessageReactions::store(StorerT &storer) const {
   if (has_chosen_reaction_order) {
     td::store(chosen_reaction_order_, storer);
   }
+  if (has_top_reactors) {
+    td::store(top_reactors_, storer);
+  }
 }
 
 template <class ParserT>
@@ -125,6 +132,7 @@ void MessageReactions::parse(ParserT &parser) {
   bool has_reactions;
   bool has_unread_reactions;
   bool has_chosen_reaction_order;
+  bool has_top_reactors;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_min_);
   PARSE_FLAG(need_polling_);
@@ -133,6 +141,7 @@ void MessageReactions::parse(ParserT &parser) {
   PARSE_FLAG(has_reactions);
   PARSE_FLAG(has_chosen_reaction_order);
   PARSE_FLAG(are_tags_);
+  PARSE_FLAG(has_top_reactors);
   END_PARSE_FLAGS();
   if (has_reactions) {
     td::parse(reactions_, parser);
@@ -142,6 +151,9 @@ void MessageReactions::parse(ParserT &parser) {
   }
   if (has_chosen_reaction_order) {
     td::parse(chosen_reaction_order_, parser);
+  }
+  if (has_top_reactors) {
+    td::parse(top_reactors_, parser);
   }
 }
 

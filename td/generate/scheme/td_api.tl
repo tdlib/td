@@ -1531,8 +1531,11 @@ messageReplyInfo reply_count:int32 recent_replier_ids:vector<MessageSender> last
 //@recent_sender_ids Identifiers of at most 3 recent message senders, added the reaction; available in private, basic group and supergroup chats
 messageReaction type:ReactionType total_count:int32 is_chosen:Bool used_sender_id:MessageSender recent_sender_ids:vector<MessageSender> = MessageReaction;
 
-//@description Contains a list of reactions added to a message @reactions List of added reactions @are_tags True, if the reactions are tags and Telegram Premium users can filter messages by them
-messageReactions reactions:vector<messageReaction> are_tags:Bool = MessageReactions;
+//@description Contains a list of reactions added to a message
+//@reactions List of added reactions
+//@are_tags True, if the reactions are tags and Telegram Premium users can filter messages by them
+//@paid_reactors Information about top users that added the paid reaction
+messageReactions reactions:vector<messageReaction> are_tags:Bool paid_reactors:vector<paidReactor> = MessageReactions;
 
 
 //@description Contains information about interactions with a message

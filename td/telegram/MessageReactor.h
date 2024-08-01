@@ -36,7 +36,11 @@ class MessageReactor {
   explicit MessageReactor(telegram_api::object_ptr<telegram_api::messageReactor> &&reactor);
 
   bool is_valid() const {
-    return (dialog_id_.is_valid() || (!is_me_ && !is_anonymous_)) && count_ > 0;
+    return (dialog_id_.is_valid() || (!is_me_ && !is_anonymous_)) && count_ > 0 && (is_top_ || is_me_);
+  }
+
+  bool is_me() const {
+    return is_me_;
   }
 
   td_api::object_ptr<td_api::paidReactor> get_paid_reactor_object(Td *td) const;

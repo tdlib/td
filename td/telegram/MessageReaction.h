@@ -10,6 +10,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
+#include "td/telegram/MessageReactor.h"
 #include "td/telegram/MinChannel.h"
 #include "td/telegram/ReactionType.h"
 #include "td/telegram/td_api.h"
@@ -153,6 +154,7 @@ struct MessageReactions {
   vector<MessageReaction> reactions_;
   vector<UnreadMessageReaction> unread_reactions_;
   vector<ReactionType> chosen_reaction_order_;
+  vector<MessageReactor> top_reactors_;
   bool is_min_ = false;
   bool need_polling_ = true;
   bool can_get_added_reactions_ = false;
@@ -160,9 +162,8 @@ struct MessageReactions {
 
   MessageReactions() = default;
 
-  static unique_ptr<MessageReactions> get_message_reactions(Td *td,
-                                                            tl_object_ptr<telegram_api::messageReactions> &&reactions,
-                                                            bool is_bot);
+  static unique_ptr<MessageReactions> get_message_reactions(
+      Td *td, telegram_api::object_ptr<telegram_api::messageReactions> &&reactions, bool is_bot);
 
   MessageReaction *get_reaction(const ReactionType &reaction_type);
 

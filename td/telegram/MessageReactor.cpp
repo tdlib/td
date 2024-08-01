@@ -35,7 +35,8 @@ bool operator==(const MessageReactor &lhs, const MessageReactor &rhs) {
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageReactor &reactor) {
-  return string_builder << "PaidReactor[" << reactor.dialog_id_ << " - " << reactor.count_ << ']';
+  return string_builder << "PaidReactor[" << reactor.dialog_id_ << " - " << reactor.count_
+                        << (reactor.is_me_ ? " by me" : "") << ']';
 }
 
 }  // namespace td
