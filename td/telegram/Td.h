@@ -137,8 +137,6 @@ class Td final : public Actor {
 
   void destroy();
 
-  void reload_promo_data();
-
   void on_update(telegram_api::object_ptr<telegram_api::Updates> updates, uint64 auth_key_id);
 
   void on_result(NetQueryPtr query);
@@ -339,7 +337,6 @@ class Td final : public Actor {
   static constexpr int64 ONLINE_ALARM_ID = 0;
   static constexpr int64 PING_SERVER_ALARM_ID = -1;
   static constexpr int32 PING_SERVER_TIMEOUT = 300;
-  static constexpr int64 PROMO_DATA_ALARM_ID = -3;
 
   void on_connection_state_changed(ConnectionState new_state);
 
@@ -389,9 +386,6 @@ class Td final : public Actor {
 
   bool can_ignore_background_updates_ = false;
 
-  bool reloading_promo_data_ = false;
-  bool need_reload_promo_data_ = false;
-
   bool is_online_ = false;
   bool is_bot_online_ = false;
   NetQueryRef update_status_query_;
@@ -424,8 +418,6 @@ class Td final : public Actor {
 
   void on_alarm_timeout(int64 alarm_id);
 
-  void on_get_promo_data(Result<telegram_api::object_ptr<telegram_api::help_PromoData>> r_promo_data, bool dummy);
-
   template <class T>
   friend class RequestActor;  // uses send_result/send_error
   friend class AuthManager;   // uses send_result/send_error, TODO pass Promise<>
@@ -448,8 +440,6 @@ class Td final : public Actor {
   std::shared_ptr<UploadFileCallback> upload_file_callback_;
 
   std::shared_ptr<ActorContext> old_context_;
-
-  void schedule_get_promo_data(int32 expires_in);
 
   static int *get_log_verbosity_level(Slice name);
 

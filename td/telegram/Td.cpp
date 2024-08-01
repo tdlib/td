@@ -57,7 +57,6 @@
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/DialogParticipantFilter.h"
 #include "td/telegram/DialogParticipantManager.h"
-#include "td/telegram/DialogSource.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/DownloadManager.h"
 #include "td/telegram/DownloadManagerCallback.h"
@@ -209,33 +208,6 @@ void Td::ResultHandler::send_query(NetQueryPtr query) {
   query->debug("Send to NetQueryDispatcher");
   G()->net_query_dispatcher().dispatch(std::move(query));
 }
-
-class GetPromoDataQuery final : public Td::ResultHandler {
-  Promise<telegram_api::object_ptr<telegram_api::help_PromoData>> promise_;
-
- public:
-  explicit GetPromoDataQuery(Promise<telegram_api::object_ptr<telegram_api::help_PromoData>> &&promise)
-      : promise_(std::move(promise)) {
-  }
-
-  void send() {
-    // we don't poll promo data before authorization
-    send_query(G()->net_query_creator().create(telegram_api::help_getPromoData()));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::help_getPromoData>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    promise_.set_value(result_ptr.move_as_ok());
-  }
-
-  void on_error(Status status) final {
-    promise_.set_error(std::move(status));
-  }
-};
 
 class GetRecentMeUrlsQuery final : public Td::ResultHandler {
   Promise<tl_object_ptr<td_api::tMeUrls>> promise_;
@@ -2256,17 +2228,6 @@ void Td::on_alarm_timeout(int64 alarm_id) {
     }
     return;
   }
-  if (alarm_id == PROMO_DATA_ALARM_ID) {
-    if (!close_flag_ && !auth_manager_->is_bot()) {
-      reloading_promo_data_ = true;
-      auto promise = PromiseCreator::lambda(
-          [actor_id = actor_id(this)](Result<telegram_api::object_ptr<telegram_api::help_PromoData>> result) {
-            send_closure(actor_id, &Td::on_get_promo_data, std::move(result), false);
-          });
-      create_handler<GetPromoDataQuery>(std::move(promise))->send();
-    }
-    return;
-  }
   if (close_flag_ >= 2) {
     // pending_alarms_ was already cleared
     return;
@@ -2305,65 +2266,6 @@ void Td::on_update_status_success(bool is_online) {
       update_status_query_ = NetQueryRef();
     }
     user_manager_->set_my_online_status(is_online_, true, false);
-  }
-}
-
-void Td::on_get_promo_data(Result<telegram_api::object_ptr<telegram_api::help_PromoData>> r_promo_data, bool dummy) {
-  if (G()->close_flag()) {
-    return;
-  }
-  reloading_promo_data_ = false;
-
-  if (r_promo_data.is_error()) {
-    LOG(ERROR) << "Receive error for GetPromoData: " << r_promo_data.error();
-    return schedule_get_promo_data(60);
-  }
-
-  auto promo_data_ptr = r_promo_data.move_as_ok();
-  CHECK(promo_data_ptr != nullptr);
-  LOG(DEBUG) << "Receive " << to_string(promo_data_ptr);
-  int32 expires_at = 0;
-  switch (promo_data_ptr->get_id()) {
-    case telegram_api::help_promoDataEmpty::ID: {
-      auto promo = telegram_api::move_object_as<telegram_api::help_promoDataEmpty>(promo_data_ptr);
-      expires_at = promo->expires_;
-      messages_manager_->remove_sponsored_dialog();
-      break;
-    }
-    case telegram_api::help_promoData::ID: {
-      auto promo = telegram_api::move_object_as<telegram_api::help_promoData>(promo_data_ptr);
-      expires_at = promo->expires_;
-      bool is_proxy = promo->proxy_;
-      messages_manager_->on_get_sponsored_dialog(
-          std::move(promo->peer_),
-          is_proxy ? DialogSource::mtproto_proxy()
-                   : DialogSource::public_service_announcement(promo->psa_type_, promo->psa_message_),
-          std::move(promo->users_), std::move(promo->chats_));
-      break;
-    }
-    default:
-      UNREACHABLE();
-  }
-  if (need_reload_promo_data_) {
-    need_reload_promo_data_ = false;
-    expires_at = 0;
-  }
-  schedule_get_promo_data(expires_at == 0 ? 0 : expires_at - G()->unix_time());
-}
-
-void Td::reload_promo_data() {
-  if (reloading_promo_data_) {
-    need_reload_promo_data_ = true;
-    return;
-  }
-  schedule_get_promo_data(0);
-}
-
-void Td::schedule_get_promo_data(int32 expires_in) {
-  expires_in = expires_in <= 0 ? 0 : clamp(expires_in, 60, 86400);
-  if (!close_flag_ && auth_manager_->is_authorized() && !auth_manager_->is_bot()) {
-    LOG(INFO) << "Schedule getPromoData in " << expires_in;
-    alarm_timeout_.set_timeout_in(PROMO_DATA_ALARM_ID, expires_in);
   }
 }
 
@@ -2924,7 +2826,6 @@ void Td::clear() {
     alarm_timeout_.cancel_timeout(ONLINE_ALARM_ID);
   }
   alarm_timeout_.cancel_timeout(PING_SERVER_ALARM_ID);
-  alarm_timeout_.cancel_timeout(PROMO_DATA_ALARM_ID);
 
   auto reset_actor = [&timer](ActorOwn<Actor> actor) {
     if (!actor.empty()) {
@@ -3232,7 +3133,6 @@ void Td::init(Parameters parameters, Result<TdDb::OpenedDatabase> r_opened_datab
     country_info_manager_->get_current_country_code(Promise<string>());
   } else {
     updates_manager_->get_difference("init");
-    reload_promo_data();
   }
 
   complete_pending_preauthentication_requests([](int32 id) { return true; });

@@ -15,8 +15,8 @@
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/net/NetType.h"
 #include "td/telegram/net/PublicRsaKeySharedMain.h"
+#include "td/telegram/PromoDataManager.h"
 #include "td/telegram/StateManager.h"
-#include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 
 #include "td/mtproto/DhCallback.h"
@@ -559,7 +559,7 @@ void ConnectionCreator::enable_proxy_impl(int32 proxy_id) {
 void ConnectionCreator::disable_proxy_impl() {
   if (active_proxy_id_ == 0) {
     send_closure(G()->messages_manager(), &MessagesManager::remove_sponsored_dialog);
-    send_closure(G()->td(), &Td::reload_promo_data);
+    send_closure(G()->promo_data_manager(), &PromoDataManager::reload_promo_data);
     return;
   }
   CHECK(proxies_.count(active_proxy_id_) == 1);
@@ -594,7 +594,7 @@ void ConnectionCreator::on_proxy_changed(bool from_db) {
   if (active_proxy_id_ == 0 || !from_db) {
     send_closure(G()->messages_manager(), &MessagesManager::remove_sponsored_dialog);
   }
-  send_closure(G()->td(), &Td::reload_promo_data);
+  send_closure(G()->promo_data_manager(), &PromoDataManager::reload_promo_data);
 
   loop();
 }
