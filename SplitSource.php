@@ -386,6 +386,7 @@ function split_file($file, $chunks, $undo) {
                 'MissingInvitee' => 'MissingInvitee',
                 'notification_manager[_(-](?![.]get[(][)])|NotificationManager|notifications[)]' => 'NotificationManager',
                 'notification_settings_manager[_(-](?![.]get[(][)])|NotificationSettingsManager' => 'NotificationSettingsManager',
+                'online_manager[_(-](?![.]get[(][)])|OnlineManager' => 'OnlineManager',
                 'option_manager[_(-](?![.]get[(][)])|OptionManager' => 'OptionManager',
                 'password_manager[_(-](?![.]get[(][)])|PasswordManager' => 'PasswordManager',
                 'people_nearby_manager[_(-](?![.]get[(][)])|PeopleNearbyManager' => 'PeopleNearbyManager',

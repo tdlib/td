@@ -75,6 +75,7 @@ class MessagesManager;
 class NetStatsManager;
 class NotificationManager;
 class NotificationSettingsManager;
+class OnlineManager;
 class OptionManager;
 class PasswordManager;
 class PeopleNearbyManager;
@@ -229,6 +230,8 @@ class Td final : public Actor {
   ActorOwn<NotificationManager> notification_manager_actor_;
   unique_ptr<NotificationSettingsManager> notification_settings_manager_;
   ActorOwn<NotificationSettingsManager> notification_settings_manager_actor_;
+  unique_ptr<OnlineManager> online_manager_;
+  ActorOwn<OnlineManager> online_manager_actor_;
   unique_ptr<PeopleNearbyManager> people_nearby_manager_;
   ActorOwn<PeopleNearbyManager> people_nearby_manager_actor_;
   unique_ptr<PhoneNumberManager> phone_number_manager_;

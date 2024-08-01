@@ -505,6 +505,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/NotificationSettingsScope.cpp
   td/telegram/NotificationSound.cpp
   td/telegram/NotificationType.cpp
+  td/telegram/OnlineManager.cpp
   td/telegram/OptionManager.cpp
   td/telegram/OrderedMessage.cpp
   td/telegram/OrderInfo.cpp
@@ -834,6 +835,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/NotificationSound.h
   td/telegram/NotificationSoundType.h
   td/telegram/NotificationType.h
+  td/telegram/OnlineManager.h
   td/telegram/OptionManager.h
   td/telegram/OrderedMessage.h
   td/telegram/OrderInfo.h

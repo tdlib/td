@@ -63,6 +63,7 @@ class MessagesManager;
 class NetQueryDispatcher;
 class NotificationManager;
 class NotificationSettingsManager;
+class OnlineManager;
 class OptionManager;
 class PasswordManager;
 class PeopleNearbyManager;
@@ -407,6 +408,13 @@ class Global final : public ActorContext {
     notification_settings_manager_ = notification_settings_manager;
   }
 
+  ActorId<OnlineManager> online_manager() const {
+    return online_manager_;
+  }
+  void set_online_manager(ActorId<OnlineManager> online_manager) {
+    online_manager_ = online_manager;
+  }
+
   void set_option_manager(OptionManager *option_manager) {
     option_manager_ = option_manager;
   }
@@ -697,6 +705,7 @@ class Global final : public ActorContext {
   ActorId<MessagesManager> messages_manager_;
   ActorId<NotificationManager> notification_manager_;
   ActorId<NotificationSettingsManager> notification_settings_manager_;
+  ActorId<OnlineManager> online_manager_;
   ActorId<PasswordManager> password_manager_;
   ActorId<PeopleNearbyManager> people_nearby_manager_;
   ActorId<PromoDataManager> promo_data_manager_;

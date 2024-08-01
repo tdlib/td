@@ -114,6 +114,7 @@
 #include "td/telegram/NotificationObjectId.h"
 #include "td/telegram/NotificationSettingsManager.h"
 #include "td/telegram/NotificationSettingsScope.h"
+#include "td/telegram/OnlineManager.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/Payments.h"
@@ -2696,6 +2697,7 @@ void Td::dec_actor_refcnt() {
       reset_manager(messages_manager_, "MessagesManager");
       reset_manager(notification_manager_, "NotificationManager");
       reset_manager(notification_settings_manager_, "NotificationSettingsManager");
+      reset_manager(online_manager_, "OnlineManager");
       reset_manager(people_nearby_manager_, "PeopleNearbyManager");
       reset_manager(phone_number_manager_, "PhoneNumberManager");
       reset_manager(poll_manager_, "PollManager");
@@ -2875,6 +2877,7 @@ void Td::clear() {
   reset_actor(ActorOwn<Actor>(std::move(messages_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(notification_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(notification_settings_manager_actor_)));
+  reset_actor(ActorOwn<Actor>(std::move(online_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(people_nearby_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(phone_number_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(poll_manager_actor_)));
@@ -3403,6 +3406,9 @@ void Td::init_managers() {
   notification_settings_manager_actor_ =
       register_actor("NotificationSettingsManager", notification_settings_manager_.get());
   G()->set_notification_settings_manager(notification_settings_manager_actor_.get());
+  online_manager_ = make_unique<OnlineManager>(this, create_reference());
+  online_manager_actor_ = register_actor("OnlineManager", online_manager_.get());
+  G()->set_online_manager(online_manager_actor_.get());
   people_nearby_manager_ = make_unique<PeopleNearbyManager>(this, create_reference());
   people_nearby_manager_actor_ = register_actor("PeopleNearbyManager", people_nearby_manager_.get());
   G()->set_people_nearby_manager(people_nearby_manager_actor_.get());
