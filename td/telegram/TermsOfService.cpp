@@ -23,4 +23,13 @@ TermsOfService::TermsOfService(telegram_api::object_ptr<telegram_api::help_terms
   show_popup_ = terms->popup_;
 }
 
+td_api::object_ptr<td_api::termsOfService> TermsOfService::get_terms_of_service_object() const {
+  if (id_.empty()) {
+    return nullptr;
+  }
+
+  return td_api::make_object<td_api::termsOfService>(get_formatted_text_object(nullptr, text_, true, -1), min_user_age_,
+                                                     show_popup_);
+}
+
 }  // namespace td
