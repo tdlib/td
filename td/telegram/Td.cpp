@@ -123,6 +123,7 @@
 #include "td/telegram/PollManager.h"
 #include "td/telegram/Premium.h"
 #include "td/telegram/PrivacyManager.h"
+#include "td/telegram/PromoDataManager.h"
 #include "td/telegram/PublicDialogType.h"
 #include "td/telegram/QuickReplyManager.h"
 #include "td/telegram/ReactionManager.h"
@@ -2808,6 +2809,7 @@ void Td::dec_actor_refcnt() {
       reset_manager(phone_number_manager_, "PhoneNumberManager");
       reset_manager(poll_manager_, "PollManager");
       reset_manager(privacy_manager_, "PrivacyManager");
+      reset_manager(promo_data_manager_, "PromoDataManager");
       reset_manager(quick_reply_manager_, "QuickReplyManager");
       reset_manager(reaction_manager_, "ReactionManager");
       reset_manager(saved_messages_manager_, "SavedMessagesManager");
@@ -2986,6 +2988,7 @@ void Td::clear() {
   reset_actor(ActorOwn<Actor>(std::move(phone_number_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(poll_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(privacy_manager_actor_)));
+  reset_actor(ActorOwn<Actor>(std::move(promo_data_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(quick_reply_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(reaction_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(saved_messages_manager_actor_)));
@@ -3530,6 +3533,9 @@ void Td::init_managers() {
   poll_manager_actor_ = register_actor("PollManager", poll_manager_.get());
   privacy_manager_ = make_unique<PrivacyManager>(this, create_reference());
   privacy_manager_actor_ = register_actor("PrivacyManager", privacy_manager_.get());
+  promo_data_manager_ = make_unique<PromoDataManager>(this, create_reference());
+  promo_data_manager_actor_ = register_actor("PromoDataManager", promo_data_manager_.get());
+  G()->set_promo_data_manager(promo_data_manager_actor_.get());
   quick_reply_manager_ = make_unique<QuickReplyManager>(this, create_reference());
   quick_reply_manager_actor_ = register_actor("QuickReplyManager", quick_reply_manager_.get());
   G()->set_quick_reply_manager(quick_reply_manager_actor_.get());
