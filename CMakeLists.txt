@@ -574,6 +574,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/Td.cpp
   td/telegram/TdDb.cpp
   td/telegram/TermsOfService.cpp
+  td/telegram/TermsOfServiceManager.cpp
   td/telegram/ThemeManager.cpp
   td/telegram/ThemeSettings.cpp
   td/telegram/TimeZoneManager.cpp
@@ -918,6 +919,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/TdCallback.h
   td/telegram/TdDb.h
   td/telegram/TermsOfService.h
+  td/telegram/TermsOfServiceManager.h
   td/telegram/ThemeManager.h
   td/telegram/ThemeSettings.h
   td/telegram/TimeZoneManager.h

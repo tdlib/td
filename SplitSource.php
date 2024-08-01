@@ -422,6 +422,7 @@ function split_file($file, $chunks, $undo) {
                 'td_api' => 'td_api',
                 'td_db[(][)]|TdDb[^A-Za-z]' => 'TdDb',
                 'telegram_api' => 'telegram_api',
+                'terms_of_service_manager[_(-](?![.]get[(][)])|TermsOfServiceManager' => 'TermsOfServiceManager',
                 'theme_manager[_(-](?![.]get[(][)])|ThemeManager' => 'ThemeManager',
                 'ThemeSettings' => 'ThemeSettings',
                 'time_zone_manager[_(-](?![.]get[(][)])|TimeZoneManager' => 'TimeZoneManager',

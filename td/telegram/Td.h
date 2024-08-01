@@ -94,6 +94,7 @@ class StatisticsManager;
 class StickersManager;
 class StorageManager;
 class StoryManager;
+class TermsOfServiceManager;
 class ThemeManager;
 class TimeZoneManager;
 class TopDialogManager;
@@ -254,6 +255,8 @@ class Td final : public Actor {
   ActorOwn<StickersManager> stickers_manager_actor_;
   unique_ptr<StoryManager> story_manager_;
   ActorOwn<StoryManager> story_manager_actor_;
+  unique_ptr<TermsOfServiceManager> terms_of_service_manager_;
+  ActorOwn<TermsOfServiceManager> terms_of_service_manager_actor_;
   unique_ptr<ThemeManager> theme_manager_;
   ActorOwn<ThemeManager> theme_manager_actor_;
   unique_ptr<TimeZoneManager> time_zone_manager_;
@@ -410,6 +413,7 @@ class Td final : public Actor {
   vector<std::pair<uint64, td_api::object_ptr<td_api::Function>>> pending_preauthentication_requests_;
 
   vector<std::pair<uint64, td_api::object_ptr<td_api::Function>>> pending_set_parameters_requests_;
+
   vector<std::pair<uint64, td_api::object_ptr<td_api::Function>>> pending_init_requests_;
 
   template <class T>

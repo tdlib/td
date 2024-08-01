@@ -157,6 +157,7 @@
 #include "td/telegram/td_api.hpp"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/TermsOfServiceManager.h"
 #include "td/telegram/ThemeManager.h"
 #include "td/telegram/TimeZoneManager.h"
 #include "td/telegram/TopDialogCategory.h"
@@ -2862,6 +2863,7 @@ void Td::dec_actor_refcnt() {
       reset_manager(statistics_manager_, "StatisticsManager");
       reset_manager(stickers_manager_, "StickersManager");
       reset_manager(story_manager_, "StoryManager");
+      reset_manager(terms_of_service_manager_, "TermsOfServiceManager");
       reset_manager(theme_manager_, "ThemeManager");
       reset_manager(time_zone_manager_, "TimeZoneManager");
       reset_manager(top_dialog_manager_, "TopDialogManager");
@@ -3040,6 +3042,7 @@ void Td::clear() {
   reset_actor(ActorOwn<Actor>(std::move(statistics_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(stickers_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(story_manager_actor_)));
+  reset_actor(ActorOwn<Actor>(std::move(terms_of_service_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(theme_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(time_zone_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(top_dialog_manager_actor_)));
@@ -3599,6 +3602,8 @@ void Td::init_managers() {
   story_manager_ = make_unique<StoryManager>(this, create_reference());
   story_manager_actor_ = register_actor("StoryManager", story_manager_.get());
   G()->set_story_manager(story_manager_actor_.get());
+  terms_of_service_manager_ = make_unique<TermsOfServiceManager>(this, create_reference());
+  terms_of_service_manager_actor_ = register_actor("TermsOfServiceManager", terms_of_service_manager_.get());
   theme_manager_ = make_unique<ThemeManager>(this, create_reference());
   theme_manager_actor_ = register_actor("ThemeManager", theme_manager_.get());
   G()->set_theme_manager(theme_manager_actor_.get());
@@ -4551,6 +4556,7 @@ void Td::on_request(uint64 id, td_api::getStorageStatisticsFast &request) {
   });
   send_closure(storage_manager_, &StorageManager::get_storage_stats_fast, std::move(query_promise));
 }
+
 void Td::on_request(uint64 id, const td_api::getDatabaseStatistics &request) {
   CREATE_REQUEST_PROMISE();
   auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<DatabaseStats> result) mutable {
