@@ -2650,7 +2650,7 @@ void Td::run_request(uint64 id, td_api::object_ptr<td_api::Function> function) {
         }
         default:
           if (is_preinitialization_request(function_id)) {
-            break;
+            return do_run_request(id, std::move(function));
           }
           if (is_preauthentication_request(function_id)) {
             pending_preauthentication_requests_.emplace_back(id, std::move(function));
@@ -2659,23 +2659,20 @@ void Td::run_request(uint64 id, td_api::object_ptr<td_api::Function> function) {
           return send_error_impl(
               id, make_error(400, "Initialization parameters are needed: call setTdlibParameters first"));
       }
-      break;
+      UNREACHABLE();
     }
     case State::Close:
-      if (destroy_flag_) {
-        return send_error_impl(id, make_error(401, "Unauthorized"));
-      } else {
-        return send_error_impl(id, make_error(500, "Request aborted"));
-      }
+      return send_error_impl(id, make_error(destroy_flag_ ? 401 : 500,
+                                            destroy_flag_ ? CSlice("Unauthorized") : CSlice("Request aborted")));
     case State::Run:
-      break;
+      if (!auth_manager_->is_authorized() && !is_preauthentication_request(function_id) &&
+          !is_preinitialization_request(function_id) && !is_authentication_request(function_id)) {
+        return send_error_impl(id, make_error(401, "Unauthorized"));
+      }
+      return do_run_request(id, std::move(function));
+    default:
+      UNREACHABLE();
   }
-
-  if ((auth_manager_ == nullptr || !auth_manager_->is_authorized()) && !is_preauthentication_request(function_id) &&
-      !is_preinitialization_request(function_id) && !is_authentication_request(function_id)) {
-    return send_error_impl(id, make_error(401, "Unauthorized"));
-  }
-  do_run_request(id, std::move(function));
 }
 
 void Td::do_run_request(uint64 id, td_api::object_ptr<td_api::Function> &&function) {
