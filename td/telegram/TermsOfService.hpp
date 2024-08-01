@@ -11,6 +11,7 @@
 #include "td/telegram/MessageEntity.hpp"
 
 #include "td/utils/common.h"
+#include "td/utils/tl_helpers.h"
 
 namespace td {
 

@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/ConnectionState.h"
+#include "td/telegram/td_api.h"
 
 #include "td/actor/actor.h"
 
