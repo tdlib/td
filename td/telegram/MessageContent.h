@@ -105,6 +105,10 @@ unique_ptr<MessageContent> create_text_message_content(string text, vector<Messa
                                                        bool force_large_media, bool skip_confitmation,
                                                        string &&web_page_url);
 
+unique_ptr<MessageContent> create_photo_message_content(Photo photo);
+
+unique_ptr<MessageContent> create_video_message_content(FileId file_id);
+
 unique_ptr<MessageContent> create_contact_registered_message_content();
 
 unique_ptr<MessageContent> create_screenshot_taken_message_content();
@@ -156,6 +160,8 @@ bool can_forward_message_content(const MessageContent *content);
 bool update_opened_message_content(MessageContent *content);
 
 int32 get_message_content_index_mask(const MessageContent *content, const Td *td, bool is_outgoing);
+
+vector<unique_ptr<MessageContent>> get_individual_message_contents(const MessageContent *content);
 
 StickerType get_message_content_sticker_type(const Td *td, const MessageContent *content);
 

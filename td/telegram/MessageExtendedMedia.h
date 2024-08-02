@@ -18,6 +18,8 @@
 
 namespace td {
 
+class MessageContent;
+
 class Td;
 
 class MessageExtendedMedia {
@@ -91,6 +93,8 @@ class MessageExtendedMedia {
   }
 
   bool is_equal_but_different(const MessageExtendedMedia &other) const;
+
+  unique_ptr<MessageContent> get_message_content() const;
 
   int32 get_duration(const Td *td) const;
 
