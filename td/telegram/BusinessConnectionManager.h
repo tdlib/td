@@ -132,6 +132,8 @@ class BusinessConnectionManager final : public Actor {
     size_t finished_count_ = 0;
     vector<Result<UploadMediaResult>> upload_results_;
     Promise<td_api::object_ptr<td_api::businessMessages>> promise_;
+    unique_ptr<PendingMessage> paid_media_message_;
+    Promise<td_api::object_ptr<td_api::businessMessage>> paid_media_promise_;
   };
 
   void tear_down() final;
@@ -191,6 +193,8 @@ class BusinessConnectionManager final : public Actor {
 
   void process_sent_business_message_album(telegram_api::object_ptr<telegram_api::Updates> &&updates_ptr,
                                            Promise<td_api::object_ptr<td_api::businessMessages>> &&promise);
+
+  void on_upload_message_paid_media(int64 request_id, size_t media_pos, Result<UploadMediaResult> &&result);
 
   void do_edit_business_message_media(Result<UploadMediaResult> &&result,
                                       Promise<td_api::object_ptr<td_api::businessMessage>> &&promise);

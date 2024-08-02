@@ -4052,8 +4052,8 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
           return Status::Error(400, "Paid media can't be sent to secret chats");
         }
       } else {
-        if (dialog_type != DialogType::Channel ||
-            !td->chat_manager_->is_broadcast_channel(dialog_id.get_channel_id())) {
+        if (!td->auth_manager_->is_bot() && (dialog_type != DialogType::Channel ||
+                                             !td->chat_manager_->is_broadcast_channel(dialog_id.get_channel_id()))) {
           return Status::Error(400, "Paid media can be sent only in channel chats");
         }
       }
@@ -8072,6 +8072,11 @@ unique_ptr<MessageContent> get_uploaded_message_content(
                                      owner_dialog_id, message_date, false, UserId(), nullptr, nullptr, source);
   set_message_content_has_spoiler(content.get(), has_spoiler);
   return content;
+}
+
+int64 get_message_content_star_count(const MessageContent *content) {
+  CHECK(content->get_type() == MessageContentType::PaidMedia);
+  return static_cast<const MessagePaidMedia *>(content)->star_count;
 }
 
 int32 get_message_content_duration(const MessageContent *content, const Td *td) {

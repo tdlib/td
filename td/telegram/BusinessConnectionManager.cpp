@@ -783,10 +783,8 @@ Result<InputMessageContent> BusinessConnectionManager::process_input_message_con
   if (message_content_id == td_api::inputMessageForwarded::ID) {
     return Status::Error(400, "Can't forward messages as business");
   }
-  if (message_content_id == td_api::inputMessagePaidMedia::ID) {
-    return Status::Error(400, "Can't send paid media as business");
-  }
-  return get_input_message_content(DialogId(), std::move(input_message_content), td_, true);
+  return get_input_message_content(td_->dialog_manager_->get_my_dialog_id(), std::move(input_message_content), td_,
+                                   true);
 }
 
 unique_ptr<BusinessConnectionManager::PendingMessage> BusinessConnectionManager::create_business_message_to_send(
@@ -844,6 +842,42 @@ void BusinessConnectionManager::do_send_message(unique_ptr<PendingMessage> &&mes
       td_->create_handler<SendBusinessMessageQuery>(std::move(promise))->send(std::move(message));
     } else {
       td_->create_handler<SendBusinessMediaQuery>(std::move(promise))->send(std::move(message), std::move(input_media));
+    }
+    return;
+  }
+
+  if (content_type == MessageContentType::PaidMedia) {
+    auto message_contents = get_individual_message_contents(content);
+    auto request_id = ++current_media_group_send_request_id_;
+    auto &request = media_group_send_requests_[request_id];
+    request.upload_results_.resize(message_contents.size());
+    request.paid_media_promise_ = std::move(promise);
+    request.paid_media_message_ = std::move(message);
+
+    for (size_t media_pos = 0; media_pos < message_contents.size(); media_pos++) {
+      auto fake_message = make_unique<PendingMessage>();
+      fake_message->dialog_id_ = request.paid_media_message_->dialog_id_;
+      fake_message->business_connection_id_ = request.paid_media_message_->business_connection_id_;
+      fake_message->content_ = std::move(message_contents[media_pos]);
+      auto input_media = get_message_content_input_media(fake_message->content_.get(), td_, MessageSelfDestructType(),
+                                                         string(), td_->auth_manager_->is_bot());
+      if (input_media != nullptr) {
+        auto file_id = get_message_file_id(fake_message);
+        CHECK(file_id.is_valid());
+        FileView file_view = td_->file_manager_->get_file_view(file_id);
+        if (file_view.has_remote_location()) {
+          UploadMediaResult result;
+          result.message_ = std::move(fake_message);
+          result.input_media_ = std::move(input_media);
+          on_upload_message_paid_media(request_id, media_pos, std::move(result));
+          continue;
+        }
+      }
+      upload_media(std::move(fake_message), PromiseCreator::lambda([actor_id = actor_id(this), request_id, media_pos](
+                                                                       Result<UploadMediaResult> &&result) mutable {
+                     send_closure(actor_id, &BusinessConnectionManager::on_upload_message_paid_media, request_id,
+                                  media_pos, std::move(result));
+                   }));
     }
     return;
   }
@@ -1129,6 +1163,7 @@ void BusinessConnectionManager::on_upload_message_album_media(int64 request_id, 
 
   auto upload_results = std::move(request.upload_results_);
   auto promise = std::move(request.promise_);
+  CHECK(request.paid_media_message_ == nullptr);
   media_group_send_requests_.erase(it);
 
   for (auto &r_upload_result : upload_results) {
@@ -1181,6 +1216,43 @@ void BusinessConnectionManager::process_sent_business_message_album(
         std::move(update->message_), std::move(update->reply_to_message_)));
   }
   promise.set_value(std::move(messages));
+}
+
+void BusinessConnectionManager::on_upload_message_paid_media(int64 request_id, size_t media_pos,
+                                                             Result<UploadMediaResult> &&result) {
+  G()->ignore_result_if_closing(result);
+  auto it = media_group_send_requests_.find(request_id);
+  CHECK(it != media_group_send_requests_.end());
+  auto &request = it->second;
+
+  request.upload_results_[media_pos] = std::move(result);
+  request.finished_count_++;
+
+  LOG(INFO) << "Receive uploaded paid media " << media_pos << " for request " << request_id;
+  if (request.finished_count_ != request.upload_results_.size()) {
+    return;
+  }
+
+  auto upload_results = std::move(request.upload_results_);
+  auto message = std::move(request.paid_media_message_);
+  auto promise = std::move(request.paid_media_promise_);
+  media_group_send_requests_.erase(it);
+
+  CHECK(message != nullptr);
+  for (auto &r_upload_result : upload_results) {
+    if (r_upload_result.is_error()) {
+      return promise.set_error(r_upload_result.move_as_error());
+    }
+  }
+  vector<telegram_api::object_ptr<telegram_api::InputMedia>> input_media;
+  for (auto &r_upload_result : upload_results) {
+    auto upload_result = r_upload_result.move_as_ok();
+    input_media.push_back(std::move(upload_result.input_media_));
+  }
+  auto input_media_paid_media = telegram_api::make_object<telegram_api::inputMediaPaidMedia>(
+      get_message_content_star_count(message->content_.get()), std::move(input_media));
+  td_->create_handler<SendBusinessMediaQuery>(std::move(promise))
+      ->send(std::move(message), std::move(input_media_paid_media));
 }
 
 void BusinessConnectionManager::edit_business_message_text(

@@ -3335,7 +3335,7 @@ Result<InputMessageContent> QuickReplyManager::process_input_message_content(
     return Status::Error(400, "Can't add poll as a quick reply");
   }
   if (message_content_id == td_api::inputMessagePaidMedia::ID) {
-    return Status::Error(400, "Can't send paid media as business");
+    return Status::Error(400, "Can't add paid media as a quick reply");
   }
   if (message_content_id == td_api::inputMessageLocation::ID &&
       static_cast<const td_api::inputMessageLocation *>(input_message_content.get())->live_period_ != 0) {
