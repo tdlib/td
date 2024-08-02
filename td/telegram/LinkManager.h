@@ -125,6 +125,7 @@ class LinkManager final : public Actor {
   class InternalLinkBotStart;
   class InternalLinkBotStartInGroup;
   class InternalLinkBusinessChat;
+  class InternalLinkBuyStars;
   class InternalLinkChangePhoneNumber;
   class InternalLinkConfirmPhone;
   class InternalLinkDefaultMessageAutoDeleteTimerSettings;

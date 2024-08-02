@@ -6493,7 +6493,7 @@ internalLinkTypeActiveSessions = InternalLinkType;
 
 //@description The link is a link to an attachment menu bot to be opened in the specified or a chosen chat. Process given target_chat to open the chat.
 //-Then, call searchPublicChat with the given bot username, check that the user is a bot and can be added to attachment menu. Then, use getAttachmentMenuBot to receive information about the bot.
-//-If the bot isn't added to attachment menu, then show a disclaimer about Mini Apps being third-party apps, ask the user to accept their Terms of service and confirm adding the bot to side and attachment menu.
+//-If the bot isn't added to attachment menu, then show a disclaimer about Mini Apps being third-party applications, ask the user to accept their Terms of service and confirm adding the bot to side and attachment menu.
 //-If the user accept the terms and confirms adding, then use toggleBotIsAddedToAttachmentMenu to add the bot.
 //-If the attachment menu bot can't be used in the opened chat, show an error to the user. If the bot is added to attachment menu and can be used in the chat, then use openWebApp with the given URL
 //@target_chat Target chat to be opened
@@ -6539,7 +6539,10 @@ internalLinkTypeBotStartInGroup bot_username:string start_parameter:string admin
 //@link_name Name of the link
 internalLinkTypeBusinessChat link_name:string = InternalLinkType;
 
-//@description The link is a link to the change phone number section of the app
+//@description The link is a link to the Telegram Star purchase section of the application @star_count The number of Telegram Stars that must be purchased by the user
+internalLinkTypeBuyStars star_count:int53 = InternalLinkType;
+
+//@description The link is a link to the change phone number section of the application
 internalLinkTypeChangePhoneNumber = InternalLinkType;
 
 //@description The link is a link to boost a Telegram chat. Call getChatBoostLinkInfo with the given URL to process the link.
@@ -6553,7 +6556,7 @@ internalLinkTypeChatBoost url:string = InternalLinkType;
 //@invite_link Internal representation of the invite link
 internalLinkTypeChatFolderInvite invite_link:string = InternalLinkType;
 
-//@description The link is a link to the folder section of the app settings
+//@description The link is a link to the folder section of the application settings
 internalLinkTypeChatFolderSettings = InternalLinkType;
 
 //@description The link is a chat invite link. Call checkChatInviteLink with the given invite link to process the link.
@@ -6561,10 +6564,10 @@ internalLinkTypeChatFolderSettings = InternalLinkType;
 //@invite_link Internal representation of the invite link
 internalLinkTypeChatInvite invite_link:string = InternalLinkType;
 
-//@description The link is a link to the default message auto-delete timer settings section of the app settings
+//@description The link is a link to the default message auto-delete timer settings section of the application settings
 internalLinkTypeDefaultMessageAutoDeleteTimerSettings = InternalLinkType;
 
-//@description The link is a link to the edit profile section of the app settings
+//@description The link is a link to the edit profile section of the application settings
 internalLinkTypeEditProfileSettings = InternalLinkType;
 
 //@description The link is a link to a game. Call searchPublicChat with the given bot username, check that the user is a bot,
@@ -6587,12 +6590,12 @@ internalLinkTypeInvoice invoice_name:string = InternalLinkType;
 //@language_pack_id Language pack identifier
 internalLinkTypeLanguagePack language_pack_id:string = InternalLinkType;
 
-//@description The link is a link to the language section of the app settings
+//@description The link is a link to the language section of the application settings
 internalLinkTypeLanguageSettings = InternalLinkType;
 
 //@description The link is a link to the main Web App of a bot. Call searchPublicChat with the given bot username, check that the user is a bot and has the main Web App.
 //-If the bot can be added to attachment menu, then use getAttachmentMenuBot to receive information about the bot, then if the bot isn't added to side menu,
-//-show a disclaimer about Mini Apps being third-party apps, ask the user to accept their Terms of service and confirm adding the bot to side and attachment menu,
+//-show a disclaimer about Mini Apps being third-party applications, ask the user to accept their Terms of service and confirm adding the bot to side and attachment menu,
 //-then if the user accepts the terms and confirms adding, use toggleBotIsAddedToAttachmentMenu to add the bot.
 //-Then, use getMainWebApp with the given start parameter and open the returned URL as a Web App
 //@bot_username Username of the bot
@@ -6637,7 +6640,7 @@ internalLinkTypePremiumGift referrer:string = InternalLinkType;
 //@code The Telegram Premium gift code
 internalLinkTypePremiumGiftCode code:string = InternalLinkType;
 
-//@description The link is a link to the privacy and security section of the app settings
+//@description The link is a link to the privacy and security section of the application settings
 internalLinkTypePrivacyAndSecuritySettings = InternalLinkType;
 
 //@description The link is a link to a proxy. Call addProxy with the given parameters to process the link and add the proxy
@@ -6678,7 +6681,7 @@ internalLinkTypeStory story_sender_username:string story_id:int32 = InternalLink
 //@description The link is a link to a cloud theme. TDLib has no theme support yet @theme_name Name of the theme
 internalLinkTypeTheme theme_name:string = InternalLinkType;
 
-//@description The link is a link to the theme section of the app settings
+//@description The link is a link to the theme section of the application settings
 internalLinkTypeThemeSettings = InternalLinkType;
 
 //@description The link is an unknown tg: link. Call getDeepLinkInfo to process the link @link Link to be passed to getDeepLinkInfo
@@ -6706,7 +6709,7 @@ internalLinkTypeUserToken token:string = InternalLinkType;
 internalLinkTypeVideoChat chat_username:string invite_hash:string is_live_stream:Bool = InternalLinkType;
 
 //@description The link is a link to a Web App. Call searchPublicChat with the given bot username, check that the user is a bot, then call searchWebApp with the received bot and the given web_app_short_name.
-//-Process received foundWebApp by showing a confirmation dialog if needed. If the bot can be added to attachment or side menu, but isn't added yet, then show a disclaimer about Mini Apps being third-party apps
+//-Process received foundWebApp by showing a confirmation dialog if needed. If the bot can be added to attachment or side menu, but isn't added yet, then show a disclaimer about Mini Apps being third-party applications
 //-instead of the dialog and ask the user to accept their Terms of service. If the user accept the terms and confirms adding, then use toggleBotIsAddedToAttachmentMenu to add the bot.
 //-Then, call getWebAppLinkUrl and open the returned URL as a Web App
 //@bot_username Username of the bot that owns the Web App

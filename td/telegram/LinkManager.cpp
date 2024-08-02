@@ -397,6 +397,19 @@ class LinkManager::InternalLinkBusinessChat final : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkBuyStars final : public InternalLink {
+  int64 star_count_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeBuyStars>(star_count_);
+  }
+
+ public:
+  explicit InternalLinkBuyStars(int64 star_count)
+      : star_count_(clamp(star_count, static_cast<int64>(1), static_cast<int64>(1000000000000))) {
+  }
+};
+
 class LinkManager::InternalLinkChangePhoneNumber final : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeChangePhoneNumber>();
@@ -1545,6 +1558,11 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     // msg_url?url=<url>
     // msg_url?url=<url>&text=<text>
     return get_internal_link_message_draft(get_arg("url"), get_arg("text"));
+  } else if (path.size() == 1 && path[0] == "stars_topup") {
+    // stars_topup?amount=<star_count>
+    if (has_arg("amount")) {
+      return td::make_unique<InternalLinkBuyStars>(to_integer<int64>(url_query.get_arg("amount")));
+    }
   }
   if (!path.empty() && !path[0].empty()) {
     return td::make_unique<InternalLinkUnknownDeepLink>(PSTRING() << "tg://" << query);
@@ -2094,6 +2112,16 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
       } else {
         return PSTRING() << get_t_me_url() << "m/" << url_encode(link->link_name_);
       }
+    }
+    case td_api::internalLinkTypeBuyStars::ID: {
+      auto link = static_cast<const td_api::internalLinkTypeBuyStars *>(type_ptr);
+      if (!is_internal) {
+        return Status::Error("HTTP link is unavailable for the link type");
+      }
+      if (link->star_count_ <= 0) {
+        return Status::Error(400, "Invalid Telegram Star number provided");
+      }
+      return PSTRING() << "tg://stars_topup?amount=" << link->star_count_;
     }
     case td_api::internalLinkTypeChangePhoneNumber::ID:
       if (!is_internal) {
