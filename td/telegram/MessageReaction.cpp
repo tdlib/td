@@ -633,6 +633,7 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
     }
     result->top_reactors_.push_back(std::move(reactor));
   }
+  MessageReactor::fix_message_reactors(result->top_reactors_, true);
   return result;
 }
 
@@ -677,9 +678,10 @@ void MessageReactions::update_from(const MessageReactions &old_reactions) {
     // self paid reaction was known, keep it
     for (auto &reactor : old_reactions.top_reactors_) {
       if (reactor.is_me()) {
-        top_reactors_.push_back(reactor);
+        // top_reactors_.push_back(reactor);
       }
     }
+    MessageReactor::fix_message_reactors(top_reactors_, false);
   }
   for (const auto &old_reaction : old_reactions.reactions_) {
     if (old_reaction.is_chosen() &&

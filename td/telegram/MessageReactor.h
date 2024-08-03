@@ -26,6 +26,8 @@ class MessageReactor {
   bool is_me_ = false;
   bool is_anonymous_ = false;
 
+  friend bool operator<(const MessageReactor &lhs, const MessageReactor &rhs);
+
   friend bool operator==(const MessageReactor &lhs, const MessageReactor &rhs);
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const MessageReactor &reactor);
@@ -34,6 +36,9 @@ class MessageReactor {
   MessageReactor() = default;
 
   explicit MessageReactor(telegram_api::object_ptr<telegram_api::messageReactor> &&reactor);
+
+  MessageReactor(DialogId dialog_id, int32 count) : dialog_id_(dialog_id), count_(count), is_me_(true) {
+  }
 
   bool is_valid() const {
     return (dialog_id_.is_valid() || (!is_me_ && !is_anonymous_)) && count_ > 0 && (is_top_ || is_me_);
@@ -47,12 +52,16 @@ class MessageReactor {
 
   void add_dependencies(Dependencies &dependencies) const;
 
+  static void fix_message_reactors(vector<MessageReactor> &reactors, bool need_warning);
+
   template <class StorerT>
   void store(StorerT &storer) const;
 
   template <class ParserT>
   void parse(ParserT &parser);
 };
+
+bool operator<(const MessageReactor &lhs, const MessageReactor &rhs);
 
 bool operator==(const MessageReactor &lhs, const MessageReactor &rhs);
 
