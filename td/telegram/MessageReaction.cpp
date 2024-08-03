@@ -655,7 +655,7 @@ const MessageReaction *MessageReactions::get_reaction(const ReactionType &reacti
   return nullptr;
 }
 
-void MessageReactions::update_from(const MessageReactions &old_reactions) {
+void MessageReactions::update_from(const MessageReactions &old_reactions, DialogId my_dialog_id) {
   if (is_min_ && !old_reactions.is_min_) {
     // chosen reactions were known, keep them
     is_min_ = false;
@@ -675,13 +675,22 @@ void MessageReactions::update_from(const MessageReactions &old_reactions) {
       reset_to_empty(chosen_reaction_order_);
     }
 
-    // self paid reaction was known, keep it
-    for (auto &reactor : old_reactions.top_reactors_) {
-      if (reactor.is_me()) {
-        // top_reactors_.push_back(reactor);
+    bool was_me = false;
+    for (auto &reactor : top_reactors_) {
+      if (reactor.fix_is_me(my_dialog_id)) {
+        was_me = true;
+        break;
       }
     }
-    MessageReactor::fix_message_reactors(top_reactors_, false);
+    if (!was_me) {
+      for (auto &reactor : old_reactions.top_reactors_) {
+        if (reactor.is_me()) {
+          // self paid reaction was known, keep it
+          top_reactors_.push_back(reactor);
+          MessageReactor::fix_message_reactors(top_reactors_, false);
+        }
+      }
+    }
   }
   for (const auto &old_reaction : old_reactions.reactions_) {
     if (old_reaction.is_chosen() &&

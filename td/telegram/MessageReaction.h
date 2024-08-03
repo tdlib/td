@@ -171,7 +171,7 @@ struct MessageReactions {
 
   const MessageReaction *get_reaction(const ReactionType &reaction_type) const;
 
-  void update_from(const MessageReactions &old_reactions);
+  void update_from(const MessageReactions &old_reactions, DialogId my_dialog_id);
 
   bool add_my_reaction(const ReactionType &reaction_type, bool is_big, DialogId my_dialog_id, bool have_recent_choosers,
                        bool is_tag);

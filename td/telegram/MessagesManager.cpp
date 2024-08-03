@@ -6647,7 +6647,7 @@ bool MessagesManager::update_message_interaction_info(Dialog *d, Message *m, int
   }
   if (has_reactions && reactions != nullptr) {
     if (m->reactions != nullptr) {
-      reactions->update_from(*m->reactions);
+      reactions->update_from(*m->reactions, td_->dialog_manager_->get_my_dialog_id());
     }
     reactions->sort_reactions(active_reaction_pos_);
     reactions->fix_chosen_reaction();

@@ -48,6 +48,8 @@ class MessageReactor {
     return is_me_;
   }
 
+  bool fix_is_me(DialogId my_dialog_id);
+
   td_api::object_ptr<td_api::paidReactor> get_paid_reactor_object(Td *td) const;
 
   void add_dependencies(Dependencies &dependencies) const;

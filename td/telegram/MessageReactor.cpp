@@ -31,6 +31,14 @@ void MessageReactor::add_dependencies(Dependencies &dependencies) const {
   dependencies.add_message_sender_dependencies(dialog_id_);
 }
 
+bool MessageReactor::fix_is_me(DialogId my_dialog_id) {
+  if (dialog_id_ == my_dialog_id) {
+    is_me_ = true;
+    return true;
+  }
+  return false;
+}
+
 void MessageReactor::fix_message_reactors(vector<MessageReactor> &reactors, bool need_warning) {
   size_t TOP_REACTOR_COUNT = 3u;
   if (reactors.size() > TOP_REACTOR_COUNT + 1) {
