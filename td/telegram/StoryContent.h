@@ -66,7 +66,7 @@ unique_ptr<StoryContent> dup_story_content(Td *td, const StoryContent *content);
 
 td_api::object_ptr<td_api::StoryContent> get_story_content_object(Td *td, const StoryContent *content);
 
-FileId get_story_content_any_file_id(const Td *td, const StoryContent *content);
+FileId get_story_content_any_file_id(const StoryContent *content);
 
 vector<FileId> get_story_content_file_ids(const Td *td, const StoryContent *content);
 

@@ -5249,7 +5249,7 @@ void StoryManager::do_send_story(unique_ptr<PendingStory> &&pending_story, vecto
   auto content = pending_story->story_->content_.get();
   auto upload_order = pending_story->send_story_num_;
 
-  FileId file_id = get_story_content_any_file_id(td_, content);
+  FileId file_id = get_story_content_any_file_id(content);
   CHECK(file_id.is_valid());
 
   LOG(INFO) << "Ask to upload file " << file_id << " with bad parts " << bad_parts;
@@ -5598,7 +5598,7 @@ void StoryManager::edit_story_cover(DialogId owner_dialog_id, StoryId story_id, 
   }
 
   td_->create_handler<EditStoryCoverQuery>(std::move(promise))
-      ->send(owner_dialog_id, story_id, main_frame_timestamp, get_story_content_any_file_id(td_, story->content_.get()),
+      ->send(owner_dialog_id, story_id, main_frame_timestamp, get_story_content_any_file_id(story->content_.get()),
              std::move(input_media));
 }
 

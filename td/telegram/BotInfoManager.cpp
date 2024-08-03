@@ -812,7 +812,7 @@ void BotInfoManager::do_add_bot_media_preview(unique_ptr<PendingBotMediaPreview>
   auto content = pending_preview->content_.get();
   auto upload_order = pending_preview->upload_order_;
 
-  FileId file_id = get_story_content_any_file_id(td_, content);
+  FileId file_id = get_story_content_any_file_id(content);
   CHECK(file_id.is_valid());
 
   LOG(INFO) << "Ask to upload file " << file_id << " with bad parts " << bad_parts;
