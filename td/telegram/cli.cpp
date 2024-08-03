@@ -693,6 +693,10 @@ class CliClient final : public Actor {
     return to_integer<int32>(trim(str));
   }
 
+  static vector<int32> as_file_ids(Slice str) {
+    return transform(autosplit(str), as_file_id);
+  }
+
   static td_api::object_ptr<td_api::InputFile> as_input_file_id(Slice str) {
     return td_api::make_object<td_api::inputFileId>(as_file_id(str));
   }
@@ -4635,8 +4639,7 @@ class CliClient final : public Actor {
       get_args(args, chat_id, photo, caption, rules, areas, active_period, sticker_file_ids, protect_content);
       send_request(td_api::make_object<td_api::sendStory>(
           chat_id,
-          td_api::make_object<td_api::inputStoryContentPhoto>(as_input_file(photo),
-                                                              to_integers<int32>(sticker_file_ids)),
+          td_api::make_object<td_api::inputStoryContentPhoto>(as_input_file(photo), as_file_ids(sticker_file_ids)),
           areas, as_caption(caption), rules, active_period ? active_period : 86400, get_reposted_story_full_id(),
           op == "sspp", protect_content));
     } else if (op == "ssv" || op == "ssvp") {
@@ -4652,8 +4655,8 @@ class CliClient final : public Actor {
       get_args(args, chat_id, video, caption, rules, areas, active_period, duration, sticker_file_ids, protect_content);
       send_request(td_api::make_object<td_api::sendStory>(
           chat_id,
-          td_api::make_object<td_api::inputStoryContentVideo>(
-              as_input_file(video), to_integers<int32>(sticker_file_ids), duration, 0.5, true),
+          td_api::make_object<td_api::inputStoryContentVideo>(as_input_file(video), as_file_ids(sticker_file_ids),
+                                                              duration, 0.5, true),
           areas, as_caption(caption), rules, active_period ? active_period : 86400, get_reposted_story_full_id(),
           op == "ssvp", protect_content));
     } else if (op == "esc") {
@@ -4672,11 +4675,10 @@ class CliClient final : public Actor {
       InputStoryAreas areas;
       string sticker_file_ids;
       get_args(args, story_sender_chat_id, story_id, photo, caption, areas, sticker_file_ids);
-      send_request(
-          td_api::make_object<td_api::editStory>(story_sender_chat_id, story_id,
-                                                 td_api::make_object<td_api::inputStoryContentPhoto>(
-                                                     as_input_file(photo), to_integers<int32>(sticker_file_ids)),
-                                                 areas, as_caption(caption)));
+      send_request(td_api::make_object<td_api::editStory>(
+          story_sender_chat_id, story_id,
+          td_api::make_object<td_api::inputStoryContentPhoto>(as_input_file(photo), as_file_ids(sticker_file_ids)),
+          areas, as_caption(caption)));
     } else if (op == "esv") {
       ChatId story_sender_chat_id;
       StoryId story_id;
@@ -4688,8 +4690,8 @@ class CliClient final : public Actor {
       get_args(args, story_sender_chat_id, story_id, video, caption, duration, sticker_file_ids);
       send_request(td_api::make_object<td_api::editStory>(
           story_sender_chat_id, story_id,
-          td_api::make_object<td_api::inputStoryContentVideo>(
-              as_input_file(video), to_integers<int32>(sticker_file_ids), duration, 0.0, false),
+          td_api::make_object<td_api::inputStoryContentVideo>(as_input_file(video), as_file_ids(sticker_file_ids),
+                                                              duration, 0.0, false),
           areas, as_caption(caption)));
     } else if (op == "esco") {
       ChatId story_sender_chat_id;
@@ -5575,10 +5577,9 @@ class CliClient final : public Actor {
       string caption;
       string sticker_file_ids;
       get_args(args, chat_id, photo, caption, sticker_file_ids);
-      send_message(chat_id,
-                   td_api::make_object<td_api::inputMessagePhoto>(
-                       as_input_file(photo), nullptr, to_integers<int32>(sticker_file_ids), 0, 0, as_caption(caption),
-                       show_caption_above_media_, get_message_self_destruct_type(), has_spoiler_));
+      send_message(chat_id, td_api::make_object<td_api::inputMessagePhoto>(
+                                as_input_file(photo), nullptr, as_file_ids(sticker_file_ids), 0, 0, as_caption(caption),
+                                show_caption_above_media_, get_message_self_destruct_type(), has_spoiler_));
     } else if (op == "spg") {
       ChatId chat_id;
       string photo_path;
@@ -5663,7 +5664,7 @@ class CliClient final : public Actor {
       if (trim(video_path).empty()) {
         video_path = sticker_file_ids_str;
       } else {
-        sticker_file_ids = to_integers<int32>(sticker_file_ids_str);
+        sticker_file_ids = as_file_ids(sticker_file_ids_str);
       }
       send_message(chat_id,
                    td_api::make_object<td_api::inputMessageVideo>(
@@ -6629,15 +6630,15 @@ class CliClient final : public Actor {
       string language_code;
       string file_ids;
       get_args(args, bot_user_id, language_code, file_ids);
-      send_request(td_api::make_object<td_api::reorderBotMediaPreviews>(bot_user_id, language_code,
-                                                                        to_integers<int32>(file_ids)));
+      send_request(
+          td_api::make_object<td_api::reorderBotMediaPreviews>(bot_user_id, language_code, as_file_ids(file_ids)));
     } else if (op == "dbmp") {
       UserId bot_user_id;
       string language_code;
       string file_ids;
       get_args(args, bot_user_id, language_code, file_ids);
-      send_request(td_api::make_object<td_api::deleteBotMediaPreviews>(bot_user_id, language_code,
-                                                                       to_integers<int32>(file_ids)));
+      send_request(
+          td_api::make_object<td_api::deleteBotMediaPreviews>(bot_user_id, language_code, as_file_ids(file_ids)));
     } else if (op == "gbi") {
       UserId bot_user_id;
       string language_code;
