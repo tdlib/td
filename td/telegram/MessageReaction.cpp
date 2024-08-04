@@ -701,6 +701,7 @@ void MessageReactions::update_from(const MessageReactions &old_reactions, Dialog
       }
     }
   }
+  pending_paid_reactions_ = old_reactions.pending_paid_reactions_;
 }
 
 bool MessageReactions::add_my_reaction(const ReactionType &reaction_type, bool is_big, DialogId my_dialog_id,
@@ -797,12 +798,11 @@ bool MessageReactions::do_remove_my_reaction(const ReactionType &reaction_type) 
 }
 
 void MessageReactions::add_my_paid_reaction(int32 star_count) {
-  auto added_reaction = get_reaction(ReactionType::paid());
-  if (added_reaction == nullptr) {
-    reactions_.push_back({ReactionType::paid(), star_count, true, DialogId(), Auto(), Auto()});
-  } else {
-    added_reaction->add_paid_reaction(star_count);
+  if (pending_paid_reactions_ > 1000000000 || star_count > 1000000000) {
+    LOG(ERROR) << "Pending paid reactions overflown";
+    return;
   }
+  pending_paid_reactions_ += star_count;
 }
 
 void MessageReactions::sort_reactions(const FlatHashMap<ReactionType, size_t, ReactionTypeHash> &active_reaction_pos) {
@@ -907,6 +907,23 @@ bool MessageReactions::are_consistent_with_list(
   }
 }
 
+vector<MessageReactor> MessageReactions::apply_reactor_pending_paid_reactions(DialogId my_dialog_id) const {
+  vector<MessageReactor> top_reactors;
+  bool was_me = false;
+  for (auto &reactor : top_reactors_) {
+    top_reactors.push_back(reactor);
+    if (reactor.is_me()) {
+      was_me = true;
+      top_reactors.back().add_count(pending_paid_reactions_);
+    }
+  }
+  if (!was_me) {
+    top_reactors.emplace_back(my_dialog_id, pending_paid_reactions_);
+  }
+  MessageReactor::fix_message_reactors(top_reactors, false);
+  return top_reactors;
+}
+
 td_api::object_ptr<td_api::messageReactions> MessageReactions::get_message_reactions_object(Td *td, UserId my_user_id,
                                                                                             UserId peer_user_id) const {
   auto reactions = transform(reactions_, [td, my_user_id, peer_user_id](const MessageReaction &reaction) {
@@ -914,6 +931,20 @@ td_api::object_ptr<td_api::messageReactions> MessageReactions::get_message_react
   });
   auto reactors =
       transform(top_reactors_, [td](const MessageReactor &reactor) { return reactor.get_paid_reactor_object(td); });
+  if (pending_paid_reactions_ > 0) {
+    if (reactions_.empty() || !reactions_[0].reaction_type_.is_paid_reaction()) {
+      reactions.insert(reactions.begin(),
+                       MessageReaction(ReactionType::paid(), pending_paid_reactions_, true, DialogId(), Auto(), Auto())
+                           .get_message_reaction_object(td, my_user_id, peer_user_id));
+    } else {
+      reactions[0]->total_count_ += pending_paid_reactions_;
+      reactions[0]->is_chosen_ = true;
+    }
+
+    auto top_reactors = apply_reactor_pending_paid_reactions(DialogId(my_user_id));
+    reactors =
+        transform(top_reactors, [td](const MessageReactor &reactor) { return reactor.get_paid_reactor_object(td); });
+  }
   return td_api::make_object<td_api::messageReactions>(std::move(reactions), are_tags_, std::move(reactors));
 }
 
@@ -965,6 +996,24 @@ bool MessageReactions::need_update_unread_reactions(const MessageReactions *old_
   return new_reactions == nullptr || old_reactions->unread_reactions_ != new_reactions->unread_reactions_;
 }
 
+void MessageReactions::send_paid_message_reaction(Td *td, MessageFullId message_full_id, int64 random_id,
+                                                  Promise<Unit> &&promise) {
+  if (pending_paid_reactions_ == 0) {
+    return promise.set_value(Unit());
+  }
+  auto star_count = pending_paid_reactions_;
+  top_reactors_ = apply_reactor_pending_paid_reactions(td->dialog_manager_->get_my_dialog_id());
+  if (reactions_.empty() || !reactions_[0].reaction_type_.is_paid_reaction()) {
+    reactions_.insert(reactions_.begin(),
+                      MessageReaction(ReactionType::paid(), star_count, true, DialogId(), Auto(), Auto()));
+  } else {
+    reactions_[0].add_paid_reaction(star_count);
+  }
+  pending_paid_reactions_ = 0;
+
+  td->create_handler<SendPaidReactionQuery>(std::move(promise))->send(message_full_id, star_count, random_id);
+}
+
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageReactions &reactions) {
   if (reactions.are_tags_) {
     return string_builder << "MessageTags{" << reactions.reactions_ << '}';
@@ -973,7 +1022,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageReactions 
                         << " with unread " << reactions.unread_reactions_ << ", reaction order "
                         << reactions.chosen_reaction_order_
                         << " and can_get_added_reactions = " << reactions.can_get_added_reactions_
-                        << " with paid reactions by " << reactions.top_reactors_ << '}';
+                        << " with paid reactions by " << reactions.top_reactors_ << " and "
+                        << reactions.pending_paid_reactions_ << " pending paid reactions}";
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const unique_ptr<MessageReactions> &reactions) {
@@ -1019,11 +1069,6 @@ void set_message_reactions(Td *td, MessageFullId message_full_id, vector<Reactio
     }
   }
   send_message_reaction(td, message_full_id, std::move(reaction_types), is_big, false, std::move(promise));
-}
-
-void send_paid_message_reaction(Td *td, MessageFullId message_full_id, int32 star_count, int64 random_id,
-                                Promise<Unit> &&promise) {
-  td->create_handler<SendPaidReactionQuery>(std::move(promise))->send(message_full_id, star_count, random_id);
 }
 
 void get_message_added_reactions(Td *td, MessageFullId message_full_id, ReactionType reaction_type, string offset,

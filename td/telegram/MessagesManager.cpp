@@ -5558,6 +5558,9 @@ MessagesManager::MessagesManager(Td *td, ActorShared<> parent)
 
   send_update_chat_read_inbox_timeout_.set_callback(on_send_update_chat_read_inbox_timeout_callback);
   send_update_chat_read_inbox_timeout_.set_callback_data(static_cast<void *>(this));
+
+  send_paid_reactions_timeout_.set_callback(on_send_paid_reactions_timeout_callback);
+  send_paid_reactions_timeout_.set_callback_data(static_cast<void *>(this));
 }
 
 MessagesManager::~MessagesManager() {
@@ -5699,6 +5702,16 @@ void MessagesManager::on_send_update_chat_read_inbox_timeout_callback(void *mess
   auto messages_manager = static_cast<MessagesManager *>(messages_manager_ptr);
   send_closure_later(messages_manager->actor_id(messages_manager),
                      &MessagesManager::on_send_update_chat_read_inbox_timeout, DialogId(dialog_id_int));
+}
+
+void MessagesManager::on_send_paid_reactions_timeout_callback(void *messages_manager_ptr, int64 task_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto messages_manager = static_cast<MessagesManager *>(messages_manager_ptr);
+  send_closure_later(messages_manager->actor_id(messages_manager), &MessagesManager::on_send_paid_reactions_timeout,
+                     task_id);
 }
 
 BufferSlice MessagesManager::get_dialog_database_value(const Dialog *d) {
@@ -12066,6 +12079,39 @@ void MessagesManager::on_send_update_chat_read_inbox_timeout(DialogId dialog_id)
   if (postponed_chat_read_inbox_updates_.erase(dialog_id) > 0) {
     send_update_chat_read_inbox(get_dialog(dialog_id), true, "on_send_update_chat_read_inbox_timeout");
   }
+}
+
+void MessagesManager::on_send_paid_reactions_timeout(int64 task_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+  auto it = paid_reaction_tasks_.find(task_id);
+  if (it == paid_reaction_tasks_.end()) {
+    return;
+  }
+  auto message_full_id = it->second;
+  paid_reaction_tasks_.erase(it);
+  bool is_erased = paid_reaction_task_ids_.erase(message_full_id) > 0;
+  CHECK(is_erased);
+
+  Dialog *d = get_dialog_force(message_full_id.get_dialog_id(), "on_send_paid_reactions_timeout");
+  CHECK(d != nullptr);
+  auto *m = get_message_force(d, message_full_id.get_message_id(), "on_send_paid_reactions_timeout");
+  if (m == nullptr || m->reactions == nullptr) {
+    return;
+  }
+  if (!get_message_available_reactions(d, m, true, nullptr).is_allowed_reaction_type(ReactionType::paid())) {
+    // TODO drop pending reactions
+    return;
+  }
+
+  pending_reactions_[message_full_id].query_count++;
+
+  int64 random_id = (static_cast<int64>(G()->unix_time()) << 32) | static_cast<int64>(Random::secure_uint32());
+  auto promise = PromiseCreator::lambda([actor_id = actor_id(this), message_full_id](Result<Unit> &&result) {
+    send_closure(actor_id, &MessagesManager::on_set_message_reactions, message_full_id, std::move(result), Auto());
+  });
+  m->reactions->send_paid_message_reaction(td_, message_full_id, random_id, std::move(promise));
 }
 
 int32 MessagesManager::get_message_date(const tl_object_ptr<telegram_api::Message> &message_ptr) {
@@ -22686,19 +22732,16 @@ void MessagesManager::add_paid_message_reaction(MessageFullId message_full_id, i
   m->reactions->sort_reactions(active_reaction_pos_);
   LOG(INFO) << "Update message reactions to " << *m->reactions;
 
-  pending_reactions_[message_full_id].query_count++;
-
   send_update_message_interaction_info(d->dialog_id, m);
   on_message_changed(d, m, true, "add_paid_message_reaction");
 
-  // TODO log event
-  int64 random_id = (static_cast<int64>(G()->unix_time()) << 32) | static_cast<int64>(Random::secure_uint32());
-  auto query_promise = PromiseCreator::lambda(
-      [actor_id = actor_id(this), message_full_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
-        send_closure(actor_id, &MessagesManager::on_set_message_reactions, message_full_id, std::move(result),
-                     std::move(promise));
-      });
-  send_paid_message_reaction(td_, message_full_id, narrow_cast<int32>(star_count), random_id, std::move(query_promise));
+  auto &task_id = paid_reaction_task_ids_[message_full_id];
+  if (task_id == 0) {
+    task_id = ++paid_reaction_task_id_;
+    paid_reaction_tasks_[task_id] = message_full_id;
+  }
+  send_paid_reactions_timeout_.set_timeout_in(task_id, 6.0);
+  promise.set_value(Unit());
 }
 
 void MessagesManager::remove_message_reaction(MessageFullId message_full_id, ReactionType reaction_type,

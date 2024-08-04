@@ -2121,6 +2121,8 @@ class MessagesManager final : public Actor {
 
   void on_send_update_chat_read_inbox_timeout(DialogId dialog_id);
 
+  void on_send_paid_reactions_timeout(int64 task_id);
+
   bool delete_newer_server_messages_at_the_end(Dialog *d, MessageId max_message_id);
 
   template <class T, class It>
@@ -3049,6 +3051,8 @@ class MessagesManager final : public Actor {
 
   static void on_send_update_chat_read_inbox_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int);
 
+  static void on_send_paid_reactions_timeout_callback(void *messages_manager_ptr, int64 task_id);
+
   void load_secret_thumbnail(FileId thumbnail_file_id);
 
   void on_upload_media(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file,
@@ -3380,6 +3384,7 @@ class MessagesManager final : public Actor {
   MultiTimeout preload_folder_dialog_list_timeout_{"PreloadFolderDialogListTimeout"};
   MultiTimeout update_viewed_messages_timeout_{"UpdateViewedMessagesTimeout"};
   MultiTimeout send_update_chat_read_inbox_timeout_{"SendUpdateChatReadInboxTimeout"};
+  MultiTimeout send_paid_reactions_timeout_{"SendPaidReactionsTimeout"};
 
   Hints dialogs_hints_;  // search dialogs by title and usernames
 
@@ -3513,6 +3518,10 @@ class MessagesManager final : public Actor {
     bool was_updated = false;
   };
   FlatHashMap<MessageFullId, PendingReaction, MessageFullIdHash> pending_reactions_;
+
+  int64 paid_reaction_task_id_ = 0;
+  FlatHashMap<MessageFullId, int64, MessageFullIdHash> paid_reaction_task_ids_;
+  FlatHashMap<int64, MessageFullId> paid_reaction_tasks_;
 
   FlatHashMap<MessageFullId, int32, MessageFullIdHash> pending_read_reactions_;
 

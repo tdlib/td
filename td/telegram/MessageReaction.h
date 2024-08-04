@@ -157,6 +157,7 @@ struct MessageReactions {
   vector<UnreadMessageReaction> unread_reactions_;
   vector<ReactionType> chosen_reaction_order_;
   vector<MessageReactor> top_reactors_;
+  int32 pending_paid_reactions_ = 0;
   bool is_min_ = false;
   bool need_polling_ = true;
   bool can_get_added_reactions_ = false;
@@ -205,6 +206,8 @@ struct MessageReactions {
   static bool need_update_unread_reactions(const MessageReactions *old_reactions,
                                            const MessageReactions *new_reactions);
 
+  void send_paid_message_reaction(Td *td, MessageFullId message_full_id, int64 random_id, Promise<Unit> &&promise);
+
   template <class StorerT>
   void store(StorerT &storer) const;
 
@@ -213,6 +216,8 @@ struct MessageReactions {
 
  private:
   bool do_remove_my_reaction(const ReactionType &reaction_type);
+
+  vector<MessageReactor> apply_reactor_pending_paid_reactions(DialogId my_dialog_id) const;
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageReactions &reactions);
@@ -226,9 +231,6 @@ void send_message_reaction(Td *td, MessageFullId message_full_id, vector<Reactio
 
 void set_message_reactions(Td *td, MessageFullId message_full_id, vector<ReactionType> reaction_types, bool is_big,
                            Promise<Unit> &&promise);
-
-void send_paid_message_reaction(Td *td, MessageFullId message_full_id, int32 star_count, int64 random_id,
-                                Promise<Unit> &&promise);
 
 void get_message_added_reactions(Td *td, MessageFullId message_full_id, ReactionType reaction_type, string offset,
                                  int32 limit, Promise<td_api::object_ptr<td_api::addedReactions>> &&promise);
