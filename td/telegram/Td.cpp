@@ -4998,6 +4998,13 @@ void Td::on_request(uint64 id, const td_api::addPaidMessageReaction &request) {
                                                request.star_count_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::removePendingPaidMessageReactions &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->remove_paid_message_reactions({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                                   std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::removeMessageReaction &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

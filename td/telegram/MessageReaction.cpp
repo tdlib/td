@@ -805,6 +805,14 @@ void MessageReactions::add_my_paid_reaction(int32 star_count) {
   pending_paid_reactions_ += star_count;
 }
 
+bool MessageReactions::drop_pending_paid_reactions() {
+  if (pending_paid_reactions_ == 0) {
+    return false;
+  }
+  pending_paid_reactions_ = 0;
+  return true;
+}
+
 void MessageReactions::sort_reactions(const FlatHashMap<ReactionType, size_t, ReactionTypeHash> &active_reaction_pos) {
   std::sort(reactions_.begin(), reactions_.end(),
             [&active_reaction_pos](const MessageReaction &lhs, const MessageReaction &rhs) {

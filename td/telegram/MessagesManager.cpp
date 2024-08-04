@@ -12101,7 +12101,10 @@ void MessagesManager::on_send_paid_reactions_timeout(int64 task_id) {
     return;
   }
   if (!get_message_available_reactions(d, m, true, nullptr).is_allowed_reaction_type(ReactionType::paid())) {
-    // TODO drop pending reactions
+    if (m->reactions->drop_pending_paid_reactions()) {
+      send_update_message_interaction_info(d->dialog_id, m);
+      on_message_changed(d, m, true, "on_send_paid_reactions_timeout");
+    }
     return;
   }
 
@@ -22703,6 +22706,41 @@ void MessagesManager::add_message_reaction(MessageFullId message_full_id, Reacti
   }
 }
 
+void MessagesManager::remove_message_reaction(MessageFullId message_full_id, ReactionType reaction_type,
+                                              Promise<Unit> &&promise) {
+  auto dialog_id = message_full_id.get_dialog_id();
+  Dialog *d = get_dialog_force(dialog_id, "remove_message_reaction");
+  if (d == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+
+  Message *m = get_message_force(d, message_full_id.get_message_id(), "remove_message_reaction");
+  if (m == nullptr) {
+    return promise.set_error(Status::Error(400, "Message not found"));
+  }
+
+  if (reaction_type.is_empty() || reaction_type.is_paid_reaction()) {
+    return promise.set_error(Status::Error(400, "Invalid reaction specified"));
+  }
+
+  if (m->reactions == nullptr) {
+    return promise.set_value(Unit());
+  }
+
+  LOG(INFO) << "Have message with " << *m->reactions;
+  auto old_chosen_tags = get_chosen_tags(m->reactions);
+  if (!m->reactions->remove_my_reaction(reaction_type, get_my_reaction_dialog_id(d))) {
+    return promise.set_value(Unit());
+  }
+
+  set_message_reactions(d, m, false, false, std::move(promise));
+
+  if (!old_chosen_tags.empty()) {
+    td_->reaction_manager_->update_saved_messages_tags(m->saved_messages_topic_id, old_chosen_tags,
+                                                       get_chosen_tags(m->reactions));
+  }
+}
+
 void MessagesManager::add_paid_message_reaction(MessageFullId message_full_id, int64 star_count,
                                                 Promise<Unit> &&promise) {
   auto dialog_id = message_full_id.get_dialog_id();
@@ -22744,39 +22782,26 @@ void MessagesManager::add_paid_message_reaction(MessageFullId message_full_id, i
   promise.set_value(Unit());
 }
 
-void MessagesManager::remove_message_reaction(MessageFullId message_full_id, ReactionType reaction_type,
-                                              Promise<Unit> &&promise) {
-  auto dialog_id = message_full_id.get_dialog_id();
-  Dialog *d = get_dialog_force(dialog_id, "remove_message_reaction");
-  if (d == nullptr) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
-
-  Message *m = get_message_force(d, message_full_id.get_message_id(), "remove_message_reaction");
-  if (m == nullptr) {
-    return promise.set_error(Status::Error(400, "Message not found"));
-  }
-
-  if (reaction_type.is_empty() || reaction_type.is_paid_reaction()) {
-    return promise.set_error(Status::Error(400, "Invalid reaction specified"));
-  }
-
-  if (m->reactions == nullptr) {
+void MessagesManager::remove_paid_message_reactions(MessageFullId message_full_id, Promise<Unit> &&promise) {
+  auto it = paid_reaction_task_ids_.find(message_full_id);
+  if (it == paid_reaction_task_ids_.end()) {
     return promise.set_value(Unit());
   }
+  auto task_id = it->second;
+  paid_reaction_task_ids_.erase(it);
+  bool is_erased = paid_reaction_tasks_.erase(task_id) > 0;
+  CHECK(is_erased);
 
-  LOG(INFO) << "Have message with " << *m->reactions;
-  auto old_chosen_tags = get_chosen_tags(m->reactions);
-  if (!m->reactions->remove_my_reaction(reaction_type, get_my_reaction_dialog_id(d))) {
-    return promise.set_value(Unit());
+  send_paid_reactions_timeout_.cancel_timeout(task_id);
+
+  Dialog *d = get_dialog_force(message_full_id.get_dialog_id(), "remove_paid_message_reaction");
+  CHECK(d != nullptr);
+  auto *m = get_message_force(d, message_full_id.get_message_id(), "on_send_paid_reactions_timeout");
+  if (m != nullptr && m->reactions != nullptr && m->reactions->drop_pending_paid_reactions()) {
+    send_update_message_interaction_info(d->dialog_id, m);
+    on_message_changed(d, m, true, "on_send_paid_reactions_timeout");
   }
-
-  set_message_reactions(d, m, false, false, std::move(promise));
-
-  if (!old_chosen_tags.empty()) {
-    td_->reaction_manager_->update_saved_messages_tags(m->saved_messages_topic_id, old_chosen_tags,
-                                                       get_chosen_tags(m->reactions));
-  }
+  promise.set_value(Unit());
 }
 
 void MessagesManager::set_message_reactions(Dialog *d, Message *m, bool is_big, bool add_to_recent,

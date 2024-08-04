@@ -2964,6 +2964,11 @@ class CliClient final : public Actor {
       int64 star_count;
       get_args(args, chat_id, message_id, star_count);
       send_request(td_api::make_object<td_api::addPaidMessageReaction>(chat_id, message_id, star_count));
+    } else if (op == "rppmr") {
+      ChatId chat_id;
+      MessageId message_id;
+      get_args(args, chat_id, message_id);
+      send_request(td_api::make_object<td_api::removePendingPaidMessageReactions>(chat_id, message_id));
     } else if (op == "rmr") {
       ChatId chat_id;
       MessageId message_id;

@@ -181,6 +181,8 @@ struct MessageReactions {
 
   void add_my_paid_reaction(int32 star_count);
 
+  bool drop_pending_paid_reactions();
+
   void sort_reactions(const FlatHashMap<ReactionType, size_t, ReactionTypeHash> &active_reaction_pos);
 
   void fix_chosen_reaction();

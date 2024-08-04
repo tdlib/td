@@ -793,9 +793,11 @@ class MessagesManager final : public Actor {
   void add_message_reaction(MessageFullId message_full_id, ReactionType reaction_type, bool is_big, bool add_to_recent,
                             Promise<Unit> &&promise);
 
+  void remove_message_reaction(MessageFullId message_full_id, ReactionType reaction_type, Promise<Unit> &&promise);
+
   void add_paid_message_reaction(MessageFullId message_full_id, int64 star_count, Promise<Unit> &&promise);
 
-  void remove_message_reaction(MessageFullId message_full_id, ReactionType reaction_type, Promise<Unit> &&promise);
+  void remove_paid_message_reactions(MessageFullId message_full_id, Promise<Unit> &&promise);
 
   td_api::object_ptr<td_api::message> get_dialog_event_log_message_object(
       DialogId dialog_id, tl_object_ptr<telegram_api::Message> &&message, DialogId &sender_dialog_id);
