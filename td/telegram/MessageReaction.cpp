@@ -953,7 +953,8 @@ td_api::object_ptr<td_api::messageReactions> MessageReactions::get_message_react
     reactors =
         transform(top_reactors, [td](const MessageReactor &reactor) { return reactor.get_paid_reactor_object(td); });
   }
-  return td_api::make_object<td_api::messageReactions>(std::move(reactions), are_tags_, std::move(reactors));
+  return td_api::make_object<td_api::messageReactions>(std::move(reactions), are_tags_, std::move(reactors),
+                                                       can_get_added_reactions_);
 }
 
 void MessageReactions::add_min_channels(Td *td) const {

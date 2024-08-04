@@ -17427,7 +17427,6 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   auto can_be_replied_in_another_chat = can_be_forwarded && m->message_id.is_server();
   auto can_be_shared_in_story = can_share_message_in_story(dialog_id, m);
   auto can_edit_scheduling_state = m->message_id.is_valid_scheduled() && m->message_id.is_scheduled_server();
-  auto can_get_added_reactions = m->reactions != nullptr && m->reactions->can_get_added_reactions_;
   auto can_get_statistics = can_get_message_statistics(dialog_id, m);
   auto can_get_message_thread = get_top_thread_message_full_id(dialog_id, m, false).is_ok();
   auto can_get_read_date = can_get_message_read_date(dialog_id, m).is_ok();
@@ -17449,9 +17448,9 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   promise.set_value(td_api::make_object<td_api::messageProperties>(
       can_delete_for_self, can_delete_for_all_users, can_be_edited, can_be_forwarded, can_be_paid, can_be_pinned,
       can_be_replied, can_be_replied_in_another_chat, can_be_saved, can_be_shared_in_story, can_edit_scheduling_state,
-      can_get_added_reactions, can_get_embedding_code, can_get_link, can_get_media_timestamp_links,
-      can_get_message_thread, can_get_read_date, can_get_statistics, can_get_viewers, can_recognize_speech,
-      can_report_chat, can_report_reactions, can_report_supergroup_spam, can_set_fact_check, need_show_statistics));
+      can_get_embedding_code, can_get_link, can_get_media_timestamp_links, can_get_message_thread, can_get_read_date,
+      can_get_statistics, can_get_viewers, can_recognize_speech, can_report_chat, can_report_reactions,
+      can_report_supergroup_spam, can_set_fact_check, need_show_statistics));
 }
 
 bool MessagesManager::is_message_edited_recently(MessageFullId message_full_id, int32 seconds) {
