@@ -24,6 +24,7 @@ class StarSubscription {
   int32 until_date_ = 0;
   bool can_reuse_ = false;
   bool is_canceled_ = false;
+  bool missing_balance_ = false;
   StarSubscriptionPricing pricing_;
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const StarSubscription &subscription);
