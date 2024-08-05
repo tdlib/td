@@ -20973,12 +20973,9 @@ void MessagesManager::on_load_active_live_location_messages_finished() {
 void MessagesManager::try_add_active_live_location(DialogId dialog_id, const Message *m) {
   CHECK(m != nullptr);
 
-  if (td_->auth_manager_->is_bot()) {
-    return;
-  }
-  if (m->content->get_type() != MessageContentType::LiveLocation || m->message_id.is_scheduled() ||
-      m->message_id.is_local() || m->via_bot_user_id.is_valid() || m->via_business_bot_user_id.is_valid() ||
-      m->forward_info != nullptr) {
+  if (td_->auth_manager_->is_bot() || m->content->get_type() != MessageContentType::LiveLocation ||
+      m->message_id.is_scheduled() || m->message_id.is_local() || m->message_id.is_yet_unsent() ||
+      m->via_bot_user_id.is_valid() || m->via_business_bot_user_id.is_valid() || m->forward_info != nullptr) {
     return;
   }
 
