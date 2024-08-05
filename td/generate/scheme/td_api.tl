@@ -7050,6 +7050,10 @@ suggestedActionSetBirthdate = SuggestedAction;
 //@description Suggests the user to extend their expiring Telegram Premium subscription @manage_premium_subscription_url A URL for managing Telegram Premium subscription
 suggestedActionExtendPremium manage_premium_subscription_url:string = SuggestedAction;
 
+//@description Suggests the user to extend their expiring Telegram Star subscriptions. Call getStarSubscriptions with only_expiring == true
+//-to get the number of expiring subscriptions and the number of required to buy Telegram Stars
+suggestedActionExtendStarSubscriptions = SuggestedAction;
+
 
 //@description Contains a counter @count Count
 count count:int32 = Count;

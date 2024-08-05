@@ -29,7 +29,8 @@ struct SuggestedAction {
     RestorePremium,
     GiftPremiumForChristmas,
     BirthdaySetup,
-    PremiumGrace
+    PremiumGrace,
+    StarsSubscriptionLowBalance
   };
   Type type_ = Type::Empty;
   DialogId dialog_id_;

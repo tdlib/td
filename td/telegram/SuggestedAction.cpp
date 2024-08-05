@@ -50,6 +50,8 @@ SuggestedAction::SuggestedAction(Slice action_str) {
     init(Type::BirthdaySetup);
   } else if (action_str == Slice("PREMIUM_GRACE")) {
     init(Type::PremiumGrace);
+  } else if (action_str == Slice("STARS_SUBSCRIPTION_LOW_BALANCE")) {
+    init(Type::StarsSubscriptionLowBalance);
   }
 }
 
@@ -111,6 +113,9 @@ SuggestedAction::SuggestedAction(const td_api::object_ptr<td_api::SuggestedActio
     case td_api::suggestedActionExtendPremium::ID:
       init(Type::PremiumGrace);
       break;
+    case td_api::suggestedActionExtendStarSubscriptions::ID:
+      init(Type::StarsSubscriptionLowBalance);
+      break;
     default:
       UNREACHABLE();
   }
@@ -142,6 +147,8 @@ string SuggestedAction::get_suggested_action_str() const {
       return "BIRTHDAY_SETUP";
     case Type::PremiumGrace:
       return "PREMIUM_GRACE";
+    case Type::StarsSubscriptionLowBalance:
+      return "STARS_SUBSCRIPTION_LOW_BALANCE";
     default:
       return string();
   }
@@ -175,7 +182,9 @@ td_api::object_ptr<td_api::SuggestedAction> SuggestedAction::get_suggested_actio
       return td_api::make_object<td_api::suggestedActionSetBirthdate>();
     case Type::PremiumGrace:
       return td_api::make_object<td_api::suggestedActionExtendPremium>(
-          G()->get_option_string("premium_manage_subscription_url", "https://T.me/premiumbot?start=status"));
+          G()->get_option_string("premium_manage_subscription_url", "https://t.me/premiumbot?start=status"));
+    case Type::StarsSubscriptionLowBalance:
+      return td_api::make_object<td_api::suggestedActionExtendStarSubscriptions>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -243,6 +252,7 @@ void dismiss_suggested_action(SuggestedAction action, Promise<Unit> &&promise) {
     case SuggestedAction::Type::GiftPremiumForChristmas:
     case SuggestedAction::Type::BirthdaySetup:
     case SuggestedAction::Type::PremiumGrace:
+    case SuggestedAction::Type::StarsSubscriptionLowBalance:
       return send_closure_later(G()->config_manager(), &ConfigManager::dismiss_suggested_action, std::move(action),
                                 std::move(promise));
     case SuggestedAction::Type::ConvertToGigagroup:
