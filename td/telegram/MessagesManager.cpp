@@ -21043,10 +21043,18 @@ void MessagesManager::schedule_active_live_location_expiration() {
       const auto *m = get_message(message_full_id);
       CHECK(m != nullptr);
       double live_period = get_message_content_live_location_period(m->content.get());
+      if (live_period > 2e9) {
+        continue;
+      }
       expires_in = min(expires_in, live_period + m->date - G()->unix_time());
+    }
+    if (expires_in < 2e9) {
+      LOG(INFO) << "Schedule live location expiration in " << expires_in;
       live_location_expire_timeout_.set_callback(std::move(on_live_location_expire_timeout_callback));
       live_location_expire_timeout_.set_callback_data(static_cast<void *>(this));
       live_location_expire_timeout_.set_timeout_in(expires_in);
+    } else {
+      LOG(INFO) << "Have no active expiring live locations";
     }
   }
 }
@@ -32965,9 +32973,13 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
           LOG(INFO) << message_id << " in " << dialog_id << " is not changed";
         }
         auto new_index_mask = get_message_index_mask(dialog_id, m) & INDEX_MASK_MASK;
-        if (was_deleted && !try_add_active_live_location(dialog_id, m)) {
-          send_update_active_live_location_messages();
-          save_active_live_locations();
+        if (was_deleted) {
+          if (!try_add_active_live_location(dialog_id, m)) {
+            send_update_active_live_location_messages();
+            save_active_live_locations();
+          } else {
+            schedule_active_live_location_expiration();
+          }
         }
         change_message_files(dialog_id, m, old_file_ids);
         if (need_send_update) {
