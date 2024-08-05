@@ -10945,6 +10945,7 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
     clear_dialog_message_list(d, remove_from_dialog_list, last_message_date);
   }
 
+  bool was_live_location_deleted = false;
   vector<int64> deleted_message_ids;
   d->messages.foreach([&](const MessageId &message_id, unique_ptr<Message> &message) {
     CHECK(message_id == message->message_id);
@@ -10955,7 +10956,9 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
     LOG(INFO) << "Delete " << message_id;
     deleted_message_ids.push_back(message_id.get());
 
-    delete_active_live_location(d->dialog_id, m);
+    if (delete_active_live_location(d->dialog_id, m)) {
+      was_live_location_deleted = true;
+    }
     remove_message_file_sources(d->dialog_id, m);
 
     on_message_deleted(d, m, is_permanently_deleted, "do_delete_all_dialog_messages");
@@ -10965,6 +10968,10 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
     }
   });
   Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), d->messages, d->ordered_messages);
+
+  if (was_live_location_deleted) {
+    send_update_active_live_location_messages();
+  }
 
   delete_all_dialog_messages_from_database(d, MessageId::max(), "delete_all_dialog_messages 3");
 
@@ -12696,6 +12703,8 @@ void MessagesManager::init() {
         }
       }
     }
+
+    get_active_live_location_messages(Promise<Unit>());
   } else if (!td_->auth_manager_->is_bot()) {
     G()->td_db()->get_binlog_pmc()->erase_by_prefix("pinned_dialog_ids");
     G()->td_db()->get_binlog_pmc()->erase_by_prefix("last_server_dialog_date");
@@ -13881,7 +13890,9 @@ MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const 
   }
 
   if (is_sent_message) {
-    try_add_active_live_location(dialog_id, m);
+    if (try_add_active_live_location(dialog_id, m)) {
+      send_update_active_live_location_messages();
+    }
 
     // add_message_to_dialog will not update counts, because need_update == false
     update_message_count_by_index(d, +1, m);
@@ -15309,7 +15320,9 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
 
     delete_message_from_database(d, message_id, m, is_permanently_deleted, source);
 
-    delete_active_live_location(d->dialog_id, m);
+    if (delete_active_live_location(d->dialog_id, m)) {
+      send_update_active_live_location_messages();
+    }
     remove_message_file_sources(d->dialog_id, m);
 
     if (message_id == d->last_message_id) {
@@ -20904,7 +20917,7 @@ vector<MessageFullId> MessagesManager::get_active_live_location_messages(Promise
 
   promise.set_value(Unit());
   vector<MessageFullId> result;
-  for (auto &message_full_id : active_live_location_message_full_ids_) {
+  for (const auto &message_full_id : active_live_location_message_full_ids_) {
     auto m = get_message(message_full_id);
     CHECK(m != nullptr);
     CHECK(m->content->get_type() == MessageContentType::LiveLocation);
@@ -20941,7 +20954,7 @@ void MessagesManager::on_load_active_live_location_message_full_ids_from_databas
 
   LOG(INFO) << "Successfully loaded active live location messages list of size " << value.size() << " from database";
 
-  auto new_message_full_ids = std::move(active_live_location_message_full_ids_);
+  const auto new_message_full_ids = std::move(active_live_location_message_full_ids_);
   vector<MessageFullId> old_message_full_ids;
   log_event_parse(old_message_full_ids, value).ensure();
 
@@ -20959,7 +20972,9 @@ void MessagesManager::on_load_active_live_location_message_full_ids_from_databas
   }
 
   on_load_active_live_location_messages_finished();
-
+  if (new_message_full_ids.size() != active_live_location_message_full_ids_.size()) {
+    send_update_active_live_location_messages();
+  }
   if (!new_message_full_ids.empty() || old_message_full_ids.size() != active_live_location_message_full_ids_.size()) {
     save_active_live_locations();
   }
@@ -20995,6 +21010,8 @@ bool MessagesManager::add_active_live_location(MessageFullId message_full_id) {
   if (!active_live_location_message_full_ids_.insert(message_full_id).second) {
     return false;
   }
+
+  send_update_active_live_location_messages();
 
   // TODO add timer for live location expiration
 
@@ -28872,6 +28889,22 @@ void MessagesManager::send_update_message_live_location_viewed(MessageFullId mes
                                                                             message_full_id.get_message_id().get()));
 }
 
+td_api::object_ptr<td_api::updateActiveLiveLocationMessages>
+MessagesManager::get_update_active_live_location_messages_object() const {
+  auto message_objects = transform(active_live_location_message_full_ids_, [this](MessageFullId message_full_id) {
+    const auto *d = get_dialog(message_full_id.get_dialog_id());
+    CHECK(d != nullptr);
+    const auto *m = get_message(d, message_full_id.get_message_id());
+    CHECK(m != nullptr);
+    return get_message_object(d->dialog_id, m, "send_update_active_live_location_messages");
+  });
+  return td_api::make_object<td_api::updateActiveLiveLocationMessages>(std::move(message_objects));
+}
+
+void MessagesManager::send_update_active_live_location_messages() {
+  send_closure(G()->td(), &Td::send_update, get_update_active_live_location_messages_object());
+}
+
 void MessagesManager::send_update_delete_messages(DialogId dialog_id, vector<int64> &&message_ids,
                                                   bool is_permanent) const {
   if (message_ids.empty()) {
@@ -29588,7 +29621,9 @@ MessageFullId MessagesManager::on_send_message_success(int64 random_id, MessageI
     return {};
   }
 
-  try_add_active_live_location(dialog_id, m);
+  if (try_add_active_live_location(dialog_id, m)) {
+    send_update_active_live_location_messages();
+  }
   update_reply_count_by_message(d, +1, m);
   update_forward_count(dialog_id, m);
   being_readded_message_id_ = MessageFullId();
@@ -32911,8 +32946,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
           LOG(INFO) << message_id << " in " << dialog_id << " is not changed";
         }
         auto new_index_mask = get_message_index_mask(dialog_id, m) & INDEX_MASK_MASK;
-        if (was_deleted) {
-          try_add_active_live_location(dialog_id, m);
+        if (was_deleted && !try_add_active_live_location(dialog_id, m)) {
+          send_update_active_live_location_messages();
         }
         change_message_files(dialog_id, m, old_file_ids);
         if (need_send_update) {
@@ -38772,6 +38807,10 @@ void MessagesManager::get_current_state(vector<td_api::object_ptr<td_api::Update
     updates.push_back(std::move(update));
   });
   append(updates, std::move(last_message_updates));
+
+  if (!active_live_location_message_full_ids_.empty()) {
+    updates.push_back(get_update_active_live_location_messages_object());
+  }
 }
 
 void MessagesManager::add_message_file_to_downloads(MessageFullId message_full_id, FileId file_id, int32 priority,

@@ -2375,6 +2375,8 @@ class MessagesManager final : public Actor {
 
   void send_update_message_live_location_viewed(MessageFullId message_full_id);
 
+  void send_update_active_live_location_messages();
+
   void send_update_delete_messages(DialogId dialog_id, vector<int64> &&message_ids, bool is_permanent) const;
 
   void send_update_new_chat(Dialog *d, const char *source);
@@ -2462,6 +2464,8 @@ class MessagesManager final : public Actor {
 
   td_api::object_ptr<td_api::message> get_business_message_message_object(
       telegram_api::object_ptr<telegram_api::Message> &&message);
+
+  td_api::object_ptr<td_api::updateActiveLiveLocationMessages> get_update_active_live_location_messages_object() const;
 
   vector<DialogId> sort_dialogs_by_order(const vector<DialogId> &dialog_ids, int32 limit) const;
 
