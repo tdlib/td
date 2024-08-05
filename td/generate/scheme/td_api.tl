@@ -816,8 +816,9 @@ starSubscription id:string chat_id:int53 expiration_date:int32 can_reuse:Bool is
 //@description Represents a list of Telegram Star subscriptions
 //@star_count The amount of owned Telegram Stars
 //@subscriptions List of subbscriptions for Telegram Stars
+//@required_star_count The number of Telegram Stars required to buy to prolongate subscriptions expiring soon
 //@next_offset The offset for the next request. If empty, then there are no more results
-starSubscriptions star_count:int53 subscriptions:vector<starSubscription> next_offset:string = StarSubscriptions;
+starSubscriptions star_count:int53 subscriptions:vector<starSubscription> required_star_count:int53 next_offset:string = StarSubscriptions;
 
 
 //@description Contains information about a product that can be paid with invoice

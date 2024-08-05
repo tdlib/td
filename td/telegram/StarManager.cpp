@@ -418,9 +418,9 @@ class GetStarsSubscriptionsQuery final : public Td::ResultHandler {
         subscriptions.push_back(star_subscription.get_star_subscription_object(td_));
       }
     }
-    promise_.set_value(
-        td_api::make_object<td_api::starSubscriptions>(StarManager::get_star_count(result->balance_, true),
-                                                       std::move(subscriptions), result->subscriptions_next_offset_));
+    promise_.set_value(td_api::make_object<td_api::starSubscriptions>(
+        StarManager::get_star_count(result->balance_, true), std::move(subscriptions),
+        StarManager::get_star_count(result->subscriptions_missing_balance_), result->subscriptions_next_offset_));
   }
 
   void on_error(Status status) final {
