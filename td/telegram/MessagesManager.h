@@ -2887,9 +2887,9 @@ class MessagesManager final : public Actor {
 
   void on_load_active_live_location_messages_finished();
 
-  void try_add_active_live_location(DialogId dialog_id, const Message *m);
+  bool try_add_active_live_location(DialogId dialog_id, const Message *m);
 
-  void add_active_live_location(MessageFullId message_full_id);
+  bool add_active_live_location(MessageFullId message_full_id);
 
   bool delete_active_live_location(DialogId dialog_id, const Message *m);
 

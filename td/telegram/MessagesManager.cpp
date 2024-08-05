@@ -20970,44 +20970,43 @@ void MessagesManager::on_load_active_live_location_messages_finished() {
   set_promises(load_active_live_location_messages_queries_);
 }
 
-void MessagesManager::try_add_active_live_location(DialogId dialog_id, const Message *m) {
+bool MessagesManager::try_add_active_live_location(DialogId dialog_id, const Message *m) {
   CHECK(m != nullptr);
 
   if (td_->auth_manager_->is_bot() || m->content->get_type() != MessageContentType::LiveLocation ||
       m->message_id.is_scheduled() || m->message_id.is_local() || m->message_id.is_yet_unsent() ||
       m->via_bot_user_id.is_valid() || m->via_business_bot_user_id.is_valid() || m->forward_info != nullptr) {
-    return;
+    return false;
   }
 
   auto live_period = get_message_content_live_location_period(m->content.get());
   if (live_period <= G()->unix_time() - m->date + 1) {  // bool is_expired flag?
     // live location is expired
-    return;
+    return false;
   }
-  add_active_live_location({dialog_id, m->message_id});
+  return add_active_live_location({dialog_id, m->message_id});
 }
 
-void MessagesManager::add_active_live_location(MessageFullId message_full_id) {
+bool MessagesManager::add_active_live_location(MessageFullId message_full_id) {
   if (td_->auth_manager_->is_bot()) {
-    return;
+    return false;
   }
   CHECK(message_full_id.get_message_id().is_valid());
   if (!active_live_location_message_full_ids_.insert(message_full_id).second) {
-    return;
+    return false;
   }
 
   // TODO add timer for live location expiration
 
-  if (!G()->use_message_database()) {
-    return;
+  if (G()->use_message_database()) {
+    if (are_active_live_location_messages_loaded_) {
+      save_active_live_locations();
+    } else if (load_active_live_location_messages_queries_.empty()) {
+      // load active live locations and save after that
+      get_active_live_location_messages(Auto());
+    }
   }
-
-  if (are_active_live_location_messages_loaded_) {
-    save_active_live_locations();
-  } else if (load_active_live_location_messages_queries_.empty()) {
-    // load active live locations and save after that
-    get_active_live_location_messages(Auto());
-  }
+  return true;
 }
 
 bool MessagesManager::delete_active_live_location(DialogId dialog_id, const Message *m) {
