@@ -5745,6 +5745,7 @@ void MessagesManager::on_live_location_expire_timeout() {
       CHECK(is_deleted);
     }
     send_update_active_live_location_messages();
+    save_active_live_locations();
   }
 }
 
@@ -11004,6 +11005,7 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
 
   if (was_live_location_deleted) {
     send_update_active_live_location_messages();
+    save_active_live_locations();
   }
 
   delete_all_dialog_messages_from_database(d, MessageId::max(), "delete_all_dialog_messages 3");
@@ -15355,6 +15357,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
 
     if (delete_active_live_location({d->dialog_id, m->message_id})) {
       send_update_active_live_location_messages();
+      save_active_live_locations();
     }
     remove_message_file_sources(d->dialog_id, m);
 
@@ -32969,6 +32972,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         auto new_index_mask = get_message_index_mask(dialog_id, m) & INDEX_MASK_MASK;
         if (was_deleted && !try_add_active_live_location(dialog_id, m)) {
           send_update_active_live_location_messages();
+          save_active_live_locations();
         }
         change_message_files(dialog_id, m, old_file_ids);
         if (need_send_update) {
