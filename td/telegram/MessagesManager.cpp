@@ -6771,15 +6771,15 @@ bool MessagesManager::update_message_interaction_info(Dialog *d, Message *m, int
 void MessagesManager::on_update_live_location_viewed(MessageFullId message_full_id) {
   LOG(DEBUG) << "Live location was viewed in " << message_full_id;
   if (!are_active_live_location_messages_loaded_) {
-    get_active_live_location_messages(PromiseCreator::lambda([actor_id = actor_id(this), message_full_id](Unit result) {
-      send_closure(actor_id, &MessagesManager::on_update_live_location_viewed, message_full_id);
-    }));
+    load_active_live_location_messages(
+        PromiseCreator::lambda([actor_id = actor_id(this), message_full_id](Unit result) {
+          send_closure(actor_id, &MessagesManager::on_update_live_location_viewed, message_full_id);
+        }));
     return;
   }
 
-  auto active_live_location_message_ids = get_active_live_location_messages(Auto());
-  if (!td::contains(active_live_location_message_ids, message_full_id)) {
-    LOG(DEBUG) << "Can't find " << message_full_id << " in " << active_live_location_message_ids;
+  if (!td::contains(active_live_location_message_full_ids_, message_full_id)) {
+    LOG(DEBUG) << "Can't find " << message_full_id;
     return;
   }
 
@@ -6789,7 +6789,7 @@ void MessagesManager::on_update_live_location_viewed(MessageFullId message_full_
 void MessagesManager::on_update_some_live_location_viewed(Promise<Unit> &&promise) {
   LOG(DEBUG) << "Some live location was viewed";
   if (!are_active_live_location_messages_loaded_) {
-    get_active_live_location_messages(
+    load_active_live_location_messages(
         PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](Unit result) mutable {
           send_closure(actor_id, &MessagesManager::on_update_some_live_location_viewed, std::move(promise));
         }));
@@ -6797,8 +6797,7 @@ void MessagesManager::on_update_some_live_location_viewed(Promise<Unit> &&promis
   }
 
   // update all live locations, because it is unknown, which exactly was viewed
-  auto active_live_location_message_ids = get_active_live_location_messages(Auto());
-  for (const auto &message_full_id : active_live_location_message_ids) {
+  for (const auto &message_full_id : active_live_location_message_full_ids_) {
     send_update_message_live_location_viewed(message_full_id);
   }
 
@@ -12704,7 +12703,7 @@ void MessagesManager::init() {
       }
     }
 
-    get_active_live_location_messages(Promise<Unit>());
+    load_active_live_location_messages(Promise<Unit>());
   } else if (!td_->auth_manager_->is_bot()) {
     G()->td_db()->get_binlog_pmc()->erase_by_prefix("pinned_dialog_ids");
     G()->td_db()->get_binlog_pmc()->erase_by_prefix("last_server_dialog_date");
@@ -20896,46 +20895,22 @@ void MessagesManager::search_dialog_recent_location_messages(DialogId dialog_id,
   }
 }
 
-vector<MessageFullId> MessagesManager::get_active_live_location_messages(Promise<Unit> &&promise) {
+void MessagesManager::load_active_live_location_messages(Promise<Unit> &&promise) {
   if (!G()->use_message_database()) {
     are_active_live_location_messages_loaded_ = true;
   }
-
-  if (!are_active_live_location_messages_loaded_) {
-    load_active_live_location_messages_queries_.push_back(std::move(promise));
-    if (load_active_live_location_messages_queries_.size() == 1u) {
-      LOG(INFO) << "Trying to load active live location messages from database";
-      G()->td_db()->get_sqlite_pmc()->get(
-          "di_active_live_location_messages", PromiseCreator::lambda([](string value) {
-            send_closure(G()->messages_manager(),
-                         &MessagesManager::on_load_active_live_location_message_full_ids_from_database,
-                         std::move(value));
-          }));
-    }
-    return {};
+  if (are_active_live_location_messages_loaded_) {
+    return promise.set_value(Unit());
   }
-
-  promise.set_value(Unit());
-  vector<MessageFullId> result;
-  for (const auto &message_full_id : active_live_location_message_full_ids_) {
-    auto m = get_message(message_full_id);
-    CHECK(m != nullptr);
-    CHECK(m->content->get_type() == MessageContentType::LiveLocation);
-    CHECK(!m->message_id.is_scheduled());
-
-    if (m->is_failed_to_send) {
-      continue;
-    }
-
-    auto live_period = get_message_content_live_location_period(m->content.get());
-    if (live_period <= G()->unix_time() - m->date) {  // bool is_expired flag?
-      // live location is expired
-      continue;
-    }
-    result.push_back(message_full_id);
+  load_active_live_location_messages_queries_.push_back(std::move(promise));
+  if (load_active_live_location_messages_queries_.size() == 1u) {
+    LOG(INFO) << "Trying to load active live location messages from database";
+    G()->td_db()->get_sqlite_pmc()->get(
+        "di_active_live_location_messages", PromiseCreator::lambda([](string value) {
+          send_closure(G()->messages_manager(),
+                       &MessagesManager::on_load_active_live_location_message_full_ids_from_database, std::move(value));
+        }));
   }
-
-  return result;
 }
 
 void MessagesManager::on_load_active_live_location_message_full_ids_from_database(string value) {
@@ -20944,11 +20919,10 @@ void MessagesManager::on_load_active_live_location_message_full_ids_from_databas
   }
   if (value.empty()) {
     LOG(INFO) << "Active live location messages aren't found in the database";
-    on_load_active_live_location_messages_finished();
-
     if (!active_live_location_message_full_ids_.empty()) {
       save_active_live_locations();
     }
+    on_load_active_live_location_messages_finished();
     return;
   }
 
@@ -20971,13 +20945,13 @@ void MessagesManager::on_load_active_live_location_message_full_ids_from_databas
     add_active_live_location(message_full_id);
   }
 
-  on_load_active_live_location_messages_finished();
   if (new_message_full_ids.size() != active_live_location_message_full_ids_.size()) {
     send_update_active_live_location_messages();
   }
   if (!new_message_full_ids.empty() || old_message_full_ids.size() != active_live_location_message_full_ids_.size()) {
     save_active_live_locations();
   }
+  on_load_active_live_location_messages_finished();
 }
 
 void MessagesManager::on_load_active_live_location_messages_finished() {
@@ -21020,7 +20994,7 @@ bool MessagesManager::add_active_live_location(MessageFullId message_full_id) {
       save_active_live_locations();
     } else if (load_active_live_location_messages_queries_.empty()) {
       // load active live locations and save after that
-      get_active_live_location_messages(Auto());
+      load_active_live_location_messages(Auto());
     }
   }
   return true;

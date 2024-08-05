@@ -790,8 +790,6 @@ class Td final : public Actor {
 
   void on_request(uint64 id, const td_api::searchChatRecentLocationMessages &request);
 
-  void on_request(uint64 id, const td_api::getActiveLiveLocationMessages &request);
-
   void on_request(uint64 id, const td_api::getChatMessageByDate &request);
 
   void on_request(uint64 id, const td_api::getChatSparseMessagePositions &request);

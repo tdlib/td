@@ -5359,8 +5359,6 @@ class CliClient final : public Actor {
       MessageThreadId message_thread_id;
       get_args(args, chat_id, message_thread_id);
       send_request(td_api::make_object<td_api::deleteForumTopic>(chat_id, message_thread_id));
-    } else if (op == "gallm") {
-      send_request(td_api::make_object<td_api::getActiveLiveLocationMessages>());
     } else if (op == "sbsm") {
       UserId bot_user_id;
       ChatId chat_id;

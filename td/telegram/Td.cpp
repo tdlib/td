@@ -1258,24 +1258,6 @@ class SearchChatMessagesRequest final : public RequestActor<> {
   }
 };
 
-class GetActiveLiveLocationMessagesRequest final : public RequestActor<> {
-  vector<MessageFullId> message_full_ids_;
-
-  void do_run(Promise<Unit> &&promise) final {
-    message_full_ids_ = td_->messages_manager_->get_active_live_location_messages(std::move(promise));
-  }
-
-  void do_send_result() final {
-    send_result(td_->messages_manager_->get_messages_object(-1, message_full_ids_, true,
-                                                            "GetActiveLiveLocationMessagesRequest"));
-  }
-
- public:
-  GetActiveLiveLocationMessagesRequest(ActorShared<Td> td, uint64 request_id)
-      : RequestActor(std::move(td), request_id) {
-  }
-};
-
 class GetChatScheduledMessagesRequest final : public RequestActor<> {
   DialogId dialog_id_;
 
@@ -4896,11 +4878,6 @@ void Td::on_request(uint64 id, const td_api::searchChatRecentLocationMessages &r
   CREATE_REQUEST_PROMISE();
   messages_manager_->search_dialog_recent_location_messages(DialogId(request.chat_id_), request.limit_,
                                                             std::move(promise));
-}
-
-void Td::on_request(uint64 id, const td_api::getActiveLiveLocationMessages &request) {
-  CHECK_IS_USER();
-  CREATE_NO_ARGS_REQUEST(GetActiveLiveLocationMessagesRequest);
 }
 
 void Td::on_request(uint64 id, const td_api::getChatMessageByDate &request) {

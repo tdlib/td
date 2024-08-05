@@ -754,7 +754,7 @@ class MessagesManager final : public Actor {
   void search_dialog_recent_location_messages(DialogId dialog_id, int32 limit,
                                               Promise<td_api::object_ptr<td_api::messages>> &&promise);
 
-  vector<MessageFullId> get_active_live_location_messages(Promise<Unit> &&promise);
+  void load_active_live_location_messages(Promise<Unit> &&promise);
 
   void get_dialog_message_by_date(DialogId dialog_id, int32 date,
                                   Promise<td_api::object_ptr<td_api::message>> &&promise);

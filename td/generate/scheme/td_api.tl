@@ -8546,9 +8546,6 @@ deleteAllCallMessages revoke:Bool = Ok;
 //@description Returns information about the recent locations of chat members that were sent to the chat. Returns up to 1 location message per user @chat_id Chat identifier @limit The maximum number of messages to be returned
 searchChatRecentLocationMessages chat_id:int53 limit:int32 = Messages;
 
-//@description Returns all active live locations that need to be updated by the application. The list is persistent across application restarts only if the message database is used
-getActiveLiveLocationMessages = Messages;
-
 //@description Returns the last message sent in a chat no later than the specified date @chat_id Chat identifier @date Point in time (Unix timestamp) relative to which to search for messages
 getChatMessageByDate chat_id:int53 date:int32 = Message;
 
