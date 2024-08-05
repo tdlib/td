@@ -5714,6 +5714,40 @@ void MessagesManager::on_send_paid_reactions_timeout_callback(void *messages_man
                      task_id);
 }
 
+void MessagesManager::on_live_location_expire_timeout_callback(void *messages_manager_ptr) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto messages_manager = static_cast<MessagesManager *>(messages_manager_ptr);
+  send_closure_later(messages_manager->actor_id(messages_manager), &MessagesManager::on_live_location_expire_timeout);
+}
+
+void MessagesManager::on_live_location_expire_timeout() {
+  if (G()->close_flag() || !td_->auth_manager_->is_authorized()) {
+    return;
+  }
+  vector<MessageFullId> to_delete_message_full_ids;
+  for (const auto &message_full_id : active_live_location_message_full_ids_) {
+    auto m = get_message(message_full_id);
+    CHECK(m != nullptr);
+    auto live_period = get_message_content_live_location_period(m->content.get());
+    if (live_period <= G()->unix_time() - m->date) {
+      to_delete_message_full_ids.push_back(message_full_id);
+    }
+  }
+  if (to_delete_message_full_ids.empty()) {
+    LOG(INFO) << "Have no messages to delete";
+    schedule_active_live_location_expiration();
+  } else {
+    for (auto message_full_id : to_delete_message_full_ids) {
+      bool is_deleted = delete_active_live_location(message_full_id);
+      CHECK(is_deleted);
+    }
+    send_update_active_live_location_messages();
+  }
+}
+
 BufferSlice MessagesManager::get_dialog_database_value(const Dialog *d) {
   // can't use log_event_store, because it tries to parse stored Dialog
   LogEventStorerCalcLength storer_calc_length;
@@ -10955,7 +10989,7 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
     LOG(INFO) << "Delete " << message_id;
     deleted_message_ids.push_back(message_id.get());
 
-    if (delete_active_live_location(d->dialog_id, m)) {
+    if (delete_active_live_location({d->dialog_id, m->message_id})) {
       was_live_location_deleted = true;
     }
     remove_message_file_sources(d->dialog_id, m);
@@ -15319,7 +15353,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
 
     delete_message_from_database(d, message_id, m, is_permanently_deleted, source);
 
-    if (delete_active_live_location(d->dialog_id, m)) {
+    if (delete_active_live_location({d->dialog_id, m->message_id})) {
       send_update_active_live_location_messages();
     }
     remove_message_file_sources(d->dialog_id, m);
@@ -20987,8 +21021,6 @@ bool MessagesManager::add_active_live_location(MessageFullId message_full_id) {
 
   send_update_active_live_location_messages();
 
-  // TODO add timer for live location expiration
-
   if (G()->use_message_database()) {
     if (are_active_live_location_messages_loaded_) {
       save_active_live_locations();
@@ -21000,9 +21032,25 @@ bool MessagesManager::add_active_live_location(MessageFullId message_full_id) {
   return true;
 }
 
-bool MessagesManager::delete_active_live_location(DialogId dialog_id, const Message *m) {
-  CHECK(m != nullptr);
-  return active_live_location_message_full_ids_.erase(MessageFullId{dialog_id, m->message_id}) != 0;
+bool MessagesManager::delete_active_live_location(MessageFullId message_full_id) {
+  return active_live_location_message_full_ids_.erase(message_full_id) != 0;
+}
+
+void MessagesManager::schedule_active_live_location_expiration() {
+  if (active_live_location_message_full_ids_.empty()) {
+    live_location_expire_timeout_.cancel_timeout();
+  } else {
+    double expires_in = std::numeric_limits<int32>::max();
+    for (auto message_full_id : active_live_location_message_full_ids_) {
+      const auto *m = get_message(message_full_id);
+      CHECK(m != nullptr);
+      double live_period = get_message_content_live_location_period(m->content.get());
+      expires_in = min(expires_in, live_period + m->date - G()->unix_time());
+      live_location_expire_timeout_.set_callback(std::move(on_live_location_expire_timeout_callback));
+      live_location_expire_timeout_.set_callback_data(static_cast<void *>(this));
+      live_location_expire_timeout_.set_timeout_in(expires_in);
+    }
+  }
 }
 
 void MessagesManager::save_active_live_locations() {
@@ -28866,16 +28914,15 @@ void MessagesManager::send_update_message_live_location_viewed(MessageFullId mes
 td_api::object_ptr<td_api::updateActiveLiveLocationMessages>
 MessagesManager::get_update_active_live_location_messages_object() const {
   auto message_objects = transform(active_live_location_message_full_ids_, [this](MessageFullId message_full_id) {
-    const auto *d = get_dialog(message_full_id.get_dialog_id());
-    CHECK(d != nullptr);
-    const auto *m = get_message(d, message_full_id.get_message_id());
+    const auto *m = get_message(message_full_id);
     CHECK(m != nullptr);
-    return get_message_object(d->dialog_id, m, "send_update_active_live_location_messages");
+    return get_message_object(message_full_id.get_dialog_id(), m, "send_update_active_live_location_messages");
   });
   return td_api::make_object<td_api::updateActiveLiveLocationMessages>(std::move(message_objects));
 }
 
 void MessagesManager::send_update_active_live_location_messages() {
+  schedule_active_live_location_expiration();
   send_closure(G()->td(), &Td::send_update, get_update_active_live_location_messages_object());
 }
 
@@ -32912,7 +32959,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         const int32 INDEX_MASK_MASK = ~(message_search_filter_index_mask(MessageSearchFilter::UnreadMention) |
                                         message_search_filter_index_mask(MessageSearchFilter::UnreadReaction));
         auto old_index_mask = get_message_index_mask(dialog_id, m) & INDEX_MASK_MASK;
-        bool was_deleted = delete_active_live_location(dialog_id, m);
+        bool was_deleted = delete_active_live_location({dialog_id, m->message_id});
         auto old_file_ids = get_message_file_ids(m);
 
         bool need_send_update = update_message(d, m, std::move(message), true);

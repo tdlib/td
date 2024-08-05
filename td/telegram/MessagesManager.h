@@ -78,6 +78,7 @@
 #include "td/actor/MultiPromise.h"
 #include "td/actor/MultiTimeout.h"
 #include "td/actor/SignalSlot.h"
+#include "td/actor/Timeout.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/ChangesProcessor.h"
@@ -2895,7 +2896,9 @@ class MessagesManager final : public Actor {
 
   bool add_active_live_location(MessageFullId message_full_id);
 
-  bool delete_active_live_location(DialogId dialog_id, const Message *m);
+  bool delete_active_live_location(MessageFullId message_full_id);
+
+  void schedule_active_live_location_expiration();
 
   void save_active_live_locations();
 
@@ -3058,6 +3061,10 @@ class MessagesManager final : public Actor {
   static void on_send_update_chat_read_inbox_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int);
 
   static void on_send_paid_reactions_timeout_callback(void *messages_manager_ptr, int64 task_id);
+
+  static void on_live_location_expire_timeout_callback(void *messages_manager_ptr);
+
+  void on_live_location_expire_timeout();
 
   void load_secret_thumbnail(FileId thumbnail_file_id);
 
@@ -3391,6 +3398,8 @@ class MessagesManager final : public Actor {
   MultiTimeout update_viewed_messages_timeout_{"UpdateViewedMessagesTimeout"};
   MultiTimeout send_update_chat_read_inbox_timeout_{"SendUpdateChatReadInboxTimeout"};
   MultiTimeout send_paid_reactions_timeout_{"SendPaidReactionsTimeout"};
+
+  Timeout live_location_expire_timeout_;
 
   Hints dialogs_hints_;  // search dialogs by title and usernames
 
