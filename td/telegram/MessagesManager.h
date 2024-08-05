@@ -2890,8 +2890,6 @@ class MessagesManager final : public Actor {
 
   void on_load_active_live_location_message_full_ids_from_database(string value);
 
-  void on_load_active_live_location_messages_finished();
-
   bool try_add_active_live_location(DialogId dialog_id, const Message *m);
 
   bool add_active_live_location(MessageFullId message_full_id);

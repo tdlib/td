@@ -20956,10 +20956,11 @@ void MessagesManager::on_load_active_live_location_message_full_ids_from_databas
   }
   if (value.empty()) {
     LOG(INFO) << "Active live location messages aren't found in the database";
+    are_active_live_location_messages_loaded_ = true;
     if (!active_live_location_message_full_ids_.empty()) {
       save_active_live_locations();
     }
-    on_load_active_live_location_messages_finished();
+    set_promises(load_active_live_location_messages_queries_);
     return;
   }
 
@@ -20982,17 +20983,13 @@ void MessagesManager::on_load_active_live_location_message_full_ids_from_databas
     add_active_live_location(message_full_id);
   }
 
+  are_active_live_location_messages_loaded_ = true;
   if (new_message_full_ids.size() != active_live_location_message_full_ids_.size()) {
     send_update_active_live_location_messages();
   }
   if (!new_message_full_ids.empty() || old_message_full_ids.size() != active_live_location_message_full_ids_.size()) {
     save_active_live_locations();
   }
-  on_load_active_live_location_messages_finished();
-}
-
-void MessagesManager::on_load_active_live_location_messages_finished() {
-  are_active_live_location_messages_loaded_ = true;
   set_promises(load_active_live_location_messages_queries_);
 }
 
@@ -21021,8 +21018,6 @@ bool MessagesManager::add_active_live_location(MessageFullId message_full_id) {
   if (!active_live_location_message_full_ids_.insert(message_full_id).second) {
     return false;
   }
-
-  send_update_active_live_location_messages();
 
   if (G()->use_message_database()) {
     if (are_active_live_location_messages_loaded_) {
