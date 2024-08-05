@@ -1238,10 +1238,6 @@ class StoryManager::EditStoryQuery final : public Td::ResultHandler {
     vector<telegram_api::object_ptr<telegram_api::MediaArea>> input_media_areas;
     if (edited_story->edit_media_areas_) {
       input_media_areas = MediaArea::get_input_media_areas(td_, edited_story->areas_);
-    } else if (content != nullptr) {
-      input_media_areas = MediaArea::get_input_media_areas(td_, story->areas_);
-    }
-    if (!input_media_areas.empty()) {
       flags |= telegram_api::stories_editStory::MEDIA_AREAS_MASK;
     }
     vector<telegram_api::object_ptr<telegram_api::MessageEntity>> entities;
