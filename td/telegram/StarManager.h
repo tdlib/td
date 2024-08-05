@@ -36,7 +36,7 @@ class StarManager final : public Actor {
                              td_api::object_ptr<td_api::StarTransactionDirection> &&direction,
                              Promise<td_api::object_ptr<td_api::starTransactions>> &&promise);
 
-  void get_star_subscriptions(const string &offset, int32 limit,
+  void get_star_subscriptions(bool only_expiring, const string &offset,
                               Promise<td_api::object_ptr<td_api::starSubscriptions>> &&promise);
 
   void edit_star_subscriptions(const string &subscription_id, bool is_canceled, Promise<Unit> &&promise);

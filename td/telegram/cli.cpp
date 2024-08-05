@@ -3478,10 +3478,10 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getStarTransactions>(as_message_sender(owner_id), subscription_id,
                                                                     std::move(direction), offset, as_limit(limit)));
     } else if (op == "gssu") {
+      bool only_expiring;
       string offset;
-      string limit;
-      get_args(args, offset, limit);
-      send_request(td_api::make_object<td_api::getStarSubscriptions>(offset, as_limit(limit)));
+      get_args(args, only_expiring, offset);
+      send_request(td_api::make_object<td_api::getStarSubscriptions>(only_expiring, offset));
     } else if (op == "ess") {
       string subscription_id;
       bool is_canceled;

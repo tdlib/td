@@ -391,8 +391,11 @@ class GetStarsSubscriptionsQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(const string &offset, int32 limit) {
+  void send(bool only_expiring, const string &offset) {
     int32 flags = 0;
+    if (only_expiring) {
+      flags |= telegram_api::payments_getStarsSubscriptions::MISSING_BALANCE_MASK;
+    }
     send_query(G()->net_query_creator().create(telegram_api::payments_getStarsSubscriptions(
         flags, false /*ignored*/, telegram_api::make_object<telegram_api::inputPeerSelf>(), offset)));
   }
@@ -719,12 +722,9 @@ void StarManager::do_get_star_transactions(DialogId dialog_id, const string &sub
       ->send(dialog_id, subscription_id, offset, limit, std::move(direction));
 }
 
-void StarManager::get_star_subscriptions(const string &offset, int32 limit,
+void StarManager::get_star_subscriptions(bool only_expiring, const string &offset,
                                          Promise<td_api::object_ptr<td_api::starSubscriptions>> &&promise) {
-  if (limit < 0) {
-    return promise.set_error(Status::Error(400, "Limit must be non-negative"));
-  }
-  td_->create_handler<GetStarsSubscriptionsQuery>(std::move(promise))->send(offset, limit);
+  td_->create_handler<GetStarsSubscriptionsQuery>(std::move(promise))->send(only_expiring, offset);
 }
 
 void StarManager::edit_star_subscriptions(const string &subscription_id, bool is_canceled, Promise<Unit> &&promise) {

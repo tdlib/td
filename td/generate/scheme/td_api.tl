@@ -809,14 +809,14 @@ starSubscriptionPricing period:int32 star_count:int53 = StarSubscriptionPricing;
 //@expiration_date Point in time (Unix timestamp) when the subscription will expire or expired
 //@can_reuse True, if the subscription is active and the user can use the method reuseStarSubscription to join the subscribed chat again
 //@is_canceled True, if the subscription was canceled
-//@is_expiring True, if the subscription expires soon and there are no enough Telegram Stars on the user's balance to prolongate it
+//@is_expiring True, if the subscription expires soon and there are no enough Telegram Stars on the user's balance to extend it
 //@pricing The subscription plan
 starSubscription id:string chat_id:int53 expiration_date:int32 can_reuse:Bool is_canceled:Bool is_expiring:Bool pricing:starSubscriptionPricing = StarSubscription;
 
 //@description Represents a list of Telegram Star subscriptions
 //@star_count The amount of owned Telegram Stars
 //@subscriptions List of subbscriptions for Telegram Stars
-//@required_star_count The number of Telegram Stars required to buy to prolongate subscriptions expiring soon
+//@required_star_count The number of Telegram Stars required to buy to extend subscriptions expiring soon
 //@next_offset The offset for the next request. If empty, then there are no more results
 starSubscriptions star_count:int53 subscriptions:vector<starSubscription> required_star_count:int53 next_offset:string = StarSubscriptions;
 
@@ -11485,9 +11485,9 @@ getStarGiftPaymentOptions user_id:int53 = StarPaymentOptions;
 getStarTransactions owner_id:MessageSender subscription_id:string direction:StarTransactionDirection offset:string limit:int32 = StarTransactions;
 
 //@description Returns the list of Telegram Star subscriptions for the current user
+//@only_expiring Pass true to receive only expiring subscriptions for which there are no enough Telegram Stars to extend
 //@offset Offset of the first subscription to return as received from the previous request; use empty string to get the first chunk of results
-//@limit The maximum number of results to return
-getStarSubscriptions offset:string limit:int32 = StarSubscriptions;
+getStarSubscriptions only_expiring:Bool offset:string = StarSubscriptions;
 
 //@description Checks whether an in-store purchase is possible. Must be called before any in-store purchase @purpose Transaction purpose
 canPurchaseFromStore purpose:StorePaymentPurpose = Ok;
