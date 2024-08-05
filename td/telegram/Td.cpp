@@ -9120,10 +9120,11 @@ void Td::on_request(uint64 id, const td_api::getStarGiftPaymentOptions &request)
 }
 
 void Td::on_request(uint64 id, td_api::getStarTransactions &request) {
+  CLEAN_INPUT_STRING(request.subscription_id_);
   CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();
-  star_manager_->get_star_transactions(std::move(request.owner_id_), request.offset_, request.limit_,
-                                       std::move(request.direction_), std::move(promise));
+  star_manager_->get_star_transactions(std::move(request.owner_id_), request.subscription_id_, request.offset_,
+                                       request.limit_, std::move(request.direction_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getStarSubscriptions &request) {

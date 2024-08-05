@@ -122,7 +122,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, const string &offset, int32 limit,
+  void send(DialogId dialog_id, const string &subscription_id, const string &offset, int32 limit,
             td_api::object_ptr<td_api::StarTransactionDirection> &&direction) {
     dialog_id_ = dialog_id;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
@@ -130,6 +130,9 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Have no access to the chat"));
     }
     int32 flags = 0;
+    if (!subscription_id.empty()) {
+      flags |= telegram_api::payments_getStarsTransactions::SUBSCRIPTION_ID_MASK;
+    }
     if (direction != nullptr) {
       switch (direction->get_id()) {
         case td_api::starTransactionDirectionIncoming::ID:
@@ -147,7 +150,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
     }
     send_query(G()->net_query_creator().create(
         telegram_api::payments_getStarsTransactions(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                                    string(), std::move(input_peer), offset, limit)));
+                                                    subscription_id, std::move(input_peer), offset, limit)));
   }
 
   void send(DialogId dialog_id, const string &transaction_id, bool is_refund) {
@@ -684,34 +687,36 @@ void StarManager::get_star_gift_payment_options(UserId user_id,
   td_->create_handler<GetStarsGiftOptionsQuery>(std::move(promise))->send(std::move(input_user));
 }
 
-void StarManager::get_star_transactions(td_api::object_ptr<td_api::MessageSender> owner_id, const string &offset,
-                                        int32 limit, td_api::object_ptr<td_api::StarTransactionDirection> &&direction,
+void StarManager::get_star_transactions(td_api::object_ptr<td_api::MessageSender> owner_id,
+                                        const string &subscription_id, const string &offset, int32 limit,
+                                        td_api::object_ptr<td_api::StarTransactionDirection> &&direction,
                                         Promise<td_api::object_ptr<td_api::starTransactions>> &&promise) {
   TRY_RESULT_PROMISE(promise, dialog_id, get_message_sender_dialog_id(td_, owner_id, true, false));
   TRY_STATUS_PROMISE(promise, can_manage_stars(dialog_id, true));
   if (limit < 0) {
     return promise.set_error(Status::Error(400, "Limit must be non-negative"));
   }
-  td_->stickers_manager_->load_premium_gift_sticker_set(
-      PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, offset, limit, direction = std::move(direction),
-                              promise = std::move(promise)](Result<Unit> &&result) mutable {
+  td_->stickers_manager_->load_premium_gift_sticker_set(PromiseCreator::lambda(
+      [actor_id = actor_id(this), dialog_id, subscription_id, offset, limit, direction = std::move(direction),
+       promise = std::move(promise)](Result<Unit> &&result) mutable {
         if (result.is_error()) {
           promise.set_error(result.move_as_error());
         } else {
-          send_closure(actor_id, &StarManager::do_get_star_transactions, dialog_id, offset, limit, std::move(direction),
-                       std::move(promise));
+          send_closure(actor_id, &StarManager::do_get_star_transactions, dialog_id, subscription_id, offset, limit,
+                       std::move(direction), std::move(promise));
         }
       }));
 }
 
-void StarManager::do_get_star_transactions(DialogId dialog_id, const string &offset, int32 limit,
+void StarManager::do_get_star_transactions(DialogId dialog_id, const string &subscription_id, const string &offset,
+                                           int32 limit,
                                            td_api::object_ptr<td_api::StarTransactionDirection> &&direction,
                                            Promise<td_api::object_ptr<td_api::starTransactions>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   TRY_STATUS_PROMISE(promise, can_manage_stars(dialog_id, true));
 
   td_->create_handler<GetStarsTransactionsQuery>(std::move(promise))
-      ->send(dialog_id, offset, limit, std::move(direction));
+      ->send(dialog_id, subscription_id, offset, limit, std::move(direction));
 }
 
 void StarManager::get_star_subscriptions(const string &offset, int32 limit,
