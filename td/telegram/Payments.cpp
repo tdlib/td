@@ -23,6 +23,7 @@
 #include "td/telegram/Premium.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StarManager.h"
+#include "td/telegram/SuggestedAction.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/ThemeManager.h"
@@ -133,6 +134,8 @@ Result<InputInvoiceInfo> get_input_invoice_info(Td *td, td_api::object_ptr<td_ap
           if (!clean_input_string(p->currency_)) {
             return Status::Error(400, "Strings must be encoded in UTF-8");
           }
+          dismiss_suggested_action(SuggestedAction{SuggestedAction::Type::StarsSubscriptionLowBalance},
+                                   Promise<Unit>());
           auto purpose = telegram_api::make_object<telegram_api::inputStorePaymentStarsTopup>(p->star_count_,
                                                                                               p->currency_, p->amount_);
           result.input_invoice_ = telegram_api::make_object<telegram_api::inputInvoiceStars>(std::move(purpose));

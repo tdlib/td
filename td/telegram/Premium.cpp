@@ -253,6 +253,7 @@ static Result<tl_object_ptr<telegram_api::InputStorePaymentPurpose>> get_input_s
       if (!clean_input_string(p->currency_)) {
         return Status::Error(400, "Strings must be encoded in UTF-8");
       }
+      dismiss_suggested_action(SuggestedAction{SuggestedAction::Type::StarsSubscriptionLowBalance}, Promise<Unit>());
       return telegram_api::make_object<telegram_api::inputStorePaymentStarsTopup>(p->star_count_, p->currency_,
                                                                                   p->amount_);
     }
