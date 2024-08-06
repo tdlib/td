@@ -1078,12 +1078,14 @@ class UpdateBirthdayQuery final : public Td::ResultHandler {
 
 class UpdatePersonalChannelQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
+  ChannelId channel_id_;
 
  public:
   explicit UpdatePersonalChannelQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(ChannelId channel_id) {
+    channel_id_ = channel_id;
     telegram_api::object_ptr<telegram_api::InputChannel> input_channel;
     if (channel_id == ChannelId()) {
       input_channel = telegram_api::make_object<telegram_api::inputChannelEmpty>();
@@ -1110,6 +1112,9 @@ class UpdatePersonalChannelQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    if (channel_id_.is_valid()) {
+      td_->chat_manager_->on_get_channel_error(channel_id_, status, "UpdatePersonalChannelQuery");
+    }
     promise_.set_error(std::move(status));
   }
 };
