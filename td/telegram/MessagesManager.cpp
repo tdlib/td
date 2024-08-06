@@ -12051,9 +12051,10 @@ void MessagesManager::process_viewed_message(Dialog *d, const vector<MessageId> 
   if (!extended_media_message_ids.empty()) {
     td_->create_handler<GetExtendedMediaQuery>()->send(dialog_id, std::move(extended_media_message_ids));
   }
-
-  int divisor = 5 - min(max(G()->unix_time() - newest_message_date, 0) / UPDATE_VIEWED_MESSAGES_PERIOD, 4);
-  update_viewed_messages_timeout_.add_timeout_in(dialog_id.get(), UPDATE_VIEWED_MESSAGES_PERIOD / divisor);
+  if (td_->online_manager_->is_online()) {
+    int divisor = 5 - min(max(G()->unix_time() - newest_message_date, 0) / UPDATE_VIEWED_MESSAGES_PERIOD, 4);
+    update_viewed_messages_timeout_.add_timeout_in(dialog_id.get(), UPDATE_VIEWED_MESSAGES_PERIOD / divisor);
+  }
 }
 
 void MessagesManager::on_send_update_chat_read_inbox_timeout(DialogId dialog_id) {
