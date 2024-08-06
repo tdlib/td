@@ -12008,21 +12008,28 @@ void MessagesManager::on_update_viewed_messages_timeout(DialogId dialog_id) {
     return;
   }
 
-  auto &info = it->second;
-  CHECK(info != nullptr);
+  vector<MessageId> viewed_message_ids;
+  for (const auto &message_it : it->second->message_id_to_view_id) {
+    viewed_message_ids.push_back(message_it.first);
+  }
+  process_viewed_message(d, viewed_message_ids, false);
+}
+
+void MessagesManager::process_viewed_message(Dialog *d, const vector<MessageId> &viewed_message_ids, bool is_first) {
+  auto dialog_id = d->dialog_id;
   vector<MessageId> reaction_message_ids;
   vector<MessageId> views_message_ids;
   vector<MessageId> extended_media_message_ids;
   int32 newest_message_date = 0;
-  for (auto &message_it : info->message_id_to_view_id) {
-    Message *m = get_message_force(d, message_it.first, "on_update_viewed_messages_timeout");
+  for (auto message_id : viewed_message_ids) {
+    Message *m = get_message_force(d, message_id, "on_update_viewed_messages_timeout");
     CHECK(m != nullptr);
     CHECK(m->message_id.is_valid());
     CHECK(m->message_id.is_server());
     if (need_poll_message_reactions(d, m)) {
       reaction_message_ids.push_back(m->message_id);
     }
-    if (m->view_count > 0 && !m->has_get_message_views_query) {
+    if (!is_first && m->view_count > 0 && !m->has_get_message_views_query) {
       m->has_get_message_views_query = true;
       views_message_ids.push_back(m->message_id);
     }
@@ -18894,7 +18901,6 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
   vector<MessageId> read_content_message_ids;
   vector<MessageId> read_reaction_message_ids;
   vector<MessageId> new_viewed_message_ids;
-  vector<MessageId> viewed_reaction_message_ids;
   vector<MessageId> viewed_fact_check_message_ids;
   vector<string> authentication_codes;
   vector<MessageId> screenshotted_secret_message_ids;
@@ -18953,9 +18959,6 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
         auto &view_id = info->message_id_to_view_id[message_id];
         if (view_id == 0) {
           new_viewed_message_ids.push_back(message_id);
-          if (need_poll_message_reactions(d, m)) {
-            viewed_reaction_message_ids.push_back(message_id);
-          }
         } else {
           info->recently_viewed_messages.erase(view_id);
         }
@@ -19015,9 +19018,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
       info->message_id_to_view_id.erase(it->second);
       info->recently_viewed_messages.erase(it);
     }
-    if (!viewed_reaction_message_ids.empty()) {
-      queue_message_reactions_reload(dialog_id, viewed_reaction_message_ids);
-    }
+    process_viewed_message(d, new_viewed_message_ids, true);
   }
   if (!viewed_fact_check_message_ids.empty()) {
     CHECK(dialog_id.get_type() != DialogType::SecretChat);

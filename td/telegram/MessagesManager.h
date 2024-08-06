@@ -2870,6 +2870,8 @@ class MessagesManager final : public Actor {
                                   MessageId offset_message_id, int32 limit, MessageSearchFilter filter,
                                   Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 
+  void process_viewed_message(Dialog *d, const vector<MessageId> &viewed_message_ids, bool is_first);
+
   void on_load_active_live_location_message_full_ids_from_database(string value);
 
   void on_load_active_live_location_messages_finished();
