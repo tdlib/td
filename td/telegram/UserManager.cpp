@@ -5255,6 +5255,7 @@ void UserManager::set_personal_channel(DialogId dialog_id, Promise<Unit> &&promi
     if (!td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
       return promise.set_error(Status::Error(400, "Chat can't be set as a personal chat"));
     }
+    channel_id = dialog_id.get_channel_id();
   }
   auto query_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), channel_id, promise = std::move(promise)](Result<Unit> result) mutable {
