@@ -571,7 +571,8 @@ td_api::object_ptr<td_api::availableReactions> ReactionManager::get_sorted_avail
     CHECK(!reaction_type.is_empty());
     all_available_reaction_types.insert(reaction_type);
   }
-  if (available_reactions.paid_reactions_available_) {
+  if (available_reactions.paid_reactions_available_ ||
+      (!available_reactions.reaction_types_.empty() && available_reactions.reaction_types_[0].is_paid_reaction())) {
     all_available_reaction_types.insert(ReactionType::paid());
     top_reactions.insert(top_reactions.begin(), ReactionType::paid());
   }
@@ -669,6 +670,7 @@ void ReactionManager::add_recent_reaction(const ReactionType &reaction_type) {
   if (!reactions.empty() && reactions[0] == reaction_type) {
     return;
   }
+  CHECK(!reaction_type.is_paid_reaction());
 
   add_to_top(reactions, MAX_RECENT_REACTIONS, reaction_type);
 
