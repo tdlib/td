@@ -17466,7 +17466,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   auto can_be_saved = can_save_message(dialog_id, m);
   auto can_be_edited = can_edit_message(dialog_id, m, false, is_bot);
   auto can_be_forwarded = can_be_saved && can_forward_message(dialog_id, m);
-  auto can_be_paid = get_invoice_message_id({dialog_id, m->message_id}).is_ok();
+  auto can_be_paid = get_invoice_message_info({dialog_id, m->message_id}).is_ok();
   auto can_be_pinned = can_pin_message(dialog_id, m).is_ok();
   auto can_be_replied =
       message_id.is_valid() && !(message_id == MessageId(ServerMessageId(1)) && dialog_type == DialogType::Channel) &&
@@ -38600,8 +38600,8 @@ void MessagesManager::stop_poll(MessageFullId message_full_id, td_api::object_pt
   stop_message_content_poll(td_, m->content.get(), message_full_id, std::move(new_reply_markup), std::move(promise));
 }
 
-Result<ServerMessageId> MessagesManager::get_invoice_message_id(MessageFullId message_full_id) {
-  auto m = get_message_force(message_full_id, "get_invoice_message_id");
+Result<MessagesManager::InvoiceMessageInfo> MessagesManager::get_invoice_message_info(MessageFullId message_full_id) {
+  auto m = get_message_force(message_full_id, "get_invoice_message_info");
   if (m == nullptr) {
     return Status::Error(400, "Message not found");
   }
@@ -38628,7 +38628,11 @@ Result<ServerMessageId> MessagesManager::get_invoice_message_id(MessageFullId me
     }
   }
 
-  return m->message_id.get_server_message_id();
+  InvoiceMessageInfo result;
+  result.server_message_id_ = m->message_id.get_server_message_id();
+  result.star_count_ =
+      content_type != MessageContentType::PaidMedia ? 0 : get_message_content_star_count(m->content.get());
+  return std::move(result);
 }
 
 Result<ServerMessageId> MessagesManager::get_payment_successful_message_id(MessageFullId message_full_id) {

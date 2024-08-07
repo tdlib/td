@@ -666,6 +666,10 @@ void StarManager::on_update_owned_star_count(int64 star_count) {
   send_closure(G()->td(), &Td::send_update, get_update_owned_star_count_object());
 }
 
+void StarManager::add_owned_star_count(int64 star_count) {
+  on_update_owned_star_count(star_count + owned_star_count_);
+}
+
 Status StarManager::can_manage_stars(DialogId dialog_id, bool allow_self) const {
   switch (dialog_id.get_type()) {
     case DialogType::User: {

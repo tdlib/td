@@ -29,6 +29,8 @@ class StarManager final : public Actor {
 
   void on_update_owned_star_count(int64 star_count);
 
+  void add_owned_star_count(int64 star_count);
+
   void get_star_payment_options(Promise<td_api::object_ptr<td_api::starPaymentOptions>> &&promise);
 
   void get_star_gift_payment_options(UserId user_id, Promise<td_api::object_ptr<td_api::starPaymentOptions>> &&promise);

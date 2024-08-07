@@ -966,7 +966,11 @@ class MessagesManager final : public Actor {
 
   Result<string> get_login_button_url(MessageFullId message_full_id, int64 button_id);
 
-  Result<ServerMessageId> get_invoice_message_id(MessageFullId message_full_id);
+  struct InvoiceMessageInfo {
+    ServerMessageId server_message_id_;
+    int64 star_count_ = 0;
+  };
+  Result<InvoiceMessageInfo> get_invoice_message_info(MessageFullId message_full_id);
 
   Result<ServerMessageId> get_payment_successful_message_id(MessageFullId message_full_id);
 
