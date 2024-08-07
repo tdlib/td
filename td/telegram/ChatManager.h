@@ -351,6 +351,7 @@ class ChatManager final : public Actor {
   bool get_channel_is_fake(ChannelId channel_id) const;
   int32 get_channel_participant_count(ChannelId channel_id) const;
   bool get_channel_sign_messages(ChannelId channel_id) const;
+  bool get_channel_show_message_sender(ChannelId channel_id) const;
   bool get_channel_has_linked_channel(ChannelId channel_id) const;
   bool get_channel_join_request(ChannelId channel_id) const;
   bool get_channel_can_be_deleted(ChannelId channel_id) const;
@@ -703,6 +704,7 @@ class ChatManager final : public Actor {
   static DialogParticipantStatus get_channel_status(const Channel *c);
   DialogParticipantStatus get_channel_permissions(ChannelId channel_id, const Channel *c) const;
   static bool get_channel_sign_messages(const Channel *c);
+  static bool get_channel_show_message_sender(const Channel *c);
   static bool get_channel_has_linked_channel(const Channel *c);
   static bool get_channel_can_be_deleted(const Channel *c);
   static bool get_channel_join_to_send(const Channel *c);

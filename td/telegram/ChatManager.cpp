@@ -7850,6 +7850,18 @@ bool ChatManager::get_channel_sign_messages(const Channel *c) {
   return c->sign_messages;
 }
 
+bool ChatManager::get_channel_show_message_sender(ChannelId channel_id) const {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return false;
+  }
+  return get_channel_show_message_sender(c);
+}
+
+bool ChatManager::get_channel_show_message_sender(const Channel *c) {
+  return c->show_message_sender;
+}
+
 bool ChatManager::get_channel_has_linked_channel(ChannelId channel_id) const {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
