@@ -551,7 +551,8 @@ td_api::object_ptr<td_api::availableReactions> ReactionManager::get_sorted_avail
     top_reactions = get_reaction_list(ReactionListType::Top).reaction_types_;
   }
   LOG(INFO) << "Have available reactions " << available_reactions << " to be sorted by top reactions " << top_reactions
-            << " and recent reactions " << recent_reactions;
+            << " and recent reactions " << recent_reactions
+            << " and paid reaction = " << available_reactions.paid_reactions_available_;
   if (active_reactions.allow_all_custom_ && active_reactions.allow_all_regular_) {
     for (auto &reaction_type : recent_reactions) {
       if (reaction_type.is_custom_reaction()) {

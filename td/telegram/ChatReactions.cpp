@@ -124,6 +124,12 @@ telegram_api::object_ptr<telegram_api::ChatReactions> ChatReactions::get_input_c
   return telegram_api::make_object<telegram_api::chatReactionsNone>();
 }
 
+void ChatReactions::ignore_non_paid_reaction_types() {
+  reaction_types_.clear();
+  allow_all_regular_ = false;
+  allow_all_custom_ = false;
+}
+
 bool operator==(const ChatReactions &lhs, const ChatReactions &rhs) {
   // don't compare allow_all_custom_
   return lhs.reaction_types_ == rhs.reaction_types_ && lhs.allow_all_regular_ == rhs.allow_all_regular_ &&

@@ -22650,8 +22650,10 @@ ChatReactions MessagesManager::get_message_available_reactions(const Dialog *d, 
   bool can_add_new_reactions =
       m->reactions == nullptr || m->reactions->get_non_paid_reaction_count() < reactions_uniq_max;
 
-  if (!can_use_reactions || !can_add_new_reactions) {
+  if (!can_use_reactions) {
     active_reactions = ChatReactions();
+  } else if (!can_add_new_reactions) {
+    active_reactions.ignore_non_paid_reaction_types();
   }
 
   if (active_reactions.allow_all_regular_) {

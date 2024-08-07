@@ -55,6 +55,8 @@ struct ChatReactions {
     return reaction_types_.empty() && !allow_all_regular_ && !paid_reactions_available_;
   }
 
+  void ignore_non_paid_reaction_types();
+
   bool remove_paid_reactions();
 
   template <class StorerT>
