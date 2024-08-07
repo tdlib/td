@@ -372,6 +372,9 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
       }
       transactions.push_back(std::move(star_transaction));
     }
+    if (!td_->auth_manager_->is_bot() && dialog_id_ == td_->dialog_manager_->get_my_dialog_id()) {
+      td_->star_manager_->on_update_owned_star_count(star_count);
+    }
 
     promise_.set_value(
         td_api::make_object<td_api::starTransactions>(star_count, std::move(transactions), result->next_offset_));
@@ -421,9 +424,13 @@ class GetStarsSubscriptionsQuery final : public Td::ResultHandler {
         subscriptions.push_back(star_subscription.get_star_subscription_object(td_));
       }
     }
+    auto star_count = StarManager::get_star_count(result->balance_, true);
+    if (!td_->auth_manager_->is_bot()) {
+      td_->star_manager_->on_update_owned_star_count(star_count);
+    }
     promise_.set_value(td_api::make_object<td_api::starSubscriptions>(
-        StarManager::get_star_count(result->balance_, true), std::move(subscriptions),
-        StarManager::get_star_count(result->subscriptions_missing_balance_), result->subscriptions_next_offset_));
+        star_count, std::move(subscriptions), StarManager::get_star_count(result->subscriptions_missing_balance_),
+        result->subscriptions_next_offset_));
   }
 
   void on_error(Status status) final {
