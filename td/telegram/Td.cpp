@@ -7737,7 +7737,7 @@ void Td::on_request(uint64 id, const td_api::toggleSupergroupSignMessages &reque
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   chat_manager_->toggle_channel_sign_messages(ChannelId(request.supergroup_id_), request.sign_messages_,
-                                              std::move(promise));
+                                              request.show_message_sender_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::toggleSupergroupJoinToSendMessages &request) {

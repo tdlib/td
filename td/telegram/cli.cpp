@@ -6330,9 +6330,10 @@ class CliClient final : public Actor {
     } else if (op == "tsgsm") {
       string supergroup_id;
       bool sign_messages;
-      get_args(args, supergroup_id, sign_messages);
-      send_request(
-          td_api::make_object<td_api::toggleSupergroupSignMessages>(as_supergroup_id(supergroup_id), sign_messages));
+      bool show_message_sender;
+      get_args(args, supergroup_id, sign_messages, show_message_sender);
+      send_request(td_api::make_object<td_api::toggleSupergroupSignMessages>(as_supergroup_id(supergroup_id),
+                                                                             sign_messages, show_message_sender));
     } else if (op == "tsgjtsm") {
       string supergroup_id;
       bool join_to_send_message;

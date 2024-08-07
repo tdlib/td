@@ -569,13 +569,16 @@ class ToggleChannelSignaturesQuery final : public Td::ResultHandler {
   explicit ToggleChannelSignaturesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, bool sign_messages) {
+  void send(ChannelId channel_id, bool sign_messages, bool show_message_sender) {
     channel_id_ = channel_id;
     auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     int32 flags = 0;
     if (sign_messages) {
       flags |= telegram_api::channels_toggleSignatures::SIGNATURES_ENABLED_MASK;
+    }
+    if (show_message_sender) {
+      flags |= telegram_api::channels_toggleSignatures::PROFILES_ENABLED_MASK;
     }
     send_query(G()->net_query_creator().create(
         telegram_api::channels_toggleSignatures(flags, false /*ignored*/, false /*ignored*/, std::move(input_channel)),
@@ -3107,7 +3110,8 @@ void ChatManager::set_channel_unrestrict_boost_count(ChannelId channel_id, int32
       ->send(channel_id, unrestrict_boost_count);
 }
 
-void ChatManager::toggle_channel_sign_messages(ChannelId channel_id, bool sign_messages, Promise<Unit> &&promise) {
+void ChatManager::toggle_channel_sign_messages(ChannelId channel_id, bool sign_messages, bool show_message_sender,
+                                               Promise<Unit> &&promise) {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
     return promise.set_error(Status::Error(400, "Supergroup not found"));
@@ -3119,7 +3123,8 @@ void ChatManager::toggle_channel_sign_messages(ChannelId channel_id, bool sign_m
     return promise.set_error(Status::Error(400, "Not enough rights to toggle channel sign messages"));
   }
 
-  td_->create_handler<ToggleChannelSignaturesQuery>(std::move(promise))->send(channel_id, sign_messages);
+  td_->create_handler<ToggleChannelSignaturesQuery>(std::move(promise))
+      ->send(channel_id, sign_messages, show_message_sender);
 }
 
 void ChatManager::toggle_channel_join_to_send(ChannelId channel_id, bool join_to_send, Promise<Unit> &&promise) {

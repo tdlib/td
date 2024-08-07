@@ -10907,8 +10907,11 @@ setSupergroupCustomEmojiStickerSet supergroup_id:int53 custom_emoji_sticker_set_
 //@unrestrict_boost_count New value of the unrestrict_boost_count supergroup setting; 0-8. Use 0 to remove the setting
 setSupergroupUnrestrictBoostCount supergroup_id:int53 unrestrict_boost_count:int32 = Ok;
 
-//@description Toggles whether sender signature is added to sent messages in a channel; requires can_change_info member right @supergroup_id Identifier of the channel @sign_messages New value of sign_messages
-toggleSupergroupSignMessages supergroup_id:int53 sign_messages:Bool = Ok;
+//@description Toggles whether sender signature or link to the account is added to sent messages in a channel; requires can_change_info member right
+//@supergroup_id Identifier of the channel
+//@sign_messages New value of sign_messages
+//@show_message_sender New value of show_message_sender
+toggleSupergroupSignMessages supergroup_id:int53 sign_messages:Bool show_message_sender:Bool = Ok;
 
 //@description Toggles whether joining is mandatory to send messages to a discussion supergroup; requires can_restrict_members administrator right
 //@supergroup_id Identifier of the supergroup that isn't a broadcast group

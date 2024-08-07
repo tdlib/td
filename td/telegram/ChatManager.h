@@ -243,7 +243,8 @@ class ChatManager final : public Actor {
 
   void set_channel_unrestrict_boost_count(ChannelId channel_id, int32 unrestrict_boost_count, Promise<Unit> &&promise);
 
-  void toggle_channel_sign_messages(ChannelId channel_id, bool sign_messages, Promise<Unit> &&promise);
+  void toggle_channel_sign_messages(ChannelId channel_id, bool sign_messages, bool show_message_sender,
+                                    Promise<Unit> &&promise);
 
   void toggle_channel_join_to_send(ChannelId channel_id, bool joint_to_send, Promise<Unit> &&promise);
 
