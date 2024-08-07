@@ -207,9 +207,13 @@ add_subdirectory(sqlite)
 
 add_subdirectory(tddb)
 
-add_subdirectory(test)
+option(TD_SKIP_TEST "Use \"ON\" to skip building/running the test harness.")
+if (NOT TD_SKIP_TEST)
+  add_subdirectory(test)
+endif()
 
-if (NOT CMAKE_CROSSCOMPILING)
+option(TD_SKIP_BENCHMARK "Use \"ON\" to skip building/running the benchmarks.")
+if (NOT CMAKE_CROSSCOMPILING AND NOT TD_SKIP_BENCHMARK)
   add_subdirectory(benchmark)
 endif()
 
@@ -1226,7 +1230,8 @@ if (EMSCRIPTEN)
 endif()
 
 #EXECUTABLES
-if (NOT CMAKE_CROSSCOMPILING)
+option(TD_SKIP_TG_CLI "Use \"ON\" to skip building tg_cli.")
+if (NOT CMAKE_CROSSCOMPILING AND NOT TD_SKIP_TG_CLI)
   add_executable(tg_cli td/telegram/cli.cpp ${TL_TD_JSON_SOURCE})
 
   if (NOT READLINE_FOUND)
