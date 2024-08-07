@@ -90,8 +90,8 @@ bool ChatReactions::is_allowed_reaction_type(const ReactionType &reaction_type) 
   if (allow_all_custom_ && reaction_type.is_custom_reaction()) {
     return true;
   }
-  if (reaction_type.is_paid_reaction()) {
-    return paid_reactions_available_;
+  if (reaction_type.is_paid_reaction() && paid_reactions_available_) {
+    return true;
   }
   return td::contains(reaction_types_, reaction_type);
 }
