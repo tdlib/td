@@ -245,6 +245,8 @@ class WebPagesManager::WebPage {
   int32 duration_ = 0;
   string author_;
   bool has_large_media_ = false;
+  mutable bool is_album_ = false;
+  mutable bool is_album_checked_ = false;
   Document document_;
   vector<Document> documents_;
   ThemeSettings theme_settings_;
@@ -1347,6 +1349,30 @@ bool WebPagesManager::have_web_page(WebPageId web_page_id) const {
   return get_web_page(web_page_id) != nullptr;
 }
 
+bool WebPagesManager::can_web_page_be_album(const WebPage *web_page) {
+  if (web_page->type_ == "telegram_album") {
+    return true;
+  }
+  auto site_name = to_lower(web_page->site_name_);
+  return site_name == "instagram" || site_name == "twitter" || site_name == "x";
+}
+
+bool WebPagesManager::is_web_page_album(const WebPage *web_page) {
+  if (!web_page->is_album_checked_) {
+    web_page->is_album_checked_ = true;
+    if (web_page->type_ == "telegram_album") {
+      web_page->is_album_ = true;
+    } else if (can_web_page_be_album(web_page) && !web_page->instant_view_.is_empty_) {
+      if (!web_page->instant_view_.is_loaded_) {
+        LOG(ERROR) << "Have no instant view for " << web_page->url_;
+      } else {
+        web_page->is_album_ = WebPageBlock::are_allowed_album_block_types(web_page->instant_view_.page_blocks_);
+      }
+    }
+  }
+  return web_page->is_album_;
+}
+
 td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_type_object(
     const WebPage *web_page) const {
   if (begins_with(web_page->type_, "telegram_")) {
@@ -1723,7 +1749,7 @@ td_api::object_ptr<td_api::linkPreview> WebPagesManager::get_link_preview_object
     return nullptr;
   }
   int32 instant_view_version = [web_page] {
-    if (web_page->instant_view_.is_empty_ || web_page->type_ == "telegram_album") {
+    if (web_page->instant_view_.is_empty_ || is_web_page_album(web_page)) {
       return 0;
     }
     if (web_page->instant_view_.is_v2_) {
@@ -2292,7 +2318,7 @@ void WebPagesManager::on_load_web_page_from_database(WebPageId web_page_id, stri
         update_web_page(std::move(result), web_page_id, true, true);
 
         const WebPage *web_page = get_web_page(web_page_id);
-        if (web_page != nullptr && web_page->type_ == "telegram_album" && !web_page->instant_view_.is_empty_ &&
+        if (web_page != nullptr && can_web_page_be_album(web_page) && !web_page->instant_view_.is_empty_ &&
             !web_page->instant_view_.is_loaded_) {
           LOG(INFO) << "Forcely load instant view of " << web_page_id;
           on_load_web_page_instant_view_from_database(
