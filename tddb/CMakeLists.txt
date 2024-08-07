@@ -6,7 +6,6 @@ if (NOT DEFINED CMAKE_INSTALL_LIBDIR)
   set(CMAKE_INSTALL_LIBDIR "lib")
 endif()
 
-#SOURCE SETS
 set(TDDB_SOURCE
   td/db/binlog/Binlog.cpp
   td/db/binlog/BinlogEvent.cpp

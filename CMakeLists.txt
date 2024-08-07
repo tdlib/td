@@ -72,7 +72,7 @@ if (POLICY CMP0069)
   endif()
 endif()
 
-# Configure CCache if available
+# Configure Ccache if available
 find_program(CCACHE_FOUND ccache)
 #set(CCACHE_FOUND 0)
 if (CCACHE_FOUND)
@@ -221,7 +221,7 @@ if (HAS_PARENT)
 endif()
 
 
-#SOURCE SETS
+# SOURCE SETS
 
 set_source_files_properties(${TL_TD_API_AUTO_SOURCE} PROPERTIES GENERATED TRUE)
 if (TD_ENABLE_JNI OR ANDROID)
@@ -1057,7 +1057,7 @@ set(MEMPROF_STAT_SOURCE
   memprof/memprof_stat.h
 )
 
-#LIBRARIES
+# LIBRARIES
 
 # memprof - simple library for memory usage profiling
 add_library(memprof STATIC ${MEMPROF_SOURCE})
@@ -1111,7 +1111,7 @@ if (NOT CMAKE_CROSSCOMPILING)
   add_dependencies(tdmtproto tl_generate_mtproto)
 endif()
 
-# tdcore - mostly internal TDLib interface. One should use tdactor for interactions with it.
+# tdcore - internal TDLib interface
 if (MSVC AND TD_ENABLE_LTO)
   add_library(tdcore_part1 STATIC ${TDLIB_SOURCE_PART1})
   target_include_directories(tdcore_part1 PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
@@ -1174,7 +1174,7 @@ if (TD_ENABLE_DOTNET)
   endif()
 endif()
 
-# tdc - TDLib interface in pure c.
+# tdc - TDLib interface in pure C
 add_library(tdc STATIC EXCLUDE_FROM_ALL ${TL_C_SCHEME_SOURCE} td/telegram/td_c_client.cpp td/telegram/td_c_client.h)
 target_include_directories(tdc PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
@@ -1218,6 +1218,7 @@ target_include_directories(tdjson_static PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 
+# EXECUTABLES
 if (EMSCRIPTEN)
   set(TD_EMSCRIPTEN_SRC td/telegram/td_emscripten.cpp)
   add_executable(${TD_EMSCRIPTEN} ${TD_EMSCRIPTEN_SRC})
@@ -1225,7 +1226,6 @@ if (EMSCRIPTEN)
   target_link_libraries(${TD_EMSCRIPTEN} PRIVATE tdjson_static tdactor)
 endif()
 
-#EXECUTABLES
 if (NOT CMAKE_CROSSCOMPILING)
   add_executable(tg_cli td/telegram/cli.cpp ${TL_TD_JSON_SOURCE})
 
@@ -1256,7 +1256,7 @@ if (NOT CMAKE_CROSSCOMPILING)
   add_dependencies(tg_cli tl_generate_json)
 endif()
 
-#Exported libraries
+# Exported libraries
 add_library(TdStatic INTERFACE)
 target_link_libraries(TdStatic INTERFACE tdclient)
 

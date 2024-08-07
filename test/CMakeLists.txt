@@ -2,7 +2,6 @@ if ((CMAKE_MAJOR_VERSION LESS 3) OR (CMAKE_VERSION VERSION_LESS "3.0.2"))
   message(FATAL_ERROR "CMake >= 3.0.2 is required")
 endif()
 
-#SOURCE SETS
 set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/country_info.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/db.cpp
@@ -36,7 +35,6 @@ set(TESTS_MAIN
 #target_link_libraries(all_tests PRIVATE tdcore tdclient)
 
 if (NOT CMAKE_CROSSCOMPILING OR EMSCRIPTEN)
-  #Tests
   if (OPENSSL_FOUND)
     add_executable(test-crypto EXCLUDE_FROM_ALL crypto.cpp)
     target_include_directories(test-crypto SYSTEM PRIVATE ${OPENSSL_INCLUDE_DIR})

@@ -7,7 +7,7 @@ if (NOT OPENSSL_FOUND)
   find_package(ZLIB REQUIRED)
 endif()
 
-#TODO: all benchmarks in one file
+# TODO: all benchmarks in one file
 add_executable(bench_crypto bench_crypto.cpp)
 target_link_libraries(bench_crypto PRIVATE tdutils ${OPENSSL_CRYPTO_LIBRARY} ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES})
 if (WIN32)

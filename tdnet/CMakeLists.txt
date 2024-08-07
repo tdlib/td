@@ -11,7 +11,6 @@ if (NOT OPENSSL_FOUND)
   find_package(ZLIB REQUIRED)
 endif()
 
-#SOURCE SETS
 set(TDNET_SOURCE
   td/net/GetHostByNameActor.cpp
   td/net/HttpChunkedByteFlow.cpp
@@ -58,9 +57,6 @@ if (APPLE_WATCH)
   )
   set_source_files_properties(td/net/DarwinHttp.mm PROPERTIES COMPILE_FLAGS -fobjc-arc)
 endif()
-
-#RULES
-#LIBRARIES
 
 add_library(tdnet STATIC ${TDNET_SOURCE})
 target_include_directories(tdnet PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)

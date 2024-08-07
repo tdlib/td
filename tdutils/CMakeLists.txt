@@ -42,7 +42,6 @@ configure_file(td/utils/config.h.in td/utils/config.h @ONLY)
 
 add_subdirectory(generate)
 
-# TDUTILS
 set_source_files_properties(${TDMIME_AUTO} PROPERTIES GENERATED TRUE)
 if (CLANG OR GCC)
   set_property(SOURCE ${TDMIME_AUTO} APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-conversion")
@@ -349,7 +348,6 @@ set(TDUTILS_TEST_SOURCE
   PARENT_SCOPE
 )
 
-#LIBRARIES
 add_library(tdutils STATIC ${TDUTILS_SOURCE})
 
 if (NOT CMAKE_CROSSCOMPILING AND TDUTILS_MIME_TYPE)

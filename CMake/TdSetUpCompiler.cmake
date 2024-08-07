@@ -1,4 +1,4 @@
-# - Configures C++14 compiler, setting TDLib-specific compilation options.
+# Configures C++14 compiler, setting TDLib-specific compilation options.
 
 function(td_set_up_compiler)
   set(CMAKE_EXPORT_COMPILE_COMMANDS 1 PARENT_SCOPE)
