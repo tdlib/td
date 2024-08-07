@@ -1349,6 +1349,4 @@ install(FILES "TdConfig.cmake" "${CMAKE_CURRENT_BINARY_DIR}/TdConfigVersion.cmak
 )
 
 # Add SOVERSION to shared libraries
-set_property(TARGET tdclient PROPERTY SOVERSION "${TDLib_VERSION}")
-set_property(TARGET tdapi PROPERTY SOVERSION "${TDLib_VERSION}")
-set_property(TARGET tdjson PROPERTY SOVERSION "${TDLib_VERSION}")
+set_property(TARGET tdapi tdclient tdjson PROPERTY SOVERSION "${TDLib_VERSION}")
