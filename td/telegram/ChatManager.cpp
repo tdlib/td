@@ -1975,6 +1975,7 @@ void ChatManager::Channel::store(StorerT &storer) const {
     STORE_FLAG(has_profile_background_custom_emoji_id);
     STORE_FLAG(has_boost_level);
     STORE_FLAG(has_emoji_status);
+    STORE_FLAG(show_message_sender);
     END_STORE_FLAGS();
   }
 
@@ -2103,6 +2104,7 @@ void ChatManager::Channel::parse(ParserT &parser) {
     PARSE_FLAG(has_profile_background_custom_emoji_id);
     PARSE_FLAG(has_boost_level);
     PARSE_FLAG(has_emoji_status);
+    PARSE_FLAG(show_message_sender);
     END_PARSE_FLAGS();
   }
 
@@ -2197,11 +2199,15 @@ void ChatManager::Channel::parse(ParserT &parser) {
   if (legacy_has_active_group_call) {
     cache_version = 0;
   }
-  if (!is_megagroup && status.is_restricted()) {
-    if (status.is_member()) {
-      status = DialogParticipantStatus::Member(0);
-    } else {
-      status = DialogParticipantStatus::Left();
+  if (is_megagroup) {
+    show_message_sender = true;
+  } else {
+    if (status.is_restricted()) {
+      if (status.is_member()) {
+        status = DialogParticipantStatus::Member(0);
+      } else {
+        status = DialogParticipantStatus::Left();
+      }
     }
   }
 }
@@ -8368,6 +8374,7 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
   int32 participant_count = have_participant_count ? channel.participants_count_ : 0;
   bool stories_available = channel.stories_max_id_ > 0;
   bool stories_unavailable = channel.stories_unavailable_;
+  bool show_message_sender = channel.signature_profiles_;
   auto boost_level = channel.level_;
 
   if (have_participant_count) {
@@ -8387,6 +8394,7 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
   if (is_megagroup) {
     LOG_IF(ERROR, sign_messages) << "Need to sign messages in the supergroup " << channel_id << " from " << source;
     sign_messages = true;
+    show_message_sender = true;
   } else {
     LOG_IF(ERROR, is_slow_mode_enabled && channel_id.get() >= 8000000000)
         << "Slow mode enabled in the " << channel_id << " from " << source;
@@ -8562,9 +8570,11 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
 
     c->need_save_to_database = true;
   }
-  if (c->is_verified != is_verified || c->sign_messages != sign_messages) {
+  if (c->is_verified != is_verified || c->sign_messages != sign_messages ||
+      c->show_message_sender != show_message_sender) {
     c->is_verified = is_verified;
     c->sign_messages = sign_messages;
+    c->show_message_sender = show_message_sender;
 
     c->is_changed = true;
   }
@@ -8655,6 +8665,7 @@ void ChatManager::on_get_channel_forbidden(telegram_api::channelForbidden &chann
   }
 
   bool sign_messages = false;
+  bool show_message_sender = false;
   bool join_to_send = false;
   bool join_request = false;
   bool is_slow_mode_enabled = false;
@@ -8672,6 +8683,7 @@ void ChatManager::on_get_channel_forbidden(telegram_api::channelForbidden &chann
 
   if (is_megagroup) {
     sign_messages = true;
+    show_message_sender = true;
   }
 
   bool need_invalidate_channel_full = false;
@@ -8696,9 +8708,11 @@ void ChatManager::on_get_channel_forbidden(telegram_api::channelForbidden &chann
 
     c->need_save_to_database = true;
   }
-  if (c->sign_messages != sign_messages || c->is_verified != is_verified) {
-    c->sign_messages = sign_messages;
+  if (c->is_verified != is_verified || c->sign_messages != sign_messages ||
+      c->show_message_sender != show_message_sender) {
     c->is_verified = is_verified;
+    c->sign_messages = sign_messages;
+    c->show_message_sender = show_message_sender;
 
     c->is_changed = true;
   }
@@ -8820,8 +8834,8 @@ td_api::object_ptr<td_api::updateSupergroup> ChatManager::get_update_unknown_sup
   bool is_megagroup = min_channel == nullptr ? false : min_channel->is_megagroup_;
   return td_api::make_object<td_api::updateSupergroup>(td_api::make_object<td_api::supergroup>(
       channel_id.get(), nullptr, 0, DialogParticipantStatus::Banned(0).get_chat_member_status_object(), 0, 0, false,
-      false, false, !is_megagroup, false, false, !is_megagroup, false, false, false, string(), false, false, false,
-      false));
+      false, false, false, !is_megagroup, false, false, !is_megagroup, false, false, false, string(), false, false,
+      false, false));
 }
 
 int64 ChatManager::get_supergroup_id_object(ChannelId channel_id, const char *source) const {
@@ -8858,7 +8872,7 @@ tl_object_ptr<td_api::supergroup> ChatManager::get_supergroup_object(ChannelId c
   return td_api::make_object<td_api::supergroup>(
       channel_id.get(), c->usernames.get_usernames_object(), c->date,
       get_channel_status(c).get_chat_member_status_object(), c->participant_count, c->boost_level,
-      c->has_linked_channel, c->has_location, c->sign_messages, get_channel_join_to_send(c),
+      c->has_linked_channel, c->has_location, c->sign_messages, c->show_message_sender, get_channel_join_to_send(c),
       get_channel_join_request(c), c->is_slow_mode_enabled, !c->is_megagroup, c->is_gigagroup, c->is_forum,
       c->is_verified, get_restriction_reason_description(c->restriction_reasons), c->is_scam, c->is_fake,
       c->max_active_story_id.is_valid(), get_channel_has_unread_stories(c));

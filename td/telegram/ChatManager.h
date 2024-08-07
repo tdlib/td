@@ -491,6 +491,7 @@ class ChatManager final : public Actor {
     bool has_linked_channel = false;
     bool has_location = false;
     bool sign_messages = false;
+    bool show_message_sender = false;
     bool is_slow_mode_enabled = false;
     bool noforwards = false;
     bool can_be_deleted = false;
