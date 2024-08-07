@@ -861,4 +861,10 @@ int32 StarManager::get_months_by_star_count(int64 star_count) {
   return star_count <= 1000 ? 3 : (star_count < 2500 ? 6 : 12);
 }
 
+void StarManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
+  if (owned_star_count_ < (1ll << 62)) {
+    updates.push_back(get_update_owned_star_count_object());
+  }
+}
+
 }  // namespace td

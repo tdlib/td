@@ -66,6 +66,8 @@ class StarManager final : public Actor {
 
   static int32 get_months_by_star_count(int64 star_count);
 
+  void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
+
  private:
   void tear_down() final;
 
