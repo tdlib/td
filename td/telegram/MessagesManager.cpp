@@ -12143,7 +12143,7 @@ void MessagesManager::on_send_paid_reactions_timeout(int64 task_id) {
     return;
   }
   if (!get_message_available_reactions(d, m, true, nullptr).is_allowed_reaction_type(ReactionType::paid())) {
-    if (m->reactions->drop_pending_paid_reactions()) {
+    if (m->reactions->drop_pending_paid_reactions(td_)) {
       send_update_message_interaction_info(d->dialog_id, m);
       on_message_changed(d, m, true, "on_send_paid_reactions_timeout");
     }
@@ -22806,7 +22806,7 @@ void MessagesManager::add_paid_message_reaction(MessageFullId message_full_id, i
   }
 
   LOG(INFO) << "Have message with " << *m->reactions;
-  m->reactions->add_my_paid_reaction(narrow_cast<int32>(star_count));
+  m->reactions->add_my_paid_reaction(td_, narrow_cast<int32>(star_count));
   m->reactions->sort_reactions(active_reaction_pos_);
   LOG(INFO) << "Update message reactions to " << *m->reactions;
 
@@ -22837,7 +22837,7 @@ void MessagesManager::remove_paid_message_reactions(MessageFullId message_full_i
   Dialog *d = get_dialog_force(message_full_id.get_dialog_id(), "remove_paid_message_reaction");
   CHECK(d != nullptr);
   auto *m = get_message_force(d, message_full_id.get_message_id(), "on_send_paid_reactions_timeout");
-  if (m != nullptr && m->reactions != nullptr && m->reactions->drop_pending_paid_reactions()) {
+  if (m != nullptr && m->reactions != nullptr && m->reactions->drop_pending_paid_reactions(td_)) {
     send_update_message_interaction_info(d->dialog_id, m);
     on_message_changed(d, m, true, "on_send_paid_reactions_timeout");
   }

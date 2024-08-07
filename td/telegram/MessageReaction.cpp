@@ -14,6 +14,7 @@
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/ServerMessageId.h"
+#include "td/telegram/StarManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
@@ -797,18 +798,20 @@ bool MessageReactions::do_remove_my_reaction(const ReactionType &reaction_type) 
   return false;
 }
 
-void MessageReactions::add_my_paid_reaction(int32 star_count) {
+void MessageReactions::add_my_paid_reaction(Td *td, int32 star_count) {
   if (pending_paid_reactions_ > 1000000000 || star_count > 1000000000) {
     LOG(ERROR) << "Pending paid reactions overflown";
     return;
   }
+  td->star_manager_->add_owned_star_count(-star_count);
   pending_paid_reactions_ += star_count;
 }
 
-bool MessageReactions::drop_pending_paid_reactions() {
+bool MessageReactions::drop_pending_paid_reactions(Td *td) {
   if (pending_paid_reactions_ == 0) {
     return false;
   }
+  td->star_manager_->add_owned_star_count(pending_paid_reactions_);
   pending_paid_reactions_ = 0;
   return true;
 }
