@@ -509,6 +509,10 @@ StringBuilder &operator<<(StringBuilder &string_builder, const UnreadMessageReac
                         << unread_reaction.sender_dialog_id_ << ']';
 }
 
+bool MessageReactions::are_empty() const {
+  return reactions_.empty() && pending_paid_reactions_ == 0;
+}
+
 unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
     Td *td, telegram_api::object_ptr<telegram_api::messageReactions> &&reactions, bool is_bot) {
   if (reactions == nullptr || is_bot) {

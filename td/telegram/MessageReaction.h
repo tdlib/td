@@ -165,6 +165,8 @@ struct MessageReactions {
 
   MessageReactions() = default;
 
+  bool are_empty() const;
+
   static unique_ptr<MessageReactions> get_message_reactions(
       Td *td, telegram_api::object_ptr<telegram_api::messageReactions> &&reactions, bool is_bot);
 

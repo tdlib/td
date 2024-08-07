@@ -6567,7 +6567,7 @@ td_api::object_ptr<td_api::messageInteractionInfo> MessagesManager::get_message_
     DialogId dialog_id, const Message *m) const {
   bool is_visible_reply_info = is_visible_message_reply_info(dialog_id, m);
   bool has_reactions =
-      m->reactions != nullptr && !m->reactions->reactions_.empty() && is_visible_message_reactions(dialog_id, m);
+      m->reactions != nullptr && !m->reactions->are_empty() && is_visible_message_reactions(dialog_id, m);
   if (m->view_count == 0 && m->forward_count == 0 && !is_visible_reply_info && !has_reactions) {
     return nullptr;
   }
@@ -7744,8 +7744,8 @@ void MessagesManager::hide_dialog_message_reactions(Dialog *d) {
   CHECK(!td_->auth_manager_->is_bot());
   auto dialog_type = d->dialog_id.get_type();
   CHECK(dialog_type == DialogType::Chat || dialog_type == DialogType::Channel);
-  auto message_ids = find_dialog_messages(
-      d, [](const Message *m) { return m->reactions != nullptr && !m->reactions->reactions_.empty(); });
+  auto message_ids =
+      find_dialog_messages(d, [](const Message *m) { return m->reactions != nullptr && !m->reactions->are_empty(); });
   for (auto message_id : message_ids) {
     Message *m = get_message(d, message_id);
     CHECK(m != nullptr);
@@ -22588,7 +22588,7 @@ void MessagesManager::on_get_scheduled_messages_from_database(DialogId dialog_id
 
 bool MessagesManager::can_add_message_tag(DialogId dialog_id, const MessageReactions *reactions) const {
   return dialog_id == td_->dialog_manager_->get_my_dialog_id() &&
-         (reactions == nullptr || reactions->reactions_.empty() || reactions->are_tags_);
+         (reactions == nullptr || reactions->are_empty() || reactions->are_tags_);
 }
 
 Result<td_api::object_ptr<td_api::availableReactions>> MessagesManager::get_message_available_reactions(
