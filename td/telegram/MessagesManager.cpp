@@ -23360,7 +23360,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
       }
     }
   }
-  if (m->sender_user_id == my_id && dialog_type == DialogType::Channel) {
+  if (m->sender_user_id == my_id && dialog_type == DialogType::Channel && !is_channel_post) {
     m->sender_boost_count = td_->chat_manager_->get_channel_my_boost_count(dialog_id.get_channel_id());
   }
   m->effect_id = MessageEffectId(options.effect_id);
@@ -26568,7 +26568,7 @@ void MessagesManager::fix_forwarded_message(Message *m, DialogId to_dialog_id, c
       m->via_bot_user_id = forwarded_message->sender_user_id;
     }
     if (m->via_bot_user_id == td_->user_manager_->get_my_id()) {
-      // if via_bot_user_id is the current bot user, then there should be
+      // if via_bot_user_id is the current bot user, then there should be no via_bot
       m->via_bot_user_id = UserId();
     }
   }
@@ -27438,7 +27438,7 @@ Result<MessageId> MessagesManager::add_local_message(
   m->update_stickersets_order = false;
   m->view_count = 0;
   m->forward_count = 0;
-  if (m->sender_user_id == my_id && dialog_type == DialogType::Channel) {
+  if (m->sender_user_id == my_id && dialog_type == DialogType::Channel && !is_channel_post) {
     m->sender_boost_count = td_->chat_manager_->get_channel_my_boost_count(dialog_id.get_channel_id());
   }
   m->content = std::move(message_content.content);
@@ -31598,7 +31598,8 @@ void MessagesManager::on_send_dialog_action_timeout(DialogId dialog_id) {
   }
   CHECK(m->message_id.is_yet_unsent());
   if (m->forward_info != nullptr || m->had_forward_info || m->is_copy || m->message_id.is_scheduled() ||
-      m->sender_dialog_id.is_valid() || m->content->get_type() == MessageContentType::PaidMedia) {
+      m->sender_dialog_id.is_valid() || m->content->get_type() == MessageContentType::PaidMedia ||
+      td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
     return;
   }
 
