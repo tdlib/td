@@ -956,7 +956,8 @@ td_api::object_ptr<td_api::messageReactions> MessageReactions::get_message_react
       reactions[0]->is_chosen_ = true;
     }
 
-    auto top_reactors = apply_reactor_pending_paid_reactions(DialogId(my_user_id));
+    // my_user_id == UserId()
+    auto top_reactors = apply_reactor_pending_paid_reactions(td->dialog_manager_->get_my_dialog_id());
     reactors =
         transform(top_reactors, [td](const MessageReactor &reactor) { return reactor.get_paid_reactor_object(td); });
   }
