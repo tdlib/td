@@ -1373,67 +1373,82 @@ bool WebPagesManager::is_web_page_album(const WebPage *web_page) {
   return web_page->is_album_;
 }
 
+td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_type_album_object(
+    const WebPageInstantView &instant_view) const {
+  if (instant_view.is_empty_ || !instant_view.is_loaded_) {
+    LOG(ERROR) << "Have no instant view in Telegram album for " << instant_view.url_;
+    return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
+  }
+  vector<td_api::object_ptr<td_api::LinkPreviewAlbumMedia>> media;
+  string caption_text;
+  auto process_album = [&media, &caption_text](vector<td_api::object_ptr<td_api::PageBlock>> page_blocks,
+                                               td_api::object_ptr<td_api::pageBlockCaption> caption) {
+    for (auto &block : page_blocks) {
+      switch (block->get_id()) {
+        case td_api::pageBlockPhoto::ID: {
+          auto photo = std::move(static_cast<td_api::pageBlockPhoto *>(block.get())->photo_);
+          if (photo == nullptr) {
+            LOG(ERROR) << "Receive pageBlockPhoto without photo";
+          } else {
+            media.push_back(td_api::make_object<td_api::linkPreviewAlbumMediaPhoto>(std::move(photo)));
+          }
+          break;
+        }
+        case td_api::pageBlockVideo::ID: {
+          auto video = std::move(static_cast<td_api::pageBlockVideo *>(block.get())->video_);
+          if (video == nullptr) {
+            LOG(ERROR) << "Receive pageBlockVideo without video";
+          } else {
+            media.push_back(td_api::make_object<td_api::linkPreviewAlbumMediaVideo>(std::move(video)));
+          }
+          break;
+        }
+        default:
+          LOG(ERROR) << "Receive " << to_string(block);
+          break;
+      }
+    }
+    if (caption != nullptr && caption->text_ != nullptr && caption->text_->get_id() == td_api::richTextPlain::ID) {
+      caption_text = std::move(static_cast<const td_api::richTextPlain *>(caption->text_.get())->text_);
+    } else {
+      LOG(ERROR) << "Receive instead of caption text: " << to_string(caption);
+    }
+  };
+
+  for (auto &block_object : get_page_blocks_object(instant_view.page_blocks_, td_, Slice(), Slice())) {
+    switch (block_object->get_id()) {
+      case td_api::pageBlockTitle::ID:
+      case td_api::pageBlockAuthorDate::ID:
+        break;
+      case td_api::pageBlockCollage::ID: {
+        auto *collage = static_cast<td_api::pageBlockCollage *>(block_object.get());
+        process_album(std::move(collage->page_blocks_), std::move(collage->caption_));
+        break;
+      }
+      case td_api::pageBlockSlideshow::ID: {
+        auto *collage = static_cast<td_api::pageBlockSlideshow *>(block_object.get());
+        process_album(std::move(collage->page_blocks_), std::move(collage->caption_));
+        break;
+      }
+      default:
+        LOG(ERROR) << "Receive " << to_string(block_object);
+        break;
+    }
+  }
+  if (!media.empty()) {
+    return td_api::make_object<td_api::linkPreviewTypeAlbum>(std::move(media), caption_text);
+  }
+  LOG(ERROR) << "Have no media in Telegram album for " << instant_view.url_;
+  return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
+}
+
 td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_type_object(
     const WebPage *web_page) const {
+  if (is_web_page_album(web_page)) {
+    return get_link_preview_type_album_object(web_page->instant_view_);
+  }
   if (begins_with(web_page->type_, "telegram_")) {
     Slice type = Slice(web_page->type_).substr(9);
-    if (type == "album") {
-      if (web_page->instant_view_.is_empty_ || !web_page->instant_view_.is_loaded_) {
-        LOG(ERROR) << "Have no instant view in Telegram album for " << web_page->url_;
-        return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
-      }
-      vector<td_api::object_ptr<td_api::LinkPreviewAlbumMedia>> media;
-      string caption;
-      for (auto &block_object : get_page_blocks_object(web_page->instant_view_.page_blocks_, td_, Slice(), Slice())) {
-        switch (block_object->get_id()) {
-          case td_api::pageBlockTitle::ID:
-          case td_api::pageBlockAuthorDate::ID:
-            continue;
-          case td_api::pageBlockCollage::ID: {
-            auto *collage = static_cast<td_api::pageBlockCollage *>(block_object.get());
-            for (auto &block : collage->page_blocks_) {
-              switch (block->get_id()) {
-                case td_api::pageBlockPhoto::ID: {
-                  auto photo = std::move(static_cast<td_api::pageBlockPhoto *>(block.get())->photo_);
-                  if (photo == nullptr) {
-                    LOG(ERROR) << "Receive pageBlockPhoto without photo";
-                  } else {
-                    media.push_back(td_api::make_object<td_api::linkPreviewAlbumMediaPhoto>(std::move(photo)));
-                  }
-                  break;
-                }
-                case td_api::pageBlockVideo::ID: {
-                  auto video = std::move(static_cast<td_api::pageBlockVideo *>(block.get())->video_);
-                  if (video == nullptr) {
-                    LOG(ERROR) << "Receive pageBlockVideo without video";
-                  } else {
-                    media.push_back(td_api::make_object<td_api::linkPreviewAlbumMediaVideo>(std::move(video)));
-                  }
-                  break;
-                }
-                default:
-                  LOG(ERROR) << "Receive " << to_string(block_object);
-                  break;
-              }
-            }
-            if (collage->caption_->text_->get_id() == td_api::richTextPlain::ID) {
-              caption = std::move(static_cast<const td_api::richTextPlain *>(collage->caption_->text_.get())->text_);
-            } else {
-              LOG(ERROR) << "Receive instead of caption text: " << to_string(collage->caption_->text_);
-            }
-            break;
-          }
-          default:
-            LOG(ERROR) << "Receive " << to_string(block_object);
-            break;
-        }
-      }
-      if (!media.empty()) {
-        return td_api::make_object<td_api::linkPreviewTypeAlbum>(std::move(media), caption);
-      }
-      LOG(ERROR) << "Have no media in Telegram album for " << web_page->url_;
-      return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
-    }
     if (type == "background") {
       LOG_IF(ERROR, !web_page->photo_.is_empty()) << "Receive photo for " << web_page->url_;
       LOG_IF(ERROR,
