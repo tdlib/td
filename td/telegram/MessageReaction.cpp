@@ -964,6 +964,16 @@ td_api::object_ptr<td_api::messageReactions> MessageReactions::get_message_react
                                                        can_get_added_reactions_);
 }
 
+int32 MessageReactions::get_non_paid_reaction_count() const {
+  int32 result = 0;
+  for (const auto &reaction : reactions_) {
+    if (!reaction.reaction_type_.is_paid_reaction()) {
+      result++;
+    }
+  }
+  return result;
+}
+
 void MessageReactions::add_min_channels(Td *td) const {
   for (const auto &reaction : reactions_) {
     for (const auto &recent_chooser_min_channel : reaction.get_recent_chooser_min_channels()) {

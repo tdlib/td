@@ -22648,7 +22648,7 @@ ChatReactions MessagesManager::get_message_available_reactions(const Dialog *d, 
     reactions_uniq_max = active_reactions.reactions_limit_;
   }
   bool can_add_new_reactions =
-      m->reactions == nullptr || static_cast<int64>(m->reactions->reactions_.size()) < reactions_uniq_max;
+      m->reactions == nullptr || m->reactions->get_non_paid_reaction_count() < reactions_uniq_max;
 
   if (!can_use_reactions || !can_add_new_reactions) {
     active_reactions = ChatReactions();
