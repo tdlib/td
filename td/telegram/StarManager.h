@@ -88,7 +88,8 @@ class StarManager final : public Actor {
   Td *td_;
   ActorShared<> parent_;
 
-  int64 owned_star_count_ = (1ll << 62);
+  bool is_owned_star_count_inited_ = false;
+  int64 owned_star_count_ = 0;
 
   FlatHashMap<DialogId, FlatHashMap<string, FileSourceId>, DialogIdHash> star_transaction_file_source_ids_[2];
 };
