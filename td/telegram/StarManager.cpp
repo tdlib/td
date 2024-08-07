@@ -647,6 +647,18 @@ void StarManager::tear_down() {
   parent_.reset();
 }
 
+td_api::object_ptr<td_api::updateOwnedStarCount> StarManager::get_update_owned_star_count_object() const {
+  return td_api::make_object<td_api::updateOwnedStarCount>(owned_star_count_);
+}
+
+void StarManager::on_update_owned_star_count(int64 star_count) {
+  if (star_count == owned_star_count_) {
+    return;
+  }
+  owned_star_count_ = star_count;
+  send_closure(G()->td(), &Td::send_update, get_update_owned_star_count_object());
+}
+
 Status StarManager::can_manage_stars(DialogId dialog_id, bool allow_self) const {
   switch (dialog_id.get_type()) {
     case DialogType::User: {

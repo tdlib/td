@@ -4583,8 +4583,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBroadcastRevenu
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStarsBalance> update, Promise<Unit> &&promise) {
-  send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateOwnedStarCount>(StarManager::get_star_count(update->balance_, true)));
+  td_->star_manager_->on_update_owned_star_count(StarManager::get_star_count(update->balance_, true));
   promise.set_value(Unit());
 }
 
