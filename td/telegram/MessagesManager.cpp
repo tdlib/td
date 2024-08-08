@@ -27386,11 +27386,12 @@ Result<MessageId> MessagesManager::add_local_message(
   } else {
     return Status::Error(400, "The message must have a sender");
   }
-  if (is_channel_post && sender_user_id.is_valid()) {
+  if (is_channel_post && sender_user_id.is_valid() &&
+      !td_->chat_manager_->get_channel_show_message_sender(dialog_id.get_channel_id())) {
     return Status::Error(400, "Channel post can't have user as a sender");
   }
-  if (is_channel_post && sender_dialog_id != dialog_id) {
-    return Status::Error(400, "Channel post must have the channel as a sender");
+  if (is_channel_post && sender_dialog_id.is_valid() && sender_dialog_id != dialog_id) {
+    return Status::Error(400, "Channel post must have other channels as a sender");
   }
 
   auto dialog_type = dialog_id.get_type();
@@ -27414,16 +27415,15 @@ Result<MessageId> MessagesManager::add_local_message(
   auto message = make_unique<Message>();
   auto *m = message.get();
   m->message_id = message_id;
-  if (is_channel_post && !td_->chat_manager_->get_channel_show_message_sender(dialog_id.get_channel_id())) {
+  if (is_channel_post) {
     // sender of the post can be hidden
+    auto real_sender_user_id = sender_user_id.is_valid() ? sender_user_id : my_id;
     if (td_->chat_manager_->get_channel_sign_messages(dialog_id.get_channel_id())) {
-      m->author_signature = td_->user_manager_->get_user_title(sender_user_id);
+      m->author_signature = td_->user_manager_->get_user_title(real_sender_user_id);
     }
-    m->sender_dialog_id = sender_dialog_id;
-  } else {
-    m->sender_user_id = sender_user_id;
-    m->sender_dialog_id = sender_dialog_id;
   }
+  m->sender_user_id = sender_user_id;
+  m->sender_dialog_id = sender_dialog_id;
   m->date = G()->unix_time();
   m->replied_message_info = RepliedMessageInfo(td_, input_reply_to);
   m->reply_to_story_full_id = input_reply_to.get_story_full_id();
