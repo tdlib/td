@@ -3,6 +3,24 @@
 This is an example of building `TDLib` for Android.
 You need a Bash shell on Linux, macOS, or Windows with some common tools, a C++ compiler, JDK, PHP, perl, and gperf pre-installed.
 
+## WIN dependencies:
+* [Install bash git 2.6+ or bash 4.3+](https://github.com/git-for-windows/git/releases/)
+* [Install gpref 3.0.1 for win32](https://gnuwin32.sourceforge.net/packages/gperf.htm)
+* [Install Java JDK 17+](https://www.oracle.com/java/technologies/javase/jdk17-archive-downloads.html)
+* [Install PHP 8.1+](https://www.php.net/downloads)
+* [Install Perl 5](https://www.perl.org/get.html)
+* [Install cmake 3+](https://cmake.org/cmake/help/latest/command/install.html)
+
+## LIN dependencies:
+* apt-get install ***
+* or
+* yum install ***
+
+* Add %JAVA_HOME% to system variables.
+* Add %JAVA_HOME%/bin to system %PATH% variable.
+* Add gpref/bin to system %PATH% variable.
+* Add all other required binaries dependencies to system %PATH% variable.
+
 ## Building TDLib for Android
 
 * Run the script `./check-environment.sh` to check that you have all required Unix tools and Java utilities. If the script exits with an error message, install the missing tool.
