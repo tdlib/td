@@ -5340,6 +5340,9 @@ chatEventHasAggressiveAntiSpamEnabledToggled has_aggressive_anti_spam_enabled:Bo
 //@description The sign_messages setting of a channel was toggled @sign_messages New value of sign_messages
 chatEventSignMessagesToggled sign_messages:Bool = ChatEventAction;
 
+//@description The show_message_sender setting of a channel was toggled @show_message_sender New value of show_message_sender
+chatEventShowMessageSenderToggled show_message_sender:Bool = ChatEventAction;
+
 //@description A chat invite link was edited @old_invite_link Previous information about the invite link @new_invite_link New information about the invite link
 chatEventInviteLinkEdited old_invite_link:chatInviteLink new_invite_link:chatInviteLink = ChatEventAction;
 

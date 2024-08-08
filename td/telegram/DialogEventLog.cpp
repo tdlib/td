@@ -166,7 +166,8 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
       return td_api::make_object<td_api::chatEventSignMessagesToggled>(action->new_value_);
     }
     case telegram_api::channelAdminLogEventActionToggleSignatureProfiles::ID: {
-      return nullptr;
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionToggleSignatureProfiles>(action_ptr);
+      return td_api::make_object<td_api::chatEventShowMessageSenderToggled>(action->new_value_);
     }
     case telegram_api::channelAdminLogEventActionUpdatePinned::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionUpdatePinned>(action_ptr);
