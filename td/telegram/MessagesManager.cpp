@@ -23290,7 +23290,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   bool is_channel_post = td_->dialog_manager_->is_broadcast_channel(dialog_id);
   if (is_channel_post) {
     // sender of the post can be hidden
-    if (td_->chat_manager_->get_channel_show_message_sender(dialog_id.get_channel_id())) {
+    if (!is_scheduled && td_->chat_manager_->get_channel_show_message_sender(dialog_id.get_channel_id())) {
       m->sender_user_id = my_id;
     } else {
       m->sender_dialog_id = dialog_id;
