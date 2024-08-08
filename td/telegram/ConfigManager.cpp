@@ -419,14 +419,14 @@ static ActorOwn<> get_full_config(DcOption option, Promise<tl_object_ptr<telegra
     DcId dc_id_;
     std::shared_ptr<mtproto::PublicRsaKeyInterface> public_rsa_key_;
     vector<unique_ptr<Listener>> auth_key_listeners_;
-
+    /*
     void notify() {
       td::remove_if(auth_key_listeners_, [&](auto &listener) {
         CHECK(listener != nullptr);
         return !listener->notify();
       });
     }
-
+    */
     string auth_key_key() const {
       return PSTRING() << "config_recovery_auth" << dc_id().get_raw_id();
     }

@@ -127,6 +127,8 @@ function(td_set_up_compiler)
     add_cxx_compiler_flag("-Wodr")
     add_cxx_compiler_flag("-flto-odr-type-merging")
     add_cxx_compiler_flag("-Wno-psabi")
+    add_cxx_compiler_flag("-Wunused-member-function")
+    add_cxx_compiler_flag("-Wunused-private-field")
 
   #  add_cxx_compiler_flag("-Werror")
 
