@@ -23293,10 +23293,10 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
     if (td_->chat_manager_->get_channel_show_message_sender(dialog_id.get_channel_id())) {
       m->sender_user_id = my_id;
     } else {
-      if (!is_scheduled && td_->chat_manager_->get_channel_sign_messages(dialog_id.get_channel_id())) {
-        m->author_signature = td_->user_manager_->get_user_title(my_id);
-      }
       m->sender_dialog_id = dialog_id;
+    }
+    if (!is_scheduled && td_->chat_manager_->get_channel_sign_messages(dialog_id.get_channel_id())) {
+      m->author_signature = td_->user_manager_->get_user_title(my_id);
     }
   } else {
     if (send_as_dialog_id.is_valid()) {
