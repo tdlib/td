@@ -1754,7 +1754,7 @@ messageSponsor url:string photo:photo info:string = MessageSponsor;
 //@message_id Message identifier; unique for the chat to which the sponsored message belongs among both ordinary and sponsored messages
 //@is_recommended True, if the message needs to be labeled as "recommended" instead of "sponsored"
 //@can_be_reported True, if the message can be reported to Telegram moderators through reportChatSponsoredMessage
-//@content Content of the message. Currently, can be only of the type messageText
+//@content Content of the message. Currently, can be only of the types messageText, messageAnimation, messagePhoto, or messageVideo
 //@sponsor Information about the sponsor of the message
 //@title Title of the sponsored message
 //@button_text Text for the message action button

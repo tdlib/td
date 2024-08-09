@@ -281,7 +281,7 @@ td_api::object_ptr<td_api::sponsoredMessage> SponsoredMessageManager::get_sponso
   return td_api::make_object<td_api::sponsoredMessage>(
       sponsored_message.local_id, sponsored_message.is_recommended, sponsored_message.can_be_reported,
       get_message_content_object(sponsored_message.content.get(), td_, dialog_id, false, 0, false, true, -1, false,
-                                 false),
+                                 true),
       std::move(sponsor), sponsored_message.title, sponsored_message.button_text,
       td_->theme_manager_->get_accent_color_id_object(sponsored_message.peer_color.accent_color_id_, AccentColorId()),
       sponsored_message.peer_color.background_custom_emoji_id_.get(), sponsored_message.additional_info);
@@ -364,10 +364,26 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
                                              std::move(sponsored_message->entities_), true, true, 0, false,
                                              "on_get_dialog_sponsored_messages");
         MessageSelfDestructType ttl;
-        auto content = get_message_content(td_, std::move(message_text), nullptr, DialogId(), G()->unix_time(), true,
-                                           UserId(), &ttl, nullptr, "on_get_dialog_sponsored_messages");
+        auto content =
+            get_message_content(td_, std::move(message_text), std::move(sponsored_message->media_), DialogId(),
+                                G()->unix_time(), true, UserId(), &ttl, nullptr, "on_get_dialog_sponsored_messages");
         if (!ttl.is_empty()) {
           LOG(ERROR) << "Receive sponsored message with " << ttl;
+          continue;
+        }
+        bool is_allowed_content_type = [&] {
+          switch (content->get_type()) {
+            case MessageContentType::Animation:
+            case MessageContentType::Photo:
+            case MessageContentType::Text:
+            case MessageContentType::Video:
+              return true;
+            default:
+              return false;
+          }
+        }();
+        if (!is_allowed_content_type) {
+          LOG(ERROR) << "Receive sponsored message with " << content->get_type();
           continue;
         }
 
