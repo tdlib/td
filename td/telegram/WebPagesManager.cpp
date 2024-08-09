@@ -21,6 +21,7 @@
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/LinkManager.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessagesManager.h"
@@ -1457,7 +1458,8 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
       return td_api::make_object<td_api::linkPreviewTypeBackground>(
           web_page->document_.type == Document::Type::General
               ? td_->documents_manager_->get_document_object(web_page->document_.file_id, PhotoFormat::Png)
-              : nullptr);
+              : nullptr,
+          LinkManager::get_background_type_object(web_page->url_));
     }
     if (type == "bot") {
       LOG_IF(ERROR, web_page->document_.type != Document::Type::Unknown)

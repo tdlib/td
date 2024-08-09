@@ -2660,8 +2660,10 @@ linkPreviewTypeArticle photo:photo author:string = LinkPreviewType;
 //@author Author of the audio
 linkPreviewTypeAudio url:string mime_type:string audio:audio duration:int32 author:string = LinkPreviewType;
 
-//@description The link is a link to a background. Link preview title and description are available only for filled backgrounds @document Document with the background; may be null for filled backgrounds
-linkPreviewTypeBackground document:document = LinkPreviewType;
+//@description The link is a link to a background. Link preview title and description are available only for filled backgrounds
+//@document Document with the background; may be null for filled backgrounds
+//@background_type Type of the background; may be null if unknown
+linkPreviewTypeBackground document:document background_type:BackgroundType = LinkPreviewType;
 
 //@description The link is a link to boost a channel chat @photo Photo of the chat; may be null
 linkPreviewTypeChannelBoost photo:chatPhoto = LinkPreviewType;

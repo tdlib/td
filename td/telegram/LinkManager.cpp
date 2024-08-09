@@ -2684,6 +2684,27 @@ Result<string> LinkManager::get_background_url(const string &name,
   return url;
 }
 
+td_api::object_ptr<td_api::BackgroundType> LinkManager::get_background_type_object(const string &link) {
+  auto parsed_link = parse_internal_link(link);
+  if (parsed_link == nullptr) {
+    return nullptr;
+  }
+  auto parsed_object = parsed_link->get_internal_link_type_object();
+  if (parsed_object->get_id() != td_api::internalLinkTypeBackground::ID) {
+    return nullptr;
+  }
+  auto background_name =
+      std::move(static_cast<td_api::internalLinkTypeBackground *>(parsed_object.get())->background_name_);
+  if (!BackgroundType::is_background_name_local(background_name)) {
+    return nullptr;
+  }
+  auto r_background_type = BackgroundType::get_local_background_type(background_name);
+  if (r_background_type.is_error()) {
+    return nullptr;
+  }
+  return r_background_type.ok().get_background_type_object();
+}
+
 string LinkManager::get_dialog_filter_invite_link_slug(Slice invite_link) {
   auto link_info = get_link_info(invite_link);
   if (link_info.type_ != LinkType::Tg && link_info.type_ != LinkType::TMe) {
