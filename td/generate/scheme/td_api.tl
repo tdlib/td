@@ -810,8 +810,9 @@ starSubscriptionPricing period:int32 star_count:int53 = StarSubscriptionPricing;
 //@can_reuse True, if the subscription is active and the user can use the method reuseStarSubscription to join the subscribed chat again
 //@is_canceled True, if the subscription was canceled
 //@is_expiring True, if the subscription expires soon and there are no enough Telegram Stars on the user's balance to extend it
+//@invite_link The invite link that can be used to renew the subscription if it has been expired; may be empty, if the link isn't available anymore
 //@pricing The subscription plan
-starSubscription id:string chat_id:int53 expiration_date:int32 can_reuse:Bool is_canceled:Bool is_expiring:Bool pricing:starSubscriptionPricing = StarSubscription;
+starSubscription id:string chat_id:int53 expiration_date:int32 can_reuse:Bool is_canceled:Bool is_expiring:Bool invite_link:string pricing:starSubscriptionPricing = StarSubscription;
 
 //@description Represents a list of Telegram Star subscriptions
 //@star_count The amount of owned Telegram Stars

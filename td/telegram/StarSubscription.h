@@ -25,6 +25,7 @@ class StarSubscription {
   bool can_reuse_ = false;
   bool is_canceled_ = false;
   bool missing_balance_ = false;
+  string invite_hash_;
   StarSubscriptionPricing pricing_;
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const StarSubscription &subscription);
