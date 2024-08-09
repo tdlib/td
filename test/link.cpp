@@ -224,8 +224,8 @@ static auto business_chat(const td::string &link_name) {
   return td::td_api::make_object<td::td_api::internalLinkTypeBusinessChat>(link_name);
 }
 
-static auto buy_stars(td::int64 star_count) {
-  return td::td_api::make_object<td::td_api::internalLinkTypeBuyStars>(star_count);
+static auto buy_stars(td::int64 star_count, const td::string &purpose) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeBuyStars>(star_count, purpose);
 }
 
 static auto change_phone_number() {
@@ -1332,10 +1332,10 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/privacy", privacy_and_security_settings());
 
   parse_internal_link("tg://stars_topup", unknown_deep_link("tg://stars_topup"));
-  parse_internal_link("tg://stars_topup?amount=", unknown_deep_link("tg://stars_topup?amount="));
-  parse_internal_link("tg://stars_topup?amount=test", buy_stars(1));
-  parse_internal_link("tg://stars_topup?amount=10", buy_stars(10));
-  parse_internal_link("tg://stars_topup?amount=100000000000", buy_stars(100000000000));
+  parse_internal_link("tg://stars_topup?balance=", unknown_deep_link("tg://stars_topup?balance="));
+  parse_internal_link("tg://stars_topup?balance=test", buy_stars(1, ""));
+  parse_internal_link("tg://stars_topup?balance=10&purpose=%30test", buy_stars(10, "0test"));
+  parse_internal_link("tg://stars_topup?balance=100000000000&purpose=subs", buy_stars(100000000000, "subs"));
 
   parse_internal_link("username.t.me////0/a//s/as?start=", bot_start("username", ""));
   parse_internal_link("username.t.me?start=as", bot_start("username", "as"));

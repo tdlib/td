@@ -6544,8 +6544,10 @@ internalLinkTypeBotStartInGroup bot_username:string start_parameter:string admin
 //@link_name Name of the link
 internalLinkTypeBusinessChat link_name:string = InternalLinkType;
 
-//@description The link is a link to the Telegram Star purchase section of the application @star_count The number of Telegram Stars that must be purchased by the user
-internalLinkTypeBuyStars star_count:int53 = InternalLinkType;
+//@description The link is a link to the Telegram Star purchase section of the application
+//@star_count The number of Telegram Stars that must be owned by the user
+//@purpose Purpose of Telegram Star purchase. Arbitrary string specified by the server, for example, "subs" if the Telegram Stars are required to extend channel subscriptions
+internalLinkTypeBuyStars star_count:int53 purpose:string = InternalLinkType;
 
 //@description The link is a link to the change phone number section of the application
 internalLinkTypeChangePhoneNumber = InternalLinkType;
