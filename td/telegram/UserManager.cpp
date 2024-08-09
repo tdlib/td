@@ -3277,13 +3277,8 @@ void UserManager::on_update_user_full_common_chat_count(UserFull *user_full, Use
   }
 }
 
-void UserManager::on_update_user_location(UserId user_id, DialogLocation &&location) {
-  LOG(INFO) << "Receive " << location << " for " << user_id;
-  if (!user_id.is_valid()) {
-    LOG(ERROR) << "Receive invalid " << user_id;
-    return;
-  }
-
+void UserManager::on_update_my_user_location(DialogLocation &&location) {
+  auto user_id = get_my_id();
   UserFull *user_full = get_user_full_force(user_id, "on_update_user_location");
   if (user_full == nullptr) {
     return;
@@ -3299,13 +3294,8 @@ void UserManager::on_update_user_full_location(UserFull *user_full, UserId user_
   }
 }
 
-void UserManager::on_update_user_work_hours(UserId user_id, BusinessWorkHours &&work_hours) {
-  LOG(INFO) << "Receive " << work_hours << " for " << user_id;
-  if (!user_id.is_valid()) {
-    LOG(ERROR) << "Receive invalid " << user_id;
-    return;
-  }
-
+void UserManager::on_update_my_user_work_hours(BusinessWorkHours &&work_hours) {
+  auto user_id = get_my_id();
   UserFull *user_full = get_user_full_force(user_id, "on_update_user_work_hours");
   if (user_full == nullptr) {
     return;
@@ -3321,13 +3311,8 @@ void UserManager::on_update_user_full_work_hours(UserFull *user_full, UserId use
   }
 }
 
-void UserManager::on_update_user_away_message(UserId user_id, BusinessAwayMessage &&away_message) {
-  LOG(INFO) << "Receive " << away_message << " for " << user_id;
-  if (!user_id.is_valid()) {
-    LOG(ERROR) << "Receive invalid " << user_id;
-    return;
-  }
-
+void UserManager::on_update_my_user_away_message(BusinessAwayMessage &&away_message) {
+  auto user_id = get_my_id();
   UserFull *user_full = get_user_full_force(user_id, "on_update_user_away_message");
   if (user_full == nullptr) {
     return;
@@ -3348,13 +3333,8 @@ void UserManager::on_update_user_full_away_message(UserFull *user_full, UserId u
   }
 }
 
-void UserManager::on_update_user_greeting_message(UserId user_id, BusinessGreetingMessage &&greeting_message) {
-  LOG(INFO) << "Receive " << greeting_message << " for " << user_id;
-  if (!user_id.is_valid()) {
-    LOG(ERROR) << "Receive invalid " << user_id;
-    return;
-  }
-
+void UserManager::on_update_my_user_greeting_message(BusinessGreetingMessage &&greeting_message) {
+  auto user_id = get_my_id();
   UserFull *user_full = get_user_full_force(user_id, "on_update_user_greeting_message");
   if (user_full == nullptr) {
     return;
@@ -3375,13 +3355,8 @@ void UserManager::on_update_user_full_greeting_message(UserFull *user_full, User
   }
 }
 
-void UserManager::on_update_user_intro(UserId user_id, BusinessIntro &&intro) {
-  LOG(INFO) << "Receive " << intro << " for " << user_id;
-  if (!user_id.is_valid()) {
-    LOG(ERROR) << "Receive invalid " << user_id;
-    return;
-  }
-
+void UserManager::on_update_my_user_intro(BusinessIntro &&intro) {
+  auto user_id = get_my_id();
   UserFull *user_full = get_user_full_force(user_id, "on_update_user_intro");
   if (user_full == nullptr) {
     return;

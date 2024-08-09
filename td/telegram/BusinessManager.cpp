@@ -381,7 +381,7 @@ class UpdateBusinessLocationQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->user_manager_->on_update_user_location(td_->user_manager_->get_my_id(), std::move(location_));
+    td_->user_manager_->on_update_my_user_location(std::move(location_));
 
     promise_.set_value(Unit());
   }
@@ -415,7 +415,7 @@ class UpdateBusinessWorkHoursQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->user_manager_->on_update_user_work_hours(td_->user_manager_->get_my_id(), std::move(work_hours_));
+    td_->user_manager_->on_update_my_user_work_hours(std::move(work_hours_));
 
     promise_.set_value(Unit());
   }
@@ -450,7 +450,7 @@ class UpdateBusinessGreetingMessageQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->user_manager_->on_update_user_greeting_message(td_->user_manager_->get_my_id(), std::move(greeting_message_));
+    td_->user_manager_->on_update_my_user_greeting_message(std::move(greeting_message_));
 
     promise_.set_value(Unit());
   }
@@ -485,7 +485,7 @@ class UpdateBusinessAwayMessageQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->user_manager_->on_update_user_away_message(td_->user_manager_->get_my_id(), std::move(away_message_));
+    td_->user_manager_->on_update_my_user_away_message(std::move(away_message_));
 
     promise_.set_value(Unit());
   }
@@ -520,7 +520,7 @@ class UpdateBusinessIntroQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->user_manager_->on_update_user_intro(td_->user_manager_->get_my_id(), std::move(intro_));
+    td_->user_manager_->on_update_my_user_intro(std::move(intro_));
 
     promise_.set_value(Unit());
   }

@@ -138,15 +138,15 @@ class UserManager final : public Actor {
 
   void on_update_user_common_chat_count(UserId user_id, int32 common_chat_count);
 
-  void on_update_user_location(UserId user_id, DialogLocation &&location);
+  void on_update_my_user_location(DialogLocation &&location);
 
-  void on_update_user_work_hours(UserId user_id, BusinessWorkHours &&work_hours);
+  void on_update_my_user_work_hours(BusinessWorkHours &&work_hours);
 
-  void on_update_user_away_message(UserId user_id, BusinessAwayMessage &&away_message);
+  void on_update_my_user_away_message(BusinessAwayMessage &&away_message);
 
-  void on_update_user_greeting_message(UserId user_id, BusinessGreetingMessage &&greeting_message);
+  void on_update_my_user_greeting_message(BusinessGreetingMessage &&greeting_message);
 
-  void on_update_user_intro(UserId user_id, BusinessIntro &&intro);
+  void on_update_my_user_intro(BusinessIntro &&intro);
 
   void on_update_user_commands(UserId user_id,
                                vector<telegram_api::object_ptr<telegram_api::botCommand>> &&bot_commands);
