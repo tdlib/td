@@ -19,6 +19,7 @@
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
+#include "td/utils/Slice.h"
 #include "td/utils/WaitFreeHashMap.h"
 
 #include <utility>
@@ -105,6 +106,8 @@ class DocumentsManager {
   FileId get_document_thumbnail_file_id(FileId file_id) const;
 
   void delete_document_thumbnail(FileId file_id);
+
+  Slice get_document_mime_type(FileId file_id) const;
 
   FileId dup_document(FileId new_id, FileId old_id);
 

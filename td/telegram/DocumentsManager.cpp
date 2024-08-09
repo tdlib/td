@@ -729,6 +729,12 @@ void DocumentsManager::delete_document_thumbnail(FileId file_id) {
   document->thumbnail = PhotoSize();
 }
 
+Slice DocumentsManager::get_document_mime_type(FileId file_id) const {
+  auto document = get_document(file_id);
+  CHECK(document != nullptr);
+  return document->mime_type;
+}
+
 FileId DocumentsManager::dup_document(FileId new_id, FileId old_id) {
   const GeneralDocument *old_document = get_document(old_id);
   CHECK(old_document != nullptr);

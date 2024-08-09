@@ -1455,11 +1455,16 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
       LOG_IF(ERROR,
              web_page->document_.type != Document::Type::Unknown && web_page->document_.type != Document::Type::General)
           << "Receive wrong document for " << web_page->url_;
+      bool is_pattern = false;
+      if (web_page->document_.type == Document::Type::General) {
+        auto mime_type = td_->documents_manager_->get_document_mime_type(web_page->document_.file_id);
+        is_pattern = mime_type == "image/png" || mime_type == "application/x-tgwallpattern";
+      }
       return td_api::make_object<td_api::linkPreviewTypeBackground>(
           web_page->document_.type == Document::Type::General
               ? td_->documents_manager_->get_document_object(web_page->document_.file_id, PhotoFormat::Png)
               : nullptr,
-          LinkManager::get_background_type_object(web_page->url_));
+          LinkManager::get_background_type_object(web_page->url_, is_pattern));
     }
     if (type == "bot") {
       LOG_IF(ERROR, web_page->document_.type != Document::Type::Unknown)
