@@ -6054,7 +6054,7 @@ void ChatManager::on_update_chat_full_invite_link(ChatFull *chat_full,
                                                   tl_object_ptr<telegram_api::ExportedChatInvite> &&invite_link) {
   CHECK(chat_full != nullptr);
   if (update_permanent_invite_link(chat_full->invite_link,
-                                   DialogInviteLink(std::move(invite_link), false, "ChatFull"))) {
+                                   DialogInviteLink(std::move(invite_link), false, false, "ChatFull"))) {
     chat_full->is_changed = true;
   }
 }
@@ -6063,7 +6063,7 @@ void ChatManager::on_update_channel_full_invite_link(ChannelFull *channel_full,
                                                      tl_object_ptr<telegram_api::ExportedChatInvite> &&invite_link) {
   CHECK(channel_full != nullptr);
   if (update_permanent_invite_link(channel_full->invite_link,
-                                   DialogInviteLink(std::move(invite_link), false, "ChannelFull"))) {
+                                   DialogInviteLink(std::move(invite_link), false, false, "ChannelFull"))) {
     channel_full->is_changed = true;
   }
 }

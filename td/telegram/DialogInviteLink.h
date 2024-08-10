@@ -39,8 +39,8 @@ class DialogInviteLink {
  public:
   DialogInviteLink() = default;
 
-  DialogInviteLink(tl_object_ptr<telegram_api::ExportedChatInvite> exported_invite_ptr, bool allow_truncated,
-                   const char *source);
+  DialogInviteLink(telegram_api::object_ptr<telegram_api::ExportedChatInvite> exported_invite_ptr, bool allow_truncated,
+                   bool expect_join_request, const char *source);
 
   static bool is_valid_invite_link(Slice invite_link, bool allow_truncated = false);
 

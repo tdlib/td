@@ -146,7 +146,7 @@ class ExportChatInviteQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for ExportChatInviteQuery: " << to_string(ptr);
 
-    DialogInviteLink invite_link(std::move(ptr), false, "ExportChatInviteQuery");
+    DialogInviteLink invite_link(std::move(ptr), false, false, "ExportChatInviteQuery");
     if (!invite_link.is_valid()) {
       return on_error(Status::Error(500, "Receive invalid invite link"));
     }
@@ -206,7 +206,7 @@ class EditChatInviteLinkQuery final : public Td::ResultHandler {
 
     td_->user_manager_->on_get_users(std::move(invite->users_), "EditChatInviteLinkQuery");
 
-    DialogInviteLink invite_link(std::move(invite->invite_), false, "EditChatInviteLinkQuery");
+    DialogInviteLink invite_link(std::move(invite->invite_), false, false, "EditChatInviteLinkQuery");
     if (!invite_link.is_valid()) {
       return on_error(Status::Error(500, "Receive invalid invite link"));
     }
@@ -253,7 +253,7 @@ class GetExportedChatInviteQuery final : public Td::ResultHandler {
 
     td_->user_manager_->on_get_users(std::move(result->users_), "GetExportedChatInviteQuery");
 
-    DialogInviteLink invite_link(std::move(result->invite_), false, "GetExportedChatInviteQuery");
+    DialogInviteLink invite_link(std::move(result->invite_), false, false, "GetExportedChatInviteQuery");
     if (!invite_link.is_valid()) {
       LOG(ERROR) << "Receive invalid invite link in " << dialog_id_;
       return on_error(Status::Error(500, "Receive invalid invite link"));
@@ -313,7 +313,7 @@ class GetExportedChatInvitesQuery final : public Td::ResultHandler {
     }
     vector<td_api::object_ptr<td_api::chatInviteLink>> invite_links;
     for (auto &invite : result->invites_) {
-      DialogInviteLink invite_link(std::move(invite), false, "GetExportedChatInvitesQuery");
+      DialogInviteLink invite_link(std::move(invite), false, false, "GetExportedChatInvitesQuery");
       if (!invite_link.is_valid()) {
         LOG(ERROR) << "Receive invalid invite link in " << dialog_id_;
         total_count--;
@@ -477,7 +477,7 @@ class RevokeChatInviteLinkQuery final : public Td::ResultHandler {
 
         td_->user_manager_->on_get_users(std::move(invite->users_), "RevokeChatInviteLinkQuery");
 
-        DialogInviteLink invite_link(std::move(invite->invite_), false, "RevokeChatInviteLinkQuery");
+        DialogInviteLink invite_link(std::move(invite->invite_), false, false, "RevokeChatInviteLinkQuery");
         if (!invite_link.is_valid()) {
           return on_error(Status::Error(500, "Receive invalid invite link"));
         }
@@ -489,8 +489,8 @@ class RevokeChatInviteLinkQuery final : public Td::ResultHandler {
 
         td_->user_manager_->on_get_users(std::move(invite->users_), "RevokeChatInviteLinkQuery replaced");
 
-        DialogInviteLink invite_link(std::move(invite->invite_), false, "RevokeChatInviteLinkQuery replaced");
-        DialogInviteLink new_invite_link(std::move(invite->new_invite_), false,
+        DialogInviteLink invite_link(std::move(invite->invite_), false, false, "RevokeChatInviteLinkQuery replaced");
+        DialogInviteLink new_invite_link(std::move(invite->new_invite_), false, false,
                                          "RevokeChatInviteLinkQuery new replaced");
         if (!invite_link.is_valid() || !new_invite_link.is_valid()) {
           return on_error(Status::Error(500, "Receive invalid invite link"));

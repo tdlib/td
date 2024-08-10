@@ -15,22 +15,20 @@
 
 namespace td {
 
-DialogInviteLink::DialogInviteLink(tl_object_ptr<telegram_api::ExportedChatInvite> exported_invite_ptr,
-                                   bool allow_truncated, const char *source) {
+DialogInviteLink::DialogInviteLink(telegram_api::object_ptr<telegram_api::ExportedChatInvite> exported_invite_ptr,
+                                   bool allow_truncated, bool expect_join_request, const char *source) {
   if (exported_invite_ptr == nullptr) {
     return;
   }
   if (exported_invite_ptr->get_id() != telegram_api::chatInviteExported::ID) {
     CHECK(exported_invite_ptr->get_id() == telegram_api::chatInvitePublicJoinRequests::ID);
-    Slice slice(source);
-    if (slice != "channelAdminLogEventActionParticipantJoinByRequest" && slice != "updateChatParticipant" &&
-        slice != "updateChannelParticipant" && slice != "updateBotChatInviteRequester") {
+    if (!expect_join_request) {
       LOG(ERROR) << "Receive from " << source << ' ' << to_string(exported_invite_ptr);
     }
     return;
   }
 
-  auto exported_invite = move_tl_object_as<telegram_api::chatInviteExported>(exported_invite_ptr);
+  auto exported_invite = telegram_api::move_object_as<telegram_api::chatInviteExported>(exported_invite_ptr);
   invite_link_ = std::move(exported_invite->link_);
   title_ = std::move(exported_invite->title_);
   creator_user_id_ = UserId(exported_invite->admin_id_);
