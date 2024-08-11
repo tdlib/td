@@ -11893,7 +11893,7 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
       }
       send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification_group,
                          d->notification_info->message_notification_group_.get_group_id(), NotificationId(),
-                         d->last_read_inbox_message_id, total_count, Slice(source) == Slice("view_messages"),
+                         d->last_read_inbox_message_id, total_count, Slice(source) == Slice("read_dialog_inbox"),
                          Promise<Unit>());
     }
 
