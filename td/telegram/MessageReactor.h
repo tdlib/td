@@ -37,7 +37,8 @@ class MessageReactor {
 
   explicit MessageReactor(telegram_api::object_ptr<telegram_api::messageReactor> &&reactor);
 
-  MessageReactor(DialogId dialog_id, int32 count) : dialog_id_(dialog_id), count_(count), is_me_(true) {
+  MessageReactor(DialogId dialog_id, int32 count, bool is_anonymous)
+      : dialog_id_(dialog_id), count_(count), is_me_(true), is_anonymous_(is_anonymous) {
   }
 
   bool is_valid() const {
@@ -50,8 +51,9 @@ class MessageReactor {
 
   bool fix_is_me(DialogId my_dialog_id);
 
-  void add_count(int32 count) {
+  void add_count(int32 count, bool is_anonymous) {
     count_ += count;
+    is_anonymous_ = is_anonymous;
   }
 
   td_api::object_ptr<td_api::paidReactor> get_paid_reactor_object(Td *td) const;

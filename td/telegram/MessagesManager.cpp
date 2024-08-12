@@ -22783,7 +22783,7 @@ void MessagesManager::remove_message_reaction(MessageFullId message_full_id, Rea
   }
 }
 
-void MessagesManager::add_paid_message_reaction(MessageFullId message_full_id, int64 star_count,
+void MessagesManager::add_paid_message_reaction(MessageFullId message_full_id, int64 star_count, bool is_anonymous,
                                                 Promise<Unit> &&promise) {
   auto dialog_id = message_full_id.get_dialog_id();
   Dialog *d = get_dialog_force(dialog_id, "add_paid_message_reaction");
@@ -22808,7 +22808,7 @@ void MessagesManager::add_paid_message_reaction(MessageFullId message_full_id, i
   }
 
   LOG(INFO) << "Have message with " << *m->reactions;
-  m->reactions->add_my_paid_reaction(td_, narrow_cast<int32>(star_count));
+  m->reactions->add_my_paid_reaction(td_, narrow_cast<int32>(star_count), is_anonymous);
   m->reactions->sort_reactions(active_reaction_pos_);
   LOG(INFO) << "Update message reactions to " << *m->reactions;
 

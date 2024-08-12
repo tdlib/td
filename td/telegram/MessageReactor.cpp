@@ -82,7 +82,7 @@ void MessageReactor::fix_message_reactors(vector<MessageReactor> &reactors, bool
 
 bool operator<(const MessageReactor &lhs, const MessageReactor &rhs) {
   if (lhs.count_ != rhs.count_) {
-    return lhs.count_ < rhs.count_;
+    return lhs.count_ > rhs.count_;
   }
   return lhs.dialog_id_.get() < rhs.dialog_id_.get();
 }

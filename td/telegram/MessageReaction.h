@@ -158,6 +158,7 @@ struct MessageReactions {
   vector<ReactionType> chosen_reaction_order_;
   vector<MessageReactor> top_reactors_;
   int32 pending_paid_reactions_ = 0;
+  bool pending_is_anonymous_ = false;
   bool is_min_ = false;
   bool need_polling_ = true;
   bool can_get_added_reactions_ = false;
@@ -181,7 +182,7 @@ struct MessageReactions {
 
   bool remove_my_reaction(const ReactionType &reaction_type, DialogId my_dialog_id);
 
-  void add_my_paid_reaction(Td *td, int32 star_count);
+  void add_my_paid_reaction(Td *td, int32 star_count, bool is_anonymous);
 
   bool drop_pending_paid_reactions(Td *td);
 
