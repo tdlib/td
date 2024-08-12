@@ -1225,11 +1225,12 @@ supergroupMembersFilterBots = SupergroupMembersFilter;
 //@subscription_pricing Information about subscription plan that is applied to the users joining the chat by the link; may be null if the link doesn't require subscription
 //@member_limit The maximum number of members, which can join the chat using the link simultaneously; 0 if not limited. Always 0 if the link requires approval
 //@member_count Number of chat members, which joined the chat using the link
+//@expired_member_count Number of chat members, which joined the chat using the link, but have already left because of expired subscription; for subscription links only 
 //@pending_join_request_count Number of pending join requests created using this link
 //@creates_join_request True, if the link only creates join request. If true, total number of joining members will be unlimited
 //@is_primary True, if the link is primary. Primary invite link can't have name, expiration date, or usage limit. There is exactly one primary invite link for each administrator with can_invite_users right at a given time
 //@is_revoked True, if the link was revoked
-chatInviteLink invite_link:string name:string creator_user_id:int53 date:int32 edit_date:int32 expiration_date:int32 subscription_pricing:starSubscriptionPricing member_limit:int32 member_count:int32 pending_join_request_count:int32 creates_join_request:Bool is_primary:Bool is_revoked:Bool = ChatInviteLink;
+chatInviteLink invite_link:string name:string creator_user_id:int53 date:int32 edit_date:int32 expiration_date:int32 subscription_pricing:starSubscriptionPricing member_limit:int32 member_count:int32 expired_member_count:int32 pending_join_request_count:int32 creates_join_request:Bool is_primary:Bool is_revoked:Bool = ChatInviteLink;
 
 //@description Contains a list of chat invite links @total_count Approximate total number of chat invite links found @invite_links List of invite links
 chatInviteLinks total_count:int32 invite_links:vector<chatInviteLink> = ChatInviteLinks;

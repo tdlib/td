@@ -29,6 +29,7 @@ class DialogInviteLink {
   int32 expire_date_ = 0;
   int32 usage_limit_ = 0;
   int32 usage_count_ = 0;
+  int32 expired_usage_count_ = 0;
   int32 request_count_ = 0;
   bool creates_join_request_ = false;
   bool is_revoked_ = false;
