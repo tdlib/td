@@ -23342,10 +23342,12 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   }
   if (is_channel_post && !is_scheduled && td_->chat_manager_->get_channel_sign_messages(dialog_id.get_channel_id())) {
     auto show_message_sender = td_->chat_manager_->get_channel_show_message_sender(dialog_id.get_channel_id());
-    m->author_signature = m->sender_dialog_id == dialog_id || m->sender_dialog_id == DialogId() ||
-                                  (m->has_explicit_sender && !show_message_sender)
-                              ? td_->user_manager_->get_user_title(my_id)
-                              : td_->dialog_manager_->get_dialog_title(m->sender_dialog_id);
+    if (m->sender_dialog_id != dialog_id || !m->has_explicit_sender) {
+      m->author_signature = m->sender_dialog_id == dialog_id || m->sender_dialog_id == DialogId() ||
+                                    (m->has_explicit_sender && !show_message_sender)
+                                ? td_->user_manager_->get_user_title(my_id)
+                                : td_->dialog_manager_->get_dialog_title(m->sender_dialog_id);
+    }
     if (!show_message_sender) {
       m->sender_user_id = UserId();
       m->sender_dialog_id = dialog_id;
