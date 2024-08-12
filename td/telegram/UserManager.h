@@ -587,6 +587,7 @@ class UserManager final : public Actor {
 
     unique_ptr<BotMenuButton> menu_button;
     vector<BotCommand> commands;
+    string privacy_policy_url;
     AdministratorRights group_administrator_rights;
     AdministratorRights broadcast_administrator_rights;
 

@@ -1070,6 +1070,7 @@ user id:int53 first_name:string last_name:string usernames:usernames phone_numbe
 //@animation Animation shown in the chat with the bot if the chat is empty; may be null
 //@menu_button Information about a button to show instead of the bot commands menu button; may be null if ordinary bot commands menu must be shown
 //@commands List of the bot commands
+//@privacy_policy_url The HTTP link to the privacy policy of the bot. If empty, then /privacy command must be used if supported by the bot. If the command isn't supported, then https://telegram.org/privacy-tpa must be opened
 //@default_group_administrator_rights Default administrator rights for adding the bot to basic group and supergroup chats; may be null
 //@default_channel_administrator_rights Default administrator rights for adding the bot to channels; may be null
 //@has_media_previews True, if the bot has media previews
@@ -1077,7 +1078,7 @@ user id:int53 first_name:string last_name:string usernames:usernames phone_numbe
 //@edit_description_link The internal link, which can be used to edit bot description; may be null
 //@edit_description_media_link The internal link, which can be used to edit the photo or animation shown in the chat with the bot if the chat is empty; may be null
 //@edit_settings_link The internal link, which can be used to edit bot settings; may be null
-botInfo short_description:string description:string photo:photo animation:animation menu_button:botMenuButton commands:vector<botCommand> default_group_administrator_rights:chatAdministratorRights default_channel_administrator_rights:chatAdministratorRights has_media_previews:Bool edit_commands_link:InternalLinkType edit_description_link:InternalLinkType edit_description_media_link:InternalLinkType edit_settings_link:InternalLinkType = BotInfo;
+botInfo short_description:string description:string photo:photo animation:animation menu_button:botMenuButton commands:vector<botCommand> privacy_policy_url:string default_group_administrator_rights:chatAdministratorRights default_channel_administrator_rights:chatAdministratorRights has_media_previews:Bool edit_commands_link:InternalLinkType edit_description_link:InternalLinkType edit_description_media_link:InternalLinkType edit_settings_link:InternalLinkType = BotInfo;
 
 //@description Contains full information about a user
 //@personal_photo User profile photo set by the current user for the contact; may be null. If null and user.profile_photo is null, then the photo is empty; otherwise, it is unknown.

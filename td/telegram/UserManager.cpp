@@ -1684,6 +1684,7 @@ void UserManager::UserFull::store(StorerT &storer) const {
   bool has_birthdate = !birthdate.is_empty();
   bool has_personal_channel_id = personal_channel_id.is_valid();
   bool has_flags2 = true;
+  bool has_privacy_policy_url = !privacy_policy_url.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
   STORE_FLAG(is_blocked);
@@ -1719,6 +1720,7 @@ void UserManager::UserFull::store(StorerT &storer) const {
   if (has_flags2) {
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_preview_medias);
+    STORE_FLAG(has_privacy_policy_url);
     END_STORE_FLAGS();
   }
   if (has_about) {
@@ -1772,6 +1774,9 @@ void UserManager::UserFull::store(StorerT &storer) const {
   if (has_personal_channel_id) {
     store(personal_channel_id, storer);
   }
+  if (has_privacy_policy_url) {
+    store(privacy_policy_url, storer);
+  }
 }
 
 template <class ParserT>
@@ -1794,6 +1799,7 @@ void UserManager::UserFull::parse(ParserT &parser) {
   bool has_birthdate;
   bool has_personal_channel_id;
   bool has_flags2;
+  bool has_privacy_policy_url = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_about);
   PARSE_FLAG(is_blocked);
@@ -1829,6 +1835,7 @@ void UserManager::UserFull::parse(ParserT &parser) {
   if (has_flags2) {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_preview_medias);
+    PARSE_FLAG(has_privacy_policy_url);
     END_PARSE_FLAGS();
   }
   if (has_about) {
@@ -1881,6 +1888,9 @@ void UserManager::UserFull::parse(ParserT &parser) {
   }
   if (has_personal_channel_id) {
     parse(personal_channel_id, parser);
+  }
+  if (has_privacy_policy_url) {
+    parse(privacy_policy_url, parser);
   }
 }
 
@@ -6946,6 +6956,11 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
     on_update_user_full_commands(user_full, user_id, std::move(user->bot_info_->commands_));
     on_update_user_full_menu_button(user_full, user_id, std::move(user->bot_info_->menu_button_));
     on_update_user_full_has_preview_medias(user_full, user_id, std::move(user->bot_info_->has_preview_medias_));
+
+    if (user_full->privacy_policy_url != user->bot_info_->privacy_policy_url_) {
+      user_full->privacy_policy_url = std::move(user->bot_info_->privacy_policy_url_);
+      user_full->is_changed = true;
+    }
   }
   if (user_full->description != description) {
     user_full->description = std::move(description);
@@ -7224,6 +7239,7 @@ void UserManager::drop_user_full(UserId user_id) {
   user_full->birthdate = {};
   user_full->sponsored_enabled = false;
   user_full->has_preview_medias = false;
+  user_full->privacy_policy_url = string();
   user_full->is_changed = true;
 
   update_user_full(user_full, user_id, "drop_user_full");
@@ -7956,7 +7972,7 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
         user_full->about, user_full->description,
         get_photo_object(td_->file_manager_.get(), user_full->description_photo),
         td_->animations_manager_->get_animation_object(user_full->description_animation_file_id),
-        std::move(menu_button), std::move(commands),
+        std::move(menu_button), std::move(commands), user_full->privacy_policy_url,
         user_full->group_administrator_rights == AdministratorRights()
             ? nullptr
             : user_full->group_administrator_rights.get_chat_administrator_rights_object(),
