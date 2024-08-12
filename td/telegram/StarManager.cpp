@@ -279,6 +279,11 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                       td_->stickers_manager_->get_premium_gift_sticker_object(
                           StarManager::get_months_by_star_count(star_count)));
                 }
+                if (!transaction->extended_media_.empty()) {  // TODO
+                  return td_api::make_object<td_api::starTransactionPartnerBusiness>(
+                      td_->user_manager_->get_user_id_object(user_id, "starTransactionPartnerBusiness"),
+                      get_paid_media_objects(DialogId(user_id)));
+                }
                 LOG(ERROR) << "Receive Telegram Star transaction with " << user_id;
                 return td_api::make_object<td_api::starTransactionPartnerUnsupported>();
               }

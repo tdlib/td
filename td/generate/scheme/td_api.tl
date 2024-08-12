@@ -890,7 +890,7 @@ starTransactionDirectionOutgoing = StarTransactionDirection;
 
 //@class BotTransactionPurpose @description Describes purpose of a transaction with a bot
 
-//@description Paid media were bought @media The bought media if they are still accessible
+//@description Paid media were bought @media The bought media if the trancastion wasn't refunded
 botTransactionPurposePaidMedia media:vector<PaidMedia> = BotTransactionPurpose;
 
 //@description User bought a product from the bot
@@ -903,7 +903,7 @@ botTransactionPurposeInvoicePayment product_info:productInfo invoice_payload:byt
 
 //@description Paid media were bought
 //@message_id Identifier of the corresponding message with paid media; can be an identifier of a deleted message
-//@media The bought media if they are still accessible
+//@media The bought media if the trancastion wasn't refunded
 channelTransactionPurposePaidMedia message_id:int53 media:vector<PaidMedia> = ChannelTransactionPurpose;
 
 //@description User joined the channel and subscribed to regular payments in Telegram Stars
@@ -934,6 +934,9 @@ starTransactionPartnerTelegramAds = StarTransactionPartner;
 
 //@description The transaction is a transaction with a bot @user_id Identifier of the bot @purpose Purpose of the transaction
 starTransactionPartnerBot user_id:int53 purpose:BotTransactionPurpose = StarTransactionPartner;
+
+//@description The transaction is a transaction with a business account @user_id Identifier of the business account user @media The bought media if the trancastion wasn't refunded
+starTransactionPartnerBusiness user_id:int53 media:vector<PaidMedia> = StarTransactionPartner;
 
 //@description The transaction is a transaction with a channel chat @chat_id Identifier of the chat @purpose Purpose of the transaction
 starTransactionPartnerChannel chat_id:int53 purpose:ChannelTransactionPurpose = StarTransactionPartner;
