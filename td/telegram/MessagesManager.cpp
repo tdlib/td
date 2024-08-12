@@ -20938,7 +20938,7 @@ void MessagesManager::search_dialog_recent_location_messages(DialogId dialog_id,
 }
 
 void MessagesManager::load_active_live_location_messages(Promise<Unit> &&promise) {
-  if (!G()->use_message_database()) {
+  if (!G()->use_message_database() || td_->auth_manager_->is_bot()) {
     are_active_live_location_messages_loaded_ = true;
   }
   if (are_active_live_location_messages_loaded_) {
