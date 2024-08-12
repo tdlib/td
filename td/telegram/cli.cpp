@@ -4413,7 +4413,7 @@ class CliClient final : public Actor {
       get_args(args, chat_id, creator_user_id, offset_date, offset_invite_link, limit);
       send_request(td_api::make_object<td_api::getChatInviteLinks>(chat_id, creator_user_id, op == "gcilr", offset_date,
                                                                    offset_invite_link, as_limit(limit)));
-    } else if (op == "gcilm") {
+    } else if (op == "gcilm" || op == "gcilme") {
       ChatId chat_id;
       string invite_link;
       UserId offset_user_id;
@@ -4421,7 +4421,7 @@ class CliClient final : public Actor {
       string limit;
       get_args(args, chat_id, invite_link, offset_user_id, offset_date, limit);
       send_request(td_api::make_object<td_api::getChatInviteLinkMembers>(
-          chat_id, invite_link,
+          chat_id, invite_link, op == "gcilme",
           td_api::make_object<td_api::chatInviteLinkMember>(offset_user_id, offset_date, false, 0), as_limit(limit)));
     } else if (op == "gcjr") {
       ChatId chat_id;

@@ -6827,9 +6827,9 @@ void Td::on_request(uint64 id, td_api::getChatInviteLinkMembers &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.invite_link_);
   CREATE_REQUEST_PROMISE();
-  dialog_invite_link_manager_->get_dialog_invite_link_users(DialogId(request.chat_id_), request.invite_link_,
-                                                            std::move(request.offset_member_), request.limit_,
-                                                            std::move(promise));
+  dialog_invite_link_manager_->get_dialog_invite_link_users(
+      DialogId(request.chat_id_), request.invite_link_, request.only_with_expired_subscription_,
+      std::move(request.offset_member_), request.limit_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getChatJoinRequests &request) {

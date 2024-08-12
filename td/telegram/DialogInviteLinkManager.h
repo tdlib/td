@@ -73,7 +73,7 @@ class DialogInviteLinkManager final : public Actor {
                                const string &offset_invite_link, int32 limit,
                                Promise<td_api::object_ptr<td_api::chatInviteLinks>> &&promise);
 
-  void get_dialog_invite_link_users(DialogId dialog_id, const string &invite_link,
+  void get_dialog_invite_link_users(DialogId dialog_id, const string &invite_link, bool subscription_expired,
                                     td_api::object_ptr<td_api::chatInviteLinkMember> offset_member, int32 limit,
                                     Promise<td_api::object_ptr<td_api::chatInviteLinkMembers>> &&promise);
 

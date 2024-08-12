@@ -391,7 +391,8 @@ class GetChatInviteImportersQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, const string &invite_link, int32 offset_date, UserId offset_user_id, int32 limit) {
+  void send(DialogId dialog_id, const string &invite_link, bool subscription_expired, int32 offset_date,
+            UserId offset_user_id, int32 limit) {
     dialog_id_ = dialog_id;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     CHECK(input_peer != nullptr);
@@ -402,6 +403,9 @@ class GetChatInviteImportersQuery final : public Td::ResultHandler {
     }
 
     int32 flags = telegram_api::messages_getChatInviteImporters::LINK_MASK;
+    if (subscription_expired) {
+      flags |= telegram_api::messages_getChatInviteImporters::SUBSCRIPTION_EXPIRED_MASK;
+    }
     send_query(G()->net_query_creator().create(telegram_api::messages_getChatInviteImporters(
         flags, false /*ignored*/, false /*ignored*/, std::move(input_peer), invite_link, string(), offset_date,
         r_input_user.move_as_ok(), limit)));
@@ -1060,8 +1064,9 @@ void DialogInviteLinkManager::get_dialog_invite_links(DialogId dialog_id, UserId
 }
 
 void DialogInviteLinkManager::get_dialog_invite_link_users(
-    DialogId dialog_id, const string &invite_link, td_api::object_ptr<td_api::chatInviteLinkMember> offset_member,
-    int32 limit, Promise<td_api::object_ptr<td_api::chatInviteLinkMembers>> &&promise) {
+    DialogId dialog_id, const string &invite_link, bool subscription_expired,
+    td_api::object_ptr<td_api::chatInviteLinkMember> offset_member, int32 limit,
+    Promise<td_api::object_ptr<td_api::chatInviteLinkMembers>> &&promise) {
   TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id));
 
   if (limit <= 0) {
@@ -1080,7 +1085,7 @@ void DialogInviteLinkManager::get_dialog_invite_link_users(
   }
 
   td_->create_handler<GetChatInviteImportersQuery>(std::move(promise))
-      ->send(dialog_id, invite_link, offset_date, offset_user_id, limit);
+      ->send(dialog_id, invite_link, subscription_expired, offset_date, offset_user_id, limit);
 }
 
 void DialogInviteLinkManager::revoke_dialog_invite_link(
