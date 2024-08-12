@@ -23315,17 +23315,8 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   auto message = make_unique<Message>();
   auto *m = message.get();
   bool is_channel_post = td_->dialog_manager_->is_broadcast_channel(dialog_id);
-  if (is_channel_post) {
-    // sender of the post can be hidden
-    if (!is_scheduled && td_->chat_manager_->get_channel_show_message_sender(dialog_id.get_channel_id())) {
-      m->sender_user_id = my_id;
-    } else {
-      m->sender_dialog_id = dialog_id;
-    }
-    if (!is_scheduled && td_->chat_manager_->get_channel_sign_messages(dialog_id.get_channel_id())) {
-      m->author_signature = td_->user_manager_->get_user_title(my_id);
-    }
-  } else {
+  if (!is_channel_post ||
+      (!is_scheduled && td_->chat_manager_->get_channel_sign_messages(dialog_id.get_channel_id()))) {
     if (send_as_dialog_id.is_valid()) {
       if (send_as_dialog_id.get_type() == DialogType::User) {
         m->sender_user_id = send_as_dialog_id.get_user_id();
@@ -23340,11 +23331,24 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
       }
       m->has_explicit_sender = true;
     } else {
-      if (td_->dialog_manager_->is_anonymous_administrator(dialog_id, &m->author_signature)) {
+      if (!is_channel_post && td_->dialog_manager_->is_anonymous_administrator(dialog_id, &m->author_signature)) {
         m->sender_dialog_id = dialog_id;
       } else {
         m->sender_user_id = my_id;
       }
+    }
+  } else {
+    m->sender_dialog_id = dialog_id;
+  }
+  if (is_channel_post && !is_scheduled && td_->chat_manager_->get_channel_sign_messages(dialog_id.get_channel_id())) {
+    auto show_message_sender = td_->chat_manager_->get_channel_show_message_sender(dialog_id.get_channel_id());
+    m->author_signature = m->sender_dialog_id == dialog_id || m->sender_dialog_id == DialogId() ||
+                                  (m->has_explicit_sender && !show_message_sender)
+                              ? td_->user_manager_->get_user_title(my_id)
+                              : td_->dialog_manager_->get_dialog_title(m->sender_dialog_id);
+    if (!show_message_sender) {
+      m->sender_user_id = UserId();
+      m->sender_dialog_id = dialog_id;
     }
   }
   m->message_id = options.schedule_date != 0 ? get_next_yet_unsent_scheduled_message_id(d, options.schedule_date)
