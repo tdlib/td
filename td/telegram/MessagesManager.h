@@ -2442,6 +2442,11 @@ class MessagesManager final : public Actor {
   td_api::object_ptr<td_api::MessageContent> get_message_message_content_object(DialogId dialog_id,
                                                                                 const Message *m) const;
 
+  td_api::object_ptr<td_api::message> get_message_object(Dialog *d, MessageId message_id, const char *source);
+
+  td_api::object_ptr<td_api::message> get_message_object(const Dialog *d, MessageId message_id,
+                                                         const char *source) const;
+
   td_api::object_ptr<td_api::message> get_message_object(DialogId dialog_id, const Message *m,
                                                          const char *source) const;
 

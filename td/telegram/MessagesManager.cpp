@@ -19632,8 +19632,8 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       td_->dialog_manager_->get_dialog_profile_accent_color_id_object(d->dialog_id),
       td_->dialog_manager_->get_dialog_profile_background_custom_emoji_id(d->dialog_id).get(),
       td_->dialog_manager_->get_dialog_default_permissions(d->dialog_id).get_chat_permissions_object(),
-      get_message_object(d->dialog_id, get_message(d, d->last_message_id), source), get_chat_positions_object(d),
-      std::move(chat_lists), get_default_message_sender_object(d), block_list_id.get_block_list_object(),
+      get_message_object(d, d->last_message_id, source), get_chat_positions_object(d), std::move(chat_lists),
+      get_default_message_sender_object(d), block_list_id.get_block_list_object(),
       td_->dialog_manager_->get_dialog_has_protected_content(d->dialog_id), is_translatable, d->is_marked_as_unread,
       get_dialog_view_as_topics(d), get_dialog_has_scheduled_messages(d), can_delete.for_self_,
       can_delete.for_all_users_, td_->dialog_manager_->can_report_dialog(d->dialog_id),
@@ -21301,7 +21301,7 @@ td_api::object_ptr<td_api::foundChatMessages> MessagesManager::get_found_chat_me
   vector<tl_object_ptr<td_api::message>> result;
   result.reserve(found_dialog_messages.message_ids.size());
   for (const auto &message_id : found_dialog_messages.message_ids) {
-    auto message = get_message_object(dialog_id, get_message_force(d, message_id, source), source);
+    auto message = get_message_object(d, message_id, source);
     if (message != nullptr) {
       result.push_back(std::move(message));
     }
@@ -21469,7 +21469,7 @@ void MessagesManager::get_dialog_message_by_date(DialogId dialog_id, int32 date,
   auto message_id = d->ordered_messages.find_message_by_date(date, get_get_message_date(d));
   if (message_id.is_valid() &&
       (message_id == d->last_message_id || (*d->ordered_messages.get_const_iterator(message_id))->have_next())) {
-    return promise.set_value(get_message_object(dialog_id, get_message(d, message_id), "get_dialog_message_by_date"));
+    return promise.set_value(get_message_object(d, message_id, "get_dialog_message_by_date"));
   }
 
   if (G()->use_message_database() && d->last_database_message_id != MessageId()) {
@@ -21554,8 +21554,7 @@ void MessagesManager::on_get_dialog_message_by_date_from_database(
         LOG(ERROR) << "Failed to find " << m->message_id << " in " << dialog_id << " by date " << date;
         message_id = m->message_id;
       }
-      promise.set_value(
-          get_message_object(dialog_id, get_message(d, message_id), "on_get_dialog_message_by_date_from_database"));
+      promise.set_value(get_message_object(d, message_id, "on_get_dialog_message_by_date_from_database"));
       return;
     }
     // TODO if m == nullptr, we need to just adjust it to the next non-nullptr message, not get from server
@@ -21575,8 +21574,7 @@ void MessagesManager::get_dialog_message_by_date_from_server(const Dialog *d, in
 
     auto message_id = d->ordered_messages.find_message_by_date(date, get_get_message_date(d));
     if (message_id.is_valid()) {
-      promise.set_value(
-          get_message_object(d->dialog_id, get_message(d, message_id), "get_dialog_message_by_date_from_server"));
+      promise.set_value(get_message_object(d, message_id, "get_dialog_message_by_date_from_server"));
     } else {
       promise.set_value(nullptr);
     }
@@ -21610,8 +21608,7 @@ void MessagesManager::on_get_dialog_message_by_date(DialogId dialog_id, int32 da
           LOG(ERROR) << "Failed to find " << result.get_message_id() << " in " << dialog_id << " by date " << date;
           message_id = result.get_message_id();
         }
-        return promise.set_value(
-            get_message_object(dialog_id, get_message(d, message_id), "on_get_dialog_message_by_date"));
+        return promise.set_value(get_message_object(d, message_id, "on_get_dialog_message_by_date"));
       }
     }
   }
@@ -22927,6 +22924,16 @@ td_api::object_ptr<td_api::message> MessagesManager::get_business_message_messag
       std::move(content), std::move(reply_markup));
 }
 
+td_api::object_ptr<td_api::message> MessagesManager::get_message_object(Dialog *d, MessageId message_id,
+                                                                        const char *source) {
+  return get_message_object(d->dialog_id, get_message_force(d, message_id, source), source);
+}
+
+td_api::object_ptr<td_api::message> MessagesManager::get_message_object(const Dialog *d, MessageId message_id,
+                                                                        const char *source) const {
+  return get_message_object(d->dialog_id, get_message(d, message_id), source);
+}
+
 td_api::object_ptr<td_api::message> MessagesManager::get_message_object(MessageFullId message_full_id,
                                                                         const char *source) {
   return get_message_object(message_full_id.get_dialog_id(), get_message_force(message_full_id, source), source);
@@ -23014,9 +23021,8 @@ td_api::object_ptr<td_api::messages> MessagesManager::get_messages_object(int32 
                                                                           bool skip_not_found, const char *source) {
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
-  auto message_objects = transform(message_ids, [this, dialog_id, d, source](MessageId message_id) {
-    return get_message_object(dialog_id, get_message_force(d, message_id, source), source);
-  });
+  auto message_objects = transform(
+      message_ids, [this, d, source](MessageId message_id) { return get_message_object(d, message_id, source); });
   return get_messages_object(total_count, std::move(message_objects), skip_not_found);
 }
 
