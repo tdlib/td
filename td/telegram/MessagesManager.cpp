@@ -27436,9 +27436,6 @@ Result<MessageId> MessagesManager::add_local_message(
       !td_->chat_manager_->get_channel_show_message_sender(dialog_id.get_channel_id())) {
     return Status::Error(400, "Channel post can't have user as a sender");
   }
-  if (is_channel_post && sender_dialog_id.is_valid() && sender_dialog_id != dialog_id) {
-    return Status::Error(400, "Channel post must have other channels as a sender");
-  }
 
   auto dialog_type = dialog_id.get_type();
   auto my_id = td_->user_manager_->get_my_id();
@@ -27463,9 +27460,11 @@ Result<MessageId> MessagesManager::add_local_message(
   m->message_id = message_id;
   if (is_channel_post) {
     // sender of the post can be hidden
-    auto real_sender_user_id = sender_user_id.is_valid() ? sender_user_id : my_id;
     if (td_->chat_manager_->get_channel_sign_messages(dialog_id.get_channel_id())) {
-      m->author_signature = td_->user_manager_->get_user_title(real_sender_user_id);
+      auto real_sender_user_id = sender_user_id.is_valid() ? sender_user_id : my_id;
+      m->author_signature = m->sender_dialog_id == dialog_id || m->sender_dialog_id == DialogId()
+                                ? td_->user_manager_->get_user_title(real_sender_user_id)
+                                : td_->dialog_manager_->get_dialog_title(m->sender_dialog_id);
     }
   }
   m->sender_user_id = sender_user_id;
