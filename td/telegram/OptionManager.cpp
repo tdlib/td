@@ -158,6 +158,8 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("bot_media_preview_count_max", 12);
   set_default_integer_option("paid_reaction_star_count_max", 2500);
   set_default_integer_option("subscription_star_count_max", 2500);
+  set_default_integer_option("usd_to_1000_star_rate", 1410);
+  set_default_integer_option("1000_star_to_usd_rate", 1200);
 
   if (options.isset("my_phone_number") || !options.isset("my_id")) {
     update_premium_options();
