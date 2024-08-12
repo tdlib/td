@@ -9095,7 +9095,7 @@ setMessageReactions chat_id:int53 message_id:int53 reaction_types:vector<Reactio
 //@description Returns reactions added for a message, along with their sender
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message. Use message.interaction_info.reactions.can_get_added_reactions to check whether added reactions can be received for the message
-//@reaction_type Type of the reactions to return; pass null to return all added reactions
+//@reaction_type Type of the reactions to return; pass null to return all added reactions; reactionTypePaid isn't supported
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of reactions to be returned; must be positive and can't be greater than 100
 getMessageAddedReactions chat_id:int53 message_id:int53 reaction_type:ReactionType offset:string limit:int32 = AddedReactions;

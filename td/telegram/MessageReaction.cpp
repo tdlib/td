@@ -1113,6 +1113,9 @@ void get_message_added_reactions(Td *td, MessageFullId message_full_id, Reaction
   if (!td->messages_manager_->have_message_force(message_full_id, "get_message_added_reactions")) {
     return promise.set_error(Status::Error(400, "Message not found"));
   }
+  if (reaction_type.is_paid_reaction()) {
+    return promise.set_error(Status::Error(400, "Can't use the method for paid reaction"));
+  }
 
   auto message_id = message_full_id.get_message_id();
   if (message_full_id.get_dialog_id().get_type() == DialogType::SecretChat || !message_id.is_valid() ||
