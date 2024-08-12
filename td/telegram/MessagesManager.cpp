@@ -22697,10 +22697,12 @@ ChatReactions MessagesManager::get_message_available_reactions(const Dialog *d, 
 
 DialogId MessagesManager::get_my_reaction_dialog_id(const Dialog *d) const {
   auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
+  if (td_->dialog_manager_->is_broadcast_channel(d->dialog_id)) {
+    return my_dialog_id;
+  }
   auto reaction_dialog_id =
       d->default_send_message_as_dialog_id.is_valid() ? d->default_send_message_as_dialog_id : my_dialog_id;
-  if (reaction_dialog_id == my_dialog_id && td_->dialog_manager_->is_anonymous_administrator(d->dialog_id, nullptr) &&
-      !td_->dialog_manager_->is_broadcast_channel(d->dialog_id)) {
+  if (reaction_dialog_id == my_dialog_id && td_->dialog_manager_->is_anonymous_administrator(d->dialog_id, nullptr)) {
     // react as the supergroup
     return d->dialog_id;
   }
@@ -23795,9 +23797,10 @@ void MessagesManager::get_dialog_send_message_as_dialog_ids(
   TRY_STATUS_PROMISE(promise, G()->close_status());
   TRY_RESULT_PROMISE(promise, d,
                      check_dialog_access(dialog_id, true, AccessRights::Read, "get_dialog_send_message_as_dialog_ids"));
-  if (!d->default_send_message_as_dialog_id.is_valid()) {
+  if (!d->default_send_message_as_dialog_id.is_valid() || can_send_message(dialog_id).is_error()) {
     return promise.set_value(td_api::make_object<td_api::chatMessageSenders>());
   }
+  // checked in on_update_dialog_default_send_message_as_dialog_id
   CHECK(dialog_id.get_type() == DialogType::Channel);
 
   if (td_->chat_manager_->are_created_public_broadcasts_inited()) {
@@ -23808,6 +23811,13 @@ void MessagesManager::get_dialog_send_message_as_dialog_ids(
         auto sender = get_message_sender_object(td, dialog_id, "add_sender");
         senders->senders_.push_back(td_api::make_object<td_api::chatMessageSender>(std::move(sender), needs_premium));
       };
+      auto is_broadcast = td_->dialog_manager_->is_broadcast_channel(dialog_id);
+      if (is_broadcast) {
+        if (!td_->chat_manager_->get_channel_sign_messages(dialog_id.get_channel_id())) {
+          return promise.set_value(td_api::make_object<td_api::chatMessageSenders>());
+        }
+        add_sender(td_->dialog_manager_->get_my_dialog_id(), false);
+      }
       if (td_->dialog_manager_->is_anonymous_administrator(dialog_id, nullptr)) {
         add_sender(dialog_id, false);
       } else {
@@ -23824,9 +23834,12 @@ void MessagesManager::get_dialog_send_message_as_dialog_ids(
       auto linked_channel_id = td_->chat_manager_->get_channel_linked_channel_id(
           dialog_id.get_channel_id(), "get_dialog_send_message_as_dialog_ids");
       for (auto channel_id : created_public_broadcasts) {
+        if (DialogId(channel_id) == dialog_id) {
+          continue;
+        }
         int64 score = td_->chat_manager_->get_channel_participant_count(channel_id);
-        bool needs_premium =
-            !is_premium && channel_id != linked_channel_id && !td_->chat_manager_->get_channel_is_verified(channel_id);
+        bool needs_premium = !is_premium && !is_broadcast && channel_id != linked_channel_id &&
+                             !td_->chat_manager_->get_channel_is_verified(channel_id);
         if (needs_premium) {
           score -= static_cast<int64>(1) << 40;
         }
@@ -23862,19 +23875,21 @@ void MessagesManager::set_dialog_default_send_message_as_dialog_id(DialogId dial
   TRY_RESULT_PROMISE(
       promise, d,
       check_dialog_access(dialog_id, false, AccessRights::Read, "set_dialog_default_send_message_as_dialog_id"));
-  if (!d->default_send_message_as_dialog_id.is_valid()) {
+  if (!d->default_send_message_as_dialog_id.is_valid() || can_send_message(dialog_id).is_error()) {
     return promise.set_error(Status::Error(400, "Can't change message sender in the chat"));
   }
   // checked in on_update_dialog_default_send_message_as_dialog_id
-  CHECK(dialog_id.get_type() == DialogType::Channel && !td_->dialog_manager_->is_broadcast_channel(dialog_id));
+  CHECK(dialog_id.get_type() == DialogType::Channel);
 
-  bool is_anonymous = td_->dialog_manager_->is_anonymous_administrator(dialog_id, nullptr);
+  auto is_broadcast = td_->dialog_manager_->is_broadcast_channel(dialog_id);
+  auto is_anonymous = td_->dialog_manager_->is_anonymous_administrator(dialog_id, nullptr);
   switch (message_sender_dialog_id.get_type()) {
     case DialogType::User:
       if (message_sender_dialog_id != td_->dialog_manager_->get_my_dialog_id()) {
         return promise.set_error(Status::Error(400, "Can't send messages as another user"));
       }
-      if (is_anonymous) {
+      if (is_anonymous &&
+          (!is_broadcast || !td_->chat_manager_->get_channel_sign_messages(dialog_id.get_channel_id()))) {
         return promise.set_error(Status::Error(400, "Can't send messages as self"));
       }
       break;
@@ -31112,7 +31127,7 @@ void MessagesManager::on_update_dialog_default_send_message_as_dialog_id(DialogI
     return;
   }
   auto dialog_type = dialog_id.get_type();
-  if (dialog_type != DialogType::Channel || td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
+  if (dialog_type != DialogType::Channel) {
     if (default_send_as_dialog_id != DialogId()) {
       LOG(ERROR) << "Receive message sender " << default_send_as_dialog_id << " in " << dialog_id;
     }
@@ -36033,7 +36048,8 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
       break;
   }
   if (!d->need_drop_default_send_message_as_dialog_id && d->default_send_message_as_dialog_id.is_valid() &&
-      dialog_type == DialogType::Channel && !td_->chat_manager_->is_channel_public(dialog_id.get_channel_id()) &&
+      dialog_type == DialogType::Channel && !td_->dialog_manager_->is_broadcast_channel(d->dialog_id) &&
+      !td_->chat_manager_->is_channel_public(dialog_id.get_channel_id()) &&
       !td_->chat_manager_->get_channel_has_linked_channel(dialog_id.get_channel_id())) {
     LOG(INFO) << "Drop message sender in " << dialog_id;
     d->need_drop_default_send_message_as_dialog_id = true;
