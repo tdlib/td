@@ -9878,7 +9878,7 @@ getStoryAvailableReactions row_size:int32 = AvailableReactions;
 //@description Changes chosen reaction on a story that has already been sent
 //@story_sender_chat_id The identifier of the sender of the story
 //@story_id The identifier of the story
-//@reaction_type Type of the reaction to set; pass null to remove the reaction. `reactionTypeCustomEmoji` reactions can be used only by Telegram Premium users
+//@reaction_type Type of the reaction to set; pass null to remove the reaction. Custom emoji reactions can be used only by Telegram Premium users. Paid reactions can't be set
 //@update_recent_reactions Pass true if the reaction needs to be added to recent reactions
 setStoryReaction story_sender_chat_id:int53 story_id:int32 reaction_type:ReactionType update_recent_reactions:Bool = Ok;
 
@@ -9895,7 +9895,7 @@ getStoryInteractions story_id:int32 query:string only_contacts:Bool prefer_forwa
 //@description Returns interactions with a story posted in a chat. Can be used only if story is posted on behalf of a chat and the user is an administrator in the chat
 //@story_sender_chat_id The identifier of the sender of the story
 //@story_id Story identifier
-//@reaction_type Pass the default heart reaction or a suggested reaction type to receive only interactions with the specified reaction type; pass null to receive all interactions
+//@reaction_type Pass the default heart reaction or a suggested reaction type to receive only interactions with the specified reaction type; pass null to receive all interactions; reactionTypePaid isn't supported
 //@prefer_forwards Pass true to get forwards and reposts first, then reactions, then other views; pass false to get interactions sorted just by interaction date
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of story interactions to return

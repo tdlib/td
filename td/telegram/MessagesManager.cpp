@@ -20740,6 +20740,11 @@ MessagesManager::FoundDialogMessages MessagesManager::search_dialog_messages(
     }
   }
 
+  if (tag.is_paid_reaction()) {
+    promise.set_value(Unit());
+    return result;
+  }
+
   do {
     random_id = Random::secure_int64();
   } while (random_id == 0 || found_dialog_messages_.count(random_id) > 0);
