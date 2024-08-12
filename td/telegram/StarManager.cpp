@@ -273,8 +273,9 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                 bot_payload.clear();
               };
               return td_api::make_object<td_api::starTransactionPartnerBot>(
-                  td_->user_manager_->get_user_id_object(user_id, "starTransactionPartnerBot"), std::move(product_info),
-                  bot_payload);
+                  td_->user_manager_->get_user_id_object(user_id, "starTransactionPartnerBot"),
+                  td_api::make_object<td_api::botTransactionPurposeInvoicePayment>(std::move(product_info),
+                                                                                   bot_payload));
             }
             if (td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
               if (transaction->subscription_period_ > 0) {

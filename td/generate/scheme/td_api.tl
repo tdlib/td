@@ -888,6 +888,17 @@ starTransactionDirectionIncoming = StarTransactionDirection;
 starTransactionDirectionOutgoing = StarTransactionDirection;
 
 
+//@class BotTransactionPurpose @description Describes purpose of a transaction with a bot
+
+//@description Paid media were bought @media The bought media if they are still accessible
+botTransactionPurposePaidMedia media:vector<PaidMedia> = BotTransactionPurpose;
+
+//@description User bought a product from the bot
+//@product_info Information about the bought product; may be null if not applicable
+//@invoice_payload Invoice payload; for bots only
+botTransactionPurposeInvoicePayment product_info:productInfo invoice_payload:bytes  = BotTransactionPurpose;
+
+
 //@class ChannelTransactionPurpose @description Describes purpose of a transaction with a channel
 
 //@description Paid media were bought
@@ -921,15 +932,10 @@ starTransactionPartnerFragment withdrawal_state:RevenueWithdrawalState = StarTra
 //@description The transaction is a transaction with Telegram Ad platform
 starTransactionPartnerTelegramAds = StarTransactionPartner;
 
-//@description The transaction is a transaction with a bot
-//@user_id Identifier of the bot for the user, or the user for the bot
-//@product_info Information about the bought product; may be null if not applicable
-//@invoice_payload Invoice payload; for bots only
-starTransactionPartnerBot user_id:int53 product_info:productInfo invoice_payload:bytes = StarTransactionPartner;
+//@description The transaction is a transaction with a bot @user_id Identifier of the bot @purpose Purpose of the transaction
+starTransactionPartnerBot user_id:int53 purpose:BotTransactionPurpose = StarTransactionPartner;
 
-//@description The transaction is a transaction with a channel
-//@chat_id Identifier of the chat
-//@purpose Purpose of the transaction
+//@description The transaction is a transaction with a channel chat @chat_id Identifier of the chat @purpose Purpose of the transaction
 starTransactionPartnerChannel chat_id:int53 purpose:ChannelTransactionPurpose = StarTransactionPartner;
 
 //@description The transaction is a gift of Telegram Stars from another user
