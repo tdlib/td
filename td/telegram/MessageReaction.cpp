@@ -201,6 +201,43 @@ class SendPaidReactionQuery final : public Td::ResultHandler {
   }
 };
 
+class TogglePaidReactionPrivacyQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit TogglePaidReactionPrivacyQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(MessageFullId message_full_id, bool is_anonymous) {
+    dialog_id_ = message_full_id.get_dialog_id();
+
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_togglePaidReactionPrivacy(
+            std::move(input_peer), message_full_id.get_message_id().get_server_message_id().get(), is_anonymous),
+        {{dialog_id_}, {message_full_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_togglePaidReactionPrivacy>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "TogglePaidReactionPrivacyQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetMessageReactionsListQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::addedReactions>> promise_;
   DialogId dialog_id_;
@@ -1048,6 +1085,21 @@ void MessageReactions::send_paid_message_reaction(Td *td, MessageFullId message_
 
   td->create_handler<SendPaidReactionQuery>(std::move(promise))
       ->send(message_full_id, star_count, is_anonymous, random_id);
+}
+
+bool MessageReactions::toggle_paid_message_reaction_is_anonymous(Td *td, MessageFullId message_full_id,
+                                                                 bool is_anonymous, Promise<Unit> &&promise) {
+  if (pending_paid_reactions_ != 0) {
+    pending_is_anonymous_ = is_anonymous;
+  }
+  for (auto &top_reactor : top_reactors_) {
+    if (top_reactor.is_me()) {
+      top_reactor.add_count(0, is_anonymous);
+      td->create_handler<TogglePaidReactionPrivacyQuery>(std::move(promise))->send(message_full_id, is_anonymous);
+      return true;
+    }
+  }
+  return pending_paid_reactions_ != 0;
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageReactions &reactions) {

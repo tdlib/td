@@ -9077,13 +9077,19 @@ removeMessageReaction chat_id:int53 message_id:int53 reaction_type:ReactionType 
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
 //@star_count Number of Telegram Stars to be used for the reaction; 1-getOption("paid_reaction_star_count_max")
-//@is_anonymous Pass true to make all paid reactions of the user anonymous; pass false to make the user's profile visible among top reactors
+//@is_anonymous Pass true to make paid reaction of the user on the message anonymous; pass false to make the user's profile visible among top reactors
 addPaidMessageReaction chat_id:int53 message_id:int53 star_count:int53 is_anonymous:Bool = Ok;
 
 //@description Removes all pending paid reactions on a message. Can be called within 5 seconds after the last addPaidMessageReaction call
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
 removePendingPaidMessageReactions chat_id:int53 message_id:int53 = Ok;
+
+//@description Changes whether the paid message reaction of the user to a message is anonymous. The message must have paid reaction added by the user
+//@chat_id Identifier of the chat to which the message belongs
+//@message_id Identifier of the message
+//@is_anonymous Pass true to make paid reaction of the user on the message anonymous; pass false to make the user's profile visible among top reactors
+togglePaidMessageReactionIsAnonymous chat_id:int53 message_id:int53 is_anonymous:Bool = Ok;
 
 //@description Sets reactions on a message; for bots only
 //@chat_id Identifier of the chat to which the message belongs

@@ -22851,6 +22851,26 @@ void MessagesManager::remove_paid_message_reactions(MessageFullId message_full_i
   promise.set_value(Unit());
 }
 
+void MessagesManager::toggle_paid_message_reaction_is_anonymous(MessageFullId message_full_id, bool is_anonymous,
+                                                                Promise<Unit> &&promise) {
+  auto dialog_id = message_full_id.get_dialog_id();
+  Dialog *d = get_dialog_force(dialog_id, "toggle_paid_message_reaction_is_anonymous");
+  if (d == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+  Message *m = get_message_force(d, message_full_id.get_message_id(), "toggle_paid_message_reaction_is_anonymous");
+  if (m == nullptr) {
+    return promise.set_error(Status::Error(400, "Message not found"));
+  }
+  if (m->reactions == nullptr) {
+    return promise.set_error(Status::Error(400, "Message has no paid reactions"));
+  }
+  if (m->reactions->toggle_paid_message_reaction_is_anonymous(td_, message_full_id, is_anonymous, std::move(promise))) {
+    send_update_message_interaction_info(d->dialog_id, m);
+    on_message_changed(d, m, true, "toggle_paid_message_reaction_is_anonymous");
+  }
+}
+
 void MessagesManager::set_message_reactions(Dialog *d, Message *m, bool is_big, bool add_to_recent,
                                             Promise<Unit> &&promise) {
   CHECK(m->reactions != nullptr);

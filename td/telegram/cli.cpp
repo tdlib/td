@@ -2979,6 +2979,13 @@ class CliClient final : public Actor {
       MessageId message_id;
       get_args(args, chat_id, message_id);
       send_request(td_api::make_object<td_api::removePendingPaidMessageReactions>(chat_id, message_id));
+    } else if (op == "tpmria") {
+      ChatId chat_id;
+      MessageId message_id;
+      bool is_anonymous;
+      get_args(args, chat_id, message_id, is_anonymous);
+      send_request(
+          td_api::make_object<td_api::togglePaidMessageReactionIsAnonymous>(chat_id, message_id, is_anonymous));
     } else if (op == "gmars") {
       ChatId chat_id;
       MessageId message_id;
