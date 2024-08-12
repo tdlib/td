@@ -206,6 +206,19 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
           LOG(ERROR) << "Receive Star transaction with bot payload";
         }
       }
+      auto get_paid_media_objects = [&](DialogId dialog_id) -> vector<td_api::object_ptr<td_api::PaidMedia>> {
+        auto extended_media = transform(std::move(transaction->extended_media_), [td = td_, dialog_id](auto &&media) {
+          return MessageExtendedMedia(td, std::move(media), dialog_id);
+        });
+        for (auto &media : extended_media) {
+          media.append_file_ids(td_, file_ids);
+        }
+        auto extended_media_objects = transform(std::move(extended_media), [td = td_](auto &&media) {
+          return media.get_message_extended_media_object(td);
+        });
+        transaction->extended_media_.clear();
+        return extended_media_objects;
+      };
       auto partner = [&]() -> td_api::object_ptr<td_api::StarTransactionPartner> {
         switch (transaction->peer_->get_id()) {
           case telegram_api::starsTransactionPeerUnsupported::ID:
@@ -305,28 +318,17 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
 
               SCOPE_EXIT {
                 transaction->msg_id_ = 0;
-                transaction->extended_media_.clear();
               };
               auto message_id = MessageId(ServerMessageId(transaction->msg_id_));
               if (message_id != MessageId() && !message_id.is_valid()) {
                 LOG(ERROR) << "Receive " << message_id << " in " << to_string(transaction);
                 message_id = MessageId();
               }
-              auto extended_media =
-                  transform(std::move(transaction->extended_media_), [td = td_, dialog_id](auto &&media) {
-                    return MessageExtendedMedia(td, std::move(media), dialog_id);
-                  });
-              for (auto &media : extended_media) {
-                media.append_file_ids(td_, file_ids);
-              }
-              auto extended_media_objects = transform(std::move(extended_media), [td = td_](auto &&media) {
-                return media.get_message_extended_media_object(td);
-              });
               td_->dialog_manager_->force_create_dialog(dialog_id, "starsTransactionPeer", true);
               return td_api::make_object<td_api::starTransactionPartnerChannel>(
                   td_->dialog_manager_->get_chat_id_object(dialog_id, "starTransactionPartnerChannel"),
                   td_api::make_object<td_api::channelTransactionPurposePaidMedia>(message_id.get(),
-                                                                                  std::move(extended_media_objects)));
+                                                                                  get_paid_media_objects(dialog_id)));
             }
             LOG(ERROR) << "Receive Telegram Star transaction with " << dialog_id;
             return td_api::make_object<td_api::starTransactionPartnerUnsupported>();
