@@ -29,6 +29,8 @@ class RestrictionReason {
     return lhs.platform_ == rhs.platform_ && lhs.reason_ == rhs.reason_ && lhs.description_ == rhs.description_;
   }
 
+  friend const RestrictionReason *get_restriction_reason(const vector<RestrictionReason> &restriction_reasons);
+
   friend string get_restriction_reason_description(const vector<RestrictionReason> &restriction_reasons);
 
  public:
