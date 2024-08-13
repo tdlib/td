@@ -67,6 +67,8 @@ inline bool operator!=(const RestrictionReason &lhs, const RestrictionReason &rh
   return !(lhs == rhs);
 }
 
+bool get_restriction_reason_has_sensitive_content(const vector<RestrictionReason> &restriction_reasons);
+
 string get_restriction_reason_description(const vector<RestrictionReason> &restriction_reasons);
 
 vector<RestrictionReason> get_restriction_reasons(Slice legacy_restriction_reason);

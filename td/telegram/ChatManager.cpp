@@ -8851,8 +8851,8 @@ td_api::object_ptr<td_api::updateSupergroup> ChatManager::get_update_unknown_sup
   bool is_megagroup = min_channel == nullptr ? false : min_channel->is_megagroup_;
   return td_api::make_object<td_api::updateSupergroup>(td_api::make_object<td_api::supergroup>(
       channel_id.get(), nullptr, 0, DialogParticipantStatus::Banned(0).get_chat_member_status_object(), 0, 0, false,
-      false, false, false, !is_megagroup, false, false, !is_megagroup, false, false, false, string(), false, false,
-      false, false));
+      false, false, false, !is_megagroup, false, false, !is_megagroup, false, false, false, false, string(), false,
+      false, false, false));
 }
 
 int64 ChatManager::get_supergroup_id_object(ChannelId channel_id, const char *source) const {
@@ -8891,7 +8891,8 @@ tl_object_ptr<td_api::supergroup> ChatManager::get_supergroup_object(ChannelId c
       get_channel_status(c).get_chat_member_status_object(), c->participant_count, c->boost_level,
       c->has_linked_channel, c->has_location, c->sign_messages, c->show_message_sender, get_channel_join_to_send(c),
       get_channel_join_request(c), c->is_slow_mode_enabled, !c->is_megagroup, c->is_gigagroup, c->is_forum,
-      c->is_verified, get_restriction_reason_description(c->restriction_reasons), c->is_scam, c->is_fake,
+      c->is_verified, get_restriction_reason_has_sensitive_content(c->restriction_reasons),
+      get_restriction_reason_description(c->restriction_reasons), c->is_scam, c->is_fake,
       c->max_active_story_id.is_valid(), get_channel_has_unread_stories(c));
 }
 

@@ -74,6 +74,10 @@ const RestrictionReason *get_restriction_reason(const vector<RestrictionReason> 
   return nullptr;
 }
 
+bool get_restriction_reason_has_sensitive_content(const vector<RestrictionReason> &restriction_reasons) {
+  return get_restriction_reason(restriction_reasons, true) != nullptr;
+}
+
 string get_restriction_reason_description(const vector<RestrictionReason> &restriction_reasons) {
   const auto *restriction_reason = get_restriction_reason(restriction_reasons, false);
   if (restriction_reason == nullptr) {
