@@ -16,7 +16,7 @@
 
 namespace td {
 
-const RestrictionReason *get_restriction_reason(const vector<RestrictionReason> &restriction_reasons) {
+const RestrictionReason *get_restriction_reason(const vector<RestrictionReason> &restriction_reasons, bool sensitive) {
   if (restriction_reasons.empty()) {
     return nullptr;
   }
@@ -44,7 +44,8 @@ const RestrictionReason *get_restriction_reason(const vector<RestrictionReason> 
     // first find restriction for the current platform
     for (auto &restriction_reason : restriction_reasons) {
       if (restriction_reason.platform_ == platform &&
-          !td::contains(ignored_restriction_reasons, restriction_reason.reason_)) {
+          !td::contains(ignored_restriction_reasons, restriction_reason.reason_) &&
+          restriction_reason.is_sensitive() == sensitive) {
         return &restriction_reason;
       }
     }
@@ -54,7 +55,8 @@ const RestrictionReason *get_restriction_reason(const vector<RestrictionReason> 
     // then find restriction for added platforms
     for (auto &restriction_reason : restriction_reasons) {
       if (td::contains(restriction_add_platforms, restriction_reason.platform_) &&
-          !td::contains(ignored_restriction_reasons, restriction_reason.reason_)) {
+          !td::contains(ignored_restriction_reasons, restriction_reason.reason_) &&
+          restriction_reason.is_sensitive() == sensitive) {
         return &restriction_reason;
       }
     }
@@ -63,7 +65,8 @@ const RestrictionReason *get_restriction_reason(const vector<RestrictionReason> 
   // then find restriction for all platforms
   for (auto &restriction_reason : restriction_reasons) {
     if (restriction_reason.platform_ == "all" &&
-        !td::contains(ignored_restriction_reasons, restriction_reason.reason_)) {
+        !td::contains(ignored_restriction_reasons, restriction_reason.reason_) &&
+        restriction_reason.is_sensitive() == sensitive) {
       return &restriction_reason;
     }
   }
@@ -72,7 +75,7 @@ const RestrictionReason *get_restriction_reason(const vector<RestrictionReason> 
 }
 
 string get_restriction_reason_description(const vector<RestrictionReason> &restriction_reasons) {
-  const auto *restriction_reason = get_restriction_reason(restriction_reasons);
+  const auto *restriction_reason = get_restriction_reason(restriction_reasons, false);
   if (restriction_reason == nullptr) {
     return string();
   }
