@@ -6778,8 +6778,8 @@ void Td::on_request(uint64 id, const td_api::getChatAdministrators &request) {
 
 void Td::on_request(uint64 id, const td_api::replacePrimaryChatInviteLink &request) {
   CREATE_REQUEST_PROMISE();
-  dialog_invite_link_manager_->export_dialog_invite_link(DialogId(request.chat_id_), string(), 0, 0, false, {}, true,
-                                                         std::move(promise));
+  dialog_invite_link_manager_->export_dialog_invite_link(DialogId(request.chat_id_), string(), 0, 0, false,
+                                                         StarSubscriptionPricing(), false, true, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::createChatInviteLink &request) {
@@ -6787,8 +6787,15 @@ void Td::on_request(uint64 id, td_api::createChatInviteLink &request) {
   CREATE_REQUEST_PROMISE();
   dialog_invite_link_manager_->export_dialog_invite_link(
       DialogId(request.chat_id_), std::move(request.name_), request.expiration_date_, request.member_limit_,
-      request.creates_join_request_, StarSubscriptionPricing(std::move(request.subscription_pricing_)), false,
-      std::move(promise));
+      request.creates_join_request_, StarSubscriptionPricing(), false, false, std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::createChatSubscriptionInviteLink &request) {
+  CLEAN_INPUT_STRING(request.name_);
+  CREATE_REQUEST_PROMISE();
+  dialog_invite_link_manager_->export_dialog_invite_link(
+      DialogId(request.chat_id_), std::move(request.name_), 0, 0, false,
+      StarSubscriptionPricing(std::move(request.subscription_pricing_)), true, false, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::editChatInviteLink &request) {

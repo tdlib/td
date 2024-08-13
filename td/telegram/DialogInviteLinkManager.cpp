@@ -977,8 +977,16 @@ void DialogInviteLinkManager::on_get_permanent_dialog_invite_link(DialogId dialo
 
 void DialogInviteLinkManager::export_dialog_invite_link(DialogId dialog_id, string title, int32 expire_date,
                                                         int32 usage_limit, bool creates_join_request,
-                                                        StarSubscriptionPricing subscription_pricing, bool is_permanent,
+                                                        StarSubscriptionPricing subscription_pricing,
+                                                        bool is_subscription, bool is_permanent,
                                                         Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise) {
+  if (is_subscription) {
+    if (subscription_pricing.is_empty()) {
+      return promise.set_error(Status::Error(400, "Invalid subscription pricing specified"));
+    }
+  } else {
+    CHECK(subscription_pricing.is_empty());
+  }
   td_->user_manager_->get_me(PromiseCreator::lambda(
       [actor_id = actor_id(this), dialog_id, title = std::move(title), expire_date, usage_limit, creates_join_request,
        subscription_pricing, is_permanent, promise = std::move(promise)](Result<Unit> &&result) mutable {

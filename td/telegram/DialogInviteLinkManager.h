@@ -57,7 +57,8 @@ class DialogInviteLinkManager final : public Actor {
 
   void export_dialog_invite_link(DialogId dialog_id, string title, int32 expire_date, int32 usage_limit,
                                  bool creates_join_request, StarSubscriptionPricing subscription_pricing,
-                                 bool is_permanent, Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
+                                 bool is_subscription, bool is_permanent,
+                                 Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
 
   void edit_dialog_invite_link(DialogId dialog_id, const string &link, string title, int32 expire_date,
                                int32 usage_limit, bool creates_join_request,

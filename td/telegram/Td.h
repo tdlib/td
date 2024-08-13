@@ -1276,6 +1276,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::createChatInviteLink &request);
 
+  void on_request(uint64 id, td_api::createChatSubscriptionInviteLink &request);
+
   void on_request(uint64 id, td_api::editChatInviteLink &request);
 
   void on_request(uint64 id, td_api::getChatInviteLink &request);

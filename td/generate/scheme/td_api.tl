@@ -10130,10 +10130,14 @@ replacePrimaryChatInviteLink chat_id:int53 = ChatInviteLink;
 //@expiration_date Point in time (Unix timestamp) when the link will expire; pass 0 if never
 //@member_limit The maximum number of chat members that can join the chat via the link simultaneously; 0-99999; pass 0 if not limited
 //@creates_join_request Pass true if users joining the chat via the link need to be approved by chat administrators. In this case, member_limit must be 0
-//@subscription_pricing Information about subscription plan that will be applied to the users joining the chat via the link; for channel chats only; pass null if the link doesn't require subscription.
-//-Subscription period must be 2592000 in production environment, and 60 or 300 if Telegram test environment is used. If non-null, then expiration_date, member_limit and creates_join_request
-//-must not be used
-createChatInviteLink chat_id:int53 name:string expiration_date:int32 member_limit:int32 creates_join_request:Bool subscription_pricing:starSubscriptionPricing = ChatInviteLink;
+createChatInviteLink chat_id:int53 name:string expiration_date:int32 member_limit:int32 creates_join_request:Bool = ChatInviteLink;
+
+//@description Creates a new subscription invite link for a channel chat. Requires can_invite_users right in the chat
+//@chat_id Chat identifier
+//@name Invite link name; 0-32 characters
+//@subscription_pricing Information about subscription plan that will be applied to the users joining the chat via the link.
+//-Subscription period must be 2592000 in production environment, and 60 or 300 if Telegram test environment is used
+createChatSubscriptionInviteLink chat_id:int53 name:string subscription_pricing:starSubscriptionPricing = ChatInviteLink;
 
 //@description Edits a non-primary invite link for a chat. Available for basic groups, supergroups, and channels.
 //-If the link creates a subscription, then expiration_date, member_limit and creates_join_request must not be used
