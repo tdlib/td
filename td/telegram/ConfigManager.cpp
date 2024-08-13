@@ -1043,11 +1043,12 @@ void ConfigManager::request_config_from_dc_impl(DcId dc_id, bool reopen_sessions
 }
 
 void ConfigManager::do_set_ignore_sensitive_content_restrictions(bool ignore_sensitive_content_restrictions) {
-  G()->set_option_boolean("ignore_sensitive_content_restrictions", ignore_sensitive_content_restrictions);
-  bool have_ignored_restriction_reasons = G()->have_option("ignored_restriction_reasons");
-  if (have_ignored_restriction_reasons != ignore_sensitive_content_restrictions) {
-    reget_app_config(Auto());
+  if (G()->have_option("ignore_sensitive_content_restrictions") &&
+      G()->get_option_boolean("ignore_sensitive_content_restrictions") == ignore_sensitive_content_restrictions) {
+    return;
   }
+  G()->set_option_boolean("ignore_sensitive_content_restrictions", ignore_sensitive_content_restrictions);
+  reget_app_config(Auto());
 }
 
 void ConfigManager::hide_suggested_action(SuggestedAction suggested_action) {
