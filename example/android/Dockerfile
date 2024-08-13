@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 ubuntu:24.04 as build
+FROM --platform=linux/amd64 ubuntu:24.04 AS build
 
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq default-jdk g++ git gperf make perl php-cli unzip wget && rm -rf /var/lib/apt/lists/*
 
