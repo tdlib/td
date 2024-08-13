@@ -180,7 +180,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
     }
 
     auto result = result_ptr.move_as_ok();
-    LOG(DEBUG) << "Receive result for GetStarsTransactionsQuery: " << to_string(result);
+    LOG(INFO) << "Receive result for GetStarsTransactionsQuery: " << to_string(result);
 
     td_->user_manager_->on_get_users(std::move(result->users_), "GetStarsTransactionsQuery");
     td_->chat_manager_->on_get_chats(std::move(result->chats_), "GetStarsTransactionsQuery");
@@ -287,7 +287,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                 LOG(ERROR) << "Receive Telegram Star transaction with " << user_id;
                 return td_api::make_object<td_api::starTransactionPartnerUnsupported>();
               }
-              if (product_info == nullptr && bot_payload.empty()) {
+              if ((product_info == nullptr && bot_payload.empty()) || !transaction->extended_media_.empty()) {
                 return td_api::make_object<td_api::starTransactionPartnerBot>(
                     td_->user_manager_->get_user_id_object(user_id, "starTransactionPartnerBot"),
                     td_api::make_object<td_api::botTransactionPurposePaidMedia>(
@@ -375,6 +375,9 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         }
         if (transaction->reaction_) {
           LOG(ERROR) << "Receive reaction with " << to_string(star_transaction);
+        }
+        if (!transaction->extended_media_.empty()) {
+          LOG(ERROR) << "Receive paid media with " << to_string(star_transaction);
         }
       }
       if (!file_ids.empty()) {
