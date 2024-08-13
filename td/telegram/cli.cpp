@@ -2030,6 +2030,8 @@ class CliClient final : public Actor {
       return td_api::make_object<td_api::topChatCategoryChannels>();
     } else if (category == "inline") {
       return td_api::make_object<td_api::topChatCategoryInlineBots>();
+    } else if (category == "app") {
+      return td_api::make_object<td_api::topChatCategoryWebAppBots>();
     } else if (category == "call") {
       return td_api::make_object<td_api::topChatCategoryCalls>();
     } else if (category == "forward") {
