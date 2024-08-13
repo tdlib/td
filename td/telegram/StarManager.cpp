@@ -288,6 +288,9 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                 return td_api::make_object<td_api::starTransactionPartnerUnsupported>();
               }
               if ((product_info == nullptr && bot_payload.empty()) || !transaction->extended_media_.empty()) {
+                if (G()->is_test_dc()) {
+                  bot_payload.clear();
+                }
                 return td_api::make_object<td_api::starTransactionPartnerBot>(
                     td_->user_manager_->get_user_id_object(user_id, "starTransactionPartnerBot"),
                     td_api::make_object<td_api::botTransactionPurposePaidMedia>(
