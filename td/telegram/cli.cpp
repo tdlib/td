@@ -4397,6 +4397,12 @@ class CliClient final : public Actor {
       get_args(args, chat_id, invite_link, name, expiration_date, member_limit, creates_join_request);
       send_request(td_api::make_object<td_api::editChatInviteLink>(chat_id, invite_link, name, expiration_date,
                                                                    member_limit, creates_join_request));
+    } else if (op == "ecsil") {
+      ChatId chat_id;
+      string invite_link;
+      string name;
+      get_args(args, chat_id, invite_link, name);
+      send_request(td_api::make_object<td_api::editChatSubscriptionInviteLink>(chat_id, invite_link, name));
     } else if (op == "rcil") {
       ChatId chat_id;
       string invite_link;

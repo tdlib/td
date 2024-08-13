@@ -61,7 +61,7 @@ class DialogInviteLinkManager final : public Actor {
                                  Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
 
   void edit_dialog_invite_link(DialogId dialog_id, const string &link, string title, int32 expire_date,
-                               int32 usage_limit, bool creates_join_request,
+                               int32 usage_limit, bool creates_join_request, bool is_subscription,
                                Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise);
 
   void get_dialog_invite_link(DialogId dialog_id, const string &invite_link,

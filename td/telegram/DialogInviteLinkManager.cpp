@@ -179,15 +179,17 @@ class EditChatInviteLinkQuery final : public Td::ResultHandler {
   }
 
   void send(DialogId dialog_id, const string &invite_link, const string &title, int32 expire_date, int32 usage_limit,
-            bool creates_join_request) {
+            bool creates_join_request, bool is_subscription) {
     dialog_id_ = dialog_id;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     CHECK(input_peer != nullptr);
 
-    int32 flags = telegram_api::messages_editExportedChatInvite::EXPIRE_DATE_MASK |
-                  telegram_api::messages_editExportedChatInvite::USAGE_LIMIT_MASK |
-                  telegram_api::messages_editExportedChatInvite::REQUEST_NEEDED_MASK |
-                  telegram_api::messages_editExportedChatInvite::TITLE_MASK;
+    int32 flags = telegram_api::messages_editExportedChatInvite::TITLE_MASK;
+    if (!is_subscription) {
+      flags |= telegram_api::messages_editExportedChatInvite::EXPIRE_DATE_MASK |
+               telegram_api::messages_editExportedChatInvite::USAGE_LIMIT_MASK |
+               telegram_api::messages_editExportedChatInvite::REQUEST_NEEDED_MASK;
+    }
     send_query(G()->net_query_creator().create(
         telegram_api::messages_editExportedChatInvite(flags, false /*ignored*/, std::move(input_peer), invite_link,
                                                       expire_date, usage_limit, creates_join_request, title)));
@@ -1022,6 +1024,7 @@ void DialogInviteLinkManager::export_dialog_invite_link_impl(
 
 void DialogInviteLinkManager::edit_dialog_invite_link(DialogId dialog_id, const string &invite_link, string title,
                                                       int32 expire_date, int32 usage_limit, bool creates_join_request,
+                                                      bool is_subscription,
                                                       Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise) {
   TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id));
   if (creates_join_request && usage_limit > 0) {
@@ -1035,7 +1038,7 @@ void DialogInviteLinkManager::edit_dialog_invite_link(DialogId dialog_id, const 
 
   auto new_title = clean_name(std::move(title), MAX_INVITE_LINK_TITLE_LENGTH);
   td_->create_handler<EditChatInviteLinkQuery>(std::move(promise))
-      ->send(dialog_id, invite_link, new_title, expire_date, usage_limit, creates_join_request);
+      ->send(dialog_id, invite_link, new_title, expire_date, usage_limit, creates_join_request, is_subscription);
 }
 
 void DialogInviteLinkManager::get_dialog_invite_link(DialogId dialog_id, const string &invite_link,

@@ -1280,6 +1280,8 @@ class Td final : public Actor {
 
   void on_request(uint64 id, td_api::editChatInviteLink &request);
 
+  void on_request(uint64 id, td_api::editChatSubscriptionInviteLink &request);
+
   void on_request(uint64 id, td_api::getChatInviteLink &request);
 
   void on_request(uint64 id, const td_api::getChatInviteLinkCounts &request);
