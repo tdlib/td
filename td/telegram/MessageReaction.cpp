@@ -1099,7 +1099,12 @@ bool MessageReactions::toggle_paid_message_reaction_is_anonymous(Td *td, Message
       return true;
     }
   }
-  return pending_paid_reactions_ != 0;
+  if (pending_paid_reactions_ != 0) {
+    promise.set_value(Unit());
+    return true;
+  }
+  promise.set_error(Status::Error(400, "Message has no paid reaction"));
+  return false;
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageReactions &reactions) {
