@@ -206,7 +206,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
           LOG(ERROR) << "Receive Star transaction with bot payload";
         }
       }
-      auto get_paid_media_objects = [&](DialogId dialog_id) -> vector<td_api::object_ptr<td_api::PaidMedia>> {
+      auto get_paid_media_object = [&](DialogId dialog_id) -> vector<td_api::object_ptr<td_api::PaidMedia>> {
         auto extended_media = transform(std::move(transaction->extended_media_), [td = td_, dialog_id](auto &&media) {
           return MessageExtendedMedia(td, std::move(media), dialog_id);
         });
@@ -282,7 +282,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                 if (!transaction->extended_media_.empty()) {  // TODO
                   return td_api::make_object<td_api::starTransactionPartnerBusiness>(
                       td_->user_manager_->get_user_id_object(user_id, "starTransactionPartnerBusiness"),
-                      get_paid_media_objects(DialogId(user_id)));
+                      get_paid_media_object(DialogId(user_id)));
                 }
                 LOG(ERROR) << "Receive Telegram Star transaction with " << user_id;
                 return td_api::make_object<td_api::starTransactionPartnerUnsupported>();
@@ -294,7 +294,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                 return td_api::make_object<td_api::starTransactionPartnerBot>(
                     td_->user_manager_->get_user_id_object(user_id, "starTransactionPartnerBot"),
                     td_api::make_object<td_api::botTransactionPurposePaidMedia>(
-                        get_paid_media_objects(DialogId(user_id))));
+                        get_paid_media_object(DialogId(user_id))));
               }
               SCOPE_EXIT {
                 bot_payload.clear();
@@ -342,7 +342,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
               return td_api::make_object<td_api::starTransactionPartnerChannel>(
                   td_->dialog_manager_->get_chat_id_object(dialog_id, "starTransactionPartnerChannel"),
                   td_api::make_object<td_api::channelTransactionPurposePaidMedia>(message_id.get(),
-                                                                                  get_paid_media_objects(dialog_id)));
+                                                                                  get_paid_media_object(dialog_id)));
             }
             LOG(ERROR) << "Receive Telegram Star transaction with " << dialog_id;
             return td_api::make_object<td_api::starTransactionPartnerUnsupported>();

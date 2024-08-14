@@ -12,6 +12,7 @@
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageContent.h"
+#include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageSelfDestructType.h"
 #include "td/telegram/net/NetQueryCreator.h"

@@ -13,6 +13,7 @@
 #include "td/utils/base64.h"
 #include "td/utils/crypto.h"
 #include "td/utils/emoji.h"
+#include "td/utils/logging.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/utf8.h"

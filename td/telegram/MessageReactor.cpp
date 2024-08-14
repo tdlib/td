@@ -9,6 +9,8 @@
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/MessageSender.h"
 
+#include "td/utils/logging.h"
+
 #include <algorithm>
 
 namespace td {

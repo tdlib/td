@@ -896,7 +896,7 @@ botTransactionPurposePaidMedia media:vector<PaidMedia> = BotTransactionPurpose;
 //@description User bought a product from the bot
 //@product_info Information about the bought product; may be null if not applicable
 //@invoice_payload Invoice payload; for bots only
-botTransactionPurposeInvoicePayment product_info:productInfo invoice_payload:bytes  = BotTransactionPurpose;
+botTransactionPurposeInvoicePayment product_info:productInfo invoice_payload:bytes = BotTransactionPurpose;
 
 
 //@class ChannelTransactionPurpose @description Describes purpose of a transaction with a channel
@@ -1234,7 +1234,7 @@ supergroupMembersFilterBots = SupergroupMembersFilter;
 //@subscription_pricing Information about subscription plan that is applied to the users joining the chat by the link; may be null if the link doesn't require subscription
 //@member_limit The maximum number of members, which can join the chat using the link simultaneously; 0 if not limited. Always 0 if the link requires approval
 //@member_count Number of chat members, which joined the chat using the link
-//@expired_member_count Number of chat members, which joined the chat using the link, but have already left because of expired subscription; for subscription links only 
+//@expired_member_count Number of chat members, which joined the chat using the link, but have already left because of expired subscription; for subscription links only
 //@pending_join_request_count Number of pending join requests created using this link
 //@creates_join_request True, if the link only creates join request. If true, total number of joining members will be unlimited
 //@is_primary True, if the link is primary. Primary invite link can't have name, expiration date, or usage limit. There is exactly one primary invite link for each administrator with can_invite_users right at a given time
@@ -10176,7 +10176,7 @@ getChatInviteLinks chat_id:int53 creator_user_id:int53 is_revoked:Bool offset_da
 //@description Returns chat members joined a chat via an invite link. Requires administrator privileges and can_invite_users right in the chat for own links and owner privileges for other links
 //@chat_id Chat identifier
 //@invite_link Invite link for which to return chat members
-//@only_with_expired_subscription True, if the link is a subscription link and only members with expired subscription must be returned
+//@only_with_expired_subscription Pass true if the link is a subscription link and only members with expired subscription must be returned
 //@offset_member A chat member from which to return next chat members; pass null to get results from the beginning
 //@limit The maximum number of chat members to return; up to 100
 getChatInviteLinkMembers chat_id:int53 invite_link:string only_with_expired_subscription:Bool offset_member:chatInviteLinkMember limit:int32 = ChatInviteLinkMembers;
