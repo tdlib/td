@@ -42,7 +42,7 @@ class MessageReactor {
   }
 
   bool is_valid() const {
-    return (dialog_id_.is_valid() || (!is_me_ && !is_anonymous_)) && count_ > 0 && (is_top_ || is_me_);
+    return count_ > 0 && (is_me_ ? dialog_id_.is_valid() : (dialog_id_.is_valid() || is_anonymous_) && is_top_);
   }
 
   bool is_me() const {
