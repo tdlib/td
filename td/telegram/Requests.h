@@ -54,7 +54,15 @@ class Requests {
   std::shared_ptr<UploadFileCallback> upload_file_callback_;
 
   template <class T>
-  Promise<T> create_request_promise(uint64 id);
+  Promise<T> create_request_promise(uint64 id) {
+    return PromiseCreator::lambda([actor_id = td_actor_, id](Result<T> r_state) {
+      if (r_state.is_error()) {
+        send_closure(actor_id, &Td::send_error, id, r_state.move_as_error());
+      } else {
+        send_closure(actor_id, &Td::send_result, id, r_state.move_as_ok());
+      }
+    });
+  }
 
   Promise<Unit> create_ok_request_promise(uint64 id);
 
