@@ -276,33 +276,6 @@ class GetRecentMeUrlsQuery final : public Td::ResultHandler {
   }
 };
 
-class TestNetworkQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-
- public:
-  explicit TestNetworkQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send() {
-    send_query(G()->net_query_creator().create_unauth(telegram_api::help_getConfig()));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::help_getConfig>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(Status::Error(500, "Fetch failed"));
-    }
-
-    LOG(DEBUG) << "TestNetwork OK: " << to_string(result_ptr.ok());
-    promise_.set_value(Unit());
-  }
-
-  void on_error(Status status) final {
-    LOG(ERROR) << "Test query failed: " << status;
-    promise_.set_error(std::move(status));
-  }
-};
-
 class GetMeRequest final : public RequestActor<> {
   UserId user_id_;
 
@@ -8048,7 +8021,14 @@ void Requests::on_request(uint64 id, const td_api::addLogMessage &request) {
 // test
 void Requests::on_request(uint64 id, const td_api::testNetwork &request) {
   CREATE_OK_REQUEST_PROMISE();
-  td_->create_handler<TestNetworkQuery>(std::move(promise))->send();
+  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      promise.set_value(Unit());
+    }
+  });
+  td_->country_info_manager_->get_current_country_code(std::move(query_promise));
 }
 
 void Requests::on_request(uint64 id, td_api::testProxy &request) {
