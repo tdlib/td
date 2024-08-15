@@ -7,6 +7,7 @@
 #include "td/telegram/Td.h"
 
 #include "td/telegram/AccountManager.h"
+#include "td/telegram/AlarmManager.h"
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/Application.h"
 #include "td/telegram/AttachMenuManager.h"
@@ -453,6 +454,8 @@ void Td::start_up() {
   inc_request_actor_refcnt();  // guard
   inc_actor_refcnt();          // guard
 
+  alarm_manager_ = create_actor<AlarmManager>("AlarmManager", create_reference());
+
   alarm_timeout_.set_callback(on_alarm_timeout_callback);
   alarm_timeout_.set_callback_data(static_cast<void *>(this));
 
@@ -670,6 +673,7 @@ void Td::clear() {
   };
 
   // close all pure actors
+  reset_actor(ActorOwn<Actor>(std::move(alarm_manager_)));
   reset_actor(ActorOwn<Actor>(std::move(call_manager_)));
   reset_actor(ActorOwn<Actor>(std::move(cashtag_search_hints_)));
   reset_actor(ActorOwn<Actor>(std::move(config_manager_)));

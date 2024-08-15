@@ -34,6 +34,7 @@
 namespace td {
 
 class AccountManager;
+class AlarmManager;
 class AnimationsManager;
 class AttachMenuManager;
 class AudiosManager;
@@ -272,6 +273,7 @@ class Td final : public Actor {
   unique_ptr<WebPagesManager> web_pages_manager_;
   ActorOwn<WebPagesManager> web_pages_manager_actor_;
 
+  ActorOwn<AlarmManager> alarm_manager_;
   ActorOwn<CallManager> call_manager_;
   ActorOwn<HashtagHints> cashtag_search_hints_;
   ActorOwn<ConfigManager> config_manager_;
