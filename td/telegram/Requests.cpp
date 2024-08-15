@@ -165,7 +165,6 @@
 #include "td/telegram/WebPagesManager.h"
 
 #include "td/utils/algorithm.h"
-#include "td/utils/buffer.h"
 #include "td/utils/logging.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
@@ -176,105 +175,6 @@
 #include <utility>
 
 namespace td {
-
-class GetRecentMeUrlsQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::tMeUrls>> promise_;
-
- public:
-  explicit GetRecentMeUrlsQuery(Promise<td_api::object_ptr<td_api::tMeUrls>> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(const string &referrer) {
-    send_query(G()->net_query_creator().create(telegram_api::help_getRecentMeUrls(referrer)));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::help_getRecentMeUrls>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto urls_full = result_ptr.move_as_ok();
-    td_->user_manager_->on_get_users(std::move(urls_full->users_), "GetRecentMeUrlsQuery");
-    td_->chat_manager_->on_get_chats(std::move(urls_full->chats_), "GetRecentMeUrlsQuery");
-
-    auto urls = std::move(urls_full->urls_);
-    auto results = td_api::make_object<td_api::tMeUrls>();
-    results->urls_.reserve(urls.size());
-    for (auto &url_ptr : urls) {
-      CHECK(url_ptr != nullptr);
-      td_api::object_ptr<td_api::tMeUrl> result = td_api::make_object<td_api::tMeUrl>();
-      switch (url_ptr->get_id()) {
-        case telegram_api::recentMeUrlUser::ID: {
-          auto url = telegram_api::move_object_as<telegram_api::recentMeUrlUser>(url_ptr);
-          result->url_ = std::move(url->url_);
-          UserId user_id(url->user_id_);
-          if (!user_id.is_valid()) {
-            LOG(ERROR) << "Receive invalid " << user_id;
-            result = nullptr;
-            break;
-          }
-          result->type_ = td_api::make_object<td_api::tMeUrlTypeUser>(
-              td_->user_manager_->get_user_id_object(user_id, "tMeUrlTypeUser"));
-          break;
-        }
-        case telegram_api::recentMeUrlChat::ID: {
-          auto url = telegram_api::move_object_as<telegram_api::recentMeUrlChat>(url_ptr);
-          result->url_ = std::move(url->url_);
-          ChannelId channel_id(url->chat_id_);
-          if (!channel_id.is_valid()) {
-            LOG(ERROR) << "Receive invalid " << channel_id;
-            result = nullptr;
-            break;
-          }
-          result->type_ = td_api::make_object<td_api::tMeUrlTypeSupergroup>(
-              td_->chat_manager_->get_supergroup_id_object(channel_id, "tMeUrlTypeSupergroup"));
-          break;
-        }
-        case telegram_api::recentMeUrlChatInvite::ID: {
-          auto url = telegram_api::move_object_as<telegram_api::recentMeUrlChatInvite>(url_ptr);
-          result->url_ = std::move(url->url_);
-          td_->dialog_invite_link_manager_->on_get_dialog_invite_link_info(result->url_, std::move(url->chat_invite_),
-                                                                           Promise<Unit>());
-          auto info_object = td_->dialog_invite_link_manager_->get_chat_invite_link_info_object(result->url_);
-          if (info_object == nullptr) {
-            result = nullptr;
-            break;
-          }
-          result->type_ = td_api::make_object<td_api::tMeUrlTypeChatInvite>(std::move(info_object));
-          break;
-        }
-        case telegram_api::recentMeUrlStickerSet::ID: {
-          auto url = telegram_api::move_object_as<telegram_api::recentMeUrlStickerSet>(url_ptr);
-          result->url_ = std::move(url->url_);
-          auto sticker_set_id =
-              td_->stickers_manager_->on_get_sticker_set_covered(std::move(url->set_), false, "recentMeUrlStickerSet");
-          if (!sticker_set_id.is_valid()) {
-            LOG(ERROR) << "Receive invalid sticker set";
-            result = nullptr;
-            break;
-          }
-          result->type_ = td_api::make_object<td_api::tMeUrlTypeStickerSet>(sticker_set_id.get());
-          break;
-        }
-        case telegram_api::recentMeUrlUnknown::ID:
-          // skip
-          result = nullptr;
-          break;
-        default:
-          UNREACHABLE();
-      }
-      if (result != nullptr) {
-        results->urls_.push_back(std::move(result));
-      }
-    }
-    promise_.set_value(std::move(results));
-  }
-
-  void on_error(Status status) final {
-    promise_.set_error(std::move(status));
-  }
-};
 
 class GetMeRequest final : public RequestActor<> {
   UserId user_id_;
@@ -7570,7 +7470,7 @@ void Requests::on_request(uint64 id, td_api::getRecentlyVisitedTMeUrls &request)
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.referrer_);
   CREATE_REQUEST_PROMISE();
-  td_->create_handler<GetRecentMeUrlsQuery>(std::move(promise))->send(request.referrer_);
+  td_->link_manager_->get_recent_me_urls(request.referrer_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::setBotUpdatesStatus &request) {
