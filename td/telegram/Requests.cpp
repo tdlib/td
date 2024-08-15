@@ -24,6 +24,7 @@
 #include "td/telegram/BotCommand.h"
 #include "td/telegram/BotInfoManager.h"
 #include "td/telegram/BotMenuButton.h"
+#include "td/telegram/BotQueries.h"
 #include "td/telegram/BusinessAwayMessage.h"
 #include "td/telegram/BusinessConnectionId.h"
 #include "td/telegram/BusinessConnectionManager.h"
@@ -268,34 +269,6 @@ class GetRecentMeUrlsQuery final : public Td::ResultHandler {
       }
     }
     promise_.set_value(std::move(results));
-  }
-
-  void on_error(Status status) final {
-    promise_.set_error(std::move(status));
-  }
-};
-
-class SendCustomRequestQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::customRequestResult>> promise_;
-
- public:
-  explicit SendCustomRequestQuery(Promise<td_api::object_ptr<td_api::customRequestResult>> &&promise)
-      : promise_(std::move(promise)) {
-  }
-
-  void send(const string &method, const string &parameters) {
-    send_query(G()->net_query_creator().create(
-        telegram_api::bots_sendCustomRequest(method, telegram_api::make_object<telegram_api::dataJSON>(parameters))));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::bots_sendCustomRequest>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto result = result_ptr.move_as_ok();
-    promise_.set_value(td_api::make_object<td_api::customRequestResult>(result->data_));
   }
 
   void on_error(Status status) final {
@@ -7694,7 +7667,7 @@ void Requests::on_request(uint64 id, td_api::sendCustomRequest &request) {
   CLEAN_INPUT_STRING(request.method_);
   CLEAN_INPUT_STRING(request.parameters_);
   CREATE_REQUEST_PROMISE();
-  td_->create_handler<SendCustomRequestQuery>(std::move(promise))->send(request.method_, request.parameters_);
+  send_bot_custom_query(td_, request.method_, request.parameters_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::answerCustomQuery &request) {
