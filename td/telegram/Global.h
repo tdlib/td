@@ -61,6 +61,7 @@ class LinkManager;
 class MessageImportManager;
 class MessagesManager;
 class NetQueryDispatcher;
+class NetQueryStats;
 class NotificationManager;
 class NotificationSettingsManager;
 class OnlineManager;

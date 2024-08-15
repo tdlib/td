@@ -6,7 +6,6 @@
 //
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/net/PublicRsaKeySharedMain.h"
-#include "td/telegram/net/Session.h"
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/telegram_api.h"
 

@@ -9,6 +9,7 @@
 #include "td/telegram/files/FileLoaderActor.h"
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/ResourceManager.h"
+#include "td/telegram/net/NetQuery.h"
 
 #include "td/actor/actor.h"
 

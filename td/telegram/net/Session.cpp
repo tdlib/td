@@ -373,7 +373,7 @@ void Session::connection_online_update(double now, bool force) {
 void Session::send(NetQueryPtr &&query) {
   last_activity_timestamp_ = Time::now();
 
-  // query->debug(PSTRING() << get_name() << ": received from SessionProxy");
+  // query->debug(PSTRING() << get_name() << ": received by Session");
   query->set_session_id(auth_data_.get_session_id());
   VLOG(net_query) << "Receive query " << query;
   if (query->update_is_ready()) {

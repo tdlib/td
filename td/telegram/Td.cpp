@@ -53,7 +53,6 @@
 #include "td/telegram/net/ConnectionCreator.h"
 #include "td/telegram/net/MtprotoHeader.h"
 #include "td/telegram/net/NetQuery.h"
-#include "td/telegram/net/NetQueryDelayer.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/net/NetStatsManager.h"
 #include "td/telegram/net/Proxy.h"

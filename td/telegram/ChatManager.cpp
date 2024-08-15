@@ -28,7 +28,6 @@
 #include "td/telegram/MinChannel.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/MissingInvitee.h"
-#include "td/telegram/net/NetQuery.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/PeerColor.h"
 #include "td/telegram/Photo.h"
