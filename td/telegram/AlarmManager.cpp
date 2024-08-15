@@ -8,6 +8,8 @@
 
 #include "td/telegram/Global.h"
 
+#include "td/utils/Status.h"
+
 namespace td {
 
 AlarmManager::AlarmManager(ActorShared<> parent) : parent_(std::move(parent)) {

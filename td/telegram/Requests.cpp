@@ -165,7 +165,6 @@
 #include "td/telegram/WebPagesManager.h"
 
 #include "td/utils/algorithm.h"
-#include "td/utils/logging.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
