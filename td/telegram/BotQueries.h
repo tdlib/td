@@ -18,4 +18,6 @@ class Td;
 void send_bot_custom_query(Td *td, const string &method, const string &parameters,
                            Promise<td_api::object_ptr<td_api::customRequestResult>> &&promise);
 
+void answer_bot_custom_query(Td *td, int64 custom_query_id, const string &data, Promise<Unit> &&promise);
+
 }  // namespace td

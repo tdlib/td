@@ -276,36 +276,6 @@ class GetRecentMeUrlsQuery final : public Td::ResultHandler {
   }
 };
 
-class AnswerCustomQueryQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-
- public:
-  explicit AnswerCustomQueryQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(int64 custom_query_id, const string &data) {
-    send_query(G()->net_query_creator().create(telegram_api::bots_answerWebhookJSONQuery(
-        custom_query_id, telegram_api::make_object<telegram_api::dataJSON>(data))));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::bots_answerWebhookJSONQuery>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    bool result = result_ptr.ok();
-    if (!result) {
-      LOG(INFO) << "Sending answer to a custom query has failed";
-    }
-    promise_.set_value(Unit());
-  }
-
-  void on_error(Status status) final {
-    promise_.set_error(std::move(status));
-  }
-};
-
 class SetBotUpdatesStatusQuery final : public Td::ResultHandler {
  public:
   void send(int32 pending_update_count, const string &error_message) {
@@ -7674,7 +7644,7 @@ void Requests::on_request(uint64 id, td_api::answerCustomQuery &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.data_);
   CREATE_OK_REQUEST_PROMISE();
-  td_->create_handler<AnswerCustomQueryQuery>(std::move(promise))->send(request.custom_query_id_, request.data_);
+  answer_bot_custom_query(td_, request.custom_query_id_, request.data_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::setAlarm &request) {
