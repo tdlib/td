@@ -536,6 +536,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/ReplyMarkup.cpp
   td/telegram/ReportReason.cpp
   td/telegram/RequestedDialogType.cpp
+  td/telegram/Requests.cpp
   td/telegram/RestrictionReason.cpp
   td/telegram/SavedMessagesManager.cpp
   td/telegram/SavedMessagesTopicId.cpp
@@ -877,6 +878,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/ReportReason.h
   td/telegram/RequestActor.h
   td/telegram/RequestedDialogType.h
+  td/telegram/Requests.h
   td/telegram/RestrictionReason.h
   td/telegram/SavedMessagesManager.h
   td/telegram/SavedMessagesTopicId.h
