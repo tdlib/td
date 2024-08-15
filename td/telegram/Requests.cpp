@@ -8,6 +8,7 @@
 
 #include "td/telegram/AccentColorId.h"
 #include "td/telegram/AccountManager.h"
+#include "td/telegram/AlarmManager.h"
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/Application.h"
 #include "td/telegram/AttachMenuManager.h"
@@ -7704,14 +7705,8 @@ void Requests::on_request(uint64 id, td_api::answerCustomQuery &request) {
 }
 
 void Requests::on_request(uint64 id, const td_api::setAlarm &request) {
-  if (request.seconds_ < 0 || request.seconds_ > 3e9) {
-    return send_error_raw(id, 400, "Wrong parameter seconds specified");
-  }
-
-  // TODO
-  int64 alarm_id = td_->alarm_id_++;
-  td_->pending_alarms_.emplace(alarm_id, id);
-  td_->alarm_timeout_.set_timeout_in(alarm_id, request.seconds_);
+  CREATE_OK_REQUEST_PROMISE();
+  send_closure(td_->alarm_manager_, &AlarmManager::set_alarm, request.seconds_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::searchHashtags &request) {

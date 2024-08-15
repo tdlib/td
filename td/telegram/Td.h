@@ -16,7 +16,6 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/actor/actor.h"
-#include "td/actor/MultiTimeout.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
@@ -375,10 +374,6 @@ class Td final : public Actor {
 
   bool can_ignore_background_updates_ = false;
 
-  int64 alarm_id_ = 1;
-  FlatHashMap<int64, uint64> pending_alarms_;
-  MultiTimeout alarm_timeout_{"AlarmTimeout"};
-
   vector<std::pair<uint64, td_api::object_ptr<td_api::Function>>> pending_preauthentication_requests_;
 
   vector<std::pair<uint64, td_api::object_ptr<td_api::Function>>> pending_set_parameters_requests_;
@@ -391,10 +386,6 @@ class Td final : public Actor {
   td_api::object_ptr<td_api::AuthorizationState> get_fake_authorization_state_object() const;
 
   vector<td_api::object_ptr<td_api::Update>> get_fake_current_state() const;
-
-  static void on_alarm_timeout_callback(void *td_ptr, int64 alarm_id);
-
-  void on_alarm_timeout(int64 alarm_id);
 
   template <class T>
   friend class RequestActor;  // uses send_result/send_error

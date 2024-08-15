@@ -7,8 +7,11 @@
 #pragma once
 
 #include "td/actor/actor.h"
+#include "td/actor/MultiTimeout.h"
 
 #include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
+#include "td/utils/Promise.h"
 
 namespace td {
 
@@ -18,10 +21,20 @@ class AlarmManager final : public Actor {
  public:
   explicit AlarmManager(ActorShared<> parent);
 
+  void set_alarm(double seconds, Promise<Unit> &&promise);
+
  private:
   void tear_down() final;
 
+  static void on_alarm_timeout_callback(void *alarm_manager_ptr, int64 alarm_id);
+
+  void on_alarm_timeout(int64 alarm_id);
+
   ActorShared<> parent_;
+
+  int64 alarm_id_ = 1;
+  FlatHashMap<int64, Promise<Unit>> pending_alarms_;
+  MultiTimeout alarm_timeout_{"AlarmTimeout"};
 };
 
 }  // namespace td

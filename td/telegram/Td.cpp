@@ -135,25 +135,6 @@ Td::Td(unique_ptr<TdCallback> callback, Options options)
 
 Td::~Td() = default;
 
-void Td::on_alarm_timeout_callback(void *td_ptr, int64 alarm_id) {
-  auto td = static_cast<Td *>(td_ptr);
-  auto td_id = td->actor_id(td);
-  send_closure_later(td_id, &Td::on_alarm_timeout, alarm_id);
-}
-
-void Td::on_alarm_timeout(int64 alarm_id) {
-  if (close_flag_ >= 2) {
-    // pending_alarms_ was already cleared
-    return;
-  }
-
-  auto it = pending_alarms_.find(alarm_id);
-  CHECK(it != pending_alarms_.end());
-  uint64 request_id = it->second;
-  pending_alarms_.erase(alarm_id);
-  send_result(request_id, make_tl_object<td_api::ok>());
-}
-
 bool Td::ignore_background_updates() const {
   return can_ignore_background_updates_ && option_manager_->get_option_boolean("ignore_background_updates");
 }
@@ -456,9 +437,6 @@ void Td::start_up() {
 
   alarm_manager_ = create_actor<AlarmManager>("AlarmManager", create_reference());
 
-  alarm_timeout_.set_callback(on_alarm_timeout_callback);
-  alarm_timeout_.set_callback_data(static_cast<void *>(this));
-
   CHECK(state_ == State::WaitParameters);
   for (auto &update : get_fake_current_state()) {
     send_update(std::move(update));
@@ -624,12 +602,6 @@ void Td::dec_request_actor_refcnt() {
 }
 
 void Td::clear_requests() {
-  while (!pending_alarms_.empty()) {
-    auto it = pending_alarms_.begin();
-    auto alarm_id = it->first;
-    pending_alarms_.erase(it);
-    alarm_timeout_.cancel_timeout(alarm_id);
-  }
   while (!request_set_.empty()) {
     uint64 id = request_set_.begin()->first;
     if (destroy_flag_) {
@@ -774,6 +746,7 @@ void Td::close_impl(bool destroy_flag) {
     close_flag_ = 4;
     G()->set_close_flag();
     clear_requests();
+    alarm_manager_.reset();
     send_update(td_api::make_object<td_api::updateAuthorizationState>(
         td_api::make_object<td_api::authorizationStateClosing>()));
 
