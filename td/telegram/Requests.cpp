@@ -1951,6 +1951,16 @@ Promise<Unit> Requests::create_ok_request_promise(uint64 id) {
   });
 }
 
+Promise<string> Requests::create_text_request_promise(uint64 id) {
+  return PromiseCreator::lambda([actor_id = td_actor_, id](Result<string> result) mutable {
+    if (result.is_error()) {
+      send_closure(actor_id, &Td::send_error, id, result.move_as_error());
+    } else {
+      send_closure(actor_id, &Td::send_result, id, td_api::make_object<td_api::text>(result.move_as_ok()));
+    }
+  });
+}
+
 #define CLEAN_INPUT_STRING(field_name)                                  \
   if (!clean_input_string(field_name)) {                                \
     return send_error_raw(id, 400, "Strings must be encoded in UTF-8"); \
@@ -1976,6 +1986,10 @@ Promise<Unit> Requests::create_ok_request_promise(uint64 id) {
 #define CREATE_OK_REQUEST_PROMISE()                                                                                    \
   static_assert(std::is_same<std::decay_t<decltype(request)>::ReturnType, td_api::object_ptr<td_api::ok>>::value, ""); \
   auto promise = create_ok_request_promise(id)
+#define CREATE_TEXT_REQUEST_PROMISE()                                                                               \
+  static_assert(std::is_same<std::decay_t<decltype(request)>::ReturnType, td_api::object_ptr<td_api::text>>::value, \
+                "");                                                                                                \
+  auto promise = create_text_request_promise(id)
 
 void Requests::on_request(uint64 id, const td_api::setTdlibParameters &request) {
   send_error_raw(id, 400, "Unexpected setTdlibParameters");
@@ -4337,35 +4351,20 @@ void Requests::on_request(uint64 id, td_api::joinGroupCall &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.invite_hash_);
   CLEAN_INPUT_STRING(request.payload_);
-  CREATE_REQUEST_PROMISE();
+  CREATE_TEXT_REQUEST_PROMISE();
   TRY_RESULT_PROMISE(promise, join_as_dialog_id,
                      get_message_sender_dialog_id(td_, request.participant_id_, true, true));
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(td_api::make_object<td_api::text>(result.move_as_ok()));
-    }
-  });
-  td_->group_call_manager_->join_group_call(
-      GroupCallId(request.group_call_id_), join_as_dialog_id, request.audio_source_id_, std::move(request.payload_),
-      request.is_muted_, request.is_my_video_enabled_, request.invite_hash_, std::move(query_promise));
+  td_->group_call_manager_->join_group_call(GroupCallId(request.group_call_id_), join_as_dialog_id,
+                                            request.audio_source_id_, std::move(request.payload_), request.is_muted_,
+                                            request.is_my_video_enabled_, request.invite_hash_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::startGroupCallScreenSharing &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.payload_);
-  CREATE_REQUEST_PROMISE();
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(td_api::make_object<td_api::text>(result.move_as_ok()));
-    }
-  });
-  td_->group_call_manager_->start_group_call_screen_sharing(GroupCallId(request.group_call_id_),
-                                                            request.audio_source_id_, std::move(request.payload_),
-                                                            std::move(query_promise));
+  CREATE_TEXT_REQUEST_PROMISE();
+  td_->group_call_manager_->start_group_call_screen_sharing(
+      GroupCallId(request.group_call_id_), request.audio_source_id_, std::move(request.payload_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::toggleGroupCallScreenSharingIsPaused &request) {
@@ -5582,16 +5581,8 @@ void Requests::on_request(uint64 id, td_api::getMessageFileType &request) {
 
 void Requests::on_request(uint64 id, const td_api::getMessageImportConfirmationText &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(td_api::make_object<td_api::text>(result.move_as_ok()));
-    }
-  });
-  td_->message_import_manager_->get_message_import_confirmation_text(DialogId(request.chat_id_),
-                                                                     std::move(query_promise));
+  CREATE_TEXT_REQUEST_PROMISE();
+  td_->message_import_manager_->get_message_import_confirmation_text(DialogId(request.chat_id_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::importMessages &request) {
@@ -5934,15 +5925,8 @@ void Requests::on_request(uint64 id, td_api::setBotName &request) {
 }
 
 void Requests::on_request(uint64 id, const td_api::getBotName &request) {
-  CREATE_REQUEST_PROMISE();
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(td_api::make_object<td_api::text>(result.move_as_ok()));
-    }
-  });
-  td_->bot_info_manager_->get_bot_name(UserId(request.bot_user_id_), request.language_code_, std::move(query_promise));
+  CREATE_TEXT_REQUEST_PROMISE();
+  td_->bot_info_manager_->get_bot_name(UserId(request.bot_user_id_), request.language_code_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::setBotProfilePhoto &request) {
@@ -5976,16 +5960,9 @@ void Requests::on_request(uint64 id, td_api::setBotInfoDescription &request) {
 }
 
 void Requests::on_request(uint64 id, const td_api::getBotInfoDescription &request) {
-  CREATE_REQUEST_PROMISE();
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(td_api::make_object<td_api::text>(result.move_as_ok()));
-    }
-  });
+  CREATE_TEXT_REQUEST_PROMISE();
   td_->bot_info_manager_->get_bot_info_description(UserId(request.bot_user_id_), request.language_code_,
-                                                   std::move(query_promise));
+                                                   std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::setBotInfoShortDescription &request) {
@@ -5996,16 +5973,8 @@ void Requests::on_request(uint64 id, td_api::setBotInfoShortDescription &request
 }
 
 void Requests::on_request(uint64 id, const td_api::getBotInfoShortDescription &request) {
-  CREATE_REQUEST_PROMISE();
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(td_api::make_object<td_api::text>(result.move_as_ok()));
-    }
-  });
-  td_->bot_info_manager_->get_bot_info_about(UserId(request.bot_user_id_), request.language_code_,
-                                             std::move(query_promise));
+  CREATE_TEXT_REQUEST_PROMISE();
+  td_->bot_info_manager_->get_bot_info_about(UserId(request.bot_user_id_), request.language_code_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::setLocation &request) {
@@ -6402,15 +6371,8 @@ void Requests::on_request(uint64 id, td_api::uploadStickerFile &request) {
 
 void Requests::on_request(uint64 id, td_api::getSuggestedStickerSetName &request) {
   CLEAN_INPUT_STRING(request.title_);
-  CREATE_REQUEST_PROMISE();
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(td_api::make_object<td_api::text>(result.move_as_ok()));
-    }
-  });
-  td_->stickers_manager_->get_suggested_sticker_set_name(std::move(request.title_), std::move(query_promise));
+  CREATE_TEXT_REQUEST_PROMISE();
+  td_->stickers_manager_->get_suggested_sticker_set_name(std::move(request.title_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::checkStickerSetName &request) {
@@ -7632,15 +7594,8 @@ void Requests::on_request(uint64 id, const td_api::getCountries &request) {
 }
 
 void Requests::on_request(uint64 id, const td_api::getCountryCode &request) {
-  CREATE_REQUEST_PROMISE();
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(td_api::make_object<td_api::text>(result.move_as_ok()));
-    }
-  });
-  td_->country_info_manager_->get_current_country_code(std::move(query_promise));
+  CREATE_TEXT_REQUEST_PROMISE();
+  td_->country_info_manager_->get_current_country_code(std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getPhoneNumberInfo &request) {
@@ -7762,15 +7717,8 @@ void Requests::on_request(uint64 id, td_api::setUserSupportInfo &request) {
 
 void Requests::on_request(uint64 id, const td_api::getSupportName &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(td_api::make_object<td_api::text>(result.move_as_ok()));
-    }
-  });
-  get_support_name(td_, std::move(query_promise));
+  CREATE_TEXT_REQUEST_PROMISE();
+  get_support_name(td_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::searchQuote &request) {
@@ -7954,5 +7902,6 @@ void Requests::on_request(uint64 id, td_api::testCallVectorStringObject &request
 #undef CREATE_REQUEST
 #undef CREATE_REQUEST_PROMISE
 #undef CREATE_OK_REQUEST_PROMISE
+#undef CREATE_TEXT_REQUEST_PROMISE
 
 }  // namespace td
