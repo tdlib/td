@@ -49,38 +49,55 @@ class Requests {
 
   std::shared_ptr<DownloadFileCallback> download_file_callback_;
 
-  template <class T>
-  class RequestPromise : public PromiseInterface<T> {
+  class RequestPromiseBase {
     enum class State : int32 { Empty, Ready, Complete };
     ActorId<Td> td_actor_;
     uint64 request_id_;
     MovableValue<State> state_{State::Empty};
 
    public:
-    void set_value(T &&value) override {
+    void set_value(td_api::object_ptr<td_api::Object> value) {
       CHECK(state_.get() == State::Ready);
       send_closure(td_actor_, &Td::send_result, request_id_, std::move(value));
       state_ = State::Complete;
     }
 
-    void set_error(Status &&error) override {
+    void set_error(Status &&error) {
       if (state_.get() == State::Ready) {
         send_closure(td_actor_, &Td::send_error, request_id_, std::move(error));
         state_ = State::Complete;
       }
     }
-    RequestPromise(const RequestPromise &) = delete;
-    RequestPromise &operator=(const RequestPromise &) = delete;
-    RequestPromise(RequestPromise &&) = default;
-    RequestPromise &operator=(RequestPromise &&) = default;
-    ~RequestPromise() override {
+
+    RequestPromiseBase(const RequestPromiseBase &) = delete;
+    RequestPromiseBase &operator=(const RequestPromiseBase &) = delete;
+    RequestPromiseBase(RequestPromiseBase &&) = default;
+    RequestPromiseBase &operator=(RequestPromiseBase &&) = default;
+    virtual ~RequestPromiseBase() {
       if (state_.get() == State::Ready) {
         send_closure(td_actor_, &Td::send_error, request_id_, Status::Error("Lost promise"));
       }
     }
 
-    RequestPromise(ActorId<Td> td_actor, uint64 request_id)
+    RequestPromiseBase(ActorId<Td> td_actor, uint64 request_id)
         : td_actor_(std::move(td_actor)), request_id_(request_id), state_(State::Ready) {
+    }
+  };
+
+  template <class T>
+  class RequestPromise
+      : public PromiseInterface<T>
+      , RequestPromiseBase {
+   public:
+    void set_value(T &&value) override {
+      RequestPromiseBase::set_value(std::move(value));
+    }
+
+    void set_error(Status &&error) override {
+      RequestPromiseBase::set_error(std::move(error));
+    }
+
+    RequestPromise(ActorId<Td> td_actor, uint64 request_id) : RequestPromiseBase(std::move(td_actor), request_id) {
     }
   };
 
