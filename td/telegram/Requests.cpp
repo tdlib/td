@@ -276,31 +276,6 @@ class GetRecentMeUrlsQuery final : public Td::ResultHandler {
   }
 };
 
-class SetBotUpdatesStatusQuery final : public Td::ResultHandler {
- public:
-  void send(int32 pending_update_count, const string &error_message) {
-    send_query(
-        G()->net_query_creator().create(telegram_api::help_setBotUpdatesStatus(pending_update_count, error_message)));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::help_setBotUpdatesStatus>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    bool result = result_ptr.ok();
-    LOG_IF(WARNING, !result) << "Set bot updates status has failed";
-  }
-
-  void on_error(Status status) final {
-    if (!G()->is_expected_error(status)) {
-      LOG(WARNING) << "Receive error for SetBotUpdatesStatusQuery: " << status;
-    }
-    status.ignore();
-  }
-};
-
 class TestNetworkQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -7628,8 +7603,8 @@ void Requests::on_request(uint64 id, td_api::getRecentlyVisitedTMeUrls &request)
 void Requests::on_request(uint64 id, td_api::setBotUpdatesStatus &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.error_message_);
-  td_->create_handler<SetBotUpdatesStatusQuery>()->send(request.pending_update_count_, request.error_message_);
-  send_closure(td_actor_, &Td::send_result, id, td_api::make_object<td_api::ok>());
+  CREATE_OK_REQUEST_PROMISE();
+  set_bot_updates_status(td_, request.pending_update_count_, request.error_message_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::sendCustomRequest &request) {

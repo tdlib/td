@@ -20,4 +20,6 @@ void send_bot_custom_query(Td *td, const string &method, const string &parameter
 
 void answer_bot_custom_query(Td *td, int64 custom_query_id, const string &data, Promise<Unit> &&promise);
 
+void set_bot_updates_status(Td *td, int32 pending_update_count, const string &error_message, Promise<Unit> &&promise);
+
 }  // namespace td
