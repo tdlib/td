@@ -50,14 +50,43 @@ class Requests {
   std::shared_ptr<DownloadFileCallback> download_file_callback_;
 
   template <class T>
-  Promise<T> create_request_promise(uint64 id) {
-    return PromiseCreator::lambda([actor_id = td_actor_, id](Result<T> r_state) {
-      if (r_state.is_error()) {
-        send_closure(actor_id, &Td::send_error, id, r_state.move_as_error());
-      } else {
-        send_closure(actor_id, &Td::send_result, id, r_state.move_as_ok());
+  class RequestPromise : public PromiseInterface<T> {
+    enum class State : int32 { Empty, Ready, Complete };
+    ActorId<Td> td_actor_;
+    uint64 request_id_;
+    MovableValue<State> state_{State::Empty};
+
+   public:
+    void set_value(T &&value) override {
+      CHECK(state_.get() == State::Ready);
+      send_closure(td_actor_, &Td::send_result, request_id_, std::move(value));
+      state_ = State::Complete;
+    }
+
+    void set_error(Status &&error) override {
+      if (state_.get() == State::Ready) {
+        send_closure(td_actor_, &Td::send_error, request_id_, std::move(error));
+        state_ = State::Complete;
       }
-    });
+    }
+    RequestPromise(const RequestPromise &) = delete;
+    RequestPromise &operator=(const RequestPromise &) = delete;
+    RequestPromise(RequestPromise &&) = default;
+    RequestPromise &operator=(RequestPromise &&) = default;
+    ~RequestPromise() override {
+      if (state_.get() == State::Ready) {
+        send_closure(td_actor_, &Td::send_error, request_id_, Status::Error("Lost promise"));
+      }
+    }
+
+    RequestPromise(ActorId<Td> td_actor, uint64 request_id)
+        : td_actor_(std::move(td_actor)), request_id_(request_id), state_(State::Ready) {
+    }
+  };
+
+  template <class T>
+  Promise<T> create_request_promise(uint64 request_id) const {
+    return Promise<T>(td::make_unique<RequestPromise<T>>(td_actor_, request_id));
   }
 
   Promise<Unit> create_ok_request_promise(uint64 id);
