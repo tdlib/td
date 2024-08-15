@@ -424,8 +424,6 @@ class Td final : public Actor {
 
   std::shared_ptr<ActorContext> old_context_;
 
-  static int *get_log_verbosity_level(Slice name);
-
   template <class T>
   Promise<T> create_request_promise(uint64 id) {
     return PromiseCreator::lambda([actor_id = actor_id(this), id](Result<T> r_state) {
