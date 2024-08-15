@@ -412,8 +412,6 @@ class Td final : public Actor {
 
   void on_file_download_finished(FileId file_id);
 
-  class OnRequest;
-
   class DownloadFileCallback;
 
   std::shared_ptr<DownloadFileCallback> download_file_callback_;
