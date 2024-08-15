@@ -503,6 +503,9 @@ class FileManager final : public Actor {
   void delete_file_reference(FileId file_id, Slice file_reference);
   void get_content(FileId file_id, Promise<BufferSlice> promise);
 
+  void preliminary_upload_file(const td_api::object_ptr<td_api::InputFile> &input_file, FileType file_type,
+                               int32 priority, Promise<td_api::object_ptr<td_api::file>> &&promise);
+
   Result<string> get_suggested_file_name(FileId file_id, const string &directory);
 
   void read_file_part(FileId file_id, int64 offset, int64 count, int left_tries,
@@ -617,6 +620,8 @@ class FileManager final : public Actor {
       send_closure(actor_id_, &FileManager::on_upload_error, query_id, std::move(status));
     }
   };
+
+  class PreliminaryUploadFileCallback;
 
   Result<FileId> check_input_file_id(FileType type, Result<FileId> result, bool is_encrypted, bool allow_zero,
                                      bool is_secure) TD_WARN_UNUSED_RESULT;

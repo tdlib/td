@@ -49,10 +49,6 @@ class Requests {
 
   std::shared_ptr<DownloadFileCallback> download_file_callback_;
 
-  class UploadFileCallback;
-
-  std::shared_ptr<UploadFileCallback> upload_file_callback_;
-
   template <class T>
   Promise<T> create_request_promise(uint64 id) {
     return PromiseCreator::lambda([actor_id = td_actor_, id](Result<T> r_state) {

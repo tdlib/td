@@ -1920,32 +1920,8 @@ class Requests::DownloadFileCallback final : public FileManager::DownloadCallbac
   }
 };
 
-class Requests::UploadFileCallback final : public FileManager::UploadCallback {
- public:
-  void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) final {
-    // cancel file upload of the file to allow next upload with the same file to succeed
-    send_closure(G()->file_manager(), &FileManager::cancel_upload, file_id);
-  }
-
-  void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) final {
-    // cancel file upload of the file to allow next upload with the same file to succeed
-    send_closure(G()->file_manager(), &FileManager::cancel_upload, file_id);
-  }
-
-  void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) final {
-    // cancel file upload of the file to allow next upload with the same file to succeed
-    send_closure(G()->file_manager(), &FileManager::cancel_upload, file_id);
-  }
-
-  void on_upload_error(FileId file_id, Status error) final {
-  }
-};
-
 Requests::Requests(Td *td)
-    : td_(td)
-    , td_actor_(td->actor_id(td))
-    , download_file_callback_(std::make_shared<DownloadFileCallback>())
-    , upload_file_callback_(std::make_shared<UploadFileCallback>()) {
+    : td_(td), td_actor_(td->actor_id(td)), download_file_callback_(std::make_shared<DownloadFileCallback>()) {
 }
 
 void Requests::run_request(uint64 id, td_api::object_ptr<td_api::Function> &&function) {
@@ -5501,25 +5477,9 @@ void Requests::on_request(uint64 id, const td_api::getSuggestedFileName &request
 }
 
 void Requests::on_request(uint64 id, const td_api::preliminaryUploadFile &request) {
-  auto priority = request.priority_;
-  if (!(1 <= priority && priority <= 32)) {
-    return send_error_raw(id, 400, "Upload priority must be between 1 and 32");
-  }
-
+  CREATE_REQUEST_PROMISE();
   auto file_type = request.file_type_ == nullptr ? FileType::Temp : get_file_type(*request.file_type_);
-  bool is_secret = file_type == FileType::Encrypted || file_type == FileType::EncryptedThumbnail;
-  bool is_secure = file_type == FileType::SecureEncrypted;
-  auto r_file_id = td_->file_manager_->get_input_file_id(file_type, request.file_, DialogId(), false, is_secret,
-                                                         !is_secure && !is_secret, is_secure);
-  if (r_file_id.is_error()) {
-    return send_error_raw(id, r_file_id.error().code(), r_file_id.error().message());
-  }
-  auto file_id = r_file_id.ok();
-  auto upload_file_id = td_->file_manager_->dup_file_id(file_id, "preliminaryUploadFile");
-
-  td_->file_manager_->upload(upload_file_id, upload_file_callback_, priority, 0);
-
-  send_closure(td_actor_, &Td::send_result, id, td_->file_manager_->get_file_object(upload_file_id, false));
+  td_->file_manager_->preliminary_upload_file(request.file_, file_type, request.priority_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::cancelPreliminaryUploadFile &request) {
