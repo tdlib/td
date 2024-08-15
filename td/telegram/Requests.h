@@ -110,6 +110,8 @@ class Requests {
 
   Promise<string> create_text_request_promise(uint64 id);
 
+  Promise<string> create_http_url_request_promise(uint64 id);
+
   template <class T>
   void on_request(uint64 id, const T &) = delete;
 

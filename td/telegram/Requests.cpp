@@ -1961,6 +1961,16 @@ Promise<string> Requests::create_text_request_promise(uint64 id) {
   });
 }
 
+Promise<string> Requests::create_http_url_request_promise(uint64 id) {
+  return PromiseCreator::lambda([actor_id = td_actor_, id](Result<string> result) mutable {
+    if (result.is_error()) {
+      send_closure(actor_id, &Td::send_error, id, result.move_as_error());
+    } else {
+      send_closure(actor_id, &Td::send_result, id, td_api::make_object<td_api::httpUrl>(result.move_as_ok()));
+    }
+  });
+}
+
 #define CLEAN_INPUT_STRING(field_name)                                  \
   if (!clean_input_string(field_name)) {                                \
     return send_error_raw(id, 400, "Strings must be encoded in UTF-8"); \
@@ -1982,6 +1992,7 @@ Promise<string> Requests::create_text_request_promise(uint64 id) {
   auto slot_id = td_->request_actors_.create(ActorOwn<>(), Td::RequestActorIdType); \
   td_->inc_request_actor_refcnt();                                                  \
   *td_->request_actors_.get(slot_id) = create_actor<name>(#name, td_->actor_shared(td_, slot_id), id, __VA_ARGS__);
+
 #define CREATE_REQUEST_PROMISE() auto promise = create_request_promise<std::decay_t<decltype(request)>::ReturnType>(id)
 #define CREATE_OK_REQUEST_PROMISE()                                                                                    \
   static_assert(std::is_same<std::decay_t<decltype(request)>::ReturnType, td_api::object_ptr<td_api::ok>>::value, ""); \
@@ -1990,6 +2001,10 @@ Promise<string> Requests::create_text_request_promise(uint64 id) {
   static_assert(std::is_same<std::decay_t<decltype(request)>::ReturnType, td_api::object_ptr<td_api::text>>::value, \
                 "");                                                                                                \
   auto promise = create_text_request_promise(id)
+#define CREATE_HTTP_URL_REQUEST_PROMISE()                                                                              \
+  static_assert(std::is_same<std::decay_t<decltype(request)>::ReturnType, td_api::object_ptr<td_api::httpUrl>>::value, \
+                "");                                                                                                   \
+  auto promise = create_http_url_request_promise(id)
 
 void Requests::on_request(uint64 id, const td_api::setTdlibParameters &request) {
   send_error_raw(id, 400, "Unexpected setTdlibParameters");
@@ -4410,16 +4425,9 @@ void Requests::on_request(uint64 id, const td_api::inviteGroupCallParticipants &
 
 void Requests::on_request(uint64 id, const td_api::getGroupCallInviteLink &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(td_api::make_object<td_api::httpUrl>(result.move_as_ok()));
-    }
-  });
+  CREATE_HTTP_URL_REQUEST_PROMISE();
   td_->group_call_manager_->get_group_call_invite_link(GroupCallId(request.group_call_id_), request.can_self_unmute_,
-                                                       std::move(query_promise));
+                                                       std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::startGroupCallRecording &request) {
@@ -6699,16 +6707,9 @@ void Requests::on_request(uint64 id, const td_api::getChatRevenueStatistics &req
 
 void Requests::on_request(uint64 id, const td_api::getChatRevenueWithdrawalUrl &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(td_api::make_object<td_api::httpUrl>(result.move_as_ok()));
-    }
-  });
+  CREATE_HTTP_URL_REQUEST_PROMISE();
   td_->statistics_manager_->get_channel_revenue_withdrawal_url(DialogId(request.chat_id_), request.password_,
-                                                               std::move(query_promise));
+                                                               std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getChatRevenueTransactions &request) {
@@ -6726,29 +6727,15 @@ void Requests::on_request(uint64 id, const td_api::getStarRevenueStatistics &req
 
 void Requests::on_request(uint64 id, const td_api::getStarWithdrawalUrl &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(td_api::make_object<td_api::httpUrl>(result.move_as_ok()));
-    }
-  });
+  CREATE_HTTP_URL_REQUEST_PROMISE();
   td_->star_manager_->get_star_withdrawal_url(request.owner_id_, request.star_count_, request.password_,
-                                              std::move(query_promise));
+                                              std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getStarAdAccountUrl &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(td_api::make_object<td_api::httpUrl>(result.move_as_ok()));
-    }
-  });
-  td_->star_manager_->get_star_ad_account_url(request.owner_id_, std::move(query_promise));
+  CREATE_HTTP_URL_REQUEST_PROMISE();
+  td_->star_manager_->get_star_ad_account_url(request.owner_id_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getMessageStatistics &request) {
@@ -7017,18 +7004,11 @@ void Requests::on_request(uint64 id, td_api::getWebAppLinkUrl &request) {
   CLEAN_INPUT_STRING(request.web_app_short_name_);
   CLEAN_INPUT_STRING(request.start_parameter_);
   CLEAN_INPUT_STRING(request.application_name_);
-  CREATE_REQUEST_PROMISE();
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(td_api::make_object<td_api::httpUrl>(result.move_as_ok()));
-    }
-  });
+  CREATE_HTTP_URL_REQUEST_PROMISE();
   td_->attach_menu_manager_->request_app_web_view(
       DialogId(request.chat_id_), UserId(request.bot_user_id_), std::move(request.web_app_short_name_),
       std::move(request.start_parameter_), std::move(request.theme_), std::move(request.application_name_),
-      request.allow_write_access_, std::move(query_promise));
+      request.allow_write_access_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::getMainWebApp &request) {
@@ -7045,17 +7025,10 @@ void Requests::on_request(uint64 id, td_api::getWebAppUrl &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.url_);
   CLEAN_INPUT_STRING(request.application_name_);
-  CREATE_REQUEST_PROMISE();
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(td_api::make_object<td_api::httpUrl>(result.move_as_ok()));
-    }
-  });
+  CREATE_HTTP_URL_REQUEST_PROMISE();
   td_->inline_queries_manager_->get_simple_web_view_url(UserId(request.bot_user_id_), std::move(request.url_),
                                                         std::move(request.theme_), std::move(request.application_name_),
-                                                        std::move(query_promise));
+                                                        std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::sendWebAppData &request) {
@@ -7178,15 +7151,8 @@ void Requests::on_request(uint64 id, const td_api::deleteSavedCredentials &reque
 
 void Requests::on_request(uint64 id, td_api::createInvoiceLink &request) {
   CHECK_IS_BOT();
-  CREATE_REQUEST_PROMISE();
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(td_api::make_object<td_api::httpUrl>(result.move_as_ok()));
-    }
-  });
-  export_invoice(td_, std::move(request.invoice_), std::move(query_promise));
+  CREATE_HTTP_URL_REQUEST_PROMISE();
+  export_invoice(td_, std::move(request.invoice_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::refundStarPayment &request) {
@@ -7610,15 +7576,8 @@ void Requests::on_request(uint64 id, td_api::getCollectibleItemInfo &request) {
 
 void Requests::on_request(uint64 id, const td_api::getApplicationDownloadLink &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(td_api::make_object<td_api::httpUrl>(result.move_as_ok()));
-    }
-  });
-  get_invite_text(td_, std::move(query_promise));
+  CREATE_HTTP_URL_REQUEST_PROMISE();
+  get_invite_text(td_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::getDeepLinkInfo &request) {
@@ -7679,16 +7638,8 @@ void Requests::on_request(uint64 id, const td_api::getProxies &request) {
 }
 
 void Requests::on_request(uint64 id, const td_api::getProxyLink &request) {
-  CREATE_REQUEST_PROMISE();
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(td_api::make_object<td_api::httpUrl>(result.move_as_ok()));
-    }
-  });
-  send_closure(G()->connection_creator(), &ConnectionCreator::get_proxy_link, request.proxy_id_,
-               std::move(query_promise));
+  CREATE_HTTP_URL_REQUEST_PROMISE();
+  send_closure(G()->connection_creator(), &ConnectionCreator::get_proxy_link, request.proxy_id_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::pingProxy &request) {
@@ -7903,5 +7854,6 @@ void Requests::on_request(uint64 id, td_api::testCallVectorStringObject &request
 #undef CREATE_REQUEST_PROMISE
 #undef CREATE_OK_REQUEST_PROMISE
 #undef CREATE_TEXT_REQUEST_PROMISE
+#undef CREATE_HTTP_URL_REQUEST_PROMISE
 
 }  // namespace td
