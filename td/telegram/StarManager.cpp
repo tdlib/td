@@ -26,6 +26,7 @@
 #include "td/telegram/StatisticsManager.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/UserManager.h"
@@ -670,6 +671,15 @@ class GetStarsRevenueAdsAccountUrlQuery final : public Td::ResultHandler {
 StarManager::StarManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
+void StarManager::start_up() {
+  auto owned_star_count = G()->td_db()->get_binlog_pmc()->get("owned_star_count");
+  if (!owned_star_count.empty()) {
+    is_owned_star_count_inited_ = true;
+    owned_star_count_ = to_integer<int64>(owned_star_count);
+    send_closure(G()->td(), &Td::send_update, get_update_owned_star_count_object());
+  }
+}
+
 void StarManager::tear_down() {
   parent_.reset();
 }
@@ -686,6 +696,7 @@ void StarManager::on_update_owned_star_count(int64 star_count) {
   is_owned_star_count_inited_ = true;
   owned_star_count_ = star_count;
   send_closure(G()->td(), &Td::send_update, get_update_owned_star_count_object());
+  G()->td_db()->get_binlog_pmc()->set("owned_star_count", to_string(owned_star_count_));
 }
 
 void StarManager::add_owned_star_count(int64 star_count) {

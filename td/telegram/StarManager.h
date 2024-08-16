@@ -73,6 +73,8 @@ class StarManager final : public Actor {
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
+  void start_up() final;
+
   void tear_down() final;
 
   Status can_manage_stars(DialogId dialog_id, bool allow_self = false) const;
