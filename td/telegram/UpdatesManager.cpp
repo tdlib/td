@@ -108,23 +108,6 @@ namespace td {
 
 int VERBOSITY_NAME(get_difference) = VERBOSITY_NAME(INFO);
 
-class OnUpdate {
-  UpdatesManager *updates_manager_;
-  tl_object_ptr<telegram_api::Update> &update_;
-  mutable Promise<Unit> promise_;
-
- public:
-  OnUpdate(UpdatesManager *updates_manager, tl_object_ptr<telegram_api::Update> &update, Promise<Unit> &&promise)
-      : updates_manager_(updates_manager), update_(update), promise_(std::move(promise)) {
-  }
-
-  template <class T>
-  void operator()(T &obj) const {
-    CHECK(&*update_ == &obj);
-    updates_manager_->on_update(move_tl_object_as<T>(update_), std::move(promise_));
-  }
-};
-
 class GetUpdatesStateQuery final : public Td::ResultHandler {
   Promise<tl_object_ptr<telegram_api::updates_state>> promise_;
 
