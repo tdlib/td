@@ -60,6 +60,8 @@ class StarManager final : public Actor {
   void reload_star_transaction(DialogId dialog_id, const string &transaction_id, bool is_refund,
                                Promise<Unit> &&promise);
 
+  void reload_owned_star_count();
+
   void on_update_stars_revenue_status(telegram_api::object_ptr<telegram_api::updateStarsRevenueStatus> &&update);
 
   FileSourceId get_star_transaction_file_source_id(DialogId dialog_id, const string &transaction_id, bool is_refund);

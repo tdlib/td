@@ -845,6 +845,10 @@ void StarManager::reload_star_transaction(DialogId dialog_id, const string &tran
   td_->create_handler<GetStarsTransactionsQuery>(std::move(query_promise))->send(dialog_id, transaction_id, is_refund);
 }
 
+void StarManager::reload_owned_star_count() {
+  do_get_star_transactions(td_->dialog_manager_->get_my_dialog_id(), string(), string(), 1, nullptr, Auto());
+}
+
 void StarManager::on_update_stars_revenue_status(
     telegram_api::object_ptr<telegram_api::updateStarsRevenueStatus> &&update) {
   DialogId dialog_id(update->peer_);

@@ -2274,12 +2274,11 @@ void UpdatesManager::try_reload_data() {
   td_->quick_reply_manager_->reload_quick_reply_shortcuts();
   td_->reaction_manager_->reload_reactions();
   td_->reaction_manager_->reload_message_effects();
-
   for (int32 type = 0; type < MAX_REACTION_LIST_TYPE; type++) {
     auto reaction_list_type = static_cast<ReactionListType>(type);
     td_->reaction_manager_->reload_reaction_list(reaction_list_type, "try_reload_data");
   }
-
+  td_->star_manager_->reload_owned_star_count();
   for (int32 type = 0; type < MAX_STICKER_TYPE; type++) {
     auto sticker_type = static_cast<StickerType>(type);
     td_->stickers_manager_->get_installed_sticker_sets(sticker_type, Auto());
