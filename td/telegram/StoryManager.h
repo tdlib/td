@@ -357,6 +357,9 @@ class StoryManager final : public Actor {
   td_api::object_ptr<td_api::stories> get_stories_object(int32 total_count, const vector<StoryFullId> &story_full_ids,
                                                          const vector<StoryId> &pinned_story_ids) const;
 
+  static td_api::object_ptr<td_api::CanSendStoryResult> get_can_send_story_result_object(const Status &error,
+                                                                                         bool force = false);
+
   FileSourceId get_story_file_source_id(StoryFullId story_full_id);
 
   telegram_api::object_ptr<telegram_api::InputMedia> get_input_media(StoryFullId story_full_id) const;
