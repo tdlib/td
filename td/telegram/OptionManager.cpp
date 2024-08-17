@@ -158,8 +158,8 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("bot_media_preview_count_max", 12);
   set_default_integer_option("paid_reaction_star_count_max", 2500);
   set_default_integer_option("subscription_star_count_max", 2500);
-  set_default_integer_option("usd_to_1000_star_rate", 1410);
-  set_default_integer_option("1000_star_to_usd_rate", 1200);
+  set_default_integer_option("usd_to_thousand_star_rate", 1410);
+  set_default_integer_option("thousand_star_to_usd_rate", 1200);
 
   if (options.isset("my_phone_number") || !options.isset("my_id")) {
     update_premium_options();
@@ -174,6 +174,8 @@ OptionManager::OptionManager(Td *td)
   set_option_empty("forum_member_count_min");
   set_option_empty("themed_emoji_statuses_sticker_set_id");
   set_option_empty("themed_premium_statuses_sticker_set_id");
+  set_option_empty("usd_to_1000_star_rate");
+  set_option_empty("1000_star_to_usd_rate");
 }
 
 OptionManager::~OptionManager() = default;
