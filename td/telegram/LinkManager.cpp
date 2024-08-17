@@ -1203,7 +1203,7 @@ Result<string> LinkManager::check_link_impl(Slice link, bool http_only, bool htt
       query.remove_prefix(1);
     }
     for (auto c : http_url.host_) {
-      if (!is_alnum(c) && c != '-' && c != '_') {
+      if (!is_alnum(c) && c != '-' && c != '_' && !(is_tonsite && c == '.')) {
         return Status::Error("Unallowed characters in URL host");
       }
     }

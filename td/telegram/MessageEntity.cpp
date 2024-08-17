@@ -649,8 +649,8 @@ static vector<Slice> match_tg_urls(Slice str) {
       } else if (ptr - begin >= 3 && to_lower(ptr[-3]) == 't' && to_lower(ptr[-2]) == 'o' && to_lower(ptr[-1]) == 'n') {
         url_begin = ptr - 3;
       } else if (ptr - begin >= 7 && to_lower(ptr[-7]) == 't' && to_lower(ptr[-6]) == 'o' && to_lower(ptr[-5]) == 'n' &&
-                 to_lower(ptr[-5]) == 's' && to_lower(ptr[-5]) == 'i' && to_lower(ptr[-5]) == 't' &&
-                 to_lower(ptr[-5]) == 'e') {
+                 to_lower(ptr[-4]) == 's' && to_lower(ptr[-3]) == 'i' && to_lower(ptr[-2]) == 't' &&
+                 to_lower(ptr[-1]) == 'e') {
         url_begin = ptr - 3;
       }
     }
