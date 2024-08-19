@@ -1234,7 +1234,25 @@ void FileManager::try_forget_file_id(FileId file_id) {
 }
 
 FileId FileManager::register_empty(FileType type) {
-  return register_local(FullLocalFileLocation(type, "", 0), DialogId(), 0, false, true).ok();
+  auto location = FullLocalFileLocation(type, "", 0);
+  auto &file_id = local_location_to_file_id_[location];
+  if (!file_id.empty()) {
+    return file_id;
+  }
+  file_id = next_file_id();
+
+  LOG(INFO) << "Register empty file as " << file_id;
+  auto file_node_id = next_file_node_id();
+  auto &node = file_nodes_[file_node_id];
+  node = td::make_unique<FileNode>(LocalFileLocation(std::move(location)), NewRemoteFileLocation(), nullptr, 0, 0,
+                                   string(), string(), DialogId(), FileEncryptionKey(), file_id, static_cast<int8>(0));
+  node->file_ids_.push_back(file_id);
+
+  auto file_id_info = get_file_id_info(file_id);
+  file_id_info->node_id_ = file_node_id;
+  file_id_info->pin_flag_ = true;
+
+  return file_id;
 }
 
 void FileManager::on_file_unlink(const FullLocalFileLocation &location) {
