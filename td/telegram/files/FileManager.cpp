@@ -1270,15 +1270,14 @@ void FileManager::on_file_unlink(const FullLocalFileLocation &location) {
 }
 
 Result<FileId> FileManager::register_local(FullLocalFileLocation location, DialogId owner_dialog_id, int64 size,
-                                           bool get_by_hash, bool force, bool skip_file_size_checks,
-                                           FileId merge_file_id) {
+                                           bool get_by_hash, bool skip_file_size_checks, FileId merge_file_id) {
   // TODO: use get_by_hash
   FileData data;
   data.local_ = LocalFileLocation(std::move(location));
   data.owner_dialog_id_ = owner_dialog_id;
   data.size_ = size;
   return register_file(std::move(data), FileLocationSource::None /*won't be used*/, merge_file_id, "register_local",
-                       force, skip_file_size_checks);
+                       skip_file_size_checks);
 }
 
 FileId FileManager::register_remote(FullRemoteFileLocation location, FileLocationSource file_location_source,
@@ -1291,7 +1290,7 @@ FileId FileManager::register_remote(FullRemoteFileLocation location, FileLocatio
   data.expected_size_ = expected_size;
   data.remote_name_ = std::move(remote_name);
 
-  auto file_id = register_file(std::move(data), file_location_source, FileId(), "register_remote", false).move_as_ok();
+  auto file_id = register_file(std::move(data), file_location_source, FileId(), "register_remote").move_as_ok();
   if (!url.empty()) {
     auto file_node = get_file_node(file_id);
     CHECK(file_node);
@@ -1327,15 +1326,14 @@ Result<FileId> FileManager::register_generate(FileType file_type, FileLocationSo
       td::make_unique<FullGenerateFileLocation>(file_type, std::move(original_path), std::move(conversion));
   data.owner_dialog_id_ = owner_dialog_id;
   data.expected_size_ = expected_size;
-  return register_file(std::move(data), file_location_source, FileId(), "register_generate", false);
+  return register_file(std::move(data), file_location_source, FileId(), "register_generate");
 }
 
 Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource file_location_source,
-                                          FileId merge_file_id, const char *source, bool force,
-                                          bool skip_file_size_checks) {
+                                          FileId merge_file_id, const char *source, bool skip_file_size_checks) {
   bool has_remote = data.remote_.type() == RemoteFileLocation::Type::Full;
   bool has_generate = data.generate_ != nullptr;
-  if (data.local_.type() == LocalFileLocation::Type::Full && !force) {
+  if (data.local_.type() == LocalFileLocation::Type::Full) {
     bool is_from_database = file_location_source == FileLocationSource::FromBinlog ||
                             file_location_source == FileLocationSource::FromDatabase;
     if (is_from_database) {
@@ -2212,8 +2210,7 @@ void FileManager::load_from_pmc(FileNodePtr node, bool new_remote, bool new_loca
              << ", new_remote = " << new_remote << ", new_local = " << new_local << ", new_generate = " << new_generate;
   auto load = [&](auto location, const char *source) {
     TRY_RESULT(file_data, file_db_->get_file_data_sync(location));
-    TRY_RESULT(new_file_id,
-               register_file(std::move(file_data), FileLocationSource::FromDatabase, FileId(), source, false));
+    TRY_RESULT(new_file_id, register_file(std::move(file_data), FileLocationSource::FromDatabase, FileId(), source));
     TRY_STATUS(merge(file_id, new_file_id));  // merge manually to keep merge parameters order
     return Status::OK();
   };
@@ -3231,7 +3228,7 @@ Result<FileId> FileManager::from_persistent_id_generated(Slice binary, FileType 
   }
   FileData data;
   data.generate_ = make_unique<FullGenerateFileLocation>(std::move(generate_location));
-  return register_file(std::move(data), FileLocationSource::FromUser, FileId(), "from_persistent_id_generated", false)
+  return register_file(std::move(data), FileLocationSource::FromUser, FileId(), "from_persistent_id_generated")
       .move_as_ok();
 }
 
@@ -3259,8 +3256,8 @@ Result<FileId> FileManager::from_persistent_id_v23(Slice binary, FileType file_t
   }
   FileData data;
   data.remote_ = RemoteFileLocation(std::move(remote_location));
-  auto file_id = register_file(std::move(data), FileLocationSource::FromUser, FileId(), "from_persistent_id_v23", false)
-                     .move_as_ok();
+  auto file_id =
+      register_file(std::move(data), FileLocationSource::FromUser, FileId(), "from_persistent_id_v23").move_as_ok();
   return file_id;
 }
 
@@ -3893,7 +3890,7 @@ void FileManager::on_download_ok(FileDownloadManager::QueryId query_id, FullLoca
   std::tie(query, was_active) = finish_download_query(query_id);
   auto file_id = query.file_id_;
   LOG(INFO) << "ON DOWNLOAD OK of " << (is_new ? "new" : "checked") << " file " << file_id << " of size " << size;
-  auto r_new_file_id = register_local(std::move(local), DialogId(), size, false, false, true, file_id);
+  auto r_new_file_id = register_local(std::move(local), DialogId(), size, false, true, file_id);
   Status status = Status::OK();
   if (r_new_file_id.is_error()) {
     status = Status::Error(PSLICE() << "Can't register local file after download: " << r_new_file_id.error().message());
@@ -4053,7 +4050,7 @@ void FileManager::on_generate_ok(FileGenerateManager::QueryId query_id, FullLoca
 
   auto old_upload_id = file_node->upload_id_;
 
-  auto r_new_file_id = register_local(local, DialogId(), 0, false, false, false, generate_file_id);
+  auto r_new_file_id = register_local(local, DialogId(), 0, false, false, generate_file_id);
   file_node = get_file_node(generate_file_id);
   if (r_new_file_id.is_error()) {
     return on_generate_error_impl(
