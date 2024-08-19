@@ -986,12 +986,19 @@ void DialogInviteLinkManager::export_dialog_invite_link(DialogId dialog_id, stri
     if (subscription_pricing.is_empty()) {
       return promise.set_error(Status::Error(400, "Invalid subscription pricing specified"));
     }
+    CHECK(expire_date == 0 && usage_limit == 0 && !creates_join_request);
   } else {
     CHECK(subscription_pricing.is_empty());
   }
+  if (creates_join_request && usage_limit > 0) {
+    return promise.set_error(
+        Status::Error(400, "Member limit can't be specified for links requiring administrator approval"));
+  }
+
   td_->user_manager_->get_me(PromiseCreator::lambda(
-      [actor_id = actor_id(this), dialog_id, title = std::move(title), expire_date, usage_limit, creates_join_request,
-       subscription_pricing, is_permanent, promise = std::move(promise)](Result<Unit> &&result) mutable {
+      [actor_id = actor_id(this), dialog_id, title = clean_name(std::move(title), MAX_INVITE_LINK_TITLE_LENGTH),
+       expire_date, usage_limit, creates_join_request, subscription_pricing, is_permanent,
+       promise = std::move(promise)](Result<Unit> &&result) mutable {
         if (result.is_error()) {
           promise.set_error(result.move_as_error());
         } else {
@@ -1008,18 +1015,9 @@ void DialogInviteLinkManager::export_dialog_invite_link_impl(
     Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id));
-  if (creates_join_request && usage_limit > 0) {
-    return promise.set_error(
-        Status::Error(400, "Member limit can't be specified for links requiring administrator approval"));
-  }
-  if ((expire_date || usage_limit || creates_join_request) && !subscription_pricing.is_empty()) {
-    return promise.set_error(
-        Status::Error(400, "Subscription plan can't be specified for links with additional restrictions"));
-  }
 
-  auto new_title = clean_name(std::move(title), MAX_INVITE_LINK_TITLE_LENGTH);
   td_->create_handler<ExportChatInviteQuery>(std::move(promise))
-      ->send(dialog_id, new_title, expire_date, usage_limit, creates_join_request, subscription_pricing, is_permanent);
+      ->send(dialog_id, title, expire_date, usage_limit, creates_join_request, subscription_pricing, is_permanent);
 }
 
 void DialogInviteLinkManager::edit_dialog_invite_link(DialogId dialog_id, const string &invite_link, string title,
