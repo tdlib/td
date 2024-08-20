@@ -3061,8 +3061,8 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
         auto message_id = MessageId(ServerMessageId(update->msg_id_));
         auto date = update->date_;
         if (!dialog_id.is_valid() || !message_id.is_valid() || date <= 0) {
-          LOG(ERROR) << "Receive invalid " << to_string(update->reactions_);
-          return;
+          LOG(ERROR) << "Receive invalid " << to_string(update);
+          break;
         }
         vector<td_api::object_ptr<td_api::messageReaction>> message_reactions;
         for (const auto &reaction_count : update->reactions_) {
@@ -3080,6 +3080,19 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
                      td_api::make_object<td_api::updateMessageReactions>(
                          td_->dialog_manager_->get_chat_id_object(dialog_id, "updateMessageReactions"),
                          message_id.get(), date, std::move(message_reactions)));
+        break;
+      }
+      case telegram_api::updateBotPurchasedPaidMedia::ID: {
+        auto update = move_tl_object_as<telegram_api::updateBotPurchasedPaidMedia>(update_ptr);
+        auto user_id = UserId(update->user_id_);
+        if (!user_id.is_valid()) {
+          LOG(ERROR) << "Receive invalid " << to_string(update);
+          break;
+        }
+        send_closure(
+            G()->td(), &Td::send_update,
+            td_api::make_object<td_api::updatePaidMediaPurchased>(
+                td_->user_manager_->get_user_id_object(user_id, "updatePaidMediaPurchased"), update->payload_));
         break;
       }
       case telegram_api::updateBotBusinessConnect::ID: {
@@ -4439,6 +4452,12 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotMessageReact
   add_pending_qts_update(std::move(update), qts, std::move(promise));
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotPurchasedPaidMedia> update,
+                               Promise<Unit> &&promise) {
+  auto qts = update->qts_;
+  add_pending_qts_update(std::move(update), qts, std::move(promise));
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateTheme> update, Promise<Unit> &&promise) {
   td_->theme_manager_->on_update_theme(std::move(update->theme_), std::move(promise));
 }
@@ -4587,11 +4606,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStarsRevenueSta
 // unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotPurchasedPaidMedia> update,
-                               Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 

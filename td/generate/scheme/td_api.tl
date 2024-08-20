@@ -8017,6 +8017,11 @@ updateMessageReaction chat_id:int53 message_id:int53 actor_id:MessageSender date
 //@reactions The list of reactions added to the message
 updateMessageReactions chat_id:int53 message_id:int53 date:int32 reactions:vector<messageReaction> = Update;
 
+//@description Paid media were purchased by a user; for bots only
+//@user_id User identifier
+//@payload Bot-specified payload for the paid media
+updatePaidMediaPurchased user_id:int53 payload:string = Update;
+
 
 //@description Contains a list of updates @updates List of updates
 updates updates:vector<Update> = Updates;
