@@ -476,6 +476,8 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
       return td_api::make_object<td_api::chatEventEmojiStatusChanged>(old_emoji_status.get_emoji_status_object(),
                                                                       new_emoji_status.get_emoji_status_object());
     }
+    case telegram_api::channelAdminLogEventActionParticipantSubExtend::ID:
+      return nullptr;
     default:
       UNREACHABLE();
       return nullptr;
@@ -622,7 +624,7 @@ static telegram_api::object_ptr<telegram_api::channelAdminLogEventsFilter> get_i
       flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
       false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
       false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-      false /*ignored*/);
+      false /*ignored*/, false /*ignored*/);
 }
 
 void get_dialog_event_log(Td *td, DialogId dialog_id, const string &query, int64 from_event_id, int32 limit,

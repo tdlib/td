@@ -170,14 +170,11 @@ class SendPaidReactionQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
 
-    int32 flags = 0;
-    if (is_anonymous) {
-      flags |= telegram_api::messages_sendPaidReaction::PRIVATE_MASK;
-    }
+    int32 flags = telegram_api::messages_sendPaidReaction::PRIVATE_MASK;
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_sendPaidReaction(flags, false /*ignored*/, std::move(input_peer),
+        telegram_api::messages_sendPaidReaction(flags, std::move(input_peer),
                                                 message_full_id.get_message_id().get_server_message_id().get(),
-                                                star_count, random_id),
+                                                star_count, random_id, is_anonymous),
         {{dialog_id_}, {message_full_id}}));
   }
 

@@ -3595,7 +3595,9 @@ static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_in
         }
         input_media.push_back(std::move(media));
       }
-      return telegram_api::make_object<telegram_api::inputMediaPaidMedia>(m->star_count, std::move(input_media));
+      int32 flags = 0;
+      return telegram_api::make_object<telegram_api::inputMediaPaidMedia>(flags, m->star_count, std::move(input_media),
+                                                                          string());
     }
     case MessageContentType::Photo: {
       const auto *m = static_cast<const MessagePhoto *>(content);
@@ -6689,6 +6691,9 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
         }
       }
       if (channel_ids.empty() || media->quantity_ <= 0 || media->months_ <= 0 || media->until_date_ < 0) {
+        if (media->months_ == 0 && media->stars_ > 0) {
+          return make_unique<MessageUnsupported>();
+        }
         if (message_date >= 1700000000) {  // approximate release date
           LOG(ERROR) << "Receive " << to_string(media);
         }
@@ -6708,6 +6713,9 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       auto boosted_channel_id = ChannelId(media->channel_id_);
       if (!giveaway_message_id.is_valid() || !boosted_channel_id.is_valid() || media->additional_peers_count_ < 0 ||
           media->months_ <= 0 || media->until_date_ <= 0 || media->winners_count_ < 0 || media->unclaimed_count_ < 0) {
+        if (media->months_ == 0 && media->stars_ > 0) {
+          return make_unique<MessageUnsupported>();
+        }
         LOG(ERROR) << "Receive " << to_string(media);
         break;
       }
@@ -7070,6 +7078,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       case telegram_api::messageActionGiftCode::ID:
       case telegram_api::messageActionRequestedPeerSentMe::ID:
       case telegram_api::messageActionGiftStars::ID:
+      case telegram_api::messageActionPrizeStars::ID:
         // ok
         break;
       default:
@@ -7517,6 +7526,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
           std::move(action->currency_), action->amount_, std::move(action->crypto_currency_), action->crypto_amount_,
           StarManager::get_star_count(action->stars_), std::move(action->transaction_id_));
     }
+    case telegram_api::messageActionPrizeStars::ID:
+      return make_unique<MessageUnsupported>();
     default:
       UNREACHABLE();
   }
