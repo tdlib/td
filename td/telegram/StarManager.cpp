@@ -287,18 +287,15 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                 LOG(ERROR) << "Receive Telegram Star transaction with " << user_id;
                 return td_api::make_object<td_api::starTransactionPartnerUnsupported>();
               }
-              if ((product_info == nullptr && bot_payload.empty()) || !transaction->extended_media_.empty()) {
-                if (G()->is_test_dc()) {
-                  bot_payload.clear();
-                }
-                return td_api::make_object<td_api::starTransactionPartnerBot>(
-                    td_->user_manager_->get_user_id_object(user_id, "starTransactionPartnerBot"),
-                    td_api::make_object<td_api::botTransactionPurposePaidMedia>(
-                        get_paid_media_object(DialogId(user_id))));
-              }
               SCOPE_EXIT {
                 bot_payload.clear();
               };
+              if (product_info == nullptr || !transaction->extended_media_.empty()) {
+                return td_api::make_object<td_api::starTransactionPartnerBot>(
+                    td_->user_manager_->get_user_id_object(user_id, "starTransactionPartnerBot"),
+                    td_api::make_object<td_api::botTransactionPurposePaidMedia>(
+                        get_paid_media_object(DialogId(user_id)), bot_payload));
+              }
               return td_api::make_object<td_api::starTransactionPartnerBot>(
                   td_->user_manager_->get_user_id_object(user_id, "starTransactionPartnerBot"),
                   td_api::make_object<td_api::botTransactionPurposeInvoicePayment>(std::move(product_info),
