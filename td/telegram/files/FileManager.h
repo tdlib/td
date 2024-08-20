@@ -87,6 +87,7 @@ class FileNode {
       , main_file_id_(main_file_id)
       , main_file_id_priority_(main_file_id_priority) {
     init_ready_size();
+    file_ids_.push_back(main_file_id);
   }
   void drop_local_location();
   void set_local_location(const LocalFileLocation &local, int64 ready_size, int64 prefix_offset,

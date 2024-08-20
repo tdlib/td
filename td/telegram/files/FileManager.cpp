@@ -1246,7 +1246,6 @@ FileId FileManager::register_empty(FileType type) {
   auto &node = file_nodes_[file_node_id];
   node = td::make_unique<FileNode>(LocalFileLocation(std::move(location)), NewRemoteFileLocation(), nullptr, 0, 0,
                                    string(), string(), DialogId(), FileEncryptionKey(), file_id, static_cast<int8>(0));
-  node->file_ids_.push_back(file_id);
 
   auto file_id_info = get_file_id_info(file_id);
   file_id_info->node_id_ = file_node_id;
@@ -1398,7 +1397,6 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
                                    std::move(data.encryption_key_), file_id, static_cast<int8>(has_remote));
   node->pmc_id_ = FileDbId(data.pmc_id_);
   get_file_id_info(file_id)->node_id_ = file_node_id;
-  node->file_ids_.push_back(file_id);
 
   FileView file_view(get_file_node(file_id));
 
