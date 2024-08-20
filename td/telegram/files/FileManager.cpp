@@ -1236,16 +1236,16 @@ void FileManager::try_forget_file_id(FileId file_id) {
 FileId FileManager::register_empty(FileType type) {
   auto location = FullLocalFileLocation(type, "", 0);
   auto &file_id = local_location_to_file_id_[location];
-  if (!file_id.empty()) {
+  if (file_id.is_valid()) {
     return file_id;
   }
   file_id = next_file_id();
 
   LOG(INFO) << "Register empty file as " << file_id;
   auto file_node_id = next_file_node_id();
-  auto &node = file_nodes_[file_node_id];
-  node = td::make_unique<FileNode>(LocalFileLocation(std::move(location)), NewRemoteFileLocation(), nullptr, 0, 0,
-                                   string(), string(), DialogId(), FileEncryptionKey(), file_id, static_cast<int8>(0));
+  file_nodes_[file_node_id] =
+      td::make_unique<FileNode>(LocalFileLocation(std::move(location)), NewRemoteFileLocation(), nullptr, 0, 0,
+                                string(), string(), DialogId(), FileEncryptionKey(), file_id, static_cast<int8>(0));
 
   auto file_id_info = get_file_id_info(file_id);
   file_id_info->node_id_ = file_node_id;
@@ -1270,13 +1270,53 @@ void FileManager::on_file_unlink(const FullLocalFileLocation &location) {
 
 Result<FileId> FileManager::register_local(FullLocalFileLocation location, DialogId owner_dialog_id, int64 size,
                                            bool get_by_hash, bool skip_file_size_checks, FileId merge_file_id) {
-  // TODO: use get_by_hash
-  FileData data;
-  data.local_ = LocalFileLocation(std::move(location));
-  data.owner_dialog_id_ = owner_dialog_id;
-  data.size_ = size;
-  return register_file(std::move(data), FileLocationSource::None /*won't be used*/, merge_file_id, "register_local",
-                       skip_file_size_checks);
+  TRY_RESULT(info, check_full_local_location({std::move(location), size}, skip_file_size_checks));
+  location = std::move(info.location_);
+  size = info.size_;
+
+  if (bad_paths_.count(location.path_) != 0) {
+    return Status::Error(400, "Sending of internal database files is forbidden");
+  }
+
+  auto &file_id = local_location_to_file_id_[location];
+  bool is_new = false;
+  if (!file_id.is_valid()) {
+    file_id = next_file_id();
+    LOG(INFO) << "Register " << location << " as " << file_id;
+
+    auto file_node_id = next_file_node_id();
+    auto &node = file_nodes_[file_node_id];
+    node = td::make_unique<FileNode>(LocalFileLocation(std::move(location)), NewRemoteFileLocation(), nullptr, size, 0,
+                                     string(), string(), owner_dialog_id, FileEncryptionKey(), file_id,
+                                     static_cast<int8>(0));
+    get_file_id_info(file_id)->node_id_ = file_node_id;
+    is_new = true;
+    if (file_db_) {
+      node->need_load_from_pmc_ = true;
+    }
+  }
+
+  if (merge_file_id.is_valid()) {
+    auto status = merge(file_id, merge_file_id);
+    if (status.is_ok()) {
+      auto node = get_file_node(file_id);
+      auto main_file_id = node->main_file_id_;
+      if (main_file_id != file_id) {
+        try_forget_file_id(file_id);
+        file_id = main_file_id;
+      }
+      try_flush_node(node, "register_local");
+    }
+    if (is_new) {
+      get_file_id_info(file_id)->pin_flag_ = true;
+    }
+    if (status.is_error()) {
+      return std::move(status);
+    }
+  } else if (is_new) {
+    get_file_id_info(file_id)->pin_flag_ = true;
+  }
+  return file_id;
 }
 
 FileId FileManager::register_remote(FullRemoteFileLocation location, FileLocationSource file_location_source,

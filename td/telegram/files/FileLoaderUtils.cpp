@@ -305,7 +305,7 @@ Result<FullLocalLocationInfo> check_full_local_location(FullLocalLocationInfo lo
     return Status::Error(400, "File must be non-empty");
   }
 
-  if (size == 0) {
+  if (size <= 0) {
     size = stat.size_;
   }
   if (location.mtime_nsec_ == 0) {
