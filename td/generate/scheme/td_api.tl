@@ -3840,7 +3840,8 @@ inputMessageDocument document:InputFile thumbnail:inputThumbnail disable_content
 //@paid_media The content of the paid media
 //@caption Message caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
 //@show_caption_above_media True, if the caption must be shown above the video; otherwise, the caption must be shown below the video; not supported in secret chats
-inputMessagePaidMedia star_count:int53 paid_media:vector<inputPaidMedia> caption:formattedText show_caption_above_media:Bool = InputMessageContent;
+//@payload Bot-provided data for the paid media; bots only
+inputMessagePaidMedia star_count:int53 paid_media:vector<inputPaidMedia> caption:formattedText show_caption_above_media:Bool payload:string = InputMessageContent;
 
 //@description A photo message
 //@photo Photo to send. The photo must be at most 10 MB in size. The photo's width and height must not exceed 10000 in total. Width and height ratio must be at most 20

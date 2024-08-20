@@ -1127,10 +1127,11 @@ class MessagePaidMedia final : public MessageContent {
   vector<MessageExtendedMedia> media;
   FormattedText caption;
   int64 star_count = 0;
+  string payload;
 
   MessagePaidMedia() = default;
-  MessagePaidMedia(vector<MessageExtendedMedia> &&media, FormattedText &&caption, int64 star_count)
-      : media(std::move(media)), caption(std::move(caption)), star_count(star_count) {
+  MessagePaidMedia(vector<MessageExtendedMedia> &&media, FormattedText &&caption, int64 star_count, string payload)
+      : media(std::move(media)), caption(std::move(caption)), star_count(star_count), payload(std::move(payload)) {
   }
 
   MessageContentType get_type() const final {
@@ -1755,14 +1756,19 @@ static void store(const MessageContent *content, StorerT &storer) {
     case MessageContentType::PaidMedia: {
       const auto *m = static_cast<const MessagePaidMedia *>(content);
       bool has_caption = !m->caption.text.empty();
+      bool has_payload = !m->payload.empty();
       BEGIN_STORE_FLAGS();
       STORE_FLAG(has_caption);
+      STORE_FLAG(has_payload);
       END_STORE_FLAGS();
       store(m->media, storer);
       if (has_caption) {
         store(m->caption, storer);
       }
       store(m->star_count, storer);
+      if (has_payload) {
+        store(m->payload, storer);
+      }
       break;
     }
     case MessageContentType::PaymentRefunded: {
@@ -2553,14 +2559,19 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     case MessageContentType::PaidMedia: {
       auto m = make_unique<MessagePaidMedia>();
       bool has_caption;
+      bool has_payload;
       BEGIN_PARSE_FLAGS();
       PARSE_FLAG(has_caption);
+      PARSE_FLAG(has_payload);
       END_PARSE_FLAGS();
       parse(m->media, parser);
       if (has_caption) {
         parse(m->caption, parser);
       }
       parse(m->star_count, parser);
+      if (has_payload) {
+        parse(m->payload, parser);
+      }
 
       for (auto &media : m->media) {
         if (media.is_empty()) {
@@ -2961,7 +2972,7 @@ static Result<InputMessageContent> create_input_message_content(
       }
 
       content = td::make_unique<MessagePaidMedia>(std::move(extended_media), std::move(caption),
-                                                  input_paid_media->star_count_);
+                                                  input_paid_media->star_count_, std::move(input_paid_media->payload_));
       break;
     }
     case td_api::inputMessagePhoto::ID: {
@@ -3596,8 +3607,11 @@ static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_in
         input_media.push_back(std::move(media));
       }
       int32 flags = 0;
+      if (!m->payload.empty()) {
+        flags |= telegram_api::inputMediaPaidMedia::PAYLOAD_MASK;
+      }
       return telegram_api::make_object<telegram_api::inputMediaPaidMedia>(flags, m->star_count, std::move(input_media),
-                                                                          string());
+                                                                          m->payload);
     }
     case MessageContentType::Photo: {
       const auto *m = static_cast<const MessagePhoto *>(content);
@@ -5767,6 +5781,9 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
             is_content_changed = true;
           }
         }
+        if (lhs->payload != rhs->payload) {
+          is_content_changed = true;
+        }
       }
       break;
     }
@@ -6741,7 +6758,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
         return MessageExtendedMedia(td, std::move(extended_media), owner_dialog_id);
       });
       return td::make_unique<MessagePaidMedia>(std::move(extended_media), std::move(message),
-                                               StarManager::get_star_count(media->stars_amount_));
+                                               StarManager::get_star_count(media->stars_amount_), string());
     }
     case telegram_api::messageMediaUnsupported::ID:
       return make_unique<MessageUnsupported>();
@@ -8093,6 +8110,11 @@ unique_ptr<MessageContent> get_uploaded_message_content(
 int64 get_message_content_star_count(const MessageContent *content) {
   CHECK(content->get_type() == MessageContentType::PaidMedia);
   return static_cast<const MessagePaidMedia *>(content)->star_count;
+}
+
+string get_message_content_payload(const MessageContent *content) {
+  CHECK(content->get_type() == MessageContentType::PaidMedia);
+  return static_cast<const MessagePaidMedia *>(content)->payload;
 }
 
 int32 get_message_content_duration(const MessageContent *content, const Td *td) {

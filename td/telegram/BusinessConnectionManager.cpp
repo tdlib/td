@@ -1250,9 +1250,13 @@ void BusinessConnectionManager::on_upload_message_paid_media(int64 request_id, s
     auto upload_result = r_upload_result.move_as_ok();
     input_media.push_back(std::move(upload_result.input_media_));
   }
+  auto payload = get_message_content_payload(message->content_.get());
   int32 flags = 0;
+  if (!payload.empty()) {
+    flags |= telegram_api::inputMediaPaidMedia::PAYLOAD_MASK;
+  }
   auto input_media_paid_media = telegram_api::make_object<telegram_api::inputMediaPaidMedia>(
-      flags, get_message_content_star_count(message->content_.get()), std::move(input_media), string());
+      flags, get_message_content_star_count(message->content_.get()), std::move(input_media), payload);
   td_->create_handler<SendBusinessMediaQuery>(std::move(promise))
       ->send(std::move(message), std::move(input_media_paid_media));
 }
