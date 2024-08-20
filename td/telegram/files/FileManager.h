@@ -727,7 +727,7 @@ class FileManager final : public Actor {
   FileNodeId next_file_node_id();
   int32 next_pmc_file_id();
   FileId create_file_id(int32 file_node_id, FileNode *file_node);
-  void try_forget_file_id(FileId file_id);
+  bool try_forget_file_id(FileId file_id);
 
   void load_from_pmc(FileId file_id, FullLocalFileLocation full_local);
   void load_from_pmc(FileId file_id, const FullRemoteFileLocation &full_remote);

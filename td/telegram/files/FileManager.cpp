@@ -1212,18 +1212,18 @@ FileId FileManager::create_file_id(int32 file_node_id, FileNode *file_node) {
   return file_id;
 }
 
-void FileManager::try_forget_file_id(FileId file_id) {
+bool FileManager::try_forget_file_id(FileId file_id) {
   auto *info = get_file_id_info(file_id);
   if (info->send_updates_flag_ || info->pin_flag_ || info->sent_file_id_flag_) {
     LOG(DEBUG) << "Can't forget file " << file_id << ", because of"
                << (info->send_updates_flag_ ? " (sent updates)" : "") << (info->pin_flag_ ? " (pin)" : "")
                << (info->sent_file_id_flag_ ? " (sent file identifier)" : "");
-    return;
+    return false;
   }
   auto file_node = get_file_node(file_id);
   if (file_node->main_file_id_ == file_id) {
     LOG(DEBUG) << "Can't forget main file " << file_id;
-    return;
+    return false;
   }
 
   LOG(DEBUG) << "Forget file " << file_id;
@@ -1231,6 +1231,7 @@ void FileManager::try_forget_file_id(FileId file_id) {
   CHECK(is_removed);
   *info = FileIdInfo();
   empty_file_ids_.push_back(file_id.get());
+  return true;
 }
 
 FileId FileManager::register_empty(FileType type) {
@@ -1302,7 +1303,11 @@ Result<FileId> FileManager::register_local(FullLocalFileLocation location, Dialo
       auto node = get_file_node(file_id);
       auto main_file_id = node->main_file_id_;
       if (main_file_id != file_id) {
-        try_forget_file_id(file_id);
+        if (is_new) {
+          bool is_removed = try_forget_file_id(file_id);
+          CHECK(is_removed);
+          node = get_file_node(main_file_id);
+        }
         file_id = main_file_id;
       }
       try_flush_node(node, "register_local");
