@@ -1378,22 +1378,20 @@ FileId FileManager::register_remote(FullRemoteFileLocation location, FileLocatio
                                    owner_dialog_id, FileEncryptionKey(), file_id, static_cast<int8>(1));
   get_file_id_info(file_id)->node_id_ = file_node_id;
 
+  auto main_file_id = file_id;
   if (new_remote) {
     node->need_load_from_pmc_ = true;
-  }
-  if (to_merge_file_id.is_valid()) {
-    // may invalidate node
-    merge(file_id, to_merge_file_id, !new_remote).ignore();
-  }
-  try_flush_node(get_file_node(file_id), "register_remote");
-
-  auto main_file_id = get_file_node(file_id)->main_file_id_;
-  if (main_file_id != file_id) {
-    CHECK(!new_remote);
-    try_forget_file_id(file_id);
-  }
-  if (new_remote) {
     get_file_id_info(main_file_id)->pin_flag_ = true;
+  } else {
+    CHECK(to_merge_file_id.is_valid());
+    // may invalidate node
+    merge(file_id, to_merge_file_id, true).ignore();
+    try_flush_node(get_file_node(file_id), "register_remote");
+
+    main_file_id = get_file_node(file_id)->main_file_id_;
+    if (main_file_id != file_id) {
+      try_forget_file_id(file_id);
+    }
   }
   return FileId(main_file_id.get(), remote_key);
 }
