@@ -3295,9 +3295,7 @@ Result<FileId> FileManager::from_persistent_id_v23(Slice binary, FileType file_t
   } else if (real_file_type != file_type && file_type != FileType::Temp) {
     return Status::Error(400, PSLICE() << "Can't use file of type " << real_file_type << " as " << file_type);
   }
-  FileData data;
-  data.remote_ = RemoteFileLocation(std::move(remote_location));
-  return register_file(std::move(data), FileLocationSource::FromUser, "from_persistent_id_v23").move_as_ok();
+  return register_remote(std::move(remote_location), FileLocationSource::FromUser, DialogId(), 0, 0, string());
 }
 
 Result<FileId> FileManager::from_persistent_id_v2(Slice binary, FileType file_type) {
