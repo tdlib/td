@@ -1333,12 +1333,13 @@ FileId FileManager::register_remote(FullRemoteFileLocation location, FileLocatio
   }
   auto url = location.get_url();
 
-  auto file_id = next_file_id();
+  FileId file_id;
   FileId to_merge_file_id;
   bool new_remote = false;
   bool need_pin = false;
   int32 remote_key = 0;
   if (context_->keep_exact_remote_location()) {
+    file_id = next_file_id();
     RemoteInfo info{location, file_location_source, file_id};
     remote_key = remote_location_info_.add(info);
     auto &stored_info = remote_location_info_.get(remote_key);
@@ -1355,6 +1356,13 @@ FileId FileManager::register_remote(FullRemoteFileLocation location, FileLocatio
     }
   } else {
     auto &other_id = remote_location_to_file_id_[location];
+    if (other_id.is_valid() && get_file_node(other_id)->remote_.full_source == FileLocationSource::FromServer) {
+      // if the file has already been received from the server, then we don't need merge or create new file
+      // skip merging of dc_id, file_reference, and access_hash
+      return other_id;
+    }
+
+    file_id = next_file_id();
     if (other_id.empty()) {
       other_id = file_id;
       new_remote = true;
