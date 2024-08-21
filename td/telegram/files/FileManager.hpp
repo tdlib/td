@@ -244,9 +244,8 @@ FileId FileManager::parse_file(ParserT &parser) {
           full_generated_location.conversion_ = PSTRING() << "#file_id#" << download_file_id.get();
         }
 
-        auto r_file_id = register_generate(full_generated_location.file_type_, FileLocationSource::FromBinlog,
-                                           full_generated_location.original_path_, full_generated_location.conversion_,
-                                           owner_dialog_id, expected_size);
+        auto r_file_id = register_generate(full_generated_location.file_type_, full_generated_location.original_path_,
+                                           full_generated_location.conversion_, owner_dialog_id, expected_size);
         if (r_file_id.is_ok()) {
           return r_file_id.move_as_ok();
         }
@@ -261,7 +260,7 @@ FileId FileManager::parse_file(ParserT &parser) {
         if (parser.version() >= static_cast<int32>(Version::StoreFileOwnerId)) {
           parse(owner_dialog_id, parser);
         }
-        return register_url(url, type, FileLocationSource::FromBinlog, owner_dialog_id);
+        return register_url(url, type, owner_dialog_id);
       }
     }
     return FileId();

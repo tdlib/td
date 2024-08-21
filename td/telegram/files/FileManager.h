@@ -472,9 +472,8 @@ class FileManager final : public Actor {
                          DialogId owner_dialog_id, int64 size, int64 expected_size,
                          string remote_name) TD_WARN_UNUSED_RESULT;
 
-  Result<FileId> register_generate(FileType file_type, FileLocationSource file_location_source, string original_path,
-                                   string conversion, DialogId owner_dialog_id,
-                                   int64 expected_size) TD_WARN_UNUSED_RESULT;
+  Result<FileId> register_generate(FileType file_type, string original_path, string conversion,
+                                   DialogId owner_dialog_id, int64 expected_size) TD_WARN_UNUSED_RESULT;
 
   Status merge(FileId x_file_id, FileId y_file_id, bool no_sync = false);
 
@@ -633,8 +632,7 @@ class FileManager final : public Actor {
   Result<FileId> do_register_generate(unique_ptr<FullGenerateFileLocation> generate, DialogId owner_dialog_id,
                                       int64 expected_size, string url) TD_WARN_UNUSED_RESULT;
 
-  FileId register_url(string url, FileType file_type, FileLocationSource file_location_source,
-                      DialogId owner_dialog_id);
+  FileId register_url(string url, FileType file_type, DialogId owner_dialog_id);
 
   Result<FileId> register_file(FileData &&data, FileLocationSource file_location_source, const char *source,
                                bool skip_file_size_checks = false);

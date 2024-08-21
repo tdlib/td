@@ -1198,8 +1198,8 @@ FileId FileManager::copy_file_id(FileId file_id, FileType file_type, DialogId ow
   auto file_view = get_file_view(file_id);
   auto download_file_id = dup_file_id(file_id, source);
   auto result_file_id =
-      register_generate(file_type, FileLocationSource::FromServer, file_view.suggested_path(),
-                        PSTRING() << "#file_id#" << download_file_id.get(), owner_dialog_id, file_view.size())
+      register_generate(file_type, file_view.suggested_path(), PSTRING() << "#file_id#" << download_file_id.get(),
+                        owner_dialog_id, file_view.size())
           .ok();
   LOG(INFO) << "Copy file " << file_id << " to " << result_file_id << " from " << source;
   return result_file_id;
@@ -1343,18 +1343,16 @@ FileId FileManager::register_remote(FullRemoteFileLocation location, FileLocatio
   return file_id;
 }
 
-FileId FileManager::register_url(string url, FileType file_type, FileLocationSource file_location_source,
-                                 DialogId owner_dialog_id) {
-  auto file_id = register_generate(file_type, file_location_source, url, "#url#", owner_dialog_id, 0).ok();
+FileId FileManager::register_url(string url, FileType file_type, DialogId owner_dialog_id) {
+  auto file_id = register_generate(file_type, url, "#url#", owner_dialog_id, 0).ok();
   auto file_node = get_file_node(file_id);
   CHECK(file_node);
   file_node->set_url(url);
   return file_id;
 }
 
-Result<FileId> FileManager::register_generate(FileType file_type, FileLocationSource file_location_source,
-                                              string original_path, string conversion, DialogId owner_dialog_id,
-                                              int64 expected_size) {
+Result<FileId> FileManager::register_generate(FileType file_type, string original_path, string conversion,
+                                              DialogId owner_dialog_id, int64 expected_size) {
   // add #mtime# into conversion
   if (!original_path.empty() && conversion[0] != '#' && PathView(original_path).is_absolute()) {
     auto file_paths = log_interface->get_file_paths();
@@ -3242,7 +3240,7 @@ Result<FileId> FileManager::from_persistent_id(CSlice persistent_id, FileType fi
     if (!clean_input_string(url)) {
       return Status::Error(400, "URL must be in UTF-8");
     }
-    return register_url(std::move(url), file_type, FileLocationSource::FromUser, DialogId());
+    return register_url(std::move(url), file_type, DialogId());
   }
 
   auto r_binary = base64url_decode(persistent_id);
@@ -3480,8 +3478,8 @@ Result<FileId> FileManager::get_input_thumbnail_file_id(const tl_object_ptr<td_a
     case td_api::inputFileGenerated::ID: {
       auto *generated_thumbnail = static_cast<const td_api::inputFileGenerated *>(thumbnail_input_file.get());
       return register_generate(is_encrypted ? FileType::EncryptedThumbnail : FileType::Thumbnail,
-                               FileLocationSource::FromUser, generated_thumbnail->original_path_,
-                               generated_thumbnail->conversion_, owner_dialog_id, generated_thumbnail->expected_size_);
+                               generated_thumbnail->original_path_, generated_thumbnail->conversion_, owner_dialog_id,
+                               generated_thumbnail->expected_size_);
     }
     default:
       UNREACHABLE();
@@ -3567,8 +3565,8 @@ Result<FileId> FileManager::get_input_file_id(FileType type, const tl_object_ptr
       }
       case td_api::inputFileGenerated::ID: {
         auto *generated_file = static_cast<const td_api::inputFileGenerated *>(file.get());
-        return register_generate(new_type, FileLocationSource::FromUser, generated_file->original_path_,
-                                 generated_file->conversion_, owner_dialog_id, generated_file->expected_size_);
+        return register_generate(new_type, generated_file->original_path_, generated_file->conversion_, owner_dialog_id,
+                                 generated_file->expected_size_);
       }
       default:
         UNREACHABLE();
@@ -3609,7 +3607,7 @@ Result<FileId> FileManager::get_map_thumbnail_file_id(Location location, int32 z
                                 << scale << '#';
   return register_generate(
       owner_dialog_id.get_type() == DialogType::SecretChat ? FileType::EncryptedThumbnail : FileType::Thumbnail,
-      FileLocationSource::FromUser, string(), std::move(conversion), owner_dialog_id, 0);
+      string(), std::move(conversion), owner_dialog_id, 0);
 }
 
 Result<FileId> FileManager::get_audio_thumbnail_file_id(string title, string performer, bool is_small,
@@ -3639,7 +3637,7 @@ Result<FileId> FileManager::get_audio_thumbnail_file_id(string title, string per
   string conversion = PSTRING() << "#audio_t#" << title << '#' << performer << '#' << (is_small ? '1' : '0') << '#';
   return register_generate(
       owner_dialog_id.get_type() == DialogType::SecretChat ? FileType::EncryptedThumbnail : FileType::Thumbnail,
-      FileLocationSource::FromUser, string(), std::move(conversion), owner_dialog_id, 0);
+      string(), std::move(conversion), owner_dialog_id, 0);
 }
 
 FileType FileManager::guess_file_type(const tl_object_ptr<td_api::InputFile> &file) {
