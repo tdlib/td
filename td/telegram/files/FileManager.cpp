@@ -1334,18 +1334,15 @@ FileId FileManager::register_remote(FullRemoteFileLocation location, FileLocatio
   auto url = location.get_url();
 
   FileId file_id;
-  FileId to_merge_file_id;
-  bool new_remote = false;
+  FileId merge_file_id;
   int32 remote_key = 0;
   if (context_->keep_exact_remote_location()) {
     file_id = next_file_id();
     RemoteInfo info{location, file_location_source, file_id};
     remote_key = remote_location_info_.add(info);
     auto &stored_info = remote_location_info_.get(remote_key);
-    if (stored_info.file_id_ == file_id) {
-      new_remote = true;
-    } else {
-      to_merge_file_id = stored_info.file_id_;
+    if (stored_info.file_id_ != file_id) {
+      merge_file_id = stored_info.file_id_;
       if (merge_choose_remote_location(location, file_location_source, stored_info.remote_,
                                        stored_info.file_location_source_) == 0) {
         stored_info.remote_ = location;
@@ -1363,9 +1360,8 @@ FileId FileManager::register_remote(FullRemoteFileLocation location, FileLocatio
     file_id = next_file_id();
     if (other_id.empty()) {
       other_id = file_id;
-      new_remote = true;
     } else {
-      to_merge_file_id = other_id;
+      merge_file_id = other_id;
     }
   }
 
@@ -1379,13 +1375,12 @@ FileId FileManager::register_remote(FullRemoteFileLocation location, FileLocatio
   get_file_id_info(file_id)->node_id_ = file_node_id;
 
   auto main_file_id = file_id;
-  if (new_remote) {
+  if (!merge_file_id.is_valid()) {
     node->need_load_from_pmc_ = true;
     get_file_id_info(main_file_id)->pin_flag_ = true;
   } else {
-    CHECK(to_merge_file_id.is_valid());
     // may invalidate node
-    merge(file_id, to_merge_file_id, true).ignore();
+    merge(file_id, merge_file_id, true).ignore();
     try_flush_node(get_file_node(file_id), "register_remote");
 
     main_file_id = get_file_node(file_id)->main_file_id_;
