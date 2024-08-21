@@ -1289,11 +1289,9 @@ Result<FileId> FileManager::register_local(FullLocalFileLocation location, Dialo
     node = td::make_unique<FileNode>(LocalFileLocation(std::move(location)), NewRemoteFileLocation(), nullptr, size, 0,
                                      string(), string(), owner_dialog_id, FileEncryptionKey(), file_id,
                                      static_cast<int8>(0));
+    node->need_load_from_pmc_ = true;
     get_file_id_info(file_id)->node_id_ = file_node_id;
     is_new = true;
-    if (file_db_) {
-      node->need_load_from_pmc_ = true;
-    }
   }
 
   if (merge_file_id.is_valid()) {
@@ -1374,7 +1372,7 @@ FileId FileManager::register_remote(FullRemoteFileLocation location, FileLocatio
                                    owner_dialog_id, FileEncryptionKey(), file_id, static_cast<int8>(1));
   get_file_id_info(file_id)->node_id_ = file_node_id;
 
-  if (file_db_ && new_remote) {
+  if (new_remote) {
     node->need_load_from_pmc_ = true;
   }
   if (to_merge_file_id.is_valid()) {
@@ -1430,13 +1428,11 @@ FileId FileManager::do_register_generate(unique_ptr<FullGenerateFileLocation> ge
     node = td::make_unique<FileNode>(LocalFileLocation(), NewRemoteFileLocation(), std::move(generate), 0,
                                      expected_size, string(), std::move(url), owner_dialog_id, FileEncryptionKey(),
                                      file_id, static_cast<int8>(0));
+    node->need_load_from_pmc_ = true;
 
     auto file_id_info = get_file_id_info(file_id);
     file_id_info->node_id_ = file_node_id;
     file_id_info->pin_flag_ = true;
-    if (file_db_) {
-      node->need_load_from_pmc_ = true;
-    }
   }
   return file_id;
 }
@@ -1559,7 +1555,7 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
   td::unique(to_merge);
 
   int new_cnt = new_remote + (new_local_file_id != nullptr) + (new_generate_file_id != nullptr);
-  if (data.pmc_id_ == 0 && file_db_ && new_cnt > 0) {
+  if (data.pmc_id_ == 0 && new_cnt > 0) {
     node->need_load_from_pmc_ = true;
   }
   bool no_sync_merge = to_merge.size() == 1 && new_cnt == 0;
@@ -2285,11 +2281,11 @@ void FileManager::load_from_pmc(FileNodePtr node, bool new_remote, bool new_loca
   if (!node->need_load_from_pmc_) {
     return;
   }
-  auto file_id = node->main_file_id_;
   node->need_load_from_pmc_ = false;
   if (!file_db_) {
     return;
   }
+  auto file_id = node->main_file_id_;
   auto file_view = get_file_view(file_id);
   CHECK(!file_view.empty());
 
