@@ -1325,15 +1325,79 @@ Result<FileId> FileManager::register_local(FullLocalFileLocation location, Dialo
 
 FileId FileManager::register_remote(FullRemoteFileLocation location, FileLocationSource file_location_source,
                                     DialogId owner_dialog_id, int64 size, int64 expected_size, string remote_name) {
-  FileData data;
-  data.url_ = location.get_url();
-  data.remote_ = RemoteFileLocation(std::move(location));
-  data.owner_dialog_id_ = owner_dialog_id;
-  data.size_ = size;
-  data.expected_size_ = expected_size;
-  data.remote_name_ = std::move(remote_name);
+  if (size < 0) {
+    LOG(ERROR) << "Receive file " << location << " of size " << size;
+    size = 0;
+  }
+  if (expected_size < 0) {
+    LOG(ERROR) << "Receive file " << location << " of expected size " << expected_size;
+    expected_size = 0;
+  }
+  auto url = location.get_url();
 
-  return register_file(std::move(data), file_location_source, "register_remote").move_as_ok();
+  auto file_id = next_file_id();
+  FileId to_merge_file_id;
+  bool new_remote = false;
+  bool need_pin = false;
+  FileId *new_remote_file_id = nullptr;
+  int32 remote_key = 0;
+  if (context_->keep_exact_remote_location()) {
+    RemoteInfo info{location, file_location_source, file_id};
+    remote_key = remote_location_info_.add(info);
+    auto &stored_info = remote_location_info_.get(remote_key);
+    if (stored_info.file_id_ == file_id) {
+      need_pin = true;
+      new_remote = true;
+    } else {
+      to_merge_file_id = stored_info.file_id_;
+      if (merge_choose_remote_location(location, file_location_source, stored_info.remote_,
+                                       stored_info.file_location_source_) == 0) {
+        stored_info.remote_ = location;
+        stored_info.file_location_source_ = file_location_source;
+      }
+    }
+  } else {
+    auto &other_id = remote_location_to_file_id_[location];
+    if (other_id.empty()) {
+      other_id = file_id;
+      new_remote_file_id = &other_id;
+      new_remote = true;
+    } else {
+      to_merge_file_id = other_id;
+    }
+  }
+
+  LOG(INFO) << "Register " << location << " as " << file_id;
+  auto file_node_id = next_file_node_id();
+  auto &node = file_nodes_[file_node_id];
+  node = td::make_unique<FileNode>(LocalFileLocation(),
+                                   NewRemoteFileLocation(RemoteFileLocation(std::move(location)), file_location_source),
+                                   nullptr, size, expected_size, std::move(remote_name), std::move(url),
+                                   owner_dialog_id, FileEncryptionKey(), file_id, static_cast<int8>(1));
+  get_file_id_info(file_id)->node_id_ = file_node_id;
+
+  if (file_db_ && new_remote) {
+    node->need_load_from_pmc_ = true;
+  }
+  if (to_merge_file_id.is_valid()) {
+    // may invalidate node
+    merge(file_id, to_merge_file_id, !new_remote).ignore();
+  }
+  try_flush_node(get_file_node(file_id), "register_remote");
+
+  auto main_file_id = get_file_node(file_id)->main_file_id_;
+  if (main_file_id != file_id) {
+    CHECK(new_remote_file_id == nullptr);
+    CHECK(!new_remote);
+    try_forget_file_id(file_id);
+  }
+  if (new_remote) {
+    get_file_id_info(main_file_id)->pin_flag_ = true;
+  }
+  if (need_pin && (!new_remote || main_file_id != file_id)) {
+    get_file_id_info(file_id)->pin_flag_ = true;
+  }
+  return FileId(main_file_id.get(), remote_key);
 }
 
 FileId FileManager::register_url(string url, FileType file_type, DialogId owner_dialog_id) {
