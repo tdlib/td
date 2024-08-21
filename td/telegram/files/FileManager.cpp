@@ -1343,11 +1343,8 @@ FileId FileManager::register_remote(FullRemoteFileLocation location, FileLocatio
 }
 
 FileId FileManager::register_url(string url, FileType file_type, DialogId owner_dialog_id) {
-  auto file_id = register_generate(file_type, url, "#url#", owner_dialog_id, 0);
-  auto file_node = get_file_node(file_id);
-  CHECK(file_node);
-  file_node->set_url(url);
-  return file_id;
+  return do_register_generate(td::make_unique<FullGenerateFileLocation>(file_type, std::move(url), "#url#"),
+                              owner_dialog_id, 0, std::move(url));
 }
 
 FileId FileManager::register_generate(FileType file_type, string original_path, string conversion,
