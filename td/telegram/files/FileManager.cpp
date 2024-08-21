@@ -1386,8 +1386,8 @@ FileId FileManager::do_register_generate(unique_ptr<FullGenerateFileLocation> ge
   return file_id;
 }
 
-Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource file_location_source, const char *source,
-                                          bool skip_file_size_checks) {
+Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource file_location_source,
+                                          const char *source) {
   bool has_remote = data.remote_.type() == RemoteFileLocation::Type::Full;
   bool has_generate = data.generate_ != nullptr;
   if (data.local_.type() == LocalFileLocation::Type::Full) {
@@ -1403,7 +1403,7 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
 
     if (file_location_source != FileLocationSource::FromDatabase) {
       Status status;
-      auto r_info = check_full_local_location({data.local_.full(), data.size_}, skip_file_size_checks);
+      auto r_info = check_full_local_location({data.local_.full(), data.size_}, false);
       if (r_info.is_error()) {
         status = r_info.move_as_error();
       } else if (bad_paths_.count(r_info.ok().location_.path_) != 0) {
@@ -1425,7 +1425,7 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
       }
     } else {
       // the location has been checked previously, but recheck it just in case
-      recheck_full_local_location({data.local_.full(), data.size_}, skip_file_size_checks);
+      recheck_full_local_location({data.local_.full(), data.size_}, false);
     }
   }
   bool has_local = data.local_.type() == LocalFileLocation::Type::Full;

@@ -634,8 +634,7 @@ class FileManager final : public Actor {
 
   FileId register_url(string url, FileType file_type, DialogId owner_dialog_id);
 
-  Result<FileId> register_file(FileData &&data, FileLocationSource file_location_source, const char *source,
-                               bool skip_file_size_checks = false);
+  Result<FileId> register_file(FileData &&data, FileLocationSource file_location_source, const char *source);
 
   static constexpr int8 FROM_BYTES_PRIORITY = 10;
 
