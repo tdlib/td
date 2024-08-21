@@ -1334,7 +1334,7 @@ FileId FileManager::register_remote(FullRemoteFileLocation location, FileLocatio
   data.expected_size_ = expected_size;
   data.remote_name_ = std::move(remote_name);
 
-  auto file_id = register_file(std::move(data), file_location_source, FileId(), "register_remote").move_as_ok();
+  auto file_id = register_file(std::move(data), file_location_source, "register_remote").move_as_ok();
   if (!url.empty()) {
     auto file_node = get_file_node(file_id);
     CHECK(file_node);
@@ -1370,11 +1370,11 @@ Result<FileId> FileManager::register_generate(FileType file_type, FileLocationSo
       td::make_unique<FullGenerateFileLocation>(file_type, std::move(original_path), std::move(conversion));
   data.owner_dialog_id_ = owner_dialog_id;
   data.expected_size_ = expected_size;
-  return register_file(std::move(data), file_location_source, FileId(), "register_generate");
+  return register_file(std::move(data), file_location_source, "register_generate");
 }
 
-Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource file_location_source,
-                                          FileId merge_file_id, const char *source, bool skip_file_size_checks) {
+Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource file_location_source, const char *source,
+                                          bool skip_file_size_checks) {
   bool has_remote = data.remote_.type() == RemoteFileLocation::Type::Full;
   bool has_generate = data.generate_ != nullptr;
   if (data.local_.type() == LocalFileLocation::Type::Full) {
@@ -1499,10 +1499,6 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
     // may invalidate node
     merge(file_id, id, no_sync_merge).ignore();
   }
-  Status status;
-  if (merge_file_id.is_valid()) {
-    status = merge(file_id, merge_file_id);
-  }
 
   try_flush_node(get_file_node(file_id), "register_file");
   auto main_file_id = get_file_node(file_id)->main_file_id_;
@@ -1528,9 +1524,6 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
       CHECK(file_source_id.is_valid());
       context_->add_file_source(main_file_id, file_source_id);
     }
-  }
-  if (status.is_error()) {
-    return std::move(status);
   }
   return FileId(main_file_id.get(), remote_key);
 }
@@ -2253,7 +2246,7 @@ void FileManager::load_from_pmc(FileNodePtr node, bool new_remote, bool new_loca
              << ", new_remote = " << new_remote << ", new_local = " << new_local << ", new_generate = " << new_generate;
   auto load = [&](auto location, const char *source) {
     TRY_RESULT(file_data, file_db_->get_file_data_sync(location));
-    TRY_RESULT(new_file_id, register_file(std::move(file_data), FileLocationSource::FromDatabase, FileId(), source));
+    TRY_RESULT(new_file_id, register_file(std::move(file_data), FileLocationSource::FromDatabase, source));
     TRY_STATUS(merge(file_id, new_file_id));  // merge manually to keep merge parameters order
     return Status::OK();
   };
@@ -3271,8 +3264,7 @@ Result<FileId> FileManager::from_persistent_id_generated(Slice binary, FileType 
   }
   FileData data;
   data.generate_ = make_unique<FullGenerateFileLocation>(std::move(generate_location));
-  return register_file(std::move(data), FileLocationSource::FromUser, FileId(), "from_persistent_id_generated")
-      .move_as_ok();
+  return register_file(std::move(data), FileLocationSource::FromUser, "from_persistent_id_generated").move_as_ok();
 }
 
 Result<FileId> FileManager::from_persistent_id_v23(Slice binary, FileType file_type, int32 version) {
@@ -3299,9 +3291,7 @@ Result<FileId> FileManager::from_persistent_id_v23(Slice binary, FileType file_t
   }
   FileData data;
   data.remote_ = RemoteFileLocation(std::move(remote_location));
-  auto file_id =
-      register_file(std::move(data), FileLocationSource::FromUser, FileId(), "from_persistent_id_v23").move_as_ok();
-  return file_id;
+  return register_file(std::move(data), FileLocationSource::FromUser, "from_persistent_id_v23").move_as_ok();
 }
 
 Result<FileId> FileManager::from_persistent_id_v2(Slice binary, FileType file_type) {
