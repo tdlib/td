@@ -463,12 +463,15 @@ class FileManager final : public Actor {
   void on_file_unlink(const FullLocalFileLocation &location);
 
   FileId register_empty(FileType type);
+
   Result<FileId> register_local(FullLocalFileLocation location, DialogId owner_dialog_id, int64 size,
                                 bool get_by_hash = false, bool skip_file_size_checks = false,
                                 FileId merge_file_id = FileId()) TD_WARN_UNUSED_RESULT;
+
   FileId register_remote(FullRemoteFileLocation location, FileLocationSource file_location_source,
                          DialogId owner_dialog_id, int64 size, int64 expected_size,
                          string remote_name) TD_WARN_UNUSED_RESULT;
+
   Result<FileId> register_generate(FileType file_type, FileLocationSource file_location_source, string original_path,
                                    string conversion, DialogId owner_dialog_id,
                                    int64 expected_size) TD_WARN_UNUSED_RESULT;
@@ -627,8 +630,13 @@ class FileManager final : public Actor {
   Result<FileId> check_input_file_id(FileType type, Result<FileId> result, bool is_encrypted, bool allow_zero,
                                      bool is_secure) TD_WARN_UNUSED_RESULT;
 
+  Result<FileId> do_register_generate(unique_ptr<FullGenerateFileLocation> generate,
+                                      FileLocationSource file_location_source, DialogId owner_dialog_id,
+                                      int64 expected_size) TD_WARN_UNUSED_RESULT;
+
   FileId register_url(string url, FileType file_type, FileLocationSource file_location_source,
                       DialogId owner_dialog_id);
+
   Result<FileId> register_file(FileData &&data, FileLocationSource file_location_source, const char *source,
                                bool skip_file_size_checks = false);
 
