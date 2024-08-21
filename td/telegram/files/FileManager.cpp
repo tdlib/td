@@ -1326,20 +1326,14 @@ Result<FileId> FileManager::register_local(FullLocalFileLocation location, Dialo
 FileId FileManager::register_remote(FullRemoteFileLocation location, FileLocationSource file_location_source,
                                     DialogId owner_dialog_id, int64 size, int64 expected_size, string remote_name) {
   FileData data;
-  auto url = location.get_url();
+  data.url_ = location.get_url();
   data.remote_ = RemoteFileLocation(std::move(location));
   data.owner_dialog_id_ = owner_dialog_id;
   data.size_ = size;
   data.expected_size_ = expected_size;
   data.remote_name_ = std::move(remote_name);
 
-  auto file_id = register_file(std::move(data), file_location_source, "register_remote").move_as_ok();
-  if (!url.empty()) {
-    auto file_node = get_file_node(file_id);
-    CHECK(file_node);
-    file_node->set_url(url);
-  }
-  return file_id;
+  return register_file(std::move(data), file_location_source, "register_remote").move_as_ok();
 }
 
 FileId FileManager::register_url(string url, FileType file_type, DialogId owner_dialog_id) {
