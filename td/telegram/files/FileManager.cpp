@@ -1366,17 +1366,30 @@ Result<FileId> FileManager::register_generate(FileType file_type, FileLocationSo
   }
   return do_register_generate(
       td::make_unique<FullGenerateFileLocation>(file_type, std::move(original_path), std::move(conversion)),
-      file_location_source, owner_dialog_id, expected_size);
+      owner_dialog_id, max(expected_size, static_cast<int64>(0)), string());
 }
 
 Result<FileId> FileManager::do_register_generate(unique_ptr<FullGenerateFileLocation> generate,
-                                                 FileLocationSource file_location_source, DialogId owner_dialog_id,
-                                                 int64 expected_size) {
-  FileData data;
-  data.generate_ = std::move(generate);
-  data.owner_dialog_id_ = owner_dialog_id;
-  data.expected_size_ = expected_size;
-  return register_file(std::move(data), file_location_source, "register_generate");
+                                                 DialogId owner_dialog_id, int64 expected_size, string url) {
+  auto &file_id = generate_location_to_file_id_[*generate];
+  if (!file_id.is_valid()) {
+    file_id = next_file_id();
+    LOG(INFO) << "Register " << *generate << " as " << file_id;
+
+    auto file_node_id = next_file_node_id();
+    auto &node = file_nodes_[file_node_id];
+    node = td::make_unique<FileNode>(LocalFileLocation(), NewRemoteFileLocation(), std::move(generate), 0,
+                                     expected_size, string(), std::move(url), owner_dialog_id, FileEncryptionKey(),
+                                     file_id, static_cast<int8>(0));
+
+    auto file_id_info = get_file_id_info(file_id);
+    file_id_info->node_id_ = file_node_id;
+    file_id_info->pin_flag_ = true;
+    if (file_db_) {
+      node->need_load_from_pmc_ = true;
+    }
+  }
+  return file_id;
 }
 
 Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource file_location_source, const char *source,
@@ -3268,8 +3281,8 @@ Result<FileId> FileManager::from_persistent_id_generated(Slice binary, FileType 
   if (!is_remotely_generated_file(generate_location.conversion_)) {
     return Status::Error(400, "Unexpected conversion type");
   }
-  return do_register_generate(make_unique<FullGenerateFileLocation>(std::move(generate_location)),
-                              FileLocationSource::FromUser, DialogId(), 0)
+  return do_register_generate(make_unique<FullGenerateFileLocation>(std::move(generate_location)), DialogId(), 0,
+                              string())
       .move_as_ok();
 }
 
