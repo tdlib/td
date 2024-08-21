@@ -1199,8 +1199,7 @@ FileId FileManager::copy_file_id(FileId file_id, FileType file_type, DialogId ow
   auto download_file_id = dup_file_id(file_id, source);
   auto result_file_id =
       register_generate(file_type, file_view.suggested_path(), PSTRING() << "#file_id#" << download_file_id.get(),
-                        owner_dialog_id, file_view.size())
-          .ok();
+                        owner_dialog_id, file_view.size());
   LOG(INFO) << "Copy file " << file_id << " to " << result_file_id << " from " << source;
   return result_file_id;
 }
@@ -1344,15 +1343,15 @@ FileId FileManager::register_remote(FullRemoteFileLocation location, FileLocatio
 }
 
 FileId FileManager::register_url(string url, FileType file_type, DialogId owner_dialog_id) {
-  auto file_id = register_generate(file_type, url, "#url#", owner_dialog_id, 0).ok();
+  auto file_id = register_generate(file_type, url, "#url#", owner_dialog_id, 0);
   auto file_node = get_file_node(file_id);
   CHECK(file_node);
   file_node->set_url(url);
   return file_id;
 }
 
-Result<FileId> FileManager::register_generate(FileType file_type, string original_path, string conversion,
-                                              DialogId owner_dialog_id, int64 expected_size) {
+FileId FileManager::register_generate(FileType file_type, string original_path, string conversion,
+                                      DialogId owner_dialog_id, int64 expected_size) {
   // add #mtime# into conversion
   if (!original_path.empty() && conversion[0] != '#' && PathView(original_path).is_absolute()) {
     auto file_paths = log_interface->get_file_paths();
@@ -1367,8 +1366,8 @@ Result<FileId> FileManager::register_generate(FileType file_type, string origina
       owner_dialog_id, max(expected_size, static_cast<int64>(0)), string());
 }
 
-Result<FileId> FileManager::do_register_generate(unique_ptr<FullGenerateFileLocation> generate,
-                                                 DialogId owner_dialog_id, int64 expected_size, string url) {
+FileId FileManager::do_register_generate(unique_ptr<FullGenerateFileLocation> generate, DialogId owner_dialog_id,
+                                         int64 expected_size, string url) {
   auto &file_id = generate_location_to_file_id_[*generate];
   if (!file_id.is_valid()) {
     file_id = next_file_id();
@@ -3280,8 +3279,7 @@ Result<FileId> FileManager::from_persistent_id_generated(Slice binary, FileType 
     return Status::Error(400, "Unexpected conversion type");
   }
   return do_register_generate(make_unique<FullGenerateFileLocation>(std::move(generate_location)), DialogId(), 0,
-                              string())
-      .move_as_ok();
+                              string());
 }
 
 Result<FileId> FileManager::from_persistent_id_v23(Slice binary, FileType file_type, int32 version) {

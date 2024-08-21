@@ -472,8 +472,8 @@ class FileManager final : public Actor {
                          DialogId owner_dialog_id, int64 size, int64 expected_size,
                          string remote_name) TD_WARN_UNUSED_RESULT;
 
-  Result<FileId> register_generate(FileType file_type, string original_path, string conversion,
-                                   DialogId owner_dialog_id, int64 expected_size) TD_WARN_UNUSED_RESULT;
+  FileId register_generate(FileType file_type, string original_path, string conversion, DialogId owner_dialog_id,
+                           int64 expected_size) TD_WARN_UNUSED_RESULT;
 
   Status merge(FileId x_file_id, FileId y_file_id, bool no_sync = false);
 
@@ -629,8 +629,8 @@ class FileManager final : public Actor {
   Result<FileId> check_input_file_id(FileType type, Result<FileId> result, bool is_encrypted, bool allow_zero,
                                      bool is_secure) TD_WARN_UNUSED_RESULT;
 
-  Result<FileId> do_register_generate(unique_ptr<FullGenerateFileLocation> generate, DialogId owner_dialog_id,
-                                      int64 expected_size, string url) TD_WARN_UNUSED_RESULT;
+  FileId do_register_generate(unique_ptr<FullGenerateFileLocation> generate, DialogId owner_dialog_id,
+                              int64 expected_size, string url) TD_WARN_UNUSED_RESULT;
 
   FileId register_url(string url, FileType file_type, DialogId owner_dialog_id);
 

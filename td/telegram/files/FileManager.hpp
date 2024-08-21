@@ -244,12 +244,8 @@ FileId FileManager::parse_file(ParserT &parser) {
           full_generated_location.conversion_ = PSTRING() << "#file_id#" << download_file_id.get();
         }
 
-        auto r_file_id = register_generate(full_generated_location.file_type_, full_generated_location.original_path_,
-                                           full_generated_location.conversion_, owner_dialog_id, expected_size);
-        if (r_file_id.is_ok()) {
-          return r_file_id.move_as_ok();
-        }
-        return register_empty(full_generated_location.file_type_);
+        return register_generate(full_generated_location.file_type_, full_generated_location.original_path_,
+                                 full_generated_location.conversion_, owner_dialog_id, expected_size);
       }
       case FileStoreType::Url: {
         FileType type;
