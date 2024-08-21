@@ -1339,7 +1339,6 @@ FileId FileManager::register_remote(FullRemoteFileLocation location, FileLocatio
   FileId to_merge_file_id;
   bool new_remote = false;
   bool need_pin = false;
-  FileId *new_remote_file_id = nullptr;
   int32 remote_key = 0;
   if (context_->keep_exact_remote_location()) {
     RemoteInfo info{location, file_location_source, file_id};
@@ -1360,7 +1359,6 @@ FileId FileManager::register_remote(FullRemoteFileLocation location, FileLocatio
     auto &other_id = remote_location_to_file_id_[location];
     if (other_id.empty()) {
       other_id = file_id;
-      new_remote_file_id = &other_id;
       new_remote = true;
     } else {
       to_merge_file_id = other_id;
@@ -1387,7 +1385,6 @@ FileId FileManager::register_remote(FullRemoteFileLocation location, FileLocatio
 
   auto main_file_id = get_file_node(file_id)->main_file_id_;
   if (main_file_id != file_id) {
-    CHECK(new_remote_file_id == nullptr);
     CHECK(!new_remote);
     try_forget_file_id(file_id);
   }
