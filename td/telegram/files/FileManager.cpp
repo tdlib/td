@@ -3268,9 +3268,9 @@ Result<FileId> FileManager::from_persistent_id_generated(Slice binary, FileType 
   if (!is_remotely_generated_file(generate_location.conversion_)) {
     return Status::Error(400, "Unexpected conversion type");
   }
-  FileData data;
-  data.generate_ = make_unique<FullGenerateFileLocation>(std::move(generate_location));
-  return register_file(std::move(data), FileLocationSource::FromUser, "from_persistent_id_generated").move_as_ok();
+  return do_register_generate(make_unique<FullGenerateFileLocation>(std::move(generate_location)),
+                              FileLocationSource::FromUser, DialogId(), 0)
+      .move_as_ok();
 }
 
 Result<FileId> FileManager::from_persistent_id_v23(Slice binary, FileType file_type, int32 version) {
