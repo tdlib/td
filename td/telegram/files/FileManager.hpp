@@ -85,7 +85,7 @@ void FileManager::store_file(FileId file_id, StorerT &storer, int32 ttl) const {
       break;
     }
     case FileStoreType::Local: {
-      store(file_view.local_location(), storer);
+      store(*file_view.get_local_location(), storer);
       if (has_64bit_size) {
         store(size, storer);
       } else {
