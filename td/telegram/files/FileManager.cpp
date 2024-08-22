@@ -2291,20 +2291,28 @@ void FileManager::load_from_pmc(FileNodePtr node, bool new_remote, bool new_loca
   FullRemoteFileLocation remote;
   FullLocalFileLocation local;
   FullGenerateFileLocation generate;
-  new_remote &= file_view.has_remote_location();
   if (new_remote) {
-    remote = file_view.remote_location();
+    new_remote = file_view.has_remote_location();
+    if (new_remote) {
+      remote = file_view.remote_location();
+    }
   }
-  new_local &= file_view.has_full_local_location();
   if (new_local) {
     const auto *full_local_location = file_view.get_full_local_location();
-    CHECK(full_local_location != nullptr);
-    local = *full_local_location;
-    prepare_path_for_pmc(local.file_type_, local.path_);
+    if (full_local_location != nullptr) {
+      local = *full_local_location;
+      prepare_path_for_pmc(local.file_type_, local.path_);
+    } else {
+      new_local = false;
+    }
   }
-  new_generate &= file_view.has_generate_location();
   if (new_generate) {
-    generate = *file_view.get_generate_location();
+    const auto *generate_location = file_view.get_generate_location();
+    if (generate_location != nullptr) {
+      generate = *generate_location;
+    } else {
+      new_generate = false;
+    }
   }
 
   LOG(DEBUG) << "Load from pmc file " << file_id << '/' << file_view.get_main_file_id()
