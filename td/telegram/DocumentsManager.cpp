@@ -686,8 +686,9 @@ tl_object_ptr<telegram_api::InputMedia> DocumentsManager::get_input_media(
     return make_tl_object<telegram_api::inputMediaDocument>(
         0, false /*ignored*/, file_view.main_remote_location().as_input_document(), 0, string());
   }
-  if (file_view.has_url()) {
-    return make_tl_object<telegram_api::inputMediaDocumentExternal>(0, false /*ignored*/, file_view.url(), 0);
+  const auto *url = file_view.get_url();
+  if (url != nullptr) {
+    return make_tl_object<telegram_api::inputMediaDocumentExternal>(0, false /*ignored*/, *url, 0);
   }
 
   if (input_file != nullptr) {

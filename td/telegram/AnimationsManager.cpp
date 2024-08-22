@@ -320,12 +320,13 @@ tl_object_ptr<telegram_api::InputMedia> AnimationsManager::get_input_media(
     return make_tl_object<telegram_api::inputMediaDocument>(
         flags, false /*ignored*/, file_view.main_remote_location().as_input_document(), 0, string());
   }
-  if (file_view.has_url()) {
+  const auto *url = file_view.get_url();
+  if (url != nullptr) {
     int32 flags = 0;
     if (has_spoiler) {
       flags |= telegram_api::inputMediaDocumentExternal::SPOILER_MASK;
     }
-    return make_tl_object<telegram_api::inputMediaDocumentExternal>(flags, false /*ignored*/, file_view.url(), 0);
+    return make_tl_object<telegram_api::inputMediaDocumentExternal>(flags, false /*ignored*/, *url, 0);
   }
 
   if (input_file != nullptr) {

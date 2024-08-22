@@ -309,8 +309,8 @@ tl_object_ptr<telegram_api::invoice> InputInvoice::Invoice::get_input_invoice() 
       max_tip_amount_, vector<int64>(suggested_tip_amounts_), terms_of_service_url);
 }
 
-static tl_object_ptr<telegram_api::inputWebDocument> get_input_web_document(const FileManager *file_manager,
-                                                                            const Photo &photo) {
+static telegram_api::object_ptr<telegram_api::inputWebDocument> get_input_web_document(const FileManager *file_manager,
+                                                                                       const Photo &photo) {
   if (photo.is_empty()) {
     return nullptr;
   }
@@ -326,12 +326,12 @@ static tl_object_ptr<telegram_api::inputWebDocument> get_input_web_document(cons
   }
 
   auto file_view = file_manager->get_file_view(size.file_id);
-  CHECK(file_view.has_url());
+  const auto *url = file_view.get_url();
+  CHECK(url != nullptr);
 
-  auto file_name = get_url_file_name(file_view.url());
-  return make_tl_object<telegram_api::inputWebDocument>(
-      file_view.url(), size.size, MimeType::from_extension(PathView(file_name).extension(), "image/jpeg"),
-      std::move(attributes));
+  auto file_name = get_url_file_name(*url);
+  return telegram_api::make_object<telegram_api::inputWebDocument>(
+      *url, size.size, MimeType::from_extension(PathView(file_name).extension(), "image/jpeg"), std::move(attributes));
 }
 
 tl_object_ptr<telegram_api::inputMediaInvoice> InputInvoice::get_input_media_invoice(

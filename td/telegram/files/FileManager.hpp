@@ -70,7 +70,7 @@ void FileManager::store_file(FileId file_id, StorerT &storer, int32 ttl) const {
       break;
     case FileStoreType::Url:
       store(file_view.get_type(), storer);
-      store(file_view.url(), storer);
+      store(*file_view.get_url(), storer);
       store(file_view.owner_dialog_id(), storer);
       break;
     case FileStoreType::Remote: {

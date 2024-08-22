@@ -760,8 +760,11 @@ bool FileView::has_url() const {
   return !node_->url_.empty();
 }
 
-const string &FileView::url() const {
-  return node_->url_;
+const string *FileView::get_url() const {
+  if (!has_url()) {
+    return nullptr;
+  }
+  return &node_->url_;
 }
 
 const string &FileView::remote_name() const {

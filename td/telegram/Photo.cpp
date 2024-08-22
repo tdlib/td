@@ -616,7 +616,8 @@ tl_object_ptr<telegram_api::InputMedia> photo_get_input_media(FileManager *file_
       return make_tl_object<telegram_api::inputMediaPhoto>(flags, false /*ignored*/,
                                                            file_view.main_remote_location().as_input_photo(), ttl);
     }
-    if (file_view.has_url()) {
+    const auto *url = file_view.get_url();
+    if (url != nullptr) {
       int32 flags = 0;
       if (ttl != 0) {
         flags |= telegram_api::inputMediaPhotoExternal::TTL_SECONDS_MASK;
@@ -624,8 +625,8 @@ tl_object_ptr<telegram_api::InputMedia> photo_get_input_media(FileManager *file_
       if (has_spoiler) {
         flags |= telegram_api::inputMediaPhotoExternal::SPOILER_MASK;
       }
-      LOG(INFO) << "Create inputMediaPhotoExternal with a URL " << file_view.url() << " and self-destruct time " << ttl;
-      return make_tl_object<telegram_api::inputMediaPhotoExternal>(flags, false /*ignored*/, file_view.url(), ttl);
+      LOG(INFO) << "Create inputMediaPhotoExternal with a URL " << *url << " and self-destruct time " << ttl;
+      return make_tl_object<telegram_api::inputMediaPhotoExternal>(flags, false /*ignored*/, *url, ttl);
     }
     if (input_file == nullptr) {
       CHECK(!file_view.has_remote_location());
