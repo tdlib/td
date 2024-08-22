@@ -654,7 +654,7 @@ Result<FileId> BackgroundManager::prepare_input_file(const tl_object_ptr<td_api:
   if (file_view.is_encrypted()) {
     return Status::Error(400, "Can't use encrypted file");
   }
-  if (!file_view.has_local_location() && !file_view.has_generate_location()) {
+  if (!file_view.has_full_local_location() && !file_view.has_generate_location()) {
     return Status::Error(400, "Need local or generate location to upload background");
   }
   return std::move(file_id);

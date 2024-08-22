@@ -366,7 +366,7 @@ void CallActor::send_call_log(td_api::object_ptr<td_api::InputFile> log_file, Pr
   if (file_view.is_encrypted()) {
     return promise.set_error(Status::Error(400, "Can't use encrypted file"));
   }
-  if (!file_view.has_local_location() && !file_view.has_generate_location()) {
+  if (!file_view.has_full_local_location() && !file_view.has_generate_location()) {
     return promise.set_error(Status::Error(400, "Need local or generate location to upload call log"));
   }
 

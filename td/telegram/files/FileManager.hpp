@@ -37,7 +37,7 @@ void FileManager::store_file(FileId file_id, StorerT &storer, int32 ttl) const {
     file_store_type = FileStoreType::Url;
   } else if (file_view.has_generate_location()) {
     file_store_type = FileStoreType::Generate;
-  } else if (file_view.has_local_location()) {
+  } else if (file_view.has_full_local_location()) {
     file_store_type = FileStoreType::Local;
   }
 
@@ -85,7 +85,7 @@ void FileManager::store_file(FileId file_id, StorerT &storer, int32 ttl) const {
       break;
     }
     case FileStoreType::Local: {
-      store(*file_view.get_local_location(), storer);
+      store(*file_view.get_full_local_location(), storer);
       if (has_64bit_size) {
         store(size, storer);
       } else {

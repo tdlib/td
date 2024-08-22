@@ -533,12 +533,12 @@ string FileNode::suggested_path() const {
 }
 
 /*** FileView ***/
-bool FileView::has_local_location() const {
+bool FileView::has_full_local_location() const {
   return node_->local_.type() == LocalFileLocation::Type::Full;
 }
 
-const FullLocalFileLocation *FileView::get_local_location() const {
-  if (!has_local_location()) {
+const FullLocalFileLocation *FileView::get_full_local_location() const {
+  if (!has_full_local_location()) {
     return nullptr;
   }
   return &node_->local_.full();
@@ -1543,9 +1543,9 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
     }
   }
   FileId *new_local_file_id = nullptr;
-  auto local_location = file_view.get_local_location();
-  if (local_location != nullptr) {
-    new_local_file_id = register_location(*local_location, local_location_to_file_id_);
+  auto full_local_location = file_view.get_full_local_location();
+  if (full_local_location != nullptr) {
+    new_local_file_id = register_location(*full_local_location, local_location_to_file_id_);
   }
   FileId *new_generate_file_id = nullptr;
   if (file_view.has_generate_location()) {
@@ -1998,7 +1998,7 @@ Status FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sync) {
   // Check if some download/upload queries are ready
   for (auto file_id : vector<FileId>(node->file_ids_)) {
     auto *info = get_file_id_info(file_id);
-    if (info->download_priority_ != 0 && file_view.has_local_location()) {
+    if (info->download_priority_ != 0 && file_view.has_full_local_location()) {
       info->download_priority_ = 0;
       if (info->download_callback_) {
         info->download_callback_->on_download_ok(file_id);
@@ -2037,13 +2037,13 @@ void FileManager::try_merge_documents(FileId old_file_id, FileId new_file_id) {
   FileView new_file_view = get_file_view(new_file_id);
   // if file type has changed, but file size remains the same, we are trying to update local location of the new
   // file with the old local location
-  if (old_file_view.has_local_location() && !new_file_view.has_local_location() && old_file_view.size() != 0 &&
-      old_file_view.size() == new_file_view.size()) {
+  if (old_file_view.has_full_local_location() && !new_file_view.has_full_local_location() &&
+      old_file_view.size() != 0 && old_file_view.size() == new_file_view.size()) {
     auto old_file_type = old_file_view.get_type();
     auto new_file_type = new_file_view.get_type();
 
     if (is_document_file_type(old_file_type) && is_document_file_type(new_file_type)) {
-      const auto *old_location = old_file_view.get_local_location();
+      const auto *old_location = old_file_view.get_full_local_location();
       auto r_file_id =
           register_local(FullLocalFileLocation(new_file_type, old_location->path_, old_location->mtime_nsec_),
                          DialogId(), old_file_view.size());
@@ -2189,7 +2189,7 @@ void FileManager::clear_from_pmc(FileNodePtr node) {
   LOG(INFO) << "Delete files " << format::as_array(node->file_ids_) << " from pmc";
   FileData data;
   auto file_view = FileView(node);
-  if (file_view.has_local_location()) {
+  if (file_view.has_full_local_location()) {
     data.local_ = node->local_;
     prepare_path_for_pmc(data.local_.full().file_type_, data.local_.full().path_);
   }
@@ -2295,11 +2295,11 @@ void FileManager::load_from_pmc(FileNodePtr node, bool new_remote, bool new_loca
   if (new_remote) {
     remote = file_view.remote_location();
   }
-  new_local &= file_view.has_local_location();
+  new_local &= file_view.has_full_local_location();
   if (new_local) {
-    const auto *local_location = file_view.get_local_location();
-    CHECK(local_location != nullptr);
-    local = *local_location;
+    const auto *full_local_location = file_view.get_full_local_location();
+    CHECK(full_local_location != nullptr);
+    local = *full_local_location;
     prepare_path_for_pmc(local.file_type_, local.path_);
   }
   new_generate &= file_view.has_generate_location();
@@ -2332,7 +2332,7 @@ bool FileManager::set_encryption_key(FileId file_id, FileEncryptionKey key) {
     return false;
   }
   auto view = FileView(node);
-  if (view.has_local_location() && view.has_remote_location()) {
+  if (view.has_full_local_location() && view.has_remote_location()) {
     return false;
   }
   if (!node->encryption_key_.empty()) {
@@ -2386,11 +2386,12 @@ void FileManager::get_content(FileId file_id, Promise<BufferSlice> promise) {
   check_local_location(node, true).ignore();
 
   auto file_view = FileView(node);
-  if (!file_view.has_local_location()) {
+  const auto *full_local_location = file_view.get_full_local_location();
+  if (full_local_location == nullptr) {
     return promise.set_error(Status::Error("No local location"));
   }
 
-  send_closure(file_load_manager_, &FileLoadManager::get_content, node->local_.full().path_, std::move(promise));
+  send_closure(file_load_manager_, &FileLoadManager::get_content, full_local_location->path_, std::move(promise));
 }
 
 void FileManager::read_file_part(FileId file_id, int64 offset, int64 count, int left_tries,
@@ -2428,9 +2429,9 @@ void FileManager::read_file_part(FileId file_id, int64 offset, int64 count, int 
 
   const string *path = nullptr;
   bool is_partial = false;
-  const auto *local_location = file_view.get_local_location();
-  if (local_location != nullptr) {
-    path = &local_location->path_;
+  const auto *full_local_location = file_view.get_full_local_location();
+  if (full_local_location != nullptr) {
+    path = &full_local_location->path_;
     if (!begins_with(*path, get_files_dir(file_view.get_type()))) {
       return promise.set_error(Status::Error(400, "File is not inside the cache"));
     }
@@ -2479,8 +2480,8 @@ void FileManager::delete_file(FileId file_id, Promise<Unit> promise, const char 
 
   send_closure(G()->download_manager(), &DownloadManager::remove_file_if_finished, file_view.get_main_file_id());
   string path;
-  if (file_view.has_local_location()) {
-    if (begins_with(file_view.get_local_location()->path_, get_files_dir(file_view.get_type()))) {
+  if (file_view.has_full_local_location()) {
+    if (begins_with(file_view.get_full_local_location()->path_, get_files_dir(file_view.get_type()))) {
       clear_from_pmc(node);
       if (context_->need_notify_on_new_files()) {
         context_->on_new_file(-file_view.size(), -file_view.get_allocated_local_size(), -1);
@@ -2934,14 +2935,15 @@ void FileManager::resume_upload(FileId file_id, vector<int> bad_parts, std::shar
     return;
   }
 
-  if (file_view.has_local_location() && new_priority != 0) {
+  if (file_view.has_full_local_location() && new_priority != 0) {
     auto status = check_local_location(node, false);
     if (status.is_error()) {
       LOG(INFO) << "Full local location of file " << file_id << " for upload is invalid: " << status;
     }
   }
 
-  if (!file_view.has_local_location() && !file_view.has_generate_location() && !file_view.has_alive_remote_location()) {
+  if (!file_view.has_full_local_location() && !file_view.has_generate_location() &&
+      !file_view.has_alive_remote_location()) {
     LOG(INFO) << "File " << file_id << " can't be uploaded";
     if (callback) {
       callback->on_upload_error(
@@ -2950,7 +2952,7 @@ void FileManager::resume_upload(FileId file_id, vector<int> bad_parts, std::shar
     return;
   }
   if (file_view.get_type() == FileType::Thumbnail &&
-      (!file_view.has_local_location() && file_view.can_download_from_server())) {
+      (!file_view.has_full_local_location() && file_view.can_download_from_server())) {
     // TODO
     if (callback) {
       callback->on_upload_error(file_id, Status::Error(400, "Failed to upload thumbnail without local location"));
@@ -3075,7 +3077,7 @@ void FileManager::run_generate(FileNodePtr node) {
     // LOG(INFO) << "Skip run_generate, because file " << node->main_file_id_ << " can't be generated";
     return;
   }
-  if (file_view.has_local_location()) {
+  if (file_view.has_full_local_location()) {
     LOG(INFO) << "Skip run_generate, because file " << node->main_file_id_ << " has local location";
     return;
   }
@@ -3180,7 +3182,7 @@ void FileManager::run_upload(FileNodePtr node, vector<int> bad_parts) {
   }
 
   FileView file_view(node);
-  if (!file_view.has_local_location() && !file_view.has_remote_location()) {
+  if (!file_view.has_full_local_location() && !file_view.has_remote_location()) {
     if (node->get_by_hash_ || node->generate_id_ == 0 || !node->generate_was_update_) {
       LOG(INFO) << "Have no local location for file: get_by_hash = " << node->get_by_hash_
                 << ", generate_id = " << node->generate_id_ << ", generate_was_update = " << node->generate_was_update_;
@@ -3195,11 +3197,11 @@ void FileManager::run_upload(FileNodePtr node, vector<int> bad_parts) {
 
   node->set_upload_priority(priority);
 
-  auto local_location = file_view.get_local_location();
+  auto full_local_location = file_view.get_full_local_location();
 
   // create encryption key if necessary
   if (((file_view.has_generate_location() && file_view.generate_location().file_type_ == FileType::Encrypted) ||
-       (local_location != nullptr && local_location->file_type_ == FileType::Encrypted)) &&
+       (full_local_location != nullptr && full_local_location->file_type_ == FileType::Encrypted)) &&
       file_view.encryption_key().empty()) {
     CHECK(!node->file_ids_.empty());
     bool success = set_encryption_key(node->file_ids_[0], FileEncryptionKey::create());
@@ -3207,7 +3209,7 @@ void FileManager::run_upload(FileNodePtr node, vector<int> bad_parts) {
   }
 
   // create encryption key if necessary
-  if (local_location != nullptr && local_location->file_type_ == FileType::SecureEncrypted &&
+  if (full_local_location != nullptr && full_local_location->file_type_ == FileType::SecureEncrypted &&
       file_view.encryption_key().empty()) {
     CHECK(!node->file_ids_.empty());
     bool success = set_encryption_key(node->file_ids_[0], FileEncryptionKey::create_secure_key());

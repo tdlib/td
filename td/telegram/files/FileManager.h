@@ -291,8 +291,10 @@ class FileView {
 
   bool empty() const;
 
-  bool has_local_location() const;
-  const FullLocalFileLocation *get_local_location() const;
+  bool has_full_local_location() const;
+
+  const FullLocalFileLocation *get_full_local_location() const;
+
   bool has_remote_location() const;
   bool has_alive_remote_location() const;
   bool has_active_upload_remote_location() const;

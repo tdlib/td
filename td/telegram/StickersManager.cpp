@@ -7881,7 +7881,7 @@ Result<std::tuple<FileId, bool, bool>> StickersManager::prepare_input_file(
     if (file_view.has_url()) {
       is_url = true;
     } else {
-      if (file_view.has_local_location() &&
+      if (file_view.has_full_local_location() &&
           file_view.expected_size() > get_max_sticker_file_size(sticker_format, sticker_type, for_thumbnail)) {
         return Status::Error(400, "File is too big");
       }
