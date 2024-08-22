@@ -594,9 +594,8 @@ bool FileView::has_generate_location() const {
   return node_->generate_ != nullptr;
 }
 
-const FullGenerateFileLocation &FileView::generate_location() const {
-  CHECK(has_generate_location());
-  return *node_->generate_;
+const FullGenerateFileLocation *FileView::get_generate_location() const {
+  return node_->generate_.get();
 }
 
 int64 FileView::size() const {
@@ -1548,8 +1547,9 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
     new_local_file_id = register_location(*full_local_location, local_location_to_file_id_);
   }
   FileId *new_generate_file_id = nullptr;
-  if (file_view.has_generate_location()) {
-    new_generate_file_id = register_location(file_view.generate_location(), generate_location_to_file_id_);
+  auto generate_location = file_view.get_generate_location();
+  if (generate_location != nullptr) {
+    new_generate_file_id = register_location(*generate_location, generate_location_to_file_id_);
   }
   td::unique(to_merge);
 
@@ -2304,7 +2304,7 @@ void FileManager::load_from_pmc(FileNodePtr node, bool new_remote, bool new_loca
   }
   new_generate &= file_view.has_generate_location();
   if (new_generate) {
-    generate = file_view.generate_location();
+    generate = *file_view.get_generate_location();
   }
 
   LOG(DEBUG) << "Load from pmc file " << file_id << '/' << file_view.get_main_file_id()
@@ -3188,7 +3188,8 @@ void FileManager::run_upload(FileNodePtr node, vector<int> bad_parts) {
                 << ", generate_id = " << node->generate_id_ << ", generate_was_update = " << node->generate_was_update_;
       return;
     }
-    if (file_view.has_generate_location() && file_view.generate_location().file_type_ == FileType::SecureEncrypted) {
+    auto generate_location = file_view.get_generate_location();
+    if (generate_location != nullptr && generate_location->file_type_ == FileType::SecureEncrypted) {
       // Can't upload secure file before its size is known
       LOG(INFO) << "Can't upload secure file " << node->main_file_id_ << " before it's size is known";
       return;
@@ -3197,10 +3198,11 @@ void FileManager::run_upload(FileNodePtr node, vector<int> bad_parts) {
 
   node->set_upload_priority(priority);
 
+  auto generate_location = file_view.get_generate_location();
   auto full_local_location = file_view.get_full_local_location();
 
   // create encryption key if necessary
-  if (((file_view.has_generate_location() && file_view.generate_location().file_type_ == FileType::Encrypted) ||
+  if (((generate_location != nullptr && generate_location->file_type_ == FileType::Encrypted) ||
        (full_local_location != nullptr && full_local_location->file_type_ == FileType::Encrypted)) &&
       file_view.encryption_key().empty()) {
     CHECK(!node->file_ids_.empty());
@@ -4161,7 +4163,8 @@ void FileManager::on_generate_ok(FileGenerateManager::QueryId query_id, FullLoca
 
   FileView file_view(file_node);
   if (context_->need_notify_on_new_files()) {
-    if (!file_view.has_generate_location() || !begins_with(file_view.generate_location().conversion_, "#file_id#")) {
+    auto generate_location = file_view.get_generate_location();
+    if (generate_location == nullptr || !begins_with(generate_location->conversion_, "#file_id#")) {
       context_->on_new_file(file_view.size(), file_view.get_allocated_local_size(), 1);
     }
   }

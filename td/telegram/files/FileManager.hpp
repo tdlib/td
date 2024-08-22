@@ -96,7 +96,7 @@ void FileManager::store_file(FileId file_id, StorerT &storer, int32 ttl) const {
       break;
     }
     case FileStoreType::Generate: {
-      auto generate_location = file_view.generate_location();
+      auto generate_location = *file_view.get_generate_location();
       FileId from_file_id;
       bool have_file_id = false;
       if (generate_location.conversion_ == "#_file_id#") {

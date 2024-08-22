@@ -295,14 +295,16 @@ class FileView {
 
   const FullLocalFileLocation *get_full_local_location() const;
 
+  bool has_generate_location() const;
+
+  const FullGenerateFileLocation *get_generate_location() const;
+
   bool has_remote_location() const;
   bool has_alive_remote_location() const;
   bool has_active_upload_remote_location() const;
   bool has_active_download_remote_location() const;
   const FullRemoteFileLocation &remote_location() const;
   const FullRemoteFileLocation &main_remote_location() const;
-  bool has_generate_location() const;
-  const FullGenerateFileLocation &generate_location() const;
 
   bool has_url() const;
   const string &url() const;
