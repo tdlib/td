@@ -39,6 +39,7 @@
 #include "td/telegram/LanguagePackManager.h"
 #include "td/telegram/Location.h"
 #include "td/telegram/MessageId.h"
+#include "td/telegram/MessageReaction.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/MessageTtl.h"
@@ -2252,6 +2253,7 @@ void UpdatesManager::try_reload_data() {
   td_->chat_manager_->reload_created_public_dialogs(PublicDialogType::ForPersonalDialog, Auto());
   get_default_emoji_statuses(td_, Auto());
   get_default_channel_emoji_statuses(td_, Auto());
+  reload_paid_reaction_privacy(td_);
   td_->notification_settings_manager_->reload_saved_ringtones(Auto());
   td_->notification_settings_manager_->send_get_reaction_notification_settings_query(Auto());
   td_->notification_settings_manager_->send_get_scope_notification_settings_query(NotificationSettingsScope::Private,

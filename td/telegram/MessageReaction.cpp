@@ -235,6 +235,30 @@ class TogglePaidReactionPrivacyQuery final : public Td::ResultHandler {
   }
 };
 
+class GetPaidReactionPrivacyQuery final : public Td::ResultHandler {
+ public:
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::messages_getPaidReactionPrivacy()));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getPaidReactionPrivacy>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetPaidReactionPrivacyQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
+  }
+
+  void on_error(Status status) final {
+    if (!G()->is_expected_error(status)) {
+      LOG(ERROR) << "Receive " << status;
+    }
+  }
+};
+
 class GetMessageReactionsListQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::addedReactions>> promise_;
   DialogId dialog_id_;
@@ -1160,6 +1184,10 @@ void set_message_reactions(Td *td, MessageFullId message_full_id, vector<Reactio
     }
   }
   send_message_reaction(td, message_full_id, std::move(reaction_types), is_big, false, std::move(promise));
+}
+
+void reload_paid_reaction_privacy(Td *td) {
+  td->create_handler<GetPaidReactionPrivacyQuery>()->send();
 }
 
 void get_message_added_reactions(Td *td, MessageFullId message_full_id, ReactionType reaction_type, string offset,
