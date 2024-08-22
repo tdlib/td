@@ -24839,8 +24839,9 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
       // TODO return CHECK
       auto file_id = get_message_content_any_file_id(m->content.get());
       auto file_view = td_->file_manager_->get_file_view(file_id);
-      bool has_remote = file_view.has_remote_location();
-      bool is_web = has_remote ? file_view.remote_location().is_web() : false;
+      const auto *full_remote_location = file_view.get_full_remote_location();
+      bool has_remote = full_remote_location != nullptr;
+      bool is_web = has_remote ? full_remote_location->is_web() : false;
       LOG(FATAL) << request.dialog_id << " " << request.finished_count << " " << i << " " << request.message_ids << " "
                  << request.is_finished << " " << request.results << " " << m->ttl << " " << has_remote << " "
                  << file_view.has_alive_remote_location() << " " << file_view.has_active_upload_remote_location() << " "

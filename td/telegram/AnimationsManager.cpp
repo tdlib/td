@@ -657,12 +657,13 @@ int64 AnimationsManager::get_saved_animations_hash(const char *source) const {
     auto animation = get_animation(animation_id);
     CHECK(animation != nullptr);
     auto file_view = td_->file_manager_->get_file_view(animation_id);
-    CHECK(file_view.has_remote_location());
-    if (!file_view.remote_location().is_document()) {
-      LOG(ERROR) << "Saved animation remote location is not document: " << source << " " << file_view.remote_location();
+    const auto *full_remote_location = file_view.get_full_remote_location();
+    CHECK(full_remote_location != nullptr);
+    if (!full_remote_location->is_document()) {
+      LOG(ERROR) << "Saved animation remote location is not a document: " << source << ' ' << *full_remote_location;
       continue;
     }
-    numbers.push_back(file_view.remote_location().get_id());
+    numbers.push_back(full_remote_location->get_id());
   }
   return get_vector_hash(numbers);
 }
@@ -685,11 +686,12 @@ void AnimationsManager::send_save_gif_query(FileId animation_id, bool unsave, Pr
 
   // TODO invokeAfter and log event
   auto file_view = td_->file_manager_->get_file_view(animation_id);
-  CHECK(file_view.has_remote_location());
-  LOG_CHECK(file_view.remote_location().is_document()) << file_view.remote_location();
-  CHECK(!file_view.remote_location().is_web());
+  const auto *full_remote_location = file_view.get_full_remote_location();
+  CHECK(full_remote_location != nullptr);
+  CHECK(full_remote_location->is_document());
+  CHECK(!full_remote_location->is_web());
   td_->create_handler<SaveGifQuery>(std::move(promise))
-      ->send(animation_id, file_view.remote_location().as_input_document(), unsave);
+      ->send(animation_id, full_remote_location->as_input_document(), unsave);
 }
 
 void AnimationsManager::add_saved_animation_by_id(FileId animation_id) {
@@ -748,13 +750,14 @@ void AnimationsManager::add_saved_animation_impl(FileId animation_id, bool add_o
     return promise.set_error(Status::Error(400, "Only MPEG4 animations can be saved"));
   }
 
-  if (!file_view.has_remote_location()) {
+  const auto *full_remote_location = file_view.get_full_remote_location();
+  if (full_remote_location == nullptr) {
     return promise.set_error(Status::Error(400, "Can save only sent animations"));
   }
-  if (file_view.remote_location().is_web()) {
+  if (full_remote_location->is_web()) {
     return promise.set_error(Status::Error(400, "Can't save web animations"));
   }
-  if (!file_view.remote_location().is_document()) {
+  if (!full_remote_location->is_document()) {
     return promise.set_error(Status::Error(400, "Can't save encrypted animations"));
   }
 

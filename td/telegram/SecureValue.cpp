@@ -396,7 +396,10 @@ telegram_api::object_ptr<telegram_api::InputSecureFile> get_input_secure_file_ob
         file_manager->get_file_view(input_file.file_id).get_main_file_id());
   auto res = std::move(input_file.input_file);
   if (res == nullptr) {
-    return file_manager->get_file_view(file.file.file_id).remote_location().as_input_secure_file();
+    auto file_view = file_manager->get_file_view(file.file.file_id);
+    const auto *full_remote_location = file_view.get_full_remote_location();
+    CHECK(full_remote_location != nullptr);
+    return full_remote_location->as_input_secure_file();
   }
   CHECK(res->get_id() == telegram_api::inputSecureFileUploaded::ID);
   auto uploaded = static_cast<telegram_api::inputSecureFileUploaded *>(res.get());
@@ -420,7 +423,8 @@ static td_api::object_ptr<td_api::datedFile> get_dated_file_object(FileManager *
   auto file_id = dated_file.file_id;
   CHECK(file_id.is_valid());
   auto file_view = file_manager->get_file_view(file_id);
-  if (!file_view.has_remote_location() || file_view.remote_location().is_web()) {
+  const auto *full_remote_location = file_view.get_full_remote_location();
+  if (full_remote_location == nullptr || full_remote_location->is_web()) {
     LOG(ERROR) << "Have wrong file in get_dated_file_object";
     return nullptr;
   }
@@ -430,9 +434,8 @@ static td_api::object_ptr<td_api::datedFile> get_dated_file_object(FileManager *
     return get_dated_file_object(file_manager, dated_file);
   }
   dated_file.file_id = file_manager->register_remote(
-      FullRemoteFileLocation(FileType::SecureDecrypted, file_view.remote_location().get_id(),
-                             file_view.remote_location().get_access_hash(), file_view.remote_location().get_dc_id(),
-                             ""),
+      FullRemoteFileLocation(FileType::SecureDecrypted, full_remote_location->get_id(),
+                             full_remote_location->get_access_hash(), full_remote_location->get_dc_id(), ""),
       FileLocationSource::FromServer, DialogId(), 0, file_view.expected_size(), file_view.suggested_path());
   return get_dated_file_object(file_manager, dated_file);
 }

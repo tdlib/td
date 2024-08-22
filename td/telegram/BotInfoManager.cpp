@@ -891,16 +891,21 @@ void BotInfoManager::on_upload_bot_media_preview_error(FileId file_id, Status st
 
 telegram_api::object_ptr<telegram_api::InputMedia> BotInfoManager::get_fake_input_media(FileId file_id) const {
   FileView file_view = td_->file_manager_->get_file_view(file_id);
-  if (file_view.empty() || !file_view.has_remote_location() || file_view.remote_location().is_web()) {
+  if (file_view.empty()) {
     return nullptr;
   }
+  auto full_remote_location = file_view.get_full_remote_location();
+  if (full_remote_location == nullptr || full_remote_location->is_web()) {
+    return nullptr;
+  }
+
   switch (file_view.get_type()) {
     case FileType::VideoStory:
       return telegram_api::make_object<telegram_api::inputMediaDocument>(
-          0, false /*ignored*/, file_view.remote_location().as_input_document(), 0, string());
+          0, false /*ignored*/, full_remote_location->as_input_document(), 0, string());
     case FileType::PhotoStory:
       return telegram_api::make_object<telegram_api::inputMediaPhoto>(0, false /*ignored*/,
-                                                                      file_view.remote_location().as_input_photo(), 0);
+                                                                      full_remote_location->as_input_photo(), 0);
     default:
       return nullptr;
   }

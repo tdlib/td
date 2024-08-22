@@ -2149,8 +2149,9 @@ void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_
 
   auto add_document = [&](const Document &document) {
     auto file_view = td_->file_manager_->get_file_view(document.file_id);
-    if (file_view.has_remote_location()) {
-      auto document_id = file_view.remote_location().get_id();
+    const auto *full_remote_location = file_view.get_full_remote_location();
+    if (full_remote_location != nullptr) {
+      auto document_id = full_remote_location->get_id();
       if (document_id != 0) {
         get_map(document.type)->emplace(document_id, document.file_id);
       } else {

@@ -74,7 +74,8 @@ void FileManager::store_file(FileId file_id, StorerT &storer, int32 ttl) const {
       store(file_view.owner_dialog_id(), storer);
       break;
     case FileStoreType::Remote: {
-      store(file_view.remote_location(), storer);
+      const auto *full_remote_location = file_view.get_full_remote_location();
+      store(*full_remote_location, storer);
       if (has_64bit_size) {
         store(size, storer);
       } else {

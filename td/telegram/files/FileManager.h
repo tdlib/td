@@ -300,10 +300,15 @@ class FileView {
   const FullGenerateFileLocation *get_generate_location() const;
 
   bool has_remote_location() const;
+
   bool has_alive_remote_location() const;
+
   bool has_active_upload_remote_location() const;
+
   bool has_active_download_remote_location() const;
-  const FullRemoteFileLocation &remote_location() const;
+
+  const FullRemoteFileLocation *get_full_remote_location() const;
+
   const FullRemoteFileLocation &main_remote_location() const;
 
   bool has_url() const;
@@ -362,13 +367,14 @@ class FileView {
   }
 
   bool may_reload_photo() const {
-    if (!has_remote_location()) {
+    const auto *full_remote_location = get_full_remote_location();
+    if (full_remote_location == nullptr) {
       return false;
     }
-    if (!remote_location().is_photo()) {
+    if (!full_remote_location->is_photo()) {
       return false;
     }
-    auto type = remote_location().get_source().get_type("may_reload_photo");
+    auto type = full_remote_location->get_source().get_type("may_reload_photo");
     return type != PhotoSizeSource::Type::Legacy && type != PhotoSizeSource::Type::FullLegacy &&
            type != PhotoSizeSource::Type::Thumbnail;
   }

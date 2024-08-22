@@ -1830,13 +1830,16 @@ void DialogManager::report_dialog_photo(DialogId dialog_id, FileId file_id, Repo
   if (file_view.empty()) {
     return promise.set_error(Status::Error(400, "Unknown file identifier"));
   }
-  if (get_main_file_type(file_view.get_type()) != FileType::Photo || !file_view.has_remote_location() ||
-      !file_view.remote_location().is_photo()) {
+  if (get_main_file_type(file_view.get_type()) != FileType::Photo) {
     return promise.set_error(Status::Error(400, "Only full chat photos can be reported"));
+  }
+  const auto *full_remote_location = file_view.get_full_remote_location();
+  if (full_remote_location == nullptr || !full_remote_location->is_photo()) {
+    return promise.set_error(Status::Error(400, "Invalid photo identifier specified"));
   }
 
   td_->create_handler<ReportProfilePhotoQuery>(std::move(promise))
-      ->send(dialog_id, file_id, file_view.remote_location().as_input_photo(), std::move(reason));
+      ->send(dialog_id, file_id, full_remote_location->as_input_photo(), std::move(reason));
 }
 
 Status DialogManager::can_pin_messages(DialogId dialog_id) const {

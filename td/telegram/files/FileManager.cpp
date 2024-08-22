@@ -566,23 +566,23 @@ bool FileView::has_active_upload_remote_location() const {
 }
 
 bool FileView::has_active_download_remote_location() const {
-  if (!has_remote_location()) {
+  const auto *full_remote_location = get_full_remote_location();
+  if (full_remote_location == nullptr) {
     return false;
   }
-  auto &remote = remote_location();
-  if (remote.is_encrypted_any()) {
+  if (full_remote_location->is_encrypted_any()) {
     return true;
   }
-  return remote.has_file_reference();
+  return full_remote_location->has_file_reference();
 }
 
-const FullRemoteFileLocation &FileView::remote_location() const {
+const FullRemoteFileLocation *FileView::get_full_remote_location() const {
   CHECK(has_remote_location());
-  auto *remote = node_.get_remote();
-  if (remote) {
-    return *remote;
+  const auto *remote = node_.get_remote();
+  if (remote != nullptr) {
+    return remote;
   }
-  return node_->remote_.full.value();
+  return &node_->remote_.full.value();
 }
 
 const FullRemoteFileLocation &FileView::main_remote_location() const {
@@ -791,20 +791,20 @@ bool FileView::empty() const {
 }
 
 bool FileView::can_download_from_server() const {
-  if (!has_remote_location()) {
+  const auto *full_remote_location = get_full_remote_location();
+  if (full_remote_location == nullptr) {
     return false;
   }
-  auto &remote = remote_location();
-  if (remote.file_type_ == FileType::Encrypted && encryption_key().empty()) {
+  if (full_remote_location->file_type_ == FileType::Encrypted && encryption_key().empty()) {
     return false;
   }
-  if (remote.is_web()) {
+  if (full_remote_location->is_web()) {
     return true;
   }
-  if (remote.get_dc_id().is_empty()) {
+  if (full_remote_location->get_dc_id().is_empty()) {
     return false;
   }
-  if (!remote.is_encrypted_any() && !remote.has_file_reference() &&
+  if (!full_remote_location->is_encrypted_any() && !full_remote_location->has_file_reference() &&
       ((node_->download_id_ == 0 && node_->download_was_update_file_reference_) || !node_->remote_.is_full_alive)) {
     return false;
   }
@@ -1523,9 +1523,10 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
   bool new_remote = false;
   FileId *new_remote_file_id = nullptr;
   int32 remote_key = 0;
-  if (file_view.has_remote_location()) {
+  const auto *full_remote_location = file_view.get_full_remote_location();
+  if (full_remote_location != nullptr) {
     if (context_->keep_exact_remote_location()) {
-      RemoteInfo info{file_view.remote_location(), file_location_source, file_id};
+      RemoteInfo info{*full_remote_location, file_location_source, file_id};
       remote_key = remote_location_info_.add(info);
       auto &stored_info = remote_location_info_.get(remote_key);
       if (stored_info.file_id_ == file_id) {
@@ -1533,24 +1534,24 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
         new_remote = true;
       } else {
         to_merge.push_back(stored_info.file_id_);
-        if (merge_choose_remote_location(file_view.remote_location(), file_location_source, stored_info.remote_,
+        if (merge_choose_remote_location(*full_remote_location, file_location_source, stored_info.remote_,
                                          stored_info.file_location_source_) == 0) {
-          stored_info.remote_ = file_view.remote_location();
+          stored_info.remote_ = *full_remote_location;
           stored_info.file_location_source_ = file_location_source;
         }
       }
     } else {
-      new_remote_file_id = register_location(file_view.remote_location(), remote_location_to_file_id_);
+      new_remote_file_id = register_location(*full_remote_location, remote_location_to_file_id_);
       new_remote = new_remote_file_id != nullptr;
     }
   }
   FileId *new_local_file_id = nullptr;
-  auto full_local_location = file_view.get_full_local_location();
+  const auto *full_local_location = file_view.get_full_local_location();
   if (full_local_location != nullptr) {
     new_local_file_id = register_location(*full_local_location, local_location_to_file_id_);
   }
   FileId *new_generate_file_id = nullptr;
-  auto generate_location = file_view.get_generate_location();
+  const auto *generate_location = file_view.get_generate_location();
   if (generate_location != nullptr) {
     new_generate_file_id = register_location(*generate_location, generate_location_to_file_id_);
   }
@@ -2295,9 +2296,11 @@ void FileManager::load_from_pmc(FileNodePtr node, bool new_remote, bool new_loca
   FullLocalFileLocation local;
   FullGenerateFileLocation generate;
   if (new_remote) {
-    new_remote = file_view.has_remote_location();
-    if (new_remote) {
-      remote = file_view.remote_location();
+    const auto *full_remote_location = file_view.get_full_remote_location();
+    if (full_remote_location != nullptr) {
+      remote = *full_remote_location;
+    } else {
+      new_remote = false;
     }
   }
   if (new_local) {
@@ -2695,7 +2698,7 @@ void FileManager::run_download(FileNodePtr node, bool force_update_priority) {
     FileDownloadManager::QueryId query_id =
         download_queries_.create(DownloadQuery{file_id, DownloadQuery::Type::DownloadReloadDialog});
     node->download_id_ = query_id;
-    context_->reload_photo(file_view.remote_location().get_source(),
+    context_->reload_photo(file_view.get_full_remote_location()->get_source(),
                            PromiseCreator::lambda([actor_id = actor_id(this), query_id, file_id](Result<Unit> res) {
                              Status error;
                              if (res.is_ok()) {
@@ -3496,7 +3499,8 @@ Result<FileId> FileManager::check_input_file_id(FileType type, Result<FileId> re
     }
   }
 
-  if (!file_view.has_remote_location()) {
+  const auto *full_remote_location = file_view.get_full_remote_location();
+  if (full_remote_location == nullptr) {
     // There are no reasons to dup file_id, because it will be duped anyway before upload/reupload
     // It will not be duped in dup_message_content only if has_input_media(),
     // but currently in this case the file never needs to be reuploaded
@@ -3512,7 +3516,7 @@ Result<FileId> FileManager::check_input_file_id(FileType type, Result<FileId> re
 
   int32 remote_id = file_id.get_remote();
   if (remote_id == 0 && context_->keep_exact_remote_location()) {
-    RemoteInfo info{file_view.remote_location(), FileLocationSource::FromUser, file_id};
+    RemoteInfo info{*full_remote_location, FileLocationSource::FromUser, file_id};
     remote_id = remote_location_info_.add(info);
     if (remote_location_info_.get(remote_id).file_id_ == file_id) {
       get_file_id_info(file_id)->pin_flag_ = true;
@@ -3590,7 +3594,8 @@ Result<FileId> FileManager::get_input_file_id(FileType type, const tl_object_ptr
                   if (force_reuse) {
                     return file_id;
                   }
-                  if (file_view.has_remote_location() && !file_view.remote_location().is_web()) {
+                  const auto *full_remote_location = file_view.get_full_remote_location();
+                  if (full_remote_location != nullptr && !full_remote_location->is_web()) {
                     return file_id;
                   }
                   if (file_view.is_uploading()) {
@@ -3745,9 +3750,10 @@ vector<tl_object_ptr<telegram_api::InputDocument>> FileManager::get_input_docume
   for (auto file_id : file_ids) {
     auto file_view = get_file_view(file_id);
     CHECK(!file_view.empty());
-    CHECK(file_view.has_remote_location());
-    CHECK(!file_view.remote_location().is_web());
-    result.push_back(file_view.remote_location().as_input_document());
+    const auto *full_remote_location = file_view.get_full_remote_location();
+    CHECK(full_remote_location != nullptr);
+    CHECK(!full_remote_location->is_web());
+    result.push_back(full_remote_location->as_input_document());
   }
   return result;
 }

@@ -1009,8 +1009,9 @@ FileId NotificationSettingsManager::get_saved_ringtone(int64 ringtone_id, Promis
     auto file_view = td_->file_manager_->get_file_view(file_id);
     CHECK(!file_view.empty());
     CHECK(file_view.get_type() == FileType::Ringtone);
-    CHECK(file_view.has_remote_location());
-    if (file_view.remote_location().get_id() == ringtone_id) {
+    const auto *full_remote_location = file_view.get_full_remote_location();
+    CHECK(full_remote_location != nullptr);
+    if (full_remote_location->get_id() == ringtone_id) {
       return file_view.get_main_file_id();
     }
   }
@@ -1035,11 +1036,12 @@ void NotificationSettingsManager::send_save_ringtone_query(
   // TODO log event
   auto file_view = td_->file_manager_->get_file_view(ringtone_file_id);
   CHECK(!file_view.empty());
-  CHECK(file_view.has_remote_location());
-  CHECK(file_view.remote_location().is_document());
-  CHECK(!file_view.remote_location().is_web());
+  const auto *full_remote_location = file_view.get_full_remote_location();
+  CHECK(full_remote_location != nullptr);
+  CHECK(full_remote_location->is_document());
+  CHECK(!full_remote_location->is_web());
   td_->create_handler<SaveRingtoneQuery>(std::move(promise))
-      ->send(ringtone_file_id, file_view.remote_location().as_input_document(), unsave);
+      ->send(ringtone_file_id, full_remote_location->as_input_document(), unsave);
 }
 
 void NotificationSettingsManager::add_saved_ringtone(td_api::object_ptr<td_api::InputFile> &&input_file,
@@ -1081,8 +1083,9 @@ void NotificationSettingsManager::add_saved_ringtone(td_api::object_ptr<td_api::
   if (duration > td_->option_manager_->get_option_integer("notification_sound_duration_max")) {
     return promise.set_error(Status::Error(400, "Notification sound is too long"));
   }
-  if (file_view.has_remote_location() && !file_view.is_encrypted()) {
-    CHECK(file_view.remote_location().is_document());
+  const auto *full_remote_location = file_view.get_full_remote_location();
+  if (full_remote_location != nullptr && !file_view.is_encrypted()) {
+    CHECK(full_remote_location->is_document());
     if (file_view.main_remote_location().is_web()) {
       return promise.set_error(Status::Error(400, "Can't use web document as notification sound"));
     }
@@ -1273,8 +1276,9 @@ void NotificationSettingsManager::remove_saved_ringtone(int64 ringtone_id, Promi
     auto file_view = td_->file_manager_->get_file_view(file_id);
     CHECK(!file_view.empty());
     CHECK(file_view.get_type() == FileType::Ringtone);
-    CHECK(file_view.has_remote_location());
-    if (file_view.remote_location().get_id() == ringtone_id) {
+    const auto *full_remote_location = file_view.get_full_remote_location();
+    CHECK(full_remote_location != nullptr);
+    if (full_remote_location->get_id() == ringtone_id) {
       send_save_ringtone_query(
           file_view.get_main_file_id(), true,
           PromiseCreator::lambda(
@@ -1312,8 +1316,9 @@ void NotificationSettingsManager::on_remove_saved_ringtone(int64 ringtone_id, Pr
     auto file_view = td_->file_manager_->get_file_view(*it);
     CHECK(!file_view.empty());
     CHECK(file_view.get_type() == FileType::Ringtone);
-    CHECK(file_view.has_remote_location());
-    if (file_view.remote_location().get_id() == ringtone_id) {
+    const auto *full_remote_location = file_view.get_full_remote_location();
+    CHECK(full_remote_location != nullptr);
+    if (full_remote_location->get_id() == ringtone_id) {
       saved_ringtone_file_ids_.erase(it);
       saved_ringtone_hash_ = 0;
       on_saved_ringtones_updated(false);
@@ -1483,8 +1488,9 @@ NotificationSettingsManager::get_update_saved_notification_sounds_object() const
     auto file_view = file_manager->get_file_view(file_id);
     CHECK(!file_view.empty());
     CHECK(file_view.get_type() == FileType::Ringtone);
-    CHECK(file_view.has_remote_location());
-    return file_view.remote_location().get_id();
+    const auto *full_remote_location = file_view.get_full_remote_location();
+    CHECK(full_remote_location != nullptr);
+    return full_remote_location->get_id();
   });
   return td_api::make_object<td_api::updateSavedNotificationSounds>(std::move(ringtone_ids));
 }
