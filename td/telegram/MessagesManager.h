@@ -796,8 +796,8 @@ class MessagesManager final : public Actor {
 
   void remove_message_reaction(MessageFullId message_full_id, ReactionType reaction_type, Promise<Unit> &&promise);
 
-  void add_paid_message_reaction(MessageFullId message_full_id, int64 star_count, bool is_anonymous,
-                                 Promise<Unit> &&promise);
+  void add_paid_message_reaction(MessageFullId message_full_id, int64 star_count, bool use_default_is_anonymous,
+                                 bool is_anonymous, Promise<Unit> &&promise);
 
   void remove_paid_message_reactions(MessageFullId message_full_id, Promise<Unit> &&promise);
 
