@@ -3521,6 +3521,16 @@ class CliClient final : public Actor {
       get_args(args, parameters, currency, amount);
       send_request(td_api::make_object<td_api::canPurchaseFromStore>(
           td_api::make_object<td_api::storePaymentPurposePremiumGiveaway>(parameters, currency, amount)));
+    } else if (op == "cpfssg") {
+      GiveawayParameters parameters;
+      string currency;
+      int64 amount;
+      int32 user_count;
+      int64 star_count;
+      get_args(args, parameters, currency, amount, user_count, star_count);
+      send_request(td_api::make_object<td_api::canPurchaseFromStore>(
+          td_api::make_object<td_api::storePaymentPurposeStarGiveaway>(parameters, currency, amount, user_count,
+                                                                       star_count)));
     } else if (op == "cpfss") {
       string currency;
       int64 amount;

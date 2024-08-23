@@ -245,6 +245,21 @@ static Result<tl_object_ptr<telegram_api::InputStorePaymentPurpose>> get_input_s
       TRY_RESULT(parameters, GiveawayParameters::get_giveaway_parameters(td, p->parameters_.get()));
       return parameters.get_input_store_payment_premium_giveaway(td, p->currency_, p->amount_);
     }
+    case td_api::storePaymentPurposeStarGiveaway::ID: {
+      auto p = static_cast<td_api::storePaymentPurposeStarGiveaway *>(purpose.get());
+      if (p->amount_ <= 0 || !check_currency_amount(p->amount_)) {
+        return Status::Error(400, "Invalid amount of the currency specified");
+      }
+      if (!clean_input_string(p->currency_)) {
+        return Status::Error(400, "Strings must be encoded in UTF-8");
+      }
+      if (p->user_count_ <= 0 || p->star_count_ <= 0) {
+        return Status::Error(400, "Invalid giveaway parameters specified");
+      }
+      TRY_RESULT(parameters, GiveawayParameters::get_giveaway_parameters(td, p->parameters_.get()));
+      return parameters.get_input_store_payment_stars_giveaway(td, p->currency_, p->amount_, p->user_count_,
+                                                               p->star_count_);
+    }
     case td_api::storePaymentPurposeStars::ID: {
       auto p = static_cast<td_api::storePaymentPurposeStars *>(purpose.get());
       if (p->amount_ <= 0 || !check_currency_amount(p->amount_)) {

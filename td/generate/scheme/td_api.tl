@@ -4546,7 +4546,7 @@ chatBoostFeatures features:vector<chatBoostLevelFeatures> min_profile_background
 //@gift_code The created Telegram Premium gift code, which is known only if this is a gift code for the current user, or it has already been claimed
 chatBoostSourceGiftCode user_id:int53 gift_code:string = ChatBoostSource;
 
-//@description The chat created a Telegram Premium giveaway
+//@description The chat created a giveaway
 //@user_id Identifier of a user that won in the giveaway; 0 if none
 //@gift_code The created Telegram Premium gift code if it was used by the user or can be claimed by the current user; an empty string otherwise
 //@giveaway_message_id Identifier of the corresponding giveaway message; can be an identifier of a deleted message
@@ -5752,6 +5752,14 @@ storePaymentPurposePremiumGiftCodes boosted_chat_id:int53 currency:string amount
 //@currency ISO 4217 currency code of the payment currency
 //@amount Paid amount, in the smallest units of the currency
 storePaymentPurposePremiumGiveaway parameters:giveawayParameters currency:string amount:int53 = StorePaymentPurpose;
+
+//@description The user creating a Telegram Star giveaway
+//@parameters Giveaway parameters
+//@currency ISO 4217 currency code of the payment currency
+//@amount Paid amount, in the smallest units of the currency
+//@user_count The number of users to receive Telegram Stars
+//@star_count The number of Telegram Stars to be distributed through the giveaway
+storePaymentPurposeStarGiveaway parameters:giveawayParameters currency:string amount:int53 user_count:int32 star_count:int53 = StorePaymentPurpose;
 
 //@description The user buying Telegram Stars
 //@currency ISO 4217 currency code of the payment currency

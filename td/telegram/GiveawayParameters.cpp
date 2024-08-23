@@ -123,6 +123,46 @@ GiveawayParameters::get_input_store_payment_premium_giveaway(Td *td, const strin
       vector<string>(country_codes_), prize_description_, random_id, date_, currency, amount);
 }
 
+telegram_api::object_ptr<telegram_api::inputStorePaymentStarsGiveaway>
+GiveawayParameters::get_input_store_payment_stars_giveaway(Td *td, const string &currency, int64 amount,
+                                                           int32 user_count, int64 star_count) const {
+  int64 random_id;
+  do {
+    random_id = Random::secure_int64();
+  } while (random_id == 0);
+
+  auto boost_input_peer = td->dialog_manager_->get_input_peer(DialogId(boosted_channel_id_), AccessRights::Write);
+  CHECK(boost_input_peer != nullptr);
+
+  vector<telegram_api::object_ptr<telegram_api::InputPeer>> additional_input_peers;
+  for (auto additional_channel_id : additional_channel_ids_) {
+    auto input_peer = td->dialog_manager_->get_input_peer(DialogId(additional_channel_id), AccessRights::Write);
+    CHECK(input_peer != nullptr);
+    additional_input_peers.push_back(std::move(input_peer));
+  }
+
+  int32 flags = 0;
+  if (only_new_subscribers_) {
+    flags |= telegram_api::inputStorePaymentStarsGiveaway::ONLY_NEW_SUBSCRIBERS_MASK;
+  }
+  if (winners_are_visible_) {
+    flags |= telegram_api::inputStorePaymentStarsGiveaway::WINNERS_ARE_VISIBLE_MASK;
+  }
+  if (!additional_input_peers.empty()) {
+    flags |= telegram_api::inputStorePaymentStarsGiveaway::ADDITIONAL_PEERS_MASK;
+  }
+  if (!country_codes_.empty()) {
+    flags |= telegram_api::inputStorePaymentStarsGiveaway::COUNTRIES_ISO2_MASK;
+  }
+  if (!prize_description_.empty()) {
+    flags |= telegram_api::inputStorePaymentStarsGiveaway::PRIZE_DESCRIPTION_MASK;
+  }
+  return telegram_api::make_object<telegram_api::inputStorePaymentStarsGiveaway>(
+      flags, false /*ignored*/, false /*ignored*/, star_count, std::move(boost_input_peer),
+      std::move(additional_input_peers), vector<string>(country_codes_), prize_description_, random_id, date_, currency,
+      amount, user_count);
+}
+
 td_api::object_ptr<td_api::giveawayParameters> GiveawayParameters::get_giveaway_parameters_object(Td *td) const {
   CHECK(is_valid());
   vector<int64> chat_ids;

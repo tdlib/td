@@ -74,6 +74,9 @@ class GiveawayParameters {
   telegram_api::object_ptr<telegram_api::inputStorePaymentPremiumGiveaway> get_input_store_payment_premium_giveaway(
       Td *td, const string &currency, int64 amount) const;
 
+  telegram_api::object_ptr<telegram_api::inputStorePaymentStarsGiveaway> get_input_store_payment_stars_giveaway(
+      Td *td, const string &currency, int64 amount, int32 user_count, int64 star_count) const;
+
   td_api::object_ptr<td_api::giveawayParameters> get_giveaway_parameters_object(Td *td) const;
 
   template <class StorerT>
