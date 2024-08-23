@@ -1003,10 +1003,14 @@ class MessageGiveaway final : public MessageContent {
   GiveawayParameters giveaway_parameters;
   int32 quantity = 0;
   int32 months = 0;
+  int64 star_count = 0;
 
   MessageGiveaway() = default;
-  MessageGiveaway(GiveawayParameters giveaway_parameters, int32 quantity, int32 months)
-      : giveaway_parameters(std::move(giveaway_parameters)), quantity(quantity), months(months) {
+  MessageGiveaway(GiveawayParameters giveaway_parameters, int32 quantity, int32 months, int64 star_count)
+      : giveaway_parameters(std::move(giveaway_parameters))
+      , quantity(quantity)
+      , months(months)
+      , star_count(star_count) {
   }
 
   MessageContentType get_type() const final {
@@ -1651,11 +1655,16 @@ static void store(const MessageContent *content, StorerT &storer) {
     }
     case MessageContentType::Giveaway: {
       const auto *m = static_cast<const MessageGiveaway *>(content);
+      bool has_star_count = m->star_count != 0;
       BEGIN_STORE_FLAGS();
+      STORE_FLAG(has_star_count);
       END_STORE_FLAGS();
       store(m->giveaway_parameters, storer);
       store(m->quantity, storer);
       store(m->months, storer);
+      if (has_star_count) {
+        store(m->star_count, storer);
+      }
       break;
     }
     case MessageContentType::GiveawayLaunch:
@@ -2430,11 +2439,16 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     }
     case MessageContentType::Giveaway: {
       auto m = make_unique<MessageGiveaway>();
+      bool has_star_count;
       BEGIN_PARSE_FLAGS();
+      PARSE_FLAG(has_star_count);
       END_PARSE_FLAGS();
       parse(m->giveaway_parameters, parser);
       parse(m->quantity, parser);
       parse(m->months, parser);
+      if (has_star_count) {
+        parse(m->star_count, parser);
+      }
       if (!m->giveaway_parameters.is_valid()) {
         is_bad = true;
       }
@@ -5717,7 +5731,7 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       const auto *lhs = static_cast<const MessageGiveaway *>(old_content);
       const auto *rhs = static_cast<const MessageGiveaway *>(new_content);
       if (lhs->giveaway_parameters != rhs->giveaway_parameters || lhs->quantity != rhs->quantity ||
-          lhs->months != rhs->months) {
+          lhs->months != rhs->months || lhs->star_count != rhs->star_count) {
         need_update = true;
       }
       break;
@@ -5873,9 +5887,12 @@ void register_message_content(Td *td, const MessageContent *content, MessageFull
     case MessageContentType::GiftCode:
       return td->stickers_manager_->register_premium_gift(static_cast<const MessageGiftCode *>(content)->months,
                                                           message_full_id, source);
-    case MessageContentType::Giveaway:
-      return td->stickers_manager_->register_premium_gift(static_cast<const MessageGiveaway *>(content)->months,
-                                                          message_full_id, source);
+    case MessageContentType::Giveaway: {
+      auto giveaway = static_cast<const MessageGiveaway *>(content);
+      return td->stickers_manager_->register_premium_gift(
+          giveaway->months != 0 ? giveaway->months : StarManager::get_months_by_star_count(giveaway->star_count),
+          message_full_id, source);
+    }
     case MessageContentType::SuggestProfilePhoto:
       return td->user_manager_->register_suggested_profile_photo(
           static_cast<const MessageSuggestProfilePhoto *>(content)->photo);
@@ -5951,7 +5968,9 @@ void reregister_message_content(Td *td, const MessageContent *old_content, const
         break;
       case MessageContentType::Giveaway:
         if (static_cast<const MessageGiveaway *>(old_content)->months ==
-            static_cast<const MessageGiveaway *>(new_content)->months) {
+                static_cast<const MessageGiveaway *>(new_content)->months &&
+            static_cast<const MessageGiveaway *>(old_content)->star_count ==
+                static_cast<const MessageGiveaway *>(new_content)->star_count) {
           return;
         }
         break;
@@ -6011,9 +6030,12 @@ void unregister_message_content(Td *td, const MessageContent *content, MessageFu
     case MessageContentType::GiftCode:
       return td->stickers_manager_->unregister_premium_gift(static_cast<const MessageGiftCode *>(content)->months,
                                                             message_full_id, source);
-    case MessageContentType::Giveaway:
-      return td->stickers_manager_->unregister_premium_gift(static_cast<const MessageGiveaway *>(content)->months,
-                                                            message_full_id, source);
+    case MessageContentType::Giveaway: {
+      auto giveaway = static_cast<const MessageGiveaway *>(content);
+      return td->stickers_manager_->unregister_premium_gift(
+          giveaway->months != 0 ? giveaway->months : StarManager::get_months_by_star_count(giveaway->star_count),
+          message_full_id, source);
+    }
     case MessageContentType::Story:
       return td->story_manager_->unregister_story(static_cast<const MessageStory *>(content)->story_full_id,
                                                   message_full_id, {}, source);
@@ -6722,7 +6744,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
           GiveawayParameters{boosted_channel_id, std::move(channel_ids), media->only_new_subscribers_,
                              media->winners_are_visible_, media->until_date_, std::move(media->countries_iso2_),
                              std::move(media->prize_description_)},
-          media->quantity_, media->months_);
+          media->quantity_, media->months_, StarManager::get_star_count(media->stars_));
     }
     case telegram_api::messageMediaGiveawayResults::ID: {
       auto media = move_tl_object_as<telegram_api::messageMediaGiveawayResults>(media_ptr);
@@ -7527,16 +7549,16 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     case telegram_api::messageActionGiftStars::ID: {
       auto action = move_tl_object_as<telegram_api::messageActionGiftStars>(action_ptr);
       if (action->amount_ <= 0 || !check_currency_amount(action->amount_)) {
-        LOG(ERROR) << "Receive invalid gifted stars price " << action->amount_;
+        LOG(ERROR) << "Receive invalid gifted star price " << action->amount_;
         action->amount_ = 0;
       }
       if (action->crypto_currency_.empty()) {
         if (action->crypto_amount_ != 0) {
-          LOG(ERROR) << "Receive gifted stars crypto price " << action->crypto_amount_ << " without currency";
+          LOG(ERROR) << "Receive gifted star crypto price " << action->crypto_amount_ << " without currency";
           action->crypto_amount_ = 0;
         }
       } else if (action->crypto_amount_ <= 0) {
-        LOG(ERROR) << "Receive invalid gifted stars crypto amount " << action->crypto_amount_;
+        LOG(ERROR) << "Receive invalid gifted star crypto amount " << action->crypto_amount_;
         action->crypto_amount_ = 0;
       }
       return td::make_unique<MessageGiftStars>(
@@ -7928,8 +7950,14 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::Giveaway: {
       const auto *m = static_cast<const MessageGiveaway *>(content);
+      td_api::object_ptr<td_api::GiveawayPrize> prize;
+      if (m->months != 0) {
+        prize = td_api::make_object<td_api::giveawayPrizePremium>(m->months);
+      } else {
+        prize = td_api::make_object<td_api::giveawayPrizeStars>(m->star_count);
+      }
       return td_api::make_object<td_api::messageGiveaway>(
-          m->giveaway_parameters.get_giveaway_parameters_object(td), m->quantity, m->months,
+          m->giveaway_parameters.get_giveaway_parameters_object(td), m->quantity, std::move(prize),
           td->stickers_manager_->get_premium_gift_sticker_object(m->months));
     }
     case MessageContentType::GiveawayLaunch:

@@ -997,9 +997,18 @@ giveawayInfoOngoing creation_date:int32 status:GiveawayParticipantStatus is_ende
 //@actual_winners_selection_date Point in time (Unix timestamp) when the winners were selected. May be bigger than winners selection date specified in parameters of the giveaway
 //@was_refunded True, if the giveaway was canceled and was fully refunded
 //@winner_count Number of winners in the giveaway
-//@activation_count Number of winners, which activated their gift codes
-//@gift_code Telegram Premium gift code that was received by the current user; empty if the user isn't a winner in the giveaway
+//@activation_count Number of winners, which activated their gift codes; for Telegram Premium giveaways only
+//@gift_code Telegram Premium gift code that was received by the current user; empty if the user isn't a winner in the giveaway or the giveaway isn't a Telegram Premium giveaway
 giveawayInfoCompleted creation_date:int32 actual_winners_selection_date:int32 was_refunded:Bool winner_count:int32 activation_count:int32 gift_code:string = GiveawayInfo;
+
+
+//@class GiveawayPrize @description Contains information about a giveaway prize
+
+//@description The giveaway sends Telegram Premium subscriptions to the winners @month_count Number of months the Telegram Premium subscription will be active after code activation
+giveawayPrizePremium month_count:int32 = GiveawayPrize;
+
+//@description The giveaway sends Telegram Stars to the winners @star_count Number of Telegram Stars that will be shared by all winners
+giveawayPrizeStars star_count:int53 = GiveawayPrize;
 
 
 //@description Contains information about supported accent color for user/chat name, background of empty chat photo, replies to messages and link previews
@@ -3036,8 +3045,8 @@ paidMediaUnsupported = PaidMedia;
 
 
 //@description Describes parameters of a giveaway
-//@boosted_chat_id Identifier of the supergroup or channel chat, which will be automatically boosted by the winners of the giveaway for duration of the Premium subscription.
-//-If the chat is a channel, then can_post_messages right is required in the channel, otherwise, the user must be an administrator in the supergroup
+//@boosted_chat_id Identifier of the supergroup or channel chat, which will be automatically boosted by the winners of the giveaway for duration of the Telegram Premium subscription,
+//-or for the specified time. If the chat is a channel, then can_post_messages right is required in the channel, otherwise, the user must be an administrator in the supergroup
 //@additional_chat_ids Identifiers of other supergroup or channel chats that must be subscribed by the users to be eligible for the giveaway. There can be up to getOption("giveaway_additional_chat_count_max") additional chats
 //@winners_selection_date Point in time (Unix timestamp) when the giveaway is expected to be performed; must be 60-getOption("giveaway_duration_max") seconds in the future in scheduled giveaways
 //@only_new_members True, if only new members of the chats will be eligible for the giveaway
@@ -3591,15 +3600,15 @@ messageGiftedPremium gifter_user_id:int53 receiver_user_id:int53 currency:string
 //@code The gift code
 messagePremiumGiftCode creator_id:MessageSender is_from_giveaway:Bool is_unclaimed:Bool currency:string amount:int53 cryptocurrency:string cryptocurrency_amount:int64 month_count:int32 sticker:sticker code:string = MessageContent;
 
-//@description A giveaway was created for the chat. Use telegramPaymentPurposePremiumGiveaway or storePaymentPurposePremiumGiveaway to create a giveaway
+//@description A giveaway was created for the chat. Use telegramPaymentPurposePremiumGiveaway, storePaymentPurposePremiumGiveaway, telegramPaymentPurposeStarGiveaway, or storePaymentPurposeStarGiveaway to create a giveaway
 messageGiveawayCreated = MessageContent;
 
 //@description A giveaway
 //@parameters Giveaway parameters
 //@winner_count Number of users which will receive Telegram Premium subscription gift codes
-//@month_count Number of months the Telegram Premium subscription will be active after code activation
+//@prize Prize of the giveaway
 //@sticker A sticker to be shown in the message; may be null if unknown
-messageGiveaway parameters:giveawayParameters winner_count:int32 month_count:int32 sticker:sticker = MessageContent;
+messageGiveaway parameters:giveawayParameters winner_count:int32 prize:GiveawayPrize sticker:sticker = MessageContent;
 
 //@description A giveaway without public winners has been completed for the chat
 //@giveaway_message_id Identifier of the message with the giveaway; can be 0 if the message was deleted
