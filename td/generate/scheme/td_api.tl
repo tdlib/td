@@ -1622,9 +1622,9 @@ inputTextQuote text:formattedText position:int32 = InputTextQuote;
 //@origin Information about origin of the message if the message was from another chat or topic; may be null for messages from the same chat
 //@origin_send_date Point in time (Unix timestamp) when the message was sent if the message was from another chat or topic; 0 for messages from the same chat
 //@content Media content of the message if the message was from another chat or topic; may be null for messages from the same chat and messages without media.
-//-Can be only one of the following types: messageAnimation, messageAudio, messageContact, messageDice, messageDocument, messageGame, messageInvoice, messageLocation,
-//-messagePaidMedia, messagePhoto, messagePoll, messagePremiumGiveaway, messagePremiumGiveawayWinners, messageSticker, messageStory, messageText (for link preview),
-//-messageVenue, messageVideo, messageVideoNote, or messageVoiceNote
+//-Can be only one of the following types: messageAnimation, messageAudio, messageContact, messageDice, messageDocument, messageGame, messageGiveaway, messageGiveawayWinners,
+//-messageInvoice, messageLocation, messagePaidMedia, messagePhoto, messagePoll, messageSticker, messageStory, messageText (for link preview), messageVenue, messageVideo,
+//-messageVideoNote, or messageVoiceNote
 messageReplyToMessage chat_id:int53 message_id:int53 quote:textQuote origin:MessageOrigin origin_send_date:int32 content:MessageContent = MessageReplyTo;
 
 //@description Describes a story replied by a given message @story_sender_chat_id The identifier of the sender of the story @story_id The identifier of the story
@@ -3592,20 +3592,20 @@ messageGiftedPremium gifter_user_id:int53 receiver_user_id:int53 currency:string
 messagePremiumGiftCode creator_id:MessageSender is_from_giveaway:Bool is_unclaimed:Bool currency:string amount:int53 cryptocurrency:string cryptocurrency_amount:int64 month_count:int32 sticker:sticker code:string = MessageContent;
 
 //@description A Telegram Premium giveaway was created for the chat. Use telegramPaymentPurposePremiumGiveaway or storePaymentPurposePremiumGiveaway to create a giveaway
-messagePremiumGiveawayCreated = MessageContent;
+messageGiveawayCreated = MessageContent;
 
 //@description A Telegram Premium giveaway
 //@parameters Giveaway parameters
 //@winner_count Number of users which will receive Telegram Premium subscription gift codes
 //@month_count Number of months the Telegram Premium subscription will be active after code activation
 //@sticker A sticker to be shown in the message; may be null if unknown
-messagePremiumGiveaway parameters:premiumGiveawayParameters winner_count:int32 month_count:int32 sticker:sticker = MessageContent;
+messageGiveaway parameters:premiumGiveawayParameters winner_count:int32 month_count:int32 sticker:sticker = MessageContent;
 
 //@description A Telegram Premium giveaway without public winners has been completed for the chat
 //@giveaway_message_id Identifier of the message with the giveaway; can be 0 if the message was deleted
 //@winner_count Number of winners in the giveaway
 //@unclaimed_prize_count Number of undistributed prizes
-messagePremiumGiveawayCompleted giveaway_message_id:int53 winner_count:int32 unclaimed_prize_count:int32 = MessageContent;
+messageGiveawayCompleted giveaway_message_id:int53 winner_count:int32 unclaimed_prize_count:int32 = MessageContent;
 
 //@description A Telegram Premium giveaway with public winners has been completed for the chat
 //@boosted_chat_id Identifier of the channel chat, which was automatically boosted by the winners of the giveaway for duration of the Premium subscription
@@ -3619,7 +3619,7 @@ messagePremiumGiveawayCompleted giveaway_message_id:int53 winner_count:int32 unc
 //@winner_count Total number of winners in the giveaway
 //@winner_user_ids Up to 100 user identifiers of the winners of the giveaway
 //@unclaimed_prize_count Number of undistributed prizes
-messagePremiumGiveawayWinners boosted_chat_id:int53 giveaway_message_id:int53 additional_chat_count:int32 actual_winners_selection_date:int32 only_new_members:Bool was_refunded:Bool month_count:int32 prize_description:string winner_count:int32 winner_user_ids:vector<int53> unclaimed_prize_count:int32 = MessageContent;
+messageGiveawayWinners boosted_chat_id:int53 giveaway_message_id:int53 additional_chat_count:int32 actual_winners_selection_date:int32 only_new_members:Bool was_refunded:Bool month_count:int32 prize_description:string winner_count:int32 winner_user_ids:vector<int53> unclaimed_prize_count:int32 = MessageContent;
 
 //@description Telegram Stars were gifted to a user
 //@gifter_user_id The identifier of a user that gifted Telegram Stars; 0 if the gift was anonymous or is outgoing
@@ -3790,7 +3790,7 @@ messageSelfDestructTypeImmediately = MessageSelfDestructType;
 //@only_preview Pass true to get a fake message instead of actually sending them
 messageSendOptions disable_notification:Bool from_background:Bool protect_content:Bool update_order_of_installed_sticker_sets:Bool scheduling_state:MessageSchedulingState effect_id:int64 sending_id:int32 only_preview:Bool = MessageSendOptions;
 
-//@description Options to be used when a message content is copied without reference to the original sender. Service messages, messages with messageInvoice, messagePaidMedia, messagePremiumGiveaway, or messagePremiumGiveawayWinners content can't be copied
+//@description Options to be used when a message content is copied without reference to the original sender. Service messages, messages with messageInvoice, messagePaidMedia, messageGiveaway, or messageGiveawayWinners content can't be copied
 //@send_copy True, if content of the message needs to be copied without reference to the original sender. Always true if the message is forwarded to a secret chat or is local
 //@replace_caption True, if media caption of the message copy needs to be replaced. Ignored if send_copy is false
 //@new_caption New message caption; pass null to copy message without caption. Ignored if replace_caption is false
@@ -8274,7 +8274,7 @@ getMessageLocally chat_id:int53 message_id:int53 = Message;
 
 //@description Returns information about a non-bundled message that is replied by a given message. Also, returns the pinned message, the game message, the invoice message,
 //-the message with a previously set same background, the giveaway message, and the topic creation message for messages of the types
-//-messagePinMessage, messageGameScore, messagePaymentSuccessful, messageChatSetBackground, messagePremiumGiveawayCompleted and topic messages without non-bundled replied message respectively
+//-messagePinMessage, messageGameScore, messagePaymentSuccessful, messageChatSetBackground, messageGiveawayCompleted and topic messages without non-bundled replied message respectively
 //@chat_id Identifier of the chat the message belongs to
 //@message_id Identifier of the reply message
 getRepliedMessage chat_id:int53 message_id:int53 = Message;

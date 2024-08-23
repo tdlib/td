@@ -7928,25 +7928,24 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::Giveaway: {
       const auto *m = static_cast<const MessageGiveaway *>(content);
-      return td_api::make_object<td_api::messagePremiumGiveaway>(
+      return td_api::make_object<td_api::messageGiveaway>(
           m->giveaway_parameters.get_premium_giveaway_parameters_object(td), m->quantity, m->months,
           td->stickers_manager_->get_premium_gift_sticker_object(m->months));
     }
     case MessageContentType::GiveawayLaunch:
-      return td_api::make_object<td_api::messagePremiumGiveawayCreated>();
+      return td_api::make_object<td_api::messageGiveawayCreated>();
     case MessageContentType::GiveawayResults: {
       const auto *m = static_cast<const MessageGiveawayResults *>(content);
-      return td_api::make_object<td_api::messagePremiumGiveawayCompleted>(m->giveaway_message_id.get(), m->winner_count,
-                                                                          m->unclaimed_count);
+      return td_api::make_object<td_api::messageGiveawayCompleted>(m->giveaway_message_id.get(), m->winner_count,
+                                                                   m->unclaimed_count);
     }
     case MessageContentType::GiveawayWinners: {
       const auto *m = static_cast<const MessageGiveawayWinners *>(content);
-      return td_api::make_object<td_api::messagePremiumGiveawayWinners>(
-          td->dialog_manager_->get_chat_id_object(DialogId(m->boosted_channel_id), "messagePremiumGiveawayWinners"),
+      return td_api::make_object<td_api::messageGiveawayWinners>(
+          td->dialog_manager_->get_chat_id_object(DialogId(m->boosted_channel_id), "messageGiveawayWinners"),
           m->giveaway_message_id.get(), m->additional_dialog_count, m->winners_selection_date, m->only_new_subscribers,
           m->was_refunded, m->month_count, m->prize_description, m->winner_count,
-          td->user_manager_->get_user_ids_object(m->winner_user_ids, "messagePremiumGiveawayWinners"),
-          m->unclaimed_count);
+          td->user_manager_->get_user_ids_object(m->winner_user_ids, "messageGiveawayWinners"), m->unclaimed_count);
     }
     case MessageContentType::ExpiredVideoNote:
       return make_tl_object<td_api::messageExpiredVideoNote>();
