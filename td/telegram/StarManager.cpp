@@ -307,9 +307,9 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                   transaction->subscription_period_ = 0;
                 };
                 td_->dialog_manager_->force_create_dialog(dialog_id, "starsTransactionPeer", true);
-                return td_api::make_object<td_api::starTransactionPartnerChannel>(
-                    td_->dialog_manager_->get_chat_id_object(dialog_id, "starTransactionPartnerChannel"),
-                    td_api::make_object<td_api::channelTransactionPurposeJoin>(transaction->subscription_period_));
+                return td_api::make_object<td_api::starTransactionPartnerChat>(
+                    td_->dialog_manager_->get_chat_id_object(dialog_id, "starTransactionPartnerChat"),
+                    td_api::make_object<td_api::chatTransactionPurposeJoin>(transaction->subscription_period_));
               }
               if (transaction->reaction_) {
                 SCOPE_EXIT {
@@ -322,9 +322,9 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                   message_id = MessageId();
                 }
                 td_->dialog_manager_->force_create_dialog(dialog_id, "starsTransactionPeer", true);
-                return td_api::make_object<td_api::starTransactionPartnerChannel>(
-                    td_->dialog_manager_->get_chat_id_object(dialog_id, "starTransactionPartnerChannel"),
-                    td_api::make_object<td_api::channelTransactionPurposeReaction>(message_id.get()));
+                return td_api::make_object<td_api::starTransactionPartnerChat>(
+                    td_->dialog_manager_->get_chat_id_object(dialog_id, "starTransactionPartnerChat"),
+                    td_api::make_object<td_api::chatTransactionPurposeReaction>(message_id.get()));
               }
 
               SCOPE_EXIT {
@@ -336,10 +336,10 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                 message_id = MessageId();
               }
               td_->dialog_manager_->force_create_dialog(dialog_id, "starsTransactionPeer", true);
-              return td_api::make_object<td_api::starTransactionPartnerChannel>(
-                  td_->dialog_manager_->get_chat_id_object(dialog_id, "starTransactionPartnerChannel"),
-                  td_api::make_object<td_api::channelTransactionPurposePaidMedia>(message_id.get(),
-                                                                                  get_paid_media_object(dialog_id)));
+              return td_api::make_object<td_api::starTransactionPartnerChat>(
+                  td_->dialog_manager_->get_chat_id_object(dialog_id, "starTransactionPartnerChat"),
+                  td_api::make_object<td_api::chatTransactionPurposePaidMedia>(message_id.get(),
+                                                                               get_paid_media_object(dialog_id)));
             }
             LOG(ERROR) << "Receive Telegram Star transaction with " << dialog_id;
             return td_api::make_object<td_api::starTransactionPartnerUnsupported>();

@@ -899,20 +899,20 @@ botTransactionPurposePaidMedia media:vector<PaidMedia> payload:string = BotTrans
 botTransactionPurposeInvoicePayment product_info:productInfo invoice_payload:bytes = BotTransactionPurpose;
 
 
-//@class ChannelTransactionPurpose @description Describes purpose of a transaction with a channel
+//@class ChatTransactionPurpose @description Describes purpose of a transaction with a channel
 
 //@description Paid media were bought
 //@message_id Identifier of the corresponding message with paid media; can be an identifier of a deleted message
 //@media The bought media if the trancastion wasn't refunded
-channelTransactionPurposePaidMedia message_id:int53 media:vector<PaidMedia> = ChannelTransactionPurpose;
+chatTransactionPurposePaidMedia message_id:int53 media:vector<PaidMedia> = ChatTransactionPurpose;
 
 //@description User joined the channel and subscribed to regular payments in Telegram Stars
 //@period The number of seconds between consecutive Telegram Star debiting
-channelTransactionPurposeJoin period:int32 = ChannelTransactionPurpose;
+chatTransactionPurposeJoin period:int32 = ChatTransactionPurpose;
 
 //@description User paid for a reaction
 //@message_id Identifier of the reacted message; can be an identifier of a deleted message
-channelTransactionPurposeReaction message_id:int53 = ChannelTransactionPurpose;
+chatTransactionPurposeReaction message_id:int53 = ChatTransactionPurpose;
 
 
 //@class StarTransactionPartner @description Describes source or recipient of a transaction with Telegram Stars
@@ -938,8 +938,8 @@ starTransactionPartnerBot user_id:int53 purpose:BotTransactionPurpose = StarTran
 //@description The transaction is a transaction with a business account @user_id Identifier of the business account user @media The bought media if the trancastion wasn't refunded
 starTransactionPartnerBusiness user_id:int53 media:vector<PaidMedia> = StarTransactionPartner;
 
-//@description The transaction is a transaction with a channel chat @chat_id Identifier of the chat @purpose Purpose of the transaction
-starTransactionPartnerChannel chat_id:int53 purpose:ChannelTransactionPurpose = StarTransactionPartner;
+//@description The transaction is a transaction with a supergroup or a channel chat @chat_id Identifier of the chat @purpose Purpose of the transaction
+starTransactionPartnerChat chat_id:int53 purpose:ChatTransactionPurpose = StarTransactionPartner;
 
 //@description The transaction is a gift of Telegram Stars from another user
 //@user_id Identifier of the user; 0 if the gift was anonymous
