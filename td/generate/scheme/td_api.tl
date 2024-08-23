@@ -4558,12 +4558,12 @@ chatBoostSourceGiveaway user_id:int53 gift_code:string giveaway_message_id:int53
 chatBoostSourcePremium user_id:int53 = ChatBoostSource;
 
 
-//@description Describes a prepaid Telegram Premium giveaway
+//@description Describes a prepaid giveaway
 //@id Unique identifier of the prepaid giveaway
-//@winner_count Number of users which will receive Telegram Premium subscription gift codes
+//@winner_count Number of users which will receive giveaway prize
 //@month_count Number of months the Telegram Premium subscription will be active after code activation
 //@payment_date Point in time (Unix timestamp) when the giveaway was paid
-prepaidPremiumGiveaway id:int64 winner_count:int32 month_count:int32 payment_date:int32 = PrepaidPremiumGiveaway;
+prepaidGiveaway id:int64 winner_count:int32 month_count:int32 payment_date:int32 = PrepaidGiveaway;
 
 //@description Describes current boost status of a chat
 //@boost_url An HTTP URL, which can be used to boost the chat
@@ -4576,7 +4576,7 @@ prepaidPremiumGiveaway id:int64 winner_count:int32 month_count:int32 payment_dat
 //@premium_member_count Approximate number of Telegram Premium subscribers joined the chat; always 0 if the current user isn't an administrator in the chat
 //@premium_member_percentage A percentage of Telegram Premium subscribers joined the chat; always 0 if the current user isn't an administrator in the chat
 //@prepaid_giveaways The list of prepaid giveaways available for the chat; only for chat administrators
-chatBoostStatus boost_url:string applied_slot_ids:vector<int32> level:int32 gift_code_boost_count:int32 boost_count:int32 current_level_boost_count:int32 next_level_boost_count:int32 premium_member_count:int32 premium_member_percentage:double prepaid_giveaways:vector<prepaidPremiumGiveaway> = ChatBoostStatus;
+chatBoostStatus boost_url:string applied_slot_ids:vector<int32> level:int32 gift_code_boost_count:int32 boost_count:int32 current_level_boost_count:int32 next_level_boost_count:int32 premium_member_count:int32 premium_member_percentage:double prepaid_giveaways:vector<prepaidGiveaway> = ChatBoostStatus;
 
 //@description Describes a boost applied to a chat
 //@id Unique identifier of the boost
@@ -11531,10 +11531,8 @@ checkPremiumGiftCode code:string = PremiumGiftCodeInfo;
 //@description Applies a Telegram Premium gift code @code The code to apply
 applyPremiumGiftCode code:string = Ok;
 
-//@description Launches a prepaid Telegram Premium giveaway
-//@giveaway_id Unique identifier of the prepaid giveaway
-//@parameters Giveaway parameters
-launchPrepaidPremiumGiveaway giveaway_id:int64 parameters:giveawayParameters = Ok;
+//@description Launches a prepaid giveaway @giveaway_id Unique identifier of the prepaid giveaway @parameters Giveaway parameters
+launchPrepaidGiveaway giveaway_id:int64 parameters:giveawayParameters = Ok;
 
 //@description Returns information about a giveaway
 //@chat_id Identifier of the channel chat which started the giveaway

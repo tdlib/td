@@ -190,17 +190,17 @@ class GetBoostsStatusQuery final : public Td::ResultHandler {
     auto giveaways =
         transform(std::move(result->prepaid_giveaways_),
                   [](telegram_api::object_ptr<telegram_api::PrepaidGiveaway> giveaway_ptr)
-                      -> td_api::object_ptr<td_api::prepaidPremiumGiveaway> {
+                      -> td_api::object_ptr<td_api::prepaidGiveaway> {
                     switch (giveaway_ptr->get_id()) {
                       case telegram_api::prepaidGiveaway::ID: {
                         auto giveaway = telegram_api::move_object_as<telegram_api::prepaidGiveaway>(giveaway_ptr);
-                        return td_api::make_object<td_api::prepaidPremiumGiveaway>(giveaway->id_, giveaway->quantity_,
-                                                                                   giveaway->months_, giveaway->date_);
+                        return td_api::make_object<td_api::prepaidGiveaway>(giveaway->id_, giveaway->quantity_,
+                                                                            giveaway->months_, giveaway->date_);
                       }
                       case telegram_api::prepaidStarsGiveaway::ID: {
                         auto giveaway = telegram_api::move_object_as<telegram_api::prepaidStarsGiveaway>(giveaway_ptr);
-                        return td_api::make_object<td_api::prepaidPremiumGiveaway>(giveaway->id_, giveaway->quantity_,
-                                                                                   0, giveaway->date_);
+                        return td_api::make_object<td_api::prepaidGiveaway>(giveaway->id_, giveaway->quantity_, 0,
+                                                                            giveaway->date_);
                       }
                       default:
                         UNREACHABLE();

@@ -1539,7 +1539,7 @@ class Requests {
 
   void on_request(uint64 id, td_api::applyPremiumGiftCode &request);
 
-  void on_request(uint64 id, td_api::launchPrepaidPremiumGiveaway &request);
+  void on_request(uint64 id, td_api::launchPrepaidGiveaway &request);
 
   void on_request(uint64 id, const td_api::getGiveawayInfo &request);
 
