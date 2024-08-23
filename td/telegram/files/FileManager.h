@@ -315,7 +315,7 @@ class FileView {
 
   const string *get_url() const;
 
-  const string &remote_name() const;
+  string remote_name() const;
 
   string suggested_path() const;
 

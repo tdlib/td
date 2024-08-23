@@ -767,7 +767,7 @@ const string *FileView::get_url() const {
   return &node_->url_;
 }
 
-const string &FileView::remote_name() const {
+string FileView::remote_name() const {
   return node_->remote_name_;
 }
 
