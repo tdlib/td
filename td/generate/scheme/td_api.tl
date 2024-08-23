@@ -899,10 +899,10 @@ botTransactionPurposePaidMedia media:vector<PaidMedia> payload:string = BotTrans
 botTransactionPurposeInvoicePayment product_info:productInfo invoice_payload:bytes = BotTransactionPurpose;
 
 
-//@class ChatTransactionPurpose @description Describes purpose of a transaction with a channel
+//@class ChatTransactionPurpose @description Describes purpose of a transaction with a supergroup or a channel
 
 //@description Paid media were bought
-//@message_id Identifier of the corresponding message with paid media; can be an identifier of a deleted message
+//@message_id Identifier of the corresponding message with paid media; can be 0 or an identifier of a deleted message
 //@media The bought media if the trancastion wasn't refunded
 chatTransactionPurposePaidMedia message_id:int53 media:vector<PaidMedia> = ChatTransactionPurpose;
 
@@ -911,8 +911,11 @@ chatTransactionPurposePaidMedia message_id:int53 media:vector<PaidMedia> = ChatT
 chatTransactionPurposeJoin period:int32 = ChatTransactionPurpose;
 
 //@description User paid for a reaction
-//@message_id Identifier of the reacted message; can be an identifier of a deleted message
+//@message_id Identifier of the reacted message; can be 0 or an identifier of a deleted message
 chatTransactionPurposeReaction message_id:int53 = ChatTransactionPurpose;
+
+//@description User received Telegram Stars from a giveaway @giveaway_message_id Identifier of the message with giveaway; can be 0 or an identifier of a deleted message
+chatTransactionPurposeGiveaway giveaway_message_id:int53 = ChatTransactionPurpose;
 
 
 //@class StarTransactionPartner @description Describes source or recipient of a transaction with Telegram Stars

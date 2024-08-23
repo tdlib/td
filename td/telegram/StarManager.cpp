@@ -301,6 +301,16 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                   td_api::make_object<td_api::botTransactionPurposeInvoicePayment>(std::move(product_info),
                                                                                    bot_payload));
             }
+            if (dialog_id.get_type() == DialogType::Channel && transaction->giveaway_post_id_ > 0) {
+              SCOPE_EXIT {
+                transaction->giveaway_post_id_ = 0;
+              };
+              td_->dialog_manager_->force_create_dialog(dialog_id, "starsTransactionPeer", true);
+              return td_api::make_object<td_api::starTransactionPartnerChat>(
+                  td_->dialog_manager_->get_chat_id_object(dialog_id, "starTransactionPartnerChat"),
+                  td_api::make_object<td_api::chatTransactionPurposeGiveaway>(
+                      MessageId(ServerMessageId(transaction->giveaway_post_id_)).get()));
+            }
             if (td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
               if (transaction->subscription_period_ > 0) {
                 SCOPE_EXIT {
@@ -378,6 +388,9 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         }
         if (!transaction->extended_media_.empty()) {
           LOG(ERROR) << "Receive paid media with " << to_string(star_transaction);
+        }
+        if (transaction->giveaway_post_id_ != 0) {
+          LOG(ERROR) << "Receive giveaway message with " << to_string(star_transaction);
         }
       }
       if (!file_ids.empty()) {
