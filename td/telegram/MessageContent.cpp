@@ -504,7 +504,7 @@ class MessageChatSetTtl final : public MessageContent {
 
 class MessageUnsupported final : public MessageContent {
  public:
-  static constexpr int32 CURRENT_VERSION = 33;
+  static constexpr int32 CURRENT_VERSION = 34;
   int32 version = CURRENT_VERSION;
 
   MessageUnsupported() = default;
@@ -1049,6 +1049,7 @@ class MessageGiveawayWinners final : public MessageContent {
   ChannelId boosted_channel_id;
   int32 additional_dialog_count = 0;
   int32 month_count = 0;
+  int64 star_count = 0;
   string prize_description;
   int32 winners_selection_date = 0;
   bool only_new_subscribers = false;
@@ -1059,13 +1060,14 @@ class MessageGiveawayWinners final : public MessageContent {
 
   MessageGiveawayWinners() = default;
   MessageGiveawayWinners(MessageId giveaway_message_id, ChannelId boosted_channel_id, int32 additional_dialog_count,
-                         int32 month_count, string &&prize_description, int32 winners_selection_date,
+                         int32 month_count, int64 star_count, string &&prize_description, int32 winners_selection_date,
                          bool only_new_subscribers, bool was_refunded, int32 winner_count, int32 unclaimed_count,
                          vector<UserId> &&winner_user_ids)
       : giveaway_message_id(giveaway_message_id)
       , boosted_channel_id(boosted_channel_id)
       , additional_dialog_count(additional_dialog_count)
       , month_count(month_count)
+      , star_count(star_count)
       , prize_description(std::move(prize_description))
       , winners_selection_date(winners_selection_date)
       , only_new_subscribers(only_new_subscribers)
@@ -1701,6 +1703,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       bool has_winner_count = m->winner_count != 0;
       bool has_unclaimed_count = m->unclaimed_count != 0;
       bool has_winner_user_ids = !m->winner_user_ids.empty();
+      bool has_star_count = m->star_count != 0;
       BEGIN_STORE_FLAGS();
       STORE_FLAG(m->only_new_subscribers);
       STORE_FLAG(m->was_refunded);
@@ -1713,6 +1716,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       STORE_FLAG(has_winner_count);
       STORE_FLAG(has_unclaimed_count);
       STORE_FLAG(has_winner_user_ids);
+      STORE_FLAG(has_star_count);
       END_STORE_FLAGS();
       if (has_giveaway_message_id) {
         store(m->giveaway_message_id, storer);
@@ -1740,6 +1744,9 @@ static void store(const MessageContent *content, StorerT &storer) {
       }
       if (has_winner_user_ids) {
         store(m->winner_user_ids, storer);
+      }
+      if (has_star_count) {
+        store(m->star_count, storer);
       }
       break;
     }
@@ -2494,6 +2501,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       bool has_winner_count;
       bool has_unclaimed_count;
       bool has_winner_user_ids;
+      bool has_star_count;
       BEGIN_PARSE_FLAGS();
       PARSE_FLAG(m->only_new_subscribers);
       PARSE_FLAG(m->was_refunded);
@@ -2506,6 +2514,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       PARSE_FLAG(has_winner_count);
       PARSE_FLAG(has_unclaimed_count);
       PARSE_FLAG(has_winner_user_ids);
+      PARSE_FLAG(has_star_count);
       END_PARSE_FLAGS();
       if (has_giveaway_message_id) {
         parse(m->giveaway_message_id, parser);
@@ -2533,6 +2542,9 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       }
       if (has_winner_user_ids) {
         parse(m->winner_user_ids, parser);
+      }
+      if (has_star_count) {
+        parse(m->star_count, parser);
       }
       if (m->winner_count < 0 || m->unclaimed_count < 0) {
         is_bad = true;
@@ -5752,7 +5764,7 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       const auto *rhs = static_cast<const MessageGiveawayWinners *>(new_content);
       if (lhs->giveaway_message_id != rhs->giveaway_message_id || lhs->boosted_channel_id != rhs->boosted_channel_id ||
           lhs->additional_dialog_count != rhs->additional_dialog_count || lhs->month_count != rhs->month_count ||
-          lhs->prize_description != rhs->prize_description ||
+          lhs->star_count != rhs->star_count || lhs->prize_description != rhs->prize_description ||
           lhs->winners_selection_date != rhs->winners_selection_date ||
           lhs->only_new_subscribers != rhs->only_new_subscribers || lhs->was_refunded != rhs->was_refunded ||
           lhs->winner_count != rhs->winner_count || lhs->unclaimed_count != rhs->unclaimed_count ||
@@ -6729,10 +6741,8 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
           td->dialog_manager_->force_create_dialog(DialogId(channel_id), "messageMediaGiveaway", true);
         }
       }
-      if (channel_ids.empty() || media->quantity_ <= 0 || media->months_ <= 0 || media->until_date_ < 0) {
-        if (media->months_ == 0 && media->stars_ > 0) {
-          return make_unique<MessageUnsupported>();
-        }
+      if (channel_ids.empty() || media->quantity_ <= 0 || (media->months_ <= 0 && media->stars_ <= 0) ||
+          media->until_date_ < 0) {
         if (message_date >= 1700000000) {  // approximate release date
           LOG(ERROR) << "Receive " << to_string(media);
         }
@@ -6751,10 +6761,8 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       auto giveaway_message_id = MessageId(ServerMessageId(media->launch_msg_id_));
       auto boosted_channel_id = ChannelId(media->channel_id_);
       if (!giveaway_message_id.is_valid() || !boosted_channel_id.is_valid() || media->additional_peers_count_ < 0 ||
-          media->months_ <= 0 || media->until_date_ <= 0 || media->winners_count_ < 0 || media->unclaimed_count_ < 0) {
-        if (media->months_ == 0 && media->stars_ > 0) {
-          return make_unique<MessageUnsupported>();
-        }
+          (media->months_ <= 0 && media->stars_ <= 0) || media->until_date_ <= 0 || media->winners_count_ < 0 ||
+          media->unclaimed_count_ < 0) {
         LOG(ERROR) << "Receive " << to_string(media);
         break;
       }
@@ -6771,8 +6779,9 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       }
       return td::make_unique<MessageGiveawayWinners>(
           giveaway_message_id, boosted_channel_id, media->additional_peers_count_, media->months_,
-          std::move(media->prize_description_), media->until_date_, media->only_new_subscribers_, media->refunded_,
-          media->winners_count_, media->unclaimed_count_, std::move(winner_user_ids));
+          StarManager::get_star_count(media->stars_), std::move(media->prize_description_), media->until_date_,
+          media->only_new_subscribers_, media->refunded_, media->winners_count_, media->unclaimed_count_,
+          std::move(winner_user_ids));
     }
     case telegram_api::messageMediaPaidMedia::ID: {
       auto media = telegram_api::move_object_as<telegram_api::messageMediaPaidMedia>(media_ptr);
@@ -7969,10 +7978,16 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::GiveawayWinners: {
       const auto *m = static_cast<const MessageGiveawayWinners *>(content);
+      td_api::object_ptr<td_api::GiveawayPrize> prize;
+      if (m->month_count != 0) {
+        prize = td_api::make_object<td_api::giveawayPrizePremium>(m->month_count);
+      } else {
+        prize = td_api::make_object<td_api::giveawayPrizeStars>(m->star_count);
+      }
       return td_api::make_object<td_api::messageGiveawayWinners>(
           td->dialog_manager_->get_chat_id_object(DialogId(m->boosted_channel_id), "messageGiveawayWinners"),
           m->giveaway_message_id.get(), m->additional_dialog_count, m->winners_selection_date, m->only_new_subscribers,
-          m->was_refunded, m->month_count, m->prize_description, m->winner_count,
+          m->was_refunded, std::move(prize), m->prize_description, m->winner_count,
           td->user_manager_->get_user_ids_object(m->winner_user_ids, "messageGiveawayWinners"), m->unclaimed_count);
     }
     case MessageContentType::ExpiredVideoNote:
