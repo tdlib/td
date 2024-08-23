@@ -638,6 +638,9 @@ static telegram_api::object_ptr<telegram_api::channelAdminLogEventsFilter> get_i
   if (filters->forum_changes_) {
     flags |= telegram_api::channelAdminLogEventsFilter::FORUMS_MASK;
   }
+  if (filters->subscription_extensions_) {
+    flags |= telegram_api::channelAdminLogEventsFilter::SUB_EXTEND_MASK;
+  }
 
   return telegram_api::make_object<telegram_api::channelAdminLogEventsFilter>(
       flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
