@@ -3617,7 +3617,7 @@ messageGiveaway parameters:giveawayParameters winner_count:int32 prize:GiveawayP
 messageGiveawayCompleted giveaway_message_id:int53 winner_count:int32 unclaimed_prize_count:int32 = MessageContent;
 
 //@description A giveaway with public winners has been completed for the chat
-//@boosted_chat_id Identifier of the channel chat, which was automatically boosted by the winners of the giveaway
+//@boosted_chat_id Identifier of the supergroup or channel chat, which was automatically boosted by the winners of the giveaway
 //@giveaway_message_id Identifier of the message with the giveaway in the boosted chat
 //@additional_chat_count Number of other chats that participated in the giveaway
 //@actual_winners_selection_date Point in time (Unix timestamp) when the winners were selected. May be bigger than winners selection date specified in parameters of the giveaway
@@ -3641,6 +3641,14 @@ messageGiveawayWinners boosted_chat_id:int53 giveaway_message_id:int53 additiona
 //@transaction_id Identifier of the transaction for Telegram Stars purchase; for receiver only
 //@sticker A sticker to be shown in the message; may be null if unknown
 messageGiftedStars gifter_user_id:int53 receiver_user_id:int53 currency:string amount:int53 cryptocurrency:string cryptocurrency_amount:int64 star_count:int53 transaction_id:string sticker:sticker = MessageContent;
+
+//@description A Telegram Stars were received by the cuurent user from a giveaway
+//@star_count Number of Telegram Stars that were received
+//@transaction_id Identifier of the transaction for Telegram Stars credit
+//@boosted_chat_id Identifier of the supergroup or channel chat, which was automatically boosted by the winners of the giveaway
+//@giveaway_message_id Identifier of the message with the giveaway in the boosted chat; can be 0 if the message was deleted
+//@is_unclaimed True, if the corresponding winner wasn't chosen and the Telegram Stars were received by the owner of the boosted chat
+messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id:int53 giveaway_message_id:int53 is_unclaimed:Bool = MessageContent;
 
 //@description A contact has registered with Telegram
 messageContactRegistered = MessageContent;

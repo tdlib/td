@@ -504,7 +504,7 @@ class MessageChatSetTtl final : public MessageContent {
 
 class MessageUnsupported final : public MessageContent {
  public:
-  static constexpr int32 CURRENT_VERSION = 34;
+  static constexpr int32 CURRENT_VERSION = 35;
   int32 version = CURRENT_VERSION;
 
   MessageUnsupported() = default;
@@ -1195,6 +1195,29 @@ class MessageGiftStars final : public MessageContent {
   }
 };
 
+class MessagePrizeStars final : public MessageContent {
+ public:
+  int64 star_count = 0;
+  string transaction_id;
+  DialogId boosted_dialog_id;
+  MessageId giveaway_message_id;
+  bool is_unclaimed = false;
+
+  MessagePrizeStars() = default;
+  MessagePrizeStars(int64 star_count, string &&transaction_id, DialogId boosted_dialog_id,
+                    MessageId giveaway_message_id, bool is_unclaimed)
+      : star_count(star_count)
+      , transaction_id(std::move(transaction_id))
+      , boosted_dialog_id(boosted_dialog_id)
+      , giveaway_message_id(giveaway_message_id)
+      , is_unclaimed(is_unclaimed) {
+  }
+
+  MessageContentType get_type() const final {
+    return MessageContentType::PrizeStars;
+  }
+};
+
 template <class StorerT>
 static void store(const MessageContent *content, StorerT &storer) {
   CHECK(content != nullptr);
@@ -1821,6 +1844,17 @@ static void store(const MessageContent *content, StorerT &storer) {
       if (has_transaction_id) {
         store(m->transaction_id, storer);
       }
+      break;
+    }
+    case MessageContentType::PrizeStars: {
+      const auto *m = static_cast<const MessagePrizeStars *>(content);
+      BEGIN_STORE_FLAGS();
+      STORE_FLAG(m->is_unclaimed);
+      END_STORE_FLAGS();
+      store(m->star_count, storer);
+      store(m->transaction_id, storer);
+      store(m->boosted_dialog_id, storer);
+      store(m->giveaway_message_id, storer);
       break;
     }
     default:
@@ -2645,6 +2679,18 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       content = std::move(m);
       break;
     }
+    case MessageContentType::PrizeStars: {
+      auto m = make_unique<MessagePrizeStars>();
+      BEGIN_PARSE_FLAGS();
+      PARSE_FLAG(m->is_unclaimed);
+      END_PARSE_FLAGS();
+      parse(m->star_count, parser);
+      parse(m->transaction_id, parser);
+      parse(m->boosted_dialog_id, parser);
+      parse(m->giveaway_message_id, parser);
+      content = std::move(m);
+      break;
+    }
 
     default:
       is_bad = true;
@@ -3409,6 +3455,7 @@ bool can_message_content_have_input_media(const Td *td, const MessageContent *co
     case MessageContentType::DialogShared:
     case MessageContentType::PaymentRefunded:
     case MessageContentType::GiftStars:
+    case MessageContentType::PrizeStars:
       return false;
     case MessageContentType::Animation:
     case MessageContentType::Audio:
@@ -3554,6 +3601,7 @@ SecretInputMedia get_message_content_secret_input_media(
     case MessageContentType::PaidMedia:
     case MessageContentType::PaymentRefunded:
     case MessageContentType::GiftStars:
+    case MessageContentType::PrizeStars:
       break;
     default:
       UNREACHABLE();
@@ -3727,6 +3775,7 @@ static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_in
     case MessageContentType::DialogShared:
     case MessageContentType::PaymentRefunded:
     case MessageContentType::GiftStars:
+    case MessageContentType::PrizeStars:
       break;
     default:
       UNREACHABLE();
@@ -3980,6 +4029,7 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td, int32 med
     case MessageContentType::DialogShared:
     case MessageContentType::PaymentRefunded:
     case MessageContentType::GiftStars:
+    case MessageContentType::PrizeStars:
       break;
     default:
       UNREACHABLE();
@@ -4220,6 +4270,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
     case MessageContentType::DialogShared:
     case MessageContentType::PaymentRefunded:
     case MessageContentType::GiftStars:
+    case MessageContentType::PrizeStars:
       UNREACHABLE();
   }
   return Status::OK();
@@ -4371,6 +4422,7 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
     case MessageContentType::PaidMedia:
     case MessageContentType::PaymentRefunded:
     case MessageContentType::GiftStars:
+    case MessageContentType::PrizeStars:
       return 0;
     default:
       UNREACHABLE();
@@ -4668,6 +4720,8 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
       // private chats only
       break;
     case MessageContentType::GiftStars:
+      break;
+    case MessageContentType::PrizeStars:
       break;
     default:
       UNREACHABLE();
@@ -5097,6 +5151,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::DialogShared:
     case MessageContentType::PaymentRefunded:
     case MessageContentType::GiftStars:
+    case MessageContentType::PrizeStars:
       break;
     default:
       UNREACHABLE();
@@ -5251,6 +5306,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::DialogShared:
     case MessageContentType::PaymentRefunded:
     case MessageContentType::GiftStars:
+    case MessageContentType::PrizeStars:
       LOG(ERROR) << "Receive new file " << new_file_id << " in a sent message of the type " << content_type;
       break;
     default:
@@ -5830,6 +5886,16 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       if (lhs->currency != rhs->currency || lhs->amount != rhs->amount ||
           lhs->crypto_currency != rhs->crypto_currency || lhs->crypto_amount != rhs->crypto_amount ||
           lhs->star_count != rhs->star_count || lhs->transaction_id != rhs->transaction_id) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::PrizeStars: {
+      const auto *lhs = static_cast<const MessagePrizeStars *>(old_content);
+      const auto *rhs = static_cast<const MessagePrizeStars *>(new_content);
+      if (lhs->star_count != rhs->star_count || lhs->transaction_id != rhs->transaction_id ||
+          lhs->boosted_dialog_id != rhs->boosted_dialog_id || lhs->giveaway_message_id != rhs->giveaway_message_id ||
+          lhs->is_unclaimed != rhs->is_unclaimed) {
         need_update = true;
       }
       break;
@@ -7064,6 +7130,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::DialogShared:
     case MessageContentType::PaymentRefunded:
     case MessageContentType::GiftStars:
+    case MessageContentType::PrizeStars:
       return nullptr;
     default:
       UNREACHABLE();
@@ -7574,8 +7641,16 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
           std::move(action->currency_), action->amount_, std::move(action->crypto_currency_), action->crypto_amount_,
           StarManager::get_star_count(action->stars_), std::move(action->transaction_id_));
     }
-    case telegram_api::messageActionPrizeStars::ID:
-      return make_unique<MessageUnsupported>();
+    case telegram_api::messageActionPrizeStars::ID: {
+      auto action = move_tl_object_as<telegram_api::messageActionPrizeStars>(action_ptr);
+      DialogId boosted_dialog_id;
+      if (action->boost_peer_ != nullptr) {
+        boosted_dialog_id = DialogId(action->boost_peer_);
+      }
+      return td::make_unique<MessagePrizeStars>(
+          StarManager::get_star_count(action->stars_), std::move(action->transaction_id_), boosted_dialog_id,
+          MessageId(ServerMessageId(action->giveaway_msg_id_)), action->unclaimed_);
+    }
     default:
       UNREACHABLE();
   }
@@ -8046,6 +8121,13 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
           gifter_user_id, receiver_user_id, m->currency, m->amount, m->crypto_currency, m->crypto_amount, m->star_count,
           m->transaction_id,
           td->stickers_manager_->get_premium_gift_sticker_object(StarManager::get_months_by_star_count(m->star_count)));
+    }
+    case MessageContentType::PrizeStars: {
+      const auto *m = static_cast<const MessagePrizeStars *>(content);
+      return td_api::make_object<td_api::messageGiveawayPrizeStars>(
+          m->star_count, m->transaction_id,
+          td->dialog_manager_->get_chat_id_object(m->boosted_dialog_id, "messageGiveawayPrizeStars"),
+          m->giveaway_message_id.get(), m->is_unclaimed);
     }
     default:
       UNREACHABLE();
@@ -8611,6 +8693,7 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::DialogShared:
     case MessageContentType::PaymentRefunded:
     case MessageContentType::GiftStars:
+    case MessageContentType::PrizeStars:
       return string();
     default:
       UNREACHABLE();
@@ -9012,6 +9095,8 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       break;
     }
     case MessageContentType::GiftStars:
+      break;
+    case MessageContentType::PrizeStars:
       break;
     default:
       UNREACHABLE();
