@@ -965,32 +965,32 @@ starTransaction id:string star_count:int53 is_refund:Bool date:int32 partner:Sta
 starTransactions star_count:int53 transactions:vector<starTransaction> next_offset:string = StarTransactions;
 
 
-//@class PremiumGiveawayParticipantStatus @description Contains information about status of a user in a Telegram Premium giveaway
+//@class GiveawayParticipantStatus @description Contains information about status of a user in a giveaway
 
 //@description The user is eligible for the giveaway
-premiumGiveawayParticipantStatusEligible = PremiumGiveawayParticipantStatus;
+giveawayParticipantStatusEligible = GiveawayParticipantStatus;
 
 //@description The user participates in the giveaway
-premiumGiveawayParticipantStatusParticipating = PremiumGiveawayParticipantStatus;
+giveawayParticipantStatusParticipating = GiveawayParticipantStatus;
 
 //@description The user can't participate in the giveaway, because they have already been member of the chat
 //@joined_chat_date Point in time (Unix timestamp) when the user joined the chat
-premiumGiveawayParticipantStatusAlreadyWasMember joined_chat_date:int32 = PremiumGiveawayParticipantStatus;
+giveawayParticipantStatusAlreadyWasMember joined_chat_date:int32 = GiveawayParticipantStatus;
 
 //@description The user can't participate in the giveaway, because they are an administrator in one of the chats that created the giveaway @chat_id Identifier of the chat administered by the user
-premiumGiveawayParticipantStatusAdministrator chat_id:int53 = PremiumGiveawayParticipantStatus;
+giveawayParticipantStatusAdministrator chat_id:int53 = GiveawayParticipantStatus;
 
 //@description The user can't participate in the giveaway, because they phone number is from a disallowed country @user_country_code A two-letter ISO 3166-1 alpha-2 country code of the user's country
-premiumGiveawayParticipantStatusDisallowedCountry user_country_code:string = PremiumGiveawayParticipantStatus;
+giveawayParticipantStatusDisallowedCountry user_country_code:string = GiveawayParticipantStatus;
 
 
-//@class PremiumGiveawayInfo @description Contains information about Telegram Premium giveaway
+//@class GiveawayInfo @description Contains information about a giveaway
 
 //@description Describes an ongoing giveaway
 //@creation_date Point in time (Unix timestamp) when the giveaway was created
 //@status Status of the current user in the giveaway
 //@is_ended True, if the giveaway has ended and results are being prepared
-premiumGiveawayInfoOngoing creation_date:int32 status:PremiumGiveawayParticipantStatus is_ended:Bool = PremiumGiveawayInfo;
+giveawayInfoOngoing creation_date:int32 status:GiveawayParticipantStatus is_ended:Bool = GiveawayInfo;
 
 //@description Describes a completed giveaway
 //@creation_date Point in time (Unix timestamp) when the giveaway was created
@@ -999,7 +999,7 @@ premiumGiveawayInfoOngoing creation_date:int32 status:PremiumGiveawayParticipant
 //@winner_count Number of winners in the giveaway
 //@activation_count Number of winners, which activated their gift codes
 //@gift_code Telegram Premium gift code that was received by the current user; empty if the user isn't a winner in the giveaway
-premiumGiveawayInfoCompleted creation_date:int32 actual_winners_selection_date:int32 was_refunded:Bool winner_count:int32 activation_count:int32 gift_code:string = PremiumGiveawayInfo;
+giveawayInfoCompleted creation_date:int32 actual_winners_selection_date:int32 was_refunded:Bool winner_count:int32 activation_count:int32 gift_code:string = GiveawayInfo;
 
 
 //@description Contains information about supported accent color for user/chat name, background of empty chat photo, replies to messages and link previews
@@ -3035,7 +3035,7 @@ paidMediaVideo video:video = PaidMedia;
 paidMediaUnsupported = PaidMedia;
 
 
-//@description Describes parameters of a Telegram Premium giveaway
+//@description Describes parameters of a giveaway
 //@boosted_chat_id Identifier of the supergroup or channel chat, which will be automatically boosted by the winners of the giveaway for duration of the Premium subscription.
 //-If the chat is a channel, then can_post_messages right is required in the channel, otherwise, the user must be an administrator in the supergroup
 //@additional_chat_ids Identifiers of other supergroup or channel chats that must be subscribed by the users to be eligible for the giveaway. There can be up to getOption("giveaway_additional_chat_count_max") additional chats
@@ -3045,7 +3045,7 @@ paidMediaUnsupported = PaidMedia;
 //@country_codes The list of two-letter ISO 3166-1 alpha-2 codes of countries, users from which will be eligible for the giveaway. If empty, then all users can participate in the giveaway.
 //-There can be up to getOption("giveaway_country_count_max") chosen countries. Users with phone number that was bought at https://fragment.com can participate in any giveaway and the country code "FT" must not be specified in the list
 //@prize_description Additional description of the giveaway prize; 0-128 characters
-premiumGiveawayParameters boosted_chat_id:int53 additional_chat_ids:vector<int53> winners_selection_date:int32 only_new_members:Bool has_public_winners:Bool country_codes:vector<string> prize_description:string = PremiumGiveawayParameters;
+giveawayParameters boosted_chat_id:int53 additional_chat_ids:vector<int53> winners_selection_date:int32 only_new_members:Bool has_public_winners:Bool country_codes:vector<string> prize_description:string = GiveawayParameters;
 
 
 //@description File with the date it was uploaded @file The file @date Point in time (Unix timestamp) when the file was uploaded
@@ -3591,23 +3591,23 @@ messageGiftedPremium gifter_user_id:int53 receiver_user_id:int53 currency:string
 //@code The gift code
 messagePremiumGiftCode creator_id:MessageSender is_from_giveaway:Bool is_unclaimed:Bool currency:string amount:int53 cryptocurrency:string cryptocurrency_amount:int64 month_count:int32 sticker:sticker code:string = MessageContent;
 
-//@description A Telegram Premium giveaway was created for the chat. Use telegramPaymentPurposePremiumGiveaway or storePaymentPurposePremiumGiveaway to create a giveaway
+//@description A giveaway was created for the chat. Use telegramPaymentPurposePremiumGiveaway or storePaymentPurposePremiumGiveaway to create a giveaway
 messageGiveawayCreated = MessageContent;
 
-//@description A Telegram Premium giveaway
+//@description A giveaway
 //@parameters Giveaway parameters
 //@winner_count Number of users which will receive Telegram Premium subscription gift codes
 //@month_count Number of months the Telegram Premium subscription will be active after code activation
 //@sticker A sticker to be shown in the message; may be null if unknown
-messageGiveaway parameters:premiumGiveawayParameters winner_count:int32 month_count:int32 sticker:sticker = MessageContent;
+messageGiveaway parameters:giveawayParameters winner_count:int32 month_count:int32 sticker:sticker = MessageContent;
 
-//@description A Telegram Premium giveaway without public winners has been completed for the chat
+//@description A giveaway without public winners has been completed for the chat
 //@giveaway_message_id Identifier of the message with the giveaway; can be 0 if the message was deleted
 //@winner_count Number of winners in the giveaway
 //@unclaimed_prize_count Number of undistributed prizes
 messageGiveawayCompleted giveaway_message_id:int53 winner_count:int32 unclaimed_prize_count:int32 = MessageContent;
 
-//@description A Telegram Premium giveaway with public winners has been completed for the chat
+//@description A giveaway with public winners has been completed for the chat
 //@boosted_chat_id Identifier of the channel chat, which was automatically boosted by the winners of the giveaway for duration of the Premium subscription
 //@giveaway_message_id Identifier of the message with the giveaway in the boosted chat
 //@additional_chat_count Number of other chats that participated in the giveaway
@@ -5742,7 +5742,7 @@ storePaymentPurposePremiumGiftCodes boosted_chat_id:int53 currency:string amount
 //@parameters Giveaway parameters
 //@currency ISO 4217 currency code of the payment currency
 //@amount Paid amount, in the smallest units of the currency
-storePaymentPurposePremiumGiveaway parameters:premiumGiveawayParameters currency:string amount:int53 = StorePaymentPurpose;
+storePaymentPurposePremiumGiveaway parameters:giveawayParameters currency:string amount:int53 = StorePaymentPurpose;
 
 //@description The user buying Telegram Stars
 //@currency ISO 4217 currency code of the payment currency
@@ -5774,7 +5774,7 @@ telegramPaymentPurposePremiumGiftCodes boosted_chat_id:int53 currency:string amo
 //@amount Paid amount, in the smallest units of the currency
 //@winner_count Number of users which will be able to activate the gift codes
 //@month_count Number of months the Telegram Premium subscription will be active for the users
-telegramPaymentPurposePremiumGiveaway parameters:premiumGiveawayParameters currency:string amount:int53 winner_count:int32 month_count:int32 = TelegramPaymentPurpose;
+telegramPaymentPurposePremiumGiveaway parameters:giveawayParameters currency:string amount:int53 winner_count:int32 month_count:int32 = TelegramPaymentPurpose;
 
 //@description The user buying Telegram Stars
 //@currency ISO 4217 currency code of the payment currency
@@ -6056,11 +6056,11 @@ pushMessageContentPoll question:string is_regular:Bool is_pinned:Bool = PushMess
 //@description A message with a Telegram Premium gift code created for the user @month_count Number of months the Telegram Premium subscription will be active after code activation
 pushMessageContentPremiumGiftCode month_count:int32 = PushMessageContent;
 
-//@description A message with a Telegram Premium giveaway
-//@winner_count Number of users which will receive Telegram Premium subscription gift codes; 0 for pinned message
+//@description A message with a giveaway
+//@winner_count Number of users which will receive giveaway prizes; 0 for pinned message
 //@month_count Number of months the Telegram Premium subscription will be active after code activation; 0 for pinned message
 //@is_pinned True, if the message is a pinned message with the specified content
-pushMessageContentPremiumGiveaway winner_count:int32 month_count:int32 is_pinned:Bool = PushMessageContent;
+pushMessageContentGiveaway winner_count:int32 month_count:int32 is_pinned:Bool = PushMessageContent;
 
 //@description A screenshot of a message in the chat has been taken
 pushMessageContentScreenshotTaken = PushMessageContent;
@@ -11517,12 +11517,12 @@ applyPremiumGiftCode code:string = Ok;
 //@description Launches a prepaid Telegram Premium giveaway
 //@giveaway_id Unique identifier of the prepaid giveaway
 //@parameters Giveaway parameters
-launchPrepaidPremiumGiveaway giveaway_id:int64 parameters:premiumGiveawayParameters = Ok;
+launchPrepaidPremiumGiveaway giveaway_id:int64 parameters:giveawayParameters = Ok;
 
-//@description Returns information about a Telegram Premium giveaway
+//@description Returns information about a giveaway
 //@chat_id Identifier of the channel chat which started the giveaway
 //@message_id Identifier of the giveaway or a giveaway winners message in the chat
-getPremiumGiveawayInfo chat_id:int53 message_id:int53 = PremiumGiveawayInfo;
+getGiveawayInfo chat_id:int53 message_id:int53 = GiveawayInfo;
 
 //@description Returns available options for Telegram Stars purchase
 getStarPaymentOptions = StarPaymentOptions;

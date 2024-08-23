@@ -7449,7 +7449,7 @@ void Requests::on_request(uint64 id, td_api::launchPrepaidPremiumGiveaway &reque
   launch_prepaid_premium_giveaway(td_, request.giveaway_id_, std::move(request.parameters_), std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::getPremiumGiveawayInfo &request) {
+void Requests::on_request(uint64 id, const td_api::getGiveawayInfo &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   get_premium_giveaway_info(td_, {DialogId(request.chat_id_), MessageId(request.message_id_)}, std::move(promise));

@@ -1046,23 +1046,23 @@ class CliClient final : public Actor {
     }
   }
 
-  struct PremiumGiveawayParameters {
+  struct GiveawayParameters {
     int64 chat_id = 0;
     vector<int64> additional_chat_ids;
     int32 date;
     vector<string> country_codes;
 
-    operator td_api::object_ptr<td_api::premiumGiveawayParameters>() const {
+    operator td_api::object_ptr<td_api::giveawayParameters>() const {
       if (chat_id == 0) {
         return nullptr;
       }
-      return td_api::make_object<td_api::premiumGiveawayParameters>(chat_id, vector<int64>(additional_chat_ids), date,
-                                                                    rand_bool(), rand_bool(),
-                                                                    vector<string>(country_codes), "prize");
+      return td_api::make_object<td_api::giveawayParameters>(chat_id, vector<int64>(additional_chat_ids), date,
+                                                             rand_bool(), rand_bool(), vector<string>(country_codes),
+                                                             "prize");
     }
   };
 
-  void get_args(string &args, PremiumGiveawayParameters &arg) const {
+  void get_args(string &args, GiveawayParameters &arg) const {
     auto parts = autosplit(args);
     if (args.size() < 3) {
       return;
@@ -3455,14 +3455,14 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::applyPremiumGiftCode>(args));
     } else if (op == "lppg") {
       int64 giveaway_id;
-      PremiumGiveawayParameters parameters;
+      GiveawayParameters parameters;
       get_args(args, giveaway_id, parameters);
       send_request(td_api::make_object<td_api::launchPrepaidPremiumGiveaway>(giveaway_id, parameters));
-    } else if (op == "gpgi") {
+    } else if (op == "ggi") {
       ChatId chat_id;
       MessageId message_id;
       get_args(args, chat_id, message_id);
-      send_request(td_api::make_object<td_api::getPremiumGiveawayInfo>(chat_id, message_id));
+      send_request(td_api::make_object<td_api::getGiveawayInfo>(chat_id, message_id));
     } else if (op == "gspo") {
       send_request(td_api::make_object<td_api::getStarPaymentOptions>());
     } else if (op == "gsgpo") {
@@ -3515,7 +3515,7 @@ class CliClient final : public Actor {
                                                                              vector<int64>{user_id})));
       }
     } else if (op == "cpfsg") {
-      PremiumGiveawayParameters parameters;
+      GiveawayParameters parameters;
       string currency;
       int64 amount;
       get_args(args, parameters, currency, amount);

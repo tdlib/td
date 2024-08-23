@@ -36,8 +36,8 @@ Result<ChannelId> GiveawayParameters::get_boosted_channel_id(Td *td, DialogId di
   return channel_id;
 }
 
-Result<GiveawayParameters> GiveawayParameters::get_giveaway_parameters(
-    Td *td, const td_api::premiumGiveawayParameters *parameters) {
+Result<GiveawayParameters> GiveawayParameters::get_giveaway_parameters(Td *td,
+                                                                       const td_api::giveawayParameters *parameters) {
   if (parameters == nullptr) {
     return Status::Error(400, "Giveaway parameters must be non-empty");
   }
@@ -123,19 +123,18 @@ GiveawayParameters::get_input_store_payment_premium_giveaway(Td *td, const strin
       vector<string>(country_codes_), prize_description_, random_id, date_, currency, amount);
 }
 
-td_api::object_ptr<td_api::premiumGiveawayParameters> GiveawayParameters::get_premium_giveaway_parameters_object(
-    Td *td) const {
+td_api::object_ptr<td_api::giveawayParameters> GiveawayParameters::get_giveaway_parameters_object(Td *td) const {
   CHECK(is_valid());
   vector<int64> chat_ids;
   for (auto channel_id : additional_channel_ids_) {
     DialogId dialog_id(channel_id);
-    td->dialog_manager_->force_create_dialog(dialog_id, "premiumGiveawayParameters", true);
-    chat_ids.push_back(td->dialog_manager_->get_chat_id_object(dialog_id, "premiumGiveawayParameters"));
+    td->dialog_manager_->force_create_dialog(dialog_id, "giveawayParameters", true);
+    chat_ids.push_back(td->dialog_manager_->get_chat_id_object(dialog_id, "giveawayParameters"));
   }
   DialogId dialog_id(boosted_channel_id_);
-  td->dialog_manager_->force_create_dialog(dialog_id, "premiumGiveawayParameters", true);
-  return td_api::make_object<td_api::premiumGiveawayParameters>(
-      td->dialog_manager_->get_chat_id_object(dialog_id, "premiumGiveawayParameters"), std::move(chat_ids), date_,
+  td->dialog_manager_->force_create_dialog(dialog_id, "giveawayParameters", true);
+  return td_api::make_object<td_api::giveawayParameters>(
+      td->dialog_manager_->get_chat_id_object(dialog_id, "giveawayParameters"), std::move(chat_ids), date_,
       only_new_subscribers_, winners_are_visible_, vector<string>(country_codes_), prize_description_);
 }
 

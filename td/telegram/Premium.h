@@ -48,11 +48,11 @@ void check_premium_gift_code(Td *td, const string &code,
 void apply_premium_gift_code(Td *td, const string &code, Promise<Unit> &&promise);
 
 void launch_prepaid_premium_giveaway(Td *td, int64 giveaway_id,
-                                     td_api::object_ptr<td_api::premiumGiveawayParameters> &&parameters,
+                                     td_api::object_ptr<td_api::giveawayParameters> &&parameters,
                                      Promise<Unit> &&promise);
 
 void get_premium_giveaway_info(Td *td, MessageFullId message_full_id,
-                               Promise<td_api::object_ptr<td_api::PremiumGiveawayInfo>> &&promise);
+                               Promise<td_api::object_ptr<td_api::GiveawayInfo>> &&promise);
 
 void can_purchase_premium(Td *td, td_api::object_ptr<td_api::StorePaymentPurpose> &&purpose, Promise<Unit> &&promise);
 

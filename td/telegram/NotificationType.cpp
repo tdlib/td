@@ -269,7 +269,7 @@ class NotificationTypePushMessage final : public NotificationType {
             user_count = to_integer<int32>(user_count_str);
             month_count = to_integer<int32>(month_count_str);
           }
-          return td_api::make_object<td_api::pushMessageContentPremiumGiveaway>(user_count, month_count, is_pinned);
+          return td_api::make_object<td_api::pushMessageContentGiveaway>(user_count, month_count, is_pinned);
         }
         break;
       case 'I':

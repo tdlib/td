@@ -7929,7 +7929,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     case MessageContentType::Giveaway: {
       const auto *m = static_cast<const MessageGiveaway *>(content);
       return td_api::make_object<td_api::messageGiveaway>(
-          m->giveaway_parameters.get_premium_giveaway_parameters_object(td), m->quantity, m->months,
+          m->giveaway_parameters.get_giveaway_parameters_object(td), m->quantity, m->months,
           td->stickers_manager_->get_premium_gift_sticker_object(m->months));
     }
     case MessageContentType::GiveawayLaunch:
