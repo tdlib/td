@@ -24,6 +24,7 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/PremiumGiftOption.h"
 #include "td/telegram/ServerMessageId.h"
+#include "td/telegram/StarManager.h"
 #include "td/telegram/SuggestedAction.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
@@ -623,8 +624,8 @@ class GetGiveawayInfoQuery final : public Td::ResultHandler {
           }
         }
         promise_.set_value(td_api::make_object<td_api::giveawayInfoCompleted>(
-            max(0, info->start_date_), max(0, info->finish_date_), info->refunded_, info->winner_, winner_count, activated_count,
-            info->gift_code_slug_));
+            max(0, info->start_date_), max(0, info->finish_date_), info->refunded_, info->winner_, winner_count,
+            activated_count, info->gift_code_slug_, StarManager::get_star_count(info->stars_prize_)));
         break;
       }
       default:
