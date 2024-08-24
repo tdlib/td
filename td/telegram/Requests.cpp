@@ -6312,6 +6312,11 @@ void Requests::on_request(uint64 id, const td_api::getStickerSet &request) {
   CREATE_REQUEST(GetStickerSetRequest, request.set_id_);
 }
 
+void Requests::on_request(uint64 id, const td_api::getStickerSetName &request) {
+  CREATE_TEXT_REQUEST_PROMISE();
+  td_->stickers_manager_->get_sticker_set_name(StickerSetId(request.set_id_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::searchStickerSet &request) {
   CLEAN_INPUT_STRING(request.name_);
   CREATE_REQUEST(SearchStickerSetRequest, std::move(request.name_));

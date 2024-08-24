@@ -194,6 +194,8 @@ class StickersManager final : public Actor {
 
   StickerSetId get_sticker_set(StickerSetId set_id, Promise<Unit> &&promise);
 
+  void get_sticker_set_name(StickerSetId set_id, Promise<string> &&promise);
+
   StickerSetId search_sticker_set(const string &short_name_to_search, Promise<Unit> &&promise);
 
   std::pair<int32, vector<StickerSetId>> search_installed_sticker_sets(StickerType sticker_type, const string &query,
@@ -223,6 +225,9 @@ class StickersManager final : public Actor {
 
   StickerSetId on_get_sticker_set_covered(tl_object_ptr<telegram_api::StickerSetCovered> &&set_ptr, bool is_changed,
                                           const char *source);
+
+  void on_get_sticker_set_name(StickerSetId sticker_set_id,
+                               telegram_api::object_ptr<telegram_api::messages_StickerSet> &&set_ptr);
 
   void on_get_special_sticker_set(const SpecialStickerSetType &type, StickerSetId sticker_set_id);
 
@@ -1003,6 +1008,7 @@ class StickersManager final : public Actor {
   WaitFreeHashMap<StickerSetId, unique_ptr<StickerSet>, StickerSetIdHash>
       sticker_sets_;  // sticker_set_id -> StickerSet
   WaitFreeHashMap<string, StickerSetId> short_name_to_sticker_set_id_;
+  FlatHashMap<StickerSetId, vector<Promise<string>>, StickerSetIdHash> sticker_set_name_load_queries_;
 
   vector<StickerSetId> installed_sticker_set_ids_[MAX_STICKER_TYPE];
   vector<StickerSetId> featured_sticker_set_ids_[MAX_STICKER_TYPE];

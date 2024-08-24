@@ -1237,6 +1237,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getStickerSet &request);
 
+  void on_request(uint64 id, const td_api::getStickerSetName &request);
+
   void on_request(uint64 id, td_api::searchStickerSet &request);
 
   void on_request(uint64 id, td_api::searchInstalledStickerSets &request);

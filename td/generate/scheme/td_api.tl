@@ -10548,6 +10548,9 @@ getAttachedStickerSets file_id:int32 = StickerSets;
 //@description Returns information about a sticker set by its identifier @set_id Identifier of the sticker set
 getStickerSet set_id:int64 = StickerSet;
 
+//@description Returns name of a sticker set by its identifier @set_id Identifier of the sticker set
+getStickerSetName set_id:int64 = Text;
+
 //@description Searches for a sticker set by its name @name Name of the sticker set
 searchStickerSet name:string = StickerSet;
 

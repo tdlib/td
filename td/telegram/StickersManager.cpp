@@ -765,6 +765,29 @@ class GetStickerSetQuery final : public Td::ResultHandler {
   }
 };
 
+class GetStickerSetNameQuery final : public Td::ResultHandler {
+  StickerSetId sticker_set_id_;
+
+ public:
+  void send(StickerSetId sticker_set_id, telegram_api::object_ptr<telegram_api::InputStickerSet> &&input_sticker_set) {
+    sticker_set_id_ = sticker_set_id;
+    send_query(G()->net_query_creator().create(telegram_api::messages_getStickerSet(std::move(input_sticker_set), 0)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getStickerSet>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    td_->stickers_manager_->on_get_sticker_set_name(sticker_set_id_, result_ptr.move_as_ok());
+  }
+
+  void on_error(Status status) final {
+    td_->stickers_manager_->on_get_sticker_set_name(sticker_set_id_, nullptr);
+  }
+};
+
 class ReloadSpecialStickerSetQuery final : public Td::ResultHandler {
   StickerSetId sticker_set_id_;
   SpecialStickerSetType type_;
@@ -4083,6 +4106,32 @@ void StickersManager::update_load_request(uint32 load_request_id, const Status &
   }
 }
 
+void StickersManager::on_get_sticker_set_name(StickerSetId sticker_set_id,
+                                              telegram_api::object_ptr<telegram_api::messages_StickerSet> &&set_ptr) {
+  auto it = sticker_set_name_load_queries_.find(sticker_set_id);
+  CHECK(it != sticker_set_name_load_queries_.end());
+  auto promises = std::move(it->second);
+  sticker_set_name_load_queries_.erase(it);
+  if (set_ptr == nullptr || set_ptr->get_id() != telegram_api::messages_stickerSet::ID) {
+    return fail_promises(promises, Status::Error(500, "Failed to get sticker set name"));
+  }
+  auto set = telegram_api::move_object_as<telegram_api::messages_stickerSet>(set_ptr);
+  if (sticker_set_id != StickerSetId(set->set_->id_)) {
+    LOG(ERROR) << "Expected " << sticker_set_id << ", but receive " << StickerSetId(set->set_->id_);
+    return fail_promises(promises, Status::Error(500, "Failed to get correct sticker set name"));
+  }
+
+  StickerSet *sticker_set = get_sticker_set(sticker_set_id);
+  CHECK(sticker_set != nullptr);
+  if (!sticker_set->is_inited_) {
+    sticker_set->short_name_ = std::move(set->set_->short_name_);
+  }
+
+  for (auto &promise : promises) {
+    promise.set_value(string(sticker_set->short_name_));
+  }
+}
+
 void StickersManager::on_get_special_sticker_set(const SpecialStickerSetType &type, StickerSetId sticker_set_id) {
   auto s = get_sticker_set(sticker_set_id);
   CHECK(s != nullptr);
@@ -4978,6 +5027,26 @@ StickerSetId StickersManager::get_sticker_set(StickerSetId set_id, Promise<Unit>
   return set_id;
 }
 
+void StickersManager::get_sticker_set_name(StickerSetId set_id, Promise<string> &&promise) {
+  constexpr int64 GREAT_MINDS_COLOR_SET_ID = 151353307481243663;
+  if (set_id.get() == GREAT_MINDS_SET_ID || set_id.get() == GREAT_MINDS_COLOR_SET_ID) {
+    return promise.set_value("TelegramGreatMinds");
+  }
+
+  const StickerSet *sticker_set = get_sticker_set(set_id);
+  if (sticker_set == nullptr) {
+    return promise.set_error(Status::Error(400, "Sticker set not found"));
+  }
+  if (!sticker_set->short_name_.empty()) {
+    return promise.set_value(string(sticker_set->short_name_));
+  }
+  auto &queries = sticker_set_name_load_queries_[set_id];
+  queries.push_back(std::move(promise));
+  if (queries.size() == 1u) {
+    td_->create_handler<GetStickerSetNameQuery>()->send(set_id, get_input_sticker_set(sticker_set));
+  }
+}
+
 StickerSetId StickersManager::search_sticker_set(const string &short_name_to_search, Promise<Unit> &&promise) {
   string short_name = clean_username(short_name_to_search);
   const StickerSet *sticker_set = get_sticker_set(short_name_to_sticker_set_id_.get(short_name));
@@ -5369,8 +5438,7 @@ void StickersManager::update_sticker_set(StickerSet *sticker_set, const char *so
 
 void StickersManager::load_sticker_sets(vector<StickerSetId> &&sticker_set_ids, Promise<Unit> &&promise) {
   if (sticker_set_ids.empty()) {
-    promise.set_value(Unit());
-    return;
+    return promise.set_value(Unit());
   }
 
   CHECK(current_sticker_set_load_request_ < std::numeric_limits<uint32>::max());

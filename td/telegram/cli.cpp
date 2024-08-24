@@ -3592,6 +3592,10 @@ class CliClient final : public Actor {
       int64 sticker_set_id;
       get_args(args, sticker_set_id);
       send_request(td_api::make_object<td_api::getStickerSet>(sticker_set_id));
+    } else if (op == "gssn") {
+      int64 sticker_set_id;
+      get_args(args, sticker_set_id);
+      send_request(td_api::make_object<td_api::getStickerSetName>(sticker_set_id));
     } else if (op == "giss" || op == "gissm" || op == "gisse") {
       send_request(td_api::make_object<td_api::getInstalledStickerSets>(as_sticker_type(op)));
     } else if (op == "gass" || op == "gassm" || op == "gasse") {
