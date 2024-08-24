@@ -3469,6 +3469,8 @@ class CliClient final : public Actor {
       UserId user_id;
       get_args(args, user_id);
       send_request(td_api::make_object<td_api::getStarGiftPaymentOptions>(user_id));
+    } else if (op == "gsgapo") {
+      send_request(td_api::make_object<td_api::getStarGiveawayPaymentOptions>());
     } else if (op == "gsta" || op == "gsti" || op == "gsto") {
       string owner_id;
       string subscription_id;

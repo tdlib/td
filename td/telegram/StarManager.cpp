@@ -114,6 +114,45 @@ class GetStarsGiftOptionsQuery final : public Td::ResultHandler {
   }
 };
 
+class GetStarsGiveawayOptionsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::starGiveawayPaymentOptions>> promise_;
+
+ public:
+  explicit GetStarsGiveawayOptionsQuery(Promise<td_api::object_ptr<td_api::starGiveawayPaymentOptions>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::payments_getStarsGiveawayOptions()));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getStarsGiveawayOptions>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto results = result_ptr.move_as_ok();
+    vector<td_api::object_ptr<td_api::starGiveawayPaymentOption>> options;
+    for (auto &result : results) {
+      vector<td_api::object_ptr<td_api::starGiveawayWinnerOption>> winner_options;
+      for (auto &winner : result->winners_) {
+        winner_options.push_back(td_api::make_object<td_api::starGiveawayWinnerOption>(
+            winner->users_, StarManager::get_star_count(winner->per_user_stars_), winner->default_));
+      }
+      options.push_back(td_api::make_object<td_api::starGiveawayPaymentOption>(
+          result->currency_, result->amount_, StarManager::get_star_count(result->stars_), result->store_product_,
+          result->yearly_boosts_, std::move(winner_options), result->default_, result->extended_));
+    }
+
+    promise_.set_value(td_api::make_object<td_api::starGiveawayPaymentOptions>(std::move(options)));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetStarsTransactionsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::starTransactions>> promise_;
   DialogId dialog_id_;
@@ -755,6 +794,11 @@ void StarManager::get_star_gift_payment_options(UserId user_id,
   }
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
   td_->create_handler<GetStarsGiftOptionsQuery>(std::move(promise))->send(std::move(input_user));
+}
+
+void StarManager::get_star_giveaway_payment_options(
+    Promise<td_api::object_ptr<td_api::starGiveawayPaymentOptions>> &&promise) {
+  td_->create_handler<GetStarsGiveawayOptionsQuery>(std::move(promise))->send();
 }
 
 void StarManager::get_star_transactions(td_api::object_ptr<td_api::MessageSender> owner_id,

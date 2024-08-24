@@ -1549,6 +1549,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getStarGiftPaymentOptions &request);
 
+  void on_request(uint64 id, const td_api::getStarGiveawayPaymentOptions &request);
+
   void on_request(uint64 id, td_api::getStarTransactions &request);
 
   void on_request(uint64 id, td_api::getStarSubscriptions &request);
