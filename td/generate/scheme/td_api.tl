@@ -999,10 +999,11 @@ giveawayInfoOngoing creation_date:int32 status:GiveawayParticipantStatus is_ende
 //@creation_date Point in time (Unix timestamp) when the giveaway was created
 //@actual_winners_selection_date Point in time (Unix timestamp) when the winners were selected. May be bigger than winners selection date specified in parameters of the giveaway
 //@was_refunded True, if the giveaway was canceled and was fully refunded
+//@is_winner True, if the cuurent user is a winner of the giveaway
 //@winner_count Number of winners in the giveaway
 //@activation_count Number of winners, which activated their gift codes; for Telegram Premium giveaways only
 //@gift_code Telegram Premium gift code that was received by the current user; empty if the user isn't a winner in the giveaway or the giveaway isn't a Telegram Premium giveaway
-giveawayInfoCompleted creation_date:int32 actual_winners_selection_date:int32 was_refunded:Bool winner_count:int32 activation_count:int32 gift_code:string = GiveawayInfo;
+giveawayInfoCompleted creation_date:int32 actual_winners_selection_date:int32 was_refunded:Bool is_winner:Bool winner_count:int32 activation_count:int32 gift_code:string = GiveawayInfo;
 
 
 //@class GiveawayPrize @description Contains information about a giveaway prize

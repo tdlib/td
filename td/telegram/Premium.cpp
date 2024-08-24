@@ -623,7 +623,7 @@ class GetGiveawayInfoQuery final : public Td::ResultHandler {
           }
         }
         promise_.set_value(td_api::make_object<td_api::giveawayInfoCompleted>(
-            max(0, info->start_date_), max(0, info->finish_date_), info->refunded_, winner_count, activated_count,
+            max(0, info->start_date_), max(0, info->finish_date_), info->refunded_, info->winner_, winner_count, activated_count,
             info->gift_code_slug_));
         break;
       }
