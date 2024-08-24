@@ -49,6 +49,10 @@ class MessageReactor {
     return is_me_;
   }
 
+  bool is_anonymous() const {
+    return is_anonymous_;
+  }
+
   bool fix_is_me(DialogId my_dialog_id);
 
   void add_count(int32 count, bool is_anonymous) {

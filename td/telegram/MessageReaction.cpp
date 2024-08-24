@@ -882,7 +882,16 @@ void MessageReactions::add_my_paid_reaction(Td *td, int32 star_count, bool use_d
       pending_use_default_is_anonymous_ = true;
     }
     if (pending_use_default_is_anonymous_) {
-      pending_is_anonymous_ = td->option_manager_->get_option_boolean("is_paid_reaction_anonymous");
+      bool was_me = false;
+      for (auto &reactor : top_reactors_) {
+        if (reactor.is_me()) {
+          was_me = true;
+          pending_is_anonymous_ = reactor.is_anonymous();
+        }
+      }
+      if (!was_me) {
+        pending_is_anonymous_ = td->option_manager_->get_option_boolean("is_paid_reaction_anonymous");
+      }
     }
   } else {
     td->option_manager_->set_option_boolean("is_paid_reaction_anonymous", is_anonymous);
