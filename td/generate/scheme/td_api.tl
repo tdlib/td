@@ -3604,7 +3604,8 @@ messageGiftedPremium gifter_user_id:int53 receiver_user_id:int53 currency:string
 messagePremiumGiftCode creator_id:MessageSender is_from_giveaway:Bool is_unclaimed:Bool currency:string amount:int53 cryptocurrency:string cryptocurrency_amount:int64 month_count:int32 sticker:sticker code:string = MessageContent;
 
 //@description A giveaway was created for the chat. Use telegramPaymentPurposePremiumGiveaway, storePaymentPurposePremiumGiveaway, telegramPaymentPurposeStarGiveaway, or storePaymentPurposeStarGiveaway to create a giveaway
-messageGiveawayCreated = MessageContent;
+//@star_count Number of Telegram Stars that will be shared by winners of the giveaway; 0 for Telegram Premium giveaways
+messageGiveawayCreated star_count:int53 = MessageContent;
 
 //@description A giveaway
 //@parameters Giveaway parameters

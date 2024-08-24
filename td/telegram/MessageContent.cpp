@@ -504,7 +504,7 @@ class MessageChatSetTtl final : public MessageContent {
 
 class MessageUnsupported final : public MessageContent {
  public:
-  static constexpr int32 CURRENT_VERSION = 35;
+  static constexpr int32 CURRENT_VERSION = 36;
   int32 version = CURRENT_VERSION;
 
   MessageUnsupported() = default;
@@ -1020,7 +1020,11 @@ class MessageGiveaway final : public MessageContent {
 
 class MessageGiveawayLaunch final : public MessageContent {
  public:
+  int64 star_count = 0;
+
   MessageGiveawayLaunch() = default;
+  explicit MessageGiveawayLaunch(int64 star_count) : star_count(star_count) {
+  }
 
   MessageContentType get_type() const final {
     return MessageContentType::GiveawayLaunch;
@@ -1692,8 +1696,17 @@ static void store(const MessageContent *content, StorerT &storer) {
       }
       break;
     }
-    case MessageContentType::GiveawayLaunch:
+    case MessageContentType::GiveawayLaunch: {
+      const auto *m = static_cast<const MessageGiveawayLaunch *>(content);
+      bool has_star_count = m->star_count != 0;
+      BEGIN_STORE_FLAGS();
+      STORE_FLAG(has_star_count);
+      END_STORE_FLAGS();
+      if (has_star_count) {
+        store(m->star_count, storer);
+      }
       break;
+    }
     case MessageContentType::GiveawayResults: {
       const auto *m = static_cast<const MessageGiveawayResults *>(content);
       bool has_winner_count = m->winner_count != 0;
@@ -2496,9 +2509,20 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       content = std::move(m);
       break;
     }
-    case MessageContentType::GiveawayLaunch:
-      content = make_unique<MessageGiveawayLaunch>();
+    case MessageContentType::GiveawayLaunch: {
+      auto m = make_unique<MessageGiveawayLaunch>();
+      bool has_star_count = false;
+      if (parser.version() >= static_cast<int32>(Version::SupportStarGiveaways)) {
+        BEGIN_PARSE_FLAGS();
+        PARSE_FLAG(has_star_count);
+        END_PARSE_FLAGS();
+      }
+      if (has_star_count) {
+        parse(m->star_count, parser);
+      }
+      content = std::move(m);
       break;
+    }
     case MessageContentType::GiveawayResults: {
       auto m = make_unique<MessageGiveawayResults>();
       bool has_winner_count;
@@ -5804,8 +5828,14 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       }
       break;
     }
-    case MessageContentType::GiveawayLaunch:
+    case MessageContentType::GiveawayLaunch: {
+      const auto *lhs = static_cast<const MessageGiveawayLaunch *>(old_content);
+      const auto *rhs = static_cast<const MessageGiveawayLaunch *>(new_content);
+      if (lhs->star_count != rhs->star_count) {
+        need_update = true;
+      }
       break;
+    }
     case MessageContentType::GiveawayResults: {
       const auto *lhs = static_cast<const MessageGiveawayResults *>(old_content);
       const auto *rhs = static_cast<const MessageGiveawayResults *>(new_content);
@@ -7554,8 +7584,10 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       }
       return make_unique<MessageSetBackground>(reply_to_message_id, std::move(background_info), action->for_both_);
     }
-    case telegram_api::messageActionGiveawayLaunch::ID:
-      return make_unique<MessageGiveawayLaunch>();
+    case telegram_api::messageActionGiveawayLaunch::ID: {
+      auto action = move_tl_object_as<telegram_api::messageActionGiveawayLaunch>(action_ptr);
+      return td::make_unique<MessageGiveawayLaunch>(StarManager::get_star_count(action->stars_));
+    }
     case telegram_api::messageActionGiftCode::ID: {
       auto action = move_tl_object_as<telegram_api::messageActionGiftCode>(action_ptr);
       DialogId dialog_id;
@@ -8044,8 +8076,10 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
           m->giveaway_parameters.get_giveaway_parameters_object(td), m->quantity, std::move(prize),
           td->stickers_manager_->get_premium_gift_sticker_object(m->months));
     }
-    case MessageContentType::GiveawayLaunch:
-      return td_api::make_object<td_api::messageGiveawayCreated>();
+    case MessageContentType::GiveawayLaunch: {
+      const auto *m = static_cast<const MessageGiveawayLaunch *>(content);
+      return td_api::make_object<td_api::messageGiveawayCreated>(m->star_count);
+    }
     case MessageContentType::GiveawayResults: {
       const auto *m = static_cast<const MessageGiveawayResults *>(content);
       return td_api::make_object<td_api::messageGiveawayCompleted>(m->giveaway_message_id.get(), m->winner_count,
