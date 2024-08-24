@@ -4979,17 +4979,23 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     }
     case MessageContentType::VideoNote: {
       const auto *old_ = static_cast<const MessageVideoNote *>(old_content);
-      const auto *new_ = static_cast<const MessageVideoNote *>(new_content);
+      auto *new_ = static_cast<MessageVideoNote *>(new_content);
       if (old_->file_id != new_->file_id && need_merge_files) {
         td->video_notes_manager_->merge_video_notes(new_->file_id, old_->file_id);
+      }
+      if (old_->is_viewed) {
+        new_->is_viewed = true;
       }
       break;
     }
     case MessageContentType::VoiceNote: {
       const auto *old_ = static_cast<const MessageVoiceNote *>(old_content);
-      const auto *new_ = static_cast<const MessageVoiceNote *>(new_content);
+      auto *new_ = static_cast<MessageVoiceNote *>(new_content);
       if (old_->file_id != new_->file_id && need_merge_files) {
         td->voice_notes_manager_->merge_voice_notes(new_->file_id, old_->file_id);
+      }
+      if (old_->is_listened) {
+        new_->is_listened = true;
       }
       break;
     }
