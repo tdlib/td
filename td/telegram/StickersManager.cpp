@@ -3661,7 +3661,7 @@ tl_object_ptr<telegram_api::InputMedia> StickersManager::get_input_media(
         std::move(input_thumbnail), mime_type, std::move(attributes),
         vector<tl_object_ptr<telegram_api::InputDocument>>(), 0);
   } else {
-    CHECK(!file_view.has_remote_location());
+    CHECK(main_remote_location == nullptr);
   }
 
   return nullptr;

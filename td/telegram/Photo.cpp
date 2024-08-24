@@ -632,7 +632,7 @@ tl_object_ptr<telegram_api::InputMedia> photo_get_input_media(FileManager *file_
       return make_tl_object<telegram_api::inputMediaPhotoExternal>(flags, false /*ignored*/, *url, ttl);
     }
     if (input_file == nullptr) {
-      CHECK(!file_view.has_remote_location());
+      CHECK(main_remote_location == nullptr);
     }
   }
   if (input_file != nullptr) {

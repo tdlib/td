@@ -366,7 +366,7 @@ tl_object_ptr<telegram_api::InputMedia> AnimationsManager::get_input_media(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_file),
         std::move(input_thumbnail), mime_type, std::move(attributes), std::move(added_stickers), 0);
   } else {
-    CHECK(!file_view.has_remote_location());
+    CHECK(main_remote_location == nullptr);
   }
 
   return nullptr;

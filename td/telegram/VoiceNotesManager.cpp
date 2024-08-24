@@ -216,7 +216,7 @@ tl_object_ptr<telegram_api::InputMedia> VoiceNotesManager::get_input_media(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_file), nullptr, mime_type,
         std::move(attributes), vector<tl_object_ptr<telegram_api::InputDocument>>(), ttl);
   } else {
-    CHECK(!file_view.has_remote_location());
+    CHECK(main_remote_location == nullptr);
   }
 
   return nullptr;
