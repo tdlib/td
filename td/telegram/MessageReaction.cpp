@@ -885,6 +885,8 @@ void MessageReactions::add_my_paid_reaction(Td *td, int32 star_count, bool use_d
       pending_is_anonymous_ = td->option_manager_->get_option_boolean("is_paid_reaction_anonymous");
     }
   } else {
+    td->option_manager_->set_option_boolean("is_paid_reaction_anonymous", is_anonymous);
+
     pending_use_default_is_anonymous_ = false;
     pending_is_anonymous_ = is_anonymous;
   }
