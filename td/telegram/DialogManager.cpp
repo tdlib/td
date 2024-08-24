@@ -1403,8 +1403,10 @@ void DialogManager::set_dialog_photo(DialogId dialog_id, const td_api::object_pt
         }
 
         auto file_view = td_->file_manager_->get_file_view(file_id);
+        const auto *main_remote_location = file_view.get_main_remote_location();
+        CHECK(main_remote_location != nullptr);
         auto input_chat_photo =
-            telegram_api::make_object<telegram_api::inputChatPhoto>(file_view.main_remote_location().as_input_photo());
+            telegram_api::make_object<telegram_api::inputChatPhoto>(main_remote_location->as_input_photo());
         return send_edit_dialog_photo_query(dialog_id, file_id, std::move(input_chat_photo), std::move(promise));
       }
       case td_api::inputChatPhotoStatic::ID: {
@@ -1498,8 +1500,9 @@ void DialogManager::on_upload_dialog_photo(FileId file_id,
 
   FileView file_view = td_->file_manager_->get_file_view(file_id);
   CHECK(!file_view.is_encrypted());
-  if (input_file == nullptr && file_view.has_remote_location()) {
-    if (file_view.main_remote_location().is_web()) {
+  const auto *main_remote_location = file_view.get_main_remote_location();
+  if (input_file == nullptr && main_remote_location != nullptr) {
+    if (main_remote_location->is_web()) {
       return promise.set_error(Status::Error(400, "Can't use web photo as profile photo"));
     }
     if (is_reupload) {
@@ -1509,12 +1512,12 @@ void DialogManager::on_upload_dialog_photo(FileId file_id,
     if (is_animation) {
       CHECK(file_view.get_type() == FileType::Animation);
       // delete file reference and forcely reupload the file
-      auto file_reference = FileManager::extract_file_reference(file_view.main_remote_location().as_input_document());
+      auto file_reference = FileManager::extract_file_reference(main_remote_location->as_input_document());
       td_->file_manager_->delete_file_reference(file_id, file_reference);
       upload_dialog_photo(dialog_id, file_id, is_animation, main_frame_timestamp, true, std::move(promise), {-1});
     } else {
       CHECK(file_view.get_type() == FileType::Photo);
-      auto input_photo = file_view.main_remote_location().as_input_photo();
+      auto input_photo = main_remote_location->as_input_photo();
       auto input_chat_photo = telegram_api::make_object<telegram_api::inputChatPhoto>(std::move(input_photo));
       send_edit_dialog_photo_query(dialog_id, file_id, std::move(input_chat_photo), std::move(promise));
     }

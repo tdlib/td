@@ -950,7 +950,8 @@ void BusinessConnectionManager::upload_media(unique_ptr<PendingMessage> &&messag
   if (file_view.is_encrypted()) {
     return promise.set_error(Status::Error(400, "Can't use encrypted file"));
   }
-  if (file_view.has_remote_location() && file_view.main_remote_location().is_web()) {
+  const auto *main_remote_location = file_view.get_main_remote_location();
+  if (main_remote_location != nullptr && main_remote_location->is_web()) {
     return promise.set_error(Status::Error(400, "Can't use a web file"));
   }
 

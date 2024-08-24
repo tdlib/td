@@ -553,16 +553,17 @@ bool FileView::has_alive_remote_location() const {
 }
 
 bool FileView::has_active_upload_remote_location() const {
-  if (!has_remote_location()) {
+  const auto *main_remote_location = get_main_remote_location();
+  if (main_remote_location == nullptr) {
     return false;
   }
   if (!has_alive_remote_location()) {
     return false;
   }
-  if (main_remote_location().is_encrypted_any()) {
+  if (main_remote_location->is_encrypted_any()) {
     return true;
   }
-  return main_remote_location().has_file_reference();
+  return main_remote_location->has_file_reference();
 }
 
 bool FileView::has_active_download_remote_location() const {
@@ -577,17 +578,21 @@ bool FileView::has_active_download_remote_location() const {
 }
 
 const FullRemoteFileLocation *FileView::get_full_remote_location() const {
-  CHECK(has_remote_location());
   const auto *remote = node_.get_remote();
   if (remote != nullptr) {
     return remote;
   }
+  if (!has_remote_location()) {
+    return nullptr;
+  }
   return &node_->remote_.full.value();
 }
 
-const FullRemoteFileLocation &FileView::main_remote_location() const {
-  CHECK(has_remote_location());
-  return node_->remote_.full.value();
+const FullRemoteFileLocation *FileView::get_main_remote_location() const {
+  if (!has_remote_location()) {
+    return nullptr;
+  }
+  return &node_->remote_.full.value();
 }
 
 bool FileView::has_generate_location() const {
@@ -2212,7 +2217,7 @@ void FileManager::flush_to_pmc(FileNodePtr node, bool new_remote, bool new_local
   if (!file_db_) {
     return;
   }
-  FileView view(node);
+  FileView file_view(node);
   bool create_flag = false;
   if (node->pmc_id_.empty()) {
     create_flag = true;
@@ -2249,8 +2254,8 @@ void FileManager::flush_to_pmc(FileNodePtr node, bool new_remote, bool new_local
   data.encryption_key_ = node->encryption_key_;
   data.url_ = node->url_;
   data.owner_dialog_id_ = node->owner_dialog_id_;
-  data.file_source_ids_ = context_->get_some_file_sources(view.get_main_file_id());
-  VLOG(file_references) << "Save file " << view.get_main_file_id() << " to database with " << data.file_source_ids_
+  data.file_source_ids_ = context_->get_some_file_sources(file_view.get_main_file_id());
+  VLOG(file_references) << "Save file " << file_view.get_main_file_id() << " to database with " << data.file_source_ids_
                         << " from " << source;
 
   file_db_->set_file_data(node->pmc_id_, data, (create_flag || new_remote), (create_flag || new_local),
@@ -2345,8 +2350,8 @@ bool FileManager::set_encryption_key(FileId file_id, FileEncryptionKey key) {
   if (!node) {
     return false;
   }
-  auto view = FileView(node);
-  if (view.has_full_local_location() && view.has_remote_location()) {
+  auto file_view = FileView(node);
+  if (file_view.has_full_local_location() && file_view.has_remote_location()) {
     return false;
   }
   if (!node->encryption_key_.empty()) {

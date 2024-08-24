@@ -1083,10 +1083,10 @@ void NotificationSettingsManager::add_saved_ringtone(td_api::object_ptr<td_api::
   if (duration > td_->option_manager_->get_option_integer("notification_sound_duration_max")) {
     return promise.set_error(Status::Error(400, "Notification sound is too long"));
   }
-  const auto *full_remote_location = file_view.get_full_remote_location();
-  if (full_remote_location != nullptr && !file_view.is_encrypted()) {
-    CHECK(full_remote_location->is_document());
-    if (file_view.main_remote_location().is_web()) {
+  const auto *main_remote_location = file_view.get_main_remote_location();
+  if (main_remote_location != nullptr && !file_view.is_encrypted()) {
+    CHECK(main_remote_location->is_document());
+    if (main_remote_location->is_web()) {
       return promise.set_error(Status::Error(400, "Can't use web document as notification sound"));
     }
 
@@ -1095,7 +1095,7 @@ void NotificationSettingsManager::add_saved_ringtone(td_api::object_ptr<td_api::
       if (file_type != FileType::Audio && file_type != FileType::VoiceNote) {
         return promise.set_error(Status::Error(400, "Unsupported file specified"));
       }
-      auto &remote = file_view.main_remote_location();
+      auto &remote = *main_remote_location;
       ringtone_file_id = td_->file_manager_->register_remote(
           FullRemoteFileLocation(FileType::Ringtone, remote.get_id(), remote.get_access_hash(), remote.get_dc_id(),
                                  remote.get_file_reference().str()),
@@ -1161,23 +1161,25 @@ void NotificationSettingsManager::on_upload_ringtone(FileId file_id,
   FileView file_view = td_->file_manager_->get_file_view(file_id);
   CHECK(!file_view.is_encrypted());
   CHECK(file_view.get_type() == FileType::Ringtone);
-  if (input_file == nullptr && file_view.has_remote_location()) {
-    if (file_view.main_remote_location().is_web()) {
+  const auto *main_remote_location = file_view.get_main_remote_location();
+  if (input_file == nullptr && main_remote_location != nullptr) {
+    if (main_remote_location->is_web()) {
       return promise.set_error(Status::Error(400, "Can't use web document as notification sound"));
     }
     if (is_reupload) {
       return promise.set_error(Status::Error(400, "Failed to reupload the file"));
     }
 
+    auto main_file_id = file_view.get_main_file_id();
     send_save_ringtone_query(
-        file_view.get_main_file_id(), false,
+        main_file_id, false,
         PromiseCreator::lambda(
-            [actor_id = actor_id(this), file_id = file_view.get_main_file_id(), promise = std::move(promise)](
+            [actor_id = actor_id(this), main_file_id, promise = std::move(promise)](
                 Result<telegram_api::object_ptr<telegram_api::account_SavedRingtone>> &&result) mutable {
               if (result.is_error()) {
                 promise.set_error(result.move_as_error());
               } else {
-                send_closure(actor_id, &NotificationSettingsManager::on_add_saved_ringtone, file_id,
+                send_closure(actor_id, &NotificationSettingsManager::on_add_saved_ringtone, main_file_id,
                              result.move_as_ok(), std::move(promise));
               }
             }));

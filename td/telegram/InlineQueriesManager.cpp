@@ -917,22 +917,22 @@ Result<tl_object_ptr<telegram_api::InputBotInlineResult>> InlineQueriesManager::
     TRY_RESULT(file_id, td_->file_manager_->get_input_file_id(
                             file_type, make_tl_object<td_api::inputFileRemote>(content_url), DialogId(), false, false));
     FileView file_view = td_->file_manager_->get_file_view(file_id);
-    CHECK(file_view.has_remote_location());
     if (file_view.is_encrypted()) {
       return Status::Error(400, "Can't send encrypted file");
     }
-    if (file_view.main_remote_location().is_web()) {
+    const auto *main_remote_location = file_view.get_main_remote_location();
+    CHECK(main_remote_location != nullptr);
+    if (main_remote_location->is_web()) {
       return Status::Error(400, "Can't send web file");
     }
 
     if (file_type == FileType::Photo) {
-      return make_tl_object<telegram_api::inputBotInlineResultPhoto>(
-          id, type, file_view.main_remote_location().as_input_photo(), std::move(inline_message));
+      return make_tl_object<telegram_api::inputBotInlineResultPhoto>(id, type, main_remote_location->as_input_photo(),
+                                                                     std::move(inline_message));
     }
 
     return make_tl_object<telegram_api::inputBotInlineResultDocument>(
-        flags, id, type, title, description, file_view.main_remote_location().as_input_document(),
-        std::move(inline_message));
+        flags, id, type, title, description, main_remote_location->as_input_document(), std::move(inline_message));
   }
 
   if (!url.empty()) {

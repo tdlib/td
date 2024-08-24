@@ -45,8 +45,8 @@ BusinessIntro::BusinessIntro(Td *td, td_api::object_ptr<td_api::inputBusinessSta
   auto file_id = r_file_id.is_ok() ? r_file_id.move_as_ok() : FileId();
   if (file_id.is_valid()) {
     auto file_view = td->file_manager_->get_file_view(file_id);
-    if (!file_view.has_remote_location() || !file_view.main_remote_location().is_document() ||
-        file_view.main_remote_location().is_web() ||
+    const auto *main_remote_location = file_view.get_main_remote_location();
+    if (main_remote_location == nullptr || !main_remote_location->is_document() || main_remote_location->is_web() ||
         td->stickers_manager_->get_sticker_type(file_id) == StickerType::CustomEmoji) {
       file_id = FileId();
     }
@@ -67,7 +67,9 @@ telegram_api::object_ptr<telegram_api::inputBusinessIntro> BusinessIntro::get_in
   telegram_api::object_ptr<telegram_api::InputDocument> input_document;
   if (sticker_file_id_.is_valid()) {
     auto file_view = td->file_manager_->get_file_view(sticker_file_id_);
-    input_document = file_view.main_remote_location().as_input_document();
+    const auto *main_remote_location = file_view.get_main_remote_location();
+    CHECK(main_remote_location != nullptr);
+    input_document = main_remote_location->as_input_document();
     flags |= telegram_api::inputBusinessIntro::STICKER_MASK;
   }
 

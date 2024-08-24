@@ -848,8 +848,9 @@ void BotInfoManager::on_upload_bot_media_preview(FileId file_id,
 
   FileView file_view = td_->file_manager_->get_file_view(file_id);
   CHECK(!file_view.is_encrypted());
-  if (input_file == nullptr && file_view.has_remote_location()) {
-    if (file_view.main_remote_location().is_web()) {
+  const auto *main_remote_location = file_view.get_main_remote_location();
+  if (input_file == nullptr && main_remote_location != nullptr) {
+    if (main_remote_location->is_web()) {
       return pending_preview->promise_.set_error(Status::Error(400, "Can't use web photo as a preview"));
     }
     if (pending_preview->was_reuploaded_) {
@@ -858,7 +859,7 @@ void BotInfoManager::on_upload_bot_media_preview(FileId file_id,
     pending_preview->was_reuploaded_ = true;
 
     // delete file reference and forcely reupload the file
-    td_->file_manager_->delete_file_reference(file_id, file_view.main_remote_location().get_file_reference());
+    td_->file_manager_->delete_file_reference(file_id, main_remote_location->get_file_reference());
     return do_add_bot_media_preview(std::move(pending_preview), {-1});
   }
   CHECK(input_file != nullptr);

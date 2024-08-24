@@ -5301,8 +5301,9 @@ void StoryManager::on_upload_story(FileId file_id, telegram_api::object_ptr<tele
 
   FileView file_view = td_->file_manager_->get_file_view(file_id);
   CHECK(!file_view.is_encrypted());
-  if (input_file == nullptr && file_view.has_remote_location()) {
-    if (file_view.main_remote_location().is_web()) {
+  const auto *main_remote_location = file_view.get_main_remote_location();
+  if (input_file == nullptr && main_remote_location != nullptr) {
+    if (main_remote_location->is_web()) {
       delete_pending_story(file_id, std::move(pending_story), Status::Error(400, "Can't use web photo as a story"));
       return;
     }
@@ -5313,7 +5314,7 @@ void StoryManager::on_upload_story(FileId file_id, telegram_api::object_ptr<tele
     pending_story->was_reuploaded_ = true;
 
     // delete file reference and forcely reupload the file
-    td_->file_manager_->delete_file_reference(file_id, file_view.main_remote_location().get_file_reference());
+    td_->file_manager_->delete_file_reference(file_id, main_remote_location->get_file_reference());
     do_send_story(std::move(pending_story), {-1});
     return;
   }

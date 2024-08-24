@@ -385,8 +385,9 @@ void MessageImportManager::on_upload_imported_messages(FileId file_id,
 
   FileView file_view = td_->file_manager_->get_file_view(file_id);
   CHECK(!file_view.is_encrypted());
-  if (input_file == nullptr && file_view.has_remote_location()) {
-    if (file_view.main_remote_location().is_web()) {
+  const auto *main_remote_location = file_view.get_main_remote_location();
+  if (input_file == nullptr && main_remote_location != nullptr) {
+    if (main_remote_location->is_web()) {
       return promise.set_error(Status::Error(400, "Can't use web file"));
     }
     if (is_reupload) {
@@ -395,7 +396,7 @@ void MessageImportManager::on_upload_imported_messages(FileId file_id,
 
     CHECK(file_view.get_type() == FileType::Document);
     // delete file reference and forcely reupload the file
-    auto file_reference = FileManager::extract_file_reference(file_view.main_remote_location().as_input_document());
+    auto file_reference = FileManager::extract_file_reference(main_remote_location->as_input_document());
     td_->file_manager_->delete_file_reference(file_id, file_reference);
     upload_imported_messages(dialog_id, file_id, std::move(attached_file_ids), true, std::move(promise), {-1});
     return;
@@ -496,8 +497,9 @@ void MessageImportManager::on_upload_imported_message_attachment(FileId file_id,
 
   FileView file_view = td_->file_manager_->get_file_view(file_id);
   CHECK(!file_view.is_encrypted());
-  if (input_file == nullptr && file_view.has_remote_location()) {
-    if (file_view.main_remote_location().is_web()) {
+  const auto *main_remote_location = file_view.get_main_remote_location();
+  if (input_file == nullptr && main_remote_location != nullptr) {
+    if (main_remote_location->is_web()) {
       return promise.set_error(Status::Error(400, "Can't use web file"));
     }
     if (is_reupload) {
@@ -505,10 +507,9 @@ void MessageImportManager::on_upload_imported_message_attachment(FileId file_id,
     }
 
     // delete file reference and forcely reupload the file
-    auto file_reference =
-        file_view.get_type() == FileType::Photo
-            ? FileManager::extract_file_reference(file_view.main_remote_location().as_input_photo())
-            : FileManager::extract_file_reference(file_view.main_remote_location().as_input_document());
+    auto file_reference = file_view.get_type() == FileType::Photo
+                              ? FileManager::extract_file_reference(main_remote_location->as_input_photo())
+                              : FileManager::extract_file_reference(main_remote_location->as_input_document());
     td_->file_manager_->delete_file_reference(file_id, file_reference);
     upload_imported_message_attachment(dialog_id, import_id, file_id, true, std::move(promise), {-1});
     return;

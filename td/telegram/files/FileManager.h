@@ -309,7 +309,7 @@ class FileView {
 
   const FullRemoteFileLocation *get_full_remote_location() const;
 
-  const FullRemoteFileLocation &main_remote_location() const;
+  const FullRemoteFileLocation *get_main_remote_location() const;
 
   bool has_url() const;
 

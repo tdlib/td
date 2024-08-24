@@ -3548,8 +3548,9 @@ SecretInputMedia StickersManager::get_secret_input_media(FileId sticker_file_id,
   CHECK(sticker != nullptr);
   auto file_view = td_->file_manager_->get_file_view(sticker_file_id);
   if (file_view.is_encrypted_secret()) {
-    if (file_view.has_remote_location()) {
-      input_file = file_view.main_remote_location().as_input_encrypted_file();
+    const auto *main_remote_location = file_view.get_main_remote_location();
+    if (main_remote_location != nullptr) {
+      input_file = main_remote_location->as_input_encrypted_file();
     }
     if (!input_file) {
       return {};
@@ -3623,13 +3624,14 @@ tl_object_ptr<telegram_api::InputMedia> StickersManager::get_input_media(
   if (file_view.is_encrypted()) {
     return nullptr;
   }
-  if (file_view.has_remote_location() && !file_view.main_remote_location().is_web() && input_file == nullptr) {
+  const auto *main_remote_location = file_view.get_main_remote_location();
+  if (main_remote_location != nullptr && !main_remote_location->is_web() && input_file == nullptr) {
     int32 flags = 0;
     if (!emoji.empty()) {
       flags |= telegram_api::inputMediaDocument::QUERY_MASK;
     }
-    return make_tl_object<telegram_api::inputMediaDocument>(
-        flags, false /*ignored*/, file_view.main_remote_location().as_input_document(), 0, emoji);
+    return make_tl_object<telegram_api::inputMediaDocument>(flags, false /*ignored*/,
+                                                            main_remote_location->as_input_document(), 0, emoji);
   }
   const auto *url = file_view.get_url();
   if (url != nullptr) {
@@ -7633,12 +7635,12 @@ void StickersManager::send_get_attached_stickers_query(FileId file_id, Promise<U
 
   tl_object_ptr<telegram_api::InputStickeredMedia> input_stickered_media;
   string file_reference;
-  if (file_view.main_remote_location().is_photo()) {
-    auto input_photo = file_view.main_remote_location().as_input_photo();
+  if (full_remote_location->is_photo()) {
+    auto input_photo = full_remote_location->as_input_photo();
     file_reference = input_photo->file_reference_.as_slice().str();
     input_stickered_media = make_tl_object<telegram_api::inputStickeredMediaPhoto>(std::move(input_photo));
   } else {
-    auto input_document = file_view.main_remote_location().as_input_document();
+    auto input_document = full_remote_location->as_input_document();
     file_reference = input_document->file_reference_.as_slice().str();
     input_stickered_media = make_tl_object<telegram_api::inputStickeredMediaDocument>(std::move(input_document));
   }
@@ -7875,13 +7877,14 @@ Result<std::tuple<FileId, bool, bool>> StickersManager::prepare_input_file(
     return Status::Error(400, "Can't use encrypted file");
   }
 
-  if (file_view.has_remote_location() && file_view.main_remote_location().is_web()) {
+  const auto *main_remote_location = file_view.get_main_remote_location();
+  if (main_remote_location != nullptr && main_remote_location->is_web()) {
     return Status::Error(400, "Can't use web file to create a sticker");
   }
   bool is_url = false;
   bool is_local = false;
-  if (file_view.has_remote_location()) {
-    CHECK(file_view.main_remote_location().is_document());
+  if (main_remote_location != nullptr) {
+    CHECK(main_remote_location->is_document());
   } else {
     if (file_view.has_url()) {
       is_url = true;
@@ -7943,8 +7946,9 @@ tl_object_ptr<telegram_api::inputStickerSetItem> StickersManager::get_input_stic
                                                                                     FileId file_id) const {
   CHECK(sticker != nullptr);
   FileView file_view = td_->file_manager_->get_file_view(file_id);
-  CHECK(file_view.has_remote_location());
-  auto input_document = file_view.main_remote_location().as_input_document();
+  const auto *main_remote_location = file_view.get_main_remote_location();
+  CHECK(main_remote_location != nullptr);
+  auto input_document = main_remote_location->as_input_document();
 
   int32 flags = 0;
 
@@ -8507,10 +8511,11 @@ void StickersManager::on_sticker_set_thumbnail_uploaded(int64 random_id, Result<
   }
 
   FileView file_view = td_->file_manager_->get_file_view(pending_set_sticker_set_thumbnail->file_id_);
-  CHECK(file_view.has_remote_location());
+  const auto *main_remote_location = file_view.get_main_remote_location();
+  CHECK(main_remote_location != nullptr);
 
   td_->create_handler<SetStickerSetThumbnailQuery>(std::move(pending_set_sticker_set_thumbnail->promise_))
-      ->send(pending_set_sticker_set_thumbnail->short_name_, file_view.main_remote_location().as_input_document());
+      ->send(pending_set_sticker_set_thumbnail->short_name_, main_remote_location->as_input_document());
 }
 
 void StickersManager::set_custom_emoji_sticker_set_thumbnail(string short_name, CustomEmojiId custom_emoji_id,
@@ -8582,8 +8587,8 @@ Result<StickersManager::StickerInputDocument> StickersManager::get_sticker_input
   TRY_RESULT(file_id, td_->file_manager_->get_input_file_id(FileType::Sticker, sticker, DialogId(), false, false));
 
   auto file_view = td_->file_manager_->get_file_view(file_id);
-  if (!file_view.has_remote_location() || !file_view.main_remote_location().is_document() ||
-      file_view.main_remote_location().is_web()) {
+  const auto *main_remote_location = file_view.get_main_remote_location();
+  if (main_remote_location == nullptr || !main_remote_location->is_document() || main_remote_location->is_web()) {
     return Status::Error(400, "Wrong sticker file specified");
   }
 
@@ -8597,7 +8602,7 @@ Result<StickersManager::StickerInputDocument> StickersManager::get_sticker_input
       result.sticker_set_short_name_ = to_string(s->set_id_.get());
     }
   }
-  result.input_document_ = file_view.main_remote_location().as_input_document();
+  result.input_document_ = main_remote_location->as_input_document();
   return std::move(result);
 }
 

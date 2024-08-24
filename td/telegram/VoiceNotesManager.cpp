@@ -148,8 +148,9 @@ SecretInputMedia VoiceNotesManager::get_secret_input_media(FileId voice_note_fil
   if (!file_view.is_encrypted_secret() || file_view.encryption_key().empty()) {
     return SecretInputMedia{};
   }
-  if (file_view.has_remote_location()) {
-    input_file = file_view.main_remote_location().as_input_encrypted_file();
+  const auto *main_remote_location = file_view.get_main_remote_location();
+  if (main_remote_location != nullptr) {
+    input_file = main_remote_location->as_input_encrypted_file();
   }
   if (!input_file) {
     return SecretInputMedia{};
@@ -172,13 +173,14 @@ tl_object_ptr<telegram_api::InputMedia> VoiceNotesManager::get_input_media(
   if (file_view.is_encrypted()) {
     return nullptr;
   }
-  if (file_view.has_remote_location() && !file_view.main_remote_location().is_web() && input_file == nullptr) {
+  const auto *main_remote_location = file_view.get_main_remote_location();
+  if (main_remote_location != nullptr && !main_remote_location->is_web() && input_file == nullptr) {
     int32 flags = 0;
     if (ttl != 0) {
       flags |= telegram_api::inputMediaDocument::TTL_SECONDS_MASK;
     }
-    return make_tl_object<telegram_api::inputMediaDocument>(
-        flags, false /*ignored*/, file_view.main_remote_location().as_input_document(), ttl, string());
+    return make_tl_object<telegram_api::inputMediaDocument>(flags, false /*ignored*/,
+                                                            main_remote_location->as_input_document(), ttl, string());
   }
   const auto *url = file_view.get_url();
   if (url != nullptr) {

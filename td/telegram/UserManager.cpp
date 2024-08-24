@@ -4754,8 +4754,10 @@ void UserManager::send_update_profile_photo_query(UserId user_id, FileId file_id
                                                   Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   FileView file_view = td_->file_manager_->get_file_view(file_id);
+  const auto *main_remote_location = file_view.get_main_remote_location();
+  CHECK(main_remote_location != nullptr);
   td_->create_handler<UpdateProfilePhotoQuery>(std::move(promise))
-      ->send(user_id, file_id, old_photo_id, is_fallback, file_view.main_remote_location().as_input_photo());
+      ->send(user_id, file_id, old_photo_id, is_fallback, main_remote_location->as_input_photo());
 }
 
 void UserManager::upload_profile_photo(UserId user_id, FileId file_id, bool is_fallback, bool only_suggest,
@@ -4792,8 +4794,9 @@ void UserManager::on_upload_profile_photo(FileId file_id,
   LOG(INFO) << "Uploaded " << (is_animation ? "animated" : "static") << " profile photo " << file_id << " for "
             << user_id << " with reupload_count = " << reupload_count;
   FileView file_view = td_->file_manager_->get_file_view(file_id);
-  if (file_view.has_remote_location() && input_file == nullptr) {
-    if (file_view.main_remote_location().is_web()) {
+  const auto *main_remote_location = file_view.get_main_remote_location();
+  if (main_remote_location != nullptr && input_file == nullptr) {
+    if (main_remote_location->is_web()) {
       return promise.set_error(Status::Error(400, "Can't use web photo as profile photo"));
     }
     if (reupload_count == 3) {  // upload, ForceReupload repair file reference, reupload
@@ -4803,14 +4806,13 @@ void UserManager::on_upload_profile_photo(FileId file_id,
     // delete file reference and forcely reupload the file
     if (is_animation) {
       CHECK(file_view.get_type() == FileType::Animation);
-      LOG_CHECK(file_view.main_remote_location().is_common()) << file_view.main_remote_location();
+      LOG_CHECK(main_remote_location->is_common()) << *main_remote_location;
     } else {
       CHECK(file_view.get_type() == FileType::Photo);
-      LOG_CHECK(file_view.main_remote_location().is_photo()) << file_view.main_remote_location();
+      LOG_CHECK(main_remote_location->is_photo()) << *main_remote_location;
     }
-    auto file_reference =
-        is_animation ? FileManager::extract_file_reference(file_view.main_remote_location().as_input_document())
-                     : FileManager::extract_file_reference(file_view.main_remote_location().as_input_photo());
+    auto file_reference = is_animation ? FileManager::extract_file_reference(main_remote_location->as_input_document())
+                                       : FileManager::extract_file_reference(main_remote_location->as_input_photo());
     td_->file_manager_->delete_file_reference(file_id, file_reference);
     upload_profile_photo(user_id, file_id, is_fallback, only_suggest, is_animation, main_frame_timestamp,
                          std::move(promise), reupload_count + 1, {-1});
