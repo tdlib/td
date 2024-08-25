@@ -471,7 +471,7 @@ PhotoSize get_input_thumbnail_photo_size(FileManager *file_manager, const td_api
       CHECK(thumbnail.file_id.is_valid());
 
       FileView thumbnail_file_view = file_manager->get_file_view(thumbnail.file_id);
-      if (thumbnail_file_view.has_remote_location()) {
+      if (thumbnail_file_view.has_full_remote_location()) {
         // TODO file_manager->delete_remote_location(thumbnail.file_id);
       }
     }

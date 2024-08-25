@@ -299,7 +299,7 @@ class FileView {
 
   const FullGenerateFileLocation *get_generate_location() const;
 
-  bool has_remote_location() const;
+  bool has_full_remote_location() const;
 
   bool has_alive_remote_location() const;
 

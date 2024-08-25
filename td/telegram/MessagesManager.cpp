@@ -24395,7 +24395,8 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
           thumbnail_file_id = FileId();
         }
 
-        if (content_type == MessageContentType::PaidMedia && !file_view.has_remote_location() && file_view.has_url()) {
+        if (content_type == MessageContentType::PaidMedia && !file_view.has_full_remote_location() &&
+            file_view.has_url()) {
           do_send_media(dialog_id, m, static_cast<int32>(i), file_id, FileId(), nullptr, nullptr);
           continue;
         }

@@ -31,7 +31,7 @@ void FileManager::store_file(FileId file_id, StorerT &storer, int32 ttl) const {
   auto file_store_type = FileStoreType::Empty;
   auto file_view = get_file_view(file_id);
   if (file_view.empty() || ttl <= 0) {
-  } else if (file_view.has_remote_location()) {
+  } else if (file_view.has_full_remote_location()) {
     file_store_type = FileStoreType::Remote;
   } else if (file_view.has_url()) {
     file_store_type = FileStoreType::Url;

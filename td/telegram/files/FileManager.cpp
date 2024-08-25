@@ -544,7 +544,7 @@ const FullLocalFileLocation *FileView::get_full_local_location() const {
   return &node_->local_.full();
 }
 
-bool FileView::has_remote_location() const {
+bool FileView::has_full_remote_location() const {
   return static_cast<bool>(node_->remote_.full);
 }
 
@@ -582,14 +582,14 @@ const FullRemoteFileLocation *FileView::get_full_remote_location() const {
   if (remote != nullptr) {
     return remote;
   }
-  if (!has_remote_location()) {
+  if (!has_full_remote_location()) {
     return nullptr;
   }
   return &node_->remote_.full.value();
 }
 
 const FullRemoteFileLocation *FileView::get_main_remote_location() const {
-  if (!has_remote_location()) {
+  if (!has_full_remote_location()) {
     return nullptr;
   }
   return &node_->remote_.full.value();
@@ -2202,7 +2202,7 @@ void FileManager::clear_from_pmc(FileNodePtr node) {
     data.local_ = node->local_;
     prepare_path_for_pmc(data.local_.full().file_type_, data.local_.full().path_);
   }
-  if (file_view.has_remote_location()) {
+  if (file_view.has_full_remote_location()) {
     data.remote_ = RemoteFileLocation(*node->remote_.full);
   }
   if (file_view.has_generate_location()) {
@@ -2351,7 +2351,7 @@ bool FileManager::set_encryption_key(FileId file_id, FileEncryptionKey key) {
     return false;
   }
   auto file_view = FileView(node);
-  if (file_view.has_full_local_location() && file_view.has_remote_location()) {
+  if (file_view.has_full_local_location() && file_view.has_full_remote_location()) {
     return false;
   }
   if (!node->encryption_key_.empty()) {
@@ -3201,7 +3201,7 @@ void FileManager::run_upload(FileNodePtr node, vector<int> bad_parts) {
   }
 
   FileView file_view(node);
-  if (!file_view.has_full_local_location() && !file_view.has_remote_location()) {
+  if (!file_view.has_full_local_location() && !file_view.has_full_remote_location()) {
     if (node->get_by_hash_ || node->generate_id_ == 0 || !node->generate_was_update_) {
       LOG(INFO) << "Have no local location for file: get_by_hash = " << node->get_by_hash_
                 << ", generate_id = " << node->generate_id_ << ", generate_was_update = " << node->generate_was_update_;

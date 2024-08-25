@@ -3503,7 +3503,7 @@ bool StickersManager::has_input_media(FileId sticker_file_id, bool is_secret) co
     const Sticker *sticker = get_sticker(sticker_file_id);
     CHECK(sticker != nullptr);
     if (file_view.is_encrypted_secret()) {
-      if (!file_view.encryption_key().empty() && file_view.has_remote_location() &&
+      if (!file_view.encryption_key().empty() && file_view.has_full_remote_location() &&
           !sticker->s_thumbnail_.file_id.is_valid()) {
         return true;
       }
@@ -3520,7 +3520,7 @@ bool StickersManager::has_input_media(FileId sticker_file_id, bool is_secret) co
     if (file_view.is_encrypted()) {
       return false;
     }
-    if (td_->auth_manager_->is_bot() && file_view.has_remote_location()) {
+    if (td_->auth_manager_->is_bot() && file_view.has_full_remote_location()) {
       return true;
     }
     const Sticker *sticker = get_sticker(sticker_file_id);
@@ -3533,7 +3533,7 @@ bool StickersManager::has_input_media(FileId sticker_file_id, bool is_secret) co
     // having remote location is not enough to have InputMedia, because the file may not have valid file_reference
     // also file_id needs to be duped, because upload can be called to repair the file_reference and every upload
     // request must have unique file_id
-    if (/* file_view.has_remote_location() || */ file_view.has_url()) {
+    if (/* file_view.has_full_remote_location() || */ file_view.has_url()) {
       return true;
     }
   }
