@@ -7681,6 +7681,9 @@ void MessagesManager::set_dialog_available_reactions(Dialog *d, ChatReactions &&
       UNREACHABLE();
       break;
   }
+  if (td_->dialog_manager_->is_broadcast_channel(d->dialog_id)) {
+    available_reactions.fix_broadcast_reactions(active_reaction_types_);
+  }
   if (d->available_reactions == available_reactions) {
     if (!d->is_available_reactions_inited) {
       d->is_available_reactions_inited = true;
@@ -36049,6 +36052,9 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
     case DialogType::Channel:
       if (get_active_reactions(d->available_reactions).empty() != ((d->available_reactions_generation & 1) == 1)) {
         set_dialog_next_available_reactions_generation(d, d->available_reactions_generation);
+      }
+      if (td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
+        d->available_reactions.fix_broadcast_reactions(active_reaction_types_);
       }
       break;
     case DialogType::User:

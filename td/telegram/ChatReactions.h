@@ -45,6 +45,8 @@ struct ChatReactions {
   ChatReactions get_active_reactions(
       const FlatHashMap<ReactionType, size_t, ReactionTypeHash> &active_reaction_pos) const;
 
+  void fix_broadcast_reactions(const vector<ReactionType> &active_reaction_types);
+
   bool is_allowed_reaction_type(const ReactionType &reaction) const;
 
   telegram_api::object_ptr<telegram_api::ChatReactions> get_input_chat_reactions() const;

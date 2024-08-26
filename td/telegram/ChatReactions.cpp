@@ -86,6 +86,14 @@ ChatReactions ChatReactions::get_active_reactions(
   return result;
 }
 
+void ChatReactions::fix_broadcast_reactions(const vector<ReactionType> &active_reaction_types) {
+  if (allow_all_regular_) {
+    reaction_types_ = active_reaction_types;
+    allow_all_regular_ = false;
+    allow_all_custom_ = false;
+  }
+}
+
 bool ChatReactions::is_allowed_reaction_type(const ReactionType &reaction_type) const {
   CHECK(!allow_all_regular_);
   if (allow_all_custom_ && reaction_type.is_custom_reaction()) {
