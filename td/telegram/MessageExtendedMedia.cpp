@@ -199,7 +199,7 @@ bool MessageExtendedMedia::update_to(Td *td,
   return false;
 }
 
-td_api::object_ptr<td_api::PaidMedia> MessageExtendedMedia::get_message_extended_media_object(Td *td) const {
+td_api::object_ptr<td_api::PaidMedia> MessageExtendedMedia::get_paid_media_object(Td *td) const {
   if (type_ == Type::Empty) {
     return nullptr;
   }

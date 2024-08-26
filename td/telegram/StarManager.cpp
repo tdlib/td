@@ -214,9 +214,8 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         for (auto &media : extended_media) {
           media.append_file_ids(td_, file_ids);
         }
-        auto extended_media_objects = transform(std::move(extended_media), [td = td_](auto &&media) {
-          return media.get_message_extended_media_object(td);
-        });
+        auto extended_media_objects =
+            transform(std::move(extended_media), [td = td_](auto &&media) { return media.get_paid_media_object(td); });
         transaction->extended_media_.clear();
         return extended_media_objects;
       };
