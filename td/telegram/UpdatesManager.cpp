@@ -357,6 +357,11 @@ void UpdatesManager::fill_pts_gap(void *td) {
 
   CHECK(td != nullptr);
   auto updates_manager = static_cast<Td *>(td)->updates_manager_.get();
+  if (updates_manager->expect_pts_gap_) {
+    updates_manager->expect_pts_gap_ = false;
+    return fill_gap(td, string());
+  }
+
   auto min_pts = std::numeric_limits<int32>::max();
   auto min_pts_count = 0;
   const telegram_api::Update *first_update = nullptr;
@@ -2905,6 +2910,11 @@ void UpdatesManager::add_pending_pts_update(tl_object_ptr<telegram_api::Update> 
     }
     promise.set_value(Unit());
     return;
+  }
+
+  if (pts_count == 0 && receive_time < Time::now() - MAX_UNFILLED_GAP_TIME && update->get_id() == dummyUpdate::ID) {
+    // don't warn about fetching of affected history
+    expect_pts_gap_ = true;
   }
 
   pending_pts_updates_.emplace(std::move(update), new_pts, pts_count, receive_time, std::move(promise));

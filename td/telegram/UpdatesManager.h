@@ -282,6 +282,7 @@ class UpdatesManager final : public Actor {
 
   bool is_ping_sent_ = false;
 
+  bool expect_pts_gap_ = false;
   bool running_get_difference_ = false;
   int32 skipped_postponed_updates_after_start_ = 50000;
   int32 last_confirmed_pts_ = 0;
