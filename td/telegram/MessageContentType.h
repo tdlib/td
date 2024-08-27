@@ -112,6 +112,8 @@ MessageContentType get_expired_message_content_type(MessageContentType content_t
 
 bool can_have_message_content_caption(MessageContentType content_type);
 
+bool can_send_message_content_to_secret_chat(MessageContentType content_type);
+
 uint64 get_message_content_chain_id(MessageContentType content_type);
 
 struct MessageContentTypeHash {

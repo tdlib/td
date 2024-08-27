@@ -4085,6 +4085,9 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
   }();
 
   auto content_type = content->get_type();
+  if (dialog_type == DialogType::SecretChat && !can_send_message_content_to_secret_chat(content_type)) {
+    return Status::Error(400, "Message can't be sent to a secret chat");
+  }
   switch (content_type) {
     case MessageContentType::Animation:
       if (!permissions.can_send_animations()) {
@@ -4105,9 +4108,6 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
       if (!permissions.can_send_stickers()) {
         return Status::Error(400, "Not enough rights to send dice to the chat");
       }
-      if (dialog_type == DialogType::SecretChat) {
-        return Status::Error(400, "Dice can't be sent to secret chats");
-      }
       break;
     case MessageContentType::Document:
       if (!permissions.can_send_documents()) {
@@ -4118,9 +4118,6 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
       if (dialog_type == DialogType::Channel && td->chat_manager_->is_broadcast_channel(dialog_id.get_channel_id())) {
         // return Status::Error(400, "Games can't be sent to channel chats");
       }
-      if (dialog_type == DialogType::SecretChat) {
-        return Status::Error(400, "Games can't be sent to secret chats");
-      }
       if (!permissions.can_send_games()) {
         return Status::Error(400, "Not enough rights to send games to the chat");
       }
@@ -4129,24 +4126,15 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
       if (!permissions.can_send_messages()) {
         return Status::Error(400, "Not enough rights to send giveaways to the chat");
       }
-      if (dialog_type == DialogType::SecretChat) {
-        return Status::Error(400, "Giveaways can't be sent to secret chats");
-      }
       break;
     case MessageContentType::GiveawayWinners:
       if (!permissions.can_send_messages()) {
         return Status::Error(400, "Not enough rights to send giveaway winners to the chat");
       }
-      if (dialog_type == DialogType::SecretChat) {
-        return Status::Error(400, "Giveaway winners can't be sent to secret chats");
-      }
       break;
     case MessageContentType::Invoice:
       if (!permissions.can_send_messages()) {
         return Status::Error(400, "Not enough rights to send invoice messages to the chat");
-      }
-      if (dialog_type == DialogType::SecretChat) {
-        return Status::Error(400, "Invoice messages can't be sent to secret chats");
       }
       break;
     case MessageContentType::LiveLocation:
@@ -4163,9 +4151,6 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
       if (is_forward) {
         if (!permissions.can_send_photos() || !permissions.can_send_videos()) {
           return Status::Error(400, "Not enough rights to send paid media to the chat");
-        }
-        if (dialog_type == DialogType::SecretChat) {
-          return Status::Error(400, "Paid media can't be sent to secret chats");
         }
       } else {
         if (!td->auth_manager_->is_bot() && (dialog_type != DialogType::Channel ||
@@ -4191,9 +4176,6 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
           !td->user_manager_->is_user_bot(dialog_id.get_user_id())) {
         return Status::Error(400, "Polls can't be sent to the private chat");
       }
-      if (dialog_type == DialogType::SecretChat) {
-        return Status::Error(400, "Polls can't be sent to secret chats");
-      }
       break;
     case MessageContentType::Sticker:
       if (!permissions.can_send_stickers()) {
@@ -4206,9 +4188,6 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
     case MessageContentType::Story:
       if (!permissions.can_send_photos() || !permissions.can_send_videos()) {
         return Status::Error(400, "Not enough rights to send stories to the chat");
-      }
-      if (dialog_type == DialogType::SecretChat) {
-        return Status::Error(400, "Story messages can't be sent to secret chats");
       }
       break;
     case MessageContentType::Text:
