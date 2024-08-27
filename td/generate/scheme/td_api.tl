@@ -848,11 +848,11 @@ premiumStatePaymentOption payment_option:premiumPaymentOption is_current:Bool is
 //@description Describes an option for creating Telegram Premium gift codes or Telegram Premium giveaway. Use telegramPaymentPurposePremiumGiftCodes or telegramPaymentPurposePremiumGiveaway for out-of-store payments
 //@currency ISO 4217 currency code for Telegram Premium gift code payment
 //@amount The amount to pay, in the smallest units of the currency
-//@user_count Number of users which will be able to activate the gift codes
+//@winner_count Number of users which will be able to activate the gift codes
 //@month_count Number of months the Telegram Premium subscription will be active
 //@store_product_id Identifier of the store product associated with the option; may be empty if none
 //@store_product_quantity Number of times the store product must be paid
-premiumGiftCodePaymentOption currency:string amount:int53 user_count:int32 month_count:int32 store_product_id:string store_product_quantity:int32 = PremiumGiftCodePaymentOption;
+premiumGiftCodePaymentOption currency:string amount:int53 winner_count:int32 month_count:int32 store_product_id:string store_product_quantity:int32 = PremiumGiftCodePaymentOption;
 
 //@description Contains a list of options for creating Telegram Premium gift codes or Telegram Premium giveaway @options The list of options
 premiumGiftCodePaymentOptions options:vector<premiumGiftCodePaymentOption> = PremiumGiftCodePaymentOptions;
@@ -879,10 +879,10 @@ starPaymentOption currency:string amount:int53 star_count:int53 store_product_id
 starPaymentOptions options:vector<starPaymentOption> = StarPaymentOptions;
 
 //@description Describes an option for the number of winners of a Telegram Star giveaway
-//@user_count The number of users that will be chosen as winners
+//@winner_count The number of users that will be chosen as winners
 //@won_star_count The number of Telegram Stars that will be won by the winners of the giveaway
 //@is_default True, if the option must be chosen by default
-starGiveawayWinnerOption user_count:int32 won_star_count:int53 is_default:Bool = StarGiveawayWinnerOption;
+starGiveawayWinnerOption winner_count:int32 won_star_count:int53 is_default:Bool = StarGiveawayWinnerOption;
 
 //@description Describes an option for creating Telegram Star giveaway. Use telegramPaymentPurposeStarGiveaway for out-of-store payments
 //@currency ISO 4217 currency code for the payment
