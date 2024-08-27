@@ -7311,7 +7311,8 @@ chatStatisticsChannel period:dateRange member_count:statisticalValue mean_messag
 //@total_amount Total amount of the cryptocurrency earned, in the smallest units of the cryptocurrency
 //@balance_amount Amount of the cryptocurrency that isn't withdrawn yet, in the smallest units of the cryptocurrency
 //@available_amount Amount of the cryptocurrency available for withdrawal, in the smallest units of the cryptocurrency
-chatRevenueAmount cryptocurrency:string total_amount:int64 balance_amount:int64 available_amount:int64 = ChatRevenueAmount;
+//@withdrawal_enabled True, if Telegram Stars can be withdrawn now or later
+chatRevenueAmount cryptocurrency:string total_amount:int64 balance_amount:int64 available_amount:int64 withdrawal_enabled:Bool = ChatRevenueAmount;
 
 //@description A detailed statistics about revenue earned from sponsored messages in a chat
 //@revenue_by_hour_graph A graph containing amount of revenue in a given hour

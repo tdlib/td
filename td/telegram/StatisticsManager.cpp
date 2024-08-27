@@ -277,8 +277,9 @@ static int64 get_amount(int64 amount, bool allow_negative = false) {
 static td_api::object_ptr<td_api::chatRevenueAmount> convert_broadcast_revenue_balances(
     telegram_api::object_ptr<telegram_api::broadcastRevenueBalances> obj) {
   CHECK(obj != nullptr);
-  return td_api::make_object<td_api::chatRevenueAmount>(
-      "TON", get_amount(obj->overall_revenue_), get_amount(obj->current_balance_), get_amount(obj->available_balance_));
+  return td_api::make_object<td_api::chatRevenueAmount>("TON", get_amount(obj->overall_revenue_),
+                                                        get_amount(obj->current_balance_),
+                                                        get_amount(obj->available_balance_), obj->withdrawal_enabled_);
 }
 
 static td_api::object_ptr<td_api::chatRevenueStatistics> convert_broadcast_revenue_stats(
