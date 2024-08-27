@@ -158,6 +158,20 @@ Result<InputInvoiceInfo> get_input_invoice_info(Td *td, td_api::object_ptr<td_ap
           result.input_invoice_ = telegram_api::make_object<telegram_api::inputInvoiceStars>(std::move(purpose));
           break;
         }
+        case td_api::telegramPaymentPurposeStarGiveaway::ID: {
+          auto p = static_cast<td_api::telegramPaymentPurposeStarGiveaway *>(invoice->purpose_.get());
+          if (p->amount_ <= 0 || !check_currency_amount(p->amount_)) {
+            return Status::Error(400, "Invalid amount of the currency specified");
+          }
+          if (!clean_input_string(p->currency_)) {
+            return Status::Error(400, "Strings must be encoded in UTF-8");
+          }
+          TRY_RESULT(parameters, GiveawayParameters::get_giveaway_parameters(td, p->parameters_.get()));
+          auto purpose = parameters.get_input_store_payment_stars_giveaway(td, p->currency_, p->amount_,
+                                                                           p->winner_count_, p->star_count_);
+          result.input_invoice_ = telegram_api::make_object<telegram_api::inputInvoiceStars>(std::move(purpose));
+          break;
+        }
         case td_api::telegramPaymentPurposeJoinChat::ID: {
           auto p = static_cast<td_api::telegramPaymentPurposeJoinChat *>(invoice->purpose_.get());
           if (!DialogInviteLink::is_valid_invite_link(p->invite_link_)) {

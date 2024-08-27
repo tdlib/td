@@ -5796,9 +5796,9 @@ storePaymentPurposePremiumGiveaway parameters:giveawayParameters currency:string
 //@parameters Giveaway parameters
 //@currency ISO 4217 currency code of the payment currency
 //@amount Paid amount, in the smallest units of the currency
-//@user_count The number of users to receive Telegram Stars
+//@winner_count The number of users to receive Telegram Stars
 //@star_count The number of Telegram Stars to be distributed through the giveaway
-storePaymentPurposeStarGiveaway parameters:giveawayParameters currency:string amount:int53 user_count:int32 star_count:int53 = StorePaymentPurpose;
+storePaymentPurposeStarGiveaway parameters:giveawayParameters currency:string amount:int53 winner_count:int32 star_count:int53 = StorePaymentPurpose;
 
 //@description The user buying Telegram Stars
 //@currency ISO 4217 currency code of the payment currency
@@ -5844,6 +5844,14 @@ telegramPaymentPurposeStars currency:string amount:int53 star_count:int53 = Tele
 //@amount Paid amount, in the smallest units of the currency
 //@star_count Number of bought Telegram Stars
 telegramPaymentPurposeGiftedStars user_id:int53 currency:string amount:int53 star_count:int53 = TelegramPaymentPurpose;
+
+//@description The user creating a Telegram Star giveaway
+//@parameters Giveaway parameters
+//@currency ISO 4217 currency code of the payment currency
+//@amount Paid amount, in the smallest units of the currency
+//@winner_count The number of users to receive Telegram Stars
+//@star_count The number of Telegram Stars to be distributed through the giveaway
+telegramPaymentPurposeStarGiveaway parameters:giveawayParameters currency:string amount:int53 winner_count:int32 star_count:int53 = TelegramPaymentPurpose;
 
 //@description The user joins a chat and subscribes to regular payments in Telegram Stars @invite_link Invite link to use
 telegramPaymentPurposeJoinChat invite_link:string = TelegramPaymentPurpose;
