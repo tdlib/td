@@ -5991,6 +5991,11 @@ void register_message_content(Td *td, const MessageContent *content, MessageFull
       return td->stickers_manager_->register_premium_gift(StarManager::get_months_by_star_count(star_count),
                                                           message_full_id, source);
     }
+    case MessageContentType::PrizeStars: {
+      auto star_count = static_cast<const MessagePrizeStars *>(content)->star_count;
+      return td->stickers_manager_->register_premium_gift(StarManager::get_months_by_star_count(star_count),
+                                                          message_full_id, source);
+    }
     default:
       return;
   }
@@ -6073,6 +6078,12 @@ void reregister_message_content(Td *td, const MessageContent *old_content, const
           return;
         }
         break;
+      case MessageContentType::PrizeStars:
+        if (static_cast<const MessagePrizeStars *>(old_content)->star_count ==
+            static_cast<const MessagePrizeStars *>(new_content)->star_count) {
+          return;
+        }
+        break;
       default:
         return;
     }
@@ -6128,6 +6139,11 @@ void unregister_message_content(Td *td, const MessageContent *content, MessageFu
                                                   message_full_id, {}, source);
     case MessageContentType::GiftStars: {
       auto star_count = static_cast<const MessageGiftStars *>(content)->star_count;
+      return td->stickers_manager_->unregister_premium_gift(StarManager::get_months_by_star_count(star_count),
+                                                            message_full_id, source);
+    }
+    case MessageContentType::PrizeStars: {
+      auto star_count = static_cast<const MessagePrizeStars *>(content)->star_count;
       return td->stickers_manager_->unregister_premium_gift(StarManager::get_months_by_star_count(star_count),
                                                             message_full_id, source);
     }
@@ -8140,7 +8156,8 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       return td_api::make_object<td_api::messageGiveawayPrizeStars>(
           m->star_count, m->transaction_id,
           td->dialog_manager_->get_chat_id_object(m->boosted_dialog_id, "messageGiveawayPrizeStars"),
-          m->giveaway_message_id.get(), m->is_unclaimed);
+          m->giveaway_message_id.get(), m->is_unclaimed,
+          td->stickers_manager_->get_premium_gift_sticker_object(StarManager::get_months_by_star_count(m->star_count)));
     }
     default:
       UNREACHABLE();

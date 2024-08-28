@@ -3675,7 +3675,8 @@ messageGiftedStars gifter_user_id:int53 receiver_user_id:int53 currency:string a
 //@boosted_chat_id Identifier of the supergroup or channel chat, which was automatically boosted by the winners of the giveaway
 //@giveaway_message_id Identifier of the message with the giveaway in the boosted chat; can be 0 if the message was deleted
 //@is_unclaimed True, if the corresponding winner wasn't chosen and the Telegram Stars were received by the owner of the boosted chat
-messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id:int53 giveaway_message_id:int53 is_unclaimed:Bool = MessageContent;
+//@sticker A sticker to be shown in the message; may be null if unknown
+messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id:int53 giveaway_message_id:int53 is_unclaimed:Bool sticker:sticker = MessageContent;
 
 //@description A contact has registered with Telegram
 messageContactRegistered = MessageContent;
