@@ -254,22 +254,25 @@ detail::reversion_wrapper<T> reversed(T &iterable) {
 }
 
 template <class TableT, class FuncT>
-void table_remove_if(TableT &table, FuncT &&func) {
+bool table_remove_if(TableT &table, FuncT &&func) {
+  bool is_removed = false;
   for (auto it = table.begin(); it != table.end();) {
     if (func(*it)) {
       it = table.erase(it);
+      is_removed = true;
     } else {
       ++it;
     }
   }
+  return is_removed;
 }
 
 template <class NodeT, class HashT, class EqT>
 class FlatHashTable;
 
 template <class NodeT, class HashT, class EqT, class FuncT>
-void table_remove_if(FlatHashTable<NodeT, HashT, EqT> &table, FuncT &&func) {
-  table.remove_if(func);
+bool table_remove_if(FlatHashTable<NodeT, HashT, EqT> &table, FuncT &&func) {
+  return table.remove_if(func);
 }
 
 }  // namespace td
