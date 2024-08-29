@@ -3,12 +3,13 @@ if ((CMAKE_MAJOR_VERSION LESS 3) OR (CMAKE_VERSION VERSION_LESS "3.0.2"))
 endif()
 
 option(TDUTILS_MIME_TYPE "Generate MIME types conversion; requires gperf" ON)
+option(TDUTILS_USE_EXTERNAL_DEPENDENCIES "Try to use external libraries if available" ON)
 
 if (NOT DEFINED CMAKE_INSTALL_LIBDIR)
   set(CMAKE_INSTALL_LIBDIR "lib")
 endif()
 
-if (NOT ZLIB_FOUND)
+if (NOT ZLIB_FOUND AND TDUTILS_USE_EXTERNAL_DEPENDENCIES)
   find_package(ZLIB)
 endif()
 if (ZLIB_FOUND)
@@ -24,14 +25,14 @@ if (ZLIB_FOUND)
   endif()
 endif()
 
-if (NOT CRC32C_FOUND)
+if (NOT CRC32C_FOUND AND TDUTILS_USE_EXTERNAL_DEPENDENCIES)
   find_package(Crc32c QUIET)
 endif()
 if (CRC32C_FOUND)
   set(TD_HAVE_CRC32C 1)
 endif()
 
-if (TD_WITH_ABSEIL)
+if (TD_WITH_ABSEIL AND TDUTILS_USE_EXTERNAL_DEPENDENCIES)
   find_package(ABSL QUIET)
   if (ABSL_FOUND)
     set(TD_HAVE_ABSL 1)
@@ -413,7 +414,7 @@ install(TARGETS tdutils EXPORT TdStaticTargets
   ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 )
 
-if (TD_TEST_FOLLY AND ABSL_FOUND)
+if (TD_TEST_FOLLY AND ABSL_FOUND AND TDUTILS_USE_EXTERNAL_DEPENDENCIES)
   find_package(benchmark QUIET)
   find_package(folly QUIET)
   find_package(gflags QUIET)

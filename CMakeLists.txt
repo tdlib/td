@@ -194,8 +194,8 @@ if (NOT ZLIB_FOUND)
   return()
 endif()
 
-if (NOT TDUTILS_MIME_TYPE)
-  message(WARNING "Option TDUTILS_MIME_TYPE must not be disabled: stop TDLib building")
+if (NOT TDUTILS_MIME_TYPE OR NOT TDUTILS_USE_EXTERNAL_DEPENDENCIES)
+  message(WARNING "Option TDUTILS_MIME_TYPE and TDUTILS_USE_EXTERNAL_DEPENDENCIES must not be disabled: stop TDLib building")
   return()
 endif()
 
