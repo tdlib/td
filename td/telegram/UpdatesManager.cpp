@@ -3920,6 +3920,7 @@ bool UpdatesManager::is_qts_update(const telegram_api::Update *update) {
     case telegram_api::updateBotNewBusinessMessage::ID:
     case telegram_api::updateBotEditBusinessMessage::ID:
     case telegram_api::updateBotDeleteBusinessMessage::ID:
+    case telegram_api::updateBotPurchasedPaidMedia::ID:
       return true;
     default:
       return false;
@@ -3954,6 +3955,8 @@ int32 UpdatesManager::get_update_qts(const telegram_api::Update *update) {
       return static_cast<const telegram_api::updateBotEditBusinessMessage *>(update)->qts_;
     case telegram_api::updateBotDeleteBusinessMessage::ID:
       return static_cast<const telegram_api::updateBotDeleteBusinessMessage *>(update)->qts_;
+    case telegram_api::updateBotPurchasedPaidMedia::ID:
+      return static_cast<const telegram_api::updateBotPurchasedPaidMedia *>(update)->qts_;
     default:
       return 0;
   }
