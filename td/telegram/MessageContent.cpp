@@ -7989,7 +7989,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       }
       return td_api::make_object<td_api::messageGiftedPremium>(
           gifter_user_id, receiver_user_id, m->currency, m->amount, m->crypto_currency, m->crypto_amount, m->months,
-          td->stickers_manager_->get_premium_gift_sticker_object(m->months));
+          td->stickers_manager_->get_premium_gift_sticker_object(m->months, 0));
     }
     case MessageContentType::TopicCreate: {
       const auto *m = static_cast<const MessageTopicCreate *>(content);
@@ -8051,7 +8051,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
               ? get_message_sender_object(td, m->creator_dialog_id, "messagePremiumGiftCode")
               : nullptr,
           m->via_giveaway, m->is_unclaimed, m->currency, m->amount, m->crypto_currency, m->crypto_amount, m->months,
-          td->stickers_manager_->get_premium_gift_sticker_object(m->months), m->code);
+          td->stickers_manager_->get_premium_gift_sticker_object(m->months, 0), m->code);
     }
     case MessageContentType::Giveaway: {
       const auto *m = static_cast<const MessageGiveaway *>(content);
@@ -8063,7 +8063,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       }
       return td_api::make_object<td_api::messageGiveaway>(
           m->giveaway_parameters.get_giveaway_parameters_object(td), m->quantity, std::move(prize),
-          td->stickers_manager_->get_premium_gift_sticker_object(m->months));
+          td->stickers_manager_->get_premium_gift_sticker_object(m->months, m->star_count));
     }
     case MessageContentType::GiveawayLaunch: {
       const auto *m = static_cast<const MessageGiveawayLaunch *>(content);
@@ -8142,8 +8142,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       }
       return td_api::make_object<td_api::messageGiftedStars>(
           gifter_user_id, receiver_user_id, m->currency, m->amount, m->crypto_currency, m->crypto_amount, m->star_count,
-          m->transaction_id,
-          td->stickers_manager_->get_premium_gift_sticker_object(StarManager::get_months_by_star_count(m->star_count)));
+          m->transaction_id, td->stickers_manager_->get_premium_gift_sticker_object(0, m->star_count));
     }
     case MessageContentType::PrizeStars: {
       const auto *m = static_cast<const MessagePrizeStars *>(content);
@@ -8151,7 +8150,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
           m->star_count, m->transaction_id,
           td->dialog_manager_->get_chat_id_object(m->boosted_dialog_id, "messageGiveawayPrizeStars"),
           m->giveaway_message_id.get(), m->is_unclaimed,
-          td->stickers_manager_->get_premium_gift_sticker_object(StarManager::get_months_by_star_count(m->star_count)));
+          td->stickers_manager_->get_premium_gift_sticker_object(0, m->star_count));
     }
     default:
       UNREACHABLE();

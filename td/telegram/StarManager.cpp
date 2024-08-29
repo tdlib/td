@@ -272,8 +272,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
             if (transaction->gift_) {
               transaction->gift_ = false;
               return td_api::make_object<td_api::starTransactionPartnerUser>(
-                  0, td_->stickers_manager_->get_premium_gift_sticker_object(
-                         StarManager::get_months_by_star_count(star_count)));
+                  0, td_->stickers_manager_->get_premium_gift_sticker_object(0, star_count));
             }
             auto state = [&]() -> td_api::object_ptr<td_api::RevenueWithdrawalState> {
               if (transaction->transaction_date_ > 0) {
@@ -315,8 +314,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                       user_id == UserManager::get_service_notifications_user_id()
                           ? 0
                           : td_->user_manager_->get_user_id_object(user_id, "starTransactionPartnerUser"),
-                      td_->stickers_manager_->get_premium_gift_sticker_object(
-                          StarManager::get_months_by_star_count(star_count)));
+                      td_->stickers_manager_->get_premium_gift_sticker_object(0, star_count));
                 }
                 if (!transaction->extended_media_.empty()) {  // TODO
                   return td_api::make_object<td_api::starTransactionPartnerBusiness>(

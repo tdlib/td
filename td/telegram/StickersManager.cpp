@@ -2692,7 +2692,11 @@ tl_object_ptr<td_api::stickerSetInfo> StickersManager::get_sticker_set_info_obje
       sticker_set->was_loaded_ ? actual_count : max(actual_count, sticker_set->sticker_count_), std::move(stickers));
 }
 
-td_api::object_ptr<td_api::sticker> StickersManager::get_premium_gift_sticker_object(int32 month_count) {
+td_api::object_ptr<td_api::sticker> StickersManager::get_premium_gift_sticker_object(int32 month_count,
+                                                                                     int64 star_count) {
+  if (month_count == 0) {
+    month_count = StarManager::get_months_by_star_count(star_count);
+  }
   auto it = premium_gift_messages_.find(month_count);
   if (it == premium_gift_messages_.end()) {
     return get_sticker_object(get_premium_gift_option_sticker_id(month_count));

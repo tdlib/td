@@ -100,7 +100,7 @@ class StickersManager final : public Actor {
                                                              const vector<StickerSetId> &sticker_set_ids,
                                                              size_t covers_limit) const;
 
-  td_api::object_ptr<td_api::sticker> get_premium_gift_sticker_object(int32 month_count);
+  td_api::object_ptr<td_api::sticker> get_premium_gift_sticker_object(int32 month_count, int64 star_count);
 
   td_api::object_ptr<td_api::animatedEmoji> get_animated_emoji_object(const string &emoji,
                                                                       CustomEmojiId custom_emoji_id);
