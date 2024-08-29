@@ -7664,10 +7664,12 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     }
     case telegram_api::messageActionPrizeStars::ID: {
       auto action = move_tl_object_as<telegram_api::messageActionPrizeStars>(action_ptr);
-      DialogId boosted_dialog_id;
-      if (action->boost_peer_ != nullptr) {
-        boosted_dialog_id = DialogId(action->boost_peer_);
+      DialogId boosted_dialog_id = DialogId(action->boost_peer_);
+      if (!boosted_dialog_id.is_valid()) {
+        LOG(ERROR) << "Receive invalid " << oneline(to_string(action));
+        break;
       }
+      td->dialog_manager_->force_create_dialog(boosted_dialog_id, "messageActionPrizeStars", true);
       return td::make_unique<MessagePrizeStars>(
           StarManager::get_star_count(action->stars_), std::move(action->transaction_id_), boosted_dialog_id,
           MessageId(ServerMessageId(action->giveaway_msg_id_)), action->unclaimed_);
@@ -9119,8 +9121,11 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
     }
     case MessageContentType::GiftStars:
       break;
-    case MessageContentType::PrizeStars:
+    case MessageContentType::PrizeStars: {
+      const auto *content = static_cast<const MessagePrizeStars *>(message_content);
+      dependencies.add_dialog_and_dependencies(DialogId(content->boosted_dialog_id));
       break;
+    }
     default:
       UNREACHABLE();
       break;
