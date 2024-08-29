@@ -109,9 +109,9 @@ class StickersManager final : public Actor {
 
   void load_premium_gift_sticker_set(Promise<Unit> &&promise);
 
-  void register_premium_gift(int32 months, MessageFullId message_full_id, const char *source);
+  void register_premium_gift(int32 months, int64 star_count, MessageFullId message_full_id, const char *source);
 
-  void unregister_premium_gift(int32 months, MessageFullId message_full_id, const char *source);
+  void unregister_premium_gift(int32 months, int64 star_count, MessageFullId message_full_id, const char *source);
 
   void register_dice(const string &emoji, int32 value, MessageFullId message_full_id,
                      QuickReplyMessageFullId quick_reply_message_full_id, const char *source);

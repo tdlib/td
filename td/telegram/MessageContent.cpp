@@ -5969,16 +5969,15 @@ void register_message_content(Td *td, const MessageContent *content, MessageFull
       return td->stickers_manager_->register_dice(dice->emoji, dice->dice_value, message_full_id, {}, source);
     }
     case MessageContentType::GiftPremium:
-      return td->stickers_manager_->register_premium_gift(static_cast<const MessageGiftPremium *>(content)->months,
+      return td->stickers_manager_->register_premium_gift(static_cast<const MessageGiftPremium *>(content)->months, 0,
                                                           message_full_id, source);
     case MessageContentType::GiftCode:
-      return td->stickers_manager_->register_premium_gift(static_cast<const MessageGiftCode *>(content)->months,
+      return td->stickers_manager_->register_premium_gift(static_cast<const MessageGiftCode *>(content)->months, 0,
                                                           message_full_id, source);
     case MessageContentType::Giveaway: {
       auto giveaway = static_cast<const MessageGiveaway *>(content);
-      return td->stickers_manager_->register_premium_gift(
-          giveaway->months != 0 ? giveaway->months : StarManager::get_months_by_star_count(giveaway->star_count),
-          message_full_id, source);
+      return td->stickers_manager_->register_premium_gift(giveaway->months, giveaway->star_count, message_full_id,
+                                                          source);
     }
     case MessageContentType::SuggestProfilePhoto:
       return td->user_manager_->register_suggested_profile_photo(
@@ -5988,13 +5987,11 @@ void register_message_content(Td *td, const MessageContent *content, MessageFull
                                                 message_full_id, {}, source);
     case MessageContentType::GiftStars: {
       auto star_count = static_cast<const MessageGiftStars *>(content)->star_count;
-      return td->stickers_manager_->register_premium_gift(StarManager::get_months_by_star_count(star_count),
-                                                          message_full_id, source);
+      return td->stickers_manager_->register_premium_gift(0, star_count, message_full_id, source);
     }
     case MessageContentType::PrizeStars: {
       auto star_count = static_cast<const MessagePrizeStars *>(content)->star_count;
-      return td->stickers_manager_->register_premium_gift(StarManager::get_months_by_star_count(star_count),
-                                                          message_full_id, source);
+      return td->stickers_manager_->register_premium_gift(0, star_count, message_full_id, source);
     }
     default:
       return;
@@ -6123,29 +6120,26 @@ void unregister_message_content(Td *td, const MessageContent *content, MessageFu
       return td->stickers_manager_->unregister_dice(dice->emoji, dice->dice_value, message_full_id, {}, source);
     }
     case MessageContentType::GiftPremium:
-      return td->stickers_manager_->unregister_premium_gift(static_cast<const MessageGiftPremium *>(content)->months,
+      return td->stickers_manager_->unregister_premium_gift(static_cast<const MessageGiftPremium *>(content)->months, 0,
                                                             message_full_id, source);
     case MessageContentType::GiftCode:
-      return td->stickers_manager_->unregister_premium_gift(static_cast<const MessageGiftCode *>(content)->months,
+      return td->stickers_manager_->unregister_premium_gift(static_cast<const MessageGiftCode *>(content)->months, 0,
                                                             message_full_id, source);
     case MessageContentType::Giveaway: {
       auto giveaway = static_cast<const MessageGiveaway *>(content);
-      return td->stickers_manager_->unregister_premium_gift(
-          giveaway->months != 0 ? giveaway->months : StarManager::get_months_by_star_count(giveaway->star_count),
-          message_full_id, source);
+      return td->stickers_manager_->unregister_premium_gift(giveaway->months, giveaway->star_count, message_full_id,
+                                                            source);
     }
     case MessageContentType::Story:
       return td->story_manager_->unregister_story(static_cast<const MessageStory *>(content)->story_full_id,
                                                   message_full_id, {}, source);
     case MessageContentType::GiftStars: {
       auto star_count = static_cast<const MessageGiftStars *>(content)->star_count;
-      return td->stickers_manager_->unregister_premium_gift(StarManager::get_months_by_star_count(star_count),
-                                                            message_full_id, source);
+      return td->stickers_manager_->unregister_premium_gift(0, star_count, message_full_id, source);
     }
     case MessageContentType::PrizeStars: {
       auto star_count = static_cast<const MessagePrizeStars *>(content)->star_count;
-      return td->stickers_manager_->unregister_premium_gift(StarManager::get_months_by_star_count(star_count),
-                                                            message_full_id, source);
+      return td->stickers_manager_->unregister_premium_gift(0, star_count, message_full_id, source);
     }
     default:
       return;

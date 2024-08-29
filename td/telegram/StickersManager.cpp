@@ -33,6 +33,7 @@
 #include "td/telegram/QuickReplyManager.h"
 #include "td/telegram/secret_api.h"
 #include "td/telegram/SecretChatLayer.h"
+#include "td/telegram/StarManager.h"
 #include "td/telegram/StickersManager.hpp"
 #include "td/telegram/Td.h"
 #include "td/telegram/td_api.h"
@@ -5912,7 +5913,11 @@ void StickersManager::try_update_premium_gift_messages() {
   }
 }
 
-void StickersManager::register_premium_gift(int32 months, MessageFullId message_full_id, const char *source) {
+void StickersManager::register_premium_gift(int32 months, int64 star_count, MessageFullId message_full_id,
+                                            const char *source) {
+  if (months == 0) {
+    months = StarManager::get_months_by_star_count(star_count);
+  }
   if (td_->auth_manager_->is_bot() || months == 0) {
     return;
   }
@@ -5932,7 +5937,11 @@ void StickersManager::register_premium_gift(int32 months, MessageFullId message_
   LOG_CHECK(is_inserted) << source << ' ' << months << ' ' << message_full_id;
 }
 
-void StickersManager::unregister_premium_gift(int32 months, MessageFullId message_full_id, const char *source) {
+void StickersManager::unregister_premium_gift(int32 months, int64 star_count, MessageFullId message_full_id,
+                                              const char *source) {
+  if (months == 0) {
+    months = StarManager::get_months_by_star_count(star_count);
+  }
   if (td_->auth_manager_->is_bot() || months == 0) {
     return;
   }
