@@ -42,9 +42,9 @@ function prepare {
 
   cd build-native
 
-  cmake -A Win32 -DCMAKE_TOOLCHAIN_FILE="$vcpkg_cmake" -DTD_ENABLE_DOTNET=ON "$td_root"
+  cmake -A Win32 -DTD_GENERATE_SOURCE_FILES=ON -DTD_ENABLE_DOTNET=ON "$td_root"
   CheckLastExitCode
-  cmake --build . --target prepare_cross_compiling
+  cmake --build .
   CheckLastExitCode
 
   cd ..
