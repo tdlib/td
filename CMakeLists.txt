@@ -41,6 +41,9 @@ prevent_in_source_build()
 
 option(TD_ENABLE_JNI "Use \"ON\" to enable JNI-compatible TDLib API.")
 option(TD_ENABLE_DOTNET "Use \"ON\" to enable generation of C++/CLI or C++/CX TDLib API bindings.")
+if (NOT CMAKE_CROSSCOMPILING)
+  option(TD_GENERATE_SOURCE_FILES "Use \"ON\" to just generate TDLib source files.")
+endif()
 
 if (TD_ENABLE_DOTNET AND (CMAKE_VERSION VERSION_LESS "3.1.0"))
   message(FATAL_ERROR "CMake 3.1.0 or higher is required. You are running version ${CMAKE_VERSION}.")
@@ -114,11 +117,13 @@ if (EMSCRIPTEN)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --post-js ${CMAKE_CURRENT_SOURCE_DIR}/post.js")
 endif()
 
-if (NOT OPENSSL_FOUND)
-  find_package(OpenSSL)
-endif()
-if (OPENSSL_FOUND)
-  message(STATUS "Found OpenSSL: ${OPENSSL_INCLUDE_DIR} ${OPENSSL_LIBRARIES}")
+if (NOT TD_GENERATE_SOURCE_FILES)
+  if (NOT OPENSSL_FOUND)
+    find_package(OpenSSL)
+  endif()
+  if (OPENSSL_FOUND)
+    message(STATUS "Found OpenSSL: ${OPENSSL_INCLUDE_DIR} ${OPENSSL_LIBRARIES}")
+  endif()
 endif()
 
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
@@ -163,12 +168,20 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/td/telegram/GitCommitHash.cpp.in" "$
 
 add_subdirectory(tdtl)
 
+if (TD_GENERATE_SOURCE_FILES)
+  set(TDUTILS_MIME_TYPE ON CACHE BOOL "")
+  set(TDUTILS_USE_EXTERNAL_DEPENDENCIES OFF CACHE BOOL "")
+endif()
 add_subdirectory(tdutils)
 
 add_subdirectory(td/generate)
 
 if (NOT CMAKE_CROSSCOMPILING)
-  add_custom_target(prepare_cross_compiling DEPENDS tl_generate_mtproto tl_generate_common tdmime_auto tl_generate_json)
+  set(TD_ALWAYS_GENERATE_SOURCE "")
+  if (TD_GENERATE_SOURCE_FILES)
+    set(TD_ALWAYS_GENERATE_SOURCE "ALL")
+  endif()
+  add_custom_target(prepare_cross_compiling ${TD_ALWAYS_GENERATE_SOURCE} DEPENDS tl_generate_mtproto tl_generate_common tdmime_auto tl_generate_json)
   if (TD_ENABLE_DOTNET)
     add_custom_target(remove_cpp_documentation
       WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -182,7 +195,9 @@ if (NOT CMAKE_CROSSCOMPILING)
 endif()
 
 if (NOT OPENSSL_FOUND)
-  message(WARNING "Can't find OpenSSL: stop TDLib building")
+  if (NOT TD_GENERATE_SOURCE_FILES)
+    message(WARNING "Can't find OpenSSL: stop TDLib building")
+  endif()
   return()
 endif()
 
