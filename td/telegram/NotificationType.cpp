@@ -269,7 +269,22 @@ class NotificationTypePushMessage final : public NotificationType {
             user_count = to_integer<int32>(user_count_str);
             month_count = to_integer<int32>(month_count_str);
           }
-          return td_api::make_object<td_api::pushMessageContentGiveaway>(user_count, month_count, is_pinned);
+          return td_api::make_object<td_api::pushMessageContentGiveaway>(
+              user_count, is_pinned ? nullptr : td_api::make_object<td_api::giveawayPrizePremium>(month_count),
+              is_pinned);
+        }
+        if (key == "MESSAGE_GIVEAWAY_STARS") {
+          int32 user_count = 0;
+          int64 star_count = 0;
+          if (!is_pinned) {
+            string user_count_str;
+            string star_count_str;
+            std::tie(user_count_str, star_count_str) = split(arg);
+            user_count = to_integer<int32>(user_count_str);
+            star_count = to_integer<int64>(star_count_str);
+          }
+          return td_api::make_object<td_api::pushMessageContentGiveaway>(
+              user_count, is_pinned ? nullptr : td_api::make_object<td_api::giveawayPrizeStars>(star_count), is_pinned);
         }
         break;
       case 'I':

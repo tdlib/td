@@ -2898,6 +2898,9 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
       if (loc_key == "MESSAGE_GIVEAWAY") {
         return "MESSAGE_GIVEAWAY";
       }
+      if (loc_key == "MESSAGE_GIVEAWAY_STARS") {
+        return "MESSAGE_GIVEAWAY_STARS";
+      }
       break;
     case 'H':
       if (loc_key == "PINNED_PHOTO") {
@@ -2913,6 +2916,9 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
       }
       if (loc_key == "PINNED_GIVEAWAY") {
         return "PINNED_MESSAGE_GIVEAWAY";
+      }
+      if (loc_key == "PINNED_GIVEAWAY_STARS") {
+        return "PINNED_MESSAGE_GIVEAWAY_STARS";
       }
       if (loc_key == "MESSAGE_INVOICE") {
         return "MESSAGE_INVOICE";
@@ -3569,6 +3575,18 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
       return Status::Error("Expected month count to be non-negative");
     }
     arg = PSTRING() << user_count << ' ' << month_count;
+    loc_args.clear();
+  }
+  if (loc_key == "MESSAGE_GIVEAWAY_STARS") {
+    if (loc_args.size() != 2) {
+      return Status::Error("Expected 2 arguments for MESSAGE_GIVEAWAY_STARS");
+    }
+    TRY_RESULT(user_count, to_integer_safe<int32>(loc_args[0]));
+    if (user_count <= 0) {
+      return Status::Error("Expected user count to be non-negative");
+    }
+    TRY_RESULT(star_count, to_integer_safe<int64>(loc_args[1]));
+    arg = PSTRING() << user_count << ' ' << StarManager::get_star_count(star_count);
     loc_args.clear();
   }
   if (loc_key == "MESSAGE_PAID_MEDIA") {

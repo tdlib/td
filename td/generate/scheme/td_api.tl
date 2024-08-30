@@ -6126,9 +6126,9 @@ pushMessageContentPremiumGiftCode month_count:int32 = PushMessageContent;
 
 //@description A message with a giveaway
 //@winner_count Number of users which will receive giveaway prizes; 0 for pinned message
-//@month_count Number of months the Telegram Premium subscription will be active after code activation; 0 for pinned message
+//@prize Prize of the giveaway; may be null for pinned message
 //@is_pinned True, if the message is a pinned message with the specified content
-pushMessageContentGiveaway winner_count:int32 month_count:int32 is_pinned:Bool = PushMessageContent;
+pushMessageContentGiveaway winner_count:int32 prize:GiveawayPrize is_pinned:Bool = PushMessageContent;
 
 //@description A screenshot of a message in the chat has been taken
 pushMessageContentScreenshotTaken = PushMessageContent;
