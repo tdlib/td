@@ -1036,10 +1036,15 @@ class MessageGiveawayResults final : public MessageContent {
   MessageId giveaway_message_id;
   int32 winner_count = 0;
   int32 unclaimed_count = 0;
+  bool is_star_giveaway = false;
 
   MessageGiveawayResults() = default;
-  MessageGiveawayResults(MessageId giveaway_message_id, int32 winner_count, int32 unclaimed_count)
-      : giveaway_message_id(giveaway_message_id), winner_count(winner_count), unclaimed_count(unclaimed_count) {
+  MessageGiveawayResults(MessageId giveaway_message_id, int32 winner_count, int32 unclaimed_count,
+                         bool is_star_giveaway)
+      : giveaway_message_id(giveaway_message_id)
+      , winner_count(winner_count)
+      , unclaimed_count(unclaimed_count)
+      , is_star_giveaway(is_star_giveaway) {
   }
 
   MessageContentType get_type() const final {
@@ -1716,6 +1721,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       STORE_FLAG(has_winner_count);
       STORE_FLAG(has_unclaimed_count);
       STORE_FLAG(has_giveaway_message_id);
+      STORE_FLAG(m->is_star_giveaway);
       END_STORE_FLAGS();
       if (has_winner_count) {
         store(m->winner_count, storer);
@@ -2532,6 +2538,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       PARSE_FLAG(has_winner_count);
       PARSE_FLAG(has_unclaimed_count);
       PARSE_FLAG(has_giveaway_message_id);
+      PARSE_FLAG(m->is_star_giveaway);
       END_PARSE_FLAGS();
       if (has_winner_count) {
         parse(m->winner_count, parser);
@@ -5819,7 +5826,7 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       const auto *lhs = static_cast<const MessageGiveawayResults *>(old_content);
       const auto *rhs = static_cast<const MessageGiveawayResults *>(new_content);
       if (lhs->giveaway_message_id != rhs->giveaway_message_id || lhs->winner_count != rhs->winner_count ||
-          lhs->unclaimed_count != rhs->unclaimed_count) {
+          lhs->unclaimed_count != rhs->unclaimed_count || lhs->is_star_giveaway != rhs->is_star_giveaway) {
         need_update = true;
       }
       break;
@@ -7602,7 +7609,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
         reply_to_message_id = MessageId();
       }
       return td::make_unique<MessageGiveawayResults>(reply_to_message_id, action->winners_count_,
-                                                     action->unclaimed_count_);
+                                                     action->unclaimed_count_, action->stars_);
     }
     case telegram_api::messageActionBoostApply::ID: {
       auto action = move_tl_object_as<telegram_api::messageActionBoostApply>(action_ptr);
@@ -8074,7 +8081,7 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     case MessageContentType::GiveawayResults: {
       const auto *m = static_cast<const MessageGiveawayResults *>(content);
       return td_api::make_object<td_api::messageGiveawayCompleted>(m->giveaway_message_id.get(), m->winner_count,
-                                                                   m->unclaimed_count);
+                                                                   m->is_star_giveaway, m->unclaimed_count);
     }
     case MessageContentType::GiveawayWinners: {
       const auto *m = static_cast<const MessageGiveawayWinners *>(content);
