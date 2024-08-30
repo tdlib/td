@@ -4598,9 +4598,9 @@ chatBoostSourcePremium user_id:int53 = ChatBoostSource;
 //@description Describes a prepaid giveaway
 //@id Unique identifier of the prepaid giveaway
 //@winner_count Number of users which will receive giveaway prize
-//@month_count Number of months the Telegram Premium subscription will be active after code activation
+//@prize Prize of the giveaway
 //@payment_date Point in time (Unix timestamp) when the giveaway was paid
-prepaidGiveaway id:int64 winner_count:int32 month_count:int32 payment_date:int32 = PrepaidGiveaway;
+prepaidGiveaway id:int64 winner_count:int32 prize:GiveawayPrize payment_date:int32 = PrepaidGiveaway;
 
 //@description Describes current boost status of a chat
 //@boost_url An HTTP URL, which can be used to boost the chat

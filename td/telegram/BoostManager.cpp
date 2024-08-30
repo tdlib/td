@@ -15,6 +15,7 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/ServerMessageId.h"
+#include "td/telegram/StarManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/ThemeManager.h"
@@ -187,26 +188,29 @@ class GetBoostsStatusQuery final : public Td::ResultHandler {
         premium_member_percentage = 100.0 * premium_member_count / participant_count;
       }
     }
-    auto giveaways =
-        transform(std::move(result->prepaid_giveaways_),
-                  [](telegram_api::object_ptr<telegram_api::PrepaidGiveaway> giveaway_ptr)
-                      -> td_api::object_ptr<td_api::prepaidGiveaway> {
-                    switch (giveaway_ptr->get_id()) {
-                      case telegram_api::prepaidGiveaway::ID: {
-                        auto giveaway = telegram_api::move_object_as<telegram_api::prepaidGiveaway>(giveaway_ptr);
-                        return td_api::make_object<td_api::prepaidGiveaway>(giveaway->id_, giveaway->quantity_,
-                                                                            giveaway->months_, giveaway->date_);
-                      }
-                      case telegram_api::prepaidStarsGiveaway::ID: {
-                        auto giveaway = telegram_api::move_object_as<telegram_api::prepaidStarsGiveaway>(giveaway_ptr);
-                        return td_api::make_object<td_api::prepaidGiveaway>(giveaway->id_, giveaway->quantity_, 0,
-                                                                            giveaway->date_);
-                      }
-                      default:
-                        UNREACHABLE();
-                        return nullptr;
-                    }
-                  });
+    auto giveaways = transform(
+        std::move(result->prepaid_giveaways_),
+        [](telegram_api::object_ptr<telegram_api::PrepaidGiveaway> giveaway_ptr)
+            -> td_api::object_ptr<td_api::prepaidGiveaway> {
+          switch (giveaway_ptr->get_id()) {
+            case telegram_api::prepaidGiveaway::ID: {
+              auto giveaway = telegram_api::move_object_as<telegram_api::prepaidGiveaway>(giveaway_ptr);
+              return td_api::make_object<td_api::prepaidGiveaway>(
+                  giveaway->id_, giveaway->quantity_,
+                  td_api::make_object<td_api::giveawayPrizePremium>(giveaway->months_), giveaway->date_);
+            }
+            case telegram_api::prepaidStarsGiveaway::ID: {
+              auto giveaway = telegram_api::move_object_as<telegram_api::prepaidStarsGiveaway>(giveaway_ptr);
+              return td_api::make_object<td_api::prepaidGiveaway>(
+                  giveaway->id_, giveaway->quantity_,
+                  td_api::make_object<td_api::giveawayPrizeStars>(StarManager::get_star_count(giveaway->stars_)),
+                  giveaway->date_);
+            }
+            default:
+              UNREACHABLE();
+              return nullptr;
+          }
+        });
     auto boost_count = max(0, result->boosts_);
     auto gift_code_boost_count = clamp(result->gift_boosts_, 0, boost_count);
     promise_.set_value(td_api::make_object<td_api::chatBoostStatus>(
