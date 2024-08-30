@@ -39,8 +39,8 @@ cd $(dirname $0)
 echo "Generating TDLib source files..."
 mkdir -p build-native-$TDLIB_INTERFACE || exit 1
 cd build-native-$TDLIB_INTERFACE
-cmake $TDLIB_INTERFACE_OPTION .. || exit 1
-cmake --build . --target prepare_cross_compiling || exit 1
+cmake $TDLIB_INTERFACE_OPTION -DTD_GENERATE_SOURCE_FILES=ON .. || exit 1
+cmake --build . || exit 1
 cd ..
 
 rm -rf tdlib || exit 1
