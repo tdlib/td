@@ -197,14 +197,14 @@ class GetBoostsStatusQuery final : public Td::ResultHandler {
               auto giveaway = telegram_api::move_object_as<telegram_api::prepaidGiveaway>(giveaway_ptr);
               return td_api::make_object<td_api::prepaidGiveaway>(
                   giveaway->id_, giveaway->quantity_,
-                  td_api::make_object<td_api::giveawayPrizePremium>(giveaway->months_), giveaway->date_);
+                  td_api::make_object<td_api::giveawayPrizePremium>(giveaway->months_), 0, giveaway->date_);
             }
             case telegram_api::prepaidStarsGiveaway::ID: {
               auto giveaway = telegram_api::move_object_as<telegram_api::prepaidStarsGiveaway>(giveaway_ptr);
               return td_api::make_object<td_api::prepaidGiveaway>(
                   giveaway->id_, giveaway->quantity_,
                   td_api::make_object<td_api::giveawayPrizeStars>(StarManager::get_star_count(giveaway->stars_)),
-                  giveaway->date_);
+                  giveaway->boosts_, giveaway->date_);
             }
             default:
               UNREACHABLE();
