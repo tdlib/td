@@ -143,6 +143,11 @@ if (MSVC)
   if (TD_ENABLE_MULTI_PROCESSOR_COMPILATION)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
   endif()
+
+  if (TD_ENABLE_JNI)
+    # https://github.com/tdlib/td/issues/2912
+    add_definitions(-D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
+  endif()
 endif()
 
 if (CLANG OR GCC)
