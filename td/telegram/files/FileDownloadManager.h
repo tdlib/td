@@ -39,7 +39,7 @@ class FileDownloadManager final : public Actor {
     virtual void on_error(QueryId query_id, Status status) = 0;
   };
 
-  explicit FileDownloadManager(unique_ptr<Callback> callback, ActorShared<> parent);
+  FileDownloadManager(unique_ptr<Callback> callback, ActorShared<> parent);
 
   void download(QueryId query_id, const FullRemoteFileLocation &remote_location, const LocalFileLocation &local,
                 int64 size, string name, const FileEncryptionKey &encryption_key, bool need_search_file, int64 offset,

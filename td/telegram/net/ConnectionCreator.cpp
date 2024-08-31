@@ -859,9 +859,9 @@ ActorOwn<> ConnectionCreator::prepare_connection(IPAddress ip_address, SocketFd 
     VLOG(connections) << "Create new transparent proxy connection " << debug_str;
     class Callback final : public TransparentProxy::Callback {
      public:
-      explicit Callback(Promise<ConnectionData> promise, IPAddress ip_address,
-                        unique_ptr<mtproto::RawConnection::StatsCallback> stats_callback, bool use_connection_token,
-                        bool was_connected)
+      Callback(Promise<ConnectionData> promise, IPAddress ip_address,
+               unique_ptr<mtproto::RawConnection::StatsCallback> stats_callback, bool use_connection_token,
+               bool was_connected)
           : promise_(std::move(promise))
           , ip_address_(std::move(ip_address))
           , stats_callback_(std::move(stats_callback))

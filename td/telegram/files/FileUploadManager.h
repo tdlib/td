@@ -37,7 +37,7 @@ class FileUploadManager final : public Actor {
     virtual void on_error(QueryId query_id, Status status) = 0;
   };
 
-  explicit FileUploadManager(unique_ptr<Callback> callback, ActorShared<> parent);
+  FileUploadManager(unique_ptr<Callback> callback, ActorShared<> parent);
 
   void upload(QueryId query_id, const LocalFileLocation &local_location, const RemoteFileLocation &remote_location,
               int64 expected_size, const FileEncryptionKey &encryption_key, int8 priority, vector<int> bad_parts);

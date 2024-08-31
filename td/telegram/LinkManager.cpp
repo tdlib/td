@@ -409,7 +409,7 @@ class LinkManager::InternalLinkBuyStars final : public InternalLink {
   }
 
  public:
-  explicit InternalLinkBuyStars(int64 star_count, const string &purpose)
+  InternalLinkBuyStars(int64 star_count, const string &purpose)
       : star_count_(clamp(star_count, static_cast<int64>(1), static_cast<int64>(1000000000000))), purpose_(purpose) {
   }
 };

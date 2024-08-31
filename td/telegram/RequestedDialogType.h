@@ -52,8 +52,8 @@ class RequestedDialogType {
 
   explicit RequestedDialogType(td_api::object_ptr<td_api::keyboardButtonTypeRequestChat> &&request_dialog);
 
-  explicit RequestedDialogType(telegram_api::object_ptr<telegram_api::RequestPeerType> &&peer_type, int32 button_id,
-                               int32 max_quantity);
+  RequestedDialogType(telegram_api::object_ptr<telegram_api::RequestPeerType> &&peer_type, int32 button_id,
+                      int32 max_quantity);
 
   td_api::object_ptr<td_api::KeyboardButtonType> get_keyboard_button_type_object() const;
 
