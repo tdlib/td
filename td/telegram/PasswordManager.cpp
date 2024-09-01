@@ -188,11 +188,9 @@ void PasswordManager::set_login_email_address(string new_login_email_address, Pr
       make_tl_object<telegram_api::emailVerifyPurposeLoginChange>(), std::move(new_login_email_address)));
   send_with_promise(std::move(query),
                     PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
-                      auto r_result = fetch_result<telegram_api::account_sendVerifyEmailCode>(std::move(r_query));
-                      if (r_result.is_error()) {
-                        return promise.set_error(r_result.move_as_error());
-                      }
-                      return promise.set_value(SentEmailCode(r_result.move_as_ok()));
+                      TRY_RESULT_PROMISE(promise, result,
+                                         fetch_result<telegram_api::account_sendVerifyEmailCode>(std::move(r_query)));
+                      promise.set_value(SentEmailCode(std::move(result)));
                     }));
 }
 
@@ -214,11 +212,8 @@ void PasswordManager::check_login_email_address_code(EmailVerification &&code, P
       make_tl_object<telegram_api::emailVerifyPurposeLoginChange>(), code.get_input_email_verification()));
   send_with_promise(std::move(query),
                     PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
-                      auto r_result = fetch_result<telegram_api::account_verifyEmail>(std::move(r_query));
-                      if (r_result.is_error()) {
-                        return promise.set_error(r_result.move_as_error());
-                      }
-                      return promise.set_value(Unit());
+                      TRY_STATUS_PROMISE(promise, fetch_result<telegram_api::account_verifyEmail>(std::move(r_query)));
+                      promise.set_value(Unit());
                     }));
 }
 
@@ -323,11 +318,8 @@ void PasswordManager::do_create_temp_password(string password, int32 timeout, Pa
   auto hash = get_input_check_password(password, password_state);
   send_with_promise(G()->net_query_creator().create(telegram_api::account_getTmpPassword(std::move(hash), timeout)),
                     PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
-                      auto r_result = fetch_result<telegram_api::account_getTmpPassword>(std::move(r_query));
-                      if (r_result.is_error()) {
-                        return promise.set_error(r_result.move_as_error());
-                      }
-                      auto result = r_result.move_as_ok();
+                      TRY_RESULT_PROMISE(promise, result,
+                                         fetch_result<telegram_api::account_getTmpPassword>(std::move(r_query)));
                       TempPasswordState res;
                       res.has_temp_password = true;
                       res.temp_password = result->tmp_password_.as_slice().str();
@@ -480,11 +472,9 @@ void PasswordManager::send_email_address_verification_code(string email, Promise
       make_tl_object<telegram_api::emailVerifyPurposePassport>(), std::move(email)));
   send_with_promise(std::move(query),
                     PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
-                      auto r_result = fetch_result<telegram_api::account_sendVerifyEmailCode>(std::move(r_query));
-                      if (r_result.is_error()) {
-                        return promise.set_error(r_result.move_as_error());
-                      }
-                      return promise.set_value(SentEmailCode(r_result.move_as_ok()));
+                      TRY_RESULT_PROMISE(promise, result,
+                                         fetch_result<telegram_api::account_sendVerifyEmailCode>(std::move(r_query)));
+                      promise.set_value(SentEmailCode(std::move(result)));
                     }));
 }
 
@@ -502,25 +492,19 @@ void PasswordManager::check_email_address_verification_code(string code, Promise
   auto verification_code = make_tl_object<telegram_api::emailVerificationCode>(std::move(code));
   auto query = G()->net_query_creator().create(telegram_api::account_verifyEmail(
       make_tl_object<telegram_api::emailVerifyPurposePassport>(), std::move(verification_code)));
-  send_with_promise(std::move(query),
-                    PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
-                      auto r_result = fetch_result<telegram_api::account_verifyEmail>(std::move(r_query));
-                      if (r_result.is_error()) {
-                        return promise.set_error(r_result.move_as_error());
-                      }
-                      return promise.set_value(Unit());
-                    }));
+  send_with_promise(
+      std::move(query), PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
+        TRY_STATUS_PROMISE(promise, fetch_result<telegram_api::account_verifyEmail>(std::move(r_query)));
+        promise.set_value(Unit());
+      }));
 }
 
 void PasswordManager::request_password_recovery(Promise<SentEmailCode> promise) {
   // is called only after authorization
   send_with_promise(G()->net_query_creator().create(telegram_api::auth_requestPasswordRecovery()),
                     PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
-                      auto r_result = fetch_result<telegram_api::auth_requestPasswordRecovery>(std::move(r_query));
-                      if (r_result.is_error()) {
-                        return promise.set_error(r_result.move_as_error());
-                      }
-                      auto result = r_result.move_as_ok();
+                      TRY_RESULT_PROMISE(promise, result,
+                                         fetch_result<telegram_api::auth_requestPasswordRecovery>(std::move(r_query)));
                       return promise.set_value(SentEmailCode(std::move(result->email_pattern_), 0));
                     }));
 }
@@ -529,14 +513,12 @@ void PasswordManager::check_password_recovery_code(string code, Promise<Unit> pr
   // is called only after authorization
   send_with_promise(G()->net_query_creator().create(telegram_api::auth_checkRecoveryPassword(code)),
                     PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
-                      auto r_result = fetch_result<telegram_api::auth_checkRecoveryPassword>(std::move(r_query));
-                      if (r_result.is_error()) {
-                        return promise.set_error(r_result.move_as_error());
-                      }
-                      if (!r_result.ok()) {
+                      TRY_RESULT_PROMISE(promise, result,
+                                         fetch_result<telegram_api::auth_checkRecoveryPassword>(std::move(r_query)));
+                      if (!result) {
                         return promise.set_error(Status::Error(400, "Invalid recovery code"));
                       }
-                      return promise.set_value(Unit());
+                      promise.set_value(Unit());
                     }));
 }
 
@@ -574,25 +556,18 @@ void PasswordManager::do_recover_password(string code, PasswordInputSettings &&n
   }
   send_with_promise(G()->net_query_creator().create(
                         telegram_api::auth_recoverPassword(flags, std::move(code), std::move(new_settings))),
-                    PromiseCreator::lambda(
-                        [actor_id = actor_id(this), promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
-                          auto r_result = fetch_result<telegram_api::auth_recoverPassword>(std::move(r_query));
-                          if (r_result.is_error()) {
-                            return promise.set_error(r_result.move_as_error());
-                          }
-                          send_closure(actor_id, &PasswordManager::get_state, std::move(promise));
-                        }));
+                    PromiseCreator::lambda([actor_id = actor_id(this),
+                                            promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
+                      TRY_STATUS_PROMISE(promise, fetch_result<telegram_api::auth_recoverPassword>(std::move(r_query)));
+                      send_closure(actor_id, &PasswordManager::get_state, std::move(promise));
+                    }));
 }
 
 void PasswordManager::reset_password(Promise<ResetPasswordResult> promise) {
   send_with_promise(
       G()->net_query_creator().create(telegram_api::account_resetPassword()),
       PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
-        auto r_result = fetch_result<telegram_api::account_resetPassword>(std::move(r_query));
-        if (r_result.is_error()) {
-          return promise.set_error(r_result.move_as_error());
-        }
-        auto result_ptr = r_result.move_as_ok();
+        TRY_RESULT_PROMISE(promise, result_ptr, fetch_result<telegram_api::account_resetPassword>(std::move(r_query)));
         switch (result_ptr->get_id()) {
           case telegram_api::account_resetPasswordOk::ID:
             return promise.set_value(td_api::make_object<td_api::resetPasswordResultOk>());
@@ -795,12 +770,7 @@ void PasswordManager::do_get_state(Promise<PasswordState> promise) {
       std::move(query), PromiseCreator::lambda([actor_id = actor_id(this), code_length = last_code_length_,
                                                 promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
         TRY_STATUS_PROMISE(promise, G()->close_status());
-
-        auto r_result = fetch_result<telegram_api::account_getPassword>(std::move(r_query));
-        if (r_result.is_error()) {
-          return promise.set_error(r_result.move_as_error());
-        }
-        auto password = r_result.move_as_ok();
+        TRY_RESULT_PROMISE(promise, password, fetch_result<telegram_api::account_getPassword>(std::move(r_query)));
         LOG(INFO) << "Receive password info: " << to_string(password);
         Random::add_seed(password->secure_random_.as_slice());
 
