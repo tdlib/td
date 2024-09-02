@@ -3417,6 +3417,13 @@ void Requests::on_request(uint64 id, const td_api::addPendingPaidMessageReaction
                                                     request.is_anonymous_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::commitPendingPaidMessageReactions &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->messages_manager_->commit_paid_message_reactions({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                                        std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::removePendingPaidMessageReactions &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

@@ -2977,6 +2977,11 @@ class CliClient final : public Actor {
       get_args(args, chat_id, message_id, star_count);
       send_request(td_api::make_object<td_api::addPendingPaidMessageReaction>(chat_id, message_id, star_count,
                                                                               op == "apmrd", op == "apmra"));
+    } else if (op == "cppmr") {
+      ChatId chat_id;
+      MessageId message_id;
+      get_args(args, chat_id, message_id);
+      send_request(td_api::make_object<td_api::commitPendingPaidMessageReactions>(chat_id, message_id));
     } else if (op == "rppmr") {
       ChatId chat_id;
       MessageId message_id;

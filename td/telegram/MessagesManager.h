@@ -799,6 +799,8 @@ class MessagesManager final : public Actor {
   void add_paid_message_reaction(MessageFullId message_full_id, int64 star_count, bool use_default_is_anonymous,
                                  bool is_anonymous, Promise<Unit> &&promise);
 
+  void commit_paid_message_reactions(MessageFullId message_full_id, Promise<Unit> &&promise);
+
   void remove_paid_message_reactions(MessageFullId message_full_id, Promise<Unit> &&promise);
 
   void toggle_paid_message_reaction_is_anonymous(MessageFullId message_full_id, bool is_anonymous,
@@ -2132,8 +2134,6 @@ class MessagesManager final : public Actor {
 
   void on_send_update_chat_read_inbox_timeout(DialogId dialog_id);
 
-  void on_send_paid_reactions_timeout(int64 task_id);
-
   bool delete_newer_server_messages_at_the_end(Dialog *d, MessageId max_message_id);
 
   template <class T, class It>
@@ -3066,8 +3066,6 @@ class MessagesManager final : public Actor {
 
   static void on_send_update_chat_read_inbox_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int);
 
-  static void on_send_paid_reactions_timeout_callback(void *messages_manager_ptr, int64 task_id);
-
   static void on_live_location_expire_timeout_callback(void *messages_manager_ptr);
 
   void on_live_location_expire_timeout();
@@ -3403,7 +3401,6 @@ class MessagesManager final : public Actor {
   MultiTimeout preload_folder_dialog_list_timeout_{"PreloadFolderDialogListTimeout"};
   MultiTimeout update_viewed_messages_timeout_{"UpdateViewedMessagesTimeout"};
   MultiTimeout send_update_chat_read_inbox_timeout_{"SendUpdateChatReadInboxTimeout"};
-  MultiTimeout send_paid_reactions_timeout_{"SendPaidReactionsTimeout"};
 
   Timeout live_location_expire_timeout_;
 
