@@ -7457,7 +7457,8 @@ void Requests::on_request(uint64 id, td_api::applyPremiumGiftCode &request) {
 void Requests::on_request(uint64 id, td_api::launchPrepaidGiveaway &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  launch_prepaid_premium_giveaway(td_, request.giveaway_id_, std::move(request.parameters_), std::move(promise));
+  launch_prepaid_premium_giveaway(td_, request.giveaway_id_, std::move(request.parameters_), request.winner_count_,
+                                  request.star_count_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getGiveawayInfo &request) {

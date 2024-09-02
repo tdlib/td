@@ -11588,8 +11588,12 @@ checkPremiumGiftCode code:string = PremiumGiftCodeInfo;
 //@description Applies a Telegram Premium gift code @code The code to apply
 applyPremiumGiftCode code:string = Ok;
 
-//@description Launches a prepaid giveaway @giveaway_id Unique identifier of the prepaid giveaway @parameters Giveaway parameters
-launchPrepaidGiveaway giveaway_id:int64 parameters:giveawayParameters = Ok;
+//@description Launches a prepaid giveaway
+//@giveaway_id Unique identifier of the prepaid giveaway
+//@parameters Giveaway parameters
+//@winner_count The number of users to receive giveaway prize
+//@star_count The number of Telegram Stars to be distributed through the giveaway; pass 0 for Telegram Premium giveaways
+launchPrepaidGiveaway giveaway_id:int64 parameters:giveawayParameters winner_count:int32 star_count:int53 = Ok;
 
 //@description Returns information about a giveaway
 //@chat_id Identifier of the channel chat which started the giveaway

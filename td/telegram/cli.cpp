@@ -3460,9 +3460,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::applyPremiumGiftCode>(args));
     } else if (op == "lpg") {
       int64 giveaway_id;
+      int32 user_count;
+      int64 star_count;
       GiveawayParameters parameters;
-      get_args(args, giveaway_id, parameters);
-      send_request(td_api::make_object<td_api::launchPrepaidGiveaway>(giveaway_id, parameters));
+      get_args(args, giveaway_id, user_count, star_count, parameters);
+      send_request(td_api::make_object<td_api::launchPrepaidGiveaway>(giveaway_id, parameters, user_count, star_count));
     } else if (op == "ggi") {
       ChatId chat_id;
       MessageId message_id;
