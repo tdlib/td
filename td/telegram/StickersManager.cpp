@@ -8048,13 +8048,10 @@ void StickersManager::create_new_sticker_set(UserId user_id, string title, strin
   vector<FileId> local_file_ids;
   vector<FileId> url_file_ids;
   for (auto &sticker : stickers) {
-    auto r_file_id = prepare_input_sticker(sticker.get(), sticker_type);
-    if (r_file_id.is_error()) {
-      return promise.set_error(r_file_id.move_as_error());
-    }
-    auto file_id = std::get<0>(r_file_id.ok());
-    auto is_url = std::get<1>(r_file_id.ok());
-    auto is_local = std::get<2>(r_file_id.ok());
+    TRY_RESULT_PROMISE(promise, file_info, prepare_input_sticker(sticker.get(), sticker_type));
+    auto file_id = std::get<0>(file_info);
+    auto is_url = std::get<1>(file_info);
+    auto is_local = std::get<2>(file_info);
 
     file_ids.push_back(file_id);
     if (is_url) {
@@ -8348,13 +8345,10 @@ void StickersManager::do_add_sticker_to_set(UserId user_id, string short_name,
       sticker->format_ = get_sticker_format_object(format);
     }
   }
-  auto r_file_id = prepare_input_sticker(sticker.get(), sticker_set->sticker_type_);
-  if (r_file_id.is_error()) {
-    return promise.set_error(r_file_id.move_as_error());
-  }
-  auto file_id = std::get<0>(r_file_id.ok());
-  auto is_url = std::get<1>(r_file_id.ok());
-  auto is_local = std::get<2>(r_file_id.ok());
+  TRY_RESULT_PROMISE(promise, file_info, prepare_input_sticker(sticker.get(), sticker_set->sticker_type_));
+  auto file_id = std::get<0>(file_info);
+  auto is_url = std::get<1>(file_info);
+  auto is_local = std::get<2>(file_info);
 
   auto pending_add_sticker_to_set = make_unique<PendingAddStickerToSet>();
   pending_add_sticker_to_set->short_name_ = short_name;
@@ -8455,13 +8449,10 @@ void StickersManager::do_set_sticker_set_thumbnail(UserId user_id, string short_
     format = guess_sticker_set_format(sticker_set);
   }
 
-  auto r_file_id = prepare_input_file(thumbnail, format, sticker_set->sticker_type_, true);
-  if (r_file_id.is_error()) {
-    return promise.set_error(r_file_id.move_as_error());
-  }
-  auto file_id = std::get<0>(r_file_id.ok());
-  auto is_url = std::get<1>(r_file_id.ok());
-  auto is_local = std::get<2>(r_file_id.ok());
+  TRY_RESULT_PROMISE(promise, file_info, prepare_input_file(thumbnail, format, sticker_set->sticker_type_, true));
+  auto file_id = std::get<0>(file_info);
+  auto is_url = std::get<1>(file_info);
+  auto is_local = std::get<2>(file_info);
 
   if (!file_id.is_valid()) {
     td_->create_handler<SetStickerSetThumbnailQuery>(std::move(promise))
