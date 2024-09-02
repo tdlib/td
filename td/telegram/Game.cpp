@@ -80,11 +80,12 @@ const FormattedText &Game::get_text() const {
   return text_;
 }
 
-tl_object_ptr<td_api::game> Game::get_game_object(Td *td, bool skip_bot_commands) const {
-  return make_tl_object<td_api::game>(id_, short_name_, title_,
-                                      get_formatted_text_object(td->user_manager_.get(), text_, skip_bot_commands, -1),
-                                      description_, get_photo_object(td->file_manager_.get(), photo_),
-                                      td->animations_manager_->get_animation_object(animation_file_id_));
+tl_object_ptr<td_api::game> Game::get_game_object(Td *td, bool is_server, bool skip_bot_commands) const {
+  return make_tl_object<td_api::game>(
+      id_, short_name_, title_,
+      get_formatted_text_object(is_server ? td->user_manager_.get() : nullptr, text_, skip_bot_commands, -1),
+      description_, get_photo_object(td->file_manager_.get(), photo_),
+      td->animations_manager_->get_animation_object(animation_file_id_));
 }
 
 bool Game::has_input_media() const {

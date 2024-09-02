@@ -83,7 +83,7 @@ class InputInvoice {
   static Result<InputInvoice> process_input_message_invoice(
       td_api::object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td, DialogId owner_dialog_id);
 
-  td_api::object_ptr<td_api::messageInvoice> get_message_invoice_object(Td *td, bool skip_bot_commands,
+  td_api::object_ptr<td_api::messageInvoice> get_message_invoice_object(Td *td, bool is_server, bool skip_bot_commands,
                                                                         int32 max_media_timestamp) const;
 
   tl_object_ptr<telegram_api::inputMediaInvoice> get_input_media_invoice(

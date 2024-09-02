@@ -272,7 +272,7 @@ void RepliedMessageInfo::add_dependencies(Dependencies &dependencies, bool is_bo
 }
 
 td_api::object_ptr<td_api::messageReplyToMessage> RepliedMessageInfo::get_message_reply_to_message_object(
-    Td *td, DialogId dialog_id) const {
+    Td *td, DialogId dialog_id, bool is_server) const {
   if (dialog_id_.is_valid()) {
     dialog_id = dialog_id_;
   } else {
@@ -291,7 +291,8 @@ td_api::object_ptr<td_api::messageReplyToMessage> RepliedMessageInfo::get_messag
 
   td_api::object_ptr<td_api::MessageContent> content;
   if (content_ != nullptr) {
-    content = get_message_content_object(content_.get(), td, dialog_id, false, 0, false, true, -1, false, false);
+    content =
+        get_message_content_object(content_.get(), td, dialog_id, is_server, false, 0, false, true, -1, false, false);
     switch (content->get_id()) {
       case td_api::messageUnsupported::ID:
         content = nullptr;

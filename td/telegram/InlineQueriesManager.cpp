@@ -1638,7 +1638,7 @@ void InlineQueriesManager::on_get_inline_query_results(
                            std::move(result->document_), DialogId());
 
           game->id_ = std::move(result->id_);
-          game->game_ = inline_game.get_game_object(td_, true);
+          game->game_ = inline_game.get_game_object(td_, true, true);
 
           if (!register_inline_message_content(results->query_id_, game->id_, FileId(),
                                                std::move(result->send_message_), td_api::inputMessageGame::ID,

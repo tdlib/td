@@ -87,8 +87,8 @@ class RepliedMessageInfo {
 
   void add_dependencies(Dependencies &dependencies, bool is_bot) const;
 
-  td_api::object_ptr<td_api::messageReplyToMessage> get_message_reply_to_message_object(Td *td,
-                                                                                        DialogId dialog_id) const;
+  td_api::object_ptr<td_api::messageReplyToMessage> get_message_reply_to_message_object(Td *td, DialogId dialog_id,
+                                                                                        bool is_server) const;
 
   MessageInputReplyTo get_input_reply_to() const;
 

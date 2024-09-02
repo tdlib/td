@@ -4976,7 +4976,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       const auto *old_ = static_cast<const MessageText *>(old_content);
       const auto *new_ = static_cast<const MessageText *>(new_content);
       auto get_content_object = [td, dialog_id](const MessageContent *content) {
-        return to_string(get_message_content_object(content, td, dialog_id, false, -1, false, false,
+        return to_string(get_message_content_object(content, td, dialog_id, false, false, -1, false, false,
                                                     std::numeric_limits<int32>::max(), false, false));
       };
       if (old_->text.text != new_->text.text) {
@@ -7688,14 +7688,16 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
   return td::make_unique<MessageText>(FormattedText(), WebPageId(), false, false, false, string());
 }
 
-tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageContent *content, Td *td,
-                                                                 DialogId dialog_id, bool is_outgoing,
-                                                                 int32 message_date, bool is_content_secret,
-                                                                 bool skip_bot_commands, int32 max_media_timestamp,
-                                                                 bool invert_media, bool disable_web_page_preview) {
+td_api::object_ptr<td_api::MessageContent> get_message_content_object(const MessageContent *content, Td *td,
+                                                                      DialogId dialog_id, bool is_server,
+                                                                      bool is_outgoing, int32 message_date,
+                                                                      bool is_content_secret, bool skip_bot_commands,
+                                                                      int32 max_media_timestamp, bool invert_media,
+                                                                      bool disable_web_page_preview) {
   CHECK(content != nullptr);
   auto get_text_object = [&](const FormattedText &text) {
-    return get_formatted_text_object(td->user_manager_.get(), text, skip_bot_commands, max_media_timestamp);
+    return get_formatted_text_object(is_server ? td->user_manager_.get() : nullptr, text, skip_bot_commands,
+                                     max_media_timestamp);
   };
   switch (content->get_type()) {
     case MessageContentType::Animation: {
@@ -7720,11 +7722,11 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
     }
     case MessageContentType::Game: {
       const auto *m = static_cast<const MessageGame *>(content);
-      return make_tl_object<td_api::messageGame>(m->game.get_game_object(td, skip_bot_commands));
+      return make_tl_object<td_api::messageGame>(m->game.get_game_object(td, is_server, skip_bot_commands));
     }
     case MessageContentType::Invoice: {
       const auto *m = static_cast<const MessageInvoice *>(content);
-      return m->input_invoice.get_message_invoice_object(td, skip_bot_commands, max_media_timestamp);
+      return m->input_invoice.get_message_invoice_object(td, is_server, skip_bot_commands, max_media_timestamp);
     }
     case MessageContentType::LiveLocation: {
       const auto *m = static_cast<const MessageLiveLocation *>(content);
