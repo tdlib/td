@@ -2970,13 +2970,13 @@ class CliClient final : public Actor {
       auto reaction_types = transform(autosplit_str(reactions), as_reaction_type);
       send_request(td_api::make_object<td_api::setMessageReactions>(chat_id, message_id, std::move(reaction_types),
                                                                     op == "reactbotbig"));
-    } else if (op == "apmr" || op == "apmra" || op == "apmrd") {
+    } else if (op == "appmr" || op == "appmra" || op == "appmrd") {
       ChatId chat_id;
       MessageId message_id;
       int64 star_count;
       get_args(args, chat_id, message_id, star_count);
-      send_request(td_api::make_object<td_api::addPaidMessageReaction>(chat_id, message_id, star_count, op == "apmrd",
-                                                                       op == "apmra"));
+      send_request(td_api::make_object<td_api::addPendingPaidMessageReaction>(chat_id, message_id, star_count,
+                                                                              op == "apmrd", op == "apmra"));
     } else if (op == "rppmr") {
       ChatId chat_id;
       MessageId message_id;

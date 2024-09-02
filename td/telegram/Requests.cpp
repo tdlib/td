@@ -3409,7 +3409,7 @@ void Requests::on_request(uint64 id, const td_api::addMessageReaction &request) 
                                                request.update_recent_reactions_, std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::addPaidMessageReaction &request) {
+void Requests::on_request(uint64 id, const td_api::addPendingPaidMessageReaction &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   td_->messages_manager_->add_paid_message_reaction({DialogId(request.chat_id_), MessageId(request.message_id_)},

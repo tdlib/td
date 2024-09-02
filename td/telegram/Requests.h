@@ -477,7 +477,7 @@ class Requests {
 
   void on_request(uint64 id, const td_api::addMessageReaction &request);
 
-  void on_request(uint64 id, const td_api::addPaidMessageReaction &request);
+  void on_request(uint64 id, const td_api::addPendingPaidMessageReaction &request);
 
   void on_request(uint64 id, const td_api::removePendingPaidMessageReactions &request);
 

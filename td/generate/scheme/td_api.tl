@@ -9151,7 +9151,7 @@ clearRecentReactions = Ok;
 //@description Adds a reaction or a tag to a message. Use getMessageAvailableReactions to receive the list of available reactions for the message
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
-//@reaction_type Type of the reaction to add. Use addPaidMessageReaction instead to add the paid reaction
+//@reaction_type Type of the reaction to add. Use addPendingPaidMessageReaction instead to add the paid reaction
 //@is_big Pass true if the reaction is added with a big animation
 //@update_recent_reactions Pass true if the reaction needs to be added to recent reactions; tags are never added to the list of recent reactions
 addMessageReaction chat_id:int53 message_id:int53 reaction_type:ReactionType is_big:Bool update_recent_reactions:Bool = Ok;
@@ -9162,15 +9162,15 @@ addMessageReaction chat_id:int53 message_id:int53 reaction_type:ReactionType is_
 //@reaction_type Type of the reaction to remove. The paid reaction can't be removed
 removeMessageReaction chat_id:int53 message_id:int53 reaction_type:ReactionType = Ok;
 
-//@description Adds the paid message reaction to a message. Use getMessageAvailableReactions to receive the list of available reactions for the message
+//@description Adds the paid message reaction to a message. Use getMessageAvailableReactions to check whether the reaction is available for the message
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
 //@star_count Number of Telegram Stars to be used for the reaction; 1-getOption("paid_reaction_star_count_max")
 //@use_default_is_anonymous Pass true if the user didn't choose anonymity explicitly, for example, the reaction is set from the message bubble
 //@is_anonymous Pass true to make paid reaction of the user on the message anonymous; pass false to make the user's profile visible among top reactors. Ignored if use_default_is_anonymous == true
-addPaidMessageReaction chat_id:int53 message_id:int53 star_count:int53 use_default_is_anonymous:Bool is_anonymous:Bool = Ok;
+addPendingPaidMessageReaction chat_id:int53 message_id:int53 star_count:int53 use_default_is_anonymous:Bool is_anonymous:Bool = Ok;
 
-//@description Removes all pending paid reactions on a message. Can be called within 5 seconds after the last addPaidMessageReaction call
+//@description Removes all pending paid reactions on a message. Can be called within 5 seconds after the last addPendingPaidMessageReaction call
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
 removePendingPaidMessageReactions chat_id:int53 message_id:int53 = Ok;
