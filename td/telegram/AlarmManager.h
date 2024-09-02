@@ -15,8 +15,6 @@
 
 namespace td {
 
-class Td;
-
 class AlarmManager final : public Actor {
  public:
   explicit AlarmManager(ActorShared<> parent);

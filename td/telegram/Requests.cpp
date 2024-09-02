@@ -151,7 +151,6 @@
 #include "td/telegram/SynchronousRequests.h"
 #include "td/telegram/td_api.hpp"
 #include "td/telegram/TdDb.h"
-#include "td/telegram/telegram_api.h"
 #include "td/telegram/TermsOfServiceManager.h"
 #include "td/telegram/TimeZoneManager.h"
 #include "td/telegram/TopDialogCategory.h"

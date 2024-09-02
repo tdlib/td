@@ -14,6 +14,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/MovableValue.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
@@ -89,11 +90,11 @@ class Requests {
       : public PromiseInterface<T>
       , private RequestPromiseBase {
    public:
-    void set_value(T &&value) override {
+    void set_value(T &&value) final {
       RequestPromiseBase::set_value(std::move(value));
     }
 
-    void set_error(Status &&error) override {
+    void set_error(Status &&error) final {
       RequestPromiseBase::set_error(std::move(error));
     }
 

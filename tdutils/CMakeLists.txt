@@ -3,7 +3,7 @@ if ((CMAKE_MAJOR_VERSION LESS 3) OR (CMAKE_VERSION VERSION_LESS "3.0.2"))
 endif()
 
 option(TDUTILS_MIME_TYPE "Generate MIME types conversion; requires gperf" ON)
-option(TDUTILS_USE_EXTERNAL_DEPENDENCIES "Try to use external libraries if available" ON)
+option(TDUTILS_USE_EXTERNAL_DEPENDENCIES "Use external libraries if available" ON)
 
 if (NOT DEFINED CMAKE_INSTALL_LIBDIR)
   set(CMAKE_INSTALL_LIBDIR "lib")
