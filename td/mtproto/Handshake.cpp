@@ -339,6 +339,7 @@ Status AuthKeyHandshake::on_message(Slice message, Callback *connection, AuthKey
     }
   }();
   if (status.is_error()) {
+    LOG(WARNING) << "Failed to process hasdshake response in state " << state_ << ": " << status.message();
     clear();
   }
   return status;
