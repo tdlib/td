@@ -1423,7 +1423,7 @@ class Requests {
 
   void on_request(uint64 id, td_api::answerInlineQuery &request);
 
-  void on_request(uint64 id, td_api::getPopularWebAppBots &request);
+  void on_request(uint64 id, td_api::getGrossingWebAppBots &request);
 
   void on_request(uint64 id, td_api::searchWebApp &request);
 

@@ -6967,7 +6967,7 @@ void Requests::on_request(uint64 id, td_api::answerInlineQuery &request) {
                                                     request.cache_time_, request.next_offset_, std::move(promise));
 }
 
-void Requests::on_request(uint64 id, td_api::getPopularWebAppBots &request) {
+void Requests::on_request(uint64 id, td_api::getGrossingWebAppBots &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();

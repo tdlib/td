@@ -9345,10 +9345,10 @@ getInlineQueryResults bot_user_id:int53 chat_id:int53 user_location:location que
 answerInlineQuery inline_query_id:int64 is_personal:Bool button:inlineQueryResultsButton results:vector<InputInlineQueryResult> cache_time:int32 next_offset:string = Ok;
 
 
-//@description Returns popular Web App bots
+//@description Returns the most grossing Web App bots
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of bots to be returned; up to 100
-getPopularWebAppBots offset:string limit:int32 = FoundUsers;
+getGrossingWebAppBots offset:string limit:int32 = FoundUsers;
 
 //@description Returns information about a Web App by its short name. Returns a 404 error if the Web App is not found
 //@bot_user_id Identifier of the target bot

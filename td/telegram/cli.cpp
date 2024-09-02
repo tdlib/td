@@ -4930,11 +4930,11 @@ class CliClient final : public Actor {
       get_args(args, user_id, is_added, allow_write_access);
       send_request(
           td_api::make_object<td_api::toggleBotIsAddedToAttachmentMenu>(user_id, is_added, allow_write_access));
-    } else if (op == "gpwab") {
+    } else if (op == "ggwab") {
       string offset;
       string limit;
       get_args(args, offset, limit);
-      send_request(td_api::make_object<td_api::getPopularWebAppBots>(offset, as_limit(limit)));
+      send_request(td_api::make_object<td_api::getGrossingWebAppBots>(offset, as_limit(limit)));
     } else if (op == "swa") {
       UserId bot_user_id;
       string short_name;
