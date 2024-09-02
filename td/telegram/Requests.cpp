@@ -1567,31 +1567,6 @@ class ChangeStickerSetRequest final : public RequestOnceActor {
   }
 };
 
-class UploadStickerFileRequest final : public RequestOnceActor {
-  UserId user_id_;
-  StickerFormat sticker_format_;
-  td_api::object_ptr<td_api::InputFile> input_file_;
-
-  FileId file_id;
-
-  void do_run(Promise<Unit> &&promise) final {
-    file_id = td_->stickers_manager_->upload_sticker_file(user_id_, sticker_format_, input_file_, std::move(promise));
-  }
-
-  void do_send_result() final {
-    send_result(td_->file_manager_->get_file_object(file_id));
-  }
-
- public:
-  UploadStickerFileRequest(ActorShared<Td> td, uint64 request_id, int64 user_id, StickerFormat sticker_format,
-                           td_api::object_ptr<td_api::InputFile> input_file)
-      : RequestOnceActor(std::move(td), request_id)
-      , user_id_(user_id)
-      , sticker_format_(sticker_format)
-      , input_file_(std::move(input_file)) {
-  }
-};
-
 class GetRecentStickersRequest final : public RequestActor<> {
   bool is_attached_;
 
@@ -6373,8 +6348,9 @@ void Requests::on_request(uint64 id, td_api::reorderInstalledStickerSets &reques
 }
 
 void Requests::on_request(uint64 id, td_api::uploadStickerFile &request) {
-  CREATE_REQUEST(UploadStickerFileRequest, request.user_id_, get_sticker_format(request.sticker_format_),
-                 std::move(request.sticker_));
+  CREATE_REQUEST_PROMISE();
+  td_->stickers_manager_->upload_sticker_file(UserId(request.user_id_), get_sticker_format(request.sticker_format_),
+                                              std::move(request.sticker_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::getSuggestedStickerSetName &request) {

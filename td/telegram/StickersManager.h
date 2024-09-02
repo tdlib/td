@@ -282,8 +282,9 @@ class StickersManager final : public Actor {
 
   void move_sticker_set_to_top_by_custom_emoji_ids(const vector<CustomEmojiId> &custom_emoji_ids);
 
-  FileId upload_sticker_file(UserId user_id, StickerFormat sticker_format,
-                             const td_api::object_ptr<td_api::InputFile> &input_file, Promise<Unit> &&promise);
+  void upload_sticker_file(UserId user_id, StickerFormat sticker_format,
+                           const td_api::object_ptr<td_api::InputFile> &input_file,
+                           Promise<td_api::object_ptr<td_api::file>> &&promise);
 
   void get_suggested_sticker_set_name(string title, Promise<string> &&promise);
 
@@ -806,12 +807,14 @@ class StickersManager final : public Actor {
 
   Result<std::tuple<FileId, bool, bool>> prepare_input_sticker(td_api::inputSticker *sticker, StickerType sticker_type);
 
-  tl_object_ptr<telegram_api::inputStickerSetItem> get_input_sticker(const td_api::inputSticker *sticker,
-                                                                     FileId file_id) const;
+  void finish_upload_sticker_file(FileId file_id, Promise<td_api::object_ptr<td_api::file>> &&promise);
+
+  telegram_api::object_ptr<telegram_api::inputStickerSetItem> get_input_sticker(const td_api::inputSticker *sticker,
+                                                                                FileId file_id) const;
 
   void upload_sticker_file(UserId user_id, FileId file_id, Promise<Unit> &&promise);
 
-  void on_upload_sticker_file(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file);
+  void on_upload_sticker_file(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
 
   void on_upload_sticker_file_error(FileId file_id, Status status);
 
