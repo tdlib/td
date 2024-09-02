@@ -3537,10 +3537,6 @@ class MessagesManager final : public Actor {
   };
   FlatHashMap<MessageFullId, PendingReaction, MessageFullIdHash> pending_reactions_;
 
-  int64 paid_reaction_task_id_ = 0;
-  FlatHashMap<MessageFullId, int64, MessageFullIdHash> paid_reaction_task_ids_;
-  FlatHashMap<int64, MessageFullId> paid_reaction_tasks_;
-
   FlatHashMap<MessageFullId, int32, MessageFullIdHash> pending_read_reactions_;
 
   vector<ReactionType> active_reaction_types_;

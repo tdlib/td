@@ -902,6 +902,10 @@ void MessageReactions::add_my_paid_reaction(Td *td, int32 star_count, bool use_d
   pending_paid_reactions_ += star_count;
 }
 
+bool MessageReactions::has_pending_paid_reactions() const {
+  return pending_paid_reactions_ != 0;
+}
+
 bool MessageReactions::drop_pending_paid_reactions(Td *td) {
   if (pending_paid_reactions_ == 0) {
     return false;

@@ -185,6 +185,8 @@ struct MessageReactions {
 
   void add_my_paid_reaction(Td *td, int32 star_count, bool use_default_is_anonymous, bool is_anonymous);
 
+  bool has_pending_paid_reactions() const;
+
   bool drop_pending_paid_reactions(Td *td);
 
   void sort_reactions(const FlatHashMap<ReactionType, size_t, ReactionTypeHash> &active_reaction_pos);
