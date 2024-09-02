@@ -22782,6 +22782,12 @@ void MessagesManager::add_paid_message_reaction(MessageFullId message_full_id, i
   promise.set_value(Unit());
 }
 
+void MessagesManager::drop_message_pending_paid_reactions(const Dialog *d, Message *m) {
+  m->reactions->drop_pending_paid_reactions(td_);
+  send_update_message_interaction_info(d->dialog_id, m);
+  on_message_changed(d, m, true, "drop_message_pending_paid_reactions");
+}
+
 void MessagesManager::commit_paid_message_reactions(MessageFullId message_full_id, Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(
       promise, d,
@@ -22791,9 +22797,7 @@ void MessagesManager::commit_paid_message_reactions(MessageFullId message_full_i
     return promise.set_value(Unit());
   }
   if (!get_message_available_reactions(d, m, true, nullptr).is_allowed_reaction_type(ReactionType::paid())) {
-    m->reactions->drop_pending_paid_reactions(td_);
-    send_update_message_interaction_info(d->dialog_id, m);
-    on_message_changed(d, m, true, "commit_paid_message_reactions");
+    drop_message_pending_paid_reactions(d, m);
     return promise.set_value(Unit());
   }
 
@@ -22814,9 +22818,7 @@ void MessagesManager::remove_paid_message_reactions(MessageFullId message_full_i
       check_dialog_access(message_full_id.get_dialog_id(), false, AccessRights::Read, "remove_paid_message_reactions"));
   auto *m = get_message_force(d, message_full_id.get_message_id(), "remove_paid_message_reactions");
   if (m != nullptr && m->reactions != nullptr && m->reactions->has_pending_paid_reactions()) {
-    m->reactions->drop_pending_paid_reactions(td_);
-    send_update_message_interaction_info(d->dialog_id, m);
-    on_message_changed(d, m, true, "remove_paid_message_reactions");
+    drop_message_pending_paid_reactions(d, m);
   }
   promise.set_value(Unit());
 }

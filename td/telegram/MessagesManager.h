@@ -2622,6 +2622,8 @@ class MessagesManager final : public Actor {
 
   DialogId get_my_reaction_dialog_id(const Dialog *d) const;
 
+  void drop_message_pending_paid_reactions(const Dialog *d, Message *m);
+
   void set_message_reactions(Dialog *d, Message *m, bool is_big, bool add_to_recent, Promise<Unit> &&promise);
 
   void on_set_message_reactions(MessageFullId message_full_id, Result<Unit> result, Promise<Unit> promise);
