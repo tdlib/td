@@ -906,15 +906,12 @@ bool MessageReactions::has_pending_paid_reactions() const {
   return pending_paid_reactions_ != 0;
 }
 
-bool MessageReactions::drop_pending_paid_reactions(Td *td) {
-  if (pending_paid_reactions_ == 0) {
-    return false;
-  }
+void MessageReactions::drop_pending_paid_reactions(Td *td) {
+  CHECK(has_pending_paid_reactions());
   td->star_manager_->add_owned_star_count(pending_paid_reactions_);
   pending_paid_reactions_ = 0;
   pending_use_default_is_anonymous_ = false;
   pending_is_anonymous_ = false;
-  return true;
 }
 
 void MessageReactions::sort_reactions(const FlatHashMap<ReactionType, size_t, ReactionTypeHash> &active_reaction_pos) {
@@ -1122,9 +1119,7 @@ bool MessageReactions::need_update_unread_reactions(const MessageReactions *old_
 
 void MessageReactions::send_paid_message_reaction(Td *td, MessageFullId message_full_id, int64 random_id,
                                                   Promise<Unit> &&promise) {
-  if (pending_paid_reactions_ == 0) {
-    return promise.set_value(Unit());
-  }
+  CHECK(has_pending_paid_reactions());
   auto star_count = pending_paid_reactions_;
   auto use_defualt_is_anonymous = pending_use_default_is_anonymous_;
   auto is_anonymous = pending_is_anonymous_;

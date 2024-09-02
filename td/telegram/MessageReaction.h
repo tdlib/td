@@ -187,7 +187,7 @@ struct MessageReactions {
 
   bool has_pending_paid_reactions() const;
 
-  bool drop_pending_paid_reactions(Td *td);
+  void drop_pending_paid_reactions(Td *td);
 
   void sort_reactions(const FlatHashMap<ReactionType, size_t, ReactionTypeHash> &active_reaction_pos);
 
