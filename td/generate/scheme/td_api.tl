@@ -2690,17 +2690,17 @@ linkPreviewAlbumMediaVideo video:video = LinkPreviewAlbumMedia;
 //@description The link is a link to a media album consisting of photos and videos @media The list of album media @caption Album caption
 linkPreviewTypeAlbum media:vector<LinkPreviewAlbumMedia> caption:string = LinkPreviewType;
 
-//@description The link is a link to an animation @animation The animation @author Author of the animation
-linkPreviewTypeAnimation animation:animation author:string = LinkPreviewType;
+//@description The link is a link to an animation @animation The animation
+linkPreviewTypeAnimation animation:animation = LinkPreviewType;
 
-//@description The link is a link to an app at App Store or Google Play @photo Photo for the app @author Author of the app
-linkPreviewTypeApp photo:photo author:string = LinkPreviewType;
+//@description The link is a link to an app at App Store or Google Play @photo Photo for the app
+linkPreviewTypeApp photo:photo = LinkPreviewType;
 
-//@description The link is a link to a web site @photo Article's main photo; may be null @author Author of the article
-linkPreviewTypeArticle photo:photo author:string = LinkPreviewType;
+//@description The link is a link to a web site @photo Article's main photo; may be null
+linkPreviewTypeArticle photo:photo = LinkPreviewType;
 
-//@description The link is a link to an audio @audio The audio description @author Author of the audio
-linkPreviewTypeAudio audio:audio author:string = LinkPreviewType;
+//@description The link is a link to an audio @audio The audio description
+linkPreviewTypeAudio audio:audio = LinkPreviewType;
 
 //@description The link is a link to a background. Link preview title and description are available only for filled backgrounds
 //@document Document with the background; may be null for filled backgrounds
@@ -2716,42 +2716,38 @@ linkPreviewTypeChannelBoost photo:chatPhoto = LinkPreviewType;
 //@creates_join_request True, if the link only creates join request
 linkPreviewTypeChat type:InviteLinkChatType photo:chatPhoto creates_join_request:Bool = LinkPreviewType;
 
-//@description The link is a link to a general file @document The document description @author Author of the document
-linkPreviewTypeDocument document:document author:string = LinkPreviewType;
+//@description The link is a link to a general file @document The document description
+linkPreviewTypeDocument document:document = LinkPreviewType;
 
 //@description The link is a link to an animation player
 //@url URL of the external animation player
 //@thumbnail Thumbnail of the animation; may be null if unknown
 //@duration Duration of the animation, in seconds
-//@author Author of the animation
 //@width Expected width of the embedded player
 //@height Expected height of the embedded player
-linkPreviewTypeEmbeddedAnimationPlayer url:string thumbnail:photo duration:int32 author:string width:int32 height:int32 = LinkPreviewType;
+linkPreviewTypeEmbeddedAnimationPlayer url:string thumbnail:photo duration:int32 width:int32 height:int32 = LinkPreviewType;
 
 //@description The link is a link to an audio player
 //@url URL of the external audio player
 //@thumbnail Thumbnail of the audio; may be null if unknown
 //@duration Duration of the audio, in seconds
-//@author Author of the audio
 //@width Expected width of the embedded player
 //@height Expected height of the embedded player
-linkPreviewTypeEmbeddedAudioPlayer url:string thumbnail:photo duration:int32 author:string width:int32 height:int32 = LinkPreviewType;
+linkPreviewTypeEmbeddedAudioPlayer url:string thumbnail:photo duration:int32 width:int32 height:int32 = LinkPreviewType;
 
 //@description The link is a link to a video player
 //@url URL of the external video player
 //@thumbnail Thumbnail of the video; may be null if unknown
 //@duration Duration of the video, in seconds
-//@author Author of the video
 //@width Expected width of the embedded player
 //@height Expected height of the embedded player
-linkPreviewTypeEmbeddedVideoPlayer url:string thumbnail:photo duration:int32 author:string width:int32 height:int32 = LinkPreviewType;
+linkPreviewTypeEmbeddedVideoPlayer url:string thumbnail:photo duration:int32 width:int32 height:int32 = LinkPreviewType;
 
 //@description The link is a link to an audio file
 //@url URL of the audio file
 //@mime_type MIME type of the audio file
 //@duration Duration of the audio, in seconds; 0 if unknown
-//@author Author of the audio
-linkPreviewTypeExternalAudio url:string mime_type:string duration:int32 author:string = LinkPreviewType;
+linkPreviewTypeExternalAudio url:string mime_type:string duration:int32 = LinkPreviewType;
 
 //@description The link is a link to a video file
 //@url URL of the video file
@@ -2759,8 +2755,7 @@ linkPreviewTypeExternalAudio url:string mime_type:string duration:int32 author:s
 //@width Expected width of the video preview; 0 if unknown
 //@height Expected height of the video preview; 0 if unknown
 //@duration Duration of the video, in seconds; 0 if unknown
-//@author Author of the video
-linkPreviewTypeExternalVideo url:string mime_type:string width:int32 height:int32 duration:int32 author:string = LinkPreviewType;
+linkPreviewTypeExternalVideo url:string mime_type:string width:int32 height:int32 duration:int32 = LinkPreviewType;
 
 //@description The link is a link to an invoice
 linkPreviewTypeInvoice = LinkPreviewType;
@@ -2768,8 +2763,8 @@ linkPreviewTypeInvoice = LinkPreviewType;
 //@description The link is a link to a text or a poll Telegram message
 linkPreviewTypeMessage = LinkPreviewType;
 
-//@description The link is a link to a photo @photo The photo @author Author of the photo
-linkPreviewTypePhoto photo:photo author:string = LinkPreviewType;
+//@description The link is a link to a photo @photo The photo
+linkPreviewTypePhoto photo:photo = LinkPreviewType;
 
 //@description The link is a link to a Telegram Premium gift code
 linkPreviewTypePremiumGiftCode = LinkPreviewType;
@@ -2798,8 +2793,8 @@ linkPreviewTypeUnsupported = LinkPreviewType;
 //@description The link is a link to a user @photo Photo of the user; may be null if none @is_bot True, if the user is a bot
 linkPreviewTypeUser photo:chatPhoto is_bot:Bool = LinkPreviewType;
 
-//@description The link is a link to a video @video The video description @author Author of the video
-linkPreviewTypeVideo video:video author:string = LinkPreviewType;
+//@description The link is a link to a video @video The video description
+linkPreviewTypeVideo video:video = LinkPreviewType;
 
 //@description The link is a link to a video chat
 //@photo Photo of the chat with the video chat; may be null if none
@@ -2822,6 +2817,7 @@ linkPreviewTypeWebApp photo:photo = LinkPreviewType;
 //@site_name Short name of the site (e.g., Google Docs, App Store)
 //@title Title of the content
 //@param_description Description of the content
+//@author Author of the content
 //@type Type of the link preview
 //@has_large_media True, if size of media in the preview can be changed
 //@show_large_media True, if large media preview must be shown; otherwise, the media preview must be shown small and only the first frame must be shown for videos
@@ -2829,7 +2825,7 @@ linkPreviewTypeWebApp photo:photo = LinkPreviewType;
 //@skip_confirmation True, if there is no need to show an ordinary open URL confirmation, when opening the URL from the preview, because the URL is shown in the message text in clear
 //@show_above_text True, if the link preview must be shown above message text; otherwise, the link preview must be shown below the message text
 //@instant_view_version Version of instant view (currently, can be 1 or 2) for the web page; 0 if none
-linkPreview url:string display_url:string site_name:string title:string description:formattedText type:LinkPreviewType has_large_media:Bool show_large_media:Bool show_media_above_description:Bool skip_confirmation:Bool show_above_text:Bool instant_view_version:int32 = LinkPreview;
+linkPreview url:string display_url:string site_name:string title:string description:formattedText author:string type:LinkPreviewType has_large_media:Bool show_large_media:Bool show_media_above_description:Bool skip_confirmation:Bool show_above_text:Bool instant_view_version:int32 = LinkPreview;
 
 
 //@description Contains information about a country
