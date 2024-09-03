@@ -439,7 +439,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
       }
       transactions.push_back(std::move(star_transaction));
     }
-    if (!td_->auth_manager_->is_bot() && dialog_id_ == td_->dialog_manager_->get_my_dialog_id()) {
+    if (dialog_id_ == td_->dialog_manager_->get_my_dialog_id()) {
       td_->star_manager_->on_update_owned_star_count(star_count);
     }
 
@@ -492,9 +492,7 @@ class GetStarsSubscriptionsQuery final : public Td::ResultHandler {
       }
     }
     auto star_count = StarManager::get_star_count(result->balance_, true);
-    if (!td_->auth_manager_->is_bot()) {
-      td_->star_manager_->on_update_owned_star_count(star_count);
-    }
+    td_->star_manager_->on_update_owned_star_count(star_count);
     promise_.set_value(td_api::make_object<td_api::starSubscriptions>(
         star_count, std::move(subscriptions), StarManager::get_star_count(result->subscriptions_missing_balance_),
         result->subscriptions_next_offset_));
@@ -718,6 +716,9 @@ StarManager::StarManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::m
 }
 
 void StarManager::start_up() {
+  if (td_->auth_manager_->is_bot() || !td_->auth_manager_->is_authorized()) {
+    return;
+  }
   auto owned_star_count = G()->td_db()->get_binlog_pmc()->get("owned_star_count");
   if (!owned_star_count.empty()) {
     is_owned_star_count_inited_ = true;
@@ -736,6 +737,9 @@ td_api::object_ptr<td_api::updateOwnedStarCount> StarManager::get_update_owned_s
 }
 
 void StarManager::on_update_owned_star_count(int64 star_count) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
   if (is_owned_star_count_inited_ && star_count == owned_star_count_) {
     return;
   }
