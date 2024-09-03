@@ -770,6 +770,13 @@ void StarManager::add_pending_owned_star_count(int64 star_count, bool move_to_ow
   }
 }
 
+bool StarManager::has_owned_star_count(int64 star_count) const {
+  if (star_count <= 0 || !is_owned_star_count_inited_) {
+    return true;
+  }
+  return sent_star_count_ >= star_count;
+}
+
 Status StarManager::can_manage_stars(DialogId dialog_id, bool allow_self) const {
   switch (dialog_id.get_type()) {
     case DialogType::User: {

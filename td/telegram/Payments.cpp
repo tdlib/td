@@ -1099,6 +1099,9 @@ void send_payment_form(Td *td, td_api::object_ptr<td_api::InputInvoice> &&input_
     if (tip_amount != 0 || !order_info_id.empty() || !shipping_option_id.empty()) {
       return promise.set_error(Status::Error(400, "Invalid payment form parameters specified"));
     }
+    if (!td->star_manager_->has_owned_star_count(input_invoice_info.star_count_)) {
+      return promise.set_error(Status::Error(400, "Have not enough Telegram Stars to complete payment"));
+    }
     td->create_handler<SendStarPaymentFormQuery>(std::move(promise))
         ->send(std::move(input_invoice_info), payment_form_id);
     return;

@@ -82,6 +82,7 @@
 #include "td/telegram/SavedMessagesManager.h"
 #include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/SponsoredMessageManager.h"
+#include "td/telegram/StarManager.h"
 #include "td/telegram/StickerType.h"
 #include "td/telegram/StoryId.h"
 #include "td/telegram/StoryManager.h"
@@ -22763,7 +22764,10 @@ void MessagesManager::add_paid_message_reaction(MessageFullId message_full_id, i
     return promise.set_error(Status::Error(400, "The reaction isn't available for the message"));
   }
   if (star_count <= 0 || star_count > td_->option_manager_->get_option_integer("paid_reaction_star_count_max")) {
-    return promise.set_error(Status::Error(400, "Invalid Telegram Star count specified"));
+    return promise.set_error(Status::Error(400, "Invalid number of Telegram Stars specified"));
+  }
+  if (!td_->star_manager_->has_owned_star_count(star_count)) {
+    return promise.set_error(Status::Error(400, "Have not enough Telegram Stars"));
   }
 
   if (m->reactions == nullptr) {
