@@ -1649,9 +1649,11 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
         auto video = web_page->document_.type == Document::Type::Video
                          ? td_->videos_manager_->get_video_object(web_page->document_.file_id)
                          : nullptr;
-        if (video != nullptr || !web_page->embed_url_.empty()) {
-          return td_api::make_object<td_api::linkPreviewTypeVideo>(
-              web_page->embed_url_, web_page->embed_type_, std::move(video), web_page->embed_dimensions_.width,
+        if (video != nullptr) {
+          return td_api::make_object<td_api::linkPreviewTypeVideo>(std::move(video), web_page->author_);
+        } else if (!web_page->embed_url_.empty()) {
+          return td_api::make_object<td_api::linkPreviewTypeExternalVideo>(
+              web_page->embed_url_, web_page->embed_type_, web_page->embed_dimensions_.width,
               web_page->embed_dimensions_.height, web_page->duration_, web_page->author_);
         } else {
           if (!web_page->photo_.is_empty()) {
@@ -1725,18 +1727,14 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
                      ? td_->videos_manager_->get_video_object(web_page->document_.file_id)
                      : nullptr;
     if (video != nullptr) {
-      auto width = video->width_;
-      auto height = video->height_;
-      auto duration = video->duration_;
-      return td_api::make_object<td_api::linkPreviewTypeVideo>(string(), string(), std::move(video), width, height,
-                                                               duration, web_page->author_);
+      return td_api::make_object<td_api::linkPreviewTypeVideo>(std::move(video), web_page->author_);
     } else {
       if (!web_page->photo_.is_empty()) {
         return td_api::make_object<td_api::linkPreviewTypePhoto>(
             get_photo_object(td_->file_manager_.get(), web_page->photo_), web_page->author_);
       }
-      return td_api::make_object<td_api::linkPreviewTypeVideo>(web_page->url_, "video/mp4", nullptr, 0, 0,
-                                                               web_page->duration_, web_page->author_);
+      return td_api::make_object<td_api::linkPreviewTypeExternalVideo>(web_page->url_, "video/mp4", 0, 0,
+                                                                       web_page->duration_, web_page->author_);
     }
   }
   if (web_page->document_.type == Document::Type::VideoNote && is_generic) {
