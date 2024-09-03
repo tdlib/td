@@ -2700,12 +2700,9 @@ linkPreviewTypeApp photo:photo author:string = LinkPreviewType;
 linkPreviewTypeArticle photo:photo author:string = LinkPreviewType;
 
 //@description The link is a link to an audio
-//@url URL of the audio; may be empty if none
-//@mime_type MIME type of the audio file
-//@audio The audio description; may be null if unknown
-//@duration Duration of the audio, in seconds; 0 if unknown
+//@audio The audio description
 //@author Author of the audio
-linkPreviewTypeAudio url:string mime_type:string audio:audio duration:int32 author:string = LinkPreviewType;
+linkPreviewTypeAudio audio:audio author:string = LinkPreviewType;
 
 //@description The link is a link to a background. Link preview title and description are available only for filled backgrounds
 //@document Document with the background; may be null for filled backgrounds
@@ -2750,6 +2747,13 @@ linkPreviewTypeEmbeddedAudioPlayer url:string thumbnail:photo duration:int32 aut
 //@width Expected width of the embedded player
 //@height Expected height of the embedded player
 linkPreviewTypeEmbeddedVideoPlayer url:string thumbnail:photo duration:int32 author:string width:int32 height:int32 = LinkPreviewType;
+
+//@description The link is a link to an audio file
+//@url URL of the audio file
+//@mime_type MIME type of the audio file
+//@duration Duration of the audio, in seconds; 0 if unknown
+//@author Author of the audio
+linkPreviewTypeExternalAudio url:string mime_type:string duration:int32 author:string = LinkPreviewType;
 
 //@description The link is a link to an invoice
 linkPreviewTypeInvoice = LinkPreviewType;

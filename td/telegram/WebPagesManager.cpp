@@ -1612,9 +1612,11 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
         auto audio = web_page->document_.type == Document::Type::Audio
                          ? td_->audios_manager_->get_audio_object(web_page->document_.file_id)
                          : nullptr;
-        if (audio != nullptr || !web_page->embed_url_.empty()) {
-          return td_api::make_object<td_api::linkPreviewTypeAudio>(
-              web_page->embed_url_, web_page->embed_type_, std::move(audio), web_page->duration_, web_page->author_);
+        if (audio != nullptr) {
+          return td_api::make_object<td_api::linkPreviewTypeAudio>(std::move(audio), web_page->author_);
+        } else if (!web_page->embed_url_.empty()) {
+          return td_api::make_object<td_api::linkPreviewTypeExternalAudio>(web_page->embed_url_, web_page->embed_type_,
+                                                                           web_page->duration_, web_page->author_);
         } else {
           if (!web_page->photo_.is_empty()) {
             return td_api::make_object<td_api::linkPreviewTypePhoto>(
@@ -1676,9 +1678,7 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
                      ? td_->audios_manager_->get_audio_object(web_page->document_.file_id)
                      : nullptr;
     if (audio != nullptr) {
-      auto duration = audio->duration_;
-      return td_api::make_object<td_api::linkPreviewTypeAudio>(string(), string(), std::move(audio), duration,
-                                                               web_page->author_);
+      return td_api::make_object<td_api::linkPreviewTypeAudio>(std::move(audio), web_page->author_);
     } else {
       LOG(ERROR) << "Receive audio without audio for " << web_page->url_;
       return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
