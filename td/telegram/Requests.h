@@ -86,7 +86,7 @@ class Requests {
   };
 
   template <class T>
-  class RequestPromise
+  class RequestPromise final
       : public PromiseInterface<T>
       , private RequestPromiseBase {
    public:
