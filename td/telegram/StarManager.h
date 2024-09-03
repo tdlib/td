@@ -29,7 +29,7 @@ class StarManager final : public Actor {
 
   void on_update_owned_star_count(int64 star_count);
 
-  void add_owned_star_count(int64 star_count);
+  void add_pending_owned_star_count(int64 star_count, bool move_to_owned);
 
   void get_star_payment_options(Promise<td_api::object_ptr<td_api::starPaymentOptions>> &&promise);
 
@@ -96,6 +96,8 @@ class StarManager final : public Actor {
 
   bool is_owned_star_count_inited_ = false;
   int64 owned_star_count_ = 0;
+  int64 pending_owned_star_count_ = 0;
+  int64 sent_star_count_ = 0;
 
   FlatHashMap<DialogId, FlatHashMap<string, FileSourceId>, DialogIdHash> star_transaction_file_source_ids_[2];
 };

@@ -158,6 +158,7 @@ class SendReactionQuery final : public Td::ResultHandler {
 class SendPaidReactionQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
+  int64 star_count_;
 
  public:
   explicit SendPaidReactionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
@@ -166,6 +167,7 @@ class SendPaidReactionQuery final : public Td::ResultHandler {
   void send(MessageFullId message_full_id, int32 star_count, bool use_default_is_anonymous, bool is_anonymous,
             int64 random_id) {
     dialog_id_ = message_full_id.get_dialog_id();
+    star_count_ = star_count;
 
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
@@ -191,13 +193,16 @@ class SendPaidReactionQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for SendPaidReactionQuery: " << to_string(ptr);
+    td_->star_manager_->add_pending_owned_star_count(star_count_, true);
     td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
   void on_error(Status status) final {
     if (status.message() == "MESSAGE_NOT_MODIFIED") {
+      td_->star_manager_->add_pending_owned_star_count(star_count_, true);
       return promise_.set_value(Unit());
     }
+    td_->star_manager_->add_pending_owned_star_count(star_count_, false);
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "SendPaidReactionQuery");
     promise_.set_error(std::move(status));
   }
@@ -876,7 +881,7 @@ void MessageReactions::add_my_paid_reaction(Td *td, int32 star_count, bool use_d
     LOG(ERROR) << "Pending paid reactions overflown";
     return;
   }
-  td->star_manager_->add_owned_star_count(-star_count);
+  td->star_manager_->add_pending_owned_star_count(-star_count, false);
   if (use_default_is_anonymous) {
     if (pending_paid_reactions_ == 0) {
       pending_use_default_is_anonymous_ = true;
@@ -908,7 +913,7 @@ bool MessageReactions::has_pending_paid_reactions() const {
 
 void MessageReactions::drop_pending_paid_reactions(Td *td) {
   CHECK(has_pending_paid_reactions());
-  td->star_manager_->add_owned_star_count(pending_paid_reactions_);
+  td->star_manager_->add_pending_owned_star_count(pending_paid_reactions_, false);
   pending_paid_reactions_ = 0;
   pending_use_default_is_anonymous_ = false;
   pending_is_anonymous_ = false;

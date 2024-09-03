@@ -723,6 +723,7 @@ void StarManager::start_up() {
   if (!owned_star_count.empty()) {
     is_owned_star_count_inited_ = true;
     owned_star_count_ = to_integer<int64>(owned_star_count);
+    sent_star_count_ = owned_star_count_;
     send_closure(G()->td(), &Td::send_update, get_update_owned_star_count_object());
   }
 }
@@ -733,7 +734,8 @@ void StarManager::tear_down() {
 
 td_api::object_ptr<td_api::updateOwnedStarCount> StarManager::get_update_owned_star_count_object() const {
   CHECK(is_owned_star_count_inited_);
-  return td_api::make_object<td_api::updateOwnedStarCount>(owned_star_count_);
+  // sent_star_count_ can be negative as well as owned_star_count_
+  return td_api::make_object<td_api::updateOwnedStarCount>(sent_star_count_);
 }
 
 void StarManager::on_update_owned_star_count(int64 star_count) {
@@ -745,13 +747,26 @@ void StarManager::on_update_owned_star_count(int64 star_count) {
   }
   is_owned_star_count_inited_ = true;
   owned_star_count_ = star_count;
-  send_closure(G()->td(), &Td::send_update, get_update_owned_star_count_object());
+  if (owned_star_count_ + pending_owned_star_count_ != sent_star_count_) {
+    sent_star_count_ = owned_star_count_ + pending_owned_star_count_;
+    send_closure(G()->td(), &Td::send_update, get_update_owned_star_count_object());
+  }
   G()->td_db()->get_binlog_pmc()->set("owned_star_count", to_string(owned_star_count_));
 }
 
-void StarManager::add_owned_star_count(int64 star_count) {
+void StarManager::add_pending_owned_star_count(int64 star_count, bool move_to_owned) {
+  if (star_count == 0) {
+    return;
+  }
+  pending_owned_star_count_ += star_count;
   if (is_owned_star_count_inited_) {
-    on_update_owned_star_count(star_count + owned_star_count_);
+    if (move_to_owned) {
+      owned_star_count_ -= star_count;
+      G()->td_db()->get_binlog_pmc()->set("owned_star_count", to_string(owned_star_count_));
+    } else {
+      sent_star_count_ += star_count;
+      send_closure(G()->td(), &Td::send_update, get_update_owned_star_count_object());
+    }
   }
 }
 

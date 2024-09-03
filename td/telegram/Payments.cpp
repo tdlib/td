@@ -699,6 +699,7 @@ class SendStarPaymentFormQuery final : public Td::ResultHandler {
   void send(InputInvoiceInfo &&input_invoice_info, int64 payment_form_id) {
     dialog_id_ = input_invoice_info.dialog_id_;
     star_count_ = input_invoice_info.star_count_;
+    td_->star_manager_->add_pending_owned_star_count(-star_count_, false);
 
     send_query(G()->net_query_creator().create(
         telegram_api::payments_sendStarsForm(0, payment_form_id, std::move(input_invoice_info.input_invoice_))));
@@ -713,12 +714,10 @@ class SendStarPaymentFormQuery final : public Td::ResultHandler {
     auto payment_result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for SendStarPaymentFormQuery: " << to_string(payment_result);
 
+    td_->star_manager_->add_pending_owned_star_count(star_count_, true);
     switch (payment_result->get_id()) {
       case telegram_api::payments_paymentResult::ID: {
         auto result = telegram_api::move_object_as<telegram_api::payments_paymentResult>(payment_result);
-        if (star_count_ != 0) {
-          td_->star_manager_->add_owned_star_count(-star_count_);
-        }
         td_->updates_manager_->on_get_updates(
             std::move(result->updates_), PromiseCreator::lambda([promise = std::move(promise_)](Unit) mutable {
               promise.set_value(td_api::make_object<td_api::paymentResult>(true, string()));
@@ -737,6 +736,7 @@ class SendStarPaymentFormQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "SendStarPaymentFormQuery");
+    td_->star_manager_->add_pending_owned_star_count(star_count_, false);
     promise_.set_error(std::move(status));
   }
 };
