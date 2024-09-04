@@ -483,7 +483,8 @@ std::string TD_TL_writer_jni_cpp::gen_store_function_begin(const std::string &st
 
 std::string TD_TL_writer_jni_cpp::gen_fetch_switch_begin() const {
   return "  if (p == nullptr) { return nullptr; }\n"
-         "  switch (env->CallIntMethod(p, jni::GetConstructorID)) {\n";
+         "  jint constructor = env->CallIntMethod(p, jni::GetConstructorID);"
+         "  switch (constructor) {\n";
 }
 
 std::string TD_TL_writer_jni_cpp::gen_fetch_switch_case(const tl::tl_combinator *t, int arity) const {
@@ -496,7 +497,7 @@ std::string TD_TL_writer_jni_cpp::gen_fetch_switch_case(const tl::tl_combinator 
 
 std::string TD_TL_writer_jni_cpp::gen_fetch_switch_end() const {
   return "    default:\n"
-         "      LOG(WARNING) << \"Unknown constructor found\";\n"
+         "      LOG(WARNING) << \"Unknown Java API constructor found \" << format::as_hex(constructor);\n"
          "      return nullptr;\n"
          "  }\n";
 }
