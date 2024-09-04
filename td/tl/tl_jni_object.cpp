@@ -40,6 +40,10 @@ static void fatal_error(JNIEnv *env, CSlice error) {
   env->FatalError(error.c_str());
 }
 
+void set_fatal_error(JNIEnv *env, const std::string &error) {
+  fatal_error(env, error);
+}
+
 jclass get_jclass(JNIEnv *env, const char *class_name) {
   jclass clazz = env->FindClass(class_name);
   if (!clazz) {
@@ -68,6 +72,14 @@ jfieldID get_field_id(JNIEnv *env, jclass clazz, const char *name, const char *s
   jfieldID res = env->GetFieldID(clazz, name, signature);
   if (!res) {
     fatal_error(env, PSLICE() << "Can't find field [" << name << "] with signature [" << signature << "]");
+  }
+  return res;
+}
+
+jfieldID get_static_field_id(JNIEnv *env, jclass clazz, const char *name, const char *signature) {
+  jfieldID res = env->GetStaticFieldID(clazz, name, signature);
+  if (!res) {
+    fatal_error(env, PSLICE() << "Can't find static field [" << name << "] with signature [" << signature << "]");
   }
   return res;
 }
@@ -202,6 +214,17 @@ static void utf8_to_utf16(const char *p, size_t len, jchar *res) {
 
 std::string fetch_string(JNIEnv *env, jobject o, jfieldID id) {
   jstring s = (jstring)env->GetObjectField(o, id);
+  if (s == nullptr) {
+    // treat null as an empty string
+    return std::string();
+  }
+  std::string res = from_jstring(env, s);
+  env->DeleteLocalRef(s);
+  return res;
+}
+
+std::string fetch_static_string(JNIEnv *env, jclass clazz, jfieldID id) {
+  jstring s = (jstring)env->GetStaticObjectField(clazz, id);
   if (s == nullptr) {
     // treat null as an empty string
     return std::string();

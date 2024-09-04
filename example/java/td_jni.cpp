@@ -196,6 +196,17 @@ static jint register_native(JavaVM *vm) {
   register_method(client_class, "setLogMessageHandler", "(IL" PACKAGE_NAME "/JsonClient$LogMessageHandler;)V",
                   Client_nativeClientSetLogMessageHandler);
 #else
+  auto td_api_class = td::jni::get_jclass(env, PACKAGE_NAME "/TdApi");
+  jfieldID commit_hash_field_id =
+      td::jni::get_static_field_id(env, td_api_class, "GIT_COMMIT_HASH", "Ljava/lang/String;");
+  std::string td_api_version = td::jni::fetch_static_string(env, td_api_class, commit_hash_field_id);
+  std::string tdjni_version = td::td_api::get_git_commit_hash();
+  if (tdjni_version != td_api_version) {
+    td::jni::set_fatal_error(
+        env, "Mismatched TdApi.java (" + td_api_version + ") and tdjni shared library (" + tdjni_version + ") versions");
+    return JAVA_VERSION;
+  }
+
   auto client_class = td::jni::get_jclass(env, PACKAGE_NAME "/Client");
   auto object_class = td::jni::get_jclass(env, PACKAGE_NAME "/TdApi$Object");
   auto function_class = td::jni::get_jclass(env, PACKAGE_NAME "/TdApi$Function");

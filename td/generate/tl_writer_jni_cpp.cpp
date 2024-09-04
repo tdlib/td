@@ -12,11 +12,18 @@
 namespace td {
 
 std::string TD_TL_writer_jni_cpp::gen_output_begin_once() const {
+#define DEFINE_STR_VALUE_IMPL(x) #x
+#define DEFINE_STR_VALUE(x) DEFINE_STR_VALUE_IMPL(x)
   return TD_TL_writer_cpp::gen_output_begin_once() +
          "\nconst char *&get_package_name_ref() {\n"
          "  static const char *package_name = \"Package name must be initialized first\";\n"
          "  return package_name;\n"
+         "}\n"
+         "\nconst char *get_git_commit_hash() {\n"
+         "  return \"" DEFINE_STR_VALUE(GIT_COMMIT_HASH) "\";\n"
          "}\n";
+#undef DEFINE_STR_VALUE
+#undef DEFINE_STR_VALUE_IMPL
 }
 
 bool TD_TL_writer_jni_cpp::is_built_in_simple_type(const std::string &name) const {
