@@ -23785,6 +23785,10 @@ void MessagesManager::get_dialog_send_message_as_dialog_ids(
   }
   // checked in on_update_dialog_default_send_message_as_dialog_id
   CHECK(dialog_id.get_type() == DialogType::Channel);
+  auto is_broadcast = td_->dialog_manager_->is_broadcast_channel(dialog_id);
+  if (is_broadcast && !td_->chat_manager_->get_channel_sign_messages(dialog_id.get_channel_id())) {
+    return promise.set_value(td_api::make_object<td_api::chatMessageSenders>());
+  }
 
   if (td_->chat_manager_->are_created_public_broadcasts_inited()) {
     auto senders = td_api::make_object<td_api::chatMessageSenders>();
@@ -23794,11 +23798,7 @@ void MessagesManager::get_dialog_send_message_as_dialog_ids(
         auto sender = get_message_sender_object(td, dialog_id, "add_sender");
         senders->senders_.push_back(td_api::make_object<td_api::chatMessageSender>(std::move(sender), needs_premium));
       };
-      auto is_broadcast = td_->dialog_manager_->is_broadcast_channel(dialog_id);
       if (is_broadcast) {
-        if (!td_->chat_manager_->get_channel_sign_messages(dialog_id.get_channel_id())) {
-          return promise.set_value(td_api::make_object<td_api::chatMessageSenders>());
-        }
         add_sender(td_->dialog_manager_->get_my_dialog_id(), false);
       }
       if (td_->dialog_manager_->is_anonymous_administrator(dialog_id, nullptr)) {
