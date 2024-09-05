@@ -101,7 +101,7 @@ class InlineQueriesManager final : public Actor {
 
   bool register_inline_message_content(int64 query_id, const string &result_id, FileId file_id,
                                        tl_object_ptr<telegram_api::BotInlineMessage> &&inline_message,
-                                       int32 allowed_media_content_id, bool allow_invoice, Photo *photo = nullptr,
+                                       int32 allowed_media_content_id, bool is_secret_chat, Photo *photo = nullptr,
                                        Game *game = nullptr);
 
   tl_object_ptr<td_api::thumbnail> register_thumbnail(
