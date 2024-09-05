@@ -6418,7 +6418,7 @@ canSendMessageToUserResultUserIsDeleted = CanSendMessageToUserResult;
 canSendMessageToUserResultUserRestrictsNewChats = CanSendMessageToUserResult;
 
 
-//@description Contains information about the period of inactivity after which the current user's account will automatically be deleted @days Number of days of inactivity before the account will be flagged for deletion; 30-548 days
+//@description Contains information about the period of inactivity after which the current user's account will automatically be deleted @days Number of days of inactivity before the account will be flagged for deletion; 30-730 days
 accountTtl days:int32 = AccountTtl;
 
 
