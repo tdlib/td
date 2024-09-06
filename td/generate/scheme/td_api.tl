@@ -9011,7 +9011,7 @@ setBusinessMessageIsPinned business_connection_id:string chat_id:int53 message_i
 //@description Checks validness of a name for a quick reply shortcut. Can be called synchronously @name The name of the shortcut; 1-32 characters
 checkQuickReplyShortcutName name:string = Ok;
 
-//@description Loads quick reply shortcuts created by the current user. The loaded topics will be sent through updateQuickReplyShortcuts
+//@description Loads quick reply shortcuts created by the current user. The loaded data will be sent through updateQuickReplyShortcut and updateQuickReplyShortcuts
 loadQuickReplyShortcuts = Ok;
 
 //@description Changes name of a quick reply shortcut @shortcut_id Unique identifier of the quick reply shortcut @name New name for the shortcut. Use checkQuickReplyShortcutName to check its validness
