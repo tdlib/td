@@ -630,6 +630,9 @@ class CliClient final : public Actor {
     if (str == "me") {
       return my_id_;
     }
+    if (str == ".") {
+      return opened_chat_id_;
+    }
     if (str[0] == '@') {
       str.remove_prefix(1);
     }
@@ -650,9 +653,12 @@ class CliClient final : public Actor {
     return transform(autosplit(user_ids), [this](Slice str) { return as_user_id(str); });
   }
 
-  static int64 as_basic_group_id(Slice str) {
+  int64 as_basic_group_id(Slice str) const {
     str = trim(str);
     auto result = to_integer<int64>(str);
+    if (str == ".") {
+      result = opened_chat_id_;
+    }
     if (result < 0) {
       return -result;
     }
@@ -672,6 +678,9 @@ class CliClient final : public Actor {
       return it->second;
     }
     auto result = to_integer<int64>(str);
+    if (str == ".") {
+      result = opened_chat_id_;
+    }
     auto shift = static_cast<int64>(-1000000000000ll);
     if (result <= shift) {
       return shift - result;
@@ -679,9 +688,12 @@ class CliClient final : public Actor {
     return result;
   }
 
-  static int32 as_secret_chat_id(Slice str) {
+  int32 as_secret_chat_id(Slice str) const {
     str = trim(str);
     auto result = to_integer<int64>(str);
+    if (str == ".") {
+      result = opened_chat_id_;
+    }
     auto shift = static_cast<int64>(-2000000000000ll);
     if (result <= shift + std::numeric_limits<int32>::max()) {
       return static_cast<int32>(result - shift);
