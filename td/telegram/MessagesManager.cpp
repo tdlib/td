@@ -4268,6 +4268,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_via_business_bot_user_id = via_business_bot_user_id.is_valid();
   bool has_effect_id = effect_id.is_valid();
   bool has_fact_check = fact_check != nullptr;
+  bool has_initial_sender_dialog_id = !message_id.is_any_server() && initial_sender_dialog_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -4356,6 +4357,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(is_from_offline);
     STORE_FLAG(has_effect_id);
     STORE_FLAG(has_fact_check);
+    STORE_FLAG(has_initial_sender_dialog_id);
     END_STORE_FLAGS();
   }
 
@@ -4488,6 +4490,9 @@ void MessagesManager::Message::store(StorerT &storer) const {
   if (has_fact_check) {
     store(fact_check, storer);
   }
+  if (has_initial_sender_dialog_id) {
+    store(initial_sender_dialog_id, storer);
+  }
 }
 
 // do not forget to resolve message dependencies
@@ -4547,6 +4552,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_via_business_bot_user_id = false;
   bool has_effect_id = false;
   bool has_fact_check = false;
+  bool has_initial_sender_dialog_id = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
   PARSE_FLAG(is_outgoing);
@@ -4635,6 +4641,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(is_from_offline);
     PARSE_FLAG(has_effect_id);
     PARSE_FLAG(has_fact_check);
+    PARSE_FLAG(has_initial_sender_dialog_id);
     END_PARSE_FLAGS();
   }
 
@@ -4830,6 +4837,9 @@ void MessagesManager::Message::parse(ParserT &parser) {
   }
   if (has_fact_check) {
     parse(fact_check, parser);
+  }
+  if (has_initial_sender_dialog_id) {
+    parse(initial_sender_dialog_id, parser);
   }
 
   CHECK(content != nullptr);
@@ -23295,11 +23305,13 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   if (!is_channel_post ||
       (!is_scheduled && td_->chat_manager_->get_channel_sign_messages(dialog_id.get_channel_id()))) {
     if (send_as_dialog_id.is_valid()) {
+      // for resend_messages
       if (send_as_dialog_id.get_type() == DialogType::User) {
         m->sender_user_id = send_as_dialog_id.get_user_id();
       } else {
         m->sender_dialog_id = send_as_dialog_id;
       }
+      m->has_explicit_sender = true;
     } else if (d->default_send_message_as_dialog_id.is_valid()) {
       if (d->default_send_message_as_dialog_id.get_type() == DialogType::User) {
         m->sender_user_id = my_id;
@@ -23320,12 +23332,12 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   if (is_channel_post && !is_scheduled && td_->chat_manager_->get_channel_sign_messages(dialog_id.get_channel_id())) {
     auto show_message_sender = td_->chat_manager_->get_channel_show_message_sender(dialog_id.get_channel_id());
     if (m->sender_dialog_id != dialog_id || !m->has_explicit_sender) {
-      m->author_signature = m->sender_dialog_id == dialog_id || m->sender_dialog_id == DialogId() ||
-                                    (m->has_explicit_sender && !show_message_sender)
+      m->author_signature = m->sender_dialog_id == dialog_id || m->sender_dialog_id == DialogId()
                                 ? td_->user_manager_->get_user_title(my_id)
                                 : td_->dialog_manager_->get_dialog_title(m->sender_dialog_id);
     }
     if (!show_message_sender) {
+      m->initial_sender_dialog_id = get_message_sender(m);
       m->sender_user_id = UserId();
       m->sender_dialog_id = dialog_id;
     }
@@ -26305,7 +26317,8 @@ tl_object_ptr<telegram_api::InputPeer> MessagesManager::get_send_message_as_inpu
   if (!m->has_explicit_sender) {
     return nullptr;
   }
-  return td_->dialog_manager_->get_input_peer(get_message_sender(m), AccessRights::Write);
+  auto dialog_id = m->initial_sender_dialog_id != DialogId() ? m->initial_sender_dialog_id : get_message_sender(m);
+  return td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
 }
 
 bool MessagesManager::can_set_game_score(MessageFullId message_full_id) const {
