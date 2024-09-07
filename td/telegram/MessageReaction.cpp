@@ -1126,7 +1126,7 @@ void MessageReactions::send_paid_message_reaction(Td *td, MessageFullId message_
                                                   Promise<Unit> &&promise) {
   CHECK(has_pending_paid_reactions());
   auto star_count = pending_paid_reactions_;
-  auto use_defualt_is_anonymous = pending_use_default_is_anonymous_;
+  auto use_default_is_anonymous = pending_use_default_is_anonymous_;
   auto is_anonymous = pending_is_anonymous_;
   top_reactors_ = apply_reactor_pending_paid_reactions(td->dialog_manager_->get_my_dialog_id());
   if (reactions_.empty() || !reactions_[0].reaction_type_.is_paid_reaction()) {
@@ -1140,7 +1140,7 @@ void MessageReactions::send_paid_message_reaction(Td *td, MessageFullId message_
   pending_is_anonymous_ = false;
 
   td->create_handler<SendPaidReactionQuery>(std::move(promise))
-      ->send(message_full_id, star_count, use_defualt_is_anonymous, is_anonymous, random_id);
+      ->send(message_full_id, star_count, use_default_is_anonymous, is_anonymous, random_id);
 }
 
 bool MessageReactions::toggle_paid_message_reaction_is_anonymous(Td *td, MessageFullId message_full_id,
