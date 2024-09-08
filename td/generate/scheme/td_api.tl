@@ -6595,7 +6595,7 @@ internalLinkTypeAttachmentMenuBot target_chat:TargetChat bot_username:string url
 //@description The link contains an authentication code. Call checkAuthenticationCode with the code if the current authorization state is authorizationStateWaitCode @code The authentication code
 internalLinkTypeAuthenticationCode code:string = InternalLinkType;
 
-//@description The link is a link to a background. Call searchBackground with the given background name to process the link
+//@description The link is a link to a background. Call searchBackground with the given background name to process the link.
 //-If background is found and the user wants to apply it, then call setDefaultBackground
 //@background_name Name of the background
 internalLinkTypeBackground background_name:string = InternalLinkType;
@@ -6742,7 +6742,7 @@ internalLinkTypePrivacyAndSecuritySettings = InternalLinkType;
 //@type Type of the proxy
 internalLinkTypeProxy server:string port:int32 type:ProxyType = InternalLinkType;
 
-//@description The link is a link to a chat by its username. Call searchPublicChat with the given chat username to process the link
+//@description The link is a link to a chat by its username. Call searchPublicChat with the given chat username to process the link.
 //-If the chat is found, open its profile information screen or the chat itself.
 //-If draft text isn't empty and the chat is a private chat with a regular user, then put the draft text in the input field
 //@chat_username Username of the chat
@@ -7947,7 +7947,7 @@ updateAnimationSearchParameters provider:string emojis:vector<string> = Update;
 //@description The list of suggested to the user actions has changed @added_actions Added suggested actions @removed_actions Removed suggested actions
 updateSuggestedActions added_actions:vector<SuggestedAction> removed_actions:vector<SuggestedAction> = Update;
 
-//@description Download or upload file speed for the user was limited, but it can be restored by subscription to Telegram Premium. The notification can be postponed until a being downloaded or uploaded file is visible to the user
+//@description Download or upload file speed for the user was limited, but it can be restored by subscription to Telegram Premium. The notification can be postponed until a being downloaded or uploaded file is visible to the user.
 //-Use getOption("premium_download_speedup") or getOption("premium_upload_speedup") to get expected speedup after subscription to Telegram Premium
 //@is_upload True, if upload speed was limited; false, if download speed was limited
 updateSpeedLimitNotification is_upload:Bool = Update;
@@ -8582,7 +8582,7 @@ searchMessages chat_list:ChatList only_in_channels:Bool query:string offset:stri
 searchSecretMessages chat_id:int53 query:string offset:string limit:int32 filter:SearchMessagesFilter = FoundMessages;
 
 //@description Searches for messages tagged by the given reaction and with the given words in the Saved Messages chat; for Telegram Premium users only.
-//-Returns the results in reverse chronological order, i.e. in order of decreasing message_id
+//-Returns the results in reverse chronological order, i.e. in order of decreasing message_id.
 //-For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 //@saved_messages_topic_id If not 0, only messages in the specified Saved Messages topic will be considered; pass 0 to consider all messages
 //@tag Tag to search for; pass null to return all suitable messages
@@ -9657,7 +9657,7 @@ setChatAccentColor chat_id:int53 accent_color_id:int32 background_custom_emoji_i
 //@profile_background_custom_emoji_id Identifier of a custom emoji to be shown on the chat's profile photo background; 0 if none. Use chatBoostLevelFeatures.can_set_profile_background_custom_emoji to check whether a custom emoji can be set
 setChatProfileAccentColor chat_id:int53 profile_accent_color_id:int32 profile_background_custom_emoji_id:int64 = Ok;
 
-//@description Changes the message auto-delete or self-destruct (for secret chats) time in a chat. Requires change_info administrator right in basic groups, supergroups and channels
+//@description Changes the message auto-delete or self-destruct (for secret chats) time in a chat. Requires change_info administrator right in basic groups, supergroups and channels.
 //-Message auto-delete time can't be changed in a chat with the current user (Saved Messages) and the chat 777000 (Telegram).
 //@chat_id Chat identifier
 //@message_auto_delete_time New time value, in seconds; unless the chat is secret, it must be from 0 up to 365 * 86400 and be divisible by 86400. If 0, then messages aren't deleted automatically
@@ -9942,7 +9942,7 @@ getChatActiveStories chat_id:int53 = ChatActiveStories;
 //-Then, stories are returned in reverse chronological order (i.e., in order of decreasing story_id). For optimal performance, the number of returned stories is chosen by TDLib
 //@chat_id Chat identifier
 //@from_story_id Identifier of the story starting from which stories must be returned; use 0 to get results from pinned and the newest story
-//@limit The maximum number of stories to be returned
+//@limit The maximum number of stories to be returned.
 //-For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
 getChatPostedToChatPageStories chat_id:int53 from_story_id:int32 limit:int32 = Stories;
 
@@ -9950,7 +9950,7 @@ getChatPostedToChatPageStories chat_id:int53 from_story_id:int32 limit:int32 = S
 //-The stories are returned in reverse chronological order (i.e., in order of decreasing story_id). For optimal performance, the number of returned stories is chosen by TDLib
 //@chat_id Chat identifier
 //@from_story_id Identifier of the story starting from which stories must be returned; use 0 to get results from the last story
-//@limit The maximum number of stories to be returned
+//@limit The maximum number of stories to be returned.
 //-For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
 getChatArchivedStories chat_id:int53 from_story_id:int32 limit:int32 = Stories;
 
@@ -10218,7 +10218,7 @@ createChatInviteLink chat_id:int53 name:string expiration_date:int32 member_limi
 createChatSubscriptionInviteLink chat_id:int53 name:string subscription_pricing:starSubscriptionPricing = ChatInviteLink;
 
 //@description Edits a non-primary invite link for a chat. Available for basic groups, supergroups, and channels.
-//-If the link creates a subscription, then expiration_date, member_limit and creates_join_request must not be used
+//-If the link creates a subscription, then expiration_date, member_limit and creates_join_request must not be used.
 //-Requires administrator privileges and can_invite_users right in the chat for own links and owner privileges for other links
 //@chat_id Chat identifier
 //@invite_link Invite link to be edited
