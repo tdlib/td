@@ -378,7 +378,7 @@ function split_file($file, $chunks, $undo) {
             'message_import_manager[_(-](?![.]get[(][)])|MessageImportManager' => 'MessageImportManager',
             'MessageLinkInfo' => 'MessageLinkInfo',
             'MessageQuote' => 'MessageQuote',
-            'MessageReaction|UnreadMessageReaction|[a-z_]*message[a-z_]*reaction' => 'MessageReaction',
+            'MessageReaction|UnreadMessageReaction|[a-z_]*message[a-z_]*reaction|reload_paid_reaction_privacy|get_chosen_tags' => 'MessageReaction',
             'MessageReactor' => 'MessageReactor',
             'MessageSearchOffset' => 'MessageSearchOffset',
             '[a-z_]*_message_sender' => 'MessageSender',
