@@ -391,11 +391,9 @@ class StickersManager final : public Actor {
   vector<string> get_keyword_emojis(const string &text, const vector<string> &input_language_codes, bool force,
                                     Promise<Unit> &&promise);
 
-  int64 get_emoji_suggestions_url(const string &language_code, Promise<Unit> &&promise);
+  void get_emoji_suggestions_url(const string &language_code, Promise<string> &&promise);
 
   void get_emoji_groups(EmojiGroupType group_type, Promise<td_api::object_ptr<td_api::emojiCategories>> &&promise);
-
-  td_api::object_ptr<td_api::httpUrl> get_emoji_suggestions_url_result(int64 random_id);
 
   void reload_sticker_set(StickerSetId sticker_set_id, int64 access_hash, Promise<Unit> &&promise);
 
@@ -987,9 +985,6 @@ class StickersManager final : public Actor {
 
   void finish_get_emoji_keywords_difference(string language_code, int32 version);
 
-  void on_get_emoji_suggestions_url(int64 random_id, Promise<Unit> &&promise,
-                                    Result<telegram_api::object_ptr<telegram_api::emojiURL>> &&r_emoji_url);
-
   void on_load_emoji_groups_from_database(EmojiGroupType group_type, string used_language_codes, string value);
 
   void on_load_emoji_group_icons(EmojiGroupType group_type, EmojiGroupList group_list);
@@ -1134,7 +1129,6 @@ class StickersManager final : public Actor {
   FlatHashSet<string> reloaded_emoji_keywords_;
   FlatHashMap<string, vector<Promise<Unit>>> load_emoji_keywords_queries_;
   FlatHashMap<string, vector<Promise<Unit>>> load_language_codes_queries_;
-  FlatHashMap<int64, string> emoji_suggestions_urls_;
 
   struct GiftPremiumMessages {
     FlatHashSet<MessageFullId, MessageFullIdHash> message_full_ids_;

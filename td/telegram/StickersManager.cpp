@@ -253,11 +253,10 @@ class GetEmojiKeywordsDifferenceQuery final : public Td::ResultHandler {
 };
 
 class GetEmojiUrlQuery final : public Td::ResultHandler {
-  Promise<telegram_api::object_ptr<telegram_api::emojiURL>> promise_;
+  Promise<string> promise_;
 
  public:
-  explicit GetEmojiUrlQuery(Promise<telegram_api::object_ptr<telegram_api::emojiURL>> &&promise)
-      : promise_(std::move(promise)) {
+  explicit GetEmojiUrlQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(const string &language_code) {
@@ -270,7 +269,8 @@ class GetEmojiUrlQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    promise_.set_value(result_ptr.move_as_ok());
+    auto ptr = result_ptr.move_as_ok();
+    promise_.set_value(std::move(ptr->url_));
   }
 
   void on_error(Status status) final {
@@ -10206,46 +10206,8 @@ vector<string> StickersManager::get_keyword_emojis(const string &text, const vec
   return result;
 }
 
-int64 StickersManager::get_emoji_suggestions_url(const string &language_code, Promise<Unit> &&promise) {
-  int64 random_id = 0;
-  do {
-    random_id = Random::secure_int64();
-  } while (random_id == 0 || emoji_suggestions_urls_.count(random_id) > 0);
-  emoji_suggestions_urls_[random_id];  // reserve place for result
-
-  auto query_promise =
-      PromiseCreator::lambda([actor_id = actor_id(this), random_id, promise = std::move(promise)](
-                                 Result<telegram_api::object_ptr<telegram_api::emojiURL>> &&result) mutable {
-        send_closure(actor_id, &StickersManager::on_get_emoji_suggestions_url, random_id, std::move(promise),
-                     std::move(result));
-      });
-  td_->create_handler<GetEmojiUrlQuery>(std::move(query_promise))->send(language_code);
-  return random_id;
-}
-
-void StickersManager::on_get_emoji_suggestions_url(
-    int64 random_id, Promise<Unit> &&promise, Result<telegram_api::object_ptr<telegram_api::emojiURL>> &&r_emoji_url) {
-  auto it = emoji_suggestions_urls_.find(random_id);
-  CHECK(it != emoji_suggestions_urls_.end());
-  auto &result = it->second;
-  CHECK(result.empty());
-
-  if (r_emoji_url.is_error()) {
-    emoji_suggestions_urls_.erase(it);
-    return promise.set_error(r_emoji_url.move_as_error());
-  }
-
-  auto emoji_url = r_emoji_url.move_as_ok();
-  result = std::move(emoji_url->url_);
-  promise.set_value(Unit());
-}
-
-td_api::object_ptr<td_api::httpUrl> StickersManager::get_emoji_suggestions_url_result(int64 random_id) {
-  auto it = emoji_suggestions_urls_.find(random_id);
-  CHECK(it != emoji_suggestions_urls_.end());
-  auto result = td_api::make_object<td_api::httpUrl>(it->second);
-  emoji_suggestions_urls_.erase(it);
-  return result;
+void StickersManager::get_emoji_suggestions_url(const string &language_code, Promise<string> &&promise) {
+  td_->create_handler<GetEmojiUrlQuery>(std::move(promise))->send(language_code);
 }
 
 string StickersManager::get_emoji_groups_database_key(EmojiGroupType group_type) {
