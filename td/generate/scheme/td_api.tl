@@ -2259,6 +2259,9 @@ inlineKeyboardButtonTypeBuy = InlineKeyboardButtonType;
 //@description A button with a user reference to be handled in the same way as textEntityTypeMentionName entities @user_id User identifier
 inlineKeyboardButtonTypeUser user_id:int53 = InlineKeyboardButtonType;
 
+//@description A button that copies specified text to clipboard @text The text to copy to clipboard
+inlineKeyboardButtonTypeCopyText text:string = InlineKeyboardButtonType;
+
 
 //@description Represents a single button in an inline keyboard @text Text of the button @type Type of the button
 inlineKeyboardButton text:string type:InlineKeyboardButtonType = InlineKeyboardButton;

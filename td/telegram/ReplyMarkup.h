@@ -51,7 +51,8 @@ struct InlineKeyboardButton {
     UrlAuth,
     CallbackWithPassword,
     User,
-    WebView
+    WebView,
+    Copy
   };
 
   static constexpr int64 USERS_MASK = 1;

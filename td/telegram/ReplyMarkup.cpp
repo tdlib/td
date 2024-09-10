@@ -104,6 +104,9 @@ static StringBuilder &operator<<(StringBuilder &string_builder, const InlineKeyb
     case InlineKeyboardButton::Type::WebView:
       string_builder << "WebView";
       break;
+    case InlineKeyboardButton::Type::Copy:
+      string_builder << "Copy";
+      break;
     default:
       UNREACHABLE();
   }
@@ -364,7 +367,7 @@ static InlineKeyboardButton get_inline_keyboard_button(
     }
     case telegram_api::keyboardButtonCopy::ID: {
       auto keyboard_button = move_tl_object_as<telegram_api::keyboardButtonCopy>(keyboard_button_ptr);
-      button.type = InlineKeyboardButton::Type::Url;
+      button.type = InlineKeyboardButton::Type::Copy;
       button.text = std::move(keyboard_button->text_);
       button.data = std::move(keyboard_button->copy_text_);
       break;
@@ -710,6 +713,15 @@ static Result<InlineKeyboardButton> get_inline_keyboard_button(tl_object_ptr<td_
       }
       break;
     }
+    case td_api::inlineKeyboardButtonTypeCopyText::ID: {
+      auto button_type = move_tl_object_as<td_api::inlineKeyboardButtonTypeCopyText>(button->type_);
+      current_button.type = InlineKeyboardButton::Type::Copy;
+      current_button.data = std::move(button_type->text_);
+      if (!clean_input_string(current_button.data)) {
+        return Status::Error(400, "Inline keyboard button copied text must be encoded in UTF-8");
+      }
+      break;
+    }
     default:
       UNREACHABLE();
   }
@@ -982,6 +994,8 @@ static tl_object_ptr<telegram_api::KeyboardButton> get_input_keyboard_button(
     }
     case InlineKeyboardButton::Type::WebView:
       return make_tl_object<telegram_api::keyboardButtonWebView>(keyboard_button.text, keyboard_button.data);
+    case InlineKeyboardButton::Type::Copy:
+      return make_tl_object<telegram_api::keyboardButtonCopy>(keyboard_button.text, keyboard_button.data);
     default:
       UNREACHABLE();
       return nullptr;
@@ -1122,6 +1136,9 @@ static tl_object_ptr<td_api::inlineKeyboardButton> get_inline_keyboard_button_ob
     }
     case InlineKeyboardButton::Type::WebView:
       type = make_tl_object<td_api::inlineKeyboardButtonTypeWebApp>(keyboard_button.data);
+      break;
+    case InlineKeyboardButton::Type::Copy:
+      type = make_tl_object<td_api::inlineKeyboardButtonTypeCopyText>(keyboard_button.data);
       break;
     default:
       UNREACHABLE();
