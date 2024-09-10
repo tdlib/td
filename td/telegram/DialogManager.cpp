@@ -424,28 +424,15 @@ class ReportPeerQuery final : public Td::ResultHandler {
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
 
-    if (message_ids.empty()) {
-      send_query(G()->net_query_creator().create(telegram_api::account_reportPeer(
-          std::move(input_peer), report_reason.get_input_report_reason(), report_reason.get_message())));
-    } else {
-      send_query(G()->net_query_creator().create(
-          telegram_api::messages_report(std::move(input_peer), MessageId::get_server_message_ids(message_ids),
-                                        report_reason.get_input_report_reason(), report_reason.get_message())));
-    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_report(std::move(input_peer), MessageId::get_server_message_ids(message_ids),
+                                      BufferSlice(), report_reason.get_message())));
   }
 
   void on_result(BufferSlice packet) final {
-    static_assert(
-        std::is_same<telegram_api::account_reportPeer::ReturnType, telegram_api::messages_report::ReturnType>::value,
-        "");
-    auto result_ptr = fetch_result<telegram_api::account_reportPeer>(packet);
+    auto result_ptr = fetch_result<telegram_api::messages_report>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
-    }
-
-    bool result = result_ptr.ok();
-    if (!result) {
-      return on_error(Status::Error(400, "Receive false as result"));
     }
 
     promise_.set_value(Unit());

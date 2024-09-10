@@ -909,9 +909,8 @@ class ReportStoryQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
 
-    send_query(G()->net_query_creator().create(
-        telegram_api::stories_report(std::move(input_peer), {story_full_id.get_story_id().get()},
-                                     report_reason.get_input_report_reason(), report_reason.get_message())));
+    send_query(G()->net_query_creator().create(telegram_api::stories_report(
+        std::move(input_peer), {story_full_id.get_story_id().get()}, BufferSlice(), report_reason.get_message())));
   }
 
   void on_result(BufferSlice packet) final {

@@ -362,6 +362,13 @@ static InlineKeyboardButton get_inline_keyboard_button(
       button.data = r_url.move_as_ok();
       break;
     }
+    case telegram_api::keyboardButtonCopy::ID: {
+      auto keyboard_button = move_tl_object_as<telegram_api::keyboardButtonCopy>(keyboard_button_ptr);
+      button.type = InlineKeyboardButton::Type::Url;
+      button.text = std::move(keyboard_button->text_);
+      button.data = std::move(keyboard_button->copy_text_);
+      break;
+    }
     default:
       LOG(ERROR) << "Unsupported inline keyboard button: " << to_string(keyboard_button_ptr);
   }

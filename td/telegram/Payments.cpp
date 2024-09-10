@@ -565,6 +565,9 @@ class GetPaymentFormQuery final : public Td::ResultHandler {
             get_product_info_object(td_, payment_form->title_, payment_form->description_, photo)));
         break;
       }
+      case telegram_api::payments_paymentFormStarGift::ID:
+        promise_.set_error(Status::Error(500, "Unsupported"));
+        break;
       default:
         UNREACHABLE();
     }
@@ -702,7 +705,7 @@ class SendStarPaymentFormQuery final : public Td::ResultHandler {
     td_->star_manager_->add_pending_owned_star_count(-star_count_, false);
 
     send_query(G()->net_query_creator().create(
-        telegram_api::payments_sendStarsForm(0, payment_form_id, std::move(input_invoice_info.input_invoice_))));
+        telegram_api::payments_sendStarsForm(payment_form_id, std::move(input_invoice_info.input_invoice_))));
   }
 
   void on_result(BufferSlice packet) final {

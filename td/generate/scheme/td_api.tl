@@ -1814,6 +1814,7 @@ sponsoredMessage message_id:int53 is_recommended:Bool can_be_reported:Bool conte
 //@description Contains a list of sponsored messages @messages List of sponsored messages @messages_between The minimum number of messages between shown sponsored messages, or 0 if only one sponsored message must be shown after all ordinary messages
 sponsoredMessages messages:vector<sponsoredMessage> messages_between:int32 = SponsoredMessages;
 
+
 //@description Describes an option to report a sponsored message @id Unique identifier of the option @text Text of the option
 reportChatSponsoredMessageOption id:bytes text:string = ReportChatSponsoredMessageOption;
 

@@ -108,8 +108,9 @@ class ClickSponsoredMessageQuery final : public Td::ResultHandler {
     if (input_channel == nullptr) {
       return promise_.set_value(Unit());
     }
-    send_query(G()->net_query_creator().create(
-        telegram_api::channels_clickSponsoredMessage(std::move(input_channel), BufferSlice(message_id))));
+    int32 flags = 0;
+    send_query(G()->net_query_creator().create(telegram_api::channels_clickSponsoredMessage(
+        flags, false /*ignored*/, false /*ignored*/, std::move(input_channel), BufferSlice(message_id))));
   }
 
   void on_result(BufferSlice packet) final {

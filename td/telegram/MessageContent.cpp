@@ -6288,7 +6288,7 @@ static auto secret_to_telegram(secret_api::documentAttributeSticker &sticker) {
 // documentAttributeVideo23 duration:int w:int h:int = DocumentAttribute;
 static auto secret_to_telegram(secret_api::documentAttributeVideo23 &video) {
   return make_tl_object<telegram_api::documentAttributeVideo>(0, false, false, false, video.duration_, video.w_,
-                                                              video.h_, 0, 0.0);
+                                                              video.h_, 0, 0.0, string());
 }
 
 // documentAttributeFilename file_name:string = DocumentAttribute;
@@ -6303,7 +6303,7 @@ static auto secret_to_telegram(secret_api::documentAttributeFilename &filename) 
 static auto secret_to_telegram(secret_api::documentAttributeVideo &video) {
   return make_tl_object<telegram_api::documentAttributeVideo>(
       video.round_message_ ? telegram_api::documentAttributeVideo::ROUND_MESSAGE_MASK : 0, video.round_message_, false,
-      false, video.duration_, video.w_, video.h_, 0, 0.0);
+      false, video.duration_, video.w_, video.h_, 0, 0.0, string());
 }
 
 static auto telegram_documentAttributeAudio(bool is_voice_note, int duration, string title, string performer,
@@ -7220,6 +7220,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       case telegram_api::messageActionRequestedPeerSentMe::ID:
       case telegram_api::messageActionGiftStars::ID:
       case telegram_api::messageActionPrizeStars::ID:
+      case telegram_api::messageActionStarGift::ID:
         // ok
         break;
       default:
@@ -7681,6 +7682,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
           StarManager::get_star_count(action->stars_), std::move(action->transaction_id_), boosted_dialog_id,
           MessageId(ServerMessageId(action->giveaway_msg_id_)), action->unclaimed_);
     }
+    case telegram_api::messageActionStarGift::ID:
+      return make_unique<MessageUnsupported>();
     default:
       UNREACHABLE();
   }

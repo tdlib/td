@@ -303,7 +303,7 @@ tl_object_ptr<telegram_api::InputMedia> VideosManager::get_input_media(
       }
       attributes.push_back(make_tl_object<telegram_api::documentAttributeVideo>(
           attribute_flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, video->precise_duration,
-          video->dimensions.width, video->dimensions.height, 0, video->start_ts));
+          video->dimensions.width, video->dimensions.height, 0, video->start_ts, string()));
     }
     if (!video->file_name.empty()) {
       attributes.push_back(make_tl_object<telegram_api::documentAttributeFilename>(video->file_name));
@@ -365,7 +365,7 @@ telegram_api::object_ptr<telegram_api::InputMedia> VideosManager::get_story_docu
     }
     attributes.push_back(telegram_api::make_object<telegram_api::documentAttributeVideo>(
         attribute_flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, video->precise_duration,
-        video->dimensions.width, video->dimensions.height, 0, main_frame_timestamp));
+        video->dimensions.width, video->dimensions.height, 0, main_frame_timestamp, string()));
   }
   if (!video->file_name.empty()) {
     attributes.push_back(make_tl_object<telegram_api::documentAttributeFilename>(video->file_name));

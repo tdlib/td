@@ -230,8 +230,8 @@ unique_ptr<StoryContent> get_story_content(Td *td, tl_object_ptr<telegram_api::M
       CHECK(parsed_document.file_id.is_valid());
 
       FileId alt_file_id;
-      if (media->alt_document_ != nullptr) {
-        auto alt_document_ptr = std::move(media->alt_document_);
+      if (media->alt_documents_.size() == 1u) {
+        auto alt_document_ptr = std::move(media->alt_documents_[0]);
         int32 alt_document_id = alt_document_ptr->get_id();
         if (alt_document_id == telegram_api::documentEmpty::ID) {
           LOG(ERROR) << "Receive alternative " << to_string(alt_document_ptr);
