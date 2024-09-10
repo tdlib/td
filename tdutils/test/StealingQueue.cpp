@@ -108,7 +108,7 @@ TEST(AtomicRead, simple2) {
 
 TEST(StealingQueue, simple) {
   td::uint64 sum = 0;
-  std::atomic<td::uint64> got_sum{0};
+  std::atomic<td::uint64> check_sum{0};
 
   td::Stage run;
   td::Stage check;
@@ -138,10 +138,10 @@ TEST(StealingQueue, simple) {
             sum += x_sum[x];
             gq.push(x, id);
           }
-          got_sum = 0;
+          check_sum = 0;
         }
         run.wait(round * threads_n);
-        while (got_sum.load() != sum) {
+        while (check_sum.load() != sum) {
           auto x = [&] {
             int res;
             if (lq[id].local_pop(res)) {
@@ -159,8 +159,8 @@ TEST(StealingQueue, simple) {
           if (x == 0) {
             continue;
           }
-          //LOG(ERROR) << x << " " << got_sum.load() << " " << sum;
-          got_sum.fetch_add(x, std::memory_order_relaxed);
+          //LOG(ERROR) << x << " " << check_sum.load() << " " << sum;
+          check_sum.fetch_add(x, std::memory_order_relaxed);
           lq[id].local_push(x - 1, [&](auto y) {
             //LOG(ERROR) << "OVERFLOW";
             gq.push(y, id);

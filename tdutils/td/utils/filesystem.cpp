@@ -50,8 +50,8 @@ Result<T> read_file_impl(CSlice path, int64 size, int64 offset) {
     size = file_size - offset;
   }
   auto content = create_empty<T>(narrow_cast<size_t>(size));
-  TRY_RESULT(got_size, from_file.pread(as_mutable_slice(content), offset));
-  if (got_size != static_cast<size_t>(size)) {
+  TRY_RESULT(read_size, from_file.pread(as_mutable_slice(content), offset));
+  if (read_size != static_cast<size_t>(size)) {
     return Status::Error("Failed to read file");
   }
   from_file.close();

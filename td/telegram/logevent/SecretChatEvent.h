@@ -159,16 +159,16 @@ struct EncryptedInputFile {
   template <class ParserT>
   void parse(ParserT &parser) {
     using td::parse;
-    int32 got_magic;
+    int32 stored_magic;
 
-    parse(got_magic, parser);
+    parse(stored_magic, parser);
     parse(type, parser);
     parse(id, parser);
     parse(access_hash, parser);
     parse(parts, parser);
     parse(key_fingerprint, parser);
 
-    if (got_magic != MAGIC) {
+    if (stored_magic != MAGIC) {
       parser.set_error("EncryptedInputFile magic mismatch");
       return;
     }

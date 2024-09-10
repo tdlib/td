@@ -367,11 +367,11 @@ class HandshakeTestActor final : public td::Actor {
           10.0,
           td::PromiseCreator::lambda(
               [actor_id = actor_id(this)](td::Result<td::unique_ptr<td::mtproto::RawConnection>> raw_connection) {
-                td::send_closure(actor_id, &HandshakeTestActor::got_connection, std::move(raw_connection), 1);
+                td::send_closure(actor_id, &HandshakeTestActor::on_connection, std::move(raw_connection), 1);
               }),
           td::PromiseCreator::lambda(
               [actor_id = actor_id(this)](td::Result<td::unique_ptr<td::mtproto::AuthKeyHandshake>> handshake) {
-                td::send_closure(actor_id, &HandshakeTestActor::got_handshake, std::move(handshake), 1);
+                td::send_closure(actor_id, &HandshakeTestActor::on_handshake, std::move(handshake), 1);
               }))
           .release();
       wait_for_raw_connection_ = true;
@@ -379,7 +379,7 @@ class HandshakeTestActor final : public td::Actor {
     }
   }
 
-  void got_connection(td::Result<td::unique_ptr<td::mtproto::RawConnection>> r_raw_connection, bool dummy) {
+  void on_connection(td::Result<td::unique_ptr<td::mtproto::RawConnection>> r_raw_connection, bool dummy) {
     CHECK(wait_for_raw_connection_);
     wait_for_raw_connection_ = false;
     if (r_raw_connection.is_ok()) {
@@ -392,7 +392,7 @@ class HandshakeTestActor final : public td::Actor {
     loop();
   }
 
-  void got_handshake(td::Result<td::unique_ptr<td::mtproto::AuthKeyHandshake>> r_handshake, bool dummy) {
+  void on_handshake(td::Result<td::unique_ptr<td::mtproto::AuthKeyHandshake>> r_handshake, bool dummy) {
     CHECK(wait_for_handshake_);
     wait_for_handshake_ = false;
     CHECK(r_handshake.is_ok());
@@ -555,16 +555,16 @@ class FastPingTestActor final : public td::Actor {
         "HandshakeActor", std::move(handshake), std::move(raw_connection), td::make_unique<HandshakeContext>(), 10.0,
         td::PromiseCreator::lambda(
             [actor_id = actor_id(this)](td::Result<td::unique_ptr<td::mtproto::RawConnection>> raw_connection) {
-              td::send_closure(actor_id, &FastPingTestActor::got_connection, std::move(raw_connection), 1);
+              td::send_closure(actor_id, &FastPingTestActor::on_connection, std::move(raw_connection), 1);
             }),
         td::PromiseCreator::lambda(
             [actor_id = actor_id(this)](td::Result<td::unique_ptr<td::mtproto::AuthKeyHandshake>> handshake) {
-              td::send_closure(actor_id, &FastPingTestActor::got_handshake, std::move(handshake), 1);
+              td::send_closure(actor_id, &FastPingTestActor::on_handshake, std::move(handshake), 1);
             }))
         .release();
   }
 
-  void got_connection(td::Result<td::unique_ptr<td::mtproto::RawConnection>> r_raw_connection, bool dummy) {
+  void on_connection(td::Result<td::unique_ptr<td::mtproto::RawConnection>> r_raw_connection, bool dummy) {
     if (r_raw_connection.is_error()) {
       *result_ = r_raw_connection.move_as_error();
       LOG(INFO) << "Receive " << *result_ << " instead of a connection";
@@ -574,7 +574,7 @@ class FastPingTestActor final : public td::Actor {
     loop();
   }
 
-  void got_handshake(td::Result<td::unique_ptr<td::mtproto::AuthKeyHandshake>> r_handshake, bool dummy) {
+  void on_handshake(td::Result<td::unique_ptr<td::mtproto::AuthKeyHandshake>> r_handshake, bool dummy) {
     if (r_handshake.is_error()) {
       *result_ = r_handshake.move_as_error();
       LOG(INFO) << "Receive " << *result_ << " instead of a handshake";
@@ -584,7 +584,7 @@ class FastPingTestActor final : public td::Actor {
     loop();
   }
 
-  void got_raw_connection(td::Result<td::unique_ptr<td::mtproto::RawConnection>> r_connection) {
+  void on_raw_connection(td::Result<td::unique_ptr<td::mtproto::RawConnection>> r_connection) {
     if (r_connection.is_error()) {
       *result_ = r_connection.move_as_error();
       LOG(INFO) << "Receive " << *result_ << " instead of a handshake";
@@ -621,7 +621,7 @@ class FastPingTestActor final : public td::Actor {
           td::Slice(), std::move(connection_), std::move(auth_data),
           td::PromiseCreator::lambda(
               [actor_id = actor_id(this)](td::Result<td::unique_ptr<td::mtproto::RawConnection>> r_raw_connection) {
-                td::send_closure(actor_id, &FastPingTestActor::got_raw_connection, std::move(r_raw_connection));
+                td::send_closure(actor_id, &FastPingTestActor::on_raw_connection, std::move(r_raw_connection));
               }),
           td::ActorShared<>());
     }

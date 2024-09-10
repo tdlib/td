@@ -354,9 +354,9 @@ Result<BufferSlice> decrypt_value(const Secret &secret, const ValueHash &hash, S
   auto aes_cbc_state = calc_aes_cbc_state_sha512(PSLICE() << secret.as_slice() << hash.as_slice());
   Decryptor decryptor(std::move(aes_cbc_state));
   TRY_RESULT(decrypted_value, decryptor.append(BufferSlice(data)));
-  TRY_RESULT(got_hash, decryptor.finish());
-  if (got_hash.as_slice() != hash.as_slice()) {
-    return Status::Error(PSLICE() << "Hash mismatch " << format::as_hex_dump<4>(got_hash.as_slice()) << " "
+  TRY_RESULT(stored_hash, decryptor.finish());
+  if (stored_hash.as_slice() != hash.as_slice()) {
+    return Status::Error(PSLICE() << "Hash mismatch " << format::as_hex_dump<4>(stored_hash.as_slice()) << " "
                                   << format::as_hex_dump<4>(hash.as_slice()));
   }
   return std::move(decrypted_value);
@@ -395,9 +395,9 @@ Status decrypt_file(const Secret &secret, const ValueHash &hash, const string &s
     return Status::OK();
   }));
 
-  TRY_RESULT(got_hash, decryptor.finish());
+  TRY_RESULT(stored_hash, decryptor.finish());
 
-  if (hash.as_slice() != got_hash.as_slice()) {
+  if (hash.as_slice() != stored_hash.as_slice()) {
     return Status::Error("Hash mismatch");
   }
 
