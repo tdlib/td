@@ -86,7 +86,7 @@ FileId VideosManager::on_get_video(unique_ptr<Video> new_video, bool replace) {
     if (v->duration != new_video->duration || v->precise_duration != new_video->precise_duration ||
         v->dimensions != new_video->dimensions || v->supports_streaming != new_video->supports_streaming ||
         v->is_animation != new_video->is_animation || v->preload_prefix_size != new_video->preload_prefix_size ||
-        std::fabs(v->start_ts - new_video->start_ts) > 1e-3) {
+        std::fabs(v->start_ts - new_video->start_ts) > 1e-3 || v->codec != new_video->codec) {
       LOG(DEBUG) << "Video " << file_id << " info has changed";
       v->duration = new_video->duration;
       v->precise_duration = new_video->precise_duration;
@@ -95,6 +95,7 @@ FileId VideosManager::on_get_video(unique_ptr<Video> new_video, bool replace) {
       v->is_animation = new_video->is_animation;
       v->preload_prefix_size = new_video->preload_prefix_size;
       v->start_ts = new_video->start_ts;
+      v->codec = std::move(new_video->codec);
     }
     if (v->file_name != new_video->file_name) {
       LOG(DEBUG) << "Video " << file_id << " file name has changed";
@@ -194,7 +195,7 @@ void VideosManager::create_video(FileId file_id, string minithumbnail, PhotoSize
                                  AnimationSize animated_thumbnail, bool has_stickers, vector<FileId> &&sticker_file_ids,
                                  string file_name, string mime_type, int32 duration, double precise_duration,
                                  Dimensions dimensions, bool supports_streaming, bool is_animation,
-                                 int32 preload_prefix_size, double start_ts, bool replace) {
+                                 int32 preload_prefix_size, double start_ts, string &&codec, bool replace) {
   auto v = make_unique<Video>();
   v->file_id = file_id;
   v->file_name = std::move(file_name);
@@ -213,6 +214,7 @@ void VideosManager::create_video(FileId file_id, string minithumbnail, PhotoSize
   v->start_ts = start_ts;
   v->has_stickers = has_stickers;
   v->sticker_file_ids = std::move(sticker_file_ids);
+  v->codec = std::move(codec);
   on_get_video(std::move(v), replace);
 }
 

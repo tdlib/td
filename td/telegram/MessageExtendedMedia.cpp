@@ -169,7 +169,7 @@ Result<MessageExtendedMedia> MessageExtendedMedia::get_message_extended_media(
                                         std::move(sticker_file_ids), std::move(file_name), std::move(mime_type),
                                         type->duration_, type->duration_,
                                         get_dimensions(paid_media->width_, paid_media->height_, nullptr),
-                                        type->supports_streaming_, false, 0, 0.0, false);
+                                        type->supports_streaming_, false, 0, 0.0, string(), false);
       result.video_file_id_ = file_id;
       break;
     }

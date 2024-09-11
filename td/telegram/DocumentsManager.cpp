@@ -188,6 +188,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
   FileType file_type = FileType::Document;
   Slice default_extension;
   bool supports_streaming = false;
+  string video_codec;
   StickerFormat sticker_format = StickerFormat::Unknown;
   PhotoFormat thumbnail_format = PhotoFormat::Jpeg;
   if (type_attributes == 1 || default_document_type != Document::Type::General) {  // not a general document
@@ -225,6 +226,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
         is_video_note = (video->flags_ & telegram_api::documentAttributeVideo::ROUND_MESSAGE_MASK) != 0;
         if (!is_video_note) {
           supports_streaming = (video->flags_ & telegram_api::documentAttributeVideo::SUPPORTS_STREAMING_MASK) != 0;
+          video_codec = std::move(video->video_codec_);
         }
       }
       if (is_video_note) {
@@ -542,10 +544,11 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
                                              std::move(custom_emoji), sticker_format, load_data_multipromise_ptr);
       break;
     case Document::Type::Video:
-      td_->videos_manager_->create_video(
-          file_id, std::move(minithumbnail), std::move(thumbnail), std::move(animated_thumbnail), has_stickers,
-          vector<FileId>(), std::move(file_name), std::move(mime_type), video_duration, video_precise_duration,
-          dimensions, supports_streaming, video_is_animation, video_preload_prefix_size, video_start_ts, !is_web);
+      td_->videos_manager_->create_video(file_id, std::move(minithumbnail), std::move(thumbnail),
+                                         std::move(animated_thumbnail), has_stickers, vector<FileId>(),
+                                         std::move(file_name), std::move(mime_type), video_duration,
+                                         video_precise_duration, dimensions, supports_streaming, video_is_animation,
+                                         video_preload_prefix_size, video_start_ts, std::move(video_codec), !is_web);
       break;
     case Document::Type::VideoNote:
       td_->video_notes_manager_->create_video_note(file_id, std::move(minithumbnail), std::move(thumbnail),

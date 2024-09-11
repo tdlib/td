@@ -297,7 +297,7 @@ Result<unique_ptr<StoryContent>> get_input_story_content(
                                         std::move(sticker_file_ids), "story.mp4", "video/mp4",
                                         static_cast<int32>(std::ceil(input_story->duration_)), input_story->duration_,
                                         get_dimensions(720, 1280, nullptr), true, input_story->is_animation_, 0,
-                                        input_story->cover_frame_timestamp_, false);
+                                        input_story->cover_frame_timestamp_, string(), false);
 
       return make_unique<StoryContentVideo>(file_id, FileId());
     }
