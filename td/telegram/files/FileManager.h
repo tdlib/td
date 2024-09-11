@@ -743,14 +743,6 @@ class FileManager final : public Actor {
   int32 next_pmc_file_id();
   bool try_forget_file_id(FileId file_id);
 
-  void load_from_pmc(FileId file_id, FullLocalFileLocation full_local);
-  void load_from_pmc(FileId file_id, const FullRemoteFileLocation &full_remote);
-  void load_from_pmc(FileId file_id, const FullGenerateFileLocation &full_generate);
-  template <class LocationT>
-  void load_from_pmc_impl(FileId file_id, const LocationT &location);
-  void load_from_pmc_result(FileId file_id, Result<FileData> &&result);
-  FileId register_pmc_file_data(FileData &&data);
-
   void download_impl(FileId file_id, std::shared_ptr<DownloadCallback> callback, int32 new_priority, int64 offset,
                      int64 limit, Status check_status, Promise<td_api::object_ptr<td_api::file>> promise);
 
