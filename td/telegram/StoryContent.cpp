@@ -241,7 +241,7 @@ unique_ptr<StoryContent> get_story_content(Td *td, tl_object_ptr<telegram_api::M
               move_tl_object_as<telegram_api::document>(alt_document_ptr), owner_dialog_id, nullptr,
               Document::Type::Video, DocumentsManager::Subtype::Story);
           if (parsed_alt_document.empty() || parsed_alt_document.type != Document::Type::Video) {
-            LOG(ERROR) << "Receive alternative " << to_string(alt_document_ptr);
+            LOG(ERROR) << "Receive invalid alternative document " << parsed_alt_document;
           } else {
             alt_file_id = parsed_alt_document.file_id;
           }
