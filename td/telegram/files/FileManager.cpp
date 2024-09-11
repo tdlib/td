@@ -1198,7 +1198,10 @@ FileId FileManager::dup_file_id(FileId file_id, const char *source) {
   if (!file_node) {
     return FileId();
   }
-  auto result_file_id = FileId(create_file_id(file_node_id, file_node).get(), file_id.get_remote());
+  auto new_file_id = next_file_id();
+  get_file_id_info(new_file_id)->node_id_ = file_node_id;
+  file_node->file_ids_.push_back(new_file_id);
+  auto result_file_id = FileId(new_file_id.get(), file_id.get_remote());
   LOG(INFO) << "Dup file " << file_id << " to " << result_file_id << " from " << source;
   return result_file_id;
 }
@@ -1211,13 +1214,6 @@ FileId FileManager::copy_file_id(FileId file_id, FileType file_type, DialogId ow
                         owner_dialog_id, file_view.size());
   LOG(INFO) << "Copy file " << file_id << " to " << result_file_id << " from " << source;
   return result_file_id;
-}
-
-FileId FileManager::create_file_id(int32 file_node_id, FileNode *file_node) {
-  auto file_id = next_file_id();
-  get_file_id_info(file_id)->node_id_ = file_node_id;
-  file_node->file_ids_.push_back(file_id);
-  return file_id;
 }
 
 bool FileManager::try_forget_file_id(FileId file_id) {
