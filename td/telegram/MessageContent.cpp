@@ -7853,9 +7853,13 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(const Mess
     }
     case MessageContentType::Video: {
       const auto *m = static_cast<const MessageVideo *>(content);
+      vector<td_api::object_ptr<td_api::alternativeVideo>> alternative_videos;
+      for (auto file_id : m->alternative_file_ids) {
+        alternative_videos.push_back(td->videos_manager_->get_alternative_video_object(file_id));
+      }
       return make_tl_object<td_api::messageVideo>(td->videos_manager_->get_video_object(m->file_id),
-                                                  get_text_object(m->caption), invert_media, m->has_spoiler,
-                                                  is_content_secret);
+                                                  std::move(alternative_videos), get_text_object(m->caption),
+                                                  invert_media, m->has_spoiler, is_content_secret);
     }
     case MessageContentType::VideoNote: {
       const auto *m = static_cast<const MessageVideoNote *>(content);
