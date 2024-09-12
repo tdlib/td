@@ -676,8 +676,29 @@ class FileManager final : public Actor {
   };
   friend StringBuilder &operator<<(StringBuilder &string_builder, UploadQuery::Type type);
 
+  enum class FileInfoType { Local, Generate, Remote };
+
+  class FileInfo {
+   public:
+    FileInfo() = default;
+    FileInfo(const FileInfo &) = delete;
+    FileInfo &operator=(const FileInfo &) = delete;
+    FileInfo(FileInfo &&) = delete;
+    FileInfo &operator=(FileInfo &&) = delete;
+    virtual ~FileInfo() = default;
+
+    virtual FileInfoType get_type() const = 0;
+
+    virtual unique_ptr<FileInfo> clone() const = 0;
+  };
+
+  class FileInfoLocal;
+  class FileInfoGenerate;
+  class FileInfoRemote;
+
   struct FileIdInfo {
     FileNodeId node_id_{0};
+    unique_ptr<FileInfo> file_info_;
     bool send_updates_flag_{false};
     bool pin_flag_{false};
     bool sent_file_id_flag_{false};

@@ -138,6 +138,66 @@ RemoteFileLocation NewRemoteFileLocation::partial_or_empty() const {
   return {};
 }
 
+class FileManager::FileInfoLocal final : public FileManager::FileInfo {
+  FullLocalFileLocation location_;
+
+ public:
+  explicit FileInfoLocal(FullLocalFileLocation location) : location_(std::move(location)) {
+  }
+
+  FileInfoType get_type() const final {
+    return FileInfoType::Local;
+  }
+
+  unique_ptr<FileInfo> clone() const final {
+    return make_unique<FileInfoLocal>(location_);
+  }
+};
+
+class FileManager::FileInfoGenerate final : public FileManager::FileInfo {
+  FullGenerateFileLocation location_;
+  int64 expected_size_;
+  string url_;
+
+ public:
+  FileInfoGenerate(FullGenerateFileLocation location, int64 expected_size, string url)
+      : location_(std::move(location)), expected_size_(expected_size), url_(std::move(url)) {
+  }
+
+  FileInfoType get_type() const final {
+    return FileInfoType::Generate;
+  }
+
+  unique_ptr<FileInfo> clone() const final {
+    return td::make_unique<FileInfoGenerate>(location_, expected_size_, url_);
+  }
+};
+
+class FileManager::FileInfoRemote final : public FileManager::FileInfo {
+  FullRemoteFileLocation location_;
+  int64 size_;
+  int64 expected_size_;
+  string remote_name_;
+  string url_;
+
+ public:
+  FileInfoRemote(FullRemoteFileLocation location, int64 size, int64 expected_size, string remote_name, string url)
+      : location_(std::move(location))
+      , size_(size)
+      , expected_size_(expected_size)
+      , remote_name_(std::move(remote_name))
+      , url_(std::move(url)) {
+  }
+
+  FileInfoType get_type() const final {
+    return FileInfoType::Remote;
+  }
+
+  unique_ptr<FileInfo> clone() const final {
+    return td::make_unique<FileInfoRemote>(location_, size_, expected_size_, remote_name_, url_);
+  }
+};
+
 FileNode *FileNodePtr::operator->() const {
   return get();
 }
@@ -1199,7 +1259,12 @@ FileId FileManager::dup_file_id(FileId file_id, const char *source) {
     return FileId();
   }
   auto new_file_id = next_file_id();
-  get_file_id_info(new_file_id)->node_id_ = file_node_id;
+  auto file_id_info = get_file_id_info(new_file_id);
+  file_id_info->node_id_ = file_node_id;
+  auto old_file_info = get_file_id_info(file_id)->file_info_.get();
+  if (old_file_info != nullptr) {
+    file_id_info->file_info_ = old_file_info->clone();
+  }
   file_node->file_ids_.push_back(new_file_id);
   auto result_file_id = FileId(new_file_id.get(), file_id.get_remote());
   LOG(INFO) << "Dup file " << file_id << " to " << result_file_id << " from " << source;
@@ -1247,6 +1312,7 @@ FileId FileManager::register_empty(FileType type) {
   file_id = next_file_id();
 
   LOG(INFO) << "Register empty file as " << file_id;
+  auto file_info = td::make_unique<FileInfoLocal>(location);
   auto file_node_id = next_file_node_id();
   file_nodes_[file_node_id] =
       td::make_unique<FileNode>(LocalFileLocation(std::move(location)), NewRemoteFileLocation(), nullptr, 0, 0,
@@ -1254,6 +1320,7 @@ FileId FileManager::register_empty(FileType type) {
 
   auto file_id_info = get_file_id_info(file_id);
   file_id_info->node_id_ = file_node_id;
+  file_id_info->file_info_ = std::move(file_info);
   file_id_info->pin_flag_ = true;
 
   return file_id;
@@ -1289,13 +1356,16 @@ Result<FileId> FileManager::register_local(FullLocalFileLocation location, Dialo
     file_id = next_file_id();
     LOG(INFO) << "Register " << location << " as " << file_id;
 
+    auto file_info = td::make_unique<FileInfoLocal>(location);
     auto file_node_id = next_file_node_id();
     auto &node = file_nodes_[file_node_id];
     node = td::make_unique<FileNode>(LocalFileLocation(std::move(location)), NewRemoteFileLocation(), nullptr, size, 0,
                                      string(), string(), owner_dialog_id, FileEncryptionKey(), file_id,
                                      static_cast<int8>(0));
     node->need_load_from_pmc_ = true;
-    get_file_id_info(file_id)->node_id_ = file_node_id;
+    auto file_id_info = get_file_id_info(file_id);
+    file_id_info->node_id_ = file_node_id;
+    file_id_info->file_info_ = std::move(file_info);
     is_new = true;
   }
 
@@ -1371,13 +1441,16 @@ FileId FileManager::register_remote(FullRemoteFileLocation location, FileLocatio
   }
 
   LOG(INFO) << "Register " << location << " as " << file_id;
+  auto file_info = td::make_unique<FileInfoRemote>(location, size, expected_size, remote_name, url);
   auto file_node_id = next_file_node_id();
   auto &node = file_nodes_[file_node_id];
   node = td::make_unique<FileNode>(LocalFileLocation(),
                                    NewRemoteFileLocation(RemoteFileLocation(std::move(location)), file_location_source),
                                    nullptr, size, expected_size, std::move(remote_name), std::move(url),
                                    owner_dialog_id, FileEncryptionKey(), file_id, static_cast<int8>(1));
-  get_file_id_info(file_id)->node_id_ = file_node_id;
+  auto file_id_info = get_file_id_info(file_id);
+  file_id_info->node_id_ = file_node_id;
+  file_id_info->file_info_ = std::move(file_info);
 
   auto main_file_id = file_id;
   if (!merge_file_id.is_valid()) {
@@ -1426,6 +1499,7 @@ FileId FileManager::do_register_generate(unique_ptr<FullGenerateFileLocation> ge
 
     auto file_node_id = next_file_node_id();
     auto &node = file_nodes_[file_node_id];
+    auto file_info = td::make_unique<FileInfoGenerate>(*generate, expected_size, url);
     node = td::make_unique<FileNode>(LocalFileLocation(), NewRemoteFileLocation(), std::move(generate), 0,
                                      expected_size, string(), std::move(url), owner_dialog_id, FileEncryptionKey(),
                                      file_id, static_cast<int8>(0));
@@ -1433,6 +1507,7 @@ FileId FileManager::do_register_generate(unique_ptr<FullGenerateFileLocation> ge
 
     auto file_id_info = get_file_id_info(file_id);
     file_id_info->node_id_ = file_node_id;
+    file_id_info->file_info_ = std::move(file_info);
     file_id_info->pin_flag_ = true;
   }
   return file_id;
@@ -1506,7 +1581,8 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
                                    std::move(data.remote_name_), std::move(data.url_), data.owner_dialog_id_,
                                    std::move(data.encryption_key_), file_id, static_cast<int8>(has_remote));
   node->pmc_id_ = FileDbId(data.pmc_id_);
-  get_file_id_info(file_id)->node_id_ = file_node_id;
+  auto file_id_info = get_file_id_info(file_id);
+  file_id_info->node_id_ = file_node_id;
 
   FileView file_view(get_file_node(file_id));
 
