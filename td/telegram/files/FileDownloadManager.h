@@ -33,8 +33,7 @@ class FileDownloadManager final : public Actor {
    public:
     virtual ~Callback();
     virtual void on_start_download(QueryId query_id) = 0;
-    virtual void on_partial_download(QueryId query_id, PartialLocalFileLocation partial_local, int64 ready_size,
-                                     int64 size) = 0;
+    virtual void on_partial_download(QueryId query_id, PartialLocalFileLocation partial_local, int64 size) = 0;
     virtual void on_download_ok(QueryId query_id, FullLocalFileLocation local, int64 size, bool is_new) = 0;
     virtual void on_error(QueryId query_id, Status status) = 0;
   };
@@ -82,7 +81,7 @@ class FileDownloadManager final : public Actor {
   ActorOwn<ResourceManager> &get_download_resource_manager(bool is_small, DcId dc_id);
 
   void on_start_download();
-  void on_partial_download(PartialLocalFileLocation partial_local, int64 ready_size, int64 size);
+  void on_partial_download(PartialLocalFileLocation partial_local, int64 size);
   void on_ok_download(FullLocalFileLocation local, int64 size, bool is_new);
   void on_error(Status status);
   void on_error_impl(NodeId node_id, Status status);
@@ -98,8 +97,8 @@ class FileDownloadManager final : public Actor {
     void on_start_download() final {
       send_closure(actor_id_, &FileDownloadManager::on_start_download);
     }
-    void on_partial_download(PartialLocalFileLocation partial_local, int64 ready_size, int64 size) final {
-      send_closure(actor_id_, &FileDownloadManager::on_partial_download, std::move(partial_local), ready_size, size);
+    void on_partial_download(PartialLocalFileLocation partial_local, int64 size) final {
+      send_closure(actor_id_, &FileDownloadManager::on_partial_download, std::move(partial_local), size);
     }
     void on_ok(FullLocalFileLocation full_local, int64 size, bool is_new) final {
       send_closure(std::move(actor_id_), &FileDownloadManager::on_ok_download, std::move(full_local), size, is_new);

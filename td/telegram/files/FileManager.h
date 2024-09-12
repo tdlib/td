@@ -90,8 +90,7 @@ class FileNode {
     file_ids_.push_back(main_file_id);
   }
   void drop_local_location();
-  void set_local_location(const LocalFileLocation &local, int64 ready_size, int64 prefix_offset,
-                          int64 ready_prefix_size);
+  void set_local_location(const LocalFileLocation &local, int64 prefix_offset, int64 ready_prefix_size);
   void set_new_remote_location(NewRemoteFileLocation remote);
   void delete_partial_remote_location();
   void set_partial_remote_location(PartialRemoteFileLocation remote, int64 ready_size);
@@ -140,7 +139,6 @@ class FileNode {
   FileUploadManager::QueryId upload_id_ = 0;
   int64 download_offset_ = 0;
   int64 private_download_limit_ = 0;
-  int64 local_ready_size_ = 0;         // PartialLocal only
   int64 local_ready_prefix_size_ = 0;  // PartialLocal only
 
   NewRemoteFileLocation remote_;
@@ -591,8 +589,8 @@ class FileManager final : public Actor {
     }
 
     void on_partial_download(FileDownloadManager::QueryId query_id, PartialLocalFileLocation partial_local,
-                             int64 ready_size, int64 size) final {
-      send_closure(actor_id_, &FileManager::on_partial_download, query_id, std::move(partial_local), ready_size, size);
+                             int64 size) final {
+      send_closure(actor_id_, &FileManager::on_partial_download, query_id, std::move(partial_local), size);
     }
 
     void on_download_ok(FileDownloadManager::QueryId query_id, FullLocalFileLocation local, int64 size,
@@ -816,8 +814,7 @@ class FileManager final : public Actor {
   void run_generate(FileNodePtr node);
 
   void on_start_download(FileDownloadManager::QueryId query_id);
-  void on_partial_download(FileDownloadManager::QueryId query_id, PartialLocalFileLocation partial_local,
-                           int64 ready_size, int64 size);
+  void on_partial_download(FileDownloadManager::QueryId query_id, PartialLocalFileLocation partial_local, int64 size);
   void on_download_ok(FileDownloadManager::QueryId query_id, FullLocalFileLocation local, int64 size, bool is_new);
   void on_download_error(FileDownloadManager::QueryId query_id, Status status);
   void on_download_error_impl(FileNodePtr node, DownloadQuery::Type type, bool was_active, Status status);

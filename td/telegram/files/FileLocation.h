@@ -658,11 +658,12 @@ inline bool operator!=(const EmptyLocalFileLocation &lhs, const EmptyLocalFileLo
 }
 
 struct PartialLocalFileLocation {
-  FileType file_type_;
-  int64 part_size_;
+  FileType file_type_{FileType::None};
+  int64 part_size_ = 0;
   string path_;
   string iv_;
   string ready_bitmask_;
+  int64 ready_size_ = 0;  // calculated from ready_bitmask_ and final size of the file
 
   template <class StorerT>
   void store(StorerT &storer) const;
@@ -672,7 +673,7 @@ struct PartialLocalFileLocation {
 
 inline bool operator==(const PartialLocalFileLocation &lhs, const PartialLocalFileLocation &rhs) {
   return lhs.file_type_ == rhs.file_type_ && lhs.path_ == rhs.path_ && lhs.part_size_ == rhs.part_size_ &&
-         lhs.iv_ == rhs.iv_ && lhs.ready_bitmask_ == rhs.ready_bitmask_;
+         lhs.iv_ == rhs.iv_ && lhs.ready_bitmask_ == rhs.ready_bitmask_ && lhs.ready_size_ == rhs.ready_size_;
 }
 
 inline bool operator!=(const PartialLocalFileLocation &lhs, const PartialLocalFileLocation &rhs) {
@@ -681,8 +682,8 @@ inline bool operator!=(const PartialLocalFileLocation &lhs, const PartialLocalFi
 
 inline StringBuilder &operator<<(StringBuilder &sb, const PartialLocalFileLocation &location) {
   return sb << "[partial local location of " << location.file_type_ << " with part size " << location.part_size_
-            << " and ready parts " << Bitmask(Bitmask::Decode{}, location.ready_bitmask_) << "] at \"" << location.path_
-            << '"';
+            << " and ready parts " << Bitmask(Bitmask::Decode{}, location.ready_bitmask_) << " of size "
+            << location.ready_size_ << "] at \"" << location.path_ << '"';
 }
 
 struct FullLocalFileLocation {

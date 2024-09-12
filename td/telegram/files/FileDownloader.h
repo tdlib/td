@@ -38,7 +38,7 @@ class FileDownloader final : public FileLoaderActor {
     Callback(const Callback &) = delete;
     Callback &operator=(const Callback &) = delete;
     virtual void on_start_download() = 0;
-    virtual void on_partial_download(PartialLocalFileLocation partial_local, int64 ready_size, int64 size) = 0;
+    virtual void on_partial_download(PartialLocalFileLocation partial_local, int64 size) = 0;
     virtual void on_ok(FullLocalFileLocation full_local, int64 size, bool is_new) = 0;
     virtual void on_error(Status status) = 0;
     virtual ~Callback() = default;

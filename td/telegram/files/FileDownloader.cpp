@@ -298,7 +298,7 @@ void FileDownloader::on_progress() {
   auto size = parts_manager_.get_size_or_zero();
   if (encryption_key_.empty() || encryption_key_.is_secure()) {
     callback_->on_partial_download(
-        PartialLocalFileLocation{remote_.file_type_, part_size, path_, "", parts_manager_.get_bitmask()}, ready_size,
+        PartialLocalFileLocation{remote_.file_type_, part_size, path_, "", parts_manager_.get_bitmask(), ready_size},
         size);
   } else if (encryption_key_.is_secret()) {
     UInt256 iv;
@@ -309,8 +309,8 @@ void FileDownloader::on_progress() {
       LOG(FATAL) << tag("ready_part_count", ready_part_count) << tag("next_part", next_part_);
     }
     callback_->on_partial_download(PartialLocalFileLocation{remote_.file_type_, part_size, path_, as_slice(iv).str(),
-                                                            parts_manager_.get_bitmask()},
-                                   ready_size, size);
+                                                            parts_manager_.get_bitmask(), ready_size},
+                                   size);
   } else {
     UNREACHABLE();
   }

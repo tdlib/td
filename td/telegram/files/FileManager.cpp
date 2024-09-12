@@ -260,9 +260,10 @@ void FileNode::init_ready_size() {
   if (local_.type() != LocalFileLocation::Type::Partial) {
     return;
   }
-  auto bitmask = Bitmask(Bitmask::Decode{}, local_.partial().ready_bitmask_);
-  local_ready_prefix_size_ = bitmask.get_ready_prefix_size(0, local_.partial().part_size_, size_);
-  local_ready_size_ = bitmask.get_total_size(local_.partial().part_size_, size_);
+  auto &partial = local_.partial();
+  auto bitmask = Bitmask(Bitmask::Decode{}, partial.ready_bitmask_);
+  local_ready_prefix_size_ = bitmask.get_ready_prefix_size(0, partial.part_size_, size_);
+  partial.ready_size_ = bitmask.get_total_size(partial.part_size_, size_);
 }
 
 void FileNode::set_download_offset(int64 download_offset) {
@@ -323,17 +324,10 @@ void FileNode::set_ignore_download_limit(bool ignore_download_limit) {
 }
 
 void FileNode::drop_local_location() {
-  set_local_location(LocalFileLocation(), 0, -1, -1);
+  set_local_location(LocalFileLocation(), -1, -1);
 }
 
-void FileNode::set_local_location(const LocalFileLocation &local, int64 ready_size, int64 prefix_offset,
-                                  int64 ready_prefix_size) {
-  if (local_ready_size_ != ready_size) {
-    VLOG(update_file) << "File " << main_file_id_ << " has changed local ready size from " << local_ready_size_
-                      << " to " << ready_size;
-    local_ready_size_ = ready_size;
-    on_info_changed();
-  }
+void FileNode::set_local_location(const LocalFileLocation &local, int64 prefix_offset, int64 ready_prefix_size) {
   if (local_ != local) {
     VLOG(update_file) << "File " << main_file_id_ << " has changed local location";
     local_ = local;
@@ -774,7 +768,7 @@ int64 FileNode::local_total_size() const {
     case LocalFileLocation::Type::Full:
       return size_;
     case LocalFileLocation::Type::Partial:
-      return local_ready_size_;
+      return local_.partial().ready_size_;
     default:
       UNREACHABLE();
       return 0;
@@ -1250,9 +1244,8 @@ bool FileManager::try_fix_partial_local_location(FileNodePtr node) {
 
   partial.part_size_ = new_part_size;
   partial.ready_bitmask_ = new_mask.encode();
-
-  auto ready_size = new_mask.get_total_size(partial.part_size_, node->size_);
-  node->set_local_location(LocalFileLocation(std::move(partial)), ready_size, -1, -1);
+  partial.ready_size_ = new_mask.get_total_size(partial.part_size_, node->size_);
+  node->set_local_location(LocalFileLocation(std::move(partial)), -1, -1);
   LOG(INFO) << "   ok: increase part_size " << old_part_size << "->" << new_part_size;
   return true;
 }
@@ -1966,8 +1959,7 @@ Status FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sync) {
   if (local_i == other_node_i) {
     do_cancel_download(node);
     node->set_download_offset(other_node->download_offset_);
-    node->set_local_location(other_node->local_, other_node->local_ready_size_, other_node->download_offset_,
-                             other_node->local_ready_prefix_size_);
+    node->set_local_location(other_node->local_, other_node->download_offset_, other_node->local_ready_prefix_size_);
     node->download_id_ = other_node->download_id_;
     node->download_was_update_file_reference_ = other_node->download_was_update_file_reference_;
     node->is_download_started_ |= other_node->is_download_started_;
@@ -4007,7 +3999,7 @@ void FileManager::on_start_download(FileDownloadManager::QueryId query_id) {
 }
 
 void FileManager::on_partial_download(FileDownloadManager::QueryId query_id, PartialLocalFileLocation partial_local,
-                                      int64 ready_size, int64 size) {
+                                      int64 size) {
   if (is_closed_) {
     return;
   }
@@ -4018,7 +4010,7 @@ void FileManager::on_partial_download(FileDownloadManager::QueryId query_id, Par
   auto file_id = query->file_id_;
   auto file_node = get_file_node(file_id);
   LOG(DEBUG) << "Receive on_partial_download for file " << file_id << " with " << partial_local
-             << ", ready_size = " << ready_size << " and size = " << size;
+             << " and size = " << size;
   if (!file_node) {
     return;
   }
@@ -4032,7 +4024,7 @@ void FileManager::on_partial_download(FileDownloadManager::QueryId query_id, Par
       file_node->set_size(size);
     }
   }
-  file_node->set_local_location(LocalFileLocation(std::move(partial_local)), ready_size, -1, -1 /* TODO */);
+  file_node->set_local_location(LocalFileLocation(std::move(partial_local)), -1, -1 /* TODO */);
   try_flush_node(file_node, "on_partial_download");
 }
 
@@ -4212,16 +4204,15 @@ void FileManager::on_partial_generate(FileGenerateManager::QueryId query_id, Par
 
   auto file_id = query->file_id_;
   auto file_node = get_file_node(file_id);
-  auto bitmask = Bitmask(Bitmask::Decode{}, partial_local.ready_bitmask_);
-  LOG(DEBUG) << "Receive on_partial_generate for file " << file_id << ": " << partial_local.path_ << " " << bitmask;
+  LOG(DEBUG) << "Receive on_partial_generate for file " << file_id << ": " << partial_local.path_ << " "
+             << partial_local.ready_size_;
   if (!file_node) {
     return;
   }
   if (file_node->generate_id_ != query_id) {
     return;
   }
-  auto ready_size = bitmask.get_total_size(partial_local.part_size_, file_node->size_);
-  file_node->set_local_location(LocalFileLocation(partial_local), ready_size, -1, -1 /* TODO */);
+  file_node->set_local_location(LocalFileLocation(partial_local), -1, -1 /* TODO */);
   // TODO check for size and local_size, abort generation if needed
   if (expected_size > 0) {
     file_node->set_expected_size(expected_size);
