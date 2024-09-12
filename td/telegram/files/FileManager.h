@@ -687,7 +687,9 @@ class FileManager final : public Actor {
     FileInfo &operator=(FileInfo &&) = delete;
     virtual ~FileInfo() = default;
 
-    virtual FileInfoType get_type() const = 0;
+    virtual FileInfoType get_file_info_type() const = 0;
+
+    virtual FileType get_file_type() const = 0;
 
     virtual unique_ptr<FileInfo> clone() const = 0;
   };

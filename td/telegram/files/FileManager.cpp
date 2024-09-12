@@ -145,8 +145,12 @@ class FileManager::FileInfoLocal final : public FileManager::FileInfo {
   explicit FileInfoLocal(FullLocalFileLocation location) : location_(std::move(location)) {
   }
 
-  FileInfoType get_type() const final {
+  FileInfoType get_file_info_type() const final {
     return FileInfoType::Local;
+  }
+
+  FileType get_file_type() const final {
+    return location_.file_type_;
   }
 
   unique_ptr<FileInfo> clone() const final {
@@ -164,8 +168,12 @@ class FileManager::FileInfoGenerate final : public FileManager::FileInfo {
       : location_(std::move(location)), expected_size_(expected_size), url_(std::move(url)) {
   }
 
-  FileInfoType get_type() const final {
+  FileInfoType get_file_info_type() const final {
     return FileInfoType::Generate;
+  }
+
+  FileType get_file_type() const final {
+    return location_.file_type_;
   }
 
   unique_ptr<FileInfo> clone() const final {
@@ -189,8 +197,12 @@ class FileManager::FileInfoRemote final : public FileManager::FileInfo {
       , url_(std::move(url)) {
   }
 
-  FileInfoType get_type() const final {
+  FileInfoType get_file_info_type() const final {
     return FileInfoType::Remote;
+  }
+
+  FileType get_file_type() const final {
+    return location_.file_type_;
   }
 
   unique_ptr<FileInfo> clone() const final {
