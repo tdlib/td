@@ -774,9 +774,7 @@ int64 FileNode::local_total_size() const {
     case LocalFileLocation::Type::Full:
       return size_;
     case LocalFileLocation::Type::Partial:
-      VLOG(update_file) << "Have local_ready_prefix_size = " << local_ready_prefix_size_
-                        << " and local_ready_size = " << local_ready_size_;
-      return max(local_ready_prefix_size_, local_ready_size_);
+      return local_ready_size_;
     default:
       UNREACHABLE();
       return 0;
