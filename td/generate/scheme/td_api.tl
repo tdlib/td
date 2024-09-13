@@ -1810,7 +1810,7 @@ messageSponsor url:string photo:photo info:string = MessageSponsor;
 //@message_id Message identifier; unique for the chat to which the sponsored message belongs among both ordinary and sponsored messages
 //@is_recommended True, if the message needs to be labeled as "recommended" instead of "sponsored"
 //@can_be_reported True, if the message can be reported to Telegram moderators through reportChatSponsoredMessage
-//@content Content of the message. Currently, can be only of the types messageText, messageAnimation, messagePhoto, or messageVideo
+//@content Content of the message. Currently, can be only of the types messageText, messageAnimation, messagePhoto, or messageVideo. Video messages can be viewed fullscreen
 //@sponsor Information about the sponsor of the message
 //@title Title of the sponsored message
 //@button_text Text for the message action button
@@ -8704,10 +8704,12 @@ getChatScheduledMessages chat_id:int53 = Messages;
 //@description Returns sponsored messages to be shown in a chat; for channel chats only @chat_id Identifier of the chat
 getChatSponsoredMessages chat_id:int53 = SponsoredMessages;
 
-//@description Informs TDLib that the user opened the sponsored chat via the button, the name, the photo, or a mention in the sponsored message
+//@description Informs TDLib that the user opened the sponsored chat via the button, the name, the chat photo, a mention in the sponsored message text, or the media in the sponsored message
 //@chat_id Chat identifier of the sponsored message
 //@message_id Identifier of the sponsored message
-clickChatSponsoredMessage chat_id:int53 message_id:int53 = Ok;
+//@is_media_click Pass true, if the media was clicked in the sponsored message
+//@from_fullscreen Pass true, if the user expanded the video from the sponsored message fullscreen before the click
+clickChatSponsoredMessage chat_id:int53 message_id:int53 is_media_click:Bool from_fullscreen:Bool = Ok;
 
 //@description Reports a sponsored message to Telegram moderators
 //@chat_id Chat identifier of the sponsored message

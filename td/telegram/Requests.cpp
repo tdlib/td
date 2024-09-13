@@ -2544,6 +2544,7 @@ void Requests::on_request(uint64 id, const td_api::clickChatSponsoredMessage &re
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   td_->sponsored_message_manager_->click_sponsored_message(DialogId(request.chat_id_), MessageId(request.message_id_),
+                                                           request.is_media_click_, request.from_fullscreen_,
                                                            std::move(promise));
 }
 

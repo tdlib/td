@@ -102,13 +102,19 @@ class ClickSponsoredMessageQuery final : public Td::ResultHandler {
   explicit ClickSponsoredMessageQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, const string &message_id) {
+  void send(ChannelId channel_id, const string &message_id, bool is_media_click, bool from_fullscreen) {
     channel_id_ = channel_id;
     auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     if (input_channel == nullptr) {
       return promise_.set_value(Unit());
     }
     int32 flags = 0;
+    if (is_media_click) {
+      flags |= telegram_api::channels_clickSponsoredMessage::MEDIA_MASK;
+    }
+    if (from_fullscreen) {
+      flags |= telegram_api::channels_clickSponsoredMessage::FULLSCREEN_MASK;
+    }
     send_query(G()->net_query_creator().create(telegram_api::channels_clickSponsoredMessage(
         flags, false /*ignored*/, false /*ignored*/, std::move(input_channel), BufferSlice(message_id))));
   }
@@ -439,6 +445,7 @@ void SponsoredMessageManager::view_sponsored_message(DialogId dialog_id, Message
 }
 
 void SponsoredMessageManager::click_sponsored_message(DialogId dialog_id, MessageId sponsored_message_id,
+                                                      bool is_media_click, bool from_fullscreen,
                                                       Promise<Unit> &&promise) {
   if (!dialog_id.is_valid() || !sponsored_message_id.is_valid_sponsored()) {
     return promise.set_error(Status::Error(400, "Invalid message specified"));
@@ -454,7 +461,7 @@ void SponsoredMessageManager::click_sponsored_message(DialogId dialog_id, Messag
 
   random_id_it->second.is_clicked_ = true;
   td_->create_handler<ClickSponsoredMessageQuery>(std::move(promise))
-      ->send(dialog_id.get_channel_id(), random_id_it->second.random_id_);
+      ->send(dialog_id.get_channel_id(), random_id_it->second.random_id_, is_media_click, from_fullscreen);
 }
 
 void SponsoredMessageManager::report_sponsored_message(

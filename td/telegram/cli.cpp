@@ -3979,7 +3979,8 @@ class CliClient final : public Actor {
       ChatId chat_id;
       MessageId message_id;
       get_args(args, chat_id, message_id);
-      send_request(td_api::make_object<td_api::clickChatSponsoredMessage>(chat_id, message_id));
+      send_request(
+          td_api::make_object<td_api::clickChatSponsoredMessage>(chat_id, message_id, rand_bool(), rand_bool()));
     } else if (op == "rcspm") {
       ChatId chat_id;
       MessageId message_id;
