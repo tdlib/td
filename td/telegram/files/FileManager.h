@@ -702,6 +702,8 @@ class FileManager final : public Actor {
 
     virtual const FullRemoteFileLocation *get_remote_location() const = 0;
 
+    virtual const string *get_url() const = 0;
+
     virtual unique_ptr<FileInfo> clone() const = 0;
   };
 
