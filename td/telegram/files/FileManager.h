@@ -352,13 +352,16 @@ class FileView {
     return get_type() == FileType::SecureEncrypted;
   }
   bool is_secure() const {
-    return get_type() == FileType::SecureEncrypted || get_type() == FileType::SecureDecrypted;
+    auto type = get_type();
+    return type == FileType::SecureEncrypted || type == FileType::SecureDecrypted;
   }
   bool is_encrypted_any() const {
-    return is_encrypted_secret() || is_encrypted_secure();
+    auto type = get_type();
+    return type == FileType::Encrypted || type == FileType::SecureEncrypted;
   }
   bool is_encrypted() const {
-    return is_encrypted_secret() || is_secure();
+    auto type = get_type();
+    return type == FileType::Encrypted || type == FileType::SecureEncrypted || type == FileType::SecureDecrypted;
   }
   const FileEncryptionKey &encryption_key() const {
     return node_->encryption_key_;
