@@ -946,11 +946,11 @@ string FileView::path() const {
 }
 
 bool FileView::has_url() const {
-  return !node_->url_.empty();
+  return get_url() != nullptr;
 }
 
 const string *FileView::get_url() const {
-  if (!has_url()) {
+  if (node_->url_.empty()) {
     return nullptr;
   }
   return &node_->url_;
