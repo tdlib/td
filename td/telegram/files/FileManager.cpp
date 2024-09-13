@@ -140,9 +140,10 @@ RemoteFileLocation NewRemoteFileLocation::partial_or_empty() const {
 
 class FileManager::FileInfoLocal final : public FileManager::FileInfo {
   FullLocalFileLocation location_;
+  int64 size_ = 0;
 
  public:
-  explicit FileInfoLocal(FullLocalFileLocation location) : location_(std::move(location)) {
+  FileInfoLocal(FullLocalFileLocation location, int64 size) : location_(std::move(location)), size_(size) {
   }
 
   FileInfoType get_file_info_type() const final {
@@ -153,15 +154,25 @@ class FileManager::FileInfoLocal final : public FileManager::FileInfo {
     return location_.file_type_;
   }
 
+  int64 get_size() const final {
+    return size_;
+  }
+
+  int64 get_expected_size(bool) const final {
+    return size_;
+  }
+
   unique_ptr<FileInfo> clone() const final {
-    return make_unique<FileInfoLocal>(location_);
+    return make_unique<FileInfoLocal>(location_, size_);
   }
 };
 
 class FileManager::FileInfoGenerate final : public FileManager::FileInfo {
   FullGenerateFileLocation location_;
-  int64 expected_size_;
+  int64 expected_size_ = 0;
   string url_;
+  unique_ptr<PartialLocalFileLocation> partial_local_location_;
+  const FileInfo *local_file_info_ = nullptr;
 
  public:
   FileInfoGenerate(FullGenerateFileLocation location, int64 expected_size, string url)
@@ -176,6 +187,24 @@ class FileManager::FileInfoGenerate final : public FileManager::FileInfo {
     return location_.file_type_;
   }
 
+  int64 get_size() const final {
+    return local_file_info_ != nullptr ? local_file_info_->get_size() : static_cast<int64>(0);
+  }
+
+  int64 get_expected_size(bool may_guess) const final {
+    if (local_file_info_ != nullptr) {
+      return local_file_info_->get_size();
+    }
+    int64 current_size = 0;
+    if (partial_local_location_ != nullptr) {
+      current_size = partial_local_location_->ready_size_;
+    }
+    if (expected_size_ != 0) {
+      return max(current_size, expected_size_);
+    }
+    return may_guess ? current_size * 3 : current_size;
+  }
+
   unique_ptr<FileInfo> clone() const final {
     return td::make_unique<FileInfoGenerate>(location_, expected_size_, url_);
   }
@@ -183,10 +212,11 @@ class FileManager::FileInfoGenerate final : public FileManager::FileInfo {
 
 class FileManager::FileInfoRemote final : public FileManager::FileInfo {
   FullRemoteFileLocation location_;
-  int64 size_;
-  int64 expected_size_;
+  int64 size_ = 0;
+  int64 expected_size_ = 0;
   string remote_name_;
   string url_;
+  unique_ptr<PartialLocalFileLocation> partial_local_location_;
 
  public:
   FileInfoRemote(FullRemoteFileLocation location, int64 size, int64 expected_size, string remote_name, string url)
@@ -203,6 +233,20 @@ class FileManager::FileInfoRemote final : public FileManager::FileInfo {
 
   FileType get_file_type() const final {
     return location_.file_type_;
+  }
+
+  int64 get_size() const final {
+    return size_;
+  }
+
+  int64 get_expected_size(bool may_guess) const final {
+    if (size_ != 0) {
+      return size_;
+    }
+    if (partial_local_location_ != nullptr) {
+      return max(partial_local_location_->ready_size_, expected_size_);
+    }
+    return expected_size_;
   }
 
   unique_ptr<FileInfo> clone() const final {
@@ -1315,7 +1359,7 @@ FileId FileManager::register_empty(FileType type) {
   file_id = next_file_id();
 
   LOG(INFO) << "Register empty file as " << file_id;
-  auto file_info = td::make_unique<FileInfoLocal>(location);
+  auto file_info = td::make_unique<FileInfoLocal>(location, 0);
   auto file_node_id = next_file_node_id();
   file_nodes_[file_node_id] =
       td::make_unique<FileNode>(LocalFileLocation(std::move(location)), NewRemoteFileLocation(), nullptr, 0, 0,
@@ -1359,7 +1403,7 @@ Result<FileId> FileManager::register_local(FullLocalFileLocation location, Dialo
     file_id = next_file_id();
     LOG(INFO) << "Register " << location << " as " << file_id;
 
-    auto file_info = td::make_unique<FileInfoLocal>(location);
+    auto file_info = td::make_unique<FileInfoLocal>(location, size);
     auto file_node_id = next_file_node_id();
     auto &node = file_nodes_[file_node_id];
     node = td::make_unique<FileNode>(LocalFileLocation(std::move(location)), NewRemoteFileLocation(), nullptr, size, 0,

@@ -689,6 +689,10 @@ class FileManager final : public Actor {
 
     virtual FileType get_file_type() const = 0;
 
+    virtual int64 get_size() const = 0;
+
+    virtual int64 get_expected_size(bool may_guess) const = 0;
+
     virtual unique_ptr<FileInfo> clone() const = 0;
   };
 
