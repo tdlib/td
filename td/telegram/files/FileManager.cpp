@@ -141,6 +141,7 @@ RemoteFileLocation NewRemoteFileLocation::partial_or_empty() const {
 class FileManager::FileInfoLocal final : public FileManager::FileInfo {
   FullLocalFileLocation location_;
   int64 size_ = 0;
+  const FileIdInfo *remote_file_info_ = nullptr;
 
  public:
   FileInfoLocal(FullLocalFileLocation location, int64 size) : location_(std::move(location)), size_(size) {
@@ -162,8 +163,17 @@ class FileManager::FileInfoLocal final : public FileManager::FileInfo {
     return size_;
   }
 
+  const FullRemoteFileLocation *get_remote_location() const final {
+    if (remote_file_info_ != nullptr && remote_file_info_->file_info_ != nullptr) {
+      return remote_file_info_->file_info_->get_remote_location();
+    }
+    return nullptr;
+  }
+
   unique_ptr<FileInfo> clone() const final {
-    return make_unique<FileInfoLocal>(location_, size_);
+    auto result = make_unique<FileInfoLocal>(location_, size_);
+    result->remote_file_info_ = remote_file_info_;
+    return result;
   }
 };
 
@@ -172,6 +182,7 @@ class FileManager::FileInfoGenerate final : public FileManager::FileInfo {
   int64 expected_size_ = 0;
   string url_;
   unique_ptr<PartialLocalFileLocation> partial_local_location_;
+  unique_ptr<PartialRemoteFileLocation> partial_remote_location_;
   const FileIdInfo *local_file_info_ = nullptr;
 
  public:
@@ -214,6 +225,13 @@ class FileManager::FileInfoGenerate final : public FileManager::FileInfo {
     return may_guess ? current_size * 3 : current_size;
   }
 
+  const FullRemoteFileLocation *get_remote_location() const final {
+    if (local_file_info_ != nullptr && local_file_info_->file_info_ != nullptr) {
+      return local_file_info_->file_info_->get_remote_location();
+    }
+    return nullptr;
+  }
+
   unique_ptr<FileInfo> clone() const final {
     return td::make_unique<FileInfoGenerate>(location_, expected_size_, url_);
   }
@@ -226,6 +244,7 @@ class FileManager::FileInfoRemote final : public FileManager::FileInfo {
   string remote_name_;
   string url_;
   unique_ptr<PartialLocalFileLocation> partial_local_location_;
+  const FileIdInfo *local_file_info_ = nullptr;
 
  public:
   FileInfoRemote(FullRemoteFileLocation location, int64 size, int64 expected_size, string remote_name, string url)
@@ -248,7 +267,7 @@ class FileManager::FileInfoRemote final : public FileManager::FileInfo {
     return size_;
   }
 
-  int64 get_expected_size(bool may_guess) const final {
+  int64 get_expected_size(bool) const final {
     if (size_ != 0) {
       return size_;
     }
@@ -258,8 +277,14 @@ class FileManager::FileInfoRemote final : public FileManager::FileInfo {
     return expected_size_;
   }
 
+  const FullRemoteFileLocation *get_remote_location() const final {
+    return &location_;
+  }
+
   unique_ptr<FileInfo> clone() const final {
-    return td::make_unique<FileInfoRemote>(location_, size_, expected_size_, remote_name_, url_);
+    auto result = td::make_unique<FileInfoRemote>(location_, size_, expected_size_, remote_name_, url_);
+    result->local_file_info_ = local_file_info_;
+    return result;
   }
 };
 
