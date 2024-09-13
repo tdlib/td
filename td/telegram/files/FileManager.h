@@ -745,7 +745,7 @@ class FileManager final : public Actor {
   std::map<FullLocalFileLocation, FileId> local_location_to_file_id_;
   std::map<FullGenerateFileLocation, FileId> generate_location_to_file_id_;
 
-  WaitFreeVector<FileIdInfo> file_id_info_;
+  WaitFreeVector<unique_ptr<FileIdInfo>> file_id_info_;
   WaitFreeVector<int32> empty_file_ids_;
   WaitFreeVector<unique_ptr<FileNode>> file_nodes_;
   ActorOwn<FileDownloadManager> file_download_manager_;

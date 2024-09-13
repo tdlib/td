@@ -172,7 +172,7 @@ class FileManager::FileInfoGenerate final : public FileManager::FileInfo {
   int64 expected_size_ = 0;
   string url_;
   unique_ptr<PartialLocalFileLocation> partial_local_location_;
-  const FileInfo *local_file_info_ = nullptr;
+  const FileIdInfo *local_file_info_ = nullptr;
 
  public:
   FileInfoGenerate(FullGenerateFileLocation location, int64 expected_size, string url)
@@ -188,12 +188,21 @@ class FileManager::FileInfoGenerate final : public FileManager::FileInfo {
   }
 
   int64 get_size() const final {
-    return local_file_info_ != nullptr ? local_file_info_->get_size() : static_cast<int64>(0);
+    if (local_file_info_ == nullptr) {
+      return 0;
+    }
+    if (local_file_info_->file_info_ != nullptr) {
+      return local_file_info_->file_info_->get_size();
+    }
+    return 0;
   }
 
   int64 get_expected_size(bool may_guess) const final {
     if (local_file_info_ != nullptr) {
-      return local_file_info_->get_size();
+      if (local_file_info_->file_info_ != nullptr) {
+        return local_file_info_->file_info_->get_size();
+      }
+      return 0;
     }
     int64 current_size = 0;
     if (partial_local_location_ != nullptr) {
@@ -1296,7 +1305,7 @@ bool FileManager::try_fix_partial_local_location(FileNodePtr node) {
 
 FileManager::FileIdInfo *FileManager::get_file_id_info(FileId file_id) {
   CHECK(static_cast<size_t>(file_id.get()) < file_id_info_.size());
-  return &file_id_info_[file_id.get()];
+  return file_id_info_[file_id.get()].get();
 }
 
 FileId FileManager::dup_file_id(FileId file_id, const char *source) {
@@ -2384,7 +2393,7 @@ FileNode *FileManager::get_file_node_raw(FileId file_id, FileNodeId *file_node_i
   if (file_id.get() <= 0 || file_id.get() >= static_cast<int32>(file_id_info_.size())) {
     return nullptr;
   }
-  FileNodeId node_id = file_id_info_[file_id.get()].node_id_;
+  FileNodeId node_id = file_id_info_[file_id.get()]->node_id_;
   if (node_id == 0) {
     return nullptr;
   }
@@ -4009,7 +4018,7 @@ FileId FileManager::next_file_id() {
   }
   CHECK(file_id_info_.size() <= static_cast<size_t>(std::numeric_limits<int32>::max()));
   FileId res(static_cast<int32>(file_id_info_.size()), 0);
-  file_id_info_.push_back({});
+  file_id_info_.push_back(make_unique<FileIdInfo>());
   return res;
 }
 
