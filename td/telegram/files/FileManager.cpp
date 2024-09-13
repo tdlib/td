@@ -141,6 +141,7 @@ RemoteFileLocation NewRemoteFileLocation::partial_or_empty() const {
 class FileManager::FileInfoLocal final : public FileManager::FileInfo {
   FullLocalFileLocation location_;
   int64 size_ = 0;
+  unique_ptr<PartialRemoteFileLocation> partial_remote_location_;
   const FileIdInfo *remote_file_info_ = nullptr;
 
  public:
@@ -157,6 +158,19 @@ class FileManager::FileInfoLocal final : public FileManager::FileInfo {
 
   int64 get_local_size() const final {
     return size_;
+  }
+
+  int64 get_remote_size() const final {
+    if (remote_file_info_ != nullptr) {
+      if (remote_file_info_->file_info_ != nullptr) {
+        return remote_file_info_->file_info_->get_remote_size();
+      }
+      return 0;
+    }
+    if (partial_remote_location_ != nullptr) {
+      return partial_remote_location_->ready_size_;
+    }
+    return 0;
   }
 
   int64 get_size() const final {
@@ -223,6 +237,19 @@ class FileManager::FileInfoGenerate final : public FileManager::FileInfo {
     }
     if (partial_local_location_ != nullptr) {
       return partial_local_location_->ready_size_;
+    }
+    return 0;
+  }
+
+  int64 get_remote_size() const final {
+    if (local_file_info_ != nullptr) {
+      if (local_file_info_->file_info_ != nullptr) {
+        return local_file_info_->file_info_->get_remote_size();
+      }
+      return 0;
+    }
+    if (partial_remote_location_ != nullptr) {
+      return partial_remote_location_->ready_size_;
     }
     return 0;
   }
@@ -318,6 +345,10 @@ class FileManager::FileInfoRemote final : public FileManager::FileInfo {
       return partial_local_location_->ready_size_;
     }
     return 0;
+  }
+
+  int64 get_remote_size() const final {
+    return size_;
   }
 
   int64 get_size() const final {

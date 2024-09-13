@@ -691,6 +691,8 @@ class FileManager final : public Actor {
 
     virtual int64 get_local_size() const = 0;
 
+    virtual int64 get_remote_size() const = 0;
+
     virtual int64 get_size() const = 0;
 
     virtual int64 get_expected_size(bool may_guess) const = 0;
