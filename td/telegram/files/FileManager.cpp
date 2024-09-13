@@ -961,16 +961,7 @@ int64 FileNode::remote_size() const {
     return size_;
   }
   if (remote_.partial) {
-    auto part_size = static_cast<int64>(remote_.partial->part_size_);
-    auto ready_part_count = remote_.partial->ready_part_count_;
-    auto remote_ready_size = remote_.partial->ready_size_;
-    VLOG(update_file) << "Have part_size = " << part_size << ", remote_ready_part_count = " << ready_part_count
-                      << ", remote_ready_size = " << remote_ready_size << ", size = " << size_;
-    auto res = max(part_size * ready_part_count, remote_ready_size);
-    if (size_ != 0 && size_ < res) {
-      res = size_;
-    }
-    return res;
+    return remote_.partial->ready_size_;
   }
   return 0;
 }
@@ -1740,6 +1731,17 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
   if (data.expected_size_ < 0) {
     LOG(ERROR) << "Receive file of expected size " << data.expected_size_ << " from " << source;
     data.expected_size_ = 0;
+  }
+
+  if (data.remote_.type() == RemoteFileLocation::Type::Partial) {
+    auto &partial = data.remote_.partial();
+    auto part_size = static_cast<int64>(partial.part_size_);
+    auto ready_part_count = partial.ready_part_count_;
+    auto remote_ready_size = partial.ready_size_;
+    partial.ready_size_ = max(part_size * ready_part_count, remote_ready_size);
+    if (data.size_ != 0 && data.size_ < partial.ready_size_) {
+      partial.ready_size_ = data.size_;
+    }
   }
 
   FileId file_id = next_file_id();
