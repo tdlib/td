@@ -696,6 +696,10 @@ class FileManager final : public Actor {
 
     virtual int64 get_expected_size(bool may_guess) const = 0;
 
+    virtual const FullLocalFileLocation *get_local_location() const = 0;
+
+    virtual const FullGenerateFileLocation *get_generate_location() const = 0;
+
     virtual const FullRemoteFileLocation *get_remote_location() const = 0;
 
     virtual unique_ptr<FileInfo> clone() const = 0;

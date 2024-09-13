@@ -163,6 +163,14 @@ class FileManager::FileInfoLocal final : public FileManager::FileInfo {
     return size_;
   }
 
+  const FullLocalFileLocation *get_local_location() const final {
+    return &location_;
+  }
+
+  const FullGenerateFileLocation *get_generate_location() const final {
+    return nullptr;
+  }
+
   const FullRemoteFileLocation *get_remote_location() const final {
     if (remote_file_info_ != nullptr && remote_file_info_->file_info_ != nullptr) {
       return remote_file_info_->file_info_->get_remote_location();
@@ -225,6 +233,17 @@ class FileManager::FileInfoGenerate final : public FileManager::FileInfo {
     return may_guess ? current_size * 3 : current_size;
   }
 
+  const FullLocalFileLocation *get_local_location() const final {
+    if (local_file_info_ != nullptr && local_file_info_->file_info_ != nullptr) {
+      return local_file_info_->file_info_->get_local_location();
+    }
+    return nullptr;
+  }
+
+  const FullGenerateFileLocation *get_generate_location() const final {
+    return &location_;
+  }
+
   const FullRemoteFileLocation *get_remote_location() const final {
     if (local_file_info_ != nullptr && local_file_info_->file_info_ != nullptr) {
       return local_file_info_->file_info_->get_remote_location();
@@ -275,6 +294,17 @@ class FileManager::FileInfoRemote final : public FileManager::FileInfo {
       return max(partial_local_location_->ready_size_, expected_size_);
     }
     return expected_size_;
+  }
+
+  const FullLocalFileLocation *get_local_location() const final {
+    if (local_file_info_ != nullptr && local_file_info_->file_info_ != nullptr) {
+      return local_file_info_->file_info_->get_local_location();
+    }
+    return nullptr;
+  }
+
+  const FullGenerateFileLocation *get_generate_location() const final {
+    return nullptr;
   }
 
   const FullRemoteFileLocation *get_remote_location() const final {
