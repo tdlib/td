@@ -155,6 +155,10 @@ class FileManager::FileInfoLocal final : public FileManager::FileInfo {
     return location_.file_type_;
   }
 
+  int64 get_local_size() const final {
+    return size_;
+  }
+
   int64 get_size() const final {
     return size_;
   }
@@ -208,6 +212,19 @@ class FileManager::FileInfoGenerate final : public FileManager::FileInfo {
 
   FileType get_file_type() const final {
     return location_.file_type_;
+  }
+
+  int64 get_local_size() const final {
+    if (local_file_info_ != nullptr) {
+      if (local_file_info_->file_info_ != nullptr) {
+        return local_file_info_->file_info_->get_local_size();
+      }
+      return 0;
+    }
+    if (partial_local_location_ != nullptr) {
+      return partial_local_location_->ready_size_;
+    }
+    return 0;
   }
 
   int64 get_size() const final {
@@ -288,6 +305,19 @@ class FileManager::FileInfoRemote final : public FileManager::FileInfo {
 
   FileType get_file_type() const final {
     return location_.file_type_;
+  }
+
+  int64 get_local_size() const final {
+    if (local_file_info_ != nullptr) {
+      if (local_file_info_->file_info_ != nullptr) {
+        return local_file_info_->file_info_->get_local_size();
+      }
+      return 0;
+    }
+    if (partial_local_location_ != nullptr) {
+      return partial_local_location_->ready_size_;
+    }
+    return 0;
   }
 
   int64 get_size() const final {
