@@ -56,6 +56,7 @@ struct PartialRemoteFileLocation {
   int32 part_size_;
   int32 ready_part_count_;
   int32 is_big_;
+  int64 ready_size_;
 
   template <class StorerT>
   void store(StorerT &storer) const;
@@ -65,7 +66,8 @@ struct PartialRemoteFileLocation {
 
 inline bool operator==(const PartialRemoteFileLocation &lhs, const PartialRemoteFileLocation &rhs) {
   return lhs.file_id_ == rhs.file_id_ && lhs.part_count_ == rhs.part_count_ && lhs.part_size_ == rhs.part_size_ &&
-         lhs.ready_part_count_ == rhs.ready_part_count_ && lhs.is_big_ == rhs.is_big_;
+         lhs.ready_part_count_ == rhs.ready_part_count_ && lhs.is_big_ == rhs.is_big_ &&
+         lhs.ready_size_ == rhs.ready_size_;
 }
 
 inline bool operator!=(const PartialRemoteFileLocation &lhs, const PartialRemoteFileLocation &rhs) {
@@ -74,7 +76,8 @@ inline bool operator!=(const PartialRemoteFileLocation &lhs, const PartialRemote
 
 inline StringBuilder &operator<<(StringBuilder &sb, const PartialRemoteFileLocation &location) {
   return sb << '[' << (location.is_big_ ? "Big" : "Small") << " partial remote location with " << location.part_count_
-            << " parts of size " << location.part_size_ << " with " << location.ready_part_count_ << " ready parts]";
+            << " parts of size " << location.part_size_ << " with " << location.ready_part_count_
+            << " ready parts of total size " << location.ready_size_ << ']';
 }
 
 struct PhotoRemoteFileLocation {
@@ -658,12 +661,12 @@ inline bool operator!=(const EmptyLocalFileLocation &lhs, const EmptyLocalFileLo
 }
 
 struct PartialLocalFileLocation {
-  FileType file_type_{FileType::None};
-  int64 part_size_ = 0;
+  FileType file_type_;
+  int64 part_size_;
   string path_;
   string iv_;
   string ready_bitmask_;
-  int64 ready_size_ = 0;  // calculated from ready_bitmask_ and final size of the file
+  int64 ready_size_;  // calculated from ready_bitmask_ and final size of the file
 
   template <class StorerT>
   void store(StorerT &storer) const;

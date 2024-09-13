@@ -310,12 +310,11 @@ void FileUploader::on_progress() {
   auto part_count = parts_manager_.get_part_count();
   auto part_size = static_cast<int32>(parts_manager_.get_part_size());
   auto ready_part_count = parts_manager_.get_ready_prefix_count();
-  callback_->on_partial_upload(PartialRemoteFileLocation{file_id_, part_count, part_size, ready_part_count, big_flag_},
-                               parts_manager_.get_ready_size());
+  callback_->on_partial_upload(PartialRemoteFileLocation{file_id_, part_count, part_size, ready_part_count, big_flag_,
+                                                         parts_manager_.get_ready_size()});
   if (parts_manager_.ready()) {
-    callback_->on_ok(file_type_,
-                     PartialRemoteFileLocation{file_id_, part_count, part_size, ready_part_count, big_flag_},
-                     local_size_);
+    callback_->on_ok(file_type_, PartialRemoteFileLocation{file_id_, part_count, part_size, ready_part_count, big_flag_,
+                                                           local_size_});
   }
 }
 

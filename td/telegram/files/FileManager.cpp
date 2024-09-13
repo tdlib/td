@@ -514,7 +514,7 @@ void FileNode::set_new_remote_location(NewRemoteFileLocation new_remote) {
   }
 
   if (new_remote.partial) {
-    set_partial_remote_location(*new_remote.partial, new_remote.ready_size);
+    set_partial_remote_location(*new_remote.partial);
   } else {
     delete_partial_remote_location();
   }
@@ -525,24 +525,12 @@ void FileNode::delete_partial_remote_location() {
     remote_.partial.reset();
     on_changed();
   }
-  if (remote_.ready_size != 0) {
-    VLOG(update_file) << "File " << main_file_id_ << " has changed remote ready size from " << remote_.ready_size
-                      << " to " << 0;
-    remote_.ready_size = 0;
-    on_info_changed();
-  }
 }
 
-void FileNode::set_partial_remote_location(PartialRemoteFileLocation remote, int64 ready_size) {
+void FileNode::set_partial_remote_location(PartialRemoteFileLocation remote) {
   if (remote_.is_full_alive) {
     VLOG(update_file) << "File " << main_file_id_ << " remote is still alive, so there is NO reason to update partial";
     return;
-  }
-  if (remote_.ready_size != ready_size) {
-    VLOG(update_file) << "File " << main_file_id_ << " has changed remote ready size from " << remote_.ready_size
-                      << " to " << ready_size;
-    remote_.ready_size = ready_size;
-    on_info_changed();
   }
   if (remote_.partial && *remote_.partial == remote) {
     VLOG(update_file) << "Partial location of " << main_file_id_ << " is NOT changed";
@@ -944,7 +932,7 @@ int64 FileNode::remote_size() const {
   if (remote_.partial) {
     auto part_size = static_cast<int64>(remote_.partial->part_size_);
     auto ready_part_count = remote_.partial->ready_part_count_;
-    auto remote_ready_size = remote_.ready_size;
+    auto remote_ready_size = remote_.partial->ready_size_;
     VLOG(update_file) << "Have part_size = " << part_size << ", remote_ready_part_count = " << ready_part_count
                       << ", remote_ready_size = " << remote_ready_size << ", size = " << size_;
     auto res = max(part_size * ready_part_count, remote_ready_size);
@@ -953,7 +941,7 @@ int64 FileNode::remote_size() const {
     }
     return res;
   }
-  return remote_.ready_size;  //???
+  return 0;
 }
 
 int64 FileView::remote_size() const {
@@ -4200,8 +4188,7 @@ void FileManager::on_hash(FileUploadManager::QueryId query_id, string hash) {
   file_node->encryption_key_.set_value_hash(secure_storage::ValueHash::create(hash).move_as_ok());
 }
 
-void FileManager::on_partial_upload(FileUploadManager::QueryId query_id, PartialRemoteFileLocation partial_remote,
-                                    int64 ready_size) {
+void FileManager::on_partial_upload(FileUploadManager::QueryId query_id, PartialRemoteFileLocation partial_remote) {
   if (is_closed_) {
     return;
   }
@@ -4211,8 +4198,7 @@ void FileManager::on_partial_upload(FileUploadManager::QueryId query_id, Partial
 
   auto file_id = query->file_id_;
   auto file_node = get_file_node(file_id);
-  LOG(DEBUG) << "Receive on_partial_upload for file " << file_id << " with " << partial_remote << " and ready size "
-             << ready_size;
+  LOG(DEBUG) << "Receive on_partial_upload for file " << file_id << " with " << partial_remote;
   if (!file_node) {
     LOG(ERROR) << "Can't find being uploaded file " << file_id;
     return;
@@ -4223,7 +4209,7 @@ void FileManager::on_partial_upload(FileUploadManager::QueryId query_id, Partial
     return;
   }
 
-  file_node->set_partial_remote_location(std::move(partial_remote), ready_size);
+  file_node->set_partial_remote_location(std::move(partial_remote));
   try_flush_node(file_node, "on_partial_upload");
 }
 
@@ -4254,14 +4240,14 @@ void FileManager::on_download_ok(FileDownloadManager::QueryId query_id, FullLoca
 }
 
 void FileManager::on_upload_ok(FileUploadManager::QueryId query_id, FileType file_type,
-                               PartialRemoteFileLocation partial_remote, int64 size) {
+                               PartialRemoteFileLocation partial_remote) {
   if (is_closed_) {
     return;
   }
 
   CHECK(partial_remote.ready_part_count_ == partial_remote.part_count_);
   auto some_file_id = finish_upload_query(query_id).first.file_id_;
-  LOG(INFO) << "ON UPLOAD OK file " << some_file_id << " of size " << size;
+  LOG(INFO) << "ON UPLOAD OK file " << some_file_id;
 
   auto file_node = get_file_node(some_file_id);
   if (!file_node) {

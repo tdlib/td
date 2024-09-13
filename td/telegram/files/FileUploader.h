@@ -35,8 +35,8 @@ class FileUploader final : public FileLoaderActor {
     Callback(const Callback &) = delete;
     Callback &operator=(const Callback &) = delete;
     virtual void on_hash(string hash) = 0;
-    virtual void on_partial_upload(PartialRemoteFileLocation partial_remote, int64 ready_size) = 0;
-    virtual void on_ok(FileType file_type, PartialRemoteFileLocation partial_remote, int64 size) = 0;
+    virtual void on_partial_upload(PartialRemoteFileLocation partial_remote) = 0;
+    virtual void on_ok(FileType file_type, PartialRemoteFileLocation partial_remote) = 0;
     virtual void on_error(Status status) = 0;
     virtual ~Callback() = default;
   };

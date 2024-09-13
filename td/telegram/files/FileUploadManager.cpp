@@ -126,25 +126,25 @@ void FileUploadManager::on_hash(string hash) {
   }
 }
 
-void FileUploadManager::on_partial_upload(PartialRemoteFileLocation partial_remote, int64 ready_size) {
+void FileUploadManager::on_partial_upload(PartialRemoteFileLocation partial_remote) {
   auto node_id = get_link_token();
   auto node = nodes_container_.get(node_id);
   if (node == nullptr) {
     return;
   }
   if (!stop_flag_) {
-    callback_->on_partial_upload(node->query_id_, std::move(partial_remote), ready_size);
+    callback_->on_partial_upload(node->query_id_, std::move(partial_remote));
   }
 }
 
-void FileUploadManager::on_ok_upload(FileType file_type, PartialRemoteFileLocation remote, int64 size) {
+void FileUploadManager::on_ok_upload(FileType file_type, PartialRemoteFileLocation remote) {
   auto node_id = get_link_token();
   auto node = nodes_container_.get(node_id);
   if (node == nullptr) {
     return;
   }
   if (!stop_flag_) {
-    callback_->on_upload_ok(node->query_id_, file_type, std::move(remote), size);
+    callback_->on_upload_ok(node->query_id_, file_type, std::move(remote));
   }
   close_node(node_id);
 }
