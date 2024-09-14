@@ -200,6 +200,10 @@ class FileManager::FileInfoLocal final : public FileManager::FileInfo {
     return nullptr;
   }
 
+  string get_suggested_path() const final {
+    return location_.path_;
+  }
+
   unique_ptr<FileInfo> clone() const final {
     auto result = make_unique<FileInfoLocal>(location_, size_);
     result->remote_file_info_ = remote_file_info_;
@@ -303,6 +307,13 @@ class FileManager::FileInfoGenerate final : public FileManager::FileInfo {
     return url_.empty() ? nullptr : &url_;
   }
 
+  string get_suggested_path() const final {
+    if (!url_.empty()) {
+      return get_url_file_name(url_);
+    }
+    return location_.original_path_;
+  }
+
   unique_ptr<FileInfo> clone() const final {
     return td::make_unique<FileInfoGenerate>(location_, expected_size_, url_);
   }
@@ -382,6 +393,16 @@ class FileManager::FileInfoRemote final : public FileManager::FileInfo {
 
   const string *get_url() const final {
     return url_.empty() ? nullptr : &url_;
+  }
+
+  string get_suggested_path() const final {
+    if (!remote_name_.empty()) {
+      return remote_name_;
+    }
+    if (!url_.empty()) {
+      return get_url_file_name(url_);
+    }
+    return string();
   }
 
   unique_ptr<FileInfo> clone() const final {
