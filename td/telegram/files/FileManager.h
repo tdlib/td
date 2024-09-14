@@ -709,6 +709,10 @@ class FileManager final : public Actor {
 
     virtual string get_remote_name() const = 0;
 
+    virtual string get_persistent_file_id() const = 0;
+
+    virtual string get_unique_file_id() const = 0;
+
     virtual unique_ptr<FileInfo> clone() const = 0;
   };
 

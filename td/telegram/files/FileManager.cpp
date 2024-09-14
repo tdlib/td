@@ -208,6 +208,14 @@ class FileManager::FileInfoLocal final : public FileManager::FileInfo {
     return string();
   }
 
+  string get_persistent_file_id() const final {
+    return string();
+  }
+
+  string get_unique_file_id() const final {
+    return string();
+  }
+
   unique_ptr<FileInfo> clone() const final {
     auto result = make_unique<FileInfoLocal>(location_, size_);
     result->remote_file_info_ = remote_file_info_;
@@ -322,6 +330,23 @@ class FileManager::FileInfoGenerate final : public FileManager::FileInfo {
     return string();
   }
 
+  string get_persistent_file_id() const final {
+    if (!url_.empty()) {
+      return url_;
+    }
+    if (FileManager::is_remotely_generated_file(location_.conversion_)) {
+      return FileNode::get_persistent_id(location_);
+    }
+    return string();
+  }
+
+  string get_unique_file_id() const final {
+    if (FileManager::is_remotely_generated_file(location_.conversion_)) {
+      return FileNode::get_unique_id(location_);
+    }
+    return string();
+  }
+
   unique_ptr<FileInfo> clone() const final {
     return td::make_unique<FileInfoGenerate>(location_, expected_size_, url_);
   }
@@ -415,6 +440,17 @@ class FileManager::FileInfoRemote final : public FileManager::FileInfo {
 
   string get_remote_name() const final {
     return remote_name_;
+  }
+
+  string get_persistent_file_id() const final {
+    return FileNode::get_persistent_id(location_);
+  }
+
+  string get_unique_file_id() const final {
+    if (location_.is_web()) {
+      return string();
+    }
+    return FileNode::get_unique_id(location_);
   }
 
   unique_ptr<FileInfo> clone() const final {
