@@ -707,6 +707,8 @@ class FileManager final : public Actor {
 
     virtual string get_suggested_path() const = 0;
 
+    virtual string get_remote_name() const = 0;
+
     virtual unique_ptr<FileInfo> clone() const = 0;
   };
 
