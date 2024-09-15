@@ -220,6 +220,10 @@ class FileManager::FileInfoLocal final : public FileManager::FileInfo {
     return string();
   }
 
+  bool can_be_deleted() const final {
+    return begins_with(location_.path_, get_files_dir(get_file_type()));
+  }
+
   unique_ptr<FileInfo> clone() const final {
     auto result = make_unique<FileInfoLocal>(location_, size_);
     result->remote_file_info_ = remote_file_info_;
@@ -364,6 +368,16 @@ class FileManager::FileInfoGenerate final : public FileManager::FileInfo {
     return string();
   }
 
+  bool can_be_deleted() const final {
+    if (local_file_info_ != nullptr) {
+      if (local_file_info_->file_info_ != nullptr) {
+        return local_file_info_->file_info_->can_be_deleted();
+      }
+      return false;
+    }
+    return partial_local_location_ != nullptr;
+  }
+
   unique_ptr<FileInfo> clone() const final {
     return td::make_unique<FileInfoGenerate>(location_, expected_size_, url_);
   }
@@ -481,6 +495,16 @@ class FileManager::FileInfoRemote final : public FileManager::FileInfo {
       return string();
     }
     return FileNode::get_unique_id(location_);
+  }
+
+  bool can_be_deleted() const final {
+    if (local_file_info_ != nullptr) {
+      if (local_file_info_->file_info_ != nullptr) {
+        return local_file_info_->file_info_->can_be_deleted();
+      }
+      return false;
+    }
+    return partial_local_location_ != nullptr;
   }
 
   unique_ptr<FileInfo> clone() const final {
