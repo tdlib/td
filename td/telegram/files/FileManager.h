@@ -705,6 +705,8 @@ class FileManager final : public Actor {
 
     virtual const string *get_url() const = 0;
 
+    virtual string get_path() const = 0;
+
     virtual string get_suggested_path() const = 0;
 
     virtual string get_remote_name() const = 0;

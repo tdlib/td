@@ -200,6 +200,10 @@ class FileManager::FileInfoLocal final : public FileManager::FileInfo {
     return nullptr;
   }
 
+  string get_path() const final {
+    return location_.path_;
+  }
+
   string get_suggested_path() const final {
     return location_.path_;
   }
@@ -319,6 +323,19 @@ class FileManager::FileInfoGenerate final : public FileManager::FileInfo {
     return url_.empty() ? nullptr : &url_;
   }
 
+  string get_path() const final {
+    if (local_file_info_ != nullptr) {
+      if (local_file_info_->file_info_ != nullptr) {
+        return local_file_info_->file_info_->get_path();
+      }
+      return string();
+    }
+    if (partial_local_location_ != nullptr) {
+      return partial_local_location_->path_;
+    }
+    return string();
+  }
+
   string get_suggested_path() const final {
     if (!url_.empty()) {
       return get_url_file_name(url_);
@@ -426,6 +443,19 @@ class FileManager::FileInfoRemote final : public FileManager::FileInfo {
 
   const string *get_url() const final {
     return url_.empty() ? nullptr : &url_;
+  }
+
+  string get_path() const final {
+    if (local_file_info_ != nullptr) {
+      if (local_file_info_->file_info_ != nullptr) {
+        return local_file_info_->file_info_->get_path();
+      }
+      return string();
+    }
+    if (partial_local_location_ != nullptr) {
+      return partial_local_location_->path_;
+    }
+    return string();
   }
 
   string get_suggested_path() const final {
