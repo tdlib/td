@@ -1598,7 +1598,7 @@ FileId FileManager::register_empty(FileType type) {
   file_id = next_file_id();
 
   LOG(INFO) << "Register empty file as " << file_id;
-  auto file_info = td::make_unique<FileInfoLocal>(location, 0);
+  auto file_info = STORE_FILE_INFO ? td::make_unique<FileInfoLocal>(location, 0) : nullptr;
   auto file_node_id = next_file_node_id();
   file_nodes_[file_node_id] =
       td::make_unique<FileNode>(LocalFileLocation(std::move(location)), NewRemoteFileLocation(), nullptr, 0, 0,
@@ -1642,7 +1642,7 @@ Result<FileId> FileManager::register_local(FullLocalFileLocation location, Dialo
     file_id = next_file_id();
     LOG(INFO) << "Register " << location << " as " << file_id;
 
-    auto file_info = td::make_unique<FileInfoLocal>(location, size);
+    auto file_info = STORE_FILE_INFO ? td::make_unique<FileInfoLocal>(location, size) : nullptr;
     auto file_node_id = next_file_node_id();
     auto &node = file_nodes_[file_node_id];
     node = td::make_unique<FileNode>(LocalFileLocation(std::move(location)), NewRemoteFileLocation(), nullptr, size, 0,
@@ -1727,7 +1727,8 @@ FileId FileManager::register_remote(FullRemoteFileLocation location, FileLocatio
   }
 
   LOG(INFO) << "Register " << location << " as " << file_id;
-  auto file_info = td::make_unique<FileInfoRemote>(location, size, expected_size, remote_name, url);
+  auto file_info =
+      STORE_FILE_INFO ? td::make_unique<FileInfoRemote>(location, size, expected_size, remote_name, url) : nullptr;
   auto file_node_id = next_file_node_id();
   auto &node = file_nodes_[file_node_id];
   node = td::make_unique<FileNode>(LocalFileLocation(),
@@ -1785,7 +1786,7 @@ FileId FileManager::do_register_generate(unique_ptr<FullGenerateFileLocation> ge
 
     auto file_node_id = next_file_node_id();
     auto &node = file_nodes_[file_node_id];
-    auto file_info = td::make_unique<FileInfoGenerate>(*generate, expected_size, url);
+    auto file_info = STORE_FILE_INFO ? td::make_unique<FileInfoGenerate>(*generate, expected_size, url) : nullptr;
     node = td::make_unique<FileNode>(LocalFileLocation(), NewRemoteFileLocation(), std::move(generate), 0,
                                      expected_size, string(), std::move(url), owner_dialog_id, FileEncryptionKey(),
                                      file_id, static_cast<int8>(0));

@@ -578,6 +578,8 @@ class FileManager final : public Actor {
   FileId parse_file(ParserT &parser);
 
  private:
+  static constexpr bool STORE_FILE_INFO = false;
+
   class FileDownloadManagerCallback final : public FileDownloadManager::Callback {
    public:
     explicit FileDownloadManagerCallback(ActorId<FileManager> actor_id) : actor_id_(std::move(actor_id)) {
