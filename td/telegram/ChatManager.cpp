@@ -4428,6 +4428,7 @@ void ChatManager::on_load_channel_from_database(ChannelId channel_id, string val
   } else {
     CHECK(!c->is_saved);  // channel can't be saved before load completes
     CHECK(!c->is_being_saved);
+    bool is_new = false;
     if (!value.empty()) {
       Channel temp_c;
       if (log_event_parse(temp_c, value).is_ok()) {
@@ -4448,7 +4449,11 @@ void ChatManager::on_load_channel_from_database(ChannelId channel_id, string val
           on_channel_usernames_changed(c, channel_id, temp_c.usernames, c->usernames);
           CHECK(!c->is_being_saved);
         }
+      } else {
+        is_new = true;
       }
+    } else {
+      is_new = true;
     }
     auto new_value = get_channel_database_value(c);
     if (value != new_value) {
@@ -4456,6 +4461,10 @@ void ChatManager::on_load_channel_from_database(ChannelId channel_id, string val
     } else if (c->log_event_id != 0) {
       binlog_erase(G()->td_db()->get_binlog(), c->log_event_id);
       c->log_event_id = 0;
+    }
+    if (is_new && !c->status.is_banned()) {
+      c->status.update_restrictions();
+      on_channel_status_changed(c, channel_id, DialogParticipantStatus::Banned(0), c->status);
     }
   }
 
