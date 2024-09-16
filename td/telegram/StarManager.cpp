@@ -179,7 +179,16 @@ class GetStarGiftsQuery final : public Td::ResultHandler {
     }
     auto results = telegram_api::move_object_as<telegram_api::payments_starGifts>(ptr);
     vector<td_api::object_ptr<td_api::giftPaymentOption>> options;
+    FlatHashMap<int64, int64> gift_prices;
     for (auto &gift : results->gifts_) {
+      if (gift->id_ == 0) {
+        LOG(ERROR) << "Receive " << to_string(gift);
+        continue;
+      }
+      if (gift_prices.count(gift->id_) != 0) {
+        LOG(ERROR) << "Receive again gift " << gift->id_;
+        continue;
+      }
       auto sticker_id =
           td_->stickers_manager_
               ->on_get_sticker_document(std::move(gift->sticker_), StickerFormat::Unknown, "GetStarGiftsQuery")
@@ -200,11 +209,14 @@ class GetStarGiftsQuery final : public Td::ResultHandler {
         }
         gift->availability_remains_ = gift->availability_total_;
       }
+      auto star_count = StarManager::get_star_count(gift->stars_);
+      gift_prices[gift->id_] = star_count;
       options.push_back(td_api::make_object<td_api::giftPaymentOption>(
-          gift->id_, td_->stickers_manager_->get_sticker_object(sticker_id), StarManager::get_star_count(gift->stars_),
+          gift->id_, td_->stickers_manager_->get_sticker_object(sticker_id), star_count,
           gift->availability_remains_, gift->availability_total_));
     }
 
+    td_->star_manager_->on_get_gift_prices(std::move(gift_prices));
     promise_.set_value(td_api::make_object<td_api::giftPaymentOptions>(std::move(options)));
   }
 
@@ -887,6 +899,10 @@ void StarManager::get_star_giveaway_payment_options(
 
 void StarManager::get_gift_payment_options(Promise<td_api::object_ptr<td_api::giftPaymentOptions>> &&promise) {
   td_->create_handler<GetStarGiftsQuery>(std::move(promise))->send();
+}
+
+void StarManager::on_get_gift_prices(FlatHashMap<int64, int64> gift_prices) {
+  gift_prices_ = std::move(gift_prices);
 }
 
 void StarManager::get_star_transactions(td_api::object_ptr<td_api::MessageSender> owner_id,

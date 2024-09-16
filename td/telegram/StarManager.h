@@ -41,6 +41,8 @@ class StarManager final : public Actor {
 
   void get_gift_payment_options(Promise<td_api::object_ptr<td_api::giftPaymentOptions>> &&promise);
 
+  void on_get_gift_prices(FlatHashMap<int64, int64> gift_prices);
+
   void get_star_transactions(td_api::object_ptr<td_api::MessageSender> owner_id, const string &subscription_id,
                              const string &offset, int32 limit,
                              td_api::object_ptr<td_api::StarTransactionDirection> &&direction,
@@ -104,6 +106,8 @@ class StarManager final : public Actor {
   int64 sent_star_count_ = 0;
 
   FlatHashMap<DialogId, FlatHashMap<string, FileSourceId>, DialogIdHash> star_transaction_file_source_ids_[2];
+
+  FlatHashMap<int64, int64> gift_prices_;
 };
 
 }  // namespace td
