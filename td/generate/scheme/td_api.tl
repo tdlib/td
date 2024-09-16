@@ -906,6 +906,17 @@ starGiveawayPaymentOption currency:string amount:int53 star_count:int53 store_pr
 //@description Contains a list of options for creating Telegram Star giveaway @options The list of options
 starGiveawayPaymentOptions options:vector<starGiveawayPaymentOption> = StarGiveawayPaymentOptions;
 
+//@description Describes an option for buying a gift for another user
+//@gift_id Unique identifier of the gift
+//@gift_sticker The sticker with the gift
+//@star_count Number of Telegram Stars that must be paid for the gift
+//@remaining_count Number of remaining times the gift can be purchased by all users; 0 if not limited
+//@total_count Number of total times the gift can be purchased by all users; 0 if not limited
+giftPaymentOption gift_id:int64 gift_sticker:sticker star_count:int53 remaining_count:int32 total_count:int32 = GiftPaymentOption;
+
+//@description Contains a list of options for buying a gift for another user @options The list of options
+giftPaymentOptions options:vector<giftPaymentOption> = GiftPaymentOptions;
+
 
 //@class StarTransactionDirection @description Describes direction of a transaction with Telegram Stars
 
@@ -11644,6 +11655,9 @@ getStarTransactions owner_id:MessageSender subscription_id:string direction:Star
 //@only_expiring Pass true to receive only expiring subscriptions for which there are no enough Telegram Stars to extend
 //@offset Offset of the first subscription to return as received from the previous request; use empty string to get the first chunk of results
 getStarSubscriptions only_expiring:Bool offset:string = StarSubscriptions;
+
+//@description Returns available options for gift paymets
+getGiftPaymentOptions = GiftPaymentOptions;
 
 //@description Checks whether an in-store purchase is possible. Must be called before any in-store purchase @purpose Transaction purpose
 canPurchaseFromStore purpose:StorePaymentPurpose = Ok;

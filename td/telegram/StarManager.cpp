@@ -153,6 +153,66 @@ class GetStarsGiveawayOptionsQuery final : public Td::ResultHandler {
   }
 };
 
+class GetStarGiftsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::giftPaymentOptions>> promise_;
+
+ public:
+  explicit GetStarGiftsQuery(Promise<td_api::object_ptr<td_api::giftPaymentOptions>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::payments_getStarGifts(0)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getStarGifts>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetStarGiftsQuery: " << to_string(ptr);
+    if (ptr->get_id() != telegram_api::payments_starGifts::ID) {
+      LOG(ERROR) << "Receive " << to_string(ptr);
+      return promise_.set_error(Status::Error(500, "Receive unexpected response"));
+    }
+    auto results = telegram_api::move_object_as<telegram_api::payments_starGifts>(ptr);
+    vector<td_api::object_ptr<td_api::giftPaymentOption>> options;
+    for (auto &gift : results->gifts_) {
+      auto sticker_id =
+          td_->stickers_manager_
+              ->on_get_sticker_document(std::move(gift->sticker_), StickerFormat::Unknown, "GetStarGiftsQuery")
+              .second;
+      if (!sticker_id.is_valid()) {
+        continue;
+      }
+      if (gift->availability_total_ < 0) {
+        LOG(ERROR) << "Receive " << gift->availability_total_ << " total available gifts";
+        gift->availability_total_ = 0;
+      }
+      if ((gift->availability_total_ != 0 || gift->availability_remains_ != 0) &&
+          (gift->availability_remains_ <= 0 || gift->availability_remains_ > gift->availability_total_)) {
+        LOG(ERROR) << "Receive " << gift->availability_total_ << " remained available gifts out of "
+                   << gift->availability_total_;
+        if (gift->availability_remains_ <= 0) {
+          continue;
+        }
+        gift->availability_remains_ = gift->availability_total_;
+      }
+      options.push_back(td_api::make_object<td_api::giftPaymentOption>(
+          gift->id_, td_->stickers_manager_->get_sticker_object(sticker_id), StarManager::get_star_count(gift->stars_),
+          gift->availability_remains_, gift->availability_total_));
+    }
+
+    promise_.set_value(td_api::make_object<td_api::giftPaymentOptions>(std::move(options)));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetStarsTransactionsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::starTransactions>> promise_;
   DialogId dialog_id_;
@@ -823,6 +883,10 @@ void StarManager::get_star_gift_payment_options(UserId user_id,
 void StarManager::get_star_giveaway_payment_options(
     Promise<td_api::object_ptr<td_api::starGiveawayPaymentOptions>> &&promise) {
   td_->create_handler<GetStarsGiveawayOptionsQuery>(std::move(promise))->send();
+}
+
+void StarManager::get_gift_payment_options(Promise<td_api::object_ptr<td_api::giftPaymentOptions>> &&promise) {
+  td_->create_handler<GetStarGiftsQuery>(std::move(promise))->send();
 }
 
 void StarManager::get_star_transactions(td_api::object_ptr<td_api::MessageSender> owner_id,
