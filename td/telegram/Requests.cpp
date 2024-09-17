@@ -7417,7 +7417,7 @@ void Requests::on_request(uint64 id, td_api::reuseStarSubscription &request) {
   td_->star_manager_->reuse_star_subscriptions(request.subscription_id_, std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::getGiftPaymentOptions &request) {
+void Requests::on_request(uint64 id, const td_api::getAvailableGifts &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   td_->star_manager_->get_gift_payment_options(std::move(promise));

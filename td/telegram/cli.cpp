@@ -3530,8 +3530,8 @@ class CliClient final : public Actor {
       string subscription_id;
       get_args(args, subscription_id);
       send_request(td_api::make_object<td_api::reuseStarSubscription>(subscription_id));
-    } else if (op == "ggpo") {
-      send_request(td_api::make_object<td_api::getGiftPaymentOptions>());
+    } else if (op == "gag") {
+      send_request(td_api::make_object<td_api::getAvailableGifts>());
     } else if (op == "cpfs" || op == "cpfsb") {
       UserId user_id;
       string currency;

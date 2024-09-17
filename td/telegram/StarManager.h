@@ -39,7 +39,7 @@ class StarManager final : public Actor {
 
   void get_star_giveaway_payment_options(Promise<td_api::object_ptr<td_api::starGiveawayPaymentOptions>> &&promise);
 
-  void get_gift_payment_options(Promise<td_api::object_ptr<td_api::giftPaymentOptions>> &&promise);
+  void get_gift_payment_options(Promise<td_api::object_ptr<td_api::gifts>> &&promise);
 
   void on_get_gift_prices(FlatHashMap<int64, int64> gift_prices);
 

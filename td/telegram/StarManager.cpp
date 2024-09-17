@@ -154,11 +154,10 @@ class GetStarsGiveawayOptionsQuery final : public Td::ResultHandler {
 };
 
 class GetStarGiftsQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::giftPaymentOptions>> promise_;
+  Promise<td_api::object_ptr<td_api::gifts>> promise_;
 
  public:
-  explicit GetStarGiftsQuery(Promise<td_api::object_ptr<td_api::giftPaymentOptions>> &&promise)
-      : promise_(std::move(promise)) {
+  explicit GetStarGiftsQuery(Promise<td_api::object_ptr<td_api::gifts>> &&promise) : promise_(std::move(promise)) {
   }
 
   void send() {
@@ -178,7 +177,7 @@ class GetStarGiftsQuery final : public Td::ResultHandler {
       return promise_.set_error(Status::Error(500, "Receive unexpected response"));
     }
     auto results = telegram_api::move_object_as<telegram_api::payments_starGifts>(ptr);
-    vector<td_api::object_ptr<td_api::giftPaymentOption>> options;
+    vector<td_api::object_ptr<td_api::gift>> options;
     FlatHashMap<int64, int64> gift_prices;
     for (auto &gift : results->gifts_) {
       if (gift->id_ == 0) {
@@ -211,13 +210,13 @@ class GetStarGiftsQuery final : public Td::ResultHandler {
       }
       auto star_count = StarManager::get_star_count(gift->stars_);
       gift_prices[gift->id_] = star_count;
-      options.push_back(td_api::make_object<td_api::giftPaymentOption>(
-          gift->id_, td_->stickers_manager_->get_sticker_object(sticker_id), star_count, gift->availability_remains_,
-          gift->availability_total_));
+      options.push_back(
+          td_api::make_object<td_api::gift>(gift->id_, td_->stickers_manager_->get_sticker_object(sticker_id),
+                                            star_count, gift->availability_remains_, gift->availability_total_));
     }
 
     td_->star_manager_->on_get_gift_prices(std::move(gift_prices));
-    promise_.set_value(td_api::make_object<td_api::giftPaymentOptions>(std::move(options)));
+    promise_.set_value(td_api::make_object<td_api::gifts>(std::move(options)));
   }
 
   void on_error(Status status) final {
@@ -993,7 +992,7 @@ void StarManager::get_star_giveaway_payment_options(
   td_->create_handler<GetStarsGiveawayOptionsQuery>(std::move(promise))->send();
 }
 
-void StarManager::get_gift_payment_options(Promise<td_api::object_ptr<td_api::giftPaymentOptions>> &&promise) {
+void StarManager::get_gift_payment_options(Promise<td_api::object_ptr<td_api::gifts>> &&promise) {
   td_->create_handler<GetStarGiftsQuery>(std::move(promise))->send();
 }
 
