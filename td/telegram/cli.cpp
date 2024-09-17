@@ -2795,6 +2795,12 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::deleteSavedOrderInfo>());
     } else if (op == "dsc") {
       send_request(td_api::make_object<td_api::deleteSavedCredentials>());
+    } else if (op == "sgift" || op == "sgiftp") {
+      int64 gift_id;
+      UserId user_id;
+      string text;
+      get_args(args, gift_id, user_id, text);
+      send_request(td_api::make_object<td_api::sendGift>(gift_id, user_id, as_formatted_text(text), op == "sgiftp"));
     } else if (op == "rsp") {
       UserId user_id;
       string telegram_payment_charge_id;

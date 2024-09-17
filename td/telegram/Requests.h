@@ -1451,6 +1451,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::deleteSavedCredentials &request);
 
+  void on_request(uint64 id, td_api::sendGift &request);
+
   void on_request(uint64 id, td_api::createInvoiceLink &request);
 
   void on_request(uint64 id, td_api::refundStarPayment &request);

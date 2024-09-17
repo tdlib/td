@@ -566,6 +566,7 @@ class GetPaymentFormQuery final : public Td::ResultHandler {
         break;
       }
       case telegram_api::payments_paymentFormStarGift::ID:
+        LOG(ERROR) << "Receive " << to_string(payment_form_ptr);
         promise_.set_error(Status::Error(500, "Unsupported"));
         break;
       default:

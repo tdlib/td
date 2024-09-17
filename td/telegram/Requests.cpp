@@ -7033,6 +7033,13 @@ void Requests::on_request(uint64 id, const td_api::deleteSavedCredentials &reque
   delete_saved_credentials(td_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::sendGift &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->star_manager_->send_gift(request.gift_id_, UserId(request.user_id_), std::move(request.text_),
+                                request.is_private_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::createInvoiceLink &request) {
   CHECK_IS_BOT();
   CREATE_HTTP_URL_REQUEST_PROMISE();

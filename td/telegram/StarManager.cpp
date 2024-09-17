@@ -212,8 +212,8 @@ class GetStarGiftsQuery final : public Td::ResultHandler {
       auto star_count = StarManager::get_star_count(gift->stars_);
       gift_prices[gift->id_] = star_count;
       options.push_back(td_api::make_object<td_api::giftPaymentOption>(
-          gift->id_, td_->stickers_manager_->get_sticker_object(sticker_id), star_count,
-          gift->availability_remains_, gift->availability_total_));
+          gift->id_, td_->stickers_manager_->get_sticker_object(sticker_id), star_count, gift->availability_remains_,
+          gift->availability_total_));
     }
 
     td_->star_manager_->on_get_gift_prices(std::move(gift_prices));
@@ -221,6 +221,102 @@ class GetStarGiftsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class SendGiftQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  int64 star_count_;
+
+ public:
+  explicit SendGiftQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::inputInvoiceStarGift> input_invoice, int64 payment_form_id,
+            int64 star_count) {
+    star_count_ = star_count;
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_sendStarsForm(payment_form_id, std::move(input_invoice))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_sendStarsForm>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto payment_result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SendGiftQuery: " << to_string(payment_result);
+    switch (payment_result->get_id()) {
+      case telegram_api::payments_paymentResult::ID: {
+        auto result = telegram_api::move_object_as<telegram_api::payments_paymentResult>(payment_result);
+        td_->star_manager_->add_pending_owned_star_count(star_count_, true);
+        td_->updates_manager_->on_get_updates(std::move(result->updates_), std::move(promise_));
+        break;
+      }
+      case telegram_api::payments_paymentVerificationNeeded::ID:
+        td_->star_manager_->add_pending_owned_star_count(star_count_, false);
+        LOG(ERROR) << "Receive " << to_string(payment_result);
+        break;
+      default:
+        UNREACHABLE();
+    }
+  }
+
+  void on_error(Status status) final {
+    td_->star_manager_->add_pending_owned_star_count(star_count_, false);
+    promise_.set_error(std::move(status));
+  }
+};
+
+class GetGiftPaymentFormQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  int64 star_count_;
+  telegram_api::object_ptr<telegram_api::inputInvoiceStarGift> send_input_invoice_;
+
+ public:
+  explicit GetGiftPaymentFormQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::inputInvoiceStarGift> input_invoice,
+            telegram_api::object_ptr<telegram_api::inputInvoiceStarGift> send_input_invoice, int64 star_count) {
+    send_input_invoice_ = std::move(send_input_invoice);
+    star_count_ = star_count;
+    td_->star_manager_->add_pending_owned_star_count(-star_count, false);
+    send_query(
+        G()->net_query_creator().create(telegram_api::payments_getPaymentForm(0, std::move(input_invoice), nullptr)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getPaymentForm>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto payment_form_ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetGiftPaymentFormQuery: " << to_string(payment_form_ptr);
+    switch (payment_form_ptr->get_id()) {
+      case telegram_api::payments_paymentForm::ID:
+      case telegram_api::payments_paymentFormStars::ID:
+        LOG(ERROR) << "Receive " << to_string(payment_form_ptr);
+        td_->star_manager_->add_pending_owned_star_count(star_count_, false);
+        promise_.set_error(Status::Error(500, "Unsupported"));
+        break;
+      case telegram_api::payments_paymentFormStarGift::ID: {
+        auto payment_form = static_cast<const telegram_api::payments_paymentFormStarGift *>(payment_form_ptr.get());
+        td_->create_handler<SendGiftQuery>(std::move(promise_))
+            ->send(std::move(send_input_invoice_), payment_form->form_id_, star_count_);
+        break;
+      }
+      default:
+        UNREACHABLE();
+    }
+  }
+
+  void on_error(Status status) final {
+    td_->star_manager_->add_pending_owned_star_count(star_count_, false);
     promise_.set_error(std::move(status));
   }
 };
@@ -903,6 +999,39 @@ void StarManager::get_gift_payment_options(Promise<td_api::object_ptr<td_api::gi
 
 void StarManager::on_get_gift_prices(FlatHashMap<int64, int64> gift_prices) {
   gift_prices_ = std::move(gift_prices);
+}
+
+void StarManager::send_gift(int64 gift_id, UserId user_id, td_api::object_ptr<td_api::formattedText> text,
+                            bool is_private, Promise<Unit> &&promise) {
+  auto it = gift_prices_.find(gift_id);
+  if (it == gift_prices_.end()) {
+    return promise.set_error(Status::Error(400, "Gift not found"));
+  }
+  auto star_count = it->second;
+  if (!has_owned_star_count(star_count)) {
+    return promise.set_error(Status::Error(400, "Have not enough Telegram Stars"));
+  }
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
+  TRY_RESULT_PROMISE(promise, message,
+                     get_formatted_text(td_, DialogId(user_id), std::move(text), false, true, true, false));
+
+  int32 flags = 0;
+  if (is_private) {
+    flags |= telegram_api::inputInvoiceStarGift::HIDE_NAME_MASK;
+  }
+  auto input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGift>(
+      flags, false /*ignored*/, std::move(input_user), gift_id, nullptr);
+  auto send_input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGift>(
+      flags, false /*ignored*/, td_->user_manager_->get_input_user(user_id).move_as_ok(), gift_id, nullptr);
+  if (!message.text.empty()) {
+    input_invoice->flags_ |= telegram_api::inputInvoiceStarGift::MESSAGE_MASK;
+    input_invoice->message_ = get_input_text_with_entities(td_->user_manager_.get(), message, "send_gift");
+
+    send_input_invoice->flags_ |= telegram_api::inputInvoiceStarGift::MESSAGE_MASK;
+    send_input_invoice->message_ = get_input_text_with_entities(td_->user_manager_.get(), message, "send_gift");
+  }
+  td_->create_handler<GetGiftPaymentFormQuery>(std::move(promise))
+      ->send(std::move(input_invoice), std::move(send_input_invoice), star_count);
 }
 
 void StarManager::get_star_transactions(td_api::object_ptr<td_api::MessageSender> owner_id,

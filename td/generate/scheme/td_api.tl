@@ -11169,6 +11169,14 @@ deleteSavedOrderInfo = Ok;
 deleteSavedCredentials = Ok;
 
 
+//@description Send a gift to another user
+//@gift_id Identifier of the gift to send
+//@user_id Identifier of the user that will receive the gift
+//@text Text to show along with the gift
+//@is_private Pass true to show the name and gift text only to the gift receiver; otherwise, everyone will be able to see them
+sendGift gift_id:int64 user_id:int53 text:formattedText is_private:Bool = Ok;
+
+
 //@description Creates a link for the given invoice; for bots only @invoice Information about the invoice of the type inputMessageInvoice
 createInvoiceLink invoice:InputMessageContent = HttpUrl;
 
