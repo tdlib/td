@@ -4303,9 +4303,9 @@ void FileManager::on_partial_download(FileDownloadManager::QueryId query_id, Par
   CHECK(query != nullptr);
 
   auto file_id = query->file_id_;
-  auto file_node = get_file_node(file_id);
   LOG(DEBUG) << "Receive on_partial_download for file " << file_id << " with " << partial_local
              << " and size = " << size;
+  auto file_node = get_file_node(file_id);
   if (!file_node) {
     return;
   }

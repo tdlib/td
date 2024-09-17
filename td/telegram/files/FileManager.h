@@ -679,6 +679,24 @@ class FileManager final : public Actor {
   enum class FileInfoType { Local, Generate, Remote };
 
   class FileInfo {
+   private:
+    bool is_info_changed_ = false;
+    bool is_database_changed_ = false;
+
+   protected:
+    void on_info_changed() {
+      is_info_changed_ = true;
+    }
+
+    void on_database_changed() {
+      is_database_changed_ = true;
+    }
+
+    void on_changed() {
+      is_info_changed_ = true;
+      is_database_changed_ = true;
+    }
+
    public:
     FileInfo() = default;
     FileInfo(const FileInfo &) = delete;
@@ -686,6 +704,18 @@ class FileManager final : public Actor {
     FileInfo(FileInfo &&) = delete;
     FileInfo &operator=(FileInfo &&) = delete;
     virtual ~FileInfo() = default;
+
+    bool need_info_flush() {
+      auto result = is_info_changed_;
+      is_info_changed_ = false;
+      return result;
+    }
+
+    bool need_database_flush() {
+      auto result = is_database_changed_;
+      is_database_changed_ = false;
+      return result;
+    }
 
     virtual FileInfoType get_file_info_type() const = 0;
 
