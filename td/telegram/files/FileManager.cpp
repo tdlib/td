@@ -233,6 +233,10 @@ class FileManager::FileInfoLocal final : public FileManager::FileInfo {
   void set_size(int64 size) final {
     UNREACHABLE();
   }
+
+  void set_expected_size(int64 expected_size) final {
+    UNREACHABLE();
+  }
 };
 
 class FileManager::FileInfoGenerate final : public FileManager::FileInfo {
@@ -389,6 +393,13 @@ class FileManager::FileInfoGenerate final : public FileManager::FileInfo {
   void set_size(int64 size) final {
     UNREACHABLE();
   }
+
+  void set_expected_size(int64 expected_size) final {
+    if (expected_size_ != expected_size) {
+      expected_size_ = expected_size;
+      on_changed();
+    }
+  }
 };
 
 class FileManager::FileInfoRemote final : public FileManager::FileInfo {
@@ -526,6 +537,10 @@ class FileManager::FileInfoRemote final : public FileManager::FileInfo {
       size_ = size;
       on_changed();
     }
+  }
+
+  void set_expected_size(int64 expected_size) final {
+    UNREACHABLE();
   }
 };
 

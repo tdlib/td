@@ -752,6 +752,8 @@ class FileManager final : public Actor {
     virtual unique_ptr<FileInfo> clone() const = 0;
 
     virtual void set_size(int64 size) = 0;
+
+    virtual void set_expected_size(int64 expected_size) = 0;
   };
 
   class FileInfoLocal;
