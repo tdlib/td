@@ -750,6 +750,8 @@ class FileManager final : public Actor {
     virtual bool can_be_deleted() const = 0;
 
     virtual unique_ptr<FileInfo> clone() const = 0;
+
+    virtual void set_size(int64 size) = 0;
   };
 
   class FileInfoLocal;
