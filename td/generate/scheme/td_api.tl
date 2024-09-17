@@ -1038,7 +1038,7 @@ giveawayInfoOngoing creation_date:int32 status:GiveawayParticipantStatus is_ende
 //@creation_date Point in time (Unix timestamp) when the giveaway was created
 //@actual_winners_selection_date Point in time (Unix timestamp) when the winners were selected. May be bigger than winners selection date specified in parameters of the giveaway
 //@was_refunded True, if the giveaway was canceled and was fully refunded
-//@is_winner True, if the cuurent user is a winner of the giveaway
+//@is_winner True, if the current user is a winner of the giveaway
 //@winner_count Number of winners in the giveaway
 //@activation_count Number of winners, which activated their gift codes; for Telegram Premium giveaways only
 //@gift_code Telegram Premium gift code that was received by the current user; empty if the user isn't a winner in the giveaway or the giveaway isn't a Telegram Premium giveaway
@@ -3694,7 +3694,7 @@ messageGiveawayWinners boosted_chat_id:int53 giveaway_message_id:int53 additiona
 //@sticker A sticker to be shown in the message; may be null if unknown
 messageGiftedStars gifter_user_id:int53 receiver_user_id:int53 currency:string amount:int53 cryptocurrency:string cryptocurrency_amount:int64 star_count:int53 transaction_id:string sticker:sticker = MessageContent;
 
-//@description A Telegram Stars were received by the cuurent user from a giveaway
+//@description A Telegram Stars were received by the current user from a giveaway
 //@star_count Number of Telegram Stars that were received
 //@transaction_id Identifier of the transaction for Telegram Stars credit
 //@boosted_chat_id Identifier of the supergroup or channel chat, which was automatically boosted by the winners of the giveaway
@@ -3702,6 +3702,15 @@ messageGiftedStars gifter_user_id:int53 receiver_user_id:int53 currency:string a
 //@is_unclaimed True, if the corresponding winner wasn't chosen and the Telegram Stars were received by the owner of the boosted chat
 //@sticker A sticker to be shown in the message; may be null if unknown
 messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id:int53 giveaway_message_id:int53 is_unclaimed:Bool sticker:sticker = MessageContent;
+
+//@description A gift was received or sent by the current user
+//@gift The gift
+//@text Message added to the gift
+//@convert_star_count Number of Telegram Stars that can be claimed by the receiver instead of the gift
+//@is_private True, if the name and gift text only to the gift receiver; otherwise, everyone will be able to see them
+//@is_saved True, if the gift is displayed on the user's page; only for the receiver of the gift
+//@was_converted True, if the gift was converted to Telegram Stars; only for the receiver of the gift
+messageGift gift:gift text:formattedText convert_star_count:int53 is_private:Bool is_saved:Bool was_converted:Bool = MessageContent;
 
 //@description A contact has registered with Telegram
 messageContactRegistered = MessageContent;

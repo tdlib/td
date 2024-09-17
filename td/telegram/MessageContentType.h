@@ -84,7 +84,8 @@ enum class MessageContentType : int32 {
   PaidMedia,
   PaymentRefunded,
   GiftStars,
-  PrizeStars
+  PrizeStars,
+  StarGift
 };
 // increase MessageUnsupported::CURRENT_VERSION each time a new message content type is added
 
