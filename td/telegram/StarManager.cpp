@@ -22,6 +22,7 @@
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/ServerMessageId.h"
+#include "td/telegram/StarGift.h"
 #include "td/telegram/StarSubscription.h"
 #include "td/telegram/StatisticsManager.h"
 #include "td/telegram/StickersManager.h"
@@ -180,39 +181,17 @@ class GetStarGiftsQuery final : public Td::ResultHandler {
     vector<td_api::object_ptr<td_api::gift>> options;
     FlatHashMap<int64, int64> gift_prices;
     for (auto &gift : results->gifts_) {
-      if (gift->id_ == 0) {
-        LOG(ERROR) << "Receive " << to_string(gift);
+      StarGift star_gift(td_, std::move(gift));
+      if (!star_gift.is_valid()) {
         continue;
       }
-      if (gift_prices.count(gift->id_) != 0) {
-        LOG(ERROR) << "Receive again gift " << gift->id_;
+      auto gift_id = star_gift.get_id();
+      if (gift_prices.count(gift_id) != 0) {
+        LOG(ERROR) << "Receive again gift " << gift_id;
         continue;
       }
-      auto sticker_id =
-          td_->stickers_manager_
-              ->on_get_sticker_document(std::move(gift->sticker_), StickerFormat::Unknown, "GetStarGiftsQuery")
-              .second;
-      if (!sticker_id.is_valid()) {
-        continue;
-      }
-      if (gift->availability_total_ < 0) {
-        LOG(ERROR) << "Receive " << gift->availability_total_ << " total available gifts";
-        gift->availability_total_ = 0;
-      }
-      if ((gift->availability_total_ != 0 || gift->availability_remains_ != 0) &&
-          (gift->availability_remains_ <= 0 || gift->availability_remains_ > gift->availability_total_)) {
-        LOG(ERROR) << "Receive " << gift->availability_total_ << " remained available gifts out of "
-                   << gift->availability_total_;
-        if (gift->availability_remains_ <= 0) {
-          continue;
-        }
-        gift->availability_remains_ = gift->availability_total_;
-      }
-      auto star_count = StarManager::get_star_count(gift->stars_);
-      gift_prices[gift->id_] = star_count;
-      options.push_back(
-          td_api::make_object<td_api::gift>(gift->id_, td_->stickers_manager_->get_sticker_object(sticker_id),
-                                            star_count, gift->availability_remains_, gift->availability_total_));
+      gift_prices[gift_id] = star_gift.get_star_count();
+      options.push_back(star_gift.get_gift_object(td_));
     }
 
     td_->star_manager_->on_get_gift_prices(std::move(gift_prices));
