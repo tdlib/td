@@ -1451,6 +1451,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::deleteSavedCredentials &request);
 
+  void on_request(uint64 id, const td_api::getAvailableGifts &request);
+
   void on_request(uint64 id, td_api::sendGift &request);
 
   void on_request(uint64 id, td_api::getUserGifts &request);
@@ -1548,8 +1550,6 @@ class Requests {
   void on_request(uint64 id, td_api::editStarSubscription &request);
 
   void on_request(uint64 id, td_api::reuseStarSubscription &request);
-
-  void on_request(uint64 id, const td_api::getAvailableGifts &request);
 
   void on_request(uint64 id, td_api::canPurchaseFromStore &request);
 

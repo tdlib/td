@@ -11194,6 +11194,9 @@ deleteSavedOrderInfo = Ok;
 deleteSavedCredentials = Ok;
 
 
+//@description Returns gifts that can be send to other users
+getAvailableGifts = Gifts;
+
 //@description Send a gift to another user
 //@gift_id Identifier of the gift to send
 //@user_id Identifier of the user that will receive the gift
@@ -11694,9 +11697,6 @@ getStarTransactions owner_id:MessageSender subscription_id:string direction:Star
 //@only_expiring Pass true to receive only expiring subscriptions for which there are no enough Telegram Stars to extend
 //@offset Offset of the first subscription to return as received from the previous request; use empty string to get the first chunk of results
 getStarSubscriptions only_expiring:Bool offset:string = StarSubscriptions;
-
-//@description Returns gifts that can be send to other users
-getAvailableGifts = Gifts;
 
 //@description Checks whether an in-store purchase is possible. Must be called before any in-store purchase @purpose Transaction purpose
 canPurchaseFromStore purpose:StorePaymentPurpose = Ok;

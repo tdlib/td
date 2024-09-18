@@ -7033,6 +7033,12 @@ void Requests::on_request(uint64 id, const td_api::deleteSavedCredentials &reque
   delete_saved_credentials(td_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::getAvailableGifts &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->star_manager_->get_gift_payment_options(std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::sendGift &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
@@ -7422,12 +7428,6 @@ void Requests::on_request(uint64 id, td_api::reuseStarSubscription &request) {
   CLEAN_INPUT_STRING(request.subscription_id_);
   CREATE_OK_REQUEST_PROMISE();
   td_->star_manager_->reuse_star_subscriptions(request.subscription_id_, std::move(promise));
-}
-
-void Requests::on_request(uint64 id, const td_api::getAvailableGifts &request) {
-  CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
-  td_->star_manager_->get_gift_payment_options(std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::canPurchaseFromStore &request) {
