@@ -2797,17 +2797,23 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::deleteSavedCredentials>());
     } else if (op == "gag") {
       send_request(td_api::make_object<td_api::getAvailableGifts>());
-    } else if (op == "sgift" || op == "sgiftp") {
+    } else if (op == "sendg" || op == "sendgp") {
       int64 gift_id;
       UserId user_id;
       string text;
       get_args(args, gift_id, user_id, text);
-      send_request(td_api::make_object<td_api::sendGift>(gift_id, user_id, as_formatted_text(text), op == "sgiftp"));
+      send_request(td_api::make_object<td_api::sendGift>(gift_id, user_id, as_formatted_text(text), op == "sendgp"));
     } else if (op == "sellg") {
       UserId user_id;
       MessageId message_id;
       get_args(args, user_id, message_id);
       send_request(td_api::make_object<td_api::sellGift>(user_id, message_id));
+    } else if (op == "saveg") {
+      UserId user_id;
+      MessageId message_id;
+      bool is_saved;
+      get_args(args, user_id, message_id, is_saved);
+      send_request(td_api::make_object<td_api::toggleGiftIsSaved>(user_id, message_id, is_saved));
     } else if (op == "gug") {
       UserId user_id;
       string offset;

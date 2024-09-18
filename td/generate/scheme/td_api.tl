@@ -3724,7 +3724,7 @@ messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id
 //@text Message added to the gift
 //@sell_star_count Number of Telegram Stars that can be claimed by the receiver instead of the gift
 //@is_private True, if the sender and gift text are shown only to the gift receiver; otherwise, everyone will be able to see them
-//@is_saved True, if the gift is displayed on the user's page; only for the receiver of the gift
+//@is_saved True, if the gift is displayed on the user's profile page; only for the receiver of the gift
 //@was_converted True, if the gift was converted to Telegram Stars; only for the receiver of the gift
 messageGift gift:gift text:formattedText sell_star_count:int53 is_private:Bool is_saved:Bool was_converted:Bool = MessageContent;
 
@@ -11208,6 +11208,12 @@ sendGift gift_id:int64 user_id:int53 text:formattedText is_private:Bool = Ok;
 //@sender_user_id Identifier of the user that sent the gift
 //@message_id Identifier of the message with the gift in the chat with the user
 sellGift sender_user_id:int53 message_id:int53 = Ok;
+
+//@description Toggles whether a gift is shown on the current user's profile page
+//@sender_user_id Identifier of the user that sent the gift
+//@message_id Identifier of the message with the gift in the chat with the user
+//@is_saved Pass true to display the gift on the user's profile page; pass false to remove it from the profile page
+toggleGiftIsSaved sender_user_id:int53 message_id:int53 is_saved:Bool = Ok;
 
 //@description Returns gifts saved to profile by the given user
 //@user_id Identifier of the user

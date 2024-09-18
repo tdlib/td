@@ -7054,6 +7054,13 @@ void Requests::on_request(uint64 id, const td_api::sellGift &request) {
                                         std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::toggleGiftIsSaved &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->star_gift_manager_->save_gift(UserId(request.sender_user_id_), MessageId(request.message_id_), request.is_saved_,
+                                     std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::getUserGifts &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.offset_);
