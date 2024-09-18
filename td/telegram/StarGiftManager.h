@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/MessageId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/UserId.h"
 
@@ -29,6 +30,8 @@ class StarGiftManager final : public Actor {
 
   void send_gift(int64 gift_id, UserId user_id, td_api::object_ptr<td_api::formattedText> text, bool is_private,
                  Promise<Unit> &&promise);
+
+  void convert_gift(UserId user_id, MessageId message_id, Promise<Unit> &&promise);
 
   void get_user_gifts(UserId user_id, const string &offset, int32 limit,
                       Promise<td_api::object_ptr<td_api::userGifts>> &&promise);

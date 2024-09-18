@@ -923,7 +923,7 @@ gifts gifts:vector<gift> = Gifts;
 //@is_private True, if the sender and gift text are shown only to the gift receiver; otherwise, everyone are able to see them
 //@date Point in time (Unix timestamp) when the gift was sent
 //@gift The gift
-//@message_id Identifier of the message with the gift in the chat with the sender of the gift; only for the gift receiver
+//@message_id Identifier of the message with the gift in the chat with the sender of the gift; can be 0 or an identifier of a deleted message; only for the gift receiver
 //@sell_star_count Number of Telegram Stars that can be claimed by the receiver instead of the gift; only for the gift receiver
 userGift sender_user_id:int53 text:formattedText is_private:Bool date:int32 gift:gift message_id:int53 sell_star_count:int53 = UserGift;
 
@@ -11203,6 +11203,11 @@ getAvailableGifts = Gifts;
 //@text Text to show along with the gift
 //@is_private Pass true to show the current user as sender and gift text only to the gift receiver; otherwise, everyone will be able to see them
 sendGift gift_id:int64 user_id:int53 text:formattedText is_private:Bool = Ok;
+
+//@description Sells a gift received by the current user for Telegram Stars
+//@sender_user_id Identifier of the user that sent the gift
+//@message_id Identifier of the message with the gift in the chat with the user
+sellGift sender_user_id:int53 message_id:int53 = Ok;
 
 //@description Returns gifts saved to profile by the given user
 //@user_id Identifier of the user

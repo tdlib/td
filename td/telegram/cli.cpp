@@ -2803,6 +2803,11 @@ class CliClient final : public Actor {
       string text;
       get_args(args, gift_id, user_id, text);
       send_request(td_api::make_object<td_api::sendGift>(gift_id, user_id, as_formatted_text(text), op == "sgiftp"));
+    } else if (op == "sellg") {
+      UserId user_id;
+      MessageId message_id;
+      get_args(args, user_id, message_id);
+      send_request(td_api::make_object<td_api::sellGift>(user_id, message_id));
     } else if (op == "gug") {
       UserId user_id;
       string offset;

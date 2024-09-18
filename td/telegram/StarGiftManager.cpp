@@ -8,6 +8,7 @@
 
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageEntity.h"
+#include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StarGift.h"
 #include "td/telegram/StarManager.h"
 #include "td/telegram/Td.h"
@@ -165,6 +166,32 @@ class GetGiftPaymentFormQuery final : public Td::ResultHandler {
   }
 };
 
+class ConvertStarGiftQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit ConvertStarGiftQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::InputUser> input_user, MessageId message_id) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_convertStarGift(std::move(input_user), message_id.get_server_message_id().get())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_convertStarGift>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetUserGiftsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::userGifts>> promise_;
 
@@ -273,6 +300,14 @@ void StarGiftManager::send_gift(int64 gift_id, UserId user_id, td_api::object_pt
   }
   td_->create_handler<GetGiftPaymentFormQuery>(std::move(promise))
       ->send(std::move(input_invoice), std::move(send_input_invoice), star_count);
+}
+
+void StarGiftManager::convert_gift(UserId user_id, MessageId message_id, Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
+  if (!message_id.is_valid() || !message_id.is_server()) {
+    return promise.set_error(Status::Error(400, "Invalid message identifier specified"));
+  }
+  td_->create_handler<ConvertStarGiftQuery>(std::move(promise))->send(std::move(input_user), message_id);
 }
 
 void StarGiftManager::get_user_gifts(UserId user_id, const string &offset, int32 limit,
