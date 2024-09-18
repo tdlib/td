@@ -3840,7 +3840,7 @@ messageSendOptions disable_notification:Bool from_background:Bool protect_conten
 //@send_copy True, if content of the message needs to be copied without reference to the original sender. Always true if the message is forwarded to a secret chat or is local
 //@replace_caption True, if media caption of the message copy needs to be replaced. Ignored if send_copy is false
 //@new_caption New message caption; pass null to copy message without caption. Ignored if replace_caption is false
-//@new_show_caption_above_media True, if new caption must be shown above the animation; otherwise, new caption must be shown below the animation; not supported in secret chats. Ignored if replace_caption is false
+//@new_show_caption_above_media True, if new caption must be shown above the media; otherwise, new caption must be shown below the media; not supported in secret chats. Ignored if replace_caption is false
 messageCopyOptions send_copy:Bool replace_caption:Bool new_caption:formattedText new_show_caption_above_media:Bool = MessageCopyOptions;
 
 
@@ -3885,7 +3885,7 @@ inputMessageDocument document:InputFile thumbnail:inputThumbnail disable_content
 //@star_count The number of Telegram Stars that must be paid to see the media; 1-getOption("paid_media_message_star_count_max")
 //@paid_media The content of the paid media
 //@caption Message caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
-//@show_caption_above_media True, if the caption must be shown above the video; otherwise, the caption must be shown below the video; not supported in secret chats
+//@show_caption_above_media True, if the caption must be shown above the media; otherwise, the caption must be shown below the media; not supported in secret chats
 //@payload Bot-provided data for the paid media; bots only
 inputMessagePaidMedia star_count:int53 paid_media:vector<inputPaidMedia> caption:formattedText show_caption_above_media:Bool payload:string = InputMessageContent;
 
