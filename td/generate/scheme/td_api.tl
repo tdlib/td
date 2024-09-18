@@ -4407,7 +4407,7 @@ storyVideo duration:double width:int32 height:int32 has_stickers:Bool is_animati
 //@description A photo story @photo The photo
 storyContentPhoto photo:photo = StoryContent;
 
-//@description A video story @video The video in MPEG4 format @alternative_video Alternative version of the video in MPEG4 format, encoded by x264 codec; may be null
+//@description A video story @video The video in MPEG4 format @alternative_video Alternative version of the video in MPEG4 format, encoded with H.264 codec; may be null
 storyContentVideo video:storyVideo alternative_video:storyVideo = StoryContent;
 
 //@description A story content that is not supported in the current TDLib version
@@ -4422,7 +4422,7 @@ storyContentUnsupported = StoryContent;
 inputStoryContentPhoto photo:InputFile added_sticker_file_ids:vector<int32> = InputStoryContent;
 
 //@description A video story
-//@video Video to be sent. The video size must be 720x1280. The video must be streamable and stored in MPEG4 format, after encoding with x265 codec and key frames added each second
+//@video Video to be sent. The video size must be 720x1280. The video must be streamable and stored in MPEG4 format, after encoding with H.265 codec and key frames added each second
 //@added_sticker_file_ids File identifiers of the stickers added to the video, if applicable
 //@duration Precise duration of the video, in seconds; 0-60
 //@cover_frame_timestamp Timestamp of the frame, which will be used as video thumbnail
