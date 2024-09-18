@@ -6,9 +6,14 @@
 //
 #pragma once
 
+#include "td/telegram/td_api.h"
+#include "td/telegram/UserId.h"
+
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
+#include "td/utils/Promise.h"
 
 namespace td {
 
@@ -18,11 +23,23 @@ class StarGiftManager final : public Actor {
  public:
   StarGiftManager(Td *td, ActorShared<> parent);
 
+  void get_gift_payment_options(Promise<td_api::object_ptr<td_api::gifts>> &&promise);
+
+  void on_get_gift_prices(FlatHashMap<int64, int64> gift_prices);
+
+  void send_gift(int64 gift_id, UserId user_id, td_api::object_ptr<td_api::formattedText> text, bool is_private,
+                 Promise<Unit> &&promise);
+
+  void get_user_gifts(UserId user_id, const string &offset, int32 limit,
+                      Promise<td_api::object_ptr<td_api::userGifts>> &&promise);
+
  private:
   void tear_down() final;
 
   Td *td_;
   ActorShared<> parent_;
+
+  FlatHashMap<int64, int64> gift_prices_;
 };
 
 }  // namespace td
