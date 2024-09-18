@@ -2801,6 +2801,12 @@ class CliClient final : public Actor {
       string text;
       get_args(args, gift_id, user_id, text);
       send_request(td_api::make_object<td_api::sendGift>(gift_id, user_id, as_formatted_text(text), op == "sgiftp"));
+    } else if (op == "gug") {
+      UserId user_id;
+      string offset;
+      int32 limit;
+      get_args(args, user_id, offset, limit);
+      send_request(td_api::make_object<td_api::getUserGifts>(user_id, offset, limit));
     } else if (op == "rsp") {
       UserId user_id;
       string telegram_payment_charge_id;

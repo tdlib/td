@@ -46,6 +46,9 @@ class StarManager final : public Actor {
   void send_gift(int64 gift_id, UserId user_id, td_api::object_ptr<td_api::formattedText> text, bool is_private,
                  Promise<Unit> &&promise);
 
+  void get_user_gifts(UserId user_id, const string &offset, int32 limit,
+                      Promise<td_api::object_ptr<td_api::userGifts>> &&promise);
+
   void get_star_transactions(td_api::object_ptr<td_api::MessageSender> owner_id, const string &subscription_id,
                              const string &offset, int32 limit,
                              td_api::object_ptr<td_api::StarTransactionDirection> &&direction,

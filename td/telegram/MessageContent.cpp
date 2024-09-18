@@ -8316,9 +8316,9 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(const Mess
     }
     case MessageContentType::StarGift: {
       const auto *m = static_cast<const MessageStarGift *>(content);
-      return td_api::make_object<td_api::messageGift>(
-          m->star_gift.get_gift_object(td), get_formatted_text_object(td->user_manager_.get(), m->text, true, -1),
-          m->convert_star_count, m->name_hidden, m->is_saved, m->was_converted);
+      return td_api::make_object<td_api::messageGift>(m->star_gift.get_gift_object(td), get_text_object(m->text),
+                                                      m->convert_star_count, m->name_hidden, m->is_saved,
+                                                      m->was_converted);
     }
     default:
       UNREACHABLE();

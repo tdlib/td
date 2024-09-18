@@ -7040,6 +7040,13 @@ void Requests::on_request(uint64 id, td_api::sendGift &request) {
                                 request.is_private_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::getUserGifts &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.offset_);
+  CREATE_REQUEST_PROMISE();
+  td_->star_manager_->get_user_gifts(UserId(request.user_id_), request.offset_, request.limit_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::createInvoiceLink &request) {
   CHECK_IS_BOT();
   CREATE_HTTP_URL_REQUEST_PROMISE();
