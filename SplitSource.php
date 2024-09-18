@@ -413,7 +413,8 @@ function split_file($file, $chunks, $undo) {
             'SentEmailCode' => 'SentEmailCode',
             'SharedDialog' => 'SharedDialog',
             'sponsored_message_manager[_(-](?![.]get[(][)])|SponsoredMessageManager' => 'SponsoredMessageManager',
-            'StarGift' => 'StarGift'
+            'StarGift[^M]' => 'StarGift'
+            'star_gift_manager[_(-](?![.]get[(][)])|StarGiftManager' => 'StarGiftManager',
             'star_manager[_(-](?![.]get[(][)])|StarManager' => 'StarManager',
             'StarSubscription[^P]' => 'StarSubscription',
             'StarSubscriptionPricing' => 'StarSubscriptionPricing',
