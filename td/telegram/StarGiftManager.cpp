@@ -207,10 +207,8 @@ class GetUserGiftsQuery final : public Td::ResultHandler {
       if (!star_gift.is_valid()) {
         continue;
       }
-      FormattedText text;
-      if (gift->message_ != nullptr) {
-        text = get_formatted_text(td_->user_manager_.get(), std::move(gift->message_), true, false, "userStarGift");
-      }
+      FormattedText text =
+          get_formatted_text(td_->user_manager_.get(), std::move(gift->message_), true, false, "userStarGift");
       auto message_id = MessageId(ServerMessageId(gift->msg_id_));
       if (message_id != MessageId() && !message_id.is_valid()) {
         LOG(ERROR) << "Receive " << message_id;

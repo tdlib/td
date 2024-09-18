@@ -21,9 +21,7 @@ unique_ptr<FactCheck> FactCheck::get_fact_check(const UserManager *user_manager,
   }
   auto result = make_unique<FactCheck>();
   result->country_code_ = std::move(fact_check->country_);
-  if (fact_check->text_ != nullptr) {
-    result->text_ = get_formatted_text(user_manager, std::move(fact_check->text_), true, false, "factCheck");
-  }
+  result->text_ = get_formatted_text(user_manager, std::move(fact_check->text_), true, false, "factCheck");
   result->hash_ = fact_check->hash_;
   result->need_check_ = fact_check->need_check_;
   return result;

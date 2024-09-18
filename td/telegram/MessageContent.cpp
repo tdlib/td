@@ -7826,11 +7826,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       if (!star_gift.is_valid()) {
         break;
       }
-      FormattedText text;
-      if (action->message_ != nullptr) {
-        text = get_formatted_text(td->user_manager_.get(), std::move(action->message_), true, false,
-                                  "messageActionStarGift");
-      }
+      FormattedText text = get_formatted_text(td->user_manager_.get(), std::move(action->message_), true, false,
+                                              "messageActionStarGift");
       return td::make_unique<MessageStarGift>(std::move(star_gift), std::move(text),
                                               StarManager::get_star_count(action->convert_stars_), action->name_hidden_,
                                               action->saved_, action->converted_);
