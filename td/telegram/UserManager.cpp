@@ -3296,6 +3296,16 @@ void UserManager::on_update_user_full_common_chat_count(UserFull *user_full, Use
   }
 }
 
+void UserManager::on_update_my_gift_count(int32 added_gift_count) {
+  auto user_id = get_my_id();
+  UserFull *user_full = get_user_full_force(user_id, "on_update_my_gift_count");
+  if (user_full == nullptr || user_full->gift_count + added_gift_count < 0) {
+    return;
+  }
+  on_update_user_full_gift_count(user_full, user_id, user_full->gift_count + added_gift_count);
+  update_user_full(user_full, user_id, "on_update_my_gift_count");
+}
+
 void UserManager::on_update_user_full_gift_count(UserFull *user_full, UserId user_id, int32 gift_count) {
   CHECK(user_full != nullptr);
   if (gift_count < 0) {

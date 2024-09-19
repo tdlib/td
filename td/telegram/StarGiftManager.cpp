@@ -184,7 +184,7 @@ class ConvertStarGiftQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    promise_.set_value(Unit());
+    td_->user_manager_->reload_user_full(td_->user_manager_->get_my_id(), std::move(promise_), "ConvertStarGiftQuery");
   }
 
   void on_error(Status status) final {
@@ -194,12 +194,14 @@ class ConvertStarGiftQuery final : public Td::ResultHandler {
 
 class SaveStarGiftQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
+  bool is_saved_;
 
  public:
   explicit SaveStarGiftQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(telegram_api::object_ptr<telegram_api::InputUser> input_user, MessageId message_id, bool is_saved) {
+    is_saved_ = is_saved;
     int32 flags = 0;
     if (!is_saved) {
       flags |= telegram_api::payments_saveStarGift::UNSAVE_MASK;
@@ -214,6 +216,7 @@ class SaveStarGiftQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
+    td_->user_manager_->on_update_my_gift_count(is_saved_ ? 1 : -1);
     promise_.set_value(Unit());
   }
 
