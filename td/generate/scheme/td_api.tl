@@ -3910,7 +3910,7 @@ inputMessagePhoto photo:InputFile thumbnail:inputThumbnail added_sticker_file_id
 inputMessageSticker sticker:InputFile thumbnail:inputThumbnail width:int32 height:int32 emoji:string = InputMessageContent;
 
 //@description A video message
-//@video Video to be sent
+//@video Video to be sent. The video is supposed to be reencoded to MPEG4 format with H.264 codec by the sender
 //@thumbnail Video thumbnail; pass null to skip thumbnail uploading
 //@added_sticker_file_ids File identifiers of the stickers added to the video, if applicable
 //@duration Duration of the video, in seconds
