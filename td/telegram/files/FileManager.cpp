@@ -142,7 +142,7 @@ class FileManager::FileInfoLocal final : public FileManager::FileInfo {
   FullLocalFileLocation location_;
   int64 size_ = 0;
   unique_ptr<PartialRemoteFileLocation> partial_remote_location_;
-  const FileIdInfo *remote_file_info_ = nullptr;
+  FileIdInfo *remote_file_info_ = nullptr;
 
  public:
   FileInfoLocal(FullLocalFileLocation location, int64 size) : location_(std::move(location)), size_(size) {
@@ -237,6 +237,12 @@ class FileManager::FileInfoLocal final : public FileManager::FileInfo {
   void set_expected_size(int64 expected_size) final {
     UNREACHABLE();
   }
+
+  void delete_file_reference(Slice file_reference) final {
+    if (remote_file_info_ != nullptr && remote_file_info_->file_info_ != nullptr) {
+      remote_file_info_->file_info_->delete_file_reference(file_reference);
+    }
+  }
 };
 
 class FileManager::FileInfoGenerate final : public FileManager::FileInfo {
@@ -245,7 +251,7 @@ class FileManager::FileInfoGenerate final : public FileManager::FileInfo {
   string url_;
   unique_ptr<PartialLocalFileLocation> partial_local_location_;
   unique_ptr<PartialRemoteFileLocation> partial_remote_location_;
-  const FileIdInfo *local_file_info_ = nullptr;
+  FileIdInfo *local_file_info_ = nullptr;
 
  public:
   FileInfoGenerate(FullGenerateFileLocation location, int64 expected_size, string url)
@@ -400,6 +406,12 @@ class FileManager::FileInfoGenerate final : public FileManager::FileInfo {
       on_changed();
     }
   }
+
+  void delete_file_reference(Slice file_reference) final {
+    if (local_file_info_ != nullptr && local_file_info_->file_info_ != nullptr) {
+      local_file_info_->file_info_->delete_file_reference(file_reference);
+    }
+  }
 };
 
 class FileManager::FileInfoRemote final : public FileManager::FileInfo {
@@ -409,7 +421,7 @@ class FileManager::FileInfoRemote final : public FileManager::FileInfo {
   string remote_name_;
   string url_;
   unique_ptr<PartialLocalFileLocation> partial_local_location_;
-  const FileIdInfo *local_file_info_ = nullptr;
+  FileIdInfo *local_file_info_ = nullptr;
 
  public:
   FileInfoRemote(FullRemoteFileLocation location, int64 size, int64 expected_size, string remote_name, string url)
@@ -541,6 +553,15 @@ class FileManager::FileInfoRemote final : public FileManager::FileInfo {
 
   void set_expected_size(int64 expected_size) final {
     UNREACHABLE();
+  }
+
+  void delete_file_reference(Slice file_reference) final {
+    if (!location_.delete_file_reference(file_reference)) {
+      VLOG(file_references) << "Can't delete unmatching file reference " << format::escaped(file_reference) << ", have "
+                            << format::escaped(location_.get_file_reference());
+    } else {
+      on_database_changed();
+    }
   }
 };
 

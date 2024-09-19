@@ -754,6 +754,8 @@ class FileManager final : public Actor {
     virtual void set_size(int64 size) = 0;
 
     virtual void set_expected_size(int64 expected_size) = 0;
+
+    virtual void delete_file_reference(Slice file_reference) = 0;
   };
 
   class FileInfoLocal;
