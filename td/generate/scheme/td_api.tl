@@ -8336,20 +8336,25 @@ getSecretChat secret_chat_id:int32 = SecretChat;
 //@description Returns information about a chat by its identifier; this is an offline request if the current user is not a bot @chat_id Chat identifier
 getChat chat_id:int53 = Chat;
 
-//@description Returns information about a message @chat_id Identifier of the chat the message belongs to @message_id Identifier of the message to get
+//@description Returns information about a message. Returns a 404 error if the message doesn't exist
+//@chat_id Identifier of the chat the message belongs to
+//@message_id Identifier of the message to get
 getMessage chat_id:int53 message_id:int53 = Message;
 
-//@description Returns information about a message, if it is available without sending network request. This is an offline request @chat_id Identifier of the chat the message belongs to @message_id Identifier of the message to get
+//@description Returns information about a message, if it is available without sending network request. Returns a 404 error if message isn't available locally. This is an offline request
+//@chat_id Identifier of the chat the message belongs to
+//@message_id Identifier of the message to get
 getMessageLocally chat_id:int53 message_id:int53 = Message;
 
 //@description Returns information about a non-bundled message that is replied by a given message. Also, returns the pinned message, the game message, the invoice message,
 //-the message with a previously set same background, the giveaway message, and the topic creation message for messages of the types
-//-messagePinMessage, messageGameScore, messagePaymentSuccessful, messageChatSetBackground, messageGiveawayCompleted and topic messages without non-bundled replied message respectively
+//-messagePinMessage, messageGameScore, messagePaymentSuccessful, messageChatSetBackground, messageGiveawayCompleted and topic messages without non-bundled replied message respectively.
+//-Returns a 404 error if the message doesn't exist
 //@chat_id Identifier of the chat the message belongs to
 //@message_id Identifier of the reply message
 getRepliedMessage chat_id:int53 message_id:int53 = Message;
 
-//@description Returns information about a newest pinned message in the chat @chat_id Identifier of the chat the message belongs to
+//@description Returns information about a newest pinned message in the chat. Returns a 404 error if the message doesn't exist @chat_id Identifier of the chat the message belongs to
 getChatPinnedMessage chat_id:int53 = Message;
 
 //@description Returns information about a message with the callback button that originated a callback query; for bots only @chat_id Identifier of the chat the message belongs to @message_id Message identifier @callback_query_id Identifier of the callback query
