@@ -1684,6 +1684,7 @@ void UserManager::UserFull::store(StorerT &storer) const {
   bool has_personal_channel_id = personal_channel_id.is_valid();
   bool has_flags2 = true;
   bool has_privacy_policy_url = !privacy_policy_url.empty();
+  bool has_gift_count = gift_count != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
   STORE_FLAG(is_blocked);
@@ -1720,6 +1721,7 @@ void UserManager::UserFull::store(StorerT &storer) const {
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_preview_medias);
     STORE_FLAG(has_privacy_policy_url);
+    STORE_FLAG(has_gift_count);
     END_STORE_FLAGS();
   }
   if (has_about) {
@@ -1776,6 +1778,9 @@ void UserManager::UserFull::store(StorerT &storer) const {
   if (has_privacy_policy_url) {
     store(privacy_policy_url, storer);
   }
+  if (has_gift_count) {
+    store(gift_count, storer);
+  }
 }
 
 template <class ParserT>
@@ -1799,6 +1804,7 @@ void UserManager::UserFull::parse(ParserT &parser) {
   bool has_personal_channel_id;
   bool has_flags2;
   bool has_privacy_policy_url = false;
+  bool has_gift_count = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_about);
   PARSE_FLAG(is_blocked);
@@ -1835,6 +1841,7 @@ void UserManager::UserFull::parse(ParserT &parser) {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_preview_medias);
     PARSE_FLAG(has_privacy_policy_url);
+    PARSE_FLAG(has_gift_count);
     END_PARSE_FLAGS();
   }
   if (has_about) {
@@ -1890,6 +1897,9 @@ void UserManager::UserFull::parse(ParserT &parser) {
   }
   if (has_privacy_policy_url) {
     parse(privacy_policy_url, parser);
+  }
+  if (has_gift_count) {
+    parse(gift_count, parser);
   }
 }
 
@@ -3282,6 +3292,18 @@ void UserManager::on_update_user_full_common_chat_count(UserFull *user_full, Use
   if (user_full->common_chat_count != common_chat_count) {
     user_full->common_chat_count = common_chat_count;
     user_full->is_common_chat_count_changed = true;
+    user_full->is_changed = true;
+  }
+}
+
+void UserManager::on_update_user_full_gift_count(UserFull *user_full, UserId user_id, int32 gift_count) {
+  CHECK(user_full != nullptr);
+  if (gift_count < 0) {
+    LOG(ERROR) << "Receive " << gift_count << " as gift count with " << user_id;
+    gift_count = 0;
+  }
+  if (user_full->gift_count != gift_count) {
+    user_full->gift_count = gift_count;
     user_full->is_changed = true;
   }
 }
@@ -6863,6 +6885,7 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
   user_full->expires_at = Time::now() + USER_FULL_EXPIRE_TIME;
 
   on_update_user_full_is_blocked(user_full, user_id, user->blocked_, user->blocked_my_stories_from_);
+  on_update_user_full_gift_count(user_full, user_id, user->stargifts_count_);
   on_update_user_full_common_chat_count(user_full, user_id, user->common_chats_count_);
   on_update_user_full_location(user_full, user_id, DialogLocation(td_, std::move(user->business_location_)));
   on_update_user_full_work_hours(user_full, user_id, BusinessWorkHours(std::move(user->business_work_hours_)));
@@ -7226,6 +7249,7 @@ void UserManager::drop_user_full(UserId user_id) {
   user_full->description_animation_file_id = FileId();
   user_full->menu_button = nullptr;
   user_full->commands.clear();
+  user_full->gift_count = 0;
   user_full->common_chat_count = 0;
   user_full->personal_channel_id = ChannelId();
   user_full->business_info = nullptr;
@@ -8029,8 +8053,8 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
       !user_full->private_forward_name.empty(), voice_messages_forbidden, user_full->has_pinned_stories,
       user_full->sponsored_enabled, user_full->need_phone_number_privacy_exception, user_full->wallpaper_overridden,
       std::move(bio_object), user_full->birthdate.get_birthdate_object(), personal_chat_id,
-      get_premium_payment_options_object(user_full->premium_gift_options), user_full->common_chat_count,
-      std::move(business_info), std::move(bot_info));
+      get_premium_payment_options_object(user_full->premium_gift_options), user_full->gift_count,
+      user_full->common_chat_count, std::move(business_info), std::move(bot_info));
 }
 
 td_api::object_ptr<td_api::updateContactCloseBirthdays> UserManager::get_update_contact_close_birthdays() const {

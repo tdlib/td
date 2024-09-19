@@ -591,6 +591,7 @@ class UserManager final : public Actor {
     AdministratorRights group_administrator_rights;
     AdministratorRights broadcast_administrator_rights;
 
+    int32 gift_count = 0;
     int32 common_chat_count = 0;
     Birthdate birthdate;
 
@@ -821,6 +822,8 @@ class UserManager final : public Actor {
 
   static void on_update_user_full_is_blocked(UserFull *user_full, UserId user_id, bool is_blocked,
                                              bool is_blocked_for_stories);
+
+  static void on_update_user_full_gift_count(UserFull *user_full, UserId user_id, int32 gift_count);
 
   static void on_update_user_full_common_chat_count(UserFull *user_full, UserId user_id, int32 common_chat_count);
 
