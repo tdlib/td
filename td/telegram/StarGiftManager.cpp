@@ -288,6 +288,9 @@ class GetUserGiftsQuery final : public Td::ResultHandler {
           gift->date_, star_gift.get_gift_object(td_), message_id.get(),
           StarManager::get_star_count(gift->convert_stars_)));
     }
+    if (!is_me) {
+      td_->user_manager_->on_update_user_gift_count(user_id_, total_count);
+    }
     promise_.set_value(td_api::make_object<td_api::userGifts>(total_count, std::move(gifts), ptr->next_offset_));
   }
 

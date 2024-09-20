@@ -3300,6 +3300,21 @@ void UserManager::on_update_user_full_common_chat_count(UserFull *user_full, Use
   }
 }
 
+void UserManager::on_update_user_gift_count(UserId user_id, int32 gift_count) {
+  LOG(INFO) << "Receive " << gift_count << " gifts for " << user_id;
+  if (!user_id.is_valid()) {
+    LOG(ERROR) << "Receive invalid " << user_id;
+    return;
+  }
+
+  UserFull *user_full = get_user_full_force(user_id, "on_update_user_gift_count");
+  if (user_full == nullptr) {
+    return;
+  }
+  on_update_user_full_gift_count(user_full, user_id, gift_count);
+  update_user_full(user_full, user_id, "on_update_user_gift_count");
+}
+
 void UserManager::on_update_my_gift_count(int32 added_gift_count) {
   auto user_id = get_my_id();
   UserFull *user_full = get_user_full_force(user_id, "on_update_my_gift_count");

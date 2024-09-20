@@ -140,6 +140,8 @@ class UserManager final : public Actor {
 
   void on_update_user_common_chat_count(UserId user_id, int32 common_chat_count);
 
+  void on_update_user_gift_count(UserId user_id, int32 gift_count);
+
   void on_update_my_gift_count(int32 added_gift_count);
 
   void on_update_my_user_location(DialogLocation &&location);
