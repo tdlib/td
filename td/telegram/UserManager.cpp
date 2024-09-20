@@ -3842,8 +3842,8 @@ UserManager::User *UserManager::get_user_force(UserId user_id, const char *sourc
   auto u = get_user_force_impl(user_id, source);
   if ((u == nullptr || !u->is_received) &&
       (user_id == get_service_notifications_user_id() || user_id == get_replies_bot_user_id() ||
-       user_id == get_anonymous_bot_user_id() || user_id == get_channel_bot_user_id() ||
-       user_id == get_anti_spam_bot_user_id())) {
+       user_id == get_verification_codes_bot_user_id() || user_id == get_anonymous_bot_user_id() ||
+       user_id == get_channel_bot_user_id() || user_id == get_anti_spam_bot_user_id())) {
     int32 flags = USER_FLAG_HAS_ACCESS_HASH | USER_FLAG_HAS_FIRST_NAME | USER_FLAG_NEED_APPLY_MIN_PHOTO;
     int64 profile_photo_id = 0;
     int32 profile_photo_dc_id = 1;
@@ -3870,6 +3870,11 @@ UserManager::User *UserManager::get_user_force(UserId user_id, const char *sourc
       first_name = "Replies";
       username = "replies";
       bot_info_version = G()->is_test_dc() ? 1 : 3;
+    } else if (user_id == get_verification_codes_bot_user_id()) {
+      flags |= USER_FLAG_HAS_USERNAME | USER_FLAG_IS_BOT | USER_FLAG_IS_PRIVATE_BOT | USER_FLAG_IS_VERIFIED;
+      first_name = "Verification Codes";
+      username = "VerificationCodes";
+      bot_info_version = G()->is_test_dc() ? 4 : 2;
     } else if (user_id == get_anonymous_bot_user_id()) {
       flags |= USER_FLAG_HAS_USERNAME | USER_FLAG_IS_BOT;
       if (!G()->is_test_dc()) {
@@ -3970,8 +3975,8 @@ bool UserManager::get_user(UserId user_id, int left_tries, Promise<Unit> &&promi
   }
 
   if (user_id == get_service_notifications_user_id() || user_id == get_replies_bot_user_id() ||
-      user_id == get_anonymous_bot_user_id() || user_id == get_channel_bot_user_id() ||
-      user_id == get_anti_spam_bot_user_id()) {
+      user_id == get_verification_codes_bot_user_id() || user_id == get_anonymous_bot_user_id() ||
+      user_id == get_channel_bot_user_id() || user_id == get_anti_spam_bot_user_id()) {
     get_user_force(user_id, "get_user");
   }
 
