@@ -41,6 +41,7 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::starGift> &&st
 
   id_ = star_gift->id_;
   star_count_ = StarManager::get_star_count(star_gift->stars_);
+  default_sell_star_count_ = StarManager::get_star_count(star_gift->convert_stars_);
   sticker_file_id_ = sticker_id;
   availability_remains_ = star_gift->availability_remains_;
   availability_total_ = star_gift->availability_total_;
@@ -49,11 +50,13 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::starGift> &&st
 td_api::object_ptr<td_api::gift> StarGift::get_gift_object(const Td *td) const {
   CHECK(is_valid());
   return td_api::make_object<td_api::gift>(id_, td->stickers_manager_->get_sticker_object(sticker_file_id_),
-                                           star_count_, availability_remains_, availability_total_);
+                                           star_count_, default_sell_star_count_, availability_remains_,
+                                           availability_total_);
 }
 
 bool operator==(const StarGift &lhs, const StarGift &rhs) {
   return lhs.id_ == rhs.id_ && lhs.sticker_file_id_ == rhs.sticker_file_id_ && lhs.star_count_ == rhs.star_count_ &&
+         lhs.default_sell_star_count_ == rhs.default_sell_star_count_ &&
          lhs.availability_remains_ == rhs.availability_remains_ && lhs.availability_total_ == rhs.availability_total_;
 }
 
