@@ -227,12 +227,15 @@ class SaveStarGiftQuery final : public Td::ResultHandler {
 
 class GetUserGiftsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::userGifts>> promise_;
+  UserId user_id_;
 
  public:
   explicit GetUserGiftsQuery(Promise<td_api::object_ptr<td_api::userGifts>> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(telegram_api::object_ptr<telegram_api::InputUser> input_user, const string &offset, int32 limit) {
+  void send(UserId user_id, telegram_api::object_ptr<telegram_api::InputUser> input_user, const string &offset,
+            int32 limit) {
+    user_id_ = user_id;
     send_query(
         G()->net_query_creator().create(telegram_api::payments_getUserStarGifts(std::move(input_user), offset, limit)));
   }
@@ -252,6 +255,7 @@ class GetUserGiftsQuery final : public Td::ResultHandler {
       LOG(ERROR) << "Receive " << ptr->gifts_.size() << " gifts with total count = " << total_count;
       total_count = static_cast<int32>(ptr->gifts_.size());
     }
+    bool is_me = user_id_ == td_->user_manager_->get_my_id();
     vector<td_api::object_ptr<td_api::userGift>> gifts;
     for (auto &gift : ptr->gifts_) {
       UserId sender_user_id(gift->from_id_);
@@ -262,6 +266,10 @@ class GetUserGiftsQuery final : public Td::ResultHandler {
       if (sender_user_id == UserId() && !gift->name_hidden_) {
         LOG(ERROR) << "Receive a gift without a sender";
         continue;
+      }
+      if (gift->unsaved_ && !is_me) {
+        LOG(ERROR) << "Receive unsaved gift for " << user_id_;
+        gift->unsaved_ = false;
       }
       StarGift star_gift(td_, std::move(gift->gift_));
       if (!star_gift.is_valid()) {
@@ -276,8 +284,9 @@ class GetUserGiftsQuery final : public Td::ResultHandler {
       }
       gifts.push_back(td_api::make_object<td_api::userGift>(
           td_->user_manager_->get_user_id_object(sender_user_id, "userGift"),
-          get_formatted_text_object(td_->user_manager_.get(), text, true, -1), gift->name_hidden_, gift->date_,
-          star_gift.get_gift_object(td_), message_id.get(), StarManager::get_star_count(gift->convert_stars_)));
+          get_formatted_text_object(td_->user_manager_.get(), text, true, -1), gift->name_hidden_, !gift->unsaved_,
+          gift->date_, star_gift.get_gift_object(td_), message_id.get(),
+          StarManager::get_star_count(gift->convert_stars_)));
     }
     promise_.set_value(td_api::make_object<td_api::userGifts>(total_count, std::move(gifts), ptr->next_offset_));
   }
@@ -357,7 +366,7 @@ void StarGiftManager::get_user_gifts(UserId user_id, const string &offset, int32
   if (limit < 0) {
     return promise.set_error(Status::Error(400, "Limit must be non-negative"));
   }
-  td_->create_handler<GetUserGiftsQuery>(std::move(promise))->send(std::move(input_user), offset, limit);
+  td_->create_handler<GetUserGiftsQuery>(std::move(promise))->send(user_id, std::move(input_user), offset, limit);
 }
 
 }  // namespace td
