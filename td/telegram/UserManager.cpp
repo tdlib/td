@@ -2215,6 +2215,10 @@ UserId UserManager::get_replies_bot_user_id() {
   return UserId(static_cast<int64>(G()->is_test_dc() ? 708513 : 1271266957));
 }
 
+UserId UserManager::get_verification_codes_bot_user_id() {
+  return UserId(static_cast<int64>(489000));
+}
+
 UserId UserManager::get_anonymous_bot_user_id() {
   return UserId(static_cast<int64>(G()->is_test_dc() ? 552888 : 1087968824));
 }

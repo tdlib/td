@@ -102,6 +102,8 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("telegram_service_notifications_chat_id",
                              DialogId(UserManager::get_service_notifications_user_id()).get());
   set_default_integer_option("replies_bot_chat_id", DialogId(UserManager::get_replies_bot_user_id()).get());
+  set_default_integer_option("verification_codes_bot_chat_id",
+                             DialogId(UserManager::get_verification_codes_bot_user_id()).get());
   set_default_integer_option("group_anonymous_bot_user_id", UserManager::get_anonymous_bot_user_id().get());
   set_default_integer_option("channel_bot_user_id", UserManager::get_channel_bot_user_id().get());
   set_default_integer_option("anti_spam_bot_user_id", UserManager::get_anti_spam_bot_user_id().get());

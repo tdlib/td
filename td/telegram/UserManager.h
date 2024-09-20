@@ -85,6 +85,8 @@ class UserManager final : public Actor {
 
   static UserId get_replies_bot_user_id();
 
+  static UserId get_verification_codes_bot_user_id();
+
   static UserId get_anonymous_bot_user_id();
 
   static UserId get_channel_bot_user_id();
