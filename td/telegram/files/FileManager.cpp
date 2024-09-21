@@ -2949,18 +2949,17 @@ void FileManager::delete_file(FileId file_id, Promise<Unit> promise, const char 
 void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> callback, int32 new_priority, int64 offset,
                            int64 limit, Promise<td_api::object_ptr<td_api::file>> promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
+  CHECK(callback != nullptr);
 
   auto node = get_sync_file_node(file_id);
   if (!node) {
     LOG(INFO) << "File " << file_id << " not found";
     auto error = Status::Error(400, "File not found");
-    if (callback) {
-      callback->on_download_error(file_id, error.clone());
-    }
+    callback->on_download_error(file_id, error.clone());
     return promise.set_error(std::move(error));
   }
 
-  if ((callback == nullptr && new_priority <= 0) || node->local_.type() == LocalFileLocation::Type::Empty) {
+  if (node->local_.type() == LocalFileLocation::Type::Empty) {
     // skip local location check if download is canceled or there is no local location
     return download_impl(file_id, std::move(callback), new_priority, offset, limit, Status::OK(), std::move(promise));
   }
@@ -2993,9 +2992,7 @@ void FileManager::download_impl(FileId file_id, std::shared_ptr<DownloadCallback
   }
   if (node->local_.type() == LocalFileLocation::Type::Full) {
     LOG(INFO) << "File " << file_id << " is already downloaded";
-    if (callback) {
-      callback->on_download_ok(file_id);
-    }
+    callback->on_download_ok(file_id);
     return promise.set_value(get_file_object(file_id, false));
   }
 
@@ -3003,9 +3000,7 @@ void FileManager::download_impl(FileId file_id, std::shared_ptr<DownloadCallback
   if (!file_view.can_download_from_server() && !file_view.can_generate()) {
     LOG(INFO) << "File " << file_id << " can't be downloaded";
     auto error = Status::Error(400, "Can't download or generate the file");
-    if (callback) {
-      callback->on_download_error(file_id, error.clone());
-    }
+    callback->on_download_error(file_id, error.clone());
     return promise.set_error(std::move(error));
   }
 
@@ -3017,15 +3012,13 @@ void FileManager::download_impl(FileId file_id, std::shared_ptr<DownloadCallback
     new_priority = 0;
   }
 
-  LOG(INFO) << "Change download priority of file " << file_id << " to " << new_priority << " with callback "
-            << callback.get();
+  LOG(INFO) << "Change download priority of file " << file_id << " to " << new_priority;
   node->set_download_offset(offset);
   node->set_download_limit(limit);
   auto *file_info = get_file_id_info(file_id);
-  CHECK(new_priority == 0 || callback);
   if (file_info->download_callback_ != nullptr && file_info->download_callback_.get() != callback.get()) {
     // the old callback will be destroyed soon and lost forever
-    // this is a bug and must never happen, unless we cancel previous download query
+    // this is a bug and must never happen,
     // but still there is no way to prevent this with the current FileManager implementation
     if (new_priority == 0) {
       file_info->download_callback_->on_download_error(file_id, Status::Error(200, "Canceled"));
@@ -3037,11 +3030,7 @@ void FileManager::download_impl(FileId file_id, std::shared_ptr<DownloadCallback
   file_info->ignore_download_limit = limit == IGNORE_DOWNLOAD_LIMIT;
   file_info->download_priority_ = narrow_cast<int8>(new_priority);
   file_info->download_callback_ = std::move(callback);
-
-  if (file_info->download_callback_) {
-    file_info->download_callback_->on_progress(file_id);
-  }
-  // TODO: send current progress?
+  file_info->download_callback_->on_progress(file_id);
 
   run_generate(node);
   run_download(node, true);
