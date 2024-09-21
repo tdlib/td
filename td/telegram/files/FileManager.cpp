@@ -3507,13 +3507,13 @@ void FileManager::external_file_generate_finish(int64 generation_id, Status stat
 }
 
 void FileManager::run_generate(FileNodePtr node) {
-  if (node->need_load_from_pmc_) {
-    LOG(INFO) << "Skip run_generate, because file " << node->main_file_id_ << " needs to be loaded from PMC";
-    return;
-  }
   FileView file_view(node);
   if (!file_view.can_generate()) {
     // LOG(INFO) << "Skip run_generate, because file " << node->main_file_id_ << " can't be generated";
+    return;
+  }
+  if (node->need_load_from_pmc_) {
+    LOG(INFO) << "Skip run_generate, because file " << node->main_file_id_ << " needs to be loaded from PMC";
     return;
   }
   if (file_view.has_full_local_location()) {
