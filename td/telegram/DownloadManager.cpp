@@ -93,8 +93,8 @@ class DownloadManagerImpl final : public DownloadManager {
     TRY_STATUS_PROMISE(promise, check_is_active("toggle_all_is_paused"));
 
     vector<FileId> to_toggle;
-    for (auto &it : files_) {
-      FileInfo &file_info = *it.second;
+    for (const auto &it : files_) {
+      const FileInfo &file_info = *it.second;
       if (!is_completed(file_info) && is_paused != file_info.is_paused) {
         to_toggle.push_back(file_info.file_id);
       }
@@ -123,8 +123,8 @@ class DownloadManagerImpl final : public DownloadManager {
   void remove_all_files(bool only_active, bool only_completed, bool delete_from_cache, Promise<Unit> promise) final {
     TRY_STATUS_PROMISE(promise, check_is_active("remove_all_files"));
     vector<const FileInfo *> to_remove;
-    for (auto &it : files_) {
-      FileInfo &file_info = *it.second;
+    for (const auto &it : files_) {
+      const FileInfo &file_info = *it.second;
       if (only_active && is_completed(file_info)) {
         continue;
       }
@@ -442,6 +442,10 @@ class DownloadManagerImpl final : public DownloadManager {
       // file has already been added
       return;
     }
+    if (!(1 <= in_db.priority && in_db.priority <= 32)) {
+      LOG(ERROR) << "Receive invalid download priority from database";
+      return;
+    }
 
     auto file_info = make_unique<FileInfo>();
     file_info->download_id = in_db.download_id;
@@ -490,7 +494,7 @@ class DownloadManagerImpl final : public DownloadManager {
   }
 
   void prepare_hints() {
-    for (auto &it : files_) {
+    for (const auto &it : files_) {
       const auto &file_info = *it.second;
       auto promise =
           PromiseCreator::lambda([actor_id = actor_id(this), promise = load_search_text_multipromise_.get_promise(),

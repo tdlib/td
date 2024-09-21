@@ -38903,6 +38903,9 @@ void MessagesManager::add_message_file_to_downloads(MessageFullId message_full_i
   if (m == nullptr) {
     return promise.set_error(Status::Error(400, "Message not found"));
   }
+  if (!(1 <= priority && priority <= 32)) {
+    return promise.set_error(Status::Error(400, "Download priority must be between 1 and 32"));
+  }
   auto file_view = td_->file_manager_->get_file_view(file_id);
   if (file_view.empty()) {
     return promise.set_error(Status::Error(400, "File not found"));

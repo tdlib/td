@@ -2950,6 +2950,7 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
                            int64 limit, Promise<td_api::object_ptr<td_api::file>> promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   CHECK(callback != nullptr);
+  CHECK(new_priority > 0);
 
   auto node = get_sync_file_node(file_id);
   if (!node) {
@@ -3004,14 +3005,6 @@ void FileManager::download_impl(FileId file_id, std::shared_ptr<DownloadCallback
     return promise.set_error(std::move(error));
   }
 
-  if (new_priority == -1) {
-    if (node->is_download_started_) {
-      LOG(INFO) << "File " << file_id << " is being downloaded";
-      return promise.set_value(get_file_object(file_id, false));
-    }
-    new_priority = 0;
-  }
-
   LOG(INFO) << "Change download priority of file " << file_id << " to " << new_priority;
   node->set_download_offset(offset);
   node->set_download_limit(limit);
@@ -3020,12 +3013,8 @@ void FileManager::download_impl(FileId file_id, std::shared_ptr<DownloadCallback
     // the old callback will be destroyed soon and lost forever
     // this is a bug and must never happen,
     // but still there is no way to prevent this with the current FileManager implementation
-    if (new_priority == 0) {
-      file_info->download_callback_->on_download_error(file_id, Status::Error(200, "Canceled"));
-    } else {
-      LOG(ERROR) << "File " << file_id << " is used with different download callbacks";
-      file_info->download_callback_->on_download_error(file_id, Status::Error(500, "Internal Server Error"));
-    }
+    LOG(ERROR) << "File " << file_id << " is used with different download callbacks";
+    file_info->download_callback_->on_download_error(file_id, Status::Error(500, "Internal Server Error"));
   }
   file_info->ignore_download_limit = limit == IGNORE_DOWNLOAD_LIMIT;
   file_info->download_priority_ = narrow_cast<int8>(new_priority);
