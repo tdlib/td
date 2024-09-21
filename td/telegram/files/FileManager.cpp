@@ -3050,6 +3050,35 @@ void FileManager::download_impl(FileId file_id, std::shared_ptr<DownloadCallback
   promise.set_value(get_file_object(file_id, false));
 }
 
+void FileManager::cancel_download(FileId file_id, bool only_if_pending) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto node = get_sync_file_node(file_id);
+  if (!node) {
+    return;
+  }
+  if (only_if_pending && node->is_download_started_) {
+    LOG(INFO) << "File " << file_id << " is being downloaded";
+    return;
+  }
+
+  LOG(INFO) << "Cancel download of file " << file_id;
+  auto *file_info = get_file_id_info(file_id);
+  if (file_info->download_callback_ != nullptr) {
+    file_info->download_callback_->on_download_error(file_id, Status::Error(200, "Canceled"));
+    file_info->download_callback_ = nullptr;
+  }
+  file_info->ignore_download_limit = false;
+  file_info->download_priority_ = 0;
+
+  run_generate(node);
+  run_download(node, true);
+
+  try_flush_node(node, "cancel_download");
+}
+
 void FileManager::run_download(FileNodePtr node, bool force_update_priority) {
   int8 priority = 0;
   bool ignore_download_limit = false;

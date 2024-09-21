@@ -5431,9 +5431,7 @@ void Requests::on_request(uint64 id, const td_api::getFileDownloadedPrefixSize &
 }
 
 void Requests::on_request(uint64 id, const td_api::cancelDownloadFile &request) {
-  td_->file_manager_->download(FileId(request.file_id_, 0), nullptr, request.only_if_pending_ ? -1 : 0,
-                               FileManager::KEEP_DOWNLOAD_OFFSET, FileManager::KEEP_DOWNLOAD_LIMIT,
-                               Promise<td_api::object_ptr<td_api::file>>());
+  td_->file_manager_->cancel_download(FileId(request.file_id_, 0), request.only_if_pending_);
   send_closure(td_actor_, &Td::send_result, id, td_api::make_object<td_api::ok>());
 }
 

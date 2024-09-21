@@ -52,9 +52,7 @@ void DownloadManagerCallback::start_file(FileId file_id, int8 priority, ActorSha
 }
 
 void DownloadManagerCallback::pause_file(FileId file_id) {
-  send_closure_later(td_->file_manager_actor_, &FileManager::download, file_id, nullptr, 0,
-                     FileManager::KEEP_DOWNLOAD_OFFSET, FileManager::KEEP_DOWNLOAD_LIMIT,
-                     Promise<td_api::object_ptr<td_api::file>>());
+  send_closure_later(td_->file_manager_actor_, &FileManager::cancel_download, file_id, false);
 }
 
 void DownloadManagerCallback::delete_file(FileId file_id) {
