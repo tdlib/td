@@ -507,7 +507,7 @@ class FileManager final : public Actor {
   void check_local_location_async(FileId file_id, bool skip_file_size_checks);
 
   void download(FileId file_id, std::shared_ptr<DownloadCallback> callback, int32 new_priority, int64 offset,
-                int64 limit, Promise<td_api::object_ptr<td_api::file>> promise);
+                int64 limit);
   void cancel_download(FileId file_id, bool only_if_pending);
 
   void upload(FileId file_id, std::shared_ptr<UploadCallback> callback, int32 new_priority, uint64 upload_order);
@@ -836,7 +836,7 @@ class FileManager final : public Actor {
   bool try_forget_file_id(FileId file_id);
 
   void download_impl(FileId file_id, std::shared_ptr<DownloadCallback> callback, int32 new_priority, int64 offset,
-                     int64 limit, Status check_status, Promise<td_api::object_ptr<td_api::file>> promise);
+                     int64 limit, Status check_status);
 
   Status check_local_location(FileNodePtr node, bool skip_file_size_checks);
   void on_failed_check_local_location(FileNodePtr node);

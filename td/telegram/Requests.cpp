@@ -5360,7 +5360,7 @@ void Requests::on_request(uint64 id, const td_api::downloadFile &request) {
   FileId file_id(request.file_id_, 0);
   auto file_view = td_->file_manager_->get_file_view(file_id);
   if (file_view.empty()) {
-    return send_error_raw(id, 400, "Invalid file identifier");
+    return send_error_raw(id, 400, "File not found");
   }
 
   auto info_it = pending_file_downloads_.find(file_id);
@@ -5382,12 +5382,11 @@ void Requests::on_request(uint64 id, const td_api::downloadFile &request) {
     info->limit = limit;
     info->request_ids.push_back(id);
   }
-  Promise<td_api::object_ptr<td_api::file>> download_promise;
+  td_->file_manager_->download(file_id, download_file_callback_, priority, offset, limit);
   if (!request.synchronous_) {
     CREATE_REQUEST_PROMISE();
-    download_promise = std::move(promise);
+    promise.set_value(td_->file_manager_->get_file_object(file_id, false));
   }
-  td_->file_manager_->download(file_id, download_file_callback_, priority, offset, limit, std::move(download_promise));
 }
 
 void Requests::on_file_download_finished(FileId file_id) {
