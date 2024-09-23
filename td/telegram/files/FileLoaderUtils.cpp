@@ -353,7 +353,7 @@ Status check_partial_local_location(const PartialLocalFileLocation &location) {
     }
     return Status::Error("File must be a regular file");
   }
-  // can't check mtime. Hope nobody will mess with this files in our temporary dir.
+  // can't check mtime. Hope nobody will mess with the file in our temporary directory
   return Status::OK();
 }
 

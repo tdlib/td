@@ -2961,7 +2961,6 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
   }
 
   if (node->local_.type() == LocalFileLocation::Type::Empty) {
-    // skip local location check if download is canceled or there is no local location
     return download_impl(file_id, std::move(callback), new_priority, offset, limit, Status::OK());
   }
 
