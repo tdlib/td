@@ -2425,19 +2425,22 @@ Status FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sync) {
 
   // Check if some download/upload queries are ready
   for (auto file_id : vector<FileId>(node->file_ids_)) {
-    auto *info = get_file_id_info(file_id);
-    if (info->download_priority_ != 0 && file_view.has_full_local_location()) {
-      info->download_priority_ = 0;
-      if (info->download_callback_) {
-        info->download_callback_->on_download_ok(file_id);
-        info->download_callback_.reset();
+    if (file_view.has_full_local_location()) {
+      auto it = file_download_requests_.find(file_id);
+      if (it != file_download_requests_.end()) {
+        CHECK(it->second.download_callback_ != nullptr);
+        it->second.download_callback_->on_download_ok(file_id);
+        file_download_requests_.erase(it);
       }
     }
-    if (info->upload_priority_ != 0 && file_view.has_active_upload_remote_location()) {
-      info->upload_priority_ = 0;
-      if (info->upload_callback_) {
-        info->upload_callback_->on_upload_ok(file_id, nullptr);
-        info->upload_callback_.reset();
+    if (file_view.has_active_upload_remote_location()) {
+      auto *info = get_file_id_info(file_id);
+      if (info->upload_priority_ != 0) {
+        info->upload_priority_ = 0;
+        if (info->upload_callback_) {
+          info->upload_callback_->on_upload_ok(file_id, nullptr);
+          info->upload_callback_.reset();
+        }
       }
     }
   }
@@ -2597,9 +2600,10 @@ void FileManager::try_flush_node_info(FileNodePtr node, const char *source) {
         VLOG(update_file) << "Send UpdateFile about file " << file_id << " from " << source;
         context_->on_file_updated(file_id);
       }
-      if (info->download_callback_) {
-        // For DownloadManager. For everybody else it is just an empty function call (I hope).
-        info->download_callback_->on_progress(file_id);
+      auto it = file_download_requests_.find(file_id);
+      if (it != file_download_requests_.end()) {
+        CHECK(it->second.download_callback_ != nullptr);
+        it->second.download_callback_->on_progress(file_id);
       }
     }
     node->on_info_flushed();
@@ -2801,9 +2805,6 @@ bool FileManager::set_content(FileId file_id, BufferSlice bytes) {
   }
 
   do_cancel_download(node);
-
-  auto *file_info = get_file_id_info(file_id);
-  file_info->download_priority_ = FROM_BYTES_PRIORITY;
 
   node->set_download_priority(FROM_BYTES_PRIORITY);
 
@@ -3007,18 +3008,18 @@ void FileManager::download_impl(FileId file_id, std::shared_ptr<DownloadCallback
   LOG(INFO) << "Change download priority of file " << file_id << " to " << new_priority;
   node->set_download_offset(offset);
   node->set_download_limit(limit);
-  auto *file_info = get_file_id_info(file_id);
-  if (file_info->download_callback_ != nullptr && file_info->download_callback_.get() != callback.get()) {
+
+  auto &download_info = file_download_requests_[file_id];
+  if (download_info.download_callback_ != nullptr && download_info.download_callback_.get() != callback.get()) {
     // the old callback will be destroyed soon and lost forever
-    // this is a bug and must never happen,
-    // but still there is no way to prevent this with the current FileManager implementation
+    // this is a bug and must never happen
     LOG(ERROR) << "File " << file_id << " is used with different download callbacks";
-    file_info->download_callback_->on_download_error(file_id, Status::Error(500, "Internal Server Error"));
+    download_info.download_callback_->on_download_error(file_id, Status::Error(500, "Internal Server Error"));
   }
-  file_info->ignore_download_limit_ = limit == IGNORE_DOWNLOAD_LIMIT;
-  file_info->download_priority_ = narrow_cast<int8>(new_priority);
-  file_info->download_callback_ = std::move(callback);
-  file_info->download_callback_->on_progress(file_id);
+  download_info.ignore_download_limit_ = limit == IGNORE_DOWNLOAD_LIMIT;
+  download_info.download_priority_ = narrow_cast<int8>(new_priority);
+  download_info.download_callback_ = std::move(callback);
+  download_info.download_callback_->on_progress(file_id);
 
   run_generate(node);
   run_download(node, true);
@@ -3042,13 +3043,12 @@ void FileManager::cancel_download(FileId file_id, bool only_if_pending) {
   }
 
   LOG(INFO) << "Cancel download of file " << file_id;
-  auto *file_info = get_file_id_info(file_id);
-  if (file_info->download_callback_ != nullptr) {
-    file_info->download_callback_->on_download_error(file_id, Status::Error(200, "Canceled"));
-    file_info->download_callback_ = nullptr;
+  auto it = file_download_requests_.find(file_id);
+  if (it != file_download_requests_.end()) {
+    CHECK(it->second.download_callback_ != nullptr);
+    it->second.download_callback_->on_download_error(file_id, Status::Error(200, "Canceled"));
+    file_download_requests_.erase(it);
   }
-  file_info->ignore_download_limit_ = false;
-  file_info->download_priority_ = 0;
 
   run_generate(node);
   run_download(node, true);
@@ -3059,12 +3059,14 @@ void FileManager::cancel_download(FileId file_id, bool only_if_pending) {
 void FileManager::run_download(FileNodePtr node, bool force_update_priority) {
   int8 priority = 0;
   bool ignore_download_limit = false;
-  for (auto id : node->file_ids_) {
-    auto *info = get_file_id_info(id);
-    if (info->download_priority_ > priority) {
-      priority = info->download_priority_;
+  for (auto file_id : node->file_ids_) {
+    auto it = file_download_requests_.find(file_id);
+    if (it != file_download_requests_.end()) {
+      if (it->second.download_priority_ > priority) {
+        priority = it->second.download_priority_;
+      }
+      ignore_download_limit |= it->second.ignore_download_limit_;
     }
-    ignore_download_limit |= info->ignore_download_limit_;
   }
 
   auto old_priority = node->download_priority_;
@@ -3535,13 +3537,16 @@ void FileManager::run_generate(FileNodePtr node) {
   int8 upload_priority = 0;
   FileId file_id = node->main_file_id_;
   for (auto id : node->file_ids_) {
-    auto *info = get_file_id_info(id);
-    if (info->download_priority_ > download_priority) {
-      download_priority = info->download_priority_;
+    auto it = file_download_requests_.find(id);
+    if (it != file_download_requests_.end()) {
+      if (it->second.download_priority_ > download_priority) {
+        download_priority = it->second.download_priority_;
+      }
       if (download_priority > upload_priority) {
         file_id = id;
       }
     }
+    auto *info = get_file_id_info(id);
     if (info->upload_priority_ > upload_priority) {
       upload_priority = info->upload_priority_;
       if (upload_priority > download_priority) {
@@ -4484,7 +4489,6 @@ void FileManager::on_upload_ok(FileUploadManager::QueryId query_id, FileType fil
   auto *file_info = get_file_id_info(file_id);
   LOG(INFO) << "Found being uploaded file " << file_id << " with priority " << file_info->upload_priority_;
   file_info->upload_priority_ = 0;
-  file_info->download_priority_ = 0;
 
   FileView file_view(file_node);
   string file_name = get_file_name(file_type, file_view.suggested_path());
@@ -4850,14 +4854,13 @@ void FileManager::on_file_load_error(FileNodePtr node, Status status) {
   do_cancel_upload(node);
 
   for (auto file_id : vector<FileId>(node->file_ids_)) {
-    auto *info = get_file_id_info(file_id);
-    if (info->download_priority_ != 0) {
-      info->download_priority_ = 0;
-      if (info->download_callback_) {
-        info->download_callback_->on_download_error(file_id, status.clone());
-        info->download_callback_.reset();
-      }
+    auto it = file_download_requests_.find(file_id);
+    if (it != file_download_requests_.end()) {
+      CHECK(it->second.download_callback_ != nullptr);
+      it->second.download_callback_->on_download_error(file_id, status.clone());
+      file_download_requests_.erase(it);
     }
+    auto *info = get_file_id_info(file_id);
     if (info->upload_priority_ != 0) {
       info->upload_priority_ = 0;
       if (info->upload_callback_) {

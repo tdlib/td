@@ -771,16 +771,18 @@ class FileManager final : public Actor {
     bool send_updates_flag_{false};
     bool pin_flag_{false};
     bool sent_file_id_flag_{false};
-    bool ignore_download_limit_{false};
 
-    int8 download_priority_{0};
     int8 upload_priority_{0};
-
     uint64 upload_order_{0};
-
-    std::shared_ptr<DownloadCallback> download_callback_;
     std::shared_ptr<UploadCallback> upload_callback_;
   };
+
+  struct FileDownloadInfo {
+    int8 download_priority_ = 0;
+    bool ignore_download_limit_ = false;
+    std::shared_ptr<DownloadCallback> download_callback_;
+  };
+  FlatHashMap<FileId, FileDownloadInfo, FileIdHash> file_download_requests_;
 
   class ForceUploadActor;
 
