@@ -1606,10 +1606,8 @@ FileId FileManager::dup_file_id(FileId file_id, const char *source) {
 
 FileId FileManager::copy_file_id(FileId file_id, FileType file_type, DialogId owner_dialog_id, const char *source) {
   auto file_view = get_file_view(file_id);
-  auto download_file_id = dup_file_id(file_id, source);
-  auto result_file_id =
-      register_generate(file_type, file_view.suggested_path(), PSTRING() << "#file_id#" << download_file_id.get(),
-                        owner_dialog_id, file_view.size());
+  auto result_file_id = register_generate(file_type, file_view.suggested_path(),
+                                          PSTRING() << "#file_id#" << file_id.get(), owner_dialog_id, file_view.size());
   LOG(INFO) << "Copy file " << file_id << " to " << result_file_id << " from " << source;
   return result_file_id;
 }

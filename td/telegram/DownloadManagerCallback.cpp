@@ -63,10 +63,6 @@ void DownloadManagerCallback::delete_file(FileId file_id) {
                      "download manager callback");
 }
 
-FileId DownloadManagerCallback::dup_file_id(FileId file_id) {
-  return td_->file_manager_->dup_file_id(file_id, "DownloadManagerCallback");
-}
-
 void DownloadManagerCallback::get_file_search_text(FileId file_id, FileSourceId file_source_id,
                                                    Promise<string> &&promise) {
   send_closure(td_->file_reference_manager_actor_, &FileReferenceManager::get_file_search_text, file_source_id,

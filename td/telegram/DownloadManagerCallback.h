@@ -47,8 +47,6 @@ class DownloadManagerCallback final : public DownloadManager::Callback {
 
   void delete_file(FileId file_id) final;
 
-  FileId dup_file_id(FileId file_id) final;
-
   void get_file_search_text(FileId file_id, FileSourceId file_source_id, Promise<string> &&promise) final;
 
   FileView get_sync_file_view(FileId file_id) final;

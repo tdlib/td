@@ -241,8 +241,7 @@ FileId FileManager::parse_file(ParserT &parser) {
           if (file_id.empty()) {
             return register_empty(full_generated_location.file_type_);
           }
-          auto download_file_id = dup_file_id(file_id, "parse_download_file_id");
-          full_generated_location.conversion_ = PSTRING() << "#file_id#" << download_file_id.get();
+          full_generated_location.conversion_ = PSTRING() << "#file_id#" << file_id.get();
         }
 
         return register_generate(full_generated_location.file_type_, full_generated_location.original_path_,
