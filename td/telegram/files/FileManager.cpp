@@ -3015,7 +3015,7 @@ void FileManager::download_impl(FileId file_id, std::shared_ptr<DownloadCallback
     LOG(ERROR) << "File " << file_id << " is used with different download callbacks";
     file_info->download_callback_->on_download_error(file_id, Status::Error(500, "Internal Server Error"));
   }
-  file_info->ignore_download_limit = limit == IGNORE_DOWNLOAD_LIMIT;
+  file_info->ignore_download_limit_ = limit == IGNORE_DOWNLOAD_LIMIT;
   file_info->download_priority_ = narrow_cast<int8>(new_priority);
   file_info->download_callback_ = std::move(callback);
   file_info->download_callback_->on_progress(file_id);
@@ -3047,7 +3047,7 @@ void FileManager::cancel_download(FileId file_id, bool only_if_pending) {
     file_info->download_callback_->on_download_error(file_id, Status::Error(200, "Canceled"));
     file_info->download_callback_ = nullptr;
   }
-  file_info->ignore_download_limit = false;
+  file_info->ignore_download_limit_ = false;
   file_info->download_priority_ = 0;
 
   run_generate(node);
@@ -3064,7 +3064,7 @@ void FileManager::run_download(FileNodePtr node, bool force_update_priority) {
     if (info->download_priority_ > priority) {
       priority = info->download_priority_;
     }
-    ignore_download_limit |= info->ignore_download_limit;
+    ignore_download_limit |= info->ignore_download_limit_;
   }
 
   auto old_priority = node->download_priority_;

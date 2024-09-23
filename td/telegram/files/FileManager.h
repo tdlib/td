@@ -771,7 +771,7 @@ class FileManager final : public Actor {
     bool send_updates_flag_{false};
     bool pin_flag_{false};
     bool sent_file_id_flag_{false};
-    bool ignore_download_limit{false};
+    bool ignore_download_limit_{false};
 
     int8 download_priority_{0};
     int8 upload_priority_{0};
