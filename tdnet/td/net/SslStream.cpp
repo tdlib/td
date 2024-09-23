@@ -89,8 +89,11 @@ long strm_ctrl(BIO *b, int cmd, long num, void *ptr) {
     case BIO_CTRL_PUSH:
     case BIO_CTRL_POP:
       return 0;
-#if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
+#if defined(BIO_CTRL_GET_KTLS_SEND)
     case BIO_CTRL_GET_KTLS_SEND:
+      return 0;
+#endif
+#if defined(BIO_CTRL_GET_KTLS_RECV)
     case BIO_CTRL_GET_KTLS_RECV:
       return 0;
 #endif
