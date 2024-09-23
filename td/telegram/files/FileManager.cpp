@@ -1408,8 +1408,7 @@ vector<int> FileManager::get_missing_file_parts(const Status &error) {
     } else {
       result.push_back(r_file_part.ok());
     }
-  }
-  if (error_message == "FILE_PART_INVALID") {
+  } else if (error_message == "FILE_PART_INVALID" || error_message == "FILE_PART_LENGTH_INVALID") {
     result.push_back(0);
   }
   return result;
