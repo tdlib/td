@@ -1584,6 +1584,12 @@ class CliClient final : public Actor {
         }
         break;
       }
+      case td_api::updateNewPreCheckoutQuery::ID:
+        if (use_test_dc_) {
+          const auto *update = static_cast<const td_api::updateNewPreCheckoutQuery *>(result.get());
+          send_request(td_api::make_object<td_api::answerPreCheckoutQuery>(update->id_, string()));
+        }
+        break;
       case td_api::file::ID:
         on_get_file(*static_cast<const td_api::file *>(result.get()));
         break;
