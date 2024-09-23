@@ -8321,7 +8321,8 @@ void MessagesManager::load_secret_thumbnail(FileId thumbnail_file_id) {
         send_closure(G()->file_manager(), &FileManager::get_content, thumbnail_file_id, std::move(thumbnail_promise));
       });
 
-  send_closure(G()->file_manager(), &FileManager::download, thumbnail_file_id,
+  auto internal_download_id = FileManager::get_internal_download_id();
+  send_closure(G()->file_manager(), &FileManager::download, thumbnail_file_id, internal_download_id,
                std::make_shared<Callback>(std::move(download_promise)), 1, -1, -1);
 }
 

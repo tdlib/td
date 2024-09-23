@@ -327,6 +327,7 @@ class DownloadManagerImpl final : public DownloadManager {
     int64 download_id{};
     FileId file_id;
     FileId internal_file_id;
+    int64 internal_download_id{};
     FileSourceId file_source_id;
     int8 priority{};
     bool is_paused{};
@@ -528,6 +529,7 @@ class DownloadManagerImpl final : public DownloadManager {
     CHECK(file_info != nullptr);
     auto download_id = file_info->download_id;
     file_info->internal_file_id = callback_->dup_file_id(file_info->file_id);
+    file_info->internal_download_id = callback_->get_internal_download_id();
     auto file_view = callback_->get_sync_file_view(file_info->file_id);
     CHECK(!file_view.empty());
     file_info->size = file_view.size();
@@ -559,7 +561,7 @@ class DownloadManagerImpl final : public DownloadManager {
       CHECK(is_inserted == was_completed);
     } else {
       if (!it->second->is_paused) {
-        callback_->start_file(it->second->internal_file_id, it->second->priority,
+        callback_->start_file(it->second->internal_file_id, it->second->internal_download_id, it->second->priority,
                               actor_shared(this, it->second->link_token));
       }
     }
@@ -574,7 +576,7 @@ class DownloadManagerImpl final : public DownloadManager {
     LOG(INFO) << "Remove from downloads file " << file_id << " from " << source;
     auto download_id = file_info.download_id;
     if (!is_completed(file_info) && !file_info.is_paused) {
-      callback_->pause_file(file_info.internal_file_id);
+      callback_->pause_file(file_info.internal_file_id, file_info.internal_download_id);
     }
     unregister_file_info(file_info);
     if (delete_from_cache) {
@@ -643,9 +645,10 @@ class DownloadManagerImpl final : public DownloadManager {
       file_info.link_token = ++last_link_token_;
     });
     if (is_paused) {
-      callback_->pause_file(file_info.internal_file_id);
+      callback_->pause_file(file_info.internal_file_id, file_info.internal_download_id);
     } else {
-      callback_->start_file(file_info.internal_file_id, file_info.priority, actor_shared(this, file_info.link_token));
+      callback_->start_file(file_info.internal_file_id, file_info.internal_download_id, file_info.priority,
+                            actor_shared(this, file_info.link_token));
     }
     if (is_search_inited_) {
       callback_->update_file_changed(file_info.file_id, file_info.completed_at, file_info.is_paused, file_counters_);

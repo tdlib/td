@@ -5382,7 +5382,7 @@ void Requests::on_request(uint64 id, const td_api::downloadFile &request) {
     info->limit = limit;
     info->request_ids.push_back(id);
   }
-  td_->file_manager_->download(file_id, download_file_callback_, priority, offset, limit);
+  td_->file_manager_->download(file_id, 0, download_file_callback_, priority, offset, limit);
   if (!request.synchronous_) {
     CREATE_REQUEST_PROMISE();
     promise.set_value(td_->file_manager_->get_file_object(file_id, false));
@@ -5430,7 +5430,7 @@ void Requests::on_request(uint64 id, const td_api::getFileDownloadedPrefixSize &
 }
 
 void Requests::on_request(uint64 id, const td_api::cancelDownloadFile &request) {
-  td_->file_manager_->cancel_download(FileId(request.file_id_, 0), request.only_if_pending_);
+  td_->file_manager_->cancel_download(FileId(request.file_id_, 0), 0, request.only_if_pending_);
   send_closure(td_actor_, &Td::send_result, id, td_api::make_object<td_api::ok>());
 }
 

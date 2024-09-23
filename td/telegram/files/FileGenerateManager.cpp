@@ -59,6 +59,7 @@ class FileDownloadGenerateActor final : public FileGenerateActor {
  private:
   FileType file_type_;
   FileId file_id_;
+  int64 internal_download_id_ = 0;
   unique_ptr<FileGenerateCallback> callback_;
   ActorShared<> parent_;
 
@@ -82,11 +83,12 @@ class FileDownloadGenerateActor final : public FileGenerateActor {
       ActorId<FileDownloadGenerateActor> parent_;
     };
 
-    send_closure(G()->file_manager(), &FileManager::download, file_id_, std::make_shared<Callback>(actor_id(this)), 1,
-                 FileManager::KEEP_DOWNLOAD_OFFSET, FileManager::KEEP_DOWNLOAD_LIMIT);
+    internal_download_id_ = FileManager::get_internal_download_id();
+    send_closure(G()->file_manager(), &FileManager::download, file_id_, internal_download_id_,
+                 std::make_shared<Callback>(actor_id(this)), 1, -1, -1);
   }
   void hangup() final {
-    send_closure(G()->file_manager(), &FileManager::cancel_download, file_id_, false);
+    send_closure(G()->file_manager(), &FileManager::cancel_download, file_id_, internal_download_id_, false);
     stop();
   }
 

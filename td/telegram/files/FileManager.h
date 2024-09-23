@@ -39,6 +39,7 @@
 #include "td/utils/WaitFreeHashMap.h"
 #include "td/utils/WaitFreeVector.h"
 
+#include <atomic>
 #include <map>
 #include <memory>
 #include <set>
@@ -392,9 +393,6 @@ class FileView {
 
 class FileManager final : public Actor {
  public:
-  static constexpr int64 KEEP_DOWNLOAD_LIMIT = -1;
-  static constexpr int64 KEEP_DOWNLOAD_OFFSET = -1;
-  static constexpr int64 IGNORE_DOWNLOAD_LIMIT = -2;
   class DownloadCallback {
    public:
     DownloadCallback() = default;
@@ -506,9 +504,12 @@ class FileManager final : public Actor {
   void check_local_location(FileId file_id, bool skip_file_size_checks);
   void check_local_location_async(FileId file_id, bool skip_file_size_checks);
 
-  void download(FileId file_id, std::shared_ptr<DownloadCallback> callback, int32 new_priority, int64 offset,
-                int64 limit);
-  void cancel_download(FileId file_id, bool only_if_pending);
+  static int64 get_internal_download_id();
+
+  void download(FileId file_id, int64 internal_download_id, std::shared_ptr<DownloadCallback> callback,
+                int32 new_priority, int64 offset, int64 limit);
+
+  void cancel_download(FileId file_id, int64 internal_download_id, bool only_if_pending);
 
   void upload(FileId file_id, std::shared_ptr<UploadCallback> callback, int32 new_priority, uint64 upload_order);
   void resume_upload(FileId file_id, vector<int> bad_parts, std::shared_ptr<UploadCallback> callback,
@@ -779,10 +780,14 @@ class FileManager final : public Actor {
 
   struct FileDownloadInfo {
     int8 download_priority_ = 0;
-    bool ignore_download_limit_ = false;
     std::shared_ptr<DownloadCallback> download_callback_;
   };
-  FlatHashMap<FileId, FileDownloadInfo, FileIdHash> file_download_requests_;
+  struct FileDownloadRequests {
+    int8 user_download_priority_ = 0;
+    std::shared_ptr<DownloadCallback> user_download_callback_;
+    FlatHashMap<int64, FileDownloadInfo> internal_downloads_;
+  };
+  FlatHashMap<FileId, FileDownloadRequests, FileIdHash> file_download_requests_;
 
   class ForceUploadActor;
 
@@ -824,6 +829,8 @@ class FileManager final : public Actor {
   Container<GenerateQuery> generate_queries_;
   Container<UploadQuery> upload_queries_;
 
+  static std::atomic<int64> internal_download_id_;
+
   bool is_closed_ = false;
 
   std::set<std::string> bad_paths_;
@@ -835,8 +842,8 @@ class FileManager final : public Actor {
   int32 next_pmc_file_id();
   bool try_forget_file_id(FileId file_id);
 
-  void download_impl(FileId file_id, std::shared_ptr<DownloadCallback> callback, int32 new_priority, int64 offset,
-                     int64 limit, Status check_status);
+  void download_impl(FileId file_id, int64 internal_download_id, std::shared_ptr<DownloadCallback> callback,
+                     int32 new_priority, int64 offset, int64 limit, Status check_status);
 
   void finish_downloads(FileId file_id, Status status);
 

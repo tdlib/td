@@ -623,7 +623,6 @@ void FileNode::init_ready_size() {
 
 void FileNode::set_download_offset(int64 download_offset) {
   if (download_offset < 0 || download_offset > MAX_FILE_SIZE) {
-    // KEEP_DOWNLOAD_OFFSET is handled here
     return;
   }
   if (download_offset == download_offset_) {
@@ -651,7 +650,6 @@ void FileNode::update_effective_download_limit(int64 old_download_limit) {
   }
 
   // There should be no false positives here
-  // When we use IGNORE_DOWNLOAD_LIMIT, set_download_limit will be ignored
   // And in case we turn off ignore_download_limit, set_download_limit will not change effective download limit
   VLOG(update_file) << "File " << main_file_id_ << " has changed download_limit from " << old_download_limit << " to "
                     << get_download_limit() << " (limit=" << private_download_limit_
@@ -661,7 +659,6 @@ void FileNode::update_effective_download_limit(int64 old_download_limit) {
 
 void FileNode::set_download_limit(int64 download_limit) {
   if (download_limit < 0) {
-    // KEEP_DOWNLOAD_LIMIT is handled here
     return;
   }
   if (download_limit > MAX_FILE_SIZE) {
@@ -2597,8 +2594,10 @@ void FileManager::try_flush_node_info(FileNodePtr node, const char *source) {
       }
       auto it = file_download_requests_.find(file_id);
       if (it != file_download_requests_.end()) {
-        CHECK(it->second.download_callback_ != nullptr);
-        it->second.download_callback_->on_progress(file_id);
+        for (auto &download_info : it->second.internal_downloads_) {
+          CHECK(download_info.second.download_callback_ != nullptr);
+          download_info.second.download_callback_->on_progress(file_id);
+        }
       }
     }
     node->on_info_flushed();
@@ -2941,8 +2940,12 @@ void FileManager::delete_file(FileId file_id, Promise<Unit> promise, const char 
   send_closure(file_load_manager_, &FileLoadManager::unlink_file, path, std::move(promise));
 }
 
-void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> callback, int32 new_priority, int64 offset,
-                           int64 limit) {
+int64 FileManager::get_internal_download_id() {
+  return ++internal_download_id_;
+}
+
+void FileManager::download(FileId file_id, int64 internal_download_id, std::shared_ptr<DownloadCallback> callback,
+                           int32 new_priority, int64 offset, int64 limit) {
   if (G()->close_flag()) {
     return;
   }
@@ -2954,31 +2957,32 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
     LOG(INFO) << "File " << file_id << " not found";
     return callback->on_download_error(file_id, Status::Error(400, "File not found"));
   }
-
   if (node->local_.type() == LocalFileLocation::Type::Empty) {
-    return download_impl(file_id, std::move(callback), new_priority, offset, limit, Status::OK());
+    return download_impl(file_id, internal_download_id, std::move(callback), new_priority, offset, limit, Status::OK());
   }
 
   LOG(INFO) << "Asynchronously check location of file " << file_id << " before downloading";
-  auto check_promise = PromiseCreator::lambda([actor_id = actor_id(this), file_id, callback = std::move(callback),
-                                               new_priority, offset, limit](Result<Unit> result) mutable {
-    Status check_status;
-    if (result.is_error()) {
-      check_status = result.move_as_error();
-    }
-    send_closure(actor_id, &FileManager::download_impl, file_id, std::move(callback), new_priority, offset, limit,
-                 std::move(check_status));
-  });
+  auto check_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), file_id, internal_download_id, callback = std::move(callback),
+                              new_priority, offset, limit](Result<Unit> result) mutable {
+        Status check_status;
+        if (result.is_error()) {
+          check_status = result.move_as_error();
+        }
+        send_closure(actor_id, &FileManager::download_impl, file_id, internal_download_id, std::move(callback),
+                     new_priority, offset, limit, std::move(check_status));
+      });
   check_local_location_async(node, true, std::move(check_promise));
 }
 
-void FileManager::download_impl(FileId file_id, std::shared_ptr<DownloadCallback> callback, int32 new_priority,
-                                int64 offset, int64 limit, Status check_status) {
+void FileManager::download_impl(FileId file_id, int64 internal_download_id, std::shared_ptr<DownloadCallback> callback,
+                                int32 new_priority, int64 offset, int64 limit, Status check_status) {
   if (G()->close_flag()) {
     return;
   }
 
-  LOG(INFO) << "Download file " << file_id << " with priority " << new_priority;
+  LOG(INFO) << "Download file " << file_id << " with priority " << new_priority << " and internal identifier "
+            << internal_download_id;
   auto node = get_file_node(file_id);
   CHECK(node);
 
@@ -2996,21 +3000,25 @@ void FileManager::download_impl(FileId file_id, std::shared_ptr<DownloadCallback
     return callback->on_download_error(file_id, Status::Error(400, "Can't download or generate the file"));
   }
 
-  LOG(INFO) << "Change download priority of file " << file_id << " to " << new_priority;
-  node->set_download_offset(offset);
-  node->set_download_limit(limit);
-
-  auto &download_info = file_download_requests_[file_id];
-  if (download_info.download_callback_ != nullptr && download_info.download_callback_.get() != callback.get()) {
-    // the old callback will be destroyed soon and lost forever
-    // this is a bug and must never happen
-    LOG(ERROR) << "File " << file_id << " is used with different download callbacks";
-    download_info.download_callback_->on_download_error(file_id, Status::Error(500, "Internal Server Error"));
+  auto &requests = file_download_requests_[file_id];
+  if (internal_download_id != 0) {
+    CHECK(offset == -1);
+    CHECK(limit == -1);
+    auto &download_info = requests.internal_downloads_[internal_download_id];
+    CHECK(download_info.download_callback_ == nullptr);
+    download_info.download_priority_ = narrow_cast<int8>(new_priority);
+    download_info.download_callback_ = std::move(callback);
+    download_info.download_callback_->on_progress(file_id);
+  } else {
+    node->set_download_offset(offset);
+    node->set_download_limit(limit);
+    if (requests.user_download_callback_ == nullptr) {
+      requests.user_download_callback_ = std::move(callback);
+    } else {
+      CHECK(requests.user_download_callback_.get() == callback.get());
+    }
+    requests.user_download_priority_ = narrow_cast<int8>(new_priority);
   }
-  download_info.ignore_download_limit_ = limit == IGNORE_DOWNLOAD_LIMIT;
-  download_info.download_priority_ = narrow_cast<int8>(new_priority);
-  download_info.download_callback_ = std::move(callback);
-  download_info.download_callback_->on_progress(file_id);
 
   run_generate(node);
   run_download(node, true);
@@ -3023,16 +3031,25 @@ void FileManager::finish_downloads(FileId file_id, Status status) {
   if (it == file_download_requests_.end()) {
     return;
   }
-  CHECK(it->second.download_callback_ != nullptr);
-  if (status.is_ok()) {
-    it->second.download_callback_->on_download_ok(file_id);
-  } else {
-    it->second.download_callback_->on_download_error(file_id, Status::Error(200, "Canceled"));
+  for (auto &download_info : it->second.internal_downloads_) {
+    CHECK(download_info.second.download_callback_ != nullptr);
+    if (status.is_ok()) {
+      download_info.second.download_callback_->on_download_ok(file_id);
+    } else {
+      download_info.second.download_callback_->on_download_error(file_id, status.clone());
+    }
+  }
+  if (it->second.user_download_callback_ != nullptr) {
+    if (status.is_ok()) {
+      it->second.user_download_callback_->on_download_ok(file_id);
+    } else {
+      it->second.user_download_callback_->on_download_error(file_id, std::move(status));
+    }
   }
   file_download_requests_.erase(it);
 }
 
-void FileManager::cancel_download(FileId file_id, bool only_if_pending) {
+void FileManager::cancel_download(FileId file_id, int64 internal_download_id, bool only_if_pending) {
   if (G()->close_flag()) {
     return;
   }
@@ -3046,8 +3063,32 @@ void FileManager::cancel_download(FileId file_id, bool only_if_pending) {
     return;
   }
 
+  auto it = file_download_requests_.find(file_id);
+  if (it == file_download_requests_.end()) {
+    return;
+  }
+  std::shared_ptr<DownloadCallback> callback;
+  if (internal_download_id != 0) {
+    auto download_info_it = it->second.internal_downloads_.find(internal_download_id);
+    if (download_info_it == it->second.internal_downloads_.end()) {
+      return;
+    }
+    callback = std::move(download_info_it->second.download_callback_);
+    it->second.internal_downloads_.erase(download_info_it);
+  } else {
+    if (it->second.user_download_callback_ == nullptr) {
+      return;
+    }
+    callback = std::move(it->second.user_download_callback_);
+    it->second.user_download_priority_ = 0;
+  }
+  if (it->second.user_download_callback_ == nullptr && it->second.internal_downloads_.empty()) {
+    file_download_requests_.erase(it);
+  }
+
   LOG(INFO) << "Cancel download of file " << file_id;
-  finish_downloads(file_id, Status::Error(200, "Canceled"));
+  CHECK(callback != nullptr);
+  callback->on_download_error(file_id, Status::Error(200, "Canceled"));
 
   run_generate(node);
   run_download(node, true);
@@ -3061,10 +3102,15 @@ void FileManager::run_download(FileNodePtr node, bool force_update_priority) {
   for (auto file_id : node->file_ids_) {
     auto it = file_download_requests_.find(file_id);
     if (it != file_download_requests_.end()) {
-      if (it->second.download_priority_ > priority) {
-        priority = it->second.download_priority_;
+      if (it->second.user_download_priority_ > priority) {
+        priority = it->second.user_download_priority_;
       }
-      ignore_download_limit |= it->second.ignore_download_limit_;
+      for (auto &download_info : it->second.internal_downloads_) {
+        if (download_info.second.download_priority_ > priority) {
+          priority = download_info.second.download_priority_;
+        }
+        ignore_download_limit = true;
+      }
     }
   }
 
@@ -3538,8 +3584,13 @@ void FileManager::run_generate(FileNodePtr node) {
   for (auto id : node->file_ids_) {
     auto it = file_download_requests_.find(id);
     if (it != file_download_requests_.end()) {
-      if (it->second.download_priority_ > download_priority) {
-        download_priority = it->second.download_priority_;
+      if (it->second.user_download_priority_ > download_priority) {
+        download_priority = it->second.user_download_priority_;
+      }
+      for (auto &download_info : it->second.internal_downloads_) {
+        if (download_info.second.download_priority_ > download_priority) {
+          download_priority = download_info.second.download_priority_;
+        }
       }
       if (download_priority > upload_priority) {
         file_id = id;
@@ -5029,8 +5080,6 @@ void FileManager::tear_down() {
              << " remote locations to free";
 }
 
-constexpr int64 FileManager::KEEP_DOWNLOAD_LIMIT;
-constexpr int64 FileManager::KEEP_DOWNLOAD_OFFSET;
-constexpr int64 FileManager::IGNORE_DOWNLOAD_LIMIT;
+std::atomic<int64> FileManager::internal_download_id_;
 
 }  // namespace td
