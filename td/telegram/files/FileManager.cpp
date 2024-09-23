@@ -2426,12 +2426,7 @@ Status FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sync) {
   // Check if some download/upload queries are ready
   for (auto file_id : vector<FileId>(node->file_ids_)) {
     if (file_view.has_full_local_location()) {
-      auto it = file_download_requests_.find(file_id);
-      if (it != file_download_requests_.end()) {
-        CHECK(it->second.download_callback_ != nullptr);
-        it->second.download_callback_->on_download_ok(file_id);
-        file_download_requests_.erase(it);
-      }
+      finish_downloads(file_id, Status::OK());
     }
     if (file_view.has_active_upload_remote_location()) {
       auto *info = get_file_id_info(file_id);
@@ -3023,6 +3018,20 @@ void FileManager::download_impl(FileId file_id, std::shared_ptr<DownloadCallback
   try_flush_node(node, "download");
 }
 
+void FileManager::finish_downloads(FileId file_id, Status status) {
+  auto it = file_download_requests_.find(file_id);
+  if (it == file_download_requests_.end()) {
+    return;
+  }
+  CHECK(it->second.download_callback_ != nullptr);
+  if (status.is_ok()) {
+    it->second.download_callback_->on_download_ok(file_id);
+  } else {
+    it->second.download_callback_->on_download_error(file_id, Status::Error(200, "Canceled"));
+  }
+  file_download_requests_.erase(it);
+}
+
 void FileManager::cancel_download(FileId file_id, bool only_if_pending) {
   if (G()->close_flag()) {
     return;
@@ -3038,12 +3047,7 @@ void FileManager::cancel_download(FileId file_id, bool only_if_pending) {
   }
 
   LOG(INFO) << "Cancel download of file " << file_id;
-  auto it = file_download_requests_.find(file_id);
-  if (it != file_download_requests_.end()) {
-    CHECK(it->second.download_callback_ != nullptr);
-    it->second.download_callback_->on_download_error(file_id, Status::Error(200, "Canceled"));
-    file_download_requests_.erase(it);
-  }
+  finish_downloads(file_id, Status::Error(200, "Canceled"));
 
   run_generate(node);
   run_download(node, true);
@@ -4849,12 +4853,8 @@ void FileManager::on_file_load_error(FileNodePtr node, Status status) {
   do_cancel_upload(node);
 
   for (auto file_id : vector<FileId>(node->file_ids_)) {
-    auto it = file_download_requests_.find(file_id);
-    if (it != file_download_requests_.end()) {
-      CHECK(it->second.download_callback_ != nullptr);
-      it->second.download_callback_->on_download_error(file_id, status.clone());
-      file_download_requests_.erase(it);
-    }
+    finish_downloads(file_id, status.clone());
+
     auto *info = get_file_id_info(file_id);
     if (info->upload_priority_ != 0) {
       info->upload_priority_ = 0;
