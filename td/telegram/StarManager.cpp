@@ -450,6 +450,9 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         if (transaction->giveaway_post_id_ != 0) {
           LOG(ERROR) << "Receive giveaway message with " << to_string(star_transaction);
         }
+        if (transaction->stargift_ != nullptr) {
+          LOG(ERROR) << "Receive gift with " << to_string(star_transaction);
+        }
       }
       if (!file_ids.empty()) {
         auto file_source_id =
