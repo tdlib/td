@@ -975,6 +975,15 @@ chatTransactionPurposeReaction message_id:int53 = ChatTransactionPurpose;
 chatTransactionPurposeGiveaway giveaway_message_id:int53 = ChatTransactionPurpose;
 
 
+//@class UserTransactionPurpose @description Describes purpose of a transaction with a user
+
+//@description A user gifted Telegram Stars @sticker A sticker to be shown in the transaction information; may be null if unknown
+userTransactionPurposeGiftedStars sticker:sticker = UserTransactionPurpose;
+
+//@description A user sent a gift to another user @gift The gift
+userTransactionPurposeGift gift:gift = UserTransactionPurpose;
+
+
 //@class StarTransactionPartner @description Describes source or recipient of a transaction with Telegram Stars
 
 //@description The transaction is a transaction with Telegram through a bot
@@ -1001,10 +1010,8 @@ starTransactionPartnerBusiness user_id:int53 media:vector<PaidMedia> = StarTrans
 //@description The transaction is a transaction with a supergroup or a channel chat @chat_id Identifier of the chat @purpose Purpose of the transaction
 starTransactionPartnerChat chat_id:int53 purpose:ChatTransactionPurpose = StarTransactionPartner;
 
-//@description The transaction is a gift of Telegram Stars from another user
-//@user_id Identifier of the user; 0 if the gift was anonymous
-//@sticker A sticker to be shown in the transaction information; may be null if unknown
-starTransactionPartnerUser user_id:int53 sticker:sticker = StarTransactionPartner;
+//@description The transaction is a transcation with another user @user_id Identifier of the user; 0 if the user was anonymous @purpose Purpose of the transaction
+starTransactionPartnerUser user_id:int53 purpose:UserTransactionPurpose = StarTransactionPartner;
 
 //@description The transaction is a transaction with unknown partner
 starTransactionPartnerUnsupported = StarTransactionPartner;
