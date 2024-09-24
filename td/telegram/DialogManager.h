@@ -177,8 +177,8 @@ class DialogManager final : public Actor {
 
   bool can_report_dialog(DialogId dialog_id) const;
 
-  void report_dialog(DialogId dialog_id, const vector<MessageId> &message_ids, ReportReason &&reason,
-                     Promise<Unit> &&promise);
+  void report_dialog(DialogId dialog_id, const string &option_id, const vector<MessageId> &message_ids,
+                     const string &text, Promise<td_api::object_ptr<td_api::ReportChatResult>> &&promise);
 
   void report_dialog_photo(DialogId dialog_id, FileId file_id, ReportReason &&reason, Promise<Unit> &&promise);
 

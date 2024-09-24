@@ -411,22 +411,22 @@ class ToggleNoForwardsQuery final : public Td::ResultHandler {
 };
 
 class ReportPeerQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
+  Promise<td_api::object_ptr<td_api::ReportChatResult>> promise_;
   DialogId dialog_id_;
 
  public:
-  explicit ReportPeerQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit ReportPeerQuery(Promise<td_api::object_ptr<td_api::ReportChatResult>> &&promise)
+      : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, const vector<MessageId> &message_ids, ReportReason &&report_reason) {
+  void send(DialogId dialog_id, const string &option_id, const vector<MessageId> &message_ids, const string &text) {
     dialog_id_ = dialog_id;
 
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
 
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_report(std::move(input_peer), MessageId::get_server_message_ids(message_ids),
-                                      BufferSlice(), report_reason.get_message())));
+    send_query(G()->net_query_creator().create(telegram_api::messages_report(
+        std::move(input_peer), MessageId::get_server_message_ids(message_ids), BufferSlice(option_id), text)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -435,10 +435,38 @@ class ReportPeerQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    promise_.set_value(Unit());
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for ReportPeerQuery: " << to_string(ptr);
+    switch (ptr->get_id()) {
+      case telegram_api::reportResultReported::ID:
+        return promise_.set_value(td_api::make_object<td_api::reportChatResultOk>());
+      case telegram_api::reportResultChooseOption::ID: {
+        auto options = telegram_api::move_object_as<telegram_api::reportResultChooseOption>(ptr);
+        if (options->options_.empty()) {
+          return promise_.set_value(td_api::make_object<td_api::reportChatResultOk>());
+        }
+        vector<td_api::object_ptr<td_api::reportOption>> report_options;
+        for (auto &option : options->options_) {
+          report_options.push_back(
+              td_api::make_object<td_api::reportOption>(option->option_.as_slice().str(), option->text_));
+        }
+        return promise_.set_value(
+            td_api::make_object<td_api::reportChatResultOptionRequired>(options->title_, std::move(report_options)));
+      }
+      case telegram_api::reportResultAddComment::ID: {
+        auto option = telegram_api::move_object_as<telegram_api::reportResultAddComment>(ptr);
+        return promise_.set_value(td_api::make_object<td_api::reportChatResultTextRequired>(
+            option->option_.as_slice().str(), option->optional_));
+      }
+      default:
+        UNREACHABLE();
+    }
   }
 
   void on_error(Status status) final {
+    if (status.message() == "MESSAGE_ID_REQUIRED") {
+      return promise_.set_value(td_api::make_object<td_api::reportChatResultMessagesRequired>());
+    }
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ReportPeerQuery");
     td_->messages_manager_->reget_dialog_action_bar(dialog_id_, "ReportPeerQuery");
     promise_.set_error(std::move(status));
@@ -1776,12 +1804,12 @@ bool DialogManager::can_report_dialog(DialogId dialog_id) const {
   }
 }
 
-void DialogManager::report_dialog(DialogId dialog_id, const vector<MessageId> &message_ids, ReportReason &&reason,
-                                  Promise<Unit> &&promise) {
+void DialogManager::report_dialog(DialogId dialog_id, const string &option_id, const vector<MessageId> &message_ids,
+                                  const string &text, Promise<td_api::object_ptr<td_api::ReportChatResult>> &&promise) {
   TRY_STATUS_PROMISE(promise, check_dialog_access(dialog_id, true, AccessRights::Read, "report_dialog"));
 
   MessagesManager::ReportDialogFromActionBar report_from_action_bar;
-  if (reason.is_spam() && message_ids.empty()) {
+  if (option_id.empty() && message_ids.empty() && text.empty()) {
     // can be a report from action bar
     report_from_action_bar = td_->messages_manager_->report_dialog_from_action_bar(dialog_id, promise);
     if (report_from_action_bar.is_reported_) {
@@ -1791,7 +1819,7 @@ void DialogManager::report_dialog(DialogId dialog_id, const vector<MessageId> &m
 
   if (!can_report_dialog(dialog_id)) {
     if (report_from_action_bar.know_action_bar_) {
-      return promise.set_value(Unit());
+      return promise.set_value(td_api::make_object<td_api::reportChatResultOk>());
     }
 
     return promise.set_error(Status::Error(400, "Chat can't be reported"));
@@ -1801,11 +1829,7 @@ void DialogManager::report_dialog(DialogId dialog_id, const vector<MessageId> &m
     TRY_STATUS_PROMISE(promise, MessagesManager::can_report_message(message_id));
   }
 
-  if (dialog_id.get_type() == DialogType::Channel && reason.is_unrelated_location()) {
-    td_->messages_manager_->hide_dialog_action_bar(dialog_id);
-  }
-
-  td_->create_handler<ReportPeerQuery>(std::move(promise))->send(dialog_id, message_ids, std::move(reason));
+  td_->create_handler<ReportPeerQuery>(std::move(promise))->send(dialog_id, option_id, message_ids, text);
 }
 
 void DialogManager::report_dialog_photo(DialogId dialog_id, FileId file_id, ReportReason &&reason,

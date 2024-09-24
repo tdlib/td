@@ -6613,6 +6613,21 @@ reportReasonPersonalDetails = ReportReason;
 reportReasonCustom = ReportReason;
 
 
+//@class ReportChatResult @description Describes result of chat report
+
+//@description The chat was reported successfully
+reportChatResultOk = ReportChatResult;
+
+//@description The user must choose an option to report the chat and repeat request with the chosen option @title Title for the option choice @options List of available options
+reportChatResultOptionRequired title:string options:vector<reportOption> = ReportChatResult;
+
+//@description The user must add additional text details to the report @option_id Option identifier for the next reportChat request @is_optional True, if the user can skip text adding
+reportChatResultTextRequired option_id:bytes is_optional:Bool = ReportChatResult;
+
+//@description The user must choose messages to report and repeat the reportChat request with the chosen messages
+reportChatResultMessagesRequired = ReportChatResult;
+
+
 //@class TargetChat @description Describes the target chat to be opened
 
 //@description The currently opened chat needs to be kept
@@ -11374,10 +11389,10 @@ removeChatActionBar chat_id:int53 = Ok;
 
 //@description Reports a chat to the Telegram moderators. A chat can be reported only from the chat action bar, or if chat.can_be_reported
 //@chat_id Chat identifier
-//@message_ids Identifiers of reported messages; may be empty to report the whole chat. Use messageProperties.can_report_chat to check whether the message can be reported
-//@reason The reason for reporting the chat
-//@text Additional report details; 0-1024 characters
-reportChat chat_id:int53 message_ids:vector<int53> reason:ReportReason text:string = Ok;
+//@option_id Option identifier chosen by the user; leave empty for the initial request
+//@message_ids Identifiers of reported messages if asked by the server; leave empty for the initial request. Use messageProperties.can_report_chat to check whether the message can be reported
+//@text Additional report details if asked by the server; 0-1024 characters; leave empty for the initial request
+reportChat chat_id:int53 option_id:bytes message_ids:vector<int53> text:string = ReportChatResult;
 
 //@description Reports a chat photo to the Telegram moderators. A chat photo can be reported only if chat.can_be_reported
 //@chat_id Chat identifier

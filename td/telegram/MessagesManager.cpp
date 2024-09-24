@@ -17485,8 +17485,8 @@ bool MessagesManager::is_message_edited_recently(MessageFullId message_full_id, 
   return m->edit_date >= G()->unix_time() - seconds;
 }
 
-MessagesManager::ReportDialogFromActionBar MessagesManager::report_dialog_from_action_bar(DialogId dialog_id,
-                                                                                          Promise<Unit> &promise) {
+MessagesManager::ReportDialogFromActionBar MessagesManager::report_dialog_from_action_bar(
+    DialogId dialog_id, Promise<td_api::object_ptr<td_api::ReportChatResult>> &promise) {
   ReportDialogFromActionBar result;
   Dialog *d = nullptr;
   if (dialog_id.get_type() == DialogType::SecretChat) {
@@ -17506,7 +17506,13 @@ MessagesManager::ReportDialogFromActionBar MessagesManager::report_dialog_from_a
   if (d->know_action_bar && d->action_bar != nullptr && d->action_bar->can_report_spam()) {
     result.is_reported_ = true;
     hide_dialog_action_bar(d);
-    toggle_dialog_report_spam_state_on_server(dialog_id, true, 0, std::move(promise));
+    auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<Unit> result) mutable {
+      if (result.is_error()) {
+        return promise.set_error(result.move_as_error());
+      }
+      promise.set_value(td_api::make_object<td_api::reportChatResultOk>());
+    });
+    toggle_dialog_report_spam_state_on_server(dialog_id, true, 0, std::move(query_promise));
   }
   return result;
 }

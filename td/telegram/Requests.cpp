@@ -6549,13 +6549,11 @@ void Requests::on_request(uint64 id, const td_api::removeChatActionBar &request)
 
 void Requests::on_request(uint64 id, td_api::reportChat &request) {
   CHECK_IS_USER();
-  auto r_report_reason = ReportReason::get_report_reason(std::move(request.reason_), std::move(request.text_));
-  if (r_report_reason.is_error()) {
-    return send_error_raw(id, r_report_reason.error().code(), r_report_reason.error().message());
-  }
-  CREATE_OK_REQUEST_PROMISE();
-  td_->dialog_manager_->report_dialog(DialogId(request.chat_id_), MessageId::get_message_ids(request.message_ids_),
-                                      r_report_reason.move_as_ok(), std::move(promise));
+  CLEAN_INPUT_STRING(request.text_);
+  CREATE_REQUEST_PROMISE();
+  td_->dialog_manager_->report_dialog(DialogId(request.chat_id_), request.option_id_,
+                                      MessageId::get_message_ids(request.message_ids_), request.text_,
+                                      std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::reportChatPhoto &request) {

@@ -6988,11 +6988,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::removeChatActionBar>(chat_id));
     } else if (op == "rc") {
       ChatId chat_id;
+      string option_id;
       string message_ids;
-      ReportReason reason;
       string text;
-      get_args(args, chat_id, message_ids, reason, text);
-      send_request(td_api::make_object<td_api::reportChat>(chat_id, as_message_ids(message_ids), reason, text));
+      get_args(args, chat_id, option_id, message_ids, text);
+      send_request(td_api::make_object<td_api::reportChat>(chat_id, option_id, as_message_ids(message_ids), text));
     } else if (op == "rcp") {
       ChatId chat_id;
       FileId file_id;
