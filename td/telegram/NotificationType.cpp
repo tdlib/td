@@ -343,6 +343,10 @@ class NotificationTypePushMessage final : public NotificationType {
         if (key == "MESSAGE_SECRET_VIDEO") {
           return td_api::make_object<td_api::pushMessageContentVideo>(nullptr, arg, true, false);
         }
+        if (key == "MESSAGE_STARGIFT") {
+          auto star_count = to_integer<int64>(arg);
+          return td_api::make_object<td_api::pushMessageContentGift>(star_count);
+        }
         if (key == "MESSAGE_STICKER") {
           return td_api::make_object<td_api::pushMessageContentSticker>(
               td->stickers_manager_->get_sticker_object(document.file_id), trim(arg), is_pinned);

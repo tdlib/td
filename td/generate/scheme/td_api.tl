@@ -6193,6 +6193,9 @@ pushMessageContentPremiumGiftCode month_count:int32 = PushMessageContent;
 //@is_pinned True, if the message is a pinned message with the specified content
 pushMessageContentGiveaway winner_count:int32 prize:GiveawayPrize is_pinned:Bool = PushMessageContent;
 
+//@description A message with a gift @star_count Number of Telegram Stars that sender paid for the gift
+pushMessageContentGift star_count:int53 = PushMessageContent;
+
 //@description A screenshot of a message in the chat has been taken
 pushMessageContentScreenshotTaken = PushMessageContent;
 

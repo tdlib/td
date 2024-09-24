@@ -3005,6 +3005,9 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
       if (loc_key == "MESSAGE_SCREENSHOT") {
         return "MESSAGE_SCREENSHOT_TAKEN";
       }
+      if (loc_key == "MESSAGE_STARGIFT") {
+        return "MESSAGE_STARGIFT";
+      }
       if (loc_key == "MESSAGE_STICKER") {
         return "MESSAGE_STICKER";
       }
