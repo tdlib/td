@@ -295,7 +295,8 @@ class StoryManager final : public Actor {
       telegram_api::object_ptr<telegram_api::stories_storyReactionsList> &&story_reactions,
       Promise<telegram_api::object_ptr<telegram_api::stories_storyReactionsList>> promise);
 
-  void report_story(StoryFullId story_full_id, ReportReason &&reason, Promise<Unit> &&promise);
+  void report_story(StoryFullId story_full_id, const string &option_id, const string &text,
+                    Promise<td_api::object_ptr<td_api::ReportStoryResult>> &&promise);
 
   void activate_stealth_mode(Promise<Unit> &&promise);
 

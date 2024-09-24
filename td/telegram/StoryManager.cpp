@@ -895,14 +895,15 @@ class GetStoriesViewsQuery final : public Td::ResultHandler {
 };
 
 class ReportStoryQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
+  Promise<td_api::object_ptr<td_api::ReportStoryResult>> promise_;
   DialogId dialog_id_;
 
  public:
-  explicit ReportStoryQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit ReportStoryQuery(Promise<td_api::object_ptr<td_api::ReportStoryResult>> &&promise)
+      : promise_(std::move(promise)) {
   }
 
-  void send(StoryFullId story_full_id, ReportReason &&report_reason) {
+  void send(StoryFullId story_full_id, const string &option_id, const string &text) {
     dialog_id_ = story_full_id.get_dialog_id();
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
@@ -910,7 +911,7 @@ class ReportStoryQuery final : public Td::ResultHandler {
     }
 
     send_query(G()->net_query_creator().create(telegram_api::stories_report(
-        std::move(input_peer), {story_full_id.get_story_id().get()}, BufferSlice(), report_reason.get_message())));
+        std::move(input_peer), {story_full_id.get_story_id().get()}, BufferSlice(option_id), text)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -919,7 +920,32 @@ class ReportStoryQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    promise_.set_value(Unit());
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for ReportStoryQuery: " << to_string(ptr);
+    switch (ptr->get_id()) {
+      case telegram_api::reportResultReported::ID:
+        return promise_.set_value(td_api::make_object<td_api::reportStoryResultOk>());
+      case telegram_api::reportResultChooseOption::ID: {
+        auto options = telegram_api::move_object_as<telegram_api::reportResultChooseOption>(ptr);
+        if (options->options_.empty()) {
+          return promise_.set_value(td_api::make_object<td_api::reportStoryResultOk>());
+        }
+        vector<td_api::object_ptr<td_api::reportOption>> report_options;
+        for (auto &option : options->options_) {
+          report_options.push_back(
+              td_api::make_object<td_api::reportOption>(option->option_.as_slice().str(), option->text_));
+        }
+        return promise_.set_value(
+            td_api::make_object<td_api::reportStoryResultOptionRequired>(options->title_, std::move(report_options)));
+      }
+      case telegram_api::reportResultAddComment::ID: {
+        auto option = telegram_api::move_object_as<telegram_api::reportResultAddComment>(ptr);
+        return promise_.set_value(td_api::make_object<td_api::reportStoryResultTextRequired>(
+            option->option_.as_slice().str(), option->optional_));
+      }
+      default:
+        UNREACHABLE();
+    }
   }
 
   void on_error(Status status) final {
@@ -3285,7 +3311,8 @@ void StoryManager::on_get_dialog_story_interactions(
   promise.set_value(story_viewers.get_story_interactions_object(td_));
 }
 
-void StoryManager::report_story(StoryFullId story_full_id, ReportReason &&reason, Promise<Unit> &&promise) {
+void StoryManager::report_story(StoryFullId story_full_id, const string &option_id, const string &text,
+                                Promise<td_api::object_ptr<td_api::ReportStoryResult>> &&promise) {
   if (!have_story_force(story_full_id)) {
     return promise.set_error(Status::Error(400, "Story not found"));
   }
@@ -3293,7 +3320,7 @@ void StoryManager::report_story(StoryFullId story_full_id, ReportReason &&reason
     return promise.set_error(Status::Error(400, "Story can't be reported"));
   }
 
-  td_->create_handler<ReportStoryQuery>(std::move(promise))->send(story_full_id, std::move(reason));
+  td_->create_handler<ReportStoryQuery>(std::move(promise))->send(story_full_id, option_id, text);
 }
 
 void StoryManager::activate_stealth_mode(Promise<Unit> &&promise) {

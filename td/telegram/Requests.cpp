@@ -4922,13 +4922,10 @@ void Requests::on_request(uint64 id, td_api::getChatStoryInteractions &request) 
 
 void Requests::on_request(uint64 id, td_api::reportStory &request) {
   CHECK_IS_USER();
-  auto r_report_reason = ReportReason::get_report_reason(std::move(request.reason_), std::move(request.text_));
-  if (r_report_reason.is_error()) {
-    return send_error_raw(id, r_report_reason.error().code(), r_report_reason.error().message());
-  }
-  CREATE_OK_REQUEST_PROMISE();
+  CLEAN_INPUT_STRING(request.text_);
+  CREATE_REQUEST_PROMISE();
   td_->story_manager_->report_story({DialogId(request.story_sender_chat_id_), StoryId(request.story_id_)},
-                                    r_report_reason.move_as_ok(), std::move(promise));
+                                    request.option_id_, request.text_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::activateStoryStealthMode &request) {

@@ -6628,6 +6628,18 @@ reportChatResultTextRequired option_id:bytes is_optional:Bool = ReportChatResult
 reportChatResultMessagesRequired = ReportChatResult;
 
 
+//@class ReportStoryResult @description Describes result of story report
+
+//@description The story was reported successfully
+reportStoryResultOk = ReportStoryResult;
+
+//@description The user must choose an option to report the story and repeat request with the chosen option @title Title for the option choice @options List of available options
+reportStoryResultOptionRequired title:string options:vector<reportOption> = ReportStoryResult;
+
+//@description The user must add additional text details to the report @option_id Option identifier for the next reportStory request @is_optional True, if the user can skip text adding
+reportStoryResultTextRequired option_id:bytes is_optional:Bool = ReportStoryResult;
+
+
 //@class TargetChat @description Describes the target chat to be opened
 
 //@description The currently opened chat needs to be kept
@@ -10077,9 +10089,9 @@ getChatStoryInteractions story_sender_chat_id:int53 story_id:int32 reaction_type
 //@description Reports a story to the Telegram moderators
 //@story_sender_chat_id The identifier of the sender of the story to report
 //@story_id The identifier of the story to report
-//@reason The reason for reporting the story
-//@text Additional report details; 0-1024 characters
-reportStory story_sender_chat_id:int53 story_id:int32 reason:ReportReason text:string = Ok;
+//@option_id Option identifier chosen by the user; leave empty for the initial request
+//@text Additional report details; 0-1024 characters; leave empty for the initial request
+reportStory story_sender_chat_id:int53 story_id:int32 option_id:bytes text:string = ReportStoryResult;
 
 //@description Activates stealth mode for stories, which hides all views of stories from the current user in the last "story_stealth_mode_past_period" seconds
 //-and for the next "story_stealth_mode_future_period" seconds; for Telegram Premium users only

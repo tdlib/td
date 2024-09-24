@@ -4922,10 +4922,10 @@ class CliClient final : public Actor {
     } else if (op == "rst") {
       ChatId story_sender_chat_id;
       StoryId story_id;
-      ReportReason reason;
+      string option_id;
       string text;
-      get_args(args, story_sender_chat_id, story_id, reason, text);
-      send_request(td_api::make_object<td_api::reportStory>(story_sender_chat_id, story_id, reason, text));
+      get_args(args, story_sender_chat_id, story_id, option_id, text);
+      send_request(td_api::make_object<td_api::reportStory>(story_sender_chat_id, story_id, option_id, text));
     } else if (op == "assm") {
       send_request(td_api::make_object<td_api::activateStoryStealthMode>());
     } else if (op == "gcblf") {
