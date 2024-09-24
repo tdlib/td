@@ -3031,22 +3031,23 @@ void FileManager::finish_downloads(FileId file_id, Status status) {
   if (it == file_download_requests_.end()) {
     return;
   }
+  vector<std::shared_ptr<DownloadCallback>> callbacks;
   for (auto &download_info : it->second.internal_downloads_) {
-    CHECK(download_info.second.download_callback_ != nullptr);
-    if (status.is_ok()) {
-      download_info.second.download_callback_->on_download_ok(file_id);
-    } else {
-      download_info.second.download_callback_->on_download_error(file_id, status.clone());
-    }
+    callbacks.push_back(std::move(download_info.second.download_callback_));
   }
   if (it->second.user_download_callback_ != nullptr) {
-    if (status.is_ok()) {
-      it->second.user_download_callback_->on_download_ok(file_id);
-    } else {
-      it->second.user_download_callback_->on_download_error(file_id, std::move(status));
-    }
+    callbacks.push_back(std::move(it->second.user_download_callback_));
   }
   file_download_requests_.erase(it);
+
+  for (auto &callback : callbacks) {
+    CHECK(callback != nullptr);
+    if (status.is_ok()) {
+      callback->on_download_ok(file_id);
+    } else {
+      callback->on_download_error(file_id, status.clone());
+    }
+  }
 }
 
 void FileManager::cancel_download(FileId file_id, int64 internal_download_id, bool only_if_pending) {
