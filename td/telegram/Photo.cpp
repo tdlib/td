@@ -15,6 +15,7 @@
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/PhotoFormat.h"
 #include "td/telegram/PhotoSizeSource.h"
+#include "td/telegram/PhotoSizeType.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 

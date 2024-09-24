@@ -30,6 +30,7 @@
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/PhotoSizeSource.h"
+#include "td/telegram/PhotoSizeType.h"
 #include "td/telegram/QuickReplyManager.h"
 #include "td/telegram/secret_api.h"
 #include "td/telegram/SecretChatLayer.h"

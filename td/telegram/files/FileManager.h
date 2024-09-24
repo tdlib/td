@@ -29,6 +29,7 @@
 #include "td/utils/common.h"
 #include "td/utils/Container.h"
 #include "td/utils/Enumerator.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/FlatHashSet.h"
 #include "td/utils/logging.h"
 #include "td/utils/optional.h"
@@ -680,10 +681,9 @@ class FileManager final : public Actor {
   };
   friend StringBuilder &operator<<(StringBuilder &string_builder, UploadQuery::Type type);
 
-  enum class FileInfoType { Local, Generate, Remote };
+  enum class FileInfoType : int32 { Local, Generate, Remote };
 
   class FileInfo {
-   private:
     bool is_info_changed_ = false;
     bool is_database_changed_ = false;
 

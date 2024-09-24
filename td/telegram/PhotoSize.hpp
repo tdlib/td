@@ -9,7 +9,7 @@
 #include "td/telegram/Dimensions.hpp"
 #include "td/telegram/files/FileId.hpp"
 #include "td/telegram/PhotoSize.h"
-#include "td/telegram/PhotoSizeType.h"
+#include "td/telegram/PhotoSizeType.hpp"
 #include "td/telegram/Version.h"
 
 #include "td/utils/tl_helpers.h"
