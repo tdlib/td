@@ -226,7 +226,6 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
     td_->user_manager_->on_get_users(std::move(result->users_), "GetStarsTransactionsQuery");
     td_->chat_manager_->on_get_chats(std::move(result->chats_), "GetStarsTransactionsQuery");
 
-    auto star_count = StarManager::get_star_count(result->balance_, true);
     bool for_bot =
         (dialog_id_.get_type() == DialogType::User && td_->user_manager_->is_user_bot(dialog_id_.get_user_id())) ||
         td_->auth_manager_->is_bot();
@@ -259,6 +258,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         transaction->extended_media_.clear();
         return extended_media_objects;
       };
+      auto transaction_star_count = StarManager::get_star_count(transaction->stars_, true);
       auto partner = [&]() -> td_api::object_ptr<td_api::StarTransactionPartner> {
         switch (transaction->peer_->get_id()) {
           case telegram_api::starsTransactionPeerUnsupported::ID:
@@ -274,7 +274,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
               transaction->gift_ = false;
               return td_api::make_object<td_api::starTransactionPartnerUser>(
                   0, td_api::make_object<td_api::userTransactionPurposeGiftedStars>(
-                         td_->stickers_manager_->get_premium_gift_sticker_object(0, star_count)));
+                         td_->stickers_manager_->get_premium_gift_sticker_object(0, transaction_star_count)));
             }
             auto state = [&]() -> td_api::object_ptr<td_api::RevenueWithdrawalState> {
               if (transaction->transaction_date_ > 0) {
@@ -319,7 +319,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                   auto gift_object = gift.get_gift_object(td_);
                   auto result = td_api::make_object<td_api::starTransactionPartnerUser>(
                       td_->user_manager_->get_user_id_object(user_id, "starTransactionPartnerUser"), nullptr);
-                  if ((star_count > 0) == transaction->refund_) {
+                  if ((transaction_star_count > 0) == transaction->refund_) {
                     result->purpose_ =
                         td_api::make_object<td_api::userTransactionPurposeGiftSend>(std::move(gift_object));
                   } else {
@@ -335,7 +335,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                           ? 0
                           : td_->user_manager_->get_user_id_object(user_id, "starTransactionPartnerUser"),
                       td_api::make_object<td_api::userTransactionPurposeGiftedStars>(
-                          td_->stickers_manager_->get_premium_gift_sticker_object(0, star_count)));
+                          td_->stickers_manager_->get_premium_gift_sticker_object(0, transaction_star_count)));
                 }
                 if (!transaction->extended_media_.empty()) {  // TODO
                   return td_api::make_object<td_api::starTransactionPartnerBusiness>(
@@ -419,8 +419,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         }
       }();
       auto star_transaction = td_api::make_object<td_api::starTransaction>(
-          transaction->id_, StarManager::get_star_count(transaction->stars_, true), transaction->refund_,
-          transaction->date_, std::move(partner));
+          transaction->id_, transaction_star_count, transaction->refund_, transaction->date_, std::move(partner));
       if (star_transaction->partner_->get_id() != td_api::starTransactionPartnerUnsupported::ID) {
         if (product_info != nullptr) {
           LOG(ERROR) << "Receive product info with " << to_string(star_transaction);
@@ -463,10 +462,11 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
       }
       transactions.push_back(std::move(star_transaction));
     }
+
+    auto star_count = StarManager::get_star_count(result->balance_, true);
     if (dialog_id_ == td_->dialog_manager_->get_my_dialog_id()) {
       td_->star_manager_->on_update_owned_star_count(star_count);
     }
-
     promise_.set_value(
         td_api::make_object<td_api::starTransactions>(star_count, std::move(transactions), result->next_offset_));
   }
