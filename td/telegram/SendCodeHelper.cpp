@@ -52,7 +52,7 @@ Result<telegram_api::auth_resendCode> SendCodeHelper::resend_code(
   }
   int32 flags = 0;
   string reason_str;
-  if (reason->get_id() == td_api::resendCodeReasonVerificationFailed::ID) {
+  if (reason != nullptr && reason->get_id() == td_api::resendCodeReasonVerificationFailed::ID) {
     reason_str = std::move(static_cast<td_api::resendCodeReasonVerificationFailed *>(reason.get())->error_message_);
   }
   if (!reason_str.empty() && clean_input_string(reason_str)) {
