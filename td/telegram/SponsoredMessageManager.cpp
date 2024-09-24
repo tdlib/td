@@ -171,10 +171,10 @@ class ReportSponsoredMessageQuery final : public Td::ResultHandler {
         if (options->options_.empty()) {
           return promise_.set_value(td_api::make_object<td_api::reportChatSponsoredMessageResultFailed>());
         }
-        vector<td_api::object_ptr<td_api::reportChatSponsoredMessageOption>> report_options;
+        vector<td_api::object_ptr<td_api::reportOption>> report_options;
         for (auto &option : options->options_) {
-          report_options.push_back(td_api::make_object<td_api::reportChatSponsoredMessageOption>(
-              option->option_.as_slice().str(), option->text_));
+          report_options.push_back(
+              td_api::make_object<td_api::reportOption>(option->option_.as_slice().str(), option->text_));
         }
         return promise_.set_value(td_api::make_object<td_api::reportChatSponsoredMessageResultOptionRequired>(
             options->title_, std::move(report_options)));

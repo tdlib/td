@@ -1853,8 +1853,8 @@ sponsoredMessage message_id:int53 is_recommended:Bool can_be_reported:Bool conte
 sponsoredMessages messages:vector<sponsoredMessage> messages_between:int32 = SponsoredMessages;
 
 
-//@description Describes an option to report a sponsored message @id Unique identifier of the option @text Text of the option
-reportChatSponsoredMessageOption id:bytes text:string = ReportChatSponsoredMessageOption;
+//@description Describes an option to report an entity to Telegram @id Unique identifier of the option @text Text of the option
+reportOption id:bytes text:string = ReportOption;
 
 
 //@class ReportChatSponsoredMessageResult @description Describes result of sponsored message report
@@ -1866,7 +1866,7 @@ reportChatSponsoredMessageResultOk = ReportChatSponsoredMessageResult;
 reportChatSponsoredMessageResultFailed = ReportChatSponsoredMessageResult;
 
 //@description The user must choose an option to report the message and repeat request with the chosen option @title Title for the option choice @options List of available options
-reportChatSponsoredMessageResultOptionRequired title:string options:vector<reportChatSponsoredMessageOption> = ReportChatSponsoredMessageResult;
+reportChatSponsoredMessageResultOptionRequired title:string options:vector<reportOption> = ReportChatSponsoredMessageResult;
 
 //@description Sponsored messages were hidden for the user in all chats
 reportChatSponsoredMessageResultAdsHidden = ReportChatSponsoredMessageResult;
