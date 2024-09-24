@@ -3010,6 +3010,8 @@ void FileManager::download_impl(FileId file_id, int64 internal_download_id, std:
   } else {
     node->set_download_offset(offset);
     node->set_download_limit(limit);
+    requests.user_offset_ = offset;
+    requests.user_limit_ = limit;
     if (requests.user_download_callback_ == nullptr) {
       requests.user_download_callback_ = std::move(callback);
     } else {
@@ -3079,6 +3081,8 @@ void FileManager::cancel_download(FileId file_id, int64 internal_download_id, bo
     }
     callback = std::move(it->second.user_download_callback_);
     it->second.user_download_priority_ = 0;
+    it->second.user_offset_ = 0;
+    it->second.user_limit_ = 0;
   }
   if (it->second.user_download_callback_ == nullptr && it->second.internal_downloads_.empty()) {
     file_download_requests_.erase(it);

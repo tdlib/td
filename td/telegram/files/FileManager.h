@@ -784,6 +784,8 @@ class FileManager final : public Actor {
   };
   struct FileDownloadRequests {
     int8 user_download_priority_ = 0;
+    int64 user_offset_ = 0;
+    int64 user_limit_ = 0;
     std::shared_ptr<DownloadCallback> user_download_callback_;
     FlatHashMap<int64, FileDownloadInfo> internal_downloads_;
   };
