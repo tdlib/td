@@ -11,6 +11,7 @@
 #include "td/telegram/files/FileId.hpp"
 #include "td/telegram/misc.h"
 #include "td/telegram/PhotoSize.hpp"
+#include "td/telegram/PhotoSizeType.h"
 #include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickerMaskPosition.hpp"
 
@@ -343,11 +344,11 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, ParserT &parser
     }
     if (!is_mixed_format && thumbnail.file_id.is_valid()) {
       if (legacy_is_webm) {
-        thumbnail.type = 'v';
+        thumbnail.type = PhotoSizeType('v');
       } else if (legacy_is_tgs) {
-        thumbnail.type = 'a';
+        thumbnail.type = PhotoSizeType('a');
       } else {
-        thumbnail.type = 's';
+        thumbnail.type = PhotoSizeType('s');
       }
     }
     if (!was_inited) {

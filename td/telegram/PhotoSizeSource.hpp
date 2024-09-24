@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/PhotoSizeSource.h"
+#include "td/telegram/PhotoSizeType.hpp"
 #include "td/telegram/Version.h"
 
 #include "td/utils/SliceBuilder.h"
@@ -41,9 +42,6 @@ void parse(PhotoSizeSource::Thumbnail &source, ParserT &parser) {
   source.file_type = static_cast<FileType>(raw_type);
 
   parse(source.thumbnail_type, parser);
-  if (source.thumbnail_type < 0 || source.thumbnail_type > 127) {
-    parser.set_error("Wrong thumbnail type");
-  }
 }
 
 template <class StorerT>

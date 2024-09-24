@@ -2575,7 +2575,7 @@ td_api::object_ptr<td_api::thumbnail> StickersManager::get_sticker_set_thumbnail
         const Sticker *s = get_sticker(sticker_id);
         auto thumbnail_format = get_sticker_format_photo_format(s->format_);
         PhotoSize thumbnail;
-        thumbnail.type = 't';
+        thumbnail.type = PhotoSizeType('t');
         thumbnail.size = static_cast<int32>(file_view.size());
         thumbnail.dimensions = s->dimensions_;
         thumbnail.file_id = s->file_id_;

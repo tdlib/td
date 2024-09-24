@@ -877,6 +877,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/PhotoFormat.h
   td/telegram/PhotoSize.h
   td/telegram/PhotoSizeSource.h
+  td/telegram/PhotoSizeType.h
   td/telegram/PollId.h
   td/telegram/PollManager.h
   td/telegram/Premium.h
@@ -1038,6 +1039,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/Photo.hpp
   td/telegram/PhotoSize.hpp
   td/telegram/PhotoSizeSource.hpp
+  td/telegram/PhotoSizeType.hpp
   td/telegram/PollId.hpp
   td/telegram/PollManager.hpp
   td/telegram/PremiumGiftOption.hpp

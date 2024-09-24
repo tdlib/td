@@ -400,11 +400,11 @@ class FullRemoteFileLocation {
               case FileType::PhotoStory:
                 return make_tl_object<telegram_api::inputPhotoFileLocation>(
                     id, access_hash, BufferSlice(file_reference_),
-                    std::string(1, static_cast<char>(static_cast<uint8>(thumbnail.thumbnail_type))));
+                    std::string(1, static_cast<char>(static_cast<uint8>(thumbnail.thumbnail_type.type))));
               case FileType::Thumbnail:
                 return make_tl_object<telegram_api::inputDocumentFileLocation>(
                     id, access_hash, BufferSlice(file_reference_),
-                    std::string(1, static_cast<char>(static_cast<uint8>(thumbnail.thumbnail_type))));
+                    std::string(1, static_cast<char>(static_cast<uint8>(thumbnail.thumbnail_type.type))));
               default:
                 UNREACHABLE();
                 break;

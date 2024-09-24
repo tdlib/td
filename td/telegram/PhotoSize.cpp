@@ -141,7 +141,7 @@ PhotoSize get_secret_thumbnail_photo_size(FileManager *file_manager, BufferSlice
     return PhotoSize();
   }
   PhotoSize res;
-  res.type = 't';
+  res.type = PhotoSizeType('t');
   res.dimensions = get_dimensions(width, height, nullptr);
   res.size = narrow_cast<int32>(bytes.size());
 
@@ -234,13 +234,14 @@ Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, PhotoSizeSo
 
   if (type.size() != 1) {
     LOG(ERROR) << "Wrong photoSize \"" << type << "\" " << res;
-    res.type = 0;
+    res.type = PhotoSizeType();
   } else {
-    res.type = static_cast<uint8>(type[0]);
-    if (res.type >= 128) {
-      LOG(ERROR) << "Wrong photoSize \"" << type << "\" " << res;
-      res.type = 0;
+    auto int_type = static_cast<uint8>(type[0]);
+    if (int_type >= 128) {
+      LOG(ERROR) << "Wrong photoSize \"" << int_type << "\" " << res;
+      int_type = 0;
     }
+    res.type = PhotoSizeType(int_type);
   }
   if (format == PhotoFormat::Tgs) {
     if (res.type == 's') {
@@ -278,11 +279,12 @@ AnimationSize get_animation_size(Td *td, PhotoSizeSource source, int64 id, int64
   if (size->type_ != "p" && size->type_ != "u" && size->type_ != "v") {
     LOG(ERROR) << "Unsupported videoSize \"" << size->type_ << "\" in " << to_string(size);
   }
-  result.type = static_cast<uint8>(size->type_[0]);
-  if (result.type >= 128) {
-    LOG(ERROR) << "Wrong videoSize \"" << result.type << "\" " << result;
-    result.type = 0;
+  auto type = static_cast<uint8>(size->type_[0]);
+  if (type >= 128) {
+    LOG(ERROR) << "Wrong videoSize \"" << type << "\" " << to_string(size);
+    type = 0;
   }
+  result.type = PhotoSizeType(type);
   result.dimensions = get_dimensions(size->w_, size->h_, "get_animation_size");
   result.size = size->size_;
   if ((size->flags_ & telegram_api::videoSize::VIDEO_START_TS_MASK) != 0) {
@@ -407,7 +409,7 @@ PhotoSize get_web_document_photo_size(FileManager *file_manager, FileType file_t
   }
 
   PhotoSize s;
-  s.type = is_animation ? 'v' : (is_gif ? 'g' : (file_type == FileType::Thumbnail ? 't' : 'n'));
+  s.type = PhotoSizeType(is_animation ? 'v' : (is_gif ? 'g' : (file_type == FileType::Thumbnail ? 't' : 'n')));
   s.dimensions = dimensions;
   s.size = size;
   s.file_id = file_id;
@@ -436,7 +438,7 @@ Result<PhotoSize> get_input_photo_size(FileManager *file_manager, FileId file_id
     return Status::Error(400, "Size of the photo is too big");
   }
 
-  int32 type = 'i';
+  auto type = PhotoSizeType('i');
   const auto *full_remote_location = file_view.get_full_remote_location();
   if (full_remote_location != nullptr && !full_remote_location->is_web()) {
     auto photo_size_source = full_remote_location->get_source();
@@ -465,7 +467,7 @@ PhotoSize get_input_thumbnail_photo_size(FileManager *file_manager, const td_api
     if (r_thumbnail_file_id.is_error()) {
       LOG(WARNING) << "Ignore thumbnail file: " << r_thumbnail_file_id.error().message();
     } else {
-      thumbnail.type = 't';
+      thumbnail.type = PhotoSizeType('t');
       thumbnail.dimensions = get_dimensions(input_thumbnail->width_, input_thumbnail->height_, nullptr);
       thumbnail.file_id = r_thumbnail_file_id.ok();
       CHECK(thumbnail.file_id.is_valid());
@@ -512,8 +514,8 @@ bool operator<(const PhotoSize &lhs, const PhotoSize &rhs) {
   if (lhs_pixels != rhs_pixels) {
     return lhs_pixels < rhs_pixels;
   }
-  int32 lhs_type = lhs.type == 't' ? -1 : lhs.type;
-  int32 rhs_type = rhs.type == 't' ? -1 : rhs.type;
+  int32 lhs_type = lhs.type == 't' ? -1 : lhs.type.type;
+  int32 rhs_type = rhs.type == 't' ? -1 : rhs.type.type;
   if (lhs_type != rhs_type) {
     return lhs_type < rhs_type;
   }
@@ -524,8 +526,7 @@ bool operator<(const PhotoSize &lhs, const PhotoSize &rhs) {
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const PhotoSize &photo_size) {
-  char type = 32 <= photo_size.type && photo_size.type <= 127 ? static_cast<char>(photo_size.type) : '?';
-  return string_builder << "{type = " << type << ", dimensions = " << photo_size.dimensions
+  return string_builder << "{type = " << photo_size.type << ", dimensions = " << photo_size.dimensions
                         << ", size = " << photo_size.size << ", file_id = " << photo_size.file_id
                         << ", progressive_sizes = " << photo_size.progressive_sizes << "}";
 }

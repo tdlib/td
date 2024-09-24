@@ -236,8 +236,8 @@ static tl_object_ptr<td_api::photoSize> get_photo_size_object(FileManager *file_
   }
 
   return td_api::make_object<td_api::photoSize>(
-      photo_size->type ? std::string(1, static_cast<char>(photo_size->type))
-                       : std::string(),  // TODO replace string type with integer type
+      photo_size->type.type ? std::string(1, static_cast<char>(photo_size->type.type))
+                            : std::string(),  // TODO replace string type with integer type
       file_manager->get_file_object(photo_size->file_id), photo_size->dimensions.width, photo_size->dimensions.height,
       vector<int32>(photo_size->progressive_sizes));
 }
@@ -290,7 +290,7 @@ Photo get_encrypted_file_photo(FileManager *file_manager, unique_ptr<EncryptedFi
   }
 
   PhotoSize s;
-  s.type = 'i';
+  s.type = PhotoSizeType('i');
   s.dimensions = get_dimensions(photo->w_, photo->h_, nullptr);
   s.size = photo->size_;
   s.file_id = file_id;
@@ -434,10 +434,10 @@ Photo dup_photo(Photo photo) {
   result.sticker_file_ids = std::move(photo.sticker_file_ids);
 
   if (thumbnail.type != 0) {
-    thumbnail.type = 't';
+    thumbnail.type = PhotoSizeType('t');
     result.photos.push_back(std::move(thumbnail));
   }
-  input_size.type = 'i';
+  input_size.type = PhotoSizeType('i');
   result.photos.push_back(std::move(input_size));
 
   return result;

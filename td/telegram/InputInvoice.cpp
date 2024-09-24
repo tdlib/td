@@ -12,6 +12,7 @@
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/PhotoSize.h"
+#include "td/telegram/PhotoSizeType.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
@@ -159,7 +160,7 @@ Result<InputInvoice> InputInvoice::process_input_message_invoice(
       auto invoice_file_id = r_invoice_file_id.move_as_ok();
 
       PhotoSize s;
-      s.type = 'n';
+      s.type = PhotoSizeType('n');
       s.dimensions = get_dimensions(input_invoice->photo_width_, input_invoice->photo_height_, nullptr);
       s.size = input_invoice->photo_size_;  // TODO use invoice_file_id size
       s.file_id = invoice_file_id;
