@@ -11078,7 +11078,7 @@ toggleSupergroupIsBroadcastGroup supergroup_id:int53 = Ok;
 
 //@description Reports messages in a supergroup as spam; requires administrator rights in the supergroup
 //@supergroup_id Supergroup identifier
-//@message_ids Identifiers of messages to report. Use messageProperties.can_be_reported to check whether the message can be reported
+//@message_ids Identifiers of messages to report. Use messageProperties.can_report_supergroup_spam to check whether the message can be reported
 reportSupergroupSpam supergroup_id:int53 message_ids:vector<int53> = Ok;
 
 //@description Reports a false deletion of a message by aggressive anti-spam checks; requires administrator rights in the supergroup. Can be called only for messages from chatEventMessageDeleted with can_report_anti_spam_false_positive == true
@@ -11294,7 +11294,7 @@ removeChatActionBar chat_id:int53 = Ok;
 
 //@description Reports a chat to the Telegram moderators. A chat can be reported only from the chat action bar, or if chat.can_be_reported
 //@chat_id Chat identifier
-//@message_ids Identifiers of reported messages; may be empty to report the whole chat. Use messageProperties.can_be_reported to check whether the message can be reported
+//@message_ids Identifiers of reported messages; may be empty to report the whole chat. Use messageProperties.can_report_chat to check whether the message can be reported
 //@reason The reason for reporting the chat
 //@text Additional report details; 0-1024 characters
 reportChat chat_id:int53 message_ids:vector<int53> reason:ReportReason text:string = Ok;
