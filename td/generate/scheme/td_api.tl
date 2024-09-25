@@ -11415,7 +11415,7 @@ removeChatActionBar chat_id:int53 = Ok;
 //@description Reports a chat to the Telegram moderators. A chat can be reported only from the chat action bar, or if chat.can_be_reported
 //@chat_id Chat identifier
 //@option_id Option identifier chosen by the user; leave empty for the initial request
-//@message_ids Identifiers of reported messages if asked by the server; leave empty for the initial request. Use messageProperties.can_report_chat to check whether the message can be reported
+//@message_ids Identifiers of reported messages. Use messageProperties.can_report_chat to check whether the message can be reported
 //@text Additional report details if asked by the server; 0-1024 characters; leave empty for the initial request
 reportChat chat_id:int53 option_id:bytes message_ids:vector<int53> text:string = ReportChatResult;
 
