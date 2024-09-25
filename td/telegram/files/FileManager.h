@@ -667,8 +667,6 @@ class FileManager final : public Actor {
 
   Result<FileId> register_file(FileData &&data, FileLocationSource file_location_source, const char *source);
 
-  static constexpr int8 FROM_BYTES_PRIORITY = 10;
-
   using FileNodeId = int32;
 
   struct DownloadQuery {

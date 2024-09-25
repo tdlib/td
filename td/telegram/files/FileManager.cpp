@@ -2814,13 +2814,26 @@ bool FileManager::set_content(FileId file_id, BufferSlice bytes) {
     return true;
   }
 
-  if (node->download_priority_ == FROM_BYTES_PRIORITY) {
-    return true;
-  }
-
   do_cancel_download(node);
 
-  node->set_download_priority(FROM_BYTES_PRIORITY);
+  class Callback final : public DownloadCallback {
+   public:
+    void on_download_ok(FileId file_id) final {
+      LOG(INFO) << "Successfully saved content of " << file_id;
+    }
+    void on_download_error(FileId file_id, Status error) final {
+      LOG(INFO) << "Failed to save content of " << file_id << ": " << error;
+    }
+  };
+
+  int8 priority = 10;
+  auto internal_download_id = get_internal_download_id();
+  auto &requests = file_download_requests_[file_id];
+  auto &download_info = requests.internal_downloads_[internal_download_id];
+  download_info.download_priority_ = priority;
+  download_info.download_callback_ = std::make_shared<Callback>();
+
+  node->set_download_priority(priority);
 
   FileDownloadManager::QueryId query_id =
       download_queries_.create(DownloadQuery{file_id, DownloadQuery::Type::SetContent});
