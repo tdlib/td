@@ -6,6 +6,7 @@
 //
 #include "td/telegram/StarGiftManager.h"
 
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/ServerMessageId.h"
@@ -325,8 +326,9 @@ void StarGiftManager::send_gift(int64 gift_id, UserId user_id, td_api::object_pt
     return promise.set_error(Status::Error(400, "Have not enough Telegram Stars"));
   }
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
-  TRY_RESULT_PROMISE(promise, message,
-                     get_formatted_text(td_, DialogId(user_id), std::move(text), false, true, true, false));
+  TRY_RESULT_PROMISE(
+      promise, message,
+      get_formatted_text(td_, td_->dialog_manager_->get_my_dialog_id(), std::move(text), false, true, true, false));
 
   int32 flags = 0;
   if (is_private) {
