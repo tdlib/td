@@ -11243,7 +11243,7 @@ getAvailableGifts = Gifts;
 //@description Send a gift to another user
 //@gift_id Identifier of the gift to send
 //@user_id Identifier of the user that will receive the gift
-//@text Text to show along with the gift
+//@text Text to show along with the gift; 0-getOption("gift_text_length_max") characters. Only Bold, Italic, Underline, Strikethrough, Spoiler, and CustomEmoji entities are allowed
 //@is_private Pass true to show the current user as sender and gift text only to the gift receiver; otherwise, everyone will be able to see them
 sendGift gift_id:int64 user_id:int53 text:formattedText is_private:Bool = Ok;
 

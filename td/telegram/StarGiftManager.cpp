@@ -9,6 +9,7 @@
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageEntity.h"
+#include "td/telegram/MessageQuote.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StarGift.h"
 #include "td/telegram/StarManager.h"
@@ -329,6 +330,7 @@ void StarGiftManager::send_gift(int64 gift_id, UserId user_id, td_api::object_pt
   TRY_RESULT_PROMISE(
       promise, message,
       get_formatted_text(td_, td_->dialog_manager_->get_my_dialog_id(), std::move(text), false, true, true, false));
+  MessageQuote::remove_unallowed_quote_entities(message);
 
   int32 flags = 0;
   if (is_private) {
