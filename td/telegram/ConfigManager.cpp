@@ -2071,6 +2071,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         G()->set_option_integer("thousand_star_to_usd_rate", get_json_value_int(std::move(key_value->value_), key));
         continue;
       }
+      if (key == "stargifts_message_length_max") {
+        G()->set_option_integer("gift_text_length_max", get_json_value_int(std::move(key_value->value_), key));
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
