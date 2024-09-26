@@ -152,6 +152,9 @@ class MessagesManager final : public Actor {
 
   static bool is_invalid_poll_message(const telegram_api::Message *message);
 
+  static bool process_send_message_fail_error(int32 &error_code, string &error_message, DialogId dialog_id, bool is_bot,
+                                              MessageContentType content_type);
+
   static int32 get_message_date(const tl_object_ptr<telegram_api::Message> &message_ptr);
 
   void on_get_empty_messages(DialogId dialog_id, const vector<MessageId> &empty_message_ids);
