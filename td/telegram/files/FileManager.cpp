@@ -3384,6 +3384,7 @@ void FileManager::resume_upload(FileId file_id, vector<int> bad_parts, std::shar
     return;
   }
   CHECK(callback != nullptr);
+  CHECK(new_priority > 0);
 
   auto node = get_sync_file_node(file_id);
   if (!node) {
@@ -3404,11 +3405,7 @@ void FileManager::resume_upload(FileId file_id, vector<int> bad_parts, std::shar
         .release();
     return;
   }
-  if (new_priority == 0) {
-    LOG(INFO) << "Cancel upload of file " << file_id;
-  } else {
-    LOG(INFO) << "Resume upload of file " << file_id << " with priority " << new_priority << " and force = " << force;
-  }
+  LOG(INFO) << "Resume upload of file " << file_id << " with priority " << new_priority << " and force = " << force;
 
   if (force) {
     node->remote_.is_full_alive = false;
@@ -3429,7 +3426,7 @@ void FileManager::resume_upload(FileId file_id, vector<int> bad_parts, std::shar
     return;
   }
 
-  if (file_view.has_full_local_location() && new_priority != 0) {
+  if (file_view.has_full_local_location()) {
     auto status = check_local_location(node, false);
     if (status.is_error()) {
       LOG(INFO) << "Full local location of file " << file_id << " for upload is invalid: " << status;
@@ -3457,12 +3454,8 @@ void FileManager::resume_upload(FileId file_id, vector<int> bad_parts, std::shar
     // the old callback will be destroyed soon and lost forever
     // this is a bug and must never happen, unless we cancel previous upload query
     // but still there is no way to prevent this with the current FileManager implementation
-    if (new_priority == 0) {
-      file_info->upload_callback_->on_upload_error(file_id, Status::Error(200, "Canceled"));
-    } else {
-      LOG(ERROR) << "File " << file_id << " is used with different upload callbacks";
-      file_info->upload_callback_->on_upload_error(file_id, Status::Error(500, "Internal Server Error"));
-    }
+    LOG(ERROR) << "File " << file_id << " is used with different upload callbacks";
+    file_info->upload_callback_->on_upload_error(file_id, Status::Error(500, "Internal Server Error"));
   }
   file_info->upload_order_ = upload_order;
   file_info->upload_priority_ = narrow_cast<int8>(new_priority);
