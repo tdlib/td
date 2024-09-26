@@ -772,10 +772,6 @@ class FileManager final : public Actor {
     bool send_updates_flag_{false};
     bool pin_flag_{false};
     bool sent_file_id_flag_{false};
-
-    int8 upload_priority_{0};
-    uint64 upload_order_{0};
-    std::shared_ptr<UploadCallback> upload_callback_;
   };
 
   struct FileDownloadInfo {
@@ -790,6 +786,13 @@ class FileManager final : public Actor {
     FlatHashMap<int64, FileDownloadInfo> internal_downloads_;
   };
   FlatHashMap<FileId, FileDownloadRequests, FileIdHash> file_download_requests_;
+
+  struct FileUploadInfo {
+    int8 upload_priority_{0};
+    uint64 upload_order_{0};
+    std::shared_ptr<UploadCallback> upload_callback_;
+  };
+  FlatHashMap<FileId, FileUploadInfo, FileIdHash> file_upload_requests_;
 
   class ForceUploadActor;
 
