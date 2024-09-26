@@ -8416,9 +8416,7 @@ searchChats query:string limit:int32 = Chats;
 //@description Searches for the specified query in the title and username of already known chats via request to the server. Returns chats in the order seen in the main chat list @query Query to search for @limit The maximum number of chats to be returned
 searchChatsOnServer query:string limit:int32 = Chats;
 
-//@description Returns a list of users and location-based supergroups nearby. The list of users nearby will be updated for 60 seconds after the request by the updates updateUsersNearby.
-//-The request must be sent again every 25 seconds with adjusted location to not miss new chats
-//@location Current user location
+//@description Returns a list of users and location-based supergroups nearby. The method was disabled and returns an empty list of chats now @location Current user location
 searchChatsNearby location:location = ChatsNearby;
 
 //@description Returns a list of channel chats recommended to the current user
