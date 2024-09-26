@@ -2424,13 +2424,7 @@ Status FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sync) {
       finish_downloads(file_id, Status::OK());
     }
     if (file_view.has_active_upload_remote_location()) {
-      auto it = file_upload_requests_.find(file_id);
-      if (it != file_upload_requests_.end()) {
-        auto callback = std::move(it->second.upload_callback_);
-        file_upload_requests_.erase(it);
-        CHECK(callback);
-        callback->on_upload_ok(file_id, nullptr);
-      }
+      finish_uploads(file_id, Status::OK());
     }
   }
 
@@ -3484,13 +3478,7 @@ bool FileManager::delete_partial_remote_location(FileId file_id) {
 
   node->delete_partial_remote_location();
 
-  auto it = file_upload_requests_.find(file_id);
-  if (it != file_upload_requests_.end()) {
-    auto callback = std::move(it->second.upload_callback_);
-    file_upload_requests_.erase(it);
-    CHECK(callback);
-    callback->on_upload_error(file_id, Status::Error(200, "Canceled"));
-  }
+  finish_uploads(file_id, Status::Error(200, "Canceled"));
 
   if (node->local_.type() != LocalFileLocation::Type::Full) {
     LOG(INFO) << "Need full local location to upload file " << file_id;
@@ -3780,6 +3768,25 @@ void FileManager::upload(FileId file_id, std::shared_ptr<UploadCallback> callbac
   return resume_upload(file_id, vector<int>(), std::move(callback), new_priority, upload_order);
 }
 
+void FileManager::finish_uploads(FileId file_id, Status status) {
+  auto it = file_upload_requests_.find(file_id);
+  if (it == file_upload_requests_.end()) {
+    return;
+  }
+  vector<std::shared_ptr<UploadCallback>> callbacks;
+  callbacks.push_back(std::move(it->second.upload_callback_));
+  file_upload_requests_.erase(it);
+
+  for (auto &callback : callbacks) {
+    CHECK(callback != nullptr);
+    if (status.is_ok()) {
+      callback->on_upload_ok(file_id, nullptr);
+    } else {
+      callback->on_upload_error(file_id, status.clone());
+    }
+  }
+}
+
 void FileManager::cancel_upload(FileId file_id) {
   if (G()->close_flag()) {
     return;
@@ -3796,13 +3803,7 @@ void FileManager::cancel_upload(FileId file_id) {
     node->set_upload_pause(FileId());
   }
 
-  auto it = file_upload_requests_.find(file_id);
-  if (it != file_upload_requests_.end()) {
-    auto callback = std::move(it->second.upload_callback_);
-    file_upload_requests_.erase(it);
-    CHECK(callback);
-    callback->on_upload_error(file_id, Status::Error(200, "Canceled"));
-  }
+  finish_uploads(file_id, Status::Error(200, "Canceled"));
 
   run_generate(node);
   run_upload(node, {});
@@ -4929,14 +4930,7 @@ void FileManager::on_file_load_error(FileNodePtr node, Status status) {
 
   for (auto file_id : vector<FileId>(node->file_ids_)) {
     finish_downloads(file_id, status.clone());
-
-    auto it = file_upload_requests_.find(file_id);
-    if (it != file_upload_requests_.end()) {
-      auto callback = std::move(it->second.upload_callback_);
-      file_upload_requests_.erase(it);
-      CHECK(callback);
-      callback->on_upload_error(file_id, status.clone());
-    }
+    finish_uploads(file_id, status.clone());
   }
 }
 

@@ -852,6 +852,8 @@ class FileManager final : public Actor {
 
   void finish_downloads(FileId file_id, Status status);
 
+  void finish_uploads(FileId file_id, Status status);
+
   Status check_local_location(FileNodePtr node, bool skip_file_size_checks);
   void on_failed_check_local_location(FileNodePtr node);
   void check_local_location_async(FileNodePtr node, bool skip_file_size_checks, Promise<Unit> promise);
