@@ -3383,22 +3383,19 @@ void FileManager::resume_upload(FileId file_id, vector<int> bad_parts, std::shar
   if (G()->close_flag()) {
     return;
   }
+  CHECK(callback != nullptr);
 
   auto node = get_sync_file_node(file_id);
   if (!node) {
     LOG(INFO) << "File " << file_id << " not found";
-    if (callback) {
-      callback->on_upload_error(file_id, Status::Error(400, "File not found"));
-    }
+    callback->on_upload_error(file_id, Status::Error(400, "File not found"));
     return;
   }
 
   if (bad_parts.size() == 1 && bad_parts[0] == -1) {
     if (node->last_successful_force_reupload_time_ >= Time::now() - 60) {
       LOG(INFO) << "Recently reuploaded file " << file_id << ", do not try again";
-      if (callback) {
-        callback->on_upload_error(file_id, Status::Error(400, "Failed to reupload file"));
-      }
+      callback->on_upload_error(file_id, Status::Error(400, "Failed to reupload file"));
       return;
     }
 
@@ -3428,9 +3425,7 @@ void FileManager::resume_upload(FileId file_id, vector<int> bad_parts, std::shar
   FileView file_view(node);
   if (file_view.has_active_upload_remote_location() && can_reuse_remote_file(file_view.get_type())) {
     LOG(INFO) << "Upload of file " << file_id << " has already been completed";
-    if (callback) {
-      callback->on_upload_ok(file_id, nullptr);
-    }
+    callback->on_upload_ok(file_id, nullptr);
     return;
   }
 
@@ -3444,25 +3439,20 @@ void FileManager::resume_upload(FileId file_id, vector<int> bad_parts, std::shar
   if (!file_view.has_full_local_location() && !file_view.has_generate_location() &&
       !file_view.has_alive_remote_location()) {
     LOG(INFO) << "File " << file_id << " can't be uploaded";
-    if (callback) {
-      callback->on_upload_error(
-          file_id, Status::Error(400, "Need full local (or generate, or inactive remote) location for upload"));
-    }
+    callback->on_upload_error(
+        file_id, Status::Error(400, "Need full local (or generate, or inactive remote) location for upload"));
     return;
   }
   if (file_view.get_type() == FileType::Thumbnail &&
       (!file_view.has_full_local_location() && file_view.can_download_from_server())) {
     // TODO
-    if (callback) {
-      callback->on_upload_error(file_id, Status::Error(400, "Failed to upload thumbnail without local location"));
-    }
+    callback->on_upload_error(file_id, Status::Error(400, "Failed to upload thumbnail without local location"));
     return;
   }
 
   LOG(INFO) << "Change upload priority of file " << file_id << " to " << new_priority << " with callback "
             << callback.get();
   auto *file_info = get_file_id_info(file_id);
-  CHECK(new_priority == 0 || callback);
   if (file_info->upload_callback_ != nullptr && file_info->upload_callback_.get() != callback.get()) {
     // the old callback will be destroyed soon and lost forever
     // this is a bug and must never happen, unless we cancel previous upload query
