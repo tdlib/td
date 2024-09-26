@@ -194,7 +194,7 @@ class BusinessConnectionManager::SendBusinessMessageQuery final : public Td::Res
 
   void on_error(Status status) final {
     LOG(INFO) << "Receive error for SendBusinessMessageQuery: " << status;
-
+    td_->business_connection_manager_->on_fail_send_message(std::move(message_), status);
     promise_.set_error(std::move(status));
   }
 };
@@ -269,6 +269,7 @@ class BusinessConnectionManager::SendBusinessMediaQuery final : public Td::Resul
 
   void on_error(Status status) final {
     LOG(INFO) << "Receive error for SendBusinessMediaQuery: " << status;
+    td_->business_connection_manager_->on_fail_send_message(std::move(message_), status);
     promise_.set_error(std::move(status));
   }
 };
@@ -332,6 +333,9 @@ class BusinessConnectionManager::SendBusinessMultiMediaQuery final : public Td::
 
   void on_error(Status status) final {
     LOG(INFO) << "Receive error for SendBusinessMultiMediaQuery: " << status;
+    for (auto &message : messages_) {
+      td_->business_connection_manager_->on_fail_send_message(std::move(message), status);
+    }
     promise_.set_error(std::move(status));
   }
 };
@@ -1260,6 +1264,16 @@ void BusinessConnectionManager::on_upload_message_paid_media(int64 request_id, s
       flags, get_message_content_star_count(message->content_.get()), std::move(input_media), payload);
   td_->create_handler<SendBusinessMediaQuery>(std::move(promise))
       ->send(std::move(message), std::move(input_media_paid_media));
+}
+
+void BusinessConnectionManager::on_fail_send_message(unique_ptr<PendingMessage> &&message, const Status &error) {
+  int32 error_code = error.code();
+  string error_message = error.message().str();
+  MessagesManager::process_send_message_fail_error(error_code, error_message, message->dialog_id_,
+                                                   td_->auth_manager_->is_bot(), message->content_->get_type());
+  if (error_code != 403 && !(error_code == 500 && G()->close_flag())) {
+    LOG(WARNING) << "Failed to send business in " << message->dialog_id_ << " with the error " << error;
+  }
 }
 
 void BusinessConnectionManager::edit_business_message_text(
