@@ -850,9 +850,9 @@ class FileManager final : public Actor {
   void download_impl(FileId file_id, int64 internal_download_id, std::shared_ptr<DownloadCallback> callback,
                      int32 new_priority, int64 offset, int64 limit, Status check_status);
 
-  void finish_downloads(FileId file_id, Status status);
+  void finish_downloads(FileId file_id, const Status &status);
 
-  void finish_uploads(FileId file_id, Status status);
+  void finish_uploads(FileId file_id, const Status &status);
 
   Status check_local_location(FileNodePtr node, bool skip_file_size_checks);
   void on_failed_check_local_location(FileNodePtr node);

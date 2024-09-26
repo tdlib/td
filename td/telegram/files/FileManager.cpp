@@ -3019,7 +3019,7 @@ void FileManager::download_impl(FileId file_id, int64 internal_download_id, std:
   try_flush_node(node, "download");
 }
 
-void FileManager::finish_downloads(FileId file_id, Status status) {
+void FileManager::finish_downloads(FileId file_id, const Status &status) {
   auto it = file_download_requests_.find(file_id);
   if (it == file_download_requests_.end()) {
     return;
@@ -3768,7 +3768,7 @@ void FileManager::upload(FileId file_id, std::shared_ptr<UploadCallback> callbac
   return resume_upload(file_id, vector<int>(), std::move(callback), new_priority, upload_order);
 }
 
-void FileManager::finish_uploads(FileId file_id, Status status) {
+void FileManager::finish_uploads(FileId file_id, const Status &status) {
   auto it = file_upload_requests_.find(file_id);
   if (it == file_upload_requests_.end()) {
     return;
@@ -4929,8 +4929,8 @@ void FileManager::on_file_load_error(FileNodePtr node, Status status) {
   do_cancel_upload(node);
 
   for (auto file_id : vector<FileId>(node->file_ids_)) {
-    finish_downloads(file_id, status.clone());
-    finish_uploads(file_id, status.clone());
+    finish_downloads(file_id, status);
+    finish_uploads(file_id, status);
   }
 }
 
