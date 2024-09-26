@@ -194,6 +194,7 @@ class BusinessConnectionManager::SendBusinessMessageQuery final : public Td::Res
 
   void on_error(Status status) final {
     LOG(INFO) << "Receive error for SendBusinessMessageQuery: " << status;
+
     promise_.set_error(std::move(status));
   }
 };

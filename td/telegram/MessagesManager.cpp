@@ -29965,7 +29965,7 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
   string error_message = error.message().str();
   if (!process_send_message_fail_error(error_code, error_message, dialog_id, td_->auth_manager_->is_bot(),
                                        m->content->get_type())) {
-    if (error.message() == "QUOTE_TEXT_INVALID") {
+    if (error_message == "QUOTE_TEXT_INVALID") {
       auto *input_reply_to = get_message_input_reply_to(m);
       if (input_reply_to != nullptr && !input_reply_to->is_empty() && input_reply_to->has_quote()) {
         auto reply_message_full_id = input_reply_to->get_reply_message_full_id(dialog_id);
@@ -29976,7 +29976,7 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
         error_code = 500;
         error_message = "Unexpected QUOTE_TEXT_INVALID error";
       }
-    } else if (error.message() == "REPLY_MESSAGE_ID_INVALID") {
+    } else if (error_message == "REPLY_MESSAGE_ID_INVALID") {
       auto *input_reply_to = get_message_input_reply_to(m);
       if (input_reply_to != nullptr && !input_reply_to->is_empty()) {
         auto reply_message_full_id = input_reply_to->get_reply_message_full_id(dialog_id);
@@ -29987,20 +29987,20 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
         error_code = 500;
         error_message = "Unexpected REPLY_MESSAGE_ID_INVALID error";
       }
-    } else if (error.message() == "CHAT_GUEST_SEND_FORBIDDEN") {
+    } else if (error_message == "CHAT_GUEST_SEND_FORBIDDEN") {
       error_code = 400;
       if (dialog_id.get_type() == DialogType::Channel) {
         td_->chat_manager_->reload_channel(dialog_id.get_channel_id(), Promise<Unit>(), "CHAT_GUEST_SEND_FORBIDDEN");
       }
-    } else if (error.message() == "REPLY_MARKUP_INVALID") {
+    } else if (error_message == "REPLY_MARKUP_INVALID") {
       if (m->reply_markup == nullptr) {
-        LOG(ERROR) << "Receive " << error.message() << " for "
+        LOG(ERROR) << "Receive " << error_message << " for "
                    << oneline(to_string(get_message_object(dialog_id, m, "on_send_message_fail")));
       } else {
-        LOG(ERROR) << "Receive " << error.message() << " for " << message_full_id << " with keyboard "
+        LOG(ERROR) << "Receive " << error_message << " for " << message_full_id << " with keyboard "
                    << *m->reply_markup;
       }
-    } else if (error.message() == "ENTITY_BOUNDS_INVALID") {
+    } else if (error_message == "ENTITY_BOUNDS_INVALID") {
       LOG(ERROR) << "Receive ENTITY_BOUNDS_INVALID for "
                  << to_string(get_message_object(dialog_id, m, "on_send_message_fail"));
       auto text = get_message_content_text(m->content.get());
