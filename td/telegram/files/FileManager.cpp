@@ -3380,6 +3380,10 @@ void FileManager::on_force_reupload_success(FileId file_id) {
 
 void FileManager::resume_upload(FileId file_id, vector<int> bad_parts, std::shared_ptr<UploadCallback> callback,
                                 int32 new_priority, uint64 upload_order, bool force, bool prefer_small) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   auto node = get_sync_file_node(file_id);
   if (!node) {
     LOG(INFO) << "File " << file_id << " not found";
@@ -3781,7 +3785,32 @@ void FileManager::upload(FileId file_id, std::shared_ptr<UploadCallback> callbac
 }
 
 void FileManager::cancel_upload(FileId file_id) {
-  return resume_upload(file_id, vector<int>(), nullptr, 0, 0);
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto node = get_sync_file_node(file_id);
+  if (!node) {
+    return;
+  }
+
+  LOG(INFO) << "Cancel upload of file " << file_id;
+
+  if (node->upload_pause_ == file_id) {
+    node->set_upload_pause(FileId());
+  }
+
+  auto *file_info = get_file_id_info(file_id);
+  if (file_info->upload_callback_ != nullptr) {
+    file_info->upload_callback_->on_upload_error(file_id, Status::Error(200, "Canceled"));
+    file_info->upload_callback_ = nullptr;
+  }
+  file_info->upload_order_ = 0;
+  file_info->upload_priority_ = 0;
+
+  run_generate(node);
+  run_upload(node, {});
+  try_flush_node(node, "cancel_upload");
 }
 
 static bool is_background_type(FileType type) {
