@@ -508,6 +508,9 @@ class FileManager final : public Actor {
 
   static int64 get_internal_download_id();
 
+  void download_file(FileId file_id, int32 priority, int64 offset, int64 limit, bool synchronous,
+                     Promise<td_api::object_ptr<td_api::file>> &&promise);
+
   void download(FileId file_id, int64 internal_download_id, std::shared_ptr<DownloadCallback> callback,
                 int32 new_priority, int64 offset, int64 limit);
 
@@ -784,6 +787,17 @@ class FileManager final : public Actor {
     bool sent_file_id_flag_{false};
   };
 
+  struct UserFileDownloadInfo {
+    int64 offset_ = -1;
+    int64 limit_ = -1;
+    vector<Promise<td_api::object_ptr<td_api::file>>> promises_;
+  };
+  FlatHashMap<FileId, UserFileDownloadInfo, FileIdHash> pending_user_file_downloads_;
+
+  class UserDownloadFileCallback;
+
+  std::shared_ptr<UserDownloadFileCallback> user_download_file_callback_;
+
   struct FileDownloadInfo {
     int8 download_priority_ = 0;
     std::shared_ptr<DownloadCallback> download_callback_;
@@ -861,6 +875,8 @@ class FileManager final : public Actor {
   FileNodeId next_file_node_id();
   int32 next_pmc_file_id();
   bool try_forget_file_id(FileId file_id);
+
+  void on_user_file_download_finished(FileId file_id);
 
   void download_impl(FileId file_id, int64 internal_download_id, std::shared_ptr<DownloadCallback> callback,
                      int32 new_priority, int64 offset, int64 limit, Status check_status);

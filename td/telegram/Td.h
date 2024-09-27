@@ -397,8 +397,6 @@ class Td final : public Actor {
 
   void clear_requests();
 
-  void on_file_download_finished(FileId file_id);
-
   std::shared_ptr<ActorContext> old_context_;
 
   static bool is_authentication_request(int32 id);

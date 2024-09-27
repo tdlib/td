@@ -1285,7 +1285,24 @@ void prepare_path_for_pmc(FileType file_type, string &path) {
 }
 }  // namespace
 
-FileManager::FileManager(unique_ptr<Context> context) : context_(std::move(context)) {
+class FileManager::UserDownloadFileCallback final : public FileManager::DownloadCallback {
+  FileManager *file_manager_;
+
+ public:
+  explicit UserDownloadFileCallback(FileManager *file_manager) : file_manager_(file_manager) {
+  }
+
+  void on_download_ok(FileId file_id) final {
+    file_manager_->on_user_file_download_finished(file_id);
+  }
+
+  void on_download_error(FileId file_id, Status error) final {
+    file_manager_->on_user_file_download_finished(file_id);
+  }
+};
+
+FileManager::FileManager(unique_ptr<Context> context)
+    : context_(std::move(context)), user_download_file_callback_(std::make_shared<UserDownloadFileCallback>(this)) {
   if (G()->use_file_database()) {
     file_db_ = G()->td_db()->get_file_db_shared();
   }
@@ -2940,6 +2957,79 @@ int64 FileManager::get_internal_download_id() {
 
 int64 FileManager::get_internal_upload_id() {
   return ++internal_load_id_;
+}
+
+void FileManager::download_file(FileId file_id, int32 priority, int64 offset, int64 limit, bool synchronous,
+                                Promise<td_api::object_ptr<td_api::file>> &&promise) {
+  if (!(1 <= priority && priority <= 32)) {
+    return promise.set_error(Status::Error(400, "Download priority must be between 1 and 32"));
+  }
+  if (offset < 0) {
+    return promise.set_error(Status::Error(400, "Download offset must be non-negative"));
+  }
+  if (limit < 0) {
+    return promise.set_error(Status::Error(400, "Download limit must be non-negative"));
+  }
+
+  auto file_view = get_file_view(file_id);
+  if (file_view.empty()) {
+    return promise.set_error(Status::Error(400, "File not found"));
+  }
+
+  auto info_it = pending_user_file_downloads_.find(file_id);
+  UserFileDownloadInfo *info = info_it == pending_user_file_downloads_.end() ? nullptr : &info_it->second;
+  if (info != nullptr && (offset != info->offset_ || limit != info->limit_)) {
+    // we can't have two pending user requests with different offset and limit, so cancel all previous requests
+    auto promises = std::move(info->promises_);
+    if (!synchronous) {
+      pending_user_file_downloads_.erase(info_it);
+    } else {
+      info->promises_.clear();
+    }
+    fail_promises(promises, Status::Error(200, "Canceled by another downloadFile request"));
+  }
+  if (synchronous) {
+    if (info == nullptr) {
+      info = &pending_user_file_downloads_[file_id];
+    }
+    info->offset_ = offset;
+    info->limit_ = limit;
+    info->promises_.push_back(std::move(promise));
+  }
+  download(file_id, 0, user_download_file_callback_, priority, offset, limit);
+  if (!synchronous) {
+    promise.set_value(get_file_object(file_id, false));
+  }
+}
+
+void FileManager::on_user_file_download_finished(FileId file_id) {
+  auto it = pending_user_file_downloads_.find(file_id);
+  if (it == pending_user_file_downloads_.end()) {
+    return;
+  }
+  auto offset = it->second.offset_;
+  auto limit = it->second.limit_;
+  if (limit == 0) {
+    limit = std::numeric_limits<int64>::max();
+  }
+  auto promises = std::move(it->second.promises_);
+  pending_user_file_downloads_.erase(it);
+
+  for (auto &promise : promises) {
+    auto file_object = get_file_object(file_id, false);
+    CHECK(file_object != nullptr);
+    auto download_offset = file_object->local_->download_offset_;
+    auto downloaded_size = file_object->local_->downloaded_prefix_size_;
+    auto file_size = file_object->size_;
+    if (file_object->local_->is_downloading_completed_ ||
+        (download_offset <= offset && download_offset + downloaded_size >= offset &&
+         ((file_size != 0 && download_offset + downloaded_size == file_size) ||
+          download_offset + downloaded_size - offset >= limit))) {
+      promise.set_value(std::move(file_object));
+    } else {
+      promise.set_error(Status::Error(400, "File download has failed or was canceled"));
+    }
+  }
 }
 
 void FileManager::download(FileId file_id, int64 internal_download_id, std::shared_ptr<DownloadCallback> callback,

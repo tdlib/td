@@ -1414,8 +1414,4 @@ Result<std::pair<Td::Parameters, TdDb::Parameters>> Td::get_parameters(
   return std::move(result);
 }
 
-void Td::on_file_download_finished(FileId file_id) {
-  requests_->on_file_download_finished(file_id);
-}
-
 }  // namespace td

@@ -1864,19 +1864,7 @@ class SearchBackgroundRequest final : public RequestActor<> {
   }
 };
 
-class Requests::DownloadFileCallback final : public FileManager::DownloadCallback {
- public:
-  void on_download_ok(FileId file_id) final {
-    send_closure(G()->td(), &Td::on_file_download_finished, file_id);
-  }
-
-  void on_download_error(FileId file_id, Status error) final {
-    send_closure(G()->td(), &Td::on_file_download_finished, file_id);
-  }
-};
-
-Requests::Requests(Td *td)
-    : td_(td), td_actor_(td->actor_id(td)), download_file_callback_(std::make_shared<DownloadFileCallback>()) {
+Requests::Requests(Td *td) : td_(td), td_actor_(td->actor_id(td)) {
 }
 
 void Requests::run_request(uint64 id, td_api::object_ptr<td_api::Function> &&function) {
@@ -5344,77 +5332,9 @@ void Requests::on_request(uint64 id, const td_api::clearAllDraftMessages &reques
 }
 
 void Requests::on_request(uint64 id, const td_api::downloadFile &request) {
-  auto priority = request.priority_;
-  if (!(1 <= priority && priority <= 32)) {
-    return send_error_raw(id, 400, "Download priority must be between 1 and 32");
-  }
-  auto offset = request.offset_;
-  if (offset < 0) {
-    return send_error_raw(id, 400, "Download offset must be non-negative");
-  }
-  auto limit = request.limit_;
-  if (limit < 0) {
-    return send_error_raw(id, 400, "Download limit must be non-negative");
-  }
-
-  FileId file_id(request.file_id_, 0);
-  auto file_view = td_->file_manager_->get_file_view(file_id);
-  if (file_view.empty()) {
-    return send_error_raw(id, 400, "File not found");
-  }
-
-  auto info_it = pending_file_downloads_.find(file_id);
-  DownloadInfo *info = info_it == pending_file_downloads_.end() ? nullptr : &info_it->second;
-  if (info != nullptr && (offset != info->offset || limit != info->limit)) {
-    // we can't have two pending requests with different offset and limit, so cancel all previous requests
-    auto request_ids = std::move(info->request_ids);
-    info->request_ids.clear();
-    for (auto request_id : request_ids) {
-      send_closure(td_actor_, &Td::send_error, request_id,
-                   Status::Error(200, "Canceled by another downloadFile request"));
-    }
-  }
-  if (request.synchronous_) {
-    if (info == nullptr) {
-      info = &pending_file_downloads_[file_id];
-    }
-    info->offset = offset;
-    info->limit = limit;
-    info->request_ids.push_back(id);
-  }
-  td_->file_manager_->download(file_id, 0, download_file_callback_, priority, offset, limit);
-  if (!request.synchronous_) {
-    CREATE_REQUEST_PROMISE();
-    promise.set_value(td_->file_manager_->get_file_object(file_id, false));
-  }
-}
-
-void Requests::on_file_download_finished(FileId file_id) {
-  auto it = pending_file_downloads_.find(file_id);
-  if (it == pending_file_downloads_.end()) {
-    return;
-  }
-  for (auto id : it->second.request_ids) {
-    // there was send_closure to call td_ function
-    auto file_object = td_->file_manager_->get_file_object(file_id, false);
-    CHECK(file_object != nullptr);
-    auto download_offset = file_object->local_->download_offset_;
-    auto downloaded_size = file_object->local_->downloaded_prefix_size_;
-    auto file_size = file_object->size_;
-    auto limit = it->second.limit;
-    if (limit == 0) {
-      limit = std::numeric_limits<int64>::max();
-    }
-    if (file_object->local_->is_downloading_completed_ ||
-        (download_offset <= it->second.offset && download_offset + downloaded_size >= it->second.offset &&
-         ((file_size != 0 && download_offset + downloaded_size == file_size) ||
-          download_offset + downloaded_size - it->second.offset >= limit))) {
-      td_->send_result(id, std::move(file_object));
-    } else {
-      td_->send_error_impl(id, td_api::make_object<td_api::error>(400, "File download has failed or was canceled"));
-    }
-  }
-  pending_file_downloads_.erase(it);
+  CREATE_REQUEST_PROMISE();
+  td_->file_manager_->download_file(FileId(request.file_id_, 0), request.priority_, request.offset_, request.limit_,
+                                    request.synchronous_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getFileDownloadedPrefixSize &request) {
