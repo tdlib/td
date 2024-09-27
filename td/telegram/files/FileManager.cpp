@@ -3019,6 +3019,35 @@ void FileManager::download_impl(FileId file_id, int64 internal_download_id, std:
   try_flush_node(node, "download");
 }
 
+std::shared_ptr<FileManager::DownloadCallback> FileManager::extract_download_callback(FileId file_id,
+                                                                                      int64 internal_download_id) {
+  auto it = file_download_requests_.find(file_id);
+  if (it == file_download_requests_.end()) {
+    return nullptr;
+  }
+  std::shared_ptr<DownloadCallback> callback;
+  if (internal_download_id != 0) {
+    auto download_info_it = it->second.internal_downloads_.find(internal_download_id);
+    if (download_info_it == it->second.internal_downloads_.end()) {
+      return nullptr;
+    }
+    callback = std::move(download_info_it->second.download_callback_);
+    it->second.internal_downloads_.erase(download_info_it);
+  } else {
+    if (it->second.user_download_callback_ == nullptr) {
+      return nullptr;
+    }
+    callback = std::move(it->second.user_download_callback_);
+    it->second.user_download_priority_ = 0;
+    it->second.user_offset_ = 0;
+    it->second.user_limit_ = 0;
+  }
+  if (it->second.user_download_callback_ == nullptr && it->second.internal_downloads_.empty()) {
+    file_download_requests_.erase(it);
+  }
+  return callback;
+}
+
 void FileManager::finish_downloads(FileId file_id, const Status &status) {
   auto it = file_download_requests_.find(file_id);
   if (it == file_download_requests_.end()) {
@@ -3057,33 +3086,12 @@ void FileManager::cancel_download(FileId file_id, int64 internal_download_id, bo
     return;
   }
 
-  auto it = file_download_requests_.find(file_id);
-  if (it == file_download_requests_.end()) {
+  auto callback = extract_download_callback(file_id, internal_download_id);
+  if (callback == nullptr) {
     return;
-  }
-  std::shared_ptr<DownloadCallback> callback;
-  if (internal_download_id != 0) {
-    auto download_info_it = it->second.internal_downloads_.find(internal_download_id);
-    if (download_info_it == it->second.internal_downloads_.end()) {
-      return;
-    }
-    callback = std::move(download_info_it->second.download_callback_);
-    it->second.internal_downloads_.erase(download_info_it);
-  } else {
-    if (it->second.user_download_callback_ == nullptr) {
-      return;
-    }
-    callback = std::move(it->second.user_download_callback_);
-    it->second.user_download_priority_ = 0;
-    it->second.user_offset_ = 0;
-    it->second.user_limit_ = 0;
-  }
-  if (it->second.user_download_callback_ == nullptr && it->second.internal_downloads_.empty()) {
-    file_download_requests_.erase(it);
   }
 
   LOG(INFO) << "Cancel download of file " << file_id;
-  CHECK(callback != nullptr);
   callback->on_download_error(file_id, Status::Error(200, "Canceled"));
 
   run_generate(node);
