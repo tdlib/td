@@ -1613,9 +1613,11 @@ FileId FileManager::dup_file_id(FileId file_id, const char *source) {
   auto new_file_id = next_file_id();
   auto file_id_info = get_file_id_info(new_file_id);
   file_id_info->node_id_ = file_node_id;
-  auto old_file_info = get_file_id_info(file_id)->file_info_.get();
-  if (old_file_info != nullptr) {
-    file_id_info->file_info_ = old_file_info->clone();
+  if (STORE_FILE_INFO) {
+    auto old_file_info = get_file_id_info(file_id)->file_info_.get();
+    if (old_file_info != nullptr) {
+      file_id_info->file_info_ = old_file_info->clone();
+    }
   }
   file_node->file_ids_.push_back(new_file_id);
   auto result_file_id = FileId(new_file_id.get(), file_id.get_remote());
