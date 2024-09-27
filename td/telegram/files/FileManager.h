@@ -854,6 +854,8 @@ class FileManager final : public Actor {
 
   void finish_downloads(FileId file_id, const Status &status);
 
+  std::shared_ptr<UploadCallback> extract_upload_callback(FileId file_id);
+
   void finish_uploads(FileId file_id, const Status &status);
 
   Status check_local_location(FileNodePtr node, bool skip_file_size_checks);

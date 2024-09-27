@@ -3486,7 +3486,10 @@ bool FileManager::delete_partial_remote_location(FileId file_id) {
 
   node->delete_partial_remote_location();
 
-  finish_uploads(file_id, Status::Error(200, "Canceled"));
+  auto callback = extract_upload_callback(file_id);
+  if (callback != nullptr) {
+    callback->on_upload_error(file_id, Status::Error(200, "Canceled"));
+  }
 
   if (node->local_.type() != LocalFileLocation::Type::Full) {
     LOG(INFO) << "Need full local location to upload file " << file_id;
@@ -3776,6 +3779,17 @@ void FileManager::upload(FileId file_id, std::shared_ptr<UploadCallback> callbac
   return resume_upload(file_id, vector<int>(), std::move(callback), new_priority, upload_order);
 }
 
+std::shared_ptr<FileManager::UploadCallback> FileManager::extract_upload_callback(FileId file_id) {
+  auto it = file_upload_requests_.find(file_id);
+  if (it == file_upload_requests_.end()) {
+    return nullptr;
+  }
+  std::shared_ptr<UploadCallback> callback;
+  callback = std::move(it->second.upload_callback_);
+  file_upload_requests_.erase(it);
+  return callback;
+}
+
 void FileManager::finish_uploads(FileId file_id, const Status &status) {
   auto it = file_upload_requests_.find(file_id);
   if (it == file_upload_requests_.end()) {
@@ -3811,7 +3825,10 @@ void FileManager::cancel_upload(FileId file_id) {
     node->set_upload_pause(FileId());
   }
 
-  finish_uploads(file_id, Status::Error(200, "Canceled"));
+  auto callback = extract_upload_callback(file_id);
+  if (callback != nullptr) {
+    callback->on_upload_error(file_id, Status::Error(200, "Canceled"));
+  }
 
   run_generate(node);
   run_upload(node, {});
@@ -4574,11 +4591,8 @@ void FileManager::on_upload_ok(FileUploadManager::QueryId query_id, FileType fil
   if (!file_id.is_valid()) {
     return;
   }
-  auto it = file_upload_requests_.find(file_id);
-  CHECK(it != file_upload_requests_.end());
-  auto callback = std::move(it->second.upload_callback_);
-  file_upload_requests_.erase(it);
-  CHECK(callback);
+  auto callback = extract_upload_callback(file_id);
+  CHECK(callback != nullptr);
 
   LOG(INFO) << "Found being uploaded file " << file_id;
 
