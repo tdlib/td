@@ -37,6 +37,7 @@
 #include "td/telegram/DownloadManager.h"
 #include "td/telegram/DownloadManagerCallback.h"
 #include "td/telegram/FileReferenceManager.h"
+#include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/ForumTopicManager.h"

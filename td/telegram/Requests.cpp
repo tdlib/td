@@ -167,7 +167,6 @@
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
-#include <limits>
 #include <tuple>
 #include <type_traits>
 #include <utility>
