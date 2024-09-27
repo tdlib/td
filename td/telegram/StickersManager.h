@@ -109,6 +109,9 @@ class StickersManager final : public Actor {
 
   void load_premium_gift_sticker_set(Promise<Unit> &&promise);
 
+  void load_premium_gift_sticker(int32 month_count, int64 star_count,
+                                 Promise<td_api::object_ptr<td_api::sticker>> &&promise);
+
   void register_premium_gift(int32 months, int64 star_count, MessageFullId message_full_id, const char *source);
 
   void unregister_premium_gift(int32 months, int64 star_count, MessageFullId message_full_id, const char *source);
@@ -854,6 +857,9 @@ class StickersManager final : public Actor {
   bool update_sticker_set_cache(const StickerSet *sticker_set, Promise<Unit> &promise);
 
   const StickerSet *get_premium_gift_sticker_set();
+
+  void return_premium_gift_sticker(int32 month_count, int64 star_count,
+                                   Promise<td_api::object_ptr<td_api::sticker>> &&promise);
 
   static FileId get_premium_gift_option_sticker_id(const StickerSet *sticker_set, int32 month_count);
 

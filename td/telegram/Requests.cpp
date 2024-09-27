@@ -7343,6 +7343,12 @@ void Requests::on_request(uint64 id, const td_api::getPremiumStickerExamples &re
   td_->stickers_manager_->search_stickers(StickerType::Regular, "⭐️⭐️", 100, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::getPremiumInfoSticker &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->stickers_manager_->load_premium_gift_sticker(request.month_count_, 0, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::viewPremiumFeature &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

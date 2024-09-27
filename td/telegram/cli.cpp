@@ -3486,6 +3486,10 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getPremiumFeatures>(std::move(source)));
     } else if (op == "gprse") {
       send_request(td_api::make_object<td_api::getPremiumStickerExamples>());
+    } else if (op == "gpis") {
+      int32 month_count;
+      get_args(args, month_count);
+      send_request(td_api::make_object<td_api::getPremiumInfoSticker>(month_count));
     } else if (op == "vprf") {
       auto feature = td_api::make_object<td_api::premiumFeatureProfileBadge>();
       send_request(td_api::make_object<td_api::viewPremiumFeature>(std::move(feature)));

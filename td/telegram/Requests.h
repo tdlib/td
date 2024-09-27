@@ -1525,6 +1525,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getPremiumStickerExamples &request);
 
+  void on_request(uint64 id, const td_api::getPremiumInfoSticker &request);
+
   void on_request(uint64 id, const td_api::viewPremiumFeature &request);
 
   void on_request(uint64 id, const td_api::clickPremiumSubscriptionButton &request);
