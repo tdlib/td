@@ -822,13 +822,15 @@ void FileNode::set_encryption_key(FileEncryptionKey key) {
   }
 }
 
-void FileNode::set_upload_pause(FileId upload_pause) {
-  if (upload_pause_ != upload_pause) {
-    LOG(INFO) << "Change file " << main_file_id_ << " upload_pause from " << upload_pause_ << " to " << upload_pause;
+void FileNode::set_upload_pause(FileId upload_pause, int64 internal_upload_pause_id) {
+  if (upload_pause_ != upload_pause || internal_upload_pause_id_ != internal_upload_pause_id) {
+    LOG(INFO) << "Change file " << main_file_id_ << " upload_pause from " << upload_pause_ << " + "
+              << internal_upload_pause_id_ << " to " << upload_pause << " + " << internal_upload_pause_id;
     if (upload_pause_.is_valid() != upload_pause.is_valid()) {
       on_info_changed();
     }
     upload_pause_ = upload_pause;
+    internal_upload_pause_id_ = internal_upload_pause_id;
   }
 }
 
@@ -2193,8 +2195,8 @@ Status FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sync) {
         400, PSLICE() << "Can't merge files. Second identifier is invalid: " << x_file_id << " and " << y_file_id);
   }
 
-  if (x_file_id == x_node->upload_pause_) {
-    x_node->set_upload_pause(FileId());
+  if (x_file_id == x_node->upload_pause_) {  // TODO internal_upload_pause_id
+    x_node->set_upload_pause(FileId(), 0);
   }
   if (x_node.get() == y_node.get()) {
     if (x_file_id != y_file_id) {
@@ -2203,8 +2205,8 @@ Status FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sync) {
     try_flush_node_info(x_node, "merge 1");
     return Status::OK();
   }
-  if (y_file_id == y_node->upload_pause_) {
-    y_node->set_upload_pause(FileId());
+  if (y_file_id == y_node->upload_pause_) {  // TODO internal_upload_pause_id
+    y_node->set_upload_pause(FileId(), 0);
   }
 
   LOG(INFO) << "Merge new file " << x_file_id << " and old file " << y_file_id;
@@ -2331,11 +2333,12 @@ Status FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sync) {
     node->upload_id_ = other_node->upload_id_;
     node->upload_was_update_file_reference_ = other_node->upload_was_update_file_reference_;
     node->set_upload_priority(other_node->upload_priority_);
-    node->set_upload_pause(other_node->upload_pause_);
+    node->set_upload_pause(other_node->upload_pause_, other_node->internal_upload_pause_id_);
     other_node->upload_id_ = 0;
     other_node->upload_was_update_file_reference_ = false;
     other_node->upload_priority_ = 0;
     other_node->upload_pause_ = FileId();
+    other_node->internal_upload_pause_id_ = 0;
   } else {
     do_cancel_upload(other_node);
   }
@@ -2932,7 +2935,11 @@ void FileManager::delete_file(FileId file_id, Promise<Unit> promise, const char 
 }
 
 int64 FileManager::get_internal_download_id() {
-  return ++internal_download_id_;
+  return ++internal_load_id_;
+}
+
+int64 FileManager::get_internal_upload_id() {
+  return ++internal_load_id_;
 }
 
 void FileManager::download(FileId file_id, int64 internal_download_id, std::shared_ptr<DownloadCallback> callback,
@@ -3243,10 +3250,12 @@ void FileManager::run_download(FileNodePtr node, bool force_update_priority) {
 
 class FileManager::ForceUploadActor final : public Actor {
  public:
-  ForceUploadActor(FileManager *file_manager, FileId file_id, std::shared_ptr<FileManager::UploadCallback> callback,
-                   int32 new_priority, uint64 upload_order, bool prefer_small, ActorShared<> parent)
+  ForceUploadActor(FileManager *file_manager, FileId file_id, int64 internal_upload_id,
+                   std::shared_ptr<FileManager::UploadCallback> callback, int32 new_priority, uint64 upload_order,
+                   bool prefer_small, ActorShared<> parent)
       : file_manager_(file_manager)
       , file_id_(file_id)
+      , internal_upload_id_(internal_upload_id)
       , callback_(std::move(callback))
       , new_priority_(new_priority)
       , upload_order_(upload_order)
@@ -3257,6 +3266,7 @@ class FileManager::ForceUploadActor final : public Actor {
  private:
   FileManager *file_manager_;
   FileId file_id_;
+  int64 internal_upload_id_;
   std::shared_ptr<FileManager::UploadCallback> callback_;
   int32 new_priority_;
   uint64 upload_order_;
@@ -3360,8 +3370,8 @@ class FileManager::ForceUploadActor final : public Actor {
 
     is_active_ = true;
     attempt_++;
-    send_closure(G()->file_manager(), &FileManager::resume_upload, file_id_, vector<int>(), create_callback(),
-                 new_priority_, upload_order_, attempt_ == 2, prefer_small_);
+    send_closure(G()->file_manager(), &FileManager::resume_upload, file_id_, internal_upload_id_, vector<int>(),
+                 create_callback(), new_priority_, upload_order_, attempt_ == 2, prefer_small_);
   }
 
   void tear_down() final {
@@ -3379,8 +3389,9 @@ void FileManager::on_force_reupload_success(FileId file_id) {
   }
 }
 
-void FileManager::resume_upload(FileId file_id, vector<int> bad_parts, std::shared_ptr<UploadCallback> callback,
-                                int32 new_priority, uint64 upload_order, bool force, bool prefer_small) {
+void FileManager::resume_upload(FileId file_id, int64 internal_upload_id, vector<int> bad_parts,
+                                std::shared_ptr<UploadCallback> callback, int32 new_priority, uint64 upload_order,
+                                bool force, bool prefer_small) {
   if (G()->close_flag()) {
     return;
   }
@@ -3401,12 +3412,13 @@ void FileManager::resume_upload(FileId file_id, vector<int> bad_parts, std::shar
       return;
     }
 
-    create_actor<ForceUploadActor>("ForceUploadActor", this, file_id, std::move(callback), new_priority, upload_order,
-                                   prefer_small, context_->create_reference())
+    create_actor<ForceUploadActor>("ForceUploadActor", this, file_id, internal_upload_id, std::move(callback),
+                                   new_priority, upload_order, prefer_small, context_->create_reference())
         .release();
     return;
   }
-  LOG(INFO) << "Resume upload of file " << file_id << " with priority " << new_priority << " and force = " << force;
+  LOG(INFO) << "Resume upload " << internal_upload_id << " of file " << file_id << " with priority " << new_priority
+            << " and force = " << force;
 
   if (force) {
     node->remote_.is_full_alive = false;
@@ -3414,8 +3426,8 @@ void FileManager::resume_upload(FileId file_id, vector<int> bad_parts, std::shar
   if (prefer_small) {
     node->upload_prefer_small_ = true;
   }
-  if (node->upload_pause_ == file_id) {
-    node->set_upload_pause(FileId());
+  if (node->upload_pause_ == file_id && node->internal_upload_pause_id_ == internal_upload_id) {
+    node->set_upload_pause(FileId(), 0);
   }
   SCOPE_EXIT {
     try_flush_node(node, "resume_upload");
@@ -3450,31 +3462,34 @@ void FileManager::resume_upload(FileId file_id, vector<int> bad_parts, std::shar
 
   LOG(INFO) << "Change upload priority of file " << file_id << " to " << new_priority << " with callback "
             << callback.get();
-  auto &upload_info = file_upload_requests_[file_id];
-  if (upload_info.upload_callback_ != nullptr && upload_info.upload_callback_.get() != callback.get()) {
-    // the old callback will be destroyed soon and lost forever
-    // this is a bug and must never happen, unless we cancel previous upload query
-    // but still there is no way to prevent this with the current FileManager implementation
-    LOG(ERROR) << "File " << file_id << " is used with different upload callbacks";
-    upload_info.upload_callback_->on_upload_error(file_id, Status::Error(500, "Internal Server Error"));
+  auto &requests = file_upload_requests_[file_id];
+  if (internal_upload_id != 0) {
+    auto &upload_info = requests.internal_uploads_[internal_upload_id];
+    CHECK(upload_info.upload_callback_ == nullptr);
+    upload_info.upload_order_ = upload_order;
+    upload_info.upload_priority_ = narrow_cast<int8>(new_priority);
+    upload_info.upload_callback_ = std::move(callback);
+  } else {
+    if (requests.user_upload_callback_ == nullptr) {
+      requests.user_upload_callback_ = std::move(callback);
+    } else {
+      CHECK(requests.user_upload_callback_.get() == callback.get());
+    }
+    requests.user_upload_priority_ = narrow_cast<int8>(new_priority);
   }
-  upload_info.upload_order_ = upload_order;
-  upload_info.upload_priority_ = narrow_cast<int8>(new_priority);
-  upload_info.upload_callback_ = std::move(callback);
-  // TODO: send current progress?
 
   run_generate(node);
   run_upload(node, std::move(bad_parts));
 }
 
-bool FileManager::delete_partial_remote_location(FileId file_id) {
+bool FileManager::delete_partial_remote_location(FileId file_id, int64 internal_upload_id) {
   auto node = get_sync_file_node(file_id);
   if (!node) {
     LOG(INFO) << "Wrong file identifier " << file_id;
     return false;
   }
-  if (node->upload_pause_ == file_id) {
-    node->set_upload_pause(FileId());
+  if (node->upload_pause_ == file_id && node->internal_upload_pause_id_ == internal_upload_id) {
+    node->set_upload_pause(FileId(), 0);
   }
   SCOPE_EXIT {
     try_flush_node(node, "delete_partial_remote_location");
@@ -3486,12 +3501,13 @@ bool FileManager::delete_partial_remote_location(FileId file_id) {
 
   node->delete_partial_remote_location();
 
-  auto callback = extract_upload_callback(file_id);
+  auto callback = extract_upload_callback(file_id, internal_upload_id);
   if (callback != nullptr) {
     callback->on_upload_error(file_id, Status::Error(200, "Canceled"));
   }
 
   if (node->local_.type() != LocalFileLocation::Type::Full) {
+    // TODO local location isn't actually required for upload
     LOG(INFO) << "Need full local location to upload file " << file_id;
     return false;
   }
@@ -3506,11 +3522,12 @@ bool FileManager::delete_partial_remote_location(FileId file_id) {
   return true;
 }
 
-void FileManager::delete_partial_remote_location_if_needed(FileId file_id, const Status &error) {
+void FileManager::delete_partial_remote_location_if_needed(FileId file_id, int64 internal_upload_id,
+                                                           const Status &error) {
   if (error.code() != 429 && error.code() < 500 && !G()->close_flag()) {
-    delete_partial_remote_location(file_id);
+    delete_partial_remote_location(file_id, internal_upload_id);
   } else {
-    cancel_upload(file_id);
+    cancel_upload(file_id, internal_upload_id);
   }
 }
 
@@ -3595,11 +3612,16 @@ void FileManager::run_generate(FileNodePtr node) {
     {
       auto it = file_upload_requests_.find(id);
       if (it != file_upload_requests_.end()) {
-        if (it->second.upload_priority_ > upload_priority) {
-          upload_priority = it->second.upload_priority_;
-          if (upload_priority > download_priority) {
-            file_id = id;
+        if (it->second.user_upload_priority_ > upload_priority) {
+          upload_priority = it->second.user_upload_priority_;
+        }
+        for (auto &upload_info : it->second.internal_uploads_) {
+          if (upload_info.second.upload_priority_ > upload_priority) {
+            upload_priority = upload_info.second.upload_priority_;
           }
+        }
+        if (upload_priority > download_priority) {
+          file_id = id;
         }
       }
     }
@@ -3656,9 +3678,15 @@ void FileManager::run_upload(FileNodePtr node, vector<int> bad_parts) {
   for (auto id : node->file_ids_) {
     auto it = file_upload_requests_.find(id);
     if (it != file_upload_requests_.end()) {
-      if (it->second.upload_priority_ > priority) {
-        priority = it->second.upload_priority_;
+      if (it->second.user_upload_priority_ > priority) {
+        priority = it->second.user_upload_priority_;
         file_id = id;
+      }
+      for (auto &upload_info : it->second.internal_uploads_) {
+        if (upload_info.second.upload_priority_ > priority) {
+          priority = upload_info.second.upload_priority_;
+          file_id = id;
+        }
       }
     }
   }
@@ -3666,7 +3694,7 @@ void FileManager::run_upload(FileNodePtr node, vector<int> bad_parts) {
   auto old_priority = node->upload_priority_;
 
   if (priority == 0) {
-    node->set_upload_priority(priority);
+    node->set_upload_priority(0);
     if (old_priority != 0) {
       LOG(INFO) << "Cancel file " << file_id << " uploading";
       do_cancel_upload(node);
@@ -3774,19 +3802,35 @@ void FileManager::run_upload(FileNodePtr node, vector<int> bad_parts) {
   LOG(INFO) << "File " << file_id << " upload request has sent to FileUploadManager";
 }
 
-void FileManager::upload(FileId file_id, std::shared_ptr<UploadCallback> callback, int32 new_priority,
-                         uint64 upload_order) {
-  return resume_upload(file_id, vector<int>(), std::move(callback), new_priority, upload_order);
+void FileManager::upload(FileId file_id, int64 internal_upload_id, std::shared_ptr<UploadCallback> callback,
+                         int32 new_priority, uint64 upload_order) {
+  return resume_upload(file_id, internal_upload_id, vector<int>(), std::move(callback), new_priority, upload_order);
 }
 
-std::shared_ptr<FileManager::UploadCallback> FileManager::extract_upload_callback(FileId file_id) {
+std::shared_ptr<FileManager::UploadCallback> FileManager::extract_upload_callback(FileId file_id,
+                                                                                  int64 internal_upload_id) {
   auto it = file_upload_requests_.find(file_id);
   if (it == file_upload_requests_.end()) {
     return nullptr;
   }
   std::shared_ptr<UploadCallback> callback;
-  callback = std::move(it->second.upload_callback_);
-  file_upload_requests_.erase(it);
+  if (internal_upload_id != 0) {
+    auto upload_info_it = it->second.internal_uploads_.find(internal_upload_id);
+    if (upload_info_it == it->second.internal_uploads_.end()) {
+      return false;
+    }
+    callback = std::move(upload_info_it->second.upload_callback_);
+    it->second.internal_uploads_.erase(upload_info_it);
+  } else {
+    if (it->second.user_upload_callback_ == nullptr) {
+      return false;
+    }
+    callback = std::move(it->second.user_upload_callback_);
+    it->second.user_upload_priority_ = 0;
+  }
+  if (it->second.user_upload_callback_ == nullptr && it->second.internal_uploads_.empty()) {
+    file_upload_requests_.erase(it);
+  }
   return callback;
 }
 
@@ -3796,7 +3840,12 @@ void FileManager::finish_uploads(FileId file_id, const Status &status) {
     return;
   }
   vector<std::shared_ptr<UploadCallback>> callbacks;
-  callbacks.push_back(std::move(it->second.upload_callback_));
+  for (auto &upload_info : it->second.internal_uploads_) {
+    callbacks.push_back(std::move(upload_info.second.upload_callback_));
+  }
+  if (it->second.user_upload_callback_ != nullptr) {
+    callbacks.push_back(std::move(it->second.user_upload_callback_));
+  }
   file_upload_requests_.erase(it);
 
   for (auto &callback : callbacks) {
@@ -3809,7 +3858,7 @@ void FileManager::finish_uploads(FileId file_id, const Status &status) {
   }
 }
 
-void FileManager::cancel_upload(FileId file_id) {
+void FileManager::cancel_upload(FileId file_id, int64 internal_upload_id) {
   if (G()->close_flag()) {
     return;
   }
@@ -3821,11 +3870,11 @@ void FileManager::cancel_upload(FileId file_id) {
 
   LOG(INFO) << "Cancel upload of file " << file_id;
 
-  if (node->upload_pause_ == file_id) {
-    node->set_upload_pause(FileId());
+  if (node->upload_pause_ == file_id && node->internal_upload_pause_id_ == internal_upload_id) {
+    node->set_upload_pause(FileId(), 0);
   }
 
-  auto callback = extract_upload_callback(file_id);
+  auto callback = extract_upload_callback(file_id, internal_upload_id);
   if (callback != nullptr) {
     callback->on_upload_error(file_id, Status::Error(200, "Canceled"));
   }
@@ -4578,20 +4627,29 @@ void FileManager::on_upload_ok(FileUploadManager::QueryId query_id, FileType fil
   }
 
   FileId file_id;
+  int64 internal_upload_id = 0;
   uint64 file_id_upload_order{std::numeric_limits<uint64>::max()};
   for (auto id : file_node->file_ids_) {
     auto it = file_upload_requests_.find(id);
     if (it != file_upload_requests_.end()) {
-      if (it->second.upload_priority_ != 0 && it->second.upload_order_ < file_id_upload_order) {
+      if (it->second.user_upload_priority_ != 0) {
         file_id = id;
-        file_id_upload_order = it->second.upload_order_;
+        file_id_upload_order = 0;
+      } else {
+        for (auto &upload_info : it->second.internal_uploads_) {
+          if (upload_info.second.upload_order_ < file_id_upload_order) {
+            file_id = id;
+            internal_upload_id = upload_info.first;
+            file_id_upload_order = upload_info.second.upload_order_;
+          }
+        }
       }
     }
   }
   if (!file_id.is_valid()) {
     return;
   }
-  auto callback = extract_upload_callback(file_id);
+  auto callback = extract_upload_callback(file_id, internal_upload_id);
   CHECK(callback != nullptr);
 
   LOG(INFO) << "Found being uploaded file " << file_id;
@@ -4600,33 +4658,33 @@ void FileManager::on_upload_ok(FileUploadManager::QueryId query_id, FileType fil
   string file_name = get_file_name(file_type, file_view.suggested_path());
 
   if (file_view.is_encrypted_secret()) {
-    tl_object_ptr<telegram_api::InputEncryptedFile> input_file;
+    telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file;
     if (partial_remote.is_big_) {
-      input_file = make_tl_object<telegram_api::inputEncryptedFileBigUploaded>(
+      input_file = telegram_api::make_object<telegram_api::inputEncryptedFileBigUploaded>(
           partial_remote.file_id_, partial_remote.part_count_, file_view.encryption_key().calc_fingerprint());
     } else {
-      input_file = make_tl_object<telegram_api::inputEncryptedFileUploaded>(
+      input_file = telegram_api::make_object<telegram_api::inputEncryptedFileUploaded>(
           partial_remote.file_id_, partial_remote.part_count_, "", file_view.encryption_key().calc_fingerprint());
     }
-    file_node->set_upload_pause(file_id);
+    file_node->set_upload_pause(file_id, internal_upload_id);
     callback->on_upload_encrypted_ok(file_id, std::move(input_file));
   } else if (file_view.is_secure()) {
-    tl_object_ptr<telegram_api::InputSecureFile> input_file;
-    input_file = make_tl_object<telegram_api::inputSecureFileUploaded>(
+    telegram_api::object_ptr<telegram_api::InputSecureFile> input_file;
+    input_file = telegram_api::make_object<telegram_api::inputSecureFileUploaded>(
         partial_remote.file_id_, partial_remote.part_count_, "" /*md5*/, BufferSlice() /*file_hash*/,
         BufferSlice() /*encrypted_secret*/);
-    file_node->set_upload_pause(file_id);
+    file_node->set_upload_pause(file_id, internal_upload_id);
     callback->on_upload_secure_ok(file_id, std::move(input_file));
   } else {
-    tl_object_ptr<telegram_api::InputFile> input_file;
+    telegram_api::object_ptr<telegram_api::InputFile> input_file;
     if (partial_remote.is_big_) {
-      input_file = make_tl_object<telegram_api::inputFileBig>(partial_remote.file_id_, partial_remote.part_count_,
-                                                              std::move(file_name));
+      input_file = telegram_api::make_object<telegram_api::inputFileBig>(
+          partial_remote.file_id_, partial_remote.part_count_, std::move(file_name));
     } else {
-      input_file = make_tl_object<telegram_api::inputFile>(partial_remote.file_id_, partial_remote.part_count_,
-                                                           std::move(file_name), "");
+      input_file = telegram_api::make_object<telegram_api::inputFile>(
+          partial_remote.file_id_, partial_remote.part_count_, std::move(file_name), "");
     }
-    file_node->set_upload_pause(file_id);
+    file_node->set_upload_pause(file_id, internal_upload_id);
     callback->on_upload_ok(file_id, std::move(input_file));
   }
   // don't flush node info, because nothing actually changed
@@ -5016,17 +5074,17 @@ class FileManager::PreliminaryUploadFileCallback final : public UploadCallback {
  public:
   void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) final {
     // cancel file upload of the file to allow next upload with the same file to succeed
-    send_closure(G()->file_manager(), &FileManager::cancel_upload, file_id);
+    send_closure(G()->file_manager(), &FileManager::cancel_upload, file_id, 0);
   }
 
   void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) final {
     // cancel file upload of the file to allow next upload with the same file to succeed
-    send_closure(G()->file_manager(), &FileManager::cancel_upload, file_id);
+    send_closure(G()->file_manager(), &FileManager::cancel_upload, file_id, 0);
   }
 
   void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) final {
     // cancel file upload of the file to allow next upload with the same file to succeed
-    send_closure(G()->file_manager(), &FileManager::cancel_upload, file_id);
+    send_closure(G()->file_manager(), &FileManager::cancel_upload, file_id, 0);
   }
 
   void on_upload_error(FileId file_id, Status error) final {
@@ -5049,7 +5107,7 @@ void FileManager::preliminary_upload_file(const td_api::object_ptr<td_api::Input
   auto file_id = r_file_id.ok();
   auto upload_file_id = dup_file_id(file_id, "preliminary_upload_file");
 
-  upload(upload_file_id, std::make_shared<PreliminaryUploadFileCallback>(), priority, 0);
+  upload(upload_file_id, 0, std::make_shared<PreliminaryUploadFileCallback>(), priority, 0);
 
   promise.set_value(get_file_object(upload_file_id, false));
 }
@@ -5119,6 +5177,6 @@ void FileManager::tear_down() {
              << " remote locations to free";
 }
 
-std::atomic<int64> FileManager::internal_download_id_;
+std::atomic<int64> FileManager::internal_load_id_;
 
 }  // namespace td

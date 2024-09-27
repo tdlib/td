@@ -409,7 +409,7 @@ void CallActor::upload_log_file(FileId file_id, Promise<Unit> &&promise) {
     }
   };
 
-  file_manager->upload(upload_file_id,
+  file_manager->upload(upload_file_id, 7020,
                        std::make_shared<UploadLogFileCallback>(actor_id(this), upload_file_id, std::move(promise)), 1,
                        0);
 }
@@ -453,8 +453,8 @@ void CallActor::on_save_log_query_result(FileId file_id, Promise<Unit> promise, 
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
-  file_manager->delete_partial_remote_location(file_id);
-  file_manager->cancel_upload(file_id);
+  file_manager->delete_partial_remote_location(file_id, 7020);
+  file_manager->cancel_upload(file_id, 7020);
 
   auto res = fetch_result<telegram_api::phone_saveCallLog>(std::move(r_net_query));
   if (res.is_error()) {

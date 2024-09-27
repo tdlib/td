@@ -1007,12 +1007,12 @@ class UploadStickerFileQuery final : public Td::ResultHandler {
         // TODO td_->stickers_manager_->on_upload_sticker_file_parts_missing(file_id_, std::move(bad_parts));
         // return;
       } else {
-        td_->file_manager_->delete_partial_remote_location_if_needed(file_id_, status);
+        td_->file_manager_->delete_partial_remote_location_if_needed(file_id_, 7020, status);
       }
     } else if (FileReferenceManager::is_file_reference_error(status)) {
       LOG(ERROR) << "Receive file reference error for UploadStickerFileQuery";
     }
-    td_->file_manager_->cancel_upload(file_id_);
+    td_->file_manager_->cancel_upload(file_id_, 7020);
     promise_.set_error(std::move(status));
   }
 };
@@ -8195,7 +8195,7 @@ void StickersManager::upload_sticker_file(UserId user_id, FileId file_id, Promis
   CHECK(upload_file_id.is_valid());
   being_uploaded_files_[upload_file_id] = {user_id, std::move(promise)};
   LOG(INFO) << "Ask to upload sticker file " << upload_file_id;
-  td_->file_manager_->upload(upload_file_id, upload_sticker_file_callback_, 2, 0);
+  td_->file_manager_->upload(upload_file_id, 7020, upload_sticker_file_callback_, 2, 0);
 }
 
 void StickersManager::on_upload_sticker_file(FileId file_id,
@@ -8242,7 +8242,7 @@ void StickersManager::do_upload_sticker_file(UserId user_id, FileId file_id,
   auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
   if (input_peer == nullptr) {
     if (input_file != nullptr) {
-      td_->file_manager_->cancel_upload(file_id);
+      td_->file_manager_->cancel_upload(file_id, 7020);
     }
     return promise.set_error(Status::Error(400, "Have no access to the user"));
   }
@@ -8258,7 +8258,7 @@ void StickersManager::do_upload_sticker_file(UserId user_id, FileId file_id,
   if (had_input_file && !FileManager::extract_was_uploaded(input_media)) {
     // if we had InputFile, but has failed to use it for input_media, then we need to immediately cancel file upload
     // so the next upload with the same file can succeed
-    td_->file_manager_->cancel_upload(file_id);
+    td_->file_manager_->cancel_upload(file_id, 7020);
   }
 
   td_->create_handler<UploadStickerFileQuery>(std::move(promise))

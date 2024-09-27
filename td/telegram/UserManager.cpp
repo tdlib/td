@@ -600,13 +600,13 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
     }
 
     if (file_id_.is_valid()) {
-      td_->file_manager_->delete_partial_remote_location(file_id_);
+      td_->file_manager_->delete_partial_remote_location(file_id_, 7020);
     }
   }
 
   void on_error(Status status) final {
     if (file_id_.is_valid()) {
-      td_->file_manager_->delete_partial_remote_location(file_id_);
+      td_->file_manager_->delete_partial_remote_location(file_id_, 7020);
     }
     promise_.set_error(std::move(status));
   }
@@ -4773,7 +4773,7 @@ void UserManager::upload_profile_photo(UserId user_id, FileId file_id, bool is_f
   LOG(INFO) << "Ask to upload " << (is_animation ? "animated" : "static") << " profile photo " << file_id
             << " for user " << user_id << " with bad parts " << bad_parts;
   // TODO use force_reupload if reupload_count >= 1, replace reupload_count with is_reupload
-  td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_profile_photo_callback_, 32, 0);
+  td_->file_manager_->resume_upload(file_id, 7020, std::move(bad_parts), upload_profile_photo_callback_, 32, 0);
 }
 
 void UserManager::on_upload_profile_photo(FileId file_id,

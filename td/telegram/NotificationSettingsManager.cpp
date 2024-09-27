@@ -79,7 +79,7 @@ class UploadRingtoneQuery final : public Td::ResultHandler {
     LOG(INFO) << "Receive result for UploadRingtoneQuery: " << to_string(result);
     promise_.set_value(std::move(result));
 
-    td_->file_manager_->delete_partial_remote_location(file_id_);
+    td_->file_manager_->delete_partial_remote_location(file_id_, 7020);
   }
 
   void on_error(Status status) final {
@@ -91,7 +91,7 @@ class UploadRingtoneQuery final : public Td::ResultHandler {
       // TODO reupload the file
     }
 
-    td_->file_manager_->delete_partial_remote_location(file_id_);
+    td_->file_manager_->delete_partial_remote_location(file_id_, 7020);
     td_->notification_settings_manager_->reload_saved_ringtones(Auto());
     promise_.set_error(std::move(status));
   }
@@ -1140,7 +1140,7 @@ void NotificationSettingsManager::upload_ringtone(FileId file_id, bool is_reuplo
       being_uploaded_ringtones_.emplace(file_id, UploadedRingtone{is_reupload, std::move(promise)}).second;
   CHECK(is_inserted);
   // TODO use force_reupload if is_reupload
-  td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_ringtone_callback_, 32, 0);
+  td_->file_manager_->resume_upload(file_id, 7020, std::move(bad_parts), upload_ringtone_callback_, 32, 0);
 }
 
 void NotificationSettingsManager::on_upload_ringtone(FileId file_id,

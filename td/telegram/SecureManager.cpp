@@ -498,19 +498,19 @@ void SetSecureValue::cancel_upload() {
     return;
   }
   for (auto &file_info : files_to_upload_) {
-    file_manager->cancel_upload(file_info.file_id);
+    file_manager->cancel_upload(file_info.file_id, 7020);
   }
   for (auto &file_info : translations_to_upload_) {
-    file_manager->cancel_upload(file_info.file_id);
+    file_manager->cancel_upload(file_info.file_id, 7020);
   }
   if (front_side_) {
-    file_manager->cancel_upload(front_side_.value().file_id);
+    file_manager->cancel_upload(front_side_.value().file_id, 7020);
   }
   if (reverse_side_) {
-    file_manager->cancel_upload(reverse_side_.value().file_id);
+    file_manager->cancel_upload(reverse_side_.value().file_id, 7020);
   }
   if (selfie_) {
-    file_manager->cancel_upload(selfie_.value().file_id);
+    file_manager->cancel_upload(selfie_.value().file_id, 7020);
   }
   files_left_to_upload_ = 0;
 }
@@ -554,7 +554,7 @@ void SetSecureValue::start_upload(FileManager *file_manager, FileId &file_id, Se
   } else {
     force = true;
   }
-  file_manager->resume_upload(info.file_id, {}, upload_callback_, 1, 0, force);
+  file_manager->resume_upload(info.file_id, 7020, {}, upload_callback_, 1, 0, force);
   files_left_to_upload_++;
 }
 

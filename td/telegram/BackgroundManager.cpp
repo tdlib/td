@@ -244,9 +244,9 @@ class UploadBackgroundQuery final : public Td::ResultHandler {
       // TODO td_->background_manager_->on_upload_background_file_parts_missing(file_id_, std::move(bad_parts));
       // return;
     } else {
-      td_->file_manager_->delete_partial_remote_location_if_needed(file_id_, status);
+      td_->file_manager_->delete_partial_remote_location_if_needed(file_id_, 7020, status);
     }
-    td_->file_manager_->cancel_upload(file_id_);
+    td_->file_manager_->cancel_upload(file_id_, 7020);
     promise_.set_error(std::move(status));
   }
 };
@@ -1006,7 +1006,7 @@ void BackgroundManager::upload_background_file(FileId file_id, const BackgroundT
                          .second;
   CHECK(is_inserted);
   LOG(INFO) << "Ask to upload background file " << upload_file_id;
-  td_->file_manager_->upload(upload_file_id, upload_background_file_callback_, 1, 0);
+  td_->file_manager_->upload(upload_file_id, 7020, upload_background_file_callback_, 1, 0);
 }
 
 void BackgroundManager::on_upload_background_file(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) {
@@ -1077,7 +1077,7 @@ void BackgroundManager::on_uploaded_background_file(FileId file_id, const Backgr
   auto added_background = on_get_background(BackgroundId(), string(), std::move(wallpaper), true, false);
   auto background_id = added_background.first;
   if (!background_id.is_valid()) {
-    td_->file_manager_->cancel_upload(file_id);
+    td_->file_manager_->cancel_upload(file_id, 7020);
     return promise.set_error(Status::Error(500, "Receive wrong uploaded background"));
   }
   LOG_IF(ERROR, added_background.second != type)
@@ -1086,7 +1086,7 @@ void BackgroundManager::on_uploaded_background_file(FileId file_id, const Backgr
   const auto *background = get_background(background_id);
   CHECK(background != nullptr);
   if (!background->file_id.is_valid()) {
-    td_->file_manager_->cancel_upload(file_id);
+    td_->file_manager_->cancel_upload(file_id, 7020);
     return promise.set_error(Status::Error(500, "Receive wrong uploaded background without file"));
   }
   LOG_STATUS(td_->file_manager_->merge(background->file_id, file_id));

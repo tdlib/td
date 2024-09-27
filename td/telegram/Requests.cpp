@@ -5450,7 +5450,7 @@ void Requests::on_request(uint64 id, const td_api::preliminaryUploadFile &reques
 }
 
 void Requests::on_request(uint64 id, const td_api::cancelPreliminaryUploadFile &request) {
-  td_->file_manager_->cancel_upload(FileId(request.file_id_, 0));
+  td_->file_manager_->cancel_upload(FileId(request.file_id_, 0), 0);
 
   send_closure(td_actor_, &Td::send_result, id, td_api::make_object<td_api::ok>());
 }

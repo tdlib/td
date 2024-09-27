@@ -3281,7 +3281,7 @@ class SendMediaQuery final : public Td::ResultHandler {
       CHECK(thumbnail_file_ids_.size() == 1u);
       CHECK(thumbnail_file_ids_[0].is_valid());
       // always delete partial remote location for the thumbnail, because it can't be reused anyway
-      td_->file_manager_->delete_partial_remote_location(thumbnail_file_ids_[0]);
+      td_->file_manager_->delete_partial_remote_location(thumbnail_file_ids_[0], 7020);
     }
   }
 
@@ -3296,7 +3296,7 @@ class SendMediaQuery final : public Td::ResultHandler {
         CHECK(thumbnail_file_ids_.size() == 1u);
         CHECK(thumbnail_file_ids_[0].is_valid());
         // always delete partial remote location for the thumbnail, because it can't be reused anyway
-        td_->file_manager_->delete_partial_remote_location(thumbnail_file_ids_[0]);
+        td_->file_manager_->delete_partial_remote_location(thumbnail_file_ids_[0], 7020);
       }
 
       CHECK(file_ids_.size() == 1u);
@@ -3306,7 +3306,7 @@ class SendMediaQuery final : public Td::ResultHandler {
         td_->messages_manager_->on_send_message_file_parts_missing(random_id_, std::move(bad_parts));
         return;
       } else {
-        td_->file_manager_->delete_partial_remote_location_if_needed(file_ids_[0], status);
+        td_->file_manager_->delete_partial_remote_location_if_needed(file_ids_[0], 7020, status);
       }
     } else if (!td_->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
       auto pos = FileReferenceManager::get_file_reference_error_pos(status);
@@ -3371,7 +3371,7 @@ class UploadMediaQuery final : public Td::ResultHandler {
     if (was_thumbnail_uploaded_) {
       CHECK(thumbnail_file_id_.is_valid());
       // always delete partial remote location for the thumbnail, because it can't be reused anyway
-      td_->file_manager_->delete_partial_remote_location(thumbnail_file_id_);
+      td_->file_manager_->delete_partial_remote_location(thumbnail_file_id_, 7020);
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -3391,7 +3391,7 @@ class UploadMediaQuery final : public Td::ResultHandler {
       if (was_thumbnail_uploaded_) {
         CHECK(thumbnail_file_id_.is_valid());
         // always delete partial remote location for the thumbnail, because it can't be reused anyway
-        td_->file_manager_->delete_partial_remote_location(thumbnail_file_id_);
+        td_->file_manager_->delete_partial_remote_location(thumbnail_file_id_, 7020);
       }
 
       CHECK(file_id_.is_valid());
@@ -3401,7 +3401,7 @@ class UploadMediaQuery final : public Td::ResultHandler {
                                                                            std::move(bad_parts));
         return;
       } else {
-        td_->file_manager_->delete_partial_remote_location_if_needed(file_id_, status);
+        td_->file_manager_->delete_partial_remote_location_if_needed(file_id_, 7020, status);
       }
     } else if (FileReferenceManager::is_file_reference_error(status)) {
       LOG(ERROR) << "Receive file reference error for UploadMediaQuery";
@@ -8373,7 +8373,7 @@ void MessagesManager::on_upload_media(FileId file_id, tl_object_ptr<telegram_api
                                                                                  std::move(input_file), media_pos})
                                .second;
         CHECK(is_inserted);
-        td_->file_manager_->upload(thumbnail_file_id, upload_thumbnail_callback_, 32, m->message_id.get());
+        td_->file_manager_->upload(thumbnail_file_id, 7020, upload_thumbnail_callback_, 32, m->message_id.get());
       } else {
         do_send_media(dialog_id, m, media_pos, file_id, thumbnail_file_id, std::move(input_file), nullptr);
       }
@@ -12828,7 +12828,7 @@ void MessagesManager::on_send_secret_message_error(int64 random_id, Status error
           return;
         }
 
-        td_->file_manager_->delete_partial_remote_location_if_needed(file_id, error);
+        td_->file_manager_->delete_partial_remote_location_if_needed(file_id, 7020, error);
       }
     }
   }
@@ -23646,7 +23646,7 @@ void MessagesManager::cancel_upload_file(FileId file_id, const char *source) {
   // send the request later so they doesn't interfere with other actions
   // for example merge, supposed to happen soon, can auto-cancel the upload
   LOG(INFO) << "Cancel upload of file " << file_id << " from " << source;
-  send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_id);
+  send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_id, 7020);
 }
 
 void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) {
@@ -24341,7 +24341,8 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
               .second;
       CHECK(is_inserted);
       // need to call resume_upload synchronously to make upload process consistent with being_uploaded_files_
-      td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_media_callback_, 1, m->message_id.get());
+      td_->file_manager_->resume_upload(file_id, 7020, std::move(bad_parts), upload_media_callback_, 1,
+                                        m->message_id.get());
     } else {
       on_secret_message_media_uploaded(dialog_id, m, std::move(secret_input_media), file_id, thumbnail_file_id);
     }
@@ -24398,7 +24399,7 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
         CHECK(is_inserted);
         // need to call resume_upload synchronously to make upload process consistent with being_uploaded_files_
         // and to send is_uploading_active == true in the updates
-        td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_media_callback_, 1,
+        td_->file_manager_->resume_upload(file_id, 7020, std::move(bad_parts), upload_media_callback_, 1,
                                           m->message_id.get());
       }
     } else {
@@ -25721,7 +25722,7 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
   if (was_thumbnail_uploaded) {
     CHECK(thumbnail_file_id.is_valid());
     // always delete partial remote location for the thumbnail, because it can't be reused anyway
-    td_->file_manager_->delete_partial_remote_location(thumbnail_file_id);
+    td_->file_manager_->delete_partial_remote_location(thumbnail_file_id, 7020);
   }
 
   CHECK(message_id.is_any_server());
@@ -25766,7 +25767,7 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
       if (was_thumbnail_uploaded) {
         CHECK(thumbnail_file_id.is_valid());
         // always delete partial remote location for the thumbnail, because it can't be reused anyway
-        td_->file_manager_->delete_partial_remote_location(thumbnail_file_id);
+        td_->file_manager_->delete_partial_remote_location(thumbnail_file_id, 7020);
       }
       CHECK(file_id.is_valid());
       auto bad_parts = FileManager::get_missing_file_parts(result.error());
@@ -25775,7 +25776,7 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
         return;
       }
 
-      td_->file_manager_->delete_partial_remote_location_if_needed(file_id, result.error());
+      td_->file_manager_->delete_partial_remote_location_if_needed(file_id, 7020, result.error());
     } else if (!td_->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(result.error())) {
       if (file_id.is_valid()) {
         VLOG(file_references) << "Receive " << result.error() << " for " << file_id;

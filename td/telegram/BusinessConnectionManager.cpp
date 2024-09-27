@@ -356,7 +356,7 @@ class BusinessConnectionManager::UploadBusinessMediaQuery final : public Td::Res
     auto thumbnail_file_id = td_->business_connection_manager_->get_message_thumbnail_file_id(message_, file_id);
     CHECK(thumbnail_file_id.is_valid());
     // always delete partial remote location for the thumbnail, because it can't be reused anyway
-    td_->file_manager_->delete_partial_remote_location(thumbnail_file_id);
+    td_->file_manager_->delete_partial_remote_location(thumbnail_file_id, 7020);
   }
 
  public:
@@ -406,7 +406,7 @@ class BusinessConnectionManager::UploadBusinessMediaQuery final : public Td::Res
         td_->business_connection_manager_->upload_media(std::move(message_), std::move(promise_), std::move(bad_parts));
         return;
       } else {
-        td_->file_manager_->delete_partial_remote_location_if_needed(file_id, status);
+        td_->file_manager_->delete_partial_remote_location_if_needed(file_id, 7020, status);
       }
     }
     promise_.set_error(std::move(status));
@@ -974,7 +974,7 @@ void BusinessConnectionManager::upload_media(unique_ptr<PendingMessage> &&messag
   CHECK(is_inserted);
   // need to call resume_upload synchronously to make upload process consistent with being_uploaded_files_
   // and to send is_uploading_active == true in the updates
-  td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_media_callback_, 1, 0);
+  td_->file_manager_->resume_upload(file_id, 7020, std::move(bad_parts), upload_media_callback_, 1, 0);
 }
 
 void BusinessConnectionManager::complete_send_media(unique_ptr<PendingMessage> &&message,
@@ -1002,7 +1002,7 @@ void BusinessConnectionManager::on_upload_media(FileId file_id,
     LOG(INFO) << "Ask to upload thumbnail " << thumbnail_file_id;
     bool is_inserted = being_uploaded_thumbnails_.emplace(thumbnail_file_id, std::move(being_uploaded_media)).second;
     CHECK(is_inserted);
-    td_->file_manager_->upload(thumbnail_file_id, upload_thumbnail_callback_, 1, 0);
+    td_->file_manager_->upload(thumbnail_file_id, 7020, upload_thumbnail_callback_, 1, 0);
   } else {
     do_upload_media(std::move(being_uploaded_media), nullptr);
   }
@@ -1084,7 +1084,7 @@ void BusinessConnectionManager::complete_upload_media(unique_ptr<PendingMessage>
                            need_update);
     compare_message_contents(td_, old_content.get(), new_content.get(), is_content_changed, need_update);
   }
-  send_closure_later(G()->file_manager(), &FileManager::cancel_upload, old_file_id);
+  send_closure_later(G()->file_manager(), &FileManager::cancel_upload, old_file_id, 7020);
 
   if (is_content_changed || need_update) {
     old_content = std::move(new_content);

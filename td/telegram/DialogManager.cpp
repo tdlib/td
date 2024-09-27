@@ -300,13 +300,13 @@ class EditDialogPhotoQuery final : public Td::ResultHandler {
     td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
 
     if (file_id_.is_valid() && was_uploaded_) {
-      td_->file_manager_->delete_partial_remote_location(file_id_);
+      td_->file_manager_->delete_partial_remote_location(file_id_, 7020);
     }
   }
 
   void on_error(Status status) final {
     if (file_id_.is_valid() && was_uploaded_) {
-      td_->file_manager_->delete_partial_remote_location(file_id_);
+      td_->file_manager_->delete_partial_remote_location(file_id_, 7020);
     }
     if (!td_->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
       if (file_id_.is_valid() && !was_uploaded_) {
@@ -1477,7 +1477,7 @@ void DialogManager::upload_dialog_photo(DialogId dialog_id, FileId file_id, bool
                          .second;
   CHECK(is_inserted);
   // TODO use force_reupload if is_reupload
-  td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_dialog_photo_callback_, 32, 0);
+  td_->file_manager_->resume_upload(file_id, 7020, std::move(bad_parts), upload_dialog_photo_callback_, 32, 0);
 }
 
 void DialogManager::on_upload_dialog_photo(FileId file_id,

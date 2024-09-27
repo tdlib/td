@@ -104,7 +104,7 @@ class FileNode {
   void set_url(string url);
   void set_owner_dialog_id(DialogId owner_id);
   void set_encryption_key(FileEncryptionKey key);
-  void set_upload_pause(FileId upload_pause);
+  void set_upload_pause(FileId upload_pause, int64 internal_upload_id);
 
   void set_download_priority(int8 priority);
   void set_upload_priority(int8 priority);
@@ -163,6 +163,7 @@ class FileNode {
   double last_successful_force_reupload_time_ = -1e10;
 
   FileId upload_pause_;
+  int64 internal_upload_pause_id_;
 
   int8 upload_priority_ = 0;
   int8 download_priority_ = 0;
@@ -512,14 +513,23 @@ class FileManager final : public Actor {
 
   void cancel_download(FileId file_id, int64 internal_download_id, bool only_if_pending);
 
-  void upload(FileId file_id, std::shared_ptr<UploadCallback> callback, int32 new_priority, uint64 upload_order);
-  void resume_upload(FileId file_id, vector<int> bad_parts, std::shared_ptr<UploadCallback> callback,
-                     int32 new_priority, uint64 upload_order, bool force = false, bool prefer_small = false);
-  void cancel_upload(FileId file_id);
+  static int64 get_internal_upload_id();
 
-  bool delete_partial_remote_location(FileId file_id);
-  void delete_partial_remote_location_if_needed(FileId file_id, const Status &error);
+  void upload(FileId file_id, int64 internal_upload_id, std::shared_ptr<UploadCallback> callback, int32 new_priority,
+              uint64 upload_order);
+
+  void resume_upload(FileId file_id, int64 internal_upload_id, vector<int> bad_parts,
+                     std::shared_ptr<UploadCallback> callback, int32 new_priority, uint64 upload_order,
+                     bool force = false, bool prefer_small = false);
+
+  void cancel_upload(FileId file_id, int64 internal_upload_id);
+
+  bool delete_partial_remote_location(FileId file_id, int64 internal_upload_id);
+
+  void delete_partial_remote_location_if_needed(FileId file_id, int64 internal_upload_id, const Status &error);
+
   void delete_file_reference(FileId file_id, Slice file_reference);
+
   void get_content(FileId file_id, Promise<BufferSlice> promise);
 
   void preliminary_upload_file(const td_api::object_ptr<td_api::InputFile> &input_file, FileType file_type,
@@ -792,7 +802,12 @@ class FileManager final : public Actor {
     uint64 upload_order_{0};
     std::shared_ptr<UploadCallback> upload_callback_;
   };
-  FlatHashMap<FileId, FileUploadInfo, FileIdHash> file_upload_requests_;
+  struct FileUploadRequests {
+    int8 user_upload_priority_{0};
+    std::shared_ptr<UploadCallback> user_upload_callback_;
+    FlatHashMap<int64, FileUploadInfo> internal_uploads_;
+  };
+  FlatHashMap<FileId, FileUploadRequests, FileIdHash> file_upload_requests_;
 
   class ForceUploadActor;
 
@@ -834,7 +849,7 @@ class FileManager final : public Actor {
   Container<GenerateQuery> generate_queries_;
   Container<UploadQuery> upload_queries_;
 
-  static std::atomic<int64> internal_download_id_;
+  static std::atomic<int64> internal_load_id_;
 
   bool is_closed_ = false;
 
@@ -854,7 +869,7 @@ class FileManager final : public Actor {
 
   void finish_downloads(FileId file_id, const Status &status);
 
-  std::shared_ptr<UploadCallback> extract_upload_callback(FileId file_id);
+  std::shared_ptr<UploadCallback> extract_upload_callback(FileId file_id, int64 internal_upload_id);
 
   void finish_uploads(FileId file_id, const Status &status);
 

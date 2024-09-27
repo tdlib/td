@@ -248,7 +248,7 @@ class BotInfoManager::AddPreviewMediaQuery final : public Td::ResultHandler {
     }
 
     if (file_id_.is_valid()) {
-      td_->file_manager_->delete_partial_remote_location(file_id_);
+      td_->file_manager_->delete_partial_remote_location(file_id_, 7020);
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -282,7 +282,7 @@ class BotInfoManager::AddPreviewMediaQuery final : public Td::ResultHandler {
       return;
     }
     if (file_id_.is_valid()) {
-      td_->file_manager_->delete_partial_remote_location(file_id_);
+      td_->file_manager_->delete_partial_remote_location(file_id_, 7020);
     }
     pending_preview_->promise_.set_error(std::move(status));
   }
@@ -820,7 +820,7 @@ void BotInfoManager::do_add_bot_media_preview(unique_ptr<PendingBotMediaPreview>
   CHECK(is_inserted);
   // need to call resume_upload synchronously to make upload process consistent with being_uploaded_files_
   // and to send is_uploading_active == true in response
-  td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_media_callback_, 1, upload_order);
+  td_->file_manager_->resume_upload(file_id, 7020, std::move(bad_parts), upload_media_callback_, 1, upload_order);
 }
 
 void BotInfoManager::on_add_bot_media_preview_file_parts_missing(unique_ptr<PendingBotMediaPreview> &&pending_preview,

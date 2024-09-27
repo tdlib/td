@@ -128,7 +128,7 @@ class InitHistoryImportQuery final : public Td::ResultHandler {
     td_->message_import_manager_->start_import_messages(dialog_id_, ptr->id_, std::move(attached_file_ids_),
                                                         std::move(promise_));
 
-    td_->file_manager_->delete_partial_remote_location(file_id_);
+    td_->file_manager_->delete_partial_remote_location(file_id_, 7020);
   }
 
   void on_error(Status status) final {
@@ -140,7 +140,7 @@ class InitHistoryImportQuery final : public Td::ResultHandler {
       // TODO reupload the file
     }
 
-    td_->file_manager_->delete_partial_remote_location(file_id_);
+    td_->file_manager_->delete_partial_remote_location(file_id_, 7020);
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "InitHistoryImportQuery");
     promise_.set_error(std::move(status));
   }
@@ -182,7 +182,7 @@ class UploadImportedMediaQuery final : public Td::ResultHandler {
 
     promise_.set_value(Unit());
 
-    td_->file_manager_->delete_partial_remote_location(file_id_);
+    td_->file_manager_->delete_partial_remote_location(file_id_, 7020);
   }
 
   void on_error(Status status) final {
@@ -194,7 +194,7 @@ class UploadImportedMediaQuery final : public Td::ResultHandler {
       // TODO reupload the file
     }
 
-    td_->file_manager_->delete_partial_remote_location(file_id_);
+    td_->file_manager_->delete_partial_remote_location(file_id_, 7020);
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "UploadImportedMediaQuery");
     promise_.set_error(std::move(status));
   }
@@ -358,8 +358,8 @@ void MessageImportManager::upload_imported_messages(DialogId dialog_id, FileId f
   bool is_inserted = being_uploaded_imported_messages_.emplace(file_id, std::move(info)).second;
   CHECK(is_inserted);
   // TODO use force_reupload if is_reupload
-  td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_imported_messages_callback_, 1, 0, false,
-                                    true);
+  td_->file_manager_->resume_upload(file_id, 7020, std::move(bad_parts), upload_imported_messages_callback_, 1, 0,
+                                    false, true);
 }
 
 void MessageImportManager::on_upload_imported_messages(FileId file_id,
@@ -473,8 +473,8 @@ void MessageImportManager::upload_imported_message_attachment(DialogId dialog_id
   bool is_inserted = being_uploaded_imported_message_attachments_.emplace(file_id, std::move(info)).second;
   CHECK(is_inserted);
   // TODO use force_reupload if is_reupload
-  td_->file_manager_->resume_upload(file_id, std::move(bad_parts), upload_imported_message_attachment_callback_, 1, 0,
-                                    false, true);
+  td_->file_manager_->resume_upload(file_id, 7020, std::move(bad_parts), upload_imported_message_attachment_callback_,
+                                    1, 0, false, true);
 }
 
 void MessageImportManager::on_upload_imported_message_attachment(FileId file_id,
