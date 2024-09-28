@@ -96,7 +96,7 @@ TDLib can be used from the Java programming language through native [JNI](https:
 
 We provide a generator for JNI bridge methods and Java classes for all TDLib API methods and objects.
 See [example/java](https://github.com/tdlib/td/tree/master/example/java) for an example of using TDLib from desktop Java along with detailed building and usage instructions.
-To use TDLib to create Android Java applications, use our [prebuilt library for Android](https://core.telegram.org/tdlib/tdlib.zip).
+See [example/android](https://github.com/tdlib/td/tree/master/example/android) for detailed build instructions for Android.
 
 <a name="kotlin"></a>
 ## Using TDLib in Kotlin projects
