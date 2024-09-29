@@ -1602,7 +1602,9 @@ void StoryManager::start_up() {
       schedule_stealth_mode_update();
     }
   }
-  send_update_story_stealth_mode();
+  if (!td_->auth_manager_->is_bot()) {
+    send_update_story_stealth_mode();
+  }
 
   try_synchronize_archive_all_stories();
   load_expired_database_stories();
