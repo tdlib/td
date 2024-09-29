@@ -461,6 +461,8 @@ class FileManager final : public Actor {
   FileManager &operator=(FileManager &&) = delete;
   ~FileManager() final;
 
+  static Status check_priority(int32 priority);
+
   static bool is_remotely_generated_file(Slice conversion);
 
   static vector<int> get_missing_file_parts(const Status &error);

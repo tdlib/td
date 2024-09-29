@@ -441,7 +441,7 @@ class DownloadManagerImpl final : public DownloadManager {
       // file has already been added
       return;
     }
-    if (!(1 <= in_db.priority && in_db.priority <= 32)) {
+    if (FileManager::check_priority(in_db.priority).is_error()) {
       LOG(ERROR) << "Receive invalid download priority from database";
       return;
     }

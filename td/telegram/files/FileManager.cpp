@@ -1410,6 +1410,13 @@ string FileManager::get_file_name(FileType file_type, Slice path) {
   return file_name.str();
 }
 
+Status FileManager::check_priority(int32 priority) {
+  if (1 <= priority && priority <= 32) {
+    return Status::OK();
+  }
+  return Status::Error(400, "Priority must be between 1 and 32");
+}
+
 bool FileManager::is_remotely_generated_file(Slice conversion) {
   return begins_with(conversion, "#map#") || begins_with(conversion, "#audio_t#");
 }
@@ -2963,9 +2970,7 @@ int64 FileManager::get_internal_upload_id() {
 
 void FileManager::download_file(FileId file_id, int32 priority, int64 offset, int64 limit, bool synchronous,
                                 Promise<td_api::object_ptr<td_api::file>> &&promise) {
-  if (!(1 <= priority && priority <= 32)) {
-    return promise.set_error(Status::Error(400, "Download priority must be between 1 and 32"));
-  }
+  TRY_STATUS_PROMISE(promise, check_priority(priority));
   if (offset < 0) {
     return promise.set_error(Status::Error(400, "Download offset must be non-negative"));
   }
@@ -5185,9 +5190,7 @@ class FileManager::PreliminaryUploadFileCallback final : public UploadCallback {
 
 void FileManager::preliminary_upload_file(const td_api::object_ptr<td_api::InputFile> &input_file, FileType file_type,
                                           int32 priority, Promise<td_api::object_ptr<td_api::file>> &&promise) {
-  if (!(1 <= priority && priority <= 32)) {
-    return promise.set_error(Status::Error(400, "Upload priority must be between 1 and 32"));
-  }
+  TRY_STATUS_PROMISE(promise, check_priority(priority));
 
   bool is_secret = file_type == FileType::Encrypted || file_type == FileType::EncryptedThumbnail;
   bool is_secure = file_type == FileType::SecureEncrypted;

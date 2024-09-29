@@ -5410,9 +5410,6 @@ void Requests::on_request(uint64 id, const td_api::deleteFile &request) {
 }
 
 void Requests::on_request(uint64 id, const td_api::addFileToDownloads &request) {
-  if (!(1 <= request.priority_ && request.priority_ <= 32)) {
-    return send_error_raw(id, 400, "Download priority must be between 1 and 32");
-  }
   CREATE_REQUEST_PROMISE();
   td_->messages_manager_->add_message_file_to_downloads(
       MessageFullId(DialogId(request.chat_id_), MessageId(request.message_id_)), FileId(request.file_id_, 0),

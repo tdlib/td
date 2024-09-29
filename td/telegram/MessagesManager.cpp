@@ -38907,12 +38907,10 @@ void MessagesManager::get_current_state(vector<td_api::object_ptr<td_api::Update
 
 void MessagesManager::add_message_file_to_downloads(MessageFullId message_full_id, FileId file_id, int32 priority,
                                                     Promise<td_api::object_ptr<td_api::file>> promise) {
+  TRY_STATUS_PROMISE(promise, FileManager::check_priority(priority));
   auto m = get_message_force(message_full_id, "add_message_file_to_downloads");
   if (m == nullptr) {
     return promise.set_error(Status::Error(400, "Message not found"));
-  }
-  if (!(1 <= priority && priority <= 32)) {
-    return promise.set_error(Status::Error(400, "Download priority must be between 1 and 32"));
   }
   auto file_view = td_->file_manager_->get_file_view(file_id);
   if (file_view.empty()) {
