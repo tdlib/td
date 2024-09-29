@@ -19,7 +19,9 @@
 namespace td {
 
 void DownloadManagerCallback::update_counters(DownloadManager::Counters counters) {
-  send_closure(td_->actor_id(td_), &Td::send_update, counters.get_update_file_downloads_object());
+  if (!td_->auth_manager_->is_bot()) {
+    send_closure(td_->actor_id(td_), &Td::send_update, counters.get_update_file_downloads_object());
+  }
 }
 
 void DownloadManagerCallback::update_file_added(FileId file_id, FileSourceId file_source_id, int32 add_date,
