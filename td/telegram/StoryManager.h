@@ -48,7 +48,6 @@ namespace td {
 
 struct BinlogEvent;
 class Dependencies;
-class ReportReason;
 class StoryContent;
 class StoryForwardInfo;
 struct StoryDbStory;

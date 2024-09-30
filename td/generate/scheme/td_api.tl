@@ -8787,8 +8787,8 @@ getChatSponsoredMessages chat_id:int53 = SponsoredMessages;
 //@description Informs TDLib that the user opened the sponsored chat via the button, the name, the chat photo, a mention in the sponsored message text, or the media in the sponsored message
 //@chat_id Chat identifier of the sponsored message
 //@message_id Identifier of the sponsored message
-//@is_media_click Pass true, if the media was clicked in the sponsored message
-//@from_fullscreen Pass true, if the user expanded the video from the sponsored message fullscreen before the click
+//@is_media_click Pass true if the media was clicked in the sponsored message
+//@from_fullscreen Pass true if the user expanded the video from the sponsored message fullscreen before the click
 clickChatSponsoredMessage chat_id:int53 message_id:int53 is_media_click:Bool from_fullscreen:Bool = Ok;
 
 //@description Reports a sponsored message to Telegram moderators
@@ -8973,7 +8973,7 @@ editMessageMedia chat_id:int53 message_id:int53 reply_markup:ReplyMarkup input_m
 //@message_id Identifier of the message. Use messageProperties.can_be_edited to check whether the message can be edited
 //@reply_markup The new message reply markup; pass null if none; for bots only
 //@caption New message content caption; 0-getOption("message_caption_length_max") characters; pass null to remove caption
-//@show_caption_above_media Pass true to show the caption above the media; otherwise, the caption will be shown below the media. Can be true only for animation, photo, and video messages
+//@show_caption_above_media Pass true to show the caption above the media; otherwise, the caption will be shown below the media. May be true only for animation, photo, and video messages
 editMessageCaption chat_id:int53 message_id:int53 reply_markup:ReplyMarkup caption:formattedText show_caption_above_media:Bool = Message;
 
 //@description Edits the message reply markup; for bots only. Returns the edited message after the edit is completed on the server side
@@ -9008,7 +9008,7 @@ editInlineMessageMedia inline_message_id:string reply_markup:ReplyMarkup input_m
 //@inline_message_id Inline message identifier
 //@reply_markup The new message reply markup; pass null if none
 //@caption New message content caption; pass null to remove caption; 0-getOption("message_caption_length_max") characters
-//@show_caption_above_media Pass true to show the caption above the media; otherwise, the caption will be shown below the media. Can be true only for animation, photo, and video messages
+//@show_caption_above_media Pass true to show the caption above the media; otherwise, the caption will be shown below the media. May be true only for animation, photo, and video messages
 editInlineMessageCaption inline_message_id:string reply_markup:ReplyMarkup caption:formattedText show_caption_above_media:Bool = Ok;
 
 //@description Edits the reply markup of an inline message sent via a bot; for bots only
@@ -9085,7 +9085,7 @@ editBusinessMessageMedia business_connection_id:string chat_id:int53 message_id:
 //@message_id Identifier of the message
 //@reply_markup The new message reply markup; pass null if none
 //@caption New message content caption; pass null to remove caption; 0-getOption("message_caption_length_max") characters
-//@show_caption_above_media Pass true to show the caption above the media; otherwise, the caption will be shown below the media. Can be true only for animation, photo, and video messages
+//@show_caption_above_media Pass true to show the caption above the media; otherwise, the caption will be shown below the media. May be true only for animation, photo, and video messages
 editBusinessMessageCaption business_connection_id:string chat_id:int53 message_id:int53 reply_markup:ReplyMarkup caption:formattedText show_caption_above_media:Bool = BusinessMessage;
 
 //@description Edits the reply markup of a message sent on behalf of a business account; for bots only
@@ -11238,7 +11238,7 @@ deleteSavedOrderInfo = Ok;
 deleteSavedCredentials = Ok;
 
 
-//@description Returns gifts that can be send to other users
+//@description Returns gifts that can be sent to other users
 getAvailableGifts = Gifts;
 
 //@description Send a gift to another user

@@ -11,6 +11,8 @@
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
 
+#include "td/utils/logging.h"
+
 namespace td {
 
 StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::starGift> &&star_gift) {

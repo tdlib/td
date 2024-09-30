@@ -172,7 +172,7 @@ class SslStreamImpl {
     SSL_set_bio(ssl_handle.get(), bio, bio);
 
 #if OPENSSL_VERSION_NUMBER >= 0x0090806fL && !defined(OPENSSL_NO_TLSEXT)
-    if (r_ip_address.is_error()) {  // IP address must not be send as SNI
+    if (r_ip_address.is_error()) {  // IP address must not be sent as SNI
       LOG(DEBUG) << "Set SNI host name to " << host;
       auto host_str = host.str();
       SSL_set_tlsext_host_name(ssl_handle.get(), MutableCSlice(host_str).begin());
