@@ -3109,11 +3109,6 @@ void FileManager::download_impl(FileId file_id, int64 internal_download_id, std:
     node->set_download_limit(limit);
     requests.user_offset_ = offset;
     requests.user_limit_ = limit;
-    if (requests.user_download_callback_ == nullptr) {
-      requests.user_download_callback_ = std::move(callback);
-    } else {
-      CHECK(requests.user_download_callback_.get() == callback.get());
-    }
     requests.user_download_priority_ = narrow_cast<int8>(new_priority);
   }
 
@@ -3138,15 +3133,15 @@ std::shared_ptr<FileManager::DownloadCallback> FileManager::extract_download_cal
     callback = std::move(download_info_it->second.download_callback_);
     it->second.internal_downloads_.erase(download_info_it);
   } else {
-    if (it->second.user_download_callback_ == nullptr) {
+    if (it->second.user_download_priority_ == 0) {
       return nullptr;
     }
-    callback = std::move(it->second.user_download_callback_);
+    callback = user_download_file_callback_;
     it->second.user_download_priority_ = 0;
     it->second.user_offset_ = 0;
     it->second.user_limit_ = 0;
   }
-  if (it->second.user_download_callback_ == nullptr && it->second.internal_downloads_.empty()) {
+  if (it->second.user_download_priority_ == 0 && it->second.internal_downloads_.empty()) {
     file_download_requests_.erase(it);
   }
   return callback;
@@ -3161,8 +3156,8 @@ void FileManager::finish_downloads(FileId file_id, const Status &status) {
   for (auto &download_info : it->second.internal_downloads_) {
     callbacks.push_back(std::move(download_info.second.download_callback_));
   }
-  if (it->second.user_download_callback_ != nullptr) {
-    callbacks.push_back(std::move(it->second.user_download_callback_));
+  if (it->second.user_download_priority_ != 0) {
+    callbacks.push_back(user_download_file_callback_);
   }
   file_download_requests_.erase(it);
 
