@@ -9,6 +9,7 @@
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
+#include "td/telegram/files/FileUploadId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
@@ -99,6 +100,7 @@ class BotInfoManager final : public Actor {
     UserId bot_user_id_;
     string language_code_;
     unique_ptr<StoryContent> content_;
+    FileUploadId file_upload_id_;
     uint32 upload_order_ = 0;
     bool was_reuploaded_ = false;
     Promise<td_api::object_ptr<td_api::botMediaPreview>> promise_;
@@ -148,9 +150,10 @@ class BotInfoManager final : public Actor {
   void on_add_bot_media_preview_file_parts_missing(unique_ptr<PendingBotMediaPreview> &&pending_preview,
                                                    vector<int> &&bad_parts);
 
-  void on_upload_bot_media_preview(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
+  void on_upload_bot_media_preview(FileUploadId file_upload_id,
+                                   telegram_api::object_ptr<telegram_api::InputFile> input_file);
 
-  void on_upload_bot_media_preview_error(FileId file_id, Status status);
+  void on_upload_bot_media_preview_error(FileUploadId file_upload_id, Status status);
 
   telegram_api::object_ptr<telegram_api::InputMedia> get_fake_input_media(FileId file_id) const;
 
@@ -185,7 +188,7 @@ class BotInfoManager final : public Actor {
   };
   FlatHashMap<MediaPreviewSource, FileSourceId, MediaPreviewSourceHash> bot_media_preview_info_file_source_ids_;
 
-  FlatHashMap<FileId, unique_ptr<PendingBotMediaPreview>, FileIdHash> being_uploaded_files_;
+  FlatHashMap<FileUploadId, unique_ptr<PendingBotMediaPreview>, FileUploadIdHash> being_uploaded_files_;
 
   std::shared_ptr<UploadMediaCallback> upload_media_callback_;
 
