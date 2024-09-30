@@ -394,16 +394,6 @@ void CallActor::upload_log_file(FileId file_id, Promise<Unit> &&promise) {
                          std::move(input_file));
     }
 
-    void on_upload_encrypted_ok(FileUploadId file_upload_id,
-                                telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file) final {
-      UNREACHABLE();
-    }
-
-    void on_upload_secure_ok(FileUploadId file_upload_id,
-                             telegram_api::object_ptr<telegram_api::InputSecureFile> input_file) final {
-      UNREACHABLE();
-    }
-
     void on_upload_error(FileUploadId file_upload_id, Status error) final {
       CHECK(file_upload_id.get_file_id() == file_id_);
       send_closure_later(actor_id_, &CallActor::on_upload_log_file_error, file_upload_id.get_file_id(),

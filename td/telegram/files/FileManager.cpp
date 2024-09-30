@@ -3384,6 +3384,7 @@ class FileManager::ForceUploadActor final : public Actor {
    public:
     explicit UploadCallback(ActorId<ForceUploadActor> callback) : callback_(std::move(callback)) {
     }
+
     void on_upload_ok(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
       send_closure(std::move(callback_), &ForceUploadActor::on_upload_ok, std::move(input_file));
     }
@@ -3401,6 +3402,7 @@ class FileManager::ForceUploadActor final : public Actor {
     void on_upload_error(FileUploadId file_upload_id, Status error) final {
       send_closure(std::move(callback_), &ForceUploadActor::on_upload_error, std::move(error));
     }
+
     ~UploadCallback() final {
       if (callback_.empty()) {
         return;

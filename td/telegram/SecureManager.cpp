@@ -103,11 +103,12 @@ class SetSecureValue final : public NetQueryCallback {
    private:
     ActorId<SetSecureValue> actor_id_;
     uint32 upload_generation_;
+
     void on_upload_ok(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final;
-    void on_upload_encrypted_ok(FileUploadId file_upload_id,
-                                telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file) final;
+
     void on_upload_secure_ok(FileUploadId file_upload_id,
                              telegram_api::object_ptr<telegram_api::InputSecureFile> input_file) final;
+
     void on_upload_error(FileUploadId file_upload_id, Status error) final;
   };
 
@@ -332,11 +333,6 @@ void SetSecureValue::UploadCallback::on_upload_ok(FileUploadId file_upload_id,
   CHECK(input_file == nullptr);
   send_closure_later(actor_id_, &SetSecureValue::on_upload_ok, file_upload_id.get_file_id(), nullptr,
                      upload_generation_);
-}
-
-void SetSecureValue::UploadCallback::on_upload_encrypted_ok(
-    FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file) {
-  UNREACHABLE();
 }
 
 void SetSecureValue::UploadCallback::on_upload_secure_ok(
