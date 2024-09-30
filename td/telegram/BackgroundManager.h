@@ -11,6 +11,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
+#include "td/telegram/files/FileUploadId.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/td_api.h"
@@ -66,8 +67,8 @@ class BackgroundManager final : public Actor {
 
   FileSourceId get_background_file_source_id(BackgroundId background_id, int64 access_hash);
 
-  void on_uploaded_background_file(FileId file_id, const BackgroundType &type, DialogId dialog_id, bool for_dark_theme,
-                                   telegram_api::object_ptr<telegram_api::WallPaper> wallpaper,
+  void on_uploaded_background_file(FileUploadId file_upload_id, const BackgroundType &type, DialogId dialog_id,
+                                   bool for_dark_theme, telegram_api::object_ptr<telegram_api::WallPaper> wallpaper,
                                    Promise<td_api::object_ptr<td_api::background>> &&promise);
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
@@ -187,12 +188,13 @@ class BackgroundManager final : public Actor {
   void upload_background_file(FileId file_id, const BackgroundType &type, DialogId dialog_id, bool for_dark_theme,
                               Promise<td_api::object_ptr<td_api::background>> &&promise);
 
-  void on_upload_background_file(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
+  void on_upload_background_file(FileUploadId file_upload_id,
+                                 telegram_api::object_ptr<telegram_api::InputFile> input_file);
 
-  void on_upload_background_file_error(FileId file_id, Status status);
+  void on_upload_background_file_error(FileUploadId file_upload_id, Status status);
 
-  void do_upload_background_file(FileId file_id, const BackgroundType &type, DialogId dialog_id, bool for_dark_theme,
-                                 telegram_api::object_ptr<telegram_api::InputFile> &&input_file,
+  void do_upload_background_file(FileUploadId file_upload_id, const BackgroundType &type, DialogId dialog_id,
+                                 bool for_dark_theme, telegram_api::object_ptr<telegram_api::InputFile> &&input_file,
                                  Promise<td_api::object_ptr<td_api::background>> &&promise);
 
   FlatHashMap<BackgroundId, unique_ptr<Background>, BackgroundIdHash> backgrounds_;
@@ -227,7 +229,7 @@ class BackgroundManager final : public Actor {
         : type_(type), dialog_id_(dialog_id), for_dark_theme_(for_dark_theme), promise_(std::move(promise)) {
     }
   };
-  FlatHashMap<FileId, UploadedFileInfo, FileIdHash> being_uploaded_files_;
+  FlatHashMap<FileUploadId, UploadedFileInfo, FileUploadIdHash> being_uploaded_files_;
 
   FlatHashMap<Background, BackgroundId, LocalBackgroundHash, LocalBackgroundEquals> local_backgrounds_;
 

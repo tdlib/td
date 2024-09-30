@@ -202,7 +202,7 @@ class InstallBackgroundQuery final : public Td::ResultHandler {
 
 class UploadBackgroundQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::background>> promise_;
-  FileId file_id_;
+  FileUploadId file_upload_id_;
   BackgroundType type_;
   DialogId dialog_id_;
   bool for_dark_theme_;
@@ -212,10 +212,10 @@ class UploadBackgroundQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> &&input_file, const BackgroundType &type,
-            DialogId dialog_id, bool for_dark_theme) {
+  void send(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> &&input_file,
+            const BackgroundType &type, DialogId dialog_id, bool for_dark_theme) {
     CHECK(input_file != nullptr);
-    file_id_ = file_id;
+    file_upload_id_ = file_upload_id;
     type_ = type;
     dialog_id_ = dialog_id;
     for_dark_theme_ = for_dark_theme;
@@ -233,20 +233,20 @@ class UploadBackgroundQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->background_manager_->on_uploaded_background_file(file_id_, type_, dialog_id_, for_dark_theme_,
+    td_->background_manager_->on_uploaded_background_file(file_upload_id_, type_, dialog_id_, for_dark_theme_,
                                                           result_ptr.move_as_ok(), std::move(promise_));
   }
 
   void on_error(Status status) final {
-    CHECK(file_id_.is_valid());
+    CHECK(file_upload_id_.get_file_id().is_valid());
     auto bad_parts = FileManager::get_missing_file_parts(status);
     if (!bad_parts.empty()) {
-      // TODO td_->background_manager_->on_upload_background_file_parts_missing(file_id_, std::move(bad_parts));
+      // TODO td_->background_manager_->on_upload_background_file_parts_missing(file_upload_id_, std::move(bad_parts));
       // return;
     } else {
-      td_->file_manager_->delete_partial_remote_location_if_needed({file_id_, 7020}, status);
+      td_->file_manager_->delete_partial_remote_location_if_needed(file_upload_id_, status);
     }
-    td_->file_manager_->cancel_upload({file_id_, 7020});
+    td_->file_manager_->cancel_upload(file_upload_id_);
     promise_.set_error(std::move(status));
   }
 };
@@ -315,13 +315,13 @@ class ResetBackgroundsQuery final : public Td::ResultHandler {
 class BackgroundManager::UploadBackgroundFileCallback final : public FileManager::UploadCallback {
  public:
   void on_upload_ok(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
-    send_closure_later(G()->background_manager(), &BackgroundManager::on_upload_background_file,
-                       file_upload_id.get_file_id(), std::move(input_file));
+    send_closure_later(G()->background_manager(), &BackgroundManager::on_upload_background_file, file_upload_id,
+                       std::move(input_file));
   }
 
   void on_upload_error(FileUploadId file_upload_id, Status error) final {
-    send_closure_later(G()->background_manager(), &BackgroundManager::on_upload_background_file_error,
-                       file_upload_id.get_file_id(), std::move(error));
+    send_closure_later(G()->background_manager(), &BackgroundManager::on_upload_background_file_error, file_upload_id,
+                       std::move(error));
   }
 };
 
@@ -992,20 +992,20 @@ void BackgroundManager::save_local_backgrounds(bool for_dark_theme) {
 void BackgroundManager::upload_background_file(FileId file_id, const BackgroundType &type, DialogId dialog_id,
                                                bool for_dark_theme,
                                                Promise<td_api::object_ptr<td_api::background>> &&promise) {
-  auto upload_file_id = td_->file_manager_->dup_file_id(file_id, "upload_background_file");
+  auto file_upload_id = FileUploadId{file_id, FileManager::get_internal_upload_id()};
   bool is_inserted = being_uploaded_files_
-                         .emplace(upload_file_id, UploadedFileInfo(type, dialog_id, for_dark_theme, std::move(promise)))
+                         .emplace(file_upload_id, UploadedFileInfo(type, dialog_id, for_dark_theme, std::move(promise)))
                          .second;
   CHECK(is_inserted);
-  LOG(INFO) << "Ask to upload background file " << upload_file_id;
-  td_->file_manager_->upload({upload_file_id, 7020}, upload_background_file_callback_, 1, 0);
+  LOG(INFO) << "Ask to upload background " << file_upload_id;
+  td_->file_manager_->upload(file_upload_id, upload_background_file_callback_, 1, 0);
 }
 
-void BackgroundManager::on_upload_background_file(FileId file_id,
+void BackgroundManager::on_upload_background_file(FileUploadId file_upload_id,
                                                   telegram_api::object_ptr<telegram_api::InputFile> input_file) {
-  LOG(INFO) << "Background file " << file_id << " has been uploaded";
+  LOG(INFO) << "Background " << file_upload_id << " has been uploaded";
 
-  auto it = being_uploaded_files_.find(file_id);
+  auto it = being_uploaded_files_.find(file_upload_id);
   CHECK(it != being_uploaded_files_.end());
 
   auto type = it->second.type_;
@@ -1015,19 +1015,19 @@ void BackgroundManager::on_upload_background_file(FileId file_id,
 
   being_uploaded_files_.erase(it);
 
-  do_upload_background_file(file_id, type, dialog_id, for_dark_theme, std::move(input_file), std::move(promise));
+  do_upload_background_file(file_upload_id, type, dialog_id, for_dark_theme, std::move(input_file), std::move(promise));
 }
 
-void BackgroundManager::on_upload_background_file_error(FileId file_id, Status status) {
+void BackgroundManager::on_upload_background_file_error(FileUploadId file_upload_id, Status status) {
   if (G()->close_flag()) {
     // do not fail upload if closing
     return;
   }
 
-  LOG(WARNING) << "Background file " << file_id << " has upload error " << status;
+  LOG(WARNING) << "Background " << file_upload_id << " has upload error " << status;
   CHECK(status.is_error());
 
-  auto it = being_uploaded_files_.find(file_id);
+  auto it = being_uploaded_files_.find(file_upload_id);
   CHECK(it != being_uploaded_files_.end());
 
   auto promise = std::move(it->second.promise_);
@@ -1038,16 +1038,16 @@ void BackgroundManager::on_upload_background_file_error(FileId file_id, Status s
                                   status.message()));  // TODO CHECK that status has always a code
 }
 
-void BackgroundManager::do_upload_background_file(FileId file_id, const BackgroundType &type, DialogId dialog_id,
-                                                  bool for_dark_theme,
+void BackgroundManager::do_upload_background_file(FileUploadId file_upload_id, const BackgroundType &type,
+                                                  DialogId dialog_id, bool for_dark_theme,
                                                   telegram_api::object_ptr<telegram_api::InputFile> &&input_file,
                                                   Promise<td_api::object_ptr<td_api::background>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   if (input_file == nullptr) {
-    FileView file_view = td_->file_manager_->get_file_view(file_id);
-    file_id = file_view.get_main_file_id();
-    auto it = file_id_to_background_id_.find(file_id);
+    FileView file_view = td_->file_manager_->get_file_view(file_upload_id.get_file_id());
+    file_upload_id = {file_view.get_main_file_id(), file_upload_id.get_internal_upload_id()};
+    auto it = file_id_to_background_id_.find(file_upload_id.get_file_id());
     if (it != file_id_to_background_id_.end()) {
       if (dialog_id.is_valid()) {
         return promise.set_value(get_background_object(it->second, for_dark_theme, nullptr));
@@ -1058,11 +1058,11 @@ void BackgroundManager::do_upload_background_file(FileId file_id, const Backgrou
   }
 
   td_->create_handler<UploadBackgroundQuery>(std::move(promise))
-      ->send(file_id, std::move(input_file), type, dialog_id, for_dark_theme);
+      ->send(file_upload_id, std::move(input_file), type, dialog_id, for_dark_theme);
 }
 
-void BackgroundManager::on_uploaded_background_file(FileId file_id, const BackgroundType &type, DialogId dialog_id,
-                                                    bool for_dark_theme,
+void BackgroundManager::on_uploaded_background_file(FileUploadId file_upload_id, const BackgroundType &type,
+                                                    DialogId dialog_id, bool for_dark_theme,
                                                     telegram_api::object_ptr<telegram_api::WallPaper> wallpaper,
                                                     Promise<td_api::object_ptr<td_api::background>> &&promise) {
   CHECK(wallpaper != nullptr);
@@ -1070,7 +1070,7 @@ void BackgroundManager::on_uploaded_background_file(FileId file_id, const Backgr
   auto added_background = on_get_background(BackgroundId(), string(), std::move(wallpaper), true, false);
   auto background_id = added_background.first;
   if (!background_id.is_valid()) {
-    td_->file_manager_->cancel_upload({file_id, 7020});
+    td_->file_manager_->cancel_upload(file_upload_id);
     return promise.set_error(Status::Error(500, "Receive wrong uploaded background"));
   }
   LOG_IF(ERROR, added_background.second != type)
@@ -1079,10 +1079,10 @@ void BackgroundManager::on_uploaded_background_file(FileId file_id, const Backgr
   const auto *background = get_background(background_id);
   CHECK(background != nullptr);
   if (!background->file_id.is_valid()) {
-    td_->file_manager_->cancel_upload({file_id, 7020});
+    td_->file_manager_->cancel_upload(file_upload_id);
     return promise.set_error(Status::Error(500, "Receive wrong uploaded background without file"));
   }
-  LOG_STATUS(td_->file_manager_->merge(background->file_id, file_id));
+  LOG_STATUS(td_->file_manager_->merge(background->file_id, file_upload_id.get_file_id()));
   if (!dialog_id.is_valid()) {
     set_background_id(background_id, type, for_dark_theme);
   }
