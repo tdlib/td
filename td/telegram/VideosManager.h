@@ -36,7 +36,8 @@ class VideosManager {
 
   td_api::object_ptr<td_api::storyVideo> get_story_video_object(FileId file_id) const;
 
-  td_api::object_ptr<td_api::alternativeVideo> get_alternative_video_object(FileId file_id) const;
+  td_api::object_ptr<td_api::alternativeVideo> get_alternative_video_object(FileId file_id,
+                                                                            const vector<FileId> &hls_file_ids) const;
 
   void create_video(FileId file_id, string minithumbnail, PhotoSize thumbnail, AnimationSize animated_thumbnail,
                     bool has_stickers, vector<FileId> &&sticker_file_ids, string file_name, string mime_type,

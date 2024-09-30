@@ -70,7 +70,8 @@ td_api::object_ptr<td_api::storyVideo> VideosManager::get_story_video_object(Fil
       video->preload_prefix_size, video->start_ts, td_->file_manager_->get_file_object(file_id));
 }
 
-td_api::object_ptr<td_api::alternativeVideo> VideosManager::get_alternative_video_object(FileId file_id) const {
+td_api::object_ptr<td_api::alternativeVideo> VideosManager::get_alternative_video_object(
+    FileId file_id, const vector<FileId> &hls_file_ids) const {
   auto video = get_video(file_id);
   CHECK(video != nullptr);
   return td_api::make_object<td_api::alternativeVideo>(video->dimensions.width, video->dimensions.height, video->codec,
