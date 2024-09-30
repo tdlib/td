@@ -6,6 +6,8 @@
 //
 #pragma once
 
+#include "td/telegram/files/FileId.h"
+
 #include "td/utils/common.h"
 #include "td/utils/HashTableUtils.h"
 #include "td/utils/StringBuilder.h"
