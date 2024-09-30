@@ -3952,10 +3952,10 @@ telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_med
       // if we had InputFile, but has failed to use it, then we need to immediately cancel file upload
       // so the next upload with the same file can succeed
       CHECK(file_id.is_valid());
-      td->file_manager_->cancel_upload(file_id, 7020);
+      td->file_manager_->cancel_upload({file_id, 7020});
       if (had_input_thumbnail) {
         CHECK(thumbnail_file_id.is_valid());
-        td->file_manager_->cancel_upload(thumbnail_file_id, 7020);
+        td->file_manager_->cancel_upload({thumbnail_file_id, 7020});
       }
     }
   } else {

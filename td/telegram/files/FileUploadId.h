@@ -15,10 +15,12 @@
 namespace td {
 
 class FileUploadId {
-  const FileId file_id_;
-  const int64 internal_upload_id_;
+  FileId file_id_;
+  int64 internal_upload_id_ = 0;
 
  public:
+  FileUploadId() = default;
+
   FileUploadId(FileId file_id, int64 internal_upload_id) : file_id_(file_id), internal_upload_id_(internal_upload_id) {
   }
 
@@ -46,7 +48,7 @@ struct FileUploadIdHash {
 };
 
 inline StringBuilder &operator<<(StringBuilder &string_builder, FileUploadId file_upload_id) {
-  return string_builder << file_upload_id.get_file_id() << '+' << file_upload_id.get_internal_upload_id();
+  return string_builder << "file " << file_upload_id.get_file_id() << '+' << file_upload_id.get_internal_upload_id();
 }
 
 }  // namespace td

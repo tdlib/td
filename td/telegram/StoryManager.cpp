@@ -5289,7 +5289,7 @@ void StoryManager::do_send_story(unique_ptr<PendingStory> &&pending_story, vecto
   CHECK(is_inserted);
   // need to call resume_upload synchronously to make upload process consistent with being_uploaded_files_
   // and to send is_uploading_active == true in response
-  td_->file_manager_->resume_upload(file_id, 7020, std::move(bad_parts), upload_media_callback_, 1, upload_order);
+  td_->file_manager_->resume_upload({file_id, 7020}, std::move(bad_parts), upload_media_callback_, 1, upload_order);
 }
 
 void StoryManager::on_upload_story(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) {
@@ -5593,7 +5593,7 @@ void StoryManager::do_edit_story(FileId file_id, unique_ptr<PendingStory> &&pend
       edit_generations_[story_full_id] != pending_story->random_id_) {
     LOG(INFO) << "Skip outdated edit of " << story_full_id;
     if (file_id.is_valid()) {
-      td_->file_manager_->cancel_upload(file_id, 7020);
+      td_->file_manager_->cancel_upload({file_id, 7020});
     }
     return;
   }
@@ -5637,7 +5637,7 @@ void StoryManager::delete_pending_story(FileId file_id, unique_ptr<PendingStory>
     return;
   }
   if (file_id.is_valid()) {
-    td_->file_manager_->delete_partial_remote_location(file_id, 7020);
+    td_->file_manager_->delete_partial_remote_location({file_id, 7020});
   }
 
   CHECK(pending_story != nullptr);
@@ -5783,7 +5783,7 @@ void StoryManager::delete_story(DialogId owner_dialog_id, StoryId story_id, Prom
 
     LOG(INFO) << "Cancel uploading of " << story_full_id;
 
-    send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_id, 7020);
+    send_closure_later(G()->file_manager(), &FileManager::cancel_upload, FileUploadId{file_id, 7020});
 
     delete_yet_unsent_story_queries_[random_id].push_back(std::move(promise));
     return;

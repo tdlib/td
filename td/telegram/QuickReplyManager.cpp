@@ -398,7 +398,7 @@ class QuickReplyManager::SendQuickReplyMediaQuery final : public Td::ResultHandl
     if (was_thumbnail_uploaded_) {
       CHECK(thumbnail_file_id_.is_valid());
       // always delete partial remote location for the thumbnail, because it can't be reused anyway
-      td_->file_manager_->delete_partial_remote_location(thumbnail_file_id_, 7020);
+      td_->file_manager_->delete_partial_remote_location({thumbnail_file_id_, 7020});
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -416,7 +416,7 @@ class QuickReplyManager::SendQuickReplyMediaQuery final : public Td::ResultHandl
       if (was_thumbnail_uploaded_) {
         CHECK(thumbnail_file_id_.is_valid());
         // always delete partial remote location for the thumbnail, because it can't be reused anyway
-        td_->file_manager_->delete_partial_remote_location(thumbnail_file_id_, 7020);
+        td_->file_manager_->delete_partial_remote_location({thumbnail_file_id_, 7020});
       }
 
       CHECK(file_id_.is_valid());
@@ -425,7 +425,7 @@ class QuickReplyManager::SendQuickReplyMediaQuery final : public Td::ResultHandl
         td_->quick_reply_manager_->on_send_message_file_parts_missing(shortcut_id_, random_id_, std::move(bad_parts));
         return;
       } else {
-        td_->file_manager_->delete_partial_remote_location_if_needed(file_id_, 7020, status);
+        td_->file_manager_->delete_partial_remote_location_if_needed({file_id_, 7020}, status);
       }
     } else if (FileReferenceManager::is_file_reference_error(status)) {
       if (file_id_.is_valid() && !was_uploaded_) {
@@ -479,7 +479,7 @@ class QuickReplyManager::UploadQuickReplyMediaQuery final : public Td::ResultHan
     if (was_thumbnail_uploaded_) {
       CHECK(thumbnail_file_id_.is_valid());
       // always delete partial remote location for the thumbnail, because it can't be reused anyway
-      td_->file_manager_->delete_partial_remote_location(thumbnail_file_id_, 7020);
+      td_->file_manager_->delete_partial_remote_location({thumbnail_file_id_, 7020});
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -497,7 +497,7 @@ class QuickReplyManager::UploadQuickReplyMediaQuery final : public Td::ResultHan
       if (was_thumbnail_uploaded_) {
         CHECK(thumbnail_file_id_.is_valid());
         // always delete partial remote location for the thumbnail, because it can't be reused anyway
-        td_->file_manager_->delete_partial_remote_location(thumbnail_file_id_, 7020);
+        td_->file_manager_->delete_partial_remote_location({thumbnail_file_id_, 7020});
       }
 
       CHECK(file_id_.is_valid());
@@ -506,7 +506,7 @@ class QuickReplyManager::UploadQuickReplyMediaQuery final : public Td::ResultHan
         td_->quick_reply_manager_->on_send_message_file_parts_missing(shortcut_id_, random_id_, std::move(bad_parts));
         return;
       } else {
-        td_->file_manager_->delete_partial_remote_location_if_needed(file_id_, 7020, status);
+        td_->file_manager_->delete_partial_remote_location_if_needed({file_id_, 7020}, status);
       }
     } else if (FileReferenceManager::is_file_reference_error(status)) {
       LOG(ERROR) << "Receive file reference error for UploadMediaQuery";
@@ -652,7 +652,7 @@ class QuickReplyManager::EditQuickReplyMessageQuery final : public Td::ResultHan
     if (was_thumbnail_uploaded_) {
       CHECK(thumbnail_file_id_.is_valid());
       // always delete partial remote location for the thumbnail, because it can't be reused anyway
-      td_->file_manager_->delete_partial_remote_location(thumbnail_file_id_, 7020);
+      td_->file_manager_->delete_partial_remote_location({thumbnail_file_id_, 7020});
     }
 
     auto ptr = result_ptr.move_as_ok();
@@ -670,7 +670,7 @@ class QuickReplyManager::EditQuickReplyMessageQuery final : public Td::ResultHan
       if (was_thumbnail_uploaded_) {
         CHECK(thumbnail_file_id_.is_valid());
         // always delete partial remote location for the thumbnail, because it can't be reused anyway
-        td_->file_manager_->delete_partial_remote_location(thumbnail_file_id_, 7020);
+        td_->file_manager_->delete_partial_remote_location({thumbnail_file_id_, 7020});
       }
 
       return td_->quick_reply_manager_->on_edit_quick_reply_message(shortcut_id_, message_id_, edit_generation_,
@@ -1985,7 +1985,7 @@ void QuickReplyManager::update_sent_message_content_from_temporary_message(
   if (old_file_id.is_valid()) {
     // the file is likely to be already merged with a server file, but if not we need to
     // cancel file upload of the main file to allow next upload with the same file to succeed
-    send_closure_later(G()->file_manager(), &FileManager::cancel_upload, old_file_id, 7020);
+    send_closure_later(G()->file_manager(), &FileManager::cancel_upload, FileUploadId{old_file_id, 7020});
 
     update_message_content_file_id_remote(new_content.get(), old_file_id);
   }
@@ -2207,7 +2207,7 @@ void QuickReplyManager::do_send_message(const QuickReplyMessage *m, vector<int> 
         being_uploaded_files_.emplace(file_id, std::make_tuple(message_full_id, thumbnail_file_id, m->edit_generation))
             .second;
     CHECK(is_inserted);
-    td_->file_manager_->resume_upload(file_id, 7020, std::move(bad_parts), upload_media_callback_, 1,
+    td_->file_manager_->resume_upload({file_id, 7020}, std::move(bad_parts), upload_media_callback_, 1,
                                       m->message_id.get());
   } else {
     on_message_media_uploaded(m, std::move(input_media), file_id, thumbnail_file_id);
@@ -2251,7 +2251,7 @@ void QuickReplyManager::on_upload_media(FileId file_id, telegram_api::object_ptr
 
   const auto *m = get_message(message_full_id);
   if (m == nullptr || (m->message_id.is_server() && m->edit_generation != edit_generation)) {
-    send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_id, 7020);
+    send_closure_later(G()->file_manager(), &FileManager::cancel_upload, FileUploadId{file_id, 7020});
     return;
   }
 
@@ -2263,7 +2263,8 @@ void QuickReplyManager::on_upload_media(FileId file_id, telegram_api::object_ptr
                                                                              std::move(input_file), edit_generation})
                            .second;
     CHECK(is_inserted);
-    td_->file_manager_->upload(thumbnail_file_id, 7020, upload_thumbnail_callback_, 32, m->message_id.get());
+    td_->file_manager_->upload(FileUploadId{thumbnail_file_id, 7020}, upload_thumbnail_callback_, 32,
+                               m->message_id.get());
   } else {
     do_send_media(m, file_id, thumbnail_file_id, std::move(input_file), nullptr);
   }
@@ -2334,8 +2335,8 @@ void QuickReplyManager::on_upload_thumbnail(FileId thumbnail_file_id,
 
   auto *m = get_message_editable(message_full_id);
   if (m == nullptr || (m->message_id.is_server() && m->edit_generation != edit_generation)) {
-    send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_id, 7020);
-    send_closure_later(G()->file_manager(), &FileManager::cancel_upload, thumbnail_file_id, 7020);
+    send_closure_later(G()->file_manager(), &FileManager::cancel_upload, FileUploadId{file_id, 7020});
+    send_closure_later(G()->file_manager(), &FileManager::cancel_upload, FileUploadId{thumbnail_file_id, 7020});
     return;
   }
 
@@ -2382,7 +2383,7 @@ void QuickReplyManager::on_upload_message_media_success(QuickReplyShortcutId sho
                                                         telegram_api::object_ptr<telegram_api::MessageMedia> &&media) {
   const auto *m = get_message({shortcut_id, message_id});
   if (m == nullptr) {
-    send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_id, 7020);
+    send_closure_later(G()->file_manager(), &FileManager::cancel_upload, FileUploadId{file_id, 7020});
     return;
   }
 
@@ -2759,7 +2760,7 @@ void QuickReplyManager::on_edit_quick_reply_message(QuickReplyShortcutId shortcu
   auto *m = get_message_editable(s, message_id);
   if (m == nullptr) {
     if (was_uploaded) {
-      send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_id, 7020);
+      send_closure_later(G()->file_manager(), &FileManager::cancel_upload, FileUploadId{file_id, 7020});
     }
     return;
   }
@@ -2767,7 +2768,7 @@ void QuickReplyManager::on_edit_quick_reply_message(QuickReplyShortcutId shortcu
     LOG(INFO) << "Ignore successful edit of " << QuickReplyMessageFullId(m->shortcut_id, m->message_id)
               << " with generation " << edit_generation << " instead of " << m->edit_generation;
     if (was_uploaded) {
-      send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_id, 7020);
+      send_closure_later(G()->file_manager(), &FileManager::cancel_upload, FileUploadId{file_id, 7020});
     }
     return;
   }
@@ -2777,7 +2778,7 @@ void QuickReplyManager::on_edit_quick_reply_message(QuickReplyShortcutId shortcu
   bool was_updated = updates_ptr == nullptr;
   if (updates_ptr == nullptr || updates_ptr->get_id() != telegram_api::updates::ID) {
     if (was_uploaded) {
-      send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_id, 7020);
+      send_closure_later(G()->file_manager(), &FileManager::cancel_upload, FileUploadId{file_id, 7020});
     }
     reload_quick_reply_message(shortcut_id, message_id, Promise<Unit>());
   } else {
@@ -2788,7 +2789,7 @@ void QuickReplyManager::on_edit_quick_reply_message(QuickReplyShortcutId shortcu
     if (updates->updates_.size() != 1 || updates->updates_[0]->get_id() != telegram_api::updateQuickReplyMessage::ID) {
       LOG(ERROR) << "Receive " << to_string(updates);
       if (was_uploaded) {
-        send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_id, 7020);
+        send_closure_later(G()->file_manager(), &FileManager::cancel_upload, FileUploadId{file_id, 7020});
       }
     } else {
       auto update_message = telegram_api::move_object_as<telegram_api::updateQuickReplyMessage>(updates->updates_[0]);
@@ -2796,7 +2797,7 @@ void QuickReplyManager::on_edit_quick_reply_message(QuickReplyShortcutId shortcu
       if (message == nullptr || message->shortcut_id != shortcut_id || message->message_id != message_id) {
         LOG(ERROR) << "Receive unexpected message";
         if (was_uploaded) {
-          send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_id, 7020);
+          send_closure_later(G()->file_manager(), &FileManager::cancel_upload, FileUploadId{file_id, 7020});
         }
       } else {
         update_sent_message_content_from_temporary_message(m, message.get(), true);
@@ -2839,7 +2840,7 @@ void QuickReplyManager::fail_edit_quick_reply_message(QuickReplyShortcutId short
   auto *m = get_message_editable({shortcut_id, message_id});
   if (m == nullptr) {
     if (was_uploaded) {
-      send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_id, 7020);
+      send_closure_later(G()->file_manager(), &FileManager::cancel_upload, FileUploadId{file_id, 7020});
     }
     return;
   }
@@ -2847,7 +2848,7 @@ void QuickReplyManager::fail_edit_quick_reply_message(QuickReplyShortcutId short
     LOG(INFO) << "Ignore failed edit of " << QuickReplyMessageFullId(m->shortcut_id, m->message_id)
               << " with generation " << edit_generation << " instead of " << m->edit_generation;
     if (was_uploaded) {
-      send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_id, 7020);
+      send_closure_later(G()->file_manager(), &FileManager::cancel_upload, FileUploadId{file_id, 7020});
     }
     return;
   }
@@ -2855,7 +2856,7 @@ void QuickReplyManager::fail_edit_quick_reply_message(QuickReplyShortcutId short
     if (was_thumbnail_uploaded) {
       CHECK(thumbnail_file_id.is_valid());
       // always delete partial remote location for the thumbnail, because it can't be reused anyway
-      td_->file_manager_->delete_partial_remote_location(thumbnail_file_id, 7020);
+      td_->file_manager_->delete_partial_remote_location({thumbnail_file_id, 7020});
     }
 
     CHECK(file_id.is_valid());
@@ -2864,7 +2865,7 @@ void QuickReplyManager::fail_edit_quick_reply_message(QuickReplyShortcutId short
       do_send_message(m, std::move(bad_parts));
       return;
     } else {
-      td_->file_manager_->delete_partial_remote_location_if_needed(file_id, 7020, status);
+      td_->file_manager_->delete_partial_remote_location_if_needed({file_id, 7020}, status);
     }
   } else if (FileReferenceManager::is_file_reference_error(status)) {
     if (file_id.is_valid() && !was_uploaded) {

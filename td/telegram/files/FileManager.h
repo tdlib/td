@@ -105,7 +105,7 @@ class FileNode {
   void set_url(string url);
   void set_owner_dialog_id(DialogId owner_id);
   void set_encryption_key(FileEncryptionKey key);
-  void set_upload_pause(FileId upload_pause, int64 internal_upload_id);
+  void set_upload_pause(FileUploadId upload_pause);
 
   void set_download_priority(int8 priority);
   void set_upload_priority(int8 priority);
@@ -163,8 +163,7 @@ class FileNode {
 
   double last_successful_force_reupload_time_ = -1e10;
 
-  FileId upload_pause_;
-  int64 internal_upload_pause_id_;
+  FileUploadId upload_pause_;
 
   int8 upload_priority_ = 0;
   int8 download_priority_ = 0;
@@ -531,18 +530,17 @@ class FileManager final : public Actor {
 
   static int64 get_internal_upload_id();
 
-  void upload(FileId file_id, int64 internal_upload_id, std::shared_ptr<UploadCallback> callback, int32 new_priority,
+  void upload(FileUploadId file_upload_id, std::shared_ptr<UploadCallback> callback, int32 new_priority,
               uint64 upload_order);
 
-  void resume_upload(FileId file_id, int64 internal_upload_id, vector<int> bad_parts,
-                     std::shared_ptr<UploadCallback> callback, int32 new_priority, uint64 upload_order,
-                     bool force = false, bool prefer_small = false);
+  void resume_upload(FileUploadId file_upload_id, vector<int> bad_parts, std::shared_ptr<UploadCallback> callback,
+                     int32 new_priority, uint64 upload_order, bool force = false, bool prefer_small = false);
 
-  void cancel_upload(FileId file_id, int64 internal_upload_id);
+  void cancel_upload(FileUploadId file_upload_id);
 
-  bool delete_partial_remote_location(FileId file_id, int64 internal_upload_id);
+  bool delete_partial_remote_location(FileUploadId file_upload_id);
 
-  void delete_partial_remote_location_if_needed(FileId file_id, int64 internal_upload_id, const Status &error);
+  void delete_partial_remote_location_if_needed(FileUploadId file_upload_id, const Status &error);
 
   void delete_file_reference(FileId file_id, Slice file_reference);
 
@@ -895,7 +893,7 @@ class FileManager final : public Actor {
 
   void finish_downloads(FileId file_id, const Status &status);
 
-  std::shared_ptr<UploadCallback> extract_upload_callback(FileId file_id, int64 internal_upload_id);
+  std::shared_ptr<UploadCallback> extract_upload_callback(FileUploadId file_upload_id);
 
   void finish_uploads(FileId file_id, const Status &status);
 
