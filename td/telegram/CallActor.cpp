@@ -380,30 +380,26 @@ void CallActor::upload_log_file(FileId file_id, Promise<Unit> &&promise) {
 
   class UploadLogFileCallback final : public FileManager::UploadCallback {
     ActorId<CallActor> actor_id_;
-    FileId file_id_;
     Promise<Unit> promise_;
 
    public:
-    UploadLogFileCallback(ActorId<CallActor> actor_id, FileId file_id, Promise<Unit> &&promise)
-        : actor_id_(actor_id), file_id_(file_id), promise_(std::move(promise)) {
+    UploadLogFileCallback(ActorId<CallActor> actor_id, Promise<Unit> &&promise)
+        : actor_id_(actor_id), promise_(std::move(promise)) {
     }
 
     void on_upload_ok(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
-      CHECK(file_upload_id.get_file_id() == file_id_);
       send_closure_later(actor_id_, &CallActor::on_upload_log_file, file_upload_id.get_file_id(), std::move(promise_),
                          std::move(input_file));
     }
 
     void on_upload_error(FileUploadId file_upload_id, Status error) final {
-      CHECK(file_upload_id.get_file_id() == file_id_);
       send_closure_later(actor_id_, &CallActor::on_upload_log_file_error, file_upload_id.get_file_id(),
                          std::move(promise_), std::move(error));
     }
   };
 
   file_manager->upload({upload_file_id, 7020},
-                       std::make_shared<UploadLogFileCallback>(actor_id(this), upload_file_id, std::move(promise)), 1,
-                       0);
+                       std::make_shared<UploadLogFileCallback>(actor_id(this), std::move(promise)), 1, 0);
 }
 
 void CallActor::on_upload_log_file(FileId file_id, Promise<Unit> &&promise,
