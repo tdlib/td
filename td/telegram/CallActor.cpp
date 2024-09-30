@@ -388,25 +388,26 @@ void CallActor::upload_log_file(FileId file_id, Promise<Unit> &&promise) {
         : actor_id_(actor_id), file_id_(file_id), promise_(std::move(promise)) {
     }
 
-    void on_upload_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
-      CHECK(file_id == file_id_);
-      send_closure_later(actor_id_, &CallActor::on_upload_log_file, file_id, std::move(promise_),
+    void on_upload_ok(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
+      CHECK(file_upload_id.get_file_id() == file_id_);
+      send_closure_later(actor_id_, &CallActor::on_upload_log_file, file_upload_id.get_file_id(), std::move(promise_),
                          std::move(input_file));
     }
 
-    void on_upload_encrypted_ok(FileId file_id,
+    void on_upload_encrypted_ok(FileUploadId file_upload_id,
                                 telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file) final {
       UNREACHABLE();
     }
 
-    void on_upload_secure_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputSecureFile> input_file) final {
+    void on_upload_secure_ok(FileUploadId file_upload_id,
+                             telegram_api::object_ptr<telegram_api::InputSecureFile> input_file) final {
       UNREACHABLE();
     }
 
-    void on_upload_error(FileId file_id, Status error) final {
-      CHECK(file_id == file_id_);
-      send_closure_later(actor_id_, &CallActor::on_upload_log_file_error, file_id, std::move(promise_),
-                         std::move(error));
+    void on_upload_error(FileUploadId file_upload_id, Status error) final {
+      CHECK(file_upload_id.get_file_id() == file_id_);
+      send_closure_later(actor_id_, &CallActor::on_upload_log_file_error, file_upload_id.get_file_id(),
+                         std::move(promise_), std::move(error));
     }
   };
 

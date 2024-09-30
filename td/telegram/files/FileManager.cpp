@@ -3384,20 +3384,21 @@ class FileManager::ForceUploadActor final : public Actor {
    public:
     explicit UploadCallback(ActorId<ForceUploadActor> callback) : callback_(std::move(callback)) {
     }
-    void on_upload_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
+    void on_upload_ok(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
       send_closure(std::move(callback_), &ForceUploadActor::on_upload_ok, std::move(input_file));
     }
 
-    void on_upload_encrypted_ok(FileId file_id,
+    void on_upload_encrypted_ok(FileUploadId file_upload_id,
                                 telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file) final {
       send_closure(std::move(callback_), &ForceUploadActor::on_upload_encrypted_ok, std::move(input_file));
     }
 
-    void on_upload_secure_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputSecureFile> input_file) final {
+    void on_upload_secure_ok(FileUploadId file_upload_id,
+                             telegram_api::object_ptr<telegram_api::InputSecureFile> input_file) final {
       send_closure(std::move(callback_), &ForceUploadActor::on_upload_secure_ok, std::move(input_file));
     }
 
-    void on_upload_error(FileId file_id, Status error) final {
+    void on_upload_error(FileUploadId file_upload_id, Status error) final {
       send_closure(std::move(callback_), &ForceUploadActor::on_upload_error, std::move(error));
     }
     ~UploadCallback() final {
@@ -3414,7 +3415,7 @@ class FileManager::ForceUploadActor final : public Actor {
   void on_upload_ok(telegram_api::object_ptr<telegram_api::InputFile> input_file) {
     is_active_ = false;
     if (input_file || is_ready()) {
-      callback_->on_upload_ok(file_id_, std::move(input_file));
+      callback_->on_upload_ok({file_id_, internal_upload_id_}, std::move(input_file));
       on_ok();
     } else {
       loop();
@@ -3424,7 +3425,7 @@ class FileManager::ForceUploadActor final : public Actor {
   void on_upload_encrypted_ok(telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file) {
     is_active_ = false;
     if (input_file || is_ready()) {
-      callback_->on_upload_encrypted_ok(file_id_, std::move(input_file));
+      callback_->on_upload_encrypted_ok({file_id_, internal_upload_id_}, std::move(input_file));
       on_ok();
     } else {
       loop();
@@ -3434,7 +3435,7 @@ class FileManager::ForceUploadActor final : public Actor {
   void on_upload_secure_ok(telegram_api::object_ptr<telegram_api::InputSecureFile> input_file) {
     is_active_ = false;
     if (input_file || is_ready()) {
-      callback_->on_upload_secure_ok(file_id_, std::move(input_file));
+      callback_->on_upload_secure_ok({file_id_, internal_upload_id_}, std::move(input_file));
       on_ok();
     } else {
       loop();
@@ -3453,7 +3454,7 @@ class FileManager::ForceUploadActor final : public Actor {
 
   void on_upload_error(Status error) {
     if (attempt_ == 2) {
-      callback_->on_upload_error(file_id_, std::move(error));
+      callback_->on_upload_error({file_id_, internal_upload_id_}, std::move(error));
       callback_.reset();
       stop();
     } else {
@@ -3482,7 +3483,7 @@ class FileManager::ForceUploadActor final : public Actor {
 
   void tear_down() final {
     if (callback_) {
-      callback_->on_upload_error(file_id_, Status::Error(200, "Canceled"));
+      callback_->on_upload_error({file_id_, internal_upload_id_}, Status::Error(200, "Canceled"));
     }
   }
 };
@@ -3507,14 +3508,14 @@ void FileManager::resume_upload(FileId file_id, int64 internal_upload_id, vector
   auto node = get_sync_file_node(file_id);
   if (!node) {
     LOG(INFO) << "File " << file_id << " not found";
-    callback->on_upload_error(file_id, Status::Error(400, "File not found"));
+    callback->on_upload_error({file_id, internal_upload_id}, Status::Error(400, "File not found"));
     return;
   }
 
   if (bad_parts.size() == 1 && bad_parts[0] == -1) {
     if (node->last_successful_force_reupload_time_ >= Time::now() - 60) {
       LOG(INFO) << "Recently reuploaded file " << file_id << ", do not try again";
-      callback->on_upload_error(file_id, Status::Error(400, "Failed to reupload file"));
+      callback->on_upload_error({file_id, internal_upload_id}, Status::Error(400, "Failed to reupload file"));
       return;
     }
 
@@ -3541,7 +3542,7 @@ void FileManager::resume_upload(FileId file_id, int64 internal_upload_id, vector
   FileView file_view(node);
   if (file_view.has_active_upload_remote_location() && can_reuse_remote_file(file_view.get_type())) {
     LOG(INFO) << "Upload of file " << file_id << " has already been completed";
-    callback->on_upload_ok(file_id, nullptr);
+    callback->on_upload_ok({file_id, internal_upload_id}, nullptr);
     return;
   }
 
@@ -3556,13 +3557,15 @@ void FileManager::resume_upload(FileId file_id, int64 internal_upload_id, vector
       !file_view.has_alive_remote_location()) {
     LOG(INFO) << "File " << file_id << " can't be uploaded";
     callback->on_upload_error(
-        file_id, Status::Error(400, "Need full local (or generate, or inactive remote) location for upload"));
+        {file_id, internal_upload_id},
+        Status::Error(400, "Need full local (or generate, or inactive remote) location for upload"));
     return;
   }
   if (file_view.get_type() == FileType::Thumbnail &&
       (!file_view.has_full_local_location() && file_view.can_download_from_server())) {
     // TODO
-    callback->on_upload_error(file_id, Status::Error(400, "Failed to upload thumbnail without local location"));
+    callback->on_upload_error({file_id, internal_upload_id},
+                              Status::Error(400, "Failed to upload thumbnail without local location"));
     return;
   }
 
@@ -3609,7 +3612,7 @@ bool FileManager::delete_partial_remote_location(FileId file_id, int64 internal_
 
   auto callback = extract_upload_callback(file_id, internal_upload_id);
   if (callback != nullptr) {
-    callback->on_upload_error(file_id, Status::Error(200, "Canceled"));
+    callback->on_upload_error({file_id, internal_upload_id}, Status::Error(200, "Canceled"));
   }
 
   if (node->local_.type() != LocalFileLocation::Type::Full) {
@@ -3945,21 +3948,21 @@ void FileManager::finish_uploads(FileId file_id, const Status &status) {
   if (it == file_upload_requests_.end()) {
     return;
   }
-  vector<std::shared_ptr<UploadCallback>> callbacks;
+  vector<std::pair<int64, std::shared_ptr<UploadCallback>>> callbacks;
   for (auto &upload_info : it->second.internal_uploads_) {
-    callbacks.push_back(std::move(upload_info.second.upload_callback_));
+    callbacks.emplace_back(upload_info.first, std::move(upload_info.second.upload_callback_));
   }
   if (it->second.user_upload_callback_ != nullptr) {
-    callbacks.push_back(std::move(it->second.user_upload_callback_));
+    callbacks.emplace_back(0, std::move(it->second.user_upload_callback_));
   }
   file_upload_requests_.erase(it);
 
   for (auto &callback : callbacks) {
-    CHECK(callback != nullptr);
+    CHECK(callback.second != nullptr);
     if (status.is_ok()) {
-      callback->on_upload_ok(file_id, nullptr);
+      callback.second->on_upload_ok({file_id, callback.first}, nullptr);
     } else {
-      callback->on_upload_error(file_id, status.clone());
+      callback.second->on_upload_error({file_id, callback.first}, status.clone());
     }
   }
 }
@@ -3982,7 +3985,7 @@ void FileManager::cancel_upload(FileId file_id, int64 internal_upload_id) {
 
   auto callback = extract_upload_callback(file_id, internal_upload_id);
   if (callback != nullptr) {
-    callback->on_upload_error(file_id, Status::Error(200, "Canceled"));
+    callback->on_upload_error({file_id, internal_upload_id}, Status::Error(200, "Canceled"));
   }
 
   run_generate(node);
@@ -4773,14 +4776,14 @@ void FileManager::on_upload_ok(FileUploadManager::QueryId query_id, FileType fil
           partial_remote.file_id_, partial_remote.part_count_, "", file_view.encryption_key().calc_fingerprint());
     }
     file_node->set_upload_pause(file_id, internal_upload_id);
-    callback->on_upload_encrypted_ok(file_id, std::move(input_file));
+    callback->on_upload_encrypted_ok({file_id, internal_upload_id}, std::move(input_file));
   } else if (file_view.is_secure()) {
     telegram_api::object_ptr<telegram_api::InputSecureFile> input_file;
     input_file = telegram_api::make_object<telegram_api::inputSecureFileUploaded>(
         partial_remote.file_id_, partial_remote.part_count_, "" /*md5*/, BufferSlice() /*file_hash*/,
         BufferSlice() /*encrypted_secret*/);
     file_node->set_upload_pause(file_id, internal_upload_id);
-    callback->on_upload_secure_ok(file_id, std::move(input_file));
+    callback->on_upload_secure_ok({file_id, internal_upload_id}, std::move(input_file));
   } else {
     telegram_api::object_ptr<telegram_api::InputFile> input_file;
     if (partial_remote.is_big_) {
@@ -4791,7 +4794,7 @@ void FileManager::on_upload_ok(FileUploadManager::QueryId query_id, FileType fil
           partial_remote.file_id_, partial_remote.part_count_, std::move(file_name), "");
     }
     file_node->set_upload_pause(file_id, internal_upload_id);
-    callback->on_upload_ok(file_id, std::move(input_file));
+    callback->on_upload_ok({file_id, internal_upload_id}, std::move(input_file));
   }
   // don't flush node info, because nothing actually changed
 }
@@ -5178,23 +5181,27 @@ FullRemoteFileLocation *FileManager::get_remote(int32 key) {
 
 class FileManager::PreliminaryUploadFileCallback final : public UploadCallback {
  public:
-  void on_upload_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
+  void on_upload_ok(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
     // cancel file upload of the file to allow next upload with the same file to succeed
-    send_closure(G()->file_manager(), &FileManager::cancel_upload, file_id, 0);
+    CHECK(file_upload_id.get_internal_upload_id() == 0);
+    send_closure(G()->file_manager(), &FileManager::cancel_upload, file_upload_id.get_file_id(), 0);
   }
 
-  void on_upload_encrypted_ok(FileId file_id,
+  void on_upload_encrypted_ok(FileUploadId file_upload_id,
                               telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file) final {
     // cancel file upload of the file to allow next upload with the same file to succeed
-    send_closure(G()->file_manager(), &FileManager::cancel_upload, file_id, 0);
+    CHECK(file_upload_id.get_internal_upload_id() == 0);
+    send_closure(G()->file_manager(), &FileManager::cancel_upload, file_upload_id.get_file_id(), 0);
   }
 
-  void on_upload_secure_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputSecureFile> input_file) final {
+  void on_upload_secure_ok(FileUploadId file_upload_id,
+                           telegram_api::object_ptr<telegram_api::InputSecureFile> input_file) final {
     // cancel file upload of the file to allow next upload with the same file to succeed
-    send_closure(G()->file_manager(), &FileManager::cancel_upload, file_id, 0);
+    CHECK(file_upload_id.get_internal_upload_id() == 0);
+    send_closure(G()->file_manager(), &FileManager::cancel_upload, file_upload_id.get_file_id(), 0);
   }
 
-  void on_upload_error(FileId file_id, Status error) final {
+  void on_upload_error(FileUploadId file_upload_id, Status error) final {
   }
 };
 

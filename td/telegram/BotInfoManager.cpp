@@ -557,20 +557,24 @@ class GetBotInfoQuery final : public Td::ResultHandler {
 
 class BotInfoManager::UploadMediaCallback final : public FileManager::UploadCallback {
  public:
-  void on_upload_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
-    send_closure_later(G()->bot_info_manager(), &BotInfoManager::on_upload_bot_media_preview, file_id,
-                       std::move(input_file));
+  void on_upload_ok(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
+    send_closure_later(G()->bot_info_manager(), &BotInfoManager::on_upload_bot_media_preview,
+                       file_upload_id.get_file_id(), std::move(input_file));
   }
-  void on_upload_encrypted_ok(FileId file_id,
+
+  void on_upload_encrypted_ok(FileUploadId file_upload_id,
                               telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file) final {
     UNREACHABLE();
   }
-  void on_upload_secure_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputSecureFile> input_file) final {
+
+  void on_upload_secure_ok(FileUploadId file_upload_id,
+                           telegram_api::object_ptr<telegram_api::InputSecureFile> input_file) final {
     UNREACHABLE();
   }
-  void on_upload_error(FileId file_id, Status error) final {
-    send_closure_later(G()->bot_info_manager(), &BotInfoManager::on_upload_bot_media_preview_error, file_id,
-                       std::move(error));
+
+  void on_upload_error(FileUploadId file_upload_id, Status error) final {
+    send_closure_later(G()->bot_info_manager(), &BotInfoManager::on_upload_bot_media_preview_error,
+                       file_upload_id.get_file_id(), std::move(error));
   }
 };
 
