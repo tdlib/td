@@ -107,6 +107,8 @@ class DocumentsManager {
 
   void delete_document_thumbnail(FileId file_id);
 
+  Slice get_document_file_name(FileId file_id) const;
+
   Slice get_document_mime_type(FileId file_id) const;
 
   FileId dup_document(FileId new_id, FileId old_id);

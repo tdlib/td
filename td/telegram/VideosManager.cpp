@@ -7,6 +7,7 @@
 #include "td/telegram/VideosManager.h"
 
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/DocumentsManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/PhotoFormat.h"
@@ -74,8 +75,19 @@ td_api::object_ptr<td_api::alternativeVideo> VideosManager::get_alternative_vide
     FileId file_id, const vector<FileId> &hls_file_ids) const {
   auto video = get_video(file_id);
   CHECK(video != nullptr);
-  return td_api::make_object<td_api::alternativeVideo>(video->dimensions.width, video->dimensions.height, video->codec,
-                                                       td_->file_manager_->get_file_object(file_id));
+  auto file_view = td_->file_manager_->get_file_view(file_id);
+  const auto *full_remote_location = file_view.get_full_remote_location();
+  CHECK(full_remote_location != nullptr);
+  CHECK(full_remote_location->is_document());
+  auto name = PSTRING() << "mtproto:" << full_remote_location->get_id();
+  for (const auto &hls_file_id : hls_file_ids) {
+    if (td_->documents_manager_->get_document_file_name(hls_file_id) == name) {
+      return td_api::make_object<td_api::alternativeVideo>(
+          video->dimensions.width, video->dimensions.height, video->codec,
+          td_->file_manager_->get_file_object(hls_file_id), td_->file_manager_->get_file_object(file_id));
+    }
+  }
+  return nullptr;
 }
 
 FileId VideosManager::on_get_video(unique_ptr<Video> new_video, bool replace) {
