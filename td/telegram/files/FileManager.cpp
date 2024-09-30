@@ -825,7 +825,7 @@ void FileNode::set_encryption_key(FileEncryptionKey key) {
 void FileNode::set_upload_pause(FileUploadId upload_pause) {
   if (upload_pause_ != upload_pause) {
     LOG(INFO) << "Change file " << main_file_id_ << " upload_pause from " << upload_pause_ << " to " << upload_pause;
-    if (upload_pause_.get_file_id().is_valid() != upload_pause.get_file_id().is_valid()) {
+    if (upload_pause_.is_valid() != upload_pause.is_valid()) {
       on_info_changed();
     }
     upload_pause_ = upload_pause;
@@ -1120,7 +1120,7 @@ int64 FileView::local_total_size() const {
 }
 
 bool FileNode::is_uploading() const {
-  return upload_priority_ != 0 || generate_upload_priority_ != 0 || upload_pause_.get_file_id().is_valid();
+  return upload_priority_ != 0 || generate_upload_priority_ != 0 || upload_pause_.is_valid();
 }
 
 bool FileView::is_uploading() const {
@@ -3810,7 +3810,7 @@ void FileManager::run_upload(FileNodePtr node, vector<int> bad_parts) {
     LOG(INFO) << "File " << node->main_file_id_ << " needs to be loaded from database before upload";
     return;
   }
-  if (node->upload_pause_.get_file_id().is_valid()) {
+  if (node->upload_pause_.is_valid()) {
     LOG(INFO) << "File " << node->main_file_id_ << " upload is paused: " << node->upload_pause_;
     return;
   }

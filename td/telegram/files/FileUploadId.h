@@ -24,6 +24,10 @@ class FileUploadId {
   FileUploadId(FileId file_id, int64 internal_upload_id) : file_id_(file_id), internal_upload_id_(internal_upload_id) {
   }
 
+  bool is_valid() const {
+    return file_id_.is_valid();
+  }
+
   FileId get_file_id() const {
     return file_id_;
   }
