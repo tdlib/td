@@ -117,7 +117,7 @@ class SecretChatActor final : public NetQueryCallback {
   // Outbound messages
   // Promise will be set just after corresponding log event is SENT to binlog.
   void send_message(tl_object_ptr<secret_api::DecryptedMessage> message,
-                    tl_object_ptr<telegram_api::InputEncryptedFile> file, Promise<> promise);
+                    telegram_api::object_ptr<telegram_api::InputEncryptedFile> file, Promise<> promise);
   void send_message_action(tl_object_ptr<secret_api::SendMessageAction> action);
   void send_read_history(int32 date,
                          Promise<>);  // no binlog event. TODO: Promise will be set after the net query is sent
@@ -616,7 +616,8 @@ class SecretChatActor final : public NetQueryCallback {
   void send_action(tl_object_ptr<secret_api::DecryptedMessageAction> action, int32 flags, Promise<> promise);
 
   void send_message_impl(tl_object_ptr<secret_api::DecryptedMessage> message,
-                         tl_object_ptr<telegram_api::InputEncryptedFile> file, int32 flags, Promise<> promise);
+                         telegram_api::object_ptr<telegram_api::InputEncryptedFile> file, int32 flags,
+                         Promise<> promise);
 
   void do_outbound_message_impl(unique_ptr<log_event::OutboundSecretMessage>, Promise<> promise);
 

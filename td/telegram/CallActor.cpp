@@ -388,17 +388,18 @@ void CallActor::upload_log_file(FileId file_id, Promise<Unit> &&promise) {
         : actor_id_(actor_id), file_id_(file_id), promise_(std::move(promise)) {
     }
 
-    void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) final {
+    void on_upload_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
       CHECK(file_id == file_id_);
       send_closure_later(actor_id_, &CallActor::on_upload_log_file, file_id, std::move(promise_),
                          std::move(input_file));
     }
 
-    void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) final {
+    void on_upload_encrypted_ok(FileId file_id,
+                                telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file) final {
       UNREACHABLE();
     }
 
-    void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) final {
+    void on_upload_secure_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputSecureFile> input_file) final {
       UNREACHABLE();
     }
 
@@ -415,7 +416,7 @@ void CallActor::upload_log_file(FileId file_id, Promise<Unit> &&promise) {
 }
 
 void CallActor::on_upload_log_file(FileId file_id, Promise<Unit> &&promise,
-                                   tl_object_ptr<telegram_api::InputFile> input_file) {
+                                   telegram_api::object_ptr<telegram_api::InputFile> input_file) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   LOG(INFO) << "Log file " << file_id << " has been uploaded";
@@ -433,7 +434,7 @@ void CallActor::on_upload_log_file_error(FileId file_id, Promise<Unit> &&promise
                                   status.message()));  // TODO CHECK that status has always a code
 }
 
-void CallActor::do_upload_log_file(FileId file_id, tl_object_ptr<telegram_api::InputFile> &&input_file,
+void CallActor::do_upload_log_file(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> &&input_file,
                                    Promise<Unit> &&promise) {
   if (input_file == nullptr) {
     return promise.set_error(Status::Error(500, "Failed to reupload call log"));

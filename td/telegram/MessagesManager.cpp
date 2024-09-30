@@ -4190,15 +4190,16 @@ class GetChannelDifferenceQuery final : public Td::ResultHandler {
 
 class MessagesManager::UploadMediaCallback final : public FileManager::UploadCallback {
  public:
-  void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) final {
+  void on_upload_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
     send_closure_later(G()->messages_manager(), &MessagesManager::on_upload_media, file_id, std::move(input_file),
                        nullptr);
   }
-  void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) final {
+  void on_upload_encrypted_ok(FileId file_id,
+                              telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file) final {
     send_closure_later(G()->messages_manager(), &MessagesManager::on_upload_media, file_id, nullptr,
                        std::move(input_file));
   }
-  void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) final {
+  void on_upload_secure_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputSecureFile> input_file) final {
     UNREACHABLE();
   }
   void on_upload_error(FileId file_id, Status error) final {
@@ -4208,13 +4209,14 @@ class MessagesManager::UploadMediaCallback final : public FileManager::UploadCal
 
 class MessagesManager::UploadThumbnailCallback final : public FileManager::UploadCallback {
  public:
-  void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) final {
+  void on_upload_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
     send_closure_later(G()->messages_manager(), &MessagesManager::on_upload_thumbnail, file_id, std::move(input_file));
   }
-  void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) final {
+  void on_upload_encrypted_ok(FileId file_id,
+                              telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file) final {
     UNREACHABLE();
   }
-  void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) final {
+  void on_upload_secure_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputSecureFile> input_file) final {
     UNREACHABLE();
   }
   void on_upload_error(FileId file_id, Status error) final {
@@ -8326,8 +8328,8 @@ void MessagesManager::load_secret_thumbnail(FileId thumbnail_file_id) {
                std::make_shared<Callback>(std::move(download_promise)), 1, -1, -1);
 }
 
-void MessagesManager::on_upload_media(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file,
-                                      tl_object_ptr<telegram_api::InputEncryptedFile> input_encrypted_file) {
+void MessagesManager::on_upload_media(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file,
+                                      telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_encrypted_file) {
   LOG(INFO) << "File " << file_id << " has been uploaded";
 
   auto it = being_uploaded_files_.find(file_id);
@@ -8401,8 +8403,9 @@ void MessagesManager::on_upload_media(FileId file_id, tl_object_ptr<telegram_api
 }
 
 void MessagesManager::do_send_media(DialogId dialog_id, const Message *m, int32 media_pos, FileId file_id,
-                                    FileId thumbnail_file_id, tl_object_ptr<telegram_api::InputFile> input_file,
-                                    tl_object_ptr<telegram_api::InputFile> input_thumbnail) {
+                                    FileId thumbnail_file_id,
+                                    telegram_api::object_ptr<telegram_api::InputFile> input_file,
+                                    telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail) {
   CHECK(m != nullptr);
 
   bool have_input_file = input_file != nullptr;
@@ -8433,10 +8436,9 @@ void MessagesManager::do_send_media(DialogId dialog_id, const Message *m, int32 
   on_message_media_uploaded(dialog_id, m, media_pos, std::move(input_media), {file_id}, {thumbnail_file_id});
 }
 
-void MessagesManager::do_send_secret_media(DialogId dialog_id, const Message *m, FileId file_id,
-                                           FileId thumbnail_file_id,
-                                           tl_object_ptr<telegram_api::InputEncryptedFile> input_encrypted_file,
-                                           BufferSlice thumbnail) {
+void MessagesManager::do_send_secret_media(
+    DialogId dialog_id, const Message *m, FileId file_id, FileId thumbnail_file_id,
+    telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_encrypted_file, BufferSlice thumbnail) {
   CHECK(dialog_id.get_type() == DialogType::SecretChat);
   CHECK(m != nullptr);
   CHECK(m->message_id.is_valid());
@@ -8529,7 +8531,7 @@ void MessagesManager::on_load_secret_thumbnail(FileId thumbnail_file_id, BufferS
 }
 
 void MessagesManager::on_upload_thumbnail(FileId thumbnail_file_id,
-                                          tl_object_ptr<telegram_api::InputFile> thumbnail_input_file) {
+                                          telegram_api::object_ptr<telegram_api::InputFile> thumbnail_input_file) {
   if (G()->close_flag()) {
     // do not fail upload if closing
     return;

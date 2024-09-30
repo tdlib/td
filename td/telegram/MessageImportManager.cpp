@@ -105,7 +105,7 @@ class InitHistoryImportQuery final : public Td::ResultHandler {
   explicit InitHistoryImportQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, FileId file_id, tl_object_ptr<telegram_api::InputFile> &&input_file,
+  void send(DialogId dialog_id, FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> &&input_file,
             vector<FileId> attached_file_ids) {
     CHECK(input_file != nullptr);
     file_id_ = file_id;
@@ -238,14 +238,15 @@ class StartImportHistoryQuery final : public Td::ResultHandler {
 
 class MessageImportManager::UploadImportedMessagesCallback final : public FileManager::UploadCallback {
  public:
-  void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) final {
+  void on_upload_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
     send_closure_later(G()->message_import_manager(), &MessageImportManager::on_upload_imported_messages, file_id,
                        std::move(input_file));
   }
-  void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) final {
+  void on_upload_encrypted_ok(FileId file_id,
+                              telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file) final {
     UNREACHABLE();
   }
-  void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) final {
+  void on_upload_secure_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputSecureFile> input_file) final {
     UNREACHABLE();
   }
   void on_upload_error(FileId file_id, Status error) final {
@@ -256,14 +257,15 @@ class MessageImportManager::UploadImportedMessagesCallback final : public FileMa
 
 class MessageImportManager::UploadImportedMessageAttachmentCallback final : public FileManager::UploadCallback {
  public:
-  void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) final {
+  void on_upload_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
     send_closure_later(G()->message_import_manager(), &MessageImportManager::on_upload_imported_message_attachment,
                        file_id, std::move(input_file));
   }
-  void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) final {
+  void on_upload_encrypted_ok(FileId file_id,
+                              telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file) final {
     UNREACHABLE();
   }
-  void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) final {
+  void on_upload_secure_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputSecureFile> input_file) final {
     UNREACHABLE();
   }
   void on_upload_error(FileId file_id, Status error) final {
@@ -363,7 +365,7 @@ void MessageImportManager::upload_imported_messages(DialogId dialog_id, FileId f
 }
 
 void MessageImportManager::on_upload_imported_messages(FileId file_id,
-                                                       tl_object_ptr<telegram_api::InputFile> input_file) {
+                                                       telegram_api::object_ptr<telegram_api::InputFile> input_file) {
   LOG(INFO) << "File " << file_id << " has been uploaded";
 
   auto it = being_uploaded_imported_messages_.find(file_id);
@@ -477,8 +479,8 @@ void MessageImportManager::upload_imported_message_attachment(DialogId dialog_id
                                     1, 0, false, true);
 }
 
-void MessageImportManager::on_upload_imported_message_attachment(FileId file_id,
-                                                                 tl_object_ptr<telegram_api::InputFile> input_file) {
+void MessageImportManager::on_upload_imported_message_attachment(
+    FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) {
   LOG(INFO) << "File " << file_id << " has been uploaded";
 
   auto it = being_uploaded_imported_message_attachments_.find(file_id);

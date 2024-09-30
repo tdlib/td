@@ -141,9 +141,9 @@ void VoiceNotesManager::create_voice_note(FileId file_id, string mime_type, int3
   on_get_voice_note(std::move(v), replace);
 }
 
-SecretInputMedia VoiceNotesManager::get_secret_input_media(FileId voice_note_file_id,
-                                                           tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
-                                                           const string &caption, int32 layer) const {
+SecretInputMedia VoiceNotesManager::get_secret_input_media(
+    FileId voice_note_file_id, telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file,
+    const string &caption, int32 layer) const {
   auto file_view = td_->file_manager_->get_file_view(voice_note_file_id);
   if (!file_view.is_encrypted_secret() || file_view.encryption_key().empty()) {
     return SecretInputMedia{};
@@ -168,7 +168,7 @@ SecretInputMedia VoiceNotesManager::get_secret_input_media(FileId voice_note_fil
 }
 
 tl_object_ptr<telegram_api::InputMedia> VoiceNotesManager::get_input_media(
-    FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file, int32 ttl) const {
+    FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file, int32 ttl) const {
   auto file_view = td_->file_manager_->get_file_view(file_id);
   if (file_view.is_encrypted()) {
     return nullptr;

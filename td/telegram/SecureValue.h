@@ -104,7 +104,7 @@ vector<EncryptedSecureFile> get_encrypted_secure_files(FileManager *file_manager
 
 struct SecureInputFile {
   FileId file_id;
-  tl_object_ptr<telegram_api::InputSecureFile> input_file;
+  telegram_api::object_ptr<telegram_api::InputSecureFile> input_file;
 };
 telegram_api::object_ptr<telegram_api::InputSecureFile> get_input_secure_file_object(FileManager *file_manager,
                                                                                      const EncryptedSecureFile &file,

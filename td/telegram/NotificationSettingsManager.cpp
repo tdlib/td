@@ -60,7 +60,7 @@ class UploadRingtoneQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(FileId file_id, tl_object_ptr<telegram_api::InputFile> &&input_file, const string &file_name,
+  void send(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> &&input_file, const string &file_name,
             const string &mime_type) {
     CHECK(input_file != nullptr);
     file_id_ = file_id;
@@ -569,14 +569,15 @@ class ResetNotifySettingsQuery final : public Td::ResultHandler {
 
 class NotificationSettingsManager::UploadRingtoneCallback final : public FileManager::UploadCallback {
  public:
-  void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) final {
+  void on_upload_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
     send_closure_later(G()->notification_settings_manager(), &NotificationSettingsManager::on_upload_ringtone, file_id,
                        std::move(input_file));
   }
-  void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) final {
+  void on_upload_encrypted_ok(FileId file_id,
+                              telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file) final {
     UNREACHABLE();
   }
-  void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) final {
+  void on_upload_secure_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputSecureFile> input_file) final {
     UNREACHABLE();
   }
   void on_upload_error(FileId file_id, Status error) final {
@@ -1144,7 +1145,7 @@ void NotificationSettingsManager::upload_ringtone(FileId file_id, bool is_reuplo
 }
 
 void NotificationSettingsManager::on_upload_ringtone(FileId file_id,
-                                                     tl_object_ptr<telegram_api::InputFile> input_file) {
+                                                     telegram_api::object_ptr<telegram_api::InputFile> input_file) {
   LOG(INFO) << "File " << file_id << " has been uploaded";
 
   auto it = being_uploaded_ringtones_.find(file_id);

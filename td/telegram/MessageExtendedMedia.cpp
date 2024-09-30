@@ -391,8 +391,8 @@ MessageExtendedMedia MessageExtendedMedia::dup_to_send(Td *td, bool always_dup_f
 }
 
 telegram_api::object_ptr<telegram_api::InputMedia> MessageExtendedMedia::get_input_media(
-    Td *td, tl_object_ptr<telegram_api::InputFile> input_file,
-    tl_object_ptr<telegram_api::InputFile> input_thumbnail) const {
+    Td *td, telegram_api::object_ptr<telegram_api::InputFile> input_file,
+    telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail) const {
   switch (type_) {
     case Type::Empty:
     case Type::Unsupported:

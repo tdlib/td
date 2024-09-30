@@ -1690,16 +1690,17 @@ class StickersManager::StickerSetListLogEvent {
 
 class StickersManager::UploadStickerFileCallback final : public FileManager::UploadCallback {
  public:
-  void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) final {
+  void on_upload_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
     send_closure_later(G()->stickers_manager(), &StickersManager::on_upload_sticker_file, file_id,
                        std::move(input_file));
   }
 
-  void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) final {
+  void on_upload_encrypted_ok(FileId file_id,
+                              telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file) final {
     UNREACHABLE();
   }
 
-  void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) final {
+  void on_upload_secure_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputSecureFile> input_file) final {
     UNREACHABLE();
   }
 
@@ -3589,9 +3590,9 @@ bool StickersManager::has_input_media(FileId sticker_file_id, bool is_secret) co
   return false;
 }
 
-SecretInputMedia StickersManager::get_secret_input_media(FileId sticker_file_id,
-                                                         tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
-                                                         BufferSlice thumbnail, int32 layer) const {
+SecretInputMedia StickersManager::get_secret_input_media(
+    FileId sticker_file_id, telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file,
+    BufferSlice thumbnail, int32 layer) const {
   const Sticker *sticker = get_sticker(sticker_file_id);
   CHECK(sticker != nullptr);
   auto file_view = td_->file_manager_->get_file_view(sticker_file_id);
@@ -3666,8 +3667,8 @@ SecretInputMedia StickersManager::get_secret_input_media(FileId sticker_file_id,
 }
 
 tl_object_ptr<telegram_api::InputMedia> StickersManager::get_input_media(
-    FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file,
-    tl_object_ptr<telegram_api::InputFile> input_thumbnail, const string &emoji) const {
+    FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file,
+    telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail, const string &emoji) const {
   auto file_view = td_->file_manager_->get_file_view(file_id);
   if (file_view.is_encrypted()) {
     return nullptr;
@@ -8253,7 +8254,7 @@ void StickersManager::on_upload_sticker_file_error(FileId file_id, Status status
 }
 
 void StickersManager::do_upload_sticker_file(UserId user_id, FileId file_id,
-                                             tl_object_ptr<telegram_api::InputFile> &&input_file,
+                                             telegram_api::object_ptr<telegram_api::InputFile> &&input_file,
                                              Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 

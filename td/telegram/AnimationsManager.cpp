@@ -306,8 +306,8 @@ void AnimationsManager::create_animation(FileId file_id, string minithumbnail, P
 }
 
 tl_object_ptr<telegram_api::InputMedia> AnimationsManager::get_input_media(
-    FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file,
-    tl_object_ptr<telegram_api::InputFile> input_thumbnail, bool has_spoiler) const {
+    FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file,
+    telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail, bool has_spoiler) const {
   auto file_view = td_->file_manager_->get_file_view(file_id);
   if (file_view.is_encrypted()) {
     return nullptr;
@@ -372,10 +372,9 @@ tl_object_ptr<telegram_api::InputMedia> AnimationsManager::get_input_media(
   return nullptr;
 }
 
-SecretInputMedia AnimationsManager::get_secret_input_media(FileId animation_file_id,
-                                                           tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
-                                                           const string &caption, BufferSlice thumbnail,
-                                                           int32 layer) const {
+SecretInputMedia AnimationsManager::get_secret_input_media(
+    FileId animation_file_id, telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file,
+    const string &caption, BufferSlice thumbnail, int32 layer) const {
   auto *animation = get_animation(animation_file_id);
   CHECK(animation != nullptr);
   auto file_view = td_->file_manager_->get_file_view(animation_file_id);

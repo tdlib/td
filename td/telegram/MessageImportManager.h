@@ -48,14 +48,15 @@ class MessageImportManager final : public Actor {
   void upload_imported_messages(DialogId dialog_id, FileId file_id, vector<FileId> attached_file_ids, bool is_reupload,
                                 Promise<Unit> &&promise, vector<int> bad_parts = {});
 
-  void on_upload_imported_messages(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file);
+  void on_upload_imported_messages(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
 
   void on_upload_imported_messages_error(FileId file_id, Status status);
 
   void upload_imported_message_attachment(DialogId dialog_id, int64 import_id, FileId file_id, bool is_reupload,
                                           Promise<Unit> &&promise, vector<int> bad_parts = {});
 
-  void on_upload_imported_message_attachment(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file);
+  void on_upload_imported_message_attachment(FileId file_id,
+                                             telegram_api::object_ptr<telegram_api::InputFile> input_file);
 
   void on_upload_imported_message_attachment_error(FileId file_id, Status status);
 

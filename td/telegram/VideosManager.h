@@ -44,16 +44,15 @@ class VideosManager {
                     int32 duration, double precise_duration, Dimensions dimensions, bool supports_streaming,
                     bool is_animation, int32 preload_prefix_size, double start_ts, string &&codec, bool replace);
 
-  tl_object_ptr<telegram_api::InputMedia> get_input_media(FileId file_id,
-                                                          tl_object_ptr<telegram_api::InputFile> input_file,
-                                                          tl_object_ptr<telegram_api::InputFile> input_thumbnail,
-                                                          int32 ttl, bool has_spoiler) const;
+  tl_object_ptr<telegram_api::InputMedia> get_input_media(
+      FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file,
+      telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail, int32 ttl, bool has_spoiler) const;
 
   telegram_api::object_ptr<telegram_api::InputMedia> get_story_document_input_media(FileId file_id,
                                                                                     double main_frame_timestamp) const;
 
   SecretInputMedia get_secret_input_media(FileId video_file_id,
-                                          tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
+                                          telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file,
                                           const string &caption, BufferSlice thumbnail, int32 layer) const;
 
   FileId get_video_thumbnail_file_id(FileId file_id) const;

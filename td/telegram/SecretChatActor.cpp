@@ -229,7 +229,7 @@ Result<BufferSlice> SecretChatActor::create_encrypted_message(int32 my_in_seq_no
 }
 
 void SecretChatActor::send_message(tl_object_ptr<secret_api::DecryptedMessage> message,
-                                   tl_object_ptr<telegram_api::InputEncryptedFile> file, Promise<> promise) {
+                                   telegram_api::object_ptr<telegram_api::InputEncryptedFile> file, Promise<> promise) {
   if (close_flag_) {
     promise.set_error(Status::Error(400, "Chat is closed"));
     return;
@@ -238,7 +238,7 @@ void SecretChatActor::send_message(tl_object_ptr<secret_api::DecryptedMessage> m
 }
 
 void SecretChatActor::send_message_impl(tl_object_ptr<secret_api::DecryptedMessage> message,
-                                        tl_object_ptr<telegram_api::InputEncryptedFile> file, int32 flags,
+                                        telegram_api::object_ptr<telegram_api::InputEncryptedFile> file, int32 flags,
                                         Promise<> promise) {
   if (close_flag_) {
     promise.set_error(Status::Error(400, "Chat is closed"));

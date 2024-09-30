@@ -187,12 +187,12 @@ class BackgroundManager final : public Actor {
   void upload_background_file(FileId file_id, const BackgroundType &type, DialogId dialog_id, bool for_dark_theme,
                               Promise<td_api::object_ptr<td_api::background>> &&promise);
 
-  void on_upload_background_file(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file);
+  void on_upload_background_file(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
 
   void on_upload_background_file_error(FileId file_id, Status status);
 
   void do_upload_background_file(FileId file_id, const BackgroundType &type, DialogId dialog_id, bool for_dark_theme,
-                                 tl_object_ptr<telegram_api::InputFile> &&input_file,
+                                 telegram_api::object_ptr<telegram_api::InputFile> &&input_file,
                                  Promise<td_api::object_ptr<td_api::background>> &&promise);
 
   FlatHashMap<BackgroundId, unique_ptr<Background>, BackgroundIdHash> backgrounds_;

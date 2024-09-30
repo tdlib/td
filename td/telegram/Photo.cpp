@@ -600,9 +600,9 @@ bool photo_has_input_media(FileManager *file_manager, const Photo &photo, bool i
   }
 }
 
-tl_object_ptr<telegram_api::InputMedia> photo_get_input_media(FileManager *file_manager, const Photo &photo,
-                                                              tl_object_ptr<telegram_api::InputFile> input_file,
-                                                              int32 ttl, bool has_spoiler) {
+tl_object_ptr<telegram_api::InputMedia> photo_get_input_media(
+    FileManager *file_manager, const Photo &photo, telegram_api::object_ptr<telegram_api::InputFile> input_file,
+    int32 ttl, bool has_spoiler) {
   if (!photo.photos.empty()) {
     auto file_id = photo.photos.back().file_id;
     auto file_view = file_manager->get_file_view(file_id);
@@ -660,7 +660,7 @@ tl_object_ptr<telegram_api::InputMedia> photo_get_input_media(FileManager *file_
 }
 
 SecretInputMedia photo_get_secret_input_media(FileManager *file_manager, const Photo &photo,
-                                              tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
+                                              telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file,
                                               const string &caption, BufferSlice thumbnail) {
   FileId file_id;
   int32 width = 0;

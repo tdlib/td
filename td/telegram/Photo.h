@@ -141,12 +141,12 @@ FileId get_photo_any_file_id(const Photo &photo);
 FileId get_photo_thumbnail_file_id(const Photo &photo);
 
 SecretInputMedia photo_get_secret_input_media(FileManager *file_manager, const Photo &photo,
-                                              tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
+                                              telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file,
                                               const string &caption, BufferSlice thumbnail);
 
-tl_object_ptr<telegram_api::InputMedia> photo_get_input_media(FileManager *file_manager, const Photo &photo,
-                                                              tl_object_ptr<telegram_api::InputFile> input_file,
-                                                              int32 ttl, bool has_spoiler);
+tl_object_ptr<telegram_api::InputMedia> photo_get_input_media(
+    FileManager *file_manager, const Photo &photo, telegram_api::object_ptr<telegram_api::InputFile> input_file,
+    int32 ttl, bool has_spoiler);
 
 vector<FileId> photo_get_file_ids(const Photo &photo);
 

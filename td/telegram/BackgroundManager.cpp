@@ -212,7 +212,7 @@ class UploadBackgroundQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(FileId file_id, tl_object_ptr<telegram_api::InputFile> &&input_file, const BackgroundType &type,
+  void send(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> &&input_file, const BackgroundType &type,
             DialogId dialog_id, bool for_dark_theme) {
     CHECK(input_file != nullptr);
     file_id_ = file_id;
@@ -314,16 +314,17 @@ class ResetBackgroundsQuery final : public Td::ResultHandler {
 
 class BackgroundManager::UploadBackgroundFileCallback final : public FileManager::UploadCallback {
  public:
-  void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) final {
+  void on_upload_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
     send_closure_later(G()->background_manager(), &BackgroundManager::on_upload_background_file, file_id,
                        std::move(input_file));
   }
 
-  void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) final {
+  void on_upload_encrypted_ok(FileId file_id,
+                              telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file) final {
     UNREACHABLE();
   }
 
-  void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) final {
+  void on_upload_secure_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputSecureFile> input_file) final {
     UNREACHABLE();
   }
 
@@ -1009,7 +1010,8 @@ void BackgroundManager::upload_background_file(FileId file_id, const BackgroundT
   td_->file_manager_->upload(upload_file_id, 7020, upload_background_file_callback_, 1, 0);
 }
 
-void BackgroundManager::on_upload_background_file(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) {
+void BackgroundManager::on_upload_background_file(FileId file_id,
+                                                  telegram_api::object_ptr<telegram_api::InputFile> input_file) {
   LOG(INFO) << "Background file " << file_id << " has been uploaded";
 
   auto it = being_uploaded_files_.find(file_id);
@@ -1047,7 +1049,7 @@ void BackgroundManager::on_upload_background_file_error(FileId file_id, Status s
 
 void BackgroundManager::do_upload_background_file(FileId file_id, const BackgroundType &type, DialogId dialog_id,
                                                   bool for_dark_theme,
-                                                  tl_object_ptr<telegram_api::InputFile> &&input_file,
+                                                  telegram_api::object_ptr<telegram_api::InputFile> &&input_file,
                                                   Promise<td_api::object_ptr<td_api::background>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 

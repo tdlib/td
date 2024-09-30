@@ -3384,15 +3384,16 @@ class FileManager::ForceUploadActor final : public Actor {
    public:
     explicit UploadCallback(ActorId<ForceUploadActor> callback) : callback_(std::move(callback)) {
     }
-    void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) final {
+    void on_upload_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
       send_closure(std::move(callback_), &ForceUploadActor::on_upload_ok, std::move(input_file));
     }
 
-    void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) final {
+    void on_upload_encrypted_ok(FileId file_id,
+                                telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file) final {
       send_closure(std::move(callback_), &ForceUploadActor::on_upload_encrypted_ok, std::move(input_file));
     }
 
-    void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) final {
+    void on_upload_secure_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputSecureFile> input_file) final {
       send_closure(std::move(callback_), &ForceUploadActor::on_upload_secure_ok, std::move(input_file));
     }
 
@@ -3410,7 +3411,7 @@ class FileManager::ForceUploadActor final : public Actor {
     ActorId<ForceUploadActor> callback_;
   };
 
-  void on_upload_ok(tl_object_ptr<telegram_api::InputFile> input_file) {
+  void on_upload_ok(telegram_api::object_ptr<telegram_api::InputFile> input_file) {
     is_active_ = false;
     if (input_file || is_ready()) {
       callback_->on_upload_ok(file_id_, std::move(input_file));
@@ -3420,7 +3421,7 @@ class FileManager::ForceUploadActor final : public Actor {
     }
   }
 
-  void on_upload_encrypted_ok(tl_object_ptr<telegram_api::InputEncryptedFile> input_file) {
+  void on_upload_encrypted_ok(telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file) {
     is_active_ = false;
     if (input_file || is_ready()) {
       callback_->on_upload_encrypted_ok(file_id_, std::move(input_file));
@@ -3430,7 +3431,7 @@ class FileManager::ForceUploadActor final : public Actor {
     }
   }
 
-  void on_upload_secure_ok(tl_object_ptr<telegram_api::InputSecureFile> input_file) {
+  void on_upload_secure_ok(telegram_api::object_ptr<telegram_api::InputSecureFile> input_file) {
     is_active_ = false;
     if (input_file || is_ready()) {
       callback_->on_upload_secure_ok(file_id_, std::move(input_file));
@@ -5177,17 +5178,18 @@ FullRemoteFileLocation *FileManager::get_remote(int32 key) {
 
 class FileManager::PreliminaryUploadFileCallback final : public UploadCallback {
  public:
-  void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) final {
+  void on_upload_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
     // cancel file upload of the file to allow next upload with the same file to succeed
     send_closure(G()->file_manager(), &FileManager::cancel_upload, file_id, 0);
   }
 
-  void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) final {
+  void on_upload_encrypted_ok(FileId file_id,
+                              telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file) final {
     // cancel file upload of the file to allow next upload with the same file to succeed
     send_closure(G()->file_manager(), &FileManager::cancel_upload, file_id, 0);
   }
 
-  void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) final {
+  void on_upload_secure_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputSecureFile> input_file) final {
     // cancel file upload of the file to allow next upload with the same file to succeed
     send_closure(G()->file_manager(), &FileManager::cancel_upload, file_id, 0);
   }

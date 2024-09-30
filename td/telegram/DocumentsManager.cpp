@@ -646,10 +646,9 @@ bool DocumentsManager::has_input_media(FileId file_id, FileId thumbnail_file_id,
   }
 }
 
-SecretInputMedia DocumentsManager::get_secret_input_media(FileId document_file_id,
-                                                          tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
-                                                          const string &caption, BufferSlice thumbnail,
-                                                          int32 layer) const {
+SecretInputMedia DocumentsManager::get_secret_input_media(
+    FileId document_file_id, telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file,
+    const string &caption, BufferSlice thumbnail, int32 layer) const {
   const GeneralDocument *document = get_document(document_file_id);
   CHECK(document != nullptr);
   auto file_view = td_->file_manager_->get_file_view(document_file_id);
@@ -681,8 +680,8 @@ SecretInputMedia DocumentsManager::get_secret_input_media(FileId document_file_i
 }
 
 tl_object_ptr<telegram_api::InputMedia> DocumentsManager::get_input_media(
-    FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file,
-    tl_object_ptr<telegram_api::InputFile> input_thumbnail) const {
+    FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file,
+    telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail) const {
   auto file_view = td_->file_manager_->get_file_view(file_id);
   if (file_view.is_encrypted()) {
     return nullptr;

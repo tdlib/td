@@ -239,10 +239,9 @@ void VideosManager::create_video(FileId file_id, string minithumbnail, PhotoSize
   on_get_video(std::move(v), replace);
 }
 
-SecretInputMedia VideosManager::get_secret_input_media(FileId video_file_id,
-                                                       tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
-                                                       const string &caption, BufferSlice thumbnail,
-                                                       int32 layer) const {
+SecretInputMedia VideosManager::get_secret_input_media(
+    FileId video_file_id, telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file, const string &caption,
+    BufferSlice thumbnail, int32 layer) const {
   const Video *video = get_video(video_file_id);
   CHECK(video != nullptr);
   auto file_view = td_->file_manager_->get_file_view(video_file_id);
@@ -274,8 +273,8 @@ SecretInputMedia VideosManager::get_secret_input_media(FileId video_file_id,
 }
 
 tl_object_ptr<telegram_api::InputMedia> VideosManager::get_input_media(
-    FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file,
-    tl_object_ptr<telegram_api::InputFile> input_thumbnail, int32 ttl, bool has_spoiler) const {
+    FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file,
+    telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail, int32 ttl, bool has_spoiler) const {
   if (!file_id.is_valid()) {
     LOG_IF(ERROR, ttl == 0) << "Video has invalid file_id";
     return nullptr;

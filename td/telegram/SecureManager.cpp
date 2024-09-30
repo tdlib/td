@@ -103,13 +103,15 @@ class SetSecureValue final : public NetQueryCallback {
    private:
     ActorId<SetSecureValue> actor_id_;
     uint32 upload_generation_;
-    void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) final;
-    void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) final;
-    void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) final;
+    void on_upload_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final;
+    void on_upload_encrypted_ok(FileId file_id,
+                                telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file) final;
+    void on_upload_secure_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputSecureFile> input_file) final;
     void on_upload_error(FileId file_id, Status error) final;
   };
 
-  void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file, uint32 upload_generation);
+  void on_upload_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputSecureFile> input_file,
+                    uint32 upload_generation);
   void on_upload_error(FileId file_id, Status error, uint32 upload_generation);
 
   void on_error(Status error);
@@ -324,18 +326,19 @@ SetSecureValue::UploadCallback::UploadCallback(ActorId<SetSecureValue> actor_id,
     : actor_id_(actor_id), upload_generation_(upload_generation) {
 }
 
-void SetSecureValue::UploadCallback::on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) {
+void SetSecureValue::UploadCallback::on_upload_ok(FileId file_id,
+                                                  telegram_api::object_ptr<telegram_api::InputFile> input_file) {
   CHECK(input_file == nullptr);
   send_closure_later(actor_id_, &SetSecureValue::on_upload_ok, file_id, nullptr, upload_generation_);
 }
 
 void SetSecureValue::UploadCallback::on_upload_encrypted_ok(
-    FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) {
+    FileId file_id, telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file) {
   UNREACHABLE();
 }
 
-void SetSecureValue::UploadCallback::on_upload_secure_ok(FileId file_id,
-                                                         tl_object_ptr<telegram_api::InputSecureFile> input_file) {
+void SetSecureValue::UploadCallback::on_upload_secure_ok(
+    FileId file_id, telegram_api::object_ptr<telegram_api::InputSecureFile> input_file) {
   send_closure_later(actor_id_, &SetSecureValue::on_upload_ok, file_id, std::move(input_file), upload_generation_);
 }
 
@@ -343,7 +346,7 @@ void SetSecureValue::UploadCallback::on_upload_error(FileId file_id, Status erro
   send_closure_later(actor_id_, &SetSecureValue::on_upload_error, file_id, std::move(error), upload_generation_);
 }
 
-void SetSecureValue::on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file,
+void SetSecureValue::on_upload_ok(FileId file_id, telegram_api::object_ptr<telegram_api::InputSecureFile> input_file,
                                   uint32 upload_generation) {
   if (upload_generation_ != upload_generation) {
     return;

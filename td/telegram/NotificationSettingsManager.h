@@ -147,7 +147,7 @@ class NotificationSettingsManager final : public Actor {
   void upload_ringtone(FileId file_id, bool is_reupload,
                        Promise<td_api::object_ptr<td_api::notificationSound>> &&promise, vector<int> bad_parts = {});
 
-  void on_upload_ringtone(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file);
+  void on_upload_ringtone(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
 
   void on_upload_ringtone_error(FileId file_id, Status status);
 

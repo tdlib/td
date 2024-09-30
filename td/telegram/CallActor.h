@@ -195,11 +195,13 @@ class CallActor final : public NetQueryCallback {
 
   void upload_log_file(FileId file_id, Promise<Unit> &&promise);
 
-  void on_upload_log_file(FileId file_id, Promise<Unit> &&promise, tl_object_ptr<telegram_api::InputFile> input_file);
+  void on_upload_log_file(FileId file_id, Promise<Unit> &&promise,
+                          telegram_api::object_ptr<telegram_api::InputFile> input_file);
 
   void on_upload_log_file_error(FileId file_id, Promise<Unit> &&promise, Status status);
 
-  void do_upload_log_file(FileId file_id, tl_object_ptr<telegram_api::InputFile> &&input_file, Promise<Unit> &&promise);
+  void do_upload_log_file(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> &&input_file,
+                          Promise<Unit> &&promise);
 
   void on_save_log_query_result(FileId file_id, Promise<Unit> promise, Result<NetQueryPtr> r_net_query);
 

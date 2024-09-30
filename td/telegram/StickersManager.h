@@ -170,13 +170,12 @@ class StickersManager final : public Actor {
 
   bool has_input_media(FileId sticker_file_id, bool is_secret) const;
 
-  tl_object_ptr<telegram_api::InputMedia> get_input_media(FileId file_id,
-                                                          tl_object_ptr<telegram_api::InputFile> input_file,
-                                                          tl_object_ptr<telegram_api::InputFile> input_thumbnail,
-                                                          const string &emoji) const;
+  tl_object_ptr<telegram_api::InputMedia> get_input_media(
+      FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file,
+      telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail, const string &emoji) const;
 
   SecretInputMedia get_secret_input_media(FileId sticker_file_id,
-                                          tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
+                                          telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file,
                                           BufferSlice thumbnail, int32 layer) const;
 
   vector<FileId> get_stickers(StickerType sticker_type, string query, int32 limit, DialogId dialog_id, bool force,
@@ -824,8 +823,8 @@ class StickersManager final : public Actor {
 
   void on_upload_sticker_file_error(FileId file_id, Status status);
 
-  void do_upload_sticker_file(UserId user_id, FileId file_id, tl_object_ptr<telegram_api::InputFile> &&input_file,
-                              Promise<Unit> &&promise);
+  void do_upload_sticker_file(UserId user_id, FileId file_id,
+                              telegram_api::object_ptr<telegram_api::InputFile> &&input_file, Promise<Unit> &&promise);
 
   void on_new_stickers_uploaded(int64 random_id, Result<Unit> result);
 

@@ -176,9 +176,9 @@ void VideoNotesManager::create_video_note(FileId file_id, string minithumbnail, 
   on_get_video_note(std::move(v), replace);
 }
 
-SecretInputMedia VideoNotesManager::get_secret_input_media(FileId video_note_file_id,
-                                                           tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
-                                                           BufferSlice thumbnail, int32 layer) const {
+SecretInputMedia VideoNotesManager::get_secret_input_media(
+    FileId video_note_file_id, telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file,
+    BufferSlice thumbnail, int32 layer) const {
   const VideoNote *video_note = get_video_note(video_note_file_id);
   CHECK(video_note != nullptr);
   auto file_view = td_->file_manager_->get_file_view(video_note_file_id);
@@ -211,8 +211,8 @@ SecretInputMedia VideoNotesManager::get_secret_input_media(FileId video_note_fil
 }
 
 tl_object_ptr<telegram_api::InputMedia> VideoNotesManager::get_input_media(
-    FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file,
-    tl_object_ptr<telegram_api::InputFile> input_thumbnail, int32 ttl) const {
+    FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file,
+    telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail, int32 ttl) const {
   auto file_view = td_->file_manager_->get_file_view(file_id);
   if (file_view.is_encrypted()) {
     return nullptr;
