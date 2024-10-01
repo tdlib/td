@@ -437,38 +437,6 @@ unique_ptr<StoryContent> copy_story_content(const StoryContent *content) {
   }
 }
 
-unique_ptr<StoryContent> dup_story_content(Td *td, const StoryContent *content) {
-  if (content == nullptr) {
-    return nullptr;
-  }
-
-  auto fix_file_id = [file_manager = td->file_manager_.get()](FileId file_id) {
-    return file_manager->dup_file_id(file_id, "dup_story_content");
-  };
-
-  switch (content->get_type()) {
-    case StoryContentType::Photo: {
-      const auto *old_content = static_cast<const StoryContentPhoto *>(content);
-      auto photo = dup_photo(old_content->photo_);
-      photo.photos.back().file_id = fix_file_id(photo.photos.back().file_id);
-      if (photo.photos.size() > 1) {
-        photo.photos[0].file_id = fix_file_id(photo.photos[0].file_id);
-      }
-      return make_unique<StoryContentPhoto>(std::move(photo));
-    }
-    case StoryContentType::Video: {
-      const auto *old_content = static_cast<const StoryContentVideo *>(content);
-      return make_unique<StoryContentVideo>(
-          td->videos_manager_->dup_video(fix_file_id(old_content->file_id_), old_content->file_id_), FileId());
-    }
-    case StoryContentType::Unsupported:
-      return nullptr;
-    default:
-      UNREACHABLE();
-      return nullptr;
-  }
-}
-
 td_api::object_ptr<td_api::StoryContent> get_story_content_object(Td *td, const StoryContent *content) {
   CHECK(content != nullptr);
   switch (content->get_type()) {

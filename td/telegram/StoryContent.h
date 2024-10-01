@@ -62,8 +62,6 @@ void merge_story_contents(Td *td, const StoryContent *old_content, StoryContent 
 
 unique_ptr<StoryContent> copy_story_content(const StoryContent *content);
 
-unique_ptr<StoryContent> dup_story_content(Td *td, const StoryContent *content);
-
 td_api::object_ptr<td_api::StoryContent> get_story_content_object(Td *td, const StoryContent *content);
 
 FileId get_story_content_any_file_id(const StoryContent *content);

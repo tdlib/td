@@ -5241,38 +5241,33 @@ void StoryManager::do_send_story(unique_ptr<PendingStory> &&pending_story, vecto
   CHECK(pending_story->file_upload_id_.is_valid());
 
   auto story_full_id = StoryFullId(pending_story->dialog_id_, pending_story->story_id_);
-  if (bad_parts.empty()) {
-    if (!pending_story->story_id_.is_server()) {
-      auto story = make_unique<Story>();
-      story->sender_dialog_id_ = pending_story->story_->sender_dialog_id_;
-      story->date_ = pending_story->story_->date_;
-      story->expire_date_ = pending_story->story_->expire_date_;
-      story->is_pinned_ = pending_story->story_->is_pinned_;
-      story->is_outgoing_ = true;
-      story->noforwards_ = pending_story->story_->noforwards_;
-      story->privacy_rules_ = pending_story->story_->privacy_rules_;
-      story->content_ = std::move(pending_story->story_->content_);
-      pending_story->story_->content_ = dup_story_content(td_, story->content_.get());
-      story->areas_ = pending_story->story_->areas_;
-      story->caption_ = pending_story->story_->caption_;
-      send_update_story(story_full_id, story.get());
-      stories_.set(story_full_id, std::move(story));
+  if (bad_parts.empty() && !pending_story->story_id_.is_server()) {
+    auto story = make_unique<Story>();
+    story->sender_dialog_id_ = pending_story->story_->sender_dialog_id_;
+    story->date_ = pending_story->story_->date_;
+    story->expire_date_ = pending_story->story_->expire_date_;
+    story->is_pinned_ = pending_story->story_->is_pinned_;
+    story->is_outgoing_ = true;
+    story->noforwards_ = pending_story->story_->noforwards_;
+    story->privacy_rules_ = pending_story->story_->privacy_rules_;
+    story->content_ = copy_story_content(pending_story->story_->content_.get());
+    story->areas_ = pending_story->story_->areas_;
+    story->caption_ = pending_story->story_->caption_;
+    send_update_story(story_full_id, story.get());
+    stories_.set(story_full_id, std::move(story));
 
-      auto active_stories = get_active_stories_force(pending_story->dialog_id_, "do_send_story");
+    auto active_stories = get_active_stories_force(pending_story->dialog_id_, "do_send_story");
 
-      CHECK(pending_story->dialog_id_.is_valid());
-      CHECK(pending_story->random_id_ != 0);
-      yet_unsent_stories_[pending_story->dialog_id_].insert(pending_story->send_story_num_);
-      yet_unsent_story_ids_[pending_story->dialog_id_].push_back(pending_story->story_id_);
-      being_sent_stories_[pending_story->random_id_] = story_full_id;
-      being_sent_story_random_ids_[story_full_id] = pending_story->random_id_;
+    CHECK(pending_story->dialog_id_.is_valid());
+    CHECK(pending_story->random_id_ != 0);
+    yet_unsent_stories_[pending_story->dialog_id_].insert(pending_story->send_story_num_);
+    yet_unsent_story_ids_[pending_story->dialog_id_].push_back(pending_story->story_id_);
+    being_sent_stories_[pending_story->random_id_] = story_full_id;
+    being_sent_story_random_ids_[story_full_id] = pending_story->random_id_;
 
-      updated_active_stories_.insert(pending_story->dialog_id_);
-      send_update_chat_active_stories(pending_story->dialog_id_, active_stories, "do_send_story");
-      update_story_list_sent_total_count(StoryListId::main(), "do_send_story");
-    } else {
-      pending_story->story_->content_ = dup_story_content(td_, pending_story->story_->content_.get());
-    }
+    updated_active_stories_.insert(pending_story->dialog_id_);
+    send_update_chat_active_stories(pending_story->dialog_id_, active_stories, "do_send_story");
+    update_story_list_sent_total_count(StoryListId::main(), "do_send_story");
   }
 
   auto file_upload_id = pending_story->file_upload_id_;
@@ -5997,9 +5992,7 @@ void StoryManager::on_binlog_events(vector<BinlogEvent> &&events) {
           break;
         }
         edited_story = make_unique<BeingEditedStory>();
-        if (pending_story->story_->content_ != nullptr) {
-          edited_story->content_ = std::move(pending_story->story_->content_);
-        }
+        edited_story->content_ = copy_story_content(pending_story->story_->content_.get());
         if (log_event.edit_media_areas_) {
           edited_story->areas_ = std::move(log_event.areas_);
           edited_story->edit_media_areas_ = true;
@@ -6017,7 +6010,6 @@ void StoryManager::on_binlog_events(vector<BinlogEvent> &&events) {
         if (edited_story->content_ == nullptr) {
           do_edit_story(std::move(pending_story), nullptr);
         } else {
-          pending_story->story_->content_ = copy_story_content(edited_story->content_.get());
           do_send_story(std::move(pending_story), {});
         }
         break;
