@@ -8511,6 +8511,7 @@ void MessagesManager::on_load_secret_thumbnail(FileId thumbnail_file_id, BufferS
 
   if (thumbnail.empty()) {
     delete_message_content_thumbnail(m->content.get(), td_);
+    thumbnail_file_id = {};
   }
 
   auto dialog_id = message_full_id.get_dialog_id();
@@ -8560,6 +8561,7 @@ void MessagesManager::on_upload_thumbnail(FileId thumbnail_file_id,
 
   if (thumbnail_input_file == nullptr) {
     delete_message_content_thumbnail(is_edit ? m->edited_content.get() : m->content.get(), td_, media_pos);
+    thumbnail_file_id = {};
   }
 
   auto dialog_id = message_full_id.get_dialog_id();

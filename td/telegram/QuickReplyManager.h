@@ -155,9 +155,13 @@ class QuickReplyManager final : public Actor {
     int64 media_album_id = 0;
 
     unique_ptr<MessageContent> content;
+    mutable FileId file_id;            // for send_message
+    mutable FileId thumbnail_file_id;  // for send_message
     unique_ptr<ReplyMarkup> reply_markup;
 
     unique_ptr<MessageContent> edited_content;
+    mutable FileId edited_file_id;
+    mutable FileId edited_thumbnail_file_id;
     int64 edit_generation = 0;
 
     template <class StorerT>
@@ -373,7 +377,7 @@ class QuickReplyManager final : public Actor {
                                                           QuickReplyMessage *new_message, bool is_edit);
 
   void update_sent_message_content_from_temporary_message(const unique_ptr<MessageContent> &old_content,
-                                                          unique_ptr<MessageContent> &new_content,
+                                                          FileId old_file_id, unique_ptr<MessageContent> &new_content,
                                                           bool need_merge_files);
 
   void do_send_message(const QuickReplyMessage *m, vector<int> bad_parts = {});
@@ -404,8 +408,7 @@ class QuickReplyManager final : public Actor {
   void do_send_message_group(QuickReplyShortcutId shortcut_id, int64 media_album_id);
 
   void on_message_media_uploaded(const QuickReplyMessage *m,
-                                 telegram_api::object_ptr<telegram_api::InputMedia> &&input_media, FileId file_id,
-                                 FileId thumbnail_file_id);
+                                 telegram_api::object_ptr<telegram_api::InputMedia> &&input_media);
 
   void on_send_media_group_file_reference_error(QuickReplyShortcutId shortcut_id, vector<int64> random_ids);
 
