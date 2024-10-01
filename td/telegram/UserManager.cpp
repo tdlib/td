@@ -459,7 +459,7 @@ class ResetContactsQuery final : public Td::ResultHandler {
 class UploadProfilePhotoQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   UserId user_id_;
-  FileId file_id_;
+  FileUploadId file_upload_id_;
   bool is_fallback_;
   bool only_suggest_;
 
@@ -467,13 +467,13 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
   explicit UploadProfilePhotoQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(UserId user_id, FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> &&input_file,
+  void send(UserId user_id, FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> &&input_file,
             bool is_fallback, bool only_suggest, bool is_animation, double main_frame_timestamp) {
     CHECK(input_file != nullptr);
-    CHECK(file_id.is_valid());
+    CHECK(file_upload_id.is_valid());
 
     user_id_ = user_id;
-    file_id_ = file_id;
+    file_upload_id_ = file_upload_id;
     is_fallback_ = is_fallback;
     only_suggest_ = only_suggest;
 
@@ -541,7 +541,7 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
   void send(UserId user_id, unique_ptr<StickerPhotoSize> sticker_photo_size, bool is_fallback, bool only_suggest) {
     CHECK(sticker_photo_size != nullptr);
     user_id_ = user_id;
-    file_id_ = FileId();
+    file_upload_id_ = FileUploadId();
     is_fallback_ = is_fallback;
     only_suggest_ = only_suggest;
 
@@ -599,14 +599,14 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
       promise_.set_value(Unit());
     }
 
-    if (file_id_.is_valid()) {
-      td_->file_manager_->delete_partial_remote_location({file_id_, 7020});
+    if (file_upload_id_.is_valid()) {
+      td_->file_manager_->delete_partial_remote_location(file_upload_id_);
     }
   }
 
   void on_error(Status status) final {
-    if (file_id_.is_valid()) {
-      td_->file_manager_->delete_partial_remote_location({file_id_, 7020});
+    if (file_upload_id_.is_valid()) {
+      td_->file_manager_->delete_partial_remote_location(file_upload_id_);
     }
     promise_.set_error(std::move(status));
   }
@@ -2010,12 +2010,12 @@ class UserManager::SecretChatLogEvent {
 class UserManager::UploadProfilePhotoCallback final : public FileManager::UploadCallback {
  public:
   void on_upload_ok(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
-    send_closure_later(G()->user_manager(), &UserManager::on_upload_profile_photo, file_upload_id.get_file_id(),
+    send_closure_later(G()->user_manager(), &UserManager::on_upload_profile_photo, file_upload_id,
                        std::move(input_file));
   }
 
   void on_upload_error(FileUploadId file_upload_id, Status error) final {
-    send_closure_later(G()->user_manager(), &UserManager::on_upload_profile_photo_error, file_upload_id.get_file_id(),
+    send_closure_later(G()->user_manager(), &UserManager::on_upload_profile_photo_error, file_upload_id,
                        std::move(error));
   }
 };
@@ -4776,10 +4776,9 @@ void UserManager::set_profile_photo_impl(UserId user_id, const td_api::object_pt
   auto file_type = is_animation ? FileType::Animation : FileType::Photo;
   TRY_RESULT_PROMISE(promise, file_id,
                      td_->file_manager_->get_input_file_id(file_type, *input_file, DialogId(user_id), false, false));
-  CHECK(file_id.is_valid());
 
-  upload_profile_photo(user_id, td_->file_manager_->dup_file_id(file_id, "set_profile_photo_impl"), is_fallback,
-                       only_suggest, is_animation, main_frame_timestamp, std::move(promise));
+  upload_profile_photo(user_id, {file_id, FileManager::get_internal_upload_id()}, is_fallback, only_suggest,
+                       is_animation, main_frame_timestamp, std::move(promise));
 }
 
 void UserManager::set_user_profile_photo(UserId user_id, const td_api::object_ptr<td_api::InputChatPhoto> &input_photo,
@@ -4812,25 +4811,25 @@ void UserManager::send_update_profile_photo_query(UserId user_id, FileId file_id
       ->send(user_id, file_id, old_photo_id, is_fallback, main_remote_location->as_input_photo());
 }
 
-void UserManager::upload_profile_photo(UserId user_id, FileId file_id, bool is_fallback, bool only_suggest,
+void UserManager::upload_profile_photo(UserId user_id, FileUploadId file_upload_id, bool is_fallback, bool only_suggest,
                                        bool is_animation, double main_frame_timestamp, Promise<Unit> &&promise,
                                        int reupload_count, vector<int> bad_parts) {
-  CHECK(file_id.is_valid());
+  CHECK(file_upload_id.is_valid());
   bool is_inserted =
       uploaded_profile_photos_
-          .emplace(file_id, UploadedProfilePhoto{user_id, is_fallback, only_suggest, main_frame_timestamp, is_animation,
-                                                 reupload_count, std::move(promise)})
+          .emplace(file_upload_id, UploadedProfilePhoto{user_id, is_fallback, only_suggest, main_frame_timestamp,
+                                                        is_animation, reupload_count, std::move(promise)})
           .second;
   CHECK(is_inserted);
-  LOG(INFO) << "Ask to upload " << (is_animation ? "animated" : "static") << " profile photo " << file_id
+  LOG(INFO) << "Ask to upload " << (is_animation ? "animated" : "static") << " profile photo " << file_upload_id
             << " for user " << user_id << " with bad parts " << bad_parts;
   // TODO use force_reupload if reupload_count >= 1, replace reupload_count with is_reupload
-  td_->file_manager_->resume_upload({file_id, 7020}, std::move(bad_parts), upload_profile_photo_callback_, 32, 0);
+  td_->file_manager_->resume_upload(file_upload_id, std::move(bad_parts), upload_profile_photo_callback_, 32, 0);
 }
 
-void UserManager::on_upload_profile_photo(FileId file_id,
+void UserManager::on_upload_profile_photo(FileUploadId file_upload_id,
                                           telegram_api::object_ptr<telegram_api::InputFile> input_file) {
-  auto it = uploaded_profile_photos_.find(file_id);
+  auto it = uploaded_profile_photos_.find(file_upload_id);
   CHECK(it != uploaded_profile_photos_.end());
 
   UserId user_id = it->second.user_id;
@@ -4843,9 +4842,9 @@ void UserManager::on_upload_profile_photo(FileId file_id,
 
   uploaded_profile_photos_.erase(it);
 
-  LOG(INFO) << "Uploaded " << (is_animation ? "animated" : "static") << " profile photo " << file_id << " for "
+  LOG(INFO) << "Uploaded " << (is_animation ? "animated" : "static") << " profile photo " << file_upload_id << " for "
             << user_id << " with reupload_count = " << reupload_count;
-  FileView file_view = td_->file_manager_->get_file_view(file_id);
+  FileView file_view = td_->file_manager_->get_file_view(file_upload_id.get_file_id());
   const auto *main_remote_location = file_view.get_main_remote_location();
   if (main_remote_location != nullptr && input_file == nullptr) {
     if (main_remote_location->is_web()) {
@@ -4865,22 +4864,23 @@ void UserManager::on_upload_profile_photo(FileId file_id,
     }
     auto file_reference = is_animation ? FileManager::extract_file_reference(main_remote_location->as_input_document())
                                        : FileManager::extract_file_reference(main_remote_location->as_input_photo());
-    td_->file_manager_->delete_file_reference(file_id, file_reference);
-    upload_profile_photo(user_id, file_id, is_fallback, only_suggest, is_animation, main_frame_timestamp,
+    td_->file_manager_->delete_file_reference(file_upload_id.get_file_id(), file_reference);
+    upload_profile_photo(user_id, file_upload_id, is_fallback, only_suggest, is_animation, main_frame_timestamp,
                          std::move(promise), reupload_count + 1, {-1});
     return;
   }
   CHECK(input_file != nullptr);
 
   td_->create_handler<UploadProfilePhotoQuery>(std::move(promise))
-      ->send(user_id, file_id, std::move(input_file), is_fallback, only_suggest, is_animation, main_frame_timestamp);
+      ->send(user_id, file_upload_id, std::move(input_file), is_fallback, only_suggest, is_animation,
+             main_frame_timestamp);
 }
 
-void UserManager::on_upload_profile_photo_error(FileId file_id, Status status) {
-  LOG(INFO) << "File " << file_id << " has upload error " << status;
+void UserManager::on_upload_profile_photo_error(FileUploadId file_upload_id, Status status) {
+  LOG(INFO) << "Profile photo " << file_upload_id << " has upload error " << status;
   CHECK(status.is_error());
 
-  auto it = uploaded_profile_photos_.find(file_id);
+  auto it = uploaded_profile_photos_.find(file_upload_id);
   CHECK(it != uploaded_profile_photos_.end());
 
   auto promise = std::move(it->second.promise);
