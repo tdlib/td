@@ -250,7 +250,7 @@ class EditDialogTitleQuery final : public Td::ResultHandler {
 
 class EditDialogPhotoQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
-  FileId file_id_;
+  FileUploadId file_upload_id_;
   bool was_uploaded_ = false;
   string file_reference_;
   DialogId dialog_id_;
@@ -259,10 +259,10 @@ class EditDialogPhotoQuery final : public Td::ResultHandler {
   explicit EditDialogPhotoQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, FileId file_id,
+  void send(DialogId dialog_id, FileUploadId file_upload_id,
             telegram_api::object_ptr<telegram_api::InputChatPhoto> &&input_chat_photo) {
     CHECK(input_chat_photo != nullptr);
-    file_id_ = file_id;
+    file_upload_id_ = file_upload_id;
     was_uploaded_ = FileManager::extract_was_uploaded(input_chat_photo);
     file_reference_ = FileManager::extract_file_reference(input_chat_photo);
     dialog_id_ = dialog_id;
@@ -299,23 +299,24 @@ class EditDialogPhotoQuery final : public Td::ResultHandler {
 
     td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
 
-    if (file_id_.is_valid() && was_uploaded_) {
-      td_->file_manager_->delete_partial_remote_location({file_id_, 7020});
+    if (file_upload_id_.is_valid() && was_uploaded_) {
+      td_->file_manager_->delete_partial_remote_location(file_upload_id_);
     }
   }
 
   void on_error(Status status) final {
-    if (file_id_.is_valid() && was_uploaded_) {
-      td_->file_manager_->delete_partial_remote_location({file_id_, 7020});
+    if (file_upload_id_.is_valid() && was_uploaded_) {
+      td_->file_manager_->delete_partial_remote_location(file_upload_id_);
     }
     if (!td_->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
-      if (file_id_.is_valid() && !was_uploaded_) {
-        VLOG(file_references) << "Receive " << status << " for " << file_id_;
-        td_->file_manager_->delete_file_reference(file_id_, file_reference_);
-        td_->dialog_manager_->upload_dialog_photo(dialog_id_, file_id_, false, 0.0, false, std::move(promise_), {-1});
+      if (file_upload_id_.is_valid() && !was_uploaded_) {
+        VLOG(file_references) << "Receive " << status << " for " << file_upload_id_;
+        td_->file_manager_->delete_file_reference(file_upload_id_.get_file_id(), file_reference_);
+        td_->dialog_manager_->upload_dialog_photo(dialog_id_, file_upload_id_, false, 0.0, false, std::move(promise_),
+                                                  {-1});
         return;
       } else {
-        LOG(ERROR) << "Receive file reference error, but file_id = " << file_id_
+        LOG(ERROR) << "Receive file reference error, but file is " << file_upload_id_
                    << ", was_uploaded = " << was_uploaded_;
       }
     }
@@ -540,13 +541,13 @@ class ReportProfilePhotoQuery final : public Td::ResultHandler {
 class DialogManager::UploadDialogPhotoCallback final : public FileManager::UploadCallback {
  public:
   void on_upload_ok(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
-    send_closure_later(G()->dialog_manager(), &DialogManager::on_upload_dialog_photo, file_upload_id.get_file_id(),
+    send_closure_later(G()->dialog_manager(), &DialogManager::on_upload_dialog_photo, file_upload_id,
                        std::move(input_file));
   }
 
   void on_upload_error(FileUploadId file_upload_id, Status error) final {
-    send_closure_later(G()->dialog_manager(), &DialogManager::on_upload_dialog_photo_error,
-                       file_upload_id.get_file_id(), std::move(error));
+    send_closure_later(G()->dialog_manager(), &DialogManager::on_upload_dialog_photo_error, file_upload_id,
+                       std::move(error));
   }
 };
 
@@ -1418,7 +1419,8 @@ void DialogManager::set_dialog_photo(DialogId dialog_id, const td_api::object_pt
         CHECK(main_remote_location != nullptr);
         auto input_chat_photo =
             telegram_api::make_object<telegram_api::inputChatPhoto>(main_remote_location->as_input_photo());
-        return send_edit_dialog_photo_query(dialog_id, file_id, std::move(input_chat_photo), std::move(promise));
+        return send_edit_dialog_photo_query(dialog_id, {file_id, FileManager::get_internal_upload_id()},
+                                            std::move(input_chat_photo), std::move(promise));
       }
       case td_api::inputChatPhotoStatic::ID: {
         auto photo = static_cast<const td_api::inputChatPhotoStatic *>(input_photo.get());
@@ -1439,7 +1441,7 @@ void DialogManager::set_dialog_photo(DialogId dialog_id, const td_api::object_pt
         int32 flags = telegram_api::inputChatUploadedPhoto::VIDEO_EMOJI_MARKUP_MASK;
         auto input_chat_photo = telegram_api::make_object<telegram_api::inputChatUploadedPhoto>(
             flags, nullptr, nullptr, 0.0, sticker_photo_size->get_input_video_size_object(td_));
-        return send_edit_dialog_photo_query(dialog_id, FileId(), std::move(input_chat_photo), std::move(promise));
+        return send_edit_dialog_photo_query(dialog_id, FileUploadId(), std::move(input_chat_photo), std::move(promise));
       }
       default:
         UNREACHABLE();
@@ -1447,8 +1449,8 @@ void DialogManager::set_dialog_photo(DialogId dialog_id, const td_api::object_pt
     }
   }
   if (input_file == nullptr) {
-    send_edit_dialog_photo_query(dialog_id, FileId(), telegram_api::make_object<telegram_api::inputChatPhotoEmpty>(),
-                                 std::move(promise));
+    send_edit_dialog_photo_query(dialog_id, FileUploadId(),
+                                 telegram_api::make_object<telegram_api::inputChatPhotoEmpty>(), std::move(promise));
     return;
   }
 
@@ -1461,41 +1463,42 @@ void DialogManager::set_dialog_photo(DialogId dialog_id, const td_api::object_pt
   TRY_RESULT_PROMISE(promise, file_id,
                      td_->file_manager_->get_input_file_id(file_type, *input_file, dialog_id, true, false));
   if (!file_id.is_valid()) {
-    send_edit_dialog_photo_query(dialog_id, FileId(), telegram_api::make_object<telegram_api::inputChatPhotoEmpty>(),
-                                 std::move(promise));
+    send_edit_dialog_photo_query(dialog_id, FileUploadId(),
+                                 telegram_api::make_object<telegram_api::inputChatPhotoEmpty>(), std::move(promise));
     return;
   }
 
-  upload_dialog_photo(dialog_id, td_->file_manager_->dup_file_id(file_id, "set_dialog_photo"), is_animation,
-                      main_frame_timestamp, false, std::move(promise));
+  upload_dialog_photo(dialog_id, {file_id, FileManager::get_internal_upload_id()}, is_animation, main_frame_timestamp,
+                      false, std::move(promise));
 }
 
 void DialogManager::send_edit_dialog_photo_query(
-    DialogId dialog_id, FileId file_id, telegram_api::object_ptr<telegram_api::InputChatPhoto> &&input_chat_photo,
-    Promise<Unit> &&promise) {
+    DialogId dialog_id, FileUploadId file_upload_id,
+    telegram_api::object_ptr<telegram_api::InputChatPhoto> &&input_chat_photo, Promise<Unit> &&promise) {
   // TODO invoke after
-  td_->create_handler<EditDialogPhotoQuery>(std::move(promise))->send(dialog_id, file_id, std::move(input_chat_photo));
+  td_->create_handler<EditDialogPhotoQuery>(std::move(promise))
+      ->send(dialog_id, file_upload_id, std::move(input_chat_photo));
 }
 
-void DialogManager::upload_dialog_photo(DialogId dialog_id, FileId file_id, bool is_animation,
+void DialogManager::upload_dialog_photo(DialogId dialog_id, FileUploadId file_upload_id, bool is_animation,
                                         double main_frame_timestamp, bool is_reupload, Promise<Unit> &&promise,
                                         vector<int> bad_parts) {
-  CHECK(file_id.is_valid());
-  LOG(INFO) << "Ask to upload chat photo " << file_id;
+  CHECK(file_upload_id.is_valid());
+  LOG(INFO) << "Ask to upload chat photo " << file_upload_id;
   bool is_inserted = being_uploaded_dialog_photos_
-                         .emplace(file_id, UploadedDialogPhotoInfo{dialog_id, main_frame_timestamp, is_animation,
-                                                                   is_reupload, std::move(promise)})
+                         .emplace(file_upload_id, UploadedDialogPhotoInfo{dialog_id, main_frame_timestamp, is_animation,
+                                                                          is_reupload, std::move(promise)})
                          .second;
   CHECK(is_inserted);
   // TODO use force_reupload if is_reupload
-  td_->file_manager_->resume_upload({file_id, 7020}, std::move(bad_parts), upload_dialog_photo_callback_, 32, 0);
+  td_->file_manager_->resume_upload(file_upload_id, std::move(bad_parts), upload_dialog_photo_callback_, 32, 0);
 }
 
-void DialogManager::on_upload_dialog_photo(FileId file_id,
+void DialogManager::on_upload_dialog_photo(FileUploadId file_upload_id,
                                            telegram_api::object_ptr<telegram_api::InputFile> input_file) {
-  LOG(INFO) << "File " << file_id << " has been uploaded";
+  LOG(INFO) << "Chat photo " << file_upload_id << " has been uploaded";
 
-  auto it = being_uploaded_dialog_photos_.find(file_id);
+  auto it = being_uploaded_dialog_photos_.find(file_upload_id);
   if (it == being_uploaded_dialog_photos_.end()) {
     // just in case
     return;
@@ -1509,7 +1512,7 @@ void DialogManager::on_upload_dialog_photo(FileId file_id,
 
   being_uploaded_dialog_photos_.erase(it);
 
-  FileView file_view = td_->file_manager_->get_file_view(file_id);
+  FileView file_view = td_->file_manager_->get_file_view(file_upload_id.get_file_id());
   CHECK(!file_view.is_encrypted());
   const auto *main_remote_location = file_view.get_main_remote_location();
   if (input_file == nullptr && main_remote_location != nullptr) {
@@ -1524,13 +1527,14 @@ void DialogManager::on_upload_dialog_photo(FileId file_id,
       CHECK(file_view.get_type() == FileType::Animation);
       // delete file reference and forcely reupload the file
       auto file_reference = FileManager::extract_file_reference(main_remote_location->as_input_document());
-      td_->file_manager_->delete_file_reference(file_id, file_reference);
-      upload_dialog_photo(dialog_id, file_id, is_animation, main_frame_timestamp, true, std::move(promise), {-1});
+      td_->file_manager_->delete_file_reference(file_upload_id.get_file_id(), file_reference);
+      upload_dialog_photo(dialog_id, file_upload_id, is_animation, main_frame_timestamp, true, std::move(promise),
+                          {-1});
     } else {
       CHECK(file_view.get_type() == FileType::Photo);
       auto input_photo = main_remote_location->as_input_photo();
       auto input_chat_photo = telegram_api::make_object<telegram_api::inputChatPhoto>(std::move(input_photo));
-      send_edit_dialog_photo_query(dialog_id, file_id, std::move(input_chat_photo), std::move(promise));
+      send_edit_dialog_photo_query(dialog_id, file_upload_id, std::move(input_chat_photo), std::move(promise));
     }
     return;
   }
@@ -1553,19 +1557,19 @@ void DialogManager::on_upload_dialog_photo(FileId file_id,
 
   auto input_chat_photo = telegram_api::make_object<telegram_api::inputChatUploadedPhoto>(
       flags, std::move(photo_input_file), std::move(video_input_file), main_frame_timestamp, nullptr);
-  send_edit_dialog_photo_query(dialog_id, file_id, std::move(input_chat_photo), std::move(promise));
+  send_edit_dialog_photo_query(dialog_id, file_upload_id, std::move(input_chat_photo), std::move(promise));
 }
 
-void DialogManager::on_upload_dialog_photo_error(FileId file_id, Status status) {
+void DialogManager::on_upload_dialog_photo_error(FileUploadId file_upload_id, Status status) {
   if (G()->close_flag()) {
     // do not fail upload if closing
     return;
   }
 
-  LOG(INFO) << "File " << file_id << " has upload error " << status;
+  LOG(INFO) << "Chat photo " << file_upload_id << " has upload error " << status;
   CHECK(status.is_error());
 
-  auto it = being_uploaded_dialog_photos_.find(file_id);
+  auto it = being_uploaded_dialog_photos_.find(file_upload_id);
   if (it == being_uploaded_dialog_photos_.end()) {
     // just in case
     return;

@@ -16,6 +16,7 @@
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/EmojiStatus.h"
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/files/FileUploadId.h"
 #include "td/telegram/InputDialogId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/NotificationSettingsScope.h"
@@ -188,8 +189,9 @@ class DialogManager final : public Actor {
 
   bool is_dialog_removed_from_dialog_list(DialogId dialog_id) const;
 
-  void upload_dialog_photo(DialogId dialog_id, FileId file_id, bool is_animation, double main_frame_timestamp,
-                           bool is_reupload, Promise<Unit> &&promise, vector<int> bad_parts = {});
+  void upload_dialog_photo(DialogId dialog_id, FileUploadId file_upload_id, bool is_animation,
+                           double main_frame_timestamp, bool is_reupload, Promise<Unit> &&promise,
+                           vector<int> bad_parts = {});
 
   void on_update_dialog_bot_commands(DialogId dialog_id, UserId bot_user_id,
                                      vector<telegram_api::object_ptr<telegram_api::botCommand>> &&bot_commands);
@@ -236,11 +238,12 @@ class DialogManager final : public Actor {
 
   void on_migrate_chat_to_megagroup(ChatId chat_id, Promise<td_api::object_ptr<td_api::chat>> &&promise);
 
-  void on_upload_dialog_photo(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
+  void on_upload_dialog_photo(FileUploadId file_upload_id,
+                              telegram_api::object_ptr<telegram_api::InputFile> input_file);
 
-  void on_upload_dialog_photo_error(FileId file_id, Status status);
+  void on_upload_dialog_photo_error(FileUploadId file_upload_id, Status status);
 
-  void send_edit_dialog_photo_query(DialogId dialog_id, FileId file_id,
+  void send_edit_dialog_photo_query(DialogId dialog_id, FileUploadId file_upload_id,
                                     telegram_api::object_ptr<telegram_api::InputChatPhoto> &&input_chat_photo,
                                     Promise<Unit> &&promise);
 
@@ -273,7 +276,7 @@ class DialogManager final : public Actor {
         , promise(std::move(promise)) {
     }
   };
-  FlatHashMap<FileId, UploadedDialogPhotoInfo, FileIdHash> being_uploaded_dialog_photos_;
+  FlatHashMap<FileUploadId, UploadedDialogPhotoInfo, FileUploadIdHash> being_uploaded_dialog_photos_;
 
   struct ResolvedUsername {
     DialogId dialog_id;
