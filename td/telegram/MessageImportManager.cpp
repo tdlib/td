@@ -357,7 +357,7 @@ void MessageImportManager::upload_imported_messages(DialogId dialog_id, FileUplo
 
 void MessageImportManager::on_upload_imported_messages(FileUploadId file_upload_id,
                                                        telegram_api::object_ptr<telegram_api::InputFile> input_file) {
-  LOG(INFO) << "The " << file_upload_id << " has been uploaded";
+  LOG(INFO) << "Imported messages " << file_upload_id << " has been uploaded";
 
   auto it = being_uploaded_imported_messages_.find(file_upload_id);
   if (it == being_uploaded_imported_messages_.end()) {
@@ -407,7 +407,7 @@ void MessageImportManager::on_upload_imported_messages_error(FileUploadId file_u
     return;
   }
 
-  LOG(INFO) << "The " << file_upload_id << " has upload error " << status;
+  LOG(INFO) << "Imported messages " << file_upload_id << " has upload error " << status;
   CHECK(status.is_error());
 
   auto it = being_uploaded_imported_messages_.find(file_upload_id);

@@ -825,7 +825,7 @@ void BotInfoManager::on_upload_bot_media_preview(FileUploadId file_upload_id,
     return;
   }
 
-  LOG(INFO) << "The " << file_upload_id << " has been uploaded";
+  LOG(INFO) << "Bot media preview " << file_upload_id << " has been uploaded";
 
   auto it = being_uploaded_files_.find(file_upload_id);
   if (it == being_uploaded_files_.end()) {
@@ -866,7 +866,7 @@ void BotInfoManager::on_upload_bot_media_preview_error(FileUploadId file_upload_
     return;
   }
 
-  LOG(INFO) << "The " << file_upload_id << " has upload error " << status;
+  LOG(INFO) << "Bot media preview " << file_upload_id << " has upload error " << status;
 
   auto it = being_uploaded_files_.find(file_upload_id);
   if (it == being_uploaded_files_.end()) {

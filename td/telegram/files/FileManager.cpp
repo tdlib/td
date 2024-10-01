@@ -3505,7 +3505,7 @@ void FileManager::resume_upload(FileUploadId file_upload_id, vector<int> bad_par
 
   auto node = get_sync_file_node(file_upload_id.get_file_id());
   if (!node) {
-    LOG(INFO) << "The " << file_upload_id << " not found";
+    LOG(INFO) << "Uploaded " << file_upload_id << " not found";
     callback->on_upload_error(file_upload_id, Status::Error(400, "File not found"));
     return;
   }
@@ -3552,7 +3552,7 @@ void FileManager::resume_upload(FileUploadId file_upload_id, vector<int> bad_par
 
   if (!file_view.has_full_local_location() && !file_view.has_generate_location() &&
       !file_view.has_alive_remote_location()) {
-    LOG(INFO) << "The " << file_upload_id << " can't be uploaded";
+    LOG(INFO) << "Can't upload " << file_upload_id;
     callback->on_upload_error(
         file_upload_id, Status::Error(400, "Need full local (or generate, or inactive remote) location for upload"));
     return;
@@ -3600,7 +3600,7 @@ bool FileManager::delete_partial_remote_location(FileUploadId file_upload_id) {
     try_flush_node(node, "delete_partial_remote_location");
   };
   if (node->remote_.is_full_alive) {
-    LOG(INFO) << "The " << file_upload_id << " is already uploaded";
+    LOG(INFO) << "Upload isn't needed for " << file_upload_id;
     return true;
   }
 

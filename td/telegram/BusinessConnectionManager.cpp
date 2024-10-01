@@ -976,7 +976,7 @@ void BusinessConnectionManager::complete_send_media(unique_ptr<PendingMessage> &
 
 void BusinessConnectionManager::on_upload_media(FileUploadId file_upload_id,
                                                 telegram_api::object_ptr<telegram_api::InputFile> input_file) {
-  LOG(INFO) << "The " << file_upload_id << " has been uploaded";
+  LOG(INFO) << "Business media " << file_upload_id << " has been uploaded";
 
   auto it = being_uploaded_files_.find(file_upload_id);
   CHECK(it != being_uploaded_files_.end());

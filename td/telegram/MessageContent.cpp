@@ -3966,10 +3966,10 @@ telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_med
     for (auto &file_reference : file_references) {
       if (file_reference == FileReferenceView::invalid_file_reference()) {
         if (!force) {
-          LOG(INFO) << "The " << file_upload_id << " has invalid file reference";
+          LOG(INFO) << "Have invalid file reference for " << file_upload_id;
           return nullptr;
         }
-        LOG(ERROR) << "The " << file_upload_id << " has invalid file reference, but we are forced to use it";
+        LOG(ERROR) << "Have invalid file reference for " << file_upload_id << ", but we are forced to use it";
       }
     }
   }
