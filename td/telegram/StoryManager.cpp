@@ -1281,13 +1281,11 @@ class StoryManager::EditStoryQuery final : public Td::ResultHandler {
 class StoryManager::UploadMediaCallback final : public FileManager::UploadCallback {
  public:
   void on_upload_ok(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
-    send_closure_later(G()->story_manager(), &StoryManager::on_upload_story, file_upload_id.get_file_id(),
-                       std::move(input_file));
+    send_closure_later(G()->story_manager(), &StoryManager::on_upload_story, file_upload_id, std::move(input_file));
   }
 
   void on_upload_error(FileUploadId file_upload_id, Status error) final {
-    send_closure_later(G()->story_manager(), &StoryManager::on_upload_story_error, file_upload_id.get_file_id(),
-                       std::move(error));
+    send_closure_later(G()->story_manager(), &StoryManager::on_upload_story_error, file_upload_id, std::move(error));
   }
 };
 
@@ -1300,7 +1298,7 @@ StoryManager::PendingStory::PendingStory(DialogId dialog_id, StoryId story_id, S
     , random_id_(random_id)
     , story_(std::move(story)) {
   if (story_ != nullptr && story_->content_ != nullptr) {
-    file_id_ = get_story_content_any_file_id(story_->content_.get());
+    file_upload_id_ = {get_story_content_any_file_id(story_->content_.get()), FileManager::get_internal_upload_id()};
   }
 }
 
@@ -1496,7 +1494,7 @@ void StoryManager::PendingStory::parse(ParserT &parser) {
     parse(forward_from_story_full_id_, parser);
   }
   if (story_ != nullptr && story_->content_ != nullptr) {
-    file_id_ = get_story_content_any_file_id(story_->content_.get());
+    file_upload_id_ = {get_story_content_any_file_id(story_->content_.get()), FileManager::get_internal_upload_id()};
   }
 }
 
@@ -5240,7 +5238,7 @@ void StoryManager::do_send_story(unique_ptr<PendingStory> &&pending_story, vecto
   CHECK(pending_story->story_ != nullptr);
   CHECK(pending_story->story_->content_ != nullptr);
   CHECK(pending_story->story_id_.is_valid());
-  CHECK(pending_story->file_id_.is_valid());
+  CHECK(pending_story->file_upload_id_.is_valid());
 
   auto story_full_id = StoryFullId(pending_story->dialog_id_, pending_story->story_id_);
   if (bad_parts.empty()) {
@@ -5277,28 +5275,29 @@ void StoryManager::do_send_story(unique_ptr<PendingStory> &&pending_story, vecto
     }
   }
 
-  auto file_id = pending_story->file_id_;
+  auto file_upload_id = pending_story->file_upload_id_;
   auto upload_order = pending_story->send_story_num_;
 
-  LOG(INFO) << "Ask to upload file " << file_id << " with bad parts " << bad_parts;
+  LOG(INFO) << "Ask to upload story " << file_upload_id << " with bad parts " << bad_parts;
   if (!pending_story->story_id_.is_server()) {
-    being_uploaded_file_ids_[story_full_id] = file_id;
+    being_uploaded_file_upload_ids_[story_full_id] = file_upload_id;
   }
-  bool is_inserted = being_uploaded_files_.emplace(file_id, std::move(pending_story)).second;
+  bool is_inserted = being_uploaded_files_.emplace(file_upload_id, std::move(pending_story)).second;
   CHECK(is_inserted);
   // need to call resume_upload synchronously to make upload process consistent with being_uploaded_files_
   // and to send is_uploading_active == true in response
-  td_->file_manager_->resume_upload({file_id, 7020}, std::move(bad_parts), upload_media_callback_, 1, upload_order);
+  td_->file_manager_->resume_upload(file_upload_id, std::move(bad_parts), upload_media_callback_, 1, upload_order);
 }
 
-void StoryManager::on_upload_story(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) {
+void StoryManager::on_upload_story(FileUploadId file_upload_id,
+                                   telegram_api::object_ptr<telegram_api::InputFile> input_file) {
   if (G()->close_flag()) {
     return;
   }
 
-  LOG(INFO) << "File " << file_id << " has been uploaded";
+  LOG(INFO) << "Story " << file_upload_id << " has been uploaded";
 
-  auto it = being_uploaded_files_.find(file_id);
+  auto it = being_uploaded_files_.find(file_upload_id);
   if (it == being_uploaded_files_.end()) {
     // callback may be called just before the file upload was canceled
     return;
@@ -5309,7 +5308,7 @@ void StoryManager::on_upload_story(FileId file_id, telegram_api::object_ptr<tele
   being_uploaded_files_.erase(it);
 
   if (!pending_story->story_id_.is_server()) {
-    being_uploaded_file_ids_.erase({pending_story->dialog_id_, pending_story->story_id_});
+    being_uploaded_file_upload_ids_.erase({pending_story->dialog_id_, pending_story->story_id_});
 
     auto deleted_story_it = delete_yet_unsent_story_queries_.find(pending_story->random_id_);
     if (deleted_story_it != delete_yet_unsent_story_queries_.end()) {
@@ -5319,7 +5318,7 @@ void StoryManager::on_upload_story(FileId file_id, telegram_api::object_ptr<tele
     }
   }
 
-  FileView file_view = td_->file_manager_->get_file_view(file_id);
+  FileView file_view = td_->file_manager_->get_file_view(file_upload_id.get_file_id());
   CHECK(!file_view.is_encrypted());
   const auto *main_remote_location = file_view.get_main_remote_location();
   if (input_file == nullptr && main_remote_location != nullptr) {
@@ -5334,7 +5333,7 @@ void StoryManager::on_upload_story(FileId file_id, telegram_api::object_ptr<tele
     pending_story->was_reuploaded_ = true;
 
     // delete file reference and forcely reupload the file
-    td_->file_manager_->delete_file_reference(file_id, main_remote_location->get_file_reference());
+    td_->file_manager_->delete_file_reference(file_upload_id.get_file_id(), main_remote_location->get_file_reference());
     do_send_story(std::move(pending_story), {-1});
     return;
   }
@@ -5353,15 +5352,15 @@ void StoryManager::on_upload_story(FileId file_id, telegram_api::object_ptr<tele
   }
 }
 
-void StoryManager::on_upload_story_error(FileId file_id, Status status) {
+void StoryManager::on_upload_story_error(FileUploadId file_upload_id, Status status) {
   if (G()->close_flag()) {
     // do not fail upload if closing
     return;
   }
 
-  LOG(INFO) << "File " << file_id << " has upload error " << status;
+  LOG(INFO) << "Story " << file_upload_id << " has upload error " << status;
 
-  auto it = being_uploaded_files_.find(file_id);
+  auto it = being_uploaded_files_.find(file_upload_id);
   if (it == being_uploaded_files_.end()) {
     // callback may be called just before the file upload was canceled
     return;
@@ -5373,7 +5372,7 @@ void StoryManager::on_upload_story_error(FileId file_id, Status status) {
 
   vector<Promise<Unit>> promises;
   if (!pending_story->story_id_.is_server()) {
-    being_uploaded_file_ids_.erase({pending_story->dialog_id_, pending_story->story_id_});
+    being_uploaded_file_upload_ids_.erase({pending_story->dialog_id_, pending_story->story_id_});
 
     auto deleted_story_it = delete_yet_unsent_story_queries_.find(pending_story->random_id_);
     if (deleted_story_it != delete_yet_unsent_story_queries_.end()) {
@@ -5590,7 +5589,7 @@ void StoryManager::do_edit_story(unique_ptr<PendingStory> &&pending_story,
   if (story == nullptr || it == being_edited_stories_.end() ||
       edit_generations_[story_full_id] != pending_story->random_id_) {
     LOG(INFO) << "Skip outdated edit of " << story_full_id;
-    td_->file_manager_->cancel_upload({pending_story->file_id_, 7020});
+    td_->file_manager_->cancel_upload(pending_story->file_upload_id_);
     return;
   }
   CHECK(story->content_ != nullptr);
@@ -5631,8 +5630,8 @@ void StoryManager::delete_pending_story(unique_ptr<PendingStory> &&pending_story
   if (G()->close_flag() && G()->use_message_database()) {
     return;
   }
-  if (pending_story->file_id_.is_valid()) {
-    td_->file_manager_->delete_partial_remote_location({pending_story->file_id_, 7020});
+  if (pending_story->file_upload_id_.is_valid()) {
+    td_->file_manager_->delete_partial_remote_location(pending_story->file_upload_id_);
   }
 
   CHECK(pending_story != nullptr);
@@ -5764,11 +5763,11 @@ void StoryManager::delete_story(DialogId owner_dialog_id, StoryId story_id, Prom
     return promise.set_error(Status::Error(400, "Story can't be deleted"));
   }
   if (!story_id.is_server()) {
-    auto file_id_it = being_uploaded_file_ids_.find(story_full_id);
-    if (file_id_it == being_uploaded_file_ids_.end()) {
+    auto file_upload_id_it = being_uploaded_file_upload_ids_.find(story_full_id);
+    if (file_upload_id_it == being_uploaded_file_upload_ids_.end()) {
       return promise.set_error(Status::Error(400, "Story upload has been already completed"));
     }
-    auto file_id = file_id_it->second;
+    auto file_upload_id = file_upload_id_it->second;
     auto random_id_it = being_sent_story_random_ids_.find(story_full_id);
     if (random_id_it == being_sent_story_random_ids_.end()) {
       return promise.set_error(Status::Error(400, "Story not found"));
@@ -5778,7 +5777,7 @@ void StoryManager::delete_story(DialogId owner_dialog_id, StoryId story_id, Prom
 
     LOG(INFO) << "Cancel uploading of " << story_full_id;
 
-    send_closure_later(G()->file_manager(), &FileManager::cancel_upload, FileUploadId{file_id, 7020});
+    send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_upload_id);
 
     delete_yet_unsent_story_queries_[random_id].push_back(std::move(promise));
     return;

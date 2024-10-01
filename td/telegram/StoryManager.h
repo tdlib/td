@@ -112,7 +112,7 @@ class StoryManager final : public Actor {
     DialogId dialog_id_;
     StoryId story_id_;
     StoryFullId forward_from_story_full_id_;
-    FileId file_id_;
+    FileUploadId file_upload_id_;
     uint64 log_event_id_ = 0;
     uint32 send_story_num_ = 0;
     int64 random_id_ = 0;
@@ -568,9 +568,9 @@ class StoryManager final : public Actor {
 
   void do_send_story(unique_ptr<PendingStory> &&pending_story, vector<int> bad_parts);
 
-  void on_upload_story(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
+  void on_upload_story(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
 
-  void on_upload_story_error(FileId file_id, Status status);
+  void on_upload_story_error(FileUploadId file_upload_id, Status status);
 
   void try_send_story(DialogId dialog_id);
 
@@ -698,7 +698,7 @@ class StoryManager final : public Actor {
 
   FlatHashMap<StoryFullId, vector<Promise<Unit>>, StoryFullIdHash> reload_story_queries_;
 
-  FlatHashMap<FileId, unique_ptr<PendingStory>, FileIdHash> being_uploaded_files_;
+  FlatHashMap<FileUploadId, unique_ptr<PendingStory>, FileUploadIdHash> being_uploaded_files_;
 
   FlatHashMap<DialogId, std::set<uint32>, DialogIdHash> yet_unsent_stories_;
 
@@ -708,7 +708,7 @@ class StoryManager final : public Actor {
 
   FlatHashMap<StoryFullId, int64, StoryFullIdHash> being_sent_story_random_ids_;
 
-  FlatHashMap<StoryFullId, FileId, StoryFullIdHash> being_uploaded_file_ids_;
+  FlatHashMap<StoryFullId, FileUploadId, StoryFullIdHash> being_uploaded_file_upload_ids_;
 
   FlatHashMap<StoryFullId, StoryId, StoryFullIdHash> update_story_ids_;
 
