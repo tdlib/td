@@ -11,6 +11,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/EncryptedFile.h"
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/files/FileUploadId.h"
 #include "td/telegram/InputGroupCallId.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessageContentType.h"
@@ -134,8 +135,8 @@ SecretInputMedia get_message_content_secret_input_media(
 telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_media(
     const MessageContent *content, int32 media_pos, Td *td,
     telegram_api::object_ptr<telegram_api::InputFile> input_file,
-    telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail, FileId file_id, FileId thumbnail_file_id,
-    MessageSelfDestructType ttl, const string &emoji, bool force);
+    telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail, FileUploadId file_upload_id,
+    FileUploadId thumbnail_file_upload_id, MessageSelfDestructType ttl, const string &emoji, bool force);
 
 telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_media(const MessageContent *content,
                                                                                    Td *td, MessageSelfDestructType ttl,

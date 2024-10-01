@@ -1033,9 +1033,9 @@ void BusinessConnectionManager::do_upload_media(BeingUploadedMedia &&being_uploa
             << ", have_input_file = " << have_input_file << ", have_input_thumbnail = " << have_input_thumbnail;
 
   const auto *message = being_uploaded_media.message_.get();
-  auto input_media = get_message_content_input_media(message->content_.get(), -1, td_, std::move(input_file),
-                                                     std::move(input_thumbnail), file_id, thumbnail_file_id,
-                                                     message->ttl_, message->send_emoji_, true);
+  auto input_media = get_message_content_input_media(
+      message->content_.get(), -1, td_, std::move(input_file), std::move(input_thumbnail), {file_id, 7020},
+      {thumbnail_file_id, 7020}, message->ttl_, message->send_emoji_, true);
   CHECK(input_media != nullptr);
   if (is_uploaded_input_media(input_media)) {
     UploadMediaResult result;

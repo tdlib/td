@@ -2283,8 +2283,8 @@ void QuickReplyManager::do_send_media(const QuickReplyMessage *m, FileId file_id
   auto content = m->message_id.is_server() ? m->edited_content.get() : m->content.get();
   CHECK(content != nullptr);
   auto input_media =
-      get_message_content_input_media(content, -1, td_, std::move(input_file), std::move(input_thumbnail), file_id,
-                                      thumbnail_file_id, {}, m->send_emoji, true);
+      get_message_content_input_media(content, -1, td_, std::move(input_file), std::move(input_thumbnail),
+                                      {file_id, 7020}, {thumbnail_file_id, 7020}, {}, m->send_emoji, true);
   CHECK(input_media != nullptr);
 
   on_message_media_uploaded(m, std::move(input_media), file_id, thumbnail_file_id);

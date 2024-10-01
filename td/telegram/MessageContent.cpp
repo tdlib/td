@@ -3940,8 +3940,8 @@ static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_in
 telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_media(
     const MessageContent *content, int32 media_pos, Td *td,
     telegram_api::object_ptr<telegram_api::InputFile> input_file,
-    telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail, FileId file_id, FileId thumbnail_file_id,
-    MessageSelfDestructType ttl, const string &emoji, bool force) {
+    telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail, FileUploadId file_upload_id,
+    FileUploadId thumbnail_file_upload_id, MessageSelfDestructType ttl, const string &emoji, bool force) {
   bool had_input_file = input_file != nullptr;
   bool had_input_thumbnail = input_thumbnail != nullptr;
   auto input_media = get_message_content_input_media_impl(content, media_pos, td, std::move(input_file),
@@ -3951,11 +3951,11 @@ telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_med
     if (!was_uploaded) {
       // if we had InputFile, but has failed to use it, then we need to immediately cancel file upload
       // so the next upload with the same file can succeed
-      CHECK(file_id.is_valid());
-      td->file_manager_->cancel_upload({file_id, 7020});
+      CHECK(file_upload_id.is_valid());
+      td->file_manager_->cancel_upload(file_upload_id);
       if (had_input_thumbnail) {
-        CHECK(thumbnail_file_id.is_valid());
-        td->file_manager_->cancel_upload({thumbnail_file_id, 7020});
+        CHECK(thumbnail_file_upload_id.is_valid());
+        td->file_manager_->cancel_upload(thumbnail_file_upload_id);
       }
     }
   } else {
@@ -3966,10 +3966,10 @@ telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_med
     for (auto &file_reference : file_references) {
       if (file_reference == FileReferenceView::invalid_file_reference()) {
         if (!force) {
-          LOG(INFO) << "File " << file_id << " has invalid file reference";
+          LOG(INFO) << "The " << file_upload_id << " has invalid file reference";
           return nullptr;
         }
-        LOG(ERROR) << "File " << file_id << " has invalid file reference, but we are forced to use it";
+        LOG(ERROR) << "The " << file_upload_id << " has invalid file reference, but we are forced to use it";
       }
     }
   }
