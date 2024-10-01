@@ -10,6 +10,7 @@
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/FileReferenceManager.h"
+#include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
@@ -97,25 +98,26 @@ class CheckHistoryImportPeerQuery final : public Td::ResultHandler {
 
 class InitHistoryImportQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
-  FileId file_id_;
+  FileUploadId file_upload_id_;
   DialogId dialog_id_;
-  vector<FileId> attached_file_ids_;
+  vector<FileUploadId> attached_file_upload_ids_;
 
  public:
   explicit InitHistoryImportQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> &&input_file,
-            vector<FileId> attached_file_ids) {
+  void send(DialogId dialog_id, FileUploadId file_upload_id,
+            telegram_api::object_ptr<telegram_api::InputFile> &&input_file,
+            vector<FileUploadId> attached_file_upload_ids) {
     CHECK(input_file != nullptr);
-    file_id_ = file_id;
+    file_upload_id_ = file_upload_id;
     dialog_id_ = dialog_id;
-    attached_file_ids_ = std::move(attached_file_ids);
+    attached_file_upload_ids_ = std::move(attached_file_upload_ids);
 
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     CHECK(input_peer != nullptr);
     send_query(G()->net_query_creator().create(telegram_api::messages_initHistoryImport(
-        std::move(input_peer), std::move(input_file), narrow_cast<int32>(attached_file_ids_.size()))));
+        std::move(input_peer), std::move(input_file), narrow_cast<int32>(attached_file_upload_ids_.size()))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -125,10 +127,10 @@ class InitHistoryImportQuery final : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    td_->message_import_manager_->start_import_messages(dialog_id_, ptr->id_, std::move(attached_file_ids_),
+    td_->message_import_manager_->start_import_messages(dialog_id_, ptr->id_, std::move(attached_file_upload_ids_),
                                                         std::move(promise_));
 
-    td_->file_manager_->delete_partial_remote_location({file_id_, 7020});
+    td_->file_manager_->delete_partial_remote_location(file_upload_id_);
   }
 
   void on_error(Status status) final {
@@ -140,7 +142,7 @@ class InitHistoryImportQuery final : public Td::ResultHandler {
       // TODO reupload the file
     }
 
-    td_->file_manager_->delete_partial_remote_location({file_id_, 7020});
+    td_->file_manager_->delete_partial_remote_location(file_upload_id_);
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "InitHistoryImportQuery");
     promise_.set_error(std::move(status));
   }
@@ -150,18 +152,18 @@ class UploadImportedMediaQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
   int64 import_id_;
-  FileId file_id_;
+  FileUploadId file_upload_id_;
 
  public:
   explicit UploadImportedMediaQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, int64 import_id, const string &file_name, FileId file_id,
+  void send(DialogId dialog_id, int64 import_id, const string &file_name, FileUploadId file_upload_id,
             tl_object_ptr<telegram_api::InputMedia> &&input_media) {
     CHECK(input_media != nullptr);
     dialog_id_ = dialog_id;
     import_id_ = import_id;
-    file_id_ = file_id;
+    file_upload_id_ = file_upload_id;
 
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
@@ -182,7 +184,7 @@ class UploadImportedMediaQuery final : public Td::ResultHandler {
 
     promise_.set_value(Unit());
 
-    td_->file_manager_->delete_partial_remote_location({file_id_, 7020});
+    td_->file_manager_->delete_partial_remote_location(file_upload_id_);
   }
 
   void on_error(Status status) final {
@@ -194,7 +196,7 @@ class UploadImportedMediaQuery final : public Td::ResultHandler {
       // TODO reupload the file
     }
 
-    td_->file_manager_->delete_partial_remote_location({file_id_, 7020});
+    td_->file_manager_->delete_partial_remote_location(file_upload_id_);
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "UploadImportedMediaQuery");
     promise_.set_error(std::move(status));
   }
@@ -240,12 +242,12 @@ class MessageImportManager::UploadImportedMessagesCallback final : public FileMa
  public:
   void on_upload_ok(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
     send_closure_later(G()->message_import_manager(), &MessageImportManager::on_upload_imported_messages,
-                       file_upload_id.get_file_id(), std::move(input_file));
+                       file_upload_id, std::move(input_file));
   }
 
   void on_upload_error(FileUploadId file_upload_id, Status error) final {
     send_closure_later(G()->message_import_manager(), &MessageImportManager::on_upload_imported_messages_error,
-                       file_upload_id.get_file_id(), std::move(error));
+                       file_upload_id, std::move(error));
   }
 };
 
@@ -253,12 +255,12 @@ class MessageImportManager::UploadImportedMessageAttachmentCallback final : publ
  public:
   void on_upload_ok(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
     send_closure_later(G()->message_import_manager(), &MessageImportManager::on_upload_imported_message_attachment,
-                       file_upload_id.get_file_id(), std::move(input_file));
+                       file_upload_id, std::move(input_file));
   }
 
   void on_upload_error(FileUploadId file_upload_id, Status error) final {
     send_closure_later(G()->message_import_manager(),
-                       &MessageImportManager::on_upload_imported_message_attachment_error, file_upload_id.get_file_id(),
+                       &MessageImportManager::on_upload_imported_message_attachment_error, file_upload_id,
                        std::move(error));
   }
 };
@@ -320,8 +322,8 @@ void MessageImportManager::import_messages(DialogId dialog_id,
   TRY_RESULT_PROMISE(promise, file_id,
                      td_->file_manager_->get_input_file_id(FileType::Document, message_file, dialog_id, false, false));
 
-  vector<FileId> attached_file_ids;
-  attached_file_ids.reserve(attached_files.size());
+  vector<FileUploadId> attached_file_upload_ids;
+  attached_file_upload_ids.reserve(attached_files.size());
   for (auto &attached_file : attached_files) {
     auto file_type = td_->file_manager_->guess_file_type(attached_file);
     if (file_type != FileType::Animation && file_type != FileType::Audio && file_type != FileType::Document &&
@@ -332,32 +334,32 @@ void MessageImportManager::import_messages(DialogId dialog_id,
     }
     TRY_RESULT_PROMISE(promise, attached_file_id,
                        td_->file_manager_->get_input_file_id(file_type, attached_file, dialog_id, false, false));
-    attached_file_ids.push_back(attached_file_id);
+    attached_file_upload_ids.emplace_back(attached_file_id, FileManager::get_internal_upload_id());
   }
 
-  upload_imported_messages(dialog_id, td_->file_manager_->dup_file_id(file_id, "import_messages"),
-                           std::move(attached_file_ids), false, std::move(promise));
+  upload_imported_messages(dialog_id, {file_id, FileManager::get_internal_upload_id()},
+                           std::move(attached_file_upload_ids), false, std::move(promise));
 }
 
-void MessageImportManager::upload_imported_messages(DialogId dialog_id, FileId file_id,
-                                                    vector<FileId> attached_file_ids, bool is_reupload,
+void MessageImportManager::upload_imported_messages(DialogId dialog_id, FileUploadId file_upload_id,
+                                                    vector<FileUploadId> attached_file_upload_ids, bool is_reupload,
                                                     Promise<Unit> &&promise, vector<int> bad_parts) {
-  CHECK(file_id.is_valid());
-  LOG(INFO) << "Ask to upload imported messages file " << file_id;
-  auto info = td::make_unique<UploadedImportedMessagesInfo>(dialog_id, std::move(attached_file_ids), is_reupload,
+  CHECK(file_upload_id.is_valid());
+  LOG(INFO) << "Ask to upload imported messages " << file_upload_id;
+  auto info = td::make_unique<UploadedImportedMessagesInfo>(dialog_id, std::move(attached_file_upload_ids), is_reupload,
                                                             std::move(promise));
-  bool is_inserted = being_uploaded_imported_messages_.emplace(file_id, std::move(info)).second;
+  bool is_inserted = being_uploaded_imported_messages_.emplace(file_upload_id, std::move(info)).second;
   CHECK(is_inserted);
   // TODO use force_reupload if is_reupload
-  td_->file_manager_->resume_upload({file_id, 7020}, std::move(bad_parts), upload_imported_messages_callback_, 1, 0,
+  td_->file_manager_->resume_upload(file_upload_id, std::move(bad_parts), upload_imported_messages_callback_, 1, 0,
                                     false, true);
 }
 
-void MessageImportManager::on_upload_imported_messages(FileId file_id,
+void MessageImportManager::on_upload_imported_messages(FileUploadId file_upload_id,
                                                        telegram_api::object_ptr<telegram_api::InputFile> input_file) {
-  LOG(INFO) << "File " << file_id << " has been uploaded";
+  LOG(INFO) << "The " << file_upload_id << " has been uploaded";
 
-  auto it = being_uploaded_imported_messages_.find(file_id);
+  auto it = being_uploaded_imported_messages_.find(file_upload_id);
   if (it == being_uploaded_imported_messages_.end()) {
     // just in case, as in on_upload_media
     return;
@@ -365,7 +367,7 @@ void MessageImportManager::on_upload_imported_messages(FileId file_id,
 
   CHECK(it->second != nullptr);
   DialogId dialog_id = it->second->dialog_id;
-  vector<FileId> attached_file_ids = std::move(it->second->attached_file_ids);
+  auto attached_file_upload_ids = std::move(it->second->attached_file_upload_ids);
   bool is_reupload = it->second->is_reupload;
   Promise<Unit> promise = std::move(it->second->promise);
 
@@ -374,7 +376,7 @@ void MessageImportManager::on_upload_imported_messages(FileId file_id,
   TRY_STATUS_PROMISE(promise,
                      td_->dialog_manager_->check_dialog_access_in_memory(dialog_id, false, AccessRights::Write));
 
-  FileView file_view = td_->file_manager_->get_file_view(file_id);
+  FileView file_view = td_->file_manager_->get_file_view(file_upload_id.get_file_id());
   CHECK(!file_view.is_encrypted());
   const auto *main_remote_location = file_view.get_main_remote_location();
   if (input_file == nullptr && main_remote_location != nullptr) {
@@ -388,26 +390,27 @@ void MessageImportManager::on_upload_imported_messages(FileId file_id,
     CHECK(file_view.get_type() == FileType::Document);
     // delete file reference and forcely reupload the file
     auto file_reference = FileManager::extract_file_reference(main_remote_location->as_input_document());
-    td_->file_manager_->delete_file_reference(file_id, file_reference);
-    upload_imported_messages(dialog_id, file_id, std::move(attached_file_ids), true, std::move(promise), {-1});
+    td_->file_manager_->delete_file_reference(file_upload_id.get_file_id(), file_reference);
+    upload_imported_messages(dialog_id, file_upload_id, std::move(attached_file_upload_ids), true, std::move(promise),
+                             {-1});
     return;
   }
   CHECK(input_file != nullptr);
 
   td_->create_handler<InitHistoryImportQuery>(std::move(promise))
-      ->send(dialog_id, file_id, std::move(input_file), std::move(attached_file_ids));
+      ->send(dialog_id, file_upload_id, std::move(input_file), std::move(attached_file_upload_ids));
 }
 
-void MessageImportManager::on_upload_imported_messages_error(FileId file_id, Status status) {
+void MessageImportManager::on_upload_imported_messages_error(FileUploadId file_upload_id, Status status) {
   if (G()->close_flag()) {
     // do not fail upload if closing
     return;
   }
 
-  LOG(INFO) << "File " << file_id << " has upload error " << status;
+  LOG(INFO) << "The " << file_upload_id << " has upload error " << status;
   CHECK(status.is_error());
 
-  auto it = being_uploaded_imported_messages_.find(file_id);
+  auto it = being_uploaded_imported_messages_.find(file_upload_id);
   if (it == being_uploaded_imported_messages_.end()) {
     // just in case, as in on_upload_media_error
     return;
@@ -421,7 +424,8 @@ void MessageImportManager::on_upload_imported_messages_error(FileId file_id, Sta
 }
 
 void MessageImportManager::start_import_messages(DialogId dialog_id, int64 import_id,
-                                                 vector<FileId> &&attached_file_ids, Promise<Unit> &&promise) {
+                                                 vector<FileUploadId> &&attached_file_upload_ids,
+                                                 Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   TRY_STATUS_PROMISE(promise,
                      td_->dialog_manager_->check_dialog_access_in_memory(dialog_id, false, AccessRights::Write));
@@ -445,34 +449,33 @@ void MessageImportManager::start_import_messages(DialogId dialog_id, int64 impor
   }));
   auto lock_promise = multipromise.get_promise();
 
-  for (auto attached_file_id : attached_file_ids) {
-    upload_imported_message_attachment(dialog_id, import_id,
-                                       td_->file_manager_->dup_file_id(attached_file_id, "start_import_messages"),
-                                       false, multipromise.get_promise());
+  for (auto attached_file_upload_id : attached_file_upload_ids) {
+    upload_imported_message_attachment(dialog_id, import_id, attached_file_upload_id, false,
+                                       multipromise.get_promise());
   }
 
   lock_promise.set_value(Unit());
 }
 
-void MessageImportManager::upload_imported_message_attachment(DialogId dialog_id, int64 import_id, FileId file_id,
-                                                              bool is_reupload, Promise<Unit> &&promise,
-                                                              vector<int> bad_parts) {
-  CHECK(file_id.is_valid());
-  LOG(INFO) << "Ask to upload imported message attached file " << file_id;
+void MessageImportManager::upload_imported_message_attachment(DialogId dialog_id, int64 import_id,
+                                                              FileUploadId file_upload_id, bool is_reupload,
+                                                              Promise<Unit> &&promise, vector<int> bad_parts) {
+  CHECK(file_upload_id.is_valid());
+  LOG(INFO) << "Ask to upload imported message attached " << file_upload_id;
   auto info =
       td::make_unique<UploadedImportedMessageAttachmentInfo>(dialog_id, import_id, is_reupload, std::move(promise));
-  bool is_inserted = being_uploaded_imported_message_attachments_.emplace(file_id, std::move(info)).second;
+  bool is_inserted = being_uploaded_imported_message_attachments_.emplace(file_upload_id, std::move(info)).second;
   CHECK(is_inserted);
   // TODO use force_reupload if is_reupload
-  td_->file_manager_->resume_upload({file_id, 7020}, std::move(bad_parts), upload_imported_message_attachment_callback_,
+  td_->file_manager_->resume_upload(file_upload_id, std::move(bad_parts), upload_imported_message_attachment_callback_,
                                     1, 0, false, true);
 }
 
 void MessageImportManager::on_upload_imported_message_attachment(
-    FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) {
-  LOG(INFO) << "File " << file_id << " has been uploaded";
+    FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) {
+  LOG(INFO) << "Imported message attachment " << file_upload_id << " has been uploaded";
 
-  auto it = being_uploaded_imported_message_attachments_.find(file_id);
+  auto it = being_uploaded_imported_message_attachments_.find(file_upload_id);
   if (it == being_uploaded_imported_message_attachments_.end()) {
     // just in case, as in on_upload_media
     return;
@@ -486,7 +489,7 @@ void MessageImportManager::on_upload_imported_message_attachment(
 
   being_uploaded_imported_message_attachments_.erase(it);
 
-  FileView file_view = td_->file_manager_->get_file_view(file_id);
+  FileView file_view = td_->file_manager_->get_file_view(file_upload_id.get_file_id());
   CHECK(!file_view.is_encrypted());
   const auto *main_remote_location = file_view.get_main_remote_location();
   if (input_file == nullptr && main_remote_location != nullptr) {
@@ -501,8 +504,8 @@ void MessageImportManager::on_upload_imported_message_attachment(
     auto file_reference = file_view.get_type() == FileType::Photo
                               ? FileManager::extract_file_reference(main_remote_location->as_input_photo())
                               : FileManager::extract_file_reference(main_remote_location->as_input_document());
-    td_->file_manager_->delete_file_reference(file_id, file_reference);
-    upload_imported_message_attachment(dialog_id, import_id, file_id, true, std::move(promise), {-1});
+    td_->file_manager_->delete_file_reference(file_upload_id.get_file_id(), file_reference);
+    upload_imported_message_attachment(dialog_id, import_id, file_upload_id, true, std::move(promise), {-1});
     return;
   }
   CHECK(input_file != nullptr);
@@ -510,20 +513,20 @@ void MessageImportManager::on_upload_imported_message_attachment(
   auto suggested_path = file_view.suggested_path();
   const PathView path_view(suggested_path);
   td_->create_handler<UploadImportedMediaQuery>(std::move(promise))
-      ->send(dialog_id, import_id, path_view.file_name().str(), file_id,
-             get_message_content_fake_input_media(td_, std::move(input_file), file_id));
+      ->send(dialog_id, import_id, path_view.file_name().str(), file_upload_id,
+             get_message_content_fake_input_media(td_, std::move(input_file), file_upload_id.get_file_id()));
 }
 
-void MessageImportManager::on_upload_imported_message_attachment_error(FileId file_id, Status status) {
+void MessageImportManager::on_upload_imported_message_attachment_error(FileUploadId file_upload_id, Status status) {
   if (G()->close_flag()) {
     // do not fail upload if closing
     return;
   }
 
-  LOG(INFO) << "File " << file_id << " has upload error " << status;
+  LOG(INFO) << "Imported message attachment " << file_upload_id << " has upload error " << status;
   CHECK(status.is_error());
 
-  auto it = being_uploaded_imported_message_attachments_.find(file_id);
+  auto it = being_uploaded_imported_message_attachments_.find(file_upload_id);
   if (it == being_uploaded_imported_message_attachments_.end()) {
     // just in case, as in on_upload_media_error
     return;
