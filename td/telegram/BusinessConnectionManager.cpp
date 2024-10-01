@@ -113,6 +113,8 @@ struct BusinessConnectionManager::PendingMessage {
   string send_emoji_;
   MessageSelfDestructType ttl_;
   unique_ptr<MessageContent> content_;
+  FileId file_id_;
+  FileId thumbnail_file_id_;
   unique_ptr<ReplyMarkup> reply_markup_;
   int64 random_id_ = 0;
   MessageEffectId effect_id_;
@@ -120,6 +122,16 @@ struct BusinessConnectionManager::PendingMessage {
   bool disable_notification_ = false;
   bool invert_media_ = false;
   bool disable_web_page_preview_ = false;
+
+  void init_file_ids(Td *td) {
+    file_id_ = get_message_content_any_file_id(content_.get());  // any_file_id, because it could be a photo sent by ID
+    FileView file_view = td->file_manager_->get_file_view(file_id_);
+    if (get_main_file_type(file_view.get_type()) == FileType::Photo) {
+      thumbnail_file_id_ = FileId();
+    } else {
+      thumbnail_file_id_ = get_message_content_thumbnail_file_id(content_.get(), td);
+    }
+  }
 };
 
 class BusinessConnectionManager::SendBusinessMessageQuery final : public Td::ResultHandler {
@@ -351,9 +363,9 @@ class BusinessConnectionManager::UploadBusinessMediaQuery final : public Td::Res
       return;
     }
 
-    auto file_id = get_message_file_id(message_);
+    auto file_id = message_->file_id_;
     CHECK(file_id.is_valid());
-    auto thumbnail_file_id = td_->business_connection_manager_->get_message_thumbnail_file_id(message_, file_id);
+    auto thumbnail_file_id = message_->thumbnail_file_id_;
     CHECK(thumbnail_file_id.is_valid());
     // always delete partial remote location for the thumbnail, because it can't be reused anyway
     td_->file_manager_->delete_partial_remote_location({thumbnail_file_id, 7020});
@@ -400,7 +412,7 @@ class BusinessConnectionManager::UploadBusinessMediaQuery final : public Td::Res
     if (was_uploaded_) {
       delete_thumbnail();
 
-      auto file_id = get_message_file_id(message_);
+      auto file_id = message_->file_id_;
       auto bad_parts = FileManager::get_missing_file_parts(status);
       if (!bad_parts.empty()) {
         td_->business_connection_manager_->upload_media(std::move(message_), std::move(promise_), std::move(bad_parts));
@@ -800,6 +812,7 @@ unique_ptr<BusinessConnectionManager::PendingMessage> BusinessConnectionManager:
   message->ttl_ = input_content.ttl;
   message->send_emoji_ = std::move(input_content.emoji);
   message->random_id_ = Random::secure_int64();
+  message->init_file_ids(td_);
   return message;
 }
 
@@ -852,10 +865,11 @@ void BusinessConnectionManager::do_send_message(unique_ptr<PendingMessage> &&mes
       fake_message->dialog_id_ = request.paid_media_message_->dialog_id_;
       fake_message->business_connection_id_ = request.paid_media_message_->business_connection_id_;
       fake_message->content_ = std::move(message_contents[media_pos]);
+      fake_message->init_file_ids(td_);
       auto input_media = get_message_content_input_media(fake_message->content_.get(), td_, MessageSelfDestructType(),
                                                          string(), td_->auth_manager_->is_bot());
       if (input_media != nullptr) {
-        auto file_id = get_message_file_id(fake_message);
+        auto file_id = fake_message->file_id_;
         CHECK(file_id.is_valid());
         FileView file_view = td_->file_manager_->get_file_view(file_id);
         if (file_view.has_full_remote_location()) {
@@ -919,25 +933,9 @@ void BusinessConnectionManager::process_sent_business_message(
                                                                         std::move(update->reply_to_message_)));
 }
 
-FileId BusinessConnectionManager::get_message_file_id(const unique_ptr<PendingMessage> &message) {
-  CHECK(message != nullptr);
-  return get_message_content_any_file_id(
-      message->content_.get());  // any_file_id, because it could be a photo sent by ID
-}
-
-FileId BusinessConnectionManager::get_message_thumbnail_file_id(const unique_ptr<PendingMessage> &message,
-                                                                FileId file_id) const {
-  FileView file_view = td_->file_manager_->get_file_view(file_id);
-  if (get_main_file_type(file_view.get_type()) == FileType::Photo) {
-    return FileId();
-  }
-  CHECK(message != nullptr);
-  return get_message_content_thumbnail_file_id(message->content_.get(), td_);
-}
-
 void BusinessConnectionManager::upload_media(unique_ptr<PendingMessage> &&message, Promise<UploadMediaResult> &&promise,
                                              vector<int> bad_parts) {
-  auto file_id = get_message_file_id(message);
+  auto file_id = message->file_id_;
   CHECK(file_id.is_valid());
   FileView file_view = td_->file_manager_->get_file_view(file_id);
   if (file_view.is_encrypted()) {
@@ -984,7 +982,7 @@ void BusinessConnectionManager::on_upload_media(FileId file_id,
   being_uploaded_files_.erase(it);
 
   being_uploaded_media.input_file_ = std::move(input_file);
-  auto thumbnail_file_id = get_message_thumbnail_file_id(being_uploaded_media.message_, file_id);
+  auto thumbnail_file_id = being_uploaded_media.message_->thumbnail_file_id_;
   if (being_uploaded_media.input_file_ != nullptr && thumbnail_file_id.is_valid()) {
     // TODO: download thumbnail if needed (like in secret chats)
     LOG(INFO) << "Ask to upload thumbnail " << thumbnail_file_id;
@@ -1018,6 +1016,7 @@ void BusinessConnectionManager::on_upload_thumbnail(
 
   if (thumbnail_input_file == nullptr) {
     delete_message_content_thumbnail(being_uploaded_media.message_->content_.get(), td_);
+    being_uploaded_media.message_->init_file_ids(td_);
   }
 
   do_upload_media(std::move(being_uploaded_media), std::move(thumbnail_input_file));
@@ -1025,8 +1024,8 @@ void BusinessConnectionManager::on_upload_thumbnail(
 
 void BusinessConnectionManager::do_upload_media(BeingUploadedMedia &&being_uploaded_media,
                                                 telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail) {
-  auto file_id = get_message_file_id(being_uploaded_media.message_);
-  auto thumbnail_file_id = get_message_thumbnail_file_id(being_uploaded_media.message_, file_id);
+  auto file_id = being_uploaded_media.message_->file_id_;
+  auto thumbnail_file_id = being_uploaded_media.message_->thumbnail_file_id_;
   auto input_file = std::move(being_uploaded_media.input_file_);
   bool have_input_file = input_file != nullptr;
   bool have_input_thumbnail = input_thumbnail != nullptr;
@@ -1062,7 +1061,7 @@ void BusinessConnectionManager::complete_upload_media(unique_ptr<PendingMessage>
   auto old_content_type = old_content->get_type();
   auto new_content_type = new_content->get_type();
 
-  auto old_file_id = get_message_file_id(message);
+  auto old_file_id = message->file_id_;
   if (old_content_type != new_content_type) {
     need_update = true;
 
@@ -1080,6 +1079,7 @@ void BusinessConnectionManager::complete_upload_media(unique_ptr<PendingMessage>
   } else {
     update_message_content_file_id_remote(old_content.get(), get_message_content_any_file_id(new_content.get()));
   }
+  message->init_file_ids(td_);
 
   auto input_media =
       get_message_content_input_media(message->content_.get(), td_, message->ttl_, message->send_emoji_, true);
@@ -1121,7 +1121,7 @@ void BusinessConnectionManager::send_message_album(
     auto input_media = get_message_content_input_media(message->content_.get(), td_, message->ttl_,
                                                        message->send_emoji_, td_->auth_manager_->is_bot());
     if (input_media != nullptr) {
-      auto file_id = get_message_file_id(message);
+      auto file_id = message->file_id_;
       CHECK(file_id.is_valid());
       FileView file_view = td_->file_manager_->get_file_view(file_id);
       if (file_view.has_full_remote_location()) {

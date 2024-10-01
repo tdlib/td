@@ -162,10 +162,6 @@ class BusinessConnectionManager final : public Actor {
   void process_sent_business_message(telegram_api::object_ptr<telegram_api::Updates> &&updates_ptr,
                                      Promise<td_api::object_ptr<td_api::businessMessage>> &&promise);
 
-  static FileId get_message_file_id(const unique_ptr<PendingMessage> &message);
-
-  FileId get_message_thumbnail_file_id(const unique_ptr<PendingMessage> &message, FileId file_id) const;
-
   void upload_media(unique_ptr<PendingMessage> &&message, Promise<UploadMediaResult> &&promise,
                     vector<int> bad_parts = {});
 
