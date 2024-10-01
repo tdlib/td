@@ -52,7 +52,7 @@
 namespace td {
 
 class UploadRingtoneQuery final : public Td::ResultHandler {
-  FileId file_id_;
+  FileUploadId file_upload_id_;
   Promise<telegram_api::object_ptr<telegram_api::Document>> promise_;
 
  public:
@@ -60,10 +60,10 @@ class UploadRingtoneQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> &&input_file, const string &file_name,
-            const string &mime_type) {
+  void send(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> &&input_file,
+            const string &file_name, const string &mime_type) {
     CHECK(input_file != nullptr);
-    file_id_ = file_id;
+    file_upload_id_ = file_upload_id;
 
     send_query(G()->net_query_creator().create(
         telegram_api::account_uploadRingtone(std::move(input_file), file_name, mime_type), {{"ringtone"}}));
@@ -79,7 +79,7 @@ class UploadRingtoneQuery final : public Td::ResultHandler {
     LOG(INFO) << "Receive result for UploadRingtoneQuery: " << to_string(result);
     promise_.set_value(std::move(result));
 
-    td_->file_manager_->delete_partial_remote_location({file_id_, 7020});
+    td_->file_manager_->delete_partial_remote_location(file_upload_id_);
   }
 
   void on_error(Status status) final {
@@ -91,7 +91,7 @@ class UploadRingtoneQuery final : public Td::ResultHandler {
       // TODO reupload the file
     }
 
-    td_->file_manager_->delete_partial_remote_location({file_id_, 7020});
+    td_->file_manager_->delete_partial_remote_location(file_upload_id_);
     td_->notification_settings_manager_->reload_saved_ringtones(Auto());
     promise_.set_error(std::move(status));
   }
@@ -571,12 +571,12 @@ class NotificationSettingsManager::UploadRingtoneCallback final : public FileMan
  public:
   void on_upload_ok(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
     send_closure_later(G()->notification_settings_manager(), &NotificationSettingsManager::on_upload_ringtone,
-                       file_upload_id.get_file_id(), std::move(input_file));
+                       file_upload_id, std::move(input_file));
   }
 
   void on_upload_error(FileUploadId file_upload_id, Status error) final {
     send_closure_later(G()->notification_settings_manager(), &NotificationSettingsManager::on_upload_ringtone_error,
-                       file_upload_id.get_file_id(), std::move(error));
+                       file_upload_id, std::move(error));
   }
 };
 
@@ -1123,26 +1123,26 @@ void NotificationSettingsManager::add_saved_ringtone(td_api::object_ptr<td_api::
 
   file_id = td_->file_manager_->copy_file_id(file_id, FileType::Ringtone, DialogId(), "add_saved_ringtone");
 
-  upload_ringtone(td_->file_manager_->dup_file_id(file_id, "add_saved_ringtone"), false, std::move(promise));
+  upload_ringtone({file_id, FileManager::get_internal_upload_id()}, false, std::move(promise));
 }
 
-void NotificationSettingsManager::upload_ringtone(FileId file_id, bool is_reupload,
+void NotificationSettingsManager::upload_ringtone(FileUploadId file_upload_id, bool is_reupload,
                                                   Promise<td_api::object_ptr<td_api::notificationSound>> &&promise,
                                                   vector<int> bad_parts) {
-  CHECK(file_id.is_valid());
-  LOG(INFO) << "Ask to upload ringtone " << file_id;
+  CHECK(file_upload_id.is_valid());
+  LOG(INFO) << "Ask to upload ringtone " << file_upload_id;
   bool is_inserted =
-      being_uploaded_ringtones_.emplace(file_id, UploadedRingtone{is_reupload, std::move(promise)}).second;
+      being_uploaded_ringtones_.emplace(file_upload_id, UploadedRingtone{is_reupload, std::move(promise)}).second;
   CHECK(is_inserted);
   // TODO use force_reupload if is_reupload
-  td_->file_manager_->resume_upload({file_id, 7020}, std::move(bad_parts), upload_ringtone_callback_, 32, 0);
+  td_->file_manager_->resume_upload(file_upload_id, std::move(bad_parts), upload_ringtone_callback_, 32, 0);
 }
 
-void NotificationSettingsManager::on_upload_ringtone(FileId file_id,
+void NotificationSettingsManager::on_upload_ringtone(FileUploadId file_upload_id,
                                                      telegram_api::object_ptr<telegram_api::InputFile> input_file) {
-  LOG(INFO) << "File " << file_id << " has been uploaded";
+  LOG(INFO) << "Ringtone " << file_upload_id << " has been uploaded";
 
-  auto it = being_uploaded_ringtones_.find(file_id);
+  auto it = being_uploaded_ringtones_.find(file_upload_id);
   if (it == being_uploaded_ringtones_.end()) {
     // just in case, as in on_upload_media
     return;
@@ -1153,7 +1153,7 @@ void NotificationSettingsManager::on_upload_ringtone(FileId file_id,
 
   being_uploaded_ringtones_.erase(it);
 
-  FileView file_view = td_->file_manager_->get_file_view(file_id);
+  FileView file_view = td_->file_manager_->get_file_view(file_upload_id.get_file_id());
   CHECK(!file_view.is_encrypted());
   CHECK(file_view.get_type() == FileType::Ringtone);
   const auto *main_remote_location = file_view.get_main_remote_location();
@@ -1197,14 +1197,14 @@ void NotificationSettingsManager::on_upload_ringtone(FileId file_id,
       });
 
   td_->create_handler<UploadRingtoneQuery>(std::move(query_promise))
-      ->send(file_id, std::move(input_file), file_name, mime_type);
+      ->send(file_upload_id, std::move(input_file), file_name, mime_type);
 }
 
-void NotificationSettingsManager::on_upload_ringtone_error(FileId file_id, Status status) {
-  LOG(INFO) << "File " << file_id << " has upload error " << status;
+void NotificationSettingsManager::on_upload_ringtone_error(FileUploadId file_upload_id, Status status) {
+  LOG(INFO) << "Ringtone " << file_upload_id << " has upload error " << status;
   CHECK(status.is_error());
 
-  auto it = being_uploaded_ringtones_.find(file_id);
+  auto it = being_uploaded_ringtones_.find(file_upload_id);
   if (it == being_uploaded_ringtones_.end()) {
     // just in case
     return;
