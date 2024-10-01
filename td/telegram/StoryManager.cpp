@@ -1089,13 +1089,10 @@ class CanSendStoryQuery final : public Td::ResultHandler {
 
 class StoryManager::SendStoryQuery final : public Td::ResultHandler {
   DialogId dialog_id_;
-  FileId file_id_;
   unique_ptr<PendingStory> pending_story_;
 
  public:
-  void send(FileId file_id, unique_ptr<PendingStory> pending_story,
-            telegram_api::object_ptr<telegram_api::InputFile> input_file) {
-    file_id_ = file_id;
+  void send(unique_ptr<PendingStory> pending_story, telegram_api::object_ptr<telegram_api::InputFile> input_file) {
     pending_story_ = std::move(pending_story);
     CHECK(pending_story_ != nullptr);
     dialog_id_ = pending_story_->dialog_id_;
@@ -1171,9 +1168,9 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for SendStoryQuery: " << to_string(ptr);
     td_->updates_manager_->on_get_updates(
-        std::move(ptr), PromiseCreator::lambda([file_id = file_id_, pending_story = std::move(pending_story_)](
-                                                   Result<Unit> &&result) mutable {
-          send_closure(G()->story_manager(), &StoryManager::delete_pending_story, file_id, std::move(pending_story),
+        std::move(ptr),
+        PromiseCreator::lambda([pending_story = std::move(pending_story_)](Result<Unit> &&result) mutable {
+          send_closure(G()->story_manager(), &StoryManager::delete_pending_story, std::move(pending_story),
                        result.is_ok() ? Status::OK() : result.move_as_error());
         }));
   }
@@ -1192,19 +1189,17 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
     }
 
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "SendStoryQuery");
-    td_->story_manager_->delete_pending_story(file_id_, std::move(pending_story_), std::move(status));
+    td_->story_manager_->delete_pending_story(std::move(pending_story_), std::move(status));
   }
 };
 
 class StoryManager::EditStoryQuery final : public Td::ResultHandler {
   DialogId dialog_id_;
-  FileId file_id_;
   unique_ptr<PendingStory> pending_story_;
 
  public:
-  void send(FileId file_id, const Story *story, unique_ptr<PendingStory> pending_story,
+  void send(const Story *story, unique_ptr<PendingStory> pending_story,
             telegram_api::object_ptr<telegram_api::InputFile> input_file, const BeingEditedStory *edited_story) {
-    file_id_ = file_id;
     pending_story_ = std::move(pending_story);
     CHECK(pending_story_ != nullptr);
     dialog_id_ = pending_story_->dialog_id_;
@@ -1254,9 +1249,9 @@ class StoryManager::EditStoryQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for EditStoryQuery: " << to_string(ptr);
     td_->updates_manager_->on_get_updates(
-        std::move(ptr), PromiseCreator::lambda([file_id = file_id_, pending_story = std::move(pending_story_)](
-                                                   Result<Unit> &&result) mutable {
-          send_closure(G()->story_manager(), &StoryManager::delete_pending_story, file_id, std::move(pending_story),
+        std::move(ptr),
+        PromiseCreator::lambda([pending_story = std::move(pending_story_)](Result<Unit> &&result) mutable {
+          send_closure(G()->story_manager(), &StoryManager::delete_pending_story, std::move(pending_story),
                        result.is_ok() ? Status::OK() : result.move_as_error());
         }));
   }
@@ -1269,7 +1264,7 @@ class StoryManager::EditStoryQuery final : public Td::ResultHandler {
     }
 
     if (!td_->auth_manager_->is_bot() && status.message() == "STORY_NOT_MODIFIED") {
-      return td_->story_manager_->delete_pending_story(file_id_, std::move(pending_story_), Status::OK());
+      return td_->story_manager_->delete_pending_story(std::move(pending_story_), Status::OK());
     }
 
     auto bad_parts = FileManager::get_missing_file_parts(status);
@@ -1279,7 +1274,7 @@ class StoryManager::EditStoryQuery final : public Td::ResultHandler {
     }
 
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "EditStoryQuery");
-    td_->story_manager_->delete_pending_story(file_id_, std::move(pending_story_), std::move(status));
+    td_->story_manager_->delete_pending_story(std::move(pending_story_), std::move(status));
   }
 };
 
@@ -1304,11 +1299,14 @@ StoryManager::PendingStory::PendingStory(DialogId dialog_id, StoryId story_id, S
     , send_story_num_(send_story_num)
     , random_id_(random_id)
     , story_(std::move(story)) {
+  if (story_ != nullptr && story_->content_ != nullptr) {
+    file_id_ = get_story_content_any_file_id(story_->content_.get());
+  }
 }
 
-StoryManager::ReadyToSendStory::ReadyToSendStory(FileId file_id, unique_ptr<PendingStory> &&pending_story,
+StoryManager::ReadyToSendStory::ReadyToSendStory(unique_ptr<PendingStory> &&pending_story,
                                                  telegram_api::object_ptr<telegram_api::InputFile> &&input_file)
-    : file_id_(file_id), pending_story_(std::move(pending_story)), input_file_(std::move(input_file)) {
+    : pending_story_(std::move(pending_story)), input_file_(std::move(input_file)) {
 }
 
 template <class StorerT>
@@ -1496,6 +1494,9 @@ void StoryManager::PendingStory::parse(ParserT &parser) {
   parse(story_, parser);
   if (has_forward_from_story_full_id) {
     parse(forward_from_story_full_id_, parser);
+  }
+  if (story_ != nullptr && story_->content_ != nullptr) {
+    file_id_ = get_story_content_any_file_id(story_->content_.get());
   }
 }
 
@@ -5239,6 +5240,7 @@ void StoryManager::do_send_story(unique_ptr<PendingStory> &&pending_story, vecto
   CHECK(pending_story->story_ != nullptr);
   CHECK(pending_story->story_->content_ != nullptr);
   CHECK(pending_story->story_id_.is_valid());
+  CHECK(pending_story->file_id_.is_valid());
 
   auto story_full_id = StoryFullId(pending_story->dialog_id_, pending_story->story_id_);
   if (bad_parts.empty()) {
@@ -5275,11 +5277,8 @@ void StoryManager::do_send_story(unique_ptr<PendingStory> &&pending_story, vecto
     }
   }
 
-  auto content = pending_story->story_->content_.get();
+  auto file_id = pending_story->file_id_;
   auto upload_order = pending_story->send_story_num_;
-
-  FileId file_id = get_story_content_any_file_id(content);
-  CHECK(file_id.is_valid());
 
   LOG(INFO) << "Ask to upload file " << file_id << " with bad parts " << bad_parts;
   if (!pending_story->story_id_.is_server()) {
@@ -5325,11 +5324,11 @@ void StoryManager::on_upload_story(FileId file_id, telegram_api::object_ptr<tele
   const auto *main_remote_location = file_view.get_main_remote_location();
   if (input_file == nullptr && main_remote_location != nullptr) {
     if (main_remote_location->is_web()) {
-      delete_pending_story(file_id, std::move(pending_story), Status::Error(400, "Can't use web photo as a story"));
+      delete_pending_story(std::move(pending_story), Status::Error(400, "Can't use web photo as a story"));
       return;
     }
     if (pending_story->was_reuploaded_) {
-      delete_pending_story(file_id, std::move(pending_story), Status::Error(500, "Failed to reupload story"));
+      delete_pending_story(std::move(pending_story), Status::Error(500, "Failed to reupload story"));
       return;
     }
     pending_story->was_reuploaded_ = true;
@@ -5343,13 +5342,13 @@ void StoryManager::on_upload_story(FileId file_id, telegram_api::object_ptr<tele
 
   bool is_edit = pending_story->story_id_.is_server();
   if (is_edit) {
-    do_edit_story(file_id, std::move(pending_story), std::move(input_file));
+    do_edit_story(std::move(pending_story), std::move(input_file));
   } else {
     auto dialog_id = pending_story->dialog_id_;
     auto send_story_num = pending_story->send_story_num_;
     LOG(INFO) << "Story " << send_story_num << " is ready to be sent";
-    ready_to_send_stories_.emplace(
-        send_story_num, td::make_unique<ReadyToSendStory>(file_id, std::move(pending_story), std::move(input_file)));
+    ready_to_send_stories_.emplace(send_story_num,
+                                   td::make_unique<ReadyToSendStory>(std::move(pending_story), std::move(input_file)));
     try_send_story(dialog_id);
   }
 }
@@ -5384,7 +5383,7 @@ void StoryManager::on_upload_story_error(FileId file_id, Status status) {
     }
   }
 
-  delete_pending_story(file_id, std::move(pending_story), std::move(status));
+  delete_pending_story(std::move(pending_story), std::move(status));
   set_promises(promises);
 }
 
@@ -5404,8 +5403,7 @@ void StoryManager::try_send_story(DialogId dialog_id) {
   auto ready_to_send_story = std::move(it->second);
   ready_to_send_stories_.erase(it);
 
-  td_->create_handler<SendStoryQuery>()->send(ready_to_send_story->file_id_,
-                                              std::move(ready_to_send_story->pending_story_),
+  td_->create_handler<SendStoryQuery>()->send(std::move(ready_to_send_story->pending_story_),
                                               std::move(ready_to_send_story->input_file_));
 }
 
@@ -5578,13 +5576,13 @@ void StoryManager::edit_story(DialogId owner_dialog_id, StoryId story_id,
   on_story_changed(story_full_id, story, true, true);
 
   if (edited_story->content_ == nullptr) {
-    return do_edit_story(FileId(), std::move(pending_story), nullptr);
+    return do_edit_story(std::move(pending_story), nullptr);
   }
 
   do_send_story(std::move(pending_story), {});
 }
 
-void StoryManager::do_edit_story(FileId file_id, unique_ptr<PendingStory> &&pending_story,
+void StoryManager::do_edit_story(unique_ptr<PendingStory> &&pending_story,
                                  telegram_api::object_ptr<telegram_api::InputFile> input_file) {
   StoryFullId story_full_id{pending_story->dialog_id_, pending_story->story_id_};
   const Story *story = get_story(story_full_id);
@@ -5592,14 +5590,11 @@ void StoryManager::do_edit_story(FileId file_id, unique_ptr<PendingStory> &&pend
   if (story == nullptr || it == being_edited_stories_.end() ||
       edit_generations_[story_full_id] != pending_story->random_id_) {
     LOG(INFO) << "Skip outdated edit of " << story_full_id;
-    if (file_id.is_valid()) {
-      td_->file_manager_->cancel_upload({file_id, 7020});
-    }
+    td_->file_manager_->cancel_upload({pending_story->file_id_, 7020});
     return;
   }
   CHECK(story->content_ != nullptr);
-  td_->create_handler<EditStoryQuery>()->send(file_id, story, std::move(pending_story), std::move(input_file),
-                                              it->second.get());
+  td_->create_handler<EditStoryQuery>()->send(story, std::move(pending_story), std::move(input_file), it->second.get());
 }
 
 void StoryManager::edit_story_cover(DialogId owner_dialog_id, StoryId story_id, double main_frame_timestamp,
@@ -5632,12 +5627,12 @@ void StoryManager::edit_story_cover(DialogId owner_dialog_id, StoryId story_id, 
              std::move(input_media));
 }
 
-void StoryManager::delete_pending_story(FileId file_id, unique_ptr<PendingStory> &&pending_story, Status status) {
+void StoryManager::delete_pending_story(unique_ptr<PendingStory> &&pending_story, Status status) {
   if (G()->close_flag() && G()->use_message_database()) {
     return;
   }
-  if (file_id.is_valid()) {
-    td_->file_manager_->delete_partial_remote_location({file_id, 7020});
+  if (pending_story->file_id_.is_valid()) {
+    td_->file_manager_->delete_partial_remote_location({pending_story->file_id_, 7020});
   }
 
   CHECK(pending_story != nullptr);
@@ -6021,7 +6016,7 @@ void StoryManager::on_binlog_events(vector<BinlogEvent> &&events) {
         pending_story->random_id_ = ++edit_generations_[story_full_id];
 
         if (edited_story->content_ == nullptr) {
-          do_edit_story(FileId(), std::move(pending_story), nullptr);
+          do_edit_story(std::move(pending_story), nullptr);
         } else {
           pending_story->story_->content_ = copy_story_content(edited_story->content_.get());
           do_send_story(std::move(pending_story), {});
