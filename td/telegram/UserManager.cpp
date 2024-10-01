@@ -4739,9 +4739,7 @@ void UserManager::set_profile_photo_impl(UserId user_id, const td_api::object_pt
       if (!file_id.is_valid()) {
         return promise.set_error(Status::Error(400, "Unknown profile photo ID specified"));
       }
-      return send_update_profile_photo_query(user_id,
-                                             td_->file_manager_->dup_file_id(file_id, "set_profile_photo_impl"),
-                                             photo_id, is_fallback, std::move(promise));
+      return send_update_profile_photo_query(user_id, file_id, photo_id, is_fallback, std::move(promise));
     }
     case td_api::inputChatPhotoStatic::ID: {
       auto photo = static_cast<const td_api::inputChatPhotoStatic *>(input_photo.get());
