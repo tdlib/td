@@ -9,6 +9,7 @@
 #include "td/telegram/BusinessConnectionId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/files/FileUploadId.h"
 #include "td/telegram/MessageEffectId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageInputReplyTo.h"
@@ -169,11 +170,11 @@ class BusinessConnectionManager final : public Actor {
                            telegram_api::object_ptr<telegram_api::InputMedia> &&input_media,
                            Promise<td_api::object_ptr<td_api::businessMessage>> &&promise);
 
-  void on_upload_media(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
+  void on_upload_media(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
 
-  void on_upload_media_error(FileId file_id, Status status);
+  void on_upload_media_error(FileUploadId file_upload_id, Status status);
 
-  void on_upload_thumbnail(FileId thumbnail_file_id,
+  void on_upload_thumbnail(FileUploadId thumbnail_file_upload_id,
                            telegram_api::object_ptr<telegram_api::InputFile> thumbnail_input_file);
 
   void do_upload_media(BeingUploadedMedia &&being_uploaded_media,
@@ -212,8 +213,8 @@ class BusinessConnectionManager final : public Actor {
   std::shared_ptr<UploadMediaCallback> upload_media_callback_;
   std::shared_ptr<UploadThumbnailCallback> upload_thumbnail_callback_;
 
-  FlatHashMap<FileId, BeingUploadedMedia, FileIdHash> being_uploaded_files_;
-  FlatHashMap<FileId, BeingUploadedMedia, FileIdHash> being_uploaded_thumbnails_;
+  FlatHashMap<FileUploadId, BeingUploadedMedia, FileUploadIdHash> being_uploaded_files_;
+  FlatHashMap<FileUploadId, BeingUploadedMedia, FileUploadIdHash> being_uploaded_thumbnails_;
 
   Td *td_;
   ActorShared<> parent_;
