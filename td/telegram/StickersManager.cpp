@@ -971,7 +971,7 @@ class ReadFeaturedStickerSetsQuery final : public Td::ResultHandler {
 
 class UploadStickerFileQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
-  FileId file_id_;
+  FileUploadId file_upload_id_;
   bool is_url_ = false;
   bool was_uploaded_ = false;
 
@@ -979,11 +979,11 @@ class UploadStickerFileQuery final : public Td::ResultHandler {
   explicit UploadStickerFileQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(tl_object_ptr<telegram_api::InputPeer> &&input_peer, FileId file_id, bool is_url,
+  void send(tl_object_ptr<telegram_api::InputPeer> &&input_peer, FileUploadId file_upload_id, bool is_url,
             tl_object_ptr<telegram_api::InputMedia> &&input_media) {
     CHECK(input_peer != nullptr);
     CHECK(input_media != nullptr);
-    file_id_ = file_id;
+    file_upload_id_ = file_upload_id;
     is_url_ = is_url;
     was_uploaded_ = FileManager::extract_was_uploaded(input_media);
     send_query(G()->net_query_creator().create(
@@ -996,23 +996,24 @@ class UploadStickerFileQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->stickers_manager_->on_uploaded_sticker_file(file_id_, is_url_, result_ptr.move_as_ok(), std::move(promise_));
+    td_->stickers_manager_->on_uploaded_sticker_file(file_upload_id_, is_url_, result_ptr.move_as_ok(),
+                                                     std::move(promise_));
   }
 
   void on_error(Status status) final {
     if (was_uploaded_) {
-      CHECK(file_id_.is_valid());
+      CHECK(file_upload_id_.is_valid());
       auto bad_parts = FileManager::get_missing_file_parts(status);
       if (!bad_parts.empty()) {
-        // TODO td_->stickers_manager_->on_upload_sticker_file_parts_missing(file_id_, std::move(bad_parts));
+        // TODO td_->stickers_manager_->on_upload_sticker_file_parts_missing(file_upload_id_, std::move(bad_parts));
         // return;
       } else {
-        td_->file_manager_->delete_partial_remote_location_if_needed({file_id_, 7020}, status);
+        td_->file_manager_->delete_partial_remote_location_if_needed(file_upload_id_, status);
       }
     } else if (FileReferenceManager::is_file_reference_error(status)) {
       LOG(ERROR) << "Receive file reference error for UploadStickerFileQuery";
     }
-    td_->file_manager_->cancel_upload({file_id_, 7020});
+    td_->file_manager_->cancel_upload(file_upload_id_);
     promise_.set_error(std::move(status));
   }
 };
@@ -1691,13 +1692,13 @@ class StickersManager::StickerSetListLogEvent {
 class StickersManager::UploadStickerFileCallback final : public FileManager::UploadCallback {
  public:
   void on_upload_ok(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
-    send_closure_later(G()->stickers_manager(), &StickersManager::on_upload_sticker_file, file_upload_id.get_file_id(),
+    send_closure_later(G()->stickers_manager(), &StickersManager::on_upload_sticker_file, file_upload_id,
                        std::move(input_file));
   }
 
   void on_upload_error(FileUploadId file_upload_id, Status error) final {
-    send_closure_later(G()->stickers_manager(), &StickersManager::on_upload_sticker_file_error,
-                       file_upload_id.get_file_id(), std::move(error));
+    send_closure_later(G()->stickers_manager(), &StickersManager::on_upload_sticker_file_error, file_upload_id,
+                       std::move(error));
   }
 };
 
@@ -8025,7 +8026,8 @@ void StickersManager::upload_sticker_file(UserId user_id, StickerFormat sticker_
       });
 
   if (is_url) {
-    do_upload_sticker_file(user_id, file_id, nullptr, std::move(upload_promise));
+    do_upload_sticker_file(user_id, {file_id, FileManager::get_internal_upload_id()}, nullptr,
+                           std::move(upload_promise));
   } else if (is_local) {
     upload_sticker_file(user_id, file_id, std::move(upload_promise));
   } else {
@@ -8182,7 +8184,8 @@ void StickersManager::create_new_sticker_set(UserId user_id, string title, strin
   auto lock_promise = multipromise.get_promise();
 
   for (auto file_id : url_file_ids) {
-    do_upload_sticker_file(user_id, file_id, nullptr, multipromise.get_promise());
+    do_upload_sticker_file(user_id, {file_id, FileManager::get_internal_upload_id()}, nullptr,
+                           multipromise.get_promise());
   }
 
   for (auto file_id : local_file_ids) {
@@ -8193,27 +8196,23 @@ void StickersManager::create_new_sticker_set(UserId user_id, string title, strin
 }
 
 void StickersManager::upload_sticker_file(UserId user_id, FileId file_id, Promise<Unit> &&promise) {
-  FileId upload_file_id;
   if (td_->file_manager_->get_file_view(file_id).get_type() == FileType::Sticker) {
     CHECK(get_input_media(file_id, nullptr, nullptr, string()) == nullptr);
-    upload_file_id = dup_sticker(td_->file_manager_->dup_file_id(file_id, "upload_sticker_file"), file_id);
   } else {
     CHECK(td_->documents_manager_->get_input_media(file_id, nullptr, nullptr) == nullptr);
-    upload_file_id =
-        td_->documents_manager_->dup_document(td_->file_manager_->dup_file_id(file_id, "upload_sticker_file"), file_id);
   }
 
-  CHECK(upload_file_id.is_valid());
-  being_uploaded_files_[upload_file_id] = {user_id, std::move(promise)};
-  LOG(INFO) << "Ask to upload sticker file " << upload_file_id;
-  td_->file_manager_->upload({upload_file_id, 7020}, upload_sticker_file_callback_, 2, 0);
+  FileUploadId file_upload_id{file_id, FileManager::get_internal_upload_id()};
+  being_uploaded_files_[file_upload_id] = {user_id, std::move(promise)};
+  LOG(INFO) << "Ask to upload sticker " << file_upload_id;
+  td_->file_manager_->upload(file_upload_id, upload_sticker_file_callback_, 2, 0);
 }
 
-void StickersManager::on_upload_sticker_file(FileId file_id,
+void StickersManager::on_upload_sticker_file(FileUploadId file_upload_id,
                                              telegram_api::object_ptr<telegram_api::InputFile> input_file) {
-  LOG(INFO) << "Sticker file " << file_id << " has been uploaded";
+  LOG(INFO) << "Sticker " << file_upload_id << " has been uploaded";
 
-  auto it = being_uploaded_files_.find(file_id);
+  auto it = being_uploaded_files_.find(file_upload_id);
   CHECK(it != being_uploaded_files_.end());
 
   auto user_id = it->second.first;
@@ -8221,19 +8220,19 @@ void StickersManager::on_upload_sticker_file(FileId file_id,
 
   being_uploaded_files_.erase(it);
 
-  do_upload_sticker_file(user_id, file_id, std::move(input_file), std::move(promise));
+  do_upload_sticker_file(user_id, file_upload_id, std::move(input_file), std::move(promise));
 }
 
-void StickersManager::on_upload_sticker_file_error(FileId file_id, Status status) {
+void StickersManager::on_upload_sticker_file_error(FileUploadId file_upload_id, Status status) {
   if (G()->close_flag()) {
     // do not fail upload if closing
     return;
   }
 
-  LOG(WARNING) << "Sticker file " << file_id << " has upload error " << status;
+  LOG(WARNING) << "Sticker " << file_upload_id << " has upload error " << status;
   CHECK(status.is_error());
 
-  auto it = being_uploaded_files_.find(file_id);
+  auto it = being_uploaded_files_.find(file_upload_id);
   CHECK(it != being_uploaded_files_.end());
 
   auto promise = std::move(it->second.second);
@@ -8244,7 +8243,7 @@ void StickersManager::on_upload_sticker_file_error(FileId file_id, Status status
                                   status.message()));  // TODO CHECK that status has always a code
 }
 
-void StickersManager::do_upload_sticker_file(UserId user_id, FileId file_id,
+void StickersManager::do_upload_sticker_file(UserId user_id, FileUploadId file_upload_id,
                                              telegram_api::object_ptr<telegram_api::InputFile> &&input_file,
                                              Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
@@ -8253,35 +8252,37 @@ void StickersManager::do_upload_sticker_file(UserId user_id, FileId file_id,
   auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
   if (input_peer == nullptr) {
     if (input_file != nullptr) {
-      td_->file_manager_->cancel_upload({file_id, 7020});
+      td_->file_manager_->cancel_upload(file_upload_id);
     }
     return promise.set_error(Status::Error(400, "Have no access to the user"));
   }
 
-  FileView file_view = td_->file_manager_->get_file_view(file_id);
+  FileView file_view = td_->file_manager_->get_file_view(file_upload_id.get_file_id());
   FileType file_type = file_view.get_type();
 
   bool had_input_file = input_file != nullptr;
-  auto input_media = file_type == FileType::Sticker
-                         ? get_input_media(file_id, std::move(input_file), nullptr, string())
-                         : td_->documents_manager_->get_input_media(file_id, std::move(input_file), nullptr);
+  auto input_media =
+      file_type == FileType::Sticker
+          ? get_input_media(file_upload_id.get_file_id(), std::move(input_file), nullptr, string())
+          : td_->documents_manager_->get_input_media(file_upload_id.get_file_id(), std::move(input_file), nullptr);
   CHECK(input_media != nullptr);
   if (had_input_file && !FileManager::extract_was_uploaded(input_media)) {
     // if we had InputFile, but has failed to use it for input_media, then we need to immediately cancel file upload
     // so the next upload with the same file can succeed
-    td_->file_manager_->cancel_upload({file_id, 7020});
+    td_->file_manager_->cancel_upload(file_upload_id);
   }
 
   td_->create_handler<UploadStickerFileQuery>(std::move(promise))
-      ->send(std::move(input_peer), file_id, !had_input_file, std::move(input_media));
+      ->send(std::move(input_peer), file_upload_id, !had_input_file, std::move(input_media));
 }
 
-void StickersManager::on_uploaded_sticker_file(FileId file_id, bool is_url,
+void StickersManager::on_uploaded_sticker_file(FileUploadId file_upload_id, bool is_url,
                                                tl_object_ptr<telegram_api::MessageMedia> media,
                                                Promise<Unit> &&promise) {
   CHECK(media != nullptr);
   LOG(INFO) << "Receive uploaded sticker file " << to_string(media);
   if (media->get_id() != telegram_api::messageMediaDocument::ID) {
+    td_->file_manager_->delete_partial_remote_location(file_upload_id);
     return promise.set_error(Status::Error(400, "Can't upload sticker file: wrong file type"));
   }
 
@@ -8289,10 +8290,12 @@ void StickersManager::on_uploaded_sticker_file(FileId file_id, bool is_url,
   auto document_ptr = std::move(message_document->document_);
   int32 document_id = document_ptr->get_id();
   if (document_id == telegram_api::documentEmpty::ID) {
+    td_->file_manager_->delete_partial_remote_location(file_upload_id);
     return promise.set_error(Status::Error(400, "Can't upload sticker file: empty file"));
   }
   CHECK(document_id == telegram_api::document::ID);
 
+  auto file_id = file_upload_id.get_file_id();
   FileView file_view = td_->file_manager_->get_file_view(file_id);
   FileType file_type = file_view.get_type();
   auto expected_document_type = file_type == FileType::Sticker ? Document::Type::Sticker : Document::Type::General;
@@ -8319,6 +8322,7 @@ void StickersManager::on_uploaded_sticker_file(FileId file_id, bool is_url,
       td_->documents_manager_->merge_documents(document_file_id, file_id);
       return promise.set_value(Unit());
     }
+    td_->file_manager_->delete_partial_remote_location(file_upload_id);
     return promise.set_error(Status::Error(400, "Wrong file type"));
   }
 
@@ -8465,7 +8469,8 @@ void StickersManager::do_add_sticker_to_set(UserId user_id, string short_name,
   });
 
   if (is_url) {
-    do_upload_sticker_file(user_id, file_id, nullptr, std::move(on_upload_promise));
+    do_upload_sticker_file(user_id, {file_id, FileManager::get_internal_upload_id()}, nullptr,
+                           std::move(on_upload_promise));
   } else if (is_local) {
     upload_sticker_file(user_id, file_id, std::move(on_upload_promise));
   } else {
@@ -8574,7 +8579,8 @@ void StickersManager::do_set_sticker_set_thumbnail(UserId user_id, string short_
   });
 
   if (is_url) {
-    do_upload_sticker_file(user_id, file_id, nullptr, std::move(on_upload_promise));
+    do_upload_sticker_file(user_id, {file_id, FileManager::get_internal_upload_id()}, nullptr,
+                           std::move(on_upload_promise));
   } else if (is_local) {
     upload_sticker_file(user_id, file_id, std::move(on_upload_promise));
   } else {

@@ -13,6 +13,7 @@
 #include "td/telegram/EmojiGroupType.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
+#include "td/telegram/files/FileUploadId.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/PhotoFormat.h"
 #include "td/telegram/PhotoSize.h"
@@ -423,8 +424,8 @@ class StickersManager final : public Actor {
   template <class ParserT>
   FileId parse_sticker(bool in_sticker_set, ParserT &parser);
 
-  void on_uploaded_sticker_file(FileId file_id, bool is_url, tl_object_ptr<telegram_api::MessageMedia> media,
-                                Promise<Unit> &&promise);
+  void on_uploaded_sticker_file(FileUploadId file_upload_id, bool is_url,
+                                tl_object_ptr<telegram_api::MessageMedia> media, Promise<Unit> &&promise);
 
   void on_find_stickers_success(const string &emoji, tl_object_ptr<telegram_api::messages_Stickers> &&stickers);
 
@@ -819,11 +820,12 @@ class StickersManager final : public Actor {
 
   void upload_sticker_file(UserId user_id, FileId file_id, Promise<Unit> &&promise);
 
-  void on_upload_sticker_file(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
+  void on_upload_sticker_file(FileUploadId file_upload_id,
+                              telegram_api::object_ptr<telegram_api::InputFile> input_file);
 
-  void on_upload_sticker_file_error(FileId file_id, Status status);
+  void on_upload_sticker_file_error(FileUploadId file_upload_id, Status status);
 
-  void do_upload_sticker_file(UserId user_id, FileId file_id,
+  void do_upload_sticker_file(UserId user_id, FileUploadId file_upload_id,
                               telegram_api::object_ptr<telegram_api::InputFile> &&input_file, Promise<Unit> &&promise);
 
   void on_new_stickers_uploaded(int64 random_id, Result<Unit> result);
@@ -1126,7 +1128,7 @@ class StickersManager final : public Actor {
 
   std::shared_ptr<UploadStickerFileCallback> upload_sticker_file_callback_;
 
-  FlatHashMap<FileId, std::pair<UserId, Promise<Unit>>, FileIdHash> being_uploaded_files_;
+  FlatHashMap<FileUploadId, std::pair<UserId, Promise<Unit>>, FileUploadIdHash> being_uploaded_files_;
 
   FlatHashMap<string, vector<string>> emoji_language_codes_;
   FlatHashMap<string, int32> emoji_language_code_versions_;
