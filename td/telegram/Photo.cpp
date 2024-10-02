@@ -535,7 +535,9 @@ void merge_photos(Td *td, const Photo *old_photo, Photo *new_photo, DialogId dia
                << " with new photos size = " << new_photos_size << ", need_merge = " << need_merge
                << ", need_update = " << need_update;
     if (need_merge && new_photos_size != 0) {
-      FileId old_file_id = get_photo_upload_file_id(*old_photo);
+      CHECK(!old_photo->photos.empty());
+      CHECK(old_photo->photos.back().type == 'i');
+      FileId old_file_id = old_photo->photos.back().file_id;
       FileView old_file_view = td->file_manager_->get_file_view(old_file_id);
       const auto *old_main_remote_location = old_file_view.get_main_remote_location();
       FileId new_file_id = new_photo->photos[0].file_id;
