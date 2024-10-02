@@ -826,7 +826,6 @@ class FileManager final : public Actor {
   };
   struct FileUploadRequests {
     int8 user_upload_priority_{0};
-    std::shared_ptr<UploadCallback> user_upload_callback_;
     FlatHashMap<int64, FileUploadInfo> internal_uploads_;
   };
   FlatHashMap<FileId, FileUploadRequests, FileIdHash> file_upload_requests_;

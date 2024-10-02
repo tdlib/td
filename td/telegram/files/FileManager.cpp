@@ -1299,6 +1299,29 @@ class FileManager::UserDownloadFileCallback final : public FileManager::Download
   }
 };
 
+class FileManager::PreliminaryUploadFileCallback final : public UploadCallback {
+ public:
+  void on_upload_ok(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
+    // cancel file upload of the file to allow next upload with the same file to succeed
+    send_closure(G()->file_manager(), &FileManager::cancel_upload, file_upload_id);
+  }
+
+  void on_upload_encrypted_ok(FileUploadId file_upload_id,
+                              telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file) final {
+    // cancel file upload of the file to allow next upload with the same file to succeed
+    send_closure(G()->file_manager(), &FileManager::cancel_upload, file_upload_id);
+  }
+
+  void on_upload_secure_ok(FileUploadId file_upload_id,
+                           telegram_api::object_ptr<telegram_api::InputSecureFile> input_file) final {
+    // cancel file upload of the file to allow next upload with the same file to succeed
+    send_closure(G()->file_manager(), &FileManager::cancel_upload, file_upload_id);
+  }
+
+  void on_upload_error(FileUploadId file_upload_id, Status error) final {
+  }
+};
+
 FileManager::FileManager(unique_ptr<Context> context)
     : context_(std::move(context)), user_download_file_callback_(std::make_shared<UserDownloadFileCallback>(this)) {
   if (G()->use_file_database()) {
@@ -3575,11 +3598,6 @@ void FileManager::resume_upload(FileUploadId file_upload_id, vector<int> bad_par
     upload_info.upload_priority_ = narrow_cast<int8>(new_priority);
     upload_info.upload_callback_ = std::move(callback);
   } else {
-    if (requests.user_upload_callback_ == nullptr) {
-      requests.user_upload_callback_ = std::move(callback);
-    } else {
-      CHECK(requests.user_upload_callback_.get() == callback.get());
-    }
     requests.user_upload_priority_ = narrow_cast<int8>(new_priority);
   }
 
@@ -3926,13 +3944,13 @@ std::shared_ptr<FileManager::UploadCallback> FileManager::extract_upload_callbac
     callback = std::move(upload_info_it->second.upload_callback_);
     it->second.internal_uploads_.erase(upload_info_it);
   } else {
-    if (it->second.user_upload_callback_ == nullptr) {
+    if (it->second.user_upload_priority_ == 0) {
       return false;
     }
-    callback = std::move(it->second.user_upload_callback_);
+    callback = std::make_shared<PreliminaryUploadFileCallback>();
     it->second.user_upload_priority_ = 0;
   }
-  if (it->second.user_upload_callback_ == nullptr && it->second.internal_uploads_.empty()) {
+  if (it->second.user_upload_priority_ == 0 && it->second.internal_uploads_.empty()) {
     file_upload_requests_.erase(it);
   }
   return callback;
@@ -3947,8 +3965,8 @@ void FileManager::finish_uploads(FileId file_id, const Status &status) {
   for (auto &upload_info : it->second.internal_uploads_) {
     callbacks.emplace_back(upload_info.first, std::move(upload_info.second.upload_callback_));
   }
-  if (it->second.user_upload_callback_ != nullptr) {
-    callbacks.emplace_back(0, std::move(it->second.user_upload_callback_));
+  if (it->second.user_upload_priority_ != 0) {
+    callbacks.emplace_back(0, std::make_shared<PreliminaryUploadFileCallback>());
   }
   file_upload_requests_.erase(it);
 
@@ -5170,29 +5188,6 @@ FullRemoteFileLocation *FileManager::get_remote(int32 key) {
   }
   return &remote_location_info_.get(key).remote_;
 }
-
-class FileManager::PreliminaryUploadFileCallback final : public UploadCallback {
- public:
-  void on_upload_ok(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
-    // cancel file upload of the file to allow next upload with the same file to succeed
-    send_closure(G()->file_manager(), &FileManager::cancel_upload, file_upload_id);
-  }
-
-  void on_upload_encrypted_ok(FileUploadId file_upload_id,
-                              telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file) final {
-    // cancel file upload of the file to allow next upload with the same file to succeed
-    send_closure(G()->file_manager(), &FileManager::cancel_upload, file_upload_id);
-  }
-
-  void on_upload_secure_ok(FileUploadId file_upload_id,
-                           telegram_api::object_ptr<telegram_api::InputSecureFile> input_file) final {
-    // cancel file upload of the file to allow next upload with the same file to succeed
-    send_closure(G()->file_manager(), &FileManager::cancel_upload, file_upload_id);
-  }
-
-  void on_upload_error(FileUploadId file_upload_id, Status error) final {
-  }
-};
 
 void FileManager::preliminary_upload_file(const td_api::object_ptr<td_api::InputFile> &input_file, FileType file_type,
                                           int32 priority, Promise<td_api::object_ptr<td_api::file>> &&promise) {
