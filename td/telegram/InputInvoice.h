@@ -107,8 +107,6 @@ class InputInvoice {
 
   int32 get_duration(const Td *td) const;
 
-  FileId get_upload_file_id() const;
-
   FileId get_any_file_id() const;
 
   FileId get_thumbnail_file_id(const Td *td) const;

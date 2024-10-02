@@ -12816,7 +12816,7 @@ void MessagesManager::on_send_secret_message_error(int64 random_id, Status error
     auto message_full_id = it->second;
     auto *m = get_message(message_full_id);
     if (m != nullptr) {
-      auto file_id = get_message_content_upload_file_id(m->content.get());
+      auto file_id = get_message_content_any_file_id(m->content.get());
       if (file_id.is_valid()) {
         if (G()->close_flag() && G()->use_message_database()) {
           // do not send error, message will be re-sent after restart
@@ -23633,7 +23633,7 @@ vector<FileId> MessagesManager::get_message_file_ids(const Message *m) const {
 }
 
 void MessagesManager::cancel_upload_message_content_files(const MessageContent *content) {
-  auto file_ids = get_message_content_upload_file_ids(content);
+  auto file_ids = get_message_content_any_file_ids(content);
   // always cancel file upload, it should be a no-op in the worst case
   for (auto file_id : file_ids) {
     if (being_uploaded_files_.erase(file_id) || file_id.is_valid()) {
@@ -31660,7 +31660,7 @@ void MessagesManager::on_send_dialog_action_timeout(DialogId dialog_id) {
     return;
   }
 
-  auto file_id = get_message_content_upload_file_id(m->content.get());
+  auto file_id = get_message_content_any_file_id(m->content.get());
   if (!file_id.is_valid()) {
     LOG(ERROR) << "Have no file in " << to_string(get_message_message_content_object(dialog_id, m));
     return;

@@ -281,23 +281,6 @@ int32 MessageExtendedMedia::get_duration(const Td *td) const {
   return td->videos_manager_->get_video_duration(video_file_id_);
 }
 
-FileId MessageExtendedMedia::get_upload_file_id() const {
-  switch (type_) {
-    case Type::Empty:
-    case Type::Unsupported:
-    case Type::Preview:
-      break;
-    case Type::Photo:
-      return get_photo_upload_file_id(photo_);
-    case Type::Video:
-      return video_file_id_;
-    default:
-      UNREACHABLE();
-      break;
-  }
-  return FileId();
-}
-
 FileId MessageExtendedMedia::get_any_file_id() const {
   switch (type_) {
     case Type::Empty:

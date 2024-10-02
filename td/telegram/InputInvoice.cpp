@@ -414,10 +414,6 @@ int32 InputInvoice::get_duration(const Td *td) const {
   return extended_media_.get_duration(td);
 }
 
-FileId InputInvoice::get_upload_file_id() const {
-  return extended_media_.get_upload_file_id();
-}
-
 FileId InputInvoice::get_any_file_id() const {
   return extended_media_.get_any_file_id();
 }

@@ -8560,7 +8560,7 @@ const Photo *get_message_content_photo(const MessageContent *content) {
   return nullptr;
 }
 
-FileId get_message_content_upload_file_id(const MessageContent *content) {
+FileId get_message_content_any_file_id(const MessageContent *content) {
   switch (content->get_type()) {
     case MessageContentType::Animation:
       return static_cast<const MessageAnimation *>(content)->file_id;
@@ -8569,9 +8569,9 @@ FileId get_message_content_upload_file_id(const MessageContent *content) {
     case MessageContentType::Document:
       return static_cast<const MessageDocument *>(content)->file_id;
     case MessageContentType::Invoice:
-      return static_cast<const MessageInvoice *>(content)->input_invoice.get_upload_file_id();
+      return static_cast<const MessageInvoice *>(content)->input_invoice.get_any_file_id();
     case MessageContentType::Photo:
-      return get_photo_upload_file_id(static_cast<const MessagePhoto *>(content)->photo);
+      return get_photo_any_file_id(static_cast<const MessagePhoto *>(content)->photo);
     case MessageContentType::Sticker:
       return static_cast<const MessageSticker *>(content)->file_id;
     case MessageContentType::Video:
@@ -8587,30 +8587,6 @@ FileId get_message_content_upload_file_id(const MessageContent *content) {
       break;
   }
   return FileId();
-}
-
-vector<FileId> get_message_content_upload_file_ids(const MessageContent *content) {
-  if (content->get_type() == MessageContentType::PaidMedia) {
-    return transform(static_cast<const MessagePaidMedia *>(content)->media,
-                     [](const MessageExtendedMedia &media) { return media.get_upload_file_id(); });
-  }
-  auto file_id = get_message_content_upload_file_id(content);
-  if (file_id.is_valid()) {
-    return {file_id};
-  }
-  return {};
-}
-
-FileId get_message_content_any_file_id(const MessageContent *content) {
-  FileId result = get_message_content_upload_file_id(content);
-  if (!result.is_valid()) {
-    if (content->get_type() == MessageContentType::Photo) {
-      result = get_photo_any_file_id(static_cast<const MessagePhoto *>(content)->photo);
-    } else if (content->get_type() == MessageContentType::Invoice) {
-      result = static_cast<const MessageInvoice *>(content)->input_invoice.get_any_file_id();
-    }
-  }
-  return result;
 }
 
 vector<FileId> get_message_content_any_file_ids(const MessageContent *content) {
@@ -8749,7 +8725,7 @@ vector<FileId> get_message_content_file_ids(const MessageContent *content, const
             return Document::Type::Unknown;
         }
       }();
-      return Document(document_type, get_message_content_upload_file_id(content)).get_file_ids(td);
+      return Document(document_type, get_message_content_any_file_id(content)).get_file_ids(td);
     }
     case MessageContentType::Video: {
       auto video = static_cast<const MessageVideo *>(content);
@@ -9371,9 +9347,9 @@ void update_forum_topic_info_by_service_message_content(Td *td, const MessageCon
 void on_sent_message_content(Td *td, const MessageContent *content) {
   switch (content->get_type()) {
     case MessageContentType::Animation:
-      return td->animations_manager_->add_saved_animation_by_id(get_message_content_upload_file_id(content));
+      return td->animations_manager_->add_saved_animation_by_id(get_message_content_any_file_id(content));
     case MessageContentType::Sticker:
-      return td->stickers_manager_->add_recent_sticker_by_id(false, get_message_content_upload_file_id(content));
+      return td->stickers_manager_->add_recent_sticker_by_id(false, get_message_content_any_file_id(content));
     default:
       // nothing to do
       return;
@@ -9383,7 +9359,7 @@ void on_sent_message_content(Td *td, const MessageContent *content) {
 void move_message_content_sticker_set_to_top(Td *td, const MessageContent *content) {
   CHECK(content != nullptr);
   if (content->get_type() == MessageContentType::Sticker) {
-    td->stickers_manager_->move_sticker_set_to_top_by_sticker_id(get_message_content_upload_file_id(content));
+    td->stickers_manager_->move_sticker_set_to_top_by_sticker_id(get_message_content_any_file_id(content));
     return;
   }
 

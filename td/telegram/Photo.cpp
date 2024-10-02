@@ -724,15 +724,6 @@ vector<FileId> photo_get_file_ids(const Photo &photo) {
   return result;
 }
 
-FileId get_photo_upload_file_id(const Photo &photo) {
-  for (auto &size : photo.photos) {
-    if (size.type == 'i') {
-      return size.file_id;
-    }
-  }
-  return FileId();
-}
-
 FileId get_photo_any_file_id(const Photo &photo) {
   const auto &sizes = photo.photos;
   if (!sizes.empty()) {
