@@ -2198,7 +2198,10 @@ void QuickReplyManager::do_send_message(const QuickReplyMessage *m, vector<int> 
       FileUploadId thumbnail_file_upload_id;
       auto thumbnail_file_id = get_message_content_thumbnail_file_id(content, td_);
       if (thumbnail_file_id.is_valid()) {
-        thumbnail_file_upload_id = FileUploadId{thumbnail_file_id, FileManager::get_internal_upload_id()};
+        FileView file_view = td_->file_manager_->get_file_view(file_id);
+        if (get_main_file_type(file_view.get_type()) != FileType::Photo) {
+          thumbnail_file_upload_id = FileUploadId{thumbnail_file_id, FileManager::get_internal_upload_id()};
+        }
       }
       if (is_edit) {
         m->edited_file_upload_id = file_upload_id;
@@ -2218,14 +2221,8 @@ void QuickReplyManager::do_send_message(const QuickReplyMessage *m, vector<int> 
       return;
     }
     CHECK(file_upload_id.is_valid());
-    FileView file_view = td_->file_manager_->get_file_view(file_upload_id.get_file_id());
-    if (get_main_file_type(file_view.get_type()) == FileType::Photo) {
-      thumbnail_file_upload_id = {};
-    }
 
     LOG(INFO) << "Ask to upload " << file_upload_id << " with bad parts " << bad_parts;
-    CHECK(file_upload_id.is_valid());
-
     bool is_inserted =
         being_uploaded_files_
             .emplace(file_upload_id, std::make_tuple(message_full_id, thumbnail_file_upload_id, m->edit_generation))
