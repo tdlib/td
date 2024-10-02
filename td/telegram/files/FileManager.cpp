@@ -5206,11 +5206,10 @@ void FileManager::preliminary_upload_file(const td_api::object_ptr<td_api::Input
     return promise.set_error(Status::Error(r_file_id.error().code(), r_file_id.error().message()));
   }
   auto file_id = r_file_id.ok();
-  auto upload_file_id = dup_file_id(file_id, "preliminary_upload_file");
 
-  upload({upload_file_id, 0}, std::make_shared<PreliminaryUploadFileCallback>(), priority, 0);
+  upload({file_id, 0}, std::make_shared<PreliminaryUploadFileCallback>(), priority, 0);
 
-  promise.set_value(get_file_object(upload_file_id, false));
+  promise.set_value(get_file_object(file_id, false));
 }
 
 Result<string> FileManager::get_suggested_file_name(FileId file_id, const string &directory) {
