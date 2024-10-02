@@ -2288,23 +2288,27 @@ void QuickReplyManager::on_upload_media(FileUploadId file_upload_id,
     CHECK(is_inserted);
     td_->file_manager_->upload(thumbnail_file_upload_id, upload_thumbnail_callback_, 32, m->message_id.get());
   } else {
-    do_send_media(m, file_upload_id, thumbnail_file_upload_id, std::move(input_file), nullptr);
+    do_send_media(m, std::move(input_file), nullptr);
   }
 }
 
-void QuickReplyManager::do_send_media(const QuickReplyMessage *m, FileUploadId file_upload_id,
-                                      FileUploadId thumbnail_file_upload_id,
+void QuickReplyManager::do_send_media(const QuickReplyMessage *m,
                                       telegram_api::object_ptr<telegram_api::InputFile> input_file,
                                       telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail) {
   CHECK(m != nullptr);
 
   bool have_input_file = input_file != nullptr;
   bool have_input_thumbnail = input_thumbnail != nullptr;
-  LOG(INFO) << "Do send media " << file_upload_id << " with thumbnail " << thumbnail_file_upload_id
-            << ", have_input_file = " << have_input_file << ", have_input_thumbnail = " << have_input_thumbnail;
-
-  auto content = m->message_id.is_server() ? m->edited_content.get() : m->content.get();
+  bool is_edit = m->message_id.is_server();
+  auto content = is_edit ? m->edited_content.get() : m->content.get();
+  auto file_upload_id = is_edit ? m->edited_file_upload_id : m->file_upload_id;
+  auto thumbnail_file_upload_id = is_edit ? m->edited_thumbnail_file_upload_id : m->thumbnail_file_upload_id;
   CHECK(content != nullptr);
+
+  LOG(INFO) << "Do send media " << QuickReplyMessageFullId{m->shortcut_id, m->message_id} << ": " << file_upload_id
+            << " with thumbnail " << thumbnail_file_upload_id << ", have_input_file = " << have_input_file
+            << ", have_input_thumbnail = " << have_input_thumbnail;
+  
   auto input_media =
       get_message_content_input_media(content, -1, td_, std::move(input_file), std::move(input_thumbnail),
                                       file_upload_id, thumbnail_file_upload_id, {}, m->send_emoji, true);
@@ -2371,10 +2375,9 @@ void QuickReplyManager::on_upload_thumbnail(FileUploadId thumbnail_file_upload_i
       delete_message_content_thumbnail(m->content.get(), td_);
       m->thumbnail_file_upload_id = {};
     }
-    thumbnail_file_upload_id = {};
   }
 
-  do_send_media(m, file_upload_id, thumbnail_file_upload_id, std::move(input_file), std::move(thumbnail_input_file));
+  do_send_media(m, std::move(input_file), std::move(thumbnail_input_file));
 }
 
 void QuickReplyManager::on_message_media_uploaded(const QuickReplyMessage *m,

@@ -390,8 +390,7 @@ class QuickReplyManager final : public Actor {
 
   void on_upload_media(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
 
-  void do_send_media(const QuickReplyMessage *m, FileUploadId file_upload_id, FileUploadId thumbnail_file_upload_id,
-                     telegram_api::object_ptr<telegram_api::InputFile> input_file,
+  void do_send_media(const QuickReplyMessage *m, telegram_api::object_ptr<telegram_api::InputFile> input_file,
                      telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail);
 
   void on_upload_media_error(FileUploadId file_upload_id, Status status);
