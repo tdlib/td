@@ -7085,21 +7085,14 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
   }
 
   bool to_secret = dialog_id.get_type() == DialogType::SecretChat;
-  bool need_dup = type != MessageContentDupType::ServerCopy && type != MessageContentDupType::Forward;
-  CHECK(!to_secret || need_dup);
-  auto fix_file_id = [dialog_id, to_secret, need_dup, file_manager = td->file_manager_.get()](FileId file_id) {
-    CHECK(need_dup);
+  auto fix_file_id = [dialog_id, to_secret, file_manager = td->file_manager_.get()](FileId file_id) {
     auto file_view = file_manager->get_file_view(file_id);
     if (to_secret && !file_view.is_encrypted_secret()) {
-      file_id = file_manager->copy_file_id(file_id, FileType::Encrypted, dialog_id, "copy message content to secret");
+      return file_manager->copy_file_id(file_id, FileType::Encrypted, dialog_id, "copy message content to secret");
     }
-    return file_manager->dup_file_id(file_id, "dup_message_content");
+    return file_id;
   };
 
-  FileId thumbnail_file_id;
-  if (to_secret) {
-    thumbnail_file_id = get_message_content_thumbnail_file_id(content, td);
-  }
   auto replace_caption = (type == MessageContentDupType::Copy || type == MessageContentDupType::ServerCopy) &&
                          copy_options.replace_caption;
   switch (content->get_type()) {
@@ -7108,11 +7101,10 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       if (replace_caption) {
         result->caption = std::move(copy_options.new_caption);
       }
-      if (!need_dup || td->documents_manager_->has_input_media(result->file_id, thumbnail_file_id, to_secret)) {
-        return std::move(result);
+      auto file_id = fix_file_id(result->file_id);
+      if (file_id != result->file_id) {
+        result->file_id = td->animations_manager_->dup_animation(file_id, result->file_id);
       }
-      result->file_id = td->animations_manager_->dup_animation(fix_file_id(result->file_id), result->file_id);
-      CHECK(result->file_id.is_valid());
       return std::move(result);
     }
     case MessageContentType::Audio: {
@@ -7120,11 +7112,10 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       if (replace_caption) {
         result->caption = std::move(copy_options.new_caption);
       }
-      if (!need_dup || td->documents_manager_->has_input_media(result->file_id, thumbnail_file_id, to_secret)) {
-        return std::move(result);
+      auto file_id = fix_file_id(result->file_id);
+      if (file_id != result->file_id) {
+        result->file_id = td->audios_manager_->dup_audio(file_id, result->file_id);
       }
-      result->file_id = td->audios_manager_->dup_audio(fix_file_id(result->file_id), result->file_id);
-      CHECK(result->file_id.is_valid());
       return std::move(result);
     }
     case MessageContentType::Contact:
@@ -7141,11 +7132,10 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       if (replace_caption) {
         result->caption = std::move(copy_options.new_caption);
       }
-      if (!need_dup || td->documents_manager_->has_input_media(result->file_id, thumbnail_file_id, to_secret)) {
-        return std::move(result);
+      auto file_id = fix_file_id(result->file_id);
+      if (file_id != result->file_id) {
+        result->file_id = td->documents_manager_->dup_document(file_id, result->file_id);
       }
-      result->file_id = td->documents_manager_->dup_document(fix_file_id(result->file_id), result->file_id);
-      CHECK(result->file_id.is_valid());
       return std::move(result);
     }
     case MessageContentType::Game:
@@ -7182,12 +7172,6 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       if (replace_caption) {
         result->caption = std::move(copy_options.new_caption);
       }
-      if (type != MessageContentDupType::Forward) {
-        for (auto &media : result->media) {
-          media = media.dup_to_send(td, true);
-          CHECK(!media.is_empty());
-        }
-      }
       return result;
     }
     case MessageContentType::Photo: {
@@ -7197,28 +7181,12 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       }
 
       CHECK(!result->photo.photos.empty());
-      if ((!need_dup || result->photo.photos.size() > 2 || result->photo.photos.back().type != 'i') && !to_secret) {
-        // already sent photo
-        // having remote location is not enough to have InputMedia, because the file may not have valid file_reference
-        // also file_id needs to be duped, because upload can be called to repair the file_reference and every upload
-        // request must have unique file_id
-        if (!td->auth_manager_->is_bot() && need_dup) {
-          result->photo.photos.back().file_id = fix_file_id(result->photo.photos.back().file_id);
-        }
+      if (!to_secret) {
         return std::move(result);
       }
 
       result->photo = dup_photo(result->photo);
-
-      if (photo_has_input_media(td->file_manager_.get(), result->photo, to_secret, td->auth_manager_->is_bot())) {
-        return std::move(result);
-      }
-
       result->photo.photos.back().file_id = fix_file_id(result->photo.photos.back().file_id);
-      if (result->photo.photos.size() > 1) {
-        result->photo.photos[0].file_id =
-            td->file_manager_->dup_file_id(result->photo.photos[0].file_id, "dup_message_content photo");
-      }
       return std::move(result);
     }
     case MessageContentType::Poll:
@@ -7231,11 +7199,12 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::Sticker: {
       auto result = make_unique<MessageSticker>(*static_cast<const MessageSticker *>(content));
       result->is_premium = td->option_manager_->get_option_boolean("is_premium");
-      if (!need_dup || td->stickers_manager_->has_input_media(result->file_id, to_secret)) {
-        return std::move(result);
+      if (to_secret && !td->stickers_manager_->has_input_media(result->file_id, to_secret)) {
+        auto file_id = fix_file_id(result->file_id);
+        if (file_id != result->file_id) {
+          result->file_id = td->stickers_manager_->dup_sticker(file_id, result->file_id);
+        }
       }
-      result->file_id = td->stickers_manager_->dup_sticker(fix_file_id(result->file_id), result->file_id);
-      CHECK(result->file_id.is_valid());
       return std::move(result);
     }
     case MessageContentType::Story:
@@ -7254,21 +7223,19 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       if (replace_caption) {
         result->caption = std::move(copy_options.new_caption);
       }
-      if (!need_dup || td->documents_manager_->has_input_media(result->file_id, thumbnail_file_id, to_secret)) {
-        return std::move(result);
+      auto file_id = fix_file_id(result->file_id);
+      if (file_id != result->file_id) {
+        result->file_id = td->videos_manager_->dup_video(file_id, result->file_id);
       }
-      result->file_id = td->videos_manager_->dup_video(fix_file_id(result->file_id), result->file_id);
-      CHECK(result->file_id.is_valid());
       return std::move(result);
     }
     case MessageContentType::VideoNote: {
       auto result = make_unique<MessageVideoNote>(*static_cast<const MessageVideoNote *>(content));
       result->is_viewed = false;
-      if (!need_dup || td->documents_manager_->has_input_media(result->file_id, thumbnail_file_id, to_secret)) {
-        return std::move(result);
+      auto file_id = fix_file_id(result->file_id);
+      if (file_id != result->file_id) {
+        result->file_id = td->video_notes_manager_->dup_video_note(file_id, result->file_id);
       }
-      result->file_id = td->video_notes_manager_->dup_video_note(fix_file_id(result->file_id), result->file_id);
-      CHECK(result->file_id.is_valid());
       return std::move(result);
     }
     case MessageContentType::VoiceNote: {
@@ -7277,11 +7244,10 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
         result->caption = std::move(copy_options.new_caption);
       }
       result->is_listened = false;
-      if (!need_dup || td->documents_manager_->has_input_media(result->file_id, thumbnail_file_id, to_secret)) {
-        return std::move(result);
+      auto file_id = fix_file_id(result->file_id);
+      if (file_id != result->file_id) {
+        result->file_id = td->voice_notes_manager_->dup_voice_note(file_id, result->file_id);
       }
-      result->file_id = td->voice_notes_manager_->dup_voice_note(fix_file_id(result->file_id), result->file_id);
-      CHECK(result->file_id.is_valid());
       return std::move(result);
     }
     case MessageContentType::Unsupported:
