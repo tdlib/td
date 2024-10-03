@@ -8368,11 +8368,10 @@ void MessagesManager::on_upload_media(FileUploadId file_upload_id,
       if (input_file && thumbnail_file_upload_id.is_valid()) {
         // TODO: download thumbnail if needed (like in secret chats)
         LOG(INFO) << "Ask to upload thumbnail " << thumbnail_file_upload_id;
-        bool is_inserted =
-            being_uploaded_thumbnails_
-                .emplace(thumbnail_file_upload_id,
-                         UploadedThumbnailInfo{message_full_id, file_upload_id, std::move(input_file), media_pos})
-                .second;
+        bool is_inserted = being_uploaded_thumbnails_
+                               .emplace(thumbnail_file_upload_id,
+                                        UploadedThumbnailInfo{message_full_id, std::move(input_file), media_pos})
+                               .second;
         CHECK(is_inserted);
         td_->file_manager_->upload(thumbnail_file_upload_id, upload_thumbnail_callback_, 32, m->message_id.get());
       } else {

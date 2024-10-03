@@ -3245,12 +3245,10 @@ class MessagesManager final : public Actor {
   FlatHashMap<FileUploadId, UploadedFileInfo, FileUploadIdHash> being_uploaded_files_;
   struct UploadedThumbnailInfo {
     MessageFullId message_full_id;
-    FileUploadId file_upload_id;                                   // original file file_upload_id
     telegram_api::object_ptr<telegram_api::InputFile> input_file;  // original file InputFile
     int32 media_pos;
   };
-  FlatHashMap<FileUploadId, UploadedThumbnailInfo, FileUploadIdHash>
-      being_uploaded_thumbnails_;  // thumbnail_file_upload_id -> ...
+  FlatHashMap<FileUploadId, UploadedThumbnailInfo, FileUploadIdHash> being_uploaded_thumbnails_;
   struct UploadedSecretThumbnailInfo {
     MessageFullId message_full_id;
     telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file;  // original file InputEncryptedFile
