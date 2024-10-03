@@ -24376,8 +24376,7 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
     }
   }
   const auto &file_upload_ids = is_edit ? m->edited_file_upload_ids : m->file_upload_ids;
-  const auto &thumbnail_file_upload_ids = is_edit ? m->edited_thumbnail_file_upload_ids : m->thumbnail_file_upload_ids;
-  LOG(DEBUG) << "Need to send files " << file_upload_ids << " with thumbnails " << thumbnail_file_upload_ids;
+  LOG(DEBUG) << "Need to send files " << file_upload_ids;
   if (!bad_parts.empty()) {
     CHECK(file_upload_ids.size() <= 1u || media_pos >= 0);
   }
@@ -24407,7 +24406,6 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
     if (media_pos >= 0) {
       CHECK(!bad_parts.empty());
       CHECK(static_cast<size_t>(media_pos) < file_upload_ids.size());
-      CHECK(static_cast<size_t>(media_pos) < thumbnail_file_upload_ids.size());
     }
     auto input_media = get_message_content_input_media(content, td_, m->ttl, m->send_emoji,
                                                        td_->auth_manager_->is_bot() && bad_parts.empty());

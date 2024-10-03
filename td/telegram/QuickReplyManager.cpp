@@ -2213,8 +2213,7 @@ void QuickReplyManager::do_send_message(const QuickReplyMessage *m, vector<int> 
     }
   }
   auto file_upload_id = is_edit ? m->edited_file_upload_id : m->file_upload_id;
-  auto thumbnail_file_upload_id = is_edit ? m->edited_thumbnail_file_upload_id : m->thumbnail_file_upload_id;
-  LOG(DEBUG) << "Need to send " << file_upload_id << " with thumbnail " << thumbnail_file_upload_id;
+  LOG(DEBUG) << "Need to send " << file_upload_id;
   auto input_media = get_message_content_input_media(content, td_, {}, m->send_emoji, false);
   if (input_media == nullptr) {
     if (content_type == MessageContentType::Game || content_type == MessageContentType::Story) {
@@ -2224,9 +2223,7 @@ void QuickReplyManager::do_send_message(const QuickReplyMessage *m, vector<int> 
 
     LOG(INFO) << "Ask to upload " << file_upload_id << " with bad parts " << bad_parts;
     bool is_inserted =
-        being_uploaded_files_
-            .emplace(file_upload_id, std::make_tuple(message_full_id, thumbnail_file_upload_id, m->edit_generation))
-            .second;
+        being_uploaded_files_.emplace(file_upload_id, std::make_pair(message_full_id, m->edit_generation)).second;
     CHECK(is_inserted);
     td_->file_manager_->resume_upload(file_upload_id, std::move(bad_parts), upload_media_callback_, 1,
                                       m->message_id.get());
@@ -2265,9 +2262,8 @@ void QuickReplyManager::on_upload_media(FileUploadId file_upload_id,
   auto it = being_uploaded_files_.find(file_upload_id);
   CHECK(it != being_uploaded_files_.end());
 
-  auto message_full_id = std::get<0>(it->second);
-  auto thumbnail_file_upload_id = std::get<1>(it->second);
-  auto edit_generation = std::get<2>(it->second);
+  auto message_full_id = it->second.first;
+  auto edit_generation = it->second.second;
 
   being_uploaded_files_.erase(it);
 
@@ -2277,6 +2273,8 @@ void QuickReplyManager::on_upload_media(FileUploadId file_upload_id,
     return;
   }
 
+  auto thumbnail_file_upload_id =
+      m->message_id.is_server() ? m->edited_thumbnail_file_upload_id : m->thumbnail_file_upload_id;
   if (input_file && thumbnail_file_upload_id.is_valid()) {
     // TODO: download thumbnail if needed (like in secret chats)
     LOG(INFO) << "Ask to upload thumbnail " << thumbnail_file_upload_id;
@@ -2329,7 +2327,7 @@ void QuickReplyManager::on_upload_media_error(FileUploadId file_upload_id, Statu
   auto it = being_uploaded_files_.find(file_upload_id);
   CHECK(it != being_uploaded_files_.end());
 
-  auto message_full_id = std::get<0>(it->second);
+  auto message_full_id = it->second.first;
 
   being_uploaded_files_.erase(it);
 
