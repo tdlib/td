@@ -8337,7 +8337,6 @@ void MessagesManager::on_upload_media(FileUploadId file_upload_id,
   }
 
   auto message_full_id = it->second.message_full_id;
-  auto thumbnail_file_upload_id = it->second.thumbnail_file_upload_id;
   auto media_pos = it->second.media_pos;
 
   being_uploaded_files_.erase(it);
@@ -8361,6 +8360,7 @@ void MessagesManager::on_upload_media(FileUploadId file_upload_id,
     return;
   }
 
+  auto thumbnail_file_upload_id = get_message_send_thumbnail_file_upload_id(m, media_pos);
   switch (dialog_id.get_type()) {
     case DialogType::User:
     case DialogType::Chat:
@@ -24384,7 +24384,6 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
   if (is_secret) {
     CHECK(file_upload_ids.size() <= 1u);
     auto file_upload_id = file_upload_ids.empty() ? FileUploadId() : file_upload_ids[0];
-    auto thumbnail_file_upload_id = thumbnail_file_upload_ids.empty() ? FileUploadId() : thumbnail_file_upload_ids[0];
 
     CHECK(!is_edit);
     auto layer = td_->user_manager_->get_secret_chat_layer(dialog_id.get_secret_chat_id());
@@ -24394,10 +24393,9 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
       CHECK(file_upload_id.is_valid());
       FileView file_view = td_->file_manager_->get_file_view(file_upload_id.get_file_id());
       CHECK(file_view.is_encrypted_secret());
-      bool is_inserted = being_uploaded_files_
-                             .emplace(file_upload_id, UploadedFileInfo{MessageFullId(dialog_id, m->message_id),
-                                                                       thumbnail_file_upload_id, -1})
-                             .second;
+      bool is_inserted =
+          being_uploaded_files_.emplace(file_upload_id, UploadedFileInfo{MessageFullId(dialog_id, m->message_id), -1})
+              .second;
       CHECK(is_inserted);
       // need to call resume_upload synchronously to make upload process consistent with being_uploaded_files_
       td_->file_manager_->resume_upload(file_upload_id, std::move(bad_parts), upload_media_callback_, 1,
@@ -24436,9 +24434,6 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
         auto file_upload_id = file_upload_ids[i];
         CHECK(file_upload_id.is_valid());
 
-        auto thumbnail_file_upload_id =
-            i < thumbnail_file_upload_ids.size() ? thumbnail_file_upload_ids[i] : FileUploadId();
-
         FileView file_view = td_->file_manager_->get_file_view(file_upload_id.get_file_id());
         if (content_type == MessageContentType::PaidMedia && !file_view.has_full_remote_location() &&
             file_view.has_url()) {
@@ -24450,7 +24445,7 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
         bool is_inserted =
             being_uploaded_files_
                 .emplace(file_upload_id,
-                         UploadedFileInfo{MessageFullId(dialog_id, m->message_id), thumbnail_file_upload_id,
+                         UploadedFileInfo{MessageFullId(dialog_id, m->message_id),
                                           content_type == MessageContentType::PaidMedia ? static_cast<int32>(i) : -1})
                 .second;
         CHECK(is_inserted);
