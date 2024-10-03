@@ -224,12 +224,6 @@ class FileManager::FileInfoLocal final : public FileManager::FileInfo {
     return begins_with(location_.path_, get_files_dir(get_file_type()));
   }
 
-  unique_ptr<FileInfo> clone() const final {
-    auto result = make_unique<FileInfoLocal>(location_, size_);
-    result->remote_file_info_ = remote_file_info_;
-    return result;
-  }
-
   void set_size(int64 size) final {
     UNREACHABLE();
   }
@@ -392,10 +386,6 @@ class FileManager::FileInfoGenerate final : public FileManager::FileInfo {
     return partial_local_location_ != nullptr;
   }
 
-  unique_ptr<FileInfo> clone() const final {
-    return td::make_unique<FileInfoGenerate>(location_, expected_size_, url_);
-  }
-
   void set_size(int64 size) final {
     UNREACHABLE();
   }
@@ -536,12 +526,6 @@ class FileManager::FileInfoRemote final : public FileManager::FileInfo {
       return false;
     }
     return partial_local_location_ != nullptr;
-  }
-
-  unique_ptr<FileInfo> clone() const final {
-    auto result = td::make_unique<FileInfoRemote>(location_, size_, expected_size_, remote_name_, url_);
-    result->local_file_info_ = local_file_info_;
-    return result;
   }
 
   void set_size(int64 size) final {
