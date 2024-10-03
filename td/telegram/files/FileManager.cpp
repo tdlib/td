@@ -4212,17 +4212,7 @@ Result<FileId> FileManager::check_input_file_id(FileType type, Result<FileId> re
 
   const auto *full_remote_location = file_view.get_full_remote_location();
   if (full_remote_location == nullptr) {
-    // There are no reasons to dup file_id, because it will be duped anyway before upload/reupload
-    // It will not be duped in dup_message_content only if has_input_media(),
-    // but currently in this case the file never needs to be reuploaded
-
-    if (!is_encrypted) {
-      // URLs in non-secret chats never needs to be reuploaded, so they don't need to be duped
-      // non-URLs without remote location will be duped at dup_message_content, because they have no input media
-      return file_node->main_file_id_;
-    }
-
-    return dup_file_id(file_id, "check_input_file_id");
+    return file_node->main_file_id_;
   }
 
   int32 remote_id = file_id.get_remote();
