@@ -3538,47 +3538,20 @@ void StickersManager::create_sticker(FileId file_id, FileId premium_animation_fi
                  (sticker != nullptr || custom_emoji != nullptr) && load_data_multipromise_ptr == nullptr);
 }
 
-bool StickersManager::has_input_media(FileId sticker_file_id, bool is_secret) const {
+bool StickersManager::has_secret_input_media(FileId sticker_file_id) const {
   auto file_view = td_->file_manager_->get_file_view(sticker_file_id);
-  if (is_secret) {
-    const Sticker *sticker = get_sticker(sticker_file_id);
-    CHECK(sticker != nullptr);
-    if (file_view.is_encrypted_secret()) {
-      if (!file_view.encryption_key().empty() && file_view.has_full_remote_location() &&
-          !sticker->s_thumbnail_.file_id.is_valid()) {
-        return true;
-      }
-    } else if (!file_view.is_encrypted()) {
-      if (sticker->set_id_.is_valid()) {
-        const auto *sticker_set = get_sticker_set(sticker->set_id_);
-        if (sticker_set != nullptr && td::contains(sticker_set->sticker_ids_, sticker_file_id)) {
-          // stickers within a set can be sent by id and access_hash
-          return true;
-        }
-      }
-    }
-  } else {
-    if (file_view.is_encrypted()) {
-      return false;
-    }
-    if (td_->auth_manager_->is_bot() && file_view.has_full_remote_location()) {
-      return true;
-    }
-    const Sticker *sticker = get_sticker(sticker_file_id);
-    CHECK(sticker != nullptr);
-    if (sticker->set_id_.is_valid()) {
-      // stickers within a set doesn't need to be duped
-      // but the sticker can be deleted any time from the set, so we are forced to dup it anyway
-      // return true;
-    }
-    // having remote location is not enough to have InputMedia, because the file may not have valid file_reference
-    // also file_id needs to be duped, because upload can be called to repair the file_reference and every upload
-    // request must have unique file_id
-    if (/* file_view.has_full_remote_location() || */ file_view.has_url()) {
+  const Sticker *sticker = get_sticker(sticker_file_id);
+  CHECK(sticker != nullptr);
+  if (file_view.is_encrypted_secret()) {
+    return true;
+  }
+  if (sticker->set_id_.is_valid()) {
+    const auto *sticker_set = get_sticker_set(sticker->set_id_);
+    if (sticker_set != nullptr && td::contains(sticker_set->sticker_ids_, sticker_file_id)) {
+      // stickers within a set can be sent by id and access_hash
       return true;
     }
   }
-
   return false;
 }
 

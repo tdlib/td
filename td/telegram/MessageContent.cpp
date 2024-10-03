@@ -7199,7 +7199,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::Sticker: {
       auto result = make_unique<MessageSticker>(*static_cast<const MessageSticker *>(content));
       result->is_premium = td->option_manager_->get_option_boolean("is_premium");
-      if (to_secret && !td->stickers_manager_->has_input_media(result->file_id, to_secret)) {
+      if (to_secret && !td->stickers_manager_->has_secret_input_media(result->file_id)) {
         auto file_id = fix_file_id(result->file_id);
         if (file_id != result->file_id) {
           result->file_id = td->stickers_manager_->dup_sticker(file_id, result->file_id);

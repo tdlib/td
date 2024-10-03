@@ -169,7 +169,7 @@ class StickersManager final : public Actor {
                       tl_object_ptr<telegram_api::documentAttributeCustomEmoji> custom_emoji,
                       StickerFormat sticker_format, MultiPromiseActor *load_data_multipromise_ptr);
 
-  bool has_input_media(FileId sticker_file_id, bool is_secret) const;
+  bool has_secret_input_media(FileId sticker_file_id) const;
 
   tl_object_ptr<telegram_api::InputMedia> get_input_media(
       FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file,
