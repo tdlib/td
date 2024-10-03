@@ -12,6 +12,8 @@
 #include "td/utils/Status.h"
 #include "td/utils/UInt.h"
 
+#include <memory>
+
 #if TD_HAVE_OPENSSL
 
 namespace td {
@@ -65,17 +67,23 @@ class Ed25519 {
     SecureString octet_string_;
   };
 
+  struct PreparedPrivateKey;
+
   class PrivateKey {
    public:
     static constexpr size_t LENGTH = 32;
 
     explicit PrivateKey(SecureString octet_string);
 
+    Result<std::shared_ptr<const PreparedPrivateKey>> prepare() const;
+
     SecureString as_octet_string() const;
 
     Result<PublicKey> get_public_key() const;
 
     Result<SecureString> sign(Slice data) const;
+
+    static Result<SecureString> sign(const PreparedPrivateKey &prepared_private_key, Slice data);
 
     Result<SecureString> as_pem(Slice password) const;
 

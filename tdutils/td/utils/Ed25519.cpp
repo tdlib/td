@@ -172,16 +172,39 @@ Result<Ed25519::PrivateKey> Ed25519::PrivateKey::from_pem(Slice pem, Slice passw
 #endif
 }
 
-Result<SecureString> Ed25519::PrivateKey::sign(Slice data) const {
+struct Ed25519::PreparedPrivateKey {
+#if OPENSSL_VERSION_NUMBER >= 0x10101000L
+  explicit PreparedPrivateKey(EVP_PKEY *pkey) : pkey_(pkey) {
+  }
+  EVP_PKEY *pkey_ = nullptr;
+  PreparedPrivateKey(const PreparedPrivateKey &) = delete;
+  PreparedPrivateKey(const PreparedPrivateKey &&) = delete;
+  PreparedPrivateKey &operator=(const PreparedPrivateKey &) = delete;
+  PreparedPrivateKey &operator=(const PreparedPrivateKey &&) = delete;
+  ~PreparedPrivateKey() {
+    if (pkey_ != nullptr) {
+      EVP_PKEY_free(pkey_);
+      pkey_ = nullptr;
+    }
+  }
+#endif
+};
+
+Result<std::shared_ptr<const Ed25519::PreparedPrivateKey>> Ed25519::PrivateKey::prepare() const {
 #if OPENSSL_VERSION_NUMBER >= 0x10101000L
   auto pkey = detail::X25519_key_to_PKEY(octet_string_, true);
   if (pkey == nullptr) {
     return Status::Error("Can't import private key");
   }
-  SCOPE_EXIT {
-    EVP_PKEY_free(pkey);
-  };
+  return std::make_shared<Ed25519::PreparedPrivateKey>(pkey);
+#else
+  return Status::Error("Unsupported");
+#endif
+}
 
+Result<SecureString> Ed25519::PrivateKey::sign(const PreparedPrivateKey &prepared_private_key, Slice data) {
+#if OPENSSL_VERSION_NUMBER >= 0x10101000L
+  CHECK(prepared_private_key.pkey_ != nullptr);
   EVP_MD_CTX *md_ctx = EVP_MD_CTX_new();
   if (md_ctx == nullptr) {
     return Status::Error("Can't create EVP_MD_CTX");
@@ -190,7 +213,7 @@ Result<SecureString> Ed25519::PrivateKey::sign(Slice data) const {
     EVP_MD_CTX_free(md_ctx);
   };
 
-  if (EVP_DigestSignInit(md_ctx, nullptr, nullptr, nullptr, pkey) <= 0) {
+  if (EVP_DigestSignInit(md_ctx, nullptr, nullptr, nullptr, prepared_private_key.pkey_) <= 0) {
     return Status::Error("Can't init DigestSign");
   }
 
@@ -200,6 +223,18 @@ Result<SecureString> Ed25519::PrivateKey::sign(Slice data) const {
     return Status::Error("Can't sign data");
   }
   return std::move(res);
+#else
+  return Status::Error("Unsupported");
+#endif
+}
+
+Result<SecureString> Ed25519::PrivateKey::sign(Slice data) const {
+#if OPENSSL_VERSION_NUMBER >= 0x10101000L
+  auto pkey = detail::X25519_key_to_PKEY(octet_string_, true);
+  if (pkey == nullptr) {
+    return Status::Error("Can't import private key");
+  }
+  return sign(PreparedPrivateKey(pkey), data);
 #else
   return Status::Error("Unsupported");
 #endif

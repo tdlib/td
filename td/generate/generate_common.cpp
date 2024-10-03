@@ -39,6 +39,9 @@ int main() {
   generate_cpp<>("td/telegram", "secret_api", "std::string", "BufferSlice",
                  {"\"td/tl/tl_object_parse.h\"", "\"td/tl/tl_object_store.h\""}, {"\"td/utils/buffer.h\""});
 
+  generate_cpp<>("td/telegram", "e2e_api", "std::string", "std::string",
+                 {"\"td/tl/tl_object_parse.h\"", "\"td/tl/tl_object_store.h\""}, {"\"td/utils/UInt.h\""});
+
 #ifdef TD_ENABLE_JNI
   generate_cpp<false, td::TD_TL_writer_jni_cpp, td::TD_TL_writer_jni_h>(
       "td/telegram", "td_api", "std::string", "std::string", {"\"td/tl/tl_jni_object.h\""}, {"<string>"});

@@ -101,7 +101,7 @@ std::vector<std::string> TD_TL_writer::get_parsers() const {
   std::vector<std::string> parsers;
   if (tl_name == "telegram_api") {
     parsers.push_back("TlBufferParser");
-  } else if (tl_name == "mtproto_api" || tl_name == "secret_api") {
+  } else if (tl_name == "mtproto_api" || tl_name == "secret_api" || tl_name == "e2e_api") {
     parsers.push_back("TlParser");
   }
   return parsers;
@@ -109,7 +109,7 @@ std::vector<std::string> TD_TL_writer::get_parsers() const {
 
 std::vector<std::string> TD_TL_writer::get_storers() const {
   std::vector<std::string> storers;
-  if (tl_name == "telegram_api" || tl_name == "mtproto_api" || tl_name == "secret_api") {
+  if (tl_name == "telegram_api" || tl_name == "mtproto_api" || tl_name == "secret_api" || tl_name == "e2e_api") {
     storers.push_back("TlStorerCalcLength");
     storers.push_back("TlStorerUnsafe");
   }
