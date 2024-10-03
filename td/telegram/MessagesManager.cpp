@@ -8345,8 +8345,8 @@ void MessagesManager::on_upload_media(FileUploadId file_upload_id,
   const Message *m = get_message(message_full_id);
   if (m == nullptr) {
     // message has already been deleted by the user or sent to inaccessible channel, do not need to send or edit it
-    // file upload should be already canceled in cancel_send_message_query, it shouldn't happen
-    LOG(ERROR) << "Message with a media has already been deleted";
+    // file upload should be already canceled in cancel_send_message_query
+    LOG(INFO) << "Message with a media has already been deleted";
     return;
   }
 
@@ -8383,11 +8383,10 @@ void MessagesManager::on_upload_media(FileUploadId file_upload_id,
       CHECK(media_pos == -1);
       if (thumbnail_file_upload_id.is_valid()) {
         LOG(INFO) << "Ask to load thumbnail " << thumbnail_file_upload_id;
-        bool is_inserted =
-            being_loaded_secret_thumbnails_
-                .emplace(thumbnail_file_upload_id,
-                         UploadedSecretThumbnailInfo{message_full_id, file_upload_id, std::move(input_encrypted_file)})
-                .second;
+        bool is_inserted = being_loaded_secret_thumbnails_
+                               .emplace(thumbnail_file_upload_id,
+                                        UploadedSecretThumbnailInfo{message_full_id, std::move(input_encrypted_file)})
+                               .second;
         CHECK(is_inserted);
 
         load_secret_thumbnail(thumbnail_file_upload_id);
@@ -8496,7 +8495,6 @@ void MessagesManager::on_load_secret_thumbnail(FileUploadId thumbnail_file_uploa
   }
 
   auto message_full_id = it->second.message_full_id;
-  auto file_upload_id = it->second.file_upload_id;
   auto input_file = std::move(it->second.input_file);
 
   being_loaded_secret_thumbnails_.erase(it);
@@ -8504,9 +8502,8 @@ void MessagesManager::on_load_secret_thumbnail(FileUploadId thumbnail_file_uploa
   Message *m = get_message(message_full_id);
   if (m == nullptr) {
     // message has already been deleted by the user, do not need to send it
-    // cancel file upload of the main file to allow next upload with the same file to succeed
+    // file upload should be already canceled in cancel_send_message_query
     LOG(INFO) << "Message with a media has already been deleted";
-    cancel_upload_file(file_upload_id, "on_load_secret_thumbnail");
     return;
   }
   CHECK(m->message_id.is_yet_unsent());
@@ -8554,7 +8551,7 @@ void MessagesManager::on_upload_thumbnail(FileUploadId thumbnail_file_upload_id,
   if (m == nullptr) {
     // message has already been deleted by the user or sent to inaccessible channel, do not need to send or edit it
     // thumbnail file upload should be already canceled in cancel_send_message_query
-    LOG(ERROR) << "Message with a media has already been deleted";
+    LOG(INFO) << "Message with a media has already been deleted";
     return;
   }
 
