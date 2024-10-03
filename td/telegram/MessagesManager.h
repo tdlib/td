@@ -1074,11 +1074,13 @@ class MessagesManager final : public Actor {
     MessageId linked_top_thread_message_id;
     vector<MessageId> local_thread_message_ids;
 
-    DialogId initial_sender_dialog_id;        // for send_message
-    MessageId initial_top_thread_message_id;  // for send_message
-    MessageInputReplyTo input_reply_to;       // for send_message
-    int64 reply_to_random_id = 0;             // for send_message
-    string send_emoji;                        // for send_message
+    DialogId initial_sender_dialog_id;          // for send_message
+    MessageId initial_top_thread_message_id;    // for send_message
+    MessageInputReplyTo input_reply_to;         // for send_message
+    int64 reply_to_random_id = 0;               // for send_message
+    string send_emoji;                          // for send_message
+    mutable vector<FileId> file_ids;            // for send_message
+    mutable vector<FileId> thumbnail_file_ids;  // for send_message
 
     UserId via_bot_user_id;
     UserId via_business_bot_user_id;
@@ -1160,6 +1162,8 @@ class MessagesManager final : public Actor {
     int32 edited_schedule_date = 0;
     bool edited_invert_media = false;
     unique_ptr<MessageContent> edited_content;
+    mutable vector<FileId> edited_file_ids;
+    mutable vector<FileId> edited_thumbnail_file_ids;
     unique_ptr<ReplyMarkup> edited_reply_markup;
     uint64 edit_generation = 0;
     Promise<Unit> edit_promise;
@@ -1809,6 +1813,14 @@ class MessagesManager final : public Actor {
 
   bool update_message_is_pinned(Dialog *d, Message *m, bool is_pin, const char *source);
 
+  static FileId get_media_file_id(const vector<FileId> &file_ids, int32 media_pos);
+
+  static FileId get_message_send_file_id(const Message *m, int32 media_pos);
+
+  static FileId get_message_send_thumbnail_file_id(const Message *m, int32 media_pos);
+
+  static void delete_message_send_thumbnail_file_id(Message *m, int32 media_pos);
+
   void do_forward_messages(DialogId to_dialog_id, DialogId from_dialog_id, const vector<Message *> &messages,
                            const vector<MessageId> &message_ids, bool drop_author, bool drop_media_captions,
                            uint64 log_event_id);
@@ -1879,22 +1891,20 @@ class MessagesManager final : public Actor {
                                                    td_api::object_ptr<td_api::messageSendOptions> &&options,
                                                    bool in_game_share, vector<MessageCopyOptions> &&copy_options);
 
-  void do_send_media(DialogId dialog_id, const Message *m, int32 media_pos, FileId file_id, FileId thumbnail_file_id,
+  void do_send_media(DialogId dialog_id, const Message *m, int32 media_pos,
                      telegram_api::object_ptr<telegram_api::InputFile> input_file,
                      telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail);
 
-  void do_send_secret_media(DialogId dialog_id, const Message *m, FileId file_id,
+  void do_send_secret_media(DialogId dialog_id, const Message *m,
                             telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_encrypted_file,
                             BufferSlice thumbnail);
 
   void do_send_message(DialogId dialog_id, const Message *m, int32 media_pos = -1, vector<int> bad_parts = {});
 
   void on_message_media_uploaded(DialogId dialog_id, const Message *m, int32 media_pos,
-                                 telegram_api::object_ptr<telegram_api::InputMedia> &&input_media,
-                                 vector<FileId> file_ids, vector<FileId> thumbnail_file_ids);
+                                 telegram_api::object_ptr<telegram_api::InputMedia> &&input_media);
 
-  void on_secret_message_media_uploaded(DialogId dialog_id, const Message *m, SecretInputMedia &&secret_input_media,
-                                        FileId file_id);
+  void on_secret_message_media_uploaded(DialogId dialog_id, const Message *m, SecretInputMedia &&secret_input_media);
 
   void on_upload_message_media_finished(int64 media_album_id, DialogId dialog_id, MessageId message_id, int32 media_pos,
                                         Status result);
@@ -2803,7 +2813,7 @@ class MessagesManager final : public Actor {
 
   vector<FileId> get_message_file_ids(const Message *m) const;
 
-  void cancel_upload_message_content_files(const MessageContent *content);
+  void cancel_upload_message_content_files(const vector<FileId> &file_ids, const vector<FileId> &thumbnail_file_ids);
 
   static void cancel_upload_file(FileId file_id, const char *source);
 
