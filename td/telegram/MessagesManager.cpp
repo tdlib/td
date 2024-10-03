@@ -34539,7 +34539,7 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
       auto new_file_ids = get_message_content_any_file_ids(new_content.get());
       if (new_file_ids.size() == old_file_upload_ids.size()) {
         for (size_t i = 0; i < old_file_upload_ids.size(); i++) {
-          td_->file_manager_->try_merge_documents(old_file_upload_ids[i].get_file_id(), new_file_ids[i]);
+          td_->file_manager_->try_merge_documents(new_file_ids[i], old_file_upload_ids[i].get_file_id());
         }
       }
     }

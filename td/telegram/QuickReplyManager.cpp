@@ -1975,8 +1975,8 @@ void QuickReplyManager::update_sent_message_content_from_temporary_message(
   need_merge_files = need_merge_files && old_file_upload_id.is_valid();
   if (old_content_type != new_content_type) {
     if (need_merge_files) {
-      td_->file_manager_->try_merge_documents(old_file_upload_id.get_file_id(),
-                                              get_message_content_any_file_id(new_content.get()));
+      td_->file_manager_->try_merge_documents(get_message_content_any_file_id(new_content.get()),
+                                              old_file_upload_id.get_file_id());
     }
   } else {
     bool is_content_changed = false;

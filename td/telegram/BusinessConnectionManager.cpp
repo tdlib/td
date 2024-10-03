@@ -1068,7 +1068,7 @@ void BusinessConnectionManager::complete_upload_media(unique_ptr<PendingMessage>
   if (old_content_type != new_content_type) {
     need_update = true;
 
-    td_->file_manager_->try_merge_documents(old_file_id, get_message_content_any_file_id(new_content.get()));
+    td_->file_manager_->try_merge_documents(get_message_content_any_file_id(new_content.get()), old_file_id);
   } else {
     merge_message_contents(td_, old_content.get(), new_content.get(), false, DialogId(), true, is_content_changed,
                            need_update);

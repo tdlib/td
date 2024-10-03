@@ -2455,7 +2455,7 @@ Status FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sync) {
   return Status::OK();
 }
 
-void FileManager::try_merge_documents(FileId old_file_id, FileId new_file_id) {
+void FileManager::try_merge_documents(FileId new_file_id, FileId old_file_id) {
   if (!old_file_id.is_valid() || !new_file_id.is_valid()) {
     return;
   }
