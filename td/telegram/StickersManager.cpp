@@ -3316,8 +3316,6 @@ FileId StickersManager::dup_sticker(FileId new_id, FileId old_id) {
   CHECK(get_sticker(new_id) == nullptr);
   auto new_sticker = make_unique<Sticker>(*old_sticker);
   new_sticker->file_id_ = new_id;
-  // there is no reason to dup m_thumbnail and premium_animation_file_id
-  new_sticker->s_thumbnail_.file_id = td_->file_manager_->dup_file_id(new_sticker->s_thumbnail_.file_id, "dup_sticker");
   stickers_.set(new_id, std::move(new_sticker));
   return new_id;
 }
