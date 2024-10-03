@@ -324,55 +324,6 @@ void MessageExtendedMedia::update_file_id_remote(FileId file_id) {
   }
 }
 
-MessageExtendedMedia MessageExtendedMedia::dup_to_send(Td *td, bool always_dup_files) const {
-  switch (type_) {
-    case Type::Empty:
-    case Type::Unsupported:
-    case Type::Preview:
-      return {};
-    case Type::Photo: {
-      MessageExtendedMedia result;
-      result.type_ = Type::Photo;
-      CHECK(!photo_.photos.empty());
-      if (photo_.photos.size() > 2 || photo_.photos.back().type != 'i') {
-        // already sent photo
-        result.photo_ = photo_;
-        if (always_dup_files || !td->auth_manager_->is_bot()) {
-          result.photo_.photos.back().file_id = td->file_manager_->dup_file_id(result.photo_.photos.back().file_id,
-                                                                               "MessageExtendedMedia::dup_to_send 1");
-        }
-      } else {
-        result.photo_ = dup_photo(photo_);
-        if (always_dup_files ||
-            !photo_has_input_media(td->file_manager_.get(), result.photo_, false, td->auth_manager_->is_bot())) {
-          result.photo_.photos.back().file_id = td->file_manager_->dup_file_id(result.photo_.photos.back().file_id,
-                                                                               "MessageExtendedMedia::dup_to_send 2");
-          if (result.photo_.photos.size() > 1) {
-            result.photo_.photos[0].file_id =
-                td->file_manager_->dup_file_id(result.photo_.photos[0].file_id, "MessageExtendedMedia::dup_to_send 3");
-          }
-        }
-      }
-      return result;
-    }
-    case Type::Video: {
-      MessageExtendedMedia result;
-      result.type_ = Type::Video;
-      if (always_dup_files || !td->documents_manager_->has_input_media(video_file_id_, FileId(), false)) {
-        result.video_file_id_ = td->videos_manager_->dup_video(
-            td->file_manager_->dup_file_id(video_file_id_, "MessageExtendedMedia::dup_to_send 4"), video_file_id_);
-      } else {
-        result.video_file_id_ = video_file_id_;
-      }
-      CHECK(result.video_file_id_.is_valid());
-      return result;
-    }
-    default:
-      UNREACHABLE();
-      return {};
-  }
-}
-
 telegram_api::object_ptr<telegram_api::InputMedia> MessageExtendedMedia::get_input_media(
     Td *td, telegram_api::object_ptr<telegram_api::InputFile> input_file,
     telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail) const {
