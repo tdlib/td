@@ -1632,27 +1632,6 @@ FileManager::FileIdInfo *FileManager::get_file_id_info(FileId file_id) {
   return file_id_info_[file_id.get()].get();
 }
 
-FileId FileManager::dup_file_id(FileId file_id, const char *source) {
-  int32 file_node_id;
-  auto *file_node = get_file_node_raw(file_id, &file_node_id);
-  if (!file_node) {
-    return FileId();
-  }
-  auto new_file_id = next_file_id();
-  auto file_id_info = get_file_id_info(new_file_id);
-  file_id_info->node_id_ = file_node_id;
-  if (STORE_FILE_INFO) {
-    auto old_file_info = get_file_id_info(file_id)->file_info_.get();
-    if (old_file_info != nullptr) {
-      file_id_info->file_info_ = old_file_info->clone();
-    }
-  }
-  file_node->file_ids_.push_back(new_file_id);
-  auto result_file_id = FileId(new_file_id.get(), file_id.get_remote());
-  LOG(INFO) << "Dup file " << file_id << " to " << result_file_id << " from " << source;
-  return result_file_id;
-}
-
 FileId FileManager::copy_file_id(FileId file_id, FileType file_type, DialogId owner_dialog_id, const char *source) {
   auto file_view = get_file_view(file_id);
   auto result_file_id = register_generate(file_type, file_view.suggested_path(),
