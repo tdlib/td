@@ -132,8 +132,6 @@ void merge_photos(Td *td, const Photo *old_photo, Photo *new_photo, DialogId dia
 
 void photo_delete_thumbnail(Photo &photo);
 
-bool photo_has_input_media(FileManager *file_manager, const Photo &photo, bool is_secret, bool is_bot);
-
 FileId get_photo_any_file_id(const Photo &photo);
 
 FileId get_photo_thumbnail_file_id(const Photo &photo);

@@ -572,36 +572,6 @@ void photo_delete_thumbnail(Photo &photo) {
   }
 }
 
-bool photo_has_input_media(FileManager *file_manager, const Photo &photo, bool is_secret, bool is_bot) {
-  if (photo.photos.empty() || photo.photos.back().type != 'i') {
-    LOG(ERROR) << "Wrong photo: " << photo;
-    return false;
-  }
-  auto file_id = photo.photos.back().file_id;
-  auto file_view = file_manager->get_file_view(file_id);
-  if (is_secret) {
-    if (!file_view.is_encrypted_secret() || !file_view.has_full_remote_location()) {
-      return false;
-    }
-
-    for (const auto &size : photo.photos) {
-      if (size.type == 't' && size.file_id.is_valid()) {
-        return false;
-      }
-    }
-
-    return true;
-  } else {
-    if (file_view.is_encrypted()) {
-      return false;
-    }
-    if (is_bot && file_view.has_full_remote_location()) {
-      return true;
-    }
-    return /* file_view.has_full_remote_location() || */ file_view.has_url();
-  }
-}
-
 tl_object_ptr<telegram_api::InputMedia> photo_get_input_media(
     FileManager *file_manager, const Photo &photo, telegram_api::object_ptr<telegram_api::InputFile> input_file,
     int32 ttl, bool has_spoiler) {
