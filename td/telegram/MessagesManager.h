@@ -1883,7 +1883,7 @@ class MessagesManager final : public Actor {
                      telegram_api::object_ptr<telegram_api::InputFile> input_file,
                      telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail);
 
-  void do_send_secret_media(DialogId dialog_id, const Message *m, FileId file_id, FileId thumbnail_file_id,
+  void do_send_secret_media(DialogId dialog_id, const Message *m, FileId file_id,
                             telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_encrypted_file,
                             BufferSlice thumbnail);
 
@@ -1894,7 +1894,7 @@ class MessagesManager final : public Actor {
                                  vector<FileId> file_ids, vector<FileId> thumbnail_file_ids);
 
   void on_secret_message_media_uploaded(DialogId dialog_id, const Message *m, SecretInputMedia &&secret_input_media,
-                                        FileId file_id, FileId thumbnail_file_id);
+                                        FileId file_id);
 
   void on_upload_message_media_finished(int64 media_album_id, DialogId dialog_id, MessageId message_id, int32 media_pos,
                                         Status result);

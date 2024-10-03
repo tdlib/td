@@ -2308,7 +2308,7 @@ void QuickReplyManager::do_send_media(const QuickReplyMessage *m,
   LOG(INFO) << "Do send media " << QuickReplyMessageFullId{m->shortcut_id, m->message_id} << ": " << file_upload_id
             << " with thumbnail " << thumbnail_file_upload_id << ", have_input_file = " << have_input_file
             << ", have_input_thumbnail = " << have_input_thumbnail;
-  
+
   auto input_media =
       get_message_content_input_media(content, -1, td_, std::move(input_file), std::move(input_thumbnail),
                                       file_upload_id, thumbnail_file_upload_id, {}, m->send_emoji, true);

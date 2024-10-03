@@ -8388,7 +8388,7 @@ void MessagesManager::on_upload_media(FileId file_id, telegram_api::object_ptr<t
 
         load_secret_thumbnail(thumbnail_file_id);
       } else {
-        do_send_secret_media(dialog_id, m, file_id, thumbnail_file_id, std::move(input_encrypted_file), BufferSlice());
+        do_send_secret_media(dialog_id, m, file_id, std::move(input_encrypted_file), BufferSlice());
       }
       break;
     case DialogType::None:
@@ -8433,7 +8433,7 @@ void MessagesManager::do_send_media(DialogId dialog_id, const Message *m, int32 
 }
 
 void MessagesManager::do_send_secret_media(
-    DialogId dialog_id, const Message *m, FileId file_id, FileId thumbnail_file_id,
+    DialogId dialog_id, const Message *m, FileId file_id,
     telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_encrypted_file, BufferSlice thumbnail) {
   CHECK(dialog_id.get_type() == DialogType::SecretChat);
   CHECK(m != nullptr);
@@ -8441,15 +8441,14 @@ void MessagesManager::do_send_secret_media(
   CHECK(m->message_id.is_yet_unsent());
 
   bool have_input_file = input_encrypted_file != nullptr;
-  LOG(INFO) << "Do send secret media file " << file_id << " with thumbnail " << thumbnail_file_id
-            << ", have_input_file = " << have_input_file;
+  LOG(INFO) << "Do send secret media file " << file_id << ", have_input_file = " << have_input_file;
 
   auto layer = td_->user_manager_->get_secret_chat_layer(dialog_id.get_secret_chat_id());
   on_secret_message_media_uploaded(
       dialog_id, m,
       get_message_content_secret_input_media(m->content.get(), td_, std::move(input_encrypted_file),
                                              std::move(thumbnail), layer),
-      file_id, thumbnail_file_id);
+      file_id);
 }
 
 void MessagesManager::on_upload_media_error(FileId file_id, Status status) {
@@ -8511,7 +8510,6 @@ void MessagesManager::on_load_secret_thumbnail(FileId thumbnail_file_id, BufferS
 
   if (thumbnail.empty()) {
     delete_message_content_thumbnail(m->content.get(), td_);
-    thumbnail_file_id = {};
   }
 
   auto dialog_id = message_full_id.get_dialog_id();
@@ -8524,7 +8522,7 @@ void MessagesManager::on_load_secret_thumbnail(FileId thumbnail_file_id, BufferS
     return;
   }
 
-  do_send_secret_media(dialog_id, m, file_id, thumbnail_file_id, std::move(input_file), std::move(thumbnail));
+  do_send_secret_media(dialog_id, m, file_id, std::move(input_file), std::move(thumbnail));
 }
 
 void MessagesManager::on_upload_thumbnail(FileId thumbnail_file_id,
@@ -24350,7 +24348,7 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
       td_->file_manager_->resume_upload({file_id, 7020}, std::move(bad_parts), upload_media_callback_, 1,
                                         m->message_id.get());
     } else {
-      on_secret_message_media_uploaded(dialog_id, m, std::move(secret_input_media), file_id, thumbnail_file_id);
+      on_secret_message_media_uploaded(dialog_id, m, std::move(secret_input_media), file_id);
     }
   } else {
     if (media_pos >= 0) {
@@ -24492,8 +24490,7 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
 }
 
 void MessagesManager::on_secret_message_media_uploaded(DialogId dialog_id, const Message *m,
-                                                       SecretInputMedia &&secret_input_media, FileId file_id,
-                                                       FileId thumbnail_file_id) {
+                                                       SecretInputMedia &&secret_input_media, FileId file_id) {
   if (G()->close_flag()) {
     return;
   }
@@ -24524,7 +24521,7 @@ void MessagesManager::on_secret_message_media_uploaded(DialogId dialog_id, const
                            dialog_id, m->message_id, -1, Status::Error(400, "Invalid input media"));
   }
   */
-  // TODO use file_id, thumbnail_file_id, was_uploaded, was_thumbnail_uploaded,
+  // TODO use file_id, was_uploaded,
   // invalidate partial remote location for file_id in case of failed upload even message has already been deleted
   send_closure_later(actor_id(this), &MessagesManager::on_media_message_ready_to_send, dialog_id, m->message_id,
                      PromiseCreator::lambda([this, dialog_id, secret_input_media = std::move(secret_input_media)](
