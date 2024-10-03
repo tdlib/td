@@ -1083,6 +1083,7 @@ void BackgroundManager::on_uploaded_background_file(FileUploadId file_upload_id,
     return promise.set_error(Status::Error(500, "Receive wrong uploaded background without file"));
   }
   LOG_STATUS(td_->file_manager_->merge(background->file_id, file_upload_id.get_file_id()));
+  td_->file_manager_->cancel_upload(file_upload_id);
   if (!dialog_id.is_valid()) {
     set_background_id(background_id, type, for_dark_theme);
   }

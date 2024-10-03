@@ -29711,6 +29711,9 @@ MessageFullId MessagesManager::on_send_message_success(int64 random_id, MessageI
   if (merge_message_content_file_id(td_, sent_message->content.get(), new_file_id)) {
     send_update_message_content(d, sent_message.get(), false, source);
   }
+  for (auto file_upload_id : sent_message->file_upload_ids) {
+    cancel_upload_file(file_upload_id, "on_send_message_success");
+  }
 
   const auto *input_reply_to = get_message_input_reply_to(sent_message.get());
   if (input_reply_to != nullptr && input_reply_to->is_valid() &&
@@ -34521,8 +34524,8 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
   MessageContentType old_content_type = old_content->get_type();
   MessageContentType new_content_type = new_content->get_type();
 
-  auto old_file_upload_ids = old_message->message_id.is_any_server() ? old_message->edited_thumbnail_file_upload_ids
-                                                                     : old_message->thumbnail_file_upload_ids;
+  auto old_file_upload_ids =
+      old_message->message_id.is_any_server() ? old_message->edited_file_upload_ids : old_message->file_upload_ids;
   if (old_content_type != new_content_type) {
     if (old_message->ttl.is_valid() && old_message->ttl_expires_at > 0 &&
         is_expired_message_content(new_content_type) &&
@@ -34548,12 +34551,8 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
                            dialog_id, need_merge_files, is_content_changed, need_update);
     compare_message_contents(td_, old_content.get(), new_content.get(), is_content_changed, need_update);
   }
-  if (need_merge_files) {
-    // the file is likely to be already merged with a server file, but if not we need to
-    // cancel file upload of the main file to allow next upload with the same file to succeed
-    for (auto old_file_upload_id : old_file_upload_ids) {
-      cancel_upload_file(old_file_upload_id, "update_message_content");
-    }
+  for (auto old_file_upload_id : old_file_upload_ids) {
+    cancel_upload_file(old_file_upload_id, "update_message_content");
   }
 
   if (is_content_changed || need_update) {

@@ -3339,13 +3339,6 @@ void StickersManager::merge_stickers(FileId new_id, FileId old_id) {
                  << old_->set_id_ << ", " << new_->set_id_ << "), dimensions = (" << old_->dimensions_ << ", "
                  << new_->dimensions_ << ")";
     }
-
-    if (old_->s_thumbnail_ != new_->s_thumbnail_) {
-      //    LOG_STATUS(td_->file_manager_->merge(new_->s_thumbnail_.file_id, old_->s_thumbnail_.file_id));
-    }
-    if (old_->m_thumbnail_ != new_->m_thumbnail_) {
-      //    LOG_STATUS(td_->file_manager_->merge(new_->m_thumbnail_.file_id, old_->m_thumbnail_.file_id));
-    }
   }
   LOG_STATUS(td_->file_manager_->merge(new_id, old_id));
 }
@@ -8291,6 +8284,7 @@ void StickersManager::on_uploaded_sticker_file(FileUploadId file_upload_id, bool
       td_->documents_manager_->create_document(document_file_id, string(), PhotoSize(), "sticker.webp", "image/webp",
                                                false);
       td_->documents_manager_->merge_documents(document_file_id, file_id);
+      td_->file_manager_->cancel_upload(file_upload_id);
       return promise.set_value(Unit());
     }
     td_->file_manager_->delete_partial_remote_location(file_upload_id);
@@ -8305,6 +8299,7 @@ void StickersManager::on_uploaded_sticker_file(FileUploadId file_upload_id, bool
       td_->documents_manager_->merge_documents(parsed_document.file_id, file_id);
     }
   }
+  td_->file_manager_->cancel_upload(file_upload_id);
   promise.set_value(Unit());
 }
 

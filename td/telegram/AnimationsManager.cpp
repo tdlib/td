@@ -270,9 +270,6 @@ void AnimationsManager::merge_animations(FileId new_id, FileId old_id) {
   if (new_ == nullptr) {
     dup_animation(new_id, old_id);
   } else {
-    if (old_->thumbnail != new_->thumbnail) {
-      //    LOG_STATUS(td_->file_manager_->merge(new_->thumbnail.file_id, old_->thumbnail.file_id));
-    }
     if (new_->file_name.size() == old_->file_name.size() + 4 && new_->file_name == old_->file_name + ".mp4") {
       need_merge = false;
     }

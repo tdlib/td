@@ -2205,18 +2205,12 @@ Status FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sync) {
         400, PSLICE() << "Can't merge files. Second identifier is invalid: " << x_file_id << " and " << y_file_id);
   }
 
-  if (x_file_id == x_node->upload_pause_.get_file_id()) {  // TODO internal_upload_pause_id
-    x_node->set_upload_pause(FileUploadId());
-  }
   if (x_node.get() == y_node.get()) {
     if (x_file_id != y_file_id) {
       LOG(DEBUG) << "New file " << x_file_id << " and old file " << y_file_id << " are already merged";
     }
     try_flush_node_info(x_node, "merge 1");
     return Status::OK();
-  }
-  if (y_file_id == y_node->upload_pause_.get_file_id()) {  // TODO internal_upload_pause_id
-    y_node->set_upload_pause(FileUploadId());
   }
 
   LOG(INFO) << "Merge new file " << x_file_id << " and old file " << y_file_id;

@@ -1985,8 +1985,6 @@ void QuickReplyManager::update_sent_message_content_from_temporary_message(
                            is_content_changed, need_update);
   }
   if (old_file_upload_id.is_valid()) {
-    // the file is likely to be already merged with a server file, but if not we need to
-    // cancel file upload of the main file to allow next upload with the same file to succeed
     send_closure_later(G()->file_manager(), &FileManager::cancel_upload, old_file_upload_id);
 
     update_message_content_file_id_remote(new_content.get(), old_file_upload_id.get_file_id());

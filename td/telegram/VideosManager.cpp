@@ -197,14 +197,8 @@ void VideosManager::merge_videos(FileId new_id, FileId old_id) {
   const auto *new_ = get_video(new_id);
   if (new_ == nullptr) {
     dup_video(new_id, old_id);
-  } else {
-    if (!old_->mime_type.empty() && old_->mime_type != new_->mime_type) {
-      LOG(INFO) << "Video has changed: mime_type = (" << old_->mime_type << ", " << new_->mime_type << ")";
-    }
-
-    if (old_->thumbnail != new_->thumbnail) {
-      //    LOG_STATUS(td_->file_manager_->merge(new_->thumbnail.file_id, old_->thumbnail.file_id));
-    }
+  } else if (!old_->mime_type.empty() && old_->mime_type != new_->mime_type) {
+    LOG(INFO) << "Video has changed: mime_type = (" << old_->mime_type << ", " << new_->mime_type << ")";
   }
   LOG_STATUS(td_->file_manager_->merge(new_id, old_id));
 }
