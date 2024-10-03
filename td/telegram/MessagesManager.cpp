@@ -24349,9 +24349,21 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
 
   if (bad_parts.empty()) {
     auto file_ids = get_message_content_any_file_ids(content);  // any_file_ids, because it could be a photo sent by ID
+    auto thumbnail_file_ids = get_message_content_thumbnail_file_ids(content, td_);
+    if (file_ids.size() != thumbnail_file_ids.size()) {
+      CHECK(file_ids.size() == 1u);
+      CHECK(thumbnail_file_ids.empty());
+    }
+    if (!is_secret) {
+      for (size_t i = 0; i < thumbnail_file_ids.size(); i++) {
+        FileView file_view = td_->file_manager_->get_file_view(file_ids[i]);
+        if (get_main_file_type(file_view.get_type()) == FileType::Photo) {
+          thumbnail_file_ids[i] = FileId();
+        }
+      }
+    }
     auto file_upload_ids = transform(
         file_ids, [](FileId file_id) { return FileUploadId(file_id, FileManager::get_internal_upload_id()); });
-    auto thumbnail_file_ids = get_message_content_thumbnail_file_ids(content, td_);
     auto thumbnail_file_upload_ids = transform(thumbnail_file_ids, [](FileId file_id) {
       return file_id.is_valid() ? FileUploadId(file_id, FileManager::get_internal_upload_id()) : FileUploadId();
     });
@@ -24368,10 +24380,6 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
   LOG(DEBUG) << "Need to send files " << file_upload_ids << " with thumbnails " << thumbnail_file_upload_ids;
   if (!bad_parts.empty()) {
     CHECK(file_upload_ids.size() <= 1u || media_pos >= 0);
-  }
-  if (file_upload_ids.size() != thumbnail_file_upload_ids.size()) {
-    CHECK(file_upload_ids.size() == 1u);
-    CHECK(thumbnail_file_upload_ids.empty());
   }
   if (is_secret) {
     CHECK(file_upload_ids.size() <= 1u);
@@ -24430,11 +24438,8 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
 
         auto thumbnail_file_upload_id =
             i < thumbnail_file_upload_ids.size() ? thumbnail_file_upload_ids[i] : FileUploadId();
-        FileView file_view = td_->file_manager_->get_file_view(file_upload_id.get_file_id());
-        if (get_main_file_type(file_view.get_type()) == FileType::Photo) {
-          thumbnail_file_upload_id = FileUploadId();
-        }
 
+        FileView file_view = td_->file_manager_->get_file_view(file_upload_id.get_file_id());
         if (content_type == MessageContentType::PaidMedia && !file_view.has_full_remote_location() &&
             file_view.has_url()) {
           do_send_media(dialog_id, m, static_cast<int32>(i), nullptr, nullptr);
