@@ -1307,7 +1307,7 @@ class FileManager::PreliminaryUploadFileCallback final : public UploadCallback {
 };
 
 FileManager::FileManager(unique_ptr<Context> context)
-    : context_(std::move(context)), user_download_file_callback_(std::make_shared<UserDownloadFileCallback>(this)) {
+    : user_download_file_callback_(std::make_shared<UserDownloadFileCallback>(this)), context_(std::move(context)) {
   if (G()->use_file_database()) {
     file_db_ = G()->td_db()->get_file_db_shared();
   }
@@ -3896,13 +3896,13 @@ std::shared_ptr<FileManager::UploadCallback> FileManager::extract_upload_callbac
   if (internal_upload_id != 0) {
     auto upload_info_it = it->second.internal_uploads_.find(internal_upload_id);
     if (upload_info_it == it->second.internal_uploads_.end()) {
-      return false;
+      return nullptr;
     }
     callback = std::move(upload_info_it->second.upload_callback_);
     it->second.internal_uploads_.erase(upload_info_it);
   } else {
     if (it->second.user_upload_priority_ == 0) {
-      return false;
+      return nullptr;
     }
     callback = std::make_shared<PreliminaryUploadFileCallback>();
     it->second.user_upload_priority_ = 0;
