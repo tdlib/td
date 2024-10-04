@@ -5855,7 +5855,8 @@ storePaymentPurposeGiftedPremium user_id:int53 currency:string amount:int53 = St
 //@currency ISO 4217 currency code of the payment currency
 //@amount Paid amount, in the smallest units of the currency
 //@user_ids Identifiers of the users which can activate the gift codes
-storePaymentPurposePremiumGiftCodes boosted_chat_id:int53 currency:string amount:int53 user_ids:vector<int53> = StorePaymentPurpose;
+//@text Text to show along with the gift codes; 0-getOption("gift_text_length_max") characters. Only Bold, Italic, Underline, Strikethrough, Spoiler, and CustomEmoji entities are allowed
+storePaymentPurposePremiumGiftCodes boosted_chat_id:int53 currency:string amount:int53 user_ids:vector<int53> text:formattedText = StorePaymentPurpose;
 
 //@description The user creating a Telegram Premium giveaway
 //@parameters Giveaway parameters
@@ -5893,7 +5894,7 @@ storePaymentPurposeGiftedStars user_id:int53 currency:string amount:int53 star_c
 //@amount Paid amount, in the smallest units of the currency
 //@user_ids Identifiers of the users which can activate the gift codes
 //@month_count Number of months the Telegram Premium subscription will be active for the users
-//@text Text to show along with the gift code; 0-getOption("gift_text_length_max") characters. Only Bold, Italic, Underline, Strikethrough, Spoiler, and CustomEmoji entities are allowed
+//@text Text to show along with the gift codes; 0-getOption("gift_text_length_max") characters. Only Bold, Italic, Underline, Strikethrough, Spoiler, and CustomEmoji entities are allowed
 telegramPaymentPurposePremiumGiftCodes boosted_chat_id:int53 currency:string amount:int53 user_ids:vector<int53> month_count:int32 text:formattedText = TelegramPaymentPurpose;
 
 //@description The user creating a Telegram Premium giveaway

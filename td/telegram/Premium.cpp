@@ -19,6 +19,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"
+#include "td/telegram/MessageQuote.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
@@ -228,12 +229,21 @@ static Result<tl_object_ptr<telegram_api::InputStorePaymentPurpose>> get_input_s
       }
       DialogId boosted_dialog_id(p->boosted_chat_id_);
       TRY_RESULT(boost_input_peer, get_boost_input_peer(td, boosted_dialog_id));
+      TRY_RESULT(message, get_formatted_text(td, td->dialog_manager_->get_my_dialog_id(), std::move(p->text_), false,
+                                             true, true, false));
+      MessageQuote::remove_unallowed_quote_entities(message);
+
       int32 flags = 0;
       if (boost_input_peer != nullptr) {
         flags |= telegram_api::inputStorePaymentPremiumGiftCode::BOOST_PEER_MASK;
       }
+      telegram_api::object_ptr<telegram_api::textWithEntities> text;
+      if (!message.text.empty()) {
+        flags |= telegram_api::inputStorePaymentPremiumGiftCode::MESSAGE_MASK;
+        text = get_input_text_with_entities(td->user_manager_.get(), message, "storePaymentPurposePremiumGiftCodes");
+      }
       return telegram_api::make_object<telegram_api::inputStorePaymentPremiumGiftCode>(
-          flags, std::move(input_users), std::move(boost_input_peer), p->currency_, p->amount_, nullptr);
+          flags, std::move(input_users), std::move(boost_input_peer), p->currency_, p->amount_, std::move(text));
     }
     case td_api::storePaymentPurposePremiumGiveaway::ID: {
       auto p = static_cast<td_api::storePaymentPurposePremiumGiveaway *>(purpose.get());

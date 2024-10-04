@@ -3570,7 +3570,7 @@ class CliClient final : public Actor {
       } else {
         send_request(td_api::make_object<td_api::canPurchaseFromStore>(
             td_api::make_object<td_api::storePaymentPurposePremiumGiftCodes>(boosted_chat_id, currency, amount,
-                                                                             vector<int64>{user_id})));
+                                                                             vector<int64>{user_id}, nullptr)));
       }
     } else if (op == "cpfsg") {
       GiveawayParameters parameters;
