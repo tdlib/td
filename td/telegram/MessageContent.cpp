@@ -8345,6 +8345,8 @@ const FormattedText *get_message_content_text(const MessageContent *content) {
       return &static_cast<const MessageText *>(content)->text;
     case MessageContentType::Game:
       return &static_cast<const MessageGame *>(content)->game.get_text();
+    case MessageContentType::StarGift:
+      return &static_cast<const MessageStarGift *>(content)->text;
     default:
       return get_message_content_caption(content);
   }
