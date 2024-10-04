@@ -457,7 +457,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         auto file_source_id =
             td_->star_manager_->get_star_transaction_file_source_id(dialog_id_, transaction->id_, transaction->refund_);
         for (auto file_id : file_ids) {
-          td_->file_manager_->add_file_source(file_id, file_source_id);
+          td_->file_manager_->add_file_source(file_id, file_source_id, "GetStarsTransactionsQuery");
         }
       }
       transactions.push_back(std::move(star_transaction));

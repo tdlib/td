@@ -21191,7 +21191,7 @@ FileSourceId MessagesManager::get_message_file_source_id(MessageFullId message_f
   return file_source_id;
 }
 
-void MessagesManager::add_message_file_sources(DialogId dialog_id, const Message *m) {
+void MessagesManager::add_message_file_sources(DialogId dialog_id, const Message *m, const char *source) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
@@ -21209,7 +21209,7 @@ void MessagesManager::add_message_file_sources(DialogId dialog_id, const Message
   auto file_source_id = get_message_file_source_id(MessageFullId(dialog_id, m->message_id));
   if (file_source_id.is_valid()) {
     for (auto file_id : file_ids) {
-      td_->file_manager_->add_file_source(file_id, file_source_id);
+      td_->file_manager_->add_file_source(file_id, file_source_id, source);
     }
   }
 }
@@ -33299,7 +33299,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   reget_message_from_server_if_needed(dialog_id, m);
 
-  add_message_file_sources(dialog_id, m);
+  add_message_file_sources(dialog_id, m, "add_message_to_dialog");
 
   register_message_content(td_, m->content.get(), {dialog_id, m->message_id}, "add_message_to_dialog");
 
@@ -33536,7 +33536,7 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
 
   reget_message_from_server_if_needed(dialog_id, m);
 
-  add_message_file_sources(dialog_id, m);
+  add_message_file_sources(dialog_id, m, "add_scheduled_message_to_dialog");
 
   register_message_content(td_, m->content.get(), {dialog_id, m->message_id}, "add_scheduled_message_to_dialog");
 

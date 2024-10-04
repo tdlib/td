@@ -2855,7 +2855,7 @@ void UserManager::register_user_photo(User *u, UserId user_id, const Photo &phot
       file_source_id = td_->file_reference_manager_->create_user_photo_file_source(user_id, photo_id);
     }
     for (auto &file_id : photo_file_ids) {
-      td_->file_manager_->add_file_source(file_id, file_source_id);
+      td_->file_manager_->add_file_source(file_id, file_source_id, "register_user_photo");
     }
   }
 }

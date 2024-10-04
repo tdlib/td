@@ -442,7 +442,7 @@ class FileManager final : public Actor {
 
     virtual void on_file_updated(FileId size) = 0;
 
-    virtual bool add_file_source(FileId file_id, FileSourceId file_source_id) = 0;
+    virtual bool add_file_source(FileId file_id, FileSourceId file_source_id, const char *source) = 0;
 
     virtual bool remove_file_source(FileId file_id, FileSourceId file_source_id, const char *source) = 0;
 
@@ -500,7 +500,7 @@ class FileManager final : public Actor {
 
   void try_merge_documents(FileId new_file_id, FileId old_file_id);
 
-  void add_file_source(FileId file_id, FileSourceId file_source_id);
+  void add_file_source(FileId file_id, FileSourceId file_source_id, const char *source);
 
   void remove_file_source(FileId file_id, FileSourceId file_source_id, const char *source);
 

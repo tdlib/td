@@ -763,7 +763,7 @@ void AttachMenuManager::init() {
           auto file_source_id = get_attach_menu_bot_file_source_id(attach_menu_bot.user_id_);
           auto register_file_source = [&](FileId file_id) {
             if (file_id.is_valid()) {
-              td_->file_manager_->add_file_source(file_id, file_source_id);
+              td_->file_manager_->add_file_source(file_id, file_source_id, "attach_menu_bot");
             }
           };
           register_file_source(attach_menu_bot.default_icon_file_id_);
@@ -895,7 +895,7 @@ void AttachMenuManager::on_get_web_app(UserId bot_user_id, string web_app_short_
   if (!file_ids.empty()) {
     auto file_source_id = get_web_app_file_source_id(bot_user_id, web_app_short_name);
     for (auto file_id : file_ids) {
-      td_->file_manager_->add_file_source(file_id, file_source_id);
+      td_->file_manager_->add_file_source(file_id, file_source_id, "on_get_web_app");
     }
   }
   promise.set_value(td_api::make_object<td_api::foundWebApp>(web_app.get_web_app_object(td_),
@@ -1078,7 +1078,7 @@ Result<AttachMenuManager::AttachMenuBot> AttachMenuManager::get_attach_menu_bot(
       default:
         UNREACHABLE();
     }
-    td_->file_manager_->add_file_source(parsed_document.file_id, file_source_id);
+    td_->file_manager_->add_file_source(parsed_document.file_id, file_source_id, "get_attach_menu_bot");
     if (expect_colors) {
       if (icon->colors_.empty()) {
         LOG(ERROR) << "Have no colors for attachment menu bot icon for " << user_id;

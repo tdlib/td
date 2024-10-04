@@ -143,7 +143,7 @@ class GetPreviewMediasQuery final : public Td::ResultHandler {
     if (!file_ids.empty()) {
       auto file_source_id = td_->bot_info_manager_->get_bot_media_preview_file_source_id(bot_user_id_);
       for (auto file_id : file_ids) {
-        td_->file_manager_->add_file_source(file_id, file_source_id);
+        td_->file_manager_->add_file_source(file_id, file_source_id, "GetPreviewMediasQuery");
       }
     }
     td_->user_manager_->on_update_bot_has_preview_medias(bot_user_id_, !previews.empty());
@@ -193,7 +193,7 @@ class GetPreviewInfoQuery final : public Td::ResultHandler {
       auto file_source_id =
           td_->bot_info_manager_->get_bot_media_preview_info_file_source_id(bot_user_id_, language_code_);
       for (auto file_id : file_ids) {
-        td_->file_manager_->add_file_source(file_id, file_source_id);
+        td_->file_manager_->add_file_source(file_id, file_source_id, "GetPreviewInfoQuery");
       }
     }
     promise_.set_value(
@@ -261,7 +261,7 @@ class BotInfoManager::AddPreviewMediaQuery final : public Td::ResultHandler {
       auto file_source_id = td_->bot_info_manager_->get_bot_media_preview_info_file_source_id(
           bot_user_id, pending_preview_->language_code_);
       for (auto file_id : file_ids) {
-        td_->file_manager_->add_file_source(file_id, file_source_id);
+        td_->file_manager_->add_file_source(file_id, file_source_id, "AddPreviewMediaQuery");
       }
     }
     if (pending_preview_->language_code_.empty()) {

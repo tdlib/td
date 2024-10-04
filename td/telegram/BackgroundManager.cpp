@@ -1237,7 +1237,7 @@ void BackgroundManager::add_background(const Background &background, bool replac
             td_->file_reference_manager_->create_background_file_source(result->id, result->access_hash);
       }
       for (auto file_id : Document(Document::Type::General, result->file_id).get_file_ids(td_)) {
-        td_->file_manager_->add_file_source(file_id, result->file_source_id);
+        td_->file_manager_->add_file_source(file_id, result->file_source_id, "add_background");
       }
 
       file_id_to_background_id_.emplace(result->file_id, result->id);

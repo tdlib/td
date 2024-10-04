@@ -208,10 +208,11 @@ FileReferenceManager::Node &FileReferenceManager::add_node(NodeId node_id) {
   return *node;
 }
 
-bool FileReferenceManager::add_file_source(NodeId node_id, FileSourceId file_source_id) {
+bool FileReferenceManager::add_file_source(NodeId node_id, FileSourceId file_source_id, const char *source) {
   auto &node = add_node(node_id);
   bool is_added = node.file_source_ids.add(file_source_id);
-  VLOG(file_references) << "Add " << (is_added ? "new" : "old") << ' ' << file_source_id << " for file " << node_id;
+  VLOG(file_references) << "Add " << (is_added ? "new" : "old") << ' ' << file_source_id << " for file " << node_id
+                        << " from " << source;
   return is_added;
 }
 

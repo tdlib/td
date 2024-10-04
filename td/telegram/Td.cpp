@@ -1052,8 +1052,8 @@ void Td::init_file_manager() {
                    make_tl_object<td_api::updateFile>(td_->file_manager_->get_file_object(file_id)));
     }
 
-    bool add_file_source(FileId file_id, FileSourceId file_source_id) final {
-      return td_->file_reference_manager_->add_file_source(file_id, file_source_id);
+    bool add_file_source(FileId file_id, FileSourceId file_source_id, const char *source) final {
+      return td_->file_reference_manager_->add_file_source(file_id, file_source_id, source);
     }
 
     bool remove_file_source(FileId file_id, FileSourceId file_source_id, const char *source) final {

@@ -2021,7 +2021,7 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
     VLOG(file_references) << "Loaded " << data.file_source_ids_ << " for file " << main_file_id << " from " << source;
     for (auto file_source_id : data.file_source_ids_) {
       CHECK(file_source_id.is_valid());
-      context_->add_file_source(main_file_id, file_source_id);
+      context_->add_file_source(main_file_id, file_source_id, "register_file");
     }
   }
   return FileId(main_file_id.get(), remote_key);
@@ -2474,14 +2474,14 @@ void FileManager::try_merge_documents(FileId new_file_id, FileId old_file_id) {
   }
 }
 
-void FileManager::add_file_source(FileId file_id, FileSourceId file_source_id) {
+void FileManager::add_file_source(FileId file_id, FileSourceId file_source_id, const char *source) {
   auto node = get_sync_file_node(file_id);  // synchronously load the file to preload known file sources
   if (!node) {
     return;
   }
 
   CHECK(file_source_id.is_valid());
-  if (context_->add_file_source(node->main_file_id_, file_source_id)) {
+  if (context_->add_file_source(node->main_file_id_, file_source_id, source)) {
     node->on_pmc_changed();
     try_flush_node_pmc(node, "add_file_source");
   }
@@ -2518,7 +2518,7 @@ void FileManager::change_files_source(FileSourceId file_source_id, const vector<
     }
   }
   for (auto file_id : new_main_file_ids) {
-    add_file_source(file_id, file_source_id);
+    add_file_source(file_id, file_source_id, source);
   }
 }
 

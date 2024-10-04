@@ -82,7 +82,7 @@ class FileReferenceManager final : public Actor {
 
   static void reload_photo(PhotoSizeSource source, Promise<Unit> promise);
 
-  bool add_file_source(NodeId node_id, FileSourceId file_source_id);
+  bool add_file_source(NodeId node_id, FileSourceId file_source_id, const char *source);
 
   vector<FileSourceId> get_some_file_sources(NodeId node_id);
 

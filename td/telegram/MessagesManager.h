@@ -2938,7 +2938,7 @@ class MessagesManager final : public Actor {
 
   void delete_bot_command_message_id(DialogId dialog_id, MessageId message_id);
 
-  void add_message_file_sources(DialogId dialog_id, const Message *m);
+  void add_message_file_sources(DialogId dialog_id, const Message *m, const char *source);
 
   void remove_message_file_sources(DialogId dialog_id, const Message *m, const char *source);
 
