@@ -24658,6 +24658,7 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
   if (is_content_changed || need_update || media_pos >= 0) {
     on_message_changed(d, m, need_update, "on_upload_message_media_success");
   }
+  cancel_upload_file(get_message_send_file_upload_id(m, media_pos), "on_upload_message_media_success");
 
   auto input_media = get_message_content_input_media(m->content.get(), td_, m->ttl, m->send_emoji, true, media_pos);
   Status result;
@@ -29713,9 +29714,7 @@ MessageFullId MessagesManager::on_send_message_success(int64 random_id, MessageI
   if (merge_message_content_file_id(td_, sent_message->content.get(), new_file_id)) {
     send_update_message_content(d, sent_message.get(), false, source);
   }
-  for (auto file_upload_id : sent_message->file_upload_ids) {
-    cancel_upload_file(file_upload_id, "on_send_message_success");
-  }
+  // upload was canceled in delete_message
 
   const auto *input_reply_to = get_message_input_reply_to(sent_message.get());
   if (input_reply_to != nullptr && input_reply_to->is_valid() &&
@@ -34553,9 +34552,8 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
                            dialog_id, need_merge_files, is_content_changed, need_update);
     compare_message_contents(td_, old_content.get(), new_content.get(), is_content_changed, need_update);
   }
-  for (auto old_file_upload_id : old_file_upload_ids) {
-    cancel_upload_file(old_file_upload_id, "update_message_content");
-  }
+  // upload of yet unsent messages is canceled in delete_message or on_upload_message_media_success
+  // upload of being edited messages is canceled in on_message_media_edited
 
   if (is_content_changed || need_update) {
     if (is_message_in_dialog) {
