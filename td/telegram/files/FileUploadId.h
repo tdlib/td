@@ -12,8 +12,6 @@
 #include "td/utils/HashTableUtils.h"
 #include "td/utils/StringBuilder.h"
 
-#include <type_traits>
-
 namespace td {
 
 class FileUploadId {

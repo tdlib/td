@@ -6,7 +6,6 @@
 //
 #include "td/telegram/MessageExtendedMedia.h"
 
-#include "td/telegram/AuthManager.h"
 #include "td/telegram/Dimensions.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"

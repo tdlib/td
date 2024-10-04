@@ -10,7 +10,6 @@
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/FileReferenceManager.h"
-#include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
@@ -371,7 +370,7 @@ void MessageImportManager::on_upload_imported_messages(FileUploadId file_upload_
   auto status = td_->dialog_manager_->check_dialog_access_in_memory(dialog_id, false, AccessRights::Write);
   if (status.is_error()) {
     td_->file_manager_->cancel_upload(file_upload_id);
-    return promise.set_error(status.move_as_error());
+    return promise.set_error(std::move(status));
   }
 
   FileView file_view = td_->file_manager_->get_file_view(file_upload_id.get_file_id());

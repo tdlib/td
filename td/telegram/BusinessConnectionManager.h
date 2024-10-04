@@ -8,7 +8,6 @@
 
 #include "td/telegram/BusinessConnectionId.h"
 #include "td/telegram/DialogId.h"
-#include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileUploadId.h"
 #include "td/telegram/MessageEffectId.h"
 #include "td/telegram/MessageId.h"
