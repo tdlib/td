@@ -1046,8 +1046,7 @@ void BackgroundManager::do_upload_background_file(FileUploadId file_upload_id, c
 
   if (input_file == nullptr) {
     FileView file_view = td_->file_manager_->get_file_view(file_upload_id.get_file_id());
-    file_upload_id = {file_view.get_main_file_id(), file_upload_id.get_internal_upload_id()};
-    auto it = file_id_to_background_id_.find(file_upload_id.get_file_id());
+    auto it = file_id_to_background_id_.find(file_view.get_main_file_id());
     if (it != file_id_to_background_id_.end()) {
       if (dialog_id.is_valid()) {
         return promise.set_value(get_background_object(it->second, for_dark_theme, nullptr));
