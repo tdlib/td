@@ -828,14 +828,10 @@ void BotInfoManager::on_upload_bot_media_preview(FileUploadId file_upload_id,
   LOG(INFO) << "Bot media preview " << file_upload_id << " has been uploaded";
 
   auto it = being_uploaded_files_.find(file_upload_id);
-  if (it == being_uploaded_files_.end()) {
-    // callback may be called just before the file upload was canceled
-    return;
-  }
-
+  CHECK(it != being_uploaded_files_.end());
   auto pending_preview = std::move(it->second);
-
   being_uploaded_files_.erase(it);
+  CHECK(file_upload_id == pending_preview->file_upload_id_);
 
   FileView file_view = td_->file_manager_->get_file_view(file_upload_id.get_file_id());
   CHECK(!file_view.is_encrypted());
@@ -854,10 +850,14 @@ void BotInfoManager::on_upload_bot_media_preview(FileUploadId file_upload_id,
     return do_add_bot_media_preview(std::move(pending_preview), {-1});
   }
   CHECK(input_file != nullptr);
-  TRY_RESULT_PROMISE(pending_preview->promise_, input_user,
-                     get_media_preview_bot_input_user(pending_preview->bot_user_id_, true));
+  auto r_input_user = get_media_preview_bot_input_user(pending_preview->bot_user_id_, true);
+  if (r_input_user.is_error()) {
+    td_->file_manager_->cancel_upload(file_upload_id);
+    pending_preview->promise_.set_error(r_input_user.move_as_error());
+    return;
+  }
 
-  td_->create_handler<AddPreviewMediaQuery>()->send(std::move(input_user), std::move(pending_preview),
+  td_->create_handler<AddPreviewMediaQuery>()->send(r_input_user.move_as_ok(), std::move(pending_preview),
                                                     std::move(input_file));
 }
 
@@ -869,14 +869,10 @@ void BotInfoManager::on_upload_bot_media_preview_error(FileUploadId file_upload_
   LOG(INFO) << "Bot media preview " << file_upload_id << " has upload error " << status;
 
   auto it = being_uploaded_files_.find(file_upload_id);
-  if (it == being_uploaded_files_.end()) {
-    // callback may be called just before the file upload was canceled
-    return;
-  }
-
+  CHECK(it != being_uploaded_files_.end());
   auto pending_preview = std::move(it->second);
-
   being_uploaded_files_.erase(it);
+  CHECK(file_upload_id == pending_preview->file_upload_id_);
 
   pending_preview->promise_.set_error(std::move(status));
 }
