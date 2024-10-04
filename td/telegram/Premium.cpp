@@ -233,7 +233,7 @@ static Result<tl_object_ptr<telegram_api::InputStorePaymentPurpose>> get_input_s
         flags |= telegram_api::inputStorePaymentPremiumGiftCode::BOOST_PEER_MASK;
       }
       return telegram_api::make_object<telegram_api::inputStorePaymentPremiumGiftCode>(
-          flags, std::move(input_users), std::move(boost_input_peer), p->currency_, p->amount_);
+          flags, std::move(input_users), std::move(boost_input_peer), p->currency_, p->amount_, nullptr);
     }
     case td_api::storePaymentPurposePremiumGiveaway::ID: {
       auto p = static_cast<td_api::storePaymentPurposePremiumGiveaway *>(purpose.get());
