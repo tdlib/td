@@ -7851,7 +7851,8 @@ void UserManager::update_user_full(UserFull *user_full, UserId user_id, const ch
         }
       }
 
-      td_->file_manager_->change_files_source(file_source_id, user_full->registered_file_ids, file_ids);
+      td_->file_manager_->change_files_source(file_source_id, user_full->registered_file_ids, file_ids,
+                                              "update_user_full");
       user_full->registered_file_ids = std::move(file_ids);
     }
   }

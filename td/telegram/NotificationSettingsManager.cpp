@@ -1498,7 +1498,7 @@ void NotificationSettingsManager::on_saved_ringtones_updated(bool from_database)
   std::sort(new_sorted_saved_ringtone_file_ids.begin(), new_sorted_saved_ringtone_file_ids.end());
   if (new_sorted_saved_ringtone_file_ids != sorted_saved_ringtone_file_ids_) {
     td_->file_manager_->change_files_source(get_saved_ringtones_file_source_id(), sorted_saved_ringtone_file_ids_,
-                                            new_sorted_saved_ringtone_file_ids);
+                                            new_sorted_saved_ringtone_file_ids, "on_saved_ringtones_updated");
     sorted_saved_ringtone_file_ids_ = std::move(new_sorted_saved_ringtone_file_ids);
   }
 

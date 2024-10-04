@@ -444,7 +444,7 @@ class FileManager final : public Actor {
 
     virtual bool add_file_source(FileId file_id, FileSourceId file_source_id) = 0;
 
-    virtual bool remove_file_source(FileId file_id, FileSourceId file_source_id) = 0;
+    virtual bool remove_file_source(FileId file_id, FileSourceId file_source_id, const char *source) = 0;
 
     virtual void on_merge_files(FileId to_file_id, FileId from_file_id) = 0;
 
@@ -502,10 +502,10 @@ class FileManager final : public Actor {
 
   void add_file_source(FileId file_id, FileSourceId file_source_id);
 
-  void remove_file_source(FileId file_id, FileSourceId file_source_id);
+  void remove_file_source(FileId file_id, FileSourceId file_source_id, const char *source);
 
   void change_files_source(FileSourceId file_source_id, const vector<FileId> &old_file_ids,
-                           const vector<FileId> &new_file_ids);
+                           const vector<FileId> &new_file_ids, const char *source);
 
   void on_file_reference_repaired(FileId file_id, FileSourceId file_source_id, Result<Unit> &&result,
                                   Promise<Unit> &&promise);

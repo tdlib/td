@@ -534,7 +534,8 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
         }
         if (web_page_to_delete->file_source_id_.is_valid()) {
           td_->file_manager_->change_files_source(web_page_to_delete->file_source_id_,
-                                                  get_web_page_file_ids(web_page_to_delete), vector<FileId>());
+                                                  get_web_page_file_ids(web_page_to_delete), vector<FileId>(),
+                                                  "on_get_web_page");
         }
         web_pages_.erase(web_page_id);
       }
@@ -734,7 +735,8 @@ void WebPagesManager::update_web_page(unique_ptr<WebPage> web_page, WebPageId we
 
   auto new_file_ids = get_web_page_file_ids(page.get());
   if (old_file_ids != new_file_ids) {
-    td_->file_manager_->change_files_source(get_web_page_file_source_id(page.get()), old_file_ids, new_file_ids);
+    td_->file_manager_->change_files_source(get_web_page_file_source_id(page.get()), old_file_ids, new_file_ids,
+                                            "update_web_page");
   }
 
   if (is_changed && !from_database) {
@@ -1157,7 +1159,8 @@ void WebPagesManager::on_load_web_page_instant_view_from_database(WebPageId web_
 
   auto new_file_ids = get_web_page_file_ids(web_page);
   if (old_file_ids != new_file_ids) {
-    td_->file_manager_->change_files_source(get_web_page_file_source_id(web_page), old_file_ids, new_file_ids);
+    td_->file_manager_->change_files_source(get_web_page_file_source_id(web_page), old_file_ids, new_file_ids,
+                                            "on_load_web_page_instant_view_from_database");
   }
 
   update_web_page_instant_view_load_requests(web_page_id, false, web_page_id);

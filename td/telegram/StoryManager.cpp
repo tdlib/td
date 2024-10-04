@@ -3629,7 +3629,7 @@ void StoryManager::change_story_files(StoryFullId story_full_id, const Story *st
 
   auto file_source_id = get_story_file_source_id(story_full_id);
   if (file_source_id.is_valid()) {
-    td_->file_manager_->change_files_source(file_source_id, old_file_ids, new_file_ids);
+    td_->file_manager_->change_files_source(file_source_id, old_file_ids, new_file_ids, "change_story_files");
   }
 }
 

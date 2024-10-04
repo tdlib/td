@@ -10994,7 +10994,7 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
     if (delete_active_live_location({d->dialog_id, m->message_id})) {
       was_live_location_deleted = true;
     }
-    remove_message_file_sources(d->dialog_id, m);
+    remove_message_file_sources(d->dialog_id, m, "do_delete_all_dialog_messages");
 
     on_message_deleted(d, m, is_permanently_deleted, "do_delete_all_dialog_messages");
 
@@ -12357,7 +12357,7 @@ void MessagesManager::on_message_ttl_expired(Dialog *d, Message *m) {
   CHECK(d->dialog_id.get_type() != DialogType::SecretChat);
   ttl_unregister_message(d->dialog_id, m, "on_message_ttl_expired");
   unregister_message_content(td_, m->content.get(), {d->dialog_id, m->message_id}, "on_message_ttl_expired");
-  remove_message_file_sources(d->dialog_id, m);
+  remove_message_file_sources(d->dialog_id, m, "on_message_ttl_expired");
   on_message_ttl_expired_impl(d, m, true);
   register_message_content(td_, m->content.get(), {d->dialog_id, m->message_id}, "on_message_ttl_expired");
   send_update_message_content(d, m, true, "on_message_ttl_expired");
@@ -15324,7 +15324,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
       send_update_active_live_location_messages();
       save_active_live_locations();
     }
-    remove_message_file_sources(d->dialog_id, m);
+    remove_message_file_sources(d->dialog_id, m, "do_delete_message");
 
     if (message_id == d->last_message_id) {
       auto it = d->ordered_messages.get_const_iterator(message_id);
@@ -15599,7 +15599,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
 
   delete_message_from_database(d, message_id, m, is_permanently_deleted, source);
 
-  remove_message_file_sources(d->dialog_id, m);
+  remove_message_file_sources(d->dialog_id, m, "do_delete_scheduled_message");
 
   it = d->scheduled_messages->scheduled_messages_.find(message_id);
   auto result = std::move(it->second);
@@ -21214,7 +21214,7 @@ void MessagesManager::add_message_file_sources(DialogId dialog_id, const Message
   }
 }
 
-void MessagesManager::remove_message_file_sources(DialogId dialog_id, const Message *m) {
+void MessagesManager::remove_message_file_sources(DialogId dialog_id, const Message *m, const char *source) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
@@ -21231,7 +21231,7 @@ void MessagesManager::remove_message_file_sources(DialogId dialog_id, const Mess
       auto file_view = td_->file_manager_->get_file_view(file_id);
       send_closure(td_->download_manager_actor_, &DownloadManager::remove_file, file_view.get_main_file_id(),
                    file_source_id, false, Promise<Unit>());
-      td_->file_manager_->remove_file_source(file_id, file_source_id);
+      td_->file_manager_->remove_file_source(file_id, file_source_id, source);
     }
   }
 }
@@ -21263,7 +21263,7 @@ void MessagesManager::change_message_files(DialogId dialog_id, const Message *m,
   }
 
   if (file_source_id.is_valid()) {
-    td_->file_manager_->change_files_source(file_source_id, old_file_ids, new_file_ids);
+    td_->file_manager_->change_files_source(file_source_id, old_file_ids, new_file_ids, "change_message_files");
   }
 }
 

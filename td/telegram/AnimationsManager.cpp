@@ -834,7 +834,7 @@ void AnimationsManager::send_update_saved_animations(bool from_database) {
     std::sort(new_saved_animation_file_ids.begin(), new_saved_animation_file_ids.end());
     if (new_saved_animation_file_ids != saved_animation_file_ids_) {
       td_->file_manager_->change_files_source(get_saved_animations_file_source_id(), saved_animation_file_ids_,
-                                              new_saved_animation_file_ids);
+                                              new_saved_animation_file_ids, "send_update_saved_animations");
       saved_animation_file_ids_ = std::move(new_saved_animation_file_ids);
     }
 

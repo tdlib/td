@@ -2487,21 +2487,21 @@ void FileManager::add_file_source(FileId file_id, FileSourceId file_source_id) {
   }
 }
 
-void FileManager::remove_file_source(FileId file_id, FileSourceId file_source_id) {
+void FileManager::remove_file_source(FileId file_id, FileSourceId file_source_id, const char *source) {
   auto node = get_sync_file_node(file_id);  // synchronously load the file to preload known file sources
   if (!node) {
     return;
   }
 
   CHECK(file_source_id.is_valid());
-  if (context_->remove_file_source(node->main_file_id_, file_source_id)) {
+  if (context_->remove_file_source(node->main_file_id_, file_source_id, source)) {
     node->on_pmc_changed();
     try_flush_node_pmc(node, "remove_file_source");
   }
 }
 
 void FileManager::change_files_source(FileSourceId file_source_id, const vector<FileId> &old_file_ids,
-                                      const vector<FileId> &new_file_ids) {
+                                      const vector<FileId> &new_file_ids, const char *source) {
   if (old_file_ids == new_file_ids) {
     return;
   }
@@ -2512,7 +2512,7 @@ void FileManager::change_files_source(FileSourceId file_source_id, const vector<
   for (auto file_id : old_main_file_ids) {
     auto it = new_main_file_ids.find(file_id);
     if (it == new_main_file_ids.end()) {
-      remove_file_source(file_id, file_source_id);
+      remove_file_source(file_id, file_source_id, source);
     } else {
       new_main_file_ids.erase(it);
     }
@@ -2534,7 +2534,7 @@ void FileManager::on_file_reference_repaired(FileId file_id, FileSourceId file_s
   }
   if (result.is_error() && result.error().code() != 429 && result.error().code() < 500) {
     VLOG(file_references) << "Invalid " << file_source_id << " " << result.error();
-    remove_file_source(file_id, file_source_id);
+    remove_file_source(file_id, file_source_id, "on_file_reference_repaired");
   }
   promise.set_result(std::move(result));
 }

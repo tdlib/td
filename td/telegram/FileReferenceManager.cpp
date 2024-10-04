@@ -215,14 +215,15 @@ bool FileReferenceManager::add_file_source(NodeId node_id, FileSourceId file_sou
   return is_added;
 }
 
-bool FileReferenceManager::remove_file_source(NodeId node_id, FileSourceId file_source_id) {
+bool FileReferenceManager::remove_file_source(NodeId node_id, FileSourceId file_source_id, const char *source) {
   CHECK(node_id.is_valid());
   auto *node = nodes_.get_pointer(node_id);
   bool is_removed = node != nullptr && node->file_source_ids.remove(file_source_id);
   if (is_removed) {
-    VLOG(file_references) << "Remove " << file_source_id << " from file " << node_id;
+    VLOG(file_references) << "Remove " << file_source_id << " from file " << node_id << " from " << source;
   } else {
-    VLOG(file_references) << "Can't find " << file_source_id << " from file " << node_id << " to remove it";
+    VLOG(file_references) << "Can't find " << file_source_id << " from file " << node_id << " to remove it from "
+                          << source;
   }
   return is_removed;
 }

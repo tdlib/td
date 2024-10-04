@@ -5781,7 +5781,8 @@ void StickersManager::on_update_emoji_sounds() {
       new_file_ids.push_back(file_id);
     }
   }
-  td_->file_manager_->change_files_source(get_app_config_file_source_id(), old_file_ids, new_file_ids);
+  td_->file_manager_->change_files_source(get_app_config_file_source_id(), old_file_ids, new_file_ids,
+                                          "on_update_emoji_sounds");
 
   try_update_animated_emoji_messages();
 }
@@ -9267,7 +9268,8 @@ void StickersManager::send_update_recent_stickers(bool is_attached, bool from_da
   std::sort(new_recent_sticker_file_ids.begin(), new_recent_sticker_file_ids.end());
   if (new_recent_sticker_file_ids != recent_sticker_file_ids_[is_attached]) {
     td_->file_manager_->change_files_source(get_recent_stickers_file_source_id(is_attached),
-                                            recent_sticker_file_ids_[is_attached], new_recent_sticker_file_ids);
+                                            recent_sticker_file_ids_[is_attached], new_recent_sticker_file_ids,
+                                            "send_update_recent_stickers");
     recent_sticker_file_ids_[is_attached] = std::move(new_recent_sticker_file_ids);
   }
 
@@ -9628,7 +9630,7 @@ void StickersManager::send_update_favorite_stickers(bool from_database) {
     std::sort(new_favorite_sticker_file_ids.begin(), new_favorite_sticker_file_ids.end());
     if (new_favorite_sticker_file_ids != favorite_sticker_file_ids_) {
       td_->file_manager_->change_files_source(get_favorite_stickers_file_source_id(), favorite_sticker_file_ids_,
-                                              new_favorite_sticker_file_ids);
+                                              new_favorite_sticker_file_ids, "send_update_favorite_stickers");
       favorite_sticker_file_ids_ = std::move(new_favorite_sticker_file_ids);
     }
 

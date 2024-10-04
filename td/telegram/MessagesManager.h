@@ -2940,7 +2940,7 @@ class MessagesManager final : public Actor {
 
   void add_message_file_sources(DialogId dialog_id, const Message *m);
 
-  void remove_message_file_sources(DialogId dialog_id, const Message *m);
+  void remove_message_file_sources(DialogId dialog_id, const Message *m, const char *source);
 
   void change_message_files(DialogId dialog_id, const Message *m, const vector<FileId> &old_file_ids);
 

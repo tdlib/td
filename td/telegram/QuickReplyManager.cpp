@@ -3695,7 +3695,7 @@ void QuickReplyManager::delete_message_files(const QuickReplyMessage *m) const {
   }
   auto it = message_full_id_to_file_source_id_.find({m->shortcut_id, m->message_id});
   if (it != message_full_id_to_file_source_id_.end()) {
-    td_->file_manager_->change_files_source(it->second, file_ids, {});
+    td_->file_manager_->change_files_source(it->second, file_ids, {}, "delete_message_files");
   }
 }
 
@@ -3716,7 +3716,7 @@ void QuickReplyManager::change_message_files(const QuickReplyMessage *m, const v
 
   auto file_source_id = get_quick_reply_message_file_source_id(message_full_id);
   if (file_source_id.is_valid()) {
-    td_->file_manager_->change_files_source(file_source_id, old_file_ids, new_file_ids);
+    td_->file_manager_->change_files_source(file_source_id, old_file_ids, new_file_ids, "change_message_files");
   }
 }
 

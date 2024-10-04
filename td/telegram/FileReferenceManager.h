@@ -88,7 +88,7 @@ class FileReferenceManager final : public Actor {
 
   vector<MessageFullId> get_some_message_file_sources(NodeId node_id);
 
-  bool remove_file_source(NodeId node_id, FileSourceId file_source_id);
+  bool remove_file_source(NodeId node_id, FileSourceId file_source_id, const char *source);
 
   void merge(NodeId to_node_id, NodeId from_node_id);
 

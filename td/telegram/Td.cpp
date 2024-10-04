@@ -1056,8 +1056,8 @@ void Td::init_file_manager() {
       return td_->file_reference_manager_->add_file_source(file_id, file_source_id);
     }
 
-    bool remove_file_source(FileId file_id, FileSourceId file_source_id) final {
-      return td_->file_reference_manager_->remove_file_source(file_id, file_source_id);
+    bool remove_file_source(FileId file_id, FileSourceId file_source_id, const char *source) final {
+      return td_->file_reference_manager_->remove_file_source(file_id, file_source_id, source);
     }
 
     void on_merge_files(FileId to_file_id, FileId from_file_id) final {
