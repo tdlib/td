@@ -3454,6 +3454,7 @@ class EditMessageQuery final : public Td::ResultHandler {
   Promise<int32> promise_;
   DialogId dialog_id_;
   MessageId message_id_;
+  bool is_media_;
 
  public:
   explicit EditMessageQuery(Promise<Unit> &&promise) {
@@ -3471,9 +3472,10 @@ class EditMessageQuery final : public Td::ResultHandler {
   void send(int32 flags, DialogId dialog_id, MessageId message_id, const string &text,
             vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities,
             tl_object_ptr<telegram_api::InputMedia> &&input_media, bool invert_media,
-            tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup, int32 schedule_date) {
+            tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup, int32 schedule_date, bool is_media = false) {
     dialog_id_ = dialog_id;
     message_id_ = message_id;
+    is_media_ = is_media;
 
     if (input_media != nullptr && false) {
       return on_error(Status::Error(400, "FILE_PART_1_MISSING"));
@@ -3527,14 +3529,16 @@ class EditMessageQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    if (status.code() != 403 && !(status.code() == 500 && G()->close_flag())) {
-      LOG(WARNING) << "Failed to edit " << MessageFullId{dialog_id_, message_id_} << " with the error "
-                   << status.message();
-    } else {
-      LOG(INFO) << "Receive error for EditMessageQuery: " << status;
-    }
     if (!td_->auth_manager_->is_bot() && status.message() == "MESSAGE_NOT_MODIFIED") {
       return promise_.set_value(0);
+    }
+    if (!is_media_) {
+      if (status.code() != 403 && !(status.code() == 500 && G()->close_flag())) {
+        LOG(WARNING) << "Failed to edit " << MessageFullId{dialog_id_, message_id_} << " with the error "
+                     << status.message();
+      } else {
+        LOG(INFO) << "Receive error for EditMessageQuery: " << status;
+      }
     }
     td_->messages_manager_->on_get_message_error(dialog_id_, message_id_, status, "EditMessageQuery");
     promise_.set_error(std::move(status));
@@ -24490,7 +24494,7 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
     td_->create_handler<EditMessageQuery>(std::move(promise))
         ->send(1 << 11, dialog_id, message_id, caption == nullptr ? "" : caption->text,
                get_input_message_entities(td_->user_manager_.get(), caption, "edit_message_media"),
-               std::move(input_media), m->edited_invert_media, std::move(input_reply_markup), schedule_date);
+               std::move(input_media), m->edited_invert_media, std::move(input_reply_markup), schedule_date, true);
     return;
   }
 
@@ -25767,7 +25771,6 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
 
   if (was_thumbnail_uploaded) {
     CHECK(thumbnail_file_upload_id.is_valid());
-    // always delete partial remote location for the thumbnail, because it can't be reused anyway
     td_->file_manager_->delete_partial_remote_location(thumbnail_file_upload_id);
   }
 
@@ -25808,24 +25811,20 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
       }
     }
   } else {
-    LOG(INFO) << "Failed to edit " << message_id << " in " << dialog_id << ": " << result.error();
+    auto error = result.move_as_error();
+    LOG(INFO) << "Failed to edit " << message_id << " in " << dialog_id << ": " << error;
     if (was_uploaded) {
-      if (was_thumbnail_uploaded) {
-        CHECK(thumbnail_file_upload_id.is_valid());
-        // always delete partial remote location for the thumbnail, because it can't be reused anyway
-        td_->file_manager_->delete_partial_remote_location(thumbnail_file_upload_id);
-      }
       CHECK(file_upload_id.is_valid());
-      auto bad_parts = FileManager::get_missing_file_parts(result.error());
+      auto bad_parts = FileManager::get_missing_file_parts(error);
       if (!bad_parts.empty()) {
         do_send_message(dialog_id, m, -1, std::move(bad_parts));
         return;
       }
 
-      td_->file_manager_->delete_partial_remote_location_if_needed(file_upload_id, result.error());
-    } else if (!td_->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(result.error())) {
+      td_->file_manager_->delete_partial_remote_location_if_needed(file_upload_id, error);
+    } else if (!td_->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(error)) {
       if (file_upload_id.is_valid()) {
-        VLOG(file_references) << "Receive " << result.error() << " for " << file_upload_id;
+        VLOG(file_references) << "Receive " << error << " for " << file_upload_id;
         td_->file_manager_->delete_file_reference(file_upload_id.get_file_id(), file_reference);
         do_send_message(dialog_id, m, -1, {-1});
         return;
@@ -25834,6 +25833,9 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
       }
     }
 
+    if (error.code() != 403 && !(error.code() == 500 && G()->close_flag())) {
+      LOG(WARNING) << "Failed to edit " << MessageFullId{dialog_id, m->message_id} << " with the error " << error;
+    }
     cancel_upload_message_content_files(m->edited_file_upload_ids, m->edited_thumbnail_file_upload_ids);
 
     if (dialog_id.get_type() != DialogType::SecretChat) {
