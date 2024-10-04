@@ -21236,7 +21236,8 @@ void MessagesManager::remove_message_file_sources(DialogId dialog_id, const Mess
   }
 }
 
-void MessagesManager::change_message_files(DialogId dialog_id, const Message *m, const vector<FileId> &old_file_ids) {
+void MessagesManager::change_message_files(DialogId dialog_id, const Message *m, const vector<FileId> &old_file_ids,
+                                           const char *source) {
   if (dialog_id.get_type() != DialogType::SecretChat && m->is_content_secret) {
     // return;
   }
@@ -21263,7 +21264,7 @@ void MessagesManager::change_message_files(DialogId dialog_id, const Message *m,
   }
 
   if (file_source_id.is_valid()) {
-    td_->file_manager_->change_files_source(file_source_id, old_file_ids, new_file_ids, "change_message_files");
+    td_->file_manager_->change_files_source(file_source_id, old_file_ids, new_file_ids, source);
   }
 }
 
@@ -33088,7 +33089,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
             schedule_active_live_location_expiration();
           }
         }
-        change_message_files(dialog_id, m, old_file_ids);
+        change_message_files(dialog_id, m, old_file_ids, "update existing message");
         if (need_send_update) {
           on_message_notification_changed(d, m, source);
         }
@@ -33508,7 +33509,7 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
       if (!from_database) {
         auto old_file_ids = get_message_file_ids(m);
         update_message(d, m, std::move(message), true);
-        change_message_files(dialog_id, m, old_file_ids);
+        change_message_files(dialog_id, m, old_file_ids, "update existing scheduled message");
       }
       if (old_message_id != message_id) {
         being_readded_message_id_ = {dialog_id, old_message_id};
