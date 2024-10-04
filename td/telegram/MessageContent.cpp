@@ -844,6 +844,7 @@ class MessageWebViewDataReceived final : public MessageContent {
 
 class MessageGiftPremium final : public MessageContent {
  public:
+  FormattedText text;
   string currency;
   int64 amount = 0;
   string crypto_currency;
@@ -851,8 +852,10 @@ class MessageGiftPremium final : public MessageContent {
   int32 months = 0;
 
   MessageGiftPremium() = default;
-  MessageGiftPremium(string &&currency, int64 amount, string &&crypto_currency, int64 crypto_amount, int32 months)
-      : currency(std::move(currency))
+  MessageGiftPremium(FormattedText &&text, string &&currency, int64 amount, string &&crypto_currency,
+                     int64 crypto_amount, int32 months)
+      : text(std::move(text))
+      , currency(std::move(currency))
       , amount(amount)
       , crypto_currency(std::move(crypto_currency))
       , crypto_amount(crypto_amount)
@@ -1630,8 +1633,10 @@ static void store(const MessageContent *content, StorerT &storer) {
     case MessageContentType::GiftPremium: {
       const auto *m = static_cast<const MessageGiftPremium *>(content);
       bool has_crypto_amount = !m->crypto_currency.empty();
+      bool has_text = !m->text.text.empty();
       BEGIN_STORE_FLAGS();
       STORE_FLAG(has_crypto_amount);
+      STORE_FLAG(has_text);
       END_STORE_FLAGS();
       store(m->currency, storer);
       store(m->amount, storer);
@@ -1639,6 +1644,9 @@ static void store(const MessageContent *content, StorerT &storer) {
       if (has_crypto_amount) {
         store(m->crypto_currency, storer);
         store(m->crypto_amount, storer);
+      }
+      if (has_text) {
+        store(m->text, storer);
       }
       break;
     }
@@ -2456,8 +2464,10 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     case MessageContentType::GiftPremium: {
       auto m = make_unique<MessageGiftPremium>();
       bool has_crypto_amount;
+      bool has_text;
       BEGIN_PARSE_FLAGS();
       PARSE_FLAG(has_crypto_amount);
+      PARSE_FLAG(has_text);
       END_PARSE_FLAGS();
       parse(m->currency, parser);
       parse(m->amount, parser);
@@ -2465,6 +2475,9 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       if (has_crypto_amount) {
         parse(m->crypto_currency, parser);
         parse(m->crypto_amount, parser);
+      }
+      if (has_text) {
+        parse(m->text, parser);
       }
       content = std::move(m);
       break;
@@ -5851,7 +5864,7 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
     case MessageContentType::GiftPremium: {
       const auto *lhs = static_cast<const MessageGiftPremium *>(old_content);
       const auto *rhs = static_cast<const MessageGiftPremium *>(new_content);
-      if (lhs->currency != rhs->currency || lhs->amount != rhs->amount ||
+      if (lhs->text != rhs->text || lhs->currency != rhs->currency || lhs->amount != rhs->amount ||
           lhs->crypto_currency != rhs->crypto_currency || lhs->crypto_amount != rhs->crypto_amount ||
           lhs->months != rhs->months) {
         need_update = true;
@@ -7664,7 +7677,9 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
         LOG(ERROR) << "Receive invalid premium gift crypto amount " << action->crypto_amount_;
         action->crypto_amount_ = 0;
       }
-      return td::make_unique<MessageGiftPremium>(std::move(action->currency_), action->amount_,
+      auto text = get_formatted_text(td->user_manager_.get(), std::move(action->message_), true, false,
+                                     "messageActionGiftPremium");
+      return td::make_unique<MessageGiftPremium>(std::move(text), std::move(action->currency_), action->amount_,
                                                  std::move(action->crypto_currency_), action->crypto_amount_,
                                                  action->months_);
     }
@@ -8158,8 +8173,8 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(const Mess
         LOG(ERROR) << "Receive gifted premium in " << dialog_id;
       }
       return td_api::make_object<td_api::messageGiftedPremium>(
-          gifter_user_id, receiver_user_id, m->currency, m->amount, m->crypto_currency, m->crypto_amount, m->months,
-          td->stickers_manager_->get_premium_gift_sticker_object(m->months, 0));
+          gifter_user_id, receiver_user_id, get_text_object(m->text), m->currency, m->amount, m->crypto_currency,
+          m->crypto_amount, m->months, td->stickers_manager_->get_premium_gift_sticker_object(m->months, 0));
     }
     case MessageContentType::TopicCreate: {
       const auto *m = static_cast<const MessageTopicCreate *>(content);
@@ -8345,6 +8360,8 @@ const FormattedText *get_message_content_text(const MessageContent *content) {
       return &static_cast<const MessageText *>(content)->text;
     case MessageContentType::Game:
       return &static_cast<const MessageGame *>(content)->game.get_text();
+    case MessageContentType::GiftPremium:
+      return &static_cast<const MessageGiftPremium *>(content)->text;
     case MessageContentType::StarGift:
       return &static_cast<const MessageStarGift *>(content)->text;
     default:
@@ -8818,6 +8835,10 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
       const auto *topic_edit = static_cast<const MessageTopicEdit *>(content);
       return topic_edit->edited_data.get_title();
     }
+    case MessageContentType::GiftPremium: {
+      const auto *m = static_cast<const MessageGiftPremium *>(content);
+      return m->text.text;
+    }
     case MessageContentType::StarGift: {
       const auto *m = static_cast<const MessageStarGift *>(content);
       return m->text.text;
@@ -8863,7 +8884,6 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::ChatSetTheme:
     case MessageContentType::WebViewDataSent:
     case MessageContentType::WebViewDataReceived:
-    case MessageContentType::GiftPremium:
     case MessageContentType::SuggestProfilePhoto:
     case MessageContentType::WriteAccessAllowed:
     case MessageContentType::RequestedDialog:
