@@ -8178,10 +8178,8 @@ void StickersManager::on_upload_sticker_file(FileUploadId file_upload_id,
 
   auto it = being_uploaded_files_.find(file_upload_id);
   CHECK(it != being_uploaded_files_.end());
-
   auto user_id = it->second.first;
   auto promise = std::move(it->second.second);
-
   being_uploaded_files_.erase(it);
 
   do_upload_sticker_file(user_id, file_upload_id, std::move(input_file), std::move(promise));
@@ -8198,9 +8196,7 @@ void StickersManager::on_upload_sticker_file_error(FileUploadId file_upload_id, 
 
   auto it = being_uploaded_files_.find(file_upload_id);
   CHECK(it != being_uploaded_files_.end());
-
   auto promise = std::move(it->second.second);
-
   being_uploaded_files_.erase(it);
 
   promise.set_error(Status::Error(status.code() > 0 ? status.code() : 500,

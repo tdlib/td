@@ -5296,6 +5296,7 @@ void StoryManager::on_upload_story(FileUploadId file_upload_id,
   CHECK(it != being_uploaded_files_.end());
   auto pending_story = std::move(it->second);
   being_uploaded_files_.erase(it);
+  CHECK(file_upload_id == pending_story->file_upload_id_);
 
   if (!pending_story->story_id_.is_server()) {
     being_uploaded_file_upload_ids_.erase({pending_story->dialog_id_, pending_story->story_id_});

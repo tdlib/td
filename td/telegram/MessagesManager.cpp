@@ -8369,7 +8369,7 @@ void MessagesManager::on_upload_media(FileUploadId file_upload_id,
     case DialogType::User:
     case DialogType::Chat:
     case DialogType::Channel:
-      if (input_file && thumbnail_file_upload_id.is_valid()) {
+      if (input_file != nullptr && thumbnail_file_upload_id.is_valid()) {
         // TODO: download thumbnail if needed (like in secret chats)
         LOG(INFO) << "Ask to upload thumbnail " << thumbnail_file_upload_id;
         bool is_inserted = being_uploaded_thumbnails_

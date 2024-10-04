@@ -368,8 +368,11 @@ void MessageImportManager::on_upload_imported_messages(FileUploadId file_upload_
   Promise<Unit> promise = std::move(it->second->promise);
   being_uploaded_imported_messages_.erase(it);
 
-  TRY_STATUS_PROMISE(promise,
-                     td_->dialog_manager_->check_dialog_access_in_memory(dialog_id, false, AccessRights::Write));
+  auto status = td_->dialog_manager_->check_dialog_access_in_memory(dialog_id, false, AccessRights::Write);
+  if (status.is_error()) {
+    td_->file_manager_->cancel_upload(file_upload_id);
+    return promise.set_error(status.move_as_error());
+  }
 
   FileView file_view = td_->file_manager_->get_file_view(file_upload_id.get_file_id());
   CHECK(!file_view.is_encrypted());
