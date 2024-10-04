@@ -4068,6 +4068,7 @@ bool is_uploaded_input_media(telegram_api::object_ptr<telegram_api::InputMedia> 
     case telegram_api::inputMediaDocument::ID:
     case telegram_api::inputMediaPhoto::ID:
       return true;
+    case telegram_api::inputMediaPaidMedia::ID:
     default:
       UNREACHABLE();
       return false;

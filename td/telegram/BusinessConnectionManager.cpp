@@ -370,6 +370,7 @@ class BusinessConnectionManager::UploadBusinessMediaQuery final : public Td::Res
       CHECK(message_->thumbnail_file_upload_id_.is_valid());
       // always delete partial remote location for the thumbnail, because it can't be reused anyway
       td_->file_manager_->delete_partial_remote_location(message_->thumbnail_file_upload_id_);
+      message_->thumbnail_file_upload_id_ = {};
     }
   }
 
@@ -982,6 +983,7 @@ void BusinessConnectionManager::on_upload_media(FileUploadId file_upload_id,
   CHECK(it != being_uploaded_files_.end());
   auto being_uploaded_media = std::move(it->second);
   being_uploaded_files_.erase(it);
+  CHECK(file_upload_id == being_uploaded_media.message_->file_upload_id_);
 
   being_uploaded_media.input_file_ = std::move(input_file);
   auto thumbnail_file_upload_id = being_uploaded_media.message_->thumbnail_file_upload_id_;
@@ -1016,6 +1018,7 @@ void BusinessConnectionManager::on_upload_thumbnail(
   CHECK(it != being_uploaded_thumbnails_.end());
   auto being_uploaded_media = std::move(it->second);
   being_uploaded_thumbnails_.erase(it);
+  CHECK(thumbnail_file_upload_id == being_uploaded_media.message_->thumbnail_file_upload_id_);
 
   if (thumbnail_input_file == nullptr) {
     delete_message_content_thumbnail(being_uploaded_media.message_->content_.get(), td_);
@@ -1075,6 +1078,7 @@ void BusinessConnectionManager::complete_upload_media(unique_ptr<PendingMessage>
     compare_message_contents(td_, old_content.get(), new_content.get(), is_content_changed, need_update);
   }
   send_closure_later(G()->file_manager(), &FileManager::cancel_upload, message->file_upload_id_);
+  message->file_upload_id_ = {};
 
   if (is_content_changed || need_update) {
     old_content = std::move(new_content);
@@ -1082,8 +1086,6 @@ void BusinessConnectionManager::complete_upload_media(unique_ptr<PendingMessage>
   } else {
     update_message_content_file_id_remote(old_content.get(), get_message_content_any_file_id(new_content.get()));
   }
-  message->file_upload_id_ = {};
-  message->thumbnail_file_upload_id_ = {};
 
   auto input_media =
       get_message_content_input_media(message->content_.get(), td_, message->ttl_, message->send_emoji_, true);
