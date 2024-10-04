@@ -5293,13 +5293,8 @@ void StoryManager::on_upload_story(FileUploadId file_upload_id,
   LOG(INFO) << "Story " << file_upload_id << " has been uploaded";
 
   auto it = being_uploaded_files_.find(file_upload_id);
-  if (it == being_uploaded_files_.end()) {
-    // callback may be called just before the file upload was canceled
-    return;
-  }
-
+  CHECK(it != being_uploaded_files_.end());
   auto pending_story = std::move(it->second);
-
   being_uploaded_files_.erase(it);
 
   if (!pending_story->story_id_.is_server()) {
@@ -5356,13 +5351,8 @@ void StoryManager::on_upload_story_error(FileUploadId file_upload_id, Status sta
   LOG(INFO) << "Story " << file_upload_id << " has upload error " << status;
 
   auto it = being_uploaded_files_.find(file_upload_id);
-  if (it == being_uploaded_files_.end()) {
-    // callback may be called just before the file upload was canceled
-    return;
-  }
-
+  CHECK(it != being_uploaded_files_.end());
   auto pending_story = std::move(it->second);
-
   being_uploaded_files_.erase(it);
 
   vector<Promise<Unit>> promises;

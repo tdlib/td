@@ -1082,7 +1082,7 @@ class UserManager final : public Actor {
         , promise(std::move(promise)) {
     }
   };
-  FlatHashMap<FileUploadId, UploadedProfilePhoto, FileUploadIdHash> uploaded_profile_photos_;
+  FlatHashMap<FileUploadId, UploadedProfilePhoto, FileUploadIdHash> being_uploaded_profile_photos_;
 
   struct ImportContactsTask {
     Promise<Unit> promise_;

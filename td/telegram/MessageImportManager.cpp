@@ -360,17 +360,12 @@ void MessageImportManager::on_upload_imported_messages(FileUploadId file_upload_
   LOG(INFO) << "Imported messages " << file_upload_id << " has been uploaded";
 
   auto it = being_uploaded_imported_messages_.find(file_upload_id);
-  if (it == being_uploaded_imported_messages_.end()) {
-    // just in case, as in on_upload_media
-    return;
-  }
-
+  CHECK(it != being_uploaded_imported_messages_.end());
   CHECK(it->second != nullptr);
   DialogId dialog_id = it->second->dialog_id;
   auto attached_file_upload_ids = std::move(it->second->attached_file_upload_ids);
   bool is_reupload = it->second->is_reupload;
   Promise<Unit> promise = std::move(it->second->promise);
-
   being_uploaded_imported_messages_.erase(it);
 
   TRY_STATUS_PROMISE(promise,
@@ -411,13 +406,8 @@ void MessageImportManager::on_upload_imported_messages_error(FileUploadId file_u
   CHECK(status.is_error());
 
   auto it = being_uploaded_imported_messages_.find(file_upload_id);
-  if (it == being_uploaded_imported_messages_.end()) {
-    // just in case, as in on_upload_media_error
-    return;
-  }
-
+  CHECK(it != being_uploaded_imported_messages_.end());
   Promise<Unit> promise = std::move(it->second->promise);
-
   being_uploaded_imported_messages_.erase(it);
 
   promise.set_error(std::move(status));
@@ -476,17 +466,12 @@ void MessageImportManager::on_upload_imported_message_attachment(
   LOG(INFO) << "Imported message attachment " << file_upload_id << " has been uploaded";
 
   auto it = being_uploaded_imported_message_attachments_.find(file_upload_id);
-  if (it == being_uploaded_imported_message_attachments_.end()) {
-    // just in case, as in on_upload_media
-    return;
-  }
-
+  CHECK(it != being_uploaded_imported_message_attachments_.end());
   CHECK(it->second != nullptr);
   DialogId dialog_id = it->second->dialog_id;
   int64 import_id = it->second->import_id;
   bool is_reupload = it->second->is_reupload;
   Promise<Unit> promise = std::move(it->second->promise);
-
   being_uploaded_imported_message_attachments_.erase(it);
 
   FileView file_view = td_->file_manager_->get_file_view(file_upload_id.get_file_id());
@@ -527,13 +512,8 @@ void MessageImportManager::on_upload_imported_message_attachment_error(FileUploa
   CHECK(status.is_error());
 
   auto it = being_uploaded_imported_message_attachments_.find(file_upload_id);
-  if (it == being_uploaded_imported_message_attachments_.end()) {
-    // just in case, as in on_upload_media_error
-    return;
-  }
-
+  CHECK(it != being_uploaded_imported_message_attachments_.end());
   Promise<Unit> promise = std::move(it->second->promise);
-
   being_uploaded_imported_message_attachments_.erase(it);
 
   promise.set_error(std::move(status));

@@ -4814,7 +4814,7 @@ void UserManager::upload_profile_photo(UserId user_id, FileUploadId file_upload_
                                        int reupload_count, vector<int> bad_parts) {
   CHECK(file_upload_id.is_valid());
   bool is_inserted =
-      uploaded_profile_photos_
+      being_uploaded_profile_photos_
           .emplace(file_upload_id, UploadedProfilePhoto{user_id, is_fallback, only_suggest, main_frame_timestamp,
                                                         is_animation, reupload_count, std::move(promise)})
           .second;
@@ -4827,9 +4827,8 @@ void UserManager::upload_profile_photo(UserId user_id, FileUploadId file_upload_
 
 void UserManager::on_upload_profile_photo(FileUploadId file_upload_id,
                                           telegram_api::object_ptr<telegram_api::InputFile> input_file) {
-  auto it = uploaded_profile_photos_.find(file_upload_id);
-  CHECK(it != uploaded_profile_photos_.end());
-
+  auto it = being_uploaded_profile_photos_.find(file_upload_id);
+  CHECK(it != being_uploaded_profile_photos_.end());
   UserId user_id = it->second.user_id;
   bool is_fallback = it->second.is_fallback;
   bool only_suggest = it->second.only_suggest;
@@ -4837,8 +4836,7 @@ void UserManager::on_upload_profile_photo(FileUploadId file_upload_id,
   bool is_animation = it->second.is_animation;
   int32 reupload_count = it->second.reupload_count;
   auto promise = std::move(it->second.promise);
-
-  uploaded_profile_photos_.erase(it);
+  being_uploaded_profile_photos_.erase(it);
 
   LOG(INFO) << "Uploaded " << (is_animation ? "animated" : "static") << " profile photo " << file_upload_id << " for "
             << user_id << " with reupload_count = " << reupload_count;
@@ -4878,12 +4876,10 @@ void UserManager::on_upload_profile_photo_error(FileUploadId file_upload_id, Sta
   LOG(INFO) << "Profile photo " << file_upload_id << " has upload error " << status;
   CHECK(status.is_error());
 
-  auto it = uploaded_profile_photos_.find(file_upload_id);
-  CHECK(it != uploaded_profile_photos_.end());
-
+  auto it = being_uploaded_profile_photos_.find(file_upload_id);
+  CHECK(it != being_uploaded_profile_photos_.end());
   auto promise = std::move(it->second.promise);
-
-  uploaded_profile_photos_.erase(it);
+  being_uploaded_profile_photos_.erase(it);
 
   promise.set_error(std::move(status));  // TODO check that status has valid error code
 }

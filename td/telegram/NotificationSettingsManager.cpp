@@ -1143,14 +1143,9 @@ void NotificationSettingsManager::on_upload_ringtone(FileUploadId file_upload_id
   LOG(INFO) << "Ringtone " << file_upload_id << " has been uploaded";
 
   auto it = being_uploaded_ringtones_.find(file_upload_id);
-  if (it == being_uploaded_ringtones_.end()) {
-    // just in case, as in on_upload_media
-    return;
-  }
-
+  CHECK(it != being_uploaded_ringtones_.end());
   bool is_reupload = it->second.is_reupload;
   auto promise = std::move(it->second.promise);
-
   being_uploaded_ringtones_.erase(it);
 
   FileView file_view = td_->file_manager_->get_file_view(file_upload_id.get_file_id());
@@ -1205,13 +1200,8 @@ void NotificationSettingsManager::on_upload_ringtone_error(FileUploadId file_upl
   CHECK(status.is_error());
 
   auto it = being_uploaded_ringtones_.find(file_upload_id);
-  if (it == being_uploaded_ringtones_.end()) {
-    // just in case
-    return;
-  }
-
+  CHECK(it != being_uploaded_ringtones_.end());
   auto promise = std::move(it->second.promise);
-
   being_uploaded_ringtones_.erase(it);
 
   promise.set_error(std::move(status));

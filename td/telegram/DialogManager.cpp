@@ -1499,17 +1499,12 @@ void DialogManager::on_upload_dialog_photo(FileUploadId file_upload_id,
   LOG(INFO) << "Chat photo " << file_upload_id << " has been uploaded";
 
   auto it = being_uploaded_dialog_photos_.find(file_upload_id);
-  if (it == being_uploaded_dialog_photos_.end()) {
-    // just in case
-    return;
-  }
-
+  CHECK(it != being_uploaded_dialog_photos_.end());
   DialogId dialog_id = it->second.dialog_id;
   double main_frame_timestamp = it->second.main_frame_timestamp;
   bool is_animation = it->second.is_animation;
   bool is_reupload = it->second.is_reupload;
   Promise<Unit> promise = std::move(it->second.promise);
-
   being_uploaded_dialog_photos_.erase(it);
 
   FileView file_view = td_->file_manager_->get_file_view(file_upload_id.get_file_id());
@@ -1570,13 +1565,8 @@ void DialogManager::on_upload_dialog_photo_error(FileUploadId file_upload_id, St
   CHECK(status.is_error());
 
   auto it = being_uploaded_dialog_photos_.find(file_upload_id);
-  if (it == being_uploaded_dialog_photos_.end()) {
-    // just in case
-    return;
-  }
-
+  CHECK(it != being_uploaded_dialog_photos_.end());
   Promise<Unit> promise = std::move(it->second.promise);
-
   being_uploaded_dialog_photos_.erase(it);
 
   promise.set_error(std::move(status));
