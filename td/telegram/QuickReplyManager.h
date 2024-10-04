@@ -367,7 +367,7 @@ class QuickReplyManager final : public Actor {
                                                   const telegram_api::object_ptr<telegram_api::Updates> &updates_ptr,
                                                   const vector<int64> &random_ids);
 
-  void process_send_quick_reply_updates(QuickReplyShortcutId shortcut_id,
+  void process_send_quick_reply_updates(QuickReplyShortcutId shortcut_id, FileUploadId file_upload_id,
                                         telegram_api::object_ptr<telegram_api::Updates> updates_ptr,
                                         vector<int64> random_ids);
 
