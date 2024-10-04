@@ -24524,7 +24524,6 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
                        }));
   } else {
     if (!is_uploaded_input_media(input_media)) {
-      CHECK(m->file_upload_ids.size() == 1u);
       auto file_upload_id = get_message_send_file_upload_id(m, media_pos);
       auto thumbnail_file_upload_id = get_message_send_thumbnail_file_upload_id(m, media_pos);
       td_->create_handler<UploadMediaQuery>()->send(dialog_id, message_id, media_pos, file_upload_id,
