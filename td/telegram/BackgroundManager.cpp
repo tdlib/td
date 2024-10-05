@@ -993,6 +993,7 @@ void BackgroundManager::upload_background_file(FileId file_id, const BackgroundT
                                                bool for_dark_theme,
                                                Promise<td_api::object_ptr<td_api::background>> &&promise) {
   auto file_upload_id = FileUploadId{file_id, FileManager::get_internal_upload_id()};
+  CHECK(file_upload_id.is_valid());
   bool is_inserted = being_uploaded_files_
                          .emplace(file_upload_id, UploadedFileInfo(type, dialog_id, for_dark_theme, std::move(promise)))
                          .second;

@@ -8169,6 +8169,7 @@ void StickersManager::upload_sticker_file(UserId user_id, FileId file_id, Promis
   }
 
   FileUploadId file_upload_id{file_id, FileManager::get_internal_upload_id()};
+  CHECK(file_upload_id.is_valid());
   being_uploaded_files_[file_upload_id] = {user_id, std::move(promise)};
   LOG(INFO) << "Ask to upload sticker " << file_upload_id;
   td_->file_manager_->upload(file_upload_id, upload_sticker_file_callback_, 2, 0);

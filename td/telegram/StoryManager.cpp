@@ -5277,6 +5277,7 @@ void StoryManager::do_send_story(unique_ptr<PendingStory> &&pending_story, vecto
   if (!pending_story->story_id_.is_server()) {
     being_uploaded_file_upload_ids_[story_full_id] = file_upload_id;
   }
+  CHECK(file_upload_id.is_valid());
   bool is_inserted = being_uploaded_files_.emplace(file_upload_id, std::move(pending_story)).second;
   CHECK(is_inserted);
   // need to call resume_upload synchronously to make upload process consistent with being_uploaded_files_
