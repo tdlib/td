@@ -6,6 +6,7 @@
 //
 #include "td/telegram/DownloadManagerCallback.h"
 
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Td.h"
