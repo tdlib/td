@@ -3312,8 +3312,9 @@ vector<FileId> StickersManager::get_sticker_file_ids(FileId file_id) const {
 FileId StickersManager::dup_sticker(FileId new_id, FileId old_id) {
   const Sticker *old_sticker = get_sticker(old_id);
   CHECK(old_sticker != nullptr);
-
-  CHECK(get_sticker(new_id) == nullptr);
+  if (get_sticker(new_id) != nullptr) {
+    return new_id;
+  }
   auto new_sticker = make_unique<Sticker>(*old_sticker);
   new_sticker->file_id_ = new_id;
   stickers_.set(new_id, std::move(new_sticker));

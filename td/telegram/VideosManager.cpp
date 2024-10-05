@@ -180,7 +180,9 @@ FileId VideosManager::dup_video(FileId new_id, FileId old_id) {
   const Video *old_video = get_video(old_id);
   CHECK(old_video != nullptr);
   auto &new_video = videos_[new_id];
-  CHECK(new_video == nullptr);
+  if (new_video != nullptr) {
+    return new_id;
+  }
   new_video = make_unique<Video>(*old_video);
   new_video->file_id = new_id;
   return new_id;

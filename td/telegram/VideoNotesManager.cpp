@@ -125,7 +125,9 @@ FileId VideoNotesManager::dup_video_note(FileId new_id, FileId old_id) {
   const VideoNote *old_video_note = get_video_note(old_id);
   CHECK(old_video_note != nullptr);
   auto &new_video_note = video_notes_[new_id];
-  CHECK(new_video_note == nullptr);
+  if (new_video_note != nullptr) {
+    return new_id;
+  }
   new_video_note = make_unique<VideoNote>();
   new_video_note->file_id = new_id;
   new_video_note->duration = old_video_note->duration;

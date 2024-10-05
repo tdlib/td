@@ -251,7 +251,9 @@ FileId AnimationsManager::dup_animation(FileId new_id, FileId old_id) {
   const Animation *old_animation = get_animation(old_id);
   CHECK(old_animation != nullptr);
   auto &new_animation = animations_[new_id];
-  CHECK(new_animation == nullptr);
+  if (new_animation != nullptr) {
+    return new_id;
+  }
   new_animation = make_unique<Animation>(*old_animation);
   new_animation->file_id = new_id;
   return new_id;

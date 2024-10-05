@@ -143,7 +143,9 @@ FileId AudiosManager::dup_audio(FileId new_id, FileId old_id) {
   const Audio *old_audio = get_audio(old_id);
   CHECK(old_audio != nullptr);
   auto &new_audio = audios_[new_id];
-  CHECK(new_audio == nullptr);
+  if (new_audio != nullptr) {
+    return new_id;
+  }
   new_audio = make_unique<Audio>(*old_audio);
   new_audio->file_id = new_id;
   return new_id;
