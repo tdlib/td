@@ -1602,9 +1602,7 @@ void StoryManager::start_up() {
       schedule_stealth_mode_update();
     }
   }
-  if (!td_->auth_manager_->is_bot()) {
-    send_update_story_stealth_mode();
-  }
+  send_update_story_stealth_mode();
 
   try_synchronize_archive_all_stories();
   load_expired_database_stories();
@@ -4588,6 +4586,9 @@ td_api::object_ptr<td_api::updateStoryStealthMode> StoryManager::get_update_stor
 }
 
 void StoryManager::send_update_story_stealth_mode() const {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
   send_closure(G()->td(), &Td::send_update, get_update_story_stealth_mode());
 }
 
