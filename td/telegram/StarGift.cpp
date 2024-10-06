@@ -32,10 +32,10 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::starGift> &&st
     star_gift->availability_total_ = 0;
   }
   if ((star_gift->availability_total_ != 0 || star_gift->availability_remains_ != 0) &&
-      (star_gift->availability_remains_ <= 0 || star_gift->availability_remains_ > star_gift->availability_total_)) {
+      (star_gift->availability_remains_ < 0 || star_gift->availability_remains_ > star_gift->availability_total_)) {
     LOG(ERROR) << "Receive " << star_gift->availability_total_ << " remained available gifts out of "
                << star_gift->availability_total_;
-    if (star_gift->availability_remains_ <= 0) {
+    if (star_gift->availability_remains_ < 0) {
       return;
     }
     star_gift->availability_remains_ = star_gift->availability_total_;
