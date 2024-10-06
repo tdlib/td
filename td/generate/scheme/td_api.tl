@@ -912,7 +912,7 @@ starGiveawayPaymentOptions options:vector<starGiveawayPaymentOption> = StarGivea
 //@sticker The sticker representing the gift
 //@star_count Number of Telegram Stars that must be paid for the gift
 //@default_sell_star_count Number of Telegram Stars that can be claimed by the receiver instead of the gift by default. If the gift was paid with just bought Telegram Stars, then full value can be claimed
-//@remaining_count Number of remaining times the gift can be purchased by all users; 0 if not limited
+//@remaining_count Number of remaining times the gift can be purchased by all users; 0 if not limited or the gift was sold out
 //@total_count Number of total times the gift can be purchased by all users; 0 if not limited
 gift id:int64 sticker:sticker star_count:int53 default_sell_star_count:int53 remaining_count:int32 total_count:int32 = Gift;
 
@@ -11241,7 +11241,7 @@ deleteSavedCredentials = Ok;
 //@description Returns gifts that can be sent to other users
 getAvailableGifts = Gifts;
 
-//@description Send a gift to another user
+//@description Sends a gift to another user. May return an error with a message "STARGIFT_USAGE_LIMITED" if the gift was sold out
 //@gift_id Identifier of the gift to send
 //@user_id Identifier of the user that will receive the gift
 //@text Text to show along with the gift; 0-getOption("gift_text_length_max") characters. Only Bold, Italic, Underline, Strikethrough, Spoiler, and CustomEmoji entities are allowed
