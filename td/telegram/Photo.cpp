@@ -231,11 +231,10 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DialogPhoto &dial
                         << ", is_personal = " << dialog_photo.is_personal << '>';
 }
 
-static tl_object_ptr<td_api::photoSize> get_photo_size_object(FileManager *file_manager, const PhotoSize *photo_size) {
-  if (photo_size == nullptr || !photo_size->file_id.is_valid()) {
-    return nullptr;
-  }
-
+static td_api::object_ptr<td_api::photoSize> get_photo_size_object(FileManager *file_manager,
+                                                                   const PhotoSize *photo_size) {
+  CHECK(photo_size != nullptr);
+  LOG_CHECK(photo_size->file_id.is_valid()) << *photo_size;
   return td_api::make_object<td_api::photoSize>(
       photo_size->type.type ? std::string(1, static_cast<char>(photo_size->type.type))
                             : std::string(),  // TODO replace string type with integer type
