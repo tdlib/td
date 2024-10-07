@@ -3829,9 +3829,8 @@ vector<MessageEntity> get_message_entities(const UserManager *user_manager,
           LOG(ERROR) << "Receive unknown " << user_id << " in MentionName from " << source;
           continue;
         }
-        auto r_input_user = user_manager->get_input_user(user_id);
-        if (r_input_user.is_error()) {
-          LOG(ERROR) << "Receive wrong " << user_id << ": " << r_input_user.error() << " from " << source;
+        if (!user_manager->have_min_user(user_id)) {
+          LOG(ERROR) << "Receive wrong " << user_id << " from " << source;
           continue;
         }
         entities.emplace_back(entity->offset_, entity->length_, user_id);
