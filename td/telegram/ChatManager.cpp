@@ -6680,6 +6680,7 @@ void ChatManager::on_update_chat_photo(Chat *c, ChatId chat_id, DialogPhoto &&ph
   }
 
   if (need_update_dialog_photo(c->photo, photo)) {
+    LOG(DEBUG) << "Update photo of " << chat_id << " from " << c->photo << " to " << photo;
     c->photo = std::move(photo);
     c->is_photo_changed = true;
     c->need_save_to_database = true;
@@ -6846,6 +6847,7 @@ void ChatManager::on_update_channel_photo(Channel *c, ChannelId channel_id, Dial
   }
 
   if (need_update_dialog_photo(c->photo, photo)) {
+    LOG(DEBUG) << "Update photo of " << channel_id << " from " << c->photo << " to " << photo;
     c->photo = std::move(photo);
     c->is_photo_changed = true;
     c->need_save_to_database = true;

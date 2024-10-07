@@ -2789,10 +2789,10 @@ void UserManager::do_update_user_photo(User *u, UserId user_id, ProfilePhoto &&n
   if (need_update_profile_photo(u->photo, new_photo)) {
     LOG_IF(ERROR, u->access_hash == -1 && new_photo.small_file_id.is_valid())
         << "Update profile photo of " << user_id << " without access hash from " << source;
-    u->photo = new_photo;
-    u->is_photo_changed = true;
-    LOG(DEBUG) << "Photo has changed for " << user_id << " to " << u->photo
+    LOG(DEBUG) << "Update photo of " << user_id << " from " << u->photo << " to " << new_photo
                << ", invalidate_photo_cache = " << invalidate_photo_cache << " from " << source;
+    u->photo = std::move(new_photo);
+    u->is_photo_changed = true;
     u->is_changed = true;
 
     if (invalidate_photo_cache) {
