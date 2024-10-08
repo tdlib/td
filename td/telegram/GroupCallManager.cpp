@@ -1059,7 +1059,7 @@ void GroupCallManager::on_check_group_call_is_joined_timeout(GroupCallId group_c
   auto *group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr && group_call->is_inited);
   auto audio_source = group_call->audio_source;
-  if (!group_call->is_joined || is_group_call_being_joined(input_group_call_id) ||
+  if (!group_call->is_joined || group_call->is_being_joined ||
       check_group_call_is_joined_timeout_.has_timeout(group_call_id.get()) || audio_source == 0) {
     return;
   }
@@ -1492,7 +1492,7 @@ void GroupCallManager::finish_check_group_call_is_joined(InputGroupCallId input_
   auto *group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr && group_call->is_inited);
   CHECK(audio_source != 0);
-  if (!group_call->is_joined || is_group_call_being_joined(input_group_call_id) ||
+  if (!group_call->is_joined || group_call->is_being_joined ||
       check_group_call_is_joined_timeout_.has_timeout(group_call->group_call_id.get()) ||
       group_call->audio_source != audio_source) {
     return;
@@ -1571,7 +1571,7 @@ bool GroupCallManager::need_group_call_participants(InputGroupCallId input_group
   if (group_call == nullptr || !group_call->is_inited || !group_call->is_active) {
     return false;
   }
-  if (group_call->is_joined || group_call->need_rejoin || is_group_call_being_joined(input_group_call_id)) {
+  if (group_call->is_joined || group_call->need_rejoin || group_call->is_being_joined) {
     return true;
   }
   return false;
@@ -2436,7 +2436,7 @@ void GroupCallManager::get_group_call_streams(GroupCallId group_call_id,
     return promise.set_error(Status::Error(400, "Group call can't be streamed"));
   }
   if (!group_call->is_joined) {
-    if (is_group_call_being_joined(input_group_call_id) || group_call->need_rejoin) {
+    if (group_call->is_being_joined || group_call->need_rejoin) {
       group_call->after_join.push_back(PromiseCreator::lambda(
           [actor_id = actor_id(this), group_call_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
             if (result.is_error()) {
@@ -2499,7 +2499,7 @@ void GroupCallManager::get_group_call_stream_segment(GroupCallId group_call_id, 
     return promise.set_error(Status::Error(400, "Group call can't be streamed"));
   }
   if (!group_call->is_joined) {
-    if (is_group_call_being_joined(input_group_call_id) || group_call->need_rejoin) {
+    if (group_call->is_being_joined || group_call->need_rejoin) {
       group_call->after_join.push_back(PromiseCreator::lambda(
           [actor_id = actor_id(this), group_call_id, time_offset, scale, channel_id, quality = std::move(quality),
            promise = std::move(promise)](Result<Unit> &&result) mutable {
@@ -2720,7 +2720,7 @@ void GroupCallManager::start_group_call_screen_sharing(GroupCallId group_call_id
     return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
   }
   if (!group_call->is_joined || group_call->is_being_left) {
-    if (is_group_call_being_joined(input_group_call_id) || group_call->need_rejoin) {
+    if (group_call->is_being_joined || group_call->need_rejoin) {
       group_call->after_join.push_back(
           PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, audio_source, payload = std::move(payload),
                                   promise = std::move(promise)](Result<Unit> &&result) mutable {
@@ -2763,7 +2763,7 @@ void GroupCallManager::end_group_call_screen_sharing(GroupCallId group_call_id, 
     return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
   }
   if (!group_call->is_joined || group_call->is_being_left) {
-    if (is_group_call_being_joined(input_group_call_id) || group_call->need_rejoin) {
+    if (group_call->is_being_joined || group_call->need_rejoin) {
       group_call->after_join.push_back(PromiseCreator::lambda(
           [actor_id = actor_id(this), group_call_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
             if (result.is_error()) {
@@ -2951,9 +2951,9 @@ void GroupCallManager::process_group_call_after_join_requests(InputGroupCallId i
   if (group_call == nullptr || !group_call->is_inited) {
     return;
   }
-  if (is_group_call_being_joined(input_group_call_id) || group_call->need_rejoin) {
-    LOG(ERROR) << "Failed to process after-join requests from " << source << ": "
-               << is_group_call_being_joined(input_group_call_id) << " " << group_call->need_rejoin;
+  if (group_call->is_being_joined || group_call->need_rejoin) {
+    LOG(ERROR) << "Failed to process after-join requests from " << source << ": " << group_call->is_being_joined << " "
+               << group_call->need_rejoin;
     return;
   }
   if (group_call->after_join.empty()) {
@@ -3050,7 +3050,7 @@ void GroupCallManager::toggle_group_call_is_my_video_paused(GroupCallId group_ca
     return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
   }
   if (!group_call->is_joined) {
-    if (is_group_call_being_joined(input_group_call_id) || group_call->need_rejoin) {
+    if (group_call->is_being_joined || group_call->need_rejoin) {
       group_call->after_join.push_back(
           PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, is_my_video_paused,
                                   promise = std::move(promise)](Result<Unit> &&result) mutable {
@@ -3135,7 +3135,7 @@ void GroupCallManager::toggle_group_call_is_my_video_enabled(GroupCallId group_c
     return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
   }
   if (!group_call->is_joined) {
-    if (is_group_call_being_joined(input_group_call_id) || group_call->need_rejoin) {
+    if (group_call->is_being_joined || group_call->need_rejoin) {
       group_call->after_join.push_back(
           PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, is_my_video_enabled,
                                   promise = std::move(promise)](Result<Unit> &&result) mutable {
@@ -3223,7 +3223,7 @@ void GroupCallManager::toggle_group_call_is_my_presentation_paused(GroupCallId g
     return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
   }
   if (!group_call->is_joined) {
-    if (is_group_call_being_joined(input_group_call_id) || group_call->need_rejoin) {
+    if (group_call->is_being_joined || group_call->need_rejoin) {
       group_call->after_join.push_back(
           PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, is_my_presentation_paused,
                                   promise = std::move(promise)](Result<Unit> &&result) mutable {
@@ -3654,7 +3654,7 @@ void GroupCallManager::set_group_call_participant_is_speaking(GroupCallId group_
     return promise.set_value(Unit());
   }
   if (!group_call->is_joined) {
-    if (is_group_call_being_joined(input_group_call_id) || group_call->need_rejoin) {
+    if (group_call->is_being_joined || group_call->need_rejoin) {
       group_call->after_join.push_back(
           PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, audio_source, is_speaking,
                                   promise = std::move(promise), date](Result<Unit> &&result) mutable {
@@ -3733,7 +3733,7 @@ void GroupCallManager::toggle_group_call_participant_is_muted(GroupCallId group_
     return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
   }
   if (!group_call->is_joined) {
-    if (is_group_call_being_joined(input_group_call_id) || group_call->need_rejoin) {
+    if (group_call->is_being_joined || group_call->need_rejoin) {
       group_call->after_join.push_back(
           PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, dialog_id, is_muted,
                                   promise = std::move(promise)](Result<Unit> &&result) mutable {
@@ -3833,7 +3833,7 @@ void GroupCallManager::set_group_call_participant_volume_level(GroupCallId group
     return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
   }
   if (!group_call->is_joined) {
-    if (is_group_call_being_joined(input_group_call_id) || group_call->need_rejoin) {
+    if (group_call->is_being_joined || group_call->need_rejoin) {
       group_call->after_join.push_back(
           PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, dialog_id, volume_level,
                                   promise = std::move(promise)](Result<Unit> &&result) mutable {
@@ -3924,7 +3924,7 @@ void GroupCallManager::toggle_group_call_participant_is_hand_raised(GroupCallId 
     return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
   }
   if (!group_call->is_joined) {
-    if (is_group_call_being_joined(input_group_call_id) || group_call->need_rejoin) {
+    if (group_call->is_being_joined || group_call->need_rejoin) {
       group_call->after_join.push_back(
           PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, dialog_id, is_hand_raised,
                                   promise = std::move(promise)](Result<Unit> &&result) mutable {
@@ -4130,7 +4130,7 @@ void GroupCallManager::on_group_call_left_impl(GroupCall *group_call, bool need_
   auto input_group_call_id = get_input_group_call_id(group_call->group_call_id).ok();
   try_clear_group_call_participants(input_group_call_id);
   if (!group_call->need_rejoin) {
-    if (is_group_call_being_joined(input_group_call_id)) {
+    if (group_call->is_being_joined) {
       LOG(ERROR) << "Left a being joined group call. Did you change audio_source_id without leaving the group call?";
     } else {
       process_group_call_after_join_requests(input_group_call_id, "on_group_call_left_impl");
@@ -4317,7 +4317,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
     group_call->dialog_id = dialog_id;
   }
   if (call.is_active && join_params.empty() && !group_call->is_joined &&
-      (group_call->need_rejoin || is_group_call_being_joined(input_group_call_id))) {
+      (group_call->need_rejoin || group_call->is_being_joined)) {
     call.participant_count++;
   }
   LOG(INFO) << "Update " << call.group_call_id << " with " << group_call->participant_count
