@@ -3904,7 +3904,7 @@ UserManager::User *UserManager::get_user_force(UserId user_id, const char *sourc
       username = G()->is_test_dc() ? "channelsbot" : "Channel_Bot";
       bot_info_version = G()->is_test_dc() ? 1 : 4;
       profile_photo_id = 587627495930570665;
-    } else if (user_id == get_service_notifications_user_id()) {
+    } else if (user_id == get_anti_spam_bot_user_id()) {
       flags |= USER_FLAG_HAS_USERNAME | USER_FLAG_IS_BOT;
       if (G()->is_test_dc()) {
         first_name = "antispambot";
