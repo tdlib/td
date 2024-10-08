@@ -1507,6 +1507,11 @@ const string &GroupCallManager::get_group_call_title(const GroupCall *group_call
   return group_call->pending_title.empty() ? group_call->title : group_call->pending_title;
 }
 
+bool GroupCallManager::get_group_call_is_joined(const GroupCall *group_call) {
+  CHECK(group_call != nullptr);
+  return (group_call->is_joined || group_call->is_being_joined) && !group_call->is_being_left;
+}
+
 bool GroupCallManager::get_group_call_start_subscribed(const GroupCall *group_call) {
   CHECK(group_call != nullptr);
   return group_call->have_pending_start_subscribed ? group_call->pending_start_subscribed
@@ -2605,6 +2610,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
     return promise.set_error(Status::Error(400, "Group call is finished"));
   }
   bool need_update = false;
+  bool old_is_joined = get_group_call_is_joined(group_call);
   bool is_rejoin = group_call->need_rejoin;
   if (group_call->need_rejoin) {
     group_call->need_rejoin = false;
@@ -2639,7 +2645,6 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
 
   if (group_call->is_being_left) {
     group_call->is_being_left = false;
-    need_update |= group_call->is_joined;
   }
   group_call->is_being_joined = true;
 
@@ -2702,7 +2707,9 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
     }
     need_update = true;
   }
-
+  if (old_is_joined != get_group_call_is_joined(group_call)) {
+    need_update = true;
+  }
   if (group_call->is_inited && need_update) {
     send_update_group_call(group_call, "join_group_call");
   }
@@ -2929,12 +2936,18 @@ void GroupCallManager::finish_join_group_call(InputGroupCallId input_group_call_
   }
 
   GroupCall *group_call = get_group_call(input_group_call_id);
-  if (group_call != nullptr) {
+  bool need_update = false;
+  if (group_call != nullptr && group_call->is_being_joined) {
+    bool old_is_joined = get_group_call_is_joined(group_call);
     group_call->is_being_joined = false;
+    need_update |= old_is_joined != get_group_call_is_joined(group_call);
   }
   remove_recent_group_call_speaker(input_group_call_id, as_dialog_id);
   if (try_clear_group_call_participants(input_group_call_id)) {
     CHECK(group_call != nullptr);
+    need_update = true;
+  }
+  if (need_update && group_call->is_inited) {
     send_update_group_call(group_call, "finish_join_group_call");
   }
   process_group_call_after_join_requests(input_group_call_id, "finish_join_group_call");
@@ -4049,12 +4062,16 @@ void GroupCallManager::leave_group_call(GroupCallId group_call_id, Promise<Unit>
   auto *group_call = get_group_call(input_group_call_id);
   if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || !group_call->is_joined ||
       group_call->is_being_left) {
-    if (cancel_join_group_call_request(input_group_call_id, group_call) != 0) {
-      if (try_clear_group_call_participants(input_group_call_id)) {
-        send_update_group_call(group_call, "leave_group_call 1");
+    if (group_call != nullptr) {
+      bool old_is_joined = get_group_call_is_joined(group_call);
+      if (cancel_join_group_call_request(input_group_call_id, group_call) != 0) {
+        if (try_clear_group_call_participants(input_group_call_id) ||
+            old_is_joined != get_group_call_is_joined(group_call)) {
+          send_update_group_call(group_call, "leave_group_call 1");
+        }
+        process_group_call_after_join_requests(input_group_call_id, "leave_group_call 1");
+        return promise.set_value(Unit());
       }
-      process_group_call_after_join_requests(input_group_call_id, "leave_group_call 1");
-      return promise.set_value(Unit());
     }
     if (group_call != nullptr && group_call->need_rejoin) {
       group_call->need_rejoin = false;
@@ -4827,7 +4844,7 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
 
   int32 scheduled_start_date = group_call->scheduled_start_date;
   bool is_active = scheduled_start_date == 0 ? group_call->is_active : false;
-  bool is_joined = group_call->is_joined && !group_call->is_being_left;
+  bool is_joined = get_group_call_is_joined(group_call);
   bool start_subscribed = get_group_call_start_subscribed(group_call);
   bool is_my_video_enabled = get_group_call_is_my_video_enabled(group_call);
   bool is_my_video_paused = is_my_video_enabled && get_group_call_is_my_video_paused(group_call);

@@ -215,6 +215,8 @@ class GroupCallManager final : public Actor {
 
   static const string &get_group_call_title(const GroupCall *group_call);
 
+  static bool get_group_call_is_joined(const GroupCall *group_call);
+
   static bool get_group_call_start_subscribed(const GroupCall *group_call);
 
   static bool get_group_call_is_my_video_paused(const GroupCall *group_call);
