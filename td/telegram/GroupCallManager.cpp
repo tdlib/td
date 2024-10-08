@@ -894,6 +894,7 @@ struct GroupCallManager::GroupCall {
   bool is_rtmp_stream = false;
   bool is_joined = false;
   bool need_rejoin = false;
+  bool is_being_joined = false;
   bool is_being_left = false;
   bool is_speaking = false;
   bool can_self_unmute = false;
@@ -1964,7 +1965,7 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
 }
 
 bool GroupCallManager::is_my_audio_source(InputGroupCallId input_group_call_id, const GroupCall *group_call,
-                                          int32 audio_source) {
+                                          int32 audio_source) const {
   auto it = pending_join_requests_.find(input_group_call_id);
   if (it == pending_join_requests_.end()) {
     return audio_source == group_call->audio_source;
@@ -2376,11 +2377,15 @@ void GroupCallManager::on_update_dialog_about(DialogId dialog_id, const string &
   }
 }
 
-int32 GroupCallManager::cancel_join_group_call_request(InputGroupCallId input_group_call_id) {
+int32 GroupCallManager::cancel_join_group_call_request(InputGroupCallId input_group_call_id, GroupCall *group_call) {
   auto it = pending_join_requests_.find(input_group_call_id);
   if (it == pending_join_requests_.end()) {
+    CHECK(group_call == nullptr || !group_call->is_being_joined);
     return 0;
   }
+  CHECK(group_call != nullptr);
+  CHECK(group_call->is_being_joined);
+  group_call->is_being_joined = false;
 
   CHECK(it->second != nullptr);
   if (!it->second->query_ref.empty()) {
@@ -2606,7 +2611,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
     need_update = true;
   }
 
-  cancel_join_group_call_request(input_group_call_id);
+  cancel_join_group_call_request(input_group_call_id, group_call);
 
   bool have_as_dialog_id = true;
   {
@@ -2636,6 +2641,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
     group_call->is_being_left = false;
     need_update |= group_call->is_joined;
   }
+  group_call->is_being_joined = true;
 
   auto generation = ++join_group_request_generation_;
   auto &request = pending_join_requests_[input_group_call_id];
@@ -2892,6 +2898,7 @@ bool GroupCallManager::on_join_group_call_response(InputGroupCallId input_group_
   CHECK(group_call != nullptr);
   group_call->is_joined = true;
   group_call->need_rejoin = false;
+  group_call->is_being_joined = false;
   group_call->is_being_left = false;
   group_call->joined_date = G()->unix_time();
   group_call->audio_source = it->second->audio_source;
@@ -2921,7 +2928,10 @@ void GroupCallManager::finish_join_group_call(InputGroupCallId input_group_call_
     return;
   }
 
-  const GroupCall *group_call = get_group_call(input_group_call_id);
+  GroupCall *group_call = get_group_call(input_group_call_id);
+  if (group_call != nullptr) {
+    group_call->is_being_joined = false;
+  }
   remove_recent_group_call_speaker(input_group_call_id, as_dialog_id);
   if (try_clear_group_call_participants(input_group_call_id)) {
     CHECK(group_call != nullptr);
@@ -4039,7 +4049,7 @@ void GroupCallManager::leave_group_call(GroupCallId group_call_id, Promise<Unit>
   auto *group_call = get_group_call(input_group_call_id);
   if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || !group_call->is_joined ||
       group_call->is_being_left) {
-    if (cancel_join_group_call_request(input_group_call_id) != 0) {
+    if (cancel_join_group_call_request(input_group_call_id, group_call) != 0) {
       if (try_clear_group_call_participants(input_group_call_id)) {
         send_update_group_call(group_call, "leave_group_call 1");
       }
@@ -4057,7 +4067,7 @@ void GroupCallManager::leave_group_call(GroupCallId group_call_id, Promise<Unit>
     }
     return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
   }
-  auto audio_source = cancel_join_group_call_request(input_group_call_id);
+  auto audio_source = cancel_join_group_call_request(input_group_call_id, group_call);
   if (audio_source == 0) {
     audio_source = group_call->audio_source;
   }
