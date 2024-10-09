@@ -1665,17 +1665,17 @@ void GroupCallManager::on_get_group_call_participants(
                      << real_participant_count << " in " << input_group_call_id << " from " << group_call->dialog_id;
         }
         need_update |=
-            set_group_call_participant_count(group_call, real_participant_count, "on_get_group_call_participants");
+            set_group_call_participant_count(group_call, real_participant_count, "on_get_group_call_participants 1");
       }
       if (process_pending_group_call_participant_updates(input_group_call_id)) {
         need_update = false;
       }
       if (group_call->loaded_all_participants || !group_call_participants->min_order.has_video()) {
         set_group_call_unmuted_video_count(group_call, group_call_participants->local_unmuted_video_count,
-                                           "on_get_group_call_participants");
+                                           "on_get_group_call_participants 2");
       }
       if (need_update) {
-        send_update_group_call(group_call, "on_get_group_call_participants");
+        send_update_group_call(group_call, "on_get_group_call_participants 3");
       }
 
       if (is_sync && group_call->need_syncing_participants) {
@@ -1761,12 +1761,12 @@ void GroupCallManager::on_update_group_call_participants(
 
     if (group_call != nullptr && group_call->is_inited && group_call->is_active && group_call->version == -1) {
       need_update |= set_group_call_participant_count(group_call, group_call->participant_count + diff,
-                                                      "on_update_group_call_participants");
+                                                      "on_update_group_call_participants 1");
       need_update |= set_group_call_unmuted_video_count(group_call, group_call->unmuted_video_count + video_diff,
-                                                        "on_update_group_call_participants");
+                                                        "on_update_group_call_participants 2");
     }
     if (need_update) {
-      send_update_group_call(group_call, "on_update_group_call_participants");
+      send_update_group_call(group_call, "on_update_group_call_participants 3");
     }
 
     LOG(INFO) << "Ignore updateGroupCallParticipants in " << input_group_call_id;
@@ -1830,7 +1830,7 @@ void GroupCallManager::on_update_group_call_participants(
     }
     auto dialog_id = participant.dialog_id;
     if (dialog_id.get_type() != DialogType::User && participant.joined_date != 0) {
-      td_->dialog_manager_->force_create_dialog(dialog_id, "on_update_group_call_participants 2", true);
+      td_->dialog_manager_->force_create_dialog(dialog_id, "on_update_group_call_participants 4", true);
     }
 
     bool is_versioned = GroupCallParticipant::is_versioned_update(group_call_participant);
@@ -4830,6 +4830,7 @@ vector<td_api::object_ptr<td_api::groupCallRecentSpeaker>> GroupCallManager::get
 
     if (!for_update) {
       // the change must be received through update first
+      LOG(INFO) << "Send update about " << group_call->group_call_id << " from get_recent_speakers";
       send_closure(G()->td(), &Td::send_update, get_update_group_call_object(group_call, get_result()));
     }
   }
