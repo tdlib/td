@@ -1954,16 +1954,16 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
   }
 
   need_update |= set_group_call_participant_count(group_call, group_call->participant_count + diff.first,
-                                                  "process_pending_group_call_participant_updates");
+                                                  "process_pending_group_call_participant_updates 1");
   need_update |= set_group_call_unmuted_video_count(group_call, group_call->unmuted_video_count + diff.second,
-                                                    "process_pending_group_call_participant_updates");
+                                                    "process_pending_group_call_participant_updates 2");
   if (is_left && group_call->is_joined) {
-    on_group_call_left_impl(group_call, need_rejoin, "process_pending_group_call_participant_updates");
+    on_group_call_left_impl(group_call, need_rejoin, "process_pending_group_call_participant_updates 3");
     need_update = true;
   }
   need_update |= try_clear_group_call_participants(input_group_call_id);
   if (need_update) {
-    send_update_group_call(group_call, "process_pending_group_call_participant_updates");
+    send_update_group_call(group_call, "process_pending_group_call_participant_updates 4");
   }
 
   return need_update;
@@ -2692,12 +2692,12 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
     if (diff.first != 0) {
       CHECK(diff.first == 1);
       need_update |= set_group_call_participant_count(group_call, group_call->participant_count + diff.first,
-                                                      "join_group_call", true);
+                                                      "join_group_call 1", true);
     }
     if (diff.second != 0) {
       CHECK(diff.second == 1);
       need_update |= set_group_call_unmuted_video_count(group_call, group_call->unmuted_video_count + diff.second,
-                                                        "join_group_call");
+                                                        "join_group_call 2");
     }
   }
   if (group_call->is_my_video_enabled != is_my_video_enabled) {
@@ -2711,7 +2711,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
     need_update = true;
   }
   if (group_call->is_inited && need_update) {
-    send_update_group_call(group_call, "join_group_call");
+    send_update_group_call(group_call, "join_group_call 3");
   }
 
   try_load_group_call_administrators(input_group_call_id, group_call->dialog_id);
@@ -4205,26 +4205,26 @@ bool GroupCallManager::try_clear_group_call_participants(InputGroupCallId input_
 
   CHECK(group_call != nullptr && group_call->is_inited);
   LOG(INFO) << "Clear participants in " << input_group_call_id << " from " << group_call->dialog_id;
+  bool need_update = false;
   if (group_call->loaded_all_participants) {
     group_call->loaded_all_participants = false;
-    send_update_group_call(group_call, "try_clear_group_call_participants");
+    need_update = true;
   }
   group_call->leave_version = group_call->version;
   group_call->version = -1;
 
-  bool need_update = false;
   for (auto &participant : participants->participants) {
     if (participant.order.is_valid()) {
       CHECK(participant.order >= participants->min_order);
       participant.order = GroupCallParticipantOrder();
-      send_update_group_call_participant(input_group_call_id, participant, "try_clear_group_call_participants");
+      send_update_group_call_participant(input_group_call_id, participant, "try_clear_group_call_participants 1");
 
       if (participant.is_self) {
         need_update |= set_group_call_participant_count(group_call, group_call->participant_count - 1,
-                                                        "try_clear_group_call_participants");
+                                                        "try_clear_group_call_participants 2");
         if (participant.get_has_video()) {
           need_update |= set_group_call_unmuted_video_count(group_call, group_call->unmuted_video_count - 1,
-                                                            "try_clear_group_call_participants");
+                                                            "try_clear_group_call_participants 3");
         }
       }
     }
