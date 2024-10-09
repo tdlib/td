@@ -1307,10 +1307,10 @@ class SetStickerPositionQuery final : public Td::ResultHandler {
   explicit SetStickerPositionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(const string &short_name, tl_object_ptr<telegram_api::inputDocument> &&input_document, int32 position) {
+  void send(const string &unique_name, tl_object_ptr<telegram_api::inputDocument> &&input_document, int32 position) {
     vector<ChainId> chain_ids;
-    if (!short_name.empty()) {
-      chain_ids.emplace_back(short_name);
+    if (!unique_name.empty()) {
+      chain_ids.emplace_back(unique_name);
     }
     send_query(G()->net_query_creator().create(
         telegram_api::stickers_changeStickerPosition(std::move(input_document), position), std::move(chain_ids)));
@@ -1340,10 +1340,10 @@ class DeleteStickerFromSetQuery final : public Td::ResultHandler {
   explicit DeleteStickerFromSetQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(const string &short_name, tl_object_ptr<telegram_api::inputDocument> &&input_document) {
+  void send(const string &unique_name, tl_object_ptr<telegram_api::inputDocument> &&input_document) {
     vector<ChainId> chain_ids;
-    if (!short_name.empty()) {
-      chain_ids.emplace_back(short_name);
+    if (!unique_name.empty()) {
+      chain_ids.emplace_back(unique_name);
     }
     send_query(G()->net_query_creator().create(telegram_api::stickers_removeStickerFromSet(std::move(input_document)),
                                                std::move(chain_ids)));
@@ -1373,11 +1373,11 @@ class ChangeStickerQuery final : public Td::ResultHandler {
   explicit ChangeStickerQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(const string &short_name, tl_object_ptr<telegram_api::inputDocument> &&input_document, bool edit_emojis,
+  void send(const string &unique_name, tl_object_ptr<telegram_api::inputDocument> &&input_document, bool edit_emojis,
             const string &emojis, StickerMaskPosition mask_position, bool edit_keywords, const string &keywords) {
     vector<ChainId> chain_ids;
-    if (!short_name.empty()) {
-      chain_ids.emplace_back(short_name);
+    if (!unique_name.empty()) {
+      chain_ids.emplace_back(unique_name);
     }
     int32 flags = 0;
     if (edit_emojis) {
@@ -8400,9 +8400,6 @@ void StickersManager::do_add_sticker_to_set(UserId user_id, string short_name,
   telegram_api::object_ptr<telegram_api::inputDocument> input_document;
   if (old_sticker != nullptr) {
     TRY_RESULT_PROMISE(promise, sticker_input_document, get_sticker_input_document(old_sticker));
-    if (clean_username(sticker_input_document.sticker_set_short_name_) != clean_username(short_name)) {
-      return promise.set_error(Status::Error(400, "The old sticker isn't from the set"));
-    }
     input_document = std::move(sticker_input_document.input_document_);
   }
 
@@ -8657,9 +8654,9 @@ Result<StickersManager::StickerInputDocument> StickersManager::get_sticker_input
   if (s != nullptr && s->set_id_.is_valid()) {
     const StickerSet *sticker_set = get_sticker_set(s->set_id_);
     if (sticker_set != nullptr) {
-      result.sticker_set_short_name_ = sticker_set->short_name_;
+      result.sticker_set_unique_name_ = sticker_set->short_name_;
     } else {
-      result.sticker_set_short_name_ = to_string(s->set_id_.get());
+      result.sticker_set_unique_name_ = to_string(s->set_id_.get());
     }
   }
   result.input_document_ = main_remote_location->as_input_document();
@@ -8675,7 +8672,7 @@ void StickersManager::set_sticker_position_in_set(const td_api::object_ptr<td_ap
   TRY_RESULT_PROMISE(promise, input_document, get_sticker_input_document(sticker));
 
   td_->create_handler<SetStickerPositionQuery>(std::move(promise))
-      ->send(input_document.sticker_set_short_name_, std::move(input_document.input_document_), position);
+      ->send(input_document.sticker_set_unique_name_, std::move(input_document.input_document_), position);
 }
 
 void StickersManager::remove_sticker_from_set(const td_api::object_ptr<td_api::InputFile> &sticker,
@@ -8683,7 +8680,7 @@ void StickersManager::remove_sticker_from_set(const td_api::object_ptr<td_api::I
   TRY_RESULT_PROMISE(promise, input_document, get_sticker_input_document(sticker));
 
   td_->create_handler<DeleteStickerFromSetQuery>(std::move(promise))
-      ->send(input_document.sticker_set_short_name_, std::move(input_document.input_document_));
+      ->send(input_document.sticker_set_unique_name_, std::move(input_document.input_document_));
 }
 
 void StickersManager::set_sticker_emojis(const td_api::object_ptr<td_api::InputFile> &sticker, const string &emojis,
@@ -8691,7 +8688,7 @@ void StickersManager::set_sticker_emojis(const td_api::object_ptr<td_api::InputF
   TRY_RESULT_PROMISE(promise, input_document, get_sticker_input_document(sticker));
 
   td_->create_handler<ChangeStickerQuery>(std::move(promise))
-      ->send(input_document.sticker_set_short_name_, std::move(input_document.input_document_), true, emojis,
+      ->send(input_document.sticker_set_unique_name_, std::move(input_document.input_document_), true, emojis,
              StickerMaskPosition(), false, string());
 }
 
@@ -8707,7 +8704,7 @@ void StickersManager::set_sticker_keywords(const td_api::object_ptr<td_api::Inpu
     }
   }
   td_->create_handler<ChangeStickerQuery>(std::move(promise))
-      ->send(input_document.sticker_set_short_name_, std::move(input_document.input_document_), false, string(),
+      ->send(input_document.sticker_set_unique_name_, std::move(input_document.input_document_), false, string(),
              StickerMaskPosition(), true, implode(keywords, ','));
 }
 
@@ -8716,7 +8713,7 @@ void StickersManager::set_sticker_mask_position(const td_api::object_ptr<td_api:
                                                 Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, input_document, get_sticker_input_document(sticker));
   td_->create_handler<ChangeStickerQuery>(std::move(promise))
-      ->send(input_document.sticker_set_short_name_, std::move(input_document.input_document_), false, string(),
+      ->send(input_document.sticker_set_unique_name_, std::move(input_document.input_document_), false, string(),
              StickerMaskPosition(mask_position), false, string());
 }
 

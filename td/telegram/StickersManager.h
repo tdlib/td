@@ -847,7 +847,7 @@ class StickersManager final : public Actor {
                                                  Promise<Unit> &&promise);
 
   struct StickerInputDocument {
-    string sticker_set_short_name_;
+    string sticker_set_unique_name_;
     telegram_api::object_ptr<telegram_api::inputDocument> input_document_;
   };
   Result<StickerInputDocument> get_sticker_input_document(const tl_object_ptr<td_api::InputFile> &sticker) const;
