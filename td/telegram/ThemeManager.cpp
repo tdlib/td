@@ -559,7 +559,7 @@ string ThemeManager::get_theme_parameters_json_string(const td_api::object_ptr<t
       string res(7, '#');
       const char *hex = "0123456789abcdef";
       for (int i = 0; i < 3; i++) {
-        int32 num = (color >> (i * 8)) & 0xFF;
+        int32 num = (color >> ((2 - i) * 8)) & 0xFF;
         res[2 * i + 1] = hex[num >> 4];
         res[2 * i + 2] = hex[num & 15];
       }
