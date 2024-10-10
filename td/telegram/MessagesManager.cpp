@@ -10912,6 +10912,7 @@ void MessagesManager::unload_dialog(DialogId dialog_id, int32 delay) {
 }
 
 void MessagesManager::clear_dialog_message_list(Dialog *d, bool remove_from_dialog_list, int32 last_message_date) {
+  CHECK(!td_->auth_manager_->is_bot());
   if (d->server_unread_count + d->local_unread_count > 0) {
     MessageId max_message_id =
         d->last_database_message_id.is_valid() ? d->last_database_message_id : d->last_new_message_id;
@@ -14075,6 +14076,7 @@ void MessagesManager::set_dialog_last_new_message_id(Dialog *d, MessageId last_n
 
 void MessagesManager::set_dialog_last_clear_history_date(Dialog *d, int32 date, MessageId last_clear_history_message_id,
                                                          const char *source, bool is_loaded_from_database) {
+  CHECK(!td_->auth_manager_->is_bot());
   CHECK(!last_clear_history_message_id.is_scheduled());
 
   if (d->last_clear_history_message_id == last_clear_history_message_id && d->last_clear_history_date == date) {
@@ -14139,6 +14141,7 @@ void MessagesManager::set_dialog_unread_reaction_count(Dialog *d, int32 unread_r
 }
 
 void MessagesManager::set_dialog_is_empty(Dialog *d, const char *source) {
+  CHECK(!td_->auth_manager_->is_bot());
   LOG(INFO) << "Set " << d->dialog_id << " is_empty to true from " << source;
   CHECK(d->have_full_history);
   if (!d->is_empty && d->order != DEFAULT_ORDER) {
@@ -32997,23 +33000,23 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   auto message_content_type = message->content->get_type();
   if (message_content_type == MessageContentType::ChatDeleteHistory) {
-    {
+    if (!td_->auth_manager_->is_bot()) {
       auto old_message = delete_message(d, message_id, true, need_update_dialog_pos, "message chat delete history");
       if (old_message != nullptr) {
         send_update_delete_messages(dialog_id, {old_message->message_id.get()}, true);
       }
-    }
-    int32 last_message_date = 0;
-    if (d->last_message_id != MessageId()) {
-      auto last_message = get_message(d, d->last_message_id);
-      CHECK(last_message != nullptr);
-      last_message_date = last_message->date - 1;
-    } else {
-      last_message_date = d->last_clear_history_date;
-    }
-    if (message->date > last_message_date) {
-      set_dialog_last_clear_history_date(d, message->date, message_id, "update_last_clear_history_date");
-      *need_update_dialog_pos = true;
+      int32 last_message_date = 0;
+      if (d->last_message_id != MessageId()) {
+        auto last_message = get_message(d, d->last_message_id);
+        CHECK(last_message != nullptr);
+        last_message_date = last_message->date - 1;
+      } else {
+        last_message_date = d->last_clear_history_date;
+      }
+      if (message->date > last_message_date) {
+        set_dialog_last_clear_history_date(d, message->date, message_id, "update_last_clear_history_date");
+        *need_update_dialog_pos = true;
+      }
     }
     LOG(INFO) << "Process MessageChatDeleteHistory in " << message_id << " in " << dialog_id << " with date "
               << message->date << " from " << source;
@@ -35146,7 +35149,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<DraftMessage> &&draft
     }
   }
 
-  if (dialog_id != being_added_dialog_id_) {
+  if (!td_->auth_manager_->is_bot() && dialog_id != being_added_dialog_id_) {
     set_dialog_last_clear_history_date(d, last_clear_history_date, last_clear_history_message_id, "fix_new_dialog 8",
                                        is_loaded_from_database);
 
