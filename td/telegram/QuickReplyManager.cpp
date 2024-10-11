@@ -2731,10 +2731,6 @@ void QuickReplyManager::edit_quick_reply_message(
   auto old_message_content_type = m->content->get_type();
   switch (old_message_content_type) {
     case MessageContentType::Text:
-      if (new_message_content_type != MessageContentType::Text) {
-        return promise.set_error(Status::Error(400, "Text messages can be edited only to text messages"));
-      }
-      break;
     case MessageContentType::Animation:
     case MessageContentType::Audio:
     case MessageContentType::Document:
@@ -2744,8 +2740,10 @@ void QuickReplyManager::edit_quick_reply_message(
           new_message_content_type != MessageContentType::Audio &&
           new_message_content_type != MessageContentType::Document &&
           new_message_content_type != MessageContentType::Photo &&
-          new_message_content_type != MessageContentType::Video) {
-        return promise.set_error(Status::Error(400, "Media messages can be edited only to media messages"));
+          new_message_content_type != MessageContentType::Video &&
+          (new_message_content_type != MessageContentType::Text ||
+           old_message_content_type != MessageContentType::Text)) {
+        return promise.set_error(Status::Error(400, "Message can't be edited to the specified message type"));
       }
       if (m->media_album_id != 0) {
         if (old_message_content_type != new_message_content_type) {

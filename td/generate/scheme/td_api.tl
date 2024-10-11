@@ -8949,7 +8949,7 @@ editMessageText chat_id:int53 message_id:int53 reply_markup:ReplyMarkup input_me
 //@proximity_alert_radius The new maximum distance for proximity alerts, in meters (0-100000). Pass 0 if the notification is disabled
 editMessageLiveLocation chat_id:int53 message_id:int53 reply_markup:ReplyMarkup location:location live_period:int32 heading:int32 proximity_alert_radius:int32 = Message;
 
-//@description Edits the content of a message with an animation, an audio, a document, a photo or a video, including message caption. If only the caption needs to be edited, use editMessageCaption instead.
+//@description Edits the media content of a message with a text, an animation, an audio, a document, a photo or a video, including message caption. If only the caption needs to be edited, use editMessageCaption instead.
 //-The media can't be edited if the message was set to self-destruct or to a self-destructing media. The type of message content in an album can't be changed with exception of replacing a photo with a video or vice versa.
 //-Returns the edited message after the edit is completed on the server side
 //@chat_id The chat the message belongs to
@@ -8988,7 +8988,7 @@ editInlineMessageText inline_message_id:string reply_markup:ReplyMarkup input_me
 //@proximity_alert_radius The new maximum distance for proximity alerts, in meters (0-100000). Pass 0 if the notification is disabled
 editInlineMessageLiveLocation inline_message_id:string reply_markup:ReplyMarkup location:location live_period:int32 heading:int32 proximity_alert_radius:int32 = Ok;
 
-//@description Edits the content of a message with an animation, an audio, a document, a photo or a video in an inline message sent via a bot; for bots only
+//@description Edits the media content of a message with a text, an animation, an audio, a document, a photo or a video in an inline message sent via a bot; for bots only
 //@inline_message_id Inline message identifier
 //@reply_markup The new message reply markup; pass null if none; for bots only
 //@input_message_content New content of the message. Must be one of the following types: inputMessageAnimation, inputMessageAudio, inputMessageDocument, inputMessagePhoto or inputMessageVideo
@@ -9061,7 +9061,7 @@ editBusinessMessageText business_connection_id:string chat_id:int53 message_id:i
 //@proximity_alert_radius The new maximum distance for proximity alerts, in meters (0-100000). Pass 0 if the notification is disabled
 editBusinessMessageLiveLocation business_connection_id:string chat_id:int53 message_id:int53 reply_markup:ReplyMarkup location:location live_period:int32 heading:int32 proximity_alert_radius:int32 = BusinessMessage;
 
-//@description Edits the content of a message with an animation, an audio, a document, a photo or a video in a message sent on behalf of a business account; for bots only
+//@description Edits the media content of a message with a text, an animation, an audio, a document, a photo or a video in a message sent on behalf of a business account; for bots only
 //@business_connection_id Unique identifier of business connection on behalf of which the message was sent
 //@chat_id The chat the message belongs to
 //@message_id Identifier of the message
@@ -9154,7 +9154,7 @@ addQuickReplyShortcutMessageAlbum shortcut_name:string reply_to_message_id:int53
 readdQuickReplyShortcutMessages shortcut_name:string message_ids:vector<int53> = QuickReplyMessages;
 
 //@description Asynchronously edits the text, media or caption of a quick reply message. Use quickReplyMessage.can_be_edited to check whether a message can be edited.
-//-Text message can be edited only to a text message. The type of message content in an album can't be changed with exception of replacing a photo with a video or vice versa
+//-Media message can be edited only to a media message. The type of message content in an album can't be changed with exception of replacing a photo with a video or vice versa
 //@shortcut_id Unique identifier of the quick reply shortcut with the message
 //@message_id Identifier of the message
 //@input_message_content New content of the message. Must be one of the following types: inputMessageText, inputMessageAnimation, inputMessageAudio, inputMessageDocument, inputMessagePhoto or inputMessageVideo

@@ -26006,11 +26006,12 @@ void MessagesManager::edit_message_media(MessageFullId message_full_id,
   CHECK(m->message_id.is_any_server());
 
   MessageContentType old_message_content_type = m->content->get_type();
-  if (old_message_content_type != MessageContentType::Animation &&
+  if (old_message_content_type != MessageContentType::Text &&
+      old_message_content_type != MessageContentType::Animation &&
       old_message_content_type != MessageContentType::Audio &&
       old_message_content_type != MessageContentType::Document &&
       old_message_content_type != MessageContentType::Photo && old_message_content_type != MessageContentType::Video) {
-    return promise.set_error(Status::Error(400, "There is no media in the message to edit"));
+    return promise.set_error(Status::Error(400, "The message can't be edited with a media"));
   }
   if (!m->ttl.is_empty()) {
     return promise.set_error(Status::Error(400, "Can't edit media in self-destructing message"));
