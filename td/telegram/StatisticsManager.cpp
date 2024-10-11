@@ -303,9 +303,9 @@ class GetBroadcastRevenueStatsQuery final : public Td::ResultHandler {
   void send(ChannelId channel_id, bool is_dark) {
     channel_id_ = channel_id;
 
-    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
-    if (input_channel == nullptr) {
-      return on_error(Status::Error(500, "Chat info not found"));
+    auto input_peer = td_->dialog_manager_->get_input_peer(DialogId(channel_id), AccessRights::Read);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(500, "Chat not found"));
     }
 
     int32 flags = 0;
@@ -313,7 +313,7 @@ class GetBroadcastRevenueStatsQuery final : public Td::ResultHandler {
       flags |= telegram_api::stats_getBroadcastRevenueStats::DARK_MASK;
     }
     send_query(G()->net_query_creator().create(
-        telegram_api::stats_getBroadcastRevenueStats(flags, false /*ignored*/, std::move(input_channel))));
+        telegram_api::stats_getBroadcastRevenueStats(flags, false /*ignored*/, std::move(input_peer))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -342,13 +342,13 @@ class GetBroadcastRevenueWithdrawalUrlQuery final : public Td::ResultHandler {
   void send(ChannelId channel_id, telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password) {
     channel_id_ = channel_id;
 
-    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
-    if (input_channel == nullptr) {
-      return on_error(Status::Error(500, "Chat info not found"));
+    auto input_peer = td_->dialog_manager_->get_input_peer(DialogId(channel_id), AccessRights::Read);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(500, "Chat not found"));
     }
 
-    send_query(G()->net_query_creator().create(telegram_api::stats_getBroadcastRevenueWithdrawalUrl(
-        std::move(input_channel), std::move(input_check_password))));
+    send_query(G()->net_query_creator().create(
+        telegram_api::stats_getBroadcastRevenueWithdrawalUrl(std::move(input_peer), std::move(input_check_password))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -378,13 +378,13 @@ class GetBroadcastRevenueTransactionsQuery final : public Td::ResultHandler {
   void send(ChannelId channel_id, int32 offset, int32 limit) {
     channel_id_ = channel_id;
 
-    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
-    if (input_channel == nullptr) {
-      return on_error(Status::Error(500, "Chat info not found"));
+    auto input_peer = td_->dialog_manager_->get_input_peer(DialogId(channel_id), AccessRights::Read);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(500, "Chat not found"));
     }
 
     send_query(G()->net_query_creator().create(
-        telegram_api::stats_getBroadcastRevenueTransactions(std::move(input_channel), offset, limit)));
+        telegram_api::stats_getBroadcastRevenueTransactions(std::move(input_peer), offset, limit)));
   }
 
   void on_result(BufferSlice packet) final {
