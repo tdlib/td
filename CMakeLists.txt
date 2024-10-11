@@ -39,6 +39,7 @@ endif()
 include(PreventInSourceBuild)
 prevent_in_source_build()
 
+option(TD_ENABLE_FILTERED_INSTALL "Use \"ON\" to limit installation to files (libraries, dev files) relevant for the chosen \"BUILD_SHARED_LIBS\" value." OFF)
 option(TD_ENABLE_JNI "Use \"ON\" to enable JNI-compatible TDLib API.")
 option(TD_ENABLE_DOTNET "Use \"ON\" to enable generation of C++/CLI or C++/CX TDLib API bindings.")
 if (NOT CMAKE_CROSSCOMPILING)
@@ -1320,18 +1321,22 @@ else()
   set(INSTALL_STATIC_TARGETS ${INSTALL_STATIC_TARGETS} tdclient TdStatic tdapi)
 endif()
 
-install(TARGETS ${INSTALL_TARGETS} EXPORT TdTargets
-  LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-  ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-  RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
-  INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
-)
+if (NOT TD_ENABLE_FILTERED_INSTALL OR BUILD_SHARED_LIBS)
+  install(TARGETS ${INSTALL_TARGETS} EXPORT TdTargets
+    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+  )
+endif()
 
-install(TARGETS ${INSTALL_STATIC_TARGETS} EXPORT TdStaticTargets
-  LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-  ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-  INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
-)
+if (NOT TD_ENABLE_FILTERED_INSTALL OR NOT BUILD_SHARED_LIBS)
+  install(TARGETS ${INSTALL_STATIC_TARGETS} EXPORT TdStaticTargets
+    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+  )
+endif()
 
 # generate pkg-config files
 include(GeneratePkgConfig)
@@ -1356,16 +1361,21 @@ generate_pkgconfig(tdjson_private "Telegram Library - JSON interface (private)")
 generate_pkgconfig(tdjson "Telegram Library - JSON interface (shared)")
 generate_pkgconfig(tdjson_static "Telegram Library - JSON interface (static)")
 
-install(EXPORT TdTargets
-  FILE TdTargets.cmake
-  NAMESPACE Td::
-  DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/Td"
-)
-install(EXPORT TdStaticTargets
-  FILE TdStaticTargets.cmake
-  NAMESPACE Td::
-  DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/Td"
-)
+if (NOT TD_ENABLE_FILTERED_INSTALL OR BUILD_SHARED_LIBS)
+  install(EXPORT TdTargets
+    FILE TdTargets.cmake
+    NAMESPACE Td::
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/Td"
+  )
+endif()
+
+if (NOT TD_ENABLE_FILTERED_INSTALL OR NOT BUILD_SHARED_LIBS)
+  install(EXPORT TdStaticTargets
+    FILE TdStaticTargets.cmake
+    NAMESPACE Td::
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/Td"
+  )
+endif()
 
 # Install tdjson/tdjson_static:
 install(FILES ${TD_JSON_HEADERS} "${CMAKE_CURRENT_BINARY_DIR}/td/telegram/tdjson_export.h" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/td/telegram")
