@@ -3808,8 +3808,8 @@ class CliClient final : public Actor {
       string limit;
       get_args(args, sticker_set_id, limit);
       send_request(td_api::make_object<td_api::getOwnedStickerSets>(sticker_set_id, as_limit(limit)));
-    } else if (op == "sss") {
-      send_request(td_api::make_object<td_api::searchStickerSet>(args));
+    } else if (op == "sss" || op == "sssf") {
+      send_request(td_api::make_object<td_api::searchStickerSet>(args, op == "sssf"));
     } else if (op == "siss") {
       send_request(td_api::make_object<td_api::searchInstalledStickerSets>(nullptr, args, 2));
     } else if (op == "ssss" || op == "ssssm" || op == "sssse") {

@@ -10698,8 +10698,8 @@ getStickerSet set_id:int64 = StickerSet;
 //@description Returns name of a sticker set by its identifier @set_id Identifier of the sticker set
 getStickerSetName set_id:int64 = Text;
 
-//@description Searches for a sticker set by its name @name Name of the sticker set
-searchStickerSet name:string = StickerSet;
+//@description Searches for a sticker set by its name @name Name of the sticker set @ignore_cache Pass true to ignore local cache of sticker sets and always send a network request
+searchStickerSet name:string ignore_cache:Bool = StickerSet;
 
 //@description Searches for installed sticker sets by looking for specified query in their title and name @sticker_type Type of the sticker sets to search for @query Query to search for @limit The maximum number of sticker sets to return
 searchInstalledStickerSets sticker_type:StickerType query:string limit:int32 = StickerSets;

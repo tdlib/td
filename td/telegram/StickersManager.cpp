@@ -3202,7 +3202,7 @@ StickerSetId StickersManager::get_sticker_set_id(const tl_object_ptr<telegram_ap
     case telegram_api::inputStickerSetShortName::ID:
       LOG(ERROR) << "Receive sticker set by its short name";
       return search_sticker_set(static_cast<const telegram_api::inputStickerSetShortName *>(set_ptr.get())->short_name_,
-                                Auto());
+                                false, Auto());
     case telegram_api::inputStickerSetAnimatedEmoji::ID:
     case telegram_api::inputStickerSetAnimatedEmojiAnimations::ID:
     case telegram_api::inputStickerSetPremiumGifts::ID:
@@ -3235,7 +3235,7 @@ StickerSetId StickersManager::add_sticker_set(tl_object_ptr<telegram_api::InputS
     case telegram_api::inputStickerSetShortName::ID: {
       auto set = move_tl_object_as<telegram_api::inputStickerSetShortName>(set_ptr);
       LOG(ERROR) << "Receive sticker set by its short name";
-      return search_sticker_set(set->short_name_, Auto());
+      return search_sticker_set(set->short_name_, false, Auto());
     }
     case telegram_api::inputStickerSetAnimatedEmoji::ID:
     case telegram_api::inputStickerSetAnimatedEmojiAnimations::ID:
@@ -3410,9 +3410,9 @@ StickerSetId StickersManager::on_get_input_sticker_set(FileId sticker_file_id,
       auto set = move_tl_object_as<telegram_api::inputStickerSetShortName>(set_ptr);
       if (load_data_multipromise_ptr == nullptr) {
         LOG(ERROR) << "Receive sticker set " << set->short_name_ << " by its short name";
-        return search_sticker_set(set->short_name_, Auto());
+        return search_sticker_set(set->short_name_, false, Auto());
       }
-      auto set_id = search_sticker_set(set->short_name_, load_data_multipromise_ptr->get_promise());
+      auto set_id = search_sticker_set(set->short_name_, false, load_data_multipromise_ptr->get_promise());
       if (!set_id.is_valid()) {
         load_data_multipromise_ptr->add_promise(PromiseCreator::lambda(
             [actor_id = actor_id(this), sticker_file_id, short_name = set->short_name_](Result<Unit> result) {
@@ -3449,7 +3449,7 @@ void StickersManager::on_resolve_sticker_set_short_name(FileId sticker_file_id, 
   }
 
   LOG(INFO) << "Resolve sticker " << sticker_file_id << " set to " << short_name;
-  StickerSetId set_id = search_sticker_set(short_name, Auto());
+  StickerSetId set_id = search_sticker_set(short_name, false, Auto());
   if (set_id.is_valid()) {
     auto *s = get_sticker(sticker_file_id);
     CHECK(s != nullptr);
@@ -5032,11 +5032,12 @@ void StickersManager::get_sticker_set_name(StickerSetId set_id, Promise<string> 
   }
 }
 
-StickerSetId StickersManager::search_sticker_set(const string &short_name_to_search, Promise<Unit> &&promise) {
+StickerSetId StickersManager::search_sticker_set(const string &short_name_to_search, bool ignore_cache,
+                                                 Promise<Unit> &&promise) {
   string short_name = clean_username(short_name_to_search);
   const StickerSet *sticker_set = get_sticker_set(short_name_to_sticker_set_id_.get(short_name));
 
-  if (sticker_set == nullptr) {
+  if (sticker_set == nullptr || ignore_cache) {
     auto set_to_load = make_tl_object<telegram_api::inputStickerSetShortName>(short_name);
     do_reload_sticker_set(StickerSetId(), std::move(set_to_load), 0, std::move(promise), "search_sticker_set");
     return StickerSetId();

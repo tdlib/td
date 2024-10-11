@@ -199,7 +199,7 @@ class StickersManager final : public Actor {
 
   void get_sticker_set_name(StickerSetId set_id, Promise<string> &&promise);
 
-  StickerSetId search_sticker_set(const string &short_name_to_search, Promise<Unit> &&promise);
+  StickerSetId search_sticker_set(const string &short_name_to_search, bool ignore_cache, Promise<Unit> &&promise);
 
   std::pair<int32, vector<StickerSetId>> search_installed_sticker_sets(StickerType sticker_type, const string &query,
                                                                        int32 limit, Promise<Unit> &&promise);

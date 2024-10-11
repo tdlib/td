@@ -1486,11 +1486,13 @@ class GetStickerSetRequest final : public RequestActor<> {
 
 class SearchStickerSetRequest final : public RequestActor<> {
   string name_;
+  bool ignore_cache_;
 
   StickerSetId sticker_set_id_;
 
   void do_run(Promise<Unit> &&promise) final {
-    sticker_set_id_ = td_->stickers_manager_->search_sticker_set(name_, std::move(promise));
+    sticker_set_id_ =
+        td_->stickers_manager_->search_sticker_set(name_, ignore_cache_ && get_tries() >= 3, std::move(promise));
   }
 
   void do_send_result() final {
@@ -1498,8 +1500,8 @@ class SearchStickerSetRequest final : public RequestActor<> {
   }
 
  public:
-  SearchStickerSetRequest(ActorShared<Td> td, uint64 request_id, string &&name)
-      : RequestActor(std::move(td), request_id), name_(std::move(name)) {
+  SearchStickerSetRequest(ActorShared<Td> td, uint64 request_id, string &&name, bool ignore_cache)
+      : RequestActor(std::move(td), request_id), name_(std::move(name)), ignore_cache_(ignore_cache) {
     set_tries(3);
   }
 };
@@ -6218,7 +6220,7 @@ void Requests::on_request(uint64 id, const td_api::getStickerSetName &request) {
 
 void Requests::on_request(uint64 id, td_api::searchStickerSet &request) {
   CLEAN_INPUT_STRING(request.name_);
-  CREATE_REQUEST(SearchStickerSetRequest, std::move(request.name_));
+  CREATE_REQUEST(SearchStickerSetRequest, std::move(request.name_), request.ignore_cache_);
 }
 
 void Requests::on_request(uint64 id, td_api::searchInstalledStickerSets &request) {
