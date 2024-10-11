@@ -380,7 +380,7 @@ static vector<Slice> match_hashtags(Slice str) {
   const unsigned char *end = str.uend();
   const unsigned char *ptr = begin;
 
-  // '/(?<=^|[^\d_\pL\x{200c}\x{0d80}-\x{0dff}])#([\d_\pL\x{200c}\x{0d80}-\x{0dff}]{1,256})(?![\d_\pL\x{200c}\x{0d80}-\x{0dff}]*#)/u'
+  // '/(?<=^|[^is_hashtag_letter])#([is_hashtag_letter]{1,256})(?:@([a-zA-Z0-9_]{3,32}))?(?![is_hashtag_letter]*#)/u'
   // and at least one letter
 
   UnicodeSimpleCategory category;
@@ -426,6 +426,17 @@ static vector<Slice> match_hashtags(Slice str) {
     if (hashtag_size < 1) {
       continue;
     }
+    if (hashtag_end == ptr && ptr != end && ptr[0] == '@') {
+      auto username_end = ptr + 1;
+      while (username_end != end && username_end - ptr < 33 && is_alpha_digit_or_underscore(*username_end)) {
+        username_end++;
+      }
+      auto length = username_end - ptr - 1;
+      if (length >= 3) {
+        ptr = username_end;
+        hashtag_end = username_end;
+      }
+    }
     if (ptr != end && ptr[0] == '#') {
       continue;
     }
@@ -443,7 +454,7 @@ static vector<Slice> match_cashtags(Slice str) {
   const unsigned char *end = str.uend();
   const unsigned char *ptr = begin;
 
-  // '/(?<=^|[^$\d_\pL\x{200c}\x{0d80}-\x{0dff}])\$(1INCH|[A-Z]{1,8})(?![$\d_\pL\x{200c}\x{0d80}-\x{0dff}])/u'
+  // '/(?<=^|[^$is_hashtag_letter])\$(1INCH|[A-Z]{1,8})(?:@([a-zA-Z0-9_]{3,32}))?(?![$is_hashtag_letter])/u'
 
   UnicodeSimpleCategory category;
   while (true) {
@@ -475,7 +486,17 @@ static vector<Slice> match_cashtags(Slice str) {
     if (cashtag_size < 1 || cashtag_size > 8) {
       continue;
     }
-
+    if (ptr != end && ptr[0] == '@') {
+      auto username_end = ptr + 1;
+      while (username_end != end && is_alpha_digit_or_underscore(*username_end)) {
+        username_end++;
+      }
+      auto length = username_end - ptr - 1;
+      if (length >= 3 && length <= 32) {
+        cashtag_end = username_end;
+        ptr = username_end;
+      }
+    }
     if (cashtag_end != end) {
       uint32 code;
       next_utf8_unsafe(ptr, &code);

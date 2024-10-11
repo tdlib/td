@@ -112,6 +112,13 @@ TEST(MessageEntities, hashtag) {
   check_hashtag(" #" + td::string(255, '1') + "a" + td::string(255, 'b') + "# ", {});
   check_hashtag("#a#b #c #d", {"#c", "#d"});
   check_hashtag("#test", {"#test"});
+  check_hashtag("#test@", {"#test"});
+  check_hashtag("#test@a", {"#test"});
+  check_hashtag("#test@ab", {"#test"});
+  check_hashtag("#test@abc", {"#test@abc"});
+  check_hashtag("#test@a-c", {"#test"});
+  check_hashtag("#test@abcdefghijabcdefghijabcdefghijab", {"#test@abcdefghijabcdefghijabcdefghijab"});
+  check_hashtag("#test@abcdefghijabcdefghijabcdefghijabc", {"#test@abcdefghijabcdefghijabcdefghijab"});
   check_hashtag("#te·st", {"#te·st"});
   check_hashtag(u8"\U0001F604\U0001F604\U0001F604\U0001F604 \U0001F604\U0001F604\U0001F604#" + td::string(200, '1') +
                     "ООО" + td::string(200, '2'),
@@ -119,6 +126,13 @@ TEST(MessageEntities, hashtag) {
   check_hashtag(u8"#a\u2122", {"#a"});
   check_hashtag("#a൹", {"#a"});
   check_hashtag("#aඁං෴ก฿", {"#aඁං෴ก"});
+  check_hashtag(
+      "#a12345678901234561234567890123456123456789012345612345678901234561234567890123456123456789012345612345678901234"
+      "5612345678901234561234567890123456123456789012345612345678901234561234567890123456123456789012345612345678901234"
+      "5612345678901234561234567890123456",
+      {"#a1234567890123456123456789012345612345678901234561234567890123456123456789012345612345678901234561234567890123"
+       "456123456789012345612345678901234561234567890123456123456789012345612345678901234561234567890123456123456789012"
+       "34561234567890123456123456789012345"});
 }
 
 static void check_cashtag(const td::string &str, const td::vector<td::string> &expected) {
@@ -169,6 +183,13 @@ TEST(MessageEntities, cashtag) {
   check_cashtag(" А$ABC ", {});
   check_cashtag("$ABC$DEF $GHI $KLM", {"$GHI", "$KLM"});
   check_cashtag("$TEST", {"$TEST"});
+  check_cashtag("$TEST@", {"$TEST"});
+  check_cashtag("$TEST@a", {"$TEST"});
+  check_cashtag("$TEST@ab", {"$TEST"});
+  check_cashtag("$TEST@abc", {"$TEST@abc"});
+  check_cashtag("$TEST@a-c", {"$TEST"});
+  check_cashtag("$TEST@abcdefghijabcdefghijabcdefghijab", {"$TEST@abcdefghijabcdefghijabcdefghijab"});
+  check_cashtag("$TEST@abcdefghijabcdefghijabcdefghijabc", {"$TEST"});
   check_cashtag("$1INC", {});
   check_cashtag("$1INCH", {"$1INCH"});
   check_cashtag("...$1INCH...", {"$1INCH"});
