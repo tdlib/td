@@ -49,7 +49,7 @@ if (TD_ENABLE_DOTNET AND (CMAKE_VERSION VERSION_LESS "3.1.0"))
   message(FATAL_ERROR "CMake 3.1.0 or higher is required. You are running version ${CMAKE_VERSION}.")
 endif()
 
-enable_testing()
+include(CTest)
 
 if (POLICY CMP0069)
   option(TD_ENABLE_LTO "Use \"ON\" to enable Link Time Optimization.")
@@ -227,7 +227,9 @@ add_subdirectory(sqlite)
 
 add_subdirectory(tddb)
 
-add_subdirectory(test)
+if (BUILD_TESTING)
+  add_subdirectory(test)
+endif()
 
 if (NOT CMAKE_CROSSCOMPILING)
   add_subdirectory(benchmark)
