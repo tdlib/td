@@ -581,24 +581,11 @@ FileId DocumentsManager::on_get_document(unique_ptr<GeneralDocument> new_documen
     d = std::move(new_document);
   } else if (replace) {
     CHECK(d->file_id == new_document->file_id);
-    if (d->mime_type != new_document->mime_type) {
-      LOG(DEBUG) << "Document " << file_id << " mime_type has changed";
+    if (d->mime_type != new_document->mime_type || d->file_name != new_document->file_name ||
+        d->minithumbnail != new_document->minithumbnail || d->thumbnail != new_document->thumbnail) {
       d->mime_type = std::move(new_document->mime_type);
-    }
-    if (d->file_name != new_document->file_name) {
-      LOG(DEBUG) << "Document " << file_id << " file_name has changed";
       d->file_name = std::move(new_document->file_name);
-    }
-    if (d->minithumbnail != new_document->minithumbnail) {
       d->minithumbnail = std::move(new_document->minithumbnail);
-    }
-    if (d->thumbnail != new_document->thumbnail) {
-      if (!d->thumbnail.file_id.is_valid()) {
-        LOG(DEBUG) << "Document " << file_id << " thumbnail has changed";
-      } else {
-        LOG(INFO) << "Document " << file_id << " thumbnail has changed from " << d->thumbnail << " to "
-                  << new_document->thumbnail;
-      }
       d->thumbnail = std::move(new_document->thumbnail);
     }
   }

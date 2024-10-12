@@ -106,9 +106,7 @@ FileId VideosManager::on_get_video(unique_ptr<Video> new_video, bool replace) {
         v->precise_duration != new_video->precise_duration || v->dimensions != new_video->dimensions ||
         v->supports_streaming != new_video->supports_streaming || v->is_animation != new_video->is_animation ||
         v->preload_prefix_size != new_video->preload_prefix_size ||
-        std::fabs(v->start_ts - new_video->start_ts) > 1e-3 || v->codec != new_video->codec ||
-        (v->has_stickers != new_video->has_stickers && new_video->has_stickers) ||
-        (v->sticker_file_ids != new_video->sticker_file_ids && !new_video->sticker_file_ids.empty())) {
+        std::fabs(v->start_ts - new_video->start_ts) > 1e-3 || v->codec != new_video->codec) {
       LOG(DEBUG) << "Video " << file_id << " info has changed";
       v->mime_type = std::move(new_video->mime_type);
       v->file_name = std::move(new_video->file_name);
@@ -123,7 +121,11 @@ FileId VideosManager::on_get_video(unique_ptr<Video> new_video, bool replace) {
       v->preload_prefix_size = new_video->preload_prefix_size;
       v->start_ts = new_video->start_ts;
       v->codec = std::move(new_video->codec);
+    }
+    if (v->has_stickers != new_video->has_stickers && new_video->has_stickers) {
       v->has_stickers = new_video->has_stickers;
+    }
+    if (v->sticker_file_ids != new_video->sticker_file_ids && !new_video->sticker_file_ids.empty()) {
       v->sticker_file_ids = std::move(new_video->sticker_file_ids);
     }
   }

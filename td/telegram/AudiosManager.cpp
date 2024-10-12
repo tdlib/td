@@ -101,33 +101,17 @@ FileId AudiosManager::on_get_audio(unique_ptr<Audio> new_audio, bool replace) {
     a = std::move(new_audio);
   } else if (replace) {
     CHECK(a->file_id == new_audio->file_id);
-    if (a->mime_type != new_audio->mime_type) {
+    if (a->mime_type != new_audio->mime_type || a->duration != new_audio->duration || a->title != new_audio->title ||
+        a->performer != new_audio->performer || a->file_name != new_audio->file_name || a->date != new_audio->date ||
+        a->minithumbnail != new_audio->minithumbnail || a->thumbnail != new_audio->thumbnail) {
       LOG(DEBUG) << "Audio " << file_id << " info has changed";
       a->mime_type = std::move(new_audio->mime_type);
-    }
-    if (a->duration != new_audio->duration || a->title != new_audio->title || a->performer != new_audio->performer) {
-      LOG(DEBUG) << "Audio " << file_id << " info has changed";
       a->duration = new_audio->duration;
       a->title = std::move(new_audio->title);
       a->performer = std::move(new_audio->performer);
-    }
-    if (a->file_name != new_audio->file_name) {
-      LOG(DEBUG) << "Audio " << file_id << " file name has changed";
       a->file_name = std::move(new_audio->file_name);
-    }
-    if (a->date != new_audio->date) {
       a->date = new_audio->date;
-    }
-    if (a->minithumbnail != new_audio->minithumbnail) {
       a->minithumbnail = std::move(new_audio->minithumbnail);
-    }
-    if (a->thumbnail != new_audio->thumbnail) {
-      if (!a->thumbnail.file_id.is_valid()) {
-        LOG(DEBUG) << "Audio " << file_id << " thumbnail has changed";
-      } else {
-        LOG(INFO) << "Audio " << file_id << " thumbnail has changed from " << a->thumbnail << " to "
-                  << new_audio->thumbnail;
-      }
       a->thumbnail = std::move(new_audio->thumbnail);
     }
   }

@@ -175,41 +175,17 @@ FileId AnimationsManager::on_get_animation(unique_ptr<Animation> new_animation, 
     a = std::move(new_animation);
   } else if (replace) {
     CHECK(a->file_id == file_id);
-    if (a->mime_type != new_animation->mime_type) {
+    if (a->mime_type != new_animation->mime_type || a->file_name != new_animation->file_name ||
+        a->dimensions != new_animation->dimensions || a->duration != new_animation->duration ||
+        a->minithumbnail != new_animation->minithumbnail || a->thumbnail != new_animation->thumbnail ||
+        a->animated_thumbnail != new_animation->animated_thumbnail) {
       LOG(DEBUG) << "Animation " << file_id << " info has changed";
       a->mime_type = std::move(new_animation->mime_type);
-    }
-    if (a->file_name != new_animation->file_name) {
-      LOG(DEBUG) << "Animation " << file_id << " file name has changed";
       a->file_name = std::move(new_animation->file_name);
-    }
-    if (a->dimensions != new_animation->dimensions) {
-      LOG(DEBUG) << "Animation " << file_id << " dimensions have changed";
       a->dimensions = new_animation->dimensions;
-    }
-    if (a->duration != new_animation->duration) {
-      LOG(DEBUG) << "Animation " << file_id << " duration has changed";
       a->duration = new_animation->duration;
-    }
-    if (a->minithumbnail != new_animation->minithumbnail) {
       a->minithumbnail = std::move(new_animation->minithumbnail);
-    }
-    if (a->thumbnail != new_animation->thumbnail) {
-      if (!a->thumbnail.file_id.is_valid()) {
-        LOG(DEBUG) << "Animation " << file_id << " thumbnail has changed";
-      } else {
-        LOG(INFO) << "Animation " << file_id << " thumbnail has changed from " << a->thumbnail << " to "
-                  << new_animation->thumbnail;
-      }
       a->thumbnail = std::move(new_animation->thumbnail);
-    }
-    if (a->animated_thumbnail != new_animation->animated_thumbnail) {
-      if (!a->animated_thumbnail.file_id.is_valid()) {
-        LOG(DEBUG) << "Animation " << file_id << " animated thumbnail has changed";
-      } else {
-        LOG(INFO) << "Animation " << file_id << " animated thumbnail has changed from " << a->animated_thumbnail
-                  << " to " << new_animation->animated_thumbnail;
-      }
       a->animated_thumbnail = std::move(new_animation->animated_thumbnail);
     }
     if (a->has_stickers != new_animation->has_stickers && new_animation->has_stickers) {
