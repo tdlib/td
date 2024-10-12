@@ -73,12 +73,10 @@ FileId VoiceNotesManager::on_get_voice_note(unique_ptr<VoiceNote> new_voice_note
     v = std::move(new_voice_note);
   } else if (replace) {
     CHECK(v->file_id == new_voice_note->file_id);
-    if (v->mime_type != new_voice_note->mime_type) {
+    if (v->mime_type != new_voice_note->mime_type || v->duration != new_voice_note->duration ||
+        v->waveform != new_voice_note->waveform) {
       LOG(DEBUG) << "Voice note " << file_id << " info has changed";
       v->mime_type = std::move(new_voice_note->mime_type);
-    }
-    if (v->duration != new_voice_note->duration || v->waveform != new_voice_note->waveform) {
-      LOG(DEBUG) << "Voice note " << file_id << " info has changed";
       v->duration = new_voice_note->duration;
       v->waveform = std::move(new_voice_note->waveform);
     }

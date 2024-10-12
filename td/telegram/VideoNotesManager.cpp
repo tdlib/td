@@ -76,22 +76,13 @@ FileId VideoNotesManager::on_get_video_note(unique_ptr<VideoNote> new_video_note
   } else if (replace) {
     CHECK(v->file_id == new_video_note->file_id);
     if (v->duration != new_video_note->duration || v->dimensions != new_video_note->dimensions ||
-        v->waveform != new_video_note->waveform) {
+        v->waveform != new_video_note->waveform || v->minithumbnail != new_video_note->minithumbnail ||
+        v->thumbnail != new_video_note->thumbnail) {
       LOG(DEBUG) << "Video note " << file_id << " info has changed";
       v->duration = new_video_note->duration;
       v->dimensions = new_video_note->dimensions;
       v->waveform = std::move(new_video_note->waveform);
-    }
-    if (v->minithumbnail != new_video_note->minithumbnail) {
       v->minithumbnail = std::move(new_video_note->minithumbnail);
-    }
-    if (v->thumbnail != new_video_note->thumbnail) {
-      if (!v->thumbnail.file_id.is_valid()) {
-        LOG(DEBUG) << "Video note " << file_id << " thumbnail has changed";
-      } else {
-        LOG(INFO) << "Video note " << file_id << " thumbnail has changed from " << v->thumbnail << " to "
-                  << new_video_note->thumbnail;
-      }
       v->thumbnail = std::move(new_video_note->thumbnail);
     }
     if (TranscriptionInfo::update_from(v->transcription_info, std::move(new_video_note->transcription_info))) {
