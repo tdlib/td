@@ -69,7 +69,7 @@ TDLib can be used from Node.js through the [JSON](https://github.com/tdlib/td#us
 
 Convenient Node.js wrappers already exist for our JSON interface.
 For example, take a look at [Airgram](https://github.com/airgram/airgram) – modern TDLib framework for TypeScript/JavaScript, or
-at [tdl](https://github.com/Bannerets/tdl), which provides a convenient, fully-asynchronous interface for interaction with TDLib and contains a bunch of examples.
+at [tdl](https://github.com/eilvelia/tdl), which provides a convenient, fully-asynchronous interface for interaction with TDLib and contains a bunch of examples.
 
 You can also see [TdNode](https://github.com/puppy0cam/TdNode), [tglib](https://github.com/nodegin/tglib), [node-tdlib](https://github.com/wfjsw/node-tdlib), [tdlnode](https://github.com/fonbah/tdlnode),
 [Paper Plane](https://github.com/par6n/paper-plane), or [node-tlg](https://github.com/dilongfa/node-tlg) for other examples of TDLib JSON interface integration with Node.js.
@@ -87,7 +87,7 @@ TDLib can be used from the Go programming language through the [JSON](https://gi
 Convenient Go wrappers already exist for our JSON interface.
 For example, take a look at [github.com/zelenin/go-tdlib](https://github.com/zelenin/go-tdlib) or [github.com/Arman92/go-tdlib](https://github.com/Arman92/go-tdlib), which provide a convenient TDLib client, a generator for TDLib API classes and contain many examples.
 
-You can also see [github.com/aliforever/go-tdlib](https://github.com/aliforever/go-tdlib) or [github.com/L11R/go-tdjson](https://github.com/L11R/go-tdjson) for another examples of TDLib JSON interface integration with Go.
+You can also see [github.com/aliforever/go-tdlib](https://github.com/aliforever/go-tdlib) for another examples of TDLib JSON interface integration with Go.
 
 <a name="java"></a>
 ## Using TDLib in Java projects
@@ -255,7 +255,7 @@ This library contains automatically generated Haskell types for all TDLib API me
 
 TDLib can be used from the Nim programming language.
 
-See [telenim](https://github.com/Yardanico/telenim) for example of such usage and a Nim wrapper for TDLib.
+See [telenim](https://github.com/Ethosa/telenim) for example of such usage and a Nim wrapper for TDLib.
 
 <a name="clojure"></a>
 ## Using TDLib in Clojure projects
