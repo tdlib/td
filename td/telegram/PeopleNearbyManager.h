@@ -28,8 +28,6 @@ class PeopleNearbyManager final : public Actor {
  public:
   PeopleNearbyManager(Td *td, ActorShared<> parent);
 
-  void search_dialogs_nearby(const Location &location, Promise<td_api::object_ptr<td_api::chatsNearby>> &&promise);
-
   void set_location(const Location &location, Promise<Unit> &&promise);
 
   static void set_location_visibility(Td *td);
@@ -69,13 +67,7 @@ class PeopleNearbyManager final : public Actor {
 
   void on_user_nearby_timeout(UserId user_id);
 
-  vector<td_api::object_ptr<td_api::chatNearby>> get_chats_nearby_object(
-      const vector<DialogNearby> &dialogs_nearby) const;
-
   void send_update_users_nearby() const;
-
-  void on_get_dialogs_nearby(Result<telegram_api::object_ptr<telegram_api::Updates>> result,
-                             Promise<td_api::object_ptr<td_api::chatsNearby>> &&promise);
 
   void try_send_set_location_visibility_query();
 

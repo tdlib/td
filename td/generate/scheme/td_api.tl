@@ -1423,7 +1423,7 @@ basicGroupFullInfo photo:chatPhoto description:string creator_user_id:int53 memb
 //@status Status of the current user in the supergroup or channel; custom title will always be empty
 //@member_count Number of members in the supergroup or channel; 0 if unknown. Currently, it is guaranteed to be known only if the supergroup or channel was received through
 //-getChatSimilarChats, getChatsToSendStories, getCreatedPublicChats, getGroupsInCommon, getInactiveSupergroupChats, getRecommendedChats, getSuitableDiscussionChats,
-//-getUserPrivacySettingRules, getVideoChatAvailableParticipants, searchChatsNearby, searchPublicChats, or in chatFolderInviteLinkInfo.missing_chat_ids, or in userFullInfo.personal_chat_id,
+//-getUserPrivacySettingRules, getVideoChatAvailableParticipants, searchPublicChats, or in chatFolderInviteLinkInfo.missing_chat_ids, or in userFullInfo.personal_chat_id,
 //-or for chats with messages or stories from publicForwards and foundStories
 //@boost_level Approximate boost level for the chat
 //@has_linked_chat True, if the channel has a discussion group, or the supergroup is the designated discussion group for a channel
@@ -2180,13 +2180,6 @@ failedToAddMembers failed_to_add_members:vector<failedToAddMember> = FailedToAdd
 
 //@description Contains information about a newly created basic group chat @chat_id Chat identifier @failed_to_add_members Information about failed to add members
 createdBasicGroupChat chat_id:int53 failed_to_add_members:failedToAddMembers = CreatedBasicGroupChat;
-
-
-//@description Describes a chat located nearby @chat_id Chat identifier @distance Distance to the chat location, in meters
-chatNearby chat_id:int53 distance:int32 = ChatNearby;
-
-//@description Represents a list of chats located nearby @users_nearby List of users nearby @supergroups_nearby List of location-based supergroups nearby
-chatsNearby users_nearby:vector<chatNearby> supergroups_nearby:vector<chatNearby> = ChatsNearby;
 
 
 //@class PublicChatType @description Describes type of public chat
@@ -7975,9 +7968,6 @@ updateConnectionState state:ConnectionState = Update;
 
 //@description New terms of service must be accepted by the user. If the terms of service are declined, then the deleteAccount method must be called with the reason "Decline ToS update" @terms_of_service_id Identifier of the terms of service @terms_of_service The new terms of service
 updateTermsOfService terms_of_service_id:string terms_of_service:termsOfService = Update;
-
-//@description The list of users nearby has changed. The update is guaranteed to be sent only 60 seconds after a successful searchChatsNearby request @users_nearby The new list of users nearby
-updateUsersNearby users_nearby:vector<chatNearby> = Update;
 
 //@description The first unconfirmed session has changed @session The unconfirmed session; may be null if none
 updateUnconfirmedSession session:unconfirmedSession = Update;

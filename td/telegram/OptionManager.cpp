@@ -22,7 +22,6 @@
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/OnlineManager.h"
-#include "td/telegram/PeopleNearbyManager.h"
 #include "td/telegram/ReactionType.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/StickersManager.h"
