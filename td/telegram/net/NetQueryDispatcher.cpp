@@ -37,7 +37,7 @@ namespace td {
 void NetQueryDispatcher::complete_net_query(NetQueryPtr net_query) {
   auto callback = net_query->move_callback();
   if (callback.empty()) {
-    net_query->debug("sent to td (no callback)");
+    net_query->debug("sent to handler");
     send_closure_later(G()->td(), &Td::on_result, std::move(net_query));
   } else {
     net_query->debug("sent to callback", true);
