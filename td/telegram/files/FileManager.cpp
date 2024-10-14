@@ -1718,7 +1718,8 @@ Result<FileId> FileManager::register_local(FullLocalFileLocation location, Dialo
       auto node = get_file_node(file_id);
       auto main_file_id = node->main_file_id_;
       if (main_file_id != file_id) {
-        if (is_new) {
+        auto file_info = get_file_id_info(file_id);
+        if (is_new && !(file_info->send_updates_flag_ || file_info->pin_flag_ || file_info->sent_file_id_flag_)) {
           bool is_removed = try_forget_file_id(file_id);
           CHECK(is_removed);
           node = get_file_node(main_file_id);
