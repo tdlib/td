@@ -2764,6 +2764,7 @@ void StickersManager::load_premium_gift_sticker_set(Promise<Unit> &&promise) {
   if (td_->auth_manager_->is_bot() || get_premium_gift_sticker_set() != nullptr) {
     return promise.set_value(Unit());
   }
+  pending_get_premium_gift_option_sticker_queries_.push_back(std::move(promise));
 }
 
 void StickersManager::load_premium_gift_sticker(int32 month_count, int64 star_count,
