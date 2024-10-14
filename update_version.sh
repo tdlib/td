@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 cd $(dirname $0)
 
-COMMIT_FILES="example/cpp/CMakeLists.txt example/uwp/extension.vsixmanifest example/uwp/Telegram.Td.UWP.nuspec README.md td/telegram/OptionManager.cpp"
+COMMIT_FILES="example/cpp/CMakeLists.txt example/uwp/extension.vsixmanifest example/uwp/Telegram.Td.UWP.nuspec example/web/tdweb/package.json example/web/tdweb/package-lock.json README.md td/telegram/OptionManager.cpp"
 
 # check argument '-i' to drop all fixed files list.
 for arg in "$@"; do if [[ "$arg" == "-i" ]]; then COMMIT_FILES=""; break; fi; done
