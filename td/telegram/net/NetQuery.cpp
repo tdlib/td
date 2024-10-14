@@ -24,7 +24,7 @@ int VERBOSITY_NAME(net_query) = VERBOSITY_NAME(INFO);
 
 void NetQuery::debug(string state, bool may_be_lost) {
   may_be_lost_ = may_be_lost;
-  VLOG(net_query) << *this << " " << tag("state", state);
+  VLOG(net_query) << *this << " [" << state << ']';
   {
     auto guard = lock();
     auto &data = get_data_unsafe();
