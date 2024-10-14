@@ -562,8 +562,8 @@ class FileManager final : public Actor {
   Result<FileId> from_persistent_id(CSlice persistent_id, FileType file_type) TD_WARN_UNUSED_RESULT;
   FileView get_file_view(FileId file_id) const;
   FileView get_sync_file_view(FileId file_id);
-  td_api::object_ptr<td_api::file> get_file_object(FileId file_id, bool with_main_file_id = true);
-  vector<int32> get_file_ids_object(const vector<FileId> &file_ids, bool with_main_file_id = true);
+  td_api::object_ptr<td_api::file> get_file_object(FileId file_id);
+  vector<int32> get_file_ids_object(const vector<FileId> &file_ids);
 
   Result<FileId> get_input_thumbnail_file_id(const tl_object_ptr<td_api::InputFile> &thumbnail_input_file,
                                              DialogId owner_dialog_id, bool is_encrypted) TD_WARN_UNUSED_RESULT;
@@ -787,9 +787,7 @@ class FileManager final : public Actor {
   struct FileIdInfo {
     FileNodeId node_id_{0};
     unique_ptr<FileInfo> file_info_;
-    bool send_updates_flag_{false};
     bool pin_flag_{false};
-    bool sent_file_id_flag_{false};
   };
 
   struct UserFileDownloadInfo {

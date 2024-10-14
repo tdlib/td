@@ -1626,10 +1626,8 @@ FileId FileManager::copy_file_id(FileId file_id, FileType file_type, DialogId ow
 
 bool FileManager::try_forget_file_id(FileId file_id) {
   auto *info = get_file_id_info(file_id);
-  if (info->send_updates_flag_ || info->pin_flag_ || info->sent_file_id_flag_) {
-    LOG(DEBUG) << "Can't forget file " << file_id << ", because of"
-               << (info->send_updates_flag_ ? " (sent updates)" : "") << (info->pin_flag_ ? " (pin)" : "")
-               << (info->sent_file_id_flag_ ? " (sent file identifier)" : "");
+  if (info->pin_flag_) {
+    LOG(DEBUG) << "Can't forget file " << file_id << ", because it is pinned";
     return false;
   }
   auto file_node = get_file_node(file_id);
@@ -1718,8 +1716,8 @@ Result<FileId> FileManager::register_local(FullLocalFileLocation location, Dialo
       auto node = get_file_node(file_id);
       auto main_file_id = node->main_file_id_;
       if (main_file_id != file_id) {
-        auto file_info = get_file_id_info(file_id);
-        if (is_new && !(file_info->send_updates_flag_ || file_info->pin_flag_ || file_info->sent_file_id_flag_)) {
+        auto *file_info = get_file_id_info(file_id);
+        if (is_new && !file_info->pin_flag_) {
           bool is_removed = try_forget_file_id(file_id);
           CHECK(is_removed);
           node = get_file_node(main_file_id);
@@ -2410,7 +2408,6 @@ Status FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sync) {
     auto file_id_info = get_file_id_info(file_id);
     CHECK(file_id_info->node_id_ == node_ids[other_node_i]);
     file_id_info->node_id_ = node_ids[node_i];
-    send_updates_flag |= file_id_info->send_updates_flag_;
   }
   other_node = {};
 
@@ -2585,11 +2582,8 @@ void FileManager::try_flush_node_pmc(FileNodePtr node, const char *source) {
 void FileManager::try_flush_node_info(FileNodePtr node, const char *source) {
   if (node->need_info_flush()) {
     for (auto file_id : vector<FileId>(node->file_ids_)) {
-      auto *info = get_file_id_info(file_id);
-      if (info->send_updates_flag_) {
-        VLOG(update_file) << "Send UpdateFile about file " << file_id << " from " << source;
-        context_->on_file_updated(file_id);
-      }
+      VLOG(update_file) << "Send UpdateFile about file " << file_id << " from " << source;
+      context_->on_file_updated(file_id);
       auto it = file_download_requests_.find(file_id);
       if (it != file_download_requests_.end()) {
         for (auto &download_info : it->second.internal_downloads_) {
@@ -2996,7 +2990,7 @@ void FileManager::download_file(FileId file_id, int32 priority, int64 offset, in
   }
   download(file_id, 0, user_download_file_callback_, priority, offset, limit);
   if (!synchronous) {
-    promise.set_value(get_file_object(file_id, false));
+    promise.set_value(get_file_object(file_id));
   }
 }
 
@@ -3014,7 +3008,7 @@ void FileManager::on_user_file_download_finished(FileId file_id) {
   pending_user_file_downloads_.erase(it);
 
   for (auto &promise : promises) {
-    auto file_object = get_file_object(file_id, false);
+    auto file_object = get_file_object(file_id);
     CHECK(file_object != nullptr);
     auto download_offset = file_object->local_->download_offset_;
     auto downloaded_size = file_object->local_->downloaded_prefix_size_;
@@ -4077,7 +4071,7 @@ FileView FileManager::get_sync_file_view(FileId file_id) {
   return FileView(file_node);
 }
 
-td_api::object_ptr<td_api::file> FileManager::get_file_object(FileId file_id, bool with_main_file_id) {
+td_api::object_ptr<td_api::file> FileManager::get_file_object(FileId file_id) {
   auto file_node_ptr = get_sync_file_node(file_id);
   if (!file_node_ptr) {
     return td_api::make_object<td_api::file>(0, 0, 0, td_api::make_object<td_api::localFile>(),
@@ -4101,22 +4095,8 @@ td_api::object_ptr<td_api::file> FileManager::get_file_object(FileId file_id, bo
   auto file_view = FileView(file_node_ptr);
   bool can_be_downloaded = file_view.can_download_from_server() || file_view.can_generate();
 
-  auto result_file_id = file_id;
-  auto *file_info = get_file_id_info(result_file_id);
-  FileId main_file_id;
-  if (with_main_file_id) {
-    main_file_id = file_node->main_file_id_;
-    if (!file_info->send_updates_flag_) {
-      result_file_id = main_file_id;
-    }
-    file_info = get_file_id_info(main_file_id);
-  }
-  file_info->send_updates_flag_ = true;
-  VLOG(update_file) << "Send file " << file_id << " as " << result_file_id << " and update send_updates_flag_ for file "
-                    << (with_main_file_id ? main_file_id : result_file_id);
-
   return td_api::make_object<td_api::file>(
-      result_file_id.get(), size, expected_size,
+      file_id.get(), size, expected_size,
       td_api::make_object<td_api::localFile>(std::move(path), can_be_downloaded, can_be_deleted,
                                              file_node->is_downloading(), is_downloading_completed, download_offset,
                                              local_prefix_size, local_total_size),
@@ -4124,22 +4104,8 @@ td_api::object_ptr<td_api::file> FileManager::get_file_object(FileId file_id, bo
                                               file_node->is_uploading(), is_uploading_completed, remote_size));
 }
 
-vector<int32> FileManager::get_file_ids_object(const vector<FileId> &file_ids, bool with_main_file_id) {
-  return transform(file_ids, [this, with_main_file_id](FileId file_id) {
-    auto file_view = get_sync_file_view(file_id);
-    auto result_file_id = file_id;
-    auto *file_info = get_file_id_info(result_file_id);
-    if (with_main_file_id) {
-      auto main_file_id = file_view.get_main_file_id();
-      if (!file_info->sent_file_id_flag_ && !file_info->send_updates_flag_) {
-        result_file_id = main_file_id;
-      }
-      file_info = get_file_id_info(main_file_id);
-    }
-    file_info->sent_file_id_flag_ = true;
-
-    return result_file_id.get();
-  });
+vector<int32> FileManager::get_file_ids_object(const vector<FileId> &file_ids) {
+  return transform(file_ids, [this](FileId file_id) { return file_id.get(); });
 }
 
 Result<FileId> FileManager::check_input_file_id(FileType type, Result<FileId> result, bool is_encrypted,
@@ -5152,7 +5118,7 @@ void FileManager::preliminary_upload_file(const td_api::object_ptr<td_api::Input
 
   upload({file_id, 0}, std::make_shared<PreliminaryUploadFileCallback>(), priority, 0);
 
-  promise.set_value(get_file_object(file_id, false));
+  promise.set_value(get_file_object(file_id));
 }
 
 Result<string> FileManager::get_suggested_file_name(FileId file_id, const string &directory) {
