@@ -51,7 +51,6 @@
 #include "td/telegram/OnlineManager.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/OrderInfo.h"
-#include "td/telegram/PeopleNearbyManager.h"
 #include "td/telegram/PollId.h"
 #include "td/telegram/PollManager.h"
 #include "td/telegram/PrivacyManager.h"
@@ -3735,7 +3734,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePeerHistoryTTL>
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePeerLocated> update, Promise<Unit> &&promise) {
-  td_->people_nearby_manager_->on_update_peer_located(std::move(update->peers_), true);
+  // shouldn't be sent by the server
   promise.set_value(Unit());
 }
 

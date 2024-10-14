@@ -45,7 +45,6 @@
 #include "td/telegram/OnlineManager.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/PeerColor.h"
-#include "td/telegram/PeopleNearbyManager.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/Photo.hpp"
 #include "td/telegram/PhotoSize.h"
@@ -4264,8 +4263,7 @@ bool UserManager::is_user_received_from_server(UserId user_id) const {
 
 bool UserManager::can_report_user(UserId user_id) const {
   auto u = get_user(user_id);
-  return u != nullptr && !u->is_deleted && !u->is_support &&
-         (u->is_bot || td_->people_nearby_manager_->is_user_nearby(user_id));
+  return u != nullptr && !u->is_deleted && !u->is_support && u->is_bot;
 }
 
 const DialogPhoto *UserManager::get_user_dialog_photo(UserId user_id) {
