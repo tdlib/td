@@ -3452,7 +3452,7 @@ class MessagesManager final : public Actor {
   };
 
   vector<PendingOnGetDialogs> pending_on_get_dialogs_;
-  FlatHashMap<DialogId, PendingOnGetDialogs, DialogIdHash> pending_channel_on_get_dialogs_;
+  FlatHashMap<DialogId, vector<PendingOnGetDialogs>, DialogIdHash> pending_channel_on_get_dialogs_;
 
   FlatHashMap<DialogId, vector<Promise<Unit>>, DialogIdHash> run_after_get_channel_difference_;
 

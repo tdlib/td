@@ -12489,9 +12489,11 @@ void MessagesManager::hangup() {
   fail_promise_map(get_history_queries_);
   while (!pending_channel_on_get_dialogs_.empty()) {
     auto it = pending_channel_on_get_dialogs_.begin();
-    auto promise = std::move(it->second.promise);
+    auto queries = std::move(it->second);
     pending_channel_on_get_dialogs_.erase(it);
-    promise.set_error(Global::request_aborted_error());
+    for (auto &query : queries) {
+      query.promise.set_error(Global::request_aborted_error());
+    }
   }
   while (!get_dialogs_tasks_.empty()) {
     auto it = get_dialogs_tasks_.begin();
@@ -14562,9 +14564,8 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     DialogId dialog_id(static_cast<const telegram_api::dialog *>(dialog_folders[0].get())->peer_);
     if (dialog_id.is_valid() && running_get_channel_difference(dialog_id)) {
       LOG(INFO) << "Postpone result of channels getDialogs for " << dialog_id;
-      pending_channel_on_get_dialogs_.emplace(
-          dialog_id, PendingOnGetDialogs{folder_id, std::move(dialog_folders), total_count, std::move(messages),
-                                         std::move(promise)});
+      pending_channel_on_get_dialogs_[dialog_id].push_back(PendingOnGetDialogs{
+          folder_id, std::move(dialog_folders), total_count, std::move(messages), std::move(promise)});
       return;
     }
   }
@@ -37274,11 +37275,13 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
   auto on_get_dialogs_it = pending_channel_on_get_dialogs_.find(dialog_id);
   if (on_get_dialogs_it != pending_channel_on_get_dialogs_.end()) {
     LOG(INFO) << "Apply postponed results of channel getDialogs for " << dialog_id;
-    PendingOnGetDialogs res = std::move(on_get_dialogs_it->second);
+    vector<PendingOnGetDialogs> queries = std::move(on_get_dialogs_it->second);
     pending_channel_on_get_dialogs_.erase(on_get_dialogs_it);
 
-    on_get_dialogs(res.folder_id, std::move(res.dialogs), res.total_count, std::move(res.messages),
-                   std::move(res.promise));
+    for (auto &query : queries) {
+      on_get_dialogs(query.folder_id, std::move(query.dialogs), query.total_count, std::move(query.messages),
+                     std::move(query.promise));
+    }
   }
 
   if (d != nullptr && !td_->auth_manager_->is_bot() && have_access && !d->last_message_id.is_valid() && !d->is_empty &&
