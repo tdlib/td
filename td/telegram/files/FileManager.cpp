@@ -4105,7 +4105,7 @@ td_api::object_ptr<td_api::file> FileManager::get_file_object(FileId file_id) {
 }
 
 vector<int32> FileManager::get_file_ids_object(const vector<FileId> &file_ids) {
-  return transform(file_ids, [this](FileId file_id) { return file_id.get(); });
+  return transform(file_ids, [](FileId file_id) { return file_id.get(); });
 }
 
 Result<FileId> FileManager::check_input_file_id(FileType type, Result<FileId> result, bool is_encrypted,
