@@ -60,7 +60,7 @@ You can also check out [example/python/tdjson_example.py](https://github.com/tdl
 <a name="javascript"></a>
 ## Using TDLib in JavaScript projects
 
-TDLib can be compiled to WebAssembly or asm.js and used in a browser from JavaScript. See [tdweb](https://github.com/tdlib/td/tree/master/example/web) as a convenient wrapper for TDLib in a browser
+TDLib can be compiled to WebAssembly and used in a browser from JavaScript. See [tdweb](https://github.com/tdlib/td/tree/master/example/web) as a convenient wrapper for TDLib in a browser
 and [telegram-react](https://github.com/evgeny-nadymov/telegram-react) as an example of a TDLib-based Telegram client.
 
 See also [Svelte-tdweb-starter](https://github.com/gennadypolakov/svelte-tdweb-starter) - Svelte wrapper for tdweb, and [Telegram-Photoframe](https://github.com/lukefx/telegram-photoframe) - a web application that displays your preferred group or channel as Photoframe.

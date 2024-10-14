@@ -3,7 +3,6 @@ import log from './logger.js';
 import { instantiateAny } from './wasm-utils.js';
 
 import td_wasm_release from './prebuilt/release/td_wasm.wasm';
-import td_asmjs_mem_release from './prebuilt/release/td_asmjs.js.mem';
 
 const tdlibVersion = 6;
 const localForageDrivers = [
@@ -92,33 +91,7 @@ async function loadTdlibWasm(onFS, wasmUrl) {
   return module;
 }
 
-async function loadTdlibAsmjs(onFS) {
-  console.log('loadTdlibAsmjs');
-  const createTdwebModule = (await import('./prebuilt/release/td_asmjs.js'))
-    .default;
-  console.log('Loaded td_asm.js', createTdwebModule);
-  const fromFile = 'td_asmjs.js.mem';
-  const toFile = td_asmjs_mem_release;
-  let module = createTdwebModule({
-    onRuntimeInitialized: () => {
-      console.log('runtime intialized');
-      onFS(module.FS);
-    },
-    locateFile: name => {
-      if (name === fromFile) {
-        return toFile;
-      }
-      return name;
-    }
-  });
-  log.info('Wait module');
-  module = await module;
-  log.info('Loaded module', module);
-  //onFS(module.FS);
-  return module;
-}
-
-async function loadTdlib(mode, onFS, wasmUrl) {
+async function loadTdlib(onFS, wasmUrl) {
   const wasmSupported = (() => {
     try {
       if (
@@ -137,17 +110,9 @@ async function loadTdlib(mode, onFS, wasmUrl) {
     return false;
   })();
   if (!wasmSupported) {
-    if (mode === 'wasm') {
-      log.error('WebAssembly is not supported, trying to use it anyway');
-    } else {
-      log.warn('WebAssembly is not supported, trying to use asm.js');
-      mode = 'asmjs';
-    }
+    log.error('WebAssembly is not supported, trying to use it anyway');
   }
 
-  if (mode === 'asmjs') {
-    return loadTdlibAsmjs(onFS);
-  }
   return loadTdlibWasm(onFS, wasmUrl);
 }
 
@@ -591,7 +556,6 @@ class TdClient {
     this.wasInit = true;
 
     options = options || {};
-    const mode = options.mode || 'wasm';
 
     const FS_promise = new Promise(resolve => {
       this.onFS = resolve;
@@ -609,7 +573,7 @@ class TdClient {
     }
 
     log.info('load TdModule');
-    this.TdModule = await loadTdlib(mode, this.onFS, options.wasmUrl);
+    this.TdModule = await loadTdlib(this.onFS, options.wasmUrl);
     log.info('loaded TdModule');
     this.td_functions = {
       td_create: this.TdModule.cwrap(

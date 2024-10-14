@@ -9,7 +9,7 @@ const sleep = ms => new Promise(res => setTimeout(res, ms));
 /**
  * TDLib in a browser
  *
- * TDLib can be compiled to WebAssembly or asm.js using Emscripten compiler and used in a browser from JavaScript.
+ * TDLib can be compiled to WebAssembly using Emscripten compiler and used in a browser from JavaScript.
  * This is a convenient wrapper for TDLib in a browser which controls TDLib instance creation, handles interaction
  * with TDLib and manages a filesystem for persistent TDLib data.
  * TDLib instance is created in a Web Worker to run it in a separate thread.
@@ -40,7 +40,6 @@ class TdClient {
    * @param {number} [options.logVerbosityLevel=2] - The initial verbosity level for the TDLib internal logging (0-1023).
    * @param {boolean} [options.useDatabase=true] - Pass false to use TDLib without database and secret chats. It significantly improves loading time, but some functionality is unavailable without the database.
    * @param {boolean} [options.readOnly=false] - For debug only. Pass true to open TDLib database in read-only mode
-   * @param {string} [options.mode=auto] - For debug only. The type of the TDLib build to use. 'asmjs' for asm.js and 'wasm' for WebAssembly. If mode == 'auto' WebAbassembly is used if supported by browser; otherwise, asm.js is used.
    */
   constructor(options) {
     log.setVerbosity(options.jsLogVerbosityLevel);
