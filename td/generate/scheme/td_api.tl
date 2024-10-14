@@ -2204,9 +2204,6 @@ publicChatTypeIsLocationBased = PublicChatType;
 //@can_unarchive If true, the chat was automatically archived and can be moved back to the main chat list using addChatToList simultaneously with setting chat notification settings to default using setChatNotificationSettings
 chatActionBarReportSpam can_unarchive:Bool = ChatActionBar;
 
-//@description The chat is a location-based supergroup, which can't be reported anymore
-chatActionBarReportUnrelatedLocation = ChatActionBar;
-
 //@description The chat is a recently created group chat to which new members can be invited
 chatActionBarInviteMembers = ChatActionBar;
 
