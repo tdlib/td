@@ -1154,7 +1154,7 @@ void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_quer
   auto now = Time::now();
   bool immediately_fail_query = false;
   if (!immediately_fail_query) {
-    net_query->debug(PSTRING() << get_name() << ": send to an MTProto connection");
+    net_query->debug(PSTRING() << get_name() << ": send to " << info->connection_->get_debug_str());
     auto r_message_id = info->connection_->send_query(
         net_query->query().clone(), net_query->gzip_flag() == NetQuery::GzipFlag::On, message_id,
         invoke_after_message_ids, static_cast<bool>(net_query->quick_ack_promise_));
