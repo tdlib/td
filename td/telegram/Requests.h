@@ -357,8 +357,6 @@ class Requests {
 
   void on_request(uint64 id, td_api::searchChatsOnServer &request);
 
-  void on_request(uint64 id, const td_api::searchChatsNearby &request);
-
   void on_request(uint64 id, td_api::searchRecentlyFoundChats &request);
 
   void on_request(uint64 id, const td_api::addRecentlyFoundChat &request);
@@ -1120,8 +1118,6 @@ class Requests {
   void on_request(uint64 id, td_api::setBotInfoShortDescription &request);
 
   void on_request(uint64 id, const td_api::getBotInfoShortDescription &request);
-
-  void on_request(uint64 id, const td_api::setLocation &request);
 
   void on_request(uint64 id, td_api::setBusinessLocation &request);
 

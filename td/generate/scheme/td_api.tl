@@ -8510,9 +8510,6 @@ searchChats query:string limit:int32 = Chats;
 //@description Searches for the specified query in the title and username of already known chats via request to the server. Returns chats in the order seen in the main chat list @query Query to search for @limit The maximum number of chats to be returned
 searchChatsOnServer query:string limit:int32 = Chats;
 
-//@description Returns a list of users and location-based supergroups nearby. The method was disabled and returns an empty list of chats now @location Current user location
-searchChatsNearby location:location = ChatsNearby;
-
 //@description Returns a list of channel chats recommended to the current user
 getRecommendedChats = Chats;
 
@@ -10853,9 +10850,6 @@ setPersonalChat chat_id:int53 = Ok;
 
 //@description Changes the emoji status of the current user; for Telegram Premium users only @emoji_status New emoji status; pass null to switch to the default badge
 setEmojiStatus emoji_status:emojiStatus = Ok;
-
-//@description Changes the location of the current user. Needs to be called if getOption("is_location_visible") is true and location changes for more than 1 kilometer. Must not be called if the user has a business location @location The new location of the user
-setLocation location:location = Ok;
 
 //@description Toggles whether the current user has sponsored messages enabled. The setting has no effect for users without Telegram Premium for which sponsored messages are always enabled
 //@has_sponsored_messages_enabled Pass true to enable sponsored messages for the current user; false to disable them

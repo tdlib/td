@@ -113,7 +113,6 @@
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/Payments.h"
-#include "td/telegram/PeopleNearbyManager.h"
 #include "td/telegram/PhoneNumberManager.h"
 #include "td/telegram/Premium.h"
 #include "td/telegram/PrivacyManager.h"
@@ -2970,12 +2969,6 @@ void Requests::on_request(uint64 id, td_api::searchChatsOnServer &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);
   CREATE_REQUEST(SearchChatsOnServerRequest, request.query_, request.limit_);
-}
-
-void Requests::on_request(uint64 id, const td_api::searchChatsNearby &request) {
-  CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
-  td_->people_nearby_manager_->search_dialogs_nearby(Location(request.location_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getGroupsInCommon &request) {
@@ -5860,12 +5853,6 @@ void Requests::on_request(uint64 id, td_api::setBotInfoShortDescription &request
 void Requests::on_request(uint64 id, const td_api::getBotInfoShortDescription &request) {
   CREATE_TEXT_REQUEST_PROMISE();
   td_->bot_info_manager_->get_bot_info_about(UserId(request.bot_user_id_), request.language_code_, std::move(promise));
-}
-
-void Requests::on_request(uint64 id, const td_api::setLocation &request) {
-  CHECK_IS_USER();
-  CREATE_OK_REQUEST_PROMISE();
-  td_->people_nearby_manager_->set_location(Location(request.location_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::setBusinessLocation &request) {

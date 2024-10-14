@@ -6526,16 +6526,6 @@ class CliClient final : public Actor {
       SearchQuery query;
       get_args(args, query);
       send_request(td_api::make_object<td_api::searchChatsOnServer>(query.query, query.limit));
-    } else if (op == "scn") {
-      string latitude;
-      string longitude;
-      get_args(args, latitude, longitude);
-      send_request(td_api::make_object<td_api::searchChatsNearby>(as_location(latitude, longitude, string())));
-    } else if (op == "sloc") {
-      string latitude;
-      string longitude;
-      get_args(args, latitude, longitude);
-      send_request(td_api::make_object<td_api::setLocation>(as_location(latitude, longitude, string())));
     } else if (op == "sbl") {
       string latitude;
       string longitude;
