@@ -214,7 +214,7 @@ td_api::object_ptr<td_api::ChatActionBar> DialogActionBar::get_chat_action_bar_o
   if (can_block_user_) {
     CHECK(dialog_type == DialogType::User);
     CHECK(can_report_spam_ && can_add_contact_);
-    return td_api::make_object<td_api::chatActionBarReportAddBlock>(can_unarchive_, distance_);
+    return td_api::make_object<td_api::chatActionBarReportAddBlock>(can_unarchive_);
   }
   if (can_add_contact_) {
     CHECK(dialog_type == DialogType::User);
