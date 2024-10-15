@@ -3151,11 +3151,12 @@ class CliClient final : public Actor {
       get_args(args, tag, limit, offset);
       send_request(td_api::make_object<td_api::searchPublicMessagesByTag>(tag, offset, as_limit(limit)));
     } else if (op == "spsbt") {
+      ChatId chat_id;
       string tag;
       string limit;
       string offset;
-      get_args(args, tag, limit, offset);
-      send_request(td_api::make_object<td_api::searchPublicStoriesByTag>(tag, offset, as_limit(limit)));
+      get_args(args, chat_id, tag, limit, offset);
+      send_request(td_api::make_object<td_api::searchPublicStoriesByTag>(chat_id, tag, offset, as_limit(limit)));
     } else if (op == "spsbl") {
       string country_code;
       string state;

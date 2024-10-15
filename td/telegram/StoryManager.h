@@ -257,7 +257,7 @@ class StoryManager final : public Actor {
 
   void reload_dialog_expiring_stories(DialogId dialog_id);
 
-  void search_hashtag_posts(string hashtag, string offset, int32 limit,
+  void search_hashtag_posts(DialogId dialog_id, string hashtag, string offset, int32 limit,
                             Promise<td_api::object_ptr<td_api::foundStories>> &&promise);
 
   void search_location_posts(td_api::object_ptr<td_api::locationAddress> &&address, string offset, int32 limit,
