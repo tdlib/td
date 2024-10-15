@@ -1161,13 +1161,7 @@ class MessagesManager final : public Actor {
     unique_ptr<ReplyMarkup> reply_markup;
 
     int32 edited_schedule_date = 0;
-    bool edited_invert_media = false;
-    unique_ptr<MessageContent> edited_content;
-    mutable vector<FileUploadId> edited_file_upload_ids;
-    mutable vector<FileUploadId> edited_thumbnail_file_upload_ids;
-    unique_ptr<ReplyMarkup> edited_reply_markup;
     uint64 edit_generation = 0;
-    Promise<Unit> edit_promise;
 
     int32 last_edit_pts = 0;
 
@@ -1192,6 +1186,15 @@ class MessagesManager final : public Actor {
     Message(Message &&) = delete;
     Message &operator=(Message &&) = delete;
     ~Message() = default;
+  };
+
+  struct EditedMessage {
+    bool invert_media_ = false;
+    unique_ptr<MessageContent> content_;
+    mutable vector<FileUploadId> file_upload_ids_;
+    mutable vector<FileUploadId> thumbnail_file_upload_ids_;
+    unique_ptr<ReplyMarkup> reply_markup_;
+    Promise<Unit> promise_;
   };
 
   struct DialogScheduledMessages {
@@ -1816,11 +1819,11 @@ class MessagesManager final : public Actor {
 
   static FileUploadId get_media_file_upload_id(const vector<FileUploadId> &file_upload_ids, int32 media_pos);
 
-  static FileUploadId get_message_send_file_upload_id(const Message *m, int32 media_pos);
+  FileUploadId get_message_send_file_upload_id(DialogId dialog_id, const Message *m, int32 media_pos) const;
 
-  static FileUploadId get_message_send_thumbnail_file_upload_id(const Message *m, int32 media_pos);
+  FileUploadId get_message_send_thumbnail_file_upload_id(DialogId dialog_id, const Message *m, int32 media_pos) const;
 
-  static void delete_message_send_thumbnail_file_upload_id(Message *m, int32 media_pos);
+  void delete_message_send_thumbnail_file_upload_id(DialogId dialog_id, Message *m, int32 media_pos);
 
   void do_forward_messages(DialogId to_dialog_id, DialogId from_dialog_id, const vector<Message *> &messages,
                            const vector<MessageId> &message_ids, bool drop_author, bool drop_media_captions,
@@ -2772,6 +2775,18 @@ class MessagesManager final : public Actor {
   DialogFolder *get_dialog_folder(FolderId folder_id);
   const DialogFolder *get_dialog_folder(FolderId folder_id) const;
 
+  void add_edited_message(DialogId dialog_id, MessageId message_id, unique_ptr<EditedMessage> edited_message);
+
+  EditedMessage *get_edited_message(DialogId dialog_id, MessageId message_id);
+
+  const EditedMessage *get_edited_message(DialogId dialog_id, MessageId message_id) const;
+
+  MessageContent *get_edited_message_content(MessageFullId message_full_id);
+
+  const MessageContent *get_edited_message_content(MessageFullId message_full_id) const;
+
+  void delete_edited_message(DialogId dialog_id, MessageId message_id);
+
   static Message *get_message(Dialog *d, MessageId message_id);
   static const Message *get_message(const Dialog *d, MessageId message_id);
   static const Message *get_message_static(const Dialog *d, MessageId message_id);
@@ -3530,6 +3545,11 @@ class MessagesManager final : public Actor {
   FlatHashMap<DialogId, std::pair<bool, bool>, DialogIdHash> pending_dialog_group_call_updates_;
 
   FlatHashMap<string, int32> auth_notification_id_date_;
+
+  FlatHashMap<MessageFullId, unique_ptr<EditedMessage>, MessageFullIdHash> edited_messages_;
+  FlatHashMap<DialogId, FlatHashMap<ScheduledServerMessageId, unique_ptr<EditedMessage>, ScheduledServerMessageIdHash>,
+              DialogIdHash>
+      edited_scheduled_messages_;
 
   FlatHashMap<DialogId, MessageId, DialogIdHash> previous_repaired_read_inbox_max_message_id_;
 
