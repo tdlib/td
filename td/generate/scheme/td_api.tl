@@ -2837,7 +2837,7 @@ linkPreviewTypeStory story_sender_chat_id:int53 story_id:int32 = LinkPreviewType
 //@description The link is a link to boost a supergroup chat @photo Photo of the chat; may be null
 linkPreviewTypeSupergroupBoost photo:chatPhoto = LinkPreviewType;
 
-//@description The link is a link to a cloud theme. TDLib has no theme support yet @documents The list of files with theme description @settings Settings for the cloud theme
+//@description The link is a link to a cloud theme. TDLib has no theme support yet @documents The list of files with theme description @settings Settings for the cloud theme; may be null if unknown
 linkPreviewTypeTheme documents:vector<document> settings:themeSettings = LinkPreviewType;
 
 //@description The link preview type is unsupported yet
@@ -2860,7 +2860,7 @@ linkPreviewTypeVideoNote video_note:videoNote = LinkPreviewType;
 //@description The link is a link to a voice note message @voice_note The voice note
 linkPreviewTypeVoiceNote voice_note:voiceNote = LinkPreviewType;
 
-//@description The link is a link to a Web App @photo Web App photo
+//@description The link is a link to a Web App @photo Web App photo; may be null if none
 linkPreviewTypeWebApp photo:photo = LinkPreviewType;
 
 
