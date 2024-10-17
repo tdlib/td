@@ -4093,6 +4093,10 @@ void GroupCallManager::leave_group_call(GroupCallId group_call_id, Promise<Unit>
   }
   group_call->is_being_left = true;
   group_call->need_rejoin = false;
+  group_call->pending_is_my_video_enabled = false;
+  group_call->have_pending_is_my_video_enabled = true;
+  group_call->is_my_video_paused = false;
+  group_call->have_pending_is_my_video_paused = true;
   try_clear_group_call_participants(input_group_call_id);
   send_update_group_call(group_call, "leave_group_call");
 
@@ -4142,6 +4146,7 @@ void GroupCallManager::on_group_call_left_impl(GroupCall *group_call, bool need_
   group_call->is_my_video_enabled = false;
   group_call->is_my_presentation_paused = false;
   group_call->have_pending_is_my_video_enabled = false;
+  group_call->have_pending_is_my_video_paused = false;
   if (!group_call->is_active) {
     group_call->can_be_managed = false;
   }
