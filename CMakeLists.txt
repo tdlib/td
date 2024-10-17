@@ -1121,7 +1121,7 @@ target_include_directories(memprof_stat PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT
 target_link_libraries(memprof_stat PRIVATE tdutils)
 
 
-add_library(tdapi ${TL_TD_API_SOURCE})
+add_library(tdapi STATIC ${TL_TD_API_SOURCE})
 target_include_directories(tdapi PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> INTERFACE $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
 target_link_libraries(tdapi PRIVATE tdutils)
 
@@ -1185,7 +1185,7 @@ if (NOT CMAKE_CROSSCOMPILING)
   endif()
 endif()
 
-add_library(tdclient td/telegram/Client.cpp td/telegram/Client.h td/telegram/Log.cpp td/telegram/Log.h)
+add_library(tdclient STATIC td/telegram/Client.cpp td/telegram/Client.h td/telegram/Log.cpp td/telegram/Log.h)
 target_include_directories(tdclient PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 )
@@ -1313,12 +1313,7 @@ add_library(Td::TdJson ALIAS TdJson)
 add_library(Td::TdJsonStatic ALIAS TdJsonStatic)
 
 set(INSTALL_TARGETS tdjson TdJson)
-set(INSTALL_STATIC_TARGETS tdjson_static TdJsonStatic tdjson_private "${TD_CORE_PART_TARGETS}" tdcore tdmtproto)
-if (BUILD_SHARED_LIBS)
-  set(INSTALL_TARGETS ${INSTALL_TARGETS} tdclient TdStatic tdapi)
-else()
-  set(INSTALL_STATIC_TARGETS ${INSTALL_STATIC_TARGETS} tdclient TdStatic tdapi)
-endif()
+set(INSTALL_STATIC_TARGETS tdjson_static TdJsonStatic tdjson_private "${TD_CORE_PART_TARGETS}" tdcore tdmtproto tdclient TdStatic tdapi)
 
 install(TARGETS ${INSTALL_TARGETS} EXPORT TdTargets
   LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
@@ -1391,4 +1386,4 @@ install(FILES "TdConfig.cmake" "${CMAKE_CURRENT_BINARY_DIR}/TdConfigVersion.cmak
 )
 
 # Add SOVERSION to shared libraries
-set_property(TARGET tdapi tdclient tdjson PROPERTY SOVERSION "${TDLib_VERSION}")
+set_property(TARGET tdjson PROPERTY SOVERSION "${TDLib_VERSION}")
