@@ -1573,7 +1573,7 @@ bool GroupCallManager::need_group_call_participants(InputGroupCallId input_group
 
 bool GroupCallManager::need_group_call_participants(InputGroupCallId input_group_call_id,
                                                     const GroupCall *group_call) const {
-  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active) {
+  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || group_call->is_being_left) {
     return false;
   }
   if (group_call->is_joined || group_call->need_rejoin || group_call->is_being_joined) {
@@ -1740,6 +1740,9 @@ void GroupCallManager::on_update_group_call_participants(
       GroupCallParticipant participant(group_call_participant, version);
       if (!participant.is_valid()) {
         LOG(ERROR) << "Receive invalid " << to_string(group_call_participant);
+        continue;
+      }
+      if (participant.is_self && group_call != nullptr && group_call->is_being_left) {
         continue;
       }
       if (participant.joined_date == 0) {
@@ -4090,6 +4093,7 @@ void GroupCallManager::leave_group_call(GroupCallId group_call_id, Promise<Unit>
   }
   group_call->is_being_left = true;
   group_call->need_rejoin = false;
+  try_clear_group_call_participants(input_group_call_id);
   send_update_group_call(group_call, "leave_group_call");
 
   process_group_call_after_join_requests(input_group_call_id, "leave_group_call 3");
