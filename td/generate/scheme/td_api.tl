@@ -3094,7 +3094,7 @@ paymentReceipt product_info:productInfo date:int32 seller_bot_user_id:int53 type
 
 //@description An invoice from a message of the type messageInvoice or paid media purchase from messagePaidMedia
 //@chat_id Chat identifier of the message
-//@message_id Message identifier
+//@message_id Message identifier. Use messageProperties.can_be_paid to check whether the message can be used in the method
 inputInvoiceMessage chat_id:int53 message_id:int53 = InputInvoice;
 
 //@description An invoice from a link of the type internalLinkTypeInvoice @name Name of the invoice
@@ -3900,7 +3900,8 @@ messageSelfDestructTypeImmediately = MessageSelfDestructType;
 messageSendOptions disable_notification:Bool from_background:Bool protect_content:Bool update_order_of_installed_sticker_sets:Bool scheduling_state:MessageSchedulingState effect_id:int64 sending_id:int32 only_preview:Bool = MessageSendOptions;
 
 //@description Options to be used when a message content is copied without reference to the original sender. Service messages, messages with messageInvoice, messagePaidMedia, messageGiveaway, or messageGiveawayWinners content can't be copied
-//@send_copy True, if content of the message needs to be copied without reference to the original sender. Always true if the message is forwarded to a secret chat or is local
+//@send_copy True, if content of the message needs to be copied without reference to the original sender. Always true if the message is forwarded to a secret chat or is local.
+//-Use messageProperties.can_be_saved and messageProperties.can_be_copied_to_secret_chat to check whether the message is suitable
 //@replace_caption True, if media caption of the message copy needs to be replaced. Ignored if send_copy is false
 //@new_caption New message caption; pass null to copy message without caption. Ignored if replace_caption is false
 //@new_show_caption_above_media True, if new caption must be shown above the media; otherwise, new caption must be shown below the media; not supported in secret chats. Ignored if replace_caption is false
@@ -8898,7 +8899,8 @@ sendInlineQueryResultMessage chat_id:int53 message_thread_id:int53 reply_to:Inpu
 //@from_chat_id Identifier of the chat from which to forward messages
 //@message_ids Identifiers of the messages to forward. Message identifiers must be in a strictly increasing order. At most 100 messages can be forwarded simultaneously. A message can be forwarded only if messageProperties.can_be_forwarded
 //@options Options to be used to send the messages; pass null to use default options
-//@send_copy Pass true to copy content of the messages without reference to the original sender. Always true if the messages are forwarded to a secret chat or are local
+//@send_copy Pass true to copy content of the messages without reference to the original sender. Always true if the messages are forwarded to a secret chat or are local.
+//-Use messageProperties.can_be_saved and messageProperties.can_be_copied_to_secret_chat to check whether the message is suitable
 //@remove_caption Pass true to remove media captions of message copies. Ignored if send_copy is false
 forwardMessages chat_id:int53 message_thread_id:int53 from_chat_id:int53 message_ids:vector<int53> options:messageSendOptions send_copy:Bool remove_caption:Bool = Messages;
 
