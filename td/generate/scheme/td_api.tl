@@ -9287,7 +9287,7 @@ togglePaidMessageReactionIsAnonymous chat_id:int53 message_id:int53 is_anonymous
 //@description Sets reactions on a message; for bots only
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
-//@reaction_types Types of the reaction to set
+//@reaction_types Types of the reaction to set; pass an empty list to remove the reactions
 //@is_big Pass true if the reactions are added with a big animation
 setMessageReactions chat_id:int53 message_id:int53 reaction_types:vector<ReactionType> is_big:Bool = Ok;
 
