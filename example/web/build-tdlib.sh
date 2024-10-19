@@ -2,6 +2,7 @@
 cd $(dirname $0)
 
 emcmake true 2> /dev/null || { echo 'emcmake not found. Install emsdk and add emcmake and emmake to PATH environment variable. See instruction at https://kripken.github.io/emscripten-site/docs/getting_started/downloads.html. Do not forget to add `emcmake` and `emmake` to the PATH environment variable via `emsdk/emsdk_env.sh` script.'; exit 1; }
+emcc --check 2>&1 | grep -q ' 3.1.1 ' || { echo 'emcc 3.1.1 check failed. Install emsdk and install and activate 3.1.1 tools. See instruction at https://kripken.github.io/emscripten-site/docs/getting_started/downloads.html.'; exit 1; }
 
 rm -rf build/generate
 rm -rf build/asmjs
