@@ -8660,7 +8660,7 @@ void MessagesManager::after_get_difference() {
           LOG(ERROR) << "Receive updateMessageId from " << old_message_id << " to " << message_full_id
                      << " but not receive corresponding message, last_new_message_id = " << d->last_new_message_id;
         }
-        if (message_id <= d->last_new_message_id) {
+        if (message_id <= d->last_new_message_id || td_->auth_manager_->is_bot()) {
           get_message_from_server(
               message_full_id,
               PromiseCreator::lambda([actor_id = actor_id(this), message_full_id, old_message_id](Result<Unit> result) {
