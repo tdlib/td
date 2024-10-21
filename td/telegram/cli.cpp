@@ -5281,10 +5281,12 @@ class CliClient final : public Actor {
       ShortcutId shortcut_id;
       MessageId message_id;
       string document;
-      get_args(args, shortcut_id, message_id, document);
+      string thumbnail;
+      get_args(args, shortcut_id, message_id, document, thumbnail);
       send_request(td_api::make_object<td_api::editQuickReplyMessage>(
           shortcut_id, message_id,
-          td_api::make_object<td_api::inputMessageDocument>(as_input_file(document), nullptr, false, as_caption(""))));
+          td_api::make_object<td_api::inputMessageDocument>(as_input_file(document), as_input_thumbnail(thumbnail),
+                                                            false, as_caption(""))));
     } else if (op == "emp") {
       ChatId chat_id;
       MessageId message_id;
