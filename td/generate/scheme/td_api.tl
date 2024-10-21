@@ -825,7 +825,7 @@ starSubscription id:string chat_id:int53 expiration_date:int32 can_reuse:Bool is
 
 //@description Represents a list of Telegram Star subscriptions
 //@star_count The amount of owned Telegram Stars
-//@subscriptions List of subbscriptions for Telegram Stars
+//@subscriptions List of subscriptions for Telegram Stars
 //@required_star_count The number of Telegram Stars required to buy to extend subscriptions expiring soon
 //@next_offset The offset for the next request. If empty, then there are no more results
 starSubscriptions star_count:int53 subscriptions:vector<starSubscription> required_star_count:int53 next_offset:string = StarSubscriptions;
@@ -948,7 +948,7 @@ starTransactionDirectionOutgoing = StarTransactionDirection;
 
 //@class BotTransactionPurpose @description Describes purpose of a transaction with a bot
 
-//@description Paid media were bought @media The bought media if the trancastion wasn't refunded @payload Bot-provided payload; for bots only
+//@description Paid media were bought @media The bought media if the transaction wasn't refunded @payload Bot-provided payload; for bots only
 botTransactionPurposePaidMedia media:vector<PaidMedia> payload:string = BotTransactionPurpose;
 
 //@description User bought a product from the bot
@@ -961,7 +961,7 @@ botTransactionPurposeInvoicePayment product_info:productInfo invoice_payload:byt
 
 //@description Paid media were bought
 //@message_id Identifier of the corresponding message with paid media; can be 0 or an identifier of a deleted message
-//@media The bought media if the trancastion wasn't refunded
+//@media The bought media if the transaction wasn't refunded
 chatTransactionPurposePaidMedia message_id:int53 media:vector<PaidMedia> = ChatTransactionPurpose;
 
 //@description User joined the channel and subscribed to regular payments in Telegram Stars
@@ -1008,13 +1008,13 @@ starTransactionPartnerTelegramAds = StarTransactionPartner;
 //@description The transaction is a transaction with a bot @user_id Identifier of the bot @purpose Purpose of the transaction
 starTransactionPartnerBot user_id:int53 purpose:BotTransactionPurpose = StarTransactionPartner;
 
-//@description The transaction is a transaction with a business account @user_id Identifier of the business account user @media The bought media if the trancastion wasn't refunded
+//@description The transaction is a transaction with a business account @user_id Identifier of the business account user @media The bought media if the transaction wasn't refunded
 starTransactionPartnerBusiness user_id:int53 media:vector<PaidMedia> = StarTransactionPartner;
 
 //@description The transaction is a transaction with a supergroup or a channel chat @chat_id Identifier of the chat @purpose Purpose of the transaction
 starTransactionPartnerChat chat_id:int53 purpose:ChatTransactionPurpose = StarTransactionPartner;
 
-//@description The transaction is a transcation with another user @user_id Identifier of the user; 0 if the user was anonymous @purpose Purpose of the transaction
+//@description The transaction is a transaction with another user @user_id Identifier of the user; 0 if the user was anonymous @purpose Purpose of the transaction
 starTransactionPartnerUser user_id:int53 purpose:UserTransactionPurpose = StarTransactionPartner;
 
 //@description The transaction is a transaction with unknown partner
