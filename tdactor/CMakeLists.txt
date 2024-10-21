@@ -2,6 +2,8 @@ if ((CMAKE_MAJOR_VERSION LESS 3) OR (CMAKE_VERSION VERSION_LESS "3.0.2"))
   message(FATAL_ERROR "CMake >= 3.0.2 is required")
 endif()
 
+option(TDACTOR_ENABLE_INSTALL "Enable installation of the library." ON)
+
 if (NOT DEFINED CMAKE_INSTALL_LIBDIR)
   set(CMAKE_INSTALL_LIBDIR "lib")
 endif()
@@ -51,7 +53,7 @@ if (NOT CMAKE_CROSSCOMPILING)
   target_link_libraries(example PRIVATE tdactor)
 endif()
 
-if (NOT TD_ENABLE_FILTERED_INSTALL OR NOT BUILD_SHARED_LIBS)
+if (TDACTOR_ENABLE_INSTALL)
   install(TARGETS tdactor EXPORT TdStaticTargets
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"

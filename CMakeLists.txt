@@ -39,7 +39,8 @@ endif()
 include(PreventInSourceBuild)
 prevent_in_source_build()
 
-option(TD_ENABLE_FILTERED_INSTALL "Use \"ON\" to limit installation to files (libraries, dev files) relevant for the chosen \"BUILD_SHARED_LIBS\" value." OFF)
+option(TD_INSTALL_STATIC_LIBRARIES "Enable installation of static libraries." ON)
+option(TD_INSTALL_SHARED_LIBRARIES "Enable installation of shared libraries." ON)
 option(TD_ENABLE_JNI "Use \"ON\" to enable JNI-compatible TDLib API.")
 option(TD_ENABLE_DOTNET "Use \"ON\" to enable generation of C++/CLI or C++/CX TDLib API bindings.")
 if (NOT CMAKE_CROSSCOMPILING)
@@ -168,9 +169,10 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/td/telegram/GitCommitHash.cpp.in" "$
 add_subdirectory(tdtl)
 
 if (TD_GENERATE_SOURCE_FILES)
-  set(TDUTILS_MIME_TYPE ON CACHE BOOL "")
-  set(TDUTILS_USE_EXTERNAL_DEPENDENCIES OFF CACHE BOOL "")
+  set(TDUTILS_MIME_TYPE ON CACHE BOOL "" FORCE)
+  set(TDUTILS_USE_EXTERNAL_DEPENDENCIES OFF CACHE BOOL "" FORCE)
 endif()
+set(TDUTILS_ENABLE_INSTALL ${TD_INSTALL_STATIC_LIBRARIES} CACHE BOOL "" FORCE)
 add_subdirectory(tdutils)
 
 add_subdirectory(td/generate)
@@ -213,12 +215,16 @@ if (NOT TDUTILS_MIME_TYPE OR NOT TDUTILS_USE_EXTERNAL_DEPENDENCIES)
   return()
 endif()
 
+set(TDACTOR_ENABLE_INSTALL ${TD_INSTALL_STATIC_LIBRARIES} CACHE BOOL "" FORCE)
 add_subdirectory(tdactor)
 
+set(TDNET_ENABLE_INSTALL ${TD_INSTALL_STATIC_LIBRARIES} CACHE BOOL "" FORCE)
 add_subdirectory(tdnet)
 
+set(TDSQLITE_ENABLE_INSTALL ${TD_INSTALL_STATIC_LIBRARIES} CACHE BOOL "" FORCE)
 add_subdirectory(sqlite)
 
+set(TDDB_ENABLE_INSTALL ${TD_INSTALL_STATIC_LIBRARIES} CACHE BOOL "" FORCE)
 add_subdirectory(tddb)
 
 if (BUILD_TESTING)
@@ -1311,7 +1317,7 @@ add_library(Td::TdJsonStatic ALIAS TdJsonStatic)
 set(INSTALL_TARGETS tdjson TdJson)
 set(INSTALL_STATIC_TARGETS tdjson_static TdJsonStatic tdjson_private "${TD_CORE_PART_TARGETS}" tdcore tdmtproto tdclient TdStatic tdapi)
 
-if (NOT TD_ENABLE_FILTERED_INSTALL OR BUILD_SHARED_LIBS)
+if (TD_INSTALL_SHARED_LIBRARIES)
   install(TARGETS ${INSTALL_TARGETS} EXPORT TdTargets
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
@@ -1320,7 +1326,7 @@ if (NOT TD_ENABLE_FILTERED_INSTALL OR BUILD_SHARED_LIBS)
   )
 endif()
 
-if (NOT TD_ENABLE_FILTERED_INSTALL OR NOT BUILD_SHARED_LIBS)
+if (TD_INSTALL_STATIC_LIBRARIES)
   install(TARGETS ${INSTALL_STATIC_TARGETS} EXPORT TdStaticTargets
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
@@ -1331,27 +1337,31 @@ endif()
 # generate pkg-config files
 include(GeneratePkgConfig)
 
-generate_pkgconfig(tdutils "Telegram Library - Utils")
-generate_pkgconfig(tdactor "Telegram Library - Actor")
-generate_pkgconfig(tdnet "Telegram Library - Net")
-generate_pkgconfig(tdsqlite "Telegram Library - SQLite")
-generate_pkgconfig(tddb "Telegram Library - Database")
-if (MEMPROF)
-  # generate_pkgconfig(memprof "memprof - simple library for memory usage profiling")
+if (TD_INSTALL_STATIC_LIBRARIES)
+  generate_pkgconfig(tdutils "Telegram Library - Utils")
+  generate_pkgconfig(tdactor "Telegram Library - Actor")
+  generate_pkgconfig(tdnet "Telegram Library - Net")
+  generate_pkgconfig(tdsqlite "Telegram Library - SQLite")
+  generate_pkgconfig(tddb "Telegram Library - Database")
+  if (MEMPROF)
+    # generate_pkgconfig(memprof "memprof - simple library for memory usage profiling")
+  endif()
+  generate_pkgconfig(tdmtproto "Telegram Library - MTProto implementation")
+  generate_pkgconfig(tdcore "Telegram Library - Core")
+  generate_pkgconfig(tdclient "Telegram Library - C++ Interface")
+  if (TD_ENABLE_DOTNET)
+    # generate_pkgconfig(tddotnet "Telegram Library - C# Interface")
+  endif()
+  # generate_pkgconfig(tdc "Telegram Library - C interface")
+  generate_pkgconfig(tdapi "Telegram Library - API")
+  generate_pkgconfig(tdjson_private "Telegram Library - JSON interface (private)")
+  generate_pkgconfig(tdjson_static "Telegram Library - JSON interface (static)")
 endif()
-generate_pkgconfig(tdmtproto "Telegram Library - MTProto implementation")
-generate_pkgconfig(tdcore "Telegram Library - Core")
-generate_pkgconfig(tdclient "Telegram Library - C++ Interface")
-if (TD_ENABLE_DOTNET)
-  # generate_pkgconfig(tddotnet "Telegram Library - C# Interface")
+if (TD_INSTALL_SHARED_LIBRARIES)
+  generate_pkgconfig(tdjson "Telegram Library - JSON interface (shared)")
 endif()
-# generate_pkgconfig(tdc "Telegram Library - C interface")
-generate_pkgconfig(tdapi "Telegram Library - API")
-generate_pkgconfig(tdjson_private "Telegram Library - JSON interface (private)")
-generate_pkgconfig(tdjson "Telegram Library - JSON interface (shared)")
-generate_pkgconfig(tdjson_static "Telegram Library - JSON interface (static)")
 
-if (NOT TD_ENABLE_FILTERED_INSTALL OR BUILD_SHARED_LIBS)
+if (TD_INSTALL_SHARED_LIBRARIES)
   install(EXPORT TdTargets
     FILE TdTargets.cmake
     NAMESPACE Td::
@@ -1359,7 +1369,7 @@ if (NOT TD_ENABLE_FILTERED_INSTALL OR BUILD_SHARED_LIBS)
   )
 endif()
 
-if (NOT TD_ENABLE_FILTERED_INSTALL OR NOT BUILD_SHARED_LIBS)
+if (TD_INSTALL_STATIC_LIBRARIES)
   install(EXPORT TdStaticTargets
     FILE TdStaticTargets.cmake
     NAMESPACE Td::
@@ -1367,13 +1377,17 @@ if (NOT TD_ENABLE_FILTERED_INSTALL OR NOT BUILD_SHARED_LIBS)
   )
 endif()
 
-# Install tdjson/tdjson_static:
-install(FILES ${TD_JSON_HEADERS} "${CMAKE_CURRENT_BINARY_DIR}/td/telegram/tdjson_export.h" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/td/telegram")
-# Install tdclient:
-install(FILES td/telegram/Client.h td/telegram/Log.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/td/telegram")
-# Install tdapi:
-install(FILES td/tl/TlObject.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/td/tl")
-install(FILES "${TL_TD_AUTO_INCLUDE_DIR}/td/telegram/td_api.h" "${TL_TD_AUTO_INCLUDE_DIR}/td/telegram/td_api.hpp" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/td/telegram")
+if (TD_INSTALL_SHARED_LIBRARIES OR TD_INSTALL_STATIC_LIBRARIES)
+  # Install tdjson/tdjson_static:
+  install(FILES ${TD_JSON_HEADERS} "${CMAKE_CURRENT_BINARY_DIR}/td/telegram/tdjson_export.h" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/td/telegram")
+endif()
+if (TD_INSTALL_STATIC_LIBRARIES)
+  # Install tdclient:
+  install(FILES td/telegram/Client.h td/telegram/Log.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/td/telegram")
+  # Install tdapi:
+  install(FILES td/tl/TlObject.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/td/tl")
+  install(FILES "${TL_TD_AUTO_INCLUDE_DIR}/td/telegram/td_api.h" "${TL_TD_AUTO_INCLUDE_DIR}/td/telegram/td_api.hpp" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/td/telegram")
+endif()
 if (TD_ENABLE_JNI)
   install(FILES td/tl/tl_jni_object.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/td/tl")
 endif()

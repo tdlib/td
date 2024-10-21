@@ -2,8 +2,9 @@ if ((CMAKE_MAJOR_VERSION LESS 3) OR (CMAKE_VERSION VERSION_LESS "3.0.2"))
   message(FATAL_ERROR "CMake >= 3.0.2 is required")
 endif()
 
-option(TDUTILS_MIME_TYPE "Generate MIME types conversion; requires gperf" ON)
-option(TDUTILS_USE_EXTERNAL_DEPENDENCIES "Use external libraries if available" ON)
+option(TDUTILS_ENABLE_INSTALL "Enable installation of the library." ON)
+option(TDUTILS_MIME_TYPE "Generate MIME types conversion; requires gperf." ON)
+option(TDUTILS_USE_EXTERNAL_DEPENDENCIES "Use external libraries if available." ON)
 
 if (NOT DEFINED CMAKE_INSTALL_LIBDIR)
   set(CMAKE_INSTALL_LIBDIR "lib")
@@ -409,7 +410,7 @@ if (ATOMICS_LIBRARIES)
   target_link_libraries(tdutils PUBLIC "${ATOMICS_LIBRARIES}")
 endif()
 
-if (NOT TD_ENABLE_FILTERED_INSTALL OR NOT BUILD_SHARED_LIBS)
+if (TDUTILS_ENABLE_INSTALL)
   install(TARGETS tdutils EXPORT TdStaticTargets
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
