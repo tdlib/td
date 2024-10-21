@@ -27,7 +27,6 @@ function(get_relative_link OUTPUT PATH)
   set(${OUTPUT} "${LINK}" PARENT_SCOPE)
 endfunction()
 
-# TODO: support interface libraries in dependencies
 function(generate_pkgconfig TARGET DESCRIPTION)
   # message("Generating pkg-config for ${TARGET}")
   get_filename_component(PREFIX "${CMAKE_INSTALL_PREFIX}" REALPATH)
@@ -90,8 +89,11 @@ Libs: -L\"${PKGCONFIG_LIBDIR}\" -l${TARGET}
 ${REQUIRES}${LIBRARIES}")
 
   get_target_property(LIBRARY_TYPE "${TARGET}" TYPE)
-  if (NOT (LIBRARY_TYPE STREQUAL STATIC_LIBRARY OR LIBRARY_TYPE STREQUAL SHARED_LIBRARY))
+  if (LIBRARY_TYPE STREQUAL "STATIC_LIBRARY" OR LIBRARY_TYPE STREQUAL "SHARED_LIBRARY")
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/${TARGET}.pc" DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
+  elseif (LIBRARY_TYPE STREQUAL "INTERFACE_LIBRARY")
+    # TODO: support interface libraries
+  else()
     message(FATAL_ERROR "Don't know how to handle ${TARGET} of type ${LIBRARY_TYPE}")
   endif()
-  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/${TARGET}.pc" DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
 endfunction()
