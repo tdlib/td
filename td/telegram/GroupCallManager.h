@@ -289,9 +289,10 @@ class GroupCallManager final : public Actor {
 
   void process_group_call_after_join_requests(InputGroupCallId input_group_call_id, const char *source);
 
-  GroupCallParticipants *add_group_call_participants(InputGroupCallId input_group_call_id);
+  GroupCallParticipants *add_group_call_participants(InputGroupCallId input_group_call_id, const char *source);
 
-  GroupCallParticipant *get_group_call_participant(InputGroupCallId input_group_call_id, DialogId dialog_id);
+  GroupCallParticipant *get_group_call_participant(InputGroupCallId input_group_call_id, DialogId dialog_id,
+                                                   const char *source);
 
   GroupCallParticipant *get_group_call_participant(GroupCallParticipants *group_call_participants,
                                                    DialogId dialog_id) const;
