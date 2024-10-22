@@ -1003,7 +1003,6 @@ static tl_object_ptr<telegram_api::KeyboardButton> get_input_keyboard_button(
 }
 
 tl_object_ptr<telegram_api::ReplyMarkup> ReplyMarkup::get_input_reply_markup(UserManager *user_manager) const {
-  LOG(DEBUG) << "Send " << *this;
   switch (type) {
     case ReplyMarkup::Type::InlineKeyboard: {
       vector<tl_object_ptr<telegram_api::keyboardButtonRow>> rows;
@@ -1016,7 +1015,6 @@ tl_object_ptr<telegram_api::ReplyMarkup> ReplyMarkup::get_input_reply_markup(Use
         }
         rows.push_back(make_tl_object<telegram_api::keyboardButtonRow>(std::move(buttons)));
       }
-      LOG(DEBUG) << "Return inlineKeyboardMarkup to send it";
       return make_tl_object<telegram_api::replyInlineMarkup>(std::move(rows));
     }
     case ReplyMarkup::Type::ShowKeyboard: {
@@ -1030,7 +1028,6 @@ tl_object_ptr<telegram_api::ReplyMarkup> ReplyMarkup::get_input_reply_markup(Use
         }
         rows.push_back(make_tl_object<telegram_api::keyboardButtonRow>(std::move(buttons)));
       }
-      LOG(DEBUG) << "Return replyKeyboardMarkup to send it";
       return make_tl_object<telegram_api::replyKeyboardMarkup>(
           is_persistent * REPLY_MARKUP_FLAG_IS_PERSISTENT +
               need_resize_keyboard * REPLY_MARKUP_FLAG_NEED_RESIZE_KEYBOARD +
@@ -1039,12 +1036,10 @@ tl_object_ptr<telegram_api::ReplyMarkup> ReplyMarkup::get_input_reply_markup(Use
           false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(rows), placeholder);
     }
     case ReplyMarkup::Type::ForceReply:
-      LOG(DEBUG) << "Return replyKeyboardForceReply to send it";
       return make_tl_object<telegram_api::replyKeyboardForceReply>(
           is_personal * REPLY_MARKUP_FLAG_IS_PERSONAL + (!placeholder.empty()) * REPLY_MARKUP_FLAG_HAS_PLACEHOLDER,
           false /*ignored*/, false /*ignored*/, placeholder);
     case ReplyMarkup::Type::RemoveKeyboard:
-      LOG(DEBUG) << "Return replyKeyboardHide to send it";
       return make_tl_object<telegram_api::replyKeyboardHide>(is_personal * REPLY_MARKUP_FLAG_IS_PERSONAL,
                                                              false /*ignored*/);
     default:
