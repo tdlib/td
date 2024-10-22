@@ -2982,7 +2982,7 @@ void GroupCallManager::process_group_call_after_join_requests(InputGroupCallId i
     return;
   }
 
-  if (!group_call->is_active || !group_call->is_joined) {
+  if (!group_call->is_active || group_call->is_being_left || !group_call->is_joined) {
     fail_promises(group_call->after_join, Status::Error(400, "GROUPCALL_JOIN_MISSING"));
   } else {
     set_promises(group_call->after_join);
@@ -3746,7 +3746,7 @@ void GroupCallManager::toggle_group_call_participant_is_muted(GroupCallId group_
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
   auto *group_call = get_group_call(input_group_call_id);
-  if (!is_group_call_active(group_call)) {
+  if (!is_group_call_active(group_call) || group_call->is_being_left) {
     return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
   }
   if (!group_call->is_joined) {
@@ -3812,7 +3812,7 @@ void GroupCallManager::on_toggle_group_call_participant_is_muted(InputGroupCallI
   }
 
   auto *group_call = get_group_call(input_group_call_id);
-  if (!is_group_call_active(group_call) || !group_call->is_joined) {
+  if (!is_group_call_active(group_call) || group_call->is_being_left || !group_call->is_joined) {
     return promise.set_value(Unit());
   }
 
@@ -3846,7 +3846,7 @@ void GroupCallManager::set_group_call_participant_volume_level(GroupCallId group
   }
 
   auto *group_call = get_group_call(input_group_call_id);
-  if (!is_group_call_active(group_call)) {
+  if (!is_group_call_active(group_call) || group_call->is_being_left) {
     return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
   }
   if (!group_call->is_joined) {
@@ -3910,7 +3910,7 @@ void GroupCallManager::on_set_group_call_participant_volume_level(InputGroupCall
   }
 
   auto *group_call = get_group_call(input_group_call_id);
-  if (!is_group_call_active(group_call) || !group_call->is_joined) {
+  if (!is_group_call_active(group_call) || group_call->is_being_left || !group_call->is_joined) {
     return promise.set_value(Unit());
   }
 
@@ -3939,7 +3939,7 @@ void GroupCallManager::toggle_group_call_participant_is_hand_raised(GroupCallId 
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
   auto *group_call = get_group_call(input_group_call_id);
-  if (!is_group_call_active(group_call)) {
+  if (!is_group_call_active(group_call) || group_call->is_being_left) {
     return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
   }
   if (!group_call->is_joined) {
@@ -4011,7 +4011,7 @@ void GroupCallManager::on_toggle_group_call_participant_is_hand_raised(InputGrou
   }
 
   auto *group_call = get_group_call(input_group_call_id);
-  if (!is_group_call_active(group_call) || !group_call->is_joined) {
+  if (!is_group_call_active(group_call) || group_call->is_being_left || !group_call->is_joined) {
     return promise.set_value(Unit());
   }
 
@@ -4067,7 +4067,7 @@ void GroupCallManager::leave_group_call(GroupCallId group_call_id, Promise<Unit>
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
   auto *group_call = get_group_call(input_group_call_id);
-  if (!is_group_call_active(group_call) || !group_call->is_joined || group_call->is_being_left) {
+  if (!is_group_call_active(group_call) || group_call->is_being_left || !group_call->is_joined) {
     if (group_call != nullptr) {
       bool old_is_joined = get_group_call_is_joined(group_call);
       if (cancel_join_group_call_request(input_group_call_id, group_call) != 0) {
