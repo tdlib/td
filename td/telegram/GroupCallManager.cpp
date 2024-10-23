@@ -1459,14 +1459,14 @@ void GroupCallManager::finish_get_group_call(InputGroupCallId input_group_call_i
     version = static_cast<const telegram_api::groupCall *>(call->call_.get())->version_;
   }
   process_group_call_participants(input_group_call_id, std::move(call->participants_), version, string(), true, false);
-  if (need_group_call_participants(input_group_call_id)) {
+  auto group_call = get_group_call(input_group_call_id);
+  if (need_group_call_participants(group_call)) {
     auto *group_call_participants = add_group_call_participants(input_group_call_id, "finish_get_group_call");
     if (group_call_participants->next_offset.empty()) {
       group_call_participants->next_offset = std::move(call->participants_next_offset_);
     }
   }
 
-  auto group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr && group_call->is_inited);
   for (auto &promise : promises) {
     if (promise) {
@@ -1988,11 +1988,10 @@ bool GroupCallManager::is_my_audio_source(InputGroupCallId input_group_call_id, 
 }
 
 void GroupCallManager::sync_group_call_participants(InputGroupCallId input_group_call_id) {
-  if (!need_group_call_participants(input_group_call_id)) {
+  auto group_call = get_group_call(input_group_call_id);
+  if (!need_group_call_participants(group_call)) {
     return;
   }
-
-  auto group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr && group_call->is_inited);
 
   sync_participants_timeout_.cancel_timeout(group_call->group_call_id.get());
@@ -4195,11 +4194,10 @@ void GroupCallManager::on_update_group_call(tl_object_ptr<telegram_api::GroupCal
 }
 
 bool GroupCallManager::try_clear_group_call_participants(InputGroupCallId input_group_call_id) {
-  if (need_group_call_participants(input_group_call_id)) {
+  auto group_call = get_group_call(input_group_call_id);
+  if (need_group_call_participants(group_call)) {
     return false;
   }
-
-  auto group_call = get_group_call(input_group_call_id);
   if (group_call != nullptr) {
     update_group_call_participant_order_timeout_.cancel_timeout(group_call->group_call_id.get());
     remove_recent_group_call_speaker(input_group_call_id, group_call->as_dialog_id);
