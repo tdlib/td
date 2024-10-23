@@ -1386,7 +1386,7 @@ void GroupCallManager::on_update_group_call_rights(InputGroupCallId input_group_
   }
 
   auto group_call = get_group_call(input_group_call_id);
-  if (need_group_call_participants(input_group_call_id, group_call)) {
+  if (need_group_call_participants(group_call)) {
     CHECK(group_call != nullptr && group_call->is_inited);
     try_load_group_call_administrators(input_group_call_id, group_call->dialog_id);
 
@@ -1573,11 +1573,10 @@ bool GroupCallManager::is_group_call_active(const GroupCall *group_call) {
 }
 
 bool GroupCallManager::need_group_call_participants(InputGroupCallId input_group_call_id) const {
-  return need_group_call_participants(input_group_call_id, get_group_call(input_group_call_id));
+  return need_group_call_participants(get_group_call(input_group_call_id));
 }
 
-bool GroupCallManager::need_group_call_participants(InputGroupCallId input_group_call_id,
-                                                    const GroupCall *group_call) const {
+bool GroupCallManager::need_group_call_participants(const GroupCall *group_call) {
   if (!is_group_call_active(group_call) || group_call->is_being_left) {
     return false;
   }
@@ -2829,7 +2828,7 @@ void GroupCallManager::finish_load_group_call_administrators(InputGroupCallId in
   }
 
   auto *group_call = get_group_call(input_group_call_id);
-  if (!need_group_call_participants(input_group_call_id, group_call)) {
+  if (!need_group_call_participants(group_call)) {
     return;
   }
   CHECK(group_call != nullptr);
@@ -4041,7 +4040,7 @@ void GroupCallManager::load_group_call_participants(GroupCallId group_call_id, i
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
   auto *group_call = get_group_call(input_group_call_id);
-  if (!need_group_call_participants(input_group_call_id, group_call)) {
+  if (!need_group_call_participants(group_call)) {
     return promise.set_error(Status::Error(400, "Can't load group call participants"));
   }
   CHECK(group_call != nullptr && group_call->is_inited);
@@ -4367,7 +4366,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
     *group_call = std::move(call);
 
     need_update = true;
-    if (need_group_call_participants(input_group_call_id, group_call)) {
+    if (need_group_call_participants(group_call)) {
       if (process_pending_group_call_participant_updates(input_group_call_id)) {
         need_update = false;
       }
@@ -4470,8 +4469,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
           on_receive_group_call_version(input_group_call_id, call.version);
         } else {
           need_update |= set_group_call_participant_count(group_call, call.participant_count, "update_group_call");
-          if (need_group_call_participants(input_group_call_id, group_call) && !join_params.empty() &&
-              group_call->version == -1) {
+          if (need_group_call_participants(group_call) && !join_params.empty() && group_call->version == -1) {
             LOG(INFO) << "Init " << call.group_call_id << " version to " << call.version;
             group_call->version = call.version;
             if (process_pending_group_call_participant_updates(input_group_call_id)) {
@@ -4502,7 +4500,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
 void GroupCallManager::on_receive_group_call_version(InputGroupCallId input_group_call_id, int32 version,
                                                      bool immediate_sync) {
   auto *group_call = get_group_call(input_group_call_id);
-  if (!need_group_call_participants(input_group_call_id, group_call)) {
+  if (!need_group_call_participants(group_call)) {
     return;
   }
   CHECK(group_call != nullptr && group_call->is_inited);
@@ -4563,7 +4561,7 @@ void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id,
   }
 
   if (!td_->dialog_manager_->have_dialog_info_force(dialog_id, "on_user_speaking_in_group_call") ||
-      (!is_recursive && need_group_call_participants(input_group_call_id, group_call) &&
+      (!is_recursive && need_group_call_participants(group_call) &&
        get_group_call_participant(input_group_call_id, dialog_id, "on_user_speaking_in_group_call") == nullptr)) {
     if (is_recursive) {
       LOG(ERROR) << "Failed to find speaking " << dialog_id << " from " << input_group_call_id;
@@ -4716,7 +4714,7 @@ bool GroupCallManager::set_group_call_participant_count(GroupCall *group_call, i
   }
 
   bool result = false;
-  if (need_group_call_participants(input_group_call_id, group_call)) {
+  if (need_group_call_participants(group_call)) {
     auto known_participant_count = static_cast<int32>(
         add_group_call_participants(input_group_call_id, "set_group_call_participant_count")->participants.size());
     if (count < known_participant_count) {
