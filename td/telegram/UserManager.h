@@ -24,7 +24,6 @@
 #include "td/telegram/FolderId.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/Photo.h"
-#include "td/telegram/PremiumGiftOption.h"
 #include "td/telegram/QueryCombiner.h"
 #include "td/telegram/QueryMerger.h"
 #include "td/telegram/RestrictionReason.h"
@@ -589,8 +588,6 @@ class UserManager final : public Actor {
     FileId description_animation_file_id;
     vector<FileId> registered_file_ids;
     FileSourceId file_source_id;
-
-    vector<PremiumGiftOption> premium_gift_options;
 
     unique_ptr<BotMenuButton> menu_button;
     vector<BotCommand> commands;

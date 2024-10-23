@@ -48,6 +48,7 @@
 #include "td/telegram/Photo.h"
 #include "td/telegram/Photo.hpp"
 #include "td/telegram/PhotoSize.h"
+#include "td/telegram/PremiumGiftOption.h"
 #include "td/telegram/PremiumGiftOption.hpp"
 #include "td/telegram/ReactionListType.h"
 #include "td/telegram/ReactionManager.h"
@@ -1675,7 +1676,6 @@ void UserManager::UserFull::store(StorerT &storer) const {
   bool has_menu_button = menu_button != nullptr;
   bool has_description_photo = !description_photo.is_empty();
   bool has_description_animation = description_animation_file_id.is_valid();
-  bool has_premium_gift_options = !premium_gift_options.empty();
   bool has_personal_photo = !personal_photo.is_empty();
   bool has_fallback_photo = !fallback_photo.is_empty();
   bool has_business_info = business_info != nullptr && !business_info->is_empty();
@@ -1701,7 +1701,7 @@ void UserManager::UserFull::store(StorerT &storer) const {
   STORE_FLAG(has_menu_button);
   STORE_FLAG(has_description_photo);
   STORE_FLAG(has_description_animation);
-  STORE_FLAG(has_premium_gift_options);
+  STORE_FLAG(false);  // has_premium_gift_options
   STORE_FLAG(voice_messages_forbidden);
   STORE_FLAG(has_personal_photo);
   STORE_FLAG(has_fallback_photo);
@@ -1756,9 +1756,6 @@ void UserManager::UserFull::store(StorerT &storer) const {
     storer.context()->td().get_actor_unsafe()->animations_manager_->store_animation(description_animation_file_id,
                                                                                     storer);
   }
-  if (has_premium_gift_options) {
-    store(premium_gift_options, storer);
-  }
   if (has_personal_photo) {
     store(personal_photo, storer);
   }
@@ -1795,7 +1792,7 @@ void UserManager::UserFull::parse(ParserT &parser) {
   bool has_menu_button;
   bool has_description_photo;
   bool has_description_animation;
-  bool has_premium_gift_options;
+  bool legacy_has_premium_gift_options;
   bool has_personal_photo;
   bool has_fallback_photo;
   bool has_business_info;
@@ -1821,7 +1818,7 @@ void UserManager::UserFull::parse(ParserT &parser) {
   PARSE_FLAG(has_menu_button);
   PARSE_FLAG(has_description_photo);
   PARSE_FLAG(has_description_animation);
-  PARSE_FLAG(has_premium_gift_options);
+  PARSE_FLAG(legacy_has_premium_gift_options);
   PARSE_FLAG(voice_messages_forbidden);
   PARSE_FLAG(has_personal_photo);
   PARSE_FLAG(has_fallback_photo);
@@ -1876,7 +1873,8 @@ void UserManager::UserFull::parse(ParserT &parser) {
     description_animation_file_id =
         parser.context()->td().get_actor_unsafe()->animations_manager_->parse_animation(parser);
   }
-  if (has_premium_gift_options) {
+  if (legacy_has_premium_gift_options) {
+    vector<PremiumGiftOption> premium_gift_options;
     parse(premium_gift_options, parser);
   }
   if (has_personal_photo) {
@@ -6927,7 +6925,6 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
   bool supports_video_calls = user->video_calls_available_ && !user->phone_calls_private_;
   bool has_private_calls = user->phone_calls_private_;
   bool voice_messages_forbidden = u->is_premium ? user->voice_messages_forbidden_ : false;
-  auto premium_gift_options = get_premium_gift_options(std::move(user->premium_gifts_));
   AdministratorRights group_administrator_rights(user->bot_group_admin_rights_, ChannelType::Megagroup);
   AdministratorRights broadcast_administrator_rights(user->bot_broadcast_admin_rights_, ChannelType::Broadcast);
   bool has_pinned_stories = user->stories_pinned_available_;
@@ -6938,7 +6935,6 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
       user_full->has_private_calls != has_private_calls ||
       user_full->group_administrator_rights != group_administrator_rights ||
       user_full->broadcast_administrator_rights != broadcast_administrator_rights ||
-      user_full->premium_gift_options != premium_gift_options ||
       user_full->voice_messages_forbidden != voice_messages_forbidden ||
       user_full->can_pin_messages != can_pin_messages || user_full->has_pinned_stories != has_pinned_stories ||
       user_full->sponsored_enabled != sponsored_enabled) {
@@ -6947,7 +6943,6 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
     user_full->has_private_calls = has_private_calls;
     user_full->group_administrator_rights = group_administrator_rights;
     user_full->broadcast_administrator_rights = broadcast_administrator_rights;
-    user_full->premium_gift_options = std::move(premium_gift_options);
     user_full->voice_messages_forbidden = voice_messages_forbidden;
     user_full->can_pin_messages = can_pin_messages;
     user_full->has_pinned_stories = has_pinned_stories;
@@ -7281,7 +7276,6 @@ void UserManager::drop_user_full(UserId user_id) {
   user_full->private_forward_name.clear();
   user_full->group_administrator_rights = {};
   user_full->broadcast_administrator_rights = {};
-  user_full->premium_gift_options.clear();
   user_full->voice_messages_forbidden = false;
   user_full->has_pinned_stories = false;
   user_full->read_dates_private = false;
@@ -8080,8 +8074,7 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
       user_full->can_be_called, user_full->supports_video_calls, user_full->has_private_calls,
       !user_full->private_forward_name.empty(), voice_messages_forbidden, user_full->has_pinned_stories,
       user_full->sponsored_enabled, user_full->need_phone_number_privacy_exception, user_full->wallpaper_overridden,
-      std::move(bio_object), user_full->birthdate.get_birthdate_object(), personal_chat_id,
-      get_premium_payment_options_object(user_full->premium_gift_options), user_full->gift_count,
+      std::move(bio_object), user_full->birthdate.get_birthdate_object(), personal_chat_id, user_full->gift_count,
       user_full->common_chat_count, std::move(business_info), std::move(bot_info));
 }
 
