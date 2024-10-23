@@ -26,6 +26,7 @@
 #include "td/telegram/PremiumGiftOption.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StarManager.h"
+#include "td/telegram/StickersManager.h"
 #include "td/telegram/SuggestedAction.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
@@ -427,7 +428,8 @@ class GetPremiumGiftCodeOptionsQuery final : public Td::ResultHandler {
       double relative_price = get_monthly_price(result) / max_prices[result->users_];
       options.push_back(td_api::make_object<td_api::premiumGiftCodePaymentOption>(
           result->currency_, result->amount_, static_cast<int32>(100 * (1.0 - relative_price)), result->users_,
-          result->months_, result->store_product_, result->store_quantity_));
+          result->months_, result->store_product_, result->store_quantity_,
+          td_->stickers_manager_->get_premium_gift_sticker_object(result->months_, 0)));
     }
 
     promise_.set_value(td_api::make_object<td_api::premiumGiftCodePaymentOptions>(std::move(options)));
@@ -1186,7 +1188,15 @@ void get_premium_state(Td *td, Promise<td_api::object_ptr<td_api::premiumState>>
 
 void get_premium_gift_code_options(Td *td, DialogId boosted_dialog_id,
                                    Promise<td_api::object_ptr<td_api::premiumGiftCodePaymentOptions>> &&promise) {
-  td->create_handler<GetPremiumGiftCodeOptionsQuery>(std::move(promise))->send(boosted_dialog_id);
+  td->stickers_manager_->load_premium_gift_sticker_set(
+      PromiseCreator::lambda([td, boosted_dialog_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
+        if (result.is_error()) {
+          promise.set_error(result.move_as_error());
+        } else {
+          TRY_STATUS_PROMISE(promise, G()->close_status());
+          td->create_handler<GetPremiumGiftCodeOptionsQuery>(std::move(promise))->send(boosted_dialog_id);
+        }
+      }));
 }
 
 void check_premium_gift_code(Td *td, const string &code,
