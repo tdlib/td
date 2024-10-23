@@ -402,6 +402,21 @@ class GetPremiumGiftCodeOptionsQuery final : public Td::ResultHandler {
     }
 
     auto results = result_ptr.move_as_ok();
+    td::remove_if(results, [](const telegram_api::object_ptr<telegram_api::premiumGiftCodeOption> &payment_option) {
+      return payment_option->users_ <= 0 || payment_option->months_ <= 0 || payment_option->amount_ <= 0;
+    });
+    auto get_monthly_price = [](const telegram_api::object_ptr<telegram_api::premiumGiftCodeOption> &payment_option) {
+      return static_cast<double>(payment_option->amount_) / static_cast<double>(payment_option->months_);
+    };
+    FlatHashMap<int32, double> max_prices;
+    for (auto &result : results) {
+      auto &max_price = max_prices[result->users_];
+      auto price = get_monthly_price(result);
+      if (price > max_price) {
+        max_price = price;
+      }
+    }
+
     vector<td_api::object_ptr<td_api::premiumGiftCodePaymentOption>> options;
     for (auto &result : results) {
       if (result->store_product_.empty()) {
@@ -409,9 +424,10 @@ class GetPremiumGiftCodeOptionsQuery final : public Td::ResultHandler {
       } else if (result->store_quantity_ <= 0) {
         result->store_quantity_ = 1;
       }
+      double relative_price = get_monthly_price(result) / max_prices[result->users_];
       options.push_back(td_api::make_object<td_api::premiumGiftCodePaymentOption>(
-          result->currency_, result->amount_, result->users_, result->months_, result->store_product_,
-          result->store_quantity_));
+          result->currency_, result->amount_, static_cast<int32>(100 * (1.0 - relative_price)), result->users_,
+          result->months_, result->store_product_, result->store_quantity_));
     }
 
     promise_.set_value(td_api::make_object<td_api::premiumGiftCodePaymentOptions>(std::move(options)));
