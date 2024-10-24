@@ -617,6 +617,7 @@ class UserManager final : public Actor {
     bool contact_require_premium = false;
     bool sponsored_enabled = false;
     bool has_preview_medias = false;
+    bool can_view_revenue = false;
 
     bool is_common_chat_count_changed = true;
     bool is_being_updated = false;

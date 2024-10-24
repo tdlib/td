@@ -1721,6 +1721,7 @@ void UserManager::UserFull::store(StorerT &storer) const {
     STORE_FLAG(has_preview_medias);
     STORE_FLAG(has_privacy_policy_url);
     STORE_FLAG(has_gift_count);
+    STORE_FLAG(can_view_revenue);
     END_STORE_FLAGS();
   }
   if (has_about) {
@@ -1838,6 +1839,7 @@ void UserManager::UserFull::parse(ParserT &parser) {
     PARSE_FLAG(has_preview_medias);
     PARSE_FLAG(has_privacy_policy_url);
     PARSE_FLAG(has_gift_count);
+    PARSE_FLAG(can_view_revenue);
     END_PARSE_FLAGS();
   }
   if (has_about) {
@@ -6931,13 +6933,14 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
   auto birthdate = Birthdate(std::move(user->birthday_));
   auto personal_channel_id = ChannelId(user->personal_channel_id_);
   auto sponsored_enabled = user->sponsored_enabled_;
+  auto can_view_revenue = user->can_view_revenue_;
   if (user_full->can_be_called != can_be_called || user_full->supports_video_calls != supports_video_calls ||
       user_full->has_private_calls != has_private_calls ||
       user_full->group_administrator_rights != group_administrator_rights ||
       user_full->broadcast_administrator_rights != broadcast_administrator_rights ||
       user_full->voice_messages_forbidden != voice_messages_forbidden ||
       user_full->can_pin_messages != can_pin_messages || user_full->has_pinned_stories != has_pinned_stories ||
-      user_full->sponsored_enabled != sponsored_enabled) {
+      user_full->sponsored_enabled != sponsored_enabled || user_full->can_view_revenue != can_view_revenue) {
     user_full->can_be_called = can_be_called;
     user_full->supports_video_calls = supports_video_calls;
     user_full->has_private_calls = has_private_calls;
@@ -6947,6 +6950,7 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
     user_full->can_pin_messages = can_pin_messages;
     user_full->has_pinned_stories = has_pinned_stories;
     user_full->sponsored_enabled = sponsored_enabled;
+    user_full->can_view_revenue = can_view_revenue;
 
     user_full->is_changed = true;
   }
@@ -7283,6 +7287,7 @@ void UserManager::drop_user_full(UserId user_id) {
   user_full->birthdate = {};
   user_full->sponsored_enabled = false;
   user_full->has_preview_medias = false;
+  user_full->can_view_revenue = false;
   user_full->privacy_policy_url = string();
   user_full->is_changed = true;
 
@@ -8026,7 +8031,7 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
         user_full->broadcast_administrator_rights == AdministratorRights()
             ? nullptr
             : user_full->broadcast_administrator_rights.get_chat_administrator_rights_object(),
-        user_full->has_preview_medias, nullptr, nullptr, nullptr, nullptr);
+        user_full->can_view_revenue, user_full->has_preview_medias, nullptr, nullptr, nullptr, nullptr);
     if (u != nullptr && u->can_be_edited_bot && u->usernames.has_editable_username()) {
       auto bot_username = u->usernames.get_editable_username();
       bot_info->edit_commands_link_ = td_api::make_object<td_api::internalLinkTypeBotStart>(
