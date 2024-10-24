@@ -293,17 +293,17 @@ static td_api::object_ptr<td_api::chatRevenueStatistics> convert_broadcast_reven
 
 class GetBroadcastRevenueStatsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::chatRevenueStatistics>> promise_;
-  ChannelId channel_id_;
+  DialogId dialog_id_;
 
  public:
   explicit GetBroadcastRevenueStatsQuery(Promise<td_api::object_ptr<td_api::chatRevenueStatistics>> &&promise)
       : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, bool is_dark) {
-    channel_id_ = channel_id;
+  void send(DialogId dialog_id, bool is_dark) {
+    dialog_id_ = dialog_id;
 
-    auto input_peer = td_->dialog_manager_->get_input_peer(DialogId(channel_id), AccessRights::Read);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
       return on_error(Status::Error(500, "Chat not found"));
     }
@@ -326,23 +326,23 @@ class GetBroadcastRevenueStatsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->chat_manager_->on_get_channel_error(channel_id_, status, "GetBroadcastRevenueStatsQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetBroadcastRevenueStatsQuery");
     promise_.set_error(std::move(status));
   }
 };
 
 class GetBroadcastRevenueWithdrawalUrlQuery final : public Td::ResultHandler {
   Promise<string> promise_;
-  ChannelId channel_id_;
+  DialogId dialog_id_;
 
  public:
   explicit GetBroadcastRevenueWithdrawalUrlQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password) {
-    channel_id_ = channel_id;
+  void send(DialogId dialog_id, telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password) {
+    dialog_id_ = dialog_id;
 
-    auto input_peer = td_->dialog_manager_->get_input_peer(DialogId(channel_id), AccessRights::Read);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(500, "Chat not found"));
     }
@@ -361,24 +361,24 @@ class GetBroadcastRevenueWithdrawalUrlQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->chat_manager_->on_get_channel_error(channel_id_, status, "GetBroadcastRevenueWithdrawalUrlQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetBroadcastRevenueWithdrawalUrlQuery");
     promise_.set_error(std::move(status));
   }
 };
 
 class GetBroadcastRevenueTransactionsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::chatRevenueTransactions>> promise_;
-  ChannelId channel_id_;
+  DialogId dialog_id_;
 
  public:
   explicit GetBroadcastRevenueTransactionsQuery(Promise<td_api::object_ptr<td_api::chatRevenueTransactions>> &&promise)
       : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, int32 offset, int32 limit) {
-    channel_id_ = channel_id;
+  void send(DialogId dialog_id, int32 offset, int32 limit) {
+    dialog_id_ = dialog_id;
 
-    auto input_peer = td_->dialog_manager_->get_input_peer(DialogId(channel_id), AccessRights::Read);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
       return on_error(Status::Error(500, "Chat not found"));
     }
@@ -450,7 +450,7 @@ class GetBroadcastRevenueTransactionsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->chat_manager_->on_get_channel_error(channel_id_, status, "GetBroadcastRevenueTransactionsQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetBroadcastRevenueTransactionsQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -688,14 +688,11 @@ void StatisticsManager::send_get_channel_stats_query(DcId dc_id, ChannelId chann
   }
 }
 
-void StatisticsManager::get_channel_revenue_statistics(
+void StatisticsManager::get_dialog_revenue_statistics(
     DialogId dialog_id, bool is_dark, Promise<td_api::object_ptr<td_api::chatRevenueStatistics>> &&promise) {
-  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Write,
-                                                                        "get_channel_revenue_statistics"));
-  if (!td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
-    return promise.set_error(Status::Error(400, "Chat is not a channel"));
-  }
-  td_->create_handler<GetBroadcastRevenueStatsQuery>(std::move(promise))->send(dialog_id.get_channel_id(), is_dark);
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
+                                                                        "get_dialog_revenue_statistics"));
+  td_->create_handler<GetBroadcastRevenueStatsQuery>(std::move(promise))->send(dialog_id, is_dark);
 }
 
 void StatisticsManager::on_update_dialog_revenue_transactions(
@@ -714,51 +711,39 @@ void StatisticsManager::on_update_dialog_revenue_transactions(
                    convert_broadcast_revenue_balances(std::move(balances))));
 }
 
-void StatisticsManager::get_channel_revenue_withdrawal_url(DialogId dialog_id, const string &password,
-                                                           Promise<string> &&promise) {
+void StatisticsManager::get_dialog_revenue_withdrawal_url(DialogId dialog_id, const string &password,
+                                                          Promise<string> &&promise) {
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Write,
-                                                                        "get_channel_revenue_withdrawal_url"));
-  if (!td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
-    return promise.set_error(Status::Error(400, "Chat is not a channel"));
-  }
-  auto channel_id = dialog_id.get_channel_id();
-  if (!td_->chat_manager_->get_channel_permissions(channel_id).is_creator()) {
-    return promise.set_error(Status::Error(400, "Not enough rights to withdraw revenue"));
-  }
+                                                                        "get_dialog_revenue_withdrawal_url"));
   if (password.empty()) {
     return promise.set_error(Status::Error(400, "PASSWORD_HASH_INVALID"));
   }
   send_closure(
       td_->password_manager_, &PasswordManager::get_input_check_password_srp, password,
-      PromiseCreator::lambda([actor_id = actor_id(this), channel_id, promise = std::move(promise)](
+      PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, promise = std::move(promise)](
                                  Result<telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP>> result) mutable {
         if (result.is_error()) {
           return promise.set_error(result.move_as_error());
         }
-        send_closure(actor_id, &StatisticsManager::send_get_channel_revenue_withdrawal_url_query, channel_id,
+        send_closure(actor_id, &StatisticsManager::send_get_dialog_revenue_withdrawal_url_query, dialog_id,
                      result.move_as_ok(), std::move(promise));
       }));
 }
 
-void StatisticsManager::send_get_channel_revenue_withdrawal_url_query(
-    ChannelId channel_id, telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password,
+void StatisticsManager::send_get_dialog_revenue_withdrawal_url_query(
+    DialogId dialog_id, telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password,
     Promise<string> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
-
   td_->create_handler<GetBroadcastRevenueWithdrawalUrlQuery>(std::move(promise))
-      ->send(channel_id, std::move(input_check_password));
+      ->send(dialog_id, std::move(input_check_password));
 }
 
-void StatisticsManager::get_channel_revenue_transactions(
+void StatisticsManager::get_dialog_revenue_transactions(
     DialogId dialog_id, int32 offset, int32 limit,
     Promise<td_api::object_ptr<td_api::chatRevenueTransactions>> &&promise) {
-  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Write,
-                                                                        "get_channel_revenue_transactions"));
-  if (!td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
-    return promise.set_error(Status::Error(400, "Chat is not a channel"));
-  }
-  td_->create_handler<GetBroadcastRevenueTransactionsQuery>(std::move(promise))
-      ->send(dialog_id.get_channel_id(), offset, limit);
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
+                                                                        "get_dialog_revenue_transactions"));
+  td_->create_handler<GetBroadcastRevenueTransactionsQuery>(std::move(promise))->send(dialog_id, offset, limit);
 }
 
 void StatisticsManager::get_channel_message_statistics(

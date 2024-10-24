@@ -30,13 +30,13 @@ class StatisticsManager final : public Actor {
   void get_channel_statistics(DialogId dialog_id, bool is_dark,
                               Promise<td_api::object_ptr<td_api::ChatStatistics>> &&promise);
 
-  void get_channel_revenue_statistics(DialogId dialog_id, bool is_dark,
-                                      Promise<td_api::object_ptr<td_api::chatRevenueStatistics>> &&promise);
+  void get_dialog_revenue_statistics(DialogId dialog_id, bool is_dark,
+                                     Promise<td_api::object_ptr<td_api::chatRevenueStatistics>> &&promise);
 
-  void get_channel_revenue_withdrawal_url(DialogId dialog_id, const string &password, Promise<string> &&promise);
+  void get_dialog_revenue_withdrawal_url(DialogId dialog_id, const string &password, Promise<string> &&promise);
 
-  void get_channel_revenue_transactions(DialogId dialog_id, int32 offset, int32 limit,
-                                        Promise<td_api::object_ptr<td_api::chatRevenueTransactions>> &&promise);
+  void get_dialog_revenue_transactions(DialogId dialog_id, int32 offset, int32 limit,
+                                       Promise<td_api::object_ptr<td_api::chatRevenueTransactions>> &&promise);
 
   void on_update_dialog_revenue_transactions(DialogId dialog_id,
                                              telegram_api::object_ptr<telegram_api::broadcastRevenueBalances> balances);
@@ -87,8 +87,8 @@ class StatisticsManager final : public Actor {
   void send_get_story_public_forwards_query(DcId dc_id, StoryFullId story_full_id, string offset, int32 limit,
                                             Promise<td_api::object_ptr<td_api::publicForwards>> &&promise);
 
-  void send_get_channel_revenue_withdrawal_url_query(
-      ChannelId channel_id, telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password,
+  void send_get_dialog_revenue_withdrawal_url_query(
+      DialogId dialog_id, telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password,
       Promise<string> &&promise);
 
   Td *td_;

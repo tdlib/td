@@ -11424,15 +11424,20 @@ reportChatPhoto chat_id:int53 file_id:int32 reason:ReportReason text:string = Ok
 reportMessageReactions chat_id:int53 message_id:int53 sender_id:MessageSender = Ok;
 
 
-//@description Returns detailed revenue statistics about a chat. Currently, this method can be used only for channels if supergroupFullInfo.can_get_revenue_statistics == true @chat_id Chat identifier @is_dark Pass true if a dark theme is used by the application
+//@description Returns detailed revenue statistics about a chat. Currently, this method can be used only
+//-for channels if supergroupFullInfo.can_get_revenue_statistics == true or bots if userFullInfo.bot_info.can_get_revenue_statistics == true
+//@chat_id Chat identifier
+//@is_dark Pass true if a dark theme is used by the application
 getChatRevenueStatistics chat_id:int53 is_dark:Bool = ChatRevenueStatistics;
 
-//@description Returns a URL for chat revenue withdrawal; requires owner privileges in the chat. Currently, this method can be used only for channels if supergroupFullInfo.can_get_revenue_statistics == true and getOption("can_withdraw_chat_revenue")
+//@description Returns a URL for chat revenue withdrawal; requires owner privileges in the channel chat or the bot. Currently, this method can be used only
+//-if getOption("can_withdraw_chat_revenue") for channels with supergroupFullInfo.can_get_revenue_statistics == true or bots with userFullInfo.bot_info.can_get_revenue_statistics == true
 //@chat_id Chat identifier
 //@password The 2-step verification password of the current user
 getChatRevenueWithdrawalUrl chat_id:int53 password:string = HttpUrl;
 
-//@description Returns the list of revenue transactions for a chat. Currently, this method can be used only for channels if supergroupFullInfo.can_get_revenue_statistics == true
+//@description Returns the list of revenue transactions for a chat. Currently, this method can be used only
+//-for channels if supergroupFullInfo.can_get_revenue_statistics == true or bots if userFullInfo.bot_info.can_get_revenue_statistics == true
 //@chat_id Chat identifier
 //@offset Number of transactions to skip
 //@limit The maximum number of transactions to be returned; up to 200

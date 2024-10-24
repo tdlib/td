@@ -6570,22 +6570,22 @@ void Requests::on_request(uint64 id, const td_api::getChatStatistics &request) {
 void Requests::on_request(uint64 id, const td_api::getChatRevenueStatistics &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  td_->statistics_manager_->get_channel_revenue_statistics(DialogId(request.chat_id_), request.is_dark_,
-                                                           std::move(promise));
+  td_->statistics_manager_->get_dialog_revenue_statistics(DialogId(request.chat_id_), request.is_dark_,
+                                                          std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getChatRevenueWithdrawalUrl &request) {
   CHECK_IS_USER();
   CREATE_HTTP_URL_REQUEST_PROMISE();
-  td_->statistics_manager_->get_channel_revenue_withdrawal_url(DialogId(request.chat_id_), request.password_,
-                                                               std::move(promise));
+  td_->statistics_manager_->get_dialog_revenue_withdrawal_url(DialogId(request.chat_id_), request.password_,
+                                                              std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getChatRevenueTransactions &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  td_->statistics_manager_->get_channel_revenue_transactions(DialogId(request.chat_id_), request.offset_,
-                                                             request.limit_, std::move(promise));
+  td_->statistics_manager_->get_dialog_revenue_transactions(DialogId(request.chat_id_), request.offset_, request.limit_,
+                                                            std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getStarRevenueStatistics &request) {
