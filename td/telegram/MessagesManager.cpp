@@ -33626,11 +33626,6 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
     debug_add_message_to_dialog_fail_reason_ = "skip adding auto-deleting scheduled message";
     return nullptr;
   }
-  if (td_->auth_manager_->is_bot()) {
-    LOG(ERROR) << "Bot tried to add " << message_id << " to " << dialog_id << " from " << source;
-    debug_add_message_to_dialog_fail_reason_ = "skip adding scheduled message by bot";
-    return nullptr;
-  }
 
   auto message_content_type = message->content->get_type();
   if (is_service_message_content(message_content_type) || message_content_type == MessageContentType::LiveLocation ||
