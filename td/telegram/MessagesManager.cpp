@@ -4343,23 +4343,24 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_reactions);
     STORE_FLAG(has_available_reactions_generation);
     STORE_FLAG(update_stickersets_order);
-    STORE_FLAG(is_topic_message);
+    STORE_FLAG(is_topic_message);  // 5
     STORE_FLAG(has_history_generation);
     STORE_FLAG(is_reply_to_story);
     STORE_FLAG(false);
     STORE_FLAG(invert_media);
-    STORE_FLAG(has_input_reply_to);
+    STORE_FLAG(has_input_reply_to);  // 10
     STORE_FLAG(has_replied_message_info);
     STORE_FLAG(has_forward_info);
     STORE_FLAG(has_saved_messages_topic_id);
     STORE_FLAG(has_initial_top_thread_message_id);
-    STORE_FLAG(has_sender_boost_count);
+    STORE_FLAG(has_sender_boost_count);  // 15
     STORE_FLAG(has_via_business_bot_user_id);
     STORE_FLAG(is_from_offline);
     STORE_FLAG(has_effect_id);
     STORE_FLAG(has_fact_check);
-    STORE_FLAG(has_initial_sender_dialog_id);
+    STORE_FLAG(has_initial_sender_dialog_id);  // 20
     STORE_FLAG(allow_paid);
+    STORE_FLAG(video_processing_pending);
     END_STORE_FLAGS();
   }
 
@@ -4645,6 +4646,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(has_fact_check);
     PARSE_FLAG(has_initial_sender_dialog_id);
     PARSE_FLAG(allow_paid);
+    PARSE_FLAG(video_processing_pending);
     END_PARSE_FLAGS();
   }
 
@@ -13350,6 +13352,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       message_info.has_mention = message->mentioned_;
       message_info.has_unread_content = message->media_unread_;
       message_info.invert_media = message->invert_media_;
+      message_info.video_processing_pending = message->video_processing_pending_;
       message_info.effect_id = MessageEffectId(message->effect_);
 
       bool is_content_read = true;
@@ -13679,6 +13682,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->is_from_offline = message_info.is_from_offline;
   message->is_pinned = is_pinned;
   message->noforwards = noforwards;
+  message->video_processing_pending = message_info.video_processing_pending;
   message->interaction_info_update_date = G()->unix_time();
   message->view_count = view_count;
   message->forward_count = forward_count;
@@ -23005,6 +23009,8 @@ Result<int32> MessagesManager::get_message_schedule_date(
   }
 
   switch (scheduling_state->get_id()) {
+    case td_api::messageSchedulingStateSendWhenVideoProcessed::ID:
+      return Status::Error(400, "Can't force video processing");
     case td_api::messageSchedulingStateSendWhenOnline::ID: {
       auto send_date = SCHEDULE_WHEN_ONLINE_DATE;
       return send_date;
@@ -23050,7 +23056,11 @@ tl_object_ptr<td_api::MessageSendingState> MessagesManager::get_message_sending_
   return nullptr;
 }
 
-tl_object_ptr<td_api::MessageSchedulingState> MessagesManager::get_message_scheduling_state_object(int32 send_date) {
+tl_object_ptr<td_api::MessageSchedulingState> MessagesManager::get_message_scheduling_state_object(
+    int32 send_date, bool video_processing_pending) {
+  if (video_processing_pending) {
+    return td_api::make_object<td_api::messageSchedulingStateSendWhenVideoProcessed>(send_date);
+  }
   if (send_date == SCHEDULE_WHEN_ONLINE_DATE) {
     return td_api::make_object<td_api::messageSchedulingStateSendWhenOnline>();
   }
@@ -23214,7 +23224,8 @@ td_api::object_ptr<td_api::message> MessagesManager::get_message_object(DialogId
   double auto_delete_in =
       m->ttl_period == 0 ? 0.0 : clamp(m->date + m->ttl_period - G()->server_time(), 1e-3, m->ttl_period - 1e-3);
   auto sender = get_message_sender_object_const(td_, m->sender_user_id, m->sender_dialog_id, source);
-  auto scheduling_state = is_scheduled ? get_message_scheduling_state_object(m->date) : nullptr;
+  auto scheduling_state =
+      is_scheduled ? get_message_scheduling_state_object(m->date, m->video_processing_pending) : nullptr;
   auto forward_info = m->forward_info == nullptr
                           ? nullptr
                           : m->forward_info->get_message_forward_info_object(td_, is_from_saved_messages);
@@ -34492,6 +34503,10 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
   }
   if (old_message->is_from_offline != new_message->is_from_offline) {
     old_message->is_from_offline = new_message->is_from_offline;
+  }
+  if (old_message->video_processing_pending != new_message->video_processing_pending) {
+    old_message->video_processing_pending = new_message->video_processing_pending;
+    need_send_update = true;
   }
 
   if (old_message->edit_date > 0) {

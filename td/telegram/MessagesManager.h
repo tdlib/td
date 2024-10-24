@@ -1048,6 +1048,7 @@ class MessagesManager final : public Actor {
     bool has_mention = false;
     bool has_unread_content = false;
     bool invert_media = false;
+    bool video_processing_pending = false;
 
     unique_ptr<MessageContent> content;
     tl_object_ptr<telegram_api::ReplyMarkup> reply_markup;
@@ -1110,6 +1111,7 @@ class MessagesManager final : public Actor {
     bool noforwards = false;
     bool invert_media = false;
     bool disable_web_page_preview = false;
+    bool video_processing_pending = false;
 
     bool has_explicit_sender = false;       // for send_message
     bool is_copy = false;                   // for send_message
@@ -2477,7 +2479,8 @@ class MessagesManager final : public Actor {
 
   tl_object_ptr<td_api::MessageSendingState> get_message_sending_state_object(const Message *m) const;
 
-  static tl_object_ptr<td_api::MessageSchedulingState> get_message_scheduling_state_object(int32 send_date);
+  static tl_object_ptr<td_api::MessageSchedulingState> get_message_scheduling_state_object(
+      int32 send_date, bool video_processing_pending);
 
   td_api::object_ptr<td_api::MessageContent> get_message_message_content_object(DialogId dialog_id,
                                                                                 const Message *m) const;
