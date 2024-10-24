@@ -7552,7 +7552,10 @@ updateNewMessage message:message = Update;
 //@message_id A temporary message identifier
 updateMessageSendAcknowledged chat_id:int53 message_id:int53 = Update;
 
-//@description A message has been successfully sent @message The sent message. Usually only the message identifier, date, and content are changed, but almost all other fields can also change @old_message_id The previous temporary message identifier
+//@description A message has been successfully sent
+//@message The sent message. Almost any field of the new message can be different from the corresponding field of the original message.
+//-For example, the field scheduling_state may change, making the message scheduled, or non-scheduled
+//@old_message_id The previous temporary message identifier
 updateMessageSendSucceeded message:message old_message_id:int53 = Update;
 
 //@description A message failed to send. Be aware that some messages being sent can be irrecoverably deleted, in which case updateDeleteMessages will be received instead of this update

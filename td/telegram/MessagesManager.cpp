@@ -2921,6 +2921,10 @@ class SendMessageQuery final : public Td::ResultHandler {
     if (as_input_peer != nullptr) {
       flags |= MessagesManager::SEND_MESSAGE_FLAG_HAS_SEND_AS;
     }
+    if (false) {
+      flags |= MessagesManager::SEND_MESSAGE_FLAG_HAS_SCHEDULE_DATE;
+      schedule_date = G()->unix_time() + 35;
+    }
 
     auto query = G()->net_query_creator().create(
         telegram_api::messages_sendMessage(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
@@ -13844,8 +13848,7 @@ MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const 
     update_reply_to_message_id(dialog_id, old_message_id, message_id, true, "on_get_message");
 
     being_readded_message_id_ = {dialog_id, old_message_id};
-    unique_ptr<Message> old_message =
-        delete_message(d, old_message_id, false, &need_update_dialog_pos, "add sent message");
+    auto old_message = delete_message(d, old_message_id, false, &need_update_dialog_pos, "add sent message");
     if (old_message == nullptr) {
       delete_sent_message_on_server(dialog_id, message_id, old_message_id);
       being_readded_message_id_ = MessageFullId();
@@ -34224,7 +34227,9 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
   }
   if (old_message->sender_dialog_id != new_message->sender_dialog_id) {
     // there can be race for changed anonymous flag
-    LOG_IF(ERROR, old_message->sender_dialog_id != DialogId() && new_message->sender_dialog_id != DialogId())
+    // yet unsent messages scheduled by the server can lost chosen sender
+    LOG_IF(ERROR, old_message->sender_dialog_id != DialogId() && new_message->sender_dialog_id != DialogId() &&
+                      (!message_id.is_yet_unsent() || new_message->sender_dialog_id != d->dialog_id))
         << message_id << " in " << dialog_id << " has changed sender from " << old_message->sender_dialog_id << " to "
         << new_message->sender_dialog_id << ", message content type is " << old_content_type << '/' << new_content_type;
 
