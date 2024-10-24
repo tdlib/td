@@ -1009,6 +1009,9 @@ starTransactionPartnerFragment withdrawal_state:RevenueWithdrawalState = StarTra
 //@description The transaction is a transaction with Telegram Ad platform
 starTransactionPartnerTelegramAds = StarTransactionPartner;
 
+//@description The transaction is a transaction with Telegram for API usage @request_count The number of billed requests
+starTransactionPartnerTelegramApi request_count:int32 = StarTransactionPartner;
+
 //@description The transaction is a transaction with a bot @user_id Identifier of the bot @purpose Purpose of the transaction
 starTransactionPartnerBot user_id:int53 purpose:BotTransactionPurpose = StarTransactionPartner;
 
