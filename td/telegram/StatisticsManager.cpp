@@ -304,9 +304,7 @@ class GetBroadcastRevenueStatsQuery final : public Td::ResultHandler {
     dialog_id_ = dialog_id;
 
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
-    if (input_peer == nullptr) {
-      return on_error(Status::Error(500, "Chat not found"));
-    }
+    CHECK(input_peer != nullptr);
 
     int32 flags = 0;
     if (is_dark) {
@@ -379,9 +377,7 @@ class GetBroadcastRevenueTransactionsQuery final : public Td::ResultHandler {
     dialog_id_ = dialog_id;
 
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
-    if (input_peer == nullptr) {
-      return on_error(Status::Error(500, "Chat not found"));
-    }
+    CHECK(input_peer != nullptr);
 
     send_query(G()->net_query_creator().create(
         telegram_api::stats_getBroadcastRevenueTransactions(std::move(input_peer), offset, limit)));
