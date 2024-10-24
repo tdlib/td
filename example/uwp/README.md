@@ -10,7 +10,7 @@ This is an example of building TDLib SDK for Universal Windows Platform and an e
 ```
 git clone https://github.com/Microsoft/vcpkg.git
 cd vcpkg
-git checkout cd5e746ec203c8c3c61647e0886a8df8c1e78e41
+git checkout 07b30b49e5136a36100a2ce644476e60d7f3ddc1
 .\bootstrap-vcpkg.bat
 .\vcpkg.exe install gperf:x86-windows openssl:arm-uwp openssl:arm64-uwp openssl:x64-uwp openssl:x86-uwp zlib:arm-uwp zlib:arm64-uwp zlib:x64-uwp zlib:x86-uwp
 ```
