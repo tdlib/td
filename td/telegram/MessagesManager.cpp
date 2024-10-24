@@ -23831,7 +23831,7 @@ bool MessagesManager::is_message_auto_read(DialogId dialog_id, bool is_outgoing)
   }
 }
 
-void MessagesManager::add_message_dependencies(Dependencies &dependencies, const Message *m) {
+void MessagesManager::add_message_dependencies(Dependencies &dependencies, const Message *m) const {
   auto is_bot = td_->auth_manager_->is_bot();
   dependencies.add(m->sender_user_id);
   dependencies.add_dialog_and_dependencies(m->sender_dialog_id);

@@ -3165,7 +3165,7 @@ class MessagesManager final : public Actor {
   void load_calls_db_state();
   void save_calls_db_state();
 
-  void add_message_dependencies(Dependencies &dependencies, const Message *m);
+  void add_message_dependencies(Dependencies &dependencies, const Message *m) const;
 
   static void save_send_message_log_event(DialogId dialog_id, const Message *m);
 
