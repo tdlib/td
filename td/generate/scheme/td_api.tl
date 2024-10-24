@@ -1760,8 +1760,8 @@ factCheck text:formattedText country_code:string = FactCheck;
 //@is_channel_post True, if the message is a channel post. All messages to channels are channel posts, all other messages are not channel posts
 //@is_topic_message True, if the message is a forum topic message
 //@contains_unread_mention True, if the message contains an unread mention for the current user
-//@date Point in time (Unix timestamp) when the message was sent
-//@edit_date Point in time (Unix timestamp) when the message was last edited
+//@date Point in time (Unix timestamp) when the message was sent; 0 for scheduled messages
+//@edit_date Point in time (Unix timestamp) when the message was last edited; 0 for scheduled messages
 //@forward_info Information about the initial message sender; may be null if none or unknown
 //@import_info Information about the initial message for messages created with importMessages; may be null if the message isn't imported
 //@interaction_info Information about interactions with the message; may be null if none

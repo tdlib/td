@@ -23244,7 +23244,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_message_object(DialogId
   }();
   auto top_thread_message_id = m->top_thread_message_id.get();
   auto date = is_scheduled ? 0 : m->date;
-  auto edit_date = m->hide_edit_date ? 0 : m->edit_date;
+  auto edit_date = m->hide_edit_date || is_scheduled ? 0 : m->edit_date;
   auto has_timestamped_media = reply_to == nullptr || m->max_own_media_timestamp >= 0;
   auto reply_markup = get_reply_markup_object(td_->user_manager_.get(), m->reply_markup);
   auto content = get_message_message_content_object(dialog_id, m);
