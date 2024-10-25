@@ -4359,6 +4359,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_effect_id);
     STORE_FLAG(has_fact_check);
     STORE_FLAG(has_initial_sender_dialog_id);
+    STORE_FLAG(allow_paid);
     END_STORE_FLAGS();
   }
 
@@ -4643,6 +4644,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(has_effect_id);
     PARSE_FLAG(has_fact_check);
     PARSE_FLAG(has_initial_sender_dialog_id);
+    PARSE_FLAG(allow_paid);
     END_PARSE_FLAGS();
   }
 
@@ -23434,6 +23436,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   m->from_background = options.from_background;
   m->update_stickersets_order = options.update_stickersets_order;
   m->noforwards = options.protect_content;
+  m->allow_paid = options.allow_paid;
   m->view_count = is_channel_post && !is_scheduled ? 1 : 0;
   m->forward_count = 0;
   if ([&] {
@@ -24232,6 +24235,7 @@ Result<MessagesManager::MessageSendOptions> MessagesManager::process_message_sen
   }
   if (td_->auth_manager_->is_bot()) {
     result.protect_content = options->protect_content_;
+    result.allow_paid = options->allow_paid_broadcast_;
   }
   result.only_preview = options->only_preview_;
   TRY_RESULT_ASSIGN(result.schedule_date, get_message_schedule_date(std::move(options->scheduling_state_)));
@@ -26459,6 +26463,9 @@ int32 MessagesManager::get_message_flags(const Message *m) {
   if (m->effect_id.is_valid()) {
     flags |= SEND_MESSAGE_FLAG_EFFECT;
   }
+  if (m->allow_paid) {
+    flags |= SEND_MESSAGE_FLAG_ALLOW_PAID;
+  }
   return flags;
 }
 
@@ -26637,6 +26644,9 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
   }
   if (messages[0]->noforwards) {
     flags |= SEND_MESSAGE_FLAG_NOFORWARDS;
+  }
+  if (messages[0]->allow_paid) {
+    flags |= SEND_MESSAGE_FLAG_ALLOW_PAID;
   }
   if (drop_author) {
     flags |= telegram_api::messages_forwardMessages::DROP_AUTHOR_MASK;
@@ -27194,7 +27204,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_quick_reply_s
   auto *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
 
-  MessageSendOptions message_send_options(false, false, false, false, false, 0, sending_id, MessageEffectId());
+  MessageSendOptions message_send_options(false, false, false, false, false, false, 0, sending_id, MessageEffectId());
   FlatHashMap<MessageId, MessageId, MessageIdHash> original_message_id_to_new_message_id;
   vector<td_api::object_ptr<td_api::message>> result;
   vector<Message *> sent_messages;
@@ -27405,7 +27415,7 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
       message->input_reply_to = {};
     }
     MessageSendOptions options(message->disable_notification, message->from_background,
-                               message->update_stickersets_order, message->noforwards, false,
+                               message->update_stickersets_order, message->noforwards, message->allow_paid, false,
                                get_message_schedule_date(message.get()), message->sending_id, message->effect_id);
     Message *m = get_message_to_send(d, message->top_thread_message_id, std::move(message->input_reply_to), options,
                                      std::move(new_contents[i]), message->invert_media, &need_update_dialog_pos, false,

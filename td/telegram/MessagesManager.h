@@ -143,6 +143,7 @@ class MessagesManager final : public Actor {
   static constexpr int32 SEND_MESSAGE_FLAG_UPDATE_STICKER_SETS_ORDER = 1 << 15;
   static constexpr int32 SEND_MESSAGE_FLAG_INVERT_MEDIA = 1 << 16;
   static constexpr int32 SEND_MESSAGE_FLAG_EFFECT = 1 << 18;
+  static constexpr int32 SEND_MESSAGE_FLAG_ALLOW_PAID = 1 << 19;
 
   MessagesManager(Td *td, ActorShared<> parent);
   MessagesManager(const MessagesManager &) = delete;
@@ -1113,6 +1114,7 @@ class MessagesManager final : public Actor {
     bool has_explicit_sender = false;       // for send_message
     bool is_copy = false;                   // for send_message
     bool from_background = false;           // for send_message
+    bool allow_paid = false;                // for send_message
     bool update_stickersets_order = false;  // for send_message
     bool clear_draft = false;               // for send_message
     bool in_game_share = false;             // for send_message
@@ -1525,6 +1527,7 @@ class MessagesManager final : public Actor {
     bool from_background = false;
     bool update_stickersets_order = false;
     bool protect_content = false;
+    bool allow_paid = false;
     bool only_preview = false;
     int32 schedule_date = 0;
     int32 sending_id = 0;
@@ -1532,12 +1535,13 @@ class MessagesManager final : public Actor {
 
     MessageSendOptions() = default;
     MessageSendOptions(bool disable_notification, bool from_background, bool update_stickersets_order,
-                       bool protect_content, bool only_preview, int32 schedule_date, int32 sending_id,
+                       bool protect_content, bool allow_paid, bool only_preview, int32 schedule_date, int32 sending_id,
                        MessageEffectId effect_id)
         : disable_notification(disable_notification)
         , from_background(from_background)
         , update_stickersets_order(update_stickersets_order)
         , protect_content(protect_content)
+        , allow_paid(allow_paid)
         , only_preview(only_preview)
         , schedule_date(schedule_date)
         , sending_id(sending_id)
