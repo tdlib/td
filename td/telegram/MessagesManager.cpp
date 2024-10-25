@@ -24083,7 +24083,14 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_message(
 
   Dialog *d = get_dialog_force(dialog_id, "send_message");
   if (d == nullptr) {
-    return Status::Error(400, "Chat not found");
+    if (td_->auth_manager_->is_bot() && options != nullptr && options->allow_paid_broadcast_ &&
+        dialog_id.get_type() == DialogType::User) {
+      force_create_dialog(dialog_id, "send_message");
+      d = get_dialog_force(dialog_id, "send_message");
+    }
+    if (d == nullptr) {
+      return Status::Error(400, "Chat not found");
+    }
   }
 
   auto input_reply_to = create_message_input_reply_to(d, top_thread_message_id, std::move(reply_to), false);
@@ -24342,7 +24349,14 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_message_group
     vector<tl_object_ptr<td_api::InputMessageContent>> &&input_message_contents) {
   Dialog *d = get_dialog_force(dialog_id, "send_message_group");
   if (d == nullptr) {
-    return Status::Error(400, "Chat not found");
+    if (td_->auth_manager_->is_bot() && options != nullptr && options->allow_paid_broadcast_ &&
+        dialog_id.get_type() == DialogType::User) {
+      force_create_dialog(dialog_id, "send_message_group");
+      d = get_dialog_force(dialog_id, "send_message_group");
+    }
+    if (d == nullptr) {
+      return Status::Error(400, "Chat not found");
+    }
   }
 
   TRY_STATUS(can_send_message(dialog_id));
