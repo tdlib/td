@@ -2369,6 +2369,9 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
       u = add_user(user_id);
     }
     CHECK(u != nullptr);
+    if (unknown_users_.erase(user_id) != 0) {
+      u->is_photo_inited = true;
+    }
   }
 
   if (have_access_hash) {  // access_hash must be updated before photo
