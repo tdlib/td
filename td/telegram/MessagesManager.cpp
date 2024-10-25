@@ -24085,6 +24085,7 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_message(
   if (d == nullptr) {
     if (td_->auth_manager_->is_bot() && options != nullptr && options->allow_paid_broadcast_ &&
         dialog_id.get_type() == DialogType::User) {
+      td_->user_manager_->get_user_id_object(dialog_id.get_user_id(), nullptr);
       force_create_dialog(dialog_id, "send_message");
       d = get_dialog_force(dialog_id, "send_message");
     }
@@ -24352,6 +24353,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_message_group
   if (d == nullptr) {
     if (td_->auth_manager_->is_bot() && options != nullptr && options->allow_paid_broadcast_ &&
         dialog_id.get_type() == DialogType::User) {
+      td_->user_manager_->get_user_id_object(dialog_id.get_user_id(), nullptr);
       force_create_dialog(dialog_id, "send_message_group");
       d = get_dialog_force(dialog_id, "send_message_group");
     }

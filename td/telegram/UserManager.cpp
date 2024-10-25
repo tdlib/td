@@ -7940,7 +7940,9 @@ td_api::object_ptr<td_api::updateUser> UserManager::get_update_unknown_user_obje
 
 int64 UserManager::get_user_id_object(UserId user_id, const char *source) const {
   if (user_id.is_valid() && get_user(user_id) == nullptr && unknown_users_.count(user_id) == 0) {
-    LOG(ERROR) << "Have no information about " << user_id << " from " << source;
+    if (source != nullptr) {
+      LOG(ERROR) << "Have no information about " << user_id << " from " << source;
+    }
     unknown_users_.insert(user_id);
     send_closure(G()->td(), &Td::send_update, get_update_unknown_user_object(user_id));
   }
