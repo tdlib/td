@@ -57,6 +57,9 @@ void NetQueryDelayer::delay(NetQueryPtr query) {
         break;
       }
     }
+    if (timeout == 0 && begins_with(error_message, "FLOOD_SKIP_FAILED_WAIT")) {
+      timeout = 1;
+    }
   } else {
     G()->net_query_dispatcher().dispatch(std::move(query));
     return;
