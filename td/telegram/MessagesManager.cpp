@@ -24107,8 +24107,9 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_message(
 
   TRY_STATUS(can_send_message(dialog_id));
   TRY_RESULT(message_reply_markup, get_dialog_reply_markup(dialog_id, std::move(reply_markup)));
-  TRY_RESULT(message_content, process_input_message_content(dialog_id, std::move(input_message_content)));
   TRY_RESULT(message_send_options, process_message_send_options(dialog_id, std::move(options), true, true));
+  TRY_RESULT(message_content, process_input_message_content(dialog_id, std::move(input_message_content),
+                                                            !message_send_options.allow_paid));
   TRY_STATUS(can_use_message_send_options(message_send_options, message_content));
   TRY_STATUS(can_use_top_thread_message_id(d, top_thread_message_id, input_reply_to));
 
@@ -24364,7 +24365,8 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_message_group
 
   vector<InputMessageContent> message_contents;
   for (auto &input_message_content : input_message_contents) {
-    TRY_RESULT(message_content, process_input_message_content(dialog_id, std::move(input_message_content)));
+    TRY_RESULT(message_content, process_input_message_content(dialog_id, std::move(input_message_content),
+                                                              !message_send_options.allow_paid));
     TRY_STATUS(can_use_message_send_options(message_send_options, message_content));
     message_contents.push_back(std::move(message_content));
   }
@@ -26951,7 +26953,8 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
       continue;
     }
 
-    auto can_send_status = can_send_message_content(to_dialog_id, content.get(), !is_local_copy, true, td_);
+    auto can_send_status = can_send_message_content(to_dialog_id, content.get(), !is_local_copy,
+                                                    !need_copy || !message_send_options.allow_paid, td_);
     if (can_send_status.is_error()) {
       LOG(INFO) << "Can't forward " << message_id << ": " << can_send_status.message();
       continue;
