@@ -4272,7 +4272,7 @@ const DialogPhoto *UserManager::get_user_dialog_photo(UserId user_id) {
     return nullptr;
   }
 
-  apply_pending_user_photo(u, user_id);
+  apply_pending_user_photo(u, user_id, "get_user_dialog_photo");
   return &u->photo;
 }
 
@@ -5413,7 +5413,7 @@ void UserManager::get_user_profile_photos(UserId user_id, int32 offset, int32 li
     return promise.set_error(Status::Error(400, "User not found"));
   }
 
-  apply_pending_user_photo(u, user_id);
+  apply_pending_user_photo(u, user_id, "get_user_profile_photos");
 
   auto user_photos = add_user_photos(user_id);
   if (user_photos->count != -1) {  // know photo count
@@ -5670,13 +5670,13 @@ void UserManager::on_get_user_photos(UserId user_id, int32 offset, int32 limit, 
   }
 }
 
-void UserManager::apply_pending_user_photo(User *u, UserId user_id) {
+void UserManager::apply_pending_user_photo(User *u, UserId user_id, const char *source) {
   if (u == nullptr || u->is_photo_inited) {
     return;
   }
 
   if (pending_user_photos_.count(user_id) > 0) {
-    do_update_user_photo(u, user_id, std::move(pending_user_photos_[user_id]), "apply_pending_user_photo");
+    do_update_user_photo(u, user_id, std::move(pending_user_photos_[user_id]), source);
     pending_user_photos_.erase(user_id);
     update_user(u, user_id);
   }
@@ -6877,7 +6877,7 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
     return;
   }
 
-  apply_pending_user_photo(u, user_id);
+  apply_pending_user_photo(u, user_id, "on_get_user_full");
 
   td_->messages_manager_->on_update_dialog_notify_settings(DialogId(user_id), std::move(user->notify_settings_),
                                                            "on_get_user_full");

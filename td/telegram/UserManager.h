@@ -902,7 +902,7 @@ class UserManager final : public Actor {
 
   UserPhotos *add_user_photos(UserId user_id);
 
-  void apply_pending_user_photo(User *u, UserId user_id);
+  void apply_pending_user_photo(User *u, UserId user_id, const char *source);
 
   void load_contacts(Promise<Unit> &&promise);
 
