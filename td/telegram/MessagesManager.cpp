@@ -25932,7 +25932,7 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
       }
     }
   } else {
-    auto error = result.move_as_error();
+    const auto &error = result.error();
     LOG(INFO) << "Failed to edit " << message_id << " in " << dialog_id << ": " << error;
     if (was_uploaded) {
       CHECK(file_upload_id.is_valid());
