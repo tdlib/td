@@ -240,10 +240,10 @@ class Session final
   void flush_pending_invoke_after_queries();
   bool has_queries() const;
 
-  void dec_container(mtproto::MessageId container_message_id, Query *query);
-  void cleanup_container(mtproto::MessageId container_message_id, Query *query);
-  void mark_as_known(mtproto::MessageId message_id, Query *query);
-  void mark_as_unknown(mtproto::MessageId message_id, Query *query);
+  void dec_container(mtproto::MessageId container_message_id, const Query &query);
+  void cleanup_container(mtproto::MessageId container_message_id, const Query &query);
+  void mark_as_known(mtproto::MessageId message_id, Query &query);
+  void mark_as_unknown(mtproto::MessageId message_id, Query &query);
 
   void on_message_ack_impl(mtproto::MessageId container_message_id, int32 type);
   void on_message_ack_impl_inner(mtproto::MessageId message_id, int32 type, bool in_container);
