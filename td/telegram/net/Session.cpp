@@ -1177,9 +1177,6 @@ void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_quer
       sent_queries_.emplace(message_id, Query{message_id, std::move(net_query), main_connection_.connection_id_, now});
   LOG_CHECK(status.second) << message_id;
   sent_queries_list_.put(status.first->second.get_list_node());
-  if (!status.second) {
-    LOG(FATAL) << "Duplicate " << message_id;
-  }
   if (immediately_fail_query) {
     on_message_result_error(message_id, 401, "TEST_ERROR");
   }
