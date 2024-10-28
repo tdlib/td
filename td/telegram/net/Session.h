@@ -136,7 +136,6 @@ class Session final
   FlatHashSet<mtproto::MessageId, mtproto::MessageIdHash> unknown_queries_;
   vector<mtproto::MessageId> to_cancel_message_ids_;
 
-  // Do not invalidate iterators of these two containers!
   // TODO: better data structures
   struct PriorityQueue {
     void push(NetQueryPtr query);

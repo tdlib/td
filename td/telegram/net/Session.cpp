@@ -1149,7 +1149,7 @@ void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_quer
   }
 
   auto now = Time::now();
-  bool immediately_fail_query = false;
+  const bool immediately_fail_query = false;
   if (!immediately_fail_query) {
     net_query->debug(PSTRING() << get_name() << ": send to " << info->connection_->get_debug_str());
     message_id = info->connection_->send_query(
