@@ -136,16 +136,18 @@ class Session final
   FlatHashSet<mtproto::MessageId, mtproto::MessageIdHash> unknown_queries_;
   vector<mtproto::MessageId> to_cancel_message_ids_;
 
-  // TODO: better data structures
-  struct PriorityQueue {
-    void push(NetQueryPtr query);
-    NetQueryPtr pop();
-    bool empty() const;
+  class PendingQueries {
+    VectorQueue<NetQueryPtr> regular_queries_;
+    VectorQueue<NetQueryPtr> high_priority_queries_;
 
-   private:
-    std::map<int8, VectorQueue<NetQueryPtr>, std::greater<>> queries_;
+   public:
+    void push(NetQueryPtr query);
+
+    NetQueryPtr pop();
+
+    bool empty() const;
   };
-  PriorityQueue pending_queries_;
+  PendingQueries pending_queries_;
   std::map<mtproto::MessageId, Query> sent_queries_;
   std::deque<NetQueryPtr> pending_invoke_after_queries_;
   ListNode sent_queries_list_;

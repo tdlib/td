@@ -212,23 +212,19 @@ TD_THREAD_LOCAL Semaphore *GenAuthKeyActor::semaphore_{};
 
 }  // namespace detail
 
-void Session::PriorityQueue::push(NetQueryPtr query) {
-  auto priority = query->priority();
-  queries_[priority].push(std::move(query));
+void Session::PendingQueries::push(NetQueryPtr query) {
+  auto &queue = query->is_high_priority() ? high_priority_queries_ : regular_queries_;
+  queue.push(std::move(query));
 }
 
-NetQueryPtr Session::PriorityQueue::pop() {
-  CHECK(!empty());
-  auto it = queries_.begin();
-  auto res = it->second.pop();
-  if (it->second.empty()) {
-    queries_.erase(it);
-  }
-  return res;
+NetQueryPtr Session::PendingQueries::pop() {
+  auto &queue = high_priority_queries_.empty() ? regular_queries_ : high_priority_queries_;
+  CHECK(!queue.empty());
+  return queue.pop();
 }
 
-bool Session::PriorityQueue::empty() const {
-  return queries_.empty();
+bool Session::PendingQueries::empty() const {
+  return regular_queries_.empty() && high_priority_queries_.empty();
 }
 
 Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> shared_auth_data, int32 raw_dc_id,

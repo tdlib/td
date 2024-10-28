@@ -220,11 +220,11 @@ class NetQuery final : public TsListNode<NetQueryDebug> {
     finish_migrate(cancel_slot_);
   }
 
-  int8 priority() const {
-    return priority_;
+  bool is_high_priority() const {
+    return is_high_priority_;
   }
-  void set_priority(int8 priority) {
-    priority_ = priority;
+  void make_high_priority() {
+    is_high_priority_ = true;
   }
 
   Span<uint64> get_chain_ids() const {
@@ -264,7 +264,7 @@ class NetQuery final : public TsListNode<NetQueryDebug> {
 
   bool in_sequence_dispacher_ = false;
   bool may_be_lost_ = false;
-  int8 priority_{0};
+  bool is_high_priority_ = false;
 
   template <class T>
   struct movable_atomic final : public std::atomic<T> {
