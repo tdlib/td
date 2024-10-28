@@ -677,12 +677,9 @@ void Session::on_closed(Status status) {
   // resend all queries without ack
   for (auto it = sent_queries_.begin(); it != sent_queries_.end();) {
     if (!it->second.is_acknowledged_ && it->second.connection_id_ == current_info_->connection_id_) {
-      // container vector leak otherwise
       cleanup_container(it->first, it->second);
-
       // mark query as unknown
       if (status.is_error() && status.code() == 500) {
-        cleanup_container(it->first, it->second);
         mark_as_known(it->first, it->second);
 
         auto &query = it->second.net_query_;
