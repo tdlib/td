@@ -297,9 +297,6 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                 };
                 return td_api::make_object<td_api::revenueWithdrawalStateFailed>();
               }
-              if (!transaction->refund_) {
-                LOG(ERROR) << "Receive " << to_string(transaction);
-              }
               return nullptr;
             }();
             return td_api::make_object<td_api::starTransactionPartnerFragment>(std::move(state));

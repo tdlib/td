@@ -1003,7 +1003,7 @@ starTransactionPartnerAppStore = StarTransactionPartner;
 //@description The transaction is a transaction with Google Play
 starTransactionPartnerGooglePlay = StarTransactionPartner;
 
-//@description The transaction is a transaction with Fragment @withdrawal_state State of the withdrawal; may be null for refunds from Fragment
+//@description The transaction is a transaction with Fragment @withdrawal_state State of the withdrawal; may be null for refunds from Fragment or for Telegram Stars bought on Fragment
 starTransactionPartnerFragment withdrawal_state:RevenueWithdrawalState = StarTransactionPartner;
 
 //@description The transaction is a transaction with Telegram Ad platform
