@@ -13643,6 +13643,9 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     LOG(ERROR) << "Receive pinned " << message_id << " in " << dialog_id;
     is_pinned = false;
   }
+  if (message_info.is_from_scheduled && is_outgoing && is_bot) {
+    is_outgoing = false;
+  }
 
   bool has_mention =
       message_info.has_mention || (content_type == MessageContentType::PinMessage &&
