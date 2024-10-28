@@ -1155,16 +1155,11 @@ void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_quer
   bool immediately_fail_query = false;
   if (!immediately_fail_query) {
     net_query->debug(PSTRING() << get_name() << ": send to " << info->connection_->get_debug_str());
-    auto r_message_id = info->connection_->send_query(
+    message_id = info->connection_->send_query(
         net_query->query().clone(), net_query->gzip_flag() == NetQuery::GzipFlag::On, message_id,
         invoke_after_message_ids, static_cast<bool>(net_query->quick_ack_promise_));
 
     net_query->on_net_write(net_query->query().size());
-
-    if (r_message_id.is_error()) {
-      LOG(FATAL) << "Failed to send query: " << r_message_id.error();
-    }
-    message_id = r_message_id.ok();
   } else {
     if (message_id == mtproto::MessageId()) {
       message_id = auth_data_.next_message_id(now);

@@ -68,9 +68,8 @@ class SessionConnection final
   unique_ptr<RawConnection> move_as_raw_connection();
 
   // Interface
-  Result<MessageId> TD_WARN_UNUSED_RESULT send_query(BufferSlice buffer, bool gzip_flag, MessageId message_id = {},
-                                                     vector<MessageId> invoke_after_message_ids = {},
-                                                     bool use_quick_ack = false);
+  MessageId send_query(BufferSlice buffer, bool gzip_flag, MessageId message_id,
+                       vector<MessageId> invoke_after_message_ids, bool use_quick_ack);
 
   std::pair<MessageId, BufferSlice> encrypted_bind(int64 perm_key, int64 nonce, int32 expires_at);
 
