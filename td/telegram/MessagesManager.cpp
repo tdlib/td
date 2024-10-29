@@ -17524,6 +17524,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
       can_send_message(dialog_id).is_ok();
   auto can_be_replied_in_another_chat = can_be_forwarded && m->message_id.is_server();
   auto can_be_shared_in_story = can_share_message_in_story(dialog_id, m);
+  auto can_edit_media = can_edit_message_media(dialog_id, m, false);
   auto can_edit_scheduling_state = m->message_id.is_valid_scheduled() && m->message_id.is_scheduled_server();
   auto can_get_statistics = can_get_message_statistics(dialog_id, m);
   auto can_get_message_thread = get_top_thread_message_full_id(dialog_id, m, false).is_ok();
@@ -17546,7 +17547,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   promise.set_value(td_api::make_object<td_api::messageProperties>(
       can_be_copied_to_secret_chat, can_delete_for_self, can_delete_for_all_users, can_be_edited, can_be_forwarded,
       can_be_paid, can_be_pinned, can_be_replied, can_be_replied_in_another_chat, can_be_saved, can_be_shared_in_story,
-      can_edit_scheduling_state, can_get_embedding_code, can_get_link, can_get_media_timestamp_links,
+      can_edit_media, can_edit_scheduling_state, can_get_embedding_code, can_get_link, can_get_media_timestamp_links,
       can_get_message_thread, can_get_read_date, can_get_statistics, can_get_viewers, can_recognize_speech,
       can_report_chat, can_report_reactions, can_report_supergroup_spam, can_set_fact_check, need_show_statistics));
 }
@@ -25680,6 +25681,30 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
   }
 }
 
+bool MessagesManager::can_edit_message_media(DialogId dialog_id, const Message *m, bool is_editing) const {
+  if (!can_edit_message(dialog_id, m, is_editing)) {
+    return false;
+  }
+  if (m->video_processing_pending) {
+    return false;
+  }
+  switch (m->content->get_type()) {
+    case MessageContentType::Text:
+    case MessageContentType::Animation:
+    case MessageContentType::Audio:
+    case MessageContentType::Document:
+    case MessageContentType::Photo:
+    case MessageContentType::Video:
+      break;
+    default:
+      return false;
+  }
+  if (!m->ttl.is_empty()) {
+    return false;
+  }
+  return true;
+}
+
 Status MessagesManager::can_pin_message(DialogId dialog_id, const Message *m) const {
   if (m == nullptr) {
     return Status::Error(400, "Message not found");
@@ -26021,22 +26046,10 @@ void MessagesManager::edit_message_media(MessageFullId message_full_id,
   if (m == nullptr) {
     return promise.set_error(Status::Error(400, "Message not found"));
   }
-  if (!can_edit_message(dialog_id, m, true)) {
-    return promise.set_error(Status::Error(400, "Message can't be edited"));
+  if (!can_edit_message_media(dialog_id, m, true)) {
+    return promise.set_error(Status::Error(400, "Message media can't be edited"));
   }
   CHECK(m->message_id.is_any_server());
-
-  MessageContentType old_message_content_type = m->content->get_type();
-  if (old_message_content_type != MessageContentType::Text &&
-      old_message_content_type != MessageContentType::Animation &&
-      old_message_content_type != MessageContentType::Audio &&
-      old_message_content_type != MessageContentType::Document &&
-      old_message_content_type != MessageContentType::Photo && old_message_content_type != MessageContentType::Video) {
-    return promise.set_error(Status::Error(400, "The message can't be edited with a media"));
-  }
-  if (!m->ttl.is_empty()) {
-    return promise.set_error(Status::Error(400, "Can't edit media in self-destructing message"));
-  }
 
   TRY_RESULT_PROMISE(promise, content, process_input_message_content(dialog_id, std::move(input_message_content)));
   if (!content.ttl.is_empty()) {
@@ -26044,6 +26057,7 @@ void MessagesManager::edit_message_media(MessageFullId message_full_id,
   }
 
   if (m->media_album_id != 0) {
+    auto old_message_content_type = m->content->get_type();
     auto new_content_type = content.content->get_type();
     if (old_message_content_type != new_content_type) {
       if (!is_allowed_media_group_content(new_content_type)) {
