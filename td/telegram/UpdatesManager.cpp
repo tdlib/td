@@ -4416,8 +4416,14 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDeleteScheduled
   vector<ScheduledServerMessageId> message_ids = transform(update->messages_, [](int32 scheduled_server_message_id) {
     return ScheduledServerMessageId(scheduled_server_message_id);
   });
-
-  td_->messages_manager_->on_update_delete_scheduled_messages(DialogId(update->peer_), std::move(message_ids));
+  auto dialog_id = DialogId(update->peer_);
+  td_->messages_manager_->on_update_delete_scheduled_messages(dialog_id, std::move(message_ids));
+  if (!td_->auth_manager_->is_bot()) {
+    for (auto message_id : update->sent_messages_) {
+      td_->messages_manager_->on_update_message_video_published(
+          {DialogId(dialog_id), MessageId(ServerMessageId(message_id))});
+    }
+  }
   promise.set_value(Unit());
 }
 

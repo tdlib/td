@@ -13903,6 +13903,10 @@ MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const 
   if (need_update) {
     send_update_new_message(d, m);
   }
+  if (!td_->auth_manager_->is_bot() && !message_id.is_scheduled() &&
+      published_video_message_full_ids_.erase({dialog_id, message_id}) != 0) {
+    send_update_video_published({dialog_id, message_id});
+  }
 
   if (is_sent_message) {
     if (try_add_active_live_location(dialog_id, m)) {
@@ -27754,6 +27758,21 @@ bool MessagesManager::on_update_message_id(int64 random_id, MessageId new_messag
   return true;
 }
 
+void MessagesManager::on_update_message_video_published(MessageFullId message_full_id) {
+  Dialog *d = get_dialog_force(message_full_id.get_dialog_id());
+  if (d == nullptr) {
+    return;
+  }
+  auto message_id = message_full_id.get_message_id();
+  if (have_message_force(d, message_id, "on_update_message_video_published")) {
+    return send_update_video_published(message_full_id);
+  }
+  if (is_deleted_message(d, message_id)) {
+    return;
+  }
+  published_video_message_full_ids_.insert(message_full_id);
+}
+
 bool MessagesManager::on_get_message_error(DialogId dialog_id, MessageId message_id, const Status &status,
                                            const char *source) {
   if (status.message() == "MSG_ID_INVALID" || status.message() == "MESSAGE_ID_INVALID" ||
@@ -29067,6 +29086,13 @@ void MessagesManager::send_update_message_send_succeeded(Dialog *d, MessageId ol
                    get_message_object(d->dialog_id, m, "send_update_message_send_succeeded"), old_message_id.get()));
 }
 
+void MessagesManager::send_update_video_published(MessageFullId message_full_id) {
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateVideoPublished>(
+                   get_chat_id_object(message_full_id.get_dialog_id(), "updateVideoPublished"),
+                   message_full_id.get_message_id().get()));
+}
+
 void MessagesManager::send_update_message_content(const Dialog *d, Message *m, bool is_message_in_dialog,
                                                   const char *source) {
   CHECK(d != nullptr);
@@ -29151,8 +29177,9 @@ void MessagesManager::send_update_message_fact_check(DialogId dialog_id, const M
 void MessagesManager::send_update_message_live_location_viewed(MessageFullId message_full_id) {
   CHECK(get_message(message_full_id) != nullptr);
   send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateMessageLiveLocationViewed>(message_full_id.get_dialog_id().get(),
-                                                                            message_full_id.get_message_id().get()));
+               td_api::make_object<td_api::updateMessageLiveLocationViewed>(
+                   get_chat_id_object(message_full_id.get_dialog_id(), "updateMessageLiveLocationViewed"),
+                   message_full_id.get_message_id().get()));
 }
 
 td_api::object_ptr<td_api::updateActiveLiveLocationMessages>
