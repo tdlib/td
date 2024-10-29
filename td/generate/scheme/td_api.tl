@@ -3876,7 +3876,7 @@ messageSchedulingStateSendAtDate send_date:int32 = MessageSchedulingState;
 //@description The message will be sent when the other user is online. Applicable to private chats only and when the exact online status of the other user is known
 messageSchedulingStateSendWhenOnline = MessageSchedulingState;
 
-//@description The message will be sent when the video in the message will be processed; can be used only by the server
+//@description The message will be sent when the video in the message will be converted and optimized; can be used only by the server
 //@send_date Approximate point in time (Unix timestamp) when the message is expected to be send
 messageSchedulingStateSendWhenVideoProcessed send_date:int32 = MessageSchedulingState;
 
@@ -9024,8 +9024,9 @@ editInlineMessageReplyMarkup inline_message_id:string reply_markup:ReplyMarkup =
 //@description Edits the time when a scheduled message will be sent. Scheduling state of all messages in the same album or forwarded together with the message will be also changed
 //@chat_id The chat the message belongs to
 //@message_id Identifier of the message. Use messageProperties.can_edit_scheduling_state to check whether the message is suitable
-//@scheduling_state The new message scheduling state; pass null to send the message immediately
+//@scheduling_state The new message scheduling state; pass null to send the message immediately. Must be null for messages in the state messageSchedulingStateSendWhenVideoProcessed
 editMessageSchedulingState chat_id:int53 message_id:int53 scheduling_state:MessageSchedulingState = Ok;
+
 
 //@description Changes the fact-check of a message. Can be only used if messageProperties.can_set_fact_check == true
 //@chat_id The channel chat the message belongs to
