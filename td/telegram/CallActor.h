@@ -131,6 +131,7 @@ class CallActor final : public NetQueryCallback {
     WaitAcceptResult,
     SendConfirmQuery,
     WaitConfirmResult,
+    Ready,
     SendDiscardQuery,
     WaitDiscardResult,
     Discarded
