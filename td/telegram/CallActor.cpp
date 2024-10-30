@@ -522,7 +522,6 @@ Status CallActor::do_update_call(const telegram_api::phoneCallWaiting &call) {
   is_call_id_inited_ = true;
   is_video_ |= call.video_;
   call_admin_user_id_ = UserId(call.admin_id_);
-  // call_participant_user_id_ = UserId(call.participant_id_);
   on_get_call_id();
 
   if (!call_state_.is_created) {
@@ -543,7 +542,6 @@ Status CallActor::do_update_call(const telegram_api::phoneCallRequested &call) {
   is_call_id_inited_ = true;
   is_video_ |= call.video_;
   call_admin_user_id_ = UserId(call.admin_id_);
-  // call_participant_user_id_ = UserId(call.participant_id_);
   on_get_call_id();
 
   dh_handshake_.set_g_a_hash(call.g_a_hash_.as_slice());
@@ -574,7 +572,6 @@ Status CallActor::do_update_call(const telegram_api::phoneCallAccepted &call) {
     call_access_hash_ = call.access_hash_;
     is_call_id_inited_ = true;
     call_admin_user_id_ = UserId(call.admin_id_);
-    // call_participant_user_id_ = UserId(call.participant_id_);
     on_get_call_id();
   }
   is_video_ |= call.video_;
