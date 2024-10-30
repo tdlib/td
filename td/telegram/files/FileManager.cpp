@@ -2584,6 +2584,7 @@ void FileManager::try_flush_node_info(FileNodePtr node, const char *source) {
     for (auto file_id : vector<FileId>(node->file_ids_)) {
       VLOG(update_file) << "Send UpdateFile about file " << file_id << " from " << source;
       context_->on_file_updated(file_id);
+      get_file_id_info(file_id)->pin_flag_ = true;
       auto it = file_download_requests_.find(file_id);
       if (it != file_download_requests_.end()) {
         for (auto &download_info : it->second.internal_downloads_) {
