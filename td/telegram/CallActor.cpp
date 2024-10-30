@@ -501,7 +501,7 @@ Status CallActor::do_update_call(const telegram_api::phoneCallEmpty &call) {
 
 Status CallActor::do_update_call(const telegram_api::phoneCallWaiting &call) {
   if (state_ != State::WaitRequestResult && state_ != State::WaitAcceptResult) {
-    return Status::Error(500, PSLICE() << "Drop unexpected " << to_string(call));
+    return Status::OK();
   }
 
   if (state_ == State::WaitAcceptResult) {
@@ -535,7 +535,7 @@ Status CallActor::do_update_call(const telegram_api::phoneCallWaiting &call) {
 
 Status CallActor::do_update_call(const telegram_api::phoneCallRequested &call) {
   if (state_ != State::Empty) {
-    return Status::Error(500, PSLICE() << "Drop unexpected " << to_string(call));
+    return Status::OK();
   }
   LOG(DEBUG) << "Do update call to Requested";
   call_id_ = call.id_;
@@ -565,7 +565,7 @@ tl_object_ptr<telegram_api::inputPhoneCall> CallActor::get_input_phone_call(cons
 
 Status CallActor::do_update_call(const telegram_api::phoneCallAccepted &call) {
   if (state_ != State::WaitRequestResult) {
-    return Status::Error(500, PSLICE() << "Drop unexpected " << to_string(call));
+    return Status::OK();
   }
 
   LOG(DEBUG) << "Do update call to Accepted";
@@ -597,7 +597,7 @@ void CallActor::on_begin_exchanging_key() {
 
 Status CallActor::do_update_call(const telegram_api::phoneCall &call) {
   if (state_ != State::WaitAcceptResult && state_ != State::WaitConfirmResult) {
-    return Status::Error(500, PSLICE() << "Drop unexpected " << to_string(call));
+    return Status::OK();
   }
   cancel_timeout();
 
