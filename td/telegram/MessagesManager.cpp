@@ -13643,9 +13643,6 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     LOG(ERROR) << "Receive pinned " << message_id << " in " << dialog_id;
     is_pinned = false;
   }
-  if (message_info.is_from_scheduled && is_outgoing && is_bot) {
-    is_outgoing = false;
-  }
 
   bool has_mention =
       message_info.has_mention || (content_type == MessageContentType::PinMessage &&
@@ -23228,6 +23225,9 @@ td_api::object_ptr<td_api::message> MessagesManager::get_message_object(DialogId
     is_outgoing =
         is_scheduled || m->forward_info == nullptr ||
         (!m->forward_info->get_last_dialog_id().is_valid() && !m->forward_info->get_origin().is_sender_hidden());
+  }
+  if (m->is_from_scheduled && is_outgoing && is_bot) {
+    is_outgoing = false;
   }
 
   double ttl_expires_in =
