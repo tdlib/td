@@ -3876,8 +3876,8 @@ messageSchedulingStateSendAtDate send_date:int32 = MessageSchedulingState;
 //@description The message will be sent when the other user is online. Applicable to private chats only and when the exact online status of the other user is known
 messageSchedulingStateSendWhenOnline = MessageSchedulingState;
 
-//@description The message will be sent when the video in the message will be converted and optimized; can be used only by the server
-//@send_date Approximate point in time (Unix timestamp) when the message is expected to be send
+//@description The message will be sent when the video in the message is converted and optimized; can be used only by the server
+//@send_date Approximate point in time (Unix timestamp) when the message is expected to be sent
 messageSchedulingStateSendWhenVideoProcessed send_date:int32 = MessageSchedulingState;
 
 

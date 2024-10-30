@@ -7,6 +7,7 @@
 #include "td/telegram/SponsoredMessageManager.h"
 
 #include "td/telegram/AccentColorId.h"
+#include "td/telegram/AccessRights.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
