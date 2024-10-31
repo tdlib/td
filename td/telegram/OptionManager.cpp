@@ -711,7 +711,7 @@ td_api::object_ptr<td_api::OptionValue> OptionManager::get_option_synchronously(
       break;
     case 'v':
       if (name == "version") {
-        return td_api::make_object<td_api::optionValueString>("1.8.38");
+        return td_api::make_object<td_api::optionValueString>("1.8.39");
       }
       break;
   }
