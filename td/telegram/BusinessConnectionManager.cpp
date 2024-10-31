@@ -124,6 +124,9 @@ struct BusinessConnectionManager::PendingMessage {
 
   void init_file_upload_ids(Td *td) {
     CHECK(file_upload_id_ == FileUploadId());
+    if (content_->get_type() == MessageContentType::PaidMedia) {
+      return;
+    }
     auto file_id =
         get_message_content_any_file_id(content_.get());  // any_file_id, because it could be a photo sent by ID
     if (!file_id.is_valid()) {
