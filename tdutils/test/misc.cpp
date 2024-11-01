@@ -322,6 +322,29 @@ TEST(Misc, bench_zero_encode) {
   td::bench(ZeroEncodeBenchmark());
 }
 
+static void test_vector_split(td::vector<char> v, std::size_t size, const td::vector<td::vector<char>> &expected) {
+  auto split = td::vector_split(std::move(v), size);
+  if (expected != split) {
+    LOG(FATAL) << "Receive " << split << ", expected " << expected << " in vector_split";
+  }
+}
+
+TEST(Misc, vector_split) {
+  test_vector_split({}, 1, {});
+  test_vector_split({}, 2, {});
+  test_vector_split({'1'}, 1, {{'1'}});
+  test_vector_split({'1'}, 2, {{'1'}});
+  td::vector<char> v{'1', '2', '3', '4', '5', '6'};
+  test_vector_split(v, 1, {{'1'}, {'2'}, {'3'}, {'4'}, {'5'}, {'6'}});
+  test_vector_split(v, 2, {{'1', '2'}, {'3', '4'}, {'5', '6'}});
+  test_vector_split(v, 3, {{'1', '2', '3'}, {'4', '5', '6'}});
+  test_vector_split(v, 4, {{'1', '2', '3', '4'}, {'5', '6'}});
+  test_vector_split(v, 5, {{'1', '2', '3', '4', '5'}, {'6'}});
+  test_vector_split(v, 6, {v});
+  test_vector_split(v, 7, {v});
+  test_vector_split(v, 107, {v});
+}
+
 template <class T>
 static void test_remove_if(td::vector<int> v, const T &func, const td::vector<int> &expected) {
   td::remove_if(v, func);
