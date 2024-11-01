@@ -10192,16 +10192,14 @@ void MessagesManager::delete_messages_on_server(DialogId dialog_id, vector<Messa
     case DialogType::Chat:
     case DialogType::Channel: {
       auto server_message_ids = MessageId::get_server_message_ids(message_ids);
-      const size_t MAX_SLICE_SIZE = 100;  // server side limit
-      for (size_t i = 0; i < server_message_ids.size(); i += MAX_SLICE_SIZE) {
-        auto end_i = i + MAX_SLICE_SIZE;
-        auto end = end_i < server_message_ids.size() ? server_message_ids.begin() + end_i : server_message_ids.end();
+      const size_t MAX_SLICE_SIZE = 100;  // server-side limit
+      for (auto &slice_server_message_ids : vector_split(std::move(server_message_ids), MAX_SLICE_SIZE)) {
         if (dialog_type != DialogType::Channel) {
           td_->create_handler<DeleteMessagesQuery>(mpas.get_promise())
-              ->send(dialog_id, {server_message_ids.begin() + i, end}, revoke);
+              ->send(dialog_id, std::move(slice_server_message_ids), revoke);
         } else {
           td_->create_handler<DeleteChannelMessagesQuery>(mpas.get_promise())
-              ->send(dialog_id.get_channel_id(), {server_message_ids.begin() + i, end});
+              ->send(dialog_id.get_channel_id(), std::move(slice_server_message_ids));
         }
       }
       break;

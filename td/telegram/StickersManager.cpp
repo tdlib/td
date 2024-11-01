@@ -5816,9 +5816,8 @@ void StickersManager::on_update_disable_animated_emojis() {
   }
 
   if (!disable_animated_emojis_) {
-    for (size_t i = 0; i < custom_emoji_ids.size(); i += MAX_GET_CUSTOM_EMOJI_STICKERS) {
-      auto end_i = td::min(i + MAX_GET_CUSTOM_EMOJI_STICKERS, custom_emoji_ids.size());
-      get_custom_emoji_stickers({custom_emoji_ids.begin() + i, custom_emoji_ids.begin() + end_i}, true, Auto());
+    for (auto &slice_custom_emoji_ids : vector_split(std::move(custom_emoji_ids), MAX_GET_CUSTOM_EMOJI_STICKERS)) {
+      get_custom_emoji_stickers(std::move(slice_custom_emoji_ids), true, Auto());
     }
   }
 }
@@ -6457,9 +6456,8 @@ void StickersManager::get_custom_emoji_stickers_unlimited(vector<CustomEmojiId> 
                      std::move(promise));
       }));
   auto lock = mpas.get_promise();
-  for (size_t i = 0; i < custom_emoji_ids.size(); i += MAX_GET_CUSTOM_EMOJI_STICKERS) {
-    auto end_i = td::min(i + MAX_GET_CUSTOM_EMOJI_STICKERS, custom_emoji_ids.size());
-    get_custom_emoji_stickers({custom_emoji_ids.begin() + i, custom_emoji_ids.begin() + end_i}, true,
+  for (auto &slice_custom_emoji_ids : vector_split(std::move(custom_emoji_ids), MAX_GET_CUSTOM_EMOJI_STICKERS)) {
+    get_custom_emoji_stickers(std::move(slice_custom_emoji_ids), true,
                               PromiseCreator::lambda([promise = mpas.get_promise()](
                                                          Result<td_api::object_ptr<td_api::stickers>> result) mutable {
                                 if (result.is_ok()) {
