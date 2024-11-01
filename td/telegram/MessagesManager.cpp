@@ -8666,7 +8666,8 @@ void MessagesManager::after_get_difference() {
         CHECK(d != nullptr);
         if (dialog_id.get_type() == DialogType::Channel || message_id <= d->last_new_message_id) {
           LOG(ERROR) << "Receive updateMessageId from " << old_message_id << " to " << message_full_id
-                     << " but not receive corresponding message, last_new_message_id = " << d->last_new_message_id;
+                     << " but didn't receive the corresponding message, last_new_message_id = "
+                     << d->last_new_message_id;
         }
         if (message_id <= d->last_new_message_id || td_->auth_manager_->is_bot()) {
           get_message_from_server(
@@ -17362,19 +17363,17 @@ void MessagesManager::get_callback_query_message(DialogId dialog_id, MessageId m
   get_message_force_from_server(d, message_id, std::move(promise), std::move(input_message));
 }
 
-bool MessagesManager::get_messages(DialogId dialog_id, const vector<MessageId> &message_ids, Promise<Unit> &&promise) {
+void MessagesManager::get_messages(DialogId dialog_id, const vector<MessageId> &message_ids, Promise<Unit> &&promise) {
   Dialog *d = get_dialog_force(dialog_id, "get_messages");
   if (d == nullptr) {
-    promise.set_error(Status::Error(400, "Chat not found"));
-    return false;
+    return promise.set_error(Status::Error(400, "Chat not found"));
   }
 
   bool is_secret = dialog_id.get_type() == DialogType::SecretChat;
   vector<MessageFullId> missed_message_ids;
   for (auto message_id : message_ids) {
     if (!message_id.is_valid() && !message_id.is_valid_scheduled()) {
-      promise.set_error(Status::Error(400, "Invalid message identifier"));
-      return false;
+      return promise.set_error(Status::Error(400, "Invalid message identifier"));
     }
 
     auto *m = get_message_force(d, message_id, "get_messages");
@@ -17385,12 +17384,10 @@ bool MessagesManager::get_messages(DialogId dialog_id, const vector<MessageId> &
   }
 
   if (!missed_message_ids.empty()) {
-    get_messages_from_server(std::move(missed_message_ids), std::move(promise), "get_messages");
-    return false;
+    return get_messages_from_server(std::move(missed_message_ids), std::move(promise), "get_messages");
   }
 
   promise.set_value(Unit());
-  return true;
 }
 
 void MessagesManager::get_message_from_server(MessageFullId message_full_id, Promise<Unit> &&promise,

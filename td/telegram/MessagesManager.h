@@ -588,7 +588,7 @@ class MessagesManager final : public Actor {
   void get_callback_query_message(DialogId dialog_id, MessageId message_id, int64 callback_query_id,
                                   Promise<Unit> &&promise);
 
-  bool get_messages(DialogId dialog_id, const vector<MessageId> &message_ids, Promise<Unit> &&promise);
+  void get_messages(DialogId dialog_id, const vector<MessageId> &message_ids, Promise<Unit> &&promise);
 
   void get_message_from_server(MessageFullId message_full_id, Promise<Unit> &&promise, const char *source,
                                tl_object_ptr<telegram_api::InputMessage> input_message = nullptr);
