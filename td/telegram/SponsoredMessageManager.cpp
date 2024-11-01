@@ -236,6 +236,7 @@ struct SponsoredMessageManager::DialogSponsoredMessages {
   FlatHashMap<int64, SponsoredMessageInfo> message_infos;
   int32 messages_between = 0;
   bool is_premium = false;
+  bool sponsored_enabled = false;
 };
 
 SponsoredMessageManager::SponsoredMessageManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
@@ -309,7 +310,8 @@ void SponsoredMessageManager::get_dialog_sponsored_messages(
 
   auto &messages = dialog_sponsored_messages_[dialog_id];
   if (messages != nullptr && messages->promises.empty()) {
-    if (messages->is_premium == td_->option_manager_->get_option_boolean("is_premium", false)) {
+    if (messages->is_premium == td_->option_manager_->get_option_boolean("is_premium", false) &&
+        messages->sponsored_enabled == td_->user_manager_->get_my_sponsored_enabled()) {
       // use cached value
       return promise.set_value(get_sponsored_messages_object(dialog_id, *messages));
     } else {
@@ -417,6 +419,7 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
       UNREACHABLE();
   }
   messages->is_premium = td_->option_manager_->get_option_boolean("is_premium", false);
+  messages->sponsored_enabled = td_->user_manager_->get_my_sponsored_enabled();
 
   for (auto &promise : promises) {
     promise.set_value(get_sponsored_messages_object(dialog_id, *messages));

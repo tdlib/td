@@ -4467,6 +4467,18 @@ bool UserManager::get_user_voice_messages_forbidden(UserId user_id) const {
   return false;
 }
 
+bool UserManager::get_my_sponsored_enabled() const {
+  auto user_id = get_my_id();
+  if (!is_user_premium(user_id)) {
+    return true;
+  }
+  auto user_full = get_user_full(user_id);
+  if (user_full != nullptr) {
+    return user_full->sponsored_enabled;
+  }
+  return true;
+}
+
 bool UserManager::get_user_read_dates_private(UserId user_id) {
   auto user_full = get_user_full_force(user_id, "get_user_read_dates_private");
   if (user_full != nullptr) {

@@ -283,6 +283,8 @@ class UserManager final : public Actor {
 
   bool get_user_voice_messages_forbidden(UserId user_id) const;
 
+  bool get_my_sponsored_enabled() const;
+
   bool get_user_read_dates_private(UserId user_id);
 
   string get_user_search_text(UserId user_id) const;
