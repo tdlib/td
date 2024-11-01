@@ -2901,7 +2901,7 @@ class MessagesManager final : public Actor {
   void ttl_db_on_result(Result<std::vector<MessageDbMessage>> r_result, bool dummy);
 
   void on_restore_missing_message_after_get_difference(MessageFullId message_full_id, MessageId old_message_id,
-                                                       Result<Unit> result);
+                                                       bool is_recursive, Result<Unit> result);
 
   void on_get_message_link_dialog(MessageLinkInfo &&info, DialogId dialog_id, Promise<MessageLinkInfo> &&promise);
 

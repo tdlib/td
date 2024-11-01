@@ -8673,7 +8673,7 @@ void MessagesManager::after_get_difference() {
               message_full_id,
               PromiseCreator::lambda([actor_id = actor_id(this), message_full_id, old_message_id](Result<Unit> result) {
                 send_closure(actor_id, &MessagesManager::on_restore_missing_message_after_get_difference,
-                             message_full_id, old_message_id, std::move(result));
+                             message_full_id, old_message_id, false, std::move(result));
               }),
               "get missing");
         } else if (dialog_id.get_type() == DialogType::Channel) {
@@ -8711,11 +8711,28 @@ void MessagesManager::after_get_difference() {
 }
 
 void MessagesManager::on_restore_missing_message_after_get_difference(MessageFullId message_full_id,
-                                                                      MessageId old_message_id, Result<Unit> result) {
+                                                                      MessageId old_message_id, bool is_recursive,
+                                                                      Result<Unit> result) {
   if (result.is_error()) {
-    LOG(WARNING) << "Failed to get missing " << message_full_id << " for " << old_message_id << ": " << result.error();
+    if (is_recursive) {
+      LOG(WARNING) << "Failed to get missing " << message_full_id << " for " << old_message_id << ": "
+                   << result.error();
+    } else {
+      create_actor<SleepActor>(
+          "RestoreMissingMessageSleepActor", 1.0,
+          PromiseCreator::lambda([actor_id = actor_id(this), message_full_id, old_message_id](Result<Unit> result) {
+            send_closure(actor_id, &MessagesManager::get_message_from_server, message_full_id,
+                         PromiseCreator::lambda([actor_id, message_full_id, old_message_id](Result<Unit> result) {
+                           send_closure(actor_id, &MessagesManager::on_restore_missing_message_after_get_difference,
+                                        message_full_id, old_message_id, true, std::move(result));
+                         }),
+                         "on_restore_missing_message_after_get_difference recursive", nullptr);
+          }))
+          .release();
+    }
   } else {
-    LOG(WARNING) << "Successfully get missing " << message_full_id << " for " << old_message_id;
+    LOG(WARNING) << "Successfully get missing " << message_full_id << " for " << old_message_id
+                 << (is_recursive ? " from the second try" : "");
 
     bool have_message = have_message_force(message_full_id, "on_restore_missing_message_after_get_difference");
     if (!have_message && update_message_ids_.count(message_full_id)) {
