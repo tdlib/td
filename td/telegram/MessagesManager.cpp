@@ -17447,8 +17447,9 @@ void MessagesManager::get_messages_from_server(vector<MessageFullId> &&message_i
   mpas.add_promise(std::move(promise));
   auto lock = mpas.get_promise();
 
-  if (!ordinary_message_ids.empty()) {
-    td_->create_handler<GetMessagesQuery>(mpas.get_promise())->send(std::move(ordinary_message_ids));
+  const size_t MAX_SLICE_SIZE = 200;  // server-side limit
+  for (auto &slice_ordinary_message_ids : vector_split(std::move(ordinary_message_ids), MAX_SLICE_SIZE)) {
+    td_->create_handler<GetMessagesQuery>(mpas.get_promise())->send(std::move(slice_ordinary_message_ids));
   }
 
   for (auto &it : scheduled_message_ids) {
@@ -17473,9 +17474,11 @@ void MessagesManager::get_messages_from_server(vector<MessageFullId> &&message_i
       continue;
     }
     const auto *d = get_dialog_force(DialogId(it.first));
-    td_->create_handler<GetChannelMessagesQuery>(mpas.get_promise())
-        ->send(it.first, std::move(input_channel), std::move(it.second),
-               d == nullptr ? MessageId() : d->last_new_message_id);
+    for (auto &slice_message_ids : vector_split(std::move(it.second), MAX_SLICE_SIZE)) {
+      td_->create_handler<GetChannelMessagesQuery>(mpas.get_promise())
+          ->send(it.first, std::move(input_channel), std::move(slice_message_ids),
+                 d == nullptr ? MessageId() : d->last_new_message_id);
+    }
   }
   lock.set_value(Unit());
 }
