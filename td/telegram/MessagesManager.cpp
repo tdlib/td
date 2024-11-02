@@ -13946,32 +13946,34 @@ MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const 
     return MessageFullId();
   }
 
-  if (m->message_id.is_scheduled()) {
-    send_update_chat_has_scheduled_messages(d, false);
-  }
+  if (!td_->auth_manager_->is_bot()) {
+    if (m->message_id.is_scheduled()) {
+      send_update_chat_has_scheduled_messages(d, false);
+    }
 
-  if (need_update_dialog_pos) {
-    send_update_chat_last_message(d, "on_get_message");
-  }
+    if (need_update_dialog_pos) {
+      send_update_chat_last_message(d, "on_get_message");
+    }
 
-  // set dialog reply markup only after updateNewMessage and updateChatLastMessage are sent
-  if (need_update && m->reply_markup != nullptr && !m->message_id.is_scheduled() &&
-      m->reply_markup->type != ReplyMarkup::Type::InlineKeyboard && m->reply_markup->is_personal &&
-      !td_->auth_manager_->is_bot()) {
-    set_dialog_reply_markup(d, message_id);
-  }
+    // set dialog reply markup only after updateNewMessage and updateChatLastMessage are sent
+    if (need_update && m->reply_markup != nullptr && !m->message_id.is_scheduled() &&
+        m->reply_markup->type != ReplyMarkup::Type::InlineKeyboard && m->reply_markup->is_personal) {
+      set_dialog_reply_markup(d, message_id);
+    }
 
-  if (from_update) {
-    auto it = pending_created_dialogs_.find(dialog_id);
-    if (it != pending_created_dialogs_.end()) {
-      auto pending_created_dialog = std::move(it->second);
-      pending_created_dialogs_.erase(it);
+    if (from_update) {
+      auto it = pending_created_dialogs_.find(dialog_id);
+      if (it != pending_created_dialogs_.end()) {
+        auto pending_created_dialog = std::move(it->second);
+        pending_created_dialogs_.erase(it);
 
-      if (pending_created_dialog.chat_promise_) {
-        pending_created_dialog.chat_promise_.set_value(td_api::make_object<td_api::createdBasicGroupChat>(
-            get_chat_id_object(dialog_id, "on_get_message"), std::move(pending_created_dialog.failed_to_add_members_)));
-      } else {
-        pending_created_dialog.channel_promise_.set_value(get_chat_object(d, "on_get_message"));
+        if (pending_created_dialog.chat_promise_) {
+          pending_created_dialog.chat_promise_.set_value(td_api::make_object<td_api::createdBasicGroupChat>(
+              get_chat_id_object(dialog_id, "on_get_message"),
+              std::move(pending_created_dialog.failed_to_add_members_)));
+        } else {
+          pending_created_dialog.channel_promise_.set_value(get_chat_object(d, "on_get_message"));
+        }
       }
     }
   }
