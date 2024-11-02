@@ -13828,7 +13828,7 @@ MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const 
     CHECK(d != nullptr);
 
     if (!from_update && !message_id.is_scheduled()) {
-      if (message_id <= d->last_new_message_id) {
+      if (message_id <= d->last_new_message_id || td_->auth_manager_->is_bot()) {
         if (get_message_force(d, message_id, "receive missed unsent message not from update") != nullptr) {
           LOG(ERROR) << "New " << old_message_id << "/" << message_id << " in " << dialog_id << " from " << source
                      << " has identifier less than last_new_message_id = " << d->last_new_message_id;
@@ -13836,10 +13836,9 @@ MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const 
         }
         // if there is no message yet, then it is likely was missed because of a server bug and is being repaired via
         // get_message_from_server from after_get_difference
-        // TODO move to INFO
-        LOG(ERROR) << "Receive " << old_message_id << "/" << message_id << " in " << dialog_id << " from " << source
-                   << " with identifier less than last_new_message_id = " << d->last_new_message_id
-                   << " and trying to add it anyway";
+        LOG(INFO) << "Receive " << old_message_id << "/" << message_id << " in " << dialog_id << " from " << source
+                  << " with identifier less than last_new_message_id = " << d->last_new_message_id
+                  << " and trying to add it anyway";
       } else {
         LOG(INFO) << "Ignore " << old_message_id << "/" << message_id << " received not through update from " << source
                   << ": " << oneline(to_string(get_message_object(dialog_id, new_message.get(), "on_get_message")));
