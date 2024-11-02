@@ -57,9 +57,18 @@ vector<vector<T>> vector_split(vector<T> &&v, std::size_t size) {
     return result;
   }
   for (size_t i = 0; i + 1 < result.size(); i++) {
-    result[i] = vector<T>(v.begin() + i * size, v.begin() + (i + 1) * size);
+    auto &slice = result[i];
+    slice.reserve(size);
+    for (size_t j = 0; j < size; j++) {
+      slice.push_back(std::move(v[i * size + j]));
+    }
   }
-  result.back() = vector<T>(v.begin() + (result.size() - 1) * size, v.end());
+  auto &slice = result.back();
+  auto offset = (result.size() - 1) * size;
+  slice.reserve(v.size() - offset);
+  for (size_t j = offset; j < v.size(); j++) {
+    slice.push_back(std::move(v[j]));
+  }
   return result;
 }
 

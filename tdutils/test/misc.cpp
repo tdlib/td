@@ -343,6 +343,8 @@ TEST(Misc, vector_split) {
   test_vector_split(v, 6, {v});
   test_vector_split(v, 7, {v});
   test_vector_split(v, 107, {v});
+  v.push_back('7');
+  test_vector_split(v, 2, {{'1', '2'}, {'3', '4'}, {'5', '6'}, {'7'}});
 }
 
 template <class T>
