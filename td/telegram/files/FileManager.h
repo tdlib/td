@@ -522,7 +522,8 @@ class FileManager final : public Actor {
                      Promise<td_api::object_ptr<td_api::file>> &&promise);
 
   void download(FileId file_id, int64 internal_download_id, std::shared_ptr<DownloadCallback> callback,
-                int32 new_priority, int64 offset, int64 limit);
+                int32 new_priority, int64 offset, int64 limit,
+                Promise<td_api::object_ptr<td_api::file>> promise = Promise<td_api::object_ptr<td_api::file>>());
 
   void cancel_download(FileId file_id, int64 internal_download_id, bool only_if_pending);
 
@@ -880,7 +881,8 @@ class FileManager final : public Actor {
   void on_user_file_download_finished(FileId file_id);
 
   void download_impl(FileId file_id, int64 internal_download_id, std::shared_ptr<DownloadCallback> callback,
-                     int32 new_priority, int64 offset, int64 limit, Status check_status);
+                     int32 new_priority, int64 offset, int64 limit, Status check_status,
+                     Promise<td_api::object_ptr<td_api::file>> promise);
 
   std::shared_ptr<DownloadCallback> extract_download_callback(FileId file_id, int64 internal_download_id);
 

@@ -8334,7 +8334,8 @@ void MessagesManager::load_secret_thumbnail(FileUploadId thumbnail_file_upload_i
 
   auto internal_download_id = FileManager::get_internal_download_id();
   send_closure(G()->file_manager(), &FileManager::download, thumbnail_file_id, internal_download_id,
-               std::make_shared<Callback>(std::move(download_promise)), 1, -1, -1);
+               std::make_shared<Callback>(std::move(download_promise)), 1, -1, -1,
+               Promise<td_api::object_ptr<td_api::file>>());
 }
 
 void MessagesManager::on_upload_media(FileUploadId file_upload_id,

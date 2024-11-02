@@ -85,7 +85,7 @@ class FileDownloadGenerateActor final : public FileGenerateActor {
 
     internal_download_id_ = FileManager::get_internal_download_id();
     send_closure(G()->file_manager(), &FileManager::download, file_id_, internal_download_id_,
-                 std::make_shared<Callback>(actor_id(this)), 1, -1, -1);
+                 std::make_shared<Callback>(actor_id(this)), 1, -1, -1, Promise<td_api::object_ptr<td_api::file>>());
   }
   void hangup() final {
     send_closure(G()->file_manager(), &FileManager::cancel_download, file_id_, internal_download_id_, false);
