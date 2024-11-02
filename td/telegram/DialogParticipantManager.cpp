@@ -1482,6 +1482,10 @@ void DialogParticipantManager::on_update_channel_participant(
                << old_dialog_participant;
     new_dialog_participant.status_.toggle_can_be_edited();
   }
+  if (old_dialog_participant.status_.is_banned() && DialogId(user_id) == old_dialog_participant.dialog_id_) {
+    LOG(ERROR) << "User changed self status in " << channel_id << " from " << old_dialog_participant << " to "
+               << new_dialog_participant;
+  }
 
   if (old_dialog_participant.dialog_id_ == td_->dialog_manager_->get_my_dialog_id() &&
       old_dialog_participant.status_.is_administrator() && !new_dialog_participant.status_.is_administrator()) {
