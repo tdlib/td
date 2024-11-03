@@ -4,8 +4,8 @@ This is an example of building TDLib SDK for Universal Windows Platform and an e
 
 ## Building SDK
 
-* Download and install Microsoft Visual Studio 2015+ with Windows 10 SDK. We recommend to use the latest available versions of Microsoft Visual Studio and Windows 10 SDK.
-* Download and install [CMake](https://cmake.org/download/).
+* Download and install Microsoft Visual Studio 2017+ with Windows 10 SDK. We recommend to use the latest available versions of Microsoft Visual Studio and Windows 10 SDK.
+* Download and install [CMake](https://cmake.org/download/). CMake 3.13 or newer is required.
 * Install `zlib` and `openssl` for all UWP architectures and `gperf` for x86 using [vcpkg](https://github.com/Microsoft/vcpkg#quick-start):
 ```
 git clone https://github.com/Microsoft/vcpkg.git
