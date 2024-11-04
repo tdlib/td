@@ -2384,7 +2384,8 @@ mainWebApp url:string is_compact:Bool = MainWebApp;
 //@description Options to be used when a web app is opened
 //@theme Preferred Web App theme; pass null to use the default theme
 //@application_name Short name of the current application; 0-64 English letters, digits, and underscores
-webAppOpenParameters theme:themeParameters application_name:string = WebAppOpenParameters;
+//@is_compact Pass true if the app is opened in the compact mode; pass false if the app is open in the full-size mode or in the full-screen mode
+webAppOpenParameters theme:themeParameters application_name:string is_compact:Bool = WebAppOpenParameters;
 
 
 //@description Contains information about a message thread

@@ -203,6 +203,9 @@ class RequestSimpleWebViewQuery final : public Td::ResultHandler {
     } else {
       return on_error(Status::Error(400, "Invalid URL specified"));
     }
+    if (parameters.is_compact()) {
+      flags |= telegram_api::messages_requestSimpleWebView::COMPACT_MASK;
+    }
     send_query(G()->net_query_creator().create(telegram_api::messages_requestSimpleWebView(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_user), url,
         start_parameter, std::move(theme_parameters), parameters.get_application_name())));

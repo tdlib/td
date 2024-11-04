@@ -18,6 +18,7 @@ WebAppOpenParameters::WebAppOpenParameters(td_api::object_ptr<td_api::webAppOpen
     if (!clean_input_string(application_name_)) {
       application_name_.clear();
     }
+    is_compact_ = parameters->is_compact_;
   }
 }
 

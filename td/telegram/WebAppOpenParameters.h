@@ -16,6 +16,7 @@ namespace td {
 class WebAppOpenParameters {
   td_api::object_ptr<td_api::themeParameters> theme_parameters_;
   string application_name_;
+  bool is_compact_ = false;
 
  public:
   explicit WebAppOpenParameters(td_api::object_ptr<td_api::webAppOpenParameters> &&parameters);
@@ -24,6 +25,10 @@ class WebAppOpenParameters {
 
   const string &get_application_name() const {
     return application_name_;
+  }
+
+  bool is_compact() const {
+    return is_compact_;
   }
 };
 
