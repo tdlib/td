@@ -2347,6 +2347,10 @@ class CliClient final : public Actor {
                                                         55555, 555555, 123);
   }
 
+  static td_api::object_ptr<td_api::webAppOpenParameters> as_web_app_open_parameters() {
+    return td_api::make_object<td_api::webAppOpenParameters>(as_theme_parameters(), "android");
+  }
+
   static td_api::object_ptr<td_api::BackgroundFill> as_background_fill(int32 color) {
     return td_api::make_object<td_api::backgroundFillSolid>(color);
   }
@@ -5002,19 +5006,19 @@ class CliClient final : public Actor {
       string start_parameter;
       get_args(args, chat_id, bot_user_id, short_name, start_parameter);
       send_request(td_api::make_object<td_api::getWebAppLinkUrl>(chat_id, bot_user_id, short_name, start_parameter,
-                                                                 as_theme_parameters(), "android", true));
+                                                                 true, as_web_app_open_parameters()));
     } else if (op == "gmwa") {
       ChatId chat_id;
       UserId bot_user_id;
       string start_parameter;
       get_args(args, chat_id, bot_user_id, start_parameter);
       send_request(td_api::make_object<td_api::getMainWebApp>(chat_id, bot_user_id, start_parameter,
-                                                              as_theme_parameters(), "android"));
+                                                              as_web_app_open_parameters()));
     } else if (op == "gwau") {
       UserId bot_user_id;
       string url;
       get_args(args, bot_user_id, url);
-      send_request(td_api::make_object<td_api::getWebAppUrl>(bot_user_id, url, as_theme_parameters(), "android"));
+      send_request(td_api::make_object<td_api::getWebAppUrl>(bot_user_id, url, as_web_app_open_parameters()));
     } else if (op == "swad") {
       UserId bot_user_id;
       string button_text;
@@ -5026,8 +5030,8 @@ class CliClient final : public Actor {
       UserId bot_user_id;
       string url;
       get_args(args, chat_id, bot_user_id, url);
-      send_request(td_api::make_object<td_api::openWebApp>(chat_id, bot_user_id, url, as_theme_parameters(), "android",
-                                                           message_thread_id_, get_input_message_reply_to()));
+      send_request(td_api::make_object<td_api::openWebApp>(chat_id, bot_user_id, url, message_thread_id_,
+                                                           get_input_message_reply_to(), as_web_app_open_parameters()));
     } else if (op == "cwa") {
       int64 launch_id;
       get_args(args, launch_id);

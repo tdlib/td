@@ -2350,6 +2350,25 @@ loginUrlInfoOpen url:string skip_confirmation:Bool = LoginUrlInfo;
 loginUrlInfoRequestConfirmation url:string domain:string bot_user_id:int53 request_write_access:Bool = LoginUrlInfo;
 
 
+//@description Contains parameters of the application theme
+//@background_color A color of the background in the RGB format
+//@secondary_background_color A secondary color for the background in the RGB format
+//@header_background_color A color of the header background in the RGB format
+//@bottom_bar_background_color A color of the bottom bar background in the RGB format
+//@section_background_color A color of the section background in the RGB format
+//@section_separator_color A color of the section separator in the RGB format
+//@text_color A color of text in the RGB format
+//@accent_text_color An accent color of the text in the RGB format
+//@section_header_text_color A color of text on the section headers in the RGB format
+//@subtitle_text_color A color of the subtitle text in the RGB format
+//@destructive_text_color A color of the text for destructive actions in the RGB format
+//@hint_color A color of hints in the RGB format
+//@link_color A color of links in the RGB format
+//@button_color A color of the buttons in the RGB format
+//@button_text_color A color of text on the buttons in the RGB format
+themeParameters background_color:int32 secondary_background_color:int32 header_background_color:int32 bottom_bar_background_color:int32 section_background_color:int32 section_separator_color:int32 text_color:int32 accent_text_color:int32 section_header_text_color:int32 subtitle_text_color:int32 destructive_text_color:int32 hint_color:int32 link_color:int32 button_color:int32 button_text_color:int32 = ThemeParameters;
+
+
 //@description Contains information about a Web App found by its short name
 //@web_app The Web App
 //@request_write_access True, if the user must be asked for the permission to the bot to send them messages
@@ -2361,6 +2380,11 @@ webAppInfo launch_id:int64 url:string = WebAppInfo;
 
 //@description Contains information about the main Web App of a bot @url URL of the Web App to open @is_compact True, if the Web App must always be opened in the compact mode instead of the full-size mode
 mainWebApp url:string is_compact:Bool = MainWebApp;
+
+//@description Options to be used when a web app is opened
+//@theme Preferred Web App theme; pass null to use the default theme
+//@application_name Short name of the current application; 0-64 English letters, digits, and underscores
+webAppOpenParameters theme:themeParameters application_name:string = WebAppOpenParameters;
 
 
 //@description Contains information about a message thread
@@ -2937,25 +2961,6 @@ address country_code:string state:string city:string street_line1:string street_
 //@city City; empty if unknown
 //@street The address; empty if unknown
 locationAddress country_code:string state:string city:string street:string = LocationAddress;
-
-
-//@description Contains parameters of the application theme
-//@background_color A color of the background in the RGB format
-//@secondary_background_color A secondary color for the background in the RGB format
-//@header_background_color A color of the header background in the RGB format
-//@bottom_bar_background_color A color of the bottom bar background in the RGB format
-//@section_background_color A color of the section background in the RGB format
-//@section_separator_color A color of the section separator in the RGB format
-//@text_color A color of text in the RGB format
-//@accent_text_color An accent color of the text in the RGB format
-//@section_header_text_color A color of text on the section headers in the RGB format
-//@subtitle_text_color A color of the subtitle text in the RGB format
-//@destructive_text_color A color of the text for destructive actions in the RGB format
-//@hint_color A color of hints in the RGB format
-//@link_color A color of links in the RGB format
-//@button_color A color of the buttons in the RGB format
-//@button_text_color A color of text on the buttons in the RGB format
-themeParameters background_color:int32 secondary_background_color:int32 header_background_color:int32 bottom_bar_background_color:int32 section_background_color:int32 section_separator_color:int32 text_color:int32 accent_text_color:int32 section_header_text_color:int32 subtitle_text_color:int32 destructive_text_color:int32 hint_color:int32 link_color:int32 button_color:int32 button_text_color:int32 = ThemeParameters;
 
 
 //@description Portion of the price of a product (e.g., "delivery cost", "tax amount") @label Label for this portion of the product price @amount Currency amount in the smallest units of the currency
@@ -9469,25 +9474,22 @@ searchWebApp bot_user_id:int53 web_app_short_name:string = FoundWebApp;
 //@bot_user_id Identifier of the target bot
 //@web_app_short_name Short name of the Web App
 //@start_parameter Start parameter from internalLinkTypeWebApp
-//@theme Preferred Web App theme; pass null to use the default theme
-//@application_name Short name of the current application; 0-64 English letters, digits, and underscores
 //@allow_write_access Pass true if the current user allowed the bot to send them messages
-getWebAppLinkUrl chat_id:int53 bot_user_id:int53 web_app_short_name:string start_parameter:string theme:themeParameters application_name:string allow_write_access:Bool = HttpUrl;
+//@parameters Parameters to use to open the Web App
+getWebAppLinkUrl chat_id:int53 bot_user_id:int53 web_app_short_name:string start_parameter:string allow_write_access:Bool parameters:webAppOpenParameters = HttpUrl;
 
 //@description Returns information needed to open the main Web App of a bot
 //@chat_id Identifier of the chat in which the Web App is opened; pass 0 if none
 //@bot_user_id Identifier of the target bot
 //@start_parameter Start parameter from internalLinkTypeMainWebApp
-//@theme Preferred Web App theme; pass null to use the default theme
-//@application_name Short name of the current application; 0-64 English letters, digits, and underscores
-getMainWebApp chat_id:int53 bot_user_id:int53 start_parameter:string theme:themeParameters application_name:string = MainWebApp;
+//@parameters Parameters to use to open the Web App
+getMainWebApp chat_id:int53 bot_user_id:int53 start_parameter:string parameters:webAppOpenParameters = MainWebApp;
 
 //@description Returns an HTTPS URL of a Web App to open from the side menu, a keyboardButtonTypeWebApp button, or an inlineQueryResultsButtonTypeWebApp button
 //@bot_user_id Identifier of the target bot
 //@url The URL from a keyboardButtonTypeWebApp button, inlineQueryResultsButtonTypeWebApp button, or an empty string when the bot is opened from the side menu
-//@theme Preferred Web App theme; pass null to use the default theme
-//@application_name Short name of the current application; 0-64 English letters, digits, and underscores
-getWebAppUrl bot_user_id:int53 url:string theme:themeParameters application_name:string = HttpUrl;
+//@parameters Parameters to use to open the Web App
+getWebAppUrl bot_user_id:int53 url:string parameters:webAppOpenParameters = HttpUrl;
 
 //@description Sends data received from a keyboardButtonTypeWebApp Web App to a bot
 //@bot_user_id Identifier of the target bot
@@ -9500,11 +9502,10 @@ sendWebAppData bot_user_id:int53 button_text:string data:string = Ok;
 //@chat_id Identifier of the chat in which the Web App is opened. The Web App can't be opened in secret chats
 //@bot_user_id Identifier of the bot, providing the Web App
 //@url The URL from an inlineKeyboardButtonTypeWebApp button, a botMenuButton button, an internalLinkTypeAttachmentMenuBot link, or an empty string otherwise
-//@theme Preferred Web App theme; pass null to use the default theme
-//@application_name Short name of the current application; 0-64 English letters, digits, and underscores
 //@message_thread_id If not 0, the message thread identifier in which the message will be sent
 //@reply_to Information about the message or story to be replied in the message sent by the Web App; pass null if none
-openWebApp chat_id:int53 bot_user_id:int53 url:string theme:themeParameters application_name:string message_thread_id:int53 reply_to:InputMessageReplyTo = WebAppInfo;
+//@parameters Parameters to use to open the Web App
+openWebApp chat_id:int53 bot_user_id:int53 url:string message_thread_id:int53 reply_to:InputMessageReplyTo parameters:webAppOpenParameters = WebAppInfo;
 
 //@description Informs TDLib that a previously opened Web App was closed @web_app_launch_id Identifier of Web App launch, received from openWebApp
 closeWebApp web_app_launch_id:int64 = Ok;

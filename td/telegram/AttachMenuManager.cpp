@@ -27,6 +27,7 @@
 #include "td/telegram/TopDialogCategory.h"
 #include "td/telegram/UserManager.h"
 #include "td/telegram/WebApp.h"
+#include "td/telegram/WebAppOpenParameters.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -114,15 +115,12 @@ class RequestAppWebViewQuery final : public Td::ResultHandler {
   }
 
   void send(DialogId dialog_id, telegram_api::object_ptr<telegram_api::InputUser> &&input_user,
-            const string &web_app_short_name, const string &start_parameter,
-            const td_api::object_ptr<td_api::themeParameters> &theme, const string &platform, bool allow_write_access) {
-    telegram_api::object_ptr<telegram_api::dataJSON> theme_parameters;
+            const string &web_app_short_name, const string &start_parameter, const WebAppOpenParameters &parameters,
+            bool allow_write_access) {
     int32 flags = 0;
-    if (theme != nullptr) {
+    auto theme_parameters = parameters.get_input_theme_parameters();
+    if (theme_parameters != nullptr) {
       flags |= telegram_api::messages_requestAppWebView::THEME_PARAMS_MASK;
-
-      theme_parameters = make_tl_object<telegram_api::dataJSON>(string());
-      theme_parameters->data_ = ThemeManager::get_theme_parameters_json_string(theme);
     }
     if (allow_write_access) {
       flags |= telegram_api::messages_requestAppWebView::WRITE_ALLOWED_MASK;
@@ -136,7 +134,7 @@ class RequestAppWebViewQuery final : public Td::ResultHandler {
         telegram_api::make_object<telegram_api::inputBotAppShortName>(std::move(input_user), web_app_short_name);
     send_query(G()->net_query_creator().create(telegram_api::messages_requestAppWebView(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer), std::move(input_bot_app),
-        start_parameter, std::move(theme_parameters), platform)));
+        start_parameter, std::move(theme_parameters), parameters.get_application_name())));
   }
 
   void on_result(BufferSlice packet) final {
@@ -165,15 +163,11 @@ class RequestMainWebViewQuery final : public Td::ResultHandler {
   }
 
   void send(DialogId dialog_id, telegram_api::object_ptr<telegram_api::InputUser> &&input_user,
-            const string &start_parameter, const td_api::object_ptr<td_api::themeParameters> &theme,
-            const string &platform) {
-    telegram_api::object_ptr<telegram_api::dataJSON> theme_parameters;
+            const string &start_parameter, const WebAppOpenParameters &parameters) {
     int32 flags = 0;
-    if (theme != nullptr) {
+    auto theme_parameters = parameters.get_input_theme_parameters();
+    if (theme_parameters != nullptr) {
       flags |= telegram_api::messages_requestMainWebView::THEME_PARAMS_MASK;
-
-      theme_parameters = make_tl_object<telegram_api::dataJSON>(string());
-      theme_parameters->data_ = ThemeManager::get_theme_parameters_json_string(theme);
     }
     if (!start_parameter.empty()) {
       flags |= telegram_api::messages_requestMainWebView::START_PARAM_MASK;
@@ -182,7 +176,7 @@ class RequestMainWebViewQuery final : public Td::ResultHandler {
     CHECK(input_peer != nullptr);
     send_query(G()->net_query_creator().create(telegram_api::messages_requestMainWebView(
         flags, false /*ignored*/, false /*ignored*/, std::move(input_peer), std::move(input_user), start_parameter,
-        std::move(theme_parameters), platform)));
+        std::move(theme_parameters), parameters.get_application_name())));
   }
 
   void on_result(BufferSlice packet) final {
@@ -217,8 +211,8 @@ class RequestWebViewQuery final : public Td::ResultHandler {
   }
 
   void send(DialogId dialog_id, UserId bot_user_id, tl_object_ptr<telegram_api::InputUser> &&input_user, string &&url,
-            td_api::object_ptr<td_api::themeParameters> &&theme, string &&platform, MessageId top_thread_message_id,
-            MessageInputReplyTo input_reply_to, bool silent, DialogId as_dialog_id) {
+            const WebAppOpenParameters &parameters, MessageId top_thread_message_id, MessageInputReplyTo input_reply_to,
+            bool silent, DialogId as_dialog_id) {
     dialog_id_ = dialog_id;
     bot_user_id_ = bot_user_id;
     top_thread_message_id_ = top_thread_message_id;
@@ -247,11 +241,8 @@ class RequestWebViewQuery final : public Td::ResultHandler {
       from_attach_menu_ = true;
     }
 
-    tl_object_ptr<telegram_api::dataJSON> theme_parameters;
-    if (theme != nullptr) {
-      theme_parameters = make_tl_object<telegram_api::dataJSON>(string());
-      theme_parameters->data_ = ThemeManager::get_theme_parameters_json_string(theme);
-
+    auto theme_parameters = parameters.get_input_theme_parameters();
+    if (theme_parameters != nullptr) {
       flags |= telegram_api::messages_requestWebView::THEME_PARAMS_MASK;
     }
 
@@ -274,8 +265,8 @@ class RequestWebViewQuery final : public Td::ResultHandler {
 
     send_query(G()->net_query_creator().create(telegram_api::messages_requestWebView(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer),
-        std::move(input_user), url, start_parameter, std::move(theme_parameters), platform, std::move(reply_to),
-        std::move(as_input_peer))));
+        std::move(input_user), url, start_parameter, std::move(theme_parameters), parameters.get_application_name(),
+        std::move(reply_to), std::move(as_input_peer))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -916,9 +907,8 @@ void AttachMenuManager::reload_web_app(UserId bot_user_id, const string &web_app
 }
 
 void AttachMenuManager::request_app_web_view(DialogId dialog_id, UserId bot_user_id, string &&web_app_short_name,
-                                             string &&start_parameter,
-                                             const td_api::object_ptr<td_api::themeParameters> &theme,
-                                             string &&platform, bool allow_write_access, Promise<string> &&promise) {
+                                             string &&start_parameter, const WebAppOpenParameters &parameters,
+                                             bool allow_write_access, Promise<string> &&promise) {
   if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
     dialog_id = DialogId(bot_user_id);
   }
@@ -927,13 +917,11 @@ void AttachMenuManager::request_app_web_view(DialogId dialog_id, UserId bot_user
   on_dialog_used(TopDialogCategory::BotApp, DialogId(bot_user_id), G()->unix_time());
 
   td_->create_handler<RequestAppWebViewQuery>(std::move(promise))
-      ->send(dialog_id, std::move(input_user), web_app_short_name, start_parameter, theme, platform,
-             allow_write_access);
+      ->send(dialog_id, std::move(input_user), web_app_short_name, start_parameter, parameters, allow_write_access);
 }
 
 void AttachMenuManager::request_main_web_view(DialogId dialog_id, UserId bot_user_id, string &&start_parameter,
-                                              const td_api::object_ptr<td_api::themeParameters> &theme,
-                                              string &&platform,
+                                              const WebAppOpenParameters &parameters,
                                               Promise<td_api::object_ptr<td_api::mainWebApp>> &&promise) {
   if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
     dialog_id = DialogId(bot_user_id);
@@ -946,12 +934,12 @@ void AttachMenuManager::request_main_web_view(DialogId dialog_id, UserId bot_use
   on_dialog_used(TopDialogCategory::BotApp, DialogId(bot_user_id), G()->unix_time());
 
   td_->create_handler<RequestMainWebViewQuery>(std::move(promise))
-      ->send(dialog_id, std::move(input_user), start_parameter, theme, platform);
+      ->send(dialog_id, std::move(input_user), start_parameter, parameters);
 }
 
 void AttachMenuManager::request_web_view(DialogId dialog_id, UserId bot_user_id, MessageId top_thread_message_id,
                                          td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to, string &&url,
-                                         td_api::object_ptr<td_api::themeParameters> &&theme, string &&platform,
+                                         const WebAppOpenParameters &parameters,
                                          Promise<td_api::object_ptr<td_api::webAppInfo>> &&promise) {
   TRY_STATUS_PROMISE(promise, td_->user_manager_->get_bot_data(bot_user_id));
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
@@ -972,8 +960,8 @@ void AttachMenuManager::request_web_view(DialogId dialog_id, UserId bot_user_id,
   DialogId as_dialog_id = td_->messages_manager_->get_dialog_default_send_message_as_dialog_id(dialog_id);
 
   td_->create_handler<RequestWebViewQuery>(std::move(promise))
-      ->send(dialog_id, bot_user_id, std::move(input_user), std::move(url), std::move(theme), std::move(platform),
-             top_thread_message_id, std::move(input_reply_to), silent, as_dialog_id);
+      ->send(dialog_id, bot_user_id, std::move(input_user), std::move(url), parameters, top_thread_message_id,
+             std::move(input_reply_to), silent, as_dialog_id);
 }
 
 void AttachMenuManager::open_web_view(int64 query_id, DialogId dialog_id, UserId bot_user_id,

@@ -45,6 +45,7 @@
 #include "td/telegram/Venue.h"
 #include "td/telegram/VideosManager.h"
 #include "td/telegram/VoiceNotesManager.h"
+#include "td/telegram/WebAppOpenParameters.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/base64.h"
@@ -175,15 +176,11 @@ class RequestSimpleWebViewQuery final : public Td::ResultHandler {
   explicit RequestSimpleWebViewQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(tl_object_ptr<telegram_api::InputUser> &&input_user, string url,
-            const td_api::object_ptr<td_api::themeParameters> &theme, string &&platform) {
-    tl_object_ptr<telegram_api::dataJSON> theme_parameters;
+  void send(tl_object_ptr<telegram_api::InputUser> &&input_user, string url, const WebAppOpenParameters &parameters) {
     int32 flags = 0;
-    if (theme != nullptr) {
+    auto theme_parameters = parameters.get_input_theme_parameters();
+    if (theme_parameters != nullptr) {
       flags |= telegram_api::messages_requestSimpleWebView::THEME_PARAMS_MASK;
-
-      theme_parameters = make_tl_object<telegram_api::dataJSON>(string());
-      theme_parameters->data_ = ThemeManager::get_theme_parameters_json_string(theme);
     }
     string start_parameter;
     if (ends_with(url, "#kb")) {
@@ -208,7 +205,7 @@ class RequestSimpleWebViewQuery final : public Td::ResultHandler {
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_requestSimpleWebView(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_user), url,
-        start_parameter, std::move(theme_parameters), platform)));
+        start_parameter, std::move(theme_parameters), parameters.get_application_name())));
   }
 
   void on_result(BufferSlice packet) final {
@@ -549,14 +546,13 @@ void InlineQueriesManager::answer_inline_query(
 }
 
 void InlineQueriesManager::get_simple_web_view_url(UserId bot_user_id, string &&url,
-                                                   const td_api::object_ptr<td_api::themeParameters> &theme,
-                                                   string &&platform, Promise<string> &&promise) {
+                                                   const WebAppOpenParameters &parameters, Promise<string> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
   TRY_RESULT_PROMISE(promise, bot_data, td_->user_manager_->get_bot_data(bot_user_id));
   on_dialog_used(TopDialogCategory::BotApp, DialogId(bot_user_id), G()->unix_time());
 
   td_->create_handler<RequestSimpleWebViewQuery>(std::move(promise))
-      ->send(std::move(input_user), std::move(url), theme, std::move(platform));
+      ->send(std::move(input_user), std::move(url), parameters);
 }
 
 void InlineQueriesManager::send_web_view_data(UserId bot_user_id, string &&button_text, string &&data,

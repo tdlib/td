@@ -26,6 +26,7 @@
 namespace td {
 
 class Td;
+class WebAppOpenParameters;
 
 class AttachMenuManager final : public Actor {
  public:
@@ -42,16 +43,16 @@ class AttachMenuManager final : public Actor {
   void reload_web_app(UserId bot_user_id, const string &web_app_short_name, Promise<Unit> &&promise);
 
   void request_app_web_view(DialogId dialog_id, UserId bot_user_id, string &&web_app_short_name,
-                            string &&start_parameter, const td_api::object_ptr<td_api::themeParameters> &theme,
-                            string &&platform, bool allow_write_access, Promise<string> &&promise);
+                            string &&start_parameter, const WebAppOpenParameters &parameters, bool allow_write_access,
+                            Promise<string> &&promise);
 
   void request_main_web_view(DialogId dialog_id, UserId bot_user_id, string &&start_parameter,
-                             const td_api::object_ptr<td_api::themeParameters> &theme, string &&platform,
+                             const WebAppOpenParameters &parameters,
                              Promise<td_api::object_ptr<td_api::mainWebApp>> &&promise);
 
   void request_web_view(DialogId dialog_id, UserId bot_user_id, MessageId top_thread_message_id,
                         td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to, string &&url,
-                        td_api::object_ptr<td_api::themeParameters> &&theme, string &&platform,
+                        const WebAppOpenParameters &parameters,
                         Promise<td_api::object_ptr<td_api::webAppInfo>> &&promise);
 
   void open_web_view(int64 query_id, DialogId dialog_id, UserId bot_user_id, MessageId top_thread_message_id,

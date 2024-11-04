@@ -160,6 +160,7 @@
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/UserId.h"
 #include "td/telegram/UserManager.h"
+#include "td/telegram/WebAppOpenParameters.h"
 #include "td/telegram/WebPageId.h"
 #include "td/telegram/WebPagesManager.h"
 
@@ -6872,31 +6873,28 @@ void Requests::on_request(uint64 id, td_api::getWebAppLinkUrl &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.web_app_short_name_);
   CLEAN_INPUT_STRING(request.start_parameter_);
-  CLEAN_INPUT_STRING(request.application_name_);
   CREATE_HTTP_URL_REQUEST_PROMISE();
   td_->attach_menu_manager_->request_app_web_view(
       DialogId(request.chat_id_), UserId(request.bot_user_id_), std::move(request.web_app_short_name_),
-      std::move(request.start_parameter_), std::move(request.theme_), std::move(request.application_name_),
+      std::move(request.start_parameter_), WebAppOpenParameters(std::move(request.parameters_)),
       request.allow_write_access_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::getMainWebApp &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.start_parameter_);
-  CLEAN_INPUT_STRING(request.application_name_);
   CREATE_REQUEST_PROMISE();
-  td_->attach_menu_manager_->request_main_web_view(DialogId(request.chat_id_), UserId(request.bot_user_id_),
-                                                   std::move(request.start_parameter_), std::move(request.theme_),
-                                                   std::move(request.application_name_), std::move(promise));
+  td_->attach_menu_manager_->request_main_web_view(
+      DialogId(request.chat_id_), UserId(request.bot_user_id_), std::move(request.start_parameter_),
+      WebAppOpenParameters(std::move(request.parameters_)), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::getWebAppUrl &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.url_);
-  CLEAN_INPUT_STRING(request.application_name_);
   CREATE_HTTP_URL_REQUEST_PROMISE();
   td_->inline_queries_manager_->get_simple_web_view_url(UserId(request.bot_user_id_), std::move(request.url_),
-                                                        std::move(request.theme_), std::move(request.application_name_),
+                                                        WebAppOpenParameters(std::move(request.parameters_)),
                                                         std::move(promise));
 }
 
@@ -6912,12 +6910,11 @@ void Requests::on_request(uint64 id, td_api::sendWebAppData &request) {
 void Requests::on_request(uint64 id, td_api::openWebApp &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.url_);
-  CLEAN_INPUT_STRING(request.application_name_);
   CREATE_REQUEST_PROMISE();
   td_->attach_menu_manager_->request_web_view(DialogId(request.chat_id_), UserId(request.bot_user_id_),
                                               MessageId(request.message_thread_id_), std::move(request.reply_to_),
-                                              std::move(request.url_), std::move(request.theme_),
-                                              std::move(request.application_name_), std::move(promise));
+                                              std::move(request.url_),
+                                              WebAppOpenParameters(std::move(request.parameters_)), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::closeWebApp &request) {
