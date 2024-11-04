@@ -18,7 +18,20 @@ WebAppOpenParameters::WebAppOpenParameters(td_api::object_ptr<td_api::webAppOpen
     if (!clean_input_string(application_name_)) {
       application_name_.clear();
     }
-    is_compact_ = parameters->is_compact_;
+    if (parameters->mode_ != nullptr) {
+      switch (parameters->mode_->get_id()) {
+        case td_api::webAppOpenModeCompact::ID:
+          is_compact_ = true;
+          break;
+        case td_api::webAppOpenModeFullSize::ID:
+          break;
+        case td_api::webAppOpenModeFullScreen::ID:
+          is_full_screen_ = true;
+          break;
+        default:
+          UNREACHABLE();
+      }
+    }
   }
 }
 

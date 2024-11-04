@@ -17,6 +17,7 @@ class WebAppOpenParameters {
   td_api::object_ptr<td_api::themeParameters> theme_parameters_;
   string application_name_;
   bool is_compact_ = false;
+  bool is_full_screen_ = false;
 
  public:
   explicit WebAppOpenParameters(td_api::object_ptr<td_api::webAppOpenParameters> &&parameters);
@@ -29,6 +30,10 @@ class WebAppOpenParameters {
 
   bool is_compact() const {
     return is_compact_;
+  }
+
+  bool is_full_screen() const {
+    return is_full_screen_;
   }
 };
 

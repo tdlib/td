@@ -2348,7 +2348,8 @@ class CliClient final : public Actor {
   }
 
   static td_api::object_ptr<td_api::webAppOpenParameters> as_web_app_open_parameters() {
-    return td_api::make_object<td_api::webAppOpenParameters>(as_theme_parameters(), "android", true);
+    return td_api::make_object<td_api::webAppOpenParameters>(as_theme_parameters(), "android",
+                                                             td_api::make_object<td_api::webAppOpenModeFullScreen>());
   }
 
   static td_api::object_ptr<td_api::BackgroundFill> as_background_fill(int32 color) {

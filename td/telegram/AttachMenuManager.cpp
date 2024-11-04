@@ -131,6 +131,9 @@ class RequestAppWebViewQuery final : public Td::ResultHandler {
     if (parameters.is_compact()) {
       flags |= telegram_api::messages_requestAppWebView::COMPACT_MASK;
     }
+    if (parameters.is_full_screen()) {
+      flags |= telegram_api::messages_requestAppWebView::FULLSCREEN_MASK;
+    }
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
     auto input_bot_app =
@@ -177,6 +180,9 @@ class RequestMainWebViewQuery final : public Td::ResultHandler {
     }
     if (parameters.is_compact()) {
       flags |= telegram_api::messages_requestMainWebView::COMPACT_MASK;
+    }
+    if (parameters.is_full_screen()) {
+      flags |= telegram_api::messages_requestMainWebView::FULLSCREEN_MASK;
     }
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
@@ -271,6 +277,9 @@ class RequestWebViewQuery final : public Td::ResultHandler {
 
     if (parameters.is_compact()) {
       flags |= telegram_api::messages_requestWebView::COMPACT_MASK;
+    }
+    if (parameters.is_full_screen()) {
+      flags |= telegram_api::messages_requestWebView::FULLSCREEN_MASK;
     }
 
     send_query(G()->net_query_creator().create(telegram_api::messages_requestWebView(

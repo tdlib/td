@@ -2369,6 +2369,18 @@ loginUrlInfoRequestConfirmation url:string domain:string bot_user_id:int53 reque
 themeParameters background_color:int32 secondary_background_color:int32 header_background_color:int32 bottom_bar_background_color:int32 section_background_color:int32 section_separator_color:int32 text_color:int32 accent_text_color:int32 section_header_text_color:int32 subtitle_text_color:int32 destructive_text_color:int32 hint_color:int32 link_color:int32 button_color:int32 button_text_color:int32 = ThemeParameters;
 
 
+//@class WebAppOpenMode @description Describes mode in which a Web App is opened
+
+//@description The Web App is opened in the compact mode
+webAppOpenModeCompact = WebAppOpenMode;
+
+//@description The Web App is opened in the full-size mode
+webAppOpenModeFullSize = WebAppOpenMode;
+
+//@description The Web App is opened in the full-screen mode
+webAppOpenModeFullScreen = WebAppOpenMode;
+
+
 //@description Contains information about a Web App found by its short name
 //@web_app The Web App
 //@request_write_access True, if the user must be asked for the permission to the bot to send them messages
@@ -2384,8 +2396,8 @@ mainWebApp url:string is_compact:Bool = MainWebApp;
 //@description Options to be used when a web app is opened
 //@theme Preferred Web App theme; pass null to use the default theme
 //@application_name Short name of the current application; 0-64 English letters, digits, and underscores
-//@is_compact Pass true if the app is opened in the compact mode; pass false if the app is open in the full-size mode or in the full-screen mode
-webAppOpenParameters theme:themeParameters application_name:string is_compact:Bool = WebAppOpenParameters;
+//@mode The mode in which the Web App is opened; pass null to open in webAppOpenModeFullSize
+webAppOpenParameters theme:themeParameters application_name:string mode:WebAppOpenMode = WebAppOpenParameters;
 
 
 //@description Contains information about a message thread

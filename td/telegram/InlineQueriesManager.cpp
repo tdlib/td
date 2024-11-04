@@ -206,6 +206,9 @@ class RequestSimpleWebViewQuery final : public Td::ResultHandler {
     if (parameters.is_compact()) {
       flags |= telegram_api::messages_requestSimpleWebView::COMPACT_MASK;
     }
+    if (parameters.is_full_screen()) {
+      flags |= telegram_api::messages_requestSimpleWebView::FULLSCREEN_MASK;
+    }
     send_query(G()->net_query_creator().create(telegram_api::messages_requestSimpleWebView(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_user), url,
         start_parameter, std::move(theme_parameters), parameters.get_application_name())));
