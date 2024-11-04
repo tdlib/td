@@ -6805,8 +6805,8 @@ internalLinkTypeLanguageSettings = InternalLinkType;
 //-Then, use getMainWebApp with the given start parameter and open the returned URL as a Web App
 //@bot_username Username of the bot
 //@start_parameter Start parameter to be passed to getMainWebApp
-//@is_compact True, if the Web App must be opened in the compact mode instead of the full-size mode
-internalLinkTypeMainWebApp bot_username:string start_parameter:string is_compact:Bool = InternalLinkType;
+//@mode The mode in which the Web App must be opened
+internalLinkTypeMainWebApp bot_username:string start_parameter:string mode:WebAppOpenMode = InternalLinkType;
 
 //@description The link is a link to a Telegram message or a forum topic. Call getMessageLinkInfo with the given URL to process the link,
 //-and then open received forum topic or chat and show the message there
@@ -6921,8 +6921,8 @@ internalLinkTypeVideoChat chat_username:string invite_hash:string is_live_stream
 //@bot_username Username of the bot that owns the Web App
 //@web_app_short_name Short name of the Web App
 //@start_parameter Start parameter to be passed to getWebAppLinkUrl
-//@is_compact True, if the Web App must be opened in the compact mode instead of the full-size mode
-internalLinkTypeWebApp bot_username:string web_app_short_name:string start_parameter:string is_compact:Bool = InternalLinkType;
+//@mode The mode in which the Web App must be opened
+internalLinkTypeWebApp bot_username:string web_app_short_name:string start_parameter:string mode:WebAppOpenMode = InternalLinkType;
 
 
 //@description Contains an HTTPS link to a message in a supergroup or channel, or a forum topic @link The link @is_public True, if the link will work for non-members of the chat

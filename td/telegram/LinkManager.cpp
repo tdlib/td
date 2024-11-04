@@ -240,7 +240,7 @@ static string get_admin_string(AdministratorRights rights) {
   return "&admin=" + implode(admin_rights, '+');
 }
 
-td_api::object_ptr<td_api::targetChatChosen> get_target_chat_chosen(Slice chat_types) {
+static td_api::object_ptr<td_api::targetChatChosen> get_target_chat_chosen(Slice chat_types) {
   bool allow_users = false;
   bool allow_bots = false;
   bool allow_groups = false;
@@ -260,6 +260,16 @@ td_api::object_ptr<td_api::targetChatChosen> get_target_chat_chosen(Slice chat_t
     return nullptr;
   }
   return td_api::make_object<td_api::targetChatChosen>(allow_users, allow_bots, allow_groups, allow_channels);
+}
+
+static td_api::object_ptr<td_api::WebAppOpenMode> get_web_app_open_mode_object(const string &mode) {
+  if (mode == "compact") {
+    return td_api::make_object<td_api::webAppOpenModeCompact>();
+  }
+  if (mode == "fullscreen") {
+    return td_api::make_object<td_api::webAppOpenModeFullScreen>();
+  }
+  return td_api::make_object<td_api::webAppOpenModeFullSize>();
 }
 
 class LinkManager::InternalLinkActiveSessions final : public InternalLink {
@@ -552,7 +562,8 @@ class LinkManager::InternalLinkMainWebApp final : public InternalLink {
   string mode_;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypeMainWebApp>(bot_username_, start_parameter_, mode_ == "compact");
+    return td_api::make_object<td_api::internalLinkTypeMainWebApp>(bot_username_, start_parameter_,
+                                                                   get_web_app_open_mode_object(mode_));
   }
 
  public:
@@ -836,7 +847,7 @@ class LinkManager::InternalLinkWebApp final : public InternalLink {
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeWebApp>(bot_username_, web_app_short_name_, start_parameter_,
-                                                               mode_ == "compact");
+                                                               get_web_app_open_mode_object(mode_));
   }
 
  public:
@@ -2350,7 +2361,21 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         }
         start_parameter = PSTRING() << '=' << link->start_parameter_;
       }
-      string mode = link->is_compact_ ? "&mode=compact" : "";
+      string mode;
+      if (link->mode_ != nullptr) {
+        switch (link->mode_->get_id()) {
+          case td_api::webAppOpenModeCompact::ID:
+            mode = "&mode=compact";
+            break;
+          case td_api::webAppOpenModeFullSize::ID:
+            break;
+          case td_api::webAppOpenModeFullScreen::ID:
+            mode = "&mode=fullscreen";
+            break;
+          default:
+            UNREACHABLE();
+        }
+      }
       if (is_internal) {
         return PSTRING() << "tg://resolve?domain=" << link->bot_username_ << "&startapp" << start_parameter << mode;
       } else {
@@ -2596,12 +2621,29 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
       if (!is_valid_start_parameter(link->start_parameter_)) {
         return Status::Error(400, "Invalid start parameter specified");
       }
+      string mode;
+      if (link->mode_ != nullptr) {
+        switch (link->mode_->get_id()) {
+          case td_api::webAppOpenModeCompact::ID:
+            mode = "&mode=compact";
+            break;
+          case td_api::webAppOpenModeFullSize::ID:
+            break;
+          case td_api::webAppOpenModeFullScreen::ID:
+            mode = "&mode=fullscreen";
+            break;
+          default:
+            UNREACHABLE();
+        }
+      }
       string parameters;
       if (!link->start_parameter_.empty()) {
-        parameters = PSTRING() << (is_internal ? '&' : '?') << "startapp=" << link->start_parameter_
-                               << (link->is_compact_ ? "&mode=compact" : "");
-      } else if (link->is_compact_) {
-        parameters = PSTRING() << (is_internal ? '&' : '?') << "mode=compact";
+        parameters = PSTRING() << (is_internal ? '&' : '?') << "startapp=" << link->start_parameter_ << mode;
+      } else if (!mode.empty()) {
+        if (!is_internal) {
+          mode[0] = '?';
+        }
+        parameters = std::move(mode);
       }
       if (is_internal) {
         return PSTRING() << "tg://resolve?domain=" << link->bot_username_ << "&appname=" << link->web_app_short_name_
