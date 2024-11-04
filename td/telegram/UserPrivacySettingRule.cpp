@@ -95,6 +95,9 @@ UserPrivacySettingRule::UserPrivacySettingRule(Td *td,
     case telegram_api::privacyValueAllowContacts::ID:
       type_ = Type::AllowContacts;
       break;
+    case telegram_api::privacyValueAllowBots::ID:
+      type_ = Type::AllowContacts;
+      break;
     case telegram_api::privacyValueAllowPremium::ID:
       type_ = Type::AllowPremium;
       break;
@@ -114,6 +117,9 @@ UserPrivacySettingRule::UserPrivacySettingRule(Td *td,
                                  static_cast<const telegram_api::privacyValueAllowChatParticipants &>(*rule).chats_);
       break;
     case telegram_api::privacyValueDisallowContacts::ID:
+      type_ = Type::RestrictContacts;
+      break;
+    case telegram_api::privacyValueDisallowBots::ID:
       type_ = Type::RestrictContacts;
       break;
     case telegram_api::privacyValueDisallowAll::ID:

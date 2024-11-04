@@ -309,7 +309,7 @@ tl_object_ptr<telegram_api::invoice> InputInvoice::Invoice::get_input_invoice() 
   return make_tl_object<telegram_api::invoice>(
       flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
       false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, currency_, std::move(prices),
-      max_tip_amount_, vector<int64>(suggested_tip_amounts_), terms_of_service_url);
+      max_tip_amount_, vector<int64>(suggested_tip_amounts_), terms_of_service_url, 0);
 }
 
 static telegram_api::object_ptr<telegram_api::inputWebDocument> get_input_web_document(const FileManager *file_manager,

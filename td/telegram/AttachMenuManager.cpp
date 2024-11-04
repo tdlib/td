@@ -135,8 +135,8 @@ class RequestAppWebViewQuery final : public Td::ResultHandler {
     auto input_bot_app =
         telegram_api::make_object<telegram_api::inputBotAppShortName>(std::move(input_user), web_app_short_name);
     send_query(G()->net_query_creator().create(telegram_api::messages_requestAppWebView(
-        flags, false /*ignored*/, false /*ignored*/, std::move(input_peer), std::move(input_bot_app), start_parameter,
-        std::move(theme_parameters), platform)));
+        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer), std::move(input_bot_app),
+        start_parameter, std::move(theme_parameters), platform)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -181,7 +181,7 @@ class RequestMainWebViewQuery final : public Td::ResultHandler {
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
     send_query(G()->net_query_creator().create(telegram_api::messages_requestMainWebView(
-        flags, false /*ignored*/, std::move(input_peer), std::move(input_user), start_parameter,
+        flags, false /*ignored*/, false /*ignored*/, std::move(input_peer), std::move(input_user), start_parameter,
         std::move(theme_parameters), platform)));
   }
 
@@ -273,8 +273,9 @@ class RequestWebViewQuery final : public Td::ResultHandler {
     }
 
     send_query(G()->net_query_creator().create(telegram_api::messages_requestWebView(
-        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer), std::move(input_user),
-        url, start_parameter, std::move(theme_parameters), platform, std::move(reply_to), std::move(as_input_peer))));
+        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer),
+        std::move(input_user), url, start_parameter, std::move(theme_parameters), platform, std::move(reply_to),
+        std::move(as_input_peer))));
   }
 
   void on_result(BufferSlice packet) final {

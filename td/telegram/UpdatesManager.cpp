@@ -4629,4 +4629,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewStoryReactio
   promise.set_value(Unit());
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotSubscriptionExpire> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
 }  // namespace td
