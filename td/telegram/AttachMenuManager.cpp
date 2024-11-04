@@ -162,6 +162,7 @@ class RequestAppWebViewQuery final : public Td::ResultHandler {
 
 class RequestMainWebViewQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::mainWebApp>> promise_;
+  bool is_full_screen_ = false;
 
  public:
   explicit RequestMainWebViewQuery(Promise<td_api::object_ptr<td_api::mainWebApp>> &&promise)
@@ -182,6 +183,7 @@ class RequestMainWebViewQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_requestMainWebView::COMPACT_MASK;
     }
     if (parameters.is_full_screen()) {
+      is_full_screen_ = true;
       flags |= telegram_api::messages_requestMainWebView::FULLSCREEN_MASK;
     }
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
@@ -200,7 +202,15 @@ class RequestMainWebViewQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for RequestMainWebViewQuery: " << to_string(ptr);
     LOG_IF(ERROR, ptr->query_id_ != 0) << "Receive " << to_string(ptr);
-    promise_.set_value(td_api::make_object<td_api::mainWebApp>(ptr->url_, !ptr->fullsize_));
+    td_api::object_ptr<td_api::WebAppOpenMode> mode;
+    if (is_full_screen_) {
+      mode = td_api::make_object<td_api::webAppOpenModeFullScreen>();
+    } else if (ptr->fullsize_) {
+      mode = td_api::make_object<td_api::webAppOpenModeFullSize>();
+    } else {
+      mode = td_api::make_object<td_api::webAppOpenModeCompact>();
+    }
+    promise_.set_value(td_api::make_object<td_api::mainWebApp>(ptr->url_, std::move(mode)));
   }
 
   void on_error(Status status) final {

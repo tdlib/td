@@ -2390,8 +2390,8 @@ foundWebApp web_app:webApp request_write_access:Bool skip_confirmation:Bool = Fo
 //@description Contains information about a Web App @launch_id Unique identifier for the Web App launch @url A Web App URL to open in a web view
 webAppInfo launch_id:int64 url:string = WebAppInfo;
 
-//@description Contains information about the main Web App of a bot @url URL of the Web App to open @is_compact True, if the Web App must always be opened in the compact mode instead of the full-size mode
-mainWebApp url:string is_compact:Bool = MainWebApp;
+//@description Contains information about the main Web App of a bot @url URL of the Web App to open @mode The mode in which the Web App must be opened
+mainWebApp url:string mode:WebAppOpenMode = MainWebApp;
 
 //@description Options to be used when a web app is opened
 //@theme Preferred Web App theme; pass null to use the default theme
@@ -6802,10 +6802,10 @@ internalLinkTypeLanguageSettings = InternalLinkType;
 //-If the bot can be added to attachment menu, then use getAttachmentMenuBot to receive information about the bot, then if the bot isn't added to side menu,
 //-show a disclaimer about Mini Apps being third-party applications, ask the user to accept their Terms of service and confirm adding the bot to side and attachment menu,
 //-then if the user accepts the terms and confirms adding, use toggleBotIsAddedToAttachmentMenu to add the bot.
-//-Then, use getMainWebApp with the given start parameter and open the returned URL as a Web App
+//-Then, use getMainWebApp with the given start parameter and mode and open the returned URL as a Web App
 //@bot_username Username of the bot
 //@start_parameter Start parameter to be passed to getMainWebApp
-//@mode The mode in which the Web App must be opened
+//@mode The mode to be passed to getMainWebApp
 internalLinkTypeMainWebApp bot_username:string start_parameter:string mode:WebAppOpenMode = InternalLinkType;
 
 //@description The link is a link to a Telegram message or a forum topic. Call getMessageLinkInfo with the given URL to process the link,
