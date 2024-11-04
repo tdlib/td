@@ -8687,7 +8687,7 @@ void MessagesManager::after_get_difference() {
 
   if (!messages_to_restore.empty()) {
     create_actor<SleepActor>(
-        "RestoreMissingMessagesSleepActor", 1.0,
+        "RestoreMissingMessagesSleepActor", 2.0,
         PromiseCreator::lambda(
             [actor_id = actor_id(this), messages_to_restore = std::move(messages_to_restore)](Unit) mutable {
               send_closure(actor_id, &MessagesManager::restore_missing_messages_after_get_difference,
