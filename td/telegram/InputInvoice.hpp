@@ -22,6 +22,7 @@ void InputInvoice::Invoice::store(StorerT &storer) const {
   using td::store;
   bool has_tip = max_tip_amount_ != 0;
   bool is_recurring = !recurring_payment_terms_of_service_url_.empty();
+  bool has_terms_of_service = !terms_of_service_url_.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_test_);
   STORE_FLAG(need_name_);
@@ -33,6 +34,7 @@ void InputInvoice::Invoice::store(StorerT &storer) const {
   STORE_FLAG(send_email_address_to_provider_);
   STORE_FLAG(has_tip);
   STORE_FLAG(is_recurring);
+  STORE_FLAG(has_terms_of_service);
   END_STORE_FLAGS();
   store(currency_, storer);
   store(price_parts_, storer);
@@ -43,6 +45,9 @@ void InputInvoice::Invoice::store(StorerT &storer) const {
   if (is_recurring) {
     store(recurring_payment_terms_of_service_url_, storer);
   }
+  if (has_terms_of_service) {
+    store(terms_of_service_url_, storer);
+  }
 }
 
 template <class ParserT>
@@ -50,6 +55,7 @@ void InputInvoice::Invoice::parse(ParserT &parser) {
   using td::parse;
   bool has_tip;
   bool is_recurring;
+  bool has_terms_of_service;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_test_);
   PARSE_FLAG(need_name_);
@@ -61,6 +67,7 @@ void InputInvoice::Invoice::parse(ParserT &parser) {
   PARSE_FLAG(send_email_address_to_provider_);
   PARSE_FLAG(has_tip);
   PARSE_FLAG(is_recurring);
+  PARSE_FLAG(has_terms_of_service);
   END_PARSE_FLAGS();
   parse(currency_, parser);
   parse(price_parts_, parser);
@@ -70,6 +77,9 @@ void InputInvoice::Invoice::parse(ParserT &parser) {
   }
   if (is_recurring) {
     parse(recurring_payment_terms_of_service_url_, parser);
+  }
+  if (has_terms_of_service) {
+    parse(terms_of_service_url_, parser);
   }
 }
 
