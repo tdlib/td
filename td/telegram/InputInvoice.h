@@ -28,6 +28,7 @@ class InputInvoice {
   struct Invoice {
     string currency_;
     vector<LabeledPricePart> price_parts_;
+    int32 subscription_period_ = 0;
     int64 max_tip_amount_ = 0;
     vector<int64> suggested_tip_amounts_;
     string recurring_payment_terms_of_service_url_;

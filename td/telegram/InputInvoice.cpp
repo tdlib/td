@@ -35,8 +35,8 @@ bool operator==(const InputInvoice &lhs, const InputInvoice &rhs) {
            lhs.send_phone_number_to_provider_ == rhs.send_phone_number_to_provider_ &&
            lhs.send_email_address_to_provider_ == rhs.send_email_address_to_provider_ &&
            lhs.is_flexible_ == rhs.is_flexible_ && lhs.currency_ == rhs.currency_ &&
-           lhs.price_parts_ == rhs.price_parts_ && lhs.max_tip_amount_ == rhs.max_tip_amount_ &&
-           lhs.suggested_tip_amounts_ == rhs.suggested_tip_amounts_ &&
+           lhs.price_parts_ == rhs.price_parts_ && lhs.subscription_period_ == rhs.subscription_period_ &&
+           lhs.max_tip_amount_ == rhs.max_tip_amount_ && lhs.suggested_tip_amounts_ == rhs.suggested_tip_amounts_ &&
            lhs.recurring_payment_terms_of_service_url_ == rhs.recurring_payment_terms_of_service_url_ &&
            lhs.terms_of_service_url_ == rhs.terms_of_service_url_;
   };
@@ -191,6 +191,7 @@ Result<InputInvoice> InputInvoice::process_input_message_invoice(
     return Status::Error(400, "Total price is too big");
   }
   result.total_amount_ = total_amount;
+  result.invoice_.subscription_period_ = max(input_invoice->invoice_->subscription_period_, 0);
 
   if (input_invoice->invoice_->max_tip_amount_ < 0 ||
       !check_currency_amount(input_invoice->invoice_->max_tip_amount_)) {
@@ -293,6 +294,9 @@ tl_object_ptr<telegram_api::invoice> InputInvoice::Invoice::get_input_invoice() 
   if (max_tip_amount_ != 0) {
     flags |= telegram_api::invoice::MAX_TIP_AMOUNT_MASK;
   }
+  if (subscription_period_ != 0) {
+    flags |= telegram_api::invoice::SUBSCRIPTION_PERIOD_MASK;
+  }
   string terms_of_service_url;
   if (!recurring_payment_terms_of_service_url_.empty()) {
     flags |= telegram_api::invoice::RECURRING_MASK;
@@ -309,7 +313,7 @@ tl_object_ptr<telegram_api::invoice> InputInvoice::Invoice::get_input_invoice() 
   return make_tl_object<telegram_api::invoice>(
       flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
       false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, currency_, std::move(prices),
-      max_tip_amount_, vector<int64>(suggested_tip_amounts_), terms_of_service_url, 0);
+      max_tip_amount_, vector<int64>(suggested_tip_amounts_), terms_of_service_url, subscription_period_);
 }
 
 static telegram_api::object_ptr<telegram_api::inputWebDocument> get_input_web_document(const FileManager *file_manager,

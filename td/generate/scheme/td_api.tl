@@ -2982,6 +2982,7 @@ labeledPricePart label:string amount:int53 = LabeledPricePart;
 //@description Product invoice
 //@currency ISO 4217 currency code
 //@price_parts A list of objects used to calculate the total price of the product
+//@subscription_period The number of seconds between consecutive Telegram Star debiting for subscription invoices; 0 if the invoice doesn't create subscription
 //@max_tip_amount The maximum allowed amount of tip in the smallest units of the currency
 //@suggested_tip_amounts Suggested amounts of tip in the smallest units of the currency
 //@recurring_payment_terms_of_service_url An HTTP URL with terms of service for recurring payments. If non-empty, the invoice payment will result in recurring payments and the user must accept the terms of service before allowed to pay
@@ -2994,7 +2995,7 @@ labeledPricePart label:string amount:int53 = LabeledPricePart;
 //@send_phone_number_to_provider True, if the user's phone number will be sent to the provider
 //@send_email_address_to_provider True, if the user's email address will be sent to the provider
 //@is_flexible True, if the total price depends on the shipping method
-invoice currency:string price_parts:vector<labeledPricePart> max_tip_amount:int53 suggested_tip_amounts:vector<int53> recurring_payment_terms_of_service_url:string terms_of_service_url:string is_test:Bool need_name:Bool need_phone_number:Bool need_email_address:Bool need_shipping_address:Bool send_phone_number_to_provider:Bool send_email_address_to_provider:Bool is_flexible:Bool = Invoice;
+invoice currency:string price_parts:vector<labeledPricePart> subscription_period:int32 max_tip_amount:int53 suggested_tip_amounts:vector<int53> recurring_payment_terms_of_service_url:string terms_of_service_url:string is_test:Bool need_name:Bool need_phone_number:Bool need_email_address:Bool need_shipping_address:Bool send_phone_number_to_provider:Bool send_email_address_to_provider:Bool is_flexible:Bool = Invoice;
 
 //@description Order information
 //@name Name of the user

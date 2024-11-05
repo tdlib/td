@@ -332,11 +332,11 @@ static tl_object_ptr<td_api::invoice> convert_invoice(tl_object_ptr<telegram_api
   } else {
     terms_url = std::move(invoice->terms_url_);
   }
-  return make_tl_object<td_api::invoice>(std::move(invoice->currency_), std::move(labeled_prices),
-                                         invoice->max_tip_amount_, std::move(invoice->suggested_tip_amounts_),
-                                         recurring_terms_url, terms_url, is_test, need_name, need_phone_number,
-                                         need_email_address, need_shipping_address, send_phone_number_to_provider,
-                                         send_email_address_to_provider, is_flexible);
+  return td_api::make_object<td_api::invoice>(
+      std::move(invoice->currency_), std::move(labeled_prices), max(invoice->subscription_period_, 0),
+      invoice->max_tip_amount_, std::move(invoice->suggested_tip_amounts_), recurring_terms_url, terms_url, is_test,
+      need_name, need_phone_number, need_email_address, need_shipping_address, send_phone_number_to_provider,
+      send_email_address_to_provider, is_flexible);
 }
 
 static tl_object_ptr<td_api::PaymentProvider> convert_payment_provider(
@@ -806,7 +806,7 @@ class GetPaymentReceiptQuery final : public Td::ResultHandler {
           LOG(ERROR) << "Receive invalid prices " << to_string(payment_receipt->invoice_->prices_);
           return on_error(Status::Error(500, "Receive invalid price"));
         }
-        promise_.set_value(make_tl_object<td_api::paymentReceipt>(
+        promise_.set_value(td_api::make_object<td_api::paymentReceipt>(
             get_product_info_object(td_, payment_receipt->title_, payment_receipt->description_, photo),
             payment_receipt->date_, td_->user_manager_->get_user_id_object(seller_bot_user_id, "paymentReceipt seller"),
             td_api::make_object<td_api::paymentReceiptTypeStars>(
@@ -835,7 +835,7 @@ class GetPaymentReceiptQuery final : public Td::ResultHandler {
           payment_receipt->tip_amount_ = 0;
         }
 
-        promise_.set_value(make_tl_object<td_api::paymentReceipt>(
+        promise_.set_value(td_api::make_object<td_api::paymentReceipt>(
             get_product_info_object(td_, payment_receipt->title_, payment_receipt->description_, photo),
             payment_receipt->date_, td_->user_manager_->get_user_id_object(seller_bot_user_id, "paymentReceipt seller"),
             td_api::make_object<td_api::paymentReceiptTypeRegular>(
