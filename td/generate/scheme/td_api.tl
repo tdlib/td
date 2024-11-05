@@ -812,14 +812,14 @@ chatAdministratorRights can_manage_chat:Bool can_change_info:Bool can_post_messa
 //@star_count The amount of Telegram Stars that must be paid for each period
 starSubscriptionPricing period:int32 star_count:int53 = StarSubscriptionPricing;
 
-//@description Contains information about subscription to a channel chat paid in Telegram Stars
+//@description Contains information about subscription to a channel chat, a bot, or a business account that was paid in Telegram Stars
 //@id Unique identifier of the subscription
-//@chat_id Identifier of the channel chat that is subscribed
+//@chat_id Identifier of the chat that is subscribed
 //@expiration_date Point in time (Unix timestamp) when the subscription will expire or expired
-//@can_reuse True, if the subscription is active and the user can use the method reuseStarSubscription to join the subscribed chat again
+//@can_reuse True, if the subscription is active and the user can use the method reuseStarSubscription to join the subscribed chat again; for channel chat subscriptions only
 //@is_canceled True, if the subscription was canceled
 //@is_expiring True, if the subscription expires soon and there are no enough Telegram Stars on the user's balance to extend it
-//@invite_link The invite link that can be used to renew the subscription if it has been expired; may be empty, if the link isn't available anymore
+//@invite_link The invite link that can be used to renew the subscription if it has been expired; may be empty, if the link isn't available anymore or the subscription isn't for a channel chat
 //@pricing The subscription plan
 starSubscription id:string chat_id:int53 expiration_date:int32 can_reuse:Bool is_canceled:Bool is_expiring:Bool invite_link:string pricing:starSubscriptionPricing = StarSubscription;
 
@@ -11802,12 +11802,12 @@ assignAppStoreTransaction receipt:bytes purpose:StorePaymentPurpose = Ok;
 //@purpose Transaction purpose
 assignGooglePlayTransaction package_name:string store_product_id:string purchase_token:string purpose:StorePaymentPurpose = Ok;
 
-//@description Cancels or reenables Telegram Star subscription to a channel
+//@description Cancels or reenables Telegram Star subscription
 //@subscription_id Identifier of the subscription to change
 //@is_canceled New value of is_canceled
 editStarSubscription subscription_id:string is_canceled:Bool = Ok;
 
-//@description Reuses an active subscription and joins the subscribed chat again @subscription_id Identifier of the subscription
+//@description Reuses an active Telegram Star subscription to a channel chat and joins the chat again @subscription_id Identifier of the subscription
 reuseStarSubscription subscription_id:string = Ok;
 
 
