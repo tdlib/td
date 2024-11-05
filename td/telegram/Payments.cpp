@@ -568,8 +568,15 @@ class GetPaymentFormQuery final : public Td::ResultHandler {
           return on_error(Status::Error(500, "Receive invalid price"));
         }
         auto photo = get_web_document_photo(td_->file_manager_.get(), std::move(payment_form->photo_), dialog_id_);
-        auto type = td_api::make_object<td_api::paymentFormTypeStars>(
-            StarManager::get_star_count(payment_form->invoice_->prices_[0]->amount_));
+        auto star_count = StarManager::get_star_count(payment_form->invoice_->prices_[0]->amount_);
+        td_api::object_ptr<td_api::PaymentFormType> type;
+        if (payment_form->invoice_->subscription_period_ > 0) {
+          type = td_api::make_object<td_api::paymentFormTypeStarSubscription>(
+              td_api::make_object<td_api::starSubscriptionPricing>(payment_form->invoice_->subscription_period_,
+                                                                   star_count));
+        } else {
+          type = td_api::make_object<td_api::paymentFormTypeStars>(star_count);
+        }
         promise_.set_value(td_api::make_object<td_api::paymentForm>(
             payment_form->form_id_, std::move(type),
             td_->user_manager_->get_user_id_object(seller_bot_user_id, "paymentForm seller"),

@@ -3064,6 +3064,9 @@ paymentFormTypeRegular invoice:invoice payment_provider_user_id:int53 payment_pr
 //@description The payment form is for a payment in Telegram Stars @star_count Number of Telegram Stars that will be paid
 paymentFormTypeStars star_count:int53 = PaymentFormType;
 
+//@description The payment form is for a payment in Telegram Stars for subscription @pricing Information about subscription plan
+paymentFormTypeStarSubscription pricing:starSubscriptionPricing = PaymentFormType;
+
 
 //@description Contains information about an invoice payment form
 //@id The payment form identifier
