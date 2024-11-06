@@ -1,6 +1,7 @@
 param (
   [string]$vcpkg_root = $(throw "-vcpkg_root=<path to vcpkg> is required"),
-  [string]$arch = "",
+  [ValidateSet('x86', 'x64', 'ARM', 'ARM64', IgnoreCase = $false)]
+  [string[]]$arch = @( "x86", "x64", "ARM", "ARM64" ),
   [string]$mode = "all",
   [string]$compress = "7z",
   [switch]$release_only = $false,
@@ -11,10 +12,7 @@ $ErrorActionPreference = "Stop"
 $vcpkg_root = Resolve-Path $vcpkg_root
 
 $vcpkg_cmake="${vcpkg_root}\scripts\buildsystems\vcpkg.cmake"
-$arch_list = @( "x86", "x64", "ARM", "ARM64" )
-if ($arch) {
-  $arch_list = @(, $arch)
-}
+$arch_list = $arch
 $config_list = @( "Debug", "Release" )
 if ($release_only -or $nupkg) {
   $config_list = @(, "RelWithDebInfo")
@@ -56,7 +54,7 @@ function config {
 
   ForEach ($arch in $arch_list) {
     echo "Config Arch = [$arch]"
-    New-Item -ItemType Directory -Force -Path $arch
+    New-Item -ItemType Directory -Force -Path $arch.ToLower()
     cd $arch
     echo "${td_root}"
     $fixed_arch = $arch
@@ -130,12 +128,13 @@ function export-nupkg {
   cp ../Telegram.Td.UWP.targets nupkg/build/native
 
   ForEach ($arch in $arch_list) {
-    New-Item -ItemType Directory -Force -Path nupkg/runtimes/win10-${arch}/native
+    $fixed_arch = $arch.ToLower();
+    New-Item -ItemType Directory -Force -Path nupkg/runtimes/win10-${fixed_arch}/native
     New-Item -ItemType Directory -Force -Path nupkg/lib/uap10.0
 
     ForEach ($config in $config_list) {
-      cp ${arch}/${config}/* -include "SSLEAY*","LIBEAY*","libcrypto*","libssl*","zlib*","Telegram.Td.pdb","Telegram.Td.pri","Telegram.Td.dll" nupkg/runtimes/win10-${arch}/native
-      cp ${arch}/${config}/* -include "Telegram.Td.winmd","Telegram.Td.xml" nupkg/lib/uap10.0
+      cp ${fixed_arch}/${config}/* -include "SSLEAY*","LIBEAY*","libcrypto*","libssl*","zlib*","Telegram.Td.pdb","Telegram.Td.pri","Telegram.Td.dll" nupkg/runtimes/win10-${fixed_arch}/native
+      cp ${fixed_arch}/${config}/* -include "Telegram.Td.winmd","Telegram.Td.xml" nupkg/lib/uap10.0
     }
   }
 

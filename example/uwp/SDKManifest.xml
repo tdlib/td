@@ -7,6 +7,6 @@
     AppliesTo="WindowsAppContainer"
     DependsOn="Microsoft.VCLibs, version=14.0"
     SupportsMultipleVersions="Error"
-    SupportedArchitectures="x86;x64;ARM">
+    SupportedArchitectures="x86;x64;ARM;ARM64">
   <File Reference="Telegram.Td.winmd" Implementation="Telegram.Td.dll" />
 </FileList>
