@@ -9,7 +9,6 @@
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/MessageSender.h"
-#include "td/telegram/MessagesManager.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UserManager.h"
@@ -78,7 +77,7 @@ td_api::object_ptr<td_api::forwardSource> LastForwardedMessageInfo::get_forward_
       sender_id = get_message_sender_object_const(td, sender_dialog_id, "origin.forwardSource.sender_id");
     }
     return td_api::make_object<td_api::forwardSource>(
-        td->messages_manager_->get_chat_id_object(dialog_id_, "forwardSource.chat_id"), message_id_.get(),
+        td->dialog_manager_->get_chat_id_object(dialog_id_, "forwardSource.chat_id"), message_id_.get(),
         std::move(sender_id), origin.get_sender_name(), origin_date,
         is_outgoing_ || sender_dialog_id == td->dialog_manager_->get_my_dialog_id());
   }
@@ -87,7 +86,7 @@ td_api::object_ptr<td_api::forwardSource> LastForwardedMessageInfo::get_forward_
     sender_id = get_message_sender_object_const(td, sender_dialog_id_, "forwardSource.sender_id");
   }
   return td_api::make_object<td_api::forwardSource>(
-      td->messages_manager_->get_chat_id_object(dialog_id_, "forwardSource.chat_id"), message_id_.get(),
+      td->dialog_manager_->get_chat_id_object(dialog_id_, "forwardSource.chat_id"), message_id_.get(),
       std::move(sender_id), sender_name_, date_,
       is_outgoing_ || sender_dialog_id_ == td->dialog_manager_->get_my_dialog_id());
 }

@@ -10,7 +10,6 @@
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/MessageForwardInfo.h"
-#include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 
@@ -59,7 +58,7 @@ td_api::object_ptr<td_api::SavedMessagesTopicType> SavedMessagesTopicId::get_sav
     return td_api::make_object<td_api::savedMessagesTopicTypeAuthorHidden>();
   }
   return td_api::make_object<td_api::savedMessagesTopicTypeSavedFromChat>(
-      td->messages_manager_->get_chat_id_object(dialog_id_, "savedMessagesTopicTypeSavedFromChat"));
+      td->dialog_manager_->get_chat_id_object(dialog_id_, "savedMessagesTopicTypeSavedFromChat"));
 }
 
 bool SavedMessagesTopicId::have_input_peer(Td *td) const {
