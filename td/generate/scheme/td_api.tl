@@ -5121,6 +5121,26 @@ httpUrl url:string = HttpUrl;
 userLink url:string expires_in:int32 = UserLink;
 
 
+//@description Describes allowed types for the target chat
+//@allow_user_chats True, if private chats with ordinary users are allowed
+//@allow_bot_chats True, if private chats with other bots are allowed
+//@allow_group_chats True, if basic group and supergroup chats are allowed
+//@allow_channel_chats True, if channel chats are allowed
+targetChatTypes allow_user_chats:Bool allow_bot_chats:Bool allow_group_chats:Bool allow_channel_chats:Bool = TargetChatTypes;
+
+
+//@class TargetChat @description Describes the target chat to be opened
+
+//@description The currently opened chat needs to be kept
+targetChatCurrent = TargetChat;
+
+//@description The chat needs to be chosen by the user among chats of the specified types @types Allowed types for the chat
+targetChatChosen types:targetChatTypes = TargetChat;
+
+//@description The chat needs to be open with the provided internal link @link An internal link pointing to the chat
+targetChatInternalLink link:InternalLinkType = TargetChat;
+
+
 //@class InputInlineQueryResult @description Represents a single result of an inline query; for bots only
 
 //@description Represents a link to an animated GIF or an animated (i.e., without sound) H.264/MPEG-4 AVC video
@@ -5360,7 +5380,7 @@ inlineQueryResults inline_query_id:int64 button:inlineQueryResultsButton results
 //@description Represents an inline message that can be sent via the bot
 //@id Unique identifier for the message
 //@expiration_date Point in time (Unix timestamp) when the message can't be used anymore
-preparedInlineMessage id:string expiration_date:int32 = PreparedInlineMessage;
+preparedInlineMessageId id:string expiration_date:int32 = PreparedInlineMessageId;
 
 
 //@class CallbackQueryPayload @description Represents a payload of a callback query
@@ -6681,26 +6701,6 @@ reportStoryResultOptionRequired title:string options:vector<reportOption> = Repo
 
 //@description The user must add additional text details to the report @option_id Option identifier for the next reportStory request @is_optional True, if the user can skip text adding
 reportStoryResultTextRequired option_id:bytes is_optional:Bool = ReportStoryResult;
-
-
-//@description Describes allowed types for the target chat
-//@allow_user_chats True, if private chats with ordinary users are allowed
-//@allow_bot_chats True, if private chats with other bots are allowed
-//@allow_group_chats True, if basic group and supergroup chats are allowed
-//@allow_channel_chats True, if channel chats are allowed
-targetChatTypes allow_user_chats:Bool allow_bot_chats:Bool allow_group_chats:Bool allow_channel_chats:Bool = TargetChatTypes;
-
-
-//@class TargetChat @description Describes the target chat to be opened
-
-//@description The currently opened chat needs to be kept
-targetChatCurrent = TargetChat;
-
-//@description The chat needs to be chosen by the user among chats of the specified types @types Allowed types for the chat
-targetChatChosen types:targetChatTypes = TargetChat;
-
-//@description The chat needs to be open with the provided internal link @link An internal link pointing to the chat
-targetChatInternalLink link:InternalLinkType = TargetChat;
 
 
 //@class InternalLinkType @description Describes an internal https://t.me or tg: link, which must be processed by the application in a special way
@@ -9496,7 +9496,7 @@ answerInlineQuery inline_query_id:int64 is_personal:Bool button:inlineQueryResul
 //@user_id Identifier of the user
 //@result The description of the message
 //@chat_types Types of the chats to which the message can be sent
-savePreparedInlineMessage user_id:int53 result:InputInlineQueryResult chat_types:targetChatTypes = PreparedInlineMessage;
+savePreparedInlineMessage user_id:int53 result:InputInlineQueryResult chat_types:targetChatTypes = PreparedInlineMessageId;
 
 
 //@description Returns the most grossing Web App bots

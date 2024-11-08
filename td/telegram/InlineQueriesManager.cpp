@@ -171,10 +171,10 @@ class SetInlineBotResultsQuery final : public Td::ResultHandler {
 };
 
 class SavePreparedInlineMessageQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::preparedInlineMessage>> promise_;
+  Promise<td_api::object_ptr<td_api::preparedInlineMessageId>> promise_;
 
  public:
-  explicit SavePreparedInlineMessageQuery(Promise<td_api::object_ptr<td_api::preparedInlineMessage>> &&promise)
+  explicit SavePreparedInlineMessageQuery(Promise<td_api::object_ptr<td_api::preparedInlineMessageId>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -197,7 +197,7 @@ class SavePreparedInlineMessageQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for SavePreparedInlineMessageQuery: " << to_string(ptr);
-    promise_.set_value(td_api::make_object<td_api::preparedInlineMessage>(ptr->id_, ptr->expire_date_));
+    promise_.set_value(td_api::make_object<td_api::preparedInlineMessageId>(ptr->id_, ptr->expire_date_));
   }
 
   void on_error(Status status) final {
@@ -590,7 +590,7 @@ void InlineQueriesManager::answer_inline_query(
 void InlineQueriesManager::save_prepared_inline_message(
     UserId user_id, td_api::object_ptr<td_api::InputInlineQueryResult> &&input_result,
     td_api::object_ptr<td_api::targetChatTypes> &&chat_types,
-    Promise<td_api::object_ptr<td_api::preparedInlineMessage>> &&promise) {
+    Promise<td_api::object_ptr<td_api::preparedInlineMessageId>> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
   TRY_RESULT_PROMISE(promise, result, get_input_bot_inline_result(std::move(input_result), nullptr, nullptr));
   TRY_RESULT_PROMISE(promise, types, TargetDialogTypes::get_target_dialog_types(chat_types));
