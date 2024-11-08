@@ -5382,6 +5382,12 @@ inlineQueryResults inline_query_id:int64 button:inlineQueryResultsButton results
 //@expiration_date Point in time (Unix timestamp) when the message can't be used anymore
 preparedInlineMessageId id:string expiration_date:int32 = PreparedInlineMessageId;
 
+//@description Represents a ready to send inline message. Use sendInlineQueryResultMessage to send the message
+//@inline_query_id Unique identifier of the inline query to pass to sendInlineQueryResultMessage
+//@result Resulted inline message of the query
+//@chat_types Types of the chats to which the message can be sent
+preparedInlineMessage inline_query_id:int64 result:InlineQueryResult chat_types:targetChatTypes = PreparedInlineMessage;
+
 
 //@class CallbackQueryPayload @description Represents a payload of a callback query
 
@@ -9497,6 +9503,11 @@ answerInlineQuery inline_query_id:int64 is_personal:Bool button:inlineQueryResul
 //@result The description of the message
 //@chat_types Types of the chats to which the message can be sent
 savePreparedInlineMessage user_id:int53 result:InputInlineQueryResult chat_types:targetChatTypes = PreparedInlineMessageId;
+
+//@description Saves an inline message to be sent by the given user; for bots only
+//@bot_user_id Identifier of the bot that created the message
+//@prepared_message_id Identifier of the prepared message
+getPreparedInlineMessage bot_user_id:int53 prepared_message_id:string = PreparedInlineMessage;
 
 
 //@description Returns the most grossing Web App bots

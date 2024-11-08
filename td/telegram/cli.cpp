@@ -5478,6 +5478,11 @@ class CliClient final : public Actor {
       get_args(args, bot_user_id, query);
       send_request(
           td_api::make_object<td_api::getInlineQueryResults>(bot_user_id, 0, as_location("1.1", "2.2", ""), query, ""));
+    } else if (op == "gpim") {
+      UserId bot_user_id;
+      string prepared_message_id;
+      get_args(args, bot_user_id, prepared_message_id);
+      send_request(td_api::make_object<td_api::getPreparedInlineMessage>(bot_user_id, prepared_message_id));
     } else if (op == "siqr" || op == "siqrh") {
       ChatId chat_id;
       int64 query_id;

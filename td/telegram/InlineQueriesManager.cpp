@@ -205,6 +205,42 @@ class SavePreparedInlineMessageQuery final : public Td::ResultHandler {
   }
 };
 
+class GetPreparedInlineMessageQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::preparedInlineMessage>> promise_;
+  UserId bot_user_id_;
+  uint64 query_hash_;
+
+ public:
+  explicit GetPreparedInlineMessageQuery(Promise<td_api::object_ptr<td_api::preparedInlineMessage>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(UserId bot_user_id, telegram_api::object_ptr<telegram_api::InputUser> &&input_user,
+            const string &prepared_message_id, uint64 query_hash) {
+    bot_user_id_ = bot_user_id;
+    query_hash_ = query_hash;
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_getPreparedInlineMessage(std::move(input_user), prepared_message_id)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getPreparedInlineMessage>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetPreparedInlineMessageQuery: " << to_string(ptr);
+    td_->inline_queries_manager_->on_get_prepared_inline_message(bot_user_id_, query_hash_, result_ptr.move_as_ok(),
+                                                                 std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    td_->inline_queries_manager_->on_get_prepared_inline_message(bot_user_id_, query_hash_, nullptr, Auto());
+    promise_.set_error(std::move(status));
+  }
+};
+
 class RequestSimpleWebViewQuery final : public Td::ResultHandler {
   Promise<string> promise_;
 
@@ -597,6 +633,35 @@ void InlineQueriesManager::save_prepared_inline_message(
 
   td_->create_handler<SavePreparedInlineMessageQuery>(std::move(promise))
       ->send(std::move(input_user), std::move(result), types);
+}
+
+void InlineQueriesManager::get_prepared_inline_message(
+    UserId bot_user_id, const string &prepared_message_id,
+    Promise<td_api::object_ptr<td_api::preparedInlineMessage>> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
+
+  uint64 query_hash = Hash<string>()(prepared_message_id);
+  query_hash = query_hash * 2023654985u + bot_user_id.get();
+  query_hash &= 0x7FFFFFFFFFFFFFFF;
+  if (query_hash == 0) {
+    query_hash = 1;
+  }
+
+  auto it = inline_query_results_.find(query_hash);
+  if (it != inline_query_results_.end()) {
+    if (it->second.is_inline_query) {
+      return promise.set_error(Status::Error(500, "Request hash collision"));
+    }
+    it->second.pending_request_count++;
+    if (Time::now() < it->second.cache_expire_time) {
+      return promise.set_value(get_prepared_inline_message_object(query_hash));
+    }
+  } else {
+    inline_query_results_[query_hash] = {nullptr, -1.0, 1, 0, false};
+  }
+
+  td_->create_handler<GetPreparedInlineMessageQuery>(std::move(promise))
+      ->send(bot_user_id, std::move(input_user), prepared_message_id, query_hash);
 }
 
 void InlineQueriesManager::get_simple_web_view_url(UserId bot_user_id, string &&url,
@@ -1141,12 +1206,15 @@ void InlineQueriesManager::send_inline_query(UserId bot_user_id, DialogId dialog
 
   auto it = inline_query_results_.find(query_hash);
   if (it != inline_query_results_.end()) {
+    if (!it->second.is_inline_query) {
+      return promise.set_error(Status::Error(500, "Request hash collision"));
+    }
     it->second.pending_request_count++;
     if (Time::now() < it->second.cache_expire_time) {
       return promise.set_value(get_inline_query_results_object(query_hash));
     }
   } else {
-    inline_query_results_[query_hash] = {nullptr, -1.0, 1};
+    inline_query_results_[query_hash] = {nullptr, -1.0, 1, 0, true};
   }
 
   if (pending_inline_query_ != nullptr) {
@@ -1563,25 +1631,36 @@ td_api::object_ptr<td_api::inlineQueryResults> InlineQueriesManager::get_inline_
   auto it = inline_query_results_.find(query_hash);
   CHECK(it != inline_query_results_.end());
   CHECK(it->second.pending_request_count > 0);
+  CHECK(it->second.is_inline_query);
   it->second.pending_request_count--;
   LOG(INFO) << "Inline query " << query_hash << " is awaited by " << it->second.pending_request_count
             << " pending requests";
   if (it->second.pending_request_count == 0) {
-    auto left_time = it->second.cache_expire_time - Time::now();
-    if (left_time < 0) {
-      LOG(INFO) << "Drop cache for inline query " << query_hash;
-      drop_inline_query_result_timeout_.cancel_timeout(static_cast<int64>(query_hash));
-      auto result = std::move(it->second.results);
-      inline_query_results_.erase(it);
-      return result;
-    } else {
-      drop_inline_query_result_timeout_.set_timeout_at(static_cast<int64>(query_hash), it->second.cache_expire_time);
-    }
+    drop_inline_query_result_timeout_.set_timeout_at(static_cast<int64>(query_hash), it->second.cache_expire_time);
   }
   return copy(it->second.results);
 }
 
-tl_object_ptr<td_api::thumbnail> InlineQueriesManager::register_thumbnail(
+td_api::object_ptr<td_api::preparedInlineMessage> InlineQueriesManager::get_prepared_inline_message_object(
+    uint64 query_hash) {
+  auto it = inline_query_results_.find(query_hash);
+  CHECK(it != inline_query_results_.end());
+  CHECK(it->second.pending_request_count > 0);
+  CHECK(!it->second.is_inline_query);
+  it->second.pending_request_count--;
+  LOG(INFO) << "Inline message " << query_hash << " is awaited by " << it->second.pending_request_count
+            << " pending requests";
+  if (it->second.pending_request_count == 0) {
+    drop_inline_query_result_timeout_.set_timeout_at(static_cast<int64>(query_hash), it->second.cache_expire_time);
+  }
+  auto *results = it->second.results.get();
+  CHECK(results->results_.size() == 1u);
+  return td_api::make_object<td_api::preparedInlineMessage>(
+      results->inline_query_id_, copy_result(results->results_[0]),
+      TargetDialogTypes(it->second.target_dialog_types_mask).get_target_chat_types_object());
+}
+
+td_api::object_ptr<td_api::thumbnail> InlineQueriesManager::register_thumbnail(
     tl_object_ptr<telegram_api::WebDocument> &&web_document_ptr) const {
   PhotoSize thumbnail = get_web_document_photo_size(td_->file_manager_.get(), FileType::Thumbnail, DialogId(),
                                                     std::move(web_document_ptr));
@@ -2087,6 +2166,7 @@ void InlineQueriesManager::on_get_inline_query_results(
 
   auto it = inline_query_results_.find(query_hash);
   CHECK(it != inline_query_results_.end());
+  CHECK(it->second.is_inline_query);
 
   query_id_to_bot_user_id_[results->query_id_] = bot_user_id;
 
@@ -2105,6 +2185,41 @@ void InlineQueriesManager::on_get_inline_query_results(
                                                                   std::move(output_results), results->next_offset_);
   it->second.cache_expire_time = Time::now() + results->cache_time_;
   promise.set_value(get_inline_query_results_object(query_hash));
+}
+
+void InlineQueriesManager::on_get_prepared_inline_message(
+    UserId bot_user_id, uint64 query_hash,
+    telegram_api::object_ptr<telegram_api::messages_preparedInlineMessage> &&prepared_message,
+    Promise<td_api::object_ptr<td_api::preparedInlineMessage>> promise) {
+  if (prepared_message == nullptr || prepared_message->query_id_ == 0) {
+    get_prepared_inline_message_object(query_hash);
+    return promise.set_error(Status::Error(500, "Receive no response"));
+  }
+
+  td_->user_manager_->on_get_users(std::move(prepared_message->users_), "on_get_prepared_inline_message");
+
+  // messages.preparedInlineMessage#6187fa6d peer_types:Vector<InlineQueryPeerType> ;
+
+  auto output_result =
+      get_inline_query_result_object(prepared_message->query_id_, DialogId(), std::move(prepared_message->result_));
+  if (output_result == nullptr) {
+    get_prepared_inline_message_object(query_hash);
+    return promise.set_error(Status::Error(500, "Receive invalid response"));
+  }
+
+  auto it = inline_query_results_.find(query_hash);
+  CHECK(it != inline_query_results_.end());
+  CHECK(!it->second.is_inline_query);
+
+  query_id_to_bot_user_id_[prepared_message->query_id_] = bot_user_id;
+
+  vector<td_api::object_ptr<td_api::InlineQueryResult>> output_results;
+  output_results.push_back(std::move(output_result));
+  it->second.results = td_api::make_object<td_api::inlineQueryResults>(prepared_message->query_id_, nullptr,
+                                                                       std::move(output_results), string());
+  it->second.cache_expire_time = Time::now() + prepared_message->cache_time_;
+  it->second.target_dialog_types_mask = TargetDialogTypes(prepared_message->peer_types_).get_mask();
+  promise.set_value(get_prepared_inline_message_object(query_hash));
 }
 
 vector<UserId> InlineQueriesManager::get_recent_inline_bots(Promise<Unit> &&promise) {

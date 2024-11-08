@@ -6862,6 +6862,14 @@ void Requests::on_request(uint64 id, td_api::savePreparedInlineMessage &request)
                                                              std::move(request.chat_types_), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::getPreparedInlineMessage &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.prepared_message_id_);
+  CREATE_REQUEST_PROMISE();
+  td_->inline_queries_manager_->get_prepared_inline_message(UserId(request.bot_user_id_), request.prepared_message_id_,
+                                                            std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::getGrossingWebAppBots &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.offset_);
