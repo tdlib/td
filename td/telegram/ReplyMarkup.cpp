@@ -10,6 +10,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/TargetDialogTypes.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserManager.h"
@@ -84,7 +85,7 @@ static StringBuilder &operator<<(StringBuilder &string_builder, const InlineKeyb
       string_builder << "CallbackGame";
       break;
     case InlineKeyboardButton::Type::SwitchInline:
-      string_builder << "SwitchInline, target chat mask = " << keyboard_button.id;
+      string_builder << "SwitchInline, target chats = " << TargetDialogTypes(keyboard_button.id);
       break;
     case InlineKeyboardButton::Type::SwitchInlineCurrentDialog:
       string_builder << "SwitchInlineCurrentChat";
@@ -296,28 +297,7 @@ static InlineKeyboardButton get_inline_keyboard_button(
       button.text = std::move(keyboard_button->text_);
       button.data = std::move(keyboard_button->query_);
       if (!keyboard_button->same_peer_) {
-        for (auto &peer_type : keyboard_button->peer_types_) {
-          switch (peer_type->get_id()) {
-            case telegram_api::inlineQueryPeerTypePM::ID:
-              button.id |= InlineKeyboardButton::USERS_MASK;
-              break;
-            case telegram_api::inlineQueryPeerTypeBotPM::ID:
-              button.id |= InlineKeyboardButton::BOTS_MASK;
-              break;
-            case telegram_api::inlineQueryPeerTypeChat::ID:
-            case telegram_api::inlineQueryPeerTypeMegagroup::ID:
-              button.id |= InlineKeyboardButton::CHATS_MASK;
-              break;
-            case telegram_api::inlineQueryPeerTypeBroadcast::ID:
-              button.id |= InlineKeyboardButton::BROADCASTS_MASK;
-              break;
-            default:
-              LOG(ERROR) << "Receive " << to_string(peer_type);
-          }
-        }
-      }
-      if (button.id == InlineKeyboardButton::FULL_MASK) {
-        button.id = 0;
+        button.id = TargetDialogTypes(keyboard_button->peer_types_).get_mask();
       }
       break;
     }
@@ -613,27 +593,10 @@ static Result<InlineKeyboardButton> get_inline_keyboard_button(tl_object_ptr<td_
       }
       switch (button_type->target_chat_->get_id()) {
         case td_api::targetChatChosen::ID: {
-          auto types = static_cast<const td_api::targetChatChosen *>(button_type->target_chat_.get())->types_.get();
-          if (types != nullptr) {
-            if (types->allow_user_chats_) {
-              current_button.id |= InlineKeyboardButton::USERS_MASK;
-            }
-            if (types->allow_bot_chats_) {
-              current_button.id |= InlineKeyboardButton::BOTS_MASK;
-            }
-            if (types->allow_group_chats_) {
-              current_button.id |= InlineKeyboardButton::CHATS_MASK;
-            }
-            if (types->allow_channel_chats_) {
-              current_button.id |= InlineKeyboardButton::BROADCASTS_MASK;
-            }
-          }
-          if (current_button.id == 0) {
-            return Status::Error(400, "At least one chat type must be allowed");
-          }
-          if (current_button.id == InlineKeyboardButton::FULL_MASK) {
-            current_button.id = 0;
-          }
+          TRY_RESULT(types,
+                     TargetDialogTypes::get_target_dialog_types(
+                         static_cast<const td_api::targetChatChosen *>(button_type->target_chat_.get())->types_));
+          current_button.id = types.get_mask();
           current_button.type = InlineKeyboardButton::Type::SwitchInline;
           break;
         }
@@ -936,22 +899,10 @@ static tl_object_ptr<telegram_api::KeyboardButton> get_input_keyboard_button(
     case InlineKeyboardButton::Type::SwitchInline: {
       int32 flags = 0;
       vector<telegram_api::object_ptr<telegram_api::InlineQueryPeerType>> peer_types;
-      if (keyboard_button.id != 0) {
-        CHECK(keyboard_button.type == InlineKeyboardButton::Type::SwitchInline);
+      TargetDialogTypes types(keyboard_button.id);
+      if (!types.is_full()) {
         flags |= telegram_api::keyboardButtonSwitchInline::PEER_TYPES_MASK;
-        if ((keyboard_button.id & InlineKeyboardButton::USERS_MASK) != 0) {
-          peer_types.push_back(telegram_api::make_object<telegram_api::inlineQueryPeerTypePM>());
-        }
-        if ((keyboard_button.id & InlineKeyboardButton::BOTS_MASK) != 0) {
-          peer_types.push_back(telegram_api::make_object<telegram_api::inlineQueryPeerTypeBotPM>());
-        }
-        if ((keyboard_button.id & InlineKeyboardButton::CHATS_MASK) != 0) {
-          peer_types.push_back(telegram_api::make_object<telegram_api::inlineQueryPeerTypeChat>());
-          peer_types.push_back(telegram_api::make_object<telegram_api::inlineQueryPeerTypeMegagroup>());
-        }
-        if ((keyboard_button.id & InlineKeyboardButton::BROADCASTS_MASK) != 0) {
-          peer_types.push_back(telegram_api::make_object<telegram_api::inlineQueryPeerTypeBroadcast>());
-        }
+        peer_types = types.get_input_peer_types();
       }
       return make_tl_object<telegram_api::keyboardButtonSwitchInline>(flags, false, keyboard_button.text,
                                                                       keyboard_button.data, std::move(peer_types));
@@ -1098,15 +1049,9 @@ static tl_object_ptr<td_api::inlineKeyboardButton> get_inline_keyboard_button_ob
       type = make_tl_object<td_api::inlineKeyboardButtonTypeCallbackGame>();
       break;
     case InlineKeyboardButton::Type::SwitchInline: {
-      auto mask = keyboard_button.id;
-      if (mask == 0) {
-        mask = InlineKeyboardButton::FULL_MASK;
-      }
       type = make_tl_object<td_api::inlineKeyboardButtonTypeSwitchInline>(
-          keyboard_button.data,
-          td_api::make_object<td_api::targetChatChosen>(td_api::make_object<td_api::targetChatTypes>(
-              (mask & InlineKeyboardButton::USERS_MASK) != 0, (mask & InlineKeyboardButton::BOTS_MASK) != 0,
-              (mask & InlineKeyboardButton::CHATS_MASK) != 0, (mask & InlineKeyboardButton::BROADCASTS_MASK) != 0)));
+          keyboard_button.data, td_api::make_object<td_api::targetChatChosen>(
+                                    TargetDialogTypes(keyboard_button.id).get_target_chat_types_object()));
       break;
     }
     case InlineKeyboardButton::Type::SwitchInlineCurrentDialog:

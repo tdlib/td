@@ -604,6 +604,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/SuggestedAction.cpp
   td/telegram/Support.cpp
   td/telegram/SynchronousRequests.cpp
+  td/telegram/TargetDialogTypes.cpp
   td/telegram/Td.cpp
   td/telegram/TdDb.cpp
   td/telegram/TermsOfService.cpp
@@ -962,6 +963,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/SuggestedAction.h
   td/telegram/Support.h
   td/telegram/SynchronousRequests.h
+  td/telegram/TargetDialogTypes.h
   td/telegram/Td.h
   td/telegram/TdCallback.h
   td/telegram/TdDb.h

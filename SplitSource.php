@@ -428,6 +428,7 @@ function split_file($file, $chunks, $undo) {
             'story_manager[_(-](?![.]get[(][)])|StoryManager' => 'StoryManager',
             'SuggestedAction|[a-z_]*_suggested_action' => 'SuggestedAction',
             'SynchronousRequests' => 'SynchronousRequests',
+            'TargetDialogTypes' => 'TargetDialogTypes',
             'td_api' => 'td_api',
             'td_db[(][)]|TdDb[^A-Za-z]' => 'TdDb',
             'telegram_api' => 'telegram_api',
