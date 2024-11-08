@@ -1604,8 +1604,8 @@ td_api::object_ptr<td_api::InlineQueryResult> InlineQueriesManager::get_inline_q
     case telegram_api::botInlineMediaResult::ID: {
       auto result = telegram_api::move_object_as<telegram_api::botInlineMediaResult>(result_ptr);
       auto flags = result->flags_;
-      bool has_document = (flags & BOT_INLINE_MEDIA_RESULT_FLAG_HAS_DOCUMENT) != 0;
-      bool has_photo = (flags & BOT_INLINE_MEDIA_RESULT_FLAG_HAS_PHOTO) != 0;
+      bool has_document = result->document_ != nullptr;
+      bool has_photo = result->photo_ != nullptr;
       bool is_photo = result->type_ == "photo";
       if (result->type_ == "game") {
         if (!has_photo) {
