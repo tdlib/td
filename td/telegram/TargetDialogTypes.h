@@ -43,6 +43,10 @@ class TargetDialogTypes {
     return mask_;
   }
 
+  int64 get_full_mask() const {
+    return mask_ == 0 ? FULL_MASK : mask_;
+  }
+
   bool is_full() const {
     return mask_ == 0 || mask_ == FULL_MASK;
   }

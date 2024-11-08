@@ -32,9 +32,6 @@ TargetDialogTypes::TargetDialogTypes(const vector<telegram_api::object_ptr<teleg
         LOG(ERROR) << "Receive " << to_string(peer_type);
     }
   }
-  if (mask_ == FULL_MASK) {
-    mask_ = 0;
-  }
 }
 
 Result<TargetDialogTypes> TargetDialogTypes::get_target_dialog_types(
@@ -56,9 +53,6 @@ Result<TargetDialogTypes> TargetDialogTypes::get_target_dialog_types(
   }
   if (mask == 0) {
     return Status::Error(400, "At least one chat type must be allowed");
-  }
-  if (mask == FULL_MASK) {
-    mask = 0;
   }
   return TargetDialogTypes(mask);
 }
@@ -82,19 +76,13 @@ vector<telegram_api::object_ptr<telegram_api::InlineQueryPeerType>> TargetDialog
 }
 
 td_api::object_ptr<td_api::targetChatTypes> TargetDialogTypes::get_target_chat_types_object() const {
-  auto mask = mask_;
-  if (mask == 0) {
-    mask = FULL_MASK;
-  }
+  auto mask = get_full_mask();
   return td_api::make_object<td_api::targetChatTypes>((mask & USERS_MASK) != 0, (mask & BOTS_MASK) != 0,
                                                       (mask & CHATS_MASK) != 0, (mask & BROADCASTS_MASK) != 0);
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const TargetDialogTypes &types) {
-  auto mask = types.mask_;
-  if (mask == 0) {
-    mask = TargetDialogTypes::FULL_MASK;
-  }
+  auto mask = types.get_full_mask();
   if ((mask & TargetDialogTypes::USERS_MASK) != 0) {
     string_builder << "(users)";
   }
