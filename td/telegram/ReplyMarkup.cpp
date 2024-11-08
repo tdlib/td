@@ -613,18 +613,20 @@ static Result<InlineKeyboardButton> get_inline_keyboard_button(tl_object_ptr<td_
       }
       switch (button_type->target_chat_->get_id()) {
         case td_api::targetChatChosen::ID: {
-          auto target = static_cast<const td_api::targetChatChosen *>(button_type->target_chat_.get());
-          if (target->allow_user_chats_) {
-            current_button.id |= InlineKeyboardButton::USERS_MASK;
-          }
-          if (target->allow_bot_chats_) {
-            current_button.id |= InlineKeyboardButton::BOTS_MASK;
-          }
-          if (target->allow_group_chats_) {
-            current_button.id |= InlineKeyboardButton::CHATS_MASK;
-          }
-          if (target->allow_channel_chats_) {
-            current_button.id |= InlineKeyboardButton::BROADCASTS_MASK;
+          auto types = static_cast<const td_api::targetChatChosen *>(button_type->target_chat_.get())->types_.get();
+          if (types != nullptr) {
+            if (types->allow_user_chats_) {
+              current_button.id |= InlineKeyboardButton::USERS_MASK;
+            }
+            if (types->allow_bot_chats_) {
+              current_button.id |= InlineKeyboardButton::BOTS_MASK;
+            }
+            if (types->allow_group_chats_) {
+              current_button.id |= InlineKeyboardButton::CHATS_MASK;
+            }
+            if (types->allow_channel_chats_) {
+              current_button.id |= InlineKeyboardButton::BROADCASTS_MASK;
+            }
           }
           if (current_button.id == 0) {
             return Status::Error(400, "At least one chat type must be allowed");
@@ -1102,9 +1104,9 @@ static tl_object_ptr<td_api::inlineKeyboardButton> get_inline_keyboard_button_ob
       }
       type = make_tl_object<td_api::inlineKeyboardButtonTypeSwitchInline>(
           keyboard_button.data,
-          td_api::make_object<td_api::targetChatChosen>(
+          td_api::make_object<td_api::targetChatChosen>(td_api::make_object<td_api::targetChatTypes>(
               (mask & InlineKeyboardButton::USERS_MASK) != 0, (mask & InlineKeyboardButton::BOTS_MASK) != 0,
-              (mask & InlineKeyboardButton::CHATS_MASK) != 0, (mask & InlineKeyboardButton::BROADCASTS_MASK) != 0));
+              (mask & InlineKeyboardButton::CHATS_MASK) != 0, (mask & InlineKeyboardButton::BROADCASTS_MASK) != 0)));
       break;
     }
     case InlineKeyboardButton::Type::SwitchInlineCurrentDialog:

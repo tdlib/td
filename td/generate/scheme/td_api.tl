@@ -6677,17 +6677,21 @@ reportStoryResultOptionRequired title:string options:vector<reportOption> = Repo
 reportStoryResultTextRequired option_id:bytes is_optional:Bool = ReportStoryResult;
 
 
+//@description Describes allowed types for the target chat
+//@allow_user_chats True, if private chats with ordinary users are allowed
+//@allow_bot_chats True, if private chats with other bots are allowed
+//@allow_group_chats True, if basic group and supergroup chats are allowed
+//@allow_channel_chats True, if channel chats are allowed
+targetChatTypes allow_user_chats:Bool allow_bot_chats:Bool allow_group_chats:Bool allow_channel_chats:Bool = TargetChatTypes;
+
+
 //@class TargetChat @description Describes the target chat to be opened
 
 //@description The currently opened chat needs to be kept
 targetChatCurrent = TargetChat;
 
-//@description The chat needs to be chosen by the user among chats of the specified types
-//@allow_user_chats True, if private chats with ordinary users are allowed
-//@allow_bot_chats True, if private chats with other bots are allowed
-//@allow_group_chats True, if basic group and supergroup chats are allowed
-//@allow_channel_chats True, if channel chats are allowed
-targetChatChosen allow_user_chats:Bool allow_bot_chats:Bool allow_group_chats:Bool allow_channel_chats:Bool = TargetChat;
+//@description The chat needs to be chosen by the user among chats of the specified types @types Allowed types for the chat
+targetChatChosen types:targetChatTypes = TargetChat;
 
 //@description The chat needs to be open with the provided internal link @link An internal link pointing to the chat
 targetChatInternalLink link:InternalLinkType = TargetChat;

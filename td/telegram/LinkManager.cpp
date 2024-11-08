@@ -240,7 +240,7 @@ static string get_admin_string(AdministratorRights rights) {
   return "&admin=" + implode(admin_rights, '+');
 }
 
-static td_api::object_ptr<td_api::targetChatChosen> get_target_chat_chosen(Slice chat_types) {
+static td_api::object_ptr<td_api::targetChatTypes> get_target_chat_types(Slice chat_types) {
   bool allow_users = false;
   bool allow_bots = false;
   bool allow_groups = false;
@@ -259,7 +259,7 @@ static td_api::object_ptr<td_api::targetChatChosen> get_target_chat_chosen(Slice
   if (!allow_users && !allow_bots && !allow_groups && !allow_channels) {
     return nullptr;
   }
-  return td_api::make_object<td_api::targetChatChosen>(allow_users, allow_bots, allow_groups, allow_channels);
+  return td_api::make_object<td_api::targetChatTypes>(allow_users, allow_bots, allow_groups, allow_channels);
 }
 
 static td_api::object_ptr<td_api::WebAppOpenMode> get_web_app_open_mode_object(const string &mode) {
@@ -279,7 +279,7 @@ class LinkManager::InternalLinkActiveSessions final : public InternalLink {
 };
 
 class LinkManager::InternalLinkAttachMenuBot final : public InternalLink {
-  td_api::object_ptr<td_api::targetChatChosen> allowed_chat_types_;
+  td_api::object_ptr<td_api::targetChatTypes> allowed_chat_types_;
   unique_ptr<InternalLink> dialog_link_;
   string bot_username_;
   string url_;
@@ -289,9 +289,9 @@ class LinkManager::InternalLinkAttachMenuBot final : public InternalLink {
     if (dialog_link_ != nullptr) {
       target_chat = td_api::make_object<td_api::targetChatInternalLink>(dialog_link_->get_internal_link_type_object());
     } else if (allowed_chat_types_ != nullptr) {
-      target_chat = td_api::make_object<td_api::targetChatChosen>(
+      target_chat = td_api::make_object<td_api::targetChatChosen>(td_api::make_object<td_api::targetChatTypes>(
           allowed_chat_types_->allow_user_chats_, allowed_chat_types_->allow_bot_chats_,
-          allowed_chat_types_->allow_group_chats_, allowed_chat_types_->allow_channel_chats_);
+          allowed_chat_types_->allow_group_chats_, allowed_chat_types_->allow_channel_chats_));
     } else {
       target_chat = td_api::make_object<td_api::targetChatCurrent>();
     }
@@ -299,7 +299,7 @@ class LinkManager::InternalLinkAttachMenuBot final : public InternalLink {
   }
 
  public:
-  InternalLinkAttachMenuBot(td_api::object_ptr<td_api::targetChatChosen> allowed_chat_types,
+  InternalLinkAttachMenuBot(td_api::object_ptr<td_api::targetChatTypes> allowed_chat_types,
                             unique_ptr<InternalLink> dialog_link, string bot_username, Slice start_parameter)
       : allowed_chat_types_(std::move(allowed_chat_types))
       , dialog_link_(std::move(dialog_link))
@@ -1474,7 +1474,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
       } else if (url_query.has_arg("startattach")) {
         // resolve?domain=<bot_username>&startattach&choose=users+bots+groups+channels
         // resolve?domain=<bot_username>&startattach=<start_parameter>&choose=users+bots+groups+channels
-        return td::make_unique<InternalLinkAttachMenuBot>(get_target_chat_chosen(url_query.get_arg("choose")), nullptr,
+        return td::make_unique<InternalLinkAttachMenuBot>(get_target_chat_types(url_query.get_arg("choose")), nullptr,
                                                           std::move(username), url_query.get_arg("startattach"));
       }
       if (username == "telegrampassport") {
@@ -1942,7 +1942,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
     } else if (url_query.has_arg("startattach")) {
       // /<bot_username>?startattach&choose=users+bots+groups+channels
       // /<bot_username>?startattach=<start_parameter>&choose=users+bots+groups+channels
-      return td::make_unique<InternalLinkAttachMenuBot>(get_target_chat_chosen(url_query.get_arg("choose")), nullptr,
+      return td::make_unique<InternalLinkAttachMenuBot>(get_target_chat_types(url_query.get_arg("choose")), nullptr,
                                                         std::move(username), url_query.get_arg("startattach"));
     }
 
@@ -2051,23 +2051,24 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
       }
       switch (link->target_chat_->get_id()) {
         case td_api::targetChatChosen::ID: {
-          auto target = static_cast<const td_api::targetChatChosen *>(link->target_chat_.get());
-          if (!target->allow_user_chats_ && !target->allow_bot_chats_ && !target->allow_group_chats_ &&
-              !target->allow_channel_chats_) {
-            return Status::Error(400, "At least one target chat type must be allowed");
-          }
+          auto dialog_types = static_cast<const td_api::targetChatChosen *>(link->target_chat_.get())->types_.get();
           vector<string> types;
-          if (target->allow_user_chats_) {
-            types.push_back("users");
+          if (dialog_types != nullptr) {
+            if (dialog_types->allow_user_chats_) {
+              types.push_back("users");
+            }
+            if (dialog_types->allow_bot_chats_) {
+              types.push_back("bots");
+            }
+            if (dialog_types->allow_group_chats_) {
+              types.push_back("groups");
+            }
+            if (dialog_types->allow_channel_chats_) {
+              types.push_back("channels");
+            }
           }
-          if (target->allow_bot_chats_) {
-            types.push_back("bots");
-          }
-          if (target->allow_group_chats_) {
-            types.push_back("groups");
-          }
-          if (target->allow_channel_chats_) {
-            types.push_back("channels");
+          if (types.empty()) {
+            return Status::Error(400, "At least one target chat type must be allowed");
           }
           auto choose = implode(types, '+');
           if (is_internal) {
