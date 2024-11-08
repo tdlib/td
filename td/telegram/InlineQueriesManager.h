@@ -45,6 +45,10 @@ class InlineQueriesManager final : public Actor {
                            vector<td_api::object_ptr<td_api::InputInlineQueryResult>> &&input_results, int32 cache_time,
                            const string &next_offset, Promise<Unit> &&promise) const;
 
+  void save_prepared_inline_message(UserId user_id, td_api::object_ptr<td_api::InputInlineQueryResult> &&input_result,
+                                    td_api::object_ptr<td_api::targetChatTypes> &&chat_types,
+                                    Promise<td_api::object_ptr<td_api::preparedInlineMessage>> &&promise);
+
   void get_simple_web_view_url(UserId bot_user_id, string &&url, const WebAppOpenParameters &parameters,
                                Promise<string> &&promise);
 

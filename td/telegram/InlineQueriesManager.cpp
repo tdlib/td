@@ -34,6 +34,7 @@
 #include "td/telegram/PhotoSize.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/StickersManager.h"
+#include "td/telegram/TargetDialogTypes.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/td_api.hpp"
 #include "td/telegram/TdDb.h"
@@ -162,6 +163,41 @@ class SetInlineBotResultsQuery final : public Td::ResultHandler {
       LOG(ERROR) << "Sending answer to an inline query has failed";
     }
     promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class SavePreparedInlineMessageQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::preparedInlineMessage>> promise_;
+
+ public:
+  explicit SavePreparedInlineMessageQuery(Promise<td_api::object_ptr<td_api::preparedInlineMessage>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::InputUser> &&input_user,
+            telegram_api::object_ptr<telegram_api::InputBotInlineResult> &&result, TargetDialogTypes types) {
+    int32 flags = 0;
+    auto peer_types = types.get_input_peer_types();
+    if (!peer_types.empty()) {
+      flags |= telegram_api::messages_savePreparedInlineMessage::PEER_TYPES_MASK;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::messages_savePreparedInlineMessage(
+        flags, std::move(result), std::move(input_user), std::move(peer_types))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_savePreparedInlineMessage>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SavePreparedInlineMessageQuery: " << to_string(ptr);
+    promise_.set_value(td_api::make_object<td_api::preparedInlineMessage>(ptr->id_, ptr->expire_date_));
   }
 
   void on_error(Status status) final {
@@ -549,6 +585,18 @@ void InlineQueriesManager::answer_inline_query(
   td_->create_handler<SetInlineBotResultsQuery>(std::move(promise))
       ->send(inline_query_id, is_gallery && !force_vertical, is_personal, std::move(switch_pm), std::move(web_view),
              std::move(results), cache_time, next_offset);
+}
+
+void InlineQueriesManager::save_prepared_inline_message(
+    UserId user_id, td_api::object_ptr<td_api::InputInlineQueryResult> &&input_result,
+    td_api::object_ptr<td_api::targetChatTypes> &&chat_types,
+    Promise<td_api::object_ptr<td_api::preparedInlineMessage>> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
+  TRY_RESULT_PROMISE(promise, result, get_input_bot_inline_result(std::move(input_result), nullptr, nullptr));
+  TRY_RESULT_PROMISE(promise, types, TargetDialogTypes::get_target_dialog_types(chat_types));
+
+  td_->create_handler<SavePreparedInlineMessageQuery>(std::move(promise))
+      ->send(std::move(input_user), std::move(result), types);
 }
 
 void InlineQueriesManager::get_simple_web_view_url(UserId bot_user_id, string &&url,

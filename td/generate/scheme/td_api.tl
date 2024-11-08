@@ -5357,6 +5357,12 @@ inlineQueryResultsButton text:string type:InlineQueryResultsButtonType = InlineQ
 inlineQueryResults inline_query_id:int64 button:inlineQueryResultsButton results:vector<InlineQueryResult> next_offset:string = InlineQueryResults;
 
 
+//@description Represents an inline message that can be sent via the bot
+//@id Unique identifier for the message
+//@expiration_date Point in time (Unix timestamp) when the message can't be used anymore
+preparedInlineMessage id:string expiration_date:int32 = PreparedInlineMessage;
+
+
 //@class CallbackQueryPayload @description Represents a payload of a callback query
 
 //@description The payload for a general callback button @data Data that was attached to the callback button
@@ -9485,6 +9491,12 @@ getInlineQueryResults bot_user_id:int53 chat_id:int53 user_location:location que
 //@cache_time Allowed time to cache the results of the query, in seconds
 //@next_offset Offset for the next inline query; pass an empty string if there are no more results
 answerInlineQuery inline_query_id:int64 is_personal:Bool button:inlineQueryResultsButton results:vector<InputInlineQueryResult> cache_time:int32 next_offset:string = Ok;
+
+//@description Saves an inline message to be sent by the given user; for bots only
+//@user_id Identifier of the user
+//@result The description of the message
+//@chat_types Types of the chats to which the message can be sent
+savePreparedInlineMessage user_id:int53 result:InputInlineQueryResult chat_types:targetChatTypes = PreparedInlineMessage;
 
 
 //@description Returns the most grossing Web App bots
