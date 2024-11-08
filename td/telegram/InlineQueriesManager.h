@@ -111,6 +111,9 @@ class InlineQueriesManager final : public Actor {
 
   static string get_web_document_content_type(const tl_object_ptr<telegram_api::WebDocument> &web_document_ptr);
 
+  td_api::object_ptr<td_api::InlineQueryResult> get_inline_query_result_object(
+      int64 query_id, DialogId dialog_id, telegram_api::object_ptr<telegram_api::BotInlineResult> result_ptr);
+
   bool update_bot_usage(UserId bot_user_id);
 
   void save_recently_used_bots();
