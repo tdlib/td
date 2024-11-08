@@ -3188,7 +3188,7 @@ void UpdatesManager::process_postponed_pts_updates() {
       continue;
     }
 
-    if (Time::now() - begin_time >= 0.1) {
+    if (Time::now() - begin_time >= UPDATE_APPLY_WARNING_TIME) {
       // the updates will be applied or skipped later; reget the remaining updates through getDifference
       break;
     }
