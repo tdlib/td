@@ -59,6 +59,9 @@ Result<TargetDialogTypes> TargetDialogTypes::get_target_dialog_types(
 
 vector<telegram_api::object_ptr<telegram_api::InlineQueryPeerType>> TargetDialogTypes::get_input_peer_types() const {
   vector<telegram_api::object_ptr<telegram_api::InlineQueryPeerType>> peer_types;
+  if (mask_ == FULL_MASK) {
+    return peer_types;
+  }
   if ((mask_ & USERS_MASK) != 0) {
     peer_types.push_back(telegram_api::make_object<telegram_api::inlineQueryPeerTypePM>());
   }

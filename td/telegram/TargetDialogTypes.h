@@ -47,10 +47,6 @@ class TargetDialogTypes {
     return mask_ == 0 ? FULL_MASK : mask_;
   }
 
-  bool is_full() const {
-    return mask_ == 0 || mask_ == FULL_MASK;
-  }
-
   vector<telegram_api::object_ptr<telegram_api::InlineQueryPeerType>> get_input_peer_types() const;
 
   td_api::object_ptr<td_api::targetChatTypes> get_target_chat_types_object() const;

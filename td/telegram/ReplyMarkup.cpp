@@ -898,11 +898,9 @@ static tl_object_ptr<telegram_api::KeyboardButton> get_input_keyboard_button(
       return make_tl_object<telegram_api::keyboardButtonGame>(keyboard_button.text);
     case InlineKeyboardButton::Type::SwitchInline: {
       int32 flags = 0;
-      vector<telegram_api::object_ptr<telegram_api::InlineQueryPeerType>> peer_types;
-      TargetDialogTypes types(keyboard_button.id);
-      if (!types.is_full()) {
+      auto peer_types = TargetDialogTypes(keyboard_button.id).get_input_peer_types();
+      if (!peer_types.empty()) {
         flags |= telegram_api::keyboardButtonSwitchInline::PEER_TYPES_MASK;
-        peer_types = types.get_input_peer_types();
       }
       return make_tl_object<telegram_api::keyboardButtonSwitchInline>(flags, false, keyboard_button.text,
                                                                       keyboard_button.data, std::move(peer_types));
