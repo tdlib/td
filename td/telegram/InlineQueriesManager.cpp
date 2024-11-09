@@ -68,8 +68,6 @@ class GetInlineBotResultsQuery final : public Td::ResultHandler {
   UserId bot_user_id_;
   uint64 query_hash_;
 
-  static constexpr int32 GET_INLINE_BOT_RESULTS_FLAG_HAS_LOCATION = 1 << 0;
-
  public:
   explicit GetInlineBotResultsQuery(Promise<td_api::object_ptr<td_api::inlineQueryResults>> &&promise)
       : promise_(std::move(promise)) {
@@ -84,7 +82,7 @@ class GetInlineBotResultsQuery final : public Td::ResultHandler {
     query_hash_ = query_hash;
     int32 flags = 0;
     if (!user_location.empty()) {
-      flags |= GET_INLINE_BOT_RESULTS_FLAG_HAS_LOCATION;
+      flags |= telegram_api::messages_getInlineBotResults::GEO_POINT_MASK;
     }
 
     auto net_query = G()->net_query_creator().create(telegram_api::messages_getInlineBotResults(
