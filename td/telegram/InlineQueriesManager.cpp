@@ -231,7 +231,7 @@ class GetPreparedInlineMessageQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetPreparedInlineMessageQuery: " << to_string(ptr);
-    td_->inline_queries_manager_->on_get_prepared_inline_message(bot_user_id_, query_hash_, result_ptr.move_as_ok(),
+    td_->inline_queries_manager_->on_get_prepared_inline_message(bot_user_id_, query_hash_, std::move(ptr),
                                                                  std::move(promise_));
   }
 
@@ -377,13 +377,22 @@ void InlineQueriesManager::on_drop_inline_query_result_timeout_callback(void *in
   if (G()->close_flag()) {
     return;
   }
+
   auto inline_queries_manager = static_cast<InlineQueriesManager *>(inline_queries_manager_ptr);
-  auto it = inline_queries_manager->inline_query_results_.find(query_hash);
-  CHECK(it != inline_queries_manager->inline_query_results_.end());
-  CHECK(it->second.results != nullptr);
+  send_closure_later(inline_queries_manager->actor_id(inline_queries_manager),
+                     &InlineQueriesManager::on_drop_inline_query_result_timeout, query_hash);
+}
+
+void InlineQueriesManager::on_drop_inline_query_result_timeout(int64 query_hash) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto it = inline_query_results_.find(query_hash);
+  CHECK(it != inline_query_results_.end());
   CHECK(it->second.pending_request_count >= 0);
   if (it->second.pending_request_count == 0) {
-    inline_queries_manager->inline_query_results_.erase(it);
+    inline_query_results_.erase(it);
   }
 }
 
@@ -1654,6 +1663,9 @@ td_api::object_ptr<td_api::preparedInlineMessage> InlineQueriesManager::get_prep
     drop_inline_query_result_timeout_.set_timeout_at(static_cast<int64>(query_hash), it->second.cache_expire_time);
   }
   auto *results = it->second.results.get();
+  if (results == nullptr) {
+    return nullptr;
+  }
   CHECK(results->results_.size() == 1u);
   return td_api::make_object<td_api::preparedInlineMessage>(
       results->inline_query_id_, copy_result(results->results_[0]),

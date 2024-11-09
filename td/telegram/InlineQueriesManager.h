@@ -138,6 +138,8 @@ class InlineQueriesManager final : public Actor {
 
   static void on_drop_inline_query_result_timeout_callback(void *inline_queries_manager_ptr, int64 query_hash);
 
+  void on_drop_inline_query_result_timeout(int64 query_hash);
+
   void loop() final;
 
   void tear_down() final;
