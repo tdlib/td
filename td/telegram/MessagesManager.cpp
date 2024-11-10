@@ -8629,7 +8629,7 @@ void MessagesManager::after_get_difference() {
 
   vector<MessageFullId> update_message_ids_to_delete;
   for (auto &it : update_message_ids_) {
-    // there can be unhandled updateMessageId updates after getDifference even for ordinary chats,
+    // there can be unhandled updateMessageID updates after getDifference even for ordinary chats,
     // because despite updates coming during getDifference have already been applied,
     // some of them could be postponed because of PTS gap
     auto message_full_id = it.first;
@@ -8649,10 +8649,10 @@ void MessagesManager::after_get_difference() {
       case DialogType::Chat: {
         if (!have_message_force({dialog_id, old_message_id}, "after get difference")) {
           // The sent message has already been deleted by the user or sent to inaccessible channel.
-          // The sent message may never be received, but we will need updateMessageId in case the message is received
+          // The sent message may never be received, but we will need updateMessageID in case the message is received
           // to delete it from the server and not add to the chat.
           // But if the chat is inaccessible or the message is in an inaccessible chat part, then we will not be able to
-          // add the message or delete it from the server. In this case we forget updateMessageId for such messages in
+          // add the message or delete it from the server. In this case we forget updateMessageID for such messages in
           // order to not check them over and over.
           const Dialog *d = get_dialog(dialog_id);
           if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read) ||
@@ -8724,6 +8724,10 @@ void MessagesManager::on_restore_missing_messages_timeout_callback(void *message
 }
 
 void MessagesManager::restore_missing_messages_after_get_difference() {
+  if (running_get_difference_) {
+    // the restore will be scheduled again after get difference is finished
+    return;
+  }
   vector<MessageFullId> restored_message_full_ids;
   vector<std::pair<MessageFullId, MessageId>> missing_messages;
   size_t MAX_RESTORED_MESSAGES = 10u;
@@ -8751,7 +8755,7 @@ void MessagesManager::restore_missing_messages_after_get_difference() {
   for (const auto &pair : missing_messages) {
     auto message_full_id = pair.first;
     auto old_message_id = pair.second;
-    LOG(WARNING) << "Receive updateMessageId from " << old_message_id << " to " << message_full_id
+    LOG(WARNING) << "Receive updateMessageID from " << old_message_id << " to " << message_full_id
                  << " but didn't receive the corresponding message";
     get_message_from_server(
         message_full_id,
@@ -27792,7 +27796,7 @@ Result<MessageId> MessagesManager::add_local_message(
 
 bool MessagesManager::on_update_message_id(int64 random_id, MessageId new_message_id, const char *source) {
   if (!new_message_id.is_valid() && !new_message_id.is_valid_scheduled()) {
-    LOG(ERROR) << "Receive " << new_message_id << " in updateMessageId with random_id " << random_id << " from "
+    LOG(ERROR) << "Receive " << new_message_id << " in updateMessageID with random_id " << random_id << " from "
                << source;
     return false;
   }
