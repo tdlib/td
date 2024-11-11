@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/BusinessConnectionId.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/td_api.h"
 
@@ -46,7 +47,8 @@ void delete_saved_order_info(Td *td, Promise<Unit> &&promise);
 
 void delete_saved_credentials(Td *td, Promise<Unit> &&promise);
 
-void export_invoice(Td *td, td_api::object_ptr<td_api::InputMessageContent> &&invoice, Promise<string> &&promise);
+void export_invoice(Td *td, BusinessConnectionId business_connection_id,
+                    td_api::object_ptr<td_api::InputMessageContent> &&invoice, Promise<string> &&promise);
 
 void get_bank_card_info(Td *td, const string &bank_card_number,
                         Promise<td_api::object_ptr<td_api::bankCardInfo>> &&promise);

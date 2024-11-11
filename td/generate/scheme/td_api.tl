@@ -11328,8 +11328,10 @@ toggleGiftIsSaved sender_user_id:int53 message_id:int53 is_saved:Bool = Ok;
 getUserGifts user_id:int53 offset:string limit:int32 = UserGifts;
 
 
-//@description Creates a link for the given invoice; for bots only @invoice Information about the invoice of the type inputMessageInvoice
-createInvoiceLink invoice:InputMessageContent = HttpUrl;
+//@description Creates a link for the given invoice; for bots only
+//@business_connection_id Unique identifier of business connection on behalf of which to send the request
+//@invoice Information about the invoice of the type inputMessageInvoice
+createInvoiceLink business_connection_id:string invoice:InputMessageContent = HttpUrl;
 
 //@description Refunds a previously done payment in Telegram Stars; for bots only
 //@user_id Identifier of the user that did the payment

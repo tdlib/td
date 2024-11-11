@@ -7,6 +7,7 @@
 #include "td/telegram/Payments.h"
 
 #include "td/telegram/AccessRights.h"
+#include "td/telegram/BusinessConnectionManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogInviteLink.h"
 #include "td/telegram/DialogManager.h"
@@ -925,8 +926,12 @@ class ExportInvoiceQuery final : public Td::ResultHandler {
   explicit ExportInvoiceQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(tl_object_ptr<telegram_api::inputMediaInvoice> &&input_media_invoice) {
-    send_query(G()->net_query_creator().create(telegram_api::payments_exportInvoice(std::move(input_media_invoice))));
+  void send(BusinessConnectionId business_connection_id,
+            telegram_api::object_ptr<telegram_api::inputMediaInvoice> &&input_media_invoice) {
+    send_query(G()->net_query_creator().create_with_prefix(
+        business_connection_id.get_invoke_prefix(),
+        telegram_api::payments_exportInvoice(std::move(input_media_invoice)),
+        td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1198,15 +1203,22 @@ void delete_saved_credentials(Td *td, Promise<Unit> &&promise) {
   td->create_handler<ClearSavedInfoQuery>(std::move(promise))->send(true, false);
 }
 
-void export_invoice(Td *td, td_api::object_ptr<td_api::InputMessageContent> &&invoice, Promise<string> &&promise) {
+void export_invoice(Td *td, BusinessConnectionId business_connection_id,
+                    td_api::object_ptr<td_api::InputMessageContent> &&invoice, Promise<string> &&promise) {
   if (invoice == nullptr) {
     return promise.set_error(Status::Error(400, "Invoice must be non-empty"));
   }
   TRY_RESULT_PROMISE(promise, input_invoice,
                      InputInvoice::process_input_message_invoice(std::move(invoice), td, DialogId()));
+  if (business_connection_id.is_valid()) {
+    TRY_STATUS_PROMISE(promise, td->business_connection_manager_->check_business_connection(
+                                    business_connection_id, td->dialog_manager_->get_my_dialog_id()));
+  }
+
   auto input_media = input_invoice.get_input_media_invoice(td, nullptr, nullptr);
   CHECK(input_media != nullptr);
-  td->create_handler<ExportInvoiceQuery>(std::move(promise))->send(std::move(input_media));
+  td->create_handler<ExportInvoiceQuery>(std::move(promise))
+      ->send(std::move(business_connection_id), std::move(input_media));
 }
 
 void get_bank_card_info(Td *td, const string &bank_card_number,

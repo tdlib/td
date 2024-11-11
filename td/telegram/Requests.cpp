@@ -7080,9 +7080,11 @@ void Requests::on_request(uint64 id, td_api::getUserGifts &request) {
 }
 
 void Requests::on_request(uint64 id, td_api::createInvoiceLink &request) {
+  CLEAN_INPUT_STRING(request.business_connection_id_);
   CHECK_IS_BOT();
   CREATE_HTTP_URL_REQUEST_PROMISE();
-  export_invoice(td_, std::move(request.invoice_), std::move(promise));
+  export_invoice(td_, BusinessConnectionId(std::move(request.business_connection_id_)), std::move(request.invoice_),
+                 std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::refundStarPayment &request) {
