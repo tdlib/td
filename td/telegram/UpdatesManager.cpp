@@ -2939,6 +2939,10 @@ void UpdatesManager::add_pending_pts_update(tl_object_ptr<telegram_api::Update> 
   process_all_pending_pts_updates();
 }
 
+size_t UpdatesManager::get_pending_pts_update_count() {
+  return postponed_pts_updates_.size() + pending_pts_updates_.size();
+}
+
 void UpdatesManager::postpone_pts_update(tl_object_ptr<telegram_api::Update> &&update, int32 pts, int32 pts_count,
                                          double receive_time, Promise<Unit> &&promise) {
   if (!can_postpone_updates() || (pts_count > 1 && td_->option_manager_->get_option_integer("session_count") <= 1)) {

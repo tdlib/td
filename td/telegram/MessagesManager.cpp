@@ -8749,14 +8749,17 @@ void MessagesManager::restore_missing_messages_after_get_difference() {
     return;
   }
   if (!messages_to_restore_.empty()) {
-    LOG(ERROR) << "Postpone restore of " << messages_to_restore_.size() << " messages";
+    LOG(WARNING) << "Postpone restore of " << messages_to_restore_.size() << " messages";
     schedule_restore_missing_messages_after_get_difference();
   }
+  bool need_warning = messages_to_restore_.size() > td_->updates_manager_->get_pending_pts_update_count();
   for (const auto &pair : missing_messages) {
     auto message_full_id = pair.first;
     auto old_message_id = pair.second;
-    LOG(WARNING) << "Receive updateMessageID from " << old_message_id << " to " << message_full_id
-                 << " but didn't receive the corresponding message";
+    if (need_warning || message_full_id.get_dialog_id().get_type() == DialogType::Channel) {
+      LOG(WARNING) << "Receive updateMessageID from " << old_message_id << " to " << message_full_id
+                   << " but didn't receive the corresponding message";
+    }
     get_message_from_server(
         message_full_id,
         PromiseCreator::lambda([actor_id = actor_id(this), message_full_id, old_message_id](Result<Unit> result) {
