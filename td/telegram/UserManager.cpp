@@ -908,6 +908,9 @@ class UpdateUserEmojiStatusQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    if (status.message() == "USER_PERMISSION_DENIED") {
+      return promise_.set_error(Status::Error(403, "Not enough rights to change the user's emoji status"));
+    }
     promise_.set_error(std::move(status));
   }
 };
