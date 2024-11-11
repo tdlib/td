@@ -1029,9 +1029,11 @@ class Requests {
 
   void on_request(uint64 id, const td_api::setCloseFriends &request);
 
-  void on_request(uint64 id, td_api::setUserPersonalProfilePhoto &request);
+  void on_request(uint64 id, const td_api::setUserPersonalProfilePhoto &request);
 
-  void on_request(uint64 id, td_api::suggestUserProfilePhoto &request);
+  void on_request(uint64 id, const td_api::suggestUserProfilePhoto &request);
+
+  void on_request(uint64 id, const td_api::toggleBotCanManageEmojiStatus &request);
 
   void on_request(uint64 id, td_api::searchUserByPhoneNumber &request);
 

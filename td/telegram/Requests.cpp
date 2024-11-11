@@ -5561,16 +5561,23 @@ void Requests::on_request(uint64 id, const td_api::setCloseFriends &request) {
   td_->user_manager_->set_close_friends(UserId::get_user_ids(request.user_ids_), std::move(promise));
 }
 
-void Requests::on_request(uint64 id, td_api::setUserPersonalProfilePhoto &request) {
+void Requests::on_request(uint64 id, const td_api::setUserPersonalProfilePhoto &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   td_->user_manager_->set_user_profile_photo(UserId(request.user_id_), request.photo_, false, std::move(promise));
 }
 
-void Requests::on_request(uint64 id, td_api::suggestUserProfilePhoto &request) {
+void Requests::on_request(uint64 id, const td_api::suggestUserProfilePhoto &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   td_->user_manager_->set_user_profile_photo(UserId(request.user_id_), request.photo_, true, std::move(promise));
+}
+
+void Requests::on_request(uint64 id, const td_api::toggleBotCanManageEmojiStatus &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->user_manager_->toggle_user_can_manage_emoji_status(UserId(request.bot_user_id_),
+                                                          request.can_manage_emoji_status_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::searchUserByPhoneNumber &request) {

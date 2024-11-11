@@ -339,6 +339,8 @@ class UserManager final : public Actor {
 
   void on_delete_profile_photo(int64 profile_photo_id, Promise<Unit> promise);
 
+  void toggle_user_can_manage_emoji_status(UserId user_id, bool can_manage_emoji_status, Promise<Unit> &&promise);
+
   void set_username(const string &username, Promise<Unit> &&promise);
 
   void toggle_username_is_active(string &&username, bool is_active, Promise<Unit> &&promise);

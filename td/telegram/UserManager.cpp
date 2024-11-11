@@ -845,6 +845,41 @@ class UpdateProfileQuery final : public Td::ResultHandler {
   }
 };
 
+class ToggleUserEmojiStatusPermissionQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  UserId user_id_;
+  bool can_manage_emoji_status_;
+
+ public:
+  explicit ToggleUserEmojiStatusPermissionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(UserId user_id, telegram_api::object_ptr<telegram_api::InputUser> &&input_user,
+            bool can_manage_emoji_status) {
+    user_id_ = user_id;
+    can_manage_emoji_status_ = can_manage_emoji_status;
+    send_query(G()->net_query_creator().create(
+        telegram_api::bots_toggleUserEmojiStatusPermission(std::move(input_user), can_manage_emoji_status),
+        {{DialogId(user_id)}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::bots_toggleUserEmojiStatusPermission>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    if (result_ptr.ok()) {
+      td_->user_manager_->on_update_bot_can_manage_emoji_status(user_id_, can_manage_emoji_status_);
+    }
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class UpdateUsernameQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -5156,6 +5191,16 @@ void UserManager::on_delete_profile_photo(int64 profile_photo_id, Promise<Unit> 
   }
 
   promise.set_value(Unit());
+}
+
+void UserManager::toggle_user_can_manage_emoji_status(UserId user_id, bool can_manage_emoji_status,
+                                                      Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_user, get_input_user(user_id));
+  if (!is_user_bot(user_id)) {
+    return promise.set_error(Status::Error(400, "The user must be a bot"));
+  }
+  td_->create_handler<ToggleUserEmojiStatusPermissionQuery>(std::move(promise))
+      ->send(user_id, std::move(input_user), can_manage_emoji_status);
 }
 
 void UserManager::set_username(const string &username, Promise<Unit> &&promise) {

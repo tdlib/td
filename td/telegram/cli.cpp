@@ -6691,6 +6691,11 @@ class CliClient final : public Actor {
       InputChatPhoto input_chat_photo;
       get_args(args, user_id, input_chat_photo);
       send_request(td_api::make_object<td_api::suggestUserProfilePhoto>(user_id, input_chat_photo));
+    } else if (op == "tbcmes") {
+      UserId user_id;
+      bool can_manage_emoji_status;
+      get_args(args, user_id, can_manage_emoji_status);
+      send_request(td_api::make_object<td_api::toggleBotCanManageEmojiStatus>(user_id, can_manage_emoji_status));
     } else if (op == "cbsm") {
       UserId bot_user_id;
       get_args(args, bot_user_id);
