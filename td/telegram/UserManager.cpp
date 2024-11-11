@@ -1722,6 +1722,7 @@ void UserManager::UserFull::store(StorerT &storer) const {
     STORE_FLAG(has_privacy_policy_url);
     STORE_FLAG(has_gift_count);
     STORE_FLAG(can_view_revenue);
+    STORE_FLAG(can_manage_emoji_status);
     END_STORE_FLAGS();
   }
   if (has_about) {
@@ -1840,6 +1841,7 @@ void UserManager::UserFull::parse(ParserT &parser) {
     PARSE_FLAG(has_privacy_policy_url);
     PARSE_FLAG(has_gift_count);
     PARSE_FLAG(can_view_revenue);
+    PARSE_FLAG(can_manage_emoji_status);
     END_PARSE_FLAGS();
   }
   if (has_about) {
@@ -3567,6 +3569,31 @@ void UserManager::on_update_user_full_has_preview_medias(UserFull *user_full, Us
   CHECK(user_full != nullptr);
   if (user_full->has_preview_medias != has_preview_medias) {
     user_full->has_preview_medias = has_preview_medias;
+    user_full->is_changed = true;
+  }
+}
+
+void UserManager::on_update_bot_can_manage_emoji_status(UserId bot_user_id, bool can_manage_emoji_status) {
+  CHECK(bot_user_id.is_valid());
+  if (!have_user_force(bot_user_id, "on_update_bot_can_manage_emoji_status") || !is_user_bot(bot_user_id)) {
+    return;
+  }
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  auto user_full = get_user_full_force(bot_user_id, "on_update_bot_can_manage_emoji_status");
+  if (user_full != nullptr) {
+    on_update_user_full_can_manage_emoji_status(user_full, bot_user_id, can_manage_emoji_status);
+    update_user_full(user_full, bot_user_id, "on_update_bot_can_manage_emoji_status");
+  }
+}
+
+void UserManager::on_update_user_full_can_manage_emoji_status(UserFull *user_full, UserId user_id,
+                                                              bool can_manage_emoji_status) {
+  CHECK(user_full != nullptr);
+  if (user_full->can_manage_emoji_status != can_manage_emoji_status) {
+    user_full->can_manage_emoji_status = can_manage_emoji_status;
     user_full->is_changed = true;
   }
 }
@@ -7015,13 +7042,14 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
 
     on_update_user_full_commands(user_full, user_id, std::move(user->bot_info_->commands_));
     on_update_user_full_menu_button(user_full, user_id, std::move(user->bot_info_->menu_button_));
-    on_update_user_full_has_preview_medias(user_full, user_id, std::move(user->bot_info_->has_preview_medias_));
+    on_update_user_full_has_preview_medias(user_full, user_id, user->bot_info_->has_preview_medias_);
 
     if (user_full->privacy_policy_url != user->bot_info_->privacy_policy_url_) {
       user_full->privacy_policy_url = std::move(user->bot_info_->privacy_policy_url_);
       user_full->is_changed = true;
     }
   }
+  on_update_user_full_can_manage_emoji_status(user_full, user_id, user->bot_can_manage_emoji_status_);
   if (user_full->description != description) {
     user_full->description = std::move(description);
     user_full->is_changed = true;
@@ -7300,6 +7328,7 @@ void UserManager::drop_user_full(UserId user_id) {
   user_full->sponsored_enabled = false;
   user_full->has_preview_medias = false;
   user_full->can_view_revenue = false;
+  user_full->can_manage_emoji_status = false;
   user_full->privacy_policy_url = string();
   user_full->is_changed = true;
 
@@ -8043,7 +8072,8 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
         user_full->broadcast_administrator_rights == AdministratorRights()
             ? nullptr
             : user_full->broadcast_administrator_rights.get_chat_administrator_rights_object(),
-        user_full->can_view_revenue, user_full->has_preview_medias, nullptr, nullptr, nullptr, nullptr);
+        user_full->can_view_revenue, user_full->can_manage_emoji_status, user_full->has_preview_medias, nullptr,
+        nullptr, nullptr, nullptr);
     if (u != nullptr && u->can_be_edited_bot && u->usernames.has_editable_username()) {
       auto bot_username = u->usernames.get_editable_username();
       bot_info->edit_commands_link_ = td_api::make_object<td_api::internalLinkTypeBotStart>(

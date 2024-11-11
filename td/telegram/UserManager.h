@@ -166,6 +166,8 @@ class UserManager final : public Actor {
 
   void on_update_bot_has_preview_medias(UserId bot_user_id, bool has_preview_medias);
 
+  void on_update_bot_can_manage_emoji_status(UserId bot_user_id, bool can_manage_emoji_status);
+
   void on_update_secret_chat(SecretChatId secret_chat_id, int64 access_hash, UserId user_id, SecretChatState state,
                              bool is_outbound, int32 ttl, int32 date, string key_hash, int32 layer,
                              FolderId initial_folder_id);
@@ -620,6 +622,7 @@ class UserManager final : public Actor {
     bool sponsored_enabled = false;
     bool has_preview_medias = false;
     bool can_view_revenue = false;
+    bool can_manage_emoji_status = false;
 
     bool is_common_chat_count_changed = true;
     bool is_being_updated = false;
@@ -857,6 +860,9 @@ class UserManager final : public Actor {
                                               telegram_api::object_ptr<telegram_api::BotMenuButton> &&bot_menu_button);
 
   static void on_update_user_full_has_preview_medias(UserFull *user_full, UserId user_id, bool has_preview_medias);
+
+  static void on_update_user_full_can_manage_emoji_status(UserFull *user_full, UserId user_id,
+                                                          bool can_manage_emoji_status);
 
   bool have_input_peer_user(const User *u, UserId user_id, AccessRights access_rights) const;
 
