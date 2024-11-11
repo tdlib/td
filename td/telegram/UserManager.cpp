@@ -880,6 +880,38 @@ class ToggleUserEmojiStatusPermissionQuery final : public Td::ResultHandler {
   }
 };
 
+class UpdateUserEmojiStatusQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  UserId user_id_;
+  EmojiStatus emoji_status_;
+
+ public:
+  explicit UpdateUserEmojiStatusQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(UserId user_id, telegram_api::object_ptr<telegram_api::InputUser> &&input_user,
+            const EmojiStatus &emoji_status) {
+    user_id_ = user_id;
+    emoji_status_ = emoji_status;
+    send_query(G()->net_query_creator().create(
+        telegram_api::bots_updateUserEmojiStatus(std::move(input_user), emoji_status.get_input_emoji_status()),
+        {{DialogId(user_id)}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::bots_updateUserEmojiStatus>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class UpdateUsernameQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -5201,6 +5233,21 @@ void UserManager::toggle_user_can_manage_emoji_status(UserId user_id, bool can_m
   }
   td_->create_handler<ToggleUserEmojiStatusPermissionQuery>(std::move(promise))
       ->send(user_id, std::move(input_user), can_manage_emoji_status);
+}
+
+void UserManager::set_user_emoji_status(UserId user_id, const EmojiStatus &emoji_status, Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_user, get_input_user(user_id));
+  td_->create_handler<UpdateUserEmojiStatusQuery>(std::move(promise))
+      ->send(user_id, std::move(input_user), emoji_status);
+}
+
+void UserManager::on_set_user_emoji_status(UserId user_id, EmojiStatus emoji_status, Promise<Unit> &&promise) {
+  User *u = get_user(user_id);
+  if (u != nullptr) {
+    on_update_user_emoji_status(u, user_id, emoji_status);
+    update_user(u, user_id);
+  }
+  promise.set_value(Unit());
 }
 
 void UserManager::set_username(const string &username, Promise<Unit> &&promise) {
