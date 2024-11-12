@@ -1282,12 +1282,11 @@ void SecureManager::send_passport_authorization_form(int32 authorization_form_id
       it->second->bot_user_id.get(), it->second->scope, it->second->public_key, std::move(hashes),
       get_secure_credentials_encrypted_object(r_encrypted_credentials.move_as_ok()));
   auto query = G()->net_query_creator().create(td_query);
-  auto new_promise =
-      PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_net_query_ptr) mutable {
-        TRY_RESULT_PROMISE(promise, result,
-                           fetch_result<telegram_api::account_acceptAuthorization>(std::move(r_net_query_ptr)));
-        promise.set_value(Unit());
-      });
+  auto new_promise = PromiseCreator::lambda([promise =
+                                                 std::move(promise)](Result<NetQueryPtr> r_net_query_ptr) mutable {
+    TRY_STATUS_PROMISE(promise, fetch_result<telegram_api::account_acceptAuthorization>(std::move(r_net_query_ptr)));
+    promise.set_value(Unit());
+  });
   send_with_promise(std::move(query), std::move(new_promise));
 }
 
