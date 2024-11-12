@@ -18,6 +18,7 @@ StarSubscription::StarSubscription(telegram_api::object_ptr<telegram_api::starsS
     , until_date_(subscription->until_date_)
     , can_reuse_(subscription->can_refulfill_)
     , is_canceled_(subscription->canceled_)
+    , is_bot_canceled_(subscription->bot_canceled_)
     , missing_balance_(subscription->missing_balance_)
     , invite_hash_(std::move(subscription->chat_invite_hash_))
     , pricing_(std::move(subscription->pricing_)) {
@@ -28,7 +29,7 @@ td_api::object_ptr<td_api::starSubscription> StarSubscription::get_star_subscrip
   td_api::object_ptr<td_api::StarSubscriptionType> type;
   switch (dialog_id_.get_type()) {
     case DialogType::User:
-      type = td_api::make_object<td_api::starSubscriptionTypeBot>();
+      type = td_api::make_object<td_api::starSubscriptionTypeBot>(is_bot_canceled_);
       break;
     case DialogType::Channel:
       type = td_api::make_object<td_api::starSubscriptionTypeChannel>(

@@ -24,6 +24,7 @@ class StarSubscription {
   int32 until_date_ = 0;
   bool can_reuse_ = false;
   bool is_canceled_ = false;
+  bool is_bot_canceled_ = false;
   bool missing_balance_ = false;
   string invite_hash_;
   StarSubscriptionPricing pricing_;

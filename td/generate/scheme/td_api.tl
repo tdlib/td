@@ -815,7 +815,8 @@ chatAdministratorRights can_manage_chat:Bool can_change_info:Bool can_post_messa
 starSubscriptionTypeChannel can_reuse:Bool invite_link:string = StarSubscriptionType;
 
 //@description Describes a subscription in a bot or a business account
-starSubscriptionTypeBot = StarSubscriptionType;
+//@is_canceled_by_bot True, if the subscription was canceled by the bot and can't be extended
+starSubscriptionTypeBot is_canceled_by_bot:Bool = StarSubscriptionType;
 
 
 //@description Describes subscription plan paid in Telegram Stars
