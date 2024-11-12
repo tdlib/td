@@ -601,9 +601,6 @@ class StickersManager final : public Actor {
 
   CustomEmojiId get_custom_emoji_id(FileId sticker_id) const;
 
-  static vector<td_api::object_ptr<td_api::closedVectorPath>> get_sticker_minithumbnail(CSlice path, double zoom,
-                                                                                        Slice source);
-
   PhotoFormat get_sticker_set_thumbnail_format(const StickerSet *sticker_set) const;
 
   double get_sticker_set_minithumbnail_zoom(const StickerSet *sticker_set) const;
