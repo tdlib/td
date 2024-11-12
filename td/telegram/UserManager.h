@@ -585,6 +585,18 @@ class UserManager final : public Actor {
     void parse(ParserT &parser);
   };
 
+  struct BotInfo {
+    string description;
+    Photo description_photo;
+    FileId description_animation_file_id;
+
+    unique_ptr<BotMenuButton> menu_button;
+    vector<BotCommand> commands;
+    string privacy_policy_url;
+    AdministratorRights group_administrator_rights;
+    AdministratorRights broadcast_administrator_rights;
+  };
+
   // do not forget to update drop_user_full and on_get_user_full
   struct UserFull {
     Photo photo;
@@ -593,17 +605,8 @@ class UserManager final : public Actor {
 
     string about;
     string private_forward_name;
-    string description;
-    Photo description_photo;
-    FileId description_animation_file_id;
     vector<FileId> registered_file_ids;
     FileSourceId file_source_id;
-
-    unique_ptr<BotMenuButton> menu_button;
-    vector<BotCommand> commands;
-    string privacy_policy_url;
-    AdministratorRights group_administrator_rights;
-    AdministratorRights broadcast_administrator_rights;
 
     int32 gift_count = 0;
     int32 common_chat_count = 0;
@@ -611,6 +614,7 @@ class UserManager final : public Actor {
 
     ChannelId personal_channel_id;
 
+    unique_ptr<BotInfo> bot_info;
     unique_ptr<BusinessInfo> business_info;
 
     bool is_blocked = false;
@@ -641,6 +645,13 @@ class UserManager final : public Actor {
 
     bool is_expired() const {
       return expires_at < Time::now();
+    }
+
+    BotInfo *add_bot_info() {
+      if (bot_info == nullptr) {
+        bot_info = make_unique<BotInfo>();
+      }
+      return bot_info.get();
     }
 
     template <class StorerT>
