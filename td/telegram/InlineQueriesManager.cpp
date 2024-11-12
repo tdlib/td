@@ -392,6 +392,11 @@ void InlineQueriesManager::on_drop_inline_query_result_timeout(int64 query_hash)
   CHECK(it != inline_query_results_.end());
   CHECK(it->second.pending_request_count >= 0);
   if (it->second.pending_request_count == 0) {
+    if (it->second.results != nullptr) {
+      auto query_id = it->second.results->inline_query_id_;
+      inline_message_contents_.erase(query_id);
+      query_id_to_bot_user_id_.erase(query_id);
+    }
     inline_query_results_.erase(it);
   }
 }
