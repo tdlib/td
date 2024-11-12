@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/Photo.h"
 #include "td/telegram/StarSubscriptionPricing.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -27,6 +28,9 @@ class StarSubscription {
   bool is_bot_canceled_ = false;
   bool missing_balance_ = false;
   string invite_hash_;
+  string title_;
+  Photo photo_;
+  string invoice_slug_;
   StarSubscriptionPricing pricing_;
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const StarSubscription &subscription);
@@ -34,7 +38,7 @@ class StarSubscription {
  public:
   StarSubscription() = default;
 
-  explicit StarSubscription(telegram_api::object_ptr<telegram_api::starsSubscription> &&subscription);
+  explicit StarSubscription(Td *td, telegram_api::object_ptr<telegram_api::starsSubscription> &&subscription);
 
   bool is_valid() const {
     return !id_.empty() && dialog_id_.is_valid() && until_date_ >= 0 && !pricing_.is_empty();

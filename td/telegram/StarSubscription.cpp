@@ -12,7 +12,7 @@
 
 namespace td {
 
-StarSubscription::StarSubscription(telegram_api::object_ptr<telegram_api::starsSubscription> &&subscription)
+StarSubscription::StarSubscription(Td *td, telegram_api::object_ptr<telegram_api::starsSubscription> &&subscription)
     : id_(std::move(subscription->id_))
     , dialog_id_(subscription->peer_)
     , until_date_(subscription->until_date_)
@@ -21,6 +21,9 @@ StarSubscription::StarSubscription(telegram_api::object_ptr<telegram_api::starsS
     , is_bot_canceled_(subscription->bot_canceled_)
     , missing_balance_(subscription->missing_balance_)
     , invite_hash_(std::move(subscription->chat_invite_hash_))
+    , title_(std::move(subscription->title_))
+    , photo_(get_web_document_photo(td->file_manager_.get(), std::move(subscription->photo_), DialogId()))
+    , invoice_slug_(std::move(subscription->invoice_slug_))
     , pricing_(std::move(subscription->pricing_)) {
 }
 
@@ -29,7 +32,10 @@ td_api::object_ptr<td_api::starSubscription> StarSubscription::get_star_subscrip
   td_api::object_ptr<td_api::StarSubscriptionType> type;
   switch (dialog_id_.get_type()) {
     case DialogType::User:
-      type = td_api::make_object<td_api::starSubscriptionTypeBot>(is_bot_canceled_);
+      type = td_api::make_object<td_api::starSubscriptionTypeBot>(
+          is_bot_canceled_, title_, get_photo_object(td->file_manager_.get(), photo_),
+          LinkManager::get_internal_link(td_api::make_object<td_api::internalLinkTypeInvoice>(invoice_slug_), false)
+              .move_as_ok());
       break;
     case DialogType::Channel:
       type = td_api::make_object<td_api::starSubscriptionTypeChannel>(

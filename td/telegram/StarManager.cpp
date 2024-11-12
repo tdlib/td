@@ -514,7 +514,7 @@ class GetStarsSubscriptionsQuery final : public Td::ResultHandler {
 
     vector<td_api::object_ptr<td_api::starSubscription>> subscriptions;
     for (auto &subscription : result->subscriptions_) {
-      StarSubscription star_subscription(std::move(subscription));
+      StarSubscription star_subscription(td_, std::move(subscription));
       if (!star_subscription.is_valid()) {
         LOG(ERROR) << "Receive invalid subscription " << star_subscription;
       } else {

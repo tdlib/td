@@ -816,7 +816,10 @@ starSubscriptionTypeChannel can_reuse:Bool invite_link:string = StarSubscription
 
 //@description Describes a subscription in a bot or a business account
 //@is_canceled_by_bot True, if the subscription was canceled by the bot and can't be extended
-starSubscriptionTypeBot is_canceled_by_bot:Bool = StarSubscriptionType;
+//@title Subscription invoice title
+//@photo Subscription invoice photo
+//@invoice_link The link to the subscription invoice
+starSubscriptionTypeBot is_canceled_by_bot:Bool title:string photo:photo invoice_link:string = StarSubscriptionType;
 
 
 //@description Describes subscription plan paid in Telegram Stars
