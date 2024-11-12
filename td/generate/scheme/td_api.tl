@@ -807,6 +807,17 @@ chatPermissions can_send_basic_messages:Bool can_send_audios:Bool can_send_docum
 chatAdministratorRights can_manage_chat:Bool can_change_info:Bool can_post_messages:Bool can_edit_messages:Bool can_delete_messages:Bool can_invite_users:Bool can_restrict_members:Bool can_pin_messages:Bool can_manage_topics:Bool can_promote_members:Bool can_manage_video_chats:Bool can_post_stories:Bool can_edit_stories:Bool can_delete_stories:Bool is_anonymous:Bool = ChatAdministratorRights;
 
 
+//@class StarSubscriptionType @description Describes type of a subscription paid in Telegram Stars
+
+//@description Describes a subscription to a channel chat
+//@can_reuse True, if the subscription is active and the user can use the method reuseStarSubscription to join the subscribed chat again
+//@invite_link The invite link that can be used to renew the subscription if it has been expired; may be empty, if the link isn't available anymore
+starSubscriptionTypeChannel can_reuse:Bool invite_link:string = StarSubscriptionType;
+
+//@description Describes a subscription in a bot or a business account
+starSubscriptionTypeBot = StarSubscriptionType;
+
+
 //@description Describes subscription plan paid in Telegram Stars
 //@period The number of seconds between consecutive Telegram Star debiting
 //@star_count The amount of Telegram Stars that must be paid for each period
@@ -816,12 +827,11 @@ starSubscriptionPricing period:int32 star_count:int53 = StarSubscriptionPricing;
 //@id Unique identifier of the subscription
 //@chat_id Identifier of the chat that is subscribed
 //@expiration_date Point in time (Unix timestamp) when the subscription will expire or expired
-//@can_reuse True, if the subscription is active and the user can use the method reuseStarSubscription to join the subscribed chat again; for channel chat subscriptions only
 //@is_canceled True, if the subscription was canceled
 //@is_expiring True, if the subscription expires soon and there are no enough Telegram Stars on the user's balance to extend it
-//@invite_link The invite link that can be used to renew the subscription if it has been expired; may be empty, if the link isn't available anymore or the subscription isn't for a channel chat
 //@pricing The subscription plan
-starSubscription id:string chat_id:int53 expiration_date:int32 can_reuse:Bool is_canceled:Bool is_expiring:Bool invite_link:string pricing:starSubscriptionPricing = StarSubscription;
+//@type Type of the subscription
+starSubscription id:string chat_id:int53 expiration_date:int32 is_canceled:Bool is_expiring:Bool pricing:starSubscriptionPricing type:StarSubscriptionType = StarSubscription;
 
 //@description Represents a list of Telegram Star subscriptions
 //@star_count The amount of owned Telegram Stars

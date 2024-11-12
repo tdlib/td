@@ -25,10 +25,26 @@ StarSubscription::StarSubscription(telegram_api::object_ptr<telegram_api::starsS
 
 td_api::object_ptr<td_api::starSubscription> StarSubscription::get_star_subscription_object(Td *td) const {
   td->dialog_manager_->force_create_dialog(dialog_id_, "starSubscription", true);
+  td_api::object_ptr<td_api::StarSubscriptionType> type;
+  switch (dialog_id_.get_type()) {
+    case DialogType::User:
+      type = td_api::make_object<td_api::starSubscriptionTypeBot>();
+      break;
+    case DialogType::Channel:
+      type = td_api::make_object<td_api::starSubscriptionTypeChannel>(
+          can_reuse_, LinkManager::get_dialog_invite_link(invite_hash_, false));
+      break;
+    case DialogType::Chat:
+      LOG(ERROR) << "Receive subscription for " << dialog_id_;
+      type = td_api::make_object<td_api::starSubscriptionTypeChannel>(false, string());
+      break;
+    case DialogType::SecretChat:
+    default:
+      UNREACHABLE();
+  }
   return td_api::make_object<td_api::starSubscription>(
-      id_, td->dialog_manager_->get_chat_id_object(dialog_id_, "starSubscription"), until_date_, can_reuse_,
-      is_canceled_, missing_balance_, LinkManager::get_dialog_invite_link(invite_hash_, false),
-      pricing_.get_star_subscription_pricing_object());
+      id_, td->dialog_manager_->get_chat_id_object(dialog_id_, "starSubscription"), until_date_, is_canceled_,
+      missing_balance_, pricing_.get_star_subscription_pricing_object(), std::move(type));
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const StarSubscription &subscription) {
