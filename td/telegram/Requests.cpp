@@ -7426,14 +7426,14 @@ void Requests::on_request(uint64 id, td_api::editStarSubscription &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.subscription_id_);
   CREATE_OK_REQUEST_PROMISE();
-  td_->star_manager_->edit_star_subscriptions(request.subscription_id_, request.is_canceled_, std::move(promise));
+  td_->star_manager_->edit_star_subscription(request.subscription_id_, request.is_canceled_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::reuseStarSubscription &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.subscription_id_);
   CREATE_OK_REQUEST_PROMISE();
-  td_->star_manager_->reuse_star_subscriptions(request.subscription_id_, std::move(promise));
+  td_->star_manager_->reuse_star_subscription(request.subscription_id_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::canPurchaseFromStore &request) {

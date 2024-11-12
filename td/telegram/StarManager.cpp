@@ -892,11 +892,11 @@ void StarManager::get_star_subscriptions(bool only_expiring, const string &offse
   td_->create_handler<GetStarsSubscriptionsQuery>(std::move(promise))->send(only_expiring, offset);
 }
 
-void StarManager::edit_star_subscriptions(const string &subscription_id, bool is_canceled, Promise<Unit> &&promise) {
+void StarManager::edit_star_subscription(const string &subscription_id, bool is_canceled, Promise<Unit> &&promise) {
   td_->create_handler<ChangeStarsSubscriptionQuery>(std::move(promise))->send(subscription_id, is_canceled);
 }
 
-void StarManager::reuse_star_subscriptions(const string &subscription_id, Promise<Unit> &&promise) {
+void StarManager::reuse_star_subscription(const string &subscription_id, Promise<Unit> &&promise) {
   td_->create_handler<FulfillStarsSubscriptionQuery>(std::move(promise))->send(subscription_id);
 }
 
