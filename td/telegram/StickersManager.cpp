@@ -2108,8 +2108,9 @@ CustomEmojiId StickersManager::get_custom_emoji_id(FileId sticker_id) const {
   return CustomEmojiId(get_sticker_id(sticker_id));
 }
 
-vector<td_api::object_ptr<td_api::closedVectorPath>> StickersManager::get_sticker_minithumbnail(
-    CSlice path, StickerSetId sticker_set_id, int64 document_id, double zoom) {
+vector<td_api::object_ptr<td_api::closedVectorPath>> StickersManager::get_sticker_minithumbnail(CSlice path,
+                                                                                                double zoom,
+                                                                                                Slice source) {
   if (path.empty()) {
     return {};
   }
@@ -2203,7 +2204,7 @@ vector<td_api::object_ptr<td_api::closedVectorPath>> StickersManager::get_sticke
     while (!is_closed) {
       skip_commas();
       if (path[pos] == '\0') {
-        LOG(ERROR) << "Receive unclosed path " << path << " in a sticker " << document_id << " from " << sticker_set_id;
+        LOG(ERROR) << "Receive unclosed path " << path << " from " << source;
         return {};
       }
       if (is_alpha(path[pos])) {
@@ -2291,8 +2292,8 @@ vector<td_api::object_ptr<td_api::closedVectorPath>> StickersManager::get_sticke
           is_closed = true;
           break;
         default:
-          LOG(ERROR) << "Receive invalid command " << command << " at pos " << pos << " in a sticker " << document_id
-                     << " from " << sticker_set_id << ": " << path;
+          LOG(ERROR) << "Receive invalid command " << command << " at pos " << pos << " from " << source << ": "
+                     << path;
           return {};
       }
     }
@@ -2417,7 +2418,8 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
   }
   return td_api::make_object<td_api::sticker>(
       sticker_id, sticker->set_id_.get(), width, height, sticker->alt_, get_sticker_format_object(sticker->format_),
-      std::move(full_type), get_sticker_minithumbnail(sticker->minithumbnail_, sticker->set_id_, document_id, zoom),
+      std::move(full_type),
+      get_sticker_minithumbnail(sticker->minithumbnail_, zoom, PSLICE() << document_id << " in " << sticker->set_id_),
       std::move(thumbnail_object), td_->file_manager_->get_file_object(file_id));
 }
 
@@ -2599,11 +2601,11 @@ tl_object_ptr<td_api::stickerSet> StickersManager::get_sticker_set_object(Sticke
     }
     emojis.push_back(make_tl_object<td_api::emojis>(std::move(sticker_emojis)));
   }
-  return make_tl_object<td_api::stickerSet>(
+  return td_api::make_object<td_api::stickerSet>(
       sticker_set->id_.get(), sticker_set->title_, sticker_set->short_name_,
       get_sticker_set_thumbnail_object(sticker_set),
-      get_sticker_minithumbnail(sticker_set->minithumbnail_, sticker_set->id_, -2,
-                                get_sticker_set_minithumbnail_zoom(sticker_set)),
+      get_sticker_minithumbnail(sticker_set->minithumbnail_, get_sticker_set_minithumbnail_zoom(sticker_set),
+                                PSLICE() << sticker_set->id_),
       sticker_set->is_created_, sticker_set->is_installed_ && !sticker_set->is_archived_, sticker_set->is_archived_,
       sticker_set->is_official_, get_sticker_type_object(sticker_set->sticker_type_), sticker_set->has_text_color_,
       sticker_set->channel_emoji_status_, sticker_set->is_viewed_, std::move(stickers), std::move(emojis));
@@ -2678,8 +2680,8 @@ tl_object_ptr<td_api::stickerSetInfo> StickersManager::get_sticker_set_info_obje
   return make_tl_object<td_api::stickerSetInfo>(
       sticker_set->id_.get(), sticker_set->title_, sticker_set->short_name_,
       get_sticker_set_thumbnail_object(sticker_set),
-      get_sticker_minithumbnail(sticker_set->minithumbnail_, sticker_set->id_, -3,
-                                get_sticker_set_minithumbnail_zoom(sticker_set)),
+      get_sticker_minithumbnail(sticker_set->minithumbnail_, get_sticker_set_minithumbnail_zoom(sticker_set),
+                                PSLICE() << sticker_set->id_),
       sticker_set->is_created_, sticker_set->is_installed_ && !sticker_set->is_archived_, sticker_set->is_archived_,
       sticker_set->is_official_, get_sticker_type_object(sticker_set->sticker_type_), sticker_set->has_text_color_,
       sticker_set->channel_emoji_status_, sticker_set->is_viewed_,
