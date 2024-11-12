@@ -11857,6 +11857,12 @@ assignGooglePlayTransaction package_name:string store_product_id:string purchase
 //@is_canceled New value of is_canceled
 editStarSubscription subscription_id:string is_canceled:Bool = Ok;
 
+//@description Cancels or reenables Telegram Star subscription for a user; for bots only
+//@user_id User identifier
+//@telegram_payment_charge_id Telegram payment identifier of the subscription
+//@is_canceled Pass true to cancel the subscription; pass false to allow the user to enable it
+editUserStarSubscription user_id:int53 telegram_payment_charge_id:string is_canceled:Bool = Ok;
+
 //@description Reuses an active Telegram Star subscription to a channel chat and joins the chat again @subscription_id Identifier of the subscription
 reuseStarSubscription subscription_id:string = Ok;
 

@@ -16,6 +16,7 @@
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/InputInvoice.h"
+#include "td/telegram/LinkManager.h"
 #include "td/telegram/MessageExtendedMedia.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageSender.h"
@@ -560,6 +561,37 @@ class ChangeStarsSubscriptionQuery final : public Td::ResultHandler {
   }
 };
 
+class BotCancelStarsSubscriptionQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit BotCancelStarsSubscriptionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::InputUser> &&input_user, const string &telegram_payment_charge_id,
+            bool is_canceled) {
+    int32 flags = 0;
+    if (!is_canceled) {
+      flags |= telegram_api::payments_botCancelStarsSubscription::RESTORE_MASK;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::payments_botCancelStarsSubscription(
+        flags, false /*ignored*/, std::move(input_user), telegram_payment_charge_id)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_botCancelStarsSubscription>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class FulfillStarsSubscriptionQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -894,6 +926,13 @@ void StarManager::get_star_subscriptions(bool only_expiring, const string &offse
 
 void StarManager::edit_star_subscription(const string &subscription_id, bool is_canceled, Promise<Unit> &&promise) {
   td_->create_handler<ChangeStarsSubscriptionQuery>(std::move(promise))->send(subscription_id, is_canceled);
+}
+
+void StarManager::edit_user_star_subscription(UserId user_id, const string &telegram_payment_charge_id,
+                                              bool is_canceled, Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
+  td_->create_handler<BotCancelStarsSubscriptionQuery>(std::move(promise))
+      ->send(std::move(input_user), telegram_payment_charge_id, is_canceled);
 }
 
 void StarManager::reuse_star_subscription(const string &subscription_id, Promise<Unit> &&promise) {

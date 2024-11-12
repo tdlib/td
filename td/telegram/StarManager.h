@@ -49,6 +49,9 @@ class StarManager final : public Actor {
 
   void edit_star_subscription(const string &subscription_id, bool is_canceled, Promise<Unit> &&promise);
 
+  void edit_user_star_subscription(UserId user_id, const string &telegram_payment_charge_id, bool is_canceled,
+                                   Promise<Unit> &&promise);
+
   void reuse_star_subscription(const string &subscription_id, Promise<Unit> &&promise);
 
   void refund_star_payment(UserId user_id, const string &telegram_payment_charge_id, Promise<Unit> &&promise);

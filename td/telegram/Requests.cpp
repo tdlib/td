@@ -7457,6 +7457,14 @@ void Requests::on_request(uint64 id, td_api::editStarSubscription &request) {
   td_->star_manager_->edit_star_subscription(request.subscription_id_, request.is_canceled_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::editUserStarSubscription &request) {
+  CHECK_IS_BOT();
+  CLEAN_INPUT_STRING(request.telegram_payment_charge_id_);
+  CREATE_OK_REQUEST_PROMISE();
+  td_->star_manager_->edit_user_star_subscription(UserId(request.user_id_), request.telegram_payment_charge_id_,
+                                                  request.is_canceled_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::reuseStarSubscription &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.subscription_id_);

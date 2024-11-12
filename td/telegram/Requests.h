@@ -1559,6 +1559,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::editStarSubscription &request);
 
+  void on_request(uint64 id, td_api::editUserStarSubscription &request);
+
   void on_request(uint64 id, td_api::reuseStarSubscription &request);
 
   void on_request(uint64 id, td_api::canPurchaseFromStore &request);
