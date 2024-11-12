@@ -1284,10 +1284,8 @@ void SecureManager::send_passport_authorization_form(int32 authorization_form_id
   auto query = G()->net_query_creator().create(td_query);
   auto new_promise =
       PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_net_query_ptr) mutable {
-        auto r_result = fetch_result<telegram_api::account_acceptAuthorization>(std::move(r_net_query_ptr));
-        if (r_result.is_error()) {
-          return promise.set_error(r_result.move_as_error());
-        }
+        TRY_RESULT_PROMISE(promise, result,
+                           fetch_result<telegram_api::account_acceptAuthorization>(std::move(r_net_query_ptr)));
         promise.set_value(Unit());
       });
   send_with_promise(std::move(query), std::move(new_promise));

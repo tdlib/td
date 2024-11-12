@@ -753,11 +753,7 @@ void ConnectionCreator::request_raw_connection(DcId dc_id, bool allow_media_only
 
 void ConnectionCreator::request_raw_connection_by_ip(IPAddress ip_address, mtproto::TransportType transport_type,
                                                      Promise<unique_ptr<mtproto::RawConnection>> promise) {
-  auto r_socket_fd = SocketFd::open(ip_address);
-  if (r_socket_fd.is_error()) {
-    return promise.set_error(r_socket_fd.move_as_error());
-  }
-  auto socket_fd = r_socket_fd.move_as_ok();
+  TRY_RESULT_PROMISE(promise, socket_fd, SocketFd::open(ip_address));
 
   auto connection_promise = PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise),
                                                     transport_type, network_generation = network_generation_,

@@ -296,12 +296,8 @@ void PhoneNumberManager::resend_authentication_code(
     return promise.set_error(Status::Error(400, "Can't resend code"));
   }
 
-  auto r_resend_code = send_code_helper_.resend_code(std::move(reason));
-  if (r_resend_code.is_error()) {
-    return promise.set_error(r_resend_code.move_as_error());
-  }
-
-  send_new_send_code_query(r_resend_code.move_as_ok(), std::move(promise));
+  TRY_RESULT_PROMISE(promise, resend_code, send_code_helper_.resend_code(std::move(reason)));
+  send_new_send_code_query(std::move(resend_code), std::move(promise));
 }
 
 void PhoneNumberManager::check_code(string code, Promise<Unit> &&promise) {

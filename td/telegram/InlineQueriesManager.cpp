@@ -1046,11 +1046,8 @@ void InlineQueriesManager::send_inline_query(UserId bot_user_id, DialogId dialog
                                              Promise<td_api::object_ptr<td_api::inlineQueryResults>> &&promise) {
   CHECK(!td_->auth_manager_->is_bot());
 
-  auto r_bot_data = td_->user_manager_->get_bot_data(bot_user_id);
-  if (r_bot_data.is_error()) {
-    return promise.set_error(r_bot_data.move_as_error());
-  }
-  if (!r_bot_data.ok().is_inline) {
+  TRY_RESULT_PROMISE(promise, bot_data, td_->user_manager_->get_bot_data(bot_user_id));
+  if (!bot_data.is_inline) {
     return promise.set_error(Status::Error(400, "Bot doesn't support inline queries"));
   }
 
@@ -1083,7 +1080,7 @@ void InlineQueriesManager::send_inline_query(UserId bot_user_id, DialogId dialog
   query_hash = query_hash * 2023654985u + bot_user_id.get();
   query_hash = query_hash * 2023654985u + static_cast<uint64>(peer_type);
   query_hash = query_hash * 2023654985u + Hash<string>()(offset);
-  if (r_bot_data.ok().need_location) {
+  if (bot_data.need_location && !user_location.empty()) {
     query_hash = query_hash * 2023654985u + static_cast<uint64>(user_location.get_latitude() * 1e4);
     query_hash = query_hash * 2023654985u + static_cast<uint64>(user_location.get_longitude() * 1e4);
   }

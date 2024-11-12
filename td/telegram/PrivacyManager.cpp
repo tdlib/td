@@ -88,11 +88,7 @@ void PrivacyManager::tear_down() {
 
 void PrivacyManager::get_privacy(tl_object_ptr<td_api::UserPrivacySetting> key,
                                  Promise<tl_object_ptr<td_api::userPrivacySettingRules>> promise) {
-  auto r_user_privacy_setting = UserPrivacySetting::get_user_privacy_setting(std::move(key));
-  if (r_user_privacy_setting.is_error()) {
-    return promise.set_error(r_user_privacy_setting.move_as_error());
-  }
-  auto user_privacy_setting = r_user_privacy_setting.move_as_ok();
+  TRY_RESULT_PROMISE(promise, user_privacy_setting, UserPrivacySetting::get_user_privacy_setting(std::move(key)));
   auto &info = get_info(user_privacy_setting);
   if (info.is_synchronized_) {
     return promise.set_value(info.rules_.get_user_privacy_setting_rules_object(td_));

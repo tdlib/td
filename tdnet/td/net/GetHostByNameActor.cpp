@@ -134,11 +134,7 @@ GetHostByNameActor::GetHostByNameActor(Options options) : options_(std::move(opt
 }
 
 void GetHostByNameActor::run(string host, int port, bool prefer_ipv6, Promise<IPAddress> promise) {
-  auto r_ascii_host = idn_to_ascii(host);
-  if (r_ascii_host.is_error()) {
-    return promise.set_error(r_ascii_host.move_as_error());
-  }
-  auto ascii_host = r_ascii_host.move_as_ok();
+  TRY_RESULT_PROMISE(promise, ascii_host, idn_to_ascii(host));
   if (ascii_host.empty()) {
     return promise.set_error(Status::Error("Host is empty"));
   }
