@@ -2107,6 +2107,35 @@ CustomEmojiId StickersManager::get_custom_emoji_id(FileId sticker_id) const {
   return CustomEmojiId(get_sticker_id(sticker_id));
 }
 
+td_api::object_ptr<td_api::outline> StickersManager::get_sticker_outline_object(FileId file_id, bool for_animated_emoji,
+                                                                                bool for_clicked_animated_emoji) const {
+  const auto *sticker = get_sticker(file_id);
+  if (sticker == nullptr || sticker->minithumbnail_.empty()) {
+    return nullptr;
+  }
+
+  int64 document_id = 0;
+  auto file_view = td_->file_manager_->get_file_view(sticker->file_id_);
+  if (!file_view.is_encrypted()) {
+    const auto *full_remote_location = file_view.get_full_remote_location();
+    if (full_remote_location != nullptr && full_remote_location->is_document()) {
+      document_id = full_remote_location->get_id();
+    }
+  }
+  double zoom = 1.0;
+  if ((is_sticker_format_vector(sticker->format_) || sticker->type_ == StickerType::CustomEmoji) &&
+      (for_animated_emoji || for_clicked_animated_emoji)) {
+    if (sticker->type_ == StickerType::CustomEmoji &&
+        max(sticker->dimensions_.width, sticker->dimensions_.height) <= 100) {
+      zoom *= 5.12;
+    }
+    if (for_clicked_animated_emoji) {
+      zoom *= 3;
+    }
+  }
+  return get_outline_object(sticker->minithumbnail_, zoom, PSLICE() << document_id << " in " << sticker->set_id_);
+}
+
 tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_id, bool for_animated_emoji,
                                                                    bool for_clicked_animated_emoji) const {
   if (!file_id.is_valid()) {
@@ -2117,18 +2146,12 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
   LOG_CHECK(sticker != nullptr) << file_id << ' ' << stickers_.calc_size();
   const PhotoSize &thumbnail = sticker->m_thumbnail_.file_id.is_valid() ? sticker->m_thumbnail_ : sticker->s_thumbnail_;
   auto thumbnail_format = PhotoFormat::Webp;
-  int64 document_id = 0;
   if (!sticker->set_id_.is_valid()) {
     auto file_view = td_->file_manager_->get_file_view(sticker->file_id_);
     if (file_view.is_encrypted()) {
       // uploaded to secret chats stickers have JPEG thumbnail instead of server-generated WEBP
       thumbnail_format = PhotoFormat::Jpeg;
     } else {
-      const auto *full_remote_location = file_view.get_full_remote_location();
-      if (full_remote_location != nullptr && full_remote_location->is_document()) {
-        document_id = full_remote_location->get_id();
-      }
-
       if (thumbnail.file_id.is_valid()) {
         auto thumbnail_file_view = td_->file_manager_->get_file_view(thumbnail.file_id);
         if (ends_with(thumbnail_file_view.suggested_path(), ".jpg")) {
@@ -2178,9 +2201,7 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
   }
   return td_api::make_object<td_api::sticker>(
       sticker_id, sticker->set_id_.get(), width, height, sticker->alt_, get_sticker_format_object(sticker->format_),
-      std::move(full_type),
-      get_outline_object(sticker->minithumbnail_, zoom, PSLICE() << document_id << " in " << sticker->set_id_),
-      std::move(thumbnail_object), td_->file_manager_->get_file_object(file_id));
+      std::move(full_type), std::move(thumbnail_object), td_->file_manager_->get_file_object(file_id));
 }
 
 tl_object_ptr<td_api::stickers> StickersManager::get_stickers_object(const vector<FileId> &sticker_ids) const {

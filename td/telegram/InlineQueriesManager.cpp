@@ -1413,49 +1413,6 @@ tl_object_ptr<td_api::StickerFullType> copy(const td_api::StickerFullType &obj) 
 }
 
 template <>
-tl_object_ptr<td_api::point> copy(const td_api::point &obj) {
-  return td_api::make_object<td_api::point>(obj.x_, obj.y_);
-}
-
-template <>
-tl_object_ptr<td_api::VectorPathCommand> copy(const td_api::VectorPathCommand &obj) {
-  switch (obj.get_id()) {
-    case td_api::vectorPathCommandLine::ID: {
-      auto &command = static_cast<const td_api::vectorPathCommandLine &>(obj);
-      return td_api::make_object<td_api::vectorPathCommandLine>(copy(command.end_point_));
-    }
-    case td_api::vectorPathCommandCubicBezierCurve::ID: {
-      auto &command = static_cast<const td_api::vectorPathCommandCubicBezierCurve &>(obj);
-      return td_api::make_object<td_api::vectorPathCommandCubicBezierCurve>(
-          copy(command.start_control_point_), copy(command.end_control_point_), copy(command.end_point_));
-    }
-    default:
-      UNREACHABLE();
-      return nullptr;
-  }
-}
-
-static tl_object_ptr<td_api::VectorPathCommand> copy_vector_path_command(
-    const tl_object_ptr<td_api::VectorPathCommand> &obj) {
-  return copy(obj);
-}
-
-template <>
-tl_object_ptr<td_api::closedVectorPath> copy(const td_api::closedVectorPath &obj) {
-  return td_api::make_object<td_api::closedVectorPath>(transform(obj.commands_, copy_vector_path_command));
-}
-
-static tl_object_ptr<td_api::closedVectorPath> copy_closed_vector_path(
-    const tl_object_ptr<td_api::closedVectorPath> &obj) {
-  return copy(obj);
-}
-
-template <>
-tl_object_ptr<td_api::outline> copy(const td_api::outline &obj) {
-  return td_api::make_object<td_api::outline>(transform(obj.paths_, copy_closed_vector_path));
-}
-
-template <>
 tl_object_ptr<td_api::SpeechRecognitionResult> copy(const td_api::SpeechRecognitionResult &obj) {
   switch (obj.get_id()) {
     case td_api::speechRecognitionResultPending::ID:
@@ -1504,8 +1461,8 @@ tl_object_ptr<td_api::photo> copy(const td_api::photo &obj) {
 template <>
 tl_object_ptr<td_api::sticker> copy(const td_api::sticker &obj) {
   return td_api::make_object<td_api::sticker>(obj.id_, obj.set_id_, obj.width_, obj.height_, obj.emoji_,
-                                              copy(obj.format_), copy(obj.full_type_), copy(obj.outline_),
-                                              copy(obj.thumbnail_), copy(obj.sticker_));
+                                              copy(obj.format_), copy(obj.full_type_), copy(obj.thumbnail_),
+                                              copy(obj.sticker_));
 }
 
 template <>

@@ -429,10 +429,9 @@ photo has_stickers:Bool minithumbnail:minithumbnail sizes:vector<photoSize> = Ph
 //@emoji Emoji corresponding to the sticker
 //@format Sticker format
 //@full_type Sticker's full type
-//@outline Sticker's outline; may be null if unknown
 //@thumbnail Sticker thumbnail in WEBP or JPEG format; may be null
 //@sticker File containing the sticker
-sticker id:int64 set_id:int64 width:int32 height:int32 emoji:string format:StickerFormat full_type:StickerFullType outline:outline thumbnail:thumbnail sticker:file = Sticker;
+sticker id:int64 set_id:int64 width:int32 height:int32 emoji:string format:StickerFormat full_type:StickerFullType thumbnail:thumbnail sticker:file = Sticker;
 
 //@description Describes a video file
 //@duration Duration of the video, in seconds; as defined by the sender
@@ -10723,6 +10722,12 @@ sharePhoneNumber user_id:int53 = Ok;
 //@description Returns the profile photos of a user. Personal and public photo aren't returned @user_id User identifier @offset The number of photos to skip; must be non-negative @limit The maximum number of photos to be returned; up to 100
 getUserProfilePhotos user_id:int53 offset:int32 limit:int32 = ChatPhotos;
 
+
+//@description Returns outline of a sticker. Returns a 404 error if the outline isn't known
+//@sticker_file_id File identifier of the sticker
+//@for_animated_emoji Pass true to get the outline scaled for animated emoji
+//@for_clicked_animated_emoji_message Pass true to get the outline scaled for clicked animated emoji message
+getStickerOutline sticker_file_id:int32 for_animated_emoji:Bool for_clicked_animated_emoji_message:Bool = Outline;
 
 //@description Returns stickers from the installed sticker sets that correspond to any of the given emoji or can be found by sticker-specific keywords. If the query is non-empty, then favorite, recently used or trending stickers may also be returned
 //@sticker_type Type of the stickers to return

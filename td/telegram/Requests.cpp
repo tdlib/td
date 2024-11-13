@@ -6145,6 +6145,13 @@ void Requests::on_request(uint64 id, td_api::closeSecretChat &request) {
                false, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::getStickerOutline &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  promise.set_value(td_->stickers_manager_->get_sticker_outline_object(
+      FileId(request.sticker_file_id_, 0), request.for_animated_emoji_, request.for_clicked_animated_emoji_message_));
+}
+
 void Requests::on_request(uint64 id, td_api::getStickers &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);

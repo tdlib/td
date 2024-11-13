@@ -81,6 +81,9 @@ class StickersManager final : public Actor {
 
   bool have_custom_emoji(CustomEmojiId custom_emoji_id);
 
+  td_api::object_ptr<td_api::outline> get_sticker_outline_object(FileId file_id, bool for_animated_emoji,
+                                                                 bool for_clicked_animated_emoji) const;
+
   tl_object_ptr<td_api::sticker> get_sticker_object(FileId file_id, bool for_animated_emoji = false,
                                                     bool for_clicked_animated_emoji = false) const;
 
