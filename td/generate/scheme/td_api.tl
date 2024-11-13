@@ -930,11 +930,12 @@ starGiveawayPaymentOptions options:vector<starGiveawayPaymentOption> = StarGivea
 //@sticker The sticker representing the gift
 //@star_count Number of Telegram Stars that must be paid for the gift
 //@default_sell_star_count Number of Telegram Stars that can be claimed by the receiver instead of the gift by default. If the gift was paid with just bought Telegram Stars, then full value can be claimed
+//@is_for_birthday True, if the gift is a birthday gift
 //@remaining_count Number of remaining times the gift can be purchased by all users; 0 if not limited or the gift was sold out
 //@total_count Number of total times the gift can be purchased by all users; 0 if not limited
 //@first_send_date Point in time (Unix timestamp) when the gift was send for the first time; for sold out gifts only
 //@last_send_date Point in time (Unix timestamp) when the gift was send for the last time; for sold out gifts only
-gift id:int64 sticker:sticker star_count:int53 default_sell_star_count:int53 remaining_count:int32 total_count:int32 first_send_date:int32 last_send_date:int32 = Gift;
+gift id:int64 sticker:sticker star_count:int53 default_sell_star_count:int53 is_for_birthday:Bool remaining_count:int32 total_count:int32 first_send_date:int32 last_send_date:int32 = Gift;
 
 //@description Contains a list of gifts that can be sent to another user @gifts The list of gifts
 gifts gifts:vector<gift> = Gifts;

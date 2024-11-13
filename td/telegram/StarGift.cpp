@@ -51,20 +51,22 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::starGift> &&st
   sticker_file_id_ = sticker_id;
   availability_remains_ = star_gift->availability_remains_;
   availability_total_ = star_gift->availability_total_;
+  is_for_birthday_ = star_gift->birthday_;
 }
 
 td_api::object_ptr<td_api::gift> StarGift::get_gift_object(const Td *td) const {
   CHECK(is_valid());
-  return td_api::make_object<td_api::gift>(id_, td->stickers_manager_->get_sticker_object(sticker_file_id_),
-                                           star_count_, default_sell_star_count_, availability_remains_,
-                                           availability_total_, first_sale_date_, last_sale_date_);
+  return td_api::make_object<td_api::gift>(
+      id_, td->stickers_manager_->get_sticker_object(sticker_file_id_), star_count_, default_sell_star_count_,
+      is_for_birthday_, availability_remains_, availability_total_, first_sale_date_, last_sale_date_);
 }
 
 bool operator==(const StarGift &lhs, const StarGift &rhs) {
   return lhs.id_ == rhs.id_ && lhs.sticker_file_id_ == rhs.sticker_file_id_ && lhs.star_count_ == rhs.star_count_ &&
          lhs.default_sell_star_count_ == rhs.default_sell_star_count_ &&
          lhs.availability_remains_ == rhs.availability_remains_ && lhs.availability_total_ == rhs.availability_total_ &&
-         lhs.first_sale_date_ == rhs.first_sale_date_ && lhs.last_sale_date_ == rhs.last_sale_date_;
+         lhs.first_sale_date_ == rhs.first_sale_date_ && lhs.last_sale_date_ == rhs.last_sale_date_ &&
+         lhs.is_for_birthday_ == rhs.is_for_birthday_;
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const StarGift &star_gift) {

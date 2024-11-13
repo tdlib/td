@@ -30,6 +30,7 @@ void StarGift::store(StorerT &storer) const {
   STORE_FLAG(has_default_sell_star_count);
   STORE_FLAG(has_first_sale_date);
   STORE_FLAG(has_last_sale_date);
+  STORE_FLAG(is_for_birthday_);
   END_STORE_FLAGS();
   td::store(id_, storer);
   td->stickers_manager_->store_sticker(sticker_file_id_, false, storer, "StarGift");
@@ -61,6 +62,7 @@ void StarGift::parse(ParserT &parser) {
   PARSE_FLAG(has_default_sell_star_count);
   PARSE_FLAG(has_first_sale_date);
   PARSE_FLAG(has_last_sale_date);
+  PARSE_FLAG(is_for_birthday_);
   END_PARSE_FLAGS();
   td::parse(id_, parser);
   sticker_file_id_ = td->stickers_manager_->parse_sticker(false, parser);
