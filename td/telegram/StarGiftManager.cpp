@@ -6,6 +6,7 @@
 //
 #include "td/telegram/StarGiftManager.h"
 
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageEntity.h"
@@ -84,7 +85,6 @@ class SendGiftQuery final : public Td::ResultHandler {
   void send(telegram_api::object_ptr<telegram_api::inputInvoiceStarGift> input_invoice, int64 payment_form_id,
             int64 star_count) {
     star_count_ = star_count;
-
     send_query(G()->net_query_creator().create(
         telegram_api::payments_sendStarsForm(payment_form_id, std::move(input_invoice))));
   }
@@ -319,13 +319,16 @@ void StarGiftManager::on_get_gift_prices(FlatHashMap<int64, int64> gift_prices) 
 
 void StarGiftManager::send_gift(int64 gift_id, UserId user_id, td_api::object_ptr<td_api::formattedText> text,
                                 bool is_private, Promise<Unit> &&promise) {
-  auto it = gift_prices_.find(gift_id);
-  if (it == gift_prices_.end()) {
-    return promise.set_error(Status::Error(400, "Gift not found"));
-  }
-  auto star_count = it->second;
-  if (!td_->star_manager_->has_owned_star_count(star_count)) {
-    return promise.set_error(Status::Error(400, "Have not enough Telegram Stars"));
+  int64 star_count = 0;
+  if (!td_->auth_manager_->is_bot()) {
+    auto it = gift_prices_.find(gift_id);
+    if (it == gift_prices_.end()) {
+      return promise.set_error(Status::Error(400, "Gift not found"));
+    }
+    star_count = it->second;
+    if (!td_->star_manager_->has_owned_star_count(star_count)) {
+      return promise.set_error(Status::Error(400, "Have not enough Telegram Stars"));
+    }
   }
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
   TRY_RESULT_PROMISE(
