@@ -595,6 +595,12 @@ class UserManager final : public Actor {
     string privacy_policy_url;
     AdministratorRights group_administrator_rights;
     AdministratorRights broadcast_administrator_rights;
+
+    string placeholder_path;
+    int32 background_color = -1;
+    int32 background_dark_color = -1;
+    int32 header_color = -1;
+    int32 header_dark_color = -1;
   };
 
   // do not forget to update drop_user_full and on_get_user_full

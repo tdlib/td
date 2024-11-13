@@ -1756,6 +1756,11 @@ void UserManager::UserFull::store(StorerT &storer) const {
   bool has_flags2 = true;
   bool has_privacy_policy_url = bot_info != nullptr && !bot_info->privacy_policy_url.empty();
   bool has_gift_count = gift_count != 0;
+  bool has_placeholder_path = bot_info != nullptr && !bot_info->placeholder_path.empty();
+  bool has_background_color = bot_info != nullptr && bot_info->background_color != -1;
+  bool has_background_dark_color = bot_info != nullptr && bot_info->background_dark_color != -1;
+  bool has_header_color = bot_info != nullptr && bot_info->header_color != -1;
+  bool has_header_dark_color = bot_info != nullptr && bot_info->header_dark_color != -1;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
   STORE_FLAG(is_blocked);
@@ -1795,6 +1800,11 @@ void UserManager::UserFull::store(StorerT &storer) const {
     STORE_FLAG(has_gift_count);
     STORE_FLAG(can_view_revenue);
     STORE_FLAG(can_manage_emoji_status);
+    STORE_FLAG(has_placeholder_path);
+    STORE_FLAG(has_background_color);
+    STORE_FLAG(has_background_dark_color);
+    STORE_FLAG(has_header_color);
+    STORE_FLAG(has_header_dark_color);
     END_STORE_FLAGS();
   }
   if (has_about) {
@@ -1851,6 +1861,21 @@ void UserManager::UserFull::store(StorerT &storer) const {
   if (has_gift_count) {
     store(gift_count, storer);
   }
+  if (has_placeholder_path) {
+    store(bot_info->placeholder_path, storer);
+  }
+  if (has_background_color) {
+    store(bot_info->background_color, storer);
+  }
+  if (has_background_dark_color) {
+    store(bot_info->background_dark_color, storer);
+  }
+  if (has_header_color) {
+    store(bot_info->header_color, storer);
+  }
+  if (has_header_dark_color) {
+    store(bot_info->header_dark_color, storer);
+  }
 }
 
 template <class ParserT>
@@ -1875,6 +1900,11 @@ void UserManager::UserFull::parse(ParserT &parser) {
   bool has_flags2;
   bool has_privacy_policy_url = false;
   bool has_gift_count = false;
+  bool has_placeholder_path = false;
+  bool has_background_color = false;
+  bool has_background_dark_color = false;
+  bool has_header_color = false;
+  bool has_header_dark_color = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_about);
   PARSE_FLAG(is_blocked);
@@ -1914,6 +1944,11 @@ void UserManager::UserFull::parse(ParserT &parser) {
     PARSE_FLAG(has_gift_count);
     PARSE_FLAG(can_view_revenue);
     PARSE_FLAG(can_manage_emoji_status);
+    PARSE_FLAG(has_placeholder_path);
+    PARSE_FLAG(has_background_color);
+    PARSE_FLAG(has_background_dark_color);
+    PARSE_FLAG(has_header_color);
+    PARSE_FLAG(has_header_dark_color);
     END_PARSE_FLAGS();
   }
   if (has_about) {
@@ -1973,6 +2008,21 @@ void UserManager::UserFull::parse(ParserT &parser) {
   }
   if (has_gift_count) {
     parse(gift_count, parser);
+  }
+  if (has_placeholder_path) {
+    parse(add_bot_info()->placeholder_path, parser);
+  }
+  if (has_background_color) {
+    parse(add_bot_info()->background_color, parser);
+  }
+  if (has_background_dark_color) {
+    parse(add_bot_info()->background_dark_color, parser);
+  }
+  if (has_header_color) {
+    parse(add_bot_info()->header_color, parser);
+  }
+  if (has_header_dark_color) {
+    parse(add_bot_info()->header_dark_color, parser);
   }
 }
 
@@ -7137,6 +7187,11 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
     string description;
     Photo description_photo;
     FileId description_animation_file_id;
+    string placeholder_path;
+    int32 background_color = -1;
+    int32 background_dark_color = -1;
+    int32 header_color = -1;
+    int32 header_dark_color = -1;
     if (user->bot_info_ != nullptr) {
       description = std::move(user->bot_info_->description_);
       description_photo = get_photo(td_, std::move(user->bot_info_->description_photo_), DialogId(user_id));
@@ -7162,6 +7217,22 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
         bot_info->privacy_policy_url = std::move(user->bot_info_->privacy_policy_url_);
         user_full->is_changed = true;
       }
+      if (user->bot_info_->app_settings_ != nullptr) {
+        auto *app_settings = user->bot_info_->app_settings_.get();
+        placeholder_path = app_settings->placeholder_path_.as_slice().str();
+        if ((app_settings->flags_ & telegram_api::botAppSettings::BACKGROUND_COLOR_MASK) != 0) {
+          background_color = app_settings->background_color_;
+        }
+        if ((app_settings->flags_ & telegram_api::botAppSettings::BACKGROUND_DARK_COLOR_MASK) != 0) {
+          background_dark_color = app_settings->background_dark_color_;
+        }
+        if ((app_settings->flags_ & telegram_api::botAppSettings::HEADER_COLOR_MASK) != 0) {
+          header_color = app_settings->header_color_;
+        }
+        if ((app_settings->flags_ & telegram_api::botAppSettings::HEADER_DARK_COLOR_MASK) != 0) {
+          header_dark_color = app_settings->header_dark_color_;
+        }
+      }
     }
     if (bot_info->description != description) {
       bot_info->description = std::move(description);
@@ -7172,6 +7243,18 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
       bot_info->description_photo = std::move(description_photo);
       bot_info->description_animation_file_id = description_animation_file_id;
       user_full->is_changed = true;
+    }
+    if (bot_info->background_color != background_color || bot_info->background_dark_color != background_dark_color ||
+        bot_info->header_color != header_color || bot_info->header_dark_color != header_dark_color) {
+      bot_info->background_color = background_color;
+      bot_info->background_dark_color = background_dark_color;
+      bot_info->header_color = header_color;
+      bot_info->header_dark_color = header_dark_color;
+      user_full->is_changed = true;
+    }
+    if (bot_info->placeholder_path != placeholder_path) {
+      bot_info->placeholder_path = std::move(placeholder_path);
+      user_full->need_save_to_database = true;
     }
   }
 
@@ -8170,10 +8253,10 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
   td_api::object_ptr<td_api::formattedText> bio_object;
   if (is_bot) {
     if (user_full->bot_info == nullptr) {
-      bot_info = td_api::make_object<td_api::botInfo>(user_full->about, string(), nullptr, nullptr, nullptr, Auto(),
-                                                      string(), nullptr, nullptr, user_full->can_view_revenue,
-                                                      user_full->can_manage_emoji_status, user_full->has_preview_medias,
-                                                      nullptr, nullptr, nullptr, nullptr);
+      bot_info = td_api::make_object<td_api::botInfo>(
+          user_full->about, string(), nullptr, nullptr, nullptr, Auto(), string(), nullptr, nullptr, -1, -1, -1, -1,
+          user_full->can_view_revenue, user_full->can_manage_emoji_status, user_full->has_preview_medias, nullptr,
+          nullptr, nullptr, nullptr);
     } else {
       const auto *user_bot_info = user_full->bot_info.get();
       auto menu_button = get_bot_menu_button_object(td_, user_bot_info->menu_button.get());
@@ -8190,8 +8273,9 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
           user_bot_info->broadcast_administrator_rights == AdministratorRights()
               ? nullptr
               : user_bot_info->broadcast_administrator_rights.get_chat_administrator_rights_object(),
-          user_full->can_view_revenue, user_full->can_manage_emoji_status, user_full->has_preview_medias, nullptr,
-          nullptr, nullptr, nullptr);
+          user_bot_info->background_color, user_bot_info->background_dark_color, user_bot_info->header_color,
+          user_bot_info->header_dark_color, user_full->can_view_revenue, user_full->can_manage_emoji_status,
+          user_full->has_preview_medias, nullptr, nullptr, nullptr, nullptr);
     }
     if (u != nullptr && u->can_be_edited_bot && u->usernames.has_editable_username()) {
       auto bot_username = u->usernames.get_editable_username();
