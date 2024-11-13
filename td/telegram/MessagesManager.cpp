@@ -8028,8 +8028,7 @@ void MessagesManager::repair_dialog_action_bar(Dialog *d, const char *source) {
   d->need_repair_action_bar = true;
   if (td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
     create_actor<SleepActor>(
-        "RepairChatActionBarActor", 1.0,
-        PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, source](Result<Unit> result) {
+        "RepairChatActionBarActor", 1.0, PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, source](Unit) {
           send_closure(actor_id, &MessagesManager::reget_dialog_action_bar, dialog_id, source, true);
         }))
         .release();
@@ -8102,11 +8101,10 @@ void MessagesManager::hide_all_business_bot_manager_bars() {
 void MessagesManager::repair_dialog_active_group_call_id(DialogId dialog_id) {
   if (td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
     LOG(INFO) << "Repair active voice chat ID in " << dialog_id;
-    create_actor<SleepActor>("RepairChatActiveVoiceChatId", 1.0,
-                             PromiseCreator::lambda([actor_id = actor_id(this), dialog_id](Result<Unit> result) {
-                               send_closure(actor_id, &MessagesManager::do_repair_dialog_active_group_call_id,
-                                            dialog_id);
-                             }))
+    create_actor<SleepActor>(
+        "RepairChatActiveVoiceChatId", 1.0, PromiseCreator::lambda([actor_id = actor_id(this), dialog_id](Unit) {
+          send_closure(actor_id, &MessagesManager::do_repair_dialog_active_group_call_id, dialog_id);
+        }))
         .release();
   }
 }
@@ -11497,7 +11495,7 @@ void MessagesManager::repair_server_unread_count(DialogId dialog_id, int32 unrea
 
   LOG(INFO) << "Repair server unread count in " << dialog_id << " from " << unread_count << " from " << source;
   create_actor<SleepActor>("RepairServerUnreadCountSleepActor", 0.2,
-                           PromiseCreator::lambda([actor_id = actor_id(this), dialog_id](Result<Unit> result) {
+                           PromiseCreator::lambda([actor_id = actor_id(this), dialog_id](Unit) {
                              send_closure(actor_id, &MessagesManager::send_get_dialog_query, dialog_id, Promise<Unit>(),
                                           0, "repair_server_unread_count");
                            }))
@@ -28946,14 +28944,13 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
                         << pending_notifications.size() << " already waiting messages";
     if (pending_notifications.empty()) {
       VLOG(notifications) << "Create FlushPendingNewMessageNotificationsSleepActor for " << d->dialog_id;
-      create_actor<SleepActor>("FlushPendingNewMessageNotificationsSleepActor", 5.0,
-                               PromiseCreator::lambda([actor_id = actor_id(this), dialog_id = d->dialog_id,
-                                                       from_mentions](Result<Unit> result) {
-                                 VLOG(notifications)
-                                     << "Pending notifications timeout in " << dialog_id << " has expired";
-                                 send_closure(actor_id, &MessagesManager::flush_pending_new_message_notifications,
-                                              dialog_id, from_mentions, DialogId());
-                               }))
+      create_actor<SleepActor>(
+          "FlushPendingNewMessageNotificationsSleepActor", 5.0,
+          PromiseCreator::lambda([actor_id = actor_id(this), dialog_id = d->dialog_id, from_mentions](Unit) {
+            VLOG(notifications) << "Pending notifications timeout in " << dialog_id << " has expired";
+            send_closure(actor_id, &MessagesManager::flush_pending_new_message_notifications, dialog_id, from_mentions,
+                         DialogId());
+          }))
           .release();
     }
     auto last_settings_dialog_id = (pending_notifications.empty() ? DialogId() : pending_notifications.back().first);
@@ -30988,12 +30985,11 @@ void MessagesManager::drop_dialog_last_pinned_message_id(Dialog *d) {
 
   LOG(INFO) << "Drop " << d->dialog_id << " pinned message";
 
-  create_actor<SleepActor>(
-      "ReloadDialogFullInfoActor", 1.0,
-      PromiseCreator::lambda([actor_id = G()->dialog_manager(), dialog_id = d->dialog_id](Result<Unit> result) {
-        send_closure(actor_id, &DialogManager::reload_dialog_info_full, dialog_id,
-                     "drop_dialog_last_pinned_message_id");
-      }))
+  create_actor<SleepActor>("ReloadDialogFullInfoActor", 1.0,
+                           PromiseCreator::lambda([actor_id = G()->dialog_manager(), dialog_id = d->dialog_id](Unit) {
+                             send_closure(actor_id, &DialogManager::reload_dialog_info_full, dialog_id,
+                                          "drop_dialog_last_pinned_message_id");
+                           }))
       .release();
 }
 

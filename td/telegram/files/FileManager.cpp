@@ -2893,7 +2893,7 @@ void FileManager::read_file_part(FileId file_id, int64 offset, int64 count, int 
           // we need to wait for the corresponding update and repeat the reading
           create_actor<SleepActor>("RepeatReadFilePartActor", 0.01,
                                    PromiseCreator::lambda([actor_id, file_id, offset, count, left_tries,
-                                                           promise = std::move(promise)](Result<Unit> result) mutable {
+                                                           promise = std::move(promise)](Unit) mutable {
                                      send_closure(actor_id, &FileManager::read_file_part, file_id, offset, count,
                                                   left_tries - 1, std::move(promise));
                                    }))

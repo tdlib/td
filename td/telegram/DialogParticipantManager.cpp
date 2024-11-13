@@ -2301,6 +2301,7 @@ void DialogParticipantManager::delete_chat_participant(ChatId chat_id, UserId us
 void DialogParticipantManager::add_channel_participant(
     ChannelId channel_id, UserId user_id, const DialogParticipantStatus &old_status,
     Promise<td_api::object_ptr<td_api::failedToAddMembers>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
   if (td_->auth_manager_->is_bot()) {
     return promise.set_error(Status::Error(400, "Bots can't add new chat members"));
   }
@@ -2637,11 +2638,7 @@ void DialogParticipantManager::restrict_channel_participant(ChannelId channel_id
       create_actor<SleepActor>(
           "RestrictChannelParticipantSleepActor", 1.0,
           PromiseCreator::lambda([actor_id, channel_id, participant_dialog_id, new_status = std::move(new_status),
-                                  promise = std::move(promise)](Result<> result) mutable {
-            if (result.is_error()) {
-              return promise.set_error(result.move_as_error());
-            }
-
+                                  promise = std::move(promise)](Unit) mutable {
             send_closure(actor_id, &DialogParticipantManager::restrict_channel_participant, channel_id,
                          participant_dialog_id, std::move(new_status), DialogParticipantStatus::Banned(0),
                          std::move(promise));
@@ -2668,11 +2665,7 @@ void DialogParticipantManager::restrict_channel_participant(ChannelId channel_id
           create_actor<SleepActor>(
               "AddChannelParticipantSleepActor", 1.0,
               PromiseCreator::lambda([actor_id, channel_id, participant_dialog_id, old_status = std::move(old_status),
-                                      promise = std::move(promise)](Result<Unit> result) mutable {
-                if (result.is_error()) {
-                  return promise.set_error(result.move_as_error());
-                }
-
+                                      promise = std::move(promise)](Unit) mutable {
                 send_closure(actor_id, &DialogParticipantManager::add_channel_participant, channel_id,
                              participant_dialog_id.get_user_id(), old_status,
                              wrap_failed_to_add_members_promise(std::move(promise)));

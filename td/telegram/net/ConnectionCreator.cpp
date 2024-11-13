@@ -432,7 +432,7 @@ void ConnectionCreator::test_proxy(Proxy &&proxy, int32 dc_id, double timeout, P
   test_proxy_requests_.emplace(request_id, std::move(request));
 
   create_actor<SleepActor>("TestProxyTimeoutActor", timeout + start_time - Time::now(),
-                           PromiseCreator::lambda([actor_id = actor_id(this), request_id](Result<Unit> result) {
+                           PromiseCreator::lambda([actor_id = actor_id(this), request_id](Unit) {
                              send_closure(actor_id, &ConnectionCreator::on_test_proxy_timeout, request_id);
                            }))
       .release();

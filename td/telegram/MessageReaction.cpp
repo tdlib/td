@@ -1186,11 +1186,10 @@ StringBuilder &operator<<(StringBuilder &string_builder, const unique_ptr<Messag
 
 void reload_message_reactions(Td *td, DialogId dialog_id, vector<MessageId> &&message_ids) {
   if (!td->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read) || message_ids.empty()) {
-    create_actor<SleepActor>(
-        "RetryReloadMessageReactionsActor", 0.2,
-        PromiseCreator::lambda([actor_id = G()->messages_manager(), dialog_id](Result<Unit> result) mutable {
-          send_closure(actor_id, &MessagesManager::try_reload_message_reactions, dialog_id, true);
-        }))
+    create_actor<SleepActor>("RetryReloadMessageReactionsActor", 0.2,
+                             PromiseCreator::lambda([actor_id = G()->messages_manager(), dialog_id](Unit) mutable {
+                               send_closure(actor_id, &MessagesManager::try_reload_message_reactions, dialog_id, true);
+                             }))
         .release();
     return;
   }
