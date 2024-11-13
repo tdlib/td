@@ -628,6 +628,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/VideosManager.cpp
   td/telegram/VoiceNotesManager.cpp
   td/telegram/WebApp.cpp
+  td/telegram/WebAppManager.cpp
   td/telegram/WebAppOpenParameters.cpp
   td/telegram/WebPageBlock.cpp
   td/telegram/WebPagesManager.cpp
@@ -992,6 +993,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/VideosManager.h
   td/telegram/VoiceNotesManager.h
   td/telegram/WebApp.h
+  td/telegram/WebAppManager.h
   td/telegram/WebAppOpenParameters.h
   td/telegram/WebPageBlock.h
   td/telegram/WebPageId.h

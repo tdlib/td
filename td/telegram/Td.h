@@ -107,6 +107,7 @@ class UserManager;
 class VideoNotesManager;
 class VideosManager;
 class VoiceNotesManager;
+class WebAppManager;
 class WebPagesManager;
 
 extern int VERBOSITY_NAME(td_init);
@@ -271,6 +272,8 @@ class Td final : public Actor {
   ActorOwn<VideoNotesManager> video_notes_manager_actor_;
   unique_ptr<VoiceNotesManager> voice_notes_manager_;
   ActorOwn<VoiceNotesManager> voice_notes_manager_actor_;
+  unique_ptr<WebAppManager> web_app_manager_;
+  ActorOwn<WebAppManager> web_app_manager_actor_;
   unique_ptr<WebPagesManager> web_pages_manager_;
   ActorOwn<WebPagesManager> web_pages_manager_actor_;
 
