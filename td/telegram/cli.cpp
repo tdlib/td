@@ -5004,6 +5004,10 @@ class CliClient final : public Actor {
       string short_name;
       get_args(args, bot_user_id, short_name);
       send_request(td_api::make_object<td_api::searchWebApp>(bot_user_id, short_name));
+    } else if (op == "gwap") {
+      UserId bot_user_id;
+      get_args(args, bot_user_id);
+      send_request(td_api::make_object<td_api::getWebAppPlaceholder>(bot_user_id));
     } else if (op == "gwalu") {
       ChatId chat_id;
       UserId bot_user_id;

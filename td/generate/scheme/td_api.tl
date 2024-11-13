@@ -9541,6 +9541,9 @@ getGrossingWebAppBots offset:string limit:int32 = FoundUsers;
 //@web_app_short_name Short name of the Web App
 searchWebApp bot_user_id:int53 web_app_short_name:string = FoundWebApp;
 
+//@description Returns a default placeholder for Web Apps of a bot; this is an offline request. Returns a 404 error if the placeholder isn't known @bot_user_id Identifier of the target bot
+getWebAppPlaceholder bot_user_id:int53 = Outline;
+
 //@description Returns an HTTPS URL of a Web App to open after a link of the type internalLinkTypeWebApp is clicked
 //@chat_id Identifier of the chat in which the link was clicked; pass 0 if none
 //@bot_user_id Identifier of the target bot
@@ -10727,7 +10730,7 @@ sharePhoneNumber user_id:int53 = Ok;
 getUserProfilePhotos user_id:int53 offset:int32 limit:int32 = ChatPhotos;
 
 
-//@description Returns outline of a sticker. Returns a 404 error if the outline isn't known
+//@description Returns outline of a sticker; this is an offline request. Returns a 404 error if the outline isn't known
 //@sticker_file_id File identifier of the sticker
 //@for_animated_emoji Pass true to get the outline scaled for animated emoji
 //@for_clicked_animated_emoji_message Pass true to get the outline scaled for clicked animated emoji message

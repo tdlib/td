@@ -6905,6 +6905,12 @@ void Requests::on_request(uint64 id, td_api::searchWebApp &request) {
   td_->attach_menu_manager_->get_web_app(UserId(request.bot_user_id_), request.web_app_short_name_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::getWebAppPlaceholder &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->user_manager_->get_web_app_placeholder(UserId(request.bot_user_id_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::getWebAppLinkUrl &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.web_app_short_name_);

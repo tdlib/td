@@ -460,6 +460,8 @@ class UserManager final : public Actor {
 
   FileSourceId get_user_full_file_source_id(UserId user_id);
 
+  void get_web_app_placeholder(UserId user_id, Promise<td_api::object_ptr<td_api::outline>> &&promise);
+
   bool have_secret_chat(SecretChatId secret_chat_id) const;
 
   bool have_secret_chat_force(SecretChatId secret_chat_id, const char *source);

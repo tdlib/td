@@ -44,6 +44,7 @@
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/OnlineManager.h"
 #include "td/telegram/OptionManager.h"
+#include "td/telegram/Outline.h"
 #include "td/telegram/PeerColor.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/Photo.hpp"
@@ -7424,6 +7425,14 @@ void UserManager::on_load_user_full_from_database(UserId user_id, string value) 
   } else if (user_full->expires_at == 0.0) {
     reload_user_full(user_id, Auto(), "on_load_user_full_from_database");
   }
+}
+
+void UserManager::get_web_app_placeholder(UserId user_id, Promise<td_api::object_ptr<td_api::outline>> &&promise) {
+  auto user_full = get_user_full_force(user_id, "get_web_app_placeholder");
+  if (user_full == nullptr || user_full->bot_info == nullptr) {
+    return promise.set_value(nullptr);
+  }
+  promise.set_value(get_outline_object(user_full->bot_info->placeholder_path, 1.0, PSLICE() << "Web App " << user_id));
 }
 
 int64 UserManager::get_user_full_profile_photo_id(const UserFull *user_full) {
