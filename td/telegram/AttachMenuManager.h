@@ -6,17 +6,13 @@
 //
 #pragma once
 
-#include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
-#include "td/telegram/MessageId.h"
-#include "td/telegram/MessageInputReplyTo.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
 
 #include "td/actor/actor.h"
-#include "td/actor/Timeout.h"
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
@@ -26,45 +22,12 @@
 namespace td {
 
 class Td;
-class WebAppOpenParameters;
 
 class AttachMenuManager final : public Actor {
  public:
   AttachMenuManager(Td *td, ActorShared<> parent);
 
   void init();
-
-  void get_popular_app_bots(const string &offset, int32 limit,
-                            Promise<td_api::object_ptr<td_api::foundUsers>> &&promise);
-
-  void get_web_app(UserId bot_user_id, const string &web_app_short_name,
-                   Promise<td_api::object_ptr<td_api::foundWebApp>> &&promise);
-
-  void reload_web_app(UserId bot_user_id, const string &web_app_short_name, Promise<Unit> &&promise);
-
-  void request_app_web_view(DialogId dialog_id, UserId bot_user_id, string &&web_app_short_name,
-                            string &&start_parameter, const WebAppOpenParameters &parameters, bool allow_write_access,
-                            Promise<string> &&promise);
-
-  void request_main_web_view(DialogId dialog_id, UserId bot_user_id, string &&start_parameter,
-                             const WebAppOpenParameters &parameters,
-                             Promise<td_api::object_ptr<td_api::mainWebApp>> &&promise);
-
-  void request_web_view(DialogId dialog_id, UserId bot_user_id, MessageId top_thread_message_id,
-                        td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to, string &&url,
-                        const WebAppOpenParameters &parameters,
-                        Promise<td_api::object_ptr<td_api::webAppInfo>> &&promise);
-
-  void open_web_view(int64 query_id, DialogId dialog_id, UserId bot_user_id, MessageId top_thread_message_id,
-                     MessageInputReplyTo &&input_reply_to, DialogId as_dialog_id);
-
-  void close_web_view(int64 query_id, Promise<Unit> &&promise);
-
-  void invoke_web_view_custom_method(UserId bot_user_id, const string &method, const string &parameters,
-                                     Promise<td_api::object_ptr<td_api::customRequestResult>> &&promise);
-
-  void check_download_file_params(UserId bot_user_id, const string &file_name, const string &url,
-                                  Promise<Unit> &&promise);
 
   void reload_attach_menu_bots(Promise<Unit> &&promise);
 
@@ -74,8 +37,6 @@ class AttachMenuManager final : public Actor {
 
   FileSourceId get_attach_menu_bot_file_source_id(UserId user_id);
 
-  FileSourceId get_web_app_file_source_id(UserId user_id, const string &short_name);
-
   void toggle_bot_is_added_to_attach_menu(UserId user_id, bool is_added, bool allow_write_access,
                                           Promise<Unit> &&promise);
 
@@ -84,8 +45,6 @@ class AttachMenuManager final : public Actor {
   static string get_attach_menu_bots_database_key();
 
  private:
-  static const int32 PING_WEB_VIEW_TIMEOUT = 60;
-
   void start_up() final;
 
   void timeout_expired() final;
@@ -150,18 +109,6 @@ class AttachMenuManager final : public Actor {
 
   bool is_active() const;
 
-  void on_online(bool is_online);
-
-  static void ping_web_view_static(void *td_void);
-
-  void ping_web_view();
-
-  void schedule_ping_web_view();
-
-  void on_get_web_app(UserId bot_user_id, string web_app_short_name,
-                      Result<telegram_api::object_ptr<telegram_api::messages_botApp>> result,
-                      Promise<td_api::object_ptr<td_api::foundWebApp>> promise);
-
   Result<AttachMenuBot> get_attach_menu_bot(tl_object_ptr<telegram_api::attachMenuBot> &&bot);
 
   td_api::object_ptr<td_api::attachmentMenuBot> get_attachment_menu_bot_object(const AttachMenuBot &bot) const;
@@ -188,18 +135,6 @@ class AttachMenuManager final : public Actor {
   vector<AttachMenuBot> attach_menu_bots_;
   FlatHashMap<UserId, FileSourceId, UserIdHash> attach_menu_bot_file_source_ids_;
   vector<Promise<Unit>> reload_attach_menu_bots_queries_;
-
-  FlatHashMap<UserId, FlatHashMap<string, FileSourceId>, UserIdHash> web_app_file_source_ids_;
-
-  struct OpenedWebView {
-    DialogId dialog_id_;
-    UserId bot_user_id_;
-    MessageId top_thread_message_id_;
-    MessageInputReplyTo input_reply_to_;
-    DialogId as_dialog_id_;
-  };
-  FlatHashMap<int64, OpenedWebView> opened_web_views_;
-  Timeout ping_web_view_timeout_;
 };
 
 }  // namespace td

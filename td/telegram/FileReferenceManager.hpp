@@ -27,6 +27,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/UserId.h"
 #include "td/telegram/UserManager.h"
+#include "td/telegram/WebAppManager.h"
 #include "td/telegram/WebPagesManager.h"
 
 #include "td/utils/common.h"
@@ -158,7 +159,7 @@ FileSourceId FileReferenceManager::parse_file_source(Td *td, ParserT &parser) {
       string short_name;
       td::parse(user_id, parser);
       td::parse(short_name, parser);
-      return td->attach_menu_manager_->get_web_app_file_source_id(user_id, short_name);
+      return td->web_app_manager_->get_web_app_file_source_id(user_id, short_name);
     }
     case 17: {
       StoryFullId story_full_id;

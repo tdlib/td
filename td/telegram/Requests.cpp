@@ -160,6 +160,7 @@
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/UserId.h"
 #include "td/telegram/UserManager.h"
+#include "td/telegram/WebAppManager.h"
 #include "td/telegram/WebAppOpenParameters.h"
 #include "td/telegram/WebPageId.h"
 #include "td/telegram/WebPagesManager.h"
@@ -5764,8 +5765,8 @@ void Requests::on_request(uint64 id, td_api::sendWebAppCustomRequest &request) {
   CLEAN_INPUT_STRING(request.method_);
   CLEAN_INPUT_STRING(request.parameters_);
   CREATE_REQUEST_PROMISE();
-  td_->attach_menu_manager_->invoke_web_view_custom_method(UserId(request.bot_user_id_), request.method_,
-                                                           request.parameters_, std::move(promise));
+  td_->web_app_manager_->invoke_web_view_custom_method(UserId(request.bot_user_id_), request.method_,
+                                                       request.parameters_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getBotMediaPreviews &request) {
@@ -6895,14 +6896,14 @@ void Requests::on_request(uint64 id, td_api::getGrossingWebAppBots &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();
-  td_->attach_menu_manager_->get_popular_app_bots(request.offset_, request.limit_, std::move(promise));
+  td_->web_app_manager_->get_popular_app_bots(request.offset_, request.limit_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::searchWebApp &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.web_app_short_name_);
   CREATE_REQUEST_PROMISE();
-  td_->attach_menu_manager_->get_web_app(UserId(request.bot_user_id_), request.web_app_short_name_, std::move(promise));
+  td_->web_app_manager_->get_web_app(UserId(request.bot_user_id_), request.web_app_short_name_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getWebAppPlaceholder &request) {
@@ -6916,7 +6917,7 @@ void Requests::on_request(uint64 id, td_api::getWebAppLinkUrl &request) {
   CLEAN_INPUT_STRING(request.web_app_short_name_);
   CLEAN_INPUT_STRING(request.start_parameter_);
   CREATE_HTTP_URL_REQUEST_PROMISE();
-  td_->attach_menu_manager_->request_app_web_view(
+  td_->web_app_manager_->request_app_web_view(
       DialogId(request.chat_id_), UserId(request.bot_user_id_), std::move(request.web_app_short_name_),
       std::move(request.start_parameter_), WebAppOpenParameters(std::move(request.parameters_)),
       request.allow_write_access_, std::move(promise));
@@ -6926,7 +6927,7 @@ void Requests::on_request(uint64 id, td_api::getMainWebApp &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.start_parameter_);
   CREATE_REQUEST_PROMISE();
-  td_->attach_menu_manager_->request_main_web_view(
+  td_->web_app_manager_->request_main_web_view(
       DialogId(request.chat_id_), UserId(request.bot_user_id_), std::move(request.start_parameter_),
       WebAppOpenParameters(std::move(request.parameters_)), std::move(promise));
 }
@@ -6953,16 +6954,16 @@ void Requests::on_request(uint64 id, td_api::openWebApp &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.url_);
   CREATE_REQUEST_PROMISE();
-  td_->attach_menu_manager_->request_web_view(DialogId(request.chat_id_), UserId(request.bot_user_id_),
-                                              MessageId(request.message_thread_id_), std::move(request.reply_to_),
-                                              std::move(request.url_),
-                                              WebAppOpenParameters(std::move(request.parameters_)), std::move(promise));
+  td_->web_app_manager_->request_web_view(DialogId(request.chat_id_), UserId(request.bot_user_id_),
+                                          MessageId(request.message_thread_id_), std::move(request.reply_to_),
+                                          std::move(request.url_), WebAppOpenParameters(std::move(request.parameters_)),
+                                          std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::closeWebApp &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  td_->attach_menu_manager_->close_web_view(request.web_app_launch_id_, std::move(promise));
+  td_->web_app_manager_->close_web_view(request.web_app_launch_id_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::answerWebAppQuery &request) {
@@ -6978,8 +6979,8 @@ void Requests::on_request(uint64 id, td_api::checkWebAppFileDownload &request) {
   CLEAN_INPUT_STRING(request.file_name_);
   CLEAN_INPUT_STRING(request.url_);
   CREATE_OK_REQUEST_PROMISE();
-  td_->attach_menu_manager_->check_download_file_params(UserId(request.bot_user_id_), request.file_name_, request.url_,
-                                                        std::move(promise));
+  td_->web_app_manager_->check_download_file_params(UserId(request.bot_user_id_), request.file_name_, request.url_,
+                                                    std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::getCallbackQueryAnswer &request) {

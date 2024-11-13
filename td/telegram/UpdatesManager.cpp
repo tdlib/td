@@ -86,6 +86,7 @@
 #include "td/telegram/TranscriptionManager.h"
 #include "td/telegram/UserManager.h"
 #include "td/telegram/Usernames.h"
+#include "td/telegram/WebAppManager.h"
 #include "td/telegram/WebPagesManager.h"
 
 #include "td/actor/MultiPromise.h"
@@ -3799,7 +3800,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateAttachMenuBots>
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateWebViewResultSent> update, Promise<Unit> &&promise) {
-  td_->attach_menu_manager_->close_web_view(update->query_id_, std::move(promise));
+  td_->web_app_manager_->close_web_view(update->query_id_, std::move(promise));
   send_closure(G()->td(), &Td::send_update, td_api::make_object<td_api::updateWebAppMessageSent>(update->query_id_));
 }
 

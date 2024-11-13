@@ -24,6 +24,7 @@
 #include "td/telegram/StoryManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UserManager.h"
+#include "td/telegram/WebAppManager.h"
 #include "td/telegram/WebPageId.h"
 #include "td/telegram/WebPagesManager.h"
 
@@ -409,8 +410,8 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
                            std::move(promise));
       },
       [&](const FileSourceWebApp &source) {
-        send_closure_later(G()->attach_menu_manager(), &AttachMenuManager::reload_web_app, source.user_id,
-                           source.short_name, std::move(promise));
+        send_closure_later(G()->web_app_manager(), &WebAppManager::reload_web_app, source.user_id, source.short_name,
+                           std::move(promise));
       },
       [&](const FileSourceStory &source) {
         send_closure_later(G()->story_manager(), &StoryManager::reload_story, source.story_full_id, std::move(promise),
