@@ -307,25 +307,25 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                 static_cast<const telegram_api::starsTransactionPeer *>(transaction->peer_.get())->peer_);
             if (dialog_id.get_type() == DialogType::User) {
               auto user_id = dialog_id.get_user_id();
-              if (for_bot == td_->user_manager_->is_user_bot(user_id)) {
-                if (transaction->stargift_ != nullptr) {
-                  auto gift = StarGift(td_, std::move(transaction->stargift_));
-                  transaction->stargift_ = nullptr;
-                  if (!gift.is_valid()) {
-                    return td_api::make_object<td_api::starTransactionPartnerUnsupported>();
-                  }
-                  auto gift_object = gift.get_gift_object(td_);
-                  auto result = td_api::make_object<td_api::starTransactionPartnerUser>(
-                      td_->user_manager_->get_user_id_object(user_id, "starTransactionPartnerUser"), nullptr);
-                  if ((transaction_star_count > 0) == transaction->refund_) {
-                    result->purpose_ =
-                        td_api::make_object<td_api::userTransactionPurposeGiftSend>(std::move(gift_object));
-                  } else {
-                    result->purpose_ =
-                        td_api::make_object<td_api::userTransactionPurposeGiftSell>(std::move(gift_object));
-                  }
-                  return std::move(result);
+              if (transaction->stargift_ != nullptr) {
+                auto gift = StarGift(td_, std::move(transaction->stargift_));
+                transaction->stargift_ = nullptr;
+                if (!gift.is_valid()) {
+                  return td_api::make_object<td_api::starTransactionPartnerUnsupported>();
                 }
+                auto gift_object = gift.get_gift_object(td_);
+                auto result = td_api::make_object<td_api::starTransactionPartnerUser>(
+                    td_->user_manager_->get_user_id_object(user_id, "starTransactionPartnerUser"), nullptr);
+                if ((transaction_star_count > 0) == transaction->refund_) {
+                  result->purpose_ =
+                      td_api::make_object<td_api::userTransactionPurposeGiftSend>(std::move(gift_object));
+                } else {
+                  result->purpose_ =
+                      td_api::make_object<td_api::userTransactionPurposeGiftSell>(std::move(gift_object));
+                }
+                return std::move(result);
+              }
+              if (for_bot == td_->user_manager_->is_user_bot(user_id)) {
                 if (transaction->gift_ && !for_bot) {
                   transaction->gift_ = false;
                   return td_api::make_object<td_api::starTransactionPartnerUser>(
