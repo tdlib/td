@@ -1435,6 +1435,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::answerWebAppQuery &request);
 
+  void on_request(uint64 id, td_api::checkWebAppFileDownload &request);
+
   void on_request(uint64 id, td_api::getCallbackQueryAnswer &request);
 
   void on_request(uint64 id, td_api::answerCallbackQuery &request);

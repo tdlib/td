@@ -63,6 +63,9 @@ class AttachMenuManager final : public Actor {
   void invoke_web_view_custom_method(UserId bot_user_id, const string &method, const string &parameters,
                                      Promise<td_api::object_ptr<td_api::customRequestResult>> &&promise);
 
+  void check_download_file_params(UserId bot_user_id, const string &file_name, const string &url,
+                                  Promise<Unit> &&promise);
+
   void reload_attach_menu_bots(Promise<Unit> &&promise);
 
   void get_attach_menu_bot(UserId user_id, Promise<td_api::object_ptr<td_api::attachmentMenuBot>> &&promise);

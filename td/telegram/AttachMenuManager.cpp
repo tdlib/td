@@ -406,6 +406,36 @@ class InvokeWebViewCustomMethodQuery final : public Td::ResultHandler {
   }
 };
 
+class CheckDownloadFileParamsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit CheckDownloadFileParamsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::InputUser> &&input_user, const string &file_name,
+            const string &url) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::bots_checkDownloadFileParams(std::move(input_user), file_name, url)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::bots_checkDownloadFileParams>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    if (!result_ptr.ok()) {
+      return on_error(Status::Error(400, "The file can't be downloaded"));
+    }
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetAttachMenuBotsQuery final : public Td::ResultHandler {
   Promise<telegram_api::object_ptr<telegram_api::AttachMenuBots>> promise_;
 
@@ -1025,6 +1055,12 @@ void AttachMenuManager::invoke_web_view_custom_method(
     UserId bot_user_id, const string &method, const string &parameters,
     Promise<td_api::object_ptr<td_api::customRequestResult>> &&promise) {
   td_->create_handler<InvokeWebViewCustomMethodQuery>(std::move(promise))->send(bot_user_id, method, parameters);
+}
+
+void AttachMenuManager::check_download_file_params(UserId bot_user_id, const string &file_name, const string &url,
+                                                   Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
+  td_->create_handler<CheckDownloadFileParamsQuery>(std::move(promise))->send(std::move(input_user), file_name, url);
 }
 
 Result<AttachMenuManager::AttachMenuBot> AttachMenuManager::get_attach_menu_bot(

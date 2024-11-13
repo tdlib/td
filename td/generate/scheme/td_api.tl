@@ -9590,6 +9590,12 @@ closeWebApp web_app_launch_id:int64 = Ok;
 //@result The result of the query
 answerWebAppQuery web_app_query_id:string result:InputInlineQueryResult = SentWebAppMessage;
 
+//@description Checks whether a file can be downloaded and saved locally by Web App request
+//@bot_user_id Identifier of the bot, providing the Web App
+//@file_name Name of the file
+//@url URL of the file
+checkWebAppFileDownload bot_user_id:int53 file_name:string url:string = Ok;
+
 
 //@description Sends a callback query to a bot and returns an answer. Returns an error with code 502 if the bot fails to answer the query before the query timeout expires
 //@chat_id Identifier of the chat with the message

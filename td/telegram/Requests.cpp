@@ -6973,6 +6973,15 @@ void Requests::on_request(uint64 id, td_api::answerWebAppQuery &request) {
                                                       std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::checkWebAppFileDownload &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.file_name_);
+  CLEAN_INPUT_STRING(request.url_);
+  CREATE_OK_REQUEST_PROMISE();
+  td_->attach_menu_manager_->check_download_file_params(UserId(request.bot_user_id_), request.file_name_, request.url_,
+                                                        std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::getCallbackQueryAnswer &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

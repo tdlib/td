@@ -5045,6 +5045,12 @@ class CliClient final : public Actor {
       int64 launch_id;
       get_args(args, launch_id);
       send_request(td_api::make_object<td_api::closeWebApp>(launch_id));
+    } else if (op == "cwafd") {
+      UserId bot_user_id;
+      string file_name;
+      string url;
+      get_args(args, bot_user_id, file_name, url);
+      send_request(td_api::make_object<td_api::checkWebAppFileDownload>(bot_user_id, file_name, url));
     } else if (op == "sca") {
       ChatId chat_id;
       string action;
