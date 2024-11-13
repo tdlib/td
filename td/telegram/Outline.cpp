@@ -6,6 +6,7 @@
 //
 #include "td/telegram/Outline.h"
 
+#include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/StackAllocator.h"
@@ -13,9 +14,9 @@
 
 namespace td {
 
-vector<td_api::object_ptr<td_api::closedVectorPath>> get_outline_object(CSlice path, double zoom, Slice source) {
+td_api::object_ptr<td_api::outline> get_outline_object(CSlice path, double zoom, Slice source) {
   if (path.empty()) {
-    return {};
+    return nullptr;
   }
 
   auto buf = StackAllocator::alloc(1 << 9);
@@ -108,7 +109,7 @@ vector<td_api::object_ptr<td_api::closedVectorPath>> get_outline_object(CSlice p
       skip_commas();
       if (path[pos] == '\0') {
         LOG(ERROR) << "Receive unclosed path " << path << " from " << source;
-        return {};
+        return nullptr;
       }
       if (is_alpha(path[pos])) {
         command = path[pos++];
@@ -197,7 +198,7 @@ vector<td_api::object_ptr<td_api::closedVectorPath>> get_outline_object(CSlice p
         default:
           LOG(ERROR) << "Receive invalid command " << command << " at pos " << pos << " from " << source << ": "
                      << path;
-          return {};
+          return nullptr;
       }
     }
   }
@@ -247,7 +248,7 @@ vector<td_api::object_ptr<td_api::closedVectorPath>> get_outline_object(CSlice p
   }
   */
 
-  return result;
+  return td_api::make_object<td_api::outline>(std::move(result));
 }
 
 }  // namespace td

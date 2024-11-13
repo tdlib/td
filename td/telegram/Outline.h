@@ -8,11 +8,10 @@
 
 #include "td/telegram/td_api.h"
 
-#include "td/utils/common.h"
 #include "td/utils/Slice.h"
 
 namespace td {
 
-vector<td_api::object_ptr<td_api::closedVectorPath>> get_outline_object(CSlice path, double zoom, Slice source);
+td_api::object_ptr<td_api::outline> get_outline_object(CSlice path, double zoom, Slice source);
 
 }  // namespace td
