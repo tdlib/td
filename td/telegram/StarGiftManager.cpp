@@ -314,6 +314,9 @@ void StarGiftManager::get_gift_payment_options(Promise<td_api::object_ptr<td_api
 }
 
 void StarGiftManager::on_get_gift_prices(FlatHashMap<int64, int64> gift_prices) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
   gift_prices_ = std::move(gift_prices);
 }
 
