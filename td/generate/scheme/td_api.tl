@@ -6539,6 +6539,9 @@ userPrivacySettingAllowFindingByPhoneNumber = UserPrivacySetting;
 //@description A privacy setting for managing whether the user can receive voice and video messages in private chats; for Telegram Premium users only
 userPrivacySettingAllowPrivateVoiceAndVideoNoteMessages = UserPrivacySetting;
 
+//@description A privacy setting for managing whether received gifts are automatically shown on the user's profile page
+userPrivacySettingAutosaveGifts = UserPrivacySetting;
+
 
 //@description Contains privacy settings for message read date in private chats. Read dates are always shown to the users that can see online status of the current user regardless of this setting
 //@show_read_date True, if message read date is shown to other users in private chats. If false and the current user isn't a Telegram Premium user, then they will not be able to see other's message read date

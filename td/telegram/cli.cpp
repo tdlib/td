@@ -1871,6 +1871,12 @@ class CliClient final : public Actor {
     if (setting == "find") {
       return td_api::make_object<td_api::userPrivacySettingAllowFindingByPhoneNumber>();
     }
+    if (setting == "birth") {
+      return td_api::make_object<td_api::userPrivacySettingShowBirthdate>();
+    }
+    if (setting == "gift") {
+      return td_api::make_object<td_api::userPrivacySettingAutosaveGifts>();
+    }
     return nullptr;
   }
 

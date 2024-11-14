@@ -52,7 +52,7 @@ UserPrivacySetting::UserPrivacySetting(const telegram_api::PrivacyKey &key) {
       type_ = Type::UserBirthdate;
       break;
     case telegram_api::privacyKeyStarGiftsAutoSave::ID:
-      type_ = Type::UserBirthdate;
+      type_ = Type::StarGiftAutosave;
       break;
     default:
       UNREACHABLE();
@@ -84,6 +84,8 @@ td_api::object_ptr<td_api::UserPrivacySetting> UserPrivacySetting::get_user_priv
       return make_tl_object<td_api::userPrivacySettingShowBio>();
     case Type::UserBirthdate:
       return make_tl_object<td_api::userPrivacySettingShowBirthdate>();
+    case Type::StarGiftAutosave:
+      return make_tl_object<td_api::userPrivacySettingAutosaveGifts>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -113,6 +115,8 @@ telegram_api::object_ptr<telegram_api::InputPrivacyKey> UserPrivacySetting::get_
       return make_tl_object<telegram_api::inputPrivacyKeyAbout>();
     case Type::UserBirthdate:
       return make_tl_object<telegram_api::inputPrivacyKeyBirthday>();
+    case Type::StarGiftAutosave:
+      return make_tl_object<telegram_api::inputPrivacyKeyStarGiftsAutoSave>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -153,6 +157,9 @@ UserPrivacySetting::UserPrivacySetting(const td_api::UserPrivacySetting &key) {
       break;
     case td_api::userPrivacySettingShowBirthdate::ID:
       type_ = Type::UserBirthdate;
+      break;
+    case td_api::userPrivacySettingAutosaveGifts::ID:
+      type_ = Type::StarGiftAutosave;
       break;
     default:
       UNREACHABLE();
