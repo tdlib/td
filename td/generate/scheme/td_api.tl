@@ -1002,10 +1002,10 @@ chatTransactionPurposeGiveaway giveaway_message_id:int53 = ChatTransactionPurpos
 //@description A user gifted Telegram Stars @sticker A sticker to be shown in the transaction information; may be null if unknown
 userTransactionPurposeGiftedStars sticker:sticker = UserTransactionPurpose;
 
-//@description The current user sold a gift received from another user @gift The gift
+//@description The user sold a gift received from another user or bot @gift The gift
 userTransactionPurposeGiftSell gift:gift = UserTransactionPurpose;
 
-//@description The current user sent a gift to another user @gift The gift
+//@description The user or the bot sent a gift to a user @gift The gift
 userTransactionPurposeGiftSend gift:gift = UserTransactionPurpose;
 
 
