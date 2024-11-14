@@ -69,8 +69,9 @@ class UserPrivacySettingRule {
           parser.set_error("Failed to parse chat identifiers");
         }
       }
-    } else if (type_ != Type::AllowContacts && type_ != Type::AllowPremium && type_ != Type::AllowCloseFriends &&
-               type_ != Type::AllowAll && type_ != Type::RestrictContacts && type_ != Type::RestrictAll) {
+    } else if (type_ != Type::AllowContacts && type_ != Type::AllowBots && type_ != Type::AllowPremium &&
+               type_ != Type::AllowCloseFriends && type_ != Type::AllowAll && type_ != Type::RestrictContacts &&
+               type_ != Type::RestrictBots && type_ != Type::RestrictAll) {
       parser.set_error("Invalid privacy rule type");
     }
   }
@@ -86,7 +87,9 @@ class UserPrivacySettingRule {
     RestrictAll,
     RestrictUsers,
     RestrictChatParticipants,
-    AllowPremium
+    AllowPremium,
+    AllowBots,
+    RestrictBots
   } type_ = Type::RestrictAll;
 
   friend class UserPrivacySettingRules;

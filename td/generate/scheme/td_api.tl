@@ -6479,6 +6479,9 @@ userPrivacySettingRuleAllowAll = UserPrivacySettingRule;
 //@description A rule to allow all contacts of the user to do something
 userPrivacySettingRuleAllowContacts = UserPrivacySettingRule;
 
+//@description A rule to allow all bots to do something
+userPrivacySettingRuleAllowBots = UserPrivacySettingRule;
+
 //@description A rule to allow all Premium Users to do something; currently, allowed only for userPrivacySettingAllowChatInvites
 userPrivacySettingRuleAllowPremiumUsers = UserPrivacySettingRule;
 
@@ -6493,6 +6496,9 @@ userPrivacySettingRuleRestrictAll = UserPrivacySettingRule;
 
 //@description A rule to restrict all contacts of the user from doing something
 userPrivacySettingRuleRestrictContacts = UserPrivacySettingRule;
+
+//@description A rule to restrict all bots from doing something
+userPrivacySettingRuleRestrictBots = UserPrivacySettingRule;
 
 //@description A rule to restrict all specified users from doing something @user_ids The user identifiers, total number of users in all rules must not exceed 1000
 userPrivacySettingRuleRestrictUsers user_ids:vector<int53> = UserPrivacySettingRule;
