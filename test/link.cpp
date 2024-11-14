@@ -1198,6 +1198,13 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("t.me/username?story=123", public_chat("username"));
   parse_internal_link("https://telegram.dog/tele%63ram/s/%31%39", story("telecram", 19));
 
+  parse_internal_link("t.me/h", public_chat("h"));
+  parse_internal_link("t.me/h/hh", public_chat("h"));
+  parse_internal_link("t.me/i", nullptr);
+  parse_internal_link("t.me/i/ii", nullptr);
+  parse_internal_link("t.me/j", public_chat("j"));
+  parse_internal_link("t.me/j/jj", public_chat("j"));
+
   parse_internal_link("tg:resolve?domain=username&appname=aasdasd&startapp=123asd",
                       web_app("username", "aasdasd", "123asd", false));
   parse_internal_link("TG://resolve?domain=username&appname=&startapp=123asd", public_chat("username"));
