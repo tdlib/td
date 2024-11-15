@@ -3110,12 +3110,16 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
           LOG(ERROR) << "Receive invalid " << to_string(update);
           break;
         }
-        auto r_link = LinkManager::get_internal_link(
-            td_api::make_object<td_api::internalLinkTypeInvoice>(update->invoice_slug_), false);
+        string link;
+        if (!update->invoice_slug_.empty()) {
+          link = LinkManager::get_internal_link(
+                     td_api::make_object<td_api::internalLinkTypeInvoice>(update->invoice_slug_), false)
+                     .move_as_ok();
+        }
         send_closure(G()->td(), &Td::send_update,
                      td_api::make_object<td_api::updateStarSubscriptionExpired>(
                          td_->user_manager_->get_user_id_object(user_id, "updateStarSubscriptionExpired"),
-                         update->payload_, r_link.is_ok() ? r_link.ok() : string(), update->until_date_));
+                         update->payload_, link, update->until_date_));
         break;
       }
       case telegram_api::updateBotBusinessConnect::ID: {
