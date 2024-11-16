@@ -3117,8 +3117,8 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
                      .move_as_ok();
         }
         send_closure(G()->td(), &Td::send_update,
-                     td_api::make_object<td_api::updateStarSubscriptionExpired>(
-                         td_->user_manager_->get_user_id_object(user_id, "updateStarSubscriptionExpired"),
+                     td_api::make_object<td_api::updateUserStarSubscription>(
+                         td_->user_manager_->get_user_id_object(user_id, "updateUserStarSubscription"),
                          update->payload_, link, update->until_date_));
         break;
       }

@@ -8269,12 +8269,12 @@ updateMessageReactions chat_id:int53 message_id:int53 date:int32 reactions:vecto
 //@payload Bot-specified payload for the paid media
 updatePaidMediaPurchased user_id:int53 payload:string = Update;
 
-//@description Telegram Star subscription has expired; for bots only
+//@description Telegram Star subscription of a user has changed; for bots only
 //@user_id User identifier
 //@invoice_payload Bot-specified payload for the subscription invoice
 //@invoice_link The link to the subscription invoice
-//@subscription_until_date Point in time (Unix timestamp) when the subscription expired
-updateStarSubscriptionExpired user_id:int53 invoice_payload:string invoice_link:string subscription_until_date:int32 = Update;
+//@subscription_until_date Point in time (Unix timestamp) when the subscription will expire
+updateUserStarSubscription user_id:int53 invoice_payload:string invoice_link:string subscription_until_date:int32 = Update;
 
 
 //@description Contains a list of updates @updates List of updates
