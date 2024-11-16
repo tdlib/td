@@ -8076,7 +8076,7 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(const Mess
     }
     case MessageContentType::PaymentSuccessful: {
       const auto *m = static_cast<const MessagePaymentSuccessful *>(content);
-      if (td->auth_manager_->is_bot()) {
+      if (!m->telegram_payment_charge_id.empty() || !m->provider_payment_charge_id.empty()) {
         return make_tl_object<td_api::messagePaymentSuccessfulBot>(
             m->currency, m->total_amount, m->is_recurring, m->is_first_recurring, m->invoice_payload,
             m->shipping_option_id, get_order_info_object(m->order_info), m->telegram_payment_charge_id,
