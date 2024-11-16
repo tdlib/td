@@ -648,8 +648,10 @@ void WebAppManager::check_download_file_params(UserId bot_user_id, const string 
 }
 
 FileSourceId WebAppManager::get_web_app_file_source_id(UserId user_id, const string &short_name) {
-  if (G()->close_flag() || !user_id.is_valid() || !td_->auth_manager_->is_authorized() ||
-      td_->auth_manager_->is_bot()) {
+  if (G()->close_flag()) {
+    return FileSourceId();
+  }
+  if (!user_id.is_valid() || !td_->auth_manager_->is_authorized() || td_->auth_manager_->is_bot()) {
     return FileSourceId();
   }
 

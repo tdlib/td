@@ -16,7 +16,6 @@
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/InputInvoice.h"
-#include "td/telegram/LinkManager.h"
 #include "td/telegram/MessageExtendedMedia.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageSender.h"

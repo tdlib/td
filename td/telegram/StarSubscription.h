@@ -38,7 +38,7 @@ class StarSubscription {
  public:
   StarSubscription() = default;
 
-  explicit StarSubscription(Td *td, telegram_api::object_ptr<telegram_api::starsSubscription> &&subscription);
+  StarSubscription(Td *td, telegram_api::object_ptr<telegram_api::starsSubscription> &&subscription);
 
   bool is_valid() const {
     return !id_.empty() && dialog_id_.is_valid() && until_date_ >= 0 && !pricing_.is_empty();

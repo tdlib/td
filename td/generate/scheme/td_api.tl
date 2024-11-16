@@ -809,7 +809,7 @@ chatPermissions can_send_basic_messages:Bool can_send_audios:Bool can_send_docum
 chatAdministratorRights can_manage_chat:Bool can_change_info:Bool can_post_messages:Bool can_edit_messages:Bool can_delete_messages:Bool can_invite_users:Bool can_restrict_members:Bool can_pin_messages:Bool can_manage_topics:Bool can_promote_members:Bool can_manage_video_chats:Bool can_post_stories:Bool can_edit_stories:Bool can_delete_stories:Bool is_anonymous:Bool = ChatAdministratorRights;
 
 
-//@class StarSubscriptionType @description Describes type of a subscription paid in Telegram Stars
+//@class StarSubscriptionType @description Describes type of subscription paid in Telegram Stars
 
 //@description Describes a subscription to a channel chat
 //@can_reuse True, if the subscription is active and the user can use the method reuseStarSubscription to join the subscribed chat again
@@ -2421,7 +2421,7 @@ webAppInfo launch_id:int64 url:string = WebAppInfo;
 //@description Contains information about the main Web App of a bot @url URL of the Web App to open @mode The mode in which the Web App must be opened
 mainWebApp url:string mode:WebAppOpenMode = MainWebApp;
 
-//@description Options to be used when a web app is opened
+//@description Options to be used when a Web App is opened
 //@theme Preferred Web App theme; pass null to use the default theme
 //@application_name Short name of the current application; 0-64 English letters, digits, and underscores
 //@mode The mode in which the Web App is opened; pass null to open in webAppOpenModeFullSize

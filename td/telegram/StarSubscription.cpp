@@ -10,6 +10,8 @@
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/Td.h"
 
+#include "td/utils/logging.h"
+
 namespace td {
 
 StarSubscription::StarSubscription(Td *td, telegram_api::object_ptr<telegram_api::starsSubscription> &&subscription)
