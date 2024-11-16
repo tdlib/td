@@ -22835,7 +22835,7 @@ void MessagesManager::add_message_reaction(MessageFullId message_full_id, Reacti
     return promise.set_error(Status::Error(400, "The reaction isn't available for the message"));
   }
   if (reaction_type.is_paid_reaction()) {
-    return promise.set_error(Status::Error(400, "Use addPaidMessageReaction instead to add the paid reaction"));
+    return promise.set_error(Status::Error(400, "Use addPendingPaidMessageReaction instead to add the paid reaction"));
   }
 
   bool have_recent_choosers =
