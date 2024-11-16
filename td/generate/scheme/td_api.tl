@@ -527,7 +527,7 @@ webApp short_name:string title:string description:string photo:photo animation:a
 poll id:int64 question:formattedText options:vector<pollOption> total_voter_count:int32 recent_voter_ids:vector<MessageSender> is_anonymous:Bool type:PollType open_period:int32 close_date:int32 is_closed:Bool = Poll;
 
 
-//@description Describes an alternative reencoded quality of a video file
+//@description Describes an alternative re-encoded quality of a video file
 //@width Video width
 //@height Video height
 //@codec Codec used for video file encoding, for example, "h264", "h265", or "av1"
@@ -4027,7 +4027,7 @@ inputMessagePhoto photo:InputFile thumbnail:inputThumbnail added_sticker_file_id
 inputMessageSticker sticker:InputFile thumbnail:inputThumbnail width:int32 height:int32 emoji:string = InputMessageContent;
 
 //@description A video message
-//@video Video to be sent. The video is expected to be reencoded to MPEG4 format with H.264 codec by the sender
+//@video Video to be sent. The video is expected to be re-encoded to MPEG4 format with H.264 codec by the sender
 //@thumbnail Video thumbnail; pass null to skip thumbnail uploading
 //@added_sticker_file_ids File identifiers of the stickers added to the video, if applicable
 //@duration Duration of the video, in seconds
@@ -11889,12 +11889,12 @@ assignAppStoreTransaction receipt:bytes purpose:StorePaymentPurpose = Ok;
 //@purpose Transaction purpose
 assignGooglePlayTransaction package_name:string store_product_id:string purchase_token:string purpose:StorePaymentPurpose = Ok;
 
-//@description Cancels or reenables Telegram Star subscription
+//@description Cancels or re-enables Telegram Star subscription
 //@subscription_id Identifier of the subscription to change
 //@is_canceled New value of is_canceled
 editStarSubscription subscription_id:string is_canceled:Bool = Ok;
 
-//@description Cancels or reenables Telegram Star subscription for a user; for bots only
+//@description Cancels or re-enables Telegram Star subscription for a user; for bots only
 //@user_id User identifier
 //@telegram_payment_charge_id Telegram payment identifier of the subscription
 //@is_canceled Pass true to cancel the subscription; pass false to allow the user to enable it
