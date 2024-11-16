@@ -7352,8 +7352,6 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       case telegram_api::messageActionChatMigrateTo::ID:
       case telegram_api::messageActionChannelCreate::ID:
       case telegram_api::messageActionChannelMigrateFrom::ID:
-      case telegram_api::messageActionPaymentSent::ID:
-      case telegram_api::messageActionPaymentSentMe::ID:
       case telegram_api::messageActionBotAllowed::ID:
       case telegram_api::messageActionSecureValuesSent::ID:
       case telegram_api::messageActionSecureValuesSentMe::ID:
@@ -7376,6 +7374,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       case telegram_api::messageActionPinMessage::ID:
       case telegram_api::messageActionGameScore::ID:
       case telegram_api::messageActionPhoneCall::ID:
+      case telegram_api::messageActionPaymentSent::ID:
+      case telegram_api::messageActionPaymentSentMe::ID:
       case telegram_api::messageActionScreenshotTaken::ID:
       case telegram_api::messageActionCustomAction::ID:
       case telegram_api::messageActionContactSignUp::ID:
@@ -7515,7 +7515,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
                                       action->video_);
     }
     case telegram_api::messageActionPaymentSent::ID: {
-      if (td->auth_manager_->is_bot()) {
+      if (!is_business_message && td->auth_manager_->is_bot()) {
         LOG(ERROR) << "Receive MessageActionPaymentSent in " << owner_dialog_id;
         break;
       }
@@ -7536,10 +7536,6 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
           action->total_amount_, std::move(action->invoice_slug_), action->recurring_used_, action->recurring_init_);
     }
     case telegram_api::messageActionPaymentSentMe::ID: {
-      if (!td->auth_manager_->is_bot()) {
-        LOG(ERROR) << "Receive MessageActionPaymentSentMe in " << owner_dialog_id;
-        break;
-      }
       auto action = move_tl_object_as<telegram_api::messageActionPaymentSentMe>(action_ptr);
       if (action->total_amount_ <= 0 || !check_currency_amount(action->total_amount_)) {
         LOG(ERROR) << "Receive invalid total amount " << action->total_amount_;
