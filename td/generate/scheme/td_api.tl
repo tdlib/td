@@ -977,6 +977,12 @@ botTransactionPurposePaidMedia media:vector<PaidMedia> payload:string = BotTrans
 //@invoice_payload Invoice payload; for bots only
 botTransactionPurposeInvoicePayment product_info:productInfo invoice_payload:bytes = BotTransactionPurpose;
 
+//@description User bought a subscription in a bot or a business account
+//@period The number of seconds between consecutive Telegram Star debiting
+//@product_info Information about the bought subscription; may be null if not applicable
+//@invoice_payload Invoice payload; for bots only
+botTransactionPurposeSubscription period:int32 product_info:productInfo invoice_payload:bytes = BotTransactionPurpose;
+
 
 //@class ChatTransactionPurpose @description Describes purpose of a transaction with a supergroup or a channel
 

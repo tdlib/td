@@ -325,6 +325,16 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                 }
                 return std::move(result);
               }
+              if (transaction->subscription_period_ > 0) {
+                SCOPE_EXIT {
+                  transaction->subscription_period_ = 0;
+                  bot_payload.clear();
+                };
+                return td_api::make_object<td_api::starTransactionPartnerBot>(
+                    td_->user_manager_->get_user_id_object(user_id, "starTransactionPartnerBot"),
+                    td_api::make_object<td_api::botTransactionPurposeSubscription>(
+                        transaction->subscription_period_, std::move(product_info), bot_payload));
+              }
               if (for_bot == td_->user_manager_->is_user_bot(user_id)) {
                 if (transaction->gift_ && !for_bot) {
                   transaction->gift_ = false;
