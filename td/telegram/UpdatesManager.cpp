@@ -3156,6 +3156,7 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
   } else {
     add_qts(qts).set_value(Unit());
     LOG(ERROR) << "Receive " << to_string(update_ptr);
+    update_ptr = nullptr;
   }
   promise.set_value(Unit());
 }
