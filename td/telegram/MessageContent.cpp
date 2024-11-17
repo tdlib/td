@@ -562,6 +562,7 @@ class MessagePaymentSuccessful final : public MessageContent {
   string currency;
   int64 total_amount = 0;
   string invoice_payload;  // or invoice_slug for users
+  int32 subscription_until_date = false;
   bool is_recurring = false;
   bool is_first_recurring = false;
 
@@ -573,12 +574,14 @@ class MessagePaymentSuccessful final : public MessageContent {
 
   MessagePaymentSuccessful() = default;
   MessagePaymentSuccessful(DialogId invoice_dialog_id, MessageId invoice_message_id, string &&currency,
-                           int64 total_amount, string &&invoice_payload, bool is_recurring, bool is_first_recurring)
+                           int64 total_amount, string &&invoice_payload, int32 subscription_until_date,
+                           bool is_recurring, bool is_first_recurring)
       : invoice_dialog_id(invoice_dialog_id)
       , invoice_message_id(invoice_message_id)
       , currency(std::move(currency))
       , total_amount(total_amount)
       , invoice_payload(std::move(invoice_payload))
+      , subscription_until_date(subscription_until_date)
       , is_recurring(is_recurring || is_first_recurring)
       , is_first_recurring(is_first_recurring) {
   }
@@ -1511,6 +1514,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       bool has_invoice_message_id = m->invoice_message_id.is_valid();
       bool is_correctly_stored = true;
       bool has_invoice_dialog_id = m->invoice_dialog_id.is_valid();
+      bool has_subscription_until_date = m->subscription_until_date != 0;
       BEGIN_STORE_FLAGS();
       STORE_FLAG(has_payload);
       STORE_FLAG(has_shipping_option_id);
@@ -1522,6 +1526,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       STORE_FLAG(has_invoice_dialog_id);
       STORE_FLAG(m->is_recurring);
       STORE_FLAG(m->is_first_recurring);
+      STORE_FLAG(has_subscription_until_date);
       END_STORE_FLAGS();
       store(m->currency, storer);
       store(m->total_amount, storer);
@@ -1545,6 +1550,9 @@ static void store(const MessageContent *content, StorerT &storer) {
       }
       if (has_invoice_dialog_id) {
         store(m->invoice_dialog_id, storer);
+      }
+      if (has_subscription_until_date) {
+        store(m->subscription_until_date, storer);
       }
       break;
     }
@@ -2311,6 +2319,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       bool has_invoice_message_id;
       bool is_correctly_stored;
       bool has_invoice_dialog_id;
+      bool has_subscription_until_date;
       BEGIN_PARSE_FLAGS();
       PARSE_FLAG(has_payload);
       PARSE_FLAG(has_shipping_option_id);
@@ -2322,6 +2331,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       PARSE_FLAG(has_invoice_dialog_id);
       PARSE_FLAG(m->is_recurring);
       PARSE_FLAG(m->is_first_recurring);
+      PARSE_FLAG(has_subscription_until_date);
       END_PARSE_FLAGS();
       parse(m->currency, parser);
       parse(m->total_amount, parser);
@@ -2354,6 +2364,9 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       }
       if (has_invoice_dialog_id) {
         parse(m->invoice_dialog_id, parser);
+      }
+      if (has_subscription_until_date) {
+        parse(m->subscription_until_date, parser);
       }
       if (is_correctly_stored) {
         content = std::move(m);
@@ -5759,7 +5772,8 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
           lhs->provider_payment_charge_id != rhs->provider_payment_charge_id ||
           ((lhs->order_info != nullptr || rhs->order_info != nullptr) &&
            (lhs->order_info == nullptr || rhs->order_info == nullptr || *lhs->order_info != *rhs->order_info)) ||
-          lhs->is_recurring != rhs->is_recurring || lhs->is_first_recurring != rhs->is_first_recurring) {
+          lhs->is_recurring != rhs->is_recurring || lhs->is_first_recurring != rhs->is_first_recurring ||
+          lhs->subscription_until_date != rhs->subscription_until_date) {
         need_update = true;
       }
       break;
@@ -7533,7 +7547,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       }
       return td::make_unique<MessagePaymentSuccessful>(
           message_full_id.get_dialog_id(), message_full_id.get_message_id(), std::move(action->currency_),
-          action->total_amount_, std::move(action->invoice_slug_), action->recurring_used_, action->recurring_init_);
+          action->total_amount_, std::move(action->invoice_slug_), action->subscription_until_date_,
+          action->recurring_used_, action->recurring_init_);
     }
     case telegram_api::messageActionPaymentSentMe::ID: {
       auto action = move_tl_object_as<telegram_api::messageActionPaymentSentMe>(action_ptr);
@@ -7543,7 +7558,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       }
       auto result = td::make_unique<MessagePaymentSuccessful>(DialogId(), MessageId(), std::move(action->currency_),
                                                               action->total_amount_, action->payload_.as_slice().str(),
-                                                              action->recurring_used_, action->recurring_init_);
+                                                              action->subscription_until_date_, action->recurring_used_,
+                                                              action->recurring_init_);
       result->shipping_option_id = std::move(action->shipping_option_id_);
       result->order_info = get_order_info(std::move(action->info_));
       result->telegram_payment_charge_id = std::move(action->charge_->id_);
@@ -8078,15 +8094,15 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(const Mess
       const auto *m = static_cast<const MessagePaymentSuccessful *>(content);
       if (!m->telegram_payment_charge_id.empty() || !m->provider_payment_charge_id.empty()) {
         return make_tl_object<td_api::messagePaymentSuccessfulBot>(
-            m->currency, m->total_amount, m->is_recurring, m->is_first_recurring, m->invoice_payload,
-            m->shipping_option_id, get_order_info_object(m->order_info), m->telegram_payment_charge_id,
-            m->provider_payment_charge_id);
+            m->currency, m->total_amount, m->subscription_until_date, m->is_recurring, m->is_first_recurring,
+            m->invoice_payload, m->shipping_option_id, get_order_info_object(m->order_info),
+            m->telegram_payment_charge_id, m->provider_payment_charge_id);
       } else {
         auto invoice_dialog_id = m->invoice_dialog_id.is_valid() ? m->invoice_dialog_id : dialog_id;
         return make_tl_object<td_api::messagePaymentSuccessful>(
             td->dialog_manager_->get_chat_id_object(invoice_dialog_id, "messagePaymentSuccessful"),
-            m->invoice_message_id.get(), m->currency, m->total_amount, m->is_recurring, m->is_first_recurring,
-            m->invoice_payload);
+            m->invoice_message_id.get(), m->currency, m->total_amount, m->subscription_until_date, m->is_recurring,
+            m->is_first_recurring, m->invoice_payload);
       }
     }
     case MessageContentType::ContactRegistered:

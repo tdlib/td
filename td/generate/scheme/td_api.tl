@@ -3676,14 +3676,16 @@ messageGameScore game_message_id:int53 game_id:int64 score:int32 = MessageConten
 //@invoice_message_id Identifier of the message with the corresponding invoice; can be 0 or an identifier of a deleted message
 //@currency Currency for the price of the product
 //@total_amount Total price for the product, in the smallest units of the currency
+//@subscription_until_date Point in time (Unix timestamp) when the subscription will expire; 0 if unknown or the payment isn't recurring
 //@is_recurring True, if this is a recurring payment
 //@is_first_recurring True, if this is the first recurring payment
 //@invoice_name Name of the invoice; may be empty if unknown
-messagePaymentSuccessful invoice_chat_id:int53 invoice_message_id:int53 currency:string total_amount:int53 is_recurring:Bool is_first_recurring:Bool invoice_name:string = MessageContent;
+messagePaymentSuccessful invoice_chat_id:int53 invoice_message_id:int53 currency:string total_amount:int53 subscription_until_date:int32 is_recurring:Bool is_first_recurring:Bool invoice_name:string = MessageContent;
 
 //@description A payment has been received by the bot or the business account
 //@currency Currency for price of the product
 //@total_amount Total price for the product, in the smallest units of the currency
+//@subscription_until_date Point in time (Unix timestamp) when the subscription will expire; 0 if unknown or the payment isn't recurring
 //@is_recurring True, if this is a recurring payment
 //@is_first_recurring True, if this is the first recurring payment
 //@invoice_payload Invoice payload
@@ -3691,7 +3693,7 @@ messagePaymentSuccessful invoice_chat_id:int53 invoice_message_id:int53 currency
 //@order_info Information about the order; may be null; for bots only
 //@telegram_payment_charge_id Telegram payment identifier
 //@provider_payment_charge_id Provider payment identifier
-messagePaymentSuccessfulBot currency:string total_amount:int53 is_recurring:Bool is_first_recurring:Bool invoice_payload:bytes shipping_option_id:string order_info:orderInfo telegram_payment_charge_id:string provider_payment_charge_id:string = MessageContent;
+messagePaymentSuccessfulBot currency:string total_amount:int53 subscription_until_date:int32 is_recurring:Bool is_first_recurring:Bool invoice_payload:bytes shipping_option_id:string order_info:orderInfo telegram_payment_charge_id:string provider_payment_charge_id:string = MessageContent;
 
 //@description A payment has been refunded
 //@owner_id Identifier of the previous owner of the Telegram Stars that refunds them
