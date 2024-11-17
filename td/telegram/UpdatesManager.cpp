@@ -37,7 +37,6 @@
 #include "td/telegram/GroupCallManager.h"
 #include "td/telegram/InlineQueriesManager.h"
 #include "td/telegram/LanguagePackManager.h"
-#include "td/telegram/LinkManager.h"
 #include "td/telegram/Location.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageReaction.h"
@@ -3103,25 +3102,6 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
                 td_->user_manager_->get_user_id_object(user_id, "updatePaidMediaPurchased"), update->payload_));
         break;
       }
-      case telegram_api::updateBotSubscriptionExpire::ID: {
-        auto update = move_tl_object_as<telegram_api::updateBotSubscriptionExpire>(update_ptr);
-        auto user_id = UserId(update->user_id_);
-        if (!user_id.is_valid()) {
-          LOG(ERROR) << "Receive invalid " << to_string(update);
-          break;
-        }
-        string link;
-        if (!update->invoice_slug_.empty()) {
-          link = LinkManager::get_internal_link(
-                     td_api::make_object<td_api::internalLinkTypeInvoice>(update->invoice_slug_), false)
-                     .move_as_ok();
-        }
-        send_closure(G()->td(), &Td::send_update,
-                     td_api::make_object<td_api::updateUserStarSubscription>(
-                         td_->user_manager_->get_user_id_object(user_id, "updateUserStarSubscription"),
-                         update->payload_, link, update->until_date_));
-        break;
-      }
       case telegram_api::updateBotBusinessConnect::ID: {
         auto update = move_tl_object_as<telegram_api::updateBotBusinessConnect>(update_ptr);
         td_->business_connection_manager_->on_update_bot_business_connect(std::move(update->connection_));
@@ -3947,7 +3927,6 @@ bool UpdatesManager::is_qts_update(const telegram_api::Update *update) {
     case telegram_api::updateBotEditBusinessMessage::ID:
     case telegram_api::updateBotDeleteBusinessMessage::ID:
     case telegram_api::updateBotPurchasedPaidMedia::ID:
-    case telegram_api::updateBotSubscriptionExpire::ID:
       return true;
     default:
       return false;
@@ -3984,8 +3963,6 @@ int32 UpdatesManager::get_update_qts(const telegram_api::Update *update) {
       return static_cast<const telegram_api::updateBotDeleteBusinessMessage *>(update)->qts_;
     case telegram_api::updateBotPurchasedPaidMedia::ID:
       return static_cast<const telegram_api::updateBotPurchasedPaidMedia *>(update)->qts_;
-    case telegram_api::updateBotSubscriptionExpire::ID:
-      return static_cast<const telegram_api::updateBotSubscriptionExpire *>(update)->qts_;
     default:
       return 0;
   }
@@ -4498,12 +4475,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotMessageReact
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotPurchasedPaidMedia> update,
-                               Promise<Unit> &&promise) {
-  auto qts = update->qts_;
-  add_pending_qts_update(std::move(update), qts, std::move(promise));
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotSubscriptionExpire> update,
                                Promise<Unit> &&promise) {
   auto qts = update->qts_;
   add_pending_qts_update(std::move(update), qts, std::move(promise));
