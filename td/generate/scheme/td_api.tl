@@ -9536,7 +9536,7 @@ answerInlineQuery inline_query_id:int64 is_personal:Bool button:inlineQueryResul
 //@chat_types Types of the chats to which the message can be sent
 savePreparedInlineMessage user_id:int53 result:InputInlineQueryResult chat_types:targetChatTypes = PreparedInlineMessageId;
 
-//@description Saves an inline message to be sent by the given user; for bots only
+//@description Saves an inline message to be sent by the given user
 //@bot_user_id Identifier of the bot that created the message
 //@prepared_message_id Identifier of the prepared message
 getPreparedInlineMessage bot_user_id:int53 prepared_message_id:string = PreparedInlineMessage;
