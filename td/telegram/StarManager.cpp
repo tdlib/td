@@ -258,7 +258,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         transaction->extended_media_.clear();
         return extended_media_objects;
       };
-      auto transaction_star_count = StarManager::get_star_count(transaction->stars_, true);
+      auto transaction_star_count = StarManager::get_star_count(transaction->stars_->amount_, true);
       auto partner = [&]() -> td_api::object_ptr<td_api::StarTransactionPartner> {
         switch (transaction->peer_->get_id()) {
           case telegram_api::starsTransactionPeerUnsupported::ID:
@@ -479,7 +479,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
       transactions.push_back(std::move(star_transaction));
     }
 
-    auto star_count = StarManager::get_star_count(result->balance_, true);
+    auto star_count = StarManager::get_star_count(result->balance_->amount_, true);
     if (dialog_id_ == td_->dialog_manager_->get_my_dialog_id()) {
       td_->star_manager_->on_update_owned_star_count(star_count);
     }
@@ -531,7 +531,7 @@ class GetStarsSubscriptionsQuery final : public Td::ResultHandler {
         subscriptions.push_back(star_subscription.get_star_subscription_object(td_));
       }
     }
-    auto star_count = StarManager::get_star_count(result->balance_, true);
+    auto star_count = StarManager::get_star_count(result->balance_->amount_, true);
     td_->star_manager_->on_update_owned_star_count(star_count);
     promise_.set_value(td_api::make_object<td_api::starSubscriptions>(
         star_count, std::move(subscriptions), StarManager::get_star_count(result->subscriptions_missing_balance_),
@@ -662,9 +662,10 @@ static td_api::object_ptr<td_api::starRevenueStatus> convert_stars_revenue_statu
   if (obj->withdrawal_enabled_ && obj->next_withdrawal_at_ > 0) {
     next_withdrawal_in = max(obj->next_withdrawal_at_ - G()->unix_time(), 1);
   }
-  return td_api::make_object<td_api::starRevenueStatus>(
-      StarManager::get_star_count(obj->overall_revenue_), StarManager::get_star_count(obj->current_balance_),
-      StarManager::get_star_count(obj->available_balance_), obj->withdrawal_enabled_, next_withdrawal_in);
+  return td_api::make_object<td_api::starRevenueStatus>(StarManager::get_star_count(obj->overall_revenue_->amount_),
+                                                        StarManager::get_star_count(obj->current_balance_->amount_),
+                                                        StarManager::get_star_count(obj->available_balance_->amount_),
+                                                        obj->withdrawal_enabled_, next_withdrawal_in);
 }
 
 class GetStarsRevenueStatsQuery final : public Td::ResultHandler {

@@ -113,7 +113,7 @@ class ResolveUsernameQuery final : public Td::ResultHandler {
   }
 
   void send(const string &username) {
-    send_query(G()->net_query_creator().create(telegram_api::contacts_resolveUsername(username)));
+    send_query(G()->net_query_creator().create(telegram_api::contacts_resolveUsername(0, username, string())));
   }
 
   void on_result(BufferSlice packet) final {

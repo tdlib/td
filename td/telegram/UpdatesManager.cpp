@@ -4616,7 +4616,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBroadcastRevenu
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStarsBalance> update, Promise<Unit> &&promise) {
-  td_->star_manager_->on_update_owned_star_count(StarManager::get_star_count(update->balance_, true));
+  td_->star_manager_->on_update_owned_star_count(StarManager::get_star_count(update->balance_->amount_, true));
   promise.set_value(Unit());
 }
 
