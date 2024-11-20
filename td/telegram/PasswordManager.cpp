@@ -492,11 +492,11 @@ void PasswordManager::check_email_address_verification_code(string code, Promise
   auto verification_code = make_tl_object<telegram_api::emailVerificationCode>(std::move(code));
   auto query = G()->net_query_creator().create(telegram_api::account_verifyEmail(
       make_tl_object<telegram_api::emailVerifyPurposePassport>(), std::move(verification_code)));
-  send_with_promise(
-      std::move(query), PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
-        TRY_STATUS_PROMISE(promise, fetch_result<telegram_api::account_verifyEmail>(std::move(r_query)));
-        promise.set_value(Unit());
-      }));
+  send_with_promise(std::move(query),
+                    PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
+                      TRY_STATUS_PROMISE(promise, fetch_result<telegram_api::account_verifyEmail>(std::move(r_query)));
+                      promise.set_value(Unit());
+                    }));
 }
 
 void PasswordManager::request_password_recovery(Promise<SentEmailCode> promise) {
