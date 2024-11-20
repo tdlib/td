@@ -967,88 +967,114 @@ starTransactionDirectionIncoming = StarTransactionDirection;
 starTransactionDirectionOutgoing = StarTransactionDirection;
 
 
-//@class BotTransactionPurpose @description Describes purpose of a transaction with a bot
+//@class StarTransactionType @description Describes type of a transaction with Telegram Stars
 
-//@description Paid media were bought @media The bought media if the transaction wasn't refunded @payload Bot-provided payload; for bots only
-botTransactionPurposePaidMedia media:vector<PaidMedia> payload:string = BotTransactionPurpose;
+//@description The transaction is a deposit of Telegram Stars from the Premium bot; for regular users only
+starTransactionTypePremiumBotDeposit = StarTransactionType;
 
-//@description User bought a product from the bot
-//@product_info Information about the bought product; may be null if not applicable
-//@invoice_payload Invoice payload; for bots only
-botTransactionPurposeInvoicePayment product_info:productInfo invoice_payload:bytes = BotTransactionPurpose;
+//@description The transaction is a deposit of Telegram Stars from App Store; for regular users only
+starTransactionTypeAppStoreDeposit = StarTransactionType;
 
-//@description User bought a subscription in a bot or a business account
-//@period The number of seconds between consecutive Telegram Star debiting
-//@product_info Information about the bought subscription; may be null if not applicable
-//@invoice_payload Invoice payload; for bots only
-botTransactionPurposeSubscription period:int32 product_info:productInfo invoice_payload:bytes = BotTransactionPurpose;
+//@description The transaction is a deposit of Telegram Stars from Google Play; for regular users only
+starTransactionTypeGooglePlayDeposit = StarTransactionType;
 
+//@description The transaction is a deposit of Telegram Stars from Fragment; for regular users and bots only
+starTransactionTypeFragmentDeposit = StarTransactionType;
 
-//@class ChatTransactionPurpose @description Describes purpose of a transaction with a supergroup or a channel
+//@description The transaction is a deposit of Telegram Stars by another user; for regular users only
+//@user_id Identifier of the user that gifted Telegram Stars; 0 if the user was anonymous
+//@sticker The sticker to be shown in the transaction information; may be null if unknown
+starTransactionTypeUserDeposit user_id:int53 sticker:sticker = StarTransactionType;
 
-//@description Paid media were bought
+//@description The transaction is a deposit of Telegram Stars from a giveaway; for regular users only
+//@chat_id Identifier of a supergroup or a channel chat that created the giveaway
+//@giveaway_message_id Identifier of the message with the giveaway; can be 0 or an identifier of a deleted message
+starTransactionTypeGiveawayDeposit chat_id:int53 giveaway_message_id:int53 = StarTransactionType;
+
+//@description The transaction is a withdrawal of earned Telegram Stars to Fragment; for bots and channel chats only @withdrawal_state State of the withdrawal; may be null for refunds from Fragment
+starTransactionTypeFragmentWithdrawal withdrawal_state:RevenueWithdrawalState = StarTransactionType;
+
+//@description The transaction is a withdrawal of earned Telegram Stars to Telegram Ad platform; for bots and channel chats only
+starTransactionTypeTelegramAdsWithdrawal = StarTransactionType;
+
+//@description The transaction is a payment for Telegram API usage; for bots only @request_count The number of billed requests
+starTransactionTypeTelegramApiUsage request_count:int32 = StarTransactionType;
+
+//@description The transaction is a purchase of paid media from a bot or a business account by the current user; for regular users only
+//@user_id Identifier of the bot or the business account user that sent the paid media
+//@media The bought media if the transaction wasn't refunded
+starTransactionTypeBotPaidMediaPurchase user_id:int53 media:vector<PaidMedia> = StarTransactionType;
+
+//@description The transaction is a sale of paid media by the bot or a business account managed by the bot; for bots only
+//@user_id Identifier of the user that bought the media
+//@media The bought media
+//@payload Bot-provided payload
+starTransactionTypeBotPaidMediaSale user_id:int53 media:vector<PaidMedia> payload:string = StarTransactionType;
+
+//@description The transaction is a purchase of paid media from a channel by the current user; for regular users only
+//@chat_id Identifier of the channel chat that sent the paid media
 //@message_id Identifier of the corresponding message with paid media; can be 0 or an identifier of a deleted message
 //@media The bought media if the transaction wasn't refunded
-chatTransactionPurposePaidMedia message_id:int53 media:vector<PaidMedia> = ChatTransactionPurpose;
+starTransactionTypeChannelPaidMediaPurchase chat_id:int53 message_id:int53 media:vector<PaidMedia> = StarTransactionType;
 
-//@description User joined the channel and subscribed to regular payments in Telegram Stars
-//@period The number of seconds between consecutive Telegram Star debiting
-chatTransactionPurposeJoin period:int32 = ChatTransactionPurpose;
+//@description The transaction is a sale of paid media by the channel chat; for channel chats only
+//@user_id Identifier of the user that bought the media
+//@message_id Identifier of the corresponding message with paid media; can be 0 or an identifier of a deleted message
+//@media The bought media
+starTransactionTypeChannelPaidMediaSale user_id:int53 message_id:int53 media:vector<PaidMedia> = StarTransactionType;
 
-//@description User paid for a reaction
+//@description The transaction is a purchase of a product from a bot or a business account by the current user; for regular users only
+//@user_id Identifier of the bot or the business account user that created the invoice
+//@product_info Information about the bought product
+starTransactionTypeBotInvoicePurchase user_id:int53 product_info:productInfo = StarTransactionType;
+
+//@description The transaction is a sale of a product by the bot; for bots only
+//@user_id Identifier of the user that bought the product
+//@product_info Information about the bought product
+//@invoice_payload Invoice payload
+starTransactionTypeBotInvoiceSale user_id:int53 product_info:productInfo invoice_payload:bytes = StarTransactionType;
+
+//@description The transaction is a purchase of a subscription from a bot or a business account by the current user; for regular users only
+//@user_id Identifier of the bot or the business account user that created the subscription link
+//@subscription_period The number of seconds between consecutive Telegram Star debitings
+//@product_info Information about the bought subscription
+starTransactionTypeBotSubscriptionPurchase user_id:int53 subscription_period:int32 product_info:productInfo = StarTransactionType;
+
+//@description The transaction is a sale of a subscription by the bot; for bots only
+//@user_id Identifier of the user that bought the subscription
+//@subscription_period The number of seconds between consecutive Telegram Star debitings
+//@product_info Information about the bought subscription
+//@invoice_payload Invoice payload
+starTransactionTypeBotSubscriptionSale user_id:int53 subscription_period:int32 product_info:productInfo invoice_payload:bytes = StarTransactionType;
+
+//@description The transaction is a purchase of a subscription to a channel chat by the current user; for regular users only
+//@chat_id Identifier of the channel chat that created the subscription
+//@subscription_period The number of seconds between consecutive Telegram Star debitings
+starTransactionTypeChannelSubscriptionPurchase chat_id:int53 subscription_period:int32 = StarTransactionType;
+
+//@description The transaction is a sale of a subscription by the channel chat; for channel chats only
+//@user_id Identifier of the user that bought the subscription
+//@subscription_period The number of seconds between consecutive Telegram Star debitings
+starTransactionTypeChannelSubscriptionSale user_id:int53 subscription_period:int32 = StarTransactionType;
+
+//@description The transaction is a purchase of a gift to another user; for regular users and bots only @user_id Identifier of the user that received the gift @gift The gift
+starTransactionTypeGiftPurchase user_id:int53 gift:gift = StarTransactionType;
+
+//@description The transaction is a sale of a gift received from another user or bot; for regular users only @user_id Identifier of the user that sent the gift @gift The gift
+starTransactionTypeGiftSale user_id:int53 gift:gift = StarTransactionType;
+
+//@description The transaction is a sending of a paid reaction to a message in a channel chat by the current user; for regular users only
+//@chat_id Identifier of the channel chat
 //@message_id Identifier of the reacted message; can be 0 or an identifier of a deleted message
-chatTransactionPurposeReaction message_id:int53 = ChatTransactionPurpose;
+starTransactionTypeChannelPaidReactionSend chat_id:int53 message_id:int53 = StarTransactionType;
 
-//@description User received Telegram Stars from a giveaway @giveaway_message_id Identifier of the message with giveaway; can be 0 or an identifier of a deleted message
-chatTransactionPurposeGiveaway giveaway_message_id:int53 = ChatTransactionPurpose;
+//@description The transaction is a receiving of a paid reaction to a message by the channel chat; for channel chats only
+//@user_id Identifier of the user that added the paid reaction
+//@message_id Identifier of the reacted message; can be 0 or an identifier of a deleted message
+starTransactionTypeChannelPaidReactionReceive user_id:int53 message_id:int53 = StarTransactionType;
 
-
-//@class UserTransactionPurpose @description Describes purpose of a transaction with a user
-
-//@description A user gifted Telegram Stars @sticker A sticker to be shown in the transaction information; may be null if unknown
-userTransactionPurposeGiftedStars sticker:sticker = UserTransactionPurpose;
-
-//@description The user sold a gift received from another user or bot @gift The gift
-userTransactionPurposeGiftSell gift:gift = UserTransactionPurpose;
-
-//@description The user or the bot sent a gift to a user @gift The gift
-userTransactionPurposeGiftSend gift:gift = UserTransactionPurpose;
-
-
-//@class StarTransactionPartner @description Describes source or recipient of a transaction with Telegram Stars
-
-//@description The transaction is a transaction with Telegram through a bot
-starTransactionPartnerTelegram = StarTransactionPartner;
-
-//@description The transaction is a transaction with App Store
-starTransactionPartnerAppStore = StarTransactionPartner;
-
-//@description The transaction is a transaction with Google Play
-starTransactionPartnerGooglePlay = StarTransactionPartner;
-
-//@description The transaction is a transaction with Fragment @withdrawal_state State of the withdrawal; may be null for refunds from Fragment or for Telegram Stars bought on Fragment
-starTransactionPartnerFragment withdrawal_state:RevenueWithdrawalState = StarTransactionPartner;
-
-//@description The transaction is a transaction with Telegram Ad platform
-starTransactionPartnerTelegramAds = StarTransactionPartner;
-
-//@description The transaction is a transaction with Telegram for API usage @request_count The number of billed requests
-starTransactionPartnerTelegramApi request_count:int32 = StarTransactionPartner;
-
-//@description The transaction is a transaction with a bot @user_id Identifier of the bot @purpose Purpose of the transaction
-starTransactionPartnerBot user_id:int53 purpose:BotTransactionPurpose = StarTransactionPartner;
-
-//@description The transaction is a transaction with a business account @user_id Identifier of the business account user @media The bought media if the transaction wasn't refunded
-starTransactionPartnerBusiness user_id:int53 media:vector<PaidMedia> = StarTransactionPartner;
-
-//@description The transaction is a transaction with a supergroup or a channel chat @chat_id Identifier of the chat @purpose Purpose of the transaction
-starTransactionPartnerChat chat_id:int53 purpose:ChatTransactionPurpose = StarTransactionPartner;
-
-//@description The transaction is a transaction with another user @user_id Identifier of the user; 0 if the user was anonymous @purpose Purpose of the transaction
-starTransactionPartnerUser user_id:int53 purpose:UserTransactionPurpose = StarTransactionPartner;
-
-//@description The transaction is a transaction with unknown partner
-starTransactionPartnerUnsupported = StarTransactionPartner;
+//@description The transaction is a transaction of an unsupported type
+starTransactionTypeUnsupported = StarTransactionType;
 
 
 //@description Represents a transaction changing the amount of owned Telegram Stars
@@ -1056,8 +1082,8 @@ starTransactionPartnerUnsupported = StarTransactionPartner;
 //@star_count The amount of added owned Telegram Stars; negative for outgoing transactions
 //@is_refund True, if the transaction is a refund of a previous transaction
 //@date Point in time (Unix timestamp) when the transaction was completed
-//@partner Source of the incoming transaction, or its recipient for outgoing transactions
-starTransaction id:string star_count:int53 is_refund:Bool date:int32 partner:StarTransactionPartner = StarTransaction;
+//@type Type of the transaction
+starTransaction id:string star_count:int53 is_refund:Bool date:int32 type:StarTransactionType = StarTransaction;
 
 //@description Represents a list of Telegram Star transactions
 //@star_count The amount of owned Telegram Stars

@@ -227,8 +227,10 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
     td_->chat_manager_->on_get_chats(std::move(result->chats_), "GetStarsTransactionsQuery");
 
     bool for_bot =
-        (dialog_id_.get_type() == DialogType::User && td_->user_manager_->is_user_bot(dialog_id_.get_user_id())) ||
-        td_->auth_manager_->is_bot();
+        dialog_id_.get_type() == DialogType::User && td_->user_manager_->is_user_bot(dialog_id_.get_user_id());
+    bool for_user = dialog_id_.get_type() == DialogType::User && !for_bot;
+    bool for_chat = !for_user && !for_bot;
+    bool for_channel = for_chat && td_->dialog_manager_->is_broadcast_channel(dialog_id_);
     vector<td_api::object_ptr<td_api::starTransaction>> transactions;
     for (auto &transaction : result->history_) {
       vector<FileId> file_ids;
@@ -259,22 +261,35 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         return extended_media_objects;
       };
       auto transaction_star_count = StarManager::get_star_count(transaction->stars_->amount_, true);
-      auto partner = [&]() -> td_api::object_ptr<td_api::StarTransactionPartner> {
+      auto is_refund = transaction->refund_;
+      auto is_purchase = (transaction_star_count > 0) == is_refund;
+      auto type = [&]() -> td_api::object_ptr<td_api::StarTransactionType> {
         switch (transaction->peer_->get_id()) {
           case telegram_api::starsTransactionPeerUnsupported::ID:
-            return td_api::make_object<td_api::starTransactionPartnerUnsupported>();
+            return td_api::make_object<td_api::starTransactionTypeUnsupported>();
           case telegram_api::starsTransactionPeerPremiumBot::ID:
-            return td_api::make_object<td_api::starTransactionPartnerTelegram>();
+            if (for_user) {
+              return td_api::make_object<td_api::starTransactionTypePremiumBotDeposit>();
+            }
+            return nullptr;
           case telegram_api::starsTransactionPeerAppStore::ID:
-            return td_api::make_object<td_api::starTransactionPartnerAppStore>();
+            if (for_user) {
+              return td_api::make_object<td_api::starTransactionTypeAppStoreDeposit>();
+            }
+            return nullptr;
           case telegram_api::starsTransactionPeerPlayMarket::ID:
-            return td_api::make_object<td_api::starTransactionPartnerGooglePlay>();
+            if (for_user) {
+              return td_api::make_object<td_api::starTransactionTypeGooglePlayDeposit>();
+            }
+            return nullptr;
           case telegram_api::starsTransactionPeerFragment::ID: {
             if (transaction->gift_) {
-              transaction->gift_ = false;
-              return td_api::make_object<td_api::starTransactionPartnerUser>(
-                  0, td_api::make_object<td_api::userTransactionPurposeGiftedStars>(
-                         td_->stickers_manager_->get_premium_gift_sticker_object(0, transaction_star_count)));
+              if (for_user) {
+                transaction->gift_ = false;
+                return td_api::make_object<td_api::starTransactionTypeUserDeposit>(
+                    0, td_->stickers_manager_->get_premium_gift_sticker_object(0, transaction_star_count));
+              }
+              return nullptr;
             }
             auto state = [&]() -> td_api::object_ptr<td_api::RevenueWithdrawalState> {
               if (transaction->transaction_date_ > 0) {
@@ -299,94 +314,174 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
               }
               return nullptr;
             }();
-            return td_api::make_object<td_api::starTransactionPartnerFragment>(std::move(state));
+            if (state != nullptr || is_refund) {
+              if (for_bot || for_chat) {
+                return td_api::make_object<td_api::starTransactionTypeFragmentWithdrawal>(std::move(state));
+              }
+              LOG(ERROR) << "Have Star transaction with withdrawal state in " << dialog_id_;
+              return nullptr;
+            }
+            if (for_user || for_bot) {
+              return td_api::make_object<td_api::starTransactionTypeFragmentDeposit>();
+            }
+            return nullptr;
           }
           case telegram_api::starsTransactionPeer::ID: {
             DialogId dialog_id(
                 static_cast<const telegram_api::starsTransactionPeer *>(transaction->peer_.get())->peer_);
             if (dialog_id.get_type() == DialogType::User) {
               auto user_id = dialog_id.get_user_id();
+              auto user_id_object = td_->user_manager_->get_user_id_object(user_id, "starsTransactionPeer");
               if (transaction->stargift_ != nullptr) {
                 auto gift = StarGift(td_, std::move(transaction->stargift_));
                 transaction->stargift_ = nullptr;
                 if (!gift.is_valid()) {
-                  return td_api::make_object<td_api::starTransactionPartnerUnsupported>();
+                  return nullptr;
                 }
                 auto gift_object = gift.get_gift_object(td_);
-                auto result = td_api::make_object<td_api::starTransactionPartnerUser>(
-                    td_->user_manager_->get_user_id_object(user_id, "starTransactionPartnerUser"), nullptr);
-                if ((transaction_star_count > 0) == transaction->refund_) {
-                  result->purpose_ =
-                      td_api::make_object<td_api::userTransactionPurposeGiftSend>(std::move(gift_object));
+                if (is_purchase) {
+                  if (for_user || for_bot) {
+                    return td_api::make_object<td_api::starTransactionTypeGiftPurchase>(user_id_object,
+                                                                                        std::move(gift_object));
+                  }
                 } else {
-                  result->purpose_ =
-                      td_api::make_object<td_api::userTransactionPurposeGiftSell>(std::move(gift_object));
+                  if (for_user) {
+                    return td_api::make_object<td_api::starTransactionTypeGiftSale>(user_id_object,
+                                                                                    std::move(gift_object));
+                  }
                 }
-                return std::move(result);
+                return nullptr;
               }
               if (transaction->subscription_period_ > 0) {
                 SCOPE_EXIT {
                   transaction->subscription_period_ = 0;
-                  bot_payload.clear();
                 };
-                return td_api::make_object<td_api::starTransactionPartnerBot>(
-                    td_->user_manager_->get_user_id_object(user_id, "starTransactionPartnerBot"),
-                    td_api::make_object<td_api::botTransactionPurposeSubscription>(
-                        transaction->subscription_period_, std::move(product_info), bot_payload));
+                if (is_purchase) {
+                  if (for_user) {
+                    return td_api::make_object<td_api::starTransactionTypeBotSubscriptionPurchase>(
+                        user_id_object, transaction->subscription_period_, std::move(product_info));
+                  }
+                } else {
+                  if (for_channel) {
+                    return td_api::make_object<td_api::starTransactionTypeChannelSubscriptionSale>(
+                        user_id_object, transaction->subscription_period_);
+                  } else if (for_bot) {
+                    SCOPE_EXIT {
+                      bot_payload.clear();
+                    };
+                    return td_api::make_object<td_api::starTransactionTypeBotSubscriptionSale>(
+                        user_id_object, transaction->subscription_period_, std::move(product_info), bot_payload);
+                  }
+                }
+                return nullptr;
               }
-              if (for_bot == td_->user_manager_->is_user_bot(user_id)) {
-                if (transaction->gift_ && !for_bot) {
+              if (transaction->gift_) {
+                if (for_user) {
                   transaction->gift_ = false;
-                  return td_api::make_object<td_api::starTransactionPartnerUser>(
+                  return td_api::make_object<td_api::starTransactionTypeUserDeposit>(
                       user_id == UserManager::get_service_notifications_user_id()
                           ? 0
-                          : td_->user_manager_->get_user_id_object(user_id, "starTransactionPartnerUser"),
-                      td_api::make_object<td_api::userTransactionPurposeGiftedStars>(
-                          td_->stickers_manager_->get_premium_gift_sticker_object(0, transaction_star_count)));
+                          : td_->user_manager_->get_user_id_object(user_id, "starTransactionTypeUserDeposit"),
+                      td_->stickers_manager_->get_premium_gift_sticker_object(0, transaction_star_count));
                 }
-                if (!transaction->extended_media_.empty()) {  // TODO
-                  return td_api::make_object<td_api::starTransactionPartnerBusiness>(
-                      td_->user_manager_->get_user_id_object(user_id, "starTransactionPartnerBusiness"),
-                      get_paid_media_object(DialogId(user_id)));
+                return nullptr;
+              }
+              if (transaction->subscription_period_ > 0) {
+                if (for_channel) {
+                  SCOPE_EXIT {
+                    transaction->subscription_period_ = 0;
+                  };
+                  return td_api::make_object<td_api::starTransactionTypeChannelSubscriptionSale>(
+                      user_id_object, transaction->subscription_period_);
                 }
-                LOG(ERROR) << "Receive Telegram Star transaction with " << user_id;
-                return td_api::make_object<td_api::starTransactionPartnerUnsupported>();
+                return nullptr;
+              }
+              if (transaction->reaction_) {
+                if (for_channel) {
+                  SCOPE_EXIT {
+                    transaction->msg_id_ = 0;
+                    transaction->reaction_ = false;
+                  };
+                  auto message_id = MessageId(ServerMessageId(transaction->msg_id_));
+                  if (message_id != MessageId() && !message_id.is_valid()) {
+                    LOG(ERROR) << "Receive " << message_id << " in " << to_string(transaction);
+                    message_id = MessageId();
+                  }
+                  return td_api::make_object<td_api::starTransactionTypeChannelPaidReactionReceive>(user_id_object,
+                                                                                                    message_id.get());
+                }
+                return nullptr;
               }
               SCOPE_EXIT {
                 bot_payload.clear();
               };
-              if (product_info == nullptr || !transaction->extended_media_.empty()) {
-                return td_api::make_object<td_api::starTransactionPartnerBot>(
-                    td_->user_manager_->get_user_id_object(user_id, "starTransactionPartnerBot"),
-                    td_api::make_object<td_api::botTransactionPurposePaidMedia>(
-                        get_paid_media_object(DialogId(user_id)), bot_payload));
+              if (product_info != nullptr) {
+                if (is_purchase) {
+                  if (for_user) {
+                    return td_api::make_object<td_api::starTransactionTypeBotInvoicePurchase>(user_id_object,
+                                                                                              std::move(product_info));
+                  }
+                } else {
+                  if (for_bot) {
+                    return td_api::make_object<td_api::starTransactionTypeBotInvoiceSale>(
+                        user_id_object, std::move(product_info), bot_payload);
+                  }
+                }
+                return nullptr;
               }
-              return td_api::make_object<td_api::starTransactionPartnerBot>(
-                  td_->user_manager_->get_user_id_object(user_id, "starTransactionPartnerBot"),
-                  td_api::make_object<td_api::botTransactionPurposeInvoicePayment>(std::move(product_info),
-                                                                                   bot_payload));
+              if (!transaction->extended_media_.empty() || is_refund) {  // TODO
+                if (is_purchase) {
+                  if (for_user) {
+                    return td_api::make_object<td_api::starTransactionTypeBotPaidMediaPurchase>(
+                        user_id_object, get_paid_media_object(dialog_id));
+                  }
+                } else {
+                  if (for_bot) {
+                    return td_api::make_object<td_api::starTransactionTypeBotPaidMediaSale>(
+                        user_id_object, get_paid_media_object(dialog_id_), bot_payload);
+                  } else if (for_channel) {
+                    SCOPE_EXIT {
+                      transaction->msg_id_ = 0;
+                    };
+                    auto message_id = MessageId(ServerMessageId(transaction->msg_id_));
+                    if (message_id != MessageId() && !message_id.is_valid()) {
+                      LOG(ERROR) << "Receive " << message_id << " in " << to_string(transaction);
+                      message_id = MessageId();
+                    }
+                    return td_api::make_object<td_api::starTransactionTypeChannelPaidMediaSale>(
+                        user_id_object, message_id.get(), get_paid_media_object(dialog_id_));
+                  }
+                }
+                return nullptr;
+              }
+              return nullptr;
             }
-            if (dialog_id.get_type() == DialogType::Channel && transaction->giveaway_post_id_ > 0) {
-              SCOPE_EXIT {
-                transaction->giveaway_post_id_ = 0;
-              };
-              td_->dialog_manager_->force_create_dialog(dialog_id, "starsTransactionPeer", true);
-              return td_api::make_object<td_api::starTransactionPartnerChat>(
-                  td_->dialog_manager_->get_chat_id_object(dialog_id, "starTransactionPartnerChat"),
-                  td_api::make_object<td_api::chatTransactionPurposeGiveaway>(
-                      MessageId(ServerMessageId(transaction->giveaway_post_id_)).get()));
+
+            // partner isn't a user now
+            td_->dialog_manager_->force_create_dialog(dialog_id, "starsTransactionPeer", true);
+            auto chat_id = td_->dialog_manager_->get_chat_id_object(dialog_id, "starsTransactionPeer");
+            if (transaction->giveaway_post_id_ > 0) {
+              if (for_user && dialog_id.get_type() == DialogType::Channel) {
+                SCOPE_EXIT {
+                  transaction->giveaway_post_id_ = 0;
+                };
+                return td_api::make_object<td_api::starTransactionTypeGiveawayDeposit>(
+                    chat_id, MessageId(ServerMessageId(transaction->giveaway_post_id_)).get());
+              }
+              return nullptr;
             }
-            if (td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
-              if (transaction->subscription_period_ > 0) {
+            if (transaction->subscription_period_ > 0) {
+              if (td_->dialog_manager_->is_broadcast_channel(dialog_id) && for_user) {
                 SCOPE_EXIT {
                   transaction->subscription_period_ = 0;
                 };
-                td_->dialog_manager_->force_create_dialog(dialog_id, "starsTransactionPeer", true);
-                return td_api::make_object<td_api::starTransactionPartnerChat>(
-                    td_->dialog_manager_->get_chat_id_object(dialog_id, "starTransactionPartnerChat"),
-                    td_api::make_object<td_api::chatTransactionPurposeJoin>(transaction->subscription_period_));
+                return td_api::make_object<td_api::starTransactionTypeChannelSubscriptionPurchase>(
+                    chat_id, transaction->subscription_period_);
               }
-              if (transaction->reaction_) {
+              return nullptr;
+            }
+            if (transaction->reaction_) {
+              if (td_->dialog_manager_->is_broadcast_channel(dialog_id) && for_user) {
                 SCOPE_EXIT {
                   transaction->msg_id_ = 0;
                   transaction->reaction_ = false;
@@ -396,44 +491,54 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                   LOG(ERROR) << "Receive " << message_id << " in " << to_string(transaction);
                   message_id = MessageId();
                 }
-                td_->dialog_manager_->force_create_dialog(dialog_id, "starsTransactionPeer", true);
-                return td_api::make_object<td_api::starTransactionPartnerChat>(
-                    td_->dialog_manager_->get_chat_id_object(dialog_id, "starTransactionPartnerChat"),
-                    td_api::make_object<td_api::chatTransactionPurposeReaction>(message_id.get()));
+                return td_api::make_object<td_api::starTransactionTypeChannelPaidReactionSend>(chat_id,
+                                                                                               message_id.get());
               }
-
-              SCOPE_EXIT {
-                transaction->msg_id_ = 0;
-              };
-              auto message_id = MessageId(ServerMessageId(transaction->msg_id_));
-              if (message_id != MessageId() && !message_id.is_valid()) {
-                LOG(ERROR) << "Receive " << message_id << " in " << to_string(transaction);
-                message_id = MessageId();
-              }
-              td_->dialog_manager_->force_create_dialog(dialog_id, "starsTransactionPeer", true);
-              return td_api::make_object<td_api::starTransactionPartnerChat>(
-                  td_->dialog_manager_->get_chat_id_object(dialog_id, "starTransactionPartnerChat"),
-                  td_api::make_object<td_api::chatTransactionPurposePaidMedia>(message_id.get(),
-                                                                               get_paid_media_object(dialog_id)));
+              return nullptr;
             }
-            LOG(ERROR) << "Receive Telegram Star transaction with " << dialog_id;
-            return td_api::make_object<td_api::starTransactionPartnerUnsupported>();
+            if (!transaction->extended_media_.empty() || is_refund) {  // TODO
+              if (td_->dialog_manager_->is_broadcast_channel(dialog_id) && for_user) {
+                SCOPE_EXIT {
+                  transaction->msg_id_ = 0;
+                };
+                auto message_id = MessageId(ServerMessageId(transaction->msg_id_));
+                if (message_id != MessageId() && !message_id.is_valid()) {
+                  LOG(ERROR) << "Receive " << message_id << " in " << to_string(transaction);
+                  message_id = MessageId();
+                }
+                return td_api::make_object<td_api::starTransactionTypeChannelPaidMediaPurchase>(
+                    chat_id, message_id.get(), get_paid_media_object(dialog_id));
+              }
+              return nullptr;
+            }
+            return nullptr;
           }
           case telegram_api::starsTransactionPeerAds::ID:
-            return td_api::make_object<td_api::starTransactionPartnerTelegramAds>();
+            if (for_bot || for_channel) {
+              return td_api::make_object<td_api::starTransactionTypeTelegramAdsWithdrawal>();
+            }
+            return nullptr;
           case telegram_api::starsTransactionPeerAPI::ID: {
-            SCOPE_EXIT {
-              transaction->floodskip_number_ = 0;
-            };
-            return td_api::make_object<td_api::starTransactionPartnerTelegramApi>(transaction->floodskip_number_);
+            if (for_bot) {
+              SCOPE_EXIT {
+                transaction->floodskip_number_ = 0;
+              };
+              return td_api::make_object<td_api::starTransactionTypeTelegramApiUsage>(transaction->floodskip_number_);
+            }
+            return nullptr;
           }
           default:
             UNREACHABLE();
+            return nullptr;
         }
       }();
+      if (type == nullptr) {
+        LOG(ERROR) << "Receive unsupported Star transaction in " << dialog_id_ << ": " << to_string(transaction);
+        type = td_api::make_object<td_api::starTransactionTypeUnsupported>();
+      }
       auto star_transaction = td_api::make_object<td_api::starTransaction>(
-          transaction->id_, transaction_star_count, transaction->refund_, transaction->date_, std::move(partner));
-      if (star_transaction->partner_->get_id() != td_api::starTransactionPartnerUnsupported::ID) {
+          transaction->id_, transaction_star_count, is_refund, transaction->date_, std::move(type));
+      if (star_transaction->type_->get_id() != td_api::starTransactionTypeUnsupported::ID) {
         if (product_info != nullptr) {
           LOG(ERROR) << "Receive product info with " << to_string(star_transaction);
         }
@@ -471,7 +576,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
       }
       if (!file_ids.empty()) {
         auto file_source_id =
-            td_->star_manager_->get_star_transaction_file_source_id(dialog_id_, transaction->id_, transaction->refund_);
+            td_->star_manager_->get_star_transaction_file_source_id(dialog_id_, transaction->id_, is_refund);
         for (auto file_id : file_ids) {
           td_->file_manager_->add_file_source(file_id, file_source_id, "GetStarsTransactionsQuery");
         }
