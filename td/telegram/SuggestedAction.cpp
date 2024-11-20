@@ -7,9 +7,9 @@
 #include "td/telegram/SuggestedAction.h"
 
 #include "td/telegram/ChannelId.h"
-#include "td/telegram/ConfigManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/SuggestedActionManager.h"
 #include "td/telegram/Td.h"
 
 #include "td/actor/actor.h"
@@ -253,8 +253,8 @@ void dismiss_suggested_action(SuggestedAction action, Promise<Unit> &&promise) {
     case SuggestedAction::Type::BirthdaySetup:
     case SuggestedAction::Type::PremiumGrace:
     case SuggestedAction::Type::StarsSubscriptionLowBalance:
-      return send_closure_later(G()->config_manager(), &ConfigManager::dismiss_suggested_action, std::move(action),
-                                std::move(promise));
+      return send_closure_later(G()->suggested_action_manager(), &SuggestedActionManager::dismiss_suggested_action,
+                                std::move(action), std::move(promise));
     case SuggestedAction::Type::ConvertToGigagroup:
       return send_closure_later(G()->dialog_manager(), &DialogManager::dismiss_dialog_suggested_action,
                                 std::move(action), std::move(promise));
@@ -263,8 +263,8 @@ void dismiss_suggested_action(SuggestedAction action, Promise<Unit> &&promise) {
         return promise.set_error(Status::Error(400, "Invalid authorization_delay specified"));
       }
       if (action.otherwise_relogin_days_ == 0) {
-        return send_closure_later(G()->config_manager(), &ConfigManager::dismiss_suggested_action, std::move(action),
-                                  std::move(promise));
+        return send_closure_later(G()->suggested_action_manager(), &SuggestedActionManager::dismiss_suggested_action,
+                                  std::move(action), std::move(promise));
       }
       auto days = narrow_cast<int32>(G()->get_option_integer("otherwise_relogin_days"));
       if (days == action.otherwise_relogin_days_) {

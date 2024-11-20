@@ -26,7 +26,8 @@
 #include "td/telegram/Premium.h"
 #include "td/telegram/ReactionType.h"
 #include "td/telegram/StateManager.h"
-#include "td/telegram/SuggestedAction.hpp"
+#include "td/telegram/SuggestedAction.h"
+#include "td/telegram/SuggestedActionManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
@@ -874,18 +875,6 @@ void ConfigManager::start_up() {
     expire_time_ = expire_time;
     set_timeout_in(expire_time_.in());
   }
-
-  auto log_event_string = G()->td_db()->get_binlog_pmc()->get(get_suggested_actions_database_key());
-  if (!log_event_string.empty()) {
-    vector<SuggestedAction> suggested_actions;
-    auto status = log_event_parse(suggested_actions, log_event_string);
-    if (status.is_error()) {
-      LOG(ERROR) << "Failed to parse suggested actions from binlog: " << status;
-      save_suggested_actions();
-    } else {
-      update_suggested_actions(suggested_actions_, std::move(suggested_actions));
-    }
-  }
 }
 
 ActorShared<> ConfigManager::create_reference() {
@@ -1051,58 +1040,8 @@ void ConfigManager::do_set_ignore_sensitive_content_restrictions(bool ignore_sen
   reget_app_config(Auto());
 }
 
-void ConfigManager::hide_suggested_action(SuggestedAction suggested_action) {
-  if (remove_suggested_action(suggested_actions_, suggested_action)) {
-    save_suggested_actions();
-  }
-}
-
-void ConfigManager::dismiss_suggested_action(SuggestedAction suggested_action, Promise<Unit> &&promise) {
-  auto action_str = suggested_action.get_suggested_action_str();
-  if (action_str.empty()) {
-    return promise.set_value(Unit());
-  }
-
-  if (!td::contains(suggested_actions_, suggested_action)) {
-    return promise.set_value(Unit());
-  }
-
-  dismiss_suggested_action_request_count_++;
-  auto type = static_cast<int32>(suggested_action.type_);
-  auto &queries = dismiss_suggested_action_queries_[type];
-  queries.push_back(std::move(promise));
-  if (queries.size() == 1) {
-    G()->net_query_dispatcher().dispatch_with_callback(
-        G()->net_query_creator().create(
-            telegram_api::help_dismissSuggestion(make_tl_object<telegram_api::inputPeerEmpty>(), action_str)),
-        actor_shared(this, 100 + type));
-  }
-}
-
 void ConfigManager::on_result(NetQueryPtr net_query) {
   auto token = get_link_token();
-  if (token >= 100 && token <= 200) {
-    auto type = static_cast<int32>(token - 100);
-    SuggestedAction suggested_action{static_cast<SuggestedAction::Type>(type)};
-    auto promises = std::move(dismiss_suggested_action_queries_[type]);
-    dismiss_suggested_action_queries_.erase(type);
-    CHECK(!promises.empty());
-    CHECK(dismiss_suggested_action_request_count_ >= promises.size());
-    dismiss_suggested_action_request_count_ -= promises.size();
-
-    auto result_ptr = fetch_result<telegram_api::help_dismissSuggestion>(std::move(net_query));
-    if (result_ptr.is_error()) {
-      fail_promises(promises, result_ptr.move_as_error());
-      return;
-    }
-    if (remove_suggested_action(suggested_actions_, suggested_action)) {
-      save_suggested_actions();
-    }
-    reget_app_config(Auto());
-
-    set_promises(promises);
-    return;
-  }
   if (token == 3 || token == 4) {
     is_set_content_settings_request_sent_ = false;
     bool ignore_sensitive_content_restrictions = (token == 4);
@@ -2256,30 +2195,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     G()->set_option_string("premium_manage_subscription_url", premium_manage_subscription_url);
   }
 
-  // do not update suggested actions while changing content settings or dismissing an action
-  if (!is_set_content_settings_request_sent_ && dismiss_suggested_action_request_count_ == 0) {
-    if (update_suggested_actions(suggested_actions_, std::move(suggested_actions))) {
-      save_suggested_actions();
-    }
-  }
-}
-
-string ConfigManager::get_suggested_actions_database_key() {
-  return "suggested_actions";
-}
-
-void ConfigManager::save_suggested_actions() {
-  if (suggested_actions_.empty()) {
-    G()->td_db()->get_binlog_pmc()->erase(get_suggested_actions_database_key());
-  } else {
-    G()->td_db()->get_binlog_pmc()->set(get_suggested_actions_database_key(),
-                                        log_event_store(suggested_actions_).as_slice().str());
-  }
-}
-
-void ConfigManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
-  if (!suggested_actions_.empty()) {
-    updates.push_back(get_update_suggested_actions_object(suggested_actions_, {}, "get_current_state"));
+  // do not update suggested actions while changing content settings
+  if (!is_set_content_settings_request_sent_) {
+    send_closure(G()->suggested_action_manager(), &SuggestedActionManager::update_suggested_actions,
+                 std::move(suggested_actions));
   }
 }
 

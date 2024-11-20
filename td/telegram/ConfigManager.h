@@ -9,7 +9,6 @@
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/DcOptions.h"
 #include "td/telegram/net/NetQuery.h"
-#include "td/telegram/SuggestedAction.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -24,7 +23,6 @@
 #include "td/utils/Time.h"
 
 #include <limits>
-#include <map>
 
 namespace td {
 
@@ -75,13 +73,7 @@ class ConfigManager final : public NetQueryCallback {
 
   void set_content_settings(bool ignore_sensitive_content_restrictions, Promise<Unit> &&promise);
 
-  void hide_suggested_action(SuggestedAction suggested_action);
-
-  void dismiss_suggested_action(SuggestedAction suggested_action, Promise<Unit> &&promise);
-
   void on_dc_options_update(DcOptions dc_options);
-
-  void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
   struct AppConfig {
@@ -118,10 +110,6 @@ class ConfigManager final : public NetQueryCallback {
 
   AppConfig app_config_;
 
-  vector<SuggestedAction> suggested_actions_;
-  size_t dismiss_suggested_action_request_count_ = 0;
-  std::map<int32, vector<Promise<Unit>>> dismiss_suggested_action_queries_;
-
   static constexpr uint64 REFCNT_TOKEN = std::numeric_limits<uint64>::max() - 2;
 
   void start_up() final;
@@ -140,10 +128,6 @@ class ConfigManager final : public NetQueryCallback {
   void process_app_config(telegram_api::object_ptr<telegram_api::JSONValue> &config);
 
   void do_set_ignore_sensitive_content_restrictions(bool ignore_sensitive_content_restrictions);
-
-  static string get_suggested_actions_database_key();
-
-  void save_suggested_actions();
 
   static Timestamp load_config_expire_time();
   static void save_config_expire(Timestamp timestamp);

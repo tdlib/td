@@ -135,12 +135,12 @@ class ResolveUsernameQuery final : public Td::ResultHandler {
   }
 };
 
-class DismissSuggestionQuery final : public Td::ResultHandler {
+class DismissDialogSuggestionQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
 
  public:
-  explicit DismissSuggestionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit DismissDialogSuggestionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(SuggestedAction action) {
@@ -162,7 +162,7 @@ class DismissSuggestionQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "DismissSuggestionQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "DismissDialogSuggestionQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -2328,7 +2328,7 @@ void DialogManager::dismiss_dialog_suggested_action(SuggestedAction action, Prom
     auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), action](Result<Unit> &&result) {
       send_closure(actor_id, &DialogManager::on_dismiss_suggested_action, action, std::move(result));
     });
-    td_->create_handler<DismissSuggestionQuery>(std::move(query_promise))->send(std::move(action));
+    td_->create_handler<DismissDialogSuggestionQuery>(std::move(query_promise))->send(std::move(action));
   }
 }
 

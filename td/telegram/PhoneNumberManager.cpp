@@ -6,10 +6,10 @@
 //
 #include "td/telegram/PhoneNumberManager.h"
 
-#include "td/telegram/ConfigManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/SuggestedAction.h"
+#include "td/telegram/SuggestedActionManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserManager.h"
@@ -246,7 +246,7 @@ void PhoneNumberManager::set_phone_number(string phone_number,
   switch (type->get_id()) {
     case td_api::phoneNumberCodeTypeChange::ID:
       type_ = Type::ChangePhone;
-      send_closure(G()->config_manager(), &ConfigManager::hide_suggested_action,
+      send_closure(G()->suggested_action_manager(), &SuggestedActionManager::hide_suggested_action,
                    SuggestedAction{SuggestedAction::Type::CheckPhoneNumber});
       return send_new_send_code_query(send_code_helper_.send_change_phone_code(phone_number, settings),
                                       std::move(promise));

@@ -147,6 +147,7 @@
 #include "td/telegram/StoryListId.h"
 #include "td/telegram/StoryManager.h"
 #include "td/telegram/SuggestedAction.h"
+#include "td/telegram/SuggestedActionManager.h"
 #include "td/telegram/Support.h"
 #include "td/telegram/SynchronousRequests.h"
 #include "td/telegram/td_api.hpp"
@@ -2111,7 +2112,7 @@ void Requests::on_request(uint64 id, const td_api::getCurrentState &request) {
 
     td_->story_manager_->get_current_state(updates);
 
-    td_->config_manager_.get_actor_unsafe()->get_current_state(updates);
+    td_->suggested_action_manager_->get_current_state(updates);
 
     td_->transcription_manager_->get_current_state(updates);
 
