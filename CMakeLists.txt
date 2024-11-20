@@ -603,6 +603,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/StoryStealthMode.cpp
   td/telegram/StoryViewer.cpp
   td/telegram/SuggestedAction.cpp
+  td/telegram/SuggestedActionManager.cpp
   td/telegram/Support.cpp
   td/telegram/SynchronousRequests.cpp
   td/telegram/TargetDialogTypes.cpp
@@ -964,6 +965,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/StoryStealthMode.h
   td/telegram/StoryViewer.h
   td/telegram/SuggestedAction.h
+  td/telegram/SuggestedActionManager.h
   td/telegram/Support.h
   td/telegram/SynchronousRequests.h
   td/telegram/TargetDialogTypes.h

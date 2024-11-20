@@ -96,6 +96,7 @@ class StatisticsManager;
 class StickersManager;
 class StorageManager;
 class StoryManager;
+class SuggestedActionManager;
 class TermsOfServiceManager;
 class ThemeManager;
 class TimeZoneManager;
@@ -252,6 +253,8 @@ class Td final : public Actor {
   ActorOwn<StickersManager> stickers_manager_actor_;
   unique_ptr<StoryManager> story_manager_;
   ActorOwn<StoryManager> story_manager_actor_;
+  unique_ptr<SuggestedActionManager> suggested_action_manager_;
+  ActorOwn<SuggestedActionManager> suggested_action_manager_actor_;
   unique_ptr<TermsOfServiceManager> terms_of_service_manager_;
   ActorOwn<TermsOfServiceManager> terms_of_service_manager_actor_;
   unique_ptr<ThemeManager> theme_manager_;

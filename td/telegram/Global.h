@@ -79,6 +79,7 @@ class StateManager;
 class StickersManager;
 class StorageManager;
 class StoryManager;
+class SuggestedActionManager;
 class Td;
 class TdDb;
 class TempAuthKeyWatchdog;
@@ -506,6 +507,13 @@ class Global final : public ActorContext {
     story_manager_ = story_manager;
   }
 
+  ActorId<SuggestedActionManager> suggested_action_manager() const {
+    return suggested_action_manager_;
+  }
+  void set_suggested_action_manager(ActorId<SuggestedActionManager> suggested_action_manager) {
+    suggested_action_manager_ = suggested_action_manager;
+  }
+
   ActorId<ThemeManager> theme_manager() const {
     return theme_manager_;
   }
@@ -727,6 +735,7 @@ class Global final : public ActorContext {
   ActorId<StickersManager> stickers_manager_;
   ActorId<StorageManager> storage_manager_;
   ActorId<StoryManager> story_manager_;
+  ActorId<SuggestedActionManager> suggested_action_manager_;
   ActorId<ThemeManager> theme_manager_;
   ActorId<TimeZoneManager> time_zone_manager_;
   ActorId<TopDialogManager> top_dialog_manager_;

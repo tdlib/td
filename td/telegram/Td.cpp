@@ -85,6 +85,7 @@
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StorageManager.h"
 #include "td/telegram/StoryManager.h"
+#include "td/telegram/SuggestedActionManager.h"
 #include "td/telegram/SynchronousRequests.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/TermsOfServiceManager.h"
@@ -546,6 +547,7 @@ void Td::dec_actor_refcnt() {
       reset_manager(statistics_manager_, "StatisticsManager");
       reset_manager(stickers_manager_, "StickersManager");
       reset_manager(story_manager_, "StoryManager");
+      reset_manager(suggested_action_manager_, "SuggestedActionManager");
       reset_manager(terms_of_service_manager_, "TermsOfServiceManager");
       reset_manager(theme_manager_, "ThemeManager");
       reset_manager(time_zone_manager_, "TimeZoneManager");
@@ -718,6 +720,7 @@ void Td::clear() {
   reset_actor(ActorOwn<Actor>(std::move(statistics_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(stickers_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(story_manager_actor_)));
+  reset_actor(ActorOwn<Actor>(std::move(suggested_action_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(terms_of_service_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(theme_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(time_zone_manager_actor_)));
@@ -1235,6 +1238,9 @@ void Td::init_managers() {
   story_manager_ = make_unique<StoryManager>(this, create_reference());
   story_manager_actor_ = register_actor("StoryManager", story_manager_.get());
   G()->set_story_manager(story_manager_actor_.get());
+  suggested_action_manager_ = make_unique<SuggestedActionManager>(this, create_reference());
+  suggested_action_manager_actor_ = register_actor("SuggestedActionManager", suggested_action_manager_.get());
+  G()->set_suggested_action_manager(suggested_action_manager_actor_.get());
   terms_of_service_manager_ = make_unique<TermsOfServiceManager>(this, create_reference());
   terms_of_service_manager_actor_ = register_actor("TermsOfServiceManager", terms_of_service_manager_.get());
   theme_manager_ = make_unique<ThemeManager>(this, create_reference());
