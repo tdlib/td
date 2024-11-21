@@ -135,38 +135,6 @@ class ResolveUsernameQuery final : public Td::ResultHandler {
   }
 };
 
-class DismissDialogSuggestionQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  DialogId dialog_id_;
-
- public:
-  explicit DismissDialogSuggestionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(SuggestedAction action) {
-    dialog_id_ = action.dialog_id_;
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
-    CHECK(input_peer != nullptr);
-
-    send_query(G()->net_query_creator().create(
-        telegram_api::help_dismissSuggestion(std::move(input_peer), action.get_suggested_action_str())));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::help_dismissSuggestion>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    promise_.set_value(Unit());
-  }
-
-  void on_error(Status status) final {
-    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "DismissDialogSuggestionQuery");
-    promise_.set_error(std::move(status));
-  }
-};
-
 class MigrateChatQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -2264,87 +2232,6 @@ void DialogManager::drop_username(const string &username) {
 
     resolved_usernames_.erase(cleaned_username);
   }
-}
-
-void DialogManager::set_dialog_pending_suggestions(DialogId dialog_id, vector<string> &&pending_suggestions) {
-  if (dismiss_suggested_action_queries_.count(dialog_id) != 0) {
-    return;
-  }
-  auto it = dialog_suggested_actions_.find(dialog_id);
-  if (it == dialog_suggested_actions_.end() && !pending_suggestions.empty()) {
-    return;
-  }
-  vector<SuggestedAction> suggested_actions;
-  for (auto &action_str : pending_suggestions) {
-    SuggestedAction suggested_action(action_str, dialog_id);
-    if (!suggested_action.is_empty()) {
-      if (suggested_action == SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, dialog_id} &&
-          (dialog_id.get_type() != DialogType::Channel ||
-           !td_->chat_manager_->can_convert_channel_to_gigagroup(dialog_id.get_channel_id()))) {
-        LOG(INFO) << "Skip ConvertToGigagroup suggested action";
-      } else {
-        suggested_actions.push_back(suggested_action);
-      }
-    }
-  }
-  if (it == dialog_suggested_actions_.end()) {
-    it = dialog_suggested_actions_.emplace(dialog_id, vector<SuggestedAction>()).first;
-  }
-  update_suggested_actions(it->second, std::move(suggested_actions));
-  if (it->second.empty()) {
-    dialog_suggested_actions_.erase(it);
-  }
-}
-
-void DialogManager::remove_dialog_suggested_action(SuggestedAction action) {
-  auto it = dialog_suggested_actions_.find(action.dialog_id_);
-  if (it == dialog_suggested_actions_.end()) {
-    return;
-  }
-  remove_suggested_action(it->second, action);
-  if (it->second.empty()) {
-    dialog_suggested_actions_.erase(it);
-  }
-}
-
-void DialogManager::dismiss_dialog_suggested_action(SuggestedAction action, Promise<Unit> &&promise) {
-  auto dialog_id = action.dialog_id_;
-  TRY_STATUS_PROMISE(promise,
-                     check_dialog_access(dialog_id, false, AccessRights::Read, "dismiss_dialog_suggested_action"));
-
-  auto it = dialog_suggested_actions_.find(dialog_id);
-  if (it == dialog_suggested_actions_.end() || !td::contains(it->second, action)) {
-    return promise.set_value(Unit());
-  }
-
-  auto action_str = action.get_suggested_action_str();
-  if (action_str.empty()) {
-    return promise.set_value(Unit());
-  }
-
-  auto &queries = dismiss_suggested_action_queries_[dialog_id];
-  queries.push_back(std::move(promise));
-  if (queries.size() == 1) {
-    auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), action](Result<Unit> &&result) {
-      send_closure(actor_id, &DialogManager::on_dismiss_suggested_action, action, std::move(result));
-    });
-    td_->create_handler<DismissDialogSuggestionQuery>(std::move(query_promise))->send(std::move(action));
-  }
-}
-
-void DialogManager::on_dismiss_suggested_action(SuggestedAction action, Result<Unit> &&result) {
-  auto it = dismiss_suggested_action_queries_.find(action.dialog_id_);
-  CHECK(it != dismiss_suggested_action_queries_.end());
-  auto promises = std::move(it->second);
-  dismiss_suggested_action_queries_.erase(it);
-
-  if (result.is_error()) {
-    return fail_promises(promises, result.move_as_error());
-  }
-
-  remove_dialog_suggested_action(action);
-
-  set_promises(promises);
 }
 
 }  // namespace td

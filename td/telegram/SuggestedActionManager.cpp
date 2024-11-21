@@ -7,6 +7,7 @@
 #include "td/telegram/SuggestedActionManager.h"
 
 #include "td/telegram/AccessRights.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
@@ -82,6 +83,12 @@ void SuggestedActionManager::hangup() {
     dismiss_suggested_action_queries_.erase(it);
     fail_promises(promises, Global::request_aborted_error());
   }
+  while (!dismiss_dialog_suggested_action_queries_.empty()) {
+    auto it = dismiss_dialog_suggested_action_queries_.begin();
+    auto promises = std::move(it->second);
+    dismiss_dialog_suggested_action_queries_.erase(it);
+    fail_promises(promises, Global::request_aborted_error());
+  }
 
   stop();
 }
@@ -112,15 +119,29 @@ void SuggestedActionManager::dismiss_suggested_action(SuggestedAction suggested_
     return promise.set_value(Unit());
   }
 
-  if (!td::contains(suggested_actions_, suggested_action)) {
-    return promise.set_value(Unit());
-  }
+  vector<Promise<Unit>> *queries;
+  auto dialog_id = suggested_action.dialog_id_;
+  if (dialog_id != DialogId()) {
+    TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
+                                                                          "dismiss_suggested_action"));
 
-  dismiss_suggested_action_request_count_++;
-  auto type = static_cast<int32>(suggested_action.type_);
-  auto &queries = dismiss_suggested_action_queries_[type];
-  queries.push_back(std::move(promise));
-  if (queries.size() == 1) {
+    auto it = dialog_suggested_actions_.find(dialog_id);
+    if (it == dialog_suggested_actions_.end() || !td::contains(it->second, suggested_action)) {
+      return promise.set_value(Unit());
+    }
+
+    queries = &dismiss_dialog_suggested_action_queries_[dialog_id];
+  } else {
+    if (!td::contains(suggested_actions_, suggested_action)) {
+      return promise.set_value(Unit());
+    }
+
+    dismiss_suggested_action_request_count_++;
+    auto type = static_cast<int32>(suggested_action.type_);
+    queries = &dismiss_suggested_action_queries_[type];
+  }
+  queries->push_back(std::move(promise));
+  if (queries->size() == 1) {
     auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), suggested_action](Result<Unit> result) {
       send_closure(actor_id, &SuggestedActionManager::on_dismiss_suggested_action, suggested_action, std::move(result));
     });
@@ -132,6 +153,23 @@ void SuggestedActionManager::on_dismiss_suggested_action(SuggestedAction suggest
   if (G()->close_flag()) {
     return;
   }
+
+  if (suggested_action.dialog_id_ != DialogId()) {
+    auto it = dismiss_dialog_suggested_action_queries_.find(suggested_action.dialog_id_);
+    CHECK(it != dismiss_dialog_suggested_action_queries_.end());
+    auto promises = std::move(it->second);
+    dismiss_dialog_suggested_action_queries_.erase(it);
+
+    if (result.is_error()) {
+      return fail_promises(promises, result.move_as_error());
+    }
+
+    remove_dialog_suggested_action(suggested_action);
+
+    set_promises(promises);
+    return;
+  }
+
   auto type = static_cast<int32>(suggested_action.type_);
   auto promises = std::move(dismiss_suggested_action_queries_[type]);
   dismiss_suggested_action_queries_.erase(type);
@@ -166,6 +204,47 @@ void SuggestedActionManager::save_suggested_actions() {
 void SuggestedActionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
   if (!suggested_actions_.empty()) {
     updates.push_back(get_update_suggested_actions_object(suggested_actions_, {}, "get_current_state"));
+  }
+}
+
+void SuggestedActionManager::set_dialog_pending_suggestions(DialogId dialog_id, vector<string> &&pending_suggestions) {
+  if (dismiss_dialog_suggested_action_queries_.count(dialog_id) != 0) {
+    return;
+  }
+  auto it = dialog_suggested_actions_.find(dialog_id);
+  if (it == dialog_suggested_actions_.end() && !pending_suggestions.empty()) {
+    return;
+  }
+  vector<SuggestedAction> suggested_actions;
+  for (auto &action_str : pending_suggestions) {
+    SuggestedAction suggested_action(action_str, dialog_id);
+    if (!suggested_action.is_empty()) {
+      if (suggested_action == SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, dialog_id} &&
+          (dialog_id.get_type() != DialogType::Channel ||
+           !td_->chat_manager_->can_convert_channel_to_gigagroup(dialog_id.get_channel_id()))) {
+        LOG(INFO) << "Skip ConvertToGigagroup suggested action";
+      } else {
+        suggested_actions.push_back(suggested_action);
+      }
+    }
+  }
+  if (it == dialog_suggested_actions_.end()) {
+    it = dialog_suggested_actions_.emplace(dialog_id, vector<SuggestedAction>()).first;
+  }
+  ::td::update_suggested_actions(it->second, std::move(suggested_actions));
+  if (it->second.empty()) {
+    dialog_suggested_actions_.erase(it);
+  }
+}
+
+void SuggestedActionManager::remove_dialog_suggested_action(SuggestedAction action) {
+  auto it = dialog_suggested_actions_.find(action.dialog_id_);
+  if (it == dialog_suggested_actions_.end()) {
+    return;
+  }
+  remove_suggested_action(it->second, action);
+  if (it->second.empty()) {
+    dialog_suggested_actions_.erase(it);
   }
 }
 

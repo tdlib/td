@@ -223,12 +223,6 @@ class DialogManager final : public Actor {
 
   void reload_voice_chat_on_search(const string &username);
 
-  void set_dialog_pending_suggestions(DialogId dialog_id, vector<string> &&pending_suggestions);
-
-  void dismiss_dialog_suggested_action(SuggestedAction action, Promise<Unit> &&promise);
-
-  void remove_dialog_suggested_action(SuggestedAction action);
-
  private:
   static constexpr size_t MAX_TITLE_LENGTH = 128;  // server side limit for chat title
 
@@ -254,8 +248,6 @@ class DialogManager final : public Actor {
   void drop_username(const string &username);
 
   void on_resolve_dialog(const string &username, ChannelId channel_id, Promise<DialogId> &&promise);
-
-  void on_dismiss_suggested_action(SuggestedAction action, Result<Unit> &&result);
 
   class UploadDialogPhotoCallback;
   std::shared_ptr<UploadDialogPhotoCallback> upload_dialog_photo_callback_;
@@ -291,9 +283,6 @@ class DialogManager final : public Actor {
   FlatHashSet<string> reload_voice_chat_on_search_usernames_;
 
   FlatHashMap<string, vector<Promise<Unit>>> resolve_dialog_username_queries_;
-
-  FlatHashMap<DialogId, vector<SuggestedAction>, DialogIdHash> dialog_suggested_actions_;
-  FlatHashMap<DialogId, vector<Promise<Unit>>, DialogIdHash> dismiss_suggested_action_queries_;
 
   Td *td_;
   ActorShared<> parent_;

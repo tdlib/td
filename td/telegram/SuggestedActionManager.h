@@ -6,11 +6,15 @@
 //
 #pragma once
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/SuggestedAction.h"
+#include "td/telegram/td_api.h"
 
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
+#include "td/utils/Promise.h"
 
 #include <map>
 
@@ -27,6 +31,10 @@ class SuggestedActionManager final : public Actor {
   void hide_suggested_action(SuggestedAction suggested_action);
 
   void dismiss_suggested_action(SuggestedAction suggested_action, Promise<Unit> &&promise);
+
+  void remove_dialog_suggested_action(SuggestedAction action);
+
+  void set_dialog_pending_suggestions(DialogId dialog_id, vector<string> &&pending_suggestions);
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
@@ -49,6 +57,9 @@ class SuggestedActionManager final : public Actor {
   vector<SuggestedAction> suggested_actions_;
   size_t dismiss_suggested_action_request_count_ = 0;
   std::map<int32, vector<Promise<Unit>>> dismiss_suggested_action_queries_;
+
+  FlatHashMap<DialogId, vector<SuggestedAction>, DialogIdHash> dialog_suggested_actions_;
+  FlatHashMap<DialogId, vector<Promise<Unit>>, DialogIdHash> dismiss_dialog_suggested_action_queries_;
 };
 
 }  // namespace td

@@ -37,6 +37,7 @@
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StoryManager.h"
 #include "td/telegram/SuggestedAction.h"
+#include "td/telegram/SuggestedActionManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
@@ -3314,7 +3315,7 @@ void ChatManager::convert_channel_to_gigagroup(ChannelId channel_id, Promise<Uni
     return promise.set_error(Status::Error(400, "Can't convert the chat to a broadcast group"));
   }
 
-  td_->dialog_manager_->remove_dialog_suggested_action(
+  td_->suggested_action_manager_->remove_dialog_suggested_action(
       SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, DialogId(channel_id)});
 
   td_->create_handler<ConvertToGigagroupQuery>(std::move(promise))->send(channel_id);
@@ -4935,7 +4936,7 @@ void ChatManager::update_channel(Channel *c, ChannelId channel_id, bool from_bin
     if (c->default_permissions != RestrictedRights(false, false, false, false, false, false, false, false, false, false,
                                                    false, false, false, false, false, false, false,
                                                    ChannelType::Unknown)) {
-      td_->dialog_manager_->remove_dialog_suggested_action(
+      td_->suggested_action_manager_->remove_dialog_suggested_action(
           SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, DialogId(channel_id)});
     }
     c->is_default_permissions_changed = false;
@@ -5599,8 +5600,8 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
       }
     }
 
-    td_->dialog_manager_->set_dialog_pending_suggestions(DialogId(channel_id),
-                                                         std::move(channel->pending_suggestions_));
+    td_->suggested_action_manager_->set_dialog_pending_suggestions(DialogId(channel_id),
+                                                                   std::move(channel->pending_suggestions_));
   }
   promise.set_value(Unit());
 }
@@ -6972,7 +6973,7 @@ void ChatManager::on_channel_status_changed(Channel *c, ChannelId channel_id, co
 
     send_get_channel_full_query(nullptr, channel_id, Auto(), "update channel owner");
     td_->dialog_participant_manager_->reload_dialog_administrators(DialogId(channel_id), {}, Auto());
-    td_->dialog_manager_->remove_dialog_suggested_action(
+    td_->suggested_action_manager_->remove_dialog_suggested_action(
         SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, DialogId(channel_id)});
   }
 
@@ -8434,7 +8435,7 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
     is_forum = false;
   }
   if (is_gigagroup) {
-    td_->dialog_manager_->remove_dialog_suggested_action(
+    td_->suggested_action_manager_->remove_dialog_suggested_action(
         SuggestedAction{SuggestedAction::Type::ConvertToGigagroup, DialogId(channel_id)});
   }
 
