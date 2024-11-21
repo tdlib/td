@@ -147,7 +147,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
       type_attributes--;
       audio = nullptr;
     }
-    if (default_document_type == Document::Type::Video) {
+    if (animated != nullptr && default_document_type == Document::Type::Video) {
       type_attributes--;
       animated = nullptr;
     }
