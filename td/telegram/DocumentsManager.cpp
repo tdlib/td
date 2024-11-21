@@ -171,6 +171,11 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
       type_attributes--;
       video = nullptr;
     }
+  } else if (animated != nullptr && default_document_type == Document::Type::Video) {
+    LOG(ERROR) << "Receive " << to_string(remote_document.document) << " with " << to_string(animated)
+               << " and without video";
+    type_attributes--;
+    animated = nullptr;
   }
   if (animated != nullptr && audio != nullptr) {
     // animation send as audio
