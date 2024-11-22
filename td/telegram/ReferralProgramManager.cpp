@@ -6,6 +6,7 @@
 //
 #include "td/telegram/ReferralProgramManager.h"
 
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/StarManager.h"
@@ -121,11 +122,45 @@ void ReferralProgramManager::tear_down() {
   parent_.reset();
 }
 
+Status ReferralProgramManager::check_referable_dialog_id(DialogId dialog_id) const {
+  TRY_STATUS(
+      td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "check_referable_dialog_id"));
+  switch (dialog_id.get_type()) {
+    case DialogType::User: {
+      if (dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
+        break;
+      }
+      TRY_RESULT(bot_data, td_->user_manager_->get_bot_data(dialog_id.get_user_id()));
+      if (bot_data.can_be_edited) {
+        break;
+      }
+      return Status::Error(400, "The bot isn't owned");
+    }
+    case DialogType::Chat:
+      return Status::Error(400, "The chat must be a channel chat");
+    case DialogType::Channel: {
+      auto channel_id = dialog_id.get_channel_id();
+      if (!td_->chat_manager_->is_broadcast_channel(channel_id)) {
+        return Status::Error(400, "The chat must be a channel chat");
+      }
+      auto status = td_->chat_manager_->get_channel_permissions(channel_id);
+      if (!status.can_post_messages()) {
+        return Status::Error(400, "Not enough rights in the chat");
+      }
+      break;
+    }
+    case DialogType::SecretChat:
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
+  return Status::OK();
+}
+
 void ReferralProgramManager::search_referral_programs(
     DialogId dialog_id, ReferralProgramSortOrder sort_order, const string &offset, int32 limit,
     Promise<td_api::object_ptr<td_api::foundAffiliatePrograms>> &&promise) {
-  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
-                                                                        "search_referral_programs"));
+  TRY_STATUS_PROMISE(promise, check_referable_dialog_id(dialog_id));
   if (limit <= 0) {
     return promise.set_error(Status::Error(400, "Limit must be positive"));
   }

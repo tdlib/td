@@ -64,6 +64,8 @@ class ReferralProgramManager final : public Actor {
     td_api::object_ptr<td_api::connectedAffiliateProgram> get_connected_affiliate_program_object(Td *td) const;
   };
 
+  Status check_referable_dialog_id(DialogId dialog_id) const;
+
   void tear_down() final;
 
   Td *td_;

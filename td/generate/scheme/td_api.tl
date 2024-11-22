@@ -11964,7 +11964,7 @@ reuseStarSubscription subscription_id:string = Ok;
 
 
 //@description Searches affiliate programs that can be applied to the given chat
-//@chat_id Identifier of the chat for which affiliate programs are searched for
+//@chat_id Identifier of the chat for which affiliate programs are searched for. Can be an identifier of the Saved Messages chat, of a chat with an owned bot, or of a channel chat with can_post_messages administrator right
 //@sort_order Sort order for the results
 //@offset Offset of the first affiliate program to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of affiliate programs to return
