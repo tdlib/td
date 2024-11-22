@@ -869,6 +869,12 @@ affiliateProgramParameters commission_per_mille:int32 month_count:int32 = Affili
 //@parameters The parameters of the affiliate program
 foundAffiliateProgram bot_user_id:int53 parameters:affiliateProgramParameters = FoundAffiliateProgram;
 
+//@description Represents a list of found affiliate programs
+//@total_count The total number of found affiliate programs
+//@programs The list of affiliate programs
+//@next_offset The offset for the next request. If empty, then there are no more results
+foundAffiliatePrograms total_count:int32 programs:vector<foundAffiliateProgram> next_offset:string = FoundAffiliatePrograms;
+
 
 //@description Contains information about a product that can be paid with invoice
 //@title Product title
@@ -11946,6 +11952,14 @@ editUserStarSubscription user_id:int53 telegram_payment_charge_id:string is_canc
 
 //@description Reuses an active Telegram Star subscription to a channel chat and joins the chat again @subscription_id Identifier of the subscription
 reuseStarSubscription subscription_id:string = Ok;
+
+
+//@description Searches affiliate programs that can be applied to the given chat
+//@chat_id Identifier of the chat for which affiliate programs are searched for
+//@sort_order Sort order for the results
+//@offset Offset of the first affiliate program to return as received from the previous request; use empty string to get the first chunk of results
+//@limit The maximum number of affiliate programs to return
+searchAffiliatePrograms chat_id:int53 sort_order:AffiliateProgramSortOrder offset:string limit:int32 = FoundAffiliatePrograms;
 
 
 //@description Returns information about features, available to Business users @source Source of the request; pass null if the method is called from settings or some non-standard source

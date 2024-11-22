@@ -1569,6 +1569,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::reuseStarSubscription &request);
 
+  void on_request(uint64 id, td_api::searchAffiliatePrograms &request);
+
   void on_request(uint64 id, td_api::canPurchaseFromStore &request);
 
   void on_request(uint64 id, td_api::assignAppStoreTransaction &request);

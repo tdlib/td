@@ -121,6 +121,8 @@
 #include "td/telegram/ReactionManager.h"
 #include "td/telegram/ReactionNotificationSettings.h"
 #include "td/telegram/ReactionType.h"
+#include "td/telegram/ReferralProgramManager.h"
+#include "td/telegram/ReferralProgramSortOrder.h"
 #include "td/telegram/ReportReason.h"
 #include "td/telegram/RequestActor.h"
 #include "td/telegram/SavedMessagesManager.h"
@@ -7492,6 +7494,15 @@ void Requests::on_request(uint64 id, td_api::reuseStarSubscription &request) {
   CLEAN_INPUT_STRING(request.subscription_id_);
   CREATE_OK_REQUEST_PROMISE();
   td_->star_manager_->reuse_star_subscription(request.subscription_id_, std::move(promise));
+}
+
+void Requests::on_request(uint64 id, td_api::searchAffiliatePrograms &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.offset_);
+  CREATE_REQUEST_PROMISE();
+  td_->referral_program_manager_->search_referral_programs(DialogId(request.chat_id_),
+                                                           get_referral_program_sort_order(request.sort_order_),
+                                                           request.offset_, request.limit_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::canPurchaseFromStore &request) {

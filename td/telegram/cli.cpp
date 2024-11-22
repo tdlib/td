@@ -3567,6 +3567,19 @@ class CliClient final : public Actor {
       string subscription_id;
       get_args(args, subscription_id);
       send_request(td_api::make_object<td_api::reuseStarSubscription>(subscription_id));
+    } else if (op == "sapc" || op == "sapd" || op == "sapr") {
+      ChatId chat_id;
+      string limit;
+      string offset;
+      get_args(args, chat_id, limit, offset);
+      td_api::object_ptr<td_api::AffiliateProgramSortOrder> sort_order;
+      if (op == "sapd") {
+        sort_order = td_api::make_object<td_api::affiliateProgramSortOrderCreationDate>();
+      } else if (op == "sapr") {
+        sort_order = td_api::make_object<td_api::affiliateProgramSortOrderRevenue>();
+      }
+      send_request(td_api::make_object<td_api::searchAffiliatePrograms>(chat_id, std::move(sort_order), offset,
+                                                                        as_limit(limit)));
     } else if (op == "cpfs" || op == "cpfsb") {
       UserId user_id;
       string currency;
