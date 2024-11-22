@@ -8460,7 +8460,9 @@ unique_ptr<MessageContent> get_uploaded_message_content(
     auto content = make_unique<MessagePaidMedia>(*paid_media);
     auto media = MessageExtendedMedia(td, std::move(media_ptr), owner_dialog_id);
     if (!media.has_input_media()) {
-      LOG(ERROR) << "Receive invalid uploaded paid media";
+      if (!media.is_unsupported()) {
+        LOG(ERROR) << "Receive invalid uploaded paid media";
+      }
     } else {
       bool is_content_changed = false;
       bool need_update = false;

@@ -80,6 +80,10 @@ class MessageExtendedMedia {
 
   void delete_thumbnail(Td *td);
 
+  bool is_unsupported() const {
+    return type_ == Type::Unsupported;
+  }
+
   bool need_reget() const {
     return type_ == Type::Unsupported && unsupported_version_ < CURRENT_VERSION;
   }
