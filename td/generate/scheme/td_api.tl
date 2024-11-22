@@ -875,6 +875,15 @@ foundAffiliateProgram bot_user_id:int53 parameters:affiliateProgramParameters = 
 //@next_offset The offset for the next request. If empty, then there are no more results
 foundAffiliatePrograms total_count:int32 programs:vector<foundAffiliateProgram> next_offset:string = FoundAffiliatePrograms;
 
+//@description Describes a connected affiliate program
+//@url The link that can be used to refer users
+//@bot_user_id User identifier of the bot created the program
+//@parameters The parameters of the affiliate program
+//@connection_date Point in time (Unix timestamp) when the affiliate program was connected
+//@user_count The number of users that used the affiliate program
+//@revenue_star_count The number of Telegram Stars that were earned by the affiliate program
+connectedAffiliateProgram url:string bot_user_id:int53 parameters:affiliateProgramParameters connection_date:int32 user_count:int64 revenue_star_count:int64 = ConnectedAffiliateProgram;
+
 
 //@description Contains information about a product that can be paid with invoice
 //@title Product title

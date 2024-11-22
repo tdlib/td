@@ -45,6 +45,25 @@ class ReferralProgramManager final : public Actor {
     td_api::object_ptr<td_api::foundAffiliateProgram> get_found_affiliate_program_object(Td *td) const;
   };
 
+  class ConnectedBotStarRef {
+    string url_;
+    int32 date_ = 0;
+    UserId user_id_;
+    ReferralProgramParameters parameters_;
+    int64 participant_count_ = 0;
+    int64 revenue_star_count_ = 0;
+
+   public:
+    explicit ConnectedBotStarRef(telegram_api::object_ptr<telegram_api::connectedBotStarRef> &&ref);
+
+    bool is_valid() const {
+      return !url_.empty() && date_ > 0 && user_id_.is_valid() && parameters_.is_valid() && participant_count_ >= 0 &&
+             revenue_star_count_ >= 0;
+    }
+
+    td_api::object_ptr<td_api::connectedAffiliateProgram> get_connected_affiliate_program_object(Td *td) const;
+  };
+
   void tear_down() final;
 
   Td *td_;

@@ -8,6 +8,7 @@
 
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/StarManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UserManager.h"
 
@@ -93,6 +94,24 @@ ReferralProgramManager::SuggestedBotStarRef::get_found_affiliate_program_object(
   return td_api::make_object<td_api::foundAffiliateProgram>(
       td->user_manager_->get_user_id_object(user_id_, "foundAffiliateProgram"),
       parameters_.get_affiliate_program_parameters_object());
+}
+
+ReferralProgramManager::ConnectedBotStarRef::ConnectedBotStarRef(
+    telegram_api::object_ptr<telegram_api::connectedBotStarRef> &&ref)
+    : url_(std::move(ref->url_))
+    , date_(ref->date_)
+    , user_id_(ref->bot_id_)
+    , parameters_(ref->commission_permille_, ref->duration_months_)
+    , participant_count_(ref->participants_)
+    , revenue_star_count_(StarManager::get_star_count(ref->revenue_)) {
+}
+
+td_api::object_ptr<td_api::connectedAffiliateProgram>
+ReferralProgramManager::ConnectedBotStarRef::get_connected_affiliate_program_object(Td *td) const {
+  CHECK(is_valid());
+  return td_api::make_object<td_api::connectedAffiliateProgram>(
+      url_, td->user_manager_->get_user_id_object(user_id_, "connectedAffiliateProgram"),
+      parameters_.get_affiliate_program_parameters_object(), date_, participant_count_, revenue_star_count_);
 }
 
 ReferralProgramManager::ReferralProgramManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
