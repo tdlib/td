@@ -557,6 +557,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/ReactionNotificationsFrom.cpp
   td/telegram/ReactionType.cpp
   td/telegram/RecentDialogList.cpp
+  td/telegram/ReferralProgramParameters.cpp
   td/telegram/RepliedMessageInfo.cpp
   td/telegram/ReplyMarkup.cpp
   td/telegram/ReportReason.cpp
@@ -909,6 +910,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/ReactionType.h
   td/telegram/ReactionUnavailabilityReason.h
   td/telegram/RecentDialogList.h
+  td/telegram/ReferralProgramParameters.h
   td/telegram/RepliedMessageInfo.h
   td/telegram/ReplyMarkup.h
   td/telegram/ReportReason.h
@@ -1064,6 +1066,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/ReactionNotificationSettings.hpp
   td/telegram/ReactionNotificationsFrom.hpp
   td/telegram/ReactionType.hpp
+  td/telegram/ReferralProgramParameters.hpp
   td/telegram/RepliedMessageInfo.hpp
   td/telegram/ReplyMarkup.hpp
   td/telegram/RequestedDialogType.hpp

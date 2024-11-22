@@ -847,6 +847,12 @@ starSubscription id:string chat_id:int53 expiration_date:int32 is_canceled:Bool 
 starSubscriptions star_count:int53 subscriptions:vector<starSubscription> required_star_count:int53 next_offset:string = StarSubscriptions;
 
 
+//@description Describes parameters of an affiliate program
+//@commission_per_mille The number of Telegram Stars received by the referrer for each 1000 Telegram Stars received by the program owner; 1-900
+//@month_count Number of month the program will be active; 0-36. If 0, then the program is eternal
+affiliateProgramParameters commission_per_mille:int32 month_count:int32 = AffiliateProgramParameters;
+
+
 //@description Contains information about a product that can be paid with invoice
 //@title Product title
 //@param_description Product description
