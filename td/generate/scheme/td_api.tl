@@ -847,6 +847,18 @@ starSubscription id:string chat_id:int53 expiration_date:int32 is_canceled:Bool 
 starSubscriptions star_count:int53 subscriptions:vector<starSubscription> required_star_count:int53 next_offset:string = StarSubscriptions;
 
 
+//@class AffiliateProgramSortOrder @description Describes the order of the found affiliate programs
+
+//@description The affiliate programs must be sorted by the profitability
+affiliateProgramSortOrderProfitability = AffiliateProgramSortOrder;
+
+//@description The affiliate programs must be sorted by creation date
+affiliateProgramSortOrderCreationDate = AffiliateProgramSortOrder;
+
+//@description The affiliate programs must be sorted by the expected revenue
+affiliateProgramSortOrderRevenue = AffiliateProgramSortOrder;
+
+
 //@description Describes parameters of an affiliate program
 //@commission_per_mille The number of Telegram Stars received by the referrer for each 1000 Telegram Stars received by the program owner; 1-900
 //@month_count Number of month the program will be active; 0-36. If 0, then the program is eternal

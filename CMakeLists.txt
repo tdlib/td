@@ -559,6 +559,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/RecentDialogList.cpp
   td/telegram/ReferralProgramManager.cpp
   td/telegram/ReferralProgramParameters.cpp
+  td/telegram/ReferralProgramSortOrder.cpp
   td/telegram/RepliedMessageInfo.cpp
   td/telegram/ReplyMarkup.cpp
   td/telegram/ReportReason.cpp
@@ -913,6 +914,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/RecentDialogList.h
   td/telegram/ReferralProgramManager.h
   td/telegram/ReferralProgramParameters.h
+  td/telegram/ReferralProgramSortOrder.h
   td/telegram/RepliedMessageInfo.h
   td/telegram/ReplyMarkup.h
   td/telegram/ReportReason.h
