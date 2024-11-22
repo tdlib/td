@@ -6,6 +6,11 @@
 //
 #pragma once
 
+#include "td/telegram/ReferralProgramParameters.h"
+#include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
+#include "td/telegram/UserId.h"
+
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
@@ -19,6 +24,20 @@ class ReferralProgramManager final : public Actor {
   ReferralProgramManager(Td *td, ActorShared<> parent);
 
  private:
+  class SuggestedBotStarRef {
+    UserId user_id_;
+    ReferralProgramParameters parameters_;
+
+   public:
+    explicit SuggestedBotStarRef(telegram_api::object_ptr<telegram_api::starRefProgram> &&ref);
+
+    bool is_valid() const {
+      return user_id_.is_valid() && parameters_.is_valid();
+    }
+
+    td_api::object_ptr<td_api::foundAffiliateProgram> get_found_affiliate_program_object(Td *td) const;
+  };
+
   void tear_down() final;
 
   Td *td_;

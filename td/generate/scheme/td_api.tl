@@ -852,6 +852,11 @@ starSubscriptions star_count:int53 subscriptions:vector<starSubscription> requir
 //@month_count Number of month the program will be active; 0-36. If 0, then the program is eternal
 affiliateProgramParameters commission_per_mille:int32 month_count:int32 = AffiliateProgramParameters;
 
+//@description Describes a found affiliate program
+//@bot_user_id User identifier of the bot created the program
+//@parameters The parameters of the affiliate program
+foundAffiliateProgram bot_user_id:int53 parameters:affiliateProgramParameters = FoundAffiliateProgram;
+
 
 //@description Contains information about a product that can be paid with invoice
 //@title Product title
