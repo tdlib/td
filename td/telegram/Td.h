@@ -84,6 +84,7 @@ class PrivacyManager;
 class PromoDataManager;
 class QuickReplyManager;
 class ReactionManager;
+class ReferralProgramManager;
 class Requests;
 class SavedMessagesManager;
 class SecureManager;
@@ -239,6 +240,8 @@ class Td final : public Actor {
   ActorOwn<QuickReplyManager> quick_reply_manager_actor_;
   unique_ptr<ReactionManager> reaction_manager_;
   ActorOwn<ReactionManager> reaction_manager_actor_;
+  unique_ptr<ReferralProgramManager> referral_program_manager_;
+  ActorOwn<ReferralProgramManager> referral_program_manager_actor_;
   unique_ptr<SavedMessagesManager> saved_messages_manager_;
   ActorOwn<SavedMessagesManager> saved_messages_manager_actor_;
   unique_ptr<SponsoredMessageManager> sponsored_message_manager_;

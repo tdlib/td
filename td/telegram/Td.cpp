@@ -72,6 +72,7 @@
 #include "td/telegram/PromoDataManager.h"
 #include "td/telegram/QuickReplyManager.h"
 #include "td/telegram/ReactionManager.h"
+#include "td/telegram/ReferralProgramManager.h"
 #include "td/telegram/RequestActor.h"
 #include "td/telegram/Requests.h"
 #include "td/telegram/SavedMessagesManager.h"
@@ -540,6 +541,7 @@ void Td::dec_actor_refcnt() {
       reset_manager(promo_data_manager_, "PromoDataManager");
       reset_manager(quick_reply_manager_, "QuickReplyManager");
       reset_manager(reaction_manager_, "ReactionManager");
+      reset_manager(referral_program_manager_, "ReferralProgramManager");
       reset_manager(saved_messages_manager_, "SavedMessagesManager");
       reset_manager(sponsored_message_manager_, "SponsoredMessageManager");
       reset_manager(star_gift_manager_, "StarGiftManager");
@@ -713,6 +715,7 @@ void Td::clear() {
   reset_actor(ActorOwn<Actor>(std::move(promo_data_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(quick_reply_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(reaction_manager_actor_)));
+  reset_actor(ActorOwn<Actor>(std::move(referral_program_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(saved_messages_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(sponsored_message_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(star_gift_manager_actor_)));
@@ -1219,6 +1222,9 @@ void Td::init_managers() {
   reaction_manager_ = make_unique<ReactionManager>(this, create_reference());
   reaction_manager_actor_ = register_actor("ReactionManager", reaction_manager_.get());
   G()->set_reaction_manager(reaction_manager_actor_.get());
+  referral_program_manager_ = make_unique<ReferralProgramManager>(this, create_reference());
+  referral_program_manager_actor_ = register_actor("ReferralProgramManager", referral_program_manager_.get());
+  G()->set_referral_program_manager(referral_program_manager_actor_.get());
   saved_messages_manager_ = make_unique<SavedMessagesManager>(this, create_reference());
   saved_messages_manager_actor_ = register_actor("SavedMessagesManager", saved_messages_manager_.get());
   G()->set_saved_messages_manager(saved_messages_manager_actor_.get());

@@ -71,6 +71,7 @@ class PeopleNearbyManager;
 class PromoDataManager;
 class QuickReplyManager;
 class ReactionManager;
+class ReferralProgramManager;
 class SavedMessagesManager;
 class SecretChatsManager;
 class SponsoredMessageManager;
@@ -458,6 +459,13 @@ class Global final : public ActorContext {
     reaction_manager_ = reaction_manager;
   }
 
+  ActorId<ReferralProgramManager> referral_program_manager() const {
+    return referral_program_manager_;
+  }
+  void set_referral_program_manager(ActorId<ReferralProgramManager> referral_program_manager) {
+    referral_program_manager_ = referral_program_manager;
+  }
+
   ActorId<SavedMessagesManager> saved_messages_manager() const {
     return saved_messages_manager_;
   }
@@ -732,6 +740,7 @@ class Global final : public ActorContext {
   ActorId<PromoDataManager> promo_data_manager_;
   ActorId<QuickReplyManager> quick_reply_manager_;
   ActorId<ReactionManager> reaction_manager_;
+  ActorId<ReferralProgramManager> referral_program_manager_;
   ActorId<SavedMessagesManager> saved_messages_manager_;
   ActorId<SecretChatsManager> secret_chats_manager_;
   ActorId<SponsoredMessageManager> sponsored_message_manager_;
