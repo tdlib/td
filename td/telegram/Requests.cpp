@@ -7505,6 +7505,13 @@ void Requests::on_request(uint64 id, td_api::searchAffiliatePrograms &request) {
                                                            request.offset_, request.limit_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::connectAffiliateProgram &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->referral_program_manager_->connect_referral_program(DialogId(request.chat_id_), UserId(request.bot_user_id_),
+                                                           std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::canPurchaseFromStore &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

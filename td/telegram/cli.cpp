@@ -3580,6 +3580,11 @@ class CliClient final : public Actor {
       }
       send_request(td_api::make_object<td_api::searchAffiliatePrograms>(chat_id, std::move(sort_order), offset,
                                                                         as_limit(limit)));
+    } else if (op == "capr") {
+      ChatId chat_id;
+      UserId bot_user_id;
+      get_args(args, chat_id, bot_user_id);
+      send_request(td_api::make_object<td_api::connectAffiliateProgram>(chat_id, bot_user_id));
     } else if (op == "cpfs" || op == "cpfsb") {
       UserId user_id;
       string currency;

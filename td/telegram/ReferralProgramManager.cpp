@@ -84,6 +84,51 @@ class ReferralProgramManager::GetSuggestedStarRefBotsQuery final : public Td::Re
   }
 };
 
+class ReferralProgramManager::ConnectStarRefBotQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::connectedAffiliateProgram>> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit ConnectStarRefBotQuery(Promise<td_api::object_ptr<td_api::connectedAffiliateProgram>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, telegram_api::object_ptr<telegram_api::InputUser> &&input_user) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_connectStarRefBot(std::move(input_peer), std::move(input_user))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_connectStarRefBot>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for ConnectStarRefBotQuery: " << to_string(ptr);
+    if (ptr->connected_bots_.size() != 1u) {
+      return on_error(Status::Error(500, "Receive invalid response"));
+    }
+
+    td_->user_manager_->on_get_users(std::move(ptr->users_), "ConnectStarRefBotQuery");
+
+    ConnectedBotStarRef ref(std::move(ptr->connected_bots_[0]));
+    if (!ref.is_valid()) {
+      LOG(ERROR) << "Receive invalid connected referral program for " << dialog_id_;
+      return on_error(Status::Error(500, "Receive invalid response"));
+    }
+    promise_.set_value(ref.get_connected_affiliate_program_object(td_));
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ConnectStarRefBotQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 ReferralProgramManager::SuggestedBotStarRef::SuggestedBotStarRef(
     telegram_api::object_ptr<telegram_api::starRefProgram> &&ref)
     : user_id_(ref->bot_id_), parameters_(ref->commission_permille_, ref->duration_months_) {
@@ -166,6 +211,14 @@ void ReferralProgramManager::search_referral_programs(
   }
 
   td_->create_handler<GetSuggestedStarRefBotsQuery>(std::move(promise))->send(dialog_id, sort_order, offset, limit);
+}
+
+void ReferralProgramManager::connect_referral_program(
+    DialogId dialog_id, UserId bot_user_id, Promise<td_api::object_ptr<td_api::connectedAffiliateProgram>> &&promise) {
+  TRY_STATUS_PROMISE(promise, check_referable_dialog_id(dialog_id));
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
+
+  td_->create_handler<ConnectStarRefBotQuery>(std::move(promise))->send(dialog_id, std::move(input_user));
 }
 
 }  // namespace td

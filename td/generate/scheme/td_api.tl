@@ -11970,6 +11970,11 @@ reuseStarSubscription subscription_id:string = Ok;
 //@limit The maximum number of affiliate programs to return
 searchAffiliatePrograms chat_id:int53 sort_order:AffiliateProgramSortOrder offset:string limit:int32 = FoundAffiliatePrograms;
 
+//@description Connects an affiliate program to the given chat. Returns information about the connected affiliate program
+//@chat_id Identifier of the chat for which the affiliate program is connected. Can be an identifier of the Saved Messages chat, of a chat with an owned bot, or of a channel chat with can_post_messages administrator right
+//@bot_user_id Identifier of the bot, which affiliate program is connected
+connectAffiliateProgram chat_id:int53 bot_user_id:int53 = ConnectedAffiliateProgram;
+
 
 //@description Returns information about features, available to Business users @source Source of the request; pass null if the method is called from settings or some non-standard source
 getBusinessFeatures source:BusinessFeature = BusinessFeatures;
