@@ -30202,10 +30202,12 @@ bool MessagesManager::process_send_message_fail_error(int32 &error_code, string 
         } else if (content_type == MessageContentType::Contact) {
           error_message = "Wrong phone number specified";
         } else if (content_type == MessageContentType::Story) {
-          error_message = "Wrong story data specified";
+          error_message = "Wrong story file specified";
         } else {
           error_message = "Wrong file identifier/HTTP URL specified";
         }
+      } else if (error_message == "EXTENDED_MEDIA_INVALID") {
+        error_message = "Invalid paid media file specified";
       } else if (error_message == "PHOTO_EXT_INVALID") {
         error_message = "Photo has unsupported extension. Use one of .jpg, .jpeg, .gif, .png, .tif or .bmp";
       } else {
