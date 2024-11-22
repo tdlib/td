@@ -884,6 +884,12 @@ foundAffiliatePrograms total_count:int32 programs:vector<foundAffiliateProgram> 
 //@revenue_star_count The number of Telegram Stars that were earned by the affiliate program
 connectedAffiliateProgram url:string bot_user_id:int53 parameters:affiliateProgramParameters connection_date:int32 user_count:int64 revenue_star_count:int64 = ConnectedAffiliateProgram;
 
+//@description Represents a list of affiliate programs connected to a chat
+//@total_count The total number of affiliate programs connected to the chat
+//@programs The list of connected affiliate programs
+//@next_offset The offset for the next request. If empty, then there are no more results
+connectedAffiliatePrograms total_count:int32 programs:vector<connectedAffiliateProgram> next_offset:string = ConnectedAffiliatePrograms;
+
 
 //@description Contains information about a product that can be paid with invoice
 //@title Product title
@@ -11974,6 +11980,12 @@ searchAffiliatePrograms chat_id:int53 sort_order:AffiliateProgramSortOrder offse
 //@chat_id Identifier of the chat for which the affiliate program is connected. Can be an identifier of the Saved Messages chat, of a chat with an owned bot, or of a channel chat with can_post_messages administrator right
 //@bot_user_id Identifier of the bot, which affiliate program is connected
 connectAffiliateProgram chat_id:int53 bot_user_id:int53 = ConnectedAffiliateProgram;
+
+//@description Returns affiliate programs that are connected to the given chat
+//@chat_id Identifier of the chat for which the affiliate program is connected. Can be an identifier of the Saved Messages chat, of a chat with an owned bot, or of a channel chat with can_post_messages administrator right
+//@offset Offset of the first affiliate program to return as received from the previous request; use empty string to get the first chunk of results
+//@limit The maximum number of affiliate programs to return
+getConnectedAffiliatePrograms chat_id:int53 offset:string limit:int32 = ConnectedAffiliatePrograms;
 
 
 //@description Returns information about features, available to Business users @source Source of the request; pass null if the method is called from settings or some non-standard source

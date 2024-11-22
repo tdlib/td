@@ -1573,6 +1573,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::connectAffiliateProgram &request);
 
+  void on_request(uint64 id, td_api::getConnectedAffiliatePrograms &request);
+
   void on_request(uint64 id, td_api::canPurchaseFromStore &request);
 
   void on_request(uint64 id, td_api::assignAppStoreTransaction &request);

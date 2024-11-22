@@ -31,9 +31,13 @@ class ReferralProgramManager final : public Actor {
   void connect_referral_program(DialogId dialog_id, UserId bot_user_id,
                                 Promise<td_api::object_ptr<td_api::connectedAffiliateProgram>> &&promise);
 
+  void get_connected_referral_programs(DialogId dialog_id, const string &offset, int32 limit,
+                                       Promise<td_api::object_ptr<td_api::connectedAffiliatePrograms>> &&promise);
+
  private:
   class GetSuggestedStarRefBotsQuery;
   class ConnectStarRefBotQuery;
+  class GetConnectedStarRefBotsQuery;
 
   class SuggestedBotStarRef {
     UserId user_id_;

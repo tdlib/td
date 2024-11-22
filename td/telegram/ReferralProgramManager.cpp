@@ -14,6 +14,7 @@
 #include "td/telegram/UserManager.h"
 
 #include "td/utils/buffer.h"
+#include "td/utils/misc.h"
 #include "td/utils/Status.h"
 
 namespace td {
@@ -129,6 +130,71 @@ class ReferralProgramManager::ConnectStarRefBotQuery final : public Td::ResultHa
   }
 };
 
+class ReferralProgramManager::GetConnectedStarRefBotsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::connectedAffiliatePrograms>> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit GetConnectedStarRefBotsQuery(Promise<td_api::object_ptr<td_api::connectedAffiliatePrograms>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, const string &offset, int32 limit) {
+    dialog_id_ = dialog_id;
+    int32 date = 0;
+    string link;
+    int32 flags = 0;
+    if (!offset.empty()) {
+      auto splitted_offset = split(offset);
+      date = to_integer<int32>(splitted_offset.first);
+      link = std::move(splitted_offset.second);
+      flags |= telegram_api::payments_getConnectedStarRefBots::OFFSET_DATE_MASK;
+    }
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_getConnectedStarRefBots(flags, std::move(input_peer), date, link, limit)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getConnectedStarRefBots>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for GetConnectedStarRefBotsQuery: " << to_string(ptr);
+
+    td_->user_manager_->on_get_users(std::move(ptr->users_), "GetConnectedStarRefBotsQuery");
+
+    vector<td_api::object_ptr<td_api::connectedAffiliateProgram>> programs;
+    string next_offset;
+    for (auto &ref : ptr->connected_bots_) {
+      next_offset = PSTRING() << ref->date_ << ' ' << ref->url_;
+      ConnectedBotStarRef star_ref(std::move(ref));
+      if (!star_ref.is_valid()) {
+        LOG(ERROR) << "Receive invalid connected referral program for " << dialog_id_;
+        continue;
+      }
+      programs.push_back(star_ref.get_connected_affiliate_program_object(td_));
+    }
+
+    auto total_count = ptr->count_;
+    if (total_count < static_cast<int32>(programs.size())) {
+      LOG(ERROR) << "Receive total count = " << total_count << ", but " << programs.size() << " referral programs";
+      total_count = static_cast<int32>(programs.size());
+    }
+    promise_.set_value(
+        td_api::make_object<td_api::connectedAffiliatePrograms>(total_count, std::move(programs), next_offset));
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetConnectedStarRefBotsQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 ReferralProgramManager::SuggestedBotStarRef::SuggestedBotStarRef(
     telegram_api::object_ptr<telegram_api::starRefProgram> &&ref)
     : user_id_(ref->bot_id_), parameters_(ref->commission_permille_, ref->duration_months_) {
@@ -219,6 +285,17 @@ void ReferralProgramManager::connect_referral_program(
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
 
   td_->create_handler<ConnectStarRefBotQuery>(std::move(promise))->send(dialog_id, std::move(input_user));
+}
+
+void ReferralProgramManager::get_connected_referral_programs(
+    DialogId dialog_id, const string &offset, int32 limit,
+    Promise<td_api::object_ptr<td_api::connectedAffiliatePrograms>> &&promise) {
+  TRY_STATUS_PROMISE(promise, check_referable_dialog_id(dialog_id));
+  if (limit <= 0) {
+    return promise.set_error(Status::Error(400, "Limit must be positive"));
+  }
+
+  td_->create_handler<GetConnectedStarRefBotsQuery>(std::move(promise))->send(dialog_id, offset, limit);
 }
 
 }  // namespace td
