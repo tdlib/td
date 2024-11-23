@@ -56,7 +56,6 @@ class SuggestedActionManager final : public Actor {
 
   vector<SuggestedAction> suggested_actions_;
   FlatHashMap<DialogId, vector<SuggestedAction>, DialogIdHash> dialog_suggested_actions_;
-  size_t dismiss_suggested_action_request_count_ = 0;
   FlatHashMap<SuggestedAction, vector<Promise<Unit>>, SuggestedActionHash> dismiss_suggested_action_queries_;
 };
 

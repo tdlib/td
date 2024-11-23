@@ -92,7 +92,7 @@ void SuggestedActionManager::tear_down() {
 }
 
 void SuggestedActionManager::update_suggested_actions(vector<SuggestedAction> &&suggested_actions) {
-  if (dismiss_suggested_action_request_count_ != 0) {
+  if (!dismiss_suggested_action_queries_.empty()) {
     // do not update suggested actions while dismissing an action
     return;
   }
@@ -130,7 +130,6 @@ void SuggestedActionManager::dismiss_suggested_action(SuggestedAction suggested_
 
   auto &queries = dismiss_suggested_action_queries_[suggested_action];
   queries.push_back(std::move(promise));
-  dismiss_suggested_action_request_count_++;
   if (queries.size() == 1) {
     auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), suggested_action](Result<Unit> result) {
       send_closure(actor_id, &SuggestedActionManager::on_dismiss_suggested_action, suggested_action, std::move(result));
@@ -149,9 +148,6 @@ void SuggestedActionManager::on_dismiss_suggested_action(SuggestedAction suggest
   auto promises = std::move(it->second);
   CHECK(!promises.empty());
   dismiss_suggested_action_queries_.erase(it);
-
-  CHECK(dismiss_suggested_action_request_count_ >= promises.size());
-  dismiss_suggested_action_request_count_ -= promises.size();
 
   if (result.is_error()) {
     return fail_promises(promises, result.move_as_error());
@@ -189,7 +185,7 @@ void SuggestedActionManager::get_current_state(vector<td_api::object_ptr<td_api:
 }
 
 void SuggestedActionManager::set_dialog_pending_suggestions(DialogId dialog_id, vector<string> &&pending_suggestions) {
-  if (dismiss_suggested_action_request_count_ != 0) {
+  if (!dismiss_suggested_action_queries_.empty()) {
     return;
   }
   auto it = dialog_suggested_actions_.find(dialog_id);
