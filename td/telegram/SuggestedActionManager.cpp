@@ -83,12 +83,6 @@ void SuggestedActionManager::hangup() {
     dismiss_suggested_action_queries_.erase(it);
     fail_promises(promises, Global::request_aborted_error());
   }
-  while (!dismiss_dialog_suggested_action_queries_.empty()) {
-    auto it = dismiss_dialog_suggested_action_queries_.begin();
-    auto promises = std::move(it->second);
-    dismiss_dialog_suggested_action_queries_.erase(it);
-    fail_promises(promises, Global::request_aborted_error());
-  }
 
   stop();
 }
@@ -119,7 +113,6 @@ void SuggestedActionManager::dismiss_suggested_action(SuggestedAction suggested_
     return promise.set_value(Unit());
   }
 
-  vector<Promise<Unit>> *queries;
   auto dialog_id = suggested_action.dialog_id_;
   if (dialog_id != DialogId()) {
     TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
@@ -129,19 +122,16 @@ void SuggestedActionManager::dismiss_suggested_action(SuggestedAction suggested_
     if (it == dialog_suggested_actions_.end() || !td::contains(it->second, suggested_action)) {
       return promise.set_value(Unit());
     }
-
-    queries = &dismiss_dialog_suggested_action_queries_[dialog_id];
   } else {
     if (!td::contains(suggested_actions_, suggested_action)) {
       return promise.set_value(Unit());
     }
-
-    dismiss_suggested_action_request_count_++;
-    auto type = static_cast<int32>(suggested_action.type_);
-    queries = &dismiss_suggested_action_queries_[type];
   }
-  queries->push_back(std::move(promise));
-  if (queries->size() == 1) {
+
+  auto &queries = dismiss_suggested_action_queries_[suggested_action];
+  queries.push_back(std::move(promise));
+  dismiss_suggested_action_request_count_++;
+  if (queries.size() == 1) {
     auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), suggested_action](Result<Unit> result) {
       send_closure(actor_id, &SuggestedActionManager::on_dismiss_suggested_action, suggested_action, std::move(result));
     });
@@ -154,36 +144,27 @@ void SuggestedActionManager::on_dismiss_suggested_action(SuggestedAction suggest
     return;
   }
 
-  if (suggested_action.dialog_id_ != DialogId()) {
-    auto it = dismiss_dialog_suggested_action_queries_.find(suggested_action.dialog_id_);
-    CHECK(it != dismiss_dialog_suggested_action_queries_.end());
-    auto promises = std::move(it->second);
-    dismiss_dialog_suggested_action_queries_.erase(it);
-
-    if (result.is_error()) {
-      return fail_promises(promises, result.move_as_error());
-    }
-
-    remove_dialog_suggested_action(suggested_action);
-
-    set_promises(promises);
-    return;
-  }
-
-  auto type = static_cast<int32>(suggested_action.type_);
-  auto promises = std::move(dismiss_suggested_action_queries_[type]);
-  dismiss_suggested_action_queries_.erase(type);
+  auto it = dismiss_suggested_action_queries_.find(suggested_action);
+  CHECK(it != dismiss_suggested_action_queries_.end());
+  auto promises = std::move(it->second);
   CHECK(!promises.empty());
+  dismiss_suggested_action_queries_.erase(it);
+
   CHECK(dismiss_suggested_action_request_count_ >= promises.size());
   dismiss_suggested_action_request_count_ -= promises.size();
 
   if (result.is_error()) {
     return fail_promises(promises, result.move_as_error());
   }
-  if (remove_suggested_action(suggested_actions_, suggested_action)) {
-    save_suggested_actions();
+
+  if (suggested_action.dialog_id_ != DialogId()) {
+    remove_dialog_suggested_action(suggested_action);
+  } else {
+    if (remove_suggested_action(suggested_actions_, suggested_action)) {
+      save_suggested_actions();
+    }
+    send_closure(G()->config_manager(), &ConfigManager::reget_app_config, Promise<Unit>());
   }
-  send_closure(G()->config_manager(), &ConfigManager::reget_app_config, Promise<Unit>());
 
   set_promises(promises);
 }
@@ -208,7 +189,7 @@ void SuggestedActionManager::get_current_state(vector<td_api::object_ptr<td_api:
 }
 
 void SuggestedActionManager::set_dialog_pending_suggestions(DialogId dialog_id, vector<string> &&pending_suggestions) {
-  if (dismiss_dialog_suggested_action_queries_.count(dialog_id) != 0) {
+  if (dismiss_suggested_action_request_count_ != 0) {
     return;
   }
   auto it = dialog_suggested_actions_.find(dialog_id);

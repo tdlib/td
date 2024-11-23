@@ -65,9 +65,14 @@ struct SuggestedAction {
   void parse(ParserT &parser);
 };
 
+struct SuggestedActionHash {
+  uint32 operator()(SuggestedAction suggested_action) const {
+    return combine_hashes(DialogIdHash()(suggested_action.dialog_id_), static_cast<int32>(suggested_action.type_));
+  }
+};
+
 inline bool operator==(const SuggestedAction &lhs, const SuggestedAction &rhs) {
-  CHECK(lhs.dialog_id_ == rhs.dialog_id_);
-  return lhs.type_ == rhs.type_;
+  return lhs.type_ == rhs.type_ && lhs.dialog_id_ == rhs.dialog_id_;
 }
 
 inline bool operator!=(const SuggestedAction &lhs, const SuggestedAction &rhs) {
@@ -75,7 +80,9 @@ inline bool operator!=(const SuggestedAction &lhs, const SuggestedAction &rhs) {
 }
 
 inline bool operator<(const SuggestedAction &lhs, const SuggestedAction &rhs) {
-  CHECK(lhs.dialog_id_ == rhs.dialog_id_);
+  if (lhs.dialog_id_ != rhs.dialog_id_) {
+    return lhs.dialog_id_.get() < rhs.dialog_id_.get();
+  }
   return static_cast<int32>(lhs.type_) < static_cast<int32>(rhs.type_);
 }
 

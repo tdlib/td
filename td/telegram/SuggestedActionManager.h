@@ -55,11 +55,9 @@ class SuggestedActionManager final : public Actor {
   ActorShared<> parent_;
 
   vector<SuggestedAction> suggested_actions_;
-  size_t dismiss_suggested_action_request_count_ = 0;
-  std::map<int32, vector<Promise<Unit>>> dismiss_suggested_action_queries_;
-
   FlatHashMap<DialogId, vector<SuggestedAction>, DialogIdHash> dialog_suggested_actions_;
-  FlatHashMap<DialogId, vector<Promise<Unit>>, DialogIdHash> dismiss_dialog_suggested_action_queries_;
+  size_t dismiss_suggested_action_request_count_ = 0;
+  FlatHashMap<SuggestedAction, vector<Promise<Unit>>, SuggestedActionHash> dismiss_suggested_action_queries_;
 };
 
 }  // namespace td
