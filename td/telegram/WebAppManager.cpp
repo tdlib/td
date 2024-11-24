@@ -644,6 +644,10 @@ void WebAppManager::invoke_web_view_custom_method(UserId bot_user_id, const stri
 void WebAppManager::check_download_file_params(UserId bot_user_id, const string &file_name, const string &url,
                                                Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
+  if (file_name.size() >= 256u || url.size() > 32768u || file_name.find('/') != string::npos ||
+      file_name.find('\\') != string::npos) {
+    return promise.set_error(Status::Error(400, "The file can't be downloaded"));
+  }
   td_->create_handler<CheckDownloadFileParamsQuery>(std::move(promise))->send(std::move(input_user), file_name, url);
 }
 
