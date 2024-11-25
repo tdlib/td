@@ -544,7 +544,9 @@ void FileDownloader::start_up() {
   if (!is_small_ &&
       (file_type == FileType::VideoNote || file_type == FileType::Document || file_type == FileType::VoiceNote ||
        file_type == FileType::Audio || file_type == FileType::Video || file_type == FileType::Animation ||
-       file_type == FileType::VideoStory || (file_type == FileType::Encrypted && size_ > (1 << 20)))) {
+       file_type == FileType::VideoStory || file_type == FileType::SelfDestructingVideo ||
+       file_type == FileType::SelfDestructingVideoNote || file_type == FileType::SelfDestructingVoiceNote ||
+       (file_type == FileType::Encrypted && size_ > (1 << 20)))) {
     delay_dispatcher_ = create_actor<DelayDispatcher>("DelayDispatcher", 0.003, actor_shared(this, 1));
     next_delay_ = 0.05;
   }

@@ -3476,7 +3476,7 @@ Result<InputMessageContent> get_input_message_content(
     }
     case td_api::inputMessagePhoto::ID: {
       auto input_message = static_cast<td_api::inputMessagePhoto *>(input_message_content.get());
-      file_type = FileType::Photo;
+      file_type = input_message->self_destruct_type_ != nullptr ? FileType::SelfDestructingPhoto : FileType::Photo;
       input_file = std::move(input_message->photo_);
       input_thumbnail = std::move(input_message->thumbnail_);
       if (!input_message->added_sticker_file_ids_.empty()) {
@@ -3493,7 +3493,7 @@ Result<InputMessageContent> get_input_message_content(
     }
     case td_api::inputMessageVideo::ID: {
       auto input_message = static_cast<td_api::inputMessageVideo *>(input_message_content.get());
-      file_type = FileType::Video;
+      file_type = input_message->self_destruct_type_ != nullptr ? FileType::SelfDestructingVideoNote : FileType::Video;
       input_file = std::move(input_message->video_);
       input_thumbnail = std::move(input_message->thumbnail_);
       if (!input_message->added_sticker_file_ids_.empty()) {
@@ -3503,14 +3503,16 @@ Result<InputMessageContent> get_input_message_content(
     }
     case td_api::inputMessageVideoNote::ID: {
       auto input_message = static_cast<td_api::inputMessageVideoNote *>(input_message_content.get());
-      file_type = FileType::VideoNote;
+      file_type =
+          input_message->self_destruct_type_ != nullptr ? FileType::SelfDestructingVideoNote : FileType::VideoNote;
       input_file = std::move(input_message->video_note_);
       input_thumbnail = std::move(input_message->thumbnail_);
       break;
     }
     case td_api::inputMessageVoiceNote::ID: {
       auto input_message = static_cast<td_api::inputMessageVoiceNote *>(input_message_content.get());
-      file_type = FileType::VoiceNote;
+      file_type =
+          input_message->self_destruct_type_ != nullptr ? FileType::SelfDestructingVoiceNote : FileType::VoiceNote;
       input_file = std::move(input_message->voice_note_);
       break;
     }
@@ -4048,7 +4050,8 @@ telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_fake_inpu
     }
     string mime_type = MimeType::from_extension(path_view.extension());
     int32 flags = 0;
-    if (file_type == FileType::Video || file_type == FileType::VideoStory) {
+    if (file_type == FileType::Video || file_type == FileType::VideoStory ||
+        file_type == FileType::SelfDestructingVideo) {
       flags |= telegram_api::inputMediaUploadedDocument::NOSOUND_VIDEO_MASK;
     }
     if (file_type == FileType::DocumentAsFile) {
@@ -4058,7 +4061,8 @@ telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_fake_inpu
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_file), nullptr, mime_type,
         std::move(attributes), vector<telegram_api::object_ptr<telegram_api::InputDocument>>(), 0);
   } else {
-    CHECK(file_type == FileType::Photo || file_type == FileType::PhotoStory);
+    CHECK(file_type == FileType::Photo || file_type == FileType::PhotoStory ||
+          file_type == FileType::SelfDestructingPhoto);
     int32 flags = 0;
     return telegram_api::make_object<telegram_api::inputMediaUploadedPhoto>(
         flags, false /*ignored*/, std::move(input_file),
@@ -6596,13 +6600,14 @@ static unique_ptr<MessageContent> get_document_message_content(Document &&parsed
 }
 
 static unique_ptr<MessageContent> get_document_message_content(Td *td, tl_object_ptr<telegram_api::document> &&document,
-                                                               DialogId owner_dialog_id, FormattedText &&caption,
-                                                               bool is_opened, bool is_premium, bool has_spoiler,
-                                                               vector<FileId> &&alternative_file_ids,
+                                                               DialogId owner_dialog_id, bool is_self_destructing,
+                                                               FormattedText &&caption, bool is_opened, bool is_premium,
+                                                               bool has_spoiler, vector<FileId> &&alternative_file_ids,
                                                                vector<FileId> &&hls_file_ids,
                                                                MultiPromiseActor *load_data_multipromise_ptr) {
   return get_document_message_content(
-      td->documents_manager_->on_get_document(std::move(document), owner_dialog_id, load_data_multipromise_ptr),
+      td->documents_manager_->on_get_document(std::move(document), owner_dialog_id, is_self_destructing,
+                                              load_data_multipromise_ptr),
       std::move(caption), is_opened, is_premium, has_spoiler, std::move(alternative_file_ids), std::move(hls_file_ids));
 }
 
@@ -6768,7 +6773,7 @@ unique_ptr<MessageContent> get_secret_message_content(
     }
     case secret_api::decryptedMessageMediaExternalDocument::ID: {
       auto media = move_tl_object_as<secret_api::decryptedMessageMediaExternalDocument>(media_ptr);
-      return get_document_message_content(td, secret_to_telegram_document(*media), owner_dialog_id,
+      return get_document_message_content(td, secret_to_telegram_document(*media), owner_dialog_id, false,
                                           FormattedText{std::move(message_text), std::move(entities)}, false,
                                           is_premium, false, {}, {}, &load_data_multipromise);
     }
@@ -6809,7 +6814,7 @@ unique_ptr<MessageContent> get_secret_message_content(
 
       media->attributes_.clear();
       auto document = td->documents_manager_->on_get_document(
-          {std::move(file), std::move(media), std::move(attributes)}, owner_dialog_id);
+          {std::move(file), std::move(media), std::move(attributes)}, owner_dialog_id, false);
       return get_document_message_content(std::move(document), {std::move(message_text), std::move(entities)}, false,
                                           false, false, {}, {});
     }
@@ -6854,12 +6859,14 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
         return make_unique<MessageExpiredPhoto>();
       }
 
-      auto photo = get_photo(td, std::move(media->photo_), owner_dialog_id);
+      bool is_self_destructing = (media->flags_ & telegram_api::messageMediaPhoto::TTL_SECONDS_MASK) != 0;
+      auto photo = get_photo(td, std::move(media->photo_), owner_dialog_id,
+                             is_self_destructing ? FileType::SelfDestructingPhoto : FileType::Photo);
       if (photo.is_empty()) {
         return make_unique<MessageExpiredPhoto>();
       }
 
-      if (ttl != nullptr && (media->flags_ & telegram_api::messageMediaPhoto::TTL_SECONDS_MASK) != 0) {
+      if (ttl != nullptr && is_self_destructing) {
         *ttl = MessageSelfDestructType(media->ttl_seconds_, true);
       }
       return make_unique<MessagePhoto>(std::move(photo), std::move(message), media->spoiler_);
@@ -6950,7 +6957,8 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       }
       CHECK(document_id == telegram_api::document::ID);
 
-      if (ttl != nullptr && (media->flags_ & telegram_api::messageMediaDocument::TTL_SECONDS_MASK) != 0) {
+      bool is_self_destructing = (media->flags_ & telegram_api::messageMediaDocument::TTL_SECONDS_MASK) != 0;
+      if (ttl != nullptr && is_self_destructing) {
         *ttl = MessageSelfDestructType(media->ttl_seconds_, true);
       }
       vector<FileId> alternative_file_ids;
@@ -6963,7 +6971,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
           CHECK(alt_document_id == telegram_api::document::ID);
           auto document = move_tl_object_as<telegram_api::document>(alt_document_ptr);
           if (document->mime_type_ == "application/x-mpegurl") {
-            auto parsed_hls_file = td->documents_manager_->on_get_document(std::move(document), owner_dialog_id);
+            auto parsed_hls_file = td->documents_manager_->on_get_document(std::move(document), owner_dialog_id, false);
             if (parsed_hls_file.empty() || parsed_hls_file.type != Document::Type::General) {
               LOG(ERROR) << "Receive invalid HLS file " << parsed_hls_file;
             } else {
@@ -6972,7 +6980,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
             continue;
           }
           auto parsed_alt_document = td->documents_manager_->on_get_document(std::move(document), owner_dialog_id,
-                                                                             nullptr, Document::Type::Video);
+                                                                             false, nullptr, Document::Type::Video);
           if (parsed_alt_document.empty() || parsed_alt_document.type != Document::Type::Video) {
             LOG(ERROR) << "Receive invalid alternative video " << parsed_alt_document;
           } else {
@@ -6981,8 +6989,9 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
         }
       }
       return get_document_message_content(td, move_tl_object_as<telegram_api::document>(document_ptr), owner_dialog_id,
-                                          std::move(message), is_content_read, !media->nopremium_, media->spoiler_,
-                                          std::move(alternative_file_ids), std::move(hls_file_ids), nullptr);
+                                          is_self_destructing, std::move(message), is_content_read, !media->nopremium_,
+                                          media->spoiler_, std::move(alternative_file_ids), std::move(hls_file_ids),
+                                          nullptr);
     }
     case telegram_api::messageMediaGame::ID: {
       auto media = move_tl_object_as<telegram_api::messageMediaGame>(media_ptr);

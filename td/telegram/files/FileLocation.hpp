@@ -238,7 +238,8 @@ void FullRemoteFileLocation::parse(ParserT &parser) {
         case PhotoSizeSource::Type::Thumbnail:
           if (photo().source_.get_file_type("FullRemoteFileLocation::parse") != file_type_ ||
               (file_type_ != FileType::Photo && file_type_ != FileType::PhotoStory &&
-               file_type_ != FileType::Thumbnail && file_type_ != FileType::EncryptedThumbnail)) {
+               file_type_ != FileType::SelfDestructingPhoto && file_type_ != FileType::Thumbnail &&
+               file_type_ != FileType::EncryptedThumbnail)) {
             parser.set_error("Invalid FileType in PhotoRemoteFileLocation Thumbnail");
           }
           break;

@@ -8047,8 +8047,8 @@ void StickersManager::on_uploaded_sticker_file(FileUploadId file_upload_id, bool
   FileType file_type = file_view.get_type();
   auto expected_document_type = file_type == FileType::Sticker ? Document::Type::Sticker : Document::Type::General;
 
-  auto parsed_document =
-      td_->documents_manager_->on_get_document(move_tl_object_as<telegram_api::document>(document_ptr), DialogId());
+  auto parsed_document = td_->documents_manager_->on_get_document(
+      move_tl_object_as<telegram_api::document>(document_ptr), DialogId(), false);
   if (parsed_document.type != expected_document_type) {
     if (is_url && expected_document_type == Document::Type::General &&
         parsed_document.type == Document::Type::Sticker) {

@@ -72,7 +72,7 @@ tl_object_ptr<td_api::document> DocumentsManager::get_document_object(FileId fil
 }
 
 Document DocumentsManager::on_get_document(RemoteDocument remote_document, DialogId owner_dialog_id,
-                                           MultiPromiseActor *load_data_multipromise_ptr,
+                                           bool is_self_destructing, MultiPromiseActor *load_data_multipromise_ptr,
                                            Document::Type default_document_type, Subtype document_subtype) {
   tl_object_ptr<telegram_api::documentAttributeAnimated> animated;
   tl_object_ptr<telegram_api::documentAttributeVideo> video;
@@ -213,7 +213,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
       }
       if (is_voice_note) {
         document_type = Document::Type::VoiceNote;
-        file_type = FileType::VoiceNote;
+        file_type = is_self_destructing ? FileType::SelfDestructingVoiceNote : FileType::VoiceNote;
         default_extension = Slice("oga");
         file_name.clear();
       } else {
@@ -240,11 +240,11 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
       }
       if (is_video_note) {
         document_type = Document::Type::VideoNote;
-        file_type = FileType::VideoNote;
+        file_type = is_self_destructing ? FileType::SelfDestructingVideoNote : FileType::VideoNote;
         file_name.clear();
       } else {
         document_type = Document::Type::Video;
-        file_type = FileType::Video;
+        file_type = is_self_destructing ? FileType::SelfDestructingVideo : FileType::Video;
       }
       default_extension = Slice("mp4");
     }

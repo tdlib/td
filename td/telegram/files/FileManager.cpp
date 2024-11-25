@@ -1354,12 +1354,14 @@ string FileManager::get_file_name(FileType file_type, Slice path) {
     case FileType::ProfilePhoto:
     case FileType::Photo:
     case FileType::PhotoStory:
+    case FileType::SelfDestructingPhoto:
       if (extension != "jpg" && extension != "jpeg" && extension != "gif" && extension != "png" && extension != "tif" &&
           extension != "bmp") {
         return fix_file_extension(file_name, "photo", "jpg");
       }
       break;
     case FileType::VoiceNote:
+    case FileType::SelfDestructingVoiceNote:
       if (extension != "ogg" && extension != "oga" && extension != "mp3" && extension != "mpeg3" &&
           extension != "m4a" && extension != "opus") {
         return fix_file_extension(file_name, "voice", "oga");
@@ -1367,6 +1369,8 @@ string FileManager::get_file_name(FileType file_type, Slice path) {
       break;
     case FileType::Video:
     case FileType::VideoNote:
+    case FileType::SelfDestructingVideo:
+    case FileType::SelfDestructingVideoNote:
       if (extension != "mov" && extension != "3gp" && extension != "mpeg4" && extension != "mp4" &&
           extension != "mkv") {
         return fix_file_extension(file_name, "video", "mp4");

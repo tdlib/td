@@ -37,6 +37,10 @@ enum class FileType : int32 {
   CallLog,
   PhotoStory,
   VideoStory,
+  SelfDestructingPhoto,
+  SelfDestructingVideo,
+  SelfDestructingVideoNote,
+  SelfDestructingVoiceNote,
   Size,
   None
 };

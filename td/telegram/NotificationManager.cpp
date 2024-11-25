@@ -3158,7 +3158,7 @@ Status NotificationManager::parse_push_notification_attach(DialogId dialog_id, s
           ends_with(loc_key, "MESSAGE_VOICE_NOTE") || ends_with(loc_key, "MESSAGE_TEXT")) {
         VLOG(notifications) << "Have attached document";
         attached_document = td_->documents_manager_->on_get_document(
-            telegram_api::move_object_as<telegram_api::document>(result), dialog_id);
+            telegram_api::move_object_as<telegram_api::document>(result), dialog_id, false);
         if (!attached_document.empty()) {
           if (ends_with(loc_key, "_NOTE")) {
             loc_key.resize(loc_key.rfind('_'));

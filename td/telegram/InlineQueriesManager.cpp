@@ -1744,7 +1744,7 @@ td_api::object_ptr<td_api::InlineQueryResult> InlineQueriesManager::get_inline_q
         CHECK(document_id == telegram_api::document::ID);
 
         auto parsed_document = td_->documents_manager_->on_get_document(
-            telegram_api::move_object_as<telegram_api::document>(document_ptr), DialogId());
+            telegram_api::move_object_as<telegram_api::document>(document_ptr), DialogId(), false);
         switch (parsed_document.type) {
           case Document::Type::Animation: {
             LOG_IF(WARNING, result->type_ != "gif") << "Wrong result type " << result->type_;
@@ -2041,7 +2041,7 @@ td_api::object_ptr<td_api::InlineQueryResult> InlineQueriesManager::get_inline_q
            get_web_document_photo_size(td_->file_manager_.get(), FileType::Thumbnail, DialogId(),
                                        std::move(result->thumb_)),
            std::move(attributes)},
-          DialogId(), nullptr, default_document_type);
+          DialogId(), false, nullptr, default_document_type);
       auto file_id = parsed_document.file_id;
       if (!file_id.is_valid()) {
         break;

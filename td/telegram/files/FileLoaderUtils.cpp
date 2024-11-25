@@ -335,7 +335,7 @@ Result<FullLocalLocationInfo> check_full_local_location(FullLocalLocationInfo lo
   if (get_file_type_class(location.file_type_) == FileTypeClass::Photo && size > MAX_PHOTO_SIZE) {
     return get_file_size_error(" for a photo");
   }
-  if (location.file_type_ == FileType::VideoNote &&
+  if ((location.file_type_ == FileType::VideoNote || location.file_type_ == FileType::SelfDestructingVideoNote) &&
       size > G()->get_option_integer("video_note_size_max", DEFAULT_VIDEO_NOTE_SIZE_MAX)) {
     return get_file_size_error(" for a video note");
   }

@@ -1336,7 +1336,7 @@ std::pair<BackgroundId, BackgroundType> BackgroundManager::on_get_background(
   bool is_pattern = wallpaper->pattern_;
 
   Document document = td_->documents_manager_->on_get_document(
-      telegram_api::move_object_as<telegram_api::document>(wallpaper->document_), DialogId(), nullptr,
+      telegram_api::move_object_as<telegram_api::document>(wallpaper->document_), DialogId(), false, nullptr,
       Document::Type::General, is_pattern ? DocumentsManager::Subtype::Pattern : DocumentsManager::Subtype::Background);
   if (!document.file_id.is_valid()) {
     LOG(ERROR) << "Receive wrong document in " << to_string(wallpaper);

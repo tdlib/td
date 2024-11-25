@@ -336,8 +336,8 @@ class GetPremiumPromoQuery final : public Td::ResultHandler {
         continue;
       }
 
-      auto parsed_document = td_->documents_manager_->on_get_document(move_tl_object_as<telegram_api::document>(video),
-                                                                      DialogId(), nullptr, Document::Type::Animation);
+      auto parsed_document = td_->documents_manager_->on_get_document(
+          move_tl_object_as<telegram_api::document>(video), DialogId(), false, nullptr, Document::Type::Animation);
 
       if (parsed_document.type != Document::Type::Animation) {
         LOG(ERROR) << "Receive " << parsed_document.type << " for " << promo->video_sections_[i];
