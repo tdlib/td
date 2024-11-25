@@ -122,10 +122,12 @@ void SuggestedActionManager::dismiss_suggested_action(SuggestedAction suggested_
     if (it == dialog_suggested_actions_.end() || !td::contains(it->second, suggested_action)) {
       return promise.set_value(Unit());
     }
+    remove_dialog_suggested_action(suggested_action);
   } else {
-    if (!td::contains(suggested_actions_, suggested_action)) {
+    if (!remove_suggested_action(suggested_actions_, suggested_action)) {
       return promise.set_value(Unit());
     }
+    save_suggested_actions();
   }
 
   auto &queries = dismiss_suggested_action_queries_[suggested_action];
