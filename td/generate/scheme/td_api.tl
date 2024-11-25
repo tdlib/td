@@ -8161,8 +8161,8 @@ updateSavedMessagesTags saved_messages_topic_id:int53 tags:savedMessagesTags = U
 //@messages The list of messages with active live locations
 updateActiveLiveLocationMessages messages:vector<message> = Update;
 
-//@description The number of Telegram Stars owned by the current user has changed @star_count The new number of Telegram Stars owned
-updateOwnedStarCount star_count:int53 = Update;
+//@description The number of Telegram Stars owned by the current user has changed @star_count The new number of the whole Telegram Stars owned @nanostar_count The new number of 1/1000000000 shares of Telegram Stars owned; from -999999999 to 999999999
+updateOwnedStarCount star_count:int53 nanostar_count:int32 = Update;
 
 //@description The revenue earned from sponsored messages in a chat has changed. If chat revenue screen is opened, then getChatRevenueTransactions may be called to fetch new transactions
 //@chat_id Identifier of the chat
