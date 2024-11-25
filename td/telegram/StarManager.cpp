@@ -589,8 +589,8 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
     if (dialog_id_ == td_->dialog_manager_->get_my_dialog_id()) {
       td_->star_manager_->on_update_owned_star_count(star_count, nanostar_count);
     }
-    promise_.set_value(
-        td_api::make_object<td_api::starTransactions>(star_count, std::move(transactions), result->next_offset_));
+    promise_.set_value(td_api::make_object<td_api::starTransactions>(star_count, nanostar_count,
+                                                                     std::move(transactions), result->next_offset_));
   }
 
   void on_error(Status status) final {
@@ -641,8 +641,8 @@ class GetStarsSubscriptionsQuery final : public Td::ResultHandler {
     auto nanostar_count = StarManager::get_nanostar_count(star_count, result->balance_->nanos_);
     td_->star_manager_->on_update_owned_star_count(star_count, nanostar_count);
     promise_.set_value(td_api::make_object<td_api::starSubscriptions>(
-        star_count, std::move(subscriptions), StarManager::get_star_count(result->subscriptions_missing_balance_),
-        result->subscriptions_next_offset_));
+        star_count, nanostar_count, std::move(subscriptions),
+        StarManager::get_star_count(result->subscriptions_missing_balance_), result->subscriptions_next_offset_));
   }
 
   void on_error(Status status) final {

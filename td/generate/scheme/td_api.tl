@@ -841,10 +841,11 @@ starSubscription id:string chat_id:int53 expiration_date:int32 is_canceled:Bool 
 
 //@description Represents a list of Telegram Star subscriptions
 //@star_count The amount of owned Telegram Stars
+//@nanostar_count The number of 1/1000000000 shares of Telegram Stars owned; from -999999999 to 999999999
 //@subscriptions List of subscriptions for Telegram Stars
 //@required_star_count The number of Telegram Stars required to buy to extend subscriptions expiring soon
 //@next_offset The offset for the next request. If empty, then there are no more results
-starSubscriptions star_count:int53 subscriptions:vector<starSubscription> required_star_count:int53 next_offset:string = StarSubscriptions;
+starSubscriptions star_count:int53 nanostar_count:int32 subscriptions:vector<starSubscription> required_star_count:int53 next_offset:string = StarSubscriptions;
 
 
 //@class AffiliateProgramSortOrder @description Describes the order of the found affiliate programs
@@ -1131,9 +1132,10 @@ starTransaction id:string star_count:int53 is_refund:Bool date:int32 type:StarTr
 
 //@description Represents a list of Telegram Star transactions
 //@star_count The amount of owned Telegram Stars
+//@nanostar_count The number of 1/1000000000 shares of Telegram Stars owned; from -999999999 to 999999999
 //@transactions List of transactions with Telegram Stars
 //@next_offset The offset for the next request. If empty, then there are no more results
-starTransactions star_count:int53 transactions:vector<starTransaction> next_offset:string = StarTransactions;
+starTransactions star_count:int53 nanostar_count:int32 transactions:vector<starTransaction> next_offset:string = StarTransactions;
 
 
 //@class GiveawayParticipantStatus @description Contains information about status of a user in a giveaway
