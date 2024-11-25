@@ -1125,10 +1125,11 @@ starTransactionTypeUnsupported = StarTransactionType;
 //@description Represents a transaction changing the amount of owned Telegram Stars
 //@id Unique identifier of the transaction
 //@star_count The amount of added owned Telegram Stars; negative for outgoing transactions
+//@nanostar_count The number of 1/1000000000 shares of added owned Telegram Stars; from -999999999 to 999999999
 //@is_refund True, if the transaction is a refund of a previous transaction
 //@date Point in time (Unix timestamp) when the transaction was completed
 //@type Type of the transaction
-starTransaction id:string star_count:int53 is_refund:Bool date:int32 type:StarTransactionType = StarTransaction;
+starTransaction id:string star_count:int53 nanostar_count:int32 is_refund:Bool date:int32 type:StarTransactionType = StarTransaction;
 
 //@description Represents a list of Telegram Star transactions
 //@star_count The amount of owned Telegram Stars

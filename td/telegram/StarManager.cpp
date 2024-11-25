@@ -261,8 +261,10 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         return extended_media_objects;
       };
       auto transaction_star_count = StarManager::get_star_count(transaction->stars_->amount_, true);
+      auto transaction_nanostar_count =
+          StarManager::get_nanostar_count(transaction_star_count, transaction->stars_->nanos_);
       auto is_refund = transaction->refund_;
-      auto is_purchase = (transaction_star_count > 0) == is_refund;
+      auto is_purchase = (transaction_star_count > 0 || transaction_nanostar_count > 0) == is_refund;
       auto type = [&]() -> td_api::object_ptr<td_api::StarTransactionType> {
         switch (transaction->peer_->get_id()) {
           case telegram_api::starsTransactionPeerUnsupported::ID:
@@ -536,8 +538,9 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         LOG(ERROR) << "Receive unsupported Star transaction in " << dialog_id_ << ": " << to_string(transaction);
         type = td_api::make_object<td_api::starTransactionTypeUnsupported>();
       }
-      auto star_transaction = td_api::make_object<td_api::starTransaction>(
-          transaction->id_, transaction_star_count, is_refund, transaction->date_, std::move(type));
+      auto star_transaction = td_api::make_object<td_api::starTransaction>(transaction->id_, transaction_star_count,
+                                                                           transaction_nanostar_count, is_refund,
+                                                                           transaction->date_, std::move(type));
       if (star_transaction->type_->get_id() != td_api::starTransactionTypeUnsupported::ID) {
         if (product_info != nullptr) {
           LOG(ERROR) << "Receive product info with " << to_string(star_transaction);
