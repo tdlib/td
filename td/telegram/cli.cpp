@@ -6566,6 +6566,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::unpinAllMessageThreadMessages>(chat_id, message_thread_id));
     } else if (op == "grib") {
       send_request(td_api::make_object<td_api::getRecentInlineBots>());
+    } else if (op == "gob") {
+      send_request(td_api::make_object<td_api::getOwnedBots>());
     } else if (op == "spc" || op == "su") {
       send_request(td_api::make_object<td_api::searchPublicChat>(args));
     } else if (op == "spcs") {

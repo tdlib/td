@@ -30,6 +30,42 @@
 
 namespace td {
 
+class GetAdminedBotsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::users>> promise_;
+  UserId bot_user_id_;
+
+ public:
+  explicit GetAdminedBotsQuery(Promise<td_api::object_ptr<td_api::users>> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::bots_getAdminedBots()));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::bots_getAdminedBots>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto users = result_ptr.move_as_ok();
+    vector<UserId> user_ids;
+    for (const auto &user : users) {
+      auto user_id = UserManager::get_user_id(user);
+      if (user_id.is_valid()) {
+        user_ids.push_back(user_id);
+      }
+    }
+    td_->user_manager_->on_get_users(std::move(users), "GetAdminedBotsQuery");
+    promise_.set_value(td_api::make_object<td_api::users>(
+        static_cast<int32>(user_ids.size()), td_->user_manager_->get_user_ids_object(user_ids, "GetAdminedBotsQuery")));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class SetBotGroupDefaultAdminRightsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -643,6 +679,10 @@ void BotInfoManager::timeout_expired() {
         ->send(get_queries[i].bot_user_id_, get_queries[i].language_code_);
     i = j;
   }
+}
+
+void BotInfoManager::get_owned_bots(Promise<td_api::object_ptr<td_api::users>> &&promise) {
+  td_->create_handler<GetAdminedBotsQuery>(std::move(promise))->send();
 }
 
 void BotInfoManager::set_default_group_administrator_rights(AdministratorRights administrator_rights,

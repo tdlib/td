@@ -39,6 +39,8 @@ class BotInfoManager final : public Actor {
   BotInfoManager &operator=(BotInfoManager &&) = delete;
   ~BotInfoManager() final;
 
+  void get_owned_bots(Promise<td_api::object_ptr<td_api::users>> &&promise);
+
   void set_default_group_administrator_rights(AdministratorRights administrator_rights, Promise<Unit> &&promise);
 
   void set_default_channel_administrator_rights(AdministratorRights administrator_rights, Promise<Unit> &&promise);

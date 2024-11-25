@@ -10971,6 +10971,9 @@ removeSavedAnimation animation:InputFile = Ok;
 //@description Returns up to 20 recently used inline bots in the order of their last usage
 getRecentInlineBots = Users;
 
+//@description Returns the list of owned by the current user bots
+getOwnedBots = Users;
+
 
 //@description Searches for recently used hashtags by their prefix @prefix Hashtag prefix to search for @limit The maximum number of hashtags to be returned
 searchHashtags prefix:string limit:int32 = Hashtags;

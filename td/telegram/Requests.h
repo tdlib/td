@@ -1043,6 +1043,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getRecentInlineBots &request);
 
+  void on_request(uint64 id, const td_api::getOwnedBots &request);
+
   void on_request(uint64 id, td_api::setName &request);
 
   void on_request(uint64 id, td_api::setBio &request);

@@ -5608,6 +5608,12 @@ void Requests::on_request(uint64 id, const td_api::getRecentInlineBots &request)
   CREATE_NO_ARGS_REQUEST(GetRecentInlineBotsRequest);
 }
 
+void Requests::on_request(uint64 id, const td_api::getOwnedBots &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->bot_info_manager_->get_owned_bots(std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::setName &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.first_name_);
