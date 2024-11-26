@@ -137,6 +137,7 @@ class LinkManager final : public Actor {
   class InternalLinkDialogFolderInvite;
   class InternalLinkDialogFolderSettings;
   class InternalLinkDialogInvite;
+  class InternalLinkDialogReferralProgram;
   class InternalLinkEditProfileSettings;
   class InternalLinkGame;
   class InternalLinkInstantView;
