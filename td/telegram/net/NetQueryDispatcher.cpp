@@ -213,6 +213,7 @@ Status NetQueryDispatcher::wait_dc_init(DcId dc_id, bool force) {
     int32 session_count = get_session_count();
     bool use_pfs = get_use_pfs();
 
+    int32 main_session_scheduler_id = G()->get_main_session_scheduler_id();
     int32 slow_net_scheduler_id = G()->get_slow_net_scheduler_id();
 
     auto raw_dc_id = dc_id.get_raw_id();
@@ -221,8 +222,8 @@ Status NetQueryDispatcher::wait_dc_init(DcId dc_id, bool force) {
     int32 download_session_count = is_premium ? 8 : 2;
     int32 download_small_session_count = is_premium ? 8 : 2;
     dc.main_session_ = create_actor_on_scheduler<SessionMultiProxy>(
-        PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":main", get_main_session_scheduler_id(), session_count,
-        auth_data, true, raw_dc_id == main_dc_id_, use_pfs, false, false, is_cdn);
+        PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":main", main_session_scheduler_id, session_count, auth_data,
+        true, raw_dc_id == main_dc_id_, use_pfs, false, false, is_cdn);
     dc.upload_session_ = create_actor_on_scheduler<SessionMultiProxy>(
         PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":upload", slow_net_scheduler_id, upload_session_count,
         auth_data, false, false, use_pfs, false, true, is_cdn);
@@ -341,10 +342,6 @@ bool NetQueryDispatcher::get_use_pfs() {
   return G()->get_option_boolean("use_pfs") || get_session_count() > 1;
 }
 
-int32 NetQueryDispatcher::get_main_session_scheduler_id() {
-  return G()->use_sqlite_pmc() ? -1 : G()->get_database_scheduler_id();
-}
-
 NetQueryDispatcher::NetQueryDispatcher(const std::function<ActorShared<>()> &create_reference) {
   auto s_main_dc_id = G()->td_db()->get_binlog_pmc()->get("main_dc_id");
   if (!s_main_dc_id.empty()) {
@@ -354,8 +351,8 @@ NetQueryDispatcher::NetQueryDispatcher(const std::function<ActorShared<>()> &cre
 #if TD_ANDROID || TD_DARWIN_IOS || TD_DARWIN_VISION_OS || TD_DARWIN_WATCH_OS || TD_TEST_VERIFICATION
   verifier_ = create_actor<NetQueryVerifier>("NetQueryVerifier", create_reference());
 #endif
-  dc_auth_manager_ =
-      create_actor_on_scheduler<DcAuthManager>("DcAuthManager", get_main_session_scheduler_id(), create_reference());
+  dc_auth_manager_ = create_actor_on_scheduler<DcAuthManager>("DcAuthManager", G()->get_main_session_scheduler_id(),
+                                                              create_reference());
   public_rsa_key_watchdog_ = create_actor<PublicRsaKeyWatchdog>("PublicRsaKeyWatchdog", create_reference());
   sequence_dispatcher_ = MultiSequenceDispatcher::create("MultiSequenceDispatcher");
 

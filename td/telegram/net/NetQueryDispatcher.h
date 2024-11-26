@@ -89,7 +89,6 @@ class NetQueryDispatcher {
   Status wait_dc_init(DcId dc_id, bool force);
   bool is_dc_inited(int32 raw_dc_id);
 
-  static int32 get_main_session_scheduler_id();
   static int32 get_session_count();
   static bool get_use_pfs();
 

@@ -602,6 +602,10 @@ class Global final : public ActorContext {
     return gc_scheduler_id_;
   }
 
+  int32 get_main_session_scheduler_id() const {
+    return use_sqlite_pmc() ? -1 : database_scheduler_id_;
+  }
+
   int32 get_slow_net_scheduler_id() const {
     return slow_net_scheduler_id_;
   }
