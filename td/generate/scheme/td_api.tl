@@ -12002,6 +12002,11 @@ reuseStarSubscription subscription_id:string = Ok;
 //-If the active program is scheduled to be closed, then it can't be changed anymore
 setChatAffiliateProgram chat_id:int53 parameters:affiliateProgramParameters = Ok;
 
+//@description Searches a chat with an affiliate program. Returns the chat if found and the program is active
+//@username Username of the chat
+//@referrer The referrer from an internalLinkTypeChatAffiliateProgram link
+searchChatAffiliateProgram username:string referrer:string = Chat;
+
 //@description Searches affiliate programs that can be applied to the given chat
 //@chat_id Identifier of the chat for which affiliate programs are searched for. Can be an identifier of the Saved Messages chat, of a chat with an owned bot, or of a channel chat with can_post_messages administrator right
 //@sort_order Sort order for the results

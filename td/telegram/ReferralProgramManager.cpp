@@ -9,6 +9,7 @@
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/MessagesManager.h"
 #include "td/telegram/ReferralProgramInfo.h"
 #include "td/telegram/StarManager.h"
 #include "td/telegram/Td.h"
@@ -49,6 +50,44 @@ class UpdateStarRefProgramQuery final : public Td::ResultHandler {
     LOG(DEBUG) << "Receive result for UpdateStarRefProgramQuery: " << to_string(ptr);
     td_->user_manager_->on_update_user_referral_program_info(user_id_, ReferralProgramInfo(std::move(ptr)));
     promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class ResolveReferralProgramQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::chat>> promise_;
+
+ public:
+  explicit ResolveReferralProgramQuery(Promise<td_api::object_ptr<td_api::chat>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &username, const string &referrer) {
+    int32 flags = telegram_api::contacts_resolveUsername::REFERER_MASK;
+    send_query(G()->net_query_creator().create(telegram_api::contacts_resolveUsername(flags, username, referrer)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::contacts_resolveUsername>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for ResolveReferralProgramQuery: " << to_string(ptr);
+    td_->user_manager_->on_get_users(std::move(ptr->users_), "ResolveReferralProgramQuery");
+    td_->chat_manager_->on_get_chats(std::move(ptr->chats_), "ResolveReferralProgramQuery");
+
+    DialogId dialog_id(ptr->peer_);
+    if (dialog_id.get_type() != DialogType::User || !td_->user_manager_->have_user(dialog_id.get_user_id())) {
+      return on_error(Status::Error(400, "Chat not found"));
+    }
+
+    td_->messages_manager_->force_create_dialog(dialog_id, "ResolveReferralProgramQuery");
+    promise_.set_value(td_->messages_manager_->get_chat_object(dialog_id, "ResolveReferralProgramQuery"));
   }
 
   void on_error(Status status) final {
@@ -294,7 +333,13 @@ void ReferralProgramManager::set_dialog_referral_program(DialogId dialog_id, Ref
   auto bot_user_id = dialog_id.get_user_id();
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
 
-  td_->create_handler<UpdateStarRefProgramQuery>(std::move(promise))->send(bot_user_id, std::move(input_user), parameters);
+  td_->create_handler<UpdateStarRefProgramQuery>(std::move(promise))
+      ->send(bot_user_id, std::move(input_user), parameters);
+}
+
+void ReferralProgramManager::search_dialog_referral_program(const string &username, const string &referral,
+                                                            Promise<td_api::object_ptr<td_api::chat>> &&promise) {
+  td_->create_handler<ResolveReferralProgramQuery>(std::move(promise))->send(username, referral);
 }
 
 Status ReferralProgramManager::check_referable_dialog_id(DialogId dialog_id) const {

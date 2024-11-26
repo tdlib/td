@@ -3575,6 +3575,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setChatAffiliateProgram>(
           chat_id,
           op == "scapd" ? nullptr : td_api::make_object<td_api::affiliateProgramParameters>(commission, month_count)));
+    } else if (op == "scapr") {
+      string username;
+      string referrer;
+      get_args(args, username, referrer);
+      send_request(td_api::make_object<td_api::searchChatAffiliateProgram>(username, referrer));
     } else if (op == "sapc" || op == "sapd" || op == "sapr") {
       ChatId chat_id;
       string limit;
