@@ -26,7 +26,9 @@ ReferralProgramInfo::ReferralProgramInfo(telegram_api::object_ptr<telegram_api::
 }
 
 td_api::object_ptr<td_api::affiliateProgramInfo> ReferralProgramInfo::get_affiliate_program_info_object() const {
-  CHECK(is_valid());
+  if (!is_valid()) {
+    return nullptr;
+  }
   return td_api::make_object<td_api::affiliateProgramInfo>(parameters_.get_affiliate_program_parameters_object(),
                                                            end_date_, daily_star_count_, daily_nanostar_count_);
 }

@@ -26,6 +26,7 @@
 #include "td/telegram/Photo.h"
 #include "td/telegram/QueryCombiner.h"
 #include "td/telegram/QueryMerger.h"
+#include "td/telegram/ReferralProgramInfo.h"
 #include "td/telegram/RestrictionReason.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/StoryId.h"
@@ -597,6 +598,7 @@ class UserManager final : public Actor {
     string privacy_policy_url;
     AdministratorRights group_administrator_rights;
     AdministratorRights broadcast_administrator_rights;
+    ReferralProgramInfo referral_program_info;
 
     string placeholder_path;
     int32 background_color = -1;

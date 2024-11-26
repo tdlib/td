@@ -53,6 +53,7 @@
 #include "td/telegram/PremiumGiftOption.hpp"
 #include "td/telegram/ReactionListType.h"
 #include "td/telegram/ReactionManager.h"
+#include "td/telegram/ReferralProgramInfo.hpp"
 #include "td/telegram/SecretChatLayer.h"
 #include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/ServerMessageId.h"
@@ -1762,6 +1763,7 @@ void UserManager::UserFull::store(StorerT &storer) const {
   bool has_background_dark_color = bot_info != nullptr && bot_info->background_dark_color != -1;
   bool has_header_color = bot_info != nullptr && bot_info->header_color != -1;
   bool has_header_dark_color = bot_info != nullptr && bot_info->header_dark_color != -1;
+  bool has_referral_program_info = bot_info != nullptr && bot_info->referral_program_info.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
   STORE_FLAG(is_blocked);
@@ -1806,6 +1808,7 @@ void UserManager::UserFull::store(StorerT &storer) const {
     STORE_FLAG(has_background_dark_color);
     STORE_FLAG(has_header_color);
     STORE_FLAG(has_header_dark_color);
+    STORE_FLAG(has_referral_program_info);
     END_STORE_FLAGS();
   }
   if (has_about) {
@@ -1877,6 +1880,9 @@ void UserManager::UserFull::store(StorerT &storer) const {
   if (has_header_dark_color) {
     store(bot_info->header_dark_color, storer);
   }
+  if (has_referral_program_info) {
+    store(bot_info->referral_program_info, storer);
+  }
 }
 
 template <class ParserT>
@@ -1906,6 +1912,7 @@ void UserManager::UserFull::parse(ParserT &parser) {
   bool has_background_dark_color = false;
   bool has_header_color = false;
   bool has_header_dark_color = false;
+  bool has_referral_rpogram_info = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_about);
   PARSE_FLAG(is_blocked);
@@ -1950,6 +1957,7 @@ void UserManager::UserFull::parse(ParserT &parser) {
     PARSE_FLAG(has_background_dark_color);
     PARSE_FLAG(has_header_color);
     PARSE_FLAG(has_header_dark_color);
+    PARSE_FLAG(has_referral_rpogram_info);
     END_PARSE_FLAGS();
   }
   if (has_about) {
@@ -2024,6 +2032,9 @@ void UserManager::UserFull::parse(ParserT &parser) {
   }
   if (has_header_dark_color) {
     parse(add_bot_info()->header_dark_color, parser);
+  }
+  if (has_referral_rpogram_info) {
+    parse(add_bot_info()->referral_program_info, parser);
   }
 }
 
@@ -7177,10 +7188,21 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
     auto *bot_info = user_full->add_bot_info();
     AdministratorRights group_administrator_rights(user->bot_group_admin_rights_, ChannelType::Megagroup);
     AdministratorRights broadcast_administrator_rights(user->bot_broadcast_admin_rights_, ChannelType::Broadcast);
+    ReferralProgramInfo referral_program_info;
+    if (user->starref_program_ != nullptr) {
+      auto bot_user_id = UserId(user->starref_program_->bot_id_);
+      if (user_id == bot_user_id) {
+        referral_program_info = ReferralProgramInfo(std::move(user->starref_program_));
+      } else {
+        LOG(ERROR) << "Receive affiliate program for " << bot_user_id << " instead of " << user_id;
+      }
+    }
     if (bot_info->group_administrator_rights != group_administrator_rights ||
-        bot_info->broadcast_administrator_rights != broadcast_administrator_rights) {
+        bot_info->broadcast_administrator_rights != broadcast_administrator_rights ||
+        bot_info->referral_program_info != referral_program_info) {
       bot_info->group_administrator_rights = group_administrator_rights;
       bot_info->broadcast_administrator_rights = broadcast_administrator_rights;
+      bot_info->referral_program_info = referral_program_info;
 
       user_full->is_changed = true;
     }
@@ -8263,9 +8285,9 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
   if (is_bot) {
     if (user_full->bot_info == nullptr) {
       bot_info = td_api::make_object<td_api::botInfo>(
-          user_full->about, string(), nullptr, nullptr, nullptr, Auto(), string(), nullptr, nullptr, -1, -1, -1, -1,
-          user_full->can_view_revenue, user_full->can_manage_emoji_status, user_full->has_preview_medias, nullptr,
-          nullptr, nullptr, nullptr);
+          user_full->about, string(), nullptr, nullptr, nullptr, Auto(), string(), nullptr, nullptr, nullptr, -1, -1,
+          -1, -1, user_full->can_view_revenue, user_full->can_manage_emoji_status, user_full->has_preview_medias,
+          nullptr, nullptr, nullptr, nullptr);
     } else {
       const auto *user_bot_info = user_full->bot_info.get();
       auto menu_button = get_bot_menu_button_object(td_, user_bot_info->menu_button.get());
@@ -8282,9 +8304,10 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
           user_bot_info->broadcast_administrator_rights == AdministratorRights()
               ? nullptr
               : user_bot_info->broadcast_administrator_rights.get_chat_administrator_rights_object(),
-          user_bot_info->background_color, user_bot_info->background_dark_color, user_bot_info->header_color,
-          user_bot_info->header_dark_color, user_full->can_view_revenue, user_full->can_manage_emoji_status,
-          user_full->has_preview_medias, nullptr, nullptr, nullptr, nullptr);
+          user_bot_info->referral_program_info.get_affiliate_program_info_object(), user_bot_info->background_color,
+          user_bot_info->background_dark_color, user_bot_info->header_color, user_bot_info->header_dark_color,
+          user_full->can_view_revenue, user_full->can_manage_emoji_status, user_full->has_preview_medias, nullptr,
+          nullptr, nullptr, nullptr);
     }
     if (u != nullptr && u->can_be_edited_bot && u->usernames.has_editable_username()) {
       auto bot_username = u->usernames.get_editable_username();
