@@ -404,6 +404,7 @@ function split_file($file, $chunks, $undo) {
             'ReactionNotificationSettings' => 'ReactionNotificationSettings',
             'ReactionNotificationsFrom' => 'ReactionNotificationsFrom',
             'ReactionType|[a-z_]*_reaction_type' => 'ReactionType',
+            'ReferralProgramInfo' => 'ReferralProgramInfo',
             'referral_program_manager[_(-](?![.]get[(][)])|ReferralProgramManager' => 'ReferralProgramManager',
             'ReferralProgramParameters' => 'ReferralProgramParameters',
             'RequestActor|RequestOnceActor' => 'RequestActor',

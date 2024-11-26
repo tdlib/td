@@ -891,6 +891,14 @@ connectedAffiliateProgram url:string bot_user_id:int53 parameters:affiliateProgr
 //@next_offset The offset for the next request. If empty, then there are no more results
 connectedAffiliatePrograms total_count:int32 programs:vector<connectedAffiliateProgram> next_offset:string = ConnectedAffiliatePrograms;
 
+//@description Contains information about an active affiliate program
+//@parameters Parameters of the affiliate program
+//@end_date Point in time (Unix timestamp) when the affiliate program will be closed; 0 if the affiliate program isn't scheduled to close.
+//-If positive, then the program can't be connected using connectAffiliateProgram, but active connections will work until the date
+//@daily_revenue_per_user_star_count The amount of daily revenue per user in Telegram Stars of the bot that created the affiliate program
+//@daily_revenue_per_user_nanostar_count The number of 1/1000000000 shares of daily revenue per user in Telegram Stars of the bot that created the affiliate program; from -999999999 to 999999999
+affiliateProgramInfo parameters:affiliateProgramParameters end_date:int32 daily_revenue_per_user_star_count:int64 daily_revenue_per_user_nanostar_count:int32 = AffiliateProgramInfo;
+
 
 //@description Contains information about a product that can be paid with invoice
 //@title Product title
