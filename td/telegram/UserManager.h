@@ -158,6 +158,8 @@ class UserManager final : public Actor {
   void on_update_user_commands(UserId user_id,
                                vector<telegram_api::object_ptr<telegram_api::botCommand>> &&bot_commands);
 
+  void on_update_user_referral_program_info(UserId user_id, ReferralProgramInfo &&referral_program_info);
+
   void on_update_user_need_phone_number_privacy_exception(UserId user_id, bool need_phone_number_privacy_exception);
 
   void on_update_user_wallpaper_overridden(UserId user_id, bool wallpaper_overridden);
@@ -877,6 +879,9 @@ class UserManager final : public Actor {
 
   static void on_update_user_full_commands(UserFull *user_full, UserId user_id,
                                            vector<telegram_api::object_ptr<telegram_api::botCommand>> &&bot_commands);
+
+  void on_update_user_full_referral_program_info(UserFull *user_full, UserId user_id,
+                                                 ReferralProgramInfo &&referral_program_info);
 
   void on_update_user_full_need_phone_number_privacy_exception(UserFull *user_full, UserId user_id,
                                                                bool need_phone_number_privacy_exception) const;

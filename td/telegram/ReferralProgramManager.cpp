@@ -9,6 +9,7 @@
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/ReferralProgramInfo.h"
 #include "td/telegram/StarManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UserManager.h"
@@ -21,13 +22,15 @@ namespace td {
 
 class UpdateStarRefProgramQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
+  UserId user_id_;
 
  public:
   explicit UpdateStarRefProgramQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(telegram_api::object_ptr<telegram_api::InputUser> &&input_user,
+  void send(UserId user_id, telegram_api::object_ptr<telegram_api::InputUser> &&input_user,
             const ReferralProgramParameters &parameters) {
+    user_id_ = user_id;
     int32 flags = 0;
     if (parameters.get_month_count() != 0) {
       flags |= telegram_api::bots_updateStarRefProgram::DURATION_MONTHS_MASK;
@@ -42,6 +45,9 @@ class UpdateStarRefProgramQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
+    auto ptr = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for UpdateStarRefProgramQuery: " << to_string(ptr);
+    td_->user_manager_->on_update_user_referral_program_info(user_id_, ReferralProgramInfo(std::move(ptr)));
     promise_.set_value(Unit());
   }
 
@@ -288,7 +294,7 @@ void ReferralProgramManager::set_dialog_referral_program(DialogId dialog_id, Ref
   auto bot_user_id = dialog_id.get_user_id();
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
 
-  td_->create_handler<UpdateStarRefProgramQuery>(std::move(promise))->send(std::move(input_user), parameters);
+  td_->create_handler<UpdateStarRefProgramQuery>(std::move(promise))->send(bot_user_id, std::move(input_user), parameters);
 }
 
 Status ReferralProgramManager::check_referable_dialog_id(DialogId dialog_id) const {

@@ -3592,6 +3592,27 @@ void UserManager::on_update_user_full_commands(
   }
 }
 
+void UserManager::on_update_user_referral_program_info(UserId user_id, ReferralProgramInfo &&referral_program_info) {
+  UserFull *user_full = get_user_full_force(user_id, "on_update_user_referral_program_info");
+  if (user_full != nullptr) {
+    on_update_user_full_referral_program_info(user_full, user_id, std::move(referral_program_info));
+    update_user_full(user_full, user_id, "on_update_user_referral_program_info");
+  }
+}
+
+void UserManager::on_update_user_full_referral_program_info(UserFull *user_full, UserId user_id,
+                                                            ReferralProgramInfo &&referral_program_info) {
+  CHECK(user_full != nullptr);
+  if (user_full->bot_info == nullptr && !referral_program_info.is_valid()) {
+    return;
+  }
+  auto bot_info = user_full->add_bot_info();
+  if (bot_info->referral_program_info != referral_program_info) {
+    bot_info->referral_program_info = std::move(referral_program_info);
+    user_full->is_changed = true;
+  }
+}
+
 void UserManager::on_update_user_need_phone_number_privacy_exception(UserId user_id,
                                                                      bool need_phone_number_privacy_exception) {
   LOG(INFO) << "Receive " << need_phone_number_privacy_exception << " need phone number privacy exception with "
