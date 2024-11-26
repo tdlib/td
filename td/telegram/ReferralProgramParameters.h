@@ -26,8 +26,18 @@ class ReferralProgramParameters {
 
   ReferralProgramParameters(int32 commission_permille, int32 duration_months);
 
+  ReferralProgramParameters(const td_api::object_ptr<td_api::affiliateProgramParameters> &parameters);
+
   bool is_valid() const {
     return 1 <= commission_ && commission_ <= 999 && 0 <= month_count_ && month_count_ <= 36;
+  }
+
+  int32 get_commission() const {
+    return commission_;
+  }
+
+  int32 get_month_count() const {
+    return month_count_;
   }
 
   td_api::object_ptr<td_api::affiliateProgramParameters> get_affiliate_program_parameters_object() const;

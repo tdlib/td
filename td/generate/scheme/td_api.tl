@@ -893,7 +893,7 @@ connectedAffiliatePrograms total_count:int32 programs:vector<connectedAffiliateP
 
 //@description Contains information about an active affiliate program
 //@parameters Parameters of the affiliate program
-//@end_date Point in time (Unix timestamp) when the affiliate program will be closed; 0 if the affiliate program isn't scheduled to close.
+//@end_date Point in time (Unix timestamp) when the affiliate program will be closed; 0 if the affiliate program isn't scheduled to be closed.
 //-If positive, then the program can't be connected using connectAffiliateProgram, but active connections will work until the date
 //@daily_revenue_per_user_star_count The amount of daily revenue per user in Telegram Stars of the bot that created the affiliate program
 //@daily_revenue_per_user_nanostar_count The number of 1/1000000000 shares of daily revenue per user in Telegram Stars of the bot that created the affiliate program; from -999999999 to 999999999
@@ -11995,6 +11995,12 @@ editUserStarSubscription user_id:int53 telegram_payment_charge_id:string is_canc
 //@description Reuses an active Telegram Star subscription to a channel chat and joins the chat again @subscription_id Identifier of the subscription
 reuseStarSubscription subscription_id:string = Ok;
 
+
+//@description Changes affiliate program for a bot
+//@chat_id Identifier of the chat with an owned bot for which affiliate program is changed
+//@parameters Parameters of the affiliate program; pass null to close the currently active program. If there is an active program, then commission and program duration can only be increased.
+//-If the active program is scheduled to be closed, then it can't be changed anymore
+setChatAffiliateProgram chat_id:int53 parameters:affiliateProgramParameters = Ok;
 
 //@description Searches affiliate programs that can be applied to the given chat
 //@chat_id Identifier of the chat for which affiliate programs are searched for. Can be an identifier of the Saved Messages chat, of a chat with an owned bot, or of a channel chat with can_post_messages administrator right

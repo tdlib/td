@@ -3567,6 +3567,14 @@ class CliClient final : public Actor {
       string subscription_id;
       get_args(args, subscription_id);
       send_request(td_api::make_object<td_api::reuseStarSubscription>(subscription_id));
+    } else if (op == "scap" || op == "scapd") {
+      ChatId chat_id;
+      int32 commission;
+      int32 month_count;
+      get_args(args, chat_id, commission, month_count);
+      send_request(td_api::make_object<td_api::setChatAffiliateProgram>(
+          chat_id,
+          op == "scapd" ? nullptr : td_api::make_object<td_api::affiliateProgramParameters>(commission, month_count)));
     } else if (op == "sapc" || op == "sapd" || op == "sapr") {
       ChatId chat_id;
       string limit;

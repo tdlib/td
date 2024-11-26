@@ -25,6 +25,8 @@ class ReferralProgramManager final : public Actor {
  public:
   ReferralProgramManager(Td *td, ActorShared<> parent);
 
+  void set_dialog_referral_program(DialogId dialog_id, ReferralProgramParameters parameters, Promise<Unit> &&promise);
+
   void search_referral_programs(DialogId dialog_id, ReferralProgramSortOrder sort_order, const string &offset,
                                 int32 limit, Promise<td_api::object_ptr<td_api::foundAffiliatePrograms>> &&promise);
 

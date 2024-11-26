@@ -12,6 +12,17 @@ ReferralProgramParameters::ReferralProgramParameters(int32 commission_permille, 
     : commission_(commission_permille), month_count_(duration_months) {
 }
 
+ReferralProgramParameters::ReferralProgramParameters(
+    const td_api::object_ptr<td_api::affiliateProgramParameters> &parameters) {
+  if (parameters != nullptr) {
+    commission_ = parameters->commission_per_mille_;
+    month_count_ = parameters->month_count_;
+    if (!is_valid()) {
+      commission_ = -1;
+    }
+  }
+}
+
 td_api::object_ptr<td_api::affiliateProgramParameters>
 ReferralProgramParameters::get_affiliate_program_parameters_object() const {
   CHECK(is_valid());

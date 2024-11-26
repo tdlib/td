@@ -7502,6 +7502,13 @@ void Requests::on_request(uint64 id, td_api::reuseStarSubscription &request) {
   td_->star_manager_->reuse_star_subscription(request.subscription_id_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::setChatAffiliateProgram &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->referral_program_manager_->set_dialog_referral_program(
+      DialogId(request.chat_id_), ReferralProgramParameters(request.parameters_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::searchAffiliatePrograms &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.offset_);

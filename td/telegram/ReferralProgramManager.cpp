@@ -19,6 +19,37 @@
 
 namespace td {
 
+class UpdateStarRefProgramQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit UpdateStarRefProgramQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::InputUser> &&input_user,
+            const ReferralProgramParameters &parameters) {
+    int32 flags = 0;
+    if (parameters.get_month_count() != 0) {
+      flags |= telegram_api::bots_updateStarRefProgram::DURATION_MONTHS_MASK;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::bots_updateStarRefProgram(
+        flags, std::move(input_user), parameters.get_commission(), parameters.get_month_count())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::bots_updateStarRefProgram>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ReferralProgramManager::GetSuggestedStarRefBotsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::foundAffiliatePrograms>> promise_;
   DialogId dialog_id_;
@@ -231,6 +262,33 @@ ReferralProgramManager::ReferralProgramManager(Td *td, ActorShared<> parent) : t
 
 void ReferralProgramManager::tear_down() {
   parent_.reset();
+}
+
+void ReferralProgramManager::set_dialog_referral_program(DialogId dialog_id, ReferralProgramParameters parameters,
+                                                         Promise<Unit> &&promise) {
+  if (!parameters.is_valid() && parameters != ReferralProgramParameters()) {
+    return promise.set_error(Status::Error(400, "Invalid affiliate parameters specified"));
+  }
+  switch (dialog_id.get_type()) {
+    case DialogType::User: {
+      TRY_RESULT_PROMISE(promise, bot_data, td_->user_manager_->get_bot_data(dialog_id.get_user_id()));
+      if (bot_data.can_be_edited) {
+        break;
+      }
+      return promise.set_error(Status::Error(400, "The bot isn't owned"));
+    }
+    case DialogType::Chat:
+    case DialogType::Channel:
+    case DialogType::SecretChat:
+    case DialogType::None:
+      return promise.set_error(Status::Error(400, "The chat can't have affiliate program"));
+    default:
+      UNREACHABLE();
+  }
+  auto bot_user_id = dialog_id.get_user_id();
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
+
+  td_->create_handler<UpdateStarRefProgramQuery>(std::move(promise))->send(std::move(input_user), parameters);
 }
 
 Status ReferralProgramManager::check_referable_dialog_id(DialogId dialog_id) const {
