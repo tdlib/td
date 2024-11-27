@@ -180,12 +180,6 @@ void SuggestedActionManager::save_suggested_actions() {
   }
 }
 
-void SuggestedActionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
-  if (!suggested_actions_.empty()) {
-    updates.push_back(get_update_suggested_actions_object(suggested_actions_, {}, "get_current_state"));
-  }
-}
-
 void SuggestedActionManager::set_dialog_pending_suggestions(DialogId dialog_id, vector<string> &&pending_suggestions) {
   if (!dismiss_suggested_action_queries_.empty()) {
     return;
@@ -224,6 +218,15 @@ void SuggestedActionManager::remove_dialog_suggested_action(SuggestedAction acti
   remove_suggested_action(it->second, action);
   if (it->second.empty()) {
     dialog_suggested_actions_.erase(it);
+  }
+}
+
+void SuggestedActionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
+  if (!suggested_actions_.empty()) {
+    updates.push_back(get_update_suggested_actions_object(suggested_actions_, {}, "get_current_state"));
+  }
+  for (const auto &actions : dialog_suggested_actions_) {
+    updates.push_back(get_update_suggested_actions_object(actions.second, {}, "get_current_state 2"));
   }
 }
 
