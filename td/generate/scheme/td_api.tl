@@ -12021,9 +12021,14 @@ searchChatAffiliateProgram username:string referrer:string = Chat;
 searchAffiliatePrograms chat_id:int53 sort_order:AffiliateProgramSortOrder offset:string limit:int32 = FoundAffiliatePrograms;
 
 //@description Connects an affiliate program to the given chat. Returns information about the connected affiliate program
-//@chat_id Identifier of the chat for which the affiliate program is connected. Can be an identifier of the Saved Messages chat, of a chat with an owned bot, or of a channel chat with can_post_messages administrator right
+//@chat_id Identifier of the chat to which the affiliate program will be connected. Can be an identifier of the Saved Messages chat, of a chat with an owned bot, or of a channel chat with can_post_messages administrator right
 //@bot_user_id Identifier of the bot, which affiliate program is connected
 connectAffiliateProgram chat_id:int53 bot_user_id:int53 = ChatAffiliateProgram;
+
+//@description Disconnects an affiliate program from the given chat and immediately deactivates its referral link. Returns updated information about the disconnected affiliate program
+//@chat_id Identifier of the chat for which the affiliate program is connected
+//@url The referral link of the affiliate program
+disconnectAffiliateProgram chat_id:int53 url:string = ChatAffiliateProgram;
 
 //@description Returns affiliate programs that were connected to the given chat
 //@chat_id Identifier of the chat for which the affiliate programs are connected. Can be an identifier of the Saved Messages chat, of a chat with an owned bot, or of a channel chat with can_post_messages administrator right

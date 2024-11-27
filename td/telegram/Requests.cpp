@@ -7534,6 +7534,13 @@ void Requests::on_request(uint64 id, const td_api::connectAffiliateProgram &requ
                                                            std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::disconnectAffiliateProgram &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.url_);
+  CREATE_REQUEST_PROMISE();
+  td_->referral_program_manager_->revoke_referral_program(DialogId(request.chat_id_), request.url_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::getChatAffiliatePrograms &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.offset_);

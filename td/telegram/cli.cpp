@@ -3598,6 +3598,11 @@ class CliClient final : public Actor {
       UserId bot_user_id;
       get_args(args, chat_id, bot_user_id);
       send_request(td_api::make_object<td_api::connectAffiliateProgram>(chat_id, bot_user_id));
+    } else if (op == "dapr") {
+      ChatId chat_id;
+      string url;
+      get_args(args, chat_id, url);
+      send_request(td_api::make_object<td_api::disconnectAffiliateProgram>(chat_id, url));
     } else if (op == "gcap") {
       ChatId chat_id;
       string limit;
