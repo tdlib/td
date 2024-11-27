@@ -877,13 +877,14 @@ foundAffiliateProgram bot_user_id:int53 parameters:affiliateProgramParameters = 
 foundAffiliatePrograms total_count:int32 programs:vector<foundAffiliateProgram> next_offset:string = FoundAffiliatePrograms;
 
 //@description Describes a connected affiliate program
-//@url The link that can be used to refer users
+//@url The link that can be used to refer users if the program is still active
 //@bot_user_id User identifier of the bot created the program
 //@parameters The parameters of the affiliate program
 //@connection_date Point in time (Unix timestamp) when the affiliate program was connected
+//@is_disconnected True, if the program was canceled by the bot, or disconnected by the chat owner and isn't available anymore
 //@user_count The number of users that used the affiliate program
 //@revenue_star_count The number of Telegram Stars that were earned by the affiliate program
-connectedAffiliateProgram url:string bot_user_id:int53 parameters:affiliateProgramParameters connection_date:int32 user_count:int64 revenue_star_count:int64 = ConnectedAffiliateProgram;
+connectedAffiliateProgram url:string bot_user_id:int53 parameters:affiliateProgramParameters connection_date:int32 is_disconnected:Bool user_count:int64 revenue_star_count:int64 = ConnectedAffiliateProgram;
 
 //@description Represents a list of affiliate programs connected to a chat
 //@total_count The total number of affiliate programs connected to the chat

@@ -65,6 +65,7 @@ class ReferralProgramManager final : public Actor {
     ReferralProgramParameters parameters_;
     int64 participant_count_ = 0;
     int64 revenue_star_count_ = 0;
+    bool is_revoked_ = false;
 
    public:
     explicit ConnectedBotStarRef(telegram_api::object_ptr<telegram_api::connectedBotStarRef> &&ref);
