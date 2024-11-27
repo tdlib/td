@@ -12030,8 +12030,13 @@ connectAffiliateProgram chat_id:int53 bot_user_id:int53 = ChatAffiliateProgram;
 //@url The referral link of the affiliate program
 disconnectAffiliateProgram chat_id:int53 url:string = ChatAffiliateProgram;
 
+//@description Returns an affiliate program that were connected to the given chat by identifier of the bot that created the program
+//@chat_id Identifier of the chat for which the affiliate program was connected. Can be an identifier of the Saved Messages chat, of a chat with an owned bot, or of a channel chat with can_post_messages administrator right
+//@bot_user_id Identifier of the bot that created the program
+getChatAffiliateProgram chat_id:int53 bot_user_id:int53 = ChatAffiliateProgram;
+
 //@description Returns affiliate programs that were connected to the given chat
-//@chat_id Identifier of the chat for which the affiliate programs are connected. Can be an identifier of the Saved Messages chat, of a chat with an owned bot, or of a channel chat with can_post_messages administrator right
+//@chat_id Identifier of the chat for which the affiliate programs were connected. Can be an identifier of the Saved Messages chat, of a chat with an owned bot, or of a channel chat with can_post_messages administrator right
 //@offset Offset of the first affiliate program to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of affiliate programs to return
 getChatAffiliatePrograms chat_id:int53 offset:string limit:int32 = ChatAffiliatePrograms;

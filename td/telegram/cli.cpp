@@ -3605,6 +3605,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::disconnectAffiliateProgram>(chat_id, url));
     } else if (op == "gcap") {
       ChatId chat_id;
+      UserId bot_user_id;
+      get_args(args, chat_id, bot_user_id);
+      send_request(td_api::make_object<td_api::getChatAffiliateProgram>(chat_id, bot_user_id));
+    } else if (op == "gcaps") {
+      ChatId chat_id;
       string limit;
       string offset;
       get_args(args, chat_id, limit, offset);
