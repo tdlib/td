@@ -162,11 +162,11 @@ class ReferralProgramManager::GetSuggestedStarRefBotsQuery final : public Td::Re
 };
 
 class ReferralProgramManager::ConnectStarRefBotQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::connectedAffiliateProgram>> promise_;
+  Promise<td_api::object_ptr<td_api::chatAffiliateProgram>> promise_;
   DialogId dialog_id_;
 
  public:
-  explicit ConnectStarRefBotQuery(Promise<td_api::object_ptr<td_api::connectedAffiliateProgram>> &&promise)
+  explicit ConnectStarRefBotQuery(Promise<td_api::object_ptr<td_api::chatAffiliateProgram>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -197,7 +197,7 @@ class ReferralProgramManager::ConnectStarRefBotQuery final : public Td::ResultHa
       LOG(ERROR) << "Receive invalid connected referral program for " << dialog_id_;
       return on_error(Status::Error(500, "Receive invalid response"));
     }
-    promise_.set_value(ref.get_connected_affiliate_program_object(td_));
+    promise_.set_value(ref.get_chat_affiliate_program_object(td_));
   }
 
   void on_error(Status status) final {
@@ -207,11 +207,11 @@ class ReferralProgramManager::ConnectStarRefBotQuery final : public Td::ResultHa
 };
 
 class ReferralProgramManager::GetConnectedStarRefBotsQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::connectedAffiliatePrograms>> promise_;
+  Promise<td_api::object_ptr<td_api::chatAffiliatePrograms>> promise_;
   DialogId dialog_id_;
 
  public:
-  explicit GetConnectedStarRefBotsQuery(Promise<td_api::object_ptr<td_api::connectedAffiliatePrograms>> &&promise)
+  explicit GetConnectedStarRefBotsQuery(Promise<td_api::object_ptr<td_api::chatAffiliatePrograms>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -244,7 +244,7 @@ class ReferralProgramManager::GetConnectedStarRefBotsQuery final : public Td::Re
 
     td_->user_manager_->on_get_users(std::move(ptr->users_), "GetConnectedStarRefBotsQuery");
 
-    vector<td_api::object_ptr<td_api::connectedAffiliateProgram>> programs;
+    vector<td_api::object_ptr<td_api::chatAffiliateProgram>> programs;
     string next_offset;
     for (auto &ref : ptr->connected_bots_) {
       next_offset = PSTRING() << ref->date_ << ' ' << ref->url_;
@@ -253,7 +253,7 @@ class ReferralProgramManager::GetConnectedStarRefBotsQuery final : public Td::Re
         LOG(ERROR) << "Receive invalid connected referral program for " << dialog_id_;
         continue;
       }
-      programs.push_back(star_ref.get_connected_affiliate_program_object(td_));
+      programs.push_back(star_ref.get_chat_affiliate_program_object(td_));
     }
 
     auto total_count = ptr->count_;
@@ -262,7 +262,7 @@ class ReferralProgramManager::GetConnectedStarRefBotsQuery final : public Td::Re
       total_count = static_cast<int32>(programs.size());
     }
     promise_.set_value(
-        td_api::make_object<td_api::connectedAffiliatePrograms>(total_count, std::move(programs), next_offset));
+        td_api::make_object<td_api::chatAffiliatePrograms>(total_count, std::move(programs), next_offset));
   }
 
   void on_error(Status status) final {
@@ -295,11 +295,11 @@ ReferralProgramManager::ConnectedBotStarRef::ConnectedBotStarRef(
     , is_revoked_(ref->revoked_) {
 }
 
-td_api::object_ptr<td_api::connectedAffiliateProgram>
-ReferralProgramManager::ConnectedBotStarRef::get_connected_affiliate_program_object(Td *td) const {
+td_api::object_ptr<td_api::chatAffiliateProgram>
+ReferralProgramManager::ConnectedBotStarRef::get_chat_affiliate_program_object(Td *td) const {
   CHECK(is_valid());
-  return td_api::make_object<td_api::connectedAffiliateProgram>(
-      url_, td->user_manager_->get_user_id_object(user_id_, "connectedAffiliateProgram"),
+  return td_api::make_object<td_api::chatAffiliateProgram>(
+      url_, td->user_manager_->get_user_id_object(user_id_, "chatAffiliateProgram"),
       parameters_.get_affiliate_program_parameters_object(), date_, is_revoked_, participant_count_,
       revenue_star_count_);
 }
@@ -391,7 +391,7 @@ void ReferralProgramManager::search_referral_programs(
 }
 
 void ReferralProgramManager::connect_referral_program(
-    DialogId dialog_id, UserId bot_user_id, Promise<td_api::object_ptr<td_api::connectedAffiliateProgram>> &&promise) {
+    DialogId dialog_id, UserId bot_user_id, Promise<td_api::object_ptr<td_api::chatAffiliateProgram>> &&promise) {
   TRY_STATUS_PROMISE(promise, check_referable_dialog_id(dialog_id));
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
 
@@ -400,7 +400,7 @@ void ReferralProgramManager::connect_referral_program(
 
 void ReferralProgramManager::get_connected_referral_programs(
     DialogId dialog_id, const string &offset, int32 limit,
-    Promise<td_api::object_ptr<td_api::connectedAffiliatePrograms>> &&promise) {
+    Promise<td_api::object_ptr<td_api::chatAffiliatePrograms>> &&promise) {
   TRY_STATUS_PROMISE(promise, check_referable_dialog_id(dialog_id));
   if (limit <= 0) {
     return promise.set_error(Status::Error(400, "Limit must be positive"));

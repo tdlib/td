@@ -7534,7 +7534,7 @@ void Requests::on_request(uint64 id, const td_api::connectAffiliateProgram &requ
                                                            std::move(promise));
 }
 
-void Requests::on_request(uint64 id, td_api::getConnectedAffiliatePrograms &request) {
+void Requests::on_request(uint64 id, td_api::getChatAffiliatePrograms &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();

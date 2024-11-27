@@ -876,7 +876,7 @@ foundAffiliateProgram bot_user_id:int53 parameters:affiliateProgramParameters = 
 //@next_offset The offset for the next request. If empty, then there are no more results
 foundAffiliatePrograms total_count:int32 programs:vector<foundAffiliateProgram> next_offset:string = FoundAffiliatePrograms;
 
-//@description Describes a connected affiliate program
+//@description Describes an affiliate program that was connected to a chat
 //@url The link that can be used to refer users if the program is still active
 //@bot_user_id User identifier of the bot created the program
 //@parameters The parameters of the affiliate program
@@ -884,13 +884,13 @@ foundAffiliatePrograms total_count:int32 programs:vector<foundAffiliateProgram> 
 //@is_disconnected True, if the program was canceled by the bot, or disconnected by the chat owner and isn't available anymore
 //@user_count The number of users that used the affiliate program
 //@revenue_star_count The number of Telegram Stars that were earned by the affiliate program
-connectedAffiliateProgram url:string bot_user_id:int53 parameters:affiliateProgramParameters connection_date:int32 is_disconnected:Bool user_count:int64 revenue_star_count:int64 = ConnectedAffiliateProgram;
+chatAffiliateProgram url:string bot_user_id:int53 parameters:affiliateProgramParameters connection_date:int32 is_disconnected:Bool user_count:int64 revenue_star_count:int64 = ChatAffiliateProgram;
 
-//@description Represents a list of affiliate programs connected to a chat
-//@total_count The total number of affiliate programs connected to the chat
+//@description Represents a list of affiliate programs that were connected to a chat
+//@total_count The total number of affiliate programs that were connected to the chat
 //@programs The list of connected affiliate programs
 //@next_offset The offset for the next request. If empty, then there are no more results
-connectedAffiliatePrograms total_count:int32 programs:vector<connectedAffiliateProgram> next_offset:string = ConnectedAffiliatePrograms;
+chatAffiliatePrograms total_count:int32 programs:vector<chatAffiliateProgram> next_offset:string = ChatAffiliatePrograms;
 
 //@description Contains information about an active affiliate program
 //@parameters Parameters of the affiliate program
@@ -12023,13 +12023,13 @@ searchAffiliatePrograms chat_id:int53 sort_order:AffiliateProgramSortOrder offse
 //@description Connects an affiliate program to the given chat. Returns information about the connected affiliate program
 //@chat_id Identifier of the chat for which the affiliate program is connected. Can be an identifier of the Saved Messages chat, of a chat with an owned bot, or of a channel chat with can_post_messages administrator right
 //@bot_user_id Identifier of the bot, which affiliate program is connected
-connectAffiliateProgram chat_id:int53 bot_user_id:int53 = ConnectedAffiliateProgram;
+connectAffiliateProgram chat_id:int53 bot_user_id:int53 = ChatAffiliateProgram;
 
-//@description Returns affiliate programs that are connected to the given chat
-//@chat_id Identifier of the chat for which the affiliate program is connected. Can be an identifier of the Saved Messages chat, of a chat with an owned bot, or of a channel chat with can_post_messages administrator right
+//@description Returns affiliate programs that were connected to the given chat
+//@chat_id Identifier of the chat for which the affiliate programs are connected. Can be an identifier of the Saved Messages chat, of a chat with an owned bot, or of a channel chat with can_post_messages administrator right
 //@offset Offset of the first affiliate program to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of affiliate programs to return
-getConnectedAffiliatePrograms chat_id:int53 offset:string limit:int32 = ConnectedAffiliatePrograms;
+getChatAffiliatePrograms chat_id:int53 offset:string limit:int32 = ChatAffiliatePrograms;
 
 
 //@description Returns information about features, available to Business users @source Source of the request; pass null if the method is called from settings or some non-standard source

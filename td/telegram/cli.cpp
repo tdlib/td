@@ -3603,7 +3603,7 @@ class CliClient final : public Actor {
       string limit;
       string offset;
       get_args(args, chat_id, limit, offset);
-      send_request(td_api::make_object<td_api::getConnectedAffiliatePrograms>(chat_id, offset, as_limit(limit)));
+      send_request(td_api::make_object<td_api::getChatAffiliatePrograms>(chat_id, offset, as_limit(limit)));
     } else if (op == "cpfs" || op == "cpfsb") {
       UserId user_id;
       string currency;
