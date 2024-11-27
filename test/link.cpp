@@ -1097,6 +1097,14 @@ TEST(Link, parse_internal_link_part3) {
   parse_internal_link("t.me/username/0/a//s/as?start=_tgr_aSd", chat_affiliate_program("username", "aSd"));
   parse_internal_link("t.me/username/0/a//s/as?start=_tgr_a%30Sd", chat_affiliate_program("username", "a0Sd"));
 
+  parse_internal_link("tg:resolve?domain=username&ref=", public_chat("username"));
+  parse_internal_link("tg:resolve?domain=username&ref=aSd", chat_affiliate_program("username", "aSd"));
+  parse_internal_link("tg:resolve?domain=username&ref=a%30Sd", chat_affiliate_program("username", "a0Sd"));
+
+  parse_internal_link("t.me/username/0/a//s/as?ref=", public_chat("username"));
+  parse_internal_link("t.me/username/0/a//s/as?ref=aSd", chat_affiliate_program("username", "aSd"));
+  parse_internal_link("t.me/username/0/a//s/as?ref=a%30Sd", chat_affiliate_program("username", "a0Sd"));
+
   parse_internal_link("tg:resolve?domain=username&startgroup=aasdasd",
                       bot_start_in_group("username", "aasdasd", nullptr));
   parse_internal_link("TG://resolve?domain=username&startgroup=", bot_start_in_group("username", "", nullptr));

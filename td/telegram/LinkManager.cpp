@@ -1443,6 +1443,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
           }
           return td::make_unique<InternalLinkVoiceChat>(std::move(username), arg.second, arg.first == "livestream");
         }
+        if (arg.first == "ref" && is_valid_start_parameter(arg.second) && !arg.second.empty()) {
+          // resolve?domain=<bot_username>&ref=<referrer>
+          return td::make_unique<InternalLinkDialogReferralProgram>(std::move(username), std::move(arg.second));
+        }
         if (arg.first == "start" && is_valid_start_parameter(arg.second)) {
           auto prefix = get_referral_program_start_parameter_prefix();
           if (begins_with(arg.second, prefix) && arg.second.size() > prefix.size()) {
@@ -1926,6 +1930,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       if (arg.first == "boost") {
         // /<username>?boost
         return td::make_unique<InternalLinkDialogBoost>(PSTRING() << "tg://boost?domain=" << url_encode(username));
+      }
+      if (arg.first == "ref" && is_valid_start_parameter(arg.second) && !arg.second.empty()) {
+        // /<bot_username>?ref=<referrer>
+        return td::make_unique<InternalLinkDialogReferralProgram>(std::move(username), std::move(arg.second));
       }
       if (arg.first == "start" && is_valid_start_parameter(arg.second)) {
         auto prefix = get_referral_program_start_parameter_prefix();
