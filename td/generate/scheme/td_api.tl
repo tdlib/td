@@ -861,7 +861,7 @@ affiliateProgramSortOrderRevenue = AffiliateProgramSortOrder;
 
 
 //@description Describes parameters of an affiliate program
-//@commission_per_mille The number of Telegram Stars received by the referrer for each 1000 Telegram Stars received by the program owner; 1-900
+//@commission_per_mille The number of Telegram Stars received by the affiliate for each 1000 Telegram Stars received by the program owner; 1-900
 //@month_count Number of month the program will be active; 0-36. If 0, then the program is eternal
 affiliateProgramParameters commission_per_mille:int32 month_count:int32 = AffiliateProgramParameters;
 
@@ -899,6 +899,13 @@ chatAffiliatePrograms total_count:int32 programs:vector<chatAffiliateProgram> ne
 //@daily_revenue_per_user_star_count The amount of daily revenue per user in Telegram Stars of the bot that created the affiliate program
 //@daily_revenue_per_user_nanostar_count The number of 1/1000000000 shares of daily revenue per user in Telegram Stars of the bot that created the affiliate program; from -999999999 to 999999999
 affiliateProgramInfo parameters:affiliateProgramParameters end_date:int32 daily_revenue_per_user_star_count:int64 daily_revenue_per_user_nanostar_count:int32 = AffiliateProgramInfo;
+
+//@description Contains information about an affiliate that received commission from a Telegram Star transaction
+//@commission_per_mille The number of Telegram Stars received by the affiliate for each 1000 Telegram Stars received by the program owner
+//@affiliate_chat_id Identifier of the chat which received the commission
+//@star_count The amount of Telegram Stars that were received by the affiliate; negative for refunds
+//@nanostar_count The number of 1/1000000000 shares of Telegram Stars that were received by the affiliate; from -999999999 to 999999999; non-positive for refunds
+affiliateInfo commission_per_mille:int32 affiliate_chat_id:int53 star_count:int53 nanostar_count:int32 = AffiliateInfo;
 
 
 //@description Contains information about a product that can be paid with invoice
@@ -1063,7 +1070,8 @@ starTransactionTypeBotPaidMediaPurchase user_id:int53 media:vector<PaidMedia> = 
 //@user_id Identifier of the user that bought the media
 //@media The bought media
 //@payload Bot-provided payload
-starTransactionTypeBotPaidMediaSale user_id:int53 media:vector<PaidMedia> payload:string = StarTransactionType;
+//@affiliate Information about the affiliate which received commission from the transaction; may be null if none
+starTransactionTypeBotPaidMediaSale user_id:int53 media:vector<PaidMedia> payload:string affiliate:affiliateInfo = StarTransactionType;
 
 //@description The transaction is a purchase of paid media from a channel by the current user; for regular users only
 //@chat_id Identifier of the channel chat that sent the paid media
@@ -1086,7 +1094,8 @@ starTransactionTypeBotInvoicePurchase user_id:int53 product_info:productInfo = S
 //@user_id Identifier of the user that bought the product
 //@product_info Information about the bought product
 //@invoice_payload Invoice payload
-starTransactionTypeBotInvoiceSale user_id:int53 product_info:productInfo invoice_payload:bytes = StarTransactionType;
+//@affiliate Information about the affiliate which received commission from the transaction; may be null if none
+starTransactionTypeBotInvoiceSale user_id:int53 product_info:productInfo invoice_payload:bytes affiliate:affiliateInfo = StarTransactionType;
 
 //@description The transaction is a purchase of a subscription from a bot or a business account by the current user; for regular users only
 //@user_id Identifier of the bot or the business account user that created the subscription link
@@ -1099,7 +1108,8 @@ starTransactionTypeBotSubscriptionPurchase user_id:int53 subscription_period:int
 //@subscription_period The number of seconds between consecutive Telegram Star debitings
 //@product_info Information about the bought subscription
 //@invoice_payload Invoice payload
-starTransactionTypeBotSubscriptionSale user_id:int53 subscription_period:int32 product_info:productInfo invoice_payload:bytes = StarTransactionType;
+//@affiliate Information about the affiliate which received commission from the transaction; may be null if none
+starTransactionTypeBotSubscriptionSale user_id:int53 subscription_period:int32 product_info:productInfo invoice_payload:bytes affiliate:affiliateInfo = StarTransactionType;
 
 //@description The transaction is a purchase of a subscription to a channel chat by the current user; for regular users only
 //@chat_id Identifier of the channel chat that created the subscription

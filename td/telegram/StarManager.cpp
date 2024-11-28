@@ -236,6 +236,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
       vector<FileId> file_ids;
       td_api::object_ptr<td_api::productInfo> product_info;
       string bot_payload;
+      td_api::object_ptr<td_api::affiliateInfo> affiliate;
       if (!transaction->title_.empty() || !transaction->description_.empty() || transaction->photo_ != nullptr) {
         auto photo = get_web_document_photo(td_->file_manager_.get(), std::move(transaction->photo_), DialogId());
         append(file_ids, photo_get_file_ids(photo));
@@ -246,6 +247,27 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
           bot_payload = transaction->bot_payload_.as_slice().str();
         } else if (!for_bot) {
           LOG(ERROR) << "Receive Star transaction with bot payload";
+        }
+      }
+      if (transaction->starref_peer_ != nullptr) {
+        DialogId referrer_dialog_id(transaction->starref_peer_);
+        if (transaction->starref_commission_permille_ > 0 && transaction->starref_commission_permille_ < 1000 &&
+            referrer_dialog_id.is_valid()) {
+          td_->dialog_manager_->force_create_dialog(referrer_dialog_id, "affiliateInfo", true);
+          auto referrer_star_count = StarManager::get_star_count(transaction->starref_amount_->amount_, true);
+          auto referrer_nanostar_count =
+              StarManager::get_nanostar_count(referrer_star_count, transaction->starref_amount_->nanos_);
+          affiliate = td_api::make_object<td_api::affiliateInfo>(
+              transaction->starref_commission_permille_,
+              td_->dialog_manager_->get_chat_id_object(referrer_dialog_id, "affiliateInfo"), referrer_star_count,
+              referrer_nanostar_count);
+        } else {
+          LOG(ERROR) << "Receive invalid affiliate info: " << to_string(transaction);
+        }
+      } else if (transaction->starref_commission_permille_ != 0) {
+        if (transaction->starref_commission_permille_ > 0 && transaction->starref_commission_permille_ < 1000) {
+        } else {
+          LOG(ERROR) << "Receive invalid commission: " << to_string(transaction);
         }
       }
       auto get_paid_media_object = [&](DialogId dialog_id) -> vector<td_api::object_ptr<td_api::PaidMedia>> {
@@ -372,7 +394,8 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                       bot_payload.clear();
                     };
                     return td_api::make_object<td_api::starTransactionTypeBotSubscriptionSale>(
-                        user_id_object, transaction->subscription_period_, std::move(product_info), bot_payload);
+                        user_id_object, transaction->subscription_period_, std::move(product_info), bot_payload,
+                        std::move(affiliate));
                   }
                 }
                 return nullptr;
@@ -426,7 +449,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                 } else {
                   if (for_bot) {
                     return td_api::make_object<td_api::starTransactionTypeBotInvoiceSale>(
-                        user_id_object, std::move(product_info), bot_payload);
+                        user_id_object, std::move(product_info), bot_payload, std::move(affiliate));
                   }
                 }
                 return nullptr;
@@ -440,7 +463,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                 } else {
                   if (for_bot) {
                     return td_api::make_object<td_api::starTransactionTypeBotPaidMediaSale>(
-                        user_id_object, get_paid_media_object(dialog_id_), bot_payload);
+                        user_id_object, get_paid_media_object(dialog_id_), bot_payload, std::move(affiliate));
                   } else if (for_channel) {
                     SCOPE_EXIT {
                       transaction->msg_id_ = 0;
@@ -575,6 +598,9 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         }
         if (transaction->floodskip_number_ != 0) {
           LOG(ERROR) << "Receive API payment with " << to_string(star_transaction);
+        }
+        if (affiliate != nullptr) {
+          LOG(ERROR) << "Receive affiliate with " << to_string(star_transaction);
         }
       }
       if (!file_ids.empty()) {
