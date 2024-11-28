@@ -5161,7 +5161,7 @@ targetChatTypes allow_user_chats:Bool allow_bot_chats:Bool allow_group_chats:Boo
 
 //@class TargetChat @description Describes the target chat to be opened
 
-//@description The currently opened chat needs to be kept
+//@description The currently opened chat and forum topic must be kept
 targetChatCurrent = TargetChat;
 
 //@description The chat needs to be chosen by the user among chats of the specified types @types Allowed types for the chat
