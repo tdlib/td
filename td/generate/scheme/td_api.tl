@@ -1137,6 +1137,11 @@ starTransactionTypeChannelPaidReactionSend chat_id:int53 message_id:int53 = Star
 //@message_id Identifier of the reacted message; can be 0 or an identifier of a deleted message
 starTransactionTypeChannelPaidReactionReceive user_id:int53 message_id:int53 = StarTransactionType;
 
+//@description The transaction is a receiving of a commission from an affiliate program; for regular users, bots and channel chats only
+//@chat_id Identifier of the chat that created the affiliate program
+//@commission_per_mille The number of Telegram Stars received by the affiliate for each 1000 Telegram Stars received by the program owner
+starTransactionTypeAffiliateProgramCommission chat_id:int53 commission_per_mille:int32 = StarTransactionType;
+
 //@description The transaction is a transaction of an unsupported type
 starTransactionTypeUnsupported = StarTransactionType;
 

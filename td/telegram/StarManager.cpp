@@ -237,6 +237,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
       td_api::object_ptr<td_api::productInfo> product_info;
       string bot_payload;
       td_api::object_ptr<td_api::affiliateInfo> affiliate;
+      int32 commission_per_mille = 0;
       if (!transaction->title_.empty() || !transaction->description_.empty() || transaction->photo_ != nullptr) {
         auto photo = get_web_document_photo(td_->file_manager_.get(), std::move(transaction->photo_), DialogId());
         append(file_ids, photo_get_file_ids(photo));
@@ -266,6 +267,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         }
       } else if (transaction->starref_commission_permille_ != 0) {
         if (transaction->starref_commission_permille_ > 0 && transaction->starref_commission_permille_ < 1000) {
+          commission_per_mille = transaction->starref_commission_permille_;
         } else {
           LOG(ERROR) << "Receive invalid commission: " << to_string(transaction);
         }
@@ -342,7 +344,6 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
               if (for_bot || for_chat) {
                 return td_api::make_object<td_api::starTransactionTypeFragmentWithdrawal>(std::move(state));
               }
-              LOG(ERROR) << "Have Star transaction with withdrawal state in " << dialog_id_;
               return nullptr;
             }
             if (for_user || for_bot) {
@@ -353,6 +354,19 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
           case telegram_api::starsTransactionPeer::ID: {
             DialogId dialog_id(
                 static_cast<const telegram_api::starsTransactionPeer *>(transaction->peer_.get())->peer_);
+            if (!dialog_id.is_valid()) {
+              return nullptr;
+            }
+            if (commission_per_mille != 0) {
+              SCOPE_EXIT {
+                commission_per_mille = 0;
+              };
+              td_->dialog_manager_->force_create_dialog(dialog_id, "starsTransactionPeer", true);
+              auto chat_id =
+                  td_->dialog_manager_->get_chat_id_object(dialog_id, "starTransactionTypeAffiliateProgramCommission");
+              return td_api::make_object<td_api::starTransactionTypeAffiliateProgramCommission>(chat_id,
+                                                                                                commission_per_mille);
+            }
             if (dialog_id.get_type() == DialogType::User) {
               auto user_id = dialog_id.get_user_id();
               auto user_id_object = td_->user_manager_->get_user_id_object(user_id, "starsTransactionPeer");
@@ -601,6 +615,9 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         }
         if (affiliate != nullptr) {
           LOG(ERROR) << "Receive affiliate with " << to_string(star_transaction);
+        }
+        if (commission_per_mille != 0) {
+          LOG(ERROR) << "Receive commission with " << to_string(star_transaction);
         }
       }
       if (!file_ids.empty()) {
