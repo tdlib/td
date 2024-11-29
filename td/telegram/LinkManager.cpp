@@ -131,8 +131,8 @@ static string get_url_query_draft_text(const HttpUrlQuery &url_query) {
   return text;
 }
 
-static Slice get_referral_program_start_parameter_prefix() {
-  return "_tgr_";
+static vector<string> get_referral_program_start_parameter_prefixes() {
+  return vector<string>{"_tgr_"};
 }
 
 static AdministratorRights get_administrator_rights(Slice rights, bool for_channel) {
@@ -1448,11 +1448,13 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
           return td::make_unique<InternalLinkDialogReferralProgram>(std::move(username), std::move(arg.second));
         }
         if (arg.first == "start" && is_valid_start_parameter(arg.second)) {
-          auto prefix = get_referral_program_start_parameter_prefix();
-          if (begins_with(arg.second, prefix) && arg.second.size() > prefix.size()) {
-            // resolve?domain=<bot_username>&start=_tgr_<referrer>
-            return td::make_unique<InternalLinkDialogReferralProgram>(std::move(username),
-                                                                      arg.second.substr(prefix.size()));
+          auto prefixes = get_referral_program_start_parameter_prefixes();
+          for (Slice prefix : prefixes) {
+            if (begins_with(arg.second, prefix) && arg.second.size() > prefix.size()) {
+              // resolve?domain=<bot_username>&start=_tgr_<referrer>
+              return td::make_unique<InternalLinkDialogReferralProgram>(std::move(username),
+                                                                        arg.second.substr(prefix.size()));
+            }
           }
           // resolve?domain=<bot_username>&start=<parameter>
           return td::make_unique<InternalLinkBotStart>(std::move(username), arg.second, is_trusted);
@@ -1936,11 +1938,13 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
         return td::make_unique<InternalLinkDialogReferralProgram>(std::move(username), std::move(arg.second));
       }
       if (arg.first == "start" && is_valid_start_parameter(arg.second)) {
-        auto prefix = get_referral_program_start_parameter_prefix();
-        if (begins_with(arg.second, prefix) && arg.second.size() > prefix.size()) {
-          // /<bot_username>?start=_tgr_<referrer>
-          return td::make_unique<InternalLinkDialogReferralProgram>(std::move(username),
-                                                                    arg.second.substr(prefix.size()));
+        auto prefixes = get_referral_program_start_parameter_prefixes();
+        for (Slice prefix : prefixes) {
+          if (begins_with(arg.second, prefix) && arg.second.size() > prefix.size()) {
+            // /<bot_username>?start=_tgr_<referrer>
+            return td::make_unique<InternalLinkDialogReferralProgram>(std::move(username),
+                                                                      arg.second.substr(prefix.size()));
+          }
         }
         // /<bot_username>?start=<parameter>
         return td::make_unique<InternalLinkBotStart>(std::move(username), arg.second, is_trusted);
@@ -2290,7 +2294,8 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
       if (!is_valid_start_parameter(link->referrer_) || link->referrer_.empty()) {
         return Status::Error(400, "Invalid referrer specified");
       }
-      auto start_parameter = PSTRING() << "start=" << get_referral_program_start_parameter_prefix() << link->referrer_;
+      auto start_parameter = PSTRING() << "start=" << get_referral_program_start_parameter_prefixes()[0]
+                                       << link->referrer_;
       if (is_internal) {
         return PSTRING() << "tg://resolve?domain=" << link->username_ << "&" << start_parameter;
       } else {
