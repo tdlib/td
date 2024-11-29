@@ -448,6 +448,7 @@ bool OptionManager::is_internal_option(Slice name) {
                                                               "saved_gifs_limit_premium",
                                                               "session_count",
                                                               "since_last_open",
+                                                              "starref_start_param_prefixes",
                                                               "stickers_faved_limit_default",
                                                               "stickers_faved_limit_premium",
                                                               "stickers_normal_by_emoji_per_premium_num",

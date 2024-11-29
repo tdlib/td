@@ -132,6 +132,9 @@ static string get_url_query_draft_text(const HttpUrlQuery &url_query) {
 }
 
 static vector<string> get_referral_program_start_parameter_prefixes() {
+  if (Scheduler::context() != nullptr) {
+    return full_split(G()->get_option_string("starref_start_param_prefixes", "_tgr_"), ' ');
+  }
   return vector<string>{"_tgr_"};
 }
 

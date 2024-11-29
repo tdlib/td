@@ -1375,6 +1375,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   bool need_premium_for_new_chat_privacy = true;
   bool channel_revenue_withdrawal_enabled = false;
   bool can_edit_fact_check = false;
+  vector<string> starref_start_param_prefixes;
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
@@ -2018,6 +2019,22 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         G()->set_option_integer("gift_sell_period", get_json_value_int(std::move(key_value->value_), key));
         continue;
       }
+      if (key == "starref_start_param_prefixes") {
+        if (value->get_id() == telegram_api::jsonArray::ID) {
+          auto prefixes = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
+          for (auto &prefix : prefixes) {
+            auto prefix_text = get_json_value_string(std::move(prefix), key);
+            if (!prefix_text.empty() && prefix_text.find(' ') == string::npos) {
+              fragment_prefixes.push_back(prefix_text);
+            } else {
+              LOG(ERROR) << "Receive an invalid affiliate program link prefix";
+            }
+          }
+        } else {
+          LOG(ERROR) << "Receive unexpected starref_start_param_prefixes " << to_string(*value);
+        }
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -2071,6 +2088,12 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   }
 
   options.set_option_string("fragment_prefixes", implode(fragment_prefixes, ','));
+
+  if (starref_start_param_prefixes.empty()) {
+    options.set_option_empty("starref_start_param_prefixes");
+  } else {
+    options.set_option_string("starref_start_param_prefixes", implode(starref_start_param_prefixes, ' '));
+  }
 
   options.set_option_string("emoji_sounds", implode(emoji_sounds, ','));
 
