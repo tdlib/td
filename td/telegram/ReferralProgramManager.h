@@ -64,6 +64,10 @@ class ReferralProgramManager final : public Actor {
       return user_id_.is_valid() && info_.is_valid();
     }
 
+    bool is_active() const {
+      return info_.is_active();
+    }
+
     td_api::object_ptr<td_api::foundAffiliateProgram> get_found_affiliate_program_object(Td *td) const;
   };
 

@@ -34,6 +34,10 @@ class ReferralProgramInfo {
     return parameters_.is_valid() && end_date_ >= 0;
   }
 
+  bool is_active() const {
+    return end_date_ == 0;
+  }
+
   td_api::object_ptr<td_api::affiliateProgramInfo> get_affiliate_program_info_object() const;
 
   template <class StorerT>

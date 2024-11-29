@@ -143,6 +143,10 @@ class ReferralProgramManager::GetSuggestedStarRefBotsQuery final : public Td::Re
         LOG(ERROR) << "Receive invalid referral program for " << dialog_id_;
         continue;
       }
+      if (!star_ref.is_active()) {
+        LOG(INFO) << "Receive canceled referral program for " << dialog_id_;
+        continue;
+      }
       programs.push_back(star_ref.get_found_affiliate_program_object(td_));
     }
 
