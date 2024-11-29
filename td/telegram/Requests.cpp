@@ -6179,9 +6179,13 @@ void Requests::on_request(uint64 id, td_api::getAllStickerEmojis &request) {
 void Requests::on_request(uint64 id, td_api::searchStickers &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.emojis_);
+  CLEAN_INPUT_STRING(request.query_);
+  for (auto &input_language_code : request.input_language_codes_) {
+    CLEAN_INPUT_STRING(input_language_code);
+  }
   CREATE_REQUEST_PROMISE();
   auto sticker_type = get_sticker_type(request.sticker_type_);
-  if (sticker_type == StickerType::Regular) {
+  if (sticker_type == StickerType::Regular && request.query_.empty()) {
     // legacy
     if (request.emojis_ == "⭐️⭐️") {
       request.emojis_ = "⭐️";
@@ -6191,13 +6195,16 @@ void Requests::on_request(uint64 id, td_api::searchStickers &request) {
       request.emojis_ = "👋";
     }
   }
-  td_->stickers_manager_->search_stickers(sticker_type, std::move(request.emojis_), request.limit_, std::move(promise));
+  td_->stickers_manager_->search_stickers(sticker_type, std::move(request.emojis_), request.query_,
+                                          request.input_language_codes_, request.offset_, request.limit_,
+                                          std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getGreetingStickers &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  td_->stickers_manager_->search_stickers(StickerType::Regular, "👋⭐️", 100, std::move(promise));
+  td_->stickers_manager_->search_stickers(StickerType::Regular, "👋⭐️", string(), vector<string>(), 0, 100,
+                                          std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getPremiumStickers &request) {
@@ -7387,7 +7394,8 @@ void Requests::on_request(uint64 id, const td_api::getPremiumFeatures &request) 
 void Requests::on_request(uint64 id, const td_api::getPremiumStickerExamples &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  td_->stickers_manager_->search_stickers(StickerType::Regular, "⭐️⭐️", 100, std::move(promise));
+  td_->stickers_manager_->search_stickers(StickerType::Regular, "⭐️⭐️", string(), vector<string>(), 0, 100,
+                                          std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getPremiumInfoSticker &request) {

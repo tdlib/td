@@ -3697,9 +3697,14 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getAllStickerEmojis>(
           as_sticker_type(op), query, op == "gaseme" ? my_id_ : 0, return_only_main_emoji));
     } else if (op == "sst" || op == "sstm" || op == "sste") {
-      SearchQuery query;
-      get_args(args, query);
-      send_request(td_api::make_object<td_api::searchStickers>(as_sticker_type(op), query.query, query.limit));
+      string limit;
+      string emoji;
+      string query;
+      string input_language_codes;
+      int32 offset;
+      get_args(args, limit, emoji, query, input_language_codes, offset);
+      send_request(td_api::make_object<td_api::searchStickers>(
+          as_sticker_type(op), emoji, query, autosplit_str(input_language_codes), offset, as_limit(limit)));
     } else if (op == "ggs") {
       send_request(td_api::make_object<td_api::getGreetingStickers>());
     } else if (op == "gprst") {

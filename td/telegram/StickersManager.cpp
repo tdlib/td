@@ -116,6 +116,44 @@ class GetAllStickersQuery final : public Td::ResultHandler {
 };
 
 class SearchStickersQuery final : public Td::ResultHandler {
+  string parameters_;
+  StickerType sticker_type_;
+  bool is_first_;
+
+ public:
+  void send(string &&parameters, StickerType sticker_type, const string &emoji, const string &query,
+            vector<string> input_language_codes, int32 offset, int32 limit, int64 hash) {
+    parameters_ = std::move(parameters);
+    sticker_type_ = sticker_type;
+    is_first_ = offset == 0;
+    int32 flags = 0;
+    if (sticker_type == StickerType::CustomEmoji) {
+      flags |= telegram_api::messages_searchStickers::EMOJIS_MASK;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::messages_searchStickers(
+        flags, false /*ignored*/, query, emoji, std::move(input_language_codes), offset, limit, hash)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_searchStickers>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for search stickers: " << to_string(ptr);
+    td_->stickers_manager_->on_find_stickers_by_query_success(sticker_type_, parameters_, is_first_, std::move(ptr));
+  }
+
+  void on_error(Status status) final {
+    if (!G()->is_expected_error(status)) {
+      LOG(ERROR) << "Receive error for search stickers: " << status;
+    }
+    td_->stickers_manager_->on_find_stickers_by_query_fail(sticker_type_, parameters_, std::move(status));
+  }
+};
+
+class GetStickersQuery final : public Td::ResultHandler {
   string emoji_;
 
  public:
@@ -131,13 +169,13 @@ class SearchStickersQuery final : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for search stickers: " << to_string(ptr);
+    LOG(INFO) << "Receive result for search stickers by emoji: " << to_string(ptr);
     td_->stickers_manager_->on_find_stickers_success(emoji_, std::move(ptr));
   }
 
   void on_error(Status status) final {
     if (!G()->is_expected_error(status)) {
-      LOG(ERROR) << "Receive error for search stickers: " << status;
+      LOG(ERROR) << "Receive error for search stickers by emoji: " << status;
     }
     td_->stickers_manager_->on_find_stickers_fail(emoji_, std::move(status));
   }
@@ -4422,8 +4460,12 @@ string StickersManager::get_found_stickers_database_key(StickerType sticker_type
   return PSTRING() << (sticker_type == StickerType::Regular ? "found_stickers" : "found_custom_emoji") << emoji;
 }
 
-void StickersManager::search_stickers(StickerType sticker_type, string emoji, int32 limit,
+void StickersManager::search_stickers(StickerType sticker_type, string emoji, const string &query,
+                                      const vector<string> &input_language_codes, int32 offset, int32 limit,
                                       Promise<td_api::object_ptr<td_api::stickers>> &&promise) {
+  if (offset < 0) {
+    return promise.set_error(Status::Error(400, "Parameter offset must be non-negative"));
+  }
   if (limit == 0) {
     return promise.set_value(get_stickers_object({}));
   }
@@ -4435,6 +4477,10 @@ void StickersManager::search_stickers(StickerType sticker_type, string emoji, in
   }
 
   remove_emoji_modifiers_in_place(emoji, false);
+  if (!query.empty() || offset > 0) {
+    emoji = PSTRING() << emoji << '\xFF' << query << '\xFF' << implode(input_language_codes, ' ') << '\xFF' << offset
+                      << '\xFF' << limit;
+  }
   if (emoji.empty() || sticker_type == StickerType::Mask) {
     return promise.set_value(get_stickers_object({}));
   }
@@ -4461,7 +4507,7 @@ void StickersManager::search_stickers(StickerType sticker_type, string emoji, in
                                    get_recent_stickers_hash(it->second.sticker_ids_, "search_stickers"));
     }
 
-    if (G()->use_sqlite_pmc()) {
+    if (G()->use_sqlite_pmc() && offset == 0) {
       LOG(INFO) << "Trying to load stickers for " << emoji << " from database";
       G()->td_db()->get_sqlite_pmc()->get(get_found_stickers_database_key(sticker_type, emoji),
                                           PromiseCreator::lambda([sticker_type, emoji](string value) mutable {
@@ -4476,9 +4522,17 @@ void StickersManager::search_stickers(StickerType sticker_type, string emoji, in
 }
 
 void StickersManager::reload_found_stickers(StickerType sticker_type, string &&emoji, int64 hash) {
+  if (emoji.find('\xFF') != string::npos) {
+    auto parameters = full_split(emoji, '\xFF');
+    CHECK(parameters.size() == 5);
+    td_->create_handler<SearchStickersQuery>()->send(std::move(emoji), sticker_type, parameters[0], parameters[1],
+                                                     full_split(parameters[2]), to_integer<int32>(parameters[3]),
+                                                     to_integer<int32>(parameters[4]), hash);
+    return;
+  }
   switch (sticker_type) {
     case StickerType::Regular:
-      td_->create_handler<SearchStickersQuery>()->send(std::move(emoji), hash);
+      td_->create_handler<GetStickersQuery>()->send(std::move(emoji), hash);
       break;
     case StickerType::CustomEmoji:
       td_->create_handler<SearchCustomEmojiQuery>()->send(std::move(emoji), hash);
@@ -4530,14 +4584,14 @@ void StickersManager::on_search_stickers_finished(StickerType sticker_type, cons
 }
 
 void StickersManager::on_search_stickers_succeeded(StickerType sticker_type, const string &emoji,
-                                                   vector<FileId> &&sticker_ids) {
+                                                   bool need_save_to_database, vector<FileId> &&sticker_ids) {
   auto type = static_cast<int32>(sticker_type);
   auto &found_stickers = found_stickers_[type][emoji];
   found_stickers.cache_time_ = 300;
   found_stickers.next_reload_time_ = Time::now() + found_stickers.cache_time_;
   found_stickers.sticker_ids_ = std::move(sticker_ids);
 
-  if (G()->use_sqlite_pmc() && !G()->close_flag()) {
+  if (G()->use_sqlite_pmc() && !G()->close_flag() && need_save_to_database) {
     LOG(INFO) << "Save " << sticker_type << " stickers for " << emoji << " to database";
     G()->td_db()->get_sqlite_pmc()->set(get_found_stickers_database_key(sticker_type, emoji),
                                         log_event_store(found_stickers).as_slice().str(), Auto());
@@ -4557,6 +4611,51 @@ void StickersManager::on_search_stickers_failed(StickerType sticker_type, const 
   for (auto &query : queries) {
     query.second.set_error(error.clone());
   }
+}
+
+void StickersManager::on_find_stickers_by_query_success(
+    StickerType sticker_type, const string &emoji, bool is_first,
+    telegram_api::object_ptr<telegram_api::messages_FoundStickers> &&stickers) {
+  CHECK(stickers != nullptr);
+  auto type = static_cast<int32>(sticker_type);
+  switch (stickers->get_id()) {
+    case telegram_api::messages_foundStickersNotModified::ID: {
+      auto it = found_stickers_[type].find(emoji);
+      if (it == found_stickers_[type].end()) {
+        return on_find_stickers_fail(emoji, Status::Error(500, "Receive messages.foundStickerNotModified"));
+      }
+      auto &found_stickers = it->second;
+      found_stickers.next_reload_time_ = Time::now() + found_stickers.cache_time_;
+      return on_search_stickers_finished(sticker_type, emoji, found_stickers);
+    }
+    case telegram_api::messages_foundStickers::ID: {
+      auto received_stickers = move_tl_object_as<telegram_api::messages_foundStickers>(stickers);
+
+      vector<FileId> sticker_ids;
+      for (auto &sticker : received_stickers->stickers_) {
+        FileId sticker_id =
+            on_get_sticker_document(std::move(sticker), StickerFormat::Unknown, "on_find_stickers_by_query_success")
+                .second;
+        if (sticker_id.is_valid()) {
+          sticker_ids.push_back(sticker_id);
+        }
+      }
+
+      return on_search_stickers_succeeded(sticker_type, emoji, is_first, std::move(sticker_ids));
+    }
+    default:
+      UNREACHABLE();
+  }
+}
+
+void StickersManager::on_find_stickers_by_query_fail(StickerType sticker_type, const string &emoji, Status &&error) {
+  auto type = static_cast<int32>(sticker_type);
+  if (found_stickers_[type].count(emoji) != 0) {
+    found_stickers_[type][emoji].cache_time_ = Random::fast(40, 80);
+    return on_find_stickers_success(emoji, telegram_api::make_object<telegram_api::messages_stickersNotModified>());
+  }
+
+  on_search_stickers_failed(sticker_type, emoji, std::move(error));
 }
 
 void StickersManager::on_find_stickers_success(const string &emoji,
@@ -4586,7 +4685,7 @@ void StickersManager::on_find_stickers_success(const string &emoji,
         }
       }
 
-      return on_search_stickers_succeeded(sticker_type, emoji, std::move(sticker_ids));
+      return on_search_stickers_succeeded(sticker_type, emoji, true, std::move(sticker_ids));
     }
     default:
       UNREACHABLE();
@@ -4652,7 +4751,7 @@ void StickersManager::on_load_custom_emojis(string emoji, int64 hash, vector<Cus
     }
   }
 
-  on_search_stickers_succeeded(StickerType::CustomEmoji, emoji, std::move(sticker_ids));
+  on_search_stickers_succeeded(StickerType::CustomEmoji, emoji, true, std::move(sticker_ids));
 }
 
 void StickersManager::on_find_custom_emojis_fail(const string &emoji, Status &&error) {
@@ -4687,7 +4786,7 @@ void StickersManager::get_premium_stickers(int32 limit, Promise<td_api::object_p
       }));
 
   auto lock = mpas.get_promise();
-  search_stickers(StickerType::Regular, "📂⭐️", limit,
+  search_stickers(StickerType::Regular, "📂⭐️", string(), vector<string>(), 0, limit,
                   PromiseCreator::lambda(
                       [promise = mpas.get_promise()](Result<td_api::object_ptr<td_api::stickers>> result) mutable {
                         if (result.is_error()) {

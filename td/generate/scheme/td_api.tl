@@ -10884,9 +10884,12 @@ getAllStickerEmojis sticker_type:StickerType query:string chat_id:int53 return_o
 
 //@description Searches for stickers from public sticker sets that correspond to any of the given emoji
 //@sticker_type Type of the stickers to return
-//@emojis Space-separated list of emojis to search for; must be non-empty
+//@emojis Space-separated list of emojis to search for
+//@query Query to search for; may be empty to search for emojis only
+//@input_language_codes List of possible IETF language tags of the user's input language; may be empty if unknown
+//@offset The offset from which to return the stickers; must be non-negative
 //@limit The maximum number of stickers to be returned; 0-100
-searchStickers sticker_type:StickerType emojis:string limit:int32 = Stickers;
+searchStickers sticker_type:StickerType emojis:string query:string input_language_codes:vector<string> offset:int32 limit:int32 = Stickers;
 
 //@description Returns greeting stickers from regular sticker sets that can be used for the start page of other users
 getGreetingStickers = Stickers;

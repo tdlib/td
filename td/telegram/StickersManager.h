@@ -185,7 +185,8 @@ class StickersManager final : public Actor {
   vector<FileId> get_stickers(StickerType sticker_type, string query, int32 limit, DialogId dialog_id, bool force,
                               Promise<Unit> &&promise);
 
-  void search_stickers(StickerType sticker_type, string emoji, int32 limit,
+  void search_stickers(StickerType sticker_type, string emoji, const string &query,
+                       const vector<string> &input_language_codes, int32 offset, int32 limit,
                        Promise<td_api::object_ptr<td_api::stickers>> &&promise);
 
   void get_premium_stickers(int32 limit, Promise<td_api::object_ptr<td_api::stickers>> &&promise);
@@ -430,6 +431,11 @@ class StickersManager final : public Actor {
   void on_uploaded_sticker_file(FileUploadId file_upload_id, bool is_url,
                                 tl_object_ptr<telegram_api::MessageMedia> media, Promise<Unit> &&promise);
 
+  void on_find_stickers_by_query_success(StickerType sticker_type, const string &emoji, bool is_first,
+                                         telegram_api::object_ptr<telegram_api::messages_FoundStickers> &&stickers);
+
+  void on_find_stickers_by_query_fail(StickerType sticker_type, const string &emoji, Status &&error);
+
   void on_find_stickers_success(const string &emoji, tl_object_ptr<telegram_api::messages_Stickers> &&stickers);
 
   void on_find_stickers_fail(const string &emoji, Status &&error);
@@ -633,7 +639,8 @@ class StickersManager final : public Actor {
 
   void on_search_stickers_finished(StickerType sticker_type, const string &emoji, const FoundStickers &found_stickers);
 
-  void on_search_stickers_succeeded(StickerType sticker_type, const string &emoji, vector<FileId> &&sticker_ids);
+  void on_search_stickers_succeeded(StickerType sticker_type, const string &emoji, bool need_save_to_database,
+                                    vector<FileId> &&sticker_ids);
 
   void on_search_stickers_failed(StickerType sticker_type, const string &emoji, Status &&error);
 
