@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/ReferralProgramParameters.h"
+#include "td/telegram/StarAmount.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -18,8 +19,7 @@ namespace td {
 class ReferralProgramInfo {
   ReferralProgramParameters parameters_;
   int32 end_date_ = 0;
-  int64 daily_star_count_ = 0;
-  int32 daily_nanostar_count_ = 0;
+  StarAmount daily_star_amount_;
 
   friend bool operator==(const ReferralProgramInfo &lhs, const ReferralProgramInfo &rhs);
 

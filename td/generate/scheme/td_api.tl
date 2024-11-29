@@ -874,9 +874,8 @@ affiliateProgramParameters commission_per_mille:int32 month_count:int32 = Affili
 //@parameters Parameters of the affiliate program
 //@end_date Point in time (Unix timestamp) when the affiliate program will be closed; 0 if the affiliate program isn't scheduled to be closed.
 //-If positive, then the program can't be connected using connectAffiliateProgram, but active connections will work until the date
-//@daily_revenue_per_user_star_count The amount of daily revenue per user in Telegram Stars of the bot that created the affiliate program
-//@daily_revenue_per_user_nanostar_count The number of 1/1000000000 shares of daily revenue per user in Telegram Stars of the bot that created the affiliate program; from -999999999 to 999999999
-affiliateProgramInfo parameters:affiliateProgramParameters end_date:int32 daily_revenue_per_user_star_count:int64 daily_revenue_per_user_nanostar_count:int32 = AffiliateProgramInfo;
+//@daily_revenue_per_user_amount The amount of daily revenue per user in Telegram Stars of the bot that created the affiliate program
+affiliateProgramInfo parameters:affiliateProgramParameters end_date:int32 daily_revenue_per_user_amount:starAmount = AffiliateProgramInfo;
 
 //@description Contains information about an affiliate that received commission from a Telegram Star transaction
 //@commission_per_mille The number of Telegram Stars received by the affiliate for each 1000 Telegram Stars received by the program owner

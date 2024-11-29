@@ -1083,6 +1083,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/SecureValue.hpp
   td/telegram/SendCodeHelper.hpp
   td/telegram/SharedDialog.hpp
+  td/telegram/StarAmount.hpp
   td/telegram/StarGift.hpp
   td/telegram/StarSubscriptionPricing.hpp
   td/telegram/StickerMaskPosition.hpp

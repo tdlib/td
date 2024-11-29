@@ -43,6 +43,12 @@ class StarAmount {
   }
 
   td_api::object_ptr<td_api::starAmount> get_star_amount_object() const;
+
+  template <class StorerT>
+  void store(StorerT &storer) const;
+
+  template <class ParserT>
+  void parse(ParserT &parser);
 };
 
 bool operator==(const StarAmount &lhs, const StarAmount &rhs);
