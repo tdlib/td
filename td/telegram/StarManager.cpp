@@ -22,6 +22,7 @@
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/ServerMessageId.h"
+#include "td/telegram/StarAmount.h"
 #include "td/telegram/StarGift.h"
 #include "td/telegram/StarSubscription.h"
 #include "td/telegram/StatisticsManager.h"
@@ -284,11 +285,9 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         transaction->extended_media_.clear();
         return extended_media_objects;
       };
-      auto transaction_star_count = StarManager::get_star_count(transaction->stars_->amount_, true);
-      auto transaction_nanostar_count =
-          StarManager::get_nanostar_count(transaction_star_count, transaction->stars_->nanos_);
+      auto transaction_amount = StarAmount(std::move(transaction->stars_), true);
       auto is_refund = transaction->refund_;
-      auto is_purchase = (transaction_star_count > 0 || transaction_nanostar_count > 0) == is_refund;
+      auto is_purchase = transaction_amount.is_positive() == is_refund;
       auto type = [&]() -> td_api::object_ptr<td_api::StarTransactionType> {
         switch (transaction->peer_->get_id()) {
           case telegram_api::starsTransactionPeerUnsupported::ID:
@@ -313,7 +312,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
               if (for_user) {
                 transaction->gift_ = false;
                 return td_api::make_object<td_api::starTransactionTypeUserDeposit>(
-                    0, td_->stickers_manager_->get_premium_gift_sticker_object(0, transaction_star_count));
+                    0, td_->stickers_manager_->get_premium_gift_sticker_object(0, transaction_amount.get_star_count()));
               }
               return nullptr;
             }
@@ -421,7 +420,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                       user_id == UserManager::get_service_notifications_user_id()
                           ? 0
                           : td_->user_manager_->get_user_id_object(user_id, "starTransactionTypeUserDeposit"),
-                      td_->stickers_manager_->get_premium_gift_sticker_object(0, transaction_star_count));
+                      td_->stickers_manager_->get_premium_gift_sticker_object(0, transaction_amount.get_star_count()));
                 }
                 return nullptr;
               }
@@ -575,9 +574,9 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         LOG(ERROR) << "Receive unsupported Star transaction in " << dialog_id_ << ": " << to_string(transaction);
         type = td_api::make_object<td_api::starTransactionTypeUnsupported>();
       }
-      auto star_transaction = td_api::make_object<td_api::starTransaction>(transaction->id_, transaction_star_count,
-                                                                           transaction_nanostar_count, is_refund,
-                                                                           transaction->date_, std::move(type));
+      auto star_transaction =
+          td_api::make_object<td_api::starTransaction>(transaction->id_, transaction_amount.get_star_amount_object(),
+                                                       is_refund, transaction->date_, std::move(type));
       if (star_transaction->type_->get_id() != td_api::starTransactionTypeUnsupported::ID) {
         if (product_info != nullptr) {
           LOG(ERROR) << "Receive product info with " << to_string(star_transaction);
@@ -630,12 +629,11 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
       transactions.push_back(std::move(star_transaction));
     }
 
-    auto star_count = StarManager::get_star_count(result->balance_->amount_, true);
-    auto nanostar_count = StarManager::get_nanostar_count(star_count, result->balance_->nanos_);
+    auto star_amount = StarAmount(std::move(result->balance_), true);
     if (dialog_id_ == td_->dialog_manager_->get_my_dialog_id()) {
-      td_->star_manager_->on_update_owned_star_count(star_count, nanostar_count);
+      td_->star_manager_->on_update_owned_star_amount(star_amount);
     }
-    promise_.set_value(td_api::make_object<td_api::starTransactions>(star_count, nanostar_count,
+    promise_.set_value(td_api::make_object<td_api::starTransactions>(star_amount.get_star_amount_object(),
                                                                      std::move(transactions), result->next_offset_));
   }
 
@@ -683,11 +681,11 @@ class GetStarsSubscriptionsQuery final : public Td::ResultHandler {
         subscriptions.push_back(star_subscription.get_star_subscription_object(td_));
       }
     }
-    auto star_count = StarManager::get_star_count(result->balance_->amount_, true);
-    auto nanostar_count = StarManager::get_nanostar_count(star_count, result->balance_->nanos_);
-    td_->star_manager_->on_update_owned_star_count(star_count, nanostar_count);
+
+    auto star_amount = StarAmount(std::move(result->balance_), true);
+    td_->star_manager_->on_update_owned_star_amount(star_amount);
     promise_.set_value(td_api::make_object<td_api::starSubscriptions>(
-        star_count, nanostar_count, std::move(subscriptions),
+        star_amount.get_star_amount_object(), std::move(subscriptions),
         StarManager::get_star_count(result->subscriptions_missing_balance_), result->subscriptions_next_offset_));
   }
 
@@ -963,13 +961,16 @@ void StarManager::tear_down() {
 td_api::object_ptr<td_api::updateOwnedStarCount> StarManager::get_update_owned_star_count_object() const {
   CHECK(is_owned_star_count_inited_);
   // sent_star_count_ can be negative as well as owned_star_count_
-  return td_api::make_object<td_api::updateOwnedStarCount>(sent_star_count_, sent_nanostar_count_);
+  return td_api::make_object<td_api::updateOwnedStarCount>(
+      StarAmount(sent_star_count_, sent_nanostar_count_).get_star_amount_object());
 }
 
-void StarManager::on_update_owned_star_count(int64 star_count, int32 nanostar_count) {
+void StarManager::on_update_owned_star_amount(StarAmount star_amount) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
+  auto star_count = star_amount.get_star_count();
+  auto nanostar_count = star_amount.get_nanostar_count();
   if (is_owned_star_count_inited_ && star_count == owned_star_count_ && nanostar_count == owned_nanostar_count_) {
     return;
   }

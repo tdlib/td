@@ -25,7 +25,7 @@ class StarAmount {
  public:
   StarAmount() = default;
 
-  explicit StarAmount(telegram_api::object_ptr<telegram_api::starsAmount> &&amount);
+  StarAmount(telegram_api::object_ptr<telegram_api::starsAmount> &&amount, bool allow_negative);
 
   StarAmount(int64 star_count, int32 nanostar_count) : star_count_(star_count), nanostar_count_(nanostar_count) {
   }
@@ -36,6 +36,10 @@ class StarAmount {
 
   int32 get_nanostar_count() const {
     return nanostar_count_;
+  }
+
+  bool is_positive() const {
+    return star_count_ > 0 || nanostar_count_ > 0;
   }
 
   td_api::object_ptr<td_api::starAmount> get_star_amount_object() const;

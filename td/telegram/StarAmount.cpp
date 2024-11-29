@@ -10,9 +10,9 @@
 
 namespace td {
 
-StarAmount::StarAmount(telegram_api::object_ptr<telegram_api::starsAmount> &&amount) {
+StarAmount::StarAmount(telegram_api::object_ptr<telegram_api::starsAmount> &&amount, bool allow_negative) {
   if (amount != nullptr) {
-    star_count_ = StarManager::get_star_count(amount->amount_, true);
+    star_count_ = StarManager::get_star_count(amount->amount_, allow_negative);
     nanostar_count_ = StarManager::get_nanostar_count(star_count_, amount->nanos_);
   }
 }

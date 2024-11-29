@@ -8,6 +8,7 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileSourceId.h"
+#include "td/telegram/StarAmount.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
@@ -27,7 +28,7 @@ class StarManager final : public Actor {
  public:
   StarManager(Td *td, ActorShared<> parent);
 
-  void on_update_owned_star_count(int64 star_count, int32 nanostar_count);
+  void on_update_owned_star_amount(StarAmount star_amount);
 
   void add_pending_owned_star_count(int64 star_count, bool move_to_owned);
 

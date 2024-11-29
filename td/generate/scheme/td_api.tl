@@ -846,12 +846,11 @@ starSubscriptionPricing period:int32 star_count:int53 = StarSubscriptionPricing;
 starSubscription id:string chat_id:int53 expiration_date:int32 is_canceled:Bool is_expiring:Bool pricing:starSubscriptionPricing type:StarSubscriptionType = StarSubscription;
 
 //@description Represents a list of Telegram Star subscriptions
-//@star_count The amount of owned Telegram Stars
-//@nanostar_count The number of 1/1000000000 shares of Telegram Stars owned; from -999999999 to 999999999
+//@star_amount The amount of owned Telegram Stars
 //@subscriptions List of subscriptions for Telegram Stars
 //@required_star_count The number of Telegram Stars required to buy to extend subscriptions expiring soon
 //@next_offset The offset for the next request. If empty, then there are no more results
-starSubscriptions star_count:int53 nanostar_count:int32 subscriptions:vector<starSubscription> required_star_count:int53 next_offset:string = StarSubscriptions;
+starSubscriptions star_amount:starAmount subscriptions:vector<starSubscription> required_star_count:int53 next_offset:string = StarSubscriptions;
 
 
 //@class AffiliateProgramSortOrder @description Describes the order of the found affiliate programs
@@ -1154,19 +1153,17 @@ starTransactionTypeUnsupported = StarTransactionType;
 
 //@description Represents a transaction changing the amount of owned Telegram Stars
 //@id Unique identifier of the transaction
-//@star_count The amount of added owned Telegram Stars; negative for outgoing transactions
-//@nanostar_count The number of 1/1000000000 shares of added owned Telegram Stars; from -999999999 to 999999999
+//@star_amount The amount of added owned Telegram Stars; negative for outgoing transactions
 //@is_refund True, if the transaction is a refund of a previous transaction
 //@date Point in time (Unix timestamp) when the transaction was completed
 //@type Type of the transaction
-starTransaction id:string star_count:int53 nanostar_count:int32 is_refund:Bool date:int32 type:StarTransactionType = StarTransaction;
+starTransaction id:string star_amount:starAmount is_refund:Bool date:int32 type:StarTransactionType = StarTransaction;
 
 //@description Represents a list of Telegram Star transactions
-//@star_count The amount of owned Telegram Stars
-//@nanostar_count The number of 1/1000000000 shares of Telegram Stars owned; from -999999999 to 999999999
+//@star_amount The amount of owned Telegram Stars
 //@transactions List of transactions with Telegram Stars
 //@next_offset The offset for the next request. If empty, then there are no more results
-starTransactions star_count:int53 nanostar_count:int32 transactions:vector<starTransaction> next_offset:string = StarTransactions;
+starTransactions star_amount:starAmount transactions:vector<starTransaction> next_offset:string = StarTransactions;
 
 
 //@class GiveawayParticipantStatus @description Contains information about status of a user in a giveaway
@@ -8212,8 +8209,8 @@ updateSavedMessagesTags saved_messages_topic_id:int53 tags:savedMessagesTags = U
 //@messages The list of messages with active live locations
 updateActiveLiveLocationMessages messages:vector<message> = Update;
 
-//@description The number of Telegram Stars owned by the current user has changed @star_count The new number of the whole Telegram Stars owned @nanostar_count The new number of 1/1000000000 shares of Telegram Stars owned; from -999999999 to 999999999
-updateOwnedStarCount star_count:int53 nanostar_count:int32 = Update;
+//@description The number of Telegram Stars owned by the current user has changed @star_amount The new amount of owned Telegram Stars
+updateOwnedStarCount star_amount:starAmount = Update;
 
 //@description The revenue earned from sponsored messages in a chat has changed. If chat revenue screen is opened, then getChatRevenueTransactions may be called to fetch new transactions
 //@chat_id Identifier of the chat
