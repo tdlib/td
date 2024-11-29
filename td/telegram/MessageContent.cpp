@@ -8006,10 +8006,12 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(const Mess
     case MessageContentType::Video: {
       const auto *m = static_cast<const MessageVideo *>(content);
       vector<td_api::object_ptr<td_api::alternativeVideo>> alternative_videos;
-      for (auto file_id : m->alternative_file_ids) {
-        auto video = td->videos_manager_->get_alternative_video_object(file_id, m->hls_file_ids);
-        if (video != nullptr) {
-          alternative_videos.push_back(std::move(video));
+      if (!td->option_manager_->get_option_boolean("video_ignore_alt_documents")) {
+        for (auto file_id : m->alternative_file_ids) {
+          auto video = td->videos_manager_->get_alternative_video_object(file_id, m->hls_file_ids);
+          if (video != nullptr) {
+            alternative_videos.push_back(std::move(video));
+          }
         }
       }
       return make_tl_object<td_api::messageVideo>(td->videos_manager_->get_video_object(m->file_id),
