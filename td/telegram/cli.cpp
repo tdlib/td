@@ -3593,16 +3593,16 @@ class CliClient final : public Actor {
       }
       send_request(td_api::make_object<td_api::searchAffiliatePrograms>(chat_id, std::move(sort_order), offset,
                                                                         as_limit(limit)));
-    } else if (op == "capr") {
+    } else if (op == "ccap") {
       ChatId chat_id;
       UserId bot_user_id;
       get_args(args, chat_id, bot_user_id);
-      send_request(td_api::make_object<td_api::connectAffiliateProgram>(chat_id, bot_user_id));
-    } else if (op == "dapr") {
+      send_request(td_api::make_object<td_api::connectChatAffiliateProgram>(chat_id, bot_user_id));
+    } else if (op == "dcap") {
       ChatId chat_id;
       string url;
       get_args(args, chat_id, url);
-      send_request(td_api::make_object<td_api::disconnectAffiliateProgram>(chat_id, url));
+      send_request(td_api::make_object<td_api::disconnectChatAffiliateProgram>(chat_id, url));
     } else if (op == "gcap") {
       ChatId chat_id;
       UserId bot_user_id;

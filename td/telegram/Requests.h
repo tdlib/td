@@ -1577,9 +1577,9 @@ class Requests {
 
   void on_request(uint64 id, td_api::searchAffiliatePrograms &request);
 
-  void on_request(uint64 id, const td_api::connectAffiliateProgram &request);
+  void on_request(uint64 id, const td_api::connectChatAffiliateProgram &request);
 
-  void on_request(uint64 id, td_api::disconnectAffiliateProgram &request);
+  void on_request(uint64 id, td_api::disconnectChatAffiliateProgram &request);
 
   void on_request(uint64 id, const td_api::getChatAffiliateProgram &request);
 
