@@ -865,10 +865,25 @@ affiliateProgramSortOrderRevenue = AffiliateProgramSortOrder;
 //@month_count Number of month the program will be active; 0-36. If 0, then the program is eternal
 affiliateProgramParameters commission_per_mille:int32 month_count:int32 = AffiliateProgramParameters;
 
+//@description Contains information about an active affiliate program
+//@parameters Parameters of the affiliate program
+//@end_date Point in time (Unix timestamp) when the affiliate program will be closed; 0 if the affiliate program isn't scheduled to be closed.
+//-If positive, then the program can't be connected using connectAffiliateProgram, but active connections will work until the date
+//@daily_revenue_per_user_star_count The amount of daily revenue per user in Telegram Stars of the bot that created the affiliate program
+//@daily_revenue_per_user_nanostar_count The number of 1/1000000000 shares of daily revenue per user in Telegram Stars of the bot that created the affiliate program; from -999999999 to 999999999
+affiliateProgramInfo parameters:affiliateProgramParameters end_date:int32 daily_revenue_per_user_star_count:int64 daily_revenue_per_user_nanostar_count:int32 = AffiliateProgramInfo;
+
+//@description Contains information about an affiliate that received commission from a Telegram Star transaction
+//@commission_per_mille The number of Telegram Stars received by the affiliate for each 1000 Telegram Stars received by the program owner
+//@affiliate_chat_id Identifier of the chat which received the commission
+//@star_count The amount of Telegram Stars that were received by the affiliate; negative for refunds
+//@nanostar_count The number of 1/1000000000 shares of Telegram Stars that were received by the affiliate; from -999999999 to 999999999; non-positive for refunds
+affiliateInfo commission_per_mille:int32 affiliate_chat_id:int53 star_count:int53 nanostar_count:int32 = AffiliateInfo;
+
 //@description Describes a found affiliate program
 //@bot_user_id User identifier of the bot created the program
-//@parameters The parameters of the affiliate program
-foundAffiliateProgram bot_user_id:int53 parameters:affiliateProgramParameters = FoundAffiliateProgram;
+//@parameters Information about the affiliate program
+foundAffiliateProgram bot_user_id:int53 parameters:affiliateProgramInfo = FoundAffiliateProgram;
 
 //@description Represents a list of found affiliate programs
 //@total_count The total number of found affiliate programs
@@ -891,21 +906,6 @@ chatAffiliateProgram url:string bot_user_id:int53 parameters:affiliateProgramPar
 //@programs The list of connected affiliate programs
 //@next_offset The offset for the next request. If empty, then there are no more results
 chatAffiliatePrograms total_count:int32 programs:vector<chatAffiliateProgram> next_offset:string = ChatAffiliatePrograms;
-
-//@description Contains information about an active affiliate program
-//@parameters Parameters of the affiliate program
-//@end_date Point in time (Unix timestamp) when the affiliate program will be closed; 0 if the affiliate program isn't scheduled to be closed.
-//-If positive, then the program can't be connected using connectAffiliateProgram, but active connections will work until the date
-//@daily_revenue_per_user_star_count The amount of daily revenue per user in Telegram Stars of the bot that created the affiliate program
-//@daily_revenue_per_user_nanostar_count The number of 1/1000000000 shares of daily revenue per user in Telegram Stars of the bot that created the affiliate program; from -999999999 to 999999999
-affiliateProgramInfo parameters:affiliateProgramParameters end_date:int32 daily_revenue_per_user_star_count:int64 daily_revenue_per_user_nanostar_count:int32 = AffiliateProgramInfo;
-
-//@description Contains information about an affiliate that received commission from a Telegram Star transaction
-//@commission_per_mille The number of Telegram Stars received by the affiliate for each 1000 Telegram Stars received by the program owner
-//@affiliate_chat_id Identifier of the chat which received the commission
-//@star_count The amount of Telegram Stars that were received by the affiliate; negative for refunds
-//@nanostar_count The number of 1/1000000000 shares of Telegram Stars that were received by the affiliate; from -999999999 to 999999999; non-positive for refunds
-affiliateInfo commission_per_mille:int32 affiliate_chat_id:int53 star_count:int53 nanostar_count:int32 = AffiliateInfo;
 
 
 //@description Contains information about a product that can be paid with invoice

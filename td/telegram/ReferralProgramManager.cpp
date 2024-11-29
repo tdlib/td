@@ -367,7 +367,7 @@ class ReferralProgramManager::GetConnectedStarRefBotsQuery final : public Td::Re
 
 ReferralProgramManager::SuggestedBotStarRef::SuggestedBotStarRef(
     telegram_api::object_ptr<telegram_api::starRefProgram> &&ref)
-    : user_id_(ref->bot_id_), parameters_(ref->commission_permille_, ref->duration_months_) {
+    : user_id_(ref->bot_id_), info_(std::move(ref)) {
 }
 
 td_api::object_ptr<td_api::foundAffiliateProgram>
@@ -375,7 +375,7 @@ ReferralProgramManager::SuggestedBotStarRef::get_found_affiliate_program_object(
   CHECK(is_valid());
   return td_api::make_object<td_api::foundAffiliateProgram>(
       td->user_manager_->get_user_id_object(user_id_, "foundAffiliateProgram"),
-      parameters_.get_affiliate_program_parameters_object());
+      info_.get_affiliate_program_info_object());
 }
 
 ReferralProgramManager::ConnectedBotStarRef::ConnectedBotStarRef(
