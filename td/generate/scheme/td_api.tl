@@ -880,9 +880,8 @@ affiliateProgramInfo parameters:affiliateProgramParameters end_date:int32 daily_
 //@description Contains information about an affiliate that received commission from a Telegram Star transaction
 //@commission_per_mille The number of Telegram Stars received by the affiliate for each 1000 Telegram Stars received by the program owner
 //@affiliate_chat_id Identifier of the chat which received the commission
-//@star_count The amount of Telegram Stars that were received by the affiliate; negative for refunds
-//@nanostar_count The number of 1/1000000000 shares of Telegram Stars that were received by the affiliate; from -999999999 to 999999999; non-positive for refunds
-affiliateInfo commission_per_mille:int32 affiliate_chat_id:int53 star_count:int53 nanostar_count:int32 = AffiliateInfo;
+//@star_amount The amount of Telegram Stars that were received by the affiliate; can be negative for refunds
+affiliateInfo commission_per_mille:int32 affiliate_chat_id:int53 star_amount:starAmount = AffiliateInfo;
 
 //@description Describes a found affiliate program
 //@bot_user_id User identifier of the bot created the program

@@ -256,13 +256,11 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         if (transaction->starref_commission_permille_ > 0 && transaction->starref_commission_permille_ < 1000 &&
             referrer_dialog_id.is_valid()) {
           td_->dialog_manager_->force_create_dialog(referrer_dialog_id, "affiliateInfo", true);
-          auto referrer_star_count = StarManager::get_star_count(transaction->starref_amount_->amount_, true);
-          auto referrer_nanostar_count =
-              StarManager::get_nanostar_count(referrer_star_count, transaction->starref_amount_->nanos_);
+          auto referrer_star_amount = StarAmount(std::move(transaction->starref_amount_), true);
           affiliate = td_api::make_object<td_api::affiliateInfo>(
               transaction->starref_commission_permille_,
-              td_->dialog_manager_->get_chat_id_object(referrer_dialog_id, "affiliateInfo"), referrer_star_count,
-              referrer_nanostar_count);
+              td_->dialog_manager_->get_chat_id_object(referrer_dialog_id, "affiliateInfo"),
+              referrer_star_amount.get_star_amount_object());
         } else {
           LOG(ERROR) << "Receive invalid affiliate info: " << to_string(transaction);
         }
