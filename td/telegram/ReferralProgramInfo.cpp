@@ -6,10 +6,7 @@
 //
 #include "td/telegram/ReferralProgramInfo.h"
 
-#include "td/telegram/StarManager.h"
 #include "td/telegram/telegram_api.h"
-
-#include "td/utils/misc.h"
 
 namespace td {
 

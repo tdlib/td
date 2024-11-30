@@ -6,6 +6,7 @@
 //
 #include "td/telegram/ReferralProgramManager.h"
 
+#include "td/telegram/AccessRights.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
@@ -16,7 +17,9 @@
 #include "td/telegram/UserManager.h"
 
 #include "td/utils/buffer.h"
+#include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 
 namespace td {
@@ -86,7 +89,7 @@ class ResolveReferralProgramQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Chat not found"));
     }
 
-    td_->messages_manager_->force_create_dialog(dialog_id, "ResolveReferralProgramQuery");
+    td_->dialog_manager_->force_create_dialog(dialog_id, "ResolveReferralProgramQuery");
     promise_.set_value(td_->messages_manager_->get_chat_object(dialog_id, "ResolveReferralProgramQuery"));
   }
 
@@ -280,7 +283,7 @@ class ReferralProgramManager::GetConnectedStarRefBotQuery final : public Td::Res
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(DEBUG) << "Receive result for ConnectStarRefBotQuery: " << to_string(ptr);
+    LOG(DEBUG) << "Receive result for GetConnectedStarRefBotQuery: " << to_string(ptr);
     if (ptr->connected_bots_.size() != 1u) {
       if (ptr->connected_bots_.empty()) {
         return promise_.set_value(nullptr);
@@ -319,9 +322,9 @@ class ReferralProgramManager::GetConnectedStarRefBotsQuery final : public Td::Re
     string link;
     int32 flags = 0;
     if (!offset.empty()) {
-      auto splitted_offset = split(offset);
-      date = to_integer<int32>(splitted_offset.first);
-      link = std::move(splitted_offset.second);
+      auto split_offset = split(offset);
+      date = to_integer<int32>(split_offset.first);
+      link = std::move(split_offset.second);
       flags |= telegram_api::payments_getConnectedStarRefBots::OFFSET_DATE_MASK;
     }
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);

@@ -122,6 +122,7 @@
 #include "td/telegram/ReactionNotificationSettings.h"
 #include "td/telegram/ReactionType.h"
 #include "td/telegram/ReferralProgramManager.h"
+#include "td/telegram/ReferralProgramParameters.h"
 #include "td/telegram/ReferralProgramSortOrder.h"
 #include "td/telegram/ReportReason.h"
 #include "td/telegram/RequestActor.h"

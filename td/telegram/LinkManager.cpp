@@ -502,7 +502,7 @@ class LinkManager::InternalLinkDialogReferralProgram final : public InternalLink
   }
 
  public:
-  explicit InternalLinkDialogReferralProgram(string username, string referral)
+  InternalLinkDialogReferralProgram(string username, string referral)
       : username_(std::move(username)), referral_(std::move(referral)) {
   }
 };

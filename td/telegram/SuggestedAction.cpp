@@ -7,7 +7,6 @@
 #include "td/telegram/SuggestedAction.h"
 
 #include "td/telegram/ChannelId.h"
-#include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/SuggestedActionManager.h"
 #include "td/telegram/Td.h"

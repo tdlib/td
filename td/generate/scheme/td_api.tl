@@ -868,13 +868,13 @@ affiliateProgramSortOrderRevenue = AffiliateProgramSortOrder;
 //@description Describes parameters of an affiliate program
 //@commission_per_mille The number of Telegram Stars received by the affiliate for each 1000 Telegram Stars received by the program owner;
 //-getOption("affiliate_program_commission_per_mille_min")-getOption("affiliate_program_commission_per_mille_max")
-//@month_count Number of month the program will be active; 0-36. If 0, then the program is eternal
+//@month_count Number of months the program will be active; 0-36. If 0, then the program is eternal
 affiliateProgramParameters commission_per_mille:int32 month_count:int32 = AffiliateProgramParameters;
 
 //@description Contains information about an active affiliate program
 //@parameters Parameters of the affiliate program
 //@end_date Point in time (Unix timestamp) when the affiliate program will be closed; 0 if the affiliate program isn't scheduled to be closed.
-//-If positive, then the program can't be connected using connectAffiliateProgram, but active connections will work until the date
+//-If positive, then the program can't be connected using connectChatAffiliateProgram, but active connections will work until the date
 //@daily_revenue_per_user_amount The amount of daily revenue per user in Telegram Stars of the bot that created the affiliate program
 affiliateProgramInfo parameters:affiliateProgramParameters end_date:int32 daily_revenue_per_user_amount:starAmount = AffiliateProgramInfo;
 
@@ -1032,7 +1032,7 @@ starTransactionDirectionIncoming = StarTransactionDirection;
 starTransactionDirectionOutgoing = StarTransactionDirection;
 
 
-//@class StarTransactionType @description Describes type of a transaction with Telegram Stars
+//@class StarTransactionType @description Describes type of transaction with Telegram Stars
 
 //@description The transaction is a deposit of Telegram Stars from the Premium bot; for regular users only
 starTransactionTypePremiumBotDeposit = StarTransactionType;
@@ -10887,7 +10887,7 @@ getAllStickerEmojis sticker_type:StickerType query:string chat_id:int53 return_o
 //@description Searches for stickers from public sticker sets that correspond to any of the given emoji
 //@sticker_type Type of the stickers to return
 //@emojis Space-separated list of emojis to search for
-//@query Query to search for; may be empty to search for emojis only
+//@query Query to search for; may be empty to search for emoji only
 //@input_language_codes List of possible IETF language tags of the user's input language; may be empty if unknown
 //@offset The offset from which to return the stickers; must be non-negative
 //@limit The maximum number of stickers to be returned; 0-100

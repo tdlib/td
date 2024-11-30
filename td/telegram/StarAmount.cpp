@@ -8,6 +8,8 @@
 
 #include "td/telegram/StarManager.h"
 
+#include "td/utils/misc.h"
+
 namespace td {
 
 StarAmount::StarAmount(telegram_api::object_ptr<telegram_api::starsAmount> &&amount, bool allow_negative) {

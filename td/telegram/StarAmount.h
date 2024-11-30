@@ -14,8 +14,6 @@
 
 namespace td {
 
-class Td;
-
 class StarAmount {
   int64 star_count_ = 0;
   int32 nanostar_count_ = 0;

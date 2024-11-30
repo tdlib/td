@@ -15,8 +15,11 @@
 #include "td/telegram/SuggestedAction.hpp"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/utils/algorithm.h"
+#include "td/utils/buffer.h"
+#include "td/utils/logging.h"
 
 namespace td {
 

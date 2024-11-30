@@ -21,7 +21,6 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/NotificationSettingsScope.h"
 #include "td/telegram/Photo.h"
-#include "td/telegram/SuggestedAction.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
