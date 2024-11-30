@@ -27,9 +27,6 @@ class StarAmount {
 
   StarAmount(telegram_api::object_ptr<telegram_api::starsAmount> &&amount, bool allow_negative);
 
-  StarAmount(int64 star_count, int32 nanostar_count) : star_count_(star_count), nanostar_count_(nanostar_count) {
-  }
-
   int64 get_star_count() const {
     return star_count_;
   }

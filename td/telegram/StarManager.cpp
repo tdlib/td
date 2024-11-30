@@ -961,7 +961,7 @@ td_api::object_ptr<td_api::updateOwnedStarCount> StarManager::get_update_owned_s
   CHECK(is_owned_star_count_inited_);
   // sent_star_count_ can be negative as well as owned_star_count_
   return td_api::make_object<td_api::updateOwnedStarCount>(
-      StarAmount(sent_star_count_, sent_nanostar_count_).get_star_amount_object());
+      td_api::make_object<td_api::starAmount>(sent_star_count_, sent_nanostar_count_));
 }
 
 void StarManager::on_update_owned_star_amount(StarAmount star_amount) {
