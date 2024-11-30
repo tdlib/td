@@ -811,10 +811,11 @@ static td_api::object_ptr<td_api::starRevenueStatus> convert_stars_revenue_statu
   if (obj->withdrawal_enabled_ && obj->next_withdrawal_at_ > 0) {
     next_withdrawal_in = max(obj->next_withdrawal_at_ - G()->unix_time(), 1);
   }
-  return td_api::make_object<td_api::starRevenueStatus>(StarManager::get_star_count(obj->overall_revenue_->amount_),
-                                                        StarManager::get_star_count(obj->current_balance_->amount_),
-                                                        StarManager::get_star_count(obj->available_balance_->amount_),
-                                                        obj->withdrawal_enabled_, next_withdrawal_in);
+  return td_api::make_object<td_api::starRevenueStatus>(
+      StarAmount(std::move(obj->overall_revenue_), true).get_star_amount_object(),
+      StarAmount(std::move(obj->current_balance_), true).get_star_amount_object(),
+      StarAmount(std::move(obj->available_balance_), true).get_star_amount_object(), obj->withdrawal_enabled_,
+      next_withdrawal_in);
 }
 
 class GetStarsRevenueStatsQuery final : public Td::ResultHandler {

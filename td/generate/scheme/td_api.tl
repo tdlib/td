@@ -7668,12 +7668,12 @@ chatRevenueTransactions total_count:int32 transactions:vector<chatRevenueTransac
 
 
 //@description Contains information about Telegram Stars earned by a bot or a chat
-//@total_count Total number of Telegram Stars earned
-//@current_count The number of Telegram Stars that aren't withdrawn yet
-//@available_count The number of Telegram Stars that are available for withdrawal
+//@total_amount Total amount of Telegram Stars earned
+//@current_amount The amount of Telegram Stars that aren't withdrawn yet
+//@available_amount The amount of Telegram Stars that are available for withdrawal
 //@withdrawal_enabled True, if Telegram Stars can be withdrawn now or later
 //@next_withdrawal_in Time left before the next withdrawal can be started, in seconds; 0 if withdrawal can be started now
-starRevenueStatus total_count:int53 current_count:int53 available_count:int53 withdrawal_enabled:Bool next_withdrawal_in:int32 = StarRevenueStatus;
+starRevenueStatus total_amount:starAmount current_amount:starAmount available_amount:starAmount withdrawal_enabled:Bool next_withdrawal_in:int32 = StarRevenueStatus;
 
 //@description A detailed statistics about Telegram Stars earned by a bot or a chat
 //@revenue_by_day_graph A graph containing amount of revenue in a given day
