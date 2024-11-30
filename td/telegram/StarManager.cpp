@@ -1231,10 +1231,12 @@ int32 StarManager::get_nanostar_count(int64 &star_count, int32 nanostar_count) {
     return nanostar_count;
   }
   if (star_count < 0 && nanostar_count > 0) {
+    LOG(ERROR) << "Receive " << star_count << " + " << nanostar_count << " Telegram Stars";
     star_count++;
     nanostar_count -= 1000000000;
   }
   if (star_count > 0 && nanostar_count < 0) {
+    LOG(ERROR) << "Receive " << star_count << " + " << nanostar_count << " Telegram Stars";
     star_count--;
     nanostar_count += 1000000000;
   }
