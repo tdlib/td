@@ -866,7 +866,8 @@ affiliateProgramSortOrderRevenue = AffiliateProgramSortOrder;
 
 
 //@description Describes parameters of an affiliate program
-//@commission_per_mille The number of Telegram Stars received by the affiliate for each 1000 Telegram Stars received by the program owner; 1-900
+//@commission_per_mille The number of Telegram Stars received by the affiliate for each 1000 Telegram Stars received by the program owner;
+//-getOption("affiliate_program_commission_per_mille_min")-getOption("affiliate_program_commission_per_mille_max")
 //@month_count Number of month the program will be active; 0-36. If 0, then the program is eternal
 affiliateProgramParameters commission_per_mille:int32 month_count:int32 = AffiliateProgramParameters;
 

@@ -163,6 +163,8 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("thousand_star_to_usd_rate", 1300);
   set_default_integer_option("gift_text_length_max", 255);
   set_default_integer_option("gift_sell_period", is_test_dc ? 300 : 90 * 86400);
+  set_default_integer_option("affiliate_program_commission_per_mille_min", 1);
+  set_default_integer_option("affiliate_program_commission_per_mille_max", 900);
 
   if (options.isset("my_phone_number") || !options.isset("my_id")) {
     update_premium_options();

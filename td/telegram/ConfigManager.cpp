@@ -2039,6 +2039,16 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         G()->set_option_boolean("video_ignore_alt_documents", get_json_value_bool(std::move(key_value->value_), key));
         continue;
       }
+      if (key == "starref_min_commission_permille") {
+        G()->set_option_integer("affiliate_program_commission_per_mille_min",
+                                get_json_value_int(std::move(key_value->value_), key));
+        continue;
+      }
+      if (key == "starref_max_commission_permille") {
+        G()->set_option_integer("affiliate_program_commission_per_mille_max",
+                                get_json_value_int(std::move(key_value->value_), key));
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
