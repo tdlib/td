@@ -1224,9 +1224,20 @@ int64 StarManager::get_star_count(int64 amount, bool allow_negative) {
   return amount;
 }
 
-int32 StarManager::get_nanostar_count(int64 star_count, int32 nanostar_count) {
-  if (-1000000000 < nanostar_count && nanostar_count < 1000000000 && !(star_count < 0 && nanostar_count > 0) &&
-      !(star_count > 0 && nanostar_count < 0)) {
+int32 StarManager::get_nanostar_count(int64 &star_count, int32 nanostar_count) {
+  if (-1000000000 >= nanostar_count || nanostar_count >= 1000000000) {
+    LOG(ERROR) << "Receive " << star_count << " + " << nanostar_count << " Telegram Stars";
+    return nanostar_count;
+  }
+  if (star_count < 0 && nanostar_count > 0) {
+    star_count++;
+    nanostar_count -= 1000000000;
+  }
+  if (star_count > 0 && nanostar_count < 0) {
+    star_count--;
+    nanostar_count += 1000000000;
+  }
+  if (!(star_count < 0 && nanostar_count > 0) && !(star_count > 0 && nanostar_count < 0)) {
     return nanostar_count;
   }
   LOG(ERROR) << "Receive " << star_count << " + " << nanostar_count << " Telegram Stars";

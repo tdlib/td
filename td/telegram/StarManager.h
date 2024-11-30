@@ -76,7 +76,7 @@ class StarManager final : public Actor {
 
   static int64 get_star_count(int64 amount, bool allow_negative = false);
 
-  static int32 get_nanostar_count(int64 star_count, int32 nanostar_count);
+  static int32 get_nanostar_count(int64 &star_count, int32 nanostar_count);
 
   static int32 get_months_by_star_count(int64 star_count);
 
