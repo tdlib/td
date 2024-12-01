@@ -7,13 +7,13 @@
 #include "td/telegram/Game.h"
 
 #include "td/telegram/AnimationsManager.h"
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
@@ -80,10 +80,12 @@ const FormattedText &Game::get_text() const {
   return text_;
 }
 
-tl_object_ptr<td_api::game> Game::get_game_object(Td *td, bool skip_bot_commands) const {
-  return make_tl_object<td_api::game>(id_, short_name_, title_, get_formatted_text_object(text_, skip_bot_commands, -1),
-                                      description_, get_photo_object(td->file_manager_.get(), photo_),
-                                      td->animations_manager_->get_animation_object(animation_file_id_));
+tl_object_ptr<td_api::game> Game::get_game_object(Td *td, bool is_server, bool skip_bot_commands) const {
+  return make_tl_object<td_api::game>(
+      id_, short_name_, title_,
+      get_formatted_text_object(is_server ? td->user_manager_.get() : nullptr, text_, skip_bot_commands, -1),
+      description_, get_photo_object(td->file_manager_.get(), photo_),
+      td->animations_manager_->get_animation_object(animation_file_id_));
 }
 
 bool Game::has_input_media() const {
@@ -91,7 +93,7 @@ bool Game::has_input_media() const {
 }
 
 tl_object_ptr<telegram_api::inputMediaGame> Game::get_input_media_game(const Td *td) const {
-  auto input_user = td->contacts_manager_->get_input_user_force(bot_user_id_);
+  auto input_user = td->user_manager_->get_input_user_force(bot_user_id_);
   return make_tl_object<telegram_api::inputMediaGame>(
       make_tl_object<telegram_api::inputGameShortName>(std::move(input_user), short_name_));
 }
@@ -113,14 +115,14 @@ StringBuilder &operator<<(StringBuilder &string_builder, const Game &game) {
                         << ", photo = " << game.photo_ << ", animation_file_id = " << game.animation_file_id_ << "]";
 }
 
-Result<Game> process_input_message_game(const ContactsManager *contacts_manager,
+Result<Game> process_input_message_game(const UserManager *user_manager,
                                         tl_object_ptr<td_api::InputMessageContent> &&input_message_content) {
   CHECK(input_message_content != nullptr);
   CHECK(input_message_content->get_id() == td_api::inputMessageGame::ID);
   auto input_message_game = move_tl_object_as<td_api::inputMessageGame>(input_message_content);
 
   UserId bot_user_id(input_message_game->bot_user_id_);
-  TRY_STATUS(contacts_manager->get_input_user(bot_user_id));
+  TRY_STATUS(user_manager->get_input_user(bot_user_id));
 
   if (!clean_input_string(input_message_game->game_short_name_)) {
     return Status::Error(400, "Game short name must be encoded in UTF-8");

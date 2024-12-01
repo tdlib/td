@@ -6,7 +6,6 @@
 //
 #include "td/telegram/ClientActor.h"
 
-#include "td/telegram/net/NetQueryCounter.h"
 #include "td/telegram/net/NetQueryStats.h"
 #include "td/telegram/Td.h"
 

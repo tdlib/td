@@ -7,7 +7,6 @@
 #include "td/telegram/ThemeManager.h"
 
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/BackgroundInfo.hpp"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/net/NetQueryCreator.h"
@@ -15,6 +14,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/ThemeSettings.hpp"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -116,16 +116,6 @@ class GetPeerProfileColorsQuery final : public Td::ResultHandler {
   }
 };
 
-bool operator==(const ThemeManager::ThemeSettings &lhs, const ThemeManager::ThemeSettings &rhs) {
-  return lhs.accent_color == rhs.accent_color && lhs.message_accent_color == rhs.message_accent_color &&
-         lhs.background_info == rhs.background_info && lhs.base_theme == rhs.base_theme &&
-         lhs.message_colors == rhs.message_colors && lhs.animate_message_colors == rhs.animate_message_colors;
-}
-
-bool operator!=(const ThemeManager::ThemeSettings &lhs, const ThemeManager::ThemeSettings &rhs) {
-  return !(lhs == rhs);
-}
-
 bool operator==(const ThemeManager::ProfileAccentColor &lhs, const ThemeManager::ProfileAccentColor &rhs) {
   return lhs.palette_colors_ == rhs.palette_colors_ && lhs.background_colors_ == rhs.background_colors_ &&
          lhs.story_colors_ == rhs.story_colors_;
@@ -133,50 +123,6 @@ bool operator==(const ThemeManager::ProfileAccentColor &lhs, const ThemeManager:
 
 bool operator!=(const ThemeManager::ProfileAccentColor &lhs, const ThemeManager::ProfileAccentColor &rhs) {
   return !(lhs == rhs);
-}
-
-template <class StorerT>
-void ThemeManager::ThemeSettings::store(StorerT &storer) const {
-  using td::store;
-  bool has_message_accent_color = message_accent_color != accent_color;
-  bool has_background = background_info.is_valid();
-  BEGIN_STORE_FLAGS();
-  STORE_FLAG(animate_message_colors);
-  STORE_FLAG(has_message_accent_color);
-  STORE_FLAG(has_background);
-  END_STORE_FLAGS();
-  store(accent_color, storer);
-  if (has_message_accent_color) {
-    store(message_accent_color, storer);
-  }
-  if (has_background) {
-    store(background_info, storer);
-  }
-  store(base_theme, storer);
-  store(message_colors, storer);
-}
-
-template <class ParserT>
-void ThemeManager::ThemeSettings::parse(ParserT &parser) {
-  using td::parse;
-  bool has_message_accent_color;
-  bool has_background;
-  BEGIN_PARSE_FLAGS();
-  PARSE_FLAG(animate_message_colors);
-  PARSE_FLAG(has_message_accent_color);
-  PARSE_FLAG(has_background);
-  END_PARSE_FLAGS();
-  parse(accent_color, parser);
-  if (has_message_accent_color) {
-    parse(message_accent_color, parser);
-  } else {
-    message_accent_color = accent_color;
-  }
-  if (has_background) {
-    parse(background_info, parser);
-  }
-  parse(base_theme, parser);
-  parse(message_colors, parser);
 }
 
 template <class StorerT>
@@ -495,21 +441,6 @@ ThemeManager::DialogBoostAvailableCounts ThemeManager::get_dialog_boost_availabl
   return result;
 }
 
-bool ThemeManager::is_dark_base_theme(BaseTheme base_theme) {
-  switch (base_theme) {
-    case BaseTheme::Classic:
-    case BaseTheme::Day:
-    case BaseTheme::Arctic:
-      return false;
-    case BaseTheme::Night:
-    case BaseTheme::Tinted:
-      return true;
-    default:
-      UNREACHABLE();
-      return false;
-  }
-}
-
 void ThemeManager::on_update_theme(telegram_api::object_ptr<telegram_api::theme> &&theme, Promise<Unit> &&promise) {
   CHECK(theme != nullptr);
   bool is_changed = false;
@@ -518,11 +449,11 @@ void ThemeManager::on_update_theme(telegram_api::object_ptr<telegram_api::theme>
   for (auto &chat_theme : chat_themes_.themes) {
     if (chat_theme.id == theme->id_) {
       for (auto &settings : theme->settings_) {
-        auto theme_settings = get_chat_theme_settings(std::move(settings));
-        if (theme_settings.message_colors.empty()) {
+        ThemeSettings theme_settings(td_, std::move(settings));
+        if (theme_settings.is_empty()) {
           continue;
         }
-        if (is_dark_base_theme(theme_settings.base_theme)) {
+        if (theme_settings.are_dark()) {
           if (!was_dark) {
             was_dark = true;
             if (chat_theme.dark_theme != theme_settings) {
@@ -622,34 +553,18 @@ bool ThemeManager::on_update_profile_accent_colors(
   return true;
 }
 
-namespace {
-template <bool for_web_view>
-static auto get_color_json(int32 color);
-
-template <>
-auto get_color_json<false>(int32 color) {
-  return static_cast<int64>(static_cast<uint32>(color) | 0xFF000000);
-}
-
-template <>
-auto get_color_json<true>(int32 color) {
-  string res(7, '#');
-  const char *hex = "0123456789abcdef";
-  for (int i = 0; i < 3; i++) {
-    int32 num = (color >> (i * 8)) & 0xFF;
-    res[2 * i + 1] = hex[num >> 4];
-    res[2 * i + 2] = hex[num & 15];
-  }
-  return res;
-}
-
-template <bool for_web_view>
-string get_theme_parameters_json_string_impl(const td_api::object_ptr<td_api::themeParameters> &theme) {
-  if (for_web_view && theme == nullptr) {
-    return "null";
-  }
+string ThemeManager::get_theme_parameters_json_string(const td_api::object_ptr<td_api::themeParameters> &theme) {
   return json_encode<string>(json_object([&theme](auto &o) {
-    auto get_color = &get_color_json<for_web_view>;
+    auto get_color = [](int32 color) {
+      string res(7, '#');
+      const char *hex = "0123456789abcdef";
+      for (int i = 0; i < 3; i++) {
+        int32 num = (color >> ((2 - i) * 8)) & 0xFF;
+        res[2 * i + 1] = hex[num >> 4];
+        res[2 * i + 2] = hex[num & 15];
+      }
+      return res;
+    };
     o("bg_color", get_color(theme->background_color_));
     o("secondary_bg_color", get_color(theme->secondary_background_color_));
     o("text_color", get_color(theme->text_color_));
@@ -658,29 +573,20 @@ string get_theme_parameters_json_string_impl(const td_api::object_ptr<td_api::th
     o("button_color", get_color(theme->button_color_));
     o("button_text_color", get_color(theme->button_text_color_));
     o("header_bg_color", get_color(theme->header_background_color_));
+    o("bottom_bar_bg_color", get_color(theme->bottom_bar_background_color_));
     o("section_bg_color", get_color(theme->section_background_color_));
+    o("section_separator_color", get_color(theme->section_separator_color_));
     o("accent_text_color", get_color(theme->accent_text_color_));
     o("section_header_text_color", get_color(theme->section_header_text_color_));
     o("subtitle_text_color", get_color(theme->subtitle_text_color_));
     o("destructive_text_color", get_color(theme->destructive_text_color_));
   }));
 }
-}  // namespace
-
-string ThemeManager::get_theme_parameters_json_string(const td_api::object_ptr<td_api::themeParameters> &theme,
-                                                      bool for_web_view) {
-  if (for_web_view) {
-    return get_theme_parameters_json_string_impl<true>(theme);
-  } else {
-    return get_theme_parameters_json_string_impl<false>(theme);
-  }
-}
 
 int32 ThemeManager::get_accent_color_id_object(AccentColorId accent_color_id,
                                                AccentColorId fallback_accent_color_id) const {
-  CHECK(accent_color_id.is_valid());
-  if (td_->auth_manager_->is_bot() || accent_color_id.is_built_in() ||
-      accent_colors_.light_colors_.count(accent_color_id) != 0) {
+  if (accent_color_id.is_valid() && (td_->auth_manager_->is_bot() || accent_color_id.is_built_in() ||
+                                     accent_colors_.light_colors_.count(accent_color_id) != 0)) {
     return accent_color_id.get();
   }
   if (!fallback_accent_color_id.is_valid()) {
@@ -700,27 +606,9 @@ int32 ThemeManager::get_profile_accent_color_id_object(AccentColorId accent_colo
   return -1;
 }
 
-td_api::object_ptr<td_api::themeSettings> ThemeManager::get_theme_settings_object(const ThemeSettings &settings) const {
-  auto fill = [colors = settings.message_colors]() mutable -> td_api::object_ptr<td_api::BackgroundFill> {
-    if (colors.size() >= 3) {
-      return td_api::make_object<td_api::backgroundFillFreeformGradient>(std::move(colors));
-    }
-    CHECK(!colors.empty());
-    if (colors.size() == 1 || colors[0] == colors[1]) {
-      return td_api::make_object<td_api::backgroundFillSolid>(colors[0]);
-    }
-    return td_api::make_object<td_api::backgroundFillGradient>(colors[1], colors[0], 0);
-  }();
-
-  // ignore settings.base_theme for now
-  return td_api::make_object<td_api::themeSettings>(
-      settings.accent_color, settings.background_info.get_background_object(td_), std::move(fill),
-      settings.animate_message_colors, settings.message_accent_color);
-}
-
 td_api::object_ptr<td_api::chatTheme> ThemeManager::get_chat_theme_object(const ChatTheme &theme) const {
-  return td_api::make_object<td_api::chatTheme>(theme.emoji, get_theme_settings_object(theme.light_theme),
-                                                get_theme_settings_object(theme.dark_theme));
+  return td_api::make_object<td_api::chatTheme>(theme.emoji, theme.light_theme.get_theme_settings_object(td_),
+                                                theme.dark_theme.get_theme_settings_object(td_));
 }
 
 td_api::object_ptr<td_api::updateChatThemes> ThemeManager::get_update_chat_themes_object() const {
@@ -889,11 +777,11 @@ void ThemeManager::on_get_chat_themes(Result<telegram_api::object_ptr<telegram_a
     chat_theme.emoji = std::move(theme->emoticon_);
     chat_theme.id = theme->id_;
     for (auto &settings : theme->settings_) {
-      auto theme_settings = get_chat_theme_settings(std::move(settings));
-      if (theme_settings.message_colors.empty()) {
+      ThemeSettings theme_settings(td_, std::move(settings));
+      if (theme_settings.is_empty()) {
         continue;
       }
-      if (is_dark_base_theme(theme_settings.base_theme)) {
+      if (theme_settings.are_dark()) {
         if (!was_dark) {
           was_dark = true;
           if (chat_theme.dark_theme != theme_settings) {
@@ -909,7 +797,7 @@ void ThemeManager::on_get_chat_themes(Result<telegram_api::object_ptr<telegram_a
         }
       }
     }
-    if (chat_theme.light_theme.message_colors.empty() || chat_theme.dark_theme.message_colors.empty()) {
+    if (chat_theme.light_theme.is_empty() || chat_theme.dark_theme.is_empty()) {
       continue;
     }
     chat_themes_.themes.push_back(std::move(chat_theme));
@@ -1077,41 +965,6 @@ void ThemeManager::on_get_profile_accent_colors(
       is_changed) {
     save_profile_accent_colors();
   }
-}
-
-ThemeManager::BaseTheme ThemeManager::get_base_theme(
-    const telegram_api::object_ptr<telegram_api::BaseTheme> &base_theme) {
-  CHECK(base_theme != nullptr);
-  switch (base_theme->get_id()) {
-    case telegram_api::baseThemeClassic::ID:
-      return BaseTheme::Classic;
-    case telegram_api::baseThemeDay::ID:
-      return BaseTheme::Day;
-    case telegram_api::baseThemeNight::ID:
-      return BaseTheme::Night;
-    case telegram_api::baseThemeTinted::ID:
-      return BaseTheme::Tinted;
-    case telegram_api::baseThemeArctic::ID:
-      return BaseTheme::Arctic;
-    default:
-      UNREACHABLE();
-      return BaseTheme::Classic;
-  }
-}
-
-ThemeManager::ThemeSettings ThemeManager::get_chat_theme_settings(
-    telegram_api::object_ptr<telegram_api::themeSettings> settings) {
-  ThemeSettings result;
-  if (settings != nullptr && !settings->message_colors_.empty() && settings->message_colors_.size() <= 4) {
-    result.accent_color = settings->accent_color_;
-    bool has_outbox_accent_color = (settings->flags_ & telegram_api::themeSettings::OUTBOX_ACCENT_COLOR_MASK) != 0;
-    result.message_accent_color = (has_outbox_accent_color ? settings->outbox_accent_color_ : result.accent_color);
-    result.background_info = BackgroundInfo(td_, std::move(settings->wallpaper_), true);
-    result.base_theme = get_base_theme(settings->base_theme_);
-    result.message_colors = std::move(settings->message_colors_);
-    result.animate_message_colors = settings->message_colors_animated_;
-  }
-  return result;
 }
 
 void ThemeManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {

@@ -11,7 +11,7 @@ $ErrorActionPreference = "Stop"
 $vcpkg_root = Resolve-Path $vcpkg_root
 
 $vcpkg_cmake="${vcpkg_root}\scripts\buildsystems\vcpkg.cmake"
-$arch_list = @( "x86", "x64", "ARM" )
+$arch_list = @( "x86", "x64", "ARM", "ARM64" )
 if ($arch) {
   $arch_list = @(, $arch)
 }
@@ -42,9 +42,9 @@ function prepare {
 
   cd build-native
 
-  cmake -A Win32 -DCMAKE_TOOLCHAIN_FILE="$vcpkg_cmake" -DTD_ENABLE_DOTNET=ON "$td_root"
+  cmake -A Win32 -DTD_GENERATE_SOURCE_FILES=ON -DTD_ENABLE_DOTNET=ON "$td_root"
   CheckLastExitCode
-  cmake --build . --target prepare_cross_compiling
+  cmake --build .
   CheckLastExitCode
 
   cd ..

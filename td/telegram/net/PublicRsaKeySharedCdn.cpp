@@ -37,7 +37,7 @@ Result<mtproto::PublicRsaKeyInterface::RsaKey> PublicRsaKeySharedCdn::get_rsa_ke
       return RsaKey{rsa_key->rsa.clone(), fingerprint};
     }
   }
-  return Status::Error(PSLICE() << "Unknown fingerprints " << format::as_array(fingerprints));
+  return Status::Error(PSLICE() << "Unknown CDN fingerprints " << format::as_array(fingerprints));
 }
 
 void PublicRsaKeySharedCdn::drop_keys() {

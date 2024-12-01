@@ -7,7 +7,7 @@
 #include "td/telegram/GiveawayParameters.h"
 
 #include "td/telegram/AccessRights.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
@@ -29,16 +29,15 @@ Result<ChannelId> GiveawayParameters::get_boosted_channel_id(Td *td, DialogId di
     return Status::Error(400, "Can't boost the chat");
   }
   auto channel_id = dialog_id.get_channel_id();
-  auto status = td->contacts_manager_->get_channel_status(channel_id);
-  if (td->contacts_manager_->is_broadcast_channel(channel_id) ? !status.can_post_messages()
-                                                              : !status.is_administrator()) {
+  auto status = td->chat_manager_->get_channel_status(channel_id);
+  if (td->chat_manager_->is_broadcast_channel(channel_id) ? !status.can_post_messages() : !status.is_administrator()) {
     return Status::Error(400, "Not enough rights in the chat");
   }
   return channel_id;
 }
 
-Result<GiveawayParameters> GiveawayParameters::get_giveaway_parameters(
-    Td *td, const td_api::premiumGiveawayParameters *parameters) {
+Result<GiveawayParameters> GiveawayParameters::get_giveaway_parameters(Td *td,
+                                                                       const td_api::giveawayParameters *parameters) {
   if (parameters == nullptr) {
     return Status::Error(400, "Giveaway parameters must be non-empty");
   }
@@ -124,19 +123,58 @@ GiveawayParameters::get_input_store_payment_premium_giveaway(Td *td, const strin
       vector<string>(country_codes_), prize_description_, random_id, date_, currency, amount);
 }
 
-td_api::object_ptr<td_api::premiumGiveawayParameters> GiveawayParameters::get_premium_giveaway_parameters_object(
-    Td *td) const {
+telegram_api::object_ptr<telegram_api::inputStorePaymentStarsGiveaway>
+GiveawayParameters::get_input_store_payment_stars_giveaway(Td *td, const string &currency, int64 amount,
+                                                           int32 user_count, int64 star_count) const {
+  int64 random_id;
+  do {
+    random_id = Random::secure_int64();
+  } while (random_id == 0);
+
+  auto boost_input_peer = td->dialog_manager_->get_input_peer(DialogId(boosted_channel_id_), AccessRights::Write);
+  CHECK(boost_input_peer != nullptr);
+
+  vector<telegram_api::object_ptr<telegram_api::InputPeer>> additional_input_peers;
+  for (auto additional_channel_id : additional_channel_ids_) {
+    auto input_peer = td->dialog_manager_->get_input_peer(DialogId(additional_channel_id), AccessRights::Write);
+    CHECK(input_peer != nullptr);
+    additional_input_peers.push_back(std::move(input_peer));
+  }
+
+  int32 flags = 0;
+  if (only_new_subscribers_) {
+    flags |= telegram_api::inputStorePaymentStarsGiveaway::ONLY_NEW_SUBSCRIBERS_MASK;
+  }
+  if (winners_are_visible_) {
+    flags |= telegram_api::inputStorePaymentStarsGiveaway::WINNERS_ARE_VISIBLE_MASK;
+  }
+  if (!additional_input_peers.empty()) {
+    flags |= telegram_api::inputStorePaymentStarsGiveaway::ADDITIONAL_PEERS_MASK;
+  }
+  if (!country_codes_.empty()) {
+    flags |= telegram_api::inputStorePaymentStarsGiveaway::COUNTRIES_ISO2_MASK;
+  }
+  if (!prize_description_.empty()) {
+    flags |= telegram_api::inputStorePaymentStarsGiveaway::PRIZE_DESCRIPTION_MASK;
+  }
+  return telegram_api::make_object<telegram_api::inputStorePaymentStarsGiveaway>(
+      flags, false /*ignored*/, false /*ignored*/, star_count, std::move(boost_input_peer),
+      std::move(additional_input_peers), vector<string>(country_codes_), prize_description_, random_id, date_, currency,
+      amount, user_count);
+}
+
+td_api::object_ptr<td_api::giveawayParameters> GiveawayParameters::get_giveaway_parameters_object(Td *td) const {
   CHECK(is_valid());
   vector<int64> chat_ids;
   for (auto channel_id : additional_channel_ids_) {
     DialogId dialog_id(channel_id);
-    td->dialog_manager_->force_create_dialog(dialog_id, "premiumGiveawayParameters", true);
-    chat_ids.push_back(td->dialog_manager_->get_chat_id_object(dialog_id, "premiumGiveawayParameters"));
+    td->dialog_manager_->force_create_dialog(dialog_id, "giveawayParameters", true);
+    chat_ids.push_back(td->dialog_manager_->get_chat_id_object(dialog_id, "giveawayParameters"));
   }
   DialogId dialog_id(boosted_channel_id_);
-  td->dialog_manager_->force_create_dialog(dialog_id, "premiumGiveawayParameters", true);
-  return td_api::make_object<td_api::premiumGiveawayParameters>(
-      td->dialog_manager_->get_chat_id_object(dialog_id, "premiumGiveawayParameters"), std::move(chat_ids), date_,
+  td->dialog_manager_->force_create_dialog(dialog_id, "giveawayParameters", true);
+  return td_api::make_object<td_api::giveawayParameters>(
+      td->dialog_manager_->get_chat_id_object(dialog_id, "giveawayParameters"), std::move(chat_ids), date_,
       only_new_subscribers_, winners_are_visible_, vector<string>(country_codes_), prize_description_);
 }
 

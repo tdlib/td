@@ -508,14 +508,14 @@ void TlsInit::send_hello() {
 
 Status TlsInit::wait_hello_response() {
   auto it = fd_.input_buffer().clone();
-  for (auto first : {Slice("\x16\x03\x03"), Slice("\x14\x03\x03\x00\x01\x01\x17\x03\x03")}) {
-    if (it.size() < first.size() + 2) {
+  for (auto prefix : {Slice("\x16\x03\x03"), Slice("\x14\x03\x03\x00\x01\x01\x17\x03\x03")}) {
+    if (it.size() < prefix.size() + 2) {
       return Status::OK();
     }
 
-    string got_first(first.size(), '\0');
-    it.advance(first.size(), got_first);
-    if (first != got_first) {
+    string response_prefix(prefix.size(), '\0');
+    it.advance(prefix.size(), response_prefix);
+    if (prefix != response_prefix) {
       return Status::Error("First part of response to hello is invalid");
     }
 

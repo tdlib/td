@@ -13,6 +13,7 @@
 #include "td/utils/base64.h"
 #include "td/utils/crypto.h"
 #include "td/utils/emoji.h"
+#include "td/utils/logging.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/utf8.h"
@@ -44,13 +45,16 @@ ReactionType::ReactionType(const telegram_api::object_ptr<telegram_api::Reaction
       break;
     case telegram_api::reactionEmoji::ID:
       reaction_ = static_cast<const telegram_api::reactionEmoji *>(reaction.get())->emoticon_;
-      if (is_custom_reaction()) {
+      if (is_custom_reaction() || is_paid_reaction()) {
         reaction_ = string();
       }
       break;
     case telegram_api::reactionCustomEmoji::ID:
       reaction_ =
           get_custom_emoji_string(static_cast<const telegram_api::reactionCustomEmoji *>(reaction.get())->document_id_);
+      break;
+    case telegram_api::reactionPaid::ID:
+      reaction_ = "$";
       break;
     default:
       UNREACHABLE();
@@ -69,7 +73,7 @@ ReactionType::ReactionType(const td_api::object_ptr<td_api::ReactionType> &type)
         break;
       }
       reaction_ = emoji;
-      if (is_custom_reaction()) {
+      if (is_custom_reaction() || is_paid_reaction()) {
         reaction_ = string();
         break;
       }
@@ -79,10 +83,19 @@ ReactionType::ReactionType(const td_api::object_ptr<td_api::ReactionType> &type)
       reaction_ =
           get_custom_emoji_string(static_cast<const td_api::reactionTypeCustomEmoji *>(type.get())->custom_emoji_id_);
       break;
+    case td_api::reactionTypePaid::ID:
+      reaction_ = "$";
+      break;
     default:
       UNREACHABLE();
       break;
   }
+}
+
+ReactionType ReactionType::paid() {
+  ReactionType reaction_type;
+  reaction_type.reaction_ = "$";
+  return reaction_type;
 }
 
 vector<ReactionType> ReactionType::get_reaction_types(
@@ -102,9 +115,16 @@ vector<telegram_api::object_ptr<telegram_api::Reaction>> ReactionType::get_input
 }
 
 vector<td_api::object_ptr<td_api::ReactionType>> ReactionType::get_reaction_types_object(
-    const vector<ReactionType> &reaction_types) {
-  return transform(reaction_types,
-                   [](const ReactionType &reaction_type) { return reaction_type.get_reaction_type_object(); });
+    const vector<ReactionType> &reaction_types, bool paid_reactions_available) {
+  vector<td_api::object_ptr<td_api::ReactionType>> result;
+  result.reserve(reaction_types.size() + (paid_reactions_available ? 1 : 0));
+  if (paid_reactions_available) {
+    result.push_back(paid().get_reaction_type_object());
+  }
+  for (auto &reaction_type : reaction_types) {
+    result.push_back(reaction_type.get_reaction_type_object());
+  }
+  return result;
 }
 
 telegram_api::object_ptr<telegram_api::Reaction> ReactionType::get_input_reaction() const {
@@ -113,6 +133,9 @@ telegram_api::object_ptr<telegram_api::Reaction> ReactionType::get_input_reactio
   }
   if (is_custom_reaction()) {
     return telegram_api::make_object<telegram_api::reactionCustomEmoji>(get_custom_emoji_id(reaction_));
+  }
+  if (is_paid_reaction()) {
+    return telegram_api::make_object<telegram_api::reactionPaid>();
   }
   return telegram_api::make_object<telegram_api::reactionEmoji>(reaction_);
 }
@@ -123,6 +146,9 @@ td_api::object_ptr<td_api::ReactionType> ReactionType::get_reaction_type_object(
   }
   if (is_custom_reaction()) {
     return td_api::make_object<td_api::reactionTypeCustomEmoji>(get_custom_emoji_id(reaction_));
+  }
+  if (is_paid_reaction()) {
+    return td_api::make_object<td_api::reactionTypePaid>();
   }
   return td_api::make_object<td_api::reactionTypeEmoji>(reaction_);
 }
@@ -146,12 +172,22 @@ bool ReactionType::is_custom_reaction() const {
   return reaction_[0] == '#';
 }
 
+bool ReactionType::is_paid_reaction() const {
+  return reaction_ == "$";
+}
+
 bool ReactionType::is_active_reaction(
     const FlatHashMap<ReactionType, size_t, ReactionTypeHash> &active_reaction_pos) const {
-  return !is_empty() && (is_custom_reaction() || active_reaction_pos.count(*this) > 0);
+  return !is_empty() && (is_custom_reaction() || is_paid_reaction() || active_reaction_pos.count(*this) > 0);
 }
 
 bool operator<(const ReactionType &lhs, const ReactionType &rhs) {
+  if (lhs.is_paid_reaction()) {
+    return !rhs.is_paid_reaction();
+  }
+  if (rhs.is_paid_reaction()) {
+    return false;
+  }
   return lhs.reaction_ < rhs.reaction_;
 }
 
@@ -166,6 +202,9 @@ StringBuilder &operator<<(StringBuilder &string_builder, const ReactionType &rea
   if (reaction_type.is_custom_reaction()) {
     return string_builder << "custom reaction " << get_custom_emoji_id(reaction_type.reaction_);
   }
+  if (reaction_type.is_paid_reaction()) {
+    return string_builder << "paid reaction";
+  }
   return string_builder << "reaction " << reaction_type.reaction_;
 }
 
@@ -177,6 +216,9 @@ int64 get_reaction_types_hash(const vector<ReactionType> &reaction_types) {
       numbers.push_back(custom_emoji_id >> 32);
       numbers.push_back(custom_emoji_id & 0xFFFFFFFF);
     } else {
+      if (reaction_type.is_paid_reaction()) {
+        LOG(ERROR) << "Have paid reaction";
+      }
       auto emoji = remove_emoji_selectors(reaction_type.get_string());
       unsigned char hash[16];
       md5(emoji, {hash, sizeof(hash)});

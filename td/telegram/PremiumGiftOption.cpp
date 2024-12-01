@@ -18,14 +18,6 @@
 
 namespace td {
 
-PremiumGiftOption::PremiumGiftOption(telegram_api::object_ptr<telegram_api::premiumGiftOption> &&option)
-    : months_(option->months_)
-    , currency_(std::move(option->currency_))
-    , amount_(option->amount_)
-    , bot_url_(std::move(option->bot_url_))
-    , store_product_(std::move(option->store_product_)) {
-}
-
 PremiumGiftOption::PremiumGiftOption(telegram_api::object_ptr<telegram_api::premiumSubscriptionOption> &&option)
     : months_(option->months_)
     , is_current_(option->current_)
@@ -89,30 +81,11 @@ bool operator!=(const PremiumGiftOption &lhs, const PremiumGiftOption &rhs) {
 }
 
 vector<PremiumGiftOption> get_premium_gift_options(
-    vector<telegram_api::object_ptr<telegram_api::premiumGiftOption>> &&options) {
-  auto premium_gift_options = transform(
-      std::move(options), [](auto &&premium_gift_option) { return PremiumGiftOption(std::move(premium_gift_option)); });
-  td::remove_if(premium_gift_options, [](const auto &premium_gift_option) { return !premium_gift_option.is_valid(); });
-  return premium_gift_options;
-}
-
-vector<PremiumGiftOption> get_premium_gift_options(
     vector<telegram_api::object_ptr<telegram_api::premiumSubscriptionOption>> &&options) {
   auto premium_gift_options = transform(
       std::move(options), [](auto &&premium_gift_option) { return PremiumGiftOption(std::move(premium_gift_option)); });
   td::remove_if(premium_gift_options, [](const auto &premium_gift_option) { return !premium_gift_option.is_valid(); });
   return premium_gift_options;
-}
-
-vector<td_api::object_ptr<td_api::premiumPaymentOption>> get_premium_payment_options_object(
-    const vector<PremiumGiftOption> &options) {
-  if (options.empty()) {
-    return {};
-  }
-  auto base_premium_option_it = std::min_element(options.begin(), options.end());
-  return transform(options, [&base_premium_option_it](const auto &option) {
-    return option.get_premium_payment_option_object(*base_premium_option_it);
-  });
 }
 
 vector<td_api::object_ptr<td_api::premiumStatePaymentOption>> get_premium_state_payment_options_object(

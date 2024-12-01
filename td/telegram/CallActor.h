@@ -9,7 +9,7 @@
 #include "td/telegram/CallDiscardReason.h"
 #include "td/telegram/CallId.h"
 #include "td/telegram/DhConfig.h"
-#include "td/telegram/files/FileId.h"
+#include "td/telegram/files/FileUploadId.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -85,6 +85,7 @@ struct CallState {
   string key;
   string config;
   vector<string> emojis_fingerprint;
+  string custom_parameters;
   bool allow_p2p{false};
 
   Status error;
@@ -130,6 +131,7 @@ class CallActor final : public NetQueryCallback {
     WaitAcceptResult,
     SendConfirmQuery,
     WaitConfirmResult,
+    Ready,
     SendDiscardQuery,
     WaitDiscardResult,
     Discarded
@@ -147,7 +149,6 @@ class CallActor final : public NetQueryCallback {
   bool has_notification_{false};
   int64 call_access_hash_{0};
   UserId call_admin_user_id_;
-  // UserId call_participant_user_id_;
 
   CallState call_state_;
   bool call_state_need_flush_{false};
@@ -192,15 +193,17 @@ class CallActor final : public NetQueryCallback {
 
   void on_save_debug_query_result(Result<NetQueryPtr> r_net_query);
 
-  void upload_log_file(FileId file_id, Promise<Unit> &&promise);
+  void upload_log_file(FileUploadId file_upload_id, Promise<Unit> &&promise);
 
-  void on_upload_log_file(FileId file_id, Promise<Unit> &&promise, tl_object_ptr<telegram_api::InputFile> input_file);
+  void on_upload_log_file(FileUploadId file_upload_id, Promise<Unit> &&promise,
+                          telegram_api::object_ptr<telegram_api::InputFile> input_file);
 
-  void on_upload_log_file_error(FileId file_id, Promise<Unit> &&promise, Status status);
+  void on_upload_log_file_error(FileUploadId file_upload_id, Promise<Unit> &&promise, Status status);
 
-  void do_upload_log_file(FileId file_id, tl_object_ptr<telegram_api::InputFile> &&input_file, Promise<Unit> &&promise);
+  void do_upload_log_file(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> &&input_file,
+                          Promise<Unit> &&promise);
 
-  void on_save_log_query_result(FileId file_id, Promise<Unit> promise, Result<NetQueryPtr> r_net_query);
+  void on_save_log_query_result(FileUploadId file_upload_id, Promise<Unit> promise, Result<NetQueryPtr> r_net_query);
 
   void on_get_call_config_result(Result<NetQueryPtr> r_net_query);
 

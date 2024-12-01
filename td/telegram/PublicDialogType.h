@@ -10,7 +10,7 @@
 
 namespace td {
 
-enum class PublicDialogType : int32 { HasUsername, IsLocationBased };
+enum class PublicDialogType : int32 { HasUsername, IsLocationBased, ForPersonalDialog };
 
 inline PublicDialogType get_public_dialog_type(const td_api::object_ptr<td_api::PublicChatType> &type) {
   if (type == nullptr || type->get_id() == td_api::publicChatTypeHasUsername::ID) {

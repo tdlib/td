@@ -56,23 +56,6 @@ ActorOwn<> get_simple_config_firebase_realtime(Promise<SimpleConfigResult> promi
 ActorOwn<> get_simple_config_firebase_firestore(Promise<SimpleConfigResult> promise, bool prefer_ipv6,
                                                 Slice domain_name, bool is_test, int32 scheduler_id);
 
-class HttpDate {
-  static bool is_leap(int32 year) {
-    return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
-  }
-  static int32 days_in_month(int32 year, int32 month) {
-    static int cnt[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-    return cnt[month - 1] + (month == 2 && is_leap(year));
-  }
-  static int32 seconds_in_day() {
-    return 24 * 60 * 60;
-  }
-
- public:
-  static Result<int32> to_unix_time(int32 year, int32 month, int32 day, int32 hour, int32 minute, int32 second);
-  static Result<int32> parse_http_date(std::string slice);
-};
-
 class ConfigRecoverer;
 class ConfigManager final : public NetQueryCallback {
  public:
@@ -102,7 +85,7 @@ class ConfigManager final : public NetQueryCallback {
 
  private:
   struct AppConfig {
-    static constexpr int32 CURRENT_VERSION = 32;
+    static constexpr int32 CURRENT_VERSION = 61;
     int32 version_ = 0;
     int32 hash_ = 0;
     telegram_api::object_ptr<telegram_api::JSONValue> config_;
@@ -157,6 +140,10 @@ class ConfigManager final : public NetQueryCallback {
   void process_app_config(telegram_api::object_ptr<telegram_api::JSONValue> &config);
 
   void do_set_ignore_sensitive_content_restrictions(bool ignore_sensitive_content_restrictions);
+
+  static string get_suggested_actions_database_key();
+
+  void save_suggested_actions();
 
   static Timestamp load_config_expire_time();
   static void save_config_expire(Timestamp timestamp);

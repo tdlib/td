@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2023
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2024
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -8,7 +8,7 @@
 
 #include "td/telegram/AffectedHistory.h"
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
@@ -18,6 +18,7 @@
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -584,8 +585,8 @@ void SavedMessagesManager::on_get_saved_messages_topics(
     default:
       UNREACHABLE();
   }
-  td_->contacts_manager_->on_get_users(std::move(users), "on_get_saved_messages_topics");
-  td_->contacts_manager_->on_get_chats(std::move(chats), "on_get_saved_messages_topics");
+  td_->user_manager_->on_get_users(std::move(users), "on_get_saved_messages_topics");
+  td_->chat_manager_->on_get_chats(std::move(chats), "on_get_saved_messages_topics");
 
   FlatHashMap<MessageId, telegram_api::object_ptr<telegram_api::Message>, MessageIdHash> message_id_to_message;
   for (auto &message : messages) {

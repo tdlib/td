@@ -13,6 +13,7 @@
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/PhotoFormat.h"
 #include "td/telegram/PhotoSizeSource.h"
+#include "td/telegram/PhotoSizeType.h"
 #include "td/telegram/StickerPhotoSize.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -29,7 +30,7 @@ class FileManager;
 class Td;
 
 struct PhotoSize {
-  int32 type = 0;
+  PhotoSizeType type;
   int32 size = 0;
   Dimensions dimensions;
   FileId file_id;

@@ -305,7 +305,7 @@ Result<FullLocalLocationInfo> check_full_local_location(FullLocalLocationInfo lo
     return Status::Error(400, "File must be non-empty");
   }
 
-  if (size == 0) {
+  if (size <= 0) {
     size = stat.size_;
   }
   if (location.mtime_nsec_ == 0) {
@@ -353,7 +353,7 @@ Status check_partial_local_location(const PartialLocalFileLocation &location) {
     }
     return Status::Error("File must be a regular file");
   }
-  // can't check mtime. Hope nobody will mess with this files in our temporary dir.
+  // can't check mtime. Hope nobody will mess with the file in our temporary directory
   return Status::OK();
 }
 

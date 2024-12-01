@@ -28,6 +28,9 @@ class BackgroundFill {
   }
   BackgroundFill(int32 top_color, int32 bottom_color, int32 rotation_angle)
       : top_color_(top_color), bottom_color_(bottom_color), rotation_angle_(rotation_angle) {
+    if (get_type() != Type::Gradient) {
+      rotation_angle_ = 0;
+    }
   }
   BackgroundFill(int32 first_color, int32 second_color, int32 third_color, int32 fourth_color)
       : top_color_(first_color), bottom_color_(second_color), third_color_(third_color), fourth_color_(fourth_color) {
@@ -54,6 +57,8 @@ class BackgroundFill {
 
   friend bool operator==(const BackgroundFill &lhs, const BackgroundFill &rhs);
 
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const BackgroundFill &fill);
+
   friend class BackgroundType;
 
   static Result<BackgroundFill> get_background_fill(Slice name);
@@ -62,6 +67,8 @@ class BackgroundFill {
 };
 
 bool operator==(const BackgroundFill &lhs, const BackgroundFill &rhs);
+
+StringBuilder &operator<<(StringBuilder &string_builder, const BackgroundFill &fill);
 
 class BackgroundType {
   enum class Type : int32 { Wallpaper, Pattern, Fill, ChatTheme };

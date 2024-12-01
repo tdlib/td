@@ -224,7 +224,9 @@ class InitTask : public Task {
 
   void start_up() override {
     send_query(td::make_tl_object<td::td_api::getOption>("version"),
-               [](auto res) { LOG(INFO) << td::td_api::to_string(res.ok()); });
+               [](td::Result<td::td_api::object_ptr<td::td_api::OptionValue>> res) {
+                 LOG(INFO) << td::td_api::to_string(res.ok());
+               });
   }
   void process_authorization_state(td::tl_object_ptr<td::td_api::Object> authorization_state) {
     td::tl_object_ptr<td::td_api::Function> function;
@@ -257,7 +259,7 @@ class InitTask : public Task {
   }
   template <class T>
   void send(T &&query) {
-    send_query(std::move(query), [this](auto res) {
+    send_query(std::move(query), [this](td::Result<typename T::element_type::ReturnType> res) {
       if (is_alive()) {
         res.ensure();
       }
@@ -283,7 +285,9 @@ class GetMe : public Task {
   explicit GetMe(Promise<Result> promise) : promise_(std::move(promise)) {
   }
   void start_up() override {
-    send_query(td::make_tl_object<td::td_api::getMe>(), [this](auto res) { with_user_id(res.move_as_ok()->id_); });
+    send_query(
+        td::make_tl_object<td::td_api::getMe>(),
+        [this](td::Result<td::td_api::object_ptr<td::td_api::user>> res) { with_user_id(res.move_as_ok()->id_); });
   }
 
  private:
@@ -292,8 +296,9 @@ class GetMe : public Task {
 
   void with_user_id(int64 user_id) {
     result_.user_id = user_id;
-    send_query(td::make_tl_object<td::td_api::createPrivateChat>(user_id, false),
-               [this](auto res) { with_chat_id(res.move_as_ok()->id_); });
+    send_query(
+        td::make_tl_object<td::td_api::createPrivateChat>(user_id, false),
+        [this](td::Result<td::td_api::object_ptr<td::td_api::chat>> res) { with_chat_id(res.move_as_ok()->id_); });
   }
 
   void with_chat_id(int64 chat_id) {
@@ -336,7 +341,7 @@ class UploadFile : public Task {
                    td::make_tl_object<td::td_api::inputMessageDocument>(
                        td::make_tl_object<td::td_api::inputFileLocal>(content_path_), nullptr, true,
                        td::make_tl_object<td::td_api::formattedText>("tag", td::Auto()))),
-               [this](auto res) { with_message(res.move_as_ok()); });
+               [this](td::Result<td::td_api::object_ptr<td::td_api::message>> res) { with_message(res.move_as_ok()); });
   }
 
  private:
@@ -392,7 +397,7 @@ class TestDownloadFile : public Task {
   }
   void start_up() override {
     send_query(td::make_tl_object<td::td_api::getRemoteFile>(remote_id_, nullptr),
-               [this](auto res) { start_file(*res.ok()); });
+               [this](td::Result<td::td_api::object_ptr<td::td_api::file>> res) { start_file(*res.ok()); });
   }
 
  private:
@@ -454,7 +459,7 @@ class TestDownloadFile : public Task {
     send_query(td::make_tl_object<td::td_api::downloadFile>(
                    file_id_, 1, static_cast<int64>(ranges_.back().begin),
                    static_cast<int64>(ranges_.back().end - ranges_.back().begin), true),
-               [this](auto res) { on_get_chunk(*res.ok()); });
+               [this](td::Result<td::td_api::object_ptr<td::td_api::file>> res) { on_get_chunk(*res.ok()); });
   }
 };
 

@@ -87,6 +87,8 @@ class WebPageBlock {
   virtual void append_file_ids(const Td *td, vector<FileId> &file_ids) const = 0;
 
   virtual td_api::object_ptr<td_api::PageBlock> get_page_block_object(Context *context) const = 0;
+
+  static bool are_allowed_album_block_types(const vector<unique_ptr<WebPageBlock>> &page_blocks);
 };
 
 void store(const unique_ptr<WebPageBlock> &block, LogEventStorerCalcLength &storer);

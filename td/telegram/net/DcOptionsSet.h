@@ -88,7 +88,11 @@ class DcOptionsSet {
 
   struct DcOptionId {
     size_t pos = 0;
-    auto as_tie() const {
+
+    explicit constexpr DcOptionId(size_t pos) : pos(pos) {
+    }
+
+    size_t as_tie() const {
       return pos;
     }
     bool operator==(const DcOptionId &other) const {

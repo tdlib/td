@@ -6,10 +6,10 @@
 //
 #include "td/telegram/DialogParticipantFilter.h"
 
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/UserManager.h"
 
 namespace td {
 
@@ -119,7 +119,7 @@ bool DialogParticipantFilter::is_dialog_participant_suitable(const Td *td, const
   switch (type_) {
     case Type::Contacts:
       return participant.dialog_id_.get_type() == DialogType::User &&
-             td->contacts_manager_->is_user_contact(participant.dialog_id_.get_user_id());
+             td->user_manager_->is_user_contact(participant.dialog_id_.get_user_id());
     case Type::Administrators:
       return participant.status_.is_administrator();
     case Type::Members:
@@ -132,7 +132,7 @@ bool DialogParticipantFilter::is_dialog_participant_suitable(const Td *td, const
       return true;
     case Type::Bots:
       return participant.dialog_id_.get_type() == DialogType::User &&
-             td->contacts_manager_->is_user_bot(participant.dialog_id_.get_user_id());
+             td->user_manager_->is_user_bot(participant.dialog_id_.get_user_id());
     default:
       UNREACHABLE();
       return false;

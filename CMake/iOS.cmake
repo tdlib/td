@@ -114,6 +114,23 @@ elseif (IOS_PLATFORM STREQUAL "TVSIMULATOR")
     set (CMAKE_XCODE_EFFECTIVE_PLATFORMS "-tvsimulator")
 
     set (APPLE_TV True)
+elseif (IOS_PLATFORM STREQUAL "VISIONOS")
+    set (IOS_PLATFORM_LOCATION "XROS.platform")
+    set (XCODE_IOS_PLATFORM xros)
+
+    # This causes the installers to properly locate the output libraries
+    set (CMAKE_XCODE_EFFECTIVE_PLATFORMS "-xros")
+
+    set (APPLE_VISION True)
+elseif (IOS_PLATFORM STREQUAL "VISIONSIMULATOR")
+    set (SIMULATOR_FLAG true)
+    set (IOS_PLATFORM_LOCATION "XRSimulator.platform")
+    set (XCODE_IOS_PLATFORM xros-simulator)
+
+    # This causes the installers to properly locate the output libraries
+    set (CMAKE_XCODE_EFFECTIVE_PLATFORMS "-xrsimulator")
+
+    set (APPLE_VISION True)
 else (IOS_PLATFORM STREQUAL "OS")
     message (FATAL_ERROR "Unsupported IOS_PLATFORM value selected. Please choose OS, SIMULATOR, or WATCHOS.")
 endif ()
@@ -211,6 +228,10 @@ if (NOT DEFINED IOS_ARCH)
     elseif (IOS_PLATFORM STREQUAL "TVOS")
         set (IOS_ARCH "arm64")
     elseif (IOS_PLATFORM STREQUAL "TVSIMULATOR")
+        set (IOS_ARCH "x86_64;arm64")
+    elseif (IOS_PLATFORM STREQUAL "VISIONOS")
+        set (IOS_ARCH "arm64")
+    elseif (IOS_PLATFORM STREQUAL "VISIONSIMULATOR")
         set (IOS_ARCH "x86_64;arm64")
     endif()
 endif()

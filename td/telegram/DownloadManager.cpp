@@ -93,8 +93,8 @@ class DownloadManagerImpl final : public DownloadManager {
     TRY_STATUS_PROMISE(promise, check_is_active("toggle_all_is_paused"));
 
     vector<FileId> to_toggle;
-    for (auto &it : files_) {
-      FileInfo &file_info = *it.second;
+    for (const auto &it : files_) {
+      const FileInfo &file_info = *it.second;
       if (!is_completed(file_info) && is_paused != file_info.is_paused) {
         to_toggle.push_back(file_info.file_id);
       }
@@ -123,8 +123,8 @@ class DownloadManagerImpl final : public DownloadManager {
   void remove_all_files(bool only_active, bool only_completed, bool delete_from_cache, Promise<Unit> promise) final {
     TRY_STATUS_PROMISE(promise, check_is_active("remove_all_files"));
     vector<const FileInfo *> to_remove;
-    for (auto &it : files_) {
-      FileInfo &file_info = *it.second;
+    for (const auto &it : files_) {
+      const FileInfo &file_info = *it.second;
       if (only_active && is_completed(file_info)) {
         continue;
       }
@@ -274,14 +274,14 @@ class DownloadManagerImpl final : public DownloadManager {
                                                                       std::move(file_downloads), next_offset));
   }
 
-  void update_file_download_state(FileId internal_file_id, int64 downloaded_size, int64 size, int64 expected_size,
+  void update_file_download_state(FileId file_id, int64 downloaded_size, int64 size, int64 expected_size,
                                   bool is_paused) final {
     if (!callback_ || !is_database_loaded_) {
       return;
     }
-    LOG(INFO) << "Update file download state for file " << internal_file_id << " of size " << size << '/'
-              << expected_size << " to downloaded_size = " << downloaded_size << " and is_paused = " << is_paused;
-    auto r_file_info_ptr = get_file_info_ptr_by_internal(internal_file_id);
+    LOG(INFO) << "Update file download state for file " << file_id << " of size " << size << '/' << expected_size
+              << " to downloaded_size = " << downloaded_size << " and is_paused = " << is_paused;
+    auto r_file_info_ptr = get_file_info_ptr(file_id);
     if (r_file_info_ptr.is_error()) {
       return;
     }
@@ -326,7 +326,7 @@ class DownloadManagerImpl final : public DownloadManager {
   struct FileInfo {
     int64 download_id{};
     FileId file_id;
-    FileId internal_file_id;
+    int64 internal_download_id{};
     FileSourceId file_source_id;
     int8 priority{};
     bool is_paused{};
@@ -342,7 +342,6 @@ class DownloadManagerImpl final : public DownloadManager {
   };
 
   FlatHashMap<FileId, int64, FileIdHash> by_file_id_;
-  FlatHashMap<FileId, int64, FileIdHash> by_internal_file_id_;
   FlatHashMap<int64, unique_ptr<FileInfo>> files_;
   std::set<int64> completed_download_ids_;
   FlatHashSet<int64> unviewed_completed_download_ids_;
@@ -389,7 +388,7 @@ class DownloadManagerImpl final : public DownloadManager {
       return;
     }
 
-    LOG(INFO) << "Saving to download database file " << file_info.file_id << '/' << file_info.internal_file_id
+    LOG(INFO) << "Saving to download database file " << file_info.file_id
               << " with is_paused = " << file_info.is_paused;
     FileDownloadInDatabase to_save;
     to_save.download_id = file_info.download_id;
@@ -442,6 +441,10 @@ class DownloadManagerImpl final : public DownloadManager {
       // file has already been added
       return;
     }
+    if (FileManager::check_priority(in_db.priority).is_error()) {
+      LOG(ERROR) << "Receive invalid download priority from database";
+      return;
+    }
 
     auto file_info = make_unique<FileInfo>();
     file_info->download_id = in_db.download_id;
@@ -490,7 +493,7 @@ class DownloadManagerImpl final : public DownloadManager {
   }
 
   void prepare_hints() {
-    for (auto &it : files_) {
+    for (const auto &it : files_) {
       const auto &file_info = *it.second;
       auto promise =
           PromiseCreator::lambda([actor_id = actor_id(this), promise = load_search_text_multipromise_.get_promise(),
@@ -523,7 +526,7 @@ class DownloadManagerImpl final : public DownloadManager {
   void add_file_info(unique_ptr<FileInfo> &&file_info, const string &search_text) {
     CHECK(file_info != nullptr);
     auto download_id = file_info->download_id;
-    file_info->internal_file_id = callback_->dup_file_id(file_info->file_id);
+    file_info->internal_download_id = callback_->get_internal_download_id();
     auto file_view = callback_->get_sync_file_view(file_info->file_id);
     CHECK(!file_view.empty());
     file_info->size = file_view.size();
@@ -538,14 +541,12 @@ class DownloadManagerImpl final : public DownloadManager {
       return;
     }
 
-    by_internal_file_id_[file_info->internal_file_id] = download_id;
     by_file_id_[file_info->file_id] = download_id;
     hints_.add(download_id, search_text.empty() ? string(" ") : search_text);
     file_info->link_token = ++last_link_token_;
 
-    LOG(INFO) << "Adding to downloads file " << file_info->file_id << '/' << file_info->internal_file_id << " of size "
-              << file_info->size << '/' << file_info->expected_size
-              << " with downloaded_size = " << file_info->downloaded_size
+    LOG(INFO) << "Adding to downloads file " << file_info->file_id << " of size " << file_info->size << '/'
+              << file_info->expected_size << " with downloaded_size = " << file_info->downloaded_size
               << " and is_paused = " << file_info->is_paused;
     auto it = files_.emplace(download_id, std::move(file_info)).first;
     bool was_completed = is_completed(*it->second);
@@ -555,7 +556,7 @@ class DownloadManagerImpl final : public DownloadManager {
       CHECK(is_inserted == was_completed);
     } else {
       if (!it->second->is_paused) {
-        callback_->start_file(it->second->internal_file_id, it->second->priority,
+        callback_->start_file(it->second->file_id, it->second->internal_download_id, it->second->priority,
                               actor_shared(this, it->second->link_token));
       }
     }
@@ -570,13 +571,12 @@ class DownloadManagerImpl final : public DownloadManager {
     LOG(INFO) << "Remove from downloads file " << file_id << " from " << source;
     auto download_id = file_info.download_id;
     if (!is_completed(file_info) && !file_info.is_paused) {
-      callback_->pause_file(file_info.internal_file_id);
+      callback_->pause_file(file_info.file_id, file_info.internal_download_id);
     }
     unregister_file_info(file_info);
     if (delete_from_cache) {
-      callback_->delete_file(file_info.internal_file_id);
+      callback_->delete_file(file_info.file_id);
     }
-    by_internal_file_id_.erase(file_info.internal_file_id);
     by_file_id_.erase(file_id);
     hints_.remove(download_id);
     completed_download_ids_.erase(download_id);
@@ -639,9 +639,10 @@ class DownloadManagerImpl final : public DownloadManager {
       file_info.link_token = ++last_link_token_;
     });
     if (is_paused) {
-      callback_->pause_file(file_info.internal_file_id);
+      callback_->pause_file(file_info.file_id, file_info.internal_download_id);
     } else {
-      callback_->start_file(file_info.internal_file_id, file_info.priority, actor_shared(this, file_info.link_token));
+      callback_->start_file(file_info.file_id, file_info.internal_download_id, file_info.priority,
+                            actor_shared(this, file_info.link_token));
     }
     if (is_search_inited_) {
       callback_->update_file_changed(file_info.file_id, file_info.completed_at, file_info.is_paused, file_counters_);
@@ -680,14 +681,6 @@ class DownloadManagerImpl final : public DownloadManager {
       return Status::Error(400, "Can't find file");
     }
     return get_file_info_ptr(it->second, file_source_id);
-  }
-
-  Result<const FileInfo *> get_file_info_ptr_by_internal(FileId file_id) {
-    auto it = by_internal_file_id_.find(file_id);
-    if (it == by_internal_file_id_.end()) {
-      return Status::Error(400, "Can't find file");
-    }
-    return get_file_info_ptr(it->second);
   }
 
   Result<const FileInfo *> get_file_info_ptr(int64 download_id, FileSourceId file_source_id = {}) {

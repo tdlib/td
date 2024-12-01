@@ -301,6 +301,34 @@ void Scheduler::do_event(ActorInfo *actor_info, Event &&event) {
   // can't clear event here. It may be already destroyed during destroy_actor
 }
 
+void Scheduler::get_actor_sched_id_to_send_immediately(const ActorInfo *actor_info, int32 &actor_sched_id,
+                                                       bool &on_current_sched, bool &can_send_immediately) {
+  bool is_migrating;
+  std::tie(actor_sched_id, is_migrating) = actor_info->migrate_dest_flag_atomic();
+  on_current_sched = !is_migrating && sched_id_ == actor_sched_id;
+  CHECK(has_guard_ || !on_current_sched);
+  can_send_immediately = on_current_sched && !actor_info->is_running() && actor_info->mailbox_.empty();
+}
+
+void Scheduler::send_later_impl(const ActorId<> &actor_id, Event &&event) {
+  ActorInfo *actor_info = actor_id.get_actor_info();
+  if (unlikely(actor_info == nullptr || close_flag_)) {
+    return;
+  }
+
+  int32 actor_sched_id;
+  bool is_migrating;
+  std::tie(actor_sched_id, is_migrating) = actor_info->migrate_dest_flag_atomic();
+  bool on_current_sched = !is_migrating && sched_id_ == actor_sched_id;
+  CHECK(has_guard_ || !on_current_sched);
+
+  if (on_current_sched) {
+    add_to_mailbox(actor_info, std::move(event));
+  } else {
+    send_to_scheduler(actor_sched_id, actor_id, std::move(event));
+  }
+}
+
 void Scheduler::register_migrated_actor(ActorInfo *actor_info) {
   VLOG(actor) << "Register migrated actor " << *actor_info << ", " << tag("actor_count", actor_count_);
   actor_count_++;
@@ -540,7 +568,7 @@ Timestamp Scheduler::run_timeout() {
   while (!timeout_queue_.empty() && timeout_queue_.top_key() < now) {
     HeapNode *node = timeout_queue_.pop();
     ActorInfo *actor_info = ActorInfo::from_heap_node(node);
-    send<ActorSendType::Immediate>(actor_info->actor_id(), Event::timeout());
+    send_immediately(actor_info->actor_id(), Event::timeout());
   }
   return get_timeout();
 }

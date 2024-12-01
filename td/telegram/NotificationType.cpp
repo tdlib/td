@@ -269,7 +269,22 @@ class NotificationTypePushMessage final : public NotificationType {
             user_count = to_integer<int32>(user_count_str);
             month_count = to_integer<int32>(month_count_str);
           }
-          return td_api::make_object<td_api::pushMessageContentPremiumGiveaway>(user_count, month_count, is_pinned);
+          return td_api::make_object<td_api::pushMessageContentGiveaway>(
+              user_count, is_pinned ? nullptr : td_api::make_object<td_api::giveawayPrizePremium>(month_count),
+              is_pinned);
+        }
+        if (key == "MESSAGE_GIVEAWAY_STARS") {
+          int32 user_count = 0;
+          int64 star_count = 0;
+          if (!is_pinned) {
+            string user_count_str;
+            string star_count_str;
+            std::tie(user_count_str, star_count_str) = split(arg);
+            user_count = to_integer<int32>(user_count_str);
+            star_count = to_integer<int64>(star_count_str);
+          }
+          return td_api::make_object<td_api::pushMessageContentGiveaway>(
+              user_count, is_pinned ? nullptr : td_api::make_object<td_api::giveawayPrizeStars>(star_count), is_pinned);
         }
         break;
       case 'I':
@@ -297,6 +312,13 @@ class NotificationTypePushMessage final : public NotificationType {
         if (key == "MESSAGE_POLL") {
           return td_api::make_object<td_api::pushMessageContentPoll>(arg, true, is_pinned);
         }
+        if (key == "MESSAGE_PAID_MEDIA") {
+          int64 star_count = 0;
+          if (!is_pinned) {
+            star_count = to_integer<int64>(arg);
+          }
+          return td_api::make_object<td_api::pushMessageContentPaidMedia>(star_count, is_pinned);
+        }
         break;
       case 'Q':
         if (key == "MESSAGE_QUIZ") {
@@ -320,6 +342,10 @@ class NotificationTypePushMessage final : public NotificationType {
         }
         if (key == "MESSAGE_SECRET_VIDEO") {
           return td_api::make_object<td_api::pushMessageContentVideo>(nullptr, arg, true, false);
+        }
+        if (key == "MESSAGE_STARGIFT") {
+          auto star_count = to_integer<int64>(arg);
+          return td_api::make_object<td_api::pushMessageContentGift>(star_count);
         }
         if (key == "MESSAGE_STICKER") {
           return td_api::make_object<td_api::pushMessageContentSticker>(

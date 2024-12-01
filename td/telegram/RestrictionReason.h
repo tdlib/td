@@ -29,7 +29,14 @@ class RestrictionReason {
     return lhs.platform_ == rhs.platform_ && lhs.reason_ == rhs.reason_ && lhs.description_ == rhs.description_;
   }
 
+  friend const RestrictionReason *get_restriction_reason(const vector<RestrictionReason> &restriction_reasons,
+                                                         bool sensitive);
+
   friend string get_restriction_reason_description(const vector<RestrictionReason> &restriction_reasons);
+
+  bool is_sensitive() const {
+    return reason_ == "sensitive";
+  }
 
  public:
   RestrictionReason() = default;
@@ -59,6 +66,8 @@ class RestrictionReason {
 inline bool operator!=(const RestrictionReason &lhs, const RestrictionReason &rhs) {
   return !(lhs == rhs);
 }
+
+bool get_restriction_reason_has_sensitive_content(const vector<RestrictionReason> &restriction_reasons);
 
 string get_restriction_reason_description(const vector<RestrictionReason> &restriction_reasons);
 

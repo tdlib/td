@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/net/NetActor.h"
+#include "td/telegram/net/NetQuery.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/net/PublicRsaKeySharedCdn.h"

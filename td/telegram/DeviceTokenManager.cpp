@@ -133,7 +133,9 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DeviceTokenManage
 void DeviceTokenManager::register_device(tl_object_ptr<td_api::DeviceToken> device_token_ptr,
                                          const vector<UserId> &other_user_ids,
                                          Promise<td_api::object_ptr<td_api::pushReceiverId>> promise) {
-  CHECK(device_token_ptr != nullptr);
+  if (device_token_ptr == nullptr) {
+    return promise.set_error(Status::Error(400, "Device token must be non-empty"));
+  }
   TokenType token_type;
   string token;
   bool is_app_sandbox = false;

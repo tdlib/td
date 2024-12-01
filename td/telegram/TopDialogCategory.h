@@ -23,6 +23,7 @@ enum class TopDialogCategory : int32 {
   Call,
   ForwardUsers,
   ForwardChats,
+  BotApp,
   Size
 };
 

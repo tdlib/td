@@ -8,7 +8,7 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogFilter.h"
 #include "td/telegram/DialogFilter.hpp"
 #include "td/telegram/DialogFilterInviteLink.h"
@@ -23,6 +23,7 @@
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
+#include "td/telegram/UserManager.h"
 #include "td/telegram/Version.h"
 
 #include "td/actor/MultiPromise.h"
@@ -207,8 +208,8 @@ class GetExportedChatlistInvitesQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetExportedChatlistInvitesQuery: " << to_string(ptr);
-    td_->contacts_manager_->on_get_users(std::move(ptr->users_), "GetExportedChatlistInvitesQuery");
-    td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetExportedChatlistInvitesQuery");
+    td_->user_manager_->on_get_users(std::move(ptr->users_), "GetExportedChatlistInvitesQuery");
+    td_->chat_manager_->on_get_chats(std::move(ptr->chats_), "GetExportedChatlistInvitesQuery");
     auto result = td_api::make_object<td_api::chatFolderInviteLinks>();
     for (auto &invite : ptr->invites_) {
       result->invite_links_.push_back(
@@ -424,8 +425,8 @@ class GetChatlistUpdatesQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetChatlistUpdatesQuery: " << to_string(ptr);
-    td_->contacts_manager_->on_get_users(std::move(ptr->users_), "GetChatlistUpdatesQuery");
-    td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetChatlistUpdatesQuery");
+    td_->user_manager_->on_get_users(std::move(ptr->users_), "GetChatlistUpdatesQuery");
+    td_->chat_manager_->on_get_chats(std::move(ptr->chats_), "GetChatlistUpdatesQuery");
     auto missing_dialog_ids = td_->dialog_manager_->get_peers_dialog_ids(std::move(ptr->missing_peers_), true);
     promise_.set_value(td_->dialog_manager_->get_chats_object(-1, missing_dialog_ids, "GetChatlistUpdatesQuery"));
   }
@@ -517,8 +518,8 @@ class GetDialogsQuery final : public Td::ResultHandler {
     auto result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetDialogsQuery: " << to_string(result);
 
-    td_->contacts_manager_->on_get_users(std::move(result->users_), "GetDialogsQuery");
-    td_->contacts_manager_->on_get_chats(std::move(result->chats_), "GetDialogsQuery");
+    td_->user_manager_->on_get_users(std::move(result->users_), "GetDialogsQuery");
+    td_->chat_manager_->on_get_chats(std::move(result->chats_), "GetDialogsQuery");
     td_->messages_manager_->on_get_dialogs(FolderId(), std::move(result->dialogs_), -1, std::move(result->messages_),
                                            std::move(promise_));
   }
@@ -1005,15 +1006,12 @@ void DialogFilterManager::load_dialog_filter(const DialogFilter *dialog_filter, 
 void DialogFilterManager::load_dialog_filter_dialogs(DialogFilterId dialog_filter_id,
                                                      vector<InputDialogId> &&input_dialog_ids,
                                                      Promise<Unit> &&promise) {
-  const size_t MAX_SLICE_SIZE = 100;  // server side limit
+  const size_t MAX_SLICE_SIZE = 100;  // server-side limit
   MultiPromiseActorSafe mpas{"GetFilterDialogsOnServerMultiPromiseActor"};
   mpas.add_promise(std::move(promise));
   auto lock = mpas.get_promise();
 
-  for (size_t i = 0; i < input_dialog_ids.size(); i += MAX_SLICE_SIZE) {
-    auto end_i = i + MAX_SLICE_SIZE;
-    auto end = end_i < input_dialog_ids.size() ? input_dialog_ids.begin() + end_i : input_dialog_ids.end();
-    vector<InputDialogId> slice_input_dialog_ids = {input_dialog_ids.begin() + i, end};
+  for (auto &slice_input_dialog_ids : vector_split(std::move(input_dialog_ids), MAX_SLICE_SIZE)) {
     auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_filter_id,
                                                  dialog_ids = InputDialogId::get_dialog_ids(slice_input_dialog_ids),
                                                  promise = mpas.get_promise()](Result<Unit> &&result) mutable {
@@ -2130,8 +2128,8 @@ void DialogFilterManager::on_get_chatlist_invite(
       break;
   }
 
-  td_->contacts_manager_->on_get_users(std::move(users), "on_get_chatlist_invite");
-  td_->contacts_manager_->on_get_chats(std::move(chats), "on_get_chatlist_invite");
+  td_->user_manager_->on_get_users(std::move(users), "on_get_chatlist_invite");
+  td_->chat_manager_->on_get_chats(std::move(chats), "on_get_chatlist_invite");
 
   auto missing_dialog_ids = td_->dialog_manager_->get_peers_dialog_ids(std::move(missing_peers), true);
   auto already_dialog_ids = td_->dialog_manager_->get_peers_dialog_ids(std::move(already_peers));
@@ -2146,12 +2144,8 @@ void DialogFilterManager::add_dialog_filter_by_invite_link(const string &invite_
     return promise.set_error(Status::Error(400, "Wrong invite link"));
   }
   for (auto dialog_id : dialog_ids) {
-    if (!td_->dialog_manager_->have_dialog_force(dialog_id, "add_dialog_filter_by_invite_link")) {
-      return promise.set_error(Status::Error(400, "Chat not found"));
-    }
-    if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Know)) {
-      return promise.set_error(Status::Error(400, "Can't access the chat"));
-    }
+    TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Know,
+                                                                          "add_dialog_filter_by_invite_link"));
   }
 
   CHECK(!invite_link.empty());
@@ -2180,12 +2174,8 @@ void DialogFilterManager::add_dialog_filter_new_chats(DialogFilterId dialog_filt
     return promise.set_error(Status::Error(400, "Chat folder must be shareable"));
   }
   for (auto dialog_id : dialog_ids) {
-    if (!td_->dialog_manager_->have_dialog_force(dialog_id, "add_dialog_filter_new_chats")) {
-      return promise.set_error(Status::Error(400, "Chat not found"));
-    }
-    if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Know)) {
-      return promise.set_error(Status::Error(400, "Can't access the chat"));
-    }
+    TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Know,
+                                                                          "add_dialog_filter_new_chats"));
   }
 
   if (dialog_ids.empty()) {

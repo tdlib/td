@@ -2,11 +2,12 @@ if ((CMAKE_MAJOR_VERSION LESS 3) OR (CMAKE_VERSION VERSION_LESS "3.0.2"))
   message(FATAL_ERROR "CMake >= 3.0.2 is required")
 endif()
 
+option(TDDB_ENABLE_INSTALL "Enable installation of the library." ON)
+
 if (NOT DEFINED CMAKE_INSTALL_LIBDIR)
   set(CMAKE_INSTALL_LIBDIR "lib")
 endif()
 
-#SOURCE SETS
 set(TDDB_SOURCE
   td/db/binlog/Binlog.cpp
   td/db/binlog/BinlogEvent.cpp
@@ -56,7 +57,9 @@ if (NOT CMAKE_CROSSCOMPILING)
   target_link_libraries(binlog_dump PRIVATE tddb)
 endif()
 
-install(TARGETS tddb EXPORT TdStaticTargets
-  LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-  ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-)
+if (TDDB_ENABLE_INSTALL)
+  install(TARGETS tddb EXPORT TdStaticTargets
+    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+  )
+endif()

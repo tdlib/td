@@ -28,10 +28,9 @@ class TranslateTextQuery final : public Td::ResultHandler {
 
   void send(vector<FormattedText> &&texts, const string &to_language_code) {
     int flags = telegram_api::messages_translateText::TEXT_MASK;
-    auto input_texts =
-        transform(std::move(texts), [contacts_manager = td_->contacts_manager_.get()](FormattedText &&text) {
-          return get_input_text_with_entities(contacts_manager, std::move(text), "TranslateTextQuery");
-        });
+    auto input_texts = transform(std::move(texts), [user_manager = td_->user_manager_.get()](FormattedText &&text) {
+      return get_input_text_with_entities(user_manager, std::move(text), "TranslateTextQuery");
+    });
     send_query(G()->net_query_creator().create(telegram_api::messages_translateText(
         flags, nullptr, vector<int32>{}, std::move(input_texts), to_language_code)));
   }
@@ -48,6 +47,11 @@ class TranslateTextQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    if (status.message() == "INPUT_TEXT_EMPTY") {
+      vector<telegram_api::object_ptr<telegram_api::textWithEntities>> result;
+      result.push_back(telegram_api::make_object<telegram_api::textWithEntities>(string(), Auto()));
+      return promise_.set_value(std::move(result));
+    }
     promise_.set_error(std::move(status));
   }
 };
@@ -87,7 +91,7 @@ void TranslationManager::translate_text(td_api::object_ptr<td_api::formattedText
     }
   }
 
-  TRY_RESULT_PROMISE(promise, entities, get_message_entities(td_->contacts_manager_.get(), std::move(text->entities_)));
+  TRY_RESULT_PROMISE(promise, entities, get_message_entities(td_->user_manager_.get(), std::move(text->entities_)));
   TRY_STATUS_PROMISE(promise, fix_formatted_text(text->text_, entities, true, true, true, true, true));
 
   translate_text(FormattedText{std::move(text->text_), std::move(entities)}, skip_bot_commands, max_media_timestamp,
@@ -118,12 +122,15 @@ void TranslationManager::on_get_translated_texts(vector<telegram_api::object_ptr
                                                  Promise<td_api::object_ptr<td_api::formattedText>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   if (texts.size() != 1u) {
+    if (texts.empty()) {
+      return promise.set_error(Status::Error(500, "Translation failed"));
+    }
     return promise.set_error(Status::Error(500, "Receive invalid number of results"));
   }
-  auto formatted_text =
-      get_formatted_text(td_->contacts_manager_.get(), std::move(texts[0]), true, true, skip_bot_commands,
-                         max_media_timestamp == -1, true, "on_get_translated_texts");
-  promise.set_value(get_formatted_text_object(formatted_text, skip_bot_commands, max_media_timestamp));
+  auto formatted_text = get_formatted_text(td_->user_manager_.get(), std::move(texts[0]), max_media_timestamp == -1,
+                                           true, "on_get_translated_texts");
+  promise.set_value(
+      get_formatted_text_object(td_->user_manager_.get(), formatted_text, skip_bot_commands, max_media_timestamp));
 }
 
 }  // namespace td

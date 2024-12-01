@@ -36,7 +36,7 @@ class SecretChatsManager final : public Actor {
   void create_chat(UserId user_id, int64 user_access_hash, Promise<SecretChatId> promise);
   void cancel_chat(SecretChatId secret_chat_id, bool delete_history, Promise<> promise);
   void send_message(SecretChatId secret_chat_id, tl_object_ptr<secret_api::decryptedMessage> message,
-                    tl_object_ptr<telegram_api::InputEncryptedFile> file, Promise<> promise);
+                    telegram_api::object_ptr<telegram_api::InputEncryptedFile> file, Promise<> promise);
   void send_message_action(SecretChatId secret_chat_id, tl_object_ptr<secret_api::SendMessageAction> action);
   void send_read_history(SecretChatId secret_chat_id, int32 date, Promise<> promise);
   void send_open_message(SecretChatId secret_chat_id, int64 random_id, Promise<> promise);

@@ -22,9 +22,9 @@ namespace td {
 
 class Wget final : public HttpOutboundConnection::Callback {
  public:
-  explicit Wget(Promise<unique_ptr<HttpQuery>> promise, string url, std::vector<std::pair<string, string>> headers = {},
-                int32 timeout_in = 10, int32 ttl = 3, bool prefer_ipv6 = false,
-                SslCtx::VerifyPeer verify_peer = SslCtx::VerifyPeer::On, string content = {}, string content_type = {});
+  Wget(Promise<unique_ptr<HttpQuery>> promise, string url, std::vector<std::pair<string, string>> headers = {},
+       int32 timeout_in = 10, int32 ttl = 3, bool prefer_ipv6 = false,
+       SslCtx::VerifyPeer verify_peer = SslCtx::VerifyPeer::On, string content = {}, string content_type = {});
 
  private:
   Status try_init();

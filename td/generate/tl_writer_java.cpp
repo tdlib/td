@@ -198,6 +198,8 @@ std::string TD_TL_writer_java::gen_output_begin(const std::string &additional_im
 }
 
 std::string TD_TL_writer_java::gen_output_begin_once() const {
+#define DEFINE_STR_VALUE_IMPL(x) #x
+#define DEFINE_STR_VALUE(x) DEFINE_STR_VALUE_IMPL(x)
   return "    static {\n"
          "        try {\n"
          "            System.loadLibrary(\"tdjni\");\n"
@@ -205,10 +207,14 @@ std::string TD_TL_writer_java::gen_output_begin_once() const {
          "            e.printStackTrace();\n"
          "        }\n"
          "    }\n\n"
+         "    private static final String GIT_COMMIT_HASH = \"" DEFINE_STR_VALUE(GIT_COMMIT_HASH)
+         "\";\n\n"
          "    private " +
          tl_name +
          "() {\n"
          "    }\n\n";
+#undef DEFINE_STR_VALUE
+#undef DEFINE_STR_VALUE_IMPL
 }
 
 std::string TD_TL_writer_java::gen_output_end() const {

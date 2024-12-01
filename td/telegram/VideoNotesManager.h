@@ -42,13 +42,12 @@ class VideoNotesManager final : public Actor {
   void create_video_note(FileId file_id, string minithumbnail, PhotoSize thumbnail, int32 duration,
                          Dimensions dimensions, string waveform, bool replace);
 
-  tl_object_ptr<telegram_api::InputMedia> get_input_media(FileId file_id,
-                                                          tl_object_ptr<telegram_api::InputFile> input_file,
-                                                          tl_object_ptr<telegram_api::InputFile> input_thumbnail,
-                                                          int32 ttl) const;
+  tl_object_ptr<telegram_api::InputMedia> get_input_media(
+      FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file,
+      telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail, int32 ttl) const;
 
   SecretInputMedia get_secret_input_media(FileId video_note_file_id,
-                                          tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
+                                          telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file,
                                           BufferSlice thumbnail, int32 layer) const;
 
   FileId get_video_note_thumbnail_file_id(FileId file_id) const;

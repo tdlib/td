@@ -112,8 +112,8 @@ static void test_pq_slow(td::uint64 first, td::uint64 second) {
   td::BigNum p_res = td::BigNum::from_binary(p_str);
   td::BigNum q_res = td::BigNum::from_binary(q_str);
 
-  LOG_CHECK(p_str == p.to_binary()) << td::tag("got", p_res.to_decimal()) << td::tag("expected", first);
-  LOG_CHECK(q_str == q.to_binary()) << td::tag("got", q_res.to_decimal()) << td::tag("expected", second);
+  LOG_CHECK(p_str == p.to_binary()) << td::tag("receive", p_res.to_decimal()) << td::tag("expected", first);
+  LOG_CHECK(q_str == q.to_binary()) << td::tag("receive", q_res.to_decimal()) << td::tag("expected", second);
 }
 #endif
 

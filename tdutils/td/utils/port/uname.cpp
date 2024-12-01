@@ -81,6 +81,8 @@ Slice get_operating_system_version() {
     return "iOS" + os_version;
 #elif TD_DARWIN_TV_OS
     return "tvOS" + os_version;
+#elif TD_DARWIN_VISION_OS
+    return "visionOS" + os_version;
 #elif TD_DARWIN_WATCH_OS
     return "watchOS" + os_version;
 #elif TD_DARWIN_MAC

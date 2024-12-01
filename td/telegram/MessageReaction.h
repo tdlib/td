@@ -10,6 +10,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
+#include "td/telegram/MessageReactor.h"
 #include "td/telegram/MinChannel.h"
 #include "td/telegram/ReactionType.h"
 #include "td/telegram/td_api.h"
@@ -62,6 +63,8 @@ class MessageReaction {
   void set_as_chosen(DialogId my_dialog_id, bool have_recent_choosers);
 
   void unset_as_chosen();
+
+  void add_paid_reaction(int32 star_count);
 
   void add_my_recent_chooser_dialog_id(DialogId dialog_id);
 
@@ -153,6 +156,10 @@ struct MessageReactions {
   vector<MessageReaction> reactions_;
   vector<UnreadMessageReaction> unread_reactions_;
   vector<ReactionType> chosen_reaction_order_;
+  vector<MessageReactor> top_reactors_;
+  int32 pending_paid_reactions_ = 0;
+  bool pending_use_default_is_anonymous_ = false;
+  bool pending_is_anonymous_ = false;
   bool is_min_ = false;
   bool need_polling_ = true;
   bool can_get_added_reactions_ = false;
@@ -160,20 +167,27 @@ struct MessageReactions {
 
   MessageReactions() = default;
 
-  static unique_ptr<MessageReactions> get_message_reactions(Td *td,
-                                                            tl_object_ptr<telegram_api::messageReactions> &&reactions,
-                                                            bool is_bot);
+  bool are_empty() const;
+
+  static unique_ptr<MessageReactions> get_message_reactions(
+      Td *td, telegram_api::object_ptr<telegram_api::messageReactions> &&reactions, bool is_bot);
 
   MessageReaction *get_reaction(const ReactionType &reaction_type);
 
   const MessageReaction *get_reaction(const ReactionType &reaction_type) const;
 
-  void update_from(const MessageReactions &old_reactions);
+  void update_from(const MessageReactions &old_reactions, DialogId my_dialog_id);
 
   bool add_my_reaction(const ReactionType &reaction_type, bool is_big, DialogId my_dialog_id, bool have_recent_choosers,
                        bool is_tag);
 
   bool remove_my_reaction(const ReactionType &reaction_type, DialogId my_dialog_id);
+
+  void add_my_paid_reaction(Td *td, int32 star_count, bool use_default_is_anonymous, bool is_anonymous);
+
+  bool has_pending_paid_reactions() const;
+
+  void drop_pending_paid_reactions(Td *td);
 
   void sort_reactions(const FlatHashMap<ReactionType, size_t, ReactionTypeHash> &active_reaction_pos);
 
@@ -190,6 +204,8 @@ struct MessageReactions {
   td_api::object_ptr<td_api::messageReactions> get_message_reactions_object(Td *td, UserId my_user_id,
                                                                             UserId peer_user_id) const;
 
+  int32 get_non_paid_reaction_count() const;
+
   void add_min_channels(Td *td) const;
 
   void add_dependencies(Dependencies &dependencies) const;
@@ -200,6 +216,11 @@ struct MessageReactions {
   static bool need_update_unread_reactions(const MessageReactions *old_reactions,
                                            const MessageReactions *new_reactions);
 
+  void send_paid_message_reaction(Td *td, MessageFullId message_full_id, int64 random_id, Promise<Unit> &&promise);
+
+  bool toggle_paid_message_reaction_is_anonymous(Td *td, MessageFullId message_full_id, bool is_anonymous,
+                                                 Promise<Unit> &&promise);
+
   template <class StorerT>
   void store(StorerT &storer) const;
 
@@ -208,6 +229,8 @@ struct MessageReactions {
 
  private:
   bool do_remove_my_reaction(const ReactionType &reaction_type);
+
+  vector<MessageReactor> apply_reactor_pending_paid_reactions(DialogId my_dialog_id) const;
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageReactions &reactions);
@@ -221,6 +244,8 @@ void send_message_reaction(Td *td, MessageFullId message_full_id, vector<Reactio
 
 void set_message_reactions(Td *td, MessageFullId message_full_id, vector<ReactionType> reaction_types, bool is_big,
                            Promise<Unit> &&promise);
+
+void reload_paid_reaction_privacy(Td *td);
 
 void get_message_added_reactions(Td *td, MessageFullId message_full_id, ReactionType reaction_type, string offset,
                                  int32 limit, Promise<td_api::object_ptr<td_api::addedReactions>> &&promise);

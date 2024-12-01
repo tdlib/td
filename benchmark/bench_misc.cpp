@@ -117,7 +117,7 @@ BENCH(TlToStringMessage, "TL to_string message") {
         td::vector<td::int32>{10000, 20000, 30000, 50000, 70000, 90000, 120000, 150000, 180000, 220000}));
   }
   x->content_ = td::td_api::make_object<td::td_api::messagePhoto>(
-      std::move(photo), td::td_api::make_object<td::td_api::formattedText>(), false, false);
+      std::move(photo), td::td_api::make_object<td::td_api::formattedText>(), false, false, false);
 
   std::size_t res = 0;
   for (int i = 0; i < n; i++) {

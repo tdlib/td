@@ -37,6 +37,15 @@ class StoryId {
     return input_story_ids;
   }
 
+  static vector<StoryId> get_story_ids(const vector<int32> &input_story_ids) {
+    vector<StoryId> story_ids;
+    story_ids.reserve(input_story_ids.size());
+    for (auto &input_story_id : input_story_ids) {
+      story_ids.emplace_back(input_story_id);
+    }
+    return story_ids;
+  }
+
   int32 get() const {
     return id;
   }

@@ -60,7 +60,7 @@ Result<mtproto::PublicRsaKeyInterface::RsaKey> PublicRsaKeySharedMain::get_rsa_k
       }
     }
   }
-  return Status::Error(PSLICE() << "Unknown fingerprints " << format::as_array(fingerprints));
+  return Status::Error(PSLICE() << "Unknown Main fingerprints " << format::as_array(fingerprints));
 }
 
 void PublicRsaKeySharedMain::drop_keys() {

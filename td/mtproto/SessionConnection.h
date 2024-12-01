@@ -68,18 +68,26 @@ class SessionConnection final
   unique_ptr<RawConnection> move_as_raw_connection();
 
   // Interface
-  Result<MessageId> TD_WARN_UNUSED_RESULT send_query(BufferSlice buffer, bool gzip_flag, MessageId message_id = {},
-                                                     vector<MessageId> invoke_after_message_ids = {},
-                                                     bool use_quick_ack = false);
+  MessageId send_query(BufferSlice buffer, bool gzip_flag, MessageId message_id,
+                       vector<MessageId> invoke_after_message_ids, bool use_quick_ack);
+
   std::pair<MessageId, BufferSlice> encrypted_bind(int64 perm_key, int64 nonce, int32 expires_at);
 
   void get_state_info(MessageId message_id);
+
   void resend_answer(MessageId message_id);
+
   void cancel_answer(MessageId message_id);
+
   void destroy_key();
 
   void set_online(bool online_flag, bool is_main);
+
   void force_ack();
+
+  Slice get_debug_str() const {
+    return raw_connection_ == nullptr ? Slice() : raw_connection_->extra().debug_str;
+  }
 
   class Callback {
    public:
@@ -98,7 +106,7 @@ class SessionConnection final
     virtual void on_session_failed(Status status) = 0;
 
     virtual void on_container_sent(MessageId container_message_id, vector<MessageId> message_ids) = 0;
-    virtual Status on_pong() = 0;
+    virtual Status on_pong(double ping_time, double pong_time, double current_time) = 0;
 
     virtual Status on_update(BufferSlice packet) = 0;
 
@@ -183,7 +191,6 @@ class SessionConnection final
   double last_pong_at_ = 0;
   double real_last_read_at_ = 0;
   double real_last_pong_at_ = 0;
-  int64 cur_ping_id_ = 0;
   MessageId last_ping_message_id_;
   MessageId last_ping_container_message_id_;
 

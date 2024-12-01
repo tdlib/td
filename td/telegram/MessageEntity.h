@@ -24,10 +24,10 @@
 
 namespace td {
 
-class ContactsManager;
 class Dependencies;
 class MultiPromiseActor;
 class Td;
+class UserManager;
 
 class MessageEntity {
  public:
@@ -53,6 +53,7 @@ class MessageEntity {
     MediaTimestamp,
     Spoiler,
     CustomEmoji,
+    ExpandableBlockQuote,
     Size
   };
   Type type = Type::Size;
@@ -80,7 +81,7 @@ class MessageEntity {
     CHECK(type == Type::CustomEmoji);
   }
 
-  tl_object_ptr<td_api::textEntity> get_text_entity_object() const;
+  tl_object_ptr<td_api::textEntity> get_text_entity_object(const UserManager *user_manager) const;
 
   bool operator==(const MessageEntity &other) const {
     return offset == other.offset && length == other.length && type == other.type &&
@@ -111,7 +112,7 @@ class MessageEntity {
   void parse(ParserT &parser);
 
  private:
-  tl_object_ptr<td_api::TextEntityType> get_text_entity_type_object() const;
+  tl_object_ptr<td_api::TextEntityType> get_text_entity_type_object(const UserManager *user_manager) const;
 
   static int get_type_priority(Type type);
 };
@@ -155,14 +156,16 @@ inline bool operator!=(const FormattedText &lhs, const FormattedText &rhs) {
 
 const FlatHashSet<Slice, SliceHash> &get_valid_short_usernames();
 
-Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contacts_manager,
+Result<vector<MessageEntity>> get_message_entities(const UserManager *user_manager,
                                                    vector<tl_object_ptr<td_api::textEntity>> &&input_entities,
                                                    bool allow_all = false);
 
-vector<tl_object_ptr<td_api::textEntity>> get_text_entities_object(const vector<MessageEntity> &entities,
+vector<tl_object_ptr<td_api::textEntity>> get_text_entities_object(const UserManager *user_manager,
+                                                                   const vector<MessageEntity> &entities,
                                                                    bool skip_bot_commands, int32 max_media_timestamp);
 
-td_api::object_ptr<td_api::formattedText> get_formatted_text_object(const FormattedText &text, bool skip_bot_commands,
+td_api::object_ptr<td_api::formattedText> get_formatted_text_object(const UserManager *user_manager,
+                                                                    const FormattedText &text, bool skip_bot_commands,
                                                                     int32 max_media_timestamp);
 
 void remove_premium_custom_emoji_entities(const Td *td, vector<MessageEntity> &entities, bool remove_unknown);
@@ -183,10 +186,6 @@ vector<std::pair<Slice, int32>> find_media_timestamps(Slice str);  // slice + me
 
 void remove_empty_entities(vector<MessageEntity> &entities);
 
-void remove_unallowed_quote_entities(FormattedText &text);
-
-int32 search_quote(FormattedText &&text, FormattedText &&quote, int32 quote_position);
-
 Slice get_first_url(const FormattedText &text);
 
 bool is_visible_url(const FormattedText &text, const string &url);
@@ -201,46 +200,45 @@ FormattedText get_markdown_v3(FormattedText text);
 
 Result<vector<MessageEntity>> parse_html(string &str);
 
-vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(const ContactsManager *contacts_manager,
+vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(const UserManager *user_manager,
                                                                               const vector<MessageEntity> &entities,
                                                                               const char *source);
 
-vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(const ContactsManager *contacts_manager,
+vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(const UserManager *user_manager,
                                                                               const FormattedText *text,
                                                                               const char *source);
 
 vector<tl_object_ptr<secret_api::MessageEntity>> get_input_secret_message_entities(
     const vector<MessageEntity> &entities, int32 layer);
 
-vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manager,
-                                           vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities,
-                                           const char *source);
-
 vector<MessageEntity> get_message_entities(Td *td, vector<tl_object_ptr<secret_api::MessageEntity>> &&secret_entities,
                                            bool is_premium, MultiPromiseActor &load_data_multipromise);
 
-telegram_api::object_ptr<telegram_api::textWithEntities> get_input_text_with_entities(
-    const ContactsManager *contacts_manager, const FormattedText &text, const char *source);
+telegram_api::object_ptr<telegram_api::textWithEntities> get_input_text_with_entities(const UserManager *user_manager,
+                                                                                      const FormattedText &text,
+                                                                                      const char *source);
 
-FormattedText get_formatted_text(const ContactsManager *contacts_manager,
-                                 telegram_api::object_ptr<telegram_api::textWithEntities> text_with_entities,
-                                 bool allow_empty, bool skip_new_entities, bool skip_bot_commands,
+FormattedText get_formatted_text(const UserManager *user_manager, string &&text,
+                                 vector<telegram_api::object_ptr<telegram_api::MessageEntity>> &&server_entities,
                                  bool skip_media_timestamps, bool skip_trim, const char *source);
+
+FormattedText get_formatted_text(const UserManager *user_manager,
+                                 telegram_api::object_ptr<telegram_api::textWithEntities> text_with_entities,
+                                 bool skip_media_timestamps, bool skip_trim, const char *source);
+
+void fix_entities(vector<MessageEntity> &entities);
 
 // like clean_input_string but also validates entities
 Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool allow_empty, bool skip_new_entities,
                           bool skip_bot_commands, bool skip_media_timestamps, bool skip_trim,
                           int32 *ltrim_count = nullptr) TD_WARN_UNUSED_RESULT;
 
-FormattedText get_message_text(const ContactsManager *contacts_manager, string message_text,
+FormattedText get_message_text(const UserManager *user_manager, string message_text,
                                vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities,
                                bool skip_new_entities, bool skip_media_timestamps, int32 send_date, bool from_album,
                                const char *source);
 
 void truncate_formatted_text(FormattedText &text, size_t length);
-
-td_api::object_ptr<td_api::formattedText> extract_input_caption(
-    tl_object_ptr<td_api::InputMessageContent> &input_message_content);
 
 Result<FormattedText> get_formatted_text(const Td *td, DialogId dialog_id,
                                          td_api::object_ptr<td_api::formattedText> &&text, bool is_bot,
@@ -253,6 +251,6 @@ bool has_media_timestamps(const FormattedText *text, int32 min_media_timestamp, 
 
 bool has_bot_commands(const FormattedText *text);
 
-bool need_always_skip_bot_commands(const ContactsManager *contacts_manager, DialogId dialog_id, bool is_bot);
+bool need_always_skip_bot_commands(const UserManager *user_manager, DialogId dialog_id, bool is_bot);
 
 }  // namespace td

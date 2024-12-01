@@ -38,13 +38,14 @@ class DownloadManagerCallback final : public DownloadManager::Callback {
 
   void update_file_removed(FileId file_id, DownloadManager::FileCounters counters) final;
 
-  void start_file(FileId file_id, int8 priority, ActorShared<DownloadManager> download_manager) final;
+  int64 get_internal_download_id() final;
 
-  void pause_file(FileId file_id) final;
+  void start_file(FileId file_id, int64 internal_download_id, int8 priority,
+                  ActorShared<DownloadManager> download_manager) final;
+
+  void pause_file(FileId file_id, int64 internal_download_id) final;
 
   void delete_file(FileId file_id) final;
-
-  FileId dup_file_id(FileId file_id) final;
 
   void get_file_search_text(FileId file_id, FileSourceId file_source_id, Promise<string> &&promise) final;
 

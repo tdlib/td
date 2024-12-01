@@ -30,6 +30,9 @@ void get_premium_limit(const td_api::object_ptr<td_api::PremiumLimitType> &limit
 void get_premium_features(Td *td, const td_api::object_ptr<td_api::PremiumSource> &source,
                           Promise<td_api::object_ptr<td_api::premiumFeatures>> &&promise);
 
+void get_business_features(Td *td, const td_api::object_ptr<td_api::BusinessFeature> &source,
+                           Promise<td_api::object_ptr<td_api::businessFeatures>> &&promise);
+
 void view_premium_feature(Td *td, const td_api::object_ptr<td_api::PremiumFeature> &feature, Promise<Unit> &&promise);
 
 void click_premium_subscription_button(Td *td, Promise<Unit> &&promise);
@@ -45,11 +48,11 @@ void check_premium_gift_code(Td *td, const string &code,
 void apply_premium_gift_code(Td *td, const string &code, Promise<Unit> &&promise);
 
 void launch_prepaid_premium_giveaway(Td *td, int64 giveaway_id,
-                                     td_api::object_ptr<td_api::premiumGiveawayParameters> &&parameters,
-                                     Promise<Unit> &&promise);
+                                     td_api::object_ptr<td_api::giveawayParameters> &&parameters, int32 user_count,
+                                     int64 star_count, Promise<Unit> &&promise);
 
 void get_premium_giveaway_info(Td *td, MessageFullId message_full_id,
-                               Promise<td_api::object_ptr<td_api::PremiumGiveawayInfo>> &&promise);
+                               Promise<td_api::object_ptr<td_api::GiveawayInfo>> &&promise);
 
 void can_purchase_premium(Td *td, td_api::object_ptr<td_api::StorePaymentPurpose> &&purpose, Promise<Unit> &&promise);
 

@@ -17,6 +17,7 @@
 #include "td/utils/format.h"
 #include "td/utils/Gzip.h"
 #include "td/utils/logging.h"
+#include "td/utils/Slice.h"
 #include "td/utils/Storer.h"
 
 namespace td {
@@ -29,17 +30,36 @@ NetQueryCreator::NetQueryCreator(std::shared_ptr<NetQueryStats> net_query_stats)
 
 NetQueryPtr NetQueryCreator::create(const telegram_api::Function &function, vector<ChainId> chain_ids, DcId dc_id,
                                     NetQuery::Type type) {
-  return create(UniqueId::next(), function, std::move(chain_ids), dc_id, type, NetQuery::AuthFlag::On);
+  return create(UniqueId::next(), nullptr, function, std::move(chain_ids), dc_id, type, NetQuery::AuthFlag::On);
 }
 
-NetQueryPtr NetQueryCreator::create(uint64 id, const telegram_api::Function &function, vector<ChainId> &&chain_ids,
-                                    DcId dc_id, NetQuery::Type type, NetQuery::AuthFlag auth_flag) {
+NetQueryPtr NetQueryCreator::create_with_prefix(const telegram_api::object_ptr<telegram_api::Function> &prefix,
+                                                const telegram_api::Function &function, DcId dc_id,
+                                                vector<ChainId> chain_ids, NetQuery::Type type) {
+  return create(UniqueId::next(), prefix, function, std::move(chain_ids), dc_id, type, NetQuery::AuthFlag::On);
+}
+
+NetQueryPtr NetQueryCreator::create(uint64 id, const telegram_api::object_ptr<telegram_api::Function> &prefix,
+                                    const telegram_api::Function &function, vector<ChainId> &&chain_ids, DcId dc_id,
+                                    NetQuery::Type type, NetQuery::AuthFlag auth_flag) {
   LOG(INFO) << "Create query " << to_string(function);
+  string prefix_str;
+  if (prefix != nullptr) {
+    auto storer = DefaultStorer<telegram_api::Function>(*prefix);
+    prefix_str.resize(storer.size());
+    auto real_size = storer.store(MutableSlice(prefix_str).ubegin());
+    CHECK(real_size == prefix_str.size());
+  }
+
   auto storer = DefaultStorer<telegram_api::Function>(function);
-  BufferSlice slice(storer.size());
-  auto real_size = storer.store(slice.as_mutable_slice().ubegin());
-  LOG_CHECK(real_size == slice.size()) << real_size << " " << slice.size() << " "
-                                       << format::as_hex_dump<4>(slice.as_slice());
+  BufferSlice slice(prefix_str.size() + storer.size());
+  auto real_size = storer.store(slice.as_mutable_slice().ubegin() + prefix_str.size());
+  LOG_CHECK(prefix_str.size() + real_size == slice.size())
+      << prefix_str.size() << ' ' << real_size << ' ' << slice.size() << ' '
+      << format::as_hex_dump<4>(slice.as_slice());
+  if (prefix != nullptr) {
+    slice.as_mutable_slice().copy_from(prefix_str);
+  }
 
   size_t min_gzipped_size = 128;
   int32 tl_constructor = function.get_id();

@@ -145,8 +145,16 @@ TEST(Http, reader) {
 #pragma clang diagnostic ignored "-Wunknown-warning-option"
 #pragma clang diagnostic ignored "-Wself-move"
 #endif
+#if TD_GCC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpragmas"
+#pragma GCC diagnostic ignored "-Wself-move"
+#endif
     a = std::move(a);
     b = std::move(b);
+#if TD_GCC
+#pragma GCC diagnostic pop
+#endif
 #if TD_CLANG
 #pragma clang diagnostic pop
 #endif

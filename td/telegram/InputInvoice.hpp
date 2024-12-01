@@ -8,6 +8,7 @@
 
 #include "td/telegram/InputInvoice.h"
 
+#include "td/telegram/MessageEntity.hpp"
 #include "td/telegram/MessageExtendedMedia.hpp"
 #include "td/telegram/Photo.hpp"
 #include "td/telegram/Version.h"
@@ -21,6 +22,8 @@ void InputInvoice::Invoice::store(StorerT &storer) const {
   using td::store;
   bool has_tip = max_tip_amount_ != 0;
   bool is_recurring = !recurring_payment_terms_of_service_url_.empty();
+  bool has_terms_of_service = !terms_of_service_url_.empty();
+  bool has_subscription_period = subscription_period_ != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_test_);
   STORE_FLAG(need_name_);
@@ -32,6 +35,8 @@ void InputInvoice::Invoice::store(StorerT &storer) const {
   STORE_FLAG(send_email_address_to_provider_);
   STORE_FLAG(has_tip);
   STORE_FLAG(is_recurring);
+  STORE_FLAG(has_terms_of_service);
+  STORE_FLAG(has_subscription_period);
   END_STORE_FLAGS();
   store(currency_, storer);
   store(price_parts_, storer);
@@ -42,6 +47,12 @@ void InputInvoice::Invoice::store(StorerT &storer) const {
   if (is_recurring) {
     store(recurring_payment_terms_of_service_url_, storer);
   }
+  if (has_terms_of_service) {
+    store(terms_of_service_url_, storer);
+  }
+  if (has_subscription_period) {
+    store(subscription_period_, storer);
+  }
 }
 
 template <class ParserT>
@@ -49,6 +60,8 @@ void InputInvoice::Invoice::parse(ParserT &parser) {
   using td::parse;
   bool has_tip;
   bool is_recurring;
+  bool has_terms_of_service;
+  bool has_subscription_period;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_test_);
   PARSE_FLAG(need_name_);
@@ -60,6 +73,8 @@ void InputInvoice::Invoice::parse(ParserT &parser) {
   PARSE_FLAG(send_email_address_to_provider_);
   PARSE_FLAG(has_tip);
   PARSE_FLAG(is_recurring);
+  PARSE_FLAG(has_terms_of_service);
+  PARSE_FLAG(has_subscription_period);
   END_PARSE_FLAGS();
   parse(currency_, parser);
   parse(price_parts_, parser);
@@ -69,6 +84,12 @@ void InputInvoice::Invoice::parse(ParserT &parser) {
   }
   if (is_recurring) {
     parse(recurring_payment_terms_of_service_url_, parser);
+  }
+  if (has_terms_of_service) {
+    parse(terms_of_service_url_, parser);
+  }
+  if (has_subscription_period) {
+    parse(subscription_period_, parser);
   }
 }
 
@@ -84,6 +105,7 @@ void InputInvoice::store(StorerT &storer) const {
   bool has_total_amount = total_amount_ != 0;
   bool has_receipt_message_id = receipt_message_id_.is_valid();
   bool has_extended_media = !extended_media_.is_empty();
+  bool has_extended_media_caption = !extended_media_caption_.text.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_description);
   STORE_FLAG(has_photo);
@@ -94,6 +116,7 @@ void InputInvoice::store(StorerT &storer) const {
   STORE_FLAG(has_total_amount);
   STORE_FLAG(has_receipt_message_id);
   STORE_FLAG(has_extended_media);
+  STORE_FLAG(has_extended_media_caption);
   END_STORE_FLAGS();
   store(title_, storer);
   if (has_description) {
@@ -124,6 +147,9 @@ void InputInvoice::store(StorerT &storer) const {
   if (has_extended_media) {
     store(extended_media_, storer);
   }
+  if (has_extended_media_caption) {
+    store(extended_media_caption_, storer);
+  }
 }
 
 template <class ParserT>
@@ -138,6 +164,7 @@ void InputInvoice::parse(ParserT &parser) {
   bool has_total_amount;
   bool has_receipt_message_id;
   bool has_extended_media;
+  bool has_extended_media_caption = false;
   if (parser.version() >= static_cast<int32>(Version::AddInputInvoiceFlags)) {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_description);
@@ -149,6 +176,7 @@ void InputInvoice::parse(ParserT &parser) {
     PARSE_FLAG(has_total_amount);
     PARSE_FLAG(has_receipt_message_id);
     PARSE_FLAG(has_extended_media);
+    PARSE_FLAG(has_extended_media_caption);
     END_PARSE_FLAGS();
   } else {
     has_description = true;
@@ -189,6 +217,9 @@ void InputInvoice::parse(ParserT &parser) {
   }
   if (has_extended_media) {
     parse(extended_media_, parser);
+  }
+  if (has_extended_media_caption) {
+    parse(extended_media_caption_, parser);
   }
 }
 

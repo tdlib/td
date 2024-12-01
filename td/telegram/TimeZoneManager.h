@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2023
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2024
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -27,6 +27,8 @@ class TimeZoneManager final : public Actor {
   TimeZoneManager(TimeZoneManager &&) = delete;
   TimeZoneManager &operator=(TimeZoneManager &&) = delete;
   ~TimeZoneManager() final;
+
+  int32 get_time_zone_offset(const string &time_zone_id);
 
   void get_time_zones(Promise<td_api::object_ptr<td_api::timeZones>> &&promise);
 

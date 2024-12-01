@@ -6,8 +6,8 @@
 //
 #include "td/telegram/BusinessConnectedBot.h"
 
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/UserManager.h"
 
 namespace td {
 
@@ -23,14 +23,14 @@ BusinessConnectedBot::BusinessConnectedBot(td_api::object_ptr<td_api::businessCo
     return;
   }
   user_id_ = UserId(connected_bot->bot_user_id_);
-  recipients_ = BusinessRecipients(std::move(connected_bot->recipients_));
+  recipients_ = BusinessRecipients(std::move(connected_bot->recipients_), true);
   can_reply_ = connected_bot->can_reply_;
 }
 
 td_api::object_ptr<td_api::businessConnectedBot> BusinessConnectedBot::get_business_connected_bot_object(Td *td) const {
   CHECK(is_valid());
   return td_api::make_object<td_api::businessConnectedBot>(
-      td->contacts_manager_->get_user_id_object(user_id_, "businessConnectedBot"),
+      td->user_manager_->get_user_id_object(user_id_, "businessConnectedBot"),
       recipients_.get_business_recipients_object(td), can_reply_);
 }
 

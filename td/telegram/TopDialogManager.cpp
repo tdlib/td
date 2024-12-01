@@ -8,19 +8,19 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
-#include "td/telegram/net/NetQuery.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/actor/PromiseFuture.h"
 
@@ -52,10 +52,12 @@ class GetTopPeersQuery final : public Td::ResultHandler {
         telegram_api::contacts_getTopPeers::CORRESPONDENTS_MASK | telegram_api::contacts_getTopPeers::BOTS_PM_MASK |
         telegram_api::contacts_getTopPeers::BOTS_INLINE_MASK | telegram_api::contacts_getTopPeers::GROUPS_MASK |
         telegram_api::contacts_getTopPeers::CHANNELS_MASK | telegram_api::contacts_getTopPeers::PHONE_CALLS_MASK |
-        telegram_api::contacts_getTopPeers::FORWARD_USERS_MASK | telegram_api::contacts_getTopPeers::FORWARD_CHATS_MASK;
-    send_query(G()->net_query_creator().create(telegram_api::contacts_getTopPeers(
-        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, false /*ignored*/, false /*ignored*/, 0 /*offset*/, 100 /*limit*/, hash)));
+        telegram_api::contacts_getTopPeers::FORWARD_USERS_MASK |
+        telegram_api::contacts_getTopPeers::FORWARD_CHATS_MASK | telegram_api::contacts_getTopPeers::BOTS_APP_MASK;
+    send_query(G()->net_query_creator().create(
+        telegram_api::contacts_getTopPeers(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                                           false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                                           false /*ignored*/, false /*ignored*/, 0 /*offset*/, 100 /*limit*/, hash)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -102,12 +104,10 @@ class ResetTopPeerRatingQuery final : public Td::ResultHandler {
 
  public:
   void send(TopDialogCategory category, DialogId dialog_id) {
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
-    if (input_peer == nullptr) {
-      return;
-    }
-
     dialog_id_ = dialog_id;
+
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
     send_query(G()->net_query_creator().create(
         telegram_api::contacts_resetTopPeerRating(get_input_top_peer_category(category), std::move(input_peer))));
   }
@@ -239,9 +239,8 @@ void TopDialogManager::remove_dialog(TopDialogCategory category, DialogId dialog
   if (category == TopDialogCategory::Size) {
     return promise.set_error(Status::Error(400, "Top chat category must be non-empty"));
   }
-  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "remove_dialog")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
+  TRY_STATUS_PROMISE(promise,
+                     td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "remove_dialog"));
   CHECK(!td_->auth_manager_->is_bot());
   if (!is_enabled_) {
     return promise.set_value(Unit());
@@ -408,16 +407,16 @@ void TopDialogManager::on_load_dialogs(GetTopDialogsQuery &&query, vector<Dialog
   for (auto dialog_id : dialog_ids) {
     if (dialog_id.get_type() == DialogType::User) {
       auto user_id = dialog_id.get_user_id();
-      if (td_->contacts_manager_->is_user_deleted(user_id)) {
+      if (td_->user_manager_->is_user_deleted(user_id)) {
         LOG(INFO) << "Skip deleted " << user_id;
         continue;
       }
-      if (td_->contacts_manager_->get_my_id() == user_id) {
+      if (td_->user_manager_->get_my_id() == user_id) {
         LOG(INFO) << "Skip self " << user_id;
         continue;
       }
       if (query.category == TopDialogCategory::BotInline || query.category == TopDialogCategory::BotPM) {
-        auto r_bot_info = td_->contacts_manager_->get_bot_data(user_id);
+        auto r_bot_info = td_->user_manager_->get_bot_data(user_id);
         if (r_bot_info.is_error()) {
           LOG(INFO) << "Skip not a bot " << user_id;
           continue;
@@ -495,8 +494,8 @@ void TopDialogManager::on_get_top_peers(Result<telegram_api::object_ptr<telegram
       set_is_enabled(true);  // apply immediately
       auto top_peers = move_tl_object_as<telegram_api::contacts_topPeers>(std::move(top_peers_parent));
 
-      td_->contacts_manager_->on_get_users(std::move(top_peers->users_), "on get top chats");
-      td_->contacts_manager_->on_get_chats(std::move(top_peers->chats_), "on get top chats");
+      td_->user_manager_->on_get_users(std::move(top_peers->users_), "on get top chats");
+      td_->chat_manager_->on_get_chats(std::move(top_peers->chats_), "on get top chats");
       for (auto &category : top_peers->categories_) {
         auto dialog_category = get_top_dialog_category(category->category_);
         auto pos = static_cast<size_t>(dialog_category);

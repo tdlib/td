@@ -9,6 +9,7 @@
 #include "td/telegram/files/FileLoaderActor.h"
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/ResourceManager.h"
+#include "td/telegram/net/NetQuery.h"
 
 #include "td/actor/actor.h"
 
@@ -36,22 +37,6 @@ class FileHashUploader final : public FileLoaderActor {
       : local_(local), size_(size), size_left_(size), callback_(std::move(callback)) {
   }
 
-  void set_resource_manager(ActorShared<ResourceManager> resource_manager) final {
-    resource_manager_ = std::move(resource_manager);
-    send_closure(resource_manager_, &ResourceManager::update_resources, resource_state_);
-  }
-
-  void update_priority(int8 priority) final {
-    send_closure(resource_manager_, &ResourceManager::update_priority, priority);
-  }
-  void update_resources(const ResourceState &other) final {
-    if (stop_flag_) {
-      return;
-    }
-    resource_state_.update_slave(other);
-    loop();
-  }
-
  private:
   ResourceState resource_state_;
   BufferedFd<FileFd> fd_;
@@ -66,6 +51,23 @@ class FileHashUploader final : public FileLoaderActor {
   enum class State : int32 { CalcSha, NetRequest, WaitNetResult } state_ = State::CalcSha;
   bool stop_flag_ = false;
   Sha256State sha256_state_;
+
+  void set_resource_manager(ActorShared<ResourceManager> resource_manager) final {
+    resource_manager_ = std::move(resource_manager);
+    send_closure(resource_manager_, &ResourceManager::update_resources, resource_state_);
+  }
+
+  void update_priority(int8 priority) final {
+    send_closure(resource_manager_, &ResourceManager::update_priority, priority);
+  }
+
+  void update_resources(const ResourceState &other) final {
+    if (stop_flag_) {
+      return;
+    }
+    resource_state_.update_slave(other);
+    loop();
+  }
 
   void start_up() final;
   Status init();

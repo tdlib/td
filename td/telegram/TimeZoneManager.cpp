@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2023
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2024
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -15,6 +15,7 @@
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/tl_helpers.h"
 
 namespace td {
@@ -107,6 +108,16 @@ TimeZoneManager::~TimeZoneManager() = default;
 
 void TimeZoneManager::tear_down() {
   parent_.reset();
+}
+
+int32 TimeZoneManager::get_time_zone_offset(const string &time_zone_id) {
+  load_time_zones();
+  for (auto &time_zone : time_zones_.time_zones_) {
+    if (time_zone.id_ == time_zone_id) {
+      return time_zone.utc_offset_;
+    }
+  }
+  return narrow_cast<int32>(G()->get_option_integer("utc_time_offset"));
 }
 
 void TimeZoneManager::get_time_zones(Promise<td_api::object_ptr<td_api::timeZones>> &&promise) {

@@ -60,6 +60,9 @@ class optional {
   T &operator*() {
     return value();
   }
+  const T &operator*() const {
+    return value();
+  }
   T unwrap() {
     CHECK(*this);
     auto res = std::move(value());

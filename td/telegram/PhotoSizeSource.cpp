@@ -88,7 +88,7 @@ int32 PhotoSizeSource::get_compare_type(const char *source) const {
     case Type::Legacy:
       break;
     case Type::Thumbnail: {
-      auto type = thumbnail().thumbnail_type;
+      auto type = thumbnail().thumbnail_type.type;
       CHECK(0 <= type && type <= 127);
       if (type == 'a') {
         return 0;
@@ -184,9 +184,11 @@ bool PhotoSizeSource::unique_equal(const PhotoSizeSource &lhs, const PhotoSizeSo
 
 string PhotoSizeSource::get_unique_name(int64 photo_id, const char *source) const {
   switch (get_type(source)) {
-    case Type::Thumbnail:
-      CHECK(0 <= thumbnail().thumbnail_type && thumbnail().thumbnail_type <= 127);
-      return PSTRING() << photo_id << '_' << thumbnail().thumbnail_type;
+    case Type::Thumbnail: {
+      int32 type = thumbnail().thumbnail_type.type;
+      CHECK(0 <= type && type <= 127);
+      return PSTRING() << photo_id << '_' << type;
+    }
     case Type::DialogPhotoSmall:
       return to_string(photo_id);
     case Type::DialogPhotoBig:

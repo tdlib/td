@@ -1,5 +1,5 @@
 **/*build/
-bin/
-docs/
-org/drinkless/tdlib/TdApi.java
-td/
+/bin/
+/docs/
+/org/drinkless/tdlib/TdApi.java
+/td/

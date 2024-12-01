@@ -27,6 +27,8 @@ class UserPrivacySetting {
     FindByPhoneNumber,
     VoiceMessages,
     UserBio,
+    UserBirthdate,
+    StarGiftAutosave,
     Size
   };
 

@@ -36,18 +36,23 @@ class VideosManager {
 
   td_api::object_ptr<td_api::storyVideo> get_story_video_object(FileId file_id) const;
 
+  td_api::object_ptr<td_api::alternativeVideo> get_alternative_video_object(FileId file_id,
+                                                                            const vector<FileId> &hls_file_ids) const;
+
   void create_video(FileId file_id, string minithumbnail, PhotoSize thumbnail, AnimationSize animated_thumbnail,
                     bool has_stickers, vector<FileId> &&sticker_file_ids, string file_name, string mime_type,
                     int32 duration, double precise_duration, Dimensions dimensions, bool supports_streaming,
-                    bool is_animation, int32 preload_prefix_size, bool replace);
+                    bool is_animation, int32 preload_prefix_size, double start_ts, string &&codec, bool replace);
 
-  tl_object_ptr<telegram_api::InputMedia> get_input_media(FileId file_id,
-                                                          tl_object_ptr<telegram_api::InputFile> input_file,
-                                                          tl_object_ptr<telegram_api::InputFile> input_thumbnail,
-                                                          int32 ttl, bool has_spoiler) const;
+  tl_object_ptr<telegram_api::InputMedia> get_input_media(
+      FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file,
+      telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail, int32 ttl, bool has_spoiler) const;
+
+  telegram_api::object_ptr<telegram_api::InputMedia> get_story_document_input_media(FileId file_id,
+                                                                                    double main_frame_timestamp) const;
 
   SecretInputMedia get_secret_input_media(FileId video_file_id,
-                                          tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
+                                          telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file,
                                           const string &caption, BufferSlice thumbnail, int32 layer) const;
 
   FileId get_video_thumbnail_file_id(FileId file_id) const;
@@ -80,6 +85,8 @@ class VideosManager {
     PhotoSize thumbnail;
     AnimationSize animated_thumbnail;
     int32 preload_prefix_size = 0;
+    double start_ts = 0.0;
+    string codec;
 
     bool supports_streaming = false;
     bool is_animation = false;

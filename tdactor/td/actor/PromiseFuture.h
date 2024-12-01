@@ -291,12 +291,20 @@ class PromiseFuture {
   FutureActor<T> future_;
 };
 
-template <ActorSendType send_type, class T, class ActorAT, class ActorBT, class ResultT, class... DestArgsT,
-          class... ArgsT>
-FutureActor<T> send_promise(ActorId<ActorAT> actor_id, ResultT (ActorBT::*func)(PromiseActor<T> &&, DestArgsT...),
-                            ArgsT &&...args) {
+template <class T, class ActorAT, class ActorBT, class ResultT, class... DestArgsT, class... ArgsT>
+FutureActor<T> send_promise_immediately(ActorId<ActorAT> actor_id,
+                                        ResultT (ActorBT::*func)(PromiseActor<T> &&, DestArgsT...), ArgsT &&...args) {
   PromiseFuture<T> pf;
-  Scheduler::instance()->send_closure<send_type>(
+  Scheduler::instance()->send_closure_immediately(
+      std::move(actor_id), create_immediate_closure(func, pf.move_promise(), std::forward<ArgsT>(args)...));
+  return pf.move_future();
+}
+
+template <class T, class ActorAT, class ActorBT, class ResultT, class... DestArgsT, class... ArgsT>
+FutureActor<T> send_promise_later(ActorId<ActorAT> actor_id, ResultT (ActorBT::*func)(PromiseActor<T> &&, DestArgsT...),
+                                  ArgsT &&...args) {
+  PromiseFuture<T> pf;
+  Scheduler::instance()->send_closure_later(
       std::move(actor_id), create_immediate_closure(func, pf.move_promise(), std::forward<ArgsT>(args)...));
   return pf.move_future();
 }

@@ -25,6 +25,8 @@
       #define TD_DARWIN_IOS 1
     #elif TARGET_OS_TV
       #define TD_DARWIN_TV_OS 1
+    #elif TARGET_OS_VISION
+      #define TD_DARWIN_VISION_OS 1
     #elif TARGET_OS_WATCH
       #define TD_DARWIN_WATCH_OS 1
     #else

@@ -6,7 +6,7 @@
 //
 #include "td/telegram/MessageViewer.h"
 
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/logging.h"
@@ -17,10 +17,9 @@ MessageViewer::MessageViewer(telegram_api::object_ptr<telegram_api::readParticip
     : MessageViewer(UserId(read_date->user_id_), read_date->date_) {
 }
 
-td_api::object_ptr<td_api::messageViewer> MessageViewer::get_message_viewer_object(
-    ContactsManager *contacts_manager) const {
+td_api::object_ptr<td_api::messageViewer> MessageViewer::get_message_viewer_object(UserManager *user_manager) const {
   return td_api::make_object<td_api::messageViewer>(
-      contacts_manager->get_user_id_object(user_id_, "get_message_viewer_object"), date_);
+      user_manager->get_user_id_object(user_id_, "get_message_viewer_object"), date_);
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageViewer &viewer) {
@@ -42,11 +41,10 @@ vector<UserId> MessageViewers::get_user_ids() const {
   return transform(message_viewers_, [](auto &viewer) { return viewer.get_user_id(); });
 }
 
-td_api::object_ptr<td_api::messageViewers> MessageViewers::get_message_viewers_object(
-    ContactsManager *contacts_manager) const {
+td_api::object_ptr<td_api::messageViewers> MessageViewers::get_message_viewers_object(UserManager *user_manager) const {
   return td_api::make_object<td_api::messageViewers>(
-      transform(message_viewers_, [contacts_manager](const MessageViewer &message_viewer) {
-        return message_viewer.get_message_viewer_object(contacts_manager);
+      transform(message_viewers_, [user_manager](const MessageViewer &message_viewer) {
+        return message_viewer.get_message_viewer_object(user_manager);
       }));
 }
 

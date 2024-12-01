@@ -13,9 +13,9 @@
 
 namespace td {
 
-enum class EmojiGroupType : int32 { Default, EmojiStatus, ProfilePhoto };
+enum class EmojiGroupType : int32 { Default, EmojiStatus, ProfilePhoto, RegularStickers };
 
-static constexpr int32 MAX_EMOJI_GROUP_TYPE = 3;
+static constexpr int32 MAX_EMOJI_GROUP_TYPE = 4;
 
 EmojiGroupType get_emoji_group_type(const td_api::object_ptr<td_api::EmojiCategoryType> &type);
 

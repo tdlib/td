@@ -38,6 +38,8 @@ class ReactionType {
 
   explicit ReactionType(const td_api::object_ptr<td_api::ReactionType> &type);
 
+  static ReactionType paid();
+
   static vector<ReactionType> get_reaction_types(
       const vector<telegram_api::object_ptr<telegram_api::Reaction>> &reactions);
 
@@ -47,7 +49,7 @@ class ReactionType {
       const vector<ReactionType> &reaction_types);
 
   static vector<td_api::object_ptr<td_api::ReactionType>> get_reaction_types_object(
-      const vector<ReactionType> &reaction_types);
+      const vector<ReactionType> &reaction_types, bool paid_reactions_available);
 
   telegram_api::object_ptr<telegram_api::Reaction> get_input_reaction() const;
 
@@ -58,6 +60,8 @@ class ReactionType {
   uint64 get_hash() const;
 
   bool is_custom_reaction() const;
+
+  bool is_paid_reaction() const;
 
   bool is_active_reaction(const FlatHashMap<ReactionType, size_t, ReactionTypeHash> &active_reaction_pos) const;
 

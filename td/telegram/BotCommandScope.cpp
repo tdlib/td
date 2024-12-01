@@ -8,9 +8,10 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/UserManager.h"
 
 namespace td {
 
@@ -54,7 +55,7 @@ Result<BotCommandScope> BotCommandScope::get_bot_command_scope(Td *td,
       type = Type::DialogParticipant;
       dialog_id = DialogId(scope->chat_id_);
       user_id = UserId(scope->user_id_);
-      TRY_STATUS(td->contacts_manager_->get_input_user(user_id));
+      TRY_STATUS(td->user_manager_->get_input_user(user_id));
       break;
     }
     default:
@@ -62,12 +63,8 @@ Result<BotCommandScope> BotCommandScope::get_bot_command_scope(Td *td,
       return BotCommandScope(Type::Default);
   }
 
-  if (!td->dialog_manager_->have_dialog_force(dialog_id, "get_bot_command_scope")) {
-    return Status::Error(400, "Chat not found");
-  }
-  if (!td->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
-    return Status::Error(400, "Can't access the chat");
-  }
+  TRY_STATUS(td->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "get_bot_command_scope"));
+
   switch (dialog_id.get_type()) {
     case DialogType::User:
       if (type != Type::Dialog) {
@@ -78,13 +75,13 @@ Result<BotCommandScope> BotCommandScope::get_bot_command_scope(Td *td,
       // ok
       break;
     case DialogType::Channel:
-      if (td->contacts_manager_->is_broadcast_channel(dialog_id.get_channel_id())) {
+      if (td->chat_manager_->is_broadcast_channel(dialog_id.get_channel_id())) {
         return Status::Error(400, "Can't change commands in channel chats");
       }
       break;
     case DialogType::SecretChat:
     default:
-      return Status::Error(400, "Can't access the chat");
+      UNREACHABLE();
   }
 
   return BotCommandScope(type, dialog_id, user_id);
@@ -94,7 +91,7 @@ telegram_api::object_ptr<telegram_api::BotCommandScope> BotCommandScope::get_inp
     const Td *td) const {
   auto input_peer =
       dialog_id_.is_valid() ? td->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read) : nullptr;
-  auto r_input_user = td->contacts_manager_->get_input_user(user_id_);
+  auto r_input_user = td->user_manager_->get_input_user(user_id_);
   auto input_user = r_input_user.is_ok() ? r_input_user.move_as_ok() : nullptr;
   switch (type_) {
     case Type::Default:

@@ -6,10 +6,11 @@
 //
 #include "td/telegram/MessagesInfo.h"
 
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/ForumTopicManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -67,8 +68,8 @@ MessagesInfo get_messages_info(Td *td, DialogId dialog_id,
       break;
   }
 
-  td->contacts_manager_->on_get_users(std::move(users), source);
-  td->contacts_manager_->on_get_chats(std::move(chats), source);
+  td->user_manager_->on_get_users(std::move(users), source);
+  td->chat_manager_->on_get_chats(std::move(chats), source);
   td->forum_topic_manager_->on_get_forum_topic_infos(dialog_id, std::move(topics), source);
 
   return result;
