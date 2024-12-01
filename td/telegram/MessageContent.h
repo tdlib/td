@@ -11,6 +11,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/EncryptedFile.h"
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/files/FileUploadId.h"
 #include "td/telegram/InputGroupCallId.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessageContentType.h"
@@ -20,6 +21,7 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageSelfDestructType.h"
 #include "td/telegram/Photo.h"
+#include "td/telegram/QuickReplyMessageFullId.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/secret_api.h"
 #include "td/telegram/SecretInputMedia.h"
@@ -104,37 +106,52 @@ unique_ptr<MessageContent> create_text_message_content(string text, vector<Messa
                                                        bool force_large_media, bool skip_confitmation,
                                                        string &&web_page_url);
 
+unique_ptr<MessageContent> create_photo_message_content(Photo photo);
+
+unique_ptr<MessageContent> create_video_message_content(FileId file_id);
+
 unique_ptr<MessageContent> create_contact_registered_message_content();
 
 unique_ptr<MessageContent> create_screenshot_taken_message_content();
 
 unique_ptr<MessageContent> create_chat_set_ttl_message_content(int32 ttl, UserId from_user_id);
 
+td_api::object_ptr<td_api::formattedText> extract_input_caption(
+    td_api::object_ptr<td_api::InputMessageContent> &input_message_content);
+
+bool extract_input_invert_media(const td_api::object_ptr<td_api::InputMessageContent> &input_message_content);
+
 Result<InputMessageContent> get_input_message_content(
     DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td, bool is_premium);
 
-bool can_have_input_media(const Td *td, const MessageContent *content, bool is_server);
+Status check_message_group_message_contents(const vector<InputMessageContent> &message_contents);
 
-SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
-                                        tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
-                                        BufferSlice thumbnail, int32 layer);
+bool can_message_content_have_input_media(const Td *td, const MessageContent *content, bool is_server);
 
-tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content, Td *td,
-                                                        tl_object_ptr<telegram_api::InputFile> input_file,
-                                                        tl_object_ptr<telegram_api::InputFile> input_thumbnail,
-                                                        FileId file_id, FileId thumbnail_file_id,
-                                                        MessageSelfDestructType ttl, const string &emoji, bool force);
+SecretInputMedia get_message_content_secret_input_media(
+    const MessageContent *content, Td *td, telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file,
+    BufferSlice thumbnail, int32 layer);
 
-tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content, Td *td,
-                                                        MessageSelfDestructType ttl, const string &emoji, bool force);
+telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_media(
+    const MessageContent *content, int32 media_pos, Td *td,
+    telegram_api::object_ptr<telegram_api::InputFile> input_file,
+    telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail, FileUploadId file_upload_id,
+    FileUploadId thumbnail_file_upload_id, MessageSelfDestructType ttl, const string &emoji, bool force);
 
-tl_object_ptr<telegram_api::InputMedia> get_fake_input_media(Td *td, tl_object_ptr<telegram_api::InputFile> input_file,
-                                                             FileId file_id);
+telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_media(const MessageContent *content,
+                                                                                   Td *td, MessageSelfDestructType ttl,
+                                                                                   const string &emoji, bool force,
+                                                                                   int32 media_pos = -1);
 
-tl_object_ptr<telegram_api::InputMedia> get_message_content_input_media_web_page(const Td *td,
-                                                                                 const MessageContent *content);
+telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_fake_input_media(
+    Td *td, telegram_api::object_ptr<telegram_api::InputFile> input_file, FileId file_id);
 
-void delete_message_content_thumbnail(MessageContent *content, Td *td);
+telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_media_web_page(
+    const Td *td, const MessageContent *content);
+
+bool is_uploaded_input_media(telegram_api::object_ptr<telegram_api::InputMedia> &input_media);
+
+void delete_message_content_thumbnail(MessageContent *content, Td *td, int32 media_pos = -1);
 
 Status can_send_message_content(DialogId dialog_id, const MessageContent *content, bool is_forward,
                                 bool check_permissions, const Td *td);
@@ -144,6 +161,8 @@ bool can_forward_message_content(const MessageContent *content);
 bool update_opened_message_content(MessageContent *content);
 
 int32 get_message_content_index_mask(const MessageContent *content, const Td *td, bool is_outgoing);
+
+vector<unique_ptr<MessageContent>> get_individual_message_contents(const MessageContent *content);
 
 StickerType get_message_content_sticker_type(const Td *td, const MessageContent *content);
 
@@ -210,6 +229,12 @@ void register_reply_message_content(Td *td, const MessageContent *content);
 
 void unregister_reply_message_content(Td *td, const MessageContent *content);
 
+void register_quick_reply_message_content(Td *td, const MessageContent *content,
+                                          QuickReplyMessageFullId message_full_id, const char *source);
+
+void unregister_quick_reply_message_content(Td *td, const MessageContent *content,
+                                            QuickReplyMessageFullId message_full_id, const char *source);
+
 unique_ptr<MessageContent> get_secret_message_content(
     Td *td, string message_text, unique_ptr<EncryptedFile> file,
     tl_object_ptr<secret_api::DecryptedMessageMedia> &&media_ptr,
@@ -221,6 +246,11 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message_tex
                                                DialogId owner_dialog_id, int32 message_date, bool is_content_read,
                                                UserId via_bot_user_id, MessageSelfDestructType *ttl,
                                                bool *disable_web_page_preview, const char *source);
+
+unique_ptr<MessageContent> get_uploaded_message_content(
+    Td *td, const MessageContent *old_content, int32 media_pos,
+    telegram_api::object_ptr<telegram_api::MessageMedia> &&media_ptr, DialogId owner_dialog_id, int32 message_date,
+    const char *source);
 
 enum class MessageContentDupType : int32 {
   Send,        // normal message sending
@@ -235,13 +265,15 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
 
 unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<telegram_api::MessageAction> &&action_ptr,
                                                       DialogId owner_dialog_id, int32 message_date,
-                                                      const RepliedMessageInfo &replied_message_info);
+                                                      const RepliedMessageInfo &replied_message_info,
+                                                      bool is_business_message);
 
-tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageContent *content, Td *td,
-                                                                 DialogId dialog_id, int32 message_date,
-                                                                 bool is_content_secret, bool skip_bot_commands,
-                                                                 int32 max_media_timestamp, bool invert_media,
-                                                                 bool disable_web_page_preview);
+td_api::object_ptr<td_api::MessageContent> get_message_content_object(const MessageContent *content, Td *td,
+                                                                      DialogId dialog_id, bool is_server,
+                                                                      bool is_outgoing, int32 message_date,
+                                                                      bool is_content_secret, bool skip_bot_commands,
+                                                                      int32 max_media_timestamp, bool invert_media,
+                                                                      bool disable_web_page_preview);
 
 FormattedText *get_message_content_text_mutable(MessageContent *content);
 
@@ -249,9 +281,9 @@ const FormattedText *get_message_content_text(const MessageContent *content);
 
 const FormattedText *get_message_content_caption(const MessageContent *content);
 
-bool get_message_content_has_spoiler(const MessageContent *content);
+int64 get_message_content_star_count(const MessageContent *content);
 
-void set_message_content_has_spoiler(MessageContent *content, bool has_spoiler);
+string get_message_content_payload(const MessageContent *content);
 
 int32 get_message_content_duration(const MessageContent *content, const Td *td);
 
@@ -259,13 +291,17 @@ int32 get_message_content_media_duration(const MessageContent *content, const Td
 
 const Photo *get_message_content_photo(const MessageContent *content);
 
-FileId get_message_content_upload_file_id(const MessageContent *content);
-
 FileId get_message_content_any_file_id(const MessageContent *content);
+
+vector<FileId> get_message_content_any_file_ids(const MessageContent *content);
 
 void update_message_content_file_id_remote(MessageContent *content, FileId file_id);
 
+void update_message_content_file_id_remotes(MessageContent *content, const vector<FileId> &file_ids);
+
 FileId get_message_content_thumbnail_file_id(const MessageContent *content, const Td *td);
+
+vector<FileId> get_message_content_thumbnail_file_ids(const MessageContent *content, const Td *td);
 
 vector<FileId> get_message_content_file_ids(const MessageContent *content, const Td *td);
 
@@ -273,9 +309,9 @@ StoryFullId get_message_content_story_full_id(const Td *td, const MessageContent
 
 string get_message_content_search_text(const Td *td, const MessageContent *content);
 
-bool update_message_content_extended_media(MessageContent *content,
-                                           telegram_api::object_ptr<telegram_api::MessageExtendedMedia> extended_media,
-                                           DialogId owner_dialog_id, Td *td);
+bool update_message_content_extended_media(
+    MessageContent *content, vector<telegram_api::object_ptr<telegram_api::MessageExtendedMedia>> extended_media,
+    DialogId owner_dialog_id, Td *td);
 
 bool need_poll_message_content_extended_media(const MessageContent *content);
 

@@ -8,6 +8,7 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileType.h"
+#include "td/telegram/PhotoSizeType.h"
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
@@ -47,7 +48,7 @@ struct PhotoSizeSource {
     }
 
     FileType file_type = FileType::None;
-    int32 thumbnail_type = 0;
+    PhotoSizeType thumbnail_type;
   };
 
   // for dialog photos

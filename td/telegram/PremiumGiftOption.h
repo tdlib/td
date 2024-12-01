@@ -29,13 +29,13 @@ class PremiumGiftOption {
 
   double get_monthly_price() const;
 
- public:
-  PremiumGiftOption() = default;
-  explicit PremiumGiftOption(telegram_api::object_ptr<telegram_api::premiumGiftOption> &&option);
-  explicit PremiumGiftOption(telegram_api::object_ptr<telegram_api::premiumSubscriptionOption> &&option);
-
   td_api::object_ptr<td_api::premiumPaymentOption> get_premium_payment_option_object(
       const PremiumGiftOption &base_option) const;
+
+ public:
+  PremiumGiftOption() = default;
+
+  explicit PremiumGiftOption(telegram_api::object_ptr<telegram_api::premiumSubscriptionOption> &&option);
 
   td_api::object_ptr<td_api::premiumStatePaymentOption> get_premium_state_payment_option_object(
       const PremiumGiftOption &base_option) const;
@@ -53,13 +53,7 @@ bool operator==(const PremiumGiftOption &lhs, const PremiumGiftOption &rhs);
 bool operator!=(const PremiumGiftOption &lhs, const PremiumGiftOption &rhs);
 
 vector<PremiumGiftOption> get_premium_gift_options(
-    vector<telegram_api::object_ptr<telegram_api::premiumGiftOption>> &&options);
-
-vector<PremiumGiftOption> get_premium_gift_options(
     vector<telegram_api::object_ptr<telegram_api::premiumSubscriptionOption>> &&options);
-
-vector<td_api::object_ptr<td_api::premiumPaymentOption>> get_premium_payment_options_object(
-    const vector<PremiumGiftOption> &options);
 
 vector<td_api::object_ptr<td_api::premiumStatePaymentOption>> get_premium_state_payment_options_object(
     const vector<PremiumGiftOption> &options);

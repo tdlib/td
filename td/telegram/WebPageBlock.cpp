@@ -12,7 +12,7 @@
 #include "td/telegram/AudiosManager.h"
 #include "td/telegram/AudiosManager.hpp"
 #include "td/telegram/ChannelId.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Dimensions.h"
 #include "td/telegram/Document.h"
@@ -2204,13 +2204,13 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
           return nullptr;
         }
 
-        if (td->contacts_manager_->have_channel_force(channel_id, "pageBlockChannel")) {
-          td->contacts_manager_->on_get_chat(std::move(page_block->channel_), "pageBlockChannel");
+        if (td->chat_manager_->have_channel_force(channel_id, "pageBlockChannel")) {
+          td->chat_manager_->on_get_chat(std::move(page_block->channel_), "pageBlockChannel");
           LOG(INFO) << "Receive known min " << channel_id;
-          return td::make_unique<WebPageBlockChatLink>(td->contacts_manager_->get_channel_title(channel_id),
-                                                       *td->contacts_manager_->get_channel_dialog_photo(channel_id),
-                                                       td->contacts_manager_->get_channel_first_username(channel_id),
-                                                       td->contacts_manager_->get_channel_accent_color_id(channel_id),
+          return td::make_unique<WebPageBlockChatLink>(td->chat_manager_->get_channel_title(channel_id),
+                                                       *td->chat_manager_->get_channel_dialog_photo(channel_id),
+                                                       td->chat_manager_->get_channel_first_username(channel_id),
+                                                       td->chat_manager_->get_channel_accent_color_id(channel_id),
                                                        channel_id);
         } else {
           bool has_access_hash = (channel->flags_ & telegram_api::channel::ACCESS_HASH_MASK) != 0;
@@ -2219,9 +2219,7 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
               std::move(channel->title_),
               get_dialog_photo(td->file_manager_.get(), DialogId(channel_id),
                                has_access_hash ? channel->access_hash_ : 0, std::move(channel->photo_)),
-              std::move(channel->username_),
-              peer_color.accent_color_id_.is_valid() ? peer_color.accent_color_id_ : AccentColorId(channel_id),
-              channel_id);
+              std::move(channel->username_), peer_color.accent_color_id_, channel_id);
         }
       } else {
         LOG(ERROR) << "Receive wrong channel " << to_string(page_block->channel_);
@@ -2491,6 +2489,21 @@ vector<td_api::object_ptr<td_api::PageBlock>> get_page_blocks_object(
   context.is_first_pass_ = false;
   context.anchors_.emplace(Slice(), nullptr);  // back to top
   return get_page_blocks_object(page_blocks, &context);
+}
+
+bool WebPageBlock::are_allowed_album_block_types(const vector<unique_ptr<WebPageBlock>> &page_blocks) {
+  for (const auto &block : page_blocks) {
+    switch (block->get_type()) {
+      case Type::Title:
+      case Type::AuthorDate:
+      case Type::Collage:
+      case Type::Slideshow:
+        continue;
+      default:
+        return false;
+    }
+  }
+  return true;
 }
 
 }  // namespace td

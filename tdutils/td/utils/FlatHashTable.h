@@ -308,7 +308,7 @@ class FlatHashTable {
 
   template <class... ArgsT>
   std::pair<NodePointer, bool> emplace(KeyT key, ArgsT &&...args) {
-    CHECK(!is_hash_table_key_empty(key));
+    CHECK(!is_hash_table_key_empty<EqT>(key));
     if (unlikely(bucket_count_mask_ == 0)) {
       CHECK(used_node_count_ == 0);
       resize(8);
@@ -385,9 +385,9 @@ class FlatHashTable {
   }
 
   template <class F>
-  void remove_if(F &&f) {
+  bool remove_if(F &&f) {
     if (empty()) {
-      return;
+      return false;
     }
 
     auto it = begin_impl();
@@ -401,9 +401,11 @@ class FlatHashTable {
       } while (!it->empty());
     }
     auto first_empty = it;
+    bool is_removed = false;
     while (it != end) {
       if (!it->empty() && f(it->get_public())) {
         erase_node(it);
+        is_removed = true;
       } else {
         ++it;
       }
@@ -411,11 +413,13 @@ class FlatHashTable {
     for (it = nodes_; it != first_empty;) {
       if (!it->empty() && f(it->get_public())) {
         erase_node(it);
+        is_removed = true;
       } else {
         ++it;
       }
     }
     try_shrink();
+    return is_removed;
   }
 
  private:
@@ -447,7 +451,7 @@ class FlatHashTable {
   }
 
   NodeT *find_impl(const KeyT &key) {
-    if (unlikely(nodes_ == nullptr) || is_hash_table_key_empty(key)) {
+    if (unlikely(nodes_ == nullptr) || is_hash_table_key_empty<EqT>(key)) {
       return nullptr;
     }
     auto bucket = calc_bucket(key);

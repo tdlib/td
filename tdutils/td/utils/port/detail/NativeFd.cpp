@@ -12,6 +12,8 @@
 
 #if TD_PORT_POSIX
 #include <fcntl.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 #include <unistd.h>
 #endif
 
@@ -221,6 +223,45 @@ Status NativeFd::duplicate(const NativeFd &to) const {
 #elif TD_PORT_WINDOWS
   return Status::Error("Not supported");
 #endif
+}
+
+static Result<uint32> maximize_buffer(const NativeFd::Socket &socket, int optname, uint32 max_size) {
+  if (setsockopt(socket, SOL_SOCKET, optname, reinterpret_cast<const char *>(&max_size), sizeof(max_size)) == 0) {
+    // fast path
+    return max_size;
+  }
+
+  /* Start with the default size. */
+  uint32 old_size = 0;
+  socklen_t intsize = sizeof(old_size);
+  if (getsockopt(socket, SOL_SOCKET, optname, reinterpret_cast<char *>(&old_size), &intsize)) {
+    return OS_SOCKET_ERROR("getsockopt() failed");
+  }
+#if TD_LINUX
+  old_size /= 2;
+#endif
+
+  /* Binary-search for the real maximum. */
+  uint32 last_good_size = old_size;
+  uint32 min_size = old_size;
+  while (min_size <= max_size) {
+    uint32 avg_size = min_size + (max_size - min_size) / 2;
+    if (setsockopt(socket, SOL_SOCKET, optname, reinterpret_cast<const char *>(&avg_size), sizeof(avg_size)) == 0) {
+      last_good_size = avg_size;
+      min_size = avg_size + 1;
+    } else {
+      max_size = avg_size - 1;
+    }
+  }
+  return last_good_size;
+}
+
+Result<uint32> NativeFd::maximize_snd_buffer(uint32 max_size) const {
+  return maximize_buffer(socket(), SO_SNDBUF, max_size == 0 ? DEFAULT_MAX_SND_BUFFER_SIZE : max_size);
+}
+
+Result<uint32> NativeFd::maximize_rcv_buffer(uint32 max_size) const {
+  return maximize_buffer(socket(), SO_RCVBUF, max_size == 0 ? DEFAULT_MAX_RCV_BUFFER_SIZE : max_size);
 }
 
 void NativeFd::close() {

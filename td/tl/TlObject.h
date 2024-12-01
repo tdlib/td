@@ -243,8 +243,8 @@ tl_object_ptr<Type> make_tl_object(Args &&...args) {
  * }
  * \endcode
  *
- * \tparam ToT Type of a TL-object to move to.
- * \tparam FromT Type of a TL-object to move from, this is auto-deduced.
+ * \tparam ToT Type of TL-object to move to.
+ * \tparam FromT Type of TL-object to move from, this is auto-deduced.
  * \param[in] from Wrapped pointer to a TL-object.
  */
 template <class ToT, class FromT>

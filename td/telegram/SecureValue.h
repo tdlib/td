@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/files/FileUploadId.h"
 #include "td/telegram/SecureStorage.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -103,8 +104,8 @@ vector<EncryptedSecureFile> get_encrypted_secure_files(FileManager *file_manager
                                                        vector<tl_object_ptr<telegram_api::SecureFile>> &&secure_files);
 
 struct SecureInputFile {
-  FileId file_id;
-  tl_object_ptr<telegram_api::InputSecureFile> input_file;
+  FileUploadId file_upload_id;
+  telegram_api::object_ptr<telegram_api::InputSecureFile> input_file;
 };
 telegram_api::object_ptr<telegram_api::InputSecureFile> get_input_secure_file_object(FileManager *file_manager,
                                                                                      const EncryptedSecureFile &file,

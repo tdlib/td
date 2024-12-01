@@ -121,6 +121,8 @@ Photo get_web_document_photo(FileManager *file_manager, tl_object_ptr<telegram_a
 Result<Photo> create_photo(FileManager *file_manager, FileId file_id, PhotoSize &&thumbnail, int32 width, int32 height,
                            vector<FileId> &&sticker_file_ids);
 
+Photo dup_photo(Photo photo);
+
 tl_object_ptr<td_api::photo> get_photo_object(FileManager *file_manager, const Photo &photo);
 
 tl_object_ptr<td_api::chatPhoto> get_chat_photo_object(FileManager *file_manager, const Photo &photo);
@@ -130,21 +132,17 @@ void merge_photos(Td *td, const Photo *old_photo, Photo *new_photo, DialogId dia
 
 void photo_delete_thumbnail(Photo &photo);
 
-bool photo_has_input_media(FileManager *file_manager, const Photo &photo, bool is_secret, bool is_bot);
-
-FileId get_photo_upload_file_id(const Photo &photo);
-
 FileId get_photo_any_file_id(const Photo &photo);
 
 FileId get_photo_thumbnail_file_id(const Photo &photo);
 
 SecretInputMedia photo_get_secret_input_media(FileManager *file_manager, const Photo &photo,
-                                              tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
+                                              telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file,
                                               const string &caption, BufferSlice thumbnail);
 
-tl_object_ptr<telegram_api::InputMedia> photo_get_input_media(FileManager *file_manager, const Photo &photo,
-                                                              tl_object_ptr<telegram_api::InputFile> input_file,
-                                                              int32 ttl, bool has_spoiler);
+tl_object_ptr<telegram_api::InputMedia> photo_get_input_media(
+    FileManager *file_manager, const Photo &photo, telegram_api::object_ptr<telegram_api::InputFile> input_file,
+    int32 ttl, bool has_spoiler);
 
 vector<FileId> photo_get_file_ids(const Photo &photo);
 

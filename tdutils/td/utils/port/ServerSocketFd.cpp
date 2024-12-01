@@ -369,4 +369,12 @@ Result<ServerSocketFd> ServerSocketFd::open(int32 port, CSlice addr) {
   return ServerSocketFd(std::move(impl));
 }
 
+Result<uint32> ServerSocketFd::maximize_snd_buffer(uint32 max_size) {
+  return get_native_fd().maximize_snd_buffer(max_size);
+}
+
+Result<uint32> ServerSocketFd::maximize_rcv_buffer(uint32 max_size) {
+  return get_native_fd().maximize_rcv_buffer(max_size);
+}
+
 }  // namespace td

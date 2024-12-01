@@ -6,13 +6,12 @@
 //
 #include "td/telegram/MessageForwardInfo.h"
 
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/MessageSender.h"
-#include "td/telegram/MessagesManager.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -33,7 +32,7 @@ void LastForwardedMessageInfo::validate() {
 
 void LastForwardedMessageInfo::hide_sender_if_needed(Td *td) {
   if (sender_name_.empty() && sender_dialog_id_.get_type() == DialogType::User) {
-    auto private_forward_name = td->contacts_manager_->get_user_private_forward_name(sender_dialog_id_.get_user_id());
+    auto private_forward_name = td->user_manager_->get_user_private_forward_name(sender_dialog_id_.get_user_id());
     if (!private_forward_name.empty()) {
       dialog_id_ = DialogId();
       message_id_ = MessageId();
@@ -78,7 +77,7 @@ td_api::object_ptr<td_api::forwardSource> LastForwardedMessageInfo::get_forward_
       sender_id = get_message_sender_object_const(td, sender_dialog_id, "origin.forwardSource.sender_id");
     }
     return td_api::make_object<td_api::forwardSource>(
-        td->messages_manager_->get_chat_id_object(dialog_id_, "forwardSource.chat_id"), message_id_.get(),
+        td->dialog_manager_->get_chat_id_object(dialog_id_, "forwardSource.chat_id"), message_id_.get(),
         std::move(sender_id), origin.get_sender_name(), origin_date,
         is_outgoing_ || sender_dialog_id == td->dialog_manager_->get_my_dialog_id());
   }
@@ -87,7 +86,7 @@ td_api::object_ptr<td_api::forwardSource> LastForwardedMessageInfo::get_forward_
     sender_id = get_message_sender_object_const(td, sender_dialog_id_, "forwardSource.sender_id");
   }
   return td_api::make_object<td_api::forwardSource>(
-      td->messages_manager_->get_chat_id_object(dialog_id_, "forwardSource.chat_id"), message_id_.get(),
+      td->dialog_manager_->get_chat_id_object(dialog_id_, "forwardSource.chat_id"), message_id_.get(),
       std::move(sender_id), sender_name_, date_,
       is_outgoing_ || sender_dialog_id_ == td->dialog_manager_->get_my_dialog_id());
 }

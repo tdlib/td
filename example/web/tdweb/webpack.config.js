@@ -23,7 +23,6 @@ module.exports = {
     minimize: false, // <---- disables uglify.
   },
   module: {
-    noParse: /td_asmjs\.js$/,
     rules: [
       {
         test: /\.(js|jsx)$/,

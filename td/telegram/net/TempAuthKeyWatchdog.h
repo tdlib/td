@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/Global.h"
+#include "td/telegram/net/NetQuery.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/telegram_api.h"

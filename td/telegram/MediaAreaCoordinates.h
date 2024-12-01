@@ -20,13 +20,14 @@ class MediaAreaCoordinates {
   double width_ = 0.0;
   double height_ = 0.0;
   double rotation_angle_ = 0.0;
+  double radius_ = 0.0;
 
   friend bool operator==(const MediaAreaCoordinates &lhs, const MediaAreaCoordinates &rhs);
   friend bool operator!=(const MediaAreaCoordinates &lhs, const MediaAreaCoordinates &rhs);
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const MediaAreaCoordinates &coordinates);
 
-  void init(double x, double y, double width, double height, double rotation_angle);
+  void init(double x, double y, double width, double height, double rotation_angle, double radius);
 
  public:
   MediaAreaCoordinates() = default;

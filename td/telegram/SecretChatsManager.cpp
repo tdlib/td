@@ -6,7 +6,6 @@
 //
 #include "td/telegram/SecretChatsManager.h"
 
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/DhCache.h"
 #include "td/telegram/EncryptedFile.h"
 #include "td/telegram/FolderId.h"
@@ -14,12 +13,14 @@
 #include "td/telegram/logevent/SecretChatEvent.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/net/NetQuery.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/SecretChatDb.h"
 #include "td/telegram/SequenceDispatcher.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/mtproto/DhCallback.h"
 
@@ -111,7 +112,8 @@ void SecretChatsManager::cancel_chat(SecretChatId secret_chat_id, bool delete_hi
 }
 
 void SecretChatsManager::send_message(SecretChatId secret_chat_id, tl_object_ptr<secret_api::decryptedMessage> message,
-                                      tl_object_ptr<telegram_api::InputEncryptedFile> file, Promise<> promise) {
+                                      telegram_api::object_ptr<telegram_api::InputEncryptedFile> file,
+                                      Promise<> promise) {
   // message->message_ = Random::fast_bool() ? string(1, static_cast<char>(0x80)) : "a";
   auto actor = get_chat_actor(secret_chat_id.get());
   auto safe_promise = SafePromise<>(std::move(promise), Status::Error(400, "Can't find secret chat"));
@@ -168,7 +170,7 @@ void SecretChatsManager::on_update_chat(tl_object_ptr<telegram_api::updateEncryp
   PendingChatUpdate pending_update;
   pending_update.online_process_time_ = Timestamp::now();
   if (update->chat_->get_id() == telegram_api::encryptedChatRequested::ID) {
-#if TD_ANDROID || TD_DARWIN_IOS || TD_DARWIN_WATCH_OS || TD_TIZEN
+#if TD_ANDROID || TD_DARWIN_IOS
     pending_update.offline_process_time_ = Timestamp::in(1.0);
 #else
     pending_update.online_process_time_ = Timestamp::in(2.0);
@@ -366,8 +368,8 @@ unique_ptr<SecretChatActor::Context> SecretChatsManager::make_secret_chat_contex
 
     void on_update_secret_chat(int64 access_hash, UserId user_id, SecretChatState state, bool is_outbound, int32 ttl,
                                int32 date, string key_hash, int32 layer, FolderId initial_folder_id) final {
-      send_closure(G()->contacts_manager(), &ContactsManager::on_update_secret_chat, secret_chat_id_, access_hash,
-                   user_id, state, is_outbound, ttl, date, key_hash, layer, initial_folder_id);
+      send_closure(G()->user_manager(), &UserManager::on_update_secret_chat, secret_chat_id_, access_hash, user_id,
+                   state, is_outbound, ttl, date, key_hash, layer, initial_folder_id);
     }
 
     void on_inbound_message(UserId user_id, MessageId message_id, int32 date, unique_ptr<EncryptedFile> file,

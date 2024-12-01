@@ -1,6 +1,6 @@
 # Universal XCFramework build example
 
-Below are instructions for building TDLib for iOS, watchOS, tvOS, and also macOS.
+Below are instructions for building TDLib for iOS, watchOS, tvOS, visionOS, and also macOS.
 
 If you need only a macOS build for the current architecture, take a look at [TDLib build instructions generator](https://tdlib.github.io/td/build.html).
 
@@ -13,15 +13,15 @@ To compile `TDLib` you will need to:
 ```
 brew install gperf cmake coreutils
 ```
-* If you don't want to build `TDLib` for macOS first, you **must** pregenerate required source code files using `CMake` prepare_cross_compiling target:
+* If you don't want to build `TDLib` for macOS first, you **must** pregenerate required source code files in the following way:
 ```
 cd <path to TDLib sources>
 mkdir native-build
 cd native-build
-cmake ..
-cmake --build . --target prepare_cross_compiling
+cmake -DTD_GENERATE_SOURCE_FILES=ON ..
+cmake --build .
 ```
-* Build OpenSSL for iOS, watchOS, tvOS, and macOS:
+* Build OpenSSL for iOS, watchOS, tvOS, visionOS, and macOS:
 ```
 cd <path to TDLib sources>/example/ios
 ./build-openssl.sh
@@ -30,7 +30,7 @@ Here we use scripts from [Python Apple support](https://github.com/beeware/Pytho
 [Python Apple support](https://github.com/beeware/Python-Apple-support) has known problems with spaces in the path to the current directory, so
 you need to ensure that there are no spaces in the path.
 Built OpenSSL libraries should be stored in the directory `third_party/openssl/<platform>`, because the next script will rely on this location.
-* Build TDLib for iOS, watchOS, tvOS, and macOS:
+* Build TDLib for iOS, watchOS, tvOS, visionOS, and macOS:
 ```
 cd <path to TDLib sources>/example/ios
 ./build.sh

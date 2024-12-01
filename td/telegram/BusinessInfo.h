@@ -8,14 +8,17 @@
 
 #include "td/telegram/BusinessAwayMessage.h"
 #include "td/telegram/BusinessGreetingMessage.h"
+#include "td/telegram/BusinessIntro.h"
 #include "td/telegram/BusinessWorkHours.h"
 #include "td/telegram/DialogLocation.h"
+#include "td/telegram/files/FileId.h"
 #include "td/telegram/td_api.h"
 
 #include "td/utils/common.h"
 
 namespace td {
 
+class Dependencies;
 class Td;
 
 class BusinessInfo {
@@ -32,6 +35,12 @@ class BusinessInfo {
 
   static bool set_greeting_message(unique_ptr<BusinessInfo> &business_info, BusinessGreetingMessage &&greeting_message);
 
+  static bool set_intro(unique_ptr<BusinessInfo> &business_info, BusinessIntro &&intro);
+
+  void add_dependencies(Dependencies &dependencies) const;
+
+  vector<FileId> get_file_ids(const Td *td) const;
+
   template <class StorerT>
   void store(StorerT &storer) const;
 
@@ -45,6 +54,7 @@ class BusinessInfo {
   BusinessWorkHours work_hours_;
   BusinessAwayMessage away_message_;
   BusinessGreetingMessage greeting_message_;
+  BusinessIntro intro_;
 };
 
 }  // namespace td

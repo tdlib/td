@@ -7,7 +7,7 @@
 #include "td/telegram/RecentDialogList.h"
 
 #include "td/telegram/AccessRights.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogListId.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/FolderId.h"
@@ -16,6 +16,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/TdDb.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/actor/MultiPromise.h"
 
@@ -49,14 +50,14 @@ void RecentDialogList::save_dialogs() const {
       string username;
       switch (dialog_id.get_type()) {
         case DialogType::User:
-          if (!td_->contacts_manager_->is_user_contact(dialog_id.get_user_id())) {
-            username = td_->contacts_manager_->get_user_first_username(dialog_id.get_user_id());
+          if (!td_->user_manager_->is_user_contact(dialog_id.get_user_id())) {
+            username = td_->user_manager_->get_user_first_username(dialog_id.get_user_id());
           }
           break;
         case DialogType::Chat:
           break;
         case DialogType::Channel:
-          username = td_->contacts_manager_->get_channel_first_username(dialog_id.get_channel_id());
+          username = td_->chat_manager_->get_channel_first_username(dialog_id.get_channel_id());
           break;
         case DialogType::SecretChat:
           break;
@@ -116,7 +117,7 @@ void RecentDialogList::load_dialogs(Promise<Unit> &&promise) {
           PromiseCreator::lambda([promise = mpas.get_promise()](td_api::object_ptr<td_api::chats> &&chats) mutable {
             promise.set_value(Unit());
           }));
-      td_->contacts_manager_->search_contacts("", 1, mpas.get_promise());
+      td_->user_manager_->search_contacts("", 1, mpas.get_promise());
     }
   }
 
@@ -143,7 +144,7 @@ void RecentDialogList::on_load_dialogs(vector<string> &&found_dialogs) {
     }
     if (dialog_id.is_valid() && td::contains(removed_dialog_ids_, dialog_id) == 0 &&
         td_->dialog_manager_->have_dialog_info(dialog_id) &&
-        td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
+        td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read)) {
       td_->dialog_manager_->force_create_dialog(dialog_id, "recent dialog");
       do_add_dialog(dialog_id);
     }
@@ -206,7 +207,7 @@ void RecentDialogList::update_dialogs() {
         // always keep
         break;
       case DialogType::Chat: {
-        auto channel_id = td_->contacts_manager_->get_chat_migrated_to_channel_id(dialog_id.get_chat_id());
+        auto channel_id = td_->chat_manager_->get_chat_migrated_to_channel_id(dialog_id.get_chat_id());
         if (channel_id.is_valid() && td_->messages_manager_->have_dialog(DialogId(channel_id))) {
           dialog_id = DialogId(channel_id);
         }

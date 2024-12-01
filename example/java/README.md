@@ -19,6 +19,8 @@ If you want to compile TDLib for 32-bit/64-bit Java on Windows using MSVC, you w
 
 In Windows, use vcpkg toolchain file by adding parameter -DCMAKE_TOOLCHAIN_FILE=<VCPKG_DIR>/scripts/buildsystems/vcpkg.cmake
 
+If you want to build JsonClient.java wrapper for JSON interface instead of the native JNI interface, add `-DTD_JSON_JAVA=ON` option to CMake.
+
 After this you can compile the example source code:
 ```
 cd <path to TDLib sources>/example/java
@@ -28,13 +30,15 @@ cmake -DCMAKE_BUILD_TYPE=Release -DTd_DIR=<full path to TDLib sources>/example/j
 cmake --build . --target install
 ```
 
-Compiled TDLib shared library and Java example after that will be placed in bin/ and Javadoc documentation in `docs/`.
+Compiled TDLib shared library and Java example after that will be placed in `bin/` and Javadoc documentation in `docs/`.
 
 After this you can run the Java example:
 ```
 cd <path to TDLib sources>/example/java/bin
 java '-Djava.library.path=.' org/drinkless/tdlib/example/Example
 ```
+
+If you built JSON interface example using `-DTD_JSON_JAVA=ON` option, then use the command `java '-Djava.library.path=.' org/drinkless/tdlib/example/JsonExample` instead.
 
 If you receive "Could NOT find JNI ..." error from CMake, you need to specify to CMake path to the installed JDK, for example, "-DJAVA_HOME=/usr/lib/jvm/java-8-oracle/".
 

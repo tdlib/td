@@ -6,6 +6,8 @@
 //
 #include "td/telegram/BusinessAwayMessage.h"
 
+#include "td/telegram/Dependencies.h"
+
 namespace td {
 
 BusinessAwayMessage::BusinessAwayMessage(telegram_api::object_ptr<telegram_api::businessAwayMessage> away_message) {
@@ -23,7 +25,7 @@ BusinessAwayMessage::BusinessAwayMessage(td_api::object_ptr<td_api::businessAway
     return;
   }
   shortcut_id_ = QuickReplyShortcutId(away_message->shortcut_id_);
-  recipients_ = BusinessRecipients(std::move(away_message->recipients_));
+  recipients_ = BusinessRecipients(std::move(away_message->recipients_), false);
   schedule_ = BusinessAwayMessageSchedule(std::move(away_message->schedule_));
   offline_only_ = away_message->offline_only_;
 }
@@ -47,6 +49,10 @@ telegram_api::object_ptr<telegram_api::inputBusinessAwayMessage> BusinessAwayMes
   return telegram_api::make_object<telegram_api::inputBusinessAwayMessage>(
       flags, false /*ignored*/, shortcut_id_.get(), schedule_.get_input_business_away_message_schedule(),
       recipients_.get_input_business_recipients(td));
+}
+
+void BusinessAwayMessage::add_dependencies(Dependencies &dependencies) const {
+  recipients_.add_dependencies(dependencies);
 }
 
 bool operator==(const BusinessAwayMessage &lhs, const BusinessAwayMessage &rhs) {

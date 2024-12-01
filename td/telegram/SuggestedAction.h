@@ -27,7 +27,10 @@ struct SuggestedAction {
     UpgradePremium,
     SubscribeToAnnualPremium,
     RestorePremium,
-    GiftPremiumForChristmas
+    GiftPremiumForChristmas,
+    BirthdaySetup,
+    PremiumGrace,
+    StarsSubscriptionLowBalance
   };
   Type type_ = Type::Empty;
   DialogId dialog_id_;
@@ -54,6 +57,12 @@ struct SuggestedAction {
   string get_suggested_action_str() const;
 
   td_api::object_ptr<td_api::SuggestedAction> get_suggested_action_object() const;
+
+  template <class StorerT>
+  void store(StorerT &storer) const;
+
+  template <class ParserT>
+  void parse(ParserT &parser);
 };
 
 inline bool operator==(const SuggestedAction &lhs, const SuggestedAction &rhs) {
@@ -73,10 +82,10 @@ inline bool operator<(const SuggestedAction &lhs, const SuggestedAction &rhs) {
 td_api::object_ptr<td_api::updateSuggestedActions> get_update_suggested_actions_object(
     const vector<SuggestedAction> &added_actions, const vector<SuggestedAction> &removed_actions, const char *source);
 
-void update_suggested_actions(vector<SuggestedAction> &suggested_actions,
+bool update_suggested_actions(vector<SuggestedAction> &suggested_actions,
                               vector<SuggestedAction> &&new_suggested_actions);
 
-void remove_suggested_action(vector<SuggestedAction> &suggested_actions, SuggestedAction suggested_action);
+bool remove_suggested_action(vector<SuggestedAction> &suggested_actions, SuggestedAction suggested_action);
 
 void dismiss_suggested_action(SuggestedAction action, Promise<Unit> &&promise);
 

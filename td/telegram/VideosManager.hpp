@@ -24,6 +24,8 @@ void VideosManager::store_video(FileId file_id, StorerT &storer) const {
   bool has_animated_thumbnail = video->animated_thumbnail.file_id.is_valid();
   bool has_preload_prefix_size = video->preload_prefix_size != 0;
   bool has_precise_duration = video->precise_duration != 0 && video->precise_duration != video->duration;
+  bool has_start_ts = video->start_ts != 0.0;
+  bool has_codec = !video->codec.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(video->has_stickers);
   STORE_FLAG(video->supports_streaming);
@@ -31,6 +33,8 @@ void VideosManager::store_video(FileId file_id, StorerT &storer) const {
   STORE_FLAG(has_preload_prefix_size);
   STORE_FLAG(has_precise_duration);
   STORE_FLAG(video->is_animation);
+  STORE_FLAG(has_start_ts);
+  STORE_FLAG(has_codec);
   END_STORE_FLAGS();
   store(video->file_name, storer);
   store(video->mime_type, storer);
@@ -51,6 +55,12 @@ void VideosManager::store_video(FileId file_id, StorerT &storer) const {
   if (has_precise_duration) {
     store(video->precise_duration, storer);
   }
+  if (has_start_ts) {
+    store(video->start_ts, storer);
+  }
+  if (has_codec) {
+    store(video->codec, storer);
+  }
 }
 
 template <class ParserT>
@@ -59,6 +69,8 @@ FileId VideosManager::parse_video(ParserT &parser) {
   bool has_animated_thumbnail;
   bool has_preload_prefix_size;
   bool has_precise_duration;
+  bool has_start_ts;
+  bool has_codec;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(video->has_stickers);
   PARSE_FLAG(video->supports_streaming);
@@ -66,6 +78,8 @@ FileId VideosManager::parse_video(ParserT &parser) {
   PARSE_FLAG(has_preload_prefix_size);
   PARSE_FLAG(has_precise_duration);
   PARSE_FLAG(video->is_animation);
+  PARSE_FLAG(has_start_ts);
+  PARSE_FLAG(has_codec);
   END_PARSE_FLAGS();
   parse(video->file_name, parser);
   parse(video->mime_type, parser);
@@ -89,6 +103,12 @@ FileId VideosManager::parse_video(ParserT &parser) {
     parse(video->precise_duration, parser);
   } else {
     video->precise_duration = video->duration;
+  }
+  if (has_start_ts) {
+    parse(video->start_ts, parser);
+  }
+  if (has_codec) {
+    parse(video->codec, parser);
   }
   if (parser.get_error() != nullptr || !video->file_id.is_valid()) {
     return FileId();

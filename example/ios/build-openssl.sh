@@ -8,7 +8,7 @@ git reset --hard || exit 1
 git apply ../Python-Apple-support.patch || exit 1
 cd ..
 
-platforms="macOS iOS watchOS tvOS"
+platforms="macOS iOS watchOS tvOS visionOS"
 
 for platform in $platforms;
 do

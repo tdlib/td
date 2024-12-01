@@ -7,17 +7,21 @@
 #include "td/telegram/MediaArea.h"
 
 #include "td/telegram/ChannelId.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/InlineQueriesManager.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 
+#include "td/utils/emoji.h"
 #include "td/utils/logging.h"
+
+#include <cmath>
 
 namespace td {
 
@@ -28,6 +32,12 @@ MediaArea::MediaArea(Td *td, telegram_api::object_ptr<telegram_api::MediaArea> &
       auto area = telegram_api::move_object_as<telegram_api::mediaAreaGeoPoint>(media_area_ptr);
       coordinates_ = MediaAreaCoordinates(area->coordinates_);
       location_ = Location(td, area->geo_);
+      if (area->address_ != nullptr) {
+        address_.country_iso2_ = area->address_->country_iso2_;
+        address_.state_ = area->address_->state_;
+        address_.city_ = area->address_->city_;
+        address_.street_ = area->address_->street_;
+      }
       if (coordinates_.is_valid() && !location_.empty()) {
         type_ = Type::Location;
       } else {
@@ -53,7 +63,7 @@ MediaArea::MediaArea(Td *td, telegram_api::object_ptr<telegram_api::MediaArea> &
       reaction_type_ = ReactionType(area->reaction_);
       is_dark_ = area->dark_;
       is_flipped_ = area->flipped_;
-      if (coordinates_.is_valid() && !reaction_type_.is_empty()) {
+      if (coordinates_.is_valid() && !reaction_type_.is_empty() && !reaction_type_.is_paid_reaction()) {
         type_ = Type::Reaction;
       } else {
         LOG(ERROR) << "Receive " << to_string(area);
@@ -68,6 +78,30 @@ MediaArea::MediaArea(Td *td, telegram_api::object_ptr<telegram_api::MediaArea> &
       if (coordinates_.is_valid() && channel_id.is_valid() && server_message_id.is_valid()) {
         type_ = Type::Message;
         message_full_id_ = MessageFullId(DialogId(channel_id), MessageId(server_message_id));
+      } else {
+        LOG(ERROR) << "Receive " << to_string(area);
+      }
+      break;
+    }
+    case telegram_api::mediaAreaUrl::ID: {
+      auto area = telegram_api::move_object_as<telegram_api::mediaAreaUrl>(media_area_ptr);
+      coordinates_ = MediaAreaCoordinates(area->coordinates_);
+      if (coordinates_.is_valid()) {
+        type_ = Type::Url;
+        url_ = std::move(area->url_);
+      } else {
+        LOG(ERROR) << "Receive " << to_string(area);
+      }
+      break;
+    }
+    case telegram_api::mediaAreaWeather::ID: {
+      auto area = telegram_api::move_object_as<telegram_api::mediaAreaWeather>(media_area_ptr);
+      coordinates_ = MediaAreaCoordinates(area->coordinates_);
+      if (coordinates_.is_valid() && is_emoji(area->emoji_) && std::isfinite(area->temperature_c_)) {
+        type_ = Type::Weather;
+        url_ = std::move(area->emoji_);
+        temperature_ = area->temperature_c_;
+        color_ = area->color_;
       } else {
         LOG(ERROR) << "Receive " << to_string(area);
       }
@@ -97,6 +131,16 @@ MediaArea::MediaArea(Td *td, td_api::object_ptr<td_api::inputStoryArea> &&input_
     case td_api::inputStoryAreaTypeLocation::ID: {
       auto type = td_api::move_object_as<td_api::inputStoryAreaTypeLocation>(input_story_area->type_);
       location_ = Location(type->location_);
+      if (type->address_ != nullptr) {
+        address_.country_iso2_ = std::move(type->address_->country_code_);
+        address_.state_ = std::move(type->address_->state_);
+        address_.city_ = std::move(type->address_->city_);
+        address_.street_ = std::move(type->address_->street_);
+        if (!clean_input_string(address_.country_iso2_) || !clean_input_string(address_.state_) ||
+            !clean_input_string(address_.city_) || !clean_input_string(address_.street_)) {
+          break;
+        }
+      }
       if (!location_.empty()) {
         type_ = Type::Location;
       }
@@ -138,7 +182,7 @@ MediaArea::MediaArea(Td *td, td_api::object_ptr<td_api::inputStoryArea> &&input_
       reaction_type_ = ReactionType(type->reaction_type_);
       is_dark_ = type->is_dark_;
       is_flipped_ = type->is_flipped_;
-      if (!reaction_type_.is_empty()) {
+      if (!reaction_type_.is_empty() && !reaction_type_.is_paid_reaction()) {
         type_ = Type::Reaction;
       }
       break;
@@ -157,14 +201,32 @@ MediaArea::MediaArea(Td *td, td_api::object_ptr<td_api::inputStoryArea> &&input_
         }
       }
       if (!is_old_message_) {
-        if (dialog_id.get_type() != DialogType::Channel ||
-            !td->messages_manager_->have_message_force(message_full_id, "inputStoryAreaTypeMessage") ||
-            !message_id.is_valid() || !message_id.is_server()) {
+        if (!td->messages_manager_->can_share_message_in_story(message_full_id)) {
           break;
         }
         message_full_id_ = message_full_id;
         type_ = Type::Message;
       }
+      break;
+    }
+    case td_api::inputStoryAreaTypeLink::ID: {
+      auto type = td_api::move_object_as<td_api::inputStoryAreaTypeLink>(input_story_area->type_);
+      if (!clean_input_string(type->url_)) {
+        break;
+      }
+      url_ = std::move(type->url_);
+      type_ = Type::Url;
+      break;
+    }
+    case td_api::inputStoryAreaTypeWeather::ID: {
+      auto type = td_api::move_object_as<td_api::inputStoryAreaTypeWeather>(input_story_area->type_);
+      if (!clean_input_string(type->emoji_) || !is_emoji(type->emoji_) || !std::isfinite(type->temperature_)) {
+        break;
+      }
+      url_ = std::move(type->emoji_);
+      temperature_ = type->temperature_;
+      color_ = type->background_color_;
+      type_ = Type::Weather;
       break;
     }
     default:
@@ -182,7 +244,11 @@ td_api::object_ptr<td_api::storyArea> MediaArea::get_story_area_object(
   td_api::object_ptr<td_api::StoryAreaType> type;
   switch (type_) {
     case Type::Location:
-      type = td_api::make_object<td_api::storyAreaTypeLocation>(location_.get_location_object());
+      type = td_api::make_object<td_api::storyAreaTypeLocation>(
+          location_.get_location_object(),
+          address_.is_empty() ? nullptr
+                              : td_api::make_object<td_api::locationAddress>(address_.country_iso2_, address_.state_,
+                                                                             address_.city_, address_.street_));
       break;
     case Type::Venue:
       type = td_api::make_object<td_api::storyAreaTypeVenue>(venue_.get_venue_object());
@@ -203,6 +269,12 @@ td_api::object_ptr<td_api::storyArea> MediaArea::get_story_area_object(
           td->dialog_manager_->get_chat_id_object(message_full_id_.get_dialog_id(), "storyAreaTypeMessage"),
           message_full_id_.get_message_id().get());
       break;
+    case Type::Url:
+      type = td_api::make_object<td_api::storyAreaTypeLink>(url_);
+      break;
+    case Type::Weather:
+      type = td_api::make_object<td_api::storyAreaTypeWeather>(temperature_, url_, color_);
+      break;
     default:
       UNREACHABLE();
   }
@@ -212,9 +284,28 @@ td_api::object_ptr<td_api::storyArea> MediaArea::get_story_area_object(
 telegram_api::object_ptr<telegram_api::MediaArea> MediaArea::get_input_media_area(const Td *td) const {
   CHECK(is_valid());
   switch (type_) {
-    case Type::Location:
-      return telegram_api::make_object<telegram_api::mediaAreaGeoPoint>(coordinates_.get_input_media_area_coordinates(),
-                                                                        location_.get_fake_geo_point());
+    case Type::Location: {
+      int32 flags = 0;
+      telegram_api::object_ptr<telegram_api::geoPointAddress> address;
+      if (!address_.is_empty()) {
+        int32 address_flags = 0;
+        if (!address_.state_.empty()) {
+          address_flags |= telegram_api::geoPointAddress::STATE_MASK;
+        }
+        if (!address_.city_.empty()) {
+          address_flags |= telegram_api::geoPointAddress::CITY_MASK;
+        }
+        if (!address_.street_.empty()) {
+          address_flags |= telegram_api::geoPointAddress::STREET_MASK;
+        }
+        address = telegram_api::make_object<telegram_api::geoPointAddress>(
+            address_flags, address_.country_iso2_, address_.state_, address_.city_, address_.street_);
+        flags |= telegram_api::mediaAreaGeoPoint::ADDRESS_MASK;
+      }
+
+      return telegram_api::make_object<telegram_api::mediaAreaGeoPoint>(
+          flags, coordinates_.get_input_media_area_coordinates(), location_.get_fake_geo_point(), std::move(address));
+    }
     case Type::Venue:
       if (input_query_id_ != 0) {
         return telegram_api::make_object<telegram_api::inputMediaAreaVenue>(
@@ -233,21 +324,26 @@ telegram_api::object_ptr<telegram_api::MediaArea> MediaArea::get_input_media_are
           flags, false /*ignored*/, false /*ignored*/, coordinates_.get_input_media_area_coordinates(),
           reaction_type_.get_input_reaction());
     }
-    case Type::Message:
+    case Type::Message: {
+      auto channel_id = message_full_id_.get_dialog_id().get_channel_id();
+      auto server_message_id = message_full_id_.get_message_id().get_server_message_id();
       if (!is_old_message_) {
-        auto input_channel =
-            td->contacts_manager_->get_input_channel(message_full_id_.get_dialog_id().get_channel_id());
+        auto input_channel = td->chat_manager_->get_input_channel(channel_id);
         if (input_channel == nullptr) {
           return nullptr;
         }
         return telegram_api::make_object<telegram_api::inputMediaAreaChannelPost>(
-            coordinates_.get_input_media_area_coordinates(), std::move(input_channel),
-            message_full_id_.get_message_id().get_server_message_id().get());
+            coordinates_.get_input_media_area_coordinates(), std::move(input_channel), server_message_id.get());
       }
       return telegram_api::make_object<telegram_api::mediaAreaChannelPost>(
-          coordinates_.get_input_media_area_coordinates(),
-          message_full_id_.get_message_id().get_server_message_id().get(),
-          message_full_id_.get_message_id().get_server_message_id().get());
+          coordinates_.get_input_media_area_coordinates(), channel_id.get(), server_message_id.get());
+    }
+    case Type::Url:
+      return telegram_api::make_object<telegram_api::mediaAreaUrl>(coordinates_.get_input_media_area_coordinates(),
+                                                                   url_);
+    case Type::Weather:
+      return telegram_api::make_object<telegram_api::mediaAreaWeather>(coordinates_.get_input_media_area_coordinates(),
+                                                                       url_, temperature_, color_);
     default:
       UNREACHABLE();
       return nullptr;
@@ -274,8 +370,9 @@ bool operator==(const MediaArea &lhs, const MediaArea &rhs) {
   return lhs.type_ == rhs.type_ && lhs.coordinates_ == rhs.coordinates_ && lhs.location_ == rhs.location_ &&
          lhs.venue_ == rhs.venue_ && lhs.message_full_id_ == rhs.message_full_id_ &&
          lhs.input_query_id_ == rhs.input_query_id_ && lhs.input_result_id_ == rhs.input_result_id_ &&
-         lhs.reaction_type_ == rhs.reaction_type_ && lhs.is_dark_ == rhs.is_dark_ &&
-         lhs.is_flipped_ == rhs.is_flipped_ && lhs.is_old_message_ == rhs.is_old_message_;
+         lhs.reaction_type_ == rhs.reaction_type_ && std::fabs(lhs.temperature_ - rhs.temperature_) < 1e-6 &&
+         lhs.color_ == rhs.color_ && lhs.is_dark_ == rhs.is_dark_ && lhs.is_flipped_ == rhs.is_flipped_ &&
+         lhs.is_old_message_ == rhs.is_old_message_;
 }
 
 bool operator!=(const MediaArea &lhs, const MediaArea &rhs) {
@@ -285,7 +382,7 @@ bool operator!=(const MediaArea &lhs, const MediaArea &rhs) {
 StringBuilder &operator<<(StringBuilder &string_builder, const MediaArea &media_area) {
   return string_builder << "StoryArea[" << media_area.coordinates_ << ": " << media_area.location_ << '/'
                         << media_area.venue_ << '/' << media_area.reaction_type_ << '/' << media_area.message_full_id_
-                        << ']';
+                        << '/' << media_area.temperature_ << ']';
 }
 
 }  // namespace td

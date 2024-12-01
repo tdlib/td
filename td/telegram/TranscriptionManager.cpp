@@ -357,7 +357,7 @@ void TranscriptionManager::on_transcription_updated(FileId file_id) {
   auto it = voice_messages_.find(file_id);
   if (it != voice_messages_.end()) {
     for (const auto &message_full_id : it->second) {
-      td_->messages_manager_->on_external_update_message_content(message_full_id);
+      td_->messages_manager_->on_external_update_message_content(message_full_id, "on_transcription_updated");
     }
   }
 }

@@ -1087,9 +1087,9 @@ Changes in 1.4.0 (1 May 2019):
     the class `scopeNotificationSettings`.
   - Added the class `PushMessageContent` describing the content of a notification, received through
     a push notification.
-  - Added the class `NotificationType` describing a type of a notification.
+  - Added the class `NotificationType` describing a type of notification.
   - Added the class `notification` containing information about a notification.
-  - Added the class `NotificationGroupType` describing a type of a notification group.
+  - Added the class `NotificationGroupType` describing a type of notification group.
   - Added the class `notificationGroup` describing a state of a notification group.
   - Added the methods `removeNotification` and `removeNotificationGroup` for handling notifications removal
     by the user.

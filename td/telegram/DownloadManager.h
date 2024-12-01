@@ -67,10 +67,11 @@ class DownloadManager : public Actor {
                                    bool is_paused, FileCounters counters) = 0;
     virtual void update_file_changed(FileId file_id, int32 complete_date, bool is_paused, FileCounters counters) = 0;
     virtual void update_file_removed(FileId file_id, FileCounters counters) = 0;
-    virtual void start_file(FileId file_id, int8 priority, ActorShared<DownloadManager> download_manager) = 0;
-    virtual void pause_file(FileId file_id) = 0;
+    virtual int64 get_internal_download_id() = 0;
+    virtual void start_file(FileId file_id, int64 internal_download_id, int8 priority,
+                            ActorShared<DownloadManager> download_manager) = 0;
+    virtual void pause_file(FileId file_id, int64 internal_download_id) = 0;
     virtual void delete_file(FileId file_id) = 0;
-    virtual FileId dup_file_id(FileId file_id) = 0;
 
     virtual void get_file_search_text(FileId file_id, FileSourceId file_source_id, Promise<string> &&promise) = 0;
 
@@ -104,8 +105,8 @@ class DownloadManager : public Actor {
   virtual void after_get_difference() = 0;
   virtual void change_search_text(FileId file_id, FileSourceId file_source_id, string search_text) = 0;
   virtual void remove_file_if_finished(FileId file_id) = 0;
-  virtual void update_file_download_state(FileId internal_file_id, int64 downloaded_size, int64 size,
-                                          int64 expected_size, bool is_paused) = 0;
+  virtual void update_file_download_state(FileId file_id, int64 downloaded_size, int64 size, int64 expected_size,
+                                          bool is_paused) = 0;
   virtual void update_file_viewed(FileId file_id, FileSourceId file_source_id) = 0;
 };
 

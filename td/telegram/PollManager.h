@@ -49,9 +49,9 @@ class PollManager final : public Actor {
 
   static bool is_local_poll_id(PollId poll_id);
 
-  PollId create_poll(string &&question, vector<string> &&options, bool is_anonymous, bool allow_multiple_answers,
-                     bool is_quiz, int32 correct_option_id, FormattedText &&explanation, int32 open_period,
-                     int32 close_date, bool is_closed);
+  PollId create_poll(FormattedText &&question, vector<FormattedText> &&options, bool is_anonymous,
+                     bool allow_multiple_answers, bool is_quiz, int32 correct_option_id, FormattedText &&explanation,
+                     int32 open_period, int32 close_date, bool is_closed);
 
   void register_poll(PollId poll_id, MessageFullId message_full_id, const char *source);
 
@@ -78,7 +78,7 @@ class PollManager final : public Actor {
 
   void stop_local_poll(PollId poll_id);
 
-  PollId dup_poll(PollId poll_id);
+  PollId dup_poll(DialogId dialog_id, PollId poll_id);
 
   bool has_input_media(PollId poll_id) const;
 
@@ -103,7 +103,7 @@ class PollManager final : public Actor {
 
  private:
   struct PollOption {
-    string text_;
+    FormattedText text_;
     string data_;
     int32 voter_count_ = 0;
     bool is_chosen_ = false;
@@ -115,7 +115,7 @@ class PollManager final : public Actor {
   };
 
   struct Poll {
-    string question_;
+    FormattedText question_;
     vector<PollOption> options_;
     vector<DialogId> recent_voter_dialog_ids_;
     vector<std::pair<ChannelId, MinChannel>> recent_voter_min_channels_;
@@ -158,6 +158,8 @@ class PollManager final : public Actor {
   static void on_close_poll_timeout_callback(void *poll_manager_ptr, int64 poll_id_int);
 
   static void on_unload_poll_timeout_callback(void *poll_manager_ptr, int64 poll_id_int);
+
+  static void remove_unallowed_entities(FormattedText &text);
 
   static td_api::object_ptr<td_api::pollOption> get_poll_option_object(const PollOption &poll_option);
 

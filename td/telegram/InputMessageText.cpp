@@ -6,7 +6,7 @@
 //
 #include "td/telegram/InputMessageText.h"
 
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/misc.h"
@@ -50,7 +50,7 @@ Result<InputMessageText> process_input_message_text(const Td *td, DialogId dialo
 
     if (disable_web_page_preview ||
         (dialog_id.get_type() == DialogType::Channel &&
-         !td->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id()).can_add_web_page_previews())) {
+         !td->chat_manager_->get_channel_permissions(dialog_id.get_channel_id()).can_add_web_page_previews())) {
       web_page_url.clear();
     }
     if (web_page_url.empty()) {
@@ -91,14 +91,15 @@ telegram_api::object_ptr<telegram_api::InputMedia> InputMessageText::get_input_m
 }
 
 // used only for draft
-td_api::object_ptr<td_api::inputMessageText> InputMessageText::get_input_message_text_object() const {
+td_api::object_ptr<td_api::inputMessageText> InputMessageText::get_input_message_text_object(
+    const UserManager *user_manager) const {
   td_api::object_ptr<td_api::linkPreviewOptions> options;
   if (!web_page_url.empty() || disable_web_page_preview || force_small_media || force_large_media || show_above_text) {
     options = td_api::make_object<td_api::linkPreviewOptions>(disable_web_page_preview, web_page_url, force_small_media,
                                                               force_large_media, show_above_text);
   }
-  return td_api::make_object<td_api::inputMessageText>(get_formatted_text_object(text, false, -1), std::move(options),
-                                                       clear_draft);
+  return td_api::make_object<td_api::inputMessageText>(get_formatted_text_object(user_manager, text, false, -1),
+                                                       std::move(options), clear_draft);
 }
 
 }  // namespace td

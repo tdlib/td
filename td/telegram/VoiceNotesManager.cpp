@@ -73,12 +73,10 @@ FileId VoiceNotesManager::on_get_voice_note(unique_ptr<VoiceNote> new_voice_note
     v = std::move(new_voice_note);
   } else if (replace) {
     CHECK(v->file_id == new_voice_note->file_id);
-    if (v->mime_type != new_voice_note->mime_type) {
+    if (v->mime_type != new_voice_note->mime_type || v->duration != new_voice_note->duration ||
+        v->waveform != new_voice_note->waveform) {
       LOG(DEBUG) << "Voice note " << file_id << " info has changed";
       v->mime_type = std::move(new_voice_note->mime_type);
-    }
-    if (v->duration != new_voice_note->duration || v->waveform != new_voice_note->waveform) {
-      LOG(DEBUG) << "Voice note " << file_id << " info has changed";
       v->duration = new_voice_note->duration;
       v->waveform = std::move(new_voice_note->waveform);
     }
@@ -102,7 +100,9 @@ FileId VoiceNotesManager::dup_voice_note(FileId new_id, FileId old_id) {
   const VoiceNote *old_voice_note = get_voice_note(old_id);
   CHECK(old_voice_note != nullptr);
   auto &new_voice_note = voice_notes_[new_id];
-  CHECK(new_voice_note == nullptr);
+  if (new_voice_note != nullptr) {
+    return new_id;
+  }
   new_voice_note = make_unique<VoiceNote>();
   new_voice_note->file_id = new_id;
   new_voice_note->mime_type = old_voice_note->mime_type;
@@ -123,10 +123,8 @@ void VoiceNotesManager::merge_voice_notes(FileId new_id, FileId old_id) {
   const auto *new_ = get_voice_note(new_id);
   if (new_ == nullptr) {
     dup_voice_note(new_id, old_id);
-  } else {
-    if (!old_->mime_type.empty() && old_->mime_type != new_->mime_type) {
-      LOG(INFO) << "Voice note has changed: mime_type = (" << old_->mime_type << ", " << new_->mime_type << ")";
-    }
+  } else if (!old_->mime_type.empty() && old_->mime_type != new_->mime_type) {
+    LOG(INFO) << "Voice note has changed: mime_type = (" << old_->mime_type << ", " << new_->mime_type << ")";
   }
   LOG_STATUS(td_->file_manager_->merge(new_id, old_id));
 }
@@ -141,15 +139,16 @@ void VoiceNotesManager::create_voice_note(FileId file_id, string mime_type, int3
   on_get_voice_note(std::move(v), replace);
 }
 
-SecretInputMedia VoiceNotesManager::get_secret_input_media(FileId voice_note_file_id,
-                                                           tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
-                                                           const string &caption, int32 layer) const {
+SecretInputMedia VoiceNotesManager::get_secret_input_media(
+    FileId voice_note_file_id, telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file,
+    const string &caption, int32 layer) const {
   auto file_view = td_->file_manager_->get_file_view(voice_note_file_id);
   if (!file_view.is_encrypted_secret() || file_view.encryption_key().empty()) {
     return SecretInputMedia{};
   }
-  if (file_view.has_remote_location()) {
-    input_file = file_view.main_remote_location().as_input_encrypted_file();
+  const auto *main_remote_location = file_view.get_main_remote_location();
+  if (main_remote_location != nullptr) {
+    input_file = main_remote_location->as_input_encrypted_file();
   }
   if (!input_file) {
     return SecretInputMedia{};
@@ -167,25 +166,27 @@ SecretInputMedia VoiceNotesManager::get_secret_input_media(FileId voice_note_fil
 }
 
 tl_object_ptr<telegram_api::InputMedia> VoiceNotesManager::get_input_media(
-    FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file, int32 ttl) const {
+    FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file, int32 ttl) const {
   auto file_view = td_->file_manager_->get_file_view(file_id);
   if (file_view.is_encrypted()) {
     return nullptr;
   }
-  if (file_view.has_remote_location() && !file_view.main_remote_location().is_web() && input_file == nullptr) {
+  const auto *main_remote_location = file_view.get_main_remote_location();
+  if (main_remote_location != nullptr && !main_remote_location->is_web() && input_file == nullptr) {
     int32 flags = 0;
     if (ttl != 0) {
       flags |= telegram_api::inputMediaDocument::TTL_SECONDS_MASK;
     }
-    return make_tl_object<telegram_api::inputMediaDocument>(
-        flags, false /*ignored*/, file_view.main_remote_location().as_input_document(), ttl, string());
+    return make_tl_object<telegram_api::inputMediaDocument>(flags, false /*ignored*/,
+                                                            main_remote_location->as_input_document(), ttl, string());
   }
-  if (file_view.has_url()) {
+  const auto *url = file_view.get_url();
+  if (url != nullptr) {
     int32 flags = 0;
     if (ttl != 0) {
       flags |= telegram_api::inputMediaDocumentExternal::TTL_SECONDS_MASK;
     }
-    return make_tl_object<telegram_api::inputMediaDocumentExternal>(flags, false /*ignored*/, file_view.url(), ttl);
+    return make_tl_object<telegram_api::inputMediaDocumentExternal>(flags, false /*ignored*/, *url, ttl);
   }
 
   if (input_file != nullptr) {
@@ -213,7 +214,7 @@ tl_object_ptr<telegram_api::InputMedia> VoiceNotesManager::get_input_media(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_file), nullptr, mime_type,
         std::move(attributes), vector<tl_object_ptr<telegram_api::InputDocument>>(), ttl);
   } else {
-    CHECK(!file_view.has_remote_location());
+    CHECK(main_remote_location == nullptr);
   }
 
   return nullptr;

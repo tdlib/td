@@ -20,11 +20,13 @@ class EmojiGroup {
   string title_;
   CustomEmojiId icon_custom_emoji_id_;
   vector<string> emojis_;
+  bool is_greeting_ = false;
+  bool is_premium_ = false;
 
  public:
   EmojiGroup() = default;
 
-  explicit EmojiGroup(telegram_api::object_ptr<telegram_api::emojiGroup> &&emoji_group);
+  explicit EmojiGroup(telegram_api::object_ptr<telegram_api::EmojiGroup> &&emoji_group);
 
   td_api::object_ptr<td_api::emojiCategory> get_emoji_category_object(StickersManager *stickers_manager) const;
 
@@ -49,7 +51,7 @@ class EmojiGroupList {
   EmojiGroupList() = default;
 
   EmojiGroupList(string used_language_codes, int32 hash,
-                 vector<telegram_api::object_ptr<telegram_api::emojiGroup>> &&emoji_groups);
+                 vector<telegram_api::object_ptr<telegram_api::EmojiGroup>> &&emoji_groups);
 
   td_api::object_ptr<td_api::emojiCategories> get_emoji_categories_object(StickersManager *stickers_manager) const;
 

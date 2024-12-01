@@ -9,18 +9,15 @@
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ChainId.h"
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
-#include "td/telegram/InlineQueriesManager.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
-#include "td/telegram/net/DcId.h"
-#include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
@@ -78,50 +75,6 @@ class SetGameScoreQuery final : public Td::ResultHandler {
   }
 };
 
-class SetInlineGameScoreQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-
- public:
-  explicit SetInlineGameScoreQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(tl_object_ptr<telegram_api::InputBotInlineMessageID> input_bot_inline_message_id, bool edit_message,
-            tl_object_ptr<telegram_api::InputUser> input_user, int32 score, bool force) {
-    CHECK(input_bot_inline_message_id != nullptr);
-    CHECK(input_user != nullptr);
-
-    int32 flags = 0;
-    if (edit_message) {
-      flags |= telegram_api::messages_setInlineGameScore::EDIT_MESSAGE_MASK;
-    }
-    if (force) {
-      flags |= telegram_api::messages_setInlineGameScore::FORCE_MASK;
-    }
-
-    auto dc_id = DcId::internal(InlineQueriesManager::get_inline_message_dc_id(input_bot_inline_message_id));
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_setInlineGameScore(flags, false /*ignored*/, false /*ignored*/,
-                                                  std::move(input_bot_inline_message_id), std::move(input_user), score),
-        {}, dc_id));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_setInlineGameScore>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    LOG_IF(ERROR, !result_ptr.ok()) << "Receive false in result of setInlineGameScore";
-
-    promise_.set_value(Unit());
-  }
-
-  void on_error(Status status) final {
-    LOG(INFO) << "Receive error for SetInlineGameScoreQuery: " << status;
-    promise_.set_error(std::move(status));
-  }
-};
-
 class GetGameHighScoresQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::gameHighScores>> promise_;
   DialogId dialog_id_;
@@ -157,39 +110,6 @@ class GetGameHighScoresQuery final : public Td::ResultHandler {
   }
 };
 
-class GetInlineGameHighScoresQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::gameHighScores>> promise_;
-
- public:
-  explicit GetInlineGameHighScoresQuery(Promise<td_api::object_ptr<td_api::gameHighScores>> &&promise)
-      : promise_(std::move(promise)) {
-  }
-
-  void send(tl_object_ptr<telegram_api::InputBotInlineMessageID> input_bot_inline_message_id,
-            tl_object_ptr<telegram_api::InputUser> input_user) {
-    CHECK(input_bot_inline_message_id != nullptr);
-    CHECK(input_user != nullptr);
-
-    auto dc_id = DcId::internal(InlineQueriesManager::get_inline_message_dc_id(input_bot_inline_message_id));
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_getInlineGameHighScores(std::move(input_bot_inline_message_id), std::move(input_user)),
-        {}, dc_id));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_getInlineGameHighScores>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    promise_.set_value(td_->game_manager_->get_game_high_scores_object(result_ptr.move_as_ok()));
-  }
-
-  void on_error(Status status) final {
-    promise_.set_error(std::move(status));
-  }
-};
-
 GameManager::GameManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
@@ -203,16 +123,14 @@ void GameManager::set_game_score(MessageFullId message_full_id, bool edit_messag
                                  bool force, Promise<td_api::object_ptr<td_api::message>> &&promise) {
   CHECK(td_->auth_manager_->is_bot());
 
+  auto dialog_id = message_full_id.get_dialog_id();
+  TRY_STATUS_PROMISE(promise,
+                     td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Edit, "set_game_score"));
   if (!td_->messages_manager_->have_message_force(message_full_id, "set_game_score")) {
     return promise.set_error(Status::Error(400, "Message not found"));
   }
 
-  auto dialog_id = message_full_id.get_dialog_id();
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Edit)) {
-    return promise.set_error(Status::Error(400, "Can't access the chat"));
-  }
-
-  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
 
   if (!td_->messages_manager_->can_set_game_score(message_full_id)) {
     return promise.set_error(Status::Error(400, "Game score can't be set"));
@@ -234,61 +152,31 @@ void GameManager::on_set_game_score(MessageFullId message_full_id,
   promise.set_value(td_->messages_manager_->get_message_object(message_full_id, "on_set_game_score"));
 }
 
-void GameManager::set_inline_game_score(const string &inline_message_id, bool edit_message, UserId user_id, int32 score,
-                                        bool force, Promise<Unit> &&promise) {
-  CHECK(td_->auth_manager_->is_bot());
-
-  auto input_bot_inline_message_id = td_->inline_queries_manager_->get_input_bot_inline_message_id(inline_message_id);
-  if (input_bot_inline_message_id == nullptr) {
-    return promise.set_error(Status::Error(400, "Invalid inline message identifier specified"));
-  }
-
-  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
-
-  td_->create_handler<SetInlineGameScoreQuery>(std::move(promise))
-      ->send(std::move(input_bot_inline_message_id), edit_message, std::move(input_user), score, force);
-}
-
 void GameManager::get_game_high_scores(MessageFullId message_full_id, UserId user_id,
                                        Promise<td_api::object_ptr<td_api::gameHighScores>> &&promise) {
   CHECK(td_->auth_manager_->is_bot());
+
+  auto dialog_id = message_full_id.get_dialog_id();
+  TRY_STATUS_PROMISE(
+      promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "get_game_high_scores"));
 
   if (!td_->messages_manager_->have_message_force(message_full_id, "get_game_high_scores")) {
     return promise.set_error(Status::Error(400, "Message not found"));
   }
 
-  auto dialog_id = message_full_id.get_dialog_id();
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, AccessRights::Read)) {
-    return promise.set_error(Status::Error(400, "Can't access the chat"));
-  }
   auto message_id = message_full_id.get_message_id();
-  if (message_id.is_scheduled() || !message_id.is_server() || dialog_id.get_type() == DialogType::SecretChat) {
+  if (message_id.is_scheduled() || !message_id.is_server()) {
     return promise.set_error(Status::Error(400, "Wrong message identifier specified"));
   }
 
-  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
 
   td_->create_handler<GetGameHighScoresQuery>(std::move(promise))->send(dialog_id, message_id, std::move(input_user));
 }
 
-void GameManager::get_inline_game_high_scores(const string &inline_message_id, UserId user_id,
-                                              Promise<td_api::object_ptr<td_api::gameHighScores>> &&promise) {
-  CHECK(td_->auth_manager_->is_bot());
-
-  auto input_bot_inline_message_id = td_->inline_queries_manager_->get_input_bot_inline_message_id(inline_message_id);
-  if (input_bot_inline_message_id == nullptr) {
-    return promise.set_error(Status::Error(400, "Invalid inline message identifier specified"));
-  }
-
-  TRY_RESULT_PROMISE(promise, input_user, td_->contacts_manager_->get_input_user(user_id));
-
-  td_->create_handler<GetInlineGameHighScoresQuery>(std::move(promise))
-      ->send(std::move(input_bot_inline_message_id), std::move(input_user));
-}
-
 td_api::object_ptr<td_api::gameHighScores> GameManager::get_game_high_scores_object(
     telegram_api::object_ptr<telegram_api::messages_highScores> &&high_scores) {
-  td_->contacts_manager_->on_get_users(std::move(high_scores->users_), "get_game_high_scores_object");
+  td_->user_manager_->on_get_users(std::move(high_scores->users_), "get_game_high_scores_object");
 
   auto result = td_api::make_object<td_api::gameHighScores>();
   for (const auto &high_score : high_scores->scores_) {
@@ -300,7 +188,7 @@ td_api::object_ptr<td_api::gameHighScores> GameManager::get_game_high_scores_obj
       continue;
     }
     result->scores_.push_back(make_tl_object<td_api::gameHighScore>(
-        position, td_->contacts_manager_->get_user_id_object(user_id, "get_game_high_scores_object"), score));
+        position, td_->user_manager_->get_user_id_object(user_id, "get_game_high_scores_object"), score));
   }
   return result;
 }

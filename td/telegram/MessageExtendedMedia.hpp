@@ -18,7 +18,6 @@ namespace td {
 
 template <class StorerT>
 void MessageExtendedMedia::store(StorerT &storer) const {
-  bool has_caption = !caption_.text.empty();
   bool has_unsupported_version = unsupported_version_ != 0;
   bool has_duration = duration_ != 0;
   bool has_dimensions = dimensions_.width != 0 || dimensions_.height != 0;
@@ -26,7 +25,7 @@ void MessageExtendedMedia::store(StorerT &storer) const {
   bool has_photo = !photo_.is_empty();
   bool has_video = video_file_id_.is_valid();
   BEGIN_STORE_FLAGS();
-  STORE_FLAG(has_caption);
+  STORE_FLAG(false);  // has_caption
   STORE_FLAG(has_unsupported_version);
   STORE_FLAG(has_duration);
   STORE_FLAG(has_dimensions);
@@ -35,9 +34,6 @@ void MessageExtendedMedia::store(StorerT &storer) const {
   STORE_FLAG(has_video);
   END_STORE_FLAGS();
   td::store(type_, storer);
-  if (has_caption) {
-    td::store(caption_, storer);
-  }
   if (has_unsupported_version) {
     td::store(unsupported_version_, storer);
   }
@@ -79,7 +75,8 @@ void MessageExtendedMedia::parse(ParserT &parser) {
   END_PARSE_FLAGS();
   td::parse(type_, parser);
   if (has_caption) {
-    td::parse(caption_, parser);
+    FormattedText caption;
+    td::parse(caption, parser);
   }
   if (has_unsupported_version) {
     td::parse(unsupported_version_, parser);
@@ -103,8 +100,10 @@ void MessageExtendedMedia::parse(ParserT &parser) {
     video_file_id_ = td->videos_manager_->parse_video(parser);
     is_bad = !video_file_id_.is_valid();
   }
-  if (is_bad) {
-    LOG(ERROR) << "Failed to parse MessageExtendedMedia";
+  if (is_bad || has_caption) {
+    if (is_bad) {
+      LOG(ERROR) << "Failed to parse MessageExtendedMedia";
+    }
     photo_ = Photo();
     video_file_id_ = FileId();
     type_ = Type::Unsupported;

@@ -11,9 +11,11 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
+#include "td/telegram/files/FileUploadId.h"
 #include "td/telegram/MediaArea.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageFullId.h"
+#include "td/telegram/QuickReplyMessageFullId.h"
 #include "td/telegram/ReactionType.h"
 #include "td/telegram/StoryDb.h"
 #include "td/telegram/StoryFullId.h"
@@ -47,7 +49,6 @@ namespace td {
 
 struct BinlogEvent;
 class Dependencies;
-class ReportReason;
 class StoryContent;
 class StoryForwardInfo;
 struct StoryDbStory;
@@ -111,6 +112,7 @@ class StoryManager final : public Actor {
     DialogId dialog_id_;
     StoryId story_id_;
     StoryFullId forward_from_story_full_id_;
+    FileUploadId file_upload_id_;
     uint64 log_event_id_ = 0;
     uint32 send_story_num_ = 0;
     int64 random_id_ = 0;
@@ -130,11 +132,10 @@ class StoryManager final : public Actor {
   };
 
   struct ReadyToSendStory {
-    FileId file_id_;
     unique_ptr<PendingStory> pending_story_;
     telegram_api::object_ptr<telegram_api::InputFile> input_file_;
 
-    ReadyToSendStory(FileId file_id, unique_ptr<PendingStory> &&pending_story,
+    ReadyToSendStory(unique_ptr<PendingStory> &&pending_story,
                      telegram_api::object_ptr<telegram_api::InputFile> &&input_file);
   };
 
@@ -227,6 +228,9 @@ class StoryManager final : public Actor {
                   td_api::object_ptr<td_api::inputStoryAreas> &&input_areas,
                   td_api::object_ptr<td_api::formattedText> &&input_caption, Promise<Unit> &&promise);
 
+  void edit_story_cover(DialogId owner_dialog_id, StoryId story_id, double main_frame_timestamp,
+                        Promise<Unit> &&promise);
+
   void set_story_privacy_settings(StoryId story_id, td_api::object_ptr<td_api::StoryPrivacySettings> &&settings,
                                   Promise<Unit> &&promise);
 
@@ -252,6 +256,17 @@ class StoryManager final : public Actor {
                                    Promise<td_api::object_ptr<td_api::chatActiveStories>> &&promise);
 
   void reload_dialog_expiring_stories(DialogId dialog_id);
+
+  void search_hashtag_posts(DialogId dialog_id, string hashtag, string offset, int32 limit,
+                            Promise<td_api::object_ptr<td_api::foundStories>> &&promise);
+
+  void search_location_posts(td_api::object_ptr<td_api::locationAddress> &&address, string offset, int32 limit,
+                             Promise<td_api::object_ptr<td_api::foundStories>> &&promise);
+
+  void search_venue_posts(string venue_provider, string venue_id, string offset, int32 limit,
+                          Promise<td_api::object_ptr<td_api::foundStories>> &&promise);
+
+  void set_pinned_stories(DialogId owner_dialog_id, vector<StoryId> story_ids, Promise<Unit> &&promise);
 
   void open_story(DialogId owner_dialog_id, StoryId story_id, Promise<Unit> &&promise);
 
@@ -280,7 +295,8 @@ class StoryManager final : public Actor {
       telegram_api::object_ptr<telegram_api::stories_storyReactionsList> &&story_reactions,
       Promise<telegram_api::object_ptr<telegram_api::stories_storyReactionsList>> promise);
 
-  void report_story(StoryFullId story_full_id, ReportReason &&reason, Promise<Unit> &&promise);
+  void report_story(StoryFullId story_full_id, const string &option_id, const string &text,
+                    Promise<td_api::object_ptr<td_api::ReportStoryResult>> &&promise);
 
   void activate_stealth_mode(Promise<Unit> &&promise);
 
@@ -331,14 +347,19 @@ class StoryManager final : public Actor {
 
   int32 get_story_duration(StoryFullId story_full_id) const;
 
-  void register_story(StoryFullId story_full_id, MessageFullId message_full_id, const char *source);
+  void register_story(StoryFullId story_full_id, MessageFullId message_full_id,
+                      QuickReplyMessageFullId quick_reply_message_full_id, const char *source);
 
-  void unregister_story(StoryFullId story_full_id, MessageFullId message_full_id, const char *source);
+  void unregister_story(StoryFullId story_full_id, MessageFullId message_full_id,
+                        QuickReplyMessageFullId quick_reply_message_full_id, const char *source);
 
   td_api::object_ptr<td_api::story> get_story_object(StoryFullId story_full_id) const;
 
-  td_api::object_ptr<td_api::stories> get_stories_object(int32 total_count,
-                                                         const vector<StoryFullId> &story_full_ids) const;
+  td_api::object_ptr<td_api::stories> get_stories_object(int32 total_count, const vector<StoryFullId> &story_full_ids,
+                                                         const vector<StoryId> &pinned_story_ids) const;
+
+  static td_api::object_ptr<td_api::CanSendStoryResult> get_can_send_story_result_object(const Status &error,
+                                                                                         bool force = false);
 
   FileSourceId get_story_file_source_id(StoryFullId story_full_id);
 
@@ -363,6 +384,8 @@ class StoryManager final : public Actor {
   class LoadDialogExpiringStoriesLogEvent;
   class SendStoryLogEvent;
   class EditStoryLogEvent;
+
+  static constexpr int32 MAX_SEARCH_STORIES = 100;  // server-side limit
 
   static constexpr int32 OPENED_STORY_POLL_PERIOD = 60;
   static constexpr int32 VIEWED_STORY_POLL_PERIOD = 300;
@@ -539,19 +562,19 @@ class StoryManager final : public Actor {
 
   int64 save_send_story_log_event(const PendingStory *pending_story);
 
-  void delete_pending_story(FileId file_id, unique_ptr<PendingStory> &&pending_story, Status status);
+  void delete_pending_story(unique_ptr<PendingStory> &&pending_story, Status status);
 
   Result<StoryId> get_next_yet_unsent_story_id(DialogId dialog_id);
 
   void do_send_story(unique_ptr<PendingStory> &&pending_story, vector<int> bad_parts);
 
-  void on_upload_story(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
+  void on_upload_story(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
 
-  void on_upload_story_error(FileId file_id, Status status);
+  void on_upload_story_error(FileUploadId file_upload_id, Status status);
 
   void try_send_story(DialogId dialog_id);
 
-  void do_edit_story(FileId file_id, unique_ptr<PendingStory> &&pending_story,
+  void do_edit_story(unique_ptr<PendingStory> &&pending_story,
                      telegram_api::object_ptr<telegram_api::InputFile> input_file);
 
   void on_toggle_story_is_pinned(StoryFullId story_full_id, bool is_pinned, Promise<Unit> &&promise);
@@ -650,6 +673,9 @@ class StoryManager final : public Actor {
 
   WaitFreeHashMap<StoryFullId, WaitFreeHashSet<MessageFullId, MessageFullIdHash>, StoryFullIdHash> story_messages_;
 
+  WaitFreeHashMap<StoryFullId, WaitFreeHashSet<QuickReplyMessageFullId, QuickReplyMessageFullIdHash>, StoryFullIdHash>
+      story_quick_reply_messages_;
+
   WaitFreeHashMap<DialogId, unique_ptr<ActiveStories>, DialogIdHash> active_stories_;
 
   WaitFreeHashSet<DialogId, DialogIdHash> updated_active_stories_;
@@ -672,7 +698,7 @@ class StoryManager final : public Actor {
 
   FlatHashMap<StoryFullId, vector<Promise<Unit>>, StoryFullIdHash> reload_story_queries_;
 
-  FlatHashMap<FileId, unique_ptr<PendingStory>, FileIdHash> being_uploaded_files_;
+  FlatHashMap<FileUploadId, unique_ptr<PendingStory>, FileUploadIdHash> being_uploaded_files_;
 
   FlatHashMap<DialogId, std::set<uint32>, DialogIdHash> yet_unsent_stories_;
 
@@ -682,7 +708,7 @@ class StoryManager final : public Actor {
 
   FlatHashMap<StoryFullId, int64, StoryFullIdHash> being_sent_story_random_ids_;
 
-  FlatHashMap<StoryFullId, FileId, StoryFullIdHash> being_uploaded_file_ids_;
+  FlatHashMap<StoryFullId, FileUploadId, StoryFullIdHash> being_uploaded_file_upload_ids_;
 
   FlatHashMap<StoryFullId, StoryId, StoryFullIdHash> update_story_ids_;
 

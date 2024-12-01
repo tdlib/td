@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2023
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2024
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -9,18 +9,22 @@
 #include "td/telegram/AccentColorId.h"
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/ChannelId.h"
+#include "td/telegram/ChatId.h"
 #include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogLocation.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/EmojiStatus.h"
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/files/FileUploadId.h"
 #include "td/telegram/InputDialogId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/NotificationSettingsScope.h"
 #include "td/telegram/Photo.h"
+#include "td/telegram/SuggestedAction.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserId.h"
 
 #include "td/actor/actor.h"
 
@@ -69,7 +73,12 @@ class DialogManager final : public Actor {
   tl_object_ptr<telegram_api::inputEncryptedChat> get_input_encrypted_chat(DialogId dialog_id,
                                                                            AccessRights access_rights) const;
 
-  bool have_input_peer(DialogId dialog_id, AccessRights access_rights) const;
+  Status check_dialog_access(DialogId dialog_id, bool allow_secret_chats, AccessRights access_rights,
+                             const char *source) const;
+
+  Status check_dialog_access_in_memory(DialogId dialog_id, bool allow_secret_chats, AccessRights access_rights) const;
+
+  bool have_input_peer(DialogId dialog_id, bool allow_secret_chats, AccessRights access_rights) const;
 
   bool have_dialog_force(DialogId dialog_id, const char *source) const;
 
@@ -103,9 +112,11 @@ class DialogManager final : public Actor {
   td_api::object_ptr<td_api::chats> get_chats_object(const std::pair<int32, vector<DialogId>> &dialog_ids,
                                                      const char *source) const;
 
-  td_api::object_ptr<td_api::ChatType> get_chat_type_object(DialogId dialog_id) const;
+  td_api::object_ptr<td_api::ChatType> get_chat_type_object(DialogId dialog_id, const char *source) const;
 
   NotificationSettingsScope get_dialog_notification_setting_scope(DialogId dialog_id) const;
+
+  void migrate_dialog_to_megagroup(DialogId dialog_id, Promise<td_api::object_ptr<td_api::chat>> &&promise);
 
   bool is_anonymous_administrator(DialogId dialog_id, string *author_signature) const;
 
@@ -167,17 +178,23 @@ class DialogManager final : public Actor {
 
   bool can_report_dialog(DialogId dialog_id) const;
 
-  void report_dialog(DialogId dialog_id, const vector<MessageId> &message_ids, ReportReason &&reason,
-                     Promise<Unit> &&promise);
+  void report_dialog(DialogId dialog_id, const string &option_id, const vector<MessageId> &message_ids,
+                     const string &text, Promise<td_api::object_ptr<td_api::ReportChatResult>> &&promise);
 
   void report_dialog_photo(DialogId dialog_id, FileId file_id, ReportReason &&reason, Promise<Unit> &&promise);
 
   Status can_pin_messages(DialogId dialog_id) const;
 
+  bool can_use_premium_custom_emoji_in_dialog(DialogId dialog_id) const;
+
   bool is_dialog_removed_from_dialog_list(DialogId dialog_id) const;
 
-  void upload_dialog_photo(DialogId dialog_id, FileId file_id, bool is_animation, double main_frame_timestamp,
-                           bool is_reupload, Promise<Unit> &&promise, vector<int> bad_parts = {});
+  void upload_dialog_photo(DialogId dialog_id, FileUploadId file_upload_id, bool is_animation,
+                           double main_frame_timestamp, bool is_reupload, Promise<Unit> &&promise,
+                           vector<int> bad_parts = {});
+
+  void on_update_dialog_bot_commands(DialogId dialog_id, UserId bot_user_id,
+                                     vector<telegram_api::object_ptr<telegram_api::botCommand>> &&bot_commands);
 
   void on_dialog_usernames_updated(DialogId dialog_id, const Usernames &old_usernames, const Usernames &new_usernames);
 
@@ -206,6 +223,12 @@ class DialogManager final : public Actor {
 
   void reload_voice_chat_on_search(const string &username);
 
+  void set_dialog_pending_suggestions(DialogId dialog_id, vector<string> &&pending_suggestions);
+
+  void dismiss_dialog_suggested_action(SuggestedAction action, Promise<Unit> &&promise);
+
+  void remove_dialog_suggested_action(SuggestedAction action);
+
  private:
   static constexpr size_t MAX_TITLE_LENGTH = 128;  // server side limit for chat title
 
@@ -213,11 +236,14 @@ class DialogManager final : public Actor {
 
   void tear_down() final;
 
-  void on_upload_dialog_photo(FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
+  void on_migrate_chat_to_megagroup(ChatId chat_id, Promise<td_api::object_ptr<td_api::chat>> &&promise);
 
-  void on_upload_dialog_photo_error(FileId file_id, Status status);
+  void on_upload_dialog_photo(FileUploadId file_upload_id,
+                              telegram_api::object_ptr<telegram_api::InputFile> input_file);
 
-  void send_edit_dialog_photo_query(DialogId dialog_id, FileId file_id,
+  void on_upload_dialog_photo_error(FileUploadId file_upload_id, Status status);
+
+  void send_edit_dialog_photo_query(DialogId dialog_id, FileUploadId file_upload_id,
                                     telegram_api::object_ptr<telegram_api::InputChatPhoto> &&input_chat_photo,
                                     Promise<Unit> &&promise);
 
@@ -228,6 +254,8 @@ class DialogManager final : public Actor {
   void drop_username(const string &username);
 
   void on_resolve_dialog(const string &username, ChannelId channel_id, Promise<DialogId> &&promise);
+
+  void on_dismiss_suggested_action(SuggestedAction action, Result<Unit> &&result);
 
   class UploadDialogPhotoCallback;
   std::shared_ptr<UploadDialogPhotoCallback> upload_dialog_photo_callback_;
@@ -248,7 +276,7 @@ class DialogManager final : public Actor {
         , promise(std::move(promise)) {
     }
   };
-  FlatHashMap<FileId, UploadedDialogPhotoInfo, FileIdHash> being_uploaded_dialog_photos_;
+  FlatHashMap<FileUploadId, UploadedDialogPhotoInfo, FileUploadIdHash> being_uploaded_dialog_photos_;
 
   struct ResolvedUsername {
     DialogId dialog_id;
@@ -263,6 +291,9 @@ class DialogManager final : public Actor {
   FlatHashSet<string> reload_voice_chat_on_search_usernames_;
 
   FlatHashMap<string, vector<Promise<Unit>>> resolve_dialog_username_queries_;
+
+  FlatHashMap<DialogId, vector<SuggestedAction>, DialogIdHash> dialog_suggested_actions_;
+  FlatHashMap<DialogId, vector<Promise<Unit>>, DialogIdHash> dismiss_suggested_action_queries_;
 
   Td *td_;
   ActorShared<> parent_;

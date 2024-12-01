@@ -7,7 +7,6 @@
 #include "td/telegram/AccountManager.h"
 
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/DeviceTokenManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/LinkManager.h"
@@ -18,6 +17,7 @@
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/db/binlog/BinlogEvent.h"
 #include "td/db/binlog/BinlogHelper.h"
@@ -461,7 +461,7 @@ class GetWebAuthorizationsQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetWebAuthorizationsQuery: " << to_string(ptr);
 
-    td_->contacts_manager_->on_get_users(std::move(ptr->users_), "GetWebAuthorizationsQuery");
+    td_->user_manager_->on_get_users(std::move(ptr->users_), "GetWebAuthorizationsQuery");
 
     auto results = td_api::make_object<td_api::connectedWebsites>();
     results->websites_.reserve(ptr->authorizations_.size());
@@ -475,7 +475,7 @@ class GetWebAuthorizationsQuery final : public Td::ResultHandler {
 
       results->websites_.push_back(td_api::make_object<td_api::connectedWebsite>(
           authorization->hash_, authorization->domain_,
-          td_->contacts_manager_->get_user_id_object(bot_user_id, "GetWebAuthorizationsQuery"), authorization->browser_,
+          td_->user_manager_->get_user_id_object(bot_user_id, "GetWebAuthorizationsQuery"), authorization->browser_,
           authorization->platform_, authorization->date_created_, authorization->date_active_, authorization->ip_,
           authorization->region_));
     }
@@ -591,9 +591,9 @@ class ImportContactTokenQuery final : public Td::ResultHandler {
     auto user = result_ptr.move_as_ok();
     LOG(DEBUG) << "Receive result for ImportContactTokenQuery: " << to_string(user);
 
-    auto user_id = ContactsManager::get_user_id(user);
-    td_->contacts_manager_->on_get_user(std::move(user), "ImportContactTokenQuery");
-    promise_.set_value(td_->contacts_manager_->get_user_object(user_id));
+    auto user_id = UserManager::get_user_id(user);
+    td_->user_manager_->on_get_user(std::move(user), "ImportContactTokenQuery");
+    promise_.set_value(td_->user_manager_->get_user_object(user_id));
   }
 
   void on_error(Status status) final {
@@ -1117,7 +1117,7 @@ void AccountManager::disconnect_all_websites(Promise<Unit> &&promise) {
 }
 
 void AccountManager::get_user_link(Promise<td_api::object_ptr<td_api::userLink>> &&promise) {
-  td_->contacts_manager_->get_me(
+  td_->user_manager_->get_me(
       PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](Result<Unit> &&result) mutable {
         if (result.is_error()) {
           promise.set_error(result.move_as_error());
@@ -1129,10 +1129,10 @@ void AccountManager::get_user_link(Promise<td_api::object_ptr<td_api::userLink>>
 
 void AccountManager::get_user_link_impl(Promise<td_api::object_ptr<td_api::userLink>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
-  auto username = td_->contacts_manager_->get_user_first_username(td_->contacts_manager_->get_my_id());
+  auto username = td_->user_manager_->get_user_first_username(td_->user_manager_->get_my_id());
   if (!username.empty()) {
     return promise.set_value(
-        td_api::make_object<td_api::userLink>(LinkManager::get_public_dialog_link(username, true), 0));
+        td_api::make_object<td_api::userLink>(LinkManager::get_public_dialog_link(username, Slice(), false, true), 0));
   }
   td_->create_handler<ExportContactTokenQuery>(std::move(promise))->send();
 }

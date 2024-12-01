@@ -12,9 +12,9 @@
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/SecureStorage.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UniqueId.h"
 
 #include "td/utils/buffer.h"
-#include "td/utils/common.h"
 #include "td/utils/crypto.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
@@ -44,15 +44,17 @@ FileUploader::FileUploader(const LocalFileLocation &local, const RemoteFileLocat
   }
 }
 
-Result<FileLoader::FileInfo> FileUploader::init() {
+void FileUploader::start_up() {
   if (remote_.type() == RemoteFileLocation::Type::Full) {
-    return Status::Error("File is already uploaded");
+    return on_error(Status::Error("File is already uploaded"));
   }
 
   // file_size is needed only for partial local locations, but for uploaded partial files
   // size is yet unknown or local location is full, so we can always pass 0 here
-  TRY_RESULT(prefix_info, on_update_local_location(local_, 0));
-  (void)prefix_info;
+  auto r_prefix_info = on_update_local_location(local_, 0);
+  if (r_prefix_info.is_error()) {
+    return on_error(r_prefix_info.move_as_error());
+  }
 
   int offset = 0;
   int part_size = 0;
@@ -67,20 +69,20 @@ Result<FileLoader::FileInfo> FileUploader::init() {
     big_flag_ = is_file_big(file_type_, expected_size_);
   }
 
-  std::vector<bool> ok(offset, true);
+  vector<bool> ok(offset, true);
   for (auto bad_id : bad_parts_) {
     if (bad_id >= 0 && bad_id < offset) {
       ok[bad_id] = false;
     }
   }
-  std::vector<int> parts;
+  vector<int> ready_parts;
   for (int i = 0; i < offset; i++) {
     if (ok[i]) {
-      parts.push_back(i);
+      ready_parts.push_back(i);
     }
   }
   if (!ok.empty() && !ok[0]) {
-    parts.clear();
+    ready_parts.clear();
     part_size = 0;
     remote_ = RemoteFileLocation();
     file_id_ = Random::secure_int64();
@@ -88,17 +90,34 @@ Result<FileLoader::FileInfo> FileUploader::init() {
   }
 
   LOG(DEBUG) << "Init file uploader for " << remote_ << " with offset = " << offset << " and part size = " << part_size;
-  FileInfo res;
-  res.size = local_size_;
-  res.is_size_final = local_is_ready_;
-  res.part_size = part_size;
-  res.ready_parts = std::move(parts);
-  res.is_upload = true;
-  return res;
+
+  auto expected_size = max(local_size_, expected_size_);
+
+  // Two cases when FILE_UPLOAD_RESTART will happen
+  // 1. File is ready, size is final. But there are more uploaded parts than size of the file
+  // pm.init(1, 100000, true, 10, {0, 1, 2}, false, true).ensure_error();
+  // This error is definitely ok, because we are using actual size of the file on disk (mtime is checked by
+  // somebody else). And actual size could change arbitrarily.
+  //
+  // 2. File size is not final, and some parts ending after known file size were uploaded
+  // pm.init(0, 100000, false, 10, {0, 1, 2}, false, true).ensure_error();
+  // This can happen only if file state became inconsistent at some point. For example, local location was deleted,
+  // but partial remote location was kept. This is possible, but probably should be fixed.
+  auto status = parts_manager_.init(local_size_, expected_size, local_is_ready_, part_size, ready_parts, true, true);
+  LOG(DEBUG) << "Start uploading a file of size " << local_size_ << " with expected "
+             << (local_is_ready_ ? "exact" : "approximate") << " size " << expected_size << ", part size " << part_size
+             << " and " << ready_parts.size() << " ready parts: " << status;
+  if (status.is_error()) {
+    return on_error(std::move(status));
+  }
+  resource_state_.set_unit_size(parts_manager_.get_part_size());
+  update_estimated_limit();
+  on_progress();
+  yield();
 }
 
-Result<FileLoader::PrefixInfo> FileUploader::on_update_local_location(const LocalFileLocation &location,
-                                                                      int64 file_size) {
+Result<FileUploader::PrefixInfo> FileUploader::on_update_local_location(const LocalFileLocation &location,
+                                                                        int64 file_size) {
   SCOPE_EXIT {
     try_release_fd();
   };
@@ -109,34 +128,29 @@ Result<FileLoader::PrefixInfo> FileUploader::on_update_local_location(const Loca
 
   string path;
   int64 local_size = -1;
-  bool local_is_ready{false};
-  FileType file_type{FileType::Temp};
+  bool local_is_ready = false;
   if (location.type() == LocalFileLocation::Type::Empty ||
       (location.type() == LocalFileLocation::Type::Partial && encryption_key_.is_secure())) {
     path = "";
     local_size = 0;
-    local_is_ready = false;
-    file_type = FileType::Temp;
+    file_type_ = FileType::Temp;
   } else if (location.type() == LocalFileLocation::Type::Partial) {
     path = location.partial().path_;
     local_size = Bitmask(Bitmask::Decode{}, location.partial().ready_bitmask_)
                      .get_ready_prefix_size(0, location.partial().part_size_, file_size);
-    local_is_ready = false;
-    file_type = location.partial().file_type_;
+    file_type_ = location.partial().file_type_;
   } else {
     path = location.full().path_;
     if (path.empty()) {
       return Status::Error("FullLocalFileLocation with empty path");
     }
     local_is_ready = true;
-    file_type = location.full().file_type_;
+    file_type_ = location.full().file_type_;
   }
 
   LOG(INFO) << "In FileUploader::on_update_local_location with " << location << ". Have path = \"" << path
             << "\", local_size = " << local_size << ", local_is_ready = " << local_is_ready
-            << " and file type = " << file_type;
-
-  file_type_ = file_type;
+            << " and file type = " << file_type_;
 
   bool is_temp = false;
   if (encryption_key_.is_secure() && local_is_ready && remote_.type() == RemoteFileLocation::Type::Empty) {
@@ -200,27 +214,19 @@ Result<FileLoader::PrefixInfo> FileUploader::on_update_local_location(const Loca
   return info;
 }
 
-Status FileUploader::on_ok(int64 size) {
-  fd_.close();
-  if (is_temp_) {
-    LOG(INFO) << "UNLINK " << fd_path_;
-    unlink(fd_path_).ignore();
-  }
-  return Status::OK();
-}
-
 void FileUploader::on_error(Status status) {
   fd_.close();
   if (is_temp_) {
     LOG(INFO) << "UNLINK " << fd_path_;
     unlink(fd_path_).ignore();
   }
+  stop_flag_ = true;
   callback_->on_error(std::move(status));
 }
 
 Status FileUploader::generate_iv_map() {
   LOG(INFO) << "Generate iv_map " << generate_offset_ << " " << local_size_;
-  auto part_size = get_part_size();
+  auto part_size = parts_manager_.get_part_size();
   auto encryption_key = FileEncryptionKey(encryption_key_.key_slice(), generate_iv_);
   BufferSlice bytes(part_size);
   if (iv_map_.empty()) {
@@ -241,19 +247,7 @@ Status FileUploader::generate_iv_map() {
   return Status::OK();
 }
 
-Status FileUploader::before_start_parts() {
-  auto status = acquire_fd();
-  if (status.is_error() && !local_is_ready_) {
-    return Status::Error(-1, "Can't open temporary file");
-  }
-  return status;
-}
-
-void FileUploader::after_start_parts() {
-  try_release_fd();
-}
-
-Result<std::pair<NetQueryPtr, bool>> FileUploader::start_part(Part part, int32 part_count, int64 streaming_offset) {
+Result<NetQueryPtr> FileUploader::start_part(Part part, int32 part_count) {
   auto padded_size = part.size;
   if (encryption_key_.is_secret()) {
     padded_size = (padded_size + 15) & ~15;
@@ -291,7 +285,7 @@ Result<std::pair<NetQueryPtr, bool>> FileUploader::start_part(Part part, int32 p
     net_query = G()->net_query_creator().create(query, {}, DcId::main(), NetQuery::Type::Upload);
   }
   net_query->file_type_ = narrow_cast<int32>(file_type_);
-  return std::make_pair(std::move(net_query), false);
+  return std::move(net_query);
 }
 
 Result<size_t> FileUploader::process_part(Part part, NetQueryPtr net_query) {
@@ -312,25 +306,16 @@ Result<size_t> FileUploader::process_part(Part part, NetQueryPtr net_query) {
   return part.size;
 }
 
-void FileUploader::on_progress(Progress progress) {
-  callback_->on_partial_upload(PartialRemoteFileLocation{file_id_, progress.part_count, progress.part_size,
-                                                         progress.ready_part_count, big_flag_},
-                               progress.ready_size);
-  if (progress.is_ready) {
-    callback_->on_ok(file_type_,
-                     PartialRemoteFileLocation{file_id_, progress.part_count, progress.part_size,
-                                               progress.ready_part_count, big_flag_},
-                     local_size_);
+void FileUploader::on_progress() {
+  auto part_count = parts_manager_.get_part_count();
+  auto part_size = static_cast<int32>(parts_manager_.get_part_size());
+  auto ready_part_count = parts_manager_.get_ready_prefix_count();
+  callback_->on_partial_upload(PartialRemoteFileLocation{file_id_, part_count, part_size, ready_part_count, big_flag_,
+                                                         parts_manager_.get_ready_size()});
+  if (parts_manager_.ready()) {
+    callback_->on_ok(file_type_, PartialRemoteFileLocation{file_id_, part_count, part_size, ready_part_count, big_flag_,
+                                                           local_size_});
   }
-}
-
-FileLoader::Callback *FileUploader::get_callback() {
-  return static_cast<FileLoader::Callback *>(callback_.get());
-}
-
-void FileUploader::keep_fd_flag(bool keep_fd) {
-  keep_fd_ = keep_fd;
-  try_release_fd();
 }
 
 void FileUploader::try_release_fd() {
@@ -343,6 +328,159 @@ Status FileUploader::acquire_fd() {
   if (fd_.empty()) {
     TRY_RESULT_ASSIGN(fd_, FileFd::open(fd_path_, FileFd::Read));
   }
+  return Status::OK();
+}
+
+void FileUploader::set_resource_manager(ActorShared<ResourceManager> resource_manager) {
+  resource_manager_ = std::move(resource_manager);
+  send_closure(resource_manager_, &ResourceManager::update_resources, resource_state_);
+}
+
+void FileUploader::update_priority(int8 priority) {
+  send_closure(resource_manager_, &ResourceManager::update_priority, priority);
+}
+
+void FileUploader::update_resources(const ResourceState &other) {
+  resource_state_.update_slave(other);
+  VLOG(file_loader) << "Update resources " << resource_state_;
+  loop();
+}
+
+void FileUploader::update_local_file_location(const LocalFileLocation &local) {
+  auto r_prefix_info = on_update_local_location(local, parts_manager_.get_size_or_zero());
+  if (r_prefix_info.is_error()) {
+    return on_error(r_prefix_info.move_as_error());
+  }
+  auto prefix_info = r_prefix_info.move_as_ok();
+  auto status = parts_manager_.set_known_prefix(prefix_info.size, prefix_info.is_ready);
+  if (status.is_error()) {
+    return on_error(std::move(status));
+  }
+  loop();
+}
+
+void FileUploader::loop() {
+  if (stop_flag_) {
+    return;
+  }
+  auto status = do_loop();
+  if (status.is_error()) {
+    if (status.code() == -1) {
+      return;
+    }
+    on_error(std::move(status));
+  }
+}
+
+Status FileUploader::do_loop() {
+  if (parts_manager_.may_finish()) {
+    TRY_STATUS(parts_manager_.finish());
+    fd_.close();
+    if (is_temp_) {
+      LOG(INFO) << "UNLINK " << fd_path_;
+      unlink(fd_path_).ignore();
+    }
+    stop_flag_ = true;
+    return Status::OK();
+  }
+
+  auto status = acquire_fd();
+  if (status.is_error()) {
+    if (!local_is_ready_) {
+      return Status::Error(-1, "Can't open temporary file");
+    }
+    return status;
+  }
+
+  SCOPE_EXIT {
+    try_release_fd();
+  };
+  while (true) {
+    if (resource_state_.unused() < narrow_cast<int64>(parts_manager_.get_part_size())) {
+      VLOG(file_loader) << "Receive only " << resource_state_.unused() << " resource";
+      break;
+    }
+    TRY_RESULT(part, parts_manager_.start_part());
+    if (part.size == 0) {
+      break;
+    }
+    VLOG(file_loader) << "Start part " << tag("id", part.id) << tag("size", part.size);
+    resource_state_.start_use(static_cast<int64>(part.size));
+
+    TRY_RESULT(query, start_part(part, parts_manager_.get_part_count()));
+    uint64 unique_id = UniqueId::next();
+    part_map_[unique_id] = std::make_pair(part, query->cancel_slot_.get_signal_new());
+
+    G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this, unique_id));
+  }
+  return Status::OK();
+}
+
+void FileUploader::tear_down() {
+  for (auto &it : part_map_) {
+    it.second.second.reset();  // cancel_query(it.second.second);
+  }
+}
+
+void FileUploader::update_estimated_limit() {
+  if (stop_flag_) {
+    return;
+  }
+  auto estimated_extra = parts_manager_.get_estimated_extra();
+  resource_state_.update_estimated_limit(estimated_extra);
+  VLOG(file_loader) << "Update estimated limit " << estimated_extra;
+  if (!resource_manager_.empty()) {
+    keep_fd_ = narrow_cast<uint64>(resource_state_.active_limit()) >= parts_manager_.get_part_size();
+    try_release_fd();
+    send_closure(resource_manager_, &ResourceManager::update_resources, resource_state_);
+  }
+}
+
+void FileUploader::on_result(NetQueryPtr query) {
+  if (stop_flag_) {
+    return;
+  }
+  auto unique_id = get_link_token();
+  auto it = part_map_.find(unique_id);
+  if (it == part_map_.end()) {
+    LOG(ERROR) << "Receive result for unknown part";
+    return;
+  }
+
+  Part part = it->second.first;
+  it->second.second.release();
+  CHECK(query->is_ready());
+  part_map_.erase(it);
+
+  bool should_restart = query->is_error() && query->error().code() == NetQuery::Error::Canceled;
+  if (should_restart) {
+    VLOG(file_loader) << "Restart part " << tag("id", part.id) << tag("size", part.size);
+    resource_state_.stop_use(static_cast<int64>(part.size));
+    parts_manager_.on_part_failed(part.id);
+  } else {
+    on_part_query(part, std::move(query));
+  }
+  update_estimated_limit();
+  loop();
+}
+
+void FileUploader::on_part_query(Part part, NetQueryPtr query) {
+  if (stop_flag_) {
+    // important for secret files
+    return;
+  }
+  auto status = try_on_part_query(part, std::move(query));
+  if (status.is_error()) {
+    on_error(std::move(status));
+  }
+}
+
+Status FileUploader::try_on_part_query(Part part, NetQueryPtr query) {
+  TRY_RESULT(size, process_part(part, std::move(query)));
+  VLOG(file_loader) << "Ok part " << tag("id", part.id) << tag("size", part.size);
+  resource_state_.stop_use(static_cast<int64>(part.size));
+  TRY_STATUS(parts_manager_.on_part_ok(part.id, part.size, size));
+  on_progress();
   return Status::OK();
 }
 

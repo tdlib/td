@@ -6,8 +6,9 @@
 //
 #include "td/telegram/DialogActionBar.h"
 
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/logging.h"
 
@@ -18,11 +19,6 @@ unique_ptr<DialogActionBar> DialogActionBar::create(bool can_report_spam, bool c
                                                     bool can_unarchive, int32 distance, bool can_invite_members,
                                                     string join_request_dialog_title, bool is_join_request_broadcast,
                                                     int32 join_request_date) {
-  if (!can_report_spam && !can_add_contact && !can_block_user && !can_share_phone_number && !can_report_location &&
-      !can_invite_members && join_request_dialog_title.empty()) {
-    return nullptr;
-  }
-
   auto action_bar = make_unique<DialogActionBar>();
   action_bar->can_report_spam_ = can_report_spam;
   action_bar->can_add_contact_ = can_add_contact;
@@ -35,6 +31,9 @@ unique_ptr<DialogActionBar> DialogActionBar::create(bool can_report_spam, bool c
   action_bar->join_request_dialog_title_ = std::move(join_request_dialog_title);
   action_bar->is_join_request_broadcast_ = is_join_request_broadcast;
   action_bar->join_request_date_ = join_request_date;
+  if (action_bar->is_empty()) {
+    return nullptr;
+  }
   return action_bar;
 }
 
@@ -96,8 +95,8 @@ void DialogActionBar::fix(Td *td, DialogId dialog_id, bool is_dialog_blocked, Fo
     }
   }
   if (can_invite_members_) {
-    if (dialog_type != DialogType::Chat && (dialog_type != DialogType::Channel ||
-                                            td->contacts_manager_->is_broadcast_channel(dialog_id.get_channel_id()))) {
+    if (dialog_type != DialogType::Chat &&
+        (dialog_type != DialogType::Channel || td->chat_manager_->is_broadcast_channel(dialog_id.get_channel_id()))) {
       LOG(ERROR) << "Receive can_invite_members in " << dialog_id;
       can_invite_members_ = false;
     } else if (can_report_spam_ || can_add_contact_ || can_block_user_ || can_share_phone_number_ || can_unarchive_) {
@@ -113,9 +112,9 @@ void DialogActionBar::fix(Td *td, DialogId dialog_id, bool is_dialog_blocked, Fo
   }
   if (dialog_type == DialogType::User) {
     auto user_id = dialog_id.get_user_id();
-    bool is_me = user_id == td->contacts_manager_->get_my_id();
-    bool is_deleted = td->contacts_manager_->is_user_deleted(user_id);
-    bool is_contact = td->contacts_manager_->is_user_contact(user_id);
+    bool is_me = user_id == td->user_manager_->get_my_id();
+    bool is_deleted = td->user_manager_->is_user_deleted(user_id);
+    bool is_contact = td->user_manager_->is_user_contact(user_id);
     if (is_me || is_dialog_blocked) {
       can_report_spam_ = false;
       can_unarchive_ = false;
@@ -194,7 +193,7 @@ td_api::object_ptr<td_api::ChatActionBar> DialogActionBar::get_chat_action_bar_o
     CHECK(dialog_type == DialogType::Channel);
     CHECK(!can_share_phone_number_ && !can_block_user_ && !can_add_contact_ && !can_report_spam_ &&
           !can_invite_members_);
-    return td_api::make_object<td_api::chatActionBarReportUnrelatedLocation>();
+    return nullptr;
   }
   if (can_invite_members_) {
     CHECK(!can_share_phone_number_ && !can_block_user_ && !can_add_contact_ && !can_report_spam_);
@@ -215,7 +214,7 @@ td_api::object_ptr<td_api::ChatActionBar> DialogActionBar::get_chat_action_bar_o
   if (can_block_user_) {
     CHECK(dialog_type == DialogType::User);
     CHECK(can_report_spam_ && can_add_contact_);
-    return td_api::make_object<td_api::chatActionBarReportAddBlock>(can_unarchive_, distance_);
+    return td_api::make_object<td_api::chatActionBarReportAddBlock>(can_unarchive_);
   }
   if (can_add_contact_) {
     CHECK(dialog_type == DialogType::User);

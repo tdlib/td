@@ -2,7 +2,6 @@ if ((CMAKE_MAJOR_VERSION LESS 3) OR (CMAKE_VERSION VERSION_LESS "3.0.2"))
   message(FATAL_ERROR "CMake >= 3.0.2 is required")
 endif()
 
-#SOURCE SETS
 set(TDTL_SOURCE
   td/tl/tl_config.cpp
   td/tl/tl_core.cpp
@@ -27,5 +26,3 @@ set(TDTL_SOURCE
 
 add_library(tdtl STATIC ${TDTL_SOURCE})
 target_include_directories(tdtl PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
-#TODO
-#target_compile_options(tdtl PRIVATE "-std=c++03")

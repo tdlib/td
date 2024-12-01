@@ -60,13 +60,13 @@ void AuthKeyHandshake::set_timeout_in(double timeout_in) {
 
 void AuthKeyHandshake::clear() {
   last_query_ = string();
-  state_ = Start;
+  state_ = State::Start;
   start_time_ = Time::now();
   timeout_in_ = 1e9;
 }
 
 bool AuthKeyHandshake::is_ready_for_finish() const {
-  return state_ == Finish;
+  return state_ == State::Finish;
 }
 
 void AuthKeyHandshake::on_finish() {
@@ -156,7 +156,7 @@ Status AuthKeyHandshake::on_res_pq(Slice message, Callback *connection, PublicRs
 
   mtproto_api::req_DH_params req_dh_params(nonce_, server_nonce_, p, q, rsa_key.fingerprint, encrypted_data);
   send(connection, create_function_storer(req_dh_params));
-  state_ = ServerDHParams;
+  state_ = State::ServerDHParams;
   return Status::OK();
 }
 
@@ -250,7 +250,7 @@ Status AuthKeyHandshake::on_server_dh_params(Slice message, Callback *connection
 
   server_salt_ = as<int64>(new_nonce_.raw) ^ as<int64>(server_nonce_.raw);
 
-  state_ = DHGenResponse;
+  state_ = State::DHGenResponse;
   return Status::OK();
 }
 
@@ -272,7 +272,7 @@ Status AuthKeyHandshake::on_dh_gen_response(Slice message, Callback *connection)
       if (dh_gen_ok->new_nonce_hash1_.as_slice() != Slice(new_nonce_hash).substr(4)) {
         return Status::Error("New nonce hash mismatch");
       }
-      state_ = Finish;
+      state_ = State::Finish;
       return Status::OK();
     }
     case mtproto_api::dh_gen_fail::ID:
@@ -298,10 +298,10 @@ void AuthKeyHandshake::do_send(Callback *connection, const Storer &storer) {
 }
 
 void AuthKeyHandshake::resume(Callback *connection) {
-  if (state_ == Start) {
+  if (state_ == State::Start) {
     return on_start(connection).ignore();
   }
-  if (state_ == Finish) {
+  if (state_ == State::Finish) {
     LOG(ERROR) << "State is Finish during resume. UNREACHABLE";
     return clear();
   }
@@ -314,13 +314,13 @@ void AuthKeyHandshake::resume(Callback *connection) {
 }
 
 Status AuthKeyHandshake::on_start(Callback *connection) {
-  if (state_ != Start) {
+  if (state_ != State::Start) {
     clear();
     return Status::Error(PSLICE() << "on_start called after start " << tag("state", state_));
   }
   Random::secure_bytes(nonce_.raw, sizeof(nonce_));
   send(connection, create_function_storer(mtproto_api::req_pq_multi(nonce_)));
-  state_ = ResPQ;
+  state_ = State::ResPQ;
 
   return Status::OK();
 }
@@ -328,20 +328,38 @@ Status AuthKeyHandshake::on_start(Callback *connection) {
 Status AuthKeyHandshake::on_message(Slice message, Callback *connection, AuthKeyHandshakeContext *context) {
   Status status = [&] {
     switch (state_) {
-      case ResPQ:
+      case State::ResPQ:
         return on_res_pq(message, connection, context->get_public_rsa_key_interface());
-      case ServerDHParams:
+      case State::ServerDHParams:
         return on_server_dh_params(message, connection, context->get_dh_callback());
-      case DHGenResponse:
+      case State::DHGenResponse:
         return on_dh_gen_response(message, connection);
       default:
         UNREACHABLE();
     }
   }();
   if (status.is_error()) {
+    LOG(WARNING) << "Failed to process hasdshake response in state " << state_ << ": " << status.message();
     clear();
   }
   return status;
+}
+
+StringBuilder &operator<<(StringBuilder &string_builder, const AuthKeyHandshake::State &state) {
+  switch (state) {
+    case AuthKeyHandshake::State::Start:
+      return string_builder << "Start";
+    case AuthKeyHandshake::State::ResPQ:
+      return string_builder << "ResPQ";
+    case AuthKeyHandshake::State::ServerDHParams:
+      return string_builder << "ServerDHParams";
+    case AuthKeyHandshake::State::DHGenResponse:
+      return string_builder << "DHGenResponse";
+    case AuthKeyHandshake::State::Finish:
+      return string_builder << "Finish";
+    default:
+      UNREACHABLE();
+  }
 }
 
 }  // namespace mtproto

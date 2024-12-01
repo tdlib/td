@@ -35,10 +35,15 @@ class NetQueryCreator {
                      NetQuery::Type type = NetQuery::Type::Common);
 
   NetQueryPtr create_unauth(const telegram_api::Function &function, DcId dc_id = DcId::main()) {
-    return create(UniqueId::next(), function, {}, dc_id, NetQuery::Type::Common, NetQuery::AuthFlag::Off);
+    return create(UniqueId::next(), nullptr, function, {}, dc_id, NetQuery::Type::Common, NetQuery::AuthFlag::Off);
   }
 
-  NetQueryPtr create(uint64 id, const telegram_api::Function &function, vector<ChainId> &&chain_ids, DcId dc_id,
+  NetQueryPtr create_with_prefix(const telegram_api::object_ptr<telegram_api::Function> &prefix,
+                                 const telegram_api::Function &function, DcId dc_id, vector<ChainId> chain_ids = {},
+                                 NetQuery::Type type = NetQuery::Type::Common);
+
+  NetQueryPtr create(uint64 id, const telegram_api::object_ptr<telegram_api::Function> &prefix,
+                     const telegram_api::Function &function, vector<ChainId> &&chain_ids, DcId dc_id,
                      NetQuery::Type type, NetQuery::AuthFlag auth_flag);
 
  private:

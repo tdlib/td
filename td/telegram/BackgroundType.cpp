@@ -89,6 +89,9 @@ BackgroundFill::BackgroundFill(const telegram_api::wallPaperSettings *settings) 
   } else {
     bottom_color_ = top_color_;
   }
+  if (get_type() != Type::Gradient) {
+    rotation_angle_ = 0;
+  }
 }
 
 Result<BackgroundFill> BackgroundFill::get_background_fill(const td_api::BackgroundFill *fill) {
@@ -238,6 +241,11 @@ bool operator==(const BackgroundFill &lhs, const BackgroundFill &rhs) {
          lhs.fourth_color_ == rhs.fourth_color_;
 }
 
+StringBuilder &operator<<(StringBuilder &string_builder, const BackgroundFill &fill) {
+  return string_builder << "BackgroundFill[" << fill.top_color_ << '~' << fill.bottom_color_ << '~' << fill.third_color_
+                        << '~' << fill.fourth_color_ << ':' << fill.rotation_angle_ << ']';
+}
+
 string BackgroundType::get_mime_type() const {
   CHECK(has_file());
   return type_ == Type::Pattern ? "image/png" : "image/jpeg";
@@ -340,6 +348,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const BackgroundType &t
       UNREACHABLE();
       break;
   }
+  // string_builder << ' ' << type.is_blurred_ << ' ' << type.is_moving_ << ' ' << type.intensity_ << ' ' << type.fill_
+  //                << ' ' << type.theme_name_ << ' ';
   return string_builder << '[' << type.get_link() << ']';
 }
 

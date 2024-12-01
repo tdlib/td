@@ -126,6 +126,7 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
       case LogEvent::HandlerType::DeleteTopicHistoryOnServer:
       case LogEvent::HandlerType::ToggleDialogIsTranslatableOnServer:
       case LogEvent::HandlerType::ToggleDialogViewAsMessagesOnServer:
+      case LogEvent::HandlerType::SendQuickReplyShortcutMessages:
         events.to_messages_manager.push_back(event.clone());
         break;
       case LogEvent::HandlerType::DeleteStoryOnServer:
@@ -136,6 +137,7 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
         events.to_story_manager.push_back(event.clone());
         break;
       case LogEvent::HandlerType::UpdateScopeNotificationSettingsOnServer:
+      case LogEvent::HandlerType::UpdateReactionNotificationSettingsOnServer:
         events.to_notification_settings_manager.push_back(event.clone());
         break;
       case LogEvent::HandlerType::AddMessagePushNotification:
@@ -658,6 +660,13 @@ Status TdDb::check_parameters(Parameters &parameters) {
   }
 
   return Status::OK();
+}
+
+DbKey TdDb::as_db_key(string key) {
+  if (key.empty()) {
+    return DbKey::raw_key("cucumber");
+  }
+  return DbKey::raw_key(std::move(key));
 }
 
 void TdDb::change_key(DbKey key, Promise<> promise) {

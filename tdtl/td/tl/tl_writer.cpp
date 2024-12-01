@@ -70,7 +70,7 @@ bool TL_writer::is_combinator_supported(const tl_combinator *constructor) const 
       if (a.flags & FLAG_EXCL) {
         assert(t->var_num >= 0);
         if (is_function_result[t->var_num]) {
-          return false;  // lazy to check that result of two function calls is the same
+          return false;  // lazy to check that results of two function calls are the same
         }
         is_function_result[t->var_num] = true;
       } else {

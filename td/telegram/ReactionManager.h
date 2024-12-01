@@ -8,6 +8,7 @@
 
 #include "td/telegram/ChatReactions.h"
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/MessageEffectId.h"
 #include "td/telegram/ReactionListType.h"
 #include "td/telegram/ReactionType.h"
 #include "td/telegram/ReactionUnavailabilityReason.h"
@@ -60,7 +61,7 @@ class ReactionManager final : public Actor {
 
   void reload_reactions();
 
-  void reload_reaction_list(ReactionListType reaction_list_type);
+  void reload_reaction_list(ReactionListType reaction_list_type, const char *source);
 
   void on_get_reaction_list(ReactionListType reaction_list_type,
                             tl_object_ptr<telegram_api::messages_Reactions> &&reactions_ptr);
@@ -80,6 +81,10 @@ class ReactionManager final : public Actor {
                                   const vector<ReactionType> &new_tags);
 
   void set_saved_messages_tag_title(ReactionType reaction_type, string title, Promise<Unit> &&promise);
+
+  void reload_message_effects();
+
+  void get_message_effect(MessageEffectId effect_id, Promise<td_api::object_ptr<td_api::messageEffect>> &&promise);
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
@@ -189,6 +194,56 @@ class ReactionManager final : public Actor {
     void parse(ParserT &parser);
   };
 
+  struct Effect {
+    MessageEffectId id_;
+    string emoji_;
+    FileId static_icon_id_;
+    FileId effect_sticker_id_;
+    FileId effect_animation_id_;
+    bool is_premium_ = false;
+
+    bool is_valid() const {
+      return id_.is_valid() && effect_sticker_id_.is_valid();
+    }
+
+    bool is_sticker() const {
+      return effect_animation_id_ == FileId();
+    }
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
+  };
+
+  struct Effects {
+    int32 hash_ = 0;
+    bool are_being_reloaded_ = false;
+    vector<Effect> effects_;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
+  };
+
+  struct ActiveEffects {
+    vector<MessageEffectId> reaction_effects_;
+    vector<MessageEffectId> sticker_effects_;
+
+    bool is_empty() const {
+      return reaction_effects_.empty() && sticker_effects_.empty();
+    }
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
+  };
+
   td_api::object_ptr<td_api::emojiReaction> get_emoji_reaction_object(const string &emoji) const;
 
   ReactionList &get_reaction_list(ReactionListType reaction_list_type);
@@ -233,12 +288,31 @@ class ReactionManager final : public Actor {
   void send_update_saved_messages_tags(SavedMessagesTopicId saved_messages_topic_id, const SavedReactionTags *tags,
                                        bool from_database = false);
 
+  td_api::object_ptr<td_api::messageEffect> get_message_effect_object(const Effect &effect) const;
+
+  td_api::object_ptr<td_api::messageEffect> get_message_effect_object(MessageEffectId effect_id) const;
+
+  td_api::object_ptr<td_api::updateAvailableMessageEffects> get_update_available_message_effects_object() const;
+
+  void load_message_effects();
+
+  void save_message_effects();
+
+  void on_get_message_effects(Result<telegram_api::object_ptr<telegram_api::messages_AvailableEffects>> r_effects);
+
+  void save_active_message_effects();
+
+  void load_active_message_effects();
+
+  void update_active_message_effects();
+
   Td *td_;
   ActorShared<> parent_;
 
   bool is_inited_ = false;
   bool are_reactions_loaded_from_database_ = false;
   bool are_all_tags_loaded_from_database_ = false;
+  bool are_message_effects_loaded_from_database_ = false;
 
   vector<std::pair<string, Promise<td_api::object_ptr<td_api::emojiReaction>>>> pending_get_emoji_reaction_queries_;
 
@@ -254,6 +328,12 @@ class ReactionManager final : public Actor {
   FlatHashMap<SavedMessagesTopicId, vector<Promise<td_api::object_ptr<td_api::savedMessagesTags>>>,
               SavedMessagesTopicIdHash>
       pending_get_topic_saved_reaction_tags_queries_;
+
+  Effects message_effects_;
+  ActiveEffects active_message_effects_;
+
+  vector<std::pair<MessageEffectId, Promise<td_api::object_ptr<td_api::messageEffect>>>>
+      pending_get_message_effect_queries_;
 };
 
 }  // namespace td

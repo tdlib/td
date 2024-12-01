@@ -52,8 +52,7 @@ class GiveawayParameters {
       , prize_description_(std::move(prize_description)) {
   }
 
-  static Result<GiveawayParameters> get_giveaway_parameters(Td *td,
-                                                            const td_api::premiumGiveawayParameters *parameters);
+  static Result<GiveawayParameters> get_giveaway_parameters(Td *td, const td_api::giveawayParameters *parameters);
 
   bool is_valid() const {
     for (auto channel_id : additional_channel_ids_) {
@@ -75,7 +74,10 @@ class GiveawayParameters {
   telegram_api::object_ptr<telegram_api::inputStorePaymentPremiumGiveaway> get_input_store_payment_premium_giveaway(
       Td *td, const string &currency, int64 amount) const;
 
-  td_api::object_ptr<td_api::premiumGiveawayParameters> get_premium_giveaway_parameters_object(Td *td) const;
+  telegram_api::object_ptr<telegram_api::inputStorePaymentStarsGiveaway> get_input_store_payment_stars_giveaway(
+      Td *td, const string &currency, int64 amount, int32 user_count, int64 star_count) const;
+
+  td_api::object_ptr<td_api::giveawayParameters> get_giveaway_parameters_object(Td *td) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;

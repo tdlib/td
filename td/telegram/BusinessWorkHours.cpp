@@ -6,9 +6,15 @@
 //
 #include "td/telegram/BusinessWorkHours.h"
 
+#include "td/telegram/AuthManager.h"
+#include "td/telegram/OptionManager.h"
+#include "td/telegram/Td.h"
+#include "td/telegram/TimeZoneManager.h"
+
 #include "td/utils/algorithm.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 
 #include <algorithm>
 
@@ -68,6 +74,46 @@ td_api::object_ptr<td_api::businessOpeningHours> BusinessWorkHours::get_business
   return td_api::make_object<td_api::businessOpeningHours>(time_zone_id_, std::move(intervals));
 }
 
+td_api::object_ptr<td_api::businessOpeningHours> BusinessWorkHours::get_local_business_opening_hours_object(
+    Td *td) const {
+  if (is_empty() || td->auth_manager_->is_bot()) {
+    return nullptr;
+  }
+
+  auto offset = (td->time_zone_manager_->get_time_zone_offset(time_zone_id_) -
+                 narrow_cast<int32>(td->option_manager_->get_option_integer("utc_time_offset"))) /
+                60;
+  if (offset == 0) {
+    return get_business_opening_hours_object();
+  }
+
+  BusinessWorkHours local_work_hours;
+  for (auto &interval : work_hours_) {
+    auto start_minute = interval.start_minute_ - offset;
+    auto end_minute = interval.end_minute_ - offset;
+    if (start_minute < 0) {
+      if (end_minute <= 24 * 60) {
+        start_minute += 7 * 24 * 60;
+        end_minute += 7 * 24 * 60;
+      } else {
+        local_work_hours.work_hours_.emplace_back(start_minute + 7 * 24 * 60, 7 * 24 * 60);
+        start_minute = 0;
+      }
+    } else if (end_minute > 8 * 24 * 60) {
+      if (start_minute >= 7 * 24 * 60) {
+        start_minute -= 7 * 24 * 60;
+        end_minute -= 7 * 24 * 60;
+      } else {
+        local_work_hours.work_hours_.emplace_back(0, end_minute - 7 * 24 * 60);
+        end_minute = 7 * 24 * 60;
+      }
+    }
+    local_work_hours.work_hours_.emplace_back(start_minute, end_minute);
+  }
+  local_work_hours.sanitize_work_hours();
+  return local_work_hours.get_business_opening_hours_object();
+}
+
 telegram_api::object_ptr<telegram_api::businessWorkHours> BusinessWorkHours::get_input_business_work_hours() const {
   if (is_empty()) {
     return nullptr;
@@ -76,6 +122,31 @@ telegram_api::object_ptr<telegram_api::businessWorkHours> BusinessWorkHours::get
       0, false, time_zone_id_, transform(work_hours_, [](const WorkHoursInterval &interval) {
         return interval.get_input_business_weekly_open();
       }));
+}
+
+int32 BusinessWorkHours::get_next_open_close_in(Td *td, int32 unix_time, bool is_close) const {
+  if (is_empty()) {
+    return 0;
+  }
+  auto get_week_time = [](int32 time) {
+    const auto week_length = 7 * 86400;
+    return ((time % week_length) + week_length) % week_length;
+  };
+  // the Unix time 0 was on a Thursday, the first Monday was at 4 * 86400
+  auto current_week_time = get_week_time(unix_time - 4 * 86400);
+  auto offset = td->time_zone_manager_->get_time_zone_offset(time_zone_id_);
+  int32 result = 1000000000;
+  for (auto &interval : work_hours_) {
+    auto change_week_time = get_week_time((is_close ? interval.end_minute_ : interval.start_minute_) * 60 - offset);
+    auto wait_time = change_week_time - current_week_time;
+    if (wait_time < 0) {
+      wait_time += 7 * 86400;
+    }
+    if (wait_time < result) {
+      result = wait_time;
+    }
+  }
+  return result;
 }
 
 void BusinessWorkHours::sanitize_work_hours() {
@@ -139,7 +210,7 @@ void BusinessWorkHours::combine_work_hour_intervals() {
   auto max_minute = work_hours_[0].start_minute_ + 7 * 24 * 60;
   if (work_hours_.back().end_minute_ > max_minute || work_hours_.back().start_minute_ >= 7 * 24 * 60) {
     auto size = work_hours_.size();
-    for (size_t i = 1; i < size; i++) {
+    for (size_t i = 0; i < size; i++) {
       if (work_hours_[i].start_minute_ >= 7 * 24 * 60) {
         work_hours_[i].start_minute_ -= 7 * 24 * 60;
         work_hours_[i].end_minute_ -= 7 * 24 * 60;
@@ -148,6 +219,7 @@ void BusinessWorkHours::combine_work_hour_intervals() {
         work_hours_[i].end_minute_ = max_minute;
       }
     }
+    LOG(INFO) << "Need to normalize " << work_hours_;
     combine_work_hour_intervals();
   }
 }

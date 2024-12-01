@@ -15,7 +15,7 @@
 
 namespace td {
 
-class ContactsManager;
+class UserManager;
 
 class MessageViewer {
   UserId user_id_;
@@ -37,7 +37,7 @@ class MessageViewer {
     return user_id_ == UserId() && date_ == 0;
   }
 
-  td_api::object_ptr<td_api::messageViewer> get_message_viewer_object(ContactsManager *contacts_manager) const;
+  td_api::object_ptr<td_api::messageViewer> get_message_viewer_object(UserManager *user_manager) const;
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageViewer &viewer);
@@ -54,7 +54,7 @@ class MessageViewers {
 
   vector<UserId> get_user_ids() const;
 
-  td_api::object_ptr<td_api::messageViewers> get_message_viewers_object(ContactsManager *contacts_manager) const;
+  td_api::object_ptr<td_api::messageViewers> get_message_viewers_object(UserManager *user_manager) const;
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageViewers &viewers);

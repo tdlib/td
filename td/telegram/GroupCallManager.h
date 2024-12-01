@@ -215,6 +215,8 @@ class GroupCallManager final : public Actor {
 
   static const string &get_group_call_title(const GroupCall *group_call);
 
+  static bool get_group_call_is_joined(const GroupCall *group_call);
+
   static bool get_group_call_start_subscribed(const GroupCall *group_call);
 
   static bool get_group_call_is_my_video_paused(const GroupCall *group_call);
@@ -233,13 +235,15 @@ class GroupCallManager final : public Actor {
 
   static bool get_group_call_can_enable_video(const GroupCall *group_call);
 
+  static bool is_group_call_active(const GroupCall *group_call);
+
   bool need_group_call_participants(InputGroupCallId input_group_call_id) const;
 
-  bool need_group_call_participants(InputGroupCallId input_group_call_id, const GroupCall *group_call) const;
+  static bool need_group_call_participants(const GroupCall *group_call);
 
   bool process_pending_group_call_participant_updates(InputGroupCallId input_group_call_id);
 
-  bool is_my_audio_source(InputGroupCallId input_group_call_id, const GroupCall *group_call, int32 audio_source);
+  bool is_my_audio_source(InputGroupCallId input_group_call_id, const GroupCall *group_call, int32 audio_source) const;
 
   void sync_group_call_participants(InputGroupCallId input_group_call_id);
 
@@ -277,7 +281,7 @@ class GroupCallManager final : public Actor {
 
   void finish_load_group_call_administrators(InputGroupCallId input_group_call_id, Result<DialogParticipants> &&result);
 
-  int32 cancel_join_group_call_request(InputGroupCallId input_group_call_id);
+  int32 cancel_join_group_call_request(InputGroupCallId input_group_call_id, GroupCall *group_call);
 
   int32 cancel_join_group_call_presentation_request(InputGroupCallId input_group_call_id);
 
@@ -287,9 +291,10 @@ class GroupCallManager final : public Actor {
 
   void process_group_call_after_join_requests(InputGroupCallId input_group_call_id, const char *source);
 
-  GroupCallParticipants *add_group_call_participants(InputGroupCallId input_group_call_id);
+  GroupCallParticipants *add_group_call_participants(InputGroupCallId input_group_call_id, const char *source);
 
-  GroupCallParticipant *get_group_call_participant(InputGroupCallId input_group_call_id, DialogId dialog_id);
+  GroupCallParticipant *get_group_call_participant(InputGroupCallId input_group_call_id, DialogId dialog_id,
+                                                   const char *source);
 
   GroupCallParticipant *get_group_call_participant(GroupCallParticipants *group_call_participants,
                                                    DialogId dialog_id) const;

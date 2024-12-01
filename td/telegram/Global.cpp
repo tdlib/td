@@ -9,10 +9,12 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/net/ConnectionCreator.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
+#include "td/telegram/net/NetQueryStats.h"
 #include "td/telegram/net/TempAuthKeyWatchdog.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/TdDb.h"
+#include "td/telegram/UpdatesManager.h"
 
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
@@ -341,6 +343,10 @@ void Global::add_location_access_hash(double latitude, double longitude, int64 a
   }
 
   location_access_hashes_[get_location_key(latitude, longitude)] = access_hash;
+}
+
+void Global::notify_speed_limited(bool is_upload) {
+  send_closure(updates_manager_, &UpdatesManager::notify_speed_limited, is_upload);
 }
 
 double get_global_server_time() {

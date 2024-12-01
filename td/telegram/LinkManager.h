@@ -68,6 +68,8 @@ class LinkManager final : public Actor {
   void update_autologin_domains(vector<string> autologin_domains, vector<string> url_auth_domains,
                                 vector<string> whitelisted_domains);
 
+  void get_recent_me_urls(const string &referrer, Promise<td_api::object_ptr<td_api::tMeUrls>> &&promise);
+
   void get_deep_link_info(Slice link, Promise<td_api::object_ptr<td_api::deepLinkInfo>> &&promise);
 
   void get_external_link_info(string &&link, Promise<td_api::object_ptr<td_api::LoginUrlInfo>> &&promise);
@@ -84,6 +86,8 @@ class LinkManager final : public Actor {
   static Result<string> get_background_url(const string &name,
                                            td_api::object_ptr<td_api::BackgroundType> background_type);
 
+  static td_api::object_ptr<td_api::BackgroundType> get_background_type_object(const string &link, bool is_pattern);
+
   static string get_dialog_filter_invite_link_slug(Slice invite_link);
 
   static string get_dialog_filter_invite_link(Slice slug, bool is_internal);
@@ -98,7 +102,7 @@ class LinkManager final : public Actor {
 
   static string get_instant_view_link(Slice url, Slice rhash);
 
-  static string get_public_dialog_link(Slice username, bool is_internal);
+  static string get_public_dialog_link(Slice username, Slice draft_text, bool open_profile, bool is_internal);
 
   static Result<string> get_proxy_link(const Proxy &proxy, bool is_internal);
 
@@ -124,6 +128,8 @@ class LinkManager final : public Actor {
   class InternalLinkBotAddToChannel;
   class InternalLinkBotStart;
   class InternalLinkBotStartInGroup;
+  class InternalLinkBusinessChat;
+  class InternalLinkBuyStars;
   class InternalLinkChangePhoneNumber;
   class InternalLinkConfirmPhone;
   class InternalLinkDefaultMessageAutoDeleteTimerSettings;
@@ -137,6 +143,7 @@ class LinkManager final : public Actor {
   class InternalLinkInvoice;
   class InternalLinkLanguage;
   class InternalLinkLanguageSettings;
+  class InternalLinkMainWebApp;
   class InternalLinkMessage;
   class InternalLinkMessageDraft;
   class InternalLinkPassportDataRequest;
@@ -149,7 +156,6 @@ class LinkManager final : public Actor {
   class InternalLinkQrCodeAuthentication;
   class InternalLinkRestorePurchases;
   class InternalLinkSettings;
-  class InternalLinkSideMenuBot;
   class InternalLinkStickerSet;
   class InternalLinkStory;
   class InternalLinkTheme;

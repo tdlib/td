@@ -13,7 +13,6 @@
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageSelfDestructType.h"
 #include "td/telegram/MessagesManager.h"
-#include "td/telegram/misc.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
@@ -45,6 +44,7 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
     telegram_api::object_ptr<telegram_api::InputReplyTo> input_reply_to;
     vector<telegram_api::object_ptr<telegram_api::MessageEntity>> input_message_entities;
     telegram_api::object_ptr<telegram_api::InputMedia> media;
+    int64 message_effect_id = 0;
     if (draft_message != nullptr) {
       CHECK(!draft_message->is_local());
       input_reply_to = draft_message->message_input_reply_to_.get_input_reply_to(td_, MessageId() /*TODO*/);
@@ -57,7 +57,7 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
         flags |= telegram_api::messages_saveDraft::INVERT_MEDIA_MASK;
       }
       input_message_entities = get_input_message_entities(
-          td_->contacts_manager_.get(), draft_message->input_message_text_.text.entities, "SaveDraftMessageQuery");
+          td_->user_manager_.get(), draft_message->input_message_text_.text.entities, "SaveDraftMessageQuery");
       if (!input_message_entities.empty()) {
         flags |= telegram_api::messages_saveDraft::ENTITIES_MASK;
       }
@@ -65,12 +65,16 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
       if (media != nullptr) {
         flags |= telegram_api::messages_saveDraft::MEDIA_MASK;
       }
+      if (draft_message->message_effect_id_.is_valid()) {
+        flags |= telegram_api::messages_saveDraft::EFFECT_MASK;
+        message_effect_id = draft_message->message_effect_id_.get();
+      }
     }
     send_query(G()->net_query_creator().create(
         telegram_api::messages_saveDraft(
             flags, false /*ignored*/, false /*ignored*/, std::move(input_reply_to), std::move(input_peer),
             draft_message == nullptr ? string() : draft_message->input_message_text_.text.text,
-            std::move(input_message_entities), std::move(media)),
+            std::move(input_message_entities), std::move(media), message_effect_id),
         {{dialog_id}}));
   }
 
@@ -382,7 +386,8 @@ bool DraftMessage::need_update_to(const DraftMessage &other, bool from_update) c
   if (is_local()) {
     return !from_update || other.is_local();
   }
-  if (message_input_reply_to_ == other.message_input_reply_to_ && input_message_text_ == other.input_message_text_) {
+  if (message_input_reply_to_ == other.message_input_reply_to_ && input_message_text_ == other.input_message_text_ &&
+      message_effect_id_ == other.message_effect_id_) {
     return date_ < other.date_;
   } else {
     return !from_update || date_ <= other.date_;
@@ -399,26 +404,18 @@ td_api::object_ptr<td_api::draftMessage> DraftMessage::get_draft_message_object(
   if (local_content_ != nullptr) {
     input_message_content = local_content_->get_draft_input_message_content_object();
   } else {
-    input_message_content = input_message_text_.get_input_message_text_object();
+    input_message_content = input_message_text_.get_input_message_text_object(td->user_manager_.get());
   }
   return td_api::make_object<td_api::draftMessage>(message_input_reply_to_.get_input_message_reply_to_object(td), date_,
-                                                   std::move(input_message_content));
+                                                   std::move(input_message_content), message_effect_id_.get());
 }
 
 DraftMessage::DraftMessage(Td *td, telegram_api::object_ptr<telegram_api::draftMessage> &&draft_message) {
   CHECK(draft_message != nullptr);
   date_ = draft_message->date_;
   message_input_reply_to_ = MessageInputReplyTo(td, std::move(draft_message->reply_to_));
-  auto entities =
-      get_message_entities(td->contacts_manager_.get(), std::move(draft_message->entities_), "draftMessage");
-  auto status = fix_formatted_text(draft_message->message_, entities, true, true, true, true, true);
-  if (status.is_error()) {
-    LOG(ERROR) << "Receive error " << status << " while parsing draft " << draft_message->message_;
-    if (!clean_input_string(draft_message->message_)) {
-      draft_message->message_.clear();
-    }
-    entities = find_entities(draft_message->message_, false, true);
-  }
+  auto draft_text = get_formatted_text(td->user_manager_.get(), std::move(draft_message->message_),
+                                       std::move(draft_message->entities_), true, true, "DraftMessage");
   string web_page_url;
   bool force_small_media = false;
   bool force_large_media = false;
@@ -435,9 +432,9 @@ DraftMessage::DraftMessage(Td *td, telegram_api::object_ptr<telegram_api::draftM
       force_large_media = media->force_large_media_;
     }
   }
-  input_message_text_ = InputMessageText(FormattedText{std::move(draft_message->message_), std::move(entities)},
-                                         std::move(web_page_url), draft_message->no_webpage_, force_small_media,
-                                         force_large_media, draft_message->invert_media_, false);
+  input_message_text_ = InputMessageText(std::move(draft_text), std::move(web_page_url), draft_message->no_webpage_,
+                                         force_small_media, force_large_media, draft_message->invert_media_, false);
+  message_effect_id_ = MessageEffectId(draft_message->effect_);
 }
 
 Result<unique_ptr<DraftMessage>> DraftMessage::get_draft_message(
@@ -448,8 +445,9 @@ Result<unique_ptr<DraftMessage>> DraftMessage::get_draft_message(
   }
 
   auto result = make_unique<DraftMessage>();
-  result->message_input_reply_to_ = td->messages_manager_->get_message_input_reply_to(
+  result->message_input_reply_to_ = td->messages_manager_->create_message_input_reply_to(
       dialog_id, top_thread_message_id, std::move(draft_message->reply_to_), true);
+  result->message_effect_id_ = MessageEffectId(draft_message->effect_id_);
 
   auto input_message_content = std::move(draft_message->input_message_text_);
   if (input_message_content != nullptr) {

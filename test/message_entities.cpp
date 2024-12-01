@@ -29,7 +29,7 @@ static void check_mention(const td::string &str, const td::vector<td::string> &e
     result.push_back(it.str());
   }
   if (result != expected) {
-    LOG(FATAL) << td::tag("text", str) << td::tag("got", td::format::as_array(result))
+    LOG(FATAL) << td::tag("text", str) << td::tag("receive", td::format::as_array(result))
                << td::tag("expected", td::format::as_array(expected));
   }
 }
@@ -60,7 +60,7 @@ static void check_bot_command(const td::string &str, const td::vector<td::string
     result.push_back(it.str());
   }
   if (result != expected) {
-    LOG(FATAL) << td::tag("text", str) << td::tag("got", td::format::as_array(result))
+    LOG(FATAL) << td::tag("text", str) << td::tag("receive", td::format::as_array(result))
                << td::tag("expected", td::format::as_array(expected));
   }
 }
@@ -84,7 +84,7 @@ static void check_hashtag(const td::string &str, const td::vector<td::string> &e
     result.push_back(it.str());
   }
   if (result != expected) {
-    LOG(FATAL) << td::tag("text", str) << td::tag("got", td::format::as_array(result))
+    LOG(FATAL) << td::tag("text", str) << td::tag("receive", td::format::as_array(result))
                << td::tag("expected", td::format::as_array(expected));
   }
 }
@@ -112,6 +112,13 @@ TEST(MessageEntities, hashtag) {
   check_hashtag(" #" + td::string(255, '1') + "a" + td::string(255, 'b') + "# ", {});
   check_hashtag("#a#b #c #d", {"#c", "#d"});
   check_hashtag("#test", {"#test"});
+  check_hashtag("#test@", {"#test"});
+  check_hashtag("#test@a", {"#test"});
+  check_hashtag("#test@ab", {"#test"});
+  check_hashtag("#test@abc", {"#test@abc"});
+  check_hashtag("#test@a-c", {"#test"});
+  check_hashtag("#test@abcdefghijabcdefghijabcdefghijab", {"#test@abcdefghijabcdefghijabcdefghijab"});
+  check_hashtag("#test@abcdefghijabcdefghijabcdefghijabc", {"#test@abcdefghijabcdefghijabcdefghijab"});
   check_hashtag("#te·st", {"#te·st"});
   check_hashtag(u8"\U0001F604\U0001F604\U0001F604\U0001F604 \U0001F604\U0001F604\U0001F604#" + td::string(200, '1') +
                     "ООО" + td::string(200, '2'),
@@ -119,6 +126,13 @@ TEST(MessageEntities, hashtag) {
   check_hashtag(u8"#a\u2122", {"#a"});
   check_hashtag("#a൹", {"#a"});
   check_hashtag("#aඁං෴ก฿", {"#aඁං෴ก"});
+  check_hashtag(
+      "#a12345678901234561234567890123456123456789012345612345678901234561234567890123456123456789012345612345678901234"
+      "5612345678901234561234567890123456123456789012345612345678901234561234567890123456123456789012345612345678901234"
+      "5612345678901234561234567890123456",
+      {"#a1234567890123456123456789012345612345678901234561234567890123456123456789012345612345678901234561234567890123"
+       "456123456789012345612345678901234561234567890123456123456789012345612345678901234561234567890123456123456789012"
+       "34561234567890123456123456789012345"});
 }
 
 static void check_cashtag(const td::string &str, const td::vector<td::string> &expected) {
@@ -128,7 +142,7 @@ static void check_cashtag(const td::string &str, const td::vector<td::string> &e
     result.push_back(it.str());
   }
   if (result != expected) {
-    LOG(FATAL) << td::tag("text", str) << td::tag("got", td::format::as_array(result))
+    LOG(FATAL) << td::tag("text", str) << td::tag("receive", td::format::as_array(result))
                << td::tag("expected", td::format::as_array(expected));
   }
 }
@@ -169,6 +183,13 @@ TEST(MessageEntities, cashtag) {
   check_cashtag(" А$ABC ", {});
   check_cashtag("$ABC$DEF $GHI $KLM", {"$GHI", "$KLM"});
   check_cashtag("$TEST", {"$TEST"});
+  check_cashtag("$TEST@", {"$TEST"});
+  check_cashtag("$TEST@a", {"$TEST"});
+  check_cashtag("$TEST@ab", {"$TEST"});
+  check_cashtag("$TEST@abc", {"$TEST@abc"});
+  check_cashtag("$TEST@a-c", {"$TEST"});
+  check_cashtag("$TEST@abcdefghijabcdefghijabcdefghijab", {"$TEST@abcdefghijabcdefghijabcdefghijab"});
+  check_cashtag("$TEST@abcdefghijabcdefghijabcdefghijabc", {"$TEST"});
   check_cashtag("$1INC", {});
   check_cashtag("$1INCH", {"$1INCH"});
   check_cashtag("...$1INCH...", {"$1INCH"});
@@ -190,7 +211,7 @@ static void check_media_timestamp(const td::string &str, const td::vector<std::p
   auto result = td::transform(td::find_media_timestamps(str),
                               [](auto &&entity) { return std::make_pair(entity.first.str(), entity.second); });
   if (result != expected) {
-    LOG(FATAL) << td::tag("text", str) << td::tag("got", td::format::as_array(result))
+    LOG(FATAL) << td::tag("text", str) << td::tag("receive", td::format::as_array(result))
                << td::tag("expected", td::format::as_array(expected));
   }
 }
@@ -235,7 +256,7 @@ static void check_bank_card_number(const td::string &str, const td::vector<td::s
     result.push_back(it.str());
   }
   if (result != expected) {
-    LOG(FATAL) << td::tag("text", str) << td::tag("got", td::format::as_array(result))
+    LOG(FATAL) << td::tag("text", str) << td::tag("receive", td::format::as_array(result))
                << td::tag("expected", td::format::as_array(expected));
   }
 }
@@ -284,7 +305,7 @@ static void check_tg_url(const td::string &str, const td::vector<td::string> &ex
     result.push_back(it.str());
   }
   if (result != expected) {
-    LOG(FATAL) << td::tag("text", str) << td::tag("got", td::format::as_array(result))
+    LOG(FATAL) << td::tag("text", str) << td::tag("receive", td::format::as_array(result))
                << td::tag("expected", td::format::as_array(expected));
   }
 }
@@ -464,11 +485,11 @@ static void check_url(const td::string &str, const td::vector<td::string> &expec
     }
   }
   if (result_urls != expected_urls) {
-    LOG(FATAL) << td::tag("text", str) << td::tag("got", td::format::as_array(result_urls))
+    LOG(FATAL) << td::tag("text", str) << td::tag("receive", td::format::as_array(result_urls))
                << td::tag("expected", td::format::as_array(expected_urls));
   }
   if (result_email_addresses != expected_email_addresses) {
-    LOG(FATAL) << td::tag("text", str) << td::tag("got", td::format::as_array(result_email_addresses))
+    LOG(FATAL) << td::tag("text", str) << td::tag("receive", td::format::as_array(result_email_addresses))
                << td::tag("expected", td::format::as_array(expected_email_addresses));
   }
 }
@@ -501,6 +522,10 @@ TEST(MessageEntities, url) {
   check_url("ftp://telegram.org", {"ftp://telegram.org"});
   check_url("ftps://telegram.org", {});
   check_url("sftp://telegram.org", {});
+  check_url("tonsite://telegram.ton", {"tonsite://telegram.ton"});
+  check_url("telegram.ton", {"telegram.ton"});
+  check_url("telegram.onion", {"telegram.onion"});
+  check_url("telegram.tonsite", {});
   check_url("hTtPs://telegram.org", {"hTtPs://telegram.org"});
   check_url("HTTP://telegram.org", {"HTTP://telegram.org"});
   check_url("аHTTP://telegram.org", {"HTTP://telegram.org"});
@@ -1160,7 +1185,9 @@ TEST(MessageEntities, fix_formatted_text) {
 
       if (keep_url && ((1 << static_cast<td::int32>(entity.type)) & splittable_mask) == 0 &&
           !(end <= url_offset || url_end <= offset)) {
-        keep_url = (entity.type == td::MessageEntity::Type::BlockQuote && offset <= url_offset && url_end <= end);
+        keep_url = ((entity.type == td::MessageEntity::Type::BlockQuote ||
+                     entity.type == td::MessageEntity::Type::ExpandableBlockQuote) &&
+                    offset <= url_offset && url_end <= end);
       }
     }
     ASSERT_EQ(keep_url, std::count(entities.begin(), entities.end(), url_entity) == 1);
@@ -1183,7 +1210,8 @@ TEST(MessageEntities, fix_formatted_text) {
           // pre can't contain other entities
           ASSERT_TRUE((type_mask & pre_mask) == 0);
 
-          if ((type_mask & splittable_mask) == 0 && entities[i].type != td::MessageEntity::Type::BlockQuote) {
+          if ((type_mask & splittable_mask) == 0 && entities[i].type != td::MessageEntity::Type::BlockQuote &&
+              entities[i].type != td::MessageEntity::Type::ExpandableBlockQuote) {
             // continuous entities can contain only splittable entities
             ASSERT_TRUE(((1 << static_cast<td::int32>(entities[j].type)) & splittable_mask) != 0);
           }
@@ -1243,8 +1271,7 @@ TEST(MessageEntities, parse_html) {
   check_parse_html("🏟 🏟&lt;<abac aba>", "Unsupported start tag \"abac\" at byte offset 13");
   check_parse_html("🏟 🏟&lt;<abac>", "Unsupported start tag \"abac\" at byte offset 13");
   check_parse_html("🏟 🏟&lt;<i   =aba>", "Empty attribute name in the tag \"i\" at byte offset 13");
-  check_parse_html("🏟 🏟&lt;<i    aba>",
-                   "Expected equal sign in declaration of an attribute of the tag \"i\" at byte offset 13");
+  check_parse_html("🏟 🏟&lt;<i    aba>", "Can't find end tag corresponding to start tag \"i\"");
   check_parse_html("🏟 🏟&lt;<i    aba  =  ", "Unclosed start tag \"i\" at byte offset 13");
   check_parse_html("🏟 🏟&lt;<i    aba  =  190azAz-.,", "Unexpected end of name token at byte offset 27");
   check_parse_html("🏟 🏟&lt;<i    aba  =  \"&lt;&gt;&quot;>", "Unclosed start tag at byte offset 13");
@@ -1352,8 +1379,14 @@ TEST(MessageEntities, parse_html) {
   check_parse_html("🏟 🏟<b aba   =   caba><tg-emoji emoji-id=\"1\">🏟</tg-emoji>1</b>", "🏟 🏟🏟1",
                    {{td::MessageEntity::Type::Bold, 5, 3},
                     {td::MessageEntity::Type::CustomEmoji, 5, 2, td::CustomEmojiId(static_cast<td::int64>(1))}});
-  check_parse_html("<blockquote   cite=\"\">a&lt;<pre  >b;</></>", "a<b;",
+  check_parse_html("<blockquote   cite=\"\" askdlbas nasjdbaj nj12b3>a&lt;<pre  >b;</></>", "a<b;",
                    {{td::MessageEntity::Type::BlockQuote, 0, 4}, {td::MessageEntity::Type::Pre, 2, 2}});
+  check_parse_html("<blockquote   expandable>a&lt;<pre  >b;</></>", "a<b;",
+                   {{td::MessageEntity::Type::ExpandableBlockQuote, 0, 4}, {td::MessageEntity::Type::Pre, 2, 2}});
+  check_parse_html("<blockquote   expandable   asd>a&lt;<pre  >b;</></>", "a<b;",
+                   {{td::MessageEntity::Type::ExpandableBlockQuote, 0, 4}, {td::MessageEntity::Type::Pre, 2, 2}});
+  check_parse_html("<blockquote   expandable=false>a&lt;<pre  >b;</></>", "a<b;",
+                   {{td::MessageEntity::Type::ExpandableBlockQuote, 0, 4}, {td::MessageEntity::Type::Pre, 2, 2}});
 }
 
 static void check_parse_markdown(td::string text, const td::string &result,
@@ -1425,6 +1458,10 @@ TEST(MessageEntities, parse_markdown) {
   check_parse_markdown("🏟 🏟![👍](tg://emoji?test=1231&id=025)", "Invalid custom emoji identifier specified");
   check_parse_markdown(">*b\n>ld \n>bo\nld*\nasd\ndef", "Can't find end of Bold entity at byte offset 1");
   check_parse_markdown(">\n*a*>2", "Character '>' is reserved and must be escaped with the preceding '\\'");
+  check_parse_markdown(">asd\n>q||e||w||\n||asdad", "Can't find end of Spoiler entity at byte offset 16");
+  check_parse_markdown(">asd\n>q||ew\n||asdad", "Can't find end of Spoiler entity at byte offset 7");
+  check_parse_markdown(">asd\n>q||e||w__\n||asdad", "Can't find end of Underline entity at byte offset 13");
+  check_parse_markdown(">asd\n>q||e||w||a\n||asdad", "Can't find end of Spoiler entity at byte offset 13");
 
   check_parse_markdown("", "", {});
   check_parse_markdown("\\\\", "\\", {});
@@ -1520,6 +1557,7 @@ TEST(MessageEntities, parse_markdown) {
                        {{td::MessageEntity::Type::BlockQuote, 0, 1}, {td::MessageEntity::Type::BlockQuote, 2, 1}});
   check_parse_markdown(">\n**>2", "\n2",
                        {{td::MessageEntity::Type::BlockQuote, 0, 1}, {td::MessageEntity::Type::BlockQuote, 1, 1}});
+  check_parse_markdown(">**\n>2", "\n2", {{td::MessageEntity::Type::BlockQuote, 0, 2}});
   // check_parse_markdown("*>abcd*", "abcd",
   //                      {{td::MessageEntity::Type::BlockQuote, 0, 4}, {td::MessageEntity::Type::Bold, 0, 4}});
   check_parse_markdown(">*abcd*", "abcd",
@@ -1532,6 +1570,27 @@ TEST(MessageEntities, parse_markdown) {
                        {{td::MessageEntity::Type::BlockQuote, 0, 5}, {td::MessageEntity::Type::Bold, 0, 5}});
   check_parse_markdown("abc\n>def\n>def\n\r>ghi2\njkl", "abc\ndef\ndef\n\rghi2\njkl",
                        {{td::MessageEntity::Type::BlockQuote, 4, 8}, {td::MessageEntity::Type::BlockQuote, 13, 5}});
+  check_parse_markdown(
+      ">asd\n>q||e||w||\nasdad", "asd\nqew\nasdad",
+      {{td::MessageEntity::Type::ExpandableBlockQuote, 0, 8}, {td::MessageEntity::Type::Spoiler, 5, 1}});
+  check_parse_markdown(">asd\n>q||ew||\nasdad", "asd\nqew\nasdad",
+                       {{td::MessageEntity::Type::BlockQuote, 0, 8}, {td::MessageEntity::Type::Spoiler, 5, 2}});
+  check_parse_markdown(
+      ">asd\r\n>q||e||w||\r\nasdad", "asd\r\nqew\r\nasdad",
+      {{td::MessageEntity::Type::ExpandableBlockQuote, 0, 10}, {td::MessageEntity::Type::Spoiler, 6, 1}});
+  check_parse_markdown(">asd\r\n>q||ew||\r\nasdad", "asd\r\nqew\r\nasdad",
+                       {{td::MessageEntity::Type::BlockQuote, 0, 10}, {td::MessageEntity::Type::Spoiler, 6, 2}});
+  check_parse_markdown(
+      ">asd\r\n>q||e||w||\r\n", "asd\r\nqew\r\n",
+      {{td::MessageEntity::Type::ExpandableBlockQuote, 0, 10}, {td::MessageEntity::Type::Spoiler, 6, 1}});
+  check_parse_markdown(">asd\r\n>q||ew||\r\n", "asd\r\nqew\r\n",
+                       {{td::MessageEntity::Type::BlockQuote, 0, 10}, {td::MessageEntity::Type::Spoiler, 6, 2}});
+  check_parse_markdown(
+      ">asd\r\n>q||e||w||", "asd\r\nqew",
+      {{td::MessageEntity::Type::ExpandableBlockQuote, 0, 8}, {td::MessageEntity::Type::Spoiler, 6, 1}});
+  check_parse_markdown(">asd\r\n>q||ew||", "asd\r\nqew",
+                       {{td::MessageEntity::Type::BlockQuote, 0, 8}, {td::MessageEntity::Type::Spoiler, 6, 2}});
+  check_parse_markdown(">||", "", {});
 }
 
 static void check_parse_markdown_v3(td::string text, td::vector<td::MessageEntity> entities,

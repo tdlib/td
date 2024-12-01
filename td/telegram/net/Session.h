@@ -32,7 +32,6 @@
 
 #include <array>
 #include <deque>
-#include <functional>
 #include <map>
 #include <memory>
 #include <utility>
@@ -136,17 +135,18 @@ class Session final
   FlatHashSet<mtproto::MessageId, mtproto::MessageIdHash> unknown_queries_;
   vector<mtproto::MessageId> to_cancel_message_ids_;
 
-  // Do not invalidate iterators of these two containers!
-  // TODO: better data structures
-  struct PriorityQueue {
-    void push(NetQueryPtr query);
-    NetQueryPtr pop();
-    bool empty() const;
+  class PendingQueries {
+    VectorQueue<NetQueryPtr> regular_queries_;
+    VectorQueue<NetQueryPtr> high_priority_queries_;
 
-   private:
-    std::map<int8, VectorQueue<NetQueryPtr>, std::greater<>> queries_;
+   public:
+    void push(NetQueryPtr query);
+
+    NetQueryPtr pop();
+
+    bool empty() const;
   };
-  PriorityQueue pending_queries_;
+  PendingQueries pending_queries_;
   std::map<mtproto::MessageId, Query> sent_queries_;
   std::deque<NetQueryPtr> pending_invoke_after_queries_;
   ListNode sent_queries_list_;
@@ -208,7 +208,7 @@ class Session final
   void on_connected() final;
   void on_closed(Status status) final;
 
-  Status on_pong() final;
+  Status on_pong(double ping_time, double pong_time, double current_time) final;
 
   void on_network(bool network_flag, uint32 network_generation);
   void on_online(bool online_flag);
@@ -240,10 +240,10 @@ class Session final
   void flush_pending_invoke_after_queries();
   bool has_queries() const;
 
-  void dec_container(mtproto::MessageId container_message_id, Query *query);
-  void cleanup_container(mtproto::MessageId container_message_id, Query *query);
-  void mark_as_known(mtproto::MessageId message_id, Query *query);
-  void mark_as_unknown(mtproto::MessageId message_id, Query *query);
+  void dec_container(mtproto::MessageId container_message_id, const Query &query);
+  void cleanup_container(mtproto::MessageId container_message_id, const Query &query);
+  void mark_as_known(mtproto::MessageId message_id, Query &query);
+  void mark_as_unknown(mtproto::MessageId message_id, Query &query);
 
   void on_message_ack_impl(mtproto::MessageId container_message_id, int32 type);
   void on_message_ack_impl_inner(mtproto::MessageId message_id, int32 type, bool in_container);

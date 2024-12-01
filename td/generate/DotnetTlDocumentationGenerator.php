@@ -177,8 +177,11 @@ EOT
     protected function addFieldDocumentation($class_name, $field_name, $type_name, $field_info, $may_be_null)
     {
         $end = ';';
-        if (substr($type_name, 0, strlen($field_name)) === $field_name) {
+        if ($type_name == $field_name.'^' || ($type_name == 'Message^' && $field_name == 'ReplyToMessage')) {
             $type_name = '::Telegram::Td::Api::'.$type_name;
+            $end = ' {';
+        } else if ($class_name == "WebPage" && $field_name == "Stickers" && $type_name == "Array<Sticker^>^") {
+            $type_name = 'Array<::Telegram::Td::Api::Sticker^>^';
             $end = ' {';
         }
         $full_line = $class_name."  property $type_name $field_name$end";

@@ -88,5 +88,12 @@ CFlags: -I\"${PKGCONFIG_INCLUDEDIR}\"
 Libs: -L\"${PKGCONFIG_LIBDIR}\" -l${TARGET}
 ${REQUIRES}${LIBRARIES}")
 
-  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/${TARGET}.pc" DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
+  get_target_property(LIBRARY_TYPE "${TARGET}" TYPE)
+  if (LIBRARY_TYPE STREQUAL "STATIC_LIBRARY" OR LIBRARY_TYPE STREQUAL "SHARED_LIBRARY")
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/${TARGET}.pc" DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
+  elseif (LIBRARY_TYPE STREQUAL "INTERFACE_LIBRARY")
+    # TODO: support interface libraries
+  else()
+    message(FATAL_ERROR "Don't know how to handle ${TARGET} of type ${LIBRARY_TYPE}")
+  endif()
 endfunction()

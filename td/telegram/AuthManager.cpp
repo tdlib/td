@@ -9,7 +9,6 @@
 #include "td/telegram/AttachMenuManager.h"
 #include "td/telegram/AuthManager.hpp"
 #include "td/telegram/ConfigManager.h"
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogFilterManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
@@ -20,8 +19,10 @@
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/NewPasswordState.h"
 #include "td/telegram/NotificationManager.h"
+#include "td/telegram/OnlineManager.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/PasswordManager.h"
+#include "td/telegram/PromoDataManager.h"
 #include "td/telegram/ReactionManager.h"
 #include "td/telegram/SendCodeHelper.hpp"
 #include "td/telegram/StateManager.h"
@@ -29,9 +30,12 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/TermsOfService.hpp"
+#include "td/telegram/TermsOfServiceManager.h"
 #include "td/telegram/ThemeManager.h"
 #include "td/telegram/TopDialogManager.h"
 #include "td/telegram/UpdatesManager.h"
+#include "td/telegram/UserManager.h"
 #include "td/telegram/Version.h"
 
 #include "td/utils/base64.h"
@@ -287,7 +291,7 @@ AuthManager::AuthManager(int32 api_id, const string &api_hash, ActorShared<> par
     if (is_bot_str == "true") {
       is_bot_ = true;
     }
-    auto my_id = ContactsManager::load_my_id();
+    auto my_id = UserManager::load_my_id();
     if (my_id.is_valid()) {
       // just in case
       LOG(INFO) << "Logged in as " << my_id;
@@ -295,8 +299,8 @@ AuthManager::AuthManager(int32 api_id, const string &api_hash, ActorShared<> par
       update_state(State::Ok);
     } else {
       LOG(ERROR) << "Restore unknown my_id";
-      ContactsManager::send_get_me_query(
-          td_, PromiseCreator::lambda([this](Result<Unit> result) { update_state(State::Ok); }));
+      UserManager::send_get_me_query(td_,
+                                     PromiseCreator::lambda([this](Result<Unit> result) { update_state(State::Ok); }));
     }
     G()->net_query_dispatcher().check_authorization_is_ok();
   } else if (auth_str == "logout") {
@@ -539,6 +543,15 @@ void AuthManager::set_firebase_token(uint64 query_id, string token) {
                   G()->net_query_creator().create_unauth(send_code_helper_.request_firebase_sms(token)));
 }
 
+void AuthManager::report_missing_code(uint64 query_id, string mobile_network_code) {
+  if (state_ != State::WaitCode) {
+    return on_query_error(query_id, Status::Error(400, "Call to reportAuthenticationCodeMissing unexpected"));
+  }
+  G()->net_query_dispatcher().dispatch_with_callback(
+      G()->net_query_creator().create_unauth(send_code_helper_.report_missing_code(mobile_network_code)),
+      actor_shared(this));
+}
+
 void AuthManager::set_email_address(uint64 query_id, string email_address) {
   if (state_ != State::WaitEmailAddress) {
     if (state_ == State::WaitEmailCode && net_query_id_ == 0) {
@@ -559,7 +572,7 @@ void AuthManager::set_email_address(uint64 query_id, string email_address) {
                   G()->net_query_creator().create_unauth(send_code_helper_.send_verify_email_code(email_address_)));
 }
 
-void AuthManager::resend_authentication_code(uint64 query_id) {
+void AuthManager::resend_authentication_code(uint64 query_id, td_api::object_ptr<td_api::ResendCodeReason> &&reason) {
   if (state_ != State::WaitCode) {
     if (state_ == State::WaitEmailCode) {
       on_new_query(query_id);
@@ -571,7 +584,7 @@ void AuthManager::resend_authentication_code(uint64 query_id) {
     return on_query_error(query_id, Status::Error(400, "Call to resendAuthenticationCode unexpected"));
   }
 
-  auto r_resend_code = send_code_helper_.resend_code();
+  auto r_resend_code = send_code_helper_.resend_code(std::move(reason));
   if (r_resend_code.is_error()) {
     return on_query_error(query_id, r_resend_code.move_as_error());
   }
@@ -739,7 +752,7 @@ void AuthManager::send_log_out_query() {
   // we can lose authorization while logging out, but still may need to resend the request,
   // so we pretend that it doesn't require authorization
   auto query = G()->net_query_creator().create_unauth(telegram_api::auth_logOut());
-  query->set_priority(1);
+  query->make_high_priority();
   start_net_query(NetQueryType::LogOut, std::move(query));
 }
 
@@ -1143,7 +1156,7 @@ void AuthManager::on_account_banned() const {
     return;
   }
   LOG(ERROR) << "Your account was banned for suspicious activity. If you think that this is a mistake, please try to "
-                "log in from an official mobile app and send a email to recover the account by following instructions "
+                "log in from an official mobile app and send an email to recover the account by following instructions "
                 "provided by the app";
 }
 
@@ -1233,9 +1246,9 @@ void AuthManager::on_get_authorization(tl_object_ptr<telegram_api::auth_Authoriz
       user->self_ = true;
     }
   }
-  td_->contacts_manager_->on_get_user(std::move(auth->user_), "on_get_authorization");
+  td_->user_manager_->on_get_user(std::move(auth->user_), "on_get_authorization");
   update_state(State::Ok);
-  if (!td_->contacts_manager_->get_my_id().is_valid()) {
+  if (!td_->user_manager_->get_my_id().is_valid()) {
     LOG(ERROR) << "Server didsn't send proper authorization";
     on_current_query_error(Status::Error(500, "Server didn't send proper authorization"));
     log_out(0);
@@ -1256,18 +1269,16 @@ void AuthManager::on_get_authorization(tl_object_ptr<telegram_api::auth_Authoriz
   td_->dialog_filter_manager_->on_authorization_success();  // must be after MessagesManager::on_authorization_success()
                                                             // to have folders created
   td_->notification_manager_->init();
+  td_->online_manager_->init();
+  td_->promo_data_manager_->init();
   td_->reaction_manager_->init();
   td_->stickers_manager_->init();
+  td_->terms_of_service_manager_->init();
   td_->theme_manager_->init();
   td_->top_dialog_manager_->init();
   td_->updates_manager_->get_difference("on_get_authorization");
   if (!is_bot()) {
-    td_->on_online_updated(false, true);
-    td_->schedule_get_terms_of_service(0);
-    td_->reload_promo_data();
     G()->td_db()->get_binlog_pmc()->set("fetched_marks_as_unread", "1");
-  } else {
-    td_->set_is_bot_online(true);
   }
   send_closure(G()->config_manager(), &ConfigManager::request_config, false);
   on_current_query_ok();

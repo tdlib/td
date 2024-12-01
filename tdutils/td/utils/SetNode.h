@@ -14,7 +14,7 @@
 
 namespace td {
 
-template <class KeyT, class Enable = void>
+template <class KeyT, class EqT, class Enable = void>
 struct SetNode {
   using public_key_type = KeyT;
   using public_type = const KeyT;
@@ -54,7 +54,7 @@ struct SetNode {
   }
 
   bool empty() const {
-    return is_hash_table_key_empty(first);
+    return is_hash_table_key_empty<EqT>(first);
   }
 
   void clear() {
@@ -67,8 +67,8 @@ struct SetNode {
   }
 };
 
-template <class KeyT>
-struct SetNode<KeyT, typename std::enable_if_t<(sizeof(KeyT) > 28 * sizeof(void *))>> {
+template <class KeyT, class EqT>
+struct SetNode<KeyT, EqT, typename std::enable_if_t<(sizeof(KeyT) > 28 * sizeof(void *))>> {
   struct Impl {
     using second_type = KeyT;
 
@@ -76,7 +76,7 @@ struct SetNode<KeyT, typename std::enable_if_t<(sizeof(KeyT) > 28 * sizeof(void 
 
     template <class InputKeyT>
     explicit Impl(InputKeyT &&key) : first(std::forward<InputKeyT>(key)) {
-      DCHECK(!is_hash_table_key_empty(first));
+      DCHECK(!is_hash_table_key_empty<EqT>(first));
     }
     Impl(const Impl &) = delete;
     Impl &operator=(const Impl &) = delete;

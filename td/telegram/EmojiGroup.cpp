@@ -14,24 +14,54 @@
 
 namespace td {
 
-EmojiGroup::EmojiGroup(telegram_api::object_ptr<telegram_api::emojiGroup> &&emoji_group)
-    : title_(std::move(emoji_group->title_))
-    , icon_custom_emoji_id_(emoji_group->icon_emoji_id_)
-    , emojis_(std::move(emoji_group->emoticons_)) {
+EmojiGroup::EmojiGroup(telegram_api::object_ptr<telegram_api::EmojiGroup> &&emoji_group_ptr) {
+  switch (emoji_group_ptr->get_id()) {
+    case telegram_api::emojiGroup::ID: {
+      auto emoji_group = telegram_api::move_object_as<telegram_api::emojiGroup>(emoji_group_ptr);
+      title_ = std::move(emoji_group->title_);
+      icon_custom_emoji_id_ = CustomEmojiId(emoji_group->icon_emoji_id_);
+      emojis_ = std::move(emoji_group->emoticons_);
+      break;
+    }
+    case telegram_api::emojiGroupGreeting::ID: {
+      auto emoji_group = telegram_api::move_object_as<telegram_api::emojiGroupGreeting>(emoji_group_ptr);
+      title_ = std::move(emoji_group->title_);
+      icon_custom_emoji_id_ = CustomEmojiId(emoji_group->icon_emoji_id_);
+      emojis_ = std::move(emoji_group->emoticons_);
+      is_greeting_ = true;
+      break;
+    }
+    case telegram_api::emojiGroupPremium::ID: {
+      auto emoji_group = telegram_api::move_object_as<telegram_api::emojiGroupPremium>(emoji_group_ptr);
+      title_ = std::move(emoji_group->title_);
+      icon_custom_emoji_id_ = CustomEmojiId(emoji_group->icon_emoji_id_);
+      is_premium_ = true;
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
 }
 
 td_api::object_ptr<td_api::emojiCategory> EmojiGroup::get_emoji_category_object(
     StickersManager *stickers_manager) const {
+  auto source = [&]() -> td_api::object_ptr<td_api::EmojiCategorySource> {
+    if (is_premium_) {
+      return td_api::make_object<td_api::emojiCategorySourcePremium>();
+    }
+    return td_api::make_object<td_api::emojiCategorySourceSearch>(vector<string>(emojis_));
+  }();
   return td_api::make_object<td_api::emojiCategory>(
-      title_, stickers_manager->get_custom_emoji_sticker_object(icon_custom_emoji_id_), vector<string>(emojis_));
+      title_, stickers_manager->get_custom_emoji_sticker_object(icon_custom_emoji_id_), std::move(source),
+      is_greeting_);
 }
 
 EmojiGroupList::EmojiGroupList(string used_language_codes, int32 hash,
-                               vector<telegram_api::object_ptr<telegram_api::emojiGroup>> &&emoji_groups)
+                               vector<telegram_api::object_ptr<telegram_api::EmojiGroup>> &&emoji_groups)
     : used_language_codes_(std::move(used_language_codes))
     , hash_(hash)
     , emoji_groups_(transform(std::move(emoji_groups),
-                              [](telegram_api::object_ptr<telegram_api::emojiGroup> &&emoji_group) {
+                              [](telegram_api::object_ptr<telegram_api::EmojiGroup> &&emoji_group) {
                                 return EmojiGroup(std::move(emoji_group));
                               }))
     , next_reload_time_(Time::now() + 3600) {

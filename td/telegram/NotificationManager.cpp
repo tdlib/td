@@ -9,7 +9,6 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
-#include "td/telegram/ContactsManager.h"
 #include "td/telegram/DeviceTokenManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Document.h"
@@ -22,20 +21,22 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/net/ConnectionCreator.h"
 #include "td/telegram/net/DcId.h"
+#include "td/telegram/OnlineManager.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/Photo.hpp"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/ServerMessageId.h"
+#include "td/telegram/StarManager.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/StoryId.h"
 #include "td/telegram/StoryManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/mtproto/AuthKey.h"
-#include "td/mtproto/mtproto_api.h"
 #include "td/mtproto/PacketInfo.h"
 #include "td/mtproto/Transport.h"
 
@@ -620,14 +621,14 @@ void NotificationManager::on_get_notifications_from_database(NotificationGroupId
   auto first_notification_id = get_first_notification_id(group);
   if (first_notification_id.is_valid()) {
     while (!notifications.empty() && notifications.back().notification_id.get() >= first_notification_id.get()) {
-      // possible if notifications was added after the database request was sent
+      // possible if notifications were added after the database request was sent
       notifications.pop_back();
     }
   }
   auto first_object_id = get_first_object_id(group);
   if (first_object_id.is_valid()) {
     while (!notifications.empty() && notifications.back().type->get_object_id() >= first_object_id) {
-      // possible if notifications was added after the database request was sent
+      // possible if notifications were added after the database request was sent
       notifications.pop_back();
     }
   }
@@ -846,7 +847,7 @@ int32 NotificationManager::get_notification_delay_ms(DialogId dialog_id, const P
 
   auto server_time = G()->server_time();
   auto delay_ms = [&] {
-    auto online_info = td_->contacts_manager_->get_my_online_status();
+    auto online_info = td_->user_manager_->get_my_online_status();
     if (!online_info.is_online_local && online_info.is_online_remote) {
       // If we are offline, but online from some other client, then delay notification
       // for 'notification_cloud_delay' seconds.
@@ -2789,7 +2790,7 @@ void NotificationManager::process_push_notification(string payload, Promise<Unit
     }
   }
 
-  if (!td_->is_online()) {
+  if (!td_->online_manager_->is_online()) {
     // reset online flag to false to immediately check all connections aliveness
     send_closure(G()->state_manager(), &StateManager::on_online, false);
   }
@@ -2832,6 +2833,9 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
       }
       if (loc_key == "MESSAGE_AUDIO") {
         return "MESSAGE_VOICE_NOTE";
+      }
+      if (loc_key == "PINNED_PAID_MEDIA") {
+        return "PINNED_MESSAGE_PAID_MEDIA";
       }
       break;
     case 'C':
@@ -2894,6 +2898,9 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
       if (loc_key == "MESSAGE_GIVEAWAY") {
         return "MESSAGE_GIVEAWAY";
       }
+      if (loc_key == "MESSAGE_GIVEAWAY_STARS") {
+        return "MESSAGE_GIVEAWAY_STARS";
+      }
       break;
     case 'H':
       if (loc_key == "PINNED_PHOTO") {
@@ -2909,6 +2916,9 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
       }
       if (loc_key == "PINNED_GIVEAWAY") {
         return "PINNED_MESSAGE_GIVEAWAY";
+      }
+      if (loc_key == "PINNED_GIVEAWAY_STARS") {
+        return "PINNED_MESSAGE_GIVEAWAY_STARS";
       }
       if (loc_key == "MESSAGE_INVOICE") {
         return "MESSAGE_INVOICE";
@@ -2971,6 +2981,9 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
       if (loc_key == "MESSAGE_POLL") {
         return "MESSAGE_POLL";
       }
+      if (loc_key == "MESSAGE_PAID_MEDIA") {
+        return "MESSAGE_PAID_MEDIA";
+      }
       break;
     case 'Q':
       if (loc_key == "MESSAGE_QUIZ") {
@@ -2991,6 +3004,9 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
       }
       if (loc_key == "MESSAGE_SCREENSHOT") {
         return "MESSAGE_SCREENSHOT_TAKEN";
+      }
+      if (loc_key == "MESSAGE_STARGIFT") {
+        return "MESSAGE_STARGIFT";
       }
       if (loc_key == "MESSAGE_STICKER") {
         return "MESSAGE_STICKER";
@@ -3080,10 +3096,10 @@ void NotificationManager::add_push_notification_user(
       false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
       false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
       false /*ignored*/, 0, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-      false /*ignored*/, sender_user_id.get(), sender_access_hash, user_name, string(), string(), string(),
-      std::move(sender_photo), nullptr, 0, Auto(), string(), string(), nullptr,
-      vector<telegram_api::object_ptr<telegram_api::username>>(), 0, nullptr, nullptr);
-  td_->contacts_manager_->on_get_user(std::move(user), "add_push_notification_user");
+      false /*ignored*/, false /*ignored*/, false /*ignored*/, sender_user_id.get(), sender_access_hash, user_name,
+      string(), string(), string(), std::move(sender_photo), nullptr, 0, Auto(), string(), string(), nullptr,
+      vector<telegram_api::object_ptr<telegram_api::username>>(), 0, nullptr, nullptr, 0);
+  td_->user_manager_->on_get_user(std::move(user), "add_push_notification_user");
 }
 
 Status NotificationManager::parse_push_notification_attach(DialogId dialog_id, string &loc_key, JsonObject &custom,
@@ -3100,14 +3116,14 @@ Status NotificationManager::parse_push_notification_attach(DialogId dialog_id, s
     return Status::Error(PSLICE() << "Failed to parse attach: " << gzip_parser.get_error());
   }
   BufferSlice buffer;
-  if (id == mtproto_api::gzip_packed::ID) {
-    mtproto_api::gzip_packed gzip(gzip_parser);
+  static constexpr int32 GZIP_PACKED_ID = 812830625;
+  if (id == GZIP_PACKED_ID) {
+    auto packed_data = gzip_parser.template fetch_string<Slice>();
     gzip_parser.fetch_end();
     if (gzip_parser.get_error()) {
-      return Status::Error(PSLICE() << "Failed to parse mtproto_api::gzip_packed in attach: "
-                                    << gzip_parser.get_error());
+      return Status::Error(PSLICE() << "Failed to parse gzip_packed in attach: " << gzip_parser.get_error());
     }
-    buffer = gzdecode(gzip.packed_data_);
+    buffer = gzdecode(packed_data);
     if (buffer.empty()) {
       return Status::Error("Failed to uncompress attach");
     }
@@ -3564,6 +3580,27 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     arg = PSTRING() << user_count << ' ' << month_count;
     loc_args.clear();
   }
+  if (loc_key == "MESSAGE_GIVEAWAY_STARS") {
+    if (loc_args.size() != 2) {
+      return Status::Error("Expected 2 arguments for MESSAGE_GIVEAWAY_STARS");
+    }
+    TRY_RESULT(user_count, to_integer_safe<int32>(loc_args[0]));
+    if (user_count <= 0) {
+      return Status::Error("Expected user count to be non-negative");
+    }
+    TRY_RESULT(star_count, to_integer_safe<int64>(loc_args[1]));
+    arg = PSTRING() << user_count << ' ' << StarManager::get_star_count(star_count);
+    loc_args.clear();
+  }
+  if (loc_key == "MESSAGE_PAID_MEDIA") {
+    if (loc_args.size() != 1) {
+      return Status::Error("Expected 1 argument for MESSAGE_PAID_MEDIA");
+    }
+    TRY_RESULT(star_count, to_integer_safe<int64>(loc_args[0]));
+    star_count = StarManager::get_star_count(star_count);
+    arg = to_string(star_count);
+    loc_args.clear();
+  }
   if (loc_args.size() > 1) {
     return Status::Error("Receive too many arguments");
   }
@@ -3573,7 +3610,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
   }
 
   if (sender_user_id.is_valid() &&
-      !td_->contacts_manager_->have_user_force(sender_user_id, "process_push_notification_payload")) {
+      !td_->user_manager_->have_user_force(sender_user_id, "process_push_notification_payload")) {
     int64 sender_access_hash = -1;
     telegram_api::object_ptr<telegram_api::UserProfilePhoto> sender_photo;
     TRY_RESULT(mtpeer, custom.extract_optional_field("mtpeer", JsonValue::Type::Object));
@@ -3847,7 +3884,7 @@ void NotificationManager::add_message_push_notification(DialogId dialog_id, Mess
   }
 
   if (sender_user_id.is_valid() &&
-      !td_->contacts_manager_->have_user_force(sender_user_id, "add_message_push_notification")) {
+      !td_->user_manager_->have_user_force(sender_user_id, "add_message_push_notification")) {
     add_push_notification_user(sender_user_id, -1, sender_name, nullptr);
   }
 
@@ -3875,8 +3912,7 @@ void NotificationManager::add_message_push_notification(DialogId dialog_id, Mess
   auto group_id = info.group_id;
   CHECK(group_id.is_valid());
 
-  bool is_outgoing =
-      sender_user_id.is_valid() ? td_->contacts_manager_->get_my_id() == sender_user_id : is_from_scheduled;
+  bool is_outgoing = sender_user_id.is_valid() ? td_->user_manager_->get_my_id() == sender_user_id : is_from_scheduled;
   if (log_event_id != 0) {
     VLOG(notifications) << "Register temporary " << notification_id << " with log event " << log_event_id;
     NotificationObjectFullId object_full_id(dialog_id, message_id);

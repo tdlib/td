@@ -13,9 +13,9 @@
 
 namespace td {
 
-template <class KeyT>
+template <class EqT, class KeyT>
 bool is_hash_table_key_empty(const KeyT &key) {
-  return key == KeyT();
+  return EqT()(key, KeyT());
 }
 
 inline uint32 randomize_hash(uint32 h) {

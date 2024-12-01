@@ -19,6 +19,8 @@ EmojiGroupType get_emoji_group_type(const td_api::object_ptr<td_api::EmojiCatego
       return EmojiGroupType::EmojiStatus;
     case td_api::emojiCategoryTypeChatPhoto::ID:
       return EmojiGroupType::ProfilePhoto;
+    case td_api::emojiCategoryTypeRegularStickers::ID:
+      return EmojiGroupType::RegularStickers;
     default:
       UNREACHABLE();
       return EmojiGroupType::Default;
@@ -33,6 +35,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, EmojiGroupType emoji_gr
       return string_builder << "EmojiStatus";
     case EmojiGroupType::ProfilePhoto:
       return string_builder << "ChatPhoto";
+    case EmojiGroupType::RegularStickers:
+      return string_builder << "RegularStickers";
     default:
       UNREACHABLE();
       return string_builder;

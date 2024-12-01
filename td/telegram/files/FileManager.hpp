@@ -31,13 +31,13 @@ void FileManager::store_file(FileId file_id, StorerT &storer, int32 ttl) const {
   auto file_store_type = FileStoreType::Empty;
   auto file_view = get_file_view(file_id);
   if (file_view.empty() || ttl <= 0) {
-  } else if (file_view.has_remote_location()) {
+  } else if (file_view.has_full_remote_location()) {
     file_store_type = FileStoreType::Remote;
   } else if (file_view.has_url()) {
     file_store_type = FileStoreType::Url;
   } else if (file_view.has_generate_location()) {
     file_store_type = FileStoreType::Generate;
-  } else if (file_view.has_local_location()) {
+  } else if (file_view.has_full_local_location()) {
     file_store_type = FileStoreType::Local;
   }
 
@@ -70,11 +70,12 @@ void FileManager::store_file(FileId file_id, StorerT &storer, int32 ttl) const {
       break;
     case FileStoreType::Url:
       store(file_view.get_type(), storer);
-      store(file_view.url(), storer);
+      store(*file_view.get_url(), storer);
       store(file_view.owner_dialog_id(), storer);
       break;
     case FileStoreType::Remote: {
-      store(file_view.remote_location(), storer);
+      const auto *full_remote_location = file_view.get_full_remote_location();
+      store(*full_remote_location, storer);
       if (has_64bit_size) {
         store(size, storer);
       } else {
@@ -85,7 +86,7 @@ void FileManager::store_file(FileId file_id, StorerT &storer, int32 ttl) const {
       break;
     }
     case FileStoreType::Local: {
-      store(file_view.local_location(), storer);
+      store(*file_view.get_full_local_location(), storer);
       if (has_64bit_size) {
         store(size, storer);
       } else {
@@ -96,7 +97,7 @@ void FileManager::store_file(FileId file_id, StorerT &storer, int32 ttl) const {
       break;
     }
     case FileStoreType::Generate: {
-      auto generate_location = file_view.generate_location();
+      auto generate_location = *file_view.get_generate_location();
       FileId from_file_id;
       bool have_file_id = false;
       if (generate_location.conversion_ == "#_file_id#") {
@@ -240,17 +241,11 @@ FileId FileManager::parse_file(ParserT &parser) {
           if (file_id.empty()) {
             return register_empty(full_generated_location.file_type_);
           }
-          auto download_file_id = dup_file_id(file_id, "parse_download_file_id");
-          full_generated_location.conversion_ = PSTRING() << "#file_id#" << download_file_id.get();
+          full_generated_location.conversion_ = PSTRING() << "#file_id#" << file_id.get();
         }
 
-        auto r_file_id = register_generate(full_generated_location.file_type_, FileLocationSource::FromBinlog,
-                                           full_generated_location.original_path_, full_generated_location.conversion_,
-                                           owner_dialog_id, expected_size);
-        if (r_file_id.is_ok()) {
-          return r_file_id.move_as_ok();
-        }
-        return register_empty(full_generated_location.file_type_);
+        return register_generate(full_generated_location.file_type_, full_generated_location.original_path_,
+                                 full_generated_location.conversion_, owner_dialog_id, expected_size);
       }
       case FileStoreType::Url: {
         FileType type;
@@ -261,7 +256,7 @@ FileId FileManager::parse_file(ParserT &parser) {
         if (parser.version() >= static_cast<int32>(Version::StoreFileOwnerId)) {
           parse(owner_dialog_id, parser);
         }
-        return register_url(url, type, FileLocationSource::FromBinlog, owner_dialog_id);
+        return register_url(url, type, owner_dialog_id);
       }
     }
     return FileId();

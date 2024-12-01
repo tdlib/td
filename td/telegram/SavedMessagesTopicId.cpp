@@ -10,7 +10,6 @@
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/MessageForwardInfo.h"
-#include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 
@@ -59,7 +58,7 @@ td_api::object_ptr<td_api::SavedMessagesTopicType> SavedMessagesTopicId::get_sav
     return td_api::make_object<td_api::savedMessagesTopicTypeAuthorHidden>();
   }
   return td_api::make_object<td_api::savedMessagesTopicTypeSavedFromChat>(
-      td->messages_manager_->get_chat_id_object(dialog_id_, "savedMessagesTopicTypeSavedFromChat"));
+      td->dialog_manager_->get_chat_id_object(dialog_id_, "savedMessagesTopicTypeSavedFromChat"));
 }
 
 bool SavedMessagesTopicId::have_input_peer(Td *td) const {
@@ -67,7 +66,7 @@ bool SavedMessagesTopicId::have_input_peer(Td *td) const {
       !td->dialog_manager_->have_dialog_info_force(dialog_id_, "SavedMessagesTopicId::have_input_peer")) {
     return false;
   }
-  return td->dialog_manager_->have_input_peer(dialog_id_, AccessRights::Know);
+  return td->dialog_manager_->have_input_peer(dialog_id_, false, AccessRights::Know);
 }
 
 Status SavedMessagesTopicId::is_valid_status(Td *td) const {
@@ -75,7 +74,7 @@ Status SavedMessagesTopicId::is_valid_status(Td *td) const {
     return Status::Error(400, "Invalid Saved Messages topic specified");
   }
   if (!have_input_peer(td)) {
-    return Status::Error(400, "Invalid Saved Messages topic specified");
+    return Status::Error(400, "Unknown Saved Messages topic specified");
   }
   return Status::OK();
 }
@@ -86,7 +85,7 @@ Status SavedMessagesTopicId::is_valid_in(Td *td, DialogId dialog_id) const {
       return Status::Error(400, "Can't use Saved Messages topic in the chat");
     }
     if (!have_input_peer(td)) {
-      return Status::Error(400, "Invalid Saved Messages topic specified");
+      return Status::Error(400, "Unknown Saved Messages topic specified");
     }
   }
   return Status::OK();

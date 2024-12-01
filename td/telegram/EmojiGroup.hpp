@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/EmojiGroup.h"
+#include "td/telegram/Version.h"
 
 #include "td/utils/tl_helpers.h"
 
@@ -14,16 +15,36 @@ namespace td {
 
 template <class StorerT>
 void EmojiGroup::store(StorerT &storer) const {
+  bool has_emojis = !emojis_.empty();
+  BEGIN_STORE_FLAGS();
+  STORE_FLAG(is_greeting_);
+  STORE_FLAG(is_premium_);
+  STORE_FLAG(has_emojis);
+  END_STORE_FLAGS();
   td::store(title_, storer);
   td::store(icon_custom_emoji_id_, storer);
-  td::store(emojis_, storer);
+  if (has_emojis) {
+    td::store(emojis_, storer);
+  }
 }
 
 template <class ParserT>
 void EmojiGroup::parse(ParserT &parser) {
+  bool has_emojis;
+  if (parser.version() >= static_cast<int32>(Version::SupportMoreEmojiGroups)) {
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(is_greeting_);
+    PARSE_FLAG(is_premium_);
+    PARSE_FLAG(has_emojis);
+    END_PARSE_FLAGS();
+  } else {
+    has_emojis = true;
+  }
   td::parse(title_, parser);
   td::parse(icon_custom_emoji_id_, parser);
-  td::parse(emojis_, parser);
+  if (has_emojis) {
+    td::parse(emojis_, parser);
+  }
 }
 
 template <class StorerT>

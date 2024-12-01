@@ -50,6 +50,10 @@ Result<unique_ptr<StoryContent>> get_input_story_content(
 telegram_api::object_ptr<telegram_api::InputMedia> get_story_content_input_media(
     Td *td, const StoryContent *content, telegram_api::object_ptr<telegram_api::InputFile> input_file);
 
+telegram_api::object_ptr<telegram_api::InputMedia> get_story_content_document_input_media(Td *td,
+                                                                                          const StoryContent *content,
+                                                                                          double main_frame_timestamp);
+
 void compare_story_contents(Td *td, const StoryContent *old_content, const StoryContent *new_content,
                             bool &is_content_changed, bool &need_update);
 
@@ -58,11 +62,9 @@ void merge_story_contents(Td *td, const StoryContent *old_content, StoryContent 
 
 unique_ptr<StoryContent> copy_story_content(const StoryContent *content);
 
-unique_ptr<StoryContent> dup_story_content(Td *td, const StoryContent *content);
-
 td_api::object_ptr<td_api::StoryContent> get_story_content_object(Td *td, const StoryContent *content);
 
-FileId get_story_content_any_file_id(const Td *td, const StoryContent *content);
+FileId get_story_content_any_file_id(const StoryContent *content);
 
 vector<FileId> get_story_content_file_ids(const Td *td, const StoryContent *content);
 

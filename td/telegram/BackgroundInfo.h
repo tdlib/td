@@ -39,7 +39,8 @@ class BackgroundInfo {
   }
 
   bool operator==(const BackgroundInfo &other) const {
-    return background_id_ == other.background_id_ && background_type_ == other.background_type_;
+    return background_type_ == other.background_type_ &&
+           (background_id_ == other.background_id_ || (background_id_.is_local() && other.background_id_.is_local()));
   }
 
   bool operator!=(const BackgroundInfo &other) const {
@@ -54,7 +55,7 @@ class BackgroundInfo {
 };
 
 inline StringBuilder &operator<<(StringBuilder &string_builder, const BackgroundInfo &background_info) {
-  return string_builder << background_info.background_id_ << " with type " << background_info.background_type_;
+  return string_builder << background_info.background_id_ << " with " << background_info.background_type_;
 }
 
 }  // namespace td

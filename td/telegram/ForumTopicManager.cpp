@@ -9,7 +9,7 @@
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ChannelId.h"
-#include "td/telegram/ContactsManager.h"
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/ForumTopic.h"
@@ -29,6 +29,7 @@
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -75,7 +76,7 @@ class CreateForumTopicQuery final : public Td::ResultHandler {
       random_id_ = Random::secure_int64();
     } while (random_id_ == 0);
 
-    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     send_query(G()->net_query_creator().create(
         telegram_api::channels_createForumTopic(flags, std::move(input_channel), title, icon_color,
@@ -117,7 +118,7 @@ class CreateForumTopicQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "CreateForumTopicQuery");
+    td_->chat_manager_->on_get_channel_error(channel_id_, status, "CreateForumTopicQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -136,7 +137,7 @@ class EditForumTopicQuery final : public Td::ResultHandler {
     channel_id_ = channel_id;
     top_thread_message_id_ = top_thread_message_id;
 
-    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
 
     int32 flags = 0;
@@ -157,7 +158,7 @@ class EditForumTopicQuery final : public Td::ResultHandler {
     channel_id_ = channel_id;
     top_thread_message_id_ = top_thread_message_id;
 
-    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
 
     int32 flags = telegram_api::channels_editForumTopic::CLOSED_MASK;
@@ -172,7 +173,7 @@ class EditForumTopicQuery final : public Td::ResultHandler {
     channel_id_ = channel_id;
     top_thread_message_id_ = MessageId(ServerMessageId(1));
 
-    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
 
     int32 flags = telegram_api::channels_editForumTopic::HIDDEN_MASK;
@@ -198,7 +199,7 @@ class EditForumTopicQuery final : public Td::ResultHandler {
     if (status.message() == "TOPIC_NOT_MODIFIED" && !td_->auth_manager_->is_bot()) {
       return promise_.set_value(Unit());
     }
-    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "EditForumTopicQuery");
+    td_->chat_manager_->on_get_channel_error(channel_id_, status, "EditForumTopicQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -214,7 +215,7 @@ class UpdatePinnedForumTopicQuery final : public Td::ResultHandler {
   void send(ChannelId channel_id, MessageId top_thread_message_id, bool is_pinned) {
     channel_id_ = channel_id;
 
-    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
 
     send_query(G()->net_query_creator().create(
@@ -238,7 +239,7 @@ class UpdatePinnedForumTopicQuery final : public Td::ResultHandler {
     if (status.message() == "PINNED_TOPIC_NOT_MODIFIED" && !td_->auth_manager_->is_bot()) {
       return promise_.set_value(Unit());
     }
-    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "UpdatePinnedForumTopicQuery");
+    td_->chat_manager_->on_get_channel_error(channel_id_, status, "UpdatePinnedForumTopicQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -254,7 +255,7 @@ class ReorderPinnedForumTopicsQuery final : public Td::ResultHandler {
   void send(ChannelId channel_id, const vector<MessageId> &top_thread_message_ids) {
     channel_id_ = channel_id;
 
-    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
 
     int32 flags = telegram_api::channels_reorderPinnedForumTopics::FORCE_MASK;
@@ -279,7 +280,7 @@ class ReorderPinnedForumTopicsQuery final : public Td::ResultHandler {
     if (status.message() == "PINNED_TOPICS_NOT_MODIFIED" && !td_->auth_manager_->is_bot()) {
       return promise_.set_value(Unit());
     }
-    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "ReorderPinnedForumTopicsQuery");
+    td_->chat_manager_->on_get_channel_error(channel_id_, status, "ReorderPinnedForumTopicsQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -298,7 +299,7 @@ class GetForumTopicQuery final : public Td::ResultHandler {
     channel_id_ = channel_id;
     top_thread_message_id_ = top_thread_message_id;
 
-    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
 
     send_query(G()->net_query_creator().create(
@@ -316,8 +317,8 @@ class GetForumTopicQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetForumTopicQuery: " << to_string(ptr);
 
-    td_->contacts_manager_->on_get_users(std::move(ptr->users_), "GetForumTopicQuery");
-    td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetForumTopicQuery");
+    td_->user_manager_->on_get_users(std::move(ptr->users_), "GetForumTopicQuery");
+    td_->chat_manager_->on_get_chats(std::move(ptr->chats_), "GetForumTopicQuery");
 
     if (ptr->topics_.size() != 1u) {
       return promise_.set_value(nullptr);
@@ -345,7 +346,7 @@ class GetForumTopicQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "GetForumTopicQuery");
+    td_->chat_manager_->on_get_channel_error(channel_id_, status, "GetForumTopicQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -363,7 +364,7 @@ class GetForumTopicsQuery final : public Td::ResultHandler {
             MessageId offset_top_thread_message_id, int32 limit) {
     channel_id_ = channel_id;
 
-    auto input_channel = td_->contacts_manager_->get_input_channel(channel_id);
+    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
 
     int32 flags = 0;
@@ -386,8 +387,8 @@ class GetForumTopicsQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetForumTopicsQuery: " << to_string(ptr);
 
-    td_->contacts_manager_->on_get_users(std::move(ptr->users_), "GetForumTopicsQuery");
-    td_->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetForumTopicsQuery");
+    td_->user_manager_->on_get_users(std::move(ptr->users_), "GetForumTopicsQuery");
+    td_->chat_manager_->on_get_chats(std::move(ptr->chats_), "GetForumTopicsQuery");
 
     MessagesInfo messages_info;
     messages_info.messages = std::move(ptr->messages_);
@@ -412,7 +413,7 @@ class GetForumTopicsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->contacts_manager_->on_get_channel_error(channel_id_, status, "GetForumTopicsQuery");
+    td_->chat_manager_->on_get_channel_error(channel_id_, status, "GetForumTopicsQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -501,7 +502,7 @@ void ForumTopicManager::create_forum_topic(DialogId dialog_id, string &&title,
   TRY_STATUS_PROMISE(promise, is_forum(dialog_id));
   auto channel_id = dialog_id.get_channel_id();
 
-  if (!td_->contacts_manager_->get_channel_permissions(channel_id).can_create_topics()) {
+  if (!td_->chat_manager_->get_channel_permissions(channel_id).can_create_topics()) {
     return promise.set_error(Status::Error(400, "Not enough rights to create a topic"));
   }
 
@@ -550,7 +551,7 @@ void ForumTopicManager::edit_forum_topic(DialogId dialog_id, MessageId top_threa
   TRY_STATUS_PROMISE(promise, can_be_message_thread_id(top_thread_message_id));
   auto channel_id = dialog_id.get_channel_id();
 
-  if (!td_->contacts_manager_->get_channel_permissions(channel_id).can_edit_topics()) {
+  if (!td_->chat_manager_->get_channel_permissions(channel_id).can_edit_topics()) {
     auto topic_info = get_topic_info(dialog_id, top_thread_message_id);
     if (topic_info != nullptr && !topic_info->is_outgoing()) {
       return promise.set_error(Status::Error(400, "Not enough rights to edit the topic"));
@@ -782,7 +783,7 @@ void ForumTopicManager::get_forum_topic_link(DialogId dialog_id, MessageId top_t
   sb << LinkManager::get_t_me_url();
 
   bool is_public = false;
-  auto dialog_username = td_->contacts_manager_->get_channel_first_username(channel_id);
+  auto dialog_username = td_->chat_manager_->get_channel_first_username(channel_id);
   if (!dialog_username.empty()) {
     sb << dialog_username;
     is_public = true;
@@ -856,7 +857,7 @@ void ForumTopicManager::toggle_forum_topic_is_closed(DialogId dialog_id, Message
   TRY_STATUS_PROMISE(promise, can_be_message_thread_id(top_thread_message_id));
   auto channel_id = dialog_id.get_channel_id();
 
-  if (!td_->contacts_manager_->get_channel_permissions(channel_id).can_edit_topics()) {
+  if (!td_->chat_manager_->get_channel_permissions(channel_id).can_edit_topics()) {
     auto topic_info = get_topic_info(dialog_id, top_thread_message_id);
     if (topic_info != nullptr && !topic_info->is_outgoing()) {
       return promise.set_error(Status::Error(400, "Not enough rights to close or open the topic"));
@@ -870,7 +871,7 @@ void ForumTopicManager::toggle_forum_topic_is_hidden(DialogId dialog_id, bool is
   TRY_STATUS_PROMISE(promise, is_forum(dialog_id));
   auto channel_id = dialog_id.get_channel_id();
 
-  if (!td_->contacts_manager_->get_channel_permissions(channel_id).can_edit_topics()) {
+  if (!td_->chat_manager_->get_channel_permissions(channel_id).can_edit_topics()) {
     return promise.set_error(Status::Error(400, "Not enough rights to close or open the topic"));
   }
 
@@ -883,7 +884,7 @@ void ForumTopicManager::toggle_forum_topic_is_pinned(DialogId dialog_id, Message
   TRY_STATUS_PROMISE(promise, can_be_message_thread_id(top_thread_message_id));
   auto channel_id = dialog_id.get_channel_id();
 
-  if (!td_->contacts_manager_->get_channel_permissions(channel_id).can_pin_topics()) {
+  if (!td_->chat_manager_->get_channel_permissions(channel_id).can_pin_topics()) {
     return promise.set_error(Status::Error(400, "Not enough rights to pin or unpin the topic"));
   }
 
@@ -899,7 +900,7 @@ void ForumTopicManager::set_pinned_forum_topics(DialogId dialog_id, vector<Messa
   }
   auto channel_id = dialog_id.get_channel_id();
 
-  if (!td_->contacts_manager_->get_channel_permissions(channel_id).can_pin_topics()) {
+  if (!td_->chat_manager_->get_channel_permissions(channel_id).can_pin_topics()) {
     return promise.set_error(Status::Error(400, "Not enough rights to reorder forum topics"));
   }
 
@@ -912,7 +913,7 @@ void ForumTopicManager::delete_forum_topic(DialogId dialog_id, MessageId top_thr
   TRY_STATUS_PROMISE(promise, can_be_message_thread_id(top_thread_message_id));
   auto channel_id = dialog_id.get_channel_id();
 
-  if (!td_->contacts_manager_->get_channel_permissions(channel_id).can_delete_messages()) {
+  if (!td_->chat_manager_->get_channel_permissions(channel_id).can_delete_messages()) {
     auto topic_info = get_topic_info(dialog_id, top_thread_message_id);
     if (topic_info != nullptr && !topic_info->is_outgoing()) {
       return promise.set_error(Status::Error(400, "Not enough rights to delete the topic"));
@@ -1070,7 +1071,7 @@ Status ForumTopicManager::is_forum(DialogId dialog_id) {
     return Status::Error(400, "Chat not found");
   }
   if (dialog_id.get_type() != DialogType::Channel ||
-      !td_->contacts_manager_->is_forum_channel(dialog_id.get_channel_id())) {
+      !td_->chat_manager_->is_forum_channel(dialog_id.get_channel_id())) {
     return Status::Error(400, "The chat is not a forum");
   }
   return Status::OK();
@@ -1078,7 +1079,7 @@ Status ForumTopicManager::is_forum(DialogId dialog_id) {
 
 bool ForumTopicManager::can_be_forum(DialogId dialog_id) const {
   return dialog_id.get_type() == DialogType::Channel &&
-         td_->contacts_manager_->is_megagroup_channel(dialog_id.get_channel_id());
+         td_->chat_manager_->is_megagroup_channel(dialog_id.get_channel_id());
 }
 
 Status ForumTopicManager::can_be_message_thread_id(MessageId top_thread_message_id) {

@@ -19,6 +19,7 @@
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
+#include "td/utils/Slice.h"
 #include "td/utils/WaitFreeHashMap.h"
 
 #include <utility>
@@ -92,19 +93,21 @@ class DocumentsManager {
   void create_document(FileId file_id, string minithumbnail, PhotoSize thumbnail, string file_name, string mime_type,
                        bool replace);
 
-  bool has_input_media(FileId file_id, FileId thumbnail_file_id, bool is_secret) const;
-
   SecretInputMedia get_secret_input_media(FileId document_file_id,
-                                          tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
+                                          telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file,
                                           const string &caption, BufferSlice thumbnail, int32 layer) const;
 
-  tl_object_ptr<telegram_api::InputMedia> get_input_media(FileId file_id,
-                                                          tl_object_ptr<telegram_api::InputFile> input_file,
-                                                          tl_object_ptr<telegram_api::InputFile> input_thumbnail) const;
+  tl_object_ptr<telegram_api::InputMedia> get_input_media(
+      FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file,
+      telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail) const;
 
   FileId get_document_thumbnail_file_id(FileId file_id) const;
 
   void delete_document_thumbnail(FileId file_id);
+
+  Slice get_document_file_name(FileId file_id) const;
+
+  Slice get_document_mime_type(FileId file_id) const;
 
   FileId dup_document(FileId new_id, FileId old_id);
 

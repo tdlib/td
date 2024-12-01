@@ -11,6 +11,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
+#include "td/telegram/files/FileUploadId.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/td_api.h"
@@ -21,6 +22,7 @@
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/FlatHashSet.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Status.h"
 
@@ -65,8 +67,8 @@ class BackgroundManager final : public Actor {
 
   FileSourceId get_background_file_source_id(BackgroundId background_id, int64 access_hash);
 
-  void on_uploaded_background_file(FileId file_id, const BackgroundType &type, DialogId dialog_id, bool for_dark_theme,
-                                   telegram_api::object_ptr<telegram_api::WallPaper> wallpaper,
+  void on_uploaded_background_file(FileUploadId file_upload_id, const BackgroundType &type, DialogId dialog_id,
+                                   bool for_dark_theme, telegram_api::object_ptr<telegram_api::WallPaper> wallpaper,
                                    Promise<td_api::object_ptr<td_api::background>> &&promise);
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
@@ -95,6 +97,19 @@ class BackgroundManager final : public Actor {
 
     template <class ParserT>
     void parse(ParserT &parser);
+  };
+
+  struct LocalBackgroundHash {
+    uint32 operator()(const Background &background) const {
+      return Hash<string>()(background.name);
+    }
+  };
+
+  struct LocalBackgroundEquals {
+    bool operator()(const Background &lhs, const Background &rhs) const {
+      return lhs.name == rhs.name && lhs.type == rhs.type && lhs.is_creator == rhs.is_creator &&
+             lhs.is_default == rhs.is_default && lhs.is_dark == rhs.is_dark;
+    }
   };
 
   class BackgroundLogEvent;
@@ -127,6 +142,10 @@ class BackgroundManager final : public Actor {
   void set_max_local_background_id(BackgroundId background_id);
 
   BackgroundId get_next_local_background_id();
+
+  void set_local_background_id(Background &background);
+
+  void add_local_background_to_cache(const Background &background);
 
   BackgroundId add_local_background(const BackgroundType &type);
 
@@ -169,12 +188,13 @@ class BackgroundManager final : public Actor {
   void upload_background_file(FileId file_id, const BackgroundType &type, DialogId dialog_id, bool for_dark_theme,
                               Promise<td_api::object_ptr<td_api::background>> &&promise);
 
-  void on_upload_background_file(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file);
+  void on_upload_background_file(FileUploadId file_upload_id,
+                                 telegram_api::object_ptr<telegram_api::InputFile> input_file);
 
-  void on_upload_background_file_error(FileId file_id, Status status);
+  void on_upload_background_file_error(FileUploadId file_upload_id, Status status);
 
-  void do_upload_background_file(FileId file_id, const BackgroundType &type, DialogId dialog_id, bool for_dark_theme,
-                                 tl_object_ptr<telegram_api::InputFile> &&input_file,
+  void do_upload_background_file(FileUploadId file_upload_id, const BackgroundType &type, DialogId dialog_id,
+                                 bool for_dark_theme, telegram_api::object_ptr<telegram_api::InputFile> &&input_file,
                                  Promise<td_api::object_ptr<td_api::background>> &&promise);
 
   FlatHashMap<BackgroundId, unique_ptr<Background>, BackgroundIdHash> backgrounds_;
@@ -209,7 +229,9 @@ class BackgroundManager final : public Actor {
         : type_(type), dialog_id_(dialog_id), for_dark_theme_(for_dark_theme), promise_(std::move(promise)) {
     }
   };
-  FlatHashMap<FileId, UploadedFileInfo, FileIdHash> being_uploaded_files_;
+  FlatHashMap<FileUploadId, UploadedFileInfo, FileUploadIdHash> being_uploaded_files_;
+
+  FlatHashMap<Background, BackgroundId, LocalBackgroundHash, LocalBackgroundEquals> local_backgrounds_;
 
   BackgroundId max_local_background_id_;
   vector<BackgroundId> local_background_ids_[2];

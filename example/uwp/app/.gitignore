@@ -1,5 +1,5 @@
-.vs/
-bin/
-obj/
-project.lock.json
-TdApp.csproj.user
+/.vs/
+/bin/
+/obj/
+/project.lock.json
+/TdApp.csproj.user

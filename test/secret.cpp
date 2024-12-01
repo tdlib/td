@@ -9,6 +9,8 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessageId.h"
+#include "td/telegram/net/NetQuery.h"
+#include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/secret_api.h"
 #include "td/telegram/SecretChatActor.h"
 #include "td/telegram/SecretChatDb.h"
@@ -530,7 +532,7 @@ class FakeSecretChatContext final : public SecretChatActor::Context {
     return false;
   }
 
-  // We don't want to expose the whole NetQueryDispatcher, MessagesManager and ContactsManager.
+  // We don't want to expose the whole NetQueryDispatcher, MessagesManager and UserManager.
   // So it is more clear which parts of MessagesManager is really used. And it is much easier to create tests.
   void send_net_query(NetQueryPtr query, ActorShared<NetQueryCallback> callback, bool ordered) final;
 

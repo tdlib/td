@@ -33,11 +33,15 @@ extern jmethodID IntegerGetValueMethodID;
 extern jmethodID LongGetValueMethodID;
 extern jmethodID DoubleGetValueMethodID;
 
+void set_fatal_error(JNIEnv *env, const std::string &error);
+
 jclass get_jclass(JNIEnv *env, const char *class_name);
 
 jmethodID get_method_id(JNIEnv *env, jclass clazz, const char *name, const char *signature);
 
 jfieldID get_field_id(JNIEnv *env, jclass clazz, const char *name, const char *signature);
+
+jfieldID get_static_field_id(JNIEnv *env, jclass clazz, const char *name, const char *signature);
 
 void register_native_method(JNIEnv *env, jclass clazz, std::string name, std::string signature, void *function_ptr);
 
@@ -73,6 +77,8 @@ class JvmThreadDetacher {
 std::unique_ptr<JNIEnv, JvmThreadDetacher> get_jni_env(JavaVM *java_vm, jint jni_version);
 
 std::string fetch_string(JNIEnv *env, jobject o, jfieldID id);
+
+std::string fetch_static_string(JNIEnv *env, jclass clazz, jfieldID id);
 
 inline jobject fetch_object(JNIEnv *env, const jobject &o, const jfieldID &id) {
   // null return object is implicitly allowed

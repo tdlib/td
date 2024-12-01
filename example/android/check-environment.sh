@@ -46,6 +46,6 @@ if ! perl -MExtUtils::MakeMaker -MLocale::Maketext::Simple -MPod::Usage -e '' >/
 fi
 
 if ! java --help >/dev/null 2>&1 ; then
-  echo "Error: Java installation is broken. Install JDK from https://www.oracle.com/java/technologies/downloads/."
+  echo "Error: Java installation is broken. Install JDK from https://www.oracle.com/java/technologies/downloads/ or via the package manager."
   exit 1
 fi

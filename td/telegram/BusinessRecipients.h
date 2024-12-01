@@ -15,6 +15,7 @@
 
 namespace td {
 
+class Dependencies;
 class Td;
 
 class BusinessRecipients {
@@ -23,11 +24,17 @@ class BusinessRecipients {
 
   explicit BusinessRecipients(telegram_api::object_ptr<telegram_api::businessRecipients> recipients);
 
-  explicit BusinessRecipients(td_api::object_ptr<td_api::businessRecipients> recipients);
+  explicit BusinessRecipients(telegram_api::object_ptr<telegram_api::businessBotRecipients> recipients);
+
+  BusinessRecipients(td_api::object_ptr<td_api::businessRecipients> recipients, bool allow_excluded);
 
   td_api::object_ptr<td_api::businessRecipients> get_business_recipients_object(Td *td) const;
 
   telegram_api::object_ptr<telegram_api::inputBusinessRecipients> get_input_business_recipients(Td *td) const;
+
+  telegram_api::object_ptr<telegram_api::inputBusinessBotRecipients> get_input_business_bot_recipients(Td *td) const;
+
+  void add_dependencies(Dependencies &dependencies) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;
@@ -37,6 +44,7 @@ class BusinessRecipients {
 
  private:
   vector<UserId> user_ids_;
+  vector<UserId> excluded_user_ids_;
   bool existing_chats_ = false;
   bool new_chats_ = false;
   bool contacts_ = false;
