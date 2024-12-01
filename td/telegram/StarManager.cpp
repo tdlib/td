@@ -466,7 +466,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                 }
                 return nullptr;
               }
-              if (!transaction->extended_media_.empty() || is_refund) {  // TODO
+              if (!transaction->extended_media_.empty() || is_refund || for_bot) {  // TODO
                 if (is_purchase) {
                   if (for_user) {
                     return td_api::make_object<td_api::starTransactionTypeBotPaidMediaPurchase>(
