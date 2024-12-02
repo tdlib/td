@@ -8377,8 +8377,10 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
 
   if (channel.flags_ == 0 && channel.access_hash_ == 0 && channel.title_.empty()) {
     Channel *c = get_channel_force(channel_id, source);
-    LOG(ERROR) << "Receive empty " << to_string(channel) << " from " << source << ", have "
-               << to_string(get_supergroup_object(channel_id, c));
+    if (c != nullptr) {
+      LOG(ERROR) << "Receive from " << source << " empty " << channel_id << ": " << to_string(channel) << ", have "
+                 << to_string(get_supergroup_object(channel_id, c));
+    }
     if (c == nullptr && !have_min_channel(channel_id)) {
       min_channels_.set(channel_id, td::make_unique<MinChannel>());
     }
