@@ -6,9 +6,11 @@
 //
 package org.drinkless.tdlib;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
 /**
  * Main class for interaction with the TDLib.
@@ -70,21 +72,52 @@ public final class Client {
      */
     public final static class Result<T extends TdApi.Object> {
 
-        /**
-         * An object of this type can be returned upon a successful function call, otherwise it will be null.
-         */
-        public final T object;
+        private final T object;
 
-        /**
-         * An object of this type can be returned on every function call, in case of an error, otherwise it will be null.
-         */
-        public final TdApi.Error error;
+        private final TdApi.Error error;
 
         private Result(T object, TdApi.Error error) {
             this.object = object;
             this.error = error;
         }
 
+        /**
+         * An object of this type can be returned upon a successful function call, otherwise it will be null.
+         */
+        public Optional<T> object() {
+            return Optional.ofNullable(object);
+        }
+
+        /**
+         * An object of this type can be returned on every function call, in case of an error, otherwise it will be null.
+         */
+        public Optional<TdApi.Error> error() {
+            return Optional.ofNullable(error);
+        }
+
+        /**
+         * Performs an action upon a successful function call and returns current {@link Result<T>}.
+         * @param action callback called upon a successful function call of query to TDLib
+         * @return {@link Result<T>}
+         */
+        public Result<T> onSuccess(Consumer<T> action) {
+            if (object != null) {
+                action.accept(object);
+            }
+            return this;
+        }
+
+        /**
+         * Performs an action in case of an error and returns current {@link Result<T>}.
+         * @param action callback called in case of an error of query to TDLib
+         * @return {@link Result<T>}
+         */
+        public Result<T> onError(Consumer<TdApi.Error> action) {
+            if (error != null) {
+                action.accept(error);
+            }
+            return this;
+        }
     }
 
     /**
