@@ -4494,8 +4494,12 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
   }
   LOG_CHECK(check_utf8(text)) << text;
 
-  if (!allow_empty && is_empty_string(text)) {
-    return Status::Error(400, "Text must be non-empty");
+  if (is_empty_string(text)) {
+    if (!allow_empty) {
+      return Status::Error(400, "Text must be non-empty");
+    }
+    text.clear();
+    entities.clear();
   }
 
   constexpr size_t LENGTH_LIMIT = 35000;  // server side limit
