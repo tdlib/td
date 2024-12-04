@@ -10228,7 +10228,7 @@ editStoryCover story_sender_chat_id:int53 story_id:int32 cover_frame_timestamp:d
 
 //@description Changes privacy settings of a story. The method can be called only for stories posted on behalf of the current user and if story.can_be_edited == true
 //@story_id Identifier of the story
-//@privacy_settings The new privacy settigs for the story
+//@privacy_settings The new privacy settings for the story
 setStoryPrivacySettings story_id:int32 privacy_settings:StoryPrivacySettings = Ok;
 
 //@description Toggles whether a story is accessible after expiration. Can be called only if story.can_toggle_is_posted_to_chat_page == true
