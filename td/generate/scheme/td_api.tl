@@ -11021,7 +11021,7 @@ removeSavedAnimation animation:InputFile = Ok;
 //@description Returns up to 20 recently used inline bots in the order of their last usage
 getRecentInlineBots = Users;
 
-//@description Returns the list of owned by the current user bots
+//@description Returns the list of bots owned by the current user
 getOwnedBots = Users;
 
 
