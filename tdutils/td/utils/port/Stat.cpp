@@ -316,7 +316,7 @@ Status cpu_stat_self(CpuStat &stat) {
   char mem[TMEM_SIZE];
   TRY_RESULT(size, fd.read(MutableSlice(mem, TMEM_SIZE - 1)));
   if (size >= TMEM_SIZE - 1) {
-    return Status::Error("Failed for read /proc/self/stat");
+    return Status::Error("The file /proc/self/stat is too big");
   }
   mem[size] = 0;
 
@@ -354,7 +354,7 @@ Status cpu_stat_total(CpuStat &stat) {
   char mem[TMEM_SIZE];
   TRY_RESULT(size, fd.read(MutableSlice(mem, TMEM_SIZE - 1)));
   if (size >= TMEM_SIZE - 1) {
-    return Status::Error("Failed for read /proc/stat");
+    return Status::Error("The file /proc/stat is too big");
   }
   mem[size] = 0;
 
