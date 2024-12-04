@@ -8162,12 +8162,12 @@ updateChatThemes chat_themes:vector<chatTheme> = Update;
 //@description The list of supported accent colors has changed
 //@colors Information about supported colors; colors with identifiers 0 (red), 1 (orange), 2 (purple/violet), 3 (green), 4 (cyan), 5 (blue), 6 (pink) must always be supported
 //-and aren't included in the list. The exact colors for the accent colors with identifiers 0-6 must be taken from the app theme
-//@available_accent_color_ids The list of accent color identifiers, which can be set through setAccentColor and setChatAccentColor. The colors must be shown in the specififed order
+//@available_accent_color_ids The list of accent color identifiers, which can be set through setAccentColor and setChatAccentColor. The colors must be shown in the specified order
 updateAccentColors colors:vector<accentColor> available_accent_color_ids:vector<int32> = Update;
 
 //@description The list of supported accent colors for user profiles has changed
 //@colors Information about supported colors
-//@available_accent_color_ids The list of accent color identifiers, which can be set through setProfileAccentColor and setChatProfileAccentColor. The colors must be shown in the specififed order
+//@available_accent_color_ids The list of accent color identifiers, which can be set through setProfileAccentColor and setChatProfileAccentColor. The colors must be shown in the specified order
 updateProfileAccentColors colors:vector<profileAccentColor> available_accent_color_ids:vector<int32> = Update;
 
 //@description Some language pack strings have been updated @localization_target Localization target to which the language pack belongs @language_pack_id Identifier of the updated language pack @strings List of changed language pack strings; empty if all strings have changed
