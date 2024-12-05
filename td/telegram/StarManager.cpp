@@ -284,6 +284,15 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         transaction->extended_media_.clear();
         return extended_media_objects;
       };
+      auto get_message_id_object = [&]() {
+        auto message_id = MessageId(ServerMessageId(transaction->msg_id_));
+        if (message_id != MessageId() && !message_id.is_valid()) {
+          LOG(ERROR) << "Receive " << message_id << " in " << to_string(transaction);
+          message_id = MessageId();
+        }
+        transaction->msg_id_ = 0;
+        return message_id.get();
+      };
       auto transaction_amount = StarAmount(std::move(transaction->stars_), true);
       auto is_refund = transaction->refund_;
       auto is_purchase = transaction_amount.is_positive() == is_refund;
@@ -436,16 +445,10 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
               if (transaction->reaction_) {
                 if (for_channel) {
                   SCOPE_EXIT {
-                    transaction->msg_id_ = 0;
                     transaction->reaction_ = false;
                   };
-                  auto message_id = MessageId(ServerMessageId(transaction->msg_id_));
-                  if (message_id != MessageId() && !message_id.is_valid()) {
-                    LOG(ERROR) << "Receive " << message_id << " in " << to_string(transaction);
-                    message_id = MessageId();
-                  }
-                  return td_api::make_object<td_api::starTransactionTypeChannelPaidReactionReceive>(user_id_object,
-                                                                                                    message_id.get());
+                  return td_api::make_object<td_api::starTransactionTypeChannelPaidReactionReceive>(
+                      user_id_object, get_message_id_object());
                 }
                 return nullptr;
               }
@@ -477,16 +480,8 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                     return td_api::make_object<td_api::starTransactionTypeBotPaidMediaSale>(
                         user_id_object, get_paid_media_object(dialog_id_), bot_payload, std::move(affiliate));
                   } else if (for_channel) {
-                    SCOPE_EXIT {
-                      transaction->msg_id_ = 0;
-                    };
-                    auto message_id = MessageId(ServerMessageId(transaction->msg_id_));
-                    if (message_id != MessageId() && !message_id.is_valid()) {
-                      LOG(ERROR) << "Receive " << message_id << " in " << to_string(transaction);
-                      message_id = MessageId();
-                    }
                     return td_api::make_object<td_api::starTransactionTypeChannelPaidMediaSale>(
-                        user_id_object, message_id.get(), get_paid_media_object(dialog_id_));
+                        user_id_object, get_message_id_object(), get_paid_media_object(dialog_id_));
                   }
                 }
                 return nullptr;
@@ -519,32 +514,16 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
             }
             if (transaction->reaction_) {
               if (td_->dialog_manager_->is_broadcast_channel(dialog_id) && for_user) {
-                SCOPE_EXIT {
-                  transaction->msg_id_ = 0;
-                  transaction->reaction_ = false;
-                };
-                auto message_id = MessageId(ServerMessageId(transaction->msg_id_));
-                if (message_id != MessageId() && !message_id.is_valid()) {
-                  LOG(ERROR) << "Receive " << message_id << " in " << to_string(transaction);
-                  message_id = MessageId();
-                }
+                transaction->reaction_ = false;
                 return td_api::make_object<td_api::starTransactionTypeChannelPaidReactionSend>(chat_id,
-                                                                                               message_id.get());
+                                                                                               get_message_id_object());
               }
               return nullptr;
             }
             if (!transaction->extended_media_.empty() || is_refund) {  // TODO
               if (td_->dialog_manager_->is_broadcast_channel(dialog_id) && for_user) {
-                SCOPE_EXIT {
-                  transaction->msg_id_ = 0;
-                };
-                auto message_id = MessageId(ServerMessageId(transaction->msg_id_));
-                if (message_id != MessageId() && !message_id.is_valid()) {
-                  LOG(ERROR) << "Receive " << message_id << " in " << to_string(transaction);
-                  message_id = MessageId();
-                }
                 return td_api::make_object<td_api::starTransactionTypeChannelPaidMediaPurchase>(
-                    chat_id, message_id.get(), get_paid_media_object(dialog_id));
+                    chat_id, get_message_id_object(), get_paid_media_object(dialog_id));
               }
               return nullptr;
             }
