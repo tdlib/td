@@ -2097,7 +2097,7 @@ static int merge_choose_generate_location(const unique_ptr<FullGenerateFileLocat
     }
     return x->conversion_ >= y->conversion_
                ? 0
-               : 1;  // the bigger conversion, the bigger mtime or at least more stable choise
+               : 1;  // the bigger conversion, the bigger mtime or at least more stable choice
   }
   return 2;
 }
@@ -3320,7 +3320,7 @@ void FileManager::run_download(FileNodePtr node, bool force_update_priority) {
   node->download_id_ = query_id;
   node->is_download_started_ = false;
   LOG(INFO) << "Run download of file " << file_id << " of size " << node->size_ << " from "
-            << node->remote_.full.value() << " with suggested name " << node->suggested_path() << " and encyption key "
+            << node->remote_.full.value() << " with suggested name " << node->suggested_path() << " and encryption key "
             << node->encryption_key_;
   auto download_offset = node->download_offset_;
   auto download_limit = node->get_download_limit();

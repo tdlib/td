@@ -78,7 +78,7 @@ class HazardPointers {
     }
   }
 
-  // old inteface
+  // old interface
   T *protect(size_t thread_id, size_t pos, std::atomic<T *> &ptr) {
     return do_protect(get_hazard_ptr(thread_id, pos), ptr);
   }

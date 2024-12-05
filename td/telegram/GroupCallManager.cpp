@@ -4376,7 +4376,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
     if (!group_call->is_active) {
       // never update ended calls
     } else if (!call.is_active) {
-      // always update to an ended call, droping also is_joined, is_speaking and other local flags
+      // always update to an ended call, dropping also is_joined, is_speaking and other local flags
       fail_promises(group_call->after_join, Status::Error(400, "Group call ended"));
       *group_call = std::move(call);
       need_update = true;

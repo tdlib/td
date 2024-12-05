@@ -23,7 +23,7 @@ void add_thread_local_destructor(unique_ptr<Destructor> destructor) {
 }  // namespace detail
 
 void clear_thread_locals() {
-  // ensure that no destructors were added during destructors invokation
+  // ensure that no destructors were added during destructors invocation
   auto to_delete = detail::thread_local_destructors;
   detail::thread_local_destructors = nullptr;
   delete to_delete;

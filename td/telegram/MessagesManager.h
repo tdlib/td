@@ -1665,7 +1665,7 @@ class MessagesManager final : public Actor {
   static constexpr int32 AUTH_NOTIFICATION_ID_CACHE_TIME = 7 * 86400;
   static constexpr size_t MAX_SAVED_AUTH_NOTIFICATION_IDS = 100;
 
-  static constexpr int32 MAX_RESEND_DELAY = 86400;  // seconds, some resonable limit
+  static constexpr int32 MAX_RESEND_DELAY = 86400;  // seconds, some reasonable limit
 
   static constexpr int32 SCHEDULE_WHEN_ONLINE_DATE = 2147483646;
 

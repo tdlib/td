@@ -117,7 +117,7 @@ namespace mtproto {
  *         BadMsgNotification;
  *
  *  error codes:
- *   16: msg_id is too low. -- lite resend. It will be automatially packed in a container. I hope.
+ *   16: msg_id is too low. -- lite resend. It will be automatically packed in a container. I hope.
  *   17: msg_id is too high. -- fail connection.
  *   18: msg_id % 4 != 0. -- Error and fail connection.
  *   19: container msg_id is the same as msg_id of a previously received message. MUST NEVER HAPPENS. Error and fail

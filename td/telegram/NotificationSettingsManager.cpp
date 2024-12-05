@@ -1358,7 +1358,7 @@ void NotificationSettingsManager::load_saved_ringtones(Promise<Unit> &&promise) 
       on_saved_ringtones_updated(true);
     }
 
-    // the promis must not be set synchronously
+    // the promise must not be set synchronously
     send_closure_later(actor_id(this), &NotificationSettingsManager::on_load_saved_ringtones, std::move(promise));
     reload_saved_ringtones(Auto());
   } else {

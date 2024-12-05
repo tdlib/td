@@ -476,7 +476,7 @@ class SecretChatActor final : public NetQueryCallback {
   // We may accept some other change during that time, and there goes our problem
   // The reason for the change may already be invalid. So we should somehow recheck change, that
   // is already written to binlog, and apply it only if necessary.
-  // This is completly flawed.
+  // This is completely flawed.
   // (A-start_save_to_binlog ----> B-start_save_to_binlog+change_memory ----> A-finish_save_to_binlog+surprise)
   //
   // Instead, I suggest general solution that is already used with SeqNoState and QTS

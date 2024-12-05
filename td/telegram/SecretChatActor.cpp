@@ -1310,7 +1310,7 @@ Status SecretChatActor::do_inbound_message_decrypted(unique_ptr<log_event::Inbou
     state.message_id = message->message_id;
     TRY_STATUS(on_inbound_action(*action, message->message_id));
   } else {
-    LOG(ERROR) << "INGORE MESSAGE: " << to_string(message->decrypted_message_layer);
+    LOG(ERROR) << "IGNORE MESSAGE: " << to_string(message->decrypted_message_layer);
     save_message_finish.set_value(Unit());
   }
 
