@@ -54,7 +54,7 @@ function config {
 
   ForEach ($arch in $arch_list) {
     echo "Config Arch = [$arch]"
-    New-Item -ItemType Directory -Force -Path $arch.ToLower()
+    New-Item -ItemType Directory -Force -Path $arch
     cd $arch
     echo "${td_root}"
     $fixed_arch = $arch
@@ -133,8 +133,8 @@ function export-nupkg {
     New-Item -ItemType Directory -Force -Path nupkg/lib/uap10.0
 
     ForEach ($config in $config_list) {
-      cp ${fixed_arch}/${config}/* -include "SSLEAY*","LIBEAY*","libcrypto*","libssl*","zlib*","Telegram.Td.pdb","Telegram.Td.pri","Telegram.Td.dll" nupkg/runtimes/win10-${fixed_arch}/native
-      cp ${fixed_arch}/${config}/* -include "Telegram.Td.winmd","Telegram.Td.xml" nupkg/lib/uap10.0
+      cp ${arch}/${config}/* -include "SSLEAY*","LIBEAY*","libcrypto*","libssl*","zlib*","Telegram.Td.pdb","Telegram.Td.pri","Telegram.Td.dll" nupkg/runtimes/win10-${fixed_arch}/native
+      cp ${arch}/${config}/* -include "Telegram.Td.winmd","Telegram.Td.xml" nupkg/lib/uap10.0
     }
   }
 
