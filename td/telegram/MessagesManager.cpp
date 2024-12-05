@@ -12940,6 +12940,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
         message_info.sender_dialog_id = message_info.dialog_id;
       }
       message_info.date = message->date_;
+      message_info.reactions = std::move(message->reactions_);
       message_info.ttl_period = message->ttl_period_;
       message_info.is_outgoing = message->out_;
       message_info.is_silent = message->silent_;
