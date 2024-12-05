@@ -1922,8 +1922,9 @@ class SearchMessagesGlobalQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_searchGlobal::BROADCASTS_ONLY_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_searchGlobal(
-        flags, false /*ignored*/, folder_id.get(), query, get_input_messages_filter(filter), min_date_, max_date_,
-        offset_date_, std::move(input_peer), offset_message_id.get_server_message_id().get(), limit)));
+        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, folder_id.get(), query,
+        get_input_messages_filter(filter), min_date_, max_date_, offset_date_, std::move(input_peer),
+        offset_message_id.get_server_message_id().get(), limit)));
   }
 
   void on_result(BufferSlice packet) final {

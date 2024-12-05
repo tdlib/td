@@ -35,7 +35,7 @@ class StarGift {
  public:
   StarGift() = default;
 
-  StarGift(Td *td, telegram_api::object_ptr<telegram_api::starGift> &&star_gift);
+  StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&star_gift_ptr);
 
   bool is_valid() const {
     return id_ != 0 && sticker_file_id_.is_valid();

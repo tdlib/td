@@ -784,7 +784,7 @@ void CallActor::try_send_request_query() {
   if (is_video_) {
     flags |= telegram_api::phone_requestCall::VIDEO_MASK;
   }
-  auto tl_query = telegram_api::phone_requestCall(flags, false /*ignored*/, std::move(input_user_),
+  auto tl_query = telegram_api::phone_requestCall(flags, false /*ignored*/, std::move(input_user_), nullptr,
                                                   Random::secure_int32(), BufferSlice(dh_handshake_.get_g_b_hash()),
                                                   call_state_.protocol.get_input_phone_call_protocol());
   auto query = G()->net_query_creator().create(tl_query);

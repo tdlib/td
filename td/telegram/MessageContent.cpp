@@ -7412,6 +7412,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       case telegram_api::messageActionGiftStars::ID:
       case telegram_api::messageActionPrizeStars::ID:
       case telegram_api::messageActionStarGift::ID:
+      case telegram_api::messageActionStarGiftUnique::ID:
       case telegram_api::messageActionPaymentRefunded::ID:
         // ok
         break;
@@ -7889,6 +7890,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
                                               StarManager::get_star_count(action->convert_stars_), action->name_hidden_,
                                               action->saved_, action->converted_);
     }
+    case telegram_api::messageActionStarGiftUnique::ID:
+      return td::make_unique<MessageUnsupported>();
     default:
       UNREACHABLE();
   }

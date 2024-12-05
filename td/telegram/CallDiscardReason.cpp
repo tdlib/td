@@ -23,6 +23,8 @@ CallDiscardReason get_call_discard_reason(const tl_object_ptr<telegram_api::Phon
       return CallDiscardReason::HungUp;
     case telegram_api::phoneCallDiscardReasonBusy::ID:
       return CallDiscardReason::Declined;
+    case telegram_api::phoneCallDiscardReasonAllowGroupCall::ID:
+      return CallDiscardReason::Declined;
     default:
       UNREACHABLE();
       return CallDiscardReason::Empty;

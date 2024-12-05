@@ -47,7 +47,7 @@ unique_ptr<DialogFilter> DialogFilter::get_dialog_filter(
       }
       auto dialog_filter = make_unique<DialogFilter>();
       dialog_filter->dialog_filter_id_ = dialog_filter_id;
-      dialog_filter->title_ = std::move(filter->title_);
+      dialog_filter->title_ = std::move(filter->title_->text_);
       dialog_filter->emoji_ = std::move(filter->emoticon_);
       dialog_filter->color_id_ = (filter->flags_ & telegram_api::dialogFilter::COLOR_MASK) != 0 ? filter->color_ : -1;
       dialog_filter->pinned_dialog_ids_ = InputDialogId::get_input_dialog_ids(filter->pinned_peers_, &added_dialog_ids);
@@ -83,7 +83,7 @@ unique_ptr<DialogFilter> DialogFilter::get_dialog_filter(
       }
       auto dialog_filter = make_unique<DialogFilter>();
       dialog_filter->dialog_filter_id_ = dialog_filter_id;
-      dialog_filter->title_ = std::move(filter->title_);
+      dialog_filter->title_ = std::move(filter->title_->text_);
       dialog_filter->emoji_ = std::move(filter->emoticon_);
       dialog_filter->color_id_ =
           (filter->flags_ & telegram_api::dialogFilterChatlist::COLOR_MASK) != 0 ? filter->color_ : -1;
@@ -434,7 +434,8 @@ telegram_api::object_ptr<telegram_api::DialogFilter> DialogFilter::get_input_dia
       flags |= telegram_api::dialogFilterChatlist::HAS_MY_INVITES_MASK;
     }
     return telegram_api::make_object<telegram_api::dialogFilterChatlist>(
-        flags, false /*ignored*/, dialog_filter_id_.get(), title_, emoji_, color_id_,
+        flags, false /*ignored*/, false /*ignored*/, dialog_filter_id_.get(),
+        telegram_api::make_object<telegram_api::textWithEntities>(title_, Auto()), emoji_, color_id_,
         InputDialogId::get_input_peers(pinned_dialog_ids_), InputDialogId::get_input_peers(included_dialog_ids_));
   }
   int32 flags = telegram_api::dialogFilter::EMOTICON_MASK;
@@ -468,7 +469,8 @@ telegram_api::object_ptr<telegram_api::DialogFilter> DialogFilter::get_input_dia
 
   return telegram_api::make_object<telegram_api::dialogFilter>(
       flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-      false /*ignored*/, false /*ignored*/, false /*ignored*/, dialog_filter_id_.get(), title_, emoji_, color_id_,
+      false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, dialog_filter_id_.get(),
+      telegram_api::make_object<telegram_api::textWithEntities>(title_, Auto()), emoji_, color_id_,
       InputDialogId::get_input_peers(pinned_dialog_ids_), InputDialogId::get_input_peers(included_dialog_ids_),
       InputDialogId::get_input_peers(excluded_dialog_ids_));
 }

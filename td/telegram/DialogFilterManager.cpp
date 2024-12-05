@@ -2117,7 +2117,7 @@ void DialogFilterManager::on_get_chatlist_invite(
         icon_name = "Custom";
       }
       info = td_api::make_object<td_api::chatFolderInfo>(
-          0, invite->title_, td_api::make_object<td_api::chatFolderIcon>(icon_name), -1, true, false);
+          0, invite->title_->text_, td_api::make_object<td_api::chatFolderIcon>(icon_name), -1, true, false);
       missing_peers = std::move(invite->peers_);
       chats = std::move(invite->chats_);
       users = std::move(invite->users_);

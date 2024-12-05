@@ -15,8 +15,12 @@
 
 namespace td {
 
-StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::starGift> &&star_gift) {
-  CHECK(star_gift != nullptr);
+StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&star_gift_ptr) {
+  CHECK(star_gift_ptr != nullptr);
+  if (star_gift_ptr->get_id() != telegram_api::starGift::ID) {
+    return;
+  }
+  auto star_gift = telegram_api::move_object_as<telegram_api::starGift>(star_gift_ptr);
   if (star_gift->id_ == 0) {
     LOG(ERROR) << "Receive " << to_string(star_gift);
     return;

@@ -176,9 +176,9 @@ class ConvertStarGiftQuery final : public Td::ResultHandler {
   explicit ConvertStarGiftQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(telegram_api::object_ptr<telegram_api::InputUser> input_user, MessageId message_id) {
+  void send(MessageId message_id) {
     send_query(G()->net_query_creator().create(
-        telegram_api::payments_convertStarGift(std::move(input_user), message_id.get_server_message_id().get())));
+        telegram_api::payments_convertStarGift(message_id.get_server_message_id().get())));
   }
 
   void on_result(BufferSlice packet) final {
@@ -203,14 +203,14 @@ class SaveStarGiftQuery final : public Td::ResultHandler {
   explicit SaveStarGiftQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(telegram_api::object_ptr<telegram_api::InputUser> input_user, MessageId message_id, bool is_saved) {
+  void send(MessageId message_id, bool is_saved) {
     is_saved_ = is_saved;
     int32 flags = 0;
     if (!is_saved) {
       flags |= telegram_api::payments_saveStarGift::UNSAVE_MASK;
     }
-    send_query(G()->net_query_creator().create(telegram_api::payments_saveStarGift(
-        flags, false /*ignored*/, std::move(input_user), message_id.get_server_message_id().get())));
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_saveStarGift(flags, false /*ignored*/, message_id.get_server_message_id().get())));
   }
 
   void on_result(BufferSlice packet) final {
@@ -344,9 +344,10 @@ void StarGiftManager::send_gift(int64 gift_id, UserId user_id, td_api::object_pt
     flags |= telegram_api::inputInvoiceStarGift::HIDE_NAME_MASK;
   }
   auto input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGift>(
-      flags, false /*ignored*/, std::move(input_user), gift_id, nullptr);
+      flags, false /*ignored*/, false /*ignored*/, std::move(input_user), gift_id, nullptr);
   auto send_input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGift>(
-      flags, false /*ignored*/, td_->user_manager_->get_input_user(user_id).move_as_ok(), gift_id, nullptr);
+      flags, false /*ignored*/, false /*ignored*/, td_->user_manager_->get_input_user(user_id).move_as_ok(), gift_id,
+      nullptr);
   if (!message.text.empty()) {
     input_invoice->flags_ |= telegram_api::inputInvoiceStarGift::MESSAGE_MASK;
     input_invoice->message_ = get_input_text_with_entities(td_->user_manager_.get(), message, "send_gift");
@@ -363,7 +364,7 @@ void StarGiftManager::convert_gift(UserId user_id, MessageId message_id, Promise
   if (!message_id.is_valid() || !message_id.is_server()) {
     return promise.set_error(Status::Error(400, "Invalid message identifier specified"));
   }
-  td_->create_handler<ConvertStarGiftQuery>(std::move(promise))->send(std::move(input_user), message_id);
+  td_->create_handler<ConvertStarGiftQuery>(std::move(promise))->send(message_id);
 }
 
 void StarGiftManager::save_gift(UserId user_id, MessageId message_id, bool is_saved, Promise<Unit> &&promise) {
@@ -371,7 +372,7 @@ void StarGiftManager::save_gift(UserId user_id, MessageId message_id, bool is_sa
   if (!message_id.is_valid() || !message_id.is_server()) {
     return promise.set_error(Status::Error(400, "Invalid message identifier specified"));
   }
-  td_->create_handler<SaveStarGiftQuery>(std::move(promise))->send(std::move(input_user), message_id, is_saved);
+  td_->create_handler<SaveStarGiftQuery>(std::move(promise))->send(message_id, is_saved);
 }
 
 void StarGiftManager::get_user_gifts(UserId user_id, const string &offset, int32 limit,
