@@ -4914,6 +4914,7 @@ void UserManager::set_bot_profile_photo(UserId bot_user_id,
 
 void UserManager::set_profile_photo(const td_api::object_ptr<td_api::InputChatPhoto> &input_photo, bool is_fallback,
                                     Promise<Unit> &&promise) {
+  dismiss_suggested_action(SuggestedAction{SuggestedAction::Type::UserpicSetup}, Promise<Unit>());
   set_profile_photo_impl(get_my_id(), input_photo, is_fallback, false, std::move(promise));
 }
 

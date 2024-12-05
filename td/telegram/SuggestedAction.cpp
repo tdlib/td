@@ -51,6 +51,8 @@ SuggestedAction::SuggestedAction(Slice action_str) {
     init(Type::PremiumGrace);
   } else if (action_str == Slice("STARS_SUBSCRIPTION_LOW_BALANCE")) {
     init(Type::StarsSubscriptionLowBalance);
+  } else if (action_str == Slice("USERPIC_SETUP")) {
+    init(Type::UserpicSetup);
   }
 }
 
@@ -115,6 +117,9 @@ SuggestedAction::SuggestedAction(const td_api::object_ptr<td_api::SuggestedActio
     case td_api::suggestedActionExtendStarSubscriptions::ID:
       init(Type::StarsSubscriptionLowBalance);
       break;
+    case td_api::suggestedActionSetProfilePhoto::ID:
+      init(Type::UserpicSetup);
+      break;
     default:
       UNREACHABLE();
   }
@@ -148,6 +153,8 @@ string SuggestedAction::get_suggested_action_str() const {
       return "PREMIUM_GRACE";
     case Type::StarsSubscriptionLowBalance:
       return "STARS_SUBSCRIPTION_LOW_BALANCE";
+    case Type::UserpicSetup:
+      return "USERPIC_SETUP";
     default:
       return string();
   }
@@ -184,6 +191,8 @@ td_api::object_ptr<td_api::SuggestedAction> SuggestedAction::get_suggested_actio
           G()->get_option_string("premium_manage_subscription_url", "https://t.me/premiumbot?start=status"));
     case Type::StarsSubscriptionLowBalance:
       return td_api::make_object<td_api::suggestedActionExtendStarSubscriptions>();
+    case Type::UserpicSetup:
+      return td_api::make_object<td_api::suggestedActionSetProfilePhoto>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -253,6 +262,7 @@ void dismiss_suggested_action(SuggestedAction action, Promise<Unit> &&promise) {
     case SuggestedAction::Type::PremiumGrace:
     case SuggestedAction::Type::StarsSubscriptionLowBalance:
     case SuggestedAction::Type::ConvertToGigagroup:
+    case SuggestedAction::Type::UserpicSetup:
       return send_closure_later(G()->suggested_action_manager(), &SuggestedActionManager::dismiss_suggested_action,
                                 std::move(action), std::move(promise));
     case SuggestedAction::Type::SetPassword: {
