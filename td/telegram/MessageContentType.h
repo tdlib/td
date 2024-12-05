@@ -117,6 +117,8 @@ bool can_send_message_content_to_secret_chat(MessageContentType content_type);
 
 uint64 get_message_content_chain_id(MessageContentType content_type);
 
+bool get_default_service_message_content_reactions_are_possible(MessageContentType content_type);
+
 struct MessageContentTypeHash {
   uint32 operator()(MessageContentType content_type) const {
     return Hash<int32>()(static_cast<int32>(content_type));

@@ -1040,6 +1040,7 @@ class MessagesManager final : public Actor {
     bool has_unread_content = false;
     bool invert_media = false;
     bool video_processing_pending = false;
+    bool reactions_are_possible = false;
 
     unique_ptr<MessageContent> content;
     tl_object_ptr<telegram_api::ReplyMarkup> reply_markup;
@@ -1103,6 +1104,7 @@ class MessagesManager final : public Actor {
     bool invert_media = false;
     bool disable_web_page_preview = false;
     bool video_processing_pending = false;
+    bool reactions_are_possible = false;
 
     bool has_explicit_sender = false;       // for send_message
     bool is_copy = false;                   // for send_message

@@ -3824,6 +3824,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_effect_id = effect_id.is_valid();
   bool has_fact_check = fact_check != nullptr;
   bool has_initial_sender_dialog_id = !message_id.is_any_server() && initial_sender_dialog_id.is_valid();
+  bool has_reactions_are_possible = true;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -3915,6 +3916,8 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_initial_sender_dialog_id);  // 20
     STORE_FLAG(allow_paid);
     STORE_FLAG(video_processing_pending);
+    STORE_FLAG(has_reactions_are_possible);
+    STORE_FLAG(reactions_are_possible);
     END_STORE_FLAGS();
   }
 
@@ -4110,6 +4113,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_effect_id = false;
   bool has_fact_check = false;
   bool has_initial_sender_dialog_id = false;
+  bool has_reactions_are_possible = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
   PARSE_FLAG(is_outgoing);
@@ -4201,6 +4205,8 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(has_initial_sender_dialog_id);
     PARSE_FLAG(allow_paid);
     PARSE_FLAG(video_processing_pending);
+    PARSE_FLAG(has_reactions_are_possible);
+    PARSE_FLAG(reactions_are_possible);
     END_PARSE_FLAGS();
   }
 
@@ -4405,6 +4411,9 @@ void MessagesManager::Message::parse(ParserT &parser) {
   is_content_secret |= ttl.is_secret_message_content(content->get_type());  // repair is_content_secret for old messages
   if (hide_edit_date && content->get_type() == MessageContentType::LiveLocation) {
     hide_edit_date = false;
+  }
+  if (!has_reactions_are_possible) {
+    reactions_are_possible = get_default_service_message_content_reactions_are_possible(content->get_type());
   }
 }
 
@@ -7403,8 +7412,10 @@ ChatReactions MessagesManager::get_dialog_active_reactions(const Dialog *d) cons
 ChatReactions MessagesManager::get_message_active_reactions(const Dialog *d, const Message *m) const {
   CHECK(d != nullptr);
   CHECK(m != nullptr);
-  if (is_service_message_content(m->content->get_type()) || !m->ttl.is_empty() || !m->message_id.is_valid() ||
-      !m->message_id.is_server()) {
+  if (!m->ttl.is_empty() || !m->message_id.is_valid() || !m->message_id.is_server()) {
+    return ChatReactions();
+  }
+  if (!m->reactions_are_possible && is_service_message_content(m->content->get_type())) {
     return ChatReactions();
   }
   auto dialog_id = d->dialog_id;
@@ -12948,6 +12959,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       message_info.is_legacy = message->legacy_;
       message_info.has_mention = message->mentioned_;
       message_info.has_unread_content = message->media_unread_;
+      message_info.reactions_are_possible = message->reactions_are_possible_;
       bool can_have_thread = message_info.dialog_id.get_type() == DialogType::Channel &&
                              !td->dialog_manager_->is_broadcast_channel(message_info.dialog_id);
       message_info.reply_header = MessageReplyHeader(td, std::move(message->reply_to_), message_info.dialog_id,
@@ -13231,6 +13243,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->is_pinned = is_pinned;
   message->noforwards = noforwards;
   message->video_processing_pending = message_info.video_processing_pending;
+  message->reactions_are_possible = message_info.reactions_are_possible;
   message->interaction_info_update_date = G()->unix_time();
   message->view_count = view_count;
   message->forward_count = forward_count;
@@ -33806,6 +33819,9 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
   if (old_message->video_processing_pending != new_message->video_processing_pending) {
     old_message->video_processing_pending = new_message->video_processing_pending;
     need_send_update = true;
+  }
+  if (old_message->reactions_are_possible != new_message->reactions_are_possible) {
+    old_message->reactions_are_possible = new_message->reactions_are_possible;
   }
 
   if (old_message->edit_date > 0) {
