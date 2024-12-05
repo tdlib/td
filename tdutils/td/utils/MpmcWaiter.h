@@ -281,7 +281,7 @@ class MpmcSleepyWaiter {
     auto view = StateView(state_.load());
     //LOG(ERROR) << view.parked_count;
     if (view.searching_count > 0 || view.parked_count == 0) {
-      VLOG(waiter) << "Ingore notify: " << view.searching_count << ' ' << view.parked_count;
+      VLOG(waiter) << "Ignore notify: " << view.searching_count << ' ' << view.parked_count;
       return;
     }
 

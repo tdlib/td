@@ -22,7 +22,7 @@ class Actor;
 // Small structure (up to 16 bytes) used to send events between actors.
 //
 // There are some predefined types of events:
-// NoType -- unitialized event
+// NoType -- uninitialized event
 // Start -- start actor
 // Stop -- stop actor
 // Yield -- wake up actor

@@ -103,7 +103,7 @@ Result<bool> FileDownloader::should_restart_part(Part part, const NetQueryPtr &n
     case QueryType::ReuploadCDN: {
       TRY_RESULT(file_hashes, fetch_result<telegram_api::upload_reuploadCdnFile>(net_query->ok()));
       add_hash_info(file_hashes);
-      LOG(DEBUG) << "Part " << part.id << " was reuplaoded to CDN";
+      LOG(DEBUG) << "Part " << part.id << " was reuploaded to CDN";
       return true;
     }
     case QueryType::CDN: {
@@ -111,7 +111,7 @@ Result<bool> FileDownloader::should_restart_part(Part part, const NetQueryPtr &n
         TRY_RESULT(file_base, fetch_result<telegram_api::upload_getCdnFile>(net_query->ok()));
         CHECK(file_base->get_id() == telegram_api::upload_cdnFileReuploadNeeded::ID);
         auto file = move_tl_object_as<telegram_api::upload_cdnFileReuploadNeeded>(file_base);
-        LOG(DEBUG) << "Part " << part.id << " must be reuplaoded to " << oneline(to_string(file));
+        LOG(DEBUG) << "Part " << part.id << " must be reuploaded to " << oneline(to_string(file));
         cdn_part_reupload_token_[part.id] = file->request_token_.as_slice().str();
         return true;
       }

@@ -4235,7 +4235,7 @@ static std::pair<size_t, int32> remove_invalid_entities(const string &text, vect
   return {last_non_whitespace_pos, last_non_whitespace_utf16_offset};
 }
 
-// enitities must contain only splittable entities
+// entities must contain only splittable entities
 static void split_entities(vector<MessageEntity> &entities, const vector<MessageEntity> &other_entities) {
   check_is_sorted(entities);
   check_is_sorted(other_entities);

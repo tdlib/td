@@ -129,7 +129,7 @@ class AuthManager final : public NetActor {
   ActorShared<> parent_;
 
   // STATE
-  // from contructor
+  // from constructor
   int32 api_id_;
   string api_hash_;
 

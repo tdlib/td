@@ -884,7 +884,7 @@ class TdClient {
   }
 
   async close(last_update) {
-    // close db and cancell all timers
+    // close db and cancel all timers
     this.isClosing = true;
     if (this.isStarted) {
       log.debug('close worker: start');

@@ -6009,7 +6009,7 @@ void MessagesManager::skip_old_pending_pts_update(tl_object_ptr<telegram_api::Up
     return;
   }
 
-  // very old or unuseful update
+  // very old or useless update
   LOG_IF(WARNING, new_pts == old_pts && pts_count == 0 && !is_allowed_useless_update(update))
       << "Receive useless update " << oneline(to_string(update)) << " from " << source;
 }
@@ -7154,7 +7154,7 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
     }
   } else {
     int32 old_pts = d->pts;
-    if (new_pts <= old_pts) {  // very old or unuseful update
+    if (new_pts <= old_pts) {  // very old or useless update
       if (update->get_id() == telegram_api::updateNewChannelMessage::ID) {
         auto update_new_channel_message = static_cast<telegram_api::updateNewChannelMessage *>(update.get());
         auto message_id = MessageId::get_message_id(update_new_channel_message->message_, false);
@@ -9640,7 +9640,7 @@ void MessagesManager::on_get_scheduled_server_messages(DialogId dialog_id, uint3
   d->scheduled_messages_sync_generation = generation;
 
   if (is_not_modified) {
-    LOG(INFO) << "Scheduled messages are mot modified in " << dialog_id;
+    LOG(INFO) << "Scheduled messages are not modified in " << dialog_id;
     return;
   }
 
@@ -10700,7 +10700,7 @@ void MessagesManager::delete_dialog_messages_by_sender(DialogId dialog_id, Dialo
       }
       channel_status = td_->chat_manager_->get_channel_permissions(channel_id);
       if (!channel_status.can_delete_messages()) {
-        return promise.set_error(Status::Error(400, "Need delete messages administator right in the supergroup chat"));
+        return promise.set_error(Status::Error(400, "Need delete messages administrator right in the supergroup chat"));
       }
       channel_id = dialog_id.get_channel_id();
       break;
@@ -26464,7 +26464,7 @@ void MessagesManager::register_message_reply(DialogId dialog_id, const Message *
 }
 
 void MessagesManager::reregister_message_reply(DialogId dialog_id, const Message *m) {
-  // reply itself wan't changed, so there is nothing to reregister
+  // reply itself wasn't changed, so there is nothing to reregister
   if (!can_register_message_reply(m)) {
     return;
   }

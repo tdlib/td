@@ -199,7 +199,7 @@ td::Result<TlsInfo> test_tls(const td::string &url) {
             if (random_id ==
                 "\xcf\x21\xad\x74\xe5\x9a\x61\x11\xbe\x1d\x8c\x02\x1e\x65\xb8\x91\xc2\xa2\x11\x16\x7a\xbb\x8c\x5e\x07"
                 "\x9e\x09\xe2\xc8\xa8\x33\x9c") {
-              return td::Status::Error("TLS 1.3 servers returning HelloRetryRequest are not supprted");
+              return td::Status::Error("TLS 1.3 servers returning HelloRetryRequest are not supported");
             }
             if (result[43] == '\x00') {
               return td::Status::Error("TLS <= 1.2: empty session_id");

@@ -154,7 +154,7 @@ endif()
 
 set (CMAKE_SHARED_LINKER_FLAGS_INIT "-fapplication-extension")
 set (CMAKE_C_FLAGS_INIT "${XCODE_IOS_PLATFORM_VERSION_FLAGS}")
-# Hidden visibilty is required for cxx on iOS
+# Hidden visibility is required for cxx on iOS
 set (CMAKE_CXX_FLAGS_INIT "${XCODE_IOS_PLATFORM_VERSION_FLAGS} -fvisibility-inlines-hidden")
 
 set (CMAKE_C_LINK_FLAGS   "${XCODE_IOS_PLATFORM_VERSION_FLAGS} -fapplication-extension -Wl,-search_paths_first ${CMAKE_C_LINK_FLAGS}")

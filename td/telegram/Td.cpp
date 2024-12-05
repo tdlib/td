@@ -834,7 +834,7 @@ void Td::init(Parameters parameters, Result<TdDb::OpenedDatabase> r_opened_datab
 
   // we need to process td_api::getOption along with td_api::setOption for consistency
   // we need to process td_api::setOption before managers and MTProto header are created,
-  // because their initialiation may be affected by the options
+  // because their initialization may be affected by the options
   complete_pending_preauthentication_requests([](int32 id) {
     switch (id) {
       case td_api::getOption::ID:
