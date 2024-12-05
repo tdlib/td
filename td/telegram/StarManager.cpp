@@ -334,15 +334,11 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                                                                                     transaction->transaction_url_);
               }
               if (transaction->pending_) {
-                SCOPE_EXIT {
-                  transaction->pending_ = false;
-                };
+                transaction->pending_ = false;
                 return td_api::make_object<td_api::revenueWithdrawalStatePending>();
               }
               if (transaction->failed_) {
-                SCOPE_EXIT {
-                  transaction->failed_ = false;
-                };
+                transaction->failed_ = false;
                 return td_api::make_object<td_api::revenueWithdrawalStateFailed>();
               }
               return nullptr;
@@ -444,9 +440,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
               }
               if (transaction->reaction_) {
                 if (for_channel) {
-                  SCOPE_EXIT {
-                    transaction->reaction_ = false;
-                  };
+                  transaction->reaction_ = false;
                   return td_api::make_object<td_api::starTransactionTypeChannelPaidReactionReceive>(
                       user_id_object, get_message_id_object());
                 }
