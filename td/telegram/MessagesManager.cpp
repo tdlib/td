@@ -7459,7 +7459,7 @@ bool MessagesManager::need_poll_message_reactions(const Dialog *d, const Message
   if (m->available_reactions_generation == d->available_reactions_generation) {
     return false;
   }
-  if (is_service_message_content(m->content->get_type())) {
+  if (is_service_message_content(m->content->get_type()) && !m->reactions_are_possible) {
     return false;
   }
   return true;
