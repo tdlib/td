@@ -25,8 +25,6 @@ class InputDialogId {
   explicit constexpr InputDialogId(DialogId dialog_id) : dialog_id(dialog_id) {
   }
 
-  explicit InputDialogId(const telegram_api::object_ptr<telegram_api::InputUser> &input_user);
-
   explicit InputDialogId(const tl_object_ptr<telegram_api::InputPeer> &input_peer);
 
   static vector<InputDialogId> get_input_dialog_ids(const vector<tl_object_ptr<telegram_api::InputPeer>> &input_peers,
