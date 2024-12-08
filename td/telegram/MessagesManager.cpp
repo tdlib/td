@@ -12230,7 +12230,7 @@ vector<UserId> MessagesManager::get_message_user_ids(const Message *m) const {
 
 vector<ChannelId> MessagesManager::get_message_channel_ids(const Message *m) const {
   vector<ChannelId> channel_ids;
-  if (m->sender_dialog_id.is_valid() && m->sender_dialog_id.get_type() == DialogType::Channel) {
+  if (m->sender_dialog_id.get_type() == DialogType::Channel) {
     channel_ids.push_back(m->sender_dialog_id.get_channel_id());
   }
   if (m->forward_info != nullptr) {
@@ -13184,7 +13184,7 @@ void MessagesManager::on_resolve_secret_chat_message_via_bot_username(const stri
                                                                       Promise<Unit> &&promise) {
   if (!G()->close_flag()) {
     auto dialog_id = td_->dialog_manager_->get_resolved_dialog_by_username(via_bot_username);
-    if (dialog_id.is_valid() && dialog_id.get_type() == DialogType::User) {
+    if (dialog_id.get_type() == DialogType::User) {
       auto user_id = dialog_id.get_user_id();
       auto r_bot_data = td_->user_manager_->get_bot_data(user_id);
       if (r_bot_data.is_ok() && r_bot_data.ok().is_inline) {
@@ -13477,7 +13477,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       UNREACHABLE();
       break;
   }
-  if (message_info.sender_dialog_id.is_valid() && message_info.sender_dialog_id.get_type() == DialogType::User) {
+  if (message_info.sender_dialog_id.get_type() == DialogType::User) {
     message_info.sender_user_id = message_info.sender_dialog_id.get_user_id();
     message_info.sender_dialog_id = DialogId();
   }
