@@ -1,5 +1,5 @@
 diff --git a/Makefile b/Makefile
-index a1d13e9..8efcf20 100644
+index a1d13e9..e010d2e 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -18,8 +18,13 @@
@@ -21,7 +21,7 @@ index a1d13e9..8efcf20 100644
  # probably some other packages as well) only works with 1.1.1, so
  # we need to preserve the ability to build the older OpenSSL (for now...)
 -OPENSSL_VERSION=3.1.0
-+OPENSSL_VERSION=3.1.5
++OPENSSL_VERSION=3.4.0
  # OPENSSL_VERSION_NUMBER=1.1.1
  # OPENSSL_REVISION=q
  # OPENSSL_VERSION=$(OPENSSL_VERSION_NUMBER)$(OPENSSL_REVISION)
@@ -62,12 +62,13 @@ index a1d13e9..8efcf20 100644
 -TARGETS-watchOS=watchsimulator.x86_64 watchsimulator.arm64 watchos.arm64_32
 +TARGETS-watchOS=watchos.armv7k watchos.arm64_32 watchos.arm64
  VERSION_MIN-watchOS=4.0
- CFLAGS-watchOS=-mwatchos-version-min=$(VERSION_MIN-watchOS)
+-CFLAGS-watchOS=-mwatchos-version-min=$(VERSION_MIN-watchOS)
++CFLAGS-watchOS=-mwatchos-version-min=$(VERSION_MIN-watchOS) -DUSE_ATOMIC_FALLBACKS
  PYTHON_CONFIGURE-watchOS=ac_cv_func_sigaltstack=no
  
 +# watchOS-simulator targets
 +TARGETS-watchOS-simulator=watchsimulator.i386 watchsimulator.x86_64 watchsimulator.arm64
-+CFLAGS-watchOS-simulator=-mwatchos-simulator-version-min=$(VERSION_MIN-watchOS)
++CFLAGS-watchOS-simulator=-mwatchos-simulator-version-min=$(VERSION_MIN-watchOS) -DUSE_ATOMIC_FALLBACKS
 +
 +# visionOS targets
 +TARGETS-visionOS=xros.arm64
