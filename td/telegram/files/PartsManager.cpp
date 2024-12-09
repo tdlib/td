@@ -231,10 +231,6 @@ bool PartsManager::is_part_in_streaming_limit(int part_id) const {
   auto offset_begin = static_cast<int64>(part_id) * static_cast<int64>(get_part_size());
   auto offset_end = offset_begin + static_cast<int64>(get_part(part_id).size);
 
-  if (offset_begin >= (unknown_size_flag_ ? max_size_ : size_)) {
-    return false;
-  }
-
   if (streaming_limit_ == 0) {
     return true;
   }
@@ -262,14 +258,17 @@ bool PartsManager::is_streaming_limit_reached() {
   update_first_not_ready_part();
   auto part_id = first_streaming_not_ready_part_;
 
+  //LOG(ERROR) << unknown_size_flag_ << ' ' << part_id << ' ' << part_count_ << ' ' << first_not_ready_part_ << ' '
+  //           << get_estimated_extra() << ' ' << (part_id == part_count_ ? true : is_part_in_streaming_limit(part_id));
+
   // wrap
   if (!unknown_size_flag_ && part_id == part_count_) {
     part_id = first_not_ready_part_;
   }
-  if (part_id == part_count_) {
+  if (part_id == part_count_ || !is_part_in_streaming_limit(part_id)) {
     return get_estimated_extra() == 0;
   }
-  return !is_part_in_streaming_limit(part_id);
+  return false;
 }
 
 Result<Part> PartsManager::start_part() {
@@ -298,9 +297,11 @@ Result<Part> PartsManager::start_part() {
     }
   }
 
-  if (!is_part_in_streaming_limit(part_id)) {
+  if (!is_part_in_streaming_limit(part_id) ||
+      static_cast<int64>(part_id) * static_cast<int64>(get_part_size()) >= (unknown_size_flag_ ? max_size_ : size_)) {
     return get_empty_part();
   }
+
   CHECK(part_status_[part_id] == PartStatus::Empty);
   on_part_start(part_id);
   return get_part(part_id);
@@ -355,7 +356,7 @@ Status PartsManager::on_part_ok(int part_id, size_t part_size, size_t actual_siz
     streaming_ready_size_ += narrow_cast<int64>(actual_size);
   }
 
-  VLOG(file_loader) << "Transferred part " << part_id << " of size " << part_size
+  VLOG(file_loader) << "Transferred part " << part_id << " of size " << part_size << " with actual size " << actual_size
                     << ", total ready size = " << ready_size_;
 
   int64 offset = narrow_cast<int64>(part_size_) * part_id;
