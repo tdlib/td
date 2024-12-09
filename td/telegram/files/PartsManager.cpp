@@ -425,7 +425,7 @@ int64 PartsManager::get_size_or_zero() const {
 int64 PartsManager::get_estimated_extra() const {
   auto total_estimated_extra = get_expected_size() - get_ready_size();
   if (streaming_limit_ != 0) {
-    auto part_size = get_part_size();
+    int64 part_size = get_part_size();
     auto round_up = [part_size](int64 size) {
       return (size + part_size - 1) / part_size * part_size;
     };
