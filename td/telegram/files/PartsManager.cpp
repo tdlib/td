@@ -231,7 +231,7 @@ bool PartsManager::is_part_in_streaming_limit(int part_id) const {
   auto offset_begin = static_cast<int64>(part_id) * static_cast<int64>(get_part_size());
   auto offset_end = offset_begin + static_cast<int64>(get_part(part_id).size);
 
-  if (offset_begin >= get_expected_size()) {
+  if (offset_begin >= (unknown_size_flag_ ? max_size_ : size_)) {
     return false;
   }
 
