@@ -267,7 +267,7 @@ bool PartsManager::is_streaming_limit_reached() {
     part_id = first_not_ready_part_;
   }
   if (part_id == part_count_) {
-    return false;
+    return get_estimated_extra() == 0;
   }
   return !is_part_in_streaming_limit(part_id);
 }
@@ -322,6 +322,9 @@ Status PartsManager::set_known_prefix(int64 size, bool is_ready) {
     size_ = size;
     unknown_size_flag_ = false;
     known_prefix_flag_ = false;
+    if (streaming_limit_ != 0) {
+      set_streaming_limit(streaming_limit_);
+    }
   } else {
     part_count_ = static_cast<int>(size / static_cast<int64>(part_size_));
   }
@@ -359,8 +362,10 @@ Status PartsManager::on_part_ok(int part_id, size_t part_size, size_t actual_siz
   int64 end_offset = offset + narrow_cast<int64>(actual_size);
   if (unknown_size_flag_) {
     CHECK(part_size == part_size_);
-    if (actual_size < part_size_) {
-      max_size_ = min(max_size_, end_offset);
+    bool is_size_changed = false;
+    if (actual_size < part_size_ && end_offset < max_size_) {
+      max_size_ = end_offset;
+      is_size_changed = true;
     }
     if (actual_size) {
       min_size_ = max(min_size_, end_offset);
@@ -373,6 +378,11 @@ Status PartsManager::on_part_ok(int part_id, size_t part_size, size_t actual_siz
     } else if (min_size_ == max_size_) {
       unknown_size_flag_ = false;
       size_ = min_size_;
+      is_size_changed = true;
+    }
+
+    if (is_size_changed && streaming_limit_ != 0) {
+      set_streaming_limit(streaming_limit_);
     }
   } else {
     if ((actual_size < part_size && offset < size_) || (offset >= size_ && actual_size > 0)) {
