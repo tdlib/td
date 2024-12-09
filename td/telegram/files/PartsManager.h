@@ -51,7 +51,6 @@ class PartsManager {
   int32 get_ready_prefix_count();
   int64 get_streaming_offset() const;
   string get_bitmask();
-  int32 get_pending_count() const;
 
  private:
   static constexpr int MAX_PART_COUNT = 4000;

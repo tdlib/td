@@ -65,10 +65,6 @@ int32 PartsManager::set_streaming_offset(int64 offset, int64 limit) {
   return finish();
 }
 
-int32 PartsManager::get_pending_count() const {
-  return pending_count_;
-}
-
 void PartsManager::set_streaming_limit(int64 limit) {
   streaming_limit_ = limit;
   streaming_ready_size_ = 0;
