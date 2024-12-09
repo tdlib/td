@@ -465,7 +465,7 @@ int64 PartsManager::get_ready_size() const {
 
 int64 PartsManager::get_expected_size() const {
   if (unknown_size_flag_) {
-    return max(min_size_ + static_cast<int64>(512 << 10), get_ready_size() * 2);
+    return min(max(min_size_ + static_cast<int64>(512 << 10), get_ready_size() * 2), max_size_);
   }
   return get_size();
 }
