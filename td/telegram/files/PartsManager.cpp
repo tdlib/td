@@ -414,27 +414,26 @@ int64 PartsManager::get_size_or_zero() const {
 int64 PartsManager::get_estimated_extra() const {
   auto total_estimated_extra = get_expected_size() - get_ready_size();
   if (streaming_limit_ != 0) {
-    int64 expected_size = get_expected_size();
-    int64 streaming_begin = streaming_offset_ / get_part_size() * get_part_size();
-    int64 streaming_end =
-        (streaming_offset_ + streaming_limit_ + get_part_size() - 1) / get_part_size() * get_part_size();
-    int64 streaming_size = streaming_end - streaming_begin;
+    auto part_size = get_part_size();
+    auto round_up = [part_size](int64 size) {
+      return (size + part_size - 1) / part_size * part_size;
+    };
+    int64 streaming_begin = streaming_offset_ / part_size * part_size;
+    int64 streaming_size = 0;
     if (unknown_size_flag_) {
-      if (streaming_begin < expected_size) {
-        streaming_size = min(expected_size - streaming_begin, streaming_size);
-      } else {
-        streaming_size = 0;
-      }
+      streaming_begin = min(streaming_begin, max_size_);
+      int64 streaming_end = min(round_up(streaming_offset_ + streaming_limit_), max_size_);
+      streaming_size = streaming_end - streaming_begin;
     } else {
-      if (streaming_end > expected_size) {
-        int64 total = streaming_limit_;
-        int64 suffix = 0;
-        if (streaming_offset_ < expected_size_) {
-          suffix = expected_size_ - streaming_begin;
-          total -= expected_size_ - streaming_offset_;
+      if (streaming_offset_ + streaming_limit_ <= size_) {
+        int64 streaming_end = min(round_up(streaming_offset_ + streaming_limit_), size_);
+        streaming_size = streaming_end - streaming_begin;
+      } else {
+        if (streaming_offset_ < size_) {
+          int64 prefix = min(round_up(streaming_offset_ + streaming_limit_ - size_), size_);
+          int64 suffix = size_ - streaming_begin;
+          streaming_size = min(size_, prefix + suffix);
         }
-        int64 prefix = (total + get_part_size() - 1) / get_part_size() * get_part_size();
-        streaming_size = min(expected_size, prefix + suffix);
       }
     }
     int64 res = streaming_size;
