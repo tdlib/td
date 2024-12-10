@@ -886,8 +886,8 @@ affiliateInfo commission_per_mille:int32 affiliate_chat_id:int53 star_amount:sta
 
 //@description Describes a found affiliate program
 //@bot_user_id User identifier of the bot created the program
-//@parameters Information about the affiliate program
-foundAffiliateProgram bot_user_id:int53 parameters:affiliateProgramInfo = FoundAffiliateProgram;
+//@info Information about the affiliate program
+foundAffiliateProgram bot_user_id:int53 info:affiliateProgramInfo = FoundAffiliateProgram;
 
 //@description Represents a list of found affiliate programs
 //@total_count The total number of found affiliate programs
