@@ -3593,27 +3593,27 @@ class CliClient final : public Actor {
       }
       send_request(td_api::make_object<td_api::searchAffiliatePrograms>(chat_id, std::move(sort_order), offset,
                                                                         as_limit(limit)));
-    } else if (op == "ccap") {
+    } else if (op == "capr") {
       ChatId chat_id;
       UserId bot_user_id;
       get_args(args, chat_id, bot_user_id);
-      send_request(td_api::make_object<td_api::connectChatAffiliateProgram>(chat_id, bot_user_id));
-    } else if (op == "dcap") {
+      send_request(td_api::make_object<td_api::connectAffiliateProgram>(chat_id, bot_user_id));
+    } else if (op == "dapr") {
       ChatId chat_id;
       string url;
       get_args(args, chat_id, url);
-      send_request(td_api::make_object<td_api::disconnectChatAffiliateProgram>(chat_id, url));
-    } else if (op == "gcap") {
+      send_request(td_api::make_object<td_api::disconnectAffiliateProgram>(chat_id, url));
+    } else if (op == "gcapr") {
       ChatId chat_id;
       UserId bot_user_id;
       get_args(args, chat_id, bot_user_id);
-      send_request(td_api::make_object<td_api::getChatAffiliateProgram>(chat_id, bot_user_id));
-    } else if (op == "gcaps") {
+      send_request(td_api::make_object<td_api::getConnectedAffiliateProgram>(chat_id, bot_user_id));
+    } else if (op == "gcaprs") {
       ChatId chat_id;
       string limit;
       string offset;
       get_args(args, chat_id, limit, offset);
-      send_request(td_api::make_object<td_api::getChatAffiliatePrograms>(chat_id, offset, as_limit(limit)));
+      send_request(td_api::make_object<td_api::getConnectedAffiliatePrograms>(chat_id, offset, as_limit(limit)));
     } else if (op == "cpfs" || op == "cpfsb") {
       UserId user_id;
       string currency;

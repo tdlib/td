@@ -37,16 +37,16 @@ class ReferralProgramManager final : public Actor {
                                 int32 limit, Promise<td_api::object_ptr<td_api::foundAffiliatePrograms>> &&promise);
 
   void connect_referral_program(DialogId dialog_id, UserId bot_user_id,
-                                Promise<td_api::object_ptr<td_api::chatAffiliateProgram>> &&promise);
+                                Promise<td_api::object_ptr<td_api::connectedAffiliateProgram>> &&promise);
 
   void revoke_referral_program(DialogId dialog_id, const string &url,
-                               Promise<td_api::object_ptr<td_api::chatAffiliateProgram>> &&promise);
+                               Promise<td_api::object_ptr<td_api::connectedAffiliateProgram>> &&promise);
 
   void get_connected_referral_program(DialogId dialog_id, UserId bot_user_id,
-                                      Promise<td_api::object_ptr<td_api::chatAffiliateProgram>> &&promise);
+                                      Promise<td_api::object_ptr<td_api::connectedAffiliateProgram>> &&promise);
 
   void get_connected_referral_programs(DialogId dialog_id, const string &offset, int32 limit,
-                                       Promise<td_api::object_ptr<td_api::chatAffiliatePrograms>> &&promise);
+                                       Promise<td_api::object_ptr<td_api::connectedAffiliatePrograms>> &&promise);
 
  private:
   class GetSuggestedStarRefBotsQuery;
@@ -90,7 +90,7 @@ class ReferralProgramManager final : public Actor {
              revenue_star_count_ >= 0;
     }
 
-    td_api::object_ptr<td_api::chatAffiliateProgram> get_chat_affiliate_program_object(Td *td) const;
+    td_api::object_ptr<td_api::connectedAffiliateProgram> get_connected_affiliate_program_object(Td *td) const;
   };
 
   Status check_referable_dialog_id(DialogId dialog_id) const;

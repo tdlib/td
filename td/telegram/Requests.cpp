@@ -7536,28 +7536,28 @@ void Requests::on_request(uint64 id, td_api::searchAffiliatePrograms &request) {
                                                            request.offset_, request.limit_, std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::connectChatAffiliateProgram &request) {
+void Requests::on_request(uint64 id, const td_api::connectAffiliateProgram &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   td_->referral_program_manager_->connect_referral_program(DialogId(request.chat_id_), UserId(request.bot_user_id_),
                                                            std::move(promise));
 }
 
-void Requests::on_request(uint64 id, td_api::disconnectChatAffiliateProgram &request) {
+void Requests::on_request(uint64 id, td_api::disconnectAffiliateProgram &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.url_);
   CREATE_REQUEST_PROMISE();
   td_->referral_program_manager_->revoke_referral_program(DialogId(request.chat_id_), request.url_, std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::getChatAffiliateProgram &request) {
+void Requests::on_request(uint64 id, const td_api::getConnectedAffiliateProgram &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   td_->referral_program_manager_->get_connected_referral_program(DialogId(request.chat_id_),
                                                                  UserId(request.bot_user_id_), std::move(promise));
 }
 
-void Requests::on_request(uint64 id, td_api::getChatAffiliatePrograms &request) {
+void Requests::on_request(uint64 id, td_api::getConnectedAffiliatePrograms &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();

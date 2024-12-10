@@ -874,7 +874,7 @@ affiliateProgramParameters commission_per_mille:int32 month_count:int32 = Affili
 //@description Contains information about an active affiliate program
 //@parameters Parameters of the affiliate program
 //@end_date Point in time (Unix timestamp) when the affiliate program will be closed; 0 if the affiliate program isn't scheduled to be closed.
-//-If positive, then the program can't be connected using connectChatAffiliateProgram, but active connections will work until the date
+//-If positive, then the program can't be connected using connectAffiliateProgram, but active connections will work until the date
 //@daily_revenue_per_user_amount The amount of daily revenue per user in Telegram Stars of the bot that created the affiliate program
 affiliateProgramInfo parameters:affiliateProgramParameters end_date:int32 daily_revenue_per_user_amount:starAmount = AffiliateProgramInfo;
 
@@ -895,7 +895,7 @@ foundAffiliateProgram bot_user_id:int53 info:affiliateProgramInfo = FoundAffilia
 //@next_offset The offset for the next request. If empty, then there are no more results
 foundAffiliatePrograms total_count:int32 programs:vector<foundAffiliateProgram> next_offset:string = FoundAffiliatePrograms;
 
-//@description Describes an affiliate program that was connected to a chat
+//@description Describes an affiliate program that was connected to an affiliate
 //@url The link that can be used to refer users if the program is still active
 //@bot_user_id User identifier of the bot created the program
 //@parameters The parameters of the affiliate program
@@ -903,13 +903,13 @@ foundAffiliatePrograms total_count:int32 programs:vector<foundAffiliateProgram> 
 //@is_disconnected True, if the program was canceled by the bot, or disconnected by the chat owner and isn't available anymore
 //@user_count The number of users that used the affiliate program
 //@revenue_star_count The number of Telegram Stars that were earned by the affiliate program
-chatAffiliateProgram url:string bot_user_id:int53 parameters:affiliateProgramParameters connection_date:int32 is_disconnected:Bool user_count:int64 revenue_star_count:int64 = ChatAffiliateProgram;
+connectedAffiliateProgram url:string bot_user_id:int53 parameters:affiliateProgramParameters connection_date:int32 is_disconnected:Bool user_count:int64 revenue_star_count:int64 = ConnectedAffiliateProgram;
 
-//@description Represents a list of affiliate programs that were connected to a chat
-//@total_count The total number of affiliate programs that were connected to the chat
+//@description Represents a list of affiliate programs that were connected to an affiliate
+//@total_count The total number of affiliate programs that were connected to the affiliate
 //@programs The list of connected affiliate programs
 //@next_offset The offset for the next request. If empty, then there are no more results
-chatAffiliatePrograms total_count:int32 programs:vector<chatAffiliateProgram> next_offset:string = ChatAffiliatePrograms;
+connectedAffiliatePrograms total_count:int32 programs:vector<connectedAffiliateProgram> next_offset:string = ConnectedAffiliatePrograms;
 
 
 //@description Contains information about a product that can be paid with invoice
@@ -12036,33 +12036,33 @@ setChatAffiliateProgram chat_id:int53 parameters:affiliateProgramParameters = Ok
 //@referrer The referrer from an internalLinkTypeChatAffiliateProgram link
 searchChatAffiliateProgram username:string referrer:string = Chat;
 
-//@description Searches affiliate programs that can be applied to the given chat
-//@chat_id Identifier of the chat for which affiliate programs are searched for. Can be an identifier of the Saved Messages chat, of a chat with an owned bot, or of a channel chat with can_post_messages administrator right
+//@description Searches affiliate programs that can be connected to the given affiliate
+//@chat_id Identifier of the affilaite for which affiliate programs are searched for
 //@sort_order Sort order for the results
 //@offset Offset of the first affiliate program to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of affiliate programs to return
 searchAffiliatePrograms chat_id:int53 sort_order:AffiliateProgramSortOrder offset:string limit:int32 = FoundAffiliatePrograms;
 
-//@description Connects an affiliate program to the given chat. Returns information about the connected affiliate program
-//@chat_id Identifier of the chat to which the affiliate program will be connected. Can be an identifier of the Saved Messages chat, of a chat with an owned bot, or of a channel chat with can_post_messages administrator right
+//@description Connects an affiliate program to the given affiliate. Returns information about the connected affiliate program
+//@chat_id Identifier of the affiliate to which the affiliate program will be connected
 //@bot_user_id Identifier of the bot, which affiliate program is connected
-connectChatAffiliateProgram chat_id:int53 bot_user_id:int53 = ChatAffiliateProgram;
+connectAffiliateProgram chat_id:int53 bot_user_id:int53 = ConnectedAffiliateProgram;
 
-//@description Disconnects an affiliate program from the given chat and immediately deactivates its referral link. Returns updated information about the disconnected affiliate program
+//@description Disconnects an affiliate program from the given affiliate and immediately deactivates its referral link. Returns updated information about the disconnected affiliate program
 //@chat_id Identifier of the chat for which the affiliate program is connected
 //@url The referral link of the affiliate program
-disconnectChatAffiliateProgram chat_id:int53 url:string = ChatAffiliateProgram;
+disconnectAffiliateProgram chat_id:int53 url:string = ConnectedAffiliateProgram;
 
-//@description Returns an affiliate program that were connected to the given chat by identifier of the bot that created the program
-//@chat_id Identifier of the chat for which the affiliate program was connected. Can be an identifier of the Saved Messages chat, of a chat with an owned bot, or of a channel chat with can_post_messages administrator right
+//@description Returns an affiliate program that were connected to the given affiliate by identifier of the bot that created the program
+//@chat_id Identifier of the affiliate to which the affiliate program will be connected
 //@bot_user_id Identifier of the bot that created the program
-getChatAffiliateProgram chat_id:int53 bot_user_id:int53 = ChatAffiliateProgram;
+getConnectedAffiliateProgram chat_id:int53 bot_user_id:int53 = ConnectedAffiliateProgram;
 
-//@description Returns affiliate programs that were connected to the given chat
-//@chat_id Identifier of the chat for which the affiliate programs were connected. Can be an identifier of the Saved Messages chat, of a chat with an owned bot, or of a channel chat with can_post_messages administrator right
+//@description Returns affiliate programs that were connected to the given affiliate
+//@chat_id Identifier of the affiliate for which the affiliate program were connected
 //@offset Offset of the first affiliate program to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of affiliate programs to return
-getChatAffiliatePrograms chat_id:int53 offset:string limit:int32 = ChatAffiliatePrograms;
+getConnectedAffiliatePrograms chat_id:int53 offset:string limit:int32 = ConnectedAffiliatePrograms;
 
 
 //@description Returns information about features, available to Business users @source Source of the request; pass null if the method is called from settings or some non-standard source
