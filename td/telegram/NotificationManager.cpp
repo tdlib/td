@@ -2814,268 +2814,82 @@ void NotificationManager::process_push_notification(string payload, Promise<Unit
 }
 
 string NotificationManager::convert_loc_key(const string &loc_key) {
-  if (loc_key.size() <= 8) {
-    if (loc_key == "MESSAGES" || loc_key == "ALBUM") {
-      return "MESSAGES";
-    }
-    return string();
-  }
-  switch (loc_key[8]) {
-    case 'A':
-      if (loc_key == "PINNED_GAME") {
-        return "PINNED_MESSAGE_GAME";
-      }
-      if (loc_key == "PINNED_GAME_SCORE") {
-        return "PINNED_MESSAGE_GAME_SCORE";
-      }
-      if (loc_key == "CHAT_CREATED") {
-        return "MESSAGE_BASIC_GROUP_CHAT_CREATE";
-      }
-      if (loc_key == "MESSAGE_AUDIO") {
-        return "MESSAGE_VOICE_NOTE";
-      }
-      if (loc_key == "PINNED_PAID_MEDIA") {
-        return "PINNED_MESSAGE_PAID_MEDIA";
-      }
-      break;
-    case 'C':
-      if (loc_key == "MESSAGE_CONTACT") {
-        return "MESSAGE_CONTACT";
-      }
-      break;
-    case 'D':
-      if (loc_key == "MESSAGE_DOC") {
-        return "MESSAGE_DOCUMENT";
-      }
-      if (loc_key == "MESSAGE_DOCS") {
-        return "MESSAGE_DOCUMENTS";
-      }
-      if (loc_key == "ENCRYPTED_MESSAGE") {
-        return "MESSAGE";
-      }
-      break;
-    case 'E':
-      if (loc_key == "PINNED_GEO") {
-        return "PINNED_MESSAGE_LOCATION";
-      }
-      if (loc_key == "PINNED_GEOLIVE") {
-        return "PINNED_MESSAGE_LIVE_LOCATION";
-      }
-      if (loc_key == "CHAT_DELETE_MEMBER") {
-        return "MESSAGE_CHAT_DELETE_MEMBER";
-      }
-      if (loc_key == "CHAT_DELETE_YOU") {
-        return "MESSAGE_CHAT_DELETE_MEMBER_YOU";
-      }
-      if (loc_key == "PINNED_TEXT") {
-        return "PINNED_MESSAGE_TEXT";
-      }
-      break;
-    case 'F':
-      if (loc_key == "MESSAGE_FWDS") {
-        return "MESSAGE_FORWARDS";
-      }
-      break;
-    case 'G':
-      if (loc_key == "MESSAGE_GAME") {
-        return "MESSAGE_GAME";
-      }
-      if (loc_key == "MESSAGE_GAME_SCORE") {
-        return "MESSAGE_GAME_SCORE";
-      }
-      if (loc_key == "MESSAGE_GEO") {
-        return "MESSAGE_LOCATION";
-      }
-      if (loc_key == "MESSAGE_GEOLIVE") {
-        return "MESSAGE_LIVE_LOCATION";
-      }
-      if (loc_key == "MESSAGE_GIF") {
-        return "MESSAGE_ANIMATION";
-      }
-      if (loc_key == "MESSAGE_GIFTCODE") {
-        return "MESSAGE_GIFTCODE";
-      }
-      if (loc_key == "MESSAGE_GIVEAWAY") {
-        return "MESSAGE_GIVEAWAY";
-      }
-      if (loc_key == "MESSAGE_GIVEAWAY_STARS") {
-        return "MESSAGE_GIVEAWAY_STARS";
-      }
-      break;
-    case 'H':
-      if (loc_key == "PINNED_PHOTO") {
-        return "PINNED_MESSAGE_PHOTO";
-      }
-      break;
-    case 'I':
-      if (loc_key == "PINNED_VIDEO") {
-        return "PINNED_MESSAGE_VIDEO";
-      }
-      if (loc_key == "PINNED_GIF") {
-        return "PINNED_MESSAGE_ANIMATION";
-      }
-      if (loc_key == "PINNED_GIVEAWAY") {
-        return "PINNED_MESSAGE_GIVEAWAY";
-      }
-      if (loc_key == "PINNED_GIVEAWAY_STARS") {
-        return "PINNED_MESSAGE_GIVEAWAY_STARS";
-      }
-      if (loc_key == "MESSAGE_INVOICE") {
-        return "MESSAGE_INVOICE";
-      }
-      break;
-    case 'J':
-      if (loc_key == "CONTACT_JOINED") {
-        return "MESSAGE_CONTACT_REGISTERED";
-      }
-      break;
-    case 'L':
-      if (loc_key == "CHAT_TITLE_EDITED") {
-        return "MESSAGE_CHAT_CHANGE_TITLE";
-      }
-      break;
-    case 'N':
-      if (loc_key == "CHAT_JOINED") {
-        return "MESSAGE_CHAT_JOIN_BY_LINK";
-      }
-      if (loc_key == "MESSAGE_NOTEXT") {
-        return "MESSAGE";
-      }
-      if (loc_key == "MESSAGE_NOTHEME") {
-        return "MESSAGE_CHAT_CHANGE_THEME";
-      }
-      if (loc_key == "PINNED_INVOICE") {
-        return "PINNED_MESSAGE_INVOICE";
-      }
-      break;
-    case 'O':
-      if (loc_key == "PINNED_DOC") {
-        return "PINNED_MESSAGE_DOCUMENT";
-      }
-      if (loc_key == "PINNED_POLL") {
-        return "PINNED_MESSAGE_POLL";
-      }
-      if (loc_key == "PINNED_CONTACT") {
-        return "PINNED_MESSAGE_CONTACT";
-      }
-      if (loc_key == "PINNED_NOTEXT") {
-        return "PINNED_MESSAGE";
-      }
-      if (loc_key == "PINNED_ROUND") {
-        return "PINNED_MESSAGE_VIDEO_NOTE";
-      }
-      break;
-    case 'P':
-      if (loc_key == "MESSAGE_PHOTO") {
-        return "MESSAGE_PHOTO";
-      }
-      if (loc_key == "MESSAGE_PHOTOS") {
-        return "MESSAGE_PHOTOS";
-      }
-      if (loc_key == "MESSAGE_PHOTO_SECRET") {
-        return "MESSAGE_SECRET_PHOTO";
-      }
-      if (loc_key == "MESSAGE_PLAYLIST") {
-        return "MESSAGE_AUDIOS";
-      }
-      if (loc_key == "MESSAGE_POLL") {
-        return "MESSAGE_POLL";
-      }
-      if (loc_key == "MESSAGE_PAID_MEDIA") {
-        return "MESSAGE_PAID_MEDIA";
-      }
-      break;
-    case 'Q':
-      if (loc_key == "MESSAGE_QUIZ") {
-        return "MESSAGE_QUIZ";
-      }
-      break;
-    case 'R':
-      if (loc_key == "MESSAGE_ROUND") {
-        return "MESSAGE_VIDEO_NOTE";
-      }
-      if (loc_key == "MESSAGE_RECURRING_PAY") {
-        return "MESSAGE_RECURRING_PAYMENT";
-      }
-      break;
-    case 'S':
-      if (loc_key == "MESSAGE_SAME_WALLPAPER") {
-        return "MESSAGE_SAME_WALLPAPER";
-      }
-      if (loc_key == "MESSAGE_SCREENSHOT") {
-        return "MESSAGE_SCREENSHOT_TAKEN";
-      }
-      if (loc_key == "MESSAGE_STARGIFT") {
-        return "MESSAGE_STARGIFT";
-      }
-      if (loc_key == "MESSAGE_STICKER") {
-        return "MESSAGE_STICKER";
-      }
-      if (loc_key == "MESSAGE_STORY") {
-        return "MESSAGE_STORY";
-      }
-      if (loc_key == "MESSAGE_SUGGEST_PHOTO") {
-        return "MESSAGE_SUGGEST_PHOTO";
-      }
-      break;
-    case 'T':
-      if (loc_key == "CHAT_LEFT") {
-        return "MESSAGE_CHAT_DELETE_MEMBER_LEFT";
-      }
-      if (loc_key == "MESSAGE_TEXT") {
-        return "MESSAGE_TEXT";
-      }
-      if (loc_key == "PINNED_STICKER") {
-        return "PINNED_MESSAGE_STICKER";
-      }
-      if (loc_key == "PINNED_STORY") {
-        return "PINNED_MESSAGE_STORY";
-      }
-      if (loc_key == "CHAT_PHOTO_EDITED") {
-        return "MESSAGE_CHAT_CHANGE_PHOTO";
-      }
-      if (loc_key == "MESSAGE_THEME") {
-        return "MESSAGE_CHAT_CHANGE_THEME";
-      }
-      break;
-    case 'U':
-      if (loc_key == "PINNED_AUDIO") {
-        return "PINNED_MESSAGE_VOICE_NOTE";
-      }
-      if (loc_key == "PINNED_QUIZ") {
-        return "PINNED_MESSAGE_QUIZ";
-      }
-      if (loc_key == "CHAT_RETURNED") {
-        return "MESSAGE_CHAT_ADD_MEMBERS_RETURNED";
-      }
-      break;
-    case 'V':
-      if (loc_key == "MESSAGE_VIDEO") {
-        return "MESSAGE_VIDEO";
-      }
-      if (loc_key == "MESSAGE_VIDEOS") {
-        return "MESSAGE_VIDEOS";
-      }
-      if (loc_key == "MESSAGE_VIDEO_SECRET") {
-        return "MESSAGE_SECRET_VIDEO";
-      }
-      break;
-    case 'W':
-      if (loc_key == "MESSAGE_WALLPAPER") {
-        return "MESSAGE_WALLPAPER";
-      }
-      break;
-    case '_':
-      if (loc_key == "CHAT_ADD_MEMBER") {
-        return "MESSAGE_CHAT_ADD_MEMBERS";
-      }
-      if (loc_key == "CHAT_ADD_YOU") {
-        return "MESSAGE_CHAT_ADD_MEMBERS_YOU";
-      }
-      if (loc_key == "CHAT_REQ_JOINED") {
-        return "MESSAGE_CHAT_JOIN_BY_REQUEST";
-      }
-      break;
+  static const FlatHashMap<Slice, Slice, SliceHash> loc_keys = {
+      {"CHAT_ADD_MEMBER", "MESSAGE_CHAT_ADD_MEMBERS"},
+      {"CHAT_ADD_YOU", "MESSAGE_CHAT_ADD_MEMBERS_YOU"},
+      {"CHAT_CREATED", "MESSAGE_BASIC_GROUP_CHAT_CREATE"},
+      {"CHAT_DELETE_MEMBER", "MESSAGE_CHAT_DELETE_MEMBER"},
+      {"CHAT_DELETE_YOU", "MESSAGE_CHAT_DELETE_MEMBER_YOU"},
+      {"CHAT_JOINED", "MESSAGE_CHAT_JOIN_BY_LINK"},
+      {"CHAT_LEFT", "MESSAGE_CHAT_DELETE_MEMBER_LEFT"},
+      {"CHAT_PHOTO_EDITED", "MESSAGE_CHAT_CHANGE_PHOTO"},
+      {"CHAT_REQ_JOINED", "MESSAGE_CHAT_JOIN_BY_REQUEST"},
+      {"CHAT_RETURNED", "MESSAGE_CHAT_ADD_MEMBERS_RETURNED"},
+      {"CHAT_TITLE_EDITED", "MESSAGE_CHAT_CHANGE_TITLE"},
+      {"CONTACT_JOINED", "MESSAGE_CONTACT_REGISTERED"},
+      {"ENCRYPTED_MESSAGE", "MESSAGE"},
+      {"MESSAGES", "MESSAGES"},
+      {"MESSAGE_AUDIO", "MESSAGE_VOICE_NOTE"},
+      {"MESSAGE_CONTACT", "MESSAGE_CONTACT"},
+      {"MESSAGE_DOC", "MESSAGE_DOCUMENT"},
+      {"MESSAGE_DOCS", "MESSAGE_DOCUMENTS"},
+      {"MESSAGE_FWDS", "MESSAGE_FORWARDS"},
+      {"MESSAGE_GAME", "MESSAGE_GAME"},
+      {"MESSAGE_GAME_SCORE", "MESSAGE_GAME_SCORE"},
+      {"MESSAGE_GEO", "MESSAGE_LOCATION"},
+      {"MESSAGE_GEOLIVE", "MESSAGE_LIVE_LOCATION"},
+      {"MESSAGE_GIF", "MESSAGE_ANIMATION"},
+      {"MESSAGE_GIFTCODE", "MESSAGE_GIFTCODE"},
+      {"MESSAGE_GIVEAWAY", "MESSAGE_GIVEAWAY"},
+      {"MESSAGE_GIVEAWAY_STARS", "MESSAGE_GIVEAWAY_STARS"},
+      {"MESSAGE_INVOICE", "MESSAGE_INVOICE"},
+      {"MESSAGE_NOTEXT", "MESSAGE"},
+      {"MESSAGE_NOTHEME", "MESSAGE_CHAT_CHANGE_THEME"},
+      {"MESSAGE_PAID_MEDIA", "MESSAGE_PAID_MEDIA"},
+      {"MESSAGE_PHOTO", "MESSAGE_PHOTO"},
+      {"MESSAGE_PHOTOS", "MESSAGE_PHOTOS"},
+      {"MESSAGE_PHOTO_SECRET", "MESSAGE_SECRET_PHOTO"},
+      {"MESSAGE_PLAYLIST", "MESSAGE_AUDIOS"},
+      {"MESSAGE_POLL", "MESSAGE_POLL"},
+      {"MESSAGE_QUIZ", "MESSAGE_QUIZ"},
+      {"MESSAGE_RECURRING_PAY", "MESSAGE_RECURRING_PAYMENT"},
+      {"MESSAGE_ROUND", "MESSAGE_VIDEO_NOTE"},
+      {"MESSAGE_SAME_WALLPAPER", "MESSAGE_SAME_WALLPAPER"},
+      {"MESSAGE_SCREENSHOT", "MESSAGE_SCREENSHOT_TAKEN"},
+      {"MESSAGE_STARGIFT", "MESSAGE_STARGIFT"},
+      {"MESSAGE_STICKER", "MESSAGE_STICKER"},
+      {"MESSAGE_STORY", "MESSAGE_STORY"},
+      {"MESSAGE_SUGGEST_PHOTO", "MESSAGE_SUGGEST_PHOTO"},
+      {"MESSAGE_TEXT", "MESSAGE_TEXT"},
+      {"MESSAGE_THEME", "MESSAGE_CHAT_CHANGE_THEME"},
+      {"MESSAGE_VIDEO", "MESSAGE_VIDEO"},
+      {"MESSAGE_VIDEOS", "MESSAGE_VIDEOS"},
+      {"MESSAGE_VIDEO_SECRET", "MESSAGE_SECRET_VIDEO"},
+      {"MESSAGE_WALLPAPER", "MESSAGE_WALLPAPER"},
+      {"PINNED_AUDIO", "PINNED_MESSAGE_VOICE_NOTE"},
+      {"PINNED_CONTACT", "PINNED_MESSAGE_CONTACT"},
+      {"PINNED_DOC", "PINNED_MESSAGE_DOCUMENT"},
+      {"PINNED_GAME", "PINNED_MESSAGE_GAME"},
+      {"PINNED_GAME_SCORE", "PINNED_MESSAGE_GAME_SCORE"},
+      {"PINNED_GEO", "PINNED_MESSAGE_LOCATION"},
+      {"PINNED_GEOLIVE", "PINNED_MESSAGE_LIVE_LOCATION"},
+      {"PINNED_GIF", "PINNED_MESSAGE_ANIMATION"},
+      {"PINNED_GIVEAWAY", "PINNED_MESSAGE_GIVEAWAY"},
+      {"PINNED_GIVEAWAY_STARS", "PINNED_MESSAGE_GIVEAWAY_STARS"},
+      {"PINNED_INVOICE", "PINNED_MESSAGE_INVOICE"},
+      {"PINNED_NOTEXT", "PINNED_MESSAGE"},
+      {"PINNED_PAID_MEDIA", "PINNED_MESSAGE_PAID_MEDIA"},
+      {"PINNED_PHOTO", "PINNED_MESSAGE_PHOTO"},
+      {"PINNED_POLL", "PINNED_MESSAGE_POLL"},
+      {"PINNED_QUIZ", "PINNED_MESSAGE_QUIZ"},
+      {"PINNED_ROUND", "PINNED_MESSAGE_VIDEO_NOTE"},
+      {"PINNED_STICKER", "PINNED_MESSAGE_STICKER"},
+      {"PINNED_STORY", "PINNED_MESSAGE_STORY"},
+      {"PINNED_TEXT", "PINNED_MESSAGE_TEXT"},
+      {"PINNED_VIDEO", "PINNED_MESSAGE_VIDEO"}};
+  auto it = loc_keys.find(loc_key);
+  if (it != loc_keys.end()) {
+    return it->second.str();
   }
   return string();
 }
