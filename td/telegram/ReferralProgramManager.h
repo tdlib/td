@@ -33,19 +33,21 @@ class ReferralProgramManager final : public Actor {
   void search_dialog_referral_program(const string &username, const string &referral,
                                       Promise<td_api::object_ptr<td_api::chat>> &&promise);
 
-  void search_referral_programs(DialogId dialog_id, ReferralProgramSortOrder sort_order, const string &offset,
-                                int32 limit, Promise<td_api::object_ptr<td_api::foundAffiliatePrograms>> &&promise);
+  void search_referral_programs(const td_api::object_ptr<td_api::AffiliateType> &affiliate,
+                                ReferralProgramSortOrder sort_order, const string &offset, int32 limit,
+                                Promise<td_api::object_ptr<td_api::foundAffiliatePrograms>> &&promise);
 
-  void connect_referral_program(DialogId dialog_id, UserId bot_user_id,
+  void connect_referral_program(const td_api::object_ptr<td_api::AffiliateType> &affiliate, UserId bot_user_id,
                                 Promise<td_api::object_ptr<td_api::connectedAffiliateProgram>> &&promise);
 
-  void revoke_referral_program(DialogId dialog_id, const string &url,
+  void revoke_referral_program(const td_api::object_ptr<td_api::AffiliateType> &affiliate, const string &url,
                                Promise<td_api::object_ptr<td_api::connectedAffiliateProgram>> &&promise);
 
-  void get_connected_referral_program(DialogId dialog_id, UserId bot_user_id,
+  void get_connected_referral_program(const td_api::object_ptr<td_api::AffiliateType> &affiliate, UserId bot_user_id,
                                       Promise<td_api::object_ptr<td_api::connectedAffiliateProgram>> &&promise);
 
-  void get_connected_referral_programs(DialogId dialog_id, const string &offset, int32 limit,
+  void get_connected_referral_programs(const td_api::object_ptr<td_api::AffiliateType> &affiliate, const string &offset,
+                                       int32 limit,
                                        Promise<td_api::object_ptr<td_api::connectedAffiliatePrograms>> &&promise);
 
  private:
@@ -92,8 +94,6 @@ class ReferralProgramManager final : public Actor {
 
     td_api::object_ptr<td_api::connectedAffiliateProgram> get_connected_affiliate_program_object(Td *td) const;
   };
-
-  Status check_referable_dialog_id(DialogId dialog_id) const;
 
   void tear_down() final;
 

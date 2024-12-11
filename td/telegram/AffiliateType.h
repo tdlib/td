@@ -12,6 +12,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
+#include "td/utils/StringBuilder.h"
 
 namespace td {
 
@@ -24,11 +25,19 @@ class AffiliateType {
   }
 
  public:
+  AffiliateType() = default;
+
   static Result<AffiliateType> get_affiliate_type(Td *td, const td_api::object_ptr<td_api::AffiliateType> &type);
+
+  DialogId get_dialog_id() const {
+    return dialog_id_;
+  }
 
   telegram_api::object_ptr<telegram_api::InputPeer> get_input_peer(Td *td) const;
 
   td_api::object_ptr<td_api::AffiliateType> get_affiliate_type_object(Td *td) const;
 };
+
+StringBuilder &operator<<(StringBuilder &string_builder, const AffiliateType &affiliate_type);
 
 }  // namespace td

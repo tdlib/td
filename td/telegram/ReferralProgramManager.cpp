@@ -7,6 +7,7 @@
 #include "td/telegram/ReferralProgramManager.h"
 
 #include "td/telegram/AccessRights.h"
+#include "td/telegram/AffiliateType.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
@@ -100,16 +101,16 @@ class ResolveReferralProgramQuery final : public Td::ResultHandler {
 
 class ReferralProgramManager::GetSuggestedStarRefBotsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::foundAffiliatePrograms>> promise_;
-  DialogId dialog_id_;
+  AffiliateType affiliate_type_;
 
  public:
   explicit GetSuggestedStarRefBotsQuery(Promise<td_api::object_ptr<td_api::foundAffiliatePrograms>> &&promise)
       : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, ReferralProgramSortOrder sort_order, const string &offset, int32 limit) {
-    dialog_id_ = dialog_id;
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+  void send(AffiliateType affiliate_type, ReferralProgramSortOrder sort_order, const string &offset, int32 limit) {
+    affiliate_type_ = affiliate_type;
+    auto input_peer = affiliate_type.get_input_peer(td_);
     CHECK(input_peer != nullptr);
     int32 flags = 0;
     switch (sort_order) {
@@ -143,11 +144,11 @@ class ReferralProgramManager::GetSuggestedStarRefBotsQuery final : public Td::Re
     for (auto &ref : ptr->suggested_bots_) {
       SuggestedBotStarRef star_ref(std::move(ref));
       if (!star_ref.is_valid()) {
-        LOG(ERROR) << "Receive invalid referral program for " << dialog_id_;
+        LOG(ERROR) << "Receive invalid affiliate program for " << affiliate_type_;
         continue;
       }
       if (!star_ref.is_active()) {
-        LOG(INFO) << "Receive canceled referral program for " << dialog_id_;
+        LOG(INFO) << "Receive canceled affiliate program for " << affiliate_type_;
         continue;
       }
       programs.push_back(star_ref.get_found_affiliate_program_object(td_));
@@ -155,7 +156,7 @@ class ReferralProgramManager::GetSuggestedStarRefBotsQuery final : public Td::Re
 
     auto total_count = ptr->count_;
     if (total_count < static_cast<int32>(programs.size())) {
-      LOG(ERROR) << "Receive total count = " << total_count << ", but " << programs.size() << " referral programs";
+      LOG(ERROR) << "Receive total count = " << total_count << ", but " << programs.size() << " affiliate programs";
       total_count = static_cast<int32>(programs.size());
     }
     promise_.set_value(
@@ -163,23 +164,23 @@ class ReferralProgramManager::GetSuggestedStarRefBotsQuery final : public Td::Re
   }
 
   void on_error(Status status) final {
-    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetSuggestedStarRefBotsQuery");
+    td_->dialog_manager_->on_get_dialog_error(affiliate_type_.get_dialog_id(), status, "GetSuggestedStarRefBotsQuery");
     promise_.set_error(std::move(status));
   }
 };
 
 class ReferralProgramManager::ConnectStarRefBotQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::connectedAffiliateProgram>> promise_;
-  DialogId dialog_id_;
+  AffiliateType affiliate_type_;
 
  public:
   explicit ConnectStarRefBotQuery(Promise<td_api::object_ptr<td_api::connectedAffiliateProgram>> &&promise)
       : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, telegram_api::object_ptr<telegram_api::InputUser> &&input_user) {
-    dialog_id_ = dialog_id;
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+  void send(AffiliateType affiliate_type, telegram_api::object_ptr<telegram_api::InputUser> &&input_user) {
+    affiliate_type_ = affiliate_type;
+    auto input_peer = affiliate_type.get_input_peer(td_);
     CHECK(input_peer != nullptr);
     send_query(G()->net_query_creator().create(
         telegram_api::payments_connectStarRefBot(std::move(input_peer), std::move(input_user))));
@@ -201,31 +202,31 @@ class ReferralProgramManager::ConnectStarRefBotQuery final : public Td::ResultHa
 
     ConnectedBotStarRef ref(std::move(ptr->connected_bots_[0]));
     if (!ref.is_valid()) {
-      LOG(ERROR) << "Receive invalid connected referral program for " << dialog_id_;
+      LOG(ERROR) << "Receive invalid connected affiliate program for " << affiliate_type_;
       return on_error(Status::Error(500, "Receive invalid response"));
     }
     promise_.set_value(ref.get_connected_affiliate_program_object(td_));
   }
 
   void on_error(Status status) final {
-    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ConnectStarRefBotQuery");
+    td_->dialog_manager_->on_get_dialog_error(affiliate_type_.get_dialog_id(), status, "ConnectStarRefBotQuery");
     promise_.set_error(std::move(status));
   }
 };
 
 class ReferralProgramManager::EditConnectedStarRefBotQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::connectedAffiliateProgram>> promise_;
-  DialogId dialog_id_;
+  AffiliateType affiliate_type_;
 
  public:
   explicit EditConnectedStarRefBotQuery(Promise<td_api::object_ptr<td_api::connectedAffiliateProgram>> &&promise)
       : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, const string &url) {
-    dialog_id_ = dialog_id;
+  void send(AffiliateType affiliate_type, const string &url) {
+    affiliate_type_ = affiliate_type;
     int32 flags = telegram_api::payments_editConnectedStarRefBot::REVOKED_MASK;
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    auto input_peer = affiliate_type.get_input_peer(td_);
     CHECK(input_peer != nullptr);
     send_query(G()->net_query_creator().create(
         telegram_api::payments_editConnectedStarRefBot(flags, false /*ignored*/, std::move(input_peer), url)));
@@ -247,30 +248,30 @@ class ReferralProgramManager::EditConnectedStarRefBotQuery final : public Td::Re
 
     ConnectedBotStarRef ref(std::move(ptr->connected_bots_[0]));
     if (!ref.is_valid()) {
-      LOG(ERROR) << "Receive invalid connected referral program for " << dialog_id_;
+      LOG(ERROR) << "Receive invalid connected affiliate program for " << affiliate_type_;
       return on_error(Status::Error(500, "Receive invalid response"));
     }
     promise_.set_value(ref.get_connected_affiliate_program_object(td_));
   }
 
   void on_error(Status status) final {
-    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "EditConnectedStarRefBotQuery");
+    td_->dialog_manager_->on_get_dialog_error(affiliate_type_.get_dialog_id(), status, "EditConnectedStarRefBotQuery");
     promise_.set_error(std::move(status));
   }
 };
 
 class ReferralProgramManager::GetConnectedStarRefBotQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::connectedAffiliateProgram>> promise_;
-  DialogId dialog_id_;
+  AffiliateType affiliate_type_;
 
  public:
   explicit GetConnectedStarRefBotQuery(Promise<td_api::object_ptr<td_api::connectedAffiliateProgram>> &&promise)
       : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, telegram_api::object_ptr<telegram_api::InputUser> &&input_user) {
-    dialog_id_ = dialog_id;
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+  void send(AffiliateType affiliate_type, telegram_api::object_ptr<telegram_api::InputUser> &&input_user) {
+    affiliate_type_ = affiliate_type;
+    auto input_peer = affiliate_type.get_input_peer(td_);
     CHECK(input_peer != nullptr);
     send_query(G()->net_query_creator().create(
         telegram_api::payments_getConnectedStarRefBot(std::move(input_peer), std::move(input_user))));
@@ -295,29 +296,29 @@ class ReferralProgramManager::GetConnectedStarRefBotQuery final : public Td::Res
 
     ConnectedBotStarRef ref(std::move(ptr->connected_bots_[0]));
     if (!ref.is_valid()) {
-      LOG(ERROR) << "Receive invalid connected referral program for " << dialog_id_;
+      LOG(ERROR) << "Receive invalid connected affiliate program for " << affiliate_type_;
       return on_error(Status::Error(500, "Receive invalid response"));
     }
     promise_.set_value(ref.get_connected_affiliate_program_object(td_));
   }
 
   void on_error(Status status) final {
-    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetConnectedStarRefBotQuery");
+    td_->dialog_manager_->on_get_dialog_error(affiliate_type_.get_dialog_id(), status, "GetConnectedStarRefBotQuery");
     promise_.set_error(std::move(status));
   }
 };
 
 class ReferralProgramManager::GetConnectedStarRefBotsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::connectedAffiliatePrograms>> promise_;
-  DialogId dialog_id_;
+  AffiliateType affiliate_type_;
 
  public:
   explicit GetConnectedStarRefBotsQuery(Promise<td_api::object_ptr<td_api::connectedAffiliatePrograms>> &&promise)
       : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, const string &offset, int32 limit) {
-    dialog_id_ = dialog_id;
+  void send(AffiliateType affiliate_type, const string &offset, int32 limit) {
+    affiliate_type_ = affiliate_type;
     int32 date = 0;
     string link;
     int32 flags = 0;
@@ -327,7 +328,7 @@ class ReferralProgramManager::GetConnectedStarRefBotsQuery final : public Td::Re
       link = std::move(split_offset.second);
       flags |= telegram_api::payments_getConnectedStarRefBots::OFFSET_DATE_MASK;
     }
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    auto input_peer = affiliate_type.get_input_peer(td_);
     CHECK(input_peer != nullptr);
 
     send_query(G()->net_query_creator().create(
@@ -351,7 +352,7 @@ class ReferralProgramManager::GetConnectedStarRefBotsQuery final : public Td::Re
       next_offset = PSTRING() << ref->date_ << ' ' << ref->url_;
       ConnectedBotStarRef star_ref(std::move(ref));
       if (!star_ref.is_valid()) {
-        LOG(ERROR) << "Receive invalid connected referral program for " << dialog_id_;
+        LOG(ERROR) << "Receive invalid connected affiliate program for " << affiliate_type_;
         continue;
       }
       programs.push_back(star_ref.get_connected_affiliate_program_object(td_));
@@ -359,7 +360,7 @@ class ReferralProgramManager::GetConnectedStarRefBotsQuery final : public Td::Re
 
     auto total_count = ptr->count_;
     if (total_count < static_cast<int32>(programs.size())) {
-      LOG(ERROR) << "Receive total count = " << total_count << ", but " << programs.size() << " referral programs";
+      LOG(ERROR) << "Receive total count = " << total_count << ", but " << programs.size() << " affiliate programs";
       total_count = static_cast<int32>(programs.size());
     }
     promise_.set_value(
@@ -367,7 +368,7 @@ class ReferralProgramManager::GetConnectedStarRefBotsQuery final : public Td::Re
   }
 
   void on_error(Status status) final {
-    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetConnectedStarRefBotsQuery");
+    td_->dialog_manager_->on_get_dialog_error(affiliate_type_.get_dialog_id(), status, "GetConnectedStarRefBotsQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -445,84 +446,53 @@ void ReferralProgramManager::search_dialog_referral_program(const string &userna
   td_->create_handler<ResolveReferralProgramQuery>(std::move(promise))->send(username, referral);
 }
 
-Status ReferralProgramManager::check_referable_dialog_id(DialogId dialog_id) const {
-  TRY_STATUS(
-      td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "check_referable_dialog_id"));
-  switch (dialog_id.get_type()) {
-    case DialogType::User: {
-      if (dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
-        break;
-      }
-      TRY_RESULT(bot_data, td_->user_manager_->get_bot_data(dialog_id.get_user_id()));
-      if (bot_data.can_be_edited) {
-        break;
-      }
-      return Status::Error(400, "The bot isn't owned");
-    }
-    case DialogType::Chat:
-      return Status::Error(400, "The chat must be a channel chat");
-    case DialogType::Channel: {
-      auto channel_id = dialog_id.get_channel_id();
-      if (!td_->chat_manager_->is_broadcast_channel(channel_id)) {
-        return Status::Error(400, "The chat must be a channel chat");
-      }
-      auto status = td_->chat_manager_->get_channel_permissions(channel_id);
-      if (!status.can_post_messages()) {
-        return Status::Error(400, "Not enough rights in the chat");
-      }
-      break;
-    }
-    case DialogType::SecretChat:
-    case DialogType::None:
-    default:
-      UNREACHABLE();
-  }
-  return Status::OK();
-}
-
 void ReferralProgramManager::search_referral_programs(
-    DialogId dialog_id, ReferralProgramSortOrder sort_order, const string &offset, int32 limit,
-    Promise<td_api::object_ptr<td_api::foundAffiliatePrograms>> &&promise) {
-  TRY_STATUS_PROMISE(promise, check_referable_dialog_id(dialog_id));
+    const td_api::object_ptr<td_api::AffiliateType> &affiliate, ReferralProgramSortOrder sort_order,
+    const string &offset, int32 limit, Promise<td_api::object_ptr<td_api::foundAffiliatePrograms>> &&promise) {
+  TRY_RESULT_PROMISE(promise, affiliate_type, AffiliateType::get_affiliate_type(td_, affiliate));
   if (limit <= 0) {
     return promise.set_error(Status::Error(400, "Limit must be positive"));
   }
 
-  td_->create_handler<GetSuggestedStarRefBotsQuery>(std::move(promise))->send(dialog_id, sort_order, offset, limit);
+  td_->create_handler<GetSuggestedStarRefBotsQuery>(std::move(promise))
+      ->send(affiliate_type, sort_order, offset, limit);
 }
 
 void ReferralProgramManager::connect_referral_program(
-    DialogId dialog_id, UserId bot_user_id, Promise<td_api::object_ptr<td_api::connectedAffiliateProgram>> &&promise) {
-  TRY_STATUS_PROMISE(promise, check_referable_dialog_id(dialog_id));
+    const td_api::object_ptr<td_api::AffiliateType> &affiliate, UserId bot_user_id,
+    Promise<td_api::object_ptr<td_api::connectedAffiliateProgram>> &&promise) {
+  TRY_RESULT_PROMISE(promise, affiliate_type, AffiliateType::get_affiliate_type(td_, affiliate));
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
 
-  td_->create_handler<ConnectStarRefBotQuery>(std::move(promise))->send(dialog_id, std::move(input_user));
+  td_->create_handler<ConnectStarRefBotQuery>(std::move(promise))->send(affiliate_type, std::move(input_user));
 }
 
 void ReferralProgramManager::revoke_referral_program(
-    DialogId dialog_id, const string &url, Promise<td_api::object_ptr<td_api::connectedAffiliateProgram>> &&promise) {
-  TRY_STATUS_PROMISE(promise, check_referable_dialog_id(dialog_id));
+    const td_api::object_ptr<td_api::AffiliateType> &affiliate, const string &url,
+    Promise<td_api::object_ptr<td_api::connectedAffiliateProgram>> &&promise) {
+  TRY_RESULT_PROMISE(promise, affiliate_type, AffiliateType::get_affiliate_type(td_, affiliate));
 
-  td_->create_handler<EditConnectedStarRefBotQuery>(std::move(promise))->send(dialog_id, url);
+  td_->create_handler<EditConnectedStarRefBotQuery>(std::move(promise))->send(affiliate_type, url);
 }
 
 void ReferralProgramManager::get_connected_referral_program(
-    DialogId dialog_id, UserId bot_user_id, Promise<td_api::object_ptr<td_api::connectedAffiliateProgram>> &&promise) {
-  TRY_STATUS_PROMISE(promise, check_referable_dialog_id(dialog_id));
+    const td_api::object_ptr<td_api::AffiliateType> &affiliate, UserId bot_user_id,
+    Promise<td_api::object_ptr<td_api::connectedAffiliateProgram>> &&promise) {
+  TRY_RESULT_PROMISE(promise, affiliate_type, AffiliateType::get_affiliate_type(td_, affiliate));
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
 
-  td_->create_handler<GetConnectedStarRefBotQuery>(std::move(promise))->send(dialog_id, std::move(input_user));
+  td_->create_handler<GetConnectedStarRefBotQuery>(std::move(promise))->send(affiliate_type, std::move(input_user));
 }
 
 void ReferralProgramManager::get_connected_referral_programs(
-    DialogId dialog_id, const string &offset, int32 limit,
+    const td_api::object_ptr<td_api::AffiliateType> &affiliate, const string &offset, int32 limit,
     Promise<td_api::object_ptr<td_api::connectedAffiliatePrograms>> &&promise) {
-  TRY_STATUS_PROMISE(promise, check_referable_dialog_id(dialog_id));
+  TRY_RESULT_PROMISE(promise, affiliate_type, AffiliateType::get_affiliate_type(td_, affiliate));
   if (limit <= 0) {
     return promise.set_error(Status::Error(400, "Limit must be positive"));
   }
 
-  td_->create_handler<GetConnectedStarRefBotsQuery>(std::move(promise))->send(dialog_id, offset, limit);
+  td_->create_handler<GetConnectedStarRefBotsQuery>(std::move(promise))->send(affiliate_type, offset, limit);
 }
 
 }  // namespace td

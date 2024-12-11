@@ -12049,32 +12049,32 @@ setChatAffiliateProgram chat_id:int53 parameters:affiliateProgramParameters = Ok
 searchChatAffiliateProgram username:string referrer:string = Chat;
 
 //@description Searches affiliate programs that can be connected to the given affiliate
-//@chat_id Identifier of the affiliate for which affiliate programs are searched for
+//@affiliate The affiliate for which affiliate programs are searched for
 //@sort_order Sort order for the results
 //@offset Offset of the first affiliate program to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of affiliate programs to return
-searchAffiliatePrograms chat_id:int53 sort_order:AffiliateProgramSortOrder offset:string limit:int32 = FoundAffiliatePrograms;
+searchAffiliatePrograms affiliate:AffiliateType sort_order:AffiliateProgramSortOrder offset:string limit:int32 = FoundAffiliatePrograms;
 
 //@description Connects an affiliate program to the given affiliate. Returns information about the connected affiliate program
-//@chat_id Identifier of the affiliate to which the affiliate program will be connected
+//@affiliate The affiliate to which the affiliate program will be connected
 //@bot_user_id Identifier of the bot, which affiliate program is connected
-connectAffiliateProgram chat_id:int53 bot_user_id:int53 = ConnectedAffiliateProgram;
+connectAffiliateProgram affiliate:AffiliateType bot_user_id:int53 = ConnectedAffiliateProgram;
 
 //@description Disconnects an affiliate program from the given affiliate and immediately deactivates its referral link. Returns updated information about the disconnected affiliate program
-//@chat_id Identifier of the chat for which the affiliate program is connected
+//@affiliate The affiliate to which the affiliate program is connected
 //@url The referral link of the affiliate program
-disconnectAffiliateProgram chat_id:int53 url:string = ConnectedAffiliateProgram;
+disconnectAffiliateProgram affiliate:AffiliateType url:string = ConnectedAffiliateProgram;
 
 //@description Returns an affiliate program that were connected to the given affiliate by identifier of the bot that created the program
-//@chat_id Identifier of the affiliate to which the affiliate program will be connected
+//@affiliate The affiliate to which the affiliate program will be connected
 //@bot_user_id Identifier of the bot that created the program
-getConnectedAffiliateProgram chat_id:int53 bot_user_id:int53 = ConnectedAffiliateProgram;
+getConnectedAffiliateProgram affiliate:AffiliateType bot_user_id:int53 = ConnectedAffiliateProgram;
 
 //@description Returns affiliate programs that were connected to the given affiliate
-//@chat_id Identifier of the affiliate for which the affiliate program were connected
+//@affiliate The affiliate to which the affiliate program were connected
 //@offset Offset of the first affiliate program to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of affiliate programs to return
-getConnectedAffiliatePrograms chat_id:int53 offset:string limit:int32 = ConnectedAffiliatePrograms;
+getConnectedAffiliatePrograms affiliate:AffiliateType offset:string limit:int32 = ConnectedAffiliatePrograms;
 
 
 //@description Returns information about features, available to Business users @source Source of the request; pass null if the method is called from settings or some non-standard source

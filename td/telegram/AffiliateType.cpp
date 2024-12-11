@@ -69,4 +69,8 @@ td_api::object_ptr<td_api::AffiliateType> AffiliateType::get_affiliate_type_obje
   }
 }
 
+StringBuilder &operator<<(StringBuilder &string_builder, const AffiliateType &affiliate_type) {
+  return string_builder << "affiliate " << affiliate_type.get_dialog_id();
+}
+
 }  // namespace td

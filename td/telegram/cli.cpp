@@ -1179,6 +1179,27 @@ class CliClient final : public Actor {
     arg.custom_emoji_id = as_custom_emoji_id(args);
   }
 
+  struct AffiliateType {
+    int64 id = 0;
+
+    operator td_api::object_ptr<td_api::AffiliateType>() const {
+      if (id == 0) {
+        return td_api::make_object<td_api::affiliateTypeCurrentUser>();
+      }
+      if (id > 0) {
+        return td_api::make_object<td_api::affiliateTypeBot>(id);
+      }
+      return td_api::make_object<td_api::affiliateTypeChannel>(id);
+    }
+  };
+
+  void get_args(string &args, AffiliateType &arg) const {
+    arg.id = as_chat_id(args);
+    if (arg.id == my_id_) {
+      arg.id = 0;
+    }
+  }
+
   struct InputBackground {
     string background_file;
     // or
@@ -3581,39 +3602,39 @@ class CliClient final : public Actor {
       get_args(args, username, referrer);
       send_request(td_api::make_object<td_api::searchChatAffiliateProgram>(username, referrer));
     } else if (op == "sapc" || op == "sapd" || op == "sapr") {
-      ChatId chat_id;
+      AffiliateType affiliate;
       string limit;
       string offset;
-      get_args(args, chat_id, limit, offset);
+      get_args(args, affiliate, limit, offset);
       td_api::object_ptr<td_api::AffiliateProgramSortOrder> sort_order;
       if (op == "sapd") {
         sort_order = td_api::make_object<td_api::affiliateProgramSortOrderCreationDate>();
       } else if (op == "sapr") {
         sort_order = td_api::make_object<td_api::affiliateProgramSortOrderRevenue>();
       }
-      send_request(td_api::make_object<td_api::searchAffiliatePrograms>(chat_id, std::move(sort_order), offset,
+      send_request(td_api::make_object<td_api::searchAffiliatePrograms>(affiliate, std::move(sort_order), offset,
                                                                         as_limit(limit)));
     } else if (op == "capr") {
-      ChatId chat_id;
+      AffiliateType affiliate;
       UserId bot_user_id;
-      get_args(args, chat_id, bot_user_id);
-      send_request(td_api::make_object<td_api::connectAffiliateProgram>(chat_id, bot_user_id));
+      get_args(args, affiliate, bot_user_id);
+      send_request(td_api::make_object<td_api::connectAffiliateProgram>(affiliate, bot_user_id));
     } else if (op == "dapr") {
-      ChatId chat_id;
+      AffiliateType affiliate;
       string url;
-      get_args(args, chat_id, url);
-      send_request(td_api::make_object<td_api::disconnectAffiliateProgram>(chat_id, url));
+      get_args(args, affiliate, url);
+      send_request(td_api::make_object<td_api::disconnectAffiliateProgram>(affiliate, url));
     } else if (op == "gcapr") {
-      ChatId chat_id;
+      AffiliateType affiliate;
       UserId bot_user_id;
-      get_args(args, chat_id, bot_user_id);
-      send_request(td_api::make_object<td_api::getConnectedAffiliateProgram>(chat_id, bot_user_id));
+      get_args(args, affiliate, bot_user_id);
+      send_request(td_api::make_object<td_api::getConnectedAffiliateProgram>(affiliate, bot_user_id));
     } else if (op == "gcaprs") {
-      ChatId chat_id;
+      AffiliateType affiliate;
       string limit;
       string offset;
-      get_args(args, chat_id, limit, offset);
-      send_request(td_api::make_object<td_api::getConnectedAffiliatePrograms>(chat_id, offset, as_limit(limit)));
+      get_args(args, affiliate, limit, offset);
+      send_request(td_api::make_object<td_api::getConnectedAffiliatePrograms>(affiliate, offset, as_limit(limit)));
     } else if (op == "cpfs" || op == "cpfsb") {
       UserId user_id;
       string currency;
