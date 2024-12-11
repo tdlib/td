@@ -342,6 +342,7 @@ set(TD_MTPROTO_SOURCE
 
 set(TDLIB_SOURCE_PART1
   td/telegram/AccountManager.cpp
+  td/telegram/AffiliateType.cpp
   td/telegram/AlarmManager.cpp
   td/telegram/AnimationsManager.cpp
   td/telegram/Application.cpp
@@ -644,6 +645,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/AccessRights.h
   td/telegram/AccountManager.h
   td/telegram/AffectedHistory.h
+  td/telegram/AffiliateType.h
   td/telegram/AlarmManager.h
   td/telegram/AnimationsManager.h
   td/telegram/Application.h

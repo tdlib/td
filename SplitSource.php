@@ -296,6 +296,7 @@ function split_file($file, $chunks, $undo) {
         $td_methods = array(
             'AccentColorId' => 'AccentColorId',
             'account_manager[_(-](?![.]get[(][)])|AccountManager[^;>]' => 'AccountManager',
+            'AffiliateType' => 'AffiliateType',
             'alarm_manager[_(-](?![.]get[(][)])|AlarmManager' => 'AlarmManager',
             'animations_manager[_(-](?![.]get[(][)])|AnimationsManager[^;>]' => 'AnimationsManager',
             'attach_menu_manager[_(-](?![.]get[(][)])|AttachMenuManager[^;>]' => 'AttachMenuManager',

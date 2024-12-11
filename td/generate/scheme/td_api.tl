@@ -853,6 +853,18 @@ starSubscription id:string chat_id:int53 expiration_date:int32 is_canceled:Bool 
 starSubscriptions star_amount:starAmount subscriptions:vector<starSubscription> required_star_count:int53 next_offset:string = StarSubscriptions;
 
 
+//@class AffiliateType @description Describes type of an affiliate for an affiliate program
+
+//@description The affiliate is the current user
+affiliateTypeCurrentUser = AffiliateType;
+
+//@description The affiliate is a bot owned by the current user @user_id User identifier of the bot
+affiliateTypeBot user_id:int53 = AffiliateType;
+
+//@description The affiliate is a channel chat where the current user has can_post_messages administrator right @chat_id Identifier of the channel chat
+affiliateTypeChannel chat_id:int53 = AffiliateType;
+
+
 //@class AffiliateProgramSortOrder @description Describes the order of the found affiliate programs
 
 //@description The affiliate programs must be sorted by the profitability
@@ -12037,7 +12049,7 @@ setChatAffiliateProgram chat_id:int53 parameters:affiliateProgramParameters = Ok
 searchChatAffiliateProgram username:string referrer:string = Chat;
 
 //@description Searches affiliate programs that can be connected to the given affiliate
-//@chat_id Identifier of the affilaite for which affiliate programs are searched for
+//@chat_id Identifier of the affiliate for which affiliate programs are searched for
 //@sort_order Sort order for the results
 //@offset Offset of the first affiliate program to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of affiliate programs to return
