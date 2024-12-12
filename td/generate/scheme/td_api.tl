@@ -5302,7 +5302,6 @@ inputInlineQueryResultAnimation id:string title:string thumbnail_url:string thum
 //@description Represents a link to an article or web page
 //@id Unique identifier of the query result
 //@url URL of the result, if it exists
-//@hide_url True, if the URL must be not shown
 //@title Title of the result
 //@param_description A short description of the result
 //@thumbnail_url URL of the result thumbnail, if it exists
@@ -5310,7 +5309,7 @@ inputInlineQueryResultAnimation id:string title:string thumbnail_url:string thum
 //@thumbnail_height Thumbnail height, if known
 //@reply_markup The message reply markup; pass null if none. Must be of type replyMarkupInlineKeyboard or null
 //@input_message_content The content of the message to be sent. Must be one of the following types: inputMessageText, inputMessageInvoice, inputMessageLocation, inputMessageVenue or inputMessageContact
-inputInlineQueryResultArticle id:string url:string hide_url:Bool title:string description:string thumbnail_url:string thumbnail_width:int32 thumbnail_height:int32 reply_markup:ReplyMarkup input_message_content:InputMessageContent = InputInlineQueryResult;
+inputInlineQueryResultArticle id:string url:string title:string description:string thumbnail_url:string thumbnail_width:int32 thumbnail_height:int32 reply_markup:ReplyMarkup input_message_content:InputMessageContent = InputInlineQueryResult;
 
 //@description Represents a link to an MP3 audio file
 //@id Unique identifier of the query result
@@ -5424,11 +5423,10 @@ inputInlineQueryResultVoiceNote id:string title:string voice_note_url:string voi
 //@description Represents a link to an article or web page
 //@id Unique identifier of the query result
 //@url URL of the result, if it exists
-//@hide_url True, if the URL must be not shown
 //@title Title of the result
 //@param_description A short description of the result
 //@thumbnail Result thumbnail in JPEG format; may be null
-inlineQueryResultArticle id:string url:string hide_url:Bool title:string description:string thumbnail:thumbnail = InlineQueryResult;
+inlineQueryResultArticle id:string url:string title:string description:string thumbnail:thumbnail = InlineQueryResult;
 
 //@description Represents a user contact
 //@id Unique identifier of the query result

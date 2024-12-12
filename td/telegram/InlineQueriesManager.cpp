@@ -791,13 +791,7 @@ Result<tl_object_ptr<telegram_api::InputBotInlineResult>> InlineQueriesManager::
       auto article = move_tl_object_as<td_api::inputInlineQueryResultArticle>(result);
       type = "article";
       id = std::move(article->id_);
-      if (!article->url_.empty()) {
-        content_url = std::move(article->url_);
-        content_type = "text/html";
-        if (!article->hide_url_) {
-          url = content_url;
-        }
-      }
+      url = std::move(article->url_);
       title = std::move(article->title_);
       description = std::move(article->description_);
       thumbnail_url = std::move(article->thumbnail_url_);
@@ -1553,8 +1547,8 @@ tl_object_ptr<td_api::inlineQueryResultsButton> copy(const td_api::inlineQueryRe
 
 template <>
 tl_object_ptr<td_api::inlineQueryResultArticle> copy(const td_api::inlineQueryResultArticle &obj) {
-  return td_api::make_object<td_api::inlineQueryResultArticle>(obj.id_, obj.url_, obj.hide_url_, obj.title_,
-                                                               obj.description_, copy(obj.thumbnail_));
+  return td_api::make_object<td_api::inlineQueryResultArticle>(obj.id_, obj.url_, obj.title_, obj.description_,
+                                                               copy(obj.thumbnail_));
 }
 
 template <>
@@ -1902,14 +1896,7 @@ td_api::object_ptr<td_api::InlineQueryResult> InlineQueriesManager::get_inline_q
       if (result->type_ == "article") {
         auto article = td_api::make_object<td_api::inlineQueryResultArticle>();
         article->id_ = std::move(result->id_);
-        article->url_ = get_web_document_url(result->content_);
-        if (result->url_.empty()) {
-          article->hide_url_ = true;
-        } else {
-          LOG_IF(ERROR, result->url_ != article->url_)
-              << "URL has changed from " << article->url_ << " to " << result->url_;
-          article->hide_url_ = false;
-        }
+        article->url_ = std::move(result->url_);
         article->title_ = std::move(result->title_);
         article->description_ = std::move(result->description_);
         article->thumbnail_ = register_thumbnail(std::move(result->thumb_));
