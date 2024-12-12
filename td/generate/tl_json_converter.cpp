@@ -21,6 +21,11 @@ namespace td {
 
 using Mode = tl::TL_writer::Mode;
 
+static bool need_bytes(const tl::simple::Type *type) {
+  return type->type == tl::simple::Type::Bytes ||
+         (type->type == tl::simple::Type::Vector && need_bytes(type->vector_value_type));
+}
+
 template <class T>
 void gen_to_json_constructor(StringBuilder &sb, const T *constructor, bool is_header) {
   sb << "void to_json(JsonValueScope &jv, "
@@ -42,6 +47,8 @@ void gen_to_json_constructor(StringBuilder &sb, const T *constructor, bool is_he
     }
     if (arg.type->type == tl::simple::Type::Bytes) {
       object = PSTRING() << "base64_encode(" << object << ")";
+    } else if (need_bytes(arg.type)) {
+      object = "UNSUPPORTED STORED VECTOR OF BYTES";
     } else if (arg.type->type == tl::simple::Type::Bool) {
       object = PSTRING() << "JsonBool{" << object << "}";
     } else if (arg.type->type == tl::simple::Type::Int64) {
@@ -102,7 +109,7 @@ void gen_from_json_constructor(StringBuilder &sb, const T *constructor, bool is_
   } else {
     sb << " {\n";
     for (auto &arg : constructor->args) {
-      sb << "  TRY_STATUS(from_json" << (arg.type->type == tl::simple::Type::Bytes ? "_bytes" : "") << "(to."
+      sb << "  TRY_STATUS(from_json" << (need_bytes(arg.type) ? "_bytes" : "") << "(to."
          << tl::simple::gen_cpp_field_name(arg.name) << ", from.extract_field(\"" << tl::simple::gen_cpp_name(arg.name)
          << "\")));\n";
     }

@@ -31,7 +31,7 @@ inline void to_json(JsonValueScope &jv, const JsonInt64 json_int64) {
 }
 
 struct JsonVectorInt64 {
-  const std::vector<int64> &value;
+  const vector<int64> &value;
 };
 
 inline void to_json(JsonValueScope &jv, const JsonVectorInt64 &vec) {
@@ -51,7 +51,7 @@ void to_json(JsonValueScope &jv, const tl_object_ptr<T> &value) {
 }
 
 template <class T>
-void to_json(JsonValueScope &jv, const std::vector<T> &v) {
+void to_json(JsonValueScope &jv, const vector<T> &v) {
   auto ja = jv.enter_array();
   for (auto &value : v) {
     ja.enter_value() << ToJson(value);
@@ -134,17 +134,33 @@ inline Status from_json_bytes(string &to, JsonValue from) {
 }
 
 template <class T>
-Status from_json(std::vector<T> &to, JsonValue from) {
+Status from_json(vector<T> &to, JsonValue from) {
   if (from.type() != JsonValue::Type::Array) {
     if (from.type() == JsonValue::Type::Null) {
       return Status::OK();
     }
     return Status::Error(PSLICE() << "Expected Array, but receive " << from.type());
   }
-  to = std::vector<T>(from.get_array().size());
+  to = vector<T>(from.get_array().size());
   size_t i = 0;
   for (auto &value : from.get_array()) {
     TRY_STATUS(from_json(to[i], std::move(value)));
+    i++;
+  }
+  return Status::OK();
+}
+
+inline Status from_json_bytes(vector<string> &to, JsonValue from) {
+  if (from.type() != JsonValue::Type::Array) {
+    if (from.type() == JsonValue::Type::Null) {
+      return Status::OK();
+    }
+    return Status::Error(PSLICE() << "Expected Array, but receive " << from.type());
+  }
+  to = vector<string>(from.get_array().size());
+  size_t i = 0;
+  for (auto &value : from.get_array()) {
+    TRY_STATUS(from_json_bytes(to[i], std::move(value)));
     i++;
   }
   return Status::OK();
