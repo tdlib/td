@@ -144,6 +144,8 @@ class Td final : public Actor {
 
   bool ignore_background_updates() const;
 
+  void on_query_result(uint64 id, td_api::object_ptr<td_api::Object> &&result);
+
   unique_ptr<AudiosManager> audios_manager_;
   unique_ptr<CallbackQueriesManager> callback_queries_manager_;
   unique_ptr<DocumentsManager> documents_manager_;
@@ -1733,6 +1735,12 @@ class Td final : public Actor {
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getLogTagVerbosityLevel &request);
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::addLogMessage &request);
   static td_api::object_ptr<td_api::Object> do_static_request(td_api::testReturnError &request);
+
+  void on_request(uint64 id, const td_api::getUserAccessHash &request);
+  void on_request(uint64 id, const td_api::getChannelAccessHash &request);
+  void on_request(uint64 id, const td_api::getChannelDifference &request);
+  void on_request(uint64 id, td_api::getSimplifiedChannels &request);
+  void on_request(uint64 id, td_api::getSimplifiedFullChannel &request);
 
   static DbKey as_db_key(string key);
 

@@ -19992,6 +19992,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
   for (auto message_id : message_ids) {
     auto *m = get_message_force(d, message_id, "view_messages 4");
     if (m != nullptr) {
+      queue_message_reactions_reload(MessageFullId(dialog_id, message_id));
       if (m->message_id.is_server() && m->view_count > 0 && need_update_view_count) {
         pending_message_views_[dialog_id].message_ids_.insert(m->message_id);
       }

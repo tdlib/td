@@ -466,6 +466,215 @@ class TestNetworkQuery final : public Td::ResultHandler {
   }
 };
 
+
+class GetSimplifiedChannelDifferenceQuery final : public Td::ResultHandler {
+  uint64 request_id_;
+ public:
+  void send(uint64 request_id, tl_object_ptr<td_api::resolvedEntity> &&channel, int32 pts, int32 limit, bool force) {
+    request_id_ = request_id;
+    CHECK(pts >= 0);
+    CHECK(channel != nullptr);
+    int32 flags = 0;
+    if (force) {
+      flags |= telegram_api::updates_getChannelDifference::FORCE_MASK;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::updates_getChannelDifference(
+      flags,
+      force,
+      make_tl_object<telegram_api::inputChannel>(channel->id_, channel->access_hash_),
+      make_tl_object<telegram_api::channelMessagesFilterEmpty>(),
+      pts,
+      limit
+    )));
+  }
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::updates_getChannelDifference>(packet);
+    if (result_ptr.is_error())
+      return on_error(result_ptr.move_as_error());
+    auto diff = result_ptr.move_as_ok();
+    td_api::object_ptr<td::td_api::ChannelDifferenceResult> result(make_tl_object<td_api::channelDifferenceEmpty>());
+    switch (diff->get_id()) {
+        case telegram_api::updates_channelDifference::ID: {
+            auto *obj = static_cast<telegram_api::updates_channelDifference*>(diff.get());
+            td_api::array<td_api::object_ptr<td_api::channelMessage>> messages;
+            for (auto &m : obj->new_messages_) {
+                if (!m || m->get_id() != telegram_api::message::ID)
+                    continue;
+                auto message = ConvertTelegramMessageToTDLib(*static_cast<telegram_api::message *>(m.get()));
+                if (!message)
+                    continue;
+                messages.emplace_back(std::move(message));
+            }
+            td_api::array<td_api::object_ptr<td_api::resolvedEntity>> chats;
+            for (const auto &c : obj->chats_) {
+                if (!c)
+                    continue;
+                auto chat = ResolveEntity(*c.get());
+                if (!chat)
+                    continue;
+                chats.emplace_back(std::move(chat));
+            }
+            td_api::array<td_api::object_ptr<td_api::resolvedEntity>> users;
+            for (const auto &u : obj->users_) {
+                if (!u)
+                    continue;
+                auto user = ResolveEntity(*u.get());
+                if (!user)
+                    continue;
+                users.emplace_back(std::move(user));
+            }
+            result = std::move(make_tl_object<td_api::channelDifference>(obj->pts_, obj->final_ ? 1 : 0, std::move(messages), std::move(chats), std::move(users)));
+            break;
+        }
+        case telegram_api::updates_differenceEmpty::ID:
+            break;
+        case telegram_api::updates_channelDifferenceTooLong::ID:
+            result = std::move(make_tl_object<td_api::channelDifferenceTooLong>());
+            break;
+    }
+    td_->on_query_result(
+      request_id_,
+      std::move(result)
+    );
+  }
+  void on_error(Status status) final {
+    td_->on_query_result(
+      request_id_,
+      std::move(make_tl_object<td_api::error>(status.code(), status.public_message()))
+    );
+  }
+  private:
+    static td_api::object_ptr<td_api::channelMessage> ConvertTelegramMessageToTDLib(telegram_api::message &msg) {
+        if (msg.get_id() != telegram_api::message::ID)
+            return td_api::object_ptr<td_api::channelMessage>();
+        auto result = make_tl_object<td_api::channelMessage>();
+        result->id_ = msg.id_;
+        result->date_ = msg.date_;
+        result->edit_date_ = msg.edit_date_;
+        result->views_ = msg.views_;
+        result->forwards_ = msg.forwards_;
+        if (msg.replies_)
+            result->replies_ = msg.replies_->replies_;
+        auto formattedText = get_message_text(nullptr, msg.message_, std::move(msg.entities_), true, true, msg.date_, false, "SimplifiedGet");
+        std::vector<td_api::object_ptr<td_api::textEntity>> entities;
+        for (const auto &ent : formattedText.entities)
+            entities.emplace_back(ent.get_text_entity_object());
+        result->message_ = make_tl_object<td_api::formattedText>(std::move(formattedText.text), std::move(entities)), make_tl_object<td_api::webPage>();
+        if (msg.reactions_) {
+            std::vector<td_api::object_ptr<td_api::messageReaction>> reactions;
+            for (auto &reaction : msg.reactions_->results_) {
+                if (!reaction || !reaction->reaction_ || reaction->reaction_->get_id() != telegram_api::reactionEmoji::ID)
+                    continue;
+                std::string emoji = static_cast<telegram_api::reactionEmoji*>(reaction->reaction_.get())->emoticon_;
+                int32_t count = reaction->count_;
+                reactions.emplace_back(make_tl_object<td_api::messageReaction>(make_tl_object<td_api::reactionTypeEmoji>(emoji), count, false, td_api::object_ptr<td_api::MessageSender>(), std::move(std::vector<td_api::object_ptr<td_api::MessageSender>>())));
+            }
+            result->reactions_ = std::move(reactions);
+        }
+        return result;
+    }
+    static td_api::object_ptr<td_api::resolvedEntity> ResolveEntity(const telegram_api::Object &obj) {
+        if (obj.get_id() == telegram_api::channel::ID) {
+            const auto &channel = static_cast<const telegram_api::channel &>(obj);
+            return make_tl_object<td_api::resolvedEntity>(channel.id_, channel.access_hash_);
+        }
+        else if (obj.get_id() == telegram_api::user::ID) {
+            const auto &user = static_cast<const telegram_api::user &>(obj);
+            return make_tl_object<td_api::resolvedEntity>(user.id_, user.access_hash_);
+        }
+        return td_api::object_ptr<td_api::resolvedEntity>();
+    }
+};
+
+
+class GetSimplifiedChannelsQuery final : public Td::ResultHandler {
+  uint64 request_id_;
+ public:
+  void send(uint64 request_id, td_api::array<td_api::object_ptr<td_api::resolvedEntity>> &&entities) {
+    request_id_ = request_id;
+    std::vector<td_api::object_ptr<telegram_api::InputChannel>> channels;
+    for (const auto &item : entities)
+        channels.push_back(make_tl_object<telegram_api::inputChannel>(item->id_, item->access_hash_));
+    send_query(G()->net_query_creator().create(telegram_api::channels_getChannels(
+      std::move(channels)
+    )));
+  }
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_getChannels>(packet);
+    if (result_ptr.is_error())
+      return on_error(result_ptr.move_as_error());
+    auto chatsObj = result_ptr.move_as_ok();
+    if (chatsObj->get_id() != telegram_api::messages_chats::ID) {
+        td_->on_query_result(
+          request_id_,
+          std::move(make_tl_object<td_api::error>(503, "Wrong type in GetSimplifiedChannelsQuery"))
+        );
+        return;
+    }
+    const telegram_api::messages_chats *chats = static_cast<const telegram_api::messages_chats *>(chatsObj.get());
+    std::vector<td_api::object_ptr<td_api::simplifiedChannel>> results;
+    for (const auto &chatObj : chats->chats_) {
+        if (chatObj->get_id() != telegram_api::channel::ID)
+            continue;
+        const telegram_api::channel *channel = static_cast<const telegram_api::channel*>(chatObj.get());
+        std::vector<std::string> usernames;
+        for (const auto &item : channel->usernames_)
+            usernames.push_back(item->username_);
+        auto result = make_tl_object<td_api::simplifiedChannel>(channel->id_, channel->title_, channel->username_, std::move(usernames), channel->participants_count_);
+        results.push_back(std::move(result));
+    }
+    td_->on_query_result(
+      request_id_,
+      std::move(make_tl_object<td_api::simplifiedChannels>(std::move(results)))
+    );
+  }
+  void on_error(Status status) final {
+    td_->on_query_result(
+      request_id_,
+      std::move(make_tl_object<td_api::error>(status.code(), status.public_message()))
+    );
+  }
+};
+
+
+class GetSimplifiedFullChannelQuery final : public Td::ResultHandler {
+  uint64 request_id_;
+ public:
+  void send(uint64 request_id, td_api::object_ptr<td_api::resolvedEntity> &&entity) {
+    request_id_ = request_id;
+    send_query(G()->net_query_creator().create(telegram_api::channels_getFullChannel(
+      std::move(make_tl_object<telegram_api::inputChannel>(entity->id_, entity->access_hash_))
+    )));
+  }
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_getFullChannel>(packet);
+    if (result_ptr.is_error())
+      return on_error(result_ptr.move_as_error());
+    auto chatFullObj = result_ptr.move_as_ok();
+    auto &chatFull = chatFullObj->full_chat_;
+    if (chatFull->get_id() != telegram_api::channelFull::ID) {
+        td_->on_query_result(
+            request_id_,
+            std::move(make_tl_object<td_api::error>(503, "Wrong type in GetSimplifiedFullChannelQuery"))
+        );
+        return;
+    }
+    const telegram_api::channelFull *channel = static_cast<const telegram_api::channelFull*>(chatFull.get());
+    auto result = make_tl_object<td_api::simplifiedFullChannel>(channel->id_, channel->about_, channel->participants_count_, channel->pts_);
+    td_->on_query_result(
+      request_id_,
+      std::move(result)
+    );
+  }
+  void on_error(Status status) final {
+    td_->on_query_result(
+      request_id_,
+      std::move(make_tl_object<td_api::error>(status.code(), status.public_message()))
+    );
+  }
+};
+
+
 class TestProxyRequest final : public RequestOnceActor {
   Proxy proxy_;
   int16 dc_id_;
@@ -9369,6 +9578,76 @@ void Td::on_request(uint64 id, td_api::testCallVectorString &request) {
 void Td::on_request(uint64 id, td_api::testCallVectorStringObject &request) {
   send_closure(actor_id(this), &Td::send_result, id,
                make_tl_object<td_api::testVectorStringObject>(std::move(request.x_)));
+}
+
+
+void Td::on_request(uint64 id, const td_api::getUserAccessHash &request) {
+  auto user = contacts_manager_->get_input_user(UserId(request.user_id_));
+  td_api::object_ptr<td_api::Object> result(make_tl_object<td_api::accessHashUnresolved>());
+  if (user.is_ok()) {
+    switch (user.ok()->get_id()) {
+      case telegram_api::inputUser::ID:
+        result = std::move(make_tl_object<td_api::accessHashResolved>(static_cast<const telegram_api::inputUser &>(*user.ok()).access_hash_));
+        break;
+    }
+  }
+  send_closure(
+    actor_id(this),
+    &Td::send_result,
+    id,
+    std::move(result)
+  );
+}
+
+void Td::on_request(uint64 id, const td_api::getChannelAccessHash &request) {
+  auto channel = contacts_manager_->get_input_channel(ChannelId(request.channel_id_));
+  td_api::object_ptr<td_api::Object> result(make_tl_object<td_api::accessHashUnresolved>());
+  if (channel) {
+    switch (channel->get_id()) {
+      case telegram_api::inputChannel::ID:
+        result = std::move(make_tl_object<td_api::accessHashResolved>(static_cast<telegram_api::inputChannel &>(*channel).access_hash_));
+        break;
+    }
+  }
+  send_closure(
+    actor_id(this),
+    &Td::send_result,
+    id,
+    std::move(result)
+  );
+}
+
+void Td::on_request(uint64 id, const td_api::getChannelDifference &request) {
+  create_handler<GetSimplifiedChannelDifferenceQuery>()->send(
+    id,
+    make_tl_object<td_api::resolvedEntity>(request.channel_->id_, request.channel_->access_hash_),
+    request.pts_,
+    request.limit_,
+    true
+  );
+}
+
+void Td::on_request(uint64 id, td_api::getSimplifiedChannels &request) {
+  create_handler<GetSimplifiedChannelsQuery>()->send(
+    id,
+    std::move(request.entities_)
+  );
+}
+
+void Td::on_request(uint64 id, td_api::getSimplifiedFullChannel &request) {
+  create_handler<GetSimplifiedFullChannelQuery>()->send(
+    id,
+    std::move(request.entity_)
+  );
+}
+
+void Td::on_query_result(uint64 id, td_api::object_ptr<td_api::Object> &&result) {
+  send_closure(
+    actor_id(this),
+    &Td::send_result,
+    id,
+    std::move(result)
+  );
 }
 
 #undef CLEAN_INPUT_STRING

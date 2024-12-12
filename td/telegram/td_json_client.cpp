@@ -4,10 +4,14 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
+#include "td/telegram/td_api_json.h"
 #include "td/telegram/td_json_client.h"
 
 #include "td/telegram/Client.h"
 #include "td/telegram/ClientJson.h"
+#include "td/utils/JsonBuilder.h"
+#include "td/utils/StackAllocator.h"
+#include "td/utils/SliceBuilder.h"
 
 #include "td/utils/Slice.h"
 
@@ -50,3 +54,25 @@ const char *td_execute(const char *request) {
 void td_set_log_message_callback(int max_verbosity_level, td_log_message_callback_ptr callback) {
   td::ClientManager::set_log_message_callback(max_verbosity_level, callback);
 }
+
+static TD_THREAD_LOCAL std::string *current_output;
+
+static const char *store_string(std::string str) {
+  td::init_thread_local<std::string>(current_output);
+  *current_output = std::move(str);
+  return current_output->c_str();
+}
+
+const char *td_object_to_json(const void *obj) {
+  const td::td_api::Object &object = *static_cast<const td::td_api::Object *>(obj);
+  auto buf = td::StackAllocator::alloc(1 << 18);
+  td::JsonBuilder jb(td::StringBuilder(buf.as_slice(), true), -1);
+  jb.enter_value() << ToJson(object);
+  auto &sb = jb.string_builder();
+  auto slice = sb.as_cslice();
+  CHECK(!slice.empty() && slice.back() == '}');
+  sb.pop_back();
+  sb << '}';
+  return store_string(sb.as_cslice().str());
+}
+
