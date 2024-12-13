@@ -140,6 +140,10 @@ class InlineQueriesManager final : public Actor {
 
   void on_drop_inline_query_result_timeout(int64 query_hash);
 
+  static void on_drop_inline_query_message_timeout_callback(void *inline_queries_manager_ptr, int64 query_id);
+
+  void on_drop_inline_query_message_timeout(int64 query_id);
+
   void loop() final;
 
   void tear_down() final;
@@ -173,6 +177,7 @@ class InlineQueriesManager final : public Actor {
   };
 
   MultiTimeout drop_inline_query_result_timeout_{"DropInlineQueryResultTimeout"};
+  MultiTimeout drop_inline_query_message_timeout_{"DropInlineQueryMessageTimeout"};
   FlatHashMap<uint64, InlineQueryResult> inline_query_results_;  // query_hash -> result
 
   FlatHashMap<int64, FlatHashMap<string, InlineMessageContent>>
