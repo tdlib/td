@@ -178,6 +178,8 @@ class Td final : public Actor {
   ActorOwn<BusinessConnectionManager> business_connection_manager_actor_;
   unique_ptr<BusinessManager> business_manager_;
   ActorOwn<BusinessManager> business_manager_actor_;
+  unique_ptr<CallManager> call_manager_;
+  ActorOwn<CallManager> call_manager_actor_;
   unique_ptr<ChannelRecommendationManager> channel_recommendation_manager_;
   ActorOwn<ChannelRecommendationManager> channel_recommendation_manager_actor_;
   unique_ptr<ChatManager> chat_manager_;
@@ -284,7 +286,6 @@ class Td final : public Actor {
   ActorOwn<WebPagesManager> web_pages_manager_actor_;
 
   ActorOwn<AlarmManager> alarm_manager_;
-  ActorOwn<CallManager> call_manager_;
   ActorOwn<HashtagHints> cashtag_search_hints_;
   ActorOwn<ConfigManager> config_manager_;
   ActorOwn<DeviceTokenManager> device_token_manager_;

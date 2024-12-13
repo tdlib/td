@@ -17,7 +17,11 @@
 
 namespace td {
 
-CallManager::CallManager(ActorShared<> parent) : parent_(std::move(parent)) {
+CallManager::CallManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
+}
+
+void CallManager::tear_down() {
+  parent_.reset();
 }
 
 void CallManager::update_call(telegram_api::object_ptr<telegram_api::updatePhoneCall> call) {

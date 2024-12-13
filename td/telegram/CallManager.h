@@ -23,9 +23,11 @@
 
 namespace td {
 
+class Td;
+
 class CallManager final : public Actor {
  public:
-  explicit CallManager(ActorShared<> parent);
+  CallManager(Td *td, ActorShared<> parent);
 
   void update_call(telegram_api::object_ptr<telegram_api::updatePhoneCall> call);
 
@@ -50,6 +52,8 @@ class CallManager final : public Actor {
 
  private:
   bool close_flag_ = false;
+
+  Td *td_;
   ActorShared<> parent_;
 
   struct CallInfo {
@@ -66,5 +70,6 @@ class CallManager final : public Actor {
 
   void hangup() final;
   void hangup_shared() final;
+  void tear_down() final;
 };
 }  // namespace td

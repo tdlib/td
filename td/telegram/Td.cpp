@@ -508,6 +508,7 @@ void Td::dec_actor_refcnt() {
       reset_manager(bot_info_manager_, "BotInfoManager");
       reset_manager(business_connection_manager_, "BusinessConnectionManager");
       reset_manager(business_manager_, "BusinessManager");
+      reset_manager(call_manager_, "CallManager");
       reset_manager(callback_queries_manager_, "CallbackQueriesManager");
       reset_manager(channel_recommendation_manager_, "ChannelRecommendationManager");
       reset_manager(chat_manager_, "ChatManager");
@@ -655,7 +656,6 @@ void Td::clear() {
 
   // close all pure actors
   reset_actor(ActorOwn<Actor>(std::move(alarm_manager_)));
-  reset_actor(ActorOwn<Actor>(std::move(call_manager_)));
   reset_actor(ActorOwn<Actor>(std::move(cashtag_search_hints_)));
   reset_actor(ActorOwn<Actor>(std::move(config_manager_)));
   reset_actor(ActorOwn<Actor>(std::move(device_token_manager_)));
@@ -684,6 +684,7 @@ void Td::clear() {
   reset_actor(ActorOwn<Actor>(std::move(bot_info_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(business_connection_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(business_manager_actor_)));
+  reset_actor(ActorOwn<Actor>(std::move(call_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(channel_recommendation_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(chat_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(common_dialog_manager_actor_)));
@@ -1146,6 +1147,9 @@ void Td::init_managers() {
   business_manager_ = make_unique<BusinessManager>(this, create_reference());
   business_manager_actor_ = register_actor("BusinessManager", business_manager_.get());
   G()->set_business_manager(business_manager_actor_.get());
+  call_manager_ = make_unique<CallManager>(this, create_reference());
+  call_manager_actor_ = register_actor("CallManager", call_manager_.get());
+  G()->set_call_manager(call_manager_actor_.get());
   channel_recommendation_manager_ = make_unique<ChannelRecommendationManager>(this, create_reference());
   channel_recommendation_manager_actor_ =
       register_actor("ChannelRecommendationManager", channel_recommendation_manager_.get());
@@ -1284,8 +1288,6 @@ void Td::init_managers() {
 }
 
 void Td::init_pure_actor_managers() {
-  call_manager_ = create_actor<CallManager>("CallManager", create_reference());
-  G()->set_call_manager(call_manager_.get());
   cashtag_search_hints_ = create_actor<HashtagHints>("CashtagSearchHints", "cashtag_search", '$', create_reference());
   device_token_manager_ = create_actor<DeviceTokenManager>("DeviceTokenManager", create_reference());
   hashtag_hints_ = create_actor<HashtagHints>("HashtagHints", "text", '#', create_reference());
