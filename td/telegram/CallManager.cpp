@@ -148,6 +148,15 @@ void CallManager::send_call_log(CallId call_id, td_api::object_ptr<td_api::Input
   send_closure(actor, &CallActor::send_call_log, std::move(log_file), std::move(safe_promise));
 }
 
+void CallManager::create_conference_call(CallId call_id, Promise<Unit> promise) {
+  auto actor = get_call_actor(call_id);
+  if (actor.empty()) {
+    return promise.set_error(Status::Error(400, "Call not found"));
+  }
+  auto safe_promise = SafePromise<Unit>(std::move(promise), Status::Error(400, "Call not found"));
+  send_closure(actor, &CallActor::create_conference_call, std::move(safe_promise));
+}
+
 CallId CallManager::create_call_actor() {
   if (next_call_id_ == std::numeric_limits<int32>::max()) {
     next_call_id_ = 1;

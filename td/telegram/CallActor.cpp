@@ -461,7 +461,32 @@ void CallActor::on_save_log_query_result(FileUploadId file_upload_id, Promise<Un
   promise.set_value(Unit());
 }
 
-// Requests
+void CallActor::create_conference_call(Promise<Unit> promise) {
+  if (call_state_.input_group_call_id.is_valid()) {
+    return promise.set_value(Unit());
+  }
+  auto tl_query = telegram_api::phone_createConferenceCall(get_input_phone_call("create_conference_call"), 0);
+  auto query = G()->net_query_creator().create(tl_query);
+  send_with_promise(std::move(query), PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](
+                                                                 Result<NetQueryPtr> r_net_query) mutable {
+                      send_closure(actor_id, &CallActor::on_create_conference_call_result, std::move(promise),
+                                   std::move(r_net_query));
+                    }));
+  loop();
+}
+
+void CallActor::on_create_conference_call_result(Promise<Unit> promise, Result<NetQueryPtr> r_net_query) {
+  auto res = fetch_result<telegram_api::phone_createConferenceCall>(std::move(r_net_query));
+  if (res.is_error()) {
+    return promise.set_error(res.move_as_error());
+  }
+  update_call_inner(res.move_as_ok());
+  if (!call_state_.input_group_call_id.is_valid()) {
+    return promise.set_error(Status::Error(500, "Receive invalid response"));
+  }
+  promise.set_value(Unit());
+}
+
 void CallActor::update_call(tl_object_ptr<telegram_api::PhoneCall> call) {
   LOG(INFO) << "Receive " << to_string(call);
   auto status = [&] {

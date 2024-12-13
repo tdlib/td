@@ -4284,6 +4284,12 @@ void Requests::on_request(uint64 id, td_api::createVideoChat &request) {
                                               request.start_date_, request.is_rtmp_stream_, std::move(query_promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::createGroupCall &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  send_closure(G()->call_manager(), &CallManager::create_conference_call, CallId(request.call_id_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getVideoChatRtmpUrl &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
