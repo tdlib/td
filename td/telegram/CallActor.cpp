@@ -11,6 +11,7 @@
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/GroupCallManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
@@ -114,17 +115,18 @@ tl_object_ptr<td_api::callServer> CallConnection::get_call_server_object() const
   return make_tl_object<td_api::callServer>(id, ip, ipv6, port, std::move(server_type));
 }
 
-tl_object_ptr<td_api::CallState> CallState::get_call_state_object() const {
+tl_object_ptr<td_api::CallState> CallState::get_call_state_object(Td *td) const {
   switch (type) {
     case Type::Pending:
       return make_tl_object<td_api::callStatePending>(is_created, is_received);
     case Type::ExchangingKey:
       return make_tl_object<td_api::callStateExchangingKeys>();
     case Type::Ready: {
+      auto group_call_id = td->group_call_manager_->get_group_call_id(input_group_call_id, DialogId()).get();
       auto call_connections = transform(connections, [](auto &c) { return c.get_call_server_object(); });
       return make_tl_object<td_api::callStateReady>(protocol.get_call_protocol_object(), std::move(call_connections),
                                                     config, key, vector<string>(emojis_fingerprint), allow_p2p,
-                                                    custom_parameters);
+                                                    custom_parameters, group_call_id);
     }
     case Type::HangingUp:
       return make_tl_object<td_api::callStateHangingUp>();
@@ -598,6 +600,16 @@ void CallActor::on_begin_exchanging_key() {
 
 Status CallActor::do_update_call(const telegram_api::phoneCall &call) {
   if (state_ != State::WaitAcceptResult && state_ != State::WaitConfirmResult) {
+    if (state_ == State::Ready) {
+      InputGroupCallId input_group_call_id;
+      if (call.conference_call_ != nullptr) {
+        input_group_call_id = InputGroupCallId(call.conference_call_);
+      }
+      if (call_state_.input_group_call_id != input_group_call_id) {
+        call_state_.input_group_call_id = input_group_call_id;
+        call_state_need_flush_ = true;
+      }
+    }
     return Status::OK();
   }
   cancel_timeout();
@@ -624,6 +636,9 @@ Status CallActor::do_update_call(const telegram_api::phoneCall &call) {
   call_state_.allow_p2p = call.p2p_allowed_;
   if (call.custom_parameters_ != nullptr) {
     call_state_.custom_parameters = std::move(call.custom_parameters_->data_);
+  }
+  if (call.conference_call_ != nullptr) {
+    call_state_.input_group_call_id = InputGroupCallId(call.conference_call_);
   }
   call_state_.type = CallState::Type::Ready;
   call_state_need_flush_ = true;
@@ -898,6 +913,9 @@ void CallActor::on_discard_query_result(Result<NetQueryPtr> r_net_query) {
 }
 
 void CallActor::flush_call_state() {
+  if (G()->close_flag()) {
+    return;
+  }
   if (call_state_need_flush_) {
     if (!is_outgoing_) {
       if (call_state_.type == CallState::Type::Pending) {
@@ -922,7 +940,7 @@ void CallActor::flush_call_state() {
 
     auto peer_id = is_outgoing_ ? user_id_ : call_admin_user_id_;
     auto update = td_api::make_object<td_api::updateCall>(td_api::make_object<td_api::call>(
-        local_call_id_.get(), 0, is_outgoing_, is_video_, call_state_.get_call_state_object()));
+        local_call_id_.get(), 0, is_outgoing_, is_video_, call_state_.get_call_state_object(td_)));
     send_closure(G()->user_manager(), &UserManager::get_user_id_object_async, peer_id,
                  [td_actor = G()->td(), update = std::move(update)](Result<int64> r_user_id) mutable {
                    if (r_user_id.is_ok()) {

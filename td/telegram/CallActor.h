@@ -10,6 +10,7 @@
 #include "td/telegram/CallId.h"
 #include "td/telegram/DhConfig.h"
 #include "td/telegram/files/FileUploadId.h"
+#include "td/telegram/InputGroupCallId.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -88,11 +89,12 @@ struct CallState {
   string config;
   vector<string> emojis_fingerprint;
   string custom_parameters;
+  InputGroupCallId input_group_call_id;
   bool allow_p2p{false};
 
   Status error;
 
-  tl_object_ptr<td_api::CallState> get_call_state_object() const;
+  tl_object_ptr<td_api::CallState> get_call_state_object(Td *td) const;
 };
 
 class CallActor final : public NetQueryCallback {

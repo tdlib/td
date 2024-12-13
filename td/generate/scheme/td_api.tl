@@ -4958,7 +4958,8 @@ callStateExchangingKeys = CallState;
 //@emojis Encryption key fingerprint represented as 4 emoji
 //@allow_p2p True, if peer-to-peer connection is allowed by users privacy settings
 //@custom_parameters Custom JSON-encoded call parameters to be passed to tgcalls
-callStateReady protocol:callProtocol servers:vector<callServer> config:string encryption_key:bytes emojis:vector<string> allow_p2p:Bool custom_parameters:string = CallState;
+//@group_call_id Identifier of the group call associated with the call; 0 if the group call isn't created yet. The group call can be received through the method getGroupCall
+callStateReady protocol:callProtocol servers:vector<callServer> config:string encryption_key:bytes emojis:vector<string> allow_p2p:Bool custom_parameters:string group_call_id:int32 = CallState;
 
 //@description The call is hanging up after discardCall has been called
 callStateHangingUp = CallState;
