@@ -28,6 +28,8 @@
 
 namespace td {
 
+class Td;
+
 struct CallProtocol {
   bool udp_p2p{true};
   bool udp_reflector{true};
@@ -95,7 +97,7 @@ struct CallState {
 
 class CallActor final : public NetQueryCallback {
  public:
-  CallActor(CallId call_id, ActorShared<> parent, Promise<int64> promise);
+  CallActor(Td *td, CallId call_id, ActorShared<> parent, Promise<int64> promise);
 
   void create_call(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user, CallProtocol &&protocol,
                    bool is_video, Promise<CallId> &&promise);
@@ -112,6 +114,8 @@ class CallActor final : public NetQueryCallback {
 
  private:
   void update_call_inner(tl_object_ptr<telegram_api::phone_phoneCall> call);
+
+  Td *td_;
   ActorShared<> parent_;
   Promise<int64> call_id_promise_;
 

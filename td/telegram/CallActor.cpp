@@ -141,8 +141,8 @@ tl_object_ptr<td_api::CallState> CallState::get_call_state_object() const {
   }
 }
 
-CallActor::CallActor(CallId call_id, ActorShared<> parent, Promise<int64> promise)
-    : parent_(std::move(parent)), call_id_promise_(std::move(promise)), local_call_id_(call_id) {
+CallActor::CallActor(Td *td, CallId call_id, ActorShared<> parent, Promise<int64> promise)
+    : td_(td), parent_(std::move(parent)), call_id_promise_(std::move(promise)), local_call_id_(call_id) {
 }
 
 void CallActor::create_call(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user,
@@ -357,7 +357,7 @@ void CallActor::send_call_log(td_api::object_ptr<td_api::InputFile> log_file, Pr
     return promise.set_error(Status::Error(400, "Unexpected sendCallLog"));
   }
 
-  auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
+  auto *file_manager = td_->file_manager_.get();
   TRY_RESULT_PROMISE(promise, file_id,
                      file_manager->get_input_file_id(FileType::CallLog, log_file, DialogId(), false, false));
 
