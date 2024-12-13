@@ -26,7 +26,7 @@ namespace td {
 
 int VERBOSITY_NAME(file_gc) = VERBOSITY_NAME(INFO);
 
-void FileGcWorker::run_gc(const FileGcParameters &parameters, std::vector<FullFileInfo> files,
+void FileGcWorker::run_gc(const FileGcParameters &parameters, vector<FullFileInfo> files, bool send_updates,
                           Promise<FileGcResult> promise) {
   auto begin_time = Time::now();
   VLOG(file_gc) << "Start files GC with " << parameters;
@@ -84,12 +84,14 @@ void FileGcWorker::run_gc(const FileGcParameters &parameters, std::vector<FullFi
   FileStats new_stats(false, parameters.dialog_limit_ != 0);
   FileStats removed_stats(false, parameters.dialog_limit_ != 0);
 
-  auto do_remove_file = [&removed_stats](const FullFileInfo &info) {
+  auto do_remove_file = [&removed_stats, send_updates](const FullFileInfo &info) {
     removed_stats.add_copy(info);
     auto status = unlink(info.path);
     LOG_IF(WARNING, status.is_error()) << "Failed to unlink file \"" << info.path << "\" during files GC: " << status;
-    send_closure(G()->file_manager(), &FileManager::on_file_unlink,
-                 FullLocalFileLocation(info.file_type, info.path, info.mtime_nsec));
+    if (send_updates) {
+      send_closure(G()->file_manager(), &FileManager::on_file_unlink,
+                   FullLocalFileLocation(info.file_type, info.path, info.mtime_nsec));
+    }
   };
 
   double now = Clocks::system();

@@ -162,6 +162,7 @@ void StorageManager::on_all_files(FileGcParameters gc_parameters, Result<FileSta
   create_gc_worker();
 
   send_closure(gc_worker_, &FileGcWorker::run_gc, std::move(gc_parameters), r_file_stats.ok_ref().get_all_files(),
+               !G()->get_option_string("my_phone_number").empty(),
                PromiseCreator::lambda([actor_id = actor_id(this), dialog_limit](Result<FileGcResult> r_file_gc_result) {
                  send_closure(actor_id, &StorageManager::on_gc_finished, dialog_limit, std::move(r_file_gc_result));
                }));
