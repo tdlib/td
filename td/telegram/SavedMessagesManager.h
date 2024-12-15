@@ -165,9 +165,10 @@ class SavedMessagesManager final : public Actor {
 
   bool set_pinned_saved_messages_topics(vector<SavedMessagesTopicId> added_saved_messages_topic_ids);
 
-  bool set_saved_messages_topic_is_pinned(SavedMessagesTopicId saved_messages_topic_id, bool is_pinned);
+  bool set_saved_messages_topic_is_pinned(SavedMessagesTopicId saved_messages_topic_id, bool is_pinned,
+                                          const char *source);
 
-  bool set_saved_messages_topic_is_pinned(SavedMessagesTopic *topic, bool is_pinned);
+  bool set_saved_messages_topic_is_pinned(SavedMessagesTopic *topic, bool is_pinned, const char *source);
 
   int32 get_pinned_saved_messages_topic_limit() const;
 
