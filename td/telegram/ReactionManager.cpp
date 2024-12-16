@@ -1008,7 +1008,7 @@ void ReactionManager::load_all_saved_reaction_tags_from_database() {
       all_tags_ = {};
     }
   }
-  reget_saved_messages_tags(SavedMessagesTopicId(), Auto());
+  reload_saved_messages_tags(SavedMessagesTopicId(), Auto());
 }
 
 void ReactionManager::load_saved_reaction_tags_from_database(SavedMessagesTopicId saved_messages_topic_id,
@@ -1028,7 +1028,7 @@ void ReactionManager::load_saved_reaction_tags_from_database(SavedMessagesTopicI
   }
 
   send_update_saved_messages_tags(saved_messages_topic_id, tags, true);
-  reget_saved_messages_tags(saved_messages_topic_id, Auto());
+  reload_saved_messages_tags(saved_messages_topic_id, Auto());
 }
 
 ReactionManager::SavedReactionTags *ReactionManager::get_saved_reaction_tags(
@@ -1054,11 +1054,11 @@ void ReactionManager::get_saved_messages_tags(SavedMessagesTopicId saved_message
   if (tags->is_inited_) {
     return promise.set_value(tags->get_saved_messages_tags_object());
   }
-  reget_saved_messages_tags(saved_messages_topic_id, std::move(promise));
+  reload_saved_messages_tags(saved_messages_topic_id, std::move(promise));
 }
 
-void ReactionManager::reget_saved_messages_tags(SavedMessagesTopicId saved_messages_topic_id,
-                                                Promise<td_api::object_ptr<td_api::savedMessagesTags>> &&promise) {
+void ReactionManager::reload_saved_messages_tags(SavedMessagesTopicId saved_messages_topic_id,
+                                                 Promise<td_api::object_ptr<td_api::savedMessagesTags>> &&promise) {
   auto &promises = saved_messages_topic_id == SavedMessagesTopicId()
                        ? pending_get_all_saved_reaction_tags_queries_
                        : pending_get_topic_saved_reaction_tags_queries_[saved_messages_topic_id];
@@ -1163,7 +1163,7 @@ void ReactionManager::send_update_saved_messages_tags(SavedMessagesTopicId saved
 }
 
 void ReactionManager::on_update_saved_reaction_tags(Promise<Unit> &&promise) {
-  reget_saved_messages_tags(
+  reload_saved_messages_tags(
       SavedMessagesTopicId(),
       PromiseCreator::lambda(
           [promise = std::move(promise)](Result<td_api::object_ptr<td_api::savedMessagesTags>> result) mutable {
