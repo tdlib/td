@@ -3177,9 +3177,9 @@ void Requests::on_request(uint64 id, td_api::searchMessages &request) {
   CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();
   td_->messages_manager_->search_messages(
-      DialogListId(request.chat_list_), request.chat_list_ == nullptr, request.only_in_channels_,
-      std::move(request.query_), std::move(request.offset_), request.limit_, get_message_search_filter(request.filter_),
-      request.min_date_, request.max_date_, std::move(promise));
+      DialogListId(request.chat_list_), request.chat_list_ == nullptr, std::move(request.query_),
+      std::move(request.offset_), request.limit_, get_message_search_filter(request.filter_),
+      std::move(request.chat_type_filter_), request.min_date_, request.max_date_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::searchSavedMessages &request) {

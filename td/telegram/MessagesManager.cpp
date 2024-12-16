@@ -1900,9 +1900,10 @@ class SearchMessagesGlobalQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(FolderId folder_id, bool ignore_folder_id, bool broadcasts_only, const string &query, int32 offset_date,
+  void send(FolderId folder_id, bool ignore_folder_id, const string &query, int32 offset_date,
             DialogId offset_dialog_id, MessageId offset_message_id, int32 limit, MessageSearchFilter filter,
-            int32 min_date, int32 max_date) {
+            const td_api::object_ptr<td_api::SearchMessagesChatTypeFilter> &dialog_type_filter, int32 min_date,
+            int32 max_date) {
     query_ = query;
     offset_date_ = offset_date;
     offset_dialog_id_ = offset_dialog_id;
@@ -1919,8 +1920,20 @@ class SearchMessagesGlobalQuery final : public Td::ResultHandler {
     if (!ignore_folder_id) {
       flags |= telegram_api::messages_searchGlobal::FOLDER_ID_MASK;
     }
-    if (broadcasts_only) {
-      flags |= telegram_api::messages_searchGlobal::BROADCASTS_ONLY_MASK;
+    if (dialog_type_filter != nullptr) {
+      switch (dialog_type_filter->get_id()) {
+        case td_api::searchMessagesChatTypeFilterPrivate::ID:
+          flags |= telegram_api::messages_searchGlobal::USERS_ONLY_MASK;
+          break;
+        case td_api::searchMessagesChatTypeFilterGroup::ID:
+          flags |= telegram_api::messages_searchGlobal::GROUPS_ONLY_MASK;
+          break;
+        case td_api::searchMessagesChatTypeFilterChannel::ID:
+          flags |= telegram_api::messages_searchGlobal::BROADCASTS_ONLY_MASK;
+          break;
+        default:
+          UNREACHABLE();
+      }
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_searchGlobal(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, folder_id.get(), query,
@@ -20844,9 +20857,10 @@ void MessagesManager::on_message_db_calls_result(Result<MessageDbCallsResult> re
   promise.set_value(get_found_messages_object(found_messages, "on_message_db_calls_result"));
 }
 
-void MessagesManager::search_messages(DialogListId dialog_list_id, bool ignore_folder_id, bool broadcasts_only,
-                                      const string &query, const string &offset_str, int32 limit,
-                                      MessageSearchFilter filter, int32 min_date, int32 max_date,
+void MessagesManager::search_messages(DialogListId dialog_list_id, bool ignore_folder_id, const string &query,
+                                      const string &offset_str, int32 limit, MessageSearchFilter filter,
+                                      td_api::object_ptr<td_api::SearchMessagesChatTypeFilter> &&dialog_type_filter,
+                                      int32 min_date, int32 max_date,
                                       Promise<td_api::object_ptr<td_api::foundMessages>> &&promise) {
   if (!dialog_list_id.is_folder()) {
     return promise.set_error(Status::Error(400, "Wrong chat list specified"));
@@ -20872,8 +20886,8 @@ void MessagesManager::search_messages(DialogListId dialog_list_id, bool ignore_f
   }
 
   td_->create_handler<SearchMessagesGlobalQuery>(std::move(promise))
-      ->send(dialog_list_id.get_folder_id(), ignore_folder_id, broadcasts_only, query, offset.date_, offset.dialog_id_,
-             offset.message_id_, limit, filter, min_date, max_date);
+      ->send(dialog_list_id.get_folder_id(), ignore_folder_id, query, offset.date_, offset.dialog_id_,
+             offset.message_id_, limit, filter, dialog_type_filter, min_date, max_date);
 }
 
 void MessagesManager::get_dialog_message_by_date(DialogId dialog_id, int32 date,
