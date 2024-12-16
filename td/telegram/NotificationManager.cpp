@@ -17,6 +17,7 @@
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
+#include "td/telegram/MessageQueryManager.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/ConnectionCreator.h"
@@ -3494,11 +3495,16 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     } else if (custom.has_field("ringtone")) {
       TRY_RESULT_ASSIGN(ringtone_id, custom.get_optional_long_field("ringtone"));
     }
-    add_message_push_notification(dialog_id, MessageId(server_message_id), random_id, sender_user_id, sender_dialog_id,
-                                  std::move(sender_name), sent_date, is_from_scheduled, contains_mention,
-                                  disable_notification, ringtone_id, std::move(loc_key), std::move(arg),
-                                  std::move(attached_photo), std::move(attached_document), NotificationId(), 0,
-                                  std::move(promise));
+    auto message_id = MessageId(server_message_id);
+
+    TRY_RESULT(report_delivery_until_date, custom.get_optional_int_field("report_delivery_until_date"));
+    if (report_delivery_until_date > 0) {
+      td_->message_query_manager_->report_message_delivery({dialog_id, message_id}, report_delivery_until_date, true);
+    }
+    add_message_push_notification(
+        dialog_id, message_id, random_id, sender_user_id, sender_dialog_id, std::move(sender_name), sent_date,
+        is_from_scheduled, contains_mention, disable_notification, ringtone_id, std::move(loc_key), std::move(arg),
+        std::move(attached_photo), std::move(attached_document), NotificationId(), 0, std::move(promise));
   }
   return Status::OK();
 }
