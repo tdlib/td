@@ -7,8 +7,10 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/DialogListId.h"
 #include "td/telegram/MessageFullId.h"
-#include "td/telegram/MessageSearchOffset.h"
+#include "td/telegram/MessageId.h"
+#include "td/telegram/MessageSearchFilter.h"
 #include "td/telegram/td_api.h"
 
 #include "td/actor/actor.h"
@@ -18,6 +20,7 @@
 
 namespace td {
 
+struct MessageSearchOffset;
 class Td;
 
 class MessageQueryManager final : public Actor {
@@ -25,6 +28,17 @@ class MessageQueryManager final : public Actor {
   MessageQueryManager(Td *td, ActorShared<> parent);
 
   void report_message_delivery(MessageFullId message_full_id, int32 until_date, bool from_push);
+
+  void search_messages(DialogListId dialog_list_id, bool ignore_folder_id, const string &query,
+                       const string &offset_str, int32 limit, MessageSearchFilter filter,
+                       td_api::object_ptr<td_api::SearchMessagesChatTypeFilter> &&dialog_type_filter, int32 min_date,
+                       int32 max_date, Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
+
+  void on_get_messages_search_result(const string &query, int32 offset_date, DialogId offset_dialog_id,
+                                     MessageId offset_message_id, int32 limit, MessageSearchFilter filter,
+                                     int32 min_date, int32 max_date, int32 total_count,
+                                     vector<tl_object_ptr<telegram_api::Message>> &&messages, int32 next_rate,
+                                     Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 
   void search_outgoing_document_messages(const string &query, int32 limit,
                                          Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);

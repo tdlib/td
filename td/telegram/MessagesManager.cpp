@@ -57,7 +57,6 @@
 #include "td/telegram/MessageReaction.h"
 #include "td/telegram/MessageReaction.hpp"
 #include "td/telegram/MessageReplyInfo.hpp"
-#include "td/telegram/MessageSearchOffset.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/MissingInvitee.h"
@@ -1879,97 +1878,6 @@ class GetSearchCountersQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetSearchCountersQuery");
-    promise_.set_error(std::move(status));
-  }
-};
-
-class SearchMessagesGlobalQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::foundMessages>> promise_;
-  string query_;
-  int32 offset_date_;
-  DialogId offset_dialog_id_;
-  MessageId offset_message_id_;
-  int32 limit_;
-  MessageSearchFilter filter_;
-  int32 min_date_;
-  int32 max_date_;
-
- public:
-  explicit SearchMessagesGlobalQuery(Promise<td_api::object_ptr<td_api::foundMessages>> &&promise)
-      : promise_(std::move(promise)) {
-  }
-
-  void send(FolderId folder_id, bool ignore_folder_id, const string &query, int32 offset_date,
-            DialogId offset_dialog_id, MessageId offset_message_id, int32 limit, MessageSearchFilter filter,
-            const td_api::object_ptr<td_api::SearchMessagesChatTypeFilter> &dialog_type_filter, int32 min_date,
-            int32 max_date) {
-    query_ = query;
-    offset_date_ = offset_date;
-    offset_dialog_id_ = offset_dialog_id;
-    offset_message_id_ = offset_message_id;
-    limit_ = limit;
-    filter_ = filter;
-    min_date_ = min_date;
-    max_date_ = max_date;
-
-    auto input_peer = DialogManager::get_input_peer_force(offset_dialog_id);
-    CHECK(input_peer != nullptr);
-
-    int32 flags = 0;
-    if (!ignore_folder_id) {
-      flags |= telegram_api::messages_searchGlobal::FOLDER_ID_MASK;
-    }
-    if (dialog_type_filter != nullptr) {
-      switch (dialog_type_filter->get_id()) {
-        case td_api::searchMessagesChatTypeFilterPrivate::ID:
-          flags |= telegram_api::messages_searchGlobal::USERS_ONLY_MASK;
-          break;
-        case td_api::searchMessagesChatTypeFilterGroup::ID:
-          flags |= telegram_api::messages_searchGlobal::GROUPS_ONLY_MASK;
-          break;
-        case td_api::searchMessagesChatTypeFilterChannel::ID:
-          flags |= telegram_api::messages_searchGlobal::BROADCASTS_ONLY_MASK;
-          break;
-        default:
-          UNREACHABLE();
-      }
-    }
-    send_query(G()->net_query_creator().create(telegram_api::messages_searchGlobal(
-        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, folder_id.get(), query,
-        get_input_messages_filter(filter), min_date_, max_date_, offset_date_, std::move(input_peer),
-        offset_message_id.get_server_message_id().get(), limit)));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_searchGlobal>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto info = get_messages_info(td_, DialogId(), result_ptr.move_as_ok(), "SearchMessagesGlobalQuery");
-    td_->messages_manager_->get_channel_differences_if_needed(
-        std::move(info),
-        PromiseCreator::lambda([actor_id = td_->messages_manager_actor_.get(), query = std::move(query_),
-                                offset_date = offset_date_, offset_dialog_id = offset_dialog_id_,
-                                offset_message_id = offset_message_id_, limit = limit_, filter = std::move(filter_),
-                                min_date = min_date_, max_date = max_date_,
-                                promise = std::move(promise_)](Result<MessagesInfo> &&result) mutable {
-          if (result.is_error()) {
-            promise.set_error(result.move_as_error());
-          } else {
-            auto info = result.move_as_ok();
-            send_closure(actor_id, &MessagesManager::on_get_messages_search_result, query, offset_date,
-                         offset_dialog_id, offset_message_id, limit, filter, min_date, max_date, info.total_count,
-                         std::move(info.messages), info.next_rate, std::move(promise));
-          }
-        }),
-        "SearchMessagesGlobalQuery");
-  }
-
-  void on_error(Status status) final {
-    if (status.message() == "SEARCH_QUERY_EMPTY") {
-      return promise_.set_value(td_->messages_manager_->get_found_messages_object({}, "SearchMessagesGlobalQuery"));
-    }
     promise_.set_error(std::move(status));
   }
 };
@@ -8890,46 +8798,6 @@ void MessagesManager::on_get_dialog_message_count(DialogId dialog_id, SavedMessa
     }
   }
   promise.set_value(std::move(total_count));
-}
-
-void MessagesManager::on_get_messages_search_result(const string &query, int32 offset_date, DialogId offset_dialog_id,
-                                                    MessageId offset_message_id, int32 limit,
-                                                    MessageSearchFilter filter, int32 min_date, int32 max_date,
-                                                    int32 total_count,
-                                                    vector<tl_object_ptr<telegram_api::Message>> &&messages,
-                                                    int32 next_rate,
-                                                    Promise<td_api::object_ptr<td_api::foundMessages>> &&promise) {
-  TRY_STATUS_PROMISE(promise, G()->close_status());
-
-  LOG(INFO) << "Receive " << messages.size() << " found messages";
-
-  FoundMessages found_messages;
-  auto &result = found_messages.message_full_ids;
-  MessageSearchOffset next_offset;
-  for (auto &message : messages) {
-    next_offset.update_from_message(message);
-
-    bool is_channel_message = DialogId::get_message_dialog_id(message).get_type() == DialogType::Channel;
-    auto new_message_full_id = on_get_message(std::move(message), false, is_channel_message, false, "search messages");
-    if (new_message_full_id != MessageFullId()) {
-      result.push_back(new_message_full_id);
-    } else {
-      total_count--;
-    }
-  }
-  if (total_count < static_cast<int32>(result.size())) {
-    LOG(ERROR) << "Receive " << result.size() << " valid messages out of " << total_count << " in " << messages.size()
-               << " messages";
-    total_count = static_cast<int32>(result.size());
-  }
-  found_messages.total_count = total_count;
-  if (!result.empty()) {
-    if (next_rate > 0) {
-      next_offset.date_ = next_rate;
-    }
-    found_messages.next_offset = next_offset.to_string();
-  }
-  promise.set_value(get_found_messages_object(found_messages, "on_get_messages_search_result"));
 }
 
 void MessagesManager::on_get_scheduled_server_messages(DialogId dialog_id, uint32 generation,
@@ -20540,39 +20408,6 @@ void MessagesManager::on_message_db_calls_result(Result<MessageDbCallsResult> re
   }
 
   promise.set_value(get_found_messages_object(found_messages, "on_message_db_calls_result"));
-}
-
-void MessagesManager::search_messages(DialogListId dialog_list_id, bool ignore_folder_id, const string &query,
-                                      const string &offset_str, int32 limit, MessageSearchFilter filter,
-                                      td_api::object_ptr<td_api::SearchMessagesChatTypeFilter> &&dialog_type_filter,
-                                      int32 min_date, int32 max_date,
-                                      Promise<td_api::object_ptr<td_api::foundMessages>> &&promise) {
-  if (!dialog_list_id.is_folder()) {
-    return promise.set_error(Status::Error(400, "Wrong chat list specified"));
-  }
-  if (limit <= 0) {
-    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
-  }
-  if (limit > MAX_SEARCH_MESSAGES) {
-    limit = MAX_SEARCH_MESSAGES;
-  }
-
-  TRY_RESULT_PROMISE(promise, offset, MessageSearchOffset::from_string(offset_str));
-
-  CHECK(filter != MessageSearchFilter::Call && filter != MessageSearchFilter::MissedCall);
-  if (filter == MessageSearchFilter::Mention || filter == MessageSearchFilter::UnreadMention ||
-      filter == MessageSearchFilter::UnreadReaction || filter == MessageSearchFilter::FailedToSend ||
-      filter == MessageSearchFilter::Pinned) {
-    return promise.set_error(Status::Error(400, "The filter is not supported"));
-  }
-
-  if (query.empty() && filter == MessageSearchFilter::Empty) {
-    return promise.set_value(get_found_messages_object({}, "search_messages"));
-  }
-
-  td_->create_handler<SearchMessagesGlobalQuery>(std::move(promise))
-      ->send(dialog_list_id.get_folder_id(), ignore_folder_id, query, offset.date_, offset.dialog_id_,
-             offset.message_id_, limit, filter, dialog_type_filter, min_date, max_date);
 }
 
 void MessagesManager::get_dialog_message_by_date(DialogId dialog_id, int32 date,
