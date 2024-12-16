@@ -1181,8 +1181,8 @@ void ReactionManager::update_saved_messages_tags(SavedMessagesTopicId saved_mess
   if (all_tags->update_saved_messages_tags(old_tags, new_tags)) {
     send_update_saved_messages_tags(SavedMessagesTopicId(), all_tags);
   }
-  if (saved_messages_topic_id != SavedMessagesTopicId()) {
-    auto tags = get_saved_reaction_tags(saved_messages_topic_id);
+  if (saved_messages_topic_id != SavedMessagesTopicId() && saved_messages_topic_id.get_input_peer(td_) != nullptr) {
+    auto *tags = get_saved_reaction_tags(saved_messages_topic_id);
     if (tags->update_saved_messages_tags(old_tags, new_tags)) {
       send_update_saved_messages_tags(saved_messages_topic_id, tags);
     }
