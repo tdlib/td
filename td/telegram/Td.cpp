@@ -50,6 +50,7 @@
 #include "td/telegram/LanguagePackManager.h"
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/MessageImportManager.h"
+#include "td/telegram/MessageQueryManager.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/ConnectionCreator.h"
@@ -531,6 +532,7 @@ void Td::dec_actor_refcnt() {
       reset_manager(inline_queries_manager_, "InlineQueriesManager");
       reset_manager(link_manager_, "LinkManager");
       reset_manager(message_import_manager_, "MessageImportManager");
+      reset_manager(message_query_manager_, "MessageQueryManager");
       reset_manager(messages_manager_, "MessagesManager");
       reset_manager(notification_manager_, "NotificationManager");
       reset_manager(notification_settings_manager_, "NotificationSettingsManager");
@@ -705,6 +707,7 @@ void Td::clear() {
   reset_actor(ActorOwn<Actor>(std::move(inline_queries_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(link_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(message_import_manager_actor_)));
+  reset_actor(ActorOwn<Actor>(std::move(message_query_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(messages_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(notification_manager_actor_)));
   reset_actor(ActorOwn<Actor>(std::move(notification_settings_manager_actor_)));
@@ -1200,6 +1203,9 @@ void Td::init_managers() {
   message_import_manager_ = make_unique<MessageImportManager>(this, create_reference());
   message_import_manager_actor_ = register_actor("MessageImportManager", message_import_manager_.get());
   G()->set_message_import_manager(message_import_manager_actor_.get());
+  message_query_manager_ = make_unique<MessageQueryManager>(this, create_reference());
+  message_query_manager_actor_ = register_actor("MessageQueryManager", message_query_manager_.get());
+  G()->set_message_query_manager(message_query_manager_actor_.get());
   messages_manager_ = make_unique<MessagesManager>(this, create_reference());
   messages_manager_actor_ = register_actor("MessagesManager", messages_manager_.get());
   G()->set_messages_manager(messages_manager_actor_.get());
