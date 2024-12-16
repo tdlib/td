@@ -5479,8 +5479,10 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
         false);
     on_update_channel_full_photo(channel_full, channel_id, std::move(photo));
 
-    td_->messages_manager_->on_read_channel_outbox(channel_id,
-                                                   MessageId(ServerMessageId(channel->read_outbox_max_id_)));
+    auto read_outbox_max_message_id = MessageId(ServerMessageId(channel->read_outbox_max_id_));
+    if (read_outbox_max_message_id.is_valid()) {
+      td_->messages_manager_->read_history_outbox(DialogId(channel_id), read_outbox_max_message_id);
+    }
     if ((channel->flags_ & telegram_api::channelFull::AVAILABLE_MIN_ID_MASK) != 0) {
       td_->messages_manager_->on_update_channel_max_unavailable_message_id(
           channel_id, MessageId(ServerMessageId(channel->available_min_id_)), "ChannelFull");

@@ -355,8 +355,6 @@ class MessagesManager final : public Actor {
   void on_read_channel_inbox(ChannelId channel_id, MessageId max_message_id, int32 server_unread_count, int32 pts,
                              const char *source);
 
-  void on_read_channel_outbox(ChannelId channel_id, MessageId max_message_id);
-
   void on_update_channel_max_unavailable_message_id(ChannelId channel_id, MessageId max_unavailable_message_id,
                                                     const char *source);
 
@@ -367,6 +365,8 @@ class MessagesManager final : public Actor {
   void on_message_animated_emoji_clicked(MessageFullId message_full_id, string &&emoji, string &&data);
 
   void read_history_inbox(DialogId dialog_id, MessageId max_message_id, int32 unread_count, const char *source);
+
+  void read_history_outbox(DialogId dialog_id, MessageId max_message_id, int32 read_date = -1);
 
   void delete_messages(DialogId dialog_id, const vector<MessageId> &message_ids, bool revoke, Promise<Unit> &&promise);
 
@@ -2106,8 +2106,6 @@ class MessagesManager final : public Actor {
   void repair_dialog_unread_reaction_count(Dialog *d, Promise<Unit> &&promise, const char *source);
 
   void repair_dialog_unread_mention_count(Dialog *d, const char *source);
-
-  void read_history_outbox(DialogId dialog_id, MessageId max_message_id, int32 read_date = -1);
 
   void read_history_on_server(Dialog *d, MessageId max_message_id);
 

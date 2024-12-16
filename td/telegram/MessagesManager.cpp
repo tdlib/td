@@ -6432,14 +6432,6 @@ void MessagesManager::on_read_channel_inbox(ChannelId channel_id, MessageId max_
   }
 }
 
-void MessagesManager::on_read_channel_outbox(ChannelId channel_id, MessageId max_message_id) {
-  DialogId dialog_id(channel_id);
-  CHECK(!max_message_id.is_scheduled());
-  if (max_message_id.is_valid()) {
-    read_history_outbox(dialog_id, max_message_id);
-  }
-}
-
 void MessagesManager::on_update_channel_max_unavailable_message_id(ChannelId channel_id,
                                                                    MessageId max_unavailable_message_id,
                                                                    const char *source) {
