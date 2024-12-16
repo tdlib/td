@@ -211,19 +211,8 @@ class MessagesManager final : public Actor {
                                      vector<tl_object_ptr<telegram_api::Message>> &&messages, int32 next_rate,
                                      Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 
-  void on_get_hashtag_search_result(const string &hashtag, const MessageSearchOffset &old_offset, int32 limit,
-                                    int32 total_count, vector<tl_object_ptr<telegram_api::Message>> &&messages,
-                                    int32 next_rate, Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
-
-  void on_get_outgoing_document_messages(vector<tl_object_ptr<telegram_api::Message>> &&messages,
-                                         Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
-
   void on_get_scheduled_server_messages(DialogId dialog_id, uint32 generation,
                                         vector<tl_object_ptr<telegram_api::Message>> &&messages, bool is_not_modified);
-
-  void on_get_recent_locations(DialogId dialog_id, int32 limit, int32 total_count,
-                               vector<tl_object_ptr<telegram_api::Message>> &&messages,
-                               Promise<td_api::object_ptr<td_api::messages>> &&promise);
 
   MessageFullId on_get_message(tl_object_ptr<telegram_api::Message> message_ptr, bool from_update,
                                bool is_channel_message, bool is_scheduled, const char *source);
@@ -747,15 +736,6 @@ class MessagesManager final : public Actor {
 
   void search_call_messages(const string &offset, int32 limit, bool only_missed,
                             Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
-
-  void search_outgoing_document_messages(const string &query, int32 limit,
-                                         Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
-
-  void search_hashtag_posts(string hashtag, string offset_str, int32 limit,
-                            Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
-
-  void search_dialog_recent_location_messages(DialogId dialog_id, int32 limit,
-                                              Promise<td_api::object_ptr<td_api::messages>> &&promise);
 
   void load_active_live_location_messages(Promise<Unit> &&promise);
 

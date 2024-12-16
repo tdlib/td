@@ -91,6 +91,7 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageImportManager.h"
 #include "td/telegram/MessageLinkInfo.h"
+#include "td/telegram/MessageQueryManager.h"
 #include "td/telegram/MessageReaction.h"
 #include "td/telegram/MessageSearchFilter.h"
 #include "td/telegram/MessageSender.h"
@@ -3202,7 +3203,7 @@ void Requests::on_request(uint64 id, td_api::searchOutgoingDocumentMessages &req
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);
   CREATE_REQUEST_PROMISE();
-  td_->messages_manager_->search_outgoing_document_messages(request.query_, request.limit_, std::move(promise));
+  td_->message_query_manager_->search_outgoing_document_messages(request.query_, request.limit_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::searchPublicMessagesByTag &request) {
@@ -3210,8 +3211,8 @@ void Requests::on_request(uint64 id, td_api::searchPublicMessagesByTag &request)
   CLEAN_INPUT_STRING(request.tag_);
   CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();
-  td_->messages_manager_->search_hashtag_posts(std::move(request.tag_), std::move(request.offset_), request.limit_,
-                                               std::move(promise));
+  td_->message_query_manager_->search_hashtag_posts(std::move(request.tag_), std::move(request.offset_), request.limit_,
+                                                    std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::searchPublicStoriesByTag &request) {
@@ -3287,8 +3288,8 @@ void Requests::on_request(uint64 id, const td_api::deleteAllCallMessages &reques
 void Requests::on_request(uint64 id, const td_api::searchChatRecentLocationMessages &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  td_->messages_manager_->search_dialog_recent_location_messages(DialogId(request.chat_id_), request.limit_,
-                                                                 std::move(promise));
+  td_->message_query_manager_->search_dialog_recent_location_messages(DialogId(request.chat_id_), request.limit_,
+                                                                      std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getChatMessageByDate &request) {
