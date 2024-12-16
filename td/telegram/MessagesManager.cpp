@@ -53,6 +53,7 @@
 #include "td/telegram/MessageForwardInfo.h"
 #include "td/telegram/MessageForwardInfo.hpp"
 #include "td/telegram/MessageOrigin.hpp"
+#include "td/telegram/MessageQueryManager.h"
 #include "td/telegram/MessageQuote.h"
 #include "td/telegram/MessageReaction.h"
 #include "td/telegram/MessageReaction.hpp"
@@ -13352,11 +13353,15 @@ MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const 
                                               const bool is_channel_message, const char *source) {
   DialogId dialog_id;
   unique_ptr<Message> new_message;
+  auto report_delivery_until_date = message_info.report_delivery_until_date;
   std::tie(dialog_id, new_message) = create_message(td_, std::move(message_info), is_channel_message, false, source);
   if (new_message == nullptr) {
     return MessageFullId();
   }
   MessageId message_id = new_message->message_id;
+  if (report_delivery_until_date != 0 && message_id.is_valid() && message_id.is_server()) {
+    td_->message_query_manager_->report_message_delivery({dialog_id, message_id}, report_delivery_until_date, false);
+  }
 
   bool need_update = from_update;
   bool need_update_dialog_pos = false;

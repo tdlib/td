@@ -1027,6 +1027,7 @@ class MessagesManager final : public Actor {
     string author_signature;
     int64 media_album_id = 0;
     MessageEffectId effect_id;
+    int32 report_delivery_until_date = 0;
     bool is_outgoing = false;
     bool is_silent = false;
     bool is_channel_post = false;

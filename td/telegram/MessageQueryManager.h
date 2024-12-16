@@ -6,6 +6,8 @@
 //
 #pragma once
 
+#include "td/telegram/MessageFullId.h"
+
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
@@ -17,6 +19,8 @@ class Td;
 class MessageQueryManager final : public Actor {
  public:
   MessageQueryManager(Td *td, ActorShared<> parent);
+
+  void report_message_delivery(MessageFullId message_full_id, int32 until_date, bool from_push);
 
  private:
   void tear_down() final;
