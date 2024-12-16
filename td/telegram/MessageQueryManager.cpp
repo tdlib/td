@@ -345,7 +345,7 @@ void MessageQueryManager::on_get_recent_locations(DialogId dialog_id, int32 limi
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   LOG(INFO) << "Receive " << messages.size() << " recent locations in " << dialog_id;
-  vector<MessageId> result;
+  vector<MessageId> message_ids;
   for (auto &message : messages) {
     auto new_message_full_id = td_->messages_manager_->on_get_message(
         std::move(message), false, dialog_id.get_type() == DialogType::Channel, false, "get recent locations");
@@ -355,29 +355,29 @@ void MessageQueryManager::on_get_recent_locations(DialogId dialog_id, int32 limi
         total_count--;
         continue;
       }
-      /*
-      auto m = get_message(new_message_full_id);
-      CHECK(m != nullptr);
-      if (m->content->get_type() != MessageContentType::LiveLocation) {
-        LOG(ERROR) << "Receive a message of wrong type " << m->content->get_type() << " in on_get_recent_locations in "
-                   << dialog_id;
-        total_count--;
-        continue;
-      }
-      */
 
-      result.push_back(new_message_full_id.get_message_id());
+      message_ids.push_back(new_message_full_id.get_message_id());
     } else {
       total_count--;
     }
   }
-  if (total_count < static_cast<int32>(result.size())) {
-    LOG(ERROR) << "Receive " << result.size() << " valid messages out of " << total_count << " in " << messages.size()
-               << " messages";
-    total_count = static_cast<int32>(result.size());
+  if (total_count < static_cast<int32>(message_ids.size())) {
+    LOG(ERROR) << "Receive " << message_ids.size() << " valid messages out of " << total_count << " in "
+               << messages.size() << " messages";
+    total_count = static_cast<int32>(message_ids.size());
   }
-  promise.set_value(
-      td_->messages_manager_->get_messages_object(total_count, dialog_id, result, true, "on_get_recent_locations"));
+  auto result =
+      td_->messages_manager_->get_messages_object(total_count, dialog_id, message_ids, true, "on_get_recent_locations");
+  td::remove_if(result->messages_, [&](const auto &message) {
+    if (message->content_->get_id() != td_api::messageLocation::ID ||
+        static_cast<const td_api::messageLocation *>(message->content_.get())->live_period_ <= 0) {
+      result->total_count_--;
+      return true;
+    }
+    return false;
+  });
+
+  promise.set_value(std::move(result));
 }
 
 }  // namespace td
