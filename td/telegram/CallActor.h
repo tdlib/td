@@ -89,12 +89,11 @@ struct CallState {
   string config;
   vector<string> emojis_fingerprint;
   string custom_parameters;
-  InputGroupCallId input_group_call_id;
   bool allow_p2p{false};
 
   Status error;
 
-  tl_object_ptr<td_api::CallState> get_call_state_object(Td *td) const;
+  tl_object_ptr<td_api::CallState> get_call_state_object() const;
 };
 
 class CallActor final : public NetQueryCallback {
@@ -124,8 +123,6 @@ class CallActor final : public NetQueryCallback {
   void update_call(tl_object_ptr<telegram_api::PhoneCall> call);
 
  private:
-  void update_call_inner(tl_object_ptr<telegram_api::phone_phoneCall> call);
-
   Td *td_;
   ActorShared<> parent_;
   Promise<int64> call_id_promise_;
@@ -157,6 +154,7 @@ class CallActor final : public NetQueryCallback {
   bool is_video_{false};
   UserId user_id_;
   tl_object_ptr<telegram_api::InputUser> input_user_;
+  InputGroupCallId input_group_call_id_;
 
   CallId local_call_id_;
   int64 call_id_{0};
@@ -170,6 +168,10 @@ class CallActor final : public NetQueryCallback {
   bool call_state_has_config_{false};
 
   NetQueryRef request_query_ref_;
+
+  void update_call_inner(tl_object_ptr<telegram_api::phone_phoneCall> call);
+
+  void update_conference_call(const telegram_api::object_ptr<telegram_api::inputGroupCall> &conference_call);
 
   tl_object_ptr<telegram_api::inputPhoneCall> get_input_phone_call(const char *source);
   bool load_dh_config();
