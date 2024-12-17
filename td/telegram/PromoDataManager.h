@@ -25,6 +25,8 @@ class PromoDataManager final : public Actor {
 
   void reload_promo_data();
 
+  void remove_sponsored_dialog();
+
  private:
   void tear_down() final;
 

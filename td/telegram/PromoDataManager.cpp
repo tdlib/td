@@ -124,7 +124,7 @@ void PromoDataManager::on_get_promo_data(Result<telegram_api::object_ptr<telegra
     case telegram_api::help_promoDataEmpty::ID: {
       auto promo = telegram_api::move_object_as<telegram_api::help_promoDataEmpty>(promo_data_ptr);
       expires_at = promo->expires_;
-      td_->messages_manager_->remove_sponsored_dialog();
+      remove_sponsored_dialog();
       break;
     }
     case telegram_api::help_promoData::ID: {
@@ -147,6 +147,10 @@ void PromoDataManager::on_get_promo_data(Result<telegram_api::object_ptr<telegra
     expires_at = 0;
   }
   schedule_get_promo_data(expires_at == 0 ? 0 : expires_at - G()->unix_time());
+}
+
+void PromoDataManager::remove_sponsored_dialog() {
+  td_->messages_manager_->set_sponsored_dialog(DialogId(), DialogSource());
 }
 
 }  // namespace td

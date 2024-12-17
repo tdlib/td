@@ -10,7 +10,6 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/logevent/LogEvent.h"
-#include "td/telegram/MessagesManager.h"
 #include "td/telegram/net/MtprotoHeader.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/net/NetType.h"
@@ -558,7 +557,7 @@ void ConnectionCreator::enable_proxy_impl(int32 proxy_id) {
 
 void ConnectionCreator::disable_proxy_impl() {
   if (active_proxy_id_ == 0) {
-    send_closure(G()->messages_manager(), &MessagesManager::remove_sponsored_dialog);
+    send_closure(G()->promo_data_manager(), &PromoDataManager::remove_sponsored_dialog);
     send_closure(G()->promo_data_manager(), &PromoDataManager::reload_promo_data);
     return;
   }
@@ -592,7 +591,7 @@ void ConnectionCreator::on_proxy_changed(bool from_db) {
   proxy_ip_address_ = IPAddress();
 
   if (active_proxy_id_ == 0 || !from_db) {
-    send_closure(G()->messages_manager(), &MessagesManager::remove_sponsored_dialog);
+    send_closure(G()->promo_data_manager(), &PromoDataManager::remove_sponsored_dialog);
   }
   send_closure(G()->promo_data_manager(), &PromoDataManager::reload_promo_data);
 

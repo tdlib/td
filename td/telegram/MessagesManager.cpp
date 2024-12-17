@@ -10415,7 +10415,7 @@ void MessagesManager::delete_dialog_history(DialogId dialog_id, bool remove_from
     }
 
     removed_sponsored_dialog_id_ = dialog_id;
-    remove_sponsored_dialog();
+    set_sponsored_dialog(DialogId(), DialogSource());
 
     if (dialog_id.get_type() != DialogType::SecretChat) {
       td_->create_handler<HidePromoDataQuery>()->send(dialog_id);
@@ -39039,10 +39039,6 @@ Result<ServerMessageId> MessagesManager::get_giveaway_message_id(MessageFullId m
   }
 
   return m->message_id.get_server_message_id();
-}
-
-void MessagesManager::remove_sponsored_dialog() {
-  set_sponsored_dialog(DialogId(), DialogSource());
 }
 
 void MessagesManager::add_sponsored_dialog(const Dialog *d, DialogSource source) {

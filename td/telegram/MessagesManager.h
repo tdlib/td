@@ -929,8 +929,6 @@ class MessagesManager final : public Actor {
 
   void on_get_dialog_query_finished(DialogId dialog_id, Status &&status);
 
-  void remove_sponsored_dialog();
-
   void set_sponsored_dialog(DialogId dialog_id, DialogSource source);
 
   FileSourceId get_message_file_source_id(MessageFullId message_full_id, bool force = false);
