@@ -39,6 +39,8 @@ class GroupCallManager final : public Actor {
   GroupCallManager &operator=(GroupCallManager &&) = delete;
   ~GroupCallManager() final;
 
+  Result<InputGroupCallId> get_input_group_call_id(GroupCallId group_call_id);
+
   bool is_group_call_being_joined(InputGroupCallId input_group_call_id) const;
 
   bool is_group_call_joined(InputGroupCallId input_group_call_id) const;
@@ -178,8 +180,6 @@ class GroupCallManager final : public Actor {
   static void on_sync_participants_timeout_callback(void *group_call_manager_ptr, int64 group_call_id_int);
 
   void on_sync_participants_timeout(GroupCallId group_call_id);
-
-  Result<InputGroupCallId> get_input_group_call_id(GroupCallId group_call_id);
 
   GroupCallId get_next_group_call_id(InputGroupCallId input_group_call_id);
 

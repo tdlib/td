@@ -147,13 +147,18 @@ CallActor::CallActor(Td *td, CallId call_id, ActorShared<> parent, Promise<int64
 }
 
 void CallActor::create_call(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user,
-                            CallProtocol &&protocol, bool is_video, Promise<CallId> &&promise) {
+                            CallProtocol &&protocol, bool is_video, GroupCallId group_call_id,
+                            Promise<CallId> &&promise) {
   CHECK(state_ == State::Empty);
   state_ = State::SendRequestQuery;
   is_outgoing_ = true;
   is_video_ = is_video;
   user_id_ = user_id;
   input_user_ = std::move(input_user);
+  auto r_input_group_call_id = td_->group_call_manager_->get_input_group_call_id(group_call_id);
+  if (r_input_group_call_id.is_ok()) {
+    input_group_call_id_ = r_input_group_call_id.ok();
+  }
   call_state_.protocol = std::move(protocol);
   call_state_.type = CallState::Type::Pending;
   call_state_.is_received = false;
@@ -829,9 +834,14 @@ void CallActor::try_send_request_query() {
   if (is_video_) {
     flags |= telegram_api::phone_requestCall::VIDEO_MASK;
   }
-  auto tl_query = telegram_api::phone_requestCall(flags, false /*ignored*/, std::move(input_user_), nullptr,
-                                                  Random::secure_int32(), BufferSlice(dh_handshake_.get_g_b_hash()),
-                                                  call_state_.protocol.get_input_phone_call_protocol());
+  telegram_api::object_ptr<telegram_api::inputGroupCall> input_group_call;
+  if (input_group_call_id_.is_valid()) {
+    flags |= telegram_api::phone_requestCall::CONFERENCE_CALL_MASK;
+    input_group_call = input_group_call_id_.get_input_group_call();
+  }
+  auto tl_query = telegram_api::phone_requestCall(
+      flags, false /*ignored*/, std::move(input_user_), std::move(input_group_call), Random::secure_int32(),
+      BufferSlice(dh_handshake_.get_g_b_hash()), call_state_.protocol.get_input_phone_call_protocol());
   auto query = G()->net_query_creator().create(tl_query);
   state_ = State::WaitRequestResult;
   int64 call_receive_timeout_ms = G()->get_option_integer("call_receive_timeout_ms", 20000);
