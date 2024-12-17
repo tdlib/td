@@ -8,7 +8,7 @@
 
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ChatManager.h"
-#include "td/telegram/DialogId.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/DialogSource.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
@@ -47,6 +47,35 @@ class GetPromoDataQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     promise_.set_error(std::move(status));
+  }
+};
+
+class HidePromoDataQuery final : public Td::ResultHandler {
+  DialogId dialog_id_;
+
+ public:
+  void send(DialogId dialog_id) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::help_hidePromoData(std::move(input_peer))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::help_hidePromoData>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    // we are not interested in the result
+  }
+
+  void on_error(Status status) final {
+    if (!td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "HidePromoDataQuery")) {
+      LOG(ERROR) << "Receive error for sponsored chat hiding: " << status;
+    }
   }
 };
 
@@ -151,6 +180,12 @@ void PromoDataManager::on_get_promo_data(Result<telegram_api::object_ptr<telegra
 
 void PromoDataManager::remove_sponsored_dialog() {
   td_->messages_manager_->set_sponsored_dialog(DialogId(), DialogSource());
+}
+
+void PromoDataManager::hide_promo_data(DialogId dialog_id) {
+  remove_sponsored_dialog();
+
+  td_->create_handler<HidePromoDataQuery>()->send(dialog_id);
 }
 
 }  // namespace td
