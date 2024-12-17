@@ -1501,7 +1501,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       END_STORE_FLAGS();
       store(m->call_id, storer);
       store(m->duration, storer);
-      store(m->discard_reason, storer);
+      store(m->discard_reason.type_, storer);
       break;
     }
     case MessageContentType::PaymentSuccessful: {
@@ -2305,7 +2305,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       }
       parse(m->call_id, parser);
       parse(m->duration, parser);
-      parse(m->discard_reason, parser);
+      parse(m->discard_reason.type_, parser);
       content = std::move(m);
       break;
     }
@@ -4532,8 +4532,8 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
     case MessageContentType::Call: {
       int32 index_mask = message_search_filter_index_mask(MessageSearchFilter::Call);
       const auto *m = static_cast<const MessageCall *>(content);
-      if (!is_outgoing &&
-          (m->discard_reason == CallDiscardReason::Declined || m->discard_reason == CallDiscardReason::Missed)) {
+      if (!is_outgoing && (m->discard_reason.type_ == CallDiscardReason::Type::Declined ||
+                           m->discard_reason.type_ == CallDiscardReason::Type::Missed)) {
         index_mask |= message_search_filter_index_mask(MessageSearchFilter::MissedCall);
       }
       return index_mask;

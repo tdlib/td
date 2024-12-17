@@ -223,16 +223,18 @@ void CallActor::discard_call(bool is_disconnected, int32 duration, bool is_video
     case CallState::Type::Empty:
     case CallState::Type::Pending:
       if (is_outgoing_) {
-        call_state_.discard_reason = CallDiscardReason::Missed;
+        call_state_.discard_reason.type_ = CallDiscardReason::Type::Missed;
       } else {
-        call_state_.discard_reason = CallDiscardReason::Declined;
+        call_state_.discard_reason.type_ = CallDiscardReason::Type::Declined;
       }
       break;
     case CallState::Type::ExchangingKey:
-      call_state_.discard_reason = is_disconnected ? CallDiscardReason::Disconnected : CallDiscardReason::HungUp;
+      call_state_.discard_reason.type_ =
+          is_disconnected ? CallDiscardReason::Type::Disconnected : CallDiscardReason::Type::HungUp;
       break;
     case CallState::Type::Ready:
-      call_state_.discard_reason = is_disconnected ? CallDiscardReason::Disconnected : CallDiscardReason::HungUp;
+      call_state_.discard_reason.type_ =
+          is_disconnected ? CallDiscardReason::Type::Disconnected : CallDiscardReason::Type::HungUp;
       duration_ = duration;
       connection_id_ = connection_id;
       break;
@@ -704,8 +706,8 @@ void CallActor::on_call_discarded(CallDiscardReason reason, bool need_rating, bo
     is_video_ = true;
     call_state_need_flush_ = true;
   }
-  if (call_state_.discard_reason != reason && reason != CallDiscardReason::Empty) {
-    call_state_.discard_reason = reason;
+  if (call_state_.discard_reason != reason && reason.type_ != CallDiscardReason::Type::Empty) {
+    call_state_.discard_reason = std::move(reason);
     call_state_need_flush_ = true;
   }
   if (call_state_.type != CallState::Type::Error) {
@@ -746,8 +748,9 @@ void CallActor::on_error(Status status) {
     state_ = State::Discarded;
   } else {
     state_ = State::SendDiscardQuery;
-    call_state_.discard_reason =
-        call_state_.type == CallState::Type::Pending ? CallDiscardReason::Missed : CallDiscardReason::Disconnected;
+    call_state_.discard_reason.type_ = call_state_.type == CallState::Type::Pending
+                                           ? CallDiscardReason::Type::Missed
+                                           : CallDiscardReason::Type::Disconnected;
   }
 
   call_state_.type = CallState::Type::Error;
@@ -924,7 +927,9 @@ void CallActor::on_confirm_query_result(Result<NetQueryPtr> r_net_query) {
 void CallActor::try_send_discard_query() {
   if (call_id_ == 0) {
     LOG(INFO) << "Failed to send discard query, because call_id_ is unknown";
-    on_call_discarded(CallDiscardReason::Missed, false, false, is_video_);
+    CallDiscardReason reason;
+    reason.type_ = CallDiscardReason::Type::Missed;
+    on_call_discarded(std::move(reason), false, false, is_video_);
     yield();
     return;
   }

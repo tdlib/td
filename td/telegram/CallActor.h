@@ -78,7 +78,7 @@ struct CallState {
 
   CallProtocol protocol;
   vector<CallConnection> connections;
-  CallDiscardReason discard_reason{CallDiscardReason::Empty};
+  CallDiscardReason discard_reason;
   bool is_created{false};
   bool is_received{false};
   bool need_debug_information{false};

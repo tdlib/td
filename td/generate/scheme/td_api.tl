@@ -4915,6 +4915,10 @@ callDiscardReasonDisconnected = CallDiscardReason;
 //@description The call was ended because one of the parties hung up
 callDiscardReasonHungUp = CallDiscardReason;
 
+//@description The call was ended because it has been used successfully to transfer private encryption key for the associated group call
+//@encrypted_group_call_key Encrypted using the call private key encryption key for the associated group call
+callDiscardReasonAllowGroupCall encrypted_group_call_key:bytes = CallDiscardReason;
+
 
 //@description Specifies the supported call protocols
 //@udp_p2p True, if UDP peer-to-peer connections are supported
