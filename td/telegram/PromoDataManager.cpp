@@ -7,11 +7,14 @@
 #include "td/telegram/PromoDataManager.h"
 
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/ChatManager.h"
+#include "td/telegram/DialogId.h"
 #include "td/telegram/DialogSource.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
@@ -126,13 +129,14 @@ void PromoDataManager::on_get_promo_data(Result<telegram_api::object_ptr<telegra
     }
     case telegram_api::help_promoData::ID: {
       auto promo = telegram_api::move_object_as<telegram_api::help_promoData>(promo_data_ptr);
+      td_->user_manager_->on_get_users(std::move(promo->users_), "on_get_promo_data");
+      td_->chat_manager_->on_get_chats(std::move(promo->chats_), "on_get_promo_data");
       expires_at = promo->expires_;
       bool is_proxy = promo->proxy_;
-      td_->messages_manager_->on_get_sponsored_dialog(
-          std::move(promo->peer_),
+      td_->messages_manager_->set_sponsored_dialog(
+          DialogId(promo->peer_),
           is_proxy ? DialogSource::mtproto_proxy()
-                   : DialogSource::public_service_announcement(promo->psa_type_, promo->psa_message_),
-          std::move(promo->users_), std::move(promo->chats_));
+                   : DialogSource::public_service_announcement(promo->psa_type_, promo->psa_message_));
       break;
     }
     default:

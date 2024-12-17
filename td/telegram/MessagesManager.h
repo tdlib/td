@@ -931,9 +931,7 @@ class MessagesManager final : public Actor {
 
   void remove_sponsored_dialog();
 
-  void on_get_sponsored_dialog(tl_object_ptr<telegram_api::Peer> peer, DialogSource source,
-                               vector<tl_object_ptr<telegram_api::User>> users,
-                               vector<tl_object_ptr<telegram_api::Chat>> chats);
+  void set_sponsored_dialog(DialogId dialog_id, DialogSource source);
 
   FileSourceId get_message_file_source_id(MessageFullId message_full_id, bool force = false);
 
@@ -3141,8 +3139,6 @@ class MessagesManager final : public Actor {
   void add_sponsored_dialog(const Dialog *d, DialogSource source);
 
   void save_sponsored_dialog();
-
-  void set_sponsored_dialog(DialogId dialog_id, DialogSource source);
 
   Dialog *get_service_notifications_dialog();
 

@@ -39045,17 +39045,6 @@ void MessagesManager::remove_sponsored_dialog() {
   set_sponsored_dialog(DialogId(), DialogSource());
 }
 
-void MessagesManager::on_get_sponsored_dialog(tl_object_ptr<telegram_api::Peer> peer, DialogSource source,
-                                              vector<tl_object_ptr<telegram_api::User>> users,
-                                              vector<tl_object_ptr<telegram_api::Chat>> chats) {
-  CHECK(peer != nullptr);
-
-  td_->user_manager_->on_get_users(std::move(users), "on_get_sponsored_dialog");
-  td_->chat_manager_->on_get_chats(std::move(chats), "on_get_sponsored_dialog");
-
-  set_sponsored_dialog(DialogId(peer), std::move(source));
-}
-
 void MessagesManager::add_sponsored_dialog(const Dialog *d, DialogSource source) {
   if (td_->auth_manager_->is_bot()) {
     return;
