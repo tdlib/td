@@ -24,6 +24,9 @@ class BotVerification {
 
   explicit BotVerification(telegram_api::object_ptr<telegram_api::botVerification> &&bot_verification);
 
+  static unique_ptr<BotVerification> get_bot_verification(
+      telegram_api::object_ptr<telegram_api::botVerification> &&bot_verification);
+
   td_api::object_ptr<td_api::botVerification> get_bot_verification_object(Td *td) const;
 
   bool is_valid() const {
@@ -49,7 +52,9 @@ class BotVerification {
 
 bool operator==(const BotVerification &lhs, const BotVerification &rhs);
 
-inline bool operator!=(const BotVerification &lhs, const BotVerification &rhs) {
+bool operator==(const unique_ptr<BotVerification> &lhs, const unique_ptr<BotVerification> &rhs);
+
+inline bool operator!=(const unique_ptr<BotVerification> &lhs, const unique_ptr<BotVerification> &rhs) {
   return !(lhs == rhs);
 }
 
