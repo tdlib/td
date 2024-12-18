@@ -3971,82 +3971,6 @@ class DeleteScheduledMessagesQuery final : public Td::ResultHandler {
   }
 };
 
-class GetPeerSettingsQuery final : public Td::ResultHandler {
-  DialogId dialog_id_;
-
- public:
-  void send(DialogId dialog_id) {
-    dialog_id_ = dialog_id;
-
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
-    CHECK(input_peer != nullptr);
-
-    send_query(G()->net_query_creator().create(telegram_api::messages_getPeerSettings(std::move(input_peer))));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_getPeerSettings>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto ptr = result_ptr.move_as_ok();
-    td_->user_manager_->on_get_users(std::move(ptr->users_), "GetPeerSettingsQuery");
-    td_->chat_manager_->on_get_chats(std::move(ptr->chats_), "GetPeerSettingsQuery");
-    td_->messages_manager_->on_get_peer_settings(dialog_id_, std::move(ptr->settings_));
-  }
-
-  void on_error(Status status) final {
-    LOG(INFO) << "Receive error for get peer settings: " << status;
-    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetPeerSettingsQuery");
-  }
-};
-
-class UpdatePeerSettingsQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  DialogId dialog_id_;
-
- public:
-  explicit UpdatePeerSettingsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(DialogId dialog_id, bool is_spam_dialog) {
-    dialog_id_ = dialog_id;
-
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
-    if (input_peer == nullptr) {
-      return promise_.set_value(Unit());
-    }
-
-    if (is_spam_dialog) {
-      send_query(G()->net_query_creator().create(telegram_api::messages_reportSpam(std::move(input_peer))));
-    } else {
-      send_query(G()->net_query_creator().create(telegram_api::messages_hidePeerSettingsBar(std::move(input_peer))));
-    }
-  }
-
-  void on_result(BufferSlice packet) final {
-    static_assert(std::is_same<telegram_api::messages_reportSpam::ReturnType,
-                               telegram_api::messages_hidePeerSettingsBar::ReturnType>::value,
-                  "");
-    auto result_ptr = fetch_result<telegram_api::messages_reportSpam>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    td_->messages_manager_->on_get_peer_settings(dialog_id_, make_tl_object<telegram_api::peerSettings>(), true);
-
-    promise_.set_value(Unit());
-  }
-
-  void on_error(Status status) final {
-    LOG(INFO) << "Receive error for update peer settings: " << status;
-    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "UpdatePeerSettingsQuery");
-    td_->messages_manager_->reget_dialog_action_bar(dialog_id_, "UpdatePeerSettingsQuery");
-    promise_.set_error(std::move(status));
-  }
-};
-
 class ReportEncryptedSpamQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -7984,11 +7908,7 @@ void MessagesManager::reget_dialog_action_bar(DialogId dialog_id, const char *so
       return;
     case DialogType::Chat:
     case DialogType::Channel:
-      if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
-        return;
-      }
-
-      return td_->create_handler<GetPeerSettingsQuery>()->send(dialog_id);
+      return td_->dialog_manager_->reget_peer_settings(dialog_id);
     case DialogType::SecretChat:
     case DialogType::None:
     default:
@@ -8142,7 +8062,7 @@ void MessagesManager::toggle_dialog_report_spam_state_on_server(DialogId dialog_
     case DialogType::User:
     case DialogType::Chat:
     case DialogType::Channel:
-      return td_->create_handler<UpdatePeerSettingsQuery>(std::move(promise))->send(dialog_id, is_spam_dialog);
+      return td_->dialog_manager_->update_peer_settings(dialog_id, is_spam_dialog, std::move(promise));
     case DialogType::SecretChat:
       if (is_spam_dialog) {
         return td_->create_handler<ReportEncryptedSpamQuery>(std::move(promise))->send(dialog_id);
@@ -8151,7 +8071,7 @@ void MessagesManager::toggle_dialog_report_spam_state_on_server(DialogId dialog_
         if (!user_id.is_valid()) {
           return promise.set_error(Status::Error(400, "Peer user not found"));
         }
-        return td_->create_handler<UpdatePeerSettingsQuery>(std::move(promise))->send(DialogId(user_id), false);
+        return td_->dialog_manager_->update_peer_settings(DialogId(user_id), false, std::move(promise));
       }
     case DialogType::None:
     default:

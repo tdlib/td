@@ -222,6 +222,10 @@ class DialogManager final : public Actor {
 
   void reload_voice_chat_on_search(const string &username);
 
+  void reget_peer_settings(DialogId dialog_id);
+
+  void update_peer_settings(DialogId dialog_id, bool is_spam_dialog, Promise<Unit> &&promise);
+
  private:
   static constexpr size_t MAX_TITLE_LENGTH = 128;  // server side limit for chat title
 

@@ -506,6 +506,83 @@ class ReportProfilePhotoQuery final : public Td::ResultHandler {
   }
 };
 
+class GetPeerSettingsQuery final : public Td::ResultHandler {
+  DialogId dialog_id_;
+
+ public:
+  void send(DialogId dialog_id) {
+    dialog_id_ = dialog_id;
+
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+
+    send_query(G()->net_query_creator().create(telegram_api::messages_getPeerSettings(std::move(input_peer))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getPeerSettings>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    td_->user_manager_->on_get_users(std::move(ptr->users_), "GetPeerSettingsQuery");
+    td_->chat_manager_->on_get_chats(std::move(ptr->chats_), "GetPeerSettingsQuery");
+    td_->messages_manager_->on_get_peer_settings(dialog_id_, std::move(ptr->settings_));
+  }
+
+  void on_error(Status status) final {
+    LOG(INFO) << "Receive error for get peer settings: " << status;
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetPeerSettingsQuery");
+  }
+};
+
+class UpdatePeerSettingsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit UpdatePeerSettingsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, bool is_spam_dialog) {
+    dialog_id_ = dialog_id;
+
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return promise_.set_value(Unit());
+    }
+
+    if (is_spam_dialog) {
+      send_query(G()->net_query_creator().create(telegram_api::messages_reportSpam(std::move(input_peer))));
+    } else {
+      send_query(G()->net_query_creator().create(telegram_api::messages_hidePeerSettingsBar(std::move(input_peer))));
+    }
+  }
+
+  void on_result(BufferSlice packet) final {
+    static_assert(std::is_same<telegram_api::messages_reportSpam::ReturnType,
+                               telegram_api::messages_hidePeerSettingsBar::ReturnType>::value,
+                  "");
+    auto result_ptr = fetch_result<telegram_api::messages_reportSpam>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    td_->messages_manager_->on_get_peer_settings(dialog_id_, telegram_api::make_object<telegram_api::peerSettings>(),
+                                                 true);
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    LOG(INFO) << "Receive error for update peer settings: " << status;
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "UpdatePeerSettingsQuery");
+    td_->messages_manager_->reget_dialog_action_bar(dialog_id_, "UpdatePeerSettingsQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class DialogManager::UploadDialogPhotoCallback final : public FileManager::UploadCallback {
  public:
   void on_upload_ok(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
@@ -2232,6 +2309,18 @@ void DialogManager::drop_username(const string &username) {
 
     resolved_usernames_.erase(cleaned_username);
   }
+}
+
+void DialogManager::reget_peer_settings(DialogId dialog_id) {
+  if (!have_input_peer(dialog_id, false, AccessRights::Read)) {
+    return;
+  }
+
+  td_->create_handler<GetPeerSettingsQuery>()->send(dialog_id);
+}
+
+void DialogManager::update_peer_settings(DialogId dialog_id, bool is_spam_dialog, Promise<Unit> &&promise) {
+  td_->create_handler<UpdatePeerSettingsQuery>(std::move(promise))->send(dialog_id, is_spam_dialog);
 }
 
 }  // namespace td
