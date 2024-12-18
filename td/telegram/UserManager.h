@@ -508,6 +508,8 @@ class UserManager final : public Actor {
     int32 bot_active_users = 0;
     int32 bot_info_version = -1;
 
+    CustomEmojiId bot_verification_icon;
+
     AccentColorId accent_color_id;
     CustomEmojiId background_custom_emoji_id;
     AccentColorId profile_accent_color_id;
@@ -851,6 +853,8 @@ class UserManager final : public Actor {
   void on_update_user_max_read_story_id(User *u, UserId user_id, StoryId max_read_story_id);
 
   void on_update_user_stories_hidden(User *u, UserId user_id, bool stories_hidden);
+
+  void on_update_user_bot_verification_icon(User *u, UserId user_id, CustomEmojiId bot_verification_icon);
 
   void on_update_user_is_contact(User *u, UserId user_id, bool is_contact, bool is_mutual_contact,
                                  bool is_close_friend);

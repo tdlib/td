@@ -1439,6 +1439,7 @@ void UserManager::User::store(StorerT &storer) const {
   bool has_profile_accent_color_id = profile_accent_color_id.is_valid();
   bool has_profile_background_custom_emoji_id = profile_background_custom_emoji_id.is_valid();
   bool has_bot_active_users = bot_active_users != 0;
+  bool has_bot_verification_icon = bot_verification_icon.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_received);
   STORE_FLAG(is_verified);
@@ -1487,6 +1488,7 @@ void UserManager::User::store(StorerT &storer) const {
     STORE_FLAG(is_business_bot);
     STORE_FLAG(has_bot_active_users);
     STORE_FLAG(has_main_app);
+    STORE_FLAG(has_bot_verification_icon);
     END_STORE_FLAGS();
   }
   store(first_name, storer);
@@ -1546,6 +1548,9 @@ void UserManager::User::store(StorerT &storer) const {
   if (has_bot_active_users) {
     store(bot_active_users, storer);
   }
+  if (has_bot_verification_icon) {
+    store(bot_verification_icon, storer);
+  }
 }
 
 template <class ParserT>
@@ -1572,6 +1577,7 @@ void UserManager::User::parse(ParserT &parser) {
   bool has_profile_accent_color_id = false;
   bool has_profile_background_custom_emoji_id = false;
   bool has_bot_active_users = false;
+  bool has_bot_verification_icon = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_received);
   PARSE_FLAG(is_verified);
@@ -1620,6 +1626,7 @@ void UserManager::User::parse(ParserT &parser) {
     PARSE_FLAG(is_business_bot);
     PARSE_FLAG(has_bot_active_users);
     PARSE_FLAG(has_main_app);
+    PARSE_FLAG(has_bot_verification_icon);
     END_PARSE_FLAGS();
   }
   parse(first_name, parser);
@@ -1706,6 +1713,9 @@ void UserManager::User::parse(ParserT &parser) {
   }
   if (has_bot_active_users) {
     parse(bot_active_users, parser);
+  }
+  if (has_bot_verification_icon) {
+    parse(bot_verification_icon, parser);
   }
 
   if (!check_utf8(first_name)) {
@@ -2715,6 +2725,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
       u->restriction_reasons = std::move(restriction_reasons);
       u->is_changed = true;
     }
+    on_update_user_bot_verification_icon(u, user_id, CustomEmojiId(user->bot_verification_icon_));
   }
 
   if (u->cache_version != User::CACHE_VERSION && u->is_received) {
@@ -3181,6 +3192,13 @@ void UserManager::on_update_user_stories_hidden(User *u, UserId user_id, bool st
     u->stories_hidden = stories_hidden;
     u->is_stories_hidden_changed = true;
     u->need_save_to_database = true;
+  }
+}
+
+void UserManager::on_update_user_bot_verification_icon(User *u, UserId user_id, CustomEmojiId bot_verification_icon) {
+  if (u->bot_verification_icon != bot_verification_icon) {
+    u->bot_verification_icon = bot_verification_icon;
+    u->is_changed = true;
   }
 }
 
@@ -8224,7 +8242,7 @@ td_api::object_ptr<td_api::updateUser> UserManager::get_update_unknown_user_obje
   return td_api::make_object<td_api::updateUser>(td_api::make_object<td_api::user>(
       user_id.get(), "", "", nullptr, "", td_api::make_object<td_api::userStatusEmpty>(), nullptr,
       td_->theme_manager_->get_accent_color_id_object(AccentColorId(user_id)), 0, -1, 0, nullptr, false, false, false,
-      false, false, false, "", false, false, false, false, false, have_access,
+      false, 0, false, false, "", false, false, false, false, false, have_access,
       td_api::make_object<td_api::userTypeUnknown>(), "", false));
 }
 
@@ -8274,7 +8292,7 @@ td_api::object_ptr<td_api::user> UserManager::get_user_object(UserId user_id, co
       u->background_custom_emoji_id.get(),
       td_->theme_manager_->get_profile_accent_color_id_object(u->profile_accent_color_id),
       u->profile_background_custom_emoji_id.get(), std::move(emoji_status), u->is_contact, u->is_mutual_contact,
-      u->is_close_friend, u->is_verified, u->is_premium, u->is_support,
+      u->is_close_friend, u->is_verified, u->bot_verification_icon.get(), u->is_premium, u->is_support,
       get_restriction_reason_description(u->restriction_reasons), u->is_scam, u->is_fake,
       u->max_active_story_id.is_valid(), get_user_has_unread_stories(u), restricts_new_chats, have_access,
       std::move(type), u->language_code, u->attach_menu_enabled);
