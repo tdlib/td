@@ -362,6 +362,7 @@ set(TDLIB_SOURCE_PART1
   td/telegram/BotInfoManager.cpp
   td/telegram/BotMenuButton.cpp
   td/telegram/BotQueries.cpp
+  td/telegram/BotVerification.cpp
   td/telegram/BusinessAwayMessage.cpp
   td/telegram/BusinessAwayMessageSchedule.cpp
   td/telegram/BusinessBotManageBar.cpp
@@ -661,6 +662,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/BackgroundType.h
   td/telegram/BaseTheme.h
   td/telegram/Birthdate.h
+  td/telegram/BotVerification.h
   td/telegram/BlockListId.h
   td/telegram/BoostManager.h
   td/telegram/BotCommand.h
@@ -1022,6 +1024,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/BackgroundInfo.hpp
   td/telegram/BackgroundType.hpp
   td/telegram/Birthdate.hpp
+  td/telegram/BotVerification.hpp
   td/telegram/BusinessAwayMessage.hpp
   td/telegram/BusinessAwayMessageSchedule.hpp
   td/telegram/BusinessConnectedBot.hpp
