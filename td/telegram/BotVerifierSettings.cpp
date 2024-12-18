@@ -21,8 +21,7 @@ BotVerifierSettings::BotVerifierSettings(
   description_ = std::move(bot_verifier_settings->custom_description_);
 }
 
-BotVerifierSettings::BotVerifierSettings(
-    telegram_api::object_ptr<telegram_api::botVerification> &&bot_verification) {
+BotVerifierSettings::BotVerifierSettings(telegram_api::object_ptr<telegram_api::botVerification> &&bot_verification) {
   if (bot_verification == nullptr) {
     return;
   }
@@ -43,7 +42,7 @@ unique_ptr<BotVerifierSettings> BotVerifierSettings::get_bot_verifier_settings(
   return result;
 }
 
-td_api::object_ptr<td_api::botVerificationSettings> BotVerifierSettings::get_bot_verification_settings_object(
+td_api::object_ptr<td_api::botVerificationParameters> BotVerifierSettings::get_bot_verification_parameters_object(
     Td *td) const {
   if (!is_valid()) {
     return nullptr;
@@ -55,7 +54,7 @@ td_api::object_ptr<td_api::botVerificationSettings> BotVerifierSettings::get_bot
     text.entities = find_entities(text.text, true, true);
     description = get_formatted_text_object(td->user_manager_.get(), text, true, -1);
   }
-  return td_api::make_object<td_api::botVerificationSettings>(icon_.get(), company_, std::move(description));
+  return td_api::make_object<td_api::botVerificationParameters>(icon_.get(), company_, std::move(description));
 }
 
 bool operator==(const BotVerifierSettings &lhs, const BotVerifierSettings &rhs) {

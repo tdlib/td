@@ -38,7 +38,7 @@ td_api::object_ptr<td_api::botVerification> BotVerification::get_bot_verificatio
   }
   return td_api::make_object<td_api::botVerification>(
       td->user_manager_->get_user_id_object(bot_user_id_, "botVerification"),
-      settings_.get_bot_verification_settings_object(td));
+      settings_.get_bot_verification_parameters_object(td));
 }
 
 bool operator==(const BotVerification &lhs, const BotVerification &rhs) {

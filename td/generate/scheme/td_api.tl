@@ -607,16 +607,16 @@ botCommands bot_user_id:int53 commands:vector<botCommand> = BotCommands;
 botMenuButton text:string url:string = BotMenuButton;
 
 
-//@description Describes verification settings of a bot
+//@description Describes parameters of verification that is provided by a bot
 //@icon_custom_emoji_id Identifier of the custom emoji that is used as the verification sign
 //@company_name Name of the company that provides verification
 //@param_description Custom description of verification reason; may be null if none
-botVerificationSettings icon_custom_emoji_id:int64 company_name:string description:formattedText = BotVerificationSettings;
+botVerificationParameters icon_custom_emoji_id:int64 company_name:string description:formattedText = BotVerificationParameters;
 
 //@description Describes verification status provided by a bot
 //@bot_user_id Identifier of the bot that provided the verification
-//@settings Settings that were used for verification
-botVerification bot_user_id:int53 settings:botVerificationSettings = BotVerification;
+//@parameters Parameters that were used for verification
+botVerification bot_user_id:int53 parameters:botVerificationParameters = BotVerification;
 
 
 //@description Represents a location to which a chat is connected @location The location @address Location address; 1-64 characters, as defined by the chat owner

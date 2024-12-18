@@ -28,7 +28,7 @@ class BotVerifierSettings {
   static unique_ptr<BotVerifierSettings> get_bot_verifier_settings(
       telegram_api::object_ptr<telegram_api::botVerifierSettings> &&bot_verifier_settings);
 
-  td_api::object_ptr<td_api::botVerificationSettings> get_bot_verification_settings_object(Td *td) const;
+  td_api::object_ptr<td_api::botVerificationParameters> get_bot_verification_parameters_object(Td *td) const;
 
   bool is_valid() const {
     return icon_.is_valid();
