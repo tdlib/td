@@ -607,9 +607,15 @@ botCommands bot_user_id:int53 commands:vector<botCommand> = BotCommands;
 botMenuButton text:string url:string = BotMenuButton;
 
 
+//@description Describes verification settings of a bot
+//@icon_custom_emoji_id Identifier of the custom emoji that is used as the verification sign
+//@company_name Name of the company that provides verification
+//@param_description Custom description of verification reason; may be null if none
+botVerificationSettings icon_custom_emoji_id:int64 company_name:string description:formattedText = BotVerificationSettings;
+
 //@description Describes verification status provided by a bot
 //@bot_user_id Identifier of the bot that provided the verification
-//@icon_custom_emoji_id Identifier of the custom emoji to be shown as verification sign for the user
+//@icon_custom_emoji_id Identifier of the custom emoji to be shown as the verification sign
 //@company_name Name of the company that provided the verification
 //@param_description Custom description of verification reason; may be null if none
 botVerification bot_user_id:int53 icon_custom_emoji_id:int64 company_name:string description:formattedText = BotVerification;

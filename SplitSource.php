@@ -313,6 +313,7 @@ function split_file($file, $chunks, $undo) {
             'BotMenuButton|[a-z_]*_menu_button' => 'BotMenuButton',
             'send_bot_custom_query|answer_bot_custom_query|set_bot_updates_status' => 'BotQueries',
             'BotVerification' => 'BotVerification',
+            'BotVerifierSettings' => 'BotVerifierSettings',
             'BusinessAwayMessage' => 'BusinessAwayMessage',
             'BusinessChatLink' => 'BusinessChatLink',
             'BusinessConnectedBot' => 'BusinessConnectedBot',
