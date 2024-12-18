@@ -611,8 +611,8 @@ botMenuButton text:string url:string = BotMenuButton;
 //@bot_user_id Identifier of the bot that provided the verification
 //@icon_custom_emoji_id Identifier of the custom emoji to be shown as verification sign for the user
 //@company_name Name of the company that provided the verification
-//@param_description Custom description of verification reason; may be empty
-botVerification bot_user_id:int53 icon_custom_emoji_id:int64 company_name:string description:string = BotVerification;
+//@param_description Custom description of verification reason; may be null if none
+botVerification bot_user_id:int53 icon_custom_emoji_id:int64 company_name:string description:formattedText = BotVerification;
 
 
 //@description Represents a location to which a chat is connected @location The location @address Location address; 1-64 characters, as defined by the chat owner
