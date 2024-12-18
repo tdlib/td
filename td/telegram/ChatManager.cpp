@@ -1933,6 +1933,7 @@ void ChatManager::Channel::store(StorerT &storer) const {
   bool has_profile_background_custom_emoji_id = profile_background_custom_emoji_id.is_valid();
   bool has_boost_level = boost_level != 0;
   bool has_emoji_status = !emoji_status.is_empty();
+  bool has_bot_verification_icon = bot_verification_icon.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(false);
   STORE_FLAG(false);
@@ -1979,6 +1980,7 @@ void ChatManager::Channel::store(StorerT &storer) const {
     STORE_FLAG(has_boost_level);
     STORE_FLAG(has_emoji_status);
     STORE_FLAG(show_message_sender);
+    STORE_FLAG(has_bot_verification_icon);
     END_STORE_FLAGS();
   }
 
@@ -2031,6 +2033,9 @@ void ChatManager::Channel::store(StorerT &storer) const {
   if (has_emoji_status) {
     store(emoji_status, storer);
   }
+  if (has_bot_verification_icon) {
+    store(bot_verification_icon, storer);
+  }
 }
 
 template <class ParserT>
@@ -2062,6 +2067,7 @@ void ChatManager::Channel::parse(ParserT &parser) {
   bool has_profile_background_custom_emoji_id = false;
   bool has_boost_level = false;
   bool has_emoji_status = false;
+  bool has_bot_verification_icon = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(left);
   PARSE_FLAG(kicked);
@@ -2108,6 +2114,7 @@ void ChatManager::Channel::parse(ParserT &parser) {
     PARSE_FLAG(has_boost_level);
     PARSE_FLAG(has_emoji_status);
     PARSE_FLAG(show_message_sender);
+    PARSE_FLAG(has_bot_verification_icon);
     END_PARSE_FLAGS();
   }
 
@@ -2192,6 +2199,9 @@ void ChatManager::Channel::parse(ParserT &parser) {
   }
   if (has_emoji_status) {
     parse(emoji_status, parser);
+  }
+  if (has_bot_verification_icon) {
+    parse(bot_verification_icon, parser);
   }
 
   if (!check_utf8(title)) {
@@ -7167,6 +7177,14 @@ void ChatManager::on_update_channel_stories_hidden(Channel *c, ChannelId channel
   }
 }
 
+void ChatManager::on_update_channel_bot_verification_icon(Channel *c, ChannelId channel_id,
+                                                          CustomEmojiId bot_verification_icon) {
+  if (c->bot_verification_icon != bot_verification_icon) {
+    c->bot_verification_icon = bot_verification_icon;
+    c->is_changed = true;
+  }
+}
+
 void ChatManager::on_update_channel_participant_count(ChannelId channel_id, int32 participant_count) {
   Channel *c = get_channel(channel_id);
   if (c == nullptr || c->participant_count == participant_count) {
@@ -8485,6 +8503,7 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
           c->restriction_reasons = std::move(restriction_reasons);
           c->is_changed = true;
         }
+        on_update_channel_bot_verification_icon(c, channel_id, CustomEmojiId(channel.bot_verification_icon_));
       }
       if (c->join_to_send != join_to_send || c->join_request != join_request) {
         c->join_to_send = join_to_send;
@@ -8597,6 +8616,7 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
       c->restriction_reasons = std::move(restriction_reasons);
       c->is_changed = true;
     }
+    on_update_channel_bot_verification_icon(c, channel_id, CustomEmojiId(channel.bot_verification_icon_));
   }
   if (c->join_to_send != join_to_send || c->join_request != join_request) {
     c->join_to_send = join_to_send;
@@ -8761,6 +8781,7 @@ void ChatManager::on_get_channel_forbidden(telegram_api::channelForbidden &chann
   // on_update_channel_has_location(c, channel_id, false);
   on_update_channel_noforwards(c, channel_id, false);
   on_update_channel_emoji_status(c, channel_id, EmojiStatus());
+  on_update_channel_bot_verification_icon(c, channel_id, CustomEmojiId());
   td_->messages_manager_->on_update_dialog_group_call(DialogId(channel_id), false, false, "on_get_channel_forbidden");
   // must be after setting of c->is_megagroup
   tl_object_ptr<telegram_api::chatBannedRights> banned_rights;  // == nullptr
@@ -8868,7 +8889,7 @@ td_api::object_ptr<td_api::updateSupergroup> ChatManager::get_update_unknown_sup
   bool is_megagroup = min_channel == nullptr ? false : min_channel->is_megagroup_;
   return td_api::make_object<td_api::updateSupergroup>(td_api::make_object<td_api::supergroup>(
       channel_id.get(), nullptr, 0, DialogParticipantStatus::Banned(0).get_chat_member_status_object(), 0, 0, false,
-      false, false, false, !is_megagroup, false, false, !is_megagroup, false, false, false, false, string(), false,
+      false, false, false, !is_megagroup, false, false, !is_megagroup, false, false, false, 0, false, string(), false,
       false, false, false));
 }
 
@@ -8895,11 +8916,12 @@ bool ChatManager::get_channel_has_unread_stories(const Channel *c) {
   return c->max_active_story_id.get() > c->max_read_story_id.get();
 }
 
-tl_object_ptr<td_api::supergroup> ChatManager::get_supergroup_object(ChannelId channel_id) const {
+td_api::object_ptr<td_api::supergroup> ChatManager::get_supergroup_object(ChannelId channel_id) const {
   return get_supergroup_object(channel_id, get_channel(channel_id));
 }
 
-tl_object_ptr<td_api::supergroup> ChatManager::get_supergroup_object(ChannelId channel_id, const Channel *c) {
+td_api::object_ptr<td_api::supergroup> ChatManager::get_supergroup_object(ChannelId channel_id,
+                                                                          const Channel *c) const {
   if (c == nullptr) {
     return nullptr;
   }
@@ -8908,7 +8930,8 @@ tl_object_ptr<td_api::supergroup> ChatManager::get_supergroup_object(ChannelId c
       get_channel_status(c).get_chat_member_status_object(), c->participant_count, c->boost_level,
       c->has_linked_channel, c->has_location, c->sign_messages, c->show_message_sender, get_channel_join_to_send(c),
       get_channel_join_request(c), c->is_slow_mode_enabled, !c->is_megagroup, c->is_gigagroup, c->is_forum,
-      c->is_verified, get_restriction_reason_has_sensitive_content(c->restriction_reasons),
+      c->is_verified, c->bot_verification_icon.get(),
+      get_restriction_reason_has_sensitive_content(c->restriction_reasons),
       get_restriction_reason_description(c->restriction_reasons), c->is_scam, c->is_fake,
       c->max_active_story_id.is_valid(), get_channel_has_unread_stories(c));
 }
