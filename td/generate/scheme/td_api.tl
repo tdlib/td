@@ -1323,6 +1323,7 @@ user id:int53 first_name:string last_name:string usernames:usernames phone_numbe
 //@web_app_background_dark_color Default dark background color for bot Web Apps; -1 if not specified
 //@web_app_header_light_color Default light header color for bot Web Apps; -1 if not specified
 //@web_app_header_dark_color Default dark header color for bot Web Apps; -1 if not specified
+//@verification_parameters Parameters of the verification that can be provided by the bot; may be null if none or the current user isn't the owner of the bot
 //@can_get_revenue_statistics True, if the bot's revenue statistics are available to the current user
 //@can_manage_emoji_status True, if the bot can manage emoji status of the current user
 //@has_media_previews True, if the bot has media previews
@@ -1330,7 +1331,7 @@ user id:int53 first_name:string last_name:string usernames:usernames phone_numbe
 //@edit_description_link The internal link, which can be used to edit bot description; may be null
 //@edit_description_media_link The internal link, which can be used to edit the photo or animation shown in the chat with the bot if the chat is empty; may be null
 //@edit_settings_link The internal link, which can be used to edit bot settings; may be null
-botInfo short_description:string description:string photo:photo animation:animation menu_button:botMenuButton commands:vector<botCommand> privacy_policy_url:string default_group_administrator_rights:chatAdministratorRights default_channel_administrator_rights:chatAdministratorRights affiliate_program:affiliateProgramInfo web_app_background_light_color:int32 web_app_background_dark_color:int32 web_app_header_light_color:int32 web_app_header_dark_color:int32 can_get_revenue_statistics:Bool can_manage_emoji_status:Bool has_media_previews:Bool edit_commands_link:InternalLinkType edit_description_link:InternalLinkType edit_description_media_link:InternalLinkType edit_settings_link:InternalLinkType = BotInfo;
+botInfo short_description:string description:string photo:photo animation:animation menu_button:botMenuButton commands:vector<botCommand> privacy_policy_url:string default_group_administrator_rights:chatAdministratorRights default_channel_administrator_rights:chatAdministratorRights affiliate_program:affiliateProgramInfo web_app_background_light_color:int32 web_app_background_dark_color:int32 web_app_header_light_color:int32 web_app_header_dark_color:int32 verification_parameters:botVerificationParameters can_get_revenue_statistics:Bool can_manage_emoji_status:Bool has_media_previews:Bool edit_commands_link:InternalLinkType edit_description_link:InternalLinkType edit_description_media_link:InternalLinkType edit_settings_link:InternalLinkType = BotInfo;
 
 //@description Contains full information about a user
 //@personal_photo User profile photo set by the current user for the contact; may be null. If null and user.profile_photo is null, then the photo is empty; otherwise, it is unknown.

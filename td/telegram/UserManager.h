@@ -11,6 +11,7 @@
 #include "td/telegram/Birthdate.h"
 #include "td/telegram/BotCommand.h"
 #include "td/telegram/BotMenuButton.h"
+#include "td/telegram/BotVerifierSettings.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/Contact.h"
 #include "td/telegram/CustomEmojiId.h"
@@ -159,6 +160,8 @@ class UserManager final : public Actor {
                                vector<telegram_api::object_ptr<telegram_api::botCommand>> &&bot_commands);
 
   void on_update_user_referral_program_info(UserId user_id, ReferralProgramInfo &&referral_program_info);
+
+  void on_update_user_verifier_settings(UserId user_id, unique_ptr<BotVerifierSettings> &&verifier_settings);
 
   void on_update_user_need_phone_number_privacy_exception(UserId user_id, bool need_phone_number_privacy_exception);
 
@@ -603,6 +606,7 @@ class UserManager final : public Actor {
     AdministratorRights group_administrator_rights;
     AdministratorRights broadcast_administrator_rights;
     ReferralProgramInfo referral_program_info;
+    unique_ptr<BotVerifierSettings> verifier_settings;
 
     string placeholder_path;
     int32 background_color = -1;
@@ -886,6 +890,9 @@ class UserManager final : public Actor {
 
   void on_update_user_full_referral_program_info(UserFull *user_full, UserId user_id,
                                                  ReferralProgramInfo &&referral_program_info);
+
+  void on_update_user_full_verifier_settings(UserFull *user_full, UserId user_id,
+                                             unique_ptr<BotVerifierSettings> &&verifier_settings);
 
   void on_update_user_full_need_phone_number_privacy_exception(UserFull *user_full, UserId user_id,
                                                                bool need_phone_number_privacy_exception) const;

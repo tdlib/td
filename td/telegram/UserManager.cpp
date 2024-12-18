@@ -11,6 +11,7 @@
 #include "td/telegram/Birthdate.hpp"
 #include "td/telegram/BlockListId.h"
 #include "td/telegram/BotMenuButton.h"
+#include "td/telegram/BotVerifierSettings.hpp"
 #include "td/telegram/BusinessAwayMessage.h"
 #include "td/telegram/BusinessGreetingMessage.h"
 #include "td/telegram/BusinessInfo.h"
@@ -1774,6 +1775,7 @@ void UserManager::UserFull::store(StorerT &storer) const {
   bool has_header_color = bot_info != nullptr && bot_info->header_color != -1;
   bool has_header_dark_color = bot_info != nullptr && bot_info->header_dark_color != -1;
   bool has_referral_program_info = bot_info != nullptr && bot_info->referral_program_info.is_valid();
+  bool has_verifier_settings = bot_info != nullptr && bot_info->verifier_settings != nullptr;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
   STORE_FLAG(is_blocked);
@@ -1819,6 +1821,7 @@ void UserManager::UserFull::store(StorerT &storer) const {
     STORE_FLAG(has_header_color);
     STORE_FLAG(has_header_dark_color);
     STORE_FLAG(has_referral_program_info);
+    STORE_FLAG(has_verifier_settings);
     END_STORE_FLAGS();
   }
   if (has_about) {
@@ -1893,6 +1896,9 @@ void UserManager::UserFull::store(StorerT &storer) const {
   if (has_referral_program_info) {
     store(bot_info->referral_program_info, storer);
   }
+  if (has_verifier_settings) {
+    store(bot_info->verifier_settings, storer);
+  }
 }
 
 template <class ParserT>
@@ -1922,7 +1928,8 @@ void UserManager::UserFull::parse(ParserT &parser) {
   bool has_background_dark_color = false;
   bool has_header_color = false;
   bool has_header_dark_color = false;
-  bool has_referral_rpogram_info = false;
+  bool has_referral_program_info = false;
+  bool has_verifier_settings = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_about);
   PARSE_FLAG(is_blocked);
@@ -1967,7 +1974,8 @@ void UserManager::UserFull::parse(ParserT &parser) {
     PARSE_FLAG(has_background_dark_color);
     PARSE_FLAG(has_header_color);
     PARSE_FLAG(has_header_dark_color);
-    PARSE_FLAG(has_referral_rpogram_info);
+    PARSE_FLAG(has_referral_program_info);
+    PARSE_FLAG(has_verifier_settings);
     END_PARSE_FLAGS();
   }
   if (has_about) {
@@ -2043,8 +2051,11 @@ void UserManager::UserFull::parse(ParserT &parser) {
   if (has_header_dark_color) {
     parse(add_bot_info()->header_dark_color, parser);
   }
-  if (has_referral_rpogram_info) {
+  if (has_referral_program_info) {
     parse(add_bot_info()->referral_program_info, parser);
+  }
+  if (has_verifier_settings) {
+    parse(add_bot_info()->verifier_settings, parser);
   }
 }
 
@@ -3627,6 +3638,28 @@ void UserManager::on_update_user_full_referral_program_info(UserFull *user_full,
   auto bot_info = user_full->add_bot_info();
   if (bot_info->referral_program_info != referral_program_info) {
     bot_info->referral_program_info = std::move(referral_program_info);
+    user_full->is_changed = true;
+  }
+}
+
+void UserManager::on_update_user_verifier_settings(UserId user_id,
+                                                   unique_ptr<BotVerifierSettings> &&verifier_settings) {
+  UserFull *user_full = get_user_full_force(user_id, "on_update_user_verifier_settings");
+  if (user_full != nullptr) {
+    on_update_user_full_verifier_settings(user_full, user_id, std::move(verifier_settings));
+    update_user_full(user_full, user_id, "on_update_user_verifier_settings");
+  }
+}
+
+void UserManager::on_update_user_full_verifier_settings(UserFull *user_full, UserId user_id,
+                                                        unique_ptr<BotVerifierSettings> &&verifier_settings) {
+  CHECK(user_full != nullptr);
+  if (user_full->bot_info == nullptr && verifier_settings == nullptr) {
+    return;
+  }
+  auto bot_info = user_full->add_bot_info();
+  if (bot_info->verifier_settings != verifier_settings) {
+    bot_info->verifier_settings = std::move(verifier_settings);
     user_full->is_changed = true;
   }
 }
@@ -7240,9 +7273,9 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
     if (bot_info->group_administrator_rights != group_administrator_rights ||
         bot_info->broadcast_administrator_rights != broadcast_administrator_rights ||
         bot_info->referral_program_info != referral_program_info) {
-      bot_info->group_administrator_rights = group_administrator_rights;
-      bot_info->broadcast_administrator_rights = broadcast_administrator_rights;
-      bot_info->referral_program_info = referral_program_info;
+      bot_info->group_administrator_rights = std::move(group_administrator_rights);
+      bot_info->broadcast_administrator_rights = std::move(broadcast_administrator_rights);
+      bot_info->referral_program_info = std::move(referral_program_info);
 
       user_full->is_changed = true;
     }
@@ -7255,6 +7288,7 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
     int32 background_dark_color = -1;
     int32 header_color = -1;
     int32 header_dark_color = -1;
+    BotVerifierSettings verifier_settings;
     if (user->bot_info_ != nullptr) {
       description = std::move(user->bot_info_->description_);
       description_photo = get_photo(td_, std::move(user->bot_info_->description_photo_), DialogId(user_id));
@@ -7275,6 +7309,9 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
       on_update_user_full_commands(user_full, user_id, std::move(user->bot_info_->commands_));
       on_update_user_full_menu_button(user_full, user_id, std::move(user->bot_info_->menu_button_));
       on_update_user_full_has_preview_medias(user_full, user_id, user->bot_info_->has_preview_medias_);
+      on_update_user_full_verifier_settings(
+          user_full, user_id,
+          BotVerifierSettings::get_bot_verifier_settings(std::move(user->bot_info_->verifier_settings_)));
 
       if (bot_info->privacy_policy_url != user->bot_info_->privacy_policy_url_) {
         bot_info->privacy_policy_url = std::move(user->bot_info_->privacy_policy_url_);
@@ -8326,8 +8363,8 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
     if (user_full->bot_info == nullptr) {
       bot_info = td_api::make_object<td_api::botInfo>(
           user_full->about, string(), nullptr, nullptr, nullptr, Auto(), string(), nullptr, nullptr, nullptr, -1, -1,
-          -1, -1, user_full->can_view_revenue, user_full->can_manage_emoji_status, user_full->has_preview_medias,
-          nullptr, nullptr, nullptr, nullptr);
+          -1, -1, nullptr, user_full->can_view_revenue, user_full->can_manage_emoji_status,
+          user_full->has_preview_medias, nullptr, nullptr, nullptr, nullptr);
     } else {
       const auto *user_bot_info = user_full->bot_info.get();
       auto menu_button = get_bot_menu_button_object(td_, user_bot_info->menu_button.get());
@@ -8346,6 +8383,9 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
               : user_bot_info->broadcast_administrator_rights.get_chat_administrator_rights_object(),
           user_bot_info->referral_program_info.get_affiliate_program_info_object(), user_bot_info->background_color,
           user_bot_info->background_dark_color, user_bot_info->header_color, user_bot_info->header_dark_color,
+          user_bot_info->verifier_settings == nullptr
+              ? nullptr
+              : user_bot_info->verifier_settings->get_bot_verification_parameters_object(td_),
           user_full->can_view_revenue, user_full->can_manage_emoji_status, user_full->has_preview_medias, nullptr,
           nullptr, nullptr, nullptr);
     }
