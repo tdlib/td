@@ -350,6 +350,7 @@ class ChatManager final : public Actor {
   bool get_channel_is_verified(ChannelId channel_id) const;
   bool get_channel_is_scam(ChannelId channel_id) const;
   bool get_channel_is_fake(ChannelId channel_id) const;
+  CustomEmojiId get_channel_bot_verification_icon(ChannelId channel_id) const;
   int32 get_channel_participant_count(ChannelId channel_id) const;
   bool get_channel_sign_messages(ChannelId channel_id) const;
   bool get_channel_show_message_sender(ChannelId channel_id) const;

@@ -765,6 +765,9 @@ void DialogInviteLinkManager::on_get_dialog_invite_link_info(
       invite_link_info->is_verified = chat_invite->verified_;
       invite_link_info->is_scam = chat_invite->scam_;
       invite_link_info->is_fake = chat_invite->fake_;
+      invite_link_info->bot_verification_icon = chat_invite->bot_verification_ == nullptr
+                                                    ? CustomEmojiId()
+                                                    : CustomEmojiId(chat_invite->bot_verification_->icon_);
       break;
     }
     default:
@@ -805,6 +808,7 @@ td_api::object_ptr<td_api::chatInviteLinkInfo> DialogInviteLinkManager::get_chat
   bool is_verified = false;
   bool is_scam = false;
   bool is_fake = false;
+  CustomEmojiId bot_verification_icon;
 
   if (dialog_id.is_valid()) {
     switch (dialog_id.get_type()) {
@@ -830,6 +834,7 @@ td_api::object_ptr<td_api::chatInviteLinkInfo> DialogInviteLinkManager::get_chat
         is_verified = td_->chat_manager_->get_channel_is_verified(channel_id);
         is_scam = td_->chat_manager_->get_channel_is_scam(channel_id);
         is_fake = td_->chat_manager_->get_channel_is_fake(channel_id);
+        bot_verification_icon = td_->chat_manager_->get_channel_bot_verification_icon(channel_id);
         accent_color_id_object = td_->chat_manager_->get_channel_accent_color_id_object(channel_id);
         break;
       }
@@ -859,6 +864,7 @@ td_api::object_ptr<td_api::chatInviteLinkInfo> DialogInviteLinkManager::get_chat
     is_verified = invite_link_info->is_verified;
     is_scam = invite_link_info->is_scam;
     is_fake = invite_link_info->is_fake;
+    bot_verification_icon = invite_link_info->bot_verification_icon;
   }
 
   td_api::object_ptr<td_api::InviteLinkChatType> chat_type;
@@ -882,7 +888,7 @@ td_api::object_ptr<td_api::chatInviteLinkInfo> DialogInviteLinkManager::get_chat
       td_->dialog_manager_->get_chat_id_object(dialog_id, "chatInviteLinkInfo"), accessible_for, std::move(chat_type),
       title, get_chat_photo_info_object(td_->file_manager_.get(), photo), accent_color_id_object, description,
       participant_count, std::move(member_user_ids), std::move(subscription_info), creates_join_request, is_public,
-      is_verified, is_scam, is_fake);
+      is_verified, bot_verification_icon.get(), is_scam, is_fake);
 }
 
 void DialogInviteLinkManager::add_dialog_access_by_invite_link(DialogId dialog_id, const string &invite_link,

@@ -7876,6 +7876,14 @@ bool ChatManager::get_channel_is_fake(ChannelId channel_id) const {
   return c->is_fake;
 }
 
+CustomEmojiId ChatManager::get_channel_bot_verification_icon(ChannelId channel_id) const {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return CustomEmojiId();
+  }
+  return c->bot_verification_icon;
+}
+
 bool ChatManager::get_channel_sign_messages(ChannelId channel_id) const {
   auto c = get_channel(channel_id);
   if (c == nullptr) {

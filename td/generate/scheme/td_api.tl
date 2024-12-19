@@ -1540,9 +1540,10 @@ chatInviteLinkSubscriptionInfo pricing:starSubscriptionPricing can_reuse:Bool fo
 //@creates_join_request True, if the link only creates join request
 //@is_public True, if the chat is a public supergroup or channel, i.e. it has a username or it is a location-based supergroup
 //@is_verified True, if the chat is verified
+//@bot_verification_icon_custom_emoji_id Identifier of the custom emoji to be shown as verification sign by a bot for the user; 0 if none
 //@is_scam True, if many users reported this chat as a scam
 //@is_fake True, if many users reported this chat as a fake account
-chatInviteLinkInfo chat_id:int53 accessible_for:int32 type:InviteLinkChatType title:string photo:chatPhotoInfo accent_color_id:int32 description:string member_count:int32 member_user_ids:vector<int53> subscription_info:chatInviteLinkSubscriptionInfo creates_join_request:Bool is_public:Bool is_verified:Bool is_scam:Bool is_fake:Bool = ChatInviteLinkInfo;
+chatInviteLinkInfo chat_id:int53 accessible_for:int32 type:InviteLinkChatType title:string photo:chatPhotoInfo accent_color_id:int32 description:string member_count:int32 member_user_ids:vector<int53> subscription_info:chatInviteLinkSubscriptionInfo creates_join_request:Bool is_public:Bool is_verified:Bool bot_verification_icon_custom_emoji_id:int64 is_scam:Bool is_fake:Bool = ChatInviteLinkInfo;
 
 
 //@description Describes a user that sent a join request and waits for administrator approval @user_id User identifier @date Point in time (Unix timestamp) when the user sent the join request @bio A short bio of the user
