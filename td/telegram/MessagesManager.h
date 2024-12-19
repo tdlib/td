@@ -1619,7 +1619,6 @@ class MessagesManager final : public Actor {
   class ToggleDialogIsMarkedAsUnreadOnServerLogEvent;
   class ToggleDialogIsTranslatableOnServerLogEvent;
   class ToggleDialogIsPinnedOnServerLogEvent;
-  class ToggleDialogReportSpamStateOnServerLogEvent;
   class UnpinAllDialogMessagesOnServerLogEvent;
   class UpdateDialogNotificationSettingsOnServerLogEvent;
 
@@ -3016,9 +3015,6 @@ class MessagesManager final : public Actor {
 
   void reset_all_notification_settings_on_server(uint64 log_event_id);
 
-  void toggle_dialog_report_spam_state_on_server(DialogId dialog_id, bool is_spam_dialog, uint64 log_event_id,
-                                                 Promise<Unit> &&promise);
-
   void set_dialog_folder_id_on_server(DialogId dialog_id, bool from_binlog);
 
   void on_updated_dialog_folder_id(DialogId dialog_id, uint64 generation);
@@ -3183,8 +3179,6 @@ class MessagesManager final : public Actor {
   void add_message_dependencies(Dependencies &dependencies, const Message *m) const;
 
   static void save_send_message_log_event(DialogId dialog_id, const Message *m);
-
-  static uint64 save_toggle_dialog_report_spam_state_on_server_log_event(DialogId dialog_id, bool is_spam_dialog);
 
   static uint64 save_delete_messages_on_server_log_event(DialogId dialog_id, const vector<MessageId> &message_ids,
                                                          bool revoke);

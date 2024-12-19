@@ -986,6 +986,8 @@ void Td::process_binlog_events(TdDb::OpenedDatabase &&events) {
 
   send_closure_later(poll_manager_actor_, &PollManager::on_binlog_events, std::move(events.to_poll_manager));
 
+  send_closure_later(dialog_manager_actor_, &DialogManager::on_binlog_events, std::move(events.to_dialog_manager));
+
   send_closure_later(messages_manager_actor_, &MessagesManager::on_binlog_events,
                      std::move(events.to_messages_manager));
 

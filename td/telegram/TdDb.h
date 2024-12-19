@@ -73,6 +73,7 @@ class TdDb {
     vector<BinlogEvent> web_page_events;
     vector<BinlogEvent> save_app_log_events;
     vector<BinlogEvent> to_account_manager;
+    vector<BinlogEvent> to_dialog_manager;
     vector<BinlogEvent> to_messages_manager;
     vector<BinlogEvent> to_notification_manager;
     vector<BinlogEvent> to_notification_settings_manager;

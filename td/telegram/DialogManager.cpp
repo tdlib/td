@@ -16,6 +16,8 @@
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/logevent/LogEvent.h"
+#include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/OptionManager.h"
@@ -30,12 +32,16 @@
 #include "td/telegram/UserManager.h"
 #include "td/telegram/Usernames.h"
 
+#include "td/db/binlog/BinlogEvent.h"
+#include "td/db/binlog/BinlogHelper.h"
+
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Time.h"
+#include "td/utils/tl_helpers.h"
 
 #include <type_traits>
 
@@ -579,6 +585,45 @@ class UpdatePeerSettingsQuery final : public Td::ResultHandler {
     LOG(INFO) << "Receive error for update peer settings: " << status;
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "UpdatePeerSettingsQuery");
     td_->messages_manager_->reget_dialog_action_bar(dialog_id_, "UpdatePeerSettingsQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
+class ReportEncryptedSpamQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit ReportEncryptedSpamQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id) {
+    dialog_id_ = dialog_id;
+
+    auto input_peer = td_->dialog_manager_->get_input_encrypted_chat(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+
+    send_query(G()->net_query_creator().create(telegram_api::messages_reportEncryptedSpam(std::move(input_peer))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_reportEncryptedSpam>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    td_->messages_manager_->on_get_peer_settings(dialog_id_, telegram_api::make_object<telegram_api::peerSettings>(),
+                                                 true);
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    LOG(INFO) << "Receive error for report encrypted spam: " << status;
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ReportEncryptedSpamQuery");
+    td_->messages_manager_->reget_dialog_action_bar(
+        DialogId(td_->user_manager_->get_secret_chat_user_id(dialog_id_.get_secret_chat_id())),
+        "ReportEncryptedSpamQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -2319,8 +2364,93 @@ void DialogManager::reget_peer_settings(DialogId dialog_id) {
   td_->create_handler<GetPeerSettingsQuery>()->send(dialog_id);
 }
 
-void DialogManager::update_peer_settings(DialogId dialog_id, bool is_spam_dialog, Promise<Unit> &&promise) {
-  td_->create_handler<UpdatePeerSettingsQuery>(std::move(promise))->send(dialog_id, is_spam_dialog);
+class DialogManager::ToggleDialogReportSpamStateOnServerLogEvent {
+ public:
+  DialogId dialog_id_;
+  bool is_spam_dialog_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(dialog_id_, storer);
+    td::store(is_spam_dialog_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(dialog_id_, parser);
+    td::parse(is_spam_dialog_, parser);
+  }
+};
+
+uint64 DialogManager::save_toggle_dialog_report_spam_state_on_server_log_event(DialogId dialog_id,
+                                                                               bool is_spam_dialog) {
+  ToggleDialogReportSpamStateOnServerLogEvent log_event{dialog_id, is_spam_dialog};
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ToggleDialogReportSpamStateOnServer,
+                    get_log_event_storer(log_event));
+}
+
+void DialogManager::toggle_dialog_report_spam_state_on_server(DialogId dialog_id, bool is_spam_dialog,
+                                                              uint64 log_event_id, Promise<Unit> &&promise) {
+  if (log_event_id == 0 && G()->use_message_database()) {
+    log_event_id = save_toggle_dialog_report_spam_state_on_server_log_event(dialog_id, is_spam_dialog);
+  }
+
+  auto new_promise = get_erase_log_event_promise(log_event_id, std::move(promise));
+  promise = std::move(new_promise);  // to prevent self-move
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+    case DialogType::Chat:
+    case DialogType::Channel:
+      return td_->create_handler<UpdatePeerSettingsQuery>(std::move(promise))->send(dialog_id, is_spam_dialog);
+    case DialogType::SecretChat:
+      if (is_spam_dialog) {
+        return td_->create_handler<ReportEncryptedSpamQuery>(std::move(promise))->send(dialog_id);
+      } else {
+        auto user_id = td_->user_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
+        if (!user_id.is_valid()) {
+          return promise.set_error(Status::Error(400, "Peer user not found"));
+        }
+        return td_->create_handler<UpdatePeerSettingsQuery>(std::move(promise))->send(DialogId(user_id), false);
+      }
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+      return;
+  }
+}
+
+void DialogManager::on_binlog_events(vector<BinlogEvent> &&events) {
+  if (G()->close_flag()) {
+    return;
+  }
+  bool have_old_message_database = G()->use_message_database() && !G()->td_db()->was_dialog_db_created();
+  for (auto &event : events) {
+    CHECK(event.id_ != 0);
+    switch (event.type_) {
+      case LogEvent::HandlerType::ToggleDialogReportSpamStateOnServer: {
+        if (!have_old_message_database) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        ToggleDialogReportSpamStateOnServerLogEvent log_event;
+        log_event_parse(log_event, event.get_data()).ensure();
+
+        auto dialog_id = log_event.dialog_id_;
+        if (!have_dialog_force(dialog_id, "ToggleDialogReportSpamStateOnServerLogEvent") ||
+            !have_input_peer(dialog_id, true, AccessRights::Read)) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        toggle_dialog_report_spam_state_on_server(dialog_id, log_event.is_spam_dialog_, event.id_, Promise<Unit>());
+        break;
+      }
+      default:
+        LOG(FATAL) << "Unsupported log event type " << event.type_;
+    }
+  }
 }
 
 }  // namespace td

@@ -39,6 +39,7 @@
 
 namespace td {
 
+struct BinlogEvent;
 class ReportReason;
 class Td;
 class Usernames;
@@ -224,7 +225,10 @@ class DialogManager final : public Actor {
 
   void reget_peer_settings(DialogId dialog_id);
 
-  void update_peer_settings(DialogId dialog_id, bool is_spam_dialog, Promise<Unit> &&promise);
+  void toggle_dialog_report_spam_state_on_server(DialogId dialog_id, bool is_spam_dialog, uint64 log_event_id,
+                                                 Promise<Unit> &&promise);
+
+  void on_binlog_events(vector<BinlogEvent> &&events);
 
  private:
   static constexpr size_t MAX_TITLE_LENGTH = 128;  // server side limit for chat title
@@ -251,6 +255,10 @@ class DialogManager final : public Actor {
   void drop_username(const string &username);
 
   void on_resolve_dialog(const string &username, ChannelId channel_id, Promise<DialogId> &&promise);
+
+  static uint64 save_toggle_dialog_report_spam_state_on_server_log_event(DialogId dialog_id, bool is_spam_dialog);
+
+  class ToggleDialogReportSpamStateOnServerLogEvent;
 
   class UploadDialogPhotoCallback;
   std::shared_ptr<UploadDialogPhotoCallback> upload_dialog_photo_callback_;
