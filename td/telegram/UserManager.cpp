@@ -66,6 +66,7 @@
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/ThemeManager.h"
 #include "td/telegram/UpdatesManager.h"
+#include "td/telegram/VerificationStatus.h"
 #include "td/telegram/Version.h"
 
 #include "td/db/binlog/BinlogEvent.h"
@@ -8279,8 +8280,8 @@ td_api::object_ptr<td_api::updateUser> UserManager::get_update_unknown_user_obje
   return td_api::make_object<td_api::updateUser>(td_api::make_object<td_api::user>(
       user_id.get(), "", "", nullptr, "", td_api::make_object<td_api::userStatusEmpty>(), nullptr,
       td_->theme_manager_->get_accent_color_id_object(AccentColorId(user_id)), 0, -1, 0, nullptr, false, false, false,
-      false, 0, false, false, "", false, false, false, false, false, have_access,
-      td_api::make_object<td_api::userTypeUnknown>(), "", false));
+      nullptr, false, false, "", false, false, false, have_access, td_api::make_object<td_api::userTypeUnknown>(), "",
+      false));
 }
 
 int64 UserManager::get_user_id_object(UserId user_id, const char *source) const {
@@ -8319,6 +8320,8 @@ td_api::object_ptr<td_api::user> UserManager::get_user_object(UserId user_id, co
   }
 
   auto emoji_status = u->last_sent_emoji_status.get_emoji_status_object();
+  auto verification_status =
+      get_verification_status_object(td_, u->is_verified, u->is_scam, u->is_fake, u->bot_verification_icon);
   auto have_access = user_id == get_my_id() || have_input_peer_user(u, user_id, AccessRights::Know);
   auto restricts_new_chats = u->contact_require_premium && !u->is_mutual_contact;
   return td_api::make_object<td_api::user>(
@@ -8329,10 +8332,10 @@ td_api::object_ptr<td_api::user> UserManager::get_user_object(UserId user_id, co
       u->background_custom_emoji_id.get(),
       td_->theme_manager_->get_profile_accent_color_id_object(u->profile_accent_color_id),
       u->profile_background_custom_emoji_id.get(), std::move(emoji_status), u->is_contact, u->is_mutual_contact,
-      u->is_close_friend, u->is_verified, u->bot_verification_icon.get(), u->is_premium, u->is_support,
-      get_restriction_reason_description(u->restriction_reasons), u->is_scam, u->is_fake,
-      u->max_active_story_id.is_valid(), get_user_has_unread_stories(u), restricts_new_chats, have_access,
-      std::move(type), u->language_code, u->attach_menu_enabled);
+      u->is_close_friend, std::move(verification_status), u->is_premium, u->is_support,
+      get_restriction_reason_description(u->restriction_reasons), u->max_active_story_id.is_valid(),
+      get_user_has_unread_stories(u), restricts_new_chats, have_access, std::move(type), u->language_code,
+      u->attach_menu_enabled);
 }
 
 vector<int64> UserManager::get_user_ids_object(const vector<UserId> &user_ids, const char *source) const {

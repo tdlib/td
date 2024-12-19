@@ -44,6 +44,7 @@
 #include "td/telegram/ThemeManager.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/UserManager.h"
+#include "td/telegram/VerificationStatus.h"
 
 #include "td/db/binlog/BinlogEvent.h"
 #include "td/db/binlog/BinlogHelper.h"
@@ -7860,28 +7861,18 @@ bool ChatManager::get_channel_is_verified(ChannelId channel_id) const {
   return c->is_verified;
 }
 
-bool ChatManager::get_channel_is_scam(ChannelId channel_id) const {
+td_api::object_ptr<td_api::verificationStatus> ChatManager::get_channel_verification_status_object(
+    ChannelId channel_id) const {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
-    return false;
+    return nullptr;
   }
-  return c->is_scam;
+  return get_channel_verification_status_object(c);
 }
 
-bool ChatManager::get_channel_is_fake(ChannelId channel_id) const {
-  auto c = get_channel(channel_id);
-  if (c == nullptr) {
-    return false;
-  }
-  return c->is_fake;
-}
-
-CustomEmojiId ChatManager::get_channel_bot_verification_icon(ChannelId channel_id) const {
-  auto c = get_channel(channel_id);
-  if (c == nullptr) {
-    return CustomEmojiId();
-  }
-  return c->bot_verification_icon;
+td_api::object_ptr<td_api::verificationStatus> ChatManager::get_channel_verification_status_object(
+    const Channel *c) const {
+  return get_verification_status_object(td_, c->is_verified, c->is_scam, c->is_fake, c->bot_verification_icon);
 }
 
 bool ChatManager::get_channel_sign_messages(ChannelId channel_id) const {
@@ -8897,8 +8888,8 @@ td_api::object_ptr<td_api::updateSupergroup> ChatManager::get_update_unknown_sup
   bool is_megagroup = min_channel == nullptr ? false : min_channel->is_megagroup_;
   return td_api::make_object<td_api::updateSupergroup>(td_api::make_object<td_api::supergroup>(
       channel_id.get(), nullptr, 0, DialogParticipantStatus::Banned(0).get_chat_member_status_object(), 0, 0, false,
-      false, false, false, !is_megagroup, false, false, !is_megagroup, false, false, false, 0, false, string(), false,
-      false, false, false));
+      false, false, false, !is_megagroup, false, false, !is_megagroup, false, false, nullptr, false, string(), false,
+      false));
 }
 
 int64 ChatManager::get_supergroup_id_object(ChannelId channel_id, const char *source) const {
@@ -8938,10 +8929,9 @@ td_api::object_ptr<td_api::supergroup> ChatManager::get_supergroup_object(Channe
       get_channel_status(c).get_chat_member_status_object(), c->participant_count, c->boost_level,
       c->has_linked_channel, c->has_location, c->sign_messages, c->show_message_sender, get_channel_join_to_send(c),
       get_channel_join_request(c), c->is_slow_mode_enabled, !c->is_megagroup, c->is_gigagroup, c->is_forum,
-      c->is_verified, c->bot_verification_icon.get(),
-      get_restriction_reason_has_sensitive_content(c->restriction_reasons),
-      get_restriction_reason_description(c->restriction_reasons), c->is_scam, c->is_fake,
-      c->max_active_story_id.is_valid(), get_channel_has_unread_stories(c));
+      get_channel_verification_status_object(c), get_restriction_reason_has_sensitive_content(c->restriction_reasons),
+      get_restriction_reason_description(c->restriction_reasons), c->max_active_story_id.is_valid(),
+      get_channel_has_unread_stories(c));
 }
 
 tl_object_ptr<td_api::supergroupFullInfo> ChatManager::get_supergroup_full_info_object(ChannelId channel_id) const {

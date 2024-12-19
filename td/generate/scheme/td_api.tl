@@ -618,6 +618,13 @@ botVerificationParameters icon_custom_emoji_id:int64 company_name:string descrip
 //@parameters Parameters that were used for verification
 botVerification bot_user_id:int53 parameters:botVerificationParameters = BotVerification;
 
+//@description Contains information about verification status of a chat or a user
+//@is_verified True, if the chat or the user is verified by Telegram
+//@is_scam True, if the chat or the user is marked as scam by Telegram
+//@is_fake True, if the chat or the user is marked as fake by Telegram
+//@bot_verification_icon_custom_emoji_id Identifier of the custom emoji to be shown as verification sign provided by a bot for the user; 0 if none
+verificationStatus is_verified:Bool is_scam:Bool is_fake:Bool bot_verification_icon_custom_emoji_id:int64 = VerificationStatus;
+
 
 //@description Represents a location to which a chat is connected @location The location @address Location address; 1-64 characters, as defined by the chat owner
 chatLocation location:location address:string = ChatLocation;
@@ -1291,13 +1298,10 @@ usernames active_usernames:vector<string> disabled_usernames:vector<string> edit
 //@is_contact The user is a contact of the current user
 //@is_mutual_contact The user is a contact of the current user and the current user is a contact of the user
 //@is_close_friend The user is a close friend of the current user; implies that the user is a contact
-//@is_verified True, if the user is verified
-//@bot_verification_icon_custom_emoji_id Identifier of the custom emoji to be shown as verification sign by a bot for the user; 0 if none
+//@verification_status Information about verification status of the user; may be null if none
 //@is_premium True, if the user is a Telegram Premium user
 //@is_support True, if the user is Telegram support account
 //@restriction_reason If non-empty, it contains a human-readable description of the reason why access to this user must be restricted
-//@is_scam True, if many users reported this user as a scam
-//@is_fake True, if many users reported this user as a fake account
 //@has_active_stories True, if the user has non-expired stories available to the current user
 //@has_unread_active_stories True, if the user has unread non-expired stories available to the current user
 //@restricts_new_chats True, if the user may restrict new chats with non-contacts. Use canSendMessageToUser to check whether the current user can message the user or try to create a chat with them
@@ -1305,7 +1309,7 @@ usernames active_usernames:vector<string> disabled_usernames:vector<string> edit
 //@type Type of the user
 //@language_code IETF language tag of the user's language; only available to bots
 //@added_to_attachment_menu True, if the user added the current bot to attachment menu; only available to bots
-user id:int53 first_name:string last_name:string usernames:usernames phone_number:string status:UserStatus profile_photo:profilePhoto accent_color_id:int32 background_custom_emoji_id:int64 profile_accent_color_id:int32 profile_background_custom_emoji_id:int64 emoji_status:emojiStatus is_contact:Bool is_mutual_contact:Bool is_close_friend:Bool is_verified:Bool bot_verification_icon_custom_emoji_id:int64 is_premium:Bool is_support:Bool restriction_reason:string is_scam:Bool is_fake:Bool has_active_stories:Bool has_unread_active_stories:Bool restricts_new_chats:Bool have_access:Bool type:UserType language_code:string added_to_attachment_menu:Bool = User;
+user id:int53 first_name:string last_name:string usernames:usernames phone_number:string status:UserStatus profile_photo:profilePhoto accent_color_id:int32 background_custom_emoji_id:int64 profile_accent_color_id:int32 profile_background_custom_emoji_id:int64 emoji_status:emojiStatus is_contact:Bool is_mutual_contact:Bool is_close_friend:Bool verification_status:verificationStatus is_premium:Bool is_support:Bool restriction_reason:string has_active_stories:Bool has_unread_active_stories:Bool restricts_new_chats:Bool have_access:Bool type:UserType language_code:string added_to_attachment_menu:Bool = User;
 
 
 //@description Contains information about a bot
@@ -1539,11 +1543,8 @@ chatInviteLinkSubscriptionInfo pricing:starSubscriptionPricing can_reuse:Bool fo
 //@subscription_info Information about subscription plan that must be paid by the user to use the link; may be null if the link doesn't require subscription
 //@creates_join_request True, if the link only creates join request
 //@is_public True, if the chat is a public supergroup or channel, i.e. it has a username or it is a location-based supergroup
-//@is_verified True, if the chat is verified
-//@bot_verification_icon_custom_emoji_id Identifier of the custom emoji to be shown as verification sign by a bot for the user; 0 if none
-//@is_scam True, if many users reported this chat as a scam
-//@is_fake True, if many users reported this chat as a fake account
-chatInviteLinkInfo chat_id:int53 accessible_for:int32 type:InviteLinkChatType title:string photo:chatPhotoInfo accent_color_id:int32 description:string member_count:int32 member_user_ids:vector<int53> subscription_info:chatInviteLinkSubscriptionInfo creates_join_request:Bool is_public:Bool is_verified:Bool bot_verification_icon_custom_emoji_id:int64 is_scam:Bool is_fake:Bool = ChatInviteLinkInfo;
+//@verification_status Information about verification status of the chat; may be null if none
+chatInviteLinkInfo chat_id:int53 accessible_for:int32 type:InviteLinkChatType title:string photo:chatPhotoInfo accent_color_id:int32 description:string member_count:int32 member_user_ids:vector<int53> subscription_info:chatInviteLinkSubscriptionInfo creates_join_request:Bool is_public:Bool verification_status:verificationStatus = ChatInviteLinkInfo;
 
 
 //@description Describes a user that sent a join request and waits for administrator approval @user_id User identifier @date Point in time (Unix timestamp) when the user sent the join request @bio A short bio of the user
@@ -1598,15 +1599,12 @@ basicGroupFullInfo photo:chatPhoto description:string creator_user_id:int53 memb
 //@is_channel True, if the supergroup is a channel
 //@is_broadcast_group True, if the supergroup is a broadcast group, i.e. only administrators can send messages and there is no limit on the number of members
 //@is_forum True, if the supergroup is a forum with topics
-//@is_verified True, if the supergroup or channel is verified
-//@bot_verification_icon_custom_emoji_id Identifier of the custom emoji to be shown as verification sign by a bot for the user; 0 if none
+//@verification_status Information about verification status of the supergroup or channel; may be null if none
 //@has_sensitive_content True, if content of media messages in the supergroup or channel chat must be hidden with 18+ spoiler
 //@restriction_reason If non-empty, contains a human-readable description of the reason why access to this supergroup or channel must be restricted
-//@is_scam True, if many users reported this supergroup or channel as a scam
-//@is_fake True, if many users reported this supergroup or channel as a fake account
 //@has_active_stories True, if the supergroup or channel has non-expired stories available to the current user
 //@has_unread_active_stories True, if the supergroup or channel has unread non-expired stories available to the current user
-supergroup id:int53 usernames:usernames date:int32 status:ChatMemberStatus member_count:int32 boost_level:int32 has_linked_chat:Bool has_location:Bool sign_messages:Bool show_message_sender:Bool join_to_send_messages:Bool join_by_request:Bool is_slow_mode_enabled:Bool is_channel:Bool is_broadcast_group:Bool is_forum:Bool is_verified:Bool bot_verification_icon_custom_emoji_id:int64 has_sensitive_content:Bool restriction_reason:string is_scam:Bool is_fake:Bool has_active_stories:Bool has_unread_active_stories:Bool = Supergroup;
+supergroup id:int53 usernames:usernames date:int32 status:ChatMemberStatus member_count:int32 boost_level:int32 has_linked_chat:Bool has_location:Bool sign_messages:Bool show_message_sender:Bool join_to_send_messages:Bool join_by_request:Bool is_slow_mode_enabled:Bool is_channel:Bool is_broadcast_group:Bool is_forum:Bool verification_status:verificationStatus has_sensitive_content:Bool restriction_reason:string has_active_stories:Bool has_unread_active_stories:Bool = Supergroup;
 
 //@description Contains full information about a supergroup or channel
 //@photo Chat photo; may be null if empty or unknown. If non-null, then it is the same photo as in chat.photo

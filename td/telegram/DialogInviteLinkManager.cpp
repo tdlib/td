@@ -20,6 +20,7 @@
 #include "td/telegram/ThemeManager.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/UserManager.h"
+#include "td/telegram/VerificationStatus.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
@@ -805,10 +806,7 @@ td_api::object_ptr<td_api::chatInviteLinkInfo> DialogInviteLinkManager::get_chat
   bool creates_join_request = false;
   bool is_public = false;
   bool is_member = false;
-  bool is_verified = false;
-  bool is_scam = false;
-  bool is_fake = false;
-  CustomEmojiId bot_verification_icon;
+  td_api::object_ptr<td_api::verificationStatus> verification_status;
 
   if (dialog_id.is_valid()) {
     switch (dialog_id.get_type()) {
@@ -831,10 +829,7 @@ td_api::object_ptr<td_api::chatInviteLinkInfo> DialogInviteLinkManager::get_chat
         is_megagroup = td_->chat_manager_->is_megagroup_channel(channel_id);
         participant_count = td_->chat_manager_->get_channel_participant_count(channel_id);
         is_member = td_->chat_manager_->get_channel_status(channel_id).is_member();
-        is_verified = td_->chat_manager_->get_channel_is_verified(channel_id);
-        is_scam = td_->chat_manager_->get_channel_is_scam(channel_id);
-        is_fake = td_->chat_manager_->get_channel_is_fake(channel_id);
-        bot_verification_icon = td_->chat_manager_->get_channel_bot_verification_icon(channel_id);
+        verification_status = td_->chat_manager_->get_channel_verification_status_object(channel_id);
         accent_color_id_object = td_->chat_manager_->get_channel_accent_color_id_object(channel_id);
         break;
       }
@@ -861,10 +856,9 @@ td_api::object_ptr<td_api::chatInviteLinkInfo> DialogInviteLinkManager::get_chat
     }
     creates_join_request = invite_link_info->creates_join_request;
     is_public = invite_link_info->is_public;
-    is_verified = invite_link_info->is_verified;
-    is_scam = invite_link_info->is_scam;
-    is_fake = invite_link_info->is_fake;
-    bot_verification_icon = invite_link_info->bot_verification_icon;
+    verification_status =
+        get_verification_status_object(td_, invite_link_info->is_verified, invite_link_info->is_scam,
+                                       invite_link_info->is_fake, invite_link_info->bot_verification_icon);
   }
 
   td_api::object_ptr<td_api::InviteLinkChatType> chat_type;
@@ -888,7 +882,7 @@ td_api::object_ptr<td_api::chatInviteLinkInfo> DialogInviteLinkManager::get_chat
       td_->dialog_manager_->get_chat_id_object(dialog_id, "chatInviteLinkInfo"), accessible_for, std::move(chat_type),
       title, get_chat_photo_info_object(td_->file_manager_.get(), photo), accent_color_id_object, description,
       participant_count, std::move(member_user_ids), std::move(subscription_info), creates_join_request, is_public,
-      is_verified, bot_verification_icon.get(), is_scam, is_fake);
+      std::move(verification_status));
 }
 
 void DialogInviteLinkManager::add_dialog_access_by_invite_link(DialogId dialog_id, const string &invite_link,

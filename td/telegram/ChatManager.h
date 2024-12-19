@@ -348,9 +348,7 @@ class ChatManager final : public Actor {
   DialogParticipantStatus get_channel_status(ChannelId channel_id) const;
   DialogParticipantStatus get_channel_permissions(ChannelId channel_id) const;
   bool get_channel_is_verified(ChannelId channel_id) const;
-  bool get_channel_is_scam(ChannelId channel_id) const;
-  bool get_channel_is_fake(ChannelId channel_id) const;
-  CustomEmojiId get_channel_bot_verification_icon(ChannelId channel_id) const;
+  td_api::object_ptr<td_api::verificationStatus> get_channel_verification_status_object(ChannelId channel_id) const;
   int32 get_channel_participant_count(ChannelId channel_id) const;
   bool get_channel_sign_messages(ChannelId channel_id) const;
   bool get_channel_show_message_sender(ChannelId channel_id) const;
@@ -706,6 +704,7 @@ class ChatManager final : public Actor {
   static ChannelType get_channel_type(const Channel *c);
   static DialogParticipantStatus get_channel_status(const Channel *c);
   DialogParticipantStatus get_channel_permissions(ChannelId channel_id, const Channel *c) const;
+  td_api::object_ptr<td_api::verificationStatus> get_channel_verification_status_object(const Channel *c) const;
   static bool get_channel_sign_messages(const Channel *c);
   static bool get_channel_show_message_sender(const Channel *c);
   static bool get_channel_has_linked_channel(const Channel *c);
