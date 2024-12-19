@@ -1127,6 +1127,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getBotInfoShortDescription &request);
 
+  void on_request(uint64 id, td_api::setMessageSenderBotVerification &request);
+
   void on_request(uint64 id, td_api::setBusinessLocation &request);
 
   void on_request(uint64 id, td_api::setBusinessOpeningHours &request);

@@ -90,6 +90,9 @@ class BotInfoManager final : public Actor {
 
   void get_bot_info_about(UserId bot_user_id, const string &language_code, Promise<string> &&promise);
 
+  void set_custom_bot_verification(UserId bot_user_id, DialogId dialog_id, bool is_verified,
+                                   const string &custom_description, Promise<Unit> &&promise);
+
  private:
   static constexpr double MAX_QUERY_DELAY = 0.01;
 

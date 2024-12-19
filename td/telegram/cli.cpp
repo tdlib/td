@@ -6950,6 +6950,13 @@ class CliClient final : public Actor {
       string language_code;
       get_args(args, bot_user_id, language_code);
       send_request(td_api::make_object<td_api::getBotInfoShortDescription>(bot_user_id, language_code));
+    } else if (op == "smsbv") {
+      UserId bot_user_id;
+      string sender_id;
+      string custom_description;
+      get_args(args, bot_user_id, sender_id, custom_description);
+      send_request(td_api::make_object<td_api::setMessageSenderBotVerification>(
+          bot_user_id, as_message_sender(sender_id), custom_description));
     } else if (op == "sh") {
       const string &prefix = args;
       send_request(td_api::make_object<td_api::searchHashtags>(prefix, 10));
