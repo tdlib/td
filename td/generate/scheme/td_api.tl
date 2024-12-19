@@ -11347,10 +11347,15 @@ getBotInfoShortDescription bot_user_id:int53 language_code:string = Text;
 
 
 //@description Changes the verification status of a user or a chat by an owned bot
-//@bot_user_id Identifier of the owned bot, which will verify the user
-//@verified_id Identifier of a user or a supergroup or channel chat, which verification is changed
+//@bot_user_id Identifier of the owned bot, which will verify the user or the chat
+//@verified_id Identifier of the user or the supergroup or channel chat, which will be verified by the bot
 //@custom_description Custom description of verification reason; if not specified, then the default one is used. Can be specified only if the bot is allowed to provide custom description
 setMessageSenderBotVerification bot_user_id:int53 verified_id:MessageSender custom_description:string = Ok;
+
+//@description Removes the verification status of a user or a chat by an owned bot
+//@bot_user_id Identifier of the owned bot, which verified the user or the chat
+//@verified_id Identifier of the user or the supergroup or channel chat, which verification is removed
+removeMessageSenderBotVerification bot_user_id:int53 verified_id:MessageSender = Ok;
 
 
 //@description Returns all active sessions of the current user

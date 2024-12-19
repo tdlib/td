@@ -5897,6 +5897,13 @@ void Requests::on_request(uint64 id, td_api::setMessageSenderBotVerification &re
                                                       request.custom_description_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::removeMessageSenderBotVerification &request) {
+  CREATE_OK_REQUEST_PROMISE();
+  TRY_RESULT_PROMISE(promise, dialog_id, get_message_sender_dialog_id(td_, request.verified_id_, true, false));
+  td_->bot_info_manager_->set_custom_bot_verification(UserId(request.bot_user_id_), dialog_id, false, string(),
+                                                      std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::setBusinessLocation &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
