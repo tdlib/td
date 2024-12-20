@@ -609,9 +609,9 @@ botMenuButton text:string url:string = BotMenuButton;
 
 //@description Describes parameters of verification that is provided by a bot
 //@icon_custom_emoji_id Identifier of the custom emoji that is used as the verification sign
-//@company_name Name of the company that provides verification
-//@custom_description Custom description of verification reason; may be null if none
-botVerificationParameters icon_custom_emoji_id:int64 company_name:string custom_description:formattedText = BotVerificationParameters;
+//@organization_name Name of the organization that provides verification
+//@custom_description Custom description of verification reason; may be null if none and "was verified by organization "organization_name"" to be used as description
+botVerificationParameters icon_custom_emoji_id:int64 organization_name:string custom_description:formattedText = BotVerificationParameters;
 
 //@description Describes verification status provided by a bot
 //@bot_user_id Identifier of the bot that provided the verification
@@ -11349,7 +11349,7 @@ getBotInfoShortDescription bot_user_id:int53 language_code:string = Text;
 //@description Changes the verification status of a user or a chat by an owned bot
 //@bot_user_id Identifier of the owned bot, which will verify the user or the chat
 //@verified_id Identifier of the user or the supergroup or channel chat, which will be verified by the bot
-//@custom_description Custom description of verification reason; if not specified, then the default one is used. Can be specified only if the bot is allowed to provide custom description
+//@custom_description Custom description of verification reason; may by empty. Can be specified only if the bot is allowed to provide custom description
 setMessageSenderBotVerification bot_user_id:int53 verified_id:MessageSender custom_description:string = Ok;
 
 //@description Removes the verification status of a user or a chat by an owned bot
