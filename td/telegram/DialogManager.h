@@ -228,6 +228,13 @@ class DialogManager final : public Actor {
   void toggle_dialog_report_spam_state_on_server(DialogId dialog_id, bool is_spam_dialog, uint64 log_event_id,
                                                  Promise<Unit> &&promise);
 
+  void get_blocked_dialogs(const td_api::object_ptr<td_api::BlockList> &block_list, int32 offset, int32 limit,
+                           Promise<td_api::object_ptr<td_api::messageSenders>> &&promise);
+
+  void on_get_blocked_dialogs(int32 offset, int32 limit, int32 total_count,
+                              vector<telegram_api::object_ptr<telegram_api::peerBlocked>> &&blocked_peers,
+                              Promise<td_api::object_ptr<td_api::messageSenders>> &&promise);
+
   void on_binlog_events(vector<BinlogEvent> &&events);
 
  private:

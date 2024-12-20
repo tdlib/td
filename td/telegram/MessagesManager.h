@@ -562,13 +562,6 @@ class MessagesManager final : public Actor {
 
   bool is_dialog_blocked(DialogId dialog_id) const;
 
-  void get_blocked_dialogs(const td_api::object_ptr<td_api::BlockList> &block_list, int32 offset, int32 limit,
-                           Promise<td_api::object_ptr<td_api::messageSenders>> &&promise);
-
-  void on_get_blocked_dialogs(int32 offset, int32 limit, int32 total_count,
-                              vector<tl_object_ptr<telegram_api::peerBlocked>> &&blocked_peers,
-                              Promise<td_api::object_ptr<td_api::messageSenders>> &&promise);
-
   static Status can_report_message(MessageId message_id);
 
   bool can_share_message_in_story(MessageFullId message_full_id);

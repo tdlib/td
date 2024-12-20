@@ -737,68 +737,6 @@ class SearchPublicDialogsQuery final : public Td::ResultHandler {
   }
 };
 
-class GetBlockedDialogsQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::messageSenders>> promise_;
-  int32 offset_;
-  int32 limit_;
-
- public:
-  explicit GetBlockedDialogsQuery(Promise<td_api::object_ptr<td_api::messageSenders>> &&promise)
-      : promise_(std::move(promise)) {
-  }
-
-  void send(BlockListId block_list_id, int32 offset, int32 limit) {
-    offset_ = offset;
-    limit_ = limit;
-
-    int32 flags = 0;
-    if (block_list_id == BlockListId::stories()) {
-      flags |= telegram_api::contacts_getBlocked::MY_STORIES_FROM_MASK;
-    }
-
-    send_query(
-        G()->net_query_creator().create(telegram_api::contacts_getBlocked(flags, false /*ignored*/, offset, limit)));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::contacts_getBlocked>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for GetBlockedDialogsQuery: " << to_string(ptr);
-
-    switch (ptr->get_id()) {
-      case telegram_api::contacts_blocked::ID: {
-        auto blocked_peers = move_tl_object_as<telegram_api::contacts_blocked>(ptr);
-
-        td_->user_manager_->on_get_users(std::move(blocked_peers->users_), "GetBlockedDialogsQuery");
-        td_->chat_manager_->on_get_chats(std::move(blocked_peers->chats_), "GetBlockedDialogsQuery");
-        td_->messages_manager_->on_get_blocked_dialogs(offset_, limit_,
-                                                       narrow_cast<int32>(blocked_peers->blocked_.size()),
-                                                       std::move(blocked_peers->blocked_), std::move(promise_));
-        break;
-      }
-      case telegram_api::contacts_blockedSlice::ID: {
-        auto blocked_peers = move_tl_object_as<telegram_api::contacts_blockedSlice>(ptr);
-
-        td_->user_manager_->on_get_users(std::move(blocked_peers->users_), "GetBlockedDialogsQuery slice");
-        td_->chat_manager_->on_get_chats(std::move(blocked_peers->chats_), "GetBlockedDialogsQuery slice");
-        td_->messages_manager_->on_get_blocked_dialogs(offset_, limit_, blocked_peers->count_,
-                                                       std::move(blocked_peers->blocked_), std::move(promise_));
-        break;
-      }
-      default:
-        UNREACHABLE();
-    }
-  }
-
-  void on_error(Status status) final {
-    promise_.set_error(std::move(status));
-  }
-};
-
 class SetChatAvailableReactionsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -16412,44 +16350,6 @@ void MessagesManager::block_message_sender_from_replies_on_server(MessageId mess
 bool MessagesManager::is_dialog_blocked(DialogId dialog_id) const {
   const Dialog *d = get_dialog(dialog_id);
   return d != nullptr && d->is_blocked;
-}
-
-void MessagesManager::get_blocked_dialogs(const td_api::object_ptr<td_api::BlockList> &block_list, int32 offset,
-                                          int32 limit, Promise<td_api::object_ptr<td_api::messageSenders>> &&promise) {
-  if (offset < 0) {
-    return promise.set_error(Status::Error(400, "Parameter offset must be non-negative"));
-  }
-
-  if (limit <= 0) {
-    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
-  }
-
-  auto block_list_id = BlockListId(block_list);
-  if (!block_list_id.is_valid()) {
-    return promise.set_error(Status::Error(400, "Block list must be non-empty"));
-  }
-
-  td_->create_handler<GetBlockedDialogsQuery>(std::move(promise))->send(block_list_id, offset, limit);
-}
-
-void MessagesManager::on_get_blocked_dialogs(int32 offset, int32 limit, int32 total_count,
-                                             vector<tl_object_ptr<telegram_api::peerBlocked>> &&blocked_peers,
-                                             Promise<td_api::object_ptr<td_api::messageSenders>> &&promise) {
-  LOG(INFO) << "Receive " << blocked_peers.size() << " blocked chats from offset " << offset << " out of "
-            << total_count;
-  auto peers = transform(std::move(blocked_peers), [](tl_object_ptr<telegram_api::peerBlocked> &&blocked_peer) {
-    return std::move(blocked_peer->peer_id_);
-  });
-  auto dialog_ids = get_message_sender_dialog_ids(td_, std::move(peers));
-  if (!dialog_ids.empty() && offset + dialog_ids.size() > static_cast<size_t>(total_count)) {
-    LOG(ERROR) << "Fix total count of blocked chats from " << total_count << " to " << offset + dialog_ids.size();
-    total_count = offset + narrow_cast<int32>(dialog_ids.size());
-  }
-
-  auto senders = transform(dialog_ids, [td = td_](DialogId dialog_id) {
-    return get_message_sender_object(td, dialog_id, "on_get_blocked_dialogs");
-  });
-  promise.set_value(td_api::make_object<td_api::messageSenders>(total_count, std::move(senders)));
 }
 
 void MessagesManager::add_edited_message(DialogId dialog_id, MessageId message_id,

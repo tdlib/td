@@ -5487,7 +5487,7 @@ void Requests::on_request(uint64 id, const td_api::blockMessageSenderFromReplies
 void Requests::on_request(uint64 id, const td_api::getBlockedMessageSenders &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  td_->messages_manager_->get_blocked_dialogs(request.block_list_, request.offset_, request.limit_, std::move(promise));
+  td_->dialog_manager_->get_blocked_dialogs(request.block_list_, request.offset_, request.limit_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::addContact &request) {
