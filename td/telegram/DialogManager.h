@@ -235,6 +235,9 @@ class DialogManager final : public Actor {
                               vector<telegram_api::object_ptr<telegram_api::peerBlocked>> &&blocked_peers,
                               Promise<td_api::object_ptr<td_api::messageSenders>> &&promise);
 
+  void toggle_dialog_is_blocked_on_server(DialogId dialog_id, bool is_blocked, bool is_blocked_for_stories,
+                                          uint64 log_event_id);
+
   void on_binlog_events(vector<BinlogEvent> &&events);
 
  private:
@@ -265,6 +268,10 @@ class DialogManager final : public Actor {
 
   static uint64 save_toggle_dialog_report_spam_state_on_server_log_event(DialogId dialog_id, bool is_spam_dialog);
 
+  static uint64 save_toggle_dialog_is_blocked_on_server_log_event(DialogId dialog_id, bool is_blocked,
+                                                                  bool is_blocked_for_stories);
+
+  class ToggleDialogIsBlockedOnServerLogEvent;
   class ToggleDialogReportSpamStateOnServerLogEvent;
 
   class UploadDialogPhotoCallback;

@@ -692,6 +692,61 @@ class GetBlockedDialogsQuery final : public Td::ResultHandler {
   }
 };
 
+class ToggleDialogIsBlockedQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit ToggleDialogIsBlockedQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, bool is_blocked, bool is_blocked_for_stories) {
+    dialog_id_ = dialog_id;
+
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Know);
+    CHECK(input_peer != nullptr && input_peer->get_id() != telegram_api::inputPeerEmpty::ID);
+
+    int32 flags = 0;
+    if (is_blocked_for_stories) {
+      flags |= telegram_api::contacts_block::MY_STORIES_FROM_MASK;
+    }
+    vector<ChainId> chain_ids{{dialog_id, MessageContentType::Photo}, {dialog_id, MessageContentType::Text}};
+    auto query =
+        is_blocked || is_blocked_for_stories
+            ? G()->net_query_creator().create(
+                  telegram_api::contacts_block(flags, false /*ignored*/, std::move(input_peer)), std::move(chain_ids))
+            : G()->net_query_creator().create(
+                  telegram_api::contacts_unblock(flags, false /*ignored*/, std::move(input_peer)),
+                  std::move(chain_ids));
+    send_query(std::move(query));
+  }
+
+  void on_result(BufferSlice packet) final {
+    static_assert(
+        std::is_same<telegram_api::contacts_block::ReturnType, telegram_api::contacts_unblock::ReturnType>::value, "");
+    auto result_ptr = fetch_result<telegram_api::contacts_block>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.ok();
+    LOG_IF(WARNING, !result) << "Block/Unblock " << dialog_id_ << " has failed";
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    if (!td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ToggleDialogIsBlockedQuery")) {
+      LOG(ERROR) << "Receive error for ToggleDialogIsBlockedQuery: " << status;
+    }
+    if (!G()->close_flag()) {
+      td_->dialog_manager_->get_dialog_info_full(dialog_id_, Auto(), "ToggleDialogIsBlockedQuery");
+      td_->messages_manager_->reget_dialog_action_bar(dialog_id_, "ToggleDialogIsBlockedQuery");
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class DialogManager::UploadDialogPhotoCallback final : public FileManager::UploadCallback {
  public:
   void on_upload_ok(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
@@ -2484,39 +2539,6 @@ void DialogManager::toggle_dialog_report_spam_state_on_server(DialogId dialog_id
   }
 }
 
-void DialogManager::on_binlog_events(vector<BinlogEvent> &&events) {
-  if (G()->close_flag()) {
-    return;
-  }
-  bool have_old_message_database = G()->use_message_database() && !G()->td_db()->was_dialog_db_created();
-  for (auto &event : events) {
-    CHECK(event.id_ != 0);
-    switch (event.type_) {
-      case LogEvent::HandlerType::ToggleDialogReportSpamStateOnServer: {
-        if (!have_old_message_database) {
-          binlog_erase(G()->td_db()->get_binlog(), event.id_);
-          break;
-        }
-
-        ToggleDialogReportSpamStateOnServerLogEvent log_event;
-        log_event_parse(log_event, event.get_data()).ensure();
-
-        auto dialog_id = log_event.dialog_id_;
-        if (!have_dialog_force(dialog_id, "ToggleDialogReportSpamStateOnServerLogEvent") ||
-            !have_input_peer(dialog_id, true, AccessRights::Read)) {
-          binlog_erase(G()->td_db()->get_binlog(), event.id_);
-          break;
-        }
-
-        toggle_dialog_report_spam_state_on_server(dialog_id, log_event.is_spam_dialog_, event.id_, Promise<Unit>());
-        break;
-      }
-      default:
-        LOG(FATAL) << "Unsupported log event type " << event.type_;
-    }
-  }
-}
-
 void DialogManager::get_blocked_dialogs(const td_api::object_ptr<td_api::BlockList> &block_list, int32 offset,
                                         int32 limit, Promise<td_api::object_ptr<td_api::messageSenders>> &&promise) {
   if (offset < 0) {
@@ -2554,6 +2576,104 @@ void DialogManager::on_get_blocked_dialogs(int32 offset, int32 limit, int32 tota
     return get_message_sender_object(td, dialog_id, "on_get_blocked_dialogs");
   });
   promise.set_value(td_api::make_object<td_api::messageSenders>(total_count, std::move(senders)));
+}
+
+class DialogManager::ToggleDialogIsBlockedOnServerLogEvent {
+ public:
+  DialogId dialog_id_;
+  bool is_blocked_;
+  bool is_blocked_for_stories_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(is_blocked_);
+    STORE_FLAG(is_blocked_for_stories_);
+    END_STORE_FLAGS();
+
+    td::store(dialog_id_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(is_blocked_);
+    PARSE_FLAG(is_blocked_for_stories_);
+    END_PARSE_FLAGS();
+
+    td::parse(dialog_id_, parser);
+  }
+};
+
+uint64 DialogManager::save_toggle_dialog_is_blocked_on_server_log_event(DialogId dialog_id, bool is_blocked,
+                                                                        bool is_blocked_for_stories) {
+  ToggleDialogIsBlockedOnServerLogEvent log_event{dialog_id, is_blocked, is_blocked_for_stories};
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ToggleDialogIsBlockedOnServer,
+                    get_log_event_storer(log_event));
+}
+
+void DialogManager::toggle_dialog_is_blocked_on_server(DialogId dialog_id, bool is_blocked, bool is_blocked_for_stories,
+                                                       uint64 log_event_id) {
+  if (log_event_id == 0 && G()->use_message_database()) {
+    log_event_id = save_toggle_dialog_is_blocked_on_server_log_event(dialog_id, is_blocked, is_blocked_for_stories);
+  }
+
+  td_->create_handler<ToggleDialogIsBlockedQuery>(get_erase_log_event_promise(log_event_id))
+      ->send(dialog_id, is_blocked, is_blocked_for_stories);
+}
+
+void DialogManager::on_binlog_events(vector<BinlogEvent> &&events) {
+  if (G()->close_flag()) {
+    return;
+  }
+  bool have_old_message_database = G()->use_message_database() && !G()->td_db()->was_dialog_db_created();
+  for (auto &event : events) {
+    CHECK(event.id_ != 0);
+    switch (event.type_) {
+      case LogEvent::HandlerType::ToggleDialogIsBlockedOnServer: {
+        if (!have_old_message_database) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        ToggleDialogIsBlockedOnServerLogEvent log_event;
+        log_event_parse(log_event, event.get_data()).ensure();
+
+        auto dialog_id = log_event.dialog_id_;
+        if (dialog_id.get_type() == DialogType::SecretChat ||
+            !have_dialog_info_force(dialog_id, "ToggleDialogIsBlockedOnServerLogEvent") ||
+            !have_input_peer(dialog_id, true, AccessRights::Know)) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        toggle_dialog_is_blocked_on_server(dialog_id, log_event.is_blocked_, log_event.is_blocked_for_stories_,
+                                           event.id_);
+        break;
+      }
+      case LogEvent::HandlerType::ToggleDialogReportSpamStateOnServer: {
+        if (!have_old_message_database) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        ToggleDialogReportSpamStateOnServerLogEvent log_event;
+        log_event_parse(log_event, event.get_data()).ensure();
+
+        auto dialog_id = log_event.dialog_id_;
+        if (!have_dialog_force(dialog_id, "ToggleDialogReportSpamStateOnServerLogEvent") ||
+            !have_input_peer(dialog_id, true, AccessRights::Read)) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        toggle_dialog_report_spam_state_on_server(dialog_id, log_event.is_spam_dialog_, event.id_, Promise<Unit>());
+        break;
+      }
+      default:
+        LOG(FATAL) << "Unsupported log event type " << event.type_;
+    }
+  }
 }
 
 }  // namespace td

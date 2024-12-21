@@ -92,6 +92,7 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
       case LogEvent::HandlerType::StopPoll:
         events.to_poll_manager.push_back(event.clone());
         break;
+      case LogEvent::HandlerType::ToggleDialogIsBlockedOnServer:
       case LogEvent::HandlerType::ToggleDialogReportSpamStateOnServer:
         events.to_dialog_manager.push_back(event.clone());
         break;
@@ -118,7 +119,6 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
       case LogEvent::HandlerType::ToggleDialogIsMarkedAsUnreadOnServer:
       case LogEvent::HandlerType::SetDialogFolderIdOnServer:
       case LogEvent::HandlerType::DeleteScheduledMessagesOnServer:
-      case LogEvent::HandlerType::ToggleDialogIsBlockedOnServer:
       case LogEvent::HandlerType::ReadMessageThreadHistoryOnServer:
       case LogEvent::HandlerType::BlockMessageSenderFromRepliesOnServer:
       case LogEvent::HandlerType::UnpinAllDialogMessagesOnServer:
