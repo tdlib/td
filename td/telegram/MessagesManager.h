@@ -688,7 +688,7 @@ class MessagesManager final : public Actor {
                                           tl_object_ptr<td_api::chatNotificationSettings> &&notification_settings)
       TD_WARN_UNUSED_RESULT;
 
-  void reset_all_notification_settings();
+  void reset_all_dialog_notification_settings();
 
   void update_story_max_reply_media_timestamp_in_replied_messages(StoryFullId story_full_id);
 
@@ -1599,7 +1599,6 @@ class MessagesManager final : public Actor {
   class ReadMessageThreadHistoryOnServerLogEvent;
   class RegetDialogLogEvent;
   class ReorderPinnedDialogsOnServerLogEvent;
-  class ResetAllNotificationSettingsOnServerLogEvent;
   class SaveDialogDraftMessageOnServerLogEvent;
   class SendBotStartMessageLogEvent;
   class SendInlineQueryResultMessageLogEvent;
@@ -3002,8 +3001,6 @@ class MessagesManager final : public Actor {
 
   void on_updated_dialog_notification_settings(DialogId dialog_id, uint64 generation);
 
-  void reset_all_notification_settings_on_server(uint64 log_event_id);
-
   void set_dialog_folder_id_on_server(DialogId dialog_id, bool from_binlog);
 
   void on_updated_dialog_folder_id(DialogId dialog_id, uint64 generation);
@@ -3210,8 +3207,6 @@ class MessagesManager final : public Actor {
 
   static uint64 save_read_message_contents_on_server_log_event(DialogId dialog_id,
                                                                const vector<MessageId> &message_ids);
-
-  static uint64 save_reset_all_notification_settings_on_server_log_event();
 
   static uint64 save_reget_dialog_log_event(DialogId dialog_id);
 

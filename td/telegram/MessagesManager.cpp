@@ -19619,46 +19619,13 @@ Status MessagesManager::set_dialog_notification_settings(
   return Status::OK();
 }
 
-void MessagesManager::reset_all_notification_settings() {
-  CHECK(!td_->auth_manager_->is_bot());
-
+void MessagesManager::reset_all_dialog_notification_settings() {
   dialogs_.foreach([&](const DialogId &dialog_id, unique_ptr<Dialog> &dialog) {
     DialogNotificationSettings new_dialog_settings;
     new_dialog_settings.is_synchronized = true;
     Dialog *d = dialog.get();
     update_dialog_notification_settings(dialog_id, &d->notification_settings, std::move(new_dialog_settings));
   });
-
-  td_->notification_settings_manager_->reset_scope_notification_settings();
-
-  reset_all_notification_settings_on_server(0);
-}
-
-class MessagesManager::ResetAllNotificationSettingsOnServerLogEvent {
- public:
-  template <class StorerT>
-  void store(StorerT &storer) const {
-  }
-
-  template <class ParserT>
-  void parse(ParserT &parser) {
-  }
-};
-
-uint64 MessagesManager::save_reset_all_notification_settings_on_server_log_event() {
-  ResetAllNotificationSettingsOnServerLogEvent log_event;
-  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ResetAllNotificationSettingsOnServer,
-                    get_log_event_storer(log_event));
-}
-
-void MessagesManager::reset_all_notification_settings_on_server(uint64 log_event_id) {
-  CHECK(!td_->auth_manager_->is_bot());
-  if (log_event_id == 0) {
-    log_event_id = save_reset_all_notification_settings_on_server_log_event();
-  }
-
-  LOG(INFO) << "Reset all notification settings";
-  td_->notification_settings_manager_->reset_notify_settings(get_erase_log_event_promise(log_event_id));
 }
 
 tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dialog_id, MessageId from_message_id,
@@ -38230,13 +38197,6 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         d->save_notification_settings_log_event_id.log_event_id = event.id_;
 
         update_dialog_notification_settings_on_server(dialog_id, true);
-        break;
-      }
-      case LogEvent::HandlerType::ResetAllNotificationSettingsOnServer: {
-        ResetAllNotificationSettingsOnServerLogEvent log_event;
-        log_event_parse(log_event, event.get_data()).ensure();
-
-        reset_all_notification_settings_on_server(event.id_);
         break;
       }
       case LogEvent::HandlerType::SetDialogFolderIdOnServer: {

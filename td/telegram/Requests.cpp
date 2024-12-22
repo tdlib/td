@@ -6699,7 +6699,7 @@ void Requests::on_request(uint64 id, td_api::setReactionNotificationSettings &re
 
 void Requests::on_request(uint64 id, const td_api::resetAllNotificationSettings &request) {
   CHECK_IS_USER();
-  td_->messages_manager_->reset_all_notification_settings();
+  td_->notification_settings_manager_->reset_all_notification_settings();
   send_closure(td_actor_, &Td::send_result, id, td_api::make_object<td_api::ok>());
 }
 
