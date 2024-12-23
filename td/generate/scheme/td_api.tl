@@ -611,7 +611,8 @@ botMenuButton text:string url:string = BotMenuButton;
 //@icon_custom_emoji_id Identifier of the custom emoji that is used as the verification sign
 //@organization_name Name of the organization that provides verification
 //@custom_description Custom description of verification reason; may be null if none and "was verified by organization "organization_name"" must be used as description
-botVerificationParameters icon_custom_emoji_id:int64 organization_name:string custom_description:formattedText = BotVerificationParameters;
+//@can_set_custom_description True, if the bot is allowed to provide custom description for verified entities
+botVerificationParameters icon_custom_emoji_id:int64 organization_name:string custom_description:formattedText can_set_custom_description:Bool = BotVerificationParameters;
 
 //@description Describes verification status provided by a bot
 //@bot_user_id Identifier of the bot that provided the verification

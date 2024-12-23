@@ -19,6 +19,7 @@ BotVerifierSettings::BotVerifierSettings(
   icon_ = CustomEmojiId(bot_verifier_settings->icon_);
   company_ = std::move(bot_verifier_settings->company_);
   description_ = std::move(bot_verifier_settings->custom_description_);
+  can_modify_custom_description_ = bot_verifier_settings->can_modify_custom_description_;
 }
 
 BotVerifierSettings::BotVerifierSettings(telegram_api::object_ptr<telegram_api::botVerification> &&bot_verification) {
@@ -27,6 +28,7 @@ BotVerifierSettings::BotVerifierSettings(telegram_api::object_ptr<telegram_api::
   }
   icon_ = CustomEmojiId(bot_verification->icon_);
   description_ = std::move(bot_verification->description_);
+  can_modify_custom_description_ = !description_.empty();
 }
 
 unique_ptr<BotVerifierSettings> BotVerifierSettings::get_bot_verifier_settings(
@@ -54,11 +56,13 @@ td_api::object_ptr<td_api::botVerificationParameters> BotVerifierSettings::get_b
     text.entities = find_entities(text.text, true, true);
     description = get_formatted_text_object(td->user_manager_.get(), text, true, -1);
   }
-  return td_api::make_object<td_api::botVerificationParameters>(icon_.get(), company_, std::move(description));
+  return td_api::make_object<td_api::botVerificationParameters>(icon_.get(), company_, std::move(description),
+                                                                can_modify_custom_description_);
 }
 
 bool operator==(const BotVerifierSettings &lhs, const BotVerifierSettings &rhs) {
-  return lhs.icon_ == rhs.icon_ && lhs.company_ == rhs.company_ && lhs.description_ == rhs.description_;
+  return lhs.icon_ == rhs.icon_ && lhs.company_ == rhs.company_ && lhs.description_ == rhs.description_ &&
+         lhs.can_modify_custom_description_ == rhs.can_modify_custom_description_;
 }
 
 bool operator==(const unique_ptr<BotVerifierSettings> &lhs, const unique_ptr<BotVerifierSettings> &rhs) {

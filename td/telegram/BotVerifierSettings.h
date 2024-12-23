@@ -44,6 +44,7 @@ class BotVerifierSettings {
   CustomEmojiId icon_;
   string company_;
   string description_;
+  bool can_modify_custom_description_ = false;
 
   friend bool operator==(const BotVerifierSettings &lhs, const BotVerifierSettings &rhs);
 

@@ -17,6 +17,7 @@ void BotVerifierSettings::store(StorerT &storer) const {
   bool has_description = !description_.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_description);
+  STORE_FLAG(can_modify_custom_description_);
   END_STORE_FLAGS();
   td::store(icon_, storer);
   td::store(company_, storer);
@@ -30,6 +31,7 @@ void BotVerifierSettings::parse(ParserT &parser) {
   bool has_description;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_description);
+  PARSE_FLAG(can_modify_custom_description_);
   END_PARSE_FLAGS();
   td::parse(icon_, parser);
   td::parse(company_, parser);
