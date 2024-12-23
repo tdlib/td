@@ -238,6 +238,8 @@ class DialogManager final : public Actor {
   void toggle_dialog_is_blocked_on_server(DialogId dialog_id, bool is_blocked, bool is_blocked_for_stories,
                                           uint64 log_event_id);
 
+  void toggle_dialog_is_pinned_on_server(DialogId dialog_id, bool is_pinned, uint64 log_event_id);
+
   void on_binlog_events(vector<BinlogEvent> &&events);
 
  private:
@@ -266,12 +268,15 @@ class DialogManager final : public Actor {
 
   void on_resolve_dialog(const string &username, ChannelId channel_id, Promise<DialogId> &&promise);
 
-  static uint64 save_toggle_dialog_report_spam_state_on_server_log_event(DialogId dialog_id, bool is_spam_dialog);
-
   static uint64 save_toggle_dialog_is_blocked_on_server_log_event(DialogId dialog_id, bool is_blocked,
                                                                   bool is_blocked_for_stories);
 
+  static uint64 save_toggle_dialog_is_pinned_on_server_log_event(DialogId dialog_id, bool is_pinned);
+
+  static uint64 save_toggle_dialog_report_spam_state_on_server_log_event(DialogId dialog_id, bool is_spam_dialog);
+
   class ToggleDialogIsBlockedOnServerLogEvent;
+  class ToggleDialogIsPinnedOnServerLogEvent;
   class ToggleDialogReportSpamStateOnServerLogEvent;
 
   class UploadDialogPhotoCallback;

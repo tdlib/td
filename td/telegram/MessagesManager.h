@@ -1609,7 +1609,6 @@ class MessagesManager final : public Actor {
   class ToggleDialogViewAsMessagesOnServerLogEvent;
   class ToggleDialogIsMarkedAsUnreadOnServerLogEvent;
   class ToggleDialogIsTranslatableOnServerLogEvent;
-  class ToggleDialogIsPinnedOnServerLogEvent;
   class UnpinAllDialogMessagesOnServerLogEvent;
   class UpdateDialogNotificationSettingsOnServerLogEvent;
 
@@ -2591,8 +2590,6 @@ class MessagesManager final : public Actor {
 
   void do_set_dialog_folder_id(Dialog *d, FolderId folder_id);
 
-  void toggle_dialog_is_pinned_on_server(DialogId dialog_id, bool is_pinned, uint64 log_event_id);
-
   void toggle_dialog_view_as_messages_on_server(DialogId dialog_id, bool view_as_messages, uint64 log_event_id);
 
   void toggle_dialog_is_marked_as_unread_on_server(DialogId dialog_id, bool is_marked_as_unread, uint64 log_event_id);
@@ -3193,8 +3190,6 @@ class MessagesManager final : public Actor {
   static uint64 save_read_all_dialog_mentions_on_server_log_event(DialogId dialog_id);
 
   static uint64 save_read_all_dialog_reactions_on_server_log_event(DialogId dialog_id);
-
-  static uint64 save_toggle_dialog_is_pinned_on_server_log_event(DialogId dialog_id, bool is_pinned);
 
   static uint64 save_reorder_pinned_dialogs_on_server_log_event(FolderId folder_id, const vector<DialogId> &dialog_ids);
 

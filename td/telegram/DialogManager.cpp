@@ -747,6 +747,56 @@ class ToggleDialogIsBlockedQuery final : public Td::ResultHandler {
   }
 };
 
+class ToggleDialogPinQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+  bool is_pinned_;
+
+ public:
+  explicit ToggleDialogPinQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, bool is_pinned) {
+    dialog_id_ = dialog_id;
+    is_pinned_ = is_pinned;
+
+    auto input_peer = td_->dialog_manager_->get_input_dialog_peer(dialog_id, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
+
+    int32 flags = 0;
+    if (is_pinned) {
+      flags |= telegram_api::messages_toggleDialogPin::PINNED_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_toggleDialogPin(flags, false /*ignored*/, std::move(input_peer)), {{dialog_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_toggleDialogPin>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.ok();
+    if (!result) {
+      return on_error(Status::Error(400, "Toggle dialog pin failed"));
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    if (!td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ToggleDialogPinQuery")) {
+      LOG(ERROR) << "Receive error for ToggleDialogPinQuery: " << status;
+    }
+    td_->messages_manager_->on_update_pinned_dialogs(FolderId::main());
+    td_->messages_manager_->on_update_pinned_dialogs(FolderId::archive());
+    promise_.set_error(std::move(status));
+  }
+};
+
 class DialogManager::UploadDialogPhotoCallback final : public FileManager::UploadCallback {
  public:
   void on_upload_ok(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
@@ -2622,6 +2672,50 @@ void DialogManager::toggle_dialog_is_blocked_on_server(DialogId dialog_id, bool 
       ->send(dialog_id, is_blocked, is_blocked_for_stories);
 }
 
+class DialogManager::ToggleDialogIsPinnedOnServerLogEvent {
+ public:
+  DialogId dialog_id_;
+  bool is_pinned_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(is_pinned_);
+    END_STORE_FLAGS();
+
+    td::store(dialog_id_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(is_pinned_);
+    END_PARSE_FLAGS();
+
+    td::parse(dialog_id_, parser);
+  }
+};
+
+uint64 DialogManager::save_toggle_dialog_is_pinned_on_server_log_event(DialogId dialog_id, bool is_pinned) {
+  ToggleDialogIsPinnedOnServerLogEvent log_event{dialog_id, is_pinned};
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ToggleDialogIsPinnedOnServer,
+                    get_log_event_storer(log_event));
+}
+
+void DialogManager::toggle_dialog_is_pinned_on_server(DialogId dialog_id, bool is_pinned, uint64 log_event_id) {
+  CHECK(!td_->auth_manager_->is_bot());
+  if (log_event_id == 0 && dialog_id.get_type() == DialogType::SecretChat) {
+    // don't even create new binlog events
+    return;
+  }
+
+  if (log_event_id == 0 && G()->use_message_database()) {
+    log_event_id = save_toggle_dialog_is_pinned_on_server_log_event(dialog_id, is_pinned);
+  }
+
+  td_->create_handler<ToggleDialogPinQuery>(get_erase_log_event_promise(log_event_id))->send(dialog_id, is_pinned);
+}
+
 void DialogManager::on_binlog_events(vector<BinlogEvent> &&events) {
   if (G()->close_flag()) {
     return;
@@ -2649,6 +2743,25 @@ void DialogManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         toggle_dialog_is_blocked_on_server(dialog_id, log_event.is_blocked_, log_event.is_blocked_for_stories_,
                                            event.id_);
+        break;
+      }
+      case LogEvent::HandlerType::ToggleDialogIsPinnedOnServer: {
+        if (!have_old_message_database) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        ToggleDialogIsPinnedOnServerLogEvent log_event;
+        log_event_parse(log_event, event.get_data()).ensure();
+
+        auto dialog_id = log_event.dialog_id_;
+        if (!have_dialog_force(dialog_id, "ToggleDialogIsPinnedOnServerLogEvent") ||
+            !have_input_peer(dialog_id, true, AccessRights::Read)) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        toggle_dialog_is_pinned_on_server(dialog_id, log_event.is_pinned_, event.id_);
         break;
       }
       case LogEvent::HandlerType::ToggleDialogReportSpamStateOnServer: {

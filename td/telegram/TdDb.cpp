@@ -93,6 +93,7 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
         events.to_poll_manager.push_back(event.clone());
         break;
       case LogEvent::HandlerType::ToggleDialogIsBlockedOnServer:
+      case LogEvent::HandlerType::ToggleDialogIsPinnedOnServer:
       case LogEvent::HandlerType::ToggleDialogReportSpamStateOnServer:
         events.to_dialog_manager.push_back(event.clone());
         break;
@@ -108,7 +109,6 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
       case LogEvent::HandlerType::DeleteDialogHistoryOnServer:
       case LogEvent::HandlerType::ReadAllDialogMentionsOnServer:
       case LogEvent::HandlerType::DeleteAllChannelMessagesFromSenderOnServer:
-      case LogEvent::HandlerType::ToggleDialogIsPinnedOnServer:
       case LogEvent::HandlerType::ReorderPinnedDialogsOnServer:
       case LogEvent::HandlerType::SaveDialogDraftMessageOnServer:
       case LogEvent::HandlerType::UpdateDialogNotificationSettingsOnServer:
