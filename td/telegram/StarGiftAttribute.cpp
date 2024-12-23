@@ -51,4 +51,27 @@ bool operator==(const StarGiftAttributeSticker &lhs, const StarGiftAttributeStic
          lhs.rarity_permille_ == rhs.rarity_permille_;
 }
 
+StarGiftAttributeBackground::StarGiftAttributeBackground(
+    telegram_api::object_ptr<telegram_api::starGiftAttributeBackdrop> &&attribute)
+    : name_(std::move(attribute->name_))
+    , center_color_(attribute->center_color_)
+    , edge_color_(attribute->edge_color_)
+    , pattern_color_(attribute->pattern_color_)
+    , text_color_(attribute->text_color_)
+    , rarity_permille_(attribute->rarity_permille_) {
+}
+
+td_api::object_ptr<td_api::upgradedGiftBackground> StarGiftAttributeBackground::get_upgraded_gift_background_object()
+    const {
+  CHECK(is_valid());
+  return td_api::make_object<td_api::upgradedGiftBackground>(name_, center_color_, edge_color_, pattern_color_,
+                                                             text_color_, rarity_permille_);
+}
+
+bool operator==(const StarGiftAttributeBackground &lhs, const StarGiftAttributeBackground &rhs) {
+  return lhs.name_ == rhs.name_ && lhs.center_color_ == rhs.center_color_ && lhs.edge_color_ == rhs.edge_color_ &&
+         lhs.pattern_color_ == rhs.pattern_color_ && lhs.text_color_ == rhs.text_color_ &&
+         lhs.rarity_permille_ == rhs.rarity_permille_;
+}
+
 }  // namespace td

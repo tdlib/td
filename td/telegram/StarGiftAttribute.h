@@ -52,4 +52,43 @@ inline bool operator!=(const StarGiftAttributeSticker &lhs, const StarGiftAttrib
   return !(lhs == rhs);
 }
 
+class StarGiftAttributeBackground {
+  string name_;
+  int32 center_color_ = 0;
+  int32 edge_color_ = 0;
+  int32 pattern_color_ = 0;
+  int32 text_color_ = 0;
+  int32 rarity_permille_ = 0;
+
+  friend bool operator==(const StarGiftAttributeBackground &lhs, const StarGiftAttributeBackground &rhs);
+
+  bool is_valid_color(int32 color) const {
+    return 0 <= color && color <= 0xFFFFFF;
+  }
+
+ public:
+  StarGiftAttributeBackground() = default;
+
+  explicit StarGiftAttributeBackground(telegram_api::object_ptr<telegram_api::starGiftAttributeBackdrop> &&attribute);
+
+  bool is_valid() const {
+    return 0 < rarity_permille_ && rarity_permille_ <= 1000 && is_valid_color(center_color_) &&
+           is_valid_color(edge_color_) && is_valid_color(pattern_color_) && is_valid_color(text_color_);
+  }
+
+  td_api::object_ptr<td_api::upgradedGiftBackground> get_upgraded_gift_background_object() const;
+
+  template <class StorerT>
+  void store(StorerT &storer) const;
+
+  template <class ParserT>
+  void parse(ParserT &parser);
+};
+
+bool operator==(const StarGiftAttributeBackground &lhs, const StarGiftAttributeBackground &rhs);
+
+inline bool operator!=(const StarGiftAttributeBackground &lhs, const StarGiftAttributeBackground &rhs) {
+  return !(lhs == rhs);
+}
+
 }  // namespace td

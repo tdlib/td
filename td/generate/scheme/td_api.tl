@@ -1031,10 +1031,19 @@ starGiveawayPaymentOptions options:vector<starGiveawayPaymentOption> = StarGivea
 upgradedGiftModel name:string sticker:sticker rarity_per_mille:int32 = UpgradedGiftModel;
 
 //@description Describes a emoji shown on the pattern of an upgraded gift
-//@name Name of the pattern
+//@name Name of the pattern emoji
 //@sticker The sticker representing the upgraded gift
 //@rarity_per_mille The number of upgraded gift that receive this pattern emoji for each 1000 gifts upgraded
 upgradedGiftPatternEmoji name:string sticker:sticker rarity_per_mille:int32 = UpgradedGiftPatternEmoji;
+
+//@description Describes a background of an upgraded gift
+//@name Name of the background
+//@center_color A color in the center of the background in the RGB format
+//@edge_color A color on the edges of the background in the RGB format
+//@pattern_emoji_color A color to be applied for the pattern emoji in the RGB format
+//@text_color A color for the text on the background in the RGB format
+//@rarity_per_mille The number of upgraded gift that receive this pattern emoji for each 1000 gifts upgraded
+upgradedGiftBackground name:string center_color:int32 edge_color:int32 pattern_emoji_color:int32 text_color:int32 rarity_per_mille:int32 = UpgradedGiftBackground;
 
 //@description Describes a gift that can be sent to another user
 //@id Unique identifier of the gift

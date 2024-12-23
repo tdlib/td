@@ -38,4 +38,29 @@ void StarGiftAttributeSticker::parse(ParserT &parser) {
   td::parse(rarity_permille_, parser);
 }
 
+template <class StorerT>
+void StarGiftAttributeBackground::store(StorerT &storer) const {
+  CHECK(is_valid());
+  BEGIN_STORE_FLAGS();
+  END_STORE_FLAGS();
+  td::store(name_, storer);
+  td::store(center_color_, storer);
+  td::store(edge_color_, storer);
+  td::store(pattern_color_, storer);
+  td::store(text_color_, storer);
+  td::store(rarity_permille_, storer);
+}
+
+template <class ParserT>
+void StarGiftAttributeBackground::parse(ParserT &parser) {
+  BEGIN_PARSE_FLAGS();
+  END_PARSE_FLAGS();
+  td::parse(name_, parser);
+  td::parse(center_color_, parser);
+  td::parse(edge_color_, parser);
+  td::parse(pattern_color_, parser);
+  td::parse(text_color_, parser);
+  td::parse(rarity_permille_, parser);
+}
+
 }  // namespace td
