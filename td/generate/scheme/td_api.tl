@@ -610,14 +610,15 @@ botMenuButton text:string url:string = BotMenuButton;
 //@description Describes parameters of verification that is provided by a bot
 //@icon_custom_emoji_id Identifier of the custom emoji that is used as the verification sign
 //@organization_name Name of the organization that provides verification
-//@custom_description Custom description of verification reason; may be null if none and "was verified by organization "organization_name"" must be used as description
+//@default_custom_description Default custom description of verification reason to be used as placeholder in setMessageSenderBotVerification; may be null if none
 //@can_set_custom_description True, if the bot is allowed to provide custom description for verified entities
-botVerificationParameters icon_custom_emoji_id:int64 organization_name:string custom_description:formattedText can_set_custom_description:Bool = BotVerificationParameters;
+botVerificationParameters icon_custom_emoji_id:int64 organization_name:string default_custom_description:formattedText can_set_custom_description:Bool = BotVerificationParameters;
 
 //@description Describes verification status provided by a bot
 //@bot_user_id Identifier of the bot that provided the verification
-//@parameters Parameters that were used for verification
-botVerification bot_user_id:int53 parameters:botVerificationParameters = BotVerification;
+//@icon_custom_emoji_id Identifier of the custom emoji that is used as the verification sign
+//@custom_description Custom description of verification reason set by the bot
+botVerification bot_user_id:int53 icon_custom_emoji_id:int64 custom_description:formattedText = BotVerification;
 
 //@description Contains information about verification status of a chat or a user
 //@is_verified True, if the chat or the user is verified by Telegram

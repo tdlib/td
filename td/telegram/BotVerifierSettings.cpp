@@ -50,7 +50,7 @@ td_api::object_ptr<td_api::botVerificationParameters> BotVerifierSettings::get_b
     return nullptr;
   }
   td_api::object_ptr<td_api::formattedText> description;
-  if (!description_.empty()) {
+  if (!description_.empty() || can_modify_custom_description_) {
     FormattedText text;
     text.text = description_;
     text.entities = find_entities(text.text, true, true);
