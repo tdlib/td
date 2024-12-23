@@ -1023,6 +1023,13 @@ starGiveawayPaymentOption currency:string amount:int53 star_count:int53 store_pr
 //@description Contains a list of options for creating Telegram Star giveaway @options The list of options
 starGiveawayPaymentOptions options:vector<starGiveawayPaymentOption> = StarGiveawayPaymentOptions;
 
+
+//@description Describes a model of an upgraded gift
+//@name Name of the model
+//@sticker The sticker representing the upgraded gift
+//@rarity_per_mille The number of upgraded gift that receive this model for each 1000 gifts upgraded
+upgradedGiftModel name:string sticker:sticker rarity_per_mille:int32 = UpgradedGiftModel;
+
 //@description Describes a gift that can be sent to another user
 //@id Unique identifier of the gift
 //@sticker The sticker representing the gift

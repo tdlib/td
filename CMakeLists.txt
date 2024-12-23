@@ -590,6 +590,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/SponsoredMessageManager.cpp
   td/telegram/StarAmount.cpp
   td/telegram/StarGift.cpp
+  td/telegram/StarGiftAttribute.cpp
   td/telegram/StarGiftManager.cpp
   td/telegram/StarManager.cpp
   td/telegram/StarSubscription.cpp
@@ -958,6 +959,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/SponsoredMessageManager.h
   td/telegram/StarAmount.h
   td/telegram/StarGift.h
+  td/telegram/StarGiftAttribute.h
   td/telegram/StarGiftManager.h
   td/telegram/StarManager.h
   td/telegram/StarSubscription.h
@@ -1098,6 +1100,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/SharedDialog.hpp
   td/telegram/StarAmount.hpp
   td/telegram/StarGift.hpp
+  td/telegram/StarGiftAttribute.hpp
   td/telegram/StarSubscriptionPricing.hpp
   td/telegram/StickerMaskPosition.hpp
   td/telegram/StickerPhotoSize.hpp
