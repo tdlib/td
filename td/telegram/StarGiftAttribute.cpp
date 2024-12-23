@@ -12,24 +12,41 @@
 
 namespace td {
 
-StarGiftAttributeModel::StarGiftAttributeModel(
+StarGiftAttributeSticker::StarGiftAttributeSticker(
     Td *td, telegram_api::object_ptr<telegram_api::starGiftAttributeModel> &&attribute)
     : name_(std::move(attribute->name_))
     , sticker_file_id_(td->stickers_manager_
                            ->on_get_sticker_document(std::move(attribute->document_), StickerFormat::Unknown,
-                                                     "StarGiftAttributeModel")
+                                                     "StarGiftAttributeSticker")
                            .second)
     , rarity_permille_(attribute->rarity_permille_) {
 }
 
-td_api::object_ptr<td_api::upgradedGiftModel> StarGiftAttributeModel::get_upgraded_gift_model_object(
+StarGiftAttributeSticker::StarGiftAttributeSticker(
+    Td *td, telegram_api::object_ptr<telegram_api::starGiftAttributePattern> &&attribute)
+    : name_(std::move(attribute->name_))
+    , sticker_file_id_(td->stickers_manager_
+                           ->on_get_sticker_document(std::move(attribute->document_), StickerFormat::Unknown,
+                                                     "StarGiftAttributeSticker")
+                           .second)
+    , rarity_permille_(attribute->rarity_permille_) {
+}
+
+td_api::object_ptr<td_api::upgradedGiftModel> StarGiftAttributeSticker::get_upgraded_gift_model_object(
     const Td *td) const {
   CHECK(is_valid());
   return td_api::make_object<td_api::upgradedGiftModel>(
       name_, td->stickers_manager_->get_sticker_object(sticker_file_id_), rarity_permille_);
 }
 
-bool operator==(const StarGiftAttributeModel &lhs, const StarGiftAttributeModel &rhs) {
+td_api::object_ptr<td_api::upgradedGiftPatternEmoji> StarGiftAttributeSticker::get_upgraded_gift_pattern_emoji_object(
+    const Td *td) const {
+  CHECK(is_valid());
+  return td_api::make_object<td_api::upgradedGiftPatternEmoji>(
+      name_, td->stickers_manager_->get_sticker_object(sticker_file_id_), rarity_permille_);
+}
+
+bool operator==(const StarGiftAttributeSticker &lhs, const StarGiftAttributeSticker &rhs) {
   return lhs.name_ == rhs.name_ && lhs.sticker_file_id_ == rhs.sticker_file_id_ &&
          lhs.rarity_permille_ == rhs.rarity_permille_;
 }

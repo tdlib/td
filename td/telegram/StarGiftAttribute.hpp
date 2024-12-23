@@ -18,18 +18,18 @@
 namespace td {
 
 template <class StorerT>
-void StarGiftAttributeModel::store(StorerT &storer) const {
+void StarGiftAttributeSticker::store(StorerT &storer) const {
   CHECK(is_valid());
   Td *td = storer.context()->td().get_actor_unsafe();
   BEGIN_STORE_FLAGS();
   END_STORE_FLAGS();
   td::store(name_, storer);
-  td->stickers_manager_->store_sticker(sticker_file_id_, false, storer, "StarGiftAttributeModel");
+  td->stickers_manager_->store_sticker(sticker_file_id_, false, storer, "StarGiftAttributeSticker");
   td::store(rarity_permille_, storer);
 }
 
 template <class ParserT>
-void StarGiftAttributeModel::parse(ParserT &parser) {
+void StarGiftAttributeSticker::parse(ParserT &parser) {
   Td *td = parser.context()->td().get_actor_unsafe();
   BEGIN_PARSE_FLAGS();
   END_PARSE_FLAGS();

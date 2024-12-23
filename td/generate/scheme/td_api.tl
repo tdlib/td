@@ -1030,6 +1030,12 @@ starGiveawayPaymentOptions options:vector<starGiveawayPaymentOption> = StarGivea
 //@rarity_per_mille The number of upgraded gift that receive this model for each 1000 gifts upgraded
 upgradedGiftModel name:string sticker:sticker rarity_per_mille:int32 = UpgradedGiftModel;
 
+//@description Describes a emoji shown on the pattern of an upgraded gift
+//@name Name of the pattern
+//@sticker The sticker representing the upgraded gift
+//@rarity_per_mille The number of upgraded gift that receive this pattern emoji for each 1000 gifts upgraded
+upgradedGiftPatternEmoji name:string sticker:sticker rarity_per_mille:int32 = UpgradedGiftPatternEmoji;
+
 //@description Describes a gift that can be sent to another user
 //@id Unique identifier of the gift
 //@sticker The sticker representing the gift

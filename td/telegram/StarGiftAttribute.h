@@ -17,23 +17,27 @@ namespace td {
 
 class Td;
 
-class StarGiftAttributeModel {
+class StarGiftAttributeSticker {
   string name_;
   FileId sticker_file_id_;
   int32 rarity_permille_ = 0;
 
-  friend bool operator==(const StarGiftAttributeModel &lhs, const StarGiftAttributeModel &rhs);
+  friend bool operator==(const StarGiftAttributeSticker &lhs, const StarGiftAttributeSticker &rhs);
 
  public:
-  StarGiftAttributeModel() = default;
+  StarGiftAttributeSticker() = default;
 
-  StarGiftAttributeModel(Td *td, telegram_api::object_ptr<telegram_api::starGiftAttributeModel> &&attribute);
+  StarGiftAttributeSticker(Td *td, telegram_api::object_ptr<telegram_api::starGiftAttributeModel> &&attribute);
+
+  StarGiftAttributeSticker(Td *td, telegram_api::object_ptr<telegram_api::starGiftAttributePattern> &&attribute);
 
   bool is_valid() const {
     return 0 < rarity_permille_ && rarity_permille_ <= 1000 && sticker_file_id_.is_valid();
   }
 
   td_api::object_ptr<td_api::upgradedGiftModel> get_upgraded_gift_model_object(const Td *td) const;
+
+  td_api::object_ptr<td_api::upgradedGiftPatternEmoji> get_upgraded_gift_pattern_emoji_object(const Td *td) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;
@@ -42,9 +46,9 @@ class StarGiftAttributeModel {
   void parse(ParserT &parser);
 };
 
-bool operator==(const StarGiftAttributeModel &lhs, const StarGiftAttributeModel &rhs);
+bool operator==(const StarGiftAttributeSticker &lhs, const StarGiftAttributeSticker &rhs);
 
-inline bool operator!=(const StarGiftAttributeModel &lhs, const StarGiftAttributeModel &rhs) {
+inline bool operator!=(const StarGiftAttributeSticker &lhs, const StarGiftAttributeSticker &rhs) {
   return !(lhs == rhs);
 }
 
