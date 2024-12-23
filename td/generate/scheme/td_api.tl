@@ -1042,12 +1042,13 @@ gifts gifts:vector<gift> = Gifts;
 //@sender_user_id Identifier of the user that sent the gift; 0 if unknown
 //@text Message added to the gift
 //@is_private True, if the sender and gift text are shown only to the gift receiver; otherwise, everyone are able to see them
-//@is_saved True, if the gift is displayed on the user's profile page; may be false only for the receiver of the gift
+//@is_saved True, if the gift is displayed on the user's profile page; only for the receiver of the gift
+//@can_be_upgraded True, if the gift is a regular gift that can be upgraded to a unique gift; only for the receiver of the gift
 //@date Point in time (Unix timestamp) when the gift was sent
 //@gift The gift
-//@message_id Identifier of the message with the gift in the chat with the sender of the gift; can be 0 or an identifier of a deleted message; only for the gift receiver
+//@message_id Identifier of the message with the gift in the chat with the sender of the gift; can be 0 or an identifier of a deleted message; only for the receiver of the gift
 //@sell_star_count Number of Telegram Stars that can be claimed by the receiver instead of the gift; 0 if the gift can't be sold by the current user
-userGift sender_user_id:int53 text:formattedText is_private:Bool is_saved:Bool date:int32 gift:gift message_id:int53 sell_star_count:int53 = UserGift;
+userGift sender_user_id:int53 text:formattedText is_private:Bool is_saved:Bool can_be_upgraded:Bool date:int32 gift:gift message_id:int53 sell_star_count:int53 = UserGift;
 
 //@description Represents a list of gifts received by a user
 //@total_count The total number of received gifts

@@ -288,7 +288,7 @@ class GetUserGiftsQuery final : public Td::ResultHandler {
       gifts.push_back(td_api::make_object<td_api::userGift>(
           td_->user_manager_->get_user_id_object(sender_user_id, "userGift"),
           get_formatted_text_object(td_->user_manager_.get(), text, true, -1), gift->name_hidden_, !gift->unsaved_,
-          gift->date_, star_gift.get_gift_object(td_), message_id.get(),
+          gift->can_upgrade_, gift->date_, star_gift.get_gift_object(td_), message_id.get(),
           StarManager::get_star_count(gift->convert_stars_)));
     }
     if (!is_me) {
