@@ -52,7 +52,7 @@ class GetStarGiftsQuery final : public Td::ResultHandler {
     vector<td_api::object_ptr<td_api::gift>> options;
     FlatHashMap<int64, int64> gift_prices;
     for (auto &gift : results->gifts_) {
-      StarGift star_gift(td_, std::move(gift));
+      StarGift star_gift(td_, std::move(gift), false);
       if (!star_gift.is_valid()) {
         continue;
       }
@@ -274,7 +274,7 @@ class GetUserGiftsQuery final : public Td::ResultHandler {
         LOG(ERROR) << "Receive unsaved gift for " << user_id_;
         gift->unsaved_ = false;
       }
-      StarGift star_gift(td_, std::move(gift->gift_));
+      StarGift star_gift(td_, std::move(gift->gift_), false /*TODO*/);
       if (!star_gift.is_valid()) {
         continue;
       }

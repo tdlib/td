@@ -10,14 +10,78 @@
 #include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/logging.h"
 
 namespace td {
 
-StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&star_gift_ptr) {
+StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&star_gift_ptr, bool allow_unique_gift) {
   CHECK(star_gift_ptr != nullptr);
-  if (star_gift_ptr->get_id() != telegram_api::starGift::ID) {
+  auto constructor_id = star_gift_ptr->get_id();
+  if (allow_unique_gift && constructor_id == telegram_api::starGiftUnique::ID) {
+    auto star_gift = telegram_api::move_object_as<telegram_api::starGiftUnique>(star_gift_ptr);
+    if (star_gift->id_ == 0) {
+      LOG(ERROR) << "Receive " << to_string(star_gift);
+      return;
+    }
+    is_unique_ = true;
+    id_ = star_gift->id_;
+    title_ = std::move(star_gift->title_);
+    num_ = star_gift->num_;
+    owner_user_id_ = UserId(star_gift->owner_id_);
+    unique_availability_issued_ = star_gift->availability_issued_;
+    unique_availability_total_ = star_gift->availability_total_;
+    for (auto &attribute : star_gift->attributes_) {
+      switch (attribute->get_id()) {
+        case telegram_api::starGiftAttributeModel::ID:
+          if (model_.is_valid()) {
+            LOG(ERROR) << "Receive duplicate model for " << *this;
+          }
+          model_ = StarGiftAttributeSticker(
+              td, telegram_api::move_object_as<telegram_api::starGiftAttributeModel>(attribute));
+          if (!model_.is_valid()) {
+            LOG(ERROR) << "Receive invalid model for " << *this;
+          }
+          break;
+        case telegram_api::starGiftAttributePattern::ID:
+          if (pattern_.is_valid()) {
+            LOG(ERROR) << "Receive duplicate pattern emoji for " << *this;
+          }
+          pattern_ = StarGiftAttributeSticker(
+              td, telegram_api::move_object_as<telegram_api::starGiftAttributePattern>(attribute));
+          if (!pattern_.is_valid()) {
+            LOG(ERROR) << "Receive invalid pattern emoji for " << *this;
+          }
+          break;
+        case telegram_api::starGiftAttributeBackdrop::ID:
+          if (background_.is_valid()) {
+            LOG(ERROR) << "Receive duplicate background for " << *this;
+          }
+          background_ = StarGiftAttributeBackground(
+              telegram_api::move_object_as<telegram_api::starGiftAttributeBackdrop>(attribute));
+          if (!background_.is_valid()) {
+            LOG(ERROR) << "Receive invalid background for " << *this;
+          }
+          break;
+        case telegram_api::starGiftAttributeOriginalDetails::ID:
+          if (original_details_.is_valid()) {
+            LOG(ERROR) << "Receive duplicate original details for " << *this;
+          }
+          original_details_ = StarGiftAttributeOriginalDetails(
+              td, telegram_api::move_object_as<telegram_api::starGiftAttributeOriginalDetails>(attribute));
+          if (!original_details_.is_valid()) {
+            LOG(ERROR) << "Receive invalid original details for " << *this;
+          }
+          break;
+        default:
+          UNREACHABLE();
+      }
+    }
+    return;
+  }
+  if (constructor_id != telegram_api::starGift::ID) {
+    LOG(ERROR) << "Receive " << to_string(star_gift_ptr);
     return;
   }
   auto star_gift = telegram_api::move_object_as<telegram_api::starGift>(star_gift_ptr);
@@ -60,9 +124,20 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&st
 
 td_api::object_ptr<td_api::gift> StarGift::get_gift_object(const Td *td) const {
   CHECK(is_valid());
+  CHECK(!is_unique_);
   return td_api::make_object<td_api::gift>(
       id_, td->stickers_manager_->get_sticker_object(sticker_file_id_), star_count_, default_sell_star_count_,
       is_for_birthday_, availability_remains_, availability_total_, first_sale_date_, last_sale_date_);
+}
+
+td_api::object_ptr<td_api::upgradedGift> StarGift::get_upgraded_gift_object(Td *td) const {
+  CHECK(is_valid());
+  CHECK(is_unique_);
+  return td_api::make_object<td_api::upgradedGift>(
+      id_, title_, num_, unique_availability_issued_, unique_availability_total_,
+      td->user_manager_->get_user_id_object(owner_user_id_, "upgradedGift"), model_.get_upgraded_gift_model_object(td),
+      pattern_.get_upgraded_gift_pattern_emoji_object(td), background_.get_upgraded_gift_background_object(),
+      original_details_.get_upgraded_gift_original_details_object(td));
 }
 
 bool operator==(const StarGift &lhs, const StarGift &rhs) {
@@ -70,7 +145,12 @@ bool operator==(const StarGift &lhs, const StarGift &rhs) {
          lhs.default_sell_star_count_ == rhs.default_sell_star_count_ &&
          lhs.availability_remains_ == rhs.availability_remains_ && lhs.availability_total_ == rhs.availability_total_ &&
          lhs.first_sale_date_ == rhs.first_sale_date_ && lhs.last_sale_date_ == rhs.last_sale_date_ &&
-         lhs.is_for_birthday_ == rhs.is_for_birthday_;
+         lhs.is_for_birthday_ == rhs.is_for_birthday_ && lhs.is_unique_ == rhs.is_unique_ && lhs.model_ == rhs.model_ &&
+         lhs.pattern_ == rhs.pattern_ && lhs.background_ == rhs.background_ &&
+         lhs.original_details_ == rhs.original_details_ && lhs.title_ == rhs.title_ &&
+         lhs.owner_user_id_ == rhs.owner_user_id_ && lhs.num_ == rhs.num_ &&
+         lhs.unique_availability_issued_ == rhs.unique_availability_issued_ &&
+         lhs.unique_availability_total_ == rhs.unique_availability_total_;
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const StarGift &star_gift) {

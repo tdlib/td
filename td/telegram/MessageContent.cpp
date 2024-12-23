@@ -7885,7 +7885,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     }
     case telegram_api::messageActionStarGift::ID: {
       auto action = move_tl_object_as<telegram_api::messageActionStarGift>(action_ptr);
-      StarGift star_gift(td, std::move(action->gift_));
+      StarGift star_gift(td, std::move(action->gift_), false /*TODO*/);
       if (!star_gift.is_valid()) {
         break;
       }

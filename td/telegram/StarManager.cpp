@@ -374,7 +374,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
               auto user_id = dialog_id.get_user_id();
               auto user_id_object = td_->user_manager_->get_user_id_object(user_id, "starsTransactionPeer");
               if (transaction->stargift_ != nullptr) {
-                auto gift = StarGift(td_, std::move(transaction->stargift_));
+                auto gift = StarGift(td_, std::move(transaction->stargift_), false);
                 transaction->stargift_ = nullptr;
                 if (!gift.is_valid()) {
                   return nullptr;

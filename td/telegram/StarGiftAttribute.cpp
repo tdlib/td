@@ -86,7 +86,9 @@ StarGiftAttributeOriginalDetails::StarGiftAttributeOriginalDetails(
 
 td_api::object_ptr<td_api::upgradedGiftOriginalDetails>
 StarGiftAttributeOriginalDetails::get_upgraded_gift_original_details_object(Td *td) const {
-  CHECK(is_valid());
+  if (!is_valid()) {
+    return nullptr;
+  }
   return td_api::make_object<td_api::upgradedGiftOriginalDetails>(
       td->user_manager_->get_user_id_object(sender_user_id_, "upgradedGiftOriginalDetails sender"),
       td->user_manager_->get_user_id_object(receiver_user_id_, "upgradedGiftOriginalDetails receiver"),

@@ -1067,6 +1067,19 @@ gift id:int64 sticker:sticker star_count:int53 default_sell_star_count:int53 is_
 //@description Contains a list of gifts that can be sent to another user @gifts The list of gifts
 gifts gifts:vector<gift> = Gifts;
 
+//@description Describes an upgraded gift that can be gifted to another user or transferred to TON blockchain as an NFT
+//@id Unique identifier of the gift
+//@title The title of the upgraded gift
+//@number Unique number of the upgraded gift among gifts upgraded from the same gift
+//@total_upgraded_count Total number of gifts that were upgraded from the same gift
+//@max_upgraded_count The maximum number of gifts that can be upgraded from the same gift
+//@owner_user_id User identifier of the user that owns the upgraded gift
+//@model Description of the model of the upgraded gift
+//@pattern_emoji Description of the pattern emoji of the upgraded gift
+//@background Description of the background of the upgraded gift
+//@original_details Information about the originally sent gift; may be null if unknown
+upgradedGift id:int64 title:string number:int32 total_upgraded_count:int32 max_upgraded_count:int32 owner_user_id:int53 model:upgradedGiftModel pattern_emoji:upgradedGiftPatternEmoji background:upgradedGiftBackground original_details:upgradedGiftOriginalDetails = UpgradedGift;
+
 //@description Represents a gift received by a user
 //@sender_user_id Identifier of the user that sent the gift; 0 if unknown
 //@text Message added to the gift
@@ -1077,7 +1090,7 @@ gifts gifts:vector<gift> = Gifts;
 //@gift The gift
 //@message_id Identifier of the message with the gift in the chat with the sender of the gift; can be 0 or an identifier of a deleted message; only for the receiver of the gift
 //@sell_star_count Number of Telegram Stars that can be claimed by the receiver instead of the gift; 0 if the gift can't be sold by the current user
-//@export_date Point in time (Unix timestamp) when the unique gift can be transferred to TON blockchain as NFT; 0 if NFT export isn't possible; only for the receiver of the gift
+//@export_date Point in time (Unix timestamp) when the unique gift can be transferred to TON blockchain as an NFT; 0 if NFT export isn't possible; only for the receiver of the gift
 userGift sender_user_id:int53 text:formattedText is_private:Bool is_saved:Bool can_be_upgraded:Bool date:int32 gift:gift message_id:int53 sell_star_count:int53 export_date:int32 = UserGift;
 
 //@description Represents a list of gifts received by a user
