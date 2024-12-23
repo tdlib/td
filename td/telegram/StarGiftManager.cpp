@@ -289,7 +289,7 @@ class GetUserGiftsQuery final : public Td::ResultHandler {
           td_->user_manager_->get_user_id_object(sender_user_id, "userGift"),
           get_formatted_text_object(td_->user_manager_.get(), text, true, -1), gift->name_hidden_, !gift->unsaved_,
           gift->can_upgrade_, gift->date_, star_gift.get_gift_object(td_), message_id.get(),
-          StarManager::get_star_count(gift->convert_stars_)));
+          StarManager::get_star_count(gift->convert_stars_), max(0, gift->can_export_at_)));
     }
     if (!is_me) {
       td_->user_manager_->on_update_user_gift_count(user_id_, total_count);

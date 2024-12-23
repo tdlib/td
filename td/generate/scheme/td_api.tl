@@ -1048,7 +1048,8 @@ gifts gifts:vector<gift> = Gifts;
 //@gift The gift
 //@message_id Identifier of the message with the gift in the chat with the sender of the gift; can be 0 or an identifier of a deleted message; only for the receiver of the gift
 //@sell_star_count Number of Telegram Stars that can be claimed by the receiver instead of the gift; 0 if the gift can't be sold by the current user
-userGift sender_user_id:int53 text:formattedText is_private:Bool is_saved:Bool can_be_upgraded:Bool date:int32 gift:gift message_id:int53 sell_star_count:int53 = UserGift;
+//@export_date Point in time (Unix timestamp) when the unique gift can be transferred to TON blockchain as NFT; 0 if NFT export isn't possible; only for the receiver of the gift
+userGift sender_user_id:int53 text:formattedText is_private:Bool is_saved:Bool can_be_upgraded:Bool date:int32 gift:gift message_id:int53 sell_star_count:int53 export_date:int32 = UserGift;
 
 //@description Represents a list of gifts received by a user
 //@total_count The total number of received gifts
