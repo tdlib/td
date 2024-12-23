@@ -3911,14 +3911,15 @@ messageGiftedStars gifter_user_id:int53 receiver_user_id:int53 currency:string a
 //@sticker A sticker to be shown in the message; may be null if unknown
 messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id:int53 giveaway_message_id:int53 is_unclaimed:Bool sticker:sticker = MessageContent;
 
-//@description A gift was received or sent by the current user
+//@description A regular gift was received or sent by the current user
 //@gift The gift
 //@text Message added to the gift
 //@sell_star_count Number of Telegram Stars that can be claimed by the receiver instead of the gift; 0 if the gift can't be sold by the receiver
 //@is_private True, if the sender and gift text are shown only to the gift receiver; otherwise, everyone will be able to see them
 //@is_saved True, if the gift is displayed on the user's profile page; only for the receiver of the gift
 //@was_converted True, if the gift was converted to Telegram Stars; only for the receiver of the gift
-messageGift gift:gift text:formattedText sell_star_count:int53 is_private:Bool is_saved:Bool was_converted:Bool = MessageContent;
+//@was_upgraded True, if the gift was upgraded to a unique gift; only for the receiver of the gift
+messageGift gift:gift text:formattedText sell_star_count:int53 is_private:Bool is_saved:Bool was_converted:Bool was_upgraded:Bool = MessageContent;
 
 //@description A contact has registered with Telegram
 messageContactRegistered = MessageContent;
