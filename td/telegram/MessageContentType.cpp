@@ -863,51 +863,51 @@ bool get_default_service_message_content_reactions_are_possible(MessageContentTy
     case MessageContentType::VideoNote:
     case MessageContentType::VoiceNote:
     case MessageContentType::ChatCreate:
-    case MessageContentType::ChatChangeTitle:
-    case MessageContentType::ChatDeletePhoto:
     case MessageContentType::ChatDeleteHistory:
-    case MessageContentType::ChatAddUsers:
-    case MessageContentType::ChatJoinedByLink:
-    case MessageContentType::ChatDeleteUser:
     case MessageContentType::ChatMigrateTo:
     case MessageContentType::ChannelCreate:
     case MessageContentType::ChannelMigrateFrom:
+    case MessageContentType::CustomServiceAction:
+    case MessageContentType::PassportDataSent:
+    case MessageContentType::PassportDataReceived:
+    case MessageContentType::WebViewDataSent:
+    case MessageContentType::WebViewDataReceived:
+    case MessageContentType::RequestedDialog:
+    case MessageContentType::DialogShared:
+      return false;
+    case MessageContentType::ChatChangeTitle:
+    case MessageContentType::ChatChangePhoto:
+    case MessageContentType::ChatDeletePhoto:
+    case MessageContentType::ChatAddUsers:
+    case MessageContentType::ChatJoinedByLink:
+    case MessageContentType::ChatDeleteUser:
     case MessageContentType::PinMessage:
     case MessageContentType::GameScore:
     case MessageContentType::ScreenshotTaken:
     case MessageContentType::ChatSetTtl:
+    case MessageContentType::Call:
     case MessageContentType::PaymentSuccessful:
     case MessageContentType::ContactRegistered:
-    case MessageContentType::CustomServiceAction:
     case MessageContentType::WebsiteConnected:
-    case MessageContentType::PassportDataSent:
-    case MessageContentType::PassportDataReceived:
     case MessageContentType::ProximityAlertTriggered:
+    case MessageContentType::GroupCall:
     case MessageContentType::InviteToGroupCall:
     case MessageContentType::ChatSetTheme:
-    case MessageContentType::WebViewDataSent:
-    case MessageContentType::WebViewDataReceived:
+    case MessageContentType::GiftPremium:
     case MessageContentType::TopicCreate:
     case MessageContentType::TopicEdit:
-    case MessageContentType::WriteAccessAllowed:
-    case MessageContentType::RequestedDialog:
-    case MessageContentType::WebViewWriteAccessAllowed:
-    case MessageContentType::WriteAccessAllowedByRequest:
-    case MessageContentType::GiveawayLaunch:
-    case MessageContentType::BoostApply:
-    case MessageContentType::DialogShared:
-    case MessageContentType::PaymentRefunded:
-    case MessageContentType::PrizeStars:
-      return false;
-    case MessageContentType::ChatChangePhoto:
-    case MessageContentType::Call:
-    case MessageContentType::GroupCall:
-    case MessageContentType::GiftPremium:
     case MessageContentType::SuggestProfilePhoto:
+    case MessageContentType::WriteAccessAllowed:
+    case MessageContentType::WebViewWriteAccessAllowed:
     case MessageContentType::SetBackground:
+    case MessageContentType::WriteAccessAllowedByRequest:
     case MessageContentType::GiftCode:
+    case MessageContentType::GiveawayLaunch:
     case MessageContentType::GiveawayResults:
+    case MessageContentType::BoostApply:
+    case MessageContentType::PaymentRefunded:
     case MessageContentType::GiftStars:
+    case MessageContentType::PrizeStars:
     case MessageContentType::StarGift:
       return true;
     default:
