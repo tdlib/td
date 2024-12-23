@@ -9,6 +9,7 @@
 #include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/UserManager.h"
 
 namespace td {
 
@@ -72,6 +73,29 @@ bool operator==(const StarGiftAttributeBackground &lhs, const StarGiftAttributeB
   return lhs.name_ == rhs.name_ && lhs.center_color_ == rhs.center_color_ && lhs.edge_color_ == rhs.edge_color_ &&
          lhs.pattern_color_ == rhs.pattern_color_ && lhs.text_color_ == rhs.text_color_ &&
          lhs.rarity_permille_ == rhs.rarity_permille_;
+}
+
+StarGiftAttributeOriginalDetails::StarGiftAttributeOriginalDetails(
+    Td *td, telegram_api::object_ptr<telegram_api::starGiftAttributeOriginalDetails> &&attribute)
+    : sender_user_id_(attribute->sender_id_)
+    , receiver_user_id_(attribute->recipient_id_)
+    , date_(attribute->date_)
+    , message_(get_formatted_text(td->user_manager_.get(), std::move(attribute->message_), true, false,
+                                  "starGiftAttributeBackdrop")) {
+}
+
+td_api::object_ptr<td_api::upgradedGiftOriginalDetails>
+StarGiftAttributeOriginalDetails::get_upgraded_gift_original_details_object(Td *td) const {
+  CHECK(is_valid());
+  return td_api::make_object<td_api::upgradedGiftOriginalDetails>(
+      td->user_manager_->get_user_id_object(sender_user_id_, "upgradedGiftOriginalDetails sender"),
+      td->user_manager_->get_user_id_object(receiver_user_id_, "upgradedGiftOriginalDetails receiver"),
+      get_formatted_text_object(td->user_manager_.get(), message_, true, -1), date_);
+}
+
+bool operator==(const StarGiftAttributeOriginalDetails &lhs, const StarGiftAttributeOriginalDetails &rhs) {
+  return lhs.sender_user_id_ == rhs.sender_user_id_ && lhs.receiver_user_id_ == rhs.receiver_user_id_ &&
+         lhs.date_ == rhs.date_ && lhs.message_ == rhs.message_;
 }
 
 }  // namespace td

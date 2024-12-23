@@ -63,4 +63,41 @@ void StarGiftAttributeBackground::parse(ParserT &parser) {
   td::parse(rarity_permille_, parser);
 }
 
+template <class StorerT>
+void StarGiftAttributeOriginalDetails::store(StorerT &storer) const {
+  CHECK(is_valid());
+  bool has_sender_user_id = sender_user_id_.is_valid();
+  bool has_message = !message_.text.empty();
+  BEGIN_STORE_FLAGS();
+  STORE_FLAG(has_sender_user_id);
+  STORE_FLAG(has_message);
+  END_STORE_FLAGS();
+  if (has_sender_user_id) {
+    td::store(sender_user_id_, storer);
+  }
+  td::store(receiver_user_id_, storer);
+  td::store(date_, storer);
+  if (has_message) {
+    td::store(message_, storer);
+  }
+}
+
+template <class ParserT>
+void StarGiftAttributeOriginalDetails::parse(ParserT &parser) {
+  bool has_sender_user_id;
+  bool has_message;
+  BEGIN_PARSE_FLAGS();
+  PARSE_FLAG(has_sender_user_id);
+  PARSE_FLAG(has_message);
+  END_PARSE_FLAGS();
+  if (has_sender_user_id) {
+    td::parse(sender_user_id_, parser);
+  }
+  td::parse(receiver_user_id_, parser);
+  td::parse(date_, parser);
+  if (has_message) {
+    td::parse(message_, parser);
+  }
+}
+
 }  // namespace td

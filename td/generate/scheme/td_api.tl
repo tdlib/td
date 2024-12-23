@@ -1045,6 +1045,13 @@ upgradedGiftPatternEmoji name:string sticker:sticker rarity_per_mille:int32 = Up
 //@rarity_per_mille The number of upgraded gift that receive this pattern emoji for each 1000 gifts upgraded
 upgradedGiftBackground name:string center_color:int32 edge_color:int32 pattern_emoji_color:int32 text_color:int32 rarity_per_mille:int32 = UpgradedGiftBackground;
 
+//@description Describes the original details about the gift
+//@sender_user_id Identifier of the user that sent the gift; 0 if the gift was private
+//@receiver_user_id Identifier of the user that received the gift
+//@text Message added to the gift
+//@date Point in time (Unix timestamp) when the gift was sent
+upgradedGiftOriginalDetails sender_user_id:int53 receiver_user_id:int53 text:formattedText date:int32 = UpgradedGiftOriginalDetails;
+
 //@description Describes a gift that can be sent to another user
 //@id Unique identifier of the gift
 //@sticker The sticker representing the gift

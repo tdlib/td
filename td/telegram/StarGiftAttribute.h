@@ -7,8 +7,10 @@
 #pragma once
 
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/MessageEntity.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserId.h"
 
 #include "td/utils/common.h"
 #include "td/utils/StringBuilder.h"
@@ -88,6 +90,39 @@ class StarGiftAttributeBackground {
 bool operator==(const StarGiftAttributeBackground &lhs, const StarGiftAttributeBackground &rhs);
 
 inline bool operator!=(const StarGiftAttributeBackground &lhs, const StarGiftAttributeBackground &rhs) {
+  return !(lhs == rhs);
+}
+
+class StarGiftAttributeOriginalDetails {
+  UserId sender_user_id_;
+  UserId receiver_user_id_;
+  int32 date_ = 0;
+  FormattedText message_;
+
+  friend bool operator==(const StarGiftAttributeOriginalDetails &lhs, const StarGiftAttributeOriginalDetails &rhs);
+
+ public:
+  StarGiftAttributeOriginalDetails() = default;
+
+  StarGiftAttributeOriginalDetails(
+      Td *td, telegram_api::object_ptr<telegram_api::starGiftAttributeOriginalDetails> &&attribute);
+
+  bool is_valid() const {
+    return (sender_user_id_ == UserId() || sender_user_id_.is_valid()) && receiver_user_id_.is_valid() && date_ > 0;
+  }
+
+  td_api::object_ptr<td_api::upgradedGiftOriginalDetails> get_upgraded_gift_original_details_object(Td *td) const;
+
+  template <class StorerT>
+  void store(StorerT &storer) const;
+
+  template <class ParserT>
+  void parse(ParserT &parser);
+};
+
+bool operator==(const StarGiftAttributeOriginalDetails &lhs, const StarGiftAttributeOriginalDetails &rhs);
+
+inline bool operator!=(const StarGiftAttributeOriginalDetails &lhs, const StarGiftAttributeOriginalDetails &rhs) {
   return !(lhs == rhs);
 }
 
