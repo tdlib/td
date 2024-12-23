@@ -157,7 +157,7 @@ void CallActor::create_call(UserId user_id, tl_object_ptr<telegram_api::InputUse
   input_user_ = std::move(input_user);
   auto r_input_group_call_id = td_->group_call_manager_->get_input_group_call_id(group_call_id);
   if (r_input_group_call_id.is_ok()) {
-    input_group_call_id_ = r_input_group_call_id.ok();
+    // input_group_call_id_ = r_input_group_call_id.ok();
   }
   call_state_.protocol = std::move(protocol);
   call_state_.type = CallState::Type::Pending;
