@@ -2860,6 +2860,12 @@ class CliClient final : public Actor {
       bool keep_original_details;
       get_args(args, user_id, message_id, star_count, keep_original_details);
       send_request(td_api::make_object<td_api::upgradeGift>(user_id, message_id, keep_original_details, star_count));
+    } else if (op == "tg") {
+      UserId sender_user_id;
+      MessageId message_id;
+      UserId receiver_user_id;
+      get_args(args, sender_user_id, message_id, receiver_user_id);
+      send_request(td_api::make_object<td_api::transferGift>(sender_user_id, message_id, receiver_user_id));
     } else if (op == "gug") {
       UserId user_id;
       string offset;

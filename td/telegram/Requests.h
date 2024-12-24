@@ -1481,6 +1481,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::upgradeGift &request);
 
+  void on_request(uint64 id, const td_api::transferGift &request);
+
   void on_request(uint64 id, td_api::getUserGifts &request);
 
   void on_request(uint64 id, td_api::createInvoiceLink &request);
