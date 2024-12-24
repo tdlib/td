@@ -873,6 +873,7 @@ bool get_default_service_message_content_reactions_are_possible(MessageContentTy
     case MessageContentType::WebViewDataSent:
     case MessageContentType::WebViewDataReceived:
     case MessageContentType::RequestedDialog:
+    case MessageContentType::GiveawayLaunch:
     case MessageContentType::DialogShared:
       return false;
     case MessageContentType::ChatChangeTitle:
@@ -902,7 +903,6 @@ bool get_default_service_message_content_reactions_are_possible(MessageContentTy
     case MessageContentType::SetBackground:
     case MessageContentType::WriteAccessAllowedByRequest:
     case MessageContentType::GiftCode:
-    case MessageContentType::GiveawayLaunch:
     case MessageContentType::GiveawayResults:
     case MessageContentType::BoostApply:
     case MessageContentType::PaymentRefunded:
