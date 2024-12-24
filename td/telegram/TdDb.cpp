@@ -95,6 +95,7 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
       case LogEvent::HandlerType::ToggleDialogIsBlockedOnServer:
       case LogEvent::HandlerType::ToggleDialogIsPinnedOnServer:
       case LogEvent::HandlerType::ToggleDialogReportSpamStateOnServer:
+      case LogEvent::HandlerType::ToggleDialogViewAsMessagesOnServer:
         events.to_dialog_manager.push_back(event.clone());
         break;
       case LogEvent::HandlerType::SendMessage:
@@ -126,7 +127,6 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
       case LogEvent::HandlerType::ReadAllDialogReactionsOnServer:
       case LogEvent::HandlerType::DeleteTopicHistoryOnServer:
       case LogEvent::HandlerType::ToggleDialogIsTranslatableOnServer:
-      case LogEvent::HandlerType::ToggleDialogViewAsMessagesOnServer:
       case LogEvent::HandlerType::SendQuickReplyShortcutMessages:
         events.to_messages_manager.push_back(event.clone());
         break;

@@ -240,6 +240,8 @@ class DialogManager final : public Actor {
 
   void toggle_dialog_is_pinned_on_server(DialogId dialog_id, bool is_pinned, uint64 log_event_id);
 
+  void toggle_dialog_view_as_messages_on_server(DialogId dialog_id, bool view_as_messages, uint64 log_event_id);
+
   void on_binlog_events(vector<BinlogEvent> &&events);
 
  private:
@@ -275,9 +277,12 @@ class DialogManager final : public Actor {
 
   static uint64 save_toggle_dialog_report_spam_state_on_server_log_event(DialogId dialog_id, bool is_spam_dialog);
 
+  static uint64 save_toggle_dialog_view_as_messages_on_server_log_event(DialogId dialog_id, bool view_as_messages);
+
   class ToggleDialogIsBlockedOnServerLogEvent;
   class ToggleDialogIsPinnedOnServerLogEvent;
   class ToggleDialogReportSpamStateOnServerLogEvent;
+  class ToggleDialogViewAsMessagesOnServerLogEvent;
 
   class UploadDialogPhotoCallback;
   std::shared_ptr<UploadDialogPhotoCallback> upload_dialog_photo_callback_;
