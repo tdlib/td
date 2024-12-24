@@ -35,6 +35,8 @@ class StarGiftManager final : public Actor {
 
   void save_gift(UserId user_id, MessageId message_id, bool is_saved, Promise<Unit> &&promise);
 
+  void get_gift_upgrade_preview(int64 gift_id, Promise<td_api::object_ptr<td_api::giftUpgradePreview>> &&promise);
+
   void get_user_gifts(UserId user_id, const string &offset, int32 limit,
                       Promise<td_api::object_ptr<td_api::userGifts>> &&promise);
 

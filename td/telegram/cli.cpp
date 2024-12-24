@@ -2848,6 +2848,10 @@ class CliClient final : public Actor {
       bool is_saved;
       get_args(args, user_id, message_id, is_saved);
       send_request(td_api::make_object<td_api::toggleGiftIsSaved>(user_id, message_id, is_saved));
+    } else if (op == "ggup") {
+      int64 gift_id;
+      get_args(args, gift_id);
+      send_request(td_api::make_object<td_api::getGiftUpgradePreview>(gift_id));
     } else if (op == "gug") {
       UserId user_id;
       string offset;

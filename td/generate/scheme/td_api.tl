@@ -1109,6 +1109,12 @@ userGift sender_user_id:int53 text:formattedText is_private:Bool is_saved:Bool c
 //@next_offset The offset for the next request. If empty, then there are no more results
 userGifts total_count:int32 gifts:vector<userGift> next_offset:string = UserGifts;
 
+//@description Contains examples of possible upgraded gifts for the given regular gift
+//@models Examples of possible models that can be chosen for the gift after upgrade
+//@pattern_emojis Examples of possible pattern emoji that can be chosen for the gift after upgrade
+//@backgrounds Examples of possible backgrounds that can be chosen for the gift after upgrade
+giftUpgradePreview models:vector<upgradedGiftModel> pattern_emojis:vector<upgradedGiftPatternEmoji> backgrounds:vector<upgradedGiftBackground> = GiftUpgradePreview;
+
 
 //@class StarTransactionDirection @description Describes direction of a transaction with Telegram Stars
 
@@ -11610,6 +11616,9 @@ sellGift sender_user_id:int53 message_id:int53 = Ok;
 //@message_id Identifier of the message with the gift in the chat with the user
 //@is_saved Pass true to display the gift on the user's profile page; pass false to remove it from the profile page
 toggleGiftIsSaved sender_user_id:int53 message_id:int53 is_saved:Bool = Ok;
+
+//@description Returns examples of possible upgraded gifts for a regular gift @gift_id Identifier of the gift
+getGiftUpgradePreview gift_id:int64 = GiftUpgradePreview;
 
 //@description Returns gifts saved to profile by the given user
 //@user_id Identifier of the user

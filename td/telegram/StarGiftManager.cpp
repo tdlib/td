@@ -228,6 +228,74 @@ class SaveStarGiftQuery final : public Td::ResultHandler {
   }
 };
 
+class GetUpgradeGiftPreviewQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::giftUpgradePreview>> promise_;
+
+ public:
+  explicit GetUpgradeGiftPreviewQuery(Promise<td_api::object_ptr<td_api::giftUpgradePreview>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(int64 gift_id) {
+    send_query(G()->net_query_creator().create(telegram_api::payments_getStarGiftUpgradePreview(gift_id)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getStarGiftUpgradePreview>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetUpgradeGiftPreviewQuery: " << to_string(ptr);
+    auto result = td_api::make_object<td_api::giftUpgradePreview>();
+    for (auto &attribute : ptr->sample_attributes_) {
+      switch (attribute->get_id()) {
+        case telegram_api::starGiftAttributeModel::ID: {
+          auto model = StarGiftAttributeSticker(
+              td_, telegram_api::move_object_as<telegram_api::starGiftAttributeModel>(attribute));
+          if (!model.is_valid()) {
+            LOG(ERROR) << "Receive invalid model";
+          } else {
+            result->models_.push_back(model.get_upgraded_gift_model_object(td_));
+          }
+          break;
+        }
+        case telegram_api::starGiftAttributePattern::ID: {
+          auto pattern = StarGiftAttributeSticker(
+              td_, telegram_api::move_object_as<telegram_api::starGiftAttributePattern>(attribute));
+          if (!pattern.is_valid()) {
+            LOG(ERROR) << "Receive invalid pattern emoji";
+          } else {
+            result->pattern_emojis_.push_back(pattern.get_upgraded_gift_pattern_emoji_object(td_));
+          }
+          break;
+        }
+        case telegram_api::starGiftAttributeBackdrop::ID: {
+          auto background = StarGiftAttributeBackground(
+              telegram_api::move_object_as<telegram_api::starGiftAttributeBackdrop>(attribute));
+          if (!background.is_valid()) {
+            LOG(ERROR) << "Receive invalid background";
+          } else {
+            result->backgrounds_.push_back(background.get_upgraded_gift_background_object());
+          }
+          break;
+        }
+        case telegram_api::starGiftAttributeOriginalDetails::ID:
+          LOG(ERROR) << "Receive unexpected original details";
+          break;
+        default:
+          UNREACHABLE();
+      }
+    }
+    promise_.set_value(std::move(result));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetUserGiftsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::userGifts>> promise_;
   UserId user_id_;
@@ -373,6 +441,11 @@ void StarGiftManager::save_gift(UserId user_id, MessageId message_id, bool is_sa
     return promise.set_error(Status::Error(400, "Invalid message identifier specified"));
   }
   td_->create_handler<SaveStarGiftQuery>(std::move(promise))->send(message_id, is_saved);
+}
+
+void StarGiftManager::get_gift_upgrade_preview(int64 gift_id,
+                                               Promise<td_api::object_ptr<td_api::giftUpgradePreview>> &&promise) {
+  td_->create_handler<GetUpgradeGiftPreviewQuery>(std::move(promise))->send(gift_id);
 }
 
 void StarGiftManager::get_user_gifts(UserId user_id, const string &offset, int32 limit,
