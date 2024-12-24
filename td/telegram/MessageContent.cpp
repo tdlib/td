@@ -1251,17 +1251,19 @@ class MessageStarGift final : public MessageContent {
   int64 convert_star_count = 0;
   bool name_hidden = false;
   bool is_saved = false;
+  bool can_upgrade = false;
   bool was_converted = false;
   bool was_upgraded = false;
 
   MessageStarGift() = default;
   MessageStarGift(StarGift &&star_gift, FormattedText &&text, int64 convert_star_count, bool name_hidden, bool is_saved,
-                  bool was_converted, bool was_upgraded)
+                  bool can_upgrade, bool was_converted, bool was_upgraded)
       : star_gift(std::move(star_gift))
       , text(std::move(text))
       , convert_star_count(convert_star_count)
       , name_hidden(name_hidden)
       , is_saved(is_saved)
+      , can_upgrade(can_upgrade)
       , was_converted(was_converted)
       , was_upgraded(was_upgraded) {
   }
@@ -1960,6 +1962,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       STORE_FLAG(m->was_converted);
       STORE_FLAG(has_text);
       STORE_FLAG(m->was_upgraded);
+      STORE_FLAG(m->can_upgrade);
       END_STORE_FLAGS();
       store(m->star_gift, storer);
       if (has_text) {
@@ -2869,6 +2872,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       PARSE_FLAG(m->was_converted);
       PARSE_FLAG(has_text);
       PARSE_FLAG(m->was_upgraded);
+      PARSE_FLAG(m->can_upgrade);
       END_PARSE_FLAGS();
       parse(m->star_gift, parser);
       if (has_text) {
@@ -6100,8 +6104,8 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       const auto *rhs = static_cast<const MessageStarGift *>(new_content);
       if (lhs->star_gift != rhs->star_gift || lhs->text != rhs->text ||
           lhs->convert_star_count != rhs->convert_star_count || lhs->name_hidden != rhs->name_hidden ||
-          lhs->is_saved != rhs->is_saved || lhs->was_converted != rhs->was_converted ||
-          lhs->was_upgraded != rhs->was_upgraded) {
+          lhs->is_saved != rhs->is_saved || lhs->can_upgrade != rhs->can_upgrade ||
+          lhs->was_converted != rhs->was_converted || lhs->was_upgraded != rhs->was_upgraded) {
         need_update = true;
       }
       break;
@@ -7893,7 +7897,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
                                               "messageActionStarGift");
       return td::make_unique<MessageStarGift>(
           std::move(star_gift), std::move(text), StarManager::get_star_count(action->convert_stars_),
-          action->name_hidden_, action->saved_, action->converted_, action->upgraded_);
+          action->name_hidden_, action->saved_, action->can_upgrade_, action->converted_, action->upgraded_);
     }
     case telegram_api::messageActionStarGiftUnique::ID:
       return td::make_unique<MessageUnsupported>();
@@ -8385,7 +8389,7 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(const Mess
       const auto *m = static_cast<const MessageStarGift *>(content);
       return td_api::make_object<td_api::messageGift>(m->star_gift.get_gift_object(td), get_text_object(m->text),
                                                       m->convert_star_count, m->name_hidden, m->is_saved,
-                                                      m->was_converted, m->was_upgraded);
+                                                      m->can_upgrade, m->was_converted, m->was_upgraded);
     }
     default:
       UNREACHABLE();
