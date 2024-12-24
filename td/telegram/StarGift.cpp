@@ -140,6 +140,14 @@ td_api::object_ptr<td_api::upgradedGift> StarGift::get_upgraded_gift_object(Td *
       original_details_.get_upgraded_gift_original_details_object(td));
 }
 
+td_api::object_ptr<td_api::SentGift> StarGift::get_sent_gift_object(Td *td) const {
+  if (is_unique_) {
+    return td_api::make_object<td_api::sentGiftUpgraded>(get_upgraded_gift_object(td));
+  } else {
+    return td_api::make_object<td_api::sentGiftRegular>(get_gift_object(td));
+  }
+}
+
 bool operator==(const StarGift &lhs, const StarGift &rhs) {
   return lhs.id_ == rhs.id_ && lhs.sticker_file_id_ == rhs.sticker_file_id_ && lhs.star_count_ == rhs.star_count_ &&
          lhs.default_sell_star_count_ == rhs.default_sell_star_count_ &&

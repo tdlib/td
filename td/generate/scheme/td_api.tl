@@ -1080,6 +1080,16 @@ gifts gifts:vector<gift> = Gifts;
 //@original_details Information about the originally sent gift; may be null if unknown
 upgradedGift id:int64 title:string number:int32 total_upgraded_count:int32 max_upgraded_count:int32 owner_user_id:int53 model:upgradedGiftModel pattern_emoji:upgradedGiftPatternEmoji background:upgradedGiftBackground original_details:upgradedGiftOriginalDetails = UpgradedGift;
 
+
+//@class SentGift @description Represents a gift received by a user
+
+//@description Regular gift @gift The gift
+sentGiftRegular gift:gift = SentGift;
+
+//@description Upgraded gift @gift The gift
+sentGiftUpgraded gift:upgradedGift = SentGift;
+
+
 //@description Represents a gift received by a user
 //@sender_user_id Identifier of the user that sent the gift; 0 if unknown
 //@text Message added to the gift
@@ -1091,7 +1101,7 @@ upgradedGift id:int64 title:string number:int32 total_upgraded_count:int32 max_u
 //@message_id Identifier of the message with the gift in the chat with the sender of the gift; can be 0 or an identifier of a deleted message; only for the receiver of the gift
 //@sell_star_count Number of Telegram Stars that can be claimed by the receiver instead of the gift; 0 if the gift can't be sold by the current user
 //@export_date Point in time (Unix timestamp) when the unique gift can be transferred to TON blockchain as an NFT; 0 if NFT export isn't possible; only for the receiver of the gift
-userGift sender_user_id:int53 text:formattedText is_private:Bool is_saved:Bool can_be_upgraded:Bool date:int32 gift:gift message_id:int53 sell_star_count:int53 export_date:int32 = UserGift;
+userGift sender_user_id:int53 text:formattedText is_private:Bool is_saved:Bool can_be_upgraded:Bool date:int32 gift:SentGift message_id:int53 sell_star_count:int53 export_date:int32 = UserGift;
 
 //@description Represents a list of gifts received by a user
 //@total_count The total number of received gifts
