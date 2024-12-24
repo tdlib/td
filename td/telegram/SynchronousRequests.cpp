@@ -301,9 +301,6 @@ td_api::object_ptr<td_api::Object> SynchronousRequests::do_request(
   if (request.folder_ == nullptr) {
     return make_error(400, "Chat folder must be non-empty");
   }
-  if (!check_utf8(request.folder_->title_)) {
-    return make_error(400, "Chat folder title must be encoded in UTF-8");
-  }
   if (request.folder_->icon_ != nullptr && !check_utf8(request.folder_->icon_->name_)) {
     return make_error(400, "Chat folder icon name must be encoded in UTF-8");
   }

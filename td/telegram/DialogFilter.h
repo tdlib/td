@@ -11,6 +11,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/FolderId.h"
 #include "td/telegram/InputDialogId.h"
+#include "td/telegram/MessageEntity.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -120,7 +121,7 @@ class DialogFilter {
 
  private:
   DialogFilterId dialog_filter_id_;
-  string title_;
+  FormattedText title_;
   string emoji_;
   vector<InputDialogId> pinned_dialog_ids_;
   vector<InputDialogId> included_dialog_ids_;
@@ -136,6 +137,7 @@ class DialogFilter {
   bool include_channels_ = false;
   bool is_shareable_ = false;
   bool has_my_invites_ = false;
+  bool animate_title_ = false;
 
   static FlatHashMap<string, string> emoji_to_icon_name_;
   static FlatHashMap<string, string> icon_name_to_emoji_;
@@ -158,7 +160,7 @@ inline bool operator==(const DialogFilter &lhs, const DialogFilter &rhs) {
          lhs.color_id_ == rhs.color_id_ && lhs.is_shareable_ == rhs.is_shareable_ &&
          lhs.has_my_invites_ == rhs.has_my_invites_ && lhs.pinned_dialog_ids_ == rhs.pinned_dialog_ids_ &&
          lhs.included_dialog_ids_ == rhs.included_dialog_ids_ && lhs.excluded_dialog_ids_ == rhs.excluded_dialog_ids_ &&
-         DialogFilter::are_flags_equal(lhs, rhs);
+         DialogFilter::are_flags_equal(lhs, rhs) && lhs.animate_title_ == rhs.animate_title_;
 }
 
 inline bool operator!=(const DialogFilter &lhs, const DialogFilter &rhs) {

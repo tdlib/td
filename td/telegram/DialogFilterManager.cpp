@@ -17,6 +17,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/logevent/LogEvent.h"
+#include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/Td.h"
@@ -2116,8 +2117,13 @@ void DialogFilterManager::on_get_chatlist_invite(
       if (icon_name.empty()) {
         icon_name = "Custom";
       }
+
+      auto title = get_formatted_text(nullptr, std::move(invite->title_), true, false, "chatlistInvite");
+      keep_only_custom_emoji(title);
+      auto name = td_api::make_object<td_api::chatFolderName>(get_formatted_text_object(nullptr, title, true, -1),
+                                                              !invite->title_noanimate_);
       info = td_api::make_object<td_api::chatFolderInfo>(
-          0, invite->title_->text_, td_api::make_object<td_api::chatFolderIcon>(icon_name), -1, true, false);
+          0, std::move(name), td_api::make_object<td_api::chatFolderIcon>(icon_name), -1, true, false);
       missing_peers = std::move(invite->peers_);
       chats = std::move(invite->chats_);
       users = std::move(invite->users_);

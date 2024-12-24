@@ -20,6 +20,7 @@ void DialogFilter::store(StorerT &storer) const {
   bool has_included_dialog_ids = !included_dialog_ids_.empty();
   bool has_excluded_dialog_ids = !excluded_dialog_ids_.empty();
   bool has_color_id = color_id_ != -1;
+  bool has_title_entities = !title_.entities.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(exclude_muted_);
   STORE_FLAG(exclude_read_);
@@ -35,9 +36,14 @@ void DialogFilter::store(StorerT &storer) const {
   STORE_FLAG(is_shareable_);
   STORE_FLAG(has_my_invites_);
   STORE_FLAG(has_color_id);
+  STORE_FLAG(has_title_entities);
+  STORE_FLAG(animate_title_);
   END_STORE_FLAGS();
   store(dialog_filter_id_, storer);
-  store(title_, storer);
+  store(title_.text, storer);
+  if (has_title_entities) {
+    store(title_.entities, storer);
+  }
   store(emoji_, storer);
   if (has_pinned_dialog_ids) {
     store(pinned_dialog_ids_, storer);
@@ -60,6 +66,7 @@ void DialogFilter::parse(ParserT &parser) {
   bool has_included_dialog_ids;
   bool has_excluded_dialog_ids;
   bool has_color_id;
+  bool has_title_entities;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(exclude_muted_);
   PARSE_FLAG(exclude_read_);
@@ -75,9 +82,15 @@ void DialogFilter::parse(ParserT &parser) {
   PARSE_FLAG(is_shareable_);
   PARSE_FLAG(has_my_invites_);
   PARSE_FLAG(has_color_id);
+  PARSE_FLAG(has_title_entities);
+  PARSE_FLAG(animate_title_);
   END_PARSE_FLAGS();
   parse(dialog_filter_id_, parser);
-  parse(title_, parser);
+  parse(title_.text, parser);
+  if (has_title_entities) {
+    parse(title_.entities, parser);
+    keep_only_custom_emoji(title_);
+  }
   parse(emoji_, parser);
   if (has_pinned_dialog_ids) {
     parse(pinned_dialog_ids_, parser);

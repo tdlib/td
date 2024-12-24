@@ -4756,6 +4756,11 @@ vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(co
   return {};
 }
 
+void keep_only_custom_emoji(FormattedText &text) {
+  td::remove_if(text.entities,
+                [&](const MessageEntity &entity) { return entity.type != MessageEntity::Type::CustomEmoji; });
+}
+
 void remove_premium_custom_emoji_entities(const Td *td, vector<MessageEntity> &entities, bool remove_unknown) {
   td::remove_if(entities, [&](const MessageEntity &entity) {
     return entity.type == MessageEntity::Type::CustomEmoji &&

@@ -47,7 +47,9 @@ unique_ptr<DialogFilter> DialogFilter::get_dialog_filter(
       }
       auto dialog_filter = make_unique<DialogFilter>();
       dialog_filter->dialog_filter_id_ = dialog_filter_id;
-      dialog_filter->title_ = std::move(filter->title_->text_);
+      dialog_filter->title_ = get_formatted_text(nullptr, std::move(filter->title_), true, false, "dialogFilter");
+      keep_only_custom_emoji(dialog_filter->title_);
+      dialog_filter->animate_title_ = !filter->title_noanimate_;
       dialog_filter->emoji_ = std::move(filter->emoticon_);
       dialog_filter->color_id_ = (filter->flags_ & telegram_api::dialogFilter::COLOR_MASK) != 0 ? filter->color_ : -1;
       dialog_filter->pinned_dialog_ids_ = InputDialogId::get_input_dialog_ids(filter->pinned_peers_, &added_dialog_ids);
@@ -83,7 +85,10 @@ unique_ptr<DialogFilter> DialogFilter::get_dialog_filter(
       }
       auto dialog_filter = make_unique<DialogFilter>();
       dialog_filter->dialog_filter_id_ = dialog_filter_id;
-      dialog_filter->title_ = std::move(filter->title_->text_);
+      dialog_filter->title_ =
+          get_formatted_text(nullptr, std::move(filter->title_), true, false, "dialogFilterChatlist");
+      keep_only_custom_emoji(dialog_filter->title_);
+      dialog_filter->animate_title_ = !filter->title_noanimate_;
       dialog_filter->emoji_ = std::move(filter->emoticon_);
       dialog_filter->color_id_ =
           (filter->flags_ & telegram_api::dialogFilterChatlist::COLOR_MASK) != 0 ? filter->color_ : -1;
@@ -109,13 +114,25 @@ Result<unique_ptr<DialogFilter>> DialogFilter::create_dialog_filter(Td *td, Dial
   if (filter == nullptr) {
     return Status::Error(400, "Chat folder must be non-empty");
   }
+  if (filter->name_ == nullptr || filter->name_->text_ == nullptr) {
+    return Status::Error(400, "Chat folder name must be non-empty");
+  }
   string icon_name;
   if (filter->icon_ != nullptr) {
     icon_name = std::move(filter->icon_->name_);
+    if (!clean_input_string(icon_name)) {
+      return Status::Error(400, "Strings must be encoded in UTF-8");
+    }
   }
-  if (!clean_input_string(filter->title_) || !clean_input_string(icon_name)) {
-    return Status::Error(400, "Strings must be encoded in UTF-8");
+
+  TRY_RESULT(title, get_formatted_text(td, td->dialog_manager_->get_my_dialog_id(), std::move(filter->name_->text_),
+                                       false, false, true, false));
+  constexpr size_t MAX_TITLE_LENGTH = 12;  // server-side limit for dialog filter title
+  title.text = clean_name(title.text, MAX_TITLE_LENGTH);
+  if (title.text.empty()) {
+    return Status::Error(400, "Title must be non-empty");
   }
+  keep_only_custom_emoji(title);
 
   auto dialog_filter = make_unique<DialogFilter>();
   dialog_filter->dialog_filter_id_ = dialog_filter_id;
@@ -135,11 +152,8 @@ Result<unique_ptr<DialogFilter>> DialogFilter::create_dialog_filter(Td *td, Dial
   add_chats(dialog_filter->included_dialog_ids_, filter->included_chat_ids_);
   add_chats(dialog_filter->excluded_dialog_ids_, filter->excluded_chat_ids_);
 
-  constexpr size_t MAX_TITLE_LENGTH = 12;  // server-side limit for dialog filter title
-  dialog_filter->title_ = clean_name(std::move(filter->title_), MAX_TITLE_LENGTH);
-  if (dialog_filter->title_.empty()) {
-    return Status::Error(400, "Title must be non-empty");
-  }
+  dialog_filter->title_ = std::move(title);
+  dialog_filter->animate_title_ = filter->name_->animate_custom_emoji_;
   dialog_filter->emoji_ = get_emoji_by_icon_name(icon_name);
   if (dialog_filter->emoji_.empty() && !icon_name.empty()) {
     return Status::Error(400, "Invalid icon name specified");
@@ -433,12 +447,18 @@ telegram_api::object_ptr<telegram_api::DialogFilter> DialogFilter::get_input_dia
     if (has_my_invites_) {
       flags |= telegram_api::dialogFilterChatlist::HAS_MY_INVITES_MASK;
     }
+    if (!animate_title_) {
+      flags |= telegram_api::dialogFilterChatlist::TITLE_NOANIMATE_MASK;
+    }
     return telegram_api::make_object<telegram_api::dialogFilterChatlist>(
         flags, false /*ignored*/, false /*ignored*/, dialog_filter_id_.get(),
-        telegram_api::make_object<telegram_api::textWithEntities>(title_, Auto()), emoji_, color_id_,
+        get_input_text_with_entities(nullptr, title_, "dialogFilterChatlist"), emoji_, color_id_,
         InputDialogId::get_input_peers(pinned_dialog_ids_), InputDialogId::get_input_peers(included_dialog_ids_));
   }
   int32 flags = telegram_api::dialogFilter::EMOTICON_MASK;
+  if (!animate_title_) {
+    flags |= telegram_api::dialogFilter::TITLE_NOANIMATE_MASK;
+  }
   if (color_id_ != -1) {
     flags |= telegram_api::dialogFilter::COLOR_MASK;
   }
@@ -470,7 +490,7 @@ telegram_api::object_ptr<telegram_api::DialogFilter> DialogFilter::get_input_dia
   return telegram_api::make_object<telegram_api::dialogFilter>(
       flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
       false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, dialog_filter_id_.get(),
-      telegram_api::make_object<telegram_api::textWithEntities>(title_, Auto()), emoji_, color_id_,
+      get_input_text_with_entities(nullptr, title_, "dialogFilter"), emoji_, color_id_,
       InputDialogId::get_input_peers(pinned_dialog_ids_), InputDialogId::get_input_peers(included_dialog_ids_),
       InputDialogId::get_input_peers(excluded_dialog_ids_));
 }
@@ -494,16 +514,21 @@ td_api::object_ptr<td_api::chatFolder> DialogFilter::get_chat_folder_object(
   if (!icon_name.empty()) {
     icon = td_api::make_object<td_api::chatFolderIcon>(icon_name);
   }
+  auto name =
+      td_api::make_object<td_api::chatFolderName>(get_formatted_text_object(nullptr, title_, true, -1), animate_title_);
   return td_api::make_object<td_api::chatFolder>(
-      title_, std::move(icon), color_id_, is_shareable_, get_chat_ids(pinned_dialog_ids_),
+      std::move(name), std::move(icon), color_id_, is_shareable_, get_chat_ids(pinned_dialog_ids_),
       get_chat_ids(included_dialog_ids_), get_chat_ids(excluded_dialog_ids_), exclude_muted_, exclude_read_,
       exclude_archived_, include_contacts_, include_non_contacts_, include_bots_, include_groups_, include_channels_);
 }
 
 td_api::object_ptr<td_api::chatFolderInfo> DialogFilter::get_chat_folder_info_object() const {
+  auto name =
+      td_api::make_object<td_api::chatFolderName>(get_formatted_text_object(nullptr, title_, true, -1), animate_title_);
   return td_api::make_object<td_api::chatFolderInfo>(
-      dialog_filter_id_.get(), title_, td_api::make_object<td_api::chatFolderIcon>(get_chosen_or_default_icon_name()),
-      color_id_, is_shareable_, has_my_invites_);
+      dialog_filter_id_.get(), std::move(name),
+      td_api::make_object<td_api::chatFolderIcon>(get_chosen_or_default_icon_name()), color_id_, is_shareable_,
+      has_my_invites_);
 }
 
 void DialogFilter::for_each_dialog(std::function<void(const InputDialogId &)> callback) const {
@@ -673,6 +698,7 @@ unique_ptr<DialogFilter> DialogFilter::merge_dialog_filter_changes(const DialogF
   }
 
   update_value(new_filter->title_, old_server_filter->title_, new_server_filter->title_);
+  update_value(new_filter->animate_title_, old_server_filter->animate_title_, new_server_filter->animate_title_);
   update_value(new_filter->emoji_, old_server_filter->emoji_, new_server_filter->emoji_);
   update_value(new_filter->color_id_, old_server_filter->color_id_, new_server_filter->color_id_);
 
@@ -889,8 +915,9 @@ bool DialogFilter::are_similar(const DialogFilter &lhs, const DialogFilter &rhs)
 }
 
 bool DialogFilter::are_equivalent(const DialogFilter &lhs, const DialogFilter &rhs) {
-  return lhs.title_ == rhs.title_ && lhs.emoji_ == rhs.emoji_ && lhs.color_id_ == rhs.color_id_ &&
-         lhs.is_shareable_ == rhs.is_shareable_ && lhs.has_my_invites_ == rhs.has_my_invites_ &&
+  return lhs.title_ == rhs.title_ && lhs.animate_title_ == rhs.animate_title_ && lhs.emoji_ == rhs.emoji_ &&
+         lhs.color_id_ == rhs.color_id_ && lhs.is_shareable_ == rhs.is_shareable_ &&
+         lhs.has_my_invites_ == rhs.has_my_invites_ &&
          InputDialogId::are_equivalent(lhs.pinned_dialog_ids_, rhs.pinned_dialog_ids_) &&
          InputDialogId::are_equivalent(lhs.included_dialog_ids_, rhs.included_dialog_ids_) &&
          InputDialogId::are_equivalent(lhs.excluded_dialog_ids_, rhs.excluded_dialog_ids_) && are_flags_equal(lhs, rhs);

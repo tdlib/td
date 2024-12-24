@@ -2047,7 +2047,8 @@ class CliClient final : public Actor {
     string excluded_chat_ids;
     get_args(filter, title, icon_name, pinned_chat_ids, included_chat_ids, excluded_chat_ids);
     return td_api::make_object<td_api::chatFolder>(
-        title, td_api::make_object<td_api::chatFolderIcon>(icon_name), -1, is_shareable, as_chat_ids(pinned_chat_ids),
+        td_api::make_object<td_api::chatFolderName>(td_api::make_object<td_api::formattedText>(title, Auto()), true),
+        td_api::make_object<td_api::chatFolderIcon>(icon_name), -1, is_shareable, as_chat_ids(pinned_chat_ids),
         as_chat_ids(included_chat_ids), as_chat_ids(excluded_chat_ids), rand_bool(), rand_bool(), rand_bool(),
         rand_bool(), rand_bool(), rand_bool(), rand_bool(), rand_bool());
   }
@@ -6079,7 +6080,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::createChatFolder>(as_chat_folder(args)));
     } else if (op == "ccfe") {
       auto chat_folder = td_api::make_object<td_api::chatFolder>();
-      chat_folder->title_ = "empty";
+      chat_folder->name_ = td_api::make_object<td_api::chatFolderName>(
+          td_api::make_object<td_api::formattedText>("empty", Auto()), true);
       chat_folder->included_chat_ids_ = as_chat_ids(args);
       send_request(td_api::make_object<td_api::createChatFolder>(std::move(chat_folder)));
     } else if (op == "ecf" || op == "ecfs") {
