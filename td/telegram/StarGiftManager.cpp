@@ -296,6 +296,44 @@ class GetUpgradeGiftPreviewQuery final : public Td::ResultHandler {
   }
 };
 
+class UpgradeGiftQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  int64 star_count_;
+
+ public:
+  explicit UpgradeGiftQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::InputUser> input_user, MessageId message_id, int64 star_count,
+            bool keep_original_details) {
+    int32 flags = 0;
+    if (keep_original_details) {
+      flags |= telegram_api::payments_upgradeStarGift::KEEP_ORIGINAL_DETAILS_MASK;
+    }
+    star_count_ = star_count;
+    td_->star_manager_->add_pending_owned_star_count(-star_count, false);
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_upgradeStarGift(flags, false /*ignored*/, message_id.get_server_message_id().get())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_upgradeStarGift>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    td_->star_manager_->add_pending_owned_star_count(star_count_, true);
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for UpgradeGiftQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    td_->star_manager_->add_pending_owned_star_count(star_count_, false);
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetUserGiftsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::userGifts>> promise_;
   UserId user_id_;
@@ -446,6 +484,19 @@ void StarGiftManager::save_gift(UserId user_id, MessageId message_id, bool is_sa
 void StarGiftManager::get_gift_upgrade_preview(int64 gift_id,
                                                Promise<td_api::object_ptr<td_api::giftUpgradePreview>> &&promise) {
   td_->create_handler<GetUpgradeGiftPreviewQuery>(std::move(promise))->send(gift_id);
+}
+
+void StarGiftManager::upgrade_gift(UserId user_id, MessageId message_id, int64 star_count, bool keep_original_details,
+                                   Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
+  if (!message_id.is_valid() || !message_id.is_server()) {
+    return promise.set_error(Status::Error(400, "Invalid message identifier specified"));
+  }
+  if (star_count < 0) {
+    return promise.set_error(Status::Error(400, "Invalid amount of Telegram Stars specified"));
+  }
+  td_->create_handler<UpgradeGiftQuery>(std::move(promise))
+      ->send(std::move(input_user), message_id, star_count, keep_original_details);
 }
 
 void StarGiftManager::get_user_gifts(UserId user_id, const string &offset, int32 limit,
