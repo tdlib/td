@@ -7,7 +7,6 @@
 #pragma once
 
 #include "td/telegram/BotVerification.h"
-#include "td/telegram/BotVerifierSettings.hpp"
 
 #include "td/utils/tl_helpers.h"
 
@@ -18,7 +17,8 @@ void BotVerification::store(StorerT &storer) const {
   BEGIN_STORE_FLAGS();
   END_STORE_FLAGS();
   td::store(bot_user_id_, storer);
-  td::store(settings_, storer);
+  td::store(icon_, storer);
+  td::store(description_, storer);
 }
 
 template <class ParserT>
@@ -26,7 +26,8 @@ void BotVerification::parse(ParserT &parser) {
   BEGIN_PARSE_FLAGS();
   END_PARSE_FLAGS();
   td::parse(bot_user_id_, parser);
-  td::parse(settings_, parser);
+  td::parse(icon_, parser);
+  td::parse(description_, parser);
 }
 
 }  // namespace td

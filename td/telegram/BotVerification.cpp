@@ -6,6 +6,7 @@
 //
 #include "td/telegram/BotVerification.h"
 
+#include "td/telegram/MessageEntity.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UserManager.h"
 
@@ -16,7 +17,8 @@ BotVerification::BotVerification(telegram_api::object_ptr<telegram_api::botVerif
     return;
   }
   bot_user_id_ = UserId(bot_verification->bot_id_);
-  settings_ = BotVerifierSettings(std::move(bot_verification));
+  icon_ = CustomEmojiId(bot_verification->icon_);
+  description_ = std::move(bot_verification->description_);
 }
 
 unique_ptr<BotVerification> BotVerification::get_bot_verification(
@@ -36,15 +38,16 @@ td_api::object_ptr<td_api::botVerification> BotVerification::get_bot_verificatio
   if (!is_valid()) {
     return nullptr;
   }
-  auto parameters = settings_.get_bot_verification_parameters_object(td);
-  CHECK(parameters != nullptr);
+  FormattedText text;
+  text.text = description_;
+  text.entities = find_entities(text.text, true, true);
   return td_api::make_object<td_api::botVerification>(
-      td->user_manager_->get_user_id_object(bot_user_id_, "botVerification"), parameters->icon_custom_emoji_id_,
-      std::move(parameters->default_custom_description_));
+      td->user_manager_->get_user_id_object(bot_user_id_, "botVerification"), icon_.get(),
+      get_formatted_text_object(td->user_manager_.get(), text, true, -1));
 }
 
 bool operator==(const BotVerification &lhs, const BotVerification &rhs) {
-  return lhs.bot_user_id_ == rhs.bot_user_id_ && lhs.settings_ == rhs.settings_;
+  return lhs.bot_user_id_ == rhs.bot_user_id_ && lhs.icon_ == rhs.icon_ && lhs.description_ == rhs.description_;
 }
 
 bool operator==(const unique_ptr<BotVerification> &lhs, const unique_ptr<BotVerification> &rhs) {
@@ -58,7 +61,8 @@ bool operator==(const unique_ptr<BotVerification> &lhs, const unique_ptr<BotVeri
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const BotVerification &bot_verification) {
-  return string_builder << "verified by " << bot_verification.bot_user_id_ << " with " << bot_verification.settings_;
+  return string_builder << "verified by " << bot_verification.bot_user_id_ << " with " << bot_verification.icon_
+                        << " and " << bot_verification.description_;
 }
 
 }  // namespace td

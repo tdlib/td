@@ -22,15 +22,6 @@ BotVerifierSettings::BotVerifierSettings(
   can_modify_custom_description_ = bot_verifier_settings->can_modify_custom_description_;
 }
 
-BotVerifierSettings::BotVerifierSettings(telegram_api::object_ptr<telegram_api::botVerification> &&bot_verification) {
-  if (bot_verification == nullptr) {
-    return;
-  }
-  icon_ = CustomEmojiId(bot_verification->icon_);
-  description_ = std::move(bot_verification->description_);
-  can_modify_custom_description_ = !description_.empty();
-}
-
 unique_ptr<BotVerifierSettings> BotVerifierSettings::get_bot_verifier_settings(
     telegram_api::object_ptr<telegram_api::botVerifierSettings> &&bot_verifier_settings) {
   if (bot_verifier_settings == nullptr) {

@@ -6,7 +6,7 @@
 //
 #pragma once
 
-#include "td/telegram/BotVerifierSettings.h"
+#include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
@@ -30,7 +30,7 @@ class BotVerification {
   td_api::object_ptr<td_api::botVerification> get_bot_verification_object(Td *td) const;
 
   bool is_valid() const {
-    return bot_user_id_.is_valid() && settings_.is_valid();
+    return bot_user_id_.is_valid() && icon_.is_valid();
   }
 
   template <class StorerT>
@@ -41,7 +41,8 @@ class BotVerification {
 
  private:
   UserId bot_user_id_;
-  BotVerifierSettings settings_;
+  CustomEmojiId icon_;
+  string description_;
 
   friend bool operator==(const BotVerification &lhs, const BotVerification &rhs);
 

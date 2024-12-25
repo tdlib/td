@@ -23,8 +23,6 @@ class BotVerifierSettings {
 
   explicit BotVerifierSettings(telegram_api::object_ptr<telegram_api::botVerifierSettings> &&bot_verifier_settings);
 
-  explicit BotVerifierSettings(telegram_api::object_ptr<telegram_api::botVerification> &&bot_verification);
-
   static unique_ptr<BotVerifierSettings> get_bot_verifier_settings(
       telegram_api::object_ptr<telegram_api::botVerifierSettings> &&bot_verifier_settings);
 
