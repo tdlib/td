@@ -453,6 +453,7 @@ function split_file($file, $chunks, $undo) {
             'updates_manager[_(-](?![.]get[(][)])|UpdatesManager|get_difference[)]|updateSentMessage|dummyUpdate' => 'UpdatesManager',
             'UserId' => 'UserId',
             'user_manager[_(-](?![.]get[(][)])|UserManager([^ ;.]| [^*])' => 'UserManager',
+            'UserStarGift' => 'UserStarGift',
             'video_notes_manager[_(-](?![.]get[(][)])|VideoNotesManager' => 'VideoNotesManager',
             'videos_manager[_(-](?![.]get[(][)])|VideosManager' => 'VideosManager',
             'voice_notes_manager[_(-](?![.]get[(][)])|VoiceNotesManager' => 'VoiceNotesManager',

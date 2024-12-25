@@ -18,6 +18,7 @@
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/UserManager.h"
+#include "td/telegram/UserStarGift.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
@@ -395,35 +396,12 @@ class GetUserGiftsQuery final : public Td::ResultHandler {
     bool is_me = user_id_ == td_->user_manager_->get_my_id();
     vector<td_api::object_ptr<td_api::userGift>> gifts;
     for (auto &gift : ptr->gifts_) {
-      UserId sender_user_id(gift->from_id_);
-      if (sender_user_id != UserId() && !sender_user_id.is_valid()) {
-        LOG(ERROR) << "Receive " << sender_user_id << " as sender of a gift";
-        sender_user_id = UserId();
-      }
-      if (sender_user_id == UserId() && !gift->name_hidden_) {
-        LOG(ERROR) << "Receive a gift without a sender";
+      UserStarGift user_gift(td_, std::move(gift), is_me);
+      if (!user_gift.is_valid()) {
+        LOG(ERROR) << "Receive invalid user gift";
         continue;
       }
-      if (gift->unsaved_ && !is_me) {
-        LOG(ERROR) << "Receive unsaved gift for " << user_id_;
-        gift->unsaved_ = false;
-      }
-      StarGift star_gift(td_, std::move(gift->gift_), true);
-      if (!star_gift.is_valid()) {
-        continue;
-      }
-      FormattedText text =
-          get_formatted_text(td_->user_manager_.get(), std::move(gift->message_), true, false, "userStarGift");
-      auto message_id = MessageId(ServerMessageId(gift->msg_id_));
-      if (message_id != MessageId() && !message_id.is_valid()) {
-        LOG(ERROR) << "Receive " << message_id;
-        message_id = MessageId();
-      }
-      gifts.push_back(td_api::make_object<td_api::userGift>(
-          td_->user_manager_->get_user_id_object(sender_user_id, "userGift"),
-          get_formatted_text_object(td_->user_manager_.get(), text, true, -1), gift->name_hidden_, !gift->unsaved_,
-          gift->can_upgrade_, gift->date_, star_gift.get_sent_gift_object(td_), message_id.get(),
-          StarManager::get_star_count(gift->convert_stars_), max(0, gift->can_export_at_)));
+      gifts.push_back(user_gift.get_user_gift_object(td_));
     }
     if (!is_me) {
       td_->user_manager_->on_update_user_gift_count(user_id_, total_count);
