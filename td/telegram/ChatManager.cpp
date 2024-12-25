@@ -7,6 +7,8 @@
 #include "td/telegram/ChatManager.h"
 
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/BotVerification.h"
+#include "td/telegram/BotVerification.hpp"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogAdministrator.h"
 #include "td/telegram/DialogInviteLink.hpp"
@@ -2252,6 +2254,7 @@ void ChatManager::ChannelFull::store(StorerT &storer) const {
   bool has_boost_count = boost_count != 0;
   bool has_unrestrict_boost_count = unrestrict_boost_count != 0;
   bool has_can_have_sponsored_messages = true;
+  bool has_bot_verification = bot_verification != nullptr;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_description);
   STORE_FLAG(has_administrator_count);
@@ -2295,6 +2298,7 @@ void ChatManager::ChannelFull::store(StorerT &storer) const {
     STORE_FLAG(has_can_have_sponsored_messages);
     STORE_FLAG(has_paid_media_allowed);
     STORE_FLAG(can_view_star_revenue);
+    STORE_FLAG(has_bot_verification);
     END_STORE_FLAGS();
   }
   if (has_description) {
@@ -2356,6 +2360,9 @@ void ChatManager::ChannelFull::store(StorerT &storer) const {
   if (has_unrestrict_boost_count) {
     store(unrestrict_boost_count, storer);
   }
+  if (has_bot_verification) {
+    store(bot_verification, storer);
+  }
 }
 
 template <class ParserT>
@@ -2385,6 +2392,7 @@ void ChatManager::ChannelFull::parse(ParserT &parser) {
   bool has_boost_count = false;
   bool has_unrestrict_boost_count = false;
   bool has_can_have_sponsored_messages = false;
+  bool has_bot_verification = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_description);
   PARSE_FLAG(has_administrator_count);
@@ -2428,6 +2436,7 @@ void ChatManager::ChannelFull::parse(ParserT &parser) {
     PARSE_FLAG(has_can_have_sponsored_messages);
     PARSE_FLAG(has_paid_media_allowed);
     PARSE_FLAG(can_view_star_revenue);
+    PARSE_FLAG(has_bot_verification);
     END_PARSE_FLAGS();
   }
   if (has_description) {
@@ -2496,6 +2505,9 @@ void ChatManager::ChannelFull::parse(ParserT &parser) {
   }
   if (has_unrestrict_boost_count) {
     parse(unrestrict_boost_count, parser);
+  }
+  if (has_bot_verification) {
+    parse(bot_verification, parser);
   }
 
   if (legacy_can_view_statistics) {
@@ -4667,6 +4679,9 @@ void ChatManager::on_load_channel_full_from_database(ChannelId channel_id, strin
   for (auto bot_user_id : channel_full->bot_user_ids) {
     dependencies.add(bot_user_id);
   }
+  if (channel_full->bot_verification != nullptr) {
+    channel_full->bot_verification->add_dependencies(dependencies);
+  }
   dependencies.add(channel_full->invite_link.get_creator_user_id());
   if (!dependencies.resolve_force(td_, source)) {
     channels_full_.erase(channel_id);
@@ -5401,6 +5416,7 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
     auto unrestrict_boost_count = channel->boosts_unrestrict_;
     auto has_paid_media_allowed = channel->paid_media_allowed_;
     auto can_view_star_revenue = channel->can_view_stars_revenue_;
+    auto bot_verification = BotVerification::get_bot_verification(std::move(channel->bot_verification_));
     StickerSetId sticker_set_id;
     if (channel->stickerset_ != nullptr) {
       sticker_set_id =
@@ -5438,7 +5454,8 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
         channel_full->unrestrict_boost_count != unrestrict_boost_count ||
         channel_full->can_view_revenue != can_view_revenue ||
         channel_full->has_paid_media_allowed != has_paid_media_allowed ||
-        channel_full->can_view_star_revenue != can_view_star_revenue) {
+        channel_full->can_view_star_revenue != can_view_star_revenue ||
+        channel_full->bot_verification != bot_verification) {
       channel_full->participant_count = participant_count;
       channel_full->administrator_count = administrator_count;
       channel_full->restricted_count = restricted_count;
@@ -5460,6 +5477,7 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
       channel_full->can_view_revenue = can_view_revenue;
       channel_full->has_paid_media_allowed = has_paid_media_allowed;
       channel_full->can_view_star_revenue = can_view_star_revenue;
+      channel_full->bot_verification = std::move(bot_verification);
 
       channel_full->is_changed = true;
     }
@@ -8949,6 +8967,9 @@ tl_object_ptr<td_api::supergroupFullInfo> ChatManager::get_supergroup_full_info_
   auto bot_commands = transform(channel_full->bot_commands, [td = td_](const BotCommands &commands) {
     return commands.get_bot_commands_object(td);
   });
+  auto bot_verification = channel_full->bot_verification == nullptr
+                              ? nullptr
+                              : channel_full->bot_verification->get_bot_verification_object(td_);
   bool has_hidden_participants = channel_full->has_hidden_participants || !channel_full->can_get_participants;
   return td_api::make_object<td_api::supergroupFullInfo>(
       get_chat_photo_object(td_->file_manager_.get(), channel_full->photo), channel_full->description,
@@ -8964,6 +8985,7 @@ tl_object_ptr<td_api::supergroupFullInfo> ChatManager::get_supergroup_full_info_
       channel_full->unrestrict_boost_count, channel_full->sticker_set_id.get(),
       channel_full->emoji_sticker_set_id.get(), channel_full->location.get_chat_location_object(),
       channel_full->invite_link.get_chat_invite_link_object(td_->user_manager_.get()), std::move(bot_commands),
+      std::move(bot_verification),
       get_basic_group_id_object(channel_full->migrated_from_chat_id, "get_supergroup_full_info_object"),
       channel_full->migrated_from_max_message_id.get());
 }

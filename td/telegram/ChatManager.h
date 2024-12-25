@@ -54,6 +54,7 @@
 namespace td {
 
 struct BinlogEvent;
+class BotVerification;
 struct MinChannel;
 class Td;
 
@@ -558,6 +559,7 @@ class ChatManager final : public Actor {
     DialogInviteLink invite_link;
 
     vector<BotCommands> bot_commands;
+    unique_ptr<BotVerification> bot_verification;
 
     uint32 speculative_version = 1;
     uint32 repair_request_version = 0;
