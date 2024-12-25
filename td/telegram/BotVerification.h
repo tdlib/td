@@ -16,6 +16,7 @@
 
 namespace td {
 
+class Dependencies;
 class Td;
 
 class BotVerification {
@@ -32,6 +33,8 @@ class BotVerification {
   bool is_valid() const {
     return bot_user_id_.is_valid() && icon_.is_valid();
   }
+
+  void add_dependencies(Dependencies &dependencies) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;

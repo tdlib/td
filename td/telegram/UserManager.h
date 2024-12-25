@@ -59,6 +59,7 @@
 namespace td {
 
 struct BinlogEvent;
+class BotVerification;
 class BusinessAwayMessage;
 class BusinessGreetingMessage;
 class BusinessInfo;
@@ -634,6 +635,7 @@ class UserManager final : public Actor {
 
     unique_ptr<BotInfo> bot_info;
     unique_ptr<BusinessInfo> business_info;
+    unique_ptr<BotVerification> bot_verification;
 
     bool is_blocked = false;
     bool is_blocked_for_stories = false;

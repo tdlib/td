@@ -6,8 +6,6 @@
 //
 #include "td/telegram/VerificationStatus.h"
 
-#include "td/telegram/BotVerification.h"
-
 namespace td {
 
 td_api::object_ptr<td_api::verificationStatus> get_verification_status_object(

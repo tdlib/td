@@ -11,6 +11,8 @@
 #include "td/telegram/Birthdate.hpp"
 #include "td/telegram/BlockListId.h"
 #include "td/telegram/BotMenuButton.h"
+#include "td/telegram/BotVerification.h"
+#include "td/telegram/BotVerification.hpp"
 #include "td/telegram/BotVerifierSettings.hpp"
 #include "td/telegram/BusinessAwayMessage.h"
 #include "td/telegram/BusinessGreetingMessage.h"
@@ -1777,6 +1779,7 @@ void UserManager::UserFull::store(StorerT &storer) const {
   bool has_header_dark_color = bot_info != nullptr && bot_info->header_dark_color != -1;
   bool has_referral_program_info = bot_info != nullptr && bot_info->referral_program_info.is_valid();
   bool has_verifier_settings = bot_info != nullptr && bot_info->verifier_settings != nullptr;
+  bool has_bot_verification = bot_verification != nullptr;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
   STORE_FLAG(is_blocked);
@@ -1823,6 +1826,7 @@ void UserManager::UserFull::store(StorerT &storer) const {
     STORE_FLAG(has_header_dark_color);
     STORE_FLAG(has_referral_program_info);
     STORE_FLAG(has_verifier_settings);
+    STORE_FLAG(has_bot_verification);
     END_STORE_FLAGS();
   }
   if (has_about) {
@@ -1900,6 +1904,9 @@ void UserManager::UserFull::store(StorerT &storer) const {
   if (has_verifier_settings) {
     store(bot_info->verifier_settings, storer);
   }
+  if (has_bot_verification) {
+    store(bot_verification, storer);
+  }
 }
 
 template <class ParserT>
@@ -1931,6 +1938,7 @@ void UserManager::UserFull::parse(ParserT &parser) {
   bool has_header_dark_color = false;
   bool has_referral_program_info = false;
   bool has_verifier_settings = false;
+  bool has_bot_verification = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_about);
   PARSE_FLAG(is_blocked);
@@ -1977,6 +1985,7 @@ void UserManager::UserFull::parse(ParserT &parser) {
     PARSE_FLAG(has_header_dark_color);
     PARSE_FLAG(has_referral_program_info);
     PARSE_FLAG(has_verifier_settings);
+    PARSE_FLAG(has_bot_verification);
     END_PARSE_FLAGS();
   }
   if (has_about) {
@@ -2057,6 +2066,9 @@ void UserManager::UserFull::parse(ParserT &parser) {
   }
   if (has_verifier_settings) {
     parse(add_bot_info()->verifier_settings, parser);
+  }
+  if (has_bot_verification) {
+    parse(bot_verification, parser);
   }
 }
 
@@ -7215,11 +7227,13 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
   auto personal_channel_id = ChannelId(user->personal_channel_id_);
   auto sponsored_enabled = user->sponsored_enabled_;
   auto can_view_revenue = user->can_view_revenue_;
+  auto bot_verification = BotVerification::get_bot_verification(std::move(user->bot_verification_));
   if (user_full->can_be_called != can_be_called || user_full->supports_video_calls != supports_video_calls ||
       user_full->has_private_calls != has_private_calls ||
       user_full->voice_messages_forbidden != voice_messages_forbidden ||
       user_full->can_pin_messages != can_pin_messages || user_full->has_pinned_stories != has_pinned_stories ||
-      user_full->sponsored_enabled != sponsored_enabled || user_full->can_view_revenue != can_view_revenue) {
+      user_full->sponsored_enabled != sponsored_enabled || user_full->can_view_revenue != can_view_revenue ||
+      user_full->bot_verification != bot_verification) {
     user_full->can_be_called = can_be_called;
     user_full->supports_video_calls = supports_video_calls;
     user_full->has_private_calls = has_private_calls;
@@ -7228,6 +7242,7 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
     user_full->has_pinned_stories = has_pinned_stories;
     user_full->sponsored_enabled = sponsored_enabled;
     user_full->can_view_revenue = can_view_revenue;
+    user_full->bot_verification = std::move(bot_verification);
 
     user_full->is_changed = true;
   }
@@ -7494,6 +7509,9 @@ void UserManager::on_load_user_full_from_database(UserId user_id, string value) 
   if (user_full->business_info != nullptr) {
     user_full->business_info->add_dependencies(dependencies);
   }
+  if (user_full->bot_verification != nullptr) {
+    user_full->bot_verification->add_dependencies(dependencies);
+  }
   dependencies.add(user_full->personal_channel_id);
   if (!dependencies.resolve_force(td_, "on_load_user_full_from_database")) {
     users_full_.erase(user_id);
@@ -7621,6 +7639,7 @@ void UserManager::drop_user_full(UserId user_id) {
   user_full->common_chat_count = 0;
   user_full->personal_channel_id = ChannelId();
   user_full->business_info = nullptr;
+  user_full->bot_verification = nullptr;
   user_full->private_forward_name.clear();
   user_full->voice_messages_forbidden = false;
   user_full->has_pinned_stories = false;
@@ -8432,6 +8451,8 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
     td_->dialog_manager_->force_create_dialog(dialog_id, "get_user_full_info_object", true);
     personal_chat_id = td_->dialog_manager_->get_chat_id_object(dialog_id, "get_user_full_info_object");
   }
+  auto bot_verification =
+      user_full->bot_verification == nullptr ? nullptr : user_full->bot_verification->get_bot_verification_object(td_);
   return td_api::make_object<td_api::userFullInfo>(
       get_chat_photo_object(td_->file_manager_.get(), user_full->personal_photo),
       get_chat_photo_object(td_->file_manager_.get(), user_full->photo),
@@ -8440,7 +8461,7 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
       !user_full->private_forward_name.empty(), voice_messages_forbidden, user_full->has_pinned_stories,
       user_full->sponsored_enabled, user_full->need_phone_number_privacy_exception, user_full->wallpaper_overridden,
       std::move(bio_object), user_full->birthdate.get_birthdate_object(), personal_chat_id, user_full->gift_count,
-      user_full->common_chat_count, std::move(business_info), std::move(bot_info));
+      user_full->common_chat_count, std::move(bot_verification), std::move(business_info), std::move(bot_info));
 }
 
 td_api::object_ptr<td_api::updateContactCloseBirthdays> UserManager::get_update_contact_close_birthdays() const {

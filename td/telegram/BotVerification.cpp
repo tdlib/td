@@ -6,6 +6,7 @@
 //
 #include "td/telegram/BotVerification.h"
 
+#include "td/telegram/Dependencies.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UserManager.h"
@@ -44,6 +45,10 @@ td_api::object_ptr<td_api::botVerification> BotVerification::get_bot_verificatio
   return td_api::make_object<td_api::botVerification>(
       td->user_manager_->get_user_id_object(bot_user_id_, "botVerification"), icon_.get(),
       get_formatted_text_object(td->user_manager_.get(), text, true, -1));
+}
+
+void BotVerification::add_dependencies(Dependencies &dependencies) const {
+  dependencies.add(bot_user_id_);
 }
 
 bool operator==(const BotVerification &lhs, const BotVerification &rhs) {
