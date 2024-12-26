@@ -3999,6 +3999,16 @@ messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id
 //@was_upgraded True, if the gift was upgraded to a unique gift; only for the receiver of the gift
 messageGift gift:gift text:formattedText sell_star_count:int53 upgrade_star_count:int53 is_private:Bool is_saved:Bool can_be_upgraded:Bool was_converted:Bool was_upgraded:Bool = MessageContent;
 
+//@description An upgraded gift was received or sent by the current user
+//@gift The gift
+//@is_upgrade True, if the gift was received by upgrading of a previously received gift
+//@is_saved True, if the gift is displayed on the user's profile page; only for the receiver of the gift
+//@can_be_transferred True, if the gift can be transferred to another user; only for the receiver of the gift
+//@was_transferred True, if the gift was transferred to another user; only for the receiver of the gift
+//@transfer_star_count Number of Telegram Stars that must be paid to transfer the upgraded gift; only for the receiver of the gift
+//@export_date Point in time (Unix timestamp) when the gift can be transferred to TON blockchain as an NFT; 0 if NFT export isn't possible; only for the receiver of the gift
+messageUpgradedGift gift:upgradedGift is_upgrade:Bool is_saved:Bool can_be_transferred:Bool was_transferred:Bool transfer_star_count:int53 export_date:int32 = MessageContent;
+
 //@description A contact has registered with Telegram
 messageContactRegistered = MessageContent;
 

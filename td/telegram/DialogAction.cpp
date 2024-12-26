@@ -427,6 +427,7 @@ bool DialogAction::is_canceled_by_message_of_type(MessageContentType message_con
     case MessageContentType::GiftStars:
     case MessageContentType::PrizeStars:
     case MessageContentType::StarGift:
+    case MessageContentType::StarGiftUnique:
       return false;
     default:
       UNREACHABLE();

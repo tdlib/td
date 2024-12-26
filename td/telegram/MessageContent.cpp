@@ -513,7 +513,7 @@ class MessageChatSetTtl final : public MessageContent {
 
 class MessageUnsupported final : public MessageContent {
  public:
-  static constexpr int32 CURRENT_VERSION = 38;
+  static constexpr int32 CURRENT_VERSION = 39;
   int32 version = CURRENT_VERSION;
 
   MessageUnsupported() = default;
@@ -1275,6 +1275,33 @@ class MessageStarGift final : public MessageContent {
   }
 };
 
+class MessageStarGiftUnique final : public MessageContent {
+ public:
+  StarGift star_gift;
+  int64 transfer_star_count = 0;
+  int32 can_export_at = 0;
+  bool is_saved = false;
+  bool is_upgrade = false;
+  bool can_transfer = false;
+  bool was_transferred = false;
+
+  MessageStarGiftUnique() = default;
+  MessageStarGiftUnique(StarGift &&star_gift, int64 transfer_star_count, int32 can_export_at, bool is_saved,
+                        bool is_upgrade, bool can_transfer, bool was_transferred)
+      : star_gift(std::move(star_gift))
+      , transfer_star_count(transfer_star_count)
+      , can_export_at(can_export_at)
+      , is_saved(is_saved)
+      , is_upgrade(is_upgrade)
+      , can_transfer(can_transfer)
+      , was_transferred(was_transferred) {
+  }
+
+  MessageContentType get_type() const final {
+    return MessageContentType::StarGiftUnique;
+  }
+};
+
 template <class StorerT>
 static void store(const MessageContent *content, StorerT &storer) {
   CHECK(content != nullptr);
@@ -1975,6 +2002,27 @@ static void store(const MessageContent *content, StorerT &storer) {
       store(m->convert_star_count, storer);
       if (has_upgrade_star_count) {
         store(m->upgrade_star_count, storer);
+      }
+      break;
+    }
+    case MessageContentType::StarGiftUnique: {
+      const auto *m = static_cast<const MessageStarGiftUnique *>(content);
+      bool has_transfer_star_count = m->transfer_star_count != 0;
+      bool has_can_export_at = m->can_export_at != 0;
+      BEGIN_STORE_FLAGS();
+      STORE_FLAG(has_transfer_star_count);
+      STORE_FLAG(has_can_export_at);
+      STORE_FLAG(m->is_saved);
+      STORE_FLAG(m->is_upgrade);
+      STORE_FLAG(m->was_transferred);
+      STORE_FLAG(m->can_transfer);
+      END_STORE_FLAGS();
+      store(m->star_gift, storer);
+      if (has_transfer_star_count) {
+        store(m->transfer_star_count, storer);
+      }
+      if (has_can_export_at) {
+        store(m->can_export_at, storer);
       }
       break;
     }
@@ -2891,7 +2939,33 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       if (has_upgrade_star_count) {
         parse(m->upgrade_star_count, parser);
       }
-      if (!m->star_gift.is_valid()) {
+      if (!m->star_gift.is_valid() || m->star_gift.is_unique()) {
+        is_bad = true;
+        break;
+      }
+      content = std::move(m);
+      break;
+    }
+    case MessageContentType::StarGiftUnique: {
+      auto m = make_unique<MessageStarGiftUnique>();
+      bool has_transfer_star_count;
+      bool has_can_export_at;
+      BEGIN_PARSE_FLAGS();
+      PARSE_FLAG(has_transfer_star_count);
+      PARSE_FLAG(has_can_export_at);
+      PARSE_FLAG(m->is_saved);
+      PARSE_FLAG(m->is_upgrade);
+      PARSE_FLAG(m->was_transferred);
+      PARSE_FLAG(m->can_transfer);
+      END_PARSE_FLAGS();
+      parse(m->star_gift, parser);
+      if (has_transfer_star_count) {
+        parse(m->transfer_star_count, parser);
+      }
+      if (has_can_export_at) {
+        parse(m->can_export_at, parser);
+      }
+      if (!m->star_gift.is_valid() || !m->star_gift.is_unique()) {
         is_bad = true;
         break;
       }
@@ -3667,6 +3741,7 @@ bool can_message_content_have_input_media(const Td *td, const MessageContent *co
     case MessageContentType::GiftStars:
     case MessageContentType::PrizeStars:
     case MessageContentType::StarGift:
+    case MessageContentType::StarGiftUnique:
       return false;
     case MessageContentType::Animation:
     case MessageContentType::Audio:
@@ -3814,6 +3889,7 @@ SecretInputMedia get_message_content_secret_input_media(
     case MessageContentType::GiftStars:
     case MessageContentType::PrizeStars:
     case MessageContentType::StarGift:
+    case MessageContentType::StarGiftUnique:
       break;
     default:
       UNREACHABLE();
@@ -3989,6 +4065,7 @@ static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_in
     case MessageContentType::GiftStars:
     case MessageContentType::PrizeStars:
     case MessageContentType::StarGift:
+    case MessageContentType::StarGiftUnique:
       break;
     default:
       UNREACHABLE();
@@ -4247,6 +4324,7 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td, int32 med
     case MessageContentType::GiftStars:
     case MessageContentType::PrizeStars:
     case MessageContentType::StarGift:
+    case MessageContentType::StarGiftUnique:
       break;
     default:
       UNREACHABLE();
@@ -4468,6 +4546,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
     case MessageContentType::GiftStars:
     case MessageContentType::PrizeStars:
     case MessageContentType::StarGift:
+    case MessageContentType::StarGiftUnique:
       UNREACHABLE();
   }
   return Status::OK();
@@ -4621,6 +4700,7 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
     case MessageContentType::GiftStars:
     case MessageContentType::PrizeStars:
     case MessageContentType::StarGift:
+    case MessageContentType::StarGiftUnique:
       return 0;
     default:
       UNREACHABLE();
@@ -4922,6 +5002,8 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
     case MessageContentType::PrizeStars:
       break;
     case MessageContentType::StarGift:
+      break;
+    case MessageContentType::StarGiftUnique:
       break;
     default:
       UNREACHABLE();
@@ -5353,6 +5435,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::GiftStars:
     case MessageContentType::PrizeStars:
     case MessageContentType::StarGift:
+    case MessageContentType::StarGiftUnique:
       break;
     default:
       UNREACHABLE();
@@ -5509,6 +5592,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::GiftStars:
     case MessageContentType::PrizeStars:
     case MessageContentType::StarGift:
+    case MessageContentType::StarGiftUnique:
       LOG(ERROR) << "Receive new file " << new_file_id << " in a sent message of the type " << content_type;
       break;
     default:
@@ -6119,6 +6203,17 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
           lhs->name_hidden != rhs->name_hidden || lhs->is_saved != rhs->is_saved ||
           lhs->can_upgrade != rhs->can_upgrade || lhs->was_converted != rhs->was_converted ||
           lhs->was_upgraded != rhs->was_upgraded) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::StarGiftUnique: {
+      const auto *lhs = static_cast<const MessageStarGiftUnique *>(old_content);
+      const auto *rhs = static_cast<const MessageStarGiftUnique *>(new_content);
+      if (lhs->star_gift != rhs->star_gift || lhs->transfer_star_count != rhs->transfer_star_count ||
+          lhs->can_export_at != rhs->can_export_at || lhs->is_saved != rhs->is_saved ||
+          lhs->is_upgrade != rhs->is_upgrade || lhs->can_transfer != rhs->can_transfer ||
+          lhs->was_transferred != rhs->was_transferred) {
         need_update = true;
       }
       break;
@@ -7371,6 +7466,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::GiftStars:
     case MessageContentType::PrizeStars:
     case MessageContentType::StarGift:
+    case MessageContentType::StarGiftUnique:
       return nullptr;
     default:
       UNREACHABLE();
@@ -7903,7 +7999,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     case telegram_api::messageActionStarGift::ID: {
       auto action = move_tl_object_as<telegram_api::messageActionStarGift>(action_ptr);
       StarGift star_gift(td, std::move(action->gift_), false);
-      if (!star_gift.is_valid()) {
+      if (!star_gift.is_valid() || star_gift.is_unique()) {
         break;
       }
       FormattedText text = get_formatted_text(td->user_manager_.get(), std::move(action->message_), true, false,
@@ -7913,8 +8009,18 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
           StarManager::get_star_count(action->upgrade_stars_), action->name_hidden_, action->saved_,
           action->can_upgrade_, action->converted_, action->upgraded_);
     }
-    case telegram_api::messageActionStarGiftUnique::ID:
-      return td::make_unique<MessageUnsupported>();
+    case telegram_api::messageActionStarGiftUnique::ID: {
+      auto action = move_tl_object_as<telegram_api::messageActionStarGiftUnique>(action_ptr);
+      StarGift star_gift(td, std::move(action->gift_), true);
+      if (!star_gift.is_valid() || !star_gift.is_unique()) {
+        break;
+      }
+      return td::make_unique<MessageStarGiftUnique>(
+          std::move(star_gift), StarManager::get_star_count(action->transfer_stars_), max(0, action->can_export_at_),
+          action->saved_, action->upgrade_,
+          (action->flags_ && telegram_api::messageActionStarGiftUnique::TRANSFER_STARS_MASK) != 0,
+          action->transferred_);
+    }
     default:
       UNREACHABLE();
   }
@@ -8404,6 +8510,12 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(const Mess
       return td_api::make_object<td_api::messageGift>(m->star_gift.get_gift_object(td), get_text_object(m->text),
                                                       m->convert_star_count, m->upgrade_star_count, m->name_hidden,
                                                       m->is_saved, m->can_upgrade, m->was_converted, m->was_upgraded);
+    }
+    case MessageContentType::StarGiftUnique: {
+      const auto *m = static_cast<const MessageStarGiftUnique *>(content);
+      return td_api::make_object<td_api::messageUpgradedGift>(m->star_gift.get_upgraded_gift_object(td), m->is_upgrade,
+                                                              m->is_saved, m->can_transfer, m->was_transferred,
+                                                              m->transfer_star_count, m->can_export_at);
     }
     default:
       UNREACHABLE();
@@ -9380,6 +9492,8 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       break;
     }
     case MessageContentType::StarGift:
+      break;
+    case MessageContentType::StarGiftUnique:
       break;
     default:
       UNREACHABLE();
