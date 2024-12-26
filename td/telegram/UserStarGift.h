@@ -26,11 +26,13 @@ class UserStarGift {
   MessageId message_id_;
   int64 convert_star_count_ = 0;
   int64 upgrade_star_count_ = 0;
+  int64 transfer_star_count_ = 0;
   int32 date_ = 0;
   int32 can_export_at_ = 0;
   bool is_name_hidden_ = false;
   bool is_saved_ = false;
   bool can_upgrade_ = false;
+  bool can_transfer_ = false;
 
  public:
   UserStarGift(Td *td, telegram_api::object_ptr<telegram_api::userStarGift> &&gift, bool is_me);

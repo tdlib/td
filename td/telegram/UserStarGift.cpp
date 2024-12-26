@@ -22,13 +22,13 @@ UserStarGift::UserStarGift(Td *td, telegram_api::object_ptr<telegram_api::userSt
     , message_id_(ServerMessageId(gift->msg_id_))
     , convert_star_count_(StarManager::get_star_count(gift->convert_stars_))
     , upgrade_star_count_(StarManager::get_star_count(gift->upgrade_stars_))
+    , transfer_star_count_(StarManager::get_star_count(gift->transfer_stars_))
     , date_(gift->date_)
     , can_export_at_(max(0, gift->can_export_at_))
     , is_name_hidden_(gift->name_hidden_)
     , is_saved_(!gift->unsaved_)
     , can_upgrade_(gift->can_upgrade_)
-
-{
+    , can_transfer_((gift->flags_ & telegram_api::userStarGift::TRANSFER_STARS_MASK) != 0) {
   if (sender_user_id_ != UserId() && !sender_user_id_.is_valid()) {
     LOG(ERROR) << "Receive " << sender_user_id_ << " as sender of a gift";
     sender_user_id_ = UserId();
@@ -46,9 +46,9 @@ UserStarGift::UserStarGift(Td *td, telegram_api::object_ptr<telegram_api::userSt
 td_api::object_ptr<td_api::userGift> UserStarGift::get_user_gift_object(Td *td) const {
   return td_api::make_object<td_api::userGift>(td->user_manager_->get_user_id_object(sender_user_id_, "userGift"),
                                                get_formatted_text_object(td->user_manager_.get(), message_, true, -1),
-                                               is_name_hidden_, is_saved_, can_upgrade_, date_,
+                                               is_name_hidden_, is_saved_, can_upgrade_, can_transfer_, date_,
                                                gift_.get_sent_gift_object(td), message_id_.get(), convert_star_count_,
-                                               upgrade_star_count_, can_export_at_);
+                                               upgrade_star_count_, transfer_star_count_, can_export_at_);
 }
 
 }  // namespace td

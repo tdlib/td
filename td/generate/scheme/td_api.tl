@@ -1096,13 +1096,15 @@ sentGiftUpgraded gift:upgradedGift = SentGift;
 //@is_private True, if the sender and gift text are shown only to the gift receiver; otherwise, everyone are able to see them
 //@is_saved True, if the gift is displayed on the user's profile page; only for the receiver of the gift
 //@can_be_upgraded True, if the gift is a regular gift that can be upgraded to a unique gift; only for the receiver of the gift
+//@can_be_transferred True, if the gift is an upgraded gift that can be transferred to another user; only for the receiver of the gift
 //@date Point in time (Unix timestamp) when the gift was sent
 //@gift The gift
 //@message_id Identifier of the message with the gift in the chat with the sender of the gift; can be 0 or an identifier of a deleted message; only for the receiver of the gift
 //@sell_star_count Number of Telegram Stars that can be claimed by the receiver instead of the regular gift; 0 if the gift can't be sold by the current user
 //@upgrade_star_count Number of Telegram Stars that must be paid to upgrade the regular gift; only for the receiver of the gift
-//@export_date Point in time (Unix timestamp) when the unique gift can be transferred to TON blockchain as an NFT; 0 if NFT export isn't possible; only for the receiver of the gift
-userGift sender_user_id:int53 text:formattedText is_private:Bool is_saved:Bool can_be_upgraded:Bool date:int32 gift:SentGift message_id:int53 sell_star_count:int53 upgrade_star_count:int53 export_date:int32 = UserGift;
+//@transfer_star_count Number of Telegram Stars that must be paid to transfer the upgraded gift; only for the receiver of the gift
+//@export_date Point in time (Unix timestamp) when the upgraded gift can be transferred to TON blockchain as an NFT; 0 if NFT export isn't possible; only for the receiver of the gift
+userGift sender_user_id:int53 text:formattedText is_private:Bool is_saved:Bool can_be_upgraded:Bool can_be_transferred:Bool date:int32 gift:SentGift message_id:int53 sell_star_count:int53 upgrade_star_count:int53 transfer_star_count:int53 export_date:int32 = UserGift;
 
 //@description Represents a list of gifts received by a user
 //@total_count The total number of received gifts
