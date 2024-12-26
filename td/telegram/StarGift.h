@@ -24,6 +24,7 @@ class StarGift {
   FileId sticker_file_id_;
   int64 star_count_ = 0;
   int64 default_sell_star_count_ = 0;
+  int64 upgrade_star_count_ = 0;
   int32 availability_remains_ = 0;
   int32 availability_total_ = 0;
   int32 first_sale_date_ = 0;
@@ -66,6 +67,11 @@ class StarGift {
   int64 get_star_count() const {
     CHECK(!is_unique_);
     return star_count_;
+  }
+
+  int64 get_upgrade_star_count() const {
+    CHECK(!is_unique_);
+    return upgrade_star_count_;
   }
 
   td_api::object_ptr<td_api::gift> get_gift_object(const Td *td) const;

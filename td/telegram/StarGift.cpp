@@ -116,6 +116,7 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&st
   id_ = star_gift->id_;
   star_count_ = StarManager::get_star_count(star_gift->stars_);
   default_sell_star_count_ = StarManager::get_star_count(star_gift->convert_stars_);
+  upgrade_star_count_ = StarManager::get_star_count(star_gift->upgrade_stars_);
   sticker_file_id_ = sticker_id;
   availability_remains_ = star_gift->availability_remains_;
   availability_total_ = star_gift->availability_total_;
@@ -125,9 +126,10 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&st
 td_api::object_ptr<td_api::gift> StarGift::get_gift_object(const Td *td) const {
   CHECK(is_valid());
   CHECK(!is_unique_);
-  return td_api::make_object<td_api::gift>(
-      id_, td->stickers_manager_->get_sticker_object(sticker_file_id_), star_count_, default_sell_star_count_,
-      is_for_birthday_, availability_remains_, availability_total_, first_sale_date_, last_sale_date_);
+  return td_api::make_object<td_api::gift>(id_, td->stickers_manager_->get_sticker_object(sticker_file_id_),
+                                           star_count_, default_sell_star_count_, upgrade_star_count_, is_for_birthday_,
+                                           availability_remains_, availability_total_, first_sale_date_,
+                                           last_sale_date_);
 }
 
 td_api::object_ptr<td_api::upgradedGift> StarGift::get_upgraded_gift_object(Td *td) const {
@@ -151,12 +153,12 @@ td_api::object_ptr<td_api::SentGift> StarGift::get_sent_gift_object(Td *td) cons
 bool operator==(const StarGift &lhs, const StarGift &rhs) {
   return lhs.id_ == rhs.id_ && lhs.sticker_file_id_ == rhs.sticker_file_id_ && lhs.star_count_ == rhs.star_count_ &&
          lhs.default_sell_star_count_ == rhs.default_sell_star_count_ &&
-         lhs.availability_remains_ == rhs.availability_remains_ && lhs.availability_total_ == rhs.availability_total_ &&
-         lhs.first_sale_date_ == rhs.first_sale_date_ && lhs.last_sale_date_ == rhs.last_sale_date_ &&
-         lhs.is_for_birthday_ == rhs.is_for_birthday_ && lhs.is_unique_ == rhs.is_unique_ && lhs.model_ == rhs.model_ &&
-         lhs.pattern_ == rhs.pattern_ && lhs.background_ == rhs.background_ &&
-         lhs.original_details_ == rhs.original_details_ && lhs.title_ == rhs.title_ &&
-         lhs.owner_user_id_ == rhs.owner_user_id_ && lhs.num_ == rhs.num_ &&
+         lhs.upgrade_star_count_ == rhs.upgrade_star_count_ && lhs.availability_remains_ == rhs.availability_remains_ &&
+         lhs.availability_total_ == rhs.availability_total_ && lhs.first_sale_date_ == rhs.first_sale_date_ &&
+         lhs.last_sale_date_ == rhs.last_sale_date_ && lhs.is_for_birthday_ == rhs.is_for_birthday_ &&
+         lhs.is_unique_ == rhs.is_unique_ && lhs.model_ == rhs.model_ && lhs.pattern_ == rhs.pattern_ &&
+         lhs.background_ == rhs.background_ && lhs.original_details_ == rhs.original_details_ &&
+         lhs.title_ == rhs.title_ && lhs.owner_user_id_ == rhs.owner_user_id_ && lhs.num_ == rhs.num_ &&
          lhs.unique_availability_issued_ == rhs.unique_availability_issued_ &&
          lhs.unique_availability_total_ == rhs.unique_availability_total_;
 }
