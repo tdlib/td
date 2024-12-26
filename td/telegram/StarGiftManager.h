@@ -31,7 +31,7 @@ class StarGiftManager final : public Actor {
   void on_get_gift_prices(FlatHashMap<int64, std::pair<int64, int64>> gift_prices);
 
   void send_gift(int64 gift_id, UserId user_id, td_api::object_ptr<td_api::formattedText> text, bool is_private,
-                 Promise<Unit> &&promise);
+                 bool pay_for_upgrade, Promise<Unit> &&promise);
 
   void convert_gift(UserId user_id, MessageId message_id, Promise<Unit> &&promise);
 

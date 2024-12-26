@@ -2836,8 +2836,10 @@ class CliClient final : public Actor {
       int64 gift_id;
       UserId user_id;
       string text;
-      get_args(args, gift_id, user_id, text);
-      send_request(td_api::make_object<td_api::sendGift>(gift_id, user_id, as_formatted_text(text), op == "sendgp"));
+      bool pay_for_upgrade;
+      get_args(args, gift_id, user_id, text, pay_for_upgrade);
+      send_request(td_api::make_object<td_api::sendGift>(gift_id, user_id, as_formatted_text(text), op == "sendgp",
+                                                         pay_for_upgrade));
     } else if (op == "sellg") {
       UserId user_id;
       MessageId message_id;

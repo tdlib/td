@@ -620,7 +620,7 @@ void StarGiftManager::on_get_gift_prices(FlatHashMap<int64, std::pair<int64, int
 }
 
 void StarGiftManager::send_gift(int64 gift_id, UserId user_id, td_api::object_ptr<td_api::formattedText> text,
-                                bool is_private, Promise<Unit> &&promise) {
+                                bool is_private, bool pay_for_upgrade, Promise<Unit> &&promise) {
   int64 star_count = 0;
   if (!td_->auth_manager_->is_bot()) {
     auto it = gift_prices_.find(gift_id);
@@ -628,6 +628,9 @@ void StarGiftManager::send_gift(int64 gift_id, UserId user_id, td_api::object_pt
       return promise.set_error(Status::Error(400, "Gift not found"));
     }
     star_count = it->second.first;
+    if (pay_for_upgrade) {
+      star_count += it->second.second;
+    }
     if (!td_->star_manager_->has_owned_star_count(star_count)) {
       return promise.set_error(Status::Error(400, "Have not enough Telegram Stars"));
     }
@@ -641,6 +644,9 @@ void StarGiftManager::send_gift(int64 gift_id, UserId user_id, td_api::object_pt
   int32 flags = 0;
   if (is_private) {
     flags |= telegram_api::inputInvoiceStarGift::HIDE_NAME_MASK;
+  }
+  if (pay_for_upgrade) {
+    flags |= telegram_api::inputInvoiceStarGift::INCLUDE_UPGRADE_MASK;
   }
   auto input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGift>(
       flags, false /*ignored*/, false /*ignored*/, std::move(input_user), gift_id, nullptr);
