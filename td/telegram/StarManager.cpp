@@ -381,9 +381,17 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                 }
                 if (is_purchase) {
                   if (gift.is_unique()) {
-                    if (for_user) {
-                      return td_api::make_object<td_api::starTransactionTypeGiftTransfer>(
-                          user_id_object, gift.get_upgraded_gift_object(td_));
+                    if (transaction->stargift_upgrade_) {
+                      if (for_user) {
+                        transaction->stargift_upgrade_ = false;
+                        return td_api::make_object<td_api::starTransactionTypeGiftUpgrade>(
+                            gift.get_upgraded_gift_object(td_));
+                      }
+                    } else {
+                      if (for_user) {
+                        return td_api::make_object<td_api::starTransactionTypeGiftTransfer>(
+                            user_id_object, gift.get_upgraded_gift_object(td_));
+                      }
                     }
                   } else {
                     if (for_user || for_bot) {
@@ -599,6 +607,9 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         }
         if (commission_per_mille != 0) {
           LOG(ERROR) << "Receive commission with " << to_string(star_transaction);
+        }
+        if (transaction->stargift_upgrade_) {
+          LOG(ERROR) << "Receive gift upgrade with " << to_string(star_transaction);
         }
       }
       if (!file_ids.empty()) {
