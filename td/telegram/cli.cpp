@@ -2864,8 +2864,9 @@ class CliClient final : public Actor {
       UserId sender_user_id;
       MessageId message_id;
       UserId receiver_user_id;
-      get_args(args, sender_user_id, message_id, receiver_user_id);
-      send_request(td_api::make_object<td_api::transferGift>(sender_user_id, message_id, receiver_user_id));
+      int64 star_count;
+      get_args(args, sender_user_id, message_id, receiver_user_id, star_count);
+      send_request(td_api::make_object<td_api::transferGift>(sender_user_id, message_id, receiver_user_id, star_count));
     } else if (op == "gug") {
       UserId user_id;
       string offset;

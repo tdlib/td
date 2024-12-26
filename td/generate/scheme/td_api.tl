@@ -11659,7 +11659,8 @@ upgradeGift sender_user_id:int53 message_id:int53 keep_original_details:Bool sta
 //@sender_user_id Identifier of the user that sent the gift
 //@message_id Identifier of the message with the upgraded gift in the chat with the user
 //@receiver_user_id Identifier of the user that will receive the gift
-transferGift sender_user_id:int53 message_id:int53 receiver_user_id:int53 = Ok;
+//@star_count The amount of Telegram Stars required for the transfer
+transferGift sender_user_id:int53 message_id:int53 receiver_user_id:int53 star_count:int53 = Ok;
 
 //@description Returns gifts saved to profile by the given user
 //@user_id Identifier of the user
