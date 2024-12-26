@@ -374,21 +374,31 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
               auto user_id = dialog_id.get_user_id();
               auto user_id_object = td_->user_manager_->get_user_id_object(user_id, "starsTransactionPeer");
               if (transaction->stargift_ != nullptr) {
-                auto gift = StarGift(td_, std::move(transaction->stargift_), false);
+                auto gift = StarGift(td_, std::move(transaction->stargift_), true);
                 transaction->stargift_ = nullptr;
                 if (!gift.is_valid()) {
                   return nullptr;
                 }
-                auto gift_object = gift.get_gift_object(td_);
                 if (is_purchase) {
-                  if (for_user || for_bot) {
-                    return td_api::make_object<td_api::starTransactionTypeGiftPurchase>(user_id_object,
-                                                                                        std::move(gift_object));
+                  if (gift.is_unique()) {
+                    if (for_user) {
+                      return td_api::make_object<td_api::starTransactionTypeGiftTransfer>(
+                          user_id_object, gift.get_upgraded_gift_object(td_));
+                    }
+                  } else {
+                    if (for_user || for_bot) {
+                      return td_api::make_object<td_api::starTransactionTypeGiftPurchase>(user_id_object,
+                                                                                          gift.get_gift_object(td_));
+                    }
                   }
                 } else {
-                  if (for_user) {
-                    return td_api::make_object<td_api::starTransactionTypeGiftSale>(user_id_object,
-                                                                                    std::move(gift_object));
+                  if (gift.is_unique()) {
+                    LOG(ERROR) << "Receive sale of an upgraded gift";
+                  } else {
+                    if (for_user) {
+                      return td_api::make_object<td_api::starTransactionTypeGiftSale>(user_id_object,
+                                                                                      gift.get_gift_object(td_));
+                    }
                   }
                 }
                 return nullptr;

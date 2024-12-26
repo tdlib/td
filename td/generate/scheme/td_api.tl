@@ -1221,8 +1221,11 @@ starTransactionTypeChannelSubscriptionPurchase chat_id:int53 subscription_period
 //@subscription_period The number of seconds between consecutive Telegram Star debitings
 starTransactionTypeChannelSubscriptionSale user_id:int53 subscription_period:int32 = StarTransactionType;
 
-//@description The transaction is a purchase of a gift to another user; for regular users and bots only @user_id Identifier of the user that received the gift @gift The gift
+//@description The transaction is a purchase of a regular gift to another user; for regular users and bots only @user_id Identifier of the user that received the gift @gift The gift
 starTransactionTypeGiftPurchase user_id:int53 gift:gift = StarTransactionType;
+
+//@description The transaction is a transfer of an upgraded gift to another user; for regular users only @user_id Identifier of the user that received the gift @gift The gift
+starTransactionTypeGiftTransfer user_id:int53 gift:upgradedGift = StarTransactionType;
 
 //@description The transaction is a sale of a gift received from another user or bot; for regular users only @user_id Identifier of the user that sent the gift @gift The gift
 starTransactionTypeGiftSale user_id:int53 gift:gift = StarTransactionType;
