@@ -1056,7 +1056,7 @@ upgradedGiftOriginalDetails sender_user_id:int53 receiver_user_id:int53 text:for
 //@id Unique identifier of the gift
 //@sticker The sticker representing the gift
 //@star_count Number of Telegram Stars that must be paid for the gift
-//@default_sell_star_count Number of Telegram Stars that can be claimed by the receiver instead of the gift by default. If the gift was paid with just bought Telegram Stars, then full value can be claimed
+//@default_sell_star_count Number of Telegram Stars that can be claimed by the receiver instead of the regular gift by default. If the gift was paid with just bought Telegram Stars, then full value can be claimed
 //@is_for_birthday True, if the gift is a birthday gift
 //@remaining_count Number of remaining times the gift can be purchased by all users; 0 if not limited or the gift was sold out
 //@total_count Number of total times the gift can be purchased by all users; 0 if not limited
@@ -1099,9 +1099,10 @@ sentGiftUpgraded gift:upgradedGift = SentGift;
 //@date Point in time (Unix timestamp) when the gift was sent
 //@gift The gift
 //@message_id Identifier of the message with the gift in the chat with the sender of the gift; can be 0 or an identifier of a deleted message; only for the receiver of the gift
-//@sell_star_count Number of Telegram Stars that can be claimed by the receiver instead of the gift; 0 if the gift can't be sold by the current user
+//@sell_star_count Number of Telegram Stars that can be claimed by the receiver instead of the regular gift; 0 if the gift can't be sold by the current user
+//@upgrade_star_count Number of Telegram Stars that must be paid to upgrade the regular gift; only for the receiver of the gift
 //@export_date Point in time (Unix timestamp) when the unique gift can be transferred to TON blockchain as an NFT; 0 if NFT export isn't possible; only for the receiver of the gift
-userGift sender_user_id:int53 text:formattedText is_private:Bool is_saved:Bool can_be_upgraded:Bool date:int32 gift:SentGift message_id:int53 sell_star_count:int53 export_date:int32 = UserGift;
+userGift sender_user_id:int53 text:formattedText is_private:Bool is_saved:Bool can_be_upgraded:Bool date:int32 gift:SentGift message_id:int53 sell_star_count:int53 upgrade_star_count:int53 export_date:int32 = UserGift;
 
 //@description Represents a list of gifts received by a user
 //@total_count The total number of received gifts
@@ -3981,8 +3982,8 @@ messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id
 //@description A regular gift was received or sent by the current user
 //@gift The gift
 //@text Message added to the gift
-//@sell_star_count Number of Telegram Stars that can be claimed by the receiver instead of the gift; 0 if the gift can't be sold by the receiver
-//@upgrade_star_count Number of Telegram Stars that must be paid to upgrade the gift; only for the receiver of the gift
+//@sell_star_count Number of Telegram Stars that can be claimed by the receiver instead of the regular gift; 0 if the gift can't be sold by the receiver
+//@upgrade_star_count Number of Telegram Stars that must be paid to upgrade the regular gift; only for the receiver of the gift
 //@is_private True, if the sender and gift text are shown only to the gift receiver; otherwise, everyone will be able to see them
 //@is_saved True, if the gift is displayed on the user's profile page; only for the receiver of the gift
 //@can_be_upgraded True, if the gift can be upgraded to a unique gift; only for the receiver of the gift

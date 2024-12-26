@@ -25,6 +25,7 @@ class UserStarGift {
   FormattedText message_;
   MessageId message_id_;
   int64 convert_star_count_ = 0;
+  int64 upgrade_star_count_ = 0;
   int32 date_ = 0;
   int32 can_export_at_ = 0;
   bool is_name_hidden_ = false;
