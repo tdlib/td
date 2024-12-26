@@ -16,6 +16,8 @@
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/Promise.h"
 
+#include <utility>
+
 namespace td {
 
 class Td;
@@ -26,7 +28,7 @@ class StarGiftManager final : public Actor {
 
   void get_gift_payment_options(Promise<td_api::object_ptr<td_api::gifts>> &&promise);
 
-  void on_get_gift_prices(FlatHashMap<int64, int64> gift_prices);
+  void on_get_gift_prices(FlatHashMap<int64, std::pair<int64, int64>> gift_prices);
 
   void send_gift(int64 gift_id, UserId user_id, td_api::object_ptr<td_api::formattedText> text, bool is_private,
                  Promise<Unit> &&promise);
@@ -52,7 +54,7 @@ class StarGiftManager final : public Actor {
   Td *td_;
   ActorShared<> parent_;
 
-  FlatHashMap<int64, int64> gift_prices_;
+  FlatHashMap<int64, std::pair<int64, int64>> gift_prices_;
 };
 
 }  // namespace td
