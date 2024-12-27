@@ -7160,6 +7160,12 @@ void Requests::on_request(uint64 id, td_api::getUserGifts &request) {
                                           std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::getUserGift &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->star_gift_manager_->get_user_gift(MessageId(request.message_id_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::createInvoiceLink &request) {
   CLEAN_INPUT_STRING(request.business_connection_id_);
   CHECK_IS_BOT();

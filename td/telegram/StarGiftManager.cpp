@@ -601,6 +601,44 @@ class GetUserGiftsQuery final : public Td::ResultHandler {
   }
 };
 
+class GetUserStarGiftQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::userGift>> promise_;
+
+ public:
+  explicit GetUserStarGiftQuery(Promise<td_api::object_ptr<td_api::userGift>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(MessageId message_id) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_getUserStarGift({message_id.get_server_message_id().get()})));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getUserStarGift>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetUserStarGiftQuery: " << to_string(ptr);
+
+    for (auto &gift : ptr->gifts_) {
+      UserStarGift user_gift(td_, std::move(gift), true);
+      if (!user_gift.is_valid()) {
+        LOG(ERROR) << "Receive invalid user gift";
+        continue;
+      }
+      return promise_.set_value(user_gift.get_user_gift_object(td_));
+    }
+    promise_.set_error(Status::Error(400, "Gift not found"));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 StarGiftManager::StarGiftManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
@@ -746,6 +784,13 @@ void StarGiftManager::get_user_gifts(UserId user_id, const string &offset, int32
     return promise.set_error(Status::Error(400, "Limit must be non-negative"));
   }
   td_->create_handler<GetUserGiftsQuery>(std::move(promise))->send(user_id, std::move(input_user), offset, limit);
+}
+
+void StarGiftManager::get_user_gift(MessageId message_id, Promise<td_api::object_ptr<td_api::userGift>> &&promise) {
+  if (!message_id.is_valid() || !message_id.is_server()) {
+    return promise.set_error(Status::Error(400, "Invalid message identifier specified"));
+  }
+  td_->create_handler<GetUserStarGiftQuery>(std::move(promise))->send(message_id);
 }
 
 }  // namespace td

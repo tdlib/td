@@ -48,6 +48,8 @@ class StarGiftManager final : public Actor {
   void get_user_gifts(UserId user_id, const string &offset, int32 limit,
                       Promise<td_api::object_ptr<td_api::userGifts>> &&promise);
 
+  void get_user_gift(MessageId message_id, Promise<td_api::object_ptr<td_api::userGift>> &&promise);
+
  private:
   void tear_down() final;
 

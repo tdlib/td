@@ -2869,12 +2869,16 @@ class CliClient final : public Actor {
       int64 star_count;
       get_args(args, sender_user_id, message_id, receiver_user_id, star_count);
       send_request(td_api::make_object<td_api::transferGift>(sender_user_id, message_id, receiver_user_id, star_count));
-    } else if (op == "gug") {
+    } else if (op == "gugs") {
       UserId user_id;
       string offset;
       int32 limit;
       get_args(args, user_id, offset, limit);
       send_request(td_api::make_object<td_api::getUserGifts>(user_id, offset, limit));
+    } else if (op == "gug") {
+      MessageId message_id;
+      get_args(args, message_id);
+      send_request(td_api::make_object<td_api::getUserGift>(message_id));
     } else if (op == "rsp") {
       UserId user_id;
       string telegram_payment_charge_id;
