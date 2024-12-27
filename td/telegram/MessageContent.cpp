@@ -1250,6 +1250,7 @@ class MessageStarGift final : public MessageContent {
   FormattedText text;
   int64 convert_star_count = 0;
   int64 upgrade_star_count = 0;
+  MessageId upgrade_message_id;
   bool name_hidden = false;
   bool is_saved = false;
   bool can_upgrade = false;
@@ -1259,12 +1260,13 @@ class MessageStarGift final : public MessageContent {
 
   MessageStarGift() = default;
   MessageStarGift(StarGift &&star_gift, FormattedText &&text, int64 convert_star_count, int64 upgrade_star_count,
-                  bool name_hidden, bool is_saved, bool can_upgrade, bool was_converted, bool was_upgraded,
-                  bool was_refunded)
+                  MessageId upgrade_message_id, bool name_hidden, bool is_saved, bool can_upgrade, bool was_converted,
+                  bool was_upgraded, bool was_refunded)
       : star_gift(std::move(star_gift))
       , text(std::move(text))
       , convert_star_count(convert_star_count)
       , upgrade_star_count(upgrade_star_count)
+      , upgrade_message_id(upgrade_message_id)
       , name_hidden(name_hidden)
       , is_saved(is_saved)
       , can_upgrade(can_upgrade)
@@ -1991,6 +1993,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       const auto *m = static_cast<const MessageStarGift *>(content);
       bool has_text = !m->text.text.empty();
       bool has_upgrade_star_count = m->upgrade_star_count != 0;
+      bool has_upgrade_message_id = m->upgrade_message_id.is_valid();
       BEGIN_STORE_FLAGS();
       STORE_FLAG(m->name_hidden);
       STORE_FLAG(m->is_saved);
@@ -2000,6 +2003,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       STORE_FLAG(m->can_upgrade);
       STORE_FLAG(has_upgrade_star_count);
       STORE_FLAG(m->was_refunded);
+      STORE_FLAG(has_upgrade_message_id);
       END_STORE_FLAGS();
       store(m->star_gift, storer);
       if (has_text) {
@@ -2008,6 +2012,9 @@ static void store(const MessageContent *content, StorerT &storer) {
       store(m->convert_star_count, storer);
       if (has_upgrade_star_count) {
         store(m->upgrade_star_count, storer);
+      }
+      if (has_upgrade_message_id) {
+        store(m->upgrade_message_id, storer);
       }
       break;
     }
@@ -2929,6 +2936,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       auto m = make_unique<MessageStarGift>();
       bool has_text;
       bool has_upgrade_star_count;
+      bool has_upgrade_message_id;
       BEGIN_PARSE_FLAGS();
       PARSE_FLAG(m->name_hidden);
       PARSE_FLAG(m->is_saved);
@@ -2938,6 +2946,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       PARSE_FLAG(m->can_upgrade);
       PARSE_FLAG(has_upgrade_star_count);
       PARSE_FLAG(m->was_refunded);
+      PARSE_FLAG(has_upgrade_message_id);
       END_PARSE_FLAGS();
       parse(m->star_gift, parser);
       if (has_text) {
@@ -2946,6 +2955,9 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       parse(m->convert_star_count, parser);
       if (has_upgrade_star_count) {
         parse(m->upgrade_star_count, parser);
+      }
+      if (has_upgrade_message_id) {
+        parse(m->upgrade_message_id, parser);
       }
       if (!m->star_gift.is_valid() || m->star_gift.is_unique()) {
         is_bad = true;
@@ -6209,9 +6221,10 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       const auto *rhs = static_cast<const MessageStarGift *>(new_content);
       if (lhs->star_gift != rhs->star_gift || lhs->text != rhs->text ||
           lhs->convert_star_count != rhs->convert_star_count || lhs->upgrade_star_count != rhs->upgrade_star_count ||
-          lhs->name_hidden != rhs->name_hidden || lhs->is_saved != rhs->is_saved ||
-          lhs->can_upgrade != rhs->can_upgrade || lhs->was_converted != rhs->was_converted ||
-          lhs->was_upgraded != rhs->was_upgraded || lhs->was_refunded != rhs->was_refunded) {
+          lhs->upgrade_message_id != rhs->upgrade_message_id || lhs->name_hidden != rhs->name_hidden ||
+          lhs->is_saved != rhs->is_saved || lhs->can_upgrade != rhs->can_upgrade ||
+          lhs->was_converted != rhs->was_converted || lhs->was_upgraded != rhs->was_upgraded ||
+          lhs->was_refunded != rhs->was_refunded) {
         need_update = true;
       }
       break;
@@ -8011,11 +8024,16 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       if (!star_gift.is_valid() || star_gift.is_unique()) {
         break;
       }
+      auto upgrade_message_id = MessageId(ServerMessageId(action->upgrade_msg_id_));
+      if (upgrade_message_id != MessageId() && !upgrade_message_id.is_valid()) {
+        LOG(ERROR) << "Receive " << upgrade_message_id;
+        upgrade_message_id = MessageId();
+      }
       FormattedText text = get_formatted_text(td->user_manager_.get(), std::move(action->message_), true, false,
                                               "messageActionStarGift");
       return td::make_unique<MessageStarGift>(
           std::move(star_gift), std::move(text), StarManager::get_star_count(action->convert_stars_),
-          StarManager::get_star_count(action->upgrade_stars_), action->name_hidden_, action->saved_,
+          StarManager::get_star_count(action->upgrade_stars_), upgrade_message_id, action->name_hidden_, action->saved_,
           action->can_upgrade_, action->converted_, action->upgraded_, action->refunded_);
     }
     case telegram_api::messageActionStarGiftUnique::ID: {
@@ -8516,9 +8534,10 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(const Mess
     }
     case MessageContentType::StarGift: {
       const auto *m = static_cast<const MessageStarGift *>(content);
-      return td_api::make_object<td_api::messageGift>(
-          m->star_gift.get_gift_object(td), get_text_object(m->text), m->convert_star_count, m->upgrade_star_count,
-          m->name_hidden, m->is_saved, m->can_upgrade, m->was_converted, m->was_upgraded, m->was_refunded);
+      return td_api::make_object<td_api::messageGift>(m->star_gift.get_gift_object(td), get_text_object(m->text),
+                                                      m->convert_star_count, m->upgrade_star_count, m->name_hidden,
+                                                      m->is_saved, m->can_upgrade, m->was_converted, m->was_upgraded,
+                                                      m->was_refunded, m->upgrade_message_id.get());
     }
     case MessageContentType::StarGiftUnique: {
       const auto *m = static_cast<const MessageStarGiftUnique *>(content);
