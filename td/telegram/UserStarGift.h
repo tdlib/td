@@ -33,6 +33,7 @@ class UserStarGift {
   bool is_saved_ = false;
   bool can_upgrade_ = false;
   bool can_transfer_ = false;
+  bool was_refunded_ = false;
 
  public:
   UserStarGift(Td *td, telegram_api::object_ptr<telegram_api::userStarGift> &&gift, bool is_me);
