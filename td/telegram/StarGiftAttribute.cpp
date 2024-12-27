@@ -40,10 +40,10 @@ td_api::object_ptr<td_api::upgradedGiftModel> StarGiftAttributeSticker::get_upgr
       name_, td->stickers_manager_->get_sticker_object(sticker_file_id_), rarity_permille_);
 }
 
-td_api::object_ptr<td_api::upgradedGiftPatternEmoji> StarGiftAttributeSticker::get_upgraded_gift_pattern_emoji_object(
+td_api::object_ptr<td_api::upgradedGiftSymbol> StarGiftAttributeSticker::get_upgraded_gift_symbol_object(
     const Td *td) const {
   CHECK(is_valid());
-  return td_api::make_object<td_api::upgradedGiftPatternEmoji>(
+  return td_api::make_object<td_api::upgradedGiftSymbol>(
       name_, td->stickers_manager_->get_sticker_object(sticker_file_id_), rarity_permille_);
 }
 

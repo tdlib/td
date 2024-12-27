@@ -1030,11 +1030,11 @@ starGiveawayPaymentOptions options:vector<starGiveawayPaymentOption> = StarGivea
 //@rarity_per_mille The number of upgraded gift that receive this model for each 1000 gifts upgraded
 upgradedGiftModel name:string sticker:sticker rarity_per_mille:int32 = UpgradedGiftModel;
 
-//@description Describes a emoji shown on the pattern of an upgraded gift
-//@name Name of the pattern emoji
+//@description Describes a symbol shown on the pattern of an upgraded gift
+//@name Name of the symbol
 //@sticker The sticker representing the upgraded gift
-//@rarity_per_mille The number of upgraded gift that receive this pattern emoji for each 1000 gifts upgraded
-upgradedGiftPatternEmoji name:string sticker:sticker rarity_per_mille:int32 = UpgradedGiftPatternEmoji;
+//@rarity_per_mille The number of upgraded gift that receive this symbol for each 1000 gifts upgraded
+upgradedGiftSymbol name:string sticker:sticker rarity_per_mille:int32 = UpgradedGiftSymbol;
 
 //@description Describes a background of an upgraded gift
 //@name Name of the background
@@ -1076,10 +1076,10 @@ gifts gifts:vector<gift> = Gifts;
 //@max_upgraded_count The maximum number of gifts that can be upgraded from the same gift
 //@owner_user_id User identifier of the user that owns the upgraded gift
 //@model Description of the model of the upgraded gift
-//@pattern_emoji Description of the pattern emoji of the upgraded gift
+//@symbol Description of the symbol of the upgraded gift
 //@background Description of the background of the upgraded gift
 //@original_details Information about the originally sent gift; may be null if unknown
-upgradedGift id:int64 title:string number:int32 total_upgraded_count:int32 max_upgraded_count:int32 owner_user_id:int53 model:upgradedGiftModel pattern_emoji:upgradedGiftPatternEmoji background:upgradedGiftBackground original_details:upgradedGiftOriginalDetails = UpgradedGift;
+upgradedGift id:int64 title:string number:int32 total_upgraded_count:int32 max_upgraded_count:int32 owner_user_id:int53 model:upgradedGiftModel symbol:upgradedGiftSymbol background:upgradedGiftBackground original_details:upgradedGiftOriginalDetails = UpgradedGift;
 
 //@description Contains result of gift upgrading
 //@gift The upgraded gift
@@ -1124,9 +1124,9 @@ userGifts total_count:int32 gifts:vector<userGift> next_offset:string = UserGift
 
 //@description Contains examples of possible upgraded gifts for the given regular gift
 //@models Examples of possible models that can be chosen for the gift after upgrade
-//@pattern_emojis Examples of possible pattern emoji that can be chosen for the gift after upgrade
+//@symbols Examples of possible symbols that can be chosen for the gift after upgrade
 //@backgrounds Examples of possible backgrounds that can be chosen for the gift after upgrade
-giftUpgradePreview models:vector<upgradedGiftModel> pattern_emojis:vector<upgradedGiftPatternEmoji> backgrounds:vector<upgradedGiftBackground> = GiftUpgradePreview;
+giftUpgradePreview models:vector<upgradedGiftModel> symbols:vector<upgradedGiftSymbol> backgrounds:vector<upgradedGiftBackground> = GiftUpgradePreview;
 
 
 //@class StarTransactionDirection @description Describes direction of a transaction with Telegram Stars

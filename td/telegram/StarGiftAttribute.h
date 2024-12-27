@@ -39,7 +39,7 @@ class StarGiftAttributeSticker {
 
   td_api::object_ptr<td_api::upgradedGiftModel> get_upgraded_gift_model_object(const Td *td) const;
 
-  td_api::object_ptr<td_api::upgradedGiftPatternEmoji> get_upgraded_gift_pattern_emoji_object(const Td *td) const;
+  td_api::object_ptr<td_api::upgradedGiftSymbol> get_upgraded_gift_symbol_object(const Td *td) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;

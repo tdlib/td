@@ -269,7 +269,7 @@ class GetUpgradeGiftPreviewQuery final : public Td::ResultHandler {
           if (!pattern.is_valid()) {
             LOG(ERROR) << "Receive invalid pattern emoji";
           } else {
-            result->pattern_emojis_.push_back(pattern.get_upgraded_gift_pattern_emoji_object(td_));
+            result->symbols_.push_back(pattern.get_upgraded_gift_symbol_object(td_));
           }
           break;
         }

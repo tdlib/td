@@ -138,7 +138,7 @@ td_api::object_ptr<td_api::upgradedGift> StarGift::get_upgraded_gift_object(Td *
   return td_api::make_object<td_api::upgradedGift>(
       id_, title_, num_, unique_availability_issued_, unique_availability_total_,
       td->user_manager_->get_user_id_object(owner_user_id_, "upgradedGift"), model_.get_upgraded_gift_model_object(td),
-      pattern_.get_upgraded_gift_pattern_emoji_object(td), background_.get_upgraded_gift_background_object(),
+      pattern_.get_upgraded_gift_symbol_object(td), background_.get_upgraded_gift_background_object(),
       original_details_.get_upgraded_gift_original_details_object(td));
 }
 
