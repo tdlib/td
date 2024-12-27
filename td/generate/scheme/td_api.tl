@@ -3998,7 +3998,8 @@ messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id
 //@can_be_upgraded True, if the gift can be upgraded to a unique gift; only for the receiver of the gift
 //@was_converted True, if the gift was converted to Telegram Stars; only for the receiver of the gift
 //@was_upgraded True, if the gift was upgraded to a unique gift; only for the receiver of the gift
-messageGift gift:gift text:formattedText sell_star_count:int53 upgrade_star_count:int53 is_private:Bool is_saved:Bool can_be_upgraded:Bool was_converted:Bool was_upgraded:Bool = MessageContent;
+//@was_refunded True, if the gift was refunded and isn't available anymore
+messageGift gift:gift text:formattedText sell_star_count:int53 upgrade_star_count:int53 is_private:Bool is_saved:Bool can_be_upgraded:Bool was_converted:Bool was_upgraded:Bool was_refunded:Bool = MessageContent;
 
 //@description An upgraded gift was received or sent by the current user
 //@gift The gift
