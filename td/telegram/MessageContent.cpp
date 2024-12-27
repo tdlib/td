@@ -1284,17 +1284,19 @@ class MessageStarGiftUnique final : public MessageContent {
   bool is_upgrade = false;
   bool can_transfer = false;
   bool was_transferred = false;
+  bool was_refunded = false;
 
   MessageStarGiftUnique() = default;
   MessageStarGiftUnique(StarGift &&star_gift, int64 transfer_star_count, int32 can_export_at, bool is_saved,
-                        bool is_upgrade, bool can_transfer, bool was_transferred)
+                        bool is_upgrade, bool can_transfer, bool was_transferred, bool was_refunded)
       : star_gift(std::move(star_gift))
       , transfer_star_count(transfer_star_count)
       , can_export_at(can_export_at)
       , is_saved(is_saved)
       , is_upgrade(is_upgrade)
       , can_transfer(can_transfer)
-      , was_transferred(was_transferred) {
+      , was_transferred(was_transferred)
+      , was_refunded(was_refunded) {
   }
 
   MessageContentType get_type() const final {
@@ -2016,6 +2018,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       STORE_FLAG(m->is_upgrade);
       STORE_FLAG(m->was_transferred);
       STORE_FLAG(m->can_transfer);
+      STORE_FLAG(m->was_refunded);
       END_STORE_FLAGS();
       store(m->star_gift, storer);
       if (has_transfer_star_count) {
@@ -2957,6 +2960,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       PARSE_FLAG(m->is_upgrade);
       PARSE_FLAG(m->was_transferred);
       PARSE_FLAG(m->can_transfer);
+      PARSE_FLAG(m->was_refunded);
       END_PARSE_FLAGS();
       parse(m->star_gift, parser);
       if (has_transfer_star_count) {
@@ -2965,7 +2969,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       if (has_can_export_at) {
         parse(m->can_export_at, parser);
       }
-      if (!m->star_gift.is_valid() || !m->star_gift.is_unique()) {
+      if (!m->star_gift.is_valid() || m->star_gift.is_unique() == m->was_refunded) {
         is_bad = true;
         break;
       }
@@ -6213,7 +6217,7 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       if (lhs->star_gift != rhs->star_gift || lhs->transfer_star_count != rhs->transfer_star_count ||
           lhs->can_export_at != rhs->can_export_at || lhs->is_saved != rhs->is_saved ||
           lhs->is_upgrade != rhs->is_upgrade || lhs->can_transfer != rhs->can_transfer ||
-          lhs->was_transferred != rhs->was_transferred) {
+          lhs->was_transferred != rhs->was_transferred || lhs->was_refunded != rhs->was_refunded) {
         need_update = true;
       }
       break;
@@ -8012,14 +8016,14 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     case telegram_api::messageActionStarGiftUnique::ID: {
       auto action = move_tl_object_as<telegram_api::messageActionStarGiftUnique>(action_ptr);
       StarGift star_gift(td, std::move(action->gift_), true);
-      if (!star_gift.is_valid() || !star_gift.is_unique()) {
+      if (!star_gift.is_valid() || star_gift.is_unique() == action->refunded_) {
         break;
       }
       return td::make_unique<MessageStarGiftUnique>(
           std::move(star_gift), StarManager::get_star_count(action->transfer_stars_), max(0, action->can_export_at_),
           action->saved_, action->upgrade_,
-          (action->flags_ && telegram_api::messageActionStarGiftUnique::TRANSFER_STARS_MASK) != 0,
-          action->transferred_);
+          (action->flags_ && telegram_api::messageActionStarGiftUnique::TRANSFER_STARS_MASK) != 0, action->transferred_,
+          action->refunded_);
     }
     default:
       UNREACHABLE();
@@ -8513,6 +8517,10 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(const Mess
     }
     case MessageContentType::StarGiftUnique: {
       const auto *m = static_cast<const MessageStarGiftUnique *>(content);
+      if (m->was_refunded) {
+        return td_api::make_object<td_api::messageRefundedUpgradedGift>(m->star_gift.get_gift_object(td),
+                                                                        m->is_upgrade);
+      }
       return td_api::make_object<td_api::messageUpgradedGift>(m->star_gift.get_upgraded_gift_object(td), m->is_upgrade,
                                                               m->is_saved, m->can_transfer, m->was_transferred,
                                                               m->transfer_star_count, m->can_export_at);
