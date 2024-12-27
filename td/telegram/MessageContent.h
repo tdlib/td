@@ -275,6 +275,9 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(const Mess
                                                                       int32 max_media_timestamp, bool invert_media,
                                                                       bool disable_web_page_preview);
 
+td_api::object_ptr<td_api::upgradeGiftResult> get_message_content_upgrade_gift_result_object(
+    const MessageContent *content, Td *td);
+
 FormattedText *get_message_content_text_mutable(MessageContent *content);
 
 const FormattedText *get_message_content_text(const MessageContent *content);

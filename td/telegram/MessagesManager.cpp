@@ -37594,6 +37594,15 @@ void MessagesManager::stop_poll(MessageFullId message_full_id, td_api::object_pt
   stop_message_content_poll(td_, m->content.get(), message_full_id, std::move(new_reply_markup), std::move(promise));
 }
 
+void MessagesManager::finish_gift_upgrade(MessageFullId message_full_id,
+                                          Promise<td_api::object_ptr<td_api::upgradeGiftResult>> &&promise) {
+  auto m = get_message_force(message_full_id, "stop_poll");
+  if (m == nullptr || m->content->get_type() != MessageContentType::StarGiftUnique) {
+    return promise.set_error(Status::Error(500, "Gift not found"));
+  }
+  promise.set_value(get_message_content_upgrade_gift_result_object(m->content.get(), td_));
+}
+
 Result<MessagesManager::InvoiceMessageInfo> MessagesManager::get_invoice_message_info(MessageFullId message_full_id) {
   auto m = get_message_force(message_full_id, "get_invoice_message_info");
   if (m == nullptr) {

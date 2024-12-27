@@ -1081,6 +1081,14 @@ gifts gifts:vector<gift> = Gifts;
 //@original_details Information about the originally sent gift; may be null if unknown
 upgradedGift id:int64 title:string number:int32 total_upgraded_count:int32 max_upgraded_count:int32 owner_user_id:int53 model:upgradedGiftModel pattern_emoji:upgradedGiftPatternEmoji background:upgradedGiftBackground original_details:upgradedGiftOriginalDetails = UpgradedGift;
 
+//@description Contains result of gift upgrading
+//@gift The upgraded gift
+//@is_saved True, if the gift is displayed on the user's profile page
+//@can_be_transferred True, if the gift can be transferred to another user
+//@transfer_star_count Number of Telegram Stars that must be paid to transfer the upgraded gift
+//@export_date Point in time (Unix timestamp) when the gift can be transferred to TON blockchain as an NFT
+upgradeGiftResult gift:upgradedGift is_saved:Bool can_be_transferred:Bool transfer_star_count:int53 export_date:int32 = UpgradeGiftResult;
+
 
 //@class SentGift @description Represents a gift received by a user
 
@@ -11661,7 +11669,7 @@ getGiftUpgradePreview gift_id:int64 = GiftUpgradePreview;
 //@message_id Identifier of the message with the gift in the chat with the user
 //@keep_original_details Pass true to keep the original gift text, sender and receiver in the upgraded gift
 //@star_count The amount of Telegram Stars required for the upgrade
-upgradeGift sender_user_id:int53 message_id:int53 keep_original_details:Bool star_count:int53 = Ok;
+upgradeGift sender_user_id:int53 message_id:int53 keep_original_details:Bool star_count:int53 = UpgradeGiftResult;
 
 //@description Sends a gift upgraded by the current user to another user
 //@sender_user_id Identifier of the user that sent the gift

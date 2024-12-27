@@ -8557,6 +8557,20 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(const Mess
   return nullptr;
 }
 
+td_api::object_ptr<td_api::upgradeGiftResult> get_message_content_upgrade_gift_result_object(
+    const MessageContent *content, Td *td) {
+  switch (content->get_type()) {
+    case MessageContentType::StarGiftUnique: {
+      const auto *m = static_cast<const MessageStarGiftUnique *>(content);
+      return td_api::make_object<td_api::upgradeGiftResult>(m->star_gift.get_upgraded_gift_object(td), m->is_saved,
+                                                            m->can_transfer, m->transfer_star_count, m->can_export_at);
+    }
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
 FormattedText *get_message_content_text_mutable(MessageContent *content) {
   return const_cast<FormattedText *>(get_message_content_text(content));
 }

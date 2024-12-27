@@ -45,6 +45,10 @@ struct MessageFullId {
   }
 
   static MessageFullId get_message_full_id(const tl_object_ptr<telegram_api::Message> &message_ptr, bool is_scheduled) {
+    return get_message_full_id(message_ptr.get(), is_scheduled);
+  }
+
+  static MessageFullId get_message_full_id(const telegram_api::Message *message_ptr, bool is_scheduled) {
     return {DialogId::get_message_dialog_id(message_ptr), MessageId::get_message_id(message_ptr, is_scheduled)};
   }
 

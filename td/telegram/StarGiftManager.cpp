@@ -11,6 +11,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageQuote.h"
+#include "td/telegram/MessagesManager.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StarGift.h"
 #include "td/telegram/StarManager.h"
@@ -297,11 +298,40 @@ class GetUpgradeGiftPreviewQuery final : public Td::ResultHandler {
   }
 };
 
+static Promise<Unit> get_gift_upgrade_promise(Td *td, const telegram_api::object_ptr<telegram_api::Updates> &updates,
+                                              Promise<td_api::object_ptr<td_api::upgradeGiftResult>> &&promise) {
+  vector<std::pair<const telegram_api::Message *, bool>> new_messages = UpdatesManager::get_new_messages(updates.get());
+  if (new_messages.size() != 1u || new_messages[0].second ||
+      new_messages[0].first->get_id() != telegram_api::messageService::ID) {
+    promise.set_error(Status::Error(500, "Receive invalid server response"));
+    return Auto();
+  }
+  auto message = static_cast<const telegram_api::messageService *>(new_messages[0].first);
+  if (message->action_->get_id() != telegram_api::messageActionStarGiftUnique::ID) {
+    promise.set_error(Status::Error(500, "Receive invalid server response"));
+    return Auto();
+  }
+  auto action = static_cast<const telegram_api::messageActionStarGiftUnique *>(message->action_.get());
+  if (!action->upgrade_ || action->transferred_ || action->refunded_ ||
+      action->gift_->get_id() != telegram_api::starGiftUnique::ID) {
+    promise.set_error(Status::Error(500, "Receive invalid server response"));
+    return Auto();
+  }
+  auto message_full_id = MessageFullId::get_message_full_id(new_messages[0].first, false);
+  return PromiseCreator::lambda([message_full_id, promise = std::move(promise)](Result<Unit> result) mutable {
+    if (result.is_error()) {
+      return promise.set_error(result.move_as_error());
+    }
+    send_closure(G()->messages_manager(), &MessagesManager::finish_gift_upgrade, message_full_id, std::move(promise));
+  });
+}
+
 class UpgradeStarGiftQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
+  Promise<td_api::object_ptr<td_api::upgradeGiftResult>> promise_;
 
  public:
-  explicit UpgradeStarGiftQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit UpgradeStarGiftQuery(Promise<td_api::object_ptr<td_api::upgradeGiftResult>> &&promise)
+      : promise_(std::move(promise)) {
   }
 
   void send(telegram_api::object_ptr<telegram_api::InputUser> input_user, MessageId message_id, int64 star_count,
@@ -322,7 +352,8 @@ class UpgradeStarGiftQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for UpgradeStarGiftQuery: " << to_string(ptr);
-    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+    auto promise = get_gift_upgrade_promise(td_, ptr, std::move(promise_));
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise));
   }
 
   void on_error(Status status) final {
@@ -331,11 +362,12 @@ class UpgradeStarGiftQuery final : public Td::ResultHandler {
 };
 
 class UpgradeGiftQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
+  Promise<td_api::object_ptr<td_api::upgradeGiftResult>> promise_;
   int64 star_count_;
 
  public:
-  explicit UpgradeGiftQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit UpgradeGiftQuery(Promise<td_api::object_ptr<td_api::upgradeGiftResult>> &&promise)
+      : promise_(std::move(promise)) {
   }
 
   void send(telegram_api::object_ptr<telegram_api::inputInvoiceStarGiftUpgrade> input_invoice, int64 payment_form_id,
@@ -357,7 +389,8 @@ class UpgradeGiftQuery final : public Td::ResultHandler {
       case telegram_api::payments_paymentResult::ID: {
         auto result = telegram_api::move_object_as<telegram_api::payments_paymentResult>(payment_result);
         td_->star_manager_->add_pending_owned_star_count(star_count_, true);
-        td_->updates_manager_->on_get_updates(std::move(result->updates_), std::move(promise_));
+        auto promise = get_gift_upgrade_promise(td_, result->updates_, std::move(promise_));
+        td_->updates_manager_->on_get_updates(std::move(result->updates_), std::move(promise));
         break;
       }
       case telegram_api::payments_paymentVerificationNeeded::ID:
@@ -376,12 +409,13 @@ class UpgradeGiftQuery final : public Td::ResultHandler {
 };
 
 class GetGiftUpgradePaymentFormQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
+  Promise<td_api::object_ptr<td_api::upgradeGiftResult>> promise_;
   int64 star_count_;
   telegram_api::object_ptr<telegram_api::inputInvoiceStarGiftUpgrade> upgrade_input_invoice_;
 
  public:
-  explicit GetGiftUpgradePaymentFormQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit GetGiftUpgradePaymentFormQuery(Promise<td_api::object_ptr<td_api::upgradeGiftResult>> &&promise)
+      : promise_(std::move(promise)) {
   }
 
   void send(telegram_api::object_ptr<telegram_api::inputInvoiceStarGiftUpgrade> input_invoice,
@@ -724,7 +758,7 @@ void StarGiftManager::get_gift_upgrade_preview(int64 gift_id,
 }
 
 void StarGiftManager::upgrade_gift(UserId user_id, MessageId message_id, int64 star_count, bool keep_original_details,
-                                   Promise<Unit> &&promise) {
+                                   Promise<td_api::object_ptr<td_api::upgradeGiftResult>> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
   if (!message_id.is_valid() || !message_id.is_server()) {
     return promise.set_error(Status::Error(400, "Invalid message identifier specified"));

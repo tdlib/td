@@ -936,6 +936,9 @@ class MessagesManager final : public Actor {
   void stop_poll(MessageFullId message_full_id, td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
                  Promise<Unit> &&promise);
 
+  void finish_gift_upgrade(MessageFullId message_full_id,
+                           Promise<td_api::object_ptr<td_api::upgradeGiftResult>> &&promise);
+
   Result<string> get_login_button_url(MessageFullId message_full_id, int64 button_id);
 
   struct InvoiceMessageInfo {
