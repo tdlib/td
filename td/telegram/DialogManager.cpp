@@ -2816,15 +2816,15 @@ void DialogManager::toggle_dialog_is_blocked_on_server(DialogId dialog_id, bool 
       ->send(dialog_id, is_blocked, is_blocked_for_stories);
 }
 
-class DialogManager::ToggleDialogIsMarkedAsUnreadOnServerLogEvent {
+class DialogManager::ToggleDialogPropertyOnServerLogEvent {
  public:
   DialogId dialog_id_;
-  bool is_marked_as_unread_;
+  bool value_;
 
   template <class StorerT>
   void store(StorerT &storer) const {
     BEGIN_STORE_FLAGS();
-    STORE_FLAG(is_marked_as_unread_);
+    STORE_FLAG(value_);
     END_STORE_FLAGS();
 
     td::store(dialog_id_, storer);
@@ -2833,7 +2833,7 @@ class DialogManager::ToggleDialogIsMarkedAsUnreadOnServerLogEvent {
   template <class ParserT>
   void parse(ParserT &parser) {
     BEGIN_PARSE_FLAGS();
-    PARSE_FLAG(is_marked_as_unread_);
+    PARSE_FLAG(value_);
     END_PARSE_FLAGS();
 
     td::parse(dialog_id_, parser);
@@ -2842,7 +2842,7 @@ class DialogManager::ToggleDialogIsMarkedAsUnreadOnServerLogEvent {
 
 uint64 DialogManager::save_toggle_dialog_is_marked_as_unread_on_server_log_event(DialogId dialog_id,
                                                                                  bool is_marked_as_unread) {
-  ToggleDialogIsMarkedAsUnreadOnServerLogEvent log_event{dialog_id, is_marked_as_unread};
+  ToggleDialogPropertyOnServerLogEvent log_event{dialog_id, is_marked_as_unread};
   return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ToggleDialogIsMarkedAsUnreadOnServer,
                     get_log_event_storer(log_event));
 }
@@ -2862,32 +2862,8 @@ void DialogManager::toggle_dialog_is_marked_as_unread_on_server(DialogId dialog_
       ->send(dialog_id, is_marked_as_unread);
 }
 
-class DialogManager::ToggleDialogIsPinnedOnServerLogEvent {
- public:
-  DialogId dialog_id_;
-  bool is_pinned_;
-
-  template <class StorerT>
-  void store(StorerT &storer) const {
-    BEGIN_STORE_FLAGS();
-    STORE_FLAG(is_pinned_);
-    END_STORE_FLAGS();
-
-    td::store(dialog_id_, storer);
-  }
-
-  template <class ParserT>
-  void parse(ParserT &parser) {
-    BEGIN_PARSE_FLAGS();
-    PARSE_FLAG(is_pinned_);
-    END_PARSE_FLAGS();
-
-    td::parse(dialog_id_, parser);
-  }
-};
-
 uint64 DialogManager::save_toggle_dialog_is_pinned_on_server_log_event(DialogId dialog_id, bool is_pinned) {
-  ToggleDialogIsPinnedOnServerLogEvent log_event{dialog_id, is_pinned};
+  ToggleDialogPropertyOnServerLogEvent log_event{dialog_id, is_pinned};
   return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ToggleDialogIsPinnedOnServer,
                     get_log_event_storer(log_event));
 }
@@ -2906,32 +2882,8 @@ void DialogManager::toggle_dialog_is_pinned_on_server(DialogId dialog_id, bool i
   td_->create_handler<ToggleDialogPinQuery>(get_erase_log_event_promise(log_event_id))->send(dialog_id, is_pinned);
 }
 
-class DialogManager::ToggleDialogIsTranslatableOnServerLogEvent {
- public:
-  DialogId dialog_id_;
-  bool is_translatable_;
-
-  template <class StorerT>
-  void store(StorerT &storer) const {
-    BEGIN_STORE_FLAGS();
-    STORE_FLAG(is_translatable_);
-    END_STORE_FLAGS();
-
-    td::store(dialog_id_, storer);
-  }
-
-  template <class ParserT>
-  void parse(ParserT &parser) {
-    BEGIN_PARSE_FLAGS();
-    PARSE_FLAG(is_translatable_);
-    END_PARSE_FLAGS();
-
-    td::parse(dialog_id_, parser);
-  }
-};
-
 uint64 DialogManager::save_toggle_dialog_is_translatable_on_server_log_event(DialogId dialog_id, bool is_translatable) {
-  ToggleDialogIsTranslatableOnServerLogEvent log_event{dialog_id, is_translatable};
+  ToggleDialogPropertyOnServerLogEvent log_event{dialog_id, is_translatable};
   return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ToggleDialogIsTranslatableOnServer,
                     get_log_event_storer(log_event));
 }
@@ -2951,33 +2903,9 @@ void DialogManager::toggle_dialog_is_translatable_on_server(DialogId dialog_id, 
       ->send(dialog_id, is_translatable);
 }
 
-class DialogManager::ToggleDialogViewAsMessagesOnServerLogEvent {
- public:
-  DialogId dialog_id_;
-  bool view_as_messages_;
-
-  template <class StorerT>
-  void store(StorerT &storer) const {
-    BEGIN_STORE_FLAGS();
-    STORE_FLAG(view_as_messages_);
-    END_STORE_FLAGS();
-
-    td::store(dialog_id_, storer);
-  }
-
-  template <class ParserT>
-  void parse(ParserT &parser) {
-    BEGIN_PARSE_FLAGS();
-    PARSE_FLAG(view_as_messages_);
-    END_PARSE_FLAGS();
-
-    td::parse(dialog_id_, parser);
-  }
-};
-
 uint64 DialogManager::save_toggle_dialog_view_as_messages_on_server_log_event(DialogId dialog_id,
                                                                               bool view_as_messages) {
-  ToggleDialogViewAsMessagesOnServerLogEvent log_event{dialog_id, view_as_messages};
+  ToggleDialogPropertyOnServerLogEvent log_event{dialog_id, view_as_messages};
   return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ToggleDialogViewAsMessagesOnServer,
                     get_log_event_storer(log_event));
 }
@@ -3027,7 +2955,7 @@ void DialogManager::on_binlog_events(vector<BinlogEvent> &&events) {
           break;
         }
 
-        ToggleDialogIsMarkedAsUnreadOnServerLogEvent log_event;
+        ToggleDialogPropertyOnServerLogEvent log_event;
         log_event_parse(log_event, event.get_data()).ensure();
 
         auto dialog_id = log_event.dialog_id_;
@@ -3037,7 +2965,7 @@ void DialogManager::on_binlog_events(vector<BinlogEvent> &&events) {
           break;
         }
 
-        toggle_dialog_is_marked_as_unread_on_server(dialog_id, log_event.is_marked_as_unread_, event.id_);
+        toggle_dialog_is_marked_as_unread_on_server(dialog_id, log_event.value_, event.id_);
         break;
       }
       case LogEvent::HandlerType::ToggleDialogIsPinnedOnServer: {
@@ -3046,7 +2974,7 @@ void DialogManager::on_binlog_events(vector<BinlogEvent> &&events) {
           break;
         }
 
-        ToggleDialogIsPinnedOnServerLogEvent log_event;
+        ToggleDialogPropertyOnServerLogEvent log_event;
         log_event_parse(log_event, event.get_data()).ensure();
 
         auto dialog_id = log_event.dialog_id_;
@@ -3056,7 +2984,7 @@ void DialogManager::on_binlog_events(vector<BinlogEvent> &&events) {
           break;
         }
 
-        toggle_dialog_is_pinned_on_server(dialog_id, log_event.is_pinned_, event.id_);
+        toggle_dialog_is_pinned_on_server(dialog_id, log_event.value_, event.id_);
         break;
       }
       case LogEvent::HandlerType::ToggleDialogIsTranslatableOnServer: {
@@ -3065,7 +2993,7 @@ void DialogManager::on_binlog_events(vector<BinlogEvent> &&events) {
           break;
         }
 
-        ToggleDialogIsTranslatableOnServerLogEvent log_event;
+        ToggleDialogPropertyOnServerLogEvent log_event;
         log_event_parse(log_event, event.get_data()).ensure();
 
         auto dialog_id = log_event.dialog_id_;
@@ -3075,7 +3003,7 @@ void DialogManager::on_binlog_events(vector<BinlogEvent> &&events) {
           break;
         }
 
-        toggle_dialog_is_translatable_on_server(dialog_id, log_event.is_translatable_, event.id_);
+        toggle_dialog_is_translatable_on_server(dialog_id, log_event.value_, event.id_);
         break;
       }
       case LogEvent::HandlerType::ToggleDialogReportSpamStateOnServer: {
@@ -3103,7 +3031,7 @@ void DialogManager::on_binlog_events(vector<BinlogEvent> &&events) {
           break;
         }
 
-        ToggleDialogViewAsMessagesOnServerLogEvent log_event;
+        ToggleDialogPropertyOnServerLogEvent log_event;
         log_event_parse(log_event, event.get_data()).ensure();
 
         auto dialog_id = log_event.dialog_id_;
@@ -3113,7 +3041,7 @@ void DialogManager::on_binlog_events(vector<BinlogEvent> &&events) {
           break;
         }
 
-        toggle_dialog_view_as_messages_on_server(dialog_id, log_event.view_as_messages_, event.id_);
+        toggle_dialog_view_as_messages_on_server(dialog_id, log_event.value_, event.id_);
         break;
       }
       default:

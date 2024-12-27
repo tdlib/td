@@ -289,11 +289,8 @@ class DialogManager final : public Actor {
   static uint64 save_toggle_dialog_view_as_messages_on_server_log_event(DialogId dialog_id, bool view_as_messages);
 
   class ToggleDialogIsBlockedOnServerLogEvent;
-  class ToggleDialogIsMarkedAsUnreadOnServerLogEvent;
-  class ToggleDialogIsPinnedOnServerLogEvent;
-  class ToggleDialogIsTranslatableOnServerLogEvent;
+  class ToggleDialogPropertyOnServerLogEvent;
   class ToggleDialogReportSpamStateOnServerLogEvent;
-  class ToggleDialogViewAsMessagesOnServerLogEvent;
 
   class UploadDialogPhotoCallback;
   std::shared_ptr<UploadDialogPhotoCallback> upload_dialog_photo_callback_;
