@@ -3011,7 +3011,7 @@ void DialogManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         auto dialog_id = log_event.dialog_id_;
         if (dialog_id.get_type() == DialogType::SecretChat ||
-            !have_dialog_info_force(dialog_id, "ToggleDialogIsBlockedOnServerLogEvent") ||
+            !have_dialog_info_force(dialog_id, "ToggleDialogIsBlockedOnServer") ||
             !have_input_peer(dialog_id, true, AccessRights::Know)) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
@@ -3031,7 +3031,7 @@ void DialogManager::on_binlog_events(vector<BinlogEvent> &&events) {
         log_event_parse(log_event, event.get_data()).ensure();
 
         auto dialog_id = log_event.dialog_id_;
-        if (!have_dialog_force(dialog_id, "ToggleDialogIsMarkedAsUnreadOnServerLogEvent") ||
+        if (!have_dialog_force(dialog_id, "ToggleDialogIsMarkedAsUnreadOnServer") ||
             !have_input_peer(dialog_id, true, AccessRights::Read)) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
@@ -3050,7 +3050,7 @@ void DialogManager::on_binlog_events(vector<BinlogEvent> &&events) {
         log_event_parse(log_event, event.get_data()).ensure();
 
         auto dialog_id = log_event.dialog_id_;
-        if (!have_dialog_force(dialog_id, "ToggleDialogIsPinnedOnServerLogEvent") ||
+        if (!have_dialog_force(dialog_id, "ToggleDialogIsPinnedOnServer") ||
             !have_input_peer(dialog_id, true, AccessRights::Read)) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
@@ -3069,7 +3069,7 @@ void DialogManager::on_binlog_events(vector<BinlogEvent> &&events) {
         log_event_parse(log_event, event.get_data()).ensure();
 
         auto dialog_id = log_event.dialog_id_;
-        if (!have_dialog_force(dialog_id, "ToggleDialogIsTranslatableOnServerLogEvent") ||
+        if (!have_dialog_force(dialog_id, "ToggleDialogIsTranslatableOnServer") ||
             !td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read)) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
@@ -3088,7 +3088,7 @@ void DialogManager::on_binlog_events(vector<BinlogEvent> &&events) {
         log_event_parse(log_event, event.get_data()).ensure();
 
         auto dialog_id = log_event.dialog_id_;
-        if (!have_dialog_force(dialog_id, "ToggleDialogReportSpamStateOnServerLogEvent") ||
+        if (!have_dialog_force(dialog_id, "ToggleDialogReportSpamStateOnServer") ||
             !have_input_peer(dialog_id, true, AccessRights::Read)) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
@@ -3107,7 +3107,7 @@ void DialogManager::on_binlog_events(vector<BinlogEvent> &&events) {
         log_event_parse(log_event, event.get_data()).ensure();
 
         auto dialog_id = log_event.dialog_id_;
-        if (!have_dialog_force(dialog_id, "ToggleDialogViewAsMessagesOnServerLogEvent") ||
+        if (!have_dialog_force(dialog_id, "ToggleDialogViewAsMessagesOnServer") ||
             !have_input_peer(dialog_id, true, AccessRights::Read)) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
