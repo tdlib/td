@@ -64,7 +64,7 @@ void StarGift::store(StorerT &storer) const {
   if (is_unique_) {
     td::store(model_, storer);
     td::store(pattern_, storer);
-    td::store(background_, storer);
+    td::store(backdrop_, storer);
     if (has_original_details) {
       td::store(original_details_, storer);
     }
@@ -125,7 +125,7 @@ void StarGift::parse(ParserT &parser) {
   if (is_unique_) {
     td::parse(model_, parser);
     td::parse(pattern_, parser);
-    td::parse(background_, parser);
+    td::parse(backdrop_, parser);
     if (has_original_details) {
       td::parse(original_details_, parser);
     }

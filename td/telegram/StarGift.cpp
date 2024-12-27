@@ -46,22 +46,22 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&st
           break;
         case telegram_api::starGiftAttributePattern::ID:
           if (pattern_.is_valid()) {
-            LOG(ERROR) << "Receive duplicate pattern emoji for " << *this;
+            LOG(ERROR) << "Receive duplicate symbol for " << *this;
           }
           pattern_ = StarGiftAttributeSticker(
               td, telegram_api::move_object_as<telegram_api::starGiftAttributePattern>(attribute));
           if (!pattern_.is_valid()) {
-            LOG(ERROR) << "Receive invalid pattern emoji for " << *this;
+            LOG(ERROR) << "Receive invalid symbol for " << *this;
           }
           break;
         case telegram_api::starGiftAttributeBackdrop::ID:
-          if (background_.is_valid()) {
-            LOG(ERROR) << "Receive duplicate background for " << *this;
+          if (backdrop_.is_valid()) {
+            LOG(ERROR) << "Receive duplicate backdrop for " << *this;
           }
-          background_ = StarGiftAttributeBackground(
+          backdrop_ = StarGiftAttributeBackdrop(
               telegram_api::move_object_as<telegram_api::starGiftAttributeBackdrop>(attribute));
-          if (!background_.is_valid()) {
-            LOG(ERROR) << "Receive invalid background for " << *this;
+          if (!backdrop_.is_valid()) {
+            LOG(ERROR) << "Receive invalid backdrop for " << *this;
           }
           break;
         case telegram_api::starGiftAttributeOriginalDetails::ID:
@@ -138,7 +138,7 @@ td_api::object_ptr<td_api::upgradedGift> StarGift::get_upgraded_gift_object(Td *
   return td_api::make_object<td_api::upgradedGift>(
       id_, title_, num_, unique_availability_issued_, unique_availability_total_,
       td->user_manager_->get_user_id_object(owner_user_id_, "upgradedGift"), model_.get_upgraded_gift_model_object(td),
-      pattern_.get_upgraded_gift_symbol_object(td), background_.get_upgraded_gift_background_object(),
+      pattern_.get_upgraded_gift_symbol_object(td), backdrop_.get_upgraded_gift_backdrop_object(),
       original_details_.get_upgraded_gift_original_details_object(td));
 }
 
@@ -157,8 +157,8 @@ bool operator==(const StarGift &lhs, const StarGift &rhs) {
          lhs.availability_total_ == rhs.availability_total_ && lhs.first_sale_date_ == rhs.first_sale_date_ &&
          lhs.last_sale_date_ == rhs.last_sale_date_ && lhs.is_for_birthday_ == rhs.is_for_birthday_ &&
          lhs.is_unique_ == rhs.is_unique_ && lhs.model_ == rhs.model_ && lhs.pattern_ == rhs.pattern_ &&
-         lhs.background_ == rhs.background_ && lhs.original_details_ == rhs.original_details_ &&
-         lhs.title_ == rhs.title_ && lhs.owner_user_id_ == rhs.owner_user_id_ && lhs.num_ == rhs.num_ &&
+         lhs.backdrop_ == rhs.backdrop_ && lhs.original_details_ == rhs.original_details_ && lhs.title_ == rhs.title_ &&
+         lhs.owner_user_id_ == rhs.owner_user_id_ && lhs.num_ == rhs.num_ &&
          lhs.unique_availability_issued_ == rhs.unique_availability_issued_ &&
          lhs.unique_availability_total_ == rhs.unique_availability_total_;
 }

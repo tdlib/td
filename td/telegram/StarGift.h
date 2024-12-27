@@ -34,7 +34,7 @@ class StarGift {
   bool is_unique_ = false;
   StarGiftAttributeSticker model_;
   StarGiftAttributeSticker pattern_;
-  StarGiftAttributeBackground background_;
+  StarGiftAttributeBackdrop backdrop_;
   StarGiftAttributeOriginalDetails original_details_;
   string title_;
   UserId owner_user_id_;
@@ -52,7 +52,7 @@ class StarGift {
   StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&star_gift_ptr, bool allow_unique_gift);
 
   bool is_valid() const {
-    return id_ != 0 && (is_unique_ ? model_.is_valid() && pattern_.is_valid() && background_.is_valid()
+    return id_ != 0 && (is_unique_ ? model_.is_valid() && pattern_.is_valid() && backdrop_.is_valid()
                                    : sticker_file_id_.is_valid());
   }
 

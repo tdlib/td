@@ -1036,14 +1036,14 @@ upgradedGiftModel name:string sticker:sticker rarity_per_mille:int32 = UpgradedG
 //@rarity_per_mille The number of upgraded gift that receive this symbol for each 1000 gifts upgraded
 upgradedGiftSymbol name:string sticker:sticker rarity_per_mille:int32 = UpgradedGiftSymbol;
 
-//@description Describes a background of an upgraded gift
-//@name Name of the background
-//@center_color A color in the center of the background in the RGB format
-//@edge_color A color on the edges of the background in the RGB format
-//@pattern_emoji_color A color to be applied for the pattern emoji in the RGB format
-//@text_color A color for the text on the background in the RGB format
-//@rarity_per_mille The number of upgraded gift that receive this pattern emoji for each 1000 gifts upgraded
-upgradedGiftBackground name:string center_color:int32 edge_color:int32 pattern_emoji_color:int32 text_color:int32 rarity_per_mille:int32 = UpgradedGiftBackground;
+//@description Describes a backdrop of an upgraded gift
+//@name Name of the backdrop
+//@center_color A color in the center of the backdrop in the RGB format
+//@edge_color A color on the edges of the backdrop in the RGB format
+//@symbol_color A color to be applied for the symbol in the RGB format
+//@text_color A color for the text on the backdrop in the RGB format
+//@rarity_per_mille The number of upgraded gift that receive this backdrop for each 1000 gifts upgraded
+upgradedGiftBackdrop name:string center_color:int32 edge_color:int32 symbol_color:int32 text_color:int32 rarity_per_mille:int32 = UpgradedGiftBackdrop;
 
 //@description Describes the original details about the gift
 //@sender_user_id Identifier of the user that sent the gift; 0 if the gift was private
@@ -1077,9 +1077,9 @@ gifts gifts:vector<gift> = Gifts;
 //@owner_user_id User identifier of the user that owns the upgraded gift
 //@model Description of the model of the upgraded gift
 //@symbol Description of the symbol of the upgraded gift
-//@background Description of the background of the upgraded gift
+//@backdrop Description of the backdrop of the upgraded gift
 //@original_details Information about the originally sent gift; may be null if unknown
-upgradedGift id:int64 title:string number:int32 total_upgraded_count:int32 max_upgraded_count:int32 owner_user_id:int53 model:upgradedGiftModel symbol:upgradedGiftSymbol background:upgradedGiftBackground original_details:upgradedGiftOriginalDetails = UpgradedGift;
+upgradedGift id:int64 title:string number:int32 total_upgraded_count:int32 max_upgraded_count:int32 owner_user_id:int53 model:upgradedGiftModel symbol:upgradedGiftSymbol backdrop:upgradedGiftBackdrop original_details:upgradedGiftOriginalDetails = UpgradedGift;
 
 //@description Contains result of gift upgrading
 //@gift The upgraded gift
@@ -1125,8 +1125,8 @@ userGifts total_count:int32 gifts:vector<userGift> next_offset:string = UserGift
 //@description Contains examples of possible upgraded gifts for the given regular gift
 //@models Examples of possible models that can be chosen for the gift after upgrade
 //@symbols Examples of possible symbols that can be chosen for the gift after upgrade
-//@backgrounds Examples of possible backgrounds that can be chosen for the gift after upgrade
-giftUpgradePreview models:vector<upgradedGiftModel> symbols:vector<upgradedGiftSymbol> backgrounds:vector<upgradedGiftBackground> = GiftUpgradePreview;
+//@backdrops Examples of possible backdrops that can be chosen for the gift after upgrade
+giftUpgradePreview models:vector<upgradedGiftModel> symbols:vector<upgradedGiftSymbol> backdrops:vector<upgradedGiftBackdrop> = GiftUpgradePreview;
 
 
 //@class StarTransactionDirection @description Describes direction of a transaction with Telegram Stars

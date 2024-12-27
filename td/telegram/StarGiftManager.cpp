@@ -267,19 +267,19 @@ class GetUpgradeGiftPreviewQuery final : public Td::ResultHandler {
           auto pattern = StarGiftAttributeSticker(
               td_, telegram_api::move_object_as<telegram_api::starGiftAttributePattern>(attribute));
           if (!pattern.is_valid()) {
-            LOG(ERROR) << "Receive invalid pattern emoji";
+            LOG(ERROR) << "Receive invalid symbol";
           } else {
             result->symbols_.push_back(pattern.get_upgraded_gift_symbol_object(td_));
           }
           break;
         }
         case telegram_api::starGiftAttributeBackdrop::ID: {
-          auto background = StarGiftAttributeBackground(
+          auto backdrop = StarGiftAttributeBackdrop(
               telegram_api::move_object_as<telegram_api::starGiftAttributeBackdrop>(attribute));
-          if (!background.is_valid()) {
-            LOG(ERROR) << "Receive invalid background";
+          if (!backdrop.is_valid()) {
+            LOG(ERROR) << "Receive invalid backdrop";
           } else {
-            result->backgrounds_.push_back(background.get_upgraded_gift_background_object());
+            result->backdrops_.push_back(backdrop.get_upgraded_gift_backdrop_object());
           }
           break;
         }

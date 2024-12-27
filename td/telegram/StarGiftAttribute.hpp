@@ -39,7 +39,7 @@ void StarGiftAttributeSticker::parse(ParserT &parser) {
 }
 
 template <class StorerT>
-void StarGiftAttributeBackground::store(StorerT &storer) const {
+void StarGiftAttributeBackdrop::store(StorerT &storer) const {
   CHECK(is_valid());
   BEGIN_STORE_FLAGS();
   END_STORE_FLAGS();
@@ -52,7 +52,7 @@ void StarGiftAttributeBackground::store(StorerT &storer) const {
 }
 
 template <class ParserT>
-void StarGiftAttributeBackground::parse(ParserT &parser) {
+void StarGiftAttributeBackdrop::parse(ParserT &parser) {
   BEGIN_PARSE_FLAGS();
   END_PARSE_FLAGS();
   td::parse(name_, parser);
