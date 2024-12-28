@@ -11665,12 +11665,11 @@ toggleGiftIsSaved sender_user_id:int53 message_id:int53 is_saved:Bool = Ok;
 //@description Returns examples of possible upgraded gifts for a regular gift @gift_id Identifier of the gift
 getGiftUpgradePreview gift_id:int64 = GiftUpgradePreview;
 
-//@description Upgrades a gift received by the current user
+//@description Upgrades a gift received by the current user. Unless the gift has prepaid_upgrade_star_count > 0, the user must pay gift.upgrade_star_count Telegram Stars for the upgrade
 //@sender_user_id Identifier of the user that sent the gift
 //@message_id Identifier of the message with the gift in the chat with the user
 //@keep_original_details Pass true to keep the original gift text, sender and receiver in the upgraded gift
-//@star_count The amount of Telegram Stars required for the upgrade
-upgradeGift sender_user_id:int53 message_id:int53 keep_original_details:Bool star_count:int53 = UpgradeGiftResult;
+upgradeGift sender_user_id:int53 message_id:int53 keep_original_details:Bool = UpgradeGiftResult;
 
 //@description Sends a gift upgraded by the current user to another user
 //@sender_user_id Identifier of the user that sent the gift

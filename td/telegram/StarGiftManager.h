@@ -40,7 +40,7 @@ class StarGiftManager final : public Actor {
 
   void get_gift_upgrade_preview(int64 gift_id, Promise<td_api::object_ptr<td_api::giftUpgradePreview>> &&promise);
 
-  void upgrade_gift(UserId user_id, MessageId message_id, int64 star_count, bool keep_original_details,
+  void upgrade_gift(UserId user_id, MessageId message_id, bool keep_original_details,
                     Promise<td_api::object_ptr<td_api::upgradeGiftResult>> &&promise);
 
   void transfer_gift(UserId user_id, MessageId message_id, UserId receiver_user_id, int64 star_count,

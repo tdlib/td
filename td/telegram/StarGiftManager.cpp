@@ -753,14 +753,15 @@ void StarGiftManager::get_gift_upgrade_preview(int64 gift_id,
   td_->create_handler<GetUpgradeGiftPreviewQuery>(std::move(promise))->send(gift_id);
 }
 
-void StarGiftManager::upgrade_gift(UserId user_id, MessageId message_id, int64 star_count, bool keep_original_details,
+void StarGiftManager::upgrade_gift(UserId user_id, MessageId message_id, bool keep_original_details,
                                    Promise<td_api::object_ptr<td_api::upgradeGiftResult>> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
   if (!message_id.is_valid() || !message_id.is_server()) {
     return promise.set_error(Status::Error(400, "Invalid message identifier specified"));
   }
+  auto star_count = td_->messages_manager_->get_message_gift_upgrade_star_count({DialogId(user_id), message_id});
   if (star_count < 0) {
-    return promise.set_error(Status::Error(400, "Invalid amount of Telegram Stars specified"));
+    return promise.set_error(Status::Error(400, "Gift not found"));
   }
   if (star_count != 0) {
     if (!td_->star_manager_->has_owned_star_count(star_count)) {

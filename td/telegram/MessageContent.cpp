@@ -8581,6 +8581,21 @@ td_api::object_ptr<td_api::upgradeGiftResult> get_message_content_upgrade_gift_r
   }
 }
 
+int64 get_message_content_gift_upgrade_star_count(const MessageContent *content) {
+  switch (content->get_type()) {
+    case MessageContentType::StarGift: {
+      const auto *m = static_cast<const MessageStarGift *>(content);
+      if (m->upgrade_star_count > 0) {
+        return 0;
+      }
+      return m->star_gift.get_upgrade_star_count();
+    }
+    default:
+      UNREACHABLE();
+      return -1;
+  }
+}
+
 FormattedText *get_message_content_text_mutable(MessageContent *content) {
   return const_cast<FormattedText *>(get_message_content_text(content));
 }

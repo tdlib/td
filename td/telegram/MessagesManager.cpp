@@ -37594,6 +37594,14 @@ void MessagesManager::stop_poll(MessageFullId message_full_id, td_api::object_pt
   stop_message_content_poll(td_, m->content.get(), message_full_id, std::move(new_reply_markup), std::move(promise));
 }
 
+int64 MessagesManager::get_message_gift_upgrade_star_count(MessageFullId message_full_id) {
+  auto m = get_message_force(message_full_id, "stop_poll");
+  if (m == nullptr || m->content->get_type() != MessageContentType::StarGift) {
+    return -1;
+  }
+  return get_message_content_gift_upgrade_star_count(m->content.get());
+}
+
 void MessagesManager::finish_gift_upgrade(MessageFullId message_full_id,
                                           Promise<td_api::object_ptr<td_api::upgradeGiftResult>> &&promise) {
   auto m = get_message_force(message_full_id, "stop_poll");
