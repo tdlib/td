@@ -24,6 +24,7 @@
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StarAmount.h"
 #include "td/telegram/StarGift.h"
+#include "td/telegram/StarGiftManager.h"
 #include "td/telegram/StarSubscription.h"
 #include "td/telegram/StatisticsManager.h"
 #include "td/telegram/StickersManager.h"
@@ -379,6 +380,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                 if (!gift.is_valid()) {
                   return nullptr;
                 }
+                td_->star_gift_manager_->on_get_star_gift(gift);
                 if (is_purchase) {
                   if (gift.is_unique()) {
                     if (transaction->stargift_upgrade_) {

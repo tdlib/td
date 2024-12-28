@@ -75,6 +75,7 @@
 #include "td/telegram/SharedDialog.hpp"
 #include "td/telegram/StarGift.h"
 #include "td/telegram/StarGift.hpp"
+#include "td/telegram/StarGiftManager.h"
 #include "td/telegram/StarManager.h"
 #include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickersManager.h"
@@ -6323,6 +6324,15 @@ void register_message_content(Td *td, const MessageContent *content, MessageFull
     case MessageContentType::PrizeStars: {
       auto star_count = static_cast<const MessagePrizeStars *>(content)->star_count;
       return td->stickers_manager_->register_premium_gift(0, star_count, message_full_id, source);
+    }
+    case MessageContentType::StarGift: {
+      auto star_gift = static_cast<const MessageStarGift *>(content);
+      td->star_gift_manager_->on_get_star_gift(star_gift->star_gift);
+      return;
+    }
+    case MessageContentType::StarGiftUnique: {
+      auto star_gift = static_cast<const MessageStarGiftUnique *>(content);
+      return td->star_gift_manager_->on_get_star_gift(star_gift->star_gift);
     }
     default:
       return;

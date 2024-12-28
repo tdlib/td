@@ -7,6 +7,7 @@
 #include "td/telegram/UserStarGift.h"
 
 #include "td/telegram/ServerMessageId.h"
+#include "td/telegram/StarGiftManager.h"
 #include "td/telegram/StarManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UserManager.h"
@@ -42,6 +43,7 @@ UserStarGift::UserStarGift(Td *td, telegram_api::object_ptr<telegram_api::userSt
     LOG(ERROR) << "Receive " << message_id_;
     message_id_ = MessageId();
   }
+  td->star_gift_manager_->on_get_star_gift(gift_);
 }
 
 td_api::object_ptr<td_api::userGift> UserStarGift::get_user_gift_object(Td *td) const {

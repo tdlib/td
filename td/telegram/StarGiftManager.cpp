@@ -678,7 +678,7 @@ void StarGiftManager::get_gift_payment_options(Promise<td_api::object_ptr<td_api
 }
 
 void StarGiftManager::on_get_star_gift(const StarGift &star_gift) {
-  if (td_->auth_manager_->is_bot() || !star_gift.is_valid()) {
+  if (td_->auth_manager_->is_bot() || !star_gift.is_valid() || star_gift.is_unique()) {
     return;
   }
   gift_prices_[star_gift.get_id()] = {star_gift.get_star_count(), star_gift.get_upgrade_star_count()};
