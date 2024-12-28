@@ -43,7 +43,7 @@ UserStarGift::UserStarGift(Td *td, telegram_api::object_ptr<telegram_api::userSt
     LOG(ERROR) << "Receive " << message_id_;
     message_id_ = MessageId();
   }
-  td->star_gift_manager_->on_get_star_gift(gift_);
+  td->star_gift_manager_->on_get_star_gift(gift_, true);
 }
 
 td_api::object_ptr<td_api::userGift> UserStarGift::get_user_gift_object(Td *td) const {

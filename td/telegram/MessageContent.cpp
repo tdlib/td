@@ -6327,12 +6327,12 @@ void register_message_content(Td *td, const MessageContent *content, MessageFull
     }
     case MessageContentType::StarGift: {
       auto star_gift = static_cast<const MessageStarGift *>(content);
-      td->star_gift_manager_->on_get_star_gift(star_gift->star_gift);
+      td->star_gift_manager_->on_get_star_gift(star_gift->star_gift, false);
       return;
     }
     case MessageContentType::StarGiftUnique: {
       auto star_gift = static_cast<const MessageStarGiftUnique *>(content);
-      return td->star_gift_manager_->on_get_star_gift(star_gift->star_gift);
+      return td->star_gift_manager_->on_get_star_gift(star_gift->star_gift, false);
     }
     default:
       return;

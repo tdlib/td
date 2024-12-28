@@ -57,7 +57,7 @@ class GetStarGiftsQuery final : public Td::ResultHandler {
       if (!star_gift.is_valid()) {
         continue;
       }
-      td_->star_gift_manager_->on_get_star_gift(star_gift);
+      td_->star_gift_manager_->on_get_star_gift(star_gift, true);
       options.push_back(star_gift.get_gift_object(td_));
     }
 
@@ -677,8 +677,11 @@ void StarGiftManager::get_gift_payment_options(Promise<td_api::object_ptr<td_api
   td_->create_handler<GetStarGiftsQuery>(std::move(promise))->send();
 }
 
-void StarGiftManager::on_get_star_gift(const StarGift &star_gift) {
+void StarGiftManager::on_get_star_gift(const StarGift &star_gift, bool from_server) {
   if (td_->auth_manager_->is_bot() || !star_gift.is_valid() || star_gift.is_unique()) {
+    return;
+  }
+  if (!from_server && gift_prices_.count(star_gift.get_id())) {
     return;
   }
   gift_prices_[star_gift.get_id()] = {star_gift.get_star_count(), star_gift.get_upgrade_star_count()};
