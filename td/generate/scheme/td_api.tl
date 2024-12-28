@@ -4006,7 +4006,7 @@ messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id
 //@is_saved True, if the gift is displayed on the user's profile page; only for the receiver of the gift
 //@can_be_upgraded True, if the gift can be upgraded to a unique gift; only for the receiver of the gift
 //@was_converted True, if the gift was converted to Telegram Stars; only for the receiver of the gift
-//@was_upgraded True, if the gift was upgraded to a unique gift; only for the receiver of the gift
+//@was_upgraded True, if the gift was upgraded to a unique gift
 //@was_refunded True, if the gift was refunded and isn't available anymore
 //@upgrade_message_id Identifier of the service message messageUpgradedGift or messageRefundedUpgradedGift with upgraded version of the gift; can be 0 if none or an identifier of a deleted message.
 //-Use getUserGift to get information about the gift
