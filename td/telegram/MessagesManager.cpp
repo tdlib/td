@@ -26172,7 +26172,7 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
 
   bool can_use_server_forward = true;
   for (auto &copy_option : copy_options) {
-    if (!copy_option.is_supported_server_side()) {
+    if (!copy_option.is_supported_server_side(top_thread_message_id)) {
       can_use_server_forward = false;
       break;
     }
