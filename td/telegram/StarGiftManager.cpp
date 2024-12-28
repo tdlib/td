@@ -52,22 +52,15 @@ class GetStarGiftsQuery final : public Td::ResultHandler {
     }
     auto results = telegram_api::move_object_as<telegram_api::payments_starGifts>(ptr);
     vector<td_api::object_ptr<td_api::gift>> options;
-    FlatHashMap<int64, std::pair<int64, int64>> gift_prices;
     for (auto &gift : results->gifts_) {
       StarGift star_gift(td_, std::move(gift), false);
       if (!star_gift.is_valid()) {
         continue;
       }
-      auto gift_id = star_gift.get_id();
-      if (gift_prices.count(gift_id) != 0) {
-        LOG(ERROR) << "Receive again gift " << gift_id;
-        continue;
-      }
-      gift_prices[gift_id] = {star_gift.get_star_count(), star_gift.get_upgrade_star_count()};
+      td_->star_gift_manager_->on_get_star_gift(star_gift);
       options.push_back(star_gift.get_gift_object(td_));
     }
 
-    td_->star_gift_manager_->on_get_gift_prices(std::move(gift_prices));
     promise_.set_value(td_api::make_object<td_api::gifts>(std::move(options)));
   }
 
@@ -684,11 +677,11 @@ void StarGiftManager::get_gift_payment_options(Promise<td_api::object_ptr<td_api
   td_->create_handler<GetStarGiftsQuery>(std::move(promise))->send();
 }
 
-void StarGiftManager::on_get_gift_prices(FlatHashMap<int64, std::pair<int64, int64>> gift_prices) {
-  if (td_->auth_manager_->is_bot()) {
+void StarGiftManager::on_get_star_gift(const StarGift &star_gift) {
+  if (td_->auth_manager_->is_bot() || !star_gift.is_valid()) {
     return;
   }
-  gift_prices_ = std::move(gift_prices);
+  gift_prices_[star_gift.get_id()] = {star_gift.get_star_count(), star_gift.get_upgrade_star_count()};
 }
 
 void StarGiftManager::send_gift(int64 gift_id, UserId user_id, td_api::object_ptr<td_api::formattedText> text,
