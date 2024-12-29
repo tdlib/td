@@ -16,9 +16,11 @@
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
+#include "td/telegram/FolderId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/logevent/LogEventHelper.h"
+#include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
@@ -28,6 +30,7 @@
 #include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/StickerPhotoSize.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/UserId.h"
@@ -2998,7 +3001,7 @@ void DialogManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         auto dialog_id = log_event.dialog_id_;
         if (!have_dialog_force(dialog_id, "ToggleDialogIsTranslatableOnServer") ||
-            !td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read)) {
+            !have_input_peer(dialog_id, true, AccessRights::Read)) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }

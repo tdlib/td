@@ -284,7 +284,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         transaction->extended_media_.clear();
         return extended_media_objects;
       };
-      auto get_message_id_object = [&]() {
+      auto get_message_id_object = [&] {
         auto message_id = MessageId(ServerMessageId(transaction->msg_id_));
         if (message_id != MessageId() && !message_id.is_valid()) {
           LOG(ERROR) << "Receive " << message_id << " in " << to_string(transaction);

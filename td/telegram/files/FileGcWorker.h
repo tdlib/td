@@ -12,6 +12,7 @@
 #include "td/actor/actor.h"
 
 #include "td/utils/CancellationToken.h"
+#include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/Promise.h"
 
