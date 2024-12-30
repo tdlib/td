@@ -1074,7 +1074,7 @@ gifts gifts:vector<gift> = Gifts;
 //@number Unique number of the upgraded gift among gifts upgraded from the same gift
 //@total_upgraded_count Total number of gifts that were upgraded from the same gift
 //@max_upgraded_count The maximum number of gifts that can be upgraded from the same gift
-//@owner_user_id User identifier of the user that owns the upgraded gift
+//@owner_user_id User identifier of the user that owns the upgraded gift; 0 if none
 //@model Description of the model of the upgraded gift
 //@symbol Description of the symbol of the upgraded gift
 //@backdrop Description of the backdrop of the upgraded gift
