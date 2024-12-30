@@ -44,6 +44,10 @@ UserStarGift::UserStarGift(Td *td, telegram_api::object_ptr<telegram_api::userSt
     message_id_ = MessageId();
   }
   td->star_gift_manager_->on_get_star_gift(gift_, true);
+  if (is_me && message_id_.is_valid() && sender_user_id_ != UserId()) {
+    td->star_gift_manager_->on_get_user_star_gift({DialogId(sender_user_id_), message_id_}, can_upgrade_,
+                                                  upgrade_star_count_ > 0 ? 0 : gift_.get_upgrade_star_count());
+  }
 }
 
 td_api::object_ptr<td_api::userGift> UserStarGift::get_user_gift_object(Td *td) const {

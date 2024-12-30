@@ -8588,6 +8588,7 @@ int64 get_message_content_gift_upgrade_star_count(const MessageContent *content)
     case MessageContentType::StarGift: {
       const auto *m = static_cast<const MessageStarGift *>(content);
       if (m->upgrade_star_count > 0) {
+        // upgrade was prepaid
         return 0;
       }
       return m->star_gift.get_upgrade_star_count();
