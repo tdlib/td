@@ -12,9 +12,11 @@
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageQuote.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/OnlineManager.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StarGift.h"
 #include "td/telegram/StarManager.h"
+#include "td/telegram/StateManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
@@ -23,6 +25,7 @@
 
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
+#include "td/utils/Random.h"
 #include "td/utils/Status.h"
 
 namespace td {
@@ -667,6 +670,28 @@ class GetUserStarGiftQuery final : public Td::ResultHandler {
 };
 
 StarGiftManager::StarGiftManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
+  update_gift_message_timeout_.set_callback(on_update_gift_message_timeout_callback);
+  update_gift_message_timeout_.set_callback_data(static_cast<void *>(this));
+}
+
+void StarGiftManager::start_up() {
+  if (!td_->auth_manager_->is_bot()) {
+    class StateCallback final : public StateManager::Callback {
+     public:
+      explicit StateCallback(ActorId<StarGiftManager> parent) : parent_(std::move(parent)) {
+      }
+      bool on_online(bool is_online) final {
+        if (is_online) {
+          send_closure(parent_, &StarGiftManager::on_online);
+        }
+        return parent_.is_alive();
+      }
+
+     private:
+      ActorId<StarGiftManager> parent_;
+    };
+    send_closure(G()->state_manager(), &StateManager::add_callback, make_unique<StateCallback>(actor_id(this)));
+  }
 }
 
 void StarGiftManager::tear_down() {
@@ -822,6 +847,102 @@ void StarGiftManager::get_user_gift(MessageId message_id, Promise<td_api::object
     return promise.set_error(Status::Error(400, "Invalid message identifier specified"));
   }
   td_->create_handler<GetUserStarGiftQuery>(std::move(promise))->send(message_id);
+}
+
+void StarGiftManager::register_gift(MessageFullId message_full_id, const char *source) {
+  auto message_id = message_full_id.get_message_id();
+  if (message_id.is_scheduled()) {
+    return;
+  }
+  CHECK(!td_->auth_manager_->is_bot());
+  CHECK(message_id.is_valid());
+  CHECK(message_id.is_server());
+  LOG(INFO) << "Register gift in " << message_full_id << " from " << source;
+  auto gift_message_number = ++gift_message_count_;
+  gift_full_message_ids_.set(message_full_id, gift_message_number);
+  gift_full_message_ids_by_id_.set(gift_message_number, message_full_id);
+  update_gift_message_timeout_.add_timeout_in(gift_message_number, 0);
+}
+
+void StarGiftManager::unregister_gift(MessageFullId message_full_id, const char *source) {
+  auto message_id = message_full_id.get_message_id();
+  if (message_id.is_scheduled()) {
+    return;
+  }
+  CHECK(!td_->auth_manager_->is_bot());
+  CHECK(message_id.is_valid());
+  CHECK(message_id.is_server());
+  LOG(INFO) << "Unregister gift in " << message_full_id << " from " << source;
+  auto message_number = gift_full_message_ids_[message_full_id];
+  LOG_CHECK(message_number != 0) << source << ' ' << message_full_id;
+  gift_full_message_ids_by_id_.erase(message_number);
+  if (!G()->close_flag()) {
+    update_gift_message_timeout_.cancel_timeout(message_number);
+  }
+  gift_full_message_ids_.erase(message_full_id);
+}
+
+double StarGiftManager::get_gift_message_polling_timeout() const {
+  double result = td_->online_manager_->is_online() ? 60 : 30 * 60;
+  return result * Random::fast(70, 100) * 0.01;
+}
+
+void StarGiftManager::on_online() {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  gift_full_message_ids_.foreach([&](MessageFullId, int64 message_number) {
+    if (update_gift_message_timeout_.has_timeout(message_number)) {
+      update_gift_message_timeout_.set_timeout_in(message_number, Random::fast(3, 30));
+    }
+  });
+}
+
+void StarGiftManager::on_update_gift_message_timeout_callback(void *star_gift_manager_ptr, int64 message_number) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto star_gift_manager = static_cast<StarGiftManager *>(star_gift_manager_ptr);
+  send_closure_later(star_gift_manager->actor_id(star_gift_manager), &StarGiftManager::on_update_gift_message_timeout,
+                     message_number);
+}
+
+void StarGiftManager::on_update_gift_message_timeout(int64 message_number) {
+  if (G()->close_flag()) {
+    return;
+  }
+  CHECK(!td_->auth_manager_->is_bot());
+  auto message_full_id = gift_full_message_ids_by_id_.get(message_number);
+  if (message_full_id.get_message_id() == MessageId()) {
+    return;
+  }
+  if (!being_reloaded_gift_messages_.insert(message_full_id).second) {
+    return;
+  }
+  LOG(INFO) << "Fetching gift from " << message_full_id;
+  auto promise = PromiseCreator::lambda([actor_id = actor_id(this), message_full_id](Unit result) {
+    send_closure(actor_id, &StarGiftManager::on_update_gift_message, message_full_id);
+  });
+  td_->messages_manager_->get_message_from_server(message_full_id, std::move(promise),
+                                                  "on_update_gift_message_timeout");
+}
+
+void StarGiftManager::on_update_gift_message(MessageFullId message_full_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+  auto is_erased = being_reloaded_gift_messages_.erase(message_full_id) > 0;
+  CHECK(is_erased);
+  auto message_number = gift_full_message_ids_.get(message_full_id);
+  if (message_number == 0) {
+    return;
+  }
+
+  auto timeout = get_gift_message_polling_timeout();
+  LOG(INFO) << "Schedule updating of gift in " << message_full_id << " in " << timeout;
+  update_gift_message_timeout_.add_timeout_in(message_number, timeout);
 }
 
 }  // namespace td
