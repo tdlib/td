@@ -30,6 +30,11 @@ class Td;
 class StarGiftManager final : public Actor {
  public:
   StarGiftManager(Td *td, ActorShared<> parent);
+  StarGiftManager(const StarGiftManager &) = delete;
+  StarGiftManager &operator=(const StarGiftManager &) = delete;
+  StarGiftManager(StarGiftManager &&) = delete;
+  StarGiftManager &operator=(StarGiftManager &&) = delete;
+  ~StarGiftManager() final;
 
   void get_gift_payment_options(Promise<td_api::object_ptr<td_api::gifts>> &&promise);
 

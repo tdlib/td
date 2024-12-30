@@ -674,6 +674,11 @@ StarGiftManager::StarGiftManager(Td *td, ActorShared<> parent) : td_(td), parent
   update_gift_message_timeout_.set_callback_data(static_cast<void *>(this));
 }
 
+StarGiftManager::~StarGiftManager() {
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), gift_full_message_ids_,
+                                              gift_full_message_ids_by_id_, being_reloaded_gift_messages_);
+}
+
 void StarGiftManager::start_up() {
   if (!td_->auth_manager_->is_bot()) {
     class StateCallback final : public StateManager::Callback {
