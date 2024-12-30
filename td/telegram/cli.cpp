@@ -3158,13 +3158,13 @@ class CliClient final : public Actor {
       }
       td_api::object_ptr<td_api::SearchMessagesChatTypeFilter> chat_type_filter;
       if (op == "SearchP") {
-        chat_type_filter = td_api::object_ptr<td_api::searchMessagesChatTypeFilterPrivate>();
+        chat_type_filter = td_api::make_object<td_api::searchMessagesChatTypeFilterPrivate>();
       }
       if (op == "SearchG") {
-        chat_type_filter = td_api::object_ptr<td_api::searchMessagesChatTypeFilterGroup>();
+        chat_type_filter = td_api::make_object<td_api::searchMessagesChatTypeFilterGroup>();
       }
       if (op == "SearchC") {
-        chat_type_filter = td_api::object_ptr<td_api::searchMessagesChatTypeFilterChannel>();
+        chat_type_filter = td_api::make_object<td_api::searchMessagesChatTypeFilterChannel>();
       }
       send_request(td_api::make_object<td_api::searchMessages>(std::move(chat_list), query, offset, as_limit(limit),
                                                                as_search_messages_filter(filter),
