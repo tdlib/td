@@ -6332,7 +6332,8 @@ void register_message_content(Td *td, const MessageContent *content, MessageFull
     }
     case MessageContentType::StarGiftUnique: {
       auto star_gift = static_cast<const MessageStarGiftUnique *>(content);
-      return td->star_gift_manager_->on_get_star_gift(star_gift->star_gift, false);
+      td->star_gift_manager_->on_get_star_gift(star_gift->star_gift, false);
+      return td->star_gift_manager_->register_gift(message_full_id, source);
     }
     default:
       return;
@@ -6483,6 +6484,8 @@ void unregister_message_content(Td *td, const MessageContent *content, MessageFu
       return td->stickers_manager_->unregister_premium_gift(0, star_count, message_full_id, source);
     }
     case MessageContentType::StarGift:
+      return td->star_gift_manager_->unregister_gift(message_full_id, source);
+    case MessageContentType::StarGiftUnique:
       return td->star_gift_manager_->unregister_gift(message_full_id, source);
     default:
       return;
