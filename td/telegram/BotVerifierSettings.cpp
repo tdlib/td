@@ -69,7 +69,7 @@ bool operator==(const unique_ptr<BotVerifierSettings> &lhs, const unique_ptr<Bot
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const BotVerifierSettings &bot_verifier_settings) {
-  return string_builder << "VerificationSettings[" << bot_verifier_settings.icon_ << ' by '
+  return string_builder << "VerificationSettings[" << bot_verifier_settings.icon_ << " by "
                         << bot_verifier_settings.company_ << ']';
 }
 
