@@ -4014,7 +4014,7 @@ messageGift gift:gift text:formattedText sell_star_count:int53 prepaid_upgrade_s
 
 //@description An upgraded gift was received or sent by the current user
 //@gift The gift
-//@is_upgrade True, if the gift was obtained by upgrading of a previously received gift
+//@is_upgrade True, if the gift was obtained by upgrading of a previously received gift; otherwise, this is a transferred gift
 //@is_saved True, if the gift is displayed on the user's profile page; only for the receiver of the gift
 //@can_be_transferred True, if the gift can be transferred to another user; only for the receiver of the gift
 //@was_transferred True, if the gift was transferred to another user; only for the receiver of the gift
@@ -6529,6 +6529,10 @@ pushMessageContentGiveaway winner_count:int32 prize:GiveawayPrize is_pinned:Bool
 
 //@description A message with a gift @star_count Number of Telegram Stars that sender paid for the gift
 pushMessageContentGift star_count:int53 = PushMessageContent;
+
+//@description A message with an upgraded gift
+//@is_upgrade True, if the gift was obtained by upgrading of a previously received gift; otherwise, this is a transferred gift
+pushMessageContentUpgradedGift is_upgrade:Bool = PushMessageContent;
 
 //@description A screenshot of a message in the chat has been taken
 pushMessageContentScreenshotTaken = PushMessageContent;
