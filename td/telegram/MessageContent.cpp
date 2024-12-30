@@ -8057,7 +8057,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return td::make_unique<MessageStarGiftUnique>(
           std::move(star_gift), StarManager::get_star_count(action->transfer_stars_), max(0, action->can_export_at_),
           action->saved_, action->upgrade_,
-          (action->flags_ && telegram_api::messageActionStarGiftUnique::TRANSFER_STARS_MASK) != 0, action->transferred_,
+          (action->flags_ & telegram_api::messageActionStarGiftUnique::TRANSFER_STARS_MASK) != 0, action->transferred_,
           action->refunded_);
     }
     default:
