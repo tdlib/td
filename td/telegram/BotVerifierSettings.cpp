@@ -9,6 +9,8 @@
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/Td.h"
 
+#include "td/utils/logging.h"
+
 namespace td {
 
 BotVerifierSettings::BotVerifierSettings(

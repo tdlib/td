@@ -6,7 +6,6 @@
 //
 #pragma once
 
-#include "td/telegram/Global.h"
 #include "td/telegram/StarGiftAttribute.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StickersManager.hpp"

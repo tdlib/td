@@ -874,7 +874,7 @@ starSubscription id:string chat_id:int53 expiration_date:int32 is_canceled:Bool 
 starSubscriptions star_amount:starAmount subscriptions:vector<starSubscription> required_star_count:int53 next_offset:string = StarSubscriptions;
 
 
-//@class AffiliateType @description Describes type of an affiliate for an affiliate program
+//@class AffiliateType @description Describes type of affiliate for an affiliate program
 
 //@description The affiliate is the current user
 affiliateTypeCurrentUser = AffiliateType;
@@ -1075,9 +1075,9 @@ gifts gifts:vector<gift> = Gifts;
 //@total_upgraded_count Total number of gifts that were upgraded from the same gift
 //@max_upgraded_count The maximum number of gifts that can be upgraded from the same gift
 //@owner_user_id User identifier of the user that owns the upgraded gift; 0 if none
-//@model Description of the model of the upgraded gift
-//@symbol Description of the symbol of the upgraded gift
-//@backdrop Description of the backdrop of the upgraded gift
+//@model Model of the upgraded gift
+//@symbol Symbol of the upgraded gift
+//@backdrop Backdrop of the upgraded gift
 //@original_details Information about the originally sent gift; may be null if unknown
 upgradedGift id:int64 title:string number:int32 total_upgraded_count:int32 max_upgraded_count:int32 owner_user_id:int53 model:upgradedGiftModel symbol:upgradedGiftSymbol backdrop:upgradedGiftBackdrop original_details:upgradedGiftOriginalDetails = UpgradedGift;
 

@@ -12,6 +12,7 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageSearchFilter.h"
 #include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/actor/actor.h"
 
@@ -37,8 +38,8 @@ class MessageQueryManager final : public Actor {
   void on_get_messages_search_result(const string &query, int32 offset_date, DialogId offset_dialog_id,
                                      MessageId offset_message_id, int32 limit, MessageSearchFilter filter,
                                      int32 min_date, int32 max_date, int32 total_count,
-                                     vector<tl_object_ptr<telegram_api::Message>> &&messages, int32 next_rate,
-                                     Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
+                                     vector<telegram_api::object_ptr<telegram_api::Message>> &&messages,
+                                     int32 next_rate, Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 
   void search_outgoing_document_messages(const string &query, int32 limit,
                                          Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);

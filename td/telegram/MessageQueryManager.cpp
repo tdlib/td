@@ -9,6 +9,7 @@
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
+#include "td/telegram/FolderId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/HashtagHints.h"
 #include "td/telegram/MessageSearchOffset.h"
@@ -20,6 +21,8 @@
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 
 namespace td {

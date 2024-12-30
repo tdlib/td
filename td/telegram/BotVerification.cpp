@@ -11,6 +11,8 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/UserManager.h"
 
+#include "td/utils/logging.h"
+
 namespace td {
 
 BotVerification::BotVerification(telegram_api::object_ptr<telegram_api::botVerification> &&bot_verification) {

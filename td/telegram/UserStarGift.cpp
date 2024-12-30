@@ -6,6 +6,7 @@
 //
 #include "td/telegram/UserStarGift.h"
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StarGiftManager.h"
 #include "td/telegram/StarManager.h"
