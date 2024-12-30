@@ -2835,9 +2835,9 @@ class CliClient final : public Actor {
     } else if (op == "sendg" || op == "sendgp") {
       int64 gift_id;
       UserId user_id;
-      string text;
       bool pay_for_upgrade;
-      get_args(args, gift_id, user_id, text, pay_for_upgrade);
+      string text;
+      get_args(args, gift_id, user_id, pay_for_upgrade, text);
       send_request(td_api::make_object<td_api::sendGift>(gift_id, user_id, as_formatted_text(text), op == "sendgp",
                                                          pay_for_upgrade));
     } else if (op == "sellg") {
@@ -2870,9 +2870,9 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::transferGift>(sender_user_id, message_id, receiver_user_id, star_count));
     } else if (op == "gugs") {
       UserId user_id;
-      string offset;
       int32 limit;
-      get_args(args, user_id, offset, limit);
+      string offset;
+      get_args(args, user_id, limit, offset);
       send_request(td_api::make_object<td_api::getUserGifts>(user_id, offset, limit));
     } else if (op == "gug") {
       MessageId message_id;
