@@ -55,6 +55,15 @@ class TdExample {
     td::ClientManager::execute(td_api::make_object<td_api::setLogVerbosityLevel>(1));
     client_manager_ = std::make_unique<td::ClientManager>();
     client_id_ = client_manager_->create_client_id();
+    
+    // auto proxy = td_api::make_object<td_api::addProxy>();
+    // auto proxy_type = td_api::make_object<td_api::proxyTypeSocks5>();
+    // proxy->server_ = "localhost";
+    // proxy->port_ = 1234;
+    // proxy->enable_ = true;
+    // proxy->type_ = std::move(proxy_type);
+    // send_query(std::move(proxy), {});
+
     send_query(td_api::make_object<td_api::getOption>("version"), {});
   }
 
@@ -63,7 +72,7 @@ class TdExample {
       if (need_restart_) {
         restart();
       } else if (!are_authorized_) {
-        process_response(client_manager_->receive(10));
+        fetch_query_response_handler(false,[](int i){std::cout<<"Not authorized"<<std::endl;}, 100000, 0.001f);
       } else {
         std::cout << "Enter action [q] quit [u] check for updates and request results [c] show chats [m <chat_id> "
                      "<text>] send message [me] show self [l] logout: "
@@ -80,23 +89,17 @@ class TdExample {
         }
         if (action == "u") {
           std::cout << "Checking for updates..." << std::endl;
-          while (true) {
-            auto response = client_manager_->receive(0);
-            if (response.object) {
-              process_response(std::move(response));
-            } else {
-              break;
-            }
-          }
+          fetch_query_response_handler(false);
         } else if (action == "close") {
           std::cout << "Closing..." << std::endl;
           send_query(td_api::make_object<td_api::close>(), {});
         } else if (action == "me") {
           send_query(td_api::make_object<td_api::getMe>(),
                      [this](Object object) { std::cout << to_string(object) << std::endl; });
+          fetch_query_response_handler();
         } else if (action == "l") {
           std::cout << "Logging out..." << std::endl;
-          send_query(td_api::make_object<td_api::logOut>(), {});
+          send_query(td_api::make_object<td_api::logOut>(),{});
         } else if (action == "m") {
           std::int64_t chat_id;
           ss >> chat_id;
@@ -121,9 +124,15 @@ class TdExample {
             }
             auto chats = td::move_tl_object_as<td_api::chats>(object);
             for (auto chat_id : chats->chat_ids_) {
-              std::cout << "[chat_id:" << chat_id << "] [title:" << chat_title_[chat_id] << "]" << std::endl;
+              auto chat_info = td_api::make_object<td_api::getChat>(chat_id);
+              send_query(std::move(chat_info), [this](Object object) {
+                auto chat = td::move_tl_object_as<td_api::chat>(object);
+                std::cout << "Chat title: " << chat->title_ << "chat id:" <<chat->id_ << std::endl;
+              });
+              fetch_query_response_handler();
             }
           });
+          fetch_query_response_handler();
         }
       }
     }
@@ -160,18 +169,51 @@ class TdExample {
   }
 
   void process_response(td::ClientManager::Response response) {
-    if (!response.object) {
-      return;
-    }
     //std::cout << response.request_id << " " << to_string(response.object) << std::endl;
     if (response.request_id == 0) {
       return process_update(std::move(response.object));
     }
+    
     auto it = handlers_.find(response.request_id);
     if (it != handlers_.end()) {
       it->second(std::move(response.object));
       handlers_.erase(it);
     }
+  }
+
+ 
+  void fetch_query_response_handler(bool only_current_query = true, std::function<void(int)> iter_callback = [](int limit) {
+        std::cout << "Iter limit reached: " << limit << std::endl;
+    }, int iter_limit = 500000, float msg_fetch_timeout = 0.0f) {
+      int i_ = 0;
+      while (true) {
+        if (i_ > iter_limit) {
+          iter_callback(iter_limit);
+          return;
+        }
+        auto response = client_manager_->receive(msg_fetch_timeout);
+        if (!response.object) {
+          i_++;
+          continue;
+        }
+        if (only_current_query) {
+          if (response.request_id == current_query_id_) {
+            if (response.object->get_id() == td_api::error::ID) {
+              auto error = td::move_tl_object_as<td_api::error>(response.object);
+              if (error) {
+                  std::cout << "Error: " << to_string(error) << std::endl;
+              }
+              return;
+            }
+            process_response(std::move(response));
+            return;
+          }
+        } else {
+          process_response(std::move(response));
+          return;
+        }
+        i_++;
+      }
   }
 
   std::string get_user_name(std::int64_t user_id) const {
