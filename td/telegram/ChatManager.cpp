@@ -4815,6 +4815,7 @@ void ChatManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, bool fr
   if (c->is_is_active_changed) {
     update_dialogs_for_discussion(DialogId(chat_id), c->is_active && c->status.is_creator());
     c->is_is_active_changed = false;
+    td_->messages_manager_->on_dialog_access_updated(DialogId(chat_id));
   }
   if (c->is_status_changed) {
     if (!c->status.can_manage_invite_links()) {
@@ -4833,6 +4834,7 @@ void ChatManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, bool fr
             .release();
       }
     }
+    td_->messages_manager_->on_dialog_access_updated(DialogId(chat_id));
     c->is_status_changed = false;
   }
   if (c->is_noforwards_changed) {
@@ -4949,12 +4951,14 @@ void ChatManager::update_channel(Channel *c, ChannelId channel_id, bool from_bin
                                }))
           .release();
     }
+    td_->messages_manager_->on_dialog_access_updated(DialogId(channel_id));
     c->is_status_changed = false;
   }
   if (c->is_username_changed) {
     if (c->status.is_creator()) {
       update_created_public_channels(c, channel_id);
     }
+    td_->messages_manager_->on_dialog_access_updated(DialogId(channel_id));
     c->is_username_changed = false;
   }
   if (c->is_default_permissions_changed) {
@@ -4971,6 +4975,7 @@ void ChatManager::update_channel(Channel *c, ChannelId channel_id, bool from_bin
     if (c->status.is_creator()) {
       update_created_public_channels(c, channel_id);
     }
+    td_->messages_manager_->on_dialog_access_updated(DialogId(channel_id));
     c->is_has_location_changed = false;
   }
   if (c->is_creator_changed) {

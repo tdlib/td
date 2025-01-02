@@ -813,6 +813,7 @@ class MessagesManager final : public Actor {
   void on_dialog_usernames_updated(DialogId dialog_id, const Usernames &old_usernames, const Usernames &new_usernames);
   void on_dialog_default_permissions_updated(DialogId dialog_id);
   void on_dialog_has_protected_content_updated(DialogId dialog_id);
+  void on_dialog_access_updated(DialogId dialog_id);
 
   void on_dialog_user_is_contact_updated(DialogId dialog_id, bool is_contact);
   void on_dialog_user_is_deleted_updated(DialogId dialog_id, bool is_deleted);
@@ -1319,6 +1320,7 @@ class MessagesManager final : public Actor {
     bool need_repair_unread_reaction_count = false;
     bool need_repair_unread_mention_count = false;
     bool is_translatable = false;
+    bool last_need_hide_dialog_draft_message = false;
 
     bool is_update_new_chat_sent = false;
     bool is_update_new_chat_being_sent = false;
@@ -2382,7 +2384,7 @@ class MessagesManager final : public Actor {
 
   bool need_hide_dialog_draft_message(const Dialog *d) const;
 
-  void send_update_chat_draft_message(const Dialog *d);
+  void send_update_chat_draft_message(Dialog *d);
 
   void send_update_last_message_if_needed(const Dialog *d, const Message *m, const char *source) const;
 
@@ -2522,7 +2524,7 @@ class MessagesManager final : public Actor {
 
   void save_pinned_folder_dialog_ids(const DialogList &list) const;
 
-  void on_update_dialog_view_as_topics(const Dialog *d, bool old_view_as_topics);
+  void on_update_dialog_view_as_topics(Dialog *d, bool old_view_as_topics);
 
   void set_dialog_is_forum(Dialog *d, bool is_forum);
 

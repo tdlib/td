@@ -12211,6 +12211,7 @@ void MessagesManager::open_secret_message(SecretChatId secret_chat_id, int64 ran
 }
 
 void MessagesManager::on_update_secret_chat_state(SecretChatId secret_chat_id, SecretChatState state) {
+  on_dialog_access_updated(DialogId(secret_chat_id));
   if (state == SecretChatState::Closed && !td_->auth_manager_->is_bot()) {
     DialogId dialog_id(secret_chat_id);
     Dialog *d = get_dialog_force(dialog_id, "on_update_secret_chat_state");
@@ -18703,7 +18704,6 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
   bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
   auto chat_source = is_dialog_sponsored(d) ? sponsored_dialog_source_.get_chat_source_object() : nullptr;
   auto can_delete = can_delete_dialog(d);
-  // TODO hide/show draft message when need_hide_dialog_draft_message changes
   auto draft_message = !need_hide_dialog_draft_message(d) ? get_draft_message_object(td_, d->draft_message) : nullptr;
   auto available_reactions = get_dialog_active_reactions(d).get_chat_available_reactions_object(td_);
   auto is_translatable = d->is_translatable && is_premium;
@@ -28064,7 +28064,7 @@ bool MessagesManager::need_hide_dialog_draft_message(const Dialog *d) const {
   return get_dialog_view_as_topics(d) || can_send_message(d->dialog_id).is_error();
 }
 
-void MessagesManager::send_update_chat_draft_message(const Dialog *d) {
+void MessagesManager::send_update_chat_draft_message(Dialog *d) {
   if (td_->auth_manager_->is_bot()) {
     // just in case
     return;
@@ -28072,15 +28072,19 @@ void MessagesManager::send_update_chat_draft_message(const Dialog *d) {
 
   CHECK(d != nullptr);
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_draft_message";
-  if (d->draft_message == nullptr || !need_hide_dialog_draft_message(d)) {
+  auto need_hide = need_hide_dialog_draft_message(d);
+  if (!need_hide || !d->last_need_hide_dialog_draft_message) {
+    d->last_need_hide_dialog_draft_message = need_hide;
+    auto draft_message = need_hide ? nullptr : d->draft_message.get();
     send_closure(G()->td(), &Td::send_update,
                  td_api::make_object<td_api::updateChatDraftMessage>(
                      get_chat_id_object(d->dialog_id, "updateChatDraftMessage"),
-                     get_draft_message_object(td_, d->draft_message), get_chat_positions_object(d)));
+                     draft_message == nullptr ? nullptr : draft_message->get_draft_message_object(td_),
+                     get_chat_positions_object(d)));
 
     if (d->dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
       td_->saved_messages_manager_->on_topic_draft_message_updated(
-          SavedMessagesTopicId(d->dialog_id), d->draft_message == nullptr ? 0 : d->draft_message->get_date());
+          SavedMessagesTopicId(d->dialog_id), draft_message == nullptr ? 0 : draft_message->get_date());
     }
   }
 }
@@ -29397,7 +29401,7 @@ void MessagesManager::on_update_pinned_dialogs(FolderId folder_id) {
   reload_pinned_dialogs(DialogListId(folder_id), Auto());
 }
 
-void MessagesManager::on_update_dialog_view_as_topics(const Dialog *d, bool old_view_as_topics) {
+void MessagesManager::on_update_dialog_view_as_topics(Dialog *d, bool old_view_as_topics) {
   auto new_view_as_topics = get_dialog_view_as_topics(d);
   if (old_view_as_topics == new_view_as_topics) {
     return;
@@ -30439,10 +30443,20 @@ void MessagesManager::on_dialog_has_protected_content_updated(DialogId dialog_id
   }
 }
 
+void MessagesManager::on_dialog_access_updated(DialogId dialog_id) {
+  auto d = get_dialog(dialog_id);  // called from update_chat, must not create the dialog
+  if (d != nullptr && d->is_update_new_chat_sent) {
+    if (d->draft_message != nullptr && d->last_need_hide_dialog_draft_message != need_hide_dialog_draft_message(d)) {
+      send_update_chat_draft_message(d);
+    }
+  }
+}
+
 void MessagesManager::on_dialog_user_is_contact_updated(DialogId dialog_id, bool is_contact) {
   CHECK(dialog_id.get_type() == DialogType::User);
   auto d = get_dialog(dialog_id);  // called from update_user, must not create the dialog
   if (d != nullptr && d->is_update_new_chat_sent) {
+    on_dialog_access_updated(dialog_id);
     if (d->know_action_bar) {
       if (is_contact) {
         if (d->action_bar != nullptr && d->action_bar->on_user_contact_added()) {
