@@ -78,6 +78,8 @@ class UserManager final : public Actor {
 
   static UserId get_user_id(const telegram_api::object_ptr<telegram_api::User> &user);
 
+  vector<UserId> get_user_ids(vector<telegram_api::object_ptr<telegram_api::User>> &&users, const char *source);
+
   static UserId load_my_id();
 
   UserId get_my_id() const;

@@ -2320,6 +2320,23 @@ UserId UserManager::get_user_id(const telegram_api::object_ptr<telegram_api::Use
   }
 }
 
+vector<UserId> UserManager::get_user_ids(vector<telegram_api::object_ptr<telegram_api::User>> &&users,
+                                         const char *source) {
+  vector<UserId> user_ids;
+  for (auto &user : users) {
+    auto user_id = get_user_id(user);
+    if (!user_id.is_valid()) {
+      LOG(ERROR) << "Receive invalid " << user_id << " from " << source << " in " << to_string(user);
+      continue;
+    }
+    on_get_user(std::move(user), source);
+    if (have_user(user_id)) {
+      user_ids.push_back(user_id);
+    }
+  }
+  return user_ids;
+}
+
 UserId UserManager::load_my_id() {
   auto id_string = G()->td_db()->get_binlog_pmc()->get("my_id");
   if (!id_string.empty()) {
