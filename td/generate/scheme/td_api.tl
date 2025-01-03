@@ -4652,6 +4652,10 @@ storyAreaTypeLink url:string = StoryAreaType;
 //@background_color A color of the area background in the ARGB format
 storyAreaTypeWeather temperature:double emoji:string background_color:int32 = StoryAreaType;
 
+//@description An area with an upgraded gift
+//@gift_name Unique name of the upgraded gift
+storyAreaTypeUpgradedGift gift_name:string = StoryAreaType;
+
 
 //@description Describes a clickable rectangle area on a story media @position Position of the area @type Type of the area
 storyArea position:storyAreaPosition type:StoryAreaType = StoryArea;
@@ -4693,6 +4697,9 @@ inputStoryAreaTypeLink url:string = InputStoryAreaType;
 //@background_color A color of the area background in the ARGB format
 inputStoryAreaTypeWeather temperature:double emoji:string background_color:int32 = InputStoryAreaType;
 
+//@description An area with an upgraded gift @gift_name Unique name of the upgraded gift
+inputStoryAreaTypeUpgradedGift gift_name:string = InputStoryAreaType;
+
 
 //@description Describes a clickable rectangle area on a story media to be added @position Position of the area @type Type of the area
 inputStoryArea position:storyAreaPosition type:InputStoryAreaType = InputStoryArea;
@@ -4701,8 +4708,9 @@ inputStoryArea position:storyAreaPosition type:InputStoryAreaType = InputStoryAr
 //-up to 10 inputStoryAreaTypeLocation, inputStoryAreaTypeFoundVenue, and inputStoryAreaTypePreviousVenue areas,
 //-up to getOption("story_suggested_reaction_area_count_max") inputStoryAreaTypeSuggestedReaction areas,
 //-up to 1 inputStoryAreaTypeMessage area,
-//-up to getOption("story_link_area_count_max") inputStoryAreaTypeLink areas if the current user is a Telegram Premium user, and
-//-up to 3 inputStoryAreaTypeWeather areas
+//-up to getOption("story_link_area_count_max") inputStoryAreaTypeLink areas if the current user is a Telegram Premium user,
+//-up to 3 inputStoryAreaTypeWeather areas, and
+//-up to 1 inputStoryAreaTypeUpgradedGift area
 inputStoryAreas areas:vector<inputStoryArea> = InputStoryAreas;
 
 

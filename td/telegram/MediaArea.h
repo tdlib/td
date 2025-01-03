@@ -42,7 +42,7 @@ class MediaArea {
     void parse(ParserT &parser);
   };
 
-  enum class Type : int32 { None, Location, Venue, Reaction, Message, Url, Weather };
+  enum class Type : int32 { None, Location, Venue, Reaction, Message, Url, Weather, StarGift };
   Type type_ = Type::None;
   MediaAreaCoordinates coordinates_;
   Location location_;

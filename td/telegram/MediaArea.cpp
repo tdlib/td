@@ -108,6 +108,14 @@ MediaArea::MediaArea(Td *td, telegram_api::object_ptr<telegram_api::MediaArea> &
       break;
     }
     case telegram_api::mediaAreaStarGift::ID: {
+      auto area = telegram_api::move_object_as<telegram_api::mediaAreaStarGift>(media_area_ptr);
+      coordinates_ = MediaAreaCoordinates(area->coordinates_);
+      if (coordinates_.is_valid() && !area->slug_.empty()) {
+        type_ = Type::StarGift;
+        url_ = std::move(area->slug_);
+      } else {
+        LOG(ERROR) << "Receive " << to_string(area);
+      }
       break;
     }
     case telegram_api::inputMediaAreaVenue::ID:
@@ -232,6 +240,15 @@ MediaArea::MediaArea(Td *td, td_api::object_ptr<td_api::inputStoryArea> &&input_
       type_ = Type::Weather;
       break;
     }
+    case td_api::inputStoryAreaTypeUpgradedGift::ID: {
+      auto type = td_api::move_object_as<td_api::inputStoryAreaTypeUpgradedGift>(input_story_area->type_);
+      if (!clean_input_string(type->gift_name_) || type->gift_name_.empty()) {
+        break;
+      }
+      url_ = std::move(type->gift_name_);
+      type_ = Type::StarGift;
+      break;
+    }
     default:
       UNREACHABLE();
   }
@@ -277,6 +294,9 @@ td_api::object_ptr<td_api::storyArea> MediaArea::get_story_area_object(
       break;
     case Type::Weather:
       type = td_api::make_object<td_api::storyAreaTypeWeather>(temperature_, url_, color_);
+      break;
+    case Type::StarGift:
+      type = td_api::make_object<td_api::storyAreaTypeUpgradedGift>(url_);
       break;
     default:
       UNREACHABLE();
@@ -347,6 +367,9 @@ telegram_api::object_ptr<telegram_api::MediaArea> MediaArea::get_input_media_are
     case Type::Weather:
       return telegram_api::make_object<telegram_api::mediaAreaWeather>(coordinates_.get_input_media_area_coordinates(),
                                                                        url_, temperature_, color_);
+    case Type::StarGift:
+      return telegram_api::make_object<telegram_api::mediaAreaStarGift>(coordinates_.get_input_media_area_coordinates(),
+                                                                        url_);
     default:
       UNREACHABLE();
       return nullptr;
