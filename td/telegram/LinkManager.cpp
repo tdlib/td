@@ -830,6 +830,18 @@ class LinkManager::InternalLinkUserPhoneNumber final : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkUpgradedGift final : public InternalLink {
+  string name_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeUpgradedGift>(name_);
+  }
+
+ public:
+  explicit InternalLinkUpgradedGift(string name) : name_(std::move(name)) {
+  }
+};
+
 class LinkManager::InternalLinkUserToken final : public InternalLink {
   string token_;
 
@@ -1292,9 +1304,9 @@ LinkManager::LinkInfo LinkManager::get_link_info(Slice link) {
     if (ends_with(host, ".t.me") && host.size() >= 9 && host.find('.') == host.size() - 5) {
       Slice subdomain(&host[0], host.size() - 5);
       static const FlatHashSet<Slice, SliceHash> disallowed_subdomains(
-          {"addemoji",    "addlist",  "addstickers", "addtheme", "auth",  "boost", "confirmphone",
-           "contact",     "giftcode", "invoice",     "joinchat", "login", "m",     "proxy",
-           "setlanguage", "share",    "socks",       "web",      "a",     "k",     "z"});
+          {"addemoji", "addlist", "addstickers", "addtheme", "auth", "boost", "confirmphone", "contact",
+           "giftcode", "invoice", "joinchat",    "login",    "m",    "nft",   "proxy",        "setlanguage",
+           "share",    "socks",   "web",         "a",        "k",    "z"});
       if (is_valid_username(subdomain) && disallowed_subdomains.count(subdomain) == 0) {
         result.type_ = LinkType::TMe;
         result.query_ = PSTRING() << '/' << subdomain << http_url.query_;
@@ -1534,6 +1546,11 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
         return td::make_unique<InternalLinkUserPhoneNumber>(phone_number, get_url_query_draft_text(url_query),
                                                             url_query.has_arg("profile"));
       }
+    }
+  } else if (path.size() == 1 && path[0] == "nft") {
+    // nft?slug=<slug>
+    if (has_arg("slug")) {
+      return td::make_unique<InternalLinkUpgradedGift>(get_arg("slug"));
     }
   } else if (path.size() == 1 && path[0] == "contact") {
     // contact?token=<token>
@@ -1788,6 +1805,16 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
     } else if (!invite_hash.empty() && is_base64url_characters(invite_hash)) {
       // /+<link>
       return td::make_unique<InternalLinkDialogInvite>(get_dialog_invite_link(invite_hash, true));
+    }
+  } else if (path[0] == "nft") {
+    if (path.size() >= 2 && !path[1].empty()) {
+      // /nft/<slug>
+      string name = path[1];
+      for (std::size_t i = 2; i < path.size(); i++) {
+        name += '/';
+        name += path[i];
+      }
+      return td::make_unique<InternalLinkUpgradedGift>(name);
     }
   } else if (path[0] == "contact") {
     if (path.size() >= 2 && !path[1].empty()) {
@@ -2620,6 +2647,17 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
       } else {
         return PSTRING() << get_t_me_url() << "proxy?port=-1&server=0.0.0.0";
       }
+    case td_api::internalLinkTypeUpgradedGift::ID: {
+      auto link = static_cast<const td_api::internalLinkTypeUpgradedGift *>(type_ptr);
+      if (link->name_.empty()) {
+        return Status::Error(400, "Invalid gift name specified");
+      }
+      if (is_internal) {
+        return PSTRING() << "tg://nft?slug=" << link->name_;
+      } else {
+        return PSTRING() << get_t_me_url() << "nft/" << link->name_;
+      }
+    }
     case td_api::internalLinkTypeUserPhoneNumber::ID: {
       auto link = static_cast<const td_api::internalLinkTypeUserPhoneNumber *>(type_ptr);
       string phone_number;

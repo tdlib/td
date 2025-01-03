@@ -386,6 +386,10 @@ static auto unsupported_proxy() {
   return td::td_api::make_object<td::td_api::internalLinkTypeUnsupportedProxy>();
 }
 
+static auto upgraded_gift(const td::string &name) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeUpgradedGift>(name);
+}
+
 static auto user_phone_number(const td::string &phone_number, const td::string &draft_text = td::string(),
                               bool open_profile = false) {
   return td::td_api::make_object<td::td_api::internalLinkTypeUserPhoneNumber>('+' + phone_number, draft_text,
@@ -541,6 +545,20 @@ TEST(Link, parse_internal_link_part1) {
                       user_token("012345678901234567890123456789123"));
   parse_internal_link("tg:contact?token=", unknown_deep_link("tg://contact?token="));
   parse_internal_link("tg:contact?token=+123", user_token(" 123"));
+
+  parse_internal_link("tg:nft?slug=1", upgraded_gift("1"));
+  parse_internal_link("tg:nft?slug=123456", upgraded_gift("123456"));
+  parse_internal_link("tg:nft?slug=123456&startattach", upgraded_gift("123456"));
+  parse_internal_link("tg:nft?slug=123456&startattach=123", upgraded_gift("123456"));
+  parse_internal_link("tg:nft?slug=123456&attach=", upgraded_gift("123456"));
+  parse_internal_link("tg:nft?slug=123456/789&attach=&startattach", upgraded_gift("123456/789"));
+  parse_internal_link("tg:nft?slug=123456&attach=&startattach=123", upgraded_gift("123456"));
+  parse_internal_link("tg:nft?slug=01234567890123456789012345678912",
+                      upgraded_gift("01234567890123456789012345678912"));
+  parse_internal_link("tg:nft?slug=012345678901234567890123456789123",
+                      upgraded_gift("012345678901234567890123456789123"));
+  parse_internal_link("tg:nft?slug=", unknown_deep_link("tg://nft?slug="));
+  parse_internal_link("tg:nft?slug=+123", upgraded_gift(" 123"));
 
   parse_internal_link("t.me/username/12345?single", message("tg://resolve?domain=username&post=12345&single"));
   parse_internal_link("t.me/username/12345?asdasd", message("tg://resolve?domain=username&post=12345"));
@@ -871,6 +889,12 @@ TEST(Link, parse_internal_link_part2) {
   parse_internal_link("t.me/contact/startattach=1", user_token("startattach=1"));
   parse_internal_link("t.me/contact/", nullptr);
   parse_internal_link("t.me/contact/?attach=&startattach", nullptr);
+
+  parse_internal_link("t.me/nft/startattach/adasd", upgraded_gift("startattach/adasd"));
+  parse_internal_link("t.me/nft/startattach", upgraded_gift("startattach"));
+  parse_internal_link("t.me/nft/startattach=1", upgraded_gift("startattach=1"));
+  parse_internal_link("t.me/nft/", nullptr);
+  parse_internal_link("t.me/nft/?attach=&startattach", nullptr);
 
   parse_internal_link("tg:join?invite=abcdef", chat_invite("abcdef"));
   parse_internal_link("tg:join?invite=abc%20def", unknown_deep_link("tg://join?invite=abc%20def"));
@@ -1423,6 +1447,7 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("joinchat.t.me", nullptr);
   parse_internal_link("login.t.me", nullptr);
   parse_internal_link("m.t.me", nullptr);
+  parse_internal_link("nft.t.me", nullptr);
   parse_internal_link("proxy.t.me", nullptr);
   parse_internal_link("setlanguage.t.me", nullptr);
   parse_internal_link("share.t.me", nullptr);

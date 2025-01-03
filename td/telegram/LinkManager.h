@@ -163,6 +163,7 @@ class LinkManager final : public Actor {
   class InternalLinkThemeSettings;
   class InternalLinkUnknownDeepLink;
   class InternalLinkUnsupportedProxy;
+  class InternalLinkUpgradedGift;
   class InternalLinkUserPhoneNumber;
   class InternalLinkUserToken;
   class InternalLinkVoiceChat;
