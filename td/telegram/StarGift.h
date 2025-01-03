@@ -39,6 +39,7 @@ class StarGift {
   StarGiftAttributeOriginalDetails original_details_;
   string title_;
   UserId owner_user_id_;
+  string owner_name_;
   int32 num_ = 0;
   int32 unique_availability_issued_ = 0;
   int32 unique_availability_total_ = 0;
