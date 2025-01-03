@@ -17,6 +17,7 @@
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UpdatesManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -24,6 +25,7 @@
 #include "td/utils/misc.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
+#include "td/utils/Time.h"
 
 namespace td {
 
@@ -301,6 +303,53 @@ MessageQueryManager::MessageQueryManager(Td *td, ActorShared<> parent) : td_(td)
 
 void MessageQueryManager::tear_down() {
   parent_.reset();
+}
+
+void MessageQueryManager::run_affected_history_query_until_complete(DialogId dialog_id, AffectedHistoryQuery query,
+                                                                    bool get_affected_messages,
+                                                                    Promise<Unit> &&promise) {
+  CHECK(!G()->close_flag());
+  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, query, get_affected_messages,
+                                               promise = std::move(promise)](Result<AffectedHistory> &&result) mutable {
+    if (result.is_error()) {
+      return promise.set_error(result.move_as_error());
+    }
+
+    send_closure(actor_id, &MessageQueryManager::on_get_affected_history, dialog_id, query, get_affected_messages,
+                 result.move_as_ok(), std::move(promise));
+  });
+  query(dialog_id, std::move(query_promise));
+}
+
+void MessageQueryManager::on_get_affected_history(DialogId dialog_id, AffectedHistoryQuery query,
+                                                  bool get_affected_messages, AffectedHistory affected_history,
+                                                  Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  LOG(INFO) << "Receive " << (affected_history.is_final_ ? "final " : "partial ")
+            << "affected history with PTS = " << affected_history.pts_
+            << " and pts_count = " << affected_history.pts_count_;
+
+  if (affected_history.pts_count_ > 0) {
+    if (get_affected_messages) {
+      affected_history.pts_count_ = 0;
+    }
+    auto update_promise = affected_history.is_final_ ? std::move(promise) : Promise<Unit>();
+    if (dialog_id.get_type() == DialogType::Channel) {
+      td_->messages_manager_->add_pending_channel_update(dialog_id, telegram_api::make_object<dummyUpdate>(),
+                                                         affected_history.pts_, affected_history.pts_count_,
+                                                         std::move(update_promise), "on_get_affected_history");
+    } else {
+      td_->updates_manager_->add_pending_pts_update(
+          telegram_api::make_object<dummyUpdate>(), affected_history.pts_, affected_history.pts_count_,
+          Time::now() - (get_affected_messages ? 10.0 : 0.0), std::move(update_promise), "on_get_affected_history");
+    }
+  } else if (affected_history.is_final_) {
+    promise.set_value(Unit());
+  }
+
+  if (!affected_history.is_final_) {
+    run_affected_history_query_until_complete(dialog_id, std::move(query), get_affected_messages, std::move(promise));
+  }
 }
 
 void MessageQueryManager::report_message_delivery(MessageFullId message_full_id, int32 until_date, bool from_push) {

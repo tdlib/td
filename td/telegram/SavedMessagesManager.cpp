@@ -13,6 +13,7 @@
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageFullId.h"
+#include "td/telegram/MessageQueryManager.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/ServerMessageId.h"
@@ -935,13 +936,13 @@ void SavedMessagesManager::delete_saved_messages_topic_history(SavedMessagesTopi
                                                                Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_status(td_));
 
-  MessagesManager::AffectedHistoryQuery query = [td = td_, saved_messages_topic_id](
-                                                    DialogId, Promise<AffectedHistory> &&query_promise) {
+  MessageQueryManager::AffectedHistoryQuery query = [td = td_, saved_messages_topic_id](
+                                                        DialogId, Promise<AffectedHistory> &&query_promise) {
     td->create_handler<DeleteSavedHistoryQuery>(std::move(query_promise))->send(saved_messages_topic_id);
   };
   auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
-  td_->messages_manager_->run_affected_history_query_until_complete(my_dialog_id, std::move(query), true,
-                                                                    std::move(promise));
+  td_->message_query_manager_->run_affected_history_query_until_complete(my_dialog_id, std::move(query), true,
+                                                                         std::move(promise));
 }
 
 void SavedMessagesManager::get_saved_messages_topic_message_by_date(
@@ -965,14 +966,14 @@ void SavedMessagesManager::delete_saved_messages_topic_messages_by_date(SavedMes
     return promise.set_value(Unit());
   }
 
-  MessagesManager::AffectedHistoryQuery query = [td = td_, saved_messages_topic_id, min_date, max_date](
-                                                    DialogId, Promise<AffectedHistory> &&query_promise) {
+  MessageQueryManager::AffectedHistoryQuery query = [td = td_, saved_messages_topic_id, min_date, max_date](
+                                                        DialogId, Promise<AffectedHistory> &&query_promise) {
     td->create_handler<DeleteSavedMessagesByDateQuery>(std::move(query_promise))
         ->send(saved_messages_topic_id, min_date, max_date);
   };
   auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
-  td_->messages_manager_->run_affected_history_query_until_complete(my_dialog_id, std::move(query), true,
-                                                                    std::move(promise));
+  td_->message_query_manager_->run_affected_history_query_until_complete(my_dialog_id, std::move(query), true,
+                                                                         std::move(promise));
 }
 
 int32 SavedMessagesManager::get_pinned_saved_messages_topic_limit() const {

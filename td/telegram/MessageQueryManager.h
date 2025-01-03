@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/AffectedHistory.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogListId.h"
 #include "td/telegram/MessageFullId.h"
@@ -27,6 +28,11 @@ class Td;
 class MessageQueryManager final : public Actor {
  public:
   MessageQueryManager(Td *td, ActorShared<> parent);
+
+  using AffectedHistoryQuery = std::function<void(DialogId, Promise<AffectedHistory>)>;
+
+  void run_affected_history_query_until_complete(DialogId dialog_id, AffectedHistoryQuery query,
+                                                 bool get_affected_messages, Promise<Unit> &&promise);
 
   void report_message_delivery(MessageFullId message_full_id, int32 until_date, bool from_push);
 
@@ -66,6 +72,9 @@ class MessageQueryManager final : public Actor {
   static constexpr int32 MAX_SEARCH_MESSAGES = 100;  // server-side limit
 
   void tear_down() final;
+
+  void on_get_affected_history(DialogId dialog_id, AffectedHistoryQuery query, bool get_affected_messages,
+                               AffectedHistory affected_history, Promise<Unit> &&promise);
 
   Td *td_;
   ActorShared<> parent_;

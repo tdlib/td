@@ -7,6 +7,7 @@
 #include "td/telegram/MessagesManager.h"
 
 #include "td/telegram/AccountManager.h"
+#include "td/telegram/AffectedHistory.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/BackgroundInfo.hpp"
 #include "td/telegram/BlockListId.h"
@@ -9650,12 +9651,14 @@ void MessagesManager::delete_dialog_history_on_server(DialogId dialog_id, Messag
   switch (dialog_id.get_type()) {
     case DialogType::User:
     case DialogType::Chat: {
-      AffectedHistoryQuery query = [td = td_, max_message_id, remove_from_dialog_list, revoke](
-                                       DialogId dialog_id, Promise<AffectedHistory> &&query_promise) {
+      MessageQueryManager::AffectedHistoryQuery query = [td = td_, max_message_id, remove_from_dialog_list, revoke](
+                                                            DialogId dialog_id,
+                                                            Promise<AffectedHistory> &&query_promise) {
         td->create_handler<DeleteHistoryQuery>(std::move(query_promise))
             ->send(dialog_id, max_message_id, remove_from_dialog_list, revoke);
       };
-      run_affected_history_query_until_complete(dialog_id, std::move(query), false, std::move(promise));
+      td_->message_query_manager_->run_affected_history_query_until_complete(dialog_id, std::move(query), false,
+                                                                             std::move(promise));
       break;
     }
     case DialogType::Channel:
@@ -9722,11 +9725,12 @@ void MessagesManager::delete_topic_history_on_server(DialogId dialog_id, Message
   auto new_promise = get_erase_log_event_promise(log_event_id, std::move(promise));
   promise = std::move(new_promise);  // to prevent self-move
 
-  AffectedHistoryQuery query = [td = td_, top_thread_message_id](DialogId dialog_id,
-                                                                 Promise<AffectedHistory> &&query_promise) {
+  MessageQueryManager::AffectedHistoryQuery query = [td = td_, top_thread_message_id](
+                                                        DialogId dialog_id, Promise<AffectedHistory> &&query_promise) {
     td->create_handler<DeleteTopicHistoryQuery>(std::move(query_promise))->send(dialog_id, top_thread_message_id);
   };
-  run_affected_history_query_until_complete(dialog_id, std::move(query), true, std::move(promise));
+  td_->message_query_manager_->run_affected_history_query_until_complete(dialog_id, std::move(query), true,
+                                                                         std::move(promise));
 }
 
 void MessagesManager::delete_all_call_messages(bool revoke, Promise<Unit> &&promise) {
@@ -9763,11 +9767,12 @@ void MessagesManager::delete_all_call_messages_on_server(bool revoke, uint64 log
     log_event_id = save_delete_all_call_messages_on_server_log_event(revoke);
   }
 
-  AffectedHistoryQuery query = [td = td_, revoke](DialogId /*dialog_id*/, Promise<AffectedHistory> &&query_promise) {
+  MessageQueryManager::AffectedHistoryQuery query = [td = td_, revoke](DialogId /*dialog_id*/,
+                                                                       Promise<AffectedHistory> &&query_promise) {
     td->create_handler<DeletePhoneCallHistoryQuery>(std::move(query_promise))->send(revoke);
   };
-  run_affected_history_query_until_complete(DialogId(), std::move(query), false,
-                                            get_erase_log_event_promise(log_event_id, std::move(promise)));
+  td_->message_query_manager_->run_affected_history_query_until_complete(
+      DialogId(), std::move(query), false, get_erase_log_event_promise(log_event_id, std::move(promise)));
 }
 
 vector<MessageId> MessagesManager::find_dialog_messages(const Dialog *d,
@@ -9901,14 +9906,14 @@ void MessagesManager::delete_all_channel_messages_by_sender_on_server(ChannelId 
     log_event_id = save_delete_all_channel_messages_by_sender_on_server_log_event(channel_id, sender_dialog_id);
   }
 
-  AffectedHistoryQuery query = [td = td_, sender_dialog_id](DialogId dialog_id,
-                                                            Promise<AffectedHistory> &&query_promise) {
+  MessageQueryManager::AffectedHistoryQuery query = [td = td_, sender_dialog_id](
+                                                        DialogId dialog_id, Promise<AffectedHistory> &&query_promise) {
     td->create_handler<DeleteParticipantHistoryQuery>(std::move(query_promise))
         ->send(dialog_id.get_channel_id(), sender_dialog_id);
   };
-  run_affected_history_query_until_complete(DialogId(channel_id), std::move(query),
-                                            sender_dialog_id.get_type() != DialogType::User,
-                                            get_erase_log_event_promise(log_event_id, std::move(promise)));
+  td_->message_query_manager_->run_affected_history_query_until_complete(
+      DialogId(channel_id), std::move(query), sender_dialog_id.get_type() != DialogType::User,
+      get_erase_log_event_promise(log_event_id, std::move(promise)));
 }
 
 Status MessagesManager::fix_delete_message_min_max_dates(int32 &min_date, int32 &max_date) {
@@ -10019,13 +10024,13 @@ void MessagesManager::delete_dialog_messages_by_date_on_server(DialogId dialog_i
     log_event_id = save_delete_dialog_messages_by_date_on_server_log_event(dialog_id, min_date, max_date, revoke);
   }
 
-  AffectedHistoryQuery query = [td = td_, min_date, max_date, revoke](DialogId dialog_id,
-                                                                      Promise<AffectedHistory> &&query_promise) {
+  MessageQueryManager::AffectedHistoryQuery query = [td = td_, min_date, max_date, revoke](
+                                                        DialogId dialog_id, Promise<AffectedHistory> &&query_promise) {
     td->create_handler<DeleteMessagesByDateQuery>(std::move(query_promise))
         ->send(dialog_id, min_date, max_date, revoke);
   };
-  run_affected_history_query_until_complete(dialog_id, std::move(query), true,
-                                            get_erase_log_event_promise(log_event_id, std::move(promise)));
+  td_->message_query_manager_->run_affected_history_query_until_complete(
+      dialog_id, std::move(query), true, get_erase_log_event_promise(log_event_id, std::move(promise)));
 }
 
 int32 MessagesManager::get_unload_dialog_delay() const {
@@ -10272,11 +10277,12 @@ void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, MessageId top
 
   if (top_thread_message_id.is_valid()) {
     LOG(INFO) << "Receive readAllChatMentions request in thread of " << top_thread_message_id << " in " << dialog_id;
-    AffectedHistoryQuery query = [td = td_, top_thread_message_id](DialogId dialog_id,
-                                                                   Promise<AffectedHistory> &&query_promise) {
-      td->create_handler<ReadMentionsQuery>(std::move(query_promise))->send(dialog_id, top_thread_message_id);
-    };
-    run_affected_history_query_until_complete(dialog_id, std::move(query), true, std::move(promise));
+    MessageQueryManager::AffectedHistoryQuery query =
+        [td = td_, top_thread_message_id](DialogId dialog_id, Promise<AffectedHistory> &&query_promise) {
+          td->create_handler<ReadMentionsQuery>(std::move(query_promise))->send(dialog_id, top_thread_message_id);
+        };
+    td_->message_query_manager_->run_affected_history_query_until_complete(dialog_id, std::move(query), true,
+                                                                           std::move(promise));
     return;
   } else {
     LOG(INFO) << "Receive readAllChatMentions request in " << dialog_id << " with " << d->unread_mention_count
@@ -10353,11 +10359,12 @@ void MessagesManager::read_all_dialog_mentions_on_server(DialogId dialog_id, uin
     log_event_id = save_read_all_dialog_mentions_on_server_log_event(dialog_id);
   }
 
-  AffectedHistoryQuery query = [td = td_](DialogId dialog_id, Promise<AffectedHistory> &&query_promise) {
+  MessageQueryManager::AffectedHistoryQuery query = [td = td_](DialogId dialog_id,
+                                                               Promise<AffectedHistory> &&query_promise) {
     td->create_handler<ReadMentionsQuery>(std::move(query_promise))->send(dialog_id, MessageId());
   };
-  run_affected_history_query_until_complete(dialog_id, std::move(query), false,
-                                            get_erase_log_event_promise(log_event_id, std::move(promise)));
+  td_->message_query_manager_->run_affected_history_query_until_complete(
+      dialog_id, std::move(query), false, get_erase_log_event_promise(log_event_id, std::move(promise)));
 }
 
 void MessagesManager::read_all_dialog_reactions(DialogId dialog_id, MessageId top_thread_message_id,
@@ -10367,11 +10374,12 @@ void MessagesManager::read_all_dialog_reactions(DialogId dialog_id, MessageId to
 
   if (top_thread_message_id.is_valid()) {
     LOG(INFO) << "Receive readAllChatReactions request in thread of " << top_thread_message_id << " in " << dialog_id;
-    AffectedHistoryQuery query = [td = td_, top_thread_message_id](DialogId dialog_id,
-                                                                   Promise<AffectedHistory> &&query_promise) {
-      td->create_handler<ReadReactionsQuery>(std::move(query_promise))->send(dialog_id, top_thread_message_id);
-    };
-    run_affected_history_query_until_complete(dialog_id, std::move(query), true, std::move(promise));
+    MessageQueryManager::AffectedHistoryQuery query =
+        [td = td_, top_thread_message_id](DialogId dialog_id, Promise<AffectedHistory> &&query_promise) {
+          td->create_handler<ReadReactionsQuery>(std::move(query_promise))->send(dialog_id, top_thread_message_id);
+        };
+    td_->message_query_manager_->run_affected_history_query_until_complete(dialog_id, std::move(query), true,
+                                                                           std::move(promise));
     return;
   } else {
     LOG(INFO) << "Receive readAllChatReactions request in " << dialog_id << " with " << d->unread_reaction_count
@@ -10443,11 +10451,12 @@ void MessagesManager::read_all_dialog_reactions_on_server(DialogId dialog_id, ui
     log_event_id = save_read_all_dialog_reactions_on_server_log_event(dialog_id);
   }
 
-  AffectedHistoryQuery query = [td = td_](DialogId dialog_id, Promise<AffectedHistory> &&query_promise) {
+  MessageQueryManager::AffectedHistoryQuery query = [td = td_](DialogId dialog_id,
+                                                               Promise<AffectedHistory> &&query_promise) {
     td->create_handler<ReadReactionsQuery>(std::move(query_promise))->send(dialog_id, MessageId());
   };
-  run_affected_history_query_until_complete(dialog_id, std::move(query), false,
-                                            get_erase_log_event_promise(log_event_id, std::move(promise)));
+  td_->message_query_manager_->run_affected_history_query_until_complete(
+      dialog_id, std::move(query), false, get_erase_log_event_promise(log_event_id, std::move(promise)));
 }
 
 void MessagesManager::read_message_content_from_updates(MessageId message_id, int32 read_date) {
@@ -20436,51 +20445,6 @@ void MessagesManager::get_dialog_message_by_date(DialogId dialog_id, int32 date,
         }));
   } else {
     get_dialog_message_by_date_from_server(d, date, false, std::move(promise));
-  }
-}
-
-void MessagesManager::run_affected_history_query_until_complete(DialogId dialog_id, AffectedHistoryQuery query,
-                                                                bool get_affected_messages, Promise<Unit> &&promise) {
-  CHECK(!G()->close_flag());
-  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, query, get_affected_messages,
-                                               promise = std::move(promise)](Result<AffectedHistory> &&result) mutable {
-    if (result.is_error()) {
-      return promise.set_error(result.move_as_error());
-    }
-
-    send_closure(actor_id, &MessagesManager::on_get_affected_history, dialog_id, query, get_affected_messages,
-                 result.move_as_ok(), std::move(promise));
-  });
-  query(dialog_id, std::move(query_promise));
-}
-
-void MessagesManager::on_get_affected_history(DialogId dialog_id, AffectedHistoryQuery query,
-                                              bool get_affected_messages, AffectedHistory affected_history,
-                                              Promise<Unit> &&promise) {
-  TRY_STATUS_PROMISE(promise, G()->close_status());
-  LOG(INFO) << "Receive " << (affected_history.is_final_ ? "final " : "partial ")
-            << "affected history with PTS = " << affected_history.pts_
-            << " and pts_count = " << affected_history.pts_count_;
-
-  if (affected_history.pts_count_ > 0) {
-    if (get_affected_messages) {
-      affected_history.pts_count_ = 0;
-    }
-    auto update_promise = affected_history.is_final_ ? std::move(promise) : Promise<Unit>();
-    if (dialog_id.get_type() == DialogType::Channel) {
-      add_pending_channel_update(dialog_id, make_tl_object<dummyUpdate>(), affected_history.pts_,
-                                 affected_history.pts_count_, std::move(update_promise), "on_get_affected_history");
-    } else {
-      td_->updates_manager_->add_pending_pts_update(
-          make_tl_object<dummyUpdate>(), affected_history.pts_, affected_history.pts_count_,
-          Time::now() - (get_affected_messages ? 10.0 : 0.0), std::move(update_promise), "on_get_affected_history");
-    }
-  } else if (affected_history.is_final_) {
-    promise.set_value(Unit());
-  }
-
-  if (!affected_history.is_final_) {
-    run_affected_history_query_until_complete(dialog_id, std::move(query), get_affected_messages, std::move(promise));
   }
 }
 
@@ -31365,11 +31329,12 @@ void MessagesManager::unpin_all_dialog_messages(DialogId dialog_id, MessageId to
   }
 
   if (top_thread_message_id.is_valid()) {
-    AffectedHistoryQuery query = [td = td_, top_thread_message_id](DialogId dialog_id,
-                                                                   Promise<AffectedHistory> &&query_promise) {
-      td->create_handler<UnpinAllMessagesQuery>(std::move(query_promise))->send(dialog_id, top_thread_message_id);
-    };
-    run_affected_history_query_until_complete(dialog_id, std::move(query), true, std::move(promise));
+    MessageQueryManager::AffectedHistoryQuery query =
+        [td = td_, top_thread_message_id](DialogId dialog_id, Promise<AffectedHistory> &&query_promise) {
+          td->create_handler<UnpinAllMessagesQuery>(std::move(query_promise))->send(dialog_id, top_thread_message_id);
+        };
+    td_->message_query_manager_->run_affected_history_query_until_complete(dialog_id, std::move(query), true,
+                                                                           std::move(promise));
     return;
   }
 
@@ -31410,11 +31375,12 @@ void MessagesManager::unpin_all_dialog_messages_on_server(DialogId dialog_id, ui
     log_event_id = save_unpin_all_dialog_messages_on_server_log_event(dialog_id);
   }
 
-  AffectedHistoryQuery query = [td = td_](DialogId dialog_id, Promise<AffectedHistory> &&query_promise) {
+  MessageQueryManager::AffectedHistoryQuery query = [td = td_](DialogId dialog_id,
+                                                               Promise<AffectedHistory> &&query_promise) {
     td->create_handler<UnpinAllMessagesQuery>(std::move(query_promise))->send(dialog_id, MessageId());
   };
-  run_affected_history_query_until_complete(dialog_id, std::move(query), true,
-                                            get_erase_log_event_promise(log_event_id, std::move(promise)));
+  td_->message_query_manager_->run_affected_history_query_until_complete(
+      dialog_id, std::move(query), true, get_erase_log_event_promise(log_event_id, std::move(promise)));
 }
 
 MessagesManager::Message *MessagesManager::get_message(Dialog *d, MessageId message_id) {
