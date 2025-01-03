@@ -1926,50 +1926,6 @@ class GetAllScheduledMessagesQuery final : public Td::ResultHandler {
   }
 };
 
-class DeleteHistoryQuery final : public Td::ResultHandler {
-  Promise<AffectedHistory> promise_;
-  DialogId dialog_id_;
-
- public:
-  explicit DeleteHistoryQuery(Promise<AffectedHistory> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(DialogId dialog_id, MessageId max_message_id, bool remove_from_dialog_list, bool revoke) {
-    dialog_id_ = dialog_id;
-
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
-    if (input_peer == nullptr) {
-      return promise_.set_error(Status::Error(400, "Chat is not accessible"));
-    }
-
-    int32 flags = 0;
-    if (!remove_from_dialog_list) {
-      flags |= telegram_api::messages_deleteHistory::JUST_CLEAR_MASK;
-    }
-    if (revoke) {
-      flags |= telegram_api::messages_deleteHistory::REVOKE_MASK;
-    }
-
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_deleteHistory(flags, false /*ignored*/, false /*ignored*/, std::move(input_peer),
-                                             max_message_id.get_server_message_id().get(), 0, 0)));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_deleteHistory>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    promise_.set_value(AffectedHistory(result_ptr.move_as_ok()));
-  }
-
-  void on_error(Status status) final {
-    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "DeleteHistoryQuery");
-    promise_.set_error(std::move(status));
-  }
-};
-
 class DeleteTopicHistoryQuery final : public Td::ResultHandler {
   Promise<AffectedHistory> promise_;
   ChannelId channel_id_;
@@ -2005,53 +1961,6 @@ class DeleteTopicHistoryQuery final : public Td::ResultHandler {
   void on_error(Status status) final {
     td_->messages_manager_->on_get_message_error(DialogId(channel_id_), top_thread_message_id_, status,
                                                  "DeleteTopicHistoryQuery");
-    promise_.set_error(std::move(status));
-  }
-};
-
-class DeleteChannelHistoryQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  ChannelId channel_id_;
-  MessageId max_message_id_;
-  bool allow_error_;
-
- public:
-  explicit DeleteChannelHistoryQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(ChannelId channel_id, MessageId max_message_id, bool allow_error, bool revoke) {
-    channel_id_ = channel_id;
-    max_message_id_ = max_message_id;
-    allow_error_ = allow_error;
-    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
-    if (input_channel == nullptr) {
-      return on_error(Status::Error(400, "Can't access the chat"));
-    }
-
-    int32 flags = 0;
-    if (revoke) {
-      flags |= telegram_api::channels_deleteHistory::FOR_EVERYONE_MASK;
-    }
-
-    send_query(G()->net_query_creator().create(telegram_api::channels_deleteHistory(
-        flags, false /*ignored*/, std::move(input_channel), max_message_id.get_server_message_id().get())));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::channels_deleteHistory>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for DeleteChannelHistoryQuery: " << to_string(ptr);
-    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
-  }
-
-  void on_error(Status status) final {
-    if (!td_->chat_manager_->on_get_channel_error(channel_id_, status, "DeleteChannelHistoryQuery")) {
-      LOG(ERROR) << "Receive error for DeleteChannelHistoryQuery: " << status;
-    }
     promise_.set_error(std::move(status));
   }
 };
@@ -9594,86 +9503,8 @@ void MessagesManager::delete_dialog_history(DialogId dialog_id, bool remove_from
 
   set_dialog_max_unavailable_message_id(dialog_id, last_new_message_id, false, "delete_dialog_history");
 
-  delete_dialog_history_on_server(dialog_id, last_new_message_id, remove_from_dialog_list, revoke, allow_error, 0,
-                                  std::move(promise));
-}
-
-class MessagesManager::DeleteDialogHistoryOnServerLogEvent {
- public:
-  DialogId dialog_id_;
-  MessageId max_message_id_;
-  bool remove_from_dialog_list_;
-  bool revoke_;
-
-  template <class StorerT>
-  void store(StorerT &storer) const {
-    BEGIN_STORE_FLAGS();
-    STORE_FLAG(remove_from_dialog_list_);
-    STORE_FLAG(revoke_);
-    END_STORE_FLAGS();
-
-    td::store(dialog_id_, storer);
-    td::store(max_message_id_, storer);
-  }
-
-  template <class ParserT>
-  void parse(ParserT &parser) {
-    BEGIN_PARSE_FLAGS();
-    PARSE_FLAG(remove_from_dialog_list_);
-    PARSE_FLAG(revoke_);
-    END_PARSE_FLAGS();
-
-    td::parse(dialog_id_, parser);
-    td::parse(max_message_id_, parser);
-  }
-};
-
-uint64 MessagesManager::save_delete_dialog_history_on_server_log_event(DialogId dialog_id, MessageId max_message_id,
-                                                                       bool remove_from_dialog_list, bool revoke) {
-  DeleteDialogHistoryOnServerLogEvent log_event{dialog_id, max_message_id, remove_from_dialog_list, revoke};
-  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteDialogHistoryOnServer,
-                    get_log_event_storer(log_event));
-}
-
-void MessagesManager::delete_dialog_history_on_server(DialogId dialog_id, MessageId max_message_id,
-                                                      bool remove_from_dialog_list, bool revoke, bool allow_error,
-                                                      uint64 log_event_id, Promise<Unit> &&promise) {
-  LOG(INFO) << "Delete history in " << dialog_id << " up to " << max_message_id << " from server";
-
-  if (log_event_id == 0 && G()->use_message_database()) {
-    log_event_id =
-        save_delete_dialog_history_on_server_log_event(dialog_id, max_message_id, remove_from_dialog_list, revoke);
-  }
-
-  auto new_promise = get_erase_log_event_promise(log_event_id, std::move(promise));
-  promise = std::move(new_promise);  // to prevent self-move
-
-  switch (dialog_id.get_type()) {
-    case DialogType::User:
-    case DialogType::Chat: {
-      MessageQueryManager::AffectedHistoryQuery query = [td = td_, max_message_id, remove_from_dialog_list, revoke](
-                                                            DialogId dialog_id,
-                                                            Promise<AffectedHistory> &&query_promise) {
-        td->create_handler<DeleteHistoryQuery>(std::move(query_promise))
-            ->send(dialog_id, max_message_id, remove_from_dialog_list, revoke);
-      };
-      td_->message_query_manager_->run_affected_history_query_until_complete(dialog_id, std::move(query), false,
-                                                                             std::move(promise));
-      break;
-    }
-    case DialogType::Channel:
-      td_->create_handler<DeleteChannelHistoryQuery>(std::move(promise))
-          ->send(dialog_id.get_channel_id(), max_message_id, allow_error, revoke);
-      break;
-    case DialogType::SecretChat:
-      send_closure(G()->secret_chats_manager(), &SecretChatsManager::delete_all_messages,
-                   dialog_id.get_secret_chat_id(), std::move(promise));
-      break;
-    case DialogType::None:
-    default:
-      UNREACHABLE();
-      break;
-  }
+  td_->message_query_manager_->delete_dialog_history_on_server(dialog_id, last_new_message_id, remove_from_dialog_list,
+                                                               revoke, allow_error, 0, std::move(promise));
 }
 
 void MessagesManager::delete_topic_history(DialogId dialog_id, MessageId top_thread_message_id,
@@ -36989,26 +36820,6 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         }
 
         delete_scheduled_messages_on_server(dialog_id, std::move(log_event.message_ids_), event.id_, Auto());
-        break;
-      }
-      case LogEvent::HandlerType::DeleteDialogHistoryOnServer: {
-        if (!have_old_message_database) {
-          binlog_erase(G()->td_db()->get_binlog(), event.id_);
-          break;
-        }
-
-        DeleteDialogHistoryOnServerLogEvent log_event;
-        log_event_parse(log_event, event.get_data()).ensure();
-
-        auto dialog_id = log_event.dialog_id_;
-        Dialog *d = get_dialog_force(dialog_id, "DeleteDialogHistoryOnServerLogEvent");
-        if (d == nullptr || !td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read)) {
-          binlog_erase(G()->td_db()->get_binlog(), event.id_);
-          break;
-        }
-
-        delete_dialog_history_on_server(dialog_id, log_event.max_message_id_, log_event.remove_from_dialog_list_,
-                                        log_event.revoke_, true, event.id_, Auto());
         break;
       }
       case LogEvent::HandlerType::DeleteTopicHistoryOnServer: {

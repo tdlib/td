@@ -100,6 +100,9 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
       case LogEvent::HandlerType::ToggleDialogViewAsMessagesOnServer:
         events.to_dialog_manager.push_back(event.clone());
         break;
+      case LogEvent::HandlerType::DeleteDialogHistoryOnServer:
+        events.to_message_query_manager.push_back(event.clone());
+        break;
       case LogEvent::HandlerType::SendMessage:
       case LogEvent::HandlerType::DeleteMessage:
       case LogEvent::HandlerType::DeleteMessagesOnServer:
@@ -109,7 +112,6 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
       case LogEvent::HandlerType::SendBotStartMessage:
       case LogEvent::HandlerType::SendScreenshotTakenNotificationMessage:
       case LogEvent::HandlerType::SendInlineQueryResultMessage:
-      case LogEvent::HandlerType::DeleteDialogHistoryOnServer:
       case LogEvent::HandlerType::ReadAllDialogMentionsOnServer:
       case LogEvent::HandlerType::DeleteAllChannelMessagesFromSenderOnServer:
       case LogEvent::HandlerType::ReorderPinnedDialogsOnServer:

@@ -22,6 +22,7 @@
 
 namespace td {
 
+struct BinlogEvent;
 struct MessageSearchOffset;
 class Td;
 
@@ -68,13 +69,23 @@ class MessageQueryManager final : public Actor {
                                vector<telegram_api::object_ptr<telegram_api::Message>> &&messages,
                                Promise<td_api::object_ptr<td_api::messages>> &&promise);
 
+  void delete_dialog_history_on_server(DialogId dialog_id, MessageId max_message_id, bool remove_from_dialog_list,
+                                       bool revoke, bool allow_error, uint64 log_event_id, Promise<Unit> &&promise);
+
+  void on_binlog_events(vector<BinlogEvent> &&events);
+
  private:
+  class DeleteDialogHistoryOnServerLogEvent;
+
   static constexpr int32 MAX_SEARCH_MESSAGES = 100;  // server-side limit
 
   void tear_down() final;
 
   void on_get_affected_history(DialogId dialog_id, AffectedHistoryQuery query, bool get_affected_messages,
                                AffectedHistory affected_history, Promise<Unit> &&promise);
+
+  static uint64 save_delete_dialog_history_on_server_log_event(DialogId dialog_id, MessageId max_message_id,
+                                                               bool remove_from_dialog_list, bool revoke);
 
   Td *td_;
   ActorShared<> parent_;
