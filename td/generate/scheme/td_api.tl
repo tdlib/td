@@ -11709,6 +11709,9 @@ getUserGifts user_id:int53 offset:string limit:int32 = UserGifts;
 //@description Returns information about a gift received or sent by the current user @message_id Identifier of the message with the gift
 getUserGift message_id:int53 = UserGift;
 
+//@description Returns information about an upgraded gift by its name @name Unique name of the upgraded gift
+getUpgradedGift name:string = UpgradedGift;
+
 
 //@description Creates a link for the given invoice; for bots only
 //@business_connection_id Unique identifier of business connection on behalf of which to send the request

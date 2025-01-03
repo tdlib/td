@@ -2878,6 +2878,10 @@ class CliClient final : public Actor {
       MessageId message_id;
       get_args(args, message_id);
       send_request(td_api::make_object<td_api::getUserGift>(message_id));
+    } else if (op == "gupg") {
+      string name;
+      get_args(args, name);
+      send_request(td_api::make_object<td_api::getUpgradedGift>(name));
     } else if (op == "rsp") {
       UserId user_id;
       string telegram_payment_charge_id;

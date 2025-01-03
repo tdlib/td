@@ -62,6 +62,8 @@ class StarGiftManager final : public Actor {
 
   void get_user_gift(MessageId message_id, Promise<td_api::object_ptr<td_api::userGift>> &&promise);
 
+  void get_upgraded_gift(const string &name, Promise<td_api::object_ptr<td_api::upgradedGift>> &&promise);
+
   void register_gift(MessageFullId message_full_id, const char *source);
 
   void unregister_gift(MessageFullId message_full_id, const char *source);

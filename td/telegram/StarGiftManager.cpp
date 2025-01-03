@@ -670,6 +670,42 @@ class GetUserStarGiftQuery final : public Td::ResultHandler {
   }
 };
 
+class GetUniqueStarGiftQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::upgradedGift>> promise_;
+
+ public:
+  explicit GetUniqueStarGiftQuery(Promise<td_api::object_ptr<td_api::upgradedGift>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &name) {
+    send_query(G()->net_query_creator().create(telegram_api::payments_getUniqueStarGift(name)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getUniqueStarGift>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetUniqueStarGiftQuery: " << to_string(ptr);
+
+    td_->user_manager_->on_get_users(std::move(ptr->users_), "GetUniqueStarGiftQuery");
+
+    StarGift star_gift(td_, std::move(ptr->gift_), true);
+    if (!star_gift.is_valid() || !star_gift.is_unique()) {
+      LOG(ERROR) << "Receive invalid user gift";
+      return promise_.set_error(Status::Error(400, "Gift not found"));
+    }
+    promise_.set_value(star_gift.get_upgraded_gift_object(td_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 StarGiftManager::StarGiftManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   update_gift_message_timeout_.set_callback(on_update_gift_message_timeout_callback);
   update_gift_message_timeout_.set_callback_data(static_cast<void *>(this));
@@ -869,6 +905,11 @@ void StarGiftManager::get_user_gift(MessageId message_id, Promise<td_api::object
     return promise.set_error(Status::Error(400, "Invalid message identifier specified"));
   }
   td_->create_handler<GetUserStarGiftQuery>(std::move(promise))->send(message_id);
+}
+
+void StarGiftManager::get_upgraded_gift(const string &name,
+                                        Promise<td_api::object_ptr<td_api::upgradedGift>> &&promise) {
+  td_->create_handler<GetUniqueStarGiftQuery>(std::move(promise))->send(name);
 }
 
 void StarGiftManager::register_gift(MessageFullId message_full_id, const char *source) {

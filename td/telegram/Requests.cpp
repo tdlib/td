@@ -7182,6 +7182,13 @@ void Requests::on_request(uint64 id, const td_api::getUserGift &request) {
   td_->star_gift_manager_->get_user_gift(MessageId(request.message_id_), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::getUpgradedGift &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.name_);
+  CREATE_REQUEST_PROMISE();
+  td_->star_gift_manager_->get_upgraded_gift(request.name_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::createInvoiceLink &request) {
   CLEAN_INPUT_STRING(request.business_connection_id_);
   CHECK_IS_BOT();
