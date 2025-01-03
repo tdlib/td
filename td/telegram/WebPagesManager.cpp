@@ -97,7 +97,8 @@ class GetWebPagePreviewQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetWebPagePreviewQuery: " << to_string(ptr);
-    td_->web_pages_manager_->on_get_web_page_preview(std::move(options_), std::move(ptr), std::move(promise_));
+    td_->user_manager_->on_get_users(std::move(ptr->users_), "process_discussion_message");
+    td_->web_pages_manager_->on_get_web_page_preview(std::move(options_), std::move(ptr->media_), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -653,6 +654,8 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
             }
             break;
           }
+          case telegram_api::webPageAttributeUniqueStarGift::ID:
+            break;
           default:
             UNREACHABLE();
         }
