@@ -6050,6 +6050,11 @@ class CliClient final : public Actor {
       bool return_local;
       get_args(args, bot_user_id, return_local);
       send_request(td_api::make_object<td_api::getBotSimilarBotCount>(bot_user_id, return_local));
+    } else if (op == "obsb") {
+      UserId bot_user_id;
+      UserId similar_bot_user_id;
+      get_args(args, bot_user_id, similar_bot_user_id);
+      send_request(td_api::make_object<td_api::openBotSimilarBot>(bot_user_id, similar_bot_user_id));
     } else if (op == "gcpc") {
       send_request(td_api::make_object<td_api::getCreatedPublicChats>());
     } else if (op == "gcpcl") {

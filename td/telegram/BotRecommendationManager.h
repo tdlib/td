@@ -29,6 +29,8 @@ class BotRecommendationManager final : public Actor {
                                Promise<td_api::object_ptr<td_api::users>> &&users_promise,
                                Promise<td_api::object_ptr<td_api::count>> &&count_promise);
 
+  void open_bot_recommended_bot(UserId bot_user_id, UserId opened_bot_user_id, Promise<Unit> &&promise);
+
  private:
   static constexpr int32 BOT_RECOMMENDATIONS_CACHE_TIME = 86400;  // some reasonable limit
 

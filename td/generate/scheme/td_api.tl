@@ -8889,6 +8889,11 @@ getBotSimilarBots bot_user_id:int53 = Users;
 //@return_local Pass true to get the number of bots without sending network requests, or -1 if the number of bots is unknown locally
 getBotSimilarBotCount bot_user_id:int53 return_local:Bool = Count;
 
+//@description Informs TDLib that a bot was opened from the list of similar bots
+//@bot_user_id Identifier of the original bot, which similar bots were requested
+//@opened_bot_user_id Identifier of the opened bot
+openBotSimilarBot bot_user_id:int53 opened_bot_user_id:int53 = Ok;
+
 //@description Returns a list of frequently used chats @category Category of chats to be returned @limit The maximum number of chats to be returned; up to 30
 getTopChats category:TopChatCategory limit:int32 = Chats;
 

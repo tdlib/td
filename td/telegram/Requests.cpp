@@ -2883,6 +2883,13 @@ void Requests::on_request(uint64 id, const td_api::getBotSimilarBotCount &reques
                                                             std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::openBotSimilarBot &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->bot_recommendation_manager_->open_bot_recommended_bot(UserId(request.bot_user_id_),
+                                                             UserId(request.opened_bot_user_id_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getTopChats &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

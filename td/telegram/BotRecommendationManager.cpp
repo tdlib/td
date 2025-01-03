@@ -6,7 +6,9 @@
 //
 #include "td/telegram/BotRecommendationManager.h"
 
+#include "td/telegram/Application.h"
 #include "td/telegram/Dependencies.h"
+#include "td/telegram/DialogId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/logevent/LogEventHelper.h"
@@ -345,6 +347,20 @@ void BotRecommendationManager::on_get_bot_recommendations(
   }
 
   finish_load_bot_recommendations_queries(bot_user_id, total_count, std::move(bot_user_ids));
+}
+
+void BotRecommendationManager::open_bot_recommended_bot(UserId bot_user_id, UserId opened_bot_user_id,
+                                                        Promise<Unit> &&promise) {
+  if (!td_->user_manager_->is_user_bot(bot_user_id) || !td_->user_manager_->is_user_bot(opened_bot_user_id)) {
+    return promise.set_error(Status::Error(400, "Bot not found"));
+  }
+  vector<telegram_api::object_ptr<telegram_api::jsonObjectValue>> data;
+  data.push_back(telegram_api::make_object<telegram_api::jsonObjectValue>(
+      "ref_bot_id", telegram_api::make_object<telegram_api::jsonString>(to_string(bot_user_id.get()))));
+  data.push_back(telegram_api::make_object<telegram_api::jsonObjectValue>(
+      "open_bot_id", telegram_api::make_object<telegram_api::jsonString>(to_string(opened_bot_user_id.get()))));
+  save_app_log(td_, "bots.open_recommended_bot", DialogId(),
+               telegram_api::make_object<telegram_api::jsonObject>(std::move(data)), std::move(promise));
 }
 
 }  // namespace td
