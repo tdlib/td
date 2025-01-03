@@ -38,6 +38,7 @@ class StarGift {
   StarGiftAttributeBackdrop backdrop_;
   StarGiftAttributeOriginalDetails original_details_;
   string title_;
+  string slug_;
   UserId owner_user_id_;
   string owner_name_;
   int32 num_ = 0;

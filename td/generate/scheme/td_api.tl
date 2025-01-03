@@ -1071,6 +1071,7 @@ gifts gifts:vector<gift> = Gifts;
 //@description Describes an upgraded gift that can be gifted to another user or transferred to TON blockchain as an NFT
 //@id Unique identifier of the gift
 //@title The title of the upgraded gift
+//@name Unique name of the upgraded gift that can be used with internalLinkTypeUpgradedGift
 //@number Unique number of the upgraded gift among gifts upgraded from the same gift
 //@total_upgraded_count Total number of gifts that were upgraded from the same gift
 //@max_upgraded_count The maximum number of gifts that can be upgraded from the same gift
@@ -1080,7 +1081,7 @@ gifts gifts:vector<gift> = Gifts;
 //@symbol Symbol of the upgraded gift
 //@backdrop Backdrop of the upgraded gift
 //@original_details Information about the originally sent gift; may be null if unknown
-upgradedGift id:int64 title:string number:int32 total_upgraded_count:int32 max_upgraded_count:int32 owner_user_id:int53 owner_name:string model:upgradedGiftModel symbol:upgradedGiftSymbol backdrop:upgradedGiftBackdrop original_details:upgradedGiftOriginalDetails = UpgradedGift;
+upgradedGift id:int64 title:string name:string number:int32 total_upgraded_count:int32 max_upgraded_count:int32 owner_user_id:int53 owner_name:string model:upgradedGiftModel symbol:upgradedGiftSymbol backdrop:upgradedGiftBackdrop original_details:upgradedGiftOriginalDetails = UpgradedGift;
 
 //@description Contains result of gift upgrading
 //@gift The upgraded gift

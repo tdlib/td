@@ -30,6 +30,7 @@ void StarGift::store(StorerT &storer) const {
   bool has_owner_user_id = owner_user_id_.is_valid();
   bool has_upgrade_star_count = upgrade_star_count_ != 0;
   bool has_owner_name = !owner_name_.empty();
+  bool has_slug = !slug_.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_limited);
   STORE_FLAG(has_default_sell_star_count);
@@ -41,6 +42,7 @@ void StarGift::store(StorerT &storer) const {
   STORE_FLAG(has_owner_user_id);
   STORE_FLAG(has_upgrade_star_count);
   STORE_FLAG(has_owner_name);
+  STORE_FLAG(has_slug);
   END_STORE_FLAGS();
   td::store(id_, storer);
   if (!is_unique_) {
@@ -80,6 +82,9 @@ void StarGift::store(StorerT &storer) const {
     td::store(num_, storer);
     td::store(unique_availability_issued_, storer);
     td::store(unique_availability_total_, storer);
+    if (has_slug) {
+      td::store(slug_, storer);
+    }
   }
 }
 
@@ -94,6 +99,7 @@ void StarGift::parse(ParserT &parser) {
   bool has_owner_user_id;
   bool has_upgrade_star_count;
   bool has_owner_name;
+  bool has_slug;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_limited);
   PARSE_FLAG(has_default_sell_star_count);
@@ -105,6 +111,7 @@ void StarGift::parse(ParserT &parser) {
   PARSE_FLAG(has_owner_user_id);
   PARSE_FLAG(has_upgrade_star_count);
   PARSE_FLAG(has_owner_name);
+  PARSE_FLAG(has_slug);
   END_PARSE_FLAGS();
   td::parse(id_, parser);
   if (!is_unique_) {
@@ -146,6 +153,9 @@ void StarGift::parse(ParserT &parser) {
     td::parse(num_, parser);
     td::parse(unique_availability_issued_, parser);
     td::parse(unique_availability_total_, parser);
+    if (has_slug) {
+      td::parse(slug_, parser);
+    }
   }
 }
 

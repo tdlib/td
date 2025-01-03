@@ -28,6 +28,7 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&st
     is_unique_ = true;
     id_ = star_gift->id_;
     title_ = std::move(star_gift->title_);
+    slug_ = std::move(star_gift->slug_);
     num_ = star_gift->num_;
     owner_user_id_ = UserId(star_gift->owner_id_);
     owner_name_ = std::move(star_gift->owner_name_);
@@ -137,7 +138,7 @@ td_api::object_ptr<td_api::upgradedGift> StarGift::get_upgraded_gift_object(Td *
   CHECK(is_valid());
   CHECK(is_unique_);
   return td_api::make_object<td_api::upgradedGift>(
-      id_, title_, num_, unique_availability_issued_, unique_availability_total_,
+      id_, title_, slug_, num_, unique_availability_issued_, unique_availability_total_,
       td->user_manager_->get_user_id_object(owner_user_id_, "upgradedGift"), owner_name_,
       model_.get_upgraded_gift_model_object(td), pattern_.get_upgraded_gift_symbol_object(td),
       backdrop_.get_upgraded_gift_backdrop_object(), original_details_.get_upgraded_gift_original_details_object(td));
@@ -159,8 +160,8 @@ bool operator==(const StarGift &lhs, const StarGift &rhs) {
          lhs.last_sale_date_ == rhs.last_sale_date_ && lhs.is_for_birthday_ == rhs.is_for_birthday_ &&
          lhs.is_unique_ == rhs.is_unique_ && lhs.model_ == rhs.model_ && lhs.pattern_ == rhs.pattern_ &&
          lhs.backdrop_ == rhs.backdrop_ && lhs.original_details_ == rhs.original_details_ && lhs.title_ == rhs.title_ &&
-         lhs.owner_user_id_ == rhs.owner_user_id_ && lhs.owner_name_ == rhs.owner_name_ && lhs.num_ == rhs.num_ &&
-         lhs.unique_availability_issued_ == rhs.unique_availability_issued_ &&
+         lhs.slug_ == rhs.slug_ && lhs.owner_user_id_ == rhs.owner_user_id_ && lhs.owner_name_ == rhs.owner_name_ &&
+         lhs.num_ == rhs.num_ && lhs.unique_availability_issued_ == rhs.unique_availability_issued_ &&
          lhs.unique_availability_total_ == rhs.unique_availability_total_;
 }
 
