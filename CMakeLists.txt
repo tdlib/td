@@ -362,6 +362,7 @@ set(TDLIB_SOURCE_PART1
   td/telegram/BotInfoManager.cpp
   td/telegram/BotMenuButton.cpp
   td/telegram/BotQueries.cpp
+  td/telegram/BotRecommendationManager.cpp
   td/telegram/BotVerification.cpp
   td/telegram/BotVerifierSettings.cpp
   td/telegram/BusinessAwayMessage.cpp
@@ -675,6 +676,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/BotInfoManager.h
   td/telegram/BotMenuButton.h
   td/telegram/BotQueries.h
+  td/telegram/BotRecommendationManager.h
   td/telegram/BusinessAwayMessage.h
   td/telegram/BusinessAwayMessageSchedule.h
   td/telegram/BusinessBotManageBar.h

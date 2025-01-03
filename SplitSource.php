@@ -312,6 +312,7 @@ function split_file($file, $chunks, $undo) {
             'bot_info_manager[_(-](?![.]get[(][)])|BotInfoManager' => 'BotInfoManager',
             'BotMenuButton|[a-z_]*_menu_button' => 'BotMenuButton',
             'send_bot_custom_query|answer_bot_custom_query|set_bot_updates_status' => 'BotQueries',
+            'bot_recommendation_manager[_(-](?![.]get[(][)])|BotRecommendationManager' => 'BotRecommendationManager',
             'BotVerification' => 'BotVerification',
             'BotVerifierSettings' => 'BotVerifierSettings',
             'BusinessAwayMessage' => 'BusinessAwayMessage',
