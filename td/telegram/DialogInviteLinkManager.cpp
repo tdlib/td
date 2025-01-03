@@ -718,18 +718,6 @@ void DialogInviteLinkManager::on_get_dialog_invite_link_info(
     }
     case telegram_api::chatInvite::ID: {
       auto chat_invite = telegram_api::move_object_as<telegram_api::chatInvite>(chat_invite_ptr);
-      vector<UserId> participant_user_ids;
-      for (auto &user : chat_invite->participants_) {
-        auto user_id = UserManager::get_user_id(user);
-        if (!user_id.is_valid()) {
-          LOG(ERROR) << "Receive invalid " << user_id;
-          continue;
-        }
-
-        td_->user_manager_->on_get_user(std::move(user), "chatInvite");
-        participant_user_ids.push_back(user_id);
-      }
-
       auto &invite_link_info = invite_link_infos_[invite_link];
       if (invite_link_info == nullptr) {
         invite_link_info = make_unique<InviteLinkInfo>();
@@ -740,7 +728,8 @@ void DialogInviteLinkManager::on_get_dialog_invite_link_info(
       invite_link_info->accent_color_id = AccentColorId(chat_invite->color_);
       invite_link_info->description = std::move(chat_invite->about_);
       invite_link_info->participant_count = chat_invite->participants_count_;
-      invite_link_info->participant_user_ids = std::move(participant_user_ids);
+      invite_link_info->participant_user_ids =
+          td_->user_manager_->get_user_ids(std::move(chat_invite->participants_), "chatInvite");
       invite_link_info->subscription_pricing = StarSubscriptionPricing(std::move(chat_invite->subscription_pricing_));
       invite_link_info->subscription_form_id = chat_invite->subscription_form_id_;
       invite_link_info->can_refulfill_subscription = chat_invite->can_refulfill_subscription_;
