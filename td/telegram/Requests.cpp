@@ -25,6 +25,7 @@
 #include "td/telegram/BotInfoManager.h"
 #include "td/telegram/BotMenuButton.h"
 #include "td/telegram/BotQueries.h"
+#include "td/telegram/BotRecommendationManager.h"
 #include "td/telegram/BusinessAwayMessage.h"
 #include "td/telegram/BusinessConnectionId.h"
 #include "td/telegram/BusinessConnectionManager.h"
@@ -2866,6 +2867,20 @@ void Requests::on_request(uint64 id, const td_api::openChatSimilarChat &request)
   CREATE_OK_REQUEST_PROMISE();
   td_->channel_recommendation_manager_->open_channel_recommended_channel(
       DialogId(request.chat_id_), DialogId(request.opened_chat_id_), std::move(promise));
+}
+
+void Requests::on_request(uint64 id, const td_api::getBotSimilarBots &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->bot_recommendation_manager_->get_bot_recommendations(UserId(request.bot_user_id_), false, std::move(promise),
+                                                            Auto());
+}
+
+void Requests::on_request(uint64 id, const td_api::getBotSimilarBotCount &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->bot_recommendation_manager_->get_bot_recommendations(UserId(request.bot_user_id_), request.return_local_, Auto(),
+                                                            std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getTopChats &request) {

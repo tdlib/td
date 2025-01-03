@@ -8881,6 +8881,14 @@ getChatSimilarChatCount chat_id:int53 return_local:Bool = Count;
 //@opened_chat_id Identifier of the opened chat
 openChatSimilarChat chat_id:int53 opened_chat_id:int53 = Ok;
 
+//@description Returns a list of bots similar to the given bot @bot_user_id User identifier of the target bot
+getBotSimilarBots bot_user_id:int53 = Users;
+
+//@description Returns approximate number of bots similar to the given bot
+//@bot_user_id User identifier of the target bot
+//@return_local Pass true to get the number of bots without sending network requests, or -1 if the number of bots is unknown locally
+getBotSimilarBotCount bot_user_id:int53 return_local:Bool = Count;
+
 //@description Returns a list of frequently used chats @category Category of chats to be returned @limit The maximum number of chats to be returned; up to 30
 getTopChats category:TopChatCategory limit:int32 = Chats;
 
