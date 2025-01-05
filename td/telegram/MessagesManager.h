@@ -1560,7 +1560,6 @@ class MessagesManager final : public Actor {
   class DeleteMessageLogEvent;
   class DeleteMessagesOnServerLogEvent;
   class DeleteScheduledMessagesOnServerLogEvent;
-  class DeleteTopicHistoryOnServerLogEvent;
   class ForwardMessagesLogEvent;
   class GetChannelDifferenceLogEvent;
   class ReadAllDialogMentionsOnServerLogEvent;
@@ -1985,9 +1984,6 @@ class MessagesManager final : public Actor {
 
   void delete_scheduled_messages_on_server(DialogId dialog_id, vector<MessageId> message_ids, uint64 log_event_id,
                                            Promise<Unit> &&promise);
-
-  void delete_topic_history_on_server(DialogId dialog_id, MessageId top_thread_message_id, uint64 log_event_id,
-                                      Promise<Unit> &&promise);
 
   void delete_all_call_messages_on_server(bool revoke, uint64 log_event_id, Promise<Unit> &&promise);
 
@@ -3123,8 +3119,6 @@ class MessagesManager final : public Actor {
 
   static uint64 save_delete_scheduled_messages_on_server_log_event(DialogId dialog_id,
                                                                    const vector<MessageId> &message_ids);
-
-  static uint64 save_delete_topic_history_on_server_log_event(DialogId dialog_id, MessageId top_thread_message_id);
 
   static uint64 save_delete_all_call_messages_on_server_log_event(bool revoke);
 
