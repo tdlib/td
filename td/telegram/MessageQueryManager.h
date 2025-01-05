@@ -69,6 +69,8 @@ class MessageQueryManager final : public Actor {
                                vector<telegram_api::object_ptr<telegram_api::Message>> &&messages,
                                Promise<td_api::object_ptr<td_api::messages>> &&promise);
 
+  void delete_all_call_messages_on_server(bool revoke, uint64 log_event_id, Promise<Unit> &&promise);
+
   void delete_dialog_history_on_server(DialogId dialog_id, MessageId max_message_id, bool remove_from_dialog_list,
                                        bool revoke, bool allow_error, uint64 log_event_id, Promise<Unit> &&promise);
 
@@ -78,6 +80,7 @@ class MessageQueryManager final : public Actor {
   void on_binlog_events(vector<BinlogEvent> &&events);
 
  private:
+  class DeleteAllCallMessagesOnServerLogEvent;
   class DeleteDialogHistoryOnServerLogEvent;
   class DeleteTopicHistoryOnServerLogEvent;
 
@@ -87,6 +90,8 @@ class MessageQueryManager final : public Actor {
 
   void on_get_affected_history(DialogId dialog_id, AffectedHistoryQuery query, bool get_affected_messages,
                                AffectedHistory affected_history, Promise<Unit> &&promise);
+
+  static uint64 save_delete_all_call_messages_on_server_log_event(bool revoke);
 
   static uint64 save_delete_dialog_history_on_server_log_event(DialogId dialog_id, MessageId max_message_id,
                                                                bool remove_from_dialog_list, bool revoke);
