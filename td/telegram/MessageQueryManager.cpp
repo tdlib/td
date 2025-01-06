@@ -475,6 +475,48 @@ class DeleteChannelHistoryQuery final : public Td::ResultHandler {
   }
 };
 
+class DeleteMessagesByDateQuery final : public Td::ResultHandler {
+  Promise<AffectedHistory> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit DeleteMessagesByDateQuery(Promise<AffectedHistory> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, int32 min_date, int32 max_date, bool revoke) {
+    dialog_id_ = dialog_id;
+
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return promise_.set_error(Status::Error(400, "Chat is not accessible"));
+    }
+
+    int32 flags = telegram_api::messages_deleteHistory::JUST_CLEAR_MASK |
+                  telegram_api::messages_deleteHistory::MIN_DATE_MASK |
+                  telegram_api::messages_deleteHistory::MAX_DATE_MASK;
+    if (revoke) {
+      flags |= telegram_api::messages_deleteHistory::REVOKE_MASK;
+    }
+
+    send_query(G()->net_query_creator().create(telegram_api::messages_deleteHistory(
+        flags, false /*ignored*/, false /*ignored*/, std::move(input_peer), 0, min_date, max_date)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_deleteHistory>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(AffectedHistory(result_ptr.move_as_ok()));
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "DeleteMessagesByDateQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class DeleteTopicHistoryQuery final : public Td::ResultHandler {
   Promise<AffectedHistory> promise_;
   ChannelId channel_id_;
@@ -975,6 +1017,57 @@ void MessageQueryManager::delete_dialog_history_on_server(DialogId dialog_id, Me
   }
 }
 
+class MessageQueryManager::DeleteDialogMessagesByDateOnServerLogEvent {
+ public:
+  DialogId dialog_id_;
+  int32 min_date_;
+  int32 max_date_;
+  bool revoke_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(revoke_);
+    END_STORE_FLAGS();
+    td::store(dialog_id_, storer);
+    td::store(min_date_, storer);
+    td::store(max_date_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(revoke_);
+    END_PARSE_FLAGS();
+    td::parse(dialog_id_, parser);
+    td::parse(min_date_, parser);
+    td::parse(max_date_, parser);
+  }
+};
+
+uint64 MessageQueryManager::save_delete_dialog_messages_by_date_on_server_log_event(DialogId dialog_id, int32 min_date,
+                                                                                    int32 max_date, bool revoke) {
+  DeleteDialogMessagesByDateOnServerLogEvent log_event{dialog_id, min_date, max_date, revoke};
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteDialogMessagesByDateOnServer,
+                    get_log_event_storer(log_event));
+}
+
+void MessageQueryManager::delete_dialog_messages_by_date_on_server(DialogId dialog_id, int32 min_date, int32 max_date,
+                                                                   bool revoke, uint64 log_event_id,
+                                                                   Promise<Unit> &&promise) {
+  if (log_event_id == 0 && G()->use_chat_info_database()) {
+    log_event_id = save_delete_dialog_messages_by_date_on_server_log_event(dialog_id, min_date, max_date, revoke);
+  }
+
+  AffectedHistoryQuery query = [td = td_, min_date, max_date, revoke](DialogId dialog_id,
+                                                                      Promise<AffectedHistory> &&query_promise) {
+    td->create_handler<DeleteMessagesByDateQuery>(std::move(query_promise))
+        ->send(dialog_id, min_date, max_date, revoke);
+  };
+  run_affected_history_query_until_complete(dialog_id, std::move(query), true,
+                                            get_erase_log_event_promise(log_event_id, std::move(promise)));
+}
+
 class MessageQueryManager::DeleteTopicHistoryOnServerLogEvent {
  public:
   DialogId dialog_id_;
@@ -1076,6 +1169,26 @@ void MessageQueryManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         delete_dialog_history_on_server(dialog_id, log_event.max_message_id_, log_event.remove_from_dialog_list_,
                                         log_event.revoke_, true, event.id_, Auto());
+        break;
+      }
+      case LogEvent::HandlerType::DeleteDialogMessagesByDateOnServer: {
+        if (!have_old_message_database) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        DeleteDialogMessagesByDateOnServerLogEvent log_event;
+        log_event_parse(log_event, event.get_data()).ensure();
+
+        auto dialog_id = log_event.dialog_id_;
+        if (!td_->dialog_manager_->have_dialog_force(dialog_id, "DeleteDialogMessagesByDateOnServerLogEvent") ||
+            !td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        delete_dialog_messages_by_date_on_server(dialog_id, log_event.min_date_, log_event.max_date_, log_event.revoke_,
+                                                 event.id_, Auto());
         break;
       }
       case LogEvent::HandlerType::DeleteTopicHistoryOnServer: {

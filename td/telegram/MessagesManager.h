@@ -1554,7 +1554,6 @@ class MessagesManager final : public Actor {
   };
 
   class BlockMessageSenderFromRepliesOnServerLogEvent;
-  class DeleteDialogMessagesByDateOnServerLogEvent;
   class DeleteMessageLogEvent;
   class DeleteMessagesOnServerLogEvent;
   class DeleteScheduledMessagesOnServerLogEvent;
@@ -1986,9 +1985,6 @@ class MessagesManager final : public Actor {
   void block_message_sender_from_replies_on_server(MessageId message_id, bool need_delete_message,
                                                    bool need_delete_all_messages, bool report_spam, uint64 log_event_id,
                                                    Promise<Unit> &&promise);
-
-  void delete_dialog_messages_by_date_on_server(DialogId dialog_id, int32 min_date, int32 max_date, bool revoke,
-                                                uint64 log_event_id, Promise<Unit> &&promise);
 
   void read_all_dialog_mentions_on_server(DialogId dialog_id, uint64 log_event_id, Promise<Unit> &&promise);
 
@@ -3117,9 +3113,6 @@ class MessagesManager final : public Actor {
                                                                            bool need_delete_message,
                                                                            bool need_delete_all_messages,
                                                                            bool report_spam);
-
-  static uint64 save_delete_dialog_messages_by_date_on_server_log_event(DialogId dialog_id, int32 min_date,
-                                                                        int32 max_date, bool revoke);
 
   static uint64 save_read_all_dialog_mentions_on_server_log_event(DialogId dialog_id);
 
