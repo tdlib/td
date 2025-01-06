@@ -3120,6 +3120,9 @@ linkPreviewTypeTheme documents:vector<document> settings:themeSettings = LinkPre
 //@description The link preview type is unsupported yet
 linkPreviewTypeUnsupported = LinkPreviewType;
 
+//@description The link is a link to an upgraded gift @gift The gift
+linkPreviewTypeUpgradedGift gift:upgradedGift = LinkPreviewType;
+
 //@description The link is a link to a user @photo Photo of the user; may be null if none @is_bot True, if the user is a bot
 linkPreviewTypeUser photo:chatPhoto is_bot:Bool = LinkPreviewType;
 

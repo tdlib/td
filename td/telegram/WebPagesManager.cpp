@@ -28,6 +28,7 @@
 #include "td/telegram/Photo.h"
 #include "td/telegram/PhotoFormat.h"
 #include "td/telegram/QuickReplyManager.h"
+#include "td/telegram/StarGift.h"
 #include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StickersManager.hpp"
@@ -254,6 +255,7 @@ class WebPagesManager::WebPage {
   ThemeSettings theme_settings_;
   vector<StoryFullId> story_full_ids_;
   vector<FileId> sticker_ids_;
+  vector<StarGift> star_gifts_;
   WebPageInstantView instant_view_;
 
   FileSourceId file_source_id_;
@@ -280,6 +282,7 @@ class WebPagesManager::WebPage {
     bool has_story_full_ids = !story_full_ids_.empty();
     bool has_sticker_ids = !sticker_ids_.empty();
     bool has_theme_settings = !theme_settings_.is_empty();
+    bool has_star_gifts = !star_gifts_.empty();
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_type);
     STORE_FLAG(has_site_name);
@@ -299,6 +302,7 @@ class WebPagesManager::WebPage {
     STORE_FLAG(has_large_media_);
     STORE_FLAG(has_sticker_ids);
     STORE_FLAG(has_theme_settings);
+    STORE_FLAG(has_star_gifts);
     END_STORE_FLAGS();
 
     store(url_, storer);
@@ -350,6 +354,9 @@ class WebPagesManager::WebPage {
     if (has_theme_settings) {
       store(theme_settings_, storer);
     }
+    if (has_star_gifts) {
+      store(star_gifts_, storer);
+    }
   }
 
   template <class ParserT>
@@ -372,6 +379,7 @@ class WebPagesManager::WebPage {
     bool has_story_full_ids;
     bool has_sticker_ids;
     bool has_theme_settings;
+    bool has_star_gifts;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_type);
     PARSE_FLAG(has_site_name);
@@ -391,6 +399,7 @@ class WebPagesManager::WebPage {
     PARSE_FLAG(has_large_media_);
     PARSE_FLAG(has_sticker_ids);
     PARSE_FLAG(has_theme_settings);
+    PARSE_FLAG(has_star_gifts);
     END_PARSE_FLAGS();
 
     parse(url_, parser);
@@ -451,6 +460,9 @@ class WebPagesManager::WebPage {
     if (has_theme_settings) {
       parse(theme_settings_, parser);
     }
+    if (has_star_gifts) {
+      parse(star_gifts_, parser);
+    }
 
     if (has_instant_view) {
       instant_view_.is_empty_ = false;
@@ -469,7 +481,7 @@ class WebPagesManager::WebPage {
            lhs.has_large_media_ == rhs.has_large_media_ && lhs.document_ == rhs.document_ &&
            lhs.documents_ == rhs.documents_ && lhs.theme_settings_ == rhs.theme_settings_ &&
            lhs.story_full_ids_ == rhs.story_full_ids_ && lhs.sticker_ids_ == rhs.sticker_ids_ &&
-           lhs.instant_view_.is_empty_ == rhs.instant_view_.is_empty_ &&
+           lhs.star_gifts_ == rhs.star_gifts_ && lhs.instant_view_.is_empty_ == rhs.instant_view_.is_empty_ &&
            lhs.instant_view_.is_v2_ == rhs.instant_view_.is_v2_;
   }
 };
@@ -654,8 +666,16 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
             }
             break;
           }
-          case telegram_api::webPageAttributeUniqueStarGift::ID:
+          case telegram_api::webPageAttributeUniqueStarGift::ID: {
+            auto attribute = telegram_api::move_object_as<telegram_api::webPageAttributeUniqueStarGift>(attribute_ptr);
+            StarGift star_gift(td_, std::move(attribute->gift_), true);
+            if (!star_gift.is_valid() || !star_gift.is_unique()) {
+              LOG(ERROR) << "Receive invalid upgraded gift";
+              break;
+            }
+            page->star_gifts_.push_back(std::move(star_gift));
             break;
+          }
           default:
             UNREACHABLE();
         }
@@ -1547,6 +1567,15 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
           << "Receive wrong document for " << web_page->url_;
       return td_api::make_object<td_api::linkPreviewTypeMessage>();
     }
+    if (type == "nft") {
+      if (web_page->star_gifts_.size() == 1) {
+        return td_api::make_object<td_api::linkPreviewTypeUpgradedGift>(
+            web_page->star_gifts_[0].get_upgraded_gift_object(td_));
+      } else {
+        LOG(ERROR) << "Receive upgraded gift " << web_page->url_ << " without the gift";
+        return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
+      }
+    }
     if (type == "stickerset") {
       LOG_IF(ERROR, !web_page->photo_.is_empty()) << "Receive photo for " << web_page->url_;
       auto stickers = transform(web_page->sticker_ids_, [&](FileId sticker_id) {
@@ -1563,7 +1592,7 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
         return td_api::make_object<td_api::linkPreviewTypeStory>(
             td_->dialog_manager_->get_chat_id_object(story_sender_dialog_id, "webPage"), story_id.get());
       } else {
-        LOG(ERROR) << "Receive telegram story " << web_page->url_ << " without story";
+        LOG(ERROR) << "Receive Telegram story " << web_page->url_ << " without story";
         return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
       }
     }
@@ -2508,6 +2537,7 @@ vector<FileId> WebPagesManager::get_web_page_file_ids(const WebPage *web_page) c
       page_block->append_file_ids(td_, result);
     }
   }
+  // don't need to return gift file identifiers
   return result;
 }
 
