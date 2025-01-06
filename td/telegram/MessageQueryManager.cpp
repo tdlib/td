@@ -8,6 +8,7 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/ChatManager.h"
+#include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/FolderId.h"
@@ -20,6 +21,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
+#include "td/telegram/Version.h"
 
 #include "td/db/binlog/BinlogEvent.h"
 #include "td/db/binlog/BinlogHelper.h"
@@ -335,6 +337,49 @@ class DeletePhoneCallHistoryQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class DeleteParticipantHistoryQuery final : public Td::ResultHandler {
+  Promise<AffectedHistory> promise_;
+  ChannelId channel_id_;
+  DialogId sender_dialog_id_;
+
+ public:
+  explicit DeleteParticipantHistoryQuery(Promise<AffectedHistory> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id, DialogId sender_dialog_id) {
+    channel_id_ = channel_id;
+    sender_dialog_id_ = sender_dialog_id;
+
+    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
+    if (input_channel == nullptr) {
+      return promise_.set_error(Status::Error(400, "Chat is not accessible"));
+    }
+    auto input_peer = td_->dialog_manager_->get_input_peer(sender_dialog_id, AccessRights::Know);
+    if (input_peer == nullptr) {
+      return promise_.set_error(Status::Error(400, "Message sender is not accessible"));
+    }
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_deleteParticipantHistory(std::move(input_channel), std::move(input_peer))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_deleteParticipantHistory>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(AffectedHistory(result_ptr.move_as_ok()));
+  }
+
+  void on_error(Status status) final {
+    if (sender_dialog_id_.get_type() != DialogType::Channel) {
+      td_->chat_manager_->on_get_channel_error(channel_id_, status, "DeleteParticipantHistoryQuery");
+    }
     promise_.set_error(std::move(status));
   }
 };
@@ -805,6 +850,55 @@ void MessageQueryManager::delete_all_call_messages_on_server(bool revoke, uint64
                                             get_erase_log_event_promise(log_event_id, std::move(promise)));
 }
 
+class MessageQueryManager::DeleteAllChannelMessagesFromSenderOnServerLogEvent {
+ public:
+  ChannelId channel_id_;
+  DialogId sender_dialog_id_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(channel_id_, storer);
+    td::store(sender_dialog_id_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(channel_id_, parser);
+    if (parser.version() >= static_cast<int32>(Version::AddKeyboardButtonFlags)) {
+      td::parse(sender_dialog_id_, parser);
+    } else {
+      UserId user_id;
+      td::parse(user_id, parser);
+      sender_dialog_id_ = DialogId(user_id);
+    }
+  }
+};
+
+uint64 MessageQueryManager::save_delete_all_channel_messages_by_sender_on_server_log_event(ChannelId channel_id,
+                                                                                           DialogId sender_dialog_id) {
+  DeleteAllChannelMessagesFromSenderOnServerLogEvent log_event{channel_id, sender_dialog_id};
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteAllChannelMessagesFromSenderOnServer,
+                    get_log_event_storer(log_event));
+}
+
+void MessageQueryManager::delete_all_channel_messages_by_sender_on_server(ChannelId channel_id,
+                                                                          DialogId sender_dialog_id,
+                                                                          uint64 log_event_id,
+                                                                          Promise<Unit> &&promise) {
+  if (log_event_id == 0 && G()->use_chat_info_database()) {
+    log_event_id = save_delete_all_channel_messages_by_sender_on_server_log_event(channel_id, sender_dialog_id);
+  }
+
+  AffectedHistoryQuery query = [td = td_, sender_dialog_id](DialogId dialog_id,
+                                                            Promise<AffectedHistory> &&query_promise) {
+    td->create_handler<DeleteParticipantHistoryQuery>(std::move(query_promise))
+        ->send(dialog_id.get_channel_id(), sender_dialog_id);
+  };
+  run_affected_history_query_until_complete(DialogId(channel_id), std::move(query),
+                                            sender_dialog_id.get_type() != DialogType::User,
+                                            get_erase_log_event_promise(log_event_id, std::move(promise)));
+}
+
 class MessageQueryManager::DeleteDialogHistoryOnServerLogEvent {
  public:
   DialogId dialog_id_;
@@ -939,6 +1033,29 @@ void MessageQueryManager::on_binlog_events(vector<BinlogEvent> &&events) {
         log_event_parse(log_event, event.get_data()).ensure();
 
         delete_all_call_messages_on_server(log_event.revoke_, event.id_, Auto());
+        break;
+      }
+      case LogEvent::HandlerType::DeleteAllChannelMessagesFromSenderOnServer: {
+        if (!G()->use_chat_info_database()) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        DeleteAllChannelMessagesFromSenderOnServerLogEvent log_event;
+        log_event_parse(log_event, event.get_data()).ensure();
+
+        auto channel_id = log_event.channel_id_;
+        auto sender_dialog_id = log_event.sender_dialog_id_;
+        Dependencies dependencies;
+        dependencies.add(channel_id);
+        dependencies.add_dialog_dependencies(sender_dialog_id);
+        if (!dependencies.resolve_force(td_, "DeleteAllChannelMessagesFromSenderOnServer") ||
+            !td_->dialog_manager_->have_input_peer(sender_dialog_id, false, AccessRights::Know)) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          continue;
+        }
+
+        delete_all_channel_messages_by_sender_on_server(channel_id, sender_dialog_id, event.id_, Auto());
         break;
       }
       case LogEvent::HandlerType::DeleteDialogHistoryOnServer: {

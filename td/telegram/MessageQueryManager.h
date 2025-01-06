@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/AffectedHistory.h"
+#include "td/telegram/ChannelId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogListId.h"
 #include "td/telegram/MessageFullId.h"
@@ -71,6 +72,9 @@ class MessageQueryManager final : public Actor {
 
   void delete_all_call_messages_on_server(bool revoke, uint64 log_event_id, Promise<Unit> &&promise);
 
+  void delete_all_channel_messages_by_sender_on_server(ChannelId channel_id, DialogId sender_dialog_id,
+                                                       uint64 log_event_id, Promise<Unit> &&promise);
+
   void delete_dialog_history_on_server(DialogId dialog_id, MessageId max_message_id, bool remove_from_dialog_list,
                                        bool revoke, bool allow_error, uint64 log_event_id, Promise<Unit> &&promise);
 
@@ -81,6 +85,7 @@ class MessageQueryManager final : public Actor {
 
  private:
   class DeleteAllCallMessagesOnServerLogEvent;
+  class DeleteAllChannelMessagesFromSenderOnServerLogEvent;
   class DeleteDialogHistoryOnServerLogEvent;
   class DeleteTopicHistoryOnServerLogEvent;
 
@@ -92,6 +97,9 @@ class MessageQueryManager final : public Actor {
                                AffectedHistory affected_history, Promise<Unit> &&promise);
 
   static uint64 save_delete_all_call_messages_on_server_log_event(bool revoke);
+
+  static uint64 save_delete_all_channel_messages_by_sender_on_server_log_event(ChannelId channel_id,
+                                                                               DialogId sender_dialog_id);
 
   static uint64 save_delete_dialog_history_on_server_log_event(DialogId dialog_id, MessageId max_message_id,
                                                                bool remove_from_dialog_list, bool revoke);
