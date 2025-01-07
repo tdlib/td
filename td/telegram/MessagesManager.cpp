@@ -1964,47 +1964,6 @@ class BlockFromRepliesQuery final : public Td::ResultHandler {
   }
 };
 
-class ReadMentionsQuery final : public Td::ResultHandler {
-  Promise<AffectedHistory> promise_;
-  DialogId dialog_id_;
-
- public:
-  explicit ReadMentionsQuery(Promise<AffectedHistory> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(DialogId dialog_id, MessageId top_thread_message_id) {
-    dialog_id_ = dialog_id;
-
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
-    if (input_peer == nullptr) {
-      return promise_.set_error(Status::Error(400, "Chat is not accessible"));
-    }
-
-    int32 flags = 0;
-    if (top_thread_message_id.is_valid()) {
-      flags |= telegram_api::messages_readMentions::TOP_MSG_ID_MASK;
-    }
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_readMentions(flags, std::move(input_peer),
-                                            top_thread_message_id.get_server_message_id().get()),
-        {{dialog_id}}));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_readMentions>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    promise_.set_value(AffectedHistory(result_ptr.move_as_ok()));
-  }
-
-  void on_error(Status status) final {
-    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ReadMentionsQuery");
-    promise_.set_error(std::move(status));
-  }
-};
-
 class ReadReactionsQuery final : public Td::ResultHandler {
   Promise<AffectedHistory> promise_;
   DialogId dialog_id_;
@@ -9769,13 +9728,8 @@ void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, MessageId top
 
   if (top_thread_message_id.is_valid()) {
     LOG(INFO) << "Receive readAllChatMentions request in thread of " << top_thread_message_id << " in " << dialog_id;
-    MessageQueryManager::AffectedHistoryQuery query =
-        [td = td_, top_thread_message_id](DialogId dialog_id, Promise<AffectedHistory> &&query_promise) {
-          td->create_handler<ReadMentionsQuery>(std::move(query_promise))->send(dialog_id, top_thread_message_id);
-        };
-    td_->message_query_manager_->run_affected_history_query_until_complete(dialog_id, std::move(query), true,
-                                                                           std::move(promise));
-    return;
+    return td_->message_query_manager_->read_all_topic_mentions_on_server(dialog_id, top_thread_message_id, 0,
+                                                                          std::move(promise));
   } else {
     LOG(INFO) << "Receive readAllChatMentions request in " << dialog_id << " with " << d->unread_mention_count
               << " unread mentions";
@@ -9821,42 +9775,7 @@ void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, MessageId top
   }
   remove_message_dialog_notifications(d, MessageId::max(), true, "read_all_dialog_mentions");
 
-  read_all_dialog_mentions_on_server(dialog_id, 0, std::move(promise));
-}
-
-class MessagesManager::ReadAllDialogMentionsOnServerLogEvent {
- public:
-  DialogId dialog_id_;
-
-  template <class StorerT>
-  void store(StorerT &storer) const {
-    td::store(dialog_id_, storer);
-  }
-
-  template <class ParserT>
-  void parse(ParserT &parser) {
-    td::parse(dialog_id_, parser);
-  }
-};
-
-uint64 MessagesManager::save_read_all_dialog_mentions_on_server_log_event(DialogId dialog_id) {
-  ReadAllDialogMentionsOnServerLogEvent log_event{dialog_id};
-  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ReadAllDialogMentionsOnServer,
-                    get_log_event_storer(log_event));
-}
-
-void MessagesManager::read_all_dialog_mentions_on_server(DialogId dialog_id, uint64 log_event_id,
-                                                         Promise<Unit> &&promise) {
-  if (log_event_id == 0 && G()->use_message_database()) {
-    log_event_id = save_read_all_dialog_mentions_on_server_log_event(dialog_id);
-  }
-
-  MessageQueryManager::AffectedHistoryQuery query = [td = td_](DialogId dialog_id,
-                                                               Promise<AffectedHistory> &&query_promise) {
-    td->create_handler<ReadMentionsQuery>(std::move(query_promise))->send(dialog_id, MessageId());
-  };
-  td_->message_query_manager_->run_affected_history_query_until_complete(
-      dialog_id, std::move(query), false, get_erase_log_event_promise(log_event_id, std::move(promise)));
+  td_->message_query_manager_->read_all_dialog_mentions_on_server(dialog_id, 0, std::move(promise));
 }
 
 void MessagesManager::read_all_dialog_reactions(DialogId dialog_id, MessageId top_thread_message_id,
@@ -36588,25 +36507,6 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         }
 
         read_message_contents_on_server(dialog_id, std::move(log_event.message_ids_), event.id_, Auto());
-        break;
-      }
-      case LogEvent::HandlerType::ReadAllDialogMentionsOnServer: {
-        if (!have_old_message_database) {
-          binlog_erase(G()->td_db()->get_binlog(), event.id_);
-          break;
-        }
-
-        ReadAllDialogMentionsOnServerLogEvent log_event;
-        log_event_parse(log_event, event.get_data()).ensure();
-
-        auto dialog_id = log_event.dialog_id_;
-        Dialog *d = get_dialog_force(dialog_id, "ReadAllDialogMentionsOnServerLogEvent");
-        if (d == nullptr || !td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read)) {
-          binlog_erase(G()->td_db()->get_binlog(), event.id_);
-          break;
-        }
-
-        read_all_dialog_mentions_on_server(dialog_id, event.id_, Promise<Unit>());
         break;
       }
       case LogEvent::HandlerType::ReadAllDialogReactionsOnServer: {
