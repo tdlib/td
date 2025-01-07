@@ -629,6 +629,9 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
               }
             }
             page->theme_settings_ = ThemeSettings(td_, std::move(attribute->settings_));
+            if (page->type_ != "telegram_theme") {
+              LOG(ERROR) << "Receive webPageAttributeTheme for " << page->type_;
+            }
             break;
           }
           case telegram_api::webPageAttributeStory::ID: {
@@ -648,6 +651,9 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
             }
             td_->dialog_manager_->force_create_dialog(dialog_id, "webPageAttributeStory");
             page->story_full_ids_.push_back(story_full_id);
+            if (page->type_ != "telegram_story") {
+              LOG(ERROR) << "Receive webPageAttributeStory for " << page->type_;
+            }
             break;
           }
           case telegram_api::webPageAttributeStickerSet::ID: {
@@ -664,6 +670,9 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
                 page->sticker_ids_.push_back(sticker_id);
               }
             }
+            if (page->type_ != "telegram_stickerset") {
+              LOG(ERROR) << "Receive webPageAttributeStickerSet for " << page->type_;
+            }
             break;
           }
           case telegram_api::webPageAttributeUniqueStarGift::ID: {
@@ -674,6 +683,9 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
               break;
             }
             page->star_gifts_.push_back(std::move(star_gift));
+            if (page->type_ != "telegram_nft") {
+              LOG(ERROR) << "Receive webPageAttributeUniqueStarGift for " << page->type_;
+            }
             break;
           }
           default:
