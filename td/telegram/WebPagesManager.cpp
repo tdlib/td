@@ -707,8 +707,17 @@ void WebPagesManager::update_web_page(unique_ptr<WebPage> web_page, WebPageId we
       for (auto story_full_id : web_page->story_full_ids_) {
         dependencies.add(story_full_id);
       }
-      if (!dependencies.resolve_force(td_, "update_web_page")) {
+      if (!dependencies.resolve_force(td_, "update_web_page 1")) {
         web_page->story_full_ids_ = {};
+      }
+    }
+    if (!web_page->star_gifts_.empty()) {
+      Dependencies dependencies;
+      for (const auto &star_gift : web_page->star_gifts_) {
+        star_gift.add_dependencies(dependencies);
+      }
+      if (!dependencies.resolve_force(td_, "update_web_page 2")) {
+        web_page->star_gifts_ = {};
       }
     }
   }
