@@ -17,6 +17,7 @@
 
 namespace td {
 
+class Dependencies;
 class Td;
 
 class StarGiftAttributeSticker {
@@ -112,6 +113,8 @@ class StarGiftAttributeOriginalDetails {
   }
 
   td_api::object_ptr<td_api::upgradedGiftOriginalDetails> get_upgraded_gift_original_details_object(Td *td) const;
+
+  void add_dependencies(Dependencies &dependencies) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;

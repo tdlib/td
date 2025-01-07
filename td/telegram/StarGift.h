@@ -17,6 +17,7 @@
 
 namespace td {
 
+class Dependencies;
 class Td;
 
 class StarGift {
@@ -82,6 +83,8 @@ class StarGift {
   td_api::object_ptr<td_api::upgradedGift> get_upgraded_gift_object(Td *td) const;
 
   td_api::object_ptr<td_api::SentGift> get_sent_gift_object(Td *td) const;
+
+  void add_dependencies(Dependencies &dependencies) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;

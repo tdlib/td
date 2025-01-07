@@ -6,6 +6,7 @@
 //
 #include "td/telegram/StarGiftAttribute.h"
 
+#include "td/telegram/Dependencies.h"
 #include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
@@ -92,6 +93,11 @@ StarGiftAttributeOriginalDetails::get_upgraded_gift_original_details_object(Td *
       td->user_manager_->get_user_id_object(sender_user_id_, "upgradedGiftOriginalDetails sender"),
       td->user_manager_->get_user_id_object(receiver_user_id_, "upgradedGiftOriginalDetails receiver"),
       get_formatted_text_object(td->user_manager_.get(), message_, true, -1), date_);
+}
+
+void StarGiftAttributeOriginalDetails::add_dependencies(Dependencies &dependencies) const {
+  dependencies.add(sender_user_id_);
+  dependencies.add(receiver_user_id_);
 }
 
 bool operator==(const StarGiftAttributeOriginalDetails &lhs, const StarGiftAttributeOriginalDetails &rhs) {

@@ -6,6 +6,7 @@
 //
 #include "td/telegram/StarGift.h"
 
+#include "td/telegram/Dependencies.h"
 #include "td/telegram/StarManager.h"
 #include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickersManager.h"
@@ -150,6 +151,11 @@ td_api::object_ptr<td_api::SentGift> StarGift::get_sent_gift_object(Td *td) cons
   } else {
     return td_api::make_object<td_api::sentGiftRegular>(get_gift_object(td));
   }
+}
+
+void StarGift::add_dependencies(Dependencies &dependencies) const {
+  dependencies.add(owner_user_id_);
+  original_details_.add_dependencies(dependencies);
 }
 
 bool operator==(const StarGift &lhs, const StarGift &rhs) {

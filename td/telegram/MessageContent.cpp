@@ -9568,10 +9568,16 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       dependencies.add_dialog_and_dependencies(DialogId(content->boosted_dialog_id));
       break;
     }
-    case MessageContentType::StarGift:
+    case MessageContentType::StarGift: {
+      const auto *content = static_cast<const MessageStarGift *>(message_content);
+      content->star_gift.add_dependencies(dependencies);
       break;
-    case MessageContentType::StarGiftUnique:
+    }
+    case MessageContentType::StarGiftUnique: {
+      const auto *content = static_cast<const MessageStarGiftUnique *>(message_content);
+      content->star_gift.add_dependencies(dependencies);
       break;
+    }
     default:
       UNREACHABLE();
       break;
