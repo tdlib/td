@@ -86,8 +86,13 @@ class MessageQueryManager final : public Actor {
 
   void read_all_dialog_mentions_on_server(DialogId dialog_id, uint64 log_event_id, Promise<Unit> &&promise);
 
+  void read_all_dialog_reactions_on_server(DialogId dialog_id, uint64 log_event_id, Promise<Unit> &&promise);
+
   void read_all_topic_mentions_on_server(DialogId dialog_id, MessageId top_thread_message_id, uint64 log_event_id,
                                          Promise<Unit> &&promise);
+
+  void read_all_topic_reactions_on_server(DialogId dialog_id, MessageId top_thread_message_id, uint64 log_event_id,
+                                          Promise<Unit> &&promise);
 
   void on_binlog_events(vector<BinlogEvent> &&events);
 
@@ -98,6 +103,7 @@ class MessageQueryManager final : public Actor {
   class DeleteDialogMessagesByDateOnServerLogEvent;
   class DeleteTopicHistoryOnServerLogEvent;
   class ReadAllDialogMentionsOnServerLogEvent;
+  class ReadAllDialogReactionsOnServerLogEvent;
 
   static constexpr int32 MAX_SEARCH_MESSAGES = 100;  // server-side limit
 
@@ -120,6 +126,8 @@ class MessageQueryManager final : public Actor {
   static uint64 save_delete_topic_history_on_server_log_event(DialogId dialog_id, MessageId top_thread_message_id);
 
   static uint64 save_read_all_dialog_mentions_on_server_log_event(DialogId dialog_id);
+
+  static uint64 save_read_all_dialog_reactions_on_server_log_event(DialogId dialog_id);
 
   Td *td_;
   ActorShared<> parent_;

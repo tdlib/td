@@ -1559,7 +1559,6 @@ class MessagesManager final : public Actor {
   class DeleteScheduledMessagesOnServerLogEvent;
   class ForwardMessagesLogEvent;
   class GetChannelDifferenceLogEvent;
-  class ReadAllDialogReactionsOnServerLogEvent;
   class ReadHistoryInSecretChatLogEvent;
   class ReadHistoryOnServerLogEvent;
   class ReadMessageContentsOnServerLogEvent;
@@ -1984,8 +1983,6 @@ class MessagesManager final : public Actor {
   void block_message_sender_from_replies_on_server(MessageId message_id, bool need_delete_message,
                                                    bool need_delete_all_messages, bool report_spam, uint64 log_event_id,
                                                    Promise<Unit> &&promise);
-
-  void read_all_dialog_reactions_on_server(DialogId dialog_id, uint64 log_event_id, Promise<Unit> &&promise);
 
   void unpin_all_dialog_messages_on_server(DialogId dialog_id, uint64 log_event_id, Promise<Unit> &&promise);
 
@@ -3110,8 +3107,6 @@ class MessagesManager final : public Actor {
                                                                            bool need_delete_message,
                                                                            bool need_delete_all_messages,
                                                                            bool report_spam);
-
-  static uint64 save_read_all_dialog_reactions_on_server_log_event(DialogId dialog_id);
 
   static uint64 save_reorder_pinned_dialogs_on_server_log_event(FolderId folder_id, const vector<DialogId> &dialog_ids);
 
