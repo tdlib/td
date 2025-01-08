@@ -4146,7 +4146,7 @@ UserManager::User *UserManager::get_user_force(UserId user_id, const char *sourc
         last_name = "Notifications";
       }
       phone_number = "42777";
-      profile_photo_id = 3337190045231023;
+      profile_photo_id = G()->is_test_dc() ? 3337190045231023 : 3337190045231028;
     } else if (user_id == get_replies_bot_user_id()) {
       flags |= USER_FLAG_HAS_USERNAME | USER_FLAG_IS_BOT;
       if (!G()->is_test_dc()) {
