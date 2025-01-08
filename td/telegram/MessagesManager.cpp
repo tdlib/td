@@ -27985,7 +27985,7 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
       }
     }
   }
-  if (error_code != 403 && !(error_code == 500 && G()->close_flag())) {
+  if (error_code != 403 && !(error_code == 500 && G()->close_flag()) && error_message != "USER_IS_BLOCKED") {
     LOG(WARNING) << "Failed to send " << message_full_id << " with the error " << error;
   }
   fail_send_message(message_full_id, error_code, error_message);
