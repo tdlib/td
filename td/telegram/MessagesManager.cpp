@@ -7,7 +7,6 @@
 #include "td/telegram/MessagesManager.h"
 
 #include "td/telegram/AccountManager.h"
-#include "td/telegram/AffectedHistory.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/BackgroundInfo.hpp"
 #include "td/telegram/BlockListId.h"
@@ -463,48 +462,6 @@ class UpdateDialogPinnedMessageQuery final : public Td::ResultHandler {
     if (!business_connection_id_.is_empty()) {
       td_->messages_manager_->on_get_message_error(dialog_id_, message_id_, status, "UpdateDialogPinnedMessageQuery");
     }
-    promise_.set_error(std::move(status));
-  }
-};
-
-class UnpinAllMessagesQuery final : public Td::ResultHandler {
-  Promise<AffectedHistory> promise_;
-  DialogId dialog_id_;
-  MessageId top_thread_message_id_;
-
- public:
-  explicit UnpinAllMessagesQuery(Promise<AffectedHistory> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(DialogId dialog_id, MessageId top_thread_message_id) {
-    dialog_id_ = dialog_id;
-    top_thread_message_id_ = top_thread_message_id;
-
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Write);
-    if (input_peer == nullptr) {
-      LOG(INFO) << "Can't unpin all messages in " << dialog_id_;
-      return on_error(Status::Error(400, "Can't unpin all messages"));
-    }
-
-    int32 flags = 0;
-    if (top_thread_message_id.is_valid()) {
-      flags |= telegram_api::messages_unpinAllMessages::TOP_MSG_ID_MASK;
-    }
-    send_query(G()->net_query_creator().create(telegram_api::messages_unpinAllMessages(
-        flags, std::move(input_peer), top_thread_message_id.get_server_message_id().get())));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_unpinAllMessages>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    promise_.set_value(AffectedHistory(result_ptr.move_as_ok()));
-  }
-
-  void on_error(Status status) final {
-    td_->messages_manager_->on_get_message_error(dialog_id_, top_thread_message_id_, status, "UnpinAllMessagesQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -30659,13 +30616,8 @@ void MessagesManager::unpin_all_dialog_messages(DialogId dialog_id, MessageId to
   }
 
   if (top_thread_message_id.is_valid()) {
-    MessageQueryManager::AffectedHistoryQuery query =
-        [td = td_, top_thread_message_id](DialogId dialog_id, Promise<AffectedHistory> &&query_promise) {
-          td->create_handler<UnpinAllMessagesQuery>(std::move(query_promise))->send(dialog_id, top_thread_message_id);
-        };
-    td_->message_query_manager_->run_affected_history_query_until_complete(dialog_id, std::move(query), true,
+    return td_->message_query_manager_->unpin_all_topic_messages_on_server(dialog_id, top_thread_message_id, 0,
                                                                            std::move(promise));
-    return;
   }
 
   set_dialog_last_pinned_message_id(d, MessageId());
@@ -30675,42 +30627,7 @@ void MessagesManager::unpin_all_dialog_messages(DialogId dialog_id, MessageId to
     on_dialog_updated(dialog_id, "unpin_all_dialog_messages");
   }
 
-  unpin_all_dialog_messages_on_server(dialog_id, 0, std::move(promise));
-}
-
-class MessagesManager::UnpinAllDialogMessagesOnServerLogEvent {
- public:
-  DialogId dialog_id_;
-
-  template <class StorerT>
-  void store(StorerT &storer) const {
-    td::store(dialog_id_, storer);
-  }
-
-  template <class ParserT>
-  void parse(ParserT &parser) {
-    td::parse(dialog_id_, parser);
-  }
-};
-
-uint64 MessagesManager::save_unpin_all_dialog_messages_on_server_log_event(DialogId dialog_id) {
-  UnpinAllDialogMessagesOnServerLogEvent log_event{dialog_id};
-  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::UnpinAllDialogMessagesOnServer,
-                    get_log_event_storer(log_event));
-}
-
-void MessagesManager::unpin_all_dialog_messages_on_server(DialogId dialog_id, uint64 log_event_id,
-                                                          Promise<Unit> &&promise) {
-  if (log_event_id == 0 && G()->use_message_database()) {
-    log_event_id = save_unpin_all_dialog_messages_on_server_log_event(dialog_id);
-  }
-
-  MessageQueryManager::AffectedHistoryQuery query = [td = td_](DialogId dialog_id,
-                                                               Promise<AffectedHistory> &&query_promise) {
-    td->create_handler<UnpinAllMessagesQuery>(std::move(query_promise))->send(dialog_id, MessageId());
-  };
-  td_->message_query_manager_->run_affected_history_query_until_complete(
-      dialog_id, std::move(query), true, get_erase_log_event_promise(log_event_id, std::move(promise)));
+  td_->message_query_manager_->unpin_all_dialog_messages_on_server(dialog_id, 0, std::move(promise));
 }
 
 MessagesManager::Message *MessagesManager::get_message(Dialog *d, MessageId message_id) {
@@ -36534,18 +36451,6 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         }
 
         send_get_dialog_query(dialog_id, Auto(), event.id_, "RegetDialogLogEvent");
-        break;
-      }
-      case LogEvent::HandlerType::UnpinAllDialogMessagesOnServer: {
-        if (!have_old_message_database) {
-          binlog_erase(G()->td_db()->get_binlog(), event.id_);
-          break;
-        }
-
-        UnpinAllDialogMessagesOnServerLogEvent log_event;
-        log_event_parse(log_event, event.get_data()).ensure();
-
-        unpin_all_dialog_messages_on_server(log_event.dialog_id_, event.id_, Auto());
         break;
       }
       case LogEvent::HandlerType::GetChannelDifference: {

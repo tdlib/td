@@ -1572,7 +1572,6 @@ class MessagesManager final : public Actor {
   class SendQuickReplyShortcutMessagesLogEvent;
   class SendScreenshotTakenNotificationMessageLogEvent;
   class SetDialogFolderIdOnServerLogEvent;
-  class UnpinAllDialogMessagesOnServerLogEvent;
   class UpdateDialogNotificationSettingsOnServerLogEvent;
 
   static constexpr size_t MAX_GROUPED_MESSAGES = 10;               // server side limit
@@ -1983,8 +1982,6 @@ class MessagesManager final : public Actor {
   void block_message_sender_from_replies_on_server(MessageId message_id, bool need_delete_message,
                                                    bool need_delete_all_messages, bool report_spam, uint64 log_event_id,
                                                    Promise<Unit> &&promise);
-
-  void unpin_all_dialog_messages_on_server(DialogId dialog_id, uint64 log_event_id, Promise<Unit> &&promise);
 
   static vector<MessageId> find_dialog_messages(const Dialog *d, const std::function<bool(const Message *)> &condition);
 
@@ -3118,8 +3115,6 @@ class MessagesManager final : public Actor {
   static uint64 save_forward_messages_log_event(DialogId to_dialog_id, DialogId from_dialog_id,
                                                 const vector<Message *> &messages, const vector<MessageId> &message_ids,
                                                 bool drop_author, bool drop_media_captions);
-
-  static uint64 save_unpin_all_dialog_messages_on_server_log_event(DialogId dialog_id);
 
   void suffix_load_loop(const Dialog *d, SuffixLoadQueries *queries);
   void suffix_load_update_first_message_id(const Dialog *d, SuffixLoadQueries *queries);
