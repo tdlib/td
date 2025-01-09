@@ -1349,10 +1349,20 @@ profileAccentColors palette_colors:vector<int32> background_colors:vector<int32>
 //@min_channel_chat_boost_level The minimum chat boost level required to use the color in a channel chat
 profileAccentColor id:int32 light_theme_colors:profileAccentColors dark_theme_colors:profileAccentColors min_supergroup_chat_boost_level:int32 min_channel_chat_boost_level:int32 = ProfileAccentColor;
 
-//@description Describes a custom emoji to be shown instead of the Telegram Premium badge
-//@custom_emoji_id Identifier of the custom emoji in stickerFormatTgs format
+
+//@class EmojiStatusType @description Describes a type of an emoji status
+
+//@description A custom emoji set as emoji status @custom_emoji_id Identifier of the custom emoji in stickerFormatTgs format
+emojiStatusTypeCustomEmoji custom_emoji_id:int64 = EmojiStatusType;
+
+//@description An upgraded gift set as emoji status @upgraded_gift_id Identifier of the upgraded gift
+emojiStatusTypeUpgradedGift upgraded_gift_id:int64 = EmojiStatusType;
+
+
+//@description Describes an emoji to be shown instead of the Telegram Premium badge
+//@type Type of the emoji status
 //@expiration_date Point in time (Unix timestamp) when the status will expire; 0 if never
-emojiStatus custom_emoji_id:int64 expiration_date:int32 = EmojiStatus;
+emojiStatus type:EmojiStatusType expiration_date:int32 = EmojiStatus;
 
 //@description Contains a list of emoji statuses @emoji_statuses The list of emoji statuses identifiers
 emojiStatuses emoji_statuses:vector<emojiStatus> = EmojiStatuses;

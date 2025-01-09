@@ -311,18 +311,30 @@ class ClearRecentEmojiStatusesQuery final : public Td::ResultHandler {
 };
 
 EmojiStatus::EmojiStatus(const td_api::object_ptr<td_api::emojiStatus> &emoji_status) {
-  if (emoji_status == nullptr) {
+  if (emoji_status == nullptr || emoji_status->type_ == nullptr) {
     return;
   }
 
-  custom_emoji_id_ = CustomEmojiId(emoji_status->custom_emoji_id_);
   if (emoji_status->expiration_date_ != 0) {
     int32 current_time = G()->unix_time();
-    if (emoji_status->expiration_date_ > current_time) {
-      until_date_ = emoji_status->expiration_date_;
-    } else {
-      custom_emoji_id_ = {};
+    if (emoji_status->expiration_date_ <= current_time) {
+      return;
     }
+    until_date_ = emoji_status->expiration_date_;
+  }
+
+  switch (emoji_status->type_->get_id()) {
+    case td_api::emojiStatusTypeCustomEmoji::ID: {
+      auto type = static_cast<const td_api::emojiStatusTypeCustomEmoji *>(emoji_status->type_.get());
+      custom_emoji_id_ = CustomEmojiId(type->custom_emoji_id_);
+      break;
+    }
+    case td_api::emojiStatusTypeUpgradedGift::ID: {
+      // auto type = static_cast<const td_api::emojiStatusTypeUpgradedGift *>(emoji_status->type_.get());
+      break;
+    }
+    default:
+      UNREACHABLE();
   }
 }
 
@@ -401,7 +413,8 @@ td_api::object_ptr<td_api::emojiStatus> EmojiStatus::get_emoji_status_object() c
   if (is_empty()) {
     return nullptr;
   }
-  return td_api::make_object<td_api::emojiStatus>(custom_emoji_id_.get(), until_date_);
+  return td_api::make_object<td_api::emojiStatus>(
+      td_api::make_object<td_api::emojiStatusTypeCustomEmoji>(custom_emoji_id_.get()), until_date_);
 }
 
 td_api::object_ptr<td_api::emojiStatus> EmojiStatus::get_emoji_status_object(

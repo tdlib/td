@@ -6254,7 +6254,8 @@ class CliClient final : public Actor {
       int32 expiration_date;
       get_args(args, chat_id, custom_emoji_id, expiration_date);
       send_request(td_api::make_object<td_api::setChatEmojiStatus>(
-          chat_id, td_api::make_object<td_api::emojiStatus>(custom_emoji_id, expiration_date)));
+          chat_id, td_api::make_object<td_api::emojiStatus>(
+                       td_api::make_object<td_api::emojiStatusTypeCustomEmoji>(custom_emoji_id), expiration_date)));
     } else if (op == "scese") {
       ChatId chat_id;
       get_args(args, chat_id);
@@ -6490,8 +6491,8 @@ class CliClient final : public Actor {
       CustomEmojiId custom_emoji_id;
       int32 expiration_date;
       get_args(args, custom_emoji_id, expiration_date);
-      send_request(td_api::make_object<td_api::setEmojiStatus>(
-          td_api::make_object<td_api::emojiStatus>(custom_emoji_id, expiration_date)));
+      send_request(td_api::make_object<td_api::setEmojiStatus>(td_api::make_object<td_api::emojiStatus>(
+          td_api::make_object<td_api::emojiStatusTypeCustomEmoji>(custom_emoji_id), expiration_date)));
     } else if (op == "thsme") {
       send_request(td_api::make_object<td_api::toggleHasSponsoredMessagesEnabled>(as_bool(args)));
     } else if (op == "gtes") {
