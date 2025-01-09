@@ -31,7 +31,10 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&st
     title_ = std::move(star_gift->title_);
     slug_ = std::move(star_gift->slug_);
     num_ = star_gift->num_;
-    owner_user_id_ = UserId(star_gift->owner_id_);
+    DialogId owner_dialog_id(star_gift->owner_id_);
+    if (owner_dialog_id.get_type() == DialogType::User) {
+      owner_user_id_ = owner_dialog_id.get_user_id();
+    }
     owner_name_ = std::move(star_gift->owner_name_);
     unique_availability_issued_ = star_gift->availability_issued_;
     unique_availability_total_ = star_gift->availability_total_;

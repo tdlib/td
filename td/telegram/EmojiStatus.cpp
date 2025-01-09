@@ -35,7 +35,7 @@ struct EmojiStatuses {
 
   EmojiStatuses() = default;
 
-  explicit EmojiStatuses(tl_object_ptr<telegram_api::account_emojiStatuses> &&emoji_statuses) {
+  explicit EmojiStatuses(telegram_api::object_ptr<telegram_api::account_emojiStatuses> &&emoji_statuses) {
     CHECK(emoji_statuses != nullptr);
     hash_ = emoji_statuses->hash_;
     for (auto &status : emoji_statuses->statuses_) {
@@ -124,7 +124,7 @@ class GetDefaultEmojiStatusesQuery final : public Td::ResultHandler {
     }
 
     CHECK(emoji_statuses_ptr->get_id() == telegram_api::account_emojiStatuses::ID);
-    EmojiStatuses emoji_statuses(move_tl_object_as<telegram_api::account_emojiStatuses>(emoji_statuses_ptr));
+    EmojiStatuses emoji_statuses(telegram_api::move_object_as<telegram_api::account_emojiStatuses>(emoji_statuses_ptr));
     save_emoji_statuses(get_default_emoji_statuses_database_key(), emoji_statuses);
 
     if (promise_) {
@@ -166,7 +166,7 @@ class GetChannelDefaultEmojiStatusesQuery final : public Td::ResultHandler {
     }
 
     CHECK(emoji_statuses_ptr->get_id() == telegram_api::account_emojiStatuses::ID);
-    EmojiStatuses emoji_statuses(move_tl_object_as<telegram_api::account_emojiStatuses>(emoji_statuses_ptr));
+    EmojiStatuses emoji_statuses(telegram_api::move_object_as<telegram_api::account_emojiStatuses>(emoji_statuses_ptr));
     save_emoji_statuses(get_default_channel_emoji_statuses_database_key(), emoji_statuses);
 
     if (promise_) {
@@ -208,7 +208,7 @@ class GetRecentEmojiStatusesQuery final : public Td::ResultHandler {
     }
 
     CHECK(emoji_statuses_ptr->get_id() == telegram_api::account_emojiStatuses::ID);
-    EmojiStatuses emoji_statuses(move_tl_object_as<telegram_api::account_emojiStatuses>(emoji_statuses_ptr));
+    EmojiStatuses emoji_statuses(telegram_api::move_object_as<telegram_api::account_emojiStatuses>(emoji_statuses_ptr));
     save_emoji_statuses(get_recent_emoji_statuses_database_key(), emoji_statuses);
 
     if (promise_) {
@@ -263,7 +263,7 @@ EmojiStatus::EmojiStatus(const td_api::object_ptr<td_api::emojiStatus> &emoji_st
   }
 }
 
-EmojiStatus::EmojiStatus(tl_object_ptr<telegram_api::EmojiStatus> &&emoji_status) {
+EmojiStatus::EmojiStatus(telegram_api::object_ptr<telegram_api::EmojiStatus> &&emoji_status) {
   if (emoji_status == nullptr) {
     return;
   }
@@ -273,12 +273,11 @@ EmojiStatus::EmojiStatus(tl_object_ptr<telegram_api::EmojiStatus> &&emoji_status
     case telegram_api::emojiStatus::ID: {
       auto status = static_cast<const telegram_api::emojiStatus *>(emoji_status.get());
       custom_emoji_id_ = CustomEmojiId(status->document_id_);
+      until_date_ = status->until_;
       break;
     }
-    case telegram_api::emojiStatusUntil::ID: {
-      auto status = static_cast<const telegram_api::emojiStatusUntil *>(emoji_status.get());
-      custom_emoji_id_ = CustomEmojiId(status->document_id_);
-      until_date_ = status->until_;
+    case telegram_api::emojiStatusCollectible::ID: {
+      // auto status = static_cast<const telegram_api::emojiStatusCollectible *>(emoji_status.get());
       break;
     }
     default:
@@ -286,14 +285,15 @@ EmojiStatus::EmojiStatus(tl_object_ptr<telegram_api::EmojiStatus> &&emoji_status
   }
 }
 
-tl_object_ptr<telegram_api::EmojiStatus> EmojiStatus::get_input_emoji_status() const {
+telegram_api::object_ptr<telegram_api::EmojiStatus> EmojiStatus::get_input_emoji_status() const {
   if (is_empty()) {
-    return make_tl_object<telegram_api::emojiStatusEmpty>();
+    return telegram_api::make_object<telegram_api::emojiStatusEmpty>();
   }
+  int32 flags = 0;
   if (until_date_ != 0) {
-    return make_tl_object<telegram_api::emojiStatusUntil>(custom_emoji_id_.get(), until_date_);
+    flags |= telegram_api::emojiStatus::UNTIL_MASK;
   }
-  return make_tl_object<telegram_api::emojiStatus>(custom_emoji_id_.get());
+  return telegram_api::make_object<telegram_api::emojiStatus>(flags, custom_emoji_id_.get(), until_date_);
 }
 
 td_api::object_ptr<td_api::emojiStatus> EmojiStatus::get_emoji_status_object() const {

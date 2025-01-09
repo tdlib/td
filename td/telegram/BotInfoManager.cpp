@@ -969,7 +969,7 @@ telegram_api::object_ptr<telegram_api::InputMedia> BotInfoManager::get_fake_inpu
   switch (file_view.get_type()) {
     case FileType::VideoStory:
       return telegram_api::make_object<telegram_api::inputMediaDocument>(
-          0, false /*ignored*/, full_remote_location->as_input_document(), 0, string());
+          0, false /*ignored*/, full_remote_location->as_input_document(), nullptr, 0, 0, string());
     case FileType::PhotoStory:
       return telegram_api::make_object<telegram_api::inputMediaPhoto>(0, false /*ignored*/,
                                                                       full_remote_location->as_input_photo(), 0);

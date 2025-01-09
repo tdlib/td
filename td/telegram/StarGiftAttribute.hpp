@@ -65,16 +65,16 @@ void StarGiftAttributeBackdrop::parse(ParserT &parser) {
 template <class StorerT>
 void StarGiftAttributeOriginalDetails::store(StorerT &storer) const {
   CHECK(is_valid());
-  bool has_sender_user_id = sender_user_id_.is_valid();
+  bool has_sender_user_id = sender_dialog_id_.is_valid();
   bool has_message = !message_.text.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_sender_user_id);
   STORE_FLAG(has_message);
   END_STORE_FLAGS();
   if (has_sender_user_id) {
-    td::store(sender_user_id_, storer);
+    td::store(sender_dialog_id_.get_user_id(), storer);
   }
-  td::store(receiver_user_id_, storer);
+  td::store(receiver_dialog_id_.get_user_id(), storer);
   td::store(date_, storer);
   if (has_message) {
     td::store(message_, storer);
@@ -90,9 +90,13 @@ void StarGiftAttributeOriginalDetails::parse(ParserT &parser) {
   PARSE_FLAG(has_message);
   END_PARSE_FLAGS();
   if (has_sender_user_id) {
-    td::parse(sender_user_id_, parser);
+    UserId sender_user_id;
+    td::parse(sender_user_id, parser);
+    sender_dialog_id_ = DialogId(sender_user_id);
   }
-  td::parse(receiver_user_id_, parser);
+  UserId receiver_user_id;
+  td::parse(receiver_user_id, parser);
+  receiver_dialog_id_ = DialogId(receiver_user_id);
   td::parse(date_, parser);
   if (has_message) {
     td::parse(message_, parser);

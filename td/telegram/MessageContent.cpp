@@ -4178,7 +4178,7 @@ telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_fake_inpu
     }
     return telegram_api::make_object<telegram_api::inputMediaUploadedDocument>(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_file), nullptr, mime_type,
-        std::move(attributes), vector<telegram_api::object_ptr<telegram_api::InputDocument>>(), 0);
+        std::move(attributes), vector<telegram_api::object_ptr<telegram_api::InputDocument>>(), nullptr, 0, 0);
   } else {
     CHECK(file_type == FileType::Photo || file_type == FileType::PhotoStory ||
           file_type == FileType::SelfDestructingPhoto);

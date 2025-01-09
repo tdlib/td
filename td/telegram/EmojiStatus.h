@@ -32,9 +32,9 @@ class EmojiStatus {
 
   explicit EmojiStatus(const td_api::object_ptr<td_api::emojiStatus> &emoji_status);
 
-  explicit EmojiStatus(tl_object_ptr<telegram_api::EmojiStatus> &&emoji_status);
+  explicit EmojiStatus(telegram_api::object_ptr<telegram_api::EmojiStatus> &&emoji_status);
 
-  tl_object_ptr<telegram_api::EmojiStatus> get_input_emoji_status() const;
+  telegram_api::object_ptr<telegram_api::EmojiStatus> get_input_emoji_status() const;
 
   td_api::object_ptr<td_api::emojiStatus> get_emoji_status_object() const;
 

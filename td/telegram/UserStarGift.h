@@ -20,7 +20,7 @@ namespace td {
 class Td;
 
 class UserStarGift {
-  UserId sender_user_id_;
+  DialogId sender_dialog_id_;
   StarGift gift_;
   FormattedText message_;
   MessageId message_id_;
@@ -36,10 +36,10 @@ class UserStarGift {
   bool was_refunded_ = false;
 
  public:
-  UserStarGift(Td *td, telegram_api::object_ptr<telegram_api::userStarGift> &&gift, bool is_me);
+  UserStarGift(Td *td, telegram_api::object_ptr<telegram_api::savedStarGift> &&gift, bool is_me);
 
   bool is_valid() const {
-    return gift_.is_valid() && (is_name_hidden_ || sender_user_id_ != UserId());
+    return gift_.is_valid() && (is_name_hidden_ || sender_dialog_id_ != DialogId());
   }
 
   td_api::object_ptr<td_api::userGift> get_user_gift_object(Td *td) const;
