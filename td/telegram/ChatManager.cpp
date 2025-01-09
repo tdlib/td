@@ -16,6 +16,7 @@
 #include "td/telegram/DialogLocation.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/DialogParticipantManager.h"
+#include "td/telegram/EmojiStatus.h"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/FolderId.h"
@@ -386,12 +387,13 @@ class UpdateChannelEmojiStatusQuery final : public Td::ResultHandler {
   explicit UpdateChannelEmojiStatusQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, const EmojiStatus &emoji_status) {
+  void send(ChannelId channel_id, const unique_ptr<EmojiStatus> &emoji_status) {
     channel_id_ = channel_id;
     auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     send_query(G()->net_query_creator().create(
-        telegram_api::channels_updateEmojiStatus(std::move(input_channel), emoji_status.get_input_emoji_status()),
+        telegram_api::channels_updateEmojiStatus(std::move(input_channel),
+                                                 EmojiStatus::get_input_emoji_status(emoji_status)),
         {{channel_id}}));
   }
 
@@ -1935,7 +1937,7 @@ void ChatManager::Channel::store(StorerT &storer) const {
   bool has_profile_accent_color_id = profile_accent_color_id.is_valid();
   bool has_profile_background_custom_emoji_id = profile_background_custom_emoji_id.is_valid();
   bool has_boost_level = boost_level != 0;
-  bool has_emoji_status = !emoji_status.is_empty();
+  bool has_emoji_status = emoji_status != nullptr;
   bool has_bot_verification_icon = bot_verification_icon.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(false);
@@ -2811,10 +2813,10 @@ td_api::object_ptr<td_api::emojiStatus> ChatManager::get_chat_emoji_status_objec
 
 td_api::object_ptr<td_api::emojiStatus> ChatManager::get_channel_emoji_status_object(ChannelId channel_id) const {
   auto c = get_channel(channel_id);
-  if (c == nullptr) {
+  if (c == nullptr || c->last_sent_emoji_status == nullptr) {
     return nullptr;
   }
-  return c->last_sent_emoji_status.get_emoji_status_object();
+  return c->last_sent_emoji_status->get_emoji_status_object();
 }
 
 bool ChatManager::get_chat_has_protected_content(ChatId chat_id) const {
@@ -3038,7 +3040,7 @@ void ChatManager::set_channel_profile_accent_color(ChannelId channel_id, AccentC
       ->send(channel_id, true, profile_accent_color_id, profile_background_custom_emoji_id);
 }
 
-void ChatManager::set_channel_emoji_status(ChannelId channel_id, const EmojiStatus &emoji_status,
+void ChatManager::set_channel_emoji_status(ChannelId channel_id, const unique_ptr<EmojiStatus> &emoji_status,
                                            Promise<Unit> &&promise) {
   const auto *c = get_channel(channel_id);
   if (c == nullptr) {
@@ -3048,7 +3050,9 @@ void ChatManager::set_channel_emoji_status(ChannelId channel_id, const EmojiStat
     return promise.set_error(Status::Error(400, "Not enough rights in the chat"));
   }
 
-  add_recent_emoji_status(td_, emoji_status);
+  if (emoji_status != nullptr) {
+    add_recent_emoji_status(td_, *emoji_status);
+  }
 
   td_->create_handler<UpdateChannelEmojiStatusQuery>(std::move(promise))->send(channel_id, emoji_status);
 }
@@ -4992,14 +4996,14 @@ void ChatManager::update_channel(Channel *c, ChannelId channel_id, bool from_bin
     c->is_stories_hidden_changed = false;
   }
   auto unix_time = G()->unix_time();
-  auto effective_emoji_status = c->emoji_status.get_effective_emoji_status(true, unix_time);
+  auto effective_emoji_status = EmojiStatus::get_effective_emoji_status(c->emoji_status, true, unix_time);
   if (effective_emoji_status != c->last_sent_emoji_status) {
-    if (!c->last_sent_emoji_status.is_empty()) {
+    if (c->last_sent_emoji_status != nullptr) {
       channel_emoji_status_timeout_.cancel_timeout(channel_id.get());
     }
-    c->last_sent_emoji_status = effective_emoji_status;
-    if (!c->last_sent_emoji_status.is_empty()) {
-      auto until_date = c->last_sent_emoji_status.get_until_date();
+    c->last_sent_emoji_status = std::move(effective_emoji_status);
+    if (c->last_sent_emoji_status != nullptr) {
+      auto until_date = c->last_sent_emoji_status->get_until_date();
       auto left_time = until_date - unix_time;
       if (left_time >= 0 && left_time < 30 * 86400) {
         channel_emoji_status_timeout_.set_timeout_in(channel_id.get(), left_time);
@@ -6913,7 +6917,8 @@ void ChatManager::on_update_channel_photo(Channel *c, ChannelId channel_id, Dial
   }
 }
 
-void ChatManager::on_update_channel_emoji_status(Channel *c, ChannelId channel_id, EmojiStatus emoji_status) {
+void ChatManager::on_update_channel_emoji_status(Channel *c, ChannelId channel_id,
+                                                 unique_ptr<EmojiStatus> emoji_status) {
   if (c->emoji_status != emoji_status) {
     LOG(DEBUG) << "Change emoji status of " << channel_id << " from " << c->emoji_status << " to " << emoji_status;
     c->emoji_status = std::move(emoji_status);
@@ -8498,7 +8503,7 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
       }
       on_update_channel_has_location(c, channel_id, channel.has_geo_);
       on_update_channel_noforwards(c, channel_id, channel.noforwards_);
-      on_update_channel_emoji_status(c, channel_id, EmojiStatus(std::move(channel.emoji_status_)));
+      on_update_channel_emoji_status(c, channel_id, EmojiStatus::get_emoji_status(std::move(channel.emoji_status_)));
 
       if (c->has_linked_channel != has_linked_channel || c->is_slow_mode_enabled != is_slow_mode_enabled ||
           c->is_megagroup != is_megagroup || c->is_scam != is_scam || c->is_fake != is_fake ||
@@ -8673,7 +8678,7 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
                 std::move(channel.usernames_)));  // uses status, must be called after on_update_channel_status
   on_update_channel_has_location(c, channel_id, channel.has_geo_);
   on_update_channel_noforwards(c, channel_id, channel.noforwards_);
-  on_update_channel_emoji_status(c, channel_id, EmojiStatus(std::move(channel.emoji_status_)));
+  on_update_channel_emoji_status(c, channel_id, EmojiStatus::get_emoji_status(std::move(channel.emoji_status_)));
   if (!td_->auth_manager_->is_bot() && !channel.stories_hidden_min_) {
     on_update_channel_stories_hidden(c, channel_id, channel.stories_hidden_);
   }
@@ -8802,7 +8807,7 @@ void ChatManager::on_get_channel_forbidden(telegram_api::channelForbidden &chann
   // on_update_channel_usernames(c, channel_id, Usernames());  // don't know if channel usernames are empty, so don't update it
   // on_update_channel_has_location(c, channel_id, false);
   on_update_channel_noforwards(c, channel_id, false);
-  on_update_channel_emoji_status(c, channel_id, EmojiStatus());
+  on_update_channel_emoji_status(c, channel_id, nullptr);
   on_update_channel_bot_verification_icon(c, channel_id, CustomEmojiId());
   td_->messages_manager_->on_update_dialog_group_call(DialogId(channel_id), false, false, "on_get_channel_forbidden");
   // must be after setting of c->is_megagroup

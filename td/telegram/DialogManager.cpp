@@ -2331,7 +2331,7 @@ void DialogManager::set_dialog_permissions(DialogId dialog_id,
   td_->create_handler<EditChatDefaultBannedRightsQuery>(std::move(promise))->send(dialog_id, new_permissions);
 }
 
-void DialogManager::set_dialog_emoji_status(DialogId dialog_id, const EmojiStatus &emoji_status,
+void DialogManager::set_dialog_emoji_status(DialogId dialog_id, const unique_ptr<EmojiStatus> &emoji_status,
                                             Promise<Unit> &&promise) {
   if (!have_dialog_force(dialog_id, "set_dialog_emoji_status")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
@@ -2340,7 +2340,7 @@ void DialogManager::set_dialog_emoji_status(DialogId dialog_id, const EmojiStatu
   switch (dialog_id.get_type()) {
     case DialogType::User:
       if (dialog_id == get_my_dialog_id()) {
-        return td_->user_manager_->set_emoji_status(make_unique<EmojiStatus>(emoji_status), std::move(promise));
+        return td_->user_manager_->set_emoji_status(emoji_status, std::move(promise));
       }
       break;
     case DialogType::Chat:

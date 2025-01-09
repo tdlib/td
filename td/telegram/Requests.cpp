@@ -4774,8 +4774,8 @@ void Requests::on_request(uint64 id, const td_api::setChatMessageAutoDeleteTime 
 void Requests::on_request(uint64 id, const td_api::setChatEmojiStatus &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  td_->dialog_manager_->set_dialog_emoji_status(DialogId(request.chat_id_), EmojiStatus(request.emoji_status_),
-                                                std::move(promise));
+  td_->dialog_manager_->set_dialog_emoji_status(
+      DialogId(request.chat_id_), EmojiStatus::get_emoji_status(request.emoji_status_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::setChatPermissions &request) {

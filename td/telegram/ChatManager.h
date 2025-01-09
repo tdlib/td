@@ -17,7 +17,6 @@
 #include "td/telegram/DialogInviteLink.h"
 #include "td/telegram/DialogLocation.h"
 #include "td/telegram/DialogParticipant.h"
-#include "td/telegram/EmojiStatus.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/MessageFullId.h"
@@ -55,6 +54,7 @@ namespace td {
 
 struct BinlogEvent;
 class BotVerification;
+class EmojiStatus;
 struct MinChannel;
 class Td;
 
@@ -236,7 +236,8 @@ class ChatManager final : public Actor {
   void set_channel_profile_accent_color(ChannelId channel_id, AccentColorId profile_accent_color_id,
                                         CustomEmojiId profile_background_custom_emoji_id, Promise<Unit> &&promise);
 
-  void set_channel_emoji_status(ChannelId channel_id, const EmojiStatus &emoji_status, Promise<Unit> &&promise);
+  void set_channel_emoji_status(ChannelId channel_id, const unique_ptr<EmojiStatus> &emoji_status,
+                                Promise<Unit> &&promise);
 
   void set_channel_sticker_set(ChannelId channel_id, StickerSetId sticker_set_id, Promise<Unit> &&promise);
 
@@ -468,8 +469,8 @@ class ChatManager final : public Actor {
     int64 access_hash = 0;
     string title;
     DialogPhoto photo;
-    EmojiStatus emoji_status;
-    EmojiStatus last_sent_emoji_status;
+    unique_ptr<EmojiStatus> emoji_status;
+    unique_ptr<EmojiStatus> last_sent_emoji_status;
     AccentColorId accent_color_id;
     CustomEmojiId background_custom_emoji_id;
     AccentColorId profile_accent_color_id;
@@ -736,7 +737,7 @@ class ChatManager final : public Actor {
   void on_update_channel_photo(Channel *c, ChannelId channel_id,
                                tl_object_ptr<telegram_api::ChatPhoto> &&chat_photo_ptr);
   void on_update_channel_photo(Channel *c, ChannelId channel_id, DialogPhoto &&photo, bool invalidate_photo_cache);
-  void on_update_channel_emoji_status(Channel *c, ChannelId channel_id, EmojiStatus emoji_status);
+  void on_update_channel_emoji_status(Channel *c, ChannelId channel_id, unique_ptr<EmojiStatus> emoji_status);
   void on_update_channel_accent_color_id(Channel *c, ChannelId channel_id, AccentColorId accent_color_id);
   void on_update_channel_background_custom_emoji_id(Channel *c, ChannelId channel_id,
                                                     CustomEmojiId background_custom_emoji_id);
