@@ -1036,14 +1036,18 @@ upgradedGiftModel name:string sticker:sticker rarity_per_mille:int32 = UpgradedG
 //@rarity_per_mille The number of upgraded gift that receive this symbol for each 1000 gifts upgraded
 upgradedGiftSymbol name:string sticker:sticker rarity_per_mille:int32 = UpgradedGiftSymbol;
 
-//@description Describes a backdrop of an upgraded gift
-//@name Name of the backdrop
+//@description Describes colors of a backdrop of an upgraded gift
 //@center_color A color in the center of the backdrop in the RGB format
 //@edge_color A color on the edges of the backdrop in the RGB format
 //@symbol_color A color to be applied for the symbol in the RGB format
 //@text_color A color for the text on the backdrop in the RGB format
+upgradedGiftBackdropColors center_color:int32 edge_color:int32 symbol_color:int32 text_color:int32 = UpgradedGiftBackdropColors;
+
+//@description Describes a backdrop of an upgraded gift
+//@name Name of the backdrop
+//@colors Colors of the backdrop
 //@rarity_per_mille The number of upgraded gift that receive this backdrop for each 1000 gifts upgraded
-upgradedGiftBackdrop name:string center_color:int32 edge_color:int32 symbol_color:int32 text_color:int32 rarity_per_mille:int32 = UpgradedGiftBackdrop;
+upgradedGiftBackdrop name:string colors:upgradedGiftBackdropColors rarity_per_mille:int32 = UpgradedGiftBackdrop;
 
 //@description Describes the original details about the gift
 //@sender_user_id Identifier of the user that sent the gift; 0 if the gift was private

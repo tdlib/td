@@ -65,8 +65,10 @@ StarGiftAttributeBackdrop::StarGiftAttributeBackdrop(
 
 td_api::object_ptr<td_api::upgradedGiftBackdrop> StarGiftAttributeBackdrop::get_upgraded_gift_backdrop_object() const {
   CHECK(is_valid());
-  return td_api::make_object<td_api::upgradedGiftBackdrop>(name_, center_color_, edge_color_, pattern_color_,
-                                                           text_color_, rarity_permille_);
+  return td_api::make_object<td_api::upgradedGiftBackdrop>(
+      name_,
+      td_api::make_object<td_api::upgradedGiftBackdropColors>(center_color_, edge_color_, pattern_color_, text_color_),
+      rarity_permille_);
 }
 
 bool operator==(const StarGiftAttributeBackdrop &lhs, const StarGiftAttributeBackdrop &rhs) {
