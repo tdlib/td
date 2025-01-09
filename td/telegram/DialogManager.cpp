@@ -2340,7 +2340,7 @@ void DialogManager::set_dialog_emoji_status(DialogId dialog_id, const EmojiStatu
   switch (dialog_id.get_type()) {
     case DialogType::User:
       if (dialog_id == get_my_dialog_id()) {
-        return td_->user_manager_->set_emoji_status(emoji_status, std::move(promise));
+        return td_->user_manager_->set_emoji_status(make_unique<EmojiStatus>(emoji_status), std::move(promise));
       }
       break;
     case DialogType::Chat:

@@ -263,6 +263,17 @@ EmojiStatus::EmojiStatus(const td_api::object_ptr<td_api::emojiStatus> &emoji_st
   }
 }
 
+unique_ptr<EmojiStatus> EmojiStatus::get_emoji_status(const td_api::object_ptr<td_api::emojiStatus> &emoji_status) {
+  if (emoji_status == nullptr) {
+    return nullptr;
+  }
+  auto result = make_unique<EmojiStatus>(emoji_status);
+  if (result->is_empty()) {
+    return nullptr;
+  }
+  return result;
+}
+
 EmojiStatus::EmojiStatus(telegram_api::object_ptr<telegram_api::EmojiStatus> &&emoji_status) {
   if (emoji_status == nullptr) {
     return;
@@ -285,6 +296,25 @@ EmojiStatus::EmojiStatus(telegram_api::object_ptr<telegram_api::EmojiStatus> &&e
   }
 }
 
+unique_ptr<EmojiStatus> EmojiStatus::get_emoji_status(
+    telegram_api::object_ptr<telegram_api::EmojiStatus> &&emoji_status) {
+  if (emoji_status == nullptr) {
+    return nullptr;
+  }
+  auto result = make_unique<EmojiStatus>(std::move(emoji_status));
+  if (result->is_empty()) {
+    return nullptr;
+  }
+  return result;
+}
+
+unique_ptr<EmojiStatus> EmojiStatus::clone_emoji_status(const unique_ptr<EmojiStatus> &emoji_status) {
+  if (emoji_status == nullptr) {
+    return nullptr;
+  }
+  return make_unique<EmojiStatus>(*emoji_status);
+}
+
 telegram_api::object_ptr<telegram_api::EmojiStatus> EmojiStatus::get_input_emoji_status() const {
   if (is_empty()) {
     return telegram_api::make_object<telegram_api::emojiStatusEmpty>();
@@ -296,11 +326,27 @@ telegram_api::object_ptr<telegram_api::EmojiStatus> EmojiStatus::get_input_emoji
   return telegram_api::make_object<telegram_api::emojiStatus>(flags, custom_emoji_id_.get(), until_date_);
 }
 
+telegram_api::object_ptr<telegram_api::EmojiStatus> EmojiStatus::get_input_emoji_status(
+    const unique_ptr<EmojiStatus> &emoji_status) {
+  if (emoji_status == nullptr) {
+    return telegram_api::make_object<telegram_api::emojiStatusEmpty>();
+  }
+  return emoji_status->get_input_emoji_status();
+}
+
 td_api::object_ptr<td_api::emojiStatus> EmojiStatus::get_emoji_status_object() const {
   if (is_empty()) {
     return nullptr;
   }
   return td_api::make_object<td_api::emojiStatus>(custom_emoji_id_.get(), until_date_);
+}
+
+td_api::object_ptr<td_api::emojiStatus> EmojiStatus::get_emoji_status_object(
+    const unique_ptr<EmojiStatus> &emoji_status) {
+  if (emoji_status == nullptr) {
+    return nullptr;
+  }
+  return emoji_status->get_emoji_status_object();
 }
 
 EmojiStatus EmojiStatus::get_effective_emoji_status(bool is_premium, int32 unix_time) const {
@@ -313,6 +359,28 @@ EmojiStatus EmojiStatus::get_effective_emoji_status(bool is_premium, int32 unix_
   return *this;
 }
 
+unique_ptr<EmojiStatus> EmojiStatus::get_effective_emoji_status(const unique_ptr<EmojiStatus> &emoji_status,
+                                                                bool is_premium, int32 unix_time) {
+  if (emoji_status == nullptr) {
+    return nullptr;
+  }
+  return make_unique<EmojiStatus>(emoji_status->get_effective_emoji_status(is_premium, unix_time));
+}
+
+bool operator==(const EmojiStatus &lhs, const EmojiStatus &rhs) {
+  return lhs.custom_emoji_id_ == rhs.custom_emoji_id_ && lhs.until_date_ == rhs.until_date_;
+}
+
+bool operator==(const unique_ptr<EmojiStatus> &lhs, const unique_ptr<EmojiStatus> &rhs) {
+  if (lhs == nullptr) {
+    return rhs == nullptr;
+  }
+  if (rhs == nullptr) {
+    return false;
+  }
+  return *lhs == *rhs;
+}
+
 StringBuilder &operator<<(StringBuilder &string_builder, const EmojiStatus &emoji_status) {
   if (emoji_status.is_empty()) {
     return string_builder << "DefaultProfileBadge";
@@ -322,6 +390,13 @@ StringBuilder &operator<<(StringBuilder &string_builder, const EmojiStatus &emoj
     string_builder << " until " << emoji_status.until_date_;
   }
   return string_builder;
+}
+
+StringBuilder &operator<<(StringBuilder &string_builder, const unique_ptr<EmojiStatus> &emoji_status) {
+  if (emoji_status == nullptr) {
+    return string_builder << "DefaultProfileBadge";
+  }
+  return string_builder << *emoji_status;
 }
 
 td_api::object_ptr<td_api::emojiStatuses> get_emoji_statuses_object(const vector<CustomEmojiId> &custom_emoji_ids) {

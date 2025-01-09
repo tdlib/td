@@ -30,6 +30,7 @@
 #include "td/telegram/DialogParticipantManager.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
+#include "td/telegram/EmojiStatus.h"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
@@ -888,20 +889,17 @@ class ToggleUserEmojiStatusPermissionQuery final : public Td::ResultHandler {
 
 class UpdateUserEmojiStatusQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
-  UserId user_id_;
-  EmojiStatus emoji_status_;
 
  public:
   explicit UpdateUserEmojiStatusQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(UserId user_id, telegram_api::object_ptr<telegram_api::InputUser> &&input_user,
-            const EmojiStatus &emoji_status) {
-    user_id_ = user_id;
-    emoji_status_ = emoji_status;
-    send_query(G()->net_query_creator().create(
-        telegram_api::bots_updateUserEmojiStatus(std::move(input_user), emoji_status.get_input_emoji_status()),
-        {{DialogId(user_id)}}));
+            const unique_ptr<EmojiStatus> &emoji_status) {
+    send_query(
+        G()->net_query_creator().create(telegram_api::bots_updateUserEmojiStatus(
+                                            std::move(input_user), EmojiStatus::get_input_emoji_status(emoji_status)),
+                                        {{DialogId(user_id)}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1201,9 +1199,9 @@ class UpdateEmojiStatusQuery final : public Td::ResultHandler {
   explicit UpdateEmojiStatusQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(const EmojiStatus &emoji_status) {
+  void send(const unique_ptr<EmojiStatus> &emoji_status) {
     send_query(G()->net_query_creator().create(
-        telegram_api::account_updateEmojiStatus(emoji_status.get_input_emoji_status()), {{"me"}}));
+        telegram_api::account_updateEmojiStatus(EmojiStatus::get_input_emoji_status(emoji_status)), {{"me"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1432,7 +1430,7 @@ void UserManager::User::store(StorerT &storer) const {
   bool has_cache_version = cache_version != 0;
   bool has_is_contact = true;
   bool has_restriction_reasons = !restriction_reasons.empty();
-  bool has_emoji_status = !emoji_status.is_empty();
+  bool has_emoji_status = emoji_status != nullptr;
   bool has_usernames = !usernames.is_empty();
   bool has_flags2 = true;
   bool has_max_active_story_id = max_active_story_id.is_valid();
@@ -2746,7 +2744,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
     on_update_user_name(u, user_id, std::move(user->first_name_), std::move(user->last_name_));
     on_update_user_usernames(u, user_id, Usernames{std::move(user->username_), std::move(user->usernames_)});
   }
-  on_update_user_emoji_status(u, user_id, EmojiStatus(std::move(user->emoji_status_)));
+  on_update_user_emoji_status(u, user_id, EmojiStatus::get_emoji_status(std::move(user->emoji_status_)));
   PeerColor peer_color(user->color_);
   on_update_user_accent_color_id(u, user_id, peer_color.accent_color_id_);
   on_update_user_background_custom_emoji_id(u, user_id, peer_color.background_custom_emoji_id_);
@@ -3099,14 +3097,14 @@ void UserManager::on_update_user_emoji_status(UserId user_id,
 
   User *u = get_user_force(user_id, "on_update_user_emoji_status");
   if (u != nullptr) {
-    on_update_user_emoji_status(u, user_id, EmojiStatus(std::move(emoji_status)));
+    on_update_user_emoji_status(u, user_id, EmojiStatus::get_emoji_status(std::move(emoji_status)));
     update_user(u, user_id);
   } else {
     LOG(INFO) << "Ignore update user emoji status about unknown " << user_id;
   }
 }
 
-void UserManager::on_update_user_emoji_status(User *u, UserId user_id, EmojiStatus emoji_status) {
+void UserManager::on_update_user_emoji_status(User *u, UserId user_id, unique_ptr<EmojiStatus> emoji_status) {
   if (u->emoji_status != emoji_status) {
     LOG(DEBUG) << "Change emoji status of " << user_id << " from " << u->emoji_status << " to " << emoji_status;
     u->emoji_status = std::move(emoji_status);
@@ -4671,10 +4669,10 @@ RestrictedRights UserManager::get_secret_chat_default_permissions(SecretChatId s
 
 td_api::object_ptr<td_api::emojiStatus> UserManager::get_user_emoji_status_object(UserId user_id) const {
   auto u = get_user(user_id);
-  if (u == nullptr) {
+  if (u == nullptr || u->last_sent_emoji_status == nullptr) {
     return nullptr;
   }
-  return u->last_sent_emoji_status.get_emoji_status_object();
+  return u->last_sent_emoji_status->get_emoji_status_object();
 }
 
 td_api::object_ptr<td_api::emojiStatus> UserManager::get_secret_chat_emoji_status_object(
@@ -5416,16 +5414,18 @@ void UserManager::toggle_user_can_manage_emoji_status(UserId user_id, bool can_m
       ->send(user_id, std::move(input_user), can_manage_emoji_status);
 }
 
-void UserManager::set_user_emoji_status(UserId user_id, const EmojiStatus &emoji_status, Promise<Unit> &&promise) {
+void UserManager::set_user_emoji_status(UserId user_id, const unique_ptr<EmojiStatus> &emoji_status,
+                                        Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, get_input_user(user_id));
   td_->create_handler<UpdateUserEmojiStatusQuery>(std::move(promise))
       ->send(user_id, std::move(input_user), emoji_status);
 }
 
-void UserManager::on_set_user_emoji_status(UserId user_id, EmojiStatus emoji_status, Promise<Unit> &&promise) {
+void UserManager::on_set_user_emoji_status(UserId user_id, unique_ptr<EmojiStatus> emoji_status,
+                                           Promise<Unit> &&promise) {
   User *u = get_user(user_id);
   if (u != nullptr) {
-    on_update_user_emoji_status(u, user_id, emoji_status);
+    on_update_user_emoji_status(u, user_id, std::move(emoji_status));
     update_user(u, user_id);
   }
   promise.set_value(Unit());
@@ -5629,15 +5629,18 @@ void UserManager::on_set_personal_channel(ChannelId channel_id, Promise<Unit> &&
   promise.set_value(Unit());
 }
 
-void UserManager::set_emoji_status(const EmojiStatus &emoji_status, Promise<Unit> &&promise) {
+void UserManager::set_emoji_status(const unique_ptr<EmojiStatus> &emoji_status, Promise<Unit> &&promise) {
   if (!td_->option_manager_->get_option_boolean("is_premium")) {
     return promise.set_error(Status::Error(400, "The method is available only to Telegram Premium users"));
   }
-  add_recent_emoji_status(td_, emoji_status);
-  auto query_promise = PromiseCreator::lambda(
-      [actor_id = actor_id(this), emoji_status, promise = std::move(promise)](Result<Unit> result) mutable {
+  if (emoji_status != nullptr) {
+    add_recent_emoji_status(td_, *emoji_status);
+  }
+  auto query_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), emoji_status = EmojiStatus::clone_emoji_status(emoji_status),
+                              promise = std::move(promise)](Result<Unit> result) mutable {
         if (result.is_ok()) {
-          send_closure(actor_id, &UserManager::on_set_emoji_status, emoji_status, std::move(promise));
+          send_closure(actor_id, &UserManager::on_set_emoji_status, std::move(emoji_status), std::move(promise));
         } else {
           promise.set_error(result.move_as_error());
         }
@@ -5645,11 +5648,11 @@ void UserManager::set_emoji_status(const EmojiStatus &emoji_status, Promise<Unit
   td_->create_handler<UpdateEmojiStatusQuery>(std::move(query_promise))->send(emoji_status);
 }
 
-void UserManager::on_set_emoji_status(EmojiStatus emoji_status, Promise<Unit> &&promise) {
+void UserManager::on_set_emoji_status(unique_ptr<EmojiStatus> emoji_status, Promise<Unit> &&promise) {
   auto user_id = get_my_id();
   User *u = get_user(user_id);
   if (u != nullptr) {
-    on_update_user_emoji_status(u, user_id, emoji_status);
+    on_update_user_emoji_status(u, user_id, std::move(emoji_status));
     update_user(u, user_id);
   }
   promise.set_value(Unit());
@@ -8053,14 +8056,14 @@ void UserManager::update_user(User *u, UserId user_id, bool from_binlog, bool fr
     }
   }
 
-  auto effective_emoji_status = u->emoji_status.get_effective_emoji_status(u->is_premium, unix_time);
+  auto effective_emoji_status = EmojiStatus::get_effective_emoji_status(u->emoji_status, u->is_premium, unix_time);
   if (effective_emoji_status != u->last_sent_emoji_status) {
-    if (!u->last_sent_emoji_status.is_empty()) {
+    if (u->last_sent_emoji_status != nullptr) {
       user_emoji_status_timeout_.cancel_timeout(user_id.get());
     }
-    u->last_sent_emoji_status = effective_emoji_status;
-    if (!u->last_sent_emoji_status.is_empty()) {
-      auto until_date = u->last_sent_emoji_status.get_until_date();
+    u->last_sent_emoji_status = std::move(effective_emoji_status);
+    if (u->last_sent_emoji_status != nullptr) {
+      auto until_date = u->last_sent_emoji_status->get_until_date();
       auto left_time = until_date - unix_time;
       if (left_time >= 0 && left_time < 30 * 86400) {
         user_emoji_status_timeout_.set_timeout_in(user_id.get(), left_time);
@@ -8357,7 +8360,7 @@ td_api::object_ptr<td_api::user> UserManager::get_user_object(UserId user_id, co
     type = td_api::make_object<td_api::userTypeRegular>();
   }
 
-  auto emoji_status = u->last_sent_emoji_status.get_emoji_status_object();
+  auto emoji_status = EmojiStatus::get_emoji_status_object(u->last_sent_emoji_status);
   auto verification_status =
       get_verification_status_object(td_, u->is_verified, u->is_scam, u->is_fake, u->bot_verification_icon);
   auto have_access = user_id == get_my_id() || have_input_peer_user(u, user_id, AccessRights::Know);

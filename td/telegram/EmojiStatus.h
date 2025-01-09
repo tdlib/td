@@ -32,13 +32,27 @@ class EmojiStatus {
 
   explicit EmojiStatus(const td_api::object_ptr<td_api::emojiStatus> &emoji_status);
 
+  static unique_ptr<EmojiStatus> get_emoji_status(const td_api::object_ptr<td_api::emojiStatus> &emoji_status);
+
   explicit EmojiStatus(telegram_api::object_ptr<telegram_api::EmojiStatus> &&emoji_status);
+
+  static unique_ptr<EmojiStatus> get_emoji_status(telegram_api::object_ptr<telegram_api::EmojiStatus> &&emoji_status);
+
+  static unique_ptr<EmojiStatus> clone_emoji_status(const unique_ptr<EmojiStatus> &emoji_status);
 
   telegram_api::object_ptr<telegram_api::EmojiStatus> get_input_emoji_status() const;
 
+  static telegram_api::object_ptr<telegram_api::EmojiStatus> get_input_emoji_status(
+      const unique_ptr<EmojiStatus> &emoji_status);
+
   td_api::object_ptr<td_api::emojiStatus> get_emoji_status_object() const;
 
+  static td_api::object_ptr<td_api::emojiStatus> get_emoji_status_object(const unique_ptr<EmojiStatus> &emoji_status);
+
   EmojiStatus get_effective_emoji_status(bool is_premium, int32 unix_time) const;
+
+  static unique_ptr<EmojiStatus> get_effective_emoji_status(const unique_ptr<EmojiStatus> &emoji_status,
+                                                            bool is_premium, int32 unix_time);
 
   bool is_empty() const {
     return !custom_emoji_id_.is_valid();
@@ -89,15 +103,21 @@ class EmojiStatus {
   }
 };
 
-inline bool operator==(const EmojiStatus &lhs, const EmojiStatus &rhs) {
-  return lhs.custom_emoji_id_ == rhs.custom_emoji_id_ && lhs.until_date_ == rhs.until_date_;
-}
+bool operator==(const EmojiStatus &lhs, const EmojiStatus &rhs);
 
 inline bool operator!=(const EmojiStatus &lhs, const EmojiStatus &rhs) {
   return !(lhs == rhs);
 }
 
+bool operator==(const unique_ptr<EmojiStatus> &lhs, const unique_ptr<EmojiStatus> &rhs);
+
+inline bool operator!=(const unique_ptr<EmojiStatus> &lhs, const unique_ptr<EmojiStatus> &rhs) {
+  return !(lhs == rhs);
+}
+
 StringBuilder &operator<<(StringBuilder &string_builder, const EmojiStatus &emoji_status);
+
+StringBuilder &operator<<(StringBuilder &string_builder, const unique_ptr<EmojiStatus> &emoji_status);
 
 td_api::object_ptr<td_api::emojiStatuses> get_emoji_statuses_object(const vector<CustomEmojiId> &custom_emoji_ids);
 

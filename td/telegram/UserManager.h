@@ -18,7 +18,6 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogLocation.h"
 #include "td/telegram/DialogParticipant.h"
-#include "td/telegram/EmojiStatus.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/files/FileUploadId.h"
@@ -65,6 +64,7 @@ class BusinessGreetingMessage;
 class BusinessInfo;
 class BusinessIntro;
 class BusinessWorkHours;
+class EmojiStatus;
 class Td;
 
 class UserManager final : public Actor {
@@ -350,9 +350,9 @@ class UserManager final : public Actor {
 
   void toggle_user_can_manage_emoji_status(UserId user_id, bool can_manage_emoji_status, Promise<Unit> &&promise);
 
-  void set_user_emoji_status(UserId user_id, const EmojiStatus &emoji_status, Promise<Unit> &&promise);
+  void set_user_emoji_status(UserId user_id, const unique_ptr<EmojiStatus> &emoji_status, Promise<Unit> &&promise);
 
-  void on_set_user_emoji_status(UserId user_id, EmojiStatus emoji_status, Promise<Unit> &&promise);
+  void on_set_user_emoji_status(UserId user_id, unique_ptr<EmojiStatus> emoji_status, Promise<Unit> &&promise);
 
   void set_username(const string &username, Promise<Unit> &&promise);
 
@@ -381,7 +381,7 @@ class UserManager final : public Actor {
 
   void set_personal_channel(DialogId dialog_id, Promise<Unit> &&promise);
 
-  void set_emoji_status(const EmojiStatus &emoji_status, Promise<Unit> &&promise);
+  void set_emoji_status(const unique_ptr<EmojiStatus> &emoji_status, Promise<Unit> &&promise);
 
   void toggle_sponsored_messages(bool sponsored_enabled, Promise<Unit> &&promise);
 
@@ -504,8 +504,8 @@ class UserManager final : public Actor {
     Usernames usernames;
     string phone_number;
     int64 access_hash = -1;
-    EmojiStatus emoji_status;
-    EmojiStatus last_sent_emoji_status;
+    unique_ptr<EmojiStatus> emoji_status;
+    unique_ptr<EmojiStatus> last_sent_emoji_status;
 
     ProfilePhoto photo;
 
@@ -854,7 +854,7 @@ class UserManager final : public Actor {
   void on_update_user_profile_background_custom_emoji_id(User *u, UserId user_id,
                                                          CustomEmojiId background_custom_emoji_id);
 
-  void on_update_user_emoji_status(User *u, UserId user_id, EmojiStatus emoji_status);
+  void on_update_user_emoji_status(User *u, UserId user_id, unique_ptr<EmojiStatus> emoji_status);
 
   void on_update_user_story_ids_impl(User *u, UserId user_id, StoryId max_active_story_id, StoryId max_read_story_id);
 
@@ -943,7 +943,7 @@ class UserManager final : public Actor {
 
   void on_set_personal_channel(ChannelId channel_id, Promise<Unit> &&promise);
 
-  void on_set_emoji_status(EmojiStatus emoji_status, Promise<Unit> &&promise);
+  void on_set_emoji_status(unique_ptr<EmojiStatus> emoji_status, Promise<Unit> &&promise);
 
   void on_toggle_sponsored_messages(bool sponsored_enabled, Promise<Unit> &&promise);
 

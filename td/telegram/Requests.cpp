@@ -5612,8 +5612,8 @@ void Requests::on_request(uint64 id, const td_api::toggleBotCanManageEmojiStatus
 void Requests::on_request(uint64 id, const td_api::setUserEmojiStatus &request) {
   CHECK_IS_BOT();
   CREATE_OK_REQUEST_PROMISE();
-  td_->user_manager_->set_user_emoji_status(UserId(request.user_id_), EmojiStatus(request.emoji_status_),
-                                            std::move(promise));
+  td_->user_manager_->set_user_emoji_status(UserId(request.user_id_),
+                                            EmojiStatus::get_emoji_status(request.emoji_status_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::searchUserByPhoneNumber &request) {
@@ -5692,7 +5692,7 @@ void Requests::on_request(uint64 id, const td_api::setPersonalChat &request) {
 void Requests::on_request(uint64 id, const td_api::setEmojiStatus &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  td_->user_manager_->set_emoji_status(EmojiStatus(request.emoji_status_), std::move(promise));
+  td_->user_manager_->set_emoji_status(EmojiStatus::get_emoji_status(request.emoji_status_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::toggleHasSponsoredMessagesEnabled &request) {
