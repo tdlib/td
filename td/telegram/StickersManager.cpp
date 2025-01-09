@@ -6075,15 +6075,15 @@ void StickersManager::get_custom_emoji_reaction_generic_animations(
   promise.set_value(get_stickers_object(sticker_set->sticker_ids_));
 }
 
-void StickersManager::get_default_emoji_statuses(bool is_recursive,
-                                                 Promise<td_api::object_ptr<td_api::emojiStatuses>> &&promise) {
+void StickersManager::get_default_emoji_statuses(
+    bool is_recursive, Promise<td_api::object_ptr<td_api::emojiStatusCustomEmojis>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   auto &special_sticker_set = add_special_sticker_set(SpecialStickerSetType::default_statuses());
   auto sticker_set = get_sticker_set(special_sticker_set.id_);
   if (sticker_set == nullptr || !sticker_set->was_loaded_) {
     if (is_recursive) {
-      return promise.set_value(td_api::make_object<td_api::emojiStatuses>());
+      return promise.set_value(td_api::make_object<td_api::emojiStatusCustomEmojis>());
     }
 
     pending_get_default_statuses_queries_.push_back(PromiseCreator::lambda(
@@ -6110,7 +6110,7 @@ void StickersManager::get_default_emoji_statuses(bool is_recursive,
       break;
     }
   }
-  promise.set_value(td_api::make_object<td_api::emojiStatuses>(std::move(custom_emoji_ids)));
+  promise.set_value(td_api::make_object<td_api::emojiStatusCustomEmojis>(std::move(custom_emoji_ids)));
 }
 
 int StickersManager::is_custom_emoji_from_sticker_set(CustomEmojiId custom_emoji_id,
@@ -6134,15 +6134,15 @@ bool StickersManager::is_default_emoji_status(CustomEmojiId custom_emoji_id) {
              custom_emoji_id, add_special_sticker_set(SpecialStickerSetType::default_channel_statuses()).id_) == 1;
 }
 
-void StickersManager::get_default_channel_emoji_statuses(bool is_recursive,
-                                                         Promise<td_api::object_ptr<td_api::emojiStatuses>> &&promise) {
+void StickersManager::get_default_channel_emoji_statuses(
+    bool is_recursive, Promise<td_api::object_ptr<td_api::emojiStatusCustomEmojis>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   auto &special_sticker_set = add_special_sticker_set(SpecialStickerSetType::default_channel_statuses());
   auto sticker_set = get_sticker_set(special_sticker_set.id_);
   if (sticker_set == nullptr || !sticker_set->was_loaded_) {
     if (is_recursive) {
-      return promise.set_value(td_api::make_object<td_api::emojiStatuses>());
+      return promise.set_value(td_api::make_object<td_api::emojiStatusCustomEmojis>());
     }
 
     pending_get_default_channel_statuses_queries_.push_back(PromiseCreator::lambda(
@@ -6169,7 +6169,7 @@ void StickersManager::get_default_channel_emoji_statuses(bool is_recursive,
       break;
     }
   }
-  promise.set_value(td_api::make_object<td_api::emojiStatuses>(std::move(custom_emoji_ids)));
+  promise.set_value(td_api::make_object<td_api::emojiStatusCustomEmojis>(std::move(custom_emoji_ids)));
 }
 
 void StickersManager::get_default_topic_icons(bool is_recursive,
@@ -6447,11 +6447,12 @@ void StickersManager::get_default_custom_emoji_stickers(StickerListType sticker_
   load_default_custom_emoji_ids(sticker_list_type, force_reload);
 }
 
-void StickersManager::get_sticker_list_emoji_statuses(StickerListType sticker_list_type, bool force_reload,
-                                                      Promise<td_api::object_ptr<td_api::emojiStatuses>> &&promise) {
+void StickersManager::get_sticker_list_emoji_statuses(
+    StickerListType sticker_list_type, bool force_reload,
+    Promise<td_api::object_ptr<td_api::emojiStatusCustomEmojis>> &&promise) {
   auto index = static_cast<int32>(sticker_list_type);
   if (are_default_custom_emoji_ids_loaded_[index] && !force_reload) {
-    return promise.set_value(get_emoji_statuses_object(default_custom_emoji_ids_[index]));
+    return promise.set_value(get_emoji_status_custom_emojis_object(default_custom_emoji_ids_[index]));
   }
 
   auto &queries = default_emoji_statuses_load_queries_[index];
@@ -6617,7 +6618,7 @@ void StickersManager::on_get_default_custom_emoji_ids_success(StickerListType st
     get_custom_emoji_stickers_unlimited(default_custom_emoji_ids_[index], std::move(promise));
   }
   for (auto &promise : status_promises) {
-    promise.set_value(get_emoji_statuses_object(default_custom_emoji_ids_[index]));
+    promise.set_value(get_emoji_status_custom_emojis_object(default_custom_emoji_ids_[index]));
   }
 }
 

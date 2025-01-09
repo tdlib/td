@@ -1354,8 +1354,11 @@ profileAccentColor id:int32 light_theme_colors:profileAccentColors dark_theme_co
 //@expiration_date Point in time (Unix timestamp) when the status will expire; 0 if never
 emojiStatus custom_emoji_id:int64 expiration_date:int32 = EmojiStatus;
 
+//@description Contains a list of emoji statuses @emoji_statuses The list of emoji statuses identifiers
+emojiStatuses emoji_statuses:vector<emojiStatus> = EmojiStatuses;
+
 //@description Contains a list of custom emoji identifiers for emoji statuses @custom_emoji_ids The list of custom emoji identifiers
-emojiStatuses custom_emoji_ids:vector<int64> = EmojiStatuses;
+emojiStatusCustomEmojis custom_emoji_ids:vector<int64> = EmojiStatusCustomEmojis;
 
 
 //@description Describes usernames assigned to a user, a supergroup, or a channel
@@ -10570,26 +10573,26 @@ toggleBotIsAddedToAttachmentMenu bot_user_id:int53 is_added:Bool allow_write_acc
 
 
 //@description Returns up to 8 emoji statuses, which must be shown right after the default Premium Badge in the emoji status list for self status
-getThemedEmojiStatuses = EmojiStatuses;
+getThemedEmojiStatuses = EmojiStatusCustomEmojis;
 
 //@description Returns recent emoji statuses for self status
 getRecentEmojiStatuses = EmojiStatuses;
 
 //@description Returns default emoji statuses for self status
-getDefaultEmojiStatuses = EmojiStatuses;
+getDefaultEmojiStatuses = EmojiStatusCustomEmojis;
 
 //@description Clears the list of recently used emoji statuses for self status
 clearRecentEmojiStatuses = Ok;
 
 
 //@description Returns up to 8 emoji statuses, which must be shown in the emoji status list for chats
-getThemedChatEmojiStatuses = EmojiStatuses;
+getThemedChatEmojiStatuses = EmojiStatusCustomEmojis;
 
 //@description Returns default emoji statuses for chats
-getDefaultChatEmojiStatuses = EmojiStatuses;
+getDefaultChatEmojiStatuses = EmojiStatusCustomEmojis;
 
 //@description Returns the list of emoji statuses, which can't be used as chat emoji status, even they are from a sticker set with is_allowed_as_chat_emoji_status == true
-getDisallowedChatEmojiStatuses = EmojiStatuses;
+getDisallowedChatEmojiStatuses = EmojiStatusCustomEmojis;
 
 
 //@description Downloads a file from the cloud. Download progress and completion of the download will be notified through updateFile updates

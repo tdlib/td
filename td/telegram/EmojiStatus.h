@@ -119,11 +119,12 @@ StringBuilder &operator<<(StringBuilder &string_builder, const EmojiStatus &emoj
 
 StringBuilder &operator<<(StringBuilder &string_builder, const unique_ptr<EmojiStatus> &emoji_status);
 
-td_api::object_ptr<td_api::emojiStatuses> get_emoji_statuses_object(const vector<CustomEmojiId> &custom_emoji_ids);
+td_api::object_ptr<td_api::emojiStatusCustomEmojis> get_emoji_status_custom_emojis_object(
+    const vector<CustomEmojiId> &custom_emoji_ids);
 
-void get_default_emoji_statuses(Td *td, Promise<td_api::object_ptr<td_api::emojiStatuses>> &&promise);
+void get_default_emoji_statuses(Td *td, Promise<td_api::object_ptr<td_api::emojiStatusCustomEmojis>> &&promise);
 
-void get_default_channel_emoji_statuses(Td *td, Promise<td_api::object_ptr<td_api::emojiStatuses>> &&promise);
+void get_default_channel_emoji_statuses(Td *td, Promise<td_api::object_ptr<td_api::emojiStatusCustomEmojis>> &&promise);
 
 void get_recent_emoji_statuses(Td *td, Promise<td_api::object_ptr<td_api::emojiStatuses>> &&promise);
 
