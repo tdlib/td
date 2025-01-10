@@ -146,15 +146,13 @@ CallActor::CallActor(Td *td, CallId call_id, ActorShared<> parent, Promise<int64
     : td_(td), parent_(std::move(parent)), call_id_promise_(std::move(promise)), local_call_id_(call_id) {
 }
 
-void CallActor::create_call(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user,
-                            CallProtocol &&protocol, bool is_video, GroupCallId group_call_id,
+void CallActor::create_call(UserId user_id, CallProtocol &&protocol, bool is_video, GroupCallId group_call_id,
                             Promise<CallId> &&promise) {
   CHECK(state_ == State::Empty);
   state_ = State::SendRequestQuery;
   is_outgoing_ = true;
   is_video_ = is_video;
   user_id_ = user_id;
-  input_user_ = std::move(input_user);
   auto r_input_group_call_id = td_->group_call_manager_->get_input_group_call_id(group_call_id);
   if (r_input_group_call_id.is_ok()) {
     // input_group_call_id_ = r_input_group_call_id.ok();
@@ -827,12 +825,18 @@ void CallActor::on_received_query_result(Result<NetQueryPtr> r_net_query) {
 }
 
 void CallActor::try_send_request_query() {
+  if (G()->close_flag()) {
+    return;
+  }
   LOG(INFO) << "Trying to send request query";
   if (!load_dh_config()) {
     return;
   }
   dh_handshake_.set_config(dh_config_->g, dh_config_->prime);
-  CHECK(input_user_ != nullptr);
+  auto r_input_user = td_->user_manager_->get_input_user(user_id_);
+  if (r_input_user.is_error()) {
+    return on_error(r_input_user.move_as_error());
+  }
   int32 flags = 0;
   if (is_video_) {
     flags |= telegram_api::phone_requestCall::VIDEO_MASK;
@@ -843,7 +847,7 @@ void CallActor::try_send_request_query() {
     input_group_call = input_group_call_id_.get_input_group_call();
   }
   auto tl_query = telegram_api::phone_requestCall(
-      flags, false /*ignored*/, std::move(input_user_), std::move(input_group_call), Random::secure_int32(),
+      flags, false /*ignored*/, r_input_user.move_as_ok(), std::move(input_group_call), Random::secure_int32(),
       BufferSlice(dh_handshake_.get_g_b_hash()), call_state_.protocol.get_input_phone_call_protocol());
   auto query = G()->net_query_creator().create(tl_query);
   state_ = State::WaitRequestResult;

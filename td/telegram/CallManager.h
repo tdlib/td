@@ -34,8 +34,8 @@ class CallManager final : public Actor {
 
   void update_call_signaling_data(int64 call_id, string data);
 
-  void create_call(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user, CallProtocol &&protocol,
-                   bool is_video, GroupCallId group_call_id, Promise<CallId> promise);
+  void create_call(UserId user_id, CallProtocol &&protocol, bool is_video, GroupCallId group_call_id,
+                   Promise<CallId> promise);
 
   void accept_call(CallId call_id, CallProtocol &&protocol, Promise<Unit> promise);
 
