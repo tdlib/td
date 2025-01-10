@@ -6493,6 +6493,25 @@ class CliClient final : public Actor {
       get_args(args, custom_emoji_id, expiration_date);
       send_request(td_api::make_object<td_api::setEmojiStatus>(td_api::make_object<td_api::emojiStatus>(
           td_api::make_object<td_api::emojiStatusTypeCustomEmoji>(custom_emoji_id), expiration_date)));
+    } else if (op == "sesg") {
+      int64 upgraded_gift_id;
+      string title;
+      string name;
+      CustomEmojiId model_custom_emoji_id;
+      CustomEmojiId symbol_custom_emoji_id;
+      int32 center_color;
+      int32 edge_color;
+      int32 symbol_color;
+      int32 text_color;
+      int32 expiration_date;
+      get_args(args, upgraded_gift_id, title, name, model_custom_emoji_id, symbol_custom_emoji_id, center_color,
+               edge_color, symbol_color, text_color);
+      send_request(td_api::make_object<td_api::setEmojiStatus>(td_api::make_object<td_api::emojiStatus>(
+          td_api::make_object<td_api::emojiStatusTypeUpgradedGift>(
+              upgraded_gift_id, title, name, model_custom_emoji_id, symbol_custom_emoji_id,
+              td_api::make_object<td_api::upgradedGiftBackdropColors>(center_color, edge_color, symbol_color,
+                                                                      text_color)),
+          expiration_date)));
     } else if (op == "thsme") {
       send_request(td_api::make_object<td_api::toggleHasSponsoredMessagesEnabled>(as_bool(args)));
     } else if (op == "gtes") {
