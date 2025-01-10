@@ -3747,11 +3747,12 @@ messageSticker sticker:sticker is_premium:Bool = MessageContent;
 //@description A video message
 //@video The video description
 //@alternative_videos Alternative qualities of the video
+//@cover Cover of the video; may be null if none
 //@caption Video caption
 //@show_caption_above_media True, if the caption must be shown above the video; otherwise, the caption must be shown below the video
 //@has_spoiler True, if the video preview must be covered by a spoiler animation
 //@is_secret True, if the video thumbnail must be blurred and the video must be shown only while tapped
-messageVideo video:video alternative_videos:vector<alternativeVideo> caption:formattedText show_caption_above_media:Bool has_spoiler:Bool is_secret:Bool = MessageContent;
+messageVideo video:video alternative_videos:vector<alternativeVideo> cover:photo caption:formattedText show_caption_above_media:Bool has_spoiler:Bool is_secret:Bool = MessageContent;
 
 //@description A video note message @video_note The video note description @is_viewed True, if at least one of the recipients has viewed the video note @is_secret True, if the video note thumbnail must be blurred and the video note must be shown only while tapped
 messageVideoNote video_note:videoNote is_viewed:Bool is_secret:Bool = MessageContent;

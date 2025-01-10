@@ -239,16 +239,18 @@ class MessageVideo final : public MessageContent {
   FileId file_id;
   vector<FileId> alternative_file_ids;
   vector<FileId> hls_file_ids;
+  Photo cover;
 
   FormattedText caption;
   bool has_spoiler = false;
 
   MessageVideo() = default;
-  MessageVideo(FileId file_id, vector<FileId> &&alternative_file_ids, vector<FileId> &&hls_file_ids,
+  MessageVideo(FileId file_id, vector<FileId> &&alternative_file_ids, vector<FileId> &&hls_file_ids, Photo &&cover,
                FormattedText &&caption, bool has_spoiler)
       : file_id(file_id)
       , alternative_file_ids(std::move(alternative_file_ids))
       , hls_file_ids(std::move(hls_file_ids))
+      , cover(std::move(cover))
       , caption(std::move(caption))
       , has_spoiler(has_spoiler) {
   }
@@ -1423,10 +1425,12 @@ static void store(const MessageContent *content, StorerT &storer) {
       td->videos_manager_->store_video(m->file_id, storer);
       bool has_alternative_videos = !m->alternative_file_ids.empty();
       bool has_hls_files = !m->hls_file_ids.empty();
+      bool has_cover = !m->cover.is_empty();
       BEGIN_STORE_FLAGS();
       STORE_FLAG(m->has_spoiler);
       STORE_FLAG(has_alternative_videos);
       STORE_FLAG(has_hls_files);
+      STORE_FLAG(has_cover);
       END_STORE_FLAGS();
       store(m->caption, storer);
       if (has_alternative_videos) {
@@ -1440,6 +1444,9 @@ static void store(const MessageContent *content, StorerT &storer) {
         for (auto file_id : m->hls_file_ids) {
           td->documents_manager_->store_document(file_id, storer);
         }
+      }
+      if (has_cover) {
+        store(m->cover, storer);
       }
       break;
     }
@@ -2211,11 +2218,13 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       m->file_id = td->videos_manager_->parse_video(parser);
       bool has_alternative_videos = false;
       bool has_hls_files = false;
+      bool has_cover = false;
       if (parser.version() >= static_cast<int32>(Version::AddMessageMediaSpoiler)) {
         BEGIN_PARSE_FLAGS();
         PARSE_FLAG(m->has_spoiler);
         PARSE_FLAG(has_alternative_videos);
         PARSE_FLAG(has_hls_files);
+        PARSE_FLAG(has_cover);
         END_PARSE_FLAGS();
       }
       parse_caption(m->caption, parser);
@@ -2242,6 +2251,9 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
             m->hls_file_ids.push_back(file_id);
           }
         }
+      }
+      if (has_cover) {
+        parse(m->cover, parser);
       }
 
       if (!m->file_id.is_valid()) {
@@ -3119,8 +3131,8 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
       } else if (allowed_media_content_id == td_api::inputMessageSticker::ID) {
         result.message_content = make_unique<MessageSticker>(file_id, false);
       } else if (allowed_media_content_id == td_api::inputMessageVideo::ID) {
-        result.message_content =
-            td::make_unique<MessageVideo>(file_id, vector<FileId>(), vector<FileId>(), std::move(caption), false);
+        result.message_content = td::make_unique<MessageVideo>(file_id, vector<FileId>(), vector<FileId>(), Photo(),
+                                                               std::move(caption), false);
       } else if (allowed_media_content_id == td_api::inputMessageVoiceNote::ID) {
         result.message_content = make_unique<MessageVoiceNote>(file_id, std::move(caption), true);
       } else {
@@ -3151,7 +3163,7 @@ unique_ptr<MessageContent> create_photo_message_content(Photo photo) {
 }
 
 unique_ptr<MessageContent> create_video_message_content(FileId file_id) {
-  return td::make_unique<MessageVideo>(file_id, vector<FileId>(), vector<FileId>(), FormattedText(), false);
+  return td::make_unique<MessageVideo>(file_id, vector<FileId>(), vector<FileId>(), Photo(), FormattedText(), false);
 }
 
 unique_ptr<MessageContent> create_contact_registered_message_content() {
@@ -3389,7 +3401,7 @@ static Result<InputMessageContent> create_input_message_content(
                                         get_dimensions(input_video->width_, input_video->height_, nullptr),
                                         input_video->supports_streaming_, false, 0, 0.0, string(), false);
 
-      content = td::make_unique<MessageVideo>(file_id, vector<FileId>(), vector<FileId>(), std::move(caption),
+      content = td::make_unique<MessageVideo>(file_id, vector<FileId>(), vector<FileId>(), Photo(), std::move(caption),
                                               input_video->has_spoiler_ && !is_secret);
       break;
     }
@@ -5757,7 +5769,7 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       const auto *lhs = static_cast<const MessageVideo *>(old_content);
       const auto *rhs = static_cast<const MessageVideo *>(new_content);
       if (lhs->file_id != rhs->file_id || lhs->alternative_file_ids != rhs->alternative_file_ids ||
-          lhs->hls_file_ids != rhs->hls_file_ids || lhs->caption != rhs->caption ||
+          lhs->hls_file_ids != rhs->hls_file_ids || lhs->cover != rhs->cover || lhs->caption != rhs->caption ||
           lhs->has_spoiler != rhs->has_spoiler) {
         need_update = true;
       }
@@ -6721,7 +6733,7 @@ static tl_object_ptr<ToT> secret_to_telegram(FromT &from) {
 static unique_ptr<MessageContent> get_document_message_content(Document &&parsed_document, FormattedText &&caption,
                                                                bool is_opened, bool is_premium, bool has_spoiler,
                                                                vector<FileId> &&alternative_file_ids,
-                                                               vector<FileId> &&hls_file_ids) {
+                                                               vector<FileId> &&hls_file_ids, Photo &&video_cover) {
   auto file_id = parsed_document.file_id;
   if (!parsed_document.empty()) {
     CHECK(file_id.is_valid());
@@ -6742,7 +6754,7 @@ static unique_ptr<MessageContent> get_document_message_content(Document &&parsed
       return make_unique<MessageUnsupported>();
     case Document::Type::Video:
       return td::make_unique<MessageVideo>(file_id, std::move(alternative_file_ids), std::move(hls_file_ids),
-                                           std::move(caption), has_spoiler);
+                                           std::move(video_cover), std::move(caption), has_spoiler);
     case Document::Type::VideoNote:
       return make_unique<MessageVideoNote>(file_id, is_opened);
     case Document::Type::VoiceNote:
@@ -6757,12 +6769,13 @@ static unique_ptr<MessageContent> get_document_message_content(Td *td, tl_object
                                                                DialogId owner_dialog_id, bool is_self_destructing,
                                                                FormattedText &&caption, bool is_opened, bool is_premium,
                                                                bool has_spoiler, vector<FileId> &&alternative_file_ids,
-                                                               vector<FileId> &&hls_file_ids,
+                                                               vector<FileId> &&hls_file_ids, Photo &&video_cover,
                                                                MultiPromiseActor *load_data_multipromise_ptr) {
   return get_document_message_content(
       td->documents_manager_->on_get_document(std::move(document), owner_dialog_id, is_self_destructing,
                                               load_data_multipromise_ptr),
-      std::move(caption), is_opened, is_premium, has_spoiler, std::move(alternative_file_ids), std::move(hls_file_ids));
+      std::move(caption), is_opened, is_premium, has_spoiler, std::move(alternative_file_ids), std::move(hls_file_ids),
+      std::move(video_cover));
 }
 
 unique_ptr<MessageContent> get_secret_message_content(
@@ -6929,7 +6942,7 @@ unique_ptr<MessageContent> get_secret_message_content(
       auto media = move_tl_object_as<secret_api::decryptedMessageMediaExternalDocument>(media_ptr);
       return get_document_message_content(td, secret_to_telegram_document(*media), owner_dialog_id, false,
                                           FormattedText{std::move(message_text), std::move(entities)}, false,
-                                          is_premium, false, {}, {}, &load_data_multipromise);
+                                          is_premium, false, {}, {}, Photo(), &load_data_multipromise);
     }
     default:
       break;
@@ -6970,7 +6983,7 @@ unique_ptr<MessageContent> get_secret_message_content(
       auto document = td->documents_manager_->on_get_document(
           {std::move(file), std::move(media), std::move(attributes)}, owner_dialog_id, false);
       return get_document_message_content(std::move(document), {std::move(message_text), std::move(entities)}, false,
-                                          false, false, {}, {});
+                                          false, false, {}, {}, Photo());
     }
     default:
       LOG(ERROR) << "Unsupported: " << to_string(media_ptr);
@@ -7142,10 +7155,14 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
           }
         }
       }
-      return get_document_message_content(td, move_tl_object_as<telegram_api::document>(document_ptr), owner_dialog_id,
-                                          is_self_destructing, std::move(message), is_content_read, !media->nopremium_,
-                                          media->spoiler_, std::move(alternative_file_ids), std::move(hls_file_ids),
-                                          nullptr);
+      Photo video_cover;
+      if (media->video_cover_ != nullptr) {
+        video_cover = get_photo(td, std::move(media->video_cover_), owner_dialog_id);
+      }
+      return get_document_message_content(td, telegram_api::move_object_as<telegram_api::document>(document_ptr),
+                                          owner_dialog_id, is_self_destructing, std::move(message), is_content_read,
+                                          !media->nopremium_, media->spoiler_, std::move(alternative_file_ids),
+                                          std::move(hls_file_ids), std::move(video_cover), nullptr);
     }
     case telegram_api::messageMediaGame::ID: {
       auto media = move_tl_object_as<telegram_api::messageMediaGame>(media_ptr);
@@ -8188,9 +8205,10 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(const Mess
           }
         }
       }
-      return make_tl_object<td_api::messageVideo>(td->videos_manager_->get_video_object(m->file_id),
-                                                  std::move(alternative_videos), get_text_object(m->caption),
-                                                  invert_media, m->has_spoiler, is_content_secret);
+      return make_tl_object<td_api::messageVideo>(
+          td->videos_manager_->get_video_object(m->file_id), std::move(alternative_videos),
+          get_photo_object(td->file_manager_.get(), m->cover), get_text_object(m->caption), invert_media,
+          m->has_spoiler, is_content_secret);
     }
     case MessageContentType::VideoNote: {
       const auto *m = static_cast<const MessageVideoNote *>(content);
@@ -8977,6 +8995,9 @@ vector<FileId> get_message_content_file_ids(const MessageContent *content, const
       }
       for (auto file_id : video->hls_file_ids) {
         append(file_ids, Document(Document::Type::General, file_id).get_file_ids(td));
+      }
+      if (!video->cover.is_empty()) {
+        append(file_ids, photo_get_file_ids(video->cover));
       }
       return file_ids;
     }
