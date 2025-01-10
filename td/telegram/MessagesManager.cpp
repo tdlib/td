@@ -29,6 +29,7 @@
 #include "td/telegram/DownloadManager.h"
 #include "td/telegram/DraftMessage.h"
 #include "td/telegram/DraftMessage.hpp"
+#include "td/telegram/EmojiStatus.h"
 #include "td/telegram/FactCheck.h"
 #include "td/telegram/FactCheck.hpp"
 #include "td/telegram/FileReferenceManager.h"
@@ -30472,6 +30473,9 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     update_top_dialogs(dialog_id, m);
     cancel_dialog_action(dialog_id, m);
     update_has_outgoing_messages(dialog_id, m);
+    if (message_content_type == MessageContentType::StarGiftUnique) {
+      get_upgraded_gift_emoji_statuses(td_, Auto());
+    }
 
     if (!td_->auth_manager_->is_bot() && d->messages.empty() && !m->is_outgoing &&
         dialog_id != td_->dialog_manager_->get_my_dialog_id()) {

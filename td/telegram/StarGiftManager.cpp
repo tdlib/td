@@ -10,6 +10,7 @@
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
+#include "td/telegram/EmojiStatus.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageQuote.h"
@@ -354,6 +355,7 @@ class UpgradeStarGiftQuery final : public Td::ResultHandler {
     LOG(INFO) << "Receive result for UpgradeStarGiftQuery: " << to_string(ptr);
     auto promise = get_gift_upgrade_promise(td_, ptr, std::move(promise_));
     td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise));
+    get_upgraded_gift_emoji_statuses(td_, Auto());
   }
 
   void on_error(Status status) final {
@@ -400,6 +402,7 @@ class UpgradeGiftQuery final : public Td::ResultHandler {
       default:
         UNREACHABLE();
     }
+    get_upgraded_gift_emoji_statuses(td_, Auto());
   }
 
   void on_error(Status status) final {
@@ -482,6 +485,7 @@ class TransferStarGiftQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for TransferStarGiftQuery: " << to_string(ptr);
     td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+    get_upgraded_gift_emoji_statuses(td_, Auto());
   }
 
   void on_error(Status status) final {
@@ -526,6 +530,7 @@ class TransferGiftQuery final : public Td::ResultHandler {
       default:
         UNREACHABLE();
     }
+    get_upgraded_gift_emoji_statuses(td_, Auto());
   }
 
   void on_error(Status status) final {
