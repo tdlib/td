@@ -1359,8 +1359,14 @@ profileAccentColor id:int32 light_theme_colors:profileAccentColors dark_theme_co
 //@description A custom emoji set as emoji status @custom_emoji_id Identifier of the custom emoji in stickerFormatTgs format
 emojiStatusTypeCustomEmoji custom_emoji_id:int64 = EmojiStatusType;
 
-//@description An upgraded gift set as emoji status @upgraded_gift_id Identifier of the upgraded gift
-emojiStatusTypeUpgradedGift upgraded_gift_id:int64 = EmojiStatusType;
+//@description An upgraded gift set as emoji status
+//@upgraded_gift_id Identifier of the upgraded gift
+//@gift_title The title of the upgraded gift
+//@gift_name Unique name of the upgraded gift that can be used with internalLinkTypeUpgradedGift
+//@model_custom_emoji_id Custom emoji identifier of the model of the upgraded gift
+//@symbol_custom_emoji_id Custom emoji identifier of the symbol of the upgraded gift
+//@backdrop_colors Colors of the backdrop of the upgraded gift
+emojiStatusTypeUpgradedGift upgraded_gift_id:int64 gift_title:string gift_name:string model_custom_emoji_id:int64 symbol_custom_emoji_id:int64 backdrop_colors:upgradedGiftBackdropColors = EmojiStatusType;
 
 
 //@description Describes an emoji to be shown instead of the Telegram Premium badge

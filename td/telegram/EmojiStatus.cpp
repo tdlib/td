@@ -330,7 +330,18 @@ EmojiStatus::EmojiStatus(const td_api::object_ptr<td_api::emojiStatus> &emoji_st
       break;
     }
     case td_api::emojiStatusTypeUpgradedGift::ID: {
-      // auto type = static_cast<const td_api::emojiStatusTypeUpgradedGift *>(emoji_status->type_.get());
+      auto type = static_cast<const td_api::emojiStatusTypeUpgradedGift *>(emoji_status->type_.get());
+      collectible_id_ = type->upgraded_gift_id_;
+      title_ = type->gift_title_;
+      slug_ = type->gift_name_;
+      model_custom_emoji_id_ = CustomEmojiId(type->model_custom_emoji_id_);
+      pattern_custom_emoji_id_ = CustomEmojiId(type->symbol_custom_emoji_id_);
+      if (type->backdrop_colors_ != nullptr) {
+        center_color_ = type->backdrop_colors_->center_color_;
+        edge_color_ = type->backdrop_colors_->edge_color_;
+        pattern_color_ = type->backdrop_colors_->symbol_color_;
+        text_color_ = type->backdrop_colors_->text_color_;
+      }
       break;
     }
     default:
@@ -363,7 +374,16 @@ EmojiStatus::EmojiStatus(telegram_api::object_ptr<telegram_api::EmojiStatus> &&e
       break;
     }
     case telegram_api::emojiStatusCollectible::ID: {
-      // auto status = static_cast<const telegram_api::emojiStatusCollectible *>(emoji_status.get());
+      auto status = static_cast<const telegram_api::emojiStatusCollectible *>(emoji_status.get());
+      collectible_id_ = status->collectible_id_;
+      title_ = status->title_;
+      slug_ = status->slug_;
+      model_custom_emoji_id_ = CustomEmojiId(status->document_id_);
+      pattern_custom_emoji_id_ = CustomEmojiId(status->pattern_document_id_);
+      center_color_ = status->center_color_;
+      edge_color_ = status->edge_color_;
+      pattern_color_ = status->pattern_color_;
+      text_color_ = status->text_color_;
       break;
     }
     default:
@@ -394,11 +414,19 @@ telegram_api::object_ptr<telegram_api::EmojiStatus> EmojiStatus::get_input_emoji
   if (is_empty()) {
     return telegram_api::make_object<telegram_api::emojiStatusEmpty>();
   }
-  int32 flags = 0;
-  if (until_date_ != 0) {
-    flags |= telegram_api::emojiStatus::UNTIL_MASK;
+  if (custom_emoji_id_.is_valid()) {
+    int32 flags = 0;
+    if (until_date_ != 0) {
+      flags |= telegram_api::emojiStatus::UNTIL_MASK;
+    }
+    return telegram_api::make_object<telegram_api::emojiStatus>(flags, custom_emoji_id_.get(), until_date_);
+  } else {
+    int32 flags = 0;
+    if (until_date_ != 0) {
+      flags |= telegram_api::inputEmojiStatusCollectible::UNTIL_MASK;
+    }
+    return telegram_api::make_object<telegram_api::inputEmojiStatusCollectible>(flags, collectible_id_, until_date_);
   }
-  return telegram_api::make_object<telegram_api::emojiStatus>(flags, custom_emoji_id_.get(), until_date_);
 }
 
 telegram_api::object_ptr<telegram_api::EmojiStatus> EmojiStatus::get_input_emoji_status(
@@ -413,8 +441,17 @@ td_api::object_ptr<td_api::emojiStatus> EmojiStatus::get_emoji_status_object() c
   if (is_empty()) {
     return nullptr;
   }
-  return td_api::make_object<td_api::emojiStatus>(
-      td_api::make_object<td_api::emojiStatusTypeCustomEmoji>(custom_emoji_id_.get()), until_date_);
+  if (custom_emoji_id_.is_valid()) {
+    return td_api::make_object<td_api::emojiStatus>(
+        td_api::make_object<td_api::emojiStatusTypeCustomEmoji>(custom_emoji_id_.get()), until_date_);
+  } else {
+    return td_api::make_object<td_api::emojiStatus>(
+        td_api::make_object<td_api::emojiStatusTypeUpgradedGift>(
+            collectible_id_, title_, slug_, model_custom_emoji_id_.get(), pattern_custom_emoji_id_.get(),
+            td_api::make_object<td_api::upgradedGiftBackdropColors>(center_color_, edge_color_, pattern_color_,
+                                                                    text_color_)),
+        until_date_);
+  }
 }
 
 td_api::object_ptr<td_api::emojiStatus> EmojiStatus::get_emoji_status_object(
@@ -444,7 +481,14 @@ unique_ptr<EmojiStatus> EmojiStatus::get_effective_emoji_status(const unique_ptr
 }
 
 bool operator==(const EmojiStatus &lhs, const EmojiStatus &rhs) {
-  return lhs.custom_emoji_id_ == rhs.custom_emoji_id_ && lhs.until_date_ == rhs.until_date_;
+  return lhs.custom_emoji_id_ == rhs.custom_emoji_id_ && lhs.collectible_id_ == rhs.collectible_id_ &&
+         lhs.title_ == rhs.title_ && lhs.slug_ == rhs.slug_ &&
+         lhs.model_custom_emoji_id_ == rhs.model_custom_emoji_id_ &&
+         lhs.pattern_custom_emoji_id_ == rhs.pattern_custom_emoji_id_ && lhs.center_color_ == rhs.center_color_ &&
+         lhs.edge_color_ == rhs.edge_color_ && lhs.pattern_color_ == rhs.pattern_color_ &&
+         lhs.text_color_ == rhs.text_color_ &&
+
+         lhs.until_date_ == rhs.until_date_;
 }
 
 bool operator==(const unique_ptr<EmojiStatus> &lhs, const unique_ptr<EmojiStatus> &rhs) {
@@ -461,7 +505,12 @@ StringBuilder &operator<<(StringBuilder &string_builder, const EmojiStatus &emoj
   if (emoji_status.is_empty()) {
     return string_builder << "DefaultProfileBadge";
   }
-  string_builder << emoji_status.custom_emoji_id_;
+  if (emoji_status.custom_emoji_id_.is_valid()) {
+    string_builder << emoji_status.custom_emoji_id_;
+  } else {
+    string_builder << "gift " << emoji_status.collectible_id_ << ' ' << emoji_status.title_ << ' '
+                   << emoji_status.slug_;
+  }
   if (emoji_status.until_date_ != 0) {
     string_builder << " until " << emoji_status.until_date_;
   }
