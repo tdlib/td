@@ -195,4 +195,6 @@ void add_recent_emoji_status(Td *td, EmojiStatus emoji_status);
 
 void clear_recent_emoji_statuses(Td *td, Promise<Unit> &&promise);
 
+void get_upgraded_gift_emoji_statuses(Td *td, Promise<td_api::object_ptr<td_api::emojiStatuses>> &&promise);
+
 }  // namespace td

@@ -5731,6 +5731,12 @@ void Requests::on_request(uint64 id, const td_api::getRecentEmojiStatuses &reque
   get_recent_emoji_statuses(td_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::getUpgradedGiftEmojiStatuses &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  get_upgraded_gift_emoji_statuses(td_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::clearRecentEmojiStatuses &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

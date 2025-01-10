@@ -1081,6 +1081,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getRecentEmojiStatuses &request);
 
+  void on_request(uint64 id, const td_api::getUpgradedGiftEmojiStatuses &request);
+
   void on_request(uint64 id, const td_api::clearRecentEmojiStatuses &request);
 
   void on_request(uint64 id, td_api::setCommands &request);

@@ -6501,6 +6501,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getDefaultEmojiStatuses>());
     } else if (op == "gres") {
       send_request(td_api::make_object<td_api::getRecentEmojiStatuses>());
+    } else if (op == "guges") {
+      send_request(td_api::make_object<td_api::getUpgradedGiftEmojiStatuses>());
     } else if (op == "cres") {
       send_request(td_api::make_object<td_api::clearRecentEmojiStatuses>());
     } else if (op == "gtces") {

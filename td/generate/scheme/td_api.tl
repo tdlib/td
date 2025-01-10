@@ -10598,6 +10598,9 @@ getThemedEmojiStatuses = EmojiStatusCustomEmojis;
 //@description Returns recent emoji statuses for self status
 getRecentEmojiStatuses = EmojiStatuses;
 
+//@description Returns available upgraded gift emoji statuses for self status
+getUpgradedGiftEmojiStatuses = EmojiStatuses;
+
 //@description Returns default emoji statuses for self status
 getDefaultEmojiStatuses = EmojiStatusCustomEmojis;
 
