@@ -2256,6 +2256,8 @@ void UpdatesManager::try_reload_data() {
   td_->chat_manager_->reload_created_public_dialogs(PublicDialogType::ForPersonalDialog, Auto());
   get_default_emoji_statuses(td_, Auto());
   get_default_channel_emoji_statuses(td_, Auto());
+  get_recent_emoji_statuses(td_, Auto());
+  get_upgraded_gift_emoji_statuses(td_, Auto());
   reload_paid_reaction_privacy(td_);
   td_->notification_settings_manager_->reload_saved_ringtones(Auto());
   td_->notification_settings_manager_->send_get_reaction_notification_settings_query(Auto());
