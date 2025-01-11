@@ -13,6 +13,7 @@
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageSearchFilter.h"
+#include "td/telegram/MessageThreadInfo.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -70,6 +71,13 @@ class MessageQueryManager final : public Actor {
                                vector<telegram_api::object_ptr<telegram_api::Message>> &&messages,
                                Promise<td_api::object_ptr<td_api::messages>> &&promise);
 
+  void get_discussion_message(DialogId dialog_id, MessageId message_id, DialogId expected_dialog_id,
+                              MessageId expected_message_id, Promise<MessageThreadInfo> &&promise);
+
+  void process_discussion_message(telegram_api::object_ptr<telegram_api::messages_discussionMessage> &&result,
+                                  DialogId dialog_id, MessageId message_id, DialogId expected_dialog_id,
+                                  MessageId expected_message_id, Promise<MessageThreadInfo> promise);
+
   void delete_all_call_messages_on_server(bool revoke, uint64 log_event_id, Promise<Unit> &&promise);
 
   void delete_all_channel_messages_by_sender_on_server(ChannelId channel_id, DialogId sender_dialog_id,
@@ -117,6 +125,10 @@ class MessageQueryManager final : public Actor {
 
   void on_get_affected_history(DialogId dialog_id, AffectedHistoryQuery query, bool get_affected_messages,
                                AffectedHistory affected_history, Promise<Unit> &&promise);
+
+  void process_discussion_message_impl(telegram_api::object_ptr<telegram_api::messages_discussionMessage> &&result,
+                                       DialogId dialog_id, MessageId message_id, DialogId expected_dialog_id,
+                                       MessageId expected_message_id, Promise<MessageThreadInfo> promise);
 
   static uint64 save_delete_all_call_messages_on_server_log_event(bool revoke);
 

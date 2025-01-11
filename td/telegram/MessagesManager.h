@@ -159,6 +159,9 @@ class MessagesManager final : public Actor {
 
   void on_get_empty_messages(DialogId dialog_id, const vector<MessageId> &empty_message_ids);
 
+  bool need_channel_difference_to_add_message(DialogId dialog_id,
+                                              const tl_object_ptr<telegram_api::Message> &message_ptr);
+
   void get_channel_difference_if_needed(DialogId dialog_id, MessageId message_id, const char *source);
 
   void get_channel_difference_if_needed(DialogId dialog_id, MessagesInfo &&messages_info,
@@ -170,6 +173,9 @@ class MessagesManager final : public Actor {
   void get_channel_differences_if_needed(
       const vector<const telegram_api::object_ptr<telegram_api::Message> *> &messages, Promise<Unit> &&promise,
       const char *source);
+
+  void run_after_channel_difference(DialogId dialog_id, MessageId expected_max_message_id, Promise<Unit> &&promise,
+                                    const char *source);
 
   void on_get_messages(vector<tl_object_ptr<telegram_api::Message>> &&messages, bool is_channel_message,
                        bool is_scheduled, Promise<Unit> &&promise, const char *source);
@@ -576,10 +582,6 @@ class MessagesManager final : public Actor {
   void get_message_thread(DialogId dialog_id, MessageId message_id, Promise<MessageThreadInfo> &&promise);
 
   td_api::object_ptr<td_api::messageThreadInfo> get_message_thread_info_object(const MessageThreadInfo &info);
-
-  void process_discussion_message(telegram_api::object_ptr<telegram_api::messages_discussionMessage> &&result,
-                                  DialogId dialog_id, MessageId message_id, DialogId expected_dialog_id,
-                                  MessageId expected_message_id, Promise<MessageThreadInfo> promise);
 
   void get_message_read_date(MessageFullId message_full_id,
                              Promise<td_api::object_ptr<td_api::MessageReadDate>> &&promise);
@@ -2825,10 +2827,6 @@ class MessagesManager final : public Actor {
   void on_get_message_link_discussion_message(MessageLinkInfo &&info, DialogId comment_dialog_id,
                                               Promise<MessageLinkInfo> &&promise);
 
-  void process_discussion_message_impl(telegram_api::object_ptr<telegram_api::messages_discussionMessage> &&result,
-                                       DialogId dialog_id, MessageId message_id, DialogId expected_dialog_id,
-                                       MessageId expected_message_id, Promise<MessageThreadInfo> promise);
-
   void on_get_discussion_message(DialogId dialog_id, MessageId message_id, MessageThreadInfo &&message_thread_info,
                                  Promise<MessageThreadInfo> &&promise);
 
@@ -2961,13 +2959,7 @@ class MessagesManager final : public Actor {
 
   void set_channel_pts(Dialog *d, int32 new_pts, const char *source);
 
-  bool need_channel_difference_to_add_message(DialogId dialog_id,
-                                              const tl_object_ptr<telegram_api::Message> &message_ptr);
-
   bool need_channel_difference_to_add_message(DialogId dialog_id, MessageId message_id);
-
-  void run_after_channel_difference(DialogId dialog_id, MessageId expected_max_message_id, Promise<Unit> &&promise,
-                                    const char *source);
 
   bool running_get_channel_difference(DialogId dialog_id) const;
 

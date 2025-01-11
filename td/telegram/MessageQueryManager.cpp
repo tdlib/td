@@ -21,6 +21,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
+#include "td/telegram/UserManager.h"
 #include "td/telegram/Version.h"
 
 #include "td/db/binlog/BinlogEvent.h"
@@ -302,6 +303,46 @@ class GetRecentLocationsQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetRecentLocationsQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
+class GetDiscussionMessageQuery final : public Td::ResultHandler {
+  Promise<MessageThreadInfo> promise_;
+  DialogId dialog_id_;
+  MessageId message_id_;
+  DialogId expected_dialog_id_;
+  MessageId expected_message_id_;
+
+ public:
+  explicit GetDiscussionMessageQuery(Promise<MessageThreadInfo> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, MessageId message_id, DialogId expected_dialog_id, MessageId expected_message_id) {
+    dialog_id_ = dialog_id;
+    message_id_ = message_id;
+    expected_dialog_id_ = expected_dialog_id;
+    expected_message_id_ = expected_message_id;
+    CHECK(expected_dialog_id_.is_valid());
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_getDiscussionMessage(std::move(input_peer), message_id.get_server_message_id().get())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getDiscussionMessage>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    td_->message_query_manager_->process_discussion_message(result_ptr.move_as_ok(), dialog_id_, message_id_,
+                                                            expected_dialog_id_, expected_message_id_,
+                                                            std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    td_->messages_manager_->on_get_message_error(dialog_id_, message_id_, status, "GetDiscussionMessageQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -976,6 +1017,87 @@ void MessageQueryManager::on_get_recent_locations(DialogId dialog_id, int32 limi
   });
 
   promise.set_value(std::move(result));
+}
+
+void MessageQueryManager::get_discussion_message(DialogId dialog_id, MessageId message_id, DialogId expected_dialog_id,
+                                                 MessageId expected_message_id, Promise<MessageThreadInfo> &&promise) {
+  td_->create_handler<GetDiscussionMessageQuery>(std::move(promise))
+      ->send(dialog_id, message_id, expected_dialog_id, expected_message_id);
+}
+
+void MessageQueryManager::process_discussion_message(
+    telegram_api::object_ptr<telegram_api::messages_discussionMessage> &&result, DialogId dialog_id,
+    MessageId message_id, DialogId expected_dialog_id, MessageId expected_message_id,
+    Promise<MessageThreadInfo> promise) {
+  LOG(INFO) << "Receive discussion message for " << message_id << " in " << dialog_id << " with expected "
+            << expected_message_id << " in " << expected_dialog_id << ": " << to_string(result);
+  td_->user_manager_->on_get_users(std::move(result->users_), "process_discussion_message");
+  td_->chat_manager_->on_get_chats(std::move(result->chats_), "process_discussion_message");
+
+  for (auto &message : result->messages_) {
+    auto message_dialog_id = DialogId::get_message_dialog_id(message);
+    if (message_dialog_id != expected_dialog_id) {
+      return promise.set_error(Status::Error(500, "Expected messages in a different chat"));
+    }
+  }
+
+  for (auto &message : result->messages_) {
+    if (td_->messages_manager_->need_channel_difference_to_add_message(expected_dialog_id, message)) {
+      auto max_message_id = MessageId::get_max_message_id(result->messages_);
+      return td_->messages_manager_->run_after_channel_difference(
+          expected_dialog_id, max_message_id,
+          PromiseCreator::lambda([actor_id = actor_id(this), result = std::move(result), dialog_id, message_id,
+                                  expected_dialog_id, expected_message_id,
+                                  promise = std::move(promise)](Unit ignored) mutable {
+            send_closure(actor_id, &MessageQueryManager::process_discussion_message_impl, std::move(result), dialog_id,
+                         message_id, expected_dialog_id, expected_message_id, std::move(promise));
+          }),
+          "process_discussion_message");
+    }
+  }
+
+  process_discussion_message_impl(std::move(result), dialog_id, message_id, expected_dialog_id, expected_message_id,
+                                  std::move(promise));
+}
+
+void MessageQueryManager::process_discussion_message_impl(
+    telegram_api::object_ptr<telegram_api::messages_discussionMessage> &&result, DialogId dialog_id,
+    MessageId message_id, DialogId expected_dialog_id, MessageId expected_message_id,
+    Promise<MessageThreadInfo> promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  MessageThreadInfo message_thread_info;
+  message_thread_info.dialog_id = expected_dialog_id;
+  message_thread_info.unread_message_count = max(0, result->unread_count_);
+  MessageId top_message_id;
+  for (auto &message : result->messages_) {
+    auto message_full_id = td_->messages_manager_->on_get_message(std::move(message), false, true, false,
+                                                                  "process_discussion_message_impl");
+    if (message_full_id.get_message_id().is_valid()) {
+      CHECK(message_full_id.get_dialog_id() == expected_dialog_id);
+      message_thread_info.message_ids.push_back(message_full_id.get_message_id());
+      if (message_full_id.get_message_id() == expected_message_id) {
+        top_message_id = expected_message_id;
+      }
+    }
+  }
+  if (!message_thread_info.message_ids.empty() && !top_message_id.is_valid()) {
+    top_message_id = message_thread_info.message_ids.back();
+  }
+  auto max_message_id = MessageId(ServerMessageId(result->max_id_));
+  auto last_read_inbox_message_id = MessageId(ServerMessageId(result->read_inbox_max_id_));
+  auto last_read_outbox_message_id = MessageId(ServerMessageId(result->read_outbox_max_id_));
+  if (top_message_id.is_valid()) {
+    td_->messages_manager_->on_update_read_message_comments(expected_dialog_id, top_message_id, max_message_id,
+                                                            last_read_inbox_message_id, last_read_outbox_message_id,
+                                                            message_thread_info.unread_message_count);
+  }
+  if (expected_dialog_id != dialog_id) {
+    td_->messages_manager_->on_update_read_message_comments(dialog_id, message_id, max_message_id,
+                                                            last_read_inbox_message_id, last_read_outbox_message_id,
+                                                            message_thread_info.unread_message_count);
+  }
+  promise.set_value(std::move(message_thread_info));
 }
 
 class MessageQueryManager::DeleteAllCallMessagesOnServerLogEvent {
