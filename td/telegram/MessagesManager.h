@@ -1563,7 +1563,6 @@ class MessagesManager final : public Actor {
   class GetChannelDifferenceLogEvent;
   class ReadHistoryInSecretChatLogEvent;
   class ReadHistoryOnServerLogEvent;
-  class ReadMessageContentsOnServerLogEvent;
   class ReadMessageThreadHistoryOnServerLogEvent;
   class RegetDialogLogEvent;
   class ReorderPinnedDialogsOnServerLogEvent;
@@ -2036,9 +2035,6 @@ class MessagesManager final : public Actor {
   void read_channel_message_content_from_updates(Dialog *d, MessageId message_id);
 
   bool read_message_content(Dialog *d, Message *m, bool is_local_read, int32 read_date, const char *source);
-
-  void read_message_contents_on_server(DialogId dialog_id, vector<MessageId> message_ids, uint64 log_event_id,
-                                       Promise<Unit> &&promise, bool skip_log_event = false);
 
   bool has_incoming_notification(DialogId dialog_id, const Message *m) const;
 
@@ -3095,9 +3091,6 @@ class MessagesManager final : public Actor {
                                                                            bool report_spam);
 
   static uint64 save_reorder_pinned_dialogs_on_server_log_event(FolderId folder_id, const vector<DialogId> &dialog_ids);
-
-  static uint64 save_read_message_contents_on_server_log_event(DialogId dialog_id,
-                                                               const vector<MessageId> &message_ids);
 
   static uint64 save_reget_dialog_log_event(DialogId dialog_id);
 

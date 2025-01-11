@@ -107,6 +107,7 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
       case LogEvent::HandlerType::DeleteTopicHistoryOnServer:
       case LogEvent::HandlerType::ReadAllDialogMentionsOnServer:
       case LogEvent::HandlerType::ReadAllDialogReactionsOnServer:
+      case LogEvent::HandlerType::ReadMessageContentsOnServer:
       case LogEvent::HandlerType::UnpinAllDialogMessagesOnServer:
         events.to_message_query_manager.push_back(event.clone());
         break;
@@ -114,7 +115,6 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
       case LogEvent::HandlerType::DeleteMessage:
       case LogEvent::HandlerType::DeleteMessagesOnServer:
       case LogEvent::HandlerType::ReadHistoryOnServer:
-      case LogEvent::HandlerType::ReadMessageContentsOnServer:
       case LogEvent::HandlerType::ForwardMessages:
       case LogEvent::HandlerType::SendBotStartMessage:
       case LogEvent::HandlerType::SendScreenshotTakenNotificationMessage:

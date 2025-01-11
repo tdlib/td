@@ -955,87 +955,6 @@ class EditMessageFactCheckQuery final : public Td::ResultHandler {
   }
 };
 
-class ReadMessagesContentsQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-
- public:
-  explicit ReadMessagesContentsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(vector<MessageId> &&message_ids) {
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_readMessageContents(MessageId::get_server_message_ids(message_ids))));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_readMessageContents>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto affected_messages = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for ReadMessagesContentsQuery: " << to_string(affected_messages);
-
-    if (affected_messages->pts_count_ > 0) {
-      td_->updates_manager_->add_pending_pts_update(make_tl_object<dummyUpdate>(), affected_messages->pts_,
-                                                    affected_messages->pts_count_, Time::now(), Promise<Unit>(),
-                                                    "read messages content query");
-    }
-
-    promise_.set_value(Unit());
-  }
-
-  void on_error(Status status) final {
-    if (!G()->is_expected_error(status)) {
-      LOG(ERROR) << "Receive error for read message contents: " << status;
-    }
-    promise_.set_error(std::move(status));
-  }
-};
-
-class ReadChannelMessagesContentsQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  ChannelId channel_id_;
-
- public:
-  explicit ReadChannelMessagesContentsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(ChannelId channel_id, vector<MessageId> &&message_ids) {
-    channel_id_ = channel_id;
-
-    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
-    if (input_channel == nullptr) {
-      LOG(ERROR) << "Have no input channel for " << channel_id;
-      return on_error(Status::Error(400, "Can't access the chat"));
-    }
-
-    send_query(
-        G()->net_query_creator().create(telegram_api::channels_readMessageContents(
-                                            std::move(input_channel), MessageId::get_server_message_ids(message_ids)),
-                                        {{channel_id_}}));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::channels_readMessageContents>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    bool result = result_ptr.ok();
-    LOG_IF(ERROR, !result) << "Read channel messages contents failed";
-
-    promise_.set_value(Unit());
-  }
-
-  void on_error(Status status) final {
-    if (!td_->chat_manager_->on_get_channel_error(channel_id_, status, "ReadChannelMessagesContentsQuery")) {
-      LOG(ERROR) << "Receive error for read messages contents in " << channel_id_ << ": " << status;
-    }
-    promise_.set_error(std::move(status));
-  }
-};
-
 class GetDialogMessageByDateQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::message>> promise_;
   DialogId dialog_id_;
@@ -17182,7 +17101,8 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
     }
   }
   if (!read_content_message_ids.empty()) {
-    read_message_contents_on_server(dialog_id, std::move(read_content_message_ids), 0, Auto());
+    td_->message_query_manager_->read_message_contents_on_server(dialog_id, std::move(read_content_message_ids), 0,
+                                                                 Auto());
   }
   if (!read_reaction_message_ids.empty()) {
     for (auto message_id : read_reaction_message_ids) {
@@ -17193,7 +17113,8 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
           send_closure(actor_id, &MessagesManager::on_read_message_reactions, dialog_id,
                        std::move(read_reaction_message_ids), std::move(result));
         });
-    read_message_contents_on_server(dialog_id, std::move(read_reaction_message_ids), 0, std::move(promise));
+    td_->message_query_manager_->read_message_contents_on_server(dialog_id, std::move(read_reaction_message_ids), 0,
+                                                                 std::move(promise));
   }
   if (!new_viewed_message_ids.empty()) {
     LOG(INFO) << "Have new viewed " << new_viewed_message_ids;
@@ -17401,7 +17322,7 @@ Status MessagesManager::open_message_content(MessageFullId message_full_id) {
 
   if (read_message_content(d, m, true, 0, "open_message_content") &&
       (m->message_id.is_server() || dialog_id.get_type() == DialogType::SecretChat)) {
-    read_message_contents_on_server(dialog_id, {m->message_id}, 0, Auto());
+    td_->message_query_manager_->read_message_contents_on_server(dialog_id, {m->message_id}, 0, Auto());
   }
 
   if (m->content->get_type() == MessageContentType::LiveLocation) {
@@ -17414,71 +17335,6 @@ Status MessagesManager::open_message_content(MessageFullId message_full_id) {
   }
 
   return Status::OK();
-}
-
-class MessagesManager::ReadMessageContentsOnServerLogEvent {
- public:
-  DialogId dialog_id_;
-  vector<MessageId> message_ids_;
-
-  template <class StorerT>
-  void store(StorerT &storer) const {
-    td::store(dialog_id_, storer);
-    td::store(message_ids_, storer);
-  }
-
-  template <class ParserT>
-  void parse(ParserT &parser) {
-    td::parse(dialog_id_, parser);
-    td::parse(message_ids_, parser);
-  }
-};
-
-uint64 MessagesManager::save_read_message_contents_on_server_log_event(DialogId dialog_id,
-                                                                       const vector<MessageId> &message_ids) {
-  ReadMessageContentsOnServerLogEvent log_event{dialog_id, message_ids};
-  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ReadMessageContentsOnServer,
-                    get_log_event_storer(log_event));
-}
-
-void MessagesManager::read_message_contents_on_server(DialogId dialog_id, vector<MessageId> message_ids,
-                                                      uint64 log_event_id, Promise<Unit> &&promise,
-                                                      bool skip_log_event) {
-  CHECK(!message_ids.empty());
-
-  LOG(INFO) << "Read contents of " << format::as_array(message_ids) << " in " << dialog_id << " on server";
-
-  if (log_event_id == 0 && G()->use_message_database() && !skip_log_event) {
-    log_event_id = save_read_message_contents_on_server_log_event(dialog_id, message_ids);
-  }
-
-  auto new_promise = get_erase_log_event_promise(log_event_id, std::move(promise));
-  promise = std::move(new_promise);  // to prevent self-move
-
-  switch (dialog_id.get_type()) {
-    case DialogType::User:
-    case DialogType::Chat:
-      td_->create_handler<ReadMessagesContentsQuery>(std::move(promise))->send(std::move(message_ids));
-      break;
-    case DialogType::Channel:
-      td_->create_handler<ReadChannelMessagesContentsQuery>(std::move(promise))
-          ->send(dialog_id.get_channel_id(), std::move(message_ids));
-      break;
-    case DialogType::SecretChat: {
-      CHECK(message_ids.size() == 1);
-      auto random_id = get_message_random_id({dialog_id, message_ids[0]});
-      if (random_id != 0) {
-        send_closure(G()->secret_chats_manager(), &SecretChatsManager::send_open_message,
-                     dialog_id.get_secret_chat_id(), random_id, std::move(promise));
-      } else {
-        promise.set_error(Status::Error(400, "Message not found"));
-      }
-      break;
-    }
-    case DialogType::None:
-    default:
-      UNREACHABLE();
-  }
 }
 
 void MessagesManager::click_animated_emoji_message(MessageFullId message_full_id,
@@ -19145,8 +19001,8 @@ void MessagesManager::view_message_live_location_on_server_impl(int64 task_id, M
   auto promise = PromiseCreator::lambda([actor_id = actor_id(this), task_id](Unit result) {
     send_closure(actor_id, &MessagesManager::on_message_live_location_viewed_on_server, task_id);
   });
-  read_message_contents_on_server(message_full_id.get_dialog_id(), {message_full_id.get_message_id()}, 0,
-                                  std::move(promise), true);
+  td_->message_query_manager_->read_message_contents_on_server(
+      message_full_id.get_dialog_id(), {message_full_id.get_message_id()}, 0, std::move(promise), true);
 }
 
 void MessagesManager::on_message_live_location_viewed_on_server(int64 task_id) {
@@ -36143,25 +35999,6 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         log_event_id.log_event_id = event.id_;
 
         read_message_thread_history_on_server_impl(d, top_thread_message_id, log_event.max_message_id_);
-        break;
-      }
-      case LogEvent::HandlerType::ReadMessageContentsOnServer: {
-        if (!have_old_message_database) {
-          binlog_erase(G()->td_db()->get_binlog(), event.id_);
-          break;
-        }
-
-        ReadMessageContentsOnServerLogEvent log_event;
-        log_event_parse(log_event, event.get_data()).ensure();
-
-        auto dialog_id = log_event.dialog_id_;
-        if (!have_dialog_force(dialog_id, "ReadMessageContentsOnServerLogEvent") ||
-            !td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read)) {
-          binlog_erase(G()->td_db()->get_binlog(), event.id_);
-          break;
-        }
-
-        read_message_contents_on_server(dialog_id, std::move(log_event.message_ids_), event.id_, Auto());
         break;
       }
       case LogEvent::HandlerType::ReorderPinnedDialogsOnServer: {

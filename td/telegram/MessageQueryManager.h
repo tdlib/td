@@ -106,6 +106,9 @@ class MessageQueryManager final : public Actor {
   void read_all_topic_reactions_on_server(DialogId dialog_id, MessageId top_thread_message_id, uint64 log_event_id,
                                           Promise<Unit> &&promise);
 
+  void read_message_contents_on_server(DialogId dialog_id, vector<MessageId> message_ids, uint64 log_event_id,
+                                       Promise<Unit> &&promise, bool skip_log_event = false);
+
   void unpin_all_dialog_messages_on_server(DialogId dialog_id, uint64 log_event_id, Promise<Unit> &&promise);
 
   void unpin_all_topic_messages_on_server(DialogId dialog_id, MessageId top_thread_message_id, uint64 log_event_id,
@@ -121,6 +124,7 @@ class MessageQueryManager final : public Actor {
   class DeleteTopicHistoryOnServerLogEvent;
   class ReadAllDialogMentionsOnServerLogEvent;
   class ReadAllDialogReactionsOnServerLogEvent;
+  class ReadMessageContentsOnServerLogEvent;
   class UnpinAllDialogMessagesOnServerLogEvent;
 
   static constexpr int32 MAX_SEARCH_MESSAGES = 100;  // server-side limit
@@ -153,6 +157,9 @@ class MessageQueryManager final : public Actor {
   static uint64 save_read_all_dialog_mentions_on_server_log_event(DialogId dialog_id);
 
   static uint64 save_read_all_dialog_reactions_on_server_log_event(DialogId dialog_id);
+
+  static uint64 save_read_message_contents_on_server_log_event(DialogId dialog_id,
+                                                               const vector<MessageId> &message_ids);
 
   static uint64 save_unpin_all_dialog_messages_on_server_log_event(DialogId dialog_id);
 
