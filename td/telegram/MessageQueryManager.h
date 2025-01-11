@@ -14,6 +14,7 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageSearchFilter.h"
 #include "td/telegram/MessageThreadInfo.h"
+#include "td/telegram/MessageViewer.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -71,6 +72,9 @@ class MessageQueryManager final : public Actor {
                                vector<telegram_api::object_ptr<telegram_api::Message>> &&messages,
                                Promise<td_api::object_ptr<td_api::messages>> &&promise);
 
+  void get_message_viewers(MessageFullId message_full_id,
+                           Promise<td_api::object_ptr<td_api::messageViewers>> &&promise);
+
   void get_discussion_message(DialogId dialog_id, MessageId message_id, DialogId expected_dialog_id,
                               MessageId expected_message_id, Promise<MessageThreadInfo> &&promise);
 
@@ -125,6 +129,9 @@ class MessageQueryManager final : public Actor {
 
   void on_get_affected_history(DialogId dialog_id, AffectedHistoryQuery query, bool get_affected_messages,
                                AffectedHistory affected_history, Promise<Unit> &&promise);
+
+  void on_get_message_viewers(DialogId dialog_id, MessageViewers message_viewers, bool is_recursive,
+                              Promise<td_api::object_ptr<td_api::messageViewers>> &&promise);
 
   void process_discussion_message_impl(telegram_api::object_ptr<telegram_api::messages_discussionMessage> &&result,
                                        DialogId dialog_id, MessageId message_id, DialogId expected_dialog_id,

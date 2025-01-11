@@ -44,7 +44,6 @@
 #include "td/telegram/MessageSource.h"
 #include "td/telegram/MessageThreadInfo.h"
 #include "td/telegram/MessageTtl.h"
-#include "td/telegram/MessageViewer.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/Notification.h"
 #include "td/telegram/NotificationGroupFromDatabase.h"
@@ -553,6 +552,8 @@ class MessagesManager final : public Actor {
 
   bool can_share_message_in_story(MessageFullId message_full_id);
 
+  Status can_get_message_viewers(MessageFullId message_full_id) TD_WARN_UNUSED_RESULT;
+
   bool can_get_message_statistics(MessageFullId message_full_id);
 
   DialogId get_dialog_message_sender(MessageFullId message_full_id);
@@ -585,9 +586,6 @@ class MessagesManager final : public Actor {
 
   void get_message_read_date(MessageFullId message_full_id,
                              Promise<td_api::object_ptr<td_api::MessageReadDate>> &&promise);
-
-  void get_message_viewers(MessageFullId message_full_id,
-                           Promise<td_api::object_ptr<td_api::messageViewers>> &&promise);
 
   void translate_message_text(MessageFullId message_full_id, const string &to_language_code,
                               Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
@@ -1736,8 +1734,6 @@ class MessagesManager final : public Actor {
 
   Status can_get_message_read_date(DialogId dialog_id, const Message *m) const TD_WARN_UNUSED_RESULT;
 
-  Status can_get_message_viewers(MessageFullId message_full_id) TD_WARN_UNUSED_RESULT;
-
   Status can_get_message_viewers(DialogId dialog_id, const Message *m) const TD_WARN_UNUSED_RESULT;
 
   void cancel_edit_message_media(DialogId dialog_id, Message *m, Slice error_message);
@@ -2829,9 +2825,6 @@ class MessagesManager final : public Actor {
 
   void on_get_discussion_message(DialogId dialog_id, MessageId message_id, MessageThreadInfo &&message_thread_info,
                                  Promise<MessageThreadInfo> &&promise);
-
-  void on_get_message_viewers(DialogId dialog_id, MessageViewers message_viewers, bool is_recursive,
-                              Promise<td_api::object_ptr<td_api::messageViewers>> &&promise);
 
   static MessageId get_first_database_message_id_by_index(const Dialog *d, MessageSearchFilter filter);
 

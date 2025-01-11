@@ -472,39 +472,6 @@ class GetOutboxReadDateQuery final : public Td::ResultHandler {
   }
 };
 
-class GetMessageReadParticipantsQuery final : public Td::ResultHandler {
-  Promise<MessageViewers> promise_;
-  DialogId dialog_id_;
-  MessageId message_id_;
-
- public:
-  explicit GetMessageReadParticipantsQuery(Promise<MessageViewers> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(DialogId dialog_id, MessageId message_id) {
-    dialog_id_ = dialog_id;
-    message_id_ = message_id;
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
-    CHECK(input_peer != nullptr);
-    send_query(G()->net_query_creator().create(telegram_api::messages_getMessageReadParticipants(
-        std::move(input_peer), message_id.get_server_message_id().get())));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_getMessageReadParticipants>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    promise_.set_value(MessageViewers(result_ptr.move_as_ok()));
-  }
-
-  void on_error(Status status) final {
-    td_->messages_manager_->on_get_message_error(dialog_id_, message_id_, status, "GetMessageReadParticipantsQuery");
-    promise_.set_error(std::move(status));
-  }
-};
-
 class ExportChannelMessageLinkQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
@@ -15556,59 +15523,6 @@ Status MessagesManager::can_get_message_viewers(DialogId dialog_id, const Messag
   }
 
   return Status::OK();
-}
-
-void MessagesManager::get_message_viewers(MessageFullId message_full_id,
-                                          Promise<td_api::object_ptr<td_api::messageViewers>> &&promise) {
-  TRY_STATUS_PROMISE(promise, can_get_message_viewers(message_full_id));
-
-  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id = message_full_id.get_dialog_id(),
-                                               promise = std::move(promise)](Result<MessageViewers> result) mutable {
-    if (result.is_error()) {
-      return promise.set_error(result.move_as_error());
-    }
-    send_closure(actor_id, &MessagesManager::on_get_message_viewers, dialog_id, result.move_as_ok(), false,
-                 std::move(promise));
-  });
-
-  td_->create_handler<GetMessageReadParticipantsQuery>(std::move(query_promise))
-      ->send(message_full_id.get_dialog_id(), message_full_id.get_message_id());
-}
-
-void MessagesManager::on_get_message_viewers(DialogId dialog_id, MessageViewers message_viewers, bool is_recursive,
-                                             Promise<td_api::object_ptr<td_api::messageViewers>> &&promise) {
-  if (!is_recursive) {
-    bool need_participant_list = false;
-    for (auto user_id : message_viewers.get_user_ids()) {
-      if (!td_->user_manager_->have_user_force(user_id, "on_get_message_viewers")) {
-        need_participant_list = true;
-      }
-    }
-    if (need_participant_list) {
-      auto query_promise =
-          PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, message_viewers = std::move(message_viewers),
-                                  promise = std::move(promise)](Unit result) mutable {
-            send_closure(actor_id, &MessagesManager::on_get_message_viewers, dialog_id, std::move(message_viewers),
-                         true, std::move(promise));
-          });
-
-      switch (dialog_id.get_type()) {
-        case DialogType::Chat:
-          return td_->chat_manager_->reload_chat_full(dialog_id.get_chat_id(), std::move(query_promise),
-                                                      "on_get_message_viewers");
-        case DialogType::Channel:
-          return td_->dialog_participant_manager_->get_channel_participants(
-              dialog_id.get_channel_id(), td_api::make_object<td_api::supergroupMembersFilterRecent>(), string(), 0,
-              200, 200, PromiseCreator::lambda([query_promise = std::move(query_promise)](DialogParticipants) mutable {
-                query_promise.set_value(Unit());
-              }));
-        default:
-          UNREACHABLE();
-          return;
-      }
-    }
-  }
-  promise.set_value(message_viewers.get_message_viewers_object(td_->user_manager_.get()));
 }
 
 void MessagesManager::translate_message_text(MessageFullId message_full_id, const string &to_language_code,
