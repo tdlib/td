@@ -1565,7 +1565,6 @@ class MessagesManager final : public Actor {
   class ReadHistoryOnServerLogEvent;
   class ReadMessageThreadHistoryOnServerLogEvent;
   class RegetDialogLogEvent;
-  class ReorderPinnedDialogsOnServerLogEvent;
   class SaveDialogDraftMessageOnServerLogEvent;
   class SendBotStartMessageLogEvent;
   class SendInlineQueryResultMessageLogEvent;
@@ -2523,8 +2522,6 @@ class MessagesManager final : public Actor {
 
   void do_set_dialog_folder_id(Dialog *d, FolderId folder_id);
 
-  void reorder_pinned_dialogs_on_server(FolderId folder_id, const vector<DialogId> &dialog_ids, uint64 log_event_id);
-
   void set_dialog_reply_markup(Dialog *d, MessageId message_id);
 
   void try_restore_dialog_reply_markup(Dialog *d, const Message *m);
@@ -3089,8 +3086,6 @@ class MessagesManager final : public Actor {
                                                                            bool need_delete_message,
                                                                            bool need_delete_all_messages,
                                                                            bool report_spam);
-
-  static uint64 save_reorder_pinned_dialogs_on_server_log_event(FolderId folder_id, const vector<DialogId> &dialog_ids);
 
   static uint64 save_reget_dialog_log_event(DialogId dialog_id);
 

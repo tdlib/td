@@ -750,44 +750,6 @@ class SetHistoryTtlQuery final : public Td::ResultHandler {
   }
 };
 
-class ReorderPinnedDialogsQuery final : public Td::ResultHandler {
-  FolderId folder_id_;
-  Promise<Unit> promise_;
-
- public:
-  explicit ReorderPinnedDialogsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(FolderId folder_id, const vector<DialogId> &dialog_ids) {
-    folder_id_ = folder_id;
-    int32 flags = telegram_api::messages_reorderPinnedDialogs::FORCE_MASK;
-    send_query(G()->net_query_creator().create(telegram_api::messages_reorderPinnedDialogs(
-        flags, true /*ignored*/, folder_id.get(),
-        td_->dialog_manager_->get_input_dialog_peers(dialog_ids, AccessRights::Read))));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_reorderPinnedDialogs>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    bool result = result_ptr.move_as_ok();
-    if (!result) {
-      return on_error(Status::Error(400, "Result is false"));
-    }
-    promise_.set_value(Unit());
-  }
-
-  void on_error(Status status) final {
-    if (!G()->is_expected_error(status)) {
-      LOG(ERROR) << "Receive error for ReorderPinnedDialogsQuery: " << status;
-    }
-    td_->messages_manager_->on_update_pinned_dialogs(folder_id_);
-    promise_.set_error(std::move(status));
-  }
-};
-
 class GetMessagesViewsQuery final : public Td::ResultHandler {
   DialogId dialog_id_;
   vector<MessageId> message_ids_;
@@ -16538,48 +16500,9 @@ Status MessagesManager::set_pinned_dialogs(DialogListId dialog_list_id, vector<D
   set_folder_pinned_dialogs(folder_id, std::move(pinned_dialog_ids), std::move(dialog_ids));
 
   if (server_old_dialog_ids != server_new_dialog_ids) {
-    reorder_pinned_dialogs_on_server(folder_id, server_new_dialog_ids, 0);
+    td_->dialog_manager_->reorder_pinned_dialogs_on_server(folder_id, server_new_dialog_ids, 0);
   }
   return Status::OK();
-}
-
-class MessagesManager::ReorderPinnedDialogsOnServerLogEvent {
- public:
-  FolderId folder_id_;
-  vector<DialogId> dialog_ids_;
-
-  template <class StorerT>
-  void store(StorerT &storer) const {
-    td::store(folder_id_, storer);
-    td::store(dialog_ids_, storer);
-  }
-
-  template <class ParserT>
-  void parse(ParserT &parser) {
-    if (parser.version() >= static_cast<int32>(Version::AddFolders)) {
-      td::parse(folder_id_, parser);
-    } else {
-      folder_id_ = FolderId();
-    }
-    td::parse(dialog_ids_, parser);
-  }
-};
-
-uint64 MessagesManager::save_reorder_pinned_dialogs_on_server_log_event(FolderId folder_id,
-                                                                        const vector<DialogId> &dialog_ids) {
-  ReorderPinnedDialogsOnServerLogEvent log_event{folder_id, dialog_ids};
-  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ReorderPinnedDialogsOnServer,
-                    get_log_event_storer(log_event));
-}
-
-void MessagesManager::reorder_pinned_dialogs_on_server(FolderId folder_id, const vector<DialogId> &dialog_ids,
-                                                       uint64 log_event_id) {
-  if (log_event_id == 0 && G()->use_message_database()) {
-    log_event_id = save_reorder_pinned_dialogs_on_server_log_event(folder_id, dialog_ids);
-  }
-
-  td_->create_handler<ReorderPinnedDialogsQuery>(get_erase_log_event_promise(log_event_id))
-      ->send(folder_id, dialog_ids);
 }
 
 Status MessagesManager::toggle_dialog_view_as_messages(DialogId dialog_id, bool view_as_messages) {
@@ -35999,30 +35922,6 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         log_event_id.log_event_id = event.id_;
 
         read_message_thread_history_on_server_impl(d, top_thread_message_id, log_event.max_message_id_);
-        break;
-      }
-      case LogEvent::HandlerType::ReorderPinnedDialogsOnServer: {
-        if (!have_old_message_database) {
-          binlog_erase(G()->td_db()->get_binlog(), event.id_);
-          break;
-        }
-
-        ReorderPinnedDialogsOnServerLogEvent log_event;
-        log_event_parse(log_event, event.get_data()).ensure();
-
-        vector<DialogId> dialog_ids;
-        for (auto &dialog_id : log_event.dialog_ids_) {
-          if (have_dialog_force(dialog_id, "ReorderPinnedDialogsOnServerLogEvent") &&
-              td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read)) {
-            dialog_ids.push_back(dialog_id);
-          }
-        }
-        if (dialog_ids.empty()) {
-          binlog_erase(G()->td_db()->get_binlog(), event.id_);
-          break;
-        }
-
-        reorder_pinned_dialogs_on_server(log_event.folder_id_, dialog_ids, event.id_);
         break;
       }
       case LogEvent::HandlerType::SaveDialogDraftMessageOnServer: {

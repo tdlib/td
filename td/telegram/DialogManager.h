@@ -17,6 +17,7 @@
 #include "td/telegram/EmojiStatus.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileUploadId.h"
+#include "td/telegram/FolderId.h"
 #include "td/telegram/InputDialogId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/NotificationSettingsScope.h"
@@ -235,6 +236,8 @@ class DialogManager final : public Actor {
                               vector<telegram_api::object_ptr<telegram_api::peerBlocked>> &&blocked_peers,
                               Promise<td_api::object_ptr<td_api::messageSenders>> &&promise);
 
+  void reorder_pinned_dialogs_on_server(FolderId folder_id, const vector<DialogId> &dialog_ids, uint64 log_event_id);
+
   void toggle_dialog_is_blocked_on_server(DialogId dialog_id, bool is_blocked, bool is_blocked_for_stories,
                                           uint64 log_event_id);
 
@@ -274,6 +277,8 @@ class DialogManager final : public Actor {
 
   void on_resolve_dialog(const string &username, ChannelId channel_id, Promise<DialogId> &&promise);
 
+  static uint64 save_reorder_pinned_dialogs_on_server_log_event(FolderId folder_id, const vector<DialogId> &dialog_ids);
+
   static uint64 save_toggle_dialog_is_blocked_on_server_log_event(DialogId dialog_id, bool is_blocked,
                                                                   bool is_blocked_for_stories);
 
@@ -288,6 +293,7 @@ class DialogManager final : public Actor {
 
   static uint64 save_toggle_dialog_view_as_messages_on_server_log_event(DialogId dialog_id, bool view_as_messages);
 
+  class ReorderPinnedDialogsOnServerLogEvent;
   class ToggleDialogIsBlockedOnServerLogEvent;
   class ToggleDialogPropertyOnServerLogEvent;
   class ToggleDialogReportSpamStateOnServerLogEvent;

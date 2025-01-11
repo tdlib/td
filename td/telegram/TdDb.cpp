@@ -92,6 +92,7 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
       case LogEvent::HandlerType::StopPoll:
         events.to_poll_manager.push_back(event.clone());
         break;
+      case LogEvent::HandlerType::ReorderPinnedDialogsOnServer:
       case LogEvent::HandlerType::ToggleDialogIsBlockedOnServer:
       case LogEvent::HandlerType::ToggleDialogIsMarkedAsUnreadOnServer:
       case LogEvent::HandlerType::ToggleDialogIsPinnedOnServer:
@@ -119,7 +120,6 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
       case LogEvent::HandlerType::SendBotStartMessage:
       case LogEvent::HandlerType::SendScreenshotTakenNotificationMessage:
       case LogEvent::HandlerType::SendInlineQueryResultMessage:
-      case LogEvent::HandlerType::ReorderPinnedDialogsOnServer:
       case LogEvent::HandlerType::SaveDialogDraftMessageOnServer:
       case LogEvent::HandlerType::UpdateDialogNotificationSettingsOnServer:
       case LogEvent::HandlerType::RegetDialog:
