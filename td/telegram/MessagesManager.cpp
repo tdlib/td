@@ -8937,9 +8937,9 @@ void MessagesManager::delete_messages_on_server(DialogId dialog_id, vector<Messa
       auto d = get_dialog_force(dialog_id, "delete_messages_on_server");
       CHECK(d != nullptr);
       for (auto &message_id : message_ids) {
-        auto *m = get_message(d, message_id);
-        if (m != nullptr) {
-          random_ids.push_back(m->random_id);
+        auto random_id = get_message_random_id(d, message_id);
+        if (random_id != 0) {
+          random_ids.push_back(random_id);
         }
       }
       if (!random_ids.empty()) {
@@ -17466,10 +17466,10 @@ void MessagesManager::read_message_contents_on_server(DialogId dialog_id, vector
       break;
     case DialogType::SecretChat: {
       CHECK(message_ids.size() == 1);
-      auto m = get_message_force({dialog_id, message_ids[0]}, "read_message_contents_on_server");
-      if (m != nullptr) {
+      auto random_id = get_message_random_id({dialog_id, message_ids[0]});
+      if (random_id != 0) {
         send_closure(G()->secret_chats_manager(), &SecretChatsManager::send_open_message,
-                     dialog_id.get_secret_chat_id(), m->random_id, std::move(promise));
+                     dialog_id.get_secret_chat_id(), random_id, std::move(promise));
       } else {
         promise.set_error(Status::Error(400, "Message not found"));
       }
@@ -21571,6 +21571,22 @@ const MessageInputReplyTo *MessagesManager::get_message_input_reply_to(const Mes
   CHECK(m != nullptr);
   CHECK(!m->message_id.is_any_server());
   return &m->input_reply_to;
+}
+
+int64 MessagesManager::get_message_random_id(MessageFullId message_full_id) {
+  Dialog *d = get_dialog_force(message_full_id.get_dialog_id(), "get_message_random_id");
+  if (d == nullptr) {
+    return 0;
+  }
+  return get_message_random_id(d, message_full_id.get_message_id());
+}
+
+int64 MessagesManager::get_message_random_id(Dialog *d, MessageId message_id) {
+  const auto *m = get_message_force(d, message_id, "get_message_random_id");
+  if (m == nullptr) {
+    return 0;
+  }
+  return m->random_id;
 }
 
 vector<FileId> MessagesManager::get_message_file_ids(const Message *m) const {
@@ -36139,8 +36155,8 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         log_event_parse(log_event, event.get_data()).ensure();
 
         auto dialog_id = log_event.dialog_id_;
-        Dialog *d = get_dialog_force(dialog_id, "ReadMessageContentsOnServerLogEvent");
-        if (d == nullptr || !td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read)) {
+        if (!have_dialog_force(dialog_id, "ReadMessageContentsOnServerLogEvent") ||
+            !td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read)) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
@@ -36159,8 +36175,8 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         vector<DialogId> dialog_ids;
         for (auto &dialog_id : log_event.dialog_ids_) {
-          Dialog *d = get_dialog_force(dialog_id, "ReorderPinnedDialogsOnServerLogEvent");
-          if (d != nullptr && td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read)) {
+          if (have_dialog_force(dialog_id, "ReorderPinnedDialogsOnServerLogEvent") &&
+              td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read)) {
             dialog_ids.push_back(dialog_id);
           }
         }

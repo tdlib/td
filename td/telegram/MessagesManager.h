@@ -931,6 +931,8 @@ class MessagesManager final : public Actor {
   void stop_poll(MessageFullId message_full_id, td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
                  Promise<Unit> &&promise);
 
+  int64 get_message_random_id(MessageFullId message_full_id);
+
   int64 get_message_gift_upgrade_star_count(MessageFullId message_full_id);
 
   void finish_gift_upgrade(MessageFullId message_full_id,
@@ -2750,6 +2752,8 @@ class MessagesManager final : public Actor {
   int64 get_dialog_notification_ringtone_id(DialogId dialog_id, const Dialog *d) const;
 
   DialogNotificationSettings *get_dialog_notification_settings(DialogId dialog_id, bool force);
+
+  int64 get_message_random_id(Dialog *d, MessageId message_id);
 
   vector<FileId> get_message_file_ids(const Message *m) const;
 
