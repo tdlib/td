@@ -23,6 +23,8 @@
 #include "td/utils/common.h"
 #include "td/utils/Promise.h"
 
+#include <functional>
+
 namespace td {
 
 struct BinlogEvent;

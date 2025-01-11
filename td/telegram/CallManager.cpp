@@ -84,10 +84,7 @@ void CallManager::update_call_signaling_data(int64 call_id, string data) {
 
 void CallManager::create_call(UserId user_id, CallProtocol &&protocol, bool is_video, GroupCallId group_call_id,
                               Promise<CallId> promise) {
-  auto r_input_user = td_->user_manager_->get_input_user(user_id);
-  if (r_input_user.is_error()) {
-    return promise.set_error(r_input_user.move_as_error());
-  }
+  TRY_STATUS_PROMISE(promise, td_->user_manager_->get_input_user(user_id));
   LOG(INFO) << "Create call with " << user_id;
   auto call_id = create_call_actor();
   auto actor = get_call_actor(call_id);
