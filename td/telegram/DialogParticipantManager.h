@@ -61,6 +61,9 @@ class DialogParticipantManager final : public Actor {
 
   void on_dialog_closed(DialogId dialog_id);
 
+  void fix_pending_join_requests(DialogId dialog_id, int32 &pending_join_request_count,
+                                 vector<UserId> &pending_join_request_user_ids) const;
+
   void get_dialog_join_requests(DialogId dialog_id, const string &invite_link, const string &query,
                                 td_api::object_ptr<td_api::chatJoinRequest> offset_request, int32 limit,
                                 Promise<td_api::object_ptr<td_api::chatJoinRequests>> &&promise);

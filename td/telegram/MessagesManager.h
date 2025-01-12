@@ -2504,9 +2504,6 @@ class MessagesManager final : public Actor {
 
   void set_dialog_theme_name(Dialog *d, string theme_name);
 
-  void fix_pending_join_requests(DialogId dialog_id, int32 &pending_join_request_count,
-                                 vector<UserId> &pending_join_request_user_ids) const;
-
   void set_dialog_pending_join_requests(Dialog *d, int32 pending_join_request_count,
                                         vector<UserId> pending_join_request_user_ids);
 

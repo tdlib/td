@@ -28706,53 +28706,6 @@ void MessagesManager::on_update_dialog_pending_join_requests(DialogId dialog_id,
   set_dialog_pending_join_requests(d, pending_join_request_count, UserId::get_user_ids(pending_requesters, true));
 }
 
-void MessagesManager::fix_pending_join_requests(DialogId dialog_id, int32 &pending_join_request_count,
-                                                vector<UserId> &pending_join_request_user_ids) const {
-  bool need_drop_pending_join_requests = [&] {
-    if (pending_join_request_count < 0) {
-      return true;
-    }
-    switch (dialog_id.get_type()) {
-      case DialogType::User:
-      case DialogType::SecretChat:
-        return true;
-      case DialogType::Chat: {
-        auto chat_id = dialog_id.get_chat_id();
-        auto status = td_->chat_manager_->get_chat_status(chat_id);
-        if (!status.can_manage_invite_links()) {
-          return true;
-        }
-        break;
-      }
-      case DialogType::Channel: {
-        auto channel_id = dialog_id.get_channel_id();
-        auto status = td_->chat_manager_->get_channel_permissions(channel_id);
-        if (!status.can_manage_invite_links()) {
-          return true;
-        }
-        break;
-      }
-      case DialogType::None:
-      default:
-        UNREACHABLE();
-    }
-    return false;
-  }();
-  if (need_drop_pending_join_requests) {
-    pending_join_request_count = 0;
-    pending_join_request_user_ids.clear();
-  } else if (static_cast<size_t>(pending_join_request_count) < pending_join_request_user_ids.size()) {
-    LOG(ERROR) << "Fix pending join request count from " << pending_join_request_count << " to "
-               << pending_join_request_user_ids.size();
-    pending_join_request_count = narrow_cast<int32>(pending_join_request_user_ids.size());
-  }
-
-  static constexpr size_t MAX_PENDING_JOIN_REQUESTS = 3;
-  if (pending_join_request_user_ids.size() > MAX_PENDING_JOIN_REQUESTS) {
-    pending_join_request_user_ids.resize(MAX_PENDING_JOIN_REQUESTS);
-  }
-}
-
 void MessagesManager::set_dialog_pending_join_requests(Dialog *d, int32 pending_join_request_count,
                                                        vector<UserId> pending_join_request_user_ids) {
   if (td_->auth_manager_->is_bot()) {
@@ -28760,7 +28713,8 @@ void MessagesManager::set_dialog_pending_join_requests(Dialog *d, int32 pending_
   }
 
   CHECK(d != nullptr);
-  fix_pending_join_requests(d->dialog_id, pending_join_request_count, pending_join_request_user_ids);
+  td_->dialog_participant_manager_->fix_pending_join_requests(d->dialog_id, pending_join_request_count,
+                                                              pending_join_request_user_ids);
   if (d->pending_join_request_count == pending_join_request_count &&
       d->pending_join_request_user_ids == pending_join_request_user_ids) {
     return;
@@ -32779,7 +32733,8 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
       on_dialog_updated(dialog_id, "pending update_dialog_group_call");
     }
   }
-  fix_pending_join_requests(dialog_id, d->pending_join_request_count, d->pending_join_request_user_ids);
+  td_->dialog_participant_manager_->fix_pending_join_requests(dialog_id, d->pending_join_request_count,
+                                                              d->pending_join_request_user_ids);
 
   if (!is_loaded_from_database) {
     CHECK(order == DEFAULT_ORDER);
