@@ -5090,7 +5090,9 @@ void UserManager::send_update_profile_photo_query(UserId user_id, FileId file_id
   TRY_STATUS_PROMISE(promise, G()->close_status());
   FileView file_view = td_->file_manager_->get_file_view(file_id);
   const auto *main_remote_location = file_view.get_main_remote_location();
-  CHECK(main_remote_location != nullptr);
+  if (main_remote_location == nullptr) {
+    return promise.set_error(Status::Error(500, "Failed to upload the file"));
+  }
   td_->create_handler<UpdateProfilePhotoQuery>(std::move(promise))
       ->send(user_id, file_id, old_photo_id, is_fallback, main_remote_location->as_input_photo());
 }

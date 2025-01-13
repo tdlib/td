@@ -1856,12 +1856,14 @@ void DialogManager::set_dialog_photo(DialogId dialog_id, const td_api::object_pt
         auto photo = static_cast<const td_api::inputChatPhotoPrevious *>(input_photo.get());
         auto file_id = td_->user_manager_->get_profile_photo_file_id(photo->chat_photo_id_);
         if (!file_id.is_valid()) {
-          return promise.set_error(Status::Error(400, "Unknown profile photo ID specified"));
+          return promise.set_error(Status::Error(400, "Unknown profile photo identifier specified"));
         }
 
         auto file_view = td_->file_manager_->get_file_view(file_id);
         const auto *main_remote_location = file_view.get_main_remote_location();
-        CHECK(main_remote_location != nullptr);
+        if (main_remote_location == nullptr) {
+          return promise.set_error(Status::Error(400, "Invalid profile photo identifier specified"));
+        }
         auto input_chat_photo =
             telegram_api::make_object<telegram_api::inputChatPhoto>(main_remote_location->as_input_photo());
         return send_edit_dialog_photo_query(dialog_id, {file_id, FileManager::get_internal_upload_id()},
