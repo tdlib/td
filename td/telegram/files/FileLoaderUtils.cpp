@@ -307,6 +307,10 @@ Result<FullLocalLocationInfo> check_full_local_location(FullLocalLocationInfo lo
 
   if (size <= 0) {
     size = stat.size_;
+  } else if (size != stat.size_) {
+    VLOG(file_loader) << "File \"" << location.path_ << "\" was modified: old size = " << size
+                      << ", new size = " << stat.size_;
+    return Status::Error(400, "File size has changed");
   }
   if (location.mtime_nsec_ == 0) {
     VLOG(file_loader) << "Set file \"" << location.path_ << "\" modification time to " << stat.mtime_nsec_;
