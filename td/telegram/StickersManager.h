@@ -821,8 +821,8 @@ class StickersManager final : public Actor {
 
   void finish_upload_sticker_file(FileId file_id, Promise<td_api::object_ptr<td_api::file>> &&promise);
 
-  telegram_api::object_ptr<telegram_api::inputStickerSetItem> get_input_sticker(const td_api::inputSticker *sticker,
-                                                                                FileId file_id) const;
+  Result<telegram_api::object_ptr<telegram_api::inputStickerSetItem>> get_input_sticker(
+      const td_api::inputSticker *sticker, FileId file_id) const;
 
   void upload_sticker_file(UserId user_id, FileId file_id, Promise<Unit> &&promise);
 

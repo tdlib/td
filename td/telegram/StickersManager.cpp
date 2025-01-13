@@ -7886,15 +7886,25 @@ void StickersManager::upload_sticker_file(UserId user_id, StickerFormat sticker_
 
 void StickersManager::finish_upload_sticker_file(FileId file_id, Promise<td_api::object_ptr<td_api::file>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  FileView file_view = td_->file_manager_->get_file_view(file_id);
+  const auto *main_remote_location = file_view.get_main_remote_location();
+  if (main_remote_location == nullptr) {
+    return promise.set_error(Status::Error(500, "Failed to upload the file"));
+  }
+
   promise.set_value(td_->file_manager_->get_file_object(file_id));
 }
 
-telegram_api::object_ptr<telegram_api::inputStickerSetItem> StickersManager::get_input_sticker(
+Result<telegram_api::object_ptr<telegram_api::inputStickerSetItem>> StickersManager::get_input_sticker(
     const td_api::inputSticker *sticker, FileId file_id) const {
   CHECK(sticker != nullptr);
   FileView file_view = td_->file_manager_->get_file_view(file_id);
   const auto *main_remote_location = file_view.get_main_remote_location();
-  CHECK(main_remote_location != nullptr);
+  if (main_remote_location == nullptr) {
+    // merge has failed
+    return Status::Error(500, "Failed to upload the file");
+  }
   auto input_document = main_remote_location->as_input_document();
 
   int32 flags = 0;
@@ -8212,8 +8222,10 @@ void StickersManager::on_new_stickers_uploaded(int64 random_id, Result<Unit> res
   vector<tl_object_ptr<telegram_api::inputStickerSetItem>> input_stickers;
   input_stickers.reserve(sticker_count);
   for (size_t i = 0; i < sticker_count; i++) {
-    input_stickers.push_back(
+    TRY_RESULT_PROMISE(
+        promise, input_sticker,
         get_input_sticker(pending_new_sticker_set->stickers_[i].get(), pending_new_sticker_set->file_ids_[i]));
+    input_stickers.push_back(std::move(input_sticker));
   }
 
   td_->create_handler<CreateNewStickerSetQuery>(std::move(promise))
@@ -8338,10 +8350,12 @@ void StickersManager::on_added_sticker_uploaded(int64 random_id, Result<Unit> re
     pending_add_sticker_to_set->promise_.set_error(result.move_as_error());
     return;
   }
+  TRY_RESULT_PROMISE(
+      pending_add_sticker_to_set->promise_, input_sticker,
+      get_input_sticker(pending_add_sticker_to_set->sticker_.get(), pending_add_sticker_to_set->file_id_));
 
   td_->create_handler<AddStickerToSetQuery>(std::move(pending_add_sticker_to_set->promise_))
-      ->send(pending_add_sticker_to_set->short_name_,
-             get_input_sticker(pending_add_sticker_to_set->sticker_.get(), pending_add_sticker_to_set->file_id_),
+      ->send(pending_add_sticker_to_set->short_name_, std::move(input_sticker),
              std::move(pending_add_sticker_to_set->input_document_));
 }
 
@@ -8451,7 +8465,9 @@ void StickersManager::on_sticker_set_thumbnail_uploaded(int64 random_id, Result<
 
   FileView file_view = td_->file_manager_->get_file_view(pending_set_sticker_set_thumbnail->file_id_);
   const auto *main_remote_location = file_view.get_main_remote_location();
-  CHECK(main_remote_location != nullptr);
+  if (main_remote_location == nullptr) {
+    return pending_set_sticker_set_thumbnail->promise_.set_error(Status::Error(500, "Failed to upload the file"));
+  }
 
   td_->create_handler<SetStickerSetThumbnailQuery>(std::move(pending_set_sticker_set_thumbnail->promise_))
       ->send(pending_set_sticker_set_thumbnail->short_name_, main_remote_location->as_input_document());
