@@ -795,25 +795,20 @@ Status HttpReader::open_temp_file(CSlice desired_file_name) {
   TRY_RESULT(dir, realpath(tmp_dir, true));
   CHECK(!dir.empty());
 
-  auto first_try = try_open_temp_file(dir, desired_file_name);
+  // Create a unique directory for the file
+  TRY_RESULT(directory, mkdtemp(dir, TEMP_DIRECTORY_PREFIX));
+  auto first_try = try_open_temp_file(directory, desired_file_name);
   if (first_try.is_ok()) {
     return Status::OK();
   }
-
-  // Creation of new file with desired name has failed. Trying to create unique directory for it
-  TRY_RESULT(directory, mkdtemp(dir, TEMP_DIRECTORY_PREFIX));
-  auto second_try = try_open_temp_file(directory, desired_file_name);
+  auto second_try = try_open_temp_file(directory, "file");
   if (second_try.is_ok()) {
-    return Status::OK();
-  }
-  auto third_try = try_open_temp_file(directory, "file");
-  if (third_try.is_ok()) {
     return Status::OK();
   }
 
   rmdir(directory).ignore();
-  LOG(WARNING) << "Failed to create temporary file \"" << desired_file_name << "\": " << second_try.error();
-  return second_try.move_as_error();
+  LOG(WARNING) << "Failed to create temporary file \"" << desired_file_name << "\": " << first_try.error();
+  return first_try.move_as_error();
 }
 
 Status HttpReader::try_open_temp_file(Slice directory_name, CSlice desired_file_name) {
