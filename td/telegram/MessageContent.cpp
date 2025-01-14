@@ -7157,7 +7157,8 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       }
       Photo video_cover;
       if (media->video_cover_ != nullptr) {
-        video_cover = get_photo(td, std::move(media->video_cover_), owner_dialog_id);
+        video_cover = get_photo(td, std::move(media->video_cover_), owner_dialog_id,
+                                is_self_destructing ? FileType::SelfDestructingPhoto : FileType::Photo);
       }
       return get_document_message_content(td, telegram_api::move_object_as<telegram_api::document>(document_ptr),
                                           owner_dialog_id, is_self_destructing, std::move(message), is_content_read,
