@@ -14,6 +14,8 @@
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/DialogParticipantManager.h"
+#include "td/telegram/files/FileId.h"
+#include "td/telegram/files/FileManager.h"
 #include "td/telegram/FolderId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/HashtagHints.h"
@@ -49,6 +51,68 @@
 #include "td/utils/tl_helpers.h"
 
 namespace td {
+
+class UploadCoverQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+  Photo photo_;
+  FileUploadId file_upload_id_;
+  bool was_uploaded_ = false;
+
+ public:
+  explicit UploadCoverQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, Photo &&photo, FileUploadId file_upload_id,
+            telegram_api::object_ptr<telegram_api::InputMedia> &&input_media) {
+    CHECK(input_media != nullptr);
+    dialog_id_ = dialog_id;
+    photo_ = std::move(photo);
+    file_upload_id_ = file_upload_id;
+    was_uploaded_ = FileManager::extract_was_uploaded(input_media);
+
+    if (was_uploaded_ && false) {
+      return on_error(Status::Error(400, "FILE_PART_1_MISSING"));
+    }
+
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Have no write access to the chat"));
+    }
+
+    int32 flags = 0;
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_uploadMedia(flags, string(), std::move(input_peer), std::move(input_media))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_uploadMedia>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for UploadCoverQuery: " << to_string(ptr);
+    td_->message_query_manager_->complete_upload_message_cover(dialog_id_, std::move(photo_), file_upload_id_,
+                                                               std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    LOG(INFO) << "Receive error for UploadCoverQuery: " << status;
+
+    if (was_uploaded_) {
+      auto bad_parts = FileManager::get_missing_file_parts(status);
+      if (!bad_parts.empty()) {
+        td_->message_query_manager_->upload_message_cover(dialog_id_, std::move(photo_), file_upload_id_,
+                                                          std::move(promise_), std::move(bad_parts));
+        return;
+      } else {
+        td_->file_manager_->delete_partial_remote_location_if_needed(file_upload_id_, status);
+      }
+    }
+    promise_.set_error(std::move(status));
+  }
+};
 
 class ReportMessageDeliveryQuery final : public Td::ResultHandler {
   DialogId dialog_id_;
@@ -1101,7 +1165,21 @@ class UnpinAllMessagesQuery final : public Td::ResultHandler {
   }
 };
 
+class MessageQueryManager::UploadCoverCallback final : public FileManager::UploadCallback {
+ public:
+  void on_upload_ok(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
+    send_closure_later(G()->message_query_manager(), &MessageQueryManager::on_upload_cover, file_upload_id,
+                       std::move(input_file));
+  }
+
+  void on_upload_error(FileUploadId file_upload_id, Status error) final {
+    send_closure_later(G()->message_query_manager(), &MessageQueryManager::on_upload_cover_error, file_upload_id,
+                       std::move(error));
+  }
+};
+
 MessageQueryManager::MessageQueryManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
+  upload_cover_callback_ = std::make_shared<UploadCoverCallback>();
 }
 
 void MessageQueryManager::tear_down() {
@@ -1153,6 +1231,107 @@ void MessageQueryManager::on_get_affected_history(DialogId dialog_id, AffectedHi
   if (!affected_history.is_final_) {
     run_affected_history_query_until_complete(dialog_id, std::move(query), get_affected_messages, std::move(promise));
   }
+}
+
+void MessageQueryManager::upload_message_cover(DialogId dialog_id, Photo photo, FileUploadId file_upload_id,
+                                               Promise<Unit> &&promise, vector<int> bad_parts) {
+  if (file_upload_id == FileUploadId()) {
+    file_upload_id = FileUploadId(get_photo_any_file_id(photo), FileManager::get_internal_upload_id());
+  }
+  auto file_id = file_upload_id.get_file_id();
+  CHECK(file_id.is_valid());
+  FileView file_view = td_->file_manager_->get_file_view(file_id);
+  CHECK(!file_view.empty());
+
+  const auto *main_remote_location = file_view.get_main_remote_location();
+  if (main_remote_location != nullptr && main_remote_location->is_web()) {
+    return promise.set_error(Status::Error(400, "Can't use a web file"));
+  }
+
+  BeingUploadedCover cover;
+  cover.dialog_id_ = dialog_id;
+  cover.photo_ = std::move(photo);
+  cover.promise_ = std::move(promise);
+
+  if (main_remote_location == nullptr && file_view.has_url()) {
+    return do_upload_cover(file_upload_id, std::move(cover));
+  }
+
+  LOG(INFO) << "Ask to upload cover " << file_upload_id << " with bad parts " << bad_parts;
+  CHECK(file_upload_id.is_valid());
+  bool is_inserted = being_uploaded_covers_.emplace(file_upload_id, std::move(cover)).second;
+  CHECK(is_inserted);
+  // need to call resume_upload synchronously to make upload process consistent with being_uploaded_covers_
+  td_->file_manager_->resume_upload(file_upload_id, std::move(bad_parts), upload_cover_callback_, 1, 0);
+}
+
+void MessageQueryManager::on_upload_cover(FileUploadId file_upload_id,
+                                          telegram_api::object_ptr<telegram_api::InputFile> input_file) {
+  LOG(INFO) << "Cover " << file_upload_id << " has been uploaded";
+
+  auto it = being_uploaded_covers_.find(file_upload_id);
+  CHECK(it != being_uploaded_covers_.end());
+  auto cover = std::move(it->second);
+  being_uploaded_covers_.erase(it);
+
+  cover.input_file_ = std::move(input_file);
+  do_upload_cover(file_upload_id, std::move(cover));
+}
+
+void MessageQueryManager::on_upload_cover_error(FileUploadId file_upload_id, Status status) {
+  CHECK(status.is_error());
+
+  auto it = being_uploaded_covers_.find(file_upload_id);
+  CHECK(it != being_uploaded_covers_.end());
+  auto cover = std::move(it->second);
+  being_uploaded_covers_.erase(it);
+
+  cover.promise_.set_error(std::move(status));
+}
+
+void MessageQueryManager::do_upload_cover(FileUploadId file_upload_id, BeingUploadedCover &&being_uploaded_cover) {
+  auto input_file = std::move(being_uploaded_cover.input_file_);
+  bool have_input_file = input_file != nullptr;
+  LOG(INFO) << "Do upload cover " << file_upload_id << ", have_input_file = " << have_input_file;
+
+  auto input_media =
+      photo_get_input_media(td_->file_manager_.get(), being_uploaded_cover.photo_, std::move(input_file), 0, false);
+  CHECK(input_media != nullptr);
+  if (is_uploaded_input_media(input_media)) {
+    return being_uploaded_cover.promise_.set_value(Unit());
+  } else {
+    td_->create_handler<UploadCoverQuery>(std::move(being_uploaded_cover.promise_))
+        ->send(being_uploaded_cover.dialog_id_, std::move(being_uploaded_cover.photo_), file_upload_id,
+               std::move(input_media));
+  }
+}
+
+void MessageQueryManager::complete_upload_message_cover(
+    DialogId dialog_id, Photo photo, FileUploadId file_upload_id,
+    telegram_api::object_ptr<telegram_api::MessageMedia> &&media_ptr, Promise<Unit> &&promise) {
+  if (media_ptr->get_id() != telegram_api::messageMediaPhoto::ID) {
+    return promise.set_error(Status::Error(500, "Receive invalid response"));
+  }
+  auto media = telegram_api::move_object_as<telegram_api::messageMediaPhoto>(media_ptr);
+  if (media->photo_ == nullptr || (media->flags_ & telegram_api::messageMediaPhoto::TTL_SECONDS_MASK) != 0) {
+    return promise.set_error(Status::Error(500, "Receive invalid response without photo"));
+  }
+  auto new_photo = get_photo(td_, std::move(media->photo_), dialog_id, FileType::Photo);
+  if (new_photo.is_empty()) {
+    return promise.set_error(Status::Error(500, "Receive invalid photo in response"));
+  }
+  bool is_content_changed = false;
+  bool need_update = false;
+  merge_photos(td_, &photo, &new_photo, dialog_id, true, is_content_changed, need_update);
+
+  auto old_file_id = file_upload_id.get_file_id();
+  send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_upload_id);
+
+  auto input_media = photo_get_input_media(td_->file_manager_.get(), photo, nullptr, 0, false);
+  if (input_media == nullptr) {
+    return promise.set_error(Status::Error(500, "Failed to upload file"));
+  }
+  promise.set_value(Unit());
 }
 
 void MessageQueryManager::report_message_delivery(MessageFullId message_full_id, int32 until_date, bool from_push) {

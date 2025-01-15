@@ -10,11 +10,13 @@
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogListId.h"
+#include "td/telegram/files/FileUploadId.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageSearchFilter.h"
 #include "td/telegram/MessageThreadInfo.h"
 #include "td/telegram/MessageViewer.h"
+#include "td/telegram/Photo.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -40,6 +42,13 @@ class MessageQueryManager final : public Actor {
 
   void run_affected_history_query_until_complete(DialogId dialog_id, AffectedHistoryQuery query,
                                                  bool get_affected_messages, Promise<Unit> &&promise);
+
+  void upload_message_cover(DialogId dialog_id, Photo photo, FileUploadId file_upload_id, Promise<Unit> &&promise,
+                            vector<int> bad_parts = {});
+
+  void complete_upload_message_cover(DialogId dialog_id, Photo photo, FileUploadId file_upload_id,
+                                     telegram_api::object_ptr<telegram_api::MessageMedia> &&media_ptr,
+                                     Promise<Unit> &&promise);
 
   void report_message_delivery(MessageFullId message_full_id, int32 until_date, bool from_push);
 
@@ -149,12 +158,27 @@ class MessageQueryManager final : public Actor {
   class ReadMessageContentsOnServerLogEvent;
   class UnpinAllDialogMessagesOnServerLogEvent;
 
+  class UploadCoverCallback;
+
   static constexpr int32 MAX_SEARCH_MESSAGES = 100;  // server-side limit
+
+  struct BeingUploadedCover {
+    DialogId dialog_id_;
+    Photo photo_;
+    telegram_api::object_ptr<telegram_api::InputFile> input_file_;
+    Promise<Unit> promise_;
+  };
 
   void tear_down() final;
 
   void on_get_affected_history(DialogId dialog_id, AffectedHistoryQuery query, bool get_affected_messages,
                                AffectedHistory affected_history, Promise<Unit> &&promise);
+
+  void on_upload_cover(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
+
+  void on_upload_cover_error(FileUploadId file_upload_id, Status status);
+
+  void do_upload_cover(FileUploadId file_upload_id, BeingUploadedCover &&being_uploaded_cover);
 
   void on_get_message_viewers(DialogId dialog_id, MessageViewers message_viewers, bool is_recursive,
                               Promise<td_api::object_ptr<td_api::messageViewers>> &&promise);
@@ -197,6 +221,10 @@ class MessageQueryManager final : public Actor {
                                                                const vector<MessageId> &message_ids);
 
   static uint64 save_unpin_all_dialog_messages_on_server_log_event(DialogId dialog_id);
+
+  FlatHashMap<FileUploadId, BeingUploadedCover, FileUploadIdHash> being_uploaded_covers_;
+
+  std::shared_ptr<UploadCoverCallback> upload_cover_callback_;
 
   Td *td_;
   ActorShared<> parent_;
