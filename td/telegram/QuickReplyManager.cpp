@@ -22,6 +22,7 @@
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageCopyOptions.h"
 #include "td/telegram/MessageInputReplyTo.h"
+#include "td/telegram/MessageQueryManager.h"
 #include "td/telegram/MessageQuote.h"
 #include "td/telegram/MessageReplyHeader.h"
 #include "td/telegram/MessageSelfDestructType.h"
@@ -2158,6 +2159,34 @@ Result<td_api::object_ptr<td_api::quickReplyMessages>> QuickReplyManager::send_m
   return td_api::make_object<td_api::quickReplyMessages>(std::move(messages));
 }
 
+void QuickReplyManager::on_cover_upload(QuickReplyMessageFullId message_full_id, int64 edit_generation,
+                                        vector<int> bad_parts, Result<Unit> result) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  const QuickReplyMessage *m = get_message(message_full_id);
+  if (m == nullptr) {
+    // message has already been deleted by the user, do not need to send or edit it
+    LOG(INFO) << "Quick reply message with a cover has already been deleted";
+    return;
+  }
+
+  if (result.is_error()) {
+    bool is_edit = m->message_id.is_any_server();
+    if (is_edit) {
+      if (edit_generation == m->edit_generation) {
+        fail_edit_quick_reply_message(m->shortcut_id, m->message_id, edit_generation, FileUploadId(), FileUploadId(),
+                                      string(), false, false, result.move_as_error());
+      }
+    } else {
+      on_failed_send_quick_reply_messages(m->shortcut_id, {m->random_id}, result.move_as_error());
+    }
+  } else {
+    do_send_message(m, std::move(bad_parts));
+  }
+}
+
 void QuickReplyManager::do_send_message(const QuickReplyMessage *m, vector<int> bad_parts) {
   CHECK(m != nullptr);
   bool is_edit = m->message_id.is_server();
@@ -2201,6 +2230,20 @@ void QuickReplyManager::do_send_message(const QuickReplyMessage *m, vector<int> 
       td_->create_handler<SendQuickReplyMediaQuery>()->send(m, std::move(input_media));
     }
     return;
+  }
+
+  auto *cover = get_message_content_cover(content);
+  if (cover != nullptr) {
+    auto input_media = photo_get_input_media(td_->file_manager_.get(), *cover, nullptr, 0, false);
+    if (input_media == nullptr) {
+      return td_->message_query_manager_->upload_message_cover(
+          BusinessConnectionId(), td_->dialog_manager_->get_my_dialog_id(), *cover, FileUploadId(),
+          PromiseCreator::lambda([actor_id = actor_id(this), message_full_id, edit_generation = m->edit_generation,
+                                  bad_parts = std::move(bad_parts)](Result<Unit> result) mutable {
+            send_closure(actor_id, &QuickReplyManager::on_cover_upload, message_full_id, edit_generation,
+                         std::move(bad_parts), std::move(result));
+          }));
+    }
   }
 
   if (bad_parts.empty()) {

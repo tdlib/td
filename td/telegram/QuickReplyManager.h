@@ -381,6 +381,9 @@ class QuickReplyManager final : public Actor {
                                                           unique_ptr<MessageContent> &new_content,
                                                           bool need_merge_files);
 
+  void on_cover_upload(QuickReplyMessageFullId message_full_id, int64 edit_generation, vector<int> bad_parts,
+                       Result<Unit> result);
+
   void do_send_message(const QuickReplyMessage *m, vector<int> bad_parts = {});
 
   void on_send_message_file_parts_missing(QuickReplyShortcutId shortcut_id, int64 random_id, vector<int> &&bad_parts);
