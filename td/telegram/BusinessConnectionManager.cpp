@@ -20,10 +20,12 @@
 #include "td/telegram/MessageCopyOptions.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"
+#include "td/telegram/MessageQueryManager.h"
 #include "td/telegram/MessageQuote.h"
 #include "td/telegram/MessageSelfDestructType.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/OptionManager.h"
+#include "td/telegram/Photo.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
@@ -892,6 +894,23 @@ void BusinessConnectionManager::do_send_message(unique_ptr<PendingMessage> &&mes
                    }));
     }
     return;
+  }
+
+  auto *cover = get_message_content_cover(content);
+  if (cover != nullptr) {
+    auto input_media = photo_get_input_media(td_->file_manager_.get(), *cover, nullptr, 0, false);
+    if (input_media == nullptr) {
+      auto business_connection_id = message->business_connection_id_;
+      auto dialog_id = message->dialog_id_;
+      return td_->message_query_manager_->upload_message_cover(
+          business_connection_id, dialog_id, *cover, FileUploadId(),
+          PromiseCreator::lambda([actor_id = actor_id(this), message = std::move(message), promise = std::move(promise)](Result<Unit> result) mutable {
+            if (result.is_error()) {
+              return promise.set_error(result.move_as_error());
+            }
+            send_closure(actor_id, &BusinessConnectionManager::do_send_message, std::move(message), std::move(promise));
+          }));
+    }
   }
 
   auto input_media =

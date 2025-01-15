@@ -21550,7 +21550,7 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
         return td_->message_query_manager_->upload_message_cover(
             BusinessConnectionId(), dialog_id, *cover, FileUploadId(),
             PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, message_id = m->message_id, media_pos,
-                                    bad_parts = std::move(bad_parts)](Result<Unit> result) {
+                                    bad_parts = std::move(bad_parts)](Result<Unit> result) mutable {
               send_closure(actor_id, &MessagesManager::on_cover_upload, dialog_id, message_id, media_pos,
                            std::move(bad_parts), std::move(result));
             }));
