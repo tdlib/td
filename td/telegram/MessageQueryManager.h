@@ -95,6 +95,9 @@ class MessageQueryManager final : public Actor {
   void delete_dialog_messages_by_date_on_server(DialogId dialog_id, int32 min_date, int32 max_date, bool revoke,
                                                 uint64 log_event_id, Promise<Unit> &&promise);
 
+  void delete_scheduled_messages_on_server(DialogId dialog_id, vector<MessageId> message_ids, uint64 log_event_id,
+                                           Promise<Unit> &&promise);
+
   void delete_topic_history_on_server(DialogId dialog_id, MessageId top_thread_message_id, uint64 log_event_id,
                                       Promise<Unit> &&promise);
 
@@ -123,6 +126,7 @@ class MessageQueryManager final : public Actor {
   class DeleteAllChannelMessagesFromSenderOnServerLogEvent;
   class DeleteDialogHistoryOnServerLogEvent;
   class DeleteDialogMessagesByDateOnServerLogEvent;
+  class DeleteScheduledMessagesOnServerLogEvent;
   class DeleteTopicHistoryOnServerLogEvent;
   class ReadAllDialogMentionsOnServerLogEvent;
   class ReadAllDialogReactionsOnServerLogEvent;
@@ -153,6 +157,9 @@ class MessageQueryManager final : public Actor {
 
   static uint64 save_delete_dialog_messages_by_date_on_server_log_event(DialogId dialog_id, int32 min_date,
                                                                         int32 max_date, bool revoke);
+
+  static uint64 save_delete_scheduled_messages_on_server_log_event(DialogId dialog_id,
+                                                                   const vector<MessageId> &message_ids);
 
   static uint64 save_delete_topic_history_on_server_log_event(DialogId dialog_id, MessageId top_thread_message_id);
 

@@ -369,6 +369,8 @@ class MessagesManager final : public Actor {
 
   void on_failed_message_deletion(DialogId dialog_id, const vector<int32> &server_message_ids);
 
+  void on_scheduled_messages_deleted(DialogId dialog_id, const vector<MessageId> &message_ids);
+
   void on_failed_scheduled_message_deletion(DialogId dialog_id, const vector<MessageId> &message_ids);
 
   void delete_dialog_history(DialogId dialog_id, bool remove_from_dialog_list, bool revoke, Promise<Unit> &&promise);
@@ -1558,7 +1560,6 @@ class MessagesManager final : public Actor {
   class BlockMessageSenderFromRepliesOnServerLogEvent;
   class DeleteMessageLogEvent;
   class DeleteMessagesOnServerLogEvent;
-  class DeleteScheduledMessagesOnServerLogEvent;
   class ForwardMessagesLogEvent;
   class GetChannelDifferenceLogEvent;
   class ReadHistoryInSecretChatLogEvent;
@@ -1973,9 +1974,6 @@ class MessagesManager final : public Actor {
 
   void delete_messages_on_server(DialogId dialog_id, vector<MessageId> message_ids, bool revoke, uint64 log_event_id,
                                  Promise<Unit> &&promise);
-
-  void delete_scheduled_messages_on_server(DialogId dialog_id, vector<MessageId> message_ids, uint64 log_event_id,
-                                           Promise<Unit> &&promise);
 
   void block_message_sender_from_replies_on_server(MessageId message_id, bool need_delete_message,
                                                    bool need_delete_all_messages, bool report_spam, uint64 log_event_id,
@@ -3075,9 +3073,6 @@ class MessagesManager final : public Actor {
 
   static uint64 save_delete_messages_on_server_log_event(DialogId dialog_id, const vector<MessageId> &message_ids,
                                                          bool revoke);
-
-  static uint64 save_delete_scheduled_messages_on_server_log_event(DialogId dialog_id,
-                                                                   const vector<MessageId> &message_ids);
 
   static uint64 save_block_message_sender_from_replies_on_server_log_event(MessageId message_id,
                                                                            bool need_delete_message,

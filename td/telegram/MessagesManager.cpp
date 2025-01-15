@@ -2831,47 +2831,6 @@ class DeleteChannelMessagesQuery final : public Td::ResultHandler {
   }
 };
 
-class DeleteScheduledMessagesQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  DialogId dialog_id_;
-  vector<MessageId> message_ids_;
-
- public:
-  explicit DeleteScheduledMessagesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(DialogId dialog_id, vector<MessageId> &&message_ids) {
-    dialog_id_ = dialog_id;
-    message_ids_ = std::move(message_ids);
-
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
-    if (input_peer == nullptr) {
-      return on_error(Status::Error(400, "Can't access the chat"));
-    }
-    send_query(G()->net_query_creator().create(telegram_api::messages_deleteScheduledMessages(
-        std::move(input_peer), MessageId::get_scheduled_server_message_ids(message_ids_))));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_deleteScheduledMessages>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for DeleteScheduledMessagesQuery: " << to_string(ptr);
-    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
-  }
-
-  void on_error(Status status) final {
-    if (!td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "DeleteScheduledMessagesQuery")) {
-      LOG(ERROR) << "Receive error for delete scheduled messages: " << status;
-    }
-    td_->messages_manager_->on_failed_scheduled_message_deletion(dialog_id_, message_ids_);
-    promise_.set_error(std::move(status));
-  }
-};
-
 class EditPeerFoldersQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -8693,8 +8652,8 @@ void MessagesManager::delete_messages(DialogId dialog_id, const vector<MessageId
 
   auto lock = mpas.get_promise();
   delete_messages_on_server(dialog_id, std::move(deleted_server_message_ids), revoke, 0, mpas.get_promise());
-  delete_scheduled_messages_on_server(dialog_id, std::move(deleted_scheduled_server_message_ids), 0,
-                                      mpas.get_promise());
+  td_->message_query_manager_->delete_scheduled_messages_on_server(
+      dialog_id, std::move(deleted_scheduled_server_message_ids), 0, mpas.get_promise());
   lock.set_value(Unit());
 
   delete_dialog_messages(d, message_ids, false, DELETE_MESSAGE_USER_REQUEST_SOURCE);
@@ -8729,7 +8688,7 @@ void MessagesManager::delete_sent_message_on_server(DialogId dialog_id, MessageI
       delete_messages_on_server(dialog_id, {message_id}, true, 0, Auto());
     } else {
       CHECK(message_id.is_scheduled_server());
-      delete_scheduled_messages_on_server(dialog_id, {message_id}, 0, Auto());
+      td_->message_query_manager_->delete_scheduled_messages_on_server(dialog_id, {message_id}, 0, Auto());
     }
 
     bool need_update_dialog_pos = false;
@@ -8836,48 +8795,6 @@ void MessagesManager::delete_messages_on_server(DialogId dialog_id, vector<Messa
   lock.set_value(Unit());
 }
 
-class MessagesManager::DeleteScheduledMessagesOnServerLogEvent {
- public:
-  DialogId dialog_id_;
-  vector<MessageId> message_ids_;
-
-  template <class StorerT>
-  void store(StorerT &storer) const {
-    td::store(dialog_id_, storer);
-    td::store(message_ids_, storer);
-  }
-
-  template <class ParserT>
-  void parse(ParserT &parser) {
-    td::parse(dialog_id_, parser);
-    td::parse(message_ids_, parser);
-  }
-};
-
-uint64 MessagesManager::save_delete_scheduled_messages_on_server_log_event(DialogId dialog_id,
-                                                                           const vector<MessageId> &message_ids) {
-  DeleteScheduledMessagesOnServerLogEvent log_event{dialog_id, message_ids};
-  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteScheduledMessagesOnServer,
-                    get_log_event_storer(log_event));
-}
-
-void MessagesManager::delete_scheduled_messages_on_server(DialogId dialog_id, vector<MessageId> message_ids,
-                                                          uint64 log_event_id, Promise<Unit> &&promise) {
-  if (message_ids.empty()) {
-    return promise.set_value(Unit());
-  }
-  LOG(INFO) << "Delete " << format::as_array(message_ids) << " in " << dialog_id << " from server";
-
-  if (log_event_id == 0 && G()->use_message_database()) {
-    log_event_id = save_delete_scheduled_messages_on_server_log_event(dialog_id, message_ids);
-  }
-
-  auto new_promise = get_erase_log_event_promise(log_event_id, std::move(promise));
-  promise = std::move(new_promise);  // to prevent self-move
-
-  td_->create_handler<DeleteScheduledMessagesQuery>(std::move(promise))->send(dialog_id, std::move(message_ids));
-}
-
 void MessagesManager::on_failed_message_deletion(DialogId dialog_id, const vector<int32> &server_message_ids) {
   if (G()->close_flag()) {
     return;
@@ -8894,6 +8811,16 @@ void MessagesManager::on_failed_message_deletion(DialogId dialog_id, const vecto
     return;
   }
   get_messages_from_server(std::move(message_full_ids), Promise<Unit>(), "on_failed_message_deletion");
+}
+
+void MessagesManager::on_scheduled_messages_deleted(DialogId dialog_id, const vector<MessageId> &message_ids) {
+  Dialog *d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+  auto *scheduled_messages = add_dialog_scheduled_messages(d);
+  for (auto &message_id : message_ids) {
+    CHECK(message_id.is_scheduled_server());
+    scheduled_messages->deleted_scheduled_server_message_ids_.insert(message_id.get_scheduled_server_message_id());
+  }
 }
 
 void MessagesManager::on_failed_scheduled_message_deletion(DialogId dialog_id, const vector<MessageId> &message_ids) {
@@ -35764,31 +35691,6 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         }
 
         delete_messages_on_server(dialog_id, std::move(log_event.message_ids_), log_event.revoke_, event.id_, Auto());
-        break;
-      }
-      case LogEvent::HandlerType::DeleteScheduledMessagesOnServer: {
-        if (!have_old_message_database) {
-          binlog_erase(G()->td_db()->get_binlog(), event.id_);
-          break;
-        }
-
-        DeleteScheduledMessagesOnServerLogEvent log_event;
-        log_event_parse(log_event, event.get_data()).ensure();
-
-        auto dialog_id = log_event.dialog_id_;
-        Dialog *d = get_dialog_force(dialog_id, "DeleteScheduledMessagesOnServerLogEvent");
-        if (d == nullptr || !td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read)) {
-          binlog_erase(G()->td_db()->get_binlog(), event.id_);
-          break;
-        }
-
-        for (auto message_id : log_event.message_ids_) {
-          CHECK(message_id.is_scheduled_server());
-          add_dialog_scheduled_messages(d)->deleted_scheduled_server_message_ids_.insert(
-              message_id.get_scheduled_server_message_id());
-        }
-
-        delete_scheduled_messages_on_server(dialog_id, std::move(log_event.message_ids_), event.id_, Auto());
         break;
       }
       case LogEvent::HandlerType::BlockMessageSenderFromRepliesOnServer: {
