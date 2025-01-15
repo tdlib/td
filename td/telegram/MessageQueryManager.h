@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/AffectedHistory.h"
+#include "td/telegram/BusinessConnectionId.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogListId.h"
@@ -43,10 +44,11 @@ class MessageQueryManager final : public Actor {
   void run_affected_history_query_until_complete(DialogId dialog_id, AffectedHistoryQuery query,
                                                  bool get_affected_messages, Promise<Unit> &&promise);
 
-  void upload_message_cover(DialogId dialog_id, Photo photo, FileUploadId file_upload_id, Promise<Unit> &&promise,
-                            vector<int> bad_parts = {});
+  void upload_message_cover(BusinessConnectionId business_connection_id, DialogId dialog_id, Photo photo,
+                            FileUploadId file_upload_id, Promise<Unit> &&promise, vector<int> bad_parts = {});
 
-  void complete_upload_message_cover(DialogId dialog_id, Photo photo, FileUploadId file_upload_id,
+  void complete_upload_message_cover(BusinessConnectionId business_connection_id, DialogId dialog_id, Photo photo,
+                                     FileUploadId file_upload_id,
                                      telegram_api::object_ptr<telegram_api::MessageMedia> &&media_ptr,
                                      Promise<Unit> &&promise);
 
@@ -163,6 +165,7 @@ class MessageQueryManager final : public Actor {
   static constexpr int32 MAX_SEARCH_MESSAGES = 100;  // server-side limit
 
   struct BeingUploadedCover {
+    BusinessConnectionId business_connection_id_;
     DialogId dialog_id_;
     Photo photo_;
     telegram_api::object_ptr<telegram_api::InputFile> input_file_;

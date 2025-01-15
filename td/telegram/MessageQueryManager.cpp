@@ -54,6 +54,7 @@ namespace td {
 
 class UploadCoverQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
+  BusinessConnectionId business_connection_id_;
   DialogId dialog_id_;
   Photo photo_;
   FileUploadId file_upload_id_;
@@ -63,9 +64,10 @@ class UploadCoverQuery final : public Td::ResultHandler {
   explicit UploadCoverQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, Photo &&photo, FileUploadId file_upload_id,
+  void send(BusinessConnectionId business_connection_id, DialogId dialog_id, Photo &&photo, FileUploadId file_upload_id,
             telegram_api::object_ptr<telegram_api::InputMedia> &&input_media) {
     CHECK(input_media != nullptr);
+    business_connection_id_ = business_connection_id;
     dialog_id_ = dialog_id;
     photo_ = std::move(photo);
     file_upload_id_ = file_upload_id;
@@ -75,14 +77,18 @@ class UploadCoverQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "FILE_PART_1_MISSING"));
     }
 
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(
+        dialog_id, business_connection_id_.is_valid() ? AccessRights::Know : AccessRights::Write);
     if (input_peer == nullptr) {
-      return on_error(Status::Error(400, "Have no write access to the chat"));
+      return on_error(Status::Error(400, "Have no access to the chat"));
     }
 
     int32 flags = 0;
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_uploadMedia(flags, string(), std::move(input_peer), std::move(input_media))));
+    if (business_connection_id_.is_valid()) {
+      flags |= telegram_api::messages_uploadMedia::BUSINESS_CONNECTION_ID_MASK;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::messages_uploadMedia(
+        flags, business_connection_id_.get(), std::move(input_peer), std::move(input_media))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -93,8 +99,8 @@ class UploadCoverQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for UploadCoverQuery: " << to_string(ptr);
-    td_->message_query_manager_->complete_upload_message_cover(dialog_id_, std::move(photo_), file_upload_id_,
-                                                               std::move(ptr), std::move(promise_));
+    td_->message_query_manager_->complete_upload_message_cover(business_connection_id_, dialog_id_, std::move(photo_),
+                                                               file_upload_id_, std::move(ptr), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -103,8 +109,8 @@ class UploadCoverQuery final : public Td::ResultHandler {
     if (was_uploaded_) {
       auto bad_parts = FileManager::get_missing_file_parts(status);
       if (!bad_parts.empty()) {
-        td_->message_query_manager_->upload_message_cover(dialog_id_, std::move(photo_), file_upload_id_,
-                                                          std::move(promise_), std::move(bad_parts));
+        td_->message_query_manager_->upload_message_cover(business_connection_id_, dialog_id_, std::move(photo_),
+                                                          file_upload_id_, std::move(promise_), std::move(bad_parts));
         return;
       } else {
         td_->file_manager_->delete_partial_remote_location_if_needed(file_upload_id_, status);
@@ -1233,8 +1239,9 @@ void MessageQueryManager::on_get_affected_history(DialogId dialog_id, AffectedHi
   }
 }
 
-void MessageQueryManager::upload_message_cover(DialogId dialog_id, Photo photo, FileUploadId file_upload_id,
-                                               Promise<Unit> &&promise, vector<int> bad_parts) {
+void MessageQueryManager::upload_message_cover(BusinessConnectionId business_connection_id, DialogId dialog_id,
+                                               Photo photo, FileUploadId file_upload_id, Promise<Unit> &&promise,
+                                               vector<int> bad_parts) {
   if (file_upload_id == FileUploadId()) {
     file_upload_id = FileUploadId(get_photo_any_file_id(photo), FileManager::get_internal_upload_id());
   }
@@ -1249,6 +1256,7 @@ void MessageQueryManager::upload_message_cover(DialogId dialog_id, Photo photo, 
   }
 
   BeingUploadedCover cover;
+  cover.business_connection_id_ = business_connection_id;
   cover.dialog_id_ = dialog_id;
   cover.photo_ = std::move(photo);
   cover.promise_ = std::move(promise);
@@ -1301,13 +1309,13 @@ void MessageQueryManager::do_upload_cover(FileUploadId file_upload_id, BeingUplo
     return being_uploaded_cover.promise_.set_value(Unit());
   } else {
     td_->create_handler<UploadCoverQuery>(std::move(being_uploaded_cover.promise_))
-        ->send(being_uploaded_cover.dialog_id_, std::move(being_uploaded_cover.photo_), file_upload_id,
-               std::move(input_media));
+        ->send(being_uploaded_cover.business_connection_id_, being_uploaded_cover.dialog_id_,
+               std::move(being_uploaded_cover.photo_), file_upload_id, std::move(input_media));
   }
 }
 
 void MessageQueryManager::complete_upload_message_cover(
-    DialogId dialog_id, Photo photo, FileUploadId file_upload_id,
+    BusinessConnectionId business_connection_id, DialogId dialog_id, Photo photo, FileUploadId file_upload_id,
     telegram_api::object_ptr<telegram_api::MessageMedia> &&media_ptr, Promise<Unit> &&promise) {
   if (media_ptr->get_id() != telegram_api::messageMediaPhoto::ID) {
     return promise.set_error(Status::Error(500, "Receive invalid response"));
