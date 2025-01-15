@@ -3394,6 +3394,16 @@ static Result<InputMessageContent> create_input_message_content(
       invert_media = input_video->show_caption_above_media_ && !is_secret;
       self_destruct_type = std::move(input_video->self_destruct_type_);
 
+      Photo cover;
+      if (!is_secret && self_destruct_type == nullptr) {
+        TRY_RESULT(cover_file_id, td->file_manager_->get_input_file_id(FileType::Photo, input_video->cover_, dialog_id,
+                                                                       true, is_secret, false));
+        if (cover_file_id.is_valid()) {
+          TRY_RESULT_ASSIGN(cover, create_photo(td->file_manager_.get(), cover_file_id, PhotoSize(),
+                                                input_video->width_, input_video->height_, Auto()));
+        }
+      }
+
       bool has_stickers = !sticker_file_ids.empty();
       td->videos_manager_->create_video(file_id, string(), std::move(thumbnail), AnimationSize(), has_stickers,
                                         std::move(sticker_file_ids), std::move(file_name), std::move(mime_type),
@@ -3401,8 +3411,8 @@ static Result<InputMessageContent> create_input_message_content(
                                         get_dimensions(input_video->width_, input_video->height_, nullptr),
                                         input_video->supports_streaming_, false, 0, 0.0, string(), false);
 
-      content = td::make_unique<MessageVideo>(file_id, vector<FileId>(), vector<FileId>(), Photo(), std::move(caption),
-                                              input_video->has_spoiler_ && !is_secret);
+      content = td::make_unique<MessageVideo>(file_id, vector<FileId>(), vector<FileId>(), std::move(cover),
+                                              std::move(caption), input_video->has_spoiler_ && !is_secret);
       break;
     }
     case td_api::inputMessageVideoNote::ID: {
@@ -8808,6 +8818,20 @@ int32 get_message_content_media_duration(const MessageContent *content, const Td
     }
     default:
       return -1;
+  }
+}
+
+const Photo *get_message_content_cover(const MessageContent *content) {
+  switch (content->get_type()) {
+    case MessageContentType::Video: {
+      const auto *cover = &static_cast<const MessageVideo *>(content)->cover;
+      if (cover->is_empty()) {
+        return nullptr;
+      }
+      return cover;
+    }
+    default:
+      return nullptr;
   }
 }
 

@@ -21477,6 +21477,42 @@ void MessagesManager::save_send_message_log_event(DialogId dialog_id, const Mess
       binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::SendMessage, get_log_event_storer(log_event));
 }
 
+void MessagesManager::on_cover_upload(DialogId dialog_id, MessageId message_id, int32 media_pos, vector<int> bad_parts,
+                                      Result<Unit> result) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  MessageFullId message_full_id{dialog_id, message_id};
+  const Message *m = get_message(message_full_id);
+  if (m == nullptr) {
+    // message has already been deleted by the user or sent to inaccessible channel, do not need to send or edit it
+    // file upload should be already canceled in cancel_send_message_query
+    LOG(INFO) << "Message with a cover has already been deleted";
+    return;
+  }
+
+  bool is_edit = m->message_id.is_any_server();
+  auto can_send_status = can_send_message(dialog_id);
+  if (!is_edit && can_send_status.is_error()) {
+    // user has left the chat during upload of the file or lost their privileges
+    LOG(INFO) << "Can't send a message to " << dialog_id << ": " << can_send_status;
+
+    fail_send_message(message_full_id, std::move(can_send_status));
+    return;
+  }
+
+  if (result.is_error()) {
+    if (is_edit) {
+      fail_edit_message_media(message_full_id, result.move_as_error());
+    } else {
+      fail_send_message(message_full_id, result.move_as_error());
+    }
+  } else {
+    do_send_message(dialog_id, m, media_pos, std::move(bad_parts));
+  }
+}
+
 void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int32 media_pos, vector<int> bad_parts) {
   bool is_edit = m->message_id.is_any_server();
   LOG(INFO) << "Do " << (is_edit ? "edit" : "send") << ' ' << MessageFullId(dialog_id, m->message_id);
@@ -21504,6 +21540,22 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
     CHECK(!is_edit);
     send_closure_later(actor_id(this), &MessagesManager::on_text_message_ready_to_send, dialog_id, m->message_id);
     return;
+  }
+
+  if (!is_secret) {
+    auto *cover = get_message_content_cover(content);
+    if (cover != nullptr) {
+      auto input_media = photo_get_input_media(td_->file_manager_.get(), *cover, nullptr, 0, false);
+      if (input_media == nullptr) {
+        return td_->message_query_manager_->upload_message_cover(
+            BusinessConnectionId(), dialog_id, *cover, FileUploadId(),
+            PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, message_id = m->message_id, media_pos,
+                                    bad_parts = std::move(bad_parts)](Result<Unit> result) {
+              send_closure(actor_id, &MessagesManager::on_cover_upload, dialog_id, message_id, media_pos,
+                           std::move(bad_parts), std::move(result));
+            }));
+      }
+    }
   }
 
   if (bad_parts.empty()) {
