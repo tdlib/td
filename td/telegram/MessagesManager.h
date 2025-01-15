@@ -1863,8 +1863,8 @@ class MessagesManager final : public Actor {
 
   void do_send_message(DialogId dialog_id, const Message *m, int32 media_pos = -1, vector<int> bad_parts = {});
 
-  void on_cover_upload(DialogId dialog_id, MessageId message_id, int32 media_pos, vector<int> bad_parts,
-                       Result<Unit> result);
+  void on_cover_upload(DialogId dialog_id, MessageId message_id, uint64 edit_generation, int32 media_pos,
+                       vector<int> bad_parts, Result<Unit> result);
 
   void on_message_media_uploaded(DialogId dialog_id, const Message *m, int32 media_pos,
                                  telegram_api::object_ptr<telegram_api::InputMedia> &&input_media);

@@ -21477,8 +21477,8 @@ void MessagesManager::save_send_message_log_event(DialogId dialog_id, const Mess
       binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::SendMessage, get_log_event_storer(log_event));
 }
 
-void MessagesManager::on_cover_upload(DialogId dialog_id, MessageId message_id, int32 media_pos, vector<int> bad_parts,
-                                      Result<Unit> result) {
+void MessagesManager::on_cover_upload(DialogId dialog_id, MessageId message_id, uint64 edit_generation, int32 media_pos,
+                                      vector<int> bad_parts, Result<Unit> result) {
   if (G()->close_flag()) {
     return;
   }
@@ -21504,7 +21504,9 @@ void MessagesManager::on_cover_upload(DialogId dialog_id, MessageId message_id, 
 
   if (result.is_error()) {
     if (is_edit) {
-      fail_edit_message_media(message_full_id, result.move_as_error());
+      if (m->edit_generation == edit_generation) {
+        fail_edit_message_media(message_full_id, result.move_as_error());
+      }
     } else {
       fail_send_message(message_full_id, result.move_as_error());
     }
@@ -21549,10 +21551,11 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
       if (input_media == nullptr) {
         return td_->message_query_manager_->upload_message_cover(
             BusinessConnectionId(), dialog_id, *cover, FileUploadId(),
-            PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, message_id = m->message_id, media_pos,
+            PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, message_id = m->message_id,
+                                    edit_generation = m->edit_generation, media_pos,
                                     bad_parts = std::move(bad_parts)](Result<Unit> result) mutable {
-              send_closure(actor_id, &MessagesManager::on_cover_upload, dialog_id, message_id, media_pos,
-                           std::move(bad_parts), std::move(result));
+              send_closure(actor_id, &MessagesManager::on_cover_upload, dialog_id, message_id, edit_generation,
+                           media_pos, std::move(bad_parts), std::move(result));
             }));
       }
     }
