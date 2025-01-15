@@ -194,6 +194,9 @@ class BusinessConnectionManager final : public Actor {
 
   void on_fail_send_message(unique_ptr<PendingMessage> &&message, const Status &error);
 
+  void do_edit_message_media(unique_ptr<PendingMessage> &&message,
+                             Promise<td_api::object_ptr<td_api::businessMessage>> &&promise);
+
   void do_edit_business_message_media(Result<UploadMediaResult> &&result,
                                       Promise<td_api::object_ptr<td_api::businessMessage>> &&promise);
 

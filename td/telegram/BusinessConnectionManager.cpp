@@ -904,7 +904,8 @@ void BusinessConnectionManager::do_send_message(unique_ptr<PendingMessage> &&mes
       auto dialog_id = message->dialog_id_;
       return td_->message_query_manager_->upload_message_cover(
           business_connection_id, dialog_id, *cover, FileUploadId(),
-          PromiseCreator::lambda([actor_id = actor_id(this), message = std::move(message), promise = std::move(promise)](Result<Unit> result) mutable {
+          PromiseCreator::lambda([actor_id = actor_id(this), message = std::move(message),
+                                  promise = std::move(promise)](Result<Unit> result) mutable {
             if (result.is_error()) {
               return promise.set_error(result.move_as_error());
             }
@@ -1393,26 +1394,33 @@ void BusinessConnectionManager::edit_business_message_media(
   TRY_RESULT_PROMISE(promise, new_reply_markup,
                      get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true));
 
-  auto input_media =
-      get_message_content_input_media(content.content.get(), td_, MessageSelfDestructType(), string(), true);
-  if (input_media != nullptr) {
-    auto file_id = get_message_content_any_file_id(content.content.get());
-    CHECK(file_id.is_valid());
-    FileView file_view = td_->file_manager_->get_file_view(file_id);
-    if (file_view.has_full_remote_location()) {
-      const FormattedText *caption = get_message_content_caption(content.content.get());
-      td_->create_handler<EditBusinessMessageQuery>(std::move(promise))
-          ->send(1 << 11, business_connection_id, dialog_id, message_id, caption == nullptr ? "" : caption->text,
-                 get_input_message_entities(td_->user_manager_.get(), caption, "edit_business_message_media"),
-                 std::move(input_media), content.invert_media,
-                 get_input_reply_markup(td_->user_manager_.get(), new_reply_markup));
-      return;
-    }
-  }
-
   auto message = create_business_message_to_send(business_connection_id, dialog_id, MessageInputReplyTo(), false, false,
                                                  MessageEffectId(), std::move(new_reply_markup), std::move(content));
   message->message_id_ = message_id;
+
+  do_edit_message_media(std::move(message), std::move(promise));
+}
+
+void BusinessConnectionManager::do_edit_message_media(unique_ptr<PendingMessage> &&message,
+                                                      Promise<td_api::object_ptr<td_api::businessMessage>> &&promise) {
+  auto *cover = get_message_content_cover(message->content_.get());
+  if (cover != nullptr) {
+    auto input_media = photo_get_input_media(td_->file_manager_.get(), *cover, nullptr, 0, false);
+    if (input_media == nullptr) {
+      auto business_connection_id = message->business_connection_id_;
+      auto dialog_id = message->dialog_id_;
+      return td_->message_query_manager_->upload_message_cover(
+          business_connection_id, dialog_id, *cover, FileUploadId(),
+          PromiseCreator::lambda([actor_id = actor_id(this), message = std::move(message),
+                                  promise = std::move(promise)](Result<Unit> result) mutable {
+            if (result.is_error()) {
+              return promise.set_error(result.move_as_error());
+            }
+            send_closure(actor_id, &BusinessConnectionManager::do_edit_message_media, std::move(message),
+                         std::move(promise));
+          }));
+    }
+  }
 
   upload_media(std::move(message), PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](
                                                               Result<UploadMediaResult> &&result) mutable {
