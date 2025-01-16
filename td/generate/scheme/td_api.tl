@@ -1105,11 +1105,11 @@ sentGiftRegular gift:gift = SentGift;
 sentGiftUpgraded gift:upgradedGift = SentGift;
 
 
-//@description Represents a gift received by a user
+//@description Represents a gift received by a chat
 //@sender_user_id Identifier of the user that sent the gift; 0 if unknown
 //@text Message added to the gift
 //@is_private True, if the sender and gift text are shown only to the gift receiver; otherwise, everyone are able to see them
-//@is_saved True, if the gift is displayed on the user's profile page; only for the receiver of the gift
+//@is_saved True, if the gift is displayed on the chat's profile page; only for the receiver of the gift
 //@can_be_upgraded True, if the gift is a regular gift that can be upgraded to a unique gift; only for the receiver of the gift
 //@can_be_transferred True, if the gift is an upgraded gift that can be transferred to another user; only for the receiver of the gift
 //@was_refunded True, if the gift was refunded and isn't available anymore
@@ -1120,13 +1120,13 @@ sentGiftUpgraded gift:upgradedGift = SentGift;
 //@prepaid_upgrade_star_count Number of Telegram Stars that were paid by the sender for the ability to upgrade the gift
 //@transfer_star_count Number of Telegram Stars that must be paid to transfer the upgraded gift; only for the receiver of the gift
 //@export_date Point in time (Unix timestamp) when the upgraded gift can be transferred to TON blockchain as an NFT; 0 if NFT export isn't possible; only for the receiver of the gift
-userGift sender_user_id:int53 text:formattedText is_private:Bool is_saved:Bool can_be_upgraded:Bool can_be_transferred:Bool was_refunded:Bool date:int32 gift:SentGift message_id:int53 sell_star_count:int53 prepaid_upgrade_star_count:int53 transfer_star_count:int53 export_date:int32 = UserGift;
+chatReceivedGift sender_user_id:int53 text:formattedText is_private:Bool is_saved:Bool can_be_upgraded:Bool can_be_transferred:Bool was_refunded:Bool date:int32 gift:SentGift message_id:int53 sell_star_count:int53 prepaid_upgrade_star_count:int53 transfer_star_count:int53 export_date:int32 = ChatReceivedGift;
 
-//@description Represents a list of gifts received by a user
+//@description Represents a list of gifts received by a chat
 //@total_count The total number of received gifts
 //@gifts The list of gifts
 //@next_offset The offset for the next request. If empty, then there are no more results
-userGifts total_count:int32 gifts:vector<userGift> next_offset:string = UserGifts;
+chatReceivedGifts total_count:int32 gifts:vector<chatReceivedGift> next_offset:string = ChatReceivedGifts;
 
 //@description Contains examples of possible upgraded gifts for the given regular gift
 //@models Examples of possible models that can be chosen for the gift after upgrade
@@ -4038,7 +4038,7 @@ messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id
 //@was_upgraded True, if the gift was upgraded to a unique gift
 //@was_refunded True, if the gift was refunded and isn't available anymore
 //@upgrade_message_id Identifier of the service message messageUpgradedGift or messageRefundedUpgradedGift with upgraded version of the gift; can be 0 if none or an identifier of a deleted message.
-//-Use getUserGift to get information about the gift
+//-Use getChatReceivedGift to get information about the gift
 messageGift gift:gift text:formattedText sell_star_count:int53 prepaid_upgrade_star_count:int53 is_private:Bool is_saved:Bool can_be_upgraded:Bool was_converted:Bool was_upgraded:Bool was_refunded:Bool upgrade_message_id:int53 = MessageContent;
 
 //@description An upgraded gift was received or sent by the current user
@@ -11739,14 +11739,14 @@ upgradeGift sender_user_id:int53 message_id:int53 keep_original_details:Bool = U
 //@star_count The amount of Telegram Stars required for the transfer
 transferGift sender_user_id:int53 message_id:int53 receiver_user_id:int53 star_count:int53 = Ok;
 
-//@description Returns gifts saved to profile by the given user
-//@user_id Identifier of the user
+//@description Returns gifts received by the given chat
+//@user_id Identifier of the chat
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of gifts to be returned; must be positive and can't be greater than 100. For optimal performance, the number of returned objects is chosen by TDLib and can be smaller than the specified limit
-getUserGifts user_id:int53 offset:string limit:int32 = UserGifts;
+getChatReceivedGifts user_id:int53 offset:string limit:int32 = ChatReceivedGifts;
 
-//@description Returns information about a gift received or sent by the current user @message_id Identifier of the message with the gift
-getUserGift message_id:int53 = UserGift;
+//@description Returns information about a received gift @message_id Identifier of the message with the gift
+getChatReceivedGift message_id:int53 = ChatReceivedGift;
 
 //@description Returns information about an upgraded gift by its name @name Unique name of the upgraded gift
 getUpgradedGift name:string = UpgradedGift;

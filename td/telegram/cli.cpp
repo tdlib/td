@@ -2882,11 +2882,11 @@ class CliClient final : public Actor {
       int32 limit;
       string offset;
       get_args(args, user_id, limit, offset);
-      send_request(td_api::make_object<td_api::getUserGifts>(user_id, offset, limit));
+      send_request(td_api::make_object<td_api::getChatReceivedGifts>(user_id, offset, limit));
     } else if (op == "gug") {
       MessageId message_id;
       get_args(args, message_id);
-      send_request(td_api::make_object<td_api::getUserGift>(message_id));
+      send_request(td_api::make_object<td_api::getChatReceivedGift>(message_id));
     } else if (op == "gupg") {
       string name;
       get_args(args, name);

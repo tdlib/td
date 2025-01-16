@@ -591,11 +591,11 @@ class GetGiftTransferPaymentFormQuery final : public Td::ResultHandler {
 };
 
 class GetSavedStarGiftsQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::userGifts>> promise_;
+  Promise<td_api::object_ptr<td_api::chatReceivedGifts>> promise_;
   UserId user_id_;
 
  public:
-  explicit GetSavedStarGiftsQuery(Promise<td_api::object_ptr<td_api::userGifts>> &&promise)
+  explicit GetSavedStarGiftsQuery(Promise<td_api::object_ptr<td_api::chatReceivedGifts>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -626,7 +626,7 @@ class GetSavedStarGiftsQuery final : public Td::ResultHandler {
       total_count = static_cast<int32>(ptr->gifts_.size());
     }
     bool is_me = user_id_ == td_->user_manager_->get_my_id();
-    vector<td_api::object_ptr<td_api::userGift>> gifts;
+    vector<td_api::object_ptr<td_api::chatReceivedGift>> gifts;
     for (auto &gift : ptr->gifts_) {
       UserStarGift user_gift(td_, std::move(gift), is_me);
       if (!user_gift.is_valid()) {
@@ -638,7 +638,8 @@ class GetSavedStarGiftsQuery final : public Td::ResultHandler {
     if (!is_me) {
       td_->user_manager_->on_update_user_gift_count(user_id_, total_count);
     }
-    promise_.set_value(td_api::make_object<td_api::userGifts>(total_count, std::move(gifts), ptr->next_offset_));
+    promise_.set_value(
+        td_api::make_object<td_api::chatReceivedGifts>(total_count, std::move(gifts), ptr->next_offset_));
   }
 
   void on_error(Status status) final {
@@ -647,10 +648,10 @@ class GetSavedStarGiftsQuery final : public Td::ResultHandler {
 };
 
 class GetSavedStarGiftQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::userGift>> promise_;
+  Promise<td_api::object_ptr<td_api::chatReceivedGift>> promise_;
 
  public:
-  explicit GetSavedStarGiftQuery(Promise<td_api::object_ptr<td_api::userGift>> &&promise)
+  explicit GetSavedStarGiftQuery(Promise<td_api::object_ptr<td_api::chatReceivedGift>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -916,17 +917,18 @@ void StarGiftManager::transfer_gift(UserId user_id, MessageId message_id, UserId
   }
 }
 
-void StarGiftManager::get_user_gifts(UserId user_id, const string &offset, int32 limit,
-                                     Promise<td_api::object_ptr<td_api::userGifts>> &&promise) {
+void StarGiftManager::get_saved_star_gifts(UserId user_id, const string &offset, int32 limit,
+                                           Promise<td_api::object_ptr<td_api::chatReceivedGifts>> &&promise) {
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(DialogId(user_id), false, AccessRights::Read,
-                                                                        "get_user_gifts"));
+                                                                        "get_saved_star_gifts"));
   if (limit < 0) {
     return promise.set_error(Status::Error(400, "Limit must be non-negative"));
   }
   td_->create_handler<GetSavedStarGiftsQuery>(std::move(promise))->send(user_id, offset, limit);
 }
 
-void StarGiftManager::get_user_gift(MessageId message_id, Promise<td_api::object_ptr<td_api::userGift>> &&promise) {
+void StarGiftManager::get_saved_star_gift(MessageId message_id,
+                                          Promise<td_api::object_ptr<td_api::chatReceivedGift>> &&promise) {
   if (!message_id.is_valid() || !message_id.is_server()) {
     return promise.set_error(Status::Error(400, "Invalid message identifier specified"));
   }

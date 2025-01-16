@@ -53,10 +53,10 @@ UserStarGift::UserStarGift(Td *td, telegram_api::object_ptr<telegram_api::savedS
   }
 }
 
-td_api::object_ptr<td_api::userGift> UserStarGift::get_user_gift_object(Td *td) const {
-  return td_api::make_object<td_api::userGift>(
+td_api::object_ptr<td_api::chatReceivedGift> UserStarGift::get_user_gift_object(Td *td) const {
+  return td_api::make_object<td_api::chatReceivedGift>(
       sender_dialog_id_.get_type() == DialogType::User
-          ? td->user_manager_->get_user_id_object(sender_dialog_id_.get_user_id(), "userGift")
+          ? td->user_manager_->get_user_id_object(sender_dialog_id_.get_user_id(), "chatReceivedGift")
           : static_cast<int64>(0),
       get_formatted_text_object(td->user_manager_.get(), message_, true, -1), is_name_hidden_, is_saved_, can_upgrade_,
       can_transfer_, was_refunded_, date_, gift_.get_sent_gift_object(td), message_id_.get(), convert_star_count_,
