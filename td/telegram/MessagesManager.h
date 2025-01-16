@@ -367,6 +367,8 @@ class MessagesManager final : public Actor {
 
   void delete_messages(DialogId dialog_id, const vector<MessageId> &message_ids, bool revoke, Promise<Unit> &&promise);
 
+  void on_messages_deleted(DialogId dialog_id, const vector<MessageId> &message_ids);
+
   void on_failed_message_deletion(DialogId dialog_id, const vector<int32> &server_message_ids);
 
   void on_scheduled_messages_deleted(DialogId dialog_id, const vector<MessageId> &message_ids);
@@ -1559,7 +1561,6 @@ class MessagesManager final : public Actor {
 
   class BlockMessageSenderFromRepliesOnServerLogEvent;
   class DeleteMessageLogEvent;
-  class DeleteMessagesOnServerLogEvent;
   class ForwardMessagesLogEvent;
   class GetChannelDifferenceLogEvent;
   class ReadHistoryInSecretChatLogEvent;
@@ -1968,12 +1969,7 @@ class MessagesManager final : public Actor {
 
   void delete_all_dialog_messages(Dialog *d, bool remove_from_dialog_list, bool is_permanently_deleted);
 
-  void erase_delete_messages_log_event(uint64 log_event_id);
-
   void delete_sent_message_on_server(DialogId dialog_id, MessageId message_id, MessageId old_message_id);
-
-  void delete_messages_on_server(DialogId dialog_id, vector<MessageId> message_ids, bool revoke, uint64 log_event_id,
-                                 Promise<Unit> &&promise);
 
   void block_message_sender_from_replies_on_server(MessageId message_id, bool need_delete_message,
                                                    bool need_delete_all_messages, bool report_spam, uint64 log_event_id,
@@ -3070,9 +3066,6 @@ class MessagesManager final : public Actor {
   void add_message_dependencies(Dependencies &dependencies, const Message *m) const;
 
   static void save_send_message_log_event(DialogId dialog_id, const Message *m);
-
-  static uint64 save_delete_messages_on_server_log_event(DialogId dialog_id, const vector<MessageId> &message_ids,
-                                                         bool revoke);
 
   static uint64 save_block_message_sender_from_replies_on_server_log_event(MessageId message_id,
                                                                            bool need_delete_message,

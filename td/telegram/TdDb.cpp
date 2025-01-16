@@ -105,6 +105,7 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
       case LogEvent::HandlerType::DeleteAllChannelMessagesFromSenderOnServer:
       case LogEvent::HandlerType::DeleteDialogHistoryOnServer:
       case LogEvent::HandlerType::DeleteDialogMessagesByDateOnServer:
+      case LogEvent::HandlerType::DeleteMessagesOnServer:
       case LogEvent::HandlerType::DeleteScheduledMessagesOnServer:
       case LogEvent::HandlerType::DeleteTopicHistoryOnServer:
       case LogEvent::HandlerType::ReadAllDialogMentionsOnServer:
@@ -115,7 +116,6 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
         break;
       case LogEvent::HandlerType::SendMessage:
       case LogEvent::HandlerType::DeleteMessage:
-      case LogEvent::HandlerType::DeleteMessagesOnServer:
       case LogEvent::HandlerType::ReadHistoryOnServer:
       case LogEvent::HandlerType::ForwardMessages:
       case LogEvent::HandlerType::SendBotStartMessage:

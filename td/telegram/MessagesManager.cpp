@@ -2737,100 +2737,6 @@ class SendBotRequestedPeerQuery final : public Td::ResultHandler {
   }
 };
 
-class DeleteMessagesQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  DialogId dialog_id_;
-  vector<int32> server_message_ids_;
-
- public:
-  explicit DeleteMessagesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(DialogId dialog_id, vector<int32> &&server_message_ids, bool revoke) {
-    dialog_id_ = dialog_id;
-    server_message_ids_ = server_message_ids;
-
-    int32 flags = 0;
-    if (revoke) {
-      flags |= telegram_api::messages_deleteMessages::REVOKE_MASK;
-    }
-
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_deleteMessages(flags, false /*ignored*/, std::move(server_message_ids))));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_deleteMessages>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto affected_messages = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for DeleteMessagesQuery: " << to_string(affected_messages);
-    td_->updates_manager_->add_pending_pts_update(make_tl_object<dummyUpdate>(), affected_messages->pts_,
-                                                  affected_messages->pts_count_, Time::now(), std::move(promise_),
-                                                  "delete messages query");
-  }
-
-  void on_error(Status status) final {
-    if (!G()->is_expected_error(status)) {
-      // MESSAGE_DELETE_FORBIDDEN can be returned in group chats when administrator rights were removed
-      // MESSAGE_DELETE_FORBIDDEN can be returned in private chats for bots when revoke time limit exceeded
-      if (status.message() != "MESSAGE_DELETE_FORBIDDEN" ||
-          (dialog_id_.get_type() == DialogType::User && !td_->auth_manager_->is_bot())) {
-        LOG(ERROR) << "Receive error for delete messages: " << status;
-      }
-    }
-    td_->messages_manager_->on_failed_message_deletion(dialog_id_, server_message_ids_);
-    promise_.set_error(std::move(status));
-  }
-};
-
-class DeleteChannelMessagesQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  ChannelId channel_id_;
-  vector<int32> server_message_ids_;
-
- public:
-  explicit DeleteChannelMessagesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(ChannelId channel_id, vector<int32> &&server_message_ids) {
-    channel_id_ = channel_id;
-    server_message_ids_ = server_message_ids;
-
-    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
-    if (input_channel == nullptr) {
-      return on_error(Status::Error(400, "Can't access the chat"));
-    }
-    send_query(G()->net_query_creator().create(
-        telegram_api::channels_deleteMessages(std::move(input_channel), std::move(server_message_ids))));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::channels_deleteMessages>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto affected_messages = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for DeleteChannelMessagesQuery: " << to_string(affected_messages);
-    td_->messages_manager_->add_pending_channel_update(DialogId(channel_id_), make_tl_object<dummyUpdate>(),
-                                                       affected_messages->pts_, affected_messages->pts_count_,
-                                                       std::move(promise_), "DeleteChannelMessagesQuery");
-  }
-
-  void on_error(Status status) final {
-    if (!td_->chat_manager_->on_get_channel_error(channel_id_, status, "DeleteChannelMessagesQuery")) {
-      if (status.message() != "MESSAGE_DELETE_FORBIDDEN") {
-        LOG(ERROR) << "Receive error for delete channel messages: " << status;
-      }
-    }
-    td_->messages_manager_->on_failed_message_deletion(DialogId(channel_id_), server_message_ids_);
-    promise_.set_error(std::move(status));
-  }
-};
-
 class EditPeerFoldersQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -8651,18 +8557,13 @@ void MessagesManager::delete_messages(DialogId dialog_id, const vector<MessageId
   mpas.add_promise(std::move(promise));
 
   auto lock = mpas.get_promise();
-  delete_messages_on_server(dialog_id, std::move(deleted_server_message_ids), revoke, 0, mpas.get_promise());
+  td_->message_query_manager_->delete_messages_on_server(dialog_id, std::move(deleted_server_message_ids), revoke, 0,
+                                                         mpas.get_promise());
   td_->message_query_manager_->delete_scheduled_messages_on_server(
       dialog_id, std::move(deleted_scheduled_server_message_ids), 0, mpas.get_promise());
   lock.set_value(Unit());
 
   delete_dialog_messages(d, message_ids, false, DELETE_MESSAGE_USER_REQUEST_SOURCE);
-}
-
-void MessagesManager::erase_delete_messages_log_event(uint64 log_event_id) {
-  if (!G()->close_flag()) {
-    binlog_erase(G()->td_db()->get_binlog(), log_event_id);
-  }
 }
 
 void MessagesManager::delete_sent_message_on_server(DialogId dialog_id, MessageId message_id,
@@ -8685,7 +8586,7 @@ void MessagesManager::delete_sent_message_on_server(DialogId dialog_id, MessageI
   } else {
     if (message_id.is_valid()) {
       CHECK(message_id.is_server());
-      delete_messages_on_server(dialog_id, {message_id}, true, 0, Auto());
+      td_->message_query_manager_->delete_messages_on_server(dialog_id, {message_id}, true, 0, Auto());
     } else {
       CHECK(message_id.is_scheduled_server());
       td_->message_query_manager_->delete_scheduled_messages_on_server(dialog_id, {message_id}, 0, Auto());
@@ -8700,99 +8601,13 @@ void MessagesManager::delete_sent_message_on_server(DialogId dialog_id, MessageI
   }
 }
 
-class MessagesManager::DeleteMessagesOnServerLogEvent {
- public:
-  DialogId dialog_id_;
-  vector<MessageId> message_ids_;
-  bool revoke_;
-
-  template <class StorerT>
-  void store(StorerT &storer) const {
-    BEGIN_STORE_FLAGS();
-    STORE_FLAG(revoke_);
-    END_STORE_FLAGS();
-
-    td::store(dialog_id_, storer);
-    td::store(message_ids_, storer);
+void MessagesManager::on_messages_deleted(DialogId dialog_id, const vector<MessageId> &message_ids) {
+  Dialog *d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+  for (auto &message_id : message_ids) {
+    CHECK(message_id.is_valid());
+    d->deleted_message_ids.insert(message_id);
   }
-
-  template <class ParserT>
-  void parse(ParserT &parser) {
-    BEGIN_PARSE_FLAGS();
-    PARSE_FLAG(revoke_);
-    END_PARSE_FLAGS();
-
-    td::parse(dialog_id_, parser);
-    td::parse(message_ids_, parser);
-  }
-};
-
-uint64 MessagesManager::save_delete_messages_on_server_log_event(DialogId dialog_id,
-                                                                 const vector<MessageId> &message_ids, bool revoke) {
-  DeleteMessagesOnServerLogEvent log_event{dialog_id, message_ids, revoke};
-  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteMessagesOnServer,
-                    get_log_event_storer(log_event));
-}
-
-void MessagesManager::delete_messages_on_server(DialogId dialog_id, vector<MessageId> message_ids, bool revoke,
-                                                uint64 log_event_id, Promise<Unit> &&promise) {
-  if (message_ids.empty()) {
-    return promise.set_value(Unit());
-  }
-  LOG(INFO) << (revoke ? "Revoke " : "Delete ") << format::as_array(message_ids) << " in " << dialog_id
-            << " from server";
-
-  if (log_event_id == 0 && G()->use_message_database()) {
-    log_event_id = save_delete_messages_on_server_log_event(dialog_id, message_ids, revoke);
-  }
-
-  MultiPromiseActorSafe mpas{"DeleteMessagesOnServerMultiPromiseActor"};
-  mpas.add_promise(std::move(promise));
-  if (log_event_id != 0) {
-    mpas.add_promise(PromiseCreator::lambda([actor_id = actor_id(this), log_event_id](Unit) {
-      send_closure(actor_id, &MessagesManager::erase_delete_messages_log_event, log_event_id);
-    }));
-  }
-  auto lock = mpas.get_promise();
-  auto dialog_type = dialog_id.get_type();
-  switch (dialog_type) {
-    case DialogType::User:
-    case DialogType::Chat:
-    case DialogType::Channel: {
-      auto server_message_ids = MessageId::get_server_message_ids(message_ids);
-      const size_t MAX_SLICE_SIZE = 100;  // server-side limit
-      for (auto &slice_server_message_ids : vector_split(std::move(server_message_ids), MAX_SLICE_SIZE)) {
-        if (dialog_type != DialogType::Channel) {
-          td_->create_handler<DeleteMessagesQuery>(mpas.get_promise())
-              ->send(dialog_id, std::move(slice_server_message_ids), revoke);
-        } else {
-          td_->create_handler<DeleteChannelMessagesQuery>(mpas.get_promise())
-              ->send(dialog_id.get_channel_id(), std::move(slice_server_message_ids));
-        }
-      }
-      break;
-    }
-    case DialogType::SecretChat: {
-      vector<int64> random_ids;
-      auto d = get_dialog_force(dialog_id, "delete_messages_on_server");
-      CHECK(d != nullptr);
-      for (auto &message_id : message_ids) {
-        auto random_id = get_message_random_id(d, message_id);
-        if (random_id != 0) {
-          random_ids.push_back(random_id);
-        }
-      }
-      if (!random_ids.empty()) {
-        send_closure(G()->secret_chats_manager(), &SecretChatsManager::delete_messages, dialog_id.get_secret_chat_id(),
-                     std::move(random_ids), mpas.get_promise());
-      }
-      break;
-    }
-    case DialogType::None:
-    default:
-      UNREACHABLE();
-  }
-  lock.set_value(Unit());
 }
 
 void MessagesManager::on_failed_message_deletion(DialogId dialog_id, const vector<int32> &server_message_ids) {
@@ -35667,30 +35482,6 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         }
 
         do_delete_message_log_event(log_event);
-        break;
-      }
-      case LogEvent::HandlerType::DeleteMessagesOnServer: {
-        if (!have_old_message_database) {
-          binlog_erase(G()->td_db()->get_binlog(), event.id_);
-          break;
-        }
-
-        DeleteMessagesOnServerLogEvent log_event;
-        log_event_parse(log_event, event.get_data()).ensure();
-
-        auto dialog_id = log_event.dialog_id_;
-        Dialog *d = get_dialog_force(dialog_id, "DeleteMessagesOnServerLogEvent");
-        if (d == nullptr || !td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read)) {
-          binlog_erase(G()->td_db()->get_binlog(), event.id_);
-          break;
-        }
-
-        for (auto message_id : log_event.message_ids_) {
-          CHECK(message_id.is_valid());
-          d->deleted_message_ids.insert(message_id);
-        }
-
-        delete_messages_on_server(dialog_id, std::move(log_event.message_ids_), log_event.revoke_, event.id_, Auto());
         break;
       }
       case LogEvent::HandlerType::BlockMessageSenderFromRepliesOnServer: {

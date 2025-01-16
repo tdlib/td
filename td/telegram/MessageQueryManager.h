@@ -95,6 +95,9 @@ class MessageQueryManager final : public Actor {
   void delete_dialog_messages_by_date_on_server(DialogId dialog_id, int32 min_date, int32 max_date, bool revoke,
                                                 uint64 log_event_id, Promise<Unit> &&promise);
 
+  void delete_messages_on_server(DialogId dialog_id, vector<MessageId> message_ids, bool revoke, uint64 log_event_id,
+                                 Promise<Unit> &&promise);
+
   void delete_scheduled_messages_on_server(DialogId dialog_id, vector<MessageId> message_ids, uint64 log_event_id,
                                            Promise<Unit> &&promise);
 
@@ -126,6 +129,7 @@ class MessageQueryManager final : public Actor {
   class DeleteAllChannelMessagesFromSenderOnServerLogEvent;
   class DeleteDialogHistoryOnServerLogEvent;
   class DeleteDialogMessagesByDateOnServerLogEvent;
+  class DeleteMessagesOnServerLogEvent;
   class DeleteScheduledMessagesOnServerLogEvent;
   class DeleteTopicHistoryOnServerLogEvent;
   class ReadAllDialogMentionsOnServerLogEvent;
@@ -147,6 +151,8 @@ class MessageQueryManager final : public Actor {
                                        DialogId dialog_id, MessageId message_id, DialogId expected_dialog_id,
                                        MessageId expected_message_id, Promise<MessageThreadInfo> promise);
 
+  void erase_delete_messages_log_event(uint64 log_event_id);
+
   static uint64 save_delete_all_call_messages_on_server_log_event(bool revoke);
 
   static uint64 save_delete_all_channel_messages_by_sender_on_server_log_event(ChannelId channel_id,
@@ -157,6 +163,9 @@ class MessageQueryManager final : public Actor {
 
   static uint64 save_delete_dialog_messages_by_date_on_server_log_event(DialogId dialog_id, int32 min_date,
                                                                         int32 max_date, bool revoke);
+
+  static uint64 save_delete_messages_on_server_log_event(DialogId dialog_id, const vector<MessageId> &message_ids,
+                                                         bool revoke);
 
   static uint64 save_delete_scheduled_messages_on_server_log_event(DialogId dialog_id,
                                                                    const vector<MessageId> &message_ids);
