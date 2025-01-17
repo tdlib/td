@@ -11706,11 +11706,11 @@ getAvailableGifts = Gifts;
 
 //@description Sends a gift to another user. May return an error with a message "STARGIFT_USAGE_LIMITED" if the gift was sold out
 //@gift_id Identifier of the gift to send
-//@user_id Identifier of the user that will receive the gift
+//@owner_id Identifier of the user or the channel chat that will receive the gift
 //@text Text to show along with the gift; 0-getOption("gift_text_length_max") characters. Only Bold, Italic, Underline, Strikethrough, Spoiler, and CustomEmoji entities are allowed
 //@is_private Pass true to show the current user as sender and gift text only to the gift receiver; otherwise, everyone will be able to see them
 //@pay_for_upgrade Pass true to additionally pay for the gift upgrade and allow the receiver to upgrade it for free
-sendGift gift_id:int64 user_id:int53 text:formattedText is_private:Bool pay_for_upgrade:Bool = Ok;
+sendGift gift_id:int64 owner_id:MessageSender text:formattedText is_private:Bool pay_for_upgrade:Bool = Ok;
 
 //@description Sells a gift for Telegram Stars @received_gift_id Identifier of the gift
 sellGift received_gift_id:string = Ok;

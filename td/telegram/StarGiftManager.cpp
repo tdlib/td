@@ -794,7 +794,7 @@ void StarGiftManager::on_get_star_gift(const StarGift &star_gift, bool from_serv
   gift_prices_[star_gift.get_id()] = {star_gift.get_star_count(), star_gift.get_upgrade_star_count()};
 }
 
-void StarGiftManager::send_gift(int64 gift_id, UserId user_id, td_api::object_ptr<td_api::formattedText> text,
+void StarGiftManager::send_gift(int64 gift_id, DialogId dialog_id, td_api::object_ptr<td_api::formattedText> text,
                                 bool is_private, bool pay_for_upgrade, Promise<Unit> &&promise) {
   int64 star_count = 0;
   if (!td_->auth_manager_->is_bot()) {
@@ -810,8 +810,8 @@ void StarGiftManager::send_gift(int64 gift_id, UserId user_id, td_api::object_pt
       return promise.set_error(Status::Error(400, "Have not enough Telegram Stars"));
     }
   }
-  auto input_peer = td_->dialog_manager_->get_input_peer(DialogId(user_id), AccessRights::Read);
-  auto send_input_peer = td_->dialog_manager_->get_input_peer(DialogId(user_id), AccessRights::Read);
+  auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+  auto send_input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
   if (input_peer == nullptr || send_input_peer == nullptr) {
     return promise.set_error(Status::Error(400, "Have no access to the gift receiver"));
   }

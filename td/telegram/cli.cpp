@@ -2843,11 +2843,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getAvailableGifts>());
     } else if (op == "sendg" || op == "sendgp") {
       int64 gift_id;
-      UserId user_id;
+      string owner_id;
       bool pay_for_upgrade;
       string text;
-      get_args(args, gift_id, user_id, pay_for_upgrade, text);
-      send_request(td_api::make_object<td_api::sendGift>(gift_id, user_id, as_formatted_text(text), op == "sendgp",
+      get_args(args, gift_id, owner_id, pay_for_upgrade, text);
+      send_request(td_api::make_object<td_api::sendGift>(gift_id, as_message_sender(owner_id), as_formatted_text(text), op == "sendgp",
                                                          pay_for_upgrade));
     } else if (op == "sellg") {
       string star_gift_id;
