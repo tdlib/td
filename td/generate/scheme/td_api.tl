@@ -1107,7 +1107,7 @@ sentGiftUpgraded gift:upgradedGift = SentGift;
 
 //@description Represents a gift received by a chat
 //@received_gift_id Unique identifier of the received gift for the current user; only for the receiver of the gift
-//@sender_user_id Identifier of the user that sent the gift; 0 if unknown
+//@sender_id Identifier of a user or a chat that sent the gift; may be null if unknown
 //@text Message added to the gift
 //@is_private True, if the sender and gift text are shown only to the gift receiver; otherwise, everyone are able to see them
 //@is_saved True, if the gift is displayed on the chat's profile page; only for the receiver of the gift
@@ -1120,7 +1120,7 @@ sentGiftUpgraded gift:upgradedGift = SentGift;
 //@prepaid_upgrade_star_count Number of Telegram Stars that were paid by the sender for the ability to upgrade the gift
 //@transfer_star_count Number of Telegram Stars that must be paid to transfer the upgraded gift; only for the receiver of the gift
 //@export_date Point in time (Unix timestamp) when the upgraded gift can be transferred to TON blockchain as an NFT; 0 if NFT export isn't possible; only for the receiver of the gift
-chatReceivedGift received_gift_id:string sender_user_id:int53 text:formattedText is_private:Bool is_saved:Bool can_be_upgraded:Bool can_be_transferred:Bool was_refunded:Bool date:int32 gift:SentGift sell_star_count:int53 prepaid_upgrade_star_count:int53 transfer_star_count:int53 export_date:int32 = ChatReceivedGift;
+chatReceivedGift received_gift_id:string sender_id:MessageSender text:formattedText is_private:Bool is_saved:Bool can_be_upgraded:Bool can_be_transferred:Bool was_refunded:Bool date:int32 gift:SentGift sell_star_count:int53 prepaid_upgrade_star_count:int53 transfer_star_count:int53 export_date:int32 = ChatReceivedGift;
 
 //@description Represents a list of gifts received by a chat
 //@total_count The total number of received gifts
