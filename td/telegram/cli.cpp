@@ -2847,8 +2847,8 @@ class CliClient final : public Actor {
       bool pay_for_upgrade;
       string text;
       get_args(args, gift_id, owner_id, pay_for_upgrade, text);
-      send_request(td_api::make_object<td_api::sendGift>(gift_id, as_message_sender(owner_id), as_formatted_text(text), op == "sendgp",
-                                                         pay_for_upgrade));
+      send_request(td_api::make_object<td_api::sendGift>(gift_id, as_message_sender(owner_id), as_formatted_text(text),
+                                                         op == "sendgp", pay_for_upgrade));
     } else if (op == "sellg") {
       string star_gift_id;
       get_args(args, star_gift_id);
@@ -2870,10 +2870,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::upgradeGift>(received_gift_id, keep_original_details, star_count));
     } else if (op == "tg") {
       string received_gift_id;
-      UserId receiver_user_id;
+      string new_owner_id;
       int64 star_count;
-      get_args(args, received_gift_id, receiver_user_id, star_count);
-      send_request(td_api::make_object<td_api::transferGift>(received_gift_id, receiver_user_id, star_count));
+      get_args(args, received_gift_id, new_owner_id, star_count);
+      send_request(
+          td_api::make_object<td_api::transferGift>(received_gift_id, as_message_sender(new_owner_id), star_count));
     } else if (op == "grgs") {
       string owner_id;
       int32 limit;

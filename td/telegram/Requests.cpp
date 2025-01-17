@@ -7137,8 +7137,8 @@ void Requests::on_request(uint64 id, const td_api::getAvailableGifts &request) {
 
 void Requests::on_request(uint64 id, td_api::sendGift &request) {
   CREATE_OK_REQUEST_PROMISE();
-  TRY_RESULT_PROMISE(promise, owner_id, get_message_sender_dialog_id(td_, request.owner_id_, true, false));
-  td_->star_gift_manager_->send_gift(request.gift_id_, owner_id, std::move(request.text_), request.is_private_,
+  TRY_RESULT_PROMISE(promise, owner_dialog_id, get_message_sender_dialog_id(td_, request.owner_id_, true, false));
+  td_->star_gift_manager_->send_gift(request.gift_id_, owner_dialog_id, std::move(request.text_), request.is_private_,
                                      request.pay_for_upgrade_, std::move(promise));
 }
 
@@ -7170,16 +7170,17 @@ void Requests::on_request(uint64 id, const td_api::upgradeGift &request) {
 void Requests::on_request(uint64 id, const td_api::transferGift &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  td_->star_gift_manager_->transfer_gift(StarGiftId(request.received_gift_id_), UserId(request.receiver_user_id_),
-                                         request.star_count_, std::move(promise));
+  TRY_RESULT_PROMISE(promise, owner_dialog_id, get_message_sender_dialog_id(td_, request.new_owner_id_, true, false));
+  td_->star_gift_manager_->transfer_gift(StarGiftId(request.received_gift_id_), owner_dialog_id, request.star_count_,
+                                         std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::getReceivedGifts &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();
-  TRY_RESULT_PROMISE(promise, owner_id, get_message_sender_dialog_id(td_, request.owner_id_, true, false));
-  td_->star_gift_manager_->get_saved_star_gifts(owner_id, request.offset_, request.limit_, std::move(promise));
+  TRY_RESULT_PROMISE(promise, owner_dialog_id, get_message_sender_dialog_id(td_, request.owner_id_, true, false));
+  td_->star_gift_manager_->get_saved_star_gifts(owner_dialog_id, request.offset_, request.limit_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getReceivedGift &request) {

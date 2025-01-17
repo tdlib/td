@@ -53,7 +53,7 @@ class StarGiftManager final : public Actor {
   void upgrade_gift(StarGiftId star_gift_id, bool keep_original_details, int64 star_count,
                     Promise<td_api::object_ptr<td_api::upgradeGiftResult>> &&promise);
 
-  void transfer_gift(StarGiftId star_gift_id, UserId receiver_user_id, int64 star_count, Promise<Unit> &&promise);
+  void transfer_gift(StarGiftId star_gift_id, DialogId receiver_dialog_id, int64 star_count, Promise<Unit> &&promise);
 
   void get_saved_star_gifts(DialogId dialog_id, const string &offset, int32 limit,
                             Promise<td_api::object_ptr<td_api::receivedGifts>> &&promise);

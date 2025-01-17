@@ -11731,9 +11731,9 @@ upgradeGift received_gift_id:string keep_original_details:Bool star_count:int53 
 
 //@description Sends an upgraded gift to another user
 //@received_gift_id Identifier of the gift
-//@receiver_user_id Identifier of the user that will receive the gift
+//@new_owner_id Identifier of the user or the channel chat that will receive the gift
 //@star_count The amount of Telegram Stars required to pay for the transfer
-transferGift received_gift_id:string receiver_user_id:int53 star_count:int53 = Ok;
+transferGift received_gift_id:string new_owner_id:MessageSender star_count:int53 = Ok;
 
 //@description Returns gifts received by the given user or chat
 //@owner_id Identifier of the gift receiver
