@@ -5293,7 +5293,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       const auto *old_ = static_cast<const MessageText *>(old_content);
       const auto *new_ = static_cast<const MessageText *>(new_content);
       auto get_content_object = [td, dialog_id](const MessageContent *content) {
-        return to_string(get_message_content_object(content, td, dialog_id, false, false, -1, false, false,
+        return to_string(get_message_content_object(content, td, dialog_id, MessageId(), false, -1, false, false,
                                                     std::numeric_limits<int32>::max(), false, false));
       };
       if (old_->text.text != new_->text.text) {
@@ -8100,12 +8100,14 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
 }
 
 td_api::object_ptr<td_api::MessageContent> get_message_content_object(const MessageContent *content, Td *td,
-                                                                      DialogId dialog_id, bool is_server,
+                                                                      DialogId dialog_id, MessageId message_id,
                                                                       bool is_outgoing, int32 message_date,
                                                                       bool is_content_secret, bool skip_bot_commands,
                                                                       int32 max_media_timestamp, bool invert_media,
                                                                       bool disable_web_page_preview) {
   CHECK(content != nullptr);
+  auto is_server =
+      message_id != MessageId() && message_id.is_any_server() && dialog_id.get_type() != DialogType::SecretChat;
   auto get_text_object = [&](const FormattedText &text) {
     return get_formatted_text_object(is_server ? td->user_manager_.get() : nullptr, text, skip_bot_commands,
                                      max_media_timestamp);
