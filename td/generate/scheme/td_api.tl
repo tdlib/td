@@ -11712,10 +11712,8 @@ getAvailableGifts = Gifts;
 //@pay_for_upgrade Pass true to additionally pay for the gift upgrade and allow the receiver to upgrade it for free
 sendGift gift_id:int64 user_id:int53 text:formattedText is_private:Bool pay_for_upgrade:Bool = Ok;
 
-//@description Sells a gift received by the current user for Telegram Stars
-//@sender_user_id Identifier of the user that sent the gift
-//@message_id Identifier of the message with the gift in the chat with the user
-sellGift sender_user_id:int53 message_id:int53 = Ok;
+//@description Sells a gift for Telegram Stars @received_gift_id Identifier of the gift
+sellGift received_gift_id:string = Ok;
 
 //@description Toggles whether a gift is shown on the current user's or the chat's profile page
 //@received_gift_id Identifier of the gift

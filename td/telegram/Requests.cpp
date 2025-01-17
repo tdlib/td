@@ -7144,8 +7144,7 @@ void Requests::on_request(uint64 id, td_api::sendGift &request) {
 void Requests::on_request(uint64 id, const td_api::sellGift &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  td_->star_gift_manager_->convert_gift(UserId(request.sender_user_id_), MessageId(request.message_id_),
-                                        std::move(promise));
+  td_->star_gift_manager_->convert_gift(StarGiftId(request.received_gift_id_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::toggleGiftIsSaved &request) {

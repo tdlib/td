@@ -172,14 +172,17 @@ class GetGiftPaymentFormQuery final : public Td::ResultHandler {
 
 class ConvertStarGiftQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
+  DialogId dialog_id_;
 
  public:
   explicit ConvertStarGiftQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(MessageId message_id) {
-    send_query(G()->net_query_creator().create(telegram_api::payments_convertStarGift(
-        telegram_api::make_object<telegram_api::inputSavedStarGiftUser>(message_id.get_server_message_id().get()))));
+  void send(StarGiftId star_gift_id) {
+    dialog_id_ = star_gift_id.get_dialog_id(td_);
+    auto input_gift = star_gift_id.get_input_saved_star_gift(td_);
+    CHECK(input_gift != nullptr);
+    send_query(G()->net_query_creator().create(telegram_api::payments_convertStarGift(std::move(input_gift))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -188,7 +191,14 @@ class ConvertStarGiftQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->user_manager_->reload_user_full(td_->user_manager_->get_my_id(), std::move(promise_), "ConvertStarGiftQuery");
+    if (dialog_id_ == td_->dialog_manager_->get_my_dialog_id()) {
+      td_->user_manager_->reload_user_full(td_->user_manager_->get_my_id(), std::move(promise_),
+                                           "ConvertStarGiftQuery");
+    } else if (dialog_id_.get_type() == DialogType::Channel) {
+      td_->chat_manager_->reload_channel_full(dialog_id_.get_channel_id(), std::move(promise_), "ConvertStarGiftQuery");
+    } else {
+      promise_.set_value(Unit());
+    }
   }
 
   void on_error(Status status) final {
@@ -832,12 +842,11 @@ void StarGiftManager::send_gift(int64 gift_id, UserId user_id, td_api::object_pt
       ->send(std::move(input_invoice), std::move(send_input_invoice), star_count);
 }
 
-void StarGiftManager::convert_gift(UserId user_id, MessageId message_id, Promise<Unit> &&promise) {
-  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
-  if (!message_id.is_valid() || !message_id.is_server()) {
-    return promise.set_error(Status::Error(400, "Invalid message identifier specified"));
+void StarGiftManager::convert_gift(StarGiftId star_gift_id, Promise<Unit> &&promise) {
+  if (star_gift_id.get_input_saved_star_gift(td_) == nullptr) {
+    return promise.set_error(Status::Error(400, "Invalid gift identifier specified"));
   }
-  td_->create_handler<ConvertStarGiftQuery>(std::move(promise))->send(message_id);
+  td_->create_handler<ConvertStarGiftQuery>(std::move(promise))->send(star_gift_id);
 }
 
 void StarGiftManager::save_gift(StarGiftId star_gift_id, bool is_saved, Promise<Unit> &&promise) {

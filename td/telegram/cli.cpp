@@ -2850,10 +2850,9 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::sendGift>(gift_id, user_id, as_formatted_text(text), op == "sendgp",
                                                          pay_for_upgrade));
     } else if (op == "sellg") {
-      UserId user_id;
-      MessageId message_id;
-      get_args(args, user_id, message_id);
-      send_request(td_api::make_object<td_api::sellGift>(user_id, message_id));
+      string star_gift_id;
+      get_args(args, star_gift_id);
+      send_request(td_api::make_object<td_api::sellGift>(star_gift_id));
     } else if (op == "saveg") {
       string star_gift_id;
       bool is_saved;
