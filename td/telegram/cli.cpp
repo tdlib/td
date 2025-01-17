@@ -2871,12 +2871,11 @@ class CliClient final : public Actor {
       get_args(args, user_id, message_id, keep_original_details, star_count);
       send_request(td_api::make_object<td_api::upgradeGift>(user_id, message_id, keep_original_details, star_count));
     } else if (op == "tg") {
-      UserId sender_user_id;
-      MessageId message_id;
+      string received_gift_id;
       UserId receiver_user_id;
       int64 star_count;
-      get_args(args, sender_user_id, message_id, receiver_user_id, star_count);
-      send_request(td_api::make_object<td_api::transferGift>(sender_user_id, message_id, receiver_user_id, star_count));
+      get_args(args, received_gift_id, receiver_user_id, star_count);
+      send_request(td_api::make_object<td_api::transferGift>(received_gift_id, receiver_user_id, star_count));
     } else if (op == "gugs") {
       UserId user_id;
       int32 limit;

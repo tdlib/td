@@ -475,10 +475,11 @@ class TransferStarGiftQuery final : public Td::ResultHandler {
   explicit TransferStarGiftQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(MessageId message_id, telegram_api::object_ptr<telegram_api::InputPeer> receiver_input_peer) {
-    send_query(G()->net_query_creator().create(telegram_api::payments_transferStarGift(
-        telegram_api::make_object<telegram_api::inputSavedStarGiftUser>(message_id.get_server_message_id().get()),
-        std::move(receiver_input_peer))));
+  void send(StarGiftId star_gift_id, telegram_api::object_ptr<telegram_api::InputPeer> receiver_input_peer) {
+    auto input_gift = star_gift_id.get_input_saved_star_gift(td_);
+    CHECK(input_gift != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_transferStarGift(std::move(input_gift), std::move(receiver_input_peer))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -836,7 +837,7 @@ void StarGiftManager::convert_gift(UserId user_id, MessageId message_id, Promise
 }
 
 void StarGiftManager::save_gift(StarGiftId star_gift_id, bool is_saved, Promise<Unit> &&promise) {
-  if (!star_gift_id.is_valid() || star_gift_id.get_input_saved_star_gift(td_) == nullptr) {
+  if (star_gift_id.get_input_saved_star_gift(td_) == nullptr) {
     return promise.set_error(Status::Error(400, "Invalid gift identifier specified"));
   }
   td_->create_handler<SaveStarGiftQuery>(std::move(promise))->send(star_gift_id, is_saved);
@@ -878,13 +879,13 @@ void StarGiftManager::upgrade_gift(UserId user_id, MessageId message_id, bool ke
   }
 }
 
-void StarGiftManager::transfer_gift(UserId user_id, MessageId message_id, UserId receiver_user_id, int64 star_count,
+void StarGiftManager::transfer_gift(StarGiftId star_gift_id, UserId receiver_user_id, int64 star_count,
                                     Promise<Unit> &&promise) {
-  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(DialogId(receiver_user_id), false,
                                                                         AccessRights::Read, "transfer_gift"));
-  if (!message_id.is_valid() || !message_id.is_server()) {
-    return promise.set_error(Status::Error(400, "Invalid message identifier specified"));
+  auto input_saved_star_gift = star_gift_id.get_input_saved_star_gift(td_);
+  if (input_saved_star_gift == nullptr) {
+    return promise.set_error(Status::Error(400, "Invalid gift identifier specified"));
   }
   if (star_count < 0) {
     return promise.set_error(Status::Error(400, "Invalid amount of Telegram Stars specified"));
@@ -894,16 +895,16 @@ void StarGiftManager::transfer_gift(UserId user_id, MessageId message_id, UserId
       return promise.set_error(Status::Error(400, "Have not enough Telegram Stars"));
     }
     auto input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGiftTransfer>(
-        telegram_api::make_object<telegram_api::inputSavedStarGiftUser>(message_id.get_server_message_id().get()),
+        std::move(input_saved_star_gift),
         td_->dialog_manager_->get_input_peer(DialogId(receiver_user_id), AccessRights::Read));
     auto transfer_input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGiftTransfer>(
-        telegram_api::make_object<telegram_api::inputSavedStarGiftUser>(message_id.get_server_message_id().get()),
+        star_gift_id.get_input_saved_star_gift(td_),
         td_->dialog_manager_->get_input_peer(DialogId(receiver_user_id), AccessRights::Read));
     td_->create_handler<GetGiftTransferPaymentFormQuery>(std::move(promise))
         ->send(std::move(input_invoice), std::move(transfer_input_invoice), star_count);
   } else {
     td_->create_handler<TransferStarGiftQuery>(std::move(promise))
-        ->send(message_id, td_->dialog_manager_->get_input_peer(DialogId(receiver_user_id), AccessRights::Read));
+        ->send(star_gift_id, td_->dialog_manager_->get_input_peer(DialogId(receiver_user_id), AccessRights::Read));
   }
 }
 
