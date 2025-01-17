@@ -17,6 +17,8 @@ StarGiftId::StarGiftId(ServerMessageId server_message_id) {
   if (server_message_id.is_valid()) {
     type_ = Type::ForUser;
     server_message_id_ = server_message_id;
+  } else if (server_message_id != ServerMessageId()) {
+    LOG(ERROR) << "Receive server message " << server_message_id.get();
   }
 }
 

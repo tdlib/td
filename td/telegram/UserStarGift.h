@@ -9,6 +9,7 @@
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/StarGift.h"
+#include "td/telegram/StarGiftId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
@@ -23,7 +24,7 @@ class UserStarGift {
   DialogId sender_dialog_id_;
   StarGift gift_;
   FormattedText message_;
-  MessageId message_id_;
+  StarGiftId star_gift_id_;
   int64 convert_star_count_ = 0;
   int64 upgrade_star_count_ = 0;
   int64 transfer_star_count_ = 0;
@@ -36,7 +37,7 @@ class UserStarGift {
   bool was_refunded_ = false;
 
  public:
-  UserStarGift(Td *td, telegram_api::object_ptr<telegram_api::savedStarGift> &&gift, bool is_me);
+  UserStarGift(Td *td, telegram_api::object_ptr<telegram_api::savedStarGift> &&gift, DialogId dialog_id);
 
   bool is_valid() const {
     return gift_.is_valid() && (is_name_hidden_ || sender_dialog_id_ != DialogId());

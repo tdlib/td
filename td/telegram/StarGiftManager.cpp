@@ -625,17 +625,16 @@ class GetSavedStarGiftsQuery final : public Td::ResultHandler {
       LOG(ERROR) << "Receive " << ptr->gifts_.size() << " gifts with total count = " << total_count;
       total_count = static_cast<int32>(ptr->gifts_.size());
     }
-    bool is_me = user_id_ == td_->user_manager_->get_my_id();
     vector<td_api::object_ptr<td_api::chatReceivedGift>> gifts;
     for (auto &gift : ptr->gifts_) {
-      UserStarGift user_gift(td_, std::move(gift), is_me);
+      UserStarGift user_gift(td_, std::move(gift), DialogId(user_id_));
       if (!user_gift.is_valid()) {
         LOG(ERROR) << "Receive invalid user gift";
         continue;
       }
       gifts.push_back(user_gift.get_user_gift_object(td_));
     }
-    if (!is_me) {
+    if (user_id_ != td_->user_manager_->get_my_id()) {
       td_->user_manager_->on_update_user_gift_count(user_id_, total_count);
     }
     promise_.set_value(
@@ -672,7 +671,7 @@ class GetSavedStarGiftQuery final : public Td::ResultHandler {
     LOG(INFO) << "Receive result for GetSavedStarGiftQuery: " << to_string(ptr);
 
     for (auto &gift : ptr->gifts_) {
-      UserStarGift user_gift(td_, std::move(gift), true);
+      UserStarGift user_gift(td_, std::move(gift), td_->dialog_manager_->get_my_dialog_id());
       if (!user_gift.is_valid()) {
         LOG(ERROR) << "Receive invalid user gift";
         continue;
