@@ -11737,11 +11737,11 @@ upgradeGift received_gift_id:string keep_original_details:Bool star_count:int53 
 //@star_count The amount of Telegram Stars required to pay for the transfer
 transferGift received_gift_id:string receiver_user_id:int53 star_count:int53 = Ok;
 
-//@description Returns gifts received by the given chat
-//@user_id Identifier of the chat
+//@description Returns gifts received by the given user or chat
+//@owner_id Identifier of the gift receiver
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of gifts to be returned; must be positive and can't be greater than 100. For optimal performance, the number of returned objects is chosen by TDLib and can be smaller than the specified limit
-getReceivedGifts user_id:int53 offset:string limit:int32 = ReceivedGifts;
+getReceivedGifts owner_id:MessageSender offset:string limit:int32 = ReceivedGifts;
 
 //@description Returns information about a received gift @received_gift_id Identifier of the gift
 getReceivedGift received_gift_id:string = ReceivedGift;

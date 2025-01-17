@@ -2875,13 +2875,13 @@ class CliClient final : public Actor {
       int64 star_count;
       get_args(args, received_gift_id, receiver_user_id, star_count);
       send_request(td_api::make_object<td_api::transferGift>(received_gift_id, receiver_user_id, star_count));
-    } else if (op == "gugs") {
-      UserId user_id;
+    } else if (op == "grgs") {
+      string owner_id;
       int32 limit;
       string offset;
-      get_args(args, user_id, limit, offset);
-      send_request(td_api::make_object<td_api::getReceivedGifts>(user_id, offset, limit));
-    } else if (op == "gug") {
+      get_args(args, owner_id, limit, offset);
+      send_request(td_api::make_object<td_api::getReceivedGifts>(as_message_sender(owner_id), offset, limit));
+    } else if (op == "grg") {
       string received_gift_id;
       get_args(args, received_gift_id);
       send_request(td_api::make_object<td_api::getReceivedGift>(received_gift_id));

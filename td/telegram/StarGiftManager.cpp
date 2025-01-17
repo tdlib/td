@@ -598,17 +598,19 @@ class GetGiftTransferPaymentFormQuery final : public Td::ResultHandler {
 
 class GetSavedStarGiftsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::receivedGifts>> promise_;
-  UserId user_id_;
+  DialogId dialog_id_;
 
  public:
   explicit GetSavedStarGiftsQuery(Promise<td_api::object_ptr<td_api::receivedGifts>> &&promise)
       : promise_(std::move(promise)) {
   }
 
-  void send(UserId user_id, const string &offset, int32 limit) {
-    user_id_ = user_id;
-    auto input_peer = td_->dialog_manager_->get_input_peer(DialogId(user_id), AccessRights::Read);
-    CHECK(input_peer != nullptr);
+  void send(DialogId dialog_id, const string &offset, int32 limit) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
     int32 flags = 0;
     send_query(G()->net_query_creator().create(telegram_api::payments_getSavedStarGifts(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
@@ -633,15 +635,17 @@ class GetSavedStarGiftsQuery final : public Td::ResultHandler {
     }
     vector<td_api::object_ptr<td_api::receivedGift>> gifts;
     for (auto &gift : ptr->gifts_) {
-      UserStarGift user_gift(td_, std::move(gift), DialogId(user_id_));
+      UserStarGift user_gift(td_, std::move(gift), dialog_id_);
       if (!user_gift.is_valid()) {
         LOG(ERROR) << "Receive invalid user gift";
         continue;
       }
       gifts.push_back(user_gift.get_received_gift_object(td_));
     }
-    if (user_id_ != td_->user_manager_->get_my_id()) {
-      td_->user_manager_->on_update_user_gift_count(user_id_, total_count);
+    if (dialog_id_.get_type() == DialogType::User && dialog_id_ != td_->dialog_manager_->get_my_dialog_id()) {
+      td_->user_manager_->on_update_user_gift_count(dialog_id_.get_user_id(), total_count);
+    } else if (dialog_id_.get_type() == DialogType::Channel) {
+      td_->chat_manager_->on_update_channel_gift_count(dialog_id_.get_channel_id(), total_count, false);
     }
     promise_.set_value(td_api::make_object<td_api::receivedGifts>(total_count, std::move(gifts), ptr->next_offset_));
   }
@@ -906,14 +910,14 @@ void StarGiftManager::transfer_gift(StarGiftId star_gift_id, UserId receiver_use
   }
 }
 
-void StarGiftManager::get_saved_star_gifts(UserId user_id, const string &offset, int32 limit,
+void StarGiftManager::get_saved_star_gifts(DialogId dialog_id, const string &offset, int32 limit,
                                            Promise<td_api::object_ptr<td_api::receivedGifts>> &&promise) {
-  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(DialogId(user_id), false, AccessRights::Read,
-                                                                        "get_saved_star_gifts"));
+  TRY_STATUS_PROMISE(
+      promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "get_saved_star_gifts"));
   if (limit < 0) {
     return promise.set_error(Status::Error(400, "Limit must be non-negative"));
   }
-  td_->create_handler<GetSavedStarGiftsQuery>(std::move(promise))->send(user_id, offset, limit);
+  td_->create_handler<GetSavedStarGiftsQuery>(std::move(promise))->send(dialog_id, offset, limit);
 }
 
 void StarGiftManager::get_saved_star_gift(StarGiftId star_gift_id,

@@ -55,7 +55,7 @@ class StarGiftManager final : public Actor {
 
   void transfer_gift(StarGiftId star_gift_id, UserId receiver_user_id, int64 star_count, Promise<Unit> &&promise);
 
-  void get_saved_star_gifts(UserId user_id, const string &offset, int32 limit,
+  void get_saved_star_gifts(DialogId dialog_id, const string &offset, int32 limit,
                             Promise<td_api::object_ptr<td_api::receivedGifts>> &&promise);
 
   void get_saved_star_gift(StarGiftId star_gift_id, Promise<td_api::object_ptr<td_api::receivedGift>> &&promise);
