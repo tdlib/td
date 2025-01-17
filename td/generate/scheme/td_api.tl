@@ -11717,11 +11717,10 @@ sendGift gift_id:int64 user_id:int53 text:formattedText is_private:Bool pay_for_
 //@message_id Identifier of the message with the gift in the chat with the user
 sellGift sender_user_id:int53 message_id:int53 = Ok;
 
-//@description Toggles whether a gift is shown on the current user's profile page
-//@sender_user_id Identifier of the user that sent the gift
-//@message_id Identifier of the message with the gift in the chat with the user
+//@description Toggles whether a gift is shown on the current user's or the chat's profile page
+//@received_gift_id Identifier of the gift
 //@is_saved Pass true to display the gift on the user's profile page; pass false to remove it from the profile page
-toggleGiftIsSaved sender_user_id:int53 message_id:int53 is_saved:Bool = Ok;
+toggleGiftIsSaved received_gift_id:string is_saved:Bool = Ok;
 
 //@description Returns examples of possible upgraded gifts for a regular gift @gift_id Identifier of the gift
 getGiftUpgradePreview gift_id:int64 = GiftUpgradePreview;

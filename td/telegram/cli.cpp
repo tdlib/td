@@ -2855,11 +2855,10 @@ class CliClient final : public Actor {
       get_args(args, user_id, message_id);
       send_request(td_api::make_object<td_api::sellGift>(user_id, message_id));
     } else if (op == "saveg") {
-      UserId user_id;
-      MessageId message_id;
+      string star_gift_id;
       bool is_saved;
-      get_args(args, user_id, message_id, is_saved);
-      send_request(td_api::make_object<td_api::toggleGiftIsSaved>(user_id, message_id, is_saved));
+      get_args(args, star_gift_id, is_saved);
+      send_request(td_api::make_object<td_api::toggleGiftIsSaved>(star_gift_id, is_saved));
     } else if (op == "ggup") {
       int64 gift_id;
       get_args(args, gift_id);
