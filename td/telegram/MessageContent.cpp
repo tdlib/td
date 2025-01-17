@@ -1254,6 +1254,8 @@ class MessageStarGift final : public MessageContent {
   FormattedText text;
   int64 convert_star_count = 0;
   int64 upgrade_star_count = 0;
+  DialogId owner_dialog_id;
+  int64 saved_id;
   MessageId upgrade_message_id;
   bool name_hidden = false;
   bool is_saved = false;
@@ -1263,10 +1265,12 @@ class MessageStarGift final : public MessageContent {
   bool was_refunded = false;
 
   MessageStarGift() = default;
-  MessageStarGift(StarGift &&star_gift, FormattedText &&text, int64 convert_star_count, int64 upgrade_star_count,
-                  MessageId upgrade_message_id, bool name_hidden, bool is_saved, bool can_upgrade, bool was_converted,
-                  bool was_upgraded, bool was_refunded)
+  MessageStarGift(StarGift &&star_gift, DialogId owner_dialog_id, int64 saved_id, FormattedText &&text,
+                  int64 convert_star_count, int64 upgrade_star_count, MessageId upgrade_message_id, bool name_hidden,
+                  bool is_saved, bool can_upgrade, bool was_converted, bool was_upgraded, bool was_refunded)
       : star_gift(std::move(star_gift))
+      , owner_dialog_id(owner_dialog_id)
+      , saved_id(saved_id)
       , text(std::move(text))
       , convert_star_count(convert_star_count)
       , upgrade_star_count(upgrade_star_count)
@@ -1287,6 +1291,8 @@ class MessageStarGift final : public MessageContent {
 class MessageStarGiftUnique final : public MessageContent {
  public:
   StarGift star_gift;
+  DialogId owner_dialog_id;
+  int64 saved_id;
   int64 transfer_star_count = 0;
   int32 can_export_at = 0;
   bool is_saved = false;
@@ -1296,9 +1302,12 @@ class MessageStarGiftUnique final : public MessageContent {
   bool was_refunded = false;
 
   MessageStarGiftUnique() = default;
-  MessageStarGiftUnique(StarGift &&star_gift, int64 transfer_star_count, int32 can_export_at, bool is_saved,
-                        bool is_upgrade, bool can_transfer, bool was_transferred, bool was_refunded)
+  MessageStarGiftUnique(StarGift &&star_gift, DialogId owner_dialog_id, int64 saved_id, int64 transfer_star_count,
+                        int32 can_export_at, bool is_saved, bool is_upgrade, bool can_transfer, bool was_transferred,
+                        bool was_refunded)
       : star_gift(std::move(star_gift))
+      , owner_dialog_id(owner_dialog_id)
+      , saved_id(saved_id)
       , transfer_star_count(transfer_star_count)
       , can_export_at(can_export_at)
       , is_saved(is_saved)
@@ -2003,6 +2012,8 @@ static void store(const MessageContent *content, StorerT &storer) {
       bool has_text = !m->text.text.empty();
       bool has_upgrade_star_count = m->upgrade_star_count != 0;
       bool has_upgrade_message_id = m->upgrade_message_id.is_valid();
+      bool has_owner_dialog_id = m->owner_dialog_id.is_valid();
+      bool has_saved_id = m->saved_id != 0;
       BEGIN_STORE_FLAGS();
       STORE_FLAG(m->name_hidden);
       STORE_FLAG(m->is_saved);
@@ -2013,6 +2024,8 @@ static void store(const MessageContent *content, StorerT &storer) {
       STORE_FLAG(has_upgrade_star_count);
       STORE_FLAG(m->was_refunded);
       STORE_FLAG(has_upgrade_message_id);
+      STORE_FLAG(has_owner_dialog_id);
+      STORE_FLAG(has_saved_id);
       END_STORE_FLAGS();
       store(m->star_gift, storer);
       if (has_text) {
@@ -2025,12 +2038,20 @@ static void store(const MessageContent *content, StorerT &storer) {
       if (has_upgrade_message_id) {
         store(m->upgrade_message_id, storer);
       }
+      if (has_owner_dialog_id) {
+        store(m->owner_dialog_id, storer);
+      }
+      if (has_saved_id) {
+        store(m->saved_id, storer);
+      }
       break;
     }
     case MessageContentType::StarGiftUnique: {
       const auto *m = static_cast<const MessageStarGiftUnique *>(content);
       bool has_transfer_star_count = m->transfer_star_count != 0;
       bool has_can_export_at = m->can_export_at != 0;
+      bool has_owner_dialog_id = m->owner_dialog_id.is_valid();
+      bool has_saved_id = m->saved_id != 0;
       BEGIN_STORE_FLAGS();
       STORE_FLAG(has_transfer_star_count);
       STORE_FLAG(has_can_export_at);
@@ -2039,6 +2060,8 @@ static void store(const MessageContent *content, StorerT &storer) {
       STORE_FLAG(m->was_transferred);
       STORE_FLAG(m->can_transfer);
       STORE_FLAG(m->was_refunded);
+      STORE_FLAG(has_owner_dialog_id);
+      STORE_FLAG(has_saved_id);
       END_STORE_FLAGS();
       store(m->star_gift, storer);
       if (has_transfer_star_count) {
@@ -2046,6 +2069,12 @@ static void store(const MessageContent *content, StorerT &storer) {
       }
       if (has_can_export_at) {
         store(m->can_export_at, storer);
+      }
+      if (has_owner_dialog_id) {
+        store(m->owner_dialog_id, storer);
+      }
+      if (has_saved_id) {
+        store(m->saved_id, storer);
       }
       break;
     }
@@ -2951,6 +2980,8 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       bool has_text;
       bool has_upgrade_star_count;
       bool has_upgrade_message_id;
+      bool has_owner_dialog_id;
+      bool has_saved_id;
       BEGIN_PARSE_FLAGS();
       PARSE_FLAG(m->name_hidden);
       PARSE_FLAG(m->is_saved);
@@ -2961,6 +2992,8 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       PARSE_FLAG(has_upgrade_star_count);
       PARSE_FLAG(m->was_refunded);
       PARSE_FLAG(has_upgrade_message_id);
+      PARSE_FLAG(has_owner_dialog_id);
+      PARSE_FLAG(has_saved_id);
       END_PARSE_FLAGS();
       parse(m->star_gift, parser);
       if (has_text) {
@@ -2973,6 +3006,12 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       if (has_upgrade_message_id) {
         parse(m->upgrade_message_id, parser);
       }
+      if (has_owner_dialog_id) {
+        parse(m->owner_dialog_id, parser);
+      }
+      if (has_saved_id) {
+        parse(m->saved_id, parser);
+      }
       if (!m->star_gift.is_valid() || m->star_gift.is_unique()) {
         is_bad = true;
         break;
@@ -2984,6 +3023,8 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       auto m = make_unique<MessageStarGiftUnique>();
       bool has_transfer_star_count;
       bool has_can_export_at;
+      bool has_owner_dialog_id;
+      bool has_saved_id;
       BEGIN_PARSE_FLAGS();
       PARSE_FLAG(has_transfer_star_count);
       PARSE_FLAG(has_can_export_at);
@@ -2992,6 +3033,8 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       PARSE_FLAG(m->was_transferred);
       PARSE_FLAG(m->can_transfer);
       PARSE_FLAG(m->was_refunded);
+      PARSE_FLAG(has_owner_dialog_id);
+      PARSE_FLAG(has_saved_id);
       END_PARSE_FLAGS();
       parse(m->star_gift, parser);
       if (has_transfer_star_count) {
@@ -2999,6 +3042,12 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       }
       if (has_can_export_at) {
         parse(m->can_export_at, parser);
+      }
+      if (has_owner_dialog_id) {
+        parse(m->owner_dialog_id, parser);
+      }
+      if (has_saved_id) {
+        parse(m->saved_id, parser);
       }
       if (!m->star_gift.is_valid() || m->star_gift.is_unique() == m->was_refunded) {
         is_bad = true;
@@ -6243,7 +6292,8 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
     case MessageContentType::StarGift: {
       const auto *lhs = static_cast<const MessageStarGift *>(old_content);
       const auto *rhs = static_cast<const MessageStarGift *>(new_content);
-      if (lhs->star_gift != rhs->star_gift || lhs->text != rhs->text ||
+      if (lhs->star_gift != rhs->star_gift || lhs->owner_dialog_id != rhs->owner_dialog_id ||
+          lhs->saved_id != rhs->saved_id || lhs->text != rhs->text ||
           lhs->convert_star_count != rhs->convert_star_count || lhs->upgrade_star_count != rhs->upgrade_star_count ||
           lhs->upgrade_message_id != rhs->upgrade_message_id || lhs->name_hidden != rhs->name_hidden ||
           lhs->is_saved != rhs->is_saved || lhs->can_upgrade != rhs->can_upgrade ||
@@ -6256,7 +6306,8 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
     case MessageContentType::StarGiftUnique: {
       const auto *lhs = static_cast<const MessageStarGiftUnique *>(old_content);
       const auto *rhs = static_cast<const MessageStarGiftUnique *>(new_content);
-      if (lhs->star_gift != rhs->star_gift || lhs->transfer_star_count != rhs->transfer_star_count ||
+      if (lhs->star_gift != rhs->star_gift || lhs->owner_dialog_id != rhs->owner_dialog_id ||
+          lhs->saved_id != rhs->saved_id || lhs->transfer_star_count != rhs->transfer_star_count ||
           lhs->can_export_at != rhs->can_export_at || lhs->is_saved != rhs->is_saved ||
           lhs->is_upgrade != rhs->is_upgrade || lhs->can_transfer != rhs->can_transfer ||
           lhs->was_transferred != rhs->was_transferred || lhs->was_refunded != rhs->was_refunded) {
@@ -7593,11 +7644,11 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       case telegram_api::messageActionSetChatWallPaper::ID:
       case telegram_api::messageActionGiftCode::ID:
       case telegram_api::messageActionRequestedPeerSentMe::ID:
+      case telegram_api::messageActionPaymentRefunded::ID:
       case telegram_api::messageActionGiftStars::ID:
       case telegram_api::messageActionPrizeStars::ID:
       case telegram_api::messageActionStarGift::ID:
       case telegram_api::messageActionStarGiftUnique::ID:
-      case telegram_api::messageActionPaymentRefunded::ID:
         // ok
         break;
       default:
@@ -8075,10 +8126,17 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       }
       FormattedText text = get_formatted_text(td->user_manager_.get(), std::move(action->message_), true, false,
                                               "messageActionStarGift");
-      return td::make_unique<MessageStarGift>(
-          std::move(star_gift), std::move(text), StarManager::get_star_count(action->convert_stars_),
-          StarManager::get_star_count(action->upgrade_stars_), upgrade_message_id, action->name_hidden_, action->saved_,
-          action->can_upgrade_, action->converted_, action->upgraded_, action->refunded_);
+      DialogId gift_owner_dialog_id;
+      int64 saved_id = 0;
+      if (action->peer_ != nullptr) {
+        gift_owner_dialog_id = DialogId(action->peer_);
+        saved_id = action->saved_id_;
+      }
+      return td::make_unique<MessageStarGift>(std::move(star_gift), gift_owner_dialog_id, saved_id, std::move(text),
+                                              StarManager::get_star_count(action->convert_stars_),
+                                              StarManager::get_star_count(action->upgrade_stars_), upgrade_message_id,
+                                              action->name_hidden_, action->saved_, action->can_upgrade_,
+                                              action->converted_, action->upgraded_, action->refunded_);
     }
     case telegram_api::messageActionStarGiftUnique::ID: {
       auto action = move_tl_object_as<telegram_api::messageActionStarGiftUnique>(action_ptr);
@@ -8086,9 +8144,15 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       if (!star_gift.is_valid() || star_gift.is_unique() == action->refunded_) {
         break;
       }
+      DialogId gift_owner_dialog_id;
+      int64 saved_id = 0;
+      if (action->peer_ != nullptr) {
+        gift_owner_dialog_id = DialogId(action->peer_);
+        saved_id = action->saved_id_;
+      }
       return td::make_unique<MessageStarGiftUnique>(
-          std::move(star_gift), StarManager::get_star_count(action->transfer_stars_), max(0, action->can_export_at_),
-          action->saved_, action->upgrade_,
+          std::move(star_gift), gift_owner_dialog_id, saved_id, StarManager::get_star_count(action->transfer_stars_),
+          max(0, action->can_export_at_), action->saved_, action->upgrade_,
           (action->flags_ & telegram_api::messageActionStarGiftUnique::TRANSFER_STARS_MASK) != 0, action->transferred_,
           action->refunded_);
     }
@@ -8581,9 +8645,19 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(const Mess
     }
     case MessageContentType::StarGift: {
       const auto *m = static_cast<const MessageStarGift *>(content);
+      StarGiftId star_gift_id;
+      if (m->owner_dialog_id != DialogId()) {
+        star_gift_id = StarGiftId(m->owner_dialog_id, m->saved_id);
+      } else if (dialog_id.get_type() == DialogType::User && !is_outgoing && is_server && message_id.is_server()) {
+        auto user_id = dialog_id.get_user_id();
+        if (user_id != UserManager::get_service_notifications_user_id()) {
+          star_gift_id = StarGiftId(message_id.get_server_message_id());
+        }
+      }
       return td_api::make_object<td_api::messageGift>(
-          m->star_gift.get_gift_object(td), get_text_object(m->text), m->convert_star_count, m->upgrade_star_count,
-          m->name_hidden, m->is_saved, m->can_upgrade, m->was_converted, m->was_upgraded, m->was_refunded,
+          m->star_gift.get_gift_object(td), star_gift_id.get_star_gift_id(), get_text_object(m->text),
+          m->convert_star_count, m->upgrade_star_count, m->name_hidden, m->is_saved, m->can_upgrade, m->was_converted,
+          m->was_upgraded, m->was_refunded,
           StarGiftId(m->upgrade_message_id.get_server_message_id()).get_star_gift_id());
     }
     case MessageContentType::StarGiftUnique: {
@@ -8592,9 +8666,19 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(const Mess
         return td_api::make_object<td_api::messageRefundedUpgradedGift>(m->star_gift.get_gift_object(td),
                                                                         m->is_upgrade);
       }
-      return td_api::make_object<td_api::messageUpgradedGift>(m->star_gift.get_upgraded_gift_object(td), m->is_upgrade,
-                                                              m->is_saved, m->can_transfer, m->was_transferred,
-                                                              m->transfer_star_count, m->can_export_at);
+      StarGiftId star_gift_id;
+      if (m->owner_dialog_id != DialogId()) {
+        star_gift_id = StarGiftId(m->owner_dialog_id, m->saved_id);
+      } else if (dialog_id.get_type() == DialogType::User && m->is_upgrade == is_outgoing && is_server &&
+                 message_id.is_server()) {
+        auto user_id = dialog_id.get_user_id();
+        if (user_id != UserManager::get_service_notifications_user_id() || m->is_upgrade) {
+          star_gift_id = StarGiftId(message_id.get_server_message_id());
+        }
+      }
+      return td_api::make_object<td_api::messageUpgradedGift>(
+          m->star_gift.get_upgraded_gift_object(td), star_gift_id.get_star_gift_id(), m->is_upgrade, m->is_saved,
+          m->can_transfer, m->was_transferred, m->transfer_star_count, m->can_export_at);
     }
     default:
       UNREACHABLE();
@@ -9604,11 +9688,13 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
     case MessageContentType::StarGift: {
       const auto *content = static_cast<const MessageStarGift *>(message_content);
       content->star_gift.add_dependencies(dependencies);
+      dependencies.add_dialog_and_dependencies(content->owner_dialog_id);
       break;
     }
     case MessageContentType::StarGiftUnique: {
       const auto *content = static_cast<const MessageStarGiftUnique *>(message_content);
       content->star_gift.add_dependencies(dependencies);
+      dependencies.add_dialog_and_dependencies(content->owner_dialog_id);
       break;
     }
     default:
