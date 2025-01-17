@@ -648,16 +648,21 @@ class GetSavedStarGiftsQuery final : public Td::ResultHandler {
 
 class GetSavedStarGiftQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::chatReceivedGift>> promise_;
+  DialogId dialog_id_;
 
  public:
   explicit GetSavedStarGiftQuery(Promise<td_api::object_ptr<td_api::chatReceivedGift>> &&promise)
       : promise_(std::move(promise)) {
   }
 
-  void send(MessageId message_id) {
+  void send(StarGiftId star_gift_id) {
+    auto input_gift = star_gift_id.get_input_saved_star_gift(td_);
+    if (input_gift == nullptr) {
+      return on_error(Status::Error(400, "Gift not found"));
+    }
     vector<telegram_api::object_ptr<telegram_api::InputSavedStarGift>> gifts;
-    gifts.push_back(
-        telegram_api::make_object<telegram_api::inputSavedStarGiftUser>(message_id.get_server_message_id().get()));
+    gifts.push_back(std::move(input_gift));
+    dialog_id_ = star_gift_id.get_dialog_id(td_);
     send_query(G()->net_query_creator().create(telegram_api::payments_getSavedStarGift(std::move(gifts))));
   }
 
@@ -671,7 +676,7 @@ class GetSavedStarGiftQuery final : public Td::ResultHandler {
     LOG(INFO) << "Receive result for GetSavedStarGiftQuery: " << to_string(ptr);
 
     for (auto &gift : ptr->gifts_) {
-      UserStarGift user_gift(td_, std::move(gift), td_->dialog_manager_->get_my_dialog_id());
+      UserStarGift user_gift(td_, std::move(gift), dialog_id_);
       if (!user_gift.is_valid()) {
         LOG(ERROR) << "Receive invalid user gift";
         continue;
@@ -909,12 +914,12 @@ void StarGiftManager::get_saved_star_gifts(UserId user_id, const string &offset,
   td_->create_handler<GetSavedStarGiftsQuery>(std::move(promise))->send(user_id, offset, limit);
 }
 
-void StarGiftManager::get_saved_star_gift(MessageId message_id,
+void StarGiftManager::get_saved_star_gift(StarGiftId star_gift_id,
                                           Promise<td_api::object_ptr<td_api::chatReceivedGift>> &&promise) {
-  if (!message_id.is_valid() || !message_id.is_server()) {
-    return promise.set_error(Status::Error(400, "Invalid message identifier specified"));
+  if (!star_gift_id.is_valid()) {
+    return promise.set_error(Status::Error(400, "Invalid gift identifier specified"));
   }
-  td_->create_handler<GetSavedStarGiftQuery>(std::move(promise))->send(message_id);
+  td_->create_handler<GetSavedStarGiftQuery>(std::move(promise))->send(star_gift_id);
 }
 
 void StarGiftManager::get_upgraded_gift(const string &name,

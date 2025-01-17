@@ -52,6 +52,8 @@ class StarGiftId {
 
   string get_star_gift_id() const;
 
+  DialogId get_dialog_id(const Td *td) const;
+
   template <class StorerT>
   void store(StorerT &storer) const;
 

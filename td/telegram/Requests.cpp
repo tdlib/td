@@ -7185,7 +7185,7 @@ void Requests::on_request(uint64 id, td_api::getChatReceivedGifts &request) {
 void Requests::on_request(uint64 id, const td_api::getChatReceivedGift &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  td_->star_gift_manager_->get_saved_star_gift(MessageId(request.message_id_), std::move(promise));
+  td_->star_gift_manager_->get_saved_star_gift(StarGiftId(request.received_gift_id_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::getUpgradedGift &request) {

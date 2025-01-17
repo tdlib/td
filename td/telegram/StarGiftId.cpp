@@ -86,6 +86,20 @@ string StarGiftId::get_star_gift_id() const {
   }
 }
 
+DialogId StarGiftId::get_dialog_id(const Td *td) const {
+  switch (type_) {
+    case Type::Empty:
+      return DialogId();
+    case Type::ForUser:
+      return td->dialog_manager_->get_my_dialog_id();
+    case Type::ForDialog:
+      return dialog_id_;
+    default:
+      UNREACHABLE();
+      return DialogId();
+  }
+}
+
 bool operator==(const StarGiftId &lhs, const StarGiftId &rhs) {
   return lhs.type_ == rhs.type_ && lhs.server_message_id_ == rhs.server_message_id_ &&
          lhs.dialog_id_ == rhs.dialog_id_ && lhs.saved_id_ == rhs.saved_id_;

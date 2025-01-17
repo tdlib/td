@@ -2885,9 +2885,9 @@ class CliClient final : public Actor {
       get_args(args, user_id, limit, offset);
       send_request(td_api::make_object<td_api::getChatReceivedGifts>(user_id, offset, limit));
     } else if (op == "gug") {
-      MessageId message_id;
-      get_args(args, message_id);
-      send_request(td_api::make_object<td_api::getChatReceivedGift>(message_id));
+      string received_gift_id;
+      get_args(args, received_gift_id);
+      send_request(td_api::make_object<td_api::getChatReceivedGift>(received_gift_id));
     } else if (op == "gupg") {
       string name;
       get_args(args, name);

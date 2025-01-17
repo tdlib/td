@@ -11747,8 +11747,8 @@ transferGift sender_user_id:int53 message_id:int53 receiver_user_id:int53 star_c
 //@limit The maximum number of gifts to be returned; must be positive and can't be greater than 100. For optimal performance, the number of returned objects is chosen by TDLib and can be smaller than the specified limit
 getChatReceivedGifts user_id:int53 offset:string limit:int32 = ChatReceivedGifts;
 
-//@description Returns information about a received gift @message_id Identifier of the message with the gift
-getChatReceivedGift message_id:int53 = ChatReceivedGift;
+//@description Returns information about a received gift @received_gift_id Identifier of the gift
+getChatReceivedGift received_gift_id:string = ChatReceivedGift;
 
 //@description Returns information about an upgraded gift by its name @name Unique name of the upgraded gift
 getUpgradedGift name:string = UpgradedGift;
