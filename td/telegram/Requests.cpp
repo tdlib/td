@@ -7163,8 +7163,8 @@ void Requests::on_request(uint64 id, const td_api::getGiftUpgradePreview &reques
 void Requests::on_request(uint64 id, const td_api::upgradeGift &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  td_->star_gift_manager_->upgrade_gift(UserId(request.sender_user_id_), MessageId(request.message_id_),
-                                        request.keep_original_details_, request.star_count_, std::move(promise));
+  td_->star_gift_manager_->upgrade_gift(StarGiftId(request.received_gift_id_), request.keep_original_details_,
+                                        request.star_count_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::transferGift &request) {

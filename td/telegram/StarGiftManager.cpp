@@ -339,15 +339,15 @@ class UpgradeStarGiftQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(telegram_api::object_ptr<telegram_api::InputUser> input_user, MessageId message_id, int64 star_count,
-            bool keep_original_details) {
+  void send(StarGiftId star_gift_id, int64 star_count, bool keep_original_details) {
+    auto input_gift = star_gift_id.get_input_saved_star_gift(td_);
+    CHECK(input_gift != nullptr);
     int32 flags = 0;
     if (keep_original_details) {
       flags |= telegram_api::payments_upgradeStarGift::KEEP_ORIGINAL_DETAILS_MASK;
     }
-    send_query(G()->net_query_creator().create(telegram_api::payments_upgradeStarGift(
-        flags, false /*ignored*/,
-        telegram_api::make_object<telegram_api::inputSavedStarGiftUser>(message_id.get_server_message_id().get()))));
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_upgradeStarGift(flags, false /*ignored*/, std::move(input_gift))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -848,11 +848,11 @@ void StarGiftManager::get_gift_upgrade_preview(int64 gift_id,
   td_->create_handler<GetUpgradeGiftPreviewQuery>(std::move(promise))->send(gift_id);
 }
 
-void StarGiftManager::upgrade_gift(UserId user_id, MessageId message_id, bool keep_original_details, int64 star_count,
+void StarGiftManager::upgrade_gift(StarGiftId star_gift_id, bool keep_original_details, int64 star_count,
                                    Promise<td_api::object_ptr<td_api::upgradeGiftResult>> &&promise) {
-  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
-  if (!message_id.is_valid() || !message_id.is_server()) {
-    return promise.set_error(Status::Error(400, "Invalid message identifier specified"));
+  auto input_saved_star_gift = star_gift_id.get_input_saved_star_gift(td_);
+  if (input_saved_star_gift == nullptr) {
+    return promise.set_error(Status::Error(400, "Invalid gift identifier specified"));
   }
   if (star_count < 0) {
     return promise.set_error(Status::Error(400, "Invalid amount of Telegram Stars specified"));
@@ -866,16 +866,14 @@ void StarGiftManager::upgrade_gift(UserId user_id, MessageId message_id, bool ke
       flags |= telegram_api::inputInvoiceStarGiftUpgrade::KEEP_ORIGINAL_DETAILS_MASK;
     }
     auto input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGiftUpgrade>(
-        flags, false /*ignored*/,
-        telegram_api::make_object<telegram_api::inputSavedStarGiftUser>(message_id.get_server_message_id().get()));
+        flags, false /*ignored*/, std::move(input_saved_star_gift));
     auto upgrade_input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGiftUpgrade>(
-        flags, false /*ignored*/,
-        telegram_api::make_object<telegram_api::inputSavedStarGiftUser>(message_id.get_server_message_id().get()));
+        flags, false /*ignored*/, star_gift_id.get_input_saved_star_gift(td_));
     td_->create_handler<GetGiftUpgradePaymentFormQuery>(std::move(promise))
         ->send(std::move(input_invoice), std::move(upgrade_input_invoice), star_count);
   } else {
     td_->create_handler<UpgradeStarGiftQuery>(std::move(promise))
-        ->send(std::move(input_user), message_id, star_count, keep_original_details);
+        ->send(star_gift_id, star_count, keep_original_details);
   }
 }
 
