@@ -75,6 +75,7 @@
 #include "td/telegram/SharedDialog.hpp"
 #include "td/telegram/StarGift.h"
 #include "td/telegram/StarGift.hpp"
+#include "td/telegram/StarGiftId.h"
 #include "td/telegram/StarGiftManager.h"
 #include "td/telegram/StarManager.h"
 #include "td/telegram/StickerFormat.h"
@@ -8578,10 +8579,10 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(const Mess
     }
     case MessageContentType::StarGift: {
       const auto *m = static_cast<const MessageStarGift *>(content);
-      return td_api::make_object<td_api::messageGift>(m->star_gift.get_gift_object(td), get_text_object(m->text),
-                                                      m->convert_star_count, m->upgrade_star_count, m->name_hidden,
-                                                      m->is_saved, m->can_upgrade, m->was_converted, m->was_upgraded,
-                                                      m->was_refunded, m->upgrade_message_id.get());
+      return td_api::make_object<td_api::messageGift>(
+          m->star_gift.get_gift_object(td), get_text_object(m->text), m->convert_star_count, m->upgrade_star_count,
+          m->name_hidden, m->is_saved, m->can_upgrade, m->was_converted, m->was_upgraded, m->was_refunded,
+          StarGiftId(m->upgrade_message_id.get_server_message_id()).get_star_gift_id());
     }
     case MessageContentType::StarGiftUnique: {
       const auto *m = static_cast<const MessageStarGiftUnique *>(content);
