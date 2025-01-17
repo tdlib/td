@@ -57,9 +57,9 @@ class StarGiftManager final : public Actor {
                      Promise<Unit> &&promise);
 
   void get_saved_star_gifts(UserId user_id, const string &offset, int32 limit,
-                            Promise<td_api::object_ptr<td_api::chatReceivedGifts>> &&promise);
+                            Promise<td_api::object_ptr<td_api::receivedGifts>> &&promise);
 
-  void get_saved_star_gift(StarGiftId star_gift_id, Promise<td_api::object_ptr<td_api::chatReceivedGift>> &&promise);
+  void get_saved_star_gift(StarGiftId star_gift_id, Promise<td_api::object_ptr<td_api::receivedGift>> &&promise);
 
   void get_upgraded_gift(const string &name, Promise<td_api::object_ptr<td_api::upgradedGift>> &&promise);
 

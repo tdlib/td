@@ -43,7 +43,7 @@ class UserStarGift {
     return gift_.is_valid() && (is_name_hidden_ || sender_dialog_id_ != DialogId());
   }
 
-  td_api::object_ptr<td_api::chatReceivedGift> get_user_gift_object(Td *td) const;
+  td_api::object_ptr<td_api::receivedGift> get_received_gift_object(Td *td) const;
 };
 
 }  // namespace td

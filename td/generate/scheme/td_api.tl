@@ -1105,7 +1105,7 @@ sentGiftRegular gift:gift = SentGift;
 sentGiftUpgraded gift:upgradedGift = SentGift;
 
 
-//@description Represents a gift received by a chat
+//@description Represents a gift received by a user or a chat
 //@received_gift_id Unique identifier of the received gift for the current user; only for the receiver of the gift
 //@sender_id Identifier of a user or a chat that sent the gift; may be null if unknown
 //@text Message added to the gift
@@ -1120,13 +1120,13 @@ sentGiftUpgraded gift:upgradedGift = SentGift;
 //@prepaid_upgrade_star_count Number of Telegram Stars that were paid by the sender for the ability to upgrade the gift
 //@transfer_star_count Number of Telegram Stars that must be paid to transfer the upgraded gift; only for the receiver of the gift
 //@export_date Point in time (Unix timestamp) when the upgraded gift can be transferred to TON blockchain as an NFT; 0 if NFT export isn't possible; only for the receiver of the gift
-chatReceivedGift received_gift_id:string sender_id:MessageSender text:formattedText is_private:Bool is_saved:Bool can_be_upgraded:Bool can_be_transferred:Bool was_refunded:Bool date:int32 gift:SentGift sell_star_count:int53 prepaid_upgrade_star_count:int53 transfer_star_count:int53 export_date:int32 = ChatReceivedGift;
+receivedGift received_gift_id:string sender_id:MessageSender text:formattedText is_private:Bool is_saved:Bool can_be_upgraded:Bool can_be_transferred:Bool was_refunded:Bool date:int32 gift:SentGift sell_star_count:int53 prepaid_upgrade_star_count:int53 transfer_star_count:int53 export_date:int32 = ReceivedGift;
 
 //@description Represents a list of gifts received by a chat
 //@total_count The total number of received gifts
 //@gifts The list of gifts
 //@next_offset The offset for the next request. If empty, then there are no more results
-chatReceivedGifts total_count:int32 gifts:vector<chatReceivedGift> next_offset:string = ChatReceivedGifts;
+receivedGifts total_count:int32 gifts:vector<receivedGift> next_offset:string = ReceivedGifts;
 
 //@description Contains examples of possible upgraded gifts for the given regular gift
 //@models Examples of possible models that can be chosen for the gift after upgrade
@@ -4038,7 +4038,7 @@ messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id
 //@was_converted True, if the gift was converted to Telegram Stars; only for the receiver of the gift
 //@was_upgraded True, if the gift was upgraded to a unique gift
 //@was_refunded True, if the gift was refunded and isn't available anymore
-//@upgraded_received_gift_id Identifier of the corresponding upgraded gift; can be empty if unknown. Use getChatReceivedGift to get information about the gift
+//@upgraded_received_gift_id Identifier of the corresponding upgraded gift; can be empty if unknown. Use getReceivedGift to get information about the gift
 messageGift gift:gift text:formattedText sell_star_count:int53 prepaid_upgrade_star_count:int53 is_private:Bool is_saved:Bool can_be_upgraded:Bool was_converted:Bool was_upgraded:Bool was_refunded:Bool upgraded_received_gift_id:string = MessageContent;
 
 //@description An upgraded gift was received or sent by the current user
@@ -11743,10 +11743,10 @@ transferGift sender_user_id:int53 message_id:int53 receiver_user_id:int53 star_c
 //@user_id Identifier of the chat
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of gifts to be returned; must be positive and can't be greater than 100. For optimal performance, the number of returned objects is chosen by TDLib and can be smaller than the specified limit
-getChatReceivedGifts user_id:int53 offset:string limit:int32 = ChatReceivedGifts;
+getReceivedGifts user_id:int53 offset:string limit:int32 = ReceivedGifts;
 
 //@description Returns information about a received gift @received_gift_id Identifier of the gift
-getChatReceivedGift received_gift_id:string = ChatReceivedGift;
+getReceivedGift received_gift_id:string = ReceivedGift;
 
 //@description Returns information about an upgraded gift by its name @name Unique name of the upgraded gift
 getUpgradedGift name:string = UpgradedGift;

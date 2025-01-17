@@ -596,11 +596,11 @@ class GetGiftTransferPaymentFormQuery final : public Td::ResultHandler {
 };
 
 class GetSavedStarGiftsQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::chatReceivedGifts>> promise_;
+  Promise<td_api::object_ptr<td_api::receivedGifts>> promise_;
   UserId user_id_;
 
  public:
-  explicit GetSavedStarGiftsQuery(Promise<td_api::object_ptr<td_api::chatReceivedGifts>> &&promise)
+  explicit GetSavedStarGiftsQuery(Promise<td_api::object_ptr<td_api::receivedGifts>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -630,20 +630,19 @@ class GetSavedStarGiftsQuery final : public Td::ResultHandler {
       LOG(ERROR) << "Receive " << ptr->gifts_.size() << " gifts with total count = " << total_count;
       total_count = static_cast<int32>(ptr->gifts_.size());
     }
-    vector<td_api::object_ptr<td_api::chatReceivedGift>> gifts;
+    vector<td_api::object_ptr<td_api::receivedGift>> gifts;
     for (auto &gift : ptr->gifts_) {
       UserStarGift user_gift(td_, std::move(gift), DialogId(user_id_));
       if (!user_gift.is_valid()) {
         LOG(ERROR) << "Receive invalid user gift";
         continue;
       }
-      gifts.push_back(user_gift.get_user_gift_object(td_));
+      gifts.push_back(user_gift.get_received_gift_object(td_));
     }
     if (user_id_ != td_->user_manager_->get_my_id()) {
       td_->user_manager_->on_update_user_gift_count(user_id_, total_count);
     }
-    promise_.set_value(
-        td_api::make_object<td_api::chatReceivedGifts>(total_count, std::move(gifts), ptr->next_offset_));
+    promise_.set_value(td_api::make_object<td_api::receivedGifts>(total_count, std::move(gifts), ptr->next_offset_));
   }
 
   void on_error(Status status) final {
@@ -652,11 +651,11 @@ class GetSavedStarGiftsQuery final : public Td::ResultHandler {
 };
 
 class GetSavedStarGiftQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::chatReceivedGift>> promise_;
+  Promise<td_api::object_ptr<td_api::receivedGift>> promise_;
   DialogId dialog_id_;
 
  public:
-  explicit GetSavedStarGiftQuery(Promise<td_api::object_ptr<td_api::chatReceivedGift>> &&promise)
+  explicit GetSavedStarGiftQuery(Promise<td_api::object_ptr<td_api::receivedGift>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -686,7 +685,7 @@ class GetSavedStarGiftQuery final : public Td::ResultHandler {
         LOG(ERROR) << "Receive invalid user gift";
         continue;
       }
-      return promise_.set_value(user_gift.get_user_gift_object(td_));
+      return promise_.set_value(user_gift.get_received_gift_object(td_));
     }
     promise_.set_error(Status::Error(400, "Gift not found"));
   }
@@ -909,7 +908,7 @@ void StarGiftManager::transfer_gift(UserId user_id, MessageId message_id, UserId
 }
 
 void StarGiftManager::get_saved_star_gifts(UserId user_id, const string &offset, int32 limit,
-                                           Promise<td_api::object_ptr<td_api::chatReceivedGifts>> &&promise) {
+                                           Promise<td_api::object_ptr<td_api::receivedGifts>> &&promise) {
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(DialogId(user_id), false, AccessRights::Read,
                                                                         "get_saved_star_gifts"));
   if (limit < 0) {
@@ -919,7 +918,7 @@ void StarGiftManager::get_saved_star_gifts(UserId user_id, const string &offset,
 }
 
 void StarGiftManager::get_saved_star_gift(StarGiftId star_gift_id,
-                                          Promise<td_api::object_ptr<td_api::chatReceivedGift>> &&promise) {
+                                          Promise<td_api::object_ptr<td_api::receivedGift>> &&promise) {
   if (!star_gift_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Invalid gift identifier specified"));
   }
