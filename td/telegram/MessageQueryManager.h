@@ -84,6 +84,10 @@ class MessageQueryManager final : public Actor {
                                   DialogId dialog_id, MessageId message_id, DialogId expected_dialog_id,
                                   MessageId expected_message_id, Promise<MessageThreadInfo> promise);
 
+  void block_message_sender_from_replies_on_server(MessageId message_id, bool need_delete_message,
+                                                   bool need_delete_all_messages, bool report_spam, uint64 log_event_id,
+                                                   Promise<Unit> &&promise);
+
   void delete_all_call_messages_on_server(bool revoke, uint64 log_event_id, Promise<Unit> &&promise);
 
   void delete_all_channel_messages_by_sender_on_server(ChannelId channel_id, DialogId sender_dialog_id,
@@ -125,6 +129,7 @@ class MessageQueryManager final : public Actor {
   void on_binlog_events(vector<BinlogEvent> &&events);
 
  private:
+  class BlockMessageSenderFromRepliesOnServerLogEvent;
   class DeleteAllCallMessagesOnServerLogEvent;
   class DeleteAllChannelMessagesFromSenderOnServerLogEvent;
   class DeleteDialogHistoryOnServerLogEvent;
@@ -152,6 +157,11 @@ class MessageQueryManager final : public Actor {
                                        MessageId expected_message_id, Promise<MessageThreadInfo> promise);
 
   void erase_delete_messages_log_event(uint64 log_event_id);
+
+  static uint64 save_block_message_sender_from_replies_on_server_log_event(MessageId message_id,
+                                                                           bool need_delete_message,
+                                                                           bool need_delete_all_messages,
+                                                                           bool report_spam);
 
   static uint64 save_delete_all_call_messages_on_server_log_event(bool revoke);
 

@@ -101,6 +101,7 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
       case LogEvent::HandlerType::ToggleDialogViewAsMessagesOnServer:
         events.to_dialog_manager.push_back(event.clone());
         break;
+      case LogEvent::HandlerType::BlockMessageSenderFromRepliesOnServer:
       case LogEvent::HandlerType::DeleteAllCallMessagesOnServer:
       case LogEvent::HandlerType::DeleteAllChannelMessagesFromSenderOnServer:
       case LogEvent::HandlerType::DeleteDialogHistoryOnServer:
@@ -128,7 +129,6 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
       case LogEvent::HandlerType::ReadHistoryInSecretChat:
       case LogEvent::HandlerType::SetDialogFolderIdOnServer:
       case LogEvent::HandlerType::ReadMessageThreadHistoryOnServer:
-      case LogEvent::HandlerType::BlockMessageSenderFromRepliesOnServer:
       case LogEvent::HandlerType::SendQuickReplyShortcutMessages:
         events.to_messages_manager.push_back(event.clone());
         break;

@@ -391,6 +391,44 @@ class GetDiscussionMessageQuery final : public Td::ResultHandler {
   }
 };
 
+class BlockFromRepliesQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit BlockFromRepliesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(MessageId message_id, bool need_delete_message, bool need_delete_all_messages, bool report_spam) {
+    int32 flags = 0;
+    if (need_delete_message) {
+      flags |= telegram_api::contacts_blockFromReplies::DELETE_MESSAGE_MASK;
+    }
+    if (need_delete_all_messages) {
+      flags |= telegram_api::contacts_blockFromReplies::DELETE_HISTORY_MASK;
+    }
+    if (report_spam) {
+      flags |= telegram_api::contacts_blockFromReplies::REPORT_SPAM_MASK;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::contacts_blockFromReplies(
+        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, message_id.get_server_message_id().get())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::contacts_blockFromReplies>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for BlockFromRepliesQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class DeletePhoneCallHistoryQuery final : public Td::ResultHandler {
   Promise<AffectedHistory> promise_;
 
@@ -1413,6 +1451,58 @@ void MessageQueryManager::process_discussion_message_impl(
   promise.set_value(std::move(message_thread_info));
 }
 
+class MessageQueryManager::BlockMessageSenderFromRepliesOnServerLogEvent {
+ public:
+  MessageId message_id_;
+  bool delete_message_;
+  bool delete_all_messages_;
+  bool report_spam_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(delete_message_);
+    STORE_FLAG(delete_all_messages_);
+    STORE_FLAG(report_spam_);
+    END_STORE_FLAGS();
+
+    td::store(message_id_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(delete_message_);
+    PARSE_FLAG(delete_all_messages_);
+    PARSE_FLAG(report_spam_);
+    END_PARSE_FLAGS();
+
+    td::parse(message_id_, parser);
+  }
+};
+
+uint64 MessageQueryManager::save_block_message_sender_from_replies_on_server_log_event(MessageId message_id,
+                                                                                       bool need_delete_message,
+                                                                                       bool need_delete_all_messages,
+                                                                                       bool report_spam) {
+  BlockMessageSenderFromRepliesOnServerLogEvent log_event{message_id, need_delete_message, need_delete_all_messages,
+                                                          report_spam};
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::BlockMessageSenderFromRepliesOnServer,
+                    get_log_event_storer(log_event));
+}
+
+void MessageQueryManager::block_message_sender_from_replies_on_server(MessageId message_id, bool need_delete_message,
+                                                                      bool need_delete_all_messages, bool report_spam,
+                                                                      uint64 log_event_id, Promise<Unit> &&promise) {
+  if (log_event_id == 0) {
+    log_event_id = save_block_message_sender_from_replies_on_server_log_event(message_id, need_delete_message,
+                                                                              need_delete_all_messages, report_spam);
+  }
+
+  td_->create_handler<BlockFromRepliesQuery>(get_erase_log_event_promise(log_event_id, std::move(promise)))
+      ->send(message_id, need_delete_message, need_delete_all_messages, report_spam);
+}
+
 class MessageQueryManager::DeleteAllCallMessagesOnServerLogEvent {
  public:
   bool revoke_;
@@ -2016,6 +2106,15 @@ void MessageQueryManager::on_binlog_events(vector<BinlogEvent> &&events) {
   for (auto &event : events) {
     CHECK(event.id_ != 0);
     switch (event.type_) {
+      case LogEvent::HandlerType::BlockMessageSenderFromRepliesOnServer: {
+        BlockMessageSenderFromRepliesOnServerLogEvent log_event;
+        log_event_parse(log_event, event.get_data()).ensure();
+
+        block_message_sender_from_replies_on_server(log_event.message_id_, log_event.delete_message_,
+                                                    log_event.delete_all_messages_, log_event.report_spam_, event.id_,
+                                                    Auto());
+        break;
+      }
       case LogEvent::HandlerType::DeleteAllCallMessagesOnServer: {
         DeleteAllCallMessagesOnServerLogEvent log_event;
         log_event_parse(log_event, event.get_data()).ensure();

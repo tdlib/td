@@ -1559,7 +1559,6 @@ class MessagesManager final : public Actor {
     }
   };
 
-  class BlockMessageSenderFromRepliesOnServerLogEvent;
   class DeleteMessageLogEvent;
   class ForwardMessagesLogEvent;
   class GetChannelDifferenceLogEvent;
@@ -1970,10 +1969,6 @@ class MessagesManager final : public Actor {
   void delete_all_dialog_messages(Dialog *d, bool remove_from_dialog_list, bool is_permanently_deleted);
 
   void delete_sent_message_on_server(DialogId dialog_id, MessageId message_id, MessageId old_message_id);
-
-  void block_message_sender_from_replies_on_server(MessageId message_id, bool need_delete_message,
-                                                   bool need_delete_all_messages, bool report_spam, uint64 log_event_id,
-                                                   Promise<Unit> &&promise);
 
   static vector<MessageId> find_dialog_messages(const Dialog *d, const std::function<bool(const Message *)> &condition);
 
@@ -3066,11 +3061,6 @@ class MessagesManager final : public Actor {
   void add_message_dependencies(Dependencies &dependencies, const Message *m) const;
 
   static void save_send_message_log_event(DialogId dialog_id, const Message *m);
-
-  static uint64 save_block_message_sender_from_replies_on_server_log_event(MessageId message_id,
-                                                                           bool need_delete_message,
-                                                                           bool need_delete_all_messages,
-                                                                           bool report_spam);
 
   static uint64 save_reget_dialog_log_event(DialogId dialog_id);
 
