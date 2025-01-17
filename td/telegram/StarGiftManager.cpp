@@ -729,8 +729,7 @@ StarGiftManager::StarGiftManager(Td *td, ActorShared<> parent) : td_(td), parent
 
 StarGiftManager::~StarGiftManager() {
   Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), gift_full_message_ids_,
-                                              gift_full_message_ids_by_id_, being_reloaded_gift_messages_,
-                                              user_gift_infos_);
+                                              gift_full_message_ids_by_id_, being_reloaded_gift_messages_);
 }
 
 void StarGiftManager::start_up() {
@@ -769,13 +768,6 @@ void StarGiftManager::on_get_star_gift(const StarGift &star_gift, bool from_serv
     return;
   }
   gift_prices_[star_gift.get_id()] = {star_gift.get_star_count(), star_gift.get_upgrade_star_count()};
-}
-
-void StarGiftManager::on_get_user_star_gift(MessageFullId message_full_id, bool can_upgrade, int64 upgrade_star_count) {
-  UserStarGiftInfo info;
-  info.can_upgrade_ = can_upgrade;
-  info.upgrade_star_count_ = upgrade_star_count;
-  user_gift_infos_.set(message_full_id, info);
 }
 
 void StarGiftManager::send_gift(int64 gift_id, UserId user_id, td_api::object_ptr<td_api::formattedText> text,
@@ -855,16 +847,6 @@ void StarGiftManager::upgrade_gift(UserId user_id, MessageId message_id, bool ke
   }
   auto message_full_id = MessageFullId{DialogId(user_id), message_id};
   auto star_count = td_->messages_manager_->get_message_gift_upgrade_star_count(message_full_id);
-  if (star_count < 0) {
-    if (user_gift_infos_.count(message_full_id) == 0) {
-      return promise.set_error(Status::Error(400, "Gift not found"));
-    }
-    auto info = user_gift_infos_.get(message_full_id);
-    if (!info.can_upgrade_) {
-      return promise.set_error(Status::Error(400, "Gift can't be upgraded"));
-    }
-    star_count = info.upgrade_star_count_;
-  }
   if (star_count != 0) {
     if (!td_->star_manager_->has_owned_star_count(star_count)) {
       return promise.set_error(Status::Error(400, "Have not enough Telegram Stars"));

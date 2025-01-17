@@ -8,6 +8,7 @@
 
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
+#include "td/telegram/StarGiftId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/UserId.h"
 
@@ -39,8 +40,6 @@ class StarGiftManager final : public Actor {
   void get_gift_payment_options(Promise<td_api::object_ptr<td_api::gifts>> &&promise);
 
   void on_get_star_gift(const StarGift &star_gift, bool from_server);
-
-  void on_get_user_star_gift(MessageFullId message_full_id, bool can_upgrade, int64 upgrade_star_count);
 
   void send_gift(int64 gift_id, UserId user_id, td_api::object_ptr<td_api::formattedText> text, bool is_private,
                  bool pay_for_upgrade, Promise<Unit> &&promise);
@@ -93,12 +92,6 @@ class StarGiftManager final : public Actor {
   WaitFreeHashMap<int64, MessageFullId> gift_full_message_ids_by_id_;
   FlatHashSet<MessageFullId, MessageFullIdHash> being_reloaded_gift_messages_;
   MultiTimeout update_gift_message_timeout_{"UpdateGiftMessageTimeout"};
-
-  struct UserStarGiftInfo {
-    bool can_upgrade_ = false;
-    int64 upgrade_star_count_ = 0;
-  };
-  WaitFreeHashMap<MessageFullId, UserStarGiftInfo, MessageFullIdHash> user_gift_infos_;
 };
 
 }  // namespace td
