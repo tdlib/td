@@ -35551,11 +35551,12 @@ void MessagesManager::stop_poll(MessageFullId message_full_id, td_api::object_pt
 
 void MessagesManager::finish_gift_upgrade(MessageFullId message_full_id,
                                           Promise<td_api::object_ptr<td_api::upgradeGiftResult>> &&promise) {
-  auto m = get_message_force(message_full_id, "stop_poll");
+  auto m = get_message_force(message_full_id, "finish_gift_upgrade");
   if (m == nullptr || m->content->get_type() != MessageContentType::StarGiftUnique) {
     return promise.set_error(Status::Error(500, "Gift not found"));
   }
-  promise.set_value(get_message_content_upgrade_gift_result_object(m->content.get(), td_));
+  promise.set_value(get_message_content_upgrade_gift_result_object(m->content.get(), td_,
+                                                                   message_full_id.get_dialog_id(), m->message_id));
 }
 
 Result<MessagesManager::InvoiceMessageInfo> MessagesManager::get_invoice_message_info(MessageFullId message_full_id) {

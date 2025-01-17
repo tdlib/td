@@ -1089,11 +1089,12 @@ upgradedGift id:int64 title:string name:string number:int32 total_upgraded_count
 
 //@description Contains result of gift upgrading
 //@gift The upgraded gift
+//@received_gift_id Unique identifier of the received gift for the current user
 //@is_saved True, if the gift is displayed on the user's profile page
 //@can_be_transferred True, if the gift can be transferred to another user
 //@transfer_star_count Number of Telegram Stars that must be paid to transfer the upgraded gift
 //@export_date Point in time (Unix timestamp) when the gift can be transferred to TON blockchain as an NFT
-upgradeGiftResult gift:upgradedGift is_saved:Bool can_be_transferred:Bool transfer_star_count:int53 export_date:int32 = UpgradeGiftResult;
+upgradeGiftResult gift:upgradedGift received_gift_id:string is_saved:Bool can_be_transferred:Bool transfer_star_count:int53 export_date:int32 = UpgradeGiftResult;
 
 
 //@class SentGift @description Represents a gift received by a user

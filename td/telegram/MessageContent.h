@@ -276,7 +276,7 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(const Mess
                                                                       bool disable_web_page_preview);
 
 td_api::object_ptr<td_api::upgradeGiftResult> get_message_content_upgrade_gift_result_object(
-    const MessageContent *content, Td *td);
+    const MessageContent *content, Td *td, DialogId dialog_id, MessageId message_id);
 
 FormattedText *get_message_content_text_mutable(MessageContent *content);
 

@@ -8689,11 +8689,18 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(const Mess
 }
 
 td_api::object_ptr<td_api::upgradeGiftResult> get_message_content_upgrade_gift_result_object(
-    const MessageContent *content, Td *td) {
+    const MessageContent *content, Td *td, DialogId dialog_id, MessageId message_id) {
   switch (content->get_type()) {
     case MessageContentType::StarGiftUnique: {
       const auto *m = static_cast<const MessageStarGiftUnique *>(content);
-      return td_api::make_object<td_api::upgradeGiftResult>(m->star_gift.get_upgraded_gift_object(td), m->is_saved,
+      StarGiftId star_gift_id;
+      if (m->owner_dialog_id != DialogId()) {
+        star_gift_id = StarGiftId(m->owner_dialog_id, m->saved_id);
+      } else if (dialog_id.get_type() == DialogType::User && message_id.is_valid() && message_id.is_server()) {
+        star_gift_id = StarGiftId(message_id.get_server_message_id());
+      }
+      return td_api::make_object<td_api::upgradeGiftResult>(m->star_gift.get_upgraded_gift_object(td),
+                                                            star_gift_id.get_star_gift_id(), m->is_saved,
                                                             m->can_transfer, m->transfer_star_count, m->can_export_at);
     }
     default:
