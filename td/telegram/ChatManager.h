@@ -162,7 +162,7 @@ class ChatManager final : public Actor {
   void on_update_channel_sticker_set(ChannelId channel_id, StickerSetId sticker_set_id);
   void on_update_channel_emoji_sticker_set(ChannelId channel_id, StickerSetId sticker_set_id);
   void on_update_channel_unrestrict_boost_count(ChannelId channel_id, int32 unrestrict_boost_count);
-  void on_update_channel_gift_count(ChannelId channel_id, int32 gift_count);
+  void on_update_channel_gift_count(ChannelId channel_id, int32 gift_count, bool is_added);
   void on_update_channel_linked_channel_id(ChannelId channel_id, ChannelId group_channel_id);
   void on_update_channel_location(ChannelId channel_id, const DialogLocation &location);
   void on_update_channel_slow_mode_delay(ChannelId channel_id, int32 slow_mode_delay, Promise<Unit> &&promise);

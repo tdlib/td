@@ -224,6 +224,8 @@ class SaveStarGiftQuery final : public Td::ResultHandler {
 
     if (dialog_id_ == td_->dialog_manager_->get_my_dialog_id()) {
       td_->user_manager_->on_update_my_gift_count(is_saved_ ? 1 : -1);
+    } else if (dialog_id_.get_type() == DialogType::Channel) {
+      td_->chat_manager_->on_update_channel_gift_count(dialog_id_.get_channel_id(), is_saved_ ? 1 : -1, true);
     }
     promise_.set_value(Unit());
   }

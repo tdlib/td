@@ -7350,11 +7350,17 @@ void ChatManager::on_update_channel_unrestrict_boost_count(ChannelId channel_id,
   }
 }
 
-void ChatManager::on_update_channel_gift_count(ChannelId channel_id, int32 gift_count) {
+void ChatManager::on_update_channel_gift_count(ChannelId channel_id, int32 gift_count, bool is_added) {
   CHECK(channel_id.is_valid());
   auto channel_full = get_channel_full_force(channel_id, true, "on_update_channel_gift_count");
   if (channel_full == nullptr) {
     return;
+  }
+  if (is_added) {
+    gift_count = max(0, channel_full->gift_count + gift_count);
+  } else if (gift_count < 0) {
+    LOG(ERROR) << "Receive " << gift_count << " as gift count with " << channel_id;
+    gift_count = 0;
   }
   if (channel_full->gift_count != gift_count) {
     channel_full->gift_count = gift_count;
