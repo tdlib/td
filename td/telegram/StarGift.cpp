@@ -7,6 +7,7 @@
 #include "td/telegram/StarGift.h"
 
 #include "td/telegram/Dependencies.h"
+#include "td/telegram/MessageSender.h"
 #include "td/telegram/StarManager.h"
 #include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickersManager.h"
@@ -31,9 +32,8 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&st
     title_ = std::move(star_gift->title_);
     slug_ = std::move(star_gift->slug_);
     num_ = star_gift->num_;
-    DialogId owner_dialog_id(star_gift->owner_id_);
-    if (owner_dialog_id.get_type() == DialogType::User) {
-      owner_user_id_ = owner_dialog_id.get_user_id();
+    if (star_gift->owner_id_ != nullptr) {
+      owner_dialog_id_ = DialogId(star_gift->owner_id_);
     }
     owner_name_ = std::move(star_gift->owner_name_);
     unique_availability_issued_ = star_gift->availability_issued_;
@@ -143,8 +143,8 @@ td_api::object_ptr<td_api::upgradedGift> StarGift::get_upgraded_gift_object(Td *
   CHECK(is_unique_);
   return td_api::make_object<td_api::upgradedGift>(
       id_, title_, slug_, num_, unique_availability_issued_, unique_availability_total_,
-      td->user_manager_->get_user_id_object(owner_user_id_, "upgradedGift"), owner_name_,
-      model_.get_upgraded_gift_model_object(td), pattern_.get_upgraded_gift_symbol_object(td),
+      !owner_dialog_id_.is_valid() ? nullptr : get_message_sender_object(td, owner_dialog_id_, "upgradedGift"),
+      owner_name_, model_.get_upgraded_gift_model_object(td), pattern_.get_upgraded_gift_symbol_object(td),
       backdrop_.get_upgraded_gift_backdrop_object(), original_details_.get_upgraded_gift_original_details_object(td));
 }
 
@@ -157,7 +157,7 @@ td_api::object_ptr<td_api::SentGift> StarGift::get_sent_gift_object(Td *td) cons
 }
 
 void StarGift::add_dependencies(Dependencies &dependencies) const {
-  dependencies.add(owner_user_id_);
+  dependencies.add_message_sender_dependencies(owner_dialog_id_);
   original_details_.add_dependencies(dependencies);
 }
 
@@ -169,7 +169,7 @@ bool operator==(const StarGift &lhs, const StarGift &rhs) {
          lhs.last_sale_date_ == rhs.last_sale_date_ && lhs.is_for_birthday_ == rhs.is_for_birthday_ &&
          lhs.is_unique_ == rhs.is_unique_ && lhs.model_ == rhs.model_ && lhs.pattern_ == rhs.pattern_ &&
          lhs.backdrop_ == rhs.backdrop_ && lhs.original_details_ == rhs.original_details_ && lhs.title_ == rhs.title_ &&
-         lhs.slug_ == rhs.slug_ && lhs.owner_user_id_ == rhs.owner_user_id_ && lhs.owner_name_ == rhs.owner_name_ &&
+         lhs.slug_ == rhs.slug_ && lhs.owner_dialog_id_ == rhs.owner_dialog_id_ && lhs.owner_name_ == rhs.owner_name_ &&
          lhs.num_ == rhs.num_ && lhs.unique_availability_issued_ == rhs.unique_availability_issued_ &&
          lhs.unique_availability_total_ == rhs.unique_availability_total_;
 }

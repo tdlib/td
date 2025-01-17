@@ -6,11 +6,11 @@
 //
 #pragma once
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/StarGiftAttribute.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
-#include "td/telegram/UserId.h"
 
 #include "td/utils/common.h"
 #include "td/utils/StringBuilder.h"
@@ -40,7 +40,7 @@ class StarGift {
   StarGiftAttributeOriginalDetails original_details_;
   string title_;
   string slug_;
-  UserId owner_user_id_;
+  DialogId owner_dialog_id_;
   string owner_name_;
   int32 num_ = 0;
   int32 unique_availability_issued_ = 0;
