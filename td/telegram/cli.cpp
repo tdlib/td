@@ -2868,8 +2868,9 @@ class CliClient final : public Actor {
       UserId user_id;
       MessageId message_id;
       bool keep_original_details;
-      get_args(args, user_id, message_id, keep_original_details);
-      send_request(td_api::make_object<td_api::upgradeGift>(user_id, message_id, keep_original_details));
+      int64 star_count;
+      get_args(args, user_id, message_id, keep_original_details, star_count);
+      send_request(td_api::make_object<td_api::upgradeGift>(user_id, message_id, keep_original_details, star_count));
     } else if (op == "tg") {
       UserId sender_user_id;
       MessageId message_id;

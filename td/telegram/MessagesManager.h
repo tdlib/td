@@ -937,8 +937,6 @@ class MessagesManager final : public Actor {
 
   int64 get_message_random_id(MessageFullId message_full_id);
 
-  int64 get_message_gift_upgrade_star_count(MessageFullId message_full_id);
-
   void finish_gift_upgrade(MessageFullId message_full_id,
                            Promise<td_api::object_ptr<td_api::upgradeGiftResult>> &&promise);
 
