@@ -28,6 +28,7 @@
 namespace td {
 
 struct BinlogEvent;
+struct FormattedText;
 struct MessageSearchOffset;
 class Td;
 
@@ -41,6 +42,9 @@ class MessageQueryManager final : public Actor {
                                                  bool get_affected_messages, Promise<Unit> &&promise);
 
   void report_message_delivery(MessageFullId message_full_id, int32 until_date, bool from_push);
+
+  void set_message_fact_check(MessageFullId message_full_id, const FormattedText &fact_check_text,
+                              Promise<Unit> &&promise);
 
   void search_messages(DialogListId dialog_list_id, bool ignore_folder_id, const string &query,
                        const string &offset_str, int32 limit, MessageSearchFilter filter,

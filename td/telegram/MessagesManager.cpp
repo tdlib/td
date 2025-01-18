@@ -874,49 +874,6 @@ class GetFactCheckQuery final : public Td::ResultHandler {
   }
 };
 
-class EditMessageFactCheckQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  DialogId dialog_id_;
-
- public:
-  explicit EditMessageFactCheckQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(DialogId dialog_id, MessageId message_id, const FormattedText &text) {
-    dialog_id_ = dialog_id;
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
-    CHECK(input_peer != nullptr);
-    auto server_message_id = message_id.get_server_message_id().get();
-    if (text.text.empty()) {
-      send_query(G()->net_query_creator().create(
-          telegram_api::messages_deleteFactCheck(std::move(input_peer), server_message_id)));
-    } else {
-      send_query(G()->net_query_creator().create(telegram_api::messages_editFactCheck(
-          std::move(input_peer), server_message_id,
-          get_input_text_with_entities(td_->user_manager_.get(), text, "messages_editFactCheck"))));
-    }
-  }
-
-  void on_result(BufferSlice packet) final {
-    static_assert(std::is_same<telegram_api::messages_deleteFactCheck::ReturnType,
-                               telegram_api::messages_editFactCheck::ReturnType>::value,
-                  "");
-    auto result_ptr = fetch_result<telegram_api::messages_editFactCheck>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for EditMessageFactCheckQuery: " << to_string(ptr);
-    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
-  }
-
-  void on_error(Status status) final {
-    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "EditMessageFactCheckQuery");
-    promise_.set_error(std::move(status));
-  }
-};
-
 class GetDialogMessageByDateQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::message>> promise_;
   DialogId dialog_id_;
@@ -6784,11 +6741,9 @@ void MessagesManager::fix_dialog_action_bar(const Dialog *d, DialogActionBar *ac
 
 void MessagesManager::fix_dialog_business_bot_manage_bar(DialogId dialog_id,
                                                          BusinessBotManageBar *business_bot_manage_bar) {
-  if (business_bot_manage_bar == nullptr) {
-    return;
+  if (business_bot_manage_bar != nullptr) {
+    business_bot_manage_bar->fix(dialog_id);
   }
-
-  business_bot_manage_bar->fix(dialog_id);
 }
 
 Result<string> MessagesManager::get_login_button_url(MessageFullId message_full_id, int64 button_id) {
@@ -23510,7 +23465,7 @@ void MessagesManager::set_message_fact_check(MessageFullId message_full_id,
   TRY_RESULT_PROMISE(promise, fact_check_text,
                      get_formatted_text(td_, dialog_id, std::move(text), false, true, true, false));
 
-  td_->create_handler<EditMessageFactCheckQuery>(std::move(promise))->send(dialog_id, m->message_id, fact_check_text);
+  td_->message_query_manager_->set_message_fact_check(message_full_id, fact_check_text, std::move(promise));
 }
 
 bool MessagesManager::is_discussion_message(DialogId dialog_id, const Message *m) const {

@@ -19,6 +19,7 @@
 #include "td/telegram/HashtagHints.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/logevent/LogEventHelper.h"
+#include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageSearchOffset.h"
 #include "td/telegram/MessagesInfo.h"
 #include "td/telegram/MessagesManager.h"
@@ -81,6 +82,51 @@ class ReportMessageDeliveryQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ReportMessageDeliveryQuery");
+  }
+};
+
+class EditMessageFactCheckQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit EditMessageFactCheckQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, MessageId message_id, const FormattedText &text) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    CHECK(message_id.is_valid());
+    CHECK(message_id.is_server());
+    auto server_message_id = message_id.get_server_message_id().get();
+    if (text.text.empty()) {
+      send_query(G()->net_query_creator().create(
+          telegram_api::messages_deleteFactCheck(std::move(input_peer), server_message_id)));
+    } else {
+      send_query(G()->net_query_creator().create(telegram_api::messages_editFactCheck(
+          std::move(input_peer), server_message_id,
+          get_input_text_with_entities(td_->user_manager_.get(), text, "messages_editFactCheck"))));
+    }
+  }
+
+  void on_result(BufferSlice packet) final {
+    static_assert(std::is_same<telegram_api::messages_deleteFactCheck::ReturnType,
+                               telegram_api::messages_editFactCheck::ReturnType>::value,
+                  "");
+    auto result_ptr = fetch_result<telegram_api::messages_editFactCheck>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for EditMessageFactCheckQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "EditMessageFactCheckQuery");
+    promise_.set_error(std::move(status));
   }
 };
 
@@ -1078,6 +1124,12 @@ void MessageQueryManager::report_message_delivery(MessageFullId message_full_id,
     return;
   }
   td_->create_handler<ReportMessageDeliveryQuery>()->send(message_full_id, from_push);
+}
+
+void MessageQueryManager::set_message_fact_check(MessageFullId message_full_id, const FormattedText &fact_check_text,
+                                                 Promise<Unit> &&promise) {
+  td_->create_handler<EditMessageFactCheckQuery>(std::move(promise))
+      ->send(message_full_id.get_dialog_id(), message_full_id.get_message_id(), fact_check_text);
 }
 
 void MessageQueryManager::search_messages(DialogListId dialog_list_id, bool ignore_folder_id, const string &query,
