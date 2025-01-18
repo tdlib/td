@@ -846,7 +846,14 @@ void StarGiftManager::convert_gift(StarGiftId star_gift_id, Promise<Unit> &&prom
   if (star_gift_id.get_input_saved_star_gift(td_) == nullptr) {
     return promise.set_error(Status::Error(400, "Invalid gift identifier specified"));
   }
-  td_->create_handler<ConvertStarGiftQuery>(std::move(promise))->send(star_gift_id);
+  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id = star_gift_id.get_dialog_id(td_),
+                                               promise = std::move(promise)](Result<Unit> &&result) mutable {
+    if (result.is_error()) {
+      return promise.set_error(result.move_as_error());
+    }
+    send_closure(actor_id, &StarGiftManager::on_dialog_gift_deleted, dialog_id, std::move(promise));
+  });
+  td_->create_handler<ConvertStarGiftQuery>(std::move(query_promise))->send(star_gift_id);
 }
 
 void StarGiftManager::save_gift(StarGiftId star_gift_id, bool is_saved, Promise<Unit> &&promise) {
@@ -901,14 +908,13 @@ void StarGiftManager::transfer_gift(StarGiftId star_gift_id, DialogId receiver_d
   if (star_count < 0) {
     return promise.set_error(Status::Error(400, "Invalid amount of Telegram Stars specified"));
   }
-  auto query_promise =
-      PromiseCreator::lambda([actor_id = actor_id(this), sender_dialog_id = star_gift_id.get_dialog_id(td_),
-                              promise = std::move(promise)](Result<Unit> &&result) mutable {
-        if (result.is_error()) {
-          return promise.set_error(result.move_as_error());
-        }
-        send_closure(actor_id, &StarGiftManager::on_gift_transferred, sender_dialog_id, std::move(promise));
-      });
+  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id = star_gift_id.get_dialog_id(td_),
+                                               promise = std::move(promise)](Result<Unit> &&result) mutable {
+    if (result.is_error()) {
+      return promise.set_error(result.move_as_error());
+    }
+    send_closure(actor_id, &StarGiftManager::on_dialog_gift_deleted, dialog_id, std::move(promise));
+  });
   if (star_count != 0) {
     if (!td_->star_manager_->has_owned_star_count(star_count)) {
       return query_promise.set_error(Status::Error(400, "Have not enough Telegram Stars"));
@@ -926,9 +932,9 @@ void StarGiftManager::transfer_gift(StarGiftId star_gift_id, DialogId receiver_d
   }
 }
 
-void StarGiftManager::on_gift_transferred(DialogId sender_dialog_id, Promise<Unit> &&promise) {
+void StarGiftManager::on_dialog_gift_deleted(DialogId dialog_id, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
-  td_->dialog_manager_->reload_dialog_info_full(sender_dialog_id, "on_gift_transferred");
+  td_->dialog_manager_->reload_dialog_info_full(dialog_id, "on_dialog_gift_deleted");
   promise.set_value(Unit());
 }
 
