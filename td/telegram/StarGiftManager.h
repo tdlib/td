@@ -81,6 +81,8 @@ class StarGiftManager final : public Actor {
 
   void on_online();
 
+  void on_gift_transferred(DialogId sender_dialog_id, Promise<Unit> &&promise);
+
   Td *td_;
   ActorShared<> parent_;
 

@@ -901,21 +901,35 @@ void StarGiftManager::transfer_gift(StarGiftId star_gift_id, DialogId receiver_d
   if (star_count < 0) {
     return promise.set_error(Status::Error(400, "Invalid amount of Telegram Stars specified"));
   }
+  auto query_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), sender_dialog_id = star_gift_id.get_dialog_id(td_),
+                              promise = std::move(promise)](Result<Unit> &&result) mutable {
+        if (result.is_error()) {
+          return promise.set_error(result.move_as_error());
+        }
+        send_closure(actor_id, &StarGiftManager::on_gift_transferred, sender_dialog_id, std::move(promise));
+      });
   if (star_count != 0) {
     if (!td_->star_manager_->has_owned_star_count(star_count)) {
-      return promise.set_error(Status::Error(400, "Have not enough Telegram Stars"));
+      return query_promise.set_error(Status::Error(400, "Have not enough Telegram Stars"));
     }
     auto input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGiftTransfer>(
         std::move(input_saved_star_gift), td_->dialog_manager_->get_input_peer(receiver_dialog_id, AccessRights::Read));
     auto transfer_input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGiftTransfer>(
         star_gift_id.get_input_saved_star_gift(td_),
         td_->dialog_manager_->get_input_peer(receiver_dialog_id, AccessRights::Read));
-    td_->create_handler<GetGiftTransferPaymentFormQuery>(std::move(promise))
+    td_->create_handler<GetGiftTransferPaymentFormQuery>(std::move(query_promise))
         ->send(std::move(input_invoice), std::move(transfer_input_invoice), star_count);
   } else {
-    td_->create_handler<TransferStarGiftQuery>(std::move(promise))
+    td_->create_handler<TransferStarGiftQuery>(std::move(query_promise))
         ->send(star_gift_id, td_->dialog_manager_->get_input_peer(receiver_dialog_id, AccessRights::Read));
   }
+}
+
+void StarGiftManager::on_gift_transferred(DialogId sender_dialog_id, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  td_->dialog_manager_->reload_dialog_info_full(sender_dialog_id, "on_gift_transferred");
+  promise.set_value(Unit());
 }
 
 void StarGiftManager::get_saved_star_gifts(DialogId dialog_id, const string &offset, int32 limit,
