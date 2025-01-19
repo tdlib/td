@@ -85,6 +85,42 @@ class ReportMessageDeliveryQuery final : public Td::ResultHandler {
   }
 };
 
+class GetFactCheckQuery final : public Td::ResultHandler {
+  Promise<vector<telegram_api::object_ptr<telegram_api::factCheck>>> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit GetFactCheckQuery(Promise<vector<telegram_api::object_ptr<telegram_api::factCheck>>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, const vector<MessageId> &message_ids) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return promise_.set_error(Status::Error(400, "Can't access the chat"));
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_getFactCheck(std::move(input_peer), MessageId::get_server_message_ids(message_ids))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getFactCheck>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetFactCheckQuery: " << to_string(ptr);
+    promise_.set_value(std::move(ptr));
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetFactCheckQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class EditMessageFactCheckQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -1124,6 +1160,12 @@ void MessageQueryManager::report_message_delivery(MessageFullId message_full_id,
     return;
   }
   td_->create_handler<ReportMessageDeliveryQuery>()->send(message_full_id, from_push);
+}
+
+void MessageQueryManager::get_message_fact_checks(
+    DialogId dialog_id, const vector<MessageId> &message_ids,
+    Promise<vector<telegram_api::object_ptr<telegram_api::factCheck>>> &&promise) {
+  td_->create_handler<GetFactCheckQuery>(std::move(promise))->send(dialog_id, message_ids);
 }
 
 void MessageQueryManager::set_message_fact_check(MessageFullId message_full_id, const FormattedText &fact_check_text,

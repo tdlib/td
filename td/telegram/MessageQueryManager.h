@@ -43,6 +43,9 @@ class MessageQueryManager final : public Actor {
 
   void report_message_delivery(MessageFullId message_full_id, int32 until_date, bool from_push);
 
+  void get_message_fact_checks(DialogId dialog_id, const vector<MessageId> &message_ids,
+                               Promise<vector<telegram_api::object_ptr<telegram_api::factCheck>>> &&promise);
+
   void set_message_fact_check(MessageFullId message_full_id, const FormattedText &fact_check_text,
                               Promise<Unit> &&promise);
 

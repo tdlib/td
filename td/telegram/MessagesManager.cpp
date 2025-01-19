@@ -838,42 +838,6 @@ class GetExtendedMediaQuery final : public Td::ResultHandler {
   }
 };
 
-class GetFactCheckQuery final : public Td::ResultHandler {
-  Promise<vector<telegram_api::object_ptr<telegram_api::factCheck>>> promise_;
-  DialogId dialog_id_;
-
- public:
-  explicit GetFactCheckQuery(Promise<vector<telegram_api::object_ptr<telegram_api::factCheck>>> &&promise)
-      : promise_(std::move(promise)) {
-  }
-
-  void send(DialogId dialog_id, vector<MessageId> &&message_ids) {
-    dialog_id_ = dialog_id;
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
-    if (input_peer == nullptr) {
-      return promise_.set_error(Status::Error(400, "Can't access the chat"));
-    }
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_getFactCheck(std::move(input_peer), MessageId::get_server_message_ids(message_ids))));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_getFactCheck>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for GetFactCheckQuery: " << to_string(ptr);
-    promise_.set_value(std::move(ptr));
-  }
-
-  void on_error(Status status) final {
-    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetFactCheckQuery");
-    promise_.set_error(std::move(status));
-  }
-};
-
 class GetDialogMessageByDateQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::message>> promise_;
   DialogId dialog_id_;
@@ -16667,8 +16631,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
           send_closure(actor_id, &MessagesManager::on_get_message_fact_checks, dialog_id, message_ids,
                        std::move(r_fact_checks));
         });
-    td_->create_handler<GetFactCheckQuery>(std::move(promise))
-        ->send(dialog_id, std::move(viewed_fact_check_message_ids));
+    td_->message_query_manager_->get_message_fact_checks(dialog_id, viewed_fact_check_message_ids, std::move(promise));
   }
   if (td_->online_manager_->is_online() && dialog_viewed_messages_.count(dialog_id) != 0) {
     update_viewed_messages_timeout_.add_timeout_in(dialog_id.get(), UPDATE_VIEWED_MESSAGES_PERIOD);
