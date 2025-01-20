@@ -615,13 +615,32 @@ class GetSavedStarGiftsQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, const string &offset, int32 limit) {
+  void send(DialogId dialog_id, bool exclude_unsaved, bool exclude_saved, bool exclude_unlimited, bool exclude_limited,
+            bool exclude_unique, bool sort_by_value, const string &offset, int32 limit) {
     dialog_id_ = dialog_id;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
     int32 flags = 0;
+    if (exclude_unsaved) {
+      flags |= telegram_api::payments_getSavedStarGifts::EXCLUDE_UNSAVED_MASK;
+    }
+    if (exclude_saved) {
+      flags |= telegram_api::payments_getSavedStarGifts::EXCLUDE_SAVED_MASK;
+    }
+    if (exclude_unlimited) {
+      flags |= telegram_api::payments_getSavedStarGifts::EXCLUDE_UNLIMITED_MASK;
+    }
+    if (exclude_limited) {
+      flags |= telegram_api::payments_getSavedStarGifts::EXCLUDE_LIMITED_MASK;
+    }
+    if (exclude_unique) {
+      flags |= telegram_api::payments_getSavedStarGifts::EXCLUDE_UNIQUE_MASK;
+    }
+    if (sort_by_value) {
+      flags |= telegram_api::payments_getSavedStarGifts::SORT_BY_VALUE_MASK;
+    }
     send_query(G()->net_query_creator().create(telegram_api::payments_getSavedStarGifts(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
         false /*ignored*/, std::move(input_peer), offset, limit)));
@@ -938,14 +957,18 @@ void StarGiftManager::on_dialog_gift_deleted(DialogId dialog_id, Promise<Unit> &
   promise.set_value(Unit());
 }
 
-void StarGiftManager::get_saved_star_gifts(DialogId dialog_id, const string &offset, int32 limit,
+void StarGiftManager::get_saved_star_gifts(DialogId dialog_id, bool exclude_unsaved, bool exclude_saved,
+                                           bool exclude_unlimited, bool exclude_limited, bool exclude_unique,
+                                           bool sort_by_value, const string &offset, int32 limit,
                                            Promise<td_api::object_ptr<td_api::receivedGifts>> &&promise) {
   TRY_STATUS_PROMISE(
       promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "get_saved_star_gifts"));
   if (limit < 0) {
     return promise.set_error(Status::Error(400, "Limit must be non-negative"));
   }
-  td_->create_handler<GetSavedStarGiftsQuery>(std::move(promise))->send(dialog_id, offset, limit);
+  td_->create_handler<GetSavedStarGiftsQuery>(std::move(promise))
+      ->send(dialog_id, exclude_unsaved, exclude_saved, exclude_unlimited, exclude_limited, exclude_unique,
+             sort_by_value, offset, limit);
 }
 
 void StarGiftManager::get_saved_star_gift(StarGiftId star_gift_id,

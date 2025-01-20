@@ -7180,7 +7180,10 @@ void Requests::on_request(uint64 id, td_api::getReceivedGifts &request) {
   CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();
   TRY_RESULT_PROMISE(promise, owner_dialog_id, get_message_sender_dialog_id(td_, request.owner_id_, true, false));
-  td_->star_gift_manager_->get_saved_star_gifts(owner_dialog_id, request.offset_, request.limit_, std::move(promise));
+  td_->star_gift_manager_->get_saved_star_gifts(owner_dialog_id, request.exclude_unsaved_, request.exclude_saved_,
+                                                request.exclude_unlimited_, request.exclude_limited_,
+                                                request.exclude_upgraded_, request.sort_by_price_, request.offset_,
+                                                request.limit_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getReceivedGift &request) {

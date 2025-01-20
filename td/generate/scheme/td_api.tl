@@ -11746,9 +11746,15 @@ transferGift received_gift_id:string new_owner_id:MessageSender star_count:int53
 
 //@description Returns gifts received by the given user or chat
 //@owner_id Identifier of the gift receiver
+//@exclude_unsaved Pass True to exclude gifts that aren't saved to the chat's profile page; for administered channels only
+//@exclude_saved Pass True to exclude gifts that are saved to the chat's profile page; for administered channels only
+//@exclude_unlimited Pass True to exclude gifts that can be purchased unlimited number of times; for administered channels only
+//@exclude_limited Pass True to exclude gifts that can be purchased limited number of times; for administered channels only
+//@exclude_upgraded Pass True to exclude upgraded gifts; for administered channels only
+//@sort_by_price Pass True to sort results by gift price instead of send date; for administered channels only
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of gifts to be returned; must be positive and can't be greater than 100. For optimal performance, the number of returned objects is chosen by TDLib and can be smaller than the specified limit
-getReceivedGifts owner_id:MessageSender offset:string limit:int32 = ReceivedGifts;
+getReceivedGifts owner_id:MessageSender exclude_unsaved:Bool exclude_saved:Bool exclude_unlimited:Bool exclude_limited:Bool exclude_upgraded:Bool sort_by_price:Bool offset:string limit:int32 = ReceivedGifts;
 
 //@description Returns information about a received gift @received_gift_id Identifier of the gift
 getReceivedGift received_gift_id:string = ReceivedGift;
