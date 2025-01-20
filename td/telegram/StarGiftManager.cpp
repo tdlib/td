@@ -16,6 +16,7 @@
 #include "td/telegram/MessageQuote.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/OnlineManager.h"
+#include "td/telegram/PasswordManager.h"
 #include "td/telegram/StarGift.h"
 #include "td/telegram/StarGiftAttribute.h"
 #include "td/telegram/StarManager.h"
@@ -765,6 +766,38 @@ class GetUniqueStarGiftQuery final : public Td::ResultHandler {
   }
 };
 
+class GetStarGiftWithdrawalUrlQuery final : public Td::ResultHandler {
+  Promise<string> promise_;
+
+ public:
+  explicit GetStarGiftWithdrawalUrlQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(StarGiftId star_gift_id,
+            telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password) {
+    auto input_gift = star_gift_id.get_input_saved_star_gift(td_);
+    if (input_gift == nullptr) {
+      return on_error(Status::Error(400, "Gift not found"));
+    }
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_getStarGiftWithdrawalUrl(std::move(input_gift), std::move(input_check_password))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getStarGiftWithdrawalUrl>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(std::move(result_ptr.ok_ref()->url_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 StarGiftManager::StarGiftManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   update_gift_message_timeout_.set_callback(on_update_gift_message_timeout_callback);
   update_gift_message_timeout_.set_callback_data(static_cast<void *>(this));
@@ -982,6 +1015,35 @@ void StarGiftManager::get_saved_star_gift(StarGiftId star_gift_id,
 void StarGiftManager::get_upgraded_gift(const string &name,
                                         Promise<td_api::object_ptr<td_api::upgradedGift>> &&promise) {
   td_->create_handler<GetUniqueStarGiftQuery>(std::move(promise))->send(name);
+}
+
+void StarGiftManager::get_star_gift_withdrawal_url(StarGiftId star_gift_id, const string &password,
+                                                   Promise<string> &&promise) {
+  if (!star_gift_id.is_valid()) {
+    return promise.set_error(Status::Error(400, "Invalid gift identifier specified"));
+  }
+  if (password.empty()) {
+    return promise.set_error(Status::Error(400, "PASSWORD_HASH_INVALID"));
+  }
+  send_closure(
+      td_->password_manager_, &PasswordManager::get_input_check_password_srp, password,
+      PromiseCreator::lambda([actor_id = actor_id(this), star_gift_id, promise = std::move(promise)](
+                                 Result<telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP>> result) mutable {
+        if (result.is_error()) {
+          return promise.set_error(result.move_as_error());
+        }
+        send_closure(actor_id, &StarGiftManager::send_get_star_gift_withdrawal_url_query, star_gift_id,
+                     result.move_as_ok(), std::move(promise));
+      }));
+}
+
+void StarGiftManager::send_get_star_gift_withdrawal_url_query(
+    StarGiftId star_gift_id, telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password,
+    Promise<string> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  td_->create_handler<GetStarGiftWithdrawalUrlQuery>(std::move(promise))
+      ->send(star_gift_id, std::move(input_check_password));
 }
 
 void StarGiftManager::register_gift(MessageFullId message_full_id, const char *source) {

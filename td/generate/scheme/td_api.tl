@@ -1072,7 +1072,7 @@ gift id:int64 sticker:sticker star_count:int53 default_sell_star_count:int53 upg
 //@description Contains a list of gifts that can be sent to another user @gifts The list of gifts
 gifts gifts:vector<gift> = Gifts;
 
-//@description Describes an upgraded gift that can be gifted to another user or transferred to TON blockchain as an NFT
+//@description Describes an upgraded gift that can be gifted to another user or transferred to the TON blockchain as an NFT
 //@id Unique identifier of the gift
 //@title The title of the upgraded gift
 //@name Unique name of the upgraded gift that can be used with internalLinkTypeUpgradedGift
@@ -1093,7 +1093,7 @@ upgradedGift id:int64 title:string name:string number:int32 total_upgraded_count
 //@is_saved True, if the gift is displayed on the user's profile page
 //@can_be_transferred True, if the gift can be transferred to another user
 //@transfer_star_count Number of Telegram Stars that must be paid to transfer the upgraded gift
-//@export_date Point in time (Unix timestamp) when the gift can be transferred to TON blockchain as an NFT
+//@export_date Point in time (Unix timestamp) when the gift can be transferred to the TON blockchain as an NFT
 upgradeGiftResult gift:upgradedGift received_gift_id:string is_saved:Bool can_be_transferred:Bool transfer_star_count:int53 export_date:int32 = UpgradeGiftResult;
 
 
@@ -1120,7 +1120,7 @@ sentGiftUpgraded gift:upgradedGift = SentGift;
 //@sell_star_count Number of Telegram Stars that can be claimed by the receiver instead of the regular gift; 0 if the gift can't be sold by the current user
 //@prepaid_upgrade_star_count Number of Telegram Stars that were paid by the sender for the ability to upgrade the gift
 //@transfer_star_count Number of Telegram Stars that must be paid to transfer the upgraded gift; only for the receiver of the gift
-//@export_date Point in time (Unix timestamp) when the upgraded gift can be transferred to TON blockchain as an NFT; 0 if NFT export isn't possible; only for the receiver of the gift
+//@export_date Point in time (Unix timestamp) when the upgraded gift can be transferred to the TON blockchain as an NFT; 0 if NFT export isn't possible; only for the receiver of the gift
 receivedGift received_gift_id:string sender_id:MessageSender text:formattedText is_private:Bool is_saved:Bool can_be_upgraded:Bool can_be_transferred:Bool was_refunded:Bool date:int32 gift:SentGift sell_star_count:int53 prepaid_upgrade_star_count:int53 transfer_star_count:int53 export_date:int32 = ReceivedGift;
 
 //@description Represents a list of gifts received by a chat
@@ -4054,7 +4054,7 @@ messageGift gift:gift sender_id:MessageSender received_gift_id:string text:forma
 //@can_be_transferred True, if the gift can be transferred to another user; only for the receiver of the gift
 //@was_transferred True, if the gift was transferred to another user; only for the receiver of the gift
 //@transfer_star_count Number of Telegram Stars that must be paid to transfer the upgraded gift; only for the receiver of the gift
-//@export_date Point in time (Unix timestamp) when the gift can be transferred to TON blockchain as an NFT; 0 if NFT export isn't possible; only for the receiver of the gift
+//@export_date Point in time (Unix timestamp) when the gift can be transferred to the TON blockchain as an NFT; 0 if NFT export isn't possible; only for the receiver of the gift
 messageUpgradedGift gift:upgradedGift sender_id:MessageSender received_gift_id:string is_upgrade:Bool is_saved:Bool can_be_transferred:Bool was_transferred:Bool transfer_star_count:int53 export_date:int32 = MessageContent;
 
 //@description A gift which purchase, upgrade or transfer were refunded
@@ -11761,6 +11761,11 @@ getReceivedGift received_gift_id:string = ReceivedGift;
 
 //@description Returns information about an upgraded gift by its name @name Unique name of the upgraded gift
 getUpgradedGift name:string = UpgradedGift;
+
+//@description Returns a URL for upgraded gift withdrawal in the TON blockchain as an NFT; requires owner privileges for gifts owned by a chat
+//@received_gift_id Identifier of the gift
+//@password The 2-step verification password of the current user
+getUpgradedGiftWithdrawalUrl received_gift_id:string password:string = HttpUrl;
 
 
 //@description Creates a link for the given invoice; for bots only

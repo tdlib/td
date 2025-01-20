@@ -2890,6 +2890,11 @@ class CliClient final : public Actor {
       string name;
       get_args(args, name);
       send_request(td_api::make_object<td_api::getUpgradedGift>(name));
+    } else if (op == "gupgwu") {
+      string received_gift_id;
+      string password;
+      get_args(args, received_gift_id, password);
+      send_request(td_api::make_object<td_api::getUpgradedGiftWithdrawalUrl>(received_gift_id, password));
     } else if (op == "rsp") {
       UserId user_id;
       string telegram_payment_charge_id;
