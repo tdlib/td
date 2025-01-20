@@ -1050,11 +1050,11 @@ upgradedGiftBackdropColors center_color:int32 edge_color:int32 symbol_color:int3
 upgradedGiftBackdrop name:string colors:upgradedGiftBackdropColors rarity_per_mille:int32 = UpgradedGiftBackdrop;
 
 //@description Describes the original details about the gift
-//@sender_user_id Identifier of the user that sent the gift; 0 if the gift was private
-//@receiver_user_id Identifier of the user that received the gift
+//@sender_id Identifier of the user or the chat that sent the gift; may be null if the gift was private
+//@receiver_id Identifier of the user or the chat that received the gift
 //@text Message added to the gift
 //@date Point in time (Unix timestamp) when the gift was sent
-upgradedGiftOriginalDetails sender_user_id:int53 receiver_user_id:int53 text:formattedText date:int32 = UpgradedGiftOriginalDetails;
+upgradedGiftOriginalDetails sender_id:MessageSender receiver_id:MessageSender text:formattedText date:int32 = UpgradedGiftOriginalDetails;
 
 //@description Describes a gift that can be sent to another user
 //@id Unique identifier of the gift

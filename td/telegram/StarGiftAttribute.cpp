@@ -7,6 +7,7 @@
 #include "td/telegram/StarGiftAttribute.h"
 
 #include "td/telegram/Dependencies.h"
+#include "td/telegram/MessageSender.h"
 #include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
@@ -94,8 +95,10 @@ StarGiftAttributeOriginalDetails::get_upgraded_gift_original_details_object(Td *
     return nullptr;
   }
   return td_api::make_object<td_api::upgradedGiftOriginalDetails>(
-      td->user_manager_->get_user_id_object(sender_dialog_id_.get_user_id(), "upgradedGiftOriginalDetails sender"),
-      td->user_manager_->get_user_id_object(receiver_dialog_id_.get_user_id(), "upgradedGiftOriginalDetails receiver"),
+      sender_dialog_id_ == DialogId()
+          ? nullptr
+          : get_message_sender_object(td, sender_dialog_id_, "upgradedGiftOriginalDetails sender"),
+      get_message_sender_object(td, receiver_dialog_id_, "upgradedGiftOriginalDetails sender"),
       get_formatted_text_object(td->user_manager_.get(), message_, true, -1), date_);
 }
 
