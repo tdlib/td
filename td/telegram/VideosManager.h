@@ -46,7 +46,8 @@ class VideosManager {
 
   tl_object_ptr<telegram_api::InputMedia> get_input_media(
       FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file,
-      telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail, int32 ttl, bool has_spoiler) const;
+      telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail, int32 start_timestamp, int32 ttl,
+      bool has_spoiler) const;
 
   telegram_api::object_ptr<telegram_api::InputMedia> get_story_document_input_media(FileId file_id,
                                                                                     double main_frame_timestamp) const;

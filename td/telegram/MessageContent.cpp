@@ -3490,7 +3490,6 @@ static Result<InputMessageContent> create_input_message_content(
                                                 input_video->width_, input_video->height_, Auto()));
         }
       }
-      int32 start_timestamp = 0;
 
       bool has_stickers = !sticker_file_ids.empty();
       td->videos_manager_->create_video(file_id, string(), std::move(thumbnail), AnimationSize(), has_stickers,
@@ -3499,9 +3498,9 @@ static Result<InputMessageContent> create_input_message_content(
                                         get_dimensions(input_video->width_, input_video->height_, nullptr),
                                         input_video->supports_streaming_, false, 0, 0.0, string(), false);
 
-      content =
-          td::make_unique<MessageVideo>(file_id, vector<FileId>(), vector<FileId>(), std::move(cover), start_timestamp,
-                                        std::move(caption), input_video->has_spoiler_ && !is_secret);
+      content = td::make_unique<MessageVideo>(file_id, vector<FileId>(), vector<FileId>(), std::move(cover),
+                                              max(0, input_video->start_timestamp_), std::move(caption),
+                                              input_video->has_spoiler_ && !is_secret);
       break;
     }
     case td_api::inputMessageVideoNote::ID: {
@@ -4133,7 +4132,7 @@ static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_in
     case MessageContentType::Video: {
       const auto *m = static_cast<const MessageVideo *>(content);
       return td->videos_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail),
-                                                  ttl.get_input_ttl(), m->has_spoiler);
+                                                  m->start_timestamp, ttl.get_input_ttl(), m->has_spoiler);
     }
     case MessageContentType::VideoNote: {
       const auto *m = static_cast<const MessageVideoNote *>(content);

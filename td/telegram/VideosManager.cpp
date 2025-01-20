@@ -246,7 +246,8 @@ SecretInputMedia VideosManager::get_secret_input_media(
 
 tl_object_ptr<telegram_api::InputMedia> VideosManager::get_input_media(
     FileId file_id, telegram_api::object_ptr<telegram_api::InputFile> input_file,
-    telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail, int32 ttl, bool has_spoiler) const {
+    telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail, int32 start_timestamp, int32 ttl,
+    bool has_spoiler) const {
   if (!file_id.is_valid()) {
     LOG_IF(ERROR, ttl == 0) << "Video has invalid file_id";
     return nullptr;
@@ -264,8 +265,11 @@ tl_object_ptr<telegram_api::InputMedia> VideosManager::get_input_media(
     if (has_spoiler) {
       flags |= telegram_api::inputMediaDocument::SPOILER_MASK;
     }
+    if (start_timestamp != 0) {
+      flags |= telegram_api::inputMediaDocument::VIDEO_TIMESTAMP_MASK;
+    }
     return telegram_api::make_object<telegram_api::inputMediaDocument>(
-        flags, false /*ignored*/, main_remote_location->as_input_document(), nullptr, 0, ttl, string());
+        flags, false /*ignored*/, main_remote_location->as_input_document(), nullptr, start_timestamp, ttl, string());
   }
   const auto *url = file_view.get_url();
   if (url != nullptr) {
@@ -276,8 +280,11 @@ tl_object_ptr<telegram_api::InputMedia> VideosManager::get_input_media(
     if (has_spoiler) {
       flags |= telegram_api::inputMediaDocumentExternal::SPOILER_MASK;
     }
+    if (start_timestamp != 0) {
+      flags |= telegram_api::inputMediaDocumentExternal::VIDEO_TIMESTAMP_MASK;
+    }
     return telegram_api::make_object<telegram_api::inputMediaDocumentExternal>(flags, false /*ignored*/, *url, ttl,
-                                                                               nullptr, 0);
+                                                                               nullptr, start_timestamp);
   }
 
   if (input_file != nullptr) {
@@ -322,9 +329,13 @@ tl_object_ptr<telegram_api::InputMedia> VideosManager::get_input_media(
     if (has_spoiler) {
       flags |= telegram_api::inputMediaUploadedDocument::SPOILER_MASK;
     }
+    if (start_timestamp != 0) {
+      flags |= telegram_api::inputMediaUploadedDocument::VIDEO_TIMESTAMP_MASK;
+    }
     return telegram_api::make_object<telegram_api::inputMediaUploadedDocument>(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_file),
-        std::move(input_thumbnail), mime_type, std::move(attributes), std::move(added_stickers), nullptr, 0, ttl);
+        std::move(input_thumbnail), mime_type, std::move(attributes), std::move(added_stickers), nullptr,
+        start_timestamp, ttl);
   } else {
     CHECK(main_remote_location == nullptr);
   }

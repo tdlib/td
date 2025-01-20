@@ -5265,6 +5265,8 @@ class CliClient final : public Actor {
       quick_reply_shortcut_name_ = args;
     } else if (op == "smc") {
       cover_ = args;
+    } else if (op == "smst") {
+      start_timestamp_ = to_integer<int32>(args);
     } else if (op == "sm" || op == "sms" || op == "smf") {
       ChatId chat_id;
       string message;
@@ -5479,8 +5481,8 @@ class CliClient final : public Actor {
       string thumbnail;
       get_args(args, chat_id, message_id, video, thumbnail);
       auto input_video = td_api::make_object<td_api::inputMessageVideo>(
-          as_input_file(video), as_input_thumbnail(thumbnail), get_input_cover(), Auto(), 1, 2, 3, true, as_caption(""),
-          show_caption_above_media_, get_message_self_destruct_type(), has_spoiler_);
+          as_input_file(video), as_input_thumbnail(thumbnail), get_input_cover(), start_timestamp_, Auto(), 1, 2, 3,
+          true, as_caption(""), show_caption_above_media_, get_message_self_destruct_type(), has_spoiler_);
       if (!business_connection_id_.empty()) {
         send_request(td_api::make_object<td_api::editBusinessMessageMedia>(business_connection_id_, chat_id, message_id,
                                                                            nullptr, std::move(input_video)));
@@ -5960,18 +5962,18 @@ class CliClient final : public Actor {
         sticker_file_ids = as_file_ids(sticker_file_ids_str);
       }
       send_message(chat_id, td_api::make_object<td_api::inputMessageVideo>(
-                                as_input_file(video_path), nullptr, get_input_cover(), std::move(sticker_file_ids), 1,
-                                2, 3, true, as_caption(""), show_caption_above_media_, get_message_self_destruct_type(),
-                                has_spoiler_));
+                                as_input_file(video_path), nullptr, get_input_cover(), start_timestamp_,
+                                std::move(sticker_file_ids), 1, 2, 3, true, as_caption(""), show_caption_above_media_,
+                                get_message_self_destruct_type(), has_spoiler_));
     } else if (op == "svt") {
       ChatId chat_id;
       string video;
       string thumbnail;
       get_args(args, chat_id, video, thumbnail);
       send_message(chat_id, td_api::make_object<td_api::inputMessageVideo>(
-                                as_input_file(video), as_input_thumbnail(thumbnail), get_input_cover(), vector<int32>(),
-                                0, 0, 0, true, as_caption(""), show_caption_above_media_,
-                                get_message_self_destruct_type(), has_spoiler_));
+                                as_input_file(video), as_input_thumbnail(thumbnail), get_input_cover(),
+                                start_timestamp_, vector<int32>(), 0, 0, 0, true, as_caption(""),
+                                show_caption_above_media_, get_message_self_destruct_type(), has_spoiler_));
     } else if (op == "svn") {
       ChatId chat_id;
       string video_path;
@@ -7630,6 +7632,7 @@ class CliClient final : public Actor {
   int64 saved_messages_topic_id_ = 0;
   string quick_reply_shortcut_name_;
   string cover_;
+  int32 start_timestamp_ = 0;
 
   ConcurrentScheduler *scheduler_{nullptr};
 
