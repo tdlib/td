@@ -2884,9 +2884,16 @@ class CliClient final : public Actor {
       string owner_id;
       int32 limit;
       string offset;
-      get_args(args, owner_id, limit, offset);
-      send_request(td_api::make_object<td_api::getReceivedGifts>(as_message_sender(owner_id), false, false, false,
-                                                                 false, false, op == "grgsp", offset, limit));
+      bool exclude_unsaved;
+      bool exclude_saved;
+      bool exclude_unlimited;
+      bool exclude_limited;
+      bool exclude_upgraded;
+      get_args(args, owner_id, limit, offset, exclude_unsaved, exclude_saved, exclude_unlimited, exclude_limited,
+               exclude_upgraded);
+      send_request(td_api::make_object<td_api::getReceivedGifts>(as_message_sender(owner_id), exclude_unsaved,
+                                                                 exclude_saved, exclude_unlimited, exclude_limited,
+                                                                 exclude_upgraded, op == "grgsp", offset, limit));
     } else if (op == "grg") {
       string received_gift_id;
       get_args(args, received_gift_id);
