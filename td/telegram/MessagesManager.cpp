@@ -622,54 +622,6 @@ class SearchPublicDialogsQuery final : public Td::ResultHandler {
   }
 };
 
-class SetChatAvailableReactionsQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  DialogId dialog_id_;
-
- public:
-  explicit SetChatAvailableReactionsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(DialogId dialog_id, const ChatReactions &available_reactions) {
-    dialog_id_ = dialog_id;
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
-    if (input_peer == nullptr) {
-      return on_error(Status::Error(400, "Can't access the chat"));
-    }
-    int32 flags = telegram_api::messages_setChatAvailableReactions::PAID_ENABLED_MASK;
-    if (available_reactions.reactions_limit_ != 0) {
-      flags |= telegram_api::messages_setChatAvailableReactions::REACTIONS_LIMIT_MASK;
-    }
-    send_query(G()->net_query_creator().create(telegram_api::messages_setChatAvailableReactions(
-        flags, std::move(input_peer), available_reactions.get_input_chat_reactions(),
-        available_reactions.reactions_limit_, available_reactions.paid_reactions_available_)));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_setChatAvailableReactions>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for SetChatAvailableReactionsQuery: " << to_string(ptr);
-    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
-  }
-
-  void on_error(Status status) final {
-    if (status.message() == "CHAT_NOT_MODIFIED") {
-      if (!td_->auth_manager_->is_bot()) {
-        promise_.set_value(Unit());
-        return;
-      }
-    } else {
-      td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "SetChatAvailableReactionsQuery");
-      td_->dialog_manager_->reload_dialog_info_full(dialog_id_, "SetChatAvailableReactionsQuery");
-    }
-    promise_.set_error(std::move(status));
-  }
-};
-
 class SetChatThemeQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -29589,9 +29541,7 @@ void MessagesManager::set_dialog_available_reactions(
     return promise.set_value(Unit());
   }
 
-  // TODO invoke after
-  td_->create_handler<SetChatAvailableReactionsQuery>(std::move(promise))
-      ->send(dialog_id, std::move(available_reactions));
+  td_->dialog_manager_->set_dialog_available_reactions_on_server(dialog_id, available_reactions, std::move(promise));
 }
 
 void MessagesManager::set_dialog_message_ttl(DialogId dialog_id, int32 ttl, Promise<Unit> &&promise) {

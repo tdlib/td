@@ -13,6 +13,7 @@
 #include "td/telegram/ChannelType.h"
 #include "td/telegram/ChatId.h"
 #include "td/telegram/ChatManager.h"
+#include "td/telegram/ChatReactions.h"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
@@ -730,6 +731,54 @@ class ReorderPinnedDialogsQuery final : public Td::ResultHandler {
       LOG(ERROR) << "Receive error for ReorderPinnedDialogsQuery: " << status;
     }
     td_->messages_manager_->on_update_pinned_dialogs(folder_id_);
+    promise_.set_error(std::move(status));
+  }
+};
+
+class SetChatAvailableReactionsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit SetChatAvailableReactionsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, const ChatReactions &available_reactions) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
+    int32 flags = telegram_api::messages_setChatAvailableReactions::PAID_ENABLED_MASK;
+    if (available_reactions.reactions_limit_ != 0) {
+      flags |= telegram_api::messages_setChatAvailableReactions::REACTIONS_LIMIT_MASK;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::messages_setChatAvailableReactions(
+        flags, std::move(input_peer), available_reactions.get_input_chat_reactions(),
+        available_reactions.reactions_limit_, available_reactions.paid_reactions_available_)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_setChatAvailableReactions>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SetChatAvailableReactionsQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "CHAT_NOT_MODIFIED") {
+      if (!td_->auth_manager_->is_bot()) {
+        promise_.set_value(Unit());
+        return;
+      }
+    } else {
+      td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "SetChatAvailableReactionsQuery");
+      td_->dialog_manager_->reload_dialog_info_full(dialog_id_, "SetChatAvailableReactionsQuery");
+    }
     promise_.set_error(std::move(status));
   }
 };
@@ -2853,6 +2902,14 @@ void DialogManager::on_get_blocked_dialogs(int32 offset, int32 limit, int32 tota
     return get_message_sender_object(td, dialog_id, "on_get_blocked_dialogs");
   });
   promise.set_value(td_api::make_object<td_api::messageSenders>(total_count, std::move(senders)));
+}
+
+void DialogManager::set_dialog_available_reactions_on_server(DialogId dialog_id,
+                                                             const ChatReactions &available_reactions,
+                                                             Promise<Unit> &&promise) {
+  // TODO invoke after
+  td_->create_handler<SetChatAvailableReactionsQuery>(std::move(promise))
+      ->send(dialog_id, std::move(available_reactions));
 }
 
 class DialogManager::ToggleDialogIsBlockedOnServerLogEvent {

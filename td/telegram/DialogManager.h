@@ -41,6 +41,7 @@
 namespace td {
 
 struct BinlogEvent;
+struct ChatReactions;
 class ReportReason;
 class Td;
 class Usernames;
@@ -237,6 +238,9 @@ class DialogManager final : public Actor {
                               Promise<td_api::object_ptr<td_api::messageSenders>> &&promise);
 
   void reorder_pinned_dialogs_on_server(FolderId folder_id, const vector<DialogId> &dialog_ids, uint64 log_event_id);
+
+  void set_dialog_available_reactions_on_server(DialogId dialog_id, const ChatReactions &available_reactions,
+                                                Promise<Unit> &&promise);
 
   void toggle_dialog_is_blocked_on_server(DialogId dialog_id, bool is_blocked, bool is_blocked_for_stories,
                                           uint64 log_event_id);
