@@ -7154,6 +7154,13 @@ void Requests::on_request(uint64 id, const td_api::toggleGiftIsSaved &request) {
   td_->star_gift_manager_->save_gift(StarGiftId(request.received_gift_id_), request.is_saved_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::toggleChatGiftNotifications &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->star_gift_manager_->toggle_chat_star_gift_notifications(DialogId(request.chat_id_), request.are_enabled_,
+                                                               std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getGiftUpgradePreview &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

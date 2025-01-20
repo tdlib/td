@@ -48,6 +48,8 @@ class StarGiftManager final : public Actor {
 
   void save_gift(StarGiftId star_gift_id, bool is_saved, Promise<Unit> &&promise);
 
+  void toggle_chat_star_gift_notifications(DialogId dialog_id, bool are_enabled, Promise<Unit> &&promise);
+
   void get_gift_upgrade_preview(int64 gift_id, Promise<td_api::object_ptr<td_api::giftUpgradePreview>> &&promise);
 
   void upgrade_gift(StarGiftId star_gift_id, bool keep_original_details, int64 star_count,

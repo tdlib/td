@@ -246,6 +246,41 @@ class SaveStarGiftQuery final : public Td::ResultHandler {
   }
 };
 
+class ToggleChatStarGiftNotificationsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit ToggleChatStarGiftNotificationsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, bool are_enabled) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    int32 flags = 0;
+    if (are_enabled) {
+      flags |= telegram_api::payments_toggleChatStarGiftNotifications::ENABLED_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_toggleChatStarGiftNotifications(flags, false /*ignored*/, std::move(input_peer))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_toggleChatStarGiftNotifications>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ToggleChatStarGiftNotificationsQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetUpgradeGiftPreviewQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::giftUpgradePreview>> promise_;
 
@@ -920,6 +955,17 @@ void StarGiftManager::save_gift(StarGiftId star_gift_id, bool is_saved, Promise<
     return promise.set_error(Status::Error(400, "Invalid gift identifier specified"));
   }
   td_->create_handler<SaveStarGiftQuery>(std::move(promise))->send(star_gift_id, is_saved);
+}
+
+void StarGiftManager::toggle_chat_star_gift_notifications(DialogId dialog_id, bool are_enabled,
+                                                          Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
+                                                                        "toggle_chat_star_gift_notifications"));
+  if (!td_->dialog_manager_->is_broadcast_channel(dialog_id) ||
+      !td_->chat_manager_->get_channel_status(dialog_id.get_channel_id()).can_post_messages()) {
+    return promise.set_error(Status::Error(400, "Wrong chat specified"));
+  }
+  td_->create_handler<ToggleChatStarGiftNotificationsQuery>(std::move(promise))->send(dialog_id, are_enabled);
 }
 
 void StarGiftManager::get_gift_upgrade_preview(int64 gift_id,

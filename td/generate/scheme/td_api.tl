@@ -9348,7 +9348,7 @@ addLocalMessage chat_id:int53 sender_id:MessageSender reply_to:InputMessageReply
 //@revoke Pass true to delete messages for all chat members. Always true for supergroups, channels and secret chats
 deleteMessages chat_id:int53 message_ids:vector<int53> revoke:Bool = Ok;
 
-//@description Deletes all messages sent by the specified message sender in a chat. Supported only for supergroups; requires can_delete_messages administrator privileges @chat_id Chat identifier @sender_id Identifier of the sender of messages to delete
+//@description Deletes all messages sent by the specified message sender in a chat. Supported only for supergroups; requires can_delete_messages administrator rights @chat_id Chat identifier @sender_id Identifier of the sender of messages to delete
 deleteChatMessagesBySender chat_id:int53 sender_id:MessageSender = Ok;
 
 //@description Deletes all messages between the specified dates in a chat. Supported only for private chats and basic groups. Messages sent in the last 30 seconds will not be deleted
@@ -11729,6 +11729,11 @@ sellGift received_gift_id:string = Ok;
 //@received_gift_id Identifier of the gift
 //@is_saved Pass true to display the gift on the user's profile page; pass false to remove it from the profile page
 toggleGiftIsSaved received_gift_id:string is_saved:Bool = Ok;
+
+//@description Toggles whether notifications for new gifts received by a channel chat are sent to the current user; requires can_post_messages administrator rights in the chat
+//@chat_id Identifier of the channel chat
+//@are_enabled Pass true to enable notifications about new gifts owned by the channel chat; pass false to disable the notifications
+toggleChatGiftNotifications chat_id:int53 are_enabled:Bool = Ok;
 
 //@description Returns examples of possible upgraded gifts for a regular gift @gift_id Identifier of the gift
 getGiftUpgradePreview gift_id:int64 = GiftUpgradePreview;

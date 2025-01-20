@@ -2858,6 +2858,11 @@ class CliClient final : public Actor {
       bool is_saved;
       get_args(args, star_gift_id, is_saved);
       send_request(td_api::make_object<td_api::toggleGiftIsSaved>(star_gift_id, is_saved));
+    } else if (op == "tcgn") {
+      ChatId chat_id;
+      bool are_enabled;
+      get_args(args, chat_id, are_enabled);
+      send_request(td_api::make_object<td_api::toggleChatGiftNotifications>(chat_id, are_enabled));
     } else if (op == "ggup") {
       int64 gift_id;
       get_args(args, gift_id);
