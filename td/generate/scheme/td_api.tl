@@ -1123,11 +1123,12 @@ sentGiftUpgraded gift:upgradedGift = SentGift;
 //@export_date Point in time (Unix timestamp) when the upgraded gift can be transferred to the TON blockchain as an NFT; 0 if NFT export isn't possible; only for the receiver of the gift
 receivedGift received_gift_id:string sender_id:MessageSender text:formattedText is_private:Bool is_saved:Bool can_be_upgraded:Bool can_be_transferred:Bool was_refunded:Bool date:int32 gift:SentGift sell_star_count:int53 prepaid_upgrade_star_count:int53 transfer_star_count:int53 export_date:int32 = ReceivedGift;
 
-//@description Represents a list of gifts received by a chat
+//@description Represents a list of gifts received by a user or a chat
 //@total_count The total number of received gifts
 //@gifts The list of gifts
+//@are_notifications_enabled True, if notifications about new gifts of the owner are enabled
 //@next_offset The offset for the next request. If empty, then there are no more results
-receivedGifts total_count:int32 gifts:vector<receivedGift> next_offset:string = ReceivedGifts;
+receivedGifts total_count:int32 gifts:vector<receivedGift> are_notifications_enabled:Bool next_offset:string = ReceivedGifts;
 
 //@description Contains examples of possible upgraded gifts for the given regular gift
 //@models Examples of possible models that can be chosen for the gift after upgrade

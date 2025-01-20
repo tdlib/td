@@ -672,12 +672,19 @@ class GetSavedStarGiftsQuery final : public Td::ResultHandler {
       }
       gifts.push_back(user_gift.get_received_gift_object(td_));
     }
-    if (dialog_id_.get_type() == DialogType::User && dialog_id_ != td_->dialog_manager_->get_my_dialog_id()) {
-      td_->user_manager_->on_update_user_gift_count(dialog_id_.get_user_id(), total_count);
+    bool are_notifications_enabled = false;
+    if (dialog_id_.get_type() == DialogType::User) {
+      if (dialog_id_ != td_->dialog_manager_->get_my_dialog_id()) {
+        td_->user_manager_->on_update_user_gift_count(dialog_id_.get_user_id(), total_count);
+      } else {
+        are_notifications_enabled = true;
+      }
     } else if (dialog_id_.get_type() == DialogType::Channel) {
       td_->chat_manager_->on_update_channel_gift_count(dialog_id_.get_channel_id(), total_count, false);
+      are_notifications_enabled = ptr->chat_notifications_enabled_;
     }
-    promise_.set_value(td_api::make_object<td_api::receivedGifts>(total_count, std::move(gifts), ptr->next_offset_));
+    promise_.set_value(td_api::make_object<td_api::receivedGifts>(total_count, std::move(gifts),
+                                                                  are_notifications_enabled, ptr->next_offset_));
   }
 
   void on_error(Status status) final {
