@@ -1465,7 +1465,7 @@ botInfo short_description:string description:string photo:photo animation:animat
 //@bio A short user bio; may be null for bots
 //@birthdate Birthdate of the user; may be null if unknown
 //@personal_chat_id Identifier of the personal chat of the user; 0 if none
-//@gift_count Number of gifts saved to profile by the user
+//@gift_count Number of saved to profile gifts for other users or the total number of received gifts for the current user
 //@group_in_common_count Number of group chats where both the other user and the current user are a member; 0 for the current user
 //@bot_verification Information about verification status of the user provided by a bot; may be null if none or unknown
 //@business_info Information about business settings for Telegram Business accounts; may be null if none
@@ -1742,7 +1742,7 @@ supergroup id:int53 usernames:usernames date:int32 status:ChatMemberStatus membe
 //@has_aggressive_anti_spam_enabled True, if aggressive anti-spam checks are enabled in the supergroup. The value of this field is only available to chat administrators
 //@has_paid_media_allowed True, if paid media can be sent and forwarded to the channel chat; for channels only
 //@has_pinned_stories True, if the supergroup or channel has pinned stories
-//@gift_count Number of gifts saved to profile by the user
+//@gift_count Number of saved to profile gifts for channels without can_post_messages administrator right, otherwise, the total number of received gifts
 //@my_boost_count Number of times the current user boosted the supergroup or channel
 //@unrestrict_boost_count Number of times the supergroup must be boosted by a user to ignore slow mode and chat permission restrictions; 0 if unspecified
 //@sticker_set_id Identifier of the supergroup sticker set that must be shown before user sticker sets; 0 if none
