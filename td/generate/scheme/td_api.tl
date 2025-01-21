@@ -9350,7 +9350,7 @@ addLocalMessage chat_id:int53 sender_id:MessageSender reply_to:InputMessageReply
 //@revoke Pass true to delete messages for all chat members. Always true for supergroups, channels and secret chats
 deleteMessages chat_id:int53 message_ids:vector<int53> revoke:Bool = Ok;
 
-//@description Deletes all messages sent by the specified message sender in a chat. Supported only for supergroups; requires can_delete_messages administrator rights @chat_id Chat identifier @sender_id Identifier of the sender of messages to delete
+//@description Deletes all messages sent by the specified message sender in a chat. Supported only for supergroups; requires can_delete_messages administrator right @chat_id Chat identifier @sender_id Identifier of the sender of messages to delete
 deleteChatMessagesBySender chat_id:int53 sender_id:MessageSender = Ok;
 
 //@description Deletes all messages between the specified dates in a chat. Supported only for private chats and basic groups. Messages sent in the last 30 seconds will not be deleted
@@ -11727,12 +11727,12 @@ sendGift gift_id:int64 owner_id:MessageSender text:formattedText is_private:Bool
 //@description Sells a gift for Telegram Stars @received_gift_id Identifier of the gift
 sellGift received_gift_id:string = Ok;
 
-//@description Toggles whether a gift is shown on the current user's or the chat's profile page
+//@description Toggles whether a gift is shown on the current user's or the chat's profile page; requires can_post_messages administrator right in the chat
 //@received_gift_id Identifier of the gift
 //@is_saved Pass true to display the gift on the user's profile page; pass false to remove it from the profile page
 toggleGiftIsSaved received_gift_id:string is_saved:Bool = Ok;
 
-//@description Toggles whether notifications for new gifts received by a channel chat are sent to the current user; requires can_post_messages administrator rights in the chat
+//@description Toggles whether notifications for new gifts received by a channel chat are sent to the current user; requires can_post_messages administrator right in the chat
 //@chat_id Identifier of the channel chat
 //@are_enabled Pass true to enable notifications about new gifts owned by the channel chat; pass false to disable the notifications
 toggleChatGiftNotifications chat_id:int53 are_enabled:Bool = Ok;
@@ -11754,12 +11754,12 @@ transferGift received_gift_id:string new_owner_id:MessageSender star_count:int53
 
 //@description Returns gifts received by the given user or chat
 //@owner_id Identifier of the gift receiver
-//@exclude_unsaved Pass True to exclude gifts that aren't saved to the chat's profile page; for administered channels only
-//@exclude_saved Pass True to exclude gifts that are saved to the chat's profile page; for administered channels only
-//@exclude_unlimited Pass True to exclude gifts that can be purchased unlimited number of times; for administered channels only
-//@exclude_limited Pass True to exclude gifts that can be purchased limited number of times; for administered channels only
-//@exclude_upgraded Pass True to exclude upgraded gifts; for administered channels only
-//@sort_by_price Pass True to sort results by gift price instead of send date; for administered channels only
+//@exclude_unsaved Pass True to exclude gifts that aren't saved to the chat's profile page. Always true for gifts received by other users and channel chats without can_post_messages administrator right
+//@exclude_saved Pass True to exclude gifts that are saved to the chat's profile page; for channel chats with can_post_messages administrator right only
+//@exclude_unlimited Pass True to exclude gifts that can be purchased unlimited number of times; for channel chats with can_post_messages administrator right only
+//@exclude_limited Pass True to exclude gifts that can be purchased limited number of times; for channel chats with can_post_messages administrator right only
+//@exclude_upgraded Pass True to exclude upgraded gifts; for channel chats with can_post_messages administrator right only
+//@sort_by_price Pass True to sort results by gift price instead of send date; for channel chats with can_post_messages administrator right only
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of gifts to be returned; must be positive and can't be greater than 100. For optimal performance, the number of returned objects is chosen by TDLib and can be smaller than the specified limit
 getReceivedGifts owner_id:MessageSender exclude_unsaved:Bool exclude_saved:Bool exclude_unlimited:Bool exclude_limited:Bool exclude_upgraded:Bool sort_by_price:Bool offset:string limit:int32 = ReceivedGifts;
