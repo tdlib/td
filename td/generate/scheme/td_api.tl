@@ -1056,23 +1056,23 @@ upgradedGiftBackdrop name:string colors:upgradedGiftBackdropColors rarity_per_mi
 //@date Point in time (Unix timestamp) when the gift was sent
 upgradedGiftOriginalDetails sender_id:MessageSender receiver_id:MessageSender text:formattedText date:int32 = UpgradedGiftOriginalDetails;
 
-//@description Describes a gift that can be sent to another user
+//@description Describes a gift that can be sent to another user or channel chat
 //@id Unique identifier of the gift
 //@sticker The sticker representing the gift
 //@star_count Number of Telegram Stars that must be paid for the gift
 //@default_sell_star_count Number of Telegram Stars that can be claimed by the receiver instead of the regular gift by default. If the gift was paid with just bought Telegram Stars, then full value can be claimed
 //@upgrade_star_count Number of Telegram Stars that must be paid to upgrade the gift; 0 if upgrade isn't possible
 //@is_for_birthday True, if the gift is a birthday gift
-//@remaining_count Number of remaining times the gift can be purchased by all users; 0 if not limited or the gift was sold out
-//@total_count Number of total times the gift can be purchased by all users; 0 if not limited
+//@remaining_count Number of remaining times the gift can be purchased; 0 if not limited or the gift was sold out
+//@total_count Number of total times the gift can be purchased; 0 if not limited
 //@first_send_date Point in time (Unix timestamp) when the gift was send for the first time; for sold out gifts only
 //@last_send_date Point in time (Unix timestamp) when the gift was send for the last time; for sold out gifts only
 gift id:int64 sticker:sticker star_count:int53 default_sell_star_count:int53 upgrade_star_count:int53 is_for_birthday:Bool remaining_count:int32 total_count:int32 first_send_date:int32 last_send_date:int32 = Gift;
 
-//@description Contains a list of gifts that can be sent to another user @gifts The list of gifts
+//@description Contains a list of gifts that can be sent to another user or channel chat @gifts The list of gifts
 gifts gifts:vector<gift> = Gifts;
 
-//@description Describes an upgraded gift that can be gifted to another user or transferred to the TON blockchain as an NFT
+//@description Describes an upgraded gift that can be transferred to another owner or transferred to the TON blockchain as an NFT
 //@id Unique identifier of the gift
 //@title The title of the upgraded gift
 //@name Unique name of the upgraded gift that can be used with internalLinkTypeUpgradedGift
@@ -1090,14 +1090,14 @@ upgradedGift id:int64 title:string name:string number:int32 total_upgraded_count
 //@description Contains result of gift upgrading
 //@gift The upgraded gift
 //@received_gift_id Unique identifier of the received gift for the current user
-//@is_saved True, if the gift is displayed on the user's profile page
-//@can_be_transferred True, if the gift can be transferred to another user
+//@is_saved True, if the gift is displayed on the user's or the channel's profile page
+//@can_be_transferred True, if the gift can be transferred to another owner
 //@transfer_star_count Number of Telegram Stars that must be paid to transfer the upgraded gift
 //@export_date Point in time (Unix timestamp) when the gift can be transferred to the TON blockchain as an NFT
 upgradeGiftResult gift:upgradedGift received_gift_id:string is_saved:Bool can_be_transferred:Bool transfer_star_count:int53 export_date:int32 = UpgradeGiftResult;
 
 
-//@class SentGift @description Represents a gift received by a user
+//@class SentGift @description Represents content of a gift received by a user or a channel chat
 
 //@description Regular gift @gift The gift
 sentGiftRegular gift:gift = SentGift;
@@ -1113,7 +1113,7 @@ sentGiftUpgraded gift:upgradedGift = SentGift;
 //@is_private True, if the sender and gift text are shown only to the gift receiver; otherwise, everyone are able to see them
 //@is_saved True, if the gift is displayed on the chat's profile page; only for the receiver of the gift
 //@can_be_upgraded True, if the gift is a regular gift that can be upgraded to a unique gift; only for the receiver of the gift
-//@can_be_transferred True, if the gift is an upgraded gift that can be transferred to another user; only for the receiver of the gift
+//@can_be_transferred True, if the gift is an upgraded gift that can be transferred to another owner; only for the receiver of the gift
 //@was_refunded True, if the gift was refunded and isn't available anymore
 //@date Point in time (Unix timestamp) when the gift was sent
 //@gift The gift
@@ -4031,7 +4031,7 @@ messageGiftedStars gifter_user_id:int53 receiver_user_id:int53 currency:string a
 //@sticker A sticker to be shown in the message; may be null if unknown
 messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id:int53 giveaway_message_id:int53 is_unclaimed:Bool sticker:sticker = MessageContent;
 
-//@description A regular gift was received or sent by the current user
+//@description A regular gift was received or sent by the current user, or the current user was notified about a channel gift
 //@gift The gift
 //@sender_id Sender of the gift
 //@received_gift_id Unique identifier of the received gift for the current user; only for the receiver of the gift
@@ -4039,7 +4039,7 @@ messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id
 //@sell_star_count Number of Telegram Stars that can be claimed by the receiver instead of the regular gift; 0 if the gift can't be sold by the receiver
 //@prepaid_upgrade_star_count Number of Telegram Stars that were paid by the sender for the ability to upgrade the gift
 //@is_private True, if the sender and gift text are shown only to the gift receiver; otherwise, everyone will be able to see them
-//@is_saved True, if the gift is displayed on the user's profile page; only for the receiver of the gift
+//@is_saved True, if the gift is displayed on the user's or the channel's profile page; only for the receiver of the gift
 //@can_be_upgraded True, if the gift can be upgraded to a unique gift; only for the receiver of the gift
 //@was_converted True, if the gift was converted to Telegram Stars; only for the receiver of the gift
 //@was_upgraded True, if the gift was upgraded to a unique gift
@@ -4047,14 +4047,14 @@ messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id
 //@upgraded_received_gift_id Identifier of the corresponding upgraded gift; can be empty if unknown. Use getReceivedGift to get information about the gift
 messageGift gift:gift sender_id:MessageSender received_gift_id:string text:formattedText sell_star_count:int53 prepaid_upgrade_star_count:int53 is_private:Bool is_saved:Bool can_be_upgraded:Bool was_converted:Bool was_upgraded:Bool was_refunded:Bool upgraded_received_gift_id:string = MessageContent;
 
-//@description An upgraded gift was received or sent by the current user
+//@description An upgraded gift was received or sent by the current user, or the current user was notified about a channel gift
 //@gift The gift
 //@sender_id Sender of the gift
 //@received_gift_id Unique identifier of the received gift for the current user; only for the receiver of the gift
 //@is_upgrade True, if the gift was obtained by upgrading of a previously received gift; otherwise, this is a transferred gift
-//@is_saved True, if the gift is displayed on the user's profile page; only for the receiver of the gift
-//@can_be_transferred True, if the gift can be transferred to another user; only for the receiver of the gift
-//@was_transferred True, if the gift was transferred to another user; only for the receiver of the gift
+//@is_saved True, if the gift is displayed on the user's or the channel's profile page; only for the receiver of the gift
+//@can_be_transferred True, if the gift can be transferred to another owner; only for the receiver of the gift
+//@was_transferred True, if the gift was transferred to another owner; only for the receiver of the gift
 //@transfer_star_count Number of Telegram Stars that must be paid to transfer the upgraded gift; only for the receiver of the gift
 //@export_date Point in time (Unix timestamp) when the gift can be transferred to the TON blockchain as an NFT; 0 if NFT export isn't possible; only for the receiver of the gift
 messageUpgradedGift gift:upgradedGift sender_id:MessageSender received_gift_id:string is_upgrade:Bool is_saved:Bool can_be_transferred:Bool was_transferred:Bool transfer_star_count:int53 export_date:int32 = MessageContent;
@@ -11713,23 +11713,23 @@ deleteSavedOrderInfo = Ok;
 deleteSavedCredentials = Ok;
 
 
-//@description Returns gifts that can be sent to other users
+//@description Returns gifts that can be sent to other users and channel chats
 getAvailableGifts = Gifts;
 
-//@description Sends a gift to another user. May return an error with a message "STARGIFT_USAGE_LIMITED" if the gift was sold out
+//@description Sends a gift to another user or channel chat. May return an error with a message "STARGIFT_USAGE_LIMITED" if the gift was sold out
 //@gift_id Identifier of the gift to send
 //@owner_id Identifier of the user or the channel chat that will receive the gift
 //@text Text to show along with the gift; 0-getOption("gift_text_length_max") characters. Only Bold, Italic, Underline, Strikethrough, Spoiler, and CustomEmoji entities are allowed
-//@is_private Pass true to show the current user as sender and gift text only to the gift receiver; otherwise, everyone will be able to see them
+//@is_private Pass true to show gift text and sender only to the gift receiver; otherwise, everyone will be able to see them
 //@pay_for_upgrade Pass true to additionally pay for the gift upgrade and allow the receiver to upgrade it for free
 sendGift gift_id:int64 owner_id:MessageSender text:formattedText is_private:Bool pay_for_upgrade:Bool = Ok;
 
 //@description Sells a gift for Telegram Stars @received_gift_id Identifier of the gift
 sellGift received_gift_id:string = Ok;
 
-//@description Toggles whether a gift is shown on the current user's or the chat's profile page; requires can_post_messages administrator right in the chat
+//@description Toggles whether a gift is shown on the current user's or the channel's profile page; requires can_post_messages administrator right in the chat
 //@received_gift_id Identifier of the gift
-//@is_saved Pass true to display the gift on the user's profile page; pass false to remove it from the profile page
+//@is_saved Pass true to display the gift on the user's or the channel's profile page; pass false to remove it from the profile page
 toggleGiftIsSaved received_gift_id:string is_saved:Bool = Ok;
 
 //@description Toggles whether notifications for new gifts received by a channel chat are sent to the current user; requires can_post_messages administrator right in the chat
@@ -11746,7 +11746,7 @@ getGiftUpgradePreview gift_id:int64 = GiftUpgradePreview;
 //@star_count The amount of Telegram Stars required to pay for the upgrade. It the gift has prepaid_upgrade_star_count > 0, then pass 0, otherwise, pass gift.upgrade_star_count
 upgradeGift received_gift_id:string keep_original_details:Bool star_count:int53 = UpgradeGiftResult;
 
-//@description Sends an upgraded gift to another user
+//@description Sends an upgraded gift to another user or a channel chat
 //@received_gift_id Identifier of the gift
 //@new_owner_id Identifier of the user or the channel chat that will receive the gift
 //@star_count The amount of Telegram Stars required to pay for the transfer
