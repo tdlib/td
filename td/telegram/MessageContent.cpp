@@ -9423,6 +9423,17 @@ bool need_poll_message_content_extended_media(const MessageContent *content) {
   }
 }
 
+void set_message_content_video_start_timestamp(MessageContent *content, int32 start_timestamp) {
+  CHECK(content != nullptr);
+  switch (content->get_type()) {
+    case MessageContentType::Video:
+      static_cast<MessageVideo *>(content)->start_timestamp = start_timestamp;
+      return;
+    default:
+      return;
+  }
+}
+
 void get_message_content_animated_emoji_click_sticker(const MessageContent *content, MessageFullId message_full_id,
                                                       Td *td, Promise<td_api::object_ptr<td_api::sticker>> &&promise) {
   if (content->get_type() != MessageContentType::Text) {

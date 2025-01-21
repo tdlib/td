@@ -452,7 +452,7 @@ class MessagesManager final : public Actor {
 
   Result<td_api::object_ptr<td_api::messages>> forward_messages(
       DialogId to_dialog_id, MessageId top_thread_message_id, DialogId from_dialog_id, vector<MessageId> message_ids,
-      tl_object_ptr<td_api::messageSendOptions> &&options, bool in_game_share,
+      tl_object_ptr<td_api::messageSendOptions> &&options, bool in_game_share, int32 new_video_start_timestamp,
       vector<MessageCopyOptions> &&copy_options) TD_WARN_UNUSED_RESULT;
 
   Result<td_api::object_ptr<td_api::messages>> send_quick_reply_shortcut_messages(
@@ -1089,6 +1089,7 @@ class MessagesManager final : public Actor {
     bool in_game_share = false;             // for send_message
     bool hide_via_bot = false;              // for resend_message
     bool is_bot_start_message = false;      // for resend_message
+    int32 new_video_start_timestamp = 0;    // for send_message
 
     bool has_get_message_views_query = false;
     bool need_view_counter_increment = false;
@@ -1800,12 +1801,12 @@ class MessagesManager final : public Actor {
   void send_forward_message_query(int32 flags, DialogId to_dialog_id, const MessageId top_thread_message_id,
                                   DialogId from_dialog_id, tl_object_ptr<telegram_api::InputPeer> as_input_peer,
                                   vector<MessageId> message_ids, vector<int64> random_ids, int32 schedule_date,
-                                  Promise<Unit> promise);
+                                  int32 new_video_start_timestamp, Promise<Unit> promise);
 
   Result<td_api::object_ptr<td_api::message>> forward_message(DialogId to_dialog_id, MessageId top_thread_message_id,
                                                               DialogId from_dialog_id, MessageId message_id,
                                                               td_api::object_ptr<td_api::messageSendOptions> &&options,
-                                                              bool in_game_share,
+                                                              bool in_game_share, int32 new_video_start_timestamp,
                                                               MessageCopyOptions &&copy_options) TD_WARN_UNUSED_RESULT;
 
   MessageOrigin get_forwarded_message_origin(DialogId dialog_id, const Message *m) const;
@@ -1849,7 +1850,8 @@ class MessagesManager final : public Actor {
   Result<ForwardedMessages> get_forwarded_messages(DialogId to_dialog_id, MessageId top_thread_message_id,
                                                    DialogId from_dialog_id, const vector<MessageId> &message_ids,
                                                    td_api::object_ptr<td_api::messageSendOptions> &&options,
-                                                   bool in_game_share, vector<MessageCopyOptions> &&copy_options);
+                                                   int32 new_video_start_timestamp,
+                                                   vector<MessageCopyOptions> &&copy_options);
 
   void do_send_media(DialogId dialog_id, const Message *m, int32 media_pos,
                      telegram_api::object_ptr<telegram_api::InputFile> input_file,

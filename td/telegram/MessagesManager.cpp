@@ -2156,7 +2156,7 @@ class ForwardMessagesQuery final : public Td::ResultHandler {
 
   void send(int32 flags, DialogId to_dialog_id, MessageId top_thread_message_id, DialogId from_dialog_id,
             tl_object_ptr<telegram_api::InputPeer> as_input_peer, const vector<MessageId> &message_ids,
-            vector<int64> &&random_ids, int32 schedule_date) {
+            vector<int64> &&random_ids, int32 schedule_date, int32 new_video_start_timestamp) {
     random_ids_ = random_ids;
     from_dialog_id_ = from_dialog_id;
     to_dialog_id_ = to_dialog_id;
@@ -2180,13 +2180,17 @@ class ForwardMessagesQuery final : public Td::ResultHandler {
     if (top_thread_message_id.is_valid()) {
       flags |= MessagesManager::SEND_MESSAGE_FLAG_IS_FROM_THREAD;
     }
+    if (new_video_start_timestamp >= 0) {
+      flags |= telegram_api::messages_forwardMessages::VIDEO_TIMESTAMP_MASK;
+    }
 
     auto query = G()->net_query_creator().create(
         telegram_api::messages_forwardMessages(
             flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
             false /*ignored*/, false /*ignored*/, std::move(from_input_peer),
             MessageId::get_server_message_ids(message_ids), std::move(random_ids), std::move(to_input_peer),
-            top_thread_message_id.get_server_message_id().get(), schedule_date, std::move(as_input_peer), nullptr, 0),
+            top_thread_message_id.get_server_message_id().get(), schedule_date, std::move(as_input_peer), nullptr,
+            new_video_start_timestamp),
         {{to_dialog_id, MessageContentType::Text}, {to_dialog_id, MessageContentType::Photo}});
     if (td_->option_manager_->get_option_boolean("use_quick_ack")) {
       query->quick_ack_promise_ = PromiseCreator::lambda([random_ids = random_ids_](Result<Unit> result) {
@@ -2577,6 +2581,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_fact_check = fact_check != nullptr;
   bool has_initial_sender_dialog_id = !message_id.is_any_server() && initial_sender_dialog_id.is_valid();
   bool has_reactions_are_possible = true;
+  bool has_new_video_start_timestamp = new_video_start_timestamp >= 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -2670,6 +2675,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(video_processing_pending);
     STORE_FLAG(has_reactions_are_possible);
     STORE_FLAG(reactions_are_possible);
+    STORE_FLAG(has_new_video_start_timestamp);
     END_STORE_FLAGS();
   }
 
@@ -2805,6 +2811,9 @@ void MessagesManager::Message::store(StorerT &storer) const {
   if (has_initial_sender_dialog_id) {
     store(initial_sender_dialog_id, storer);
   }
+  if (has_new_video_start_timestamp) {
+    store(new_video_start_timestamp, storer);
+  }
 }
 
 // do not forget to resolve message dependencies
@@ -2866,6 +2875,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_fact_check = false;
   bool has_initial_sender_dialog_id = false;
   bool has_reactions_are_possible = false;
+  bool has_new_video_start_timestamp = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
   PARSE_FLAG(is_outgoing);
@@ -2959,6 +2969,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(video_processing_pending);
     PARSE_FLAG(has_reactions_are_possible);
     PARSE_FLAG(reactions_are_possible);
+    PARSE_FLAG(has_new_video_start_timestamp);
     END_PARSE_FLAGS();
   }
 
@@ -3157,6 +3168,11 @@ void MessagesManager::Message::parse(ParserT &parser) {
   }
   if (has_initial_sender_dialog_id) {
     parse(initial_sender_dialog_id, parser);
+  }
+  if (has_new_video_start_timestamp) {
+    parse(new_video_start_timestamp, parser);
+  } else {
+    new_video_start_timestamp = -1;
   }
 
   CHECK(content != nullptr);
@@ -21135,9 +21151,11 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_message(
     TRY_RESULT(copy_options, process_message_copy_options(dialog_id, std::move(input_message->copy_options_)));
     copy_options.input_reply_to = std::move(input_reply_to);
     TRY_RESULT_ASSIGN(copy_options.reply_markup, get_dialog_reply_markup(dialog_id, std::move(reply_markup)));
-    return forward_message(dialog_id, top_thread_message_id, DialogId(input_message->from_chat_id_),
-                           MessageId(input_message->message_id_), std::move(options), input_message->in_game_share_,
-                           std::move(copy_options));
+    return forward_message(
+        dialog_id, top_thread_message_id, DialogId(input_message->from_chat_id_), MessageId(input_message->message_id_),
+        std::move(options), input_message->in_game_share_,
+        input_message->replace_video_start_timestamp_ ? max(0, input_message->new_video_start_timestamp_) : -1,
+        std::move(copy_options));
   }
 
   TRY_STATUS(can_send_message(dialog_id));
@@ -21203,6 +21221,9 @@ Result<InputMessageContent> MessagesManager::process_input_message_content(
     TRY_RESULT(copy_options, process_message_copy_options(dialog_id, std::move(input_message->copy_options_)));
     if (!copy_options.send_copy) {
       return Status::Error(400, "Can't use forwarded message");
+    }
+    if (input_message->replace_video_start_timestamp_) {
+      return Status::Error(400, "Can't replace video start timestamp");
     }
 
     DialogId from_dialog_id(input_message->from_chat_id_);
@@ -23783,27 +23804,31 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
       transform(messages, [this, to_dialog_id](const Message *m) { return begin_send_message(to_dialog_id, m); });
   send_closure_later(actor_id(this), &MessagesManager::send_forward_message_query, flags, to_dialog_id,
                      messages[0]->initial_top_thread_message_id, from_dialog_id, std::move(as_input_peer), message_ids,
-                     std::move(random_ids), schedule_date, get_erase_log_event_promise(log_event_id));
+                     std::move(random_ids), schedule_date, messages[0]->new_video_start_timestamp,
+                     get_erase_log_event_promise(log_event_id));
 }
 
 void MessagesManager::send_forward_message_query(int32 flags, DialogId to_dialog_id,
                                                  const MessageId top_thread_message_id, DialogId from_dialog_id,
                                                  tl_object_ptr<telegram_api::InputPeer> as_input_peer,
                                                  vector<MessageId> message_ids, vector<int64> random_ids,
-                                                 int32 schedule_date, Promise<Unit> promise) {
+                                                 int32 schedule_date, int32 new_video_start_timestamp,
+                                                 Promise<Unit> promise) {
   td_->create_handler<ForwardMessagesQuery>(std::move(promise))
       ->send(flags, to_dialog_id, top_thread_message_id, from_dialog_id, std::move(as_input_peer), message_ids,
-             std::move(random_ids), schedule_date);
+             std::move(random_ids), schedule_date, new_video_start_timestamp);
 }
 
 Result<td_api::object_ptr<td_api::message>> MessagesManager::forward_message(
     DialogId to_dialog_id, MessageId top_thread_message_id, DialogId from_dialog_id, MessageId message_id,
-    tl_object_ptr<td_api::messageSendOptions> &&options, bool in_game_share, MessageCopyOptions &&copy_options) {
+    tl_object_ptr<td_api::messageSendOptions> &&options, bool in_game_share, int32 new_video_start_timestamp,
+    MessageCopyOptions &&copy_options) {
   bool need_copy = copy_options.send_copy;
   vector<MessageCopyOptions> all_copy_options;
   all_copy_options.push_back(std::move(copy_options));
-  TRY_RESULT(result, forward_messages(to_dialog_id, top_thread_message_id, from_dialog_id, {message_id},
-                                      std::move(options), in_game_share, std::move(all_copy_options)));
+  TRY_RESULT(result,
+             forward_messages(to_dialog_id, top_thread_message_id, from_dialog_id, {message_id}, std::move(options),
+                              in_game_share, new_video_start_timestamp, std::move(all_copy_options)));
   CHECK(result->messages_.size() == 1);
   if (result->messages_[0] == nullptr) {
     return Status::Error(400,
@@ -23937,8 +23962,8 @@ void MessagesManager::fix_forwarded_message(Message *m, DialogId to_dialog_id, c
 
 Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messages(
     DialogId to_dialog_id, MessageId top_thread_message_id, DialogId from_dialog_id,
-    const vector<MessageId> &message_ids, tl_object_ptr<td_api::messageSendOptions> &&options, bool in_game_share,
-    vector<MessageCopyOptions> &&copy_options) {
+    const vector<MessageId> &message_ids, tl_object_ptr<td_api::messageSendOptions> &&options,
+    int32 new_video_start_timestamp, vector<MessageCopyOptions> &&copy_options) {
   CHECK(copy_options.size() == message_ids.size());
   if (message_ids.size() > 100) {  // TODO replace with const from config or implement mass-forward
     return Status::Error(400, "Too many messages to forward");
@@ -24080,6 +24105,10 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
       top_thread_message_id = MessageId();
     }
 
+    if (new_video_start_timestamp >= 0) {
+      set_message_content_video_start_timestamp(content.get(), new_video_start_timestamp);
+    }
+
     if (forwarded_message->media_album_id != 0) {
       auto &new_media_album_id = is_local_copy ? new_copied_media_album_ids[forwarded_message->media_album_id]
                                                : new_forwarded_media_album_ids[forwarded_message->media_album_id];
@@ -24149,11 +24178,11 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
 
 Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     DialogId to_dialog_id, MessageId top_thread_message_id, DialogId from_dialog_id, vector<MessageId> message_ids,
-    tl_object_ptr<td_api::messageSendOptions> &&options, bool in_game_share,
+    tl_object_ptr<td_api::messageSendOptions> &&options, bool in_game_share, int32 new_video_start_timestamp,
     vector<MessageCopyOptions> &&copy_options) {
   TRY_RESULT(forwarded_messages_info,
              get_forwarded_messages(to_dialog_id, top_thread_message_id, from_dialog_id, message_ids,
-                                    std::move(options), in_game_share, std::move(copy_options)));
+                                    std::move(options), new_video_start_timestamp, std::move(copy_options)));
   auto from_dialog = forwarded_messages_info.from_dialog;
   auto to_dialog = forwarded_messages_info.to_dialog;
   const auto message_send_options = forwarded_messages_info.message_send_options;
@@ -24202,6 +24231,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     fix_forwarded_message(m, to_dialog_id, forwarded_message, forwarded_message_contents[j].media_album_id,
                           drop_author);
     m->in_game_share = in_game_share;
+    m->new_video_start_timestamp = new_video_start_timestamp;
     m->real_forward_from_message_id = message_id;
     forwarded_message_id_to_new_message_id.emplace(message_id, m->message_id);
     if (forwarded_message->replied_message_info.is_external()) {

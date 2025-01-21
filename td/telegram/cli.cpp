@@ -5761,14 +5761,16 @@ class CliClient final : public Actor {
       ChatId chat_id;
       ChatId from_chat_id;
       MessageId from_message_id;
-      get_args(args, chat_id, from_chat_id, from_message_id);
+      bool replace_video_start_timestamp;
+      get_args(args, chat_id, from_chat_id, from_message_id, replace_video_start_timestamp);
       td_api::object_ptr<td_api::messageCopyOptions> copy_options;
       if (op == "scopy") {
         copy_options = td_api::make_object<td_api::messageCopyOptions>(true, rand_bool(), as_caption("_as_d"),
                                                                        show_caption_above_media_);
       }
-      send_message(chat_id, td_api::make_object<td_api::inputMessageForwarded>(from_chat_id, from_message_id, true,
-                                                                               std::move(copy_options)));
+      send_message(chat_id, td_api::make_object<td_api::inputMessageForwarded>(
+                                from_chat_id, from_message_id, true, replace_video_start_timestamp,
+                                start_timestamp_, std::move(copy_options)));
     } else if (op == "sdice" || op == "sdicecd") {
       ChatId chat_id;
       string emoji;

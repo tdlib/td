@@ -4386,9 +4386,11 @@ inputMessageStory story_sender_chat_id:int53 story_id:int32 = InputMessageConten
 //@description A forwarded message
 //@from_chat_id Identifier for the chat this forwarded message came from
 //@message_id Identifier of the message to forward. A message can be forwarded only if messageProperties.can_be_forwarded
-//@in_game_share True, if a game message is being shared from a launched game; applies only to game messages
+//@in_game_share Pass true, if a game message is being shared from a launched game; applies only to game messages
+//@replace_video_start_timestamp Pass true to replace video start timestamp in the forwarded message
+//@new_video_start_timestamp The new video start timestamp; ignored if replace_video_start_timestamp == false
 //@copy_options Options to be used to copy content of the message without reference to the original sender; pass null to forward the message as usual
-inputMessageForwarded from_chat_id:int53 message_id:int53 in_game_share:Bool copy_options:messageCopyOptions = InputMessageContent;
+inputMessageForwarded from_chat_id:int53 message_id:int53 in_game_share:Bool replace_video_start_timestamp:Bool new_video_start_timestamp:int32 copy_options:messageCopyOptions = InputMessageContent;
 
 
 //@description Contains properties of a message and describes actions that can be done with the message right now
