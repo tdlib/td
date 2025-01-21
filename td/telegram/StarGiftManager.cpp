@@ -224,7 +224,8 @@ class SaveStarGiftQuery final : public Td::ResultHandler {
       flags |= telegram_api::payments_saveStarGift::UNSAVE_MASK;
     }
     send_query(G()->net_query_creator().create(
-        telegram_api::payments_saveStarGift(flags, false /*ignored*/, star_gift_id.get_input_saved_star_gift(td_))));
+        telegram_api::payments_saveStarGift(flags, false /*ignored*/, star_gift_id.get_input_saved_star_gift(td_)),
+        {{dialog_id_}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -258,7 +259,8 @@ class ToggleChatStarGiftNotificationsQuery final : public Td::ResultHandler {
       flags |= telegram_api::payments_toggleChatStarGiftNotifications::ENABLED_MASK;
     }
     send_query(G()->net_query_creator().create(
-        telegram_api::payments_toggleChatStarGiftNotifications(flags, false /*ignored*/, std::move(input_peer))));
+        telegram_api::payments_toggleChatStarGiftNotifications(flags, false /*ignored*/, std::move(input_peer)),
+        {{dialog_id_}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -672,9 +674,11 @@ class GetSavedStarGiftsQuery final : public Td::ResultHandler {
     if (sort_by_value) {
       flags |= telegram_api::payments_getSavedStarGifts::SORT_BY_VALUE_MASK;
     }
-    send_query(G()->net_query_creator().create(telegram_api::payments_getSavedStarGifts(
-        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, std::move(input_peer), offset, limit)));
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_getSavedStarGifts(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                                                 false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                                                 std::move(input_peer), offset, limit),
+        {{dialog_id_}}));
   }
 
   void on_result(BufferSlice packet) final {
