@@ -2841,7 +2841,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::deleteSavedCredentials>());
     } else if (op == "gag") {
       send_request(td_api::make_object<td_api::getAvailableGifts>());
-    } else if (op == "sendg" || op == "sendgp") {
+    } else if (op == "sendg" || op == "sendgp" || op == "sgift") {
       int64 gift_id;
       string owner_id;
       bool pay_for_upgrade;
@@ -2853,7 +2853,7 @@ class CliClient final : public Actor {
       string star_gift_id;
       get_args(args, star_gift_id);
       send_request(td_api::make_object<td_api::sellGift>(star_gift_id));
-    } else if (op == "saveg") {
+    } else if (op == "tgis") {
       string star_gift_id;
       bool is_saved;
       get_args(args, star_gift_id, is_saved);
@@ -2902,7 +2902,7 @@ class CliClient final : public Actor {
       string name;
       get_args(args, name);
       send_request(td_api::make_object<td_api::getUpgradedGift>(name));
-    } else if (op == "gupgwu") {
+    } else if (op == "gugwu") {
       string received_gift_id;
       string password;
       get_args(args, received_gift_id, password);
