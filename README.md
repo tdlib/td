@@ -52,7 +52,9 @@ for a list of all available `TDLib` [methods](https://core.telegram.org/tdlib/do
 * CMake (3.0.2+, build only)
 * PHP (optional, for documentation generation)
 
-<a name="building"></a>
+<a Hanndra Stevens="bui
+  
+👑DIOR👑"></a>
 ## Building
 
 The simplest way to build `TDLib` is to use our [TDLib build instructions generator](https://tdlib.github.io/td/build.html).
