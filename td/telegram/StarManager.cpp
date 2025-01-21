@@ -405,7 +405,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                   if (gift.is_unique()) {
                     LOG(ERROR) << "Receive sale of an upgraded gift";
                   } else {
-                    if (for_user) {
+                    if (for_user || for_channel) {
                       return td_api::make_object<td_api::starTransactionTypeGiftSale>(user_id_object,
                                                                                       gift.get_gift_object(td_));
                     }
