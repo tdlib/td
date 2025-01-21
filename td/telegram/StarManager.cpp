@@ -392,13 +392,15 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                     } else {
                       if (for_user) {
                         return td_api::make_object<td_api::starTransactionTypeGiftTransfer>(
-                            user_id_object, gift.get_upgraded_gift_object(td_));
+                            get_message_sender_object(td_, user_id, DialogId(), "starTransactionTypeGiftTransfer"),
+                            gift.get_upgraded_gift_object(td_));
                       }
                     }
                   } else {
                     if (for_user || for_bot) {
-                      return td_api::make_object<td_api::starTransactionTypeGiftPurchase>(user_id_object,
-                                                                                          gift.get_gift_object(td_));
+                      return td_api::make_object<td_api::starTransactionTypeGiftPurchase>(
+                          get_message_sender_object(td_, user_id, DialogId(), "starTransactionTypeGiftPurchase"),
+                          gift.get_gift_object(td_));
                     }
                   }
                 } else {
@@ -506,6 +508,32 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
             // partner isn't a user now
             td_->dialog_manager_->force_create_dialog(dialog_id, "starsTransactionPeer", true);
             auto chat_id = td_->dialog_manager_->get_chat_id_object(dialog_id, "starsTransactionPeer");
+            if (transaction->stargift_ != nullptr) {
+              auto gift = StarGift(td_, std::move(transaction->stargift_), true);
+              transaction->stargift_ = nullptr;
+              if (!gift.is_valid()) {
+                return nullptr;
+              }
+              td_->star_gift_manager_->on_get_star_gift(gift, true);
+              if (is_purchase) {
+                if (gift.is_unique()) {
+                  if (!transaction->stargift_upgrade_) {
+                    if (for_user) {
+                      return td_api::make_object<td_api::starTransactionTypeGiftTransfer>(
+                          get_message_sender_object(td_, UserId(), dialog_id, "starTransactionTypeGiftTransfer"),
+                          gift.get_upgraded_gift_object(td_));
+                    }
+                  }
+                } else {
+                  if (for_user || for_bot) {
+                    return td_api::make_object<td_api::starTransactionTypeGiftPurchase>(
+                        get_message_sender_object(td_, UserId(), dialog_id, "starTransactionTypeGiftPurchase"),
+                        gift.get_gift_object(td_));
+                  }
+                }
+              }
+              return nullptr;
+            }
             if (transaction->giveaway_post_id_ > 0) {
               if (for_user && dialog_id.get_type() == DialogType::Channel) {
                 SCOPE_EXIT {
