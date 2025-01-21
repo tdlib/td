@@ -4132,7 +4132,7 @@ static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_in
     case MessageContentType::Video: {
       const auto *m = static_cast<const MessageVideo *>(content);
       return td->videos_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail),
-                                                  m->start_timestamp, ttl.get_input_ttl(), m->has_spoiler);
+                                                  m->cover, m->start_timestamp, ttl.get_input_ttl(), m->has_spoiler);
     }
     case MessageContentType::VideoNote: {
       const auto *m = static_cast<const MessageVideoNote *>(content);

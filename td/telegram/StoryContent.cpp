@@ -316,7 +316,8 @@ telegram_api::object_ptr<telegram_api::InputMedia> get_story_content_input_media
     }
     case StoryContentType::Video: {
       const auto *story_content = static_cast<const StoryContentVideo *>(content);
-      return td->videos_manager_->get_input_media(story_content->file_id_, std::move(input_file), nullptr, 0, 0, false);
+      return td->videos_manager_->get_input_media(story_content->file_id_, std::move(input_file), nullptr, Photo(), 0,
+                                                  0, false);
     }
     case StoryContentType::Unsupported:
     default:
