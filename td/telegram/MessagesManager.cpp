@@ -28969,7 +28969,9 @@ void MessagesManager::on_send_dialog_action_timeout(DialogId dialog_id) {
 
   auto file_upload_id = get_message_send_file_upload_id(dialog_id, m, 0);
   if (!file_upload_id.is_valid()) {
-    LOG(ERROR) << "Have no file in " << to_string(get_message_message_content_object(dialog_id, m));
+    if (get_message_content_cover(m->content.get()) == nullptr) {
+      LOG(ERROR) << "Have no being uploaded file in " << to_string(get_message_message_content_object(dialog_id, m));
+    }
     return;
   }
   auto file_view = td_->file_manager_->get_file_view(file_upload_id.get_file_id());
