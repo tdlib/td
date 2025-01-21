@@ -5123,6 +5123,7 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
     case MessageContentType::BoostApply:
       break;
     case MessageContentType::DialogShared:
+      // private chats only
       break;
     case MessageContentType::PaidMedia:
       break;
@@ -5132,10 +5133,13 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
     case MessageContentType::GiftStars:
       break;
     case MessageContentType::PrizeStars:
+      // private chats only
       break;
     case MessageContentType::StarGift:
+      // private chats only
       break;
     case MessageContentType::StarGiftUnique:
+      // private chats only
       break;
     default:
       UNREACHABLE();
