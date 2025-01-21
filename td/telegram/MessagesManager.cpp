@@ -622,45 +622,6 @@ class SearchPublicDialogsQuery final : public Td::ResultHandler {
   }
 };
 
-class SetChatThemeQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  DialogId dialog_id_;
-
- public:
-  explicit SetChatThemeQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(DialogId dialog_id, const string &theme_name) {
-    dialog_id_ = dialog_id;
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
-    CHECK(input_peer != nullptr);
-    send_query(G()->net_query_creator().create(telegram_api::messages_setChatTheme(std::move(input_peer), theme_name)));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_setChatTheme>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for SetChatThemeQuery: " << to_string(ptr);
-    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
-  }
-
-  void on_error(Status status) final {
-    if (status.message() == "CHAT_NOT_MODIFIED") {
-      if (!td_->auth_manager_->is_bot()) {
-        promise_.set_value(Unit());
-        return;
-      }
-    } else {
-      td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "SetChatThemeQuery");
-    }
-    promise_.set_error(std::move(status));
-  }
-};
-
 class SetHistoryTtlQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -29630,8 +29591,7 @@ void MessagesManager::set_dialog_theme(DialogId dialog_id, const string &theme_n
     return promise.set_value(Unit());
   }
 
-  // TODO invoke after
-  td_->create_handler<SetChatThemeQuery>(std::move(promise))->send(dialog_id, theme_name);
+  td_->dialog_manager_->set_dialog_theme_on_server(dialog_id, theme_name, std::move(promise));
 }
 
 void MessagesManager::pin_dialog_message(BusinessConnectionId business_connection_id, DialogId dialog_id,

@@ -242,6 +242,8 @@ class DialogManager final : public Actor {
   void set_dialog_available_reactions_on_server(DialogId dialog_id, const ChatReactions &available_reactions,
                                                 Promise<Unit> &&promise);
 
+  void set_dialog_theme_on_server(DialogId dialog_id, const string &theme_name, Promise<Unit> &&promise);
+
   void toggle_dialog_is_blocked_on_server(DialogId dialog_id, bool is_blocked, bool is_blocked_for_stories,
                                           uint64 log_event_id);
 
