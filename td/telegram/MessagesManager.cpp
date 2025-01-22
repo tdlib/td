@@ -622,47 +622,6 @@ class SearchPublicDialogsQuery final : public Td::ResultHandler {
   }
 };
 
-class SetHistoryTtlQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  DialogId dialog_id_;
-
- public:
-  explicit SetHistoryTtlQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(DialogId dialog_id, int32 period) {
-    dialog_id_ = dialog_id;
-
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
-    CHECK(input_peer != nullptr);
-
-    send_query(G()->net_query_creator().create(telegram_api::messages_setHistoryTTL(std::move(input_peer), period)));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_setHistoryTTL>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for SetHistoryTtlQuery: " << to_string(ptr);
-    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
-  }
-
-  void on_error(Status status) final {
-    if (status.message() == "CHAT_NOT_MODIFIED") {
-      if (!td_->auth_manager_->is_bot()) {
-        promise_.set_value(Unit());
-        return;
-      }
-    } else {
-      td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "SetHistoryTtlQuery");
-    }
-    promise_.set_error(std::move(status));
-  }
-};
-
 class GetMessagesViewsQuery final : public Td::ResultHandler {
   DialogId dialog_id_;
   vector<MessageId> message_ids_;
@@ -29544,8 +29503,7 @@ void MessagesManager::set_dialog_message_ttl(DialogId dialog_id, int32 ttl, Prom
   }
 
   if (dialog_id.get_type() != DialogType::SecretChat) {
-    // TODO invoke after
-    td_->create_handler<SetHistoryTtlQuery>(std::move(promise))->send(dialog_id, ttl);
+    td_->dialog_manager_->set_dialog_message_ttl_on_server(dialog_id, ttl, std::move(promise));
   } else {
     bool need_update_dialog_pos = false;
     Message *m =
