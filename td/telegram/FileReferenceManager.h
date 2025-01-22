@@ -47,7 +47,12 @@ class FileReferenceManager final : public Actor {
   ~FileReferenceManager() final;
 
   static bool is_file_reference_error(const Status &error);
-  static size_t get_file_reference_error_pos(const Status &error);
+
+  struct FileReferenceErrorSource {
+    size_t pos_;
+    bool is_cover_;
+  };
+  static FileReferenceErrorSource get_file_reference_error_source(const Status &error);
 
   FileSourceId create_message_file_source(MessageFullId message_full_id);
   FileSourceId create_user_photo_file_source(UserId user_id, int64 photo_id);

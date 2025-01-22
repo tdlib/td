@@ -1786,15 +1786,20 @@ class SendMultiMediaQuery final : public Td::ResultHandler {
     }
     LOG(INFO) << "Receive error for SendMultiMedia: " << status;
     if (!td_->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
-      auto pos = FileReferenceManager::get_file_reference_error_pos(status);
-      if (1 <= pos && pos <= file_upload_ids_.size() && file_upload_ids_[pos - 1].is_valid()) {
-        VLOG(file_references) << "Receive " << status << " for " << file_upload_ids_[pos - 1];
-        td_->file_manager_->delete_file_reference(file_upload_ids_[pos - 1].get_file_id(), file_references_[pos - 1]);
-        td_->messages_manager_->on_send_media_group_file_reference_error(dialog_id_, std::move(random_ids_));
-        return;
+      auto source = FileReferenceManager::get_file_reference_error_source(status);
+      if (source.is_cover_) {
+        // TODO
       } else {
-        LOG(ERROR) << "Receive file reference error " << status << ", but file_upload_ids = " << file_upload_ids_
-                   << ", message_count = " << file_upload_ids_.size();
+        auto pos = source.pos_;
+        if (1 <= pos && pos <= file_upload_ids_.size() && file_upload_ids_[pos - 1].is_valid()) {
+          VLOG(file_references) << "Receive " << status << " for " << file_upload_ids_[pos - 1];
+          td_->file_manager_->delete_file_reference(file_upload_ids_[pos - 1].get_file_id(), file_references_[pos - 1]);
+          td_->messages_manager_->on_send_media_group_file_reference_error(dialog_id_, std::move(random_ids_));
+          return;
+        } else {
+          LOG(ERROR) << "Receive file reference error " << status << ", but file_upload_ids = " << file_upload_ids_
+                     << ", message_count = " << file_upload_ids_.size();
+        }
       }
     }
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "SendMultiMediaQuery");
@@ -1907,18 +1912,23 @@ class SendMediaQuery final : public Td::ResultHandler {
         td_->file_manager_->delete_partial_remote_location_if_needed(file_upload_ids_[0], status);
       }
     } else if (!td_->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
-      auto pos = FileReferenceManager::get_file_reference_error_pos(status);
-      if (pos > 0) {
-        pos--;
-      }
-      if (pos < file_upload_ids_.size() && pos < file_references_.size() && !was_uploaded_) {
-        VLOG(file_references) << "Receive " << status << " for " << file_upload_ids_[pos];
-        td_->file_manager_->delete_file_reference(file_upload_ids_[pos].get_file_id(), file_references_[pos]);
-        td_->messages_manager_->on_send_message_file_reference_error(random_id_, pos);
-        return;
+      auto source = FileReferenceManager::get_file_reference_error_source(status);
+      if (source.is_cover_) {
+        // TODO
       } else {
-        LOG(ERROR) << "Receive file reference error " << pos << ", but file_upload_ids = " << file_upload_ids_
-                   << ", was_uploaded = " << was_uploaded_ << ", file_references = " << file_references_;
+        auto pos = source.pos_;
+        if (pos > 0) {
+          pos--;
+        }
+        if (pos < file_upload_ids_.size() && pos < file_references_.size() && !was_uploaded_) {
+          VLOG(file_references) << "Receive " << status << " for " << file_upload_ids_[pos];
+          td_->file_manager_->delete_file_reference(file_upload_ids_[pos].get_file_id(), file_references_[pos]);
+          td_->messages_manager_->on_send_message_file_reference_error(random_id_, pos);
+          return;
+        } else {
+          LOG(ERROR) << "Receive file reference error " << pos << ", but file_upload_ids = " << file_upload_ids_
+                     << ", was_uploaded = " << was_uploaded_ << ", file_references = " << file_references_;
+        }
       }
     }
 
@@ -23085,13 +23095,18 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
 
       td_->file_manager_->delete_partial_remote_location_if_needed(file_upload_id, error);
     } else if (!td_->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(error)) {
-      if (file_upload_id.is_valid()) {
-        VLOG(file_references) << "Receive " << error << " for " << file_upload_id;
-        td_->file_manager_->delete_file_reference(file_upload_id.get_file_id(), file_reference);
-        do_send_message(dialog_id, m, -1, {-1});
-        return;
+      auto source = FileReferenceManager::get_file_reference_error_source(error);
+      if (source.is_cover_) {
+        // TODO
       } else {
-        LOG(ERROR) << "Receive file reference error, but have no file_id";
+        if (file_upload_id.is_valid()) {
+          VLOG(file_references) << "Receive " << error << " for " << file_upload_id;
+          td_->file_manager_->delete_file_reference(file_upload_id.get_file_id(), file_reference);
+          do_send_message(dialog_id, m, -1, {-1});
+          return;
+        } else {
+          LOG(ERROR) << "Receive file reference error, but have no file_id";
+        }
       }
     }
 
