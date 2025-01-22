@@ -36,6 +36,7 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&st
       owner_dialog_id_ = DialogId(star_gift->owner_id_);
     }
     owner_name_ = std::move(star_gift->owner_name_);
+    owner_address_ = std::move(star_gift->owner_address_);
     unique_availability_issued_ = star_gift->availability_issued_;
     unique_availability_total_ = star_gift->availability_total_;
     for (auto &attribute : star_gift->attributes_) {
@@ -144,8 +145,9 @@ td_api::object_ptr<td_api::upgradedGift> StarGift::get_upgraded_gift_object(Td *
   return td_api::make_object<td_api::upgradedGift>(
       id_, title_, slug_, num_, unique_availability_issued_, unique_availability_total_,
       !owner_dialog_id_.is_valid() ? nullptr : get_message_sender_object(td, owner_dialog_id_, "upgradedGift"),
-      owner_name_, model_.get_upgraded_gift_model_object(td), pattern_.get_upgraded_gift_symbol_object(td),
-      backdrop_.get_upgraded_gift_backdrop_object(), original_details_.get_upgraded_gift_original_details_object(td));
+      owner_address_, owner_name_, model_.get_upgraded_gift_model_object(td),
+      pattern_.get_upgraded_gift_symbol_object(td), backdrop_.get_upgraded_gift_backdrop_object(),
+      original_details_.get_upgraded_gift_original_details_object(td));
 }
 
 td_api::object_ptr<td_api::SentGift> StarGift::get_sent_gift_object(Td *td) const {
@@ -169,8 +171,9 @@ bool operator==(const StarGift &lhs, const StarGift &rhs) {
          lhs.last_sale_date_ == rhs.last_sale_date_ && lhs.is_for_birthday_ == rhs.is_for_birthday_ &&
          lhs.is_unique_ == rhs.is_unique_ && lhs.model_ == rhs.model_ && lhs.pattern_ == rhs.pattern_ &&
          lhs.backdrop_ == rhs.backdrop_ && lhs.original_details_ == rhs.original_details_ && lhs.title_ == rhs.title_ &&
-         lhs.slug_ == rhs.slug_ && lhs.owner_dialog_id_ == rhs.owner_dialog_id_ && lhs.owner_name_ == rhs.owner_name_ &&
-         lhs.num_ == rhs.num_ && lhs.unique_availability_issued_ == rhs.unique_availability_issued_ &&
+         lhs.slug_ == rhs.slug_ && lhs.owner_dialog_id_ == rhs.owner_dialog_id_ &&
+         lhs.owner_address_ == rhs.owner_address_ && lhs.owner_name_ == rhs.owner_name_ && lhs.num_ == rhs.num_ &&
+         lhs.unique_availability_issued_ == rhs.unique_availability_issued_ &&
          lhs.unique_availability_total_ == rhs.unique_availability_total_;
 }
 

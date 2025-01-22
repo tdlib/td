@@ -41,6 +41,7 @@ class StarGift {
   string title_;
   string slug_;
   DialogId owner_dialog_id_;
+  string owner_address_;
   string owner_name_;
   int32 num_ = 0;
   int32 unique_availability_issued_ = 0;
