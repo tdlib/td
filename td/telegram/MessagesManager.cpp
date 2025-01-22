@@ -6656,7 +6656,8 @@ void MessagesManager::on_upload_media(FileUploadId file_upload_id,
         LOG(INFO) << "Ask to upload thumbnail " << thumbnail_file_upload_id;
         bool is_inserted = being_uploaded_thumbnails_
                                .emplace(thumbnail_file_upload_id,
-                                        UploadedThumbnailInfo{message_full_id, std::move(input_file), media_pos})
+                                        UploadedThumbnailInfo{message_full_id, file_upload_id, std::move(input_file),
+                                                              media_pos, m->edit_generation})
                                .second;
         CHECK(is_inserted);
         td_->file_manager_->upload(thumbnail_file_upload_id, upload_thumbnail_callback_, 32, m->message_id.get());
@@ -6833,8 +6834,10 @@ void MessagesManager::on_upload_thumbnail(FileUploadId thumbnail_file_upload_id,
   }
 
   auto message_full_id = it->second.message_full_id;
+  auto file_upload_id = it->second.file_upload_id;
   auto input_file = std::move(it->second.input_file);
   auto media_pos = it->second.media_pos;
+  auto edit_generation = it->second.edit_generation;
 
   being_uploaded_thumbnails_.erase(it);
 
@@ -6861,6 +6864,11 @@ void MessagesManager::on_upload_thumbnail(FileUploadId thumbnail_file_upload_id,
     LOG(INFO) << "Can't send a message to " << dialog_id << ": " << can_send_status;
 
     fail_send_message(message_full_id, std::move(can_send_status));
+    return;
+  }
+  if (is_edit && m->edit_generation != edit_generation) {
+    cancel_upload_file(file_upload_id, "on_upload_thumbnail");
+    cancel_upload_file(thumbnail_file_upload_id, "on_upload_thumbnail");
     return;
   }
 

@@ -3107,8 +3107,10 @@ class MessagesManager final : public Actor {
   FlatHashMap<FileUploadId, UploadedFileInfo, FileUploadIdHash> being_uploaded_files_;
   struct UploadedThumbnailInfo {
     MessageFullId message_full_id;
+    FileUploadId file_upload_id;                                   // original file upload identifier
     telegram_api::object_ptr<telegram_api::InputFile> input_file;  // original file InputFile
     int32 media_pos;
+    uint64 edit_generation;
   };
   FlatHashMap<FileUploadId, UploadedThumbnailInfo, FileUploadIdHash> being_uploaded_thumbnails_;
   struct UploadedSecretThumbnailInfo {
