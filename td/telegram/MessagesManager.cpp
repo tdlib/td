@@ -2149,6 +2149,7 @@ class EditMessageQuery final : public Td::ResultHandler {
       }
     }
     td_->messages_manager_->on_get_message_error(dialog_id_, message_id_, status, "EditMessageQuery");
+    // promise checks for file reference and upload errors if media was edited
     promise_.set_error(std::move(status));
   }
 };
@@ -6618,6 +6619,7 @@ void MessagesManager::on_upload_media(FileUploadId file_upload_id,
 
   auto message_full_id = it->second.message_full_id;
   auto media_pos = it->second.media_pos;
+  auto edit_generation = it->second.edit_generation;
 
   being_uploaded_files_.erase(it);
 
@@ -6637,6 +6639,10 @@ void MessagesManager::on_upload_media(FileUploadId file_upload_id,
     LOG(INFO) << "Can't send a message to " << dialog_id << ": " << can_send_status;
 
     fail_send_message(message_full_id, std::move(can_send_status));
+    return;
+  }
+  if (is_edit && m->edit_generation != edit_generation) {
+    cancel_upload_file(file_upload_id, "on_upload_media");
     return;
   }
 
@@ -6748,11 +6754,17 @@ void MessagesManager::on_upload_media_error(FileUploadId file_upload_id, Status 
   }
 
   auto message_full_id = it->second.message_full_id;
+  auto edit_generation = it->second.edit_generation;
 
   being_uploaded_files_.erase(it);
 
   bool is_edit = message_full_id.get_message_id().is_any_server();
   if (is_edit) {
+    const auto *m = get_message(message_full_id);
+    if (m == nullptr || m->edit_generation != edit_generation) {
+      cancel_upload_file(file_upload_id, "on_upload_media_error");
+      return;
+    }
     fail_edit_message_media(message_full_id, std::move(status));
   } else {
     fail_send_message(message_full_id, std::move(status));
@@ -21636,9 +21648,10 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
       CHECK(file_upload_id.is_valid());
       FileView file_view = td_->file_manager_->get_file_view(file_upload_id.get_file_id());
       CHECK(file_view.is_encrypted_secret());
-      bool is_inserted =
-          being_uploaded_files_.emplace(file_upload_id, UploadedFileInfo{MessageFullId(dialog_id, m->message_id), -1})
-              .second;
+      bool is_inserted = being_uploaded_files_
+                             .emplace(file_upload_id,
+                                      UploadedFileInfo{MessageFullId(dialog_id, m->message_id), -1, m->edit_generation})
+                             .second;
       CHECK(is_inserted);
       // need to call resume_upload synchronously to make upload process consistent with being_uploaded_files_
       td_->file_manager_->resume_upload(file_upload_id, std::move(bad_parts), upload_media_callback_, 1,
@@ -21688,7 +21701,8 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
             being_uploaded_files_
                 .emplace(file_upload_id,
                          UploadedFileInfo{MessageFullId(dialog_id, m->message_id),
-                                          content_type == MessageContentType::PaidMedia ? static_cast<int32>(i) : -1})
+                                          content_type == MessageContentType::PaidMedia ? static_cast<int32>(i) : -1,
+                                          m->edit_generation})
                 .second;
         CHECK(is_inserted);
         // need to call resume_upload synchronously to make upload process consistent with being_uploaded_files_

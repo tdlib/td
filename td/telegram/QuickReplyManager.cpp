@@ -690,6 +690,7 @@ class QuickReplyManager::EditQuickReplyMessageQuery final : public Td::ResultHan
       return td_->quick_reply_manager_->on_edit_quick_reply_message(shortcut_id_, message_id_, edit_generation_,
                                                                     file_upload_id_, was_uploaded_, nullptr);
     }
+    // checks for file reference and upload errors
     td_->quick_reply_manager_->fail_edit_quick_reply_message(
         shortcut_id_, message_id_, edit_generation_, file_upload_id_, thumbnail_file_upload_id_, file_reference_,
         was_uploaded_, was_thumbnail_uploaded_, std::move(status));

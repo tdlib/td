@@ -3102,6 +3102,7 @@ class MessagesManager final : public Actor {
   struct UploadedFileInfo {
     MessageFullId message_full_id;
     int32 media_pos;
+    uint64 edit_generation;
   };
   FlatHashMap<FileUploadId, UploadedFileInfo, FileUploadIdHash> being_uploaded_files_;
   struct UploadedThumbnailInfo {
