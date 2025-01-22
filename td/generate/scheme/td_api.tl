@@ -4050,7 +4050,7 @@ messageGift gift:gift sender_id:MessageSender received_gift_id:string text:forma
 
 //@description An upgraded gift was received or sent by the current user, or the current user was notified about a channel gift
 //@gift The gift
-//@sender_id Sender of the gift
+//@sender_id Sender of the gift; may be null for anonymous gifts
 //@received_gift_id Unique identifier of the received gift for the current user; only for the receiver of the gift
 //@is_upgrade True, if the gift was obtained by upgrading of a previously received gift; otherwise, this is a transferred gift
 //@is_saved True, if the gift is displayed on the user's or the channel's profile page; only for the receiver of the gift

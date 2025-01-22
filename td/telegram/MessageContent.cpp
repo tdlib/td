@@ -8738,8 +8738,8 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(const Mess
       }
       if (m->was_refunded) {
         return td_api::make_object<td_api::messageRefundedUpgradedGift>(
-            m->star_gift.get_gift_object(td), get_message_sender_object(td, sender_dialog_id, "messageUpgradedGift"),
-            m->is_upgrade);
+            m->star_gift.get_gift_object(td),
+            get_message_sender_object(td, sender_dialog_id, "messageRefundedUpgradedGift"), m->is_upgrade);
       }
       StarGiftId star_gift_id;
       if (m->owner_dialog_id != DialogId()) {
@@ -8753,8 +8753,11 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(const Mess
       }
       return td_api::make_object<td_api::messageUpgradedGift>(
           m->star_gift.get_upgraded_gift_object(td),
-          get_message_sender_object(td, sender_dialog_id, "messageUpgradedGift"), star_gift_id.get_star_gift_id(),
-          m->is_upgrade, m->is_saved, m->can_transfer, m->was_transferred, m->transfer_star_count, m->can_export_at);
+          sender_dialog_id == DialogId(UserManager::get_service_notifications_user_id())
+              ? nullptr
+              : get_message_sender_object(td, sender_dialog_id, "messageUpgradedGift"),
+          star_gift_id.get_star_gift_id(), m->is_upgrade, m->is_saved, m->can_transfer, m->was_transferred,
+          m->transfer_star_count, m->can_export_at);
     }
     default:
       UNREACHABLE();
