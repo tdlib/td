@@ -1825,24 +1825,29 @@ class SendMediaQuery final : public Td::ResultHandler {
   int64 random_id_ = 0;
   vector<FileUploadId> file_upload_ids_;
   vector<FileUploadId> thumbnail_file_upload_ids_;
+  vector<FileId> cover_file_ids_;
+  vector<string> cover_file_references_;
   DialogId dialog_id_;
   vector<string> file_references_;
   bool was_uploaded_ = false;
   bool was_thumbnail_uploaded_ = false;
 
  public:
-  void send(vector<FileUploadId> file_upload_ids, vector<FileUploadId> thumbnail_file_upload_ids, int32 flags,
-            DialogId dialog_id, tl_object_ptr<telegram_api::InputPeer> as_input_peer,
-            const MessageInputReplyTo &input_reply_to, MessageId top_thread_message_id, int32 schedule_date,
-            MessageEffectId effect_id, tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup,
+  void send(vector<FileUploadId> file_upload_ids, vector<FileUploadId> thumbnail_file_upload_ids,
+            vector<FileId> cover_file_ids, int32 flags, DialogId dialog_id,
+            tl_object_ptr<telegram_api::InputPeer> as_input_peer, const MessageInputReplyTo &input_reply_to,
+            MessageId top_thread_message_id, int32 schedule_date, MessageEffectId effect_id,
+            tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup,
             vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities, const string &text,
             tl_object_ptr<telegram_api::InputMedia> &&input_media, MessageContentType content_type, bool is_copy,
             int64 random_id, NetQueryRef *send_query_ref) {
     random_id_ = random_id;
     file_upload_ids_ = std::move(file_upload_ids);
     thumbnail_file_upload_ids_ = std::move(thumbnail_file_upload_ids);
+    cover_file_ids_ = std::move(cover_file_ids);
     dialog_id_ = dialog_id;
     file_references_ = FileManager::extract_file_references(input_media);
+    cover_file_references_ = FileManager::extract_cover_file_references(input_media);
     was_uploaded_ = FileManager::extract_was_uploaded(input_media);
     was_thumbnail_uploaded_ = FileManager::extract_was_thumbnail_uploaded(input_media);
 
@@ -1906,6 +1911,34 @@ class SendMediaQuery final : public Td::ResultHandler {
       // do not send error, message will be re-sent after restart
       return;
     }
+    if (!td_->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
+      auto source = FileReferenceManager::get_file_reference_error_source(status);
+      auto pos = source.pos_;
+      if (pos > 0) {
+        pos--;
+      }
+      if (source.is_cover_) {
+        if (pos < cover_file_ids_.size() && pos < cover_file_references_.size()) {
+          VLOG(file_references) << "Receive " << status << " for cover " << cover_file_ids_[pos];
+          td_->file_manager_->delete_file_reference(cover_file_ids_[pos], cover_file_references_[pos]);
+          td_->messages_manager_->on_send_message_file_reference_error(random_id_, pos);
+          return;
+        } else {
+          LOG(ERROR) << "Receive file reference error " << pos << ", but cover_file_ids = " << cover_file_ids_
+                     << ", file_references = " << cover_file_references_;
+        }
+      } else {
+        if (pos < file_upload_ids_.size() && pos < file_references_.size() && !was_uploaded_) {
+          VLOG(file_references) << "Receive " << status << " for " << file_upload_ids_[pos];
+          td_->file_manager_->delete_file_reference(file_upload_ids_[pos].get_file_id(), file_references_[pos]);
+          td_->messages_manager_->on_send_message_file_reference_error(random_id_, pos);
+          return;
+        } else {
+          LOG(ERROR) << "Receive file reference error " << pos << ", but file_upload_ids = " << file_upload_ids_
+                     << ", was_uploaded = " << was_uploaded_ << ", file_references = " << file_references_;
+        }
+      }
+    }
     if (was_uploaded_) {
       if (was_thumbnail_uploaded_) {
         CHECK(thumbnail_file_upload_ids_.size() == 1u);
@@ -1922,25 +1955,6 @@ class SendMediaQuery final : public Td::ResultHandler {
         return;
       } else {
         td_->file_manager_->delete_partial_remote_location_if_needed(file_upload_ids_[0], status);
-      }
-    } else if (!td_->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
-      auto source = FileReferenceManager::get_file_reference_error_source(status);
-      auto pos = source.pos_;
-      if (pos > 0) {
-        pos--;
-      }
-      if (source.is_cover_) {
-        // TODO
-      } else {
-        if (pos < file_upload_ids_.size() && pos < file_references_.size() && !was_uploaded_) {
-          VLOG(file_references) << "Receive " << status << " for " << file_upload_ids_[pos];
-          td_->file_manager_->delete_file_reference(file_upload_ids_[pos].get_file_id(), file_references_[pos]);
-          td_->messages_manager_->on_send_message_file_reference_error(random_id_, pos);
-          return;
-        } else {
-          LOG(ERROR) << "Receive file reference error " << pos << ", but file_upload_ids = " << file_upload_ids_
-                     << ", was_uploaded = " << was_uploaded_ << ", file_references = " << file_references_;
-        }
       }
     }
 
@@ -21791,7 +21805,8 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
                          LOG(INFO) << "Send media from " << m->message_id << " in " << dialog_id;
                          int64 random_id = begin_send_message(dialog_id, m);
                          td_->create_handler<SendMediaQuery>()->send(
-                             m->file_upload_ids, m->thumbnail_file_upload_ids, get_message_flags(m), dialog_id,
+                             m->file_upload_ids, m->thumbnail_file_upload_ids,
+                             get_message_content_cover_any_file_ids(m->content.get()), get_message_flags(m), dialog_id,
                              get_send_message_as_input_peer(m), *get_message_input_reply_to(m),
                              m->initial_top_thread_message_id, get_message_schedule_date(m), m->effect_id,
                              get_input_reply_markup(td_->user_manager_.get(), m->reply_markup),
@@ -22257,9 +22272,10 @@ void MessagesManager::do_send_paid_media_group(DialogId dialog_id, MessageId mes
 
   const FormattedText *caption = get_message_content_caption(m->content.get());
   td_->create_handler<SendMediaQuery>()->send(
-      m->file_upload_ids, m->thumbnail_file_upload_ids, get_message_flags(m), dialog_id,
-      get_send_message_as_input_peer(m), *get_message_input_reply_to(m), m->initial_top_thread_message_id,
-      get_message_schedule_date(m), m->effect_id, get_input_reply_markup(td_->user_manager_.get(), m->reply_markup),
+      m->file_upload_ids, m->thumbnail_file_upload_ids, get_message_content_cover_any_file_ids(m->content.get()),
+      get_message_flags(m), dialog_id, get_send_message_as_input_peer(m), *get_message_input_reply_to(m),
+      m->initial_top_thread_message_id, get_message_schedule_date(m), m->effect_id,
+      get_input_reply_markup(td_->user_manager_.get(), m->reply_markup),
       get_input_message_entities(td_->user_manager_.get(), caption, "do_send_paid_media_group"),
       caption == nullptr ? "" : caption->text, std::move(input_media), m->content->get_type(), m->is_copy, random_id,
       &m->send_query_ref);
@@ -22301,8 +22317,8 @@ void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageI
           message_text->text, m->is_copy, random_id, &m->send_query_ref);
     } else {
       td_->create_handler<SendMediaQuery>()->send(
-          {}, {}, get_message_flags(m), dialog_id, get_send_message_as_input_peer(m), *get_message_input_reply_to(m),
-          m->initial_top_thread_message_id, get_message_schedule_date(m), m->effect_id,
+          {}, {}, {}, get_message_flags(m), dialog_id, get_send_message_as_input_peer(m),
+          *get_message_input_reply_to(m), m->initial_top_thread_message_id, get_message_schedule_date(m), m->effect_id,
           get_input_reply_markup(td_->user_manager_.get(), m->reply_markup),
           get_input_message_entities(td_->user_manager_.get(), message_text, "on_text_message_ready_to_send"),
           message_text->text, std::move(input_media), MessageContentType::Text, m->is_copy, random_id,

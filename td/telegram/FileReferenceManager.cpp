@@ -67,6 +67,9 @@ FileReferenceManager::FileReferenceErrorSource FileReferenceManager::get_file_re
   }
   message = message.substr(offset);
   if (!is_digit(message[0])) {
+    if (message[0] == '_') {
+      message = message.substr(1);
+    }
     return {0, begins_with(message, "COVER_")};
   }
   auto underscore_pos = message.find('_');
