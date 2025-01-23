@@ -3842,13 +3842,10 @@ void FileManager::run_upload(FileNodePtr node, vector<int> bad_parts) {
 
   CHECK(node->upload_id_ == 0);
   if (file_view.has_alive_remote_location() && !file_view.has_active_upload_remote_location() &&
-      can_reuse_remote_file(file_view.get_type())) {
+      can_reuse_remote_file(file_view.get_type()) && !node->upload_was_update_file_reference_) {
     FileUploadManager::QueryId query_id =
         upload_queries_.create(UploadQuery{file_id, UploadQuery::Type::UploadWaitFileReference});
     node->upload_id_ = query_id;
-    if (node->upload_was_update_file_reference_) {
-      return on_upload_error(query_id, Status::Error("Can't upload file: have no valid file reference"));
-    }
     node->upload_was_update_file_reference_ = true;
 
     context_->repair_file_reference(node->main_file_id_,
