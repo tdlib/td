@@ -944,7 +944,7 @@ void StarGiftManager::convert_gift(StarGiftId star_gift_id, Promise<Unit> &&prom
     if (result.is_error()) {
       return promise.set_error(result.move_as_error());
     }
-    send_closure(actor_id, &StarGiftManager::on_dialog_gift_deleted, dialog_id, std::move(promise));
+    send_closure(actor_id, &StarGiftManager::on_dialog_gift_transferred, dialog_id, DialogId(), std::move(promise));
   });
   td_->create_handler<ConvertStarGiftQuery>(std::move(query_promise))->send(star_gift_id);
 }
@@ -1012,13 +1012,15 @@ void StarGiftManager::transfer_gift(StarGiftId star_gift_id, DialogId receiver_d
   if (star_count < 0) {
     return promise.set_error(Status::Error(400, "Invalid amount of Telegram Stars specified"));
   }
-  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id = star_gift_id.get_dialog_id(td_),
-                                               promise = std::move(promise)](Result<Unit> &&result) mutable {
-    if (result.is_error()) {
-      return promise.set_error(result.move_as_error());
-    }
-    send_closure(actor_id, &StarGiftManager::on_dialog_gift_deleted, dialog_id, std::move(promise));
-  });
+  auto query_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), dialog_id = star_gift_id.get_dialog_id(td_),
+                              receiver_dialog_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
+        if (result.is_error()) {
+          return promise.set_error(result.move_as_error());
+        }
+        send_closure(actor_id, &StarGiftManager::on_dialog_gift_transferred, dialog_id, receiver_dialog_id,
+                     std::move(promise));
+      });
   if (star_count != 0) {
     if (!td_->star_manager_->has_owned_star_count(star_count)) {
       return query_promise.set_error(Status::Error(400, "Have not enough Telegram Stars"));
@@ -1036,9 +1038,19 @@ void StarGiftManager::transfer_gift(StarGiftId star_gift_id, DialogId receiver_d
   }
 }
 
-void StarGiftManager::on_dialog_gift_deleted(DialogId dialog_id, Promise<Unit> &&promise) {
+void StarGiftManager::on_dialog_gift_transferred(DialogId from_dialog_id, DialogId to_dialog_id, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
-  td_->dialog_manager_->reload_dialog_info_full(dialog_id, "on_dialog_gift_deleted");
+  if (from_dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
+    td_->user_manager_->on_update_my_gift_count(-1);
+  } else if (from_dialog_id.get_type() == DialogType::Channel) {
+    td_->chat_manager_->on_update_channel_gift_count(from_dialog_id.get_channel_id(), -1, true);
+  }
+  if (to_dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
+    td_->user_manager_->on_update_my_gift_count(1);
+  } else if (to_dialog_id.get_type() == DialogType::Channel &&
+             td_->chat_manager_->get_channel_status(to_dialog_id.get_channel_id()).can_post_messages()) {
+    td_->chat_manager_->on_update_channel_gift_count(to_dialog_id.get_channel_id(), 1, true);
+  }
   promise.set_value(Unit());
 }
 

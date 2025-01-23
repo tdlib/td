@@ -90,7 +90,7 @@ class StarGiftManager final : public Actor {
 
   void on_online();
 
-  void on_dialog_gift_deleted(DialogId dialog_id, Promise<Unit> &&promise);
+  void on_dialog_gift_transferred(DialogId from_dialog_id, DialogId to_dialog_id, Promise<Unit> &&promise);
 
   Td *td_;
   ActorShared<> parent_;
