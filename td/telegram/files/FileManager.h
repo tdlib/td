@@ -591,6 +591,11 @@ class FileManager final : public Actor {
 
   static vector<string> extract_file_references(const telegram_api::object_ptr<telegram_api::InputMedia> &input_media);
 
+  static string extract_cover_file_reference(const telegram_api::object_ptr<telegram_api::InputMedia> &input_media);
+
+  static vector<string> extract_cover_file_references(
+      const telegram_api::object_ptr<telegram_api::InputMedia> &input_media);
+
   static string extract_file_reference(const telegram_api::object_ptr<telegram_api::InputDocument> &input_document);
 
   static string extract_file_reference(const telegram_api::object_ptr<telegram_api::InputPhoto> &input_photo);

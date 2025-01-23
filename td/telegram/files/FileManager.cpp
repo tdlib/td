@@ -4483,6 +4483,50 @@ vector<string> FileManager::extract_file_references(
   }
 }
 
+string FileManager::extract_cover_file_reference(
+    const telegram_api::object_ptr<telegram_api::InputMedia> &input_media) {
+  if (input_media == nullptr) {
+    return string();
+  }
+
+  switch (input_media->get_id()) {
+    case telegram_api::inputMediaDocument::ID:
+      return extract_file_reference(
+          static_cast<const telegram_api::inputMediaDocument *>(input_media.get())->video_cover_);
+    case telegram_api::inputMediaDocumentExternal::ID:
+      return extract_file_reference(
+          static_cast<const telegram_api::inputMediaDocumentExternal *>(input_media.get())->video_cover_);
+    case telegram_api::inputMediaUploadedDocument::ID:
+      return extract_file_reference(
+          static_cast<const telegram_api::inputMediaUploadedDocument *>(input_media.get())->video_cover_);
+    case telegram_api::inputMediaPaidMedia::ID:
+      UNREACHABLE();
+      return string();
+    default:
+      return string();
+  }
+}
+
+vector<string> FileManager::extract_cover_file_references(
+    const telegram_api::object_ptr<telegram_api::InputMedia> &input_media) {
+  if (input_media == nullptr) {
+    return {};
+  }
+  switch (input_media->get_id()) {
+    case telegram_api::inputMediaDocument::ID:
+    case telegram_api::inputMediaDocumentExternal::ID:
+    case telegram_api::inputMediaUploadedDocument::ID:
+      return {extract_cover_file_reference(input_media)};
+    case telegram_api::inputMediaPaidMedia::ID:
+      return transform(static_cast<const telegram_api::inputMediaPaidMedia *>(input_media.get())->extended_media_,
+                       [](const telegram_api::object_ptr<telegram_api::InputMedia> &media) {
+                         return extract_cover_file_reference(media);
+                       });
+    default:
+      return {};
+  }
+}
+
 string FileManager::extract_file_reference(
     const telegram_api::object_ptr<telegram_api::InputDocument> &input_document) {
   if (input_document == nullptr || input_document->get_id() != telegram_api::inputDocument::ID) {
