@@ -21618,7 +21618,7 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
   if (!is_secret) {
     auto *cover = get_message_content_cover(content);
     if (cover != nullptr) {
-      auto input_media = photo_get_input_media(td_->file_manager_.get(), *cover, nullptr, 0, false);
+      auto input_media = photo_get_cover_input_media(td_->file_manager_.get(), *cover, td_->auth_manager_->is_bot());
       if (input_media == nullptr) {
         return td_->message_query_manager_->upload_message_cover(
             BusinessConnectionId(), dialog_id, *cover, FileUploadId(),

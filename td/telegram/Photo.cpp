@@ -684,6 +684,19 @@ SecretInputMedia photo_get_secret_input_media(FileManager *file_manager, const P
           BufferSlice(encryption_key.key_slice()), BufferSlice(encryption_key.iv_slice()), caption)};
 }
 
+telegram_api::object_ptr<telegram_api::InputMedia> photo_get_cover_input_media(FileManager *file_manager,
+                                                                               const Photo &photo, bool force) {
+  auto input_media = photo_get_input_media(file_manager, photo, nullptr, 0, false);
+  auto file_reference = FileManager::extract_file_reference(input_media);
+  if (file_reference == FileReferenceView::invalid_file_reference()) {
+    if (!force) {
+      LOG(INFO) << "Have invalid file reference for cover " << photo;
+      return nullptr;
+    }
+  }
+  return input_media;
+}
+
 vector<FileId> photo_get_file_ids(const Photo &photo) {
   auto result = transform(photo.photos, [](auto &size) { return size.file_id; });
   if (!photo.animations.empty()) {

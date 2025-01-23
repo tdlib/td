@@ -144,6 +144,9 @@ tl_object_ptr<telegram_api::InputMedia> photo_get_input_media(
     FileManager *file_manager, const Photo &photo, telegram_api::object_ptr<telegram_api::InputFile> input_file,
     int32 ttl, bool has_spoiler);
 
+telegram_api::object_ptr<telegram_api::InputMedia> photo_get_cover_input_media(FileManager *file_manager,
+                                                                               const Photo &photo, bool force);
+
 vector<FileId> photo_get_file_ids(const Photo &photo);
 
 bool operator==(const Photo &lhs, const Photo &rhs);

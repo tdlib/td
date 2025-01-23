@@ -5366,6 +5366,27 @@ class CliClient final : public Actor {
             chat_id, message_thread_id_, get_input_message_reply_to(), default_message_send_options(),
             std::move(input_message_contents)));
       }
+    } else if (op == "smav") {
+      ChatId chat_id;
+      get_args(args, chat_id, args);
+      auto input_message_contents = transform(full_split(args), [this](const string &video) {
+        td_api::object_ptr<td_api::InputMessageContent> content = td_api::make_object<td_api::inputMessageVideo>(
+            as_input_file(video), nullptr, get_input_cover(), start_timestamp_, Auto(), 1, 2, 3, true, as_caption(""),
+            show_caption_above_media_, get_message_self_destruct_type(), has_spoiler_);
+        return content;
+      });
+      if (!business_connection_id_.empty()) {
+        send_request(td_api::make_object<td_api::sendBusinessMessageAlbum>(
+            business_connection_id_, chat_id, get_input_message_reply_to(), rand_bool(), rand_bool(),
+            message_effect_id_, std::move(input_message_contents)));
+      } else if (!quick_reply_shortcut_name_.empty()) {
+        send_request(td_api::make_object<td_api::addQuickReplyShortcutMessageAlbum>(
+            quick_reply_shortcut_name_, reply_message_id_, std::move(input_message_contents)));
+      } else {
+        send_request(td_api::make_object<td_api::sendMessageAlbum>(
+            chat_id, message_thread_id_, get_input_message_reply_to(), default_message_send_options(),
+            std::move(input_message_contents)));
+      }
     } else if (op == "savt") {
       int64 verification_id;
       string token;
@@ -5769,8 +5790,8 @@ class CliClient final : public Actor {
                                                                        show_caption_above_media_);
       }
       send_message(chat_id, td_api::make_object<td_api::inputMessageForwarded>(
-                                from_chat_id, from_message_id, true, replace_video_start_timestamp,
-                                start_timestamp_, std::move(copy_options)));
+                                from_chat_id, from_message_id, true, replace_video_start_timestamp, start_timestamp_,
+                                std::move(copy_options)));
     } else if (op == "sdice" || op == "sdicecd") {
       ChatId chat_id;
       string emoji;

@@ -898,7 +898,7 @@ void BusinessConnectionManager::do_send_message(unique_ptr<PendingMessage> &&mes
 
   auto *cover = get_message_content_cover(content);
   if (cover != nullptr) {
-    auto input_media = photo_get_input_media(td_->file_manager_.get(), *cover, nullptr, 0, false);
+    auto input_media = photo_get_cover_input_media(td_->file_manager_.get(), *cover, td_->auth_manager_->is_bot());
     if (input_media == nullptr) {
       auto business_connection_id = message->business_connection_id_;
       auto dialog_id = message->dialog_id_;
@@ -1405,7 +1405,7 @@ void BusinessConnectionManager::do_edit_message_media(unique_ptr<PendingMessage>
                                                       Promise<td_api::object_ptr<td_api::businessMessage>> &&promise) {
   auto *cover = get_message_content_cover(message->content_.get());
   if (cover != nullptr) {
-    auto input_media = photo_get_input_media(td_->file_manager_.get(), *cover, nullptr, 0, false);
+    auto input_media = photo_get_cover_input_media(td_->file_manager_.get(), *cover, td_->auth_manager_->is_bot());
     if (input_media == nullptr) {
       auto business_connection_id = message->business_connection_id_;
       auto dialog_id = message->dialog_id_;

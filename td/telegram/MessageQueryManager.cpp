@@ -1335,7 +1335,7 @@ void MessageQueryManager::complete_upload_message_cover(
   auto old_file_id = file_upload_id.get_file_id();
   send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_upload_id);
 
-  auto input_media = photo_get_input_media(td_->file_manager_.get(), photo, nullptr, 0, false);
+  auto input_media = photo_get_cover_input_media(td_->file_manager_.get(), photo, true);
   if (input_media == nullptr) {
     return promise.set_error(Status::Error(500, "Failed to upload file"));
   }
