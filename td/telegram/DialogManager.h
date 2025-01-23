@@ -242,6 +242,8 @@ class DialogManager final : public Actor {
   void set_dialog_available_reactions_on_server(DialogId dialog_id, const ChatReactions &available_reactions,
                                                 Promise<Unit> &&promise);
 
+  void set_dialog_default_send_as_on_server(DialogId dialog_id, DialogId send_as_dialog_id, Promise<Unit> &&promise);
+
   void set_dialog_message_ttl_on_server(DialogId dialog_id, int32 ttl, Promise<Unit> &&promise);
 
   void set_dialog_theme_on_server(DialogId dialog_id, const string &theme_name, Promise<Unit> &&promise);

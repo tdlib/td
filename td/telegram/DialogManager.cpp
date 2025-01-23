@@ -783,6 +783,43 @@ class SetChatAvailableReactionsQuery final : public Td::ResultHandler {
   }
 };
 
+class SaveDefaultSendAsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit SaveDefaultSendAsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, DialogId send_as_dialog_id) {
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+
+    auto send_as_input_peer = td_->dialog_manager_->get_input_peer(send_as_dialog_id, AccessRights::Read);
+    CHECK(send_as_input_peer != nullptr);
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_saveDefaultSendAs(std::move(input_peer), std::move(send_as_input_peer)),
+        {{dialog_id, MessageContentType::Photo}, {dialog_id, MessageContentType::Text}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_saveDefaultSendAs>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto success = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SaveDefaultSendAsQuery: " << success;
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    // td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "SaveDefaultSendAsQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class SetHistoryTtlQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -2990,6 +3027,11 @@ void DialogManager::set_dialog_available_reactions_on_server(DialogId dialog_id,
   // TODO invoke after
   td_->create_handler<SetChatAvailableReactionsQuery>(std::move(promise))
       ->send(dialog_id, std::move(available_reactions));
+}
+
+void DialogManager::set_dialog_default_send_as_on_server(DialogId dialog_id, DialogId send_as_dialog_id,
+                                                         Promise<Unit> &&promise) {
+  td_->create_handler<SaveDefaultSendAsQuery>(std::move(promise))->send(dialog_id, send_as_dialog_id);
 }
 
 void DialogManager::set_dialog_message_ttl_on_server(DialogId dialog_id, int32 ttl, Promise<Unit> &&promise) {
