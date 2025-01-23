@@ -5502,6 +5502,16 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::inputMessagePhoto>(as_input_file(photo), as_input_thumbnail(photo), Auto(), 0, 0,
                                                          as_caption(""), show_caption_above_media_, nullptr,
                                                          has_spoiler_)));
+    } else if (op == "eqrmv") {
+      ShortcutId shortcut_id;
+      MessageId message_id;
+      string video;
+      get_args(args, shortcut_id, message_id, video);
+      send_request(td_api::make_object<td_api::editQuickReplyMessage>(
+          shortcut_id, message_id,
+          td_api::make_object<td_api::inputMessageVideo>(
+              as_input_file(video), nullptr, get_input_cover(), start_timestamp_, Auto(), 1, 2, 3, true, as_caption(""),
+              show_caption_above_media_, get_message_self_destruct_type(), has_spoiler_)));
     } else if (op == "emvt") {
       ChatId chat_id;
       MessageId message_id;
