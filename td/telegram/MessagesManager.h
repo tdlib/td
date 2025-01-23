@@ -1739,8 +1739,9 @@ class MessagesManager final : public Actor {
   void cancel_edit_message_media(DialogId dialog_id, Message *m, Slice error_message);
 
   void on_message_media_edited(DialogId dialog_id, MessageId message_id, FileUploadId file_upload_id,
-                               FileUploadId thumbnail_file_upload_id, bool was_uploaded, bool was_thumbnail_uploaded,
-                               string file_reference, int32 schedule_date, uint64 generation, Result<int32> &&result);
+                               FileUploadId thumbnail_file_upload_id, FileId cover_file_id, bool was_uploaded,
+                               bool was_thumbnail_uploaded, string file_reference, string cover_file_reference,
+                               int32 schedule_date, uint64 generation, Result<int32> &&result);
 
   MessageId get_persistent_message_id(const Dialog *d, MessageId message_id) const;
 
