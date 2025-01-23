@@ -1245,15 +1245,6 @@ void MessageQueryManager::upload_message_cover(BusinessConnectionId business_con
   if (file_upload_id == FileUploadId()) {
     file_upload_id = FileUploadId(get_photo_any_file_id(photo), FileManager::get_internal_upload_id());
   }
-  auto file_id = file_upload_id.get_file_id();
-  CHECK(file_id.is_valid());
-  FileView file_view = td_->file_manager_->get_file_view(file_id);
-  CHECK(!file_view.empty());
-
-  const auto *main_remote_location = file_view.get_main_remote_location();
-  if (main_remote_location != nullptr && main_remote_location->is_web()) {
-    return promise.set_error(Status::Error(400, "Can't use a web file"));
-  }
 
   BeingUploadedCover cover;
   cover.business_connection_id_ = business_connection_id;
@@ -1261,7 +1252,9 @@ void MessageQueryManager::upload_message_cover(BusinessConnectionId business_con
   cover.photo_ = std::move(photo);
   cover.promise_ = std::move(promise);
 
-  if (main_remote_location == nullptr && file_view.has_url()) {
+  auto input_media = photo_get_cover_input_media(td_->file_manager_.get(), cover.photo_,
+                                                 td_->auth_manager_->is_bot() && bad_parts.empty());
+  if (input_media != nullptr && bad_parts.empty()) {
     return do_upload_cover(file_upload_id, std::move(cover));
   }
 
