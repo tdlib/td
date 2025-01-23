@@ -539,20 +539,24 @@ class QuickReplyManager::UploadQuickReplyMediaQuery final : public Td::ResultHan
 
 class QuickReplyManager::SendQuickReplyMultiMediaQuery final : public Td::ResultHandler {
   vector<FileId> file_ids_;
+  vector<FileId> cover_file_ids_;
   vector<string> file_references_;
+  vector<string> cover_file_references_;
   vector<int64> random_ids_;
   QuickReplyShortcutId shortcut_id_;
 
  public:
   void send(QuickReplyShortcutId shortcut_id, MessageId reply_to_message_id, bool invert_media,
-            vector<int64> &&random_ids, vector<FileId> &&file_ids,
+            vector<int64> &&random_ids, vector<FileId> &&file_ids, vector<FileId> &&cover_file_ids,
             vector<tl_object_ptr<telegram_api::inputSingleMedia>> &&input_single_media) {
     for (auto &single_media : input_single_media) {
       CHECK(FileManager::extract_was_uploaded(single_media->media_) == false);
       file_references_.push_back(FileManager::extract_file_reference(single_media->media_));
+      cover_file_references_.push_back(FileManager::extract_cover_file_reference(single_media->media_));
     }
     shortcut_id_ = shortcut_id;
     file_ids_ = std::move(file_ids);
+    cover_file_ids_ = std::move(cover_file_ids);
     random_ids_ = std::move(random_ids);
     CHECK(file_ids_.size() == random_ids_.size());
 
@@ -597,7 +601,15 @@ class QuickReplyManager::SendQuickReplyMultiMediaQuery final : public Td::Result
       auto source = FileReferenceManager::get_file_reference_error_source(status);
       auto pos = source.pos_;
       if (source.is_cover_) {
-        // TODO
+        if (1 <= pos && pos <= cover_file_ids_.size() && cover_file_ids_[pos - 1].is_valid()) {
+          VLOG(file_references) << "Receive " << status << " for cover " << cover_file_ids_[pos - 1];
+          td_->file_manager_->delete_file_reference(cover_file_ids_[pos - 1], cover_file_references_[pos - 1]);
+          td_->quick_reply_manager_->on_send_media_group_file_reference_error(shortcut_id_, std::move(random_ids_));
+          return;
+        } else {
+          LOG(ERROR) << "Receive file reference error " << status << ", but cover_file_ids = " << cover_file_ids_
+                     << ", message_count = " << cover_file_ids_.size();
+        }
       } else {
         if (1 <= pos && pos <= file_ids_.size() && file_ids_[pos - 1].is_valid()) {
           VLOG(file_references) << "Receive " << status << " for " << file_ids_[pos - 1];
@@ -2569,6 +2581,7 @@ void QuickReplyManager::do_send_message_group(QuickReplyShortcutId shortcut_id, 
   }
 
   vector<FileId> file_ids;
+  vector<FileId> cover_file_ids;
   vector<int64> random_ids;
   MessageId reply_to_message_id;
   bool invert_media = false;
@@ -2591,6 +2604,7 @@ void QuickReplyManager::do_send_message_group(QuickReplyShortcutId shortcut_id, 
     reply_to_message_id = m->reply_to_message_id;
     invert_media = m->invert_media;
     file_ids.push_back(m->file_upload_id.get_file_id());
+    cover_file_ids.push_back(get_message_content_cover_any_file_id(m->content.get()));
     random_ids.push_back(m->random_id);
 
     LOG(INFO) << "Have file " << file_ids.back() << " in " << m->message_id << " with result " << request.results[i]
@@ -2621,7 +2635,7 @@ void QuickReplyManager::do_send_message_group(QuickReplyShortcutId shortcut_id, 
   }
   td_->create_handler<SendQuickReplyMultiMediaQuery>()->send(shortcut_id, reply_to_message_id, invert_media,
                                                              std::move(random_ids), std::move(file_ids),
-                                                             std::move(input_single_media));
+                                                             std::move(cover_file_ids), std::move(input_single_media));
 }
 
 void QuickReplyManager::on_send_media_group_file_reference_error(QuickReplyShortcutId shortcut_id,
