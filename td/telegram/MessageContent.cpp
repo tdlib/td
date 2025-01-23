@@ -9043,6 +9043,45 @@ vector<FileId> get_message_content_any_file_ids(const MessageContent *content) {
   return {};
 }
 
+FileId get_message_content_cover_any_file_id(const MessageContent *content) {
+  CHECK(content != nullptr);
+  switch (content->get_type()) {
+    case MessageContentType::Video: {
+      auto video = static_cast<const MessageVideo *>(content);
+      if (!video->cover.is_empty()) {
+        return get_photo_any_file_id(video->cover);
+      }
+      break;
+    }
+    case MessageContentType::PaidMedia:
+      UNREACHABLE();
+      break;
+    default:
+      break;
+  }
+  return {};
+}
+
+vector<FileId> get_message_content_cover_any_file_ids(const MessageContent *content) {
+  CHECK(content != nullptr);
+  switch (content->get_type()) {
+    case MessageContentType::Video: {
+      auto video = static_cast<const MessageVideo *>(content);
+      if (!video->cover.is_empty()) {
+        return {get_photo_any_file_id(video->cover)};
+      }
+      break;
+    }
+    case MessageContentType::PaidMedia:
+      // return transform(static_cast<const MessagePaidMedia *>(content)->media,
+      //                  [](const MessageExtendedMedia &media) { return media.get_cover_any_file_id(); });
+      break;
+    default:
+      break;
+  }
+  return {};
+}
+
 void update_message_content_file_id_remote(MessageContent *content, FileId file_id) {
   if (file_id.get_remote() == 0) {
     return;

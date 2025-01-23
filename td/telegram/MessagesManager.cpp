@@ -21139,15 +21139,6 @@ void MessagesManager::delete_message_send_thumbnail_file_upload_id(DialogId dial
   (*file_upload_ids)[media_pos] = FileUploadId();
 }
 
-FileId MessagesManager::get_message_cover_file_id(const Message *m) {
-  CHECK(m != nullptr);
-  auto *cover = get_message_content_cover(m->content.get());
-  if (cover == nullptr) {
-    return FileId();
-  }
-  return get_photo_any_file_id(*cover);
-}
-
 class MessagesManager::SendMessageLogEvent {
  public:
   DialogId dialog_id;
@@ -22149,7 +22140,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
     as_input_peer = get_send_message_as_input_peer(m);
 
     file_upload_ids.push_back(get_message_send_file_upload_id(dialog_id, m, -1));
-    cover_file_ids.push_back(get_message_cover_file_id(m));
+    cover_file_ids.push_back(get_message_content_cover_any_file_id(m->content.get()));
     random_ids.push_back(begin_send_message(dialog_id, m));
 
     LOG(INFO) << "Have " << file_upload_ids.back() << " in " << m->message_id << " with result " << request.results[i]

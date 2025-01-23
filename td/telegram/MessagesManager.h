@@ -1782,8 +1782,6 @@ class MessagesManager final : public Actor {
 
   void delete_message_send_thumbnail_file_upload_id(DialogId dialog_id, Message *m, int32 media_pos);
 
-  static FileId get_message_cover_file_id(const Message *m);
-
   void do_forward_messages(DialogId to_dialog_id, DialogId from_dialog_id, const vector<Message *> &messages,
                            const vector<MessageId> &message_ids, bool drop_author, bool drop_media_captions,
                            uint64 log_event_id);
