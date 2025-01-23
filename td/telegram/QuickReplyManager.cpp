@@ -583,10 +583,10 @@ class QuickReplyManager::SendQuickReplyMultiMediaQuery final : public Td::Result
     LOG(INFO) << "Receive error for SendQuickReplyMultiMediaQuery: " << status;
     if (FileReferenceManager::is_file_reference_error(status)) {
       auto source = FileReferenceManager::get_file_reference_error_source(status);
+      auto pos = source.pos_;
       if (source.is_cover_) {
         // TODO
       } else {
-        auto pos = source.pos_;
         if (1 <= pos && pos <= file_ids_.size() && file_ids_[pos - 1].is_valid()) {
           VLOG(file_references) << "Receive " << status << " for " << file_ids_[pos - 1];
           td_->file_manager_->delete_file_reference(file_ids_[pos - 1], file_references_[pos - 1]);
