@@ -1794,7 +1794,7 @@ class SendMultiMediaQuery final : public Td::ResultHandler {
       auto pos = source.pos_;
       if (source.is_cover_) {
         if (1 <= pos && pos <= cover_file_ids_.size() && cover_file_ids_[pos - 1].is_valid()) {
-          VLOG(file_references) << "Receive " << status << " for " << cover_file_ids_[pos - 1];
+          VLOG(file_references) << "Receive " << status << " for cover " << cover_file_ids_[pos - 1];
           td_->file_manager_->delete_file_reference(cover_file_ids_[pos - 1], cover_file_references_[pos - 1]);
           td_->messages_manager_->on_send_media_group_file_reference_error(dialog_id_, std::move(random_ids_));
           return;
