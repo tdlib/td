@@ -5320,8 +5320,8 @@ class CliClient final : public Actor {
       get_args(args, chat_id, args);
       auto paid_media = transform(full_split(args), [&](const string &video) {
         return td_api::make_object<td_api::inputPaidMedia>(
-            td_api::make_object<td_api::inputPaidMediaTypeVideo>(start_timestamp_, 10, true), as_input_file(video),
-            nullptr, vector<int32>(), 0, 0);
+            td_api::make_object<td_api::inputPaidMediaTypeVideo>(get_input_cover(), start_timestamp_, 10, true),
+            as_input_file(video), nullptr, vector<int32>(), 0, 0);
       });
       send_message(chat_id, td_api::make_object<td_api::inputMessagePaidMedia>(
                                 12, std::move(paid_media), as_caption("12_3_ __4__"), rand_bool(), "video"));

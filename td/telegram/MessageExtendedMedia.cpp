@@ -162,6 +162,15 @@ Result<MessageExtendedMedia> MessageExtendedMedia::get_message_extended_media(
     }
     case Type::Video: {
       auto type = static_cast<td_api::inputPaidMediaTypeVideo *>(paid_media->type_.get());
+
+      TRY_RESULT(cover_file_id, td->file_manager_->get_input_file_id(FileType::Photo, type->cover_, owner_dialog_id,
+                                                                     true, false, false));
+      Photo cover;
+      if (cover_file_id.is_valid()) {
+        TRY_RESULT_ASSIGN(cover, create_photo(td->file_manager_.get(), cover_file_id, PhotoSize(), paid_media->width_,
+                                              paid_media->height_, vector<FileId>()));
+      }
+
       FileView file_view = td->file_manager_->get_file_view(file_id);
       auto suggested_path = file_view.suggested_path();
       const PathView path_view(suggested_path);
@@ -175,6 +184,7 @@ Result<MessageExtendedMedia> MessageExtendedMedia::get_message_extended_media(
                                         get_dimensions(paid_media->width_, paid_media->height_, nullptr),
                                         type->supports_streaming_, false, 0, 0.0, string(), false);
       result.video_file_id_ = file_id;
+      result.photo_ = std::move(cover);
       result.start_timestamp_ = max(0, type->start_timestamp_);
       break;
     }
