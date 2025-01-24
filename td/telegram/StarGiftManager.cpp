@@ -14,6 +14,7 @@
 #include "td/telegram/EmojiStatus.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageEntity.h"
+#include "td/telegram/MessageId.h"
 #include "td/telegram/MessageQuote.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/OnlineManager.h"

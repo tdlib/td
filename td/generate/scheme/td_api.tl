@@ -1080,7 +1080,7 @@ gifts gifts:vector<gift> = Gifts;
 //@total_upgraded_count Total number of gifts that were upgraded from the same gift
 //@max_upgraded_count The maximum number of gifts that can be upgraded from the same gift
 //@owner_id Identifier of the user or the chat that owns the upgraded gift; may be null if none or unknown
-//@owner_address Address of the gift NFT owner in TON blockchain, if any
+//@owner_address Address of the gift NFT owner in TON blockchain; may be empty if none
 //@owner_name Name of the owner for the case when owner identifier and address aren't known
 //@model Model of the upgraded gift
 //@symbol Symbol of the upgraded gift
@@ -1357,7 +1357,7 @@ profileAccentColors palette_colors:vector<int32> background_colors:vector<int32>
 profileAccentColor id:int32 light_theme_colors:profileAccentColors dark_theme_colors:profileAccentColors min_supergroup_chat_boost_level:int32 min_channel_chat_boost_level:int32 = ProfileAccentColor;
 
 
-//@class EmojiStatusType @description Describes a type of an emoji status
+//@class EmojiStatusType @description Describes type of emoji status
 
 //@description A custom emoji set as emoji status @custom_emoji_id Identifier of the custom emoji in stickerFormatTgs format
 emojiStatusTypeCustomEmoji custom_emoji_id:int64 = EmojiStatusType;
@@ -4048,7 +4048,7 @@ messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id
 //@was_converted True, if the gift was converted to Telegram Stars; only for the receiver of the gift
 //@was_upgraded True, if the gift was upgraded to a unique gift
 //@was_refunded True, if the gift was refunded and isn't available anymore
-//@upgraded_received_gift_id Identifier of the corresponding upgraded gift; can be empty if unknown. Use getReceivedGift to get information about the gift
+//@upgraded_received_gift_id Identifier of the corresponding upgraded gift; may be empty if unknown. Use getReceivedGift to get information about the gift
 messageGift gift:gift sender_id:MessageSender received_gift_id:string text:formattedText sell_star_count:int53 prepaid_upgrade_star_count:int53 is_private:Bool is_saved:Bool can_be_upgraded:Bool was_converted:Bool was_upgraded:Bool was_refunded:Bool upgraded_received_gift_id:string = MessageContent;
 
 //@description An upgraded gift was received or sent by the current user, or the current user was notified about a channel gift
@@ -4392,7 +4392,7 @@ inputMessageStory story_sender_chat_id:int53 story_id:int32 = InputMessageConten
 //@description A forwarded message
 //@from_chat_id Identifier for the chat this forwarded message came from
 //@message_id Identifier of the message to forward. A message can be forwarded only if messageProperties.can_be_forwarded
-//@in_game_share Pass true, if a game message is being shared from a launched game; applies only to game messages
+//@in_game_share Pass true if a game message is being shared from a launched game; applies only to game messages
 //@replace_video_start_timestamp Pass true to replace video start timestamp in the forwarded message
 //@new_video_start_timestamp The new video start timestamp; ignored if replace_video_start_timestamp == false
 //@copy_options Options to be used to copy content of the message without reference to the original sender; pass null to forward the message as usual
@@ -11762,12 +11762,12 @@ transferGift received_gift_id:string new_owner_id:MessageSender star_count:int53
 
 //@description Returns gifts received by the given user or chat
 //@owner_id Identifier of the gift receiver
-//@exclude_unsaved Pass True to exclude gifts that aren't saved to the chat's profile page. Always true for gifts received by other users and channel chats without can_post_messages administrator right
-//@exclude_saved Pass True to exclude gifts that are saved to the chat's profile page; for channel chats with can_post_messages administrator right only
-//@exclude_unlimited Pass True to exclude gifts that can be purchased unlimited number of times; for channel chats with can_post_messages administrator right only
-//@exclude_limited Pass True to exclude gifts that can be purchased limited number of times; for channel chats with can_post_messages administrator right only
-//@exclude_upgraded Pass True to exclude upgraded gifts; for channel chats with can_post_messages administrator right only
-//@sort_by_price Pass True to sort results by gift price instead of send date; for channel chats with can_post_messages administrator right only
+//@exclude_unsaved Pass true to exclude gifts that aren't saved to the chat's profile page. Always true for gifts received by other users and channel chats without can_post_messages administrator right
+//@exclude_saved Pass true to exclude gifts that are saved to the chat's profile page; for channel chats with can_post_messages administrator right only
+//@exclude_unlimited Pass true to exclude gifts that can be purchased unlimited number of times; for channel chats with can_post_messages administrator right only
+//@exclude_limited Pass true to exclude gifts that can be purchased limited number of times; for channel chats with can_post_messages administrator right only
+//@exclude_upgraded Pass true to exclude upgraded gifts; for channel chats with can_post_messages administrator right only
+//@sort_by_price Pass true to sort results by gift price instead of send date; for channel chats with can_post_messages administrator right only
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of gifts to be returned; must be positive and can't be greater than 100. For optimal performance, the number of returned objects is chosen by TDLib and can be smaller than the specified limit
 getReceivedGifts owner_id:MessageSender exclude_unsaved:Bool exclude_saved:Bool exclude_unlimited:Bool exclude_limited:Bool exclude_upgraded:Bool sort_by_price:Bool offset:string limit:int32 = ReceivedGifts;
