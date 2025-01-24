@@ -423,7 +423,7 @@ class QuickReplyManager::SendQuickReplyMediaQuery final : public Td::ResultHandl
     if (FileReferenceManager::is_file_reference_error(status)) {
       auto source = FileReferenceManager::get_file_reference_error_source(status);
       if (source.is_cover_) {
-        if (cover_file_id_.is_valid()) {
+        if (cover_file_id_.is_valid() && source.pos_ <= 1) {
           VLOG(file_references) << "Receive " << status << " for " << cover_file_id_;
           td_->file_manager_->delete_file_reference(cover_file_id_, cover_file_reference_);
           td_->quick_reply_manager_->on_send_message_file_reference_error(shortcut_id_, random_id_);
@@ -470,7 +470,9 @@ class QuickReplyManager::UploadQuickReplyMediaQuery final : public Td::ResultHan
   MessageId message_id_;
   FileUploadId file_upload_id_;
   FileUploadId thumbnail_file_upload_id_;
+  FileId cover_file_id_;
   string file_reference_;
+  string cover_file_reference_;
   bool was_uploaded_ = false;
   bool was_thumbnail_uploaded_ = false;
 
@@ -481,7 +483,9 @@ class QuickReplyManager::UploadQuickReplyMediaQuery final : public Td::ResultHan
     message_id_ = m->message_id;
     file_upload_id_ = m->file_upload_id;
     thumbnail_file_upload_id_ = m->thumbnail_file_upload_id;
+    cover_file_id_ = get_message_content_cover_any_file_id(m->content.get());
     file_reference_ = FileManager::extract_file_reference(input_media);
+    cover_file_reference_ = FileManager::extract_cover_file_reference(input_media);
     was_uploaded_ = FileManager::extract_was_uploaded(input_media);
     was_thumbnail_uploaded_ = FileManager::extract_was_thumbnail_uploaded(input_media);
 
@@ -514,6 +518,17 @@ class QuickReplyManager::UploadQuickReplyMediaQuery final : public Td::ResultHan
       return;
     }
     LOG(INFO) << "Receive error for UploadQuickReplyMediaQuery: " << status;
+    if (FileReferenceManager::is_file_reference_error(status)) {
+      auto source = FileReferenceManager::get_file_reference_error_source(status);
+      if (source.is_cover_ && source.pos_ <= 1 && cover_file_id_.is_valid()) {
+        VLOG(file_references) << "Receive " << status << " for " << cover_file_id_;
+        td_->file_manager_->delete_file_reference(cover_file_id_, cover_file_reference_);
+        td_->quick_reply_manager_->on_send_message_file_reference_error(shortcut_id_, random_id_);
+        return;
+      } else {
+        LOG(ERROR) << "Receive file reference error for UploadMediaQuery";
+      }
+    }
     if (was_uploaded_) {
       if (was_thumbnail_uploaded_) {
         CHECK(thumbnail_file_upload_id_.is_valid());
@@ -529,8 +544,6 @@ class QuickReplyManager::UploadQuickReplyMediaQuery final : public Td::ResultHan
       } else {
         td_->file_manager_->delete_partial_remote_location_if_needed(file_upload_id_, status);
       }
-    } else if (FileReferenceManager::is_file_reference_error(status)) {
-      LOG(ERROR) << "Receive file reference error for UploadMediaQuery";
     }
 
     td_->quick_reply_manager_->on_upload_message_media_fail(shortcut_id_, message_id_, std::move(status));
