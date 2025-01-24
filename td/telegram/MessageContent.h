@@ -108,7 +108,7 @@ unique_ptr<MessageContent> create_text_message_content(string text, vector<Messa
 
 unique_ptr<MessageContent> create_photo_message_content(Photo photo);
 
-unique_ptr<MessageContent> create_video_message_content(FileId file_id);
+unique_ptr<MessageContent> create_video_message_content(FileId file_id, Photo cover);
 
 unique_ptr<MessageContent> create_contact_registered_message_content();
 

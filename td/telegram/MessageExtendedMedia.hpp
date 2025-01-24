@@ -94,11 +94,18 @@ void MessageExtendedMedia::parse(ParserT &parser) {
   if (has_photo) {
     td::parse(photo_, parser);
     is_bad = photo_.is_bad();
+  } else if (type_ == Type::Photo) {
+    is_bad = true;
   }
   if (has_video) {
     Td *td = parser.context()->td().get_actor_unsafe();
     video_file_id_ = td->videos_manager_->parse_video(parser);
     is_bad = !video_file_id_.is_valid();
+    if (type_ != Type::Video) {
+      is_bad = true;
+    }
+  } else if (type_ == Type::Video) {
+    is_bad = true;
   }
   if (is_bad || has_caption) {
     if (is_bad) {

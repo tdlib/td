@@ -3249,8 +3249,9 @@ unique_ptr<MessageContent> create_photo_message_content(Photo photo) {
   return make_unique<MessagePhoto>(std::move(photo), FormattedText(), false);
 }
 
-unique_ptr<MessageContent> create_video_message_content(FileId file_id) {
-  return td::make_unique<MessageVideo>(file_id, vector<FileId>(), vector<FileId>(), Photo(), 0, FormattedText(), false);
+unique_ptr<MessageContent> create_video_message_content(FileId file_id, Photo cover) {
+  return td::make_unique<MessageVideo>(file_id, vector<FileId>(), vector<FileId>(), std::move(cover), 0,
+                                       FormattedText(), false);
 }
 
 unique_ptr<MessageContent> create_contact_registered_message_content() {
@@ -9073,8 +9074,8 @@ vector<FileId> get_message_content_cover_any_file_ids(const MessageContent *cont
       break;
     }
     case MessageContentType::PaidMedia:
-      // return transform(static_cast<const MessagePaidMedia *>(content)->media,
-      //                  [](const MessageExtendedMedia &media) { return media.get_cover_any_file_id(); });
+      return transform(static_cast<const MessagePaidMedia *>(content)->media,
+                       [](const MessageExtendedMedia &media) { return media.get_cover_any_file_id(); });
       break;
     default:
       break;

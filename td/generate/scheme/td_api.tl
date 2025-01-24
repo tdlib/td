@@ -3409,8 +3409,10 @@ paidMediaPreview width:int32 height:int32 duration:int32 minithumbnail:minithumb
 //@description The media is a photo @photo The photo
 paidMediaPhoto photo:photo = PaidMedia;
 
-//@description The media is a video @video The video
-paidMediaVideo video:video = PaidMedia;
+//@description The media is a video
+//@video The video
+//@cover Cover of the video; may be null if none
+paidMediaVideo video:video cover:photo = PaidMedia;
 
 //@description The media is unsupported
 paidMediaUnsupported = PaidMedia;

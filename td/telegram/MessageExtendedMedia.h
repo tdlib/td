@@ -36,7 +36,7 @@ class MessageExtendedMedia {
   Dimensions dimensions_;
   string minithumbnail_;
 
-  // for Photo
+  // for Photo and Video cover
   Photo photo_;
 
   // for Video
@@ -105,6 +105,8 @@ class MessageExtendedMedia {
   FileId get_any_file_id() const;
 
   FileId get_thumbnail_file_id(const Td *td) const;
+
+  FileId get_cover_any_file_id() const;
 
   void update_file_id_remote(FileId file_id);
 
