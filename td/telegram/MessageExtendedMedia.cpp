@@ -175,6 +175,7 @@ Result<MessageExtendedMedia> MessageExtendedMedia::get_message_extended_media(
                                         get_dimensions(paid_media->width_, paid_media->height_, nullptr),
                                         type->supports_streaming_, false, 0, 0.0, string(), false);
       result.video_file_id_ = file_id;
+      result.start_timestamp_ = max(0, type->start_timestamp_);
       break;
     }
     default:

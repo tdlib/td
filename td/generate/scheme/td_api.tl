@@ -4182,9 +4182,10 @@ inputThumbnail thumbnail:InputFile width:int32 height:int32 = InputThumbnail;
 inputPaidMediaTypePhoto = InputPaidMediaType;
 
 //@description The media is a video
+//@start_timestamp Timestamp from which the video playing must start, in seconds
 //@duration Duration of the video, in seconds
 //@supports_streaming True, if the video is expected to be streamed
-inputPaidMediaTypeVideo duration:int32 supports_streaming:Bool = InputPaidMediaType;
+inputPaidMediaTypeVideo start_timestamp:int32 duration:int32 supports_streaming:Bool = InputPaidMediaType;
 
 
 //@description Describes a paid media to be sent
