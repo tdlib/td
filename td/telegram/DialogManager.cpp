@@ -820,6 +820,49 @@ class SaveDefaultSendAsQuery final : public Td::ResultHandler {
   }
 };
 
+class EditPeerFoldersQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit EditPeerFoldersQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, FolderId folder_id) {
+    dialog_id_ = dialog_id;
+
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+
+    vector<telegram_api::object_ptr<telegram_api::inputFolderPeer>> input_folder_peers;
+    input_folder_peers.push_back(
+        telegram_api::make_object<telegram_api::inputFolderPeer>(std::move(input_peer), folder_id.get()));
+    send_query(G()->net_query_creator().create(telegram_api::folders_editPeerFolders(std::move(input_folder_peers))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::folders_editPeerFolders>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for EditPeerFoldersQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    if (!td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "EditPeerFoldersQuery")) {
+      LOG(INFO) << "Receive error for EditPeerFoldersQuery: " << status;
+    }
+
+    // trying to repair folder ID for this dialog
+    td_->dialog_manager_->get_dialog_info_full(dialog_id_, Auto(), "EditPeerFoldersQuery");
+
+    promise_.set_error(std::move(status));
+  }
+};
+
 class SetHistoryTtlQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -3032,6 +3075,11 @@ void DialogManager::set_dialog_available_reactions_on_server(DialogId dialog_id,
 void DialogManager::set_dialog_default_send_as_on_server(DialogId dialog_id, DialogId send_as_dialog_id,
                                                          Promise<Unit> &&promise) {
   td_->create_handler<SaveDefaultSendAsQuery>(std::move(promise))->send(dialog_id, send_as_dialog_id);
+}
+
+void DialogManager::set_dialog_folder_id_on_server(DialogId dialog_id, FolderId folder_id, Promise<Unit> &&promise) {
+  // TODO do not send two queries simultaneously or use InvokeAfter
+  td_->create_handler<EditPeerFoldersQuery>(std::move(promise))->send(dialog_id, folder_id);
 }
 
 void DialogManager::set_dialog_message_ttl_on_server(DialogId dialog_id, int32 ttl, Promise<Unit> &&promise) {
