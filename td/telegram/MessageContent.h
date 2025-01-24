@@ -294,6 +294,8 @@ int32 get_message_content_media_duration(const MessageContent *content, const Td
 
 const Photo *get_message_content_cover(const MessageContent *content);
 
+vector<const Photo *> get_message_content_need_to_upload_covers(Td *td, const MessageContent *content);
+
 const Photo *get_message_content_photo(const MessageContent *content);
 
 FileId get_message_content_any_file_id(const MessageContent *content);

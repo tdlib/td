@@ -2283,18 +2283,15 @@ void QuickReplyManager::do_send_message(const QuickReplyMessage *m, vector<int> 
     return;
   }
 
-  auto *cover = get_message_content_cover(content);
-  if (cover != nullptr) {
-    auto input_media = photo_get_cover_input_media(td_->file_manager_.get(), *cover, td_->auth_manager_->is_bot());
-    if (input_media == nullptr) {
-      return td_->message_query_manager_->upload_message_cover(
-          BusinessConnectionId(), td_->dialog_manager_->get_my_dialog_id(), *cover, FileUploadId(),
-          PromiseCreator::lambda([actor_id = actor_id(this), message_full_id, edit_generation = m->edit_generation,
-                                  bad_parts = std::move(bad_parts)](Result<Unit> result) mutable {
-            send_closure(actor_id, &QuickReplyManager::on_cover_upload, message_full_id, edit_generation,
-                         std::move(bad_parts), std::move(result));
-          }));
-    }
+  auto covers = get_message_content_need_to_upload_covers(td_, content);
+  if (!covers.empty()) {
+    return td_->message_query_manager_->upload_message_cover(
+        BusinessConnectionId(), td_->dialog_manager_->get_my_dialog_id(), *covers[0], FileUploadId(),
+        PromiseCreator::lambda([actor_id = actor_id(this), message_full_id, edit_generation = m->edit_generation,
+                                bad_parts = std::move(bad_parts)](Result<Unit> result) mutable {
+          send_closure(actor_id, &QuickReplyManager::on_cover_upload, message_full_id, edit_generation,
+                       std::move(bad_parts), std::move(result));
+        }));
   }
 
   if (bad_parts.empty()) {

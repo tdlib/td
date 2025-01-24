@@ -8993,6 +8993,22 @@ const Photo *get_message_content_cover(const MessageContent *content) {
   }
 }
 
+vector<const Photo *> get_message_content_need_to_upload_covers(Td *td, const MessageContent *content) {
+  switch (content->get_type()) {
+    case MessageContentType::Video: {
+      const auto *cover = &static_cast<const MessageVideo *>(content)->cover;
+      if (cover->is_empty() ||
+          photo_get_cover_input_media(td->file_manager_.get(), *cover, td->auth_manager_->is_bot()) != nullptr) {
+        break;
+      }
+      return {cover};
+    }
+    default:
+      break;
+  }
+  return {};
+}
+
 const Photo *get_message_content_photo(const MessageContent *content) {
   switch (content->get_type()) {
     case MessageContentType::Photo:
