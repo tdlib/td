@@ -1038,7 +1038,8 @@ void StarGiftManager::transfer_gift(StarGiftId star_gift_id, DialogId receiver_d
   }
 }
 
-void StarGiftManager::on_dialog_gift_transferred(DialogId from_dialog_id, DialogId to_dialog_id, Promise<Unit> &&promise) {
+void StarGiftManager::on_dialog_gift_transferred(DialogId from_dialog_id, DialogId to_dialog_id,
+                                                 Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   if (from_dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
     td_->user_manager_->on_update_my_gift_count(-1);

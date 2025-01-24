@@ -100,6 +100,7 @@ void MessageExtendedMedia::init_from_media(Td *td, telegram_api::object_ptr<tele
       }
       CHECK(parsed_document.file_id.is_valid());
       video_file_id_ = parsed_document.file_id;
+      start_timestamp_ = document->video_timestamp_;
       type_ = Type::Video;
 
       if (document->video_cover_ != nullptr) {
@@ -220,7 +221,8 @@ td_api::object_ptr<td_api::PaidMedia> MessageExtendedMedia::get_paid_media_objec
     }
     case Type::Video:
       return td_api::make_object<td_api::paidMediaVideo>(td->videos_manager_->get_video_object(video_file_id_),
-                                                         get_photo_object(td->file_manager_.get(), photo_));
+                                                         get_photo_object(td->file_manager_.get(), photo_),
+                                                         max(0, start_timestamp_));
     default:
       UNREACHABLE();
       return nullptr;
@@ -271,7 +273,7 @@ unique_ptr<MessageContent> MessageExtendedMedia::get_message_content() const {
     case Type::Photo:
       return create_photo_message_content(photo_);
     case Type::Video:
-      return create_video_message_content(video_file_id_, photo_);
+      return create_video_message_content(video_file_id_, photo_, start_timestamp_);
     case Type::Empty:
     case Type::Unsupported:
     case Type::Preview:
@@ -359,7 +361,7 @@ telegram_api::object_ptr<telegram_api::InputMedia> MessageExtendedMedia::get_inp
       return photo_get_input_media(td->file_manager_.get(), photo_, std::move(input_file), 0, false);
     case Type::Video:
       return td->videos_manager_->get_input_media(video_file_id_, std::move(input_file), std::move(input_thumbnail),
-                                                  photo_, 0, 0, false);
+                                                  photo_, start_timestamp_, 0, false);
     default:
       UNREACHABLE();
       break;
@@ -415,7 +417,8 @@ bool operator==(const MessageExtendedMedia &lhs, const MessageExtendedMedia &rhs
     case MessageExtendedMedia::Type::Photo:
       return lhs.photo_ == rhs.photo_;
     case MessageExtendedMedia::Type::Video:
-      return lhs.video_file_id_ == rhs.video_file_id_ && lhs.photo_ == rhs.photo_;
+      return lhs.video_file_id_ == rhs.video_file_id_ && lhs.photo_ == rhs.photo_ &&
+             lhs.start_timestamp_ == rhs.start_timestamp_;
     default:
       UNREACHABLE();
       return true;

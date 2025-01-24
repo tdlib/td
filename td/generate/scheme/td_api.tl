@@ -3412,7 +3412,8 @@ paidMediaPhoto photo:photo = PaidMedia;
 //@description The media is a video
 //@video The video
 //@cover Cover of the video; may be null if none
-paidMediaVideo video:video cover:photo = PaidMedia;
+//@start_timestamp Timestamp from which the video playing must start, in seconds
+paidMediaVideo video:video cover:photo start_timestamp:int32 = PaidMedia;
 
 //@description The media is unsupported
 paidMediaUnsupported = PaidMedia;

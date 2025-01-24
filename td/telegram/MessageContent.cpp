@@ -3249,8 +3249,8 @@ unique_ptr<MessageContent> create_photo_message_content(Photo photo) {
   return make_unique<MessagePhoto>(std::move(photo), FormattedText(), false);
 }
 
-unique_ptr<MessageContent> create_video_message_content(FileId file_id, Photo cover) {
-  return td::make_unique<MessageVideo>(file_id, vector<FileId>(), vector<FileId>(), std::move(cover), 0,
+unique_ptr<MessageContent> create_video_message_content(FileId file_id, Photo cover, int32 start_timestamp) {
+  return td::make_unique<MessageVideo>(file_id, vector<FileId>(), vector<FileId>(), std::move(cover), start_timestamp,
                                        FormattedText(), false);
 }
 

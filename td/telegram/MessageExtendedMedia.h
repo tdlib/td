@@ -41,6 +41,7 @@ class MessageExtendedMedia {
 
   // for Video
   FileId video_file_id_;
+  int32 start_timestamp_ = 0;
 
   friend bool operator==(const MessageExtendedMedia &lhs, const MessageExtendedMedia &rhs);
 

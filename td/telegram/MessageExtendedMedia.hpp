@@ -24,6 +24,7 @@ void MessageExtendedMedia::store(StorerT &storer) const {
   bool has_minithumbnail = !minithumbnail_.empty();
   bool has_photo = !photo_.is_empty();
   bool has_video = video_file_id_.is_valid();
+  bool has_start_timestamp = start_timestamp_ != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(false);  // has_caption
   STORE_FLAG(has_unsupported_version);
@@ -32,6 +33,7 @@ void MessageExtendedMedia::store(StorerT &storer) const {
   STORE_FLAG(has_minithumbnail);
   STORE_FLAG(has_photo);
   STORE_FLAG(has_video);
+  STORE_FLAG(has_start_timestamp);
   END_STORE_FLAGS();
   td::store(type_, storer);
   if (has_unsupported_version) {
@@ -53,6 +55,9 @@ void MessageExtendedMedia::store(StorerT &storer) const {
     Td *td = storer.context()->td().get_actor_unsafe();
     td->videos_manager_->store_video(video_file_id_, storer);
   }
+  if (has_start_timestamp) {
+    td::store(start_timestamp_, storer);
+  }
 }
 
 template <class ParserT>
@@ -64,6 +69,7 @@ void MessageExtendedMedia::parse(ParserT &parser) {
   bool has_minithumbnail;
   bool has_photo;
   bool has_video;
+  bool has_start_timestamp;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_caption);
   PARSE_FLAG(has_unsupported_version);
@@ -72,6 +78,7 @@ void MessageExtendedMedia::parse(ParserT &parser) {
   PARSE_FLAG(has_minithumbnail);
   PARSE_FLAG(has_photo);
   PARSE_FLAG(has_video);
+  PARSE_FLAG(has_start_timestamp);
   END_PARSE_FLAGS();
   td::parse(type_, parser);
   if (has_caption) {
@@ -107,6 +114,10 @@ void MessageExtendedMedia::parse(ParserT &parser) {
   } else if (type_ == Type::Video) {
     is_bad = true;
   }
+  if (has_start_timestamp) {
+    td::parse(start_timestamp_, parser);
+  }
+
   if (is_bad || has_caption) {
     if (is_bad) {
       LOG(ERROR) << "Failed to parse MessageExtendedMedia";
