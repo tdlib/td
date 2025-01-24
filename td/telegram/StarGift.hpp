@@ -12,6 +12,7 @@
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StickersManager.hpp"
 #include "td/telegram/Td.h"
+#include "td/telegram/UserId.h"
 
 #include "td/utils/common.h"
 #include "td/utils/tl_helpers.h"

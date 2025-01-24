@@ -6,11 +6,11 @@
 //
 #pragma once
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/MessageFullId.h"
-#include "td/telegram/MessageId.h"
 #include "td/telegram/StarGiftId.h"
 #include "td/telegram/td_api.h"
-#include "td/telegram/UserId.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/actor/actor.h"
 #include "td/actor/MultiTimeout.h"

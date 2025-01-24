@@ -24,9 +24,12 @@
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/Promise.h"
+#include "td/utils/Status.h"
 
 #include <functional>
+#include <memory>
 
 namespace td {
 

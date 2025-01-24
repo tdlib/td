@@ -9,7 +9,6 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/telegram_api.h"
-#include "td/telegram/UserId.h"
 
 #include "td/utils/common.h"
 #include "td/utils/StringBuilder.h"

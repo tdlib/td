@@ -12,7 +12,6 @@
 #include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
-#include "td/telegram/UserManager.h"
 
 #include "td/utils/logging.h"
 

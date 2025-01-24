@@ -19,6 +19,7 @@
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/PeerColor.h"
 #include "td/telegram/Photo.h"
+#include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/ThemeManager.h"

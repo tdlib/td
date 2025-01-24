@@ -6,10 +6,15 @@
 //
 #include "td/telegram/StarGiftId.h"
 
+#include "td/telegram/AccessRights.h"
 #include "td/telegram/DialogManager.h"
+#include "td/telegram/MessageId.h"
 #include "td/telegram/Td.h"
 
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
+#include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
 
 namespace td {
 

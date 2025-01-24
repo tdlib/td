@@ -13,7 +13,6 @@
 #include "td/telegram/StarGiftManager.h"
 #include "td/telegram/StarManager.h"
 #include "td/telegram/Td.h"
-#include "td/telegram/UserManager.h"
 
 #include "td/utils/logging.h"
 
