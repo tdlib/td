@@ -900,8 +900,8 @@ void BusinessConnectionManager::do_send_message(unique_ptr<PendingMessage> &&mes
   if (!covers.empty()) {
     auto business_connection_id = message->business_connection_id_;
     auto dialog_id = message->dialog_id_;
-    return td_->message_query_manager_->upload_message_cover(
-        business_connection_id, dialog_id, *covers[0], FileUploadId(),
+    return td_->message_query_manager_->upload_message_covers(
+        business_connection_id, dialog_id, std::move(covers),
         PromiseCreator::lambda([actor_id = actor_id(this), message = std::move(message),
                                 promise = std::move(promise)](Result<Unit> result) mutable {
           if (result.is_error()) {
@@ -1404,8 +1404,8 @@ void BusinessConnectionManager::do_edit_message_media(unique_ptr<PendingMessage>
   if (!covers.empty()) {
     auto business_connection_id = message->business_connection_id_;
     auto dialog_id = message->dialog_id_;
-    return td_->message_query_manager_->upload_message_cover(
-        business_connection_id, dialog_id, *covers[0], FileUploadId(),
+    return td_->message_query_manager_->upload_message_covers(
+        business_connection_id, dialog_id, std::move(covers),
         PromiseCreator::lambda([actor_id = actor_id(this), message = std::move(message),
                                 promise = std::move(promise)](Result<Unit> result) mutable {
           if (result.is_error()) {

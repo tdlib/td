@@ -2285,8 +2285,8 @@ void QuickReplyManager::do_send_message(const QuickReplyMessage *m, vector<int> 
 
   auto covers = get_message_content_need_to_upload_covers(td_, content);
   if (!covers.empty()) {
-    return td_->message_query_manager_->upload_message_cover(
-        BusinessConnectionId(), td_->dialog_manager_->get_my_dialog_id(), *covers[0], FileUploadId(),
+    return td_->message_query_manager_->upload_message_covers(
+        BusinessConnectionId(), td_->dialog_manager_->get_my_dialog_id(), std::move(covers),
         PromiseCreator::lambda([actor_id = actor_id(this), message_full_id, edit_generation = m->edit_generation,
                                 bad_parts = std::move(bad_parts)](Result<Unit> result) mutable {
           send_closure(actor_id, &QuickReplyManager::on_cover_upload, message_full_id, edit_generation,

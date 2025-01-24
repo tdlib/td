@@ -21637,8 +21637,8 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
   if (!is_secret) {
     auto covers = get_message_content_need_to_upload_covers(td_, content);
     if (!covers.empty()) {
-      return td_->message_query_manager_->upload_message_cover(
-          BusinessConnectionId(), dialog_id, *covers[0], FileUploadId(),
+      return td_->message_query_manager_->upload_message_covers(
+          BusinessConnectionId(), dialog_id, std::move(covers),
           PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, message_id = m->message_id,
                                   edit_generation = m->edit_generation, media_pos,
                                   bad_parts = std::move(bad_parts)](Result<Unit> result) mutable {

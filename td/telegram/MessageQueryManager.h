@@ -44,6 +44,9 @@ class MessageQueryManager final : public Actor {
   void run_affected_history_query_until_complete(DialogId dialog_id, AffectedHistoryQuery query,
                                                  bool get_affected_messages, Promise<Unit> &&promise);
 
+  void upload_message_covers(BusinessConnectionId business_connection_id, DialogId dialog_id,
+                             vector<const Photo *> covers, Promise<Unit> &&promise);
+
   void upload_message_cover(BusinessConnectionId business_connection_id, DialogId dialog_id, Photo photo,
                             FileUploadId file_upload_id, Promise<Unit> &&promise, vector<int> bad_parts = {});
 

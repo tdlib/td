@@ -1239,13 +1239,23 @@ void MessageQueryManager::on_get_affected_history(DialogId dialog_id, AffectedHi
   }
 }
 
+void MessageQueryManager::upload_message_covers(BusinessConnectionId business_connection_id, DialogId dialog_id,
+                                                vector<const Photo *> covers, Promise<Unit> &&promise) {
+  CHECK(!covers.empty());
+  MultiPromiseActorSafe mpas{"UploadMessageCoversMultiPromiseActor"};
+  mpas.add_promise(std::move(promise));
+  auto lock = mpas.get_promise();
+  for (const Photo *cover : covers) {
+    CHECK(cover != nullptr);
+    auto file_upload_id = FileUploadId(get_photo_any_file_id(*cover), FileManager::get_internal_upload_id());
+    upload_message_cover(business_connection_id, dialog_id, *cover, file_upload_id, mpas.get_promise());
+  }
+  lock.set_value(Unit());
+}
+
 void MessageQueryManager::upload_message_cover(BusinessConnectionId business_connection_id, DialogId dialog_id,
                                                Photo photo, FileUploadId file_upload_id, Promise<Unit> &&promise,
                                                vector<int> bad_parts) {
-  if (file_upload_id == FileUploadId()) {
-    file_upload_id = FileUploadId(get_photo_any_file_id(photo), FileManager::get_internal_upload_id());
-  }
-
   BeingUploadedCover cover;
   cover.business_connection_id_ = business_connection_id;
   cover.dialog_id_ = dialog_id;
