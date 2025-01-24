@@ -360,6 +360,22 @@ void MessageExtendedMedia::update_file_id_remote(FileId file_id) {
   }
 }
 
+const Photo *MessageExtendedMedia::get_video_cover() const {
+  switch (type_) {
+    case Type::Empty:
+    case Type::Unsupported:
+    case Type::Preview:
+    case Type::Photo:
+      break;
+    case Type::Video:
+      return &photo_;
+    default:
+      UNREACHABLE();
+      break;
+  }
+  return nullptr;
+}
+
 telegram_api::object_ptr<telegram_api::InputMedia> MessageExtendedMedia::get_input_media(
     Td *td, telegram_api::object_ptr<telegram_api::InputFile> input_file,
     telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail) const {

@@ -859,6 +859,21 @@ void BusinessConnectionManager::do_send_message(unique_ptr<PendingMessage> &&mes
     return;
   }
 
+  auto covers = get_message_content_need_to_upload_covers(td_, content);
+  if (!covers.empty()) {
+    auto business_connection_id = message->business_connection_id_;
+    auto dialog_id = message->dialog_id_;
+    return td_->message_query_manager_->upload_message_covers(
+        business_connection_id, dialog_id, std::move(covers),
+        PromiseCreator::lambda([actor_id = actor_id(this), message = std::move(message),
+                                promise = std::move(promise)](Result<Unit> result) mutable {
+          if (result.is_error()) {
+            return promise.set_error(result.move_as_error());
+          }
+          send_closure(actor_id, &BusinessConnectionManager::do_send_message, std::move(message), std::move(promise));
+        }));
+  }
+
   if (content_type == MessageContentType::PaidMedia) {
     auto message_contents = get_individual_message_contents(content);
     auto request_id = ++current_media_group_send_request_id_;
@@ -894,21 +909,6 @@ void BusinessConnectionManager::do_send_message(unique_ptr<PendingMessage> &&mes
                    }));
     }
     return;
-  }
-
-  auto covers = get_message_content_need_to_upload_covers(td_, content);
-  if (!covers.empty()) {
-    auto business_connection_id = message->business_connection_id_;
-    auto dialog_id = message->dialog_id_;
-    return td_->message_query_manager_->upload_message_covers(
-        business_connection_id, dialog_id, std::move(covers),
-        PromiseCreator::lambda([actor_id = actor_id(this), message = std::move(message),
-                                promise = std::move(promise)](Result<Unit> result) mutable {
-          if (result.is_error()) {
-            return promise.set_error(result.move_as_error());
-          }
-          send_closure(actor_id, &BusinessConnectionManager::do_send_message, std::move(message), std::move(promise));
-        }));
   }
 
   auto input_media =
