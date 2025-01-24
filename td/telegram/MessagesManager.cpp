@@ -1969,20 +1969,25 @@ class UploadMediaQuery final : public Td::ResultHandler {
   int32 media_pos_ = -1;
   FileUploadId file_upload_id_;
   FileUploadId thumbnail_file_upload_id_;
+  FileId cover_file_id_;
   string file_reference_;
+  string cover_file_reference_;
   bool was_uploaded_ = false;
   bool was_thumbnail_uploaded_ = false;
 
  public:
   void send(DialogId dialog_id, MessageId message_id, int32 media_pos, FileUploadId file_upload_id,
-            FileUploadId thumbnail_file_upload_id, tl_object_ptr<telegram_api::InputMedia> &&input_media) {
+            FileUploadId thumbnail_file_upload_id, FileId cover_file_id,
+            telegram_api::object_ptr<telegram_api::InputMedia> &&input_media) {
     CHECK(input_media != nullptr);
     dialog_id_ = dialog_id;
     message_id_ = message_id;
     media_pos_ = media_pos;
     file_upload_id_ = file_upload_id;
     thumbnail_file_upload_id_ = thumbnail_file_upload_id;
+    cover_file_id_ = cover_file_id;
     file_reference_ = FileManager::extract_file_reference(input_media);
+    cover_file_reference_ = FileManager::extract_cover_file_reference(input_media);
     was_uploaded_ = FileManager::extract_was_uploaded(input_media);
     was_thumbnail_uploaded_ = FileManager::extract_was_thumbnail_uploaded(input_media);
 
@@ -2021,6 +2026,21 @@ class UploadMediaQuery final : public Td::ResultHandler {
       return;
     }
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "UploadMediaQuery");
+    if (!td_->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
+      auto source = FileReferenceManager::get_file_reference_error_source(status);
+      auto pos = source.pos_;
+      if (pos > 0) {
+        pos--;
+      }
+      if (source.is_cover_ && pos == 0) {
+        VLOG(file_references) << "Receive " << status << " for cover " << cover_file_id_;
+        td_->file_manager_->delete_file_reference(cover_file_id_, cover_file_reference_);
+        td_->messages_manager_->on_upload_message_media_file_parts_missing(dialog_id_, message_id_, media_pos_, {-1});
+        return;
+      } else {
+        LOG(ERROR) << "Receive file reference error for UploadMediaQuery";
+      }
+    }
     if (was_uploaded_) {
       if (was_thumbnail_uploaded_) {
         CHECK(thumbnail_file_upload_id_.is_valid());
@@ -2037,8 +2057,6 @@ class UploadMediaQuery final : public Td::ResultHandler {
       } else {
         td_->file_manager_->delete_partial_remote_location_if_needed(file_upload_id_, status);
       }
-    } else if (FileReferenceManager::is_file_reference_error(status)) {
-      LOG(ERROR) << "Receive file reference error for UploadMediaQuery";
     }
     td_->messages_manager_->on_upload_message_media_fail(dialog_id_, message_id_, media_pos_, std::move(status));
   }
@@ -21821,8 +21839,9 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
     if (!is_uploaded_input_media(input_media)) {
       auto file_upload_id = get_message_send_file_upload_id(dialog_id, m, media_pos);
       auto thumbnail_file_upload_id = get_message_send_thumbnail_file_upload_id(dialog_id, m, media_pos);
+      auto cover_file_id = get_message_content_cover_any_file_id(m->content.get());
       td_->create_handler<UploadMediaQuery>()->send(dialog_id, message_id, media_pos, file_upload_id,
-                                                    thumbnail_file_upload_id, std::move(input_media));
+                                                    thumbnail_file_upload_id, cover_file_id, std::move(input_media));
     } else {
       send_closure_later(actor_id(this), &MessagesManager::on_upload_message_media_finished, m->media_album_id,
                          dialog_id, message_id, media_pos, Status::OK());
