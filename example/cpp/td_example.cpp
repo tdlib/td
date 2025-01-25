@@ -84,6 +84,10 @@ class TdExample {
             auto response = client_manager_->receive(0);
             if (response.object) {
               process_response(std::move(response));
+              if (response.request_id != 0 && response.request_id == last_user_query_) {
+                std::cout << "Response to last user query_id:  " << response.request_id << " received!" << std::endl;
+                break;
+              }
             } else {
               break;
             }
@@ -94,6 +98,8 @@ class TdExample {
         } else if (action == "me") {
           send_query(td_api::make_object<td_api::getMe>(),
                      [this](Object object) { std::cout << to_string(object) << std::endl; });
+          last_user_query_ = current_query_id_;
+          std::cout << "user query_id sent: " << last_user_query_ << std::endl;
         } else if (action == "l") {
           std::cout << "Logging out..." << std::endl;
           send_query(td_api::make_object<td_api::logOut>(), {});
@@ -124,6 +130,8 @@ class TdExample {
               std::cout << "[chat_id:" << chat_id << "] [title:" << chat_title_[chat_id] << "]" << std::endl;
             }
           });
+          last_user_query_ = current_query_id_;
+          std::cout << "user query_id sent: " << last_user_query_ << std::endl;
         }
       }
     }
@@ -139,6 +147,7 @@ class TdExample {
   bool need_restart_{false};
   std::uint64_t current_query_id_{0};
   std::uint64_t authentication_query_id_{0};
+  std::uint64_t last_user_query_{0};
 
   std::map<std::uint64_t, std::function<void(Object)>> handlers_;
 
