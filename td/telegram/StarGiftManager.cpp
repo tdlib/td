@@ -118,6 +118,9 @@ class SendGiftQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    if (status.message() == "FORM_SUBMIT_DUPLICATE") {
+      LOG(ERROR) << "Receive FORM_SUBMIT_DUPLICATE";
+    }
     td_->star_manager_->add_pending_owned_star_count(star_count_, false);
     promise_.set_error(std::move(status));
   }
@@ -456,6 +459,9 @@ class UpgradeGiftQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    if (status.message() == "FORM_SUBMIT_DUPLICATE") {
+      LOG(ERROR) << "Receive FORM_SUBMIT_DUPLICATE";
+    }
     td_->star_manager_->add_pending_owned_star_count(star_count_, false);
     promise_.set_error(std::move(status));
   }
@@ -585,6 +591,9 @@ class TransferGiftQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    if (status.message() == "FORM_SUBMIT_DUPLICATE") {
+      LOG(ERROR) << "Receive FORM_SUBMIT_DUPLICATE";
+    }
     td_->star_manager_->add_pending_owned_star_count(star_count_, false);
     promise_.set_error(std::move(status));
   }
