@@ -281,6 +281,8 @@ class DialogManager final : public Actor {
 
   static constexpr int32 USERNAME_CACHE_EXPIRE_TIME = 86400;
 
+  void hangup() final;
+
   void tear_down() final;
 
   void on_migrate_chat_to_megagroup(ChatId chat_id, Promise<td_api::object_ptr<td_api::chat>> &&promise);

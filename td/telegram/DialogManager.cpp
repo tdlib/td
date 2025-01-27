@@ -1251,6 +1251,12 @@ DialogManager::~DialogManager() {
                                               found_on_server_dialogs_);
 }
 
+void DialogManager::hangup() {
+  fail_promise_map(search_public_dialogs_queries_, Global::request_aborted_error());
+
+  stop();
+}
+
 void DialogManager::tear_down() {
   parent_.reset();
 }
