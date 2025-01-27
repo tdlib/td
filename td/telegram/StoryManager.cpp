@@ -1633,16 +1633,8 @@ void StoryManager::timeout_expired() {
 }
 
 void StoryManager::hangup() {
-  auto fail_promise_map = [](auto &queries) {
-    while (!queries.empty()) {
-      auto it = queries.begin();
-      auto promises = std::move(it->second);
-      queries.erase(it);
-      fail_promises(promises, Global::request_aborted_error());
-    }
-  };
-  fail_promise_map(reload_story_queries_);
-  fail_promise_map(delete_yet_unsent_story_queries_);
+  fail_promise_map(reload_story_queries_, Global::request_aborted_error());
+  fail_promise_map(delete_yet_unsent_story_queries_, Global::request_aborted_error());
 
   stop();
 }

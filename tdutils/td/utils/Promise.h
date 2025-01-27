@@ -370,4 +370,14 @@ void fail_promises(vector<Promise<T>> &promises, Status &&error) {
   moved_promises[size].set_error(std::move(error));
 }
 
+template <class T>
+void fail_promise_map(T &promise_map, Status &&error) {
+  while (!promise_map.empty()) {
+    auto it = promise_map.begin();
+    auto promises = std::move(it->second);
+    promise_map.erase(it);
+    fail_promises(promises, error.clone());
+  }
+}
+
 }  // namespace td

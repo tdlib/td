@@ -10214,18 +10214,10 @@ void MessagesManager::hangup() {
   }
 
   fail_promises(load_active_live_location_messages_queries_, Global::request_aborted_error());
-  auto fail_promise_map = [](auto &queries) {
-    while (!queries.empty()) {
-      auto it = queries.begin();
-      auto promises = std::move(it->second);
-      queries.erase(it);
-      fail_promises(promises, Global::request_aborted_error());
-    }
-  };
-  fail_promise_map(get_dialog_queries_);
-  fail_promise_map(load_scheduled_messages_from_database_queries_);
-  fail_promise_map(run_after_get_channel_difference_);
-  fail_promise_map(get_history_queries_);
+  fail_promise_map(get_dialog_queries_, Global::request_aborted_error());
+  fail_promise_map(load_scheduled_messages_from_database_queries_, Global::request_aborted_error());
+  fail_promise_map(run_after_get_channel_difference_, Global::request_aborted_error());
+  fail_promise_map(get_history_queries_, Global::request_aborted_error());
   while (!pending_channel_on_get_dialogs_.empty()) {
     auto it = pending_channel_on_get_dialogs_.begin();
     auto queries = std::move(it->second);
