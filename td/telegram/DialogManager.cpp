@@ -49,6 +49,7 @@
 #include "td/utils/Slice.h"
 #include "td/utils/Time.h"
 #include "td/utils/tl_helpers.h"
+#include "td/utils/utf8.h"
 
 #include <type_traits>
 
@@ -145,6 +146,41 @@ class ResolveUsernameQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     promise_.set_error(std::move(status));
+  }
+};
+
+class SearchPublicDialogsQuery final : public Td::ResultHandler {
+  string query_;
+
+ public:
+  void send(const string &query) {
+    query_ = query;
+    send_query(
+        G()->net_query_creator().create(telegram_api::contacts_search(query, 20 /* mostly ignored server-side */)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::contacts_search>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto dialogs = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SearchPublicDialogsQuery: " << to_string(dialogs);
+    td_->user_manager_->on_get_users(std::move(dialogs->users_), "SearchPublicDialogsQuery");
+    td_->chat_manager_->on_get_chats(std::move(dialogs->chats_), "SearchPublicDialogsQuery");
+    td_->dialog_manager_->on_get_public_dialogs_search_result(query_, std::move(dialogs->my_results_),
+                                                              std::move(dialogs->results_));
+  }
+
+  void on_error(Status status) final {
+    if (!G()->is_expected_error(status)) {
+      if (status.message() == "QUERY_TOO_SHORT") {
+        return td_->dialog_manager_->on_get_public_dialogs_search_result(query_, {}, {});
+      }
+      LOG(ERROR) << "Receive error for SearchPublicDialogsQuery: " << status;
+    }
+    td_->dialog_manager_->on_failed_public_dialogs_search(query_, std::move(status));
   }
 };
 
@@ -1211,7 +1247,8 @@ DialogManager::DialogManager(Td *td, ActorShared<> parent) : td_(td), parent_(st
 
 DialogManager::~DialogManager() {
   Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), resolved_usernames_,
-                                              inaccessible_resolved_usernames_);
+                                              inaccessible_resolved_usernames_, found_public_dialogs_,
+                                              found_on_server_dialogs_);
 }
 
 void DialogManager::tear_down() {
@@ -2920,6 +2957,118 @@ void DialogManager::drop_username(const string &username) {
 
     resolved_usernames_.erase(cleaned_username);
   }
+}
+
+vector<DialogId> DialogManager::search_public_dialogs(const string &query, Promise<Unit> &&promise) {
+  LOG(INFO) << "Search public chats with query = \"" << query << '"';
+
+  auto query_length = utf8_length(query);
+  if (query_length < MIN_SEARCH_PUBLIC_DIALOG_PREFIX_LEN ||
+      (query_length == MIN_SEARCH_PUBLIC_DIALOG_PREFIX_LEN && query[0] == '@')) {
+    string username = clean_username(query);
+    if (username[0] == '@') {
+      username = username.substr(1);
+    }
+
+    for (auto &short_username : get_valid_short_usernames()) {
+      if (2 * username.size() > short_username.size() && begins_with(short_username, username)) {
+        username = short_username.str();
+        auto dialog_id = resolve_dialog_username(username, promise);
+        if (!dialog_id.is_valid()) {
+          return {};
+        }
+
+        force_create_dialog(dialog_id, "search_public_dialogs");
+
+        if (td_->messages_manager_->can_add_dialog_to_filter(dialog_id).is_error() ||
+            (dialog_id.get_type() == DialogType::User &&
+             td_->user_manager_->is_user_contact(dialog_id.get_user_id()))) {
+          continue;
+        }
+
+        promise.set_value(Unit());
+        return {dialog_id};
+      }
+    }
+    promise.set_value(Unit());
+    return {};
+  }
+
+  auto it = found_public_dialogs_.find(query);
+  if (it != found_public_dialogs_.end()) {
+    promise.set_value(Unit());
+    return it->second;
+  }
+
+  send_search_public_dialogs_query(query, std::move(promise));
+  return {};
+}
+
+vector<DialogId> DialogManager::search_dialogs_on_server(const string &query, int32 limit, Promise<Unit> &&promise) {
+  LOG(INFO) << "Search chats on server with query \"" << query << "\" and limit " << limit;
+
+  if (limit < 0) {
+    promise.set_error(Status::Error(400, "Limit must be non-negative"));
+    return {};
+  }
+  if (limit > MAX_GET_DIALOGS) {
+    limit = MAX_GET_DIALOGS;
+  }
+
+  if (query.empty()) {
+    promise.set_value(Unit());
+    return {};
+  }
+
+  auto it = found_on_server_dialogs_.find(query);
+  if (it != found_on_server_dialogs_.end()) {
+    promise.set_value(Unit());
+    return td_->messages_manager_->sort_dialogs_by_order(it->second, limit);
+  }
+
+  send_search_public_dialogs_query(query, std::move(promise));
+  return {};
+}
+
+void DialogManager::send_search_public_dialogs_query(const string &query, Promise<Unit> &&promise) {
+  CHECK(!query.empty());
+  auto &promises = search_public_dialogs_queries_[query];
+  promises.push_back(std::move(promise));
+  if (promises.size() != 1) {
+    // query has already been sent, just wait for the result
+    return;
+  }
+
+  td_->create_handler<SearchPublicDialogsQuery>()->send(query);
+}
+
+void DialogManager::on_get_public_dialogs_search_result(const string &query,
+                                                        vector<tl_object_ptr<telegram_api::Peer>> &&my_peers,
+                                                        vector<tl_object_ptr<telegram_api::Peer>> &&peers) {
+  auto it = search_public_dialogs_queries_.find(query);
+  CHECK(it != search_public_dialogs_queries_.end());
+  CHECK(!it->second.empty());
+  auto promises = std::move(it->second);
+  search_public_dialogs_queries_.erase(it);
+
+  CHECK(!query.empty());
+  found_public_dialogs_[query] = td_->dialog_manager_->get_peers_dialog_ids(std::move(peers));
+  found_on_server_dialogs_[query] = td_->dialog_manager_->get_peers_dialog_ids(std::move(my_peers));
+
+  set_promises(promises);
+}
+
+void DialogManager::on_failed_public_dialogs_search(const string &query, Status &&error) {
+  auto it = search_public_dialogs_queries_.find(query);
+  CHECK(it != search_public_dialogs_queries_.end());
+  CHECK(!it->second.empty());
+  auto promises = std::move(it->second);
+  search_public_dialogs_queries_.erase(it);
+
+  found_public_dialogs_[query];     // negative cache
+  found_on_server_dialogs_[query];  // negative cache
+
+  fail_promises(promises, std::move(error));
 }
 
 void DialogManager::reget_peer_settings(DialogId dialog_id) {

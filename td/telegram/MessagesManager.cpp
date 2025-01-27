@@ -588,41 +588,6 @@ class GetDialogListQuery final : public Td::ResultHandler {
   }
 };
 
-class SearchPublicDialogsQuery final : public Td::ResultHandler {
-  string query_;
-
- public:
-  void send(const string &query) {
-    query_ = query;
-    send_query(
-        G()->net_query_creator().create(telegram_api::contacts_search(query, 20 /* mostly ignored server-side */)));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::contacts_search>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto dialogs = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for SearchPublicDialogsQuery: " << to_string(dialogs);
-    td_->user_manager_->on_get_users(std::move(dialogs->users_), "SearchPublicDialogsQuery");
-    td_->chat_manager_->on_get_chats(std::move(dialogs->chats_), "SearchPublicDialogsQuery");
-    td_->messages_manager_->on_get_public_dialogs_search_result(query_, std::move(dialogs->my_results_),
-                                                                std::move(dialogs->results_));
-  }
-
-  void on_error(Status status) final {
-    if (!G()->is_expected_error(status)) {
-      if (status.message() == "QUERY_TOO_SHORT") {
-        return td_->messages_manager_->on_get_public_dialogs_search_result(query_, {}, {});
-      }
-      LOG(ERROR) << "Receive error for SearchPublicDialogsQuery: " << status;
-    }
-    td_->messages_manager_->on_failed_public_dialogs_search(query_, std::move(status));
-  }
-};
-
 class GetMessagesViewsQuery final : public Td::ResultHandler {
   DialogId dialog_id_;
   vector<MessageId> message_ids_;
@@ -3962,13 +3927,13 @@ MessagesManager::~MessagesManager() {
   Scheduler::instance()->destroy_on_scheduler(
       G()->get_gc_scheduler_id(), ttl_nodes_, ttl_heap_, being_sent_messages_, update_message_ids_,
       update_scheduled_message_ids_, message_id_to_dialog_id_, last_clear_history_message_id_to_dialog_id_, dialogs_,
-      postponed_chat_read_inbox_updates_, found_public_dialogs_, found_on_server_dialogs_, message_embedding_codes_[0],
-      message_embedding_codes_[1], message_to_replied_media_timestamp_messages_,
-      story_to_replied_media_timestamp_messages_, notification_group_id_to_dialog_id_, pending_get_channel_differences_,
-      active_get_channel_differences_, get_channel_difference_to_log_event_id_, channel_get_difference_retry_timeouts_,
-      is_channel_difference_finished_, expected_channel_pts_, expected_channel_max_message_id_,
-      dialog_bot_command_message_ids_, message_full_id_to_file_source_id_, last_outgoing_forwarded_message_date_,
-      dialog_viewed_messages_, previous_repaired_read_inbox_max_message_id_, failed_to_load_dialogs_);
+      postponed_chat_read_inbox_updates_, message_embedding_codes_[0], message_embedding_codes_[1],
+      message_to_replied_media_timestamp_messages_, story_to_replied_media_timestamp_messages_,
+      notification_group_id_to_dialog_id_, pending_get_channel_differences_, active_get_channel_differences_,
+      get_channel_difference_to_log_event_id_, channel_get_difference_retry_timeouts_, is_channel_difference_finished_,
+      expected_channel_pts_, expected_channel_max_message_id_, dialog_bot_command_message_ids_,
+      message_full_id_to_file_source_id_, last_outgoing_forwarded_message_date_, dialog_viewed_messages_,
+      previous_repaired_read_inbox_max_message_id_, failed_to_load_dialogs_);
 }
 
 MessagesManager::AddDialogData::AddDialogData(int32 dependent_dialog_count, unique_ptr<Message> &&last_message,
@@ -7524,35 +7489,6 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
   promise.set_value(Unit());
 }
 
-void MessagesManager::on_get_public_dialogs_search_result(const string &query,
-                                                          vector<tl_object_ptr<telegram_api::Peer>> &&my_peers,
-                                                          vector<tl_object_ptr<telegram_api::Peer>> &&peers) {
-  auto it = search_public_dialogs_queries_.find(query);
-  CHECK(it != search_public_dialogs_queries_.end());
-  CHECK(!it->second.empty());
-  auto promises = std::move(it->second);
-  search_public_dialogs_queries_.erase(it);
-
-  CHECK(!query.empty());
-  found_public_dialogs_[query] = td_->dialog_manager_->get_peers_dialog_ids(std::move(peers));
-  found_on_server_dialogs_[query] = td_->dialog_manager_->get_peers_dialog_ids(std::move(my_peers));
-
-  set_promises(promises);
-}
-
-void MessagesManager::on_failed_public_dialogs_search(const string &query, Status &&error) {
-  auto it = search_public_dialogs_queries_.find(query);
-  CHECK(it != search_public_dialogs_queries_.end());
-  CHECK(!it->second.empty());
-  auto promises = std::move(it->second);
-  search_public_dialogs_queries_.erase(it);
-
-  found_public_dialogs_[query];     // negative cache
-  found_on_server_dialogs_[query];  // negative cache
-
-  fail_promises(promises, std::move(error));
-}
-
 void MessagesManager::on_get_message_search_result_calendar(
     DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id, MessageId from_message_id,
     MessageSearchFilter filter, int32 total_count, vector<tl_object_ptr<telegram_api::Message>> &&messages,
@@ -10289,7 +10225,6 @@ void MessagesManager::hangup() {
   fail_promise_map(get_dialog_queries_);
   fail_promise_map(load_scheduled_messages_from_database_queries_);
   fail_promise_map(run_after_get_channel_difference_);
-  fail_promise_map(search_public_dialogs_queries_);
   fail_promise_map(get_history_queries_);
   while (!pending_channel_on_get_dialogs_.empty()) {
     auto it = pending_channel_on_get_dialogs_.begin();
@@ -14114,64 +14049,6 @@ void MessagesManager::reload_pinned_dialogs(DialogListId dialog_list_id, Promise
   }
 }
 
-vector<DialogId> MessagesManager::search_public_dialogs(const string &query, Promise<Unit> &&promise) {
-  LOG(INFO) << "Search public chats with query = \"" << query << '"';
-
-  auto query_length = utf8_length(query);
-  if (query_length < MIN_SEARCH_PUBLIC_DIALOG_PREFIX_LEN ||
-      (query_length == MIN_SEARCH_PUBLIC_DIALOG_PREFIX_LEN && query[0] == '@')) {
-    string username = clean_username(query);
-    if (username[0] == '@') {
-      username = username.substr(1);
-    }
-
-    for (auto &short_username : get_valid_short_usernames()) {
-      if (2 * username.size() > short_username.size() && begins_with(short_username, username)) {
-        username = short_username.str();
-        auto dialog_id = td_->dialog_manager_->resolve_dialog_username(username, promise);
-        if (!dialog_id.is_valid()) {
-          return {};
-        }
-
-        force_create_dialog(dialog_id, "search_public_dialogs");
-
-        auto d = get_dialog(dialog_id);
-        if (d == nullptr || d->order != DEFAULT_ORDER ||
-            (dialog_id.get_type() == DialogType::User &&
-             td_->user_manager_->is_user_contact(dialog_id.get_user_id()))) {
-          continue;
-        }
-
-        promise.set_value(Unit());
-        return {dialog_id};
-      }
-    }
-    promise.set_value(Unit());
-    return {};
-  }
-
-  auto it = found_public_dialogs_.find(query);
-  if (it != found_public_dialogs_.end()) {
-    promise.set_value(Unit());
-    return it->second;
-  }
-
-  send_search_public_dialogs_query(query, std::move(promise));
-  return {};
-}
-
-void MessagesManager::send_search_public_dialogs_query(const string &query, Promise<Unit> &&promise) {
-  CHECK(!query.empty());
-  auto &promises = search_public_dialogs_queries_[query];
-  promises.push_back(std::move(promise));
-  if (promises.size() != 1) {
-    // query has already been sent, just wait for the result
-    return;
-  }
-
-  td_->create_handler<SearchPublicDialogsQuery>()->send(query);
-}
-
 std::pair<int32, vector<DialogId>> MessagesManager::search_dialogs(const string &query, int32 limit,
                                                                    Promise<Unit> &&promise) {
   LOG(INFO) << "Search chats with query \"" << query << "\" and limit " << limit;
@@ -14243,32 +14120,6 @@ vector<DialogId> MessagesManager::sort_dialogs_by_order(const vector<DialogId> &
     dialog_dates.pop_back();
   }
   return transform(dialog_dates, [](auto dialog_date) { return dialog_date.get_dialog_id(); });
-}
-
-vector<DialogId> MessagesManager::search_dialogs_on_server(const string &query, int32 limit, Promise<Unit> &&promise) {
-  LOG(INFO) << "Search chats on server with query \"" << query << "\" and limit " << limit;
-
-  if (limit < 0) {
-    promise.set_error(Status::Error(400, "Limit must be non-negative"));
-    return {};
-  }
-  if (limit > MAX_GET_DIALOGS) {
-    limit = MAX_GET_DIALOGS;
-  }
-
-  if (query.empty()) {
-    promise.set_value(Unit());
-    return {};
-  }
-
-  auto it = found_on_server_dialogs_.find(query);
-  if (it != found_on_server_dialogs_.end()) {
-    promise.set_value(Unit());
-    return sort_dialogs_by_order(it->second, limit);
-  }
-
-  send_search_public_dialogs_query(query, std::move(promise));
-  return {};
 }
 
 void MessagesManager::block_message_sender_from_replies(MessageId message_id, bool need_delete_message,
@@ -31058,7 +30909,8 @@ void MessagesManager::delete_all_dialog_messages_from_database(Dialog *d, Messag
     }
   }
   */
-  G()->td_db()->get_message_db_async()->delete_all_dialog_messages(dialog_id, max_message_id, Auto());  // TODO Promise
+  G()->td_db()->get_message_db_async()->delete_all_dialog_messages(dialog_id, max_message_id,
+                                                                   Auto());  // TODO Promise
 }
 
 class MessagesManager::DeleteMessageLogEvent {

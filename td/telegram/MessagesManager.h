@@ -183,10 +183,6 @@ class MessagesManager final : public Actor {
                       int32 limit, bool from_the_end, vector<tl_object_ptr<telegram_api::Message>> &&messages,
                       Promise<Unit> &&promise);
 
-  void on_get_public_dialogs_search_result(const string &query, vector<tl_object_ptr<telegram_api::Peer>> &&my_peers,
-                                           vector<tl_object_ptr<telegram_api::Peer>> &&peers);
-  void on_failed_public_dialogs_search(const string &query, Status &&error);
-
   void on_get_message_search_result_calendar(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
                                              MessageId from_message_id, MessageSearchFilter filter, int32 total_count,
                                              vector<tl_object_ptr<telegram_api::Message>> &&messages,
@@ -541,11 +537,9 @@ class MessagesManager final : public Actor {
 
   void read_all_dialogs_from_list(DialogListId dialog_list_id, Promise<Unit> &&promise, bool is_recursive = false);
 
-  vector<DialogId> search_public_dialogs(const string &query, Promise<Unit> &&promise);
-
   std::pair<int32, vector<DialogId>> search_dialogs(const string &query, int32 limit, Promise<Unit> &&promise);
 
-  vector<DialogId> search_dialogs_on_server(const string &query, int32 limit, Promise<Unit> &&promise);
+  vector<DialogId> sort_dialogs_by_order(const vector<DialogId> &dialog_ids, int32 limit) const;
 
   void block_message_sender_from_replies(MessageId message_id, bool need_delete_message, bool need_delete_all_messages,
                                          bool report_spam, Promise<Unit> &&promise);
@@ -1574,11 +1568,10 @@ class MessagesManager final : public Actor {
   class SetDialogFolderIdOnServerLogEvent;
   class UpdateDialogNotificationSettingsOnServerLogEvent;
 
-  static constexpr size_t MAX_GROUPED_MESSAGES = 10;               // server side limit
-  static constexpr int32 MAX_GET_DIALOGS = 100;                    // server side limit
-  static constexpr int32 MAX_GET_HISTORY = 100;                    // server side limit
-  static constexpr int32 MAX_SEARCH_MESSAGES = 100;                // server side limit
-  static constexpr int32 MIN_SEARCH_PUBLIC_DIALOG_PREFIX_LEN = 4;  // server side limit
+  static constexpr size_t MAX_GROUPED_MESSAGES = 10;  // server side limit
+  static constexpr int32 MAX_GET_DIALOGS = 100;       // server side limit
+  static constexpr int32 MAX_GET_HISTORY = 100;       // server side limit
+  static constexpr int32 MAX_SEARCH_MESSAGES = 100;   // server side limit
   static constexpr int32 MIN_CHANNEL_DIFFERENCE = 1;
   static constexpr int32 MAX_CHANNEL_DIFFERENCE = 100;
   static constexpr int32 MAX_BOT_CHANNEL_DIFFERENCE = 100000;  // server side limit
@@ -2420,8 +2413,6 @@ class MessagesManager final : public Actor {
 
   td_api::object_ptr<td_api::updateActiveLiveLocationMessages> get_update_active_live_location_messages_object() const;
 
-  vector<DialogId> sort_dialogs_by_order(const vector<DialogId> &dialog_ids, int32 limit) const;
-
   static bool need_unread_counter(int64 dialog_order);
 
   int32 get_dialog_total_count(const DialogList &list) const;
@@ -2639,8 +2630,6 @@ class MessagesManager final : public Actor {
                                        const char *source);
 
   void send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&promise, uint64 log_event_id, const char *source);
-
-  void send_search_public_dialogs_query(const string &query, Promise<Unit> &&promise);
 
   vector<DialogId> get_pinned_dialog_ids(DialogListId dialog_list_id) const;
 
@@ -3203,10 +3192,6 @@ class MessagesManager final : public Actor {
   FlatHashSet<DialogId, DialogIdHash> failed_to_load_dialogs_;
 
   FlatHashSet<DialogId, DialogIdHash> postponed_chat_read_inbox_updates_;
-
-  FlatHashMap<string, vector<Promise<Unit>>> search_public_dialogs_queries_;
-  FlatHashMap<string, vector<DialogId>> found_public_dialogs_;     // TODO time bound cache
-  FlatHashMap<string, vector<DialogId>> found_on_server_dialogs_;  // TODO time bound cache
 
   FlatHashMap<int64, FoundDialogMessages> found_dialog_messages_;  // random_id -> FoundDialogMessages
   FlatHashMap<int64, DialogId> found_dialog_messages_dialog_id_;   // random_id -> dialog_id

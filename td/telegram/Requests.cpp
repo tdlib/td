@@ -412,7 +412,7 @@ class SearchPublicChatsRequest final : public RequestActor<> {
   vector<DialogId> dialog_ids_;
 
   void do_run(Promise<Unit> &&promise) final {
-    dialog_ids_ = td_->messages_manager_->search_public_dialogs(query_, std::move(promise));
+    dialog_ids_ = td_->dialog_manager_->search_public_dialogs(query_, std::move(promise));
   }
 
   void do_send_result() final {
@@ -452,7 +452,7 @@ class SearchChatsOnServerRequest final : public RequestActor<> {
   vector<DialogId> dialog_ids_;
 
   void do_run(Promise<Unit> &&promise) final {
-    dialog_ids_ = td_->messages_manager_->search_dialogs_on_server(query_, limit_, std::move(promise));
+    dialog_ids_ = td_->dialog_manager_->search_dialogs_on_server(query_, limit_, std::move(promise));
   }
 
   void do_send_result() final {
