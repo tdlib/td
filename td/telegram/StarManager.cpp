@@ -386,6 +386,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                     if (transaction->stargift_upgrade_) {
                       if (for_user) {
                         transaction->stargift_upgrade_ = false;
+                        product_info = nullptr;
                         return td_api::make_object<td_api::starTransactionTypeGiftUpgrade>(
                             gift.get_upgraded_gift_object(td_));
                       }
