@@ -248,6 +248,7 @@ class WebPagesManager::WebPage {
   int32 duration_ = 0;
   string author_;
   bool has_large_media_ = false;
+  bool video_cover_photo_ = false;
   mutable bool is_album_ = false;
   mutable bool is_album_checked_ = false;
   Document document_;
@@ -303,6 +304,7 @@ class WebPagesManager::WebPage {
     STORE_FLAG(has_sticker_ids);
     STORE_FLAG(has_theme_settings);
     STORE_FLAG(has_star_gifts);
+    STORE_FLAG(video_cover_photo_);
     END_STORE_FLAGS();
 
     store(url_, storer);
@@ -400,6 +402,7 @@ class WebPagesManager::WebPage {
     PARSE_FLAG(has_sticker_ids);
     PARSE_FLAG(has_theme_settings);
     PARSE_FLAG(has_star_gifts);
+    PARSE_FLAG(video_cover_photo_);
     END_PARSE_FLAGS();
 
     parse(url_, parser);
@@ -478,10 +481,11 @@ class WebPagesManager::WebPage {
            lhs.photo_ == rhs.photo_ && lhs.type_ == rhs.type_ && lhs.embed_url_ == rhs.embed_url_ &&
            lhs.embed_type_ == rhs.embed_type_ && lhs.embed_dimensions_ == rhs.embed_dimensions_ &&
            lhs.duration_ == rhs.duration_ && lhs.author_ == rhs.author_ &&
-           lhs.has_large_media_ == rhs.has_large_media_ && lhs.document_ == rhs.document_ &&
-           lhs.documents_ == rhs.documents_ && lhs.theme_settings_ == rhs.theme_settings_ &&
-           lhs.story_full_ids_ == rhs.story_full_ids_ && lhs.sticker_ids_ == rhs.sticker_ids_ &&
-           lhs.star_gifts_ == rhs.star_gifts_ && lhs.instant_view_.is_empty_ == rhs.instant_view_.is_empty_ &&
+           lhs.has_large_media_ == rhs.has_large_media_ && lhs.video_cover_photo_ == rhs.video_cover_photo_ &&
+           lhs.document_ == rhs.document_ && lhs.documents_ == rhs.documents_ &&
+           lhs.theme_settings_ == rhs.theme_settings_ && lhs.story_full_ids_ == rhs.story_full_ids_ &&
+           lhs.sticker_ids_ == rhs.sticker_ids_ && lhs.star_gifts_ == rhs.star_gifts_ &&
+           lhs.instant_view_.is_empty_ == rhs.instant_view_.is_empty_ &&
            lhs.instant_view_.is_v2_ == rhs.instant_view_.is_v2_;
   }
 };
@@ -605,6 +609,7 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
       }
       page->author_ = std::move(web_page->author_);
       page->has_large_media_ = web_page->has_large_media_;
+      page->video_cover_photo_ = web_page->video_cover_photo_;
       if (web_page->document_ != nullptr) {
         int32 document_id = web_page->document_->get_id();
         if (document_id == telegram_api::document::ID) {
@@ -1706,7 +1711,9 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
                          ? td_->videos_manager_->get_video_object(web_page->document_.file_id)
                          : nullptr;
         if (video != nullptr) {
-          return td_api::make_object<td_api::linkPreviewTypeVideo>(std::move(video));
+          return td_api::make_object<td_api::linkPreviewTypeVideo>(
+              std::move(video),
+              web_page->video_cover_photo_ ? get_photo_object(td_->file_manager_.get(), web_page->photo_) : nullptr);
         } else if (!web_page->embed_url_.empty()) {
           return td_api::make_object<td_api::linkPreviewTypeExternalVideo>(
               web_page->embed_url_, web_page->embed_type_, web_page->embed_dimensions_.width,
@@ -1783,7 +1790,9 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
                      ? td_->videos_manager_->get_video_object(web_page->document_.file_id)
                      : nullptr;
     if (video != nullptr) {
-      return td_api::make_object<td_api::linkPreviewTypeVideo>(std::move(video));
+      return td_api::make_object<td_api::linkPreviewTypeVideo>(
+          std::move(video),
+          web_page->video_cover_photo_ ? get_photo_object(td_->file_manager_.get(), web_page->photo_) : nullptr);
     } else {
       if (!web_page->photo_.is_empty()) {
         return td_api::make_object<td_api::linkPreviewTypePhoto>(

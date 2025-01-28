@@ -3154,8 +3154,8 @@ linkPreviewTypeUpgradedGift gift:upgradedGift = LinkPreviewType;
 //@description The link is a link to a user @photo Photo of the user; may be null if none @is_bot True, if the user is a bot
 linkPreviewTypeUser photo:chatPhoto is_bot:Bool = LinkPreviewType;
 
-//@description The link is a link to a video @video The video description
-linkPreviewTypeVideo video:video = LinkPreviewType;
+//@description The link is a link to a video @video The video description @cover Cover of the video; may be null if none
+linkPreviewTypeVideo video:video cover:photo = LinkPreviewType;
 
 //@description The link is a link to a video chat
 //@photo Photo of the chat with the video chat; may be null if none
