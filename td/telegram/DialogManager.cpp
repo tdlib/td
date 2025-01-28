@@ -1241,7 +1241,8 @@ class DialogManager::UploadDialogPhotoCallback final : public FileManager::Uploa
   }
 };
 
-DialogManager::DialogManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
+DialogManager::DialogManager(Td *td, ActorShared<> parent)
+    : recently_found_dialogs_{td, "recently_found", MAX_RECENT_DIALOGS}, td_(td), parent_(std::move(parent)) {
   upload_dialog_photo_callback_ = std::make_shared<UploadDialogPhotoCallback>();
 }
 
@@ -1694,6 +1695,51 @@ void DialogManager::on_migrate_chat_to_megagroup(ChatId chat_id, Promise<td_api:
   auto dialog_id = DialogId(channel_id);
   force_create_dialog(dialog_id, "on_migrate_chat_to_megagroup");
   promise.set_value(td_->messages_manager_->get_chat_object(dialog_id, "on_migrate_chat_to_megagroup"));
+}
+
+void DialogManager::on_dialog_deleted(DialogId dialog_id) {
+  if (!td_->auth_manager_->is_bot()) {
+    recently_found_dialogs_.remove_dialog(dialog_id);
+  }
+}
+
+std::pair<int32, vector<DialogId>> DialogManager::search_recently_found_dialogs(const string &query, int32 limit,
+                                                                                Promise<Unit> &&promise) {
+  auto result = recently_found_dialogs_.get_dialogs(query.empty() ? limit : 50, std::move(promise));
+  if (result.first == 0 || query.empty()) {
+    return result;
+  }
+
+  Hints hints;
+  int rating = 1;
+  for (auto dialog_id : result.second) {
+    hints.add(dialog_id.get(), get_dialog_search_text(dialog_id));
+    hints.set_rating(dialog_id.get(), ++rating);
+  }
+
+  auto hints_result = hints.search(query, limit, false);
+  return {narrow_cast<int32>(hints_result.first),
+          transform(hints_result.second, [](int64 key) { return DialogId(key); })};
+}
+
+Status DialogManager::add_recently_found_dialog(DialogId dialog_id) {
+  if (!have_dialog_force(dialog_id, "add_recently_found_dialog")) {
+    return Status::Error(400, "Chat not found");
+  }
+  recently_found_dialogs_.add_dialog(dialog_id);
+  return Status::OK();
+}
+
+Status DialogManager::remove_recently_found_dialog(DialogId dialog_id) {
+  if (!have_dialog_force(dialog_id, "remove_recently_found_dialog")) {
+    return Status::Error(400, "Chat not found");
+  }
+  recently_found_dialogs_.remove_dialog(dialog_id);
+  return Status::OK();
+}
+
+void DialogManager::clear_recently_found_dialogs() {
+  recently_found_dialogs_.clear_dialogs();
 }
 
 bool DialogManager::is_anonymous_administrator(DialogId dialog_id, string *author_signature) const {
@@ -3058,8 +3104,8 @@ void DialogManager::on_get_public_dialogs_search_result(const string &query,
   search_public_dialogs_queries_.erase(it);
 
   CHECK(!query.empty());
-  found_public_dialogs_[query] = td_->dialog_manager_->get_peers_dialog_ids(std::move(peers));
-  found_on_server_dialogs_[query] = td_->dialog_manager_->get_peers_dialog_ids(std::move(my_peers));
+  found_public_dialogs_[query] = get_peers_dialog_ids(std::move(peers));
+  found_on_server_dialogs_[query] = get_peers_dialog_ids(std::move(my_peers));
 
   set_promises(promises);
 }

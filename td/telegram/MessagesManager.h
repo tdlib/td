@@ -392,15 +392,6 @@ class MessagesManager final : public Actor {
 
   void read_all_dialog_reactions(DialogId dialog_id, MessageId top_thread_message_id, Promise<Unit> &&promise);
 
-  Status add_recently_found_dialog(DialogId dialog_id) TD_WARN_UNUSED_RESULT;
-
-  Status remove_recently_found_dialog(DialogId dialog_id) TD_WARN_UNUSED_RESULT;
-
-  void clear_recently_found_dialogs();
-
-  std::pair<int32, vector<DialogId>> search_recently_found_dialogs(const string &query, int32 limit,
-                                                                   Promise<Unit> &&promise);
-
   std::pair<int32, vector<DialogId>> get_recently_opened_dialogs(int32 limit, Promise<Unit> &&promise);
 
   void get_dialog_send_message_as_dialog_ids(DialogId dialog_id,
@@ -3078,7 +3069,6 @@ class MessagesManager final : public Actor {
 
   static DialogId get_message_sender(const Message *m);
 
-  RecentDialogList recently_found_dialogs_;
   RecentDialogList recently_opened_dialogs_;
 
   class UploadMediaCallback;

@@ -3876,10 +3876,7 @@ void MessagesManager::save_calls_db_state() {
 }
 
 MessagesManager::MessagesManager(Td *td, ActorShared<> parent)
-    : recently_found_dialogs_{td, "recently_found", MAX_RECENT_DIALOGS}
-    , recently_opened_dialogs_{td, "recently_opened", MAX_RECENT_DIALOGS}
-    , td_(td)
-    , parent_(std::move(parent)) {
+    : recently_opened_dialogs_{td, "recently_opened", MAX_RECENT_DIALOGS}, td_(td), parent_(std::move(parent)) {
   upload_media_callback_ = std::make_shared<UploadMediaCallback>();
   upload_thumbnail_callback_ = std::make_shared<UploadThumbnailCallback>();
 
@@ -8857,8 +8854,8 @@ void MessagesManager::on_dialog_deleted(DialogId dialog_id, Promise<Unit> &&prom
     d->need_restore_reply_markup = true;
     on_dialog_updated(dialog_id, "on_dialog_deleted");
   }
+  td_->dialog_manager_->on_dialog_deleted(dialog_id);
   if (!td_->auth_manager_->is_bot()) {
-    recently_found_dialogs_.remove_dialog(dialog_id);
     recently_opened_dialogs_.remove_dialog(dialog_id);
   }
   if (dialog_id.get_type() == DialogType::Channel) {
@@ -14051,7 +14048,7 @@ std::pair<int32, vector<DialogId>> MessagesManager::search_dialogs(const string 
     return {};
   }
   if (query.empty()) {
-    return recently_found_dialogs_.get_dialogs(limit, std::move(promise));
+    return td_->dialog_manager_->search_recently_found_dialogs(string(), limit, std::move(promise));
   }
 
   auto result = dialogs_hints_.search(query, limit);
@@ -14063,25 +14060,6 @@ std::pair<int32, vector<DialogId>> MessagesManager::search_dialogs(const string 
 
   promise.set_value(Unit());
   return {narrow_cast<int32>(result.first), std::move(dialog_ids)};
-}
-
-std::pair<int32, vector<DialogId>> MessagesManager::search_recently_found_dialogs(const string &query, int32 limit,
-                                                                                  Promise<Unit> &&promise) {
-  auto result = recently_found_dialogs_.get_dialogs(query.empty() ? limit : 50, std::move(promise));
-  if (result.first == 0 || query.empty()) {
-    return result;
-  }
-
-  Hints hints;
-  int rating = 1;
-  for (auto dialog_id : result.second) {
-    hints.add(dialog_id.get(), td_->dialog_manager_->get_dialog_search_text(dialog_id));
-    hints.set_rating(dialog_id.get(), ++rating);
-  }
-
-  auto hints_result = hints.search(query, limit, false);
-  return {narrow_cast<int32>(hints_result.first),
-          transform(hints_result.second, [](int64 key) { return DialogId(key); })};
 }
 
 std::pair<int32, vector<DialogId>> MessagesManager::get_recently_opened_dialogs(int32 limit, Promise<Unit> &&promise) {
@@ -35314,26 +35292,6 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         LOG(FATAL) << "Unsupported log event type " << event.type_;
     }
   }
-}
-
-Status MessagesManager::add_recently_found_dialog(DialogId dialog_id) {
-  if (!have_dialog_force(dialog_id, "add_recently_found_dialog")) {
-    return Status::Error(400, "Chat not found");
-  }
-  recently_found_dialogs_.add_dialog(dialog_id);
-  return Status::OK();
-}
-
-Status MessagesManager::remove_recently_found_dialog(DialogId dialog_id) {
-  if (!have_dialog_force(dialog_id, "remove_recently_found_dialog")) {
-    return Status::Error(400, "Chat not found");
-  }
-  recently_found_dialogs_.remove_dialog(dialog_id);
-  return Status::OK();
-}
-
-void MessagesManager::clear_recently_found_dialogs() {
-  recently_found_dialogs_.clear_dialogs();
 }
 
 void MessagesManager::suffix_load_loop(const Dialog *d, SuffixLoadQueries *queries) {

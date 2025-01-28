@@ -526,7 +526,7 @@ class SearchRecentlyFoundChatsRequest final : public RequestActor<> {
   std::pair<int32, vector<DialogId>> dialog_ids_;
 
   void do_run(Promise<Unit> &&promise) final {
-    dialog_ids_ = td_->messages_manager_->search_recently_found_dialogs(query_, limit_, std::move(promise));
+    dialog_ids_ = td_->dialog_manager_->search_recently_found_dialogs(query_, limit_, std::move(promise));
   }
 
   void do_send_result() final {
@@ -3057,17 +3057,17 @@ void Requests::on_request(uint64 id, td_api::searchRecentlyFoundChats &request) 
 
 void Requests::on_request(uint64 id, const td_api::addRecentlyFoundChat &request) {
   CHECK_IS_USER();
-  answer_ok_query(id, td_->messages_manager_->add_recently_found_dialog(DialogId(request.chat_id_)));
+  answer_ok_query(id, td_->dialog_manager_->add_recently_found_dialog(DialogId(request.chat_id_)));
 }
 
 void Requests::on_request(uint64 id, const td_api::removeRecentlyFoundChat &request) {
   CHECK_IS_USER();
-  answer_ok_query(id, td_->messages_manager_->remove_recently_found_dialog(DialogId(request.chat_id_)));
+  answer_ok_query(id, td_->dialog_manager_->remove_recently_found_dialog(DialogId(request.chat_id_)));
 }
 
 void Requests::on_request(uint64 id, const td_api::clearRecentlyFoundChats &request) {
   CHECK_IS_USER();
-  td_->messages_manager_->clear_recently_found_dialogs();
+  td_->dialog_manager_->clear_recently_found_dialogs();
   send_closure(td_actor_, &Td::send_result, id, td_api::make_object<td_api::ok>());
 }
 
