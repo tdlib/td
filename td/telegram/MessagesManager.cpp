@@ -15160,6 +15160,16 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(MessageFullId 
   SliceBuilder sb;
   sb << LinkManager::get_t_me_url();
 
+  auto add_media_timestamp = [&] {
+    if (media_timestamp < 60) {
+      sb << media_timestamp;
+    } else if (media_timestamp < 3600) {
+      sb << media_timestamp / 60 << 'm' << media_timestamp % 60 << 's';
+    } else {
+      sb << media_timestamp / 3600 << 'h' << media_timestamp / 60 % 60 << 'm' << media_timestamp % 60 << 's';
+    }
+  };
+
   if (in_message_thread && !is_forum) {
     // try to generate a comment link
     CHECK(dialog_id == d->dialog_id);
@@ -15183,7 +15193,8 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(MessageFullId 
           sb << "&single";
         }
         if (media_timestamp > 0) {
-          sb << "&t=" << media_timestamp;
+          sb << "&t=";
+          add_media_timestamp();
         }
         return std::make_pair(sb.as_cslice().str(), true);
       }
@@ -15222,7 +15233,8 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(MessageFullId 
     separator = '&';
   }
   if (media_timestamp > 0) {
-    sb << separator << "t=" << media_timestamp;
+    sb << separator << "t=";
+    add_media_timestamp();
     separator = '&';
   }
   CHECK(separator == '?' || separator == '&');

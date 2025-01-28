@@ -620,6 +620,8 @@ TEST(Link, parse_internal_link_part1) {
                       message("tg://privatepost?channel=12345&post=456&single&thread=123"));
   parse_internal_link("t.me/c/%312345/%3123?comment=456&t=789&single&thread=123%20%31",
                       message("tg://privatepost?channel=12345&post=123&single&thread=123%201&comment=456&t=789"));
+  parse_internal_link("t.me/c/%312345/%3123?comment=456&t=2h3m101s&single&thread=123%20%31",
+                      message("tg://privatepost?channel=12345&post=123&single&thread=123%201&comment=456&t=2h3m101s"));
 
   parse_internal_link("tg:bg?color=111111#asdasd", background("111111"));
   parse_internal_link("tg:bg?color=11111%31", background("111111"));
