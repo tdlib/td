@@ -196,6 +196,8 @@ class WebPagesManager final : public Actor {
 
   vector<FileId> get_web_page_file_ids(const WebPage *web_page) const;
 
+  static int32 get_video_start_timestamp(const string &url);
+
   static bool can_web_page_be_album(const WebPage *web_page);
 
   static bool is_web_page_album(const WebPage *web_page);

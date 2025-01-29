@@ -1426,6 +1426,14 @@ bool WebPagesManager::is_web_page_album(const WebPage *web_page) {
   return web_page->is_album_;
 }
 
+int32 WebPagesManager::get_video_start_timestamp(const string &url) {
+  auto r_info = LinkManager::get_message_link_info(url);
+  if (r_info.is_error()) {
+    return 0;
+  }
+  return r_info.ok().media_timestamp;
+}
+
 td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_type_album_object(
     const WebPageInstantView &instant_view) const {
   if (instant_view.is_empty_ || !instant_view.is_loaded_) {
@@ -1713,7 +1721,8 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
         if (video != nullptr) {
           return td_api::make_object<td_api::linkPreviewTypeVideo>(
               std::move(video),
-              web_page->video_cover_photo_ ? get_photo_object(td_->file_manager_.get(), web_page->photo_) : nullptr);
+              web_page->video_cover_photo_ ? get_photo_object(td_->file_manager_.get(), web_page->photo_) : nullptr,
+              get_video_start_timestamp(web_page->url_));
         } else if (!web_page->embed_url_.empty()) {
           return td_api::make_object<td_api::linkPreviewTypeExternalVideo>(
               web_page->embed_url_, web_page->embed_type_, web_page->embed_dimensions_.width,
@@ -1792,7 +1801,8 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
     if (video != nullptr) {
       return td_api::make_object<td_api::linkPreviewTypeVideo>(
           std::move(video),
-          web_page->video_cover_photo_ ? get_photo_object(td_->file_manager_.get(), web_page->photo_) : nullptr);
+          web_page->video_cover_photo_ ? get_photo_object(td_->file_manager_.get(), web_page->photo_) : nullptr,
+          get_video_start_timestamp(web_page->url_));
     } else {
       if (!web_page->photo_.is_empty()) {
         return td_api::make_object<td_api::linkPreviewTypePhoto>(
