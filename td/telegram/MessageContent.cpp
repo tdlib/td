@@ -8998,7 +8998,7 @@ vector<const Photo *> get_message_content_need_to_upload_covers(Td *td, const Me
     case MessageContentType::Video: {
       const auto *cover = &static_cast<const MessageVideo *>(content)->cover;
       if (cover->is_empty() ||
-          photo_get_cover_input_media(td->file_manager_.get(), *cover, td->auth_manager_->is_bot()) != nullptr) {
+          photo_get_cover_input_media(td->file_manager_.get(), *cover, td->auth_manager_->is_bot(), false) != nullptr) {
         break;
       }
       return {cover};
@@ -9007,8 +9007,8 @@ vector<const Photo *> get_message_content_need_to_upload_covers(Td *td, const Me
       vector<const Photo *> result;
       for (const auto &media : static_cast<const MessagePaidMedia *>(content)->media) {
         const auto *cover = media.get_video_cover();
-        if (cover->is_empty() ||
-            photo_get_cover_input_media(td->file_manager_.get(), *cover, td->auth_manager_->is_bot()) != nullptr) {
+        if (cover->is_empty() || photo_get_cover_input_media(td->file_manager_.get(), *cover,
+                                                             td->auth_manager_->is_bot(), false) != nullptr) {
           continue;
         }
         result.push_back(cover);

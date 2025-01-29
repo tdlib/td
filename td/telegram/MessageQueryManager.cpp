@@ -1266,7 +1266,7 @@ void MessageQueryManager::upload_message_cover(BusinessConnectionId business_con
   cover.promise_ = std::move(promise);
 
   auto input_media = photo_get_cover_input_media(td_->file_manager_.get(), cover.photo_,
-                                                 td_->auth_manager_->is_bot() && bad_parts.empty());
+                                                 td_->auth_manager_->is_bot() && bad_parts.empty(), true);
   if (input_media != nullptr && bad_parts.empty()) {
     return do_upload_cover(file_upload_id, std::move(cover));
   }
@@ -1341,7 +1341,7 @@ void MessageQueryManager::complete_upload_message_cover(
   auto old_file_id = file_upload_id.get_file_id();
   send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_upload_id);
 
-  auto input_media = photo_get_cover_input_media(td_->file_manager_.get(), photo, true);
+  auto input_media = photo_get_cover_input_media(td_->file_manager_.get(), photo, true, true);
   if (input_media == nullptr) {
     return promise.set_error(Status::Error(500, "Failed to upload file"));
   }
