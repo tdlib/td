@@ -1242,7 +1242,10 @@ class DialogManager::UploadDialogPhotoCallback final : public FileManager::Uploa
 };
 
 DialogManager::DialogManager(Td *td, ActorShared<> parent)
-    : recently_found_dialogs_{td, "recently_found", MAX_RECENT_DIALOGS}, td_(td), parent_(std::move(parent)) {
+    : recently_found_dialogs_{td, "recently_found", MAX_RECENT_DIALOGS}
+    , recently_opened_dialogs_{td, "recently_opened", MAX_RECENT_DIALOGS}
+    , td_(td)
+    , parent_(std::move(parent)) {
   upload_dialog_photo_callback_ = std::make_shared<UploadDialogPhotoCallback>();
 }
 
@@ -1697,9 +1700,16 @@ void DialogManager::on_migrate_chat_to_megagroup(ChatId chat_id, Promise<td_api:
   promise.set_value(td_->messages_manager_->get_chat_object(dialog_id, "on_migrate_chat_to_megagroup"));
 }
 
+void DialogManager::on_dialog_opened(DialogId dialog_id) {
+  if (!td_->auth_manager_->is_bot()) {
+    recently_opened_dialogs_.add_dialog(dialog_id);
+  }
+}
+
 void DialogManager::on_dialog_deleted(DialogId dialog_id) {
   if (!td_->auth_manager_->is_bot()) {
     recently_found_dialogs_.remove_dialog(dialog_id);
+    recently_opened_dialogs_.remove_dialog(dialog_id);
   }
 }
 
@@ -1740,6 +1750,11 @@ Status DialogManager::remove_recently_found_dialog(DialogId dialog_id) {
 
 void DialogManager::clear_recently_found_dialogs() {
   recently_found_dialogs_.clear_dialogs();
+}
+
+std::pair<int32, vector<DialogId>> DialogManager::get_recently_opened_dialogs(int32 limit, Promise<Unit> &&promise) {
+  CHECK(!td_->auth_manager_->is_bot());
+  return recently_opened_dialogs_.get_dialogs(limit, std::move(promise));
 }
 
 bool DialogManager::is_anonymous_administrator(DialogId dialog_id, string *author_signature) const {

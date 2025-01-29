@@ -545,7 +545,7 @@ class GetRecentlyOpenedChatsRequest final : public RequestActor<> {
   std::pair<int32, vector<DialogId>> dialog_ids_;
 
   void do_run(Promise<Unit> &&promise) final {
-    dialog_ids_ = td_->messages_manager_->get_recently_opened_dialogs(limit_, std::move(promise));
+    dialog_ids_ = td_->dialog_manager_->get_recently_opened_dialogs(limit_, std::move(promise));
   }
 
   void do_send_result() final {

@@ -57,7 +57,6 @@
 #include "td/telegram/QuickReplyShortcutId.h"
 #include "td/telegram/ReactionType.h"
 #include "td/telegram/ReactionUnavailabilityReason.h"
-#include "td/telegram/RecentDialogList.h"
 #include "td/telegram/RepliedMessageInfo.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/RestrictionReason.h"
@@ -391,8 +390,6 @@ class MessagesManager final : public Actor {
   void read_all_dialog_mentions(DialogId dialog_id, MessageId top_thread_message_id, Promise<Unit> &&promise);
 
   void read_all_dialog_reactions(DialogId dialog_id, MessageId top_thread_message_id, Promise<Unit> &&promise);
-
-  std::pair<int32, vector<DialogId>> get_recently_opened_dialogs(int32 limit, Promise<Unit> &&promise);
 
   void get_dialog_send_message_as_dialog_ids(DialogId dialog_id,
                                              Promise<td_api::object_ptr<td_api::chatMessageSenders>> &&promise,
@@ -1566,7 +1563,6 @@ class MessagesManager final : public Actor {
   static constexpr int32 MIN_CHANNEL_DIFFERENCE = 1;
   static constexpr int32 MAX_CHANNEL_DIFFERENCE = 100;
   static constexpr int32 MAX_BOT_CHANNEL_DIFFERENCE = 100000;  // server side limit
-  static constexpr int32 MAX_RECENT_DIALOGS = 50;              // some reasonable value
   static constexpr size_t MIN_DELETED_ASYNCHRONOUSLY_MESSAGES = 2;
   static constexpr size_t MAX_UNLOADED_MESSAGES = 5000;
 
@@ -3068,8 +3064,6 @@ class MessagesManager final : public Actor {
   static DialogId get_message_original_sender(const Message *m);
 
   static DialogId get_message_sender(const Message *m);
-
-  RecentDialogList recently_opened_dialogs_;
 
   class UploadMediaCallback;
   class UploadThumbnailCallback;

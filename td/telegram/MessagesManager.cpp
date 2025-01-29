@@ -3875,8 +3875,7 @@ void MessagesManager::save_calls_db_state() {
   G()->td_db()->get_sqlite_pmc()->set("calls_db_state", log_event_store(calls_db_state_).as_slice().str(), Auto());
 }
 
-MessagesManager::MessagesManager(Td *td, ActorShared<> parent)
-    : recently_opened_dialogs_{td, "recently_opened", MAX_RECENT_DIALOGS}, td_(td), parent_(std::move(parent)) {
+MessagesManager::MessagesManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   upload_media_callback_ = std::make_shared<UploadMediaCallback>();
   upload_thumbnail_callback_ = std::make_shared<UploadThumbnailCallback>();
 
@@ -8855,9 +8854,6 @@ void MessagesManager::on_dialog_deleted(DialogId dialog_id, Promise<Unit> &&prom
     on_dialog_updated(dialog_id, "on_dialog_deleted");
   }
   td_->dialog_manager_->on_dialog_deleted(dialog_id);
-  if (!td_->auth_manager_->is_bot()) {
-    recently_opened_dialogs_.remove_dialog(dialog_id);
-  }
   if (dialog_id.get_type() == DialogType::Channel) {
     G()->td_db()->get_binlog_pmc()->erase(get_channel_pts_key(dialog_id));
   }
@@ -14062,11 +14058,6 @@ std::pair<int32, vector<DialogId>> MessagesManager::search_dialogs(const string 
   return {narrow_cast<int32>(result.first), std::move(dialog_ids)};
 }
 
-std::pair<int32, vector<DialogId>> MessagesManager::get_recently_opened_dialogs(int32 limit, Promise<Unit> &&promise) {
-  CHECK(!td_->auth_manager_->is_bot());
-  return recently_opened_dialogs_.get_dialogs(limit, std::move(promise));
-}
-
 vector<DialogId> MessagesManager::sort_dialogs_by_order(const vector<DialogId> &dialog_ids, int32 limit) const {
   CHECK(!td_->auth_manager_->is_bot());
   auto fake_order = static_cast<int64>(dialog_ids.size()) + 1;
@@ -16569,7 +16560,7 @@ void MessagesManager::open_dialog(Dialog *d) {
   if (!td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read)) {
     return;
   }
-  recently_opened_dialogs_.add_dialog(dialog_id);
+  td_->dialog_manager_->on_dialog_opened(dialog_id);
   if (d->open_count == std::numeric_limits<uint32>::max()) {
     return;
   }

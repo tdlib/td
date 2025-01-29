@@ -121,6 +121,8 @@ class DialogManager final : public Actor {
 
   void migrate_dialog_to_megagroup(DialogId dialog_id, Promise<td_api::object_ptr<td_api::chat>> &&promise);
 
+  void on_dialog_opened(DialogId dialog_id);
+
   void on_dialog_deleted(DialogId dialog_id);
 
   Status add_recently_found_dialog(DialogId dialog_id) TD_WARN_UNUSED_RESULT;
@@ -131,6 +133,8 @@ class DialogManager final : public Actor {
 
   std::pair<int32, vector<DialogId>> search_recently_found_dialogs(const string &query, int32 limit,
                                                                    Promise<Unit> &&promise);
+
+  std::pair<int32, vector<DialogId>> get_recently_opened_dialogs(int32 limit, Promise<Unit> &&promise);
 
   bool is_anonymous_administrator(DialogId dialog_id, string *author_signature) const;
 
@@ -380,6 +384,7 @@ class DialogManager final : public Actor {
   FlatHashMap<string, vector<DialogId>> found_on_server_dialogs_;  // TODO time bound cache
 
   RecentDialogList recently_found_dialogs_;
+  RecentDialogList recently_opened_dialogs_;
 
   Td *td_;
   ActorShared<> parent_;
