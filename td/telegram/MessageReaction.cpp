@@ -118,13 +118,19 @@ class SendPaidReactionQuery final : public Td::ResultHandler {
     }
 
     int32 flags = 0;
+    telegram_api::object_ptr<telegram_api::PaidReactionPrivacy> privacy;
     if (!use_default_is_anonymous) {
       flags |= telegram_api::messages_sendPaidReaction::PRIVATE_MASK;
+      if (is_anonymous) {
+        privacy = telegram_api::make_object<telegram_api::paidReactionPrivacyAnonymous>();
+      } else {
+        privacy = telegram_api::make_object<telegram_api::paidReactionPrivacyDefault>();
+      }
     }
     send_query(G()->net_query_creator().create(
         telegram_api::messages_sendPaidReaction(flags, std::move(input_peer),
                                                 message_full_id.get_message_id().get_server_message_id().get(),
-                                                star_count, random_id, is_anonymous),
+                                                star_count, random_id, std::move(privacy)),
         {{dialog_id_}, {message_full_id}}));
   }
 
@@ -167,9 +173,15 @@ class TogglePaidReactionPrivacyQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
 
+    telegram_api::object_ptr<telegram_api::PaidReactionPrivacy> privacy;
+    if (is_anonymous) {
+      privacy = telegram_api::make_object<telegram_api::paidReactionPrivacyAnonymous>();
+    } else {
+      privacy = telegram_api::make_object<telegram_api::paidReactionPrivacyDefault>();
+    }
     send_query(G()->net_query_creator().create(
         telegram_api::messages_togglePaidReactionPrivacy(
-            std::move(input_peer), message_full_id.get_message_id().get_server_message_id().get(), is_anonymous),
+            std::move(input_peer), message_full_id.get_message_id().get_server_message_id().get(), std::move(privacy)),
         {{dialog_id_}, {message_full_id}}));
   }
 

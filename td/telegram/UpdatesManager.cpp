@@ -3780,7 +3780,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateSavedReactionTa
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePaidReactionPrivacy> update, Promise<Unit> &&promise) {
-  td_->option_manager_->set_option_boolean("is_paid_reaction_anonymous", update->private_);
+  td_->option_manager_->set_option_boolean(
+      "is_paid_reaction_anonymous", update->private_->get_id() == telegram_api::paidReactionPrivacyAnonymous::ID);
   promise.set_value(Unit());
 }
 
