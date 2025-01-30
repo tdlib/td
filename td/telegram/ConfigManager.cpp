@@ -2054,6 +2054,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
                                 get_json_value_int(std::move(key_value->value_), key));
         continue;
       }
+      if (key == "ton_blockchain_explorer_url") {
+        G()->set_option_string("ton_blockchain_explorer_url", get_json_value_string(std::move(key_value->value_), key));
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
