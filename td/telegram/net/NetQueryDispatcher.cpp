@@ -74,6 +74,10 @@ void NetQueryDispatcher::dispatch(NetQueryPtr net_query) {
       !net_query->has_verification_prefix() && !net_query->is_ready()) {
     net_query->set_error(Status::Error(403, "APNS_VERIFY_CHECK_ABCD"));
   }
+  if (net_query->tl_constructor() == telegram_api::auth_sendCode::ID && !net_query->has_verification_prefix() &&
+      !net_query->is_ready()) {
+    net_query->set_error(Status::Error(403, "RECAPTCHA_CHECK_AB_CD__KEY"));
+  }
 #endif
 
   if (!net_query->in_sequence_dispatcher() && !net_query->get_chain_ids().empty()) {
@@ -103,6 +107,25 @@ void NetQueryDispatcher::dispatch(NetQueryPtr net_query) {
       return send_closure_later(delayer_, &NetQueryDelayer::delay, std::move(net_query));
 #if TD_ANDROID || TD_DARWIN_IOS || TD_DARWIN_VISION_OS || TD_DARWIN_WATCH_OS || TD_TEST_VERIFICATION
     } else if (code == 403) {
+      Slice captcha_prefix = "RECAPTCHA_CHECK_";
+      if (begins_with(net_query->error().message(), captcha_prefix)) {
+        net_query->debug("sent to NetQueryVerifier");
+        std::lock_guard<std::mutex> guard(mutex_);
+        if (check_stop_flag(net_query)) {
+          return;
+        }
+        auto parameters = net_query->error().message().substr(captcha_prefix.size());
+        string action;
+        string recaptcha_key_id;
+        for (std::size_t i = 0; i + 1 < parameters.size(); i++) {
+          if (parameters[i] == '_' && parameters[i + 1] == '_') {
+            action = parameters.substr(0, i).str();
+            recaptcha_key_id = parameters.substr(i + 2).str();
+          }
+        }
+        return send_closure_later(verifier_, &NetQueryVerifier::check_recaptcha, std::move(net_query),
+                                  std::move(action), std::move(recaptcha_key_id));
+      }
 #if TD_ANDROID
       Slice prefix("INTEGRITY_CHECK_CLASSIC_");
 #else

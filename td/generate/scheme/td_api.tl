@@ -8291,6 +8291,13 @@ updateFileRemovedFromDownloads file_id:int32 counts:downloadedFileCounts = Updat
 //@cloud_project_number Cloud project number to pass to the Play Integrity API on Android
 updateApplicationVerificationRequired verification_id:int53 nonce:string cloud_project_number:int64 = Update;
 
+//@description A request can't be completed unless reCAPTCHA verification is performed; for official mobile applications only.
+//-The method setApplicationVerificationToken must be called once the verification is completed or failed
+//@verification_id Unique identifier for the verification process
+//@action The action for the check
+//@recaptcha_key_id Identifier of the reCAPTCHA key
+updateApplicationRecaptchaVerificationRequired verification_id:int53 action:string recaptcha_key_id:string = Update;
+
 //@description New call was created or information about a call was updated @call New data about a call
 updateCall call:call = Update;
 
@@ -10733,9 +10740,9 @@ removeAllFilesFromDownloads only_active:Bool only_completed:Bool delete_from_cac
 searchFileDownloads query:string only_active:Bool only_completed:Bool offset:string limit:int32 = FoundFileDownloads;
 
 
-//@description Application verification has been completed. Can be called before authorization
-//@verification_id Unique identifier for the verification process as received from updateApplicationVerificationRequired
-//@token Play Integrity API token for the Android application, or secret from push notification for the iOS application;
+//@description Application or reCAPTCHA verification has been completed. Can be called before authorization
+//@verification_id Unique identifier for the verification process as received from updateApplicationVerificationRequired or updateApplicationRecaptchaVerificationRequired
+//@token Play Integrity API token for the Android application, or secret from push notification for the iOS application for application verification, or reCAPTCHA token for reCAPTCHA verifications;
 //-pass an empty string to abort verification and receive error VERIFICATION_FAILED for the request
 setApplicationVerificationToken verification_id:int53 token:string = Ok;
 

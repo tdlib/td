@@ -25,6 +25,8 @@ class NetQueryVerifier final : public Actor {
 
   void verify(NetQueryPtr query, string nonce);
 
+  void check_recaptcha(NetQueryPtr query, string action, string recaptcha_key_id);
+
   void set_verification_token(int64 query_id, string &&token, Promise<Unit> &&promise);
 
  private:
@@ -32,7 +34,14 @@ class NetQueryVerifier final : public Actor {
 
   ActorShared<> parent_;
 
-  FlatHashMap<int64, std::pair<NetQueryPtr, string>> queries_;
+  struct Query {
+    enum class Type { Verification, Recaptcha };
+    Type type_ = Type::Verification;
+    string nonce_or_action_;
+    string recaptcha_key_id_;
+  };
+
+  FlatHashMap<int64, std::pair<NetQueryPtr, Query>> queries_;
   int64 next_query_id_ = 1;
 };
 

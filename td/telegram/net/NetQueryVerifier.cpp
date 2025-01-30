@@ -51,11 +51,37 @@ void NetQueryVerifier::verify(NetQueryPtr query, string nonce) {
   }
 
   auto query_id = next_query_id_++;
-  queries_.emplace(query_id, std::make_pair(std::move(query), nonce));
+  Query verification_query;
+  verification_query.type_ = Query::Type::Verification;
+  verification_query.nonce_or_action_ = nonce;
+  queries_.emplace(query_id, std::make_pair(std::move(query), std::move(verification_query)));
 
   send_closure(
       G()->td(), &Td::send_update,
       td_api::make_object<td_api::updateApplicationVerificationRequired>(query_id, nonce, cloud_project_number));
+}
+
+void NetQueryVerifier::check_recaptcha(NetQueryPtr query, string action, string recaptcha_key_id) {
+  CHECK(query->is_ready());
+  CHECK(query->is_error());
+
+  if (!check_utf8(action) || !check_utf8(recaptcha_key_id)) {
+    LOG(ERROR) << "Receive invalid reCAPTCHA parameters";
+    query->set_error(Status::Error(400, "Invalid reCAPTCHAT parameters"));
+    G()->net_query_dispatcher().dispatch(std::move(query));
+    return;
+  }
+
+  auto query_id = next_query_id_++;
+  Query verification_query;
+  verification_query.type_ = Query::Type::Recaptcha;
+  verification_query.nonce_or_action_ = action;
+  verification_query.recaptcha_key_id_ = recaptcha_key_id;
+  queries_.emplace(query_id, std::make_pair(std::move(query), std::move(verification_query)));
+
+  send_closure(
+      G()->td(), &Td::send_update,
+      td_api::make_object<td_api::updateApplicationRecaptchaVerificationRequired>(query_id, action, recaptcha_key_id));
 }
 
 void NetQueryVerifier::set_verification_token(int64 query_id, string &&token, Promise<Unit> &&promise) {
@@ -64,17 +90,17 @@ void NetQueryVerifier::set_verification_token(int64 query_id, string &&token, Pr
     return promise.set_error(Status::Error(400, "Verification not found"));
   }
   auto query = std::move(it->second.first);
-  auto nonce = std::move(it->second.second);
+  auto verification_query = std::move(it->second.second);
   queries_.erase(it);
   promise.set_value(Unit());
 
   if (token.empty()) {
     query->set_error(Status::Error(400, "VERIFICATION_FAILED"));
-  } else {
+  } else if (verification_query.type_ == Query::Type::Verification) {
 #if TD_ANDROID
-    telegram_api::invokeWithGooglePlayIntegrityPrefix prefix(nonce, token);
+    telegram_api::invokeWithGooglePlayIntegrityPrefix prefix(verification_query.nonce_or_action_, token);
 #else
-    telegram_api::invokeWithApnsSecretPrefix prefix(nonce, token);
+    telegram_api::invokeWithApnsSecretPrefix prefix(verification_query.nonce_or_action_, token);
 #endif
     auto storer = DefaultStorer<telegram_api::Function>(prefix);
     string prefix_str(storer.size(), '\0');
@@ -82,6 +108,16 @@ void NetQueryVerifier::set_verification_token(int64 query_id, string &&token, Pr
     CHECK(real_size == prefix_str.size());
     query->add_verification_prefix(prefix_str);
     query->resend();
+  } else if (verification_query.type_ == Query::Type::Recaptcha) {
+    telegram_api::invokeWithReCaptchaPrefix prefix(token);
+    auto storer = DefaultStorer<telegram_api::Function>(prefix);
+    string prefix_str(storer.size(), '\0');
+    auto real_size = storer.store(MutableSlice(prefix_str).ubegin());
+    CHECK(real_size == prefix_str.size());
+    query->add_verification_prefix(prefix_str);
+    query->resend();
+  } else {
+    UNREACHABLE();
   }
   G()->net_query_dispatcher().dispatch(std::move(query));
 }
