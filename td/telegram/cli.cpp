@@ -2900,7 +2900,7 @@ class CliClient final : public Actor {
       string received_gift_id;
       get_args(args, received_gift_id);
       send_request(td_api::make_object<td_api::getReceivedGift>(received_gift_id));
-    } else if (op == "gupg") {
+    } else if (op == "gug") {
       string name;
       get_args(args, name);
       send_request(td_api::make_object<td_api::getUpgradedGift>(name));
