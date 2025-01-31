@@ -14,6 +14,7 @@
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/OptionManager.h"
+#include "td/telegram/PaidReactionType.hpp"
 #include "td/telegram/ReactionManager.hpp"
 #include "td/telegram/ReactionType.hpp"
 #include "td/telegram/SavedMessagesManager.h"
@@ -1470,8 +1471,15 @@ void ReactionManager::get_message_effect(MessageEffectId effect_id,
 void ReactionManager::on_update_default_paid_reaction_type(PaidReactionType type) {
   if (type.is_valid() && type != default_paid_reaction_type_) {
     default_paid_reaction_type_ = type;
+    save_default_paid_reaction_type();
     send_closure(G()->td(), &Td::send_update, default_paid_reaction_type_.get_update_default_paid_reaction_type(td_));
   }
+}
+
+void ReactionManager::save_default_paid_reaction_type() const {
+  LOG(INFO) << "Save " << default_paid_reaction_type_;
+  G()->td_db()->get_binlog_pmc()->set("default_paid_reaction_type",
+                                      log_event_store(default_paid_reaction_type_).as_slice().str());
 }
 
 void ReactionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {

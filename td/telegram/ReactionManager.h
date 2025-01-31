@@ -309,6 +309,8 @@ class ReactionManager final : public Actor {
 
   void update_active_message_effects();
 
+  void save_default_paid_reaction_type() const;
+
   Td *td_;
   ActorShared<> parent_;
 
