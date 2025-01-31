@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/PaidReactionType.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -52,6 +53,8 @@ class MessageReactor {
   bool is_anonymous() const {
     return is_anonymous_;
   }
+
+  PaidReactionType get_paid_reaction_type(DialogId my_dialog_id) const;
 
   bool fix_is_me(DialogId my_dialog_id);
 

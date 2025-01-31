@@ -74,6 +74,13 @@ PaidReactionType PaidReactionType::legacy(bool is_anonymous) {
   return result;
 }
 
+PaidReactionType PaidReactionType::dialog(DialogId dialog_id) {
+  PaidReactionType result;
+  result.type_ = Type::Dialog;
+  result.dialog_id_ = dialog_id;
+  return result;
+}
+
 telegram_api::object_ptr<telegram_api::PaidReactionPrivacy> PaidReactionType::get_input_paid_reaction_privacy(
     Td *td) const {
   switch (type_) {
