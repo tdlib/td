@@ -26,6 +26,7 @@ PaidReactionType::PaidReactionType(Td *td, const telegram_api::object_ptr<telegr
           InputDialogId(static_cast<const telegram_api::paidReactionPrivacyPeer *>(type.get())->peer_);
       auto dialog_id = input_dialog_id.get_dialog_id();
       if (td->dialog_manager_->have_dialog_info(dialog_id)) {
+        td->dialog_manager_->force_create_dialog(dialog_id, "PaidReactionType");
         type_ = Type::Dialog;
         dialog_id_ = dialog_id;
       } else {
