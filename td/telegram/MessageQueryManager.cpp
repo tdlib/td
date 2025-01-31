@@ -1323,6 +1323,8 @@ void MessageQueryManager::do_upload_cover(FileUploadId file_upload_id, BeingUplo
 void MessageQueryManager::complete_upload_message_cover(
     BusinessConnectionId business_connection_id, DialogId dialog_id, Photo photo, FileUploadId file_upload_id,
     telegram_api::object_ptr<telegram_api::MessageMedia> &&media_ptr, Promise<Unit> &&promise) {
+  send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_upload_id);
+
   if (media_ptr->get_id() != telegram_api::messageMediaPhoto::ID) {
     return promise.set_error(Status::Error(500, "Receive invalid response"));
   }
@@ -1337,9 +1339,6 @@ void MessageQueryManager::complete_upload_message_cover(
   bool is_content_changed = false;
   bool need_update = false;
   merge_photos(td_, &photo, &new_photo, dialog_id, true, is_content_changed, need_update);
-
-  auto old_file_id = file_upload_id.get_file_id();
-  send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_upload_id);
 
   auto input_media = photo_get_cover_input_media(td_->file_manager_.get(), photo, true, true);
   if (input_media == nullptr) {
