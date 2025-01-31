@@ -3130,13 +3130,22 @@ class CliClient final : public Actor {
       MessageId message_id;
       get_args(args, chat_id, message_id);
       send_request(td_api::make_object<td_api::removePendingPaidMessageReactions>(chat_id, message_id));
-    } else if (op == "tpmria") {
+    } else if (op == "spmrt" || op == "spmrta") {
       ChatId chat_id;
       MessageId message_id;
-      bool is_anonymous;
-      get_args(args, chat_id, message_id, is_anonymous);
-      send_request(
-          td_api::make_object<td_api::togglePaidMessageReactionIsAnonymous>(chat_id, message_id, is_anonymous));
+      ChatId reaction_chat_id;
+      get_args(args, chat_id, message_id, reaction_chat_id);
+      td_api::object_ptr<td_api::PaidReactionType> type;
+      if (op == "spmrt") {
+        if (reaction_chat_id != 0) {
+          type = td_api::make_object<td_api::paidReactionTypeChat>(reaction_chat_id);
+        } else {
+          type = td_api::make_object<td_api::paidReactionTypeRegular>();
+        }
+      } else if (op == "spmrta") {
+        type = td_api::make_object<td_api::paidReactionTypeAnonymous>();
+      }
+      send_request(td_api::make_object<td_api::setPaidMessageReactionType>(chat_id, message_id, std::move(type)));
     } else if (op == "gmars") {
       ChatId chat_id;
       MessageId message_id;

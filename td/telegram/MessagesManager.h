@@ -749,8 +749,9 @@ class MessagesManager final : public Actor {
 
   void remove_paid_message_reactions(MessageFullId message_full_id, Promise<Unit> &&promise);
 
-  void toggle_paid_message_reaction_is_anonymous(MessageFullId message_full_id, bool is_anonymous,
-                                                 Promise<Unit> &&promise);
+  void set_paid_message_reaction_type(MessageFullId message_full_id,
+                                      const td_api::object_ptr<td_api::PaidReactionType> &type,
+                                      Promise<Unit> &&promise);
 
   td_api::object_ptr<td_api::message> get_dialog_event_log_message_object(
       DialogId dialog_id, tl_object_ptr<telegram_api::Message> &&message, DialogId &sender_dialog_id);

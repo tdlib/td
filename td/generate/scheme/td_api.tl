@@ -9733,11 +9733,11 @@ commitPendingPaidMessageReactions chat_id:int53 message_id:int53 = Ok;
 //@description Removes all pending paid reactions on a message @chat_id Identifier of the chat to which the message belongs @message_id Identifier of the message
 removePendingPaidMessageReactions chat_id:int53 message_id:int53 = Ok;
 
-//@description Changes whether the paid message reaction of the user to a message is anonymous. The message must have paid reaction added by the user
+//@description Changes type of a paid message reaction of the current user on a message. The message must have paid reaction added by the current user
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
-//@is_anonymous Pass true to make paid reaction of the user on the message anonymous; pass false to make the user's profile visible among top reactors
-togglePaidMessageReactionIsAnonymous chat_id:int53 message_id:int53 is_anonymous:Bool = Ok;
+//@type New type of the paid reaction
+setPaidMessageReactionType chat_id:int53 message_id:int53 type:PaidReactionType = Ok;
 
 //@description Sets reactions on a message; for bots only
 //@chat_id Identifier of the chat to which the message belongs

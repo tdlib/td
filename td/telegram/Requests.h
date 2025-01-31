@@ -471,7 +471,7 @@ class Requests {
 
   void on_request(uint64 id, const td_api::removePendingPaidMessageReactions &request);
 
-  void on_request(uint64 id, const td_api::togglePaidMessageReactionIsAnonymous &request);
+  void on_request(uint64 id, const td_api::setPaidMessageReactionType &request);
 
   void on_request(uint64 id, const td_api::removeMessageReaction &request);
 

@@ -218,8 +218,9 @@ struct MessageReactions {
 
   void send_paid_message_reaction(Td *td, MessageFullId message_full_id, int64 random_id, Promise<Unit> &&promise);
 
-  bool toggle_paid_message_reaction_is_anonymous(Td *td, MessageFullId message_full_id, bool is_anonymous,
-                                                 Promise<Unit> &&promise);
+  bool set_paid_message_reaction_type(Td *td, MessageFullId message_full_id,
+                                      const td_api::object_ptr<td_api::PaidReactionType> &type,
+                                      Promise<Unit> &&promise);
 
   template <class StorerT>
   void store(StorerT &storer) const;
