@@ -1869,6 +1869,18 @@ reactionTypeCustomEmoji custom_emoji_id:int64 = ReactionType;
 reactionTypePaid = ReactionType;
 
 
+//@class PaidReactionType @description Describes type of paid message reaction
+
+//@description A paid reaction on behalf of the current user
+paidReactionTypeRegular = PaidReactionType;
+
+//@description An anonymous paid reaction
+paidReactionTypeAnonymous = PaidReactionType;
+
+//@description A paid reaction on behalf of an owned chat @chat_id Identifier of the chat
+paidReactionTypeChat chat_id:int53 = PaidReactionType;
+
+
 //@description Contains information about a user that added paid reactions
 //@sender_id Identifier of the user or chat that added the reactions; may be null for anonymous reactors that aren't the current user
 //@star_count Number of Telegram Stars added
@@ -8426,6 +8438,9 @@ updateAvailableMessageEffects reaction_effect_ids:vector<int64> sticker_effect_i
 
 //@description The type of default reaction has changed @reaction_type The new type of the default reaction
 updateDefaultReactionType reaction_type:ReactionType = Update;
+
+//@description The type of default paid reaction has changed @type The new type of the default paid reaction
+updateDefaultPaidReactionType type:PaidReactionType = Update;
 
 //@description Tags used in Saved Messages or a Saved Messages topic have changed
 //@saved_messages_topic_id Identifier of Saved Messages topic which tags were changed; 0 if tags for the whole chat has changed

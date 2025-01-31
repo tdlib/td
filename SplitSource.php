@@ -395,6 +395,7 @@ function split_file($file, $chunks, $undo) {
             'notification_settings_manager[_(-](?![.]get[(][)])|NotificationSettingsManager' => 'NotificationSettingsManager',
             'online_manager[_(-](?![.]get[(][)])|OnlineManager' => 'OnlineManager',
             'option_manager[_(-](?![.]get[(][)])|OptionManager' => 'OptionManager',
+            'PaidReactionType' => 'PaidReactionType',
             'password_manager[_(-](?![.]get[(][)])|PasswordManager' => 'PasswordManager',
             'people_nearby_manager[_(-](?![.]get[(][)])|PeopleNearbyManager' => 'PeopleNearbyManager',
             'phone_number_manager[_(-](?![.]get[(][)])|PhoneNumberManager' => 'PhoneNumberManager',

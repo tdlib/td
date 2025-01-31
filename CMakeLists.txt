@@ -541,6 +541,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/OrderedMessage.cpp
   td/telegram/OrderInfo.cpp
   td/telegram/Outline.cpp
+  td/telegram/PaidReactionType.cpp
   td/telegram/PasswordManager.cpp
   td/telegram/Payments.cpp
   td/telegram/PeerColor.cpp
@@ -899,6 +900,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/OrderedMessage.h
   td/telegram/OrderInfo.h
   td/telegram/Outline.h
+  td/telegram/PaidReactionType.h
   td/telegram/PasswordManager.h
   td/telegram/Payments.h
   td/telegram/PeerColor.h
@@ -1084,6 +1086,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/MinChannel.hpp
   td/telegram/NotificationGroupInfo.hpp
   td/telegram/OrderInfo.hpp
+  td/telegram/PaidReactionType.hpp
   td/telegram/Photo.hpp
   td/telegram/PhotoSize.hpp
   td/telegram/PhotoSizeSource.hpp
