@@ -89,6 +89,8 @@ class ReactionManager final : public Actor {
 
   void on_update_default_paid_reaction_type(PaidReactionType type);
 
+  PaidReactionType get_default_paid_reaction_type() const;
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:

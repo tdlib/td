@@ -3106,9 +3106,20 @@ class CliClient final : public Actor {
       ChatId chat_id;
       MessageId message_id;
       int64 star_count;
-      get_args(args, chat_id, message_id, star_count);
-      send_request(td_api::make_object<td_api::addPendingPaidMessageReaction>(chat_id, message_id, star_count,
-                                                                              op == "appmrd", op == "appmra"));
+      ChatId reaction_chat_id;
+      get_args(args, chat_id, message_id, star_count, reaction_chat_id);
+      td_api::object_ptr<td_api::PaidReactionType> type;
+      if (op == "appmr") {
+        if (reaction_chat_id != 0) {
+          type = td_api::make_object<td_api::paidReactionTypeChat>(reaction_chat_id);
+        } else {
+          type = td_api::make_object<td_api::paidReactionTypeRegular>();
+        }
+      } else if (op == "appmra") {
+        type = td_api::make_object<td_api::paidReactionTypeAnonymous>();
+      }
+      send_request(
+          td_api::make_object<td_api::addPendingPaidMessageReaction>(chat_id, message_id, star_count, std::move(type)));
     } else if (op == "cppmr") {
       ChatId chat_id;
       MessageId message_id;

@@ -1514,6 +1514,10 @@ void ReactionManager::save_default_paid_reaction_type() const {
                                       log_event_store(default_paid_reaction_type_).as_slice().str());
 }
 
+PaidReactionType ReactionManager::get_default_paid_reaction_type() const {
+  return default_paid_reaction_type_;
+}
+
 void ReactionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
   if (td_->auth_manager_->is_bot()) {
     return;
