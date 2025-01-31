@@ -983,7 +983,8 @@ vector<MessageReactor> MessageReactions::apply_reactor_pending_paid_reactions(Di
     top_reactors.push_back(reactor);
     if (reactor.is_me()) {
       was_me = true;
-      top_reactors.back().add_count(pending_paid_reactions_, pending_is_anonymous_);
+      top_reactors.back().add_count(pending_paid_reactions_, pending_is_anonymous_ ? DialogId() : my_dialog_id,
+                                    my_dialog_id);
     }
   }
   if (!was_me) {
@@ -1106,7 +1107,8 @@ bool MessageReactions::toggle_paid_message_reaction_is_anonymous(Td *td, Message
   }
   for (auto &top_reactor : top_reactors_) {
     if (top_reactor.is_me()) {
-      top_reactor.add_count(0, is_anonymous);
+      top_reactor.add_count(0, is_anonymous ? DialogId() : td->dialog_manager_->get_my_dialog_id(),
+                            td->dialog_manager_->get_my_dialog_id());
       td->create_handler<TogglePaidReactionPrivacyQuery>(std::move(promise))->send(message_full_id, is_anonymous);
       return true;
     }

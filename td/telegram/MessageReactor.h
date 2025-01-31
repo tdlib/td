@@ -21,7 +21,7 @@ class Dependencies;
 class Td;
 
 class MessageReactor {
-  DialogId dialog_id_;
+  DialogId dialog_id_;  // self for anonymous reactions by the current user
   int32 count_ = 0;
   bool is_top_ = false;
   bool is_me_ = false;
@@ -58,9 +58,15 @@ class MessageReactor {
 
   bool fix_is_me(DialogId my_dialog_id);
 
-  void add_count(int32 count, bool is_anonymous) {
+  void add_count(int32 count, DialogId reactor_dialog_id, DialogId my_dialog_id) {
     count_ += count;
-    is_anonymous_ = is_anonymous;
+    if (reactor_dialog_id == DialogId()) {
+      dialog_id_ = my_dialog_id;
+      is_anonymous_ = true;
+    } else {
+      dialog_id_ = reactor_dialog_id;
+      is_anonymous_ = false;
+    }
   }
 
   td_api::object_ptr<td_api::paidReactor> get_paid_reactor_object(Td *td) const;
