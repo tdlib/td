@@ -195,6 +195,8 @@ class DialogManager final : public Actor {
 
   void set_dialog_location(DialogId dialog_id, const DialogLocation &location, Promise<Unit> &&promise);
 
+  void load_dialog_marks_as_unread();
+
   bool can_report_dialog(DialogId dialog_id) const;
 
   void report_dialog(DialogId dialog_id, const string &option_id, const vector<MessageId> &message_ids,

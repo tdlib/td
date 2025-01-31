@@ -201,34 +201,6 @@ class GetPinnedDialogsQuery final : public Td::ResultHandler {
   }
 };
 
-class GetDialogUnreadMarksQuery final : public Td::ResultHandler {
- public:
-  void send() {
-    send_query(G()->net_query_creator().create(telegram_api::messages_getDialogUnreadMarks()));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_getDialogUnreadMarks>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto results = result_ptr.move_as_ok();
-    for (auto &result : results) {
-      td_->messages_manager_->on_update_dialog_is_marked_as_unread(DialogId(result), true);
-    }
-
-    G()->td_db()->get_binlog_pmc()->set("fetched_marks_as_unread", "1");
-  }
-
-  void on_error(Status status) final {
-    if (!G()->is_expected_error(status)) {
-      LOG(ERROR) << "Receive error for GetDialogUnreadMarksQuery: " << status;
-    }
-    status.ignore();
-  }
-};
-
 class GetMessagesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -6977,9 +6949,7 @@ void MessagesManager::after_get_difference() {
   }
 
   if (!td_->auth_manager_->is_bot()) {
-    if (!G()->td_db()->get_binlog_pmc()->isset("fetched_marks_as_unread")) {
-      td_->create_handler<GetDialogUnreadMarksQuery>()->send();
-    }
+    td_->dialog_manager_->load_dialog_marks_as_unread();
 
     auto dialog_list_id = DialogListId(FolderId::archive());
     auto *list = get_dialog_list(dialog_list_id);
