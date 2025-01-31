@@ -1110,11 +1110,13 @@ bool MessageReactions::set_paid_message_reaction_type(Td *td, MessageFullId mess
     if (top_reactor.is_me()) {
       auto my_dialog_id = td->dialog_manager_->get_my_dialog_id();
       top_reactor.add_count(0, paid_reaction_type.get_dialog_id(my_dialog_id), my_dialog_id);
+      td->reaction_manager_->on_update_default_paid_reaction_type(paid_reaction_type);
       td->create_handler<TogglePaidReactionPrivacyQuery>(std::move(promise))->send(message_full_id, paid_reaction_type);
       return true;
     }
   }
   if (pending_paid_reactions_ != 0) {
+    td->reaction_manager_->on_update_default_paid_reaction_type(paid_reaction_type);
     promise.set_value(Unit());
     return true;
   }
