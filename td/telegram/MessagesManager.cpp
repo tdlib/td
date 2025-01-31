@@ -21626,7 +21626,17 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
     if (!is_uploaded_input_media(input_media)) {
       auto file_upload_id = get_message_send_file_upload_id(dialog_id, m, media_pos);
       auto thumbnail_file_upload_id = get_message_send_thumbnail_file_upload_id(dialog_id, m, media_pos);
-      auto cover_file_id = get_message_content_cover_any_file_id(m->content.get());
+      auto cover_file_ids = get_message_content_cover_any_file_ids(m->content.get());
+      FileId cover_file_id;
+      if (!cover_file_ids.empty()) {
+        if (media_pos == -1) {
+          CHECK(cover_file_ids.size() == 1u);
+          cover_file_id = cover_file_ids[0];
+        } else {
+          CHECK(static_cast<size_t>(media_pos) < cover_file_ids.size());
+          cover_file_id = cover_file_ids[media_pos];
+        }
+      }
       td_->create_handler<UploadMediaQuery>()->send(dialog_id, message_id, media_pos, file_upload_id,
                                                     thumbnail_file_upload_id, cover_file_id, std::move(input_media));
     } else {
