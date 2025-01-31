@@ -48,6 +48,8 @@ class PaidReactionType {
     return type_ == Type::Dialog ? dialog_id_.is_valid() : true;
   }
 
+  DialogId get_dialog_id(DialogId my_dialog_id) const;
+
   void add_dependencies(Dependencies &dependencies) const;
 
   template <class StorerT>

@@ -121,6 +121,20 @@ td_api::object_ptr<td_api::updateDefaultPaidReactionType> PaidReactionType::get_
   return td_api::make_object<td_api::updateDefaultPaidReactionType>(get_paid_reaction_type_object(td));
 }
 
+DialogId PaidReactionType::get_dialog_id(DialogId my_dialog_id) const {
+  switch (type_) {
+    case Type::Regular:
+      return my_dialog_id;
+    case Type::Anonymous:
+      return DialogId();
+    case Type::Dialog:
+      return dialog_id_;
+    default:
+      UNREACHABLE();
+      return DialogId();
+  }
+}
+
 void PaidReactionType::add_dependencies(Dependencies &dependencies) const {
   dependencies.add_dialog_and_dependencies(dialog_id_);
 }
