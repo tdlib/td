@@ -66,6 +66,14 @@ PaidReactionType::PaidReactionType(Td *td, const td_api::object_ptr<td_api::Paid
   }
 }
 
+PaidReactionType PaidReactionType::legacy(bool is_anonymous) {
+  PaidReactionType result;
+  if (is_anonymous) {
+    result.type_ = Type::Anonymous;
+  }
+  return result;
+}
+
 telegram_api::object_ptr<telegram_api::PaidReactionPrivacy> PaidReactionType::get_input_paid_reaction_privacy(
     Td *td) const {
   switch (type_) {

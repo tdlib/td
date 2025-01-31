@@ -34,6 +34,8 @@ class PaidReactionType {
 
   PaidReactionType(Td *td, const td_api::object_ptr<td_api::PaidReactionType> &type);
 
+  static PaidReactionType legacy(bool is_anonymous);
+
   telegram_api::object_ptr<telegram_api::PaidReactionPrivacy> get_input_paid_reaction_privacy(Td *td) const;
 
   td_api::object_ptr<td_api::PaidReactionType> get_paid_reaction_type_object(Td *td) const;

@@ -1489,14 +1489,21 @@ void ReactionManager::load_default_paid_reaction_type() {
     if (status.is_error()) {
       LOG(ERROR) << "Can't load default paid reaction type: " << status;
       default_paid_reaction_type_ = {};
+      save_default_paid_reaction_type();
     } else {
       Dependencies dependencies;
       default_paid_reaction_type_.add_dependencies(dependencies);
       if (!default_paid_reaction_type_.is_valid() ||
           !dependencies.resolve_force(td_, "load_default_paid_reaction_type")) {
         default_paid_reaction_type_ = {};
+        save_default_paid_reaction_type();
       }
     }
+  } else if (td_->option_manager_->have_option("is_paid_reaction_anonymous")) {
+    auto is_anonymous = td_->option_manager_->get_option_boolean("is_paid_reaction_anonymous");
+    default_paid_reaction_type_ = PaidReactionType::legacy(is_anonymous);
+    save_default_paid_reaction_type();
+    td_->option_manager_->set_option_empty("is_paid_reaction_anonymous");
   }
   send_update_default_paid_reaction_type();
 }
