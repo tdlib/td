@@ -8,6 +8,7 @@
 
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ConfigManager.h"
+#include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
@@ -477,6 +478,7 @@ void ReactionManager::init() {
 
   load_active_reactions();
   load_active_message_effects();
+  load_default_paid_reaction_type();
 
   if (td_->option_manager_->get_option_boolean("default_reaction_needs_sync")) {
     send_set_default_reaction_query();
@@ -1468,12 +1470,35 @@ void ReactionManager::get_message_effect(MessageEffectId effect_id,
   promise.set_value(get_message_effect_object(effect_id));
 }
 
+void ReactionManager::send_update_default_paid_reaction_type() const {
+  send_closure(G()->td(), &Td::send_update, default_paid_reaction_type_.get_update_default_paid_reaction_type(td_));
+}
+
 void ReactionManager::on_update_default_paid_reaction_type(PaidReactionType type) {
   if (type.is_valid() && type != default_paid_reaction_type_) {
     default_paid_reaction_type_ = type;
     save_default_paid_reaction_type();
-    send_closure(G()->td(), &Td::send_update, default_paid_reaction_type_.get_update_default_paid_reaction_type(td_));
+    send_update_default_paid_reaction_type();
   }
+}
+
+void ReactionManager::load_default_paid_reaction_type() {
+  string type = G()->td_db()->get_binlog_pmc()->get("default_paid_reaction_type");
+  if (!type.empty()) {
+    auto status = log_event_parse(default_paid_reaction_type_, type);
+    if (status.is_error()) {
+      LOG(ERROR) << "Can't load default paid reaction type: " << status;
+      default_paid_reaction_type_ = {};
+    } else {
+      Dependencies dependencies;
+      default_paid_reaction_type_.add_dependencies(dependencies);
+      if (!default_paid_reaction_type_.is_valid() ||
+          !dependencies.resolve_force(td_, "load_default_paid_reaction_type")) {
+        default_paid_reaction_type_ = {};
+      }
+    }
+  }
+  send_update_default_paid_reaction_type();
 }
 
 void ReactionManager::save_default_paid_reaction_type() const {

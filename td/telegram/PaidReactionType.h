@@ -15,6 +15,7 @@
 
 namespace td {
 
+class Dependencies;
 class Td;
 
 class PaidReactionType {
@@ -42,6 +43,8 @@ class PaidReactionType {
   bool is_valid() const {
     return type_ == Type::Dialog ? dialog_id_.is_valid() : true;
   }
+
+  void add_dependencies(Dependencies &dependencies) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;

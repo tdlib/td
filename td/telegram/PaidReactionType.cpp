@@ -6,6 +6,7 @@
 //
 #include "td/telegram/PaidReactionType.h"
 
+#include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/InputDialogId.h"
 #include "td/telegram/Td.h"
@@ -103,6 +104,10 @@ td_api::object_ptr<td_api::PaidReactionType> PaidReactionType::get_paid_reaction
 td_api::object_ptr<td_api::updateDefaultPaidReactionType> PaidReactionType::get_update_default_paid_reaction_type(
     Td *td) const {
   return td_api::make_object<td_api::updateDefaultPaidReactionType>(get_paid_reaction_type_object(td));
+}
+
+void PaidReactionType::add_dependencies(Dependencies &dependencies) const {
+  dependencies.add_dialog_and_dependencies(dialog_id_);
 }
 
 bool operator==(const PaidReactionType &lhs, const PaidReactionType &rhs) {

@@ -309,6 +309,10 @@ class ReactionManager final : public Actor {
 
   void update_active_message_effects();
 
+  void send_update_default_paid_reaction_type() const;
+
+  void load_default_paid_reaction_type();
+
   void save_default_paid_reaction_type() const;
 
   Td *td_;
