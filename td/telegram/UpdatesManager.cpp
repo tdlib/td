@@ -51,6 +51,7 @@
 #include "td/telegram/OnlineManager.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/OrderInfo.h"
+#include "td/telegram/PaidReactionType.h"
 #include "td/telegram/PollId.h"
 #include "td/telegram/PollManager.h"
 #include "td/telegram/PrivacyManager.h"
@@ -3780,8 +3781,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateSavedReactionTa
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePaidReactionPrivacy> update, Promise<Unit> &&promise) {
-  td_->option_manager_->set_option_boolean(
-      "is_paid_reaction_anonymous", update->private_->get_id() == telegram_api::paidReactionPrivacyAnonymous::ID);
+  td_->reaction_manager_->on_update_default_paid_reaction_type(PaidReactionType(td_, update->private_));
   promise.set_value(Unit());
 }
 

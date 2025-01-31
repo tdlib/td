@@ -1467,6 +1467,13 @@ void ReactionManager::get_message_effect(MessageEffectId effect_id,
   promise.set_value(get_message_effect_object(effect_id));
 }
 
+void ReactionManager::on_update_default_paid_reaction_type(PaidReactionType type) {
+  if (type.is_valid() && type != default_paid_reaction_type_) {
+    default_paid_reaction_type_ = type;
+    send_closure(G()->td(), &Td::send_update, default_paid_reaction_type_.get_update_default_paid_reaction_type(td_));
+  }
+}
+
 void ReactionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
   if (td_->auth_manager_->is_bot()) {
     return;
@@ -1484,6 +1491,7 @@ void ReactionManager::get_current_state(vector<td_api::object_ptr<td_api::Update
   if (!active_message_effects_.is_empty()) {
     updates.push_back(get_update_available_message_effects_object());
   }
+  updates.push_back(default_paid_reaction_type_.get_update_default_paid_reaction_type(td_));
 }
 
 }  // namespace td
