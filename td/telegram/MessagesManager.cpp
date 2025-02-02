@@ -593,12 +593,8 @@ class GetMessagesViewsQuery final : public Td::ResultHandler {
     td_->chat_manager_->on_get_chats(std::move(result->chats_), "GetMessagesViewsQuery");
     for (size_t i = 0; i < message_ids_.size(); i++) {
       MessageFullId message_full_id{dialog_id_, message_ids_[i]};
-
       auto *info = interaction_infos[i].get();
-      auto flags = info->flags_;
-      auto view_count = (flags & telegram_api::messageViews::VIEWS_MASK) != 0 ? info->views_ : 0;
-      auto forward_count = (flags & telegram_api::messageViews::FORWARDS_MASK) != 0 ? info->forwards_ : 0;
-      td_->messages_manager_->on_update_message_interaction_info(message_full_id, view_count, forward_count, true,
+      td_->messages_manager_->on_update_message_interaction_info(message_full_id, info->views_, info->forwards_, true,
                                                                  std::move(info->replies_));
     }
     td_->messages_manager_->finish_get_message_views(dialog_id_, message_ids_);
