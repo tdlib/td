@@ -61,8 +61,7 @@ class MessageQueryManager final : public Actor {
 
   void report_message_delivery(MessageFullId message_full_id, int32 until_date, bool from_push);
 
-  void get_message_fact_checks(DialogId dialog_id, const vector<MessageId> &message_ids,
-                               Promise<vector<telegram_api::object_ptr<telegram_api::factCheck>>> &&promise);
+  void reload_message_fact_checks(DialogId dialog_id, vector<MessageId> message_ids);
 
   void set_message_fact_check(MessageFullId message_full_id, const FormattedText &fact_check_text,
                               Promise<Unit> &&promise);
@@ -204,6 +203,9 @@ class MessageQueryManager final : public Actor {
 
   void do_upload_cover(FileUploadId file_upload_id, BeingUploadedCover &&being_uploaded_cover);
 
+  void on_reload_message_fact_checks(DialogId dialog_id, const vector<MessageId> &message_ids,
+                                     Result<vector<telegram_api::object_ptr<telegram_api::factCheck>>> r_fact_checks);
+
   void on_get_message_viewers(DialogId dialog_id, MessageViewers message_viewers, bool is_recursive,
                               Promise<td_api::object_ptr<td_api::messageViewers>> &&promise);
 
@@ -249,6 +251,8 @@ class MessageQueryManager final : public Actor {
   static uint64 save_unpin_all_dialog_messages_on_server_log_event(DialogId dialog_id);
 
   FlatHashMap<FileUploadId, BeingUploadedCover, FileUploadIdHash> being_uploaded_covers_;
+
+  FlatHashSet<MessageFullId, MessageFullIdHash> being_reloaded_fact_checks_;
 
   FlatHashSet<MessageFullId, MessageFullIdHash> need_view_counter_increment_message_full_ids_;
   FlatHashSet<MessageFullId, MessageFullIdHash> being_reloaded_views_message_full_ids_;

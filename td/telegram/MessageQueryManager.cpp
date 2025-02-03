@@ -14,6 +14,7 @@
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/DialogParticipantManager.h"
+#include "td/telegram/FactCheck.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/FolderId.h"
@@ -1458,10 +1459,45 @@ void MessageQueryManager::report_message_delivery(MessageFullId message_full_id,
   td_->create_handler<ReportMessageDeliveryQuery>()->send(message_full_id, from_push);
 }
 
-void MessageQueryManager::get_message_fact_checks(
-    DialogId dialog_id, const vector<MessageId> &message_ids,
-    Promise<vector<telegram_api::object_ptr<telegram_api::factCheck>>> &&promise) {
+void MessageQueryManager::reload_message_fact_checks(DialogId dialog_id, vector<MessageId> message_ids) {
+  CHECK(dialog_id.get_type() != DialogType::SecretChat);
+  td::remove_if(message_ids, [&](MessageId message_id) {
+    return !being_reloaded_fact_checks_.insert({dialog_id, message_id}).second;
+  });
+  if (message_ids.empty()) {
+    return;
+  }
+
+  auto promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, message_ids](
+                                 Result<vector<telegram_api::object_ptr<telegram_api::factCheck>>> r_fact_checks) {
+        send_closure(actor_id, &MessageQueryManager::on_reload_message_fact_checks, dialog_id, message_ids,
+                     std::move(r_fact_checks));
+      });
   td_->create_handler<GetFactCheckQuery>(std::move(promise))->send(dialog_id, message_ids);
+}
+
+void MessageQueryManager::on_reload_message_fact_checks(
+    DialogId dialog_id, const vector<MessageId> &message_ids,
+    Result<vector<telegram_api::object_ptr<telegram_api::factCheck>>> r_fact_checks) {
+  G()->ignore_result_if_closing(r_fact_checks);
+  for (auto message_id : message_ids) {
+    auto erased_count = being_reloaded_fact_checks_.erase({dialog_id, message_id});
+    CHECK(erased_count > 0);
+  }
+  if (r_fact_checks.is_error() || !td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
+    return;
+  }
+  auto fact_checks = r_fact_checks.move_as_ok();
+  if (fact_checks.size() != message_ids.size()) {
+    LOG(ERROR) << "Receive " << fact_checks.size() << " fact checks instead of " << message_ids.size();
+    return;
+  }
+  for (size_t i = 0; i < message_ids.size(); i++) {
+    td_->messages_manager_->on_update_message_fact_check(
+        {dialog_id, message_ids[i]},
+        FactCheck::get_fact_check(td_->user_manager_.get(), std::move(fact_checks[i]), false));
+  }
 }
 
 void MessageQueryManager::set_message_fact_check(MessageFullId message_full_id, const FormattedText &fact_check_text,

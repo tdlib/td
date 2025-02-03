@@ -4865,6 +4865,18 @@ vector<td_api::object_ptr<td_api::unreadReaction>> MessagesManager::get_unread_r
   return unread_reactions;
 }
 
+void MessagesManager::on_update_message_fact_check(MessageFullId message_full_id, unique_ptr<FactCheck> &&fact_check) {
+  auto *d = get_dialog_force(message_full_id.get_dialog_id(), "on_update_message_fact_check");
+  if (d == nullptr) {
+    return;
+  }
+  auto *m = get_message_force(d, message_full_id.get_message_id(), "on_update_message_fact_check");
+  if (m == nullptr) {
+    return;
+  }
+  update_message_fact_check(d, m, std::move(fact_check), true);
+}
+
 bool MessagesManager::update_message_fact_check(const Dialog *d, Message *m, unique_ptr<FactCheck> &&fact_check,
                                                 bool need_save) {
   CHECK(m != nullptr);
@@ -16100,8 +16112,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
         info->recently_viewed_messages[view_id] = message_id;
       }
 
-      if (m->message_id.is_server() && m->fact_check != nullptr && m->fact_check->need_check() &&
-          being_reloaded_fact_checks_.insert({dialog_id, message_id}).second) {
+      if (m->message_id.is_server() && m->fact_check != nullptr && m->fact_check->need_check()) {
         CHECK(message_id.is_server());
         viewed_fact_check_message_ids.push_back(message_id);
       }
@@ -16148,14 +16159,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
     process_viewed_message(d, new_viewed_message_ids, true);
   }
   if (!viewed_fact_check_message_ids.empty()) {
-    CHECK(dialog_id.get_type() != DialogType::SecretChat);
-    auto promise =
-        PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, message_ids = viewed_fact_check_message_ids](
-                                   Result<vector<telegram_api::object_ptr<telegram_api::factCheck>>> r_fact_checks) {
-          send_closure(actor_id, &MessagesManager::on_get_message_fact_checks, dialog_id, message_ids,
-                       std::move(r_fact_checks));
-        });
-    td_->message_query_manager_->get_message_fact_checks(dialog_id, viewed_fact_check_message_ids, std::move(promise));
+    td_->message_query_manager_->reload_message_fact_checks(dialog_id, std::move(viewed_fact_check_message_ids));
   }
   if (td_->online_manager_->is_online() && dialog_viewed_messages_.count(dialog_id) != 0) {
     update_viewed_messages_timeout_.add_timeout_in(dialog_id.get(), UPDATE_VIEWED_MESSAGES_PERIOD);
@@ -16278,34 +16282,6 @@ void MessagesManager::finish_get_message_extended_media(DialogId dialog_id, cons
     if (m != nullptr) {
       m->has_get_extended_media_query = false;
     }
-  }
-}
-
-void MessagesManager::on_get_message_fact_checks(
-    DialogId dialog_id, const vector<MessageId> &message_ids,
-    Result<vector<telegram_api::object_ptr<telegram_api::factCheck>>> r_fact_checks) {
-  G()->ignore_result_if_closing(r_fact_checks);
-  for (auto message_id : message_ids) {
-    auto erased_count = being_reloaded_fact_checks_.erase({dialog_id, message_id});
-    CHECK(erased_count > 0);
-  }
-  if (r_fact_checks.is_error() || !td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
-    return;
-  }
-  auto fact_checks = r_fact_checks.move_as_ok();
-  if (fact_checks.size() != message_ids.size()) {
-    LOG(ERROR) << "Receive " << fact_checks.size() << " fact checks instead of " << message_ids.size();
-    return;
-  }
-  auto *d = get_dialog(dialog_id);
-  CHECK(d != nullptr);
-  for (size_t i = 0; i < message_ids.size(); i++) {
-    auto *m = get_message_force(d, message_ids[i], "on_get_message_fact_checks");
-    if (m == nullptr) {
-      continue;
-    }
-    auto fact_check = FactCheck::get_fact_check(td_->user_manager_.get(), std::move(fact_checks[i]), false);
-    update_message_fact_check(d, m, std::move(fact_check), true);
   }
 }
 

@@ -329,6 +329,8 @@ class MessagesManager final : public Actor {
                                           bool has_reply_info,
                                           tl_object_ptr<telegram_api::messageReplies> &&reply_info);
 
+  void on_update_message_fact_check(MessageFullId message_full_id, unique_ptr<FactCheck> &&fact_check);
+
   void on_update_live_location_viewed(MessageFullId message_full_id);
 
   void on_update_some_live_location_viewed(Promise<Unit> &&promise);
@@ -2543,9 +2545,6 @@ class MessagesManager final : public Actor {
 
   static bool need_poll_message_reactions(const Dialog *d, const Message *m);
 
-  void on_get_message_fact_checks(DialogId dialog_id, const vector<MessageId> &message_ids,
-                                  Result<vector<telegram_api::object_ptr<telegram_api::factCheck>>> r_fact_checks);
-
   void on_send_dialog_action_timeout(DialogId dialog_id);
 
   void cancel_dialog_action(DialogId dialog_id, const Message *m);
@@ -3342,8 +3341,6 @@ class MessagesManager final : public Actor {
     uint64 current_view_id = 0;
   };
   FlatHashMap<DialogId, unique_ptr<ViewedMessagesInfo>, DialogIdHash> dialog_viewed_messages_;
-
-  FlatHashSet<MessageFullId, MessageFullIdHash> being_reloaded_fact_checks_;
 
   FlatHashMap<DialogId, std::pair<bool, bool>, DialogIdHash> pending_dialog_group_call_updates_;
 
