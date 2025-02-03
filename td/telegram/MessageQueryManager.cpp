@@ -619,6 +619,51 @@ class GetMessagePositionQuery final : public Td::ResultHandler {
   }
 };
 
+class GetOutboxReadDateQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::MessageReadDate>> promise_;
+  DialogId dialog_id_;
+  MessageId message_id_;
+
+ public:
+  explicit GetOutboxReadDateQuery(Promise<td_api::object_ptr<td_api::MessageReadDate>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, MessageId message_id) {
+    dialog_id_ = dialog_id;
+    message_id_ = message_id;
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_getOutboxReadDate(std::move(input_peer), message_id.get_server_message_id().get())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getOutboxReadDate>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    promise_.set_value(td_api::make_object<td_api::messageReadDateRead>(ptr->date_));
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "USER_PRIVACY_RESTRICTED") {
+      return promise_.set_value(td_api::make_object<td_api::messageReadDateUserPrivacyRestricted>());
+    }
+    if (status.message() == "YOUR_PRIVACY_RESTRICTED") {
+      return promise_.set_value(td_api::make_object<td_api::messageReadDateMyPrivacyRestricted>());
+    }
+    if (status.message() == "MESSAGE_TOO_OLD") {
+      return promise_.set_value(td_api::make_object<td_api::messageReadDateTooOld>());
+    }
+
+    td_->messages_manager_->on_get_message_error(dialog_id_, message_id_, status, "GetOutboxReadDateQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetMessageReadParticipantsQuery final : public Td::ResultHandler {
   Promise<MessageViewers> promise_;
   DialogId dialog_id_;
@@ -1915,6 +1960,12 @@ void MessageQueryManager::get_dialog_message_position_from_server(DialogId dialo
 
   td_->create_handler<GetMessagePositionQuery>(std::move(promise))
       ->send(dialog_id, message_id, filter, top_thread_message_id, saved_messages_topic_id);
+}
+
+void MessageQueryManager::get_message_read_date_from_server(
+    MessageFullId message_full_id, Promise<td_api::object_ptr<td_api::MessageReadDate>> &&promise) {
+  td_->create_handler<GetOutboxReadDateQuery>(std::move(promise))
+      ->send(message_full_id.get_dialog_id(), message_full_id.get_message_id());
 }
 
 void MessageQueryManager::get_message_viewers(MessageFullId message_full_id,

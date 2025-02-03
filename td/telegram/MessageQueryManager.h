@@ -107,6 +107,9 @@ class MessageQueryManager final : public Actor {
                                                MessageId top_thread_message_id,
                                                SavedMessagesTopicId saved_messages_topic_id, Promise<int32> &&promise);
 
+  void get_message_read_date_from_server(MessageFullId message_full_id,
+                                         Promise<td_api::object_ptr<td_api::MessageReadDate>> &&promise);
+
   void get_message_viewers(MessageFullId message_full_id,
                            Promise<td_api::object_ptr<td_api::messageViewers>> &&promise);
 
