@@ -4692,25 +4692,17 @@ void MessagesManager::on_pending_message_views_timeout(DialogId dialog_id) {
   auto &pending_viewed_message_ids = it->second.message_ids_;
   bool increment_view_counter = it->second.increment_view_counter_;
 
-  auto d = get_dialog(dialog_id);
-  CHECK(d != nullptr);
-
   const size_t MAX_MESSAGE_VIEWS = 100;  // server side limit
   vector<MessageId> message_ids;
   message_ids.reserve(min(pending_viewed_message_ids.size(), MAX_MESSAGE_VIEWS));
   for (auto message_id : pending_viewed_message_ids) {
-    auto *m = get_message(d, message_id);
-    if (m == nullptr) {
-      continue;
-    }
-    if (m->has_get_message_views_query) {
-      if (!increment_view_counter || m->need_view_counter_increment) {
+    MessageFullId message_full_id{dialog_id, message_id};
+    if (!being_reloaded_views_message_full_ids_.insert(message_full_id).second) {
+      if (!increment_view_counter || !need_view_counter_increment_message_full_ids_.insert(message_full_id).second) {
         continue;
       }
-      m->need_view_counter_increment = true;
-    } else {
-      m->has_get_message_views_query = true;
-      m->need_view_counter_increment = increment_view_counter;
+    } else if (increment_view_counter) {
+      need_view_counter_increment_message_full_ids_.insert(message_full_id);
     }
     message_ids.push_back(message_id);
     if (message_ids.size() >= MAX_MESSAGE_VIEWS) {
@@ -9786,8 +9778,8 @@ void MessagesManager::process_viewed_message(Dialog *d, const vector<MessageId> 
     if (need_poll_message_reactions(d, m)) {
       reaction_message_ids.push_back(m->message_id);
     }
-    if (!is_first && m->view_count > 0 && !m->has_get_message_views_query) {
-      m->has_get_message_views_query = true;
+    if (!is_first && m->view_count > 0 &&
+        being_reloaded_views_message_full_ids_.insert({dialog_id, message_id}).second) {
       views_message_ids.push_back(m->message_id);
     }
     if (need_poll_message_content_extended_media(m->content.get()) && !m->has_get_extended_media_query) {
@@ -16416,14 +16408,10 @@ void MessagesManager::read_dialog_inbox(Dialog *d, MessageId max_message_id) {
 }
 
 void MessagesManager::finish_get_message_views(DialogId dialog_id, const vector<MessageId> &message_ids) {
-  Dialog *d = get_dialog(dialog_id);
-  CHECK(d != nullptr);
   for (auto message_id : message_ids) {
-    auto *m = get_message(d, message_id);
-    if (m != nullptr) {
-      m->has_get_message_views_query = false;
-      m->need_view_counter_increment = false;
-    }
+    MessageFullId message_full_id{dialog_id, message_id};
+    being_reloaded_views_message_full_ids_.erase(message_full_id);
+    need_view_counter_increment_message_full_ids_.erase(message_full_id);
   }
 }
 

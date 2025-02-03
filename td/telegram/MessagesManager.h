@@ -1073,9 +1073,6 @@ class MessagesManager final : public Actor {
     bool is_bot_start_message = false;      // for resend_message
     int32 new_video_start_timestamp = 0;    // for send_message
 
-    bool has_get_message_views_query = false;
-    bool need_view_counter_increment = false;
-
     bool has_get_extended_media_query = false;
 
     DialogId real_forward_from_dialog_id;    // for resend_message
@@ -3361,6 +3358,9 @@ class MessagesManager final : public Actor {
     bool is_request_sent = false;
   };
   FlatHashMap<DialogId, ReactionsToReload, DialogIdHash> being_reloaded_reactions_;
+
+  FlatHashSet<MessageFullId, MessageFullIdHash> need_view_counter_increment_message_full_ids_;
+  FlatHashSet<MessageFullId, MessageFullIdHash> being_reloaded_views_message_full_ids_;
 
   FlatHashSet<MessageFullId, MessageFullIdHash> being_reloaded_fact_checks_;
 
