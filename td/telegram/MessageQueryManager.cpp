@@ -1845,7 +1845,7 @@ void MessageQueryManager::try_reload_message_reactions(DialogId dialog_id, bool 
   for (auto message_id_it = it->second.message_ids.begin();
        message_id_it != it->second.message_ids.end() && message_ids.size() < MAX_MESSAGE_IDS; ++message_id_it) {
     auto message_id = *message_id_it;
-    if (!td_->messages_manager_->has_message_pending_read_reactions({dialog_id, message_id})) {
+    if (!has_message_pending_read_reactions({dialog_id, message_id})) {
       message_ids.push_back(message_id);
     }
   }
@@ -2562,6 +2562,42 @@ void MessageQueryManager::read_message_contents_on_server(DialogId dialog_id, ve
     case DialogType::None:
     default:
       UNREACHABLE();
+  }
+}
+
+bool MessageQueryManager::has_message_pending_read_reactions(MessageFullId message_full_id) const {
+  return pending_read_reactions_.count(message_full_id) > 0;
+}
+
+void MessageQueryManager::read_message_reactions_on_server(DialogId dialog_id, vector<MessageId> message_ids) {
+  for (auto message_id : message_ids) {
+    pending_read_reactions_[{dialog_id, message_id}]++;
+  }
+  auto promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, message_ids](Result<Unit> &&result) mutable {
+        send_closure(actor_id, &MessageQueryManager::on_read_message_reactions, dialog_id, std::move(message_ids),
+                     std::move(result));
+      });
+  read_message_contents_on_server(dialog_id, std::move(message_ids), 0, std::move(promise));
+}
+
+void MessageQueryManager::on_read_message_reactions(DialogId dialog_id, vector<MessageId> &&message_ids,
+                                                    Result<Unit> &&result) {
+  for (auto message_id : message_ids) {
+    MessageFullId message_full_id{dialog_id, message_id};
+    auto it = pending_read_reactions_.find(message_full_id);
+    CHECK(it != pending_read_reactions_.end());
+    if (--it->second == 0) {
+      pending_read_reactions_.erase(it);
+    }
+
+    if (!td_->messages_manager_->have_message_force(message_full_id, "on_read_message_reactions")) {
+      continue;
+    }
+
+    if (result.is_error()) {
+      queue_message_reactions_reload(message_full_id);
+    }
   }
 }
 

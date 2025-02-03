@@ -4927,7 +4927,7 @@ bool MessagesManager::update_message_interaction_info(Dialog *d, Message *m, int
       has_reactions = false;
       it->second.was_updated = true;
     }
-    if (has_reactions && has_message_pending_read_reactions(message_full_id)) {
+    if (has_reactions && td_->message_query_manager_->has_message_pending_read_reactions(message_full_id)) {
       LOG(INFO) << "Ignore reactions for " << message_full_id << ", because they are being read";
       has_reactions = false;
     }
@@ -16132,16 +16132,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
                                                                  Auto());
   }
   if (!read_reaction_message_ids.empty()) {
-    for (auto message_id : read_reaction_message_ids) {
-      pending_read_reactions_[{dialog_id, message_id}]++;
-    }
-    auto promise = PromiseCreator::lambda(
-        [actor_id = actor_id(this), dialog_id, read_reaction_message_ids](Result<Unit> &&result) mutable {
-          send_closure(actor_id, &MessagesManager::on_read_message_reactions, dialog_id,
-                       std::move(read_reaction_message_ids), std::move(result));
-        });
-    td_->message_query_manager_->read_message_contents_on_server(dialog_id, std::move(read_reaction_message_ids), 0,
-                                                                 std::move(promise));
+    td_->message_query_manager_->read_message_reactions_on_server(dialog_id, std::move(read_reaction_message_ids));
   }
   if (!new_viewed_message_ids.empty()) {
     LOG(INFO) << "Have new viewed " << new_viewed_message_ids;
@@ -19716,30 +19707,6 @@ void MessagesManager::on_set_message_reactions(MessageFullId message_full_id, Re
   }
 
   promise.set_result(std::move(result));
-}
-
-bool MessagesManager::has_message_pending_read_reactions(MessageFullId message_full_id) const {
-  return pending_read_reactions_.count(message_full_id) > 0;
-}
-
-void MessagesManager::on_read_message_reactions(DialogId dialog_id, vector<MessageId> &&message_ids,
-                                                Result<Unit> &&result) {
-  for (auto message_id : message_ids) {
-    MessageFullId message_full_id{dialog_id, message_id};
-    auto it = pending_read_reactions_.find(message_full_id);
-    CHECK(it != pending_read_reactions_.end());
-    if (--it->second == 0) {
-      pending_read_reactions_.erase(it);
-    }
-
-    if (!have_message_force(message_full_id, "on_read_message_reactions")) {
-      continue;
-    }
-
-    if (result.is_error()) {
-      td_->message_query_manager_->queue_message_reactions_reload(message_full_id);
-    }
-  }
 }
 
 Result<int32> MessagesManager::get_message_schedule_date(

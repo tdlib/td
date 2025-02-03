@@ -734,8 +734,6 @@ class MessagesManager final : public Actor {
   vector<MessageId> get_dialog_scheduled_messages(DialogId dialog_id, bool force, bool ignore_result,
                                                   Promise<Unit> &&promise);
 
-  bool has_message_pending_read_reactions(MessageFullId message_full_id) const;
-
   Result<td_api::object_ptr<td_api::availableReactions>> get_message_available_reactions(MessageFullId message_full_id,
                                                                                          int32 row_size);
 
@@ -2529,8 +2527,6 @@ class MessagesManager final : public Actor {
 
   void on_set_message_reactions(MessageFullId message_full_id, Result<Unit> result, Promise<Unit> promise);
 
-  void on_read_message_reactions(DialogId dialog_id, vector<MessageId> &&message_ids, Result<Unit> &&result);
-
   void set_dialog_available_reactions(Dialog *d, ChatReactions &&available_reactions);
 
   void set_dialog_next_available_reactions_generation(Dialog *d, uint32 generation);
@@ -3382,8 +3378,6 @@ class MessagesManager final : public Actor {
     bool was_updated = false;
   };
   FlatHashMap<MessageFullId, PendingReaction, MessageFullIdHash> pending_reactions_;
-
-  FlatHashMap<MessageFullId, int32, MessageFullIdHash> pending_read_reactions_;
 
   vector<ReactionType> active_reaction_types_;
   FlatHashMap<ReactionType, size_t, ReactionTypeHash> active_reaction_pos_;

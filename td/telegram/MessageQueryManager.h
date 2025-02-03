@@ -112,6 +112,8 @@ class MessageQueryManager final : public Actor {
 
   void try_reload_message_reactions(DialogId dialog_id, bool is_finished);
 
+  bool has_message_pending_read_reactions(MessageFullId message_full_id) const;
+
   void get_discussion_message(DialogId dialog_id, MessageId message_id, DialogId expected_dialog_id,
                               MessageId expected_message_id, Promise<MessageThreadInfo> &&promise);
 
@@ -155,6 +157,8 @@ class MessageQueryManager final : public Actor {
 
   void read_message_contents_on_server(DialogId dialog_id, vector<MessageId> message_ids, uint64 log_event_id,
                                        Promise<Unit> &&promise, bool skip_log_event = false);
+
+  void read_message_reactions_on_server(DialogId dialog_id, vector<MessageId> message_ids);
 
   void unpin_all_dialog_messages_on_server(DialogId dialog_id, uint64 log_event_id, Promise<Unit> &&promise);
 
@@ -202,6 +206,8 @@ class MessageQueryManager final : public Actor {
 
   void on_get_message_viewers(DialogId dialog_id, MessageViewers message_viewers, bool is_recursive,
                               Promise<td_api::object_ptr<td_api::messageViewers>> &&promise);
+
+  void on_read_message_reactions(DialogId dialog_id, vector<MessageId> &&message_ids, Result<Unit> &&result);
 
   void process_discussion_message_impl(telegram_api::object_ptr<telegram_api::messages_discussionMessage> &&result,
                                        DialogId dialog_id, MessageId message_id, DialogId expected_dialog_id,
@@ -252,6 +258,8 @@ class MessageQueryManager final : public Actor {
     bool is_request_sent = false;
   };
   FlatHashMap<DialogId, ReactionsToReload, DialogIdHash> being_reloaded_reactions_;
+
+  FlatHashMap<MessageFullId, int32, MessageFullIdHash> pending_read_reactions_;
 
   std::shared_ptr<UploadCoverCallback> upload_cover_callback_;
 
