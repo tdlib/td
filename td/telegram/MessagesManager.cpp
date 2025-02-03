@@ -9666,8 +9666,8 @@ void MessagesManager::process_viewed_message(Dialog *d, const vector<MessageId> 
     if (!is_first && m->view_count > 0) {
       views_message_ids.push_back(m->message_id);
     }
-    if (need_poll_message_content_extended_media(m->content.get()) && !m->has_get_extended_media_query) {
-      m->has_get_extended_media_query = true;
+    if (need_poll_message_content_extended_media(m->content.get()) &&
+        being_reloaded_extended_media_message_full_ids_.insert({dialog_id, message_id}).second) {
       extended_media_message_ids.push_back(m->message_id);
     }
     if (m->date > newest_message_date) {
@@ -16275,13 +16275,8 @@ void MessagesManager::read_dialog_inbox(Dialog *d, MessageId max_message_id) {
 }
 
 void MessagesManager::finish_get_message_extended_media(DialogId dialog_id, const vector<MessageId> &message_ids) {
-  Dialog *d = get_dialog(dialog_id);
-  CHECK(d != nullptr);
   for (auto message_id : message_ids) {
-    auto *m = get_message(d, message_id);
-    if (m != nullptr) {
-      m->has_get_extended_media_query = false;
-    }
+    being_reloaded_extended_media_message_full_ids_.erase({dialog_id, message_id});
   }
 }
 

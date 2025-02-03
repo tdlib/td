@@ -1071,8 +1071,6 @@ class MessagesManager final : public Actor {
     bool is_bot_start_message = false;      // for resend_message
     int32 new_video_start_timestamp = 0;    // for send_message
 
-    bool has_get_extended_media_query = false;
-
     DialogId real_forward_from_dialog_id;    // for resend_message
     MessageId real_forward_from_message_id;  // for resend_message
 
@@ -3364,6 +3362,8 @@ class MessagesManager final : public Actor {
     bool increment_view_counter_ = false;
   };
   FlatHashMap<DialogId, PendingMessageView, DialogIdHash> pending_message_views_;
+
+  FlatHashSet<MessageFullId, MessageFullIdHash> being_reloaded_extended_media_message_full_ids_;
 
   FlatHashMap<DialogId, std::unordered_map<int64, LogEventIdWithGeneration, Hash<int64>>, DialogIdHash>
       read_history_log_event_ids_;
