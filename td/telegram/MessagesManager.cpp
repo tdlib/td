@@ -560,42 +560,6 @@ class GetDialogListQuery final : public Td::ResultHandler {
   }
 };
 
-class GetExtendedMediaQuery final : public Td::ResultHandler {
-  DialogId dialog_id_;
-  vector<MessageId> message_ids_;
-
- public:
-  void send(DialogId dialog_id, vector<MessageId> &&message_ids) {
-    dialog_id_ = dialog_id;
-    message_ids_ = std::move(message_ids);
-
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
-    if (input_peer == nullptr) {
-      return on_error(Status::Error(400, "Can't access the chat"));
-    }
-
-    send_query(G()->net_query_creator().create(telegram_api::messages_getExtendedMedia(
-        std::move(input_peer), MessageId::get_server_message_ids(message_ids_))));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_getExtendedMedia>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for GetExtendedMediaQuery: " << to_string(ptr);
-    td_->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
-    td_->messages_manager_->finish_get_message_extended_media(dialog_id_, message_ids_);
-  }
-
-  void on_error(Status status) final {
-    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetExtendedMediaQuery");
-    td_->messages_manager_->finish_get_message_extended_media(dialog_id_, message_ids_);
-  }
-};
-
 class GetDialogMessageByDateQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::message>> promise_;
   DialogId dialog_id_;
@@ -9666,8 +9630,7 @@ void MessagesManager::process_viewed_message(Dialog *d, const vector<MessageId> 
     if (!is_first && m->view_count > 0) {
       views_message_ids.push_back(m->message_id);
     }
-    if (need_poll_message_content_extended_media(m->content.get()) &&
-        being_reloaded_extended_media_message_full_ids_.insert({dialog_id, message_id}).second) {
+    if (need_poll_message_content_extended_media(m->content.get())) {
       extended_media_message_ids.push_back(m->message_id);
     }
     if (m->date > newest_message_date) {
@@ -9682,7 +9645,7 @@ void MessagesManager::process_viewed_message(Dialog *d, const vector<MessageId> 
     td_->message_query_manager_->view_messages(dialog_id, views_message_ids, false);
   }
   if (!extended_media_message_ids.empty()) {
-    td_->create_handler<GetExtendedMediaQuery>()->send(dialog_id, std::move(extended_media_message_ids));
+    td_->message_query_manager_->reload_message_extended_media(dialog_id, std::move(extended_media_message_ids));
   }
   if (td_->online_manager_->is_online()) {
     int divisor = 5 - min(max(G()->unix_time() - newest_message_date, 0) / UPDATE_VIEWED_MESSAGES_PERIOD, 4);
@@ -16271,12 +16234,6 @@ void MessagesManager::read_dialog_inbox(Dialog *d, MessageId max_message_id) {
   if (read_history_on_server_message_id.is_valid()) {
     // call read_history_on_server after read_history_inbox to not have delay before request if all messages are read
     read_history_on_server(d, read_history_on_server_message_id);
-  }
-}
-
-void MessagesManager::finish_get_message_extended_media(DialogId dialog_id, const vector<MessageId> &message_ids) {
-  for (auto message_id : message_ids) {
-    being_reloaded_extended_media_message_full_ids_.erase({dialog_id, message_id});
   }
 }
 

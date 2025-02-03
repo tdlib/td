@@ -61,6 +61,10 @@ class MessageQueryManager final : public Actor {
 
   void report_message_delivery(MessageFullId message_full_id, int32 until_date, bool from_push);
 
+  void reload_message_extended_media(DialogId dialog_id, vector<MessageId> message_ids);
+
+  void finish_get_message_extended_media(DialogId dialog_id, const vector<MessageId> &message_ids);
+
   void reload_message_fact_checks(DialogId dialog_id, vector<MessageId> message_ids);
 
   void set_message_fact_check(MessageFullId message_full_id, const FormattedText &fact_check_text,
@@ -251,6 +255,8 @@ class MessageQueryManager final : public Actor {
   static uint64 save_unpin_all_dialog_messages_on_server_log_event(DialogId dialog_id);
 
   FlatHashMap<FileUploadId, BeingUploadedCover, FileUploadIdHash> being_uploaded_covers_;
+
+  FlatHashSet<MessageFullId, MessageFullIdHash> being_reloaded_extended_media_message_full_ids_;
 
   FlatHashSet<MessageFullId, MessageFullIdHash> being_reloaded_fact_checks_;
 

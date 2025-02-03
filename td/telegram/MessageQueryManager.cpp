@@ -161,6 +161,42 @@ class ReportMessageDeliveryQuery final : public Td::ResultHandler {
   }
 };
 
+class GetExtendedMediaQuery final : public Td::ResultHandler {
+  DialogId dialog_id_;
+  vector<MessageId> message_ids_;
+
+ public:
+  void send(DialogId dialog_id, vector<MessageId> &&message_ids) {
+    dialog_id_ = dialog_id;
+    message_ids_ = std::move(message_ids);
+
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
+
+    send_query(G()->net_query_creator().create(telegram_api::messages_getExtendedMedia(
+        std::move(input_peer), MessageId::get_server_message_ids(message_ids_))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getExtendedMedia>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetExtendedMediaQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
+    td_->message_query_manager_->finish_get_message_extended_media(dialog_id_, message_ids_);
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetExtendedMediaQuery");
+    td_->message_query_manager_->finish_get_message_extended_media(dialog_id_, message_ids_);
+  }
+};
+
 class GetFactCheckQuery final : public Td::ResultHandler {
   Promise<vector<telegram_api::object_ptr<telegram_api::factCheck>>> promise_;
   DialogId dialog_id_;
@@ -1457,6 +1493,23 @@ void MessageQueryManager::report_message_delivery(MessageFullId message_full_id,
     return;
   }
   td_->create_handler<ReportMessageDeliveryQuery>()->send(message_full_id, from_push);
+}
+
+void MessageQueryManager::reload_message_extended_media(DialogId dialog_id, vector<MessageId> message_ids) {
+  CHECK(dialog_id.get_type() != DialogType::SecretChat);
+  td::remove_if(message_ids, [&](MessageId message_id) {
+    return !being_reloaded_fact_checks_.insert({dialog_id, message_id}).second;
+  });
+  if (message_ids.empty()) {
+    return;
+  }
+  td_->create_handler<GetExtendedMediaQuery>()->send(dialog_id, std::move(message_ids));
+}
+
+void MessageQueryManager::finish_get_message_extended_media(DialogId dialog_id, const vector<MessageId> &message_ids) {
+  for (auto message_id : message_ids) {
+    being_reloaded_extended_media_message_full_ids_.erase({dialog_id, message_id});
+  }
 }
 
 void MessageQueryManager::reload_message_fact_checks(DialogId dialog_id, vector<MessageId> message_ids) {

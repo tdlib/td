@@ -637,8 +637,6 @@ class MessagesManager final : public Actor {
   Status view_messages(DialogId dialog_id, vector<MessageId> message_ids, MessageSource source,
                        bool force_read) TD_WARN_UNUSED_RESULT;
 
-  void finish_get_message_extended_media(DialogId dialog_id, const vector<MessageId> &message_ids);
-
   Status open_message_content(MessageFullId message_full_id) TD_WARN_UNUSED_RESULT;
 
   void click_animated_emoji_message(MessageFullId message_full_id,
@@ -3362,8 +3360,6 @@ class MessagesManager final : public Actor {
     bool increment_view_counter_ = false;
   };
   FlatHashMap<DialogId, PendingMessageView, DialogIdHash> pending_message_views_;
-
-  FlatHashSet<MessageFullId, MessageFullIdHash> being_reloaded_extended_media_message_full_ids_;
 
   FlatHashMap<DialogId, std::unordered_map<int64, LogEventIdWithGeneration, Hash<int64>>, DialogIdHash>
       read_history_log_event_ids_;
