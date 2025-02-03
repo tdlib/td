@@ -4142,9 +4142,10 @@ UserManager::User *UserManager::get_user_force(UserId user_id, const char *sourc
       if (G()->is_test_dc()) {
         flags |= USER_FLAG_HAS_LAST_NAME;
         last_name = "Notifications";
+      } else {
+        profile_photo_id = 3337190045231036;
       }
       phone_number = "42777";
-      profile_photo_id = G()->is_test_dc() ? 3337190045231023 : 3337190045231028;
     } else if (user_id == get_replies_bot_user_id()) {
       flags |= USER_FLAG_HAS_USERNAME | USER_FLAG_IS_BOT;
       if (!G()->is_test_dc()) {
