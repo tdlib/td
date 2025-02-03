@@ -8003,10 +8003,7 @@ bool MessagesManager::can_revoke_message(DialogId dialog_id, const Message *m) c
 void MessagesManager::delete_messages(DialogId dialog_id, const vector<MessageId> &input_message_ids, bool revoke,
                                       Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
-  Dialog *d = get_dialog_force(dialog_id, "delete_messages");
-  if (d == nullptr) {
-    return promise.set_error(Status::Error(400, "Chat is not found"));
-  }
+  TRY_RESULT_PROMISE(promise, d, check_dialog_access(dialog_id, true, AccessRights::Read, "delete_messages"));
 
   if (input_message_ids.empty()) {
     return promise.set_value(Unit());
@@ -14079,17 +14076,13 @@ void MessagesManager::get_message_force_from_server(Dialog *d, MessageId message
 }
 
 void MessagesManager::get_message(MessageFullId message_full_id, Promise<Unit> &&promise) {
-  Dialog *d = get_dialog_force(message_full_id.get_dialog_id(), "get_message");
-  if (d == nullptr) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
-
+  TRY_RESULT_PROMISE(promise, d,
+                     check_dialog_access(message_full_id.get_dialog_id(), true, AccessRights::Read, "get_message"));
   get_message_force_from_server(d, message_full_id.get_message_id(), std::move(promise));
 }
 
 MessageFullId MessagesManager::get_replied_message(DialogId dialog_id, MessageId message_id, bool force,
                                                    Promise<Unit> &&promise) {
-  LOG(INFO) << "Get replied message to " << message_id << " in " << dialog_id;
   Dialog *d = get_dialog_force(dialog_id, "get_replied_message");
   if (d == nullptr) {
     promise.set_error(Status::Error(400, "Chat not found"));
@@ -14365,10 +14358,7 @@ Status MessagesManager::can_get_message_read_date(DialogId dialog_id, const Mess
 void MessagesManager::get_message_read_date(MessageFullId message_full_id,
                                             Promise<td_api::object_ptr<td_api::MessageReadDate>> &&promise) {
   auto dialog_id = message_full_id.get_dialog_id();
-  Dialog *d = get_dialog_force(dialog_id, "get_message_read_date");
-  if (d == nullptr) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
+  TRY_RESULT_PROMISE(promise, d, check_dialog_access(dialog_id, true, AccessRights::Read, "get_message_read_date"));
 
   auto m = get_message_force(d, message_full_id.get_message_id(), "get_message_read_date");
   if (m == nullptr) {
@@ -14535,10 +14525,8 @@ MessageId MessagesManager::get_dialog_pinned_message(DialogId dialog_id, Promise
 
 void MessagesManager::get_callback_query_message(DialogId dialog_id, MessageId message_id, int64 callback_query_id,
                                                  Promise<Unit> &&promise) {
-  Dialog *d = get_dialog_force(dialog_id, "get_callback_query_message");
-  if (d == nullptr) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
+  TRY_RESULT_PROMISE(promise, d,
+                     check_dialog_access(dialog_id, true, AccessRights::Read, "get_callback_query_message"));
   if (!message_id.is_valid() || !message_id.is_server()) {
     return promise.set_error(Status::Error(400, "Invalid message identifier specified"));
   }
@@ -14551,10 +14539,7 @@ void MessagesManager::get_callback_query_message(DialogId dialog_id, MessageId m
 }
 
 void MessagesManager::get_messages(DialogId dialog_id, const vector<MessageId> &message_ids, Promise<Unit> &&promise) {
-  Dialog *d = get_dialog_force(dialog_id, "get_messages");
-  if (d == nullptr) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
+  TRY_RESULT_PROMISE(promise, d, check_dialog_access(dialog_id, true, AccessRights::Read, "get_messages"));
 
   bool is_secret = dialog_id.get_type() == DialogType::SecretChat;
   vector<MessageFullId> missed_message_ids;
@@ -16272,10 +16257,8 @@ Status MessagesManager::open_message_content(MessageFullId message_full_id) {
 void MessagesManager::click_animated_emoji_message(MessageFullId message_full_id,
                                                    Promise<td_api::object_ptr<td_api::sticker>> &&promise) {
   auto dialog_id = message_full_id.get_dialog_id();
-  Dialog *d = get_dialog_force(dialog_id, "click_animated_emoji_message");
-  if (d == nullptr) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
+  TRY_RESULT_PROMISE(promise, d,
+                     check_dialog_access(dialog_id, true, AccessRights::Read, "click_animated_emoji_message"));
 
   auto message_id = get_persistent_message_id(d, message_full_id.get_message_id());
   auto *m = get_message_force(d, message_id, "click_animated_emoji_message");
@@ -18413,10 +18396,8 @@ void MessagesManager::on_get_dialog_message_by_date(DialogId dialog_id, int32 da
 void MessagesManager::get_dialog_sparse_message_positions(
     DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id, MessageSearchFilter filter,
     MessageId from_message_id, int32 limit, Promise<td_api::object_ptr<td_api::messagePositions>> &&promise) {
-  const Dialog *d = get_dialog_force(dialog_id, "get_dialog_sparse_message_positions");
-  if (d == nullptr) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
+  TRY_RESULT_PROMISE(promise, d,
+                     check_dialog_access(dialog_id, true, AccessRights::Read, "get_dialog_sparse_message_positions"));
   if (limit < 50 || limit > 2000) {  // server-side limits
     return promise.set_error(Status::Error(400, "Invalid limit specified"));
   }
@@ -18503,13 +18484,7 @@ void MessagesManager::on_get_dialog_sparse_message_positions(
 void MessagesManager::get_dialog_message_count(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
                                                MessageSearchFilter filter, bool return_local,
                                                Promise<int32> &&promise) {
-  LOG(INFO) << "Get " << (return_local ? "local " : "") << "number of messages in " << dialog_id << " filtered by "
-            << filter;
-
-  const Dialog *d = get_dialog_force(dialog_id, "get_dialog_message_count");
-  if (d == nullptr) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
+  TRY_RESULT_PROMISE(promise, d, check_dialog_access(dialog_id, true, AccessRights::Read, "get_dialog_message_count"));
 
   if (filter == MessageSearchFilter::Empty) {
     return promise.set_error(Status::Error(400, "Can't use searchMessagesFilterEmpty"));
@@ -19408,10 +19383,7 @@ DialogId MessagesManager::get_my_reaction_dialog_id(const Dialog *d) const {
 void MessagesManager::add_message_reaction(MessageFullId message_full_id, ReactionType reaction_type, bool is_big,
                                            bool add_to_recent, Promise<Unit> &&promise) {
   auto dialog_id = message_full_id.get_dialog_id();
-  Dialog *d = get_dialog_force(dialog_id, "add_message_reaction");
-  if (d == nullptr) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
+  TRY_RESULT_PROMISE(promise, d, check_dialog_access(dialog_id, true, AccessRights::Read, "add_message_reaction"));
 
   Message *m = get_message_force(d, message_full_id.get_message_id(), "add_message_reaction");
   if (m == nullptr) {
@@ -19454,10 +19426,7 @@ void MessagesManager::add_message_reaction(MessageFullId message_full_id, Reacti
 void MessagesManager::remove_message_reaction(MessageFullId message_full_id, ReactionType reaction_type,
                                               Promise<Unit> &&promise) {
   auto dialog_id = message_full_id.get_dialog_id();
-  Dialog *d = get_dialog_force(dialog_id, "remove_message_reaction");
-  if (d == nullptr) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
+  TRY_RESULT_PROMISE(promise, d, check_dialog_access(dialog_id, true, AccessRights::Read, "remove_message_reaction"));
 
   Message *m = get_message_force(d, message_full_id.get_message_id(), "remove_message_reaction");
   if (m == nullptr) {
@@ -19490,10 +19459,8 @@ void MessagesManager::add_paid_message_reaction(MessageFullId message_full_id, i
                                                 bool use_default_is_anonymous, bool is_anonymous,
                                                 Promise<Unit> &&promise) {
   auto dialog_id = message_full_id.get_dialog_id();
-  Dialog *d = get_dialog_force(dialog_id, "add_paid_message_reaction");
-  if (d == nullptr) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
+  TRY_RESULT_PROMISE(promise, d, check_dialog_access(dialog_id, true, AccessRights::Read, "add_paid_message_reaction"));
+
   Message *m = get_message_force(d, message_full_id.get_message_id(), "add_paid_message_reaction");
   if (m == nullptr) {
     return promise.set_error(Status::Error(400, "Message not found"));
@@ -19569,10 +19536,10 @@ void MessagesManager::remove_paid_message_reactions(MessageFullId message_full_i
 void MessagesManager::toggle_paid_message_reaction_is_anonymous(MessageFullId message_full_id, bool is_anonymous,
                                                                 Promise<Unit> &&promise) {
   auto dialog_id = message_full_id.get_dialog_id();
-  Dialog *d = get_dialog_force(dialog_id, "toggle_paid_message_reaction_is_anonymous");
-  if (d == nullptr) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
+  TRY_RESULT_PROMISE(
+      promise, d,
+      check_dialog_access(dialog_id, true, AccessRights::Read, "toggle_paid_message_reaction_is_anonymous"));
+
   Message *m = get_message_force(d, message_full_id.get_message_id(), "toggle_paid_message_reaction_is_anonymous");
   if (m == nullptr) {
     return promise.set_error(Status::Error(400, "Message not found"));
@@ -21963,11 +21930,7 @@ Result<MessageId> MessagesManager::send_bot_start_message(UserId bot_user_id, Di
   CHECK(!td_->auth_manager_->is_bot());
 
   TRY_RESULT(bot_data, td_->user_manager_->get_bot_data(bot_user_id));
-
-  Dialog *d = get_dialog_force(dialog_id, "send_bot_start_message");
-  if (d == nullptr) {
-    return Status::Error(400, "Chat not found");
-  }
+  TRY_RESULT(d, check_dialog_access(dialog_id, false, AccessRights::Write, "send_bot_start_message"));
 
   bool is_chat_with_bot = false;
   switch (dialog_id.get_type()) {
@@ -21983,9 +21946,6 @@ Result<MessageId> MessagesManager::send_bot_start_message(UserId bot_user_id, Di
       }
 
       auto chat_id = dialog_id.get_chat_id();
-      if (!td_->chat_manager_->have_input_peer_chat(chat_id, AccessRights::Write)) {
-        return Status::Error(400, "Can't access the chat");
-      }
       auto status = td_->chat_manager_->get_chat_permissions(chat_id);
       if (!status.can_invite_users()) {
         return Status::Error(400, "Need administrator rights to invite a bot to the group chat");
@@ -21994,9 +21954,6 @@ Result<MessageId> MessagesManager::send_bot_start_message(UserId bot_user_id, Di
     }
     case DialogType::Channel: {
       auto channel_id = dialog_id.get_channel_id();
-      if (!td_->chat_manager_->have_input_peer_channel(channel_id, AccessRights::Write)) {
-        return Status::Error(400, "Can't access the chat");
-      }
       switch (td_->chat_manager_->get_channel_type(channel_id)) {
         case ChannelType::Megagroup:
           if (!bot_data.can_join_groups) {
@@ -22016,7 +21973,6 @@ Result<MessageId> MessagesManager::send_bot_start_message(UserId bot_user_id, Di
       break;
     }
     case DialogType::SecretChat:
-      return Status::Error(400, "Can't send bot start message to a secret chat");
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -29057,10 +29013,8 @@ void MessagesManager::on_updated_dialog_folder_id(DialogId dialog_id, uint64 gen
 void MessagesManager::set_dialog_available_reactions(
     DialogId dialog_id, td_api::object_ptr<td_api::ChatAvailableReactions> &&available_reactions_ptr,
     Promise<Unit> &&promise) {
-  Dialog *d = get_dialog_force(dialog_id, "set_dialog_available_reactions");
-  if (d == nullptr) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
+  TRY_RESULT_PROMISE(promise, d,
+                     check_dialog_access(dialog_id, false, AccessRights::Read, "set_dialog_available_reactions"));
 
   ChatReactions available_reactions(std::move(available_reactions_ptr),
                                     !td_->dialog_manager_->is_broadcast_channel(dialog_id));
@@ -29090,7 +29044,6 @@ void MessagesManager::set_dialog_available_reactions(
       break;
     }
     case DialogType::SecretChat:
-      return promise.set_error(Status::Error(400, "Can't change secret chat available reactions"));
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -29222,10 +29175,7 @@ void MessagesManager::pin_dialog_message(BusinessConnectionId business_connectio
 
 void MessagesManager::unpin_all_dialog_messages(DialogId dialog_id, MessageId top_thread_message_id,
                                                 Promise<Unit> &&promise) {
-  auto d = get_dialog_force(dialog_id, "unpin_all_dialog_messages");
-  if (d == nullptr) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
-  }
+  TRY_RESULT_PROMISE(promise, d, check_dialog_access(dialog_id, true, AccessRights::Read, "unpin_all_dialog_messages"));
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->can_pin_messages(dialog_id));
   TRY_STATUS_PROMISE(promise, can_use_top_thread_message_id(d, top_thread_message_id, MessageInputReplyTo()));
 
