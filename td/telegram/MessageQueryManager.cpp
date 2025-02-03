@@ -23,6 +23,7 @@
 #include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageEntity.h"
+#include "td/telegram/MessageReaction.h"
 #include "td/telegram/MessageSearchOffset.h"
 #include "td/telegram/MessagesInfo.h"
 #include "td/telegram/MessagesManager.h"
@@ -40,6 +41,7 @@
 #include "td/db/binlog/BinlogHelper.h"
 
 #include "td/actor/MultiPromise.h"
+#include "td/actor/SleepActor.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -551,6 +553,60 @@ class GetMessagesViewsQuery final : public Td::ResultHandler {
       LOG(ERROR) << "Receive error for GetMessagesViewsQuery: " << status;
     }
     td_->message_query_manager_->finish_get_message_views(dialog_id_, message_ids_);
+  }
+};
+
+class GetMessagesReactionsQuery final : public Td::ResultHandler {
+  DialogId dialog_id_;
+  vector<MessageId> message_ids_;
+
+ public:
+  void send(DialogId dialog_id, vector<MessageId> &&message_ids) {
+    dialog_id_ = dialog_id;
+    message_ids_ = std::move(message_ids);
+
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+
+    send_query(
+        G()->net_query_creator().create(telegram_api::messages_getMessagesReactions(
+                                            std::move(input_peer), MessageId::get_server_message_ids(message_ids_)),
+                                        {{dialog_id_}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getMessagesReactions>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetMessagesReactionsQuery: " << to_string(ptr);
+    if (ptr->get_id() == telegram_api::updates::ID) {
+      auto &updates = static_cast<telegram_api::updates *>(ptr.get())->updates_;
+      FlatHashSet<MessageId, MessageIdHash> skipped_message_ids;
+      for (auto message_id : message_ids_) {
+        skipped_message_ids.insert(message_id);
+      }
+      for (const auto &update : updates) {
+        if (update->get_id() == telegram_api::updateMessageReactions::ID) {
+          auto update_message_reactions = static_cast<const telegram_api::updateMessageReactions *>(update.get());
+          if (DialogId(update_message_reactions->peer_) == dialog_id_) {
+            skipped_message_ids.erase(MessageId(ServerMessageId(update_message_reactions->msg_id_)));
+          }
+        }
+      }
+      for (auto message_id : skipped_message_ids) {
+        td_->messages_manager_->update_message_reactions({dialog_id_, message_id}, nullptr);
+      }
+    }
+    td_->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
+    td_->message_query_manager_->try_reload_message_reactions(dialog_id_, true);
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetMessagesReactionsQuery");
+    td_->message_query_manager_->try_reload_message_reactions(dialog_id_, true);
   }
 };
 
@@ -1737,6 +1793,82 @@ void MessageQueryManager::finish_get_message_views(DialogId dialog_id, const vec
     being_reloaded_views_message_full_ids_.erase(message_full_id);
     need_view_counter_increment_message_full_ids_.erase(message_full_id);
   }
+}
+
+void MessageQueryManager::queue_message_reactions_reload(MessageFullId message_full_id) {
+  auto dialog_id = message_full_id.get_dialog_id();
+  CHECK(dialog_id.is_valid());
+  auto message_id = message_full_id.get_message_id();
+  CHECK(message_id.is_valid());
+  being_reloaded_reactions_[dialog_id].message_ids.insert(message_id);
+  try_reload_message_reactions(dialog_id, false);
+}
+
+void MessageQueryManager::queue_message_reactions_reload(DialogId dialog_id, const vector<MessageId> &message_ids) {
+  LOG(INFO) << "Queue reload of reactions in " << message_ids << " in " << dialog_id;
+  auto &message_ids_to_reload = being_reloaded_reactions_[dialog_id].message_ids;
+  for (auto &message_id : message_ids) {
+    CHECK(message_id.is_valid());
+    message_ids_to_reload.insert(message_id);
+  }
+  try_reload_message_reactions(dialog_id, false);
+}
+
+void MessageQueryManager::try_reload_message_reactions(DialogId dialog_id, bool is_finished) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto it = being_reloaded_reactions_.find(dialog_id);
+  if (it == being_reloaded_reactions_.end()) {
+    return;
+  }
+  if (is_finished) {
+    CHECK(it->second.is_request_sent);
+    it->second.is_request_sent = false;
+
+    if (it->second.message_ids.empty()) {
+      being_reloaded_reactions_.erase(it);
+      return;
+    }
+  } else if (it->second.is_request_sent) {
+    return;
+  }
+
+  CHECK(!it->second.message_ids.empty());
+  CHECK(!it->second.is_request_sent);
+
+  it->second.is_request_sent = true;
+
+  static constexpr size_t MAX_MESSAGE_IDS = 100;  // server-side limit
+  vector<MessageId> message_ids;
+  for (auto message_id_it = it->second.message_ids.begin();
+       message_id_it != it->second.message_ids.end() && message_ids.size() < MAX_MESSAGE_IDS; ++message_id_it) {
+    auto message_id = *message_id_it;
+    if (!td_->messages_manager_->has_message_pending_read_reactions({dialog_id, message_id})) {
+      message_ids.push_back(message_id);
+    }
+  }
+  for (auto message_id : message_ids) {
+    it->second.message_ids.erase(message_id);
+  }
+
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read) || message_ids.empty()) {
+    create_actor<SleepActor>("RetryReloadMessageReactionsActor", 0.2,
+                             PromiseCreator::lambda([actor_id = actor_id(this), dialog_id](Unit) mutable {
+                               send_closure(actor_id, &MessageQueryManager::try_reload_message_reactions, dialog_id,
+                                            true);
+                             }))
+        .release();
+    return;
+  }
+
+  for (const auto &message_id : message_ids) {
+    CHECK(message_id.is_valid());
+    CHECK(message_id.is_server());
+  }
+
+  td_->create_handler<GetMessagesReactionsQuery>()->send(dialog_id, std::move(message_ids));
 }
 
 void MessageQueryManager::get_discussion_message(DialogId dialog_id, MessageId message_id, DialogId expected_dialog_id,

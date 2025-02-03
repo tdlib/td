@@ -25,6 +25,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Status.h"
 
@@ -104,6 +105,12 @@ class MessageQueryManager final : public Actor {
   void view_messages(DialogId dialog_id, const vector<MessageId> &message_ids, bool increment_view_counter);
 
   void finish_get_message_views(DialogId dialog_id, const vector<MessageId> &message_ids);
+
+  void queue_message_reactions_reload(MessageFullId message_full_id);
+
+  void queue_message_reactions_reload(DialogId dialog_id, const vector<MessageId> &message_ids);
+
+  void try_reload_message_reactions(DialogId dialog_id, bool is_finished);
 
   void get_discussion_message(DialogId dialog_id, MessageId message_id, DialogId expected_dialog_id,
                               MessageId expected_message_id, Promise<MessageThreadInfo> &&promise);
@@ -239,6 +246,12 @@ class MessageQueryManager final : public Actor {
 
   FlatHashSet<MessageFullId, MessageFullIdHash> need_view_counter_increment_message_full_ids_;
   FlatHashSet<MessageFullId, MessageFullIdHash> being_reloaded_views_message_full_ids_;
+
+  struct ReactionsToReload {
+    FlatHashSet<MessageId, MessageIdHash> message_ids;
+    bool is_request_sent = false;
+  };
+  FlatHashMap<DialogId, ReactionsToReload, DialogIdHash> being_reloaded_reactions_;
 
   std::shared_ptr<UploadCoverCallback> upload_cover_callback_;
 

@@ -321,8 +321,6 @@ class MessagesManager final : public Actor {
 
   void update_message_reactions(MessageFullId message_full_id, unique_ptr<MessageReactions> &&reactions);
 
-  void try_reload_message_reactions(DialogId dialog_id, bool is_finished);
-
   void on_get_message_reaction_list(MessageFullId message_full_id, const ReactionType &reaction_type,
                                     FlatHashMap<ReactionType, vector<DialogId>, ReactionTypeHash> reaction_types,
                                     int32 total_count);
@@ -735,6 +733,8 @@ class MessagesManager final : public Actor {
 
   vector<MessageId> get_dialog_scheduled_messages(DialogId dialog_id, bool force, bool ignore_result,
                                                   Promise<Unit> &&promise);
+
+  bool has_message_pending_read_reactions(MessageFullId message_full_id) const;
 
   Result<td_api::object_ptr<td_api::availableReactions>> get_message_available_reactions(MessageFullId message_full_id,
                                                                                          int32 row_size);
@@ -2547,10 +2547,6 @@ class MessagesManager final : public Actor {
 
   static bool need_poll_message_reactions(const Dialog *d, const Message *m);
 
-  void queue_message_reactions_reload(MessageFullId message_full_id);
-
-  void queue_message_reactions_reload(DialogId dialog_id, const vector<MessageId> &message_ids);
-
   void on_get_message_fact_checks(DialogId dialog_id, const vector<MessageId> &message_ids,
                                   Result<vector<telegram_api::object_ptr<telegram_api::factCheck>>> r_fact_checks);
 
@@ -3350,12 +3346,6 @@ class MessagesManager final : public Actor {
     uint64 current_view_id = 0;
   };
   FlatHashMap<DialogId, unique_ptr<ViewedMessagesInfo>, DialogIdHash> dialog_viewed_messages_;
-
-  struct ReactionsToReload {
-    FlatHashSet<MessageId, MessageIdHash> message_ids;
-    bool is_request_sent = false;
-  };
-  FlatHashMap<DialogId, ReactionsToReload, DialogIdHash> being_reloaded_reactions_;
 
   FlatHashSet<MessageFullId, MessageFullIdHash> being_reloaded_fact_checks_;
 

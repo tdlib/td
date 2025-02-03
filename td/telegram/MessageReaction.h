@@ -237,8 +237,6 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageReactions 
 
 StringBuilder &operator<<(StringBuilder &string_builder, const unique_ptr<MessageReactions> &reactions);
 
-void reload_message_reactions(Td *td, DialogId dialog_id, vector<MessageId> &&message_ids);
-
 void send_message_reaction(Td *td, MessageFullId message_full_id, vector<ReactionType> reaction_types, bool is_big,
                            bool add_to_recent, Promise<Unit> &&promise);
 

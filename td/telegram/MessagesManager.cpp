@@ -4617,7 +4617,7 @@ void MessagesManager::on_get_message_reaction_list(
   if (it != pending_reactions_.end()) {
     it->second.was_updated = true;
   } else {
-    queue_message_reactions_reload(message_full_id);
+    td_->message_query_manager_->queue_message_reactions_reload(message_full_id);
   }
 }
 
@@ -4927,7 +4927,7 @@ bool MessagesManager::update_message_interaction_info(Dialog *d, Message *m, int
       has_reactions = false;
       it->second.was_updated = true;
     }
-    if (has_reactions && pending_read_reactions_.count(message_full_id) > 0) {
+    if (has_reactions && has_message_pending_read_reactions(message_full_id)) {
       LOG(INFO) << "Ignore reactions for " << message_full_id << ", because they are being read";
       has_reactions = false;
     }
@@ -6128,66 +6128,6 @@ bool MessagesManager::need_poll_message_reactions(const Dialog *d, const Message
     return false;
   }
   return true;
-}
-
-void MessagesManager::queue_message_reactions_reload(MessageFullId message_full_id) {
-  auto dialog_id = message_full_id.get_dialog_id();
-  CHECK(dialog_id.is_valid());
-  auto message_id = message_full_id.get_message_id();
-  CHECK(message_id.is_valid());
-  being_reloaded_reactions_[dialog_id].message_ids.insert(message_id);
-  try_reload_message_reactions(dialog_id, false);
-}
-
-void MessagesManager::queue_message_reactions_reload(DialogId dialog_id, const vector<MessageId> &message_ids) {
-  LOG(INFO) << "Queue reload of reactions in " << message_ids << " in " << dialog_id;
-  auto &message_ids_to_reload = being_reloaded_reactions_[dialog_id].message_ids;
-  for (auto &message_id : message_ids) {
-    CHECK(message_id.is_valid());
-    message_ids_to_reload.insert(message_id);
-  }
-  try_reload_message_reactions(dialog_id, false);
-}
-
-void MessagesManager::try_reload_message_reactions(DialogId dialog_id, bool is_finished) {
-  if (G()->close_flag()) {
-    return;
-  }
-
-  auto it = being_reloaded_reactions_.find(dialog_id);
-  if (it == being_reloaded_reactions_.end()) {
-    return;
-  }
-  if (is_finished) {
-    CHECK(it->second.is_request_sent);
-    it->second.is_request_sent = false;
-
-    if (it->second.message_ids.empty()) {
-      being_reloaded_reactions_.erase(it);
-      return;
-    }
-  } else if (it->second.is_request_sent) {
-    return;
-  }
-
-  CHECK(!it->second.message_ids.empty());
-  CHECK(!it->second.is_request_sent);
-
-  it->second.is_request_sent = true;
-
-  static constexpr size_t MAX_MESSAGE_IDS = 100;  // server-side limit
-  vector<MessageId> message_ids;
-  for (auto message_id_it = it->second.message_ids.begin();
-       message_id_it != it->second.message_ids.end() && message_ids.size() < MAX_MESSAGE_IDS; ++message_id_it) {
-    auto message_id = *message_id_it;
-    if (pending_read_reactions_.count({dialog_id, message_id}) == 0) {
-      message_ids.push_back(message_id);
-    }
-  }
-  for (auto message_id : message_ids) {
-    it->second.message_ids.erase(message_id);
-  }
-  reload_message_reactions(td_, dialog_id, std::move(message_ids));
 }
 
 bool MessagesManager::update_dialog_silent_send_message(Dialog *d, bool silent_send_message) {
@@ -9724,7 +9664,7 @@ void MessagesManager::process_viewed_message(Dialog *d, const vector<MessageId> 
   }
 
   if (!reaction_message_ids.empty()) {
-    queue_message_reactions_reload(dialog_id, reaction_message_ids);
+    td_->message_query_manager_->queue_message_reactions_reload(dialog_id, reaction_message_ids);
   }
   if (!views_message_ids.empty()) {
     td_->message_query_manager_->view_messages(dialog_id, views_message_ids, false);
@@ -19772,10 +19712,14 @@ void MessagesManager::on_set_message_reactions(MessageFullId message_full_id, Re
   }
 
   if (need_reload) {
-    queue_message_reactions_reload(message_full_id);
+    td_->message_query_manager_->queue_message_reactions_reload(message_full_id);
   }
 
   promise.set_result(std::move(result));
+}
+
+bool MessagesManager::has_message_pending_read_reactions(MessageFullId message_full_id) const {
+  return pending_read_reactions_.count(message_full_id) > 0;
 }
 
 void MessagesManager::on_read_message_reactions(DialogId dialog_id, vector<MessageId> &&message_ids,
@@ -19793,7 +19737,7 @@ void MessagesManager::on_read_message_reactions(DialogId dialog_id, vector<Messa
     }
 
     if (result.is_error()) {
-      queue_message_reactions_reload(message_full_id);
+      td_->message_query_manager_->queue_message_reactions_reload(message_full_id);
     }
   }
 }
