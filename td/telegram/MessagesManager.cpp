@@ -15246,10 +15246,7 @@ Status MessagesManager::delete_dialog_reply_markup(DialogId dialog_id, MessageId
     return Status::Error(400, "Invalid message identifier specified");
   }
 
-  Dialog *d = get_dialog_force(dialog_id, "delete_dialog_reply_markup");
-  if (d == nullptr) {
-    return Status::Error(400, "Chat not found");
-  }
+  TRY_RESULT(d, check_dialog_access(dialog_id, true, AccessRights::Read, "delete_dialog_reply_markup"));
   if (d->reply_markup_message_id != message_id) {
     return Status::OK();
   }
@@ -15298,10 +15295,7 @@ Status MessagesManager::set_dialog_draft_message(DialogId dialog_id, MessageId t
     return Status::Error(400, "Bots can't change chat draft message");
   }
 
-  Dialog *d = get_dialog_force(dialog_id, "set_dialog_draft_message");
-  if (d == nullptr) {
-    return Status::Error(400, "Chat not found");
-  }
+  TRY_RESULT(d, check_dialog_access(dialog_id, true, AccessRights::Write, "set_dialog_draft_message"));
   TRY_STATUS(can_send_message(dialog_id));
 
   TRY_STATUS(can_use_top_thread_message_id(d, top_thread_message_id, MessageInputReplyTo()));
@@ -16223,11 +16217,7 @@ void MessagesManager::read_dialog_inbox(Dialog *d, MessageId max_message_id) {
 
 Status MessagesManager::open_message_content(MessageFullId message_full_id) {
   auto dialog_id = message_full_id.get_dialog_id();
-  Dialog *d = get_dialog_force(dialog_id, "open_message_content");
-  if (d == nullptr) {
-    return Status::Error(400, "Chat not found");
-  }
-
+  TRY_RESULT(d, check_dialog_access(dialog_id, true, AccessRights::Read, "open_message_content"));
   auto *m = get_message_force(d, message_full_id.get_message_id(), "open_message_content");
   if (m == nullptr) {
     return Status::Error(400, "Message not found");
@@ -19270,10 +19260,7 @@ bool MessagesManager::can_add_message_tag(DialogId dialog_id, const MessageReact
 Result<td_api::object_ptr<td_api::availableReactions>> MessagesManager::get_message_available_reactions(
     MessageFullId message_full_id, int32 row_size) {
   auto dialog_id = message_full_id.get_dialog_id();
-  Dialog *d = get_dialog_force(dialog_id, "get_message_available_reactions");
-  if (d == nullptr) {
-    return Status::Error(400, "Chat not found");
-  }
+  TRY_RESULT(d, check_dialog_access(dialog_id, true, AccessRights::Read, "get_message_available_reactions"));
 
   const Message *m = get_message_force(d, message_full_id.get_message_id(), "get_message_available_reactions");
   if (m == nullptr) {
