@@ -560,54 +560,6 @@ class GetDialogListQuery final : public Td::ResultHandler {
   }
 };
 
-class GetMessagesViewsQuery final : public Td::ResultHandler {
-  DialogId dialog_id_;
-  vector<MessageId> message_ids_;
-
- public:
-  void send(DialogId dialog_id, vector<MessageId> &&message_ids, bool increment_view_counter) {
-    dialog_id_ = dialog_id;
-    message_ids_ = std::move(message_ids);
-
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
-    if (input_peer == nullptr) {
-      return on_error(Status::Error(400, "Can't access the chat"));
-    }
-
-    send_query(G()->net_query_creator().create(telegram_api::messages_getMessagesViews(
-        std::move(input_peer), MessageId::get_server_message_ids(message_ids_), increment_view_counter)));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_getMessagesViews>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto result = result_ptr.move_as_ok();
-    auto interaction_infos = std::move(result->views_);
-    if (message_ids_.size() != interaction_infos.size()) {
-      return on_error(Status::Error(500, "Wrong number of message views returned"));
-    }
-    td_->user_manager_->on_get_users(std::move(result->users_), "GetMessagesViewsQuery");
-    td_->chat_manager_->on_get_chats(std::move(result->chats_), "GetMessagesViewsQuery");
-    for (size_t i = 0; i < message_ids_.size(); i++) {
-      MessageFullId message_full_id{dialog_id_, message_ids_[i]};
-      auto *info = interaction_infos[i].get();
-      td_->messages_manager_->on_update_message_interaction_info(message_full_id, info->views_, info->forwards_, true,
-                                                                 std::move(info->replies_));
-    }
-    td_->messages_manager_->finish_get_message_views(dialog_id_, message_ids_);
-  }
-
-  void on_error(Status status) final {
-    if (!td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetMessagesViewsQuery")) {
-      LOG(ERROR) << "Receive error for GetMessagesViewsQuery: " << status;
-    }
-    td_->messages_manager_->finish_get_message_views(dialog_id_, message_ids_);
-  }
-};
-
 class GetExtendedMediaQuery final : public Td::ResultHandler {
   DialogId dialog_id_;
   vector<MessageId> message_ids_;
@@ -4689,30 +4641,11 @@ void MessagesManager::on_pending_message_views_timeout(DialogId dialog_id) {
   if (it == pending_message_views_.end()) {
     return;
   }
-  auto &pending_viewed_message_ids = it->second.message_ids_;
-  bool increment_view_counter = it->second.increment_view_counter_;
-
-  const size_t MAX_MESSAGE_VIEWS = 100;  // server side limit
   vector<MessageId> message_ids;
-  message_ids.reserve(min(pending_viewed_message_ids.size(), MAX_MESSAGE_VIEWS));
-  for (auto message_id : pending_viewed_message_ids) {
-    MessageFullId message_full_id{dialog_id, message_id};
-    if (!being_reloaded_views_message_full_ids_.insert(message_full_id).second) {
-      if (!increment_view_counter || !need_view_counter_increment_message_full_ids_.insert(message_full_id).second) {
-        continue;
-      }
-    } else if (increment_view_counter) {
-      need_view_counter_increment_message_full_ids_.insert(message_full_id);
-    }
+  for (auto message_id : it->second.message_ids_) {
     message_ids.push_back(message_id);
-    if (message_ids.size() >= MAX_MESSAGE_VIEWS) {
-      td_->create_handler<GetMessagesViewsQuery>()->send(dialog_id, std::move(message_ids), increment_view_counter);
-      message_ids.clear();
-    }
   }
-  if (!message_ids.empty()) {
-    td_->create_handler<GetMessagesViewsQuery>()->send(dialog_id, std::move(message_ids), increment_view_counter);
-  }
+  td_->message_query_manager_->view_messages(dialog_id, message_ids, it->second.increment_view_counter_);
   pending_message_views_.erase(it);
 }
 
@@ -9778,8 +9711,7 @@ void MessagesManager::process_viewed_message(Dialog *d, const vector<MessageId> 
     if (need_poll_message_reactions(d, m)) {
       reaction_message_ids.push_back(m->message_id);
     }
-    if (!is_first && m->view_count > 0 &&
-        being_reloaded_views_message_full_ids_.insert({dialog_id, message_id}).second) {
+    if (!is_first && m->view_count > 0) {
       views_message_ids.push_back(m->message_id);
     }
     if (need_poll_message_content_extended_media(m->content.get()) && !m->has_get_extended_media_query) {
@@ -9795,7 +9727,7 @@ void MessagesManager::process_viewed_message(Dialog *d, const vector<MessageId> 
     queue_message_reactions_reload(dialog_id, reaction_message_ids);
   }
   if (!views_message_ids.empty()) {
-    td_->create_handler<GetMessagesViewsQuery>()->send(dialog_id, std::move(views_message_ids), false);
+    td_->message_query_manager_->view_messages(dialog_id, views_message_ids, false);
   }
   if (!extended_media_message_ids.empty()) {
     td_->create_handler<GetExtendedMediaQuery>()->send(dialog_id, std::move(extended_media_message_ids));
@@ -16404,14 +16336,6 @@ void MessagesManager::read_dialog_inbox(Dialog *d, MessageId max_message_id) {
   if (read_history_on_server_message_id.is_valid()) {
     // call read_history_on_server after read_history_inbox to not have delay before request if all messages are read
     read_history_on_server(d, read_history_on_server_message_id);
-  }
-}
-
-void MessagesManager::finish_get_message_views(DialogId dialog_id, const vector<MessageId> &message_ids) {
-  for (auto message_id : message_ids) {
-    MessageFullId message_full_id{dialog_id, message_id};
-    being_reloaded_views_message_full_ids_.erase(message_full_id);
-    need_view_counter_increment_message_full_ids_.erase(message_full_id);
   }
 }
 

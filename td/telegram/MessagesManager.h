@@ -637,8 +637,6 @@ class MessagesManager final : public Actor {
   Status view_messages(DialogId dialog_id, vector<MessageId> message_ids, MessageSource source,
                        bool force_read) TD_WARN_UNUSED_RESULT;
 
-  void finish_get_message_views(DialogId dialog_id, const vector<MessageId> &message_ids);
-
   void finish_get_message_extended_media(DialogId dialog_id, const vector<MessageId> &message_ids);
 
   Status open_message_content(MessageFullId message_full_id) TD_WARN_UNUSED_RESULT;
@@ -3358,9 +3356,6 @@ class MessagesManager final : public Actor {
     bool is_request_sent = false;
   };
   FlatHashMap<DialogId, ReactionsToReload, DialogIdHash> being_reloaded_reactions_;
-
-  FlatHashSet<MessageFullId, MessageFullIdHash> need_view_counter_increment_message_full_ids_;
-  FlatHashSet<MessageFullId, MessageFullIdHash> being_reloaded_views_message_full_ids_;
 
   FlatHashSet<MessageFullId, MessageFullIdHash> being_reloaded_fact_checks_;
 

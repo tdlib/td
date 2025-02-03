@@ -101,6 +101,10 @@ class MessageQueryManager final : public Actor {
   void get_message_viewers(MessageFullId message_full_id,
                            Promise<td_api::object_ptr<td_api::messageViewers>> &&promise);
 
+  void view_messages(DialogId dialog_id, const vector<MessageId> &message_ids, bool increment_view_counter);
+
+  void finish_get_message_views(DialogId dialog_id, const vector<MessageId> &message_ids);
+
   void get_discussion_message(DialogId dialog_id, MessageId message_id, DialogId expected_dialog_id,
                               MessageId expected_message_id, Promise<MessageThreadInfo> &&promise);
 
@@ -232,6 +236,9 @@ class MessageQueryManager final : public Actor {
   static uint64 save_unpin_all_dialog_messages_on_server_log_event(DialogId dialog_id);
 
   FlatHashMap<FileUploadId, BeingUploadedCover, FileUploadIdHash> being_uploaded_covers_;
+
+  FlatHashSet<MessageFullId, MessageFullIdHash> need_view_counter_increment_message_full_ids_;
+  FlatHashSet<MessageFullId, MessageFullIdHash> being_reloaded_views_message_full_ids_;
 
   std::shared_ptr<UploadCoverCallback> upload_cover_callback_;
 

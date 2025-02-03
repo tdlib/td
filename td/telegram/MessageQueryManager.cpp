@@ -506,6 +506,54 @@ class GetMessageReadParticipantsQuery final : public Td::ResultHandler {
   }
 };
 
+class GetMessagesViewsQuery final : public Td::ResultHandler {
+  DialogId dialog_id_;
+  vector<MessageId> message_ids_;
+
+ public:
+  void send(DialogId dialog_id, vector<MessageId> &&message_ids, bool increment_view_counter) {
+    dialog_id_ = dialog_id;
+    message_ids_ = std::move(message_ids);
+
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
+
+    send_query(G()->net_query_creator().create(telegram_api::messages_getMessagesViews(
+        std::move(input_peer), MessageId::get_server_message_ids(message_ids_), increment_view_counter)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getMessagesViews>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    auto interaction_infos = std::move(result->views_);
+    if (message_ids_.size() != interaction_infos.size()) {
+      return on_error(Status::Error(500, "Wrong number of message views returned"));
+    }
+    td_->user_manager_->on_get_users(std::move(result->users_), "GetMessagesViewsQuery");
+    td_->chat_manager_->on_get_chats(std::move(result->chats_), "GetMessagesViewsQuery");
+    for (size_t i = 0; i < message_ids_.size(); i++) {
+      MessageFullId message_full_id{dialog_id_, message_ids_[i]};
+      auto *info = interaction_infos[i].get();
+      td_->messages_manager_->on_update_message_interaction_info(message_full_id, info->views_, info->forwards_, true,
+                                                                 std::move(info->replies_));
+    }
+    td_->message_query_manager_->finish_get_message_views(dialog_id_, message_ids_);
+  }
+
+  void on_error(Status status) final {
+    if (!td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetMessagesViewsQuery")) {
+      LOG(ERROR) << "Receive error for GetMessagesViewsQuery: " << status;
+    }
+    td_->message_query_manager_->finish_get_message_views(dialog_id_, message_ids_);
+  }
+};
+
 class GetDiscussionMessageQuery final : public Td::ResultHandler {
   Promise<MessageThreadInfo> promise_;
   DialogId dialog_id_;
@@ -1654,6 +1702,41 @@ void MessageQueryManager::on_get_message_viewers(DialogId dialog_id, MessageView
     }
   }
   promise.set_value(message_viewers.get_message_viewers_object(td_->user_manager_.get()));
+}
+
+void MessageQueryManager::view_messages(DialogId dialog_id, const vector<MessageId> &message_ids,
+                                        bool increment_view_counter) {
+  const size_t MAX_MESSAGE_VIEWS = 100;  // server-side limit
+  vector<MessageId> viewed_message_ids;
+  viewed_message_ids.reserve(min(message_ids.size(), MAX_MESSAGE_VIEWS));
+  for (auto message_id : message_ids) {
+    MessageFullId message_full_id{dialog_id, message_id};
+    if (!being_reloaded_views_message_full_ids_.insert(message_full_id).second) {
+      if (!increment_view_counter || !need_view_counter_increment_message_full_ids_.insert(message_full_id).second) {
+        continue;
+      }
+    } else if (increment_view_counter) {
+      need_view_counter_increment_message_full_ids_.insert(message_full_id);
+    }
+    viewed_message_ids.push_back(message_id);
+    if (viewed_message_ids.size() >= MAX_MESSAGE_VIEWS) {
+      td_->create_handler<GetMessagesViewsQuery>()->send(dialog_id, std::move(viewed_message_ids),
+                                                         increment_view_counter);
+      viewed_message_ids.clear();
+    }
+  }
+  if (!viewed_message_ids.empty()) {
+    td_->create_handler<GetMessagesViewsQuery>()->send(dialog_id, std::move(viewed_message_ids),
+                                                       increment_view_counter);
+  }
+}
+
+void MessageQueryManager::finish_get_message_views(DialogId dialog_id, const vector<MessageId> &message_ids) {
+  for (auto message_id : message_ids) {
+    MessageFullId message_full_id{dialog_id, message_id};
+    being_reloaded_views_message_full_ids_.erase(message_full_id);
+    need_view_counter_increment_message_full_ids_.erase(message_full_id);
+  }
 }
 
 void MessageQueryManager::get_discussion_message(DialogId dialog_id, MessageId message_id, DialogId expected_dialog_id,
