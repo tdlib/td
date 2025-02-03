@@ -8416,7 +8416,7 @@ void MessagesManager::delete_dialog_messages_by_date(DialogId dialog_id, int32 m
   CHECK(!td_->auth_manager_->is_bot());
 
   TRY_RESULT_PROMISE(promise, d,
-                     check_dialog_access(dialog_id, true, AccessRights::Read, "delete_dialog_messages_by_date"));
+                     check_dialog_access(dialog_id, false, AccessRights::Read, "delete_dialog_messages_by_date"));
   TRY_STATUS_PROMISE(promise, fix_delete_message_min_max_dates(min_date, max_date));
   if (max_date == 0) {
     return promise.set_value(Unit());
@@ -8433,7 +8433,6 @@ void MessagesManager::delete_dialog_messages_by_date(DialogId dialog_id, int32 m
     case DialogType::Channel:
       return promise.set_error(Status::Error(400, "Bulk message deletion is unsupported in supergroup chats"));
     case DialogType::SecretChat:
-      return promise.set_error(Status::Error(400, "Bulk message deletion is unsupported in secret chats"));
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -18568,7 +18567,7 @@ void MessagesManager::get_dialog_message_position(MessageFullId message_full_id,
                                                   Promise<int32> &&promise) {
   auto dialog_id = message_full_id.get_dialog_id();
   TRY_RESULT_PROMISE(promise, d,
-                     check_dialog_access(dialog_id, true, AccessRights::Read, "get_dialog_message_position"));
+                     check_dialog_access(dialog_id, false, AccessRights::Read, "get_dialog_message_position"));
 
   auto message_id = message_full_id.get_message_id();
   const Message *m = get_message_force(d, message_id, "get_dialog_message_position");
@@ -18594,10 +18593,6 @@ void MessagesManager::get_dialog_message_position(MessageFullId message_full_id,
     }
   }
   TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, dialog_id));
-
-  if (dialog_id.get_type() == DialogType::SecretChat) {
-    return promise.set_error(Status::Error(400, "The method can't be used in secret chats"));
-  }
 
   if (filter == MessageSearchFilter::UnreadMention || filter == MessageSearchFilter::UnreadReaction ||
       filter == MessageSearchFilter::FailedToSend) {
