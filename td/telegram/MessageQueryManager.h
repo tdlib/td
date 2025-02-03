@@ -18,6 +18,7 @@
 #include "td/telegram/MessageThreadInfo.h"
 #include "td/telegram/MessageViewer.h"
 #include "td/telegram/Photo.h"
+#include "td/telegram/SavedMessagesTopicId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -101,6 +102,10 @@ class MessageQueryManager final : public Actor {
   void on_get_recent_locations(DialogId dialog_id, int32 limit, int32 total_count,
                                vector<telegram_api::object_ptr<telegram_api::Message>> &&messages,
                                Promise<td_api::object_ptr<td_api::messages>> &&promise);
+
+  void get_dialog_message_position_from_server(DialogId dialog_id, MessageId message_id, MessageSearchFilter filter,
+                                               MessageId top_thread_message_id,
+                                               SavedMessagesTopicId saved_messages_topic_id, Promise<int32> &&promise);
 
   void get_message_viewers(MessageFullId message_full_id,
                            Promise<td_api::object_ptr<td_api::messageViewers>> &&promise);
