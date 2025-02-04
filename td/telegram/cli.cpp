@@ -757,6 +757,10 @@ class CliClient final : public Actor {
     return td_api::make_object<td_api::inputThumbnail>(as_input_file(thumbnail_), 0, 0);
   }
 
+  vector<int32> get_added_sticker_file_ids() const {
+    return added_sticker_file_ids_;
+  }
+
   struct CallId {
     int32 call_id = 0;
 
@@ -4908,12 +4912,11 @@ class CliClient final : public Actor {
       StoryPrivacySettings rules;
       InputStoryAreas areas;
       int32 active_period;
-      string sticker_file_ids;
       bool protect_content;
-      get_args(args, chat_id, photo, caption, rules, areas, active_period, sticker_file_ids, protect_content);
+      get_args(args, chat_id, photo, caption, rules, areas, active_period, protect_content);
       send_request(td_api::make_object<td_api::sendStory>(
           chat_id,
-          td_api::make_object<td_api::inputStoryContentPhoto>(as_input_file(photo), as_file_ids(sticker_file_ids)),
+          td_api::make_object<td_api::inputStoryContentPhoto>(as_input_file(photo), get_added_sticker_file_ids()),
           areas, as_caption(caption), rules, active_period ? active_period : 86400, get_reposted_story_full_id(),
           op == "sspp", protect_content));
     } else if (op == "ssv" || op == "ssvp") {
@@ -4924,12 +4927,11 @@ class CliClient final : public Actor {
       InputStoryAreas areas;
       int32 active_period;
       double duration;
-      string sticker_file_ids;
       bool protect_content;
-      get_args(args, chat_id, video, caption, rules, areas, active_period, duration, sticker_file_ids, protect_content);
+      get_args(args, chat_id, video, caption, rules, areas, active_period, duration, protect_content);
       send_request(td_api::make_object<td_api::sendStory>(
           chat_id,
-          td_api::make_object<td_api::inputStoryContentVideo>(as_input_file(video), as_file_ids(sticker_file_ids),
+          td_api::make_object<td_api::inputStoryContentVideo>(as_input_file(video), get_added_sticker_file_ids(),
                                                               duration, 0.5, true),
           areas, as_caption(caption), rules, active_period ? active_period : 86400, get_reposted_story_full_id(),
           op == "ssvp", protect_content));
@@ -4947,11 +4949,10 @@ class CliClient final : public Actor {
       string photo;
       string caption;
       InputStoryAreas areas;
-      string sticker_file_ids;
-      get_args(args, story_sender_chat_id, story_id, photo, caption, areas, sticker_file_ids);
+      get_args(args, story_sender_chat_id, story_id, photo, caption, areas);
       send_request(td_api::make_object<td_api::editStory>(
           story_sender_chat_id, story_id,
-          td_api::make_object<td_api::inputStoryContentPhoto>(as_input_file(photo), as_file_ids(sticker_file_ids)),
+          td_api::make_object<td_api::inputStoryContentPhoto>(as_input_file(photo), get_added_sticker_file_ids()),
           areas, as_caption(caption)));
     } else if (op == "esv") {
       ChatId story_sender_chat_id;
@@ -4960,11 +4961,10 @@ class CliClient final : public Actor {
       InputStoryAreas areas;
       string caption;
       int32 duration;
-      string sticker_file_ids;
-      get_args(args, story_sender_chat_id, story_id, video, caption, duration, sticker_file_ids);
+      get_args(args, story_sender_chat_id, story_id, video, caption, duration);
       send_request(td_api::make_object<td_api::editStory>(
           story_sender_chat_id, story_id,
-          td_api::make_object<td_api::inputStoryContentVideo>(as_input_file(video), as_file_ids(sticker_file_ids),
+          td_api::make_object<td_api::inputStoryContentVideo>(as_input_file(video), get_added_sticker_file_ids(),
                                                               duration, 0.0, false),
           areas, as_caption(caption)));
     } else if (op == "esco") {
@@ -5206,8 +5206,9 @@ class CliClient final : public Actor {
         }
         if (op[3] == 'p') {
           send_message(chat_id, td_api::make_object<td_api::inputMessagePhoto>(
-                                    as_local_file("rgb.jpg"), nullptr, Auto(), 0, 0, as_caption(message),
-                                    show_caption_above_media_, get_message_self_destruct_type(), has_spoiler_));
+                                    as_local_file("rgb.jpg"), get_input_thumbnail(), get_added_sticker_file_ids(), 0, 0,
+                                    as_caption(message), show_caption_above_media_, get_message_self_destruct_type(),
+                                    has_spoiler_));
         } else {
           send_message(chat_id, td_api::make_object<td_api::inputMessageText>(as_formatted_text(message),
                                                                               get_link_preview_options(), true));
@@ -5261,6 +5262,8 @@ class CliClient final : public Actor {
       saved_messages_topic_id_ = as_chat_id(args);
     } else if (op == "sqrs") {
       quick_reply_shortcut_name_ = args;
+    } else if (op == "smas") {
+      added_sticker_file_ids_ = as_file_ids(args);
     } else if (op == "smc") {
       cover_ = args;
     } else if (op == "smth") {
@@ -5304,8 +5307,8 @@ class CliClient final : public Actor {
       get_args(args, chat_id, args);
       auto paid_media = transform(full_split(args), [&](const string &photo) {
         return td_api::make_object<td_api::inputPaidMedia>(td_api::make_object<td_api::inputPaidMediaTypePhoto>(),
-                                                           as_input_file(photo), get_input_thumbnail(), vector<int32>(),
-                                                           0, 0);
+                                                           as_input_file(photo), get_input_thumbnail(),
+                                                           get_added_sticker_file_ids(), 0, 0);
       });
       send_message(chat_id, td_api::make_object<td_api::inputMessagePaidMedia>(
                                 11, std::move(paid_media), as_caption("12_3_ __4__"), rand_bool(), "photo"));
@@ -5315,7 +5318,7 @@ class CliClient final : public Actor {
       auto paid_media = transform(full_split(args), [&](const string &video) {
         return td_api::make_object<td_api::inputPaidMedia>(
             td_api::make_object<td_api::inputPaidMediaTypeVideo>(get_input_cover(), start_timestamp_, 10, true),
-            as_input_file(video), get_input_thumbnail(), vector<int32>(), 0, 0);
+            as_input_file(video), get_input_thumbnail(), get_added_sticker_file_ids(), 0, 0);
       });
       send_message(chat_id, td_api::make_object<td_api::inputMessagePaidMedia>(
                                 12, std::move(paid_media), as_caption("12_3_ __4__"), rand_bool(), "video"));
@@ -5324,8 +5327,9 @@ class CliClient final : public Actor {
       get_args(args, chat_id, args);
       auto input_message_contents = transform(full_split(args), [this](const string &photo) {
         td_api::object_ptr<td_api::InputMessageContent> content = td_api::make_object<td_api::inputMessagePhoto>(
-            as_input_file(photo), get_input_thumbnail(), Auto(), 0, 0, as_caption(""), show_caption_above_media_,
-            rand_bool() ? get_message_self_destruct_type() : nullptr, has_spoiler_ && rand_bool());
+            as_input_file(photo), get_input_thumbnail(), get_added_sticker_file_ids(), 0, 0, as_caption(""),
+            show_caption_above_media_, rand_bool() ? get_message_self_destruct_type() : nullptr,
+            has_spoiler_ && rand_bool());
         return content;
       });
       if (!business_connection_id_.empty()) {
@@ -5365,8 +5369,9 @@ class CliClient final : public Actor {
       get_args(args, chat_id, args);
       auto input_message_contents = transform(full_split(args), [this](const string &video) {
         td_api::object_ptr<td_api::InputMessageContent> content = td_api::make_object<td_api::inputMessageVideo>(
-            as_input_file(video), get_input_thumbnail(), get_input_cover(), start_timestamp_, Auto(), 1, 2, 3, true,
-            as_caption(""), show_caption_above_media_, get_message_self_destruct_type(), has_spoiler_);
+            as_input_file(video), get_input_thumbnail(), get_input_cover(), start_timestamp_,
+            get_added_sticker_file_ids(), 1, 2, 3, true, as_caption(""), show_caption_above_media_,
+            get_message_self_destruct_type(), has_spoiler_);
         return content;
       });
       if (!business_connection_id_.empty()) {
@@ -5437,9 +5442,9 @@ class CliClient final : public Actor {
       get_args(args, chat_id, message_id, animation);
       send_request(td_api::make_object<td_api::editMessageMedia>(
           chat_id, message_id, nullptr,
-          td_api::make_object<td_api::inputMessageAnimation>(as_input_file(animation), get_input_thumbnail(),
-                                                             vector<int32>(), 0, 0, 0, as_caption("animation"),
-                                                             show_caption_above_media_, has_spoiler_)));
+          td_api::make_object<td_api::inputMessageAnimation>(
+              as_input_file(animation), get_input_thumbnail(), get_added_sticker_file_ids(), 0, 0, 0,
+              as_caption("animation"), show_caption_above_media_, has_spoiler_)));
     } else if (op == "emc") {
       ChatId chat_id;
       MessageId message_id;
@@ -5476,8 +5481,8 @@ class CliClient final : public Actor {
       string photo;
       get_args(args, chat_id, message_id, photo);
       auto input_photo = td_api::make_object<td_api::inputMessagePhoto>(
-          as_input_file(photo), get_input_thumbnail(), Auto(), 0, 0, as_caption(""), show_caption_above_media_,
-          get_message_self_destruct_type(), has_spoiler_);
+          as_input_file(photo), get_input_thumbnail(), get_added_sticker_file_ids(), 0, 0, as_caption(""),
+          show_caption_above_media_, get_message_self_destruct_type(), has_spoiler_);
       if (!business_connection_id_.empty()) {
         send_request(td_api::make_object<td_api::editBusinessMessageMedia>(business_connection_id_, chat_id, message_id,
                                                                            nullptr, std::move(input_photo)));
@@ -5492,9 +5497,9 @@ class CliClient final : public Actor {
       get_args(args, shortcut_id, message_id, photo);
       send_request(td_api::make_object<td_api::editQuickReplyMessage>(
           shortcut_id, message_id,
-          td_api::make_object<td_api::inputMessagePhoto>(as_input_file(photo), get_input_thumbnail(), Auto(), 0, 0,
-                                                         as_caption(""), show_caption_above_media_, nullptr,
-                                                         has_spoiler_)));
+          td_api::make_object<td_api::inputMessagePhoto>(as_input_file(photo), get_input_thumbnail(),
+                                                         get_added_sticker_file_ids(), 0, 0, as_caption(""),
+                                                         show_caption_above_media_, nullptr, has_spoiler_)));
     } else if (op == "eqrmv") {
       ShortcutId shortcut_id;
       MessageId message_id;
@@ -5502,17 +5507,19 @@ class CliClient final : public Actor {
       get_args(args, shortcut_id, message_id, video);
       send_request(td_api::make_object<td_api::editQuickReplyMessage>(
           shortcut_id, message_id,
-          td_api::make_object<td_api::inputMessageVideo>(
-              as_input_file(video), get_input_thumbnail(), get_input_cover(), start_timestamp_, Auto(), 1, 2, 3, true,
-              as_caption(""), show_caption_above_media_, get_message_self_destruct_type(), has_spoiler_)));
+          td_api::make_object<td_api::inputMessageVideo>(as_input_file(video), get_input_thumbnail(), get_input_cover(),
+                                                         start_timestamp_, get_added_sticker_file_ids(), 1, 2, 3, true,
+                                                         as_caption(""), show_caption_above_media_,
+                                                         get_message_self_destruct_type(), has_spoiler_)));
     } else if (op == "emv") {
       ChatId chat_id;
       MessageId message_id;
       string video;
       get_args(args, chat_id, message_id, video);
       auto input_video = td_api::make_object<td_api::inputMessageVideo>(
-          as_input_file(video), get_input_thumbnail(), get_input_cover(), start_timestamp_, Auto(), 1, 2, 3, true,
-          as_caption(""), show_caption_above_media_, get_message_self_destruct_type(), has_spoiler_);
+          as_input_file(video), get_input_thumbnail(), get_input_cover(), start_timestamp_,
+          get_added_sticker_file_ids(), 1, 2, 3, true, as_caption(""), show_caption_above_media_,
+          get_message_self_destruct_type(), has_spoiler_);
       if (!business_connection_id_.empty()) {
         send_request(td_api::make_object<td_api::editBusinessMessageMedia>(business_connection_id_, chat_id, message_id,
                                                                            nullptr, std::move(input_video)));
@@ -5723,15 +5730,15 @@ class CliClient final : public Actor {
       string caption;
       get_args(args, chat_id, animation, width, height, caption);
       send_message(chat_id, td_api::make_object<td_api::inputMessageAnimation>(
-                                as_input_file(animation), get_input_thumbnail(), vector<int32>(), 60, width, height,
-                                as_caption(caption), show_caption_above_media_, has_spoiler_));
+                                as_input_file(animation), get_input_thumbnail(), get_added_sticker_file_ids(), 60,
+                                width, height, as_caption(caption), show_caption_above_media_, has_spoiler_));
     } else if (op == "sanurl") {
       ChatId chat_id;
       string url;
       get_args(args, chat_id, url);
       send_message(chat_id, td_api::make_object<td_api::inputMessageAnimation>(
-                                as_generated_file(url, "#url#"), nullptr, vector<int32>(), 0, 0, 0, as_caption(""),
-                                show_caption_above_media_, has_spoiler_));
+                                as_generated_file(url, "#url#"), get_input_thumbnail(), get_added_sticker_file_ids(), 0,
+                                0, 0, as_caption(""), show_caption_above_media_, has_spoiler_));
     } else if (op == "sau") {
       ChatId chat_id;
       string audio;
@@ -5838,11 +5845,10 @@ class CliClient final : public Actor {
       ChatId chat_id;
       string photo;
       string caption;
-      string sticker_file_ids;
-      get_args(args, chat_id, photo, caption, sticker_file_ids);
+      get_args(args, chat_id, photo, caption);
       send_message(chat_id,
                    td_api::make_object<td_api::inputMessagePhoto>(
-                       as_input_file(photo), get_input_thumbnail(), as_file_ids(sticker_file_ids), 0, 0,
+                       as_input_file(photo), get_input_thumbnail(), get_added_sticker_file_ids(), 0, 0,
                        as_caption(caption), show_caption_above_media_, get_message_self_destruct_type(), has_spoiler_));
     } else if (op == "ss") {
       ChatId chat_id;
@@ -5863,7 +5869,7 @@ class CliClient final : public Actor {
       get_args(args, chat_id, video);
       send_message(chat_id, td_api::make_object<td_api::inputMessageVideo>(
                                 as_input_file(video), get_input_thumbnail(), get_input_cover(), start_timestamp_,
-                                Auto(), 1, 2, 3, true, as_caption(""), show_caption_above_media_,
+                                get_added_sticker_file_ids(), 1, 2, 3, true, as_caption(""), show_caption_above_media_,
                                 get_message_self_destruct_type(), has_spoiler_));
     } else if (op == "svn") {
       ChatId chat_id;
@@ -6820,7 +6826,7 @@ class CliClient final : public Actor {
       get_args(args, bot_user_id, language_code, photo);
       send_request(td_api::make_object<td_api::addBotMediaPreview>(
           bot_user_id, language_code,
-          td_api::make_object<td_api::inputStoryContentPhoto>(as_input_file(photo), Auto())));
+          td_api::make_object<td_api::inputStoryContentPhoto>(as_input_file(photo), get_added_sticker_file_ids())));
     } else if (op == "abmpv") {
       UserId bot_user_id;
       string language_code;
@@ -6828,7 +6834,8 @@ class CliClient final : public Actor {
       get_args(args, bot_user_id, language_code, video);
       send_request(td_api::make_object<td_api::addBotMediaPreview>(
           bot_user_id, language_code,
-          td_api::make_object<td_api::inputStoryContentVideo>(as_input_file(video), Auto(), 0.0, 1.5, true)));
+          td_api::make_object<td_api::inputStoryContentVideo>(as_input_file(video), get_added_sticker_file_ids(), 0.0,
+                                                              1.5, true)));
     } else if (op == "ebmpp") {
       UserId bot_user_id;
       string language_code;
@@ -6837,7 +6844,7 @@ class CliClient final : public Actor {
       get_args(args, bot_user_id, language_code, file_id, photo);
       send_request(td_api::make_object<td_api::editBotMediaPreview>(
           bot_user_id, language_code, file_id,
-          td_api::make_object<td_api::inputStoryContentPhoto>(as_input_file(photo), Auto())));
+          td_api::make_object<td_api::inputStoryContentPhoto>(as_input_file(photo), get_added_sticker_file_ids())));
     } else if (op == "ebmpv") {
       UserId bot_user_id;
       string language_code;
@@ -6846,7 +6853,8 @@ class CliClient final : public Actor {
       get_args(args, bot_user_id, language_code, file_id, video);
       send_request(td_api::make_object<td_api::editBotMediaPreview>(
           bot_user_id, language_code, file_id,
-          td_api::make_object<td_api::inputStoryContentVideo>(as_input_file(video), Auto(), 0.0, 1.5, true)));
+          td_api::make_object<td_api::inputStoryContentVideo>(as_input_file(video), get_added_sticker_file_ids(), 0.0,
+                                                              1.5, true)));
     } else if (op == "rbmp") {
       UserId bot_user_id;
       string language_code;
@@ -7523,6 +7531,7 @@ class CliClient final : public Actor {
   bool show_caption_above_media_ = false;
   int64 saved_messages_topic_id_ = 0;
   string quick_reply_shortcut_name_;
+  vector<int32> added_sticker_file_ids_;
   string cover_;
   string thumbnail_;
   int32 start_timestamp_ = 0;
