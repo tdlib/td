@@ -1069,8 +1069,9 @@ void BotInfoManager::set_custom_bot_verification(UserId bot_user_id, DialogId di
   if (bot_user_id != UserId()) {
     TRY_RESULT_PROMISE_ASSIGN(promise, bot_input_user, td_->user_manager_->get_input_user(bot_user_id));
   }
-  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
-                                                                        "set_custom_bot_verification"));
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
+    return promise.set_error(Status::Error(400, "Can't access the verified entity"));
+  }
   td_->create_handler<SetCustomVerificationQuery>(std::move(promise))
       ->send(std::move(bot_input_user), dialog_id, is_verified, custom_description);
 }
