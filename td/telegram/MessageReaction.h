@@ -9,7 +9,6 @@
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/MessageFullId.h"
-#include "td/telegram/MessageId.h"
 #include "td/telegram/MessageReactor.h"
 #include "td/telegram/MinChannel.h"
 #include "td/telegram/ReactionType.h"

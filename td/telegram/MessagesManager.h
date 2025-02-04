@@ -1130,7 +1130,7 @@ class MessagesManager final : public Actor {
     Message &operator=(const Message &) = delete;
     Message(Message &&) = delete;
     Message &operator=(Message &&) = delete;
-    ~Message() = default;
+    ~Message();
   };
 
   struct EditedMessage {

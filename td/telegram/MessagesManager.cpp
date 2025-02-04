@@ -115,7 +115,6 @@
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Time.h"
 #include "td/utils/tl_helpers.h"
-#include "td/utils/utf8.h"
 
 #include <algorithm>
 #include <limits>
@@ -3606,6 +3605,8 @@ void MessagesManager::save_calls_db_state() {
             << calls_db_state_.message_count_by_index[1] << ")";
   G()->td_db()->get_sqlite_pmc()->set("calls_db_state", log_event_store(calls_db_state_).as_slice().str(), Auto());
 }
+
+MessagesManager::Message::~Message() = default;
 
 MessagesManager::MessagesManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   upload_media_callback_ = std::make_shared<UploadMediaCallback>();

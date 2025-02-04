@@ -54,6 +54,7 @@
 #include "td/utils/Time.h"
 #include "td/utils/tl_helpers.h"
 
+#include <limits>
 #include <type_traits>
 
 namespace td {
