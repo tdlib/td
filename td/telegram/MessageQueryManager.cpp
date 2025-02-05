@@ -26,6 +26,7 @@
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageReaction.h"
 #include "td/telegram/MessageSearchOffset.h"
+#include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesInfo.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/SecretChatsManager.h"
@@ -55,6 +56,7 @@
 #include "td/utils/tl_helpers.h"
 
 #include <limits>
+#include <map>
 #include <type_traits>
 
 namespace td {
@@ -2131,6 +2133,47 @@ void MessageQueryManager::try_reload_message_reactions(DialogId dialog_id, bool 
   }
 
   td_->create_handler<GetMessagesReactionsQuery>()->send(dialog_id, std::move(message_ids));
+}
+
+void MessageQueryManager::get_paid_message_reaction_senders(
+    DialogId dialog_id, Promise<td_api::object_ptr<td_api::messageSenders>> &&promise, bool is_recursive) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
+                                                                        "get_paid_message_reaction_senders"));
+  if (!td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
+    return promise.set_value(td_api::make_object<td_api::messageSenders>());
+  }
+  if (td_->chat_manager_->are_created_public_broadcasts_inited()) {
+    auto senders = td_api::make_object<td_api::messageSenders>();
+    const auto &created_public_broadcasts = td_->chat_manager_->get_created_public_broadcasts();
+    auto add_sender = [&senders, td = td_](DialogId dialog_id) {
+      senders->senders_.push_back(get_message_sender_object(td, dialog_id, "add_sender"));
+      senders->total_count_++;
+    };
+    add_sender(td_->dialog_manager_->get_my_dialog_id());
+
+    std::multimap<int64, ChannelId> sorted_channel_ids;
+    for (auto channel_id : created_public_broadcasts) {
+      int64 score = td_->chat_manager_->get_channel_participant_count(channel_id);
+      sorted_channel_ids.emplace(-score, channel_id);
+    };
+    for (auto &channel_id : sorted_channel_ids) {
+      add_sender(DialogId(channel_id.second));
+    }
+    return promise.set_value(std::move(senders));
+  }
+
+  CHECK(!is_recursive);
+  auto new_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, promise = std::move(promise)](
+                                                Result<td_api::object_ptr<td_api::chats>> &&result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      send_closure_later(actor_id, &MessageQueryManager::get_paid_message_reaction_senders, dialog_id,
+                         std::move(promise), true);
+    }
+  });
+  td_->chat_manager_->get_created_public_dialogs(PublicDialogType::ForPersonalDialog, std::move(new_promise), true);
 }
 
 void MessageQueryManager::get_discussion_message(DialogId dialog_id, MessageId message_id, DialogId expected_dialog_id,

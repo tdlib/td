@@ -9720,6 +9720,9 @@ addMessageReaction chat_id:int53 message_id:int53 reaction_type:ReactionType is_
 //@reaction_type Type of the reaction to remove. The paid reaction can't be removed
 removeMessageReaction chat_id:int53 message_id:int53 reaction_type:ReactionType = Ok;
 
+//@description Returns the list of message sender identifiers, which can be used to send a paid reaction in a chat @chat_id Chat identifier
+getChatAvailablePaidMessageReactionSenders chat_id:int53 = MessageSenders;
+
 //@description Adds the paid message reaction to a message. Use getMessageAvailableReactions to check whether the reaction is available for the message
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message

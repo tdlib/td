@@ -3102,6 +3102,10 @@ class CliClient final : public Actor {
       auto reaction_types = transform(autosplit_str(reactions), as_reaction_type);
       send_request(td_api::make_object<td_api::setMessageReactions>(chat_id, message_id, std::move(reaction_types),
                                                                     op == "reactbotbig"));
+    } else if (op == "gcapmrs") {
+      ChatId chat_id;
+      get_args(args, chat_id);
+      send_request(td_api::make_object<td_api::getChatAvailablePaidMessageReactionSenders>(chat_id));
     } else if (op == "appmr" || op == "appmra" || op == "appmrd") {
       ChatId chat_id;
       MessageId message_id;

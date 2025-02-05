@@ -3403,6 +3403,12 @@ void Requests::on_request(uint64 id, const td_api::addMessageReaction &request) 
                                                request.update_recent_reactions_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::getChatAvailablePaidMessageReactionSenders &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->message_query_manager_->get_paid_message_reaction_senders(DialogId(request.chat_id_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::addPendingPaidMessageReaction &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
