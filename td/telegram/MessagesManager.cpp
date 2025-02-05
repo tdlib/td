@@ -20332,6 +20332,19 @@ void MessagesManager::get_dialog_send_message_as_dialog_ids(
   if (is_broadcast && !td_->chat_manager_->get_channel_sign_messages(dialog_id.get_channel_id())) {
     return promise.set_value(td_api::make_object<td_api::chatMessageSenders>());
   }
+  if (!td_->user_manager_->have_user(td_->user_manager_->get_my_id())) {
+    auto new_promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this), dialog_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
+          if (result.is_error()) {
+            promise.set_error(result.move_as_error());
+          } else {
+            send_closure_later(actor_id, &MessagesManager::get_dialog_send_message_as_dialog_ids, dialog_id,
+                               std::move(promise), false);
+          }
+        });
+    td_->user_manager_->get_me(std::move(new_promise));
+    return;
+  }
 
   if (td_->chat_manager_->are_created_public_broadcasts_inited()) {
     auto senders = td_api::make_object<td_api::chatMessageSenders>();
