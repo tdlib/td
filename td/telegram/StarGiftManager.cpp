@@ -1014,8 +1014,11 @@ void StarGiftManager::upgrade_gift(StarGiftId star_gift_id, bool keep_original_d
 
 void StarGiftManager::transfer_gift(StarGiftId star_gift_id, DialogId receiver_dialog_id, int64 star_count,
                                     Promise<Unit> &&promise) {
-  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(receiver_dialog_id, false, AccessRights::Read,
-                                                                        "transfer_gift"));
+  auto input_peer = td_->dialog_manager_->get_input_peer(receiver_dialog_id, AccessRights::Read);
+  auto transfer_input_peer = td_->dialog_manager_->get_input_peer(receiver_dialog_id, AccessRights::Read);
+  if (input_peer == nullptr || transfer_input_peer == nullptr) {
+    return promise.set_error(Status::Error(400, "Have no access to the new gift owner"));
+  }
   auto input_saved_star_gift = star_gift_id.get_input_saved_star_gift(td_);
   if (input_saved_star_gift == nullptr) {
     return promise.set_error(Status::Error(400, "Invalid gift identifier specified"));
@@ -1037,15 +1040,13 @@ void StarGiftManager::transfer_gift(StarGiftId star_gift_id, DialogId receiver_d
       return query_promise.set_error(Status::Error(400, "Have not enough Telegram Stars"));
     }
     auto input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGiftTransfer>(
-        std::move(input_saved_star_gift), td_->dialog_manager_->get_input_peer(receiver_dialog_id, AccessRights::Read));
+        std::move(input_saved_star_gift), std::move(input_peer));
     auto transfer_input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGiftTransfer>(
-        star_gift_id.get_input_saved_star_gift(td_),
-        td_->dialog_manager_->get_input_peer(receiver_dialog_id, AccessRights::Read));
+        star_gift_id.get_input_saved_star_gift(td_), std::move(transfer_input_peer));
     td_->create_handler<GetGiftTransferPaymentFormQuery>(std::move(query_promise))
         ->send(std::move(input_invoice), std::move(transfer_input_invoice), star_count);
   } else {
-    td_->create_handler<TransferStarGiftQuery>(std::move(query_promise))
-        ->send(star_gift_id, td_->dialog_manager_->get_input_peer(receiver_dialog_id, AccessRights::Read));
+    td_->create_handler<TransferStarGiftQuery>(std::move(query_promise))->send(star_gift_id, std::move(input_peer));
   }
 }
 
@@ -1070,8 +1071,6 @@ void StarGiftManager::get_saved_star_gifts(DialogId dialog_id, bool exclude_unsa
                                            bool exclude_unlimited, bool exclude_limited, bool exclude_unique,
                                            bool sort_by_value, const string &offset, int32 limit,
                                            Promise<td_api::object_ptr<td_api::receivedGifts>> &&promise) {
-  TRY_STATUS_PROMISE(
-      promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "get_saved_star_gifts"));
   if (limit < 0) {
     return promise.set_error(Status::Error(400, "Limit must be non-negative"));
   }
