@@ -427,7 +427,7 @@ class QuickReplyManager::SendQuickReplyMediaQuery final : public Td::ResultHandl
         if (cover_file_id_.is_valid() && source.pos_ <= 1) {
           VLOG(file_references) << "Receive " << status << " for cover " << cover_file_id_;
           td_->file_manager_->delete_file_reference(cover_file_id_, cover_file_reference_);
-          td_->quick_reply_manager_->on_send_message_file_reference_error(shortcut_id_, random_id_);
+          td_->quick_reply_manager_->on_send_message_file_error(shortcut_id_, random_id_, {-1});
           return;
         } else {
           LOG(ERROR) << "Receive file reference error, but cover_file_id = " << cover_file_id_;
@@ -436,7 +436,7 @@ class QuickReplyManager::SendQuickReplyMediaQuery final : public Td::ResultHandl
         if (file_upload_id_.is_valid() && !was_uploaded_) {
           VLOG(file_references) << "Receive " << status << " for " << file_upload_id_;
           td_->file_manager_->delete_file_reference(file_upload_id_.get_file_id(), file_reference_);
-          td_->quick_reply_manager_->on_send_message_file_reference_error(shortcut_id_, random_id_);
+          td_->quick_reply_manager_->on_send_message_file_error(shortcut_id_, random_id_, {-1});
           return;
         } else {
           LOG(ERROR) << "Receive file reference error, but file_id = " << file_upload_id_
@@ -454,7 +454,7 @@ class QuickReplyManager::SendQuickReplyMediaQuery final : public Td::ResultHandl
       CHECK(file_upload_id_.is_valid());
       auto bad_parts = FileManager::get_missing_file_parts(status);
       if (!bad_parts.empty()) {
-        td_->quick_reply_manager_->on_send_message_file_parts_missing(shortcut_id_, random_id_, std::move(bad_parts));
+        td_->quick_reply_manager_->on_send_message_file_error(shortcut_id_, random_id_, std::move(bad_parts));
         return;
       } else {
         td_->file_manager_->delete_partial_remote_location_if_needed(file_upload_id_, status);
@@ -524,7 +524,7 @@ class QuickReplyManager::UploadQuickReplyMediaQuery final : public Td::ResultHan
       if (source.is_cover_ && source.pos_ <= 1 && cover_file_id_.is_valid()) {
         VLOG(file_references) << "Receive " << status << " for cover " << cover_file_id_;
         td_->file_manager_->delete_file_reference(cover_file_id_, cover_file_reference_);
-        td_->quick_reply_manager_->on_send_message_file_reference_error(shortcut_id_, random_id_);
+        td_->quick_reply_manager_->on_send_message_file_error(shortcut_id_, random_id_, {-1});
         return;
       } else {
         LOG(ERROR) << "Receive file reference error for UploadMediaQuery";
@@ -540,7 +540,7 @@ class QuickReplyManager::UploadQuickReplyMediaQuery final : public Td::ResultHan
       CHECK(file_upload_id_.is_valid());
       auto bad_parts = FileManager::get_missing_file_parts(status);
       if (!bad_parts.empty()) {
-        td_->quick_reply_manager_->on_send_message_file_parts_missing(shortcut_id_, random_id_, std::move(bad_parts));
+        td_->quick_reply_manager_->on_send_message_file_error(shortcut_id_, random_id_, std::move(bad_parts));
         return;
       } else {
         td_->file_manager_->delete_partial_remote_location_if_needed(file_upload_id_, status);
@@ -2336,24 +2336,14 @@ void QuickReplyManager::do_send_message(const QuickReplyMessage *m, vector<int> 
   }
 }
 
-void QuickReplyManager::on_send_message_file_parts_missing(QuickReplyShortcutId shortcut_id, int64 random_id,
-                                                           vector<int> &&bad_parts) {
+void QuickReplyManager::on_send_message_file_error(QuickReplyShortcutId shortcut_id, int64 random_id,
+                                                   vector<int> &&bad_parts) {
   auto *s = get_shortcut(shortcut_id);
   if (s != nullptr) {
     for (auto &message : s->messages_) {
       if (message->random_id == random_id && message->message_id.is_yet_unsent()) {
         do_send_message(message.get(), std::move(bad_parts));
-      }
-    }
-  }
-}
-
-void QuickReplyManager::on_send_message_file_reference_error(QuickReplyShortcutId shortcut_id, int64 random_id) {
-  auto *s = get_shortcut(shortcut_id);
-  if (s != nullptr) {
-    for (auto &message : s->messages_) {
-      if (message->random_id == random_id && message->message_id.is_yet_unsent()) {
-        do_send_message(message.get(), {-1});
+        return;
       }
     }
   }

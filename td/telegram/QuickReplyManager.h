@@ -386,9 +386,7 @@ class QuickReplyManager final : public Actor {
 
   void do_send_message(const QuickReplyMessage *m, vector<int> bad_parts = {});
 
-  void on_send_message_file_parts_missing(QuickReplyShortcutId shortcut_id, int64 random_id, vector<int> &&bad_parts);
-
-  void on_send_message_file_reference_error(QuickReplyShortcutId shortcut_id, int64 random_id);
+  void on_send_message_file_error(QuickReplyShortcutId shortcut_id, int64 random_id, vector<int> &&bad_parts);
 
   void on_upload_media(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file);
 

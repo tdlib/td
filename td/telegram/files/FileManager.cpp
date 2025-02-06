@@ -1435,7 +1435,7 @@ vector<int> FileManager::get_missing_file_parts(const Status &error) {
   auto error_message = error.message();
   if (begins_with(error_message, "FILE_PART_") && ends_with(error_message, "_MISSING")) {
     auto r_file_part = to_integer_safe<int>(error_message.substr(10, error_message.size() - 18));
-    if (r_file_part.is_error()) {
+    if (r_file_part.is_error() || r_file_part.ok() < 0) {
       LOG(ERROR) << "Receive error " << error;
     } else {
       result.push_back(r_file_part.ok());
