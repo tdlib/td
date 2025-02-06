@@ -1617,7 +1617,7 @@ class SendMediaQuery final : public Td::ResultHandler {
         if (pos < cover_file_ids_.size() && pos < cover_file_references_.size()) {
           VLOG(file_references) << "Receive " << status << " for cover " << cover_file_ids_[pos];
           td_->file_manager_->delete_file_reference(cover_file_ids_[pos], cover_file_references_[pos]);
-          td_->messages_manager_->on_send_message_file_reference_error(random_id_, pos);
+          td_->messages_manager_->on_send_message_file_error(random_id_, pos, {-1});
           return;
         } else {
           LOG(ERROR) << "Receive file reference error " << pos << ", but cover_file_ids = " << cover_file_ids_
@@ -1627,7 +1627,7 @@ class SendMediaQuery final : public Td::ResultHandler {
         if (pos < file_upload_ids_.size() && pos < file_references_.size() && !was_uploaded_) {
           VLOG(file_references) << "Receive " << status << " for " << file_upload_ids_[pos];
           td_->file_manager_->delete_file_reference(file_upload_ids_[pos].get_file_id(), file_references_[pos]);
-          td_->messages_manager_->on_send_message_file_reference_error(random_id_, pos);
+          td_->messages_manager_->on_send_message_file_error(random_id_, pos, {-1});
           return;
         } else {
           LOG(ERROR) << "Receive file reference error " << pos << ", but file_upload_ids = " << file_upload_ids_
@@ -1647,8 +1647,7 @@ class SendMediaQuery final : public Td::ResultHandler {
       CHECK(file_upload_ids_[0].is_valid());
       auto bad_parts = FileManager::get_missing_file_parts(status);
       if (!bad_parts.empty()) {
-        td_->messages_manager_->on_send_message_file_parts_missing(random_id_, std::move(bad_parts));
-        return;
+        return td_->messages_manager_->on_send_message_file_error(random_id_, 0, std::move(bad_parts));
       } else {
         td_->file_manager_->delete_partial_remote_location_if_needed(file_upload_ids_[0], status);
       }
@@ -10201,8 +10200,7 @@ void MessagesManager::on_send_secret_message_error(int64 random_id, Status error
         }
         auto bad_parts = FileManager::get_missing_file_parts(error);
         if (!bad_parts.empty()) {
-          on_send_message_file_parts_missing(random_id, std::move(bad_parts));
-          return;
+          return on_send_message_file_error(random_id, 0, std::move(bad_parts));
         }
 
         td_->file_manager_->delete_partial_remote_location_if_needed(file_upload_id, error);
@@ -26466,57 +26464,12 @@ MessageFullId MessagesManager::on_send_message_success(int64 random_id, MessageI
   return {dialog_id, new_message_id};
 }
 
-void MessagesManager::on_send_message_file_parts_missing(int64 random_id, vector<int> &&bad_parts) {
+void MessagesManager::on_send_message_file_error(int64 random_id, size_t pos, vector<int> &&bad_parts) {
   auto it = being_sent_messages_.find(random_id);
   if (it == being_sent_messages_.end()) {
     // we can't receive fail more than once
     // but message can be successfully sent before
-    LOG(INFO) << "Receive error for successfully sent message with random_id = " << random_id;
-    return;
-  }
-
-  auto message_full_id = it->second;
-
-  being_sent_messages_.erase(it);
-
-  Message *m = get_message(message_full_id);
-  if (m == nullptr) {
-    // message has already been deleted by the user or sent to inaccessible channel
-    // don't need to send error to the user, because the message has already been deleted
-    // and there is nothing to be deleted from the server
-    LOG(INFO) << "Don't need to send already deleted by the user or sent to an inaccessible chat " << message_full_id;
-    return;
-  }
-
-  auto dialog_id = message_full_id.get_dialog_id();
-  if (dialog_id.get_type() == DialogType::SecretChat) {
-    CHECK(!m->message_id.is_scheduled());
-    Dialog *d = get_dialog(dialog_id);
-    CHECK(d != nullptr);
-
-    delete_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
-
-    // need to change message random_id before resending
-    m->random_id = generate_new_random_id(d);
-
-    add_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
-
-    auto log_event = SendMessageLogEvent(dialog_id, m);
-    CHECK(m->send_message_log_event_id != 0);
-    binlog_rewrite(G()->td_db()->get_binlog(), m->send_message_log_event_id, LogEvent::HandlerType::SendMessage,
-                   get_log_event_storer(log_event));
-  }
-
-  do_send_message(dialog_id, m, -1, std::move(bad_parts));
-}
-
-void MessagesManager::on_send_message_file_reference_error(int64 random_id, size_t pos) {
-  auto it = being_sent_messages_.find(random_id);
-  if (it == being_sent_messages_.end()) {
-    // we can't receive fail more than once
-    // but message can be successfully sent before
-    LOG(WARNING) << "Receive file reference invalid error about successfully sent message with random_id = "
-                 << random_id;
+    LOG(WARNING) << "Receive an error for successfully sent message with random_id = " << random_id;
     return;
   }
 
@@ -26570,7 +26523,7 @@ void MessagesManager::on_send_message_file_reference_error(int64 random_id, size
     CHECK(pos == 0);
   }
 
-  do_send_message(dialog_id, m, media_pos, {-1});
+  do_send_message(dialog_id, m, media_pos, std::move(bad_parts));
 }
 
 void MessagesManager::on_send_media_group_file_reference_error(DialogId dialog_id, vector<int64> random_ids) {

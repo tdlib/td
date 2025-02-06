@@ -836,9 +836,7 @@ class MessagesManager final : public Actor {
   MessageFullId on_send_message_success(int64 random_id, MessageId new_message_id, int32 date, int32 ttl_period,
                                         FileId new_file_id, const char *source);
 
-  void on_send_message_file_parts_missing(int64 random_id, vector<int> &&bad_parts);
-
-  void on_send_message_file_reference_error(int64 random_id, size_t pos);
+  void on_send_message_file_error(int64 random_id, size_t pos, vector<int> &&bad_parts);
 
   void on_send_media_group_file_reference_error(DialogId dialog_id, vector<int64> random_ids);
 
