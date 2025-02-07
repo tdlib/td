@@ -617,6 +617,9 @@ void SetSecureValue::on_result(NetQueryPtr query) {
   if (secure_value_.files.size() != encrypted_secure_value.files.size()) {
     return on_error(Status::Error(500, "Different file count"));
   }
+  if (secure_value_.translations.size() != encrypted_secure_value.translations.size()) {
+    return on_error(Status::Error(500, "Different translation count"));
+  }
   for (size_t i = 0; i < secure_value_.files.size(); i++) {
     merge(file_manager, secure_value_.files[i].file_id, encrypted_secure_value.files[i]);
   }
