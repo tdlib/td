@@ -7294,9 +7294,10 @@ internalLinkTypeUserToken token:string = InternalLinkType;
 //@is_live_stream True, if the video chat is expected to be a live stream in a channel or a broadcast group
 internalLinkTypeVideoChat chat_username:string invite_hash:string is_live_stream:Bool = InternalLinkType;
 
-//@description The link is a link to a Web App. Call searchPublicChat with the given bot username, check that the user is a bot, then call searchWebApp with the received bot and the given web_app_short_name.
-//-Process received foundWebApp by showing a confirmation dialog if needed. If the bot can be added to attachment or side menu, but isn't added yet, then show a disclaimer about Mini Apps being third-party applications
-//-instead of the dialog and ask the user to accept their Terms of service. If the user accept the terms and confirms adding, then use toggleBotIsAddedToAttachmentMenu to add the bot.
+//@description The link is a link to a Web App. Call searchPublicChat with the given bot username, check that the user is a bot. If the bot is restricted for the current user, then show an error message.
+//-Otherwise, call searchWebApp with the received bot and the given web_app_short_name. Process received foundWebApp by showing a confirmation dialog if needed.
+//-If the bot can be added to attachment or side menu, but isn't added yet, then show a disclaimer about Mini Apps being third-party applications instead of the dialog
+//-and ask the user to accept their Terms of service. If the user accept the terms and confirms adding, then use toggleBotIsAddedToAttachmentMenu to add the bot.
 //-Then, call getWebAppLinkUrl and open the returned URL as a Web App
 //@bot_username Username of the bot that owns the Web App
 //@web_app_short_name Short name of the Web App
@@ -9915,13 +9916,13 @@ getWebAppLinkUrl chat_id:int53 bot_user_id:int53 web_app_short_name:string start
 
 //@description Returns information needed to open the main Web App of a bot
 //@chat_id Identifier of the chat in which the Web App is opened; pass 0 if none
-//@bot_user_id Identifier of the target bot
+//@bot_user_id Identifier of the target bot. If the bot is restricted for the current user, then show an error instead of calling the method
 //@start_parameter Start parameter from internalLinkTypeMainWebApp
 //@parameters Parameters to use to open the Web App
 getMainWebApp chat_id:int53 bot_user_id:int53 start_parameter:string parameters:webAppOpenParameters = MainWebApp;
 
 //@description Returns an HTTPS URL of a Web App to open from the side menu, a keyboardButtonTypeWebApp button, or an inlineQueryResultsButtonTypeWebApp button
-//@bot_user_id Identifier of the target bot
+//@bot_user_id Identifier of the target bot. If the bot is restricted for the current user, then show an error instead of calling the method
 //@url The URL from a keyboardButtonTypeWebApp button, inlineQueryResultsButtonTypeWebApp button, or an empty string when the bot is opened from the side menu
 //@parameters Parameters to use to open the Web App
 getWebAppUrl bot_user_id:int53 url:string parameters:webAppOpenParameters = HttpUrl;
@@ -9935,7 +9936,7 @@ sendWebAppData bot_user_id:int53 button_text:string data:string = Ok;
 //@description Informs TDLib that a Web App is being opened from the attachment menu, a botMenuButton button, an internalLinkTypeAttachmentMenuBot link, or an inlineKeyboardButtonTypeWebApp button.
 //-For each bot, a confirmation alert about data sent to the bot must be shown once
 //@chat_id Identifier of the chat in which the Web App is opened. The Web App can't be opened in secret chats
-//@bot_user_id Identifier of the bot, providing the Web App
+//@bot_user_id Identifier of the bot, providing the Web App. If the bot is restricted for the current user, then show an error instead of calling the method
 //@url The URL from an inlineKeyboardButtonTypeWebApp button, a botMenuButton button, an internalLinkTypeAttachmentMenuBot link, or an empty string otherwise
 //@message_thread_id If not 0, the message thread identifier in which the message will be sent
 //@reply_to Information about the message or story to be replied in the message sent by the Web App; pass null if none
