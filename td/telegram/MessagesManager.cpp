@@ -31293,16 +31293,8 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
         Dialog *user_d = get_dialog_force(DialogId(user_id), source);
         if (user_d != nullptr && user_d->notification_settings.is_synchronized) {
           VLOG(notifications) << "Copy notification settings from " << user_d->dialog_id << " to " << dialog_id;
-          auto user_settings = &user_d->notification_settings;
-          auto new_notification_settings = DialogNotificationSettings(
-              user_settings->use_default_mute_until, user_settings->mute_until,
-              dup_notification_sound(user_settings->sound), true /*use_default_show_preview*/, false /*show_preview*/,
-              user_settings->use_default_mute_stories, user_settings->mute_stories,
-              dup_notification_sound(user_settings->story_sound), user_settings->use_default_hide_story_sender,
-              user_settings->hide_story_sender, user_settings->silent_send_message, true, false, true, false);
-          new_notification_settings.is_secret_chat_show_preview_fixed = true;
           update_dialog_notification_settings(dialog_id, &d->notification_settings,
-                                              std::move(new_notification_settings));
+                                              user_d->notification_settings.clone_for_secret_chat());
         } else {
           d->notification_settings.is_synchronized = true;
         }

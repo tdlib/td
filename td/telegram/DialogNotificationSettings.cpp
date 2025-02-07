@@ -41,6 +41,15 @@ DialogNotificationSettings::get_input_peer_notify_settings() const {
       hide_story_sender, get_input_notification_sound(story_sound));
 }
 
+DialogNotificationSettings DialogNotificationSettings::clone_for_secret_chat() const {
+  auto notification_settings = DialogNotificationSettings(
+      use_default_mute_until, mute_until, dup_notification_sound(sound), true /*use_default_show_preview*/,
+      false /*show_preview*/, use_default_mute_stories, mute_stories, dup_notification_sound(story_sound),
+      use_default_hide_story_sender, hide_story_sender, silent_send_message, true, false, true, false);
+  notification_settings.is_secret_chat_show_preview_fixed = true;
+  return notification_settings;
+}
+
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogNotificationSettings &notification_settings) {
   return string_builder << "[" << notification_settings.mute_until << ", " << notification_settings.sound << ", "
                         << notification_settings.show_preview << ", " << notification_settings.mute_stories << ", "

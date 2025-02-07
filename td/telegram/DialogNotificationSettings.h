@@ -67,6 +67,8 @@ class DialogNotificationSettings {
   }
 
   telegram_api::object_ptr<telegram_api::inputPeerNotifySettings> get_input_peer_notify_settings() const;
+
+  DialogNotificationSettings clone_for_secret_chat() const;
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogNotificationSettings &notification_settings);
