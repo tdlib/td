@@ -637,7 +637,6 @@ void NotificationSettingsManager::init() {
   }
   is_inited_ = true;
 
-  bool is_authorized = td_->auth_manager_->is_authorized();
   bool was_authorized_user = td_->auth_manager_->was_authorized() && !td_->auth_manager_->is_bot();
   if (was_authorized_user) {
     for (auto scope :
