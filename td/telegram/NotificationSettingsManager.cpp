@@ -656,14 +656,6 @@ void NotificationSettingsManager::init() {
         send_closure(G()->td(), &Td::send_update, get_update_scope_notification_settings_object(scope));
       }
     }
-    if (!channels_notification_settings_.is_synchronized && is_authorized) {
-      channels_notification_settings_ = ScopeNotificationSettings(
-          chats_notification_settings_.mute_until, dup_notification_sound(chats_notification_settings_.sound),
-          chats_notification_settings_.show_preview, chats_notification_settings_.use_default_mute_stories,
-          chats_notification_settings_.mute_stories, nullptr, false, false, false);
-      channels_notification_settings_.is_synchronized = false;
-      send_get_scope_notification_settings_query(NotificationSettingsScope::Channel, Promise<>());
-    }
     auto reaction_notification_settings_string =
         G()->td_db()->get_binlog_pmc()->get(get_reaction_notification_settings_database_key());
     if (!reaction_notification_settings_string.empty()) {
