@@ -21385,7 +21385,8 @@ void MessagesManager::on_upload_message_media_finished(int64 media_album_id, Dia
       return;
     }
     LOG(INFO) << "Finish to upload media of " << message_id << " in " << dialog_id << " at pos " << media_pos
-              << " with result " << result << " and previous finished_count = " << request.finished_count;
+              << " out of " << request.is_finished.size() << " with result " << result
+              << " and previous finished_count = " << request.finished_count;
 
     request.results[media_pos] = std::move(result);
     request.is_finished[media_pos] = true;
@@ -21426,11 +21427,11 @@ void MessagesManager::on_upload_message_media_finished(int64 media_album_id, Dia
 
   if (request.is_finished[pos]) {
     LOG(INFO) << "Upload media of " << message_id << " in " << dialog_id << " from group " << media_album_id
-              << " at pos " << pos << " was already finished";
+              << " at pos " << pos << " out of " << request.results.size() << " was already finished";
     return;
   }
   LOG(INFO) << "Finish to upload media of " << message_id << " in " << dialog_id << " from group " << media_album_id
-            << " at pos " << pos << " with result " << result
+            << " at pos " << pos << " out of " << request.results.size() << " with result " << result
             << " and previous finished_count = " << request.finished_count;
 
   request.results[pos] = std::move(result);
@@ -21481,6 +21482,8 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
 
+  LOG(INFO) << "Send message album " << request.message_ids;
+
   auto default_status = can_send_message(dialog_id);
   bool success = default_status.is_ok();
   vector<FileUploadId> file_upload_ids;
@@ -21512,10 +21515,11 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
 
     file_upload_ids.push_back(get_message_send_file_upload_id(dialog_id, m, -1));
     cover_file_ids.push_back(get_message_content_cover_any_file_id(m->content.get()));
-    random_ids.push_back(begin_send_message(dialog_id, m));
 
     LOG(INFO) << "Have " << file_upload_ids.back() << " in " << m->message_id << " with result " << request.results[i]
               << " and is_finished = " << static_cast<bool>(request.is_finished[i]);
+
+    random_ids.push_back(begin_send_message(dialog_id, m));
 
     if (request.results[i].is_error() || !request.is_finished[i]) {
       success = false;
@@ -21543,7 +21547,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
       input_single_media_flags |= telegram_api::inputSingleMedia::ENTITIES_MASK;
     }
 
-    input_single_media.push_back(make_tl_object<telegram_api::inputSingleMedia>(
+    input_single_media.push_back(telegram_api::make_object<telegram_api::inputSingleMedia>(
         input_single_media_flags, std::move(input_media), random_ids.back(), caption == nullptr ? "" : caption->text,
         std::move(entities)));
   }
