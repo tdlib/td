@@ -3515,7 +3515,7 @@ QuickReplyManager::QuickReplyMessage *QuickReplyManager::add_local_message(
     m->random_id = Random::secure_int64();
   } while (m->random_id == 0);
 
-  register_new_message(m, "add_local_message");
+  register_new_message(m, "add_local_quick_reply_message");
 
   s->messages_.push_back(std::move(message));
   s->local_total_count_++;

@@ -6592,7 +6592,7 @@ void MessagesManager::after_get_difference() {
       // fallthrough
       case DialogType::User:
       case DialogType::Chat: {
-        if (!have_message_force({dialog_id, old_message_id}, "after get difference")) {
+        if (!have_message_force({dialog_id, old_message_id}, "after_get_difference")) {
           // The sent message has already been deleted by the user or sent to inaccessible channel.
           // The sent message may never be received, but we will need updateMessageID in case the message is received
           // to delete it from the server and not add to the chat.
@@ -10525,7 +10525,7 @@ void MessagesManager::on_secret_chat_screenshot_taken(SecretChatId secret_chat_i
   Dialog *d = get_dialog_force(message_info.dialog_id, "on_secret_chat_screenshot_taken");
   if (d == nullptr &&
       td_->dialog_manager_->have_dialog_info_force(message_info.dialog_id, "on_secret_chat_screenshot_taken")) {
-    force_create_dialog(message_info.dialog_id, "on_get_secret_message", true, true);
+    force_create_dialog(message_info.dialog_id, "on_secret_chat_screenshot_taken", true, true);
     d = get_dialog(message_info.dialog_id);
   }
   if (d == nullptr) {
@@ -10563,7 +10563,7 @@ void MessagesManager::on_secret_chat_ttl_changed(SecretChatId secret_chat_id, Us
   Dialog *d = get_dialog_force(message_info.dialog_id, "on_secret_chat_ttl_changed");
   if (d == nullptr &&
       td_->dialog_manager_->have_dialog_info_force(message_info.dialog_id, "on_secret_chat_ttl_changed")) {
-    force_create_dialog(message_info.dialog_id, "on_get_secret_message", true, true);
+    force_create_dialog(message_info.dialog_id, "on_secret_chat_ttl_changed", true, true);
     d = get_dialog(message_info.dialog_id);
   }
   if (d == nullptr) {
@@ -16297,7 +16297,7 @@ void MessagesManager::close_dialog(Dialog *d) {
 
   if (!td_->auth_manager_->is_bot()) {
     if (postponed_chat_read_inbox_updates_.erase(dialog_id) > 0) {
-      send_update_chat_read_inbox(d, false, "close_dialog");
+      send_update_chat_read_inbox(d, false, "close_dialog 2");
     }
 
     td_->dialog_participant_manager_->on_dialog_closed(dialog_id);
@@ -18632,7 +18632,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
 
     if (is_added) {
       if (have_next) {
-        d->ordered_messages.attach_message_to_next(message_id, "on_get_history");
+        d->ordered_messages.attach_message_to_next(message_id, "on_get_history_from_database");
       }
       first_added_message_id = message_id;
       if (!last_added_message_id.is_valid()) {
@@ -20337,7 +20337,7 @@ void MessagesManager::get_dialog_send_message_as_dialog_ids(
     const auto &created_public_broadcasts = td_->chat_manager_->get_created_public_broadcasts();
     if (!created_public_broadcasts.empty()) {
       auto add_sender = [&senders, td = td_](DialogId dialog_id, bool needs_premium) {
-        auto sender = get_message_sender_object(td, dialog_id, "add_sender");
+        auto sender = get_message_sender_object(td, dialog_id, "get_dialog_send_message_as_dialog_ids");
         senders->senders_.push_back(td_api::make_object<td_api::chatMessageSender>(std::move(sender), needs_premium));
       };
       if (is_broadcast) {
@@ -31595,7 +31595,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<DraftMessage> &&draft
     if (user_id.is_valid()) {
       force_create_dialog(DialogId(user_id), "add chat with user to load/store action_bar and is_blocked");
 
-      Dialog *user_d = get_dialog_force(DialogId(user_id), "fix_new_dialog");
+      Dialog *user_d = get_dialog_force(DialogId(user_id), "fix_new_dialog 19");
       if (user_d != nullptr &&
           (d->is_blocked != user_d->is_blocked || d->is_blocked_for_stories != user_d->is_blocked_for_stories)) {
         set_dialog_is_blocked(d, user_d->is_blocked, user_d->is_blocked_for_stories);
@@ -31645,7 +31645,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<DraftMessage> &&draft
       dialog_id != td_->dialog_manager_->get_my_dialog_id() &&
       td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
     // asynchronously get action bar from the server
-    reget_dialog_action_bar(dialog_id, "fix_new_dialog", false);
+    reget_dialog_action_bar(dialog_id, "fix_new_dialog 21", false);
   }
   if (d->has_active_group_call && !d->active_group_call_id.is_valid() && !td_->auth_manager_->is_bot()) {
     repair_dialog_active_group_call_id(dialog_id);
@@ -31906,7 +31906,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<DraftMessage> &&draft
       d->delete_last_message_date = 0;
       d->deleted_last_message_id = MessageId();
       d->is_last_message_deleted_locally = false;
-      on_dialog_updated(dialog_id, "update_delete_last_message_date");
+      on_dialog_updated(dialog_id, "fix_new_dialog delete_last_message_date");
     } else {
       need_get_history = true;
     }
@@ -31969,11 +31969,11 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<DraftMessage> &&draft
   }
   if (need_get_history && !td_->auth_manager_->is_bot() && dialog_id != being_added_dialog_id_ &&
       dialog_id != being_added_by_new_message_dialog_id_ && (d->order != DEFAULT_ORDER || is_dialog_sponsored(d))) {
-    load_last_dialog_message(d, "fix_new_dialog");
+    load_last_dialog_message(d, "fix_new_dialog 15");
   }
   if (d->need_repair_server_unread_count && need_unread_counter(d->order)) {
     CHECK(dialog_type != DialogType::SecretChat);
-    repair_server_unread_count(dialog_id, d->server_unread_count, "fix_new_dialog");
+    repair_server_unread_count(dialog_id, d->server_unread_count, "fix_new_dialog 16");
   }
   if (dialog_type == DialogType::Channel && need_unread_counter(d->order) && d->server_unread_count > 0 &&
       !td_->auth_manager_->is_bot() && td_->option_manager_->get_option_integer("since_last_open") >= 2 * 86400) {
@@ -31983,10 +31983,10 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<DraftMessage> &&draft
     repair_channel_server_unread_count(d);
   }
   if (d->need_repair_unread_reaction_count) {
-    repair_dialog_unread_reaction_count(d, Promise<Unit>(), "fix_new_dialog");
+    repair_dialog_unread_reaction_count(d, Promise<Unit>(), "fix_new_dialog 17");
   }
   if (d->need_repair_unread_mention_count) {
-    repair_dialog_unread_mention_count(d, "fix_new_dialog");
+    repair_dialog_unread_mention_count(d, "fix_new_dialog 18");
   }
 }
 
@@ -32790,7 +32790,7 @@ void MessagesManager::add_dialog_to_list(Dialog *d, DialogListId dialog_list_id)
   CHECK(d->is_update_new_chat_sent);
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateChatAddedToList>(
-                   get_chat_id_object(d->dialog_id, "add_dialog_to_list"), dialog_list_id.get_chat_list_object()));
+                   get_chat_id_object(d->dialog_id, "updateChatAddedToList"), dialog_list_id.get_chat_list_object()));
 }
 
 void MessagesManager::remove_dialog_from_list(Dialog *d, DialogListId dialog_list_id) {

@@ -5004,7 +5004,7 @@ void ChatManager::update_channel(Channel *c, ChannelId channel_id, bool from_bin
   }
   if (c->is_stories_hidden_changed) {
     send_closure_later(td_->story_manager_actor_, &StoryManager::on_dialog_active_stories_order_updated,
-                       DialogId(channel_id), "stories_hidden");
+                       DialogId(channel_id), "update_channel stories_hidden");
     c->is_stories_hidden_changed = false;
   }
   auto unix_time = G()->unix_time();
