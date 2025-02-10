@@ -5901,7 +5901,7 @@ ChatReactions MessagesManager::get_dialog_active_reactions(const Dialog *d) cons
 ChatReactions MessagesManager::get_message_active_reactions(const Dialog *d, const Message *m) const {
   CHECK(d != nullptr);
   CHECK(m != nullptr);
-  if (!m->ttl.is_empty() || !m->message_id.is_valid() || !m->message_id.is_server()) {
+  if (!m->message_id.is_valid() || !m->message_id.is_server()) {
     return ChatReactions();
   }
   if (!m->reactions_are_possible && is_service_message_content(m->content->get_type())) {
