@@ -8,6 +8,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
+#include "td/utils/StringBuilder.h"
 
 #include <type_traits>
 #include <utility>
@@ -98,5 +99,31 @@ struct optional<T, false> : optional<T, true> {
   optional &operator=(optional &&) = default;
   ~optional() = default;
 };
+
+template <class T, class S>
+bool operator==(const optional<T> &a, const optional<S> &b) {
+  if (a) {
+    return static_cast<bool>(b) && a.value() == b.value();
+  }
+  return !static_cast<bool>(b);
+}
+
+template <class T>
+bool operator==(const T &a, const optional<T> &b) {
+  return static_cast<bool>(b) && a == b.value();
+}
+
+template <class T>
+bool operator==(const optional<T> &a, const T &b) {
+  return static_cast<bool>(a) && a.value() == b;
+}
+
+template <class T>
+StringBuilder &operator<<(StringBuilder &sb, const optional<T> &v) {
+  if (v) {
+    return sb << "Some{" << v.value() << "}";
+  }
+  return sb << "None";
+}
 
 }  // namespace td
