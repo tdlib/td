@@ -35,7 +35,7 @@ class NetQueryVerifier final : public Actor {
   ActorShared<> parent_;
 
   struct Query {
-    enum class Type { Verification, Recaptcha };
+    enum class Type : int32 { Verification, Recaptcha };
     Type type_ = Type::Verification;
     string nonce_or_action_;
     string recaptcha_key_id_;

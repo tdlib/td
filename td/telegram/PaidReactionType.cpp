@@ -6,10 +6,13 @@
 //
 #include "td/telegram/PaidReactionType.h"
 
+#include "td/telegram/AccessRights.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/InputDialogId.h"
 #include "td/telegram/Td.h"
+
+#include "td/utils/logging.h"
 
 namespace td {
 
