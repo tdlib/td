@@ -119,6 +119,12 @@ class TlStorerToString {
     store_field_end();
   }
 
+  void store_field(Slice name, const UInt512 &value) {
+    store_field_begin(name);
+    store_binary(as_slice(value));
+    store_field_end();
+  }
+
   void store_vector_begin(Slice field_name, size_t vector_size) {
     store_field_begin(field_name);
     sb_ << "vector[" << vector_size << "] {\n";

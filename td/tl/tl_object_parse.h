@@ -90,6 +90,14 @@ class TlFetchInt256 {
   }
 };
 
+class TlFetchInt512 {
+ public:
+  template <class ParserT>
+  static UInt512 parse(ParserT &parser) {
+    return parser.template fetch_binary<UInt512>();
+  }
+};
+
 template <class T>
 class TlFetchString {
  public:

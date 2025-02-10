@@ -13,7 +13,7 @@
 
 namespace td {
 
-alignas(4) const unsigned char TlParser::empty_data[sizeof(UInt256)] = {};  // static zero-initialized
+alignas(4) const unsigned char TlParser::empty_data[sizeof(UInt512)] = {};  // static zero-initialized
 
 TlParser::TlParser(Slice slice) {
   data_len = left_len = slice.size();

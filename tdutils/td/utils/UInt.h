@@ -87,5 +87,6 @@ bool operator<(const UInt<size> &a, const UInt<size> &b) {
 
 using UInt128 = UInt<128>;
 using UInt256 = UInt<256>;
+using UInt512 = UInt<512>;
 
 }  // namespace td

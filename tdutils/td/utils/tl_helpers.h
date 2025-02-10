@@ -16,6 +16,7 @@
 #include "td/utils/Status.h"
 #include "td/utils/tl_parsers.h"
 #include "td/utils/tl_storers.h"
+#include "td/utils/UInt.h"
 #include "td/utils/unique_value_ptr.h"
 #include "td/utils/Variant.h"
 
@@ -101,6 +102,24 @@ void store(uint64 x, StorerT &storer) {
 template <class ParserT>
 void parse(uint64 &x, ParserT &parser) {
   x = static_cast<uint64>(parser.fetch_long());
+}
+
+template <class StorerT>
+void store(UInt256 x, StorerT &storer) {
+  storer.store_binary(x);
+}
+template <class ParserT>
+void parse(UInt256 &x, ParserT &parser) {
+  x = parser.template fetch_binary<UInt256>();
+}
+
+template <class StorerT>
+void store(UInt512 x, StorerT &storer) {
+  storer.store_binary(x);
+}
+template <class ParserT>
+void parse(UInt512 &x, ParserT &parser) {
+  x = parser.template fetch_binary<UInt512>();
 }
 
 template <class StorerT>

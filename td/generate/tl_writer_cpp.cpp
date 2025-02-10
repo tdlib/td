@@ -148,7 +148,7 @@ std::string TD_TL_writer_cpp::gen_fetch_class_name(const tl::tl_tree_type *tree_
     return "TlFetchLong";
   }
   if (name == "True" || name == "Bool" || name == "Int" || name == "Long" || name == "Double" || name == "Int128" ||
-      name == "Int256") {
+      name == "Int256" || name == "Int512") {
     return "TlFetch" + name;
   }
   if (name == "String") {
@@ -338,7 +338,7 @@ std::string TD_TL_writer_cpp::gen_store_class_name(const tl::tl_tree_type *tree_
   const std::string &name = t->name;
 
   if (name == "#" || name == "Int" || name == "Long" || name == "Int32" || name == "Int53" || name == "Int64" ||
-      name == "Double" || name == "Int128" || name == "Int256") {
+      name == "Double" || name == "Int128" || name == "Int256" || name == "Int512") {
     return "TlStoreBinary";
   }
   if (name == "Bool") {
@@ -409,7 +409,8 @@ std::string TD_TL_writer_cpp::gen_type_store(const std::string &field_name, cons
   assert(!(t->flags & tl::FLAG_DEFAULT_CONSTRUCTOR));  // Not supported yet
 
   if (name == "#" || name == "Int" || name == "Long" || name == "Int32" || name == "Int53" || name == "Int64" ||
-      name == "Double" || name == "Bool" || name == "String" || name == "Int128" || name == "Int256") {
+      name == "Double" || name == "Bool" || name == "String" || name == "Int128" || name == "Int256" ||
+      name == "Int512") {
     return "s.store_field(\"" + get_pretty_field_name(field_name) + "\", " + field_name + ");";
   } else if (name == "True") {
     // currently nothing to do
