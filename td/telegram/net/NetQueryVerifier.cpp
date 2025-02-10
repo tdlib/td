@@ -67,7 +67,7 @@ void NetQueryVerifier::check_recaptcha(NetQueryPtr query, string action, string 
 
   if (!check_utf8(action) || !check_utf8(recaptcha_key_id)) {
     LOG(ERROR) << "Receive invalid reCAPTCHA parameters";
-    query->set_error(Status::Error(400, "Invalid reCAPTCHAT parameters"));
+    query->set_error(Status::Error(400, "Invalid reCAPTCHA parameters"));
     G()->net_query_dispatcher().dispatch(std::move(query));
     return;
   }
