@@ -7501,7 +7501,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       if (replace_caption) {
         result->caption = std::move(copy_options.new_caption);
       }
-      return result;
+      return std::move(result);
     }
     case MessageContentType::Photo: {
       auto result = make_unique<MessagePhoto>(*static_cast<const MessagePhoto *>(content));
@@ -8881,7 +8881,7 @@ unique_ptr<MessageContent> get_uploaded_message_content(
       bool need_update = false;
       content->media[media_pos].merge_files(td, media, owner_dialog_id, true, is_content_changed, need_update);
     }
-    return content;
+    return std::move(content);
   }
   auto caption = get_message_content_caption(old_content);
   auto has_spoiler = get_message_content_has_spoiler(old_content);
