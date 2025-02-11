@@ -6135,8 +6135,10 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getNewChatPrivacySettings>());
     } else if (op == "sncps") {
       bool allow_new_chats_from_unknown_users;
-      get_args(args, allow_new_chats_from_unknown_users);
-      auto settings = td_api::make_object<td_api::newChatPrivacySettings>(allow_new_chats_from_unknown_users);
+      int64 paid_message_star_count;
+      get_args(args, allow_new_chats_from_unknown_users, paid_message_star_count);
+      auto settings = td_api::make_object<td_api::newChatPrivacySettings>(allow_new_chats_from_unknown_users,
+                                                                          paid_message_star_count);
       send_request(td_api::make_object<td_api::setNewChatPrivacySettings>(std::move(settings)));
     } else if (op == "csmtu" || op == "csmtul") {
       UserId user_id;

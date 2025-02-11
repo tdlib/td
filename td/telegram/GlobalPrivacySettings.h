@@ -24,6 +24,7 @@ class GlobalPrivacySettings {
   bool keep_archived_folders_ = false;
   bool hide_read_marks_ = false;
   bool new_noncontact_peers_require_premium_ = false;
+  int64 noncontact_peers_paid_star_count_ = 0;
 
   void apply_changes(const GlobalPrivacySettings &set_settings);
 

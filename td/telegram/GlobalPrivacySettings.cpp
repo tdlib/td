@@ -17,6 +17,7 @@
 
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/Status.h"
 
 namespace td {
@@ -78,7 +79,8 @@ GlobalPrivacySettings::GlobalPrivacySettings(telegram_api::object_ptr<telegram_a
     , keep_archived_unmuted_(settings->keep_archived_unmuted_)
     , keep_archived_folders_(settings->keep_archived_folders_)
     , hide_read_marks_(settings->hide_read_marks_)
-    , new_noncontact_peers_require_premium_(settings->new_noncontact_peers_require_premium_) {
+    , new_noncontact_peers_require_premium_(settings->new_noncontact_peers_require_premium_)
+    , noncontact_peers_paid_star_count_(settings->noncontact_peers_paid_stars_) {
 }
 
 GlobalPrivacySettings::GlobalPrivacySettings(td_api::object_ptr<td_api::archiveChatListSettings> &&settings)
@@ -98,6 +100,9 @@ GlobalPrivacySettings::GlobalPrivacySettings(td_api::object_ptr<td_api::readDate
 GlobalPrivacySettings::GlobalPrivacySettings(td_api::object_ptr<td_api::newChatPrivacySettings> &&settings)
     : set_type_(SetType::NewChat) {
   new_noncontact_peers_require_premium_ = settings == nullptr || !settings->allow_new_chats_from_unknown_users_;
+  noncontact_peers_paid_star_count_ = settings == nullptr ? 0
+                                                          : clamp(settings->incoming_paid_message_star_count_,
+                                                                  static_cast<int64>(0), static_cast<int64>(1000000));
 }
 
 void GlobalPrivacySettings::apply_changes(const GlobalPrivacySettings &set_settings) {
@@ -113,6 +118,7 @@ void GlobalPrivacySettings::apply_changes(const GlobalPrivacySettings &set_setti
       break;
     case SetType::NewChat:
       new_noncontact_peers_require_premium_ = set_settings.new_noncontact_peers_require_premium_;
+      noncontact_peers_paid_star_count_ = set_settings.noncontact_peers_paid_star_count_;
       break;
     default:
       UNREACHABLE();
@@ -139,8 +145,12 @@ telegram_api::object_ptr<telegram_api::globalPrivacySettings> GlobalPrivacySetti
   if (new_noncontact_peers_require_premium_) {
     flags |= telegram_api::globalPrivacySettings::NEW_NONCONTACT_PEERS_REQUIRE_PREMIUM_MASK;
   }
+  if (noncontact_peers_paid_star_count_ > 0) {
+    flags |= telegram_api::globalPrivacySettings::NONCONTACT_PEERS_PAID_STARS_MASK;
+  }
   return telegram_api::make_object<telegram_api::globalPrivacySettings>(
-      flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, 0);
+      flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+      noncontact_peers_paid_star_count_);
 }
 
 td_api::object_ptr<td_api::archiveChatListSettings> GlobalPrivacySettings::get_archive_chat_list_settings_object()
@@ -158,7 +168,8 @@ td_api::object_ptr<td_api::readDatePrivacySettings> GlobalPrivacySettings::get_r
 
 td_api::object_ptr<td_api::newChatPrivacySettings> GlobalPrivacySettings::get_new_chat_privacy_settings_object() const {
   CHECK(set_type_ == SetType::None);
-  return td_api::make_object<td_api::newChatPrivacySettings>(!new_noncontact_peers_require_premium_);
+  return td_api::make_object<td_api::newChatPrivacySettings>(!new_noncontact_peers_require_premium_,
+                                                             noncontact_peers_paid_star_count_);
 }
 
 void GlobalPrivacySettings::get_global_privacy_settings(Td *td, Promise<GlobalPrivacySettings> &&promise) {

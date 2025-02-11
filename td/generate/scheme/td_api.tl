@@ -6892,9 +6892,10 @@ userPrivacySettingAllowUnpaidMessages = UserPrivacySetting;
 //@show_read_date True, if message read date is shown to other users in private chats. If false and the current user isn't a Telegram Premium user, then they will not be able to see other's message read date
 readDatePrivacySettings show_read_date:Bool = ReadDatePrivacySettings;
 
-//@description Contains privacy settings for new chats with non-contacts
+//@description Contains privacy settings for chats with non-contacts
 //@allow_new_chats_from_unknown_users True, if non-contacts users are able to write first to the current user. Telegram Premium subscribers are able to write first regardless of this setting
-newChatPrivacySettings allow_new_chats_from_unknown_users:Bool = NewChatPrivacySettings;
+//@incoming_paid_message_star_count Number of Telegram Stars that must be paid for every incoming private message by non-contacts. If positive, then allow_new_chats_from_unknown_users must be true
+newChatPrivacySettings allow_new_chats_from_unknown_users:Bool incoming_paid_message_star_count:int53 = NewChatPrivacySettings;
 
 
 //@class CanSendMessageToUserResult @description Describes result of canSendMessageToUser
