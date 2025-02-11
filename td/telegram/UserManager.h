@@ -642,6 +642,7 @@ class UserManager final : public Actor {
     unique_ptr<BotVerification> bot_verification;
 
     int64 charge_paid_message_stars = 0;
+    int64 send_paid_message_stars = 0;
 
     bool is_blocked = false;
     bool is_blocked_for_stories = false;
@@ -907,6 +908,9 @@ class UserManager final : public Actor {
 
   void on_update_user_full_charge_paid_message_stars(UserFull *user_full, UserId user_id,
                                                      int64 charge_paid_message_stars) const;
+
+  void on_update_user_full_send_paid_message_stars(UserFull *user_full, UserId user_id,
+                                                   int64 send_paid_message_stars) const;
 
   void on_update_user_full_wallpaper_overridden(UserFull *user_full, UserId user_id, bool wallpaper_overridden) const;
 

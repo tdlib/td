@@ -61,6 +61,7 @@
 #include "td/telegram/SecretChatLayer.h"
 #include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/ServerMessageId.h"
+#include "td/telegram/StarManager.h"
 #include "td/telegram/StickerPhotoSize.h"
 #include "td/telegram/StoryManager.h"
 #include "td/telegram/SuggestedAction.h"
@@ -1782,6 +1783,7 @@ void UserManager::UserFull::store(StorerT &storer) const {
   bool has_verifier_settings = bot_info != nullptr && bot_info->verifier_settings != nullptr;
   bool has_bot_verification = bot_verification != nullptr;
   bool has_charge_paid_message_stars = charge_paid_message_stars != 0;
+  bool has_send_paid_message_stars = send_paid_message_stars != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
   STORE_FLAG(is_blocked);
@@ -1830,6 +1832,7 @@ void UserManager::UserFull::store(StorerT &storer) const {
     STORE_FLAG(has_verifier_settings);
     STORE_FLAG(has_bot_verification);
     STORE_FLAG(has_charge_paid_message_stars);
+    STORE_FLAG(has_send_paid_message_stars);
     END_STORE_FLAGS();
   }
   if (has_about) {
@@ -1913,6 +1916,9 @@ void UserManager::UserFull::store(StorerT &storer) const {
   if (has_charge_paid_message_stars) {
     store(charge_paid_message_stars, storer);
   }
+  if (has_send_paid_message_stars) {
+    store(send_paid_message_stars, storer);
+  }
 }
 
 template <class ParserT>
@@ -1946,6 +1952,7 @@ void UserManager::UserFull::parse(ParserT &parser) {
   bool has_verifier_settings = false;
   bool has_bot_verification = false;
   bool has_charge_paid_message_stars = false;
+  bool has_send_paid_message_stars = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_about);
   PARSE_FLAG(is_blocked);
@@ -1994,6 +2001,7 @@ void UserManager::UserFull::parse(ParserT &parser) {
     PARSE_FLAG(has_verifier_settings);
     PARSE_FLAG(has_bot_verification);
     PARSE_FLAG(has_charge_paid_message_stars);
+    PARSE_FLAG(has_send_paid_message_stars);
     END_PARSE_FLAGS();
   }
   if (has_about) {
@@ -2080,6 +2088,9 @@ void UserManager::UserFull::parse(ParserT &parser) {
   }
   if (has_charge_paid_message_stars) {
     parse(charge_paid_message_stars, parser);
+  }
+  if (has_send_paid_message_stars) {
+    parse(send_paid_message_stars, parser);
   }
 }
 
@@ -3758,6 +3769,15 @@ void UserManager::on_update_user_full_charge_paid_message_stars(UserFull *user_f
   CHECK(user_full != nullptr);
   if (user_full->charge_paid_message_stars != charge_paid_message_stars) {
     user_full->charge_paid_message_stars = charge_paid_message_stars;
+    user_full->is_changed = true;
+  }
+}
+
+void UserManager::on_update_user_full_send_paid_message_stars(UserFull *user_full, UserId user_id,
+                                                              int64 send_paid_message_stars) const {
+  CHECK(user_full != nullptr);
+  if (user_full->send_paid_message_stars != send_paid_message_stars) {
+    user_full->send_paid_message_stars = send_paid_message_stars;
     user_full->is_changed = true;
   }
 }
@@ -7275,7 +7295,10 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
   on_update_user_full_intro(user_full, user_id, BusinessIntro(td_, std::move(user->business_intro_)));
   on_update_user_full_need_phone_number_privacy_exception(user_full, user_id,
                                                           user->settings_->need_contacts_exception_);
-  on_update_user_full_charge_paid_message_stars(user_full, user_id, user->settings_->charge_paid_message_stars_);
+  on_update_user_full_charge_paid_message_stars(
+      user_full, user_id, StarManager::get_star_count(user->settings_->charge_paid_message_stars_));
+  on_update_user_full_send_paid_message_stars(user_full, user_id,
+                                              StarManager::get_star_count(user->send_paid_messages_stars_));
   on_update_user_full_wallpaper_overridden(user_full, user_id, user->wallpaper_overridden_);
 
   bool can_pin_messages = user->can_pin_message_;
@@ -7713,6 +7736,7 @@ void UserManager::drop_user_full(UserId user_id) {
   user_full->can_view_revenue = false;
   user_full->can_manage_emoji_status = false;
   user_full->charge_paid_message_stars = false;
+  user_full->send_paid_message_stars = false;
   user_full->is_changed = true;
 
   update_user_full(user_full, user_id, "drop_user_full");
@@ -8524,8 +8548,8 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
       !user_full->private_forward_name.empty(), voice_messages_forbidden, user_full->has_pinned_stories,
       user_full->sponsored_enabled, user_full->need_phone_number_privacy_exception, user_full->wallpaper_overridden,
       std::move(bio_object), user_full->birthdate.get_birthdate_object(), personal_chat_id, user_full->gift_count,
-      user_full->common_chat_count, user_full->charge_paid_message_stars, std::move(bot_verification),
-      std::move(business_info), std::move(bot_info));
+      user_full->common_chat_count, user_full->charge_paid_message_stars, user_full->send_paid_message_stars,
+      std::move(bot_verification), std::move(business_info), std::move(bot_info));
 }
 
 td_api::object_ptr<td_api::updateContactCloseBirthdays> UserManager::get_update_contact_close_birthdays() const {
