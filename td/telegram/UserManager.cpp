@@ -1781,6 +1781,7 @@ void UserManager::UserFull::store(StorerT &storer) const {
   bool has_referral_program_info = bot_info != nullptr && bot_info->referral_program_info.is_valid();
   bool has_verifier_settings = bot_info != nullptr && bot_info->verifier_settings != nullptr;
   bool has_bot_verification = bot_verification != nullptr;
+  bool has_charge_paid_message_stars = charge_paid_message_stars != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
   STORE_FLAG(is_blocked);
@@ -1828,6 +1829,7 @@ void UserManager::UserFull::store(StorerT &storer) const {
     STORE_FLAG(has_referral_program_info);
     STORE_FLAG(has_verifier_settings);
     STORE_FLAG(has_bot_verification);
+    STORE_FLAG(has_charge_paid_message_stars);
     END_STORE_FLAGS();
   }
   if (has_about) {
@@ -1908,6 +1910,9 @@ void UserManager::UserFull::store(StorerT &storer) const {
   if (has_bot_verification) {
     store(bot_verification, storer);
   }
+  if (has_charge_paid_message_stars) {
+    store(charge_paid_message_stars, storer);
+  }
 }
 
 template <class ParserT>
@@ -1940,6 +1945,7 @@ void UserManager::UserFull::parse(ParserT &parser) {
   bool has_referral_program_info = false;
   bool has_verifier_settings = false;
   bool has_bot_verification = false;
+  bool has_charge_paid_message_stars = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_about);
   PARSE_FLAG(is_blocked);
@@ -1987,6 +1993,7 @@ void UserManager::UserFull::parse(ParserT &parser) {
     PARSE_FLAG(has_referral_program_info);
     PARSE_FLAG(has_verifier_settings);
     PARSE_FLAG(has_bot_verification);
+    PARSE_FLAG(has_charge_paid_message_stars);
     END_PARSE_FLAGS();
   }
   if (has_about) {
@@ -2070,6 +2077,9 @@ void UserManager::UserFull::parse(ParserT &parser) {
   }
   if (has_bot_verification) {
     parse(bot_verification, parser);
+  }
+  if (has_charge_paid_message_stars) {
+    parse(charge_paid_message_stars, parser);
   }
 }
 
@@ -3725,6 +3735,29 @@ void UserManager::on_update_user_full_need_phone_number_privacy_exception(
   }
   if (user_full->need_phone_number_privacy_exception != need_phone_number_privacy_exception) {
     user_full->need_phone_number_privacy_exception = need_phone_number_privacy_exception;
+    user_full->is_changed = true;
+  }
+}
+
+void UserManager::on_update_user_charge_paid_message_stars(UserId user_id, int64 charge_paid_message_stars) {
+  if (!user_id.is_valid()) {
+    LOG(ERROR) << "Receive invalid " << user_id;
+    return;
+  }
+
+  UserFull *user_full = get_user_full_force(user_id, "on_update_user_charge_paid_message_stars");
+  if (user_full == nullptr) {
+    return;
+  }
+  on_update_user_full_charge_paid_message_stars(user_full, user_id, charge_paid_message_stars);
+  update_user_full(user_full, user_id, "on_update_user_charge_paid_message_stars");
+}
+
+void UserManager::on_update_user_full_charge_paid_message_stars(UserFull *user_full, UserId user_id,
+                                                                int64 charge_paid_message_stars) const {
+  CHECK(user_full != nullptr);
+  if (user_full->charge_paid_message_stars != charge_paid_message_stars) {
+    user_full->charge_paid_message_stars = charge_paid_message_stars;
     user_full->is_changed = true;
   }
 }
@@ -7242,6 +7275,7 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
   on_update_user_full_intro(user_full, user_id, BusinessIntro(td_, std::move(user->business_intro_)));
   on_update_user_full_need_phone_number_privacy_exception(user_full, user_id,
                                                           user->settings_->need_contacts_exception_);
+  on_update_user_full_charge_paid_message_stars(user_full, user_id, user->settings_->charge_paid_message_stars_);
   on_update_user_full_wallpaper_overridden(user_full, user_id, user->wallpaper_overridden_);
 
   bool can_pin_messages = user->can_pin_message_;
@@ -7467,7 +7501,8 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
   user_full->is_update_user_full_sent = true;
   update_user_full(user_full, user_id, "on_get_user_full");
 
-  // update peer settings after UserFull is created and updated to not update twice need_phone_number_privacy_exception
+  // update peer settings after UserFull is created and updated to not update twice
+  // need_phone_number_privacy_exception and charge_paid_message_stars
   td_->messages_manager_->on_get_peer_settings(DialogId(user_id), std::move(user->settings_));
 }
 
@@ -7677,6 +7712,7 @@ void UserManager::drop_user_full(UserId user_id) {
   user_full->has_preview_medias = false;
   user_full->can_view_revenue = false;
   user_full->can_manage_emoji_status = false;
+  user_full->charge_paid_message_stars = false;
   user_full->is_changed = true;
 
   update_user_full(user_full, user_id, "drop_user_full");
@@ -8488,7 +8524,8 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
       !user_full->private_forward_name.empty(), voice_messages_forbidden, user_full->has_pinned_stories,
       user_full->sponsored_enabled, user_full->need_phone_number_privacy_exception, user_full->wallpaper_overridden,
       std::move(bio_object), user_full->birthdate.get_birthdate_object(), personal_chat_id, user_full->gift_count,
-      user_full->common_chat_count, std::move(bot_verification), std::move(business_info), std::move(bot_info));
+      user_full->common_chat_count, user_full->charge_paid_message_stars, std::move(bot_verification),
+      std::move(business_info), std::move(bot_info));
 }
 
 td_api::object_ptr<td_api::updateContactCloseBirthdays> UserManager::get_update_contact_close_birthdays() const {

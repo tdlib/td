@@ -6123,8 +6123,10 @@ void MessagesManager::on_get_peer_settings(DialogId dialog_id,
   }
 
   if (dialog_id.get_type() == DialogType::User && !ignore_privacy_exception) {
-    td_->user_manager_->on_update_user_need_phone_number_privacy_exception(dialog_id.get_user_id(),
+    auto user_id = dialog_id.get_user_id();
+    td_->user_manager_->on_update_user_need_phone_number_privacy_exception(user_id,
                                                                            peer_settings->need_contacts_exception_);
+    td_->user_manager_->on_update_user_charge_paid_message_stars(user_id, peer_settings->charge_paid_message_stars_);
   }
 
   Dialog *d = get_dialog_force(dialog_id, "on_get_peer_settings");

@@ -168,6 +168,8 @@ class UserManager final : public Actor {
 
   void on_update_user_need_phone_number_privacy_exception(UserId user_id, bool need_phone_number_privacy_exception);
 
+  void on_update_user_charge_paid_message_stars(UserId user_id, int64 charge_paid_message_stars);
+
   void on_update_user_wallpaper_overridden(UserId user_id, bool wallpaper_overridden);
 
   void on_update_bot_menu_button(UserId bot_user_id,
@@ -639,6 +641,8 @@ class UserManager final : public Actor {
     unique_ptr<BusinessInfo> business_info;
     unique_ptr<BotVerification> bot_verification;
 
+    int64 charge_paid_message_stars = 0;
+
     bool is_blocked = false;
     bool is_blocked_for_stories = false;
     bool can_be_called = false;
@@ -900,6 +904,9 @@ class UserManager final : public Actor {
 
   void on_update_user_full_need_phone_number_privacy_exception(UserFull *user_full, UserId user_id,
                                                                bool need_phone_number_privacy_exception) const;
+
+  void on_update_user_full_charge_paid_message_stars(UserFull *user_full, UserId user_id,
+                                                     int64 charge_paid_message_stars) const;
 
   void on_update_user_full_wallpaper_overridden(UserFull *user_full, UserId user_id, bool wallpaper_overridden) const;
 
