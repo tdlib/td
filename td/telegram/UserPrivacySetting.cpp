@@ -66,31 +66,31 @@ UserPrivacySetting::UserPrivacySetting(const telegram_api::PrivacyKey &key) {
 td_api::object_ptr<td_api::UserPrivacySetting> UserPrivacySetting::get_user_privacy_setting_object() const {
   switch (type_) {
     case Type::UserStatus:
-      return make_tl_object<td_api::userPrivacySettingShowStatus>();
+      return td_api::make_object<td_api::userPrivacySettingShowStatus>();
     case Type::ChatInvite:
-      return make_tl_object<td_api::userPrivacySettingAllowChatInvites>();
+      return td_api::make_object<td_api::userPrivacySettingAllowChatInvites>();
     case Type::Call:
-      return make_tl_object<td_api::userPrivacySettingAllowCalls>();
+      return td_api::make_object<td_api::userPrivacySettingAllowCalls>();
     case Type::PeerToPeerCall:
-      return make_tl_object<td_api::userPrivacySettingAllowPeerToPeerCalls>();
+      return td_api::make_object<td_api::userPrivacySettingAllowPeerToPeerCalls>();
     case Type::LinkInForwardedMessages:
-      return make_tl_object<td_api::userPrivacySettingShowLinkInForwardedMessages>();
+      return td_api::make_object<td_api::userPrivacySettingShowLinkInForwardedMessages>();
     case Type::UserProfilePhoto:
-      return make_tl_object<td_api::userPrivacySettingShowProfilePhoto>();
+      return td_api::make_object<td_api::userPrivacySettingShowProfilePhoto>();
     case Type::UserPhoneNumber:
-      return make_tl_object<td_api::userPrivacySettingShowPhoneNumber>();
+      return td_api::make_object<td_api::userPrivacySettingShowPhoneNumber>();
     case Type::FindByPhoneNumber:
-      return make_tl_object<td_api::userPrivacySettingAllowFindingByPhoneNumber>();
+      return td_api::make_object<td_api::userPrivacySettingAllowFindingByPhoneNumber>();
     case Type::VoiceMessages:
-      return make_tl_object<td_api::userPrivacySettingAllowPrivateVoiceAndVideoNoteMessages>();
+      return td_api::make_object<td_api::userPrivacySettingAllowPrivateVoiceAndVideoNoteMessages>();
     case Type::UserBio:
-      return make_tl_object<td_api::userPrivacySettingShowBio>();
+      return td_api::make_object<td_api::userPrivacySettingShowBio>();
     case Type::UserBirthdate:
-      return make_tl_object<td_api::userPrivacySettingShowBirthdate>();
+      return td_api::make_object<td_api::userPrivacySettingShowBirthdate>();
     case Type::StarGiftAutosave:
-      return make_tl_object<td_api::userPrivacySettingAutosaveGifts>();
+      return td_api::make_object<td_api::userPrivacySettingAutosaveGifts>();
     case Type::NoPaidMessages:
-      return make_tl_object<td_api::userPrivacySettingAllowUnpaidMessages>();
+      return td_api::make_object<td_api::userPrivacySettingAllowUnpaidMessages>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -99,31 +99,31 @@ td_api::object_ptr<td_api::UserPrivacySetting> UserPrivacySetting::get_user_priv
 telegram_api::object_ptr<telegram_api::InputPrivacyKey> UserPrivacySetting::get_input_privacy_key() const {
   switch (type_) {
     case Type::UserStatus:
-      return make_tl_object<telegram_api::inputPrivacyKeyStatusTimestamp>();
+      return telegram_api::make_object<telegram_api::inputPrivacyKeyStatusTimestamp>();
     case Type::ChatInvite:
-      return make_tl_object<telegram_api::inputPrivacyKeyChatInvite>();
+      return telegram_api::make_object<telegram_api::inputPrivacyKeyChatInvite>();
     case Type::Call:
-      return make_tl_object<telegram_api::inputPrivacyKeyPhoneCall>();
+      return telegram_api::make_object<telegram_api::inputPrivacyKeyPhoneCall>();
     case Type::PeerToPeerCall:
-      return make_tl_object<telegram_api::inputPrivacyKeyPhoneP2P>();
+      return telegram_api::make_object<telegram_api::inputPrivacyKeyPhoneP2P>();
     case Type::LinkInForwardedMessages:
-      return make_tl_object<telegram_api::inputPrivacyKeyForwards>();
+      return telegram_api::make_object<telegram_api::inputPrivacyKeyForwards>();
     case Type::UserProfilePhoto:
-      return make_tl_object<telegram_api::inputPrivacyKeyProfilePhoto>();
+      return telegram_api::make_object<telegram_api::inputPrivacyKeyProfilePhoto>();
     case Type::UserPhoneNumber:
-      return make_tl_object<telegram_api::inputPrivacyKeyPhoneNumber>();
+      return telegram_api::make_object<telegram_api::inputPrivacyKeyPhoneNumber>();
     case Type::FindByPhoneNumber:
-      return make_tl_object<telegram_api::inputPrivacyKeyAddedByPhone>();
+      return telegram_api::make_object<telegram_api::inputPrivacyKeyAddedByPhone>();
     case Type::VoiceMessages:
-      return make_tl_object<telegram_api::inputPrivacyKeyVoiceMessages>();
+      return telegram_api::make_object<telegram_api::inputPrivacyKeyVoiceMessages>();
     case Type::UserBio:
-      return make_tl_object<telegram_api::inputPrivacyKeyAbout>();
+      return telegram_api::make_object<telegram_api::inputPrivacyKeyAbout>();
     case Type::UserBirthdate:
-      return make_tl_object<telegram_api::inputPrivacyKeyBirthday>();
+      return telegram_api::make_object<telegram_api::inputPrivacyKeyBirthday>();
     case Type::StarGiftAutosave:
-      return make_tl_object<telegram_api::inputPrivacyKeyStarGiftsAutoSave>();
+      return telegram_api::make_object<telegram_api::inputPrivacyKeyStarGiftsAutoSave>();
     case Type::NoPaidMessages:
-      return make_tl_object<telegram_api::inputPrivacyKeyNoPaidMessages>();
+      return telegram_api::make_object<telegram_api::inputPrivacyKeyNoPaidMessages>();
     default:
       UNREACHABLE();
       return nullptr;
