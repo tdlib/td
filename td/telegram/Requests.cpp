@@ -4738,6 +4738,12 @@ void Requests::on_request(uint64 id, td_api::setNewChatPrivacySettings &request)
                                                      std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::allowUnpaidMessagesFromUser &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->privacy_manager_->allow_unpaid_messages(UserId(request.user_id_), request.refund_payments_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::canSendMessageToUser &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

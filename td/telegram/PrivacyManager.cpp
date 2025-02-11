@@ -79,6 +79,36 @@ class SetPrivacyQuery final : public Td::ResultHandler {
   }
 };
 
+class AddNoPaidMessageExceptionQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit AddNoPaidMessageExceptionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::InputUser> &&input_user, bool refund_charged) {
+    int32 flags = 0;
+    if (refund_charged) {
+      flags |= telegram_api::account_addNoPaidMessagesException::REFUND_CHARGED_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::account_addNoPaidMessagesException(flags, false /*ignored*/, std::move(input_user))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_addNoPaidMessagesException>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 PrivacyManager::PrivacyManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
@@ -239,6 +269,11 @@ void PrivacyManager::do_update_privacy(UserPrivacySetting user_privacy_setting, 
         make_tl_object<td_api::updateUserPrivacySettingRules>(user_privacy_setting.get_user_privacy_setting_object(),
                                                               info.rules_.get_user_privacy_setting_rules_object(td_)));
   }
+}
+
+void PrivacyManager::allow_unpaid_messages(UserId user_id, bool refund_payments, Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
+  td_->create_handler<AddNoPaidMessageExceptionQuery>(std::move(promise))->send(std::move(input_user), refund_payments);
 }
 
 }  // namespace td

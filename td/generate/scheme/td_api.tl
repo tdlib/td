@@ -11929,6 +11929,11 @@ setNewChatPrivacySettings settings:newChatPrivacySettings = Ok;
 //@description Returns privacy settings for new chat creation
 getNewChatPrivacySettings = NewChatPrivacySettings;
 
+//@description Allows the specified user to send unpaid messages by adding a rule to userPrivacySettingAllowUnpaidMessages
+//@user_id Identifier of the user
+//@refund_payments Pass true to refund the user previously paid messages
+allowUnpaidMessagesFromUser user_id:int53 refund_payments:Bool = Ok;
+
 
 //@description Check whether the current user can message another user or try to create a chat with them
 //@user_id Identifier of the other user

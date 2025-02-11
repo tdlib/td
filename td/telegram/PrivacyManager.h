@@ -8,6 +8,7 @@
 
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserId.h"
 #include "td/telegram/UserPrivacySetting.h"
 #include "td/telegram/UserPrivacySettingRule.h"
 
@@ -34,6 +35,8 @@ class PrivacyManager final : public Actor {
                    Promise<Unit> promise);
 
   void on_update_privacy(tl_object_ptr<telegram_api::updatePrivacy> update);
+
+  void allow_unpaid_messages(UserId user_id, bool refund_payments, Promise<Unit> &&promise);
 
  private:
   struct PrivacyInfo {
