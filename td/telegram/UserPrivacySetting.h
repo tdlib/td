@@ -29,6 +29,7 @@ class UserPrivacySetting {
     UserBio,
     UserBirthdate,
     StarGiftAutosave,
+    NoPaidMessages,
     Size
   };
 
