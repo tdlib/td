@@ -140,7 +140,7 @@ telegram_api::object_ptr<telegram_api::globalPrivacySettings> GlobalPrivacySetti
     flags |= telegram_api::globalPrivacySettings::NEW_NONCONTACT_PEERS_REQUIRE_PREMIUM_MASK;
   }
   return telegram_api::make_object<telegram_api::globalPrivacySettings>(
-      flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/);
+      flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, 0);
 }
 
 td_api::object_ptr<td_api::archiveChatListSettings> GlobalPrivacySettings::get_archive_chat_list_settings_object()

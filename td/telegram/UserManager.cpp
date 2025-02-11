@@ -1400,17 +1400,20 @@ class GetIsPremiumRequiredToContactQuery final : public Td::ResultHandler {
 
   void send(vector<UserId> &&user_ids, vector<telegram_api::object_ptr<telegram_api::InputUser>> &&input_users) {
     user_ids_ = std::move(user_ids);
-    send_query(
-        G()->net_query_creator().create(telegram_api::users_getIsPremiumRequiredToContact(std::move(input_users))));
+    send_query(G()->net_query_creator().create(telegram_api::users_getRequirementsToContact(std::move(input_users))));
   }
 
   void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::users_getIsPremiumRequiredToContact>(packet);
+    auto result_ptr = fetch_result<telegram_api::users_getRequirementsToContact>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->user_manager_->on_get_is_premium_required_to_contact_users(std::move(user_ids_), result_ptr.move_as_ok(),
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetIsPremiumRequiredToContactQuery: " << to_string(ptr);
+    auto result =
+        transform(ptr, [](const auto &req) { return req->get_id() == telegram_api::requirementToContactPremium::ID; });
+    td_->user_manager_->on_get_is_premium_required_to_contact_users(std::move(user_ids_), std::move(result),
                                                                     std::move(promise_));
   }
 
@@ -4206,7 +4209,7 @@ UserManager::User *UserManager::get_user_force(UserId user_id, const char *sourc
         false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, user_id.get(), 1,
         first_name, string(), username, phone_number, std::move(profile_photo), nullptr, bot_info_version, Auto(),
         string(), string(), nullptr, vector<telegram_api::object_ptr<telegram_api::username>>(), 0, nullptr, nullptr, 0,
-        0);
+        0, 0);
     on_get_user(std::move(user), "get_user_force");
     u = get_user(user_id);
     CHECK(u != nullptr && u->is_received);

@@ -200,7 +200,7 @@ class BusinessConnectionManager::SendBusinessMessageQuery final : public Td::Res
                                            false /*ignored*/, std::move(input_peer), std::move(reply_to),
                                            message_text->text, message_->random_id_,
                                            get_input_reply_markup(td_->user_manager_.get(), message_->reply_markup_),
-                                           std::move(entities), 0, nullptr, nullptr, message_->effect_id_.get()),
+                                           std::move(entities), 0, nullptr, nullptr, message_->effect_id_.get(), 0),
         td_->business_connection_manager_->get_business_connection_dc_id(message_->business_connection_id_),
         {{message_->dialog_id_}}));
   }
@@ -275,7 +275,7 @@ class BusinessConnectionManager::SendBusinessMediaQuery final : public Td::Resul
                                          std::move(input_peer), std::move(reply_to), std::move(input_media),
                                          message_text == nullptr ? string() : message_text->text, message_->random_id_,
                                          get_input_reply_markup(td_->user_manager_.get(), message_->reply_markup_),
-                                         std::move(entities), 0, nullptr, nullptr, message_->effect_id_.get()),
+                                         std::move(entities), 0, nullptr, nullptr, message_->effect_id_.get(), 0),
         td_->business_connection_manager_->get_business_connection_dc_id(message_->business_connection_id_),
         {{message_->dialog_id_}}));
   }
@@ -339,7 +339,7 @@ class BusinessConnectionManager::SendBusinessMultiMediaQuery final : public Td::
         telegram_api::messages_sendMultiMedia(
             flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
             false /*ignored*/, false /*ignored*/, std::move(input_peer), std::move(reply_to),
-            std::move(input_single_media), 0, nullptr, nullptr, messages_[0]->effect_id_.get()),
+            std::move(input_single_media), 0, nullptr, nullptr, messages_[0]->effect_id_.get(), 0),
         td_->business_connection_manager_->get_business_connection_dc_id(messages_[0]->business_connection_id_),
         {{messages_[0]->dialog_id_}}));
   }

@@ -1221,7 +1221,7 @@ class SendMessageQuery final : public Td::ResultHandler {
                                            false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
                                            false /*ignored*/, std::move(input_peer), std::move(reply_to), text,
                                            random_id, std::move(reply_markup), std::move(entities), schedule_date,
-                                           std::move(as_input_peer), nullptr, effect_id.get()),
+                                           std::move(as_input_peer), nullptr, effect_id.get(), 0),
         {{dialog_id, MessageContentType::Text},
          {dialog_id, is_copy ? MessageContentType::Photo : MessageContentType::Text}});
     if (td_->option_manager_->get_option_boolean("use_quick_ack")) {
@@ -1355,7 +1355,7 @@ class SendInlineBotResultQuery final : public Td::ResultHandler {
     auto query = G()->net_query_creator().create(
         telegram_api::messages_sendInlineBotResult(
             flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer),
-            std::move(reply_to), random_id, query_id, result_id, schedule_date, std::move(as_input_peer), nullptr),
+            std::move(reply_to), random_id, query_id, result_id, schedule_date, std::move(as_input_peer), nullptr, 0),
         {{dialog_id, MessageContentType::Text}, {dialog_id, MessageContentType::Photo}});
     auto send_query_ref = query.get_weak();
     send_query(std::move(query));
@@ -1428,7 +1428,7 @@ class SendMultiMediaQuery final : public Td::ResultHandler {
         telegram_api::messages_sendMultiMedia(
             flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
             false /*ignored*/, false /*ignored*/, std::move(input_peer), std::move(reply_to),
-            std::move(input_single_media), schedule_date, std::move(as_input_peer), nullptr, effect_id.get()),
+            std::move(input_single_media), schedule_date, std::move(as_input_peer), nullptr, effect_id.get(), 0),
         {{dialog_id, is_copy ? MessageContentType::Text : MessageContentType::Photo},
          {dialog_id, MessageContentType::Photo}}));
   }
@@ -1569,7 +1569,7 @@ class SendMediaQuery final : public Td::ResultHandler {
                                          false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
                                          std::move(input_peer), std::move(reply_to), std::move(input_media), text,
                                          random_id, std::move(reply_markup), std::move(entities), schedule_date,
-                                         std::move(as_input_peer), nullptr, effect_id.get()),
+                                         std::move(as_input_peer), nullptr, effect_id.get(), 0),
         {{dialog_id, content_type}, {dialog_id, is_copy ? MessageContentType::Text : content_type}});
     if (td_->option_manager_->get_option_boolean("use_quick_ack") && was_uploaded_) {
       query->quick_ack_promise_ = PromiseCreator::lambda([random_id](Result<Unit> result) {
@@ -1936,7 +1936,7 @@ class ForwardMessagesQuery final : public Td::ResultHandler {
             false /*ignored*/, false /*ignored*/, std::move(from_input_peer),
             MessageId::get_server_message_ids(message_ids), std::move(random_ids), std::move(to_input_peer),
             top_thread_message_id.get_server_message_id().get(), schedule_date, std::move(as_input_peer), nullptr,
-            new_video_start_timestamp),
+            new_video_start_timestamp, 0),
         {{to_dialog_id, MessageContentType::Text}, {to_dialog_id, MessageContentType::Photo}});
     if (td_->option_manager_->get_option_boolean("use_quick_ack")) {
       query->quick_ack_promise_ = PromiseCreator::lambda([random_ids = random_ids_](Result<Unit> result) {

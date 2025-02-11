@@ -54,6 +54,9 @@ UserPrivacySetting::UserPrivacySetting(const telegram_api::PrivacyKey &key) {
     case telegram_api::privacyKeyStarGiftsAutoSave::ID:
       type_ = Type::StarGiftAutosave;
       break;
+    case telegram_api::privacyKeyNoPaidMessages::ID:
+      type_ = Type::StarGiftAutosave;
+      break;
     default:
       UNREACHABLE();
       type_ = Type::UserStatus;

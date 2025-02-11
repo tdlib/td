@@ -269,7 +269,7 @@ class QuickReplyManager::SendQuickReplyMessageQuery final : public Td::ResultHan
             false /*ignored*/, false /*ignored*/, false /*ignored*/,
             telegram_api::make_object<telegram_api::inputPeerSelf>(), std::move(reply_to), message_text->text,
             m->random_id, nullptr, std::move(entities), 0, nullptr,
-            td_->quick_reply_manager_->get_input_quick_reply_shortcut(m->shortcut_id), 0),
+            td_->quick_reply_manager_->get_input_quick_reply_shortcut(m->shortcut_id), 0, 0),
         {{"me"}}));
   }
 
@@ -319,7 +319,7 @@ class QuickReplyManager::SendQuickReplyInlineMessageQuery final : public Td::Res
             flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
             telegram_api::make_object<telegram_api::inputPeerSelf>(), std::move(reply_to), m->random_id,
             m->inline_query_id, m->inline_result_id, 0, nullptr,
-            td_->quick_reply_manager_->get_input_quick_reply_shortcut(m->shortcut_id)),
+            td_->quick_reply_manager_->get_input_quick_reply_shortcut(m->shortcut_id), 0),
         {{"me"}}));
   }
 
@@ -393,7 +393,7 @@ class QuickReplyManager::SendQuickReplyMediaQuery final : public Td::ResultHandl
             false /*ignored*/, false /*ignored*/, telegram_api::make_object<telegram_api::inputPeerSelf>(),
             std::move(reply_to), std::move(input_media), message_text == nullptr ? string() : message_text->text,
             m->random_id, nullptr, std::move(entities), 0, nullptr,
-            td_->quick_reply_manager_->get_input_quick_reply_shortcut(m->shortcut_id), 0),
+            td_->quick_reply_manager_->get_input_quick_reply_shortcut(m->shortcut_id), 0, 0),
         {{"me"}}));
   }
 
@@ -589,7 +589,7 @@ class QuickReplyManager::SendQuickReplyMultiMediaQuery final : public Td::Result
             flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
             false /*ignored*/, false /*ignored*/, telegram_api::make_object<telegram_api::inputPeerSelf>(),
             std::move(reply_to), std::move(input_single_media), 0, nullptr,
-            td_->quick_reply_manager_->get_input_quick_reply_shortcut(shortcut_id_), 0),
+            td_->quick_reply_manager_->get_input_quick_reply_shortcut(shortcut_id_), 0, 0),
         {{"me"}}));
   }
 
