@@ -140,6 +140,7 @@ class MessagesManager final : public Actor {
   static constexpr int32 SEND_MESSAGE_FLAG_INVERT_MEDIA = 1 << 16;
   static constexpr int32 SEND_MESSAGE_FLAG_EFFECT = 1 << 18;
   static constexpr int32 SEND_MESSAGE_FLAG_ALLOW_PAID = 1 << 19;
+  static constexpr int32 SEND_MESSAGE_FLAG_ALLOW_PAID_STARS = 1 << 21;
 
   MessagesManager(Td *td, ActorShared<> parent);
   MessagesManager(const MessagesManager &) = delete;
@@ -1067,6 +1068,7 @@ class MessagesManager final : public Actor {
     bool hide_via_bot = false;              // for resend_message
     bool is_bot_start_message = false;      // for resend_message
     int32 new_video_start_timestamp = 0;    // for send_message
+    int64 paid_message_star_count = 0;      // for send_message
 
     DialogId real_forward_from_dialog_id;    // for resend_message
     MessageId real_forward_from_message_id;  // for resend_message
@@ -1475,11 +1477,12 @@ class MessagesManager final : public Actor {
     int32 schedule_date = 0;
     int32 sending_id = 0;
     MessageEffectId effect_id;
+    int64 paid_message_star_count = 0;
 
     MessageSendOptions() = default;
     MessageSendOptions(bool disable_notification, bool from_background, bool update_stickersets_order,
                        bool protect_content, bool allow_paid, bool only_preview, int32 schedule_date, int32 sending_id,
-                       MessageEffectId effect_id)
+                       MessageEffectId effect_id, int64 paid_message_star_count)
         : disable_notification(disable_notification)
         , from_background(from_background)
         , update_stickersets_order(update_stickersets_order)
@@ -1488,7 +1491,8 @@ class MessagesManager final : public Actor {
         , only_preview(only_preview)
         , schedule_date(schedule_date)
         , sending_id(sending_id)
-        , effect_id(effect_id) {
+        , effect_id(effect_id)
+        , paid_message_star_count(paid_message_star_count) {
     }
   };
 
@@ -1772,7 +1776,8 @@ class MessagesManager final : public Actor {
   void send_forward_message_query(int32 flags, DialogId to_dialog_id, const MessageId top_thread_message_id,
                                   DialogId from_dialog_id, tl_object_ptr<telegram_api::InputPeer> as_input_peer,
                                   vector<MessageId> message_ids, vector<int64> random_ids, int32 schedule_date,
-                                  int32 new_video_start_timestamp, Promise<Unit> promise);
+                                  int32 new_video_start_timestamp, int64 paid_message_star_count,
+                                  Promise<Unit> promise);
 
   Result<td_api::object_ptr<td_api::message>> forward_message(DialogId to_dialog_id, MessageId top_thread_message_id,
                                                               DialogId from_dialog_id, MessageId message_id,

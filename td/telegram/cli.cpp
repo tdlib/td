@@ -2509,9 +2509,9 @@ class CliClient final : public Actor {
     }
     auto id = send_request(td_api::make_object<td_api::sendMessage>(
         chat_id, message_thread_id_, get_input_message_reply_to(),
-        td_api::make_object<td_api::messageSendOptions>(disable_notification, from_background, false, use_test_dc_,
-                                                        false, as_message_scheduling_state(schedule_date_),
-                                                        message_effect_id_, Random::fast(1, 1000), only_preview_),
+        td_api::make_object<td_api::messageSendOptions>(
+            disable_notification, from_background, false, use_test_dc_, paid_message_star_count_, false,
+            as_message_scheduling_state(schedule_date_), message_effect_id_, Random::fast(1, 1000), only_preview_),
         nullptr, std::move(input_message_content)));
     if (id != 0) {
       query_id_to_send_message_info_[id].start_time = Time::now();
@@ -2519,8 +2519,8 @@ class CliClient final : public Actor {
   }
 
   td_api::object_ptr<td_api::messageSendOptions> default_message_send_options() const {
-    return td_api::make_object<td_api::messageSendOptions>(false, false, false, use_test_dc_, true,
-                                                           as_message_scheduling_state(schedule_date_),
+    return td_api::make_object<td_api::messageSendOptions>(false, false, false, use_test_dc_, paid_message_star_count_,
+                                                           true, as_message_scheduling_state(schedule_date_),
                                                            message_effect_id_, Random::fast(1, 1000), only_preview_);
   }
 
@@ -5266,6 +5266,8 @@ class CliClient final : public Actor {
       schedule_date_ = std::move(args);
     } else if (op == "smei") {
       message_effect_id_ = to_integer<int64>(args);
+    } else if (op == "smpmsc") {
+      paid_message_star_count_ = to_integer<int64>(args);
     } else if (op == "sop") {
       only_preview_ = as_bool(args);
     } else if (op == "smti") {
@@ -7514,6 +7516,7 @@ class CliClient final : public Actor {
   int64 my_id_ = 0;
   td_api::object_ptr<td_api::AuthorizationState> authorization_state_;
   string schedule_date_;
+  int64 paid_message_star_count_ = 0;
   int64 message_effect_id_ = 0;
   bool only_preview_ = false;
   MessageThreadId message_thread_id_;
