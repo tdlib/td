@@ -241,7 +241,7 @@ class MessageVideo final : public MessageContent {
   vector<FileId> alternative_file_ids;
   vector<FileId> hls_file_ids;
   Photo cover;
-  int32 start_timestamp;
+  int32 start_timestamp = 0;
 
   FormattedText caption;
   bool has_spoiler = false;
@@ -268,7 +268,7 @@ class MessageVoiceNote final : public MessageContent {
   FileId file_id;
 
   FormattedText caption;
-  bool is_listened;
+  bool is_listened = false;
 
   MessageVoiceNote() = default;
   MessageVoiceNote(FileId file_id, FormattedText &&caption, bool is_listened)
@@ -483,8 +483,8 @@ class MessageGame final : public MessageContent {
 class MessageGameScore final : public MessageContent {
  public:
   MessageId game_message_id;
-  int64 game_id;
-  int32 score;
+  int64 game_id = 0;
+  int32 score = 0;
 
   MessageGameScore() = default;
   MessageGameScore(MessageId game_message_id, int64 game_id, int32 score)
@@ -505,7 +505,7 @@ class MessageScreenshotTaken final : public MessageContent {
 
 class MessageChatSetTtl final : public MessageContent {
  public:
-  int32 ttl;
+  int32 ttl = 0;
   UserId from_user_id;
 
   MessageChatSetTtl() = default;
@@ -533,10 +533,10 @@ class MessageUnsupported final : public MessageContent {
 
 class MessageCall final : public MessageContent {
  public:
-  int64 call_id;
-  int32 duration;
+  int64 call_id = 0;
+  int32 duration = 0;
   CallDiscardReason discard_reason;
-  bool is_video;
+  bool is_video = false;
 
   MessageCall() = default;
   MessageCall(int64 call_id, int32 duration, CallDiscardReason discard_reason, bool is_video)
@@ -1255,7 +1255,7 @@ class MessageStarGift final : public MessageContent {
   StarGift star_gift;
   DialogId sender_dialog_id;
   DialogId owner_dialog_id;
-  int64 saved_id;
+  int64 saved_id = 0;
   FormattedText text;
   int64 convert_star_count = 0;
   int64 upgrade_star_count = 0;
@@ -1298,7 +1298,7 @@ class MessageStarGiftUnique final : public MessageContent {
   StarGift star_gift;
   DialogId sender_dialog_id;
   DialogId owner_dialog_id;
-  int64 saved_id;
+  int64 saved_id = 0;
   int64 transfer_star_count = 0;
   int32 can_export_at = 0;
   bool is_saved = false;
