@@ -960,6 +960,33 @@ class GetStarsRevenueAdsAccountUrlQuery final : public Td::ResultHandler {
   }
 };
 
+class GetPaidMessageRevenueQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::starCount>> promise_;
+
+ public:
+  explicit GetPaidMessageRevenueQuery(Promise<td_api::object_ptr<td_api::starCount>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::InputUser> &&input_user) {
+    send_query(G()->net_query_creator().create(telegram_api::account_getPaidMessagesRevenue(std::move(input_user))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_getPaidMessagesRevenue>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(
+        td_api::make_object<td_api::starCount>(StarManager::get_star_count(result_ptr.ok()->stars_amount_)));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 StarManager::StarManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
@@ -1183,6 +1210,11 @@ void StarManager::get_star_ad_account_url(const td_api::object_ptr<td_api::Messa
   TRY_RESULT_PROMISE(promise, dialog_id, get_message_sender_dialog_id(td_, owner_id, true, false));
   TRY_STATUS_PROMISE(promise, can_manage_stars(dialog_id));
   td_->create_handler<GetStarsRevenueAdsAccountUrlQuery>(std::move(promise))->send(dialog_id);
+}
+
+void StarManager::get_paid_message_revenue(UserId user_id, Promise<td_api::object_ptr<td_api::starCount>> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
+  td_->create_handler<GetPaidMessageRevenueQuery>(std::move(promise))->send(std::move(input_user));
 }
 
 void StarManager::reload_star_transaction(DialogId dialog_id, const string &transaction_id, bool is_refund,

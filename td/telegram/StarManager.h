@@ -65,6 +65,8 @@ class StarManager final : public Actor {
 
   void get_star_ad_account_url(const td_api::object_ptr<td_api::MessageSender> &owner_id, Promise<string> &&promise);
 
+  void get_paid_message_revenue(UserId user_id, Promise<td_api::object_ptr<td_api::starCount>> &&promise);
+
   void reload_star_transaction(DialogId dialog_id, const string &transaction_id, bool is_refund,
                                Promise<Unit> &&promise);
 

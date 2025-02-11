@@ -4738,6 +4738,12 @@ void Requests::on_request(uint64 id, td_api::setNewChatPrivacySettings &request)
                                                      std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::getPaidMessageRevenue &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->star_manager_->get_paid_message_revenue(UserId(request.user_id_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::allowUnpaidMessagesFromUser &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

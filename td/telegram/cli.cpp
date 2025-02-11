@@ -6142,6 +6142,10 @@ class CliClient final : public Actor {
       auto settings = td_api::make_object<td_api::newChatPrivacySettings>(allow_new_chats_from_unknown_users,
                                                                           paid_message_star_count);
       send_request(td_api::make_object<td_api::setNewChatPrivacySettings>(std::move(settings)));
+    } else if (op == "gpmr") {
+      UserId user_id;
+      get_args(args, user_id);
+      send_request(td_api::make_object<td_api::getPaidMessageRevenue>(user_id));
     } else if (op == "aumfu") {
       UserId user_id;
       bool refund_payments;

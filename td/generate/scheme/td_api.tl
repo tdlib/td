@@ -7688,6 +7688,9 @@ seconds seconds:double = Seconds;
 //@description Contains size of downloaded prefix of a file @size The prefix size, in bytes
 fileDownloadedPrefixSize size:int53 = FileDownloadedPrefixSize;
 
+//@description Contains a number of Telegram Stars @star_count Number of Telegram Stars
+starCount star_count:int53 = StarCount;
+
 
 //@description Contains information about a tg: deep link @text Text to be shown to the user @need_update_application True, if the user must be asked to update the application
 deepLinkInfo text:formattedText need_update_application:Bool = DeepLinkInfo;
@@ -11929,7 +11932,10 @@ setNewChatPrivacySettings settings:newChatPrivacySettings = Ok;
 //@description Returns privacy settings for new chat creation
 getNewChatPrivacySettings = NewChatPrivacySettings;
 
-//@description Allows the specified user to send unpaid messages by adding a rule to userPrivacySettingAllowUnpaidMessages
+//@description Returns the total number of Telegram Stars receive by the current user for paid messages from the given user @user_id Identifier of the user
+getPaidMessageRevenue user_id:int53 = StarCount;
+
+//@description Allows the specified user to send unpaid private messages to the current user by adding a rule to userPrivacySettingAllowUnpaidMessages
 //@user_id Identifier of the user
 //@refund_payments Pass true to refund the user previously paid messages
 allowUnpaidMessagesFromUser user_id:int53 refund_payments:Bool = Ok;
