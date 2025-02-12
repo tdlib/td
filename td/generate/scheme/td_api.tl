@@ -11940,6 +11940,11 @@ getPaidMessageRevenue user_id:int53 = StarCount;
 //@refund_payments Pass true to refund the user previously paid messages
 allowUnpaidMessagesFromUser user_id:int53 refund_payments:Bool = Ok;
 
+//@description Changes the amount of Telegram Stars that must be paid to send a message to a supergroup chat; requires can_restrict_members administrator right 
+//@chat_id Identifier of the supergroup chat
+//@paid_message_star_count The new number of Telegram Stars that must be paid for each message that is sent to the supergroup chat unless the sender is an administrator of the chat
+setChatPaidMessageStarCount chat_id:int53 paid_message_star_count:int53 = Ok;
+
 
 //@description Check whether the current user can message another user or try to create a chat with them
 //@user_id Identifier of the other user

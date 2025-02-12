@@ -805,6 +805,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::allowUnpaidMessagesFromUser &request);
 
+  void on_request(uint64 id, const td_api::setChatPaidMessageStarCount &request);
+
   void on_request(uint64 id, const td_api::canSendMessageToUser &request);
 
   void on_request(uint64 id, td_api::setChatTitle &request);

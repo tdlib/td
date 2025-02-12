@@ -6151,6 +6151,11 @@ class CliClient final : public Actor {
       bool refund_payments;
       get_args(args, user_id, refund_payments);
       send_request(td_api::make_object<td_api::allowUnpaidMessagesFromUser>(user_id, refund_payments));
+    } else if (op == "scpmsc") {
+      ChatId chat_id;
+      int64 paid_message_star_count;
+      get_args(args, chat_id, paid_message_star_count);
+      send_request(td_api::make_object<td_api::setChatPaidMessageStarCount>(chat_id, paid_message_star_count));
     } else if (op == "csmtu" || op == "csmtul") {
       UserId user_id;
       get_args(args, user_id);

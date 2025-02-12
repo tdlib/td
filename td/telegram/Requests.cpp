@@ -4750,6 +4750,13 @@ void Requests::on_request(uint64 id, const td_api::allowUnpaidMessagesFromUser &
   td_->privacy_manager_->allow_unpaid_messages(UserId(request.user_id_), request.refund_payments_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::setChatPaidMessageStarCount &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->chat_manager_->set_channel_send_paid_messages_star_count(DialogId(request.chat_id_),
+                                                                request.paid_message_star_count_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::canSendMessageToUser &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
