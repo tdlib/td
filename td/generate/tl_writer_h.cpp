@@ -64,6 +64,13 @@ std::string TD_TL_writer_h::gen_output_begin(const std::string &additional_impor
 }
 
 std::string TD_TL_writer_h::gen_output_begin_once() const {
+  std::string secure_strings;
+  if (tl_name != "td_api" && tl_name != "telegram_api" && tl_name != "mtproto_api") {
+    secure_strings = "using secure_string = " + string_type +
+                     ";\n\n"
+                     "using secure_bytes = " +
+                     bytes_type + ";\n\n";
+  }
   return "using int32 = std::int32_t;\n"
          "using int53 = std::int64_t;\n"
          "using int64 = std::int64_t;\n\n"
@@ -73,8 +80,7 @@ std::string TD_TL_writer_h::gen_output_begin_once() const {
          ";\n\n"
 
          "using bytes = " +
-         bytes_type +
-         ";\n\n"
+         bytes_type + ";\n\n" + secure_strings +
 
          "template <class Type>\n"
          "using array = std::vector<Type>;\n\n"

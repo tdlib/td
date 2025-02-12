@@ -23,7 +23,7 @@ int TD_TL_writer::get_max_arity() const {
 bool TD_TL_writer::is_built_in_simple_type(const std::string &name) const {
   return name == "True" || name == "Bool" || name == "Int" || name == "Long" || name == "Double" || name == "String" ||
          name == "Int32" || name == "Int53" || name == "Int64" || name == "Int128" || name == "Int256" ||
-         name == "Int512" || name == "Bytes";
+         name == "Int512" || name == "Bytes" || name == "SecureString" || name == "SecureBytes";
 }
 
 bool TD_TL_writer::is_built_in_complex_type(const std::string &name) const {
@@ -222,6 +222,12 @@ std::string TD_TL_writer::gen_type_name(const tl::tl_tree_type *tree_type) const
   if (name == "Bytes") {
     return "bytes";
   }
+  if (name == "SecureString") {
+    return "secure_string";
+  }
+  if (name == "SecureBytes") {
+    return "secure_bytes";
+  }
 
   if (name == "Vector") {
     assert(t->arity == 1);
@@ -275,9 +281,10 @@ std::string TD_TL_writer::gen_constructor_parameter(int field_num, const std::st
       field_type == "double ") {
     res += field_type;
   } else if (field_type == "UInt128 " || field_type == "UInt256 " || field_type == "UInt512 " ||
-             field_type == "string " || (string_type == bytes_type && field_type == "bytes ")) {
+             field_type == "string " || (string_type == bytes_type && field_type == "bytes ") ||
+             field_type == "secure_string " || (string_type == bytes_type && field_type == "secure_bytes ")) {
     res += field_type + "const &";
-  } else if (field_type.compare(0, 5, "array") == 0 || field_type == "bytes " ||
+  } else if (field_type.compare(0, 5, "array") == 0 || field_type == "bytes " || field_type == "secure_bytes " ||
              field_type.compare(0, 10, "object_ptr") == 0) {
     res += field_type + "&&";
   } else {
