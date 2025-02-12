@@ -6,6 +6,8 @@
 //
 #include "td/utils/Ed25519.h"
 
+#if TD_HAVE_OPENSSL
+
 #include "td/utils/BigNum.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -341,3 +343,5 @@ Result<SecureString> Ed25519::get_public_key(Slice private_key) {
 }
 
 }  // namespace td
+
+#endif
