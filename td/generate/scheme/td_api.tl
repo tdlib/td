@@ -1172,7 +1172,8 @@ starTransactionTypeUserDeposit user_id:int53 sticker:sticker = StarTransactionTy
 //@giveaway_message_id Identifier of the message with the giveaway; can be 0 or an identifier of a deleted message
 starTransactionTypeGiveawayDeposit chat_id:int53 giveaway_message_id:int53 = StarTransactionType;
 
-//@description The transaction is a withdrawal of earned Telegram Stars to Fragment; for bots and channel chats only @withdrawal_state State of the withdrawal; may be null for refunds from Fragment
+//@description The transaction is a withdrawal of earned Telegram Stars to Fragment; for bots, supergroup and channel chats only
+//@withdrawal_state State of the withdrawal; may be null for refunds from Fragment
 starTransactionTypeFragmentWithdrawal withdrawal_state:RevenueWithdrawalState = StarTransactionType;
 
 //@description The transaction is a withdrawal of earned Telegram Stars to Telegram Ad platform; for bots and channel chats only
@@ -1270,6 +1271,13 @@ starTransactionTypeAffiliateProgramCommission chat_id:int53 commission_per_mille
 
 //@description The transaction is a sending of a paid message; for regular users only @chat_id Identifier of the chat that received the payment @message_count Number of sent paid messages
 starTransactionTypePaidMessageSend chat_id:int53 message_count:int32 = StarTransactionType;
+
+//@description The transaction is a receiving of a paid message; for regular users and supergroup chats only
+//@sender_id Identifier of the sender of the message
+//@message_count Number of received paid messages
+//@commission_per_mille The number of Telegram Stars received by the Telegram for each 1000 Telegram Stars paid for message sending
+//@commission_star_amount The amount of Telegram Stars that were received by Telegram; can be negative for refunds
+starTransactionTypePaidMessageReceive sender_id:MessageSender message_count:int32 commission_per_mille:int32 commission_star_amount:starAmount = StarTransactionType;
 
 //@description The transaction is a transaction of an unsupported type
 starTransactionTypeUnsupported = StarTransactionType;

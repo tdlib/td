@@ -234,6 +234,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
     bool for_user = dialog_id_.get_type() == DialogType::User && !for_bot;
     bool for_chat = !for_user && !for_bot;
     bool for_channel = for_chat && td_->dialog_manager_->is_broadcast_channel(dialog_id_);
+    bool for_supergroup = for_chat && !for_channel;
     vector<td_api::object_ptr<td_api::starTransaction>> transactions;
     for (auto &transaction : result->history_) {
       vector<FileId> file_ids;
@@ -372,15 +373,28 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                                                                                                 commission_per_mille);
             }
             if (transaction->paid_messages_) {
-              if (!td_->dialog_manager_->is_broadcast_channel(dialog_id) && for_user) {
-                SCOPE_EXIT {
-                  transaction->paid_messages_ = 0;
-                };
-                td_->dialog_manager_->force_create_dialog(dialog_id, "starsTransactionPeer", true);
-                auto chat_id =
-                    td_->dialog_manager_->get_chat_id_object(dialog_id, "starTransactionTypePaidMessageSend");
-                return td_api::make_object<td_api::starTransactionTypePaidMessageSend>(chat_id,
-                                                                                       transaction->paid_messages_);
+              if (is_purchase) {
+                if (!td_->dialog_manager_->is_broadcast_channel(dialog_id) && for_user) {
+                  SCOPE_EXIT {
+                    transaction->paid_messages_ = 0;
+                  };
+                  td_->dialog_manager_->force_create_dialog(dialog_id, "starsTransactionPeer", true);
+                  auto chat_id =
+                      td_->dialog_manager_->get_chat_id_object(dialog_id, "starTransactionTypePaidMessageSend");
+                  return td_api::make_object<td_api::starTransactionTypePaidMessageSend>(chat_id,
+                                                                                         transaction->paid_messages_);
+                }
+              } else {
+                if ((for_user || for_supergroup) && affiliate != nullptr) {
+                  SCOPE_EXIT {
+                    transaction->paid_messages_ = 0;
+                    affiliate = nullptr;
+                  };
+                  return td_api::make_object<td_api::starTransactionTypePaidMessageReceive>(
+                      get_message_sender_object(td_, dialog_id, "starTransactionTypePaidMessageReceive"),
+                      transaction->paid_messages_, affiliate->commission_per_mille_,
+                      std::move(affiliate->star_amount_));
+                }
               }
               return nullptr;
             }
@@ -654,6 +668,9 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         }
         if (transaction->stargift_upgrade_) {
           LOG(ERROR) << "Receive gift upgrade with " << to_string(star_transaction);
+        }
+        if (transaction->paid_messages_) {
+          LOG(ERROR) << "Receive paid messages with " << to_string(star_transaction);
         }
       }
       if (!file_ids.empty()) {
