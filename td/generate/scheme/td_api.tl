@@ -1268,6 +1268,9 @@ starTransactionTypeChannelPaidReactionReceive user_id:int53 message_id:int53 = S
 //@commission_per_mille The number of Telegram Stars received by the affiliate for each 1000 Telegram Stars received by the program owner
 starTransactionTypeAffiliateProgramCommission chat_id:int53 commission_per_mille:int32 = StarTransactionType;
 
+//@description The transaction is a sending of a paid message; for regular users only @chat_id Identifier of the chat that received the payment @message_count Number of sent paid messages
+starTransactionTypePaidMessageSend chat_id:int53 message_count:int32 = StarTransactionType;
+
 //@description The transaction is a transaction of an unsupported type
 starTransactionTypeUnsupported = StarTransactionType;
 

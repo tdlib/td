@@ -371,6 +371,19 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
               return td_api::make_object<td_api::starTransactionTypeAffiliateProgramCommission>(chat_id,
                                                                                                 commission_per_mille);
             }
+            if (transaction->paid_messages_) {
+              if (!td_->dialog_manager_->is_broadcast_channel(dialog_id) && for_user) {
+                SCOPE_EXIT {
+                  transaction->paid_messages_ = 0;
+                };
+                td_->dialog_manager_->force_create_dialog(dialog_id, "starsTransactionPeer", true);
+                auto chat_id =
+                    td_->dialog_manager_->get_chat_id_object(dialog_id, "starTransactionTypePaidMessageSend");
+                return td_api::make_object<td_api::starTransactionTypePaidMessageSend>(chat_id,
+                                                                                       transaction->paid_messages_);
+              }
+              return nullptr;
+            }
             if (dialog_id.get_type() == DialogType::User) {
               auto user_id = dialog_id.get_user_id();
               auto user_id_object = td_->user_manager_->get_user_id_object(user_id, "starsTransactionPeer");
