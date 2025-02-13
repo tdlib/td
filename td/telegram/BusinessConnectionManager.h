@@ -185,6 +185,11 @@ class BusinessConnectionManager final : public Actor {
 
   int64 generate_new_media_album_id();
 
+  void do_send_message_album(int64 request_id, BusinessConnectionId business_connection_id, DialogId dialog_id,
+                             MessageInputReplyTo &&input_reply_to, bool disable_notification, bool protect_content,
+                             MessageEffectId effect_id, vector<InputMessageContent> &&message_contents,
+                             Promise<td_api::object_ptr<td_api::businessMessages>> &&promise);
+
   void on_upload_message_album_media(int64 request_id, size_t media_pos, Result<UploadMediaResult> &&result);
 
   void process_sent_business_message_album(telegram_api::object_ptr<telegram_api::Updates> &&updates_ptr,

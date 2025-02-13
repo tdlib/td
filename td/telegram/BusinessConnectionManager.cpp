@@ -33,6 +33,7 @@
 #include "td/telegram/UserId.h"
 #include "td/telegram/UserManager.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
@@ -1137,6 +1138,36 @@ void BusinessConnectionManager::send_message_album(
   auto &request = media_group_send_requests_[request_id];
   request.upload_results_.resize(message_contents.size());
   request.promise_ = std::move(promise);
+
+  do_send_message_album(request_id, business_connection_id, dialog_id, std::move(input_reply_to), disable_notification,
+                        protect_content, effect_id, std::move(message_contents), std::move(promise));
+}
+
+void BusinessConnectionManager::do_send_message_album(int64 request_id, BusinessConnectionId business_connection_id,
+                                                      DialogId dialog_id, MessageInputReplyTo &&input_reply_to,
+                                                      bool disable_notification, bool protect_content,
+                                                      MessageEffectId effect_id,
+                                                      vector<InputMessageContent> &&message_contents,
+                                                      Promise<td_api::object_ptr<td_api::businessMessages>> &&promise) {
+  vector<const Photo *> covers;
+  for (auto &content : message_contents) {
+    append(covers, get_message_content_need_to_upload_covers(td_, content.content.get()));
+  }
+  if (!covers.empty()) {
+    return td_->message_query_manager_->upload_message_covers(
+        business_connection_id, dialog_id, std::move(covers),
+        PromiseCreator::lambda([actor_id = actor_id(this), request_id, business_connection_id, dialog_id,
+                                input_reply_to = std::move(input_reply_to), disable_notification, protect_content,
+                                effect_id, message_contents = std::move(message_contents),
+                                promise = std::move(promise)](Result<Unit> result) mutable {
+          if (result.is_error()) {
+            return promise.set_error(result.move_as_error());
+          }
+          send_closure(actor_id, &BusinessConnectionManager::do_send_message_album, request_id, business_connection_id,
+                       dialog_id, std::move(input_reply_to), disable_notification, protect_content, effect_id,
+                       std::move(message_contents), std::move(promise));
+        }));
+  }
 
   for (size_t media_pos = 0; media_pos < message_contents.size(); media_pos++) {
     auto &message_content = message_contents[media_pos];
