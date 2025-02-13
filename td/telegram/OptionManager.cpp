@@ -86,6 +86,10 @@ OptionManager::OptionManager(Td *td)
   bool is_test_dc = G()->is_test_dc();
   auto set_default_integer_option = [&](string name, int64 value) {
     if (options.isset(name)) {
+      if (false && options.get(name) != (PSTRING() << 'I' << value)) {
+        LOG(ERROR) << "Option " << name << " has default value " << value << " instead of "
+                   << options.get(name).substr(1);
+      }
       return;
     }
     auto str_value = PSTRING() << 'I' << value;
