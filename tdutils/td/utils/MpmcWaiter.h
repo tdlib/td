@@ -20,15 +20,14 @@ namespace td {
 class MpmcEagerWaiter {
  public:
   struct Slot {
+    explicit Slot(uint32 worker_id) : yields(0), worker_id(worker_id) {
+    }
+
    private:
     friend class MpmcEagerWaiter;
     int yields;
     uint32 worker_id;
   };
-  static void init_slot(Slot &slot, uint32 worker_id) {
-    slot.yields = 0;
-    slot.worker_id = worker_id;
-  }
 
   void wait(Slot &slot) {
     if (slot.yields < RoundsTillSleepy) {
@@ -163,6 +162,10 @@ class MpmcSleepyWaiter {
 
    public:
     char padding[TD_CONCURRENCY_PAD];
+
+    explicit Slot(int32 worker_id) : state_(State::Work), worker_id(worker_id) {
+      VLOG(waiter) << "Init slot " << worker_id;
+    }
   };
 
   // There are a lot of workers
@@ -193,13 +196,6 @@ class MpmcSleepyWaiter {
   // After notify is called there should be at least on worker in Search or Work state.
   // If possible - in Search state
   //
-
-  static void init_slot(Slot &slot, int32 worker_id) {
-    slot.state_ = Slot::State::Work;
-    slot.unpark_flag_ = false;
-    slot.worker_id = worker_id;
-    VLOG(waiter) << "Init slot " << worker_id;
-  }
 
   static constexpr int VERBOSITY_NAME(waiter) = VERBOSITY_NAME(DEBUG) + 10;
   void wait(Slot &slot) {
