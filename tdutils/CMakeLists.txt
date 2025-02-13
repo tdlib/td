@@ -50,9 +50,7 @@ if (CLANG OR GCC)
 elseif (MSVC)
   set_property(SOURCE ${TDMIME_AUTO} APPEND_STRING PROPERTY COMPILE_FLAGS " /wd4267")
 endif()
-if (CLANG)
-  set_property(SOURCE ${TDMIME_AUTO} APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-deprecated-register")
-endif()
+set_property(SOURCE ${TDMIME_AUTO} APPEND PROPERTY COMPILE_DEFINITIONS "__gnu_inline__=;register=")
 
 set(TDUTILS_SOURCE
   td/utils/port/Clocks.cpp
