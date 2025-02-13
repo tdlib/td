@@ -20957,11 +20957,12 @@ void MessagesManager::do_send_message(DialogId dialog_id, const Message *m, int3
 
   if (m->media_album_id != 0 && bad_parts.empty() && !is_secret && !is_edit) {
     auto &request = pending_message_group_sends_[m->media_album_id];
-    request.dialog_id = dialog_id;
-    request.message_ids.push_back(m->message_id);
-    request.is_finished.push_back(false);
-
-    request.results.push_back(Status::OK());
+    if (!td::contains(request.message_ids, m->message_id)) {
+      request.dialog_id = dialog_id;
+      request.message_ids.push_back(m->message_id);
+      request.is_finished.push_back(false);
+      request.results.push_back(Status::OK());
+    }
   }
 
   const EditedMessage *edited_message = nullptr;

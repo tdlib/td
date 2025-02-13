@@ -2247,9 +2247,11 @@ void QuickReplyManager::do_send_message(const QuickReplyMessage *m, vector<int> 
 
   if (m->media_album_id != 0 && bad_parts.empty() && !is_edit) {
     auto &request = pending_message_group_sends_[m->media_album_id];
-    request.message_ids.push_back(m->message_id);
-    request.is_finished.push_back(false);
-    request.results.push_back(Status::OK());
+    if (!td::contains(request.message_ids, m->message_id)) {
+      request.message_ids.push_back(m->message_id);
+      request.is_finished.push_back(false);
+      request.results.push_back(Status::OK());
+    }
   }
 
   auto content = is_edit ? m->edited_content.get() : m->content.get();
