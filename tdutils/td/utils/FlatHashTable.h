@@ -45,8 +45,7 @@ class FlatHashTable {
   using key_type = typename NodeT::public_key_type;
   using value_type = typename NodeT::public_type;
 
-  // TODO use EndSentinel for end() after switching to C++17
-  // struct EndSentinel {};
+  struct EndSentinel {};
 
   struct Iterator {
     using iterator_category = std::forward_iterator_tag;
@@ -85,12 +84,10 @@ class FlatHashTable {
       return it_;
     }
 
-    bool operator==(const Iterator &other) const {
-      DCHECK(other.it_ == nullptr);
+    bool operator==(const EndSentinel &) const {
       return it_ == nullptr;
     }
-    bool operator!=(const Iterator &other) const {
-      DCHECK(other.it_ == nullptr);
+    bool operator!=(const EndSentinel &) const {
       return it_ != nullptr;
     }
 
@@ -122,11 +119,11 @@ class FlatHashTable {
     pointer operator->() const {
       return &*it_;
     }
-    bool operator==(const ConstIterator &other) const {
-      return it_ == other.it_;
+    bool operator==(const EndSentinel &other) const {
+      return it_ == other;
     }
-    bool operator!=(const ConstIterator &other) const {
-      return it_ != other.it_;
+    bool operator!=(const EndSentinel &other) const {
+      return it_ != other;
     }
 
     ConstIterator() = default;
@@ -157,10 +154,10 @@ class FlatHashTable {
       return it_;
     }
 
-    bool operator==(const Iterator &) const {
+    bool operator==(const EndSentinel &) const {
       return it_ == nullptr;
     }
-    bool operator!=(const Iterator &) const {
+    bool operator!=(const EndSentinel &) const {
       return it_ != nullptr;
     }
 
@@ -179,10 +176,10 @@ class FlatHashTable {
       return &it_->get_public();
     }
 
-    bool operator==(const ConstIterator &) const {
+    bool operator==(const EndSentinel &) const {
       return it_ == nullptr;
     }
-    bool operator!=(const ConstIterator &) const {
+    bool operator!=(const EndSentinel &) const {
       return it_ != nullptr;
     }
 
@@ -285,14 +282,13 @@ class FlatHashTable {
   Iterator begin() {
     return create_iterator(begin_impl());
   }
-  Iterator end() {
-    return Iterator();
-  }
+
   ConstIterator begin() const {
     return ConstIterator(const_cast<FlatHashTable *>(this)->begin());
   }
-  ConstIterator end() const {
-    return ConstIterator();
+
+  EndSentinel end() const {
+    return EndSentinel();
   }
 
   void reserve(size_t size) {
