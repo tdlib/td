@@ -161,7 +161,7 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("subscription_star_count_max", 2500);
   set_default_integer_option("usd_to_thousand_star_rate", 1410);
   set_default_integer_option("thousand_star_to_usd_rate", 1300);
-  set_default_integer_option("gift_text_length_max", 255);
+  set_default_integer_option("gift_text_length_max", 128);
   set_default_integer_option("gift_sell_period", is_test_dc ? 300 : 90 * 86400);
   set_default_integer_option("affiliate_program_commission_per_mille_min", 1);
   set_default_integer_option("affiliate_program_commission_per_mille_max", 800);
