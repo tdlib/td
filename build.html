@@ -241,7 +241,6 @@
       <option>CentOS 7</option>
       <option>CentOS 8</option>
       <option>CentOS Stream 9</option>
-      <option>Debian 8</option>
       <option>Debian 9</option>
       <option>Debian 10+</option>
       <option>Ubuntu 14</option>
@@ -873,7 +872,6 @@ function onOptionsChanged() {
         }
         commands.push(sudo + 'dnf install -y ' + packages);
         break;
-      case 'Debian 8':
       case 'Debian 9':
       case 'Debian 10+':
       case 'Ubuntu 14':
@@ -891,7 +889,7 @@ function onOptionsChanged() {
         commands.push(sudo + 'apt-get update');
         commands.push(sudo + 'apt-get upgrade');
         var packages = 'make git zlib1g-dev libssl-dev gperf';
-        if (linux_distro === 'Ubuntu 14' || linux_distro === 'Debian 8') {
+        if (linux_distro === 'Ubuntu 14') {
           packages += ' php5-cli';
         } else {
           packages += ' php-cli';
@@ -1086,9 +1084,6 @@ function onOptionsChanged() {
       }
     } else {
       commands.push(build_command);
-    }
-    if (install_dir && os_linux && linux_distro === 'Debian 8') {
-      commands.push('sed -i "s/LINK_ONLY:td/LINK_ONLY:Td::td/g" ' + install_dir + '/lib/cmake/Td/TdTargets.cmake');
     }
     commands.push('cd ..');
     if (target === 'JNI') {
