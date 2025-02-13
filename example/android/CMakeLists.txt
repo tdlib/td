@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.4.1 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
 
 project(TdAndroid VERSION 1.0 LANGUAGES CXX)
 

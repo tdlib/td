@@ -740,7 +740,7 @@ function onOptionsChanged() {
   if (os_linux && linux_distro === 'Other') {
     var jdk = target === 'JNI' ? ', JDK ' : '';
     var compiler = use_clang ? 'clang >= 3.4, libc++' : 'g++ >= 4.9.2';
-    pre_text.push('Install Git, ' + compiler + ', make, CMake >= 3.0.2, OpenSSL-dev, zlib-dev, gperf, PHP' + jdk + ' using your package manager.');
+    pre_text.push('Install Git, ' + compiler + ', make, CMake >= 3.10, OpenSSL-dev, zlib-dev, gperf, PHP' + jdk + ' using your package manager.');
   }
   if (os_linux && os.includes('Node.js')) {
     pre_text.push('Note that for Node.js &ge; 17 you must build TDLib with OpenSSL 3.0.*, for Node.js &ge; 10 with OpenSSL 1.1.*, and for Node.js &lt; 10 with OpenSSL 1.0.*, so you may need to modify the following commands to install a proper OpenSSL version.');

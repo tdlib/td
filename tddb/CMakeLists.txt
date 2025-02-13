@@ -1,5 +1,5 @@
-if ((CMAKE_MAJOR_VERSION LESS 3) OR (CMAKE_VERSION VERSION_LESS "3.0.2"))
-  message(FATAL_ERROR "CMake >= 3.0.2 is required")
+if ((CMAKE_MAJOR_VERSION LESS 3) OR (CMAKE_VERSION VERSION_LESS "3.10"))
+  message(FATAL_ERROR "CMake >= 3.10 is required")
 endif()
 
 option(TDDB_ENABLE_INSTALL "Enable installation of the library." ON)

@@ -49,7 +49,7 @@ for a list of all available `TDLib` [methods](https://core.telegram.org/tdlib/do
 * OpenSSL
 * zlib
 * gperf (build only)
-* CMake (3.0.2+, build only)
+* CMake (3.10+, build only)
 * PHP (optional, for documentation generation)
 
 <a name="building"></a>

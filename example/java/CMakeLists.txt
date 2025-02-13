@@ -1,23 +1,9 @@
-cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
-
-if (POLICY CMP0065)
-  # do not export symbols from executables
-  # affects compiler checks in project(), so must be set before it
-  cmake_policy(SET CMP0065 NEW)
-endif()
+cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
 
 project(TdJavaExample VERSION 1.0 LANGUAGES CXX)
 
 option(TD_JSON_JAVA "Use \"ON\" to build Java wrapper for JSON API.")
 
-if (POLICY CMP0054)
-  # do not expand quoted arguments
-  cmake_policy(SET CMP0054 NEW)
-endif()
-if (POLICY CMP0060)
-  # link libraries by full path
-  cmake_policy(SET CMP0060 NEW)
-endif()
 if (POLICY CMP0074)
   # use environment variables to find libraries
   cmake_policy(SET CMP0074 NEW)

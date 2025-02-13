@@ -1,10 +1,4 @@
-cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
-
-if (POLICY CMP0065)
-  # do not export symbols from executables
-  # affects compiler checks in project(), so must be set before it
-  cmake_policy(SET CMP0065 NEW)
-endif()
+cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
 
 project(TDLib VERSION 1.8.45 LANGUAGES CXX C)
 
@@ -23,14 +17,6 @@ if (NOT DEFINED CMAKE_INSTALL_INCLUDEDIR)
   set(CMAKE_INSTALL_INCLUDEDIR "include")
 endif()
 
-if (POLICY CMP0054)
-  # do not expand quoted arguments
-  cmake_policy(SET CMP0054 NEW)
-endif()
-if (POLICY CMP0060)
-  # link libraries by full path
-  cmake_policy(SET CMP0060 NEW)
-endif()
 if (POLICY CMP0074)
   # use environment variables to find libraries
   cmake_policy(SET CMP0074 NEW)
@@ -47,33 +33,26 @@ if (NOT CMAKE_CROSSCOMPILING)
   option(TD_GENERATE_SOURCE_FILES "Use \"ON\" to just generate TDLib source files.")
 endif()
 
-if (TD_ENABLE_DOTNET AND (CMAKE_VERSION VERSION_LESS "3.1.0"))
-  message(FATAL_ERROR "CMake 3.1.0 or higher is required. You are running version ${CMAKE_VERSION}.")
-endif()
-
 include(CTest)
 
-if (POLICY CMP0069)
-  option(TD_ENABLE_LTO "Use \"ON\" to enable Link Time Optimization.")
+option(TD_ENABLE_LTO "Use \"ON\" to enable Link Time Optimization.")
 
-  if (TD_ENABLE_LTO)
-    cmake_policy(SET CMP0069 NEW)
-    include(CheckIPOSupported)
-    check_ipo_supported(RESULT IPO_SUPPORTED)
-    if (IPO_SUPPORTED)
-      # set_property(DIRECTORY PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE) do not work?
-      string(REPLACE ";" " " CXX_FLAGS_IPO "${CMAKE_CXX_COMPILE_OPTIONS_IPO}")
-      message(STATUS "Use link time optimization CXX options: ${CXX_FLAGS_IPO}")
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_FLAGS_IPO}")
+if (TD_ENABLE_LTO)
+  include(CheckIPOSupported)
+  check_ipo_supported(RESULT IPO_SUPPORTED)
+  if (IPO_SUPPORTED)
+    # set_property(DIRECTORY PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE) do not work?
+    string(REPLACE ";" " " CXX_FLAGS_IPO "${CMAKE_CXX_COMPILE_OPTIONS_IPO}")
+    message(STATUS "Use link time optimization CXX options: ${CXX_FLAGS_IPO}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_FLAGS_IPO}")
 
-      string(REPLACE ";" " " C_FLAGS_IPO "${CMAKE_C_COMPILE_OPTIONS_IPO}")
-      message(STATUS "Use link time optimization C options: ${C_FLAGS_IPO}")
-      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${C_FLAGS_IPO}")
+    string(REPLACE ";" " " C_FLAGS_IPO "${CMAKE_C_COMPILE_OPTIONS_IPO}")
+    message(STATUS "Use link time optimization C options: ${C_FLAGS_IPO}")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${C_FLAGS_IPO}")
 
-      string(REPLACE ";" " " LINK_FLAGS_IPO "${CMAKE_CXX_LINK_OPTIONS_IPO}")
-      message(STATUS "Use link time optimization linker options: ${LINK_FLAGS_IPO}")
-      set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${LINK_FLAGS_IPO}")
-    endif()
+    string(REPLACE ";" " " LINK_FLAGS_IPO "${CMAKE_CXX_LINK_OPTIONS_IPO}")
+    message(STATUS "Use link time optimization linker options: ${LINK_FLAGS_IPO}")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${LINK_FLAGS_IPO}")
   endif()
 endif()
 
