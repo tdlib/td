@@ -45,7 +45,7 @@ for a list of all available `TDLib` [methods](https://core.telegram.org/tdlib/do
 ## Dependencies
 `TDLib` depends on:
 
-* C++14 compatible compiler (Clang 3.4+, GCC 4.9+, MSVC 19.0+ (Visual Studio 2015+), Intel C++ Compiler 17+)
+* C++17 compatible compiler (Clang 5.0+, GCC 7.0+, MSVC 19.1+ (Visual Studio 2017.7+), Intel C++ Compiler 19+)
 * OpenSSL
 * zlib
 * gperf (build only)
