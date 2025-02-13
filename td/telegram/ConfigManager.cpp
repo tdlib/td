@@ -883,8 +883,7 @@ ActorShared<> ConfigManager::create_reference() {
 }
 
 void ConfigManager::hangup_shared() {
-  LOG_CHECK(get_link_token() == REFCNT_TOKEN)
-      << "Expected link token " << REFCNT_TOKEN << ", but receive " << get_link_token();
+  LOG_CHECK(get_link_token() == REFCNT_TOKEN) << "Receive link token " << get_link_token();
   ref_cnt_--;
   try_stop();
 }
@@ -2247,7 +2246,5 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
                  std::move(suggested_actions));
   }
 }
-
-constexpr uint64 ConfigManager::REFCNT_TOKEN;
 
 }  // namespace td

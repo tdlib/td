@@ -969,7 +969,7 @@ Status SecretChatActor::do_inbound_message_decrypted_unchecked(unique_ptr<log_ev
       auto finish_seq_no = static_cast<uint32>(action_resend->end_seq_no_ / 2);
       if (start_seq_no + MAX_RESEND_COUNT < finish_seq_no) {
         message->promise.set_value(Unit());
-        return Status::Error(PSLICE() << "Won't resend more than " << MAX_RESEND_COUNT << " messages");
+        return Status::Error("Can't resend too many messages");
       }
       LOG(INFO) << "ActionResend: " << tag("start", start_seq_no) << tag("finish_seq_no", finish_seq_no);
       for (auto seq_no = start_seq_no; seq_no <= finish_seq_no; seq_no++) {
@@ -2251,7 +2251,5 @@ void SecretChatActor::on_promise_error(Status error, string desc) {
   }
   LOG(FATAL) << "Failed: " << tag("promise", desc) << error;
 }
-
-constexpr int32 SecretChatActor::MAX_RESEND_COUNT;
 
 }  // namespace td

@@ -88,10 +88,6 @@ class TestQueryMerger final : public td::Actor {
   td::FlatHashSet<td::int64> pending_query_ids_;
 };
 
-constexpr std::size_t TestQueryMerger::MAX_CONCURRENT_QUERY_COUNT;
-constexpr std::size_t TestQueryMerger::MAX_MERGED_QUERY_COUNT;
-constexpr std::size_t TestQueryMerger::MAX_QUERY_COUNT;
-
 TEST(QueryMerger, stress) {
   td::ConcurrentScheduler sched(0, 0);
   sched.create_actor_unsafe<TestQueryMerger>(0, "TestQueryMerger").release();

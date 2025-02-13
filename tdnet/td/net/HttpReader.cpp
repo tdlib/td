@@ -24,8 +24,6 @@
 
 namespace td {
 
-constexpr const char HttpReader::TEMP_DIRECTORY_PREFIX[];
-
 void HttpReader::init(ChainBufferReader *input, size_t max_post_size, size_t max_files) {
   input_ = input;
   state_ = State::ReadHeaders;

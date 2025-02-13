@@ -761,8 +761,6 @@ class MessageDice final : public MessageContent {
   }
 };
 
-constexpr const char *MessageDice::DEFAULT_EMOJI;
-
 class MessageProximityAlertTriggered final : public MessageContent {
  public:
   DialogId traveler_dialog_id;
