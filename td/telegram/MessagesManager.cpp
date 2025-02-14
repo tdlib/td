@@ -14829,12 +14829,6 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(MessageFullId 
 
   auto dialog_username = td_->chat_manager_->get_channel_first_username(dialog_id.get_channel_id());
   bool is_public = !dialog_username.empty();
-  if (m->content->get_type() == MessageContentType::VideoNote &&
-      td_->dialog_manager_->is_broadcast_channel(dialog_id) && is_public) {
-    return std::make_pair(
-        PSTRING() << "https://telesco.pe/" << dialog_username << '/' << message_id.get_server_message_id().get(), true);
-  }
-
   if (is_public) {
     sb << dialog_username;
   } else {
