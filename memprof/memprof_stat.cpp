@@ -140,21 +140,24 @@ int posix_memalign(void **memptr, size_t alignment, size_t size) {
 }
 }
 
-// c++14 guarantees that it is enough to override these two operators.
+// C++17 guarantees that it is enough to override these 4 operators
 void *operator new(std::size_t count) {
-  return do_malloc(count);
+  return malloc_with_frame(count, get_backtrace());
 }
 void operator delete(void *ptr) noexcept(true) {
   free(ptr);
 }
-// because of gcc warning: the program should also define 'void operator delete(void*, std::size_t)'
-void operator delete(void *ptr, std::size_t) noexcept(true) {
+void *operator new(std::size_t count, std::align_val_t al) {
+  return memalign(static_cast<std::size_t>(al), count);
+}
+void operator delete(void *ptr, std::align_val_t al) noexcept {
   free(ptr);
 }
 
-// c++17
-// void *operator new(std::size_t count, std::align_val_t al);
-// void operator delete(void *ptr, std::align_val_t al);
+// because of GCC warning: the program should also define 'void operator delete(void*, std::size_t)'
+void operator delete(void *ptr, std::size_t) noexcept(true) {
+  free(ptr);
+}
 
 #else
 bool is_memprof_on() {

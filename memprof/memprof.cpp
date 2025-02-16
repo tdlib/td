@@ -291,7 +291,7 @@ void *memalign(std::size_t alignment, std::size_t size) {
 }
 }
 
-// c++17 guarantees that it is enough to override these 4 operators
+// C++17 guarantees that it is enough to override these 4 operators
 void *operator new(std::size_t count) {
   return malloc_with_frame(count, get_backtrace());
 }
@@ -305,7 +305,7 @@ void operator delete(void *ptr, std::align_val_t al) noexcept {
   free(ptr);
 }
 
-// because of gcc warning: the program should also define 'void operator delete(void*, std::size_t)'
+// because of GCC warning: the program should also define 'void operator delete(void*, std::size_t)'
 void operator delete(void *ptr, std::size_t) noexcept(true) {
   free(ptr);
 }
