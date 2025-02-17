@@ -1658,7 +1658,8 @@ class MessagesManager final : public Actor {
 
   Result<MessageSendOptions> process_message_send_options(DialogId dialog_id,
                                                           tl_object_ptr<td_api::messageSendOptions> &&options,
-                                                          bool allow_update_stickersets_order, bool allow_effect) const;
+                                                          bool allow_update_stickersets_order, bool allow_effect,
+                                                          int32 message_count) const;
 
   static Status can_use_message_send_options(const MessageSendOptions &options,
                                              const unique_ptr<MessageContent> &content, MessageSelfDestructType ttl);

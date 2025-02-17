@@ -20586,7 +20586,7 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_message(
 
   TRY_STATUS(can_send_message(dialog_id));
   TRY_RESULT(message_reply_markup, get_dialog_reply_markup(dialog_id, std::move(reply_markup)));
-  TRY_RESULT(message_send_options, process_message_send_options(dialog_id, std::move(options), true, true));
+  TRY_RESULT(message_send_options, process_message_send_options(dialog_id, std::move(options), true, true, 1));
   TRY_RESULT(message_content, process_input_message_content(dialog_id, std::move(input_message_content),
                                                             !message_send_options.allow_paid));
   TRY_STATUS(can_use_message_send_options(message_send_options, message_content));
@@ -20712,7 +20712,7 @@ Result<MessageCopyOptions> MessagesManager::process_message_copy_options(
 
 Result<MessagesManager::MessageSendOptions> MessagesManager::process_message_send_options(
     DialogId dialog_id, tl_object_ptr<td_api::messageSendOptions> &&options, bool allow_update_stickersets_order,
-    bool allow_effect) const {
+    bool allow_effect, int32 message_count) const {
   MessageSendOptions result;
   if (options == nullptr) {
     return std::move(result);
@@ -20731,6 +20731,11 @@ Result<MessagesManager::MessageSendOptions> MessagesManager::process_message_sen
     if (result.paid_message_star_count < 0 || result.paid_message_star_count > 1000000) {
       return Status::Error(400, "Invalid price for paid message specified");
     }
+    CHECK(message_count > 0);
+    if (result.paid_message_star_count % message_count != 0) {
+      return Status::Error(400, "Invalid price for paid messages specified");
+    }
+    result.paid_message_star_count /= message_count;
   }
   result.only_preview = options->only_preview_;
   TRY_RESULT_ASSIGN(result.schedule_date, get_message_schedule_date(std::move(options->scheduling_state_)));
@@ -20849,7 +20854,8 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_message_group
   }
 
   TRY_STATUS(can_send_message(dialog_id));
-  TRY_RESULT(message_send_options, process_message_send_options(dialog_id, std::move(options), true, true));
+  TRY_RESULT(message_send_options, process_message_send_options(dialog_id, std::move(options), true, true,
+                                                                static_cast<int32>(input_message_contents.size())));
 
   vector<InputMessageContent> message_contents;
   for (auto &input_message_content : input_message_contents) {
@@ -21957,7 +21963,7 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_inline_query_r
   }
 
   TRY_STATUS(can_send_message(dialog_id));
-  TRY_RESULT(message_send_options, process_message_send_options(dialog_id, std::move(options), false, false));
+  TRY_RESULT(message_send_options, process_message_send_options(dialog_id, std::move(options), false, false, 1));
   bool to_secret = false;
   switch (dialog_id.get_type()) {
     case DialogType::User:
@@ -23460,7 +23466,8 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
   }
 
   TRY_STATUS(can_send_message(to_dialog_id));
-  TRY_RESULT(message_send_options, process_message_send_options(to_dialog_id, std::move(options), false, false));
+  TRY_RESULT(message_send_options, process_message_send_options(to_dialog_id, std::move(options), false, false,
+                                                                static_cast<int32>(message_ids.size())));
   TRY_STATUS(can_use_top_thread_message_id(to_dialog, top_thread_message_id, MessageInputReplyTo()));
 
   {
