@@ -376,6 +376,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
               if (is_purchase) {
                 if (!td_->dialog_manager_->is_broadcast_channel(dialog_id) && for_user) {
                   SCOPE_EXIT {
+                    product_info = nullptr;
                     transaction->paid_messages_ = 0;
                   };
                   td_->dialog_manager_->force_create_dialog(dialog_id, "starsTransactionPeer", true);
@@ -387,6 +388,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
               } else {
                 if ((for_user || for_supergroup) && affiliate != nullptr) {
                   SCOPE_EXIT {
+                    product_info = nullptr;
                     transaction->paid_messages_ = 0;
                     affiliate = nullptr;
                   };
