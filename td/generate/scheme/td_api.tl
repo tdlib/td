@@ -6918,6 +6918,10 @@ newChatPrivacySettings allow_new_chats_from_unknown_users:Bool incoming_paid_mes
 //@description The user can be messaged
 canSendMessageToUserResultOk = CanSendMessageToUserResult;
 
+//@description The user can be messaged, but the messages are paid
+//@outgoing_paid_message_star_count Number of Telegram Stars that must be paid by the current user for each sent message to the user
+canSendMessageToUserResultUserHasPaidMessages outgoing_paid_message_star_count:int53 = CanSendMessageToUserResult;
+
 //@description The user can't be messaged, because they are deleted or unknown
 canSendMessageToUserResultUserIsDeleted = CanSendMessageToUserResult;
 

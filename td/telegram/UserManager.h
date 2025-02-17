@@ -406,8 +406,9 @@ class UserManager final : public Actor {
   void can_send_message_to_user(UserId user_id, bool force,
                                 Promise<td_api::object_ptr<td_api::CanSendMessageToUserResult>> &&promise);
 
-  void on_get_is_premium_required_to_contact_users(vector<UserId> &&user_ids, vector<bool> &&is_premium_required,
-                                                   Promise<Unit> &&promise);
+  void on_get_is_premium_required_to_contact_users(
+      vector<UserId> &&user_ids, vector<telegram_api::object_ptr<telegram_api::RequirementToContact>> &&requirements,
+      Promise<Unit> &&promise);
 
   void allow_send_message_to_user(UserId user_id);
 
@@ -1181,7 +1182,7 @@ class UserManager final : public Actor {
   bool are_imported_contacts_changing_ = false;
   bool need_clear_imported_contacts_ = false;
 
-  FlatHashMap<UserId, bool, UserIdHash> user_full_contact_require_premium_;
+  FlatHashMap<UserId, int64, UserIdHash> user_full_contact_price_;  // -1 - premium required
 
   WaitFreeHashSet<UserId, UserIdHash> restricted_user_ids_;
 

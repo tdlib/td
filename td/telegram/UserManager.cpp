@@ -1412,9 +1412,7 @@ class GetIsPremiumRequiredToContactQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetIsPremiumRequiredToContactQuery: " << to_string(ptr);
-    auto result =
-        transform(ptr, [](const auto &req) { return req->get_id() == telegram_api::requirementToContactPremium::ID; });
-    td_->user_manager_->on_get_is_premium_required_to_contact_users(std::move(user_ids_), std::move(result),
+    td_->user_manager_->on_get_is_premium_required_to_contact_users(std::move(user_ids_), std::move(ptr),
                                                                     std::move(promise_));
   }
 
@@ -2676,8 +2674,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
       is_scam != u->is_scam || is_fake != u->is_fake || is_inline_bot != u->is_inline_bot ||
       is_business_bot != u->is_business_bot || inline_query_placeholder != u->inline_query_placeholder ||
       need_location_bot != u->need_location_bot || can_be_added_to_attach_menu != u->can_be_added_to_attach_menu ||
-      bot_active_users != u->bot_active_users || has_main_app != u->has_main_app ||
-      paid_message_star_count != u->paid_message_star_count) {
+      bot_active_users != u->bot_active_users || has_main_app != u->has_main_app) {
     if (is_bot != u->is_bot) {
       LOG_IF(ERROR, !is_deleted && !u->is_deleted && u->is_received)
           << "User.is_bot has changed for " << user_id << "/" << u->usernames << " from " << source << " from "
@@ -2698,15 +2695,15 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
     u->can_be_added_to_attach_menu = can_be_added_to_attach_menu;
     u->bot_active_users = bot_active_users;
     u->has_main_app = has_main_app;
-    u->paid_message_star_count = paid_message_star_count;
 
     LOG(DEBUG) << "Info has changed for " << user_id;
     u->is_changed = true;
   }
-  if (u->contact_require_premium != contact_require_premium) {
+  if (contact_require_premium != u->contact_require_premium || paid_message_star_count != u->paid_message_star_count) {
     u->contact_require_premium = contact_require_premium;
+    u->paid_message_star_count = paid_message_star_count;
     u->is_changed = true;
-    user_full_contact_require_premium_.erase(user_id);
+    user_full_contact_price_.erase(user_id);
   }
   if (is_received && attach_menu_enabled != u->attach_menu_enabled) {
     u->attach_menu_enabled = attach_menu_enabled;
@@ -6125,25 +6122,32 @@ void UserManager::can_send_message_to_user(UserId user_id, bool force,
     return promise.set_value(td_api::make_object<td_api::canSendMessageToUserResultUserIsDeleted>());
   }
   CHECK(user_id.is_valid());
-  if ((u != nullptr && (!u->contact_require_premium || u->is_mutual_contact)) ||
-      td_->option_manager_->get_option_boolean("is_premium")) {
+  if ((u != nullptr && ((!u->contact_require_premium && u->paid_message_star_count == 0) || u->is_mutual_contact)) ||
+      (td_->option_manager_->get_option_boolean("is_premium") && u->paid_message_star_count == 0)) {
     return promise.set_value(td_api::make_object<td_api::canSendMessageToUserResultOk>());
   }
 
   auto user_full = get_user_full_force(user_id, "can_send_message_to_user");
   if (user_full != nullptr) {
-    if (!user_full->contact_require_premium) {
-      return promise.set_value(td_api::make_object<td_api::canSendMessageToUserResultOk>());
+    if (user_full->send_paid_message_stars > 0) {
+      return promise.set_value(td_api::make_object<td_api::canSendMessageToUserResultUserHasPaidMessages>(
+          user_full->send_paid_message_stars));
     }
-    return promise.set_value(td_api::make_object<td_api::canSendMessageToUserResultUserRestrictsNewChats>());
+    if (user_full->contact_require_premium) {
+      return promise.set_value(td_api::make_object<td_api::canSendMessageToUserResultUserRestrictsNewChats>());
+    }
+    return promise.set_value(td_api::make_object<td_api::canSendMessageToUserResultOk>());
   }
 
-  auto it = user_full_contact_require_premium_.find(user_id);
-  if (it != user_full_contact_require_premium_.end()) {
-    if (!it->second) {
-      return promise.set_value(td_api::make_object<td_api::canSendMessageToUserResultOk>());
+  auto it = user_full_contact_price_.find(user_id);
+  if (it != user_full_contact_price_.end()) {
+    if (it->second > 0) {
+      return promise.set_value(td_api::make_object<td_api::canSendMessageToUserResultUserHasPaidMessages>(it->second));
     }
-    return promise.set_value(td_api::make_object<td_api::canSendMessageToUserResultUserRestrictsNewChats>());
+    if (it->second == -1) {
+      return promise.set_value(td_api::make_object<td_api::canSendMessageToUserResultUserRestrictsNewChats>());
+    }
+    return promise.set_value(td_api::make_object<td_api::canSendMessageToUserResultOk>());
   }
 
   if (force) {
@@ -6161,27 +6165,45 @@ void UserManager::can_send_message_to_user(UserId user_id, bool force,
                                                         "can_send_message_to_user");
 }
 
-void UserManager::on_get_is_premium_required_to_contact_users(vector<UserId> &&user_ids,
-                                                              vector<bool> &&is_premium_required,
-                                                              Promise<Unit> &&promise) {
-  if (user_ids.size() != is_premium_required.size()) {
-    LOG(ERROR) << "Receive " << is_premium_required.size() << " flags instead of " << user_ids.size();
+void UserManager::on_get_is_premium_required_to_contact_users(
+    vector<UserId> &&user_ids, vector<telegram_api::object_ptr<telegram_api::RequirementToContact>> &&requirements,
+    Promise<Unit> &&promise) {
+  if (user_ids.size() != requirements.size()) {
+    LOG(ERROR) << "Receive " << requirements.size() << " flags instead of " << user_ids.size();
     return promise.set_error(Status::Error(500, "Receive invalid response"));
   }
   for (size_t i = 0; i < user_ids.size(); i++) {
     auto user_id = user_ids[i];
     CHECK(user_id.is_valid());
     if (get_user_full(user_id) == nullptr) {
-      user_full_contact_require_premium_[user_id] = is_premium_required[i];
+      const auto &requirement = requirements[i].get();
+      switch (requirement->get_id()) {
+        case telegram_api::requirementToContactEmpty::ID:
+          user_full_contact_price_[user_id] = 0;
+          break;
+        case telegram_api::requirementToContactPremium::ID:
+          user_full_contact_price_[user_id] = -1;
+          break;
+        case telegram_api::requirementToContactPaidMessages::ID:
+          user_full_contact_price_[user_id] = StarManager::get_star_count(
+              static_cast<const telegram_api::requirementToContactPaidMessages *>(requirement)->stars_amount_);
+          break;
+        default:
+          UNREACHABLE();
+      }
     }
   }
   promise.set_value(Unit());
 }
 
 void UserManager::allow_send_message_to_user(UserId user_id) {
+  CHECK(!td_->auth_manager_->is_bot());
   if (get_user_full(user_id) == nullptr) {
     CHECK(user_id.is_valid());
-    user_full_contact_require_premium_[user_id] = true;
+    auto it = user_full_contact_price_.find(user_id);
+    if (it != user_full_contact_price_.end() && it->second == -1) {
+      it->second = 0;
+    }
   }
 }
 
@@ -7185,7 +7207,7 @@ UserManager::UserFull *UserManager::add_user_full(UserId user_id) {
   auto &user_full_ptr = users_full_[user_id];
   if (user_full_ptr == nullptr) {
     user_full_ptr = make_unique<UserFull>();
-    user_full_contact_require_premium_.erase(user_id);
+    user_full_contact_price_.erase(user_id);
   }
   return user_full_ptr.get();
 }
