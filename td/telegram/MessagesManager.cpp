@@ -10762,6 +10762,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       message_info.restriction_reasons = get_restriction_reasons(std::move(message->restriction_reason_));
       message_info.author_signature = std::move(message->post_author_);
       message_info.sender_boost_count = message->from_boosts_applied_;
+      message_info.paid_message_star_count = StarManager::get_star_count(message->paid_message_stars_);
       if (!is_bot && message->saved_peer_id_ != nullptr) {
         message_info.saved_messages_topic_id = SavedMessagesTopicId(DialogId(message->saved_peer_id_));
       }
@@ -11052,6 +11053,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->restriction_reasons = std::move(message_info.restriction_reasons);
   message->author_signature = std::move(message_info.author_signature);
   message->sender_boost_count = message_info.sender_boost_count;
+  message->paid_message_star_count = message_info.paid_message_star_count;
   message->saved_messages_topic_id = message_info.saved_messages_topic_id;
   message->is_outgoing = is_outgoing;
   message->is_channel_post = is_channel_post;
@@ -19542,7 +19544,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
       nullptr, nullptr, m->is_outgoing, m->is_pinned, m->is_from_offline, can_be_saved, true, m->is_channel_post,
       m->is_topic_message, false, m->date, edit_date, std::move(forward_info), std::move(import_info),
       std::move(interaction_info), Auto(), nullptr, nullptr, 0, 0, nullptr, 0.0, 0.0, via_bot_user_id, 0,
-      m->sender_boost_count, m->author_signature, 0, 0,
+      m->sender_boost_count, m->paid_message_star_count, m->author_signature, 0, 0,
       get_restriction_reason_has_sensitive_content(m->restriction_reasons),
       get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
 }
@@ -19610,8 +19612,9 @@ td_api::object_ptr<td_api::message> MessagesManager::get_business_message_messag
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_business_message_message_object"),
       nullptr, nullptr, m->is_outgoing, false, m->is_from_offline, can_be_saved, false, false, false, false, m->date,
       m->edit_date, std::move(forward_info), std::move(import_info), nullptr, Auto(), nullptr, std::move(reply_to), 0,
-      0, std::move(self_destruct_type), 0.0, 0.0, via_bot_user_id, via_business_bot_user_id, 0, string(),
-      m->media_album_id, m->effect_id.get(), get_restriction_reason_has_sensitive_content(m->restriction_reasons),
+      0, std::move(self_destruct_type), 0.0, 0.0, via_bot_user_id, via_business_bot_user_id, m->sender_boost_count,
+      m->paid_message_star_count, string(), m->media_album_id, m->effect_id.get(),
+      get_restriction_reason_has_sensitive_content(m->restriction_reasons),
       get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
 }
 
@@ -19707,7 +19710,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_message_object(DialogId
       std::move(unread_reactions), std::move(fact_check), std::move(reply_to), top_thread_message_id,
       td_->saved_messages_manager_->get_saved_messages_topic_id_object(m->saved_messages_topic_id),
       std::move(self_destruct_type), ttl_expires_in, auto_delete_in, via_bot_user_id, via_business_bot_user_id,
-      m->sender_boost_count, m->author_signature, m->media_album_id, m->effect_id.get(),
+      m->sender_boost_count, m->paid_message_star_count, m->author_signature, m->media_album_id, m->effect_id.get(),
       get_restriction_reason_has_sensitive_content(m->restriction_reasons),
       get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
 }
@@ -30742,6 +30745,10 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
   if (old_message->sender_boost_count != new_message->sender_boost_count) {
     LOG(DEBUG) << "Change sender boost count";
     old_message->sender_boost_count = new_message->sender_boost_count;
+    need_send_update = true;
+  }
+  if (old_message->paid_message_star_count != new_message->paid_message_star_count) {
+    old_message->paid_message_star_count = new_message->paid_message_star_count;
     need_send_update = true;
   }
   if (old_message->forward_info != new_message->forward_info) {

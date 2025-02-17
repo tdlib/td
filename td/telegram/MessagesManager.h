@@ -979,6 +979,7 @@ class MessagesManager final : public Actor {
     int64 media_album_id = 0;
     MessageEffectId effect_id;
     int32 report_delivery_until_date = 0;
+    int64 paid_message_star_count = 0;
     bool is_outgoing = false;
     bool is_silent = false;
     bool is_channel_post = false;
@@ -1009,6 +1010,7 @@ class MessagesManager final : public Actor {
     int32 send_date = 0;
     int32 sending_id = 0;  // for yet unsent messages
     int32 sender_boost_count = 0;
+    int64 paid_message_star_count = 0;
 
     int64 random_id = 0;
 
@@ -1068,7 +1070,6 @@ class MessagesManager final : public Actor {
     bool hide_via_bot = false;              // for resend_message
     bool is_bot_start_message = false;      // for resend_message
     int32 new_video_start_timestamp = 0;    // for send_message
-    int64 paid_message_star_count = 0;      // for send_message
 
     DialogId real_forward_from_dialog_id;    // for resend_message
     MessageId real_forward_from_message_id;  // for resend_message
