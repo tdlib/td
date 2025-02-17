@@ -23281,7 +23281,8 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
   send_closure_later(actor_id(this), &MessagesManager::send_forward_message_query, flags, to_dialog_id,
                      messages[0]->initial_top_thread_message_id, from_dialog_id, std::move(as_input_peer), message_ids,
                      std::move(random_ids), schedule_date, messages[0]->new_video_start_timestamp,
-                     messages[0]->paid_message_star_count, get_erase_log_event_promise(log_event_id));
+                     messages[0]->paid_message_star_count * static_cast<int32>(messages.size()),
+                     get_erase_log_event_promise(log_event_id));
 }
 
 void MessagesManager::send_forward_message_query(int32 flags, DialogId to_dialog_id,
