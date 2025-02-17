@@ -1399,7 +1399,8 @@ class SendMultiMediaQuery final : public Td::ResultHandler {
   void send(int32 flags, DialogId dialog_id, tl_object_ptr<telegram_api::InputPeer> as_input_peer,
             const MessageInputReplyTo &input_reply_to, MessageId top_thread_message_id, int32 schedule_date,
             MessageEffectId effect_id, vector<FileUploadId> file_upload_ids, vector<FileId> cover_file_ids,
-            vector<tl_object_ptr<telegram_api::inputSingleMedia>> &&input_single_media, bool is_copy) {
+            vector<tl_object_ptr<telegram_api::inputSingleMedia>> &&input_single_media, bool is_copy,
+            int64 paid_message_star_count) {
     for (auto &single_media : input_single_media) {
       random_ids_.push_back(single_media->random_id_);
       CHECK(!FileManager::extract_was_uploaded(single_media->media_));
@@ -1427,10 +1428,11 @@ class SendMultiMediaQuery final : public Td::ResultHandler {
 
     // no quick ack, because file reference errors are very likely to happen
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_sendMultiMedia(
-            flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-            false /*ignored*/, false /*ignored*/, std::move(input_peer), std::move(reply_to),
-            std::move(input_single_media), schedule_date, std::move(as_input_peer), nullptr, effect_id.get(), 0),
+        telegram_api::messages_sendMultiMedia(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                                              false /*ignored*/, false /*ignored*/, false /*ignored*/,
+                                              false /*ignored*/, std::move(input_peer), std::move(reply_to),
+                                              std::move(input_single_media), schedule_date, std::move(as_input_peer),
+                                              nullptr, effect_id.get(), paid_message_star_count),
         {{dialog_id, is_copy ? MessageContentType::Text : MessageContentType::Photo},
          {dialog_id, MessageContentType::Photo}}));
   }
@@ -21527,6 +21529,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
   int32 schedule_date = 0;
   MessageEffectId effect_id;
   bool is_copy = false;
+  int64 paid_message_star_count = 0;
   for (size_t i = 0; i < request.message_ids.size(); i++) {
     auto *m = get_message(d, request.message_ids[i]);
     if (m == nullptr) {
@@ -21541,6 +21544,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
     schedule_date = get_message_schedule_date(m);
     effect_id = m->effect_id;
     is_copy = m->is_copy;
+    paid_message_star_count += m->paid_message_star_count;
     as_input_peer = get_send_message_as_input_peer(m);
 
     file_upload_ids.push_back(get_message_send_file_upload_id(dialog_id, m, -1));
@@ -21605,9 +21609,10 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
     LOG(INFO) << "Media group " << media_album_id << " from " << dialog_id << " is empty";
   }
   CHECK(input_reply_to != nullptr);
-  td_->create_handler<SendMultiMediaQuery>()->send(
-      flags, dialog_id, std::move(as_input_peer), *input_reply_to, top_thread_message_id, schedule_date, effect_id,
-      std::move(file_upload_ids), std::move(cover_file_ids), std::move(input_single_media), is_copy);
+  td_->create_handler<SendMultiMediaQuery>()->send(flags, dialog_id, std::move(as_input_peer), *input_reply_to,
+                                                   top_thread_message_id, schedule_date, effect_id,
+                                                   std::move(file_upload_ids), std::move(cover_file_ids),
+                                                   std::move(input_single_media), is_copy, paid_message_star_count);
 }
 
 void MessagesManager::do_send_paid_media_group(DialogId dialog_id, MessageId message_id) {
