@@ -530,6 +530,8 @@ class UserManager final : public Actor {
     StoryId max_active_story_id;
     StoryId max_read_story_id;
 
+    int64 paid_message_star_count = 0;
+
     string language_code;
 
     FlatHashSet<int64> photo_ids;

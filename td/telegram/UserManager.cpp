@@ -1446,6 +1446,7 @@ void UserManager::User::store(StorerT &storer) const {
   bool has_profile_background_custom_emoji_id = profile_background_custom_emoji_id.is_valid();
   bool has_bot_active_users = bot_active_users != 0;
   bool has_bot_verification_icon = bot_verification_icon.is_valid();
+  bool has_paid_message_star_count = paid_message_star_count != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_received);
   STORE_FLAG(is_verified);
@@ -1495,6 +1496,7 @@ void UserManager::User::store(StorerT &storer) const {
     STORE_FLAG(has_bot_active_users);
     STORE_FLAG(has_main_app);
     STORE_FLAG(has_bot_verification_icon);
+    STORE_FLAG(has_paid_message_star_count);
     END_STORE_FLAGS();
   }
   store(first_name, storer);
@@ -1557,6 +1559,9 @@ void UserManager::User::store(StorerT &storer) const {
   if (has_bot_verification_icon) {
     store(bot_verification_icon, storer);
   }
+  if (has_paid_message_star_count) {
+    store(paid_message_star_count, storer);
+  }
 }
 
 template <class ParserT>
@@ -1584,6 +1589,7 @@ void UserManager::User::parse(ParserT &parser) {
   bool has_profile_background_custom_emoji_id = false;
   bool has_bot_active_users = false;
   bool has_bot_verification_icon = false;
+  bool has_paid_message_star_count = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_received);
   PARSE_FLAG(is_verified);
@@ -1633,6 +1639,7 @@ void UserManager::User::parse(ParserT &parser) {
     PARSE_FLAG(has_bot_active_users);
     PARSE_FLAG(has_main_app);
     PARSE_FLAG(has_bot_verification_icon);
+    PARSE_FLAG(has_paid_message_star_count);
     END_PARSE_FLAGS();
   }
   parse(first_name, parser);
@@ -1722,6 +1729,9 @@ void UserManager::User::parse(ParserT &parser) {
   }
   if (has_bot_verification_icon) {
     parse(bot_verification_icon, parser);
+  }
+  if (has_paid_message_star_count) {
+    parse(paid_message_star_count, parser);
   }
 
   if (!check_utf8(first_name)) {
@@ -2618,6 +2628,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
   bool stories_unavailable = user->stories_unavailable_;
   bool stories_hidden = user->stories_hidden_;
   bool contact_require_premium = user->contact_require_premium_;
+  auto paid_message_star_count = StarManager::get_star_count(user->send_paid_messages_stars_);
 
   if (!is_bot && (!can_join_groups || can_read_all_group_messages || can_be_added_to_attach_menu || can_be_edited_bot ||
                   has_main_app || is_inline_bot || is_business_bot)) {
@@ -2653,6 +2664,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
     need_location_bot = false;
     has_bot_info_version = false;
     need_apply_min_photo = false;
+    paid_message_star_count = 0;
   }
 
   LOG_IF(ERROR, has_bot_info_version && !is_bot)
@@ -2664,7 +2676,8 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
       is_scam != u->is_scam || is_fake != u->is_fake || is_inline_bot != u->is_inline_bot ||
       is_business_bot != u->is_business_bot || inline_query_placeholder != u->inline_query_placeholder ||
       need_location_bot != u->need_location_bot || can_be_added_to_attach_menu != u->can_be_added_to_attach_menu ||
-      bot_active_users != u->bot_active_users || has_main_app != u->has_main_app) {
+      bot_active_users != u->bot_active_users || has_main_app != u->has_main_app ||
+      paid_message_star_count != u->paid_message_star_count) {
     if (is_bot != u->is_bot) {
       LOG_IF(ERROR, !is_deleted && !u->is_deleted && u->is_received)
           << "User.is_bot has changed for " << user_id << "/" << u->usernames << " from " << source << " from "
@@ -2685,6 +2698,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
     u->can_be_added_to_attach_menu = can_be_added_to_attach_menu;
     u->bot_active_users = bot_active_users;
     u->has_main_app = has_main_app;
+    u->paid_message_star_count = paid_message_star_count;
 
     LOG(DEBUG) << "Info has changed for " << user_id;
     u->is_changed = true;
@@ -8386,8 +8400,8 @@ td_api::object_ptr<td_api::updateUser> UserManager::get_update_unknown_user_obje
   return td_api::make_object<td_api::updateUser>(td_api::make_object<td_api::user>(
       user_id.get(), "", "", nullptr, "", td_api::make_object<td_api::userStatusEmpty>(), nullptr,
       td_->theme_manager_->get_accent_color_id_object(AccentColorId(user_id)), 0, -1, 0, nullptr, false, false, false,
-      nullptr, false, false, "", false, false, false, have_access, td_api::make_object<td_api::userTypeUnknown>(), "",
-      false));
+      nullptr, false, false, "", false, false, false, 0, have_access, td_api::make_object<td_api::userTypeUnknown>(),
+      "", false));
 }
 
 int64 UserManager::get_user_id_object(UserId user_id, const char *source) const {
@@ -8440,8 +8454,8 @@ td_api::object_ptr<td_api::user> UserManager::get_user_object(UserId user_id, co
       u->profile_background_custom_emoji_id.get(), std::move(emoji_status), u->is_contact, u->is_mutual_contact,
       u->is_close_friend, std::move(verification_status), u->is_premium, u->is_support,
       get_restriction_reason_description(u->restriction_reasons), u->max_active_story_id.is_valid(),
-      get_user_has_unread_stories(u), restricts_new_chats, have_access, std::move(type), u->language_code,
-      u->attach_menu_enabled);
+      get_user_has_unread_stories(u), restricts_new_chats, u->paid_message_star_count, have_access, std::move(type),
+      u->language_code, u->attach_menu_enabled);
 }
 
 vector<int64> UserManager::get_user_ids_object(const vector<UserId> &user_ids, const char *source) const {
