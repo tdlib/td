@@ -487,6 +487,7 @@ class ChatManager final : public Actor {
     int32 date = 0;
     int32 participant_count = 0;
     int32 boost_level = 0;
+    int64 paid_message_star_count = 0;
     CustomEmojiId bot_verification_icon;
 
     double max_active_story_id_next_reload_time = 0.0;
