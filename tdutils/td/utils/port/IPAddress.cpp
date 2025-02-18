@@ -656,11 +656,11 @@ bool operator<(const IPAddress &a, const IPAddress &b) {
   return false;
 }
 
-StringBuilder &operator<<(StringBuilder &builder, const IPAddress &address) {
+StringBuilder &operator<<(StringBuilder &string_builder, const IPAddress &address) {
   if (!address.is_valid()) {
-    return builder << "[invalid]";
+    return string_builder << "[invalid]";
   }
-  return builder << "[" << address.get_ip_host() << ":" << address.get_port() << "]";
+  return string_builder << "[" << address.get_ip_host() << ":" << address.get_port() << "]";
 }
 
 }  // namespace td

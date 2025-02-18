@@ -27,16 +27,16 @@ inline char hex_digit(int x) {
 }
 
 template <std::size_t size, bool is_reversed>
-StringBuilder &operator<<(StringBuilder &builder, const HexDumpSize<size, is_reversed> &dump) {
+StringBuilder &operator<<(StringBuilder &string_builder, const HexDumpSize<size, is_reversed> &dump) {
   const unsigned char *ptr = dump.data;
   // TODO: append unsafe
   for (std::size_t i = 0; i < size; i++) {
     int xy = ptr[is_reversed ? size - 1 - i : i];
     int x = xy >> 4;
     int y = xy & 15;
-    builder << hex_digit(x) << hex_digit(y);
+    string_builder << hex_digit(x) << hex_digit(y);
   }
-  return builder;
+  return string_builder;
 }
 
 template <std::size_t align>
@@ -45,37 +45,37 @@ struct HexDumpSlice {
 };
 
 template <std::size_t align>
-StringBuilder &operator<<(StringBuilder &builder, const HexDumpSlice<align> &dump) {
+StringBuilder &operator<<(StringBuilder &string_builder, const HexDumpSlice<align> &dump) {
   const auto str = dump.slice;
   const auto size = str.size();
 
-  builder << '\n';
+  string_builder << '\n';
 
   const std::size_t first_part_size = size % align;
   if (first_part_size) {
-    builder << HexDumpSlice<1>{str.substr(0, first_part_size)} << '\n';
+    string_builder << HexDumpSlice<1>{str.substr(0, first_part_size)} << '\n';
   }
 
   for (std::size_t i = first_part_size; i < size; i += align) {
-    builder << HexDumpSize<align>{str.ubegin() + i};
+    string_builder << HexDumpSize<align>{str.ubegin() + i};
 
     if (((i / align) & 15) == 15 || i + align >= size) {
-      builder << '\n';
+      string_builder << '\n';
     } else {
-      builder << ' ';
+      string_builder << ' ';
     }
   }
 
-  return builder;
+  return string_builder;
 }
 
-inline StringBuilder &operator<<(StringBuilder &builder, const HexDumpSlice<0> &dump) {
+inline StringBuilder &operator<<(StringBuilder &string_builder, const HexDumpSlice<0> &dump) {
   auto size = dump.slice.size();
   const uint8 *ptr = dump.slice.ubegin();
   for (size_t i = 0; i < size; i++) {
-    builder << HexDumpSize<1>{ptr + i};
+    string_builder << HexDumpSize<1>{ptr + i};
   }
-  return builder;
+  return string_builder;
 }
 
 template <std::size_t align>
@@ -109,9 +109,9 @@ Hex<T> as_hex(const T &value) {
 }
 
 template <class T>
-StringBuilder &operator<<(StringBuilder &builder, const Hex<T> &hex) {
-  builder << "0x" << as_hex_dump(hex.value);
-  return builder;
+StringBuilder &operator<<(StringBuilder &string_builder, const Hex<T> &hex) {
+  string_builder << "0x" << as_hex_dump(hex.value);
+  return string_builder;
 }
 
 /*** Binary ***/
@@ -126,11 +126,11 @@ Binary<T> as_binary(const T &value) {
 }
 
 template <class T>
-StringBuilder &operator<<(StringBuilder &builder, const Binary<T> &hex) {
+StringBuilder &operator<<(StringBuilder &string_builder, const Binary<T> &hex) {
   for (size_t i = 0; i < sizeof(T) * 8; i++) {
-    builder << ((hex.value >> i) & 1 ? '1' : '0');
+    string_builder << ((hex.value >> i) & 1 ? '1' : '0');
   }
-  return builder;
+  return string_builder;
 }
 
 /*** Escaped ***/
@@ -138,17 +138,17 @@ struct Escaped {
   Slice str;
 };
 
-inline StringBuilder &operator<<(StringBuilder &builder, const Escaped &escaped) {
+inline StringBuilder &operator<<(StringBuilder &string_builder, const Escaped &escaped) {
   Slice str = escaped.str;
   for (unsigned char c : str) {
     if (c > 31 && c < 127 && c != '"' && c != '\\') {
-      builder << static_cast<char>(c);
+      string_builder << static_cast<char>(c);
     } else {
       const char *oct = "01234567";
-      builder << '\\' << oct[c >> 6] << oct[(c >> 3) & 7] << oct[c & 7];
+      string_builder << '\\' << oct[c >> 6] << oct[(c >> 3) & 7] << oct[c & 7];
     }
   }
-  return builder;
+  return string_builder;
 }
 
 inline Escaped escaped(Slice slice) {
@@ -160,7 +160,7 @@ struct Time {
   double seconds_;
 };
 
-inline StringBuilder &operator<<(StringBuilder &logger, Time t) {
+inline StringBuilder &operator<<(StringBuilder &string_builder, Time t) {
   struct NamedValue {
     const char *name;
     double value;
@@ -173,8 +173,8 @@ inline StringBuilder &operator<<(StringBuilder &logger, Time t) {
   while (i + 1 < durations_n && t.seconds_ > 10 * durations[i + 1].value) {
     i++;
   }
-  logger << StringBuilder::FixedDouble(t.seconds_ / durations[i].value, 1) << Slice(durations[i].name);
-  return logger;
+  string_builder << StringBuilder::FixedDouble(t.seconds_ / durations[i].value, 1) << Slice(durations[i].name);
+  return string_builder;
 }
 
 inline Time as_time(double seconds) {
@@ -186,7 +186,7 @@ struct Size {
   uint64 size_;
 };
 
-inline StringBuilder &operator<<(StringBuilder &logger, Size t) {
+inline StringBuilder &operator<<(StringBuilder &string_builder, Size t) {
   struct NamedValue {
     const char *name;
     uint64 value;
@@ -199,8 +199,8 @@ inline StringBuilder &operator<<(StringBuilder &logger, Size t) {
   while (i + 1 < sizes_n && t.size_ >= 100000 * sizes[i].value) {
     i++;
   }
-  logger << t.size_ / sizes[i].value << Slice(sizes[i].name);
-  return logger;
+  string_builder << t.size_ / sizes[i].value << Slice(sizes[i].name);
+  return string_builder;
 }
 
 inline Size as_size(uint64 size) {
@@ -214,30 +214,30 @@ struct Array {
 };
 
 template <class ArrayT>
-StringBuilder &operator<<(StringBuilder &stream, const Array<ArrayT> &array) {
+StringBuilder &operator<<(StringBuilder &string_builder, const Array<ArrayT> &array) {
   bool first = true;
-  stream << '{';
+  string_builder << '{';
   for (auto &x : array.ref) {
     if (!first) {
-      stream << Slice(", ");
+      string_builder << Slice(", ");
     }
-    stream << x;
+    string_builder << x;
     first = false;
   }
-  return stream << '}';
+  return string_builder << '}';
 }
 
-inline StringBuilder &operator<<(StringBuilder &stream, const Array<vector<bool>> &array) {
+inline StringBuilder &operator<<(StringBuilder &string_builder, const Array<vector<bool>> &array) {
   bool first = true;
-  stream << '{';
+  string_builder << '{';
   for (bool x : array.ref) {
     if (!first) {
-      stream << Slice(", ");
+      string_builder << Slice(", ");
     }
-    stream << x;
+    string_builder << x;
     first = false;
   }
-  return stream << '}';
+  return string_builder << '}';
 }
 
 template <class ArrayT>
@@ -253,8 +253,8 @@ struct Tagged {
 };
 
 template <class ValueT>
-StringBuilder &operator<<(StringBuilder &stream, const Tagged<ValueT> &tagged) {
-  return stream << '[' << tagged.tag << ':' << tagged.ref << ']';
+StringBuilder &operator<<(StringBuilder &string_builder, const Tagged<ValueT> &tagged) {
+  return string_builder << '[' << tagged.tag << ':' << tagged.ref << ']';
 }
 
 template <class ValueT>
@@ -263,8 +263,8 @@ Tagged<ValueT> tag(Slice tag, const ValueT &ref) {
 }
 
 /*** Cond ***/
-inline StringBuilder &operator<<(StringBuilder &sb, Unit) {
-  return sb;
+inline StringBuilder &operator<<(StringBuilder &string_builder, Unit) {
+  return string_builder;
 }
 
 template <class TrueT, class FalseT>
@@ -275,11 +275,11 @@ struct Cond {
 };
 
 template <class TrueT, class FalseT>
-StringBuilder &operator<<(StringBuilder &sb, const Cond<TrueT, FalseT> &cond) {
+StringBuilder &operator<<(StringBuilder &string_builder, const Cond<TrueT, FalseT> &cond) {
   if (cond.flag) {
-    return sb << cond.on_true;
+    return string_builder << cond.on_true;
   } else {
-    return sb << cond.on_false;
+    return string_builder << cond.on_false;
   }
 }
 
@@ -295,9 +295,9 @@ struct Concat {
 };
 
 template <class T>
-StringBuilder &operator<<(StringBuilder &sb, const Concat<T> &concat) {
-  tuple_for_each(concat.args, [&sb](auto &x) { sb << x; });
-  return sb;
+StringBuilder &operator<<(StringBuilder &string_builder, const Concat<T> &concat) {
+  tuple_for_each(concat.args, [&string_builder](auto &x) { string_builder << x; });
+  return string_builder;
 }
 
 template <class... ArgsT>

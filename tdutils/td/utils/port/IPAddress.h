@@ -92,6 +92,6 @@ class IPAddress {
   void init_ipv6_any();
 };
 
-StringBuilder &operator<<(StringBuilder &builder, const IPAddress &address);
+StringBuilder &operator<<(StringBuilder &string_builder, const IPAddress &address);
 
 }  // namespace td

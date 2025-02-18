@@ -309,9 +309,9 @@ class NetQuery final : public TsListNode<NetQueryDebug> {
            int32 tl_constructor, int32 total_timeout_limit, NetQueryStats *stats, vector<ChainId> chain_ids);
 };
 
-StringBuilder &operator<<(StringBuilder &stream, const NetQuery &net_query);
+StringBuilder &operator<<(StringBuilder &string_builder, const NetQuery &net_query);
 
-StringBuilder &operator<<(StringBuilder &stream, const NetQueryPtr &net_query_ptr);
+StringBuilder &operator<<(StringBuilder &string_builder, const NetQueryPtr &net_query_ptr);
 
 inline void cancel_query(NetQueryRef &ref) {
   if (ref.empty()) {
