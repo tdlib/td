@@ -3550,10 +3550,10 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
 
   (void)legacy_know_can_report_spam;
   if (know_action_bar && !has_action_bar) {
-    action_bar = DialogActionBar::create(
+    action_bar = DialogActionBar::create_legacy(
         action_bar_can_report_spam, action_bar_can_add_contact, action_bar_can_block_user,
         action_bar_can_share_phone_number, action_bar_can_report_location, action_bar_can_unarchive,
-        has_outgoing_messages ? -1 : action_bar_distance, action_bar_can_invite_members, string(), false, 0);
+        has_outgoing_messages ? -1 : action_bar_distance, action_bar_can_invite_members);
   }
 }
 

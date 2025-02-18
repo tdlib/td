@@ -14,11 +14,10 @@
 
 namespace td {
 
-unique_ptr<DialogActionBar> DialogActionBar::create(bool can_report_spam, bool can_add_contact, bool can_block_user,
-                                                    bool can_share_phone_number, bool can_report_location,
-                                                    bool can_unarchive, int32 distance, bool can_invite_members,
-                                                    string join_request_dialog_title, bool is_join_request_broadcast,
-                                                    int32 join_request_date) {
+unique_ptr<DialogActionBar> DialogActionBar::create_legacy(bool can_report_spam, bool can_add_contact,
+                                                           bool can_block_user, bool can_share_phone_number,
+                                                           bool can_report_location, bool can_unarchive, int32 distance,
+                                                           bool can_invite_members) {
   auto action_bar = make_unique<DialogActionBar>();
   action_bar->can_report_spam_ = can_report_spam;
   action_bar->can_add_contact_ = can_add_contact;
@@ -28,9 +27,6 @@ unique_ptr<DialogActionBar> DialogActionBar::create(bool can_report_spam, bool c
   action_bar->can_unarchive_ = can_unarchive;
   action_bar->distance_ = distance >= 0 ? distance : -1;
   action_bar->can_invite_members_ = can_invite_members;
-  action_bar->join_request_dialog_title_ = std::move(join_request_dialog_title);
-  action_bar->is_join_request_broadcast_ = is_join_request_broadcast;
-  action_bar->join_request_date_ = join_request_date;
   if (action_bar->is_empty()) {
     return nullptr;
   }

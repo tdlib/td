@@ -34,10 +34,9 @@ class DialogActionBar {
   friend bool operator==(const DialogActionBar &lhs, const DialogActionBar &rhs);
 
  public:
-  static unique_ptr<DialogActionBar> create(bool can_report_spam, bool can_add_contact, bool can_block_user,
-                                            bool can_share_phone_number, bool can_report_location, bool can_unarchive,
-                                            int32 distance, bool can_invite_members, string join_request_dialog_title,
-                                            bool is_join_request_broadcast, int32 join_request_date);
+  static unique_ptr<DialogActionBar> create_legacy(bool can_report_spam, bool can_add_contact, bool can_block_user,
+                                                   bool can_share_phone_number, bool can_report_location,
+                                                   bool can_unarchive, int32 distance, bool can_invite_members);
 
   static unique_ptr<DialogActionBar> create(telegram_api::object_ptr<telegram_api::peerSettings> peer_settings,
                                             bool has_outgoing_messages);
