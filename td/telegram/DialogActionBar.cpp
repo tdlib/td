@@ -33,8 +33,8 @@ unique_ptr<DialogActionBar> DialogActionBar::create_legacy(bool can_report_spam,
   return action_bar;
 }
 
-unique_ptr<DialogActionBar> DialogActionBar::create(telegram_api::object_ptr<telegram_api::peerSettings> peer_settings,
-                                                    bool has_outgoing_messages) {
+unique_ptr<DialogActionBar> DialogActionBar::create(
+    telegram_api::object_ptr<telegram_api::peerSettings> peer_settings) {
   if (peer_settings == nullptr) {
     return nullptr;
   }
@@ -46,7 +46,7 @@ unique_ptr<DialogActionBar> DialogActionBar::create(telegram_api::object_ptr<tel
   action_bar->can_share_phone_number_ = peer_settings->share_contact_;
   action_bar->can_report_location_ = peer_settings->report_geo_;
   action_bar->can_unarchive_ = peer_settings->autoarchived_;
-  if (!has_outgoing_messages && (peer_settings->flags_ & telegram_api::peerSettings::GEO_DISTANCE_MASK) != 0 &&
+  if ((peer_settings->flags_ & telegram_api::peerSettings::GEO_DISTANCE_MASK) != 0 &&
       peer_settings->geo_distance_ >= 0) {
     action_bar->distance_ = peer_settings->geo_distance_;
   }
@@ -65,11 +65,16 @@ bool DialogActionBar::is_empty() const {
          !can_report_location_ && !can_invite_members_ && join_request_dialog_title_.empty();
 }
 
-void DialogActionBar::fix(Td *td, DialogId dialog_id, bool is_dialog_blocked, FolderId folder_id) {
+void DialogActionBar::fix(Td *td, DialogId dialog_id, bool is_dialog_blocked, bool has_outgoing_messages,
+                          FolderId folder_id) {
   auto dialog_type = dialog_id.get_type();
-  if (distance_ >= 0 && dialog_type != DialogType::User) {
-    LOG(ERROR) << "Receive distance " << distance_ << " to " << dialog_id;
-    distance_ = -1;
+  if (distance_ >= 0) {
+    if (dialog_type != DialogType::User) {
+      LOG(ERROR) << "Receive distance " << distance_ << " to " << dialog_id;
+      distance_ = -1;
+    } else if (has_outgoing_messages) {
+      distance_ = -1;
+    }
   }
 
   if (!join_request_dialog_title_.empty()) {

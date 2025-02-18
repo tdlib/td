@@ -6159,8 +6159,7 @@ void MessagesManager::on_get_peer_settings(DialogId dialog_id,
     send_update_chat_business_bot_manage_bar(d);
   }
 
-  auto action_bar = DialogActionBar::create(std::move(peer_settings), d->has_outgoing_messages);
-
+  auto action_bar = DialogActionBar::create(std::move(peer_settings));
   fix_dialog_action_bar(d, action_bar.get());
 
   if (d->action_bar == action_bar) {
@@ -6185,7 +6184,7 @@ void MessagesManager::fix_dialog_action_bar(const Dialog *d, DialogActionBar *ac
   }
 
   CHECK(d != nullptr);
-  action_bar->fix(td_, d->dialog_id, d->is_blocked, d->folder_id);
+  action_bar->fix(td_, d->dialog_id, d->is_blocked, d->has_outgoing_messages, d->folder_id);
 }
 
 void MessagesManager::fix_dialog_business_bot_manage_bar(DialogId dialog_id,

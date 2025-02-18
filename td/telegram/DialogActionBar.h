@@ -38,8 +38,7 @@ class DialogActionBar {
                                                    bool can_share_phone_number, bool can_report_location,
                                                    bool can_unarchive, int32 distance, bool can_invite_members);
 
-  static unique_ptr<DialogActionBar> create(telegram_api::object_ptr<telegram_api::peerSettings> peer_settings,
-                                            bool has_outgoing_messages);
+  static unique_ptr<DialogActionBar> create(telegram_api::object_ptr<telegram_api::peerSettings> peer_settings);
 
   bool is_empty() const;
 
@@ -54,7 +53,7 @@ class DialogActionBar {
   td_api::object_ptr<td_api::ChatActionBar> get_chat_action_bar_object(DialogType dialog_type,
                                                                        bool hide_unarchive) const;
 
-  void fix(Td *td, DialogId dialog_id, bool is_dialog_blocked, FolderId folder_id);
+  void fix(Td *td, DialogId dialog_id, bool is_dialog_blocked, bool has_outgoing_messages, FolderId folder_id);
 
   bool on_dialog_unarchived();
 
