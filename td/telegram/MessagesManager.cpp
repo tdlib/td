@@ -6159,16 +6159,7 @@ void MessagesManager::on_get_peer_settings(DialogId dialog_id,
     send_update_chat_business_bot_manage_bar(d);
   }
 
-  auto distance =
-      (peer_settings->flags_ & telegram_api::peerSettings::GEO_DISTANCE_MASK) != 0 ? peer_settings->geo_distance_ : -1;
-  if (distance < -1 || d->has_outgoing_messages) {
-    distance = -1;
-  }
-  auto action_bar =
-      DialogActionBar::create(peer_settings->report_spam_, peer_settings->add_contact_, peer_settings->block_contact_,
-                              peer_settings->share_contact_, peer_settings->report_geo_, peer_settings->autoarchived_,
-                              distance, peer_settings->invite_members_, peer_settings->request_chat_title_,
-                              peer_settings->request_chat_broadcast_, peer_settings->request_chat_date_);
+  auto action_bar = DialogActionBar::create(std::move(peer_settings), d->has_outgoing_messages);
 
   fix_dialog_action_bar(d, action_bar.get());
 

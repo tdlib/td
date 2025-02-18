@@ -37,6 +37,33 @@ unique_ptr<DialogActionBar> DialogActionBar::create(bool can_report_spam, bool c
   return action_bar;
 }
 
+unique_ptr<DialogActionBar> DialogActionBar::create(telegram_api::object_ptr<telegram_api::peerSettings> peer_settings,
+                                                    bool has_outgoing_messages) {
+  if (peer_settings == nullptr) {
+    return nullptr;
+  }
+
+  auto action_bar = make_unique<DialogActionBar>();
+  action_bar->can_report_spam_ = peer_settings->report_spam_;
+  action_bar->can_add_contact_ = peer_settings->add_contact_;
+  action_bar->can_block_user_ = peer_settings->block_contact_;
+  action_bar->can_share_phone_number_ = peer_settings->share_contact_;
+  action_bar->can_report_location_ = peer_settings->report_geo_;
+  action_bar->can_unarchive_ = peer_settings->autoarchived_;
+  if (!has_outgoing_messages && (peer_settings->flags_ & telegram_api::peerSettings::GEO_DISTANCE_MASK) != 0 &&
+      peer_settings->geo_distance_ >= 0) {
+    action_bar->distance_ = peer_settings->geo_distance_;
+  }
+  action_bar->can_invite_members_ = peer_settings->invite_members_;
+  action_bar->join_request_dialog_title_ = std::move(peer_settings->request_chat_title_);
+  action_bar->is_join_request_broadcast_ = peer_settings->request_chat_broadcast_;
+  action_bar->join_request_date_ = peer_settings->request_chat_date_;
+  if (action_bar->is_empty()) {
+    return nullptr;
+  }
+  return action_bar;
+}
+
 bool DialogActionBar::is_empty() const {
   return !can_report_spam_ && !can_add_contact_ && !can_block_user_ && !can_share_phone_number_ &&
          !can_report_location_ && !can_invite_members_ && join_request_dialog_title_.empty();

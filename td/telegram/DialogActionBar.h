@@ -39,6 +39,9 @@ class DialogActionBar {
                                             int32 distance, bool can_invite_members, string join_request_dialog_title,
                                             bool is_join_request_broadcast, int32 join_request_date);
 
+  static unique_ptr<DialogActionBar> create(telegram_api::object_ptr<telegram_api::peerSettings> peer_settings,
+                                            bool has_outgoing_messages);
+
   bool is_empty() const;
 
   bool can_report_spam() const {
