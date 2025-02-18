@@ -1010,8 +1010,9 @@ class GetPaidMessageRevenueQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    promise_.set_value(
-        td_api::make_object<td_api::starCount>(StarManager::get_star_count(result_ptr.ok()->stars_amount_)));
+    auto ptr = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for GetPaidMessageRevenueQuery: " << to_string(ptr);
+    promise_.set_value(td_api::make_object<td_api::starCount>(StarManager::get_star_count(ptr->stars_amount_)));
   }
 
   void on_error(Status status) final {
