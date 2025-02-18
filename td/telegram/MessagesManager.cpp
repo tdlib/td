@@ -20728,6 +20728,10 @@ Result<MessagesManager::MessageSendOptions> MessagesManager::process_message_sen
     if (result.paid_message_star_count % message_count != 0) {
       return Status::Error(400, "Invalid price for paid messages specified");
     }
+    if (result.paid_message_star_count > 0 &&
+        !td_->star_manager_->has_owned_star_count(result.paid_message_star_count)) {
+      return Status::Error(400, "Have not enough Telegram Stars");
+    }
     result.paid_message_star_count /= message_count;
   }
   result.only_preview = options->only_preview_;
