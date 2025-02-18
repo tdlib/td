@@ -1054,6 +1054,7 @@ class CliClient final : public Actor {
     int64 message_id = 0;
     string invoice_name;
     string invite_link;
+    string gift_codes;
 
     operator td_api::object_ptr<td_api::InputInvoice>() const {
       if (!invite_link.empty()) {
@@ -1061,6 +1062,16 @@ class CliClient final : public Actor {
             td_api::make_object<td_api::telegramPaymentPurposeJoinChat>(invite_link));
       } else if (!invoice_name.empty()) {
         return td_api::make_object<td_api::inputInvoiceName>(invoice_name);
+      } else if (!gift_codes.empty()) {
+        string user_id;
+        string month_count;
+        string text;
+        std::tie(user_id, text) = split(gift_codes, ',');
+        std::tie(month_count, text) = split(text, ',');
+        return td_api::make_object<td_api::inputInvoiceTelegram>(
+            td_api::make_object<td_api::telegramPaymentPurposePremiumGiftCodes>(
+                0, "XTR", 1000, vector<int64>{to_integer<int64>(user_id)}, to_integer<int32>(month_count),
+                as_formatted_text(text)));
       } else {
         return td_api::make_object<td_api::inputInvoiceMessage>(chat_id, message_id);
       }
@@ -1072,6 +1083,8 @@ class CliClient final : public Actor {
       arg.invoice_name = args.substr(1);
     } else if (args[0] == '+' || begins_with(args, "https://t.me/+")) {
       arg.invite_link = args;
+    } else if (args.size() > 1 && args[0] == '%') {
+      arg.gift_codes = args.substr(1);
     } else {
       string chat_id;
       string message_id;

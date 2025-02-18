@@ -104,16 +104,33 @@ Result<InputInvoiceInfo> get_input_invoice_info(Td *td, td_api::object_ptr<td_ap
           TRY_RESULT(message, get_formatted_text(td, td->dialog_manager_->get_my_dialog_id(), std::move(p->text_),
                                                  false, true, true, false));
           MessageQuote::remove_unallowed_quote_entities(message);
+          telegram_api::object_ptr<telegram_api::textWithEntities> text;
+          if (!message.text.empty()) {
+            text = get_input_text_with_entities(td->user_manager_.get(), message,
+                                                "telegramPaymentPurposePremiumGiftCodes");
+          }
+
+          if (p->currency_ == "XTR") {
+            if (input_users.size() != 1u) {
+              return Status::Error(400, "Invalid number of users specified");
+            }
+
+            int32 flags = 0;
+            if (text != nullptr) {
+              flags |= telegram_api::inputInvoicePremiumGiftStars::MESSAGE_MASK;
+            }
+            result.dialog_id_ = DialogId();
+            result.input_invoice_ = telegram_api::make_object<telegram_api::inputInvoicePremiumGiftStars>(
+                flags, std::move(input_users[0]), p->month_count_, std::move(text));
+            break;
+          }
 
           int32 flags = 0;
           if (boost_input_peer != nullptr) {
             flags |= telegram_api::inputStorePaymentPremiumGiftCode::BOOST_PEER_MASK;
           }
-          telegram_api::object_ptr<telegram_api::textWithEntities> text;
-          if (!message.text.empty()) {
+          if (text != nullptr) {
             flags |= telegram_api::inputStorePaymentPremiumGiftCode::MESSAGE_MASK;
-            text = get_input_text_with_entities(td->user_manager_.get(), message,
-                                                "telegramPaymentPurposePremiumGiftCodes");
           }
           auto option = telegram_api::make_object<telegram_api::premiumGiftCodeOption>(
               0, static_cast<int32>(input_users.size()), p->month_count_, string(), 0, p->currency_, p->amount_);
