@@ -2499,6 +2499,15 @@ publicChatTypeHasUsername = PublicChatType;
 publicChatTypeIsLocationBased = PublicChatType;
 
 
+//@description Contains basic information about another user that started a chat with the current user
+//@registration_month Month when the user was registered in Telegram; 0-12; may be 0 if unknown
+//@registration_year Year when the user was registered in Telegram; 0-9999; may be 0 if unknown
+//@phone_number_country_code A two-letter ISO 3166-1 alpha-2 country code based on the phone number of the user; may be empty if unknown
+//@last_name_change_date Point in time (Unix timestamp) when the user changed name last time; 0 if unknown
+//@last_photo_change_date Point in time (Unix timestamp) when the user changed photo last time; 0 if unknown
+accountInfo registration_month:int32 registration_year:int32 phone_number_country_code:string last_name_change_date:int32 last_photo_change_date:int32 = AccountInfo;
+
+
 //@class ChatActionBar @description Describes actions which must be possible to do through a chat action bar
 
 //@description The chat can be reported as spam using the method reportChat with an empty option_id and message_ids. If the chat is a private chat with a user with an emoji status, then a notice about emoji status usage must be shown
@@ -2511,7 +2520,8 @@ chatActionBarInviteMembers = ChatActionBar;
 //@description The chat is a private or secret chat, which can be reported using the method reportChat, or the other user can be blocked using the method setMessageSenderBlockList,
 //-or the other user can be added to the contact list using the method addContact. If the chat is a private chat with a user with an emoji status, then a notice about emoji status usage must be shown
 //@can_unarchive If true, the chat was automatically archived and can be moved back to the main chat list using addChatToList simultaneously with setting chat notification settings to default using setChatNotificationSettings
-chatActionBarReportAddBlock can_unarchive:Bool = ChatActionBar;
+//@account_info Basic information about the other user in the chat; may be null if unknown
+chatActionBarReportAddBlock can_unarchive:Bool account_info:accountInfo = ChatActionBar;
 
 //@description The chat is a private or secret chat and the other user can be added to the contact list using the method addContact
 chatActionBarAddContact = ChatActionBar;

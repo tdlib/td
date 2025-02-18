@@ -21,6 +21,10 @@ class DialogActionBar {
   int32 distance_ = -1;  // distance to the peer
   int32 join_request_date_ = 0;
   string join_request_dialog_title_;
+  int32 registration_month_ = 0;
+  int32 phone_country_ = 0;
+  int32 last_name_change_date_ = 0;
+  int32 last_photo_change_date_ = 0;
 
   bool can_report_spam_ = false;
   bool can_add_contact_ = false;
@@ -32,6 +36,14 @@ class DialogActionBar {
   bool is_join_request_broadcast_ = false;
 
   friend bool operator==(const DialogActionBar &lhs, const DialogActionBar &rhs);
+
+  static bool parse_registration_month(int32 &registration_month, const string &str);
+
+  static bool parse_country_code(int32 &country_code, const string &str);
+
+  static string get_country_code(int32 country);
+
+  void clear_can_block_user();
 
  public:
   static unique_ptr<DialogActionBar> create_legacy(bool can_report_spam, bool can_add_contact, bool can_block_user,
@@ -67,6 +79,10 @@ class DialogActionBar {
   void store(StorerT &storer) const {
     bool has_distance = distance_ >= 0;
     bool has_join_request = !join_request_dialog_title_.empty();
+    bool has_registration_month = registration_month_ > 0;
+    bool has_phone_country = phone_country_ > 0;
+    bool has_last_name_change_date = last_name_change_date_ > 0;
+    bool has_last_photo_change_date = last_photo_change_date_ > 0;
     BEGIN_STORE_FLAGS();
     STORE_FLAG(can_report_spam_);
     STORE_FLAG(can_add_contact_);
@@ -78,6 +94,10 @@ class DialogActionBar {
     STORE_FLAG(has_distance);
     STORE_FLAG(is_join_request_broadcast_);
     STORE_FLAG(has_join_request);
+    STORE_FLAG(has_registration_month);
+    STORE_FLAG(has_phone_country);
+    STORE_FLAG(has_last_name_change_date);
+    STORE_FLAG(has_last_photo_change_date);
     END_STORE_FLAGS();
     if (has_distance) {
       td::store(distance_, storer);
@@ -86,12 +106,28 @@ class DialogActionBar {
       td::store(join_request_dialog_title_, storer);
       td::store(join_request_date_, storer);
     }
+    if (has_registration_month) {
+      td::store(registration_month_, storer);
+    }
+    if (has_phone_country) {
+      td::store(phone_country_, storer);
+    }
+    if (has_last_name_change_date) {
+      td::store(last_name_change_date_, storer);
+    }
+    if (has_last_photo_change_date) {
+      td::store(last_photo_change_date_, storer);
+    }
   }
 
   template <class ParserT>
   void parse(ParserT &parser) {
     bool has_distance;
     bool has_join_request;
+    bool has_registration_month;
+    bool has_phone_country;
+    bool has_last_name_change_date;
+    bool has_last_photo_change_date;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(can_report_spam_);
     PARSE_FLAG(can_add_contact_);
@@ -103,6 +139,10 @@ class DialogActionBar {
     PARSE_FLAG(has_distance);
     PARSE_FLAG(is_join_request_broadcast_);
     PARSE_FLAG(has_join_request);
+    PARSE_FLAG(has_registration_month);
+    PARSE_FLAG(has_phone_country);
+    PARSE_FLAG(has_last_name_change_date);
+    PARSE_FLAG(has_last_photo_change_date);
     END_PARSE_FLAGS();
     if (has_distance) {
       td::parse(distance_, parser);
@@ -110,6 +150,18 @@ class DialogActionBar {
     if (has_join_request) {
       td::parse(join_request_dialog_title_, parser);
       td::parse(join_request_date_, parser);
+    }
+    if (has_registration_month) {
+      td::parse(registration_month_, parser);
+    }
+    if (has_phone_country) {
+      td::parse(phone_country_, parser);
+    }
+    if (has_last_name_change_date) {
+      td::parse(last_name_change_date_, parser);
+    }
+    if (has_last_photo_change_date) {
+      td::parse(last_photo_change_date_, parser);
     }
   }
 };
