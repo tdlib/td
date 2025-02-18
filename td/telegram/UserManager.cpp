@@ -8433,6 +8433,10 @@ int64 UserManager::get_user_id_object(UserId user_id, const char *source) const 
     }
     unknown_users_.insert(user_id);
     send_closure(G()->td(), &Td::send_update, get_update_unknown_user_object(user_id));
+
+    if (user_id == my_id_) {
+      send_get_me_query(td_, Promise<Unit>());
+    }
   }
   return user_id.get();
 }
