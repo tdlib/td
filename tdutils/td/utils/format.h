@@ -228,16 +228,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const Array<ArrayT> &ar
 }
 
 inline StringBuilder &operator<<(StringBuilder &string_builder, const Array<vector<bool>> &array) {
-  bool first = true;
-  string_builder << '{';
-  for (bool x : array.ref) {
-    if (!first) {
-      string_builder << Slice(", ");
-    }
-    string_builder << x;
-    first = false;
-  }
-  return string_builder << '}';
+  return string_builder << array.ref;
 }
 
 template <class ArrayT>
