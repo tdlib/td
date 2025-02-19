@@ -969,13 +969,14 @@ premiumPaymentOption currency:string amount:int53 discount_percentage:int32 mont
 premiumStatePaymentOption payment_option:premiumPaymentOption is_current:Bool is_upgrade:Bool last_transaction_id:string = PremiumStatePaymentOption;
 
 //@description Describes an option for gifting Telegram Premium to a user. Use telegramPaymentPurposePremiumGiftCodes for out-of-store payments or payments in Telegram Stars
-//@currency ISO 4217 currency code for the payment, or "XTR" for payments in Telegram Stars
+//@currency ISO 4217 currency code for the payment
 //@amount The amount to pay, in the smallest units of the currency
+//@star_count The alternative amount of Telegram Stars to pay; 0 if payment in Telegram Stars is not possible
 //@discount_percentage The discount associated with this option, as a percentage
 //@month_count Number of months the Telegram Premium subscription will be active
 //@store_product_id Identifier of the store product associated with the option
 //@sticker A sticker to be shown along with the option; may be null if unknown
-premiumGiftPaymentOption currency:string amount:int53 discount_percentage:int32 month_count:int32 store_product_id:string sticker:sticker = PremiumGiftPaymentOption;
+premiumGiftPaymentOption currency:string amount:int53 star_count:int53 discount_percentage:int32 month_count:int32 store_product_id:string sticker:sticker = PremiumGiftPaymentOption;
 
 //@description Contains a list of options for gifting Telegram Premium to a user @options The list of options
 premiumGiftPaymentOptions options:vector<premiumGiftPaymentOption> = PremiumGiftPaymentOptions;

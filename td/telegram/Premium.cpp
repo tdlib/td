@@ -399,7 +399,14 @@ class GetPremiumGiftOptionsQuery final : public Td::ResultHandler {
       return static_cast<double>(payment_option->amount_) / static_cast<double>(payment_option->months_);
     };
     FlatHashMap<string, double> max_prices;
+    FlatHashMap<int32, int64> star_prices;
     for (auto &result : results) {
+      if (result->currency_ == "XTR") {
+        if (!star_prices.emplace(result->months_, StarManager::get_star_count(result->amount_)).second) {
+          LOG(ERROR) << "Receive duplicate Telegram Star price for " << result->months_;
+        }
+        continue;
+      }
       auto &max_price = max_prices[result->currency_];
       auto price = get_monthly_price(result);
       if (price > max_price) {
@@ -409,10 +416,14 @@ class GetPremiumGiftOptionsQuery final : public Td::ResultHandler {
 
     vector<td_api::object_ptr<td_api::premiumGiftPaymentOption>> options;
     for (auto &result : results) {
+      if (result->currency_ == "XTR") {
+        continue;
+      }
       double relative_price = get_monthly_price(result) / max_prices[result->currency_];
       options.push_back(td_api::make_object<td_api::premiumGiftPaymentOption>(
-          result->currency_, result->amount_, static_cast<int32>(100 * (1.0 - relative_price)), result->months_,
-          result->store_product_, td_->stickers_manager_->get_premium_gift_sticker_object(result->months_, 0)));
+          result->currency_, result->amount_, star_prices[result->months_],
+          static_cast<int32>(100 * (1.0 - relative_price)), result->months_, result->store_product_,
+          td_->stickers_manager_->get_premium_gift_sticker_object(result->months_, 0)));
     }
     promise_.set_value(td_api::make_object<td_api::premiumGiftPaymentOptions>(std::move(options)));
   }
