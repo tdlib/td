@@ -356,7 +356,6 @@ function split_file($file, $chunks, $undo) {
             'DownloadManagerCallback' => 'DownloadManagerCallback',
             'EmailVerification' => 'EmailVerification',
             'EmojiGroup' => 'EmojiGroup',
-            'EmojiStatus|[a-z_]*_emoji_status' => 'EmojiStatus',
             'FactCheck' => 'FactCheck',
             'file_reference_manager[_(-](?![.]get[(][)])|FileReferenceManager|file_references[)]' => 'FileReferenceManager',
             'file_manager[_(-](?![.]get[(][)])|FileManager([^ ;.]| [^*])|update_file[)]' => 'files/FileManager',
