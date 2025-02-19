@@ -3651,10 +3651,12 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::clickPremiumSubscriptionButton>());
     } else if (op == "gprs") {
       send_request(td_api::make_object<td_api::getPremiumState>());
-    } else if (op == "gpgcpo") {
+    } else if (op == "gpgpo") {
+      send_request(td_api::make_object<td_api::getPremiumGiftPaymentOptions>());
+    } else if (op == "gpgapo") {
       ChatId boosted_chat_id;
       get_args(args, boosted_chat_id);
-      send_request(td_api::make_object<td_api::getPremiumGiftCodePaymentOptions>(boosted_chat_id));
+      send_request(td_api::make_object<td_api::getPremiumGiveawayPaymentOptions>(boosted_chat_id));
     } else if (op == "cpgc") {
       send_request(td_api::make_object<td_api::checkPremiumGiftCode>(args));
     } else if (op == "apgc") {

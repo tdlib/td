@@ -1581,7 +1581,9 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getPremiumState &request);
 
-  void on_request(uint64 id, const td_api::getPremiumGiftCodePaymentOptions &request);
+  void on_request(uint64 id, const td_api::getPremiumGiftPaymentOptions &request);
+
+  void on_request(uint64 id, const td_api::getPremiumGiveawayPaymentOptions &request);
 
   void on_request(uint64 id, td_api::checkPremiumGiftCode &request);
 

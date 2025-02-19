@@ -968,19 +968,29 @@ premiumPaymentOption currency:string amount:int53 discount_percentage:int32 mont
 //@last_transaction_id Identifier of the last in-store transaction for the currently used option
 premiumStatePaymentOption payment_option:premiumPaymentOption is_current:Bool is_upgrade:Bool last_transaction_id:string = PremiumStatePaymentOption;
 
-//@description Describes an option for creating Telegram Premium gift codes or Telegram Premium giveaway. Use telegramPaymentPurposePremiumGiftCodes or telegramPaymentPurposePremiumGiveaway for out-of-store payments or payments in Telegram Stars
-//@currency ISO 4217 currency code for Telegram Premium gift code payment, or "XTR" for payments in Telegram Stars for Telegram Premium
+//@description Describes an option for gifting Telegram Premium to a user. Use telegramPaymentPurposePremiumGiftCodes for out-of-store payments or payments in Telegram Stars
+//@currency ISO 4217 currency code for the payment, or "XTR" for payments in Telegram Stars
 //@amount The amount to pay, in the smallest units of the currency
 //@discount_percentage The discount associated with this option, as a percentage
+//@month_count Number of months the Telegram Premium subscription will be active
+//@store_product_id Identifier of the store product associated with the option
+//@sticker A sticker to be shown along with the option; may be null if unknown
+premiumGiftPaymentOption currency:string amount:int53 discount_percentage:int32 month_count:int32 store_product_id:string sticker:sticker = PremiumGiftPaymentOption;
+
+//@description Contains a list of options for gifting Telegram Premium to a user @options The list of options
+premiumGiftPaymentOptions options:vector<premiumGiftPaymentOption> = PremiumGiftPaymentOptions;
+
+//@description Describes an option for creation of Telegram Premium giveaway or manual distribution of Telegram Premium among chat members. Use telegramPaymentPurposePremiumGiftCodes or telegramPaymentPurposePremiumGiveaway for out-of-store payments
+//@currency ISO 4217 currency code for Telegram Premium gift code payment
+//@amount The amount to pay, in the smallest units of the currency
 //@winner_count Number of users which will be able to activate the gift codes
 //@month_count Number of months the Telegram Premium subscription will be active
 //@store_product_id Identifier of the store product associated with the option; may be empty if none
 //@store_product_quantity Number of times the store product must be paid
-//@sticker A sticker to be shown along with the gift code; may be null if unknown
-premiumGiftCodePaymentOption currency:string amount:int53 discount_percentage:int32 winner_count:int32 month_count:int32 store_product_id:string store_product_quantity:int32 sticker:sticker = PremiumGiftCodePaymentOption;
+premiumGiveawayPaymentOption currency:string amount:int53 winner_count:int32 month_count:int32 store_product_id:string store_product_quantity:int32 = PremiumGiveawayPaymentOption;
 
-//@description Contains a list of options for creating Telegram Premium gift codes or Telegram Premium giveaway @options The list of options
-premiumGiftCodePaymentOptions options:vector<premiumGiftCodePaymentOption> = PremiumGiftCodePaymentOptions;
+//@description Contains a list of options for creation of Telegram Premium giveaway or manual distribution of Telegram Premium among chat members @options The list of options
+premiumGiveawayPaymentOptions options:vector<premiumGiveawayPaymentOption> = PremiumGiveawayPaymentOptions;
 
 //@description Contains information about a Telegram Premium gift code
 //@creator_id Identifier of a chat or a user that created the gift code; may be null if unknown. If null and the code is from messagePremiumGiftCode message, then creator_id from the message can be used
@@ -1009,7 +1019,7 @@ starPaymentOptions options:vector<starPaymentOption> = StarPaymentOptions;
 //@is_default True, if the option must be chosen by default
 starGiveawayWinnerOption winner_count:int32 won_star_count:int53 is_default:Bool = StarGiveawayWinnerOption;
 
-//@description Describes an option for creating Telegram Star giveaway. Use telegramPaymentPurposeStarGiveaway for out-of-store payments
+//@description Describes an option for creation of Telegram Star giveaway. Use telegramPaymentPurposeStarGiveaway for out-of-store payments
 //@currency ISO 4217 currency code for the payment
 //@amount The amount to pay, in the smallest units of the currency
 //@star_count Number of Telegram Stars that will be distributed among winners
@@ -1020,7 +1030,7 @@ starGiveawayWinnerOption winner_count:int32 won_star_count:int53 is_default:Bool
 //@is_additional True, if the option must be shown only in the full list of payment options
 starGiveawayPaymentOption currency:string amount:int53 star_count:int53 store_product_id:string yearly_boost_count:int32 winner_options:vector<starGiveawayWinnerOption> is_default:Bool is_additional:Bool = StarGiveawayPaymentOption;
 
-//@description Contains a list of options for creating Telegram Star giveaway @options The list of options
+//@description Contains a list of options for creation of Telegram Star giveaway @options The list of options
 starGiveawayPaymentOptions options:vector<starGiveawayPaymentOption> = StarGiveawayPaymentOptions;
 
 
@@ -12318,9 +12328,12 @@ clickPremiumSubscriptionButton = Ok;
 //@description Returns state of Telegram Premium subscription and promotion videos for Premium features
 getPremiumState = PremiumState;
 
-//@description Returns available options for Telegram Premium gift code or Telegram Premium giveaway creation
-//@boosted_chat_id Identifier of the supergroup or channel chat, which will be automatically boosted by receivers of the gift codes and which is administered by the user; 0 if none
-getPremiumGiftCodePaymentOptions boosted_chat_id:int53 = PremiumGiftCodePaymentOptions;
+//@description Returns available options for gifting Telegram Premium to a user
+getPremiumGiftPaymentOptions = PremiumGiftPaymentOptions;
+
+//@description Returns available options for creation of Telegram Premium giveaway or manual distribution of Telegram Premium among chat members
+//@boosted_chat_id Identifier of the supergroup or channel chat, which will be automatically boosted by receivers of the gift codes and which is administered by the user
+getPremiumGiveawayPaymentOptions boosted_chat_id:int53 = PremiumGiveawayPaymentOptions;
 
 //@description Return information about a Telegram Premium gift code @code The code to check
 checkPremiumGiftCode code:string = PremiumGiftCodeInfo;

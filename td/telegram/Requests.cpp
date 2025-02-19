@@ -7543,10 +7543,16 @@ void Requests::on_request(uint64 id, const td_api::getPremiumState &request) {
   get_premium_state(td_, std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::getPremiumGiftCodePaymentOptions &request) {
+void Requests::on_request(uint64 id, const td_api::getPremiumGiftPaymentOptions &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  get_premium_gift_code_options(td_, DialogId(request.boosted_chat_id_), std::move(promise));
+  get_premium_gift_options(td_, std::move(promise));
+}
+
+void Requests::on_request(uint64 id, const td_api::getPremiumGiveawayPaymentOptions &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  get_premium_giveaway_options(td_, DialogId(request.boosted_chat_id_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::checkPremiumGiftCode &request) {
