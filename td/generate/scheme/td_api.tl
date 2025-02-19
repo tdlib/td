@@ -968,7 +968,7 @@ premiumPaymentOption currency:string amount:int53 discount_percentage:int32 mont
 //@last_transaction_id Identifier of the last in-store transaction for the currently used option
 premiumStatePaymentOption payment_option:premiumPaymentOption is_current:Bool is_upgrade:Bool last_transaction_id:string = PremiumStatePaymentOption;
 
-//@description Describes an option for gifting Telegram Premium to a user. Use telegramPaymentPurposePremiumGiftCodes for out-of-store payments or payments in Telegram Stars
+//@description Describes an option for gifting Telegram Premium to a user. Use telegramPaymentPurposePremiumGift for out-of-store payments or payments in Telegram Stars
 //@currency ISO 4217 currency code for the payment
 //@amount The amount to pay, in the smallest units of the currency
 //@star_count The alternative amount of Telegram Stars to pay; 0 if payment in Telegram Stars is not possible
@@ -978,7 +978,7 @@ premiumStatePaymentOption payment_option:premiumPaymentOption is_current:Bool is
 //@sticker A sticker to be shown along with the option; may be null if unknown
 premiumGiftPaymentOption currency:string amount:int53 star_count:int53 discount_percentage:int32 month_count:int32 store_product_id:string sticker:sticker = PremiumGiftPaymentOption;
 
-//@description Contains a list of options for gifting Telegram Premium to a user @options The list of options
+//@description Contains a list of options for gifting Telegram Premium to a user @options The list of options sorted by Telegram Premium subscription duration
 premiumGiftPaymentOptions options:vector<premiumGiftPaymentOption> = PremiumGiftPaymentOptions;
 
 //@description Describes an option for creation of Telegram Premium giveaway or manual distribution of Telegram Premium among chat members. Use telegramPaymentPurposePremiumGiftCodes or telegramPaymentPurposePremiumGiveaway for out-of-store payments
@@ -6328,8 +6328,16 @@ storePaymentPurposeGiftedStars user_id:int53 currency:string amount:int53 star_c
 
 //@class TelegramPaymentPurpose @description Describes a purpose of a payment toward Telegram
 
-//@description The user creating Telegram Premium gift codes for other users
-//@boosted_chat_id Identifier of the supergroup or channel chat, which will be automatically boosted by the users for duration of the Premium subscription and which is administered by the user; 0 if none
+//@description The user gifting Telegram Premium to another user
+//@currency ISO 4217 currency code of the payment currency
+//@amount Paid amount, in the smallest units of the currency
+//@user_id Identifier of the user which will receive Telegram Premium
+//@month_count Number of months the Telegram Premium subscription will be active for the user
+//@text Text to show to the user receiving Telegram Premium; 0-getOption("gift_text_length_max") characters. Only Bold, Italic, Underline, Strikethrough, Spoiler, and CustomEmoji entities are allowed
+telegramPaymentPurposePremiumGift currency:string amount:int53 user_id:int53 month_count:int32 text:formattedText = TelegramPaymentPurpose;
+
+//@description The user boosting a chat by creating Telegram Premium gift codes for other users
+//@boosted_chat_id Identifier of the supergroup or channel chat, which will be automatically boosted by the users for duration of the Premium subscription and which is administered by the user
 //@currency ISO 4217 currency code of the payment currency
 //@amount Paid amount, in the smallest units of the currency
 //@user_ids Identifiers of the users which can activate the gift codes
@@ -7273,7 +7281,7 @@ internalLinkTypePhoneNumberConfirmation hash:string phone_number:string = Intern
 //@referrer Referrer specified in the link
 internalLinkTypePremiumFeatures referrer:string = InternalLinkType;
 
-//@description The link is a link to the screen for gifting Telegram Premium subscriptions to friends via inputInvoiceTelegram with telegramPaymentPurposePremiumGiftCodes payments or in-store purchases
+//@description The link is a link to the screen for gifting Telegram Premium subscriptions to friends via inputInvoiceTelegram with telegramPaymentPurposePremiumGift payments or in-store purchases
 //@referrer Referrer specified in the link
 internalLinkTypePremiumGift referrer:string = InternalLinkType;
 

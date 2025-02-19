@@ -86,6 +86,48 @@ Result<InputInvoiceInfo> get_input_invoice_info(Td *td, td_api::object_ptr<td_ap
         return Status::Error(400, "Purpose must be non-empty");
       }
       switch (invoice->purpose_->get_id()) {
+        case td_api::telegramPaymentPurposePremiumGift::ID: {
+          auto p = static_cast<td_api::telegramPaymentPurposePremiumGift *>(invoice->purpose_.get());
+          TRY_RESULT(input_user, td->user_manager_->get_input_user(UserId(p->user_id_)));
+          if (p->amount_ <= 0 || !check_currency_amount(p->amount_)) {
+            return Status::Error(400, "Invalid amount of the currency specified");
+          }
+          if (!clean_input_string(p->currency_)) {
+            return Status::Error(400, "Strings must be encoded in UTF-8");
+          }
+          TRY_RESULT(message, get_formatted_text(td, td->dialog_manager_->get_my_dialog_id(), std::move(p->text_),
+                                                 false, true, true, false));
+          MessageQuote::remove_unallowed_quote_entities(message);
+          telegram_api::object_ptr<telegram_api::textWithEntities> text;
+          if (!message.text.empty()) {
+            text = get_input_text_with_entities(td->user_manager_.get(), message, "telegramPaymentPurposePremiumGift");
+          }
+          if (p->currency_ == "XTR") {
+            int32 flags = 0;
+            if (text != nullptr) {
+              flags |= telegram_api::inputInvoicePremiumGiftStars::MESSAGE_MASK;
+            }
+            result.star_count_ = max(p->amount_, static_cast<int64>(0));
+            result.input_invoice_ = telegram_api::make_object<telegram_api::inputInvoicePremiumGiftStars>(
+                flags, std::move(input_user), p->month_count_, std::move(text));
+            break;
+          }
+
+          int32 flags = 0;
+          if (text != nullptr) {
+            flags |= telegram_api::inputStorePaymentPremiumGiftCode::MESSAGE_MASK;
+          }
+          auto option = telegram_api::make_object<telegram_api::premiumGiftCodeOption>(0, 1, p->month_count_, string(),
+                                                                                       0, p->currency_, p->amount_);
+          vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
+          input_users.push_back(std::move(input_user));
+          auto purpose = telegram_api::make_object<telegram_api::inputStorePaymentPremiumGiftCode>(
+              flags, std::move(input_users), nullptr, p->currency_, p->amount_, std::move(text));
+
+          result.input_invoice_ = telegram_api::make_object<telegram_api::inputInvoicePremiumGiftCode>(
+              std::move(purpose), std::move(option));
+          break;
+        }
         case td_api::telegramPaymentPurposePremiumGiftCodes::ID: {
           auto p = static_cast<td_api::telegramPaymentPurposePremiumGiftCodes *>(invoice->purpose_.get());
           vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
@@ -110,26 +152,7 @@ Result<InputInvoiceInfo> get_input_invoice_info(Td *td, td_api::object_ptr<td_ap
                                                 "telegramPaymentPurposePremiumGiftCodes");
           }
 
-          if (p->currency_ == "XTR") {
-            if (input_users.size() != 1u) {
-              return Status::Error(400, "Invalid number of users specified");
-            }
-
-            int32 flags = 0;
-            if (text != nullptr) {
-              flags |= telegram_api::inputInvoicePremiumGiftStars::MESSAGE_MASK;
-            }
-            result.dialog_id_ = DialogId();
-            result.star_count_ = max(p->amount_, static_cast<int64>(0));
-            result.input_invoice_ = telegram_api::make_object<telegram_api::inputInvoicePremiumGiftStars>(
-                flags, std::move(input_users[0]), p->month_count_, std::move(text));
-            break;
-          }
-
-          int32 flags = 0;
-          if (boost_input_peer != nullptr) {
-            flags |= telegram_api::inputStorePaymentPremiumGiftCode::BOOST_PEER_MASK;
-          }
+          int32 flags = telegram_api::inputStorePaymentPremiumGiftCode::BOOST_PEER_MASK;
           if (text != nullptr) {
             flags |= telegram_api::inputStorePaymentPremiumGiftCode::MESSAGE_MASK;
           }

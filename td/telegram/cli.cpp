@@ -1071,9 +1071,9 @@ class CliClient final : public Actor {
         std::tie(amount, text) = split(text, ',');
         std::tie(month_count, text) = split(text, ',');
         return td_api::make_object<td_api::inputInvoiceTelegram>(
-            td_api::make_object<td_api::telegramPaymentPurposePremiumGiftCodes>(
-                0, "XTR", to_integer<int64>(amount), vector<int64>{to_integer<int64>(user_id)},
-                to_integer<int32>(month_count), as_formatted_text(text)));
+            td_api::make_object<td_api::telegramPaymentPurposePremiumGift>(
+                "XTR", to_integer<int64>(amount), to_integer<int64>(user_id), to_integer<int32>(month_count),
+                as_formatted_text(text)));
       } else {
         return td_api::make_object<td_api::inputInvoiceMessage>(chat_id, message_id);
       }
