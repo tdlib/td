@@ -120,6 +120,7 @@ Result<InputInvoiceInfo> get_input_invoice_info(Td *td, td_api::object_ptr<td_ap
               flags |= telegram_api::inputInvoicePremiumGiftStars::MESSAGE_MASK;
             }
             result.dialog_id_ = DialogId();
+            result.star_count_ = max(p->amount_, static_cast<int64>(0));
             result.input_invoice_ = telegram_api::make_object<telegram_api::inputInvoicePremiumGiftStars>(
                 flags, std::move(input_users[0]), p->month_count_, std::move(text));
             break;

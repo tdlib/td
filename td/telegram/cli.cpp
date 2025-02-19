@@ -1064,14 +1064,16 @@ class CliClient final : public Actor {
         return td_api::make_object<td_api::inputInvoiceName>(invoice_name);
       } else if (!gift_codes.empty()) {
         string user_id;
+        string amount;
         string month_count;
         string text;
         std::tie(user_id, text) = split(gift_codes, ',');
+        std::tie(amount, text) = split(text, ',');
         std::tie(month_count, text) = split(text, ',');
         return td_api::make_object<td_api::inputInvoiceTelegram>(
             td_api::make_object<td_api::telegramPaymentPurposePremiumGiftCodes>(
-                0, "XTR", 1000, vector<int64>{to_integer<int64>(user_id)}, to_integer<int32>(month_count),
-                as_formatted_text(text)));
+                0, "XTR", to_integer<int64>(amount), vector<int64>{to_integer<int64>(user_id)},
+                to_integer<int32>(month_count), as_formatted_text(text)));
       } else {
         return td_api::make_object<td_api::inputInvoiceMessage>(chat_id, message_id);
       }
