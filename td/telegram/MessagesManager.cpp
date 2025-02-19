@@ -19966,6 +19966,9 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
   if (options.update_stickersets_order && !td_->auth_manager_->is_bot()) {
     move_message_content_sticker_set_to_top(td_, result->content.get());
   }
+  if (result->paid_message_star_count > 0) {
+    td_->star_manager_->add_pending_owned_star_count(-result->paid_message_star_count, false);
+  }
   return result;
 }
 
@@ -25658,6 +25661,9 @@ void MessagesManager::send_update_message_send_succeeded(Dialog *d, MessageId ol
   CHECK(d->is_update_new_chat_sent);
   m->file_upload_ids.clear();  // TODO clear other send_message only fields
   m->thumbnail_file_upload_ids.clear();
+  if (m->paid_message_star_count > 0) {
+    td_->star_manager_->add_pending_owned_star_count(m->paid_message_star_count, true);
+  }
   if (!td_->auth_manager_->is_bot()) {
     yet_unsent_message_full_id_to_persistent_message_id_.emplace({d->dialog_id, old_message_id}, m->message_id);
 
@@ -26913,6 +26919,9 @@ void MessagesManager::fail_send_message(MessageFullId message_full_id, int32 err
   update_failed_to_send_message_content(td_, message->content);
   message->file_upload_ids = {};
   message->thumbnail_file_upload_ids = {};
+  if (message->paid_message_star_count > 0) {
+    td_->star_manager_->add_pending_owned_star_count(message->paid_message_star_count, false);
+  }
 
   bool need_update = false;
   Message *m = add_message_to_dialog(d, std::move(message), false, true, &need_update, &need_update_dialog_pos,
