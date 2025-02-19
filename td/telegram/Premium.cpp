@@ -220,6 +220,21 @@ static Result<tl_object_ptr<telegram_api::InputStorePaymentPurpose>> get_input_s
       return make_tl_object<telegram_api::inputStorePaymentPremiumSubscription>(flags, false /*ignored*/,
                                                                                 false /*ignored*/);
     }
+    case td_api::storePaymentPurposePremiumGift::ID: {
+      auto p = static_cast<td_api::storePaymentPurposePremiumGift *>(purpose.get());
+      vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
+      TRY_RESULT(input_user, td->user_manager_->get_input_user(UserId(p->user_id_)));
+      input_users.push_back(std::move(input_user));
+      TRY_STATUS(check_payment_amount(p->currency_, p->amount_));
+      TRY_RESULT(text, get_premium_gift_text(td, std::move(p->text_)));
+
+      int32 flags = 0;
+      if (text != nullptr) {
+        flags |= telegram_api::inputStorePaymentPremiumGiftCode::MESSAGE_MASK;
+      }
+      return telegram_api::make_object<telegram_api::inputStorePaymentPremiumGiftCode>(
+          flags, std::move(input_users), nullptr, p->currency_, p->amount_, std::move(text));
+    }
     case td_api::storePaymentPurposePremiumGiftCodes::ID: {
       auto p = static_cast<td_api::storePaymentPurposePremiumGiftCodes *>(purpose.get());
       vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
@@ -229,16 +244,10 @@ static Result<tl_object_ptr<telegram_api::InputStorePaymentPurpose>> get_input_s
       }
       TRY_STATUS(check_payment_amount(p->currency_, p->amount_));
       DialogId boosted_dialog_id(p->boosted_chat_id_);
-      telegram_api::object_ptr<telegram_api::InputPeer> boost_input_peer;
-      if (boosted_dialog_id != DialogId()) {
-        TRY_RESULT_ASSIGN(boost_input_peer, get_boost_input_peer(td, boosted_dialog_id));
-      }
+      TRY_RESULT(boost_input_peer, get_boost_input_peer(td, boosted_dialog_id));
       TRY_RESULT(text, get_premium_gift_text(td, std::move(p->text_)));
 
-      int32 flags = 0;
-      if (boost_input_peer != nullptr) {
-        flags |= telegram_api::inputStorePaymentPremiumGiftCode::BOOST_PEER_MASK;
-      }
+      int32 flags = telegram_api::inputStorePaymentPremiumGiftCode::BOOST_PEER_MASK;
       if (text != nullptr) {
         flags |= telegram_api::inputStorePaymentPremiumGiftCode::MESSAGE_MASK;
       }
