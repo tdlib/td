@@ -165,6 +165,16 @@ static td_api::object_ptr<td_api::BusinessFeature> get_business_feature_object(S
   return nullptr;
 }
 
+Status check_payment_amount(string &currency, int64 amount) {
+  if (amount <= 0 || !check_currency_amount(amount)) {
+    return Status::Error(400, "Invalid amount of the currency specified");
+  }
+  if (!clean_input_string(currency)) {
+    return Status::Error(400, "Strings must be encoded in UTF-8");
+  }
+  return Status::OK();
+}
+
 Result<telegram_api::object_ptr<telegram_api::InputPeer>> get_boost_input_peer(Td *td, DialogId dialog_id) {
   if (!td->dialog_manager_->have_dialog_force(dialog_id, "get_boost_input_peer")) {
     return Status::Error(400, "Chat to boost not found");
@@ -217,12 +227,7 @@ static Result<tl_object_ptr<telegram_api::InputStorePaymentPurpose>> get_input_s
         TRY_RESULT(input_user, td->user_manager_->get_input_user(UserId(user_id)));
         input_users.push_back(std::move(input_user));
       }
-      if (p->amount_ <= 0 || !check_currency_amount(p->amount_)) {
-        return Status::Error(400, "Invalid amount of the currency specified");
-      }
-      if (!clean_input_string(p->currency_)) {
-        return Status::Error(400, "Strings must be encoded in UTF-8");
-      }
+      TRY_STATUS(check_payment_amount(p->currency_, p->amount_));
       DialogId boosted_dialog_id(p->boosted_chat_id_);
       telegram_api::object_ptr<telegram_api::InputPeer> boost_input_peer;
       if (boosted_dialog_id != DialogId()) {
@@ -242,23 +247,13 @@ static Result<tl_object_ptr<telegram_api::InputStorePaymentPurpose>> get_input_s
     }
     case td_api::storePaymentPurposePremiumGiveaway::ID: {
       auto p = static_cast<td_api::storePaymentPurposePremiumGiveaway *>(purpose.get());
-      if (p->amount_ <= 0 || !check_currency_amount(p->amount_)) {
-        return Status::Error(400, "Invalid amount of the currency specified");
-      }
-      if (!clean_input_string(p->currency_)) {
-        return Status::Error(400, "Strings must be encoded in UTF-8");
-      }
+      TRY_STATUS(check_payment_amount(p->currency_, p->amount_));
       TRY_RESULT(parameters, GiveawayParameters::get_giveaway_parameters(td, p->parameters_.get()));
       return parameters.get_input_store_payment_premium_giveaway(td, p->currency_, p->amount_);
     }
     case td_api::storePaymentPurposeStarGiveaway::ID: {
       auto p = static_cast<td_api::storePaymentPurposeStarGiveaway *>(purpose.get());
-      if (p->amount_ <= 0 || !check_currency_amount(p->amount_)) {
-        return Status::Error(400, "Invalid amount of the currency specified");
-      }
-      if (!clean_input_string(p->currency_)) {
-        return Status::Error(400, "Strings must be encoded in UTF-8");
-      }
+      TRY_STATUS(check_payment_amount(p->currency_, p->amount_));
       if (p->winner_count_ <= 0 || p->star_count_ <= 0) {
         return Status::Error(400, "Invalid giveaway parameters specified");
       }
@@ -268,12 +263,7 @@ static Result<tl_object_ptr<telegram_api::InputStorePaymentPurpose>> get_input_s
     }
     case td_api::storePaymentPurposeStars::ID: {
       auto p = static_cast<td_api::storePaymentPurposeStars *>(purpose.get());
-      if (p->amount_ <= 0 || !check_currency_amount(p->amount_)) {
-        return Status::Error(400, "Invalid amount of the currency specified");
-      }
-      if (!clean_input_string(p->currency_)) {
-        return Status::Error(400, "Strings must be encoded in UTF-8");
-      }
+      TRY_STATUS(check_payment_amount(p->currency_, p->amount_));
       dismiss_suggested_action(SuggestedAction{SuggestedAction::Type::StarsSubscriptionLowBalance}, Promise<Unit>());
       return telegram_api::make_object<telegram_api::inputStorePaymentStarsTopup>(p->star_count_, p->currency_,
                                                                                   p->amount_);
@@ -282,12 +272,7 @@ static Result<tl_object_ptr<telegram_api::InputStorePaymentPurpose>> get_input_s
       auto p = static_cast<td_api::storePaymentPurposeGiftedStars *>(purpose.get());
       UserId user_id(p->user_id_);
       TRY_RESULT(input_user, td->user_manager_->get_input_user(user_id));
-      if (p->amount_ <= 0 || !check_currency_amount(p->amount_)) {
-        return Status::Error(400, "Invalid amount of the currency specified");
-      }
-      if (!clean_input_string(p->currency_)) {
-        return Status::Error(400, "Strings must be encoded in UTF-8");
-      }
+      TRY_STATUS(check_payment_amount(p->currency_, p->amount_));
       return telegram_api::make_object<telegram_api::inputStorePaymentStarsGift>(std::move(input_user), p->star_count_,
                                                                                  p->currency_, p->amount_);
     }

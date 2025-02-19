@@ -20,6 +20,8 @@ namespace td {
 
 class Td;
 
+Status check_payment_amount(string &currency, int64 amount);
+
 Result<telegram_api::object_ptr<telegram_api::InputPeer>> get_boost_input_peer(Td *td, DialogId dialog_id);
 
 Result<telegram_api::object_ptr<telegram_api::textWithEntities>> get_premium_gift_text(
