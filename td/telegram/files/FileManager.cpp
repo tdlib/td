@@ -2609,7 +2609,7 @@ void FileManager::clear_from_pmc(FileNodePtr node) {
     return;
   }
 
-  LOG(INFO) << "Delete files " << format::as_array(node->file_ids_) << " from pmc";
+  LOG(INFO) << "Delete files " << node->file_ids_ << " from pmc";
   FileData data;
   auto file_view = FileView(node);
   if (file_view.has_full_local_location()) {

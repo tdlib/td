@@ -246,7 +246,7 @@ class DcOptions {
 };
 
 inline StringBuilder &operator<<(StringBuilder &sb, const DcOptions &dc_options) {
-  return sb << "DcOptions" << format::as_array(dc_options.dc_options);
+  return sb << "DcOptions" << dc_options.dc_options;
 }
 
 }  // namespace td

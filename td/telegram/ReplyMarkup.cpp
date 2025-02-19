@@ -17,7 +17,6 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
-#include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/SliceBuilder.h"
 
@@ -177,12 +176,12 @@ StringBuilder &ReplyMarkup::print(StringBuilder &string_builder) const {
   }
   if (type == ReplyMarkup::Type::InlineKeyboard) {
     for (auto &row : inline_keyboard) {
-      string_builder << ", " << format::as_array(row);
+      string_builder << ", " << row;
     }
   }
   if (type == ReplyMarkup::Type::ShowKeyboard) {
     for (auto &row : keyboard) {
-      string_builder << ", " << format::as_array(row);
+      string_builder << ", " << row;
     }
   }
 

@@ -1440,7 +1440,7 @@ class SendMultiMediaQuery final : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for SendMultiMedia for " << format::as_array(random_ids_) << ": " << to_string(ptr);
+    LOG(INFO) << "Receive result for SendMultiMedia for " << random_ids_ << ": " << to_string(ptr);
 
     auto sent_random_ids = UpdatesManager::get_sent_messages_random_ids(ptr.get());
     bool is_result_wrong = false;
@@ -1471,8 +1471,8 @@ class SendMultiMediaQuery final : public Td::ResultHandler {
       }
     }
     if (is_result_wrong) {
-      LOG(ERROR) << "Receive wrong result for SendMultiMediaQuery with random_ids " << format::as_array(random_ids_)
-                 << " to " << dialog_id_ << ": " << oneline(to_string(ptr));
+      LOG(ERROR) << "Receive wrong result for SendMultiMediaQuery with random_ids " << random_ids_ << " to "
+                 << dialog_id_ << ": " << oneline(to_string(ptr));
       td_->updates_manager_->schedule_get_difference("Wrong sendMultiMedia result");
     }
 
@@ -1957,8 +1957,7 @@ class ForwardMessagesQuery final : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for ForwardMessagesQuery for " << format::as_array(random_ids_) << ": "
-              << to_string(ptr);
+    LOG(INFO) << "Receive result for ForwardMessagesQuery for " << random_ids_ << ": " << to_string(ptr);
     auto sent_random_ids = UpdatesManager::get_sent_messages_random_ids(ptr.get());
     bool is_result_wrong = false;
     auto sent_random_ids_size = sent_random_ids.size();
@@ -1988,8 +1987,8 @@ class ForwardMessagesQuery final : public Td::ResultHandler {
       }
     }
     if (is_result_wrong) {
-      LOG(ERROR) << "Receive wrong result for forwarding messages with random_ids " << format::as_array(random_ids_)
-                 << " to " << to_dialog_id_ << ": " << oneline(to_string(ptr));
+      LOG(ERROR) << "Receive wrong result for forwarding messages with random_ids " << random_ids_ << " to "
+                 << to_dialog_id_ << ": " << oneline(to_string(ptr));
       td_->updates_manager_->schedule_get_difference("Wrong forwardMessages result");
     }
 
@@ -2065,8 +2064,7 @@ class SendQuickReplyMessagesQuery final : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for SendQuickReplyMessagesQuery for " << format::as_array(random_ids_) << ": "
-              << to_string(ptr);
+    LOG(INFO) << "Receive result for SendQuickReplyMessagesQuery for " << random_ids_ << ": " << to_string(ptr);
     auto sent_messages = UpdatesManager::get_new_messages(ptr.get());
     auto sent_random_ids = UpdatesManager::get_sent_messages_random_ids(ptr.get());
     bool is_result_wrong = false;
@@ -2085,8 +2083,8 @@ class SendQuickReplyMessagesQuery final : public Td::ResultHandler {
       }
     }
     if (is_result_wrong) {
-      LOG(ERROR) << "Receive wrong result for sending quick reply messages with random_ids "
-                 << format::as_array(random_ids_) << " to " << dialog_id_ << ": " << oneline(to_string(ptr));
+      LOG(ERROR) << "Receive wrong result for sending quick reply messages with random_ids " << random_ids_ << " to "
+                 << dialog_id_ << ": " << oneline(to_string(ptr));
       td_->updates_manager_->schedule_get_difference("Wrong sendQuickReplyMessages result");
       for (auto &random_id : random_ids_) {
         td_->messages_manager_->on_send_message_fail(random_id, Status::Error(500, "Receive invalid response"));
@@ -11419,8 +11417,8 @@ void MessagesManager::remove_dialog_newer_messages(Dialog *d, MessageId from_mes
   auto to_delete_message_ids = d->ordered_messages.find_newer_messages(from_message_id);
   td::remove_if(to_delete_message_ids, [](MessageId message_id) { return message_id.is_yet_unsent(); });
   if (!to_delete_message_ids.empty()) {
-    LOG(INFO) << "Delete " << format::as_array(to_delete_message_ids) << " newer than " << from_message_id << " in "
-              << d->dialog_id << " from " << source;
+    LOG(INFO) << "Delete " << to_delete_message_ids << " newer than " << from_message_id << " in " << d->dialog_id
+              << " from " << source;
 
     vector<int64> deleted_message_ids;
     bool need_update_dialog_pos = false;
@@ -13018,7 +13016,7 @@ bool MessagesManager::have_dialog(DialogId dialog_id) const {
 }
 
 void MessagesManager::load_dialogs(vector<DialogId> dialog_ids, Promise<vector<DialogId>> &&promise) {
-  LOG(INFO) << "Load chats " << format::as_array(dialog_ids);
+  LOG(INFO) << "Load chats " << dialog_ids;
 
   Dependencies dependencies;
   for (auto dialog_id : dialog_ids) {
@@ -13034,7 +13032,7 @@ void MessagesManager::load_dialogs(vector<DialogId> dialog_ids, Promise<vector<D
     force_create_dialog(dialog_id, "load_dialogs");
   }
 
-  LOG(INFO) << "Loaded chats " << format::as_array(dialog_ids);
+  LOG(INFO) << "Loaded chats " << dialog_ids;
   promise.set_value(std::move(dialog_ids));
 }
 

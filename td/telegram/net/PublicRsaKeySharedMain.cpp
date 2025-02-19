@@ -6,7 +6,6 @@
 //
 #include "td/telegram/net/PublicRsaKeySharedMain.h"
 
-#include "td/utils/format.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
 
@@ -60,7 +59,7 @@ Result<mtproto::PublicRsaKeyInterface::RsaKey> PublicRsaKeySharedMain::get_rsa_k
       }
     }
   }
-  return Status::Error(PSLICE() << "Unknown Main fingerprints " << format::as_array(fingerprints));
+  return Status::Error(PSLICE() << "Unknown Main fingerprints " << fingerprints);
 }
 
 void PublicRsaKeySharedMain::drop_keys() {

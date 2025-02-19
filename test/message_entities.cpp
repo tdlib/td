@@ -29,8 +29,7 @@ static void check_mention(const td::string &str, const td::vector<td::string> &e
     result.push_back(it.str());
   }
   if (result != expected) {
-    LOG(FATAL) << td::tag("text", str) << td::tag("receive", td::format::as_array(result))
-               << td::tag("expected", td::format::as_array(expected));
+    LOG(FATAL) << td::tag("text", str) << td::tag("receive", result) << td::tag("expected", expected);
   }
 }
 
@@ -60,8 +59,7 @@ static void check_bot_command(const td::string &str, const td::vector<td::string
     result.push_back(it.str());
   }
   if (result != expected) {
-    LOG(FATAL) << td::tag("text", str) << td::tag("receive", td::format::as_array(result))
-               << td::tag("expected", td::format::as_array(expected));
+    LOG(FATAL) << td::tag("text", str) << td::tag("receive", result) << td::tag("expected", expected);
   }
 }
 
@@ -84,8 +82,7 @@ static void check_hashtag(const td::string &str, const td::vector<td::string> &e
     result.push_back(it.str());
   }
   if (result != expected) {
-    LOG(FATAL) << td::tag("text", str) << td::tag("receive", td::format::as_array(result))
-               << td::tag("expected", td::format::as_array(expected));
+    LOG(FATAL) << td::tag("text", str) << td::tag("receive", result) << td::tag("expected", expected);
   }
 }
 
@@ -142,8 +139,7 @@ static void check_cashtag(const td::string &str, const td::vector<td::string> &e
     result.push_back(it.str());
   }
   if (result != expected) {
-    LOG(FATAL) << td::tag("text", str) << td::tag("receive", td::format::as_array(result))
-               << td::tag("expected", td::format::as_array(expected));
+    LOG(FATAL) << td::tag("text", str) << td::tag("receive", result) << td::tag("expected", expected);
   }
 }
 
@@ -211,8 +207,7 @@ static void check_media_timestamp(const td::string &str, const td::vector<std::p
   auto result = td::transform(td::find_media_timestamps(str),
                               [](auto &&entity) { return std::make_pair(entity.first.str(), entity.second); });
   if (result != expected) {
-    LOG(FATAL) << td::tag("text", str) << td::tag("receive", td::format::as_array(result))
-               << td::tag("expected", td::format::as_array(expected));
+    LOG(FATAL) << td::tag("text", str) << td::tag("receive", result) << td::tag("expected", expected);
   }
 }
 
@@ -256,8 +251,7 @@ static void check_bank_card_number(const td::string &str, const td::vector<td::s
     result.push_back(it.str());
   }
   if (result != expected) {
-    LOG(FATAL) << td::tag("text", str) << td::tag("receive", td::format::as_array(result))
-               << td::tag("expected", td::format::as_array(expected));
+    LOG(FATAL) << td::tag("text", str) << td::tag("receive", result) << td::tag("expected", expected);
   }
 }
 
@@ -305,8 +299,7 @@ static void check_tg_url(const td::string &str, const td::vector<td::string> &ex
     result.push_back(it.str());
   }
   if (result != expected) {
-    LOG(FATAL) << td::tag("text", str) << td::tag("receive", td::format::as_array(result))
-               << td::tag("expected", td::format::as_array(expected));
+    LOG(FATAL) << td::tag("text", str) << td::tag("receive", result) << td::tag("expected", expected);
   }
 }
 
@@ -485,12 +478,11 @@ static void check_url(const td::string &str, const td::vector<td::string> &expec
     }
   }
   if (result_urls != expected_urls) {
-    LOG(FATAL) << td::tag("text", str) << td::tag("receive", td::format::as_array(result_urls))
-               << td::tag("expected", td::format::as_array(expected_urls));
+    LOG(FATAL) << td::tag("text", str) << td::tag("receive", result_urls) << td::tag("expected", expected_urls);
   }
   if (result_email_addresses != expected_email_addresses) {
-    LOG(FATAL) << td::tag("text", str) << td::tag("receive", td::format::as_array(result_email_addresses))
-               << td::tag("expected", td::format::as_array(expected_email_addresses));
+    LOG(FATAL) << td::tag("text", str) << td::tag("receive", result_email_addresses)
+               << td::tag("expected", expected_email_addresses);
   }
 }
 

@@ -21,7 +21,6 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/common.h"
-#include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/overloaded.h"
 #include "td/utils/SliceBuilder.h"
@@ -737,10 +736,9 @@ bool operator!=(const Photo &lhs, const Photo &rhs) {
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const Photo &photo) {
-  string_builder << "[ID = " << photo.id.get() << ", date = " << photo.date
-                 << ", photos = " << format::as_array(photo.photos);
+  string_builder << "[ID = " << photo.id.get() << ", date = " << photo.date << ", photos = " << photo.photos;
   if (!photo.animations.empty()) {
-    string_builder << ", animations = " << format::as_array(photo.animations);
+    string_builder << ", animations = " << photo.animations;
   }
   if (photo.sticker_photo_size != nullptr) {
     string_builder << ", sticker = " << *photo.sticker_photo_size;

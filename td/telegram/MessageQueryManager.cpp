@@ -48,7 +48,6 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
-#include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/SliceBuilder.h"
@@ -2583,8 +2582,7 @@ void MessageQueryManager::delete_messages_on_server(DialogId dialog_id, vector<M
   if (message_ids.empty()) {
     return promise.set_value(Unit());
   }
-  LOG(INFO) << (revoke ? "Revoke " : "Delete ") << format::as_array(message_ids) << " in " << dialog_id
-            << " from server";
+  LOG(INFO) << (revoke ? "Revoke " : "Delete ") << message_ids << " in " << dialog_id << " from server";
 
   if (log_event_id == 0 && G()->use_message_database()) {
     log_event_id = save_delete_messages_on_server_log_event(dialog_id, message_ids, revoke);
@@ -2667,7 +2665,7 @@ void MessageQueryManager::delete_scheduled_messages_on_server(DialogId dialog_id
   if (message_ids.empty()) {
     return promise.set_value(Unit());
   }
-  LOG(INFO) << "Delete " << format::as_array(message_ids) << " in " << dialog_id << " from server";
+  LOG(INFO) << "Delete " << message_ids << " in " << dialog_id << " from server";
 
   if (log_event_id == 0 && G()->use_message_database()) {
     log_event_id = save_delete_scheduled_messages_on_server_log_event(dialog_id, message_ids);
@@ -2849,7 +2847,7 @@ void MessageQueryManager::read_message_contents_on_server(DialogId dialog_id, ve
                                                           bool skip_log_event) {
   CHECK(!message_ids.empty());
 
-  LOG(INFO) << "Read contents of " << format::as_array(message_ids) << " in " << dialog_id << " on server";
+  LOG(INFO) << "Read contents of " << message_ids << " in " << dialog_id << " on server";
 
   if (log_event_id == 0 && G()->use_message_database() && !skip_log_event) {
     log_event_id = save_read_message_contents_on_server_log_event(dialog_id, message_ids);

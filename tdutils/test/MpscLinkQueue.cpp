@@ -5,7 +5,6 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/utils/common.h"
-#include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/MpscLinkQueue.h"
 #include "td/utils/port/thread.h"
@@ -49,7 +48,7 @@ TEST(MpscLinkQueue, one_thread) {
     while (auto node = reader.read()) {
       v.push_back(node.value().value());
     }
-    LOG_CHECK((v == std::vector<int>{1, 2, 3, 4})) << td::format::as_array(v);
+    LOG_CHECK((v == std::vector<int>{1, 2, 3, 4})) << v;
 
     v.clear();
     queue.push(create_node(5));
@@ -57,7 +56,7 @@ TEST(MpscLinkQueue, one_thread) {
     while (auto node = reader.read()) {
       v.push_back(node.value().value());
     }
-    LOG_CHECK((v == std::vector<int>{5})) << td::format::as_array(v);
+    LOG_CHECK((v == std::vector<int>{5})) << v;
   }
 
   {
@@ -71,7 +70,7 @@ TEST(MpscLinkQueue, one_thread) {
     while (auto node = reader.read()) {
       v.push_back(node.value().value());
     }
-    LOG_CHECK((v == std::vector<int>{3, 2, 1, 0})) << td::format::as_array(v);
+    LOG_CHECK((v == std::vector<int>{3, 2, 1, 0})) << v;
   }
 }
 

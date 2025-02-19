@@ -251,7 +251,7 @@ class FileDb final : public FileDbInterface {
     while (true) {
       if (attempt_count > 100) {
         LOG(FATAL) << "Cycle in file database? max_file_db_id=" << max_file_db_id << " key=" << key
-                   << " links=" << format::as_array(file_db_ids);
+                   << " links=" << file_db_ids;
       }
       attempt_count++;
 

@@ -109,7 +109,6 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/emoji.h"
-#include "td/utils/format.h"
 #include "td/utils/HttpUrl.h"
 #include "td/utils/logging.h"
 #include "td/utils/MimeType.h"
@@ -6927,7 +6926,7 @@ unique_ptr<MessageContent> get_secret_message_content(
   auto status = fix_formatted_text(message_text, entities, true, false, true, td->auth_manager_->is_bot(), false);
   if (status.is_error()) {
     LOG(WARNING) << "Receive error " << status << " while parsing secret message \"" << message_text
-                 << "\" with entities " << format::as_array(entities);
+                 << "\" with entities " << entities;
     if (!clean_input_string(message_text)) {
       message_text.clear();
     }

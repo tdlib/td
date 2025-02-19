@@ -7,7 +7,6 @@
 #include "td/telegram/net/PublicRsaKeySharedCdn.h"
 
 #include "td/utils/algorithm.h"
-#include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/SliceBuilder.h"
 
@@ -37,7 +36,7 @@ Result<mtproto::PublicRsaKeyInterface::RsaKey> PublicRsaKeySharedCdn::get_rsa_ke
       return RsaKey{rsa_key->rsa.clone(), fingerprint};
     }
   }
-  return Status::Error(PSLICE() << "Unknown CDN fingerprints " << format::as_array(fingerprints));
+  return Status::Error(PSLICE() << "Unknown CDN fingerprints " << fingerprints);
 }
 
 void PublicRsaKeySharedCdn::drop_keys() {

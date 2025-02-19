@@ -600,7 +600,7 @@ class QuickReplyManager::SendQuickReplyMultiMediaQuery final : public Td::Result
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for SendMultiMedia for " << format::as_array(random_ids_) << ": " << to_string(ptr);
+    LOG(INFO) << "Receive result for SendMultiMedia for " << random_ids_ << ": " << to_string(ptr);
     td_->quick_reply_manager_->process_send_quick_reply_updates(shortcut_id_, FileUploadId(), std::move(ptr),
                                                                 std::move(random_ids_));
   }

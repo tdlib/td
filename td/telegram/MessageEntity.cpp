@@ -19,7 +19,6 @@
 #include "td/actor/MultiPromise.h"
 
 #include "td/utils/algorithm.h"
-#include "td/utils/format.h"
 #include "td/utils/HashTableUtils.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -4537,7 +4536,7 @@ FormattedText get_message_text(const UserManager *user_manager, string message_t
     if (!from_album && (send_date == 0 || send_date > 1600340000)) {  // approximate fix date
       LOG(ERROR) << "Receive error " << status << " while parsing message text from " << source << " sent at "
                  << send_date << " with content \"" << debug_message_text << "\" -> \"" << message_text
-                 << "\" with entities " << format::as_array(debug_entities) << " -> " << format::as_array(entities);
+                 << "\" with entities " << debug_entities << " -> " << entities;
     }
     if (!clean_input_string(message_text)) {
       message_text.clear();

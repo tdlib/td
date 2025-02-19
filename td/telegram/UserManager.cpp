@@ -754,7 +754,7 @@ class DeleteProfilePhotoQuery final : public Td::ResultHandler {
     }
 
     auto result = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for DeleteProfilePhotoQuery: " << format::as_array(result);
+    LOG(INFO) << "Receive result for DeleteProfilePhotoQuery: " << result;
     if (result.size() != 1u) {
       LOG(WARNING) << "Photo can't be deleted";
       return on_error(Status::Error(400, "Photo can't be deleted"));
@@ -6485,8 +6485,7 @@ void UserManager::on_imported_contacts(
 
 void UserManager::on_import_contacts_finished(int64 random_id, vector<UserId> imported_contact_user_ids,
                                               vector<int32> unimported_contact_invites) {
-  LOG(INFO) << "Contacts import with random_id " << random_id
-            << " has finished: " << format::as_array(imported_contact_user_ids);
+  LOG(INFO) << "Contacts import with random_id " << random_id << " has finished: " << imported_contact_user_ids;
   if (random_id == 1) {
     // import from change_imported_contacts
     all_imported_contacts_ = std::move(next_all_imported_contacts_);
@@ -6545,7 +6544,7 @@ void UserManager::on_import_contacts_finished(int64 random_id, vector<UserId> im
 }
 
 void UserManager::remove_contacts(const vector<UserId> &user_ids, Promise<Unit> &&promise) {
-  LOG(INFO) << "Delete contacts: " << format::as_array(user_ids);
+  LOG(INFO) << "Delete contacts: " << user_ids;
   if (!are_contacts_loaded_) {
     load_contacts(std::move(promise));
     return;
@@ -6573,7 +6572,7 @@ void UserManager::remove_contacts(const vector<UserId> &user_ids, Promise<Unit> 
 
 void UserManager::remove_contacts_by_phone_number(vector<string> user_phone_numbers, vector<UserId> user_ids,
                                                   Promise<Unit> &&promise) {
-  LOG(INFO) << "Delete contacts by phone number: " << format::as_array(user_phone_numbers);
+  LOG(INFO) << "Delete contacts by phone number: " << user_phone_numbers;
   if (!are_contacts_loaded_) {
     load_contacts(std::move(promise));
     return;

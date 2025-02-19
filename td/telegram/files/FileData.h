@@ -53,7 +53,7 @@ inline StringBuilder &operator<<(StringBuilder &sb, const FileData &file_data) {
   if (file_data.remote_.type() == RemoteFileLocation::Type::Full) {
     sb << " remote " << file_data.remote_.full();
   }
-  sb << ", sources = " << format::as_array(file_data.file_source_ids_);
+  sb << ", sources = " << file_data.file_source_ids_;
   return sb << "]";
 }
 
