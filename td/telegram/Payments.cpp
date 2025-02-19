@@ -15,9 +15,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/InputInvoice.h"
 #include "td/telegram/LinkManager.h"
-#include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"
-#include "td/telegram/MessageQuote.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/PasswordManager.h"
@@ -95,13 +93,8 @@ Result<InputInvoiceInfo> get_input_invoice_info(Td *td, td_api::object_ptr<td_ap
           if (!clean_input_string(p->currency_)) {
             return Status::Error(400, "Strings must be encoded in UTF-8");
           }
-          TRY_RESULT(message, get_formatted_text(td, td->dialog_manager_->get_my_dialog_id(), std::move(p->text_),
-                                                 false, true, true, false));
-          MessageQuote::remove_unallowed_quote_entities(message);
-          telegram_api::object_ptr<telegram_api::textWithEntities> text;
-          if (!message.text.empty()) {
-            text = get_input_text_with_entities(td->user_manager_.get(), message, "telegramPaymentPurposePremiumGift");
-          }
+          TRY_RESULT(text, get_premium_gift_text(td, std::move(p->text_)));
+
           if (p->currency_ == "XTR") {
             int32 flags = 0;
             if (text != nullptr) {
@@ -143,14 +136,7 @@ Result<InputInvoiceInfo> get_input_invoice_info(Td *td, td_api::object_ptr<td_ap
           }
           DialogId boosted_dialog_id(p->boosted_chat_id_);
           TRY_RESULT(boost_input_peer, get_boost_input_peer(td, boosted_dialog_id));
-          TRY_RESULT(message, get_formatted_text(td, td->dialog_manager_->get_my_dialog_id(), std::move(p->text_),
-                                                 false, true, true, false));
-          MessageQuote::remove_unallowed_quote_entities(message);
-          telegram_api::object_ptr<telegram_api::textWithEntities> text;
-          if (!message.text.empty()) {
-            text = get_input_text_with_entities(td->user_manager_.get(), message,
-                                                "telegramPaymentPurposePremiumGiftCodes");
-          }
+          TRY_RESULT(text, get_premium_gift_text(td, std::move(p->text_)));
 
           int32 flags = telegram_api::inputStorePaymentPremiumGiftCode::BOOST_PEER_MASK;
           if (text != nullptr) {

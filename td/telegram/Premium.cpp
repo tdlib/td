@@ -180,6 +180,17 @@ Result<telegram_api::object_ptr<telegram_api::InputPeer>> get_boost_input_peer(T
   return std::move(boost_input_peer);
 }
 
+Result<telegram_api::object_ptr<telegram_api::textWithEntities>> get_premium_gift_text(
+    Td *td, td_api::object_ptr<td_api::formattedText> &&text) {
+  TRY_RESULT(message, get_formatted_text(td, td->dialog_manager_->get_my_dialog_id(), std::move(text), false, true,
+                                         true, false));
+  MessageQuote::remove_unallowed_quote_entities(message);
+  if (!message.text.empty()) {
+    return get_input_text_with_entities(td->user_manager_.get(), message, "get_premium_gift_text");
+  }
+  return nullptr;
+}
+
 static Result<tl_object_ptr<telegram_api::InputStorePaymentPurpose>> get_input_store_payment_purpose(
     Td *td, td_api::object_ptr<td_api::StorePaymentPurpose> &purpose) {
   if (purpose == nullptr) {
@@ -217,18 +228,14 @@ static Result<tl_object_ptr<telegram_api::InputStorePaymentPurpose>> get_input_s
       if (boosted_dialog_id != DialogId()) {
         TRY_RESULT_ASSIGN(boost_input_peer, get_boost_input_peer(td, boosted_dialog_id));
       }
-      TRY_RESULT(message, get_formatted_text(td, td->dialog_manager_->get_my_dialog_id(), std::move(p->text_), false,
-                                             true, true, false));
-      MessageQuote::remove_unallowed_quote_entities(message);
+      TRY_RESULT(text, get_premium_gift_text(td, std::move(p->text_)));
 
       int32 flags = 0;
       if (boost_input_peer != nullptr) {
         flags |= telegram_api::inputStorePaymentPremiumGiftCode::BOOST_PEER_MASK;
       }
-      telegram_api::object_ptr<telegram_api::textWithEntities> text;
-      if (!message.text.empty()) {
+      if (text != nullptr) {
         flags |= telegram_api::inputStorePaymentPremiumGiftCode::MESSAGE_MASK;
-        text = get_input_text_with_entities(td->user_manager_.get(), message, "storePaymentPurposePremiumGiftCodes");
       }
       return telegram_api::make_object<telegram_api::inputStorePaymentPremiumGiftCode>(
           flags, std::move(input_users), std::move(boost_input_peer), p->currency_, p->amount_, std::move(text));

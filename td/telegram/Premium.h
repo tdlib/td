@@ -22,6 +22,9 @@ class Td;
 
 Result<telegram_api::object_ptr<telegram_api::InputPeer>> get_boost_input_peer(Td *td, DialogId dialog_id);
 
+Result<telegram_api::object_ptr<telegram_api::textWithEntities>> get_premium_gift_text(
+    Td *td, td_api::object_ptr<td_api::formattedText> &&text);
+
 const vector<Slice> &get_premium_limit_keys();
 
 void get_premium_limit(const td_api::object_ptr<td_api::PremiumLimitType> &limit_type,
