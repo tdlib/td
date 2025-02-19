@@ -425,6 +425,8 @@ class GetPremiumGiftOptionsQuery final : public Td::ResultHandler {
           static_cast<int32>(100 * (1.0 - relative_price)), result->months_, result->store_product_,
           td_->stickers_manager_->get_premium_gift_sticker_object(result->months_, 0)));
     }
+    std::sort(options.begin(), options.end(),
+              [](const auto &lhs, const auto &rhs) { return lhs->month_count_ < rhs->month_count_; });
     promise_.set_value(td_api::make_object<td_api::premiumGiftPaymentOptions>(std::move(options)));
   }
 
