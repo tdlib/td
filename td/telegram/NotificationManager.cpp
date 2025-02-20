@@ -605,7 +605,7 @@ void NotificationManager::on_get_notifications_from_database(NotificationGroupId
   auto group_it = get_group(group_id);
   CHECK(group_it != groups_.end());
   auto &group = group_it->second;
-  CHECK(group.is_being_loaded_from_database == true);
+  CHECK(group.is_being_loaded_from_database);
   group.is_being_loaded_from_database = false;
 
   if (r_notifications.is_error()) {

@@ -397,7 +397,7 @@ std::string TD_TL_writer_jni_cpp::gen_fetch_function_begin(const std::string &pa
                                                            int field_count, std::vector<tl::var_description> &vars,
                                                            int parser_type) const {
   for (std::size_t i = 0; i < vars.size(); i++) {
-    assert(vars[i].is_stored == false);
+    assert(!vars[i].is_stored);
   }
 
   std::string fetched_type = "object_ptr<" + class_name + "> ";

@@ -1400,7 +1400,7 @@ class SendMultiMediaQuery final : public Td::ResultHandler {
             vector<tl_object_ptr<telegram_api::inputSingleMedia>> &&input_single_media, bool is_copy) {
     for (auto &single_media : input_single_media) {
       random_ids_.push_back(single_media->random_id_);
-      CHECK(FileManager::extract_was_uploaded(single_media->media_) == false);
+      CHECK(!FileManager::extract_was_uploaded(single_media->media_));
       file_references_.push_back(FileManager::extract_file_reference(single_media->media_));
       cover_file_references_.push_back(FileManager::extract_cover_file_reference(single_media->media_));
     }
@@ -27310,7 +27310,7 @@ void MessagesManager::on_update_dialog_is_blocked(DialogId dialog_id, bool is_bl
 
   if (d->is_blocked == is_blocked && d->is_blocked_for_stories == is_blocked_for_stories) {
     if (!d->is_is_blocked_for_stories_inited) {
-      CHECK(is_blocked_for_stories == false);
+      CHECK(!is_blocked_for_stories);
       d->is_is_blocked_inited = true;
       d->is_is_blocked_for_stories_inited = true;
       on_dialog_updated(dialog_id, "on_update_dialog_is_blocked");

@@ -86,7 +86,7 @@ std::string TD_TL_writer_cpp::gen_vars(const tl::tl_combinator *t, const tl::tl_
     if (!vars[i].is_type) {
       assert(vars[i].parameter_num == -1);
       assert(vars[i].function_arg_num == -1);
-      assert(vars[i].is_stored == false);
+      assert(!vars[i].is_stored);
       res += "  " + gen_class_name("#") + " " + gen_var_name(vars[i]) + ";\n";
     }
   }
@@ -548,7 +548,7 @@ std::string TD_TL_writer_cpp::gen_fetch_function_begin(const std::string &parser
                                                        const std::string &parent_class_name, int arity, int field_count,
                                                        std::vector<tl::var_description> &vars, int parser_type) const {
   for (std::size_t i = 0; i < vars.size(); i++) {
-    assert(vars[i].is_stored == false);
+    assert(!vars[i].is_stored);
   }
 
   std::string fetched_type = "object_ptr<" + class_name + "> ";

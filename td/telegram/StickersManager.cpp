@@ -4186,7 +4186,7 @@ vector<FileId> StickersManager::get_stickers(StickerType sticker_type, string qu
 
   auto type = static_cast<int32>(sticker_type);
   if (!are_installed_sticker_sets_loaded_[type]) {
-    CHECK(force == false);
+    CHECK(!force);
     load_installed_sticker_sets(
         sticker_type,
         PromiseCreator::lambda([actor_id = actor_id(this), sticker_type, query = std::move(query), limit, dialog_id,

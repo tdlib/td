@@ -221,7 +221,7 @@ class MpmcSleepyWaiter {
         return;
       }
       sleepers_.push_back(&slot);
-      LOG_CHECK(slot.unpark_flag_ == false) << slot.worker_id;
+      LOG_CHECK(!slot.unpark_flag_) << slot.worker_id;
       VLOG(waiter) << "Add to sleepers " << slot.worker_id;
       //guard.unlock();
       if (should_search) {

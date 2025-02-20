@@ -564,7 +564,7 @@ class QuickReplyManager::SendQuickReplyMultiMediaQuery final : public Td::Result
             vector<int64> &&random_ids, vector<FileId> &&file_ids, vector<FileId> &&cover_file_ids,
             vector<tl_object_ptr<telegram_api::inputSingleMedia>> &&input_single_media) {
     for (auto &single_media : input_single_media) {
-      CHECK(FileManager::extract_was_uploaded(single_media->media_) == false);
+      CHECK(!FileManager::extract_was_uploaded(single_media->media_));
       file_references_.push_back(FileManager::extract_file_reference(single_media->media_));
       cover_file_references_.push_back(FileManager::extract_cover_file_reference(single_media->media_));
     }

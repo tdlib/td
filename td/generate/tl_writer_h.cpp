@@ -171,7 +171,7 @@ std::string TD_TL_writer_h::gen_function_vars(const tl::tl_combinator *t,
     if (!vars[i].is_type) {
       assert(vars[i].parameter_num == -1);
       assert(vars[i].function_arg_num == -1);
-      assert(vars[i].is_stored == false);
+      assert(!vars[i].is_stored);
       res += "  mutable " + gen_class_name("#") + " " + gen_var_name(vars[i]) + ";\n";
     }
   }

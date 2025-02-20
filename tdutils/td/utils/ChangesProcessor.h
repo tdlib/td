@@ -38,7 +38,7 @@ class ChangesProcessor {
       return;
     }
     data_array_[pos].second = true;
-    while (ready_i_ < data_array_.size() && data_array_[ready_i_].second == true) {
+    while (ready_i_ < data_array_.size() && data_array_[ready_i_].second) {
       func(std::move(data_array_[ready_i_].first));
       ready_i_++;
     }
