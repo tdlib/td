@@ -1262,8 +1262,8 @@ starTransactionTypeGiftTransfer owner_id:MessageSender gift:upgradedGift = StarT
 //@description The transaction is a sale of a received gift; for regular users and channel chats only @user_id Identifier of the user that sent the gift @gift The gift
 starTransactionTypeGiftSale user_id:int53 gift:gift = StarTransactionType;
 
-//@description The transaction is an upgrade of a gift; for regular users only @gift The upgraded gift
-starTransactionTypeGiftUpgrade gift:upgradedGift = StarTransactionType;
+//@description The transaction is an upgrade of a gift; for regular users only @user_id Identifier of the user that initially sent the gift @gift The upgraded gift
+starTransactionTypeGiftUpgrade user_id:int53 gift:upgradedGift = StarTransactionType;
 
 //@description The transaction is a sending of a paid reaction to a message in a channel chat by the current user; for regular users only
 //@chat_id Identifier of the channel chat
