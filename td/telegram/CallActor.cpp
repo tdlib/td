@@ -522,7 +522,8 @@ void CallActor::create_conference_call(Promise<Unit> promise) {
   if (input_group_call_id_.is_valid()) {
     return promise.set_value(Unit());
   }
-  auto tl_query = telegram_api::phone_createConferenceCall(get_input_phone_call("create_conference_call"), 0);
+  auto tl_query = telegram_api::phone_createConferenceCall(get_input_phone_call("create_conference_call"),
+                                                           call_state_.key_fingerprint);
   auto query = G()->net_query_creator().create(tl_query);
   send_with_promise(std::move(query), PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](
                                                                  Result<NetQueryPtr> r_net_query) mutable {
