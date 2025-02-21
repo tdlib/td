@@ -26,6 +26,14 @@ void CallManager::tear_down() {
   parent_.reset();
 }
 
+CallId CallManager::get_call_id(int64 call_id) {
+  auto it = call_info_.find(call_id);
+  if (it == call_info_.end()) {
+    return CallId();
+  }
+  return it->second.call_id;
+}
+
 void CallManager::update_call(telegram_api::object_ptr<telegram_api::updatePhoneCall> call) {
   auto call_id = [phone_call = call->phone_call_.get()] {
     switch (phone_call->get_id()) {

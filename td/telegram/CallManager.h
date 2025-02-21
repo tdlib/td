@@ -30,6 +30,8 @@ class CallManager final : public Actor {
  public:
   CallManager(Td *td, ActorShared<> parent);
 
+  CallId get_call_id(int64 call_id);
+
   void update_call(telegram_api::object_ptr<telegram_api::updatePhoneCall> call);
 
   void update_call_signaling_data(int64 call_id, string data);
