@@ -384,7 +384,7 @@ class RwMutexReadBench final : public td::Benchmark {
     for (int i = 0; i < ThreadN; i++) {
       threads.emplace_back([&] {
         for (int i = 0; i < n / ThreadN; i++) {
-          mutex_.lock_read().ensure();
+          auto lock = mutex_.lock_read();
         }
       });
     }
@@ -405,7 +405,7 @@ class RwMutexWriteBench final : public td::Benchmark {
     for (int i = 0; i < ThreadN; i++) {
       threads.emplace_back([&] {
         for (int i = 0; i < n / ThreadN; i++) {
-          mutex_.lock_write().ensure();
+          auto lock = mutex_.lock_write();
         }
       });
     }

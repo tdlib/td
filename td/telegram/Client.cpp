@@ -481,14 +481,14 @@ class ClientManager::Impl final {
     auto client_id = MultiImpl::create_id();
     LOG(INFO) << "Created managed client " << client_id;
     {
-      auto lock = impls_mutex_.lock_write().move_as_ok();
+      auto lock = impls_mutex_.lock_write();
       impls_[client_id];  // create empty MultiImplInfo
     }
     return client_id;
   }
 
   void send(ClientId client_id, RequestId request_id, td_api::object_ptr<td_api::Function> &&request) {
-    auto lock = impls_mutex_.lock_read().move_as_ok();
+    auto lock = impls_mutex_.lock_read();
     if (!MultiImpl::is_valid_client_id(client_id)) {
       receiver_.add_response(client_id, request_id,
                              td_api::make_object<td_api::error>(400, "Invalid TDLib instance specified"));
@@ -499,7 +499,7 @@ class ClientManager::Impl final {
     if (it != impls_.end() && it->second.impl == nullptr) {
       lock.reset();
 
-      auto write_lock = impls_mutex_.lock_write().move_as_ok();
+      auto write_lock = impls_mutex_.lock_write();
       it = impls_.find(client_id);
       if (it != impls_.end() && it->second.impl == nullptr) {
         it->second.impl = pool_.get();
@@ -507,7 +507,7 @@ class ClientManager::Impl final {
       }
       write_lock.reset();
 
-      lock = impls_mutex_.lock_read().move_as_ok();
+      lock = impls_mutex_.lock_read();
       it = impls_.find(client_id);
     }
     if (it == impls_.end() || it->second.is_closed) {
@@ -524,14 +524,14 @@ class ClientManager::Impl final {
         static_cast<const td_api::updateAuthorizationState *>(response.object.get())->authorization_state_->get_id() ==
             td_api::authorizationStateClosed::ID) {
       LOG(INFO) << "Release closed client";
-      auto lock = impls_mutex_.lock_write().move_as_ok();
+      auto lock = impls_mutex_.lock_write();
       close_impl(response.client_id);
 
       response.client_id = 0;
       response.object = nullptr;
     }
     if (response.object == nullptr && response.client_id != 0 && response.request_id == 0) {
-      auto lock = impls_mutex_.lock_write().move_as_ok();
+      auto lock = impls_mutex_.lock_write();
       auto it = impls_.find(response.client_id);
       CHECK(it != impls_.end());
       CHECK(it->second.is_closed);

@@ -9,7 +9,6 @@
 #include "td/utils/port/config.h"
 
 #include "td/utils/common.h"
-#include "td/utils/Status.h"
 
 #if TD_PORT_POSIX
 #include <pthread.h>
@@ -60,12 +59,12 @@ class RwMutex {
   using ReadLock = std::unique_ptr<RwMutex, ReadUnlock>;
   using WriteLock = std::unique_ptr<RwMutex, WriteUnlock>;
 
-  Result<ReadLock> lock_read() TD_WARN_UNUSED_RESULT {
+  ReadLock lock_read() TD_WARN_UNUSED_RESULT {
     lock_read_unsafe();
     return ReadLock(this);
   }
 
-  Result<WriteLock> lock_write() TD_WARN_UNUSED_RESULT {
+  WriteLock lock_write() TD_WARN_UNUSED_RESULT {
     lock_write_unsafe();
     return WriteLock(this);
   }
