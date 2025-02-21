@@ -25,6 +25,7 @@
 #include "td/utils/Container.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Status.h"
+#include "td/utils/StringBuilder.h"
 
 #include <memory>
 
@@ -229,6 +230,8 @@ class CallActor final : public NetQueryCallback {
   void flush_call_state();
 
   static vector<string> get_emojis_fingerprint(const string &key, const string &g_a);
+
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const State &state);
 
   void start_up() final;
   void loop() final;

@@ -142,6 +142,59 @@ tl_object_ptr<td_api::CallState> CallState::get_call_state_object() const {
   }
 }
 
+static StringBuilder &operator<<(StringBuilder &string_builder, const CallState::Type &type) {
+  switch (type) {
+    case CallState::Type::Empty:
+      return string_builder << "Empty";
+    case CallState::Type::Pending:
+      return string_builder << "Pending";
+    case CallState::Type::ExchangingKey:
+      return string_builder << "ExchangingKey";
+    case CallState::Type::Ready:
+      return string_builder << "Ready";
+    case CallState::Type::HangingUp:
+      return string_builder << "HangingUp";
+    case CallState::Type::Discarded:
+      return string_builder << "Discarded";
+    case CallState::Type::Error:
+      return string_builder << "Error";
+    default:
+      UNREACHABLE();
+      return string_builder;
+  }
+}
+
+StringBuilder &operator<<(StringBuilder &string_builder, const CallActor::State &state) {
+  string_builder << "state ";
+  switch (state) {
+    case CallActor::State::Empty:
+      return string_builder << "Empty";
+    case CallActor::State::SendRequestQuery:
+      return string_builder << "SendRequestQuery";
+    case CallActor::State::WaitRequestResult:
+      return string_builder << "WaitRequestResult";
+    case CallActor::State::SendAcceptQuery:
+      return string_builder << "SendAcceptQuery";
+    case CallActor::State::WaitAcceptResult:
+      return string_builder << "WaitAcceptResult";
+    case CallActor::State::SendConfirmQuery:
+      return string_builder << "SendConfirmQuery";
+    case CallActor::State::WaitConfirmResult:
+      return string_builder << "WaitConfirmResult";
+    case CallActor::State::Ready:
+      return string_builder << "Ready";
+    case CallActor::State::SendDiscardQuery:
+      return string_builder << "SendDiscardQuery";
+    case CallActor::State::WaitDiscardResult:
+      return string_builder << "WaitDiscardResult";
+    case CallActor::State::Discarded:
+      return string_builder << "Discarded";
+    default:
+      UNREACHABLE();
+      return string_builder;
+  }
+}
+
 CallActor::CallActor(Td *td, CallId call_id, ActorShared<> parent, Promise<int64> promise)
     : td_(td), parent_(std::move(parent)), call_id_promise_(std::move(promise)), local_call_id_(call_id) {
 }
@@ -650,7 +703,7 @@ Status CallActor::do_update_call(const telegram_api::phoneCall &call) {
   }
   cancel_timeout();
 
-  LOG(DEBUG) << "Do update call to Ready from state " << static_cast<int32>(state_);
+  LOG(DEBUG) << "Do update call to Ready from " << state_;
   if (state_ == State::WaitAcceptResult) {
     dh_handshake_.set_g_a(call.g_a_or_b_.as_slice());
     TRY_STATUS(dh_handshake_.run_checks(true, DhCache::instance()));
@@ -1020,8 +1073,7 @@ void CallActor::on_get_call_config_result(Result<NetQueryPtr> r_net_query) {
 }
 
 void CallActor::loop() {
-  LOG(DEBUG) << "Enter loop for " << call_id_ << " in state " << static_cast<int32>(state_) << '/'
-             << static_cast<int32>(call_state_.type);
+  LOG(DEBUG) << "Enter loop for " << call_id_ << " in " << state_ << '/' << call_state_.type;
   flush_call_state();
   switch (state_) {
     case State::SendRequestQuery:
