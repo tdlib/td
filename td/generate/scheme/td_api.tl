@@ -4281,7 +4281,7 @@ messageSelfDestructTypeImmediately = MessageSelfDestructType;
 //@allow_paid_broadcast Pass true to allow the message to ignore regular broadcast limits for a small fee; for bots only
 //@paid_message_star_count The number of Telegram Stars the user agreed to pay to send the messages
 //@update_order_of_installed_sticker_sets Pass true if the user explicitly chosen a sticker or a custom emoji from an installed sticker set; applicable only to sendMessage and sendMessageAlbum
-//@scheduling_state Message scheduling state; pass null to send message immediately. Messages sent to a secret chat, live location messages and self-destructing messages can't be scheduled
+//@scheduling_state Message scheduling state; pass null to send message immediately. Messages sent to a secret chat, to a chat with paid messages, live location messages and self-destructing messages can't be scheduled
 //@effect_id Identifier of the effect to apply to the message; pass 0 if none; applicable only to sendMessage and sendMessageAlbum in private chats
 //@sending_id Non-persistent identifier, which will be returned back in messageSendingStatePending object and can be used to match sent messages and corresponding updateNewMessage updates
 //@only_preview Pass true to get a fake message instead of actually sending them
@@ -9423,7 +9423,7 @@ sendInlineQueryResultMessage chat_id:int53 message_thread_id:int53 reply_to:Inpu
 //@remove_caption Pass true to remove media captions of message copies. Ignored if send_copy is false
 forwardMessages chat_id:int53 message_thread_id:int53 from_chat_id:int53 message_ids:vector<int53> options:messageSendOptions send_copy:Bool remove_caption:Bool = Messages;
 
-//@description Sends messages from a quick reply shortcut. Requires Telegram Business subscription
+//@description Sends messages from a quick reply shortcut. Requires Telegram Business subscription. Can't be used to send paid messages
 //@chat_id Identifier of the chat to which to send messages. The chat must be a private chat with a regular user
 //@shortcut_id Unique identifier of the quick reply shortcut
 //@sending_id Non-persistent identifier, which will be returned back in messageSendingStatePending object and can be used to match sent messages and corresponding updateNewMessage updates
@@ -11825,6 +11825,7 @@ getAvailableGifts = Gifts;
 //@gift_id Identifier of the gift to send
 //@owner_id Identifier of the user or the channel chat that will receive the gift
 //@text Text to show along with the gift; 0-getOption("gift_text_length_max") characters. Only Bold, Italic, Underline, Strikethrough, Spoiler, and CustomEmoji entities are allowed
+//-Must be empty if the receiver enabled paid messages
 //@is_private Pass true to show gift text and sender only to the gift receiver; otherwise, everyone will be able to see them
 //@pay_for_upgrade Pass true to additionally pay for the gift upgrade and allow the receiver to upgrade it for free
 sendGift gift_id:int64 owner_id:MessageSender text:formattedText is_private:Bool pay_for_upgrade:Bool = Ok;

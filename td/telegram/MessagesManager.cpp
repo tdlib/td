@@ -20758,6 +20758,9 @@ Result<MessagesManager::MessageSendOptions> MessagesManager::process_message_sen
         return Status::Error(400, "Can't scheduled till online messages in chat with self");
       }
     }
+    if (result.paid_message_star_count > 0) {
+      return Status::Error(400, "Can't schedule paid messages");
+    }
   }
   if (options->effect_id_ != 0) {
     auto dialog_type = dialog_id.get_type();
