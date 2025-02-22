@@ -122,6 +122,12 @@ void FileDownloadManager::hangup() {
     node.downloader_.reset();
     node.from_bytes_.reset();
   });
+  for (auto &it : download_resource_manager_map_) {
+    it.second.reset();
+  }
+  for (auto &it : download_small_resource_manager_map_) {
+    it.second.reset();
+  }
   stop_flag_ = true;
   try_stop();
 }

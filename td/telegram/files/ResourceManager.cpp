@@ -65,6 +65,11 @@ void ResourceManager::update_resources(const ResourceState &resource_state) {
   loop();
 }
 
+void ResourceManager::hangup() {
+  stop_flag_ = true;
+  loop();
+}
+
 void ResourceManager::hangup_shared() {
   auto node_id = get_link_token();
   auto node_ptr = nodes_container_.get(node_id);

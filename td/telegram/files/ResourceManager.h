@@ -57,6 +57,8 @@ class ResourceManager final : public Actor {
   ActorShared<> parent_;
   bool stop_flag_ = false;
 
+  void hangup() final;
+
   void hangup_shared() final;
 
   void loop() final;

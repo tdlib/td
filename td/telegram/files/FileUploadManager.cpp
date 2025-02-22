@@ -111,6 +111,7 @@ void FileUploadManager::hangup() {
     node.uploader_.reset();
     node.hash_uploader_.reset();
   });
+  upload_resource_manager_.reset();
   stop_flag_ = true;
   try_stop();
 }
