@@ -29,6 +29,7 @@
 #include "td/telegram/UserManager.h"
 #include "td/telegram/UserStarGift.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
 #include "td/utils/Random.h"
@@ -243,6 +244,41 @@ class SaveStarGiftQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class ToggleStarGiftsPinnedToTopQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit ToggleStarGiftsPinnedToTopQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, const vector<StarGiftId> &star_gift_ids) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    auto input_star_gifts = transform(star_gift_ids, [td = td_](const StarGiftId &star_gift_id) {
+      return star_gift_id.get_input_saved_star_gift(td);
+    });
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_toggleStarGiftsPinnedToTop(std::move(input_peer), std::move(input_star_gifts)),
+        {{dialog_id_}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_toggleStarGiftsPinnedToTop>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ToggleStarGiftsPinnedToTopQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -965,6 +1001,19 @@ void StarGiftManager::save_gift(StarGiftId star_gift_id, bool is_saved, Promise<
     return promise.set_error(Status::Error(400, "Invalid gift identifier specified"));
   }
   td_->create_handler<SaveStarGiftQuery>(std::move(promise))->send(star_gift_id, is_saved);
+}
+
+void StarGiftManager::set_dialog_pinned_gifts(DialogId dialog_id, const vector<StarGiftId> &star_gift_ids,
+                                              Promise<Unit> &&promise) {
+  for (const auto &star_gift_id : star_gift_ids) {
+    if (star_gift_id.get_input_saved_star_gift(td_) == nullptr) {
+      return promise.set_error(Status::Error(400, "Invalid gift identifier specified"));
+    }
+    if (star_gift_id.get_dialog_id(td_) != dialog_id) {
+      return promise.set_error(Status::Error(400, "The gift is not from the chat"));
+    }
+  }
+  td_->create_handler<ToggleStarGiftsPinnedToTopQuery>(std::move(promise))->send(dialog_id, star_gift_ids);
 }
 
 void StarGiftManager::toggle_chat_star_gift_notifications(DialogId dialog_id, bool are_enabled,

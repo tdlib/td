@@ -11840,10 +11840,15 @@ sendGift gift_id:int64 owner_id:MessageSender text:formattedText is_private:Bool
 //@description Sells a gift for Telegram Stars @received_gift_id Identifier of the gift
 sellGift received_gift_id:string = Ok;
 
-//@description Toggles whether a gift is shown on the current user's or the channel's profile page; requires can_post_messages administrator right in the chat
+//@description Toggles whether a gift is shown on the current user's or the channel's profile page; requires can_post_messages administrator right in the channel chat
 //@received_gift_id Identifier of the gift
 //@is_saved Pass true to display the gift on the user's or the channel's profile page; pass false to remove it from the profile page
 toggleGiftIsSaved received_gift_id:string is_saved:Bool = Ok;
+
+//@description Changes the list of pinned gifts on the current user's or the channel's profile page; requires can_post_messages administrator right in the channel chat
+//@owner_id Identifier of the user or the channel chat that received the gifts
+//@received_gift_ids New list of pinned gifts. All gifts must be saved on the profile page first. There can be up to getOption("pinned_gift_count_max") pinned gifts
+setPinnedGifts owner_id:MessageSender received_gift_ids:vector<string> = Ok;
 
 //@description Toggles whether notifications for new gifts received by a channel chat are sent to the current user; requires can_post_messages administrator right in the chat
 //@chat_id Identifier of the channel chat
