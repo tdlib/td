@@ -62,7 +62,7 @@ class ThreadSafeCounter {
 };
 
 class NamedThreadSafeCounter {
-  static constexpr int N = 128;
+  static constexpr size_t N = 128;
   using Counter = ThreadSafeMultiCounter<N>;
 
  public:

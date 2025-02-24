@@ -27,8 +27,8 @@
 #include <string>
 #include <vector>
 
-static constexpr int DATA_SIZE = 8 << 10;
-static constexpr int SHORT_DATA_SIZE = 64;
+static constexpr std::size_t DATA_SIZE = 8 << 10;
+static constexpr std::size_t SHORT_DATA_SIZE = 64;
 
 #if OPENSSL_VERSION_NUMBER <= 0x10100000L
 class SHA1Bench final : public td::Benchmark {
@@ -285,8 +285,9 @@ class AesCtrOpenSSLBench final : public td::Benchmark {
     state.init(as_slice(key), as_slice(iv));
     for (int i = 0; i < n; i++) {
       int len = 0;
-      EVP_EncryptUpdate(ctx, data_slice.ubegin(), &len, data_slice.ubegin(), DATA_SIZE);
-      CHECK(len == DATA_SIZE);
+      int int_size = static_cast<int>(DATA_SIZE);
+      EVP_EncryptUpdate(ctx, data_slice.ubegin(), &len, data_slice.ubegin(), int_size);
+      CHECK(len == int_size);
     }
 
     EVP_CIPHER_CTX_free(ctx);

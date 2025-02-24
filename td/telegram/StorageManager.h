@@ -41,9 +41,9 @@ class StorageManager final : public Actor {
   void on_new_file(int64 size, int64 real_size, int32 cnt);
 
  private:
-  static constexpr int GC_EACH = 60 * 60 * 24;  // 1 day
-  static constexpr int GC_DELAY = 60;
-  static constexpr int GC_RAND_DELAY = 60 * 15;
+  static constexpr int32 GC_EACH = 60 * 60 * 24;  // 1 day
+  static constexpr int32 GC_DELAY = 60;
+  static constexpr int32 GC_RAND_DELAY = 60 * 15;
 
   ActorShared<> parent_;
 
