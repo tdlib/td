@@ -28,6 +28,7 @@ UserStarGift::UserStarGift(Td *td, telegram_api::object_ptr<telegram_api::savedS
     , can_export_at_(max(0, gift->can_export_at_))
     , is_name_hidden_(gift->name_hidden_)
     , is_saved_(!gift->unsaved_)
+    , is_pinned_(gift->pinned_to_top_)
     , can_upgrade_(gift->can_upgrade_)
     , can_transfer_((gift->flags_ & telegram_api::savedStarGift::TRANSFER_STARS_MASK) != 0)
     , was_refunded_(gift->refunded_) {
@@ -64,9 +65,9 @@ td_api::object_ptr<td_api::receivedGift> UserStarGift::get_received_gift_object(
   return td_api::make_object<td_api::receivedGift>(
       star_gift_id_.get_star_gift_id(),
       sender_dialog_id_ == DialogId() ? nullptr : get_message_sender_object(td, sender_dialog_id_, "receivedGift"),
-      get_formatted_text_object(td->user_manager_.get(), message_, true, -1), is_name_hidden_, is_saved_, can_upgrade_,
-      can_transfer_, was_refunded_, date_, gift_.get_sent_gift_object(td), convert_star_count_, upgrade_star_count_,
-      transfer_star_count_, can_export_at_);
+      get_formatted_text_object(td->user_manager_.get(), message_, true, -1), is_name_hidden_, is_saved_, is_pinned_,
+      can_upgrade_, can_transfer_, was_refunded_, date_, gift_.get_sent_gift_object(td), convert_star_count_,
+      upgrade_star_count_, transfer_star_count_, can_export_at_);
 }
 
 }  // namespace td
