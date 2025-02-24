@@ -1290,6 +1290,11 @@ starTransactionTypePaidMessageSend chat_id:int53 message_count:int32 = StarTrans
 //@commission_star_amount The amount of Telegram Stars that were received by Telegram; can be negative for refunds
 starTransactionTypePaidMessageReceive sender_id:MessageSender message_count:int32 commission_per_mille:int32 commission_star_amount:starAmount = StarTransactionType;
 
+//@description The transaction is a purchase of Telegram Premium subscription; for regular users only
+//@user_id Identifier of the user that received the Telegram Premium subscription
+//@month_count Number of months the Telegram Premium subscription will be active
+starTransactionTypePremiumPurchase user_id:int53 month_count:int32 = StarTransactionType;
+
 //@description The transaction is a transaction of an unsupported type
 starTransactionTypeUnsupported = StarTransactionType;
 

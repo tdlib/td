@@ -505,8 +505,17 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
               if (product_info != nullptr) {
                 if (is_purchase) {
                   if (for_user) {
-                    return td_api::make_object<td_api::starTransactionTypeBotInvoicePurchase>(user_id_object,
-                                                                                              std::move(product_info));
+                    if (transaction->premium_gift_months_ > 0) {
+                      SCOPE_EXIT {
+                        transaction->premium_gift_months_ = 0;
+                        product_info = nullptr;
+                      };
+                      return td_api::make_object<td_api::starTransactionTypePremiumPurchase>(
+                          user_id_object, transaction->premium_gift_months_);
+                    } else {
+                      return td_api::make_object<td_api::starTransactionTypeBotInvoicePurchase>(
+                          user_id_object, std::move(product_info));
+                    }
                   }
                 } else {
                   if (for_bot) {
@@ -674,6 +683,9 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         }
         if (transaction->paid_messages_) {
           LOG(ERROR) << "Receive paid messages with " << to_string(star_transaction);
+        }
+        if (transaction->premium_gift_months_) {
+          LOG(ERROR) << "Receive Telegram Premium purchase with " << to_string(star_transaction);
         }
       }
       if (!file_ids.empty()) {
