@@ -2349,6 +2349,7 @@ void ChatManager::ChannelFull::store(StorerT &storer) const {
     STORE_FLAG(has_bot_verification);
     STORE_FLAG(has_gift_count);
     STORE_FLAG(has_stargifts_available);
+    STORE_FLAG(has_paid_messages_available);
     END_STORE_FLAGS();
   }
   if (has_description) {
@@ -2493,6 +2494,7 @@ void ChatManager::ChannelFull::parse(ParserT &parser) {
     PARSE_FLAG(has_bot_verification);
     PARSE_FLAG(has_gift_count);
     PARSE_FLAG(has_stargifts_available);
+    PARSE_FLAG(has_paid_messages_available);
     END_PARSE_FLAGS();
   }
   if (has_description) {
@@ -5517,6 +5519,7 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
     auto bot_verification = BotVerification::get_bot_verification(std::move(channel->bot_verification_));
     auto gift_count = channel->stargifts_count_;
     auto has_stargifts_available = channel->stargifts_available_;
+    auto has_paid_messages_available = channel->paid_messages_available_;
     StickerSetId sticker_set_id;
     if (channel->stickerset_ != nullptr) {
       sticker_set_id =
@@ -5556,7 +5559,8 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
         channel_full->has_paid_media_allowed != has_paid_media_allowed ||
         channel_full->can_view_star_revenue != can_view_star_revenue ||
         channel_full->bot_verification != bot_verification ||
-        channel_full->has_stargifts_available != has_stargifts_available) {
+        channel_full->has_stargifts_available != has_stargifts_available ||
+        channel_full->has_paid_messages_available != has_paid_messages_available) {
       channel_full->participant_count = participant_count;
       channel_full->administrator_count = administrator_count;
       channel_full->restricted_count = restricted_count;
@@ -5581,6 +5585,7 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
       channel_full->can_view_star_revenue = can_view_star_revenue;
       channel_full->bot_verification = std::move(bot_verification);
       channel_full->has_stargifts_available = has_stargifts_available;
+      channel_full->has_paid_messages_available = has_paid_messages_available;
 
       channel_full->is_changed = true;
     }
@@ -9104,10 +9109,11 @@ tl_object_ptr<td_api::supergroupFullInfo> ChatManager::get_supergroup_full_info_
       get_chat_photo_object(td_->file_manager_.get(), channel_full->photo), channel_full->description,
       channel_full->participant_count, channel_full->administrator_count, channel_full->restricted_count,
       channel_full->banned_count, DialogId(channel_full->linked_channel_id).get(), channel_full->slow_mode_delay,
-      slow_mode_delay_expires_in, channel_full->has_paid_media_allowed, channel_full->can_get_participants,
-      has_hidden_participants, can_hide_channel_participants(channel_id, channel_full).is_ok(),
-      channel_full->can_set_sticker_set, channel_full->can_set_location, channel_full->can_view_statistics,
-      channel_full->can_view_revenue, channel_full->can_view_star_revenue, channel_full->has_stargifts_available,
+      slow_mode_delay_expires_in, channel_full->has_paid_messages_available, channel_full->has_paid_media_allowed,
+      channel_full->can_get_participants, has_hidden_participants,
+      can_hide_channel_participants(channel_id, channel_full).is_ok(), channel_full->can_set_sticker_set,
+      channel_full->can_set_location, channel_full->can_view_statistics, channel_full->can_view_revenue,
+      channel_full->can_view_star_revenue, channel_full->has_stargifts_available,
       can_toggle_channel_aggressive_anti_spam(channel_id, channel_full).is_ok(), channel_full->is_all_history_available,
       channel_full->can_have_sponsored_messages, channel_full->has_aggressive_anti_spam_enabled,
       channel_full->has_paid_media_allowed, channel_full->has_pinned_stories, channel_full->gift_count,
