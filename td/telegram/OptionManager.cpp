@@ -171,6 +171,7 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("affiliate_program_commission_per_mille_max", 800);
   set_default_integer_option("bot_verification_custom_description_length_max", 70);
   set_default_integer_option("paid_message_star_count_max", 10000);
+  set_default_integer_option("paid_message_earnings_per_mille", 850);
 
   if (options.isset("my_phone_number") || !options.isset("my_id")) {
     update_premium_options();
