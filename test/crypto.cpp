@@ -120,6 +120,29 @@ class Handshake {
     return std::move(result);
   }
 
+  static td::Result<td::SecureString> get_public_key(td::Slice private_key) {
+    auto pkey_private = EVP_PKEY_new_raw_private_key(EVP_PKEY_X25519, nullptr, private_key.ubegin(), 32);
+    if (pkey_private == nullptr) {
+      return td::Status::Error("Invalid X25520 private key");
+    }
+    SCOPE_EXIT {
+      EVP_PKEY_free(pkey_private);
+    };
+
+    auto func = &EVP_PKEY_get_raw_public_key;
+    size_t len = 0;
+    if (func(pkey_private, nullptr, &len) == 0) {
+      return td::Status::Error("Failed to get raw key length");
+    }
+    CHECK(len == 32);
+
+    td::SecureString result(len);
+    if (func(pkey_private, result.as_mutable_slice().ubegin(), &len) == 0) {
+      return td::Status::Error("Failed to get raw key");
+    }
+    return std::move(result);
+  }
+
  private:
   static td::Result<td::SecureString> X25519_key_from_PKEY(EVP_PKEY *pkey, bool is_private) {
     auto func = is_private ? &EVP_PKEY_get_raw_private_key : &EVP_PKEY_get_raw_public_key;
@@ -227,6 +250,8 @@ static HandshakeTest gen_test() {
 }
 
 static void run_test(const HandshakeTest &test) {
+  CHECK(Handshake::get_public_key(test.alice.private_key).move_as_ok() == test.alice.public_key);
+  CHECK(Handshake::get_public_key(test.bob.private_key).move_as_ok() == test.bob.public_key);
   auto alice_secret = Handshake::calc_shared_secret(test.alice.private_key, test.bob.public_key).move_as_ok();
   auto bob_secret = Handshake::calc_shared_secret(test.bob.private_key, test.alice.public_key).move_as_ok();
   auto key = Handshake::expand_secret(alice_secret);
