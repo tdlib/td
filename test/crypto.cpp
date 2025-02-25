@@ -75,7 +75,7 @@ class Handshake {
   static td::Result<td::SecureString> calc_shared_secret(td::Slice private_key, td::Slice other_public_key) {
     auto pkey_private = EVP_PKEY_new_raw_private_key(EVP_PKEY_X25519, nullptr, private_key.ubegin(), 32);
     if (pkey_private == nullptr) {
-      return td::Status::Error("Invalid X25520 private key");
+      return td::Status::Error("Invalid X25519 private key");
     }
     SCOPE_EXIT {
       EVP_PKEY_free(pkey_private);
@@ -123,7 +123,7 @@ class Handshake {
   static td::Result<td::SecureString> get_public_key(td::Slice private_key) {
     auto pkey_private = EVP_PKEY_new_raw_private_key(EVP_PKEY_X25519, nullptr, private_key.ubegin(), 32);
     if (pkey_private == nullptr) {
-      return td::Status::Error("Invalid X25520 private key");
+      return td::Status::Error("Invalid X25519 private key");
     }
     SCOPE_EXIT {
       EVP_PKEY_free(pkey_private);

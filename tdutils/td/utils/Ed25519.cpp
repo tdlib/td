@@ -319,7 +319,7 @@ Result<SecureString> Ed25519::get_public_key(Slice private_key) {
 #if OPENSSL_VERSION_NUMBER >= 0x10101000L
   auto pkey_private = EVP_PKEY_new_raw_private_key(EVP_PKEY_X25519, nullptr, private_key.ubegin(), 32);
   if (pkey_private == nullptr) {
-    return Status::Error("Invalid X25520 private key");
+    return Status::Error("Invalid X25519 private key");
   }
   SCOPE_EXIT {
     EVP_PKEY_free(pkey_private);
