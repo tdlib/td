@@ -30682,10 +30682,14 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
   if (old_message->sender_dialog_id != new_message->sender_dialog_id) {
     // there can be race for changed anonymous flag
     // yet unsent messages scheduled by the server can lost chosen sender
-    LOG_IF(ERROR, old_message->sender_dialog_id != DialogId() && new_message->sender_dialog_id != DialogId() &&
-                      (!message_id.is_yet_unsent() || new_message->sender_dialog_id != d->dialog_id))
-        << message_id << " in " << dialog_id << " has changed sender from " << old_message->sender_dialog_id << " to "
-        << new_message->sender_dialog_id << ", message content type is " << old_content_type << '/' << new_content_type;
+    // channel messages received in old layers can receive sender
+    if (old_message->sender_dialog_id != DialogId() && new_message->sender_dialog_id != DialogId() &&
+        (!message_id.is_yet_unsent() || new_message->sender_dialog_id != dialog_id) &&
+        (old_message->sender_dialog_id != dialog_id || !td_->dialog_manager_->is_broadcast_channel(dialog_id))) {
+      LOG(ERROR) << message_id << " in " << dialog_id << " has changed sender from " << old_message->sender_dialog_id
+                 << " to " << new_message->sender_dialog_id << ", message content type is " << old_content_type << '/'
+                 << new_content_type;
+    }
 
     LOG(DEBUG) << "Change message sender";
     old_message->sender_dialog_id = new_message->sender_dialog_id;
