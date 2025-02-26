@@ -7,12 +7,14 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/MinChannel.h"
 #include "td/telegram/PaidReactionType.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
 #include "td/utils/StringBuilder.h"
+#include "td/utils/unique_value_ptr.h"
 
 namespace td {
 
@@ -22,6 +24,7 @@ class Td;
 
 class MessageReactor {
   DialogId dialog_id_;  // self for anonymous reactions by the current user
+  unique_value_ptr<MinChannel> min_channel_;
   int32 count_ = 0;
   bool is_top_ = false;
   bool is_me_ = false;
@@ -36,7 +39,7 @@ class MessageReactor {
  public:
   MessageReactor() = default;
 
-  explicit MessageReactor(telegram_api::object_ptr<telegram_api::messageReactor> &&reactor);
+  MessageReactor(Td *td, telegram_api::object_ptr<telegram_api::messageReactor> &&reactor);
 
   MessageReactor(DialogId dialog_id, int32 count, bool is_anonymous)
       : dialog_id_(dialog_id), count_(count), is_me_(true), is_anonymous_(is_anonymous) {
@@ -70,6 +73,8 @@ class MessageReactor {
   }
 
   td_api::object_ptr<td_api::paidReactor> get_paid_reactor_object(Td *td) const;
+
+  void add_min_channel(Td *td) const;
 
   void add_dependencies(Dependencies &dependencies) const;
 

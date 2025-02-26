@@ -642,7 +642,7 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
   }
   bool was_me = false;
   for (auto &top_reactor : reactions->top_reactors_) {
-    MessageReactor reactor(std::move(top_reactor));
+    MessageReactor reactor(td, std::move(top_reactor));
     if (!reactor.is_valid() || (reactions->min_ && reactor.is_me())) {
       LOG(ERROR) << "Receive " << reactor;
       continue;
@@ -1035,6 +1035,9 @@ void MessageReactions::add_min_channels(Td *td) const {
       LOG(INFO) << "Add min reacted " << recent_chooser_min_channel.first;
       td->chat_manager_->add_min_channel(recent_chooser_min_channel.first, recent_chooser_min_channel.second);
     }
+  }
+  for (const auto &reactor : top_reactors_) {
+    reactor.add_min_channel(td);
   }
 }
 
