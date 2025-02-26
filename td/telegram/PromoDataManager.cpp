@@ -74,7 +74,8 @@ class HidePromoDataQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    if (!td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "HidePromoDataQuery")) {
+    if (!td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "HidePromoDataQuery") &&
+        !G()->is_expected_error(status)) {
       LOG(ERROR) << "Receive error for sponsored chat hiding: " << status;
     }
   }
@@ -142,7 +143,9 @@ void PromoDataManager::on_get_promo_data(Result<telegram_api::object_ptr<telegra
   reloading_promo_data_ = false;
 
   if (r_promo_data.is_error()) {
-    LOG(ERROR) << "Receive error for GetPromoData: " << r_promo_data.error();
+    if (!G()->is_expected_error(r_promo_data.error())) {
+      LOG(ERROR) << "Receive error for GetPromoData: " << r_promo_data.error();
+    }
     return schedule_get_promo_data(60);
   }
 
