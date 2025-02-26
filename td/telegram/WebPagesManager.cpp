@@ -1106,12 +1106,8 @@ void WebPagesManager::get_web_page_instant_view_impl(WebPageId web_page_id, bool
     return promise.set_value(WebPageId());
   }
 
-  if (!web_page_instant_view->is_loaded_ || (force_full && !web_page_instant_view->is_full_)) {
+  if (!web_page_instant_view->is_loaded_ || force_full) {
     return load_web_page_instant_view(web_page_id, force_full, std::move(promise));
-  }
-
-  if (force_full) {
-    reload_web_page_instant_view(web_page_id);
   }
 
   promise.set_value(std::move(web_page_id));
