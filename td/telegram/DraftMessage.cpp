@@ -37,7 +37,7 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       LOG(INFO) << "Can't update draft message because have no write access to " << dialog_id;
-      return on_error(Status::Error(400, "Can't save draft message"));
+      return on_error(Status::Error(400, "PEER_ID_INVALID"));
     }
 
     int32 flags = 0;
@@ -98,7 +98,8 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
       // with the error "TOPIC_CLOSED", but the draft will be kept locally
       return promise_.set_value(Unit());
     }
-    if (!td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "SaveDraftMessageQuery")) {
+    if (!td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "SaveDraftMessageQuery") &&
+        status.message() != "PEER_ID_INVALID") {
       LOG(ERROR) << "Receive error for SaveDraftMessageQuery: " << status;
     }
     promise_.set_error(std::move(status));
