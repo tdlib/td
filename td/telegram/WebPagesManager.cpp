@@ -1298,7 +1298,7 @@ WebPageId WebPagesManager::get_web_page_by_url(const string &url) const {
   return WebPageId();
 }
 
-void WebPagesManager::get_web_page_by_url(const string &url, Promise<WebPageId> &&promise) {
+void WebPagesManager::fetch_web_page_by_url(const string &url, Promise<WebPageId> &&promise) {
   LOG(INFO) << "Trying to get web page identifier for the URL \"" << url << '"';
   if (url.empty()) {
     return promise.set_value(WebPageId());

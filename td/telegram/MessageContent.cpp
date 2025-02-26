@@ -7033,7 +7033,7 @@ unique_ptr<MessageContent> get_secret_message_content(
 
       auto result = td::make_unique<MessageText>(FormattedText{std::move(message_text), std::move(entities)},
                                                  WebPageId(), false, false, false, url);
-      td->web_pages_manager_->get_web_page_by_url(
+      td->web_pages_manager_->fetch_web_page_by_url(
           url,
           PromiseCreator::lambda([&web_page_id = result->web_page_id, promise = load_data_multipromise.get_promise()](
                                      Result<WebPageId> r_web_page_id) mutable {

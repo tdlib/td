@@ -91,7 +91,7 @@ class WebPagesManager final : public Actor {
 
   WebPageId get_web_page_by_url(const string &url) const;
 
-  void get_web_page_by_url(const string &url, Promise<WebPageId> &&promise);
+  void fetch_web_page_by_url(const string &url, Promise<WebPageId> &&promise);
 
   void reload_web_page_by_url(const string &url, Promise<WebPageId> &&promise);
 
