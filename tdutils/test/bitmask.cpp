@@ -13,44 +13,43 @@
 
 #include <algorithm>
 
-namespace td {
-
 class RangeSet {
   template <class T>
-  static auto find(T &ranges, int64 begin) {
+  static auto find(T &ranges, td::int64 begin) {
     return std::lower_bound(ranges.begin(), ranges.end(), begin,
-                            [](const Range &range, int64 begin) { return range.end < begin; });
+                            [](const Range &range, td::int64 begin) { return range.end < begin; });
   }
-  auto find(int64 begin) const {
+  auto find(td::int64 begin) const {
     return find(ranges_, begin);
   }
-  auto find(int64 begin) {
+  auto find(td::int64 begin) {
     return find(ranges_, begin);
   }
 
  public:
   struct Range {
-    int64 begin;
-    int64 end;
+    td::int64 begin;
+    td::int64 end;
   };
 
-  static constexpr int64 BIT_SIZE = 1024;
+  static constexpr td::int64 BIT_SIZE = 1024;
 
-  static RangeSet create_one_range(int64 end, int64 begin = 0) {
+  static RangeSet create_one_range(td::int64 end, td::int64 begin = 0) {
     RangeSet res;
     res.ranges_.push_back({begin, end});
     return res;
   }
-  static Result<RangeSet> decode(CSlice data) {
-    if (!check_utf8(data)) {
-      return Status::Error("Invalid encoding");
+
+  static td::Result<RangeSet> decode(td::CSlice data) {
+    if (!td::check_utf8(data)) {
+      return td::Status::Error("Invalid encoding");
     }
-    uint32 curr = 0;
+    td::uint32 curr = 0;
     bool is_empty = false;
     RangeSet res;
     for (auto begin = data.ubegin(); begin != data.uend();) {
-      uint32 size;
-      begin = next_utf8_unsafe(begin, &size);
+      td::uint32 size;
+      begin = td::next_utf8_unsafe(begin, &size);
 
       if (!is_empty && size != 0) {
         res.ranges_.push_back({curr * BIT_SIZE, (curr + size) * BIT_SIZE});
@@ -61,9 +60,9 @@ class RangeSet {
     return res;
   }
 
-  string encode(int64 prefix_size = -1) const {
-    vector<uint32> sizes;
-    uint32 all_end = 0;
+  td::string encode(td::int64 prefix_size = -1) const {
+    td::vector<td::uint32> sizes;
+    td::uint32 all_end = 0;
 
     if (prefix_size != -1) {
       prefix_size = (prefix_size + BIT_SIZE - 1) / BIT_SIZE * BIT_SIZE;
@@ -78,8 +77,8 @@ class RangeSet {
 
       CHECK(it.begin % BIT_SIZE == 0);
       CHECK(it.end % BIT_SIZE == 0);
-      auto begin = narrow_cast<uint32>(it.begin / BIT_SIZE);
-      auto end = narrow_cast<uint32>(it.end / BIT_SIZE);
+      auto begin = td::narrow_cast<td::uint32>(it.begin / BIT_SIZE);
+      auto end = td::narrow_cast<td::uint32>(it.end / BIT_SIZE);
       if (sizes.empty()) {
         if (begin != 0) {
           sizes.push_back(0);
@@ -92,14 +91,14 @@ class RangeSet {
       all_end = end;
     }
 
-    string res;
+    td::string res;
     for (auto c : sizes) {
-      append_utf8_character(res, c);
+      td::append_utf8_character(res, c);
     }
     return res;
   }
 
-  int64 get_ready_prefix_size(int64 offset, int64 file_size = -1) const {
+  td::int64 get_ready_prefix_size(td::int64 offset, td::int64 file_size = -1) const {
     auto it = find(offset);
     if (it == ranges_.end()) {
       return 0;
@@ -118,8 +117,9 @@ class RangeSet {
     }
     return end - offset;
   }
-  int64 get_total_size(int64 file_size) const {
-    int64 res = 0;
+
+  td::int64 get_total_size(td::int64 file_size) const {
+    td::int64 res = 0;
     for (auto it : ranges_) {
       if (it.begin >= file_size) {
         break;
@@ -131,7 +131,8 @@ class RangeSet {
     }
     return res;
   }
-  int64 get_ready_parts(int64 offset_part, int32 part_size) const {
+
+  td::int64 get_ready_parts(td::int64 offset_part, td::int32 part_size) const {
     auto offset = offset_part * part_size;
     auto it = find(offset);
     if (it == ranges_.end()) {
@@ -143,7 +144,7 @@ class RangeSet {
     return (it->end - offset) / part_size;
   }
 
-  bool is_ready(int64 begin, int64 end) const {
+  bool is_ready(td::int64 begin, td::int64 end) const {
     auto it = find(begin);
     if (it == ranges_.end()) {
       return false;
@@ -151,7 +152,7 @@ class RangeSet {
     return it->begin <= begin && end <= it->end;
   }
 
-  void set(int64 begin, int64 end) {
+  void set(td::int64 begin, td::int64 end) {
     CHECK(begin % BIT_SIZE == 0);
     CHECK(end % BIT_SIZE == 0);
     // 1. skip all with r.end < begin
@@ -173,11 +174,11 @@ class RangeSet {
     }
   }
 
-  vector<int32> as_vector(int32 part_size) const {
-    vector<int32> res;
+  td::vector<td::int32> as_vector(td::int32 part_size) const {
+    td::vector<td::int32> res;
     for (const auto &it : ranges_) {
-      auto begin = narrow_cast<int32>((it.begin + part_size - 1) / part_size);
-      auto end = narrow_cast<int32>(it.end / part_size);
+      auto begin = td::narrow_cast<td::int32>((it.begin + part_size - 1) / part_size);
+      auto end = td::narrow_cast<td::int32>(it.end / part_size);
       while (begin < end) {
         res.push_back(begin++);
       }
@@ -186,7 +187,7 @@ class RangeSet {
   }
 
  private:
-  vector<Range> ranges_;
+  td::vector<Range> ranges_;
 };
 
 TEST(Bitmask, simple) {
@@ -199,8 +200,8 @@ TEST(Bitmask, simple) {
   };
   {
     RangeSet rs;
-    int32 S = 128 * 1024;
-    int32 O = S * 5000;
+    td::int32 S = 128 * 1024;
+    td::int32 O = S * 5000;
     for (int i = 1; i < 30; i++) {
       if (i % 2 == 0) {
         rs.set(O + S * i, O + S * (i + 1));
@@ -210,7 +211,7 @@ TEST(Bitmask, simple) {
   }
   {
     RangeSet rs;
-    int32 S = 1024;
+    td::int32 S = 1024;
     auto get = [&](auto p) {
       return rs.get_ready_prefix_size(p * S) / S;
     };
@@ -242,8 +243,6 @@ TEST(Bitmask, simple) {
     ASSERT_EQ(10, rs.get_ready_prefix_size(S * 3, S * 3 + 10));
     ASSERT_TRUE(!rs.is_ready(S * 11, S * 12));
     ASSERT_EQ(3, rs.get_ready_parts(2, S * 2));
-    ASSERT_EQ(vector<int32>({2, 3, 4, 7}), rs.as_vector(S * 2));
+    ASSERT_EQ(td::vector<td::int32>({2, 3, 4, 7}), rs.as_vector(S * 2));
   }
 }
-
-}  // namespace td
