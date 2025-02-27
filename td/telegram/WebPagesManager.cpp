@@ -1070,11 +1070,8 @@ void WebPagesManager::get_web_page_instant_view(const string &url, bool only_loc
   if (it != url_to_web_page_id_.end()) {
     auto web_page_id = it->second.first;
     if (web_page_id == WebPageId()) {
-      if (only_local) {
-        return promise.set_value(WebPageId());
-      }
       // ignore negative caching
-      return reload_web_page_by_url(url, std::move(promise));
+      return reload_web_page_by_url(url, only_local, std::move(promise));
     }
     return get_web_page_instant_view_impl(web_page_id, only_local, std::move(promise));
   }
@@ -1288,10 +1285,7 @@ void WebPagesManager::fetch_web_page_by_url(const string &url, Promise<WebPageId
 void WebPagesManager::load_web_page_by_url(string url, bool only_local, Promise<WebPageId> &&promise) {
   CHECK(!url.empty());
   if (!G()->use_message_database()) {
-    if (only_local) {
-      return promise.set_value(WebPageId());
-    }
-    return reload_web_page_by_url(url, std::move(promise));
+    return reload_web_page_by_url(url, only_local, std::move(promise));
   }
 
   LOG(INFO) << "Load \"" << url << '"';
@@ -1339,10 +1333,7 @@ void WebPagesManager::on_load_web_page_id_by_url_from_database(string url, bool 
     }
   }
 
-  if (only_local) {
-    return promise.set_value(WebPageId());
-  }
-  reload_web_page_by_url(url, std::move(promise));
+  reload_web_page_by_url(url, only_local, std::move(promise));
 }
 
 void WebPagesManager::on_load_web_page_by_url_from_database(WebPageId web_page_id, string url, bool only_local,
@@ -1354,10 +1345,7 @@ void WebPagesManager::on_load_web_page_by_url_from_database(WebPageId web_page_i
 
   const WebPage *web_page = get_web_page(web_page_id);
   if (web_page == nullptr) {
-    if (only_local) {
-      return promise.set_value(WebPageId());
-    }
-    return reload_web_page_by_url(url, std::move(promise));
+    return reload_web_page_by_url(url, only_local, std::move(promise));
   }
 
   if (web_page->url_ != url) {
@@ -1367,8 +1355,11 @@ void WebPagesManager::on_load_web_page_by_url_from_database(WebPageId web_page_i
   promise.set_value(WebPageId(web_page_id));
 }
 
-void WebPagesManager::reload_web_page_by_url(const string &url, Promise<WebPageId> &&promise) {
+void WebPagesManager::reload_web_page_by_url(const string &url, bool only_local, Promise<WebPageId> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
+  if (only_local) {
+    return promise.set_value(WebPageId());
+  }
   td_->create_handler<GetWebPageQuery>(std::move(promise))->send(WebPageId(), url, 0);
 }
 

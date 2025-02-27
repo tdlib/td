@@ -93,7 +93,7 @@ class WebPagesManager final : public Actor {
 
   void fetch_web_page_by_url(const string &url, Promise<WebPageId> &&promise);
 
-  void reload_web_page_by_url(const string &url, Promise<WebPageId> &&promise);
+  void reload_web_page_by_url(const string &url, bool only_local, Promise<WebPageId> &&promise);
 
   void on_get_web_page_preview(unique_ptr<GetWebPagePreviewOptions> &&options,
                                tl_object_ptr<telegram_api::MessageMedia> &&message_media_ptr,
