@@ -1044,7 +1044,7 @@ class GetChatScheduledMessagesRequest final : public RequestActor<> {
 
 class GetWebPageInstantViewRequest final : public RequestActor<WebPageId> {
   string url_;
-  bool force_full_;
+  bool only_local_;
 
   WebPageId web_page_id_;
 
@@ -1053,7 +1053,7 @@ class GetWebPageInstantViewRequest final : public RequestActor<WebPageId> {
       promise.set_value(std::move(web_page_id_));
       return;
     }
-    td_->web_pages_manager_->get_web_page_instant_view(url_, force_full_, std::move(promise));
+    td_->web_pages_manager_->get_web_page_instant_view(url_, only_local_, std::move(promise));
   }
 
   void do_set_result(WebPageId &&result) final {
@@ -1065,8 +1065,8 @@ class GetWebPageInstantViewRequest final : public RequestActor<WebPageId> {
   }
 
  public:
-  GetWebPageInstantViewRequest(ActorShared<Td> td, uint64 request_id, string url, bool force_full)
-      : RequestActor(std::move(td), request_id), url_(std::move(url)), force_full_(force_full) {
+  GetWebPageInstantViewRequest(ActorShared<Td> td, uint64 request_id, string url, bool only_local)
+      : RequestActor(std::move(td), request_id), url_(std::move(url)), only_local_(only_local) {
   }
 };
 
@@ -4167,7 +4167,7 @@ void Requests::on_request(uint64 id, td_api::getLinkPreview &request) {
 void Requests::on_request(uint64 id, td_api::getWebPageInstantView &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.url_);
-  CREATE_REQUEST(GetWebPageInstantViewRequest, std::move(request.url_), request.force_full_);
+  CREATE_REQUEST(GetWebPageInstantViewRequest, std::move(request.url_), request.only_local_);
 }
 
 void Requests::on_request(uint64 id, const td_api::createPrivateChat &request) {

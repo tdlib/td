@@ -821,14 +821,7 @@ void WebPagesManager::update_web_page_instant_view(WebPageId web_page_id, WebPag
     // we have instant view and probably want it to be saved
     if (!new_from_database && !old_from_database) {
       // if it wasn't loaded from the database, load it first
-      auto &load_web_page_instant_view_queries = load_web_page_instant_view_queries_[web_page_id];
-      auto previous_queries =
-          load_web_page_instant_view_queries.partial.size() + load_web_page_instant_view_queries.full.size();
-      if (previous_queries == 0) {
-        // try to load it only if there are no pending load queries
-        load_web_page_instant_view(web_page_id, false, Auto());
-        return;
-      }
+      return load_web_page_instant_view(web_page_id, true, Auto());
     }
 
     if (!new_instant_view.was_loaded_from_database_) {
@@ -1068,7 +1061,7 @@ void WebPagesManager::get_web_page_preview(td_api::object_ptr<td_api::formattedT
              std::move(options));
 }
 
-void WebPagesManager::get_web_page_instant_view(const string &url, bool force_full, Promise<WebPageId> &&promise) {
+void WebPagesManager::get_web_page_instant_view(const string &url, bool only_local, Promise<WebPageId> &&promise) {
   LOG(INFO) << "Trying to get web page instant view for the URL \"" << url << '"';
   if (url.empty()) {
     return promise.set_value(WebPageId());
@@ -1077,25 +1070,28 @@ void WebPagesManager::get_web_page_instant_view(const string &url, bool force_fu
   if (it != url_to_web_page_id_.end()) {
     auto web_page_id = it->second.first;
     if (web_page_id == WebPageId()) {
+      if (only_local) {
+        return promise.set_value(WebPageId());
+      }
       // ignore negative caching
       return reload_web_page_by_url(url, std::move(promise));
     }
-    return get_web_page_instant_view_impl(web_page_id, force_full, std::move(promise));
+    return get_web_page_instant_view_impl(web_page_id, only_local, std::move(promise));
   }
 
   auto new_promise = PromiseCreator::lambda(
-      [actor_id = actor_id(this), force_full, promise = std::move(promise)](Result<WebPageId> r_web_page_id) mutable {
+      [actor_id = actor_id(this), only_local, promise = std::move(promise)](Result<WebPageId> r_web_page_id) mutable {
         if (r_web_page_id.is_error()) {
           promise.set_error(r_web_page_id.move_as_error());
         } else {
-          send_closure(actor_id, &WebPagesManager::get_web_page_instant_view_impl, r_web_page_id.ok(), force_full,
+          send_closure(actor_id, &WebPagesManager::get_web_page_instant_view_impl, r_web_page_id.ok(), only_local,
                        std::move(promise));
         }
       });
-  load_web_page_by_url(url, std::move(new_promise));
+  load_web_page_by_url(url, only_local, std::move(new_promise));
 }
 
-void WebPagesManager::get_web_page_instant_view_impl(WebPageId web_page_id, bool force_full,
+void WebPagesManager::get_web_page_instant_view_impl(WebPageId web_page_id, bool only_local,
                                                      Promise<WebPageId> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
@@ -1106,8 +1102,8 @@ void WebPagesManager::get_web_page_instant_view_impl(WebPageId web_page_id, bool
     return promise.set_value(WebPageId());
   }
 
-  if (!web_page_instant_view->is_loaded_ || force_full) {
-    return load_web_page_instant_view(web_page_id, force_full, std::move(promise));
+  if (!web_page_instant_view->is_loaded_ || !only_local) {
+    return load_web_page_instant_view(web_page_id, only_local, std::move(promise));
   }
 
   promise.set_value(std::move(web_page_id));
@@ -1117,49 +1113,42 @@ string WebPagesManager::get_web_page_instant_view_database_key(WebPageId web_pag
   return PSTRING() << "wpiv" << web_page_id.get();
 }
 
-void WebPagesManager::load_web_page_instant_view(WebPageId web_page_id, bool force_full, Promise<WebPageId> &&promise) {
-  auto &load_web_page_instant_view_queries = load_web_page_instant_view_queries_[web_page_id];
-  auto previous_queries =
-      load_web_page_instant_view_queries.partial.size() + load_web_page_instant_view_queries.full.size();
-  if (force_full) {
-    load_web_page_instant_view_queries.full.push_back(std::move(promise));
-  } else {
-    load_web_page_instant_view_queries.partial.push_back(std::move(promise));
-  }
-  LOG(INFO) << "Load " << web_page_id << " instant view, have " << previous_queries << " previous queries";
-  if (previous_queries == 0) {
+void WebPagesManager::load_web_page_instant_view(WebPageId web_page_id, bool only_local, Promise<WebPageId> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  if (only_local) {
     const WebPageInstantView *web_page_instant_view = get_web_page_instant_view(web_page_id);
     CHECK(web_page_instant_view != nullptr);
 
     if (G()->use_message_database() && !web_page_instant_view->was_loaded_from_database_) {
-      LOG(INFO) << "Trying to load " << web_page_id << " instant view from database";
-      G()->td_db()->get_sqlite_pmc()->get(
-          get_web_page_instant_view_database_key(web_page_id),
-          PromiseCreator::lambda([actor_id = actor_id(this), web_page_id](string value) {
-            send_closure(actor_id, &WebPagesManager::on_load_web_page_instant_view_from_database, web_page_id,
-                         std::move(value));
-          }));
-    } else {
-      reload_web_page_instant_view(web_page_id);
+      auto &queries = load_local_web_page_instant_view_queries_[web_page_id];
+      queries.push_back(std::move(promise));
+      if (queries.size() == 1u) {
+        LOG(INFO) << "Load " << web_page_id << " instant view from database";
+        G()->td_db()->get_sqlite_pmc()->get(
+            get_web_page_instant_view_database_key(web_page_id),
+            PromiseCreator::lambda([actor_id = actor_id(this), web_page_id, only_local](string value) {
+              send_closure(actor_id, &WebPagesManager::on_load_web_page_instant_view_from_database, web_page_id,
+                           std::move(value));
+            }));
+      }
+      return;
+    }
+    return promise.set_value(WebPageId());
+  } else {
+    auto &queries = load_server_web_page_instant_view_queries_[web_page_id];
+    queries.push_back(std::move(promise));
+    if (queries.size() == 1u) {
+      LOG(INFO) << "Reload " << web_page_id << " instant view from server";
+      const WebPage *web_page = get_web_page(web_page_id);
+      CHECK(web_page != nullptr && !web_page->instant_view_.is_empty_);
+
+      auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), web_page_id](Result<WebPageId> result) {
+        send_closure(actor_id, &WebPagesManager::on_reload_web_page_instant_view, web_page_id, std::move(result));
+      });
+      td_->create_handler<GetWebPageQuery>(std::move(query_promise))
+          ->send(web_page_id, web_page->url_, web_page->instant_view_.is_full_ ? web_page->instant_view_.hash_ : 0);
     }
   }
-}
-
-void WebPagesManager::reload_web_page_instant_view(WebPageId web_page_id) {
-  if (G()->close_flag()) {
-    return update_web_page_instant_view_load_requests(web_page_id, true, Global::request_aborted_error());
-  }
-
-  LOG(INFO) << "Reload " << web_page_id << " instant view";
-  const WebPage *web_page = get_web_page(web_page_id);
-  CHECK(web_page != nullptr && !web_page->instant_view_.is_empty_);
-
-  auto promise = PromiseCreator::lambda([actor_id = actor_id(this), web_page_id](Result<WebPageId> result) {
-    send_closure(actor_id, &WebPagesManager::update_web_page_instant_view_load_requests, web_page_id, true,
-                 std::move(result));
-  });
-  td_->create_handler<GetWebPageQuery>(std::move(promise))
-      ->send(web_page_id, web_page->url_, web_page->instant_view_.is_full_ ? web_page->instant_view_.hash_ : 0);
 }
 
 void WebPagesManager::on_load_web_page_instant_view_from_database(WebPageId web_page_id, string value) {
@@ -1178,7 +1167,7 @@ void WebPagesManager::on_load_web_page_instant_view_from_database(WebPageId web_
     if (!value.empty()) {
       G()->td_db()->get_sqlite_pmc()->erase(get_web_page_instant_view_database_key(web_page_id), Auto());
     }
-    update_web_page_instant_view_load_requests(web_page_id, true, web_page_id);
+    on_load_web_page_instant_view(web_page_id, WebPageId());
     return;
   }
   auto &web_page_instant_view = web_page->instant_view_;
@@ -1208,71 +1197,55 @@ void WebPagesManager::on_load_web_page_instant_view_from_database(WebPageId web_
                                             "on_load_web_page_instant_view_from_database");
   }
 
-  update_web_page_instant_view_load_requests(web_page_id, false, web_page_id);
+  on_load_web_page_instant_view(web_page_id, web_page_id);
 }
 
-void WebPagesManager::update_web_page_instant_view_load_requests(WebPageId web_page_id, bool force_update,
-                                                                 Result<WebPageId> r_web_page_id) {
-  G()->ignore_result_if_closing(r_web_page_id);
-  LOG(INFO) << "Update load requests for " << web_page_id;
-  auto it = load_web_page_instant_view_queries_.find(web_page_id);
-  if (it == load_web_page_instant_view_queries_.end()) {
-    return;
-  }
-  vector<Promise<WebPageId>> promises[2];
-  promises[0] = std::move(it->second.partial);
-  promises[1] = std::move(it->second.full);
-  reset_to_empty(it->second.partial);
-  reset_to_empty(it->second.full);
-  load_web_page_instant_view_queries_.erase(it);
-
-  if (r_web_page_id.is_error()) {
-    LOG(INFO) << "Receive error " << r_web_page_id.error() << " for load " << web_page_id;
-    combine(promises[0], std::move(promises[1]));
-    fail_promises(promises[0], r_web_page_id.move_as_error());
-    return;
-  }
-
-  auto new_web_page_id = r_web_page_id.move_as_ok();
+void WebPagesManager::update_web_page_instant_view_load_requests(WebPageId web_page_id, WebPageId new_web_page_id,
+                                                                 vector<Promise<WebPageId>> &&promises) const {
   LOG(INFO) << "Successfully loaded web page " << web_page_id << " as " << new_web_page_id;
   const WebPageInstantView *web_page_instant_view = get_web_page_instant_view(new_web_page_id);
   if (web_page_instant_view == nullptr) {
-    combine(promises[0], std::move(promises[1]));
-    for (auto &promise : promises[0]) {
-      promise.set_value(WebPageId());
-    }
+    new_web_page_id = WebPageId();
+  } else if (!web_page_instant_view->is_loaded_) {
+    LOG(ERROR) << "Expected to receive instant view of " << web_page_id << '/' << new_web_page_id
+               << " from the server, but didn't receive it";
+    new_web_page_id = WebPageId();
+  }
+  for (auto &promise : promises) {
+    promise.set_value(WebPageId(new_web_page_id));
+  }
+}
+
+void WebPagesManager::on_load_web_page_instant_view(WebPageId web_page_id, WebPageId new_web_page_id) {
+  LOG(INFO) << "Update load requests for " << web_page_id;
+  auto it = load_local_web_page_instant_view_queries_.find(web_page_id);
+  if (it == load_local_web_page_instant_view_queries_.end()) {
     return;
   }
-  CHECK(new_web_page_id.is_valid());
-  if (web_page_instant_view->is_loaded_) {
-    if (web_page_instant_view->is_full_) {
-      combine(promises[0], std::move(promises[1]));
-    }
+  auto promises = std::move(it->second);
+  load_local_web_page_instant_view_queries_.erase(it);
 
-    for (auto &promise : promises[0]) {
-      promise.set_value(WebPageId(new_web_page_id));
-    }
-    reset_to_empty(promises[0]);
+  update_web_page_instant_view_load_requests(web_page_id, new_web_page_id, std::move(promises));
+}
+
+void WebPagesManager::on_reload_web_page_instant_view(WebPageId web_page_id, Result<WebPageId> r_web_page_id) {
+  G()->ignore_result_if_closing(r_web_page_id);
+  if (r_web_page_id.is_ok()) {
+    on_load_web_page_instant_view(web_page_id, r_web_page_id.ok());
   }
-  if (!promises[0].empty() || !promises[1].empty()) {
-    if (force_update) {
-      // protection from cycles
-      LOG(ERROR) << "Expected to receive " << web_page_id << '/' << new_web_page_id
-                 << " from the server, but didn't receive it";
-      combine(promises[0], std::move(promises[1]));
-      for (auto &promise : promises[0]) {
-        promise.set_value(WebPageId());
-      }
-      return;
-    }
-    auto &load_queries = load_web_page_instant_view_queries_[new_web_page_id];
-    auto old_size = load_queries.partial.size() + load_queries.full.size();
-    combine(load_queries.partial, std::move(promises[0]));
-    combine(load_queries.full, std::move(promises[1]));
-    if (old_size == 0) {
-      reload_web_page_instant_view(new_web_page_id);
-    }
+  auto it = load_server_web_page_instant_view_queries_.find(web_page_id);
+  if (it == load_server_web_page_instant_view_queries_.end()) {
+    return;
   }
+  auto promises = std::move(it->second);
+  load_server_web_page_instant_view_queries_.erase(it);
+
+  if (r_web_page_id.is_error()) {
+    LOG(INFO) << "Receive error " << r_web_page_id.error() << " for load " << web_page_id;
+    return fail_promises(promises, r_web_page_id.move_as_error());
+  }
+
+  update_web_page_instant_view_load_requests(web_page_id, r_web_page_id.move_as_ok(), std::move(promises));
 }
 
 string WebPagesManager::get_web_page_url(WebPageId web_page_id) const {
@@ -1309,28 +1282,30 @@ void WebPagesManager::fetch_web_page_by_url(const string &url, Promise<WebPageId
     return promise.set_value(WebPageId(it->second.first));
   }
 
-  load_web_page_by_url(url, std::move(promise));
+  load_web_page_by_url(url, false, std::move(promise));
 }
 
-void WebPagesManager::load_web_page_by_url(string url, Promise<WebPageId> &&promise) {
-  if (url.empty()) {
-    return promise.set_value(WebPageId());
-  }
+void WebPagesManager::load_web_page_by_url(string url, bool only_local, Promise<WebPageId> &&promise) {
+  CHECK(!url.empty());
   if (!G()->use_message_database()) {
+    if (only_local) {
+      return promise.set_value(WebPageId());
+    }
     return reload_web_page_by_url(url, std::move(promise));
   }
 
   LOG(INFO) << "Load \"" << url << '"';
   auto key = get_web_page_url_database_key(url);
-  G()->td_db()->get_sqlite_pmc()->get(key, PromiseCreator::lambda([actor_id = actor_id(this), url = std::move(url),
-                                                                   promise = std::move(promise)](string value) mutable {
-                                        send_closure(actor_id,
-                                                     &WebPagesManager::on_load_web_page_id_by_url_from_database,
-                                                     std::move(url), std::move(value), std::move(promise));
-                                      }));
+  G()->td_db()->get_sqlite_pmc()->get(
+      key, PromiseCreator::lambda([actor_id = actor_id(this), url = std::move(url), only_local,
+                                   promise = std::move(promise)](string value) mutable {
+        send_closure(actor_id, &WebPagesManager::on_load_web_page_id_by_url_from_database, std::move(url), only_local,
+                     std::move(value), std::move(promise));
+      }));
 }
 
-void WebPagesManager::on_load_web_page_id_by_url_from_database(string url, string value, Promise<WebPageId> &&promise) {
+void WebPagesManager::on_load_web_page_id_by_url_from_database(string url, bool only_local, string value,
+                                                               Promise<WebPageId> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   LOG(INFO) << "Successfully loaded URL \"" << url << "\" of size " << value.size() << " from database";
@@ -1352,22 +1327,25 @@ void WebPagesManager::on_load_web_page_id_by_url_from_database(string url, strin
         return;
       }
 
-      load_web_page_from_database(web_page_id,
-                                  PromiseCreator::lambda([actor_id = actor_id(this), web_page_id, url = std::move(url),
-                                                          promise = std::move(promise)](Result<Unit> result) mutable {
-                                    send_closure(actor_id, &WebPagesManager::on_load_web_page_by_url_from_database,
-                                                 web_page_id, std::move(url), std::move(promise), std::move(result));
-                                  }));
+      load_web_page_from_database(
+          web_page_id, PromiseCreator::lambda([actor_id = actor_id(this), web_page_id, url = std::move(url), only_local,
+                                               promise = std::move(promise)](Result<Unit> result) mutable {
+            send_closure(actor_id, &WebPagesManager::on_load_web_page_by_url_from_database, web_page_id, std::move(url),
+                         only_local, std::move(promise), std::move(result));
+          }));
       return;
     } else {
       LOG(ERROR) << "Receive invalid " << web_page_id;
     }
   }
 
+  if (only_local) {
+    return promise.set_value(WebPageId());
+  }
   reload_web_page_by_url(url, std::move(promise));
 }
 
-void WebPagesManager::on_load_web_page_by_url_from_database(WebPageId web_page_id, string url,
+void WebPagesManager::on_load_web_page_by_url_from_database(WebPageId web_page_id, string url, bool only_local,
                                                             Promise<WebPageId> &&promise, Result<Unit> &&result) {
   if (result.is_error()) {
     CHECK(G()->close_flag());
@@ -1376,6 +1354,9 @@ void WebPagesManager::on_load_web_page_by_url_from_database(WebPageId web_page_i
 
   const WebPage *web_page = get_web_page(web_page_id);
   if (web_page == nullptr) {
+    if (only_local) {
+      return promise.set_value(WebPageId());
+    }
     return reload_web_page_by_url(url, std::move(promise));
   }
 

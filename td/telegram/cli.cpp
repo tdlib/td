@@ -6817,9 +6817,9 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getLinkPreview>(as_formatted_text(args), get_link_preview_options()));
     } else if (op == "gwpiv") {
       string url;
-      bool force_full;
-      get_args(args, url, force_full);
-      send_request(td_api::make_object<td_api::getWebPageInstantView>(url, force_full));
+      bool only_local;
+      get_args(args, url, only_local);
+      send_request(td_api::make_object<td_api::getWebPageInstantView>(url, only_local));
     } else if (op == "spp" || op == "spppf") {
       InputChatPhoto input_chat_photo;
       get_args(args, input_chat_photo);

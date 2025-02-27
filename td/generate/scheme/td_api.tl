@@ -11381,8 +11381,10 @@ removeRecentHashtag hashtag:string = Ok;
 //@link_preview_options Options to be used for generation of the link preview; pass null to use default link preview options
 getLinkPreview text:formattedText link_preview_options:linkPreviewOptions = LinkPreview;
 
-//@description Returns an instant view version of a web page if available. Returns a 404 error if the web page has no instant view page @url The web page URL @force_full Pass true to get full instant view for the web page
-getWebPageInstantView url:string force_full:Bool = WebPageInstantView;
+//@description Returns an instant view version of a web page if available. This is an offline request if only_local is true. Returns a 404 error if the web page has no instant view page
+//@url The web page URL
+//@only_local Pass true to get only locally available information without sending network requests
+getWebPageInstantView url:string only_local:Bool = WebPageInstantView;
 
 
 //@description Changes a profile photo for the current user
