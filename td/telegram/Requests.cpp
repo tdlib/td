@@ -4147,8 +4147,9 @@ void Requests::on_request(uint64 id, const td_api::sendQuickReplyShortcutMessage
 
 void Requests::on_request(uint64 id, td_api::resendMessages &request) {
   DialogId dialog_id(request.chat_id_);
-  auto r_message_ids = td_->messages_manager_->resend_messages(
-      dialog_id, MessageId::get_message_ids(request.message_ids_), std::move(request.quote_));
+  auto r_message_ids =
+      td_->messages_manager_->resend_messages(dialog_id, MessageId::get_message_ids(request.message_ids_),
+                                              std::move(request.quote_), request.paid_message_star_count_);
   if (r_message_ids.is_error()) {
     return send_closure(td_actor_, &Td::send_error, id, r_message_ids.move_as_error());
   }

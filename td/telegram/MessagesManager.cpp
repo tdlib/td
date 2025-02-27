@@ -20716,6 +20716,21 @@ Result<MessageCopyOptions> MessagesManager::process_message_copy_options(
   return std::move(result);
 }
 
+Status MessagesManager::check_paid_message_star_count(int64 &paid_message_star_count, int32 message_count) const {
+  if (paid_message_star_count < 0 || paid_message_star_count > 1000000) {
+    return Status::Error(400, "Invalid price for paid message specified");
+  }
+  CHECK(message_count > 0);
+  if (paid_message_star_count % message_count != 0) {
+    return Status::Error(400, "Invalid price for paid messages specified");
+  }
+  if (paid_message_star_count > 0 && !td_->star_manager_->has_owned_star_count(paid_message_star_count)) {
+    return Status::Error(400, "Have not enough Telegram Stars");
+  }
+  paid_message_star_count /= message_count;
+  return Status::OK();
+}
+
 Result<MessagesManager::MessageSendOptions> MessagesManager::process_message_send_options(
     DialogId dialog_id, tl_object_ptr<td_api::messageSendOptions> &&options, bool allow_update_stickersets_order,
     bool allow_effect, int32 message_count) const {
@@ -20734,18 +20749,7 @@ Result<MessagesManager::MessageSendOptions> MessagesManager::process_message_sen
     result.allow_paid = options->allow_paid_broadcast_;
   } else {
     result.paid_message_star_count = options->paid_message_star_count_;
-    if (result.paid_message_star_count < 0 || result.paid_message_star_count > 1000000) {
-      return Status::Error(400, "Invalid price for paid message specified");
-    }
-    CHECK(message_count > 0);
-    if (result.paid_message_star_count % message_count != 0) {
-      return Status::Error(400, "Invalid price for paid messages specified");
-    }
-    if (result.paid_message_star_count > 0 &&
-        !td_->star_manager_->has_owned_star_count(result.paid_message_star_count)) {
-      return Status::Error(400, "Have not enough Telegram Stars");
-    }
-    result.paid_message_star_count /= message_count;
+    TRY_STATUS(check_paid_message_star_count(result.paid_message_star_count, message_count));
   }
   result.only_preview = options->only_preview_;
   TRY_RESULT_ASSIGN(result.schedule_date, get_message_schedule_date(std::move(options->scheduling_state_)));
@@ -23958,7 +23962,8 @@ void MessagesManager::send_send_quick_reply_messages_query(DialogId dialog_id, Q
 }
 
 Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, vector<MessageId> message_ids,
-                                                           td_api::object_ptr<td_api::inputTextQuote> &&quote) {
+                                                           td_api::object_ptr<td_api::inputTextQuote> &&quote,
+                                                           int64 paid_message_star_count) {
   if (message_ids.empty()) {
     return Status::Error(400, "There are no messages to resend");
   }
@@ -23999,6 +24004,7 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
 
   vector<unique_ptr<MessageContent>> new_contents(message_ids.size());
   std::unordered_map<int64, std::pair<int64, int32>, Hash<int64>> new_media_album_ids;
+  int32 paid_message_count = 0;
   for (size_t i = 0; i < message_ids.size(); i++) {
     MessageId message_id = message_ids[i];
     const Message *m = get_message(d, message_id);
@@ -24031,6 +24037,15 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
         new_media_album_id.first = 0;  // just in case
       }
     }
+
+    auto error_code = m->send_error_code > 0 ? m->send_error_code : 400;
+    auto required_paid_message_star_count = get_required_paid_message_star_count(error_code, m->send_error_message);
+    if (required_paid_message_star_count > 0) {
+      paid_message_count++;
+    }
+  }
+  if (paid_message_count > 0) {
+    TRY_STATUS(check_paid_message_star_count(paid_message_star_count, paid_message_count));
   }
 
   vector<MessageId> result(message_ids.size());
@@ -24045,12 +24060,12 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
     CHECK(message != nullptr);
     send_update_delete_messages(dialog_id, {message->message_id.get()}, true);
 
-    auto need_another_sender =
-        message->send_error_code == 400 && message->send_error_message == CSlice("SEND_AS_PEER_INVALID");
-    auto need_another_reply_quote =
-        message->send_error_code == 400 && message->send_error_message == CSlice("QUOTE_TEXT_INVALID");
-    auto need_drop_reply =
-        message->send_error_code == 400 && message->send_error_message == CSlice("REPLY_MESSAGE_ID_INVALID");
+    auto error_code = message->send_error_code > 0 ? message->send_error_code : 400;
+    auto need_another_sender = error_code == 400 && message->send_error_message == CSlice("SEND_AS_PEER_INVALID");
+    auto need_another_reply_quote = error_code == 400 && message->send_error_message == CSlice("QUOTE_TEXT_INVALID");
+    auto need_drop_reply = error_code == 400 && message->send_error_message == CSlice("REPLY_MESSAGE_ID_INVALID");
+    auto required_paid_message_star_count =
+        get_required_paid_message_star_count(error_code, message->send_error_message);
     if (need_another_reply_quote && message_ids.size() == 1 && quote != nullptr) {
       CHECK(message->input_reply_to.is_valid());
       CHECK(message->input_reply_to.has_quote());  // checked in on_send_message_fail
@@ -24058,10 +24073,10 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
     } else if (need_drop_reply) {
       message->input_reply_to = {};
     }
-    MessageSendOptions options(message->disable_notification, message->from_background,
-                               message->update_stickersets_order, message->noforwards, message->allow_paid, false,
-                               get_message_schedule_date(message.get()), message->sending_id, message->effect_id,
-                               message->paid_message_star_count);
+    MessageSendOptions options(
+        message->disable_notification, message->from_background, message->update_stickersets_order, message->noforwards,
+        message->allow_paid, false, get_message_schedule_date(message.get()), message->sending_id, message->effect_id,
+        required_paid_message_star_count == 0 ? message->paid_message_star_count : paid_message_star_count);
     Message *m = get_message_to_send(d, message->top_thread_message_id, std::move(message->input_reply_to), options,
                                      std::move(new_contents[i]), message->invert_media, &need_update_dialog_pos, false,
                                      nullptr, DialogId(), message->is_copy,

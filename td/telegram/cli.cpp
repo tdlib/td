@@ -4411,7 +4411,8 @@ class CliClient final : public Actor {
       if (quick_reply_shortcut_name_.empty()) {
         send_request(td_api::make_object<td_api::resendMessages>(
             chat_id, as_message_ids(message_ids),
-            td_api::make_object<td_api::inputTextQuote>(as_formatted_text(quote), quote_position)));
+            td_api::make_object<td_api::inputTextQuote>(as_formatted_text(quote), quote_position),
+            paid_message_star_count_));
       } else {
         send_request(td_api::make_object<td_api::readdQuickReplyShortcutMessages>(quick_reply_shortcut_name_,
                                                                                   as_message_ids(message_ids)));

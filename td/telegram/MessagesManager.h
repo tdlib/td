@@ -444,7 +444,8 @@ class MessagesManager final : public Actor {
       DialogId dialog_id, QuickReplyShortcutId shortcut_id, int32 sending_id) TD_WARN_UNUSED_RESULT;
 
   Result<vector<MessageId>> resend_messages(DialogId dialog_id, vector<MessageId> message_ids,
-                                            td_api::object_ptr<td_api::inputTextQuote> &&quote) TD_WARN_UNUSED_RESULT;
+                                            td_api::object_ptr<td_api::inputTextQuote> &&quote,
+                                            int64 paid_message_star_count) TD_WARN_UNUSED_RESULT;
 
   void set_dialog_message_ttl(DialogId dialog_id, int32 ttl, Promise<Unit> &&promise);
 
@@ -1656,6 +1657,8 @@ class MessagesManager final : public Actor {
 
   Result<MessageCopyOptions> process_message_copy_options(DialogId dialog_id,
                                                           tl_object_ptr<td_api::messageCopyOptions> &&options) const;
+
+  Status check_paid_message_star_count(int64 &paid_message_star_count, int32 message_count) const;
 
   Result<MessageSendOptions> process_message_send_options(DialogId dialog_id,
                                                           tl_object_ptr<td_api::messageSendOptions> &&options,
