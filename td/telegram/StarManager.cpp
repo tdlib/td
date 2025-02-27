@@ -1216,7 +1216,7 @@ void StarManager::refund_star_payment(UserId user_id, const string &telegram_pay
 void StarManager::get_star_revenue_statistics(const td_api::object_ptr<td_api::MessageSender> &owner_id, bool is_dark,
                                               Promise<td_api::object_ptr<td_api::starRevenueStatistics>> &&promise) {
   TRY_RESULT_PROMISE(promise, dialog_id, get_message_sender_dialog_id(td_, owner_id, true, false));
-  TRY_STATUS_PROMISE(promise, can_manage_stars(dialog_id));
+  TRY_STATUS_PROMISE(promise, can_manage_stars(dialog_id, true));
   td_->create_handler<GetStarsRevenueStatsQuery>(std::move(promise))->send(dialog_id, is_dark);
 }
 
