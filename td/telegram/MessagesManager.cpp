@@ -19463,6 +19463,14 @@ Result<int32> MessagesManager::get_message_schedule_date(
   }
 }
 
+int64 MessagesManager::get_required_paid_message_star_count(int32 error_code, CSlice error_message) {
+  auto allow_payment_required_prefix = CSlice("ALLOW_PAYMENT_REQUIRED_");
+  if (error_code == 400 && begins_with(error_message, allow_payment_required_prefix)) {
+    return StarManager::get_star_count(to_integer<int64>(error_message.substr(allow_payment_required_prefix.size())));
+  }
+  return 0;
+}
+
 tl_object_ptr<td_api::MessageSendingState> MessagesManager::get_message_sending_state_object(const Message *m) const {
   CHECK(m != nullptr);
   if (m->message_id.is_yet_unsent()) {
@@ -19479,7 +19487,9 @@ tl_object_ptr<td_api::MessageSendingState> MessagesManager::get_message_sending_
         can_retry && error_code == 400 && m->send_error_message == CSlice("REPLY_MESSAGE_ID_INVALID");
     return td_api::make_object<td_api::messageSendingStateFailed>(
         td_api::make_object<td_api::error>(error_code, m->send_error_message), can_retry, need_another_sender,
-        need_another_reply_quote, need_drop_reply, max(m->try_resend_at - Time::now(), 0.0));
+        need_another_reply_quote, need_drop_reply,
+        get_required_paid_message_star_count(error_code, m->send_error_message),
+        max(m->try_resend_at - Time::now(), 0.0));
   }
   return nullptr;
 }

@@ -1228,7 +1228,7 @@ td_api::object_ptr<td_api::MessageSendingState> QuickReplyManager::get_message_s
         can_retry && error_code == 400 && m->send_error_message == CSlice("QUOTE_TEXT_INVALID");
     return td_api::make_object<td_api::messageSendingStateFailed>(
         td_api::make_object<td_api::error>(error_code, m->send_error_message), can_retry, false,
-        need_another_reply_quote, false, max(m->try_resend_at - Time::now(), 0.0));
+        need_another_reply_quote, false, 0, max(m->try_resend_at - Time::now(), 0.0));
   }
   return nullptr;
 }

@@ -2372,6 +2372,8 @@ class MessagesManager final : public Actor {
 
   static Result<int32> get_message_schedule_date(td_api::object_ptr<td_api::MessageSchedulingState> &&scheduling_state);
 
+  static int64 get_required_paid_message_star_count(int32 error_code, CSlice error_message);
+
   tl_object_ptr<td_api::MessageSendingState> get_message_sending_state_object(const Message *m) const;
 
   static tl_object_ptr<td_api::MessageSchedulingState> get_message_scheduling_state_object(
