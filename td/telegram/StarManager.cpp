@@ -1223,7 +1223,7 @@ void StarManager::get_star_revenue_statistics(const td_api::object_ptr<td_api::M
 void StarManager::get_star_withdrawal_url(const td_api::object_ptr<td_api::MessageSender> &owner_id, int64 star_count,
                                           const string &password, Promise<string> &&promise) {
   TRY_RESULT_PROMISE(promise, dialog_id, get_message_sender_dialog_id(td_, owner_id, true, false));
-  TRY_STATUS_PROMISE(promise, can_manage_stars(dialog_id));
+  TRY_STATUS_PROMISE(promise, can_manage_stars(dialog_id, true));
   if (password.empty()) {
     return promise.set_error(Status::Error(400, "PASSWORD_HASH_INVALID"));
   }
