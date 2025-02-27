@@ -346,7 +346,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
               return nullptr;
             }();
             if (state != nullptr || is_refund) {
-              if (for_bot || for_chat) {
+              if (for_user || for_bot || for_chat) {
                 return td_api::make_object<td_api::starTransactionTypeFragmentWithdrawal>(std::move(state));
               }
               return nullptr;
@@ -1281,7 +1281,7 @@ void StarManager::reload_owned_star_count() {
 void StarManager::on_update_stars_revenue_status(
     telegram_api::object_ptr<telegram_api::updateStarsRevenueStatus> &&update) {
   DialogId dialog_id(update->peer_);
-  if (can_manage_stars(dialog_id).is_error()) {
+  if (can_manage_stars(dialog_id, true).is_error()) {
     LOG(ERROR) << "Receive " << to_string(update);
     return;
   }

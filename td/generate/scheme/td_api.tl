@@ -1184,7 +1184,7 @@ starTransactionTypeUserDeposit user_id:int53 sticker:sticker = StarTransactionTy
 //@giveaway_message_id Identifier of the message with the giveaway; can be 0 or an identifier of a deleted message
 starTransactionTypeGiveawayDeposit chat_id:int53 giveaway_message_id:int53 = StarTransactionType;
 
-//@description The transaction is a withdrawal of earned Telegram Stars to Fragment; for bots, supergroup and channel chats only
+//@description The transaction is a withdrawal of earned Telegram Stars to Fragment; for regular users, bots, supergroup and channel chats only
 //@withdrawal_state State of the withdrawal; may be null for refunds from Fragment
 starTransactionTypeFragmentWithdrawal withdrawal_state:RevenueWithdrawalState = StarTransactionType;
 
