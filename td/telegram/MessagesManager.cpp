@@ -22293,7 +22293,8 @@ Status MessagesManager::can_pin_message(DialogId dialog_id, const Message *m) co
 bool MessagesManager::can_resend_message(const Message *m) const {
   if (m->send_error_code != 429 && m->send_error_message != "Message is too old to be re-sent automatically" &&
       m->send_error_message != "SCHEDULE_TOO_MUCH" && m->send_error_message != "SEND_AS_PEER_INVALID" &&
-      m->send_error_message != "QUOTE_TEXT_INVALID" && m->send_error_message != "REPLY_MESSAGE_ID_INVALID") {
+      m->send_error_message != "QUOTE_TEXT_INVALID" && m->send_error_message != "REPLY_MESSAGE_ID_INVALID" &&
+      !begins_with(m->send_error_message, "ALLOW_PAYMENT_REQUIRED_")) {
     return false;
   }
   if (m->is_bot_start_message) {
@@ -26795,6 +26796,8 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
         error_code = 500;
         error_message = "Unexpected REPLY_MESSAGE_ID_INVALID error";
       }
+    } else if (begins_with(error_message, "ALLOW_PAYMENT_REQUIRED_")) {
+      td_->dialog_manager_->reload_dialog_info_full(dialog_id, "ALLOW_PAYMENT_REQUIRED");
     } else if (error_message == "CHAT_GUEST_SEND_FORBIDDEN") {
       error_code = 400;
       if (dialog_id.get_type() == DialogType::Channel) {

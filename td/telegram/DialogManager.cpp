@@ -1855,18 +1855,20 @@ bool DialogManager::is_broadcast_channel(DialogId dialog_id) const {
 }
 
 bool DialogManager::on_get_dialog_error(DialogId dialog_id, const Status &status, const char *source) {
-  if (status.message() == CSlice("BOT_METHOD_INVALID")) {
+  auto message = status.message();
+  if (message == CSlice("BOT_METHOD_INVALID")) {
     LOG(ERROR) << "Receive BOT_METHOD_INVALID from " << source;
     return true;
   }
   if (G()->is_expected_error(status)) {
     return true;
   }
-  if (status.message() == CSlice("SEND_AS_PEER_INVALID")) {
+  if (message == CSlice("SEND_AS_PEER_INVALID")) {
     reload_dialog_info_full(dialog_id, "SEND_AS_PEER_INVALID");
     return true;
   }
-  if (status.message() == CSlice("QUOTE_TEXT_INVALID") || status.message() == CSlice("REPLY_MESSAGE_ID_INVALID")) {
+  if (message == CSlice("QUOTE_TEXT_INVALID") || message == CSlice("REPLY_MESSAGE_ID_INVALID") ||
+      begins_with(message, "ALLOW_PAYMENT_REQUIRED_")) {
     return true;
   }
 
