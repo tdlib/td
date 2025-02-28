@@ -290,7 +290,6 @@ static void BM_emplace_string(benchmark::State &state) {
   }
 }
 
-namespace td {
 template <class K, class V, class FunctT>
 static void table_remove_if(absl::flat_hash_map<K, V> &table, FunctT &&func) {
   for (auto it = table.begin(); it != table.end();) {
@@ -303,7 +302,6 @@ static void table_remove_if(absl::flat_hash_map<K, V> &table, FunctT &&func) {
     }
   }
 }
-}  // namespace td
 
 template <typename TableT>
 static void BM_remove_if(benchmark::State &state) {
@@ -320,7 +318,8 @@ static void BM_remove_if(benchmark::State &state) {
     }
     state.ResumeTiming();
 
-    td::table_remove_if(table, [](auto &it) { return it.second % 2 == 0; });
+    using td::table_remove_if;
+    table_remove_if(table, [](auto &it) { return it.second % 2 == 0; });
   }
 }
 
@@ -421,7 +420,8 @@ static void BM_remove_if_slow(benchmark::State &state) {
   auto first_key = table.begin()->first;
   {
     std::size_t cnt = 0;
-    td::table_remove_if(table, [&cnt, n = N](auto &) {
+    using td::table_remove_if;
+    table_remove_if(table, [&cnt, n = N](auto &) {
       cnt += 2;
       return cnt <= n;
     });
@@ -446,7 +446,8 @@ static void BM_remove_if_slow_old(benchmark::State &state) {
       table.emplace(rnd() + 1, i);
       if (table.size() > N) {
         std::size_t cnt = 0;
-        td::table_remove_if(table, [&cnt, n = N](auto &) {
+        using td::table_remove_if;
+        table_remove_if(table, [&cnt, n = N](auto &) {
           cnt += 2;
           return cnt <= n;
         });
