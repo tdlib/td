@@ -511,7 +511,9 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                         product_info = nullptr;
                       };
                       return td_api::make_object<td_api::starTransactionTypePremiumPurchase>(
-                          user_id_object, transaction->premium_gift_months_);
+                          user_id_object, transaction->premium_gift_months_,
+                          td_->stickers_manager_->get_premium_gift_sticker_object(transaction->premium_gift_months_,
+                                                                                  0));
                     } else {
                       return td_api::make_object<td_api::starTransactionTypeBotInvoicePurchase>(
                           user_id_object, std::move(product_info));
