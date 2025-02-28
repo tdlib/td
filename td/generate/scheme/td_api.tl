@@ -6737,6 +6737,9 @@ pushMessageContentRecurringPayment amount:string = PushMessageContent;
 //@description A profile photo was suggested to the user
 pushMessageContentSuggestProfilePhoto = PushMessageContent;
 
+//@description A user in the chat came within proximity alert range from the current user @distance The distance to the user
+pushMessageContentProximityAlertTriggered distance:int32 = PushMessageContent;
+
 //@description A forwarded messages @total_count Number of forwarded messages
 pushMessageContentMessageForwards total_count:int32 = PushMessageContent;
 

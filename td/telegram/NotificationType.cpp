@@ -301,6 +301,13 @@ class NotificationTypePushMessage final : public NotificationType {
         }
         break;
       case 'P':
+        if (key == "MESSAGE_PAID_MEDIA") {
+          int64 star_count = 0;
+          if (!is_pinned) {
+            star_count = to_integer<int64>(arg);
+          }
+          return td_api::make_object<td_api::pushMessageContentPaidMedia>(star_count, is_pinned);
+        }
         if (key == "MESSAGE_PHOTO") {
           return td_api::make_object<td_api::pushMessageContentPhoto>(get_photo_object(td->file_manager_.get(), photo),
                                                                       arg, false, is_pinned);
@@ -312,12 +319,8 @@ class NotificationTypePushMessage final : public NotificationType {
         if (key == "MESSAGE_POLL") {
           return td_api::make_object<td_api::pushMessageContentPoll>(arg, true, is_pinned);
         }
-        if (key == "MESSAGE_PAID_MEDIA") {
-          int64 star_count = 0;
-          if (!is_pinned) {
-            star_count = to_integer<int64>(arg);
-          }
-          return td_api::make_object<td_api::pushMessageContentPaidMedia>(star_count, is_pinned);
+        if (key == "MESSAGE_PROXIMITY") {
+          return td_api::make_object<td_api::pushMessageContentProximityAlertTriggered>(to_integer<int32>(arg));
         }
         break;
       case 'Q':
