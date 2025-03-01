@@ -167,14 +167,6 @@ inline bool operator!=(const DialogFilter &lhs, const DialogFilter &rhs) {
   return !(lhs == rhs);
 }
 
-inline bool operator==(const unique_ptr<DialogFilter> &lhs, const unique_ptr<DialogFilter> &rhs) {
-  return *lhs == *rhs;
-}
-
-inline bool operator!=(const unique_ptr<DialogFilter> &lhs, const unique_ptr<DialogFilter> &rhs) {
-  return !(lhs == rhs);
-}
-
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogFilter &filter);
 
 }  // namespace td

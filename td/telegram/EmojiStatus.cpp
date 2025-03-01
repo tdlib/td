@@ -538,16 +538,6 @@ bool operator==(const EmojiStatus &lhs, const EmojiStatus &rhs) {
          lhs.until_date_ == rhs.until_date_;
 }
 
-bool operator==(const unique_ptr<EmojiStatus> &lhs, const unique_ptr<EmojiStatus> &rhs) {
-  if (lhs == nullptr) {
-    return rhs == nullptr;
-  }
-  if (rhs == nullptr) {
-    return false;
-  }
-  return *lhs == *rhs;
-}
-
 StringBuilder &operator<<(StringBuilder &string_builder, const EmojiStatus &emoji_status) {
   if (emoji_status.is_empty()) {
     return string_builder << "DefaultProfileBadge";

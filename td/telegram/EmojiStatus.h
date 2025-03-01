@@ -172,12 +172,6 @@ inline bool operator!=(const EmojiStatus &lhs, const EmojiStatus &rhs) {
   return !(lhs == rhs);
 }
 
-bool operator==(const unique_ptr<EmojiStatus> &lhs, const unique_ptr<EmojiStatus> &rhs);
-
-inline bool operator!=(const unique_ptr<EmojiStatus> &lhs, const unique_ptr<EmojiStatus> &rhs) {
-  return !(lhs == rhs);
-}
-
 StringBuilder &operator<<(StringBuilder &string_builder, const EmojiStatus &emoji_status);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const unique_ptr<EmojiStatus> &emoji_status);

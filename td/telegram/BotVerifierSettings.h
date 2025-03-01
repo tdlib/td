@@ -51,12 +51,6 @@ class BotVerifierSettings {
 
 bool operator==(const BotVerifierSettings &lhs, const BotVerifierSettings &rhs);
 
-bool operator==(const unique_ptr<BotVerifierSettings> &lhs, const unique_ptr<BotVerifierSettings> &rhs);
-
-inline bool operator!=(const unique_ptr<BotVerifierSettings> &lhs, const unique_ptr<BotVerifierSettings> &rhs) {
-  return !(lhs == rhs);
-}
-
 StringBuilder &operator<<(StringBuilder &string_builder, const BotVerifierSettings &bot_verifier_settings);
 
 }  // namespace td

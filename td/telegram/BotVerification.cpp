@@ -57,16 +57,6 @@ bool operator==(const BotVerification &lhs, const BotVerification &rhs) {
   return lhs.bot_user_id_ == rhs.bot_user_id_ && lhs.icon_ == rhs.icon_ && lhs.description_ == rhs.description_;
 }
 
-bool operator==(const unique_ptr<BotVerification> &lhs, const unique_ptr<BotVerification> &rhs) {
-  if (lhs == nullptr) {
-    return rhs == nullptr;
-  }
-  if (rhs == nullptr) {
-    return false;
-  }
-  return *lhs == *rhs;
-}
-
 StringBuilder &operator<<(StringBuilder &string_builder, const BotVerification &bot_verification) {
   return string_builder << "verified by " << bot_verification.bot_user_id_ << " with " << bot_verification.icon_
                         << " and " << bot_verification.description_;

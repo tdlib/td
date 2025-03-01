@@ -58,16 +58,6 @@ bool operator==(const BotVerifierSettings &lhs, const BotVerifierSettings &rhs) 
          lhs.can_modify_custom_description_ == rhs.can_modify_custom_description_;
 }
 
-bool operator==(const unique_ptr<BotVerifierSettings> &lhs, const unique_ptr<BotVerifierSettings> &rhs) {
-  if (lhs == nullptr) {
-    return rhs == nullptr;
-  }
-  if (rhs == nullptr) {
-    return false;
-  }
-  return *lhs == *rhs;
-}
-
 StringBuilder &operator<<(StringBuilder &string_builder, const BotVerifierSettings &bot_verifier_settings) {
   return string_builder << "VerificationSettings[" << bot_verifier_settings.icon_ << " by "
                         << bot_verifier_settings.company_ << ']';

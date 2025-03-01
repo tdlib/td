@@ -98,6 +98,22 @@ bool operator!=(const unique_ptr<T> &p, std::nullptr_t) {
   return static_cast<bool>(p);
 }
 
+template <class T>
+bool operator==(const unique_ptr<T> &lhs, const unique_ptr<T> &rhs) {
+  if (lhs == nullptr) {
+    return rhs == nullptr;
+  }
+  if (rhs == nullptr) {
+    return false;
+  }
+  return *lhs == *rhs;
+}
+
+template <class T>
+bool operator!=(const unique_ptr<T> &lhs, const unique_ptr<T> &rhs) {
+  return !(lhs == rhs);
+}
+
 template <class Type, class... Args>
 unique_ptr<Type> make_unique(Args &&...args) {
   return unique_ptr<Type>(new Type(std::forward<Args>(args)...));

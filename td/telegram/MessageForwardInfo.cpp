@@ -245,17 +245,6 @@ bool operator!=(const MessageForwardInfo &lhs, const MessageForwardInfo &rhs) {
   return !(lhs == rhs);
 }
 
-bool operator==(const unique_ptr<MessageForwardInfo> &lhs, const unique_ptr<MessageForwardInfo> &rhs) {
-  if (lhs == nullptr) {
-    return rhs == nullptr;
-  }
-  return rhs != nullptr && *lhs == *rhs;
-}
-
-bool operator!=(const unique_ptr<MessageForwardInfo> &lhs, const unique_ptr<MessageForwardInfo> &rhs) {
-  return !(lhs == rhs);
-}
-
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageForwardInfo &forward_info) {
   string_builder << "MessageForwardInfo[" << (forward_info.is_imported_ ? "imported " : "") << forward_info.origin_;
   if (!forward_info.psa_type_.empty()) {

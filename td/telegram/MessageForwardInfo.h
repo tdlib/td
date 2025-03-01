@@ -168,10 +168,6 @@ bool operator==(const MessageForwardInfo &lhs, const MessageForwardInfo &rhs);
 
 bool operator!=(const MessageForwardInfo &lhs, const MessageForwardInfo &rhs);
 
-bool operator==(const unique_ptr<MessageForwardInfo> &lhs, const unique_ptr<MessageForwardInfo> &rhs);
-
-bool operator!=(const unique_ptr<MessageForwardInfo> &lhs, const unique_ptr<MessageForwardInfo> &rhs);
-
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageForwardInfo &forward_info);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const unique_ptr<MessageForwardInfo> &forward_info);
