@@ -74,20 +74,14 @@ void BusinessBotManageBar::add_dependencies(Dependencies &dependencies) const {
   dependencies.add(business_bot_user_id_);
 }
 
-bool operator==(const unique_ptr<BusinessBotManageBar> &lhs, const unique_ptr<BusinessBotManageBar> &rhs) {
-  if (lhs == nullptr) {
-    return rhs == nullptr;
-  }
-  if (rhs == nullptr) {
-    return false;
-  }
-  return lhs->business_bot_user_id_ == rhs->business_bot_user_id_ &&
-         lhs->business_bot_manage_url_ == rhs->business_bot_manage_url_ &&
-         lhs->is_business_bot_paused_ == rhs->is_business_bot_paused_ &&
-         lhs->can_business_bot_reply_ == rhs->can_business_bot_reply_;
+bool operator==(const BusinessBotManageBar &lhs, const BusinessBotManageBar &rhs) {
+  return lhs.business_bot_user_id_ == rhs.business_bot_user_id_ &&
+         lhs.business_bot_manage_url_ == rhs.business_bot_manage_url_ &&
+         lhs.is_business_bot_paused_ == rhs.is_business_bot_paused_ &&
+         lhs.can_business_bot_reply_ == rhs.can_business_bot_reply_;
 }
 
-bool operator!=(const unique_ptr<BusinessBotManageBar> &lhs, const unique_ptr<BusinessBotManageBar> &rhs) {
+bool operator!=(const BusinessBotManageBar &lhs, const BusinessBotManageBar &rhs) {
   return !(lhs == rhs);
 }
 
