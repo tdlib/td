@@ -57,15 +57,9 @@ td_api::object_ptr<td_api::storyRepostInfo> StoryForwardInfo::get_story_repost_i
   return td_api::make_object<td_api::storyRepostInfo>(std::move(origin), is_modified_);
 }
 
-bool operator==(const unique_ptr<StoryForwardInfo> &lhs, const unique_ptr<StoryForwardInfo> &rhs) {
-  if (lhs == nullptr) {
-    return rhs == nullptr;
-  }
-  if (rhs == nullptr) {
-    return false;
-  }
-  return lhs->dialog_id_ == rhs->dialog_id_ && lhs->story_id_ == rhs->story_id_ &&
-         lhs->sender_name_ == rhs->sender_name_ && lhs->is_modified_ == rhs->is_modified_;
+bool operator==(const StoryForwardInfo &lhs, const StoryForwardInfo &rhs) {
+  return lhs.dialog_id_ == rhs.dialog_id_ && lhs.story_id_ == rhs.story_id_ && lhs.sender_name_ == rhs.sender_name_ &&
+         lhs.is_modified_ == rhs.is_modified_;
 }
 
 }  // namespace td

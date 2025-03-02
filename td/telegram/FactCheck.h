@@ -24,7 +24,7 @@ class FactCheck {
   int64 hash_ = 0;
   bool need_check_ = false;
 
-  friend bool operator==(const unique_ptr<FactCheck> &lhs, const unique_ptr<FactCheck> &rhs);
+  friend bool operator==(const FactCheck &lhs, const FactCheck &rhs);
 
  public:
   FactCheck() = default;
@@ -59,8 +59,6 @@ class FactCheck {
   void parse(ParserT &parser);
 };
 
-bool operator==(const unique_ptr<FactCheck> &lhs, const unique_ptr<FactCheck> &rhs);
-
-bool operator!=(const unique_ptr<FactCheck> &lhs, const unique_ptr<FactCheck> &rhs);
+bool operator==(const FactCheck &lhs, const FactCheck &rhs);
 
 }  // namespace td

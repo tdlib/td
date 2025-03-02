@@ -276,20 +276,14 @@ bool DialogActionBar::on_outgoing_message() {
   return true;
 }
 
-bool operator==(const unique_ptr<DialogActionBar> &lhs, const unique_ptr<DialogActionBar> &rhs) {
-  if (lhs == nullptr) {
-    return rhs == nullptr;
-  }
-  if (rhs == nullptr) {
-    return false;
-  }
-  return lhs->can_report_spam_ == rhs->can_report_spam_ && lhs->can_add_contact_ == rhs->can_add_contact_ &&
-         lhs->can_block_user_ == rhs->can_block_user_ && lhs->can_share_phone_number_ == rhs->can_share_phone_number_ &&
-         lhs->can_report_location_ == rhs->can_report_location_ && lhs->can_unarchive_ == rhs->can_unarchive_ &&
-         lhs->distance_ == rhs->distance_ && lhs->can_invite_members_ == rhs->can_invite_members_ &&
-         lhs->join_request_dialog_title_ == rhs->join_request_dialog_title_ &&
-         lhs->is_join_request_broadcast_ == lhs->is_join_request_broadcast_ &&
-         lhs->join_request_date_ == rhs->join_request_date_;
+bool operator==(const DialogActionBar &lhs, const DialogActionBar &rhs) {
+  return lhs.can_report_spam_ == rhs.can_report_spam_ && lhs.can_add_contact_ == rhs.can_add_contact_ &&
+         lhs.can_block_user_ == rhs.can_block_user_ && lhs.can_share_phone_number_ == rhs.can_share_phone_number_ &&
+         lhs.can_report_location_ == rhs.can_report_location_ && lhs.can_unarchive_ == rhs.can_unarchive_ &&
+         lhs.distance_ == rhs.distance_ && lhs.can_invite_members_ == rhs.can_invite_members_ &&
+         lhs.join_request_dialog_title_ == rhs.join_request_dialog_title_ &&
+         lhs.is_join_request_broadcast_ == lhs.is_join_request_broadcast_ &&
+         lhs.join_request_date_ == rhs.join_request_date_;
 }
 
 }  // namespace td

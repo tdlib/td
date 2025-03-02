@@ -31,7 +31,7 @@ class DialogActionBar {
   bool can_invite_members_ = false;
   bool is_join_request_broadcast_ = false;
 
-  friend bool operator==(const unique_ptr<DialogActionBar> &lhs, const unique_ptr<DialogActionBar> &rhs);
+  friend bool operator==(const DialogActionBar &lhs, const DialogActionBar &rhs);
 
  public:
   static unique_ptr<DialogActionBar> create(bool can_report_spam, bool can_add_contact, bool can_block_user,
@@ -113,6 +113,6 @@ class DialogActionBar {
   }
 };
 
-bool operator==(const unique_ptr<DialogActionBar> &lhs, const unique_ptr<DialogActionBar> &rhs);
+bool operator==(const DialogActionBar &lhs, const DialogActionBar &rhs);
 
 }  // namespace td

@@ -27,7 +27,7 @@ class StoryForwardInfo {
   string sender_name_;
   bool is_modified_ = false;
 
-  friend bool operator==(const unique_ptr<StoryForwardInfo> &lhs, const unique_ptr<StoryForwardInfo> &rhs);
+  friend bool operator==(const StoryForwardInfo &lhs, const StoryForwardInfo &rhs);
 
  public:
   StoryForwardInfo() = default;
@@ -51,10 +51,6 @@ class StoryForwardInfo {
   void parse(ParserT &parser);
 };
 
-bool operator==(const unique_ptr<StoryForwardInfo> &lhs, const unique_ptr<StoryForwardInfo> &rhs);
-
-inline bool operator!=(const unique_ptr<StoryForwardInfo> &lhs, const unique_ptr<StoryForwardInfo> &rhs) {
-  return !(lhs == rhs);
-}
+bool operator==(const StoryForwardInfo &lhs, const StoryForwardInfo &rhs);
 
 }  // namespace td
