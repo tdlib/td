@@ -2017,6 +2017,10 @@ class ForwardMessagesQuery final : public Td::ResultHandler {
       td_->messages_manager_->get_message_from_server({from_dialog_id_, message_id_}, Promise<Unit>(),
                                                       "ForwardMessagesQuery");
     }
+    auto star_count = MessagesManager::get_required_paid_message_star_count(status.code(), status.message());
+    if (star_count > 0) {
+      status = Status::Error(status.code(), PSLICE() << "ALLOW_PAYMENT_REQUIRED_" << (star_count / random_ids_.size()));
+    }
     for (auto &random_id : random_ids_) {
       td_->messages_manager_->on_send_message_fail(random_id, status.clone());
     }
@@ -19465,7 +19469,7 @@ Result<int32> MessagesManager::get_message_schedule_date(
 
 int64 MessagesManager::get_required_paid_message_star_count(int32 error_code, CSlice error_message) {
   auto allow_payment_required_prefix = CSlice("ALLOW_PAYMENT_REQUIRED_");
-  if (error_code == 400 && begins_with(error_message, allow_payment_required_prefix)) {
+  if ((error_code == 400 || error_code == 403) && begins_with(error_message, allow_payment_required_prefix)) {
     return StarManager::get_star_count(to_integer<int64>(error_message.substr(allow_payment_required_prefix.size())));
   }
   return 0;

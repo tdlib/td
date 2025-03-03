@@ -154,6 +154,8 @@ class MessagesManager final : public Actor {
   static bool process_send_message_fail_error(int32 &error_code, string &error_message, DialogId dialog_id, bool is_bot,
                                               MessageContentType content_type);
 
+  static int64 get_required_paid_message_star_count(int32 error_code, CSlice error_message);
+
   static int32 get_message_date(const tl_object_ptr<telegram_api::Message> &message_ptr);
 
   void on_get_empty_messages(DialogId dialog_id, const vector<MessageId> &empty_message_ids);
@@ -2374,8 +2376,6 @@ class MessagesManager final : public Actor {
   void do_repair_dialog_active_group_call_id(DialogId dialog_id);
 
   static Result<int32> get_message_schedule_date(td_api::object_ptr<td_api::MessageSchedulingState> &&scheduling_state);
-
-  static int64 get_required_paid_message_star_count(int32 error_code, CSlice error_message);
 
   tl_object_ptr<td_api::MessageSendingState> get_message_sending_state_object(const Message *m) const;
 
