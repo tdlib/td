@@ -1514,6 +1514,10 @@ class SendMultiMediaQuery final : public Td::ResultHandler {
         }
       }
     }
+    auto star_count = MessagesManager::get_required_paid_message_star_count(status.code(), status.message());
+    if (star_count > 0) {
+      status = Status::Error(status.code(), PSLICE() << "ALLOW_PAYMENT_REQUIRED_" << (star_count / random_ids_.size()));
+    }
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "SendMultiMediaQuery");
     for (auto &random_id : random_ids_) {
       td_->messages_manager_->on_send_message_fail(random_id, status.clone());
