@@ -2599,7 +2599,7 @@ class CliClient final : public Actor {
       string new_hint;
       get_args(args, recovery_code, new_password, new_hint);
       send_request(td_api::make_object<td_api::recoverAuthenticationPassword>(recovery_code, new_password, new_hint));
-    } else if (op == "lo" || op == "LogOut" || op == "logout") {
+    } else if (op == "lo") {
       send_request(td_api::make_object<td_api::logOut>());
     } else if (op == "destroy") {
       send_request(td_api::make_object<td_api::destroy>());
@@ -2615,9 +2615,9 @@ class CliClient final : public Actor {
       string reason;
       get_args(args, password, reason);
       send_request(td_api::make_object<td_api::deleteAccount>(reason, password));
-    } else if (op == "gps" || op == "GetPasswordState") {
+    } else if (op == "gps") {
       send_request(td_api::make_object<td_api::getPasswordState>());
-    } else if (op == "spass" || op == "SetPassword") {
+    } else if (op == "spass") {
       string password;
       string new_password;
       string new_hint;
@@ -2690,11 +2690,11 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::sendPassportAuthorizationForm>(form_id, as_passport_element_types(types)));
     } else if (op == "gpcl") {
       send_request(td_api::make_object<td_api::getPreferredCountryLanguage>(args));
-    } else if (op == "seavc" || op == "SendEmailAddressVerificationCode") {
+    } else if (op == "seavc") {
       send_request(td_api::make_object<td_api::sendEmailAddressVerificationCode>(args));
-    } else if (op == "ceavc" || op == "CheckEmailAddressVerificationCode") {
+    } else if (op == "ceavc") {
       send_request(td_api::make_object<td_api::checkEmailAddressVerificationCode>(args));
-    } else if (op == "reavc" || op == "ResendEmailAddressVerificationCode") {
+    } else if (op == "reavc") {
       send_request(td_api::make_object<td_api::resendEmailAddressVerificationCode>());
     } else if (op == "slea") {
       send_request(td_api::make_object<td_api::setLoginEmailAddress>(args));
@@ -2702,12 +2702,12 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::resendLoginEmailAddressCode>());
     } else if (op == "cleac") {
       send_request(td_api::make_object<td_api::checkLoginEmailAddressCode>(as_email_address_authentication(args)));
-    } else if (op == "srea" || op == "SetRecoveryEmailAddress") {
+    } else if (op == "srea") {
       string password;
       string recovery_email_address;
       get_args(args, password, recovery_email_address);
       send_request(td_api::make_object<td_api::setRecoveryEmailAddress>(password, recovery_email_address));
-    } else if (op == "grea" || op == "GetRecoveryEmailAddress") {
+    } else if (op == "grea") {
       send_request(td_api::make_object<td_api::getRecoveryEmailAddress>(args));
     } else if (op == "creac") {
       send_request(td_api::make_object<td_api::checkRecoveryEmailAddressCode>(args));
@@ -2734,9 +2734,9 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::resetPassword>());
     } else if (op == "cpr") {
       send_request(td_api::make_object<td_api::cancelPasswordReset>());
-    } else if (op == "gtp" || op == "GetTemporaryPassword") {
+    } else if (op == "gtp") {
       send_request(td_api::make_object<td_api::getTemporaryPasswordState>());
-    } else if (op == "ctp" || op == "CreateTemporaryPassword") {
+    } else if (op == "ctp") {
       send_request(td_api::make_object<td_api::createTemporaryPassword>(args, 60 * 6));
     } else if (op == "gpe") {
       string password;
@@ -2970,7 +2970,7 @@ class CliClient final : public Actor {
       UserId user_id;
       get_args(args, user_id);
       send_request(td_api::make_object<td_api::sharePhoneNumber>(user_id));
-    } else if (op == "ImportContacts" || op == "cic") {
+    } else if (op == "ic" || op == "cic") {
       vector<string> contacts_str = full_split(args, ';');
       vector<td_api::object_ptr<td_api::contact>> contacts;
       for (auto c : contacts_str) {
@@ -2986,11 +2986,11 @@ class CliClient final : public Actor {
       } else {
         send_request(td_api::make_object<td_api::importContacts>(std::move(contacts)));
       }
-    } else if (op == "RemoveContacts") {
+    } else if (op == "rco") {
       send_request(td_api::make_object<td_api::removeContacts>(as_user_ids(args)));
     } else if (op == "gicc") {
       send_request(td_api::make_object<td_api::getImportedContactCount>());
-    } else if (op == "ClearImportedContacts") {
+    } else if (op == "cico") {
       send_request(td_api::make_object<td_api::clearImportedContacts>());
     } else {
       op_not_found_count++;
@@ -3034,7 +3034,7 @@ class CliClient final : public Actor {
     } else if (op == "spsmt") {
       send_request(td_api::make_object<td_api::setPinnedSavedMessagesTopics>(
           transform(autosplit(args), [this](Slice str) { return as_saved_messages_topic_id(as_chat_id(str)); })));
-    } else if (op == "gcc" || op == "GetCommonChats") {
+    } else if (op == "gcc") {
       UserId user_id;
       ChatId offset_chat_id;
       string limit;
@@ -3309,10 +3309,10 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::removeSearchedForTag>(tag));
     } else if (op == "csfh" || op == "csfc") {
       send_request(td_api::make_object<td_api::clearSearchedForTags>(op == "csfc"));
-    } else if (op == "DeleteAllCallMessages") {
+    } else if (op == "dacm") {
       bool revoke = as_bool(args);
       send_request(td_api::make_object<td_api::deleteAllCallMessages>(revoke));
-    } else if (op == "SCRLM") {
+    } else if (op == "scrlm") {
       ChatId chat_id;
       string limit;
       get_args(args, chat_id, limit);
@@ -3487,13 +3487,13 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setAccountTtl>(td_api::make_object<td_api::accountTtl>(days)));
     } else if (op == "gattl") {
       send_request(td_api::make_object<td_api::getAccountTtl>());
-    } else if (op == "GetActiveSessions" || op == "devices" || op == "sessions") {
+    } else if (op == "devices" || op == "sessions") {
       send_request(td_api::make_object<td_api::getActiveSessions>());
-    } else if (op == "TerminateSession") {
+    } else if (op == "ts") {
       int64 session_id;
       get_args(args, session_id);
       send_request(td_api::make_object<td_api::terminateSession>(session_id));
-    } else if (op == "TerminateAllOtherSessions") {
+    } else if (op == "taos") {
       send_request(td_api::make_object<td_api::terminateAllOtherSessions>());
     } else if (op == "cse") {
       int64 session_id;
@@ -3559,7 +3559,7 @@ class CliClient final : public Actor {
       op_not_found_count++;
     }
 
-    if (op == "SBG") {
+    if (op == "sbg") {
       send_request(td_api::make_object<td_api::searchBackground>(args));
     } else if (op == "sdb" || op == "sdbd") {
       InputBackground input_background;
@@ -4233,7 +4233,7 @@ class CliClient final : public Actor {
       bool is_good;
       get_args(args, chat_id, message_id, is_good);
       send_request(td_api::make_object<td_api::rateSpeechRecognition>(chat_id, message_id, is_good));
-    } else if (op == "gf" || op == "GetFile") {
+    } else if (op == "gf") {
       FileId file_id;
       get_args(args, file_id);
       send_request(td_api::make_object<td_api::getFile>(file_id));
@@ -4261,7 +4261,7 @@ class CliClient final : public Actor {
       get_args(args, latitude, longitude, zoom, width, height, scale, chat_id);
       send_request(td_api::make_object<td_api::getMapThumbnailFile>(as_location(latitude, longitude, string()), zoom,
                                                                     width, height, scale, chat_id));
-    } else if (op == "df" || op == "DownloadFile" || op == "dff" || op == "dfs") {
+    } else if (op == "df" || op == "dff" || op == "dfs") {
       FileId file_id;
       int64 offset;
       int64 limit;
@@ -4310,7 +4310,7 @@ class CliClient final : public Actor {
       FileId file_id;
       get_args(args, file_id);
       send_request(td_api::make_object<td_api::cancelPreliminaryUploadFile>(file_id));
-    } else if (op == "delf" || op == "DeleteFile") {
+    } else if (op == "delf") {
       FileId file_id;
       get_args(args, file_id);
       send_request(td_api::make_object<td_api::deleteFile>(file_id));
@@ -4379,9 +4379,9 @@ class CliClient final : public Actor {
         send_request(td_api::make_object<td_api::readdQuickReplyShortcutMessages>(quick_reply_shortcut_name_,
                                                                                   as_message_ids(message_ids)));
       }
-    } else if (op == "csc" || op == "CreateSecretChat") {
+    } else if (op == "csc") {
       send_request(td_api::make_object<td_api::createSecretChat>(as_secret_chat_id(args)));
-    } else if (op == "cnsc" || op == "CreateNewSecretChat") {
+    } else if (op == "cnsc") {
       UserId user_id;
       get_args(args, user_id);
       send_request(td_api::make_object<td_api::createNewSecretChat>(user_id));
@@ -4391,14 +4391,14 @@ class CliClient final : public Actor {
       op_not_found_count++;
     }
 
-    if (op == "cc" || op == "CreateCall") {
+    if (op == "cc") {
       UserId user_id;
       GroupCallId group_call_id;
       get_args(args, user_id, group_call_id);
       send_request(td_api::make_object<td_api::createCall>(
           user_id, td_api::make_object<td_api::callProtocol>(true, true, 65, 65, vector<string>{"2.6", "3.0"}),
           rand_bool(), group_call_id));
-    } else if (op == "ac" || op == "AcceptCall") {
+    } else if (op == "ac") {
       CallId call_id;
       get_args(args, call_id);
       send_request(td_api::make_object<td_api::acceptCall>(
@@ -4407,12 +4407,12 @@ class CliClient final : public Actor {
       CallId call_id;
       get_args(args, call_id);
       send_request(td_api::make_object<td_api::sendCallSignalingData>(call_id, "abacaba"));
-    } else if (op == "dc" || op == "DiscardCall") {
+    } else if (op == "dc") {
       CallId call_id;
       bool is_disconnected;
       get_args(args, call_id, is_disconnected);
       send_request(td_api::make_object<td_api::discardCall>(call_id, is_disconnected, 0, rand_bool(), 0));
-    } else if (op == "scr" || op == "SendCallRating") {
+    } else if (op == "scr") {
       CallId call_id;
       int32 rating;
       get_args(args, call_id, rating);
@@ -5750,7 +5750,7 @@ class CliClient final : public Actor {
       get_args(args, chat_id, voice);
       send_message(chat_id, td_api::make_object<td_api::inputMessageVoiceNote>(
                                 as_input_file(voice), 0, "abacaba", get_caption(), get_message_self_destruct_type()));
-    } else if (op == "SendContact" || op == "scontact") {
+    } else if (op == "scontact") {
       ChatId chat_id;
       string phone_number;
       string first_name;
@@ -5932,7 +5932,7 @@ class CliClient final : public Actor {
     } else if (op == "cnsgcimport") {
       send_request(
           td_api::make_object<td_api::createNewSupergroupChat>(args, false, false, "Description", nullptr, 0, true));
-    } else if (op == "UpgradeBasicGroupChatToSupergroupChat") {
+    } else if (op == "ubgctsc") {
       ChatId chat_id;
       get_args(args, chat_id);
       send_request(td_api::make_object<td_api::upgradeBasicGroupChatToSupergroupChat>(chat_id));
@@ -6512,7 +6512,7 @@ class CliClient final : public Actor {
       bool is_forum;
       get_args(args, supergroup_id, is_forum);
       send_request(td_api::make_object<td_api::toggleSupergroupIsForum>(as_supergroup_id(supergroup_id), is_forum));
-    } else if (op == "ToggleSupergroupIsBroadcastGroup") {
+    } else if (op == "tsibg") {
       string supergroup_id;
       get_args(args, supergroup_id);
       send_request(td_api::make_object<td_api::toggleSupergroupIsBroadcastGroup>(as_supergroup_id(supergroup_id)));
@@ -7371,7 +7371,7 @@ class CliClient final : public Actor {
       } else {
         execute(std::move(request));
       }
-    } else if (op == "q" || op == "Quit") {
+    } else if (op == "q") {
       quit();
     } else if (op == "dnq") {
       dump_pending_network_queries(*net_query_stats_);
