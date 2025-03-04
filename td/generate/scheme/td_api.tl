@@ -1294,7 +1294,7 @@ starTransactionTypePaidMessageReceive sender_id:MessageSender message_count:int3
 //@description The transaction is a purchase of Telegram Premium subscription; for regular users only
 //@user_id Identifier of the user that received the Telegram Premium subscription
 //@month_count Number of months the Telegram Premium subscription will be active
-//@sticker A sticker to be shown in the message; may be null if unknown
+//@sticker A sticker to be shown in the transaction information; may be null if unknown
 starTransactionTypePremiumPurchase user_id:int53 month_count:int32 sticker:sticker = StarTransactionType;
 
 //@description The transaction is a transaction of an unsupported type
