@@ -130,11 +130,25 @@ static void reactivate_readline() {
 }
 
 static char *command_generator(const char *text, int state) {
-  static const vector<CSlice> commands{"GetHistory",          "SetVerbosity",         "SendVideo",
-                                       "SearchDocument",      "GetChatMember",        "GetSupergroupAdministrators",
-                                       "GetSupergroupBanned", "GetSupergroupMembers", "GetFile",
-                                       "DownloadFile",        "CancelDownloadFile",   "ImportContacts",
-                                       "RemoveContacts",      "CreateSecretChat",     "CreateNewSecretChat"};
+  static const vector<CSlice> commands{"Search",
+                                       "SearchA",
+                                       "SearchM",
+                                       "SearchP",
+                                       "SearchG",
+                                       "SearchC",
+                                       "SearchAudio",
+                                       "SearchDocument",
+                                       "SearchPhoto",
+                                       "SearchChatPhoto",
+                                       "GetChatAdministrators",
+                                       "GetSupergroupAdministrators",
+                                       "GetSupergroupBanned",
+                                       "GetSupergroupBots",
+                                       "GetSupergroupContacts",
+                                       "GetSupergroupMembers",
+                                       "GetSupergroupRestricted",
+                                       "SearchSupergroupMembers",
+                                       "SearchSupergroupMentions"};
   static size_t cmd_i;
   if (state == 0) {
     cmd_i = 0;
@@ -4113,7 +4127,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getSupergroupMembers>(
           as_supergroup_id(supergroup_id), as_supergroup_members_filter(op, query.query, message_thread_id), offset,
           query.limit));
-    } else if (op == "gdialog" || op == "gd") {
+    } else if (op == "gd") {
       ChatId chat_id;
       get_args(args, chat_id);
       send_request(td_api::make_object<td_api::getChat>(chat_id));
