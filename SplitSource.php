@@ -316,6 +316,7 @@ function split_file($file, $chunks, $undo) {
             'BotVerification' => 'BotVerification',
             'BotVerifierSettings' => 'BotVerifierSettings',
             'BusinessAwayMessage' => 'BusinessAwayMessage',
+            'BusinessBotRights' => 'BusinessBotRights',
             'BusinessChatLink' => 'BusinessChatLink',
             'BusinessConnectedBot' => 'BusinessConnectedBot',
             'BusinessConnectionId' => 'BusinessConnectionId',

@@ -680,6 +680,23 @@ businessAwayMessageSettings shortcut_id:int32 recipients:businessRecipients sche
 //@inactivity_days The number of days after which a chat will be considered as inactive; currently, must be on of 7, 14, 21, or 28
 businessGreetingMessageSettings shortcut_id:int32 recipients:businessRecipients inactivity_days:int32 = BusinessGreetingMessageSettings;
 
+//@description Describes rights of a business bot
+//@can_reply True, if the bot can send and edit messages in the private chats that had incoming messages in the last 24 hours
+//@can_read_messages True, if the bot can mark incoming private messages as read
+//@can_delete_outgoing_messages True, if the bot can delete outgoing private messages
+//@can_delete_incoming_messages True, if the bot can delete incoming private messages
+//@can_edit_name True, if the bot can edit name of the business account
+//@can_edit_bio True, if the bot can edit bio of the business account
+//@can_edit_profile_photo True, if the bot can edit profile photo of the business account
+//@can_edit_username True, if the bot can edit username of the business account
+//@can_view_gifts True, if the bot can view gifts received by the business account
+//@can_sell_gifts True, if the bot can sell regular gifts received by the business account
+//@can_change_gift_settings True, if the bot can change gift receiving settings of the business account
+//@can_transfer_and_upgrade_gifts True, if the bot can transfer and upgrade gifts received by the business account
+//@can_transfer_stars True, if the bot can transfer Telegram Stars received by the business account to account of the bot, or use them to upgrade and transfer gifts
+//@can_manage_stories True, if the bot can send, edit and delete stories
+businessBotRights can_reply:Bool can_read_messages:Bool can_delete_outgoing_messages:Bool can_delete_incoming_messages:Bool can_edit_name:Bool can_edit_bio:Bool can_edit_profile_photo:Bool can_edit_username:Bool can_view_gifts:Bool can_sell_gifts:Bool can_change_gift_settings:Bool can_transfer_and_upgrade_gifts:Bool can_transfer_stars:Bool can_manage_stories:Bool = BusinessBotRights;
+
 //@description Describes a bot connected to a business account
 //@bot_user_id User identifier of the bot
 //@recipients Private chats that will be accessible to the bot
