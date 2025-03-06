@@ -6706,6 +6706,9 @@ pushMessageContentBasicGroupChatCreate = PushMessageContent;
 //@description A video chat or live stream was started
 pushMessageContentVideoChatStarted = PushMessageContent;
 
+//@description A video chat or live stream has ended
+pushMessageContentVideoChatEnded = PushMessageContent;
+
 //@description New chat members were invited to a group
 //@member_name Name of the added member
 //@is_current_user True, if the current user was added to the group
