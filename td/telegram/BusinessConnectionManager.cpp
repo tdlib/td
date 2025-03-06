@@ -83,7 +83,7 @@ struct BusinessConnectionManager::BusinessConnection {
       , user_id_(connection->user_id_)
       , dc_id_(DcId::create(connection->dc_id_))
       , connection_date_(connection->date_)
-      , can_reply_(connection->can_reply_)
+      , can_reply_(connection->rights_ != nullptr && connection->rights_->reply_)
       , is_disabled_(connection->disabled_) {
   }
 

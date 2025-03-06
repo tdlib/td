@@ -7640,6 +7640,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       case telegram_api::messageActionGiveawayLaunch::ID:
       case telegram_api::messageActionGiveawayResults::ID:
       case telegram_api::messageActionBoostApply::ID:
+      case telegram_api::messageActionPaidMessagesPrice::ID:
         LOG(ERROR) << "Receive business " << to_string(action_ptr);
         break;
       case telegram_api::messageActionHistoryClear::ID:
@@ -7664,6 +7665,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       case telegram_api::messageActionPrizeStars::ID:
       case telegram_api::messageActionStarGift::ID:
       case telegram_api::messageActionStarGiftUnique::ID:
+      case telegram_api::messageActionPaidMessagesRefunded::ID:
         // ok
         break;
       default:
@@ -8180,6 +8182,10 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
           action->upgrade_, (action->flags_ & telegram_api::messageActionStarGiftUnique::TRANSFER_STARS_MASK) != 0,
           action->transferred_, action->refunded_);
     }
+    case telegram_api::messageActionPaidMessagesRefunded::ID:
+      return make_unique<MessageUnsupported>();
+    case telegram_api::messageActionPaidMessagesPrice::ID:
+      return make_unique<MessageUnsupported>();
     default:
       UNREACHABLE();
   }

@@ -73,12 +73,7 @@ class ViewSponsoredMessageQuery final : public Td::ResultHandler {
  public:
   void send(DialogId dialog_id, const string &message_id) {
     dialog_id_ = dialog_id;
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
-    if (input_peer == nullptr) {
-      return;
-    }
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_viewSponsoredMessage(std::move(input_peer), BufferSlice(message_id))));
+    send_query(G()->net_query_creator().create(telegram_api::messages_viewSponsoredMessage(BufferSlice(message_id))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -103,10 +98,6 @@ class ClickSponsoredMessageQuery final : public Td::ResultHandler {
 
   void send(DialogId dialog_id, const string &message_id, bool is_media_click, bool from_fullscreen) {
     dialog_id_ = dialog_id;
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
-    if (input_peer == nullptr) {
-      return promise_.set_value(Unit());
-    }
     int32 flags = 0;
     if (is_media_click) {
       flags |= telegram_api::messages_clickSponsoredMessage::MEDIA_MASK;
@@ -115,7 +106,7 @@ class ClickSponsoredMessageQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_clickSponsoredMessage::FULLSCREEN_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_clickSponsoredMessage(
-        flags, false /*ignored*/, false /*ignored*/, std::move(input_peer), BufferSlice(message_id))));
+        flags, false /*ignored*/, false /*ignored*/, BufferSlice(message_id))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -143,12 +134,8 @@ class ReportSponsoredMessageQuery final : public Td::ResultHandler {
 
   void send(DialogId dialog_id, const string &message_id, const string &option_id) {
     dialog_id_ = dialog_id;
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
-    if (input_peer == nullptr) {
-      return promise_.set_value(td_api::make_object<td_api::reportChatSponsoredMessageResultFailed>());
-    }
-    send_query(G()->net_query_creator().create(telegram_api::messages_reportSponsoredMessage(
-        std::move(input_peer), BufferSlice(message_id), BufferSlice(option_id))));
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_reportSponsoredMessage(BufferSlice(message_id), BufferSlice(option_id))));
   }
 
   void on_result(BufferSlice packet) final {

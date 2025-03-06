@@ -151,7 +151,7 @@ telegram_api::object_ptr<telegram_api::globalPrivacySettings> GlobalPrivacySetti
   }
   return telegram_api::make_object<telegram_api::globalPrivacySettings>(
       flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-      noncontact_peers_paid_star_count_);
+      false /*ignored*/, noncontact_peers_paid_star_count_, nullptr);
 }
 
 td_api::object_ptr<td_api::archiveChatListSettings> GlobalPrivacySettings::get_archive_chat_list_settings_object()

@@ -15,7 +15,7 @@ BusinessConnectedBot::BusinessConnectedBot(telegram_api::object_ptr<telegram_api
   CHECK(connected_bot != nullptr);
   user_id_ = UserId(connected_bot->bot_id_);
   recipients_ = BusinessRecipients(std::move(connected_bot->recipients_));
-  can_reply_ = connected_bot->can_reply_;
+  can_reply_ = connected_bot->rights_->reply_;
 }
 
 BusinessConnectedBot::BusinessConnectedBot(td_api::object_ptr<td_api::businessConnectedBot> connected_bot) {

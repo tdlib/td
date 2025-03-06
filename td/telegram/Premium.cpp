@@ -724,12 +724,11 @@ class CanPurchasePremiumQuery final : public Td::ResultHandler {
       return on_error(r_input_purpose.move_as_error());
     }
 
-    send_query(
-        G()->net_query_creator().create(telegram_api::payments_canPurchasePremium(r_input_purpose.move_as_ok())));
+    send_query(G()->net_query_creator().create(telegram_api::payments_canPurchaseStore(r_input_purpose.move_as_ok())));
   }
 
   void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::payments_canPurchasePremium>(packet);
+    auto result_ptr = fetch_result<telegram_api::payments_canPurchaseStore>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
     }
