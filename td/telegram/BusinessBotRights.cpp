@@ -48,6 +48,12 @@ BusinessBotRights::BusinessBotRights(td_api::object_ptr<td_api::businessBotRight
   can_manage_stories_ = bot_rights->can_manage_stories_;
 }
 
+BusinessBotRights BusinessBotRights::legacy(bool can_reply) {
+  BusinessBotRights result;
+  result.can_reply_ = can_reply;
+  return result;
+}
+
 td_api::object_ptr<td_api::businessBotRights> BusinessBotRights::get_business_bot_rights_object() const {
   return td_api::make_object<td_api::businessBotRights>(
       can_reply_, can_read_messages_, can_delete_sent_messages_, can_delete_received_messages_, can_edit_name_,

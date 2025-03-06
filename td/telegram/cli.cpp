@@ -6757,9 +6757,31 @@ class CliClient final : public Actor {
       UserId bot_user_id;
       string chat_ids;
       bool can_reply;
-      get_args(args, bot_user_id, chat_ids, can_reply);
-      send_request(td_api::make_object<td_api::setBusinessConnectedBot>(
-          td_api::make_object<td_api::businessConnectedBot>(bot_user_id, as_business_recipients(chat_ids), can_reply)));
+      bool can_read_messages;
+      bool can_delete_outgoing_messages;
+      bool can_delete_incoming_messages;
+      bool can_edit_name;
+      bool can_edit_bio;
+      bool can_edit_profile_photo;
+      bool can_edit_username;
+      bool can_view_gifts;
+      bool can_sell_gifts;
+      bool can_change_gift_settings;
+      bool can_transfer_and_upgrade_gifts;
+      bool can_transfer_stars;
+      bool can_manage_stories;
+      get_args(args, bot_user_id, chat_ids, can_reply, can_read_messages, can_delete_outgoing_messages,
+               can_delete_incoming_messages, can_edit_name, can_edit_bio, can_edit_profile_photo, can_edit_username,
+               can_view_gifts, can_sell_gifts, can_change_gift_settings, can_transfer_and_upgrade_gifts,
+               can_transfer_stars, can_manage_stories);
+      send_request(
+          td_api::make_object<td_api::setBusinessConnectedBot>(td_api::make_object<td_api::businessConnectedBot>(
+              bot_user_id, as_business_recipients(chat_ids),
+              td_api::make_object<td_api::businessBotRights>(
+                  can_reply, can_read_messages, can_delete_outgoing_messages, can_delete_incoming_messages,
+                  can_edit_name, can_edit_bio, can_edit_profile_photo, can_edit_username, can_view_gifts,
+                  can_sell_gifts, can_change_gift_settings, can_transfer_and_upgrade_gifts, can_transfer_stars,
+                  can_manage_stories))));
     } else if (op == "tbcbcip") {
       ChatId chat_id;
       bool is_paused;

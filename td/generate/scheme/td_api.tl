@@ -700,8 +700,8 @@ businessBotRights can_reply:Bool can_read_messages:Bool can_delete_outgoing_mess
 //@description Describes a bot connected to a business account
 //@bot_user_id User identifier of the bot
 //@recipients Private chats that will be accessible to the bot
-//@can_reply True, if the bot can send messages to the private chats; false otherwise
-businessConnectedBot bot_user_id:int53 recipients:businessRecipients can_reply:Bool = BusinessConnectedBot;
+//@rights Rights of the bot
+businessConnectedBot bot_user_id:int53 recipients:businessRecipients rights:businessBotRights = BusinessConnectedBot;
 
 //@description Describes settings for a business account start page
 //@title Title text of the start page

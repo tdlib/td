@@ -22,6 +22,8 @@ class BusinessBotRights {
 
   explicit BusinessBotRights(td_api::object_ptr<td_api::businessBotRights> bot_rights);
 
+  static BusinessBotRights legacy(bool can_reply);
+
   td_api::object_ptr<td_api::businessBotRights> get_business_bot_rights_object() const;
 
   telegram_api::object_ptr<telegram_api::businessBotRights> get_input_business_bot_rights() const;
