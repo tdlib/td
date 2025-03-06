@@ -6662,6 +6662,11 @@ class CliClient final : public Actor {
       MessageThreadId message_thread_id;
       get_args(args, chat_id, message_thread_id);
       send_request(td_api::make_object<td_api::unpinAllMessageThreadMessages>(chat_id, message_thread_id));
+    } else if (op == "rbm") {
+      ChatId chat_id;
+      MessageId message_id;
+      get_args(args, chat_id, message_id);
+      send_request(td_api::make_object<td_api::readBusinessMessage>(business_connection_id_, chat_id, message_id));
     } else if (op == "grib") {
       send_request(td_api::make_object<td_api::getRecentInlineBots>());
     } else if (op == "gob") {

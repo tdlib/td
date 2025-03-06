@@ -9672,6 +9672,12 @@ stopBusinessPoll business_connection_id:string chat_id:int53 message_id:int53 re
 //@is_pinned Pass true to pin the message, pass false to unpin it
 setBusinessMessageIsPinned business_connection_id:string chat_id:int53 message_id:int53 is_pinned:Bool = Ok;
 
+//@description Reads a message on behalf of a business account; for bots only
+//@business_connection_id Unique identifier of business connection through which the message was received
+//@chat_id The chat the message belongs to
+//@message_id Identifier of the message
+readBusinessMessage business_connection_id:string chat_id:int53 message_id:int53 = Ok;
+
 
 //@description Checks validness of a name for a quick reply shortcut. Can be called synchronously @name The name of the shortcut; 1-32 characters
 checkQuickReplyShortcutName name:string = Ok;

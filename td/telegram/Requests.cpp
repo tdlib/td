@@ -3819,6 +3819,14 @@ void Requests::on_request(uint64 id, td_api::setBusinessMessageIsPinned &request
                                              !request.is_pinned_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::readBusinessMessage &request) {
+  CHECK_IS_BOT();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->business_connection_manager_->read_business_message(
+      BusinessConnectionId(std::move(request.business_connection_id_)), DialogId(request.chat_id_),
+      MessageId(request.message_id_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::loadQuickReplyShortcuts &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

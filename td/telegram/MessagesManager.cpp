@@ -353,7 +353,9 @@ class UpdateDialogPinnedMessageQuery final : public Td::ResultHandler {
     business_connection_id_ = business_connection_id;
     dialog_id_ = dialog_id;
     message_id_ = message_id;
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
+
+    auto input_peer = td_->dialog_manager_->get_input_peer(
+        dialog_id, business_connection_id_.is_valid() ? AccessRights::Know : AccessRights::Write);
     if (input_peer == nullptr) {
       LOG(INFO) << "Can't update pinned message in " << dialog_id;
       return on_error(Status::Error(400, "Can't update pinned message"));
@@ -392,7 +394,7 @@ class UpdateDialogPinnedMessageQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    if (!business_connection_id_.is_empty()) {
+    if (business_connection_id_.is_empty()) {
       td_->messages_manager_->on_get_message_error(dialog_id_, message_id_, status, "UpdateDialogPinnedMessageQuery");
     }
     promise_.set_error(std::move(status));

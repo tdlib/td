@@ -545,6 +545,38 @@ class BusinessConnectionManager::StopBusinessPollQuery final : public Td::Result
   }
 };
 
+class ReadBusinessMessageQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit ReadBusinessMessageQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(BusinessConnectionId business_connection_id, DialogId dialog_id, MessageId message_id) {
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Know);
+    CHECK(input_peer != nullptr);
+    send_query(G()->net_query_creator().create_with_prefix(
+        business_connection_id.get_invoke_prefix(),
+        telegram_api::messages_readHistory(std::move(input_peer), message_id.get_server_message_id().get()),
+        td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id), {{dialog_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_readHistory>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for ReadBusinessMessageQuery: " << to_string(ptr);
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class BusinessConnectionManager::UploadMediaCallback final : public FileManager::UploadCallback {
  public:
   void on_upload_ok(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
@@ -1512,6 +1544,15 @@ void BusinessConnectionManager::stop_poll(BusinessConnectionId business_connecti
 
   td_->create_handler<StopBusinessPollQuery>(std::move(promise))
       ->send(business_connection_id, dialog_id, message_id, std::move(new_reply_markup));
+}
+
+void BusinessConnectionManager::read_business_message(BusinessConnectionId business_connection_id, DialogId dialog_id,
+                                                      MessageId message_id, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, check_business_connection(business_connection_id, dialog_id));
+  TRY_STATUS_PROMISE(promise, check_business_message_id(message_id));
+
+  td_->create_handler<ReadBusinessMessageQuery>(std::move(promise))
+      ->send(business_connection_id, dialog_id, message_id);
 }
 
 td_api::object_ptr<td_api::updateBusinessConnection> BusinessConnectionManager::get_update_business_connection(

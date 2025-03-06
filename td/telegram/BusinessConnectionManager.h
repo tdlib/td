@@ -103,6 +103,9 @@ class BusinessConnectionManager final : public Actor {
                  td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
                  Promise<td_api::object_ptr<td_api::businessMessage>> &&promise);
 
+  void read_business_message(BusinessConnectionId business_connection_id, DialogId dialog_id, MessageId message_id,
+                             Promise<Unit> &&promise);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
