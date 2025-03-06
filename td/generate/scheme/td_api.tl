@@ -528,12 +528,13 @@ poll id:int64 question:formattedText options:vector<pollOption> total_voter_coun
 
 
 //@description Describes an alternative re-encoded quality of a video file
+//@id Unique identifier of the alternative video, which is used in the HLS file
 //@width Video width
 //@height Video height
 //@codec Codec used for video file encoding, for example, "h264", "h265", or "av1"
 //@hls_file HLS file describing the video
 //@video File containing the video
-alternativeVideo width:int32 height:int32 codec:string hls_file:file video:file = AlternativeVideo;
+alternativeVideo id:int64 width:int32 height:int32 codec:string hls_file:file video:file = AlternativeVideo;
 
 
 //@description Describes a chat background

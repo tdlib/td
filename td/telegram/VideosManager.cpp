@@ -80,11 +80,12 @@ td_api::object_ptr<td_api::alternativeVideo> VideosManager::get_alternative_vide
   const auto *full_remote_location = file_view.get_full_remote_location();
   CHECK(full_remote_location != nullptr);
   CHECK(full_remote_location->is_document());
-  auto name = PSTRING() << "mtproto:" << full_remote_location->get_id();
+  int64 document_id = full_remote_location->get_id();
+  auto name = PSTRING() << "mtproto:" << document_id;
   for (const auto &hls_file_id : hls_file_ids) {
     if (td_->documents_manager_->get_document_file_name(hls_file_id) == name) {
       return td_api::make_object<td_api::alternativeVideo>(
-          video->dimensions.width, video->dimensions.height, video->codec,
+          document_id, video->dimensions.width, video->dimensions.height, video->codec,
           td_->file_manager_->get_file_object(hls_file_id), td_->file_manager_->get_file_object(file_id));
     }
   }
