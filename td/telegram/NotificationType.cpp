@@ -228,6 +228,12 @@ class NotificationTypePushMessage final : public NotificationType {
         if (key == "MESSAGE_CHAT_VOICECHAT_END") {
           return td_api::make_object<td_api::pushMessageContentVideoChatEnded>();
         }
+        if (key == "MESSAGE_CHAT_VOICECHAT_INVITE") {
+          return td_api::make_object<td_api::pushMessageContentInviteVideoChatParticipants>(false);
+        }
+        if (key == "MESSAGE_CHAT_VOICECHAT_INVITE_YOU") {
+          return td_api::make_object<td_api::pushMessageContentInviteVideoChatParticipants>(true);
+        }
         if (key == "MESSAGE_CHAT_VOICECHAT_START") {
           return td_api::make_object<td_api::pushMessageContentVideoChatStarted>();
         }

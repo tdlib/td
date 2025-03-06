@@ -6709,6 +6709,10 @@ pushMessageContentVideoChatStarted = PushMessageContent;
 //@description A video chat or live stream has ended
 pushMessageContentVideoChatEnded = PushMessageContent;
 
+//@description An invitation of participants to a video chat or live stream
+//@is_current_user True, if the current user was invited to the video chat or the live stream
+pushMessageContentInviteVideoChatParticipants is_current_user:Bool = PushMessageContent;
+
 //@description New chat members were invited to a group
 //@member_name Name of the added member
 //@is_current_user True, if the current user was added to the group
