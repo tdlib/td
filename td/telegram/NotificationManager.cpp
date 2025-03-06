@@ -3358,6 +3358,11 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     return Status::Error(406, "Reaction notifications are unsupported");
   }
 
+  if (begins_with(loc_key, "STORY_")) {
+    // TODO STORY_NOTEXT, STORY_HIDDEN_AUTHOR notifications
+    return Status::Error(406, "Story notifications are unsupported");
+  }
+
   loc_key = convert_loc_key(loc_key);
   if (loc_key.empty()) {
     return Status::Error("Push type is unknown");
