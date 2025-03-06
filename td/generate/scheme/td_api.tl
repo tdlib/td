@@ -6703,6 +6703,9 @@ pushMessageContentVoiceNote voice_note:voiceNote is_pinned:Bool = PushMessageCon
 //@description A newly created basic group
 pushMessageContentBasicGroupChatCreate = PushMessageContent;
 
+//@description A video chat or live stream was started
+pushMessageContentVideoChatStarted = PushMessageContent;
+
 //@description New chat members were invited to a group
 //@member_name Name of the added member
 //@is_current_user True, if the current user was added to the group

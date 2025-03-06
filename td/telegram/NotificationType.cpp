@@ -219,6 +219,12 @@ class NotificationTypePushMessage final : public NotificationType {
         if (key == "MESSAGE_CHAT_JOIN_BY_REQUEST") {
           return td_api::make_object<td_api::pushMessageContentChatJoinByRequest>();
         }
+        if (key == "MESSAGE_CHAT_LIVESTREAM_START") {
+          return td_api::make_object<td_api::pushMessageContentVideoChatStarted>();
+        }
+        if (key == "MESSAGE_CHAT_VOICECHAT_START") {
+          return td_api::make_object<td_api::pushMessageContentVideoChatStarted>();
+        }
         if (key == "MESSAGE_CONTACT") {
           return td_api::make_object<td_api::pushMessageContentContact>(arg, is_pinned);
         }
