@@ -8,7 +8,7 @@
 
 namespace td {
 
-BusinessBotRights::BusinessBotRights(telegram_api::object_ptr<telegram_api::businessBotRights> bot_rights) {
+BusinessBotRights::BusinessBotRights(const telegram_api::object_ptr<telegram_api::businessBotRights> &bot_rights) {
   if (bot_rights == nullptr) {
     return;
   }
@@ -28,7 +28,7 @@ BusinessBotRights::BusinessBotRights(telegram_api::object_ptr<telegram_api::busi
   can_manage_stories_ = bot_rights->manage_stories_;
 }
 
-BusinessBotRights::BusinessBotRights(td_api::object_ptr<td_api::businessBotRights> bot_rights) {
+BusinessBotRights::BusinessBotRights(const td_api::object_ptr<td_api::businessBotRights> &bot_rights) {
   if (bot_rights == nullptr) {
     return;
   }

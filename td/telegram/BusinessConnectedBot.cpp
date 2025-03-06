@@ -15,7 +15,7 @@ BusinessConnectedBot::BusinessConnectedBot(telegram_api::object_ptr<telegram_api
   CHECK(connected_bot != nullptr);
   user_id_ = UserId(connected_bot->bot_id_);
   recipients_ = BusinessRecipients(std::move(connected_bot->recipients_));
-  rights_ = BusinessBotRights(std::move(connected_bot->rights_));
+  rights_ = BusinessBotRights(connected_bot->rights_);
 }
 
 BusinessConnectedBot::BusinessConnectedBot(td_api::object_ptr<td_api::businessConnectedBot> connected_bot) {
@@ -24,7 +24,7 @@ BusinessConnectedBot::BusinessConnectedBot(td_api::object_ptr<td_api::businessCo
   }
   user_id_ = UserId(connected_bot->bot_user_id_);
   recipients_ = BusinessRecipients(std::move(connected_bot->recipients_), true);
-  rights_ = BusinessBotRights(std::move(connected_bot->rights_));
+  rights_ = BusinessBotRights(connected_bot->rights_);
 }
 
 td_api::object_ptr<td_api::businessConnectedBot> BusinessConnectedBot::get_business_connected_bot_object(Td *td) const {

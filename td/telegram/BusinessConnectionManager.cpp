@@ -8,6 +8,7 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/BusinessBotRights.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/files/FileManager.h"
@@ -75,7 +76,7 @@ struct BusinessConnectionManager::BusinessConnection {
   UserId user_id_;
   DcId dc_id_;
   int32 connection_date_ = 0;
-  bool can_reply_ = false;
+  BusinessBotRights rights_;
   bool is_disabled_ = false;
 
   explicit BusinessConnection(const telegram_api::object_ptr<telegram_api::botBusinessConnection> &connection)
@@ -83,7 +84,7 @@ struct BusinessConnectionManager::BusinessConnection {
       , user_id_(connection->user_id_)
       , dc_id_(DcId::create(connection->dc_id_))
       , connection_date_(connection->date_)
-      , can_reply_(connection->rights_ != nullptr && connection->rights_->reply_)
+      , rights_(connection->rights_)
       , is_disabled_(connection->disabled_) {
   }
 
@@ -102,8 +103,8 @@ struct BusinessConnectionManager::BusinessConnection {
     td->dialog_manager_->force_create_dialog(user_dialog_id, "get_business_connection_object");
     return td_api::make_object<td_api::businessConnection>(
         connection_id_.get(), td->user_manager_->get_user_id_object(user_id_, "businessConnection"),
-        td->dialog_manager_->get_chat_id_object(user_dialog_id, "businessConnection"), connection_date_, can_reply_,
-        !is_disabled_);
+        td->dialog_manager_->get_chat_id_object(user_dialog_id, "businessConnection"), connection_date_,
+        is_disabled_ ? nullptr : rights_.get_business_bot_rights_object(), !is_disabled_);
   }
 };
 
@@ -597,7 +598,7 @@ Status BusinessConnectionManager::check_business_connection(const BusinessConnec
   if (dialog_id == DialogId(connection->user_id_)) {
     return Status::Error(400, "Messages must not be sent to self");
   }
-  // no need to check connection->can_reply_ and connection->is_disabled_
+  // no need to check connection->rights_ and connection->is_disabled_
   return Status::OK();
 }
 

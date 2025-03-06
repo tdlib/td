@@ -18,9 +18,9 @@ class BusinessBotRights {
  public:
   BusinessBotRights() = default;
 
-  explicit BusinessBotRights(telegram_api::object_ptr<telegram_api::businessBotRights> bot_rights);
+  explicit BusinessBotRights(const telegram_api::object_ptr<telegram_api::businessBotRights> &bot_rights);
 
-  explicit BusinessBotRights(td_api::object_ptr<td_api::businessBotRights> bot_rights);
+  explicit BusinessBotRights(const td_api::object_ptr<td_api::businessBotRights> &bot_rights);
 
   static BusinessBotRights legacy(bool can_reply);
 
