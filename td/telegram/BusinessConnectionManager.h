@@ -41,6 +41,8 @@ class BusinessConnectionManager final : public Actor {
   BusinessConnectionManager &operator=(BusinessConnectionManager &&) = delete;
   ~BusinessConnectionManager() final;
 
+  Status check_business_connection(const BusinessConnectionId &connection_id) const;
+
   Status check_business_connection(const BusinessConnectionId &connection_id, DialogId dialog_id) const;
 
   DcId get_business_connection_dc_id(const BusinessConnectionId &connection_id) const;
@@ -106,9 +108,14 @@ class BusinessConnectionManager final : public Actor {
   void read_business_message(BusinessConnectionId business_connection_id, DialogId dialog_id, MessageId message_id,
                              Promise<Unit> &&promise);
 
+  void set_business_name(BusinessConnectionId business_connection_id, const string &first_name, const string &last_name,
+                         Promise<Unit> &&promise);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
+  static constexpr size_t MAX_NAME_LENGTH = 64;  // server side limit for first/last name
+
   struct BusinessConnection;
   struct PendingMessage;
   class SendBusinessMessageQuery;

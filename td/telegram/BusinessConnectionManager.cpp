@@ -25,6 +25,7 @@
 #include "td/telegram/MessageQuote.h"
 #include "td/telegram/MessageSelfDestructType.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/ReplyMarkup.h"
@@ -577,6 +578,46 @@ class ReadBusinessMessageQuery final : public Td::ResultHandler {
   }
 };
 
+class UpdateBusinessProfileQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit UpdateBusinessProfileQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const BusinessConnectionId &business_connection_id, bool set_first_name, const string &first_name,
+            bool set_last_name, const string &last_name, bool set_about, const string &about) {
+    int32 flags = 0;
+    if (set_first_name) {
+      flags |= telegram_api::account_updateProfile::FIRST_NAME_MASK;
+    }
+    if (set_last_name) {
+      flags |= telegram_api::account_updateProfile::LAST_NAME_MASK;
+    }
+    if (set_about) {
+      flags |= telegram_api::account_updateProfile::ABOUT_MASK;
+    }
+    send_query(G()->net_query_creator().create_with_prefix(
+        business_connection_id.get_invoke_prefix(),
+        telegram_api::account_updateProfile(flags, first_name, last_name, about),
+        td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_updateProfile>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    LOG(DEBUG) << "Receive result for UpdateBusinessProfileQuery: " << to_string(result_ptr.ok());
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class BusinessConnectionManager::UploadMediaCallback final : public FileManager::UploadCallback {
  public:
   void on_upload_ok(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
@@ -615,6 +656,16 @@ BusinessConnectionManager::~BusinessConnectionManager() {
 
 void BusinessConnectionManager::tear_down() {
   parent_.reset();
+}
+
+Status BusinessConnectionManager::check_business_connection(const BusinessConnectionId &connection_id) const {
+  CHECK(td_->auth_manager_->is_bot());
+  auto connection = business_connections_.get_pointer(connection_id);
+  if (connection == nullptr) {
+    return Status::Error(400, "Business connection not found");
+  }
+  // no need to check connection->rights_ and connection->is_disabled_
+  return Status::OK();
 }
 
 Status BusinessConnectionManager::check_business_connection(const BusinessConnectionId &connection_id,
@@ -1553,6 +1604,15 @@ void BusinessConnectionManager::read_business_message(BusinessConnectionId busin
 
   td_->create_handler<ReadBusinessMessageQuery>(std::move(promise))
       ->send(business_connection_id, dialog_id, message_id);
+}
+
+void BusinessConnectionManager::set_business_name(BusinessConnectionId business_connection_id, const string &first_name,
+                                                  const string &last_name, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, check_business_connection(business_connection_id));
+
+  td_->create_handler<UpdateBusinessProfileQuery>(std::move(promise))
+      ->send(business_connection_id, true, clean_name(first_name, MAX_NAME_LENGTH), true,
+             clean_name(last_name, MAX_NAME_LENGTH), false, string());
 }
 
 td_api::object_ptr<td_api::updateBusinessConnection> BusinessConnectionManager::get_update_business_connection(

@@ -6667,6 +6667,11 @@ class CliClient final : public Actor {
       MessageId message_id;
       get_args(args, chat_id, message_id);
       send_request(td_api::make_object<td_api::readBusinessMessage>(business_connection_id_, chat_id, message_id));
+    } else if (op == "sbun") {
+      string first_name;
+      string last_name;
+      get_args(args, first_name, last_name);
+      send_request(td_api::make_object<td_api::setBusinessName>(business_connection_id_, first_name, last_name));
     } else if (op == "grib") {
       send_request(td_api::make_object<td_api::getRecentInlineBots>());
     } else if (op == "gob") {
