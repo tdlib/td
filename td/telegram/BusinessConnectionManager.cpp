@@ -578,6 +578,37 @@ class ReadBusinessMessageQuery final : public Td::ResultHandler {
   }
 };
 
+class DeleteBusinessMessagesQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit DeleteBusinessMessagesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(BusinessConnectionId business_connection_id, const vector<MessageId> &message_ids) {
+    int32 flags = telegram_api::messages_deleteMessages::REVOKE_MASK;
+    send_query(G()->net_query_creator().create_with_prefix(
+        business_connection_id.get_invoke_prefix(),
+        telegram_api::messages_deleteMessages(flags, false /*ignored*/, MessageId::get_server_message_ids(message_ids)),
+        td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_deleteMessages>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto affected_messages = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for DeleteBusinessMessagesQuery: " << to_string(affected_messages);
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class UpdateBusinessProfileQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -1604,6 +1635,20 @@ void BusinessConnectionManager::read_business_message(BusinessConnectionId busin
 
   td_->create_handler<ReadBusinessMessageQuery>(std::move(promise))
       ->send(business_connection_id, dialog_id, message_id);
+}
+
+void BusinessConnectionManager::delete_business_messages(BusinessConnectionId business_connection_id,
+                                                         const vector<MessageId> &message_ids,
+                                                         Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, check_business_connection(business_connection_id));
+  for (auto message_id : message_ids) {
+    TRY_STATUS_PROMISE(promise, check_business_message_id(message_id));
+  }
+  if (message_ids.size() > 100u) {
+    return promise.set_error(Status::Error(400, "Too many messages identifiers specified"));
+  }
+
+  td_->create_handler<DeleteBusinessMessagesQuery>(std::move(promise))->send(business_connection_id, message_ids);
 }
 
 void BusinessConnectionManager::set_business_name(BusinessConnectionId business_connection_id, const string &first_name,

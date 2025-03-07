@@ -6667,6 +6667,11 @@ class CliClient final : public Actor {
       MessageId message_id;
       get_args(args, chat_id, message_id);
       send_request(td_api::make_object<td_api::readBusinessMessage>(business_connection_id_, chat_id, message_id));
+    } else if (op == "dbm") {
+      string message_ids;
+      get_args(args, message_ids);
+      send_request(
+          td_api::make_object<td_api::deleteBusinessMessages>(business_connection_id_, as_message_ids(message_ids)));
     } else if (op == "sbun") {
       string first_name;
       string last_name;

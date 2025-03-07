@@ -108,6 +108,9 @@ class BusinessConnectionManager final : public Actor {
   void read_business_message(BusinessConnectionId business_connection_id, DialogId dialog_id, MessageId message_id,
                              Promise<Unit> &&promise);
 
+  void delete_business_messages(BusinessConnectionId business_connection_id, const vector<MessageId> &message_ids,
+                                Promise<Unit> &&promise);
+
   void set_business_name(BusinessConnectionId business_connection_id, const string &first_name, const string &last_name,
                          Promise<Unit> &&promise);
 

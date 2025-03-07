@@ -3827,6 +3827,14 @@ void Requests::on_request(uint64 id, td_api::readBusinessMessage &request) {
       MessageId(request.message_id_), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::deleteBusinessMessages &request) {
+  CHECK_IS_BOT();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->business_connection_manager_->delete_business_messages(
+      BusinessConnectionId(std::move(request.business_connection_id_)),
+      MessageId::get_message_ids(request.message_ids_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::setBusinessName &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.first_name_);
