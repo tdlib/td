@@ -3836,6 +3836,14 @@ void Requests::on_request(uint64 id, td_api::setBusinessName &request) {
                                                        request.first_name_, request.last_name_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::setBusinessBio &request) {
+  CHECK_IS_BOT();
+  CLEAN_INPUT_STRING(request.bio_);
+  CREATE_OK_REQUEST_PROMISE();
+  td_->business_connection_manager_->set_business_about(
+      BusinessConnectionId(std::move(request.business_connection_id_)), request.bio_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::loadQuickReplyShortcuts &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

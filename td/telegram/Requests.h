@@ -571,6 +571,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::setBusinessName &request);
 
+  void on_request(uint64 id, td_api::setBusinessBio &request);
+
   void on_request(uint64 id, const td_api::loadQuickReplyShortcuts &request);
 
   void on_request(uint64 id, const td_api::setQuickReplyShortcutName &request);

@@ -111,6 +111,8 @@ class BusinessConnectionManager final : public Actor {
   void set_business_name(BusinessConnectionId business_connection_id, const string &first_name, const string &last_name,
                          Promise<Unit> &&promise);
 
+  void set_business_about(BusinessConnectionId business_connection_id, const string &about, Promise<Unit> &&promise);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:

@@ -1615,6 +1615,14 @@ void BusinessConnectionManager::set_business_name(BusinessConnectionId business_
              clean_name(last_name, MAX_NAME_LENGTH), false, string());
 }
 
+void BusinessConnectionManager::set_business_about(BusinessConnectionId business_connection_id, const string &about,
+                                                   Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, check_business_connection(business_connection_id));
+
+  td_->create_handler<UpdateBusinessProfileQuery>(std::move(promise))
+      ->send(business_connection_id, false, string(), false, string(), true, about);
+}
+
 td_api::object_ptr<td_api::updateBusinessConnection> BusinessConnectionManager::get_update_business_connection(
     const BusinessConnection *connection) const {
   return td_api::make_object<td_api::updateBusinessConnection>(connection->get_business_connection_object(td_));

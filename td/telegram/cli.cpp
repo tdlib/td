@@ -6672,6 +6672,10 @@ class CliClient final : public Actor {
       string last_name;
       get_args(args, first_name, last_name);
       send_request(td_api::make_object<td_api::setBusinessName>(business_connection_id_, first_name, last_name));
+    } else if (op == "sbub") {
+      string bio;
+      get_args(args, bio);
+      send_request(td_api::make_object<td_api::setBusinessBio>(business_connection_id_, bio));
     } else if (op == "grib") {
       send_request(td_api::make_object<td_api::getRecentInlineBots>());
     } else if (op == "gob") {
