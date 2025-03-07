@@ -285,7 +285,7 @@ class AesCtrOpenSSLBench final : public td::Benchmark {
     state.init(as_slice(key), as_slice(iv));
     for (int i = 0; i < n; i++) {
       int len = 0;
-      int int_size = static_cast<int>(DATA_SIZE);
+      auto int_size = static_cast<int>(DATA_SIZE);
       EVP_EncryptUpdate(ctx, data_slice.ubegin(), &len, data_slice.ubegin(), int_size);
       CHECK(len == int_size);
     }

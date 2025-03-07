@@ -44,6 +44,8 @@
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 
+#include <algorithm>
+
 namespace td {
 
 static td_api::object_ptr<td_api::PremiumFeature> get_premium_feature_object(Slice premium_feature) {
@@ -1235,7 +1237,8 @@ void get_premium_state(Td *td, Promise<td_api::object_ptr<td_api::premiumState>>
   td->create_handler<GetPremiumPromoQuery>(std::move(promise))->send();
 }
 
-void get_premium_gift_options(Td *td, Promise<td_api::object_ptr<td_api::premiumGiftPaymentOptions>> &&promise) {
+void get_premium_gift_payment_options(Td *td,
+                                      Promise<td_api::object_ptr<td_api::premiumGiftPaymentOptions>> &&promise) {
   td->stickers_manager_->load_premium_gift_sticker_set(
       PromiseCreator::lambda([td, promise = std::move(promise)](Result<Unit> &&result) mutable {
         if (result.is_error()) {

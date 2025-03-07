@@ -37,7 +37,7 @@ class Ed25519 {
     bool operator==(const PublicKey &other) const {
       return octet_string_ == other.octet_string_;
     }
-    
+
     bool operator!=(const PublicKey &other) const {
       return octet_string_ != other.octet_string_;
     }

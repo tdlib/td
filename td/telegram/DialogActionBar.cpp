@@ -11,6 +11,7 @@
 #include "td/telegram/UserManager.h"
 
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 
 namespace td {
 

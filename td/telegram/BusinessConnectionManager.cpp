@@ -25,6 +25,7 @@
 #include "td/telegram/MessageSelfDestructType.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/OptionManager.h"
+#include "td/telegram/Photo.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"

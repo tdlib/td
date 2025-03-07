@@ -44,7 +44,7 @@ void click_premium_subscription_button(Td *td, Promise<Unit> &&promise);
 
 void get_premium_state(Td *td, Promise<td_api::object_ptr<td_api::premiumState>> &&promise);
 
-void get_premium_gift_options(Td *td, Promise<td_api::object_ptr<td_api::premiumGiftPaymentOptions>> &&promise);
+void get_premium_gift_payment_options(Td *td, Promise<td_api::object_ptr<td_api::premiumGiftPaymentOptions>> &&promise);
 
 void get_premium_giveaway_options(Td *td, DialogId boosted_dialog_id,
                                   Promise<td_api::object_ptr<td_api::premiumGiveawayPaymentOptions>> &&promise);
