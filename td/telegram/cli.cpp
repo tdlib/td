@@ -1627,7 +1627,7 @@ class CliClient final : public Actor {
           auto chat_id = message->chat_id_;
           auto text = static_cast<const td_api::messageText *>(message->content_.get())->text_->text_;
           if (text == "/start" && !message->is_outgoing_ && use_test_dc_) {
-            on_cmd(PSTRING() << "sm " << chat_id << " Hi!");
+            // on_cmd(PSTRING() << "sm " << chat_id << " Hi!");
           }
         }
         break;
