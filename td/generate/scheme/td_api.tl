@@ -12023,7 +12023,7 @@ setNewChatPrivacySettings settings:newChatPrivacySettings = Ok;
 //@description Returns privacy settings for new chat creation
 getNewChatPrivacySettings = NewChatPrivacySettings;
 
-//@description Returns the total number of Telegram Stars receive by the current user for paid messages from the given user @user_id Identifier of the user
+//@description Returns the total number of Telegram Stars received by the current user for paid messages from the given user @user_id Identifier of the user
 getPaidMessageRevenue user_id:int53 = StarCount;
 
 //@description Allows the specified user to send unpaid private messages to the current user by adding a rule to userPrivacySettingAllowUnpaidMessages
