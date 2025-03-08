@@ -8,6 +8,7 @@
 
 #include "td/telegram/Global.h"
 #include "td/telegram/net/NetQueryCreator.h"
+#include "td/telegram/StarManager.h"
 #include "td/telegram/SuggestedAction.h"
 #include "td/telegram/SuggestedActionManager.h"
 #include "td/telegram/Td.h"
@@ -80,7 +81,7 @@ GlobalPrivacySettings::GlobalPrivacySettings(telegram_api::object_ptr<telegram_a
     , keep_archived_folders_(settings->keep_archived_folders_)
     , hide_read_marks_(settings->hide_read_marks_)
     , new_noncontact_peers_require_premium_(settings->new_noncontact_peers_require_premium_)
-    , noncontact_peers_paid_star_count_(settings->noncontact_peers_paid_stars_) {
+    , noncontact_peers_paid_star_count_(StarManager::get_star_count(settings->noncontact_peers_paid_stars_)) {
 }
 
 GlobalPrivacySettings::GlobalPrivacySettings(td_api::object_ptr<td_api::archiveChatListSettings> &&settings)

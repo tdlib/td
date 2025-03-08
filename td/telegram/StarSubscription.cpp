@@ -8,6 +8,7 @@
 
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/LinkManager.h"
+#include "td/telegram/StarManager.h"
 #include "td/telegram/Td.h"
 
 #include "td/utils/logging.h"
@@ -21,7 +22,7 @@ StarSubscription::StarSubscription(Td *td, telegram_api::object_ptr<telegram_api
     , can_reuse_(subscription->can_refulfill_)
     , is_canceled_(subscription->canceled_)
     , is_bot_canceled_(subscription->bot_canceled_)
-    , missing_balance_(subscription->missing_balance_)
+    , missing_balance_(StarManager::get_star_count(subscription->missing_balance_))
     , invite_hash_(std::move(subscription->chat_invite_hash_))
     , title_(std::move(subscription->title_))
     , photo_(get_web_document_photo(td->file_manager_.get(), std::move(subscription->photo_), DialogId()))

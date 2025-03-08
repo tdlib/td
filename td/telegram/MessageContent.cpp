@@ -8085,7 +8085,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
         reply_to_message_id = MessageId();
       }
       return td::make_unique<MessageGiveawayResults>(reply_to_message_id, action->winners_count_,
-                                                     action->unclaimed_count_, action->stars_);
+                                                     action->unclaimed_count_,
+                                                     StarManager::get_star_count(action->stars_));
     }
     case telegram_api::messageActionBoostApply::ID: {
       auto action = move_tl_object_as<telegram_api::messageActionBoostApply>(action_ptr);
