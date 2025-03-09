@@ -8768,7 +8768,7 @@ testVectorStringObject value:vector<testString> = TestVectorStringObject;
 
 ---functions---
 
-//@description Returns the current authorization state; this is an offline request. For informational purposes only. Use updateAuthorizationState instead to maintain the current authorization state. Can be called before initialization
+//@description Returns the current authorization state. This is an offline method. For informational purposes only. Use updateAuthorizationState instead to maintain the current authorization state. Can be called before initialization
 getAuthorizationState = AuthorizationState;
 
 
@@ -8940,28 +8940,28 @@ getTemporaryPasswordState = TemporaryPasswordState;
 //@description Returns the current user
 getMe = User;
 
-//@description Returns information about a user by their identifier. This is an offline request if the current user is not a bot @user_id User identifier
+//@description Returns information about a user by their identifier. This is an offline method if the current user is not a bot @user_id User identifier
 getUser user_id:int53 = User;
 
 //@description Returns full information about a user by their identifier @user_id User identifier
 getUserFullInfo user_id:int53 = UserFullInfo;
 
-//@description Returns information about a basic group by its identifier. This is an offline request if the current user is not a bot @basic_group_id Basic group identifier
+//@description Returns information about a basic group by its identifier. This is an offline method if the current user is not a bot @basic_group_id Basic group identifier
 getBasicGroup basic_group_id:int53 = BasicGroup;
 
 //@description Returns full information about a basic group by its identifier @basic_group_id Basic group identifier
 getBasicGroupFullInfo basic_group_id:int53 = BasicGroupFullInfo;
 
-//@description Returns information about a supergroup or a channel by its identifier. This is an offline request if the current user is not a bot @supergroup_id Supergroup or channel identifier
+//@description Returns information about a supergroup or a channel by its identifier. This is an offline method if the current user is not a bot @supergroup_id Supergroup or channel identifier
 getSupergroup supergroup_id:int53 = Supergroup;
 
 //@description Returns full information about a supergroup or a channel by its identifier, cached for up to 1 minute @supergroup_id Supergroup or channel identifier
 getSupergroupFullInfo supergroup_id:int53 = SupergroupFullInfo;
 
-//@description Returns information about a secret chat by its identifier. This is an offline request @secret_chat_id Secret chat identifier
+//@description Returns information about a secret chat by its identifier. This is an offline method @secret_chat_id Secret chat identifier
 getSecretChat secret_chat_id:int32 = SecretChat;
 
-//@description Returns information about a chat by its identifier; this is an offline request if the current user is not a bot @chat_id Chat identifier
+//@description Returns information about a chat by its identifier. This is an offline method if the current user is not a bot @chat_id Chat identifier
 getChat chat_id:int53 = Chat;
 
 //@description Returns information about a message. Returns a 404 error if the message doesn't exist
@@ -8969,7 +8969,7 @@ getChat chat_id:int53 = Chat;
 //@message_id Identifier of the message to get
 getMessage chat_id:int53 message_id:int53 = Message;
 
-//@description Returns information about a message, if it is available without sending network request. Returns a 404 error if message isn't available locally. This is an offline request
+//@description Returns information about a message, if it is available without sending network request. Returns a 404 error if message isn't available locally. This is an offline method
 //@chat_id Identifier of the chat the message belongs to
 //@message_id Identifier of the message to get
 getMessageLocally chat_id:int53 message_id:int53 = Message;
@@ -8991,7 +8991,7 @@ getCallbackQueryMessage chat_id:int53 message_id:int53 callback_query_id:int64 =
 //@description Returns information about messages. If a message is not found, returns null on the corresponding position of the result @chat_id Identifier of the chat the messages belong to @message_ids Identifiers of the messages to get
 getMessages chat_id:int53 message_ids:vector<int53> = Messages;
 
-//@description Returns properties of a message; this is an offline request @chat_id Chat identifier @message_id Identifier of the message
+//@description Returns properties of a message. This is an offline method @chat_id Chat identifier @message_id Identifier of the message
 getMessageProperties chat_id:int53 message_id:int53 = MessageProperties;
 
 //@description Returns information about a message thread. Can be used only if messageProperties.can_get_message_thread == true @chat_id Chat identifier @message_id Identifier of the message
@@ -9007,10 +9007,10 @@ getMessageReadDate chat_id:int53 message_id:int53 = MessageReadDate;
 //@message_id Identifier of the message
 getMessageViewers chat_id:int53 message_id:int53 = MessageViewers;
 
-//@description Returns information about a file; this is an offline request @file_id Identifier of the file to get
+//@description Returns information about a file. This is an offline method @file_id Identifier of the file to get
 getFile file_id:int32 = File;
 
-//@description Returns information about a file by its remote identifier; this is an offline request. Can be used to register a URL as a file for further uploading, or sending as a message. Even the request succeeds, the file can be used only if it is still accessible to the user.
+//@description Returns information about a file by its remote identifier. This is an offline method. Can be used to register a URL as a file for further uploading, or sending as a message. Even the request succeeds, the file can be used only if it is still accessible to the user.
 //-For example, if the file is from a message, then the message must be not deleted and accessible to the user. If the file database is disabled, then the corresponding object with the file must be preloaded by the application
 //@remote_file_id Remote identifier of the file to get
 //@file_type File type; pass null if unknown
@@ -9034,7 +9034,7 @@ searchPublicChat username:string = Chat;
 //@query Query to search for
 searchPublicChats query:string = Chats;
 
-//@description Searches for the specified query in the title and username of already known chats; this is an offline request. Returns chats in the order seen in the main chat list
+//@description Searches for the specified query in the title and username of already known chats. This is an offline method. Returns chats in the order seen in the main chat list
 //@query Query to search for. If the query is empty, returns up to 50 recently found chats
 //@limit The maximum number of chats to be returned
 searchChats query:string limit:int32 = Chats;
@@ -9077,7 +9077,7 @@ getTopChats category:TopChatCategory limit:int32 = Chats;
 //@description Removes a chat from the list of frequently used chats. Supported only if the chat info database is enabled @category Category of frequently used chats @chat_id Chat identifier
 removeTopChat category:TopChatCategory chat_id:int53 = Ok;
 
-//@description Searches for the specified query in the title and username of up to 50 recently found chats; this is an offline request
+//@description Searches for the specified query in the title and username of up to 50 recently found chats. This is an offline method
 //@query Query to search for
 //@limit The maximum number of chats to be returned
 searchRecentlyFoundChats query:string limit:int32 = Chats;
@@ -9091,7 +9091,7 @@ removeRecentlyFoundChat chat_id:int53 = Ok;
 //@description Clears the list of recently found chats
 clearRecentlyFoundChats = Ok;
 
-//@description Returns recently opened chats; this is an offline request. Returns chats in the order of last opening @limit The maximum number of chats to be returned
+//@description Returns recently opened chats. This is an offline method. Returns chats in the order of last opening @limit The maximum number of chats to be returned
 getRecentlyOpenedChats limit:int32 = Chats;
 
 //@description Checks whether a username can be set for a chat @chat_id Chat identifier; must be identifier of a supergroup chat, or a channel chat, or a private chat with self, or 0 if the chat is being created @username Username to be checked
@@ -9157,7 +9157,7 @@ getGroupsInCommon user_id:int53 offset_chat_id:int53 limit:int32 = Chats;
 
 
 //@description Returns messages in a chat. The messages are returned in reverse chronological order (i.e., in order of decreasing message_id).
-//-For optimal performance, the number of returned messages is chosen by TDLib. This is an offline request if only_local is true
+//-For optimal performance, the number of returned messages is chosen by TDLib. This is an offline method if only_local is true
 //@chat_id Chat identifier
 //@from_message_id Identifier of the message starting from which history must be fetched; use 0 to get results from the last message
 //@offset Specify 0 to get results from exactly the message from_message_id or a negative offset up to 99 to get additionally some newer messages
@@ -9349,7 +9349,7 @@ removeNotification notification_group_id:int32 notification_id:int32 = Ok;
 removeNotificationGroup notification_group_id:int32 max_notification_id:int32 = Ok;
 
 
-//@description Returns an HTTPS link to a message in a chat. Available only if messageProperties.can_get_link, or if messageProperties.can_get_media_timestamp_links and a media timestamp link is generated. This is an offline request
+//@description Returns an HTTPS link to a message in a chat. Available only if messageProperties.can_get_link, or if messageProperties.can_get_media_timestamp_links and a media timestamp link is generated. This is an offline method
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
 //@media_timestamp If not 0, timestamp from which the video/audio/video note/voice note/story playing must start, in seconds. The media can be in the message content or in its link preview
@@ -9737,7 +9737,7 @@ editForumTopic chat_id:int53 message_thread_id:int53 name:string edit_icon_custo
 //@description Returns information about a forum topic @chat_id Identifier of the chat @message_thread_id Message thread identifier of the forum topic
 getForumTopic chat_id:int53 message_thread_id:int53 = ForumTopic;
 
-//@description Returns an HTTPS link to a topic in a forum chat. This is an offline request @chat_id Identifier of the chat @message_thread_id Message thread identifier of the forum topic
+//@description Returns an HTTPS link to a topic in a forum chat. This is an offline method @chat_id Identifier of the chat @message_thread_id Message thread identifier of the forum topic
 getForumTopicLink chat_id:int53 message_thread_id:int53 = MessageLink;
 
 //@description Returns found forum topics in a forum chat. This is a temporary method for getting information about topic list from the server
@@ -10017,7 +10017,7 @@ getGrossingWebAppBots offset:string limit:int32 = FoundUsers;
 //@web_app_short_name Short name of the Web App
 searchWebApp bot_user_id:int53 web_app_short_name:string = FoundWebApp;
 
-//@description Returns a default placeholder for Web Apps of a bot; this is an offline request. Returns a 404 error if the placeholder isn't known @bot_user_id Identifier of the target bot
+//@description Returns a default placeholder for Web Apps of a bot. This is an offline method. Returns a 404 error if the placeholder isn't known @bot_user_id Identifier of the target bot
 getWebAppPlaceholder bot_user_id:int53 = Outline;
 
 //@description Returns an HTTPS URL of a Web App to open after a link of the type internalLinkTypeWebApp is clicked
@@ -10219,7 +10219,7 @@ createNewSecretChat user_id:int53 = Chat;
 upgradeBasicGroupChatToSupergroupChat chat_id:int53 = Chat;
 
 
-//@description Returns chat lists to which the chat can be added. This is an offline request @chat_id Chat identifier
+//@description Returns chat lists to which the chat can be added. This is an offline method @chat_id Chat identifier
 getChatListsToAddChat chat_id:int53 = ChatLists;
 
 //@description Adds a chat to a chat list. A chat can't be simultaneously in Main and Archive chat lists, so it is automatically removed from another one if needed
@@ -10684,12 +10684,12 @@ activateStoryStealthMode = Ok;
 getStoryPublicForwards story_sender_chat_id:int53 story_id:int32 offset:string limit:int32 = PublicForwards;
 
 
-//@description Returns the list of features available on the specific chat boost level; this is an offline request
+//@description Returns the list of features available on the specific chat boost level. This is an offline method
 //@is_channel Pass true to get the list of features for channels; pass false to get the list of features for supergroups
 //@level Chat boost level
 getChatBoostLevelFeatures is_channel:Bool level:int32 = ChatBoostLevelFeatures;
 
-//@description Returns the list of features available for different chat boost levels; this is an offline request
+//@description Returns the list of features available for different chat boost levels. This is an offline method
 //@is_channel Pass true to get the list of features for channels; pass false to get the list of features for supergroups
 getChatBoostFeatures is_channel:Bool = ChatBoostFeatures;
 
@@ -11225,7 +11225,7 @@ sharePhoneNumber user_id:int53 = Ok;
 getUserProfilePhotos user_id:int53 offset:int32 limit:int32 = ChatPhotos;
 
 
-//@description Returns outline of a sticker; this is an offline request. Returns a 404 error if the outline isn't known
+//@description Returns outline of a sticker. This is an offline method. Returns a 404 error if the outline isn't known
 //@sticker_file_id File identifier of the sticker
 //@for_animated_emoji Pass true to get the outline scaled for animated emoji
 //@for_clicked_animated_emoji_message Pass true to get the outline scaled for clicked animated emoji message
@@ -11398,7 +11398,7 @@ removeRecentHashtag hashtag:string = Ok;
 //@link_preview_options Options to be used for generation of the link preview; pass null to use default link preview options
 getLinkPreview text:formattedText link_preview_options:linkPreviewOptions = LinkPreview;
 
-//@description Returns an instant view version of a web page if available. This is an offline request if only_local is true. Returns a 404 error if the web page has no instant view page
+//@description Returns an instant view version of a web page if available. This is an offline method if only_local is true. Returns a 404 error if the web page has no instant view page
 //@url The web page URL
 //@only_local Pass true to get only locally available information without sending network requests
 getWebPageInstantView url:string only_local:Bool = WebPageInstantView;
@@ -11954,7 +11954,7 @@ removeInstalledBackground background_id:int64 = Ok;
 resetInstalledBackgrounds = Ok;
 
 
-//@description Returns information about the current localization target. This is an offline request if only_local is true. Can be called before authorization @only_local Pass true to get only locally available information without sending network requests
+//@description Returns information about the current localization target. This is an offline method if only_local is true. Can be called before authorization @only_local Pass true to get only locally available information without sending network requests
 getLocalizationTargetInfo only_local:Bool = LocalizationTargetInfo;
 
 //@description Returns information about a language pack. Returned language pack identifier may be different from a provided one. Can be called before authorization @language_pack_id Language pack identifier
