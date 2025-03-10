@@ -2860,7 +2860,7 @@ void UserManager::on_binlog_secret_chat_event(BinlogEvent &&event) {
   update_secret_chat(c, secret_chat_id, true, false);
 }
 
-void UserManager::on_update_user_name(UserId user_id, string &&first_name, string &&last_name, Usernames &&usernames) {
+void UserManager::on_update_user_name(UserId user_id, string &&first_name, string &&last_name) {
   if (!user_id.is_valid()) {
     LOG(ERROR) << "Receive invalid " << user_id;
     return;
@@ -2869,10 +2869,9 @@ void UserManager::on_update_user_name(UserId user_id, string &&first_name, strin
   User *u = get_user_force(user_id, "on_update_user_name");
   if (u != nullptr) {
     on_update_user_name(u, user_id, std::move(first_name), std::move(last_name));
-    on_update_user_usernames(u, user_id, std::move(usernames));
     update_user(u, user_id);
   } else {
-    LOG(INFO) << "Ignore update user name about unknown " << user_id;
+    LOG(INFO) << "Ignore update about name of unknown " << user_id;
   }
 }
 
@@ -2886,6 +2885,21 @@ void UserManager::on_update_user_name(User *u, UserId user_id, string &&first_na
     u->is_name_changed = true;
     LOG(DEBUG) << "Name has changed for " << user_id;
     u->is_changed = true;
+  }
+}
+
+void UserManager::on_update_user_usernames(UserId user_id, Usernames &&usernames) {
+  if (!user_id.is_valid()) {
+    LOG(ERROR) << "Receive invalid " << user_id;
+    return;
+  }
+
+  User *u = get_user_force(user_id, "on_update_user_usernames");
+  if (u != nullptr) {
+    on_update_user_usernames(u, user_id, std::move(usernames));
+    update_user(u, user_id);
+  } else {
+    LOG(INFO) << "Ignore update about usernames of unknown " << user_id;
   }
 }
 

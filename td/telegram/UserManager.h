@@ -120,7 +120,9 @@ class UserManager final : public Actor {
 
   void on_binlog_secret_chat_event(BinlogEvent &&event);
 
-  void on_update_user_name(UserId user_id, string &&first_name, string &&last_name, Usernames &&usernames);
+  void on_update_user_name(UserId user_id, string &&first_name, string &&last_name);
+
+  void on_update_user_usernames(UserId user_id, Usernames &&usernames);
 
   void on_update_user_phone_number(UserId user_id, string &&phone_number);
 

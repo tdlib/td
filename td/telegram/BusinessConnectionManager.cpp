@@ -611,19 +611,25 @@ class DeleteBusinessMessagesQuery final : public Td::ResultHandler {
 
 class UpdateBusinessProfileQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
+  UserId user_id_;
+  bool set_name_ = false;
+  string first_name_;
+  string last_name_;
 
  public:
   explicit UpdateBusinessProfileQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(const BusinessConnectionId &business_connection_id, bool set_first_name, const string &first_name,
-            bool set_last_name, const string &last_name, bool set_about, const string &about) {
+  void send(const BusinessConnectionId &business_connection_id, UserId user_id, bool set_name, const string &first_name,
+            const string &last_name, bool set_about, const string &about) {
     int32 flags = 0;
-    if (set_first_name) {
+    if (set_name) {
       flags |= telegram_api::account_updateProfile::FIRST_NAME_MASK;
-    }
-    if (set_last_name) {
       flags |= telegram_api::account_updateProfile::LAST_NAME_MASK;
+      user_id_ = user_id;
+      set_name_ = true;
+      first_name_ = first_name;
+      last_name_ = last_name;
     }
     if (set_about) {
       flags |= telegram_api::account_updateProfile::ABOUT_MASK;
@@ -641,6 +647,11 @@ class UpdateBusinessProfileQuery final : public Td::ResultHandler {
     }
 
     LOG(DEBUG) << "Receive result for UpdateBusinessProfileQuery: " << to_string(result_ptr.ok());
+
+    if (set_name_ && user_id_.is_valid()) {
+      td_->user_manager_->on_update_user_name(user_id_, std::move(first_name_), std::move(last_name_));
+    }
+
     promise_.set_value(Unit());
   }
 
@@ -1654,9 +1665,10 @@ void BusinessConnectionManager::delete_business_messages(BusinessConnectionId bu
 void BusinessConnectionManager::set_business_name(BusinessConnectionId business_connection_id, const string &first_name,
                                                   const string &last_name, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, check_business_connection(business_connection_id));
+  auto user_id = business_connections_.get_pointer(business_connection_id)->user_id_;
 
   td_->create_handler<UpdateBusinessProfileQuery>(std::move(promise))
-      ->send(business_connection_id, true, clean_name(first_name, MAX_NAME_LENGTH), true,
+      ->send(business_connection_id, user_id, true, clean_name(first_name, MAX_NAME_LENGTH),
              clean_name(last_name, MAX_NAME_LENGTH), false, string());
 }
 
@@ -1665,7 +1677,7 @@ void BusinessConnectionManager::set_business_about(BusinessConnectionId business
   TRY_STATUS_PROMISE(promise, check_business_connection(business_connection_id));
 
   td_->create_handler<UpdateBusinessProfileQuery>(std::move(promise))
-      ->send(business_connection_id, false, string(), false, string(), true, about);
+      ->send(business_connection_id, UserId(), false, string(), string(), true, about);
 }
 
 td_api::object_ptr<td_api::updateBusinessConnection> BusinessConnectionManager::get_update_business_connection(

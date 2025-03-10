@@ -4010,8 +4010,9 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserStatus> upd
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserName> update, Promise<Unit> &&promise) {
   td_->user_manager_->on_update_user_name(UserId(update->user_id_), std::move(update->first_name_),
-                                          std::move(update->last_name_),
-                                          Usernames{string(), std::move(update->usernames_)});
+                                          std::move(update->last_name_));
+  td_->user_manager_->on_update_user_usernames(UserId(update->user_id_),
+                                               Usernames{string(), std::move(update->usernames_)});
   promise.set_value(Unit());
 }
 
