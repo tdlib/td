@@ -6672,15 +6672,15 @@ class CliClient final : public Actor {
       get_args(args, message_ids);
       send_request(
           td_api::make_object<td_api::deleteBusinessMessages>(business_connection_id_, as_message_ids(message_ids)));
-    } else if (op == "sbun") {
+    } else if (op == "sban") {
       string first_name;
       string last_name;
       get_args(args, first_name, last_name);
-      send_request(td_api::make_object<td_api::setBusinessName>(business_connection_id_, first_name, last_name));
-    } else if (op == "sbub") {
+      send_request(td_api::make_object<td_api::setBusinessAccountName>(business_connection_id_, first_name, last_name));
+    } else if (op == "sbab") {
       string bio;
       get_args(args, bio);
-      send_request(td_api::make_object<td_api::setBusinessBio>(business_connection_id_, bio));
+      send_request(td_api::make_object<td_api::setBusinessAccountBio>(business_connection_id_, bio));
     } else if (op == "grib") {
       send_request(td_api::make_object<td_api::getRecentInlineBots>());
     } else if (op == "gob") {

@@ -3835,7 +3835,7 @@ void Requests::on_request(uint64 id, td_api::deleteBusinessMessages &request) {
       MessageId::get_message_ids(request.message_ids_), std::move(promise));
 }
 
-void Requests::on_request(uint64 id, td_api::setBusinessName &request) {
+void Requests::on_request(uint64 id, td_api::setBusinessAccountName &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.first_name_);
   CLEAN_INPUT_STRING(request.last_name_);
@@ -3844,7 +3844,7 @@ void Requests::on_request(uint64 id, td_api::setBusinessName &request) {
                                                        request.first_name_, request.last_name_, std::move(promise));
 }
 
-void Requests::on_request(uint64 id, td_api::setBusinessBio &request) {
+void Requests::on_request(uint64 id, td_api::setBusinessAccountBio &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.bio_);
   CREATE_OK_REQUEST_PROMISE();

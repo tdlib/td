@@ -9687,12 +9687,13 @@ deleteBusinessMessages business_connection_id:string message_ids:vector<int53> =
 //@business_connection_id Unique identifier of business connection
 //@first_name The new value of the first name for the business account; 1-64 characters
 //@last_name The new value of the optional last name for the business account; 0-64 characters
-setBusinessName business_connection_id:string first_name:string last_name:string = Ok;
+setBusinessAccountName business_connection_id:string first_name:string last_name:string = Ok;
 
 //@description Changes the bio of a business account; for bots only
 //@business_connection_id Unique identifier of business connection
 //@bio The new value of the bio; 0-getOption("bio_length_max") characters without line feeds
-setBusinessBio business_connection_id:string bio:string = Ok;
+setBusinessAccountBio business_connection_id:string bio:string = Ok;
+
 
 //@description Checks validness of a name for a quick reply shortcut. Can be called synchronously @name The name of the shortcut; 1-32 characters
 checkQuickReplyShortcutName name:string = Ok;
