@@ -103,7 +103,17 @@ class SetBotCallbackAnswerQuery final : public Td::ResultHandler {
   explicit SetBotCallbackAnswerQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(int32 flags, int64 callback_query_id, const string &text, const string &url, int32 cache_time) {
+  void send(int64 callback_query_id, const string &text, const string &url, bool show_alert, int32 cache_time) {
+    int32 flags = 0;
+    if (!text.empty()) {
+      flags |= telegram_api::messages_setBotCallbackAnswer::MESSAGE_MASK;
+    }
+    if (show_alert) {
+      flags |= telegram_api::messages_setBotCallbackAnswer::ALERT_MASK;
+    }
+    if (!url.empty()) {
+      flags |= telegram_api::messages_setBotCallbackAnswer::URL_MASK;
+    }
     send_query(G()->net_query_creator().create(telegram_api::messages_setBotCallbackAnswer(
         flags, false /*ignored*/, callback_query_id, text, url, cache_time)));
   }
@@ -131,18 +141,8 @@ CallbackQueriesManager::CallbackQueriesManager(Td *td) : td_(td) {
 
 void CallbackQueriesManager::answer_callback_query(int64 callback_query_id, const string &text, bool show_alert,
                                                    const string &url, int32 cache_time, Promise<Unit> &&promise) const {
-  int32 flags = 0;
-  if (!text.empty()) {
-    flags |= BOT_CALLBACK_ANSWER_FLAG_HAS_MESSAGE;
-  }
-  if (show_alert) {
-    flags |= BOT_CALLBACK_ANSWER_FLAG_NEED_SHOW_ALERT;
-  }
-  if (!url.empty()) {
-    flags |= BOT_CALLBACK_ANSWER_FLAG_HAS_URL;
-  }
   td_->create_handler<SetBotCallbackAnswerQuery>(std::move(promise))
-      ->send(flags, callback_query_id, text, url, cache_time);
+      ->send(callback_query_id, text, url, show_alert, cache_time);
 }
 
 tl_object_ptr<td_api::CallbackQueryPayload> CallbackQueriesManager::get_query_payload(int32 flags, BufferSlice &&data,

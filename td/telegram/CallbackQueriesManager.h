@@ -44,10 +44,6 @@ class CallbackQueriesManager {
                            Promise<td_api::object_ptr<td_api::callbackQueryAnswer>> &&promise);
 
  private:
-  static constexpr int32 BOT_CALLBACK_ANSWER_FLAG_HAS_MESSAGE = 1 << 0;
-  static constexpr int32 BOT_CALLBACK_ANSWER_FLAG_NEED_SHOW_ALERT = 1 << 1;
-  static constexpr int32 BOT_CALLBACK_ANSWER_FLAG_HAS_URL = 1 << 2;
-
   static tl_object_ptr<td_api::CallbackQueryPayload> get_query_payload(int32 flags, BufferSlice &&data,
                                                                        string &&game_short_name);
 
