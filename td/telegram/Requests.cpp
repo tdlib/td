@@ -4146,7 +4146,6 @@ void Requests::on_request(uint64 id, const td_api::deleteChatReplyMarkup &reques
 }
 
 void Requests::on_request(uint64 id, td_api::sendChatAction &request) {
-  CLEAN_INPUT_STRING(request.business_connection_id_);
   CREATE_OK_REQUEST_PROMISE();
   td_->dialog_action_manager_->send_dialog_action(DialogId(request.chat_id_), MessageId(request.message_thread_id_),
                                                   BusinessConnectionId(std::move(request.business_connection_id_)),
@@ -7257,10 +7256,10 @@ void Requests::on_request(uint64 id, td_api::getReceivedGifts &request) {
   CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();
   TRY_RESULT_PROMISE(promise, owner_dialog_id, get_message_sender_dialog_id(td_, request.owner_id_, true, false));
-  td_->star_gift_manager_->get_saved_star_gifts(owner_dialog_id, request.exclude_unsaved_, request.exclude_saved_,
-                                                request.exclude_unlimited_, request.exclude_limited_,
-                                                request.exclude_upgraded_, request.sort_by_price_, request.offset_,
-                                                request.limit_, std::move(promise));
+  td_->star_gift_manager_->get_saved_star_gifts(
+      BusinessConnectionId(std::move(request.business_connection_id_)), owner_dialog_id, request.exclude_unsaved_,
+      request.exclude_saved_, request.exclude_unlimited_, request.exclude_limited_, request.exclude_upgraded_,
+      request.sort_by_price_, request.offset_, request.limit_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getReceivedGift &request) {
@@ -7284,7 +7283,6 @@ void Requests::on_request(uint64 id, const td_api::getUpgradedGiftWithdrawalUrl 
 }
 
 void Requests::on_request(uint64 id, td_api::createInvoiceLink &request) {
-  CLEAN_INPUT_STRING(request.business_connection_id_);
   CHECK_IS_BOT();
   CREATE_HTTP_URL_REQUEST_PROMISE();
   export_invoice(td_, BusinessConnectionId(std::move(request.business_connection_id_)), std::move(request.invoice_),

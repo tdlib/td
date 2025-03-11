@@ -45,6 +45,8 @@ class BusinessConnectionManager final : public Actor {
 
   Status check_business_connection(const BusinessConnectionId &connection_id, DialogId dialog_id) const;
 
+  UserId get_business_connection_user_id(const BusinessConnectionId &connection_id) const;
+
   DcId get_business_connection_dc_id(const BusinessConnectionId &connection_id) const;
 
   void on_update_bot_business_connect(telegram_api::object_ptr<telegram_api::botBusinessConnection> &&connection);

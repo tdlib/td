@@ -737,6 +737,12 @@ Status BusinessConnectionManager::check_business_message_id(MessageId message_id
   return Status::OK();
 }
 
+UserId BusinessConnectionManager::get_business_connection_user_id(const BusinessConnectionId &connection_id) const {
+  auto connection = business_connections_.get_pointer(connection_id);
+  CHECK(connection != nullptr);
+  return connection->user_id_;
+}
+
 DcId BusinessConnectionManager::get_business_connection_dc_id(const BusinessConnectionId &connection_id) const {
   if (connection_id.is_empty()) {
     return DcId::main();
@@ -1665,7 +1671,7 @@ void BusinessConnectionManager::delete_business_messages(BusinessConnectionId bu
 void BusinessConnectionManager::set_business_name(BusinessConnectionId business_connection_id, const string &first_name,
                                                   const string &last_name, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, check_business_connection(business_connection_id));
-  auto user_id = business_connections_.get_pointer(business_connection_id)->user_id_;
+  auto user_id = get_business_connection_user_id(business_connection_id);
 
   td_->create_handler<UpdateBusinessProfileQuery>(std::move(promise))
       ->send(business_connection_id, user_id, true, clean_name(first_name, MAX_NAME_LENGTH),

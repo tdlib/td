@@ -8,6 +8,7 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/BusinessConnectionManager.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
@@ -689,15 +690,21 @@ class GetGiftTransferPaymentFormQuery final : public Td::ResultHandler {
 class GetSavedStarGiftsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::receivedGifts>> promise_;
   DialogId dialog_id_;
+  BusinessConnectionId business_connection_id_;
 
  public:
   explicit GetSavedStarGiftsQuery(Promise<td_api::object_ptr<td_api::receivedGifts>> &&promise)
       : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, bool exclude_unsaved, bool exclude_saved, bool exclude_unlimited, bool exclude_limited,
-            bool exclude_unique, bool sort_by_value, const string &offset, int32 limit) {
-    dialog_id_ = dialog_id;
+  void send(BusinessConnectionId business_connection_id, DialogId dialog_id, bool exclude_unsaved, bool exclude_saved,
+            bool exclude_unlimited, bool exclude_limited, bool exclude_unique, bool sort_by_value, const string &offset,
+            int32 limit) {
+    business_connection_id_ = business_connection_id;
+    dialog_id_ =
+        business_connection_id.is_valid()
+            ? DialogId(td_->business_connection_manager_->get_business_connection_user_id(business_connection_id))
+            : dialog_id;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
@@ -721,11 +728,12 @@ class GetSavedStarGiftsQuery final : public Td::ResultHandler {
     if (sort_by_value) {
       flags |= telegram_api::payments_getSavedStarGifts::SORT_BY_VALUE_MASK;
     }
-    send_query(G()->net_query_creator().create(
+    send_query(G()->net_query_creator().create_with_prefix(
+        business_connection_id.get_invoke_prefix(),
         telegram_api::payments_getSavedStarGifts(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
                                                  false /*ignored*/, false /*ignored*/, false /*ignored*/,
                                                  std::move(input_peer), offset, limit),
-        {{dialog_id_}}));
+        td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id), {{dialog_id_}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1116,16 +1124,20 @@ void StarGiftManager::on_dialog_gift_transferred(DialogId from_dialog_id, Dialog
   promise.set_value(Unit());
 }
 
-void StarGiftManager::get_saved_star_gifts(DialogId dialog_id, bool exclude_unsaved, bool exclude_saved,
-                                           bool exclude_unlimited, bool exclude_limited, bool exclude_unique,
-                                           bool sort_by_value, const string &offset, int32 limit,
+void StarGiftManager::get_saved_star_gifts(BusinessConnectionId business_connection_id, DialogId dialog_id,
+                                           bool exclude_unsaved, bool exclude_saved, bool exclude_unlimited,
+                                           bool exclude_limited, bool exclude_unique, bool sort_by_value,
+                                           const string &offset, int32 limit,
                                            Promise<td_api::object_ptr<td_api::receivedGifts>> &&promise) {
   if (limit < 0) {
     return promise.set_error(Status::Error(400, "Limit must be non-negative"));
   }
+  if (business_connection_id.is_valid()) {
+    TRY_STATUS_PROMISE(promise, td_->business_connection_manager_->check_business_connection(business_connection_id));
+  }
   td_->create_handler<GetSavedStarGiftsQuery>(std::move(promise))
-      ->send(dialog_id, exclude_unsaved, exclude_saved, exclude_unlimited, exclude_limited, exclude_unique,
-             sort_by_value, offset, limit);
+      ->send(business_connection_id, dialog_id, exclude_unsaved, exclude_saved, exclude_unlimited, exclude_limited,
+             exclude_unique, sort_by_value, offset, limit);
 }
 
 void StarGiftManager::get_saved_star_gift(StarGiftId star_gift_id,
