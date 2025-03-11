@@ -1572,11 +1572,6 @@ class MessagesManager final : public Actor {
   static constexpr int32 CHANNEL_DIFFERENCE_FLAG_IS_FINAL = 1 << 0;
   static constexpr int32 CHANNEL_DIFFERENCE_FLAG_HAS_TIMEOUT = 1 << 1;
 
-  static constexpr int32 DIALOG_FLAG_HAS_PTS = 1 << 0;
-  static constexpr int32 DIALOG_FLAG_HAS_DRAFT = 1 << 1;
-  static constexpr int32 DIALOG_FLAG_IS_PINNED = 1 << 2;
-  static constexpr int32 DIALOG_FLAG_HAS_FOLDER_ID = 1 << 4;
-
   static constexpr int32 MAX_MESSAGE_VIEW_DELAY = 1;  // seconds
   static constexpr int32 MIN_SAVE_DRAFT_DELAY = 1;    // seconds
   static constexpr int32 MIN_READ_HISTORY_DELAY = 3;  // seconds

@@ -12026,7 +12026,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
   for (auto &dialog : dialogs) {
     //    LOG(INFO) << to_string(dialog);
     DialogId dialog_id(dialog->peer_);
-    bool has_pts = (dialog->flags_ & DIALOG_FLAG_HAS_PTS) != 0;
+    bool has_pts = dialog->pts_ > 0;
 
     if (!dialog_id.is_valid()) {
       LOG(ERROR) << "Receive wrong " << dialog_id;
@@ -12184,7 +12184,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     need_update_dialog_pos |=
         update_dialog_draft_message(d, get_draft_message(td_, std::move(dialog->draft_)), true, false);
     if (is_new) {
-      bool has_pts = (dialog->flags_ & DIALOG_FLAG_HAS_PTS) != 0;
+      bool has_pts = dialog->pts_ > 0;
       if (last_message_id.is_valid() && !td_->auth_manager_->is_bot()) {
         MessageFullId message_full_id(dialog_id, last_message_id);
         auto it = message_full_id_to_message.find(message_full_id);
@@ -12223,7 +12223,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
 
     if (!td_->auth_manager_->is_bot() && !from_pinned_dialog_list) {
       // set is_pinned only after updating chat position to ensure that order is initialized
-      bool is_pinned = (dialog->flags_ & DIALOG_FLAG_IS_PINNED) != 0;
+      bool is_pinned = dialog->pinned_;
       bool was_pinned = is_dialog_pinned(DialogListId(d->folder_id), dialog_id);
       if (is_pinned != was_pinned) {
         set_dialog_is_pinned(DialogListId(d->folder_id), d, is_pinned);
@@ -33847,7 +33847,7 @@ void MessagesManager::on_get_channel_difference(DialogId dialog_id, int32 reques
 
       if (!td_->auth_manager_->is_bot()) {
         // set is_pinned only after updating chat position to ensure that order is initialized
-        bool is_pinned = (dialog->flags_ & DIALOG_FLAG_IS_PINNED) != 0;
+        bool is_pinned = dialog->pinned_;
         bool was_pinned = is_dialog_pinned(DialogListId(d->folder_id), dialog_id);
         if (is_pinned != was_pinned) {
           set_dialog_is_pinned(DialogListId(d->folder_id), d, is_pinned);
