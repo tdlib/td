@@ -7259,7 +7259,7 @@ void Requests::on_request(uint64 id, td_api::transferGift &request) {
 }
 
 void Requests::on_request(uint64 id, td_api::getReceivedGifts &request) {
-  CHECK_IS_USER();
+  CHECK_IS_USER_OR_BUSINESS();
   CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();
   TRY_RESULT_PROMISE(promise, owner_dialog_id, get_message_sender_dialog_id(td_, request.owner_id_, true, false));
