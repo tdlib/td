@@ -33722,14 +33722,11 @@ void MessagesManager::on_get_channel_difference(DialogId dialog_id, int32 reques
   switch (difference_ptr->get_id()) {
     case telegram_api::updates_channelDifferenceEmpty::ID: {
       auto difference = move_tl_object_as<telegram_api::updates_channelDifferenceEmpty>(difference_ptr);
-      int32 flags = difference->flags_;
-      is_final = (flags & CHANNEL_DIFFERENCE_FLAG_IS_FINAL) != 0;
+      is_final = difference->final_;
+      timeout = difference->timeout_;
       LOG_IF(ERROR, !is_final) << "Receive channelDifferenceEmpty as result of getChannelDifference from " << source
                                << " with PTS = " << request_pts << " and limit = " << request_limit << " in "
                                << dialog_id << ", but it is not final";
-      if (flags & CHANNEL_DIFFERENCE_FLAG_HAS_TIMEOUT) {
-        timeout = difference->timeout_;
-      }
 
       // bots can receive channelDifferenceEmpty with PTS bigger than known PTS
       // also, this can happen for deleted channels
@@ -33744,12 +33741,8 @@ void MessagesManager::on_get_channel_difference(DialogId dialog_id, int32 reques
     }
     case telegram_api::updates_channelDifference::ID: {
       auto difference = move_tl_object_as<telegram_api::updates_channelDifference>(difference_ptr);
-
-      int32 flags = difference->flags_;
-      is_final = (flags & CHANNEL_DIFFERENCE_FLAG_IS_FINAL) != 0;
-      if (flags & CHANNEL_DIFFERENCE_FLAG_HAS_TIMEOUT) {
-        timeout = difference->timeout_;
-      }
+      is_final = difference->final_;
+      timeout = difference->timeout_;
 
       auto new_pts = difference->pts_;
       if (request_pts >= new_pts && request_pts > 1 && (request_pts > new_pts || !td_->auth_manager_->is_bot())) {
@@ -33809,11 +33802,8 @@ void MessagesManager::on_get_channel_difference(DialogId dialog_id, int32 reques
         return after_get_channel_difference(dialog_id, false);
       }
 
-      int32 flags = difference->flags_;
-      is_final = (flags & CHANNEL_DIFFERENCE_FLAG_IS_FINAL) != 0;
-      if (flags & CHANNEL_DIFFERENCE_FLAG_HAS_TIMEOUT) {
-        timeout = difference->timeout_;
-      }
+      is_final = difference->final_;
+      timeout = difference->timeout_;
 
       auto new_pts = dialog->pts_;
       if (request_pts > new_pts - request_limit) {
