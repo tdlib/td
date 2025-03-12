@@ -58,7 +58,8 @@ class StarGiftManager final : public Actor {
   void upgrade_gift(StarGiftId star_gift_id, bool keep_original_details, int64 star_count,
                     Promise<td_api::object_ptr<td_api::upgradeGiftResult>> &&promise);
 
-  void transfer_gift(StarGiftId star_gift_id, DialogId receiver_dialog_id, int64 star_count, Promise<Unit> &&promise);
+  void transfer_gift(BusinessConnectionId business_connection_id, StarGiftId star_gift_id, DialogId receiver_dialog_id,
+                     int64 star_count, Promise<Unit> &&promise);
 
   void get_saved_star_gifts(BusinessConnectionId business_connection_id, DialogId dialog_id, bool exclude_unsaved,
                             bool exclude_saved, bool exclude_unlimited, bool exclude_limited, bool exclude_unique,

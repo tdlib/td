@@ -1936,6 +1936,10 @@ Promise<string> Requests::create_http_url_request_promise(uint64 id) {
   if (td_->auth_manager_->is_bot()) {                                      \
     return send_error_raw(id, 400, "The method is not available to bots"); \
   }
+#define CHECK_IS_USER_OR_BUSINESS()                                              \
+  if (td_->auth_manager_->is_bot() && request.business_connection_id_.empty()) { \
+    return send_error_raw(id, 400, "The method is not available to bots");       \
+  }
 
 #define CREATE_NO_ARGS_REQUEST(name)                                                \
   auto slot_id = td_->request_actors_.create(ActorOwn<>(), Td::RequestActorIdType); \
@@ -7201,7 +7205,7 @@ void Requests::on_request(uint64 id, td_api::sendGift &request) {
 }
 
 void Requests::on_request(uint64 id, td_api::sellGift &request) {
-  CHECK_IS_USER();
+  CHECK_IS_USER_OR_BUSINESS();
   CREATE_OK_REQUEST_PROMISE();
   td_->star_gift_manager_->convert_gift(BusinessConnectionId(std::move(request.business_connection_id_)),
                                         StarGiftId(request.received_gift_id_), std::move(promise));
@@ -7244,11 +7248,12 @@ void Requests::on_request(uint64 id, const td_api::upgradeGift &request) {
                                         request.star_count_, std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::transferGift &request) {
-  CHECK_IS_USER();
+void Requests::on_request(uint64 id, td_api::transferGift &request) {
+  CHECK_IS_USER_OR_BUSINESS();
   CREATE_OK_REQUEST_PROMISE();
   TRY_RESULT_PROMISE(promise, owner_dialog_id, get_message_sender_dialog_id(td_, request.new_owner_id_, true, false));
-  td_->star_gift_manager_->transfer_gift(StarGiftId(request.received_gift_id_), owner_dialog_id, request.star_count_,
+  td_->star_gift_manager_->transfer_gift(BusinessConnectionId(std::move(request.business_connection_id_)),
+                                         StarGiftId(request.received_gift_id_), owner_dialog_id, request.star_count_,
                                          std::move(promise));
 }
 
