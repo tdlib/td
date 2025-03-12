@@ -392,6 +392,14 @@ class GetUpgradeGiftPreviewQuery final : public Td::ResultHandler {
 
 static Promise<Unit> get_gift_upgrade_promise(Td *td, const telegram_api::object_ptr<telegram_api::Updates> &updates,
                                               Promise<td_api::object_ptr<td_api::upgradeGiftResult>> &&promise) {
+  if (td->auth_manager_->is_bot()) {
+    return PromiseCreator::lambda([promise = std::move(promise)](Result<Unit> result) mutable {
+      if (result.is_error()) {
+        return promise.set_error(result.move_as_error());
+      }
+      promise.set_value(td_api::make_object<td_api::upgradeGiftResult>());
+    });
+  }
   vector<std::pair<const telegram_api::Message *, bool>> new_messages = UpdatesManager::get_new_messages(updates.get());
   if (new_messages.size() != 1u || new_messages[0].second ||
       new_messages[0].first->get_id() != telegram_api::messageService::ID) {
@@ -426,15 +434,17 @@ class UpgradeStarGiftQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(StarGiftId star_gift_id, int64 star_count, bool keep_original_details) {
+  void send(BusinessConnectionId business_connection_id, StarGiftId star_gift_id, bool keep_original_details) {
     auto input_gift = star_gift_id.get_input_saved_star_gift(td_);
     CHECK(input_gift != nullptr);
     int32 flags = 0;
     if (keep_original_details) {
       flags |= telegram_api::payments_upgradeStarGift::KEEP_ORIGINAL_DETAILS_MASK;
     }
-    send_query(G()->net_query_creator().create(
-        telegram_api::payments_upgradeStarGift(flags, false /*ignored*/, std::move(input_gift))));
+    send_query(G()->net_query_creator().create_with_prefix(
+        business_connection_id.get_invoke_prefix(),
+        telegram_api::payments_upgradeStarGift(flags, false /*ignored*/, std::move(input_gift)),
+        td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -464,11 +474,14 @@ class UpgradeGiftQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(telegram_api::object_ptr<telegram_api::inputInvoiceStarGiftUpgrade> input_invoice, int64 payment_form_id,
+  void send(BusinessConnectionId business_connection_id,
+            telegram_api::object_ptr<telegram_api::inputInvoiceStarGiftUpgrade> input_invoice, int64 payment_form_id,
             int64 star_count) {
     star_count_ = star_count;
-    send_query(G()->net_query_creator().create(
-        telegram_api::payments_sendStarsForm(payment_form_id, std::move(input_invoice))));
+    send_query(G()->net_query_creator().create_with_prefix(
+        business_connection_id.get_invoke_prefix(),
+        telegram_api::payments_sendStarsForm(payment_form_id, std::move(input_invoice)),
+        td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -508,6 +521,7 @@ class UpgradeGiftQuery final : public Td::ResultHandler {
 
 class GetGiftUpgradePaymentFormQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::upgradeGiftResult>> promise_;
+  BusinessConnectionId business_connection_id_;
   int64 star_count_;
   telegram_api::object_ptr<telegram_api::inputInvoiceStarGiftUpgrade> upgrade_input_invoice_;
 
@@ -516,14 +530,18 @@ class GetGiftUpgradePaymentFormQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(telegram_api::object_ptr<telegram_api::inputInvoiceStarGiftUpgrade> input_invoice,
+  void send(BusinessConnectionId business_connection_id,
+            telegram_api::object_ptr<telegram_api::inputInvoiceStarGiftUpgrade> input_invoice,
             telegram_api::object_ptr<telegram_api::inputInvoiceStarGiftUpgrade> upgrade_input_invoice,
             int64 star_count) {
+    business_connection_id_ = business_connection_id;
     upgrade_input_invoice_ = std::move(upgrade_input_invoice);
     star_count_ = star_count;
     td_->star_manager_->add_pending_owned_star_count(-star_count, false);
-    send_query(
-        G()->net_query_creator().create(telegram_api::payments_getPaymentForm(0, std::move(input_invoice), nullptr)));
+    send_query(G()->net_query_creator().create_with_prefix(
+        business_connection_id.get_invoke_prefix(),
+        telegram_api::payments_getPaymentForm(0, std::move(input_invoice), nullptr),
+        td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -544,7 +562,7 @@ class GetGiftUpgradePaymentFormQuery final : public Td::ResultHandler {
       case telegram_api::payments_paymentFormStarGift::ID: {
         auto payment_form = static_cast<const telegram_api::payments_paymentFormStarGift *>(payment_form_ptr.get());
         td_->create_handler<UpgradeGiftQuery>(std::move(promise_))
-            ->send(std::move(upgrade_input_invoice_), payment_form->form_id_, star_count_);
+            ->send(business_connection_id_, std::move(upgrade_input_invoice_), payment_form->form_id_, star_count_);
         break;
       }
       default:
@@ -560,7 +578,6 @@ class GetGiftUpgradePaymentFormQuery final : public Td::ResultHandler {
 
 class TransferStarGiftQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
-  bool as_business_ = false;
 
  public:
   explicit TransferStarGiftQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
@@ -568,7 +585,6 @@ class TransferStarGiftQuery final : public Td::ResultHandler {
 
   void send(BusinessConnectionId business_connection_id, StarGiftId star_gift_id,
             telegram_api::object_ptr<telegram_api::InputPeer> receiver_input_peer) {
-    as_business_ = business_connection_id.is_valid();
     auto input_gift = star_gift_id.get_input_saved_star_gift(td_);
     CHECK(input_gift != nullptr);
     send_query(G()->net_query_creator().create_with_prefix(
@@ -586,9 +602,7 @@ class TransferStarGiftQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for TransferStarGiftQuery: " << to_string(ptr);
     td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
-    if (!as_business_) {
-      get_upgraded_gift_emoji_statuses(td_, Auto());
-    }
+    get_upgraded_gift_emoji_statuses(td_, Auto());
   }
 
   void on_error(Status status) final {
@@ -598,7 +612,6 @@ class TransferStarGiftQuery final : public Td::ResultHandler {
 
 class TransferGiftQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
-  bool as_business_ = false;
   int64 star_count_;
 
  public:
@@ -608,7 +621,6 @@ class TransferGiftQuery final : public Td::ResultHandler {
   void send(BusinessConnectionId business_connection_id,
             telegram_api::object_ptr<telegram_api::inputInvoiceStarGiftTransfer> input_invoice, int64 payment_form_id,
             int64 star_count) {
-    as_business_ = business_connection_id.is_valid();
     star_count_ = star_count;
     send_query(G()->net_query_creator().create_with_prefix(
         business_connection_id.get_invoke_prefix(),
@@ -638,9 +650,7 @@ class TransferGiftQuery final : public Td::ResultHandler {
       default:
         UNREACHABLE();
     }
-    if (!as_business_) {
-      get_upgraded_gift_emoji_statuses(td_, Auto());
-    }
+    get_upgraded_gift_emoji_statuses(td_, Auto());
   }
 
   void on_error(Status status) final {
@@ -1071,8 +1081,13 @@ void StarGiftManager::get_gift_upgrade_preview(int64 gift_id,
   td_->create_handler<GetUpgradeGiftPreviewQuery>(std::move(promise))->send(gift_id);
 }
 
-void StarGiftManager::upgrade_gift(StarGiftId star_gift_id, bool keep_original_details, int64 star_count,
+void StarGiftManager::upgrade_gift(BusinessConnectionId business_connection_id, StarGiftId star_gift_id,
+                                   bool keep_original_details, int64 star_count,
                                    Promise<td_api::object_ptr<td_api::upgradeGiftResult>> &&promise) {
+  bool as_business = business_connection_id.is_valid();
+  if (as_business) {
+    TRY_STATUS_PROMISE(promise, td_->business_connection_manager_->check_business_connection(business_connection_id));
+  }
   auto input_saved_star_gift = star_gift_id.get_input_saved_star_gift(td_);
   if (input_saved_star_gift == nullptr) {
     return promise.set_error(Status::Error(400, "Invalid gift identifier specified"));
@@ -1081,7 +1096,7 @@ void StarGiftManager::upgrade_gift(StarGiftId star_gift_id, bool keep_original_d
     return promise.set_error(Status::Error(400, "Invalid amount of Telegram Stars specified"));
   }
   if (star_count != 0) {
-    if (!td_->star_manager_->has_owned_star_count(star_count)) {
+    if (!as_business && !td_->star_manager_->has_owned_star_count(star_count)) {
       return promise.set_error(Status::Error(400, "Have not enough Telegram Stars"));
     }
     int32 flags = 0;
@@ -1093,10 +1108,11 @@ void StarGiftManager::upgrade_gift(StarGiftId star_gift_id, bool keep_original_d
     auto upgrade_input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGiftUpgrade>(
         flags, false /*ignored*/, star_gift_id.get_input_saved_star_gift(td_));
     td_->create_handler<GetGiftUpgradePaymentFormQuery>(std::move(promise))
-        ->send(std::move(input_invoice), std::move(upgrade_input_invoice), star_count);
+        ->send(business_connection_id, std::move(input_invoice), std::move(upgrade_input_invoice),
+               as_business ? static_cast<int64>(0) : star_count);
   } else {
     td_->create_handler<UpgradeStarGiftQuery>(std::move(promise))
-        ->send(star_gift_id, star_count, keep_original_details);
+        ->send(business_connection_id, star_gift_id, keep_original_details);
   }
 }
 
