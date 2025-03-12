@@ -2883,7 +2883,7 @@ class CliClient final : public Actor {
     } else if (op == "sellg") {
       string star_gift_id;
       get_args(args, star_gift_id);
-      send_request(td_api::make_object<td_api::sellGift>(star_gift_id));
+      send_request(td_api::make_object<td_api::sellGift>(business_connection_id_, star_gift_id));
     } else if (op == "tgis") {
       string star_gift_id;
       bool is_saved;

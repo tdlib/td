@@ -11896,8 +11896,10 @@ getAvailableGifts = Gifts;
 //@pay_for_upgrade Pass true to additionally pay for the gift upgrade and allow the receiver to upgrade it for free
 sendGift gift_id:int64 owner_id:MessageSender text:formattedText is_private:Bool pay_for_upgrade:Bool = Ok;
 
-//@description Sells a gift for Telegram Stars @received_gift_id Identifier of the gift
-sellGift received_gift_id:string = Ok;
+//@description Sells a gift for Telegram Stars
+//@business_connection_id Unique identifier of business connection on behalf of which to send the request; for bots only
+//@received_gift_id Identifier of the gift
+sellGift business_connection_id:string received_gift_id:string = Ok;
 
 //@description Toggles whether a gift is shown on the current user's or the channel's profile page; requires can_post_messages administrator right in the channel chat
 //@received_gift_id Identifier of the gift

@@ -7200,10 +7200,11 @@ void Requests::on_request(uint64 id, td_api::sendGift &request) {
                                      request.pay_for_upgrade_, std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::sellGift &request) {
+void Requests::on_request(uint64 id, td_api::sellGift &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  td_->star_gift_manager_->convert_gift(StarGiftId(request.received_gift_id_), std::move(promise));
+  td_->star_gift_manager_->convert_gift(BusinessConnectionId(std::move(request.business_connection_id_)),
+                                        StarGiftId(request.received_gift_id_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::toggleGiftIsSaved &request) {

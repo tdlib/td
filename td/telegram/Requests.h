@@ -1497,7 +1497,7 @@ class Requests {
 
   void on_request(uint64 id, td_api::sendGift &request);
 
-  void on_request(uint64 id, const td_api::sellGift &request);
+  void on_request(uint64 id, td_api::sellGift &request);
 
   void on_request(uint64 id, const td_api::toggleGiftIsSaved &request);
 
