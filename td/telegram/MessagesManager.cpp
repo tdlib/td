@@ -20877,6 +20877,9 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_message_group
       return Status::Error(400, "Chat not found");
     }
   }
+  if (input_message_contents.empty()) {
+    return Status::Error(400, "There are no messages to send");
+  }
 
   TRY_STATUS(can_send_message(dialog_id));
   TRY_RESULT(message_send_options, process_message_send_options(dialog_id, std::move(options), true, true,
