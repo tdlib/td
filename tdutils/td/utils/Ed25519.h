@@ -26,7 +26,11 @@ class Ed25519 {
     PublicKey(const PublicKey &other) : octet_string_(other.octet_string_.copy()) {
     }
     PublicKey(PublicKey &&) noexcept = default;
-    PublicKey &operator=(const PublicKey &) = delete;
+    PublicKey &operator=(const PublicKey &other) {
+      CHECK(octet_string_.empty());
+      octet_string_ = other.octet_string_.copy();
+      return *this;
+    }
     PublicKey &operator=(PublicKey &&) noexcept = delete;
     ~PublicKey() = default;
 
