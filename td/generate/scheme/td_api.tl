@@ -1053,6 +1053,13 @@ starGiveawayPaymentOption currency:string amount:int53 star_count:int53 store_pr
 starGiveawayPaymentOptions options:vector<starGiveawayPaymentOption> = StarGiveawayPaymentOptions;
 
 
+//@description Describes gift types that are accepted by a user
+//@unlimited_gifts True, if unlimited regular gifts are accepted
+//@limited_gifts True, if limited regular gifts are accepted
+//@upgraded_gifts True, if upgraded gifts are accepted
+//@premium_subscription True, if Telegram Premium subscription is accepted
+acceptedGiftTypes unlimited_gifts:Bool limited_gifts:Bool upgraded_gifts:Bool premium_subscription:Bool = AcceptedGiftTypes;
+
 //@description Describes a model of an upgraded gift
 //@name Name of the model
 //@sticker The sticker representing the upgraded gift

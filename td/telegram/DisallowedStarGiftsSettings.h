@@ -1,0 +1,53 @@
+//
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2025
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+#pragma once
+
+#include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
+
+#include "td/utils/common.h"
+#include "td/utils/StringBuilder.h"
+
+namespace td {
+
+class DisallowedStarGiftsSettings {
+  bool disallow_unlimited_stargifts_ = false;
+  bool disallow_limited_stargifts_ = false;
+  bool disallow_unique_stargifts_ = false;
+  bool disallow_premium_gifts_ = false;
+
+  friend bool operator==(const DisallowedStarGiftsSettings &lhs, const DisallowedStarGiftsSettings &rhs);
+
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const DisallowedStarGiftsSettings &settings);
+
+ public:
+  DisallowedStarGiftsSettings() = default;
+
+  explicit DisallowedStarGiftsSettings(telegram_api::object_ptr<telegram_api::disallowedGiftsSettings> &&settings);
+
+  explicit DisallowedStarGiftsSettings(td_api::object_ptr<td_api::acceptedGiftTypes> &&types);
+
+  td_api::object_ptr<td_api::acceptedGiftTypes> get_accepted_gift_types_object() const;
+
+  telegram_api::object_ptr<telegram_api::disallowedGiftsSettings> get_input_disallowed_star_gift_settings() const;
+
+  template <class StorerT>
+  void store(StorerT &storer) const;
+
+  template <class ParserT>
+  void parse(ParserT &parser);
+};
+
+bool operator==(const DisallowedStarGiftsSettings &lhs, const DisallowedStarGiftsSettings &rhs);
+
+inline bool operator!=(const DisallowedStarGiftsSettings &lhs, const DisallowedStarGiftsSettings &rhs) {
+  return !(lhs == rhs);
+}
+
+StringBuilder &operator<<(StringBuilder &string_builder, const DisallowedStarGiftsSettings &settings);
+
+}  // namespace td
