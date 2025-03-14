@@ -35,6 +35,11 @@ class DisallowedStarGiftsSettings {
 
   telegram_api::object_ptr<telegram_api::disallowedGiftsSettings> get_input_disallowed_star_gift_settings() const;
 
+  bool is_default() const {
+    return !disallow_unlimited_stargifts_ && !disallow_limited_stargifts_ && !disallow_unique_stargifts_ &&
+           !disallow_premium_gifts_;
+  }
+
   template <class StorerT>
   void store(StorerT &storer) const;
 
