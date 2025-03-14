@@ -4162,6 +4162,9 @@ messageUpgradedGift gift:upgradedGift sender_id:MessageSender received_gift_id:s
 //@is_upgrade True, if the gift was obtained by upgrading of a previously received gift
 messageRefundedUpgradedGift gift:gift sender_id:MessageSender is_upgrade:Bool = MessageContent;
 
+//@description Paid messages were refunded @message_count The number of refunded messages @star_count The number of refunded Telegram Stars
+messagePaidMessagesRefunded message_count:int32 star_count:int53 = MessageContent;
+
 //@description A contact has registered with Telegram
 messageContactRegistered = MessageContent;
 

@@ -518,7 +518,7 @@ class MessageChatSetTtl final : public MessageContent {
 
 class MessageUnsupported final : public MessageContent {
  public:
-  static constexpr int32 CURRENT_VERSION = 39;
+  static constexpr int32 CURRENT_VERSION = 40;
   int32 version = CURRENT_VERSION;
 
   MessageUnsupported() = default;
@@ -1326,6 +1326,21 @@ class MessageStarGiftUnique final : public MessageContent {
   }
 };
 
+class MessagePaidMessagesRefunded final : public MessageContent {
+ public:
+  int32 message_count = 0;
+  int64 star_count = 0;
+
+  MessagePaidMessagesRefunded() = default;
+  MessagePaidMessagesRefunded(int32 message_count, int64 star_count)
+      : message_count(message_count), star_count(star_count) {
+  }
+
+  MessageContentType get_type() const final {
+    return MessageContentType::PaidMessagesRefunded;
+  }
+};
+
 template <class StorerT>
 static void store(const MessageContent *content, StorerT &storer) {
   CHECK(content != nullptr);
@@ -2095,6 +2110,14 @@ static void store(const MessageContent *content, StorerT &storer) {
       if (has_sender_dialog_id) {
         store(m->sender_dialog_id, storer);
       }
+      break;
+    }
+    case MessageContentType::PaidMessagesRefunded: {
+      const auto *m = static_cast<const MessagePaidMessagesRefunded *>(content);
+      BEGIN_STORE_FLAGS();
+      END_STORE_FLAGS();
+      store(m->message_count, storer);
+      store(m->star_count, storer);
       break;
     }
     default:
@@ -3090,6 +3113,15 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       content = std::move(m);
       break;
     }
+    case MessageContentType::PaidMessagesRefunded: {
+      auto m = make_unique<MessagePaidMessagesRefunded>();
+      BEGIN_PARSE_FLAGS();
+      END_PARSE_FLAGS();
+      parse(m->message_count, parser);
+      parse(m->star_count, parser);
+      content = std::move(m);
+      break;
+    }
 
     default:
       is_bad = true;
@@ -3875,6 +3907,7 @@ bool can_message_content_have_input_media(const Td *td, const MessageContent *co
     case MessageContentType::PrizeStars:
     case MessageContentType::StarGift:
     case MessageContentType::StarGiftUnique:
+    case MessageContentType::PaidMessagesRefunded:
       return false;
     case MessageContentType::Animation:
     case MessageContentType::Audio:
@@ -4023,6 +4056,7 @@ SecretInputMedia get_message_content_secret_input_media(
     case MessageContentType::PrizeStars:
     case MessageContentType::StarGift:
     case MessageContentType::StarGiftUnique:
+    case MessageContentType::PaidMessagesRefunded:
       break;
     default:
       UNREACHABLE();
@@ -4198,6 +4232,7 @@ static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_in
     case MessageContentType::PrizeStars:
     case MessageContentType::StarGift:
     case MessageContentType::StarGiftUnique:
+    case MessageContentType::PaidMessagesRefunded:
       break;
     default:
       UNREACHABLE();
@@ -4440,6 +4475,7 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td, int32 med
     case MessageContentType::PrizeStars:
     case MessageContentType::StarGift:
     case MessageContentType::StarGiftUnique:
+    case MessageContentType::PaidMessagesRefunded:
       break;
     default:
       UNREACHABLE();
@@ -4662,6 +4698,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
     case MessageContentType::PrizeStars:
     case MessageContentType::StarGift:
     case MessageContentType::StarGiftUnique:
+    case MessageContentType::PaidMessagesRefunded:
       UNREACHABLE();
   }
   return Status::OK();
@@ -4816,6 +4853,7 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
     case MessageContentType::PrizeStars:
     case MessageContentType::StarGift:
     case MessageContentType::StarGiftUnique:
+    case MessageContentType::PaidMessagesRefunded:
       return 0;
     default:
       UNREACHABLE();
@@ -5123,6 +5161,8 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
       break;
     case MessageContentType::StarGiftUnique:
       // private chats only
+      break;
+    case MessageContentType::PaidMessagesRefunded:
       break;
     default:
       UNREACHABLE();
@@ -5555,6 +5595,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::PrizeStars:
     case MessageContentType::StarGift:
     case MessageContentType::StarGiftUnique:
+    case MessageContentType::PaidMessagesRefunded:
       break;
     default:
       UNREACHABLE();
@@ -5712,6 +5753,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::PrizeStars:
     case MessageContentType::StarGift:
     case MessageContentType::StarGiftUnique:
+    case MessageContentType::PaidMessagesRefunded:
       LOG(ERROR) << "Receive new file " << new_file_id << " in a sent message of the type " << content_type;
       break;
     default:
@@ -6338,6 +6380,14 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
           lhs->is_saved != rhs->is_saved || lhs->is_upgrade != rhs->is_upgrade ||
           lhs->can_transfer != rhs->can_transfer || lhs->was_transferred != rhs->was_transferred ||
           lhs->was_refunded != rhs->was_refunded) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::PaidMessagesRefunded: {
+      const auto *lhs = static_cast<const MessagePaidMessagesRefunded *>(old_content);
+      const auto *rhs = static_cast<const MessagePaidMessagesRefunded *>(new_content);
+      if (lhs->message_count != rhs->message_count || lhs->star_count != rhs->star_count) {
         need_update = true;
       }
       break;
@@ -7599,6 +7649,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::PrizeStars:
     case MessageContentType::StarGift:
     case MessageContentType::StarGiftUnique:
+    case MessageContentType::PaidMessagesRefunded:
       return nullptr;
     default:
       UNREACHABLE();
@@ -8182,8 +8233,11 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
           action->upgrade_, (action->flags_ & telegram_api::messageActionStarGiftUnique::TRANSFER_STARS_MASK) != 0,
           action->transferred_, action->refunded_);
     }
-    case telegram_api::messageActionPaidMessagesRefunded::ID:
-      return make_unique<MessageUnsupported>();
+    case telegram_api::messageActionPaidMessagesRefunded::ID: {
+      auto action = move_tl_object_as<telegram_api::messageActionPaidMessagesRefunded>(action_ptr);
+      return td::make_unique<MessagePaidMessagesRefunded>(max(0, action->count_),
+                                                          StarManager::get_star_count(action->stars_));
+    }
     case telegram_api::messageActionPaidMessagesPrice::ID:
       return make_unique<MessageUnsupported>();
     default:
@@ -8734,6 +8788,10 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(const Mess
               : get_message_sender_object(td, sender_dialog_id, "messageUpgradedGift"),
           star_gift_id.get_star_gift_id(), m->is_upgrade, m->is_saved, m->can_transfer, m->was_transferred,
           m->transfer_star_count, m->can_export_at);
+    }
+    case MessageContentType::PaidMessagesRefunded: {
+      const auto *m = static_cast<const MessagePaidMessagesRefunded *>(content);
+      return td_api::make_object<td_api::messagePaidMessagesRefunded>(m->message_count, m->star_count);
     }
     default:
       UNREACHABLE();
@@ -9840,6 +9898,8 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       dependencies.add_dialog_and_dependencies(content->owner_dialog_id);
       break;
     }
+    case MessageContentType::PaidMessagesRefunded:
+      break;
     default:
       UNREACHABLE();
       break;
