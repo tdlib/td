@@ -501,7 +501,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
               };
               if (product_info != nullptr) {
                 if (is_purchase) {
-                  if (for_user) {
+                  if (for_user || for_bot) {
                     if (transaction->premium_gift_months_ > 0) {
                       SCOPE_EXIT {
                         transaction->premium_gift_months_ = 0;
@@ -511,7 +511,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                           user_id_object, transaction->premium_gift_months_,
                           td_->stickers_manager_->get_premium_gift_sticker_object(transaction->premium_gift_months_,
                                                                                   0));
-                    } else {
+                    } else if (for_user) {
                       return td_api::make_object<td_api::starTransactionTypeBotInvoicePurchase>(
                           user_id_object, std::move(product_info));
                     }
