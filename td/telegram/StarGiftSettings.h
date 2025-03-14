@@ -29,7 +29,7 @@ class StarGiftSettings {
   StarGiftSettings(bool display_gifts_button,
                    telegram_api::object_ptr<telegram_api::disallowedGiftsSettings> &&settings);
 
-  explicit StarGiftSettings(td_api::object_ptr<td_api::giftSettings> &&settings);
+  explicit StarGiftSettings(const td_api::object_ptr<td_api::giftSettings> &settings);
 
   td_api::object_ptr<td_api::giftSettings> get_gift_settings_object() const;
 

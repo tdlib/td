@@ -152,6 +152,8 @@ class UserManager final : public Actor {
 
   void on_update_my_gift_count(int32 added_gift_count);
 
+  void on_update_my_user_gift_settings(StarGiftSettings &&gift_settings, Promise<Unit> &&promise);
+
   void on_update_my_user_location(DialogLocation &&location);
 
   void on_update_my_user_work_hours(BusinessWorkHours &&work_hours);

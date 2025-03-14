@@ -29,7 +29,7 @@ class DisallowedStarGiftsSettings {
 
   explicit DisallowedStarGiftsSettings(telegram_api::object_ptr<telegram_api::disallowedGiftsSettings> &&settings);
 
-  explicit DisallowedStarGiftsSettings(td_api::object_ptr<td_api::acceptedGiftTypes> &&types);
+  explicit DisallowedStarGiftsSettings(const td_api::object_ptr<td_api::acceptedGiftTypes> &types);
 
   td_api::object_ptr<td_api::acceptedGiftTypes> get_accepted_gift_types_object() const;
 

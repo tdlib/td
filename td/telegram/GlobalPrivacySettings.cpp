@@ -109,7 +109,7 @@ GlobalPrivacySettings::GlobalPrivacySettings(td_api::object_ptr<td_api::newChatP
 
 GlobalPrivacySettings::GlobalPrivacySettings(td_api::object_ptr<td_api::giftSettings> &&settings)
     : set_type_(SetType::Gift) {
-  gift_settings_ = StarGiftSettings(std::move(settings));
+  gift_settings_ = StarGiftSettings(settings);
 }
 
 void GlobalPrivacySettings::apply_changes(const GlobalPrivacySettings &set_settings) {

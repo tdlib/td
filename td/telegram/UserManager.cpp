@@ -3571,14 +3571,26 @@ void UserManager::on_update_user_full_gift_count(UserFull *user_full, UserId use
   }
 }
 
+void UserManager::on_update_my_user_gift_settings(StarGiftSettings &&gift_settings, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  auto user_id = get_my_id();
+  UserFull *user_full = get_user_full_force(user_id, "on_update_my_user_gift_settings");
+  if (user_full != nullptr && user_full->gift_settings != gift_settings) {
+    user_full->gift_settings = std::move(gift_settings);
+    user_full->is_changed = true;
+    update_user_full(user_full, user_id, "on_update_my_user_gift_settings");
+  }
+  promise.set_value(Unit());
+}
+
 void UserManager::on_update_my_user_location(DialogLocation &&location) {
   auto user_id = get_my_id();
-  UserFull *user_full = get_user_full_force(user_id, "on_update_user_location");
+  UserFull *user_full = get_user_full_force(user_id, "on_update_my_user_location");
   if (user_full == nullptr) {
     return;
   }
   on_update_user_full_location(user_full, user_id, std::move(location));
-  update_user_full(user_full, user_id, "on_update_user_location");
+  update_user_full(user_full, user_id, "on_update_my_user_location");
 }
 
 void UserManager::on_update_user_full_location(UserFull *user_full, UserId user_id, DialogLocation &&location) {
@@ -3590,12 +3602,12 @@ void UserManager::on_update_user_full_location(UserFull *user_full, UserId user_
 
 void UserManager::on_update_my_user_work_hours(BusinessWorkHours &&work_hours) {
   auto user_id = get_my_id();
-  UserFull *user_full = get_user_full_force(user_id, "on_update_user_work_hours");
+  UserFull *user_full = get_user_full_force(user_id, "on_update_my_user_work_hours");
   if (user_full == nullptr) {
     return;
   }
   on_update_user_full_work_hours(user_full, user_id, std::move(work_hours));
-  update_user_full(user_full, user_id, "on_update_user_work_hours");
+  update_user_full(user_full, user_id, "on_update_my_user_work_hours");
 }
 
 void UserManager::on_update_user_full_work_hours(UserFull *user_full, UserId user_id, BusinessWorkHours &&work_hours) {
@@ -3607,12 +3619,12 @@ void UserManager::on_update_user_full_work_hours(UserFull *user_full, UserId use
 
 void UserManager::on_update_my_user_away_message(BusinessAwayMessage &&away_message) {
   auto user_id = get_my_id();
-  UserFull *user_full = get_user_full_force(user_id, "on_update_user_away_message");
+  UserFull *user_full = get_user_full_force(user_id, "on_update_my_user_away_message");
   if (user_full == nullptr) {
     return;
   }
   on_update_user_full_away_message(user_full, user_id, std::move(away_message));
-  update_user_full(user_full, user_id, "on_update_user_away_message");
+  update_user_full(user_full, user_id, "on_update_my_user_away_message");
 }
 
 void UserManager::on_update_user_full_away_message(UserFull *user_full, UserId user_id,
@@ -3629,12 +3641,12 @@ void UserManager::on_update_user_full_away_message(UserFull *user_full, UserId u
 
 void UserManager::on_update_my_user_greeting_message(BusinessGreetingMessage &&greeting_message) {
   auto user_id = get_my_id();
-  UserFull *user_full = get_user_full_force(user_id, "on_update_user_greeting_message");
+  UserFull *user_full = get_user_full_force(user_id, "on_update_my_user_greeting_message");
   if (user_full == nullptr) {
     return;
   }
   on_update_user_full_greeting_message(user_full, user_id, std::move(greeting_message));
-  update_user_full(user_full, user_id, "on_update_user_greeting_message");
+  update_user_full(user_full, user_id, "on_update_my_user_greeting_message");
 }
 
 void UserManager::on_update_user_full_greeting_message(UserFull *user_full, UserId user_id,
@@ -3651,12 +3663,12 @@ void UserManager::on_update_user_full_greeting_message(UserFull *user_full, User
 
 void UserManager::on_update_my_user_intro(BusinessIntro &&intro) {
   auto user_id = get_my_id();
-  UserFull *user_full = get_user_full_force(user_id, "on_update_user_intro");
+  UserFull *user_full = get_user_full_force(user_id, "on_update_my_user_intro");
   if (user_full == nullptr) {
     return;
   }
   on_update_user_full_intro(user_full, user_id, std::move(intro));
-  update_user_full(user_full, user_id, "on_update_user_intro");
+  update_user_full(user_full, user_id, "on_update_my_user_intro");
 }
 
 void UserManager::on_update_user_full_intro(UserFull *user_full, UserId user_id, BusinessIntro &&intro) {

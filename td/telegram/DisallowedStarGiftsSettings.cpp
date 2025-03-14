@@ -18,7 +18,7 @@ DisallowedStarGiftsSettings::DisallowedStarGiftsSettings(
   }
 }
 
-DisallowedStarGiftsSettings::DisallowedStarGiftsSettings(td_api::object_ptr<td_api::acceptedGiftTypes> &&types) {
+DisallowedStarGiftsSettings::DisallowedStarGiftsSettings(const td_api::object_ptr<td_api::acceptedGiftTypes> &types) {
   if (types != nullptr) {
     disallow_unlimited_stargifts_ = !types->unlimited_gifts_;
     disallow_limited_stargifts_ = !types->limited_gifts_;

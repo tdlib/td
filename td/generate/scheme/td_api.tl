@@ -1062,7 +1062,7 @@ acceptedGiftTypes unlimited_gifts:Bool limited_gifts:Bool upgraded_gifts:Bool pr
 
 //@description Contains settings for gift receiving for a user
 //@show_gift_button True, if a button for sending a gift to the user will be always shown in the input field
-//@accepted_gift_types Types of gifts accepted by the user
+//@accepted_gift_types Types of gifts accepted by the user; for Telegram Premium users only
 giftSettings show_gift_button:Bool accepted_gift_types:acceptedGiftTypes = GiftSettings;
 
 //@description Describes a model of an upgraded gift

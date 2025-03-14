@@ -13,10 +13,10 @@ StarGiftSettings::StarGiftSettings(bool display_gifts_button,
     : display_gifts_button_(display_gifts_button), disallowed_stargifts_(std::move(settings)) {
 }
 
-StarGiftSettings::StarGiftSettings(td_api::object_ptr<td_api::giftSettings> &&settings) {
+StarGiftSettings::StarGiftSettings(const td_api::object_ptr<td_api::giftSettings> &settings) {
   if (settings != nullptr) {
     display_gifts_button_ = settings->show_gift_button_;
-    disallowed_stargifts_ = DisallowedStarGiftsSettings(std::move(settings->accepted_gift_types_));
+    disallowed_stargifts_ = DisallowedStarGiftsSettings(settings->accepted_gift_types_);
   }
 }
 

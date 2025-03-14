@@ -139,6 +139,7 @@
 #include "td/telegram/SponsoredMessageManager.h"
 #include "td/telegram/StarGiftId.h"
 #include "td/telegram/StarGiftManager.h"
+#include "td/telegram/StarGiftSettings.h"
 #include "td/telegram/StarManager.h"
 #include "td/telegram/StarSubscriptionPricing.h"
 #include "td/telegram/StateManager.h"
@@ -7195,8 +7196,16 @@ void Requests::on_request(uint64 id, const td_api::deleteSavedCredentials &reque
 void Requests::on_request(uint64 id, td_api::setGiftSettings &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
+  auto query_promise = PromiseCreator::lambda(
+      [settings = StarGiftSettings(request.settings_), promise = std::move(promise)](Result<Unit> result) mutable {
+        if (result.is_error()) {
+          return promise.set_error(result.move_as_error());
+        }
+        send_closure(G()->user_manager(), &UserManager::on_update_my_user_gift_settings, std::move(settings),
+                     std::move(promise));
+      });
   GlobalPrivacySettings::set_global_privacy_settings(td_, GlobalPrivacySettings(std::move(request.settings_)),
-                                                     std::move(promise));
+                                                     std::move(query_promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getAvailableGifts &request) {
