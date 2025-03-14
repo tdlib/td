@@ -585,6 +585,99 @@ class ApplyGiftCodeQuery final : public Td::ResultHandler {
   }
 };
 
+class SendPremiumGiftQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit SendPremiumGiftQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::InputInvoice> input_invoice, int64 payment_form_id) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_sendStarsForm(payment_form_id, std::move(input_invoice))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_sendStarsForm>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto payment_result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SendGiftQuery: " << to_string(payment_result);
+    switch (payment_result->get_id()) {
+      case telegram_api::payments_paymentResult::ID: {
+        auto result = telegram_api::move_object_as<telegram_api::payments_paymentResult>(payment_result);
+        td_->updates_manager_->on_get_updates(std::move(result->updates_), std::move(promise_));
+        break;
+      }
+      case telegram_api::payments_paymentVerificationNeeded::ID:
+        LOG(ERROR) << "Receive " << to_string(payment_result);
+        break;
+      default:
+        UNREACHABLE();
+    }
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "FORM_SUBMIT_DUPLICATE") {
+      LOG(ERROR) << "Receive FORM_SUBMIT_DUPLICATE";
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
+class GetPremiumGiftPaymentFormQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  int64 star_count_;
+  telegram_api::object_ptr<telegram_api::InputInvoice> send_input_invoice_;
+
+ public:
+  explicit GetPremiumGiftPaymentFormQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::InputInvoice> input_invoice,
+            telegram_api::object_ptr<telegram_api::InputInvoice> send_input_invoice, int64 star_count) {
+    star_count_ = star_count;
+    send_input_invoice_ = std::move(send_input_invoice);
+    send_query(
+        G()->net_query_creator().create(telegram_api::payments_getPaymentForm(0, std::move(input_invoice), nullptr)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getPaymentForm>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto payment_form_ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetPremiumGiftPaymentFormQuery: " << to_string(payment_form_ptr);
+    switch (payment_form_ptr->get_id()) {
+      case telegram_api::payments_paymentForm::ID:
+      case telegram_api::payments_paymentFormStarGift::ID:
+        LOG(ERROR) << "Receive " << to_string(payment_form_ptr);
+        promise_.set_error(Status::Error(500, "Unsupported"));
+        break;
+      case telegram_api::payments_paymentFormStars::ID: {
+        auto payment_form = static_cast<const telegram_api::payments_paymentFormStars *>(payment_form_ptr.get());
+        if (payment_form->invoice_->prices_.size() != 1u ||
+            payment_form->invoice_->prices_[0]->amount_ != star_count_) {
+          return promise_.set_error(Status::Error(400, "Wrong purchase price specified"));
+        }
+        td_->create_handler<SendPremiumGiftQuery>(std::move(promise_))
+            ->send(std::move(send_input_invoice_), payment_form->form_id_);
+        break;
+      }
+      default:
+        UNREACHABLE();
+    }
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class LaunchPrepaidGiveawayQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -1261,6 +1354,26 @@ void check_premium_gift_code(Td *td, const string &code,
 
 void apply_premium_gift_code(Td *td, const string &code, Promise<Unit> &&promise) {
   td->create_handler<ApplyGiftCodeQuery>(std::move(promise))->send(code);
+}
+
+void gift_premium_with_stars(Td *td, UserId user_id, int64 star_count, int32 month_count,
+                             td_api::object_ptr<td_api::formattedText> &&text, Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_user, td->user_manager_->get_input_user(user_id));
+  string currency = "XTR";
+  TRY_STATUS_PROMISE(promise, check_payment_amount(currency, star_count));
+  TRY_RESULT_PROMISE(promise, message, get_premium_gift_text(td, std::move(text)));
+
+  int32 flags = 0;
+  if (message != nullptr) {
+    flags |= telegram_api::inputInvoicePremiumGiftStars::MESSAGE_MASK;
+  }
+  auto input_invoice = telegram_api::make_object<telegram_api::inputInvoicePremiumGiftStars>(0, std::move(input_user),
+                                                                                             month_count, nullptr);
+  auto send_input_invoice = telegram_api::make_object<telegram_api::inputInvoicePremiumGiftStars>(
+      flags, td->user_manager_->get_input_user(user_id).move_as_ok(), month_count, std::move(message));
+
+  td->create_handler<GetPremiumGiftPaymentFormQuery>(std::move(promise))
+      ->send(std::move(input_invoice), std::move(send_input_invoice), star_count);
 }
 
 void launch_prepaid_premium_giveaway(Td *td, int64 giveaway_id,

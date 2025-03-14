@@ -7636,6 +7636,13 @@ void Requests::on_request(uint64 id, td_api::applyPremiumGiftCode &request) {
   apply_premium_gift_code(td_, request.code_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::giftPremiumWithStars &request) {
+  CHECK_IS_BOT();
+  CREATE_OK_REQUEST_PROMISE();
+  gift_premium_with_stars(td_, UserId(request.user_id_), request.star_count_, request.month_count_,
+                          std::move(request.text_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::launchPrepaidGiveaway &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

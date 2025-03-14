@@ -6377,7 +6377,7 @@ storePaymentPurposeGiftedStars user_id:int53 currency:string amount:int53 star_c
 //@class TelegramPaymentPurpose @description Describes a purpose of a payment toward Telegram
 
 //@description The user gifting Telegram Premium to another user
-//@currency ISO 4217 currency code of the payment currency
+//@currency ISO 4217 currency code of the payment currency, or "XTR" for payments in Telegram Stars
 //@amount Paid amount, in the smallest units of the currency
 //@user_id Identifier of the user which will receive Telegram Premium
 //@month_count Number of months the Telegram Premium subscription will be active for the user
@@ -12452,6 +12452,13 @@ checkPremiumGiftCode code:string = PremiumGiftCodeInfo;
 
 //@description Applies a Telegram Premium gift code @code The code to apply
 applyPremiumGiftCode code:string = Ok;
+
+//@description Allows to buy a Telegram Premium subscription for another user with payment in Telegram Stars; for bots only
+//@user_id Identifier of the user which will receive Telegram Premium
+//@star_count The number of Telegram Stars to pay for subscription
+//@month_count Number of months the Telegram Premium subscription will be active for the user
+//@text Text to show to the user receiving Telegram Premium; 0-getOption("gift_text_length_max") characters. Only Bold, Italic, Underline, Strikethrough, Spoiler, and CustomEmoji entities are allowed
+giftPremiumWithStars user_id:int53 star_count:int53 month_count:int32 text:formattedText = Ok;
 
 //@description Launches a prepaid giveaway
 //@giveaway_id Unique identifier of the prepaid giveaway

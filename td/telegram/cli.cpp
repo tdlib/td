@@ -3678,6 +3678,14 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::checkPremiumGiftCode>(args));
     } else if (op == "apgc") {
       send_request(td_api::make_object<td_api::applyPremiumGiftCode>(args));
+    } else if (op == "gpws") {
+      UserId user_id;
+      int64 star_count;
+      int32 month_count;
+      string text;
+      get_args(args, user_id, star_count, month_count, text);
+      send_request(
+          td_api::make_object<td_api::giftPremiumWithStars>(user_id, star_count, month_count, as_formatted_text(text)));
     } else if (op == "lpg") {
       int64 giveaway_id;
       int32 user_count;
