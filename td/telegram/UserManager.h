@@ -29,6 +29,7 @@
 #include "td/telegram/ReferralProgramInfo.h"
 #include "td/telegram/RestrictionReason.h"
 #include "td/telegram/SecretChatId.h"
+#include "td/telegram/StarGiftSettings.h"
 #include "td/telegram/StoryId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -639,6 +640,7 @@ class UserManager final : public Actor {
     int32 gift_count = 0;
     int32 common_chat_count = 0;
     Birthdate birthdate;
+    StarGiftSettings gift_settings;
 
     ChannelId personal_channel_id;
 

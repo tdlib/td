@@ -61,6 +61,7 @@
 #include "td/telegram/SecretChatLayer.h"
 #include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/ServerMessageId.h"
+#include "td/telegram/StarGiftSettings.hpp"
 #include "td/telegram/StarManager.h"
 #include "td/telegram/StickerPhotoSize.h"
 #include "td/telegram/StoryManager.h"
@@ -1788,6 +1789,7 @@ void UserManager::UserFull::store(StorerT &storer) const {
   bool has_bot_verification = bot_verification != nullptr;
   bool has_charge_paid_message_stars = charge_paid_message_stars != 0;
   bool has_send_paid_message_stars = send_paid_message_stars != 0;
+  bool has_gift_settings = !gift_settings.is_default();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
   STORE_FLAG(is_blocked);
@@ -1837,6 +1839,7 @@ void UserManager::UserFull::store(StorerT &storer) const {
     STORE_FLAG(has_bot_verification);
     STORE_FLAG(has_charge_paid_message_stars);
     STORE_FLAG(has_send_paid_message_stars);
+    STORE_FLAG(has_gift_settings);
     END_STORE_FLAGS();
   }
   if (has_about) {
@@ -1923,6 +1926,9 @@ void UserManager::UserFull::store(StorerT &storer) const {
   if (has_send_paid_message_stars) {
     store(send_paid_message_stars, storer);
   }
+  if (has_gift_settings) {
+    store(gift_settings, storer);
+  }
 }
 
 template <class ParserT>
@@ -1957,6 +1963,7 @@ void UserManager::UserFull::parse(ParserT &parser) {
   bool has_bot_verification = false;
   bool has_charge_paid_message_stars = false;
   bool has_send_paid_message_stars = false;
+  bool has_gift_settings = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_about);
   PARSE_FLAG(is_blocked);
@@ -2006,6 +2013,7 @@ void UserManager::UserFull::parse(ParserT &parser) {
     PARSE_FLAG(has_bot_verification);
     PARSE_FLAG(has_charge_paid_message_stars);
     PARSE_FLAG(has_send_paid_message_stars);
+    PARSE_FLAG(has_gift_settings);
     END_PARSE_FLAGS();
   }
   if (has_about) {
@@ -2095,6 +2103,9 @@ void UserManager::UserFull::parse(ParserT &parser) {
   }
   if (has_send_paid_message_stars) {
     parse(send_paid_message_stars, parser);
+  }
+  if (has_gift_settings) {
+    parse(gift_settings, parser);
   }
 }
 
@@ -7350,12 +7361,13 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
   auto sponsored_enabled = user->sponsored_enabled_;
   auto can_view_revenue = user->can_view_revenue_;
   auto bot_verification = BotVerification::get_bot_verification(std::move(user->bot_verification_));
+  auto gift_settings = StarGiftSettings(user->display_gifts_button_, std::move(user->disallowed_gifts_));
   if (user_full->can_be_called != can_be_called || user_full->supports_video_calls != supports_video_calls ||
       user_full->has_private_calls != has_private_calls ||
       user_full->voice_messages_forbidden != voice_messages_forbidden ||
       user_full->can_pin_messages != can_pin_messages || user_full->has_pinned_stories != has_pinned_stories ||
       user_full->sponsored_enabled != sponsored_enabled || user_full->can_view_revenue != can_view_revenue ||
-      user_full->bot_verification != bot_verification) {
+      user_full->bot_verification != bot_verification || user_full->gift_settings != gift_settings) {
     user_full->can_be_called = can_be_called;
     user_full->supports_video_calls = supports_video_calls;
     user_full->has_private_calls = has_private_calls;
@@ -7365,6 +7377,7 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
     user_full->sponsored_enabled = sponsored_enabled;
     user_full->can_view_revenue = can_view_revenue;
     user_full->bot_verification = std::move(bot_verification);
+    user_full->gift_settings = std::move(gift_settings);
 
     user_full->is_changed = true;
   }
@@ -7769,6 +7782,7 @@ void UserManager::drop_user_full(UserId user_id) {
   user_full->read_dates_private = false;
   user_full->contact_require_premium = false;
   user_full->birthdate = {};
+  user_full->gift_settings = {};
   user_full->sponsored_enabled = false;
   user_full->has_preview_medias = false;
   user_full->can_view_revenue = false;
@@ -8591,7 +8605,8 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
       user_full->sponsored_enabled, user_full->need_phone_number_privacy_exception, user_full->wallpaper_overridden,
       std::move(bio_object), user_full->birthdate.get_birthdate_object(), personal_chat_id, user_full->gift_count,
       user_full->common_chat_count, user_full->charge_paid_message_stars, user_full->send_paid_message_stars,
-      std::move(bot_verification), std::move(business_info), std::move(bot_info));
+      user_full->gift_settings.get_gift_settings_object(), std::move(bot_verification), std::move(business_info),
+      std::move(bot_info));
 }
 
 td_api::object_ptr<td_api::updateContactCloseBirthdays> UserManager::get_update_contact_close_birthdays() const {
