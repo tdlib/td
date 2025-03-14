@@ -633,16 +633,6 @@ class ChatManager final : public Actor {
 
   static constexpr int32 MAX_ACTIVE_STORY_ID_RELOAD_TIME = 3600;  // some reasonable limit
 
-  static constexpr int32 CHAT_FLAG_USER_IS_CREATOR = 1 << 0;
-  static constexpr int32 CHAT_FLAG_USER_HAS_LEFT = 1 << 2;
-  // static constexpr int32 CHAT_FLAG_ADMINISTRATORS_ENABLED = 1 << 3;
-  // static constexpr int32 CHAT_FLAG_IS_ADMINISTRATOR = 1 << 4;
-  static constexpr int32 CHAT_FLAG_IS_DEACTIVATED = 1 << 5;
-  static constexpr int32 CHAT_FLAG_WAS_MIGRATED = 1 << 6;
-  static constexpr int32 CHAT_FLAG_HAS_ACTIVE_GROUP_CALL = 1 << 23;
-  static constexpr int32 CHAT_FLAG_IS_GROUP_CALL_NON_EMPTY = 1 << 24;
-  static constexpr int32 CHAT_FLAG_NOFORWARDS = 1 << 25;
-
   static constexpr int32 CHANNEL_FLAG_USER_IS_CREATOR = 1 << 0;
   static constexpr int32 CHANNEL_FLAG_USER_HAS_LEFT = 1 << 2;
   static constexpr int32 CHANNEL_FLAG_IS_BROADCAST = 1 << 5;

@@ -8415,23 +8415,19 @@ void ChatManager::on_get_chat(telegram_api::chat &chat, const char *source) {
   }
 
   DialogParticipantStatus status = [&] {
-    bool is_creator = 0 != (chat.flags_ & CHAT_FLAG_USER_IS_CREATOR);
-    bool has_left = 0 != (chat.flags_ & CHAT_FLAG_USER_HAS_LEFT);
-    if (is_creator) {
-      return DialogParticipantStatus::Creator(!has_left, false, string());
+    if (chat.creator_) {
+      return DialogParticipantStatus::Creator(!chat.left_, false, string());
     } else if (chat.admin_rights_ != nullptr) {
       return DialogParticipantStatus(false, std::move(chat.admin_rights_), string(), ChannelType::Unknown);
-    } else if (has_left) {
+    } else if (chat.left_) {
       return DialogParticipantStatus::Left();
     } else {
       return DialogParticipantStatus::Member(0);
     }
   }();
 
-  bool is_active = 0 == (chat.flags_ & CHAT_FLAG_IS_DEACTIVATED);
-
   ChannelId migrated_to_channel_id;
-  if (chat.flags_ & CHAT_FLAG_WAS_MIGRATED) {
+  if (chat.migrated_to_ != nullptr) {
     switch (chat.migrated_to_->get_id()) {
       case telegram_api::inputChannelFromMessage::ID:
       case telegram_api::inputChannelEmpty::ID:
@@ -8485,10 +8481,10 @@ void ChatManager::on_get_chat(telegram_api::chat &chat, const char *source) {
   on_update_chat_default_permissions(c, chat_id, RestrictedRights(chat.default_banned_rights_, ChannelType::Unknown),
                                      chat.version_);
   on_update_chat_photo(c, chat_id, std::move(chat.photo_));
-  on_update_chat_active(c, chat_id, is_active);
+  on_update_chat_active(c, chat_id, !chat.deactivated_);
   on_update_chat_noforwards(c, chat_id, chat.noforwards_);
   on_update_chat_migrated_to_channel_id(c, chat_id, migrated_to_channel_id);
-  LOG_IF(INFO, !is_active && !migrated_to_channel_id.is_valid()) << chat_id << " is deactivated" << debug_str;
+  LOG_IF(INFO, !c->is_active && !migrated_to_channel_id.is_valid()) << chat_id << " is deactivated" << debug_str;
   if (c->cache_version != Chat::CACHE_VERSION) {
     c->cache_version = Chat::CACHE_VERSION;
     c->need_save_to_database = true;
@@ -8496,9 +8492,7 @@ void ChatManager::on_get_chat(telegram_api::chat &chat, const char *source) {
   c->is_received_from_server = true;
   update_chat(c, chat_id);
 
-  bool has_active_group_call = (chat.flags_ & CHAT_FLAG_HAS_ACTIVE_GROUP_CALL) != 0;
-  bool is_group_call_empty = (chat.flags_ & CHAT_FLAG_IS_GROUP_CALL_NON_EMPTY) == 0;
-  td_->messages_manager_->on_update_dialog_group_call(DialogId(chat_id), has_active_group_call, is_group_call_empty,
+  td_->messages_manager_->on_update_dialog_group_call(DialogId(chat_id), chat.call_active_, !chat.call_not_empty_,
                                                       "receive chat");
 }
 
