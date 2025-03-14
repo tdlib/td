@@ -11897,6 +11897,9 @@ deleteSavedOrderInfo = Ok;
 deleteSavedCredentials = Ok;
 
 
+//@description Changes settings for gift receiving for the current user @settings The new settings
+setGiftSettings settings:giftSettings = Ok;
+
 //@description Returns gifts that can be sent to other users and channel chats
 getAvailableGifts = Gifts;
 

@@ -81,7 +81,8 @@ GlobalPrivacySettings::GlobalPrivacySettings(telegram_api::object_ptr<telegram_a
     , keep_archived_folders_(settings->keep_archived_folders_)
     , hide_read_marks_(settings->hide_read_marks_)
     , new_noncontact_peers_require_premium_(settings->new_noncontact_peers_require_premium_)
-    , noncontact_peers_paid_star_count_(StarManager::get_star_count(settings->noncontact_peers_paid_stars_)) {
+    , noncontact_peers_paid_star_count_(StarManager::get_star_count(settings->noncontact_peers_paid_stars_))
+    , gift_settings_(settings->display_gifts_button_, std::move(settings->disallowed_gifts_)) {
 }
 
 GlobalPrivacySettings::GlobalPrivacySettings(td_api::object_ptr<td_api::archiveChatListSettings> &&settings)
@@ -106,6 +107,11 @@ GlobalPrivacySettings::GlobalPrivacySettings(td_api::object_ptr<td_api::newChatP
                                                                   static_cast<int64>(0), static_cast<int64>(1000000));
 }
 
+GlobalPrivacySettings::GlobalPrivacySettings(td_api::object_ptr<td_api::giftSettings> &&settings)
+    : set_type_(SetType::Gift) {
+  gift_settings_ = StarGiftSettings(std::move(settings));
+}
+
 void GlobalPrivacySettings::apply_changes(const GlobalPrivacySettings &set_settings) {
   CHECK(set_type_ == SetType::None);
   switch (set_settings.set_type_) {
@@ -120,6 +126,9 @@ void GlobalPrivacySettings::apply_changes(const GlobalPrivacySettings &set_setti
     case SetType::NewChat:
       new_noncontact_peers_require_premium_ = set_settings.new_noncontact_peers_require_premium_;
       noncontact_peers_paid_star_count_ = set_settings.noncontact_peers_paid_star_count_;
+      break;
+    case SetType::Gift:
+      gift_settings_ = set_settings.gift_settings_;
       break;
     default:
       UNREACHABLE();
@@ -149,9 +158,17 @@ telegram_api::object_ptr<telegram_api::globalPrivacySettings> GlobalPrivacySetti
   if (noncontact_peers_paid_star_count_ > 0) {
     flags |= telegram_api::globalPrivacySettings::NONCONTACT_PEERS_PAID_STARS_MASK;
   }
+  if (gift_settings_.get_display_gifts_button()) {
+    flags |= telegram_api::globalPrivacySettings::DISPLAY_GIFTS_BUTTON_MASK;
+  }
+  auto disallowed_stargifts = gift_settings_.get_disallowed_stargifts();
+  if (!disallowed_stargifts.is_default()) {
+    flags |= telegram_api::globalPrivacySettings::DISALLOWED_GIFTS_MASK;
+  }
   return telegram_api::make_object<telegram_api::globalPrivacySettings>(
       flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-      false /*ignored*/, noncontact_peers_paid_star_count_, nullptr);
+      false /*ignored*/, noncontact_peers_paid_star_count_,
+      disallowed_stargifts.get_input_disallowed_star_gift_settings());
 }
 
 td_api::object_ptr<td_api::archiveChatListSettings> GlobalPrivacySettings::get_archive_chat_list_settings_object()

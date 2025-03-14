@@ -7192,6 +7192,13 @@ void Requests::on_request(uint64 id, const td_api::deleteSavedCredentials &reque
   delete_saved_credentials(td_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::setGiftSettings &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  GlobalPrivacySettings::set_global_privacy_settings(td_, GlobalPrivacySettings(std::move(request.settings_)),
+                                                     std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getAvailableGifts &request) {
   CREATE_REQUEST_PROMISE();
   td_->star_gift_manager_->get_gift_payment_options(std::move(promise));

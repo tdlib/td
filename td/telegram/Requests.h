@@ -1493,6 +1493,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::deleteSavedCredentials &request);
 
+  void on_request(uint64 id, td_api::setGiftSettings &request);
+
   void on_request(uint64 id, const td_api::getAvailableGifts &request);
 
   void on_request(uint64 id, td_api::sendGift &request);
