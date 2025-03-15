@@ -633,35 +633,6 @@ class ChatManager final : public Actor {
 
   static constexpr int32 MAX_ACTIVE_STORY_ID_RELOAD_TIME = 3600;  // some reasonable limit
 
-  static constexpr int32 CHANNEL_FLAG_USER_IS_CREATOR = 1 << 0;
-  static constexpr int32 CHANNEL_FLAG_USER_HAS_LEFT = 1 << 2;
-  static constexpr int32 CHANNEL_FLAG_IS_BROADCAST = 1 << 5;
-  static constexpr int32 CHANNEL_FLAG_HAS_USERNAME = 1 << 6;
-  static constexpr int32 CHANNEL_FLAG_IS_VERIFIED = 1 << 7;
-  static constexpr int32 CHANNEL_FLAG_IS_MEGAGROUP = 1 << 8;
-  static constexpr int32 CHANNEL_FLAG_IS_RESTRICTED = 1 << 9;
-  // static constexpr int32 CHANNEL_FLAG_ANYONE_CAN_INVITE = 1 << 10;
-  static constexpr int32 CHANNEL_FLAG_SIGN_MESSAGES = 1 << 11;
-  static constexpr int32 CHANNEL_FLAG_IS_MIN = 1 << 12;
-  static constexpr int32 CHANNEL_FLAG_HAS_ACCESS_HASH = 1 << 13;
-  static constexpr int32 CHANNEL_FLAG_HAS_ADMIN_RIGHTS = 1 << 14;
-  static constexpr int32 CHANNEL_FLAG_HAS_BANNED_RIGHTS = 1 << 15;
-  static constexpr int32 CHANNEL_FLAG_HAS_UNBAN_DATE = 1 << 16;
-  static constexpr int32 CHANNEL_FLAG_HAS_PARTICIPANT_COUNT = 1 << 17;
-  static constexpr int32 CHANNEL_FLAG_IS_SCAM = 1 << 19;
-  static constexpr int32 CHANNEL_FLAG_HAS_LINKED_CHAT = 1 << 20;
-  static constexpr int32 CHANNEL_FLAG_HAS_LOCATION = 1 << 21;
-  static constexpr int32 CHANNEL_FLAG_IS_SLOW_MODE_ENABLED = 1 << 22;
-  static constexpr int32 CHANNEL_FLAG_HAS_ACTIVE_GROUP_CALL = 1 << 23;
-  static constexpr int32 CHANNEL_FLAG_IS_GROUP_CALL_NON_EMPTY = 1 << 24;
-  static constexpr int32 CHANNEL_FLAG_IS_FAKE = 1 << 25;
-  static constexpr int32 CHANNEL_FLAG_IS_GIGAGROUP = 1 << 26;
-  static constexpr int32 CHANNEL_FLAG_NOFORWARDS = 1 << 27;
-  static constexpr int32 CHANNEL_FLAG_JOIN_TO_SEND = 1 << 28;
-  static constexpr int32 CHANNEL_FLAG_JOIN_REQUEST = 1 << 29;
-  static constexpr int32 CHANNEL_FLAG_IS_FORUM = 1 << 30;
-  static constexpr int32 CHANNEL_FLAG_HAS_USERNAMES = 1 << 0;
-
   static constexpr int32 CHANNEL_FULL_EXPIRE_TIME = 60;
 
   static bool have_input_peer_chat(const Chat *c, AccessRights access_rights);

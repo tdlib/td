@@ -5935,14 +5935,8 @@ bool ChatManager::on_get_channel_error(ChannelId channel_id, const Status &statu
     if (c->status.is_member()) {
       LOG(INFO) << "Emulate leaving " << channel_id;
       // TODO we also may try to write to a public channel
-      int32 flags = 0;
-      if (c->is_megagroup) {
-        flags |= CHANNEL_FLAG_IS_MEGAGROUP;
-      } else {
-        flags |= CHANNEL_FLAG_IS_BROADCAST;
-      }
-      telegram_api::channelForbidden channel_forbidden(flags, false /*ignored*/, false /*ignored*/, channel_id.get(),
-                                                       c->access_hash, c->title, 0);
+      telegram_api::channelForbidden channel_forbidden(0 /*ignored*/, !c->is_megagroup, c->is_megagroup,
+                                                       channel_id.get(), c->access_hash, c->title, 0);
       on_get_channel_forbidden(channel_forbidden, "CHANNEL_PRIVATE");
     } else if (!c->status.is_banned()) {
       if (!c->usernames.is_empty()) {
@@ -8546,23 +8540,21 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
     return;
   }
 
-  bool is_min = (channel.flags_ & CHANNEL_FLAG_IS_MIN) != 0;
-  bool has_access_hash = (channel.flags_ & CHANNEL_FLAG_HAS_ACCESS_HASH) != 0;
-  auto access_hash = has_access_hash ? channel.access_hash_ : 0;
-
-  bool has_linked_channel = (channel.flags_ & CHANNEL_FLAG_HAS_LINKED_CHAT) != 0;
-  bool sign_messages = (channel.flags_ & CHANNEL_FLAG_SIGN_MESSAGES) != 0;
-  bool join_to_send = (channel.flags_ & CHANNEL_FLAG_JOIN_TO_SEND) != 0;
-  bool join_request = (channel.flags_ & CHANNEL_FLAG_JOIN_REQUEST) != 0;
-  bool is_slow_mode_enabled = (channel.flags_ & CHANNEL_FLAG_IS_SLOW_MODE_ENABLED) != 0;
-  bool is_megagroup = (channel.flags_ & CHANNEL_FLAG_IS_MEGAGROUP) != 0;
-  bool is_verified = (channel.flags_ & CHANNEL_FLAG_IS_VERIFIED) != 0;
-  bool is_scam = (channel.flags_ & CHANNEL_FLAG_IS_SCAM) != 0;
-  bool is_fake = (channel.flags_ & CHANNEL_FLAG_IS_FAKE) != 0;
-  bool is_gigagroup = (channel.flags_ & CHANNEL_FLAG_IS_GIGAGROUP) != 0;
-  bool is_forum = (channel.flags_ & CHANNEL_FLAG_IS_FORUM) != 0;
-  bool have_participant_count = (channel.flags_ & CHANNEL_FLAG_HAS_PARTICIPANT_COUNT) != 0;
-  int32 participant_count = have_participant_count ? channel.participants_count_ : 0;
+  bool is_min = channel.min_;
+  auto access_hash = channel.access_hash_;
+  bool has_linked_channel = channel.has_link_;
+  bool sign_messages = channel.signatures_;
+  bool join_to_send = channel.join_to_send_;
+  bool join_request = channel.join_request_;
+  bool is_slow_mode_enabled = channel.slowmode_enabled_;
+  bool is_megagroup = channel.megagroup_;
+  bool is_verified = channel.verified_;
+  bool is_scam = channel.scam_;
+  bool is_fake = channel.fake_;
+  bool is_gigagroup = channel.gigagroup_;
+  bool is_forum = channel.forum_;
+  bool have_participant_count = (channel.flags_ & telegram_api::channel::PARTICIPANTS_COUNT_MASK) != 0;
+  int32 participant_count = channel.participants_count_;
   bool stories_available = channel.stories_max_id_ > 0;
   bool stories_unavailable = channel.stories_unavailable_;
   bool show_message_sender = channel.signature_profiles_;
@@ -8576,12 +8568,9 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
     }
   }
 
-  {
-    bool is_broadcast = (channel.flags_ & CHANNEL_FLAG_IS_BROADCAST) != 0;
-    LOG_IF(ERROR, is_broadcast == is_megagroup)
-        << "Receive wrong channel flag is_broadcast == is_megagroup == " << is_megagroup << " from " << source << ": "
-        << oneline(to_string(channel));
-  }
+  LOG_IF(ERROR, channel.broadcast_ == is_megagroup)
+      << "Receive wrong channel flag is_broadcast == is_megagroup == " << is_megagroup << " from " << source << ": "
+      << oneline(to_string(channel));
 
   if (is_megagroup) {
     LOG_IF(ERROR, sign_messages) << "Need to sign messages in the supergroup " << channel_id << " from " << source;
@@ -8685,26 +8674,23 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
     }
     return;
   }
-  if (!has_access_hash) {
+  if (access_hash == 0) {
     LOG(ERROR) << "Receive non-min " << channel_id << " without access_hash from " << source;
     return;
   }
 
   DialogParticipantStatus status = [&] {
-    bool has_left = (channel.flags_ & CHANNEL_FLAG_USER_HAS_LEFT) != 0;
-    bool is_creator = (channel.flags_ & CHANNEL_FLAG_USER_IS_CREATOR) != 0;
-
-    if (is_creator) {
+    if (channel.creator_) {
       bool is_anonymous = channel.admin_rights_ != nullptr &&
                           (channel.admin_rights_->flags_ & telegram_api::chatAdminRights::ANONYMOUS_MASK) != 0;
-      return DialogParticipantStatus::Creator(!has_left, is_anonymous, string());
+      return DialogParticipantStatus::Creator(!channel.left_, is_anonymous, string());
     } else if (channel.admin_rights_ != nullptr) {
       return DialogParticipantStatus(false, std::move(channel.admin_rights_), string(),
                                      is_megagroup ? ChannelType::Megagroup : ChannelType::Broadcast);
     } else if (channel.banned_rights_ != nullptr) {
-      return DialogParticipantStatus(!has_left, std::move(channel.banned_rights_),
+      return DialogParticipantStatus(!channel.left_, std::move(channel.banned_rights_),
                                      is_megagroup ? ChannelType::Megagroup : ChannelType::Broadcast);
-    } else if (has_left) {
+    } else if (channel.left_) {
       return DialogParticipantStatus::Left();
     } else {
       return DialogParticipantStatus::Member(channel.subscription_until_date_);
@@ -8828,10 +8814,8 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
     invalidate_channel_full(channel_id, !c->is_slow_mode_enabled, "on_get_channel");
   }
 
-  bool has_active_group_call = (channel.flags_ & CHANNEL_FLAG_HAS_ACTIVE_GROUP_CALL) != 0;
-  bool is_group_call_empty = (channel.flags_ & CHANNEL_FLAG_IS_GROUP_CALL_NON_EMPTY) == 0;
-  td_->messages_manager_->on_update_dialog_group_call(DialogId(channel_id), has_active_group_call, is_group_call_empty,
-                                                      "receive channel");
+  td_->messages_manager_->on_update_dialog_group_call(DialogId(channel_id), channel.call_active_,
+                                                      !channel.call_not_empty_, "receive channel");
 }
 
 void ChatManager::on_get_channel_forbidden(telegram_api::channelForbidden &channel, const char *source) {
@@ -8868,17 +8852,14 @@ void ChatManager::on_get_channel_forbidden(telegram_api::channelForbidden &chann
   bool join_to_send = false;
   bool join_request = false;
   bool is_slow_mode_enabled = false;
-  bool is_megagroup = (channel.flags_ & CHANNEL_FLAG_IS_MEGAGROUP) != 0;
+  bool is_megagroup = channel.megagroup_;
   bool is_verified = false;
   bool is_scam = false;
   bool is_fake = false;
 
-  {
-    bool is_broadcast = (channel.flags_ & CHANNEL_FLAG_IS_BROADCAST) != 0;
-    LOG_IF(ERROR, is_broadcast == is_megagroup)
-        << "Receive wrong channel flag is_broadcast == is_megagroup == " << is_megagroup << " from " << source << ": "
-        << oneline(to_string(channel));
-  }
+  LOG_IF(ERROR, channel.broadcast_ == is_megagroup)
+      << "Receive wrong channel flag is_broadcast == is_megagroup == " << is_megagroup << " from " << source << ": "
+      << oneline(to_string(channel));
 
   if (is_megagroup) {
     sign_messages = true;
