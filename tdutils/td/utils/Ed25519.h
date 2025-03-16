@@ -10,6 +10,7 @@
 #include "td/utils/SharedSlice.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
+#include "td/utils/UInt.h"
 
 #if TD_HAVE_OPENSSL
 
@@ -35,6 +36,20 @@ class Ed25519 {
     ~PublicKey() = default;
 
     SecureString as_octet_string() const;
+
+    UInt256 as_uint256() const {
+      UInt256 result;
+      CHECK(octet_string_.size() == result.as_slice().size());
+      result.as_mutable_slice().copy_from(octet_string_);
+      return result;
+    }
+
+    static Result<PublicKey> from_slice(Slice slice) {
+      if (slice.size() != 32) {
+        return Status::Error("Invalid slice size");
+      }
+      return PublicKey(SecureString(slice));
+    }
 
     Status verify_signature(Slice data, Slice signature) const;
 
