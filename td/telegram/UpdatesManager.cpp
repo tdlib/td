@@ -1128,21 +1128,6 @@ bool UpdatesManager::is_acceptable_update(const telegram_api::Update *update) co
   return true;
 }
 
-int32 UpdatesManager::fix_short_message_flags(int32 flags) {
-  static constexpr int32 MESSAGE_FLAG_HAS_REPLY_MARKUP = 1 << 6;
-  static constexpr int32 MESSAGE_FLAG_HAS_MEDIA = 1 << 9;
-  static constexpr int32 MESSAGE_FLAG_HAS_REACTIONS = 1 << 20;
-  static constexpr int32 MESSAGE_FLAG_HAS_REPLY_INFO = 1 << 23;
-  static constexpr int32 MESSAGE_FLAG_HAS_SAVED_PEER_ID = 1 << 28;
-  auto disallowed_flags = MESSAGE_FLAG_HAS_REPLY_MARKUP | MESSAGE_FLAG_HAS_MEDIA | MESSAGE_FLAG_HAS_REACTIONS |
-                          MESSAGE_FLAG_HAS_REPLY_INFO | MESSAGE_FLAG_HAS_SAVED_PEER_ID;
-  if ((flags & disallowed_flags) != 0) {
-    LOG(ERROR) << "Receive short message with flags " << flags;
-    flags = flags & ~disallowed_flags;
-  }
-  return flags;
-}
-
 void UpdatesManager::on_get_updates(tl_object_ptr<telegram_api::Updates> &&updates_ptr, Promise<Unit> &&promise) {
   send_closure_later(actor_id(this), &UpdatesManager::on_get_updates_impl, std::move(updates_ptr), std::move(promise));
 }
@@ -1196,12 +1181,12 @@ void UpdatesManager::on_get_updates_impl(tl_object_ptr<telegram_api::Updates> up
       auto update = move_tl_object_as<telegram_api::updateShortMessage>(updates_ptr);
       auto from_id = update->out_ ? td_->user_manager_->get_my_id().get() : update->user_id_;
       auto message = make_tl_object<telegram_api::message>(
-          fix_short_message_flags(update->flags_), update->out_, update->mentioned_, update->media_unread_,
-          update->silent_, false, false, false, false, false, false, false, false, 0, false, update->id_,
-          make_tl_object<telegram_api::peerUser>(from_id), 0, make_tl_object<telegram_api::peerUser>(update->user_id_),
-          nullptr, std::move(update->fwd_from_), update->via_bot_id_, 0, std::move(update->reply_to_), update->date_,
-          update->message_, nullptr, nullptr, std::move(update->entities_), 0, 0, nullptr, 0, string(), 0, nullptr,
-          Auto(), update->ttl_period_, 0, 0, nullptr, 0, 0);
+          0 /*unused*/, update->out_, update->mentioned_, update->media_unread_, update->silent_, false, false, false,
+          false, false, false, false, false, 0, false, update->id_, make_tl_object<telegram_api::peerUser>(from_id), 0,
+          make_tl_object<telegram_api::peerUser>(update->user_id_), nullptr, std::move(update->fwd_from_),
+          update->via_bot_id_, 0, std::move(update->reply_to_), update->date_, update->message_, nullptr, nullptr,
+          std::move(update->entities_), 0, 0, nullptr, 0, string(), 0, nullptr, Auto(), update->ttl_period_, 0, 0,
+          nullptr, 0, 0);
       on_pending_update(
           make_tl_object<telegram_api::updateNewMessage>(std::move(message), update->pts_, update->pts_count_), 0,
           std::move(promise), "telegram_api::updateShortMessage");
@@ -1210,8 +1195,8 @@ void UpdatesManager::on_get_updates_impl(tl_object_ptr<telegram_api::Updates> up
     case telegram_api::updateShortChatMessage::ID: {
       auto update = move_tl_object_as<telegram_api::updateShortChatMessage>(updates_ptr);
       auto message = make_tl_object<telegram_api::message>(
-          fix_short_message_flags(update->flags_), update->out_, update->mentioned_, update->media_unread_,
-          update->silent_, false, false, false, false, false, false, false, false, 0, false, update->id_,
+          0 /*unused*/, update->out_, update->mentioned_, update->media_unread_, update->silent_, false, false, false,
+          false, false, false, false, false, 0, false, update->id_,
           make_tl_object<telegram_api::peerUser>(update->from_id_), 0,
           make_tl_object<telegram_api::peerChat>(update->chat_id_), nullptr, std::move(update->fwd_from_),
           update->via_bot_id_, 0, std::move(update->reply_to_), update->date_, update->message_, nullptr, nullptr,
