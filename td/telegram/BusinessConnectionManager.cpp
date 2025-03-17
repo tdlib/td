@@ -613,6 +613,7 @@ class UpdateBusinessProfileQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   UserId user_id_;
   bool set_name_ = false;
+  bool set_about_ = false;
   string first_name_;
   string last_name_;
 
@@ -622,16 +623,17 @@ class UpdateBusinessProfileQuery final : public Td::ResultHandler {
 
   void send(const BusinessConnectionId &business_connection_id, UserId user_id, bool set_name, const string &first_name,
             const string &last_name, bool set_about, const string &about) {
+    user_id_ = user_id;
     int32 flags = 0;
     if (set_name) {
       flags |= telegram_api::account_updateProfile::FIRST_NAME_MASK;
       flags |= telegram_api::account_updateProfile::LAST_NAME_MASK;
-      user_id_ = user_id;
       set_name_ = true;
       first_name_ = first_name;
       last_name_ = last_name;
     }
     if (set_about) {
+      set_about_ = true;
       flags |= telegram_api::account_updateProfile::ABOUT_MASK;
     }
     send_query(G()->net_query_creator().create_with_prefix(
@@ -650,6 +652,9 @@ class UpdateBusinessProfileQuery final : public Td::ResultHandler {
 
     if (set_name_ && user_id_.is_valid()) {
       td_->user_manager_->on_update_user_name(user_id_, std::move(first_name_), std::move(last_name_));
+    }
+    if (set_about_ && user_id_.is_valid()) {
+      td_->user_manager_->invalidate_user_full(user_id_);
     }
 
     promise_.set_value(Unit());
@@ -1681,9 +1686,10 @@ void BusinessConnectionManager::set_business_name(BusinessConnectionId business_
 void BusinessConnectionManager::set_business_about(BusinessConnectionId business_connection_id, const string &about,
                                                    Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, check_business_connection(business_connection_id));
+  auto user_id = get_business_connection_user_id(business_connection_id);
 
   td_->create_handler<UpdateBusinessProfileQuery>(std::move(promise))
-      ->send(business_connection_id, UserId(), false, string(), string(), true, about);
+      ->send(business_connection_id, user_id, false, string(), string(), true, about);
 }
 
 td_api::object_ptr<td_api::updateBusinessConnection> BusinessConnectionManager::get_update_business_connection(
