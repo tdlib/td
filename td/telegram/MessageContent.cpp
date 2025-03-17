@@ -5443,8 +5443,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       const auto *old_ = static_cast<const MessageText *>(old_content);
       const auto *new_ = static_cast<const MessageText *>(new_content);
       auto get_content_object = [td, dialog_id](const MessageContent *content) {
-        return to_string(get_message_content_object(content, td, dialog_id, MessageId(), false, -1, false, false,
-                                                    std::numeric_limits<int32>::max(), false, false));
+        return to_string(get_message_content_object(content, td, dialog_id, MessageId(), false, DialogId(), -1, false,
+                                                    false, std::numeric_limits<int32>::max(), false, false));
       };
       if (old_->text.text != new_->text.text) {
         if (need_message_changed_warning && need_message_text_changed_warning(old_, new_)) {
@@ -8296,12 +8296,10 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
   return td::make_unique<MessageText>(FormattedText(), WebPageId(), false, false, false, string());
 }
 
-td_api::object_ptr<td_api::MessageContent> get_message_content_object(const MessageContent *content, Td *td,
-                                                                      DialogId dialog_id, MessageId message_id,
-                                                                      bool is_outgoing, int32 message_date,
-                                                                      bool is_content_secret, bool skip_bot_commands,
-                                                                      int32 max_media_timestamp, bool invert_media,
-                                                                      bool disable_web_page_preview) {
+td_api::object_ptr<td_api::MessageContent> get_message_content_object(
+    const MessageContent *content, Td *td, DialogId dialog_id, MessageId message_id, bool is_outgoing,
+    DialogId sender_dialog_id, int32 message_date, bool is_content_secret, bool skip_bot_commands,
+    int32 max_media_timestamp, bool invert_media, bool disable_web_page_preview) {
   CHECK(content != nullptr);
   auto is_server =
       message_id != MessageId() && message_id.is_any_server() && dialog_id.get_type() != DialogType::SecretChat;
@@ -8787,15 +8785,8 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(const Mess
           star_gift_id = StarGiftId(message_id.get_server_message_id());
         }
       }
-      DialogId sender_dialog_id;
       if (m->sender_dialog_id != DialogId()) {
         sender_dialog_id = m->sender_dialog_id;
-      } else {
-        if (is_outgoing) {
-          sender_dialog_id = td->dialog_manager_->get_my_dialog_id();
-        } else {
-          sender_dialog_id = dialog_id;
-        }
       }
       return td_api::make_object<td_api::messageGift>(
           m->star_gift.get_gift_object(td), get_message_sender_object(td, sender_dialog_id, "messageGift"),
@@ -8805,15 +8796,8 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(const Mess
     }
     case MessageContentType::StarGiftUnique: {
       const auto *m = static_cast<const MessageStarGiftUnique *>(content);
-      DialogId sender_dialog_id;
       if (m->sender_dialog_id != DialogId()) {
         sender_dialog_id = m->sender_dialog_id;
-      } else {
-        if (is_outgoing) {
-          sender_dialog_id = td->dialog_manager_->get_my_dialog_id();
-        } else {
-          sender_dialog_id = dialog_id;
-        }
       }
       if (m->was_refunded) {
         return td_api::make_object<td_api::messageRefundedUpgradedGift>(
