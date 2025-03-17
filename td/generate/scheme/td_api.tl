@@ -9713,6 +9713,11 @@ setBusinessAccountName business_connection_id:string first_name:string last_name
 //@bio The new value of the bio; 0-getOption("bio_length_max") characters without line feeds
 setBusinessAccountBio business_connection_id:string bio:string = Ok;
 
+//@description Changes the editable username of a business account; for bots only
+//@business_connection_id Unique identifier of business connection
+//@username The new value of the username
+setBusinessAccountUsername business_connection_id:string username:string = Ok;
+
 
 //@description Checks validness of a name for a quick reply shortcut. Can be called synchronously @name The name of the shortcut; 1-32 characters
 checkQuickReplyShortcutName name:string = Ok;

@@ -665,6 +665,38 @@ class UpdateBusinessProfileQuery final : public Td::ResultHandler {
   }
 };
 
+class UpdateBusinessUsernameQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  UserId user_id_;
+
+ public:
+  explicit UpdateBusinessUsernameQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const BusinessConnectionId &business_connection_id, UserId user_id, const string &username) {
+    user_id_ = user_id;
+    send_query(G()->net_query_creator().create_with_prefix(
+        business_connection_id.get_invoke_prefix(), telegram_api::account_updateUsername(username),
+        td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_updateUsername>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    LOG(DEBUG) << "Receive result for UpdateBusinessUsernameQuery: " << to_string(result_ptr.ok());
+    td_->user_manager_->on_get_user(result_ptr.move_as_ok(), "UpdateBusinessUsernameQuery");
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class BusinessConnectionManager::UploadMediaCallback final : public FileManager::UploadCallback {
  public:
   void on_upload_ok(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
@@ -1690,6 +1722,17 @@ void BusinessConnectionManager::set_business_about(BusinessConnectionId business
 
   td_->create_handler<UpdateBusinessProfileQuery>(std::move(promise))
       ->send(business_connection_id, user_id, false, string(), string(), true, about);
+}
+
+void BusinessConnectionManager::set_business_username(BusinessConnectionId business_connection_id,
+                                                      const string &username, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, check_business_connection(business_connection_id));
+  if (!username.empty() && !is_allowed_username(username)) {
+    return promise.set_error(Status::Error(400, "Username is invalid"));
+  }
+  auto user_id = get_business_connection_user_id(business_connection_id);
+
+  td_->create_handler<UpdateBusinessUsernameQuery>(std::move(promise))->send(business_connection_id, user_id, username);
 }
 
 td_api::object_ptr<td_api::updateBusinessConnection> BusinessConnectionManager::get_update_business_connection(

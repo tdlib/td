@@ -6700,6 +6700,10 @@ class CliClient final : public Actor {
       string bio;
       get_args(args, bio);
       send_request(td_api::make_object<td_api::setBusinessAccountBio>(business_connection_id_, bio));
+    } else if (op == "sbau") {
+      string username;
+      get_args(args, username);
+      send_request(td_api::make_object<td_api::setBusinessAccountUsername>(business_connection_id_, username));
     } else if (op == "grib") {
       send_request(td_api::make_object<td_api::getRecentInlineBots>());
     } else if (op == "gob") {
