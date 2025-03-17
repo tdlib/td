@@ -9718,6 +9718,11 @@ setBusinessAccountBio business_connection_id:string bio:string = Ok;
 //@username The new value of the username
 setBusinessAccountUsername business_connection_id:string username:string = Ok;
 
+//@description Changes settings for gift receiving of a business account
+//@business_connection_id Unique identifier of business connection
+//@settings The new settings
+setBusinessAccountGiftSettings business_connection_id:string settings:giftSettings = Ok;
+
 
 //@description Checks validness of a name for a quick reply shortcut. Can be called synchronously @name The name of the shortcut; 1-32 characters
 checkQuickReplyShortcutName name:string = Ok;

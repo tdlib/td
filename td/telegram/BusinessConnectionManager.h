@@ -13,6 +13,7 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageInputReplyTo.h"
 #include "td/telegram/net/DcId.h"
+#include "td/telegram/StarGiftSettings.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -120,6 +121,9 @@ class BusinessConnectionManager final : public Actor {
 
   void set_business_username(BusinessConnectionId business_connection_id, const string &username,
                              Promise<Unit> &&promise);
+
+  void set_business_gift_settings(BusinessConnectionId business_connection_id, StarGiftSettings settings,
+                                  Promise<Unit> &&promise);
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 

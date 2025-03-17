@@ -697,6 +697,50 @@ class UpdateBusinessUsernameQuery final : public Td::ResultHandler {
   }
 };
 
+class UpdateBusinessGiftSettingsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  UserId user_id_;
+
+ public:
+  explicit UpdateBusinessGiftSettingsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const BusinessConnectionId &business_connection_id, UserId user_id, const StarGiftSettings &settings) {
+    user_id_ = user_id;
+
+    int32 flags = 0;
+    if (settings.get_display_gifts_button()) {
+      flags |= telegram_api::globalPrivacySettings::DISPLAY_GIFTS_BUTTON_MASK;
+    }
+    auto disallowed_stargifts = settings.get_disallowed_stargifts();
+    if (!disallowed_stargifts.is_default()) {
+      flags |= telegram_api::globalPrivacySettings::DISALLOWED_GIFTS_MASK;
+    }
+    send_query(G()->net_query_creator().create_with_prefix(
+        business_connection_id.get_invoke_prefix(),
+        telegram_api::account_setGlobalPrivacySettings(telegram_api::make_object<telegram_api::globalPrivacySettings>(
+            flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+            false /*ignored*/, 0, disallowed_stargifts.get_input_disallowed_star_gift_settings())),
+        td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_setGlobalPrivacySettings>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    LOG(DEBUG) << "Receive result for UpdateBusinessGiftSettingsQuery: " << to_string(result_ptr.ok());
+    td_->user_manager_->invalidate_user_full(user_id_);
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class BusinessConnectionManager::UploadMediaCallback final : public FileManager::UploadCallback {
  public:
   void on_upload_ok(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
@@ -1733,6 +1777,15 @@ void BusinessConnectionManager::set_business_username(BusinessConnectionId busin
   auto user_id = get_business_connection_user_id(business_connection_id);
 
   td_->create_handler<UpdateBusinessUsernameQuery>(std::move(promise))->send(business_connection_id, user_id, username);
+}
+
+void BusinessConnectionManager::set_business_gift_settings(BusinessConnectionId business_connection_id,
+                                                           StarGiftSettings settings, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, check_business_connection(business_connection_id));
+  auto user_id = get_business_connection_user_id(business_connection_id);
+
+  td_->create_handler<UpdateBusinessGiftSettingsQuery>(std::move(promise))
+      ->send(business_connection_id, user_id, settings);
 }
 
 td_api::object_ptr<td_api::updateBusinessConnection> BusinessConnectionManager::get_update_business_connection(

@@ -3865,6 +3865,14 @@ void Requests::on_request(uint64 id, td_api::setBusinessAccountUsername &request
       BusinessConnectionId(std::move(request.business_connection_id_)), request.username_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::setBusinessAccountGiftSettings &request) {
+  CHECK_IS_BOT();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->business_connection_manager_->set_business_gift_settings(
+      BusinessConnectionId(std::move(request.business_connection_id_)), StarGiftSettings(request.settings_),
+      std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::loadQuickReplyShortcuts &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

@@ -6704,6 +6704,18 @@ class CliClient final : public Actor {
       string username;
       get_args(args, username);
       send_request(td_api::make_object<td_api::setBusinessAccountUsername>(business_connection_id_, username));
+    } else if (op == "sbags") {
+      bool show_button;
+      bool unlimited_gifts;
+      bool limited_gifts;
+      bool upgraded_gifts;
+      bool premium_subscription;
+      get_args(args, show_button, unlimited_gifts, limited_gifts, upgraded_gifts, premium_subscription);
+      send_request(td_api::make_object<td_api::setBusinessAccountGiftSettings>(
+          business_connection_id_,
+          td_api::make_object<td_api::giftSettings>(
+              show_button, td_api::make_object<td_api::acceptedGiftTypes>(unlimited_gifts, limited_gifts,
+                                                                          upgraded_gifts, premium_subscription))));
     } else if (op == "grib") {
       send_request(td_api::make_object<td_api::getRecentInlineBots>());
     } else if (op == "gob") {
