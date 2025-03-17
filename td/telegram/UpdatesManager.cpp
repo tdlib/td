@@ -915,8 +915,8 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         return false;
       }
 
-      if ((message->flags_ & telegram_api::message::VIA_BOT_ID_MASK) &&
-          !is_acceptable_user(UserId(message->via_bot_id_))) {
+      UserId via_bot_user_id(message->via_bot_id_);
+      if (via_bot_user_id != UserId() && !is_acceptable_user(via_bot_user_id)) {
         return false;
       }
 

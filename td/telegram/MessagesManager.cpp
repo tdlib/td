@@ -10700,19 +10700,15 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
                              !td->dialog_manager_->is_broadcast_channel(message_info.dialog_id);
       message_info.reply_header = MessageReplyHeader(td, std::move(message->reply_to_), message_info.dialog_id,
                                                      message_info.message_id, message_info.date, can_have_thread);
-      if (message->flags_ & telegram_api::message::VIA_BOT_ID_MASK) {
-        message_info.via_bot_user_id = UserId(message->via_bot_id_);
-        if (!message_info.via_bot_user_id.is_valid()) {
-          LOG(ERROR) << "Receive invalid " << message_info.via_bot_user_id << " from " << source;
-          message_info.via_bot_user_id = UserId();
-        }
+      message_info.via_bot_user_id = UserId(message->via_bot_id_);
+      if (message_info.via_bot_user_id != UserId() && !message_info.via_bot_user_id.is_valid()) {
+        LOG(ERROR) << "Receive invalid " << message_info.via_bot_user_id << " from " << source;
+        message_info.via_bot_user_id = UserId();
       }
-      if (message->flags2_ & telegram_api::message::VIA_BUSINESS_BOT_ID_MASK) {
-        message_info.via_business_bot_user_id = UserId(message->via_business_bot_id_);
-        if (!message_info.via_business_bot_user_id.is_valid()) {
-          LOG(ERROR) << "Receive invalid " << message_info.via_business_bot_user_id << " from " << source;
-          message_info.via_business_bot_user_id = UserId();
-        }
+      message_info.via_business_bot_user_id = UserId(message->via_business_bot_id_);
+      if (message_info.via_business_bot_user_id != UserId() && !message_info.via_business_bot_user_id.is_valid()) {
+        LOG(ERROR) << "Receive invalid " << message_info.via_business_bot_user_id << " from " << source;
+        message_info.via_business_bot_user_id = UserId();
       }
       message_info.view_count = message->views_;
       message_info.forward_count = message->forwards_;
@@ -10764,6 +10760,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       if (!is_bot && message->saved_peer_id_ != nullptr) {
         message_info.saved_messages_topic_id = SavedMessagesTopicId(DialogId(message->saved_peer_id_));
       }
+      // update QuickReplyManager::create_message
       break;
     }
     case telegram_api::messageService::ID: {

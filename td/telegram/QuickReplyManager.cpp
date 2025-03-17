@@ -1103,13 +1103,10 @@ unique_ptr<QuickReplyManager::QuickReplyMessage> QuickReplyManager::create_messa
         LOG(DEBUG) << "Receive unneeded Saved Messages topic in quick reply " << message_id << " from " << source;
       }
 
-      UserId via_bot_user_id;
-      if (message->flags_ & telegram_api::message::VIA_BOT_ID_MASK) {
-        via_bot_user_id = UserId(message->via_bot_id_);
-        if (!via_bot_user_id.is_valid()) {
-          LOG(ERROR) << "Receive invalid " << via_bot_user_id << " from " << source;
-          via_bot_user_id = UserId();
-        }
+      UserId via_bot_user_id = UserId(message->via_bot_id_);
+      if (via_bot_user_id != UserId() && !via_bot_user_id.is_valid()) {
+        LOG(ERROR) << "Receive invalid " << via_bot_user_id << " from " << source;
+        via_bot_user_id = UserId();
       }
       auto media_album_id = message->grouped_id_;
 
