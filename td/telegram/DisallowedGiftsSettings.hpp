@@ -6,7 +6,7 @@
 //
 #pragma once
 
-#include "td/telegram/DisallowedStarGiftsSettings.h"
+#include "td/telegram/DisallowedGiftsSettings.h"
 
 #include "td/utils/common.h"
 #include "td/utils/tl_helpers.h"
@@ -14,7 +14,7 @@
 namespace td {
 
 template <class StorerT>
-void DisallowedStarGiftsSettings::store(StorerT &storer) const {
+void DisallowedGiftsSettings::store(StorerT &storer) const {
   BEGIN_STORE_FLAGS();
   STORE_FLAG(disallow_unlimited_stargifts_);
   STORE_FLAG(disallow_limited_stargifts_);
@@ -24,7 +24,7 @@ void DisallowedStarGiftsSettings::store(StorerT &storer) const {
 }
 
 template <class ParserT>
-void DisallowedStarGiftsSettings::parse(ParserT &parser) {
+void DisallowedGiftsSettings::parse(ParserT &parser) {
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(disallow_unlimited_stargifts_);
   PARSE_FLAG(disallow_limited_stargifts_);

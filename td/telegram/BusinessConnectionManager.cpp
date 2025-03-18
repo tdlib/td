@@ -712,15 +712,15 @@ class UpdateBusinessGiftSettingsQuery final : public Td::ResultHandler {
     if (settings.get_display_gifts_button()) {
       flags |= telegram_api::globalPrivacySettings::DISPLAY_GIFTS_BUTTON_MASK;
     }
-    auto disallowed_stargifts = settings.get_disallowed_stargifts();
-    if (!disallowed_stargifts.is_default()) {
+    auto disallowed_gifts = settings.get_disallowed_gifts();
+    if (!disallowed_gifts.is_default()) {
       flags |= telegram_api::globalPrivacySettings::DISALLOWED_GIFTS_MASK;
     }
     send_query(G()->net_query_creator().create_with_prefix(
         business_connection_id.get_invoke_prefix(),
         telegram_api::account_setGlobalPrivacySettings(telegram_api::make_object<telegram_api::globalPrivacySettings>(
             flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-            false /*ignored*/, 0, disallowed_stargifts.get_input_disallowed_star_gift_settings())),
+            false /*ignored*/, 0, disallowed_gifts.get_input_disallowed_gifts_settings())),
         td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id)));
   }
 

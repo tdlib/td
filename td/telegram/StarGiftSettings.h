@@ -6,7 +6,7 @@
 //
 #pragma once
 
-#include "td/telegram/DisallowedStarGiftsSettings.h"
+#include "td/telegram/DisallowedGiftsSettings.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -17,7 +17,7 @@ namespace td {
 
 class StarGiftSettings {
   bool display_gifts_button_ = false;
-  DisallowedStarGiftsSettings disallowed_stargifts_;
+  DisallowedGiftsSettings disallowed_gifts_;
 
   friend bool operator==(const StarGiftSettings &lhs, const StarGiftSettings &rhs);
 
@@ -37,12 +37,12 @@ class StarGiftSettings {
     return display_gifts_button_;
   }
 
-  const DisallowedStarGiftsSettings &get_disallowed_stargifts() const {
-    return disallowed_stargifts_;
+  const DisallowedGiftsSettings &get_disallowed_gifts() const {
+    return disallowed_gifts_;
   }
 
   bool is_default() const {
-    return !display_gifts_button_ && disallowed_stargifts_.is_default();
+    return !display_gifts_button_ && disallowed_gifts_.is_default();
   }
 
   template <class StorerT>

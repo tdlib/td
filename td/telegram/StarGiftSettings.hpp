@@ -6,7 +6,7 @@
 //
 #pragma once
 
-#include "td/telegram/DisallowedStarGiftsSettings.hpp"
+#include "td/telegram/DisallowedGiftsSettings.hpp"
 #include "td/telegram/StarGiftSettings.h"
 
 #include "td/utils/common.h"
@@ -16,25 +16,25 @@ namespace td {
 
 template <class StorerT>
 void StarGiftSettings::store(StorerT &storer) const {
-  bool has_default_disallowed_stargifts = disallowed_stargifts_.is_default();
+  bool has_default_disallowed_gifts = disallowed_gifts_.is_default();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(display_gifts_button_);
-  STORE_FLAG(has_default_disallowed_stargifts);
+  STORE_FLAG(has_default_disallowed_gifts);
   END_STORE_FLAGS();
-  if (!has_default_disallowed_stargifts) {
-    td::store(disallowed_stargifts_, storer);
+  if (!has_default_disallowed_gifts) {
+    td::store(disallowed_gifts_, storer);
   }
 }
 
 template <class ParserT>
 void StarGiftSettings::parse(ParserT &parser) {
-  bool has_default_disallowed_stargifts;
+  bool has_default_disallowed_gifts;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(display_gifts_button_);
-  PARSE_FLAG(has_default_disallowed_stargifts);
+  PARSE_FLAG(has_default_disallowed_gifts);
   END_PARSE_FLAGS();
-  if (!has_default_disallowed_stargifts) {
-    td::parse(disallowed_stargifts_, parser);
+  if (!has_default_disallowed_gifts) {
+    td::parse(disallowed_gifts_, parser);
   }
 }
 

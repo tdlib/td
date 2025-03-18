@@ -352,7 +352,7 @@ function split_file($file, $chunks, $undo) {
             'DialogParticipantFilter' => 'DialogParticipantFilter',
             'dialog_participant_manager[_(-](?![.]get[(][)])|DialogParticipantManager' => 'DialogParticipantManager',
             'DialogSource' => 'DialogSource',
-            'DisallowedStarGiftsSettings' => 'DisallowedStarGiftsSettings',
+            'DisallowedGiftsSettings' => 'DisallowedGiftsSettings',
             'documents_manager[_(-](?![.]get[(][)])|DocumentsManager' => 'DocumentsManager',
             'download_manager[_(-](?![.]get[(][)])|DownloadManager[^C]' => 'DownloadManager',
             'DownloadManagerCallback' => 'DownloadManagerCallback',

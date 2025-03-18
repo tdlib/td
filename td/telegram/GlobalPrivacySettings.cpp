@@ -161,14 +161,13 @@ telegram_api::object_ptr<telegram_api::globalPrivacySettings> GlobalPrivacySetti
   if (gift_settings_.get_display_gifts_button()) {
     flags |= telegram_api::globalPrivacySettings::DISPLAY_GIFTS_BUTTON_MASK;
   }
-  auto disallowed_stargifts = gift_settings_.get_disallowed_stargifts();
-  if (!disallowed_stargifts.is_default()) {
+  auto disallowed_gifts = gift_settings_.get_disallowed_gifts();
+  if (!disallowed_gifts.is_default()) {
     flags |= telegram_api::globalPrivacySettings::DISALLOWED_GIFTS_MASK;
   }
   return telegram_api::make_object<telegram_api::globalPrivacySettings>(
       flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-      false /*ignored*/, noncontact_peers_paid_star_count_,
-      disallowed_stargifts.get_input_disallowed_star_gift_settings());
+      false /*ignored*/, noncontact_peers_paid_star_count_, disallowed_gifts.get_input_disallowed_gifts_settings());
 }
 
 td_api::object_ptr<td_api::archiveChatListSettings> GlobalPrivacySettings::get_archive_chat_list_settings_object()

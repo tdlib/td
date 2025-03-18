@@ -14,26 +14,26 @@
 
 namespace td {
 
-class DisallowedStarGiftsSettings {
+class DisallowedGiftsSettings {
   bool disallow_unlimited_stargifts_ = false;
   bool disallow_limited_stargifts_ = false;
   bool disallow_unique_stargifts_ = false;
   bool disallow_premium_gifts_ = false;
 
-  friend bool operator==(const DisallowedStarGiftsSettings &lhs, const DisallowedStarGiftsSettings &rhs);
+  friend bool operator==(const DisallowedGiftsSettings &lhs, const DisallowedGiftsSettings &rhs);
 
-  friend StringBuilder &operator<<(StringBuilder &string_builder, const DisallowedStarGiftsSettings &settings);
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const DisallowedGiftsSettings &settings);
 
  public:
-  DisallowedStarGiftsSettings() = default;
+  DisallowedGiftsSettings() = default;
 
-  explicit DisallowedStarGiftsSettings(telegram_api::object_ptr<telegram_api::disallowedGiftsSettings> &&settings);
+  explicit DisallowedGiftsSettings(telegram_api::object_ptr<telegram_api::disallowedGiftsSettings> &&settings);
 
-  explicit DisallowedStarGiftsSettings(const td_api::object_ptr<td_api::acceptedGiftTypes> &types);
+  explicit DisallowedGiftsSettings(const td_api::object_ptr<td_api::acceptedGiftTypes> &types);
 
   td_api::object_ptr<td_api::acceptedGiftTypes> get_accepted_gift_types_object() const;
 
-  telegram_api::object_ptr<telegram_api::disallowedGiftsSettings> get_input_disallowed_star_gift_settings() const;
+  telegram_api::object_ptr<telegram_api::disallowedGiftsSettings> get_input_disallowed_gifts_settings() const;
 
   bool is_default() const {
     return !disallow_unlimited_stargifts_ && !disallow_limited_stargifts_ && !disallow_unique_stargifts_ &&
@@ -47,12 +47,12 @@ class DisallowedStarGiftsSettings {
   void parse(ParserT &parser);
 };
 
-bool operator==(const DisallowedStarGiftsSettings &lhs, const DisallowedStarGiftsSettings &rhs);
+bool operator==(const DisallowedGiftsSettings &lhs, const DisallowedGiftsSettings &rhs);
 
-inline bool operator!=(const DisallowedStarGiftsSettings &lhs, const DisallowedStarGiftsSettings &rhs) {
+inline bool operator!=(const DisallowedGiftsSettings &lhs, const DisallowedGiftsSettings &rhs) {
   return !(lhs == rhs);
 }
 
-StringBuilder &operator<<(StringBuilder &string_builder, const DisallowedStarGiftsSettings &settings);
+StringBuilder &operator<<(StringBuilder &string_builder, const DisallowedGiftsSettings &settings);
 
 }  // namespace td
