@@ -68,11 +68,8 @@ class GetSponsoredMessagesQuery final : public Td::ResultHandler {
 };
 
 class ViewSponsoredMessageQuery final : public Td::ResultHandler {
-  DialogId dialog_id_;
-
  public:
-  void send(DialogId dialog_id, const string &message_id) {
-    dialog_id_ = dialog_id;
+  void send(const string &message_id) {
     send_query(G()->net_query_creator().create(telegram_api::messages_viewSponsoredMessage(BufferSlice(message_id))));
   }
 
@@ -84,20 +81,17 @@ class ViewSponsoredMessageQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ViewSponsoredMessageQuery");
   }
 };
 
 class ClickSponsoredMessageQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
-  DialogId dialog_id_;
 
  public:
   explicit ClickSponsoredMessageQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, const string &message_id, bool is_media_click, bool from_fullscreen) {
-    dialog_id_ = dialog_id;
+  void send(const string &message_id, bool is_media_click, bool from_fullscreen) {
     int32 flags = 0;
     if (is_media_click) {
       flags |= telegram_api::messages_clickSponsoredMessage::MEDIA_MASK;
@@ -118,22 +112,19 @@ class ClickSponsoredMessageQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ClickSponsoredMessageQuery");
     promise_.set_error(std::move(status));
   }
 };
 
 class ReportSponsoredMessageQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::ReportChatSponsoredMessageResult>> promise_;
-  DialogId dialog_id_;
 
  public:
   explicit ReportSponsoredMessageQuery(Promise<td_api::object_ptr<td_api::ReportChatSponsoredMessageResult>> &&promise)
       : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, const string &message_id, const string &option_id) {
-    dialog_id_ = dialog_id;
+  void send(const string &message_id, const string &option_id) {
     send_query(G()->net_query_creator().create(
         telegram_api::messages_reportSponsoredMessage(BufferSlice(message_id), BufferSlice(option_id))));
   }
@@ -177,7 +168,6 @@ class ReportSponsoredMessageQuery final : public Td::ResultHandler {
     if (status.message() == "PREMIUM_ACCOUNT_REQUIRED") {
       return promise_.set_value(td_api::make_object<td_api::reportChatSponsoredMessageResultPremiumRequired>());
     }
-    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ReportSponsoredMessageQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -426,7 +416,7 @@ void SponsoredMessageManager::view_sponsored_message(DialogId dialog_id, Message
   }
 
   random_id_it->second.is_viewed_ = true;
-  td_->create_handler<ViewSponsoredMessageQuery>()->send(dialog_id, random_id_it->second.random_id_);
+  td_->create_handler<ViewSponsoredMessageQuery>()->send(random_id_it->second.random_id_);
 }
 
 void SponsoredMessageManager::click_sponsored_message(DialogId dialog_id, MessageId sponsored_message_id,
@@ -446,7 +436,7 @@ void SponsoredMessageManager::click_sponsored_message(DialogId dialog_id, Messag
 
   random_id_it->second.is_clicked_ = true;
   td_->create_handler<ClickSponsoredMessageQuery>(std::move(promise))
-      ->send(dialog_id, random_id_it->second.random_id_, is_media_click, from_fullscreen);
+      ->send(random_id_it->second.random_id_, is_media_click, from_fullscreen);
 }
 
 void SponsoredMessageManager::report_sponsored_message(
@@ -465,7 +455,7 @@ void SponsoredMessageManager::report_sponsored_message(
   }
 
   td_->create_handler<ReportSponsoredMessageQuery>(std::move(promise))
-      ->send(dialog_id, random_id_it->second.random_id_, option_id);
+      ->send(random_id_it->second.random_id_, option_id);
 }
 
 }  // namespace td
