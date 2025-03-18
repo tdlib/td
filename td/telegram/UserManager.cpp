@@ -2256,6 +2256,18 @@ UserManager::UserManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::m
     if (was_online_local_ >= unix_time && !td_->online_manager_->is_online()) {
       was_online_local_ = unix_time - 1;
     }
+
+    auto log_event_string = G()->td_db()->get_binlog_pmc()->get("freeze_state");
+    if (!log_event_string.empty()) {
+      string freeze_since_date;
+      string freeze_until_date;
+      std::tie(freeze_since_date, log_event_string) = split(log_event_string);
+      std::tie(freeze_until_date, freeze_appeal_url_) = split(log_event_string);
+      freeze_since_date_ = to_integer<int32>(freeze_since_date);
+      freeze_until_date_ = to_integer<int32>(freeze_until_date);
+
+      send_closure(G()->td(), &Td::send_update, get_update_freeze_state_object());
+    }
   }
 
   user_online_timeout_.set_callback(on_user_online_timeout_callback);
@@ -4012,6 +4024,13 @@ void UserManager::on_update_freeze_state(int32 freeze_since_date, int32 freeze_u
   freeze_until_date_ = freeze_until_date;
   freeze_appeal_url_ = std::move(freeze_appeal_url);
   send_closure(G()->td(), &Td::send_update, get_update_freeze_state_object());
+
+  if (freeze_since_date_ > 0) {
+    G()->td_db()->get_binlog_pmc()->set(
+        "freeze_state", PSTRING() << freeze_since_date_ << ' ' << freeze_until_date_ << ' ' << freeze_appeal_url_);
+  } else {
+    G()->td_db()->get_binlog_pmc()->erase("freeze_state");
+  }
 }
 
 void UserManager::invalidate_user_full(UserId user_id) {
