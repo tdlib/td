@@ -8541,6 +8541,13 @@ updateLanguagePackStrings localization_target:string language_pack_id:string str
 //@description The connection state has changed. This update must be used only to show a human-readable description of the connection state @state The new connection state
 updateConnectionState state:ConnectionState = Update;
 
+//@description The freeze state of the current user's account has changed
+//@is_frozen True, if the account is frozen
+//@freezing_date Point in time (Unix timestamp) when the account was frozen; 0 if the account isn't frozen
+//@deletion_date Point in time (Unix timestamp) when the account will be deleted and can't be unfrozen; 0 if the account isn't frozen
+//@appeal_link The link to open to send an appeal to unfreeze the account
+updateFreezeState is_frozen:Bool freezing_date:int32 deletion_date:int32 appeal_link:string = Update;
+
 //@description New terms of service must be accepted by the user. If the terms of service are declined, then the deleteAccount method must be called with the reason "Decline ToS update" @terms_of_service_id Identifier of the terms of service @terms_of_service The new terms of service
 updateTermsOfService terms_of_service_id:string terms_of_service:termsOfService = Update;
 

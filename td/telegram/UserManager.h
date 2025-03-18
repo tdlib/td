@@ -194,6 +194,8 @@ class UserManager final : public Actor {
 
   void on_ignored_restriction_reasons_changed();
 
+  void on_update_freeze_state(int32 freeze_since_date, int32 freeze_until_date, string freeze_appeal_url);
+
   void invalidate_user_full(UserId user_id);
 
   bool have_user(UserId user_id) const;
@@ -1061,6 +1063,8 @@ class UserManager final : public Actor {
   td_api::object_ptr<td_api::secretChat> get_secret_chat_object_const(SecretChatId secret_chat_id,
                                                                       const SecretChat *secret_chat) const;
 
+  td_api::object_ptr<td_api::updateFreezeState> get_update_freeze_state_object() const;
+
   Td *td_;
   ActorShared<> parent_;
   UserId my_id_;
@@ -1157,6 +1161,10 @@ class UserManager final : public Actor {
   FlatHashMap<UserId, int64, UserIdHash> user_full_contact_price_;  // -1 - premium required
 
   WaitFreeHashSet<UserId, UserIdHash> restricted_user_ids_;
+
+  int32 freeze_since_date_ = 0;
+  int32 freeze_until_date_ = 0;
+  string freeze_appeal_url_;
 
   struct ContactBirthdates {
     vector<std::pair<UserId, Birthdate>> users_;

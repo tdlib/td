@@ -3998,6 +3998,22 @@ void UserManager::on_ignored_restriction_reasons_changed() {
   });
 }
 
+td_api::object_ptr<td_api::updateFreezeState> UserManager::get_update_freeze_state_object() const {
+  return td_api::make_object<td_api::updateFreezeState>(freeze_since_date_ > 0, freeze_since_date_, freeze_until_date_,
+                                                        freeze_appeal_url_);
+}
+
+void UserManager::on_update_freeze_state(int32 freeze_since_date, int32 freeze_until_date, string freeze_appeal_url) {
+  if (freeze_since_date == freeze_since_date_ && freeze_until_date == freeze_until_date_ &&
+      freeze_appeal_url == freeze_appeal_url_) {
+    return;
+  }
+  freeze_since_date_ = freeze_since_date;
+  freeze_until_date_ = freeze_until_date;
+  freeze_appeal_url_ = std::move(freeze_appeal_url);
+  send_closure(G()->td(), &Td::send_update, get_update_freeze_state_object());
+}
+
 void UserManager::invalidate_user_full(UserId user_id) {
   auto user_full = get_user_full_force(user_id, "invalidate_user_full");
   if (user_full != nullptr) {
@@ -8717,6 +8733,10 @@ void UserManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &
 
   if (!contact_birthdates_.users_.empty()) {
     updates.push_back(get_update_contact_close_birthdays());
+  }
+
+  if (freeze_since_date_ > 0) {
+    updates.push_back(get_update_freeze_state_object());
   }
 }
 

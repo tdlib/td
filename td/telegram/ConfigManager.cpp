@@ -1376,6 +1376,9 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   bool channel_revenue_withdrawal_enabled = false;
   bool can_edit_fact_check = false;
   vector<string> starref_start_param_prefixes;
+  int32 freeze_since_date = 0;
+  int32 freeze_until_date = 0;
+  string freeze_appeal_url;
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
@@ -2075,6 +2078,18 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         G()->set_option_integer("pinned_gift_count_max", get_json_value_int(std::move(key_value->value_), key));
         continue;
       }
+      if (key == "freeze_since_date") {
+        freeze_since_date = get_json_value_int(std::move(key_value->value_), key);
+        continue;
+      }
+      if (key == "freeze_until_date") {
+        freeze_until_date = get_json_value_int(std::move(key_value->value_), key);
+        continue;
+      }
+      if (key == "freeze_appeal_url") {
+        freeze_appeal_url = get_json_value_string(std::move(key_value->value_), key);
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -2089,6 +2104,9 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   send_closure(G()->transcription_manager(), &TranscriptionManager::on_update_trial_parameters,
                transcribe_audio_trial_weekly_number, transcribe_audio_trial_duration_max,
                transcribe_audio_trial_cooldown_until);
+
+  send_closure(G()->user_manager(), &UserManager::on_update_freeze_state, freeze_since_date, freeze_until_date,
+               std::move(freeze_appeal_url));
 
   Global &options = *G();
 
