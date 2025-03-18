@@ -13,7 +13,7 @@ from ctypes.util import find_library
 from typing import Any, Dict, Optional, Union
 
 
-class TelegramClient:
+class TdExample:
     """A Python client for the Telegram API using TDLib."""
 
     def __init__(self, api_id: int = None, api_hash: str = None):
@@ -224,9 +224,9 @@ def main():
     use_default = input("Use default API credentials for testing? (y/n): ").lower() == 'y'
     
     if use_default:
-        client = TelegramClient(DEFAULT_API_ID, DEFAULT_API_HASH)
+        client = TdExample(DEFAULT_API_ID, DEFAULT_API_HASH)
     else:
-        client = TelegramClient()
+        client = TdExample()
     
     # Test execute method
     print("\nTesting TDLib execute method...")
