@@ -47,6 +47,8 @@ class SponsoredMessageManager final : public Actor {
   struct SponsoredMessage;
   struct SponsoredMessageInfo;
   struct DialogSponsoredMessages;
+  struct SponsoredDialog;
+  struct SponsoredDialogs;
 
   void tear_down() final;
 
@@ -63,6 +65,11 @@ class SponsoredMessageManager final : public Actor {
 
   td_api::object_ptr<td_api::sponsoredMessages> get_sponsored_messages_object(
       DialogId dialog_id, const DialogSponsoredMessages &sponsored_messages) const;
+
+  td_api::object_ptr<td_api::sponsoredChat> get_sponsored_chat_object(const SponsoredDialog &sponsored_dialog) const;
+
+  td_api::object_ptr<td_api::sponsoredChats> get_sponsored_chats_object(
+      const SponsoredDialogs &sponsored_dialogs) const;
 
   void on_get_dialog_sponsored_messages(
       DialogId dialog_id, Result<telegram_api::object_ptr<telegram_api::messages_SponsoredMessages>> &&result);

@@ -217,6 +217,28 @@ struct SponsoredMessageManager::DialogSponsoredMessages {
   bool sponsored_enabled = false;
 };
 
+struct SponsoredMessageManager::SponsoredDialog {
+  int64 local_id = 0;
+  DialogId dialog_id;
+  string sponsor_info;
+  string additional_info;
+
+  SponsoredDialog(int64 local_id, DialogId dialog_id, string &&sponsor_info, string &&additional_info)
+      : local_id(local_id)
+      , dialog_id(dialog_id)
+      , sponsor_info(std::move(sponsor_info))
+      , additional_info(std::move(additional_info)) {
+  }
+};
+
+struct SponsoredMessageManager::SponsoredDialogs {
+  vector<Promise<td_api::object_ptr<td_api::sponsoredChats>>> promises;
+  vector<SponsoredDialog> dialogs;
+  FlatHashMap<int64, SponsoredMessageInfo> infos;
+  bool is_premium = false;
+  bool sponsored_enabled = false;
+};
+
 SponsoredMessageManager::SponsoredMessageManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   delete_cached_sponsored_messages_timeout_.set_callback(on_delete_cached_sponsored_messages_timeout_callback);
   delete_cached_sponsored_messages_timeout_.set_callback_data(static_cast<void *>(this));
@@ -279,6 +301,19 @@ td_api::object_ptr<td_api::sponsoredMessages> SponsoredMessageManager::get_spons
   });
   td::remove_if(messages, [](const auto &message) { return message == nullptr; });
   return td_api::make_object<td_api::sponsoredMessages>(std::move(messages), sponsored_messages.messages_between);
+}
+
+td_api::object_ptr<td_api::sponsoredChat> SponsoredMessageManager::get_sponsored_chat_object(
+    const SponsoredDialog &sponsored_dialog) const {
+  return td_api::make_object<td_api::sponsoredChat>(
+      sponsored_dialog.local_id, td_->dialog_manager_->get_chat_id_object(sponsored_dialog.dialog_id, "sponsoredChat"),
+      sponsored_dialog.sponsor_info, sponsored_dialog.additional_info);
+}
+
+td_api::object_ptr<td_api::sponsoredChats> SponsoredMessageManager::get_sponsored_chats_object(
+    const SponsoredDialogs &sponsored_dialogs) const {
+  return td_api::make_object<td_api::sponsoredChats>(transform(
+      sponsored_dialogs.dialogs, [this](const SponsoredDialog &dialog) { return get_sponsored_chat_object(dialog); }));
 }
 
 void SponsoredMessageManager::get_dialog_sponsored_messages(
