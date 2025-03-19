@@ -4207,7 +4207,6 @@ UserManager::User *UserManager::get_user_force(UserId user_id, const char *sourc
     int32 bot_info_version = 0;
 
     if (user_id == get_service_notifications_user_id()) {
-      flags |= USER_FLAG_HAS_PHONE_NUMBER;
       is_verified = true;
       is_support = true;
       first_name = "Telegram";
@@ -4219,7 +4218,6 @@ UserManager::User *UserManager::get_user_force(UserId user_id, const char *sourc
       }
       phone_number = "42777";
     } else if (user_id == get_replies_bot_user_id()) {
-      flags |= USER_FLAG_HAS_USERNAME;
       is_bot = true;
       if (!G()->is_test_dc()) {
         is_private_bot = true;
@@ -4228,7 +4226,6 @@ UserManager::User *UserManager::get_user_force(UserId user_id, const char *sourc
       username = "replies";
       bot_info_version = G()->is_test_dc() ? 1 : 3;
     } else if (user_id == get_verification_codes_bot_user_id()) {
-      flags |= USER_FLAG_HAS_USERNAME;
       is_bot = true;
       is_private_bot = true;
       is_verified = true;
@@ -4236,7 +4233,6 @@ UserManager::User *UserManager::get_user_force(UserId user_id, const char *sourc
       username = "VerificationCodes";
       bot_info_version = G()->is_test_dc() ? 4 : 2;
     } else if (user_id == get_anonymous_bot_user_id()) {
-      flags |= USER_FLAG_HAS_USERNAME;
       is_bot = true;
       if (!G()->is_test_dc()) {
         is_private_bot = true;
@@ -4246,7 +4242,6 @@ UserManager::User *UserManager::get_user_force(UserId user_id, const char *sourc
       bot_info_version = G()->is_test_dc() ? 1 : 3;
       profile_photo_id = 5159307831025969322;
     } else if (user_id == get_channel_bot_user_id()) {
-      flags |= USER_FLAG_HAS_USERNAME;
       is_bot = true;
       if (!G()->is_test_dc()) {
         is_private_bot = true;
@@ -4256,7 +4251,6 @@ UserManager::User *UserManager::get_user_force(UserId user_id, const char *sourc
       bot_info_version = G()->is_test_dc() ? 1 : 4;
       profile_photo_id = 587627495930570665;
     } else if (user_id == get_anti_spam_bot_user_id()) {
-      flags |= USER_FLAG_HAS_USERNAME;
       is_bot = true;
       if (G()->is_test_dc()) {
         first_name = "antispambot";
@@ -4267,6 +4261,12 @@ UserManager::User *UserManager::get_user_force(UserId user_id, const char *sourc
         username = "tgsantispambot";
         profile_photo_id = 5170408289966598902;
       }
+    }
+    if (!username.empty()) {
+      flags |= telegram_api::user::USERNAME_MASK;
+    }
+    if (!phone_number.empty()) {
+      flags |= telegram_api::user::PHONE_MASK;
     }
 
     telegram_api::object_ptr<telegram_api::userProfilePhoto> profile_photo;
