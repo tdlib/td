@@ -3459,12 +3459,11 @@ tl_object_ptr<telegram_api::InputMedia> StickersManager::get_input_media(
       flags |= telegram_api::inputMediaDocument::QUERY_MASK;
     }
     return telegram_api::make_object<telegram_api::inputMediaDocument>(
-        flags, false /*ignored*/, main_remote_location->as_input_document(), nullptr, 0, 0, emoji);
+        flags, false, main_remote_location->as_input_document(), nullptr, 0, 0, emoji);
   }
   const auto *url = file_view.get_url();
   if (url != nullptr) {
-    return telegram_api::make_object<telegram_api::inputMediaDocumentExternal>(0, false /*ignored*/, *url, 0, nullptr,
-                                                                               0);
+    return telegram_api::make_object<telegram_api::inputMediaDocumentExternal>(0, false, *url, 0, nullptr, 0);
   }
 
   if (input_file != nullptr) {
@@ -3486,8 +3485,7 @@ tl_object_ptr<telegram_api::InputMedia> StickersManager::get_input_media(
     }
     auto mime_type = get_sticker_format_mime_type(s->format_);
     return telegram_api::make_object<telegram_api::inputMediaUploadedDocument>(
-        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_file),
-        std::move(input_thumbnail), mime_type, std::move(attributes),
+        flags, false, false, false, std::move(input_file), std::move(input_thumbnail), mime_type, std::move(attributes),
         vector<telegram_api::object_ptr<telegram_api::InputDocument>>(), nullptr, 0, 0);
   } else {
     CHECK(main_remote_location == nullptr);

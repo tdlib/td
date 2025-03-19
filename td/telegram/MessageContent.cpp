@@ -4075,9 +4075,8 @@ static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_in
         flags |= telegram_api::inputMediaGeoLive::HEADING_MASK;
       }
       flags |= telegram_api::inputMediaGeoLive::PROXIMITY_NOTIFICATION_RADIUS_MASK;
-      return make_tl_object<telegram_api::inputMediaGeoLive>(flags, false /*ignored*/,
-                                                             m->location.get_input_geo_point(), m->heading, m->period,
-                                                             m->proximity_alert_radius);
+      return make_tl_object<telegram_api::inputMediaGeoLive>(flags, false, m->location.get_input_geo_point(),
+                                                             m->heading, m->period, m->proximity_alert_radius);
     }
     case MessageContentType::Location: {
       const auto *m = static_cast<const MessageLocation *>(content);
@@ -4276,24 +4275,17 @@ telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_fake_inpu
       attributes.push_back(telegram_api::make_object<telegram_api::documentAttributeFilename>(file_name.str()));
     }
     string mime_type = MimeType::from_extension(path_view.extension());
-    int32 flags = 0;
-    if (file_type == FileType::Video || file_type == FileType::VideoStory ||
-        file_type == FileType::SelfDestructingVideo) {
-      flags |= telegram_api::inputMediaUploadedDocument::NOSOUND_VIDEO_MASK;
-    }
-    if (file_type == FileType::DocumentAsFile) {
-      flags |= telegram_api::inputMediaUploadedDocument::FORCE_FILE_MASK;
-    }
+    auto nosound_video = (file_type == FileType::Video || file_type == FileType::VideoStory ||
+                          file_type == FileType::SelfDestructingVideo);
+    auto force_file = (file_type == FileType::DocumentAsFile);
     return telegram_api::make_object<telegram_api::inputMediaUploadedDocument>(
-        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_file), nullptr, mime_type,
-        std::move(attributes), vector<telegram_api::object_ptr<telegram_api::InputDocument>>(), nullptr, 0, 0);
+        0, nosound_video, force_file, false, std::move(input_file), nullptr, mime_type, std::move(attributes),
+        vector<telegram_api::object_ptr<telegram_api::InputDocument>>(), nullptr, 0, 0);
   } else {
     CHECK(file_type == FileType::Photo || file_type == FileType::PhotoStory ||
           file_type == FileType::SelfDestructingPhoto);
-    int32 flags = 0;
     return telegram_api::make_object<telegram_api::inputMediaUploadedPhoto>(
-        flags, false /*ignored*/, std::move(input_file),
-        vector<telegram_api::object_ptr<telegram_api::InputDocument>>(), 0);
+        0, false, std::move(input_file), vector<telegram_api::object_ptr<telegram_api::InputDocument>>(), 0);
   }
 }
 
@@ -4307,18 +4299,9 @@ telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_med
   if (text->web_page_url.empty()) {
     return nullptr;
   }
-  int32 flags = 0;
-  if (text->force_small_media) {
-    flags |= telegram_api::inputMediaWebPage::FORCE_SMALL_MEDIA_MASK;
-  }
-  if (text->force_large_media) {
-    flags |= telegram_api::inputMediaWebPage::FORCE_LARGE_MEDIA_MASK;
-  }
-  if (!text->text.text.empty()) {
-    flags |= telegram_api::inputMediaWebPage::OPTIONAL_MASK;
-  }
-  return telegram_api::make_object<telegram_api::inputMediaWebPage>(flags, false /*ignored*/, false /*ignored*/,
-                                                                    false /*ignored*/, text->web_page_url);
+  bool is_optional = !text->text.text.empty();
+  return telegram_api::make_object<telegram_api::inputMediaWebPage>(0, text->force_large_media, text->force_small_media,
+                                                                    is_optional, text->web_page_url);
 }
 
 bool is_uploaded_input_media(telegram_api::object_ptr<telegram_api::InputMedia> &input_media) {
@@ -4326,8 +4309,7 @@ bool is_uploaded_input_media(telegram_api::object_ptr<telegram_api::InputMedia> 
   LOG(DEBUG) << "Have " << to_string(input_media);
   switch (input_media->get_id()) {
     case telegram_api::inputMediaUploadedDocument::ID:
-      static_cast<telegram_api::inputMediaUploadedDocument *>(input_media.get())->flags_ |=
-          telegram_api::inputMediaUploadedDocument::NOSOUND_VIDEO_MASK;
+      static_cast<telegram_api::inputMediaUploadedDocument *>(input_media.get())->nosound_video_ = true;
     // fallthrough
     case telegram_api::inputMediaUploadedPhoto::ID:
     case telegram_api::inputMediaDocumentExternal::ID:

@@ -22473,9 +22473,6 @@ void MessagesManager::edit_message_live_location(MessageFullId message_full_id,
   auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), new_reply_markup);
 
   int32 flags = 0;
-  if (location.empty()) {
-    flags |= telegram_api::inputMediaGeoLive::STOPPED_MASK;
-  }
   if (live_period != 0) {
     flags |= telegram_api::inputMediaGeoLive::PERIOD_MASK;
   }
@@ -22484,7 +22481,7 @@ void MessagesManager::edit_message_live_location(MessageFullId message_full_id,
   }
   flags |= telegram_api::inputMediaGeoLive::PROXIMITY_NOTIFICATION_RADIUS_MASK;
   auto input_media = telegram_api::make_object<telegram_api::inputMediaGeoLive>(
-      flags, false /*ignored*/, location.get_input_geo_point(), heading, live_period, proximity_alert_radius);
+      flags, location.empty(), location.get_input_geo_point(), heading, live_period, proximity_alert_radius);
   td_->create_handler<EditMessageQuery>(std::move(promise))
       ->send(0, dialog_id, m->message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(),
              std::move(input_media), false /*ignored*/, std::move(input_reply_markup), get_message_schedule_date(m));

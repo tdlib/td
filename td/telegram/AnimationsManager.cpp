@@ -286,21 +286,12 @@ tl_object_ptr<telegram_api::InputMedia> AnimationsManager::get_input_media(
   }
   const auto *main_remote_location = file_view.get_main_remote_location();
   if (main_remote_location != nullptr && !main_remote_location->is_web() && input_file == nullptr) {
-    int32 flags = 0;
-    if (has_spoiler) {
-      flags |= telegram_api::inputMediaDocument::SPOILER_MASK;
-    }
     return telegram_api::make_object<telegram_api::inputMediaDocument>(
-        flags, false /*ignored*/, main_remote_location->as_input_document(), nullptr, 0, 0, string());
+        0, has_spoiler, main_remote_location->as_input_document(), nullptr, 0, 0, string());
   }
   const auto *url = file_view.get_url();
   if (url != nullptr) {
-    int32 flags = 0;
-    if (has_spoiler) {
-      flags |= telegram_api::inputMediaDocumentExternal::SPOILER_MASK;
-    }
-    return telegram_api::make_object<telegram_api::inputMediaDocumentExternal>(flags, false /*ignored*/, *url, 0,
-                                                                               nullptr, 0);
+    return telegram_api::make_object<telegram_api::inputMediaDocumentExternal>(0, has_spoiler, *url, 0, nullptr, 0);
   }
 
   if (input_file != nullptr) {
@@ -332,12 +323,9 @@ tl_object_ptr<telegram_api::InputMedia> AnimationsManager::get_input_media(
     if (input_thumbnail != nullptr) {
       flags |= telegram_api::inputMediaUploadedDocument::THUMB_MASK;
     }
-    if (has_spoiler) {
-      flags |= telegram_api::inputMediaUploadedDocument::SPOILER_MASK;
-    }
     return telegram_api::make_object<telegram_api::inputMediaUploadedDocument>(
-        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_file),
-        std::move(input_thumbnail), mime_type, std::move(attributes), std::move(added_stickers), nullptr, 0, 0);
+        flags, false, false, has_spoiler, std::move(input_file), std::move(input_thumbnail), mime_type,
+        std::move(attributes), std::move(added_stickers), nullptr, 0, 0);
   } else {
     CHECK(main_remote_location == nullptr);
   }

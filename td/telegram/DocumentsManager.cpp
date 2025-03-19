@@ -662,12 +662,11 @@ tl_object_ptr<telegram_api::InputMedia> DocumentsManager::get_input_media(
   const auto *main_remote_location = file_view.get_main_remote_location();
   if (main_remote_location != nullptr && !main_remote_location->is_web() && input_file == nullptr) {
     return telegram_api::make_object<telegram_api::inputMediaDocument>(
-        0, false /*ignored*/, main_remote_location->as_input_document(), nullptr, 0, 0, string());
+        0, false, main_remote_location->as_input_document(), nullptr, 0, 0, string());
   }
   const auto *url = file_view.get_url();
   if (url != nullptr) {
-    return telegram_api::make_object<telegram_api::inputMediaDocumentExternal>(0, false /*ignored*/, *url, 0, nullptr,
-                                                                               0);
+    return telegram_api::make_object<telegram_api::inputMediaDocumentExternal>(0, false, *url, 0, nullptr, 0);
   }
 
   if (input_file != nullptr) {
@@ -682,12 +681,8 @@ tl_object_ptr<telegram_api::InputMedia> DocumentsManager::get_input_media(
     if (input_thumbnail != nullptr) {
       flags |= telegram_api::inputMediaUploadedDocument::THUMB_MASK;
     }
-    auto file_type = file_view.get_type();
-    if (file_type == FileType::DocumentAsFile) {
-      flags |= telegram_api::inputMediaUploadedDocument::FORCE_FILE_MASK;
-    }
     return telegram_api::make_object<telegram_api::inputMediaUploadedDocument>(
-        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_file),
+        flags, false, file_view.get_type() == FileType::DocumentAsFile, false, std::move(input_file),
         std::move(input_thumbnail), document->mime_type, std::move(attributes),
         vector<telegram_api::object_ptr<telegram_api::InputDocument>>(), nullptr, 0, 0);
   } else {

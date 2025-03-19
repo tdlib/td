@@ -1374,9 +1374,6 @@ void BusinessConnectionManager::edit_business_message_live_location(
   auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), new_reply_markup);
 
   int32 flags = 0;
-  if (location.empty()) {
-    flags |= telegram_api::inputMediaGeoLive::STOPPED_MASK;
-  }
   if (live_period != 0) {
     flags |= telegram_api::inputMediaGeoLive::PERIOD_MASK;
   }
@@ -1385,7 +1382,7 @@ void BusinessConnectionManager::edit_business_message_live_location(
   }
   flags |= telegram_api::inputMediaGeoLive::PROXIMITY_NOTIFICATION_RADIUS_MASK;
   auto input_media = telegram_api::make_object<telegram_api::inputMediaGeoLive>(
-      flags, false /*ignored*/, location.get_input_geo_point(), heading, live_period, proximity_alert_radius);
+      flags, location.empty(), location.get_input_geo_point(), heading, live_period, proximity_alert_radius);
   td_->create_handler<EditBusinessMessageQuery>(std::move(promise))
       ->send(0, business_connection_id, dialog_id, message_id, string(),
              vector<telegram_api::object_ptr<telegram_api::MessageEntity>>(), std::move(input_media), false /*ignored*/,
