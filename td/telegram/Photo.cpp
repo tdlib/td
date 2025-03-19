@@ -736,8 +736,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const Photo &photo) {
   return string_builder << ']';
 }
 
-tl_object_ptr<telegram_api::userProfilePhoto> convert_photo_to_profile_photo(
-    const tl_object_ptr<telegram_api::photo> &photo, bool is_personal) {
+telegram_api::object_ptr<telegram_api::userProfilePhoto> convert_photo_to_profile_photo(
+    const telegram_api::object_ptr<telegram_api::photo> &photo, bool is_personal) {
   if (photo == nullptr) {
     return nullptr;
   }
@@ -786,8 +786,8 @@ tl_object_ptr<telegram_api::userProfilePhoto> convert_photo_to_profile_photo(
     return nullptr;
   }
   bool has_video = !photo->video_sizes_.empty();
-  return make_tl_object<telegram_api::userProfilePhoto>(0, has_video, is_personal, photo->id_, BufferSlice(),
-                                                        photo->dc_id_);
+  return telegram_api::make_object<telegram_api::userProfilePhoto>(0, has_video, is_personal, photo->id_, BufferSlice(),
+                                                                   photo->dc_id_);
 }
 
 }  // namespace td

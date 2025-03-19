@@ -155,7 +155,7 @@ bool operator!=(const Photo &lhs, const Photo &rhs);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const Photo &photo);
 
-tl_object_ptr<telegram_api::userProfilePhoto> convert_photo_to_profile_photo(
-    const tl_object_ptr<telegram_api::photo> &photo, bool is_personal);
+telegram_api::object_ptr<telegram_api::userProfilePhoto> convert_photo_to_profile_photo(
+    const telegram_api::object_ptr<telegram_api::photo> &photo, bool is_personal);
 
 }  // namespace td
