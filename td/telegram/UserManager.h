@@ -744,19 +744,6 @@ class UserManager final : public Actor {
 
   static constexpr int32 MAX_ACTIVE_STORY_ID_RELOAD_TIME = 3600;  // some reasonable limit
 
-  static constexpr int32 USER_FLAG_HAS_ACCESS_HASH = 1 << 0;
-  static constexpr int32 USER_FLAG_HAS_FIRST_NAME = 1 << 1;
-  static constexpr int32 USER_FLAG_HAS_LAST_NAME = 1 << 2;
-  static constexpr int32 USER_FLAG_HAS_USERNAME = 1 << 3;
-  static constexpr int32 USER_FLAG_HAS_PHONE_NUMBER = 1 << 4;
-  static constexpr int32 USER_FLAG_HAS_PHOTO = 1 << 5;
-  static constexpr int32 USER_FLAG_HAS_STATUS = 1 << 6;
-  static constexpr int32 USER_FLAG_HAS_BOT_INFO_VERSION = 1 << 14;
-  static constexpr int32 USER_FLAG_IS_INLINE_BOT = 1 << 19;
-  static constexpr int32 USER_FLAG_HAS_LANGUAGE_CODE = 1 << 22;
-  static constexpr int32 USER_FLAG_HAS_EMOJI_STATUS = 1 << 30;
-  static constexpr int32 USER_FLAG_HAS_USERNAMES = 1 << 0;
-
   static constexpr int32 USER_FULL_EXPIRE_TIME = 60;
 
   static constexpr int32 ACCOUNT_UPDATE_FIRST_NAME = 1 << 0;

@@ -2558,7 +2558,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
   }
 
   int32 flags = user->flags_;
-  bool have_access_hash = (flags & USER_FLAG_HAS_ACCESS_HASH) != 0;
+  bool have_access_hash = (flags & telegram_api::user::ACCESS_HASH_MASK) != 0;
   bool is_received = !user->min_;
   bool is_contact = user->contact_;
 
@@ -2591,7 +2591,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
 
   if (have_access_hash) {  // access_hash must be updated before photo
     auto access_hash = user->access_hash_;
-    bool is_min_access_hash = !is_received && !((flags & USER_FLAG_HAS_PHONE_NUMBER) != 0 && user->phone_.empty());
+    bool is_min_access_hash = !is_received && !((flags & telegram_api::user::PHONE_MASK) != 0 && user->phone_.empty());
     if (u->access_hash != access_hash && (!is_min_access_hash || u->is_min_access_hash || u->access_hash == -1)) {
       LOG(DEBUG) << "Access hash has changed for " << user_id << " from " << u->access_hash << "/"
                  << u->is_min_access_hash << " to " << access_hash << "/" << is_min_access_hash;
@@ -2612,7 +2612,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
   bool attach_menu_enabled = user->attach_menu_enabled_;
   bool is_scam = user->scam_;
   bool can_be_edited_bot = user->bot_can_edit_;
-  bool is_inline_bot = (flags & USER_FLAG_IS_INLINE_BOT) != 0;
+  bool is_inline_bot = (flags & telegram_api::user::BOT_INLINE_PLACEHOLDER_MASK) != 0;
   bool is_business_bot = user->bot_business_;
   string inline_query_placeholder = std::move(user->bot_inline_placeholder_);
   int32 bot_active_users = user->bot_active_users_;
@@ -2740,13 +2740,10 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
     u->is_changed = true;
   }
 
-  bool has_language_code = (flags & USER_FLAG_HAS_LANGUAGE_CODE) != 0;
-  LOG_IF(ERROR, has_language_code && !td_->auth_manager_->is_bot())
-      << "Receive language code for " << user_id << " from " << source;
   if (u->language_code != user->lang_code_ && !user->lang_code_.empty()) {
-    u->language_code = user->lang_code_;
+    LOG_IF(ERROR, !td_->auth_manager_->is_bot()) << "Receive language code for " << user_id << " from " << source;
 
-    LOG(DEBUG) << "Language code has changed for " << user_id << " to " << u->language_code;
+    u->language_code = user->lang_code_;
     u->is_changed = true;
   }
 
@@ -4187,7 +4184,7 @@ UserManager::User *UserManager::get_user_force(UserId user_id, const char *sourc
       (user_id == get_service_notifications_user_id() || user_id == get_replies_bot_user_id() ||
        user_id == get_verification_codes_bot_user_id() || user_id == get_anonymous_bot_user_id() ||
        user_id == get_channel_bot_user_id() || user_id == get_anti_spam_bot_user_id())) {
-    int32 flags = USER_FLAG_HAS_ACCESS_HASH | USER_FLAG_HAS_FIRST_NAME;
+    int32 flags = telegram_api::user::ACCESS_HASH_MASK;
     bool need_apply_min_photo = true;
     bool is_bot = false;
     bool is_private_bot = false;
@@ -4206,7 +4203,6 @@ UserManager::User *UserManager::get_user_force(UserId user_id, const char *sourc
       is_support = true;
       first_name = "Telegram";
       if (G()->is_test_dc()) {
-        flags |= USER_FLAG_HAS_LAST_NAME;
         last_name = "Notifications";
       } else {
         profile_photo_id = 3337190045231036;
@@ -4256,9 +4252,6 @@ UserManager::User *UserManager::get_user_force(UserId user_id, const char *sourc
         username = "tgsantispambot";
         profile_photo_id = 5170408289966598902;
       }
-    }
-    if (!username.empty()) {
-      flags |= telegram_api::user::USERNAME_MASK;
     }
     if (!phone_number.empty()) {
       flags |= telegram_api::user::PHONE_MASK;
