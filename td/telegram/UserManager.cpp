@@ -2617,7 +2617,6 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
   string inline_query_placeholder = std::move(user->bot_inline_placeholder_);
   int32 bot_active_users = user->bot_active_users_;
   bool need_location_bot = user->bot_inline_geo_;
-  bool has_bot_info_version = (flags & USER_FLAG_HAS_BOT_INFO_VERSION) != 0;
   bool need_apply_min_photo = user->apply_min_photo_;
   bool is_fake = user->fake_;
   bool stories_available = user->stories_max_id_ > 0;
@@ -2658,15 +2657,11 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
     inline_query_placeholder = string();
     bot_active_users = 0;
     need_location_bot = false;
-    has_bot_info_version = false;
     need_apply_min_photo = false;
     paid_message_star_count = 0;
   }
 
-  LOG_IF(ERROR, has_bot_info_version && !is_bot)
-      << "Receive not bot " << user_id << " which has bot info version from " << source;
-
-  int32 bot_info_version = has_bot_info_version ? user->bot_info_version_ : -1;
+  int32 bot_info_version = is_bot ? user->bot_info_version_ : -1;
   if (is_verified != u->is_verified || is_support != u->is_support || is_bot != u->is_bot ||
       can_join_groups != u->can_join_groups || can_read_all_group_messages != u->can_read_all_group_messages ||
       is_scam != u->is_scam || is_fake != u->is_fake || is_inline_bot != u->is_inline_bot ||
