@@ -464,8 +464,8 @@ class TlWriterDotNet final : public TL_writer {
     // ss << gen_field_name(a.name) << " = from_unmanaged(from->" <<
     // gen_native_field_name(a.name) << ");\n"; return ss.str();
   }
-  std::string gen_field_store(const arg &a, std::vector<var_description> &vars, bool flat,
-                              int storer_type) const final {
+  std::string gen_field_store(const arg &a, const std::vector<tl::arg> &args, std::vector<var_description> &vars,
+                              bool flat, int storer_type) const final {
     return "";
     // std::stringstream ss;
     // ss << "to_unmanaged(" << gen_field_name(a.name) << ")";

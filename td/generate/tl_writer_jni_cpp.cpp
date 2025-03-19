@@ -349,7 +349,8 @@ std::string TD_TL_writer_jni_cpp::gen_type_store(const std::string &field_name, 
   return res;
 }
 
-std::string TD_TL_writer_jni_cpp::gen_field_store(const tl::arg &a, std::vector<tl::var_description> &vars, bool flat,
+std::string TD_TL_writer_jni_cpp::gen_field_store(const tl::arg &a, const std::vector<tl::arg> &args,
+                                                  std::vector<tl::var_description> &vars, bool flat,
                                                   int storer_type) const {
   std::string field_name = gen_field_name(a.name);
   std::string shift = storer_type == 1 ? "    " : "  ";

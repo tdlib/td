@@ -244,8 +244,8 @@ std::string TD_TL_writer_h::gen_field_fetch(int field_num, const tl::arg &a, std
   return "";
 }
 
-std::string TD_TL_writer_h::gen_field_store(const tl::arg &a, std::vector<tl::var_description> &vars, bool flat,
-                                            int storer_type) const {
+std::string TD_TL_writer_h::gen_field_store(const tl::arg &a, const std::vector<tl::arg> &args,
+                                            std::vector<tl::var_description> &vars, bool flat, int storer_type) const {
   return "";
 }
 

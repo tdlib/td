@@ -178,7 +178,7 @@ static void write_function_store(tl_outputer &out, const std::string &storer_nam
   out.append(w.gen_store_function_begin(storer_name, class_name, 0, vars, storer_type));
   out.append(w.gen_constructor_id_store(t->id, storer_type));
   for (std::size_t i = 0; i < t->args.size(); i++) {
-    out.append(w.gen_field_store(t->args[i], vars, false, storer_type));
+    out.append(w.gen_field_store(t->args[i], t->args, vars, false, storer_type));
   }
 
   out.append(w.gen_store_function_end(vars, storer_type));
@@ -266,7 +266,7 @@ static void write_constructor_store(tl_outputer &out, const std::string &storer_
   out.append(w.gen_uni(result_type, vars, false));
   for (std::size_t i = 0; i < t->args.size(); i++) {
     //  std::fprintf(stderr, "%s: %s\n", result_type->type->name.c_str(), t->name.c_str());
-    out.append(w.gen_field_store(t->args[i], vars, is_flat, storer_type));
+    out.append(w.gen_field_store(t->args[i], t->args, vars, is_flat, storer_type));
   }
 
   out.append(w.gen_store_function_end(vars, storer_type));

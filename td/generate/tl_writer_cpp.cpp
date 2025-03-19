@@ -310,7 +310,10 @@ std::string TD_TL_writer_cpp::get_pretty_field_name(std::string field_name) cons
   auto equals_pos = field_name.find('=');
   if (equals_pos != std::string::npos && equals_pos + 3 < field_name.size()) {
     field_name = field_name.substr(equals_pos + 2);
-    if (field_name.back() == ')') {
+    auto bar_pos = field_name.find('|');
+    if (bar_pos != std::string::npos && bar_pos >= 2 && field_name[bar_pos - 1] == ' ') {
+      field_name = field_name.substr(0, bar_pos - 1);
+    } else if (field_name.back() == ')') {
       field_name.pop_back();
     }
   }
@@ -433,7 +436,8 @@ std::string TD_TL_writer_cpp::gen_type_store(const std::string &field_name, cons
   }
 }
 
-std::string TD_TL_writer_cpp::gen_field_store(const tl::arg &a, std::vector<tl::var_description> &vars, bool flat,
+std::string TD_TL_writer_cpp::gen_field_store(const tl::arg &a, const std::vector<tl::arg> &args,
+                                              std::vector<tl::var_description> &vars, bool flat,
                                               int storer_type) const {
   std::string field_name = gen_field_name(a.name);
   std::string res = storer_type == 1 ? "    " : "  ";
@@ -482,15 +486,13 @@ std::string TD_TL_writer_cpp::gen_field_store(const tl::arg &a, std::vector<tl::
         }
       }
     }
-  }
 
-  if (a.exist_var_num >= 0) {
     res += "if (" + gen_var_name(vars[a.exist_var_num]) + " & " + int_to_string(1 << a.exist_var_bit) + ") { ";
   }
 
   if (flat) {
     //    TODO
-    //    return gen_field_store(const tl::arg &a, std::vector<tl::var_description> &vars, bool flat, int storer_type);
+    //    return gen_field_store(const tl::arg &a, const std::vector<tl::arg> &args, std::vector<tl::var_description> &vars, bool flat, int storer_type);
   }
 
   if (a.var_num >= 0) {
@@ -498,7 +500,18 @@ std::string TD_TL_writer_cpp::gen_field_store(const tl::arg &a, std::vector<tl::
     assert(static_cast<const tl::tl_tree_type *>(a.type)->type->id == tl::ID_VAR_NUM);
     assert(a.var_num < static_cast<int>(vars.size()));
     if (!vars[a.var_num].is_stored) {
-      field_name = "(" + gen_var_name(vars[a.var_num]) + " = " + field_name + ")";
+      field_name = "(" + gen_var_name(vars[a.var_num]) + " = " + field_name;
+      for (const tl::arg &other_arg : args) {
+        if (other_arg.exist_var_num != a.var_num || other_arg.type->get_type() != tl::NODE_TYPE_TYPE ||
+            (other_arg.flags & tl::FLAG_OPT_VAR) != 0) {
+          continue;
+        }
+        const tl::tl_tree_type *tree_type = static_cast<tl::tl_tree_type *>(other_arg.type);
+        if (tree_type->type->name == "True") {
+          field_name += " | (" + gen_field_name(other_arg.name) + " << " + int_to_string(other_arg.exist_var_bit) + ")";
+        }
+      }
+      field_name += ")";
       vars[a.var_num].is_stored = true;
     } else {
       assert(false);  // need to check value of stored var

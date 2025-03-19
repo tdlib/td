@@ -1017,8 +1017,8 @@ class TlWriterCCommon final : public tl::TL_writer {
                               int parser_type) const final {
     return "";
   }
-  std::string gen_field_store(const tl::arg &a, std::vector<tl::var_description> &vars, bool flat,
-                              int storer_type) const final {
+  std::string gen_field_store(const tl::arg &a, const std::vector<tl::arg> &args,
+                              std::vector<tl::var_description> &vars, bool flat, int storer_type) const final {
     return "";
   }
   std::string gen_type_fetch(const std::string &field_name, const tl::tl_tree_type *tree_type,

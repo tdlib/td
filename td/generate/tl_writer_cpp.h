@@ -65,8 +65,8 @@ class TD_TL_writer_cpp : public TD_TL_writer {
 
   std::string gen_field_fetch(int field_num, const tl::arg &a, std::vector<tl::var_description> &vars, bool flat,
                               int parser_type) const override;
-  std::string gen_field_store(const tl::arg &a, std::vector<tl::var_description> &vars, bool flat,
-                              int storer_type) const override;
+  std::string gen_field_store(const tl::arg &a, const std::vector<tl::arg> &args,
+                              std::vector<tl::var_description> &vars, bool flat, int storer_type) const override;
   std::string gen_type_fetch(const std::string &field_name, const tl::tl_tree_type *tree_type,
                              const std::vector<tl::var_description> &vars, int parser_type) const override;
   std::string gen_type_store(const std::string &field_name, const tl::tl_tree_type *tree_type,
