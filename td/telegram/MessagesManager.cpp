@@ -4170,7 +4170,7 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
     return;
   }
 
-  bool has_date = (update->flags_ & telegram_api::updateServiceNotification::INBOX_DATE_MASK) != 0;
+  bool has_date = update->inbox_date_ != 0;
   auto date = has_date ? update->inbox_date_ : G()->unix_time();
   if (date <= 0) {
     LOG(ERROR) << "Receive message date " << date << " in " << to_string(update);
@@ -4301,7 +4301,7 @@ void MessagesManager::on_update_read_channel_messages_contents(
     return;
   }
 
-  if ((update->flags_ & telegram_api::updateChannelReadMessagesContents::TOP_MSG_ID_MASK) != 0) {
+  if (update->top_msg_id_ > 0) {
     // TODO
     return;
   }
@@ -10466,7 +10466,7 @@ void MessagesManager::on_get_secret_message(SecretChatId secret_chat_id, UserId 
   pending_secret_message->load_data_multipromise.add_promise(Auto());
   auto lock_promise = pending_secret_message->load_data_multipromise.get_promise();
 
-  if ((message->flags_ & secret_api::decryptedMessage::REPLY_TO_RANDOM_ID_MASK) != 0) {
+  if (message->reply_to_random_id_ != 0) {
     auto reply_to_message_id = get_message_id_by_random_id(d, message->reply_to_random_id_, "on_get_secret_message");
     if (!reply_to_message_id.is_valid()) {
       auto dialog_it = pending_secret_message_ids_.find(message_info.dialog_id);
@@ -11968,7 +11968,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     }
   }
 
-  vector<tl_object_ptr<telegram_api::dialog>> dialogs;
+  vector<telegram_api::object_ptr<telegram_api::dialog>> dialogs;
   for (auto &dialog_folder : dialog_folders) {
     switch (dialog_folder->get_id()) {
       case telegram_api::dialog::ID:
@@ -33794,7 +33794,7 @@ void MessagesManager::on_get_channel_difference(DialogId dialog_id, int32 reques
       }
 
       CHECK(dialog != nullptr);
-      if ((dialog->flags_ & telegram_api::dialog::PTS_MASK) == 0) {
+      if (dialog->pts_ <= 0) {
         LOG(ERROR) << "Receive " << dialog_id << " without PTS";
         return after_get_channel_difference(dialog_id, false);
       }

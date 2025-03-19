@@ -97,7 +97,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const ProfilePhoto &pro
 }
 
 DialogPhoto get_dialog_photo(FileManager *file_manager, DialogId dialog_id, int64 dialog_access_hash,
-                             tl_object_ptr<telegram_api::ChatPhoto> &&chat_photo_ptr) {
+                             telegram_api::object_ptr<telegram_api::ChatPhoto> &&chat_photo_ptr) {
   int32 chat_photo_id = chat_photo_ptr == nullptr ? telegram_api::chatPhotoEmpty::ID : chat_photo_ptr->get_id();
 
   DialogPhoto result;
@@ -105,7 +105,7 @@ DialogPhoto get_dialog_photo(FileManager *file_manager, DialogId dialog_id, int6
     case telegram_api::chatPhotoEmpty::ID:
       break;
     case telegram_api::chatPhoto::ID: {
-      auto chat_photo = move_tl_object_as<telegram_api::chatPhoto>(chat_photo_ptr);
+      auto chat_photo = telegram_api::move_object_as<telegram_api::chatPhoto>(chat_photo_ptr);
 
       auto dc_id = DcId::create(chat_photo->dc_id_);
       result.has_animation = chat_photo->has_video_;

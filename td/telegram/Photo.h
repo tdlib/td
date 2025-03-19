@@ -84,7 +84,7 @@ bool need_update_profile_photo(const ProfilePhoto &from, const ProfilePhoto &to)
 StringBuilder &operator<<(StringBuilder &string_builder, const ProfilePhoto &profile_photo);
 
 DialogPhoto get_dialog_photo(FileManager *file_manager, DialogId dialog_id, int64 dialog_access_hash,
-                             tl_object_ptr<telegram_api::ChatPhoto> &&chat_photo_ptr);
+                             telegram_api::object_ptr<telegram_api::ChatPhoto> &&chat_photo_ptr);
 
 tl_object_ptr<td_api::chatPhotoInfo> get_chat_photo_info_object(FileManager *file_manager,
                                                                 const DialogPhoto *dialog_photo);

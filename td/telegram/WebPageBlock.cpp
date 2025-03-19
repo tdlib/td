@@ -2213,12 +2213,11 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
                                                        td->chat_manager_->get_channel_accent_color_id(channel_id),
                                                        channel_id);
         } else {
-          bool has_access_hash = (channel->flags_ & telegram_api::channel::ACCESS_HASH_MASK) != 0;
           PeerColor peer_color(channel->color_);
           return td::make_unique<WebPageBlockChatLink>(
               std::move(channel->title_),
-              get_dialog_photo(td->file_manager_.get(), DialogId(channel_id),
-                               has_access_hash ? channel->access_hash_ : 0, std::move(channel->photo_)),
+              get_dialog_photo(td->file_manager_.get(), DialogId(channel_id), channel->access_hash_,
+                               std::move(channel->photo_)),
               std::move(channel->username_), peer_color.accent_color_id_, channel_id);
         }
       } else {
