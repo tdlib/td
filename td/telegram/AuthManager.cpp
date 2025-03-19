@@ -1239,10 +1239,8 @@ void AuthManager::on_get_authorization(tl_object_ptr<telegram_api::auth_Authoriz
   state_ = State::Ok;
   if (auth->user_->get_id() == telegram_api::user::ID) {
     auto *user = static_cast<telegram_api::user *>(auth->user_.get());
-    int32 mask = 1 << 10;
-    if ((user->flags_ & mask) == 0) {
+    if (!user->self_) {
       LOG(ERROR) << "Receive invalid authorization for " << to_string(auth->user_);
-      user->flags_ |= mask;
       user->self_ = true;
     }
   }

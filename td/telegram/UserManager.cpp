@@ -2547,22 +2547,20 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
     return;
   }
 
-  int32 flags = user->flags_;
-  int32 flags2 = user->flags2_;
-  LOG(INFO) << "Receive " << user_id << " with flags " << flags << ' ' << flags2 << " from " << source;
+  LOG(INFO) << "Receive " << user_id << " from " << source;
 
-  // the True fields aren't set for manually created telegram_api::user objects, therefore the flags must be used
-  bool is_bot = (flags & USER_FLAG_IS_BOT) != 0;
-  if (flags & USER_FLAG_IS_ME) {
+  bool is_bot = user->bot_;
+  if (user->self_) {
     set_my_id(user_id);
     if (!is_bot) {
       td_->option_manager_->set_option_string("my_phone_number", user->phone_);
     }
   }
 
+  int32 flags = user->flags_;
   bool have_access_hash = (flags & USER_FLAG_HAS_ACCESS_HASH) != 0;
-  bool is_received = (flags & USER_FLAG_IS_INACCESSIBLE) == 0;
-  bool is_contact = (flags & USER_FLAG_IS_CONTACT) != 0;
+  bool is_received = !user->min_;
+  bool is_contact = user->contact_;
 
   User *u = get_user(user_id);
   if (u == nullptr) {
@@ -2603,25 +2601,25 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
     }
   }
 
-  bool is_verified = (flags & USER_FLAG_IS_VERIFIED) != 0;
-  bool is_premium = (flags & USER_FLAG_IS_PREMIUM) != 0;
-  bool is_support = (flags & USER_FLAG_IS_SUPPORT) != 0;
-  bool is_deleted = (flags & USER_FLAG_IS_DELETED) != 0;
-  bool can_join_groups = (flags & USER_FLAG_IS_PRIVATE_BOT) == 0;
-  bool can_read_all_group_messages = (flags & USER_FLAG_IS_BOT_WITH_PRIVACY_DISABLED) != 0;
-  bool can_be_added_to_attach_menu = (flags & USER_FLAG_IS_ATTACH_MENU_BOT) != 0;
+  bool is_verified = user->verified_;
+  bool is_premium = user->premium_;
+  bool is_support = user->support_;
+  bool is_deleted = user->deleted_;
+  bool can_join_groups = !user->bot_nochats_;
+  bool can_read_all_group_messages = user->bot_chat_history_;
+  bool can_be_added_to_attach_menu = user->bot_attach_menu_;
   bool has_main_app = user->bot_has_main_app_;
-  bool attach_menu_enabled = (flags & USER_FLAG_ATTACH_MENU_ENABLED) != 0;
-  bool is_scam = (flags & USER_FLAG_IS_SCAM) != 0;
-  bool can_be_edited_bot = (flags2 & USER_FLAG_CAN_BE_EDITED_BOT) != 0;
+  bool attach_menu_enabled = user->attach_menu_enabled_;
+  bool is_scam = user->scam_;
+  bool can_be_edited_bot = user->bot_can_edit_;
   bool is_inline_bot = (flags & USER_FLAG_IS_INLINE_BOT) != 0;
   bool is_business_bot = user->bot_business_;
   string inline_query_placeholder = std::move(user->bot_inline_placeholder_);
   int32 bot_active_users = user->bot_active_users_;
-  bool need_location_bot = (flags & USER_FLAG_NEED_LOCATION_BOT) != 0;
+  bool need_location_bot = user->bot_inline_geo_;
   bool has_bot_info_version = (flags & USER_FLAG_HAS_BOT_INFO_VERSION) != 0;
-  bool need_apply_min_photo = (flags & USER_FLAG_NEED_APPLY_MIN_PHOTO) != 0;
-  bool is_fake = (flags & USER_FLAG_IS_FAKE) != 0;
+  bool need_apply_min_photo = user->apply_min_photo_;
+  bool is_fake = user->fake_;
   bool stories_available = user->stories_max_id_ > 0;
   bool stories_unavailable = user->stories_unavailable_;
   bool stories_hidden = user->stories_hidden_;
@@ -2769,9 +2767,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
       on_update_user_online(u, user_id, std::move(user->status_));
     }
     if (is_received) {
-      auto is_mutual_contact = (flags & USER_FLAG_IS_MUTUAL_CONTACT) != 0;
-      auto is_close_friend = (flags2 & USER_FLAG_IS_CLOSE_FRIEND) != 0;
-      on_update_user_is_contact(u, user_id, is_contact, is_mutual_contact, is_close_friend);
+      on_update_user_is_contact(u, user_id, is_contact, user->mutual_contact_, user->close_friend_);
     }
   }
 
@@ -4196,7 +4192,12 @@ UserManager::User *UserManager::get_user_force(UserId user_id, const char *sourc
       (user_id == get_service_notifications_user_id() || user_id == get_replies_bot_user_id() ||
        user_id == get_verification_codes_bot_user_id() || user_id == get_anonymous_bot_user_id() ||
        user_id == get_channel_bot_user_id() || user_id == get_anti_spam_bot_user_id())) {
-    int32 flags = USER_FLAG_HAS_ACCESS_HASH | USER_FLAG_HAS_FIRST_NAME | USER_FLAG_NEED_APPLY_MIN_PHOTO;
+    int32 flags = USER_FLAG_HAS_ACCESS_HASH | USER_FLAG_HAS_FIRST_NAME;
+    bool need_apply_min_photo = true;
+    bool is_bot = false;
+    bool is_private_bot = false;
+    bool is_verified = false;
+    bool is_support = false;
     int64 profile_photo_id = 0;
     int32 profile_photo_dc_id = 1;
     string first_name;
@@ -4206,7 +4207,9 @@ UserManager::User *UserManager::get_user_force(UserId user_id, const char *sourc
     int32 bot_info_version = 0;
 
     if (user_id == get_service_notifications_user_id()) {
-      flags |= USER_FLAG_HAS_PHONE_NUMBER | USER_FLAG_IS_VERIFIED | USER_FLAG_IS_SUPPORT;
+      flags |= USER_FLAG_HAS_PHONE_NUMBER;
+      is_verified = true;
+      is_support = true;
       first_name = "Telegram";
       if (G()->is_test_dc()) {
         flags |= USER_FLAG_HAS_LAST_NAME;
@@ -4216,43 +4219,50 @@ UserManager::User *UserManager::get_user_force(UserId user_id, const char *sourc
       }
       phone_number = "42777";
     } else if (user_id == get_replies_bot_user_id()) {
-      flags |= USER_FLAG_HAS_USERNAME | USER_FLAG_IS_BOT;
+      flags |= USER_FLAG_HAS_USERNAME;
+      is_bot = true;
       if (!G()->is_test_dc()) {
-        flags |= USER_FLAG_IS_PRIVATE_BOT;
+        is_private_bot = true;
       }
       first_name = "Replies";
       username = "replies";
       bot_info_version = G()->is_test_dc() ? 1 : 3;
     } else if (user_id == get_verification_codes_bot_user_id()) {
-      flags |= USER_FLAG_HAS_USERNAME | USER_FLAG_IS_BOT | USER_FLAG_IS_PRIVATE_BOT | USER_FLAG_IS_VERIFIED;
+      flags |= USER_FLAG_HAS_USERNAME;
+      is_bot = true;
+      is_private_bot = true;
+      is_verified = true;
       first_name = "Verification Codes";
       username = "VerificationCodes";
       bot_info_version = G()->is_test_dc() ? 4 : 2;
     } else if (user_id == get_anonymous_bot_user_id()) {
-      flags |= USER_FLAG_HAS_USERNAME | USER_FLAG_IS_BOT;
+      flags |= USER_FLAG_HAS_USERNAME;
+      is_bot = true;
       if (!G()->is_test_dc()) {
-        flags |= USER_FLAG_IS_PRIVATE_BOT;
+        is_private_bot = true;
       }
       first_name = "Group";
       username = G()->is_test_dc() ? "izgroupbot" : "GroupAnonymousBot";
       bot_info_version = G()->is_test_dc() ? 1 : 3;
       profile_photo_id = 5159307831025969322;
     } else if (user_id == get_channel_bot_user_id()) {
-      flags |= USER_FLAG_HAS_USERNAME | USER_FLAG_IS_BOT;
+      flags |= USER_FLAG_HAS_USERNAME;
+      is_bot = true;
       if (!G()->is_test_dc()) {
-        flags |= USER_FLAG_IS_PRIVATE_BOT;
+        is_private_bot = true;
       }
       first_name = G()->is_test_dc() ? "Channels" : "Channel";
       username = G()->is_test_dc() ? "channelsbot" : "Channel_Bot";
       bot_info_version = G()->is_test_dc() ? 1 : 4;
       profile_photo_id = 587627495930570665;
     } else if (user_id == get_anti_spam_bot_user_id()) {
-      flags |= USER_FLAG_HAS_USERNAME | USER_FLAG_IS_BOT;
+      flags |= USER_FLAG_HAS_USERNAME;
+      is_bot = true;
       if (G()->is_test_dc()) {
         first_name = "antispambot";
         username = "tantispambot";
       } else {
-        flags |= USER_FLAG_IS_VERIFIED;
+        is_verified = true;
         first_name = "Telegram Anti-Spam";
         username = "tgsantispambot";
         profile_photo_id = 5170408289966598902;
@@ -4266,14 +4276,11 @@ UserManager::User *UserManager::get_user_force(UserId user_id, const char *sourc
     }
 
     auto user = telegram_api::make_object<telegram_api::user>(
-        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, false /*ignored*/, false /*ignored*/, 0, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, user_id.get(), 1,
-        first_name, string(), username, phone_number, std::move(profile_photo), nullptr, bot_info_version, Auto(),
-        string(), string(), nullptr, vector<telegram_api::object_ptr<telegram_api::username>>(), 0, nullptr, nullptr, 0,
-        0, 0);
+        flags, false, false, false, false, is_bot, false, is_private_bot, is_verified, false, false, false, false,
+        false, need_apply_min_photo, false, false, false, false, 0, false, false, false, false, false, false, false,
+        user_id.get(), 1, first_name, string(), username, phone_number, std::move(profile_photo), nullptr,
+        bot_info_version, Auto(), string(), string(), nullptr,
+        vector<telegram_api::object_ptr<telegram_api::username>>(), 0, nullptr, nullptr, 0, 0, 0);
     on_get_user(std::move(user), "get_user_force");
     u = get_user(user_id);
     CHECK(u != nullptr && u->is_received);

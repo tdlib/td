@@ -2908,22 +2908,20 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
 void NotificationManager::add_push_notification_user(
     UserId sender_user_id, int64 sender_access_hash, const string &sender_name,
     telegram_api::object_ptr<telegram_api::UserProfilePhoto> &&sender_photo) {
-  int32 flags = USER_FLAG_IS_INACCESSIBLE;
+  int32 flags = 0;
   if (sender_access_hash != -1) {
     // set phone number flag to show that this is a full access hash
-    flags |= USER_FLAG_HAS_ACCESS_HASH | USER_FLAG_HAS_PHONE_NUMBER;
+    flags = USER_FLAG_HAS_ACCESS_HASH | USER_FLAG_HAS_PHONE_NUMBER;
   } else {
     sender_access_hash = 0;
   }
   auto user_name = sender_user_id.get() == 136817688 ? "Channel" : sender_name;
   auto user = telegram_api::make_object<telegram_api::user>(
-      flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-      false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-      false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-      false /*ignored*/, 0, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-      false /*ignored*/, false /*ignored*/, false /*ignored*/, sender_user_id.get(), sender_access_hash, user_name,
-      string(), string(), string(), std::move(sender_photo), nullptr, 0, Auto(), string(), string(), nullptr,
-      vector<telegram_api::object_ptr<telegram_api::username>>(), 0, nullptr, nullptr, 0, 0, 0);
+      flags, false, false, false, false, false, false, false, false, false, true /*min*/, false, false, false, false,
+      false, false, false, false, 0, false, false, false, false, false, false, false, sender_user_id.get(),
+      sender_access_hash, user_name, string(), string(), string(), std::move(sender_photo), nullptr, 0, Auto(),
+      string(), string(), nullptr, vector<telegram_api::object_ptr<telegram_api::username>>(), 0, nullptr, nullptr, 0,
+      0, 0);
   td_->user_manager_->on_get_user(std::move(user), "add_push_notification_user");
 }
 

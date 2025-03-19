@@ -744,7 +744,6 @@ class UserManager final : public Actor {
 
   static constexpr int32 MAX_ACTIVE_STORY_ID_RELOAD_TIME = 3600;  // some reasonable limit
 
-  // the True fields aren't set for manually created telegram_api::user objects, therefore the flags must be used
   static constexpr int32 USER_FLAG_HAS_ACCESS_HASH = 1 << 0;
   static constexpr int32 USER_FLAG_HAS_FIRST_NAME = 1 << 1;
   static constexpr int32 USER_FLAG_HAS_LAST_NAME = 1 << 2;
@@ -753,30 +752,10 @@ class UserManager final : public Actor {
   static constexpr int32 USER_FLAG_HAS_PHOTO = 1 << 5;
   static constexpr int32 USER_FLAG_HAS_STATUS = 1 << 6;
   static constexpr int32 USER_FLAG_HAS_BOT_INFO_VERSION = 1 << 14;
-  static constexpr int32 USER_FLAG_IS_ME = 1 << 10;
-  static constexpr int32 USER_FLAG_IS_CONTACT = 1 << 11;
-  static constexpr int32 USER_FLAG_IS_MUTUAL_CONTACT = 1 << 12;
-  static constexpr int32 USER_FLAG_IS_DELETED = 1 << 13;
-  static constexpr int32 USER_FLAG_IS_BOT = 1 << 14;
-  static constexpr int32 USER_FLAG_IS_BOT_WITH_PRIVACY_DISABLED = 1 << 15;
-  static constexpr int32 USER_FLAG_IS_PRIVATE_BOT = 1 << 16;
-  static constexpr int32 USER_FLAG_IS_VERIFIED = 1 << 17;
-  static constexpr int32 USER_FLAG_IS_RESTRICTED = 1 << 18;
   static constexpr int32 USER_FLAG_IS_INLINE_BOT = 1 << 19;
-  static constexpr int32 USER_FLAG_IS_INACCESSIBLE = 1 << 20;
-  static constexpr int32 USER_FLAG_NEED_LOCATION_BOT = 1 << 21;
   static constexpr int32 USER_FLAG_HAS_LANGUAGE_CODE = 1 << 22;
-  static constexpr int32 USER_FLAG_IS_SUPPORT = 1 << 23;
-  static constexpr int32 USER_FLAG_IS_SCAM = 1 << 24;
-  static constexpr int32 USER_FLAG_NEED_APPLY_MIN_PHOTO = 1 << 25;
-  static constexpr int32 USER_FLAG_IS_FAKE = 1 << 26;
-  static constexpr int32 USER_FLAG_IS_ATTACH_MENU_BOT = 1 << 27;
-  static constexpr int32 USER_FLAG_IS_PREMIUM = 1 << 28;
-  static constexpr int32 USER_FLAG_ATTACH_MENU_ENABLED = 1 << 29;
   static constexpr int32 USER_FLAG_HAS_EMOJI_STATUS = 1 << 30;
   static constexpr int32 USER_FLAG_HAS_USERNAMES = 1 << 0;
-  static constexpr int32 USER_FLAG_CAN_BE_EDITED_BOT = 1 << 1;
-  static constexpr int32 USER_FLAG_IS_CLOSE_FRIEND = 1 << 2;
 
   static constexpr int32 USER_FULL_EXPIRE_TIME = 60;
 
