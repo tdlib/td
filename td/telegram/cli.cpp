@@ -4250,6 +4250,8 @@ class CliClient final : public Actor {
       string option_id;
       get_args(args, chat_id, message_id, option_id);
       send_request(td_api::make_object<td_api::reportChatSponsoredMessage>(chat_id, message_id, option_id));
+    } else if (op == "gssc") {
+      send_request(td_api::make_object<td_api::getSearchSponsoredChats>(args));
     } else if (op == "gmlink") {
       ChatId chat_id;
       MessageId message_id;

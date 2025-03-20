@@ -9394,6 +9394,9 @@ clickChatSponsoredMessage chat_id:int53 message_id:int53 is_media_click:Bool fro
 //@option_id Option identifier chosen by the user; leave empty for the initial request
 reportChatSponsoredMessage chat_id:int53 message_id:int53 option_id:bytes = ReportChatSponsoredMessageResult;
 
+//@description Returns sponsored chats to be shown in the search results @query Query the user searches for
+getSearchSponsoredChats query:string = SponsoredChats;
+
 
 //@description Removes an active notification from notification list. Needs to be called only if the notification is removed by the current user @notification_group_id Identifier of notification group to which the notification belongs @notification_id Identifier of removed notification
 removeNotification notification_group_id:int32 notification_id:int32 = Ok;
