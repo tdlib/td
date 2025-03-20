@@ -51,6 +51,7 @@ class SpanImpl {
   SpanImpl &operator=(const SpanImpl<T, OtherInnerT> &other) {
     SpanImpl copy{other};
     *this = copy;
+    return *this;
   }
   template <class OtherInnerT>
   bool operator==(const SpanImpl<T, OtherInnerT> &other) const {
