@@ -604,4 +604,22 @@ inline StringBuilder &operator<<(StringBuilder &string_builder, const Status &st
   return status.print(string_builder);
 }
 
+template <class T>
+StringBuilder &operator<<(StringBuilder &sb, const Result<T> &result) {
+  if (result.is_ok()) {
+    return sb << "Ok{" << result.ok() << '}';
+  }
+  return sb << result.error();
+}
+
+template <class T, class S>
+bool operator==(const S &a, const Result<T> &b) {
+  return b.is_ok() && a == b.ok();
+}
+
+template <class T, class S>
+bool operator==(const Result<S> &a, const T &b) {
+  return a.is_ok() && a.ok() == b;
+}
+
 }  // namespace td
