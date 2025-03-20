@@ -23,7 +23,7 @@
 #include <openssl/evp.h>
 #include <openssl/pem.h>
 
-class Handshake {
+class BasicHandshake {
  public:
   struct KeyPair {
     td::SecureString private_key;
@@ -175,9 +175,9 @@ class Handshake {
   }
 };
 
-struct HandshakeTest {
-  Handshake::KeyPair alice;
-  Handshake::KeyPair bob;
+struct BasicHandshakeTest {
+  BasicHandshake::KeyPair alice;
+  BasicHandshake::KeyPair bob;
 
   td::SecureString shared_secret;
   td::SecureString key;
@@ -239,36 +239,36 @@ static td::SecureString encrypt(td::Slice key, td::Slice data, td::int32 seqno, 
   return res;
 }
 
-static HandshakeTest gen_test() {
-  HandshakeTest res;
-  res.alice = Handshake::generate_key_pair().move_as_ok();
+static BasicHandshakeTest gen_test() {
+  BasicHandshakeTest res;
+  res.alice = BasicHandshake::generate_key_pair().move_as_ok();
 
-  res.bob = Handshake::generate_key_pair().move_as_ok();
-  res.shared_secret = Handshake::calc_shared_secret(res.alice.private_key, res.bob.public_key).move_as_ok();
-  res.key = Handshake::expand_secret(res.shared_secret);
+  res.bob = BasicHandshake::generate_key_pair().move_as_ok();
+  res.shared_secret = BasicHandshake::calc_shared_secret(res.alice.private_key, res.bob.public_key).move_as_ok();
+  res.key = BasicHandshake::expand_secret(res.shared_secret);
   return res;
 }
 
-static void run_test(const HandshakeTest &test) {
-  CHECK(Handshake::get_public_key(test.alice.private_key).move_as_ok() == test.alice.public_key);
-  CHECK(Handshake::get_public_key(test.bob.private_key).move_as_ok() == test.bob.public_key);
-  auto alice_secret = Handshake::calc_shared_secret(test.alice.private_key, test.bob.public_key).move_as_ok();
-  auto bob_secret = Handshake::calc_shared_secret(test.bob.private_key, test.alice.public_key).move_as_ok();
-  auto key = Handshake::expand_secret(alice_secret);
+static void run_test(const BasicHandshakeTest &test) {
+  CHECK(BasicHandshake::get_public_key(test.alice.private_key).move_as_ok() == test.alice.public_key);
+  CHECK(BasicHandshake::get_public_key(test.bob.private_key).move_as_ok() == test.bob.public_key);
+  auto alice_secret = BasicHandshake::calc_shared_secret(test.alice.private_key, test.bob.public_key).move_as_ok();
+  auto bob_secret = BasicHandshake::calc_shared_secret(test.bob.private_key, test.alice.public_key).move_as_ok();
+  auto key = BasicHandshake::expand_secret(alice_secret);
   CHECK(alice_secret == bob_secret);
   CHECK(alice_secret == test.shared_secret);
   LOG(ERROR) << "Key\n\t" << td::base64url_encode(key) << "\n";
   CHECK(key == test.key);
 }
 
-static td::StringBuilder &operator<<(td::StringBuilder &sb, const Handshake::KeyPair &key_pair) {
+static td::StringBuilder &operator<<(td::StringBuilder &sb, const BasicHandshake::KeyPair &key_pair) {
   sb << "\tpublic_key (base64url) = " << td::base64url_encode(key_pair.public_key) << "\n";
   sb << "\tprivate_key (base64url) = " << td::base64url_encode(key_pair.private_key) << "\n";
-  sb << "\tprivate_key (pem) = \n" << Handshake::privateKeyToPem(key_pair.private_key).ok() << "\n";
+  sb << "\tprivate_key (pem) = \n" << BasicHandshake::privateKeyToPem(key_pair.private_key).ok() << "\n";
   return sb;
 }
 
-static td::StringBuilder &operator<<(td::StringBuilder &sb, const HandshakeTest &test) {
+static td::StringBuilder &operator<<(td::StringBuilder &sb, const BasicHandshakeTest &test) {
   sb << "Alice\n" << test.alice;
   sb << "Bob\n" << test.bob;
   sb << "SharedSecret\n\t" << td::base64url_encode(test.shared_secret) << "\n";
@@ -280,8 +280,8 @@ static td::StringBuilder &operator<<(td::StringBuilder &sb, const HandshakeTest 
   return sb;
 }
 
-static HandshakeTest pregenerated_test() {
-  HandshakeTest test;
+static BasicHandshakeTest pregenerated_test() {
+  BasicHandshakeTest test;
   test.alice.public_key = td::base64url_decode_secure("QlCME5fXLyyQQWeYnBiGAZbmzuD4ayOuADCFgmioOBY").move_as_ok();
   test.alice.private_key = td::base64url_decode_secure("8NZGWKfRCJfiks74RG9_xHmYydarLiRsoq8VcJGPglg").move_as_ok();
   test.bob.public_key = td::base64url_decode_secure("I1yzfmMCZzlI7xwMj1FJ3O3I3_aEUtv6CxbHiDGzr18").move_as_ok();
