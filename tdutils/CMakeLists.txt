@@ -265,6 +265,7 @@ set(TDUTILS_SOURCE
   td/utils/SetNode.h
   td/utils/SharedObjectPool.h
   td/utils/SharedSlice.h
+  td/utils/simple_tests.h
   td/utils/Slice-decl.h
   td/utils/Slice.h
   td/utils/SliceBuilder.h
