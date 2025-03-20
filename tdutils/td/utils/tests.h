@@ -37,12 +37,11 @@ class RandomSteps {
   }
 
   template <class Random>
-  void step(Random &rnd) const {
+  auto step(Random &rnd) const {
     auto w = rnd() % steps_sum_;
     for (const auto &step : steps_) {
       if (w < step.weight) {
-        step.func();
-        break;
+        return step.func();
       }
       w -= step.weight;
     }
@@ -183,6 +182,11 @@ void assert_eq_impl(const T1 &expected, const T2 &received, const char *file, in
                                   << " at line " << line;
 }
 
+template <class T1, class T2>
+void assert_neq_impl(const T1 &expected, const T2 &received, const char *file, int line) {
+  LOG_CHECK(expected != received) << tag("value", expected) << " in " << file << " at line " << line;
+}
+
 template <class T>
 void assert_true_impl(const T &received, const char *file, int line) {
   LOG_CHECK(received) << "Expected true in " << file << " at line " << line;
@@ -191,8 +195,10 @@ void assert_true_impl(const T &received, const char *file, int line) {
 }  // namespace td
 
 #define ASSERT_EQ(expected, received) ::td::assert_eq_impl((expected), (received), __FILE__, __LINE__)
+#define ASSERT_NE(expected, received) ::td::assert_neq_impl((expected), (received), __FILE__, __LINE__)
 
 #define ASSERT_TRUE(received) ::td::assert_true_impl((received), __FILE__, __LINE__)
+#define ASSERT_FALSE(received) ::td::assert_true_impl(!(received), __FILE__, __LINE__)
 
 #define ASSERT_STREQ(expected, received) \
   ::td::assert_eq_impl(::td::Slice((expected)), ::td::Slice((received)), __FILE__, __LINE__)
