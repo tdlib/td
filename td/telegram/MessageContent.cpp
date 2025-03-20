@@ -3128,7 +3128,7 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
   result.invert_media = false;
   switch (bot_inline_message->get_id()) {
     case telegram_api::botInlineMessageText::ID: {
-      auto inline_message = move_tl_object_as<telegram_api::botInlineMessageText>(bot_inline_message);
+      auto inline_message = telegram_api::move_object_as<telegram_api::botInlineMessageText>(bot_inline_message);
       auto text = get_formatted_text(td->user_manager_.get(), std::move(inline_message->message_),
                                      std::move(inline_message->entities_), false, false, "botInlineMessageText");
       result.disable_web_page_preview = inline_message->no_webpage_;
@@ -3143,7 +3143,8 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
       break;
     }
     case telegram_api::botInlineMessageMediaWebPage::ID: {
-      auto inline_message = move_tl_object_as<telegram_api::botInlineMessageMediaWebPage>(bot_inline_message);
+      auto inline_message =
+          telegram_api::move_object_as<telegram_api::botInlineMessageMediaWebPage>(bot_inline_message);
       string web_page_url;
       if (inline_message->manual_) {
         web_page_url = std::move(inline_message->url_);
@@ -3161,13 +3162,14 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
       break;
     }
     case telegram_api::botInlineMessageMediaInvoice::ID: {
-      auto inline_message = move_tl_object_as<telegram_api::botInlineMessageMediaInvoice>(bot_inline_message);
+      auto inline_message =
+          telegram_api::move_object_as<telegram_api::botInlineMessageMediaInvoice>(bot_inline_message);
       reply_markup = std::move(inline_message->reply_markup_);
       result.message_content = make_unique<MessageInvoice>(InputInvoice(std::move(inline_message), td, DialogId()));
       break;
     }
     case telegram_api::botInlineMessageMediaGeo::ID: {
-      auto inline_message = move_tl_object_as<telegram_api::botInlineMessageMediaGeo>(bot_inline_message);
+      auto inline_message = telegram_api::move_object_as<telegram_api::botInlineMessageMediaGeo>(bot_inline_message);
       if (inline_message->period_ > 0) {
         result.message_content =
             make_unique<MessageLiveLocation>(Location(td, inline_message->geo_), inline_message->period_,
@@ -3179,7 +3181,7 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
       break;
     }
     case telegram_api::botInlineMessageMediaVenue::ID: {
-      auto inline_message = move_tl_object_as<telegram_api::botInlineMessageMediaVenue>(bot_inline_message);
+      auto inline_message = telegram_api::move_object_as<telegram_api::botInlineMessageMediaVenue>(bot_inline_message);
       result.message_content = make_unique<MessageVenue>(
           Venue(td, inline_message->geo_, std::move(inline_message->title_), std::move(inline_message->address_),
                 std::move(inline_message->provider_), std::move(inline_message->venue_id_),
@@ -3188,7 +3190,8 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
       break;
     }
     case telegram_api::botInlineMessageMediaContact::ID: {
-      auto inline_message = move_tl_object_as<telegram_api::botInlineMessageMediaContact>(bot_inline_message);
+      auto inline_message =
+          telegram_api::move_object_as<telegram_api::botInlineMessageMediaContact>(bot_inline_message);
       result.message_content = make_unique<MessageContact>(
           Contact(std::move(inline_message->phone_number_), std::move(inline_message->first_name_),
                   std::move(inline_message->last_name_), std::move(inline_message->vcard_), UserId()));
@@ -3196,7 +3199,7 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
       break;
     }
     case telegram_api::botInlineMessageMediaAuto::ID: {
-      auto inline_message = move_tl_object_as<telegram_api::botInlineMessageMediaAuto>(bot_inline_message);
+      auto inline_message = telegram_api::move_object_as<telegram_api::botInlineMessageMediaAuto>(bot_inline_message);
       auto caption =
           get_message_text(td->user_manager_.get(), inline_message->message_, std::move(inline_message->entities_),
                            true, false, 0, false, "create_inline_message_content");
@@ -6918,7 +6921,7 @@ unique_ptr<MessageContent> get_secret_message_content(
   // support of old layer and old constructions
   switch (constructor_id) {
     case secret_api::decryptedMessageMediaDocument46::ID: {
-      auto media = move_tl_object_as<secret_api::decryptedMessageMediaDocument46>(media_ptr);
+      auto media = secret_api::move_object_as<secret_api::decryptedMessageMediaDocument46>(media_ptr);
       media_ptr = make_tl_object<secret_api::decryptedMessageMediaDocument>(
           std::move(media->thumb_), media->thumb_w_, media->thumb_h_, media->mime_type_, media->size_,
           std::move(media->key_), std::move(media->iv_), std::move(media->attributes_), string());
@@ -6927,7 +6930,7 @@ unique_ptr<MessageContent> get_secret_message_content(
       break;
     }
     case secret_api::decryptedMessageMediaVideo::ID: {
-      auto media = move_tl_object_as<secret_api::decryptedMessageMediaVideo>(media_ptr);
+      auto media = secret_api::move_object_as<secret_api::decryptedMessageMediaVideo>(media_ptr);
       vector<tl_object_ptr<secret_api::DocumentAttribute>> attributes;
       attributes.emplace_back(
           make_tl_object<secret_api::documentAttributeVideo>(0, false, media->duration_, media->w_, media->h_));
@@ -6951,7 +6954,7 @@ unique_ptr<MessageContent> get_secret_message_content(
       is_media_empty = true;
       break;
     case secret_api::decryptedMessageMediaGeoPoint::ID: {
-      auto media = move_tl_object_as<secret_api::decryptedMessageMediaGeoPoint>(media_ptr);
+      auto media = secret_api::move_object_as<secret_api::decryptedMessageMediaGeoPoint>(media_ptr);
 
       auto m = make_unique<MessageLocation>(Location(media));
       if (m->location.empty()) {
@@ -6962,7 +6965,7 @@ unique_ptr<MessageContent> get_secret_message_content(
       return std::move(m);
     }
     case secret_api::decryptedMessageMediaVenue::ID: {
-      auto media = move_tl_object_as<secret_api::decryptedMessageMediaVenue>(media_ptr);
+      auto media = secret_api::move_object_as<secret_api::decryptedMessageMediaVenue>(media_ptr);
 
       if (!clean_input_string(media->title_)) {
         media->title_.clear();
@@ -6988,7 +6991,7 @@ unique_ptr<MessageContent> get_secret_message_content(
       return std::move(m);
     }
     case secret_api::decryptedMessageMediaContact::ID: {
-      auto media = move_tl_object_as<secret_api::decryptedMessageMediaContact>(media_ptr);
+      auto media = secret_api::move_object_as<secret_api::decryptedMessageMediaContact>(media_ptr);
       if (!clean_input_string(media->phone_number_)) {
         media->phone_number_.clear();
       }
@@ -7002,7 +7005,7 @@ unique_ptr<MessageContent> get_secret_message_content(
                                                  std::move(media->last_name_), string(), UserId()));
     }
     case secret_api::decryptedMessageMediaWebPage::ID: {
-      auto media = move_tl_object_as<secret_api::decryptedMessageMediaWebPage>(media_ptr);
+      auto media = secret_api::move_object_as<secret_api::decryptedMessageMediaWebPage>(media_ptr);
       if (!clean_input_string(media->url_)) {
         media->url_.clear();
       }
@@ -7027,7 +7030,7 @@ unique_ptr<MessageContent> get_secret_message_content(
       return std::move(result);
     }
     case secret_api::decryptedMessageMediaExternalDocument::ID: {
-      auto media = move_tl_object_as<secret_api::decryptedMessageMediaExternalDocument>(media_ptr);
+      auto media = secret_api::move_object_as<secret_api::decryptedMessageMediaExternalDocument>(media_ptr);
       return get_document_message_content(td, secret_to_telegram_document(*media), owner_dialog_id, false,
                                           FormattedText{std::move(message_text), std::move(entities)}, false,
                                           is_premium, false, {}, {}, Photo(), 0, &load_data_multipromise);
@@ -7045,13 +7048,13 @@ unique_ptr<MessageContent> get_secret_message_content(
   }
   switch (constructor_id) {
     case secret_api::decryptedMessageMediaPhoto::ID: {
-      auto media = move_tl_object_as<secret_api::decryptedMessageMediaPhoto>(media_ptr);
+      auto media = secret_api::move_object_as<secret_api::decryptedMessageMediaPhoto>(media_ptr);
       return make_unique<MessagePhoto>(
           get_encrypted_file_photo(td->file_manager_.get(), std::move(file), std::move(media), owner_dialog_id),
           FormattedText{std::move(message_text), std::move(entities)}, false);
     }
     case secret_api::decryptedMessageMediaDocument::ID: {
-      auto media = move_tl_object_as<secret_api::decryptedMessageMediaDocument>(media_ptr);
+      auto media = secret_api::move_object_as<secret_api::decryptedMessageMediaDocument>(media_ptr);
       if (!clean_input_string(media->mime_type_)) {
         media->mime_type_.clear();
       }
@@ -7103,7 +7106,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       }
       return td::make_unique<MessageText>(std::move(message), WebPageId(), false, false, false, string());
     case telegram_api::messageMediaPhoto::ID: {
-      auto media = move_tl_object_as<telegram_api::messageMediaPhoto>(media_ptr);
+      auto media = telegram_api::move_object_as<telegram_api::messageMediaPhoto>(media_ptr);
       if (media->photo_ == nullptr) {
         if ((media->flags_ & telegram_api::messageMediaPhoto::TTL_SECONDS_MASK) == 0) {
           LOG(ERROR) << "Receive messageMediaPhoto without photo and self-destruct timer from " << source << ": "
@@ -7127,7 +7130,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       return make_unique<MessagePhoto>(std::move(photo), std::move(message), media->spoiler_);
     }
     case telegram_api::messageMediaDice::ID: {
-      auto media = move_tl_object_as<telegram_api::messageMediaDice>(media_ptr);
+      auto media = telegram_api::move_object_as<telegram_api::messageMediaDice>(media_ptr);
 
       auto m = td::make_unique<MessageDice>(media->emoticon_, media->value_);
       if (!m->is_valid()) {
@@ -7137,7 +7140,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       return std::move(m);
     }
     case telegram_api::messageMediaGeo::ID: {
-      auto media = move_tl_object_as<telegram_api::messageMediaGeo>(media_ptr);
+      auto media = telegram_api::move_object_as<telegram_api::messageMediaGeo>(media_ptr);
 
       auto m = make_unique<MessageLocation>(Location(td, media->geo_));
       if (m->location.empty()) {
@@ -7147,7 +7150,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       return std::move(m);
     }
     case telegram_api::messageMediaGeoLive::ID: {
-      auto media = move_tl_object_as<telegram_api::messageMediaGeoLive>(media_ptr);
+      auto media = telegram_api::move_object_as<telegram_api::messageMediaGeoLive>(media_ptr);
       auto location = Location(td, media->geo_);
       if (location.empty()) {
         break;
@@ -7162,7 +7165,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
                                               media->proximity_notification_radius_);
     }
     case telegram_api::messageMediaVenue::ID: {
-      auto media = move_tl_object_as<telegram_api::messageMediaVenue>(media_ptr);
+      auto media = telegram_api::move_object_as<telegram_api::messageMediaVenue>(media_ptr);
       auto m = make_unique<MessageVenue>(Venue(td, media->geo_, std::move(media->title_), std::move(media->address_),
                                                std::move(media->provider_), std::move(media->venue_id_),
                                                std::move(media->venue_type_)));
@@ -7173,7 +7176,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       return std::move(m);
     }
     case telegram_api::messageMediaContact::ID: {
-      auto media = move_tl_object_as<telegram_api::messageMediaContact>(media_ptr);
+      auto media = telegram_api::move_object_as<telegram_api::messageMediaContact>(media_ptr);
       if (media->user_id_ != 0) {
         td->user_manager_->get_user_id_object(UserId(media->user_id_),
                                               "MessageMediaContact");  // to ensure updateUser
@@ -7183,7 +7186,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
                                                  UserId(media->user_id_)));
     }
     case telegram_api::messageMediaDocument::ID: {
-      auto media = move_tl_object_as<telegram_api::messageMediaDocument>(media_ptr);
+      auto media = telegram_api::move_object_as<telegram_api::messageMediaDocument>(media_ptr);
       if (media->document_ == nullptr) {
         if ((media->flags_ & telegram_api::messageMediaDocument::TTL_SECONDS_MASK) == 0) {
           LOG(ERROR) << "Receive messageMediaDocument without document and self-destruct timer from " << source << ": "
@@ -7224,7 +7227,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
           LOG(ERROR) << "Receive alternative " << to_string(alt_document_ptr);
         } else {
           CHECK(alt_document_id == telegram_api::document::ID);
-          auto document = move_tl_object_as<telegram_api::document>(alt_document_ptr);
+          auto document = telegram_api::move_object_as<telegram_api::document>(alt_document_ptr);
           if (document->mime_type_ == "application/x-mpegurl") {
             auto parsed_hls_file = td->documents_manager_->on_get_document(std::move(document), owner_dialog_id, false);
             if (parsed_hls_file.empty() || parsed_hls_file.type != Document::Type::General) {
@@ -7254,7 +7257,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
           std::move(hls_file_ids), std::move(video_cover), media->video_timestamp_, nullptr);
     }
     case telegram_api::messageMediaGame::ID: {
-      auto media = move_tl_object_as<telegram_api::messageMediaGame>(media_ptr);
+      auto media = telegram_api::move_object_as<telegram_api::messageMediaGame>(media_ptr);
 
       auto m = make_unique<MessageGame>(
           Game(td, via_bot_user_id, std::move(media->game_), std::move(message), owner_dialog_id));
@@ -7264,10 +7267,11 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       return std::move(m);
     }
     case telegram_api::messageMediaInvoice::ID:
-      return td::make_unique<MessageInvoice>(InputInvoice(
-          move_tl_object_as<telegram_api::messageMediaInvoice>(media_ptr), td, owner_dialog_id, std::move(message)));
+      return td::make_unique<MessageInvoice>(
+          InputInvoice(telegram_api::move_object_as<telegram_api::messageMediaInvoice>(media_ptr), td, owner_dialog_id,
+                       std::move(message)));
     case telegram_api::messageMediaWebPage::ID: {
-      auto media = move_tl_object_as<telegram_api::messageMediaWebPage>(media_ptr);
+      auto media = telegram_api::move_object_as<telegram_api::messageMediaWebPage>(media_ptr);
       string web_page_url;
       if (media->manual_ || media->force_small_media_ || media->force_large_media_) {
         web_page_url = WebPagesManager::get_web_page_url(media->webpage_);
@@ -7282,7 +7286,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
                                           media->force_large_media_, media->safe_, std::move(web_page_url));
     }
     case telegram_api::messageMediaPoll::ID: {
-      auto media = move_tl_object_as<telegram_api::messageMediaPoll>(media_ptr);
+      auto media = telegram_api::move_object_as<telegram_api::messageMediaPoll>(media_ptr);
       auto poll_id =
           td->poll_manager_->on_get_poll(PollId(), std::move(media->poll_), std::move(media->results_), source);
       if (!poll_id.is_valid()) {
@@ -7291,7 +7295,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       return make_unique<MessagePoll>(poll_id);
     }
     case telegram_api::messageMediaStory::ID: {
-      auto media = move_tl_object_as<telegram_api::messageMediaStory>(media_ptr);
+      auto media = telegram_api::move_object_as<telegram_api::messageMediaStory>(media_ptr);
       auto dialog_id = DialogId(media->peer_);
       auto story_id = StoryId(media->id_);
       auto story_full_id = StoryFullId(dialog_id, story_id);
@@ -7309,7 +7313,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       return make_unique<MessageStory>(story_full_id, media->via_mention_);
     }
     case telegram_api::messageMediaGiveaway::ID: {
-      auto media = move_tl_object_as<telegram_api::messageMediaGiveaway>(media_ptr);
+      auto media = telegram_api::move_object_as<telegram_api::messageMediaGiveaway>(media_ptr);
       vector<ChannelId> channel_ids;
       for (auto channel : media->channels_) {
         ChannelId channel_id(channel);
@@ -7334,7 +7338,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
           media->quantity_, media->months_, StarManager::get_star_count(media->stars_));
     }
     case telegram_api::messageMediaGiveawayResults::ID: {
-      auto media = move_tl_object_as<telegram_api::messageMediaGiveawayResults>(media_ptr);
+      auto media = telegram_api::move_object_as<telegram_api::messageMediaGiveawayResults>(media_ptr);
       auto giveaway_message_id = MessageId(ServerMessageId(media->launch_msg_id_));
       auto boosted_channel_id = ChannelId(media->channel_id_);
       if (!giveaway_message_id.is_valid() || !boosted_channel_id.is_valid() || media->additional_peers_count_ < 0 ||
@@ -7686,7 +7690,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       LOG(ERROR) << "Receive empty message action in " << owner_dialog_id;
       break;
     case telegram_api::messageActionChatCreate::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionChatCreate>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionChatCreate>(action_ptr);
 
       vector<UserId> participant_user_ids;
       participant_user_ids.reserve(action->users_.size());
@@ -7702,11 +7706,11 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return td::make_unique<MessageChatCreate>(std::move(action->title_), std::move(participant_user_ids));
     }
     case telegram_api::messageActionChatEditTitle::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionChatEditTitle>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionChatEditTitle>(action_ptr);
       return td::make_unique<MessageChatChangeTitle>(std::move(action->title_));
     }
     case telegram_api::messageActionChatEditPhoto::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionChatEditPhoto>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionChatEditPhoto>(action_ptr);
       auto photo = get_photo(td, std::move(action->photo_), owner_dialog_id);
       if (photo.is_empty()) {
         break;
@@ -7718,7 +7722,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     case telegram_api::messageActionHistoryClear::ID:
       return make_unique<MessageChatDeleteHistory>();
     case telegram_api::messageActionChatAddUser::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionChatAddUser>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionChatAddUser>(action_ptr);
 
       vector<UserId> user_ids;
       user_ids.reserve(action->users_.size());
@@ -7736,7 +7740,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     case telegram_api::messageActionChatJoinedByLink::ID:
       return make_unique<MessageChatJoinedByLink>(false);
     case telegram_api::messageActionChatDeleteUser::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionChatDeleteUser>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionChatDeleteUser>(action_ptr);
 
       UserId user_id(action->user_id_);
       if (!user_id.is_valid()) {
@@ -7747,7 +7751,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return make_unique<MessageChatDeleteUser>(user_id);
     }
     case telegram_api::messageActionChatMigrateTo::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionChatMigrateTo>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionChatMigrateTo>(action_ptr);
 
       ChannelId migrated_to_channel_id(action->channel_id_);
       if (!migrated_to_channel_id.is_valid()) {
@@ -7759,11 +7763,11 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return make_unique<MessageChatMigrateTo>(migrated_to_channel_id);
     }
     case telegram_api::messageActionChannelCreate::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionChannelCreate>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionChannelCreate>(action_ptr);
       return td::make_unique<MessageChannelCreate>(std::move(action->title_));
     }
     case telegram_api::messageActionChannelMigrateFrom::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionChannelMigrateFrom>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionChannelMigrateFrom>(action_ptr);
       ChatId chat_id(action->chat_id_);
       LOG_IF(ERROR, !chat_id.is_valid()) << "Receive messageActionChannelMigrateFrom with invalid " << chat_id << " in "
                                          << owner_dialog_id;
@@ -7786,11 +7790,11 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
         LOG(INFO) << "Receive game score with " << reply_to_message_id << " in " << owner_dialog_id;
         reply_to_message_id = MessageId();
       }
-      auto action = move_tl_object_as<telegram_api::messageActionGameScore>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionGameScore>(action_ptr);
       return make_unique<MessageGameScore>(reply_to_message_id, action->game_id_, action->score_);
     }
     case telegram_api::messageActionPhoneCall::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionPhoneCall>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionPhoneCall>(action_ptr);
       auto duration = action->duration_;
       if (duration < 0) {
         LOG(ERROR) << "Receive invalid " << oneline(to_string(action));
@@ -7804,7 +7808,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
         LOG(ERROR) << "Receive MessageActionPaymentSent in " << owner_dialog_id;
         break;
       }
-      auto action = move_tl_object_as<telegram_api::messageActionPaymentSent>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionPaymentSent>(action_ptr);
       auto message_full_id = replied_message_info.get_reply_message_full_id(DialogId(), true);
       if (!message_full_id.get_message_id().is_valid()) {
         if (message_full_id.get_message_id() != MessageId()) {
@@ -7822,7 +7826,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
           action->recurring_used_, action->recurring_init_);
     }
     case telegram_api::messageActionPaymentSentMe::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionPaymentSentMe>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionPaymentSentMe>(action_ptr);
       if (action->total_amount_ <= 0 || !check_currency_amount(action->total_amount_)) {
         LOG(ERROR) << "Receive invalid total amount " << action->total_amount_;
         action->total_amount_ = 0;
@@ -7840,11 +7844,11 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     case telegram_api::messageActionScreenshotTaken::ID:
       return make_unique<MessageScreenshotTaken>();
     case telegram_api::messageActionCustomAction::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionCustomAction>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionCustomAction>(action_ptr);
       return td::make_unique<MessageCustomServiceAction>(std::move(action->message_));
     }
     case telegram_api::messageActionBotAllowed::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionBotAllowed>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionBotAllowed>(action_ptr);
       if (action->attach_menu_) {
         return td::make_unique<MessageWriteAccessAllowed>();
       }
@@ -7862,12 +7866,12 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     }
     case telegram_api::messageActionSecureValuesSent::ID: {
       LOG_IF(ERROR, td->auth_manager_->is_bot()) << "Receive MessageActionSecureValuesSent in " << owner_dialog_id;
-      auto action = move_tl_object_as<telegram_api::messageActionSecureValuesSent>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionSecureValuesSent>(action_ptr);
       return td::make_unique<MessagePassportDataSent>(get_secure_value_types(action->types_));
     }
     case telegram_api::messageActionSecureValuesSentMe::ID: {
       LOG_IF(ERROR, !td->auth_manager_->is_bot()) << "Receive MessageActionSecureValuesSentMe in " << owner_dialog_id;
-      auto action = move_tl_object_as<telegram_api::messageActionSecureValuesSentMe>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionSecureValuesSentMe>(action_ptr);
       return td::make_unique<MessagePassportDataReceived>(
           get_encrypted_secure_values(td->file_manager_.get(), std::move(action->values_)),
           get_encrypted_secure_credentials(std::move(action->credentials_)));
@@ -7878,7 +7882,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       }
       return td::make_unique<MessageContactRegistered>();
     case telegram_api::messageActionGeoProximityReached::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionGeoProximityReached>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionGeoProximityReached>(action_ptr);
       DialogId traveler_id(action->from_id_);
       DialogId watcher_id(action->to_id_);
       int32 distance = action->distance_;
@@ -7890,7 +7894,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return make_unique<MessageProximityAlertTriggered>(traveler_id, watcher_id, distance);
     }
     case telegram_api::messageActionGroupCall::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionGroupCall>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionGroupCall>(action_ptr);
       int32 duration = -1;
       if ((action->flags_ & telegram_api::messageActionGroupCall::DURATION_MASK) != 0) {
         duration = action->duration_;
@@ -7902,7 +7906,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return make_unique<MessageGroupCall>(InputGroupCallId(action->call_), duration, -1);
     }
     case telegram_api::messageActionInviteToGroupCall::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionInviteToGroupCall>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionInviteToGroupCall>(action_ptr);
 
       vector<UserId> user_ids;
       user_ids.reserve(action->users_.size());
@@ -7918,7 +7922,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return td::make_unique<MessageInviteToGroupCall>(InputGroupCallId(action->call_), std::move(user_ids));
     }
     case telegram_api::messageActionSetMessagesTTL::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionSetMessagesTTL>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionSetMessagesTTL>(action_ptr);
       UserId from_user_id(action->auto_setting_from_);
       if (action->period_ < 0 || !(from_user_id == UserId() || from_user_id.is_valid())) {
         LOG(ERROR) << "Receive invalid " << oneline(to_string(action));
@@ -7927,7 +7931,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return make_unique<MessageChatSetTtl>(action->period_, from_user_id);
     }
     case telegram_api::messageActionGroupCallScheduled::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionGroupCallScheduled>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionGroupCallScheduled>(action_ptr);
       if (action->schedule_date_ <= 0) {
         LOG(ERROR) << "Receive wrong schedule_date = " << action->schedule_date_;
         break;
@@ -7935,7 +7939,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return make_unique<MessageGroupCall>(InputGroupCallId(action->call_), -1, action->schedule_date_);
     }
     case telegram_api::messageActionSetChatTheme::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionSetChatTheme>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionSetChatTheme>(action_ptr);
       return td::make_unique<MessageChatSetTheme>(std::move(action->emoticon_));
     }
     case telegram_api::messageActionChatJoinedByRequest::ID:
@@ -7945,7 +7949,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
         LOG(ERROR) << "Receive messageActionWebViewDataSent in " << owner_dialog_id;
         break;
       }
-      auto action = move_tl_object_as<telegram_api::messageActionWebViewDataSent>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionWebViewDataSent>(action_ptr);
       return td::make_unique<MessageWebViewDataSent>(std::move(action->text_));
     }
     case telegram_api::messageActionWebViewDataSentMe::ID: {
@@ -7953,11 +7957,11 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
         LOG(ERROR) << "Receive messageActionWebViewDataSentMe in " << owner_dialog_id;
         break;
       }
-      auto action = move_tl_object_as<telegram_api::messageActionWebViewDataSentMe>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionWebViewDataSentMe>(action_ptr);
       return td::make_unique<MessageWebViewDataReceived>(std::move(action->text_), std::move(action->data_));
     }
     case telegram_api::messageActionGiftPremium::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionGiftPremium>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionGiftPremium>(action_ptr);
       if (action->amount_ <= 0 || !check_currency_amount(action->amount_)) {
         LOG(ERROR) << "Receive invalid premium gift price " << action->amount_;
         action->amount_ = 0;
@@ -7978,12 +7982,12 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
                                                  action->months_);
     }
     case telegram_api::messageActionTopicCreate::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionTopicCreate>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionTopicCreate>(action_ptr);
       return td::make_unique<MessageTopicCreate>(std::move(action->title_),
                                                  ForumTopicIcon(action->icon_color_, action->icon_emoji_id_));
     }
     case telegram_api::messageActionTopicEdit::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionTopicEdit>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionTopicEdit>(action_ptr);
       auto edit_icon_custom_emoji_id = (action->flags_ & telegram_api::messageActionTopicEdit::ICON_EMOJI_ID_MASK) != 0;
       auto edit_is_closed = (action->flags_ & telegram_api::messageActionTopicEdit::CLOSED_MASK) != 0;
       auto edit_is_hidden = (action->flags_ & telegram_api::messageActionTopicEdit::HIDDEN_MASK) != 0;
@@ -7992,7 +7996,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
                                edit_is_closed, action->closed_, edit_is_hidden, action->hidden_});
     }
     case telegram_api::messageActionSuggestProfilePhoto::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionSuggestProfilePhoto>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionSuggestProfilePhoto>(action_ptr);
       auto photo = get_photo(td, std::move(action->photo_), owner_dialog_id);
       if (photo.is_empty()) {
         break;
@@ -8000,7 +8004,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return make_unique<MessageSuggestProfilePhoto>(std::move(photo));
     }
     case telegram_api::messageActionRequestedPeer::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionRequestedPeer>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionRequestedPeer>(action_ptr);
       vector<DialogId> shared_dialog_ids;
       for (const auto &peer : action->peers_) {
         DialogId dialog_id(peer);
@@ -8024,7 +8028,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return td::make_unique<MessageRequestedDialog>(std::move(shared_dialog_ids), action->button_id_);
     }
     case telegram_api::messageActionSetChatWallPaper::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionSetChatWallPaper>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionSetChatWallPaper>(action_ptr);
       BackgroundInfo background_info(td, std::move(action->wallpaper_), true);
       if (!background_info.is_valid()) {
         break;
@@ -8036,11 +8040,11 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return make_unique<MessageSetBackground>(reply_to_message_id, std::move(background_info), action->for_both_);
     }
     case telegram_api::messageActionGiveawayLaunch::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionGiveawayLaunch>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionGiveawayLaunch>(action_ptr);
       return td::make_unique<MessageGiveawayLaunch>(StarManager::get_star_count(action->stars_));
     }
     case telegram_api::messageActionGiftCode::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionGiftCode>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionGiftCode>(action_ptr);
       DialogId dialog_id;
       if (action->boost_peer_ != nullptr) {
         dialog_id = DialogId(action->boost_peer_);
@@ -8060,7 +8064,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
                                               std::move(action->slug_));
     }
     case telegram_api::messageActionGiveawayResults::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionGiveawayResults>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionGiveawayResults>(action_ptr);
       auto reply_to_message_id = replied_message_info.get_same_chat_reply_to_message_id(true);
       if (!reply_to_message_id.is_valid() && reply_to_message_id != MessageId()) {
         LOG(ERROR) << "Receive giveaway results message with " << reply_to_message_id << " in " << owner_dialog_id;
@@ -8071,11 +8075,11 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
                                                      StarManager::get_star_count(action->stars_));
     }
     case telegram_api::messageActionBoostApply::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionBoostApply>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionBoostApply>(action_ptr);
       return make_unique<MessageBoostApply>(max(action->boosts_, 0));
     }
     case telegram_api::messageActionRequestedPeerSentMe::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionRequestedPeerSentMe>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionRequestedPeerSentMe>(action_ptr);
       vector<SharedDialog> shared_dialogs;
       for (auto &peer : action->peers_) {
         SharedDialog shared_dialog(td, std::move(peer));
@@ -8099,7 +8103,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return td::make_unique<MessageDialogShared>(std::move(shared_dialogs), action->button_id_);
     }
     case telegram_api::messageActionPaymentRefunded::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionPaymentRefunded>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionPaymentRefunded>(action_ptr);
       if (action->total_amount_ <= 0 || !check_currency_amount(action->total_amount_)) {
         LOG(ERROR) << "Receive invalid refunded payment amount " << action->total_amount_;
         action->total_amount_ = 0;
@@ -8110,7 +8114,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
                                                      std::move(action->charge_->provider_charge_id_));
     }
     case telegram_api::messageActionGiftStars::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionGiftStars>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionGiftStars>(action_ptr);
       if (action->amount_ <= 0 || !check_currency_amount(action->amount_)) {
         LOG(ERROR) << "Receive invalid gifted star price " << action->amount_;
         action->amount_ = 0;
@@ -8129,7 +8133,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
           StarManager::get_star_count(action->stars_), std::move(action->transaction_id_));
     }
     case telegram_api::messageActionPrizeStars::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionPrizeStars>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionPrizeStars>(action_ptr);
       DialogId boosted_dialog_id = DialogId(action->boost_peer_);
       if (!boosted_dialog_id.is_valid()) {
         LOG(ERROR) << "Receive invalid " << oneline(to_string(action));
@@ -8141,7 +8145,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
           MessageId(ServerMessageId(action->giveaway_msg_id_)), action->unclaimed_);
     }
     case telegram_api::messageActionStarGift::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionStarGift>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionStarGift>(action_ptr);
       StarGift star_gift(td, std::move(action->gift_), false);
       if (!star_gift.is_valid() || star_gift.is_unique()) {
         break;
@@ -8170,7 +8174,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
           action->upgraded_, action->refunded_);
     }
     case telegram_api::messageActionStarGiftUnique::ID: {
-      auto action = move_tl_object_as<telegram_api::messageActionStarGiftUnique>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::messageActionStarGiftUnique>(action_ptr);
       StarGift star_gift(td, std::move(action->gift_), true);
       if (!star_gift.is_valid() || star_gift.is_unique() == action->refunded_) {
         break;

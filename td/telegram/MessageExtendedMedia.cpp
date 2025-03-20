@@ -68,7 +68,7 @@ void MessageExtendedMedia::init_from_media(Td *td, telegram_api::object_ptr<tele
   type_ = Type::Unsupported;
   switch (media->get_id()) {
     case telegram_api::messageMediaPhoto::ID: {
-      auto photo = move_tl_object_as<telegram_api::messageMediaPhoto>(media);
+      auto photo = telegram_api::move_object_as<telegram_api::messageMediaPhoto>(media);
       if (photo->photo_ == nullptr) {
         break;
       }
@@ -81,7 +81,7 @@ void MessageExtendedMedia::init_from_media(Td *td, telegram_api::object_ptr<tele
       break;
     }
     case telegram_api::messageMediaDocument::ID: {
-      auto document = move_tl_object_as<telegram_api::messageMediaDocument>(media);
+      auto document = telegram_api::move_object_as<telegram_api::messageMediaDocument>(media);
       if (document->document_ == nullptr) {
         break;
       }
@@ -94,7 +94,7 @@ void MessageExtendedMedia::init_from_media(Td *td, telegram_api::object_ptr<tele
       CHECK(document_id == telegram_api::document::ID);
 
       auto parsed_document = td->documents_manager_->on_get_document(
-          move_tl_object_as<telegram_api::document>(document_ptr), owner_dialog_id, false);
+          telegram_api::move_object_as<telegram_api::document>(document_ptr), owner_dialog_id, false);
       if (parsed_document.empty() || parsed_document.type != Document::Type::Video) {
         break;
       }

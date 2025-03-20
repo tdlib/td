@@ -191,7 +191,7 @@ unique_ptr<StoryContent> get_story_content(Td *td, tl_object_ptr<telegram_api::M
   CHECK(media_ptr != nullptr);
   switch (media_ptr->get_id()) {
     case telegram_api::messageMediaPhoto::ID: {
-      auto media = move_tl_object_as<telegram_api::messageMediaPhoto>(media_ptr);
+      auto media = telegram_api::move_object_as<telegram_api::messageMediaPhoto>(media_ptr);
       if (media->photo_ == nullptr || (media->flags_ & telegram_api::messageMediaPhoto::TTL_SECONDS_MASK) != 0 ||
           media->spoiler_) {
         LOG(ERROR) << "Receive a story with content " << to_string(media);
@@ -206,7 +206,7 @@ unique_ptr<StoryContent> get_story_content(Td *td, tl_object_ptr<telegram_api::M
       return make_unique<StoryContentPhoto>(std::move(photo));
     }
     case telegram_api::messageMediaDocument::ID: {
-      auto media = move_tl_object_as<telegram_api::messageMediaDocument>(media_ptr);
+      auto media = telegram_api::move_object_as<telegram_api::messageMediaDocument>(media_ptr);
       if (media->document_ == nullptr || (media->flags_ & telegram_api::messageMediaDocument::TTL_SECONDS_MASK) != 0 ||
           media->spoiler_) {
         LOG(ERROR) << "Receive a story with content " << to_string(media);
@@ -221,7 +221,7 @@ unique_ptr<StoryContent> get_story_content(Td *td, tl_object_ptr<telegram_api::M
       }
       CHECK(document_id == telegram_api::document::ID);
       auto parsed_document = td->documents_manager_->on_get_document(
-          move_tl_object_as<telegram_api::document>(document_ptr), owner_dialog_id, false, nullptr,
+          telegram_api::move_object_as<telegram_api::document>(document_ptr), owner_dialog_id, false, nullptr,
           Document::Type::Video, DocumentsManager::Subtype::Story);
       if (parsed_document.empty() || parsed_document.type != Document::Type::Video) {
         LOG(ERROR) << "Receive a story with " << parsed_document;
@@ -238,7 +238,7 @@ unique_ptr<StoryContent> get_story_content(Td *td, tl_object_ptr<telegram_api::M
         } else {
           CHECK(alt_document_id == telegram_api::document::ID);
           auto parsed_alt_document = td->documents_manager_->on_get_document(
-              move_tl_object_as<telegram_api::document>(alt_document_ptr), owner_dialog_id, false, nullptr,
+              telegram_api::move_object_as<telegram_api::document>(alt_document_ptr), owner_dialog_id, false, nullptr,
               Document::Type::Video, DocumentsManager::Subtype::Story);
           if (parsed_alt_document.empty() || parsed_alt_document.type != Document::Type::Video) {
             LOG(ERROR) << "Receive invalid alternative document " << parsed_alt_document;

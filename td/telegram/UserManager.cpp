@@ -2957,10 +2957,7 @@ void UserManager::on_update_user_photo(User *u, UserId user_id,
       }
       if (photo != nullptr && photo->get_id() == telegram_api::userProfilePhoto::ID) {
         auto *profile_photo = static_cast<telegram_api::userProfilePhoto *>(photo.get());
-        if ((profile_photo->flags_ & telegram_api::userProfilePhoto::STRIPPED_THUMB_MASK) != 0) {
-          profile_photo->flags_ -= telegram_api::userProfilePhoto::STRIPPED_THUMB_MASK;
-          profile_photo->stripped_thumb_ = BufferSlice();
-        }
+        profile_photo->stripped_thumb_.clear();
       }
 
       old_photo = std::move(photo);

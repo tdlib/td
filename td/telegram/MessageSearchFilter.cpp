@@ -33,10 +33,9 @@ tl_object_ptr<telegram_api::MessagesFilter> get_input_messages_filter(MessageSea
     case MessageSearchFilter::ChatPhoto:
       return make_tl_object<telegram_api::inputMessagesFilterChatPhotos>();
     case MessageSearchFilter::Call:
-      return make_tl_object<telegram_api::inputMessagesFilterPhoneCalls>(0, false /*ignored*/);
+      return make_tl_object<telegram_api::inputMessagesFilterPhoneCalls>(0, false);
     case MessageSearchFilter::MissedCall:
-      return make_tl_object<telegram_api::inputMessagesFilterPhoneCalls>(
-          telegram_api::inputMessagesFilterPhoneCalls::MISSED_MASK, false /*ignored*/);
+      return make_tl_object<telegram_api::inputMessagesFilterPhoneCalls>(0, true);
     case MessageSearchFilter::VideoNote:
       return make_tl_object<telegram_api::inputMessagesFilterRoundVideo>();
     case MessageSearchFilter::VoiceAndVideoNote:

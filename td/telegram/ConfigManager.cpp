@@ -1225,12 +1225,13 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   }
   if (is_from_main_dc) {
     options.set_option_integer("webfile_dc_id", config->webfile_dc_id_);
-    if ((config->flags_ & telegram_api::config::TMP_SESSIONS_MASK) != 0 && config->tmp_sessions_ > 1) {
+    if (config->tmp_sessions_ > 1) {
       options.set_option_integer("session_count", config->tmp_sessions_);
     } else {
       options.set_option_empty("session_count");
     }
-    if ((config->flags_ & telegram_api::config::SUGGESTED_LANG_CODE_MASK) != 0) {
+    if (!config->suggested_lang_code_.empty() || config->lang_pack_version_ > 0 ||
+        config->base_lang_pack_version_ > 0) {
       options.set_option_string("suggested_language_pack_id", config->suggested_lang_code_);
       options.set_option_integer("language_pack_version", config->lang_pack_version_);
       options.set_option_integer("base_language_pack_version", config->base_lang_pack_version_);
