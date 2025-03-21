@@ -4256,6 +4256,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::viewSponsoredChat>(to_integer<int64>(args)));
     } else if (op == "osc") {
       send_request(td_api::make_object<td_api::openSponsoredChat>(to_integer<int64>(args)));
+    } else if (op == "rsc") {
+      int64 unique_id;
+      string option_id;
+      get_args(args, unique_id, option_id);
+      send_request(td_api::make_object<td_api::reportSponsoredChat>(unique_id, option_id));
     } else if (op == "gmlink") {
       ChatId chat_id;
       MessageId message_id;

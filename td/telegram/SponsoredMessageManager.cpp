@@ -677,4 +677,15 @@ void SponsoredMessageManager::open_sponsored_dialog(int64 local_id, Promise<Unit
   td_->create_handler<ClickSponsoredMessageQuery>(std::move(promise))->send(it->second->random_id_, false, false);
 }
 
+void SponsoredMessageManager::report_sponsored_dialog(
+    int64 local_id, const string &option_id,
+    Promise<td_api::object_ptr<td_api::ReportChatSponsoredMessageResult>> &&promise) {
+  auto it = dialog_infos_.find(local_id);
+  if (it == dialog_infos_.end()) {
+    return promise.set_value(td_api::make_object<td_api::reportChatSponsoredMessageResultFailed>());
+  }
+
+  td_->create_handler<ReportSponsoredMessageQuery>(std::move(promise))->send(it->second->random_id_, option_id);
+}
+
 }  // namespace td
