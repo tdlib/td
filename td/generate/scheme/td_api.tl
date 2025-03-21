@@ -2232,22 +2232,22 @@ sponsoredChats chats:vector<sponsoredChat> = SponsoredChats;
 reportOption id:bytes text:string = ReportOption;
 
 
-//@class ReportChatSponsoredMessageResult @description Describes result of sponsored message report
+//@class ReportSponsoredResult @description Describes result of sponsored message or chat report
 
 //@description The message was reported successfully
-reportChatSponsoredMessageResultOk = ReportChatSponsoredMessageResult;
+reportSponsoredResultOk = ReportSponsoredResult;
 
 //@description The sponsored message is too old or not found
-reportChatSponsoredMessageResultFailed = ReportChatSponsoredMessageResult;
+reportSponsoredResultFailed = ReportSponsoredResult;
 
 //@description The user must choose an option to report the message and repeat request with the chosen option @title Title for the option choice @options List of available options
-reportChatSponsoredMessageResultOptionRequired title:string options:vector<reportOption> = ReportChatSponsoredMessageResult;
+reportSponsoredResultOptionRequired title:string options:vector<reportOption> = ReportSponsoredResult;
 
 //@description Sponsored messages were hidden for the user in all chats
-reportChatSponsoredMessageResultAdsHidden = ReportChatSponsoredMessageResult;
+reportSponsoredResultAdsHidden = ReportSponsoredResult;
 
 //@description The user asked to hide sponsored messages, but Telegram Premium is required for this
-reportChatSponsoredMessageResultPremiumRequired = ReportChatSponsoredMessageResult;
+reportSponsoredResultPremiumRequired = ReportSponsoredResult;
 
 
 //@description Describes a file added to file download list
@@ -9392,7 +9392,7 @@ clickChatSponsoredMessage chat_id:int53 message_id:int53 is_media_click:Bool fro
 //@chat_id Chat identifier of the sponsored message
 //@message_id Identifier of the sponsored message
 //@option_id Option identifier chosen by the user; leave empty for the initial request
-reportChatSponsoredMessage chat_id:int53 message_id:int53 option_id:bytes = ReportChatSponsoredMessageResult;
+reportChatSponsoredMessage chat_id:int53 message_id:int53 option_id:bytes = ReportSponsoredResult;
 
 //@description Returns sponsored chats to be shown in the search results @query Query the user searches for
 getSearchSponsoredChats query:string = SponsoredChats;
@@ -9406,7 +9406,7 @@ openSponsoredChat sponsored_chat_unique_id:int53 = Ok;
 //@description Reports a sponsored chat to Telegram moderators
 //@sponsored_chat_unique_id Unique identifier of the sponsored chat
 //@option_id Option identifier chosen by the user; leave empty for the initial request
-reportSponsoredChat sponsored_chat_unique_id:int53 option_id:bytes = ReportChatSponsoredMessageResult;
+reportSponsoredChat sponsored_chat_unique_id:int53 option_id:bytes = ReportSponsoredResult;
 
 
 //@description Removes an active notification from notification list. Needs to be called only if the notification is removed by the current user @notification_group_id Identifier of notification group to which the notification belongs @notification_id Identifier of removed notification

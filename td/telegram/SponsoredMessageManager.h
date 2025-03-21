@@ -41,7 +41,7 @@ class SponsoredMessageManager final : public Actor {
                                bool from_fullscreen, Promise<Unit> &&promise);
 
   void report_sponsored_message(DialogId dialog_id, MessageId sponsored_message_id, const string &option_id,
-                                Promise<td_api::object_ptr<td_api::ReportChatSponsoredMessageResult>> &&promise);
+                                Promise<td_api::object_ptr<td_api::ReportSponsoredResult>> &&promise);
 
   void get_search_sponsored_dialogs(const string &query, Promise<td_api::object_ptr<td_api::sponsoredChats>> &&promise);
 
@@ -50,7 +50,7 @@ class SponsoredMessageManager final : public Actor {
   void open_sponsored_dialog(int64 local_id, Promise<Unit> &&promise);
 
   void report_sponsored_dialog(int64 local_id, const string &option_id,
-                               Promise<td_api::object_ptr<td_api::ReportChatSponsoredMessageResult>> &&promise);
+                               Promise<td_api::object_ptr<td_api::ReportSponsoredResult>> &&promise);
 
  private:
   struct SponsoredContentInfo;

@@ -117,10 +117,10 @@ class ClickSponsoredMessageQuery final : public Td::ResultHandler {
 };
 
 class ReportSponsoredMessageQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::ReportChatSponsoredMessageResult>> promise_;
+  Promise<td_api::object_ptr<td_api::ReportSponsoredResult>> promise_;
 
  public:
-  explicit ReportSponsoredMessageQuery(Promise<td_api::object_ptr<td_api::ReportChatSponsoredMessageResult>> &&promise)
+  explicit ReportSponsoredMessageQuery(Promise<td_api::object_ptr<td_api::ReportSponsoredResult>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -139,21 +139,21 @@ class ReportSponsoredMessageQuery final : public Td::ResultHandler {
     LOG(DEBUG) << "Receive result for ReportSponsoredMessageQuery: " << to_string(ptr);
     switch (ptr->get_id()) {
       case telegram_api::channels_sponsoredMessageReportResultReported::ID:
-        return promise_.set_value(td_api::make_object<td_api::reportChatSponsoredMessageResultOk>());
+        return promise_.set_value(td_api::make_object<td_api::reportSponsoredResultOk>());
       case telegram_api::channels_sponsoredMessageReportResultAdsHidden::ID:
-        return promise_.set_value(td_api::make_object<td_api::reportChatSponsoredMessageResultAdsHidden>());
+        return promise_.set_value(td_api::make_object<td_api::reportSponsoredResultAdsHidden>());
       case telegram_api::channels_sponsoredMessageReportResultChooseOption::ID: {
         auto options =
             telegram_api::move_object_as<telegram_api::channels_sponsoredMessageReportResultChooseOption>(ptr);
         if (options->options_.empty()) {
-          return promise_.set_value(td_api::make_object<td_api::reportChatSponsoredMessageResultFailed>());
+          return promise_.set_value(td_api::make_object<td_api::reportSponsoredResultFailed>());
         }
         vector<td_api::object_ptr<td_api::reportOption>> report_options;
         for (auto &option : options->options_) {
           report_options.push_back(
               td_api::make_object<td_api::reportOption>(option->option_.as_slice().str(), option->text_));
         }
-        return promise_.set_value(td_api::make_object<td_api::reportChatSponsoredMessageResultOptionRequired>(
+        return promise_.set_value(td_api::make_object<td_api::reportSponsoredResultOptionRequired>(
             options->title_, std::move(report_options)));
       }
       default:
@@ -163,10 +163,10 @@ class ReportSponsoredMessageQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     if (status.message() == "AD_EXPIRED") {
-      return promise_.set_value(td_api::make_object<td_api::reportChatSponsoredMessageResultFailed>());
+      return promise_.set_value(td_api::make_object<td_api::reportSponsoredResultFailed>());
     }
     if (status.message() == "PREMIUM_ACCOUNT_REQUIRED") {
-      return promise_.set_value(td_api::make_object<td_api::reportChatSponsoredMessageResultPremiumRequired>());
+      return promise_.set_value(td_api::make_object<td_api::reportSponsoredResultPremiumRequired>());
     }
     promise_.set_error(std::move(status));
   }
@@ -539,17 +539,17 @@ void SponsoredMessageManager::click_sponsored_message(DialogId dialog_id, Messag
 
 void SponsoredMessageManager::report_sponsored_message(
     DialogId dialog_id, MessageId sponsored_message_id, const string &option_id,
-    Promise<td_api::object_ptr<td_api::ReportChatSponsoredMessageResult>> &&promise) {
+    Promise<td_api::object_ptr<td_api::ReportSponsoredResult>> &&promise) {
   if (!dialog_id.is_valid() || !sponsored_message_id.is_valid_sponsored()) {
     return promise.set_error(Status::Error(400, "Invalid message specified"));
   }
   auto it = dialog_sponsored_messages_.find(dialog_id);
   if (it == dialog_sponsored_messages_.end()) {
-    return promise.set_value(td_api::make_object<td_api::reportChatSponsoredMessageResultFailed>());
+    return promise.set_value(td_api::make_object<td_api::reportSponsoredResultFailed>());
   }
   auto random_id_it = it->second->message_infos.find(sponsored_message_id.get());
   if (random_id_it == it->second->message_infos.end()) {
-    return promise.set_value(td_api::make_object<td_api::reportChatSponsoredMessageResultFailed>());
+    return promise.set_value(td_api::make_object<td_api::reportSponsoredResultFailed>());
   }
 
   td_->create_handler<ReportSponsoredMessageQuery>(std::move(promise))
@@ -678,11 +678,10 @@ void SponsoredMessageManager::open_sponsored_dialog(int64 local_id, Promise<Unit
 }
 
 void SponsoredMessageManager::report_sponsored_dialog(
-    int64 local_id, const string &option_id,
-    Promise<td_api::object_ptr<td_api::ReportChatSponsoredMessageResult>> &&promise) {
+    int64 local_id, const string &option_id, Promise<td_api::object_ptr<td_api::ReportSponsoredResult>> &&promise) {
   auto it = dialog_infos_.find(local_id);
   if (it == dialog_infos_.end()) {
-    return promise.set_value(td_api::make_object<td_api::reportChatSponsoredMessageResultFailed>());
+    return promise.set_value(td_api::make_object<td_api::reportSponsoredResultFailed>());
   }
 
   td_->create_handler<ReportSponsoredMessageQuery>(std::move(promise))->send(it->second->random_id_, option_id);
