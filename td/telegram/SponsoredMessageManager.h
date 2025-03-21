@@ -47,6 +47,8 @@ class SponsoredMessageManager final : public Actor {
 
   void view_sponsored_dialog(int64 local_id, Promise<Unit> &&promise);
 
+  void open_sponsored_dialog(int64 local_id, Promise<Unit> &&promise);
+
  private:
   struct SponsoredContentInfo;
   struct SponsoredMessage;

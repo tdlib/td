@@ -667,4 +667,14 @@ void SponsoredMessageManager::view_sponsored_dialog(int64 local_id, Promise<Unit
   td_->create_handler<ViewSponsoredMessageQuery>()->send(it->second->random_id_);
 }
 
+void SponsoredMessageManager::open_sponsored_dialog(int64 local_id, Promise<Unit> &&promise) {
+  auto it = dialog_infos_.find(local_id);
+  if (it == dialog_infos_.end() || it->second->is_clicked_) {
+    return promise.set_value(Unit());
+  }
+
+  it->second->is_clicked_ = true;
+  td_->create_handler<ClickSponsoredMessageQuery>(std::move(promise))->send(it->second->random_id_, false, false);
+}
+
 }  // namespace td

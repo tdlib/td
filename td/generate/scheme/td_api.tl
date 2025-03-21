@@ -9400,6 +9400,9 @@ getSearchSponsoredChats query:string = SponsoredChats;
 //@description Informs TDLib that the user fully viewed a sponsored chat @sponsored_chat_unique_id Unique identifier of the sponsored chat
 viewSponsoredChat sponsored_chat_unique_id:int53 = Ok;
 
+//@description Informs TDLib that the user opened a sponsored chat @sponsored_chat_unique_id Unique identifier of the sponsored chat
+openSponsoredChat sponsored_chat_unique_id:int53 = Ok;
+
 
 //@description Removes an active notification from notification list. Needs to be called only if the notification is removed by the current user @notification_group_id Identifier of notification group to which the notification belongs @notification_id Identifier of removed notification
 removeNotification notification_group_id:int32 notification_id:int32 = Ok;
