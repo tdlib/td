@@ -45,6 +45,8 @@ class SponsoredMessageManager final : public Actor {
 
   void get_search_sponsored_dialogs(const string &query, Promise<td_api::object_ptr<td_api::sponsoredChats>> &&promise);
 
+  void view_sponsored_dialog(int64 local_id, Promise<Unit> &&promise);
+
  private:
   struct SponsoredContentInfo;
   struct SponsoredMessage;

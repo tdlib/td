@@ -2578,6 +2578,12 @@ void Requests::on_request(uint64 id, td_api::getSearchSponsoredChats &request) {
   td_->sponsored_message_manager_->get_search_sponsored_dialogs(request.query_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::viewSponsoredChat &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->sponsored_message_manager_->view_sponsored_dialog(request.sponsored_chat_unique_id_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getMessageThread &request) {
   CHECK_IS_USER();
   CREATE_REQUEST(GetMessageThreadRequest, request.chat_id_, request.message_id_);

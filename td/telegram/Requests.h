@@ -277,6 +277,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::getSearchSponsoredChats &request);
 
+  void on_request(uint64 id, const td_api::viewSponsoredChat &request);
+
   void on_request(uint64 id, const td_api::getMessageLink &request);
 
   void on_request(uint64 id, const td_api::getMessageEmbeddingCode &request);
